@@ -10,15 +10,15 @@ A spec is the contract a change is checked against: sigs, facts, and one `check`
 ## 1. Find what the repo has
 
 ```sh
-git ls-files '*.als'
 command -v alloy
+git ls-files '*.als'
 ```
 
-| found | do |
+| found, in this order | do |
 | --- | --- |
+| no `alloy` on PATH | say so and stop before writing anything; never check a model by reading it |
 | `*.als` files | use their layout; read the model covering the change |
 | none | initialise `spec/<module>/system.als`, and tell the owner "no spec layout found; initialised `spec/<module>/system.als`" |
-| no `alloy` on PATH | say so and stop; never check a model by reading it |
 
 ## 2. Write or edit the model
 
@@ -53,7 +53,7 @@ alloy exec -f -q -o "$out" spec/<module>/system.als && ls "$out"
 | nothing, and a non-zero exit | the model did not parse; read the error |
 
 - A counterexample is a defect in the design or the code. Fix that; never loosen a fact or shrink the scope to silence it.
-- Before trusting an `UNSAT`, break the invariant once and watch the `check` find the counterexample, then restore it.
+- Before trusting a check that wrote no solution file, break the invariant once and watch the `check` find the counterexample, then restore it.
 - Re-run every `check` in the file after each edit.
 
 ## 4. Map model to code

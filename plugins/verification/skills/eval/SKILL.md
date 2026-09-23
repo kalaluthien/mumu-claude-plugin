@@ -18,7 +18,7 @@ description: Use when the project is a Claude plugin or an LLM app and a prompt,
 | `promptfooconfig.yaml` | `npx promptfoo eval` |
 | another harness in `evals/` or the test runner | use it |
 
-If none is found, initialise `evals/` for the project's kind, and tell the owner "no eval layout found; initialised `evals/` for <runner>".
+If none is found, initialise `evals/` — a plugin: `claude plugin eval init --bare <case>` in the plugin directory; an app: `npx promptfoo init` — and tell the owner "no eval layout found; initialised `evals/` for <runner>".
 
 ## 2. Write a case
 
