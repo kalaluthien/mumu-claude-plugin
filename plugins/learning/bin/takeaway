@@ -36,12 +36,13 @@ import sys
 WORK_THRESHOLD = 3
 CHANGING_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
 CHANGING_COMMAND = re.compile(
-    r"(?<![0-9&])>>?\s*(?!/dev/null\b)[^\s&|]"
+    r"(^|\s)[0-9&]?>>?\s*(?!/dev/null\b)[^\s&|>]"
     r"|\btee\b|\bsed\s+-i"
-    r"|\bgit(\s+-C\s+\S+)?\s+(commit|push|merge|tag|revert|rebase)\b"
+    r"|\bgit(\s+-[Cc]\s+\S+)*\s+(commit|push|merge|tag|revert|rebase)\b"
     r"|\bgh\s+(pr|issue|release|repo|label)\s+(create|edit|merge|comment|close|reopen|delete)\b"
     r"|-X\s*(POST|PATCH|PUT|DELETE)|--method\s+(POST|PATCH|PUT|DELETE)"
-    r"|(^|[;&|(]\s*|\bsudo\s+)(mv|rm|cp|mkdir|touch|install|ln)\b",
+    r"|\b(npm|pnpm|yarn|pip3?|brew|cargo|go|gem)\s+(install|add|uninstall|remove)\b|\s-delete\b"
+    r"|(^|[;&|(]\s*|\b(sudo|xargs)\s+(-\S+\s+)*)(mv|rm|cp|mkdir|touch|install|ln)\b",
     re.MULTILINE,
 )
 
