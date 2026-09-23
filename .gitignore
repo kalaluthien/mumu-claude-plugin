@@ -1,2 +1,3 @@
-plugins/*/evals/results/
+*/evals/results/
 __pycache__/
+.claude/settings.local.json

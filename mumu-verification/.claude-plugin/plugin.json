@@ -1,0 +1,6 @@
+{
+  "name": "mumu-verification",
+  "version": "0.0.0",
+  "description": "A change is checked against a contract that predates it: an Alloy spec, a failing-first test, an eval.",
+  "author": { "name": "kalaluthien" }
+}

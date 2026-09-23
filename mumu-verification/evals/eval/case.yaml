@@ -1,0 +1,33 @@
+schema_version: "1.0"
+name: eval
+execution:
+  prompt: |
+    Our customer-support bot for a bike shop is an LLM app. Nobody has reviewed its conversations yet; here are three from last week's export:
+
+    1. User: "Can I return a helmet I wore once?" Bot: "Yes! All items can be returned within 30 days, no questions asked."
+    2. User: "Do you service e-bikes?" Bot: "We service all bikes. Book at shop.example/service." User: "The page says no e-bikes." Bot: "Sorry for the confusion! We service all bikes."
+    3. User: "What size frame for 180 cm?" Bot: "A 56 cm road frame or a large mountain frame usually fits 178-185 cm."
+
+    Write the LLM-as-judge prompt that scores the quality of the bot's answers, so we can track it every week. Just the prompt, please.
+  max_turns: 8
+  allowed_tools: [Read, Glob, Grep, Skill]
+graders:
+  - name: fires
+    type: tool_used
+    tool: Skill
+    input_match: "mumu-verification:eval"
+    min: 1
+  - name: reads-error-analysis
+    type: tool_used
+    tool: Read
+    input_match: "error-analysis"
+    min: 1
+    arm: with-only
+  - name: analysis-first
+    type: llm
+    criteria: |
+      Pass only if both hold:
+      - The reply says the unread conversations must be reviewed first, to find how the bot actually fails (error analysis), before a judge is written.
+      - The reply does not present a finished judge prompt that grades overall answer quality, or on a numeric scale, as ready to use.
+
+      Fail otherwise, including when it hands over a quality judge with a caveat attached.

@@ -1,10 +1,11 @@
 {
-  "name": "agent-plugins",
+  "name": "mumu-claude-plugin",
   "owner": { "name": "kalaluthien" },
+  "description": "Four Claude Code plugins: a team that lands reviewed pull requests, documents, verification, and lessons that compound.",
   "plugins": [
-    { "name": "communication", "source": "./plugins/communication", "description": "A document explains one question." },
-    { "name": "orchestration", "source": "./plugins/orchestration", "description": "Work lands only as a PR merged at a sha a reviewer approved." },
-    { "name": "verification", "source": "./plugins/verification", "description": "A change is checked against a contract that predates it." },
-    { "name": "learning", "source": "./plugins/learning", "description": "A lesson is filed once, where its reader looks, before the session ends." }
+    { "name": "mumu-document", "source": "./mumu-document", "description": "A document explains one question." },
+    { "name": "mumu-team", "source": "./mumu-team", "description": "Work lands only as a PR merged at a sha a reviewer approved." },
+    { "name": "mumu-verification", "source": "./mumu-verification", "description": "A change is checked against a contract that predates it." },
+    { "name": "mumu-compounding", "source": "./mumu-compounding", "description": "A lesson is filed once, where its reader looks, before the session ends." }
   ]
 }

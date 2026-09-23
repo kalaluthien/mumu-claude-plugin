@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Before changing what code does, load the matching mumu-verification skill, even when the request asks only for the change.'"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "mumu-compounding",
+  "version": "0.0.0",
+  "description": "A lesson is filed once, where its reader looks, before the session ends.",
+  "author": {
+    "name": "kalaluthien"
+  },
+  "hooks": {
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/bin/takeaway.py" } ] }
+    ]
+  }
+}
