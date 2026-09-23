@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 """Refuse a `gh pr merge` that is not pinned to a sha a reviewer approved.
 
-PreToolUse hook on Bash. A `gh pr merge` anywhere in the command -- after a
-newline, an env prefix, a wrapper such as `rtk`, or inside `( )` / `$( )` --
-or in the body of a `-c '...'`, a shell's `<<< '...'` or `eval '...'` -- passes only when it carries
-`--match-head-commit <sha>`, that sha is the PR's head, and the PR holds a
-comment or a review whose first line is `Approved <sha>`. A payload that cannot
-be read, a command that cannot be lexed yet reads `gh ... merge`, and a PR that
-cannot be read are refused (exit 2). A command without `merge` exits 0 unread;
-`pr merge` inside a quoted message or search is not a merge, but one in a
-heredoc body is, since a shell may run the body. It reads a merge written as
-a command; one a shell reads from a pipe or builds from variables is not seen,
-since only running the command would tell.
+PreToolUse hook on Bash. Every `pr merge` in the command's text must be a
+`gh ... pr merge` the lexer reads as a command of its own -- after a newline,
+`;`, `&&`, `|`, `(` or an env prefix or wrapper such as `rtk` -- and each passes
+only when it carries `--match-head-commit <sha>`, that sha is the PR's head,
+and the PR holds a comment or a review whose first line is `Approved <sha>`.
+Any other `pr merge` -- inside `bash -c`, `eval`, a heredoc or here-string, a
+quoted message, or a command that cannot be lexed -- is refused, since text
+cannot tell a merge a shell will run from one it will not; write such text with
+a file tool. A merge built from variables is not seen. A payload or a PR that
+cannot be read is refused too (exit 2); a command without `merge` exits 0 unread.
 """
 import json
 import os
@@ -21,7 +20,7 @@ import subprocess
 import sys
 
 SEPARATORS = set(";&|()\n")
-SHELLS = {"sh", "bash", "zsh", "dash"}
+MENTION = re.compile(r"\bpr\b(?:[\s\\]+(?:-R|--repo)(?:[\s\\]+|=)\S+)?[\s\\]+merge\b")
 
 
 def refuse(reason):
@@ -31,23 +30,16 @@ def refuse(reason):
 
 def merges(command):
     """Yield (global repo, args after `pr merge`) for each `gh ... pr merge` found."""
-    joined = re.sub(r"(?<!\\)((?:\\\\)*)\\\n", r"\1", command)  # a line continuation, not an escaped backslash
-    lexer = shlex.shlex(joined, posix=True, punctuation_chars=";&|()\n")
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|()\n")
     lexer.whitespace = " \t\r"
     lexer.whitespace_split = True
-    segment, previous = [], None
+    segment = []
     for word in list(lexer) + [";"]:
         if word and set(word) <= SEPARATORS:
             yield from gh_merge(segment)
             segment = []
         else:
-            shell = any(os.path.basename(w) in SHELLS for w in segment)
-            fed = previous == "<<<" and os.path.basename(segment[0]) in SHELLS
-            if previous == "eval" or fed or shell and re.fullmatch(r"-[A-Za-z]*c", previous or ""):
-                # the body of `bash -c '...'`, `sh -ec '...'`, `bash <<< '...'` or `eval '...'` is a command of its own
-                yield from merges(word)
             segment.append(word)
-        previous = word
 
 
 def gh_merge(words):
@@ -128,9 +120,9 @@ except (ValueError, KeyError, TypeError) as err:
     refuse(f"could not read the payload ({type(err).__name__}: {err})")
 try:
     found = list(merges(command))
-except ValueError as err:  # an unclosed quote
-    if re.search(r"\bgh\b[^;&|\n]*\bmerge\b", command):
-        refuse(f"could not lex the command ({err}); run `gh pr merge` on its own line")
-    sys.exit(0)
+except ValueError:  # an unclosed quote
+    found = []
+if len(found) < len(MENTION.findall(command)):
+    refuse("a `pr merge` in this command is not a command of its own; run `gh pr merge` on its own line, and write text naming it with a file tool")
 for repo, args in found:
     check(repo, args, cwd)
