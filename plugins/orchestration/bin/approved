@@ -34,7 +34,6 @@ SEPARATORS = set(";&|()\n")
 DESCRIPTOR = re.compile(r"(^|[\s;&|()])(?:\d+|\{\w+\})(?=[<>])")
 QUOTING = re.compile(r"[\"'\\]")
 MENTION = re.compile(r"\bpr\b[\s\S]*?\bmerge\b")
-BYPASS = re.compile(r"--no-v|core\.hookspath|\bgit\b[\s\S]*?\bcommit\b[\s\S]*?\s-[a-z]*n", re.I)  # in text that cannot be lexed
 HOOKS_PATH = re.compile(r"(^|[='\"])core\.hookspath(['\"]?=|['\"]?$)", re.I)  # `-c k=v`, `KEY_0=k`, `'k'=v`
 
 
@@ -172,6 +171,14 @@ def bypasses(words):
     return False
 
 
+def bypass_text(text):
+    """In text that cannot be lexed: `--no-v`, `core.hookspath`, or a `-...n` flag after `git ... commit`, in linear time."""
+    text = QUOTING.sub("", text.replace("\\\n", "")).lower()
+    git = re.search(r"\bgit\b", text)
+    commit = git and re.compile(r"\bcommit\b").search(text, git.end())
+    return "--no-v" in text or "core.hookspath" in text or bool(commit and re.compile(r"\s-[a-z]*n").search(text, commit.end()))
+
+
 def check(args, cwd):
     url, sha = target(args)
     view = ["gh", "pr", "view", url, "--json", "headRefOid,comments,reviews"]
@@ -214,7 +221,7 @@ try:
             readings.append(list(segments(command, join)))
         except ValueError:  # an unclosed quote: bash still runs every line before it
             readings.append(None)
-    if None in readings and BYPASS.search(QUOTING.sub("", command.replace("\\\n", ""))) or \
+    if None in readings and bypass_text(command) or \
             any(bypasses(words) for reading in readings if reading for words in reading):
         refuse("hook bypass refused: fix what the hook refused, or BLOCKED the owner")
     merges = []
