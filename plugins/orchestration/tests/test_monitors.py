@@ -27,10 +27,11 @@ MISSION = LEAD + f"Worker: a-7 {URL}\n"
 
 def run(states, stuck_after=1800):
     """Feed one herdr status per tick (None: not listed) to worker-watch's step; return each tick's lines and due names."""
-    state, out = {}, []
+    state, words, out = {}, {}, []
     for now, word in states:
         agents = {} if word is None else {"a-7": word}
-        state, lines, due = watch.step(state, {"a-7": URL}, agents, now, stuck_after)
+        words = watch.team.words(words, {"a-7": URL}, agents)
+        state, lines, due = watch.step(state, {"a-7": URL}, words, now, stuck_after)
         out.append((lines, due))
     return out
 
@@ -89,24 +90,36 @@ class HeartbeatStep(unittest.TestCase):
         self.assertEqual(beats([(0, True), (9999, True)]), [False, False])
 
 
-class Mission(unittest.TestCase):
+class Team(unittest.TestCase):
     def test_reading(self):
         read = lead.team.read_mission
         self.assertEqual(read(MISSION), (PARENT, {"a-7": URL}))
+        self.assertEqual(read(MISSION + "Worker: half\n"), (PARENT, {"a-7": URL}))
         self.assertEqual(read(LEAD), (PARENT, {}))
         self.assertIsNone(read(f"Goal: g\nMission: worker on {URL}\n"))
+
+    def test_words_hold_the_last_word_on_unknown_for_both_monitors(self):
+        words = lead.team.words
+        workers = {"a-7": URL, "b-8": URL}
+        self.assertEqual(words({}, workers, {"a-7": "unknown"}), {"a-7": "working", "b-8": "gone"})
+        self.assertEqual(words({"a-7": "idle"}, workers, {"a-7": "unknown", "b-8": "done"}), {"a-7": "idle", "b-8": "idle"})
 
 
 class Scripts(unittest.TestCase):
     """The loops, run with a fake `herdr` and `gh` on PATH and every threshold at zero."""
 
-    def launch(self, script, mission, herdr_status, issue_state="OPEN"):
-        tmp = pathlib.Path(tempfile.mkdtemp())
+    def launch(self, script, mission, herdr_status, issue_state="OPEN", then=None):
+        """Fake herdr answers `herdr_status` first and `then` (default the same) from its second call on."""
+        tmp = self.tmp = pathlib.Path(tempfile.mkdtemp())
         (tmp / "mission").mkdir()
         if mission is not None:
             (tmp / "mission" / "s1.md").write_text(mission)
-        agents = [] if herdr_status is None else [{"name": "a-7", "agent_status": herdr_status}]
-        (tmp / "herdr").write_text("#!/bin/sh\necho '%s'\n" % json.dumps({"result": {"agents": agents}}))
+        def listing(word):
+            agents = [] if word is None else [{"name": "a-7", "agent_status": word}]
+            return json.dumps({"result": {"agents": agents}})
+        (tmp / "herdr").write_text(
+            f"#!/bin/sh\nif [ -e {tmp}/herdr-called ]; then echo '{listing(then or herdr_status)}'; "
+            f"else touch {tmp}/herdr-called; echo '{listing(herdr_status)}'; fi\n")
         (tmp / "gh").write_text(f"#!/bin/sh\necho {issue_state}\n")
         for f in ("herdr", "gh"):
             (tmp / f).chmod(0o755)
@@ -129,9 +142,15 @@ class Scripts(unittest.TestCase):
             self.assertEqual(proc.wait(timeout=5), 0, script)
             self.assertEqual(proc.stdout.read(), "", script)
 
-    def test_no_mission_prints_nothing(self):
+    def test_no_mission_prints_nothing_and_asks_no_herdr(self):
         for script in ("worker-watch", "lead-heartbeat"):
-            self.assertEqual(self.lines(self.launch(script, None, "blocked")), [], script)
+            proc = self.launch(script, None, "blocked")
+            self.assertEqual(self.lines(proc), [], script)
+            self.assertFalse((self.tmp / "herdr-called").exists(), script)
+
+    def test_heartbeat_holds_a_working_worker_through_unknown(self):
+        proc = self.launch("lead-heartbeat", MISSION, "working", then="unknown")
+        self.assertEqual(self.lines(proc), [])
 
     def test_working_prints_nothing(self):
         for script in ("worker-watch", "lead-heartbeat"):

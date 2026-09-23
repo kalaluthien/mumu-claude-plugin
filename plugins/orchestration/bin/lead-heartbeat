@@ -14,8 +14,6 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
 import team  # noqa: E402
 
-REPEAT = 3600
-
 
 def step(state, working, now, after):
     """Next state `(quiet since, printed at)` and whether to print, from whether any worker works."""
@@ -23,7 +21,7 @@ def step(state, working, now, after):
     if working:
         return (None, None), False
     since = now if since is None else since
-    due = now - since >= after and (printed is None or now - printed >= REPEAT)
+    due = now - since >= after and (printed is None or now - printed >= team.REPEAT)
     return (since, now if due else printed), due
 
 
@@ -31,9 +29,9 @@ def main():
     after = float(os.environ.get("LEAD_HEARTBEAT_AFTER", 1200))
     state = (None, None)
 
-    def tick(parent, workers, agents, now):
+    def tick(parent, workers, words, now):
         nonlocal state
-        state, due = step(state, any(agents.get(name) == "working" for name in workers), now, after)
+        state, due = step(state, "working" in words.values(), now, after)
         return [f"lead-heartbeat: team idle {int((now - state[0]) // 60)}m, mission {parent}"] if due else []
 
     team.poll(sys.argv[1], tick)

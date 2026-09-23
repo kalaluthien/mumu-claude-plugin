@@ -15,24 +15,21 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
 import team  # noqa: E402
 
-REPEAT = 3600
-WORD = {"blocked": "blocked", "idle": "idle", "done": "idle", "working": "working"}
 
-
-def step(state, workers, agents, now, stuck_after):
-    """Next state, lines to print, and names due a `stuck` check, from herdr's `{name: agent_status}`.
+def step(state, workers, words, now, stuck_after):
+    """Next state, lines to print, and names due a `stuck` check, from each worker's word (`team.words`).
 
     A state is `{name: (word, idle since, stuck checked at)}`; a worker not yet
-    seen starts as working, and `unknown` keeps the last word.
+    seen starts as working.
     """
     new, lines, due = {}, [], []
     for name, url in workers.items():
         word, since, checked = state.get(name, ("working", None, None))
-        now_word = WORD.get(agents[name], word) if name in agents else "gone"
+        now_word = words[name]
         if now_word != word:
             lines.append(f"{now_word} {name} {url}")
             since, checked = (now if now_word == "idle" else None), None
-        if now_word == "idle" and now - since >= stuck_after and (checked is None or now - checked >= REPEAT):
+        if now_word == "idle" and now - since >= stuck_after and (checked is None or now - checked >= team.REPEAT):
             due.append(name)
             checked = now
         new[name] = (now_word, since, checked)
@@ -48,9 +45,9 @@ def main():
     stuck_after = float(os.environ.get("WORKER_WATCH_STUCK_AFTER", 1800))
     state = {}
 
-    def tick(parent, workers, agents, now):
+    def tick(parent, workers, words, now):
         nonlocal state
-        state, lines, due = step(state, workers, agents, now, stuck_after)
+        state, lines, due = step(state, workers, words, now, stuck_after)
         return lines + [f"stuck {name} {workers[name]}" for name in due if issue_open(workers[name])]
 
     team.poll(sys.argv[1], tick)
