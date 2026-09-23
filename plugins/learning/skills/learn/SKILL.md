@@ -10,7 +10,8 @@ Arm and Harvest and follow the reference its row under Destinations links.
 
 ## Arm
 
-Before any harvest or filed lesson, run this and report the line it prints:
+When learning is turned on, and before any harvest or filed lesson, run this
+and report the line it prints:
 
 ```sh
 "${CLAUDE_PLUGIN_ROOT}/bin/takeaway" arm "${CLAUDE_PLUGIN_DATA}"
