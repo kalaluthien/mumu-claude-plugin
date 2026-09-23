@@ -12,8 +12,9 @@ the document to `grill-me`.
 1. **Doctype**: the question picks it; build its parts in order.
 2. **Medium**: markdown in one of its forms, or a page from
    `${CLAUDE_PLUGIN_ROOT}/page.html`.
-3. **Plan**: one line naming the doctype, each figure with the paragraph
-   beside it, and what the figure budget forces out; then write.
+3. **Plan** a page or a figure: one line naming the doctype, each figure
+   with the paragraph beside it, and what the figure budget forces out; then
+   write.
 4. **Check** a page: `"${CLAUDE_PLUGIN_ROOT}/bin/page-check" <page>` prints
    `pass`; on `FAIL`, fix and rerun; exit 2 is a wrong path.
 5. **Deliver** where the ask says, else where it is obvious, else ask once
@@ -26,4 +27,4 @@ the document to `grill-me`.
    - repository page: where the repository keeps pages, linked from its
      README, landed by its procedure.
 
-   Then give the one-sentence version in chat.
+   Delivered elsewhere, give the one-sentence version in chat.
