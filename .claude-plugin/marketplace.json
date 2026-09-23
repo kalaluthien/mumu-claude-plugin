@@ -1,6 +1,7 @@
 {
-  "name": "agent-plugins",
+  "name": "mumu-claude-plugin",
   "owner": { "name": "kalaluthien" },
+  "description": "Four Claude Code plugins: a team that lands reviewed pull requests, documents, verification, and lessons that compound.",
   "plugins": [
     { "name": "mumu-document", "source": "./mumu-document", "description": "A document explains one question." },
     { "name": "mumu-team", "source": "./mumu-team", "description": "Work lands only as a PR merged at a sha a reviewer approved." },
