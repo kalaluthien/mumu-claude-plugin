@@ -30,7 +30,7 @@ Expect: every unit lands as a PR merged at an approved sha; ask the owner only p
 
 ## 4. Launch
 
-One worker per issue, each in its own worktree and herdr pane, per `herdr.md`: add the worktree `<checkout>/.claude/worktrees/<issue>-<topic>` of the repo's checkout (`~/workspace/projects/<repo>`, or `~/workspace` for kalaluthien/workspace), start `claude --model opus --effort <the issue's effort label>` in it, then prompt `work <issue-url>`.
+One worker per issue, each in its own worktree and herdr pane, per `herdr.md`: add the worktree `<checkout>/.claude/worktrees/<issue>-<topic>` of the repo's checkout (`~/workspace/projects/<repo>`, or `~/workspace` for kalaluthien/workspace), start `claude --model opus --effort <the issue's effort label>` in it, then prompt `work <issue-url> leader <your pane>`.
 
 ## 5. Answer
 

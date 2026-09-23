@@ -9,7 +9,7 @@
 | PR | `gh pr create --base <default> --head <branch> --title "<verb-first>" --body "Closes #<issue>"` |
 | head sha | `gh pr view <pr> --json headRefOid -q .headRefOid` |
 | merge | `gh pr merge <pr> --squash --match-head-commit <sha>` |
-| leader's pane | the `pane_id` in `herdr agent list` whose `name` is not `w<issue>-...` and whose `cwd` is the checkout this worktree came from; `herdr agent prompt <pane> "<text>"` |
-| blocked | `gh issue comment <issue> --body "BLOCKED: <question>"`; leader pane from `herdr agent list`; `herdr agent prompt <pane> "BLOCKED on <issue-url>"` |
+| leader's pane | the `leader <pane>` in your brief; `herdr agent prompt <pane> "<text>"` |
+| blocked | `gh issue comment <issue> --body "BLOCKED: <question>"`; `herdr agent prompt <leader pane> "BLOCKED on <issue-url>"` |
 
 Branch name: `<issue>-<topic>`, topic 2-4 lowercase words joined by `-`.
