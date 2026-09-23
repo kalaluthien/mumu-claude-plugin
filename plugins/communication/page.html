@@ -12,7 +12,7 @@
        question, #absent, the footer.
      - comparison: .read as the question, .pick, #yardstick, #options, the
        footer.
-     - a grill-me round: #round and its script, one fieldset per question.
+     - a round of questions: #round and its script, one fieldset per question.
      The skin block is carried verbatim, down to "skin end"; this comment
      is deleted. -->
 <style>
@@ -44,7 +44,8 @@
   svg text { fill: var(--fg); font: 14px system-ui, sans-serif; }
   svg .label { fill: var(--muted); font-size: 12px; }
   /* skin end */
-  .read { font-size: 1.1rem; border-inline-start: 3px solid var(--fg); padding-inline-start: .75rem; }
+  .read, .pick { border-inline-start: 3px solid var(--fg); padding-inline-start: .75rem; }
+  .read { font-size: 1.1rem; }
   figure { margin: 0; overflow-x: auto; }
   svg { display: block; }
   svg .box { fill: var(--box); stroke: var(--fg); }
@@ -58,9 +59,7 @@
   .scroll { overflow-x: auto; }
   table { border-collapse: collapse; min-width: 100%; background: var(--box); }
   th, td { border-bottom: 1px solid var(--line); padding: .5rem .65rem; text-align: start; vertical-align: top; }
-  .num { text-align: end; font-variant-numeric: tabular-nums; }
   tbody th { font-weight: normal; }
-  .pick { border-inline-start: 3px solid var(--fg); padding-inline-start: .75rem; }
   pre { overflow-x: auto; background: var(--box); border: 1px solid var(--line);
         padding: .75rem; font: 13px/1.45 ui-monospace, monospace; }
   .muted { color: var(--muted); font-size: .9rem; }

@@ -25,8 +25,7 @@ question and never by the subject; its medium is where it is read.
 - **markdown**: chat, GitHub, and always for an agent; the parts are
   headings; Mermaid only in a GitHub body.
 - **page**: one HTML file for a person, when a layout, a wide table or a
-  dense map outgrows markdown; it starts from `page.html` and keeps its skin
-  block verbatim.
+  dense map outgrows markdown; it starts from `page.html`.
 
 ## Markdown forms
 
@@ -39,7 +38,7 @@ with only the calls, files, states and boundaries the question needs.
 | a call tree | runtime control flow |
 | a component tree, with the state and module boundaries that matter | UI structure |
 | a shallow file tree, one comment per line | file responsibility, a broad refactor |
-| a table, a row per option, bold only on the cells the verdict turns on | a comparison |
+| a table, a row per option | a comparison |
 | a diff in the shape of one of the above | a change to a shape that exists |
 | the whole block | most of it is new, or a cut would hide order or ownership |
 
