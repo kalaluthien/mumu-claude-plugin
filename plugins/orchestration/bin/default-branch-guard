@@ -1,6 +1,6 @@
 #!/bin/sh
 # Git pre-commit: refuse a commit on the repository's default branch, so work
-# lands only through a pull request. A worker links it into the checkout it claims.
+# lands only through a pull request. A worker copies it into the checkout it claims.
 # The default branch is origin's HEAD, else init.defaultBranch, else main.
 
 branch=$(git symbolic-ref --quiet --short HEAD) || exit 0  # detached: rebase, bisect
