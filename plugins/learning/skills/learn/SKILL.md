@@ -1,46 +1,48 @@
 ---
 name: learn
-description: Use before writing any memory - whenever the user says remember, keep, note or learn from something, or turn learning on, and when a stop asks for a harvest. Routes the lesson to where its reader will look, and arms this repository so each session ends with a harvest.
+description: Use before writing any memory - when the user says remember, keep, note or learn from something, or turn learning on - and when a stop asks for a harvest. Files each lesson in auto-memory, memory or a skill, and arms this repository so its sessions end with a harvest.
 ---
 
 # learn
 
-## Arm the repository
+## Arm
 
-Run this first, every time; it is idempotent. From then on, a session here
-that changed three or more things is asked for a harvest before it stops.
+Run this first, every time, and report the line it prints:
 
 ```sh
 "${CLAUDE_PLUGIN_ROOT}/bin/takeaway" arm "${CLAUDE_PLUGIN_DATA}"
 ```
 
-It prints `armed <repo> at <file>`; outside a git repository it says so and
-arms nothing. Report that line.
+## Harvest
 
-## File a lesson
+Go over the work since the last harvest. For one lesson the user hands you,
+start at step 2.
 
-First ask whether a machine could decide it. If so, write the check or test
-with its failing case, and file nothing. Otherwise route it by what would make
-it wrong:
+1. Find each lesson. A surprise is a check that failed, a tool that refused,
+   a step redone, or a success by a path you did not plan; write it as a rule
+   to act on at the start of a task: when <situation>, do <action>, because
+   <the assumption it broke>, keeping a name, path or value only if the rule
+   is about it. A procedure is several steps that worked, which you had to
+   work out or took from auto-memory; keep the steps as run.
+2. Search every project's auto-memory, `~/.claude/projects/*/memory/`, for
+   the same lesson. Pick the last row of the table below that it fits, and
+   read what is there now.
+3. Apply one operation to each entry you touch: ADD, EDIT <entry>, DELETE
+   <entry>, or NONE when it is already said. A near-duplicate is an EDIT. A
+   lesson promoted to a later row DELETEs the entries it replaces in this
+   project's auto-memory, and leaves other projects' entries alone. Never
+   rewrite a file to fold a lesson in.
+4. Delete or correct any entry this session showed wrong, touched or not.
 
-| what would make it wrong | where it goes | rule |
+End with one line: `FILED <path> (<op>) ...`, or `NOTHING DURABLE: <reason>`.
+
+## Destinations
+
+| the lesson | destination | shape |
 | --- | --- | --- |
-| this repository, a tool or the machine changes | project memory, `type: reference` or `project` | names the failure it came from |
-| the user changes their mind | project memory, `type: feedback` | one rule, one clause of reason |
-| the same insight held on two projects | one line in `~/.claude/CLAUDE.md`, or a skill | EDIT what is there over ADD; consolidate at every harvest |
-| a procedure changes | a skill | only after it ran and was checked, and recurred twice |
-| a machine could decide it | a hook or a test in the repository, with its failing case | nothing is filed |
-| it can be read from the repository or its history | nowhere | discard it |
+| holds for this project: a fact, a trap, the user's preference, a procedure that worked once | auto-memory, the directory the harness names | one fact per file, as the harness's memory instructions give it |
+| another project's auto-memory already holds it, or the user gave it for all work | memory: `~/.claude/CLAUDE.md` | one instruction and one clause of reason, in the section naming the work |
+| is a procedure auto-memory already holds, and it has now worked again | the skill that owns the work, edited in its source and never under `~/.claude/plugins/cache/`, or a new one in `~/.claude/skills/` | the steps as run, what varied between runs as parameters, a description saying when to use it |
 
-## Memory shape
-
-The harness's own: one fact per file, frontmatter `name`, `description` and
-`metadata.type` (`user`, `feedback`, `project` or `reference`), and one line in
-`MEMORY.md`. The body's first line says when the memory becomes wrong. A
-near-duplicate is edited, never stacked beside; a memory proved wrong is
-deleted.
-
-## Report
-
-End with one line: `FILED <path> (<ADD|EDIT|DELETE>) ...`, or
-`NOTHING DURABLE: <one reason>`.
+File nothing a check could decide: write the check with its failing case.
+File nothing the repository or its history already states.
