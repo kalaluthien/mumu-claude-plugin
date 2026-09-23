@@ -13,18 +13,15 @@ Run this first, every time, and report the line it prints:
 "${CLAUDE_PLUGIN_ROOT}/bin/takeaway" arm "${CLAUDE_PLUGIN_DATA}"
 ```
 
-Outside a git repository it arms nothing. In an armed repository, a session
-that made eight tool calls is asked for a harvest before it stops.
-
 ## Harvest
 
 Go over the work since the last harvest. For one lesson the user hands you,
 start at step 2.
 
 1. Find each surprise: a check that failed, a tool that refused, a step
-   redone, or a success by a path you did not plan. A step that went as
-   expected teaches nothing. Write each as a rule to act on at the start of a
-   task: when <situation>, do <action>, because <the assumption it broke>.
+   redone, or a success by a path you did not plan. Write each as a rule to
+   act on at the start of a task: when <situation>, do <action>, because <the
+   assumption it broke>.
    Keep a name, path or value only if the rule is about it.
 2. Pick its destination from the table below, and read what is there now.
 3. Apply one operation to one entry: ADD, EDIT <entry>, DELETE <entry>, or
