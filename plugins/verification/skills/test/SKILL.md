@@ -26,4 +26,4 @@ A screen is checked by driving it in a browser and asserting what it shows. Run 
 
 ## 3. Green
 
-Make the change. Run the new tests and the whole suite; both pass.
+Make the change. Run the new tests and the whole suite; both pass. Then undo the change alone, watch the new tests fail, and restore it.
