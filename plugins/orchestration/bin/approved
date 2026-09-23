@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """Refuse a `gh pr merge` that is not pinned to a sha a reviewer approved.
 
-PreToolUse hook on Bash. Every `pr merge` in the command's text must be a
-`gh ... pr merge` the lexer reads as a command of its own -- after a newline,
-`;`, `&&`, `|`, `(` or an env prefix or wrapper such as `rtk` -- and each passes
-only when it carries `--match-head-commit <sha>`, that sha is the PR's head,
-and the PR holds a comment or a review whose first line is `Approved <sha>`.
-The text is searched with its quotes and backslashes removed, so any other
-`pr merge` -- inside `bash -c`, `eval`, a heredoc or here-string, a quoted
-message, spelled with quotes or escapes, or in a command that cannot be lexed --
-is refused, since text cannot tell a merge a shell will run from one it will
-not; write such text with a file tool. A merge built from a variable or an
+PreToolUse hook on Bash. The command is split into commands as a shell would
+split it -- at a newline, `;`, `&&`, `|` or `(` -- and in each one every
+`pr [-R <repo>]... merge`, counted with quotes and backslashes removed and
+inside every quoted word too, must be the one `gh ... pr merge` that command
+runs, after an env prefix or a wrapper such as `rtk`. That merge passes only
+when it carries `--match-head-commit <sha>`, that sha is the PR's head, and the
+PR holds a comment or a review whose first line is `Approved <sha>`. Any other
+`pr merge` -- inside `bash -c`, `eval`, a here-string, a comment, a quoted
+message, or a command that cannot be lexed -- is refused, since text cannot tell
+a merge a shell will run from one it will not; write such text with a file
+tool. A merge built from a variable or an
 escape code such as `$'\x6d'` is not seen. A payload or a PR that
 cannot be read is refused too (exit 2); a command without `merge` exits 0 unread.
 """
@@ -23,7 +24,7 @@ import sys
 
 SEPARATORS = set(";&|()\n")
 QUOTING = re.compile(r"[\"'\\]")
-MENTION = re.compile(r"\bpr\b(?:\s+(?:-R|--repo)(?:\s+|=)\S+)?\s+merge\b")
+MENTION = re.compile(r"\bpr\b[\s\S]*?\bmerge\b")
 
 
 def refuse(reason):
@@ -31,18 +32,44 @@ def refuse(reason):
     sys.exit(2)
 
 
-def merges(command):
-    """Yield (global repo, args after `pr merge`) for each `gh ... pr merge` found."""
-    lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|()\n")
+def segments(text):
+    """Split text into the word lists of its commands, as a shell would split it."""
+    lexer = shlex.shlex(text, posix=True, punctuation_chars=";&|()\n")
     lexer.whitespace = " \t\r"
     lexer.whitespace_split = True
+    lexer.commenters = ""  # a comment's words are read too, so none hides a merge
     segment = []
     for word in list(lexer) + [";"]:
         if word and set(word) <= SEPARATORS:
-            yield from gh_merge(segment)
+            if segment:
+                yield segment
             segment = []
         else:
             segment.append(word)
+
+
+def mentions(words):
+    """Count `pr [-R <repo>]... merge` in the words, and in each word a shell could run as text."""
+    words = [QUOTING.sub("", word).strip() for word in words]
+    count = 0
+    for i, word in enumerate(words):
+        if re.search(r"\s|[;&|()]", word):
+            try:
+                count += sum(mentions(inner) for inner in segments(word))
+            except ValueError:  # an unclosed quote
+                count += len(MENTION.findall(word))
+        if word != "merge":
+            continue
+        j = i - 1
+        while j >= 0 and words[j] != "pr":
+            if words[j].startswith("--repo="):
+                j -= 1
+            elif j >= 1 and words[j - 1] in ("-R", "--repo"):
+                j -= 2
+            else:
+                break
+        count += j >= 0 and words[j] == "pr"
+    return count
 
 
 def gh_merge(words):
@@ -122,10 +149,14 @@ try:
 except (ValueError, KeyError, TypeError) as err:
     refuse(f"could not read the payload ({type(err).__name__}: {err})")
 try:
-    found = list(merges(command))
+    commands = list(segments(command))
 except ValueError:  # an unclosed quote
-    found = []
-if len(found) < len(MENTION.findall(QUOTING.sub("", command))):
-    refuse("a `pr merge` in this command is not a command of its own; run `gh pr merge` on its own line, and write text naming it with a file tool")
-for repo, args in found:
-    check(repo, args, cwd)
+    commands = []
+    if MENTION.search(QUOTING.sub("", command)):
+        refuse("this command cannot be lexed and names `pr merge`; run `gh pr merge` on its own line")
+for words in commands:
+    found = list(gh_merge(words))
+    if len(found) != mentions(words):
+        refuse("a `pr merge` in this command is not a command of its own; run `gh pr merge` on its own line, and write text naming it with a file tool")
+    for repo, args in found:
+        check(repo, args, cwd)
