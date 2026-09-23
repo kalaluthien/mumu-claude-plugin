@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "mumu-document@mumu-claude-plugin": true,
+    "mumu-verification@mumu-claude-plugin": true
+  }
+}
