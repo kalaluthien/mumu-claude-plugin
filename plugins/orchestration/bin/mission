@@ -13,9 +13,6 @@ payload = json.load(sys.stdin)
 event = payload["hook_event_name"]
 path = pathlib.Path(os.environ["CLAUDE_PLUGIN_DATA"], "mission", payload["session_id"] + ".md")
 if path.exists():
-    mission = path.read_text()
-    if event == "SubagentStart":
-        context = "Mission of the session that launched you:\n" + mission
-        print(json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": context}}))
-    else:
-        print("Mission:\n" + mission)
+    label = "Mission of the session that launched you:\n" if event == "SubagentStart" else "Mission:\n"
+    context = label + path.read_text()
+    print(json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": context}}))
