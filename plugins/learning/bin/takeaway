@@ -46,22 +46,7 @@ CHANGING_COMMAND = re.compile(
     re.MULTILINE,
 )
 
-PROMPT = """\
-Before you stop, harvest this session's work since the last harvest.
-1 FAILURES. For each point where a check failed, a tool refused, or you redid
-  a step: the assumption that was wrong, and what you would do instead.
-  No failure, no lesson.
-2 RECURRENCE. A procedure that worked twice or more, here or in memory, may
-  become a procedure; once is an anecdote.
-3 OPERATION. Read MEMORY.md. For each candidate pick one: ADD, EDIT <file>,
-  DELETE <file>, NONE. A near-duplicate is an EDIT, never an ADD.
-4 PRUNE. Delete or rewrite any entry this session proved wrong, stale or
-  redundant, even one you did not touch.
-5 PROMOTE. A procedure becomes a skill only if it ran and was checked in this
-  session.
-Route each survivor with the learn skill's table, then end with one line:
-  FILED <path> (<op>) ... or NOTHING DURABLE: <one reason>."""
-PROMPT_MARK = "harvest this session's work"
+PROMPT = "Before you stop, harvest this session's work with the learn skill."
 
 
 def repo_key(cwd):
@@ -90,7 +75,7 @@ def is_previous_block(entry):
     """True for the summary the harness wrote when this hook last blocked."""
     if entry.get("type") != "system" or entry.get("subtype") != "stop_hook_summary":
         return False
-    return PROMPT_MARK in " ".join(entry.get("hookErrors") or [])
+    return PROMPT in " ".join(entry.get("hookErrors") or [])
 
 
 def headless(entries):

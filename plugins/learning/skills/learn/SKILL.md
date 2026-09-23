@@ -17,6 +17,24 @@ that changed three or more things is asked for a harvest before it stops.
 It prints `armed <repo> at <file>`; outside a git repository it says so and
 arms nothing. Report that line.
 
+## Harvest
+
+When a stop asks for it, over this session's work since the last harvest:
+
+1 FAILURES. For each point where a check failed, a tool refused, or you redid
+  a step: the assumption that was wrong, and what you would do instead.
+  No failure, no lesson.
+2 RECURRENCE. A procedure that worked twice or more, here or in memory, may
+  become a procedure; once is an anecdote.
+3 OPERATION. Read MEMORY.md. For each candidate pick one: ADD, EDIT <file>,
+  DELETE <file>, NONE. A near-duplicate is an EDIT, never an ADD.
+4 PRUNE. Delete or rewrite any entry this session proved wrong, stale or
+  redundant, even one you did not touch.
+5 PROMOTE. A procedure becomes a skill only if it ran and was checked in this
+  session.
+
+Route each survivor with the table below.
+
 ## File a lesson
 
 First ask whether a machine could decide it. If so, write the check or test
