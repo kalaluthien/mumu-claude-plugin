@@ -1,17 +1,24 @@
 #!/bin/sh
-# Print this checkout's mission file, kept in its own git dir per branch, so it
-# needs no plugin data dir (unset in the model's shell) and goes with the worktree.
-# UserPromptSubmit runs it bare: no git checkout, no branch, or no file prints nothing.
-# `mission path` prints where that file lives, so `lead` and `work` write it there.
+# Print this session's mission, kept in the checkout's own git dir, so it needs
+# no plugin data dir (unset in the model's shell) and goes with the worktree.
+# A worker's is keyed by its branch; the leader's by its herdr pane, since a
+# leader sits on the default branch where every other session would read it.
+# UserPromptSubmit runs it bare: no checkout or no file prints nothing.
+# `mission path` / `mission path leader` print where to write the file.
 
+gitdir=$(git rev-parse --path-format=absolute --git-dir 2>/dev/null) || exit 0
 branch=$(git branch --show-current 2>/dev/null)
-[ -n "$branch" ] || exit 0
-file=$(git rev-parse --path-format=absolute --git-path "mission/$branch.md") || exit 0
+worker="$gitdir/mission/branch-$branch.md"
+leader="$gitdir/mission/pane-${HERDR_PANE_ID:-none}.md"
 
 if [ "$1" = path ]; then
-	mkdir -p "$(dirname "$file")" && printf '%s\n' "$file"
-elif [ -f "$file" ]; then
-	printf 'Mission (%s):\n' "$branch"
-	cat "$file"
+	if [ "$2" = leader ]; then file=$leader; else file=$worker; fi
+	[ -n "$branch" ] || [ "$2" = leader ] || { echo "mission: no branch checked out" >&2; exit 1; }
+	mkdir -p "$gitdir/mission" && printf '%s\n' "$file"
+	exit 0
 fi
+for file in "$leader" "$worker"; do
+	[ -n "$branch" ] || [ "$file" = "$leader" ] || continue
+	[ -f "$file" ] && { echo "Mission:"; cat "$file"; }
+done
 exit 0

@@ -20,7 +20,7 @@ Put every architecture, infrastructure and UX question the goal raises into one 
 
 ## 3. Mission
 
-Write your own mission file: `mission path` prints where, from the checkout you lead in. 3-5 lines:
+Write your own mission file: `mission path leader` prints where, from the checkout you lead in. 3-5 lines:
 
 ```
 Goal: <parent goal> (<parent url>)
@@ -30,7 +30,7 @@ Expect: every unit lands as a PR merged at an approved sha; ask the owner only p
 
 ## 4. Launch
 
-One worker per issue, each in its own herdr pane, per `herdr.md`: cwd the repo's checkout under `~/workspace/projects/`, command `claude -w <issue>-<topic> --model opus --effort <the issue's effort label>`, then the prompt `work <issue-url>`.
+One worker per issue, each in its own worktree and herdr pane, per `herdr.md`: add the worktree `<checkout>/.claude/worktrees/<issue>-<topic>` of the repo's checkout under `~/workspace/projects/`, start `claude --model opus --effort <the issue's effort label>` in it, then prompt `work <issue-url>`.
 
 ## 5. Answer
 
@@ -43,4 +43,4 @@ One worker per issue, each in its own herdr pane, per `herdr.md`: cwd the repo's
 When no sub-issue under the parent is open:
 - close the parent with a summary comment;
 - `git worktree remove` each worker's worktree; delete local branches already on origin;
-- close the workers' panes (`herdr.md`).
+- close the workers' panes (`herdr.md`); remove your mission file (`mission path leader`).
