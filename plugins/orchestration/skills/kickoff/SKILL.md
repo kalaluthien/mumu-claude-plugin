@@ -53,9 +53,9 @@ Rules:
 
 # Work
 
-1. `read` the issue and its parent, and write your mission from them.
-2. `claim` the issue; held by another session, say so on the issue and stop.
+1. `read` the issue and its parent, and `claim` the issue; held by another session, say so on the issue and stop.
+2. Write your mission from them.
 3. Implement, run the repository's own checks, commit and push, and open the `pr` at the first push.
-4. Launch the `reviewer` on the pull request's url. `Findings`: fix, push, launch it again. `Approved <head>`: `merge`, then `prompt` the leader `see <pr-url>`.
+4. Launch the `reviewer` on the pull request's url. `Findings`: fix, push, launch it again. `Approved <head>`: `merge`, `prompt` the leader `see <pr-url>`, and delete your mission.
 
 A decision that is not yours: post `BLOCKED: <question>` on the issue, `prompt` the leader `see <issue-url>`, and stop until it prompts you back.
