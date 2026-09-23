@@ -160,7 +160,7 @@
   const form = document.getElementById('round');
   const out = document.getElementById('out');
   const status = document.getElementById('status');
-  form.addEventListener('submit', async (e) => {
+  form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const answers = [...form.querySelectorAll('fieldset textarea')].map((t) => {
       const lines = t.value.trim() ? t.value.trim().split('\n') : [];

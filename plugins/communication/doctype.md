@@ -12,8 +12,8 @@ question and never by the subject; its medium is where it is read.
 | `comparison` | which one, what differs | the question; the verdict and what would change it; the yardstick, fixed before any option; each option against it, bold only on the cells the verdict turns on |
 
 - A repository's structure is a diagram, what a PR changed a comparison, why
-  a design is so a narrative, a proposal a comparison with leaving things as
-  they are among its options.
+  a design is so a narrative, a decision a comparison, and a proposal one
+  with leaving things as they are among its options.
 - Two questions: a narrative, the diagram its map, the comparison a chapter.
 - A part no fact settles is a blank: the reader's decision.
 - Asked only what follows, a document skips every fact already on screen and
@@ -58,7 +58,7 @@ with only the calls, files, states and boundaries the question needs.
 - The work, not the plumbing: labels, values and errors, no prose about how
   the page behaves; one fact takes one form everywhere.
 - No motion of its own; a transition only answers a reader's action.
-- Every control is clicked once before delivery.
+- Every control has been clicked once.
 
 ## Figures
 

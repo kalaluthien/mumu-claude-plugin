@@ -2,10 +2,13 @@
 # usage: page-check <page.html>
 # Loads the page in a 320 px frame and prints
 # `<scroll>/<client> <smallest text>px <smallest Hangul or Han>px pass|FAIL`.
-# Exit 0 pass, 1 FAIL, 2 when the page could not be read.
+# Exit 0 pass, 1 FAIL, 2 when it could not run, saying why.
 set -eu
-P=$(cd "$(dirname "$1")" && pwd -P)/$(basename "$1")
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+[ $# -eq 1 ] || { echo "usage: page-check <page.html>" >&2; exit 2; }
+[ -f "$1" ] || { echo "page-check: no file $1" >&2; exit 2; }
+[ -x "$CHROME" ] || { echo "page-check: no Chrome at $CHROME" >&2; exit 2; }
+P=$(cd "$(dirname "$1")" && pwd -P)/$(basename "$1")
 F="${TMPDIR:-/tmp}/page-check-frame.html"
 cat >| "$F" <<'EOF'
 <iframe id=f style="width:320px;height:800px;border:0"></iframe>

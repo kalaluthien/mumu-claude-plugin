@@ -9,14 +9,15 @@ Show the topic, the one named or else the conversation's, as a document of
 `${CLAUDE_PLUGIN_ROOT}/doctype.md`; read it first. A blank is not shown: hand
 the document to `grill-me`.
 
-1. **Doctype**: the question picks it; build its parts in order.
+1. **Doctype**: the question picks it; build its parts in order, unless it
+   asks only what follows.
 2. **Medium**: markdown in one of its forms, or a page from
    `${CLAUDE_PLUGIN_ROOT}/page.html`.
 3. **Plan** a page or a figure: one line naming the doctype, each figure
    with the paragraph beside it, and what the figure budget forces out; then
    write.
 4. **Check** a page: `"${CLAUDE_PLUGIN_ROOT}/bin/page-check" <page>` prints
-   `pass`; on `FAIL`, fix and rerun; exit 2 is a wrong path.
+   `pass`; on `FAIL`, fix and rerun; exit 2 says why it could not run.
 5. **Deliver** where the ask says, else where it is obvious, else ask once
    with `AskUserQuestion`:
    - chat: markdown;
