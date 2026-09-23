@@ -31,7 +31,7 @@ document is the repository's template for the ask, found through its
 | the round | where |
 | --- | --- |
 | four questions or fewer, with `AskUserQuestion` in the session | `AskUserQuestion` |
-| more, with the `Artifact` tool in the session | the `#round` form of `${CLAUDE_PLUGIN_ROOT}/page.html`, recommendations prefilled, checked and delivered as `show-me` delivers a page |
+| more, with the `Artifact` tool in the session | the `#round` form of `${CLAUDE_PLUGIN_ROOT}/page.html`, recommendations prefilled, handed to `show-me` to check and deliver |
 | otherwise | numbered text in chat |
 
 The form writes nowhere: it builds a block the user pastes back, its first

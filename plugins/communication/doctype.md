@@ -59,7 +59,6 @@ with only the calls, files, states and boundaries the question needs.
 - The work, not the plumbing: labels, values and errors, no prose about how
   the page behaves; one fact takes one form everywhere.
 - No motion of its own; a transition only answers a reader's action.
-- Every control has been clicked once.
 
 ## Figures
 
