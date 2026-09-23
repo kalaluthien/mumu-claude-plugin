@@ -42,9 +42,15 @@ def main():
     parser.add_argument("--resamples", type=int, default=2000)
     args = parser.parse_args()
 
+    if args.observed is not None and not 0 <= args.observed <= 1:
+        sys.exit(f"--observed is {args.observed}, not a share between 0 and 1")
     with open(args.csv, newline="") as f:
+        reader = csv.DictReader(f)
+        missing = {"human", "judge"} - set(reader.fieldnames or [])
+        if missing:
+            sys.exit(f"{args.csv}: no column {', '.join(sorted(missing))}")
         pairs = [(verdict(r["human"], i, "human"), verdict(r["judge"], i, "judge"))
-                 for i, r in enumerate(csv.DictReader(f), start=2)]
+                 for i, r in enumerate(reader, start=2)]
     tpr, tnr, n_pass, n_fail = rates(pairs)
     print(f"rows {len(pairs)}: human pass {n_pass}, human fail {n_fail}")
     if tpr is None or tnr is None:

@@ -22,7 +22,7 @@ Run the judge on every dev trace and write `evals/analysis/judge-<mode>.csv` wit
 python3 <skill dir>/scripts/judge-agreement.py evals/analysis/judge-<mode>.csv
 ```
 
-It prints the true positive rate (TPR: of the traces a person passed, the share the judge passed) and the true negative rate (TNR: of those a person failed, the share the judge failed). Not accuracy: when 90% of traces pass, a judge that always says pass is 90% accurate and catches nothing.
+It prints the true positive rate (TPR: of the traces a person passed, the share the judge passed) and the true negative rate (TNR: of those a person failed, the share the judge failed). Never report plain accuracy: where most traces pass, a judge that never fails anything scores high on it while missing every defect.
 
 ## 3. Revise
 
@@ -32,14 +32,14 @@ Stop when TPR and TNR both exceed 90%; below 80% on either, do not use the judge
 
 ## 4. Test once
 
-Run the final prompt on the test split once, and report those rates. Dev rates are optimistic; a revision after seeing test results makes the test split a second dev split.
+Run the final prompt on the test split once, write `evals/analysis/judge-<mode>-test.csv` in the same columns, and report its rates. Dev rates are optimistic; a revision after seeing test results makes the test split a second dev split.
 
 ## 5. Report a rate
 
 A raw pass rate from the judge over unlabelled traces is biased by its errors. Correct it and give an interval:
 
 ```sh
-python3 <skill dir>/scripts/judge-agreement.py evals/analysis/judge-<mode>.csv --observed <judge pass share on unlabelled traces>
+python3 <skill dir>/scripts/judge-agreement.py evals/analysis/judge-<mode>-test.csv --observed <judge pass share on unlabelled traces>
 ```
 
 It prints the corrected rate `(p_obs + TNR − 1) / (TPR + TNR − 1)`, clipped to 0–1, and a 95% bootstrap interval over the test labels. With TPR + TNR near 1 the judge is guessing and no rate is printed. Raising TPR narrows the interval most.

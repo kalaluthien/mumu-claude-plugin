@@ -1,6 +1,6 @@
 # Graders
 
-One grader checks one failure mode from `evals/analysis/failure-modes.md`, and answers pass or fail. A score from 1 to 5 cannot be calibrated: two people disagree on a 3 against a 4, and a judge inherits that noise. For degrees of severity, write two binary graders.
+One grader checks one failure mode from `evals/analysis/failure-modes.md`, and answers pass or fail. A 1-to-5 scale has no line anyone can hold steady: labellers split over neighbouring points, the judge learns their split, and no agreement rate can be measured. For degrees of severity, write two binary graders.
 
 ## 1. Seed the case
 
@@ -20,7 +20,7 @@ Try code before a judge. Many modes that sound subjective reduce to a word list,
 | `claude plugin eval` | `regex` (`pattern`, `target`: `last_message`, `trace` or `files`, `match`: `contains`, `not_contains` or `count:N`); `tool_used` (`tool`, `input_match`, `min`, `max`); `tool_order` (`before`, `after`); `file_exists` (`path`, `exists`) | `llm` (body: criterion; `focus`: what it reads); run with `--judge-model` |
 | promptfoo | `contains`, `regex`, `is-json`, `javascript`, `python` | `llm-rubric` |
 
-A `tool_used` grader's tool must be in the case's `allowed_tools`. Under ablation a `tool_used: Skill` grader shows that the plugin fired; it is not part of the score.
+A `tool_used` grader's tool must be in the case's `allowed_tools`. Under ablation a grader with `arm: with-only` (a `tool_used: Skill` grader is one by default) reports whether the plugin fired instead of scoring, unless it is the case's only grader; give a case at least one grader that scores both arms, or the delta measures firing alone.
 
 ### A skill's trigger
 
@@ -32,7 +32,7 @@ Write it only for a mode that needs reading to decide, and only once the mode ha
 
 1. **Task**: what is judged, one mode — "whether the reply quotes a price that is not in the listing", never "whether the reply is good".
 2. **Pass and fail**: the mode's definition turned into what each verdict means, with concrete fail examples.
-3. **Examples**: two to four labelled traces from the training split ([validate the judge](validate-judge.md) § 1), at least one clear pass, one clear fail and one borderline, each with a written critique before its verdict. Never an example from the dev or test split.
+3. **Examples**: two to four labelled traces from the training split ([validate the judge](validate-judge.md) § 1), covering both verdicts plus a case near the line, which teaches the most, each with a written critique before its verdict. Never an example from the dev or test split.
 4. **Output**: a critique, then the verdict, as `{"critique": "...", "result": "Pass" | "Fail"}`, enforced by the provider's structured output where it has one (`claude -p --json-schema`, a tool definition).
 
 Give the judge only what the decision needs: the persona and the reply for a tone mode, the retrieved context and the answer for faithfulness, the rules and the reply for instruction following. Cut long documents to the relevant passage; judges are noisy on long inputs.
