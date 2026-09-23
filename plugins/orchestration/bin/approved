@@ -9,7 +9,9 @@ comment or a review whose first line is `Approved <sha>`. A payload that cannot
 be read, a command that cannot be lexed yet reads `gh ... merge`, and a PR that
 cannot be read are refused (exit 2). A command without `merge` exits 0 unread;
 `pr merge` inside a quoted message or search is not a merge, but one in a
-heredoc body is, since a shell may run the body.
+heredoc body is, since a shell may run the body. It reads a merge written as
+a command; one a shell reads from a pipe or builds from variables is not seen,
+since only running the command would tell.
 """
 import json
 import os
@@ -29,7 +31,8 @@ def refuse(reason):
 
 def merges(command):
     """Yield (global repo, args after `pr merge`) for each `gh ... pr merge` found."""
-    lexer = shlex.shlex(command.replace("\\\n", " "), posix=True, punctuation_chars=";&|()\n")
+    joined = re.sub(r"(?<!\\)((?:\\\\)*)\\\n", r"\1", command)  # a line continuation, not an escaped backslash
+    lexer = shlex.shlex(joined, posix=True, punctuation_chars=";&|()\n")
     lexer.whitespace = " \t\r"
     lexer.whitespace_split = True
     segment, previous = [], None
@@ -39,7 +42,8 @@ def merges(command):
             segment = []
         else:
             shell = any(os.path.basename(w) in SHELLS for w in segment)
-            if previous == "eval" or shell and (previous == "<<<" or re.fullmatch(r"-[A-Za-z]*c", previous or "")):
+            fed = previous == "<<<" and os.path.basename(segment[0]) in SHELLS
+            if previous == "eval" or fed or shell and re.fullmatch(r"-[A-Za-z]*c", previous or ""):
                 # the body of `bash -c '...'`, `sh -ec '...'`, `bash <<< '...'` or `eval '...'` is a command of its own
                 yield from merges(word)
             segment.append(word)
