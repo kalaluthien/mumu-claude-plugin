@@ -5,7 +5,7 @@ description: Use when the project is a Claude plugin or an LLM app and a prompt,
 
 # Eval
 
-An eval checks a failure mode someone saw in a trace, never a quality picked in advance ("helpfulness", "coherence"). The method follows [ai-evals-course/evals-skills](https://github.com/ai-evals-course/evals-skills); the wording here is ours.
+Terms and rules: `${CLAUDE_PLUGIN_ROOT}/contract.md`; read it first. An eval checks a failure mode seen in a trace, never a quality picked in advance ("helpfulness"). The method follows [ai-evals-course/evals-skills](https://github.com/ai-evals-course/evals-skills).
 
 | suite | bar |
 | --- | --- |
@@ -24,19 +24,18 @@ A suite that has passed everything for a long time catches nothing new: retire i
 
 Also look for traces (logs, transcripts, exported runs), human labels or notes on them, and judge prompts.
 
-If no runner is found, initialise `evals/` — a plugin: `claude plugin eval init --bare <case>` in the plugin directory; an app: `npx promptfoo init --no-interactive evals` — and tell the owner "no eval layout found; initialised `evals/` for <runner>".
+If no runner is found, initialise `evals/`: a plugin, `claude plugin eval init --bare <case>` in the plugin directory; an app, `npx promptfoo init --no-interactive evals`.
 
 ## 2. Take the step the repo is at
 
-Read the one reference the first matching row names, and follow it to its end before the next.
+Read the file the first matching row names, and follow it to its end before the next.
 
 | the repo has | step |
 | --- | --- |
-| an eval suite, and the question is whether to trust it | [audit](references/audit.md) |
-| no traces, or too few to cover the inputs | [synthetic inputs](references/synthetic-inputs.md), then error analysis |
-| fewer than about 100 traces carrying a person's verdict and note | [error analysis](references/error-analysis.md) |
-| a failure taxonomy, and a mode in it with no check | [graders](references/graders.md) |
-| an LLM judge with no measured agreement with human labels | [validate the judge](references/validate-judge.md) |
+| a suite, and the question is whether to trust it | audit it: each grader traces to an observed mode, answers pass or fail, and is code where code can decide; each judge has TPR and TNR on a held-out split; each case runs more than once from a clean directory; failing transcripts are read. Report what fails, most harmful first, naming the file and the fix |
+| fewer than about 100 traces carrying a person's verdict and note | [error analysis](error-analysis.md) |
+| a failure taxonomy, and a mode in it with no check | [graders](graders.md) § 1–3 |
+| an LLM judge with no measured agreement with human labels | [graders](graders.md) § 4 |
 
 When no row fits, start with error analysis.
 

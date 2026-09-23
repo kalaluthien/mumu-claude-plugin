@@ -5,28 +5,13 @@ description: Use when a behaviour is added, changed or fixed - a feature, a bug 
 
 # Test
 
-A test asserts a functional contract, not an implementation's output byte for byte.
-
-| kind | exercises |
-| --- | --- |
-| acceptance | the app as a user drives it: the CLI, the HTTP API, the UI |
-| integration | one module against real infrastructure: the database, the filesystem, the network |
+Terms and rules: `${CLAUDE_PLUGIN_ROOT}/contract.md`; read it first.
 
 ## 1. Find what the repo has
 
-Look for a declared runner, in this order, and use the first found:
+Use the test command the repo declares: a `test` target, `package.json`'s `scripts.test`, or its language's runner configured in its manifest. Put new tests where the existing ones live, named the way they are.
 
-| file | runner |
-| --- | --- |
-| `justfile` / `Makefile` with a `test` target | `just test` / `make test` |
-| `package.json` `scripts.test` | `npm test` |
-| `pyproject.toml` with `[tool.pytest]` or a `pytest` dependency | `pytest` |
-| `Cargo.toml` | `cargo test` |
-| `go.mod` | `go test ./...` |
-
-Put new tests where the repo's existing tests live and name them the way they are named.
-
-If none is found, initialise `tests/acceptance/` and `tests/integration/` with the language's standard runner (pytest, vitest, `cargo test`, `go test`), and tell the owner "no test layout found; initialised `tests/acceptance/` and `tests/integration/` with <runner>".
+If none is found, initialise `tests/acceptance/` and `tests/integration/` with the language's standard runner (pytest, vitest, cargo, go).
 
 ## 2. Red
 
@@ -38,4 +23,4 @@ Make the change. Run the new tests and the whole suite; both pass.
 
 ## 4. Prove the test can fail
 
-Undo the change alone, watch the new tests fail, and restore it. A test that passes without the change is not evidence.
+Undo the change alone, watch the new tests fail, and restore it.

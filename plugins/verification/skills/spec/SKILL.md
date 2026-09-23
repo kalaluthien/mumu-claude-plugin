@@ -5,7 +5,7 @@ description: Use when a change touches a domain model, a state machine, a protoc
 
 # Spec
 
-A spec is the contract a change is checked against: sigs, facts, and one `check` per invariant. It holds no scenarios.
+Terms and rules: `${CLAUDE_PLUGIN_ROOT}/contract.md`; read it first.
 
 ## 1. Find what the repo has
 
@@ -18,7 +18,7 @@ git ls-files '*.als'
 | --- | --- |
 | no `alloy` on PATH | say so and stop before writing anything; never check a model by reading it |
 | `*.als` files | use their layout; read the model covering the change |
-| none | initialise `spec/<module>/system.als`, and tell the owner "no spec layout found; initialised `spec/<module>/system.als`" |
+| none | initialise `spec/<module>/system.als` |
 
 ## 2. Write or edit the model
 
@@ -52,8 +52,6 @@ alloy exec -f -q -o "$out" spec/<module>/system.als && ls "$out"
 | no file for it | holds within its scope |
 | nothing, and a non-zero exit | the model did not parse; read the error |
 
-- A counterexample is a defect in the design or the code. Fix that; never loosen a fact or shrink the scope to silence it.
-- Before trusting a check that wrote no solution file, break the invariant once and watch the `check` find the counterexample, then restore it.
 - Re-run every `check` in the file after each edit.
 
 ## 4. Map model to code
