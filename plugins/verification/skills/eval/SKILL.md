@@ -5,7 +5,7 @@ description: Use when the project is a Claude plugin or an LLM app and a prompt,
 
 # Eval
 
-Terms and rules: `${CLAUDE_PLUGIN_ROOT}/contract.md`; read it first. An eval checks a failure mode seen in a trace, never a quality picked in advance ("helpfulness").
+Terms and rules: `${CLAUDE_PLUGIN_ROOT}/skills/test/references/contract.md`; read it first. An eval checks a failure mode seen in a trace, never a quality picked in advance ("helpfulness").
 
 | suite | bar |
 | --- | --- |
@@ -33,9 +33,9 @@ Read the file the first matching row names, and follow it to its end before the 
 | the repo has | step |
 | --- | --- |
 | a suite, and the question is whether to trust it | audit it: each grader traces to an observed mode, answers pass or fail, and is code where code can decide; each judge has TPR and TNR on a held-out split; each case runs more than once from a clean directory; failing transcripts are read. Report what fails, most harmful first, naming the file and the fix |
-| fewer than about 100 traces carrying a person's verdict and note | [error analysis](error-analysis.md) |
-| a failure taxonomy, and a mode in it with no check | [graders](graders.md) § 1–3 |
-| an LLM judge with no measured agreement with human labels | [graders](graders.md) § 4 |
+| fewer than about 100 traces carrying a person's verdict and note | [error analysis](references/error-analysis.md) |
+| a failure taxonomy, and a mode in it with no check | [graders](references/graders.md) § 1–3 |
+| an LLM judge with no measured agreement with human labels | [graders](references/graders.md) § 4 |
 
 When no row fits, start with error analysis.
 

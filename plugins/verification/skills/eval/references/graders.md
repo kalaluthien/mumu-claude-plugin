@@ -54,7 +54,7 @@ Its numbers are not used until it agrees with the owner. A code grader needs a u
 3. **Measure on dev**: write `evals/analysis/judge-<mode>.csv` (`trace,human,judge`, values `pass` or `fail`) and run:
 
    ```sh
-   python3 <skill dir>/judge-agreement.py <csv> [--observed <judge pass share>]
+   python3 ${CLAUDE_PLUGIN_ROOT}/skills/eval/scripts/judge-agreement.py <csv> [--observed <judge pass share>]
    ```
 
    It prints TPR (of the traces the owner passed, the share the judge passed) and TNR (of those failed, the share the judge failed); plain accuracy hides a judge that never fails anything.

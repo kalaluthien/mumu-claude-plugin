@@ -3,6 +3,9 @@
 A script is a mechanism a caller trusts without reading, and a mechanised rule
 fails silently where a written one fails loudly.
 
+A lesson filed here becomes a script or hook with its failing case, and
+nothing is filed in memory.
+
 ## Name, place, contract
 
 - The extension carries the language, `.py` or `.sh`, so a glob can select by

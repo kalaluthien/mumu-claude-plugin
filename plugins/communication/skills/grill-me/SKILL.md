@@ -8,7 +8,7 @@ description: Use when the answer is still the user's to make - a decision, a pro
 Settle a document with the user: each blank in it is one question. The
 document is the repository's template for the ask, found through its
 `AGENTS.md` or `CLAUDE.md` and read now, else the doctype of
-`${CLAUDE_PLUGIN_ROOT}/doctype.md` the question asks for.
+`${CLAUDE_PLUGIN_ROOT}/skills/show-me/references/doctype.md` the question asks for.
 
 ## Rounds
 
@@ -31,7 +31,7 @@ document is the repository's template for the ask, found through its
 | the round | where |
 | --- | --- |
 | four questions or fewer, with `AskUserQuestion` in the session | `AskUserQuestion` |
-| more, with the `Artifact` tool in the session | the `#round` form of `${CLAUDE_PLUGIN_ROOT}/page.html`, recommendations prefilled, handed to `show-me` to check and deliver |
+| more, with the `Artifact` tool in the session | the `#round` form of `${CLAUDE_PLUGIN_ROOT}/skills/show-me/assets/page.html`, recommendations prefilled, handed to `show-me` to check and deliver |
 | otherwise | numbered text in chat |
 
 The form writes nowhere: it builds a block the user pastes back, its first
