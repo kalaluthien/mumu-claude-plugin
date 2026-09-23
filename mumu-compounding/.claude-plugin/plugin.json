@@ -7,7 +7,7 @@
   },
   "hooks": {
     "Stop": [
-      { "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/bin/takeaway" } ] }
+      { "hooks": [ { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/bin/takeaway.py" } ] }
     ]
   }
 }

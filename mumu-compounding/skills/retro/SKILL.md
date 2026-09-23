@@ -10,7 +10,7 @@ description: Use when writing or editing a SKILL.md, an agents/*.md file, a scri
 Run this first, every time but one case, and report the line it prints:
 
 ```sh
-"${CLAUDE_PLUGIN_ROOT}/bin/takeaway" arm "${CLAUDE_PLUGIN_DATA}"
+"${CLAUDE_PLUGIN_ROOT}/bin/takeaway.py" arm "${CLAUDE_PLUGIN_DATA}"
 ```
 
 To write or edit a skill, an agent or a hook with no lesson behind it, skip

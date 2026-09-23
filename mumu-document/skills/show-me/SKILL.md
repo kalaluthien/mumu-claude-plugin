@@ -16,7 +16,7 @@ the document to `grill-me`.
 3. **Plan** a page or a figure: one line naming the doctype, each figure
    with the paragraph beside it, and what the figure budget forces out; then
    write.
-4. **Check** a page: `"${CLAUDE_PLUGIN_ROOT}/bin/page-check" <page>` clicks
+4. **Check** a page: `"${CLAUDE_PLUGIN_ROOT}/bin/page-check.sh" <page>` clicks
    each control once and prints `pass`; on `FAIL`, fix and rerun; exit 2 says
    why it could not run.
 5. **Deliver** where the ask says, else where it is obvious, else ask once

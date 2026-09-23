@@ -3,11 +3,11 @@
 
 Two uses:
 
-  takeaway              the Stop hook: the hook payload on stdin, the
-                        plugin's data directory in CLAUDE_PLUGIN_DATA.
-  takeaway arm <data>   arm the repository of the current directory; the
-                        retro skill passes the plugin's data directory,
-                        which a Bash call does not inherit.
+  takeaway.py              the Stop hook: the hook payload on stdin, the
+                           plugin's data directory in CLAUDE_PLUGIN_DATA.
+  takeaway.py arm <data>   arm the repository of the current directory; the
+                           retro skill passes the plugin's data directory,
+                           which a Bash call does not inherit.
 
 The hook blocks once, with PROMPT, only when all three hold; otherwise it exits
 0 and says nothing:
@@ -136,7 +136,7 @@ def hook():
 def main():
     if sys.argv[1:2] == ["arm"]:
         if len(sys.argv) != 3:
-            print("usage: takeaway arm <plugin data directory>", file=sys.stderr)
+            print("usage: takeaway.py arm <plugin data directory>", file=sys.stderr)
             return 2
         return arm(sys.argv[2])
     return hook()

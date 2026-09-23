@@ -1,13 +1,13 @@
 #!/bin/sh
-# usage: page-check <page.html>
+# usage: page-check.sh <page.html>
 # Loads the page in a 320 px frame, clicks each control once and prints
 # `<scroll>/<client> <smallest text>px <smallest Hangul or Han>px [error] pass|FAIL`.
 # Exit 0 pass, 1 FAIL, 2 when it could not run, saying why.
 set -eu
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-[ $# -eq 1 ] || { echo "usage: page-check <page.html>" >&2; exit 2; }
-[ -f "$1" ] || { echo "page-check: no file $1" >&2; exit 2; }
-[ -x "$CHROME" ] || { echo "page-check: no Chrome at $CHROME" >&2; exit 2; }
+[ $# -eq 1 ] || { echo "usage: page-check.sh <page.html>" >&2; exit 2; }
+[ -f "$1" ] || { echo "page-check.sh: no file $1" >&2; exit 2; }
+[ -x "$CHROME" ] || { echo "page-check.sh: no Chrome at $CHROME" >&2; exit 2; }
 P=$(cd "$(dirname "$1")" && pwd -P)/$(basename "$1")
 F="${TMPDIR:-/tmp}/page-check-frame.html"
 cat >| "$F" <<'EOF'
@@ -17,7 +17,7 @@ EOF
 R=$("$CHROME" --headless --disable-gpu --allow-file-access-from-files --dump-dom \
   --enable-logging=stderr --virtual-time-budget=3000 "file://$F#file://$P" 2>"$F.log" |
   sed -n 's/.*data-r="\([^"]*\)".*/\1/p')
-[ -n "$R" ] || { echo "page-check: could not read $P" >&2; exit 2; }
+[ -n "$R" ] || { echo "page-check.sh: could not read $P" >&2; exit 2; }
 grep -q 'CONSOLE.*"Uncaught' "$F.log" && R="${R% *} error FAIL"
 echo "$R"
 case $R in *pass) exit 0 ;; *) exit 1 ;; esac
