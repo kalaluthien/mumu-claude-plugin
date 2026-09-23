@@ -17,6 +17,7 @@ import subprocess
 import sys
 
 SEPARATORS = set(";&|()\n")
+SHELLS = {"sh", "bash", "zsh", "dash"}
 
 
 def refuse(reason):
@@ -35,7 +36,8 @@ def merges(command):
             yield from gh_merge(segment)
             segment = []
         else:
-            if previous == "eval" or re.fullmatch(r"-[A-Za-z]*c", previous or ""):
+            shell = any(os.path.basename(w) in SHELLS for w in segment)
+            if previous == "eval" or shell and re.fullmatch(r"-[A-Za-z]*c", previous or ""):
                 # the body of `bash -c '...'`, `sh -ec '...'` or `eval '...'` is a command of its own
                 yield from merges(word)
             segment.append(word)
