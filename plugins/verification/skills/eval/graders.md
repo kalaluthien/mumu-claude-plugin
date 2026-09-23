@@ -25,7 +25,7 @@ Many modes that sound subjective reduce to a word list, a pattern, a parse or an
 
 | runner | code graders | judge |
 | --- | --- | --- |
-| `claude plugin eval` | `regex`, `tool_used`, `tool_order`, `file_exists` | `llm`, its body the criterion |
+| `claude plugin eval` | `regex`, `tool_used`, `tool_order`, `file_exists` | `llm`, its `criteria` the pass and fail |
 | promptfoo | `regex`, `javascript`, `python` | `llm-rubric` |
 
 The runner names a bad or missing field when it loads a case.
