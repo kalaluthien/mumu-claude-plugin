@@ -15,7 +15,7 @@ BIN = pathlib.Path(__file__).resolve().parent.parent / "bin"
 
 
 def load(name):
-    return importlib.machinery.SourceFileLoader(name.replace("-", "_"), str(BIN / name)).load_module()
+    return importlib.machinery.SourceFileLoader(name.replace("-", "_"), str(BIN / (name + ".py"))).load_module()
 
 
 watch, lead = load("worker-watch"), load("lead-heartbeat")
@@ -125,7 +125,7 @@ class Scripts(unittest.TestCase):
             (tmp / f).chmod(0o755)
         env = dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}", CLAUDE_CODE_SESSION_ID="s1",
                    MONITOR_POLL="0.05", WORKER_WATCH_STUCK_AFTER="0", LEAD_HEARTBEAT_AFTER="0")
-        return subprocess.Popen([sys.executable, str(BIN / script), str(tmp)], env=env,
+        return subprocess.Popen([sys.executable, str(BIN / (script + ".py")), str(tmp)], env=env,
                                 stdout=subprocess.PIPE, text=True)
 
     def lines(self, proc):

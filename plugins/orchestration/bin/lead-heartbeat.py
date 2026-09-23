@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Print `lead-heartbeat: team idle <minutes>m, mission <parent-url>` while no worker of this session's lead mission works.
 
-Usage: lead-heartbeat <plugin data dir>, run by the `lead-heartbeat` monitor. The line
+Usage: lead-heartbeat.py <plugin data dir>, run by the `lead-heartbeat` monitor. The line
 comes once no worker has been `working` for `LEAD_HEARTBEAT_AFTER` seconds (1200),
 zero workers included, and again at most once an hour while that holds; any
 worker working prints nothing and restarts the count. It catches the deadlock

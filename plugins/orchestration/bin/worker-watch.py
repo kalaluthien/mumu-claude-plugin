@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Print one line each time a worker of this session's lead mission changes, and nothing otherwise.
 
-Usage: worker-watch <plugin data dir>, run by the `worker-watch` monitor.
+Usage: worker-watch.py <plugin data dir>, run by the `worker-watch` monitor.
 Lines: `blocked`, `gone`, `idle` and `working`, then `<name> <issue-url>`, on a
 change of the worker's herdr state; and `stuck <name> <issue-url>` when it has
 been idle `WORKER_WATCH_STUCK_AFTER` seconds (1800) with its issue open, at
