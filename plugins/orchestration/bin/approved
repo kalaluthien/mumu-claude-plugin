@@ -3,11 +3,12 @@
 
 PreToolUse hook on Bash. A `gh pr merge` anywhere in the command -- after a
 newline, an env prefix, a wrapper such as `rtk`, or inside `( )` / `$( )` --
--- or in the body of a `-c '...'` or `eval '...'` -- passes only when it carries `--match-head-commit <sha>`, that sha is the PR's
-head, and the PR holds a comment whose first line is `Approved <sha>`. A payload
-that cannot be read, a command that cannot be lexed yet reads `gh ... pr merge`,
-and a PR that cannot be read are refused (exit 2). A command without `merge`
-exits 0 unread; `pr merge` inside a message or a search is not a merge.
+or in the body of a `-c '...'` or `eval '...'` -- passes only when it carries
+`--match-head-commit <sha>`, that sha is the PR's head, and the PR holds a
+comment or a review whose first line is `Approved <sha>`. A payload that cannot
+be read, a command that cannot be lexed yet reads `gh ... merge`, and a PR that
+cannot be read are refused (exit 2). A command without `merge` exits 0 unread;
+`pr merge` inside a message, a search or a heredoc body is not a merge.
 """
 import json
 import os
@@ -23,6 +24,20 @@ SHELLS = {"sh", "bash", "zsh", "dash"}
 def refuse(reason):
     print(f"approved: {reason}", file=sys.stderr)
     sys.exit(2)
+
+
+def without_heredocs(command):
+    """Drop each heredoc body, which is data, keeping the line that opens it."""
+    kept, end = [], None
+    for line in command.split("\n"):
+        if end is not None:
+            if line.strip() == end:
+                end = None
+            continue
+        kept.append(line)
+        opened = re.search(r"<<-?\s*(['\"]?)(\w+)\1", line)
+        end = opened.group(2) if opened else None
+    return "\n".join(kept)
 
 
 def merges(command):
@@ -49,13 +64,17 @@ def gh_merge(words):
         if os.path.basename(word) != "gh":
             continue
         rest, repo = words[i + 1:], None
-        while rest and (rest[0] in ("-R", "--repo") and len(rest) >= 2 or rest[0].startswith("--repo=")):
-            if rest[0].startswith("--repo="):
-                repo, rest = rest[0].split("=", 1)[1], rest[1:]
-            else:
-                repo, rest = rest[1], rest[2:]
-        if rest[:2] == ["pr", "merge"]:
-            yield repo, rest[2:]
+        for expected in ("pr", "merge"):  # `-R <repo>` may stand before `pr` or before `merge`
+            while rest and (rest[0] in ("-R", "--repo") and len(rest) >= 2 or rest[0].startswith("--repo=")):
+                if rest[0].startswith("--repo="):
+                    repo, rest = rest[0].split("=", 1)[1], rest[1:]
+                else:
+                    repo, rest = rest[1], rest[2:]
+            if rest[:1] != [expected]:
+                break
+            rest = rest[1:]
+        else:
+            yield repo, rest
 
 
 def option(args, *names):
@@ -86,7 +105,7 @@ def check(repo, args, cwd):
     sha = option(args, "--match-head-commit")
     if not sha:
         refuse("`gh pr merge` must carry `--match-head-commit <sha>`, the sha the reviewer approved")
-    view = ["gh", "pr", "view"] + ([target(args)] if target(args) else []) + ["--json", "headRefOid,comments"]
+    view = ["gh", "pr", "view"] + ([target(args)] if target(args) else []) + ["--json", "headRefOid,comments,reviews"]
     repo = option(args, "-R", "--repo") or repo
     if repo:
         view += ["-R", repo]
@@ -98,9 +117,10 @@ def check(repo, args, cwd):
         refuse(f"could not read the PR ({' '.join(view)}): {run.stderr.strip() or run.stdout.strip()}")
     if sha != head:
         refuse(f"--match-head-commit {sha} is not the PR head {head}; the approval, if any, is stale")
-    first_lines = [c["body"].strip().splitlines()[0].strip() for c in pr.get("comments") or [] if c["body"].strip()]
+    notes = (pr.get("comments") or []) + (pr.get("reviews") or [])
+    first_lines = [n["body"].strip().splitlines()[0].strip() for n in notes if n["body"].strip()]
     if f"Approved {head}" not in first_lines:
-        refuse(f"no PR comment opens with `Approved {head}`; launch the reviewer agent at this sha")
+        refuse(f"no PR comment or review opens with `Approved {head}`; launch the reviewer agent at this sha")
 
 
 raw = sys.stdin.read()
@@ -116,9 +136,10 @@ try:
 except (ValueError, KeyError, TypeError) as err:
     refuse(f"could not read the payload ({type(err).__name__}: {err})")
 try:
+    command = without_heredocs(command)
     found = list(merges(command))
-except ValueError as err:  # e.g. an apostrophe in a heredoc body
-    if re.search(r"\bgh\b[^;&|\n]*\bpr\s+merge\b", command):
+except ValueError as err:  # an unclosed quote
+    if re.search(r"\bgh\b[^;&|\n]*\bmerge\b", command):
         refuse(f"could not lex the command ({err}); run `gh pr merge` on its own line")
     sys.exit(0)
 for repo, args in found:
