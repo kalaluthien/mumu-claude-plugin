@@ -33,7 +33,7 @@ Graders, cheapest first:
 
 | type | fields | checks |
 | --- | --- | --- |
-| `regex` | `pattern`, `target` | the reply or the trace matches |
+| `regex` | `pattern`, `target`: `last_message` (default), `trace` or `files` | the reply, the trace or the written files match |
 | `tool_used` | `tool`, `input_match`, `min` | a tool, e.g. `Skill`, was called |
 | `file_exists` | `path`, `exists` | a file was or was not written |
 | `llm` | body: the rubric | judgement; add only after about 10 human labels agree with it |
@@ -46,5 +46,7 @@ A `tool_used` grader's tool must be in the case's `allowed_tools`.
 claude plugin validate <plugin dir>
 claude plugin eval <plugin dir> --case <case> --runs 3
 ```
+
+The first run in a directory asks whether to trust the plugin; a headless session cannot answer, so pass `--trust-plugin` for a plugin whose code you have read. One `--case` per call: a second one replaces the first.
 
 Read the score delta between the with-plugin and without-plugin arms. A regression case below its bar is a defect in the change.
