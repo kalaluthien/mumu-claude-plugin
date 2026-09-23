@@ -1,22 +1,16 @@
 #!/usr/bin/env python3
-"""Print a plugin's size: files, words, sentences, features, evals, concepts, steps.
+"""Print a plugin's size as five counts: files, sentences, features, concepts, steps.
 
 Usage: measure.py <plugin-dir> [<plugin-dir> ...]; one row per directory.
 
 - files: every file under the directory.
-- words: words of the prose the sentences are counted in, so a count that
-  falls by joining sentences shows here as words that did not.
 - sentences: in Markdown outside code fences, and in script comments and
-  docstrings, each `.`, `;`, `?` or `!` that ends a word; a list item or table
-  row with none counts as one.
-- features: harness features used: skills, agents, hook registrations, `bin/`
-  executables.
-- evals: eval cases.
-- concepts: distinct backticked spans in Markdown, each read as its first word
-  and its subcommands: the lowercase words after it, past an option whose
-  value is a `<placeholder>` and up to any other option, two deep for `gh` and `herdr`, whose commands are
-  noun then verb, and one deep otherwise; a span opening with a flag or
-  punctuation is no name.
+  docstrings, each `.`, `?` or `!` that ends a word; a list item or table row
+  with none counts as one.
+- features: harness features used: skills, agents, hook registrations,
+  `bin/` executables, eval cases (a `prompt.md` or a `case.yaml`).
+- concepts: distinct first words of backticked spans in Markdown, the names a
+  reader must recognise: a command counts as its program.
 - steps: numbered list items and numbered headings in Markdown.
 """
 import json
@@ -24,32 +18,10 @@ import pathlib
 import re
 import sys
 
-END = re.compile(r"[.;?!](?=\s|$)")
+END = re.compile(r"[.?!](?=\s|$)")
 ITEM = re.compile(r"^\s*(?:[-*]|\d+\.)\s|^\s*\|")
 STEP = re.compile(r"^\s*\d+\.\s|^#+\s*\d+\.")
-SPAN = re.compile(r"`([^`]*)`")
-NAME = re.compile(r"[A-Za-z$/][\w$.:{}/-]*")
-WORD = re.compile(r"[a-z][a-z-]*")
-DEPTH = {"gh": 2, "herdr": 2}
-
-
-def concept(span):
-    words = span.split()
-    if not words or not NAME.fullmatch(words[0].rstrip(":,")):
-        return None
-    name = words[0].rstrip(":,")
-    if words[0] != name:
-        return name
-    parts, rest = [name], words[1:]
-    while rest and len(parts) <= DEPTH.get(name, 1):
-        if rest[0].startswith("-") and len(rest) > 1 and rest[1].startswith("<"):
-            rest = rest[2:]
-        elif WORD.fullmatch(rest[0]):
-            parts.append(rest[0])
-            rest = rest[1:]
-        else:
-            break
-    return " ".join(parts)
+SPAN = re.compile(r"`\s*([^`\s]+)[^`]*`")
 
 
 def prose(path):
@@ -71,27 +43,26 @@ def prose(path):
 
 def measure(root):
     files = [p for p in root.rglob("*") if p.is_file()]
-    words = sentences = steps = 0
+    sentences = steps = 0
     concepts = set()
     for path in files:
         if path.suffix == ".json":
             continue
         for line in prose(path):
             ends = len(END.findall(line))
-            words += len(line.split())
             sentences += ends or (1 if ITEM.match(line) else 0)
             if path.suffix == ".md":
                 steps += bool(STEP.match(line))
-                concepts.update(filter(None, map(concept, SPAN.findall(line))))
+                concepts.update(SPAN.findall(line))
     hooks = root / "hooks" / "hooks.json"
     registrations = sum(len(v) for v in json.loads(hooks.read_text())["hooks"].values()) if hooks.exists() else 0
     features = (len(list(root.glob("skills/*/SKILL.md"))) + len(list(root.glob("agents/*.md")))
-                + registrations + len(list(root.glob("bin/*"))))
-    return {"files": len(files), "words": words, "sentences": sentences, "features": features,
-            "evals": len(list(root.glob("evals/*/prompt.md"))), "concepts": len(concepts), "steps": steps}
+                + registrations + len(list(root.glob("bin/*"))) + len(list(root.glob("evals/*/prompt.md"))) + len(list(root.glob("evals/*/case.yaml"))))
+    return {"files": len(files), "sentences": sentences, "features": features,
+            "concepts": len(concepts), "steps": steps}
 
 
-print("dir\tfiles\twords\tsentences\tfeatures\tevals\tconcepts\tsteps")
+print("dir\tfiles\tsentences\tfeatures\tconcepts\tsteps")
 for arg in sys.argv[1:]:
     row = measure(pathlib.Path(arg))
     print("\t".join([arg] + [str(v) for v in row.values()]))

@@ -1,48 +1,32 @@
 ---
 name: show-me
-description: Use when the answer is settled and must be shown - explain, draw, map, walk through or compare something as a document, a diagram or a page; not when the answer is still the user's to make (grill-me).
+description: Use when the answer is settled and must be shown - explain, draw, map, walk through or compare something as a document, a diagram or a page, or say only what the facts imply and what to do next (so what); not when the answer is still the user's to make (grill-me).
 ---
 
 # show-me
 
-Show the topic instead of describing it: the one named, else whatever the
-conversation is about. Every rule for the document is in
-[doctype](doctype.md); read it before writing.
+Show the topic, the one named or else the conversation's, as a document of
+`${CLAUDE_PLUGIN_ROOT}/doctype.md`; read it first. A blank is not shown: hand
+the document to `grill-me`.
 
-An open choice is not shown: hand it to `grill-me`.
+1. **Doctype**: the question picks it; build its parts in order. Asked only
+   what follows, answer as `doctype.md` says, with no doctype.
+2. **Medium**: markdown in one of its forms, or a page from
+   `${CLAUDE_PLUGIN_ROOT}/page.html`.
+3. **Plan** a page or a figure: one line naming the doctype, each figure
+   with the paragraph beside it, and what the figure budget forces out; then
+   write.
+4. **Check** a page: `"${CLAUDE_PLUGIN_ROOT}/bin/page-check" <page>` clicks
+   each control once and prints `pass`; on `FAIL`, fix and rerun; exit 2 says
+   why it could not run.
+5. **Deliver** where the ask says, else where it is obvious, else ask once
+   with `AskUserQuestion`:
+   - chat: markdown;
+   - GitHub issue: the body or a comment by the repository's procedure, else
+     `gh issue create`;
+   - page: `show-me-<slug>.html` in the session's scratch directory,
+     published with the `Artifact` tool, else opened with `open`;
+   - repository page: where the repository keeps pages, linked from its
+     README, landed by its procedure.
 
-## The steps
-
-1. **Doctype**: the question the ask puts picks a `diagram`, a `narrative`
-   or a `comparison` (doctype § Doctypes); build its parts in that order.
-2. **Medium**: doctype § Media. Markdown takes the chat forms below; a page
-   starts from [page.html](page.html).
-3. **Plan**: say in one line the doctype, each figure and the paragraph
-   beside it, and what the figure budget (doctype § Figures) forces out;
-   then write.
-4. **Check**: a page passes doctype § Check before it is delivered.
-5. **Ending**: doctype § Delivery.
-
-## The chat forms
-
-Pick the smallest form that makes the point, put it next to the short text it
-supports, and keep only the calls, files, states and boundaries the question
-needs.
-
-| form | for |
-| --- | --- |
-| pseudocode | logic or an algorithm |
-| a call tree | runtime control flow |
-| a component tree, with the state and module boundaries that matter | UI structure |
-| a shallow file tree, one comment per line | file responsibility, a broad refactor |
-| a table, a row per option, bold only on the cells the verdict turns on, a line under it saying so | a comparison |
-| a diff in the shape of one of the above | what changes in a shape that already exists |
-| the whole block | most of it is new, or omitted context would hide order or ownership |
-
-```text
-submitForm
-  createSession
-    persistPrompt
-    launchAgent
-  navigateToSession
-```
+   Delivered elsewhere, give the one-sentence version in chat.

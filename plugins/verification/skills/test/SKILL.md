@@ -1,41 +1,29 @@
 ---
 name: test
-description: Use when a behaviour is added, changed or fixed - a feature, a bug fix, an endpoint, a command - writes the failing acceptance and integration tests first, then the change that makes them pass; not for a refactor that keeps behaviour, which the existing tests already cover.
+description: Writes the failing acceptance and integration tests first, then the change that makes them pass. Use for every change to what code does - a bug fix, a feature, a new rule, an endpoint, a command - even when the request asks only for the fix and the repo has no tests, and when asked what the tests cover; not for a refactor that keeps behaviour, which the existing tests cover.
 ---
 
 # Test
 
-A test asserts a functional contract, not an implementation's output byte for byte.
-
-| kind | exercises |
-| --- | --- |
-| acceptance | the app as a user drives it: the CLI, the HTTP API, the UI |
-| integration | one module against real infrastructure: the database, the filesystem, the network |
+Terms and rules: `${CLAUDE_PLUGIN_ROOT}/contract.md`; read it first.
 
 ## 1. Find what the repo has
 
-Look for a declared runner, in this order, and use the first found:
+Use the test command the repo declares: a `test` target, `package.json`'s `scripts.test`, or its language's runner configured in its manifest. Put new tests where the existing ones live, named the way they are.
 
-| file | runner |
-| --- | --- |
-| `justfile` / `Makefile` with a `test` target | `just test` / `make test` |
-| `package.json` `scripts.test` | `npm test` |
-| `pyproject.toml` with `[tool.pytest]` or a `pytest` dependency | `pytest` |
-| `Cargo.toml` | `cargo test` |
-| `go.mod` | `go test ./...` |
-
-Put new tests where the repo's existing tests live and name them the way they are named.
-
-If none is found, initialise `tests/acceptance/` and `tests/integration/` with the language's standard runner (pytest, vitest, `cargo test`, `go test`), and tell the owner "no test layout found; initialised `tests/acceptance/` and `tests/integration/` with <runner>".
+If none is found, initialise `tests/acceptance/` and `tests/integration/` with the language's standard runner (pytest, vitest, cargo, go).
 
 ## 2. Red
 
-Write one acceptance test and one integration test for the behaviour. Run them and read the failure: it must fail for the missing behaviour, not for an import error or a typo.
+Write one acceptance test and one integration test for the behaviour, each asserting a contract or a path:
+
+| a bare equality | a contract or a path |
+| --- | --- |
+| `add("")` returns `None` | every blank title (empty, spaces, a tab) exits non-zero with a message, and the stored list is unchanged |
+| the refund call returns 200 | a refund reaches the payment gateway once, before the order reads refunded, and never for an unpaid order |
+
+A screen is checked by driving it in a browser and asserting what it shows. Run the tests.
 
 ## 3. Green
 
-Make the change. Run the new tests and the whole suite; both pass.
-
-## 4. Prove the test can fail
-
-Undo the change alone, watch the new tests fail, and restore it. A test that passes without the change is not evidence.
+Make the change. Run the new tests and the whole suite; both pass. Then undo the change alone, watch the new tests fail, and restore it.

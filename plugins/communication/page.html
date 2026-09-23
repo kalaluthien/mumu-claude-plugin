@@ -3,16 +3,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{title}}</title>
-<!-- show-me's one page template. doctype.md gives each doctype's parts and
-     every rule. Keep the sections the doctype names, in its order, and delete
-     the rest; replace every {{...}}; a part with nothing to say is deleted,
-     never left as a placeholder.
+<!-- The one page template. doctype.md gives each doctype's parts and every
+     rule. Keep the sections the page needs, in this order, and delete the
+     rest; replace every {{...}}; a part with nothing to say is deleted, never
+     left as a placeholder.
      - diagram: .read, the figure, its key, the footer.
      - narrative: .read as the thesis, the figure as the map, one article per
        question, #absent, the footer.
      - comparison: .read as the question, .pick, #yardstick, #options, the
        footer.
-     The skin block is carried verbatim, down to "skin end". -->
+     - a round of questions: #round and its script, one fieldset per question.
+     The skin block is carried verbatim, down to "skin end"; this comment
+     is deleted. -->
 <style>
   /* skin */
   :root {
@@ -42,7 +44,8 @@
   svg text { fill: var(--fg); font: 14px system-ui, sans-serif; }
   svg .label { fill: var(--muted); font-size: 12px; }
   /* skin end */
-  .read { font-size: 1.1rem; border-inline-start: 3px solid var(--fg); padding-inline-start: .75rem; }
+  .read, .pick { border-inline-start: 3px solid var(--fg); padding-inline-start: .75rem; }
+  .read { font-size: 1.1rem; }
   figure { margin: 0; overflow-x: auto; }
   svg { display: block; }
   svg .box { fill: var(--box); stroke: var(--fg); }
@@ -56,13 +59,15 @@
   .scroll { overflow-x: auto; }
   table { border-collapse: collapse; min-width: 100%; background: var(--box); }
   th, td { border-bottom: 1px solid var(--line); padding: .5rem .65rem; text-align: start; vertical-align: top; }
-  .num { text-align: end; font-variant-numeric: tabular-nums; }
   tbody th { font-weight: normal; }
-  .pick { border-inline-start: 3px solid var(--fg); padding-inline-start: .75rem; }
   pre { overflow-x: auto; background: var(--box); border: 1px solid var(--line);
         padding: .75rem; font: 13px/1.45 ui-monospace, monospace; }
   .muted { color: var(--muted); font-size: .9rem; }
   footer { color: var(--muted); font-size: .9rem; margin-top: 2rem; }
+  fieldset { border: 1px solid var(--line); margin: 0 0 1rem; padding: .75rem 1rem; }
+  legend { font-weight: 600; padding: 0 .25rem; }
+  textarea { width: 100%; box-sizing: border-box; font: inherit; }
+  #out { margin-top: 1rem; font-family: ui-monospace, monospace; }
 </style>
 
 <main>
@@ -134,6 +139,43 @@
     <p class="muted"><strong>Bold</strong>: the verdict turns on it.</p>
   </section>
 
+  <form id="round" data-target="{{target}}" data-round="{{n}}">
+    <fieldset>
+      <legend>Q1: {{question title}}</legend>
+      <p>{{question body}}</p>
+      <p><strong>Recommended:</strong> {{recommended answer}}</p>
+      <label for="Q1">Answer</label>
+      <textarea id="Q1" name="Q1" rows="3">{{recommended answer}}</textarea>
+    </fieldset>
+
+    <button type="submit">Build the answer block</button> <span id="status" role="status"></span>
+    <label for="out" hidden>Answer block</label>
+    <textarea id="out" rows="8" readonly hidden></textarea>
+  </form>
+
   <footer>Source: <a href="{{url}}">{{source}}</a> at <code>{{sha}}</code></footer>
 </main>
+
+<script>
+  const form = document.getElementById('round');
+  const out = document.getElementById('out');
+  const status = document.getElementById('status');
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const answers = [...form.querySelectorAll('fieldset textarea')].map((t) => {
+      const lines = t.value.trim() ? t.value.trim().split('\n') : [];
+      return [`${t.name}:`, ...lines.map((l) => `  ${l}`)].join('\n');
+    });
+    out.value = [`grill-me: ${form.dataset.target}, round ${form.dataset.round}`, ...answers].join('\n');
+    out.hidden = false;
+    out.labels[0].hidden = false;
+    out.select();
+    try {
+      await navigator.clipboard.writeText(out.value);
+      status.textContent = 'Copied: paste it into the chat';
+    } catch {
+      status.textContent = 'Selected: copy it and paste it into the chat';
+    }
+  });
+</script>
 </html>
