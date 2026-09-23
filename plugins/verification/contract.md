@@ -16,7 +16,7 @@ A change is checked against a contract that predates it, stated so that a check 
 
 | role | does |
 | --- | --- |
-| owner | sets the bar, judges traces, and is told of every layout initialised |
+| owner | sets the bar and judges traces |
 | agent | writes the checks and the change; never judges a trace on the owner's behalf |
 
 Rules:

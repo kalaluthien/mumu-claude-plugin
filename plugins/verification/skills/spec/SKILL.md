@@ -35,8 +35,7 @@ assert KeepsInvariant { ... }      -- what the change must not break
 check KeepsInvariant for 3
 ```
 
-- One `check` per invariant; name it for what holds.
-- A fact states what the design enforces, never what the check needs to pass.
+- Name each `check` for what holds.
 
 ## 3. Check
 

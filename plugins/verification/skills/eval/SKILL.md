@@ -5,7 +5,7 @@ description: Use when the project is a Claude plugin or an LLM app and a prompt,
 
 # Eval
 
-Terms and rules: `${CLAUDE_PLUGIN_ROOT}/contract.md`; read it first. An eval checks a failure mode seen in a trace, never a quality picked in advance ("helpfulness"). The method follows [ai-evals-course/evals-skills](https://github.com/ai-evals-course/evals-skills).
+Terms and rules: `${CLAUDE_PLUGIN_ROOT}/contract.md`; read it first. An eval checks a failure mode seen in a trace, never a quality picked in advance ("helpfulness").
 
 | suite | bar |
 | --- | --- |

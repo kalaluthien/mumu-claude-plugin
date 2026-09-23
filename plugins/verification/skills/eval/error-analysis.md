@@ -1,6 +1,6 @@
 # Error analysis
 
-Find how the system fails by reading its traces, before anything is measured. The owner judges each trace; the agent samples, records and sorts.
+Find how the system fails by reading its traces, before anything is measured.
 
 Writes `evals/analysis/notes.csv` (`trace,verdict,note`) and `evals/analysis/failure-modes.md`.
 

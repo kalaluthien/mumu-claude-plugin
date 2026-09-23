@@ -22,8 +22,8 @@ Write one acceptance test and one integration test for the behaviour, each asser
 | `add("")` returns `None` | every blank title (empty, spaces, a tab) exits non-zero with a message, and the stored list is unchanged |
 | the refund call returns 200 | a refund reaches the payment gateway once, before the order reads refunded, and never for an unpaid order |
 
-A screen is checked by driving it in a browser and asserting what it shows. Run the tests and read each failure: it must be the missing behaviour, not an import error or a typo.
+A screen is checked by driving it in a browser and asserting what it shows. Run the tests.
 
 ## 3. Green
 
-Make the change. Run the new tests and the whole suite; both pass. Then undo the change alone, watch the new tests fail, and restore it.
+Make the change. Run the new tests and the whole suite; both pass.

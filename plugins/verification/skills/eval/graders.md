@@ -4,25 +4,18 @@ One grader checks one failure mode from `evals/analysis/failure-modes.md` and an
 
 ## 1. Seed the case
 
-A case's input comes from a trace that showed the mode, trimmed to what reproduces it. For a Claude plugin:
-
-```
-<plugin>/evals/<case>/prompt.md          # frontmatter: max_turns, allowed_tools; body: the user's prompt
-<plugin>/evals/<case>/graders/<name>.md  # frontmatter: type and its fields; an llm grader's body is its criterion
-```
-
-The case's environment is part of its input: a mode seen in a repo with a given layout reproduces only in that repo. Build it with a script run in the empty run directory, named in the case's `case.yaml` and run under `--scaffold`:
+A case's input comes from a trace that showed the mode, trimmed to what reproduces it, and so does its environment: a mode seen in a repo with a given layout reproduces only in that repo. For a Claude plugin, each case is a folder in the plugin's `evals/` holding a `case.yaml`:
 
 ```yaml
 schema_version: "1.0"
 name: <case>
 context:
-  scaffold_script: setup.sh   # beside case.yaml; writes the files the prompt acts on
+  scaffold_script: setup.sh   # beside case.yaml; builds the repo the prompt acts on
 execution:
   prompt: <the user's prompt>
 graders:
   - name: <name>
-    type: regex
+    type: regex               # an llm grader: type: llm, criteria: <the mode's pass and fail>
     pattern: <pattern>
 ```
 
