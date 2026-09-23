@@ -19,6 +19,6 @@ One issue, one branch, one PR. `github.md` has every command.
 5. Implement. Run the repo's own checks. Push after every commit. Open the PR after the first push, body `Closes #<issue>`.
 6. Done: launch the `reviewer` agent on the PR at its head sha. Findings -> fix, push, launch it again. `Approved <sha>` at the head -> merge: `gh pr merge <pr> --squash --match-head-commit <sha>`. A hook refuses any other shape.
 7. Blocked on a decision that is not yours: comment `BLOCKED: <question>` on the issue, then prompt the leader's pane (`github.md`). No leader in `herdr agent list`: stop after posting.
-8. After the merge: `git switch --detach`, delete the local branch, report the PR URL and merged sha on the issue.
+8. After the merge: `git switch --detach`, delete the local branch, report the PR URL and merged sha on the issue, then prompt the leader's pane `merged <pr-url>` (`github.md`).
 
 Never post `Approved` yourself; only the reviewer writes it.

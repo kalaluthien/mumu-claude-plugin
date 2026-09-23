@@ -30,11 +30,12 @@ Expect: every unit lands as a PR merged at an approved sha; ask the owner only p
 
 ## 4. Launch
 
-One worker per issue, each in its own worktree and herdr pane, per `herdr.md`: add the worktree `<checkout>/.claude/worktrees/<issue>-<topic>` of the repo's checkout under `~/workspace/projects/`, start `claude --model opus --effort <the issue's effort label>` in it, then prompt `work <issue-url>`.
+One worker per issue, each in its own worktree and herdr pane, per `herdr.md`: add the worktree `<checkout>/.claude/worktrees/<issue>-<topic>` of the repo's checkout (`~/workspace/projects/<repo>`, or `~/workspace` for kalaluthien/workspace), start `claude --model opus --effort <the issue's effort label>` in it, then prompt `work <issue-url>`.
 
 ## 5. Answer
 
 - A `BLOCKED: <question>` comment arrives with a prompt in your pane. Answer on the issue, then prompt the worker's pane: `answered on <issue-url>`.
+- `merged <pr-url>` arrives in your pane when a worker lands its PR; no sub-issue open -> step 6.
 - Poll nothing.
 - A worker gone from `herdr agent list` while its issue is open: relaunch it on the same branch (`herdr.md`, relaunch).
 
