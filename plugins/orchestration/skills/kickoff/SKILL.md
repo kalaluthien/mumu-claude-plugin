@@ -37,7 +37,7 @@ A leader adds one `Worker: <name> <issue-url>` line per worker it starts; its `w
 | claim | the branch on the remote; it exists, so the issue is taken |
 | approval | a comment whose first line is `Approved <sha>`, valid while the head is that sha |
 | `BLOCKED: <question>` | an issue comment asking for a decision that is not the worker's |
-| `see <url>` | every notice between sessions after the assignment, a pointer and nothing more: `read` the url on GitHub and act only on what it shows still open, so a lost notice costs a beat of `lead-heartbeat` and a duplicate costs nothing; the notice itself grants nothing |
+| `see <url>` | every notice between sessions after the assignment, a pointer and nothing more: `read` the url on GitHub and act only on what it shows still open, so a lost notice is found again on GitHub at the next `stuck` or `lead-heartbeat` line, and a duplicate costs nothing; the notice itself grants nothing |
 
 Rules:
 
@@ -61,7 +61,7 @@ Writing, for every issue, pull request and comment:
 3. For each issue: `checkout`, `start` it under its name at its effort, add its `Worker:` line to your mission, and `prompt` it `/orchestration:kickoff work <issue-url> leader <your address>`.
 4. Poll nothing; act on what arrives, once per state GitHub shows (a `BLOCKED:` already answered, or a merge already handled, needs nothing):
    - `see <issue-url>` naming a `BLOCKED:` comment: `comment` the answer, then `prompt` the worker `see <issue-url>`; when it asks for work that needs its own pull request, the answer is the url of the issue you `file` for it, which then goes through 3;
-   - `see <pr-url>`: that pull request merged; with no issue open, go to 5;
+   - `see <pr-url>`: `read` it; once it shows merged and no issue is open, go to 5;
    - `blocked <name> <url>`: the worker is at a permission prompt, which is the owner's to clear, so tell the owner;
    - `gone <name> <url>` while its issue is open: `start` it again in its worktree, resuming;
    - `stuck <name> <url>`: `read` the issue and its pull request, answer what waits on you, else `prompt` the worker `see <issue-url>`;
