@@ -3,10 +3,11 @@
 
 PreToolUse hook on Bash. A `gh pr merge` anywhere in the command -- after a
 newline, an env prefix, a wrapper such as `rtk`, or inside `( )` / `$( )` --
-passes only when it carries `--match-head-commit <sha>`, that sha is the PR's
-head, and the PR holds a comment whose first line is `Approved <sha>`. Text
-reading `pr merge` that cannot be parsed into one, and a payload that cannot be
-read, are refused (exit 2). A command without `merge` exits 0 unread.
+-- or in the body of a `-c '...'` -- passes only when it carries `--match-head-commit <sha>`, that sha is the PR's
+head, and the PR holds a comment whose first line is `Approved <sha>`. A payload
+that cannot be read, a command that cannot be lexed yet reads `gh ... pr merge`,
+and a PR that cannot be read are refused (exit 2). A command without `merge`
+exits 0 unread; `pr merge` inside a message or a search is not a merge.
 """
 import json
 import os
@@ -28,13 +29,16 @@ def merges(command):
     lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|()\n")
     lexer.whitespace = " \t\r"
     lexer.whitespace_split = True
-    segment = []
+    segment, previous = [], None
     for word in list(lexer) + [";"]:
         if word and set(word) <= SEPARATORS:
             yield from gh_merge(segment)
             segment = []
         else:
+            if previous == "-c":  # the body of `bash -c '...'` is a command of its own
+                yield from merges(word)
             segment.append(word)
+        previous = word
 
 
 def gh_merge(words):
@@ -42,8 +46,11 @@ def gh_merge(words):
         if os.path.basename(word) != "gh":
             continue
         rest, repo = words[i + 1:], None
-        while len(rest) >= 2 and rest[0] in ("-R", "--repo"):
-            repo, rest = rest[1], rest[2:]
+        while rest and (rest[0] in ("-R", "--repo") and len(rest) >= 2 or rest[0].startswith("--repo=")):
+            if rest[0].startswith("--repo="):
+                repo, rest = rest[0].split("=", 1)[1], rest[1:]
+            else:
+                repo, rest = rest[1], rest[2:]
         if rest[:2] == ["pr", "merge"]:
             yield repo, rest[2:]
 
@@ -81,10 +88,11 @@ def check(repo, args, cwd):
     if repo:
         view += ["-R", repo]
     run = subprocess.run(view, capture_output=True, text=True, cwd=cwd)
-    if run.returncode != 0:
-        refuse(f"could not read the PR ({' '.join(view)}): {run.stderr.strip()}")
-    pr = json.loads(run.stdout)
-    head = pr["headRefOid"]
+    try:
+        pr = json.loads(run.stdout) if run.returncode == 0 else None
+        head = pr["headRefOid"]
+    except (ValueError, KeyError, TypeError):
+        refuse(f"could not read the PR ({' '.join(view)}): {run.stderr.strip() or run.stdout.strip()}")
     if sha != head:
         refuse(f"--match-head-commit {sha} is not the PR head {head}; the approval, if any, is stale")
     first_lines = [c["body"].strip().splitlines()[0].strip() for c in pr["comments"] if c["body"].strip()]
@@ -102,10 +110,13 @@ try:
         raise TypeError(f"command is {type(command).__name__}")
     cwd = payload.get("cwd")
     cwd = cwd if cwd and os.path.isdir(cwd) else None
-    found = list(merges(command))
 except (ValueError, KeyError, TypeError) as err:
-    refuse(f"could not read the command ({type(err).__name__}: {err}); run `gh pr merge` on its own")
-if not found and re.search(r"\bpr\s+merge\b", command):
-    refuse("`pr merge` appears in a form this hook cannot read; run `gh pr merge` on its own line")
+    refuse(f"could not read the payload ({type(err).__name__}: {err})")
+try:
+    found = list(merges(command))
+except ValueError as err:  # e.g. an apostrophe in a heredoc body
+    if re.search(r"\bgh\b[^;&|\n]*\bpr\s+merge\b", command):
+        refuse(f"could not lex the command ({err}); run `gh pr merge` on its own line")
+    sys.exit(0)
 for repo, args in found:
     check(repo, args, cwd)
