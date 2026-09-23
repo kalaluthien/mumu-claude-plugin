@@ -48,7 +48,7 @@ Rules:
    - `see <issue-url>` with a question: answer on the issue, then `prompt` the worker `see <issue-url>`;
    - `see <pr-url>`: that pull request merged; with no issue open, go to 5;
    - the owner changes direction: edit the issues affected and `prompt` each of their workers `see <issue-url>`;
-   - a worker gone from `live` while its issue is open: `start` it again in its worktree, resuming, with the same assignment.
+   - the owner asks where it stands: report each issue and its worker in `live`, and `start` a worker gone while its issue is open again in its worktree, resuming, with the same assignment.
 5. Close the parent with a summary, `close` each worker, and `clean`.
 
 # Work
