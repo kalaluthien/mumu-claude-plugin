@@ -9,8 +9,8 @@ Usage: measure.py <plugin-dir> [<plugin-dir> ...]; one row per directory.
   with none counts as one.
 - features: harness features used: skills, agents, hook registrations,
   `bin/` executables, eval cases.
-- concepts: distinct backticked spans without whitespace in Markdown, the
-  names a reader must recognise.
+- concepts: distinct first words of backticked spans in Markdown, the names a
+  reader must recognise: a command counts as its program.
 - steps: numbered list items and numbered headings in Markdown.
 """
 import json
@@ -21,7 +21,7 @@ import sys
 END = re.compile(r"[.?!](?=\s|$)")
 ITEM = re.compile(r"^\s*(?:[-*]|\d+\.)\s|^\s*\|")
 STEP = re.compile(r"^\s*\d+\.\s|^#+\s*\d+\.")
-SPAN = re.compile(r"`([^`\s]+)`")
+SPAN = re.compile(r"`\s*([^`\s]+)[^`]*`")
 
 
 def prose(path):
