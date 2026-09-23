@@ -17,7 +17,7 @@ The hook blocks once, with PROMPT, only when all four hold; otherwise it exits
     whose entrypoint starts with "sdk";
   - stop_hook_active is false, so a harvest never asks for itself;
   - WORK_THRESHOLD or more tool calls since the harvest that this hook's
-    last block asked for; a subagent's calls, on the sidechain, not counted.
+    last block asked for.
 
 Every call counts, since a lesson can come from a read. Eight asks at about a
 quarter of the stops in recorded interactive sessions.
@@ -80,8 +80,6 @@ def work_done(entries):
     """Count the tool calls made in the current window."""
     count = 0
     for entry in entries[window_start(entries):]:
-        if entry.get("isSidechain") or entry.get("isMeta"):
-            continue
         if entry.get("type") != "assistant":
             continue
         content = (entry.get("message") or {}).get("content")
