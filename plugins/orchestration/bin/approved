@@ -8,7 +8,8 @@ or in the body of a `-c '...'` or `eval '...'` -- passes only when it carries
 comment or a review whose first line is `Approved <sha>`. A payload that cannot
 be read, a command that cannot be lexed yet reads `gh ... merge`, and a PR that
 cannot be read are refused (exit 2). A command without `merge` exits 0 unread;
-`pr merge` inside a message, a search or a heredoc body is not a merge.
+`pr merge` inside a quoted message or search is not a merge, but one in a
+heredoc body is, since a shell may run the body.
 """
 import json
 import os
@@ -24,20 +25,6 @@ SHELLS = {"sh", "bash", "zsh", "dash"}
 def refuse(reason):
     print(f"approved: {reason}", file=sys.stderr)
     sys.exit(2)
-
-
-def without_heredocs(command):
-    """Drop each heredoc body, which is data, keeping the line that opens it."""
-    kept, end = [], None
-    for line in command.split("\n"):
-        if end is not None:
-            if line.strip() == end:
-                end = None
-            continue
-        kept.append(line)
-        opened = re.search(r"<<-?\s*(['\"]?)(\w+)\1", line)
-        end = opened.group(2) if opened else None
-    return "\n".join(kept)
 
 
 def merges(command):
@@ -136,7 +123,6 @@ try:
 except (ValueError, KeyError, TypeError) as err:
     refuse(f"could not read the payload ({type(err).__name__}: {err})")
 try:
-    command = without_heredocs(command)
     found = list(merges(command))
 except ValueError as err:  # an unclosed quote
     if re.search(r"\bgh\b[^;&|\n]*\bmerge\b", command):
