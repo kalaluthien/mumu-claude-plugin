@@ -8,7 +8,7 @@ description: Use when this session is a worker given an issue URL ("work <issue-
 One issue, one branch, one PR. `github.md` has every command.
 
 1. Read the issue and its parent. Default branch: `gh repo view --json defaultBranchRef`; none -> step 7 (BLOCKED).
-2. Claim `<issue>-<topic>`: `git ls-remote --exit-code origin <branch>` must fail; then create it from `origin/<default>` and push it. Found -> someone holds it: stop and say so on the issue.
+2. Claim `<issue>-<topic>`: `git ls-remote --exit-code origin <branch>` must fail; then create it from `origin/<default>` and push it. Found -> yours if this checkout is already on it (a relaunch); otherwise someone holds it: stop and say so on the issue.
 3. Arm the checkout: link `default-branch-guard` as the repo's `pre-commit` (`github.md`), so no commit lands on the default branch.
 4. Mission: write `mission path`'s file, 3-5 lines:
    ```

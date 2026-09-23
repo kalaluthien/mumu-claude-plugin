@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
 """Refuse a `gh pr merge` that is not pinned to a sha a reviewer approved.
 
-PreToolUse hook on Bash. A command carrying `gh pr merge` passes only when it
-carries `--match-head-commit <sha>`, that sha is the PR's head, and the PR holds
-a comment whose first line is `Approved <sha>`. Anything else exits 2 with the
-reason; a command without `gh pr merge` exits 0 unread.
+PreToolUse hook on Bash. A `gh pr merge` anywhere in the command -- after a
+newline, an env prefix, a wrapper such as `rtk`, or inside `( )` / `$( )` --
+passes only when it carries `--match-head-commit <sha>`, that sha is the PR's
+head, and the PR holds a comment whose first line is `Approved <sha>`. Text
+reading `pr merge` that cannot be parsed into one, and a payload that cannot be
+read, are refused (exit 2). A command without `merge` exits 0 unread.
 """
 import json
+import os
+import re
 import shlex
 import subprocess
 import sys
+
+SEPARATORS = set(";&|()\n")
 
 
 def refuse(reason):
@@ -18,18 +24,28 @@ def refuse(reason):
 
 
 def merges(command):
-    """Yield the arguments after `gh pr merge` in each simple command."""
-    lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|")
+    """Yield (global repo, args after `pr merge`) for each `gh ... pr merge` found."""
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|()\n")
+    lexer.whitespace = " \t\r"
     lexer.whitespace_split = True
-    words = list(lexer)
     segment = []
-    for word in words + [";"]:
-        if word and set(word) <= set(";&|"):
-            if segment[:3] == ["gh", "pr", "merge"]:
-                yield segment[3:]
+    for word in list(lexer) + [";"]:
+        if word and set(word) <= SEPARATORS:
+            yield from gh_merge(segment)
             segment = []
         else:
             segment.append(word)
+
+
+def gh_merge(words):
+    for i, word in enumerate(words):
+        if os.path.basename(word) != "gh":
+            continue
+        rest, repo = words[i + 1:], None
+        while len(rest) >= 2 and rest[0] in ("-R", "--repo"):
+            repo, rest = rest[1], rest[2:]
+        if rest[:2] == ["pr", "merge"]:
+            yield repo, rest[2:]
 
 
 def option(args, *names):
@@ -56,17 +72,15 @@ def target(args):
     return None
 
 
-def check(args):
+def check(repo, args, cwd):
     sha = option(args, "--match-head-commit")
     if not sha:
         refuse("`gh pr merge` must carry `--match-head-commit <sha>`, the sha the reviewer approved")
-    view = ["gh", "pr", "view", "--json", "headRefOid,comments"]
-    if target(args):
-        view.insert(3, target(args))
-    repo = option(args, "-R", "--repo")
+    view = ["gh", "pr", "view"] + ([target(args)] if target(args) else []) + ["--json", "headRefOid,comments"]
+    repo = option(args, "-R", "--repo") or repo
     if repo:
         view += ["-R", repo]
-    run = subprocess.run(view, capture_output=True, text=True)
+    run = subprocess.run(view, capture_output=True, text=True, cwd=cwd)
     if run.returncode != 0:
         refuse(f"could not read the PR ({' '.join(view)}): {run.stderr.strip()}")
     pr = json.loads(run.stdout)
@@ -78,11 +92,20 @@ def check(args):
         refuse(f"no PR comment opens with `Approved {head}`; launch the reviewer agent at this sha")
 
 
-command = json.load(sys.stdin).get("tool_input", {}).get("command", "")
-if "merge" in command:
-    try:
-        found = list(merges(command))
-    except ValueError as err:
-        refuse(f"could not parse the command ({err}); run `gh pr merge` on its own")
-    for args in found:
-        check(args)
+raw = sys.stdin.read()
+if "merge" not in raw:
+    sys.exit(0)
+try:
+    payload = json.loads(raw)
+    command = payload["tool_input"]["command"]
+    if not isinstance(command, str):
+        raise TypeError(f"command is {type(command).__name__}")
+    cwd = payload.get("cwd")
+    cwd = cwd if cwd and os.path.isdir(cwd) else None
+    found = list(merges(command))
+except (ValueError, KeyError, TypeError) as err:
+    refuse(f"could not read the command ({type(err).__name__}: {err}); run `gh pr merge` on its own")
+if not found and re.search(r"\bpr\s+merge\b", command):
+    refuse("`pr merge` appears in a form this hook cannot read; run `gh pr merge` on its own line")
+for repo, args in found:
+    check(repo, args, cwd)

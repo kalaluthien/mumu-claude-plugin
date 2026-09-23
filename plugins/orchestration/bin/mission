@@ -9,12 +9,14 @@
 gitdir=$(git rev-parse --path-format=absolute --git-dir 2>/dev/null) || exit 0
 branch=$(git branch --show-current 2>/dev/null)
 worker="$gitdir/mission/branch-$branch.md"
-leader="$gitdir/mission/pane-${HERDR_PANE_ID:-none}.md"
+leader="$gitdir/mission/pane-$HERDR_PANE_ID.md"
+[ -n "$HERDR_PANE_ID" ] || leader=/nonexistent
 
 if [ "$1" = path ]; then
 	if [ "$2" = leader ]; then file=$leader; else file=$worker; fi
 	[ -n "$branch" ] || [ "$2" = leader ] || { echo "mission: no branch checked out" >&2; exit 1; }
-	mkdir -p "$gitdir/mission" && printf '%s\n' "$file"
+	[ "$file" != /nonexistent ] || { echo "mission: HERDR_PANE_ID is unset; a leader runs in a herdr pane" >&2; exit 1; }
+	mkdir -p "$(dirname "$file")" && printf '%s\n' "$file"
 	exit 0
 fi
 for file in "$leader" "$worker"; do
