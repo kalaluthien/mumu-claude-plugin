@@ -8,7 +8,7 @@ Usage: measure.py <plugin-dir> [<plugin-dir> ...]; one row per directory.
   docstrings, each `.`, `?` or `!` that ends a word; a list item or table row
   with none counts as one.
 - features: harness features used: skills, agents, hook registrations,
-  `bin/` executables, eval cases.
+  `bin/` executables, eval cases (a `prompt.md` or a `case.yaml`).
 - concepts: distinct first words of backticked spans in Markdown, the names a
   reader must recognise: a command counts as its program.
 - steps: numbered list items and numbered headings in Markdown.
@@ -57,7 +57,7 @@ def measure(root):
     hooks = root / "hooks" / "hooks.json"
     registrations = sum(len(v) for v in json.loads(hooks.read_text())["hooks"].values()) if hooks.exists() else 0
     features = (len(list(root.glob("skills/*/SKILL.md"))) + len(list(root.glob("agents/*.md")))
-                + registrations + len(list(root.glob("bin/*"))) + len(list(root.glob("evals/*/prompt.md"))))
+                + registrations + len(list(root.glob("bin/*"))) + len(list(root.glob("evals/*/prompt.md"))) + len(list(root.glob("evals/*/case.yaml"))))
     return {"files": len(files), "sentences": sentences, "features": features,
             "concepts": len(concepts), "steps": steps}
 
