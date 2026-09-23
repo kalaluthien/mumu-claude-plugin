@@ -21,9 +21,9 @@ start at step 2.
 1. Find each lesson. A surprise is a check that failed, a tool that refused,
    a step redone, or a success by a path you did not plan; write it as a rule
    to act on at the start of a task: when <situation>, do <action>, because
-   <the assumption it broke>. A procedure is one that worked, which you had to
-   work out or took from auto-memory; keep its steps as run. Keep a name, path
-   or value only if the lesson is about it.
+   <the assumption it broke>, keeping a name, path or value only if the rule
+   is about it. A procedure is several steps that worked, which you had to
+   work out or took from auto-memory; keep the steps as run.
 2. Search every project's auto-memory, `~/.claude/projects/*/memory/`, for
    the same lesson. Pick the last row of the table below that it fits, and
    read what is there now.
