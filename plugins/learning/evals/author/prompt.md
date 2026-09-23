@@ -5,4 +5,4 @@ allowed_tools: [Skill, Read, Write, Edit, Bash]
 runs: 3
 ---
 
-Add a skill that turns a CSV file into a Markdown table, so I can reuse it in later sessions.
+Add a skill under .claude/skills/ in this directory that converts a CSV file into a Markdown table.
