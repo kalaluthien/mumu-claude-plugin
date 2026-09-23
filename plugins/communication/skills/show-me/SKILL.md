@@ -6,13 +6,13 @@ description: Use when the answer is settled and must be shown - explain, draw, m
 # show-me
 
 Show the topic, the one named or else the conversation's, as a document of
-`${CLAUDE_PLUGIN_ROOT}/skills/show-me/references/doctype.md`; read it first. A blank is not shown: hand
+[doctype.md](references/doctype.md); read it first. A blank is not shown: hand
 the document to `grill-me`.
 
 1. **Doctype**: the question picks it; build its parts in order. Asked only
    what follows, answer as `doctype.md` says, with no doctype.
 2. **Medium**: markdown in one of its forms, or a page from
-   `${CLAUDE_PLUGIN_ROOT}/skills/show-me/assets/page.html`.
+   [page.html](assets/page.html).
 3. **Plan** a page or a figure: one line naming the doctype, each figure
    with the paragraph beside it, and what the figure budget forces out; then
    write.

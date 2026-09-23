@@ -14,7 +14,15 @@ parameters; how a delegate should work goes into its `agents/<name>.md`.
 - A skill folder holds `SKILL.md` and only `references/` (documents it
   loads), `scripts/` (code it runs) and `assets/` (files it copies), because a
   reader then knows what a file is for from where it sits. A file two skills
-  use lives in the one that owns it, and the other links that path.
+  use lives in the one whose steps build with it, and the other links that
+  path. At a plugin's root sit only folders the harness or several skills run
+  (`bin/`, `hooks/`, `monitors/`, `agents/`, `lib/`), never a loose document.
+- A skill links its own files by relative path, and another skill's by
+  `${CLAUDE_PLUGIN_ROOT}/skills/<skill>/...`, because the relative form breaks
+  when read from outside the folder.
+- Moving a file: `git mv`, then search the plugin (skills, hooks, `bin/`,
+  tests, evals) for the old path until nothing is found, then open each new
+  link once, because a stale path fails only when that step runs.
 - No file under a skill is named `skill.md` in any case: on a case-insensitive
   filesystem it is the same file as `SKILL.md`.
 
