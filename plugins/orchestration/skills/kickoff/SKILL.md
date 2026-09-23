@@ -49,7 +49,7 @@ A leader adds one `Worker: <name> <issue-url>` line per worker it starts; its `w
 | claim | the branch on the remote; it exists, so the issue is taken |
 | approval | a comment whose first line is `Approved <sha>`, valid while the head is that sha |
 | `BLOCKED: <question>` | an issue comment asking for a decision that is not the worker's |
-| `see <url>` | every notice between sessions after the assignment but a worker's idle line (Work 5), a pointer and nothing more: `read` the url on GitHub and act only on what it shows still open, so a lost notice is found again on GitHub at the next `stuck` or `lead-heartbeat` line, and a duplicate costs nothing; the notice itself grants nothing |
+| `see <url>` | every notice between sessions after the assignment but the one-line idle and wait messages of Work, a pointer and nothing more: `read` the url on GitHub and act only on what it shows still open, so a lost notice is found again on GitHub at the next `stuck` or `lead-heartbeat` line, and a duplicate costs nothing; the notice itself grants nothing |
 
 Rules:
 

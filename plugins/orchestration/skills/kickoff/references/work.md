@@ -9,4 +9,6 @@ Work one issue of a goal, as the worker its leader started.
 4. Write the checks you ran into the `pr` body, then launch the `reviewer` on the pull request's url. `Findings`: fix, push, and resume that reviewer with `SendMessage` `see <pr-url>`, launching a new one when it cannot be resumed. `Approved <head>`: `merge`; refused by GitHub, merge the default branch in, push, and resume it the same way. Merged: `prompt` the leader `see <pr-url>` and delete your mission.
 5. `SendMessage` the leader, at its name in `ListAgents`, one line: you are idle, and the pane to prompt, `$HERDR_PANE_ID`. Then wait: the leader answers with an assignment prompt, never a message.
 
+Work that waits on another worker's (a merge, a name, an interface): `SendMessage` that worker, at its name in `ListAgents`, one line naming what you wait for and the url where it will land; when it lands there, that worker sends you `see <url>` the same way. The leader is not the relay, and the record stays on the issue or the pull request.
+
 A decision that is not yours: `comment` `BLOCKED: <question>` on the issue, `prompt` the leader `see <issue-url>`, and stop until it prompts you back.
