@@ -34,7 +34,7 @@ SEPARATORS = set(";&|()\n")
 DESCRIPTOR = re.compile(r"(^|[\s;&|()])(?:\d+|\{\w+\})(?=[<>])")
 QUOTING = re.compile(r"[\"'\\]")
 MENTION = re.compile(r"\bpr\b[\s\S]*?\bmerge\b")
-BYPASS = re.compile(r"--no-v|core\.hookspath|\bgit\b[^;&|\n]*\bcommit\b[^;&|\n]*\s-[a-z]*n", re.I)  # in text that cannot be lexed
+BYPASS = re.compile(r"--no-v|core\.hookspath|\bgit\b[\s\S]*?\bcommit\b[\s\S]*?\s-[a-z]*n", re.I)  # in text that cannot be lexed
 HOOKS_PATH = re.compile(r"(^|[='\"])core\.hookspath(['\"]?=|['\"]?$)", re.I)  # `-c k=v`, `KEY_0=k`, `'k'=v`
 
 
@@ -214,7 +214,7 @@ try:
             readings.append(list(segments(command, join)))
         except ValueError:  # an unclosed quote: bash still runs every line before it
             readings.append(None)
-    if None in readings and BYPASS.search(QUOTING.sub("", command)) or \
+    if None in readings and BYPASS.search(QUOTING.sub("", command.replace("\\\n", ""))) or \
             any(bypasses(words) for reading in readings if reading for words in reading):
         refuse("hook bypass refused: fix what the hook refused, or BLOCKED the owner")
     merges = []
