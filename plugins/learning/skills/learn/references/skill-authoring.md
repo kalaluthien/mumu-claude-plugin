@@ -4,6 +4,11 @@ Write only what the reader cannot derive: house conventions, defaults that
 surprise, values that must match another file. An `agents/*.md` file takes a
 skill's frontmatter rules; its body is the delegate's system prompt.
 
+A lesson filed here: a procedure goes into the skill that owns the work,
+edited in its source and never under `~/.claude/plugins/cache/`, or a new one
+in `~/.claude/skills/`, as the steps as run with what varied between runs as
+parameters; how a delegate should work goes into its `agents/<name>.md`.
+
 ## Folder
 
 - A skill folder holds `SKILL.md` and only `references/` (documents it
