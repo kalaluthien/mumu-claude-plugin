@@ -1,0 +1,10 @@
+{
+  "name": "agent-plugins",
+  "owner": { "name": "kalaluthien" },
+  "plugins": [
+    { "name": "communication", "source": "./plugins/communication", "description": "A document explains one question." },
+    { "name": "orchestration", "source": "./plugins/orchestration", "description": "Work lands only as a PR merged at a sha a reviewer approved." },
+    { "name": "verification", "source": "./plugins/verification", "description": "A change is checked against a contract that predates it." },
+    { "name": "learning", "source": "./plugins/learning", "description": "A lesson is filed once, where its reader looks, before the session ends." }
+  ]
+}
