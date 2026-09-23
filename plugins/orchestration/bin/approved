@@ -3,7 +3,7 @@
 
 PreToolUse hook on Bash. A `gh pr merge` anywhere in the command -- after a
 newline, an env prefix, a wrapper such as `rtk`, or inside `( )` / `$( )` --
--- or in the body of a `-c '...'` -- passes only when it carries `--match-head-commit <sha>`, that sha is the PR's
+-- or in the body of a `-c '...'` or `eval '...'` -- passes only when it carries `--match-head-commit <sha>`, that sha is the PR's
 head, and the PR holds a comment whose first line is `Approved <sha>`. A payload
 that cannot be read, a command that cannot be lexed yet reads `gh ... pr merge`,
 and a PR that cannot be read are refused (exit 2). A command without `merge`
@@ -35,7 +35,8 @@ def merges(command):
             yield from gh_merge(segment)
             segment = []
         else:
-            if previous == "-c":  # the body of `bash -c '...'` is a command of its own
+            if previous == "eval" or re.fullmatch(r"-[A-Za-z]*c", previous or ""):
+                # the body of `bash -c '...'`, `sh -ec '...'` or `eval '...'` is a command of its own
                 yield from merges(word)
             segment.append(word)
         previous = word
@@ -95,7 +96,7 @@ def check(repo, args, cwd):
         refuse(f"could not read the PR ({' '.join(view)}): {run.stderr.strip() or run.stdout.strip()}")
     if sha != head:
         refuse(f"--match-head-commit {sha} is not the PR head {head}; the approval, if any, is stale")
-    first_lines = [c["body"].strip().splitlines()[0].strip() for c in pr["comments"] if c["body"].strip()]
+    first_lines = [c["body"].strip().splitlines()[0].strip() for c in pr.get("comments") or [] if c["body"].strip()]
     if f"Approved {head}" not in first_lines:
         refuse(f"no PR comment opens with `Approved {head}`; launch the reviewer agent at this sha")
 
