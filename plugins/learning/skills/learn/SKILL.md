@@ -1,6 +1,6 @@
 ---
 name: learn
-description: Use when something learned should outlive the session - before writing any memory, when learning is turned on, when a stop asks for a harvest - or when writing or editing a SKILL.md, a hook or its script, or an agents/*.md file. Not for settings.json permissions or env (update-config).
+description: Use when writing or editing a SKILL.md, a hook or its script, or an agents/*.md file, and when something learned should outlive the session - a memory, learning turned on, a stop's harvest. Not for settings.json permissions or env (update-config).
 ---
 
 # learn
@@ -10,7 +10,7 @@ Arm and Harvest and follow the reference its row under Destinations links.
 
 ## Arm
 
-Run this first, every time, and report the line it prints:
+Before any harvest or filed lesson, run this and report the line it prints:
 
 ```sh
 "${CLAUDE_PLUGIN_ROOT}/bin/takeaway" arm "${CLAUDE_PLUGIN_DATA}"
