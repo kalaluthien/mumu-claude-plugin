@@ -6,6 +6,7 @@ split it -- at a newline, `;`, `&&`, `|` or `(` -- and in each one every
 `pr [-R <repo>]... merge`, counted with quotes, backslashes and redirects
 removed and inside every quoted word too, must be the one `gh ... pr merge` that command
 runs, after an env prefix or a wrapper such as `rtk`. That merge passes only
+when it names one PR and combines no short flags, and only
 when it carries `--match-head-commit <sha>`, that sha is the PR's head, and the
 PR holds a comment or a review whose first line is `Approved <sha>`. Any other
 `pr merge` -- inside `bash -c`, `eval`, a here-string, a comment, a quoted
@@ -122,22 +123,26 @@ def option(args, *names):
 def target(args):
     takes_value = {"-R", "--repo", "--match-head-commit", "-b", "--body", "-F", "--body-file",
                    "-t", "--subject", "-A", "--author-email"}
-    skip = False
+    names, skip = [], False
     for arg in args:
         if skip:
             skip = False
+        elif re.fullmatch(r"-[A-Za-z]{2,}.*", arg):  # gh reads `-sb 31` as `-s -b 31`
+            refuse(f"write `{arg}` as separate flags, so the PR the hook reads is the one gh merges")
         elif arg in takes_value:
             skip = True
         elif not arg.startswith("-"):
-            return arg
-    return None
+            names.append(arg)
+    if len(names) != 1:
+        refuse(f"`gh pr merge` must name exactly one PR by number or url, not {names or 'none'}")
+    return names[0]
 
 
 def check(repo, args, cwd):
     sha = option(args, "--match-head-commit")
     if not sha:
         refuse("`gh pr merge` must carry `--match-head-commit <sha>`, the sha the reviewer approved")
-    view = ["gh", "pr", "view"] + ([target(args)] if target(args) else []) + ["--json", "headRefOid,comments,reviews"]
+    view = ["gh", "pr", "view", target(args), "--json", "headRefOid,comments,reviews"]
     repo = option(args, "-R", "--repo") or repo
     if repo:
         view += ["-R", repo]
