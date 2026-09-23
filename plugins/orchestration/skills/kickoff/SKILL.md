@@ -9,15 +9,15 @@ Arguments: $ARGUMENTS
 
 Arguments starting with `work` make you a worker (§ Work); any others are a goal you lead (§ Lead).
 
-Before anything else, write your mission to `${CLAUDE_PLUGIN_DATA}/mission/${CLAUDE_SESSION_ID}.md`. A hook shows it to you every turn and to every agent you launch:
+`panes.md` drives other sessions and `repo.md` holds issues, branches and pull requests; each maps the verbs below to commands.
+
+First check `ready`; when it fails, stop and print its fix, since without it no session reports its state. Then write your mission to `${CLAUDE_PLUGIN_DATA}/mission/${CLAUDE_SESSION_ID}.md`. A hook shows it to you every turn and to every agent you launch:
 
 ```
 Goal: <the parent goal, in words>
 Mission: <your role, and your issue's url>
 Expect: <the owner's expectations>; <your role's rules below>
 ```
-
-`panes.md` drives other sessions and `repo.md` holds issues, branches and pull requests; each maps the verbs below to commands.
 
 # Domain
 

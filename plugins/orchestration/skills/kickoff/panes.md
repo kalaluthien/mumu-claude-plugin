@@ -4,6 +4,7 @@ Every command names its target pane.
 
 | verb | command |
 | --- | --- |
+| `ready` | `herdr integration status`; its `claude:` line reading `not installed` fails, and the fix is `herdr integration install claude` |
 | your address | `$HERDR_PANE_ID` |
 | `live` | `herdr agent list`, whose JSON gives each agent's `pane_id`, `tab_id` and `agent_status` |
 | `start` | `herdr tab create --cwd <worktree> --label <topic>-<issue>` gives the pane; then `herdr agent start <topic>-<issue> --kind claude --pane <pane> -- --model opus --effort <effort>`, adding `--continue` to resume; then `herdr agent read <pane>` once, and answer a folder-trust dialog with `herdr agent send-keys <pane> enter` |
