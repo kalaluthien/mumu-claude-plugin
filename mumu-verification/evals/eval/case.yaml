@@ -15,7 +15,7 @@ graders:
   - name: fires
     type: tool_used
     tool: Skill
-    input_match: "verification:eval"
+    input_match: "mumu-verification:eval"
     min: 1
   - name: reads-error-analysis
     type: tool_used

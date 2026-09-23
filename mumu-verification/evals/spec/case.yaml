@@ -10,5 +10,5 @@ graders:
   - name: fires
     type: tool_used
     tool: Skill
-    input_match: "verification:spec"
+    input_match: "mumu-verification:spec"
     min: 1
