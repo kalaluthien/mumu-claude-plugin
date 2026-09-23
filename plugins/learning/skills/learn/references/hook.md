@@ -44,8 +44,7 @@ Three harness facts, each of which makes a hook enforce nothing when missed:
 
 A stale input arrives as an absence that looks like a pass.
 
-- Tell *I found nothing* from *I could not look*: a missing directory is a
-  refusal, not an empty result.
+- A missing directory is a refusal, not an empty result.
 - Print what was read, from where, and which branch was taken.
 - Give a polling loop a terminal branch: for a finished subject, absence is
   the steady state.

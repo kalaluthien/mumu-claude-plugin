@@ -37,9 +37,8 @@ never read, and one over 100 lines opens with a summary.
 State a finished state as a predicate the agent can check, never an
 adjective. Name the failure modes that raise no error.
 
-The body loads once and stays for the session, so it holds standing
-instructions, not one-time steps. Compaction keeps only its opening, so a rule
-that must survive a long session sits near the top.
+Compaction keeps only the body's opening, so a rule that must survive a long
+session sits near the top.
 
 ## Register
 

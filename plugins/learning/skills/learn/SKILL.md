@@ -1,9 +1,12 @@
 ---
 name: learn
-description: Use before writing any memory - when the user says remember, keep, note or learn from something, or turn learning on - when a stop asks for a harvest, and when writing or editing a SKILL.md, a hook or its script, or an agents/*.md file. Not for settings.json permissions or env (update-config).
+description: Use when something learned should outlive the session - before writing any memory, when learning is turned on, when a stop asks for a harvest - or when writing or editing a SKILL.md, a hook or its script, or an agents/*.md file. Not for settings.json permissions or env (update-config).
 ---
 
 # learn
+
+To write or edit a skill, an agent or a hook with no lesson behind it, skip
+Arm and Harvest and follow the reference its row under Destinations links.
 
 ## Arm
 
@@ -37,9 +40,6 @@ start at step 2.
 End with one line: `FILED <path> (<op>) ...`, or `NOTHING DURABLE: <reason>`.
 
 ## Destinations
-
-Writing or editing a skill, an agent or a hook, from a lesson or not, follows
-the shape its row names.
 
 | the lesson | destination | shape |
 | --- | --- | --- |
