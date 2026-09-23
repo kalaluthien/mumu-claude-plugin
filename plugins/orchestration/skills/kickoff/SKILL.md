@@ -51,7 +51,7 @@ Rules:
 2. `file` the parent (the goal, the decisions, the expectations, the definition of done) and one issue per pull request, each labelled with its effort, then write your mission; launch the `reviewer` on the parent's url and fix its findings until it posts `Approved`.
 3. For each issue: `checkout`, `start` it under its name at its effort, `watch` it, and `prompt` it `/orchestration:kickoff work <issue-url> leader <your address>`.
 4. Poll nothing; act on what arrives:
-   - `see <issue-url>` naming a `BLOCKED:` comment: `comment` the answer, then `prompt` the worker `see <issue-url>`;
+   - `see <issue-url>` naming a `BLOCKED:` comment: `comment` the answer, or, when it asks for work that needs its own pull request, `file` that issue and go to 3 for it; then `prompt` the worker `see <issue-url>`;
    - `see <pr-url>`: that pull request merged; with no issue open, go to 5;
    - a `watch` returns: a worker at a permission prompt is the owner's to clear, so tell the owner and `watch` it again once cleared; a worker gone while its issue is open is `start`ed again in its worktree, resuming, and watched;
    - the owner changes direction: `comment` the change on each issue affected and `prompt` its worker `see <issue-url>`;
@@ -63,6 +63,7 @@ Rules:
 1. `read` the issue and its parent, and `claim` the issue; held by another session, `comment` that on the issue and stop.
 2. Write your mission.
 3. Implement, run the repository's own checks, commit and push, and open the `pr` at the first push.
+   Launch subagents only to split research or to edit different files at once in your worktree, since they share its branch and one file edited twice is overwritten. Work that needs its own pull request is the leader's to `file` and `start`: `comment` `BLOCKED:` asking for it.
 4. Launch the `reviewer` on the pull request's url. `Findings`: fix, push, launch it again. `Approved <head>`: `merge`; refused by GitHub, merge the default branch in, push, and launch it again. Merged: `prompt` the leader `see <pr-url>` and delete your mission.
 
 A decision that is not yours: `comment` `BLOCKED: <question>` on the issue, `prompt` the leader `see <issue-url>`, and stop until it prompts you back.
