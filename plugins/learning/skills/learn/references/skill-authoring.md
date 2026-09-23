@@ -11,18 +11,20 @@ parameters; how a delegate should work goes into its `agents/<name>.md`.
 
 ## Folder
 
-- A skill folder holds `SKILL.md` and only `references/` (documents it
-  loads), `scripts/` (code it runs) and `assets/` (files it copies), because a
-  reader then knows what a file is for from where it sits. A file two skills
-  use lives in the one whose steps build with it, and the other links that
-  path. At a plugin's root sit only folders the harness or several skills run
-  (`bin/`, `hooks/`, `monitors/`, `agents/`, `lib/`), never a loose document.
+- A skill folder holds `SKILL.md` and only `references/` (documents it loads),
+  `scripts/` (code it runs) and `assets/` (files it copies), because a reader
+  then knows what a file is for from where it sits. A file two skills use
+  lives in the one whose steps build with it, else the one with the broadest
+  trigger, and the others link that path. At a plugin's root sit only folders
+  the harness or several skills run (`bin/`, `hooks/`, `monitors/`, `agents/`,
+  `lib/`), never a loose document.
 - A skill links its own files by relative path, and another skill's by
   `${CLAUDE_PLUGIN_ROOT}/skills/<skill>/...`, because the relative form breaks
   when read from outside the folder.
 - Moving a file: `git mv`, then search the plugin (skills, hooks, `bin/`,
-  tests, evals) for the old path until nothing is found, then open each new
-  link once, because a stale path fails only when that step runs.
+  tests, eval grader patterns) for the old path and the bare file name until
+  neither is found stale, then open each new link once, because a stale path
+  fails only when that step runs.
 - No file under a skill is named `skill.md` in any case: on a case-insensitive
   filesystem it is the same file as `SKILL.md`.
 
@@ -38,7 +40,8 @@ parameters; how a delegate should work goes into its `agents/<name>.md`.
   the same request, because negative scope stops over-triggering and more
   positive description does not.
 - `disable-model-invocation: true` on a skill only a person types: a command
-  is an order given, not an operation offered.
+  is an order given, not an operation offered. Its `description` says what
+  it does, since no model chooses it by the situation.
 - A skill a person types takes free-form text: it finds what it needs (a url,
   a name, a goal) anywhere in the text, asks for what is missing, and never
   refuses for wording, because a person does not remember a grammar. Its
@@ -60,28 +63,23 @@ A catalogue row that selects a whole mode links a file in `references/`: the
 row keeps the selector, the file keeps the body. A reference no row names is
 never read, and one over 100 lines opens with a summary.
 
-A plugin's entry skill is a router: its `SKILL.md` is a routing table, each
-row a situation in the words a person or a task would use and the playbook in
-`references/` it opens, plus a fallback row when none fits; the agent matches
-one row and copies that playbook's steps verbatim into its todo list, a step
-not done staying as `skip: <reason>`. Copied steps are the ones done, where a
-paraphrase drops them.
-A request needing two playbooks, as a lifecycle change needs a spec and a
-test, gets a row naming both in order, because one match must not drop the
-second check.
+Split by the trigger, not by the content: variants of one situation of use,
+one `description`, stay one skill with each variant a part in `references/`;
+situations that read clearer as separate descriptions are separate skills.
 
-Merging skills into one router: each old description's summary becomes its
-playbook's first line and its `Not for` moves into the row, and the old evals
-run against the router before and after, since a merged description can fire
-less often than the parts did. A playbook links documents by relative path and
+An entry skill exists only for work started on purpose, by a person handing
+work to an agent or one agent to another, as `kickoff` is; a plugin whose
+skills each trigger on their own situation has none, as verification's `spec`,
+`test` and `eval` do. An entry skill is a router: its `SKILL.md` is a routing
+table, each row a situation in the words a person or a task would use and the
+playbook in `references/` it opens, tried in order with a fallback row last;
+the agent matches one row and copies that playbook's steps verbatim into its
+todo list, a step not done staying as `skip: <reason>`. Copied steps are the
+ones done, where a paraphrase drops them. A check every playbook needs runs
+after the match, before the first step, and a step cited from another playbook
+is named with it (`Lead 4`). A playbook links documents by relative path and
 runs a script by `${CLAUDE_PLUGIN_ROOT}/skills/<skill>/scripts/<name>`, because
 a command runs from any directory.
-
-State a finished state as a predicate the agent can check, never an
-adjective. Name the failure modes that raise no error.
-
-Compaction keeps only the body's opening, so a rule that must survive a long
-session sits near the top.
 
 ## Register
 
