@@ -30,7 +30,7 @@ Expect: <the owner's expectations>; <your role's rules below>
 | claim | the branch on the remote; it exists, so the issue is taken |
 | approval | a comment whose first line is `Approved <sha>`, valid while the head is that sha |
 | `BLOCKED: <question>` | an issue comment asking for a decision that is not the worker's |
-| `see <url>` | every prompt between sessions after the assignment: read what the url says now |
+| `see <url>` | every prompt between sessions after the assignment: `read` the url now |
 
 Rules:
 
@@ -53,7 +53,7 @@ Rules:
 
 # Work
 
-1. Write your mission from the issue and its parent.
+1. `read` the issue and its parent, and write your mission from them.
 2. `claim` the issue; held by another session, say so on the issue and stop.
 3. Implement, run the repository's own checks, commit and push, and open the `pr` at the first push.
 4. Launch the `reviewer` on the pull request's url. `Findings`: fix, push, launch it again. `Approved <head>`: `merge`, then `prompt` the leader `see <pr-url>`.

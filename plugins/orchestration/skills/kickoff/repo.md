@@ -4,6 +4,7 @@ Issues live in the repository the work lands in; a parent spanning repositories 
 
 | verb | command |
 | --- | --- |
+| `read` | `gh issue view <url> --json title,body,comments,parent`, or `gh pr view <url> --json title,body,comments,headRefOid` |
 | `file` | parent: `gh issue create -R <repo> --title "<verb-first>" --body-file -`; issue: `gh label create effort:<effort> -R <repo> --force`, then the same create with `--parent <parent-url> --label effort:<effort>` |
 | `checkout` | `git -C <checkout> fetch origin && git -C <checkout> worktree add --detach <checkout>/.claude/worktrees/<topic>-<issue> origin/<default>` |
 | `claim` | `git fetch origin && ! git ls-remote --exit-code origin 'refs/heads/*-<issue>' && git switch -c <branch> origin/<default> && git push -u origin <branch>`, the branch named after the worktree; a branch found is yours only when this checkout is on it. Then `cp "$(command -v default-branch-guard)" "$(git rev-parse --path-format=absolute --git-path hooks)/pre-commit"`, unless a pre-commit is there already, which stays |
