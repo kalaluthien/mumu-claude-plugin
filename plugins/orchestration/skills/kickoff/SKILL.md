@@ -17,9 +17,11 @@ Your mission is `${CLAUDE_PLUGIN_DATA}/mission/${CLAUDE_SESSION_ID}.md`, which a
 
 ```
 Goal: <the parent goal in words, not its url>
-Mission: <your role, and your issue's url>
+Mission: leader of <parent-url> | worker on <issue-url>
 Expect: <the owner's expectations>; <your role's rules below>
 ```
+
+A leader adds one `Worker: <name> <issue-url>` line per worker it starts; its `worker-watch` and `lead-heartbeat` monitors read them and print what 4 acts on.
 
 # Domain
 
@@ -56,14 +58,17 @@ Writing, for every issue, pull request and comment:
 
 1. `name` yourself `<topic>-lead`, the topic being the goal's, then ask the owner every question at once with `AskUserQuestion`.
 2. `file` the parent, the owner's expectations among its decisions, and one issue per pull request, each labelled with its effort, then write your mission; launch the `reviewer` on the parent's url and fix its findings until it posts `Approved`.
-3. For each issue: `checkout`, `start` it under its name at its effort, `watch` it, and `prompt` it `/orchestration:kickoff work <issue-url> leader <your address>`.
+3. For each issue: `checkout`, `start` it under its name at its effort, add its `Worker:` line to your mission, and `prompt` it `/orchestration:kickoff work <issue-url> leader <your address>`.
 4. Poll nothing; act on what arrives:
    - `see <issue-url>` naming a `BLOCKED:` comment: `comment` the answer, then `prompt` the worker `see <issue-url>`; when it asks for work that needs its own pull request, the answer is the url of the issue you `file` for it, which then goes through 3;
    - `see <pr-url>`: that pull request merged; with no issue open, go to 5;
-   - a `watch` returns: a worker at a permission prompt is the owner's to clear, so tell the owner and `watch` it again; a worker gone while its issue is open is `start`ed again in its worktree, resuming, and watched;
+   - `blocked <name> <url>`: the worker is at a permission prompt, which is the owner's to clear, so tell the owner;
+   - `gone <name> <url>` while its issue is open: `start` it again in its worktree, resuming;
+   - `stuck <name> <url>` or `lead-heartbeat: team idle ...`: `read` the issue and its pull request, answer what waits on you, else `prompt` the worker `see <issue-url>`;
+   - `idle` or `working <name> <url>`: nothing;
    - the owner changes direction: `comment` the change on each issue affected and `prompt` its worker `see <issue-url>`;
    - the owner asks where it stands: report each issue and its worker in `live`.
-5. `resolve` the parent with a summary, `close` each worker, `clean`, and delete your mission.
+5. `resolve` the parent with a summary, delete your mission, then `close` each worker and `clean`.
 
 # Work
 
