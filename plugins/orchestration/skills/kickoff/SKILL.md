@@ -45,10 +45,17 @@ Rules:
 - The owner is asked only architecture, infrastructure and user-experience questions; the rest is decided and written in the parent issue.
 - Before building, read the prior work in the repository and its issues, the official docs and a web example.
 
+Writing, for every issue, pull request and comment:
+
+- As short as it can be: bullets or a table, no narration; cite urls, `path:line`s and shas instead of restating them.
+- A title is verb-first and at most 40 characters.
+- Headings are noun phrases: a parent carries `## Goal`, `## Decisions` and `## Definition of done`; an issue `## Goal` and `## Definition of done`.
+- A pull request body is `Closes #<issue>` over each check run: its command and its result, pass or fail, with the count or line that shows it.
+
 # Lead
 
 1. `name` yourself `<topic>-lead`, the topic being the goal's, then ask the owner every question at once with `AskUserQuestion`.
-2. `file` the parent (the goal, the decisions, the expectations, the definition of done) and one issue per pull request, each labelled with its effort, then write your mission; launch the `reviewer` on the parent's url and fix its findings until it posts `Approved`.
+2. `file` the parent, the owner's expectations among its decisions, and one issue per pull request, each labelled with its effort, then write your mission; launch the `reviewer` on the parent's url and fix its findings until it posts `Approved`.
 3. For each issue: `checkout`, `start` it under its name at its effort, `watch` it, and `prompt` it `/orchestration:kickoff work <issue-url> leader <your address>`.
 4. Poll nothing; act on what arrives:
    - `see <issue-url>` naming a `BLOCKED:` comment: `comment` the answer, then `prompt` the worker `see <issue-url>`; when it asks for work that needs its own pull request, the answer is the url of the issue you `file` for it, which then goes through 3;
@@ -64,6 +71,6 @@ Rules:
 2. Write your mission.
 3. Implement, run the repository's own checks, commit and push, and open the `pr` at the first push.
    Launch subagents only to split research or to edit different files at once in your worktree, since they share its branch and one file edited twice is overwritten. Work that needs its own pull request is the leader's to `file` and `start`: ask for it as a decision that is not yours, below.
-4. Launch the `reviewer` on the pull request's url. `Findings`: fix, push, launch it again. `Approved <head>`: `merge`; refused by GitHub, merge the default branch in, push, and launch it again. Merged: `prompt` the leader `see <pr-url>` and delete your mission.
+4. Write the checks you ran into the `pr` body, then launch the `reviewer` on the pull request's url. `Findings`: fix, push, launch it again. `Approved <head>`: `merge`; refused by GitHub, merge the default branch in, push, and launch it again. Merged: `prompt` the leader `see <pr-url>` and delete your mission.
 
 A decision that is not yours: `comment` `BLOCKED: <question>` on the issue, `prompt` the leader `see <issue-url>`, and stop until it prompts you back.
