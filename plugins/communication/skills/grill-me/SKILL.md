@@ -42,7 +42,7 @@ a ceiling -- and is read at run time, never restated here.
 | the round | where |
 | --- | --- |
 | four questions or fewer, with `AskUserQuestion` in the session | `AskUserQuestion` |
-| more, with the `Artifact` tool in the session | [form.html](form.html), one fieldset per question, its recommendation prefilled, published with that tool |
+| more, with the `Artifact` tool in the session | the `#round` form of `${CLAUDE_PLUGIN_ROOT}/page.html`, one fieldset per question, its recommendation prefilled, published with that tool |
 | otherwise | numbered text in chat |
 
 The form writes nowhere. It builds one block the user pastes back; its first

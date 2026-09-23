@@ -24,6 +24,32 @@ question picks the doctype, never the subject.
   dense map outgrows markdown. It starts from `page.html` and keeps its
   skin block verbatim.
 
+## Markdown forms
+
+Pick the smallest form that makes the point, put it next to the short text it
+supports, and keep only the calls, files, states and boundaries the question
+needs.
+
+| form | for |
+| --- | --- |
+| pseudocode | logic or an algorithm |
+| a call tree | runtime control flow |
+| a component tree, with the state and module boundaries that matter | UI structure |
+| a shallow file tree, one comment per line | file responsibility, a broad refactor |
+| a table, a row per option, bold only on the cells the verdict turns on, a line under it saying so | a comparison |
+| a diff in the shape of one of the above | what changes in a shape that already exists |
+| the whole block | most of it is new, or omitted context would hide order or ownership |
+
+For example, a call tree:
+
+```text
+submitForm
+  createSession
+    persistPrompt
+    launchAgent
+  navigateToSession
+```
+
 ## Page
 
 - One file: its CSS, SVG, JS and images inline, nothing fetched; opens from
@@ -83,39 +109,3 @@ question picks the doctype, never the subject.
 - A heading on a change says what is true after it, not the subject.
 - Short words, one idea a sentence, active voice; a new term is defined where
   it first appears or cut; no word that sells.
-
-## Check
-
-Run on every page before delivery; `P` is its absolute path. It loads the page
-in a true 320 px frame and prints `<scroll>/<client> <smallest text>px
-<smallest Hangul or Han>px` (`Infinity` where there is none) and a
-verdict; `pass` needs the two widths equal, no text under 11 px and no
-Hangul or Han under 12 px.
-
-```sh
-CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-F="${TMPDIR:-/tmp}/show-me-frame.html"
-cat >| "$F" <<'EOF'
-<iframe id=f style="width:320px;height:800px;border:0"></iframe>
-<script>f.onload=function(){var d=f.contentDocument,e=d.documentElement,w=f.contentWindow,t=d.createTreeWalker(d.body,4),n,z,s=[1/0,1/0];while(n=t.nextNode())if(n.data.trim()&&!/^(script|style|title)$/i.test(n.parentElement.tagName)){z=/[\p{sc=Hangul}\p{sc=Han}]/u.test(n.data)?1:0;s[z]=Math.min(s[z],parseFloat(w.getComputedStyle(n.parentElement).fontSize))}document.body.dataset.r=e.scrollWidth+'/'+e.clientWidth+' '+s[0]+'px '+s[1]+'px'+(e.scrollWidth==e.clientWidth&&s[0]>=11&&s[1]>=12?' pass':' FAIL')};f.src=location.hash.slice(1)</script>
-EOF
-"$CHROME" --headless --disable-gpu --allow-file-access-from-files --dump-dom \
-  --virtual-time-budget=3000 "file://$F#file://$P" 2>/dev/null |
-  sed -n 's/.*data-r="\([^"]*\)".*/\1/p'
-```
-
-No output means the frame could not read the page: a wrong path.
-
-## Delivery
-
-- Unless the ask says, ask once with `AskUserQuestion`: chat, a GitHub issue,
-  a page, or a page kept in a repository. Do not ask when it is obvious.
-- **Chat**: markdown, in the chat forms of `SKILL.md`.
-- **GitHub issue**: the body or a comment, by the repository's own procedure,
-  else `gh issue create`.
-- **Page**: written to `show-me-<slug>.html` in the session's scratch
-  directory, checked, then published with the `Artifact` tool when the
-  session has it, else opened with `open`.
-- **Repository page**: written where the repository keeps pages, checked
-  there, linked from its README, landed by its own procedure.
-- Whatever the ending, give the one-sentence version in chat.

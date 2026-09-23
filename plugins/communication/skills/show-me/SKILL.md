@@ -7,7 +7,7 @@ description: Use when the answer is settled and must be shown - explain, draw, m
 
 Show the topic instead of describing it: the one named, else whatever the
 conversation is about. Every rule for the document is in
-[doctype](doctype.md); read it before writing.
+`${CLAUDE_PLUGIN_ROOT}/doctype.md`; read it before writing.
 
 An open choice is not shown: hand it to `grill-me`.
 
@@ -15,34 +15,25 @@ An open choice is not shown: hand it to `grill-me`.
 
 1. **Doctype**: the question the ask puts picks a `diagram`, a `narrative`
    or a `comparison` (doctype § Doctypes); build its parts in that order.
-2. **Medium**: doctype § Media. Markdown takes the chat forms below; a page
-   starts from [page.html](page.html).
+2. **Medium**: doctype § Media. Markdown takes doctype § Markdown forms; a
+   page starts from `${CLAUDE_PLUGIN_ROOT}/page.html`.
 3. **Plan**: say in one line the doctype, each figure and the paragraph
    beside it, and what the figure budget (doctype § Figures) forces out;
    then write.
-4. **Check**: a page passes doctype § Check before it is delivered.
-5. **Ending**: doctype § Delivery.
+4. **Check**: `"${CLAUDE_PLUGIN_ROOT}/bin/page-check" <page>` prints `pass`
+   before a page is delivered; exit 2 means a wrong path.
+5. **Ending**: § Delivery.
 
-## The chat forms
+## Delivery
 
-Pick the smallest form that makes the point, put it next to the short text it
-supports, and keep only the calls, files, states and boundaries the question
-needs.
-
-| form | for |
-| --- | --- |
-| pseudocode | logic or an algorithm |
-| a call tree | runtime control flow |
-| a component tree, with the state and module boundaries that matter | UI structure |
-| a shallow file tree, one comment per line | file responsibility, a broad refactor |
-| a table, a row per option, bold only on the cells the verdict turns on, a line under it saying so | a comparison |
-| a diff in the shape of one of the above | what changes in a shape that already exists |
-| the whole block | most of it is new, or omitted context would hide order or ownership |
-
-```text
-submitForm
-  createSession
-    persistPrompt
-    launchAgent
-  navigateToSession
-```
+- Unless the ask says, ask once with `AskUserQuestion`: chat, a GitHub issue,
+  a page, or a page kept in a repository. Do not ask when it is obvious.
+- **Chat**: markdown, in doctype § Markdown forms.
+- **GitHub issue**: the body or a comment, by the repository's own procedure,
+  else `gh issue create`.
+- **Page**: written to `show-me-<slug>.html` in the session's scratch
+  directory, checked, then published with the `Artifact` tool when the
+  session has it, else opened with `open`.
+- **Repository page**: written where the repository keeps pages, checked
+  there, linked from its README, landed by its own procedure.
+- Whatever the ending, give the one-sentence version in chat.
