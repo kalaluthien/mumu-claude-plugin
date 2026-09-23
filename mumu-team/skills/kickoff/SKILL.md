@@ -41,7 +41,7 @@ A leader adds one `Worker: <name> <issue-url>` line per worker it starts; its `w
 | --- | --- |
 | leader | the session the owner talks to, holding one goal until Lead 5 and then free for the next; goals at the same time get one leader session each; it writes no code |
 | worker | a session on one issue in its own worktree |
-| reviewer | the `reviewer` agent: it reviews a plan or a pull request it did not write, and alone writes `Approved` |
+| reviewer | the `reviewer` agent, or `reviewer-small` for a pull request of at most 20 changed lines: it reviews a plan or a pull request it did not write, and alone writes `Approved` |
 | issue | one sub-issue of the parent: one worker, one branch, one pull request, all named `<topic>-<issue>` |
 | topic | 2-4 lowercase words joined by hyphens |
 | name | one string for a session's tab, herdr agent and Claude session: `<topic>-<issue>` for a worker, `<topic>-lead` for the leader |

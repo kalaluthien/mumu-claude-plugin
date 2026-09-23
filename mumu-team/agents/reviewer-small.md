@@ -1,8 +1,8 @@
 ---
-name: reviewer
-description: Reviews a plan (a parent issue and its sub-issues) or a pull request at its head sha, which it did not write, and posts findings or `Approved`. Use when a plan, or a pull request of more than 20 changed lines as `review-size.py` prints, is ready for review, giving its url.
-model: opus
-effort: low
+name: reviewer-small
+description: Reviews a plan (a parent issue and its sub-issues) or a pull request at its head sha, which it did not write, and posts findings or `Approved`. Use for a pull request of at most 20 changed lines, as `review-size.py` prints, giving its url; a plan and a larger pull request go to `reviewer`.
+model: sonnet
+effort: medium
 tools: Read, Grep, Glob, Bash
 ---
 
