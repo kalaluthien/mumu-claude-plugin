@@ -24,7 +24,7 @@ A suite that has passed everything for a long time catches nothing new: retire i
 
 Also look for traces (logs, transcripts, exported runs), human labels or notes on them, and judge prompts.
 
-If no runner is found, initialise `evals/`: a plugin, `claude plugin eval init --bare <case>` in the plugin directory; an app, `npx promptfoo init --no-interactive evals`.
+If no runner is found, initialise `evals/`: a plugin, `claude plugin eval init --bare <case>` in the plugin directory; an app, `npx promptfoo init --no-interactive evals`. Add the runner's output directory (`evals/results/` for a plugin) to `.gitignore`.
 
 ## 2. Take the step the repo is at
 

@@ -1,6 +1,6 @@
 ---
 name: spec
-description: Use when a change touches a domain model, a state machine, a protocol or an architecture, or when the repo holds `*.als` files and the code they model changed, or asked what its specs cover - states the invariant the change must keep as an Alloy model and checks it; not for a single function's behaviour, which a test states.
+description: Models a change in Alloy and checks the invariant it must keep before the code changes. Use for any change to states, transitions, a lifecycle, permissions, ownership or a protocol, or to a rule stated as never, always, only after or at most - even when the request asks only for the code - and when `*.als` files model the changed code, or asked what the specs cover; not for one function's input and output, which a test states.
 ---
 
 # Spec
@@ -32,7 +32,7 @@ fact Wellformed { ... }            -- what the system guarantees by construction
 pred step[...] { ... }             -- one operation
 
 assert KeepsInvariant { ... }      -- what the change must not break
-check KeepsInvariant for 5
+check KeepsInvariant for 3
 ```
 
 - One `check` per invariant; name it for what holds.
@@ -52,6 +52,7 @@ alloy exec -f -q -o "$out" spec/<module>/system.als && ls "$out"
 | nothing, and a non-zero exit | the model did not parse; read the error |
 
 - Re-run every `check` in the file after each edit.
+- Start at `for 3` and raise the scope while each check finishes within a minute; report the scope each ran at.
 
 ## 4. Check the code against the model
 

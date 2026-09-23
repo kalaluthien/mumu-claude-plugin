@@ -39,7 +39,7 @@ The runner names a bad or missing field when it loads a case.
 
 A `tool_used` grader's tool must be in the case's `allowed_tools`. Under ablation a grader with `arm: with-only` (a `tool_used: Skill` grader is one by default) reports whether the plugin fired instead of scoring, unless it is the case's only grader; give a case at least one grader that scores both arms.
 
-A skill's trigger is decided by its `description` and checked with code: about 20 prompts, half that should fire it and half near misses sharing its words, each a case with a `tool_used: Skill` grader (`min: 1` or `max: 0`), 3 runs each. Tune the description on 60% of them and judge it on the other 40%.
+A skill's trigger is decided by its `description` and checked with code: about 20 prompts, half that should fire it and half near misses sharing its words, each a case with a `tool_used: Skill` grader (`min: 1`; for a near miss `min: 0` and `max: 0`), 3 runs each. Tune the description on 60% of them and judge it on the other 40%.
 
 ## 3. A judge, when code cannot
 

@@ -1,6 +1,6 @@
 ---
 name: test
-description: Use when a behaviour is added, changed or fixed - a feature, a bug fix, an endpoint, a command - or asked what the tests cover; writes the failing acceptance and integration tests first, then the change that makes them pass; not for a refactor that keeps behaviour, which the existing tests already cover.
+description: Writes the failing acceptance and integration tests first, then the change that makes them pass. Use for every change to what code does - a bug fix, a feature, a new rule, an endpoint, a command - even when the request asks only for the fix and the repo has no tests, and when asked what the tests cover; not for a refactor that keeps behaviour, which the existing tests cover.
 ---
 
 # Test
