@@ -1,9 +1,11 @@
 ---
 name: eval
-description: Use when the project is a Claude plugin or an LLM app and a prompt, a skill, a rubric or a model changed, or its outputs need judging, or asked what its evals cover - finds the failure modes in real traces first, then checks each with code or a judge validated against human labels; not for deterministic code, which a test covers.
+description: Use when a prompt, skill, rubric or model of a Claude plugin or an LLM app changes, when its outputs need judging, or when asked what its evals cover. Not for deterministic code (test).
 ---
 
 # Eval
+
+Find the failure modes in real traces first, then check each with code or with a judge validated against human labels.
 
 Terms and rules: `${CLAUDE_PLUGIN_ROOT}/skills/test/references/contract.md`; read it first. An eval checks a failure mode seen in a trace, never a quality picked in advance ("helpfulness").
 

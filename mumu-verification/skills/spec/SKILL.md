@@ -1,9 +1,11 @@
 ---
 name: spec
-description: Models a change in Alloy and checks the invariant it must keep before the code changes. Use for any change to states, transitions, a lifecycle, permissions, ownership or a protocol, or to a rule stated as never, always, only after or at most - even when the request asks only for the code - and when `*.als` files model the changed code, or asked what the specs cover; not for one function's input and output, which a test states.
+description: Use when a change touches states, transitions, a lifecycle, permissions, ownership or a protocol, or a rule stated as never, always, only after or at most - even if only the code was asked for - or when `*.als` files model the changed code, or when asked what the specs cover. Not for one function's input and output (test).
 ---
 
 # Spec
+
+Model the change in Alloy and check the invariant it must keep before the code changes.
 
 Terms and rules: `${CLAUDE_PLUGIN_ROOT}/skills/test/references/contract.md`; read it first.
 

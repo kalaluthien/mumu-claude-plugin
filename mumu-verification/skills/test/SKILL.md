@@ -1,9 +1,11 @@
 ---
 name: test
-description: Writes the failing acceptance and integration tests first, then the change that makes them pass. Use for every change to what code does - a bug fix, a feature, a new rule, an endpoint, a command - even when the request asks only for the fix and the repo has no tests, and when asked what the tests cover; not for a refactor that keeps behaviour, which the existing tests cover.
+description: Use when a change alters what code does - a bug fix, a feature, a new rule, an endpoint, a command - even if only the fix was asked for or the repo has no tests, or when asked what the tests cover. Not for a refactor that keeps behaviour.
 ---
 
 # Test
+
+Write the failing acceptance and integration tests first, then the change that makes them pass.
 
 Terms and rules: [contract](references/contract.md); read it first.
 
