@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<!-- show-me's one page template. doctype.md gives each doctype's parts and
+     every rule. Keep the sections the doctype names, in its order, and delete
+     the rest; replace every {{...}}; a part with nothing to say is deleted,
+     never left as a placeholder.
+     - diagram: .read, the figure, its key, the footer.
+     - narrative: .read as the thesis, the figure as the map, one article per
+       question, #absent, the footer.
+     - comparison: .read as the question, .pick, #yardstick, #options, the
+       footer.
+     The skin block is carried verbatim, down to "skin end". -->
+<style>
+  /* skin */
+  :root {
+    color-scheme: light dark;
+    --bg: #fbfaf7; --fg: #1d1d1f; --muted: #5b5f66; --line: #cfccc4;
+    --box: #ffffff; --accent: #2458c6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17181a; --fg: #ececec; --muted: #a3a7ae; --line: #45484d;
+      --box: #222427; --accent: #8fb4ff;
+    }
+  }
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #17181a; --fg: #ececec; --muted: #a3a7ae; --line: #45484d;
+    --box: #222427; --accent: #8fb4ff;
+  }
+  body { background: var(--bg); color: var(--fg); margin: 0;
+         font: 16px/1.5 system-ui, sans-serif; padding-block: 24px; padding-inline: 16px; }
+  main { max-width: 48rem; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin: 0 0 1rem; }
+  h2 { font-size: 1.15rem; margin: 1.75rem 0 .5rem; }
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  svg text { fill: var(--fg); font: 14px system-ui, sans-serif; }
+  svg .label { fill: var(--muted); font-size: 12px; }
+  /* skin end */
+  .read { font-size: 1.1rem; border-inline-start: 3px solid var(--fg); padding-inline-start: .75rem; }
+  figure { margin: 0; overflow-x: auto; }
+  svg { display: block; }
+  svg .box { fill: var(--box); stroke: var(--fg); }
+  svg .edge { stroke: var(--fg); stroke-width: 2; fill: none; }
+  svg .edge.inferred { stroke-dasharray: 4 4; }
+  svg .tip { fill: var(--fg); }
+  svg .mask { fill: var(--bg); }
+  dl.key { display: grid; grid-template-columns: auto 1fr; gap: .25rem .75rem; margin: 1rem 0; }
+  dl.key dt { font-weight: 600; }
+  dl.key dd { margin: 0; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; min-width: 100%; background: var(--box); }
+  th, td { border-bottom: 1px solid var(--line); padding: .5rem .65rem; text-align: start; vertical-align: top; }
+  .num { text-align: end; font-variant-numeric: tabular-nums; }
+  tbody th { font-weight: normal; }
+  .pick { border-inline-start: 3px solid var(--fg); padding-inline-start: .75rem; }
+  pre { overflow-x: auto; background: var(--box); border: 1px solid var(--line);
+        padding: .75rem; font: 13px/1.45 ui-monospace, monospace; }
+  .muted { color: var(--muted); font-size: .9rem; }
+  footer { color: var(--muted); font-size: .9rem; margin-top: 2rem; }
+</style>
+
+<main>
+  <h1>{{title}}</h1>
+  <p class="read">{{the one thing to read off it | the thesis | the question}}</p>
+
+  <figure tabindex="0" aria-labelledby="{{slug}}-title">
+    <svg width="520" height="192" viewBox="0 0 520 192" role="img" aria-labelledby="{{slug}}-title" aria-describedby="{{slug}}-desc">
+      <title id="{{slug}}-title">{{figure type}}: {{scope}}</title>
+      <desc id="{{slug}}-desc">{{the figure in one sentence}}</desc>
+      <defs>
+        <marker id="{{slug}}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+          <path class="tip" d="M0,0 L10,5 L0,10 z"/>
+        </marker>
+      </defs>
+      <rect class="box" x="8" y="16" width="160" height="64" rx="8"/>
+      <text x="88" y="44" text-anchor="middle">{{element A}}</text>
+      <text class="label" x="88" y="64" text-anchor="middle">{{kind}}</text>
+      <rect class="box" x="352" y="112" width="160" height="64" rx="8"/>
+      <text x="432" y="140" text-anchor="middle">{{element B}}</text>
+      <text class="label" x="432" y="160" text-anchor="middle">{{kind}}</text>
+      <path class="edge" d="M168,48 H252 Q260,48 260,56 V136 Q260,144 268,144 H348" marker-end="url(#{{slug}}-arrow)"/>
+      <rect class="mask" x="264" y="72" width="136" height="32"/>
+      <text class="label" x="268" y="84">{{intent}}</text>
+      <text class="label" x="268" y="100">{{example value}}</text>
+    </svg>
+    <figcaption>
+      <dl class="key">
+        <dt>box</dt><dd>{{what a box is}}</dd>
+        <dt>arrow</dt><dd>{{what a line means, read in its direction}}</dd>
+        <dt>not drawn</dt><dd>{{what was merged, collapsed or dropped}}</dd>
+      </dl>
+    </figcaption>
+  </figure>
+
+  <article aria-labelledby="ch1">
+    <h2 id="ch1">{{the answer to question 1, as a sentence}}</h2>
+    <p>{{the question it answers, then why}}</p>
+    <details>
+      <summary>Evidence: <code>{{path:line}}</code></summary>
+      <pre tabindex="0" role="region" aria-label="{{path:line}}"><code>{{the code}}</code></pre>
+    </details>
+  </article>
+
+  <section aria-labelledby="absent">
+    <h2 id="absent">Not stated in the source</h2>
+    <p class="muted">{{a reason the source omits}}</p>
+  </section>
+
+  <section aria-labelledby="pick" class="pick">
+    <h2 id="pick">{{the verdict}}</h2>
+    <p>{{why, in the yardstick's terms}}</p>
+    <p>Would change if: {{the fact that would flip it}}</p>
+  </section>
+
+  <section aria-labelledby="yardstick">
+    <h2 id="yardstick">Yardstick</h2>
+    <ol><li><strong>{{criterion}}</strong>: {{how it is measured}}</li></ol>
+  </section>
+
+  <section aria-labelledby="options">
+    <h2 id="options">Options</h2>
+    <div class="scroll" tabindex="0" role="region" aria-labelledby="options">
+      <table>
+        <thead><tr><th scope="col">Option</th><th scope="col">{{criterion}}</th></tr></thead>
+        <tbody><tr><th scope="row">{{option}}</th><td><strong>{{value the verdict turns on}}</strong></td></tr></tbody>
+      </table>
+    </div>
+    <p class="muted"><strong>Bold</strong>: the verdict turns on it.</p>
+  </section>
+
+  <footer>Source: <a href="{{url}}">{{source}}</a> at <code>{{sha}}</code></footer>
+</main>
+</html>
