@@ -3,12 +3,12 @@
     "name": "worker-watch",
     "command": "\"${CLAUDE_PLUGIN_ROOT}\"/bin/worker-watch.py \"${CLAUDE_PLUGIN_DATA}\"",
     "description": "Each change of this lead's workers: blocked, gone, idle, working, stuck",
-    "when": "on-skill-invoke:orchestration:kickoff"
+    "when": "on-skill-invoke:mumu-team:kickoff"
   },
   {
     "name": "lead-heartbeat",
     "command": "\"${CLAUDE_PLUGIN_ROOT}\"/bin/lead-heartbeat.py \"${CLAUDE_PLUGIN_DATA}\"",
     "description": "A line while no worker of this lead works",
-    "when": "on-skill-invoke:orchestration:kickoff"
+    "when": "on-skill-invoke:mumu-team:kickoff"
   }
 ]

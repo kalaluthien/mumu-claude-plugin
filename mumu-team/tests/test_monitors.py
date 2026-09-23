@@ -1,6 +1,6 @@
 """Each line the `worker-watch` and `lead-heartbeat` monitors print, from their pure steps and from the scripts run against a fake herdr.
 
-Run: python3 -m unittest discover plugins/orchestration/tests
+Run: python3 -m unittest discover mumu-team/tests
 """
 import importlib.machinery
 import json

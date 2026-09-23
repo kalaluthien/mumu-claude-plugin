@@ -5,4 +5,4 @@ allowed_tools: [Skill, Read, Glob, Grep]
 runs: 3
 ---
 
-/orchestration:kickoff drop this goal, we are not doing it any more
+/mumu-team:kickoff how is it going, what is left?
