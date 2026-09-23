@@ -16,9 +16,10 @@ question and never by the subject; its medium is where it is read.
   with leaving things as they are among its options.
 - Two questions: a narrative, the diagram its map, the comparison a chapter.
 - A part no fact settles is a blank: the reader's decision.
-- Asked only what follows, a document skips every fact already on screen and
-  says what they imply, then the one action it recommends, and nothing
-  after; when nothing follows, it says so plainly instead of inventing a step.
+- Asked only what follows, the answer has no doctype and no parts: it skips
+  every fact already on screen, says what they imply, then the one action it
+  recommends, and nothing after; when nothing follows, it says so plainly
+  instead of inventing a step.
 
 ## Media
 

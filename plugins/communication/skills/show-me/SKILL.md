@@ -9,8 +9,8 @@ Show the topic, the one named or else the conversation's, as a document of
 `${CLAUDE_PLUGIN_ROOT}/doctype.md`; read it first. A blank is not shown: hand
 the document to `grill-me`.
 
-1. **Doctype**: the question picks it; build its parts in order, unless it
-   asks only what follows.
+1. **Doctype**: the question picks it; build its parts in order. Asked only
+   what follows, answer as `doctype.md` says, with no doctype.
 2. **Medium**: markdown in one of its forms, or a page from
    `${CLAUDE_PLUGIN_ROOT}/page.html`.
 3. **Plan** a page or a figure: one line naming the doctype, each figure
