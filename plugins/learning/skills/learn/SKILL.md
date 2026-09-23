@@ -28,7 +28,8 @@ start at step 2.
    Keep a name, path or value only if the rule is about it.
 2. Pick its destination from the table below, and read what is there now.
 3. Apply one operation to one entry: ADD, EDIT <entry>, DELETE <entry>, or
-   NONE when it is already said. A near-duplicate is an EDIT. Never rewrite a
+   NONE when it is already said. A near-duplicate is an EDIT; a lesson
+   promoted to a later row DELETEs the entries it replaces. Never rewrite a
    file to fold a lesson in.
 4. Delete or correct any entry this session showed wrong, touched or not.
 
@@ -36,11 +37,11 @@ End with one line: `FILED <path> (<op>) ...`, or `NOTHING DURABLE: <reason>`.
 
 ## Destinations
 
-| the lesson holds | destination | shape |
+| the lesson | destination | shape |
 | --- | --- | --- |
-| for this project on this machine: a fact, a trap, the user's preference | auto-memory, the directory the harness names | one fact per file, as the harness's memory instructions give it |
-| for every project, or for everyone working on this repository | memory: `~/.claude/CLAUDE.md`, or the repository's `CLAUDE.md` | one instruction and one clause of reason, in the section naming the work |
-| as a procedure that ran, was checked, and has now worked twice | the skill that owns the work, or a new one in `~/.claude/skills/` | the steps as run, what varied between runs as parameters, a description saying when to use it |
+| holds for this project: a fact, a trap, the user's preference | auto-memory, the directory the harness names | one fact per file, as the harness's memory instructions give it |
+| has now held on a second project, or the user gave it for all work | memory: `~/.claude/CLAUDE.md`, or the repository's `CLAUDE.md` for a rule everyone working on it follows | one instruction and one clause of reason, in the section naming the work |
+| is a procedure that ran, was checked, and has now worked twice | the skill that owns the work, or a new one in `~/.claude/skills/` | the steps as run, what varied between runs as parameters, a description saying when to use it |
 
 File nothing a check could decide: write the check with its failing case.
 File nothing the repository or its history already states.
