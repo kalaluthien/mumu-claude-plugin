@@ -1,6 +1,6 @@
 ---
 name: show-me
-description: Use when the answer is settled and must be shown - explain, draw, map, walk through or compare something as a document, a diagram or a page; not when the answer is still the user's to make (grill-me).
+description: Use when the answer is settled and must be shown - explain, draw, map, walk through or compare something as a document, a diagram or a page, or say only what the facts imply and what to do next (so what); not when the answer is still the user's to make (grill-me).
 ---
 
 # show-me
