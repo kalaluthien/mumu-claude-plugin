@@ -44,7 +44,7 @@ def refuse(reason):
 
 def segments(text):
     """Split text into the word lists of its commands, as a shell would split it."""
-    text = DESCRIPTOR.sub(r"\1", text)  # `2>&1`, `{fd}>x`: a descriptor glued to a redirect is no word
+    text = DESCRIPTOR.sub(r"\1", text.replace("\\\n", ""))  # a joined `\` line; `2>&1`, `{fd}>x`
     lexer = shlex.shlex(text, posix=True, punctuation_chars=";&|()<>\n")
     lexer.whitespace = " \t\r"
     lexer.whitespace_split = True
@@ -153,11 +153,11 @@ def bypasses(words):
             inner = [[word]]
         if inner != [[word]] and any(bypasses(w) for w in inner):  # `bash -c '...'`
             return True
-        if (words[i - 1:i] == ["-c"] or i + 1 < len(words)) if word.lower() == "core.hookspath" else HOOKS_PATH.search(word):
+        if (words[i - 1:i] == ["-c"] or "config" in words[:i] and i + 1 < len(words)) if word.lower() == "core.hookspath" else HOOKS_PATH.search(word):
             return True
         rest = words[i + 1:] if os.path.basename(word) == "git" else []
         while rest and rest[0].startswith("-"):  # git's own options; these take a value
-            rest = rest[2:] if rest[0] in ("-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env") else rest[1:]
+            rest = rest[2:] if rest[0] in ("-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env", "--attr-source") else rest[1:]
         args = iter(rest[1:])
         for arg in args:
             flags = re.match(r"-([^-mFCctSu]*)([mFCct]?)(.*)", arg)  # `-am x`: letters, then one taking a value
