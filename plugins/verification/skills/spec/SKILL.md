@@ -1,6 +1,6 @@
 ---
 name: spec
-description: Use when a change touches a domain model, a state machine, a protocol or an architecture, or when the repo holds `*.als` files and the code they model changed - states the invariant the change must keep as an Alloy model and checks it; not for a single function's behaviour, which a test states.
+description: Use when a change touches a domain model, a state machine, a protocol or an architecture, or when the repo holds `*.als` files and the code they model changed, or asked what its specs cover - states the invariant the change must keep as an Alloy model and checks it; not for a single function's behaviour, which a test states.
 ---
 
 # Spec
@@ -35,7 +35,6 @@ assert KeepsInvariant { ... }      -- what the change must not break
 check KeepsInvariant for 5
 ```
 
-- State the invariant the change keeps before editing code.
 - One `check` per invariant; name it for what holds.
 - A fact states what the design enforces, never what the check needs to pass.
 
@@ -54,6 +53,6 @@ alloy exec -f -q -o "$out" spec/<module>/system.als && ls "$out"
 
 - Re-run every `check` in the file after each edit.
 
-## 4. Map model to code
+## 4. Check the code against the model
 
-For each sig and fact, name the code path that holds it. A fact no code enforces is a gap: report it.
+Each `pred` is an operation: its guard is a precondition the code checks before the effect, and its effect the only state it changes. Each `fact` and `assert` is an invariant the code never breaks. For each, name the code that enforces it and the test that fails when that code is removed; one with neither is a gap: report it.

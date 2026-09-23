@@ -11,6 +11,21 @@ A case's input comes from a trace that showed the mode, trimmed to what reproduc
 <plugin>/evals/<case>/graders/<name>.md  # frontmatter: type and its fields; an llm grader's body is its criterion
 ```
 
+The case's environment is part of its input: a mode seen in a repo with a given layout reproduces only in that repo. Build it with a script run in the empty run directory, named in the case's `case.yaml` and run under `--scaffold`:
+
+```yaml
+schema_version: "1.0"
+name: <case>
+context:
+  scaffold_script: setup.sh   # beside case.yaml; writes the files the prompt acts on
+execution:
+  prompt: <the user's prompt>
+graders:
+  - name: <name>
+    type: regex
+    pattern: <pattern>
+```
+
 ## 2. Code first
 
 Many modes that sound subjective reduce to a word list, a pattern, a parse or an execution. Grade the outcome the user sees, not the path the agent took, unless the path is the defect.

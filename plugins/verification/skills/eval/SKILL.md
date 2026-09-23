@@ -1,6 +1,6 @@
 ---
 name: eval
-description: Use when the project is a Claude plugin or an LLM app and a prompt, a skill, a rubric or a model changed, or its outputs need judging - finds the failure modes in real traces first, then checks each with code or a judge validated against human labels; not for deterministic code, which a test covers.
+description: Use when the project is a Claude plugin or an LLM app and a prompt, a skill, a rubric or a model changed, or its outputs need judging, or asked what its evals cover - finds the failure modes in real traces first, then checks each with code or a judge validated against human labels; not for deterministic code, which a test covers.
 ---
 
 # Eval
@@ -48,7 +48,7 @@ claude plugin validate <plugin dir>
 claude plugin eval <plugin dir> --case <case> --runs 3
 ```
 
-The first run in a directory asks whether to trust the plugin; a headless session cannot answer, so pass `--trust-plugin` for a plugin whose code you have read. One `--case` per call: a second one replaces the first.
+The first run in a directory asks whether to trust the plugin; a headless session cannot answer, so pass `--trust-plugin` for a plugin whose code you have read. One `--case` per call: a second one replaces the first. A case whose `case.yaml` names a `scaffold_script` needs `--scaffold`, or it runs in an empty directory.
 
 Run each case more than once: the system is not deterministic. For regression, every run must pass (`--threshold 1.0`, the default); for capability, one pass in the runs shows it can. Each run starts from a clean directory; a harness of your own must do the same, or runs that share files or caches fail together.
 
