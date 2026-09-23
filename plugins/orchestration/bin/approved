@@ -23,6 +23,7 @@ import subprocess
 import sys
 
 SEPARATORS = set(";&|()\n")
+DESCRIPTOR = re.compile(r"(^|[\s;&|()])(?:\d+|\{\w+\})(?=[<>])")
 QUOTING = re.compile(r"[\"'\\]")
 MENTION = re.compile(r"\bpr\b[\s\S]*?\bmerge\b")
 
@@ -34,6 +35,7 @@ def refuse(reason):
 
 def segments(text):
     """Split text into the word lists of its commands, as a shell would split it."""
+    text = DESCRIPTOR.sub(r"\1", text)  # `2>&1`, `{fd}>x`: a descriptor glued to a redirect is no word
     lexer = shlex.shlex(text, posix=True, punctuation_chars=";&|()<>\n")
     lexer.whitespace = " \t\r"
     lexer.whitespace_split = True
@@ -49,12 +51,10 @@ def segments(text):
 
 
 def unredirected(words):
-    """Drop each redirect -- its operator, its target and a file descriptor before it."""
+    """Drop each redirect: its operator and its target."""
     kept, skip = [], False
     for word in words:
         if word and set(word) <= set("<>&|") and set(word) & set("<>"):
-            if kept and kept[-1].isdigit():
-                kept.pop()
             skip = True
         elif skip:
             skip = False
@@ -68,11 +68,13 @@ def mentions(words):
     count = 0
     for word in words:
         word = QUOTING.sub("", word).strip()
-        if set(word) - set(";&|()<>") and re.search(r"\s|[;&|()<>]", word):  # a word that is only operators is no command
-            try:
-                count += sum(mentions(inner) for inner in segments(word))
-            except ValueError:  # an unclosed quote
-                count += len(MENTION.findall(word))
+        try:
+            inner = list(segments(word))
+        except ValueError:  # an unclosed quote
+            count += len(MENTION.findall(word))
+            continue
+        if inner != [[word]] and set(word) - set(";&|()<>"):  # a word that splits is text a shell could run
+            count += sum(mentions(words) for words in inner)
     words = [QUOTING.sub("", word).strip() for word in unredirected(words)]
     for i, word in enumerate(words):
         if word != "merge":
@@ -171,9 +173,14 @@ except ValueError:  # an unclosed quote
     commands = []
     if MENTION.search(QUOTING.sub("", command)):
         refuse("this command cannot be lexed and names `pr merge`; run `gh pr merge` on its own line")
-for words in commands:
-    found = list(gh_merge(unredirected(words)))
-    if len(found) != mentions(words):
-        refuse("a `pr merge` in this command is not a command of its own; run `gh pr merge` on its own line, and write text naming it with a file tool")
-    for repo, args in found:
-        check(repo, args, cwd)
+try:
+    merges = []
+    for words in commands:
+        found = list(gh_merge(unredirected(words)))
+        if len(found) != mentions(words):
+            refuse("a `pr merge` in this command is not a command of its own; run `gh pr merge` on its own line, and write text naming it with a file tool")
+        merges += found
+except Exception as err:  # exit 1 would let the command run
+    refuse(f"could not read the command ({type(err).__name__})")
+for repo, args in merges:
+    check(repo, args, cwd)
