@@ -6,7 +6,7 @@ split it -- at a newline, `;`, `&&`, `|` or `(` -- and in each one every
 `pr [-R <repo>]... merge`, counted with quotes, backslashes and redirects
 removed and inside every quoted word too, must be the one `gh ... pr merge` that command
 runs, after an env prefix or a wrapper such as `rtk`. That merge passes only
-when it names one PR and combines no short flags, and only
+when it names one PR by its url and combines no short flags, and only
 when it carries `--match-head-commit <sha>`, that sha is the PR's head, and the
 PR holds a comment or a review whose first line is `Approved <sha>`. Any other
 `pr merge` -- inside `bash -c`, `eval`, a here-string, a comment, a quoted
@@ -96,18 +96,15 @@ def gh_merge(words):
     for i, word in enumerate(words):
         if os.path.basename(word) != "gh":
             continue
-        rest, repo = words[i + 1:], None
+        rest = words[i + 1:]
         for expected in ("pr", "merge"):  # `-R <repo>` may stand before `pr` or before `merge`
             while rest and (rest[0] in ("-R", "--repo") and len(rest) >= 2 or rest[0].startswith("--repo=")):
-                if rest[0].startswith("--repo="):
-                    repo, rest = rest[0].split("=", 1)[1], rest[1:]
-                else:
-                    repo, rest = rest[1], rest[2:]
+                rest = rest[1:] if rest[0].startswith("--repo=") else rest[2:]
             if rest[:1] != [expected]:
                 break
             rest = rest[1:]
         else:
-            yield repo, rest
+            yield rest
 
 
 def option(args, *names):
@@ -135,17 +132,16 @@ def target(args):
             names.append(arg)
     if len(names) != 1:
         refuse(f"`gh pr merge` must name exactly one PR by number or url, not {names or 'none'}")
+    if not re.fullmatch(r"https://github\.com/[\w.-]+/[\w.-]+/pull/\d+", names[0]):
+        refuse(f"name the PR by its url, not `{names[0]}`: a url fixes the PR whatever `-R`, `GH_REPO` or the directory say")
     return names[0]
 
 
-def check(repo, args, cwd):
+def check(args, cwd):
     sha = option(args, "--match-head-commit")
     if not sha:
         refuse("`gh pr merge` must carry `--match-head-commit <sha>`, the sha the reviewer approved")
     view = ["gh", "pr", "view", target(args), "--json", "headRefOid,comments,reviews"]
-    repo = option(args, "-R", "--repo") or repo
-    if repo:
-        view += ["-R", repo]
     run = subprocess.run(view, capture_output=True, text=True, cwd=cwd)
     try:
         pr = json.loads(run.stdout) if run.returncode == 0 else None
@@ -187,5 +183,5 @@ try:
         merges += found
 except Exception as err:  # exit 1 would let the command run
     refuse(f"could not read the command ({type(err).__name__})")
-for repo, args in merges:
-    check(repo, args, cwd)
+for args in merges:
+    check(args, cwd)

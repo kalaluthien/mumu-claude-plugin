@@ -11,5 +11,5 @@ Issues live in the repository the work lands in; a parent spanning repositories 
 | `checkout` | `git -C <checkout> fetch origin && git -C <checkout> worktree add --detach <checkout>/.claude/worktrees/<topic>-<issue> origin/<default>`; unless `git -C <checkout> config core.hooksPath` is set, copy `$(command -v default-branch-guard)` to each of `<hooks>/pre-commit` and `<hooks>/pre-push` not there yet |
 | `claim` | `git fetch origin && ! git ls-remote --exit-code origin 'refs/heads/*-<issue>' && git switch -c <branch> origin/<default> && git push -u origin <branch>`, the branch named after the worktree; a branch found is yours only when this checkout is on it |
 | `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file -`; later `gh pr edit <pr> --body-file -` |
-| `merge` | `gh pr merge <pr> --squash --match-head-commit <approved sha>` |
+| `merge` | `gh pr merge <pr-url> --squash --match-head-commit <approved sha>` |
 | `clean` | for each worker `git -C <checkout> worktree remove <worktree>`, `git -C <checkout> branch -D <branch>` and `git -C <checkout> push origin --delete <branch>`, the branch being merged by squash; then `git -C <checkout> pull --ff-only`, and remove each of `<hooks>/pre-commit` and `<hooks>/pre-push` that `cmp -s` finds equal to the guard |
