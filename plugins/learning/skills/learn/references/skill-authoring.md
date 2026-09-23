@@ -58,6 +58,16 @@ row a situation in the words a person or a task would use and the playbook in
 one row and copies that playbook's steps verbatim into its todo list, a step
 not done staying as `skip: <reason>`. Copied steps are the ones done, where a
 paraphrase drops them.
+A request needing two playbooks, as a lifecycle change needs a spec and a
+test, gets a row naming both in order, because one match must not drop the
+second check.
+
+Merging skills into one router: each old description's summary becomes its
+playbook's first line and its `Not for` moves into the row, and the old evals
+run against the router before and after, since a merged description can fire
+less often than the parts did. A playbook links documents by relative path and
+runs a script by `${CLAUDE_PLUGIN_ROOT}/skills/<skill>/scripts/<name>`, because
+a command runs from any directory.
 
 State a finished state as a predicate the agent can check, never an
 adjective. Name the failure modes that raise no error.
