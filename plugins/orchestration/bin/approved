@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""Refuse a `gh pr merge` that is not pinned to a sha a reviewer approved.
+
+PreToolUse hook on Bash. A command carrying `gh pr merge` passes only when it
+carries `--match-head-commit <sha>`, that sha is the PR's head, and the PR holds
+a comment whose first line is `Approved <sha>`. Anything else exits 2 with the
+reason; a command without `gh pr merge` exits 0 unread.
+"""
+import json
+import shlex
+import subprocess
+import sys
+
+
+def refuse(reason):
+    print(f"approved: {reason}", file=sys.stderr)
+    sys.exit(2)
+
+
+def merges(command):
+    """Yield the arguments after `gh pr merge` in each simple command."""
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|")
+    lexer.whitespace_split = True
+    words = list(lexer)
+    segment = []
+    for word in words + [";"]:
+        if word and set(word) <= set(";&|"):
+            if segment[:3] == ["gh", "pr", "merge"]:
+                yield segment[3:]
+            segment = []
+        else:
+            segment.append(word)
+
+
+def option(args, *names):
+    for i, arg in enumerate(args):
+        for name in names:
+            if arg == name and i + 1 < len(args):
+                return args[i + 1]
+            if name.startswith("--") and arg.startswith(name + "="):
+                return arg.split("=", 1)[1]
+    return None
+
+
+def target(args):
+    takes_value = {"-R", "--repo", "--match-head-commit", "-b", "--body", "-F", "--body-file",
+                   "-t", "--subject", "-A", "--author-email"}
+    skip = False
+    for arg in args:
+        if skip:
+            skip = False
+        elif arg in takes_value:
+            skip = True
+        elif not arg.startswith("-"):
+            return arg
+    return None
+
+
+def check(args):
+    sha = option(args, "--match-head-commit")
+    if not sha:
+        refuse("`gh pr merge` must carry `--match-head-commit <sha>`, the sha the reviewer approved")
+    view = ["gh", "pr", "view", "--json", "headRefOid,comments"]
+    if target(args):
+        view.insert(3, target(args))
+    repo = option(args, "-R", "--repo")
+    if repo:
+        view += ["-R", repo]
+    run = subprocess.run(view, capture_output=True, text=True)
+    if run.returncode != 0:
+        refuse(f"could not read the PR ({' '.join(view)}): {run.stderr.strip()}")
+    pr = json.loads(run.stdout)
+    head = pr["headRefOid"]
+    if sha != head:
+        refuse(f"--match-head-commit {sha} is not the PR head {head}; the approval, if any, is stale")
+    first_lines = [c["body"].strip().splitlines()[0].strip() for c in pr["comments"] if c["body"].strip()]
+    if f"Approved {head}" not in first_lines:
+        refuse(f"no PR comment opens with `Approved {head}`; launch the reviewer agent at this sha")
+
+
+command = json.load(sys.stdin).get("tool_input", {}).get("command", "")
+if "merge" in command:
+    try:
+        found = list(merges(command))
+    except ValueError as err:
+        refuse(f"could not parse the command ({err}); run `gh pr merge` on its own")
+    for args in found:
+        check(args)

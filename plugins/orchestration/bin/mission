@@ -1,0 +1,17 @@
+#!/bin/sh
+# Print this checkout's mission file, kept in its own git dir per branch, so it
+# needs no plugin data dir (unset in the model's shell) and goes with the worktree.
+# UserPromptSubmit runs it bare: no git checkout, no branch, or no file prints nothing.
+# `mission path` prints where that file lives, so `lead` and `work` write it there.
+
+branch=$(git branch --show-current 2>/dev/null)
+[ -n "$branch" ] || exit 0
+file=$(git rev-parse --path-format=absolute --git-path "mission/$branch.md") || exit 0
+
+if [ "$1" = path ]; then
+	mkdir -p "$(dirname "$file")" && printf '%s\n' "$file"
+elif [ -f "$file" ]; then
+	printf 'Mission (%s):\n' "$branch"
+	cat "$file"
+fi
+exit 0
