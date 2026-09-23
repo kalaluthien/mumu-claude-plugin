@@ -30,6 +30,7 @@ Expect: <the owner's expectations>; <your role's rules below>
 | reviewer | the `reviewer` agent: it reviews a plan or a pull request it did not write, and alone writes `Approved` |
 | issue | one sub-issue of the parent: one worker, one branch, one pull request, all named `<topic>-<issue>` |
 | topic | 2-4 lowercase words joined by hyphens |
+| name | one string for a session's tab, herdr agent and Claude session: `<topic>-<issue>` for a worker, `<topic>-lead` for the leader |
 | checkout | the local clone of the repository an issue lands in |
 | claim | the branch on the remote; it exists, so the issue is taken |
 | approval | a comment whose first line is `Approved <sha>`, valid while the head is that sha |
@@ -46,13 +47,13 @@ Rules:
 
 # Lead
 
-1. Ask the owner every question at once with `AskUserQuestion`.
+1. `name` yourself `<topic>-lead`, the topic being the goal's, then ask the owner every question at once with `AskUserQuestion`.
 2. `file` the parent (the goal, the decisions, the expectations, the definition of done) and one issue per pull request, each labelled with its effort, then write your mission; launch the `reviewer` on the parent's url and fix its findings until it posts `Approved`.
-3. For each issue: `checkout`, `start` at its effort, `watch` it, and `prompt` it `/orchestration:kickoff work <issue-url> leader <your address>`.
+3. For each issue: `checkout`, `start` it under its name at its effort, `watch` it, and `prompt` it `/orchestration:kickoff work <issue-url> leader <your address>`.
 4. Poll nothing; act on what arrives:
    - `see <issue-url>` naming a `BLOCKED:` comment: `comment` the answer, then `prompt` the worker `see <issue-url>`;
    - `see <pr-url>`: that pull request merged; with no issue open, go to 5;
-   - a `watch` returns: a worker at a permission prompt is the owner's to clear, so tell the owner; a worker gone while its issue is open is `start`ed again in its worktree, resuming, and watched;
+   - a `watch` returns: a worker at a permission prompt is the owner's to clear, so tell the owner and `watch` it again once cleared; a worker gone while its issue is open is `start`ed again in its worktree, resuming, and watched;
    - the owner changes direction: `comment` the change on each issue affected and `prompt` its worker `see <issue-url>`;
    - the owner asks where it stands: report each issue and its worker in `live`.
 5. `resolve` the parent with a summary, `close` each worker, `clean`, and delete your mission.
