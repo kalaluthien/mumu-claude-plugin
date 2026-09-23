@@ -87,15 +87,17 @@ question picks the doctype, never the subject.
 ## Check
 
 Run on every page before delivery; `P` is its absolute path. It loads the page
-in a true 320 px frame and prints `<scroll>/<client> <smallest text>px` and a
-verdict; `pass` needs the two widths equal and no text under 11 px.
+in a true 320 px frame and prints `<scroll>/<client> <smallest text>px
+<smallest Hangul or Han>px` (`Infinity` where there is none) and a
+verdict; `pass` needs the two widths equal, no text under 11 px and no
+Hangul or Han under 12 px.
 
 ```sh
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 F="${TMPDIR:-/tmp}/show-me-frame.html"
-cat > "$F" <<'EOF'
+cat >| "$F" <<'EOF'
 <iframe id=f style="width:320px;height:800px;border:0"></iframe>
-<script>f.onload=function(){var d=f.contentDocument,e=d.documentElement,w=f.contentWindow,t=d.createTreeWalker(d.body,4),n,s=1/0;while(n=t.nextNode())if(n.data.trim()&&!/^(script|style|title)$/i.test(n.parentElement.tagName))s=Math.min(s,parseFloat(w.getComputedStyle(n.parentElement).fontSize));document.body.dataset.r=e.scrollWidth+'/'+e.clientWidth+' '+s+'px'+(e.scrollWidth==e.clientWidth&&s>=11?' pass':' FAIL')};f.src=location.hash.slice(1)</script>
+<script>f.onload=function(){var d=f.contentDocument,e=d.documentElement,w=f.contentWindow,t=d.createTreeWalker(d.body,4),n,z,s=[1/0,1/0];while(n=t.nextNode())if(n.data.trim()&&!/^(script|style|title)$/i.test(n.parentElement.tagName)){z=/[\p{sc=Hangul}\p{sc=Han}]/u.test(n.data)?1:0;s[z]=Math.min(s[z],parseFloat(w.getComputedStyle(n.parentElement).fontSize))}document.body.dataset.r=e.scrollWidth+'/'+e.clientWidth+' '+s[0]+'px '+s[1]+'px'+(e.scrollWidth==e.clientWidth&&s[0]>=11&&s[1]>=12?' pass':' FAIL')};f.src=location.hash.slice(1)</script>
 EOF
 "$CHROME" --headless --disable-gpu --allow-file-access-from-files --dump-dom \
   --virtual-time-budget=3000 "file://$F#file://$P" 2>/dev/null |

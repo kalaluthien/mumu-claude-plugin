@@ -16,7 +16,8 @@ The hook blocks once, with PROMPT, only when all four hold; otherwise it exits
   - the session has a person in it: no transcript entry came from `-p`,
     whose entrypoint starts with "sdk";
   - stop_hook_active is false, so a harvest never asks for itself;
-  - WORK_THRESHOLD or more changing tool calls since this hook last blocked.
+  - WORK_THRESHOLD or more changing tool calls since the harvest that this
+    hook's last block asked for.
 
 A changing call is a Write, Edit, MultiEdit or NotebookEdit, or a Bash command
 that writes, commits, or calls a service. Reads, searches and launches are not
@@ -35,10 +36,13 @@ import sys
 WORK_THRESHOLD = 3
 CHANGING_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
 CHANGING_COMMAND = re.compile(
-    r">>|(^|\s)>\s|\btee\b|sed -i"
-    r"|\bgit (commit|push|merge|tag|revert|rebase)\b"
-    r"|-X\s+(POST|PATCH|PUT|DELETE)"
-    r"|\b(mv|rm|cp|mkdir|touch|install)\b"
+    r"(?<![0-9&])>>?\s*(?!/dev/null\b)[^\s&|]"
+    r"|\btee\b|\bsed\s+-i"
+    r"|\bgit(\s+-C\s+\S+)?\s+(commit|push|merge|tag|revert|rebase)\b"
+    r"|\bgh\s+(pr|issue|release|repo|label)\s+(create|edit|merge|comment|close|reopen|delete)\b"
+    r"|-X\s*(POST|PATCH|PUT|DELETE)|--method\s+(POST|PATCH|PUT|DELETE)"
+    r"|(^|[;&|(]\s*|\bsudo\s+)(mv|rm|cp|mkdir|touch|install|ln)\b",
+    re.MULTILINE,
 )
 
 PROMPT = """\
@@ -93,14 +97,31 @@ def headless(entries):
     return any(str(e.get("entrypoint", "")).startswith("sdk") for e in entries)
 
 
+def window_start(entries):
+    """Index after which changing calls count.
+
+    The window opens at this hook's last block, but the harvest that block
+    asked for writes files too, so it opens only at the next summary: the
+    one the harvest's own stop wrote.
+    """
+    blocked = None
+    for i, entry in enumerate(entries):
+        if is_previous_block(entry):
+            blocked = i
+    if blocked is None:
+        return 0
+    for i in range(blocked + 1, len(entries)):
+        if entries[i].get("subtype") == "stop_hook_summary":
+            return i + 1
+    return len(entries)
+
+
 def work_done(entries):
-    """Count the changing tool calls made since this hook last blocked."""
+    """Count the changing tool calls made in the current window."""
     count = 0
-    for entry in reversed(entries):
+    for entry in entries[window_start(entries):]:
         if entry.get("isSidechain") or entry.get("isMeta"):
             continue
-        if is_previous_block(entry):
-            break
         if entry.get("type") != "assistant":
             continue
         content = (entry.get("message") or {}).get("content")

@@ -41,9 +41,9 @@ a ceiling -- and is read at run time, never restated here.
 
 | the round | where |
 | --- | --- |
-| four questions or fewer | `AskUserQuestion` |
+| four questions or fewer, with `AskUserQuestion` in the session | `AskUserQuestion` |
 | more, with the `Artifact` tool in the session | [form.html](form.html), one fieldset per question, its recommendation prefilled, published with that tool |
-| more, without it | numbered text in chat |
+| otherwise | numbered text in chat |
 
 The form writes nowhere. It builds one block the user pastes back; its first
 line is `grill-me: <target>, round <n>`. Read it against that round, or say it
