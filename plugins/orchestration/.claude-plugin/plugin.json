@@ -1,5 +1,6 @@
 {
   "name": "orchestration",
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Work lands only as a PR merged at a sha a reviewer approved.",
   "author": { "name": "kalaluthien" }
 }
