@@ -124,17 +124,15 @@ class Scripts(unittest.TestCase):
         for f in ("herdr", "gh"):
             (tmp / f).chmod(0o755)
         env = dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}", CLAUDE_CODE_SESSION_ID="s1",
-                   MONITOR_POLL="0.05", WORKER_WATCH_STUCK_AFTER="0", LEAD_HEARTBEAT_AFTER="0")
+                   MONITOR_POLL="0.05", MONITOR_TICKS="20", WORKER_WATCH_STUCK_AFTER="0", LEAD_HEARTBEAT_AFTER="0")
         return subprocess.Popen([sys.executable, str(BIN / (script + ".py")), str(tmp)], env=env,
                                 stdout=subprocess.PIPE, text=True)
 
     def lines(self, proc):
-        """Let the loop poll about twenty times, then stop it and return every line it printed."""
-        try:
-            proc.wait(timeout=1)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-        return proc.communicate()[0].splitlines()
+        """Let the loop poll its twenty times, however slow the machine, and return every line it printed."""
+        out = proc.communicate(timeout=120)[0]
+        self.assertEqual(proc.returncode, 0)
+        return out.splitlines()
 
     def test_worker_mission_exits_at_once_silently(self):
         for script in ("worker-watch", "lead-heartbeat"):

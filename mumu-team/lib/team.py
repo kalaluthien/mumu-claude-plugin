@@ -4,7 +4,8 @@ The mission is `<plugin data dir>/mission/$CLAUDE_CODE_SESSION_ID.md`. A
 leader's reads `Mission: leader of <parent-url>` and holds one
 `Worker: <name> <issue-url>` line per worker; a worker's reads
 `Mission: worker ...`, and a monitor in its session exits at once.
-`MONITOR_POLL` sets the poll interval in seconds (10).
+`MONITOR_POLL` sets the poll interval in seconds (10), and `MONITOR_TICKS`
+stops the loop after that many polls, for a test (unset: never).
 """
 import json
 import os
@@ -50,13 +51,15 @@ def agents():
 def poll(data_dir, tick):
     """Call `tick(parent, workers, words, now)` every poll while a leader's mission exists, and print the lines it returns.
 
-    Returns when the mission is a worker's. A poll with no mission, or whose
-    `herdr agent list` fails, is skipped.
+    Returns when the mission is a worker's, or after `MONITOR_TICKS` polls. A
+    poll with no mission, or whose `herdr agent list` fails, is skipped.
     """
     mission = pathlib.Path(data_dir, "mission", os.environ["CLAUDE_CODE_SESSION_ID"] + ".md")
     interval = float(os.environ.get("MONITOR_POLL", 10))
-    last = {}
-    while True:
+    ticks = int(os.environ.get("MONITOR_TICKS", 0))
+    last, n = {}, 0
+    while not ticks or n < ticks:
+        n += 1
         read = read_mission(mission.read_text()) if mission.exists() else ()
         if read is None:
             return
