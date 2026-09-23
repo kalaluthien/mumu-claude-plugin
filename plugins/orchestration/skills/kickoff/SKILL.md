@@ -39,7 +39,7 @@ Expect: <the owner's expectations>; <your role's rules below>
 
 Rules:
 
-- A merge happens only at an approved sha, and a hook refuses any other.
+- A merge happens only at an approved sha, and a hook refuses any other. The same hook refuses a skipped git hook (`--no-verify`, `commit -n`, `core.hooksPath`): fix what the git hook refused, or post `BLOCKED:`.
 - A commit on the default branch, or a push to it, is refused by a hook in the checkout.
 - Every session and agent runs Opus: effort low when its task names what to change and how to check it, medium when it does not.
 - The owner is asked only architecture, infrastructure and user-experience questions; the rest is decided and written in the parent issue.

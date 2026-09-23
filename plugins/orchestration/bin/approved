@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Refuse a `gh pr merge` that is not pinned to a sha a reviewer approved.
+"""Refuse a `gh pr merge` that is not pinned to a sha a reviewer approved, and a git hook bypass.
 
 PreToolUse hook on Bash. The command is split into commands as a shell would
 split it -- at a newline, `;`, `&&`, `|` or `(` -- and in each one every
@@ -15,7 +15,13 @@ message, or a command that cannot be lexed -- is refused, since text cannot tell
 a merge a shell will run from one it will not; write such text with a file
 tool. A merge built from a variable or an
 escape code such as `$'\x6d'` is not seen. A payload or a PR that
-cannot be read is refused too (exit 2); a command without `merge` exits 0 unread.
+cannot be read is refused too (exit 2).
+
+A command that skips a git hook is refused too, in any command and inside a quoted
+word: `--no-verify` or an abbreviation of it after `git`, `-n` in a `git commit`
+flag cluster (not a value such as `-m -n`), and setting `core.hooksPath` by
+`-c`, `--config-env`, `git config` or a `GIT_CONFIG_*` variable. A command naming
+none of `merge`, `git` or `hookspath` exits 0 unread.
 """
 import json
 import os
@@ -28,6 +34,7 @@ SEPARATORS = set(";&|()\n")
 DESCRIPTOR = re.compile(r"(^|[\s;&|()])(?:\d+|\{\w+\})(?=[<>])")
 QUOTING = re.compile(r"[\"'\\]")
 MENTION = re.compile(r"\bpr\b[\s\S]*?\bmerge\b")
+HOOKS_PATH = re.compile(r"(^|[='\"])core\.hookspath(['\"]?=|['\"]?$)", re.I)  # `-c k=v`, `KEY_0=k`, `'k'=v`
 
 
 def refuse(reason):
@@ -108,44 +115,64 @@ def gh_merge(words):
             yield rest
 
 
-def option(args, *names):
-    for i, arg in enumerate(args):
-        for name in names:
-            if arg == name and i + 1 < len(args):
-                return args[i + 1]
-            if name.startswith("--") and arg.startswith(name + "="):
-                return arg.split("=", 1)[1]
-    return None
-
-
 def target(args):
+    """Read the merge's words as gh does: its one PR url and its one head pin."""
     takes_value = {"-R", "--repo", "--match-head-commit", "-b", "--body", "-F", "--body-file",
                    "-t", "--subject", "-A", "--author-email"}
-    if any(set(arg) & set("{}*?[") for arg in args):  # a shell may expand one word into several
-        refuse("write `gh pr merge` without `{`, `}`, `*`, `?` or `[`, so its words are the ones gh gets")
-    names, skip = [], False
+    if any(set(arg) & set("`${}*?[") or arg == "--" for arg in args):  # a shell may expand one word into several
+        refuse("write `gh pr merge` without `` ` ``, `$`, `{`, `}`, `*`, `?`, `[` or `--`, so its words are the ones gh gets")
+    names, pins, flag = [], [], None
     for arg in args:
-        if skip:
-            skip = False
+        if flag:
+            pins += [arg] if flag == "--match-head-commit" else []
+            flag = None
         elif re.fullmatch(r"-[A-Za-z]{2,}.*", arg):  # gh reads `-sb 31` as `-s -b 31`
             refuse(f"write `{arg}` as separate flags, so the PR the hook reads is the one gh merges")
         elif arg in takes_value:
-            skip = True
+            flag = arg
+        elif arg.startswith("--match-head-commit="):
+            pins.append(arg.split("=", 1)[1])
         elif not arg.startswith("-"):
             names.append(arg)
+    if len(pins) != 1 or not re.fullmatch(r"[0-9a-f]{40}", pins[0]):
+        refuse("`gh pr merge` must carry one `--match-head-commit <sha>`, the full sha the reviewer approved")
     if len(names) != 1:
         refuse(f"`gh pr merge` must name exactly one PR by number or url, not {names or 'none'}")
     if not re.fullmatch(r"https://github\.com/[\w.-]+/[\w.-]+/pull/\d+", names[0]):
         refuse(f"name the PR by its url, not `{names[0]}`: a url fixes the PR whatever `-R`, `GH_REPO` or the directory say")
-    return names[0]
+    return names[0], pins[0]
+
+
+def bypasses(words):
+    """Whether the words skip a git hook: `--no-verify` or its abbreviation, `git commit -n`, or setting `core.hooksPath`."""
+    words = unredirected(words)
+    for i, word in enumerate(words):
+        try:
+            inner = list(segments(word))
+        except ValueError:  # an apostrophe in a message
+            inner = [[word]]
+        if inner != [[word]] and any(bypasses(w) for w in inner):  # `bash -c '...'`
+            return True
+        if (words[i - 1:i] == ["-c"] or i + 1 < len(words)) if word.lower() == "core.hookspath" else HOOKS_PATH.search(word):
+            return True
+        rest = words[i + 1:] if os.path.basename(word) == "git" else []
+        while rest and rest[0].startswith("-"):  # git's own options; these take a value
+            rest = rest[2:] if rest[0] in ("-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env") else rest[1:]
+        args = iter(rest[1:])
+        for arg in args:
+            flags = re.match(r"-([^-mFCctSu]*)([mFCct]?)(.*)", arg)  # `-am x`: letters, then one taking a value
+            if len(arg) >= 6 and "--no-verify".startswith(arg) or rest[0] == "commit" and flags and "n" in flags[1]:
+                return True
+            if arg == "--":
+                break
+            if flags and flags[2] and not flags[3]:  # `-m -n`: `-n` is the message
+                next(args, None)
+    return False
 
 
 def check(args, cwd):
-    pins = [arg for arg in args if arg.split("=", 1)[0] == "--match-head-commit"]
-    sha = option(args, "--match-head-commit")
-    if len(pins) != 1 or not re.fullmatch(r"[0-9a-f]{40}", sha or ""):
-        refuse("`gh pr merge` must carry one `--match-head-commit <sha>`, the full sha the reviewer approved")
-    view = ["gh", "pr", "view", target(args), "--json", "headRefOid,comments,reviews"]
+    url, sha = target(args)
+    view = ["gh", "pr", "view", url, "--json", "headRefOid,comments,reviews"]
     run = subprocess.run(view, capture_output=True, text=True, cwd=cwd)
     try:
         pr = json.loads(run.stdout) if run.returncode == 0 else None
@@ -161,7 +188,7 @@ def check(args, cwd):
 
 
 raw = sys.stdin.read()
-if "merge" not in QUOTING.sub("", raw):
+if not re.search(r"merge|git|hookspath", QUOTING.sub("", raw), re.I):
     sys.exit(0)
 try:
     payload = json.loads(raw)
@@ -181,6 +208,8 @@ except ValueError:  # an unclosed quote
 try:
     merges = []
     for words in commands:
+        if bypasses(words):
+            refuse("hook bypass refused: fix what the hook refused, or BLOCKED the owner")
         found = list(gh_merge(unredirected(words)))
         if len(found) != mentions(words):
             refuse("a `pr merge` in this command is not a command of its own; run `gh pr merge` on its own line, and write text naming it with a file tool")
