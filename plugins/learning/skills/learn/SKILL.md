@@ -18,18 +18,20 @@ Run this first, every time, and report the line it prints:
 Go over the work since the last harvest. For one lesson the user hands you,
 start at step 2.
 
-1. Find each surprise: a check that failed, a tool that refused, a step
-   redone, a success by a path you did not plan, or a procedure you worked out
-   that no skill or memory gave you. Write each as a rule to act on at the
-   start of a task: when <situation>, do <action>, because <the assumption it
-   broke>. Keep a name, path or value only if the rule is about it.
+1. Find each lesson. A surprise is a check that failed, a tool that refused,
+   a step redone, or a success by a path you did not plan; write it as a rule
+   to act on at the start of a task: when <situation>, do <action>, because
+   <the assumption it broke>. A procedure is one that worked, which you had to
+   work out or took from auto-memory; keep its steps as run. Keep a name, path
+   or value only if the lesson is about it.
 2. Search every project's auto-memory, `~/.claude/projects/*/memory/`, for
    the same lesson. Pick the last row of the table below that it fits, and
    read what is there now.
 3. Apply one operation to each entry you touch: ADD, EDIT <entry>, DELETE
-   <entry>, or NONE when it is already said. A near-duplicate is an EDIT; a lesson
-   promoted to a later row DELETEs the entries it replaces. Never rewrite a
-   file to fold a lesson in.
+   <entry>, or NONE when it is already said. A near-duplicate is an EDIT. A
+   lesson promoted to a later row DELETEs the entries it replaces in this
+   project's auto-memory, and leaves other projects' entries alone. Never
+   rewrite a file to fold a lesson in.
 4. Delete or correct any entry this session showed wrong, touched or not.
 
 End with one line: `FILED <path> (<op>) ...`, or `NOTHING DURABLE: <reason>`.
@@ -38,7 +40,7 @@ End with one line: `FILED <path> (<op>) ...`, or `NOTHING DURABLE: <reason>`.
 
 | the lesson | destination | shape |
 | --- | --- | --- |
-| holds for this project: a fact, a trap, the user's preference, a procedure that worked once | auto-memory, the directory the harness names | one fact per file, as the harness's memory instructions give it; a procedure keeps its steps |
+| holds for this project: a fact, a trap, the user's preference, a procedure that worked once | auto-memory, the directory the harness names | one fact per file, as the harness's memory instructions give it |
 | another project's auto-memory already holds it, or the user gave it for all work | memory: `~/.claude/CLAUDE.md` | one instruction and one clause of reason, in the section naming the work |
 | is a procedure auto-memory already holds, and it has now worked again | the skill that owns the work, edited in its source and never under `~/.claude/plugins/cache/`, or a new one in `~/.claude/skills/` | the steps as run, what varied between runs as parameters, a description saying when to use it |
 
