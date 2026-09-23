@@ -16,7 +16,8 @@ git ls-files '*.als'
 
 | found, in this order | do |
 | --- | --- |
-| no `alloy` on PATH | say so and stop before writing anything; never check a model by reading it |
+| a model in another checked language (TLA+, Quint, Lean) | use it and the checker the repo runs it with |
+| no `alloy` on PATH | say so, name where to get it (alloytools.org), and stop before writing anything; never check a model by reading it |
 | `*.als` files | use their layout; read the model covering the change |
 | none | initialise `spec/<module>/system.als` |
 

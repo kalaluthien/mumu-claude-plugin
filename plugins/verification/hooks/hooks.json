@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'Before changing what code does, load the verification:test skill; for a change to states, a lifecycle, permissions or a protocol, verification:spec as well; for a change to a prompt, a skill or a model, verification:eval. They apply even when the request asks only for the change.'"
+            "command": "echo 'Before changing what code does, load the matching verification skill, even when the request asks only for the change.'"
           }
         ]
       }
