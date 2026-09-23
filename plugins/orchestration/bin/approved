@@ -6,10 +6,12 @@ PreToolUse hook on Bash. Every `pr merge` in the command's text must be a
 `;`, `&&`, `|`, `(` or an env prefix or wrapper such as `rtk` -- and each passes
 only when it carries `--match-head-commit <sha>`, that sha is the PR's head,
 and the PR holds a comment or a review whose first line is `Approved <sha>`.
-Any other `pr merge` -- inside `bash -c`, `eval`, a heredoc or here-string, a
-quoted message, or a command that cannot be lexed -- is refused, since text
-cannot tell a merge a shell will run from one it will not; write such text with
-a file tool. A merge built from variables is not seen. A payload or a PR that
+The text is searched with its quotes and backslashes removed, so any other
+`pr merge` -- inside `bash -c`, `eval`, a heredoc or here-string, a quoted
+message, spelled with quotes or escapes, or in a command that cannot be lexed --
+is refused, since text cannot tell a merge a shell will run from one it will
+not; write such text with a file tool. A merge built from a variable or an
+escape code such as `$'\x6d'` is not seen. A payload or a PR that
 cannot be read is refused too (exit 2); a command without `merge` exits 0 unread.
 """
 import json
@@ -20,7 +22,8 @@ import subprocess
 import sys
 
 SEPARATORS = set(";&|()\n")
-MENTION = re.compile(r"\bpr\b(?:[\s\\]+(?:-R|--repo)(?:[\s\\]+|=)\S+)?[\s\\]+merge\b")
+QUOTING = re.compile(r"[\"'\\]")
+MENTION = re.compile(r"\bpr\b(?:\s+(?:-R|--repo)(?:\s+|=)\S+)?\s+merge\b")
 
 
 def refuse(reason):
@@ -107,7 +110,7 @@ def check(repo, args, cwd):
 
 
 raw = sys.stdin.read()
-if "merge" not in raw:
+if "merge" not in QUOTING.sub("", raw):
     sys.exit(0)
 try:
     payload = json.loads(raw)
@@ -122,7 +125,7 @@ try:
     found = list(merges(command))
 except ValueError:  # an unclosed quote
     found = []
-if len(found) < len(MENTION.findall(command)):
+if len(found) < len(MENTION.findall(QUOTING.sub("", command))):
     refuse("a `pr merge` in this command is not a command of its own; run `gh pr merge` on its own line, and write text naming it with a file tool")
 for repo, args in found:
     check(repo, args, cwd)
