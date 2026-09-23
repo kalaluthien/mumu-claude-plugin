@@ -13,8 +13,8 @@ Usage: measure.py <plugin-dir> [<plugin-dir> ...]; one row per directory.
   executables.
 - evals: eval cases.
 - concepts: distinct backticked spans in Markdown, each read as its first word
-  and its subcommands: the lowercase words after it, past any option and its
-  `<placeholder>` value, two deep for `gh` and `herdr`, whose commands are
+  and its subcommands: the lowercase words after it, past an option whose
+  value is a `<placeholder>` and up to any other option, two deep for `gh` and `herdr`, whose commands are
   noun then verb, and one deep otherwise; a span opening with a flag or
   punctuation is no name.
 - steps: numbered list items and numbered headings in Markdown.
@@ -42,8 +42,8 @@ def concept(span):
         return name
     parts, rest = [name], words[1:]
     while rest and len(parts) <= DEPTH.get(name, 1):
-        if rest[0].startswith("-"):
-            rest = rest[2:] if len(rest) > 1 and rest[1].startswith("<") else rest[1:]
+        if rest[0].startswith("-") and len(rest) > 1 and rest[1].startswith("<"):
+            rest = rest[2:]
         elif WORD.fullmatch(rest[0]):
             parts.append(rest[0])
             rest = rest[1:]

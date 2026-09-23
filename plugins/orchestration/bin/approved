@@ -3,7 +3,7 @@
 
 PreToolUse hook on Bash. A `gh pr merge` anywhere in the command -- after a
 newline, an env prefix, a wrapper such as `rtk`, or inside `( )` / `$( )` --
-or in the body of a `-c '...'` or `eval '...'` -- passes only when it carries
+or in the body of a `-c '...'`, a shell's `<<< '...'` or `eval '...'` -- passes only when it carries
 `--match-head-commit <sha>`, that sha is the PR's head, and the PR holds a
 comment or a review whose first line is `Approved <sha>`. A payload that cannot
 be read, a command that cannot be lexed yet reads `gh ... merge`, and a PR that
@@ -29,7 +29,7 @@ def refuse(reason):
 
 def merges(command):
     """Yield (global repo, args after `pr merge`) for each `gh ... pr merge` found."""
-    lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|()\n")
+    lexer = shlex.shlex(command.replace("\\\n", " "), posix=True, punctuation_chars=";&|()\n")
     lexer.whitespace = " \t\r"
     lexer.whitespace_split = True
     segment, previous = [], None
@@ -39,8 +39,8 @@ def merges(command):
             segment = []
         else:
             shell = any(os.path.basename(w) in SHELLS for w in segment)
-            if previous == "eval" or shell and re.fullmatch(r"-[A-Za-z]*c", previous or ""):
-                # the body of `bash -c '...'`, `sh -ec '...'` or `eval '...'` is a command of its own
+            if previous == "eval" or shell and (previous == "<<<" or re.fullmatch(r"-[A-Za-z]*c", previous or "")):
+                # the body of `bash -c '...'`, `sh -ec '...'`, `bash <<< '...'` or `eval '...'` is a command of its own
                 yield from merges(word)
             segment.append(word)
         previous = word
