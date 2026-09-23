@@ -42,9 +42,9 @@ def refuse(reason):
     sys.exit(2)
 
 
-def segments(text):
+def segments(text, join=True):
     """Split text into the word lists of its commands, as a shell would split it."""
-    text = DESCRIPTOR.sub(r"\1", text.replace("\\\n", ""))  # a joined `\` line; `2>&1`, `{fd}>x`
+    text = DESCRIPTOR.sub(r"\1", text.replace("\\\n", "" if join else " \n"))  # a `\` line joined or not; `2>&1`, `{fd}>x`
     lexer = shlex.shlex(text, posix=True, punctuation_chars=";&|()<>\n")
     lexer.whitespace = " \t\r"
     lexer.whitespace_split = True
@@ -147,12 +147,13 @@ def bypasses(words):
     """Whether the words skip a git hook: `--no-verify` or its abbreviation, `git commit -n`, or setting `core.hooksPath`."""
     words = unredirected(words)
     for i, word in enumerate(words):
-        try:
-            inner = list(segments(word))
-        except ValueError:  # an apostrophe in a message
-            inner = [[word]]
-        if inner != [[word]] and any(bypasses(w) for w in inner):  # `bash -c '...'`
-            return True
+        for join in (True, False):  # `\` then a newline joins lines, unless the `\` is escaped or in a comment
+            try:
+                inner = list(segments(word, join))
+            except ValueError:  # an apostrophe in a message
+                inner = [[word]]
+            if inner != [[word]] and any(bypasses(w) for w in inner):  # `bash -c '...'`
+                return True
         if (words[i - 1:i] == ["-c"] or "config" in words[:i] and i + 1 < len(words)) if word.lower() == "core.hookspath" else HOOKS_PATH.search(word):
             return True
         rest = words[i + 1:] if os.path.basename(word) == "git" else []
@@ -206,10 +207,10 @@ except ValueError:  # an unclosed quote
     if MENTION.search(QUOTING.sub("", command)):
         refuse("this command cannot be lexed and names `pr merge`; run `gh pr merge` on its own line")
 try:
+    if commands and any(bypasses(words) for words in commands + list(segments(command, join=False))):
+        refuse("hook bypass refused: fix what the hook refused, or BLOCKED the owner")
     merges = []
     for words in commands:
-        if bypasses(words):
-            refuse("hook bypass refused: fix what the hook refused, or BLOCKED the owner")
         found = list(gh_merge(unredirected(words)))
         if len(found) != mentions(words):
             refuse("a `pr merge` in this command is not a command of its own; run `gh pr merge` on its own line, and write text naming it with a file tool")
