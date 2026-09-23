@@ -11,7 +11,7 @@ Arguments of the shape `work <issue-url> leader <address>` make you a worker (§
 
 `panes.md` drives other sessions and `repo.md` holds issues, branches and pull requests; each maps the verbs below to commands.
 
-First check `ready`; when it fails, stop and print its fix.
+First check `ready`; when it fails, stop and print its fix. Then, when your mission below already exists, its goal is still open: stop and say to finish that goal or to run this in a new session.
 
 Your mission is `${CLAUDE_PLUGIN_DATA}/mission/${CLAUDE_SESSION_ID}.md`, which a hook shows you every turn and every agent you launch at its start:
 
@@ -25,7 +25,7 @@ Expect: <the owner's expectations>; <your role's rules below>
 
 | term | meaning |
 | --- | --- |
-| leader | the session the owner talks to; it writes no code |
+| leader | the session the owner talks to, holding one goal until Lead 5 and then free for the next; goals at the same time get one leader session each; it writes no code |
 | worker | a session on one issue in its own worktree |
 | reviewer | the `reviewer` agent: it reviews a plan or a pull request it did not write, and alone writes `Approved` |
 | issue | one sub-issue of the parent: one worker, one branch, one pull request, all named `<topic>-<issue>` |
