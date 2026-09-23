@@ -5,7 +5,7 @@ description: Models a change in Alloy and checks the invariant it must keep befo
 
 # Spec
 
-Terms and rules: `${CLAUDE_PLUGIN_ROOT}/contract.md`; read it first.
+Terms and rules: `${CLAUDE_PLUGIN_ROOT}/skills/test/references/contract.md`; read it first.
 
 ## 1. Find what the repo has
 

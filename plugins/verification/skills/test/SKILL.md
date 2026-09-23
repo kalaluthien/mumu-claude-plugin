@@ -5,7 +5,7 @@ description: Writes the failing acceptance and integration tests first, then the
 
 # Test
 
-Terms and rules: `${CLAUDE_PLUGIN_ROOT}/contract.md`; read it first.
+Terms and rules: [contract](references/contract.md); read it first.
 
 ## 1. Find what the repo has
 
