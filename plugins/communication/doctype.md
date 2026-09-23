@@ -1,34 +1,34 @@
-# Doctypes and media
+# Doctypes
 
-The doctype is how a document explains; the medium is where it is read. The
-question picks the doctype, never the subject.
+A document answers one question. Its doctype is how it explains, picked by the
+question and never by the subject; its medium is where it is read.
 
 ## Doctypes
 
-| doctype | explains | for | its parts, in order |
-| --- | --- | --- | --- |
-| `diagram` | in one picture | what it is made of, how its parts connect | the title; the one thing to read off it; the figure; its key; the source |
-| `narrative` | in the order understanding builds | how it works, why it is so | a one-line thesis; a map of the whole; chapters, each headed by its answer to one question, with its evidence, never in file or commit order; a reason the source omits, called absent; the source at a sha |
-| `comparison` | under one yardstick | which one, or what differs | the question; the verdict and what would change it; the yardstick, fixed before any option; each option against it, bold only on the cells the verdict turns on |
+| doctype | answers | its parts, in order |
+| --- | --- | --- |
+| `diagram` | what it is made of, how its parts connect | the title; the one thing to read off it; each figure with the text it serves; its key; the source |
+| `narrative` | how it works, why it is so, what will be done | a one-line thesis; a map of the whole; chapters in the order understanding builds, each headed by its answer to one question, with its evidence; a reason the source omits, called absent; the source at a sha |
+| `comparison` | which one, what differs | the question; the verdict and what would change it; the yardstick, fixed before any option; each option against it, bold only on the cells the verdict turns on |
 
 - A repository's structure is a diagram, what a PR changed a comparison, why
-  a design is so a narrative.
+  a design is so a narrative, a proposal a comparison with leaving things as
+  they are among its options.
 - Two questions: a narrative, the diagram its map, the comparison a chapter.
-- In markdown the parts are headings.
+- A part no fact settles is a blank: the reader's decision.
 
 ## Media
 
-- **markdown**: GitHub, chat, and always for an agent. Mermaid only in a
-  GitHub body.
+- **markdown**: chat, GitHub, and always for an agent; the parts are
+  headings; Mermaid only in a GitHub body.
 - **page**: one HTML file for a person, when a layout, a wide table or a
-  dense map outgrows markdown. It starts from `page.html` and keeps its
-  skin block verbatim.
+  dense map outgrows markdown; it starts from `page.html` and keeps its skin
+  block verbatim.
 
 ## Markdown forms
 
-Pick the smallest form that makes the point, put it next to the short text it
-supports, and keep only the calls, files, states and boundaries the question
-needs.
+The smallest form that makes the point, beside the short text it supports,
+with only the calls, files, states and boundaries the question needs.
 
 | form | for |
 | --- | --- |
@@ -36,19 +36,9 @@ needs.
 | a call tree | runtime control flow |
 | a component tree, with the state and module boundaries that matter | UI structure |
 | a shallow file tree, one comment per line | file responsibility, a broad refactor |
-| a table, a row per option, bold only on the cells the verdict turns on, a line under it saying so | a comparison |
-| a diff in the shape of one of the above | what changes in a shape that already exists |
-| the whole block | most of it is new, or omitted context would hide order or ownership |
-
-For example, a call tree:
-
-```text
-submitForm
-  createSession
-    persistPrompt
-    launchAgent
-  navigateToSession
-```
+| a table, a row per option, bold only on the cells the verdict turns on | a comparison |
+| a diff in the shape of one of the above | a change to a shape that exists |
+| the whole block | most of it is new, or a cut would hide order or ownership |
 
 ## Page
 
@@ -63,30 +53,14 @@ submitForm
   ARIA; contrast 4.5:1; visible focus; every control usable by keyboard.
 - Reading order is priority order; secondary work in `details`, two levels
   at most.
+- The work, not the plumbing: labels, values and errors, no prose about how
+  the page behaves; one fact takes one form everywhere.
 - No motion of its own; a transition only answers a reader's action.
-- Every control is clicked once before delivery, never judged from a
-  screenshot.
-
-## Visual encoding
-
-- **Controls**: a control rides on the heading or the element it acts on,
-  never a row of its own; a refresh is an icon on the heading with its own
-  loading state, and replaces the old reading only when the new one arrives.
-- **State**: a state change moves nothing. The verdict travels in colour, an
-  icon or a word; what exactly failed is one tap away; one fact takes one
-  form everywhere.
-- **Content**: labels, values, empty states and errors; no prose about how
-  the page behaves. A glyph earns its place only when nothing beside it says
-  the same; a short message takes no box.
-- **Identity**: plumbing hidden, the work shown: no orchestration status on
-  a page for a person.
-- **Ordering**: fold a missing signal into the one rank, never a second
-  order or a sort the reader picks.
+- Every control is clicked once before delivery.
 
 ## Figures
 
-- Drawn only where it teaches more than a paragraph; cut it if removing it
-  loses nothing.
+- Drawn only where it teaches more than a paragraph.
 - At most 9 boxes and 12 arrows, emphasis on 2; over that, an overview and a
   detail.
 - Boxes grouped as the reader thinks of the system, never by folder.
@@ -106,6 +80,6 @@ submitForm
 
 - Name things instead of counting them: a count goes stale, a name can be
   grepped.
-- A heading on a change says what is true after it, not the subject.
+- A heading on a change says what is true after it.
 - Short words, one idea a sentence, active voice; a new term is defined where
   it first appears or cut; no word that sells.
