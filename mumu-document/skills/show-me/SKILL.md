@@ -5,28 +5,19 @@ description: Use when the answer is settled and must be shown - explain, draw, m
 
 # show-me
 
-Show the topic, the one named or else the conversation's, as a document of
-[doctype.md](references/doctype.md); read it first. A blank is not shown: hand
-the document to `grill-me`.
+Show the topic, the one named or else the conversation's, as a document:
+load the `writing-documents` skill first and write it by that skill. A blank
+is not shown: hand the document to `grill-me`.
 
-1. **Doctype**: the question picks it; build its parts in order. Asked only
-   what follows, answer as `doctype.md` says, with no doctype.
-2. **Medium**: markdown in one of its forms, or a page from
-   [page.html](assets/page.html).
-3. **Plan** a page or a figure: one line naming the doctype, each figure
-   with the paragraph beside it, and what the figure budget forces out; then
-   write.
-4. **Check** a page: `"${CLAUDE_PLUGIN_ROOT}/bin/page-check.sh" <page>` clicks
-   each control once and prints `pass`; on `FAIL`, fix and rerun; exit 2 says
-   why it could not run.
-5. **Deliver** where the ask says, else where it is obvious, else ask once
-   with `AskUserQuestion`:
-   - chat: markdown;
-   - GitHub issue: the body or a comment by the repository's procedure, else
-     `gh issue create`;
-   - page: `show-me-<slug>.html` in the session's scratch directory,
-     published with the `Artifact` tool, else opened with `open`;
-   - repository page: where the repository keeps pages, linked from its
-     README, landed by its procedure.
+Deliver it where the ask says, else where it is obvious, else ask once with
+`AskUserQuestion`:
 
-   Delivered elsewhere, give the one-sentence version in chat.
+- chat: markdown;
+- GitHub issue: the body or a comment by the repository's procedure, else
+  `gh issue create`;
+- page: `show-me-<slug>.html` in the session's scratch directory, published
+  with the `Artifact` tool, else opened with `open`;
+- repository page: where the repository keeps pages, linked from its README,
+  landed by its procedure.
+
+Delivered elsewhere, give the one-sentence version in chat.
