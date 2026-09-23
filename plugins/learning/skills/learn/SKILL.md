@@ -1,13 +1,17 @@
 ---
 name: learn
-description: Use before writing any memory - when the user says remember, keep, note or learn from something, or turn learning on - and when a stop asks for a harvest. Files each lesson in auto-memory, memory or a skill, and arms this repository so its sessions end with a harvest.
+description: Use when writing or editing a SKILL.md, a hook or its script, or an agents/*.md file, and when something learned should outlive the session - a memory, learning turned on, a stop's harvest. Not for settings.json permissions or env (update-config).
 ---
 
 # learn
 
+To write or edit a skill, an agent or a hook with no lesson behind it, skip
+Arm and Harvest and follow the reference its row under Destinations links.
+
 ## Arm
 
-Run this first, every time, and report the line it prints:
+Run this first, every time but the no-lesson case above, and report the line
+it prints:
 
 ```sh
 "${CLAUDE_PLUGIN_ROOT}/bin/takeaway" arm "${CLAUDE_PLUGIN_DATA}"
@@ -42,7 +46,8 @@ End with one line: `FILED <path> (<op>) ...`, or `NOTHING DURABLE: <reason>`.
 | --- | --- | --- |
 | holds for this project: a fact, a trap, the user's preference, a procedure that worked once | auto-memory, the directory the harness names | one fact per file, as the harness's memory instructions give it |
 | another project's auto-memory already holds it, or the user gave it for all work | memory: `~/.claude/CLAUDE.md` | one instruction and one clause of reason, in the section naming the work |
-| is a procedure auto-memory already holds, and it has now worked again | the skill that owns the work, edited in its source and never under `~/.claude/plugins/cache/`, or a new one in `~/.claude/skills/` | the steps as run, what varied between runs as parameters, a description saying when to use it |
+| is a procedure auto-memory already holds, and it has now worked again | the skill that owns the work, edited in its source and never under `~/.claude/plugins/cache/`, or a new one in `~/.claude/skills/` | the steps as run, what varied between runs as parameters; [skill.md](references/skill.md) |
+| is how a delegate should work | its `agents/<name>.md` | [skill.md](references/skill.md) |
+| is something a check could decide | a script or hook, with its failing case, and nothing filed | [hook.md](references/hook.md) |
 
-File nothing a check could decide: write the check with its failing case.
 File nothing the repository or its history already states.
