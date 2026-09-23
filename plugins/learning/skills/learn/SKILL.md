@@ -46,8 +46,8 @@ End with one line: `FILED <path> (<op>) ...`, or `NOTHING DURABLE: <reason>`.
 | --- | --- | --- |
 | holds for this project: a fact, a trap, the user's preference, a procedure that worked once | auto-memory, the directory the harness names | one fact per file, as the harness's memory instructions give it |
 | another project's auto-memory already holds it, or the user gave it for all work | memory: `~/.claude/CLAUDE.md` | one instruction and one clause of reason, in the section naming the work |
-| is a procedure auto-memory already holds, and it has now worked again | the skill that owns the work, edited in its source and never under `~/.claude/plugins/cache/`, or a new one in `~/.claude/skills/` | the steps as run, what varied between runs as parameters; [skill.md](references/skill.md) |
-| is how a delegate should work | its `agents/<name>.md` | [skill.md](references/skill.md) |
-| is something a check could decide | a script or hook, with its failing case, and nothing filed | [hook.md](references/hook.md) |
+| is a procedure auto-memory already holds, and it has now worked again | the skill that owns the work, edited in its source and never under `~/.claude/plugins/cache/`, or a new one in `~/.claude/skills/` | the steps as run, what varied between runs as parameters; [skill-authoring.md](references/skill-authoring.md) |
+| is how a delegate should work | its `agents/<name>.md` | [skill-authoring.md](references/skill-authoring.md) |
+| is something a check could decide | a script or hook, with its failing case, and nothing filed | [hook-authoring.md](references/hook-authoring.md) |
 
 File nothing the repository or its history already states.

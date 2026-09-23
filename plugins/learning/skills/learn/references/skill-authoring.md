@@ -4,6 +4,15 @@ Write only what the reader cannot derive: house conventions, defaults that
 surprise, values that must match another file. An `agents/*.md` file takes a
 skill's frontmatter rules; its body is the delegate's system prompt.
 
+## Folder
+
+- A skill folder holds `SKILL.md` and only `references/` (documents it
+  loads), `scripts/` (code it runs) and `assets/` (files it copies), because a
+  reader then knows what a file is for from where it sits. A file two skills
+  use lives in the one that owns it, and the other links that path.
+- No file under a skill is named `skill.md` in any case: on a case-insensitive
+  filesystem it is the same file as `SKILL.md`.
+
 ## Frontmatter
 
 - `name`: the directory's name. A skill the model loads takes the gerund
@@ -17,6 +26,10 @@ skill's frontmatter rules; its body is the delegate's system prompt.
   positive description does not.
 - `disable-model-invocation: true` on a skill only a person types: a command
   is an order given, not an operation offered.
+- A skill a person types takes free-form text: it finds what it needs (a url,
+  a name, a goal) anywhere in the text, asks for what is missing, and never
+  refuses for wording, because a person does not remember a grammar. Its
+  `argument-hint` is a plain example, not a grammar.
 
 ## Body
 
@@ -33,6 +46,13 @@ shaped to their material:
 A catalogue row that selects a whole mode links a file in `references/`: the
 row keeps the selector, the file keeps the body. A reference no row names is
 never read, and one over 100 lines opens with a summary.
+
+A plugin's entry skill is a router: its `SKILL.md` is a routing table, each
+row a situation in the words a person or a task would use and the playbook in
+`references/` it opens, plus a fallback row when none fits; the agent matches
+one row and copies that playbook's steps verbatim into its todo list, a step
+not done staying as `skip: <reason>`. Copied steps are the ones done, where a
+paraphrase drops them.
 
 State a finished state as a predicate the agent can check, never an
 adjective. Name the failure modes that raise no error.
