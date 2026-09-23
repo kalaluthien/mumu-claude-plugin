@@ -8,7 +8,7 @@ description: Use before writing any memory - whenever the user says remember, ke
 ## Arm the repository
 
 Run this first, every time; it is idempotent. From then on, a session here
-that changed three or more things is asked for a harvest before it stops.
+that made eight or more tool calls is asked for a harvest before it stops.
 
 ```sh
 "${CLAUDE_PLUGIN_ROOT}/bin/takeaway" arm "${CLAUDE_PLUGIN_DATA}"

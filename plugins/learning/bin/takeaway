@@ -16,36 +16,20 @@ The hook blocks once, with PROMPT, only when all four hold; otherwise it exits
   - the session has a person in it: no transcript entry came from `-p`,
     whose entrypoint starts with "sdk";
   - stop_hook_active is false, so a harvest never asks for itself;
-  - WORK_THRESHOLD or more changing tool calls since the harvest that this
-    hook's last block asked for.
+  - WORK_THRESHOLD or more tool calls since the harvest that this hook's
+    last block asked for; a subagent's calls, on the sidechain, not counted.
 
-A changing call is a Write, Edit, MultiEdit or NotebookEdit, or a Bash command
-that writes, commits, or calls a service. Reads, searches and launches are not
-counted, and neither is a subagent's work: it is on the sidechain. Three is
-the smallest window that holds one landed piece of work: an edit, a commit, a
-push.
+Every call counts, since a lesson can come from a read. Eight asks at about a
+quarter of the stops in recorded interactive sessions.
 """
 
 import hashlib
 import json
 import os
-import re
 import subprocess
 import sys
 
-WORK_THRESHOLD = 3
-CHANGING_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
-CHANGING_COMMAND = re.compile(
-    r"(^|\s)[0-9&]?>>?\s*(?!/dev/null\b)[^\s&|>]"
-    r"|\btee\b|\bsed\s+-i"
-    r"|\bgit(\s+-[Cc]\s+\S+)*\s+(commit|push|merge|tag|revert|rebase)\b"
-    r"|\bgh\s+(pr|issue|release|repo|label)\s+(create|edit|merge|comment|close|reopen|delete)\b"
-    r"|-X\s*(POST|PATCH|PUT|DELETE)|--method\s+(POST|PATCH|PUT|DELETE)"
-    r"|\b(npm|pnpm|yarn|pip3?|brew|cargo|go|gem)\s+(install|add|uninstall|remove)\b|\s-delete\b"
-    r"|(^|[;&|(]\s*|\b(sudo|xargs)\s+(-\S+\s+)*)(mv|rm|cp|mkdir|touch|install|ln)\b",
-    re.MULTILINE,
-)
-
+WORK_THRESHOLD = 8
 PROMPT = "Before you stop, harvest this session's work with the learn skill."
 
 
@@ -59,16 +43,6 @@ def repo_key(cwd):
     except (OSError, subprocess.CalledProcessError):
         return None
     return hashlib.sha256(os.path.realpath(out).encode()).hexdigest()[:16]
-
-
-def changes_something(block):
-    """True when this tool call changed something outside the session."""
-    name = block.get("name")
-    if name in CHANGING_TOOLS:
-        return True
-    if name != "Bash":
-        return False
-    return bool(CHANGING_COMMAND.search((block.get("input") or {}).get("command") or ""))
 
 
 def is_previous_block(entry):
@@ -103,7 +77,7 @@ def window_start(entries):
 
 
 def work_done(entries):
-    """Count the changing tool calls made in the current window."""
+    """Count the tool calls made in the current window."""
     count = 0
     for entry in entries[window_start(entries):]:
         if entry.get("isSidechain") or entry.get("isMeta"):
@@ -114,8 +88,7 @@ def work_done(entries):
         if not isinstance(content, list):
             continue
         for block in content:
-            if isinstance(block, dict) and block.get("type") == "tool_use" \
-                    and changes_something(block):
+            if isinstance(block, dict) and block.get("type") == "tool_use":
                 count += 1
     return count
 
