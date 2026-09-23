@@ -34,11 +34,13 @@ Read the one reference the first matching row names, and follow it to its end be
 | --- | --- |
 | an eval suite, and the question is whether to trust it | [audit](references/audit.md) |
 | no traces, or too few to cover the inputs | [synthetic inputs](references/synthetic-inputs.md), then error analysis |
-| traces nobody has read and labelled | [error analysis](references/error-analysis.md) |
-| a failure mode with no check | [graders](references/graders.md) |
+| fewer than about 100 traces carrying a person's verdict and note | [error analysis](references/error-analysis.md) |
+| a failure taxonomy, and a mode in it with no check | [graders](references/graders.md) |
 | an LLM judge with no measured agreement with human labels | [validate the judge](references/validate-judge.md) |
 
-No row fits, or the owner asks for a judge or a metric before any trace was read: start with error analysis, and say why. A grader written before error analysis measures a guess.
+When no row fits, start with error analysis.
+
+Asked for a judge, a score or a metric before that analysis exists — even with a few example traces in hand — do not write it. Say that a grader written now would measure a guess and could not be checked against labels that do not exist, then start error analysis. A handful of traces seeds the analysis; it does not replace it.
 
 ## 3. Run
 
