@@ -6,7 +6,7 @@ Two uses:
   takeaway              the Stop hook: the hook payload on stdin, the
                         plugin's data directory in CLAUDE_PLUGIN_DATA.
   takeaway arm <data>   arm the repository of the current directory; the
-                        learn skill passes the plugin's data directory,
+                        retro skill passes the plugin's data directory,
                         which a Bash call does not inherit.
 
 The hook blocks once, with PROMPT, only when all three hold; otherwise it exits
@@ -28,7 +28,7 @@ import subprocess
 import sys
 
 WORK_THRESHOLD = 8
-PROMPT = "Before you stop, harvest this session's work with the learn skill."
+PROMPT = "Before you stop, harvest this session's work with the retro skill."
 
 
 def repo_key(cwd):

@@ -69,7 +69,7 @@ situations that read clearer as separate descriptions are separate skills.
 
 An entry skill exists only for work started on purpose, by a person handing
 work to an agent or one agent to another, as `kickoff` is; a plugin whose
-skills each trigger on their own situation has none, as verification's `spec`,
+skills each trigger on their own situation has none, as mumu-verification's `spec`,
 `test` and `eval` do. An entry skill is a router: its `SKILL.md` is a routing
 table, each row a situation in the words a person or a task would use and the
 playbook in `references/` it opens, tried in order with a fallback row last;

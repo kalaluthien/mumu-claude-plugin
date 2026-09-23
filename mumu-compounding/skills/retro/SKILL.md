@@ -1,9 +1,9 @@
 ---
-name: learn
+name: retro
 description: Use when writing or editing a SKILL.md, an agents/*.md file, a script, or a hook of the harness or of git, and when something learned should outlive the session - a memory, learning turned on, a stop's harvest. Not for settings.json permissions or env (update-config).
 ---
 
-# learn
+# retro
 
 ## Arm
 
