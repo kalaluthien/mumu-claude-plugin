@@ -9,11 +9,11 @@ Arguments: $ARGUMENTS
 
 Arguments starting with `work` make you a worker (§ Work); any others are a goal you lead (§ Lead).
 
-Write your mission first to `${CLAUDE_PLUGIN_DATA}/mission/${CLAUDE_SESSION_ID}.md`. A hook shows it to you every turn and to every agent you launch:
+Before anything else, write your mission to `${CLAUDE_PLUGIN_DATA}/mission/${CLAUDE_SESSION_ID}.md`. A hook shows it to you every turn and to every agent you launch:
 
 ```
-Goal: <the parent goal> (<its issue url, once filed>)
-Mission: <your role, and your issue with its url>
+Goal: <the parent goal, in words>
+Mission: <your role, and your issue's url>
 Expect: <the owner's expectations>; <your role's rules below>
 ```
 
@@ -49,11 +49,11 @@ Rules:
    - `see <pr-url>`: that pull request merged; with no issue open, go to 5;
    - the owner changes direction: edit the issues affected and `prompt` each of their workers `see <issue-url>`;
    - the owner asks where it stands: report each issue and its worker in `live`, and `start` a worker gone while its issue is open again in its worktree, resuming, with the same assignment.
-5. Close the parent with a summary, `close` each worker, and `clean`.
+5. Close the parent with a summary, `close` each worker, `clean`, and delete your mission.
 
 # Work
 
-1. Read the issue and its parent, then write your mission.
+1. Write your mission from the issue and its parent.
 2. `claim` the issue; held by another session, say so on the issue and stop.
 3. Implement, run the repository's own checks, commit and push, and open the `pr` at the first push.
 4. Launch the `reviewer` on the pull request's url. `Findings`: fix, push, launch it again. `Approved <head>`: `merge`, then `prompt` the leader `see <pr-url>`.
