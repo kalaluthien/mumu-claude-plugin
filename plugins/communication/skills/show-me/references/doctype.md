@@ -26,7 +26,7 @@ question and never by the subject; its medium is where it is read.
 - **markdown**: chat, GitHub, and always for an agent; the parts are
   headings; Mermaid only in a GitHub body.
 - **page**: one HTML file for a person, when a layout, a wide table or a
-  dense map outgrows markdown; it starts from `page.html`.
+  dense map outgrows markdown; it starts from `../assets/page.html`.
 
 ## Markdown forms
 
