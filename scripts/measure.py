@@ -13,8 +13,10 @@ Usage: measure.py <plugin-dir> [<plugin-dir> ...]; one row per directory.
   executables.
 - evals: eval cases.
 - concepts: distinct backticked spans in Markdown, each read as its first word
-  and up to two lowercase words after it, so a command counts at subcommand
-  depth; a span opening with a flag or punctuation is no name.
+  and its subcommands: the lowercase words after it, past any option and its
+  `<placeholder>` value, two deep for `gh` and `herdr`, whose commands are
+  noun then verb, and one deep otherwise; a span opening with a flag or
+  punctuation is no name.
 - steps: numbered list items and numbered headings in Markdown.
 """
 import json
@@ -26,7 +28,28 @@ END = re.compile(r"[.;?!](?=\s|$)")
 ITEM = re.compile(r"^\s*(?:[-*]|\d+\.)\s|^\s*\|")
 STEP = re.compile(r"^\s*\d+\.\s|^#+\s*\d+\.")
 SPAN = re.compile(r"`([^`]*)`")
-NAME = re.compile(r"\s*([A-Za-z$][\w$.:{}/-]*?)[:,]?((?: [a-z][a-z-]*){0,2})(?=\s|$)")
+NAME = re.compile(r"[A-Za-z$/][\w$.:{}/-]*")
+WORD = re.compile(r"[a-z][a-z-]*")
+DEPTH = {"gh": 2, "herdr": 2}
+
+
+def concept(span):
+    words = span.split()
+    if not words or not NAME.fullmatch(words[0].rstrip(":,")):
+        return None
+    name = words[0].rstrip(":,")
+    if words[0] != name:
+        return name
+    parts, rest = [name], words[1:]
+    while rest and len(parts) <= DEPTH.get(name, 1):
+        if rest[0].startswith("-"):
+            rest = rest[2:] if len(rest) > 1 and rest[1].startswith("<") else rest[1:]
+        elif WORD.fullmatch(rest[0]):
+            parts.append(rest[0])
+            rest = rest[1:]
+        else:
+            break
+    return " ".join(parts)
 
 
 def prose(path):
@@ -59,8 +82,7 @@ def measure(root):
             sentences += ends or (1 if ITEM.match(line) else 0)
             if path.suffix == ".md":
                 steps += bool(STEP.match(line))
-                names = (NAME.match(span) for span in SPAN.findall(line))
-                concepts.update("".join(n.groups()) for n in names if n)
+                concepts.update(filter(None, map(concept, SPAN.findall(line))))
     hooks = root / "hooks" / "hooks.json"
     registrations = sum(len(v) for v in json.loads(hooks.read_text())["hooks"].values()) if hooks.exists() else 0
     features = (len(list(root.glob("skills/*/SKILL.md"))) + len(list(root.glob("agents/*.md")))
