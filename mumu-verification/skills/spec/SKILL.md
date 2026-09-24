@@ -1,6 +1,6 @@
 ---
 name: spec
-description: Use when a change touches states, transitions, a lifecycle, permissions, ownership or a protocol, or a rule stated as never, always, only after or at most - even if only the code was asked for - or when `*.als` files model the changed code, or when asked what the specs cover. Not for one function's input and output (test).
+description: Use when a change touches states, transitions, a lifecycle, permissions, ownership or a protocol, or a rule stated as never, always, only after or at most - even if only the code was asked for - or when `*.als` files model the changed code, or when asked what the specs cover. Not for one function's input and output, nor for a value - a threshold, a colour, a size, a photometric target (test).
 ---
 
 # Spec
@@ -48,6 +48,7 @@ run step for 3                     -- shows the model has an instance
 
 - `model.als` has no commands; `check.als` has the asserts, the `check`s and at least one `run`.
 - Name each `check` for what holds.
+- A value is not modelled: `Int` is only as wide as the scope says (default `4 Int`, -8..7), wraps silently, has no reals, and cannot solve a 24-bit colour. Model its order or a small integer with `but N Int` set wide enough; the value itself goes to `test`.
 
 ## 3. Check
 

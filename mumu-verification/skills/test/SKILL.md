@@ -26,6 +26,8 @@ Write one acceptance test and one integration test for the behaviour, each asser
 
 A screen is checked by driving it in a browser and asserting what it shows. Run the tests.
 
+A value rule - a threshold, a colour, a size - lives once as a named constant where the code reads it, and its test states the literal: `isFlat(5.0f)`, never `isFlat(TOLERANCE)`, which passes whatever the constant holds.
+
 ## 3. Green
 
 Make the change. Run the new tests and the whole suite; both pass. Then undo the change alone, watch the new tests fail, and restore it.
