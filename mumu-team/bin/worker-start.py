@@ -5,7 +5,8 @@ usage: worker-start.py <checkout> <name> <effort> [--continue] [--prompt <text>]
 
 The worktree is `<checkout>/.claude/worktrees/<name>`, added detached at
 `origin/<default>` when missing and reused when present; the git guard is
-copied as `repo.md`'s `checkout` does. `--continue` resumes the worktree's
+copied as `repo.md`'s `checkout` does. Claude runs as `--agent mumu-team:worker`, whose Stop hook
+holds it until its issue lands or is blocked. `--continue` resumes the worktree's
 last Claude session. The trust dialog defaults to "No, exit", so it is
 answered `down enter`. Prints `<name>@<pane> <worktree>` once the session is
 ready. `WORKER_START_TIMEOUT` (60) and `WORKER_START_POLL` (1) are seconds.
@@ -86,7 +87,7 @@ def main(argv):
         pane = json.loads(run("herdr", "tab", "create", "--cwd", str(tree), "--label", name, "--no-focus"))["result"]["root_pane"]["pane_id"]
         # A trust dialog makes `agent start` report agent_not_ready; await_ready answers it.
         subprocess.run(["herdr", "agent", "start", name, "--kind", "claude", "--pane", pane, "--",
-                        "--name", name, "--model", "opus", "--effort", effort] + (["--continue"] if resume else []),
+                        "--name", name, "--agent", "mumu-team:worker", "--model", "opus", "--effort", effort] + (["--continue"] if resume else []),
                        capture_output=True, text=True)
         await_ready(name, pane, float(os.environ.get("WORKER_START_TIMEOUT", 60)), float(os.environ.get("WORKER_START_POLL", 1)))
         if prompt:
