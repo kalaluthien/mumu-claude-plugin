@@ -9,14 +9,18 @@ Two uses:
                            retro skill passes the plugin's data directory,
                            which a Bash call does not inherit.
 
-The hook blocks once, with PROMPT, only when all three hold; otherwise it exits
+The hook blocks once, with PROMPT, only when all four hold; otherwise it exits
 0 and says nothing:
 
   - the repository (its git common dir) is armed: <data>/armed/<key> exists;
   - the session has a person in it: no transcript entry came from `-p`,
     whose entrypoint starts with "sdk";
   - WORK_THRESHOLD or more tool calls since the harvest that this hook's
-    last block asked for.
+    last block asked for;
+  - HARVEST_INTERVAL or more minutes since this session's last block, or
+    no block yet in this session.
+
+WORK_THRESHOLD and HARVEST_INTERVAL can be set from the environment.
 
 Every call counts, since a lesson can come from a read.
 """
@@ -26,8 +30,10 @@ import json
 import os
 import subprocess
 import sys
+from datetime import datetime, timezone
 
-WORK_THRESHOLD = 8
+WORK_THRESHOLD = int(os.environ.get("WORK_THRESHOLD", "8"))
+HARVEST_INTERVAL = float(os.environ.get("HARVEST_INTERVAL", "30"))
 PROMPT = "Before you stop, harvest this session's work with the retro skill."
 
 
@@ -72,6 +78,18 @@ def window_start(entries):
         if entries[i].get("subtype") == "stop_hook_summary":
             return i + 1
     return len(entries)
+
+
+def minutes_since_block(entries):
+    """Minutes since this hook's last block, or None when it has not blocked."""
+    stamps = [e.get("timestamp") for e in entries if is_previous_block(e)]
+    if not stamps:
+        return None
+    try:
+        at = datetime.fromisoformat(str(stamps[-1]).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return (datetime.now(timezone.utc) - at).total_seconds() / 60
 
 
 def work_done(entries):
@@ -127,6 +145,9 @@ def hook():
         return 0
     entries = entries_of(payload.get("transcript_path") or "")
     if entries is None or headless(entries):
+        return 0
+    since = minutes_since_block(entries)
+    if since is not None and since < HARVEST_INTERVAL:
         return 0
     if work_done(entries) >= WORK_THRESHOLD:
         json.dump({"decision": "block", "reason": PROMPT}, sys.stdout)
