@@ -9,7 +9,7 @@ Arguments: $ARGUMENTS
 
 The arguments are loose text in any language: find what the row needs anywhere in them (a goal, an issue or parent url, a leader address), ask with `AskUserQuestion` for what is missing, and never refuse for wording. Only `work <issue-url> leader <address>` keeps its exact shape, since only a session writes it.
 
-A new goal goes to the leader of this project: when `live` lists `<project>-lead` in another pane, stop and tell the owner that pane; when this session is that leader, lead the goal beside the ones it holds.
+Your role's rules are in [agents/lead.md](../../agents/lead.md) and [agents/worker.md](../../agents/worker.md); when your system prompt is not already that body, read `worker.md` before the `work` row and `lead.md` before any other.
 
 Match the text to one row, open that playbook, and copy its steps verbatim into the todo list; a step not done stays as `skip: <reason>`. Rows are tried in order; the first that fits wins. Before the first step, check `ready`; when it fails, stop and print its fix.
 
@@ -30,18 +30,16 @@ Your mission is `${CLAUDE_PLUGIN_DATA}/mission/${CLAUDE_SESSION_ID}.md`, which a
 ```
 Goal: <the parent goal in words, not its url>
 Mission: leader of <parent-url> | worker on <issue-url>
-Expect: <the owner's expectations>; <your role's rules below>
+Expect: <the owner's expectations>; <your role's rules>
 ```
-
-A leader adds one `Worker: <name> <issue-url>` line per worker it starts; its `worker-watch` and `lead-heartbeat` monitors read them and print what Lead 4 acts on.
 
 # Domain
 
 | term | meaning |
 | --- | --- |
 | project | a Claude project folder: the leader's cwd, whose basename is `<project>` |
-| leader | the one session per project, named `<project>-lead`: the owner talks to it, it holds any number of goals, starts workers and other projects' leaders, and writes no code |
-| worker | a session on one issue in its own worktree, which it owns end to end |
+| leader | the one session per project, named `<project>-lead`: the owner talks to it, and it starts workers and other projects' leaders |
+| worker | a session on one issue in its own worktree |
 | reviewer | the `reviewer` agent, or `reviewer-small` for a pull request of at most 20 changed lines: it reviews a plan or a pull request it did not write, and alone writes `Approved` |
 | goal | a parent issue, known by having sub-issues; no label |
 | issue | one sub-issue of the parent: one worker, one branch, one pull request, all named `<topic>-<issue>` |
@@ -71,17 +69,12 @@ Every message between sessions is `see <url>` and nothing more, but the one-line
 | delegate | leader → worker | the assignment prompt |
 | escalate | worker → leader | `BLOCKED:` |
 | consensus | worker ↔ worker under the same leader only | `Agreed:`; one round, then both escalate |
-| handoff | leader → leader across projects | `gh issue transfer` to the target repository, then `see <url>` to its leader |
-| broadcast | leader → every `*-lead` in `herdr agent list` | one `see <url>`; each answers by comment |
 
 Rules:
 
 - A merge happens only at an approved sha, and a hook refuses any other. The same hook refuses a skipped git hook (`--no-verify`, `commit -n`, `core.hooksPath`): fix what the git hook refused, or post `BLOCKED:`.
 - A commit on the default branch, or a push to it, is refused by a hook in the checkout.
 - Every session and agent runs Opus: effort low when its task names what to change and how to check it, medium when it does not.
-- A leader launches read-only subagents only, `Explore` and the reviewers; a worker launches any.
-- The owner is asked only architecture, infrastructure and user-experience questions, and confirms only those criteria; the rest is decided and written in the parent issue.
-- Before building, read the prior work in the repository and its issues, the official docs and a web example.
 
 Writing, for every issue, pull request and comment:
 
