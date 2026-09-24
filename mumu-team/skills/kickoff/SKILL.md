@@ -40,7 +40,7 @@ EXPECT: <the owner's expectations>; <your role's rules>
 | project | a Claude project folder: the leader's cwd, a checkout of the GitHub repository named `<repo>` |
 | leader | the one session per project, named as `name` says: the owner talks to it, and it starts workers and other projects' leaders |
 | worker | a session on one issue in its own worktree |
-| reviewer | the `reviewer` agent, or `reviewer-small` for a pull request of at most 20 changed lines: it reviews a plan or a pull request it did not write, and alone writes `APPROVED:` |
+| reviewer | the `reviewer` agent: it reviews a plan or a pull request it did not write, and alone writes `APPROVED:` |
 | goal | a parent issue, known by having sub-issues; no label |
 | issue | one sub-issue of the parent: one worker, one branch, one pull request, all named `<topic>-<issue>` |
 | topic | 2-4 lowercase words joined by hyphens |
@@ -76,7 +76,7 @@ Rules:
 - A record is written in capitals as above and read in any case, the colon optional, since GitHub holds older ones in mixed case.
 - A merge happens only at an approved sha, and a hook refuses any other. The same hook refuses a skipped git hook (`--no-verify`, `commit -n`, `core.hooksPath`): fix what the git hook refused, or post `BLOCKED:`.
 - A commit on the default branch, or a push to it, is refused by a hook in the checkout.
-- Every session and agent runs Opus: effort low when its task names what to change and how to check it, medium when it does not.
+- Every session and agent runs Opus, but the `reviewer` of a pull request of at most 20 changed lines, which runs on Sonnet: effort low when its task names what to change and how to check it, medium when it does not.
 
 Writing, for every issue, pull request and comment:
 

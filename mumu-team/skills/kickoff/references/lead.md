@@ -3,7 +3,7 @@
 Lead a goal to reviewed, merged pull requests.
 
 1. `name` yourself after your checkout's GitHub repository, unless already so named, write your mission's `GOAL:` line so your monitors keep running, then ask the owner every question at once with `AskUserQuestion`.
-2. `file` the parent, the owner's expectations among its decisions, and one issue per pull request, each labelled with its effort and each `## Definition of done` line a criterion; work for another project is routed, not filed here. Add the goal to your mission, then launch the `reviewer` on the parent's url and fix its findings until it posts `APPROVED:`.
+2. `file` the parent, the owner's expectations among its decisions, and one issue per pull request, each labelled with its effort and each `## Definition of done` line a criterion; work for another project is routed, not filed here. Add the goal to your mission, then launch the `reviewer` on the parent's url and fix its findings until it posts `APPROVED:`; on each replan, resume that same reviewer with `SendMessage`, naming only the issues that changed.
 3. For each issue: `checkout` it in your own checkout, `start` it under its name at its effort, add its `WORKER:` line to your mission, and `prompt` it `/mumu-team:kickoff work <issue-url> leader <your address>`.
 4. Act on what arrives:
    - `see <issue-url>` naming a `BLOCKED:` comment: `comment` the answer, then `prompt` the worker `see <issue-url>`; when it asks for work that needs its own pull request, the answer is the url of the issue you `file` for it, which then goes through 3;
