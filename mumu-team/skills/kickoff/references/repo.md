@@ -14,7 +14,7 @@ A worker's worktree goes in its leader's own checkout only, never in another rep
 | `claim` | `git fetch origin && ! git ls-remote --exit-code origin 'refs/heads/*-<issue>' && git switch -c <branch> origin/<default> && git push -u origin <branch>`, the branch named after the worktree; a branch found is yours only when this checkout is on it |
 | `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file -`; later `gh pr edit <pr> --body-file -` |
 | `merge` | `merge.py <pr-url>`: squash-merges pinned to the head only when a comment or review opens `APPROVED: <head>`; a raw `gh pr merge` is refused |
-| `clean` | for each worker `git -C <checkout> worktree remove <worktree>`, `git -C <checkout> branch -D <branch>` and `git -C <checkout> push origin --delete <branch>`, the branch being merged by squash; then `git -C <checkout> pull --ff-only`, and remove each of `<hooks>/pre-commit` and `<hooks>/pre-push` that `cmp -s` finds equal to the guard |
+| `clean` | for each worker `git -C <checkout> worktree remove <worktree>`, `git -C <checkout> branch -D <branch>` and `git -C <checkout> push origin --delete <branch>`, the branch being merged by squash; then `git -C <checkout> pull --ff-only`, and remove each of `<hooks>/pre-commit` and `<hooks>/pre-push` that `cmp -s` finds equal to the guard; last `tab-sweep.py <checkout>`, which closes every tab whose panes run no agent and sit under `<checkout>/.claude/worktrees/`, so no worker tab outlives its session |
 
 ## Traps
 
