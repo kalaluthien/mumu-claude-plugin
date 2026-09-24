@@ -93,7 +93,7 @@ class WorkerStart(unittest.TestCase):
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertFalse([c for c in calls if c[0] == "git" and "worktree" in c])
         start = next(c for c in calls if c[1:3] == ["agent", "start"])
-        self.assertEqual(start[start.index("--") + 1:], ["--name", "start-7", "--model", "opus", "--effort", "low", "--continue"])
+        self.assertEqual(start[start.index("--") + 1:], ["--name", "start-7", "--agent", "mumu-team:worker", "--model", "opus", "--effort", "low", "--continue"])
 
     def test_session_never_ready_fails_naming_the_pane(self):
         (self.tmp / "herdr").write_text(FAKE.replace('and blocked:\n', 'and False:\n'))
