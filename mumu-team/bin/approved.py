@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
 """Refuse a `gh pr merge` that is not pinned to a sha a reviewer approved, and a git hook bypass.
 
-PreToolUse hook on Bash. Heredoc bodies are dropped, unless a shell reads them
-or an unquoted one holds `$(` or a backtick; the rest is split into commands as
+PreToolUse hook on Bash. A closed heredoc body is dropped only when every
+command on its opener's line is a text reader (`cat`, `gh`, `git`, `tee`), no
+pipe follows the opener, and the body is quoted or holds no `$(` or backtick;
+openers are found outside quotes and comments. The rest is split into commands as
 a shell would split it -- at a newline, `;`, `&&`, `|` or `(` -- and in each one every
 `pr [-R <repo>]... merge`, counted with quotes, backslashes and redirects
 removed, must be the one `gh ... pr merge` that command runs, after an env
-prefix or a wrapper such as `rtk`. A quoted word is counted inside too when it
-holds `$(` or a backtick, or its command names a shell such as `bash` or `eval`,
-which runs its words as text. That merge passes only
+prefix or a wrapper such as `rtk`. Every quoted word is counted inside too, but
+a text one without `$(` or a backtick: a `grep` or `rg` pattern, or the value of a
+message or body flag (`-m`, `--body`, `--comment`, ...) of `gh` or `git`. That merge passes only
 when it names one PR by its url, combines no short flags and holds no `{`, `}`,
 `*`, `?` or `[` a shell would expand, and only when it carries one
 `--match-head-commit <sha>` of 40 hex digits, that sha is the PR's head, and the
 PR holds a comment or a review whose first line is `Approved <sha>`. Any other
-`pr merge` -- inside `bash -c`, `eval`, `$(...)`, a here-string, a comment, or
-a command that cannot be lexed -- is refused; text only naming it -- a heredoc
-body, a `--body` or `-m` string, `grep "pr merge"` -- passes. A heredoc opener
-inside quotes is still read as one. A merge built from a variable or an
+`pr merge` -- inside `bash -c`, `eval`, `watch`, `$(...)`, a heredoc another
+command reads, a here-string, a comment, or a command that cannot be lexed -- is
+refused; text only naming it as above passes. A merge built from a variable or an
 escape code such as `$'\x6d'` is not seen. A payload or a PR that
 cannot be read is refused too (exit 2).
 
@@ -39,10 +40,13 @@ SEPARATORS = set(";&|()\n")
 DESCRIPTOR = re.compile(r"(^|[\s;&|()])(?:\d+|\{\w+\})(?=[<>])")
 QUOTING = re.compile(r"[\"'\\]")
 MENTION = re.compile(r"\bpr\b[\s\S]*?\bmerge\b")
-SHELLS = ("sh", "bash", "zsh", "dash", "ksh", "fish", "eval", "ssh", "xargs")  # each runs its words as a command
-SHELL = re.compile(rf"(?:^|[\s;&|(`/])(?:{'|'.join(SHELLS)})(?=$|[\s;&|)`])")
-HEREDOC = re.compile(r"(?<!<)<<(-?)[ \t]*(['\"]?)([A-Za-z_][\w.-]*)\2")
+HEREDOC = re.compile(r"<<(-?)[ \t]*(['\"]?)([A-Za-z_][\w.-]*)\2")
 RUNS = re.compile(r"\$\(|`")
+WORD = re.compile(r"[^\s;&|()<>`'\"]+")
+ASSIGNMENT = re.compile(r"\w+=")
+BODY_READERS = {"cat", "gh", "git", "tee"}  # each reads a heredoc as text, never as a command
+TEXT_COMMANDS = {"grep", "egrep", "fgrep", "rg"}  # each reads its quoted words as text
+TEXT_FLAGS = {"-m", "--message", "-b", "--body", "-t", "--title", "--comment", "--subject", "--notes"}  # of gh and git
 HOOKS_PATH = re.compile(r"^(['\"]?|--config-env=|GIT_CONFIG_KEY_\d+=['\"]?)core\.hookspath(['\"]?=|['\"]?$)", re.I)  # `-c k=v`, `'k'=v`, `--config-env=k=V`, `KEY_0=k`
 HOOKS_PATH_TEXT = re.compile(r"(-c\s*|--config-env=|key_\d+=)core\.hookspath\b|\bconfig\b(?![^;&|\n]*\bget\b)[^;&|\n]*core\.hookspath[ \t]+[^\s;&|]")
 
@@ -69,23 +73,73 @@ def segments(text, join=True):
             segment.append(word)
 
 
+def scan(line, stack):
+    """Read one line as a shell would: its heredoc openers, the command words it runs, and whether a pipe follows an opener."""
+    openers, heads, piped, start, j = [], [], False, True, 0
+    while j < len(line):
+        c, context = line[j], stack[-1] if stack else None
+        if context == "'":
+            stack.pop() if c == "'" else None
+        elif c == "\\":
+            j += 1
+        elif line.startswith("$(", j):
+            stack.append("(")
+            start, j = True, j + 1
+        elif context == '"':
+            stack.pop() if c == '"' else stack.append("`") if c == "`" else None
+            start = c == "`"
+        elif c == "#" and (j == 0 or line[j - 1] in " \t;&|("):  # a comment
+            break
+        elif c in "'\"(" or c == "`" and context != "`":
+            stack.append(c)
+            start = c in "(`"
+        elif c == ")" and context == "(" or c == "`" and context == "`":
+            stack.pop()
+        elif c in ";&|":
+            piped |= c == "|" and bool(openers)
+            start = True
+        elif line.startswith("<<", j) and not line.startswith("<<<", j) and HEREDOC.match(line, j):
+            openers.append(HEREDOC.match(line, j))
+            j = openers[-1].end() - 1
+        elif start and WORD.match(line, j):
+            word = WORD.match(line, j)[0]
+            if not ASSIGNMENT.match(word):
+                heads.append(os.path.basename(word))
+                start = False
+            j += len(word) - 1
+        elif not c.isspace():
+            start = False
+        j += 1
+    return openers, heads, piped
+
+
 def without_heredocs(text):
-    """Drop each closed heredoc body that is only text: no shell on its line reads it, and a quoted or `$(`-free one."""
-    lines, kept, i = text.split("\n"), [], 0
+    """Drop each closed heredoc body that only a text reader reads, quoted or without `$(`; keep every other body as commands."""
+    lines, kept, stack, i = text.split("\n"), [], [], 0
     while i < len(lines):
         line = lines[i]
         kept.append(line)
         i += 1
-        for opener in HEREDOC.finditer(line):
+        openers, heads, piped = scan(line, stack)
+        for opener in openers:
             end = next((j for j in range(i, len(lines))
                         if (lines[j].lstrip("\t") if opener[1] else lines[j]) == opener[3]), None)
             if end is None:  # an unclosed body: read the rest as commands
                 break
             body = lines[i:end]
-            if SHELL.search(line) or not opener[2] and RUNS.search("\n".join(body)):
+            if piped or not set(heads) <= BODY_READERS or not opener[2] and RUNS.search("\n".join(body)):
                 kept += body
             i = end + 1
     return "\n".join(kept)
+
+
+def text_word(words, i):
+    """Whether words[i] is only text: a grep pattern, or a message or body flag's value of gh or git."""
+    if RUNS.search(words[i]):
+        return False
+    head = next((os.path.basename(w) for w in words if not ASSIGNMENT.match(w)), "")
+    return head in TEXT_COMMANDS or head in ("gh", "git") and \
+        (i > 0 and words[i - 1] in TEXT_FLAGS or words[i].split("=", 1)[0] in TEXT_FLAGS)
 
 
 def unredirected(words):
@@ -102,11 +156,10 @@ def unredirected(words):
 
 
 def mentions(words):
-    """Count `pr [-R <repo>]... merge` in the words, and in each word a shell runs as a command."""
+    """Count `pr [-R <repo>]... merge` in the words, and in each word but a text one, which a shell could run."""
     count = 0
-    shell = any(os.path.basename(word) in SHELLS for word in words)
-    for word in words:
-        if not (shell or RUNS.search(word)):  # a message, a body or a pattern
+    for i, word in enumerate(words):
+        if text_word(words, i):
             continue
         word = QUOTING.sub("", word).strip()
         try:

@@ -55,6 +55,17 @@ MERGE_REFUSED = [
     f"cat <<EOF | sh\n{MERGE}\nEOF",
     f"cat <<EOF\n$({MERGE})\nEOF",
     f"cat <<'EOF'\nnot closed\n{MERGE}",
+    f'echo "<<EOF"\n{MERGE}\nEOF',
+    f"echo '<<EOF'\n{MERGE}\nEOF",
+    f". /dev/stdin <<'EOF'\n{MERGE}\nEOF",
+    f"source /dev/stdin <<'EOF'\n{MERGE}\nEOF",
+    f"python3 - <<'EOF'\nimport os; os.system('{MERGE}')\nEOF",
+    f"cat <<'EOF' |\n{MERGE}\nEOF\nsh",
+    f"bash -c \"$(cat <<'EOF'\n{MERGE}\nEOF\n)\"",
+    f"watch -n1 '{MERGE}'",
+    f"git -c alias.x='!{MERGE}' x",
+    f"echo '{MERGE}' | sh",
+    f"grep -q x f && sh -c '{MERGE}'",
 ]
 
 MERGE_PASSED = [
