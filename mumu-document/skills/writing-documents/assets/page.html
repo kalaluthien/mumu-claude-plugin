@@ -166,7 +166,7 @@
       const lines = t.value.trim() ? t.value.trim().split('\n') : [];
       return [`${t.name}:`, ...lines.map((l) => `  ${l}`)].join('\n');
     });
-    out.value = [`grill-me: ${form.dataset.target}, round ${form.dataset.round}`, ...answers].join('\n');
+    out.value = [`writing-documents: ${form.dataset.target}, round ${form.dataset.round}`, ...answers].join('\n');
     out.hidden = false;
     out.labels[0].hidden = false;
     out.select();

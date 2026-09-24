@@ -63,8 +63,7 @@ with only the calls, files, states and boundaries the question needs.
 ## Figures
 
 - Drawn only where it teaches more than a paragraph.
-- At most 9 boxes and 12 arrows, emphasis on 2; over that, an overview and a
-  detail.
+- Emphasis on 2 elements at most.
 - Boxes grouped as the reader thinks of the system, never by folder.
 - Coordinates divisible by 4; arrows orthogonal with r=8 elbows; a label
   8 px off its line on a background mask.
