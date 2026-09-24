@@ -74,7 +74,7 @@ Every message between sessions is `see <url>` and nothing more, but a worker's o
 Rules:
 
 - A record is written in capitals as above and read in any case, the colon optional, since GitHub holds older ones in mixed case.
-- A merge happens only at an approved sha, and a hook refuses any other. The same hook refuses a skipped git hook (`--no-verify`, `commit -n`, `core.hooksPath`): fix what the git hook refused, or post `BLOCKED:`.
+- A merge happens only through `merge.py`, at an approved head, and a hook refuses a raw `gh pr merge`. The same hook refuses a skipped git hook (`--no-verify`, `commit -n`, `core.hooksPath`): fix what the git hook refused, or post `BLOCKED:`.
 - A commit on the default branch, or a push to it, is refused by a hook in the checkout.
 - Every session and agent runs Opus: effort low when its task names what to change and how to check it, medium when it does not.
 
