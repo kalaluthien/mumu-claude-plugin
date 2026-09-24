@@ -68,6 +68,9 @@ MERGE_REFUSED = [
     f"git -c alias.x='!sh' x <<'EOF'\n{MERGE}\nEOF",
     f"git -c alias.x='!f(){{ eval \"$2\"; }};f' x -m '{MERGE}'",
     f"gh x --body '{MERGE}'",
+    f"GIT_EDITOR=sh git commit --allow-empty -e -F - <<'EOF'\n{MERGE}\nEOF",
+    f"GIT_EDITOR=sh git commit --allow-empty -e -m '{MERGE}'",
+    f"git commit --allow-empty --edit -m '{MERGE}'",
     f"grep -q x f && sh -c '{MERGE}'",
 ]
 

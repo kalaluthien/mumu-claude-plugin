@@ -3,7 +3,8 @@
 
 PreToolUse hook on Bash. A closed heredoc body is dropped only when every
 command on its opener's line is a text reader (`cat`, `tee`, `gh issue|pr|release`,
-`git commit|tag|notes`: builtins, which no alias shadows), no
+`git commit|tag|notes`: builtins, which no alias shadows; with no env prefix
+such as `GIT_EDITOR=sh` and no `-e`/`--edit`, since an editor may run it), no
 pipe follows the opener, and the body is quoted or holds no `$(` or backtick;
 openers are found outside quotes and comments. The rest is split into commands as
 a shell would split it -- at a newline, `;`, `&&`, `|` or `(` -- and in each one every
@@ -104,9 +105,8 @@ def scan(line, stack):
             j = openers[-1].end() - 1
         elif start and WORD.match(line, j):
             word = WORD.match(line, j)[0]
-            if not ASSIGNMENT.match(word):
-                heads.append(WORD.findall(line, j))
-                start = False
+            heads.append(WORD.findall(line, j))  # an env prefix too, which no reader has
+            start = bool(ASSIGNMENT.match(word))
             j += len(word) - 1
         elif not c.isspace():
             start = False
@@ -135,11 +135,10 @@ def without_heredocs(text):
 
 
 def reader(words):
-    """Whether the command in words, from its first word, reads text only as text: `cat`, `tee`, or a builtin `gh` or `git` subcommand."""
-    while words and ASSIGNMENT.match(words[0]):
-        words = words[1:]
+    """Whether the command in words, from its first word, reads text only as text: `cat`, `tee`, or a builtin `gh` or `git` subcommand, with no env prefix (`GIT_EDITOR=sh`) and no editor (`-e`)."""
     head = os.path.basename(words[0]) if words else ""
-    return head in READERS and (READERS[head] is None or words[1:2] and words[1] in READERS[head])
+    return head in READERS and (READERS[head] is None or words[1:2] and words[1] in READERS[head]) \
+        and not {"-e", "--edit"} & set(words)
 
 
 def text_word(words, i):
