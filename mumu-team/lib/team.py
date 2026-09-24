@@ -4,7 +4,8 @@ The mission is `<plugin data dir>/mission/$CLAUDE_CODE_SESSION_ID.md`. A
 leader's reads one `Mission: leader of <parent-url>` line per parent it holds, and one
 `Worker: <name> <issue-url>` line per worker; a worker's reads
 `Mission: worker ...`, and a monitor in its session exits at once.
-`MONITOR_POLL` sets the poll interval in seconds (10), and `MONITOR_TICKS`
+`MONITOR_POLL` sets the poll interval in seconds (10), `MONITOR_WAIT` how long
+a monitor waits for a mission file before it exits (600), and `MONITOR_TICKS`
 stops the loop after that many polls, for a test (unset: never).
 """
 import json
@@ -51,22 +52,25 @@ def agents():
 def poll(data_dir, tick):
     """Call `tick(parents, workers, words, now)` every poll while a leader's mission exists, and print the lines it returns.
 
-    Returns when the mission is a worker's, when a mission once seen is gone
-    (Lead 5 deletes it, so `/exit` meets no running monitor), or after
-    `MONITOR_TICKS` polls. A poll with no mission yet, or whose `herdr agent
-    list` fails, is skipped.
+    Returns when the mission is a worker's, when a mission file once seen is
+    gone (Lead 5 deletes it, so `/exit` meets no running monitor), when no
+    mission file appears within `MONITOR_WAIT` seconds (a worker that never
+    wrote one), or after `MONITOR_TICKS` polls. A poll with no parent yet (Lead
+    1's `Goal:` stub), or whose `herdr agent list` fails, is skipped.
     """
     mission = pathlib.Path(data_dir, "mission", os.environ["CLAUDE_CODE_SESSION_ID"] + ".md")
     interval = float(os.environ.get("MONITOR_POLL", 10))
     ticks = int(os.environ.get("MONITOR_TICKS", 0))
-    last, n, seen = {}, 0, False
+    wait = float(os.environ.get("MONITOR_WAIT", 600))
+    last, n, seen, start = {}, 0, False, time.time()
     while not ticks or n < ticks:
         n += 1
-        read = read_mission(mission.read_text()) if mission.exists() else ()
-        if read is None or seen and not read:
+        exists = mission.exists()
+        read = read_mission(mission.read_text()) if exists else ([], {})
+        if read is None or seen and not exists or not seen and time.time() - start >= wait:
             return
-        seen = seen or bool(read)
-        listed = agents() if read else None
+        seen = seen or exists
+        listed = agents() if read[0] else None
         if listed is not None:
             last = words(last, read[1], listed)
             for line in tick(*read, last, time.time()):

@@ -115,7 +115,7 @@ class Team(unittest.TestCase):
 class Scripts(unittest.TestCase):
     """The loops, run with a fake `herdr` and `gh` on PATH and every threshold at zero."""
 
-    def launch(self, script, mission, herdr_status, issue_state="OPEN", then=None, ticks="20"):
+    def launch(self, script, mission, herdr_status, issue_state="OPEN", then=None, ticks="20", wait="600"):
         """Fake herdr answers `herdr_status` first and `then` (default the same) from its second call on."""
         tmp = self.tmp = pathlib.Path(tempfile.mkdtemp())
         (tmp / "mission").mkdir()
@@ -131,7 +131,7 @@ class Scripts(unittest.TestCase):
         for f in ("herdr", "gh"):
             (tmp / f).chmod(0o755)
         env = dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}", CLAUDE_CODE_SESSION_ID="s1",
-                   MONITOR_POLL="0.05", MONITOR_TICKS=ticks, WORKER_WATCH_STUCK_AFTER="0", LEAD_HEARTBEAT_AFTER="0")
+                   MONITOR_POLL="0.05", MONITOR_TICKS=ticks, MONITOR_WAIT=wait, WORKER_WATCH_STUCK_AFTER="0", LEAD_HEARTBEAT_AFTER="0")
         return subprocess.Popen([sys.executable, str(BIN / (script + ".py")), str(tmp)], env=env,
                                 stdout=subprocess.PIPE, text=True)
 
@@ -166,6 +166,40 @@ class Scripts(unittest.TestCase):
             finally:
                 proc.kill()
             self.assertEqual(proc.stdout.read(), "", script)
+
+    def test_mission_never_written_ends_the_loop_after_the_wait(self):
+        """A worker that skips writing its mission (#13, `worktree-ignore-7`): each monitor exits once `MONITOR_WAIT` passes."""
+        for script in ("worker-watch", "lead-heartbeat"):
+            proc = self.launch(script, None, "blocked", ticks="0", wait="0.3")
+            try:
+                self.assertEqual(proc.wait(timeout=10), 0, script)
+            finally:
+                proc.kill()
+            self.assertEqual(proc.stdout.read(), "", script)
+            self.assertFalse((self.tmp / "herdr-called").exists(), script)
+
+    def test_stub_mission_outlasts_the_wait_silently_until_a_goal_is_added(self):
+        """Lead 1 writes a `Goal:` stub before asking the owner: the wait no longer applies, nothing prints, and the goal then counts."""
+        proc = self.launch("lead-heartbeat", "Goal: g\n", "idle", ticks="0", wait="0.1")
+        try:
+            time.sleep(1)
+            self.assertIsNone(proc.poll())
+            self.assertFalse((self.tmp / "herdr-called").exists())
+            (self.tmp / "mission" / "s1.md").write_text(LEAD)
+            self.assertEqual(proc.stdout.readline().strip(), f"lead-heartbeat: team idle 0m, mission {PARENT}")
+            (self.tmp / "mission" / "s1.md").unlink()
+            self.assertEqual(proc.wait(timeout=10), 0)
+        finally:
+            proc.kill()
+
+    def test_stub_mission_deleted_ends_the_loop(self):
+        proc = self.launch("worker-watch", "Goal: g\n", "idle", ticks="0", wait="0.1")
+        try:
+            time.sleep(1)
+            (self.tmp / "mission" / "s1.md").unlink()
+            self.assertEqual(proc.wait(timeout=10), 0)
+        finally:
+            proc.kill()
 
     def test_heartbeat_holds_a_working_worker_through_unknown(self):
         proc = self.launch("lead-heartbeat", MISSION, "working", then="unknown")
