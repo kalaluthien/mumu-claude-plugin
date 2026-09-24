@@ -37,7 +37,7 @@ DESCRIPTOR = re.compile(r"(^|[\s;&|()])(?:\d+|\{\w+\})(?=[<>])")
 QUOTING = re.compile(r"[\"'\\]")
 MENTION = re.compile(r"\bpr\b[\s\S]*?\bmerge\b")
 HOOKS_PATH = re.compile(r"^(['\"]?|--config-env=|GIT_CONFIG_KEY_\d+=['\"]?)core\.hookspath(['\"]?=|['\"]?$)", re.I)  # `-c k=v`, `'k'=v`, `--config-env=k=V`, `KEY_0=k`
-HOOKS_PATH_TEXT = re.compile(r"(-c\s*|--config-env=|key_\d+=)core\.hookspath\b|\bconfig\s+(-\S+\s+)*core\.hookspath[ \t]+[^\s;&|]")
+HOOKS_PATH_TEXT = re.compile(r"(-c\s*|--config-env=|key_\d+=)core\.hookspath\b|\bconfig\b(?![^;&|\n]*\bget\b)[^;&|\n]*core\.hookspath[ \t]+[^\s;&|]")
 
 
 def refuse(reason):
@@ -177,10 +177,12 @@ def bypasses(words):
 
 def config_value(words, i):
     """Whether words[i] is the key `git config [flags] <key> <value>` sets, not the one it reads."""
-    j = i - 1
-    while j >= 0 and words[j].startswith("-"):
-        j -= 1
-    return j >= 1 and words[j] == "config" and os.path.basename(words[j - 1]) == "git" and i + 1 < len(words)
+    before = words[:i]
+    if "config" not in before or i + 1 >= len(words):
+        return False
+    j = before.index("config")
+    return any(os.path.basename(w) == "git" for w in before[:j]) and \
+        not {"get", "--get", "--get-all", "--get-regexp"} & set(before[j + 1:])
 
 
 def bypass_text(text):
