@@ -1,19 +1,26 @@
 #!/usr/bin/env python3
 """Refuse a `gh pr merge` that is not pinned to a sha a reviewer approved, and a git hook bypass.
 
-PreToolUse hook on Bash. The command is split into commands as a shell would
-split it -- at a newline, `;`, `&&`, `|` or `(` -- and in each one every
+PreToolUse hook on Bash. A closed heredoc body is dropped only when every
+command on its opener's line is a text reader (`cat`, `tee`, or `gh issue|pr|release`,
+builtins no alias shadows; with no env prefix such as `GH_EDITOR=sh` and no
+editor flag such as `-e`, `-eb` or `--editor`, since an editor may run it; never
+`git`, whose editor an earlier line may set), no
+pipe follows the opener, and the body is quoted or holds no `$(` or backtick;
+openers are found outside quotes and comments. The rest is split into commands as
+a shell would split it -- at a newline, `;`, `&&`, `|` or `(` -- and in each one every
 `pr [-R <repo>]... merge`, counted with quotes, backslashes and redirects
-removed and inside every quoted word too, must be the one `gh ... pr merge` that command
-runs, after an env prefix or a wrapper such as `rtk`. That merge passes only
+removed, must be the one `gh ... pr merge` that command runs, after an env
+prefix or a wrapper such as `rtk`. Every quoted word is counted inside too, but
+a text one without `$(` or a backtick: a `grep` or `rg` pattern, or the value of a
+body flag (`--body`, `--comment`, `--title`, ...) of such a reader. That merge passes only
 when it names one PR by its url, combines no short flags and holds no `{`, `}`,
 `*`, `?` or `[` a shell would expand, and only when it carries one
 `--match-head-commit <sha>` of 40 hex digits, that sha is the PR's head, and the
 PR holds a comment or a review whose first line is `Approved <sha>`. Any other
-`pr merge` -- inside `bash -c`, `eval`, a here-string, a comment, a quoted
-message, or a command that cannot be lexed -- is refused, since text cannot tell
-a merge a shell will run from one it will not; write such text with a file
-tool. A merge built from a variable or an
+`pr merge` -- inside `bash -c`, `eval`, `watch`, `$(...)`, a heredoc another
+command reads, a here-string, a comment, or a command that cannot be lexed -- is
+refused; text only naming it as above passes. A merge built from a variable or an
 escape code such as `$'\x6d'` is not seen. A payload or a PR that
 cannot be read is refused too (exit 2).
 
@@ -36,6 +43,14 @@ SEPARATORS = set(";&|()\n")
 DESCRIPTOR = re.compile(r"(^|[\s;&|()])(?:\d+|\{\w+\})(?=[<>])")
 QUOTING = re.compile(r"[\"'\\]")
 MENTION = re.compile(r"\bpr\b[\s\S]*?\bmerge\b")
+HEREDOC = re.compile(r"<<(-?)[ \t]*(['\"]?)([A-Za-z_][\w.-]*)\2")
+RUNS = re.compile(r"\$\(|`")
+WORD = re.compile(r"[^\s;&|()<>`'\"]+")
+ASSIGNMENT = re.compile(r"\w+=")
+READERS = {"cat": None, "tee": None, "gh": {"issue", "pr", "release"}}  # builtins no alias can shadow; git may open an editor set lines before
+EDITOR = re.compile(r"-[^-]*e|--edit")  # `-e`, `-eb`, `--edit`, `--editor`
+TEXT_COMMANDS = {"grep", "egrep", "fgrep", "rg"}  # each reads its quoted words as text
+TEXT_FLAGS = {"-b", "--body", "-t", "--title", "--comment", "--notes"}  # of gh
 HOOKS_PATH = re.compile(r"^(['\"]?|--config-env=|GIT_CONFIG_KEY_\d+=['\"]?)core\.hookspath(['\"]?=|['\"]?$)", re.I)  # `-c k=v`, `'k'=v`, `--config-env=k=V`, `KEY_0=k`
 HOOKS_PATH_TEXT = re.compile(r"(-c\s*|--config-env=|key_\d+=)core\.hookspath\b|\bconfig\b(?![^;&|\n]*\bget\b)[^;&|\n]*core\.hookspath[ \t]+[^\s;&|]")
 
@@ -62,6 +77,81 @@ def segments(text, join=True):
             segment.append(word)
 
 
+def scan(line, stack):
+    """Read one line as a shell would: its heredoc openers, the command words it runs, and whether a pipe follows an opener."""
+    openers, heads, piped, start, j = [], [], False, True, 0
+    while j < len(line):
+        c, context = line[j], stack[-1] if stack else None
+        if context == "'":
+            stack.pop() if c == "'" else None
+        elif c == "\\":
+            j += 1
+        elif line.startswith("$(", j):
+            stack.append("(")
+            start, j = True, j + 1
+        elif context == '"':
+            stack.pop() if c == '"' else stack.append("`") if c == "`" else None
+            start = c == "`"
+        elif c == "#" and (j == 0 or line[j - 1] in " \t;&|("):  # a comment
+            break
+        elif c in "'\"(" or c == "`" and context != "`":
+            stack.append(c)
+            start = c in "(`"
+        elif c == ")" and context == "(" or c == "`" and context == "`":
+            stack.pop()
+        elif c in ";&|":
+            piped |= c == "|" and bool(openers)
+            start = True
+        elif line.startswith("<<", j) and not line.startswith("<<<", j) and HEREDOC.match(line, j):
+            openers.append(HEREDOC.match(line, j))
+            j = openers[-1].end() - 1
+        elif start and WORD.match(line, j):
+            word = WORD.match(line, j)[0]
+            heads.append(WORD.findall(line, j))  # an env prefix too, which no reader has
+            start = bool(ASSIGNMENT.match(word))
+            j += len(word) - 1
+        elif not c.isspace():
+            start = False
+        j += 1
+    return openers, heads, piped
+
+
+def without_heredocs(text):
+    """Drop each closed heredoc body that only a text reader reads, quoted or without `$(`; keep every other body as commands."""
+    lines, kept, stack, i = text.split("\n"), [], [], 0
+    while i < len(lines):
+        line = lines[i]
+        kept.append(line)
+        i += 1
+        openers, heads, piped = scan(line, stack)
+        for opener in openers:
+            end = next((j for j in range(i, len(lines))
+                        if (lines[j].lstrip("\t") if opener[1] else lines[j]) == opener[3]), None)
+            if end is None:  # an unclosed body: read the rest as commands
+                break
+            body = lines[i:end]
+            if piped or not all(map(reader, heads)) or not opener[2] and RUNS.search("\n".join(body)):
+                kept += body
+            i = end + 1
+    return "\n".join(kept)
+
+
+def reader(words):
+    """Whether the command in words, from its first word, reads text only as text: `cat`, `tee`, or a builtin `gh` subcommand, with no env prefix (`GH_EDITOR=sh`) and no editor flag."""
+    head = os.path.basename(words[0]) if words else ""
+    return head in READERS and (READERS[head] is None or words[1:2] and words[1] in READERS[head]) \
+        and not any(EDITOR.match(w) for w in words)
+
+
+def text_word(words, i):
+    """Whether words[i] is only text: a grep pattern, or a message or body flag's value of a reader."""
+    if RUNS.search(words[i]):
+        return False
+    head = next((os.path.basename(w) for w in words if not ASSIGNMENT.match(w)), "")
+    return head in TEXT_COMMANDS or reader(words) and \
+        (i > 0 and words[i - 1] in TEXT_FLAGS or words[i].split("=", 1)[0] in TEXT_FLAGS)
+
+
 def unredirected(words):
     """Drop each redirect: its operator and its target."""
     kept, skip = [], False
@@ -76,9 +166,11 @@ def unredirected(words):
 
 
 def mentions(words):
-    """Count `pr [-R <repo>]... merge` in the words, and in each word a shell could run as text."""
+    """Count `pr [-R <repo>]... merge` in the words, and in each word but a text one, which a shell could run."""
     count = 0
-    for word in words:
+    for i, word in enumerate(words):
+        if text_word(words, i):
+            continue
         word = QUOTING.sub("", word).strip()
         try:
             inner = list(segments(word))
@@ -222,11 +314,12 @@ try:
     cwd = cwd if cwd and os.path.isdir(cwd) else None
 except (ValueError, KeyError, TypeError) as err:
     refuse(f"could not read the payload ({type(err).__name__}: {err})")
+text = without_heredocs(command)
 try:
-    commands = list(segments(command))
+    commands = list(segments(text))
 except ValueError:  # an unclosed quote
     commands = []
-    if MENTION.search(QUOTING.sub("", command)):
+    if MENTION.search(QUOTING.sub("", text)):
         refuse("this command cannot be lexed and names `pr merge`; run `gh pr merge` on its own line")
 try:
     readings = []
