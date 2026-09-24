@@ -1,4 +1,4 @@
-"""The reviewer each pull request gets by its size, and the one body both reviewer agents share.
+"""The reviewer model each pull request gets by its size, and the one reviewer agent.
 
 Run: python3 -m unittest discover mumu-team/tests
 """
@@ -17,7 +17,7 @@ def git(repo, *args):
 
 
 class ReviewSize(unittest.TestCase):
-    def test_twenty_changed_lines_is_small_and_twenty_one_is_not(self):
+    def test_twenty_changed_lines_get_sonnet_and_twenty_one_get_opus(self):
         with tempfile.TemporaryDirectory() as repo:
             git(repo, "init", "-q", "-b", "main")
             git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "base")
@@ -31,27 +31,20 @@ class ReviewSize(unittest.TestCase):
                 out = subprocess.run([str(ROOT / "bin" / "review-size.py"), "main", "HEAD"], cwd=repo, capture_output=True, text=True, check=True)
                 printed.append(out.stdout.strip())
                 git(repo, "reset", "-q", "--hard", "main")
-            self.assertEqual(printed, ["reviewer-small (20 changed lines)", "reviewer (21 changed lines)"])
+            self.assertEqual(printed, ["sonnet (20 changed lines)", "opus (21 changed lines)"])
 
     def test_insertions_and_deletions_both_count(self):
         self.assertEqual(size.changed(" 2 files changed, 10 insertions(+), 2 deletions(-)"), 12)
         self.assertEqual(size.changed(" 1 file changed, 1 deletion(-)"), 1)
         self.assertEqual(size.changed(""), 0)
-        self.assertEqual(size.agent_for(12), "reviewer-small")
+        self.assertEqual(size.model_for(12), "sonnet")
 
 
-class ReviewerAgents(unittest.TestCase):
-    def split(self, name):
-        _, front, body = (ROOT / "agents" / f"{name}.md").read_text().split("---\n", 2)
-        return dict(line.split(": ", 1) for line in front.strip().splitlines()), body
-
-    def test_the_two_agents_share_one_body_and_differ_in_model_and_effort(self):
-        big, big_body = self.split("reviewer")
-        small, small_body = self.split("reviewer-small")
-        self.assertEqual(big_body, small_body)
-        self.assertEqual((big["model"], big["effort"]), ("opus", "low"))
-        self.assertEqual((small["model"], small["effort"]), ("sonnet", "medium"))
-
+class ReviewerAgent(unittest.TestCase):
+    def test_one_reviewer_agent_defaults_to_opus(self):
+        self.assertEqual(sorted(p.stem for p in (ROOT / "agents").glob("review*.md")), ["reviewer"])
+        _, front, _ = (ROOT / "agents" / "reviewer.md").read_text().split("---\n", 2)
+        self.assertIn("model: opus", front.splitlines())
 
 if __name__ == "__main__":
     unittest.main()

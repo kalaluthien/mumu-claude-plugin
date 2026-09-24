@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Reviews a plan (a parent issue and its sub-issues) or a pull request at its head sha, which it did not write, and posts `FINDINGS:` or `APPROVED:`. Use when a plan, or a pull request of more than 20 changed lines as `review-size.py` prints, is ready for review, giving its url.
+description: Reviews a plan (a parent issue and its sub-issues) or a pull request at its head sha, which it did not write, and posts `FINDINGS:` or `APPROVED:`. Use when a plan or a pull request is ready for review, giving its url; runs on Opus unless the caller passes the model `review-size.py` prints.
 model: opus
 effort: low
 tools: Read, Grep, Glob, Bash

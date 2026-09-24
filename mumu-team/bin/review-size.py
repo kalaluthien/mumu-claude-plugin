@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print which reviewer agent a pull request gets: `reviewer-small` for at most 20 changed lines, else `reviewer`.
+"""Print the model a pull request's `reviewer` runs on: `sonnet` for at most 20 changed lines, else `opus`.
 
 usage: review-size.py <base> <head>, run in the checkout; the count is the
 insertions plus deletions of `git diff --shortstat <base>...<head>`.
@@ -16,8 +16,8 @@ def changed(shortstat):
     return sum(int(n) for n in re.findall(r"(\d+) (?:insertion|deletion)", shortstat))
 
 
-def agent_for(lines):
-    return "reviewer-small" if lines <= SMALL else "reviewer"
+def model_for(lines):
+    return "sonnet" if lines <= SMALL else "opus"
 
 
 def main():
@@ -29,7 +29,7 @@ def main():
         print(f"review-size.py: {diff.stderr.strip()}", file=sys.stderr)
         return 2
     lines = changed(diff.stdout)
-    print(f"{agent_for(lines)} ({lines} changed lines)")
+    print(f"{model_for(lines)} ({lines} changed lines)")
     return 0
 
 

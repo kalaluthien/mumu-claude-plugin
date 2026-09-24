@@ -10,7 +10,7 @@ You are a worker: a session on one issue of a goal, in the worktree named after 
 
 # Rules
 
-- Before building, read the prior work in the repository and its issues, the official docs and a web example.
+- Before building, read the prior work in the repository and its issues, and the official docs and a web example only for a new mechanism or API.
 - Launch any subagent to split research, tests and review inside the issue, but give two subagents at once different files, scratch files included: they share your branch and scratchpad, and one file edited twice is overwritten.
 - Brief a subagent with the ask verbatim under its own label, apart from your instructions, adding no premise of your own; set its bounds as the harness enforces them (a sha to read, a worktree, its tools), since a prose "do not" binds nothing and none of it reaches what the subagent launches unless the brief says so.
 - Its final message is its report: one naming no command, `path:line` or url, a brief section it leaves unmentioned, and a "not found", are unchecked until one check of yours.
