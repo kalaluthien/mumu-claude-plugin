@@ -6,7 +6,8 @@ usage: worker-start.py <checkout> <name> <effort> [--continue] [--prompt <text>]
 The worktree is `<checkout>/.claude/worktrees/<name>`, added detached at
 `origin/<default>` when missing and reused when present; the git guard is
 copied as `repo.md`'s `checkout` does, and `/.claude/worktrees/` is added
-to the checkout's `info/exclude` so worktrees never show as untracked. Claude runs as `--agent mumu-team:worker`, whose Stop hook
+to the checkout's `info/exclude` so worktrees never show as untracked. The tab
+sets `MUMU_ROLE=worker`, on which the lead monitors exit at once (`lib/team.py`). Claude runs as `--agent mumu-team:worker`, whose Stop hook
 holds it until its issue lands or is blocked. `--continue` resumes the worktree's
 last Claude session. The trust dialog defaults to "No, exit", so it is
 answered `down enter`. Prints `<name>@<pane> <worktree>` once the session is
@@ -91,7 +92,7 @@ def main(argv):
     repo, name, effort = args
     try:
         tree = checkout(repo, name)
-        pane = json.loads(run("herdr", "tab", "create", "--cwd", str(tree), "--label", name, "--no-focus"))["result"]["root_pane"]["pane_id"]
+        pane = json.loads(run("herdr", "tab", "create", "--cwd", str(tree), "--label", name, "--env", "MUMU_ROLE=worker", "--no-focus"))["result"]["root_pane"]["pane_id"]
         # A trust dialog makes `agent start` report agent_not_ready; await_ready answers it.
         subprocess.run(["herdr", "agent", "start", name, "--kind", "claude", "--pane", pane, "--",
                         "--name", name, "--agent", "mumu-team:worker", "--model", "opus", "--effort", effort] + (["--continue"] if resume else []),

@@ -3,7 +3,8 @@
 The mission is `<plugin data dir>/mission/$CLAUDE_CODE_SESSION_ID.md`. A
 leader's reads one `Mission: leader of <parent-url>` line per parent it holds, and one
 `Worker: <name> <issue-url>` line per worker; a worker's reads
-`Mission: worker ...`, and a monitor in its session exits at once.
+`Mission: worker ...`, and a monitor in its session exits at once, as it does
+before any poll when `MUMU_ROLE=worker`, which `worker-start.py` sets on the tab.
 `MONITOR_POLL` sets the poll interval in seconds (10), `MONITOR_WAIT` how long
 a monitor waits for a mission file before it exits (600), and `MONITOR_TICKS`
 stops the loop after that many polls, for a test (unset: never).
@@ -58,6 +59,8 @@ def poll(data_dir, tick):
     wrote one), or after `MONITOR_TICKS` polls. A poll with no parent yet (Lead
     1's `Goal:` stub), or whose `herdr agent list` fails, is skipped.
     """
+    if os.environ.get("MUMU_ROLE") == "worker":
+        return
     mission = pathlib.Path(data_dir, "mission", os.environ["CLAUDE_CODE_SESSION_ID"] + ".md")
     interval = float(os.environ.get("MONITOR_POLL", 10))
     ticks = int(os.environ.get("MONITOR_TICKS", 0))

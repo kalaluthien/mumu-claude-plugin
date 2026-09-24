@@ -81,6 +81,13 @@ class WorkerStart(unittest.TestCase):
         self.assertIn(["git", "-C", str(self.repo), "worktree", "add", "--detach", str(tree), "origin/main"], calls)
         self.assertTrue((self.tmp / "hooks" / "pre-commit").exists() and (self.tmp / "hooks" / "pre-push").exists())
 
+    def test_tab_marks_the_session_a_worker(self):
+        """The marker the lead monitors exit on (`lib/team.py`)."""
+        _, calls = self.start(trust=False)
+        tab = next(c for c in calls if c[1:3] == ["tab", "create"])
+        self.assertIn("--env", tab)
+        self.assertEqual(tab[tab.index("--env") + 1], "MUMU_ROLE=worker")
+
     def test_worktrees_excluded_once(self):
         (self.tmp / "exclude").write_text("# kept")
         self.start(trust=False)
