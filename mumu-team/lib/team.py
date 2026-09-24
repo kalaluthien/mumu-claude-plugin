@@ -1,13 +1,14 @@
 """What the `worker-watch` and `lead-heartbeat` monitors share: the lead's mission, each worker's word, and the poll loop.
 
 The mission is `<plugin data dir>/mission/$CLAUDE_CODE_SESSION_ID.md`. A
-leader's reads one `Mission: leader of <parent-url>` line per parent it holds, and one
-`Worker: <name> <issue-url>` line per worker; a worker's reads
-`Mission: worker ...`, and a monitor in its session exits at once, as it does
+leader's reads one `MISSION: leader of <parent-url>` line per parent it holds, and one
+`WORKER: <name> <issue-url>` line per worker; a worker's reads
+`MISSION: worker ...`, and a monitor in its session exits at once, as it does
 before any poll when `MUMU_ROLE=worker`, which `worker-start.py` sets on the tab.
 `MONITOR_POLL` sets the poll interval in seconds (10), `MONITOR_WAIT` how long
 a monitor waits for a mission file before it exits (600), and `MONITOR_TICKS`
 stops the loop after that many polls, for a test (unset: never).
+Each key is read in any case, so a mission written `Mission:` still counts.
 """
 import json
 import os
@@ -23,12 +24,13 @@ def read_mission(text):
     """`([parent-url, ...], {name: issue-url})` of a leader's mission, or None for a worker's."""
     parents, workers = [], {}
     for line in text.splitlines():
-        if line.startswith("Mission: worker"):
-            return None
-        if line.startswith("Mission: leader"):
-            parents.append(line.split()[-1])
         fields = line.split()
-        if fields[:1] == ["Worker:"] and len(fields) >= 3:
+        key = fields[0].upper() if fields else ""
+        if key == "MISSION:" and fields[1:2] == ["worker"]:
+            return None
+        if key == "MISSION:" and fields[1:2] == ["leader"]:
+            parents.append(fields[-1])
+        if key == "WORKER:" and len(fields) >= 3:
             workers[fields[1]] = fields[2]
     return parents, workers
 
@@ -57,7 +59,7 @@ def poll(data_dir, tick):
     gone (Lead 5 deletes it, so `/exit` meets no running monitor), when no
     mission file appears within `MONITOR_WAIT` seconds (a worker that never
     wrote one), or after `MONITOR_TICKS` polls. A poll with no parent yet (Lead
-    1's `Goal:` stub), or whose `herdr agent list` fails, is skipped.
+    1's `GOAL:` stub), or whose `herdr agent list` fails, is skipped.
     """
     if os.environ.get("MUMU_ROLE") == "worker":
         return
