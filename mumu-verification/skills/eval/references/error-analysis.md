@@ -34,6 +34,8 @@ For an agent, judge the whole run against the user's goal first, and single step
 
 One person who knows what good looks like decides, so the standard does not split. With no person present, prepare the sample and the viewer, say the notes are pending, and stop.
 
+After the owner's first ~30 notes, the agent may cluster traces, sample them and propose the next to read, with a draft verdict; the owner accepts or rejects each, and the verdict stays the owner's.
+
 ## 3. Axial coding
 
 Group the notes into failure modes, each with a name, a one-line definition a second person could apply, a count, and two or three example traces. Merge modes that differ only in wording; split one whose examples need different fixes; recount after each change.
@@ -48,6 +50,7 @@ Stop when about 20 more traces add no mode and change no definition. The owner's
 | --- | --- |
 | a specification failure: the prompt never asked for the behaviour | fix the prompt; a check only if it must never return |
 | a generalisation failure: asked clearly, not done | a check, in [graders](graders.md); then the fix |
+| a product or tool bug (a crash, a broken integration, a missing permission) | file it as a bug; no eval |
 | rare and cheap, or already fixed | note it and stop |
 
-Rank the rest by frequency and harm. Repeat the analysis after a model switch, a prompt rewrite or an incident.
+Rank the rest by frequency and harm; counts over synthetic inputs reflect the tuples chosen, not prevalence, so rank those by harm alone. Repeat the analysis after a model switch, a prompt rewrite or an incident.

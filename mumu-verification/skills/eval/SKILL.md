@@ -11,7 +11,7 @@ Terms and rules: `${CLAUDE_PLUGIN_ROOT}/skills/test/references/contract.md`; rea
 
 | suite | bar |
 | --- | --- |
-| regression | every run of every case passes; a drop blocks the change |
+| regression | every run of every case passes its code graders; a drop blocks the change. An LLM judge here gates on its corrected pass rate ([graders](references/graders.md) § 4 step 6), never on one run's verdict |
 | capability | starts low, a hill to climb; never gates. A case that passes steadily moves to regression |
 
 A suite that has passed everything for a long time catches nothing new: retire its cases or run them less often, and add cases from fresh failures.
@@ -41,7 +41,7 @@ Read the file the first matching row names, and follow it to its end before the 
 
 When no row fits, start with error analysis.
 
-Asked for a judge, a score or a metric before that analysis exists — even with a few example traces in hand — do not write it. Say that a grader written now would measure a guess and could not be checked against labels that do not exist, then start error analysis. A handful of traces seeds the analysis; it does not replace it.
+Asked for a judge, a score or a metric before that analysis exists — even with a few example traces in hand — do not write it; a code check of a hard constraint the owner stated ("never output PII", "valid JSON") is the one exception. Say that a grader written now would measure a guess and could not be checked against labels that do not exist, then start error analysis. A handful of traces seeds the analysis; it does not replace it.
 
 ## 3. Run
 
