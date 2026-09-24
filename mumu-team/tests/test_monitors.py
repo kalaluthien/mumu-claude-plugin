@@ -24,6 +24,8 @@ PARENT = "https://github.com/o/r/issues/1"
 URL = "https://github.com/o/r/issues/7"
 LEAD = f"Goal: g\nMission: leader of {PARENT}\nExpect: e\n"
 MISSION = LEAD + f"Worker: a-7 {URL}\n"
+PARENT2 = "https://github.com/o/r/issues/2"
+TWO = LEAD + f"Goal: h\nMission: leader of {PARENT2}\nExpect: e\n"
 
 
 def run(states, stuck_after=1800):
@@ -94,9 +96,13 @@ class HeartbeatStep(unittest.TestCase):
 class Team(unittest.TestCase):
     def test_reading(self):
         read = lead.team.read_mission
-        self.assertEqual(read(MISSION), (PARENT, {"a-7": URL}))
-        self.assertEqual(read(MISSION + "Worker: half\n"), (PARENT, {"a-7": URL}))
-        self.assertEqual(read(LEAD), (PARENT, {}))
+        self.assertEqual(read(MISSION), ([PARENT], {"a-7": URL}))
+        self.assertEqual(read(MISSION + "Worker: half\n"), ([PARENT], {"a-7": URL}))
+        self.assertEqual(read(LEAD), ([PARENT], {}))
+
+    def test_every_parent_is_read_in_order(self):
+        read = lead.team.read_mission
+        self.assertEqual(read(TWO + f"Worker: a-7 {URL}\n"), ([PARENT, PARENT2], {"a-7": URL}))
         self.assertIsNone(read(f"Goal: g\nMission: worker on {URL}\n"))
 
     def test_words_hold_the_last_word_on_unknown_for_both_monitors(self):
@@ -184,6 +190,10 @@ class Scripts(unittest.TestCase):
 
     def test_heartbeat_once_with_zero_workers(self):
         self.assertEqual(self.lines(self.launch("lead-heartbeat", LEAD, None)), [f"lead-heartbeat: team idle 0m, mission {PARENT}"])
+
+    def test_heartbeat_names_every_parent(self):
+        self.assertEqual(self.lines(self.launch("lead-heartbeat", TWO, None)),
+                         [f"lead-heartbeat: team idle 0m, mission {PARENT} {PARENT2}"])
 
     def test_heartbeat_once_with_a_blocked_worker(self):
         self.assertEqual(self.lines(self.launch("lead-heartbeat", MISSION, "blocked")),
