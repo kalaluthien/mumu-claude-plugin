@@ -1,7 +1,7 @@
 """What the `worker-watch` and `lead-heartbeat` monitors share: the lead's mission, each worker's word, and the poll loop.
 
 The mission is `<plugin data dir>/mission/$CLAUDE_CODE_SESSION_ID.md`. A
-leader's reads `Mission: leader of <parent-url>` and holds one
+leader's reads one `Mission: leader of <parent-url>` line per parent it holds, and one
 `Worker: <name> <issue-url>` line per worker; a worker's reads
 `Mission: worker ...`, and a monitor in its session exits at once.
 `MONITOR_POLL` sets the poll interval in seconds (10), and `MONITOR_TICKS`
@@ -18,17 +18,17 @@ WORD = {"blocked": "blocked", "idle": "idle", "done": "idle", "working": "workin
 
 
 def read_mission(text):
-    """`(parent-url, {name: issue-url})` of a leader's mission, or None for a worker's."""
-    parent, workers = None, {}
+    """`([parent-url, ...], {name: issue-url})` of a leader's mission, or None for a worker's."""
+    parents, workers = [], {}
     for line in text.splitlines():
         if line.startswith("Mission: worker"):
             return None
         if line.startswith("Mission: leader"):
-            parent = line.split()[-1]
+            parents.append(line.split()[-1])
         fields = line.split()
         if fields[:1] == ["Worker:"] and len(fields) >= 3:
             workers[fields[1]] = fields[2]
-    return parent, workers
+    return parents, workers
 
 
 def words(last, workers, agents):
@@ -49,7 +49,7 @@ def agents():
 
 
 def poll(data_dir, tick):
-    """Call `tick(parent, workers, words, now)` every poll while a leader's mission exists, and print the lines it returns.
+    """Call `tick(parents, workers, words, now)` every poll while a leader's mission exists, and print the lines it returns.
 
     Returns when the mission is a worker's, when a mission once seen is gone
     (Lead 5 deletes it, so `/exit` meets no running monitor), or after

@@ -37,14 +37,14 @@ Expect: <the owner's expectations>; <your role's rules>
 
 | term | meaning |
 | --- | --- |
-| project | a Claude project folder: the leader's cwd, whose basename is `<project>` |
-| leader | the one session per project, named `<project>-lead`: the owner talks to it, and it starts workers and other projects' leaders |
+| project | a Claude project folder: the leader's cwd, a checkout of the GitHub repository named `<repo>` |
+| leader | the one session per project, named as `name` says: the owner talks to it, and it starts workers and other projects' leaders |
 | worker | a session on one issue in its own worktree |
 | reviewer | the `reviewer` agent, or `reviewer-small` for a pull request of at most 20 changed lines: it reviews a plan or a pull request it did not write, and alone writes `Approved` |
 | goal | a parent issue, known by having sub-issues; no label |
 | issue | one sub-issue of the parent: one worker, one branch, one pull request, all named `<topic>-<issue>` |
 | topic | 2-4 lowercase words joined by hyphens |
-| name | one string for a session's tab, herdr agent and Claude session: `<topic>-<issue>` for a worker, `<project>-lead` for the leader |
+| name | one string for a session's tab, herdr agent and Claude session: `<topic>-<issue>` for a worker, `<repo>-lead` for the leader |
 | checkout | the leader's own local clone of its project's repository |
 | claim | the branch on the remote; it exists, so the issue is taken |
 | approval | a comment whose first line is `Approved <sha>`, valid while the head is that sha |

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print `lead-heartbeat: team idle <minutes>m, mission <parent-url>` while no worker of this session's lead mission works.
+"""Print `lead-heartbeat: team idle <minutes>m, mission <parent-url>...`, one url per parent, while no worker of this session's lead mission works.
 
 Usage: lead-heartbeat.py <plugin data dir>, run by the `lead-heartbeat` monitor. The line
 comes once no worker has been `working` for `LEAD_HEARTBEAT_AFTER` seconds (1200),
@@ -29,10 +29,10 @@ def main():
     after = float(os.environ.get("LEAD_HEARTBEAT_AFTER", 1200))
     state = (None, None)
 
-    def tick(parent, workers, words, now):
+    def tick(parents, workers, words, now):
         nonlocal state
         state, due = step(state, "working" in words.values(), now, after)
-        return [f"lead-heartbeat: team idle {int((now - state[0]) // 60)}m, mission {parent}"] if due else []
+        return [f"lead-heartbeat: team idle {int((now - state[0]) // 60)}m, mission {' '.join(parents)}"] if due else []
 
     team.poll(sys.argv[1], tick)
 

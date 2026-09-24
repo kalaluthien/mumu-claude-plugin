@@ -45,7 +45,7 @@ def main():
     stuck_after = float(os.environ.get("WORKER_WATCH_STUCK_AFTER", 1800))
     state = {}
 
-    def tick(parent, workers, words, now):
+    def tick(parents, workers, words, now):
         nonlocal state
         state, lines, due = step(state, workers, words, now, stuck_after)
         return lines + [f"stuck {name} {workers[name]}" for name in due if issue_open(workers[name])]
