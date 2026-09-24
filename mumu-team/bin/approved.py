@@ -20,7 +20,9 @@ cannot be read is refused too (exit 2).
 A command that skips a git hook is refused too, in any command and inside a quoted
 word: `--no-verify` or an abbreviation of it after `git`, `-n` in a `git commit`
 flag cluster (not a value such as `-m -n`), and setting `core.hooksPath` by
-`-c`, `--config-env`, `git config` or a `GIT_CONFIG_*` variable. A command naming
+`-c`, `--config-env`, `git config <key> <value>` or a `GIT_CONFIG_KEY_*` variable;
+text only naming it -- a heredoc body, a message, `echo`, `grep`, a read
+`git config <key>` -- passes, even when the command cannot be lexed. A command naming
 none of `merge`, `git` or `hookspath` exits 0 unread.
 """
 import json
@@ -34,7 +36,8 @@ SEPARATORS = set(";&|()\n")
 DESCRIPTOR = re.compile(r"(^|[\s;&|()])(?:\d+|\{\w+\})(?=[<>])")
 QUOTING = re.compile(r"[\"'\\]")
 MENTION = re.compile(r"\bpr\b[\s\S]*?\bmerge\b")
-HOOKS_PATH = re.compile(r"(^|[='\"])core\.hookspath(['\"]?=|['\"]?$)", re.I)  # `-c k=v`, `KEY_0=k`, `'k'=v`
+HOOKS_PATH = re.compile(r"^(['\"]?|--config-env=|GIT_CONFIG_KEY_\d+=['\"]?)core\.hookspath(['\"]?=|['\"]?$)", re.I)  # `-c k=v`, `'k'=v`, `--config-env=k=V`, `KEY_0=k`
+HOOKS_PATH_TEXT = re.compile(r"(-c\s*|--config-env=|key_\d+=)core\.hookspath\b|\bconfig\s+(-\S+\s+)*core\.hookspath[ \t]+[^\s;&|]")
 
 
 def refuse(reason):
@@ -154,7 +157,8 @@ def bypasses(words):
                 inner = [[word]]
             if inner != [[word]] and any(bypasses(w) for w in inner):  # `bash -c '...'`
                 return True
-        if (words[i - 1:i] == ["-c"] or "config" in words[:i] and i + 1 < len(words)) if word.lower() == "core.hookspath" else HOOKS_PATH.search(word):
+        if words[i - 1:i] == ["-c"] and HOOKS_PATH.search(word) or word[:1] in "-G" and HOOKS_PATH.search(word) \
+                or word.lower() == "core.hookspath" and config_value(words, i):
             return True
         rest = words[i + 1:] if os.path.basename(word) == "git" else []
         while rest and rest[0].startswith("-"):  # git's own options; these take a value
@@ -171,12 +175,20 @@ def bypasses(words):
     return False
 
 
+def config_value(words, i):
+    """Whether words[i] is the key `git config [flags] <key> <value>` sets, not the one it reads."""
+    j = i - 1
+    while j >= 0 and words[j].startswith("-"):
+        j -= 1
+    return j >= 1 and words[j] == "config" and os.path.basename(words[j - 1]) == "git" and i + 1 < len(words)
+
+
 def bypass_text(text):
-    """In text that cannot be lexed: `--no-v`, `core.hookspath`, or a `-...n` flag after `git ... commit`, in linear time."""
+    """In text that cannot be lexed: `--no-v`, setting `core.hookspath` by `-c`, `--config-env`, `KEY_0=` or `git config <key> <value>`, or a `-...n` flag after `git ... commit`, in linear time."""
     text = QUOTING.sub("", text.replace("\\\n", "")).lower()
     git = re.search(r"\bgit\b", text)
     commit = git and re.compile(r"\bcommit\b").search(text, git.end())
-    return "--no-v" in text or "core.hookspath" in text or bool(commit and re.compile(r"\s-[a-z]*n").search(text, commit.end()))
+    return "--no-v" in text or bool(HOOKS_PATH_TEXT.search(text)) or bool(commit and re.compile(r"\s-[a-z]*n").search(text, commit.end()))
 
 
 def check(args, cwd):
