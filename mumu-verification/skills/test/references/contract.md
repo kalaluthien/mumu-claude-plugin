@@ -17,13 +17,13 @@ A change is checked against a contract that predates it, stated so that a check 
 | role | does |
 | --- | --- |
 | owner | sets the bar and judges traces |
-| agent | writes the checks and the change; never judges a trace on the owner's behalf |
+| agent | writes the checks and the change; after the owner's first ~30 labels may cluster, sample and propose traces and verdicts, the owner deciding each; never judges a trace on the owner's behalf |
 
 Rules:
 
 - Use the repo's layout. With none, initialise the default the skill names and tell the owner "no <kind> layout found; initialised <path>".
 - Read the bar where the repo states it (CI, a contributing guide, agent instructions); with none stated, every check the change touches passes, and a number a skill gives is its default. Asked where verification stands, give each kind's layout, what it covers, its last result, and the gap to the bar.
-- Write the check before the change and watch it fail for the reason the change addresses. One that has never failed is not evidence: break what it checks once, watch it fail, then restore.
+- Write the check before the change and watch it fail for the reason the change addresses. An eval is written first only for a failure mode seen in a trace or a hard constraint the owner stated; otherwise error analysis comes first. One that has never failed is not evidence: break what it checks once, watch it fail, then restore.
 - A check asserts a contract or a path, never one output byte for byte.
 - A failing check is a defect in the change or the design. Never loosen a check, a fact or a scope to make it pass.
 - The project's process is its own: these rules hold inside any order of work.
