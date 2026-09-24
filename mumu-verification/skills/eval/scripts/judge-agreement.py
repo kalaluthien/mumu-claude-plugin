@@ -2,30 +2,36 @@
 """Print an LLM judge's agreement with human labels, and optionally a corrected pass rate.
 
 Input: a CSV with columns `human` and `judge`, each `pass` or `fail` (any case).
-With --observed P (the judge's pass share on unlabelled traces), also print the
-Rogan-Gladen corrected rate and a 95% bootstrap interval over the labelled rows.
+Fail is the positive class: TPR is the share of human fails the judge fails, TNR
+the share of human passes it passes. With --observed P (the judge's pass share on
+unlabelled traces), also print the Rogan-Gladen corrected pass rate and a 95%
+bootstrap interval over the labelled rows, and over P too given --unlabelled N.
+No rate is printed while |TPR + TNR - 1| is under MARGIN: the judge is near guessing.
 """
 import argparse
 import csv
 import random
 import sys
 
+MARGIN = 0.2
+
 
 def rates(pairs):
-    tp = sum(1 for h, j in pairs if h and j)
-    fn = sum(1 for h, j in pairs if h and not j)
-    tn = sum(1 for h, j in pairs if not h and not j)
-    fp = sum(1 for h, j in pairs if not h and j)
+    """pairs are (human passed, judge passed); fail is positive."""
+    tp = sum(1 for h, j in pairs if not h and not j)
+    fn = sum(1 for h, j in pairs if not h and j)
+    tn = sum(1 for h, j in pairs if h and j)
+    fp = sum(1 for h, j in pairs if h and not j)
     tpr = tp / (tp + fn) if tp + fn else None
     tnr = tn / (tn + fp) if tn + fp else None
-    return tpr, tnr, tp + fn, tn + fp
+    return tpr, tnr, tn + fp, tp + fn
 
 
 def corrected(p_obs, tpr, tnr):
     denom = tpr + tnr - 1
-    if abs(denom) < 1e-6:
+    if abs(denom) < MARGIN:
         return None
-    return min(1.0, max(0.0, (p_obs + tnr - 1) / denom))
+    return min(1.0, max(0.0, (p_obs + tpr - 1) / denom))
 
 
 def verdict(value, row, column):
@@ -39,11 +45,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("csv")
     parser.add_argument("--observed", type=float, help="judge pass share on unlabelled traces, 0-1")
+    parser.add_argument("--unlabelled", type=int, help="number of unlabelled traces behind --observed")
     parser.add_argument("--resamples", type=int, default=2000)
     args = parser.parse_args()
 
     if args.observed is not None and not 0 <= args.observed <= 1:
         sys.exit(f"--observed is {args.observed}, not a share between 0 and 1")
+    if args.unlabelled is not None and (args.observed is None or args.unlabelled < 1):
+        sys.exit("--unlabelled needs --observed and a count of at least 1")
     with open(args.csv, newline="") as f:
         reader = csv.DictReader(f)
         missing = {"human", "judge"} - set(reader.fieldnames or [])
@@ -61,12 +70,16 @@ def main():
 
     theta = corrected(args.observed, tpr, tnr)
     if theta is None:
-        sys.exit("TPR + TNR is 1: the judge is guessing, so no rate is printed")
+        sys.exit(f"|TPR + TNR - 1| is under the margin {MARGIN}: the judge is near guessing, so no rate is printed")
     rng = random.Random(0)
     estimates = []
     for _ in range(args.resamples):
         t, n, _, _ = rates([rng.choice(pairs) for _ in pairs])
-        e = corrected(args.observed, t, n) if t is not None and n is not None else None
+        p = args.observed
+        if args.unlabelled:
+            sd = (args.observed * (1 - args.observed) / args.unlabelled) ** 0.5  # binomial, by its normal approximation
+            p = min(1.0, max(0.0, rng.gauss(args.observed, sd)))
+        e = corrected(p, t, n) if t is not None and n is not None else None
         if e is not None:
             estimates.append(e)
     estimates.sort()
