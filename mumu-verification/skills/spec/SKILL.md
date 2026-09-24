@@ -21,39 +21,49 @@ git ls-files '*.als'
 | a model in another checked language (TLA+, Quint, Lean) | use it and the checker the repo runs it with |
 | no `alloy` on PATH | say so, name where to get it (alloytools.org), and stop before writing anything; never check a model by reading it |
 | `*.als` files | use their layout; read the model covering the change |
-| none | initialise `spec/<module>/system.als` |
+| none | initialise `spec/<module>/model.als` and `spec/<module>/check.als` |
 
 ## 2. Write or edit the model
 
+`model.als` holds what the system is; `check.als` holds what must hold of it.
+
 ```alloy
-module <module>/system
+module model
 
 sig Thing { ... }
 
 fact Wellformed { ... }            -- what the system guarantees by construction
 
 pred step[...] { ... }             -- one operation
+```
+
+```alloy
+open model
 
 assert KeepsInvariant { ... }      -- what the change must not break
 check KeepsInvariant for 3
+
+run step for 3                     -- shows the model has an instance
 ```
 
+- `model.als` has no commands; `check.als` has the asserts, the `check`s and at least one `run`.
 - Name each `check` for what holds.
 
 ## 3. Check
 
 ```sh
 out=$(mktemp -d)/alloy
-alloy exec -f -q -o "$out" spec/<module>/system.als && ls "$out"
+alloy exec -f -q -o "$out" spec/<module>/check.als && ls "$out"
 ```
 
 | in `$out` | the `check` |
 | --- | --- |
 | `<Check>-solution-0.md` | found a counterexample; the file is it |
 | no file for it | holds within its scope |
+| `<Run>-solution-0.md` | the `run` found an instance; none means the facts contradict |
 | nothing, and a non-zero exit | the model did not parse; read the error |
 
-- Re-run every `check` in the file after each edit.
+- Re-run `check.als` after each edit to either file.
 - Start at `for 3` and raise the scope while each check finishes within a minute; report the scope each ran at.
 
 ## 4. Check the code against the model
