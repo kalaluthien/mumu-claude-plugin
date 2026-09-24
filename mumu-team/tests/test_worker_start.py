@@ -28,7 +28,7 @@ elif tool == "git":
     elif a[2:4] == ["config", "core.hooksPath"]:
         sys.exit(1)
     elif a[2] == "rev-parse":
-        print(d / "hooks")
+        print(d / a[-1].split("/")[-1])
 elif a[:2] == ["tab", "create"]:
     print(json.dumps({"result": {"root_pane": {"pane_id": "%s"}}}))
 elif a[:2] == ["agent", "start"]:
@@ -80,6 +80,12 @@ class WorkerStart(unittest.TestCase):
         self.assertEqual(self.status(), "working")
         self.assertIn(["git", "-C", str(self.repo), "worktree", "add", "--detach", str(tree), "origin/main"], calls)
         self.assertTrue((self.tmp / "hooks" / "pre-commit").exists() and (self.tmp / "hooks" / "pre-push").exists())
+
+    def test_worktrees_excluded_once(self):
+        (self.tmp / "exclude").write_text("# kept")
+        self.start(trust=False)
+        self.start(trust=False)
+        self.assertEqual((self.tmp / "exclude").read_text(), "# kept\n/.claude/worktrees/\n")
 
     def test_no_dialog_sends_no_keys(self):
         done, calls = self.start(trust=False)
