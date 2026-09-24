@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run the worker Stop decision of each case in cases.json two ways and print how each agrees with the labels.
 
-- string: bin/worker-stop.py, the #19 command hook, fed the Stop payload a worker sends.
+- string: bin/stop.py, the command Stop hook of #19 and #46, fed the Stop payload a worker sends.
 - haiku: a real `claude -p` session whose only added hook is a `type: "agent"` Stop hook on Haiku with
   judge-prompt.md; the session ends its first turn with the case's last message, and the hook's first verdict counts.
 
@@ -70,7 +70,7 @@ def run_string(case, index, root):
     payload = {"hook_event_name": "Stop", "session_id": "s", "cwd": str(cwd), "stop_hook_active": False,
                "agent_type": "mumu-team:worker", "last_assistant_message": case["last"]}
     t = time.monotonic()
-    out = subprocess.run([str(PLUGIN / "bin" / "worker-stop.py")], input=json.dumps(payload), env=env,
+    out = subprocess.run([str(PLUGIN / "bin" / "stop.py")], input=json.dumps(payload), env=env,
                          capture_output=True, text=True, timeout=60)
     latency = time.monotonic() - t
     block = out.stdout.strip() and json.loads(out.stdout).get("decision") == "block"
