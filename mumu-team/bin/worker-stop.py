@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Refuse a worker's stop until its issue is closed, as its merged pull request closes it, or holds a `BLOCKED:` comment.
+"""Refuse a worker's stop until its issue is closed, as its merged pull request closes it, or its last comment is a `BLOCKED:`.
+
+A `BLOCKED:` the leader has answered no longer counts: the worker goes on.
 
 Stop hook. Only a session run as `--agent mumu-team:worker` is read; any
 other stops. The issue is the `<n>` of the worktree `.claude/worktrees/<topic>-<n>`
@@ -24,7 +26,7 @@ try:
     read = json.loads(view.stdout)
 except ValueError:
     sys.exit(0)
-if read["state"] == "CLOSED" or any(c["body"].lstrip().startswith("BLOCKED:") for c in read["comments"]):
+if read["state"] == "CLOSED" or read["comments"] and read["comments"][-1]["body"].lstrip().startswith("BLOCKED:"):
     sys.exit(0)
 print(json.dumps({"decision": "block", "reason": (
     f"Issue #{issue} is still open: merge its pull request at an approved sha, or `comment` "

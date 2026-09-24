@@ -46,12 +46,15 @@ class WorkerStop(unittest.TestCase):
 
     def test_worker_with_no_merge_and_no_blocked_is_refused_naming_the_way_out(self):
         outs, calls = self.stop(comments=["a plan", "not BLOCKED: here"])
+        for comments in (["a plan", "not BLOCKED: here"], ["BLOCKED: which name?", "Answer: stop-guard"]):
+            with self.subTest(comments=comments):
+                self.assertTrue(self.refused(self.stop(comments=comments)[0]))
         self.assertTrue(self.refused(outs), outs)
         self.assertIn("BLOCKED:", "".join(o.stdout + o.stderr for o in outs))
         self.assertIn("19", json.loads(calls[0])[2])
 
-    def test_worker_stops_once_blocked_is_posted_or_the_issue_is_closed(self):
-        for kwargs in ({"comments": ["BLOCKED: which name?"]}, {"comments": ["  BLOCKED: stuck on x"]}, {"state": "CLOSED"}):
+    def test_worker_stops_while_blocked_is_the_last_comment_or_the_issue_is_closed(self):
+        for kwargs in ({"comments": ["a plan", "BLOCKED: which name?"]}, {"comments": ["  BLOCKED: stuck on x"]}, {"state": "CLOSED"}):
             with self.subTest(**kwargs):
                 outs, _ = self.stop(**kwargs)
                 self.assertFalse(self.refused(outs), outs)
