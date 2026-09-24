@@ -9,6 +9,7 @@ import pathlib
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 BIN = pathlib.Path(__file__).resolve().parent.parent / "bin"
@@ -108,7 +109,7 @@ class Team(unittest.TestCase):
 class Scripts(unittest.TestCase):
     """The loops, run with a fake `herdr` and `gh` on PATH and every threshold at zero."""
 
-    def launch(self, script, mission, herdr_status, issue_state="OPEN", then=None):
+    def launch(self, script, mission, herdr_status, issue_state="OPEN", then=None, ticks="20"):
         """Fake herdr answers `herdr_status` first and `then` (default the same) from its second call on."""
         tmp = self.tmp = pathlib.Path(tempfile.mkdtemp())
         (tmp / "mission").mkdir()
@@ -124,7 +125,7 @@ class Scripts(unittest.TestCase):
         for f in ("herdr", "gh"):
             (tmp / f).chmod(0o755)
         env = dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}", CLAUDE_CODE_SESSION_ID="s1",
-                   MONITOR_POLL="0.05", MONITOR_TICKS="20", WORKER_WATCH_STUCK_AFTER="0", LEAD_HEARTBEAT_AFTER="0")
+                   MONITOR_POLL="0.05", MONITOR_TICKS=ticks, WORKER_WATCH_STUCK_AFTER="0", LEAD_HEARTBEAT_AFTER="0")
         return subprocess.Popen([sys.executable, str(BIN / (script + ".py")), str(tmp)], env=env,
                                 stdout=subprocess.PIPE, text=True)
 
@@ -145,6 +146,20 @@ class Scripts(unittest.TestCase):
             proc = self.launch(script, None, "blocked")
             self.assertEqual(self.lines(proc), [], script)
             self.assertFalse((self.tmp / "herdr-called").exists(), script)
+
+    def test_deleted_mission_ends_the_loop_silently(self):
+        """Lead 5 deletes the mission; each monitor then exits, so `/exit` meets no background-work dialog."""
+        for script in ("worker-watch", "lead-heartbeat"):
+            proc = self.launch(script, MISSION, "working", ticks="100000")
+            deadline = time.time() + 60
+            while not (self.tmp / "herdr-called").exists() and time.time() < deadline:
+                time.sleep(0.05)
+            (self.tmp / "mission" / "s1.md").unlink()
+            try:
+                self.assertEqual(proc.wait(timeout=5), 0, script)
+            finally:
+                proc.kill()
+            self.assertEqual(proc.stdout.read(), "", script)
 
     def test_heartbeat_holds_a_working_worker_through_unknown(self):
         proc = self.launch("lead-heartbeat", MISSION, "working", then="unknown")
