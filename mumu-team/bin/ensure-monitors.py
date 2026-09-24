@@ -48,7 +48,7 @@ def running(table, root):
 
 def ps():
     rows = []
-    for line in subprocess.run(["ps", "-axo", "pid=,ppid=,lstart=,command="], capture_output=True, text=True).stdout.splitlines():
+    for line in subprocess.run(["ps", "-axo", "pid=,ppid=,lstart=,command="], capture_output=True, text=True, env=dict(os.environ, LC_ALL="C")).stdout.splitlines():
         pid, ppid, *start, command = (line.split(None, 7) + [""])[:8]
         rows.append((int(pid), int(ppid), time.mktime(time.strptime(" ".join(start), "%a %b %d %H:%M:%S %Y")), command))
     return rows
