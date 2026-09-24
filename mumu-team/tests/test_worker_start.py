@@ -1,0 +1,106 @@
+"""`worker-start.py` run against a fake herdr, git and gh that log every call and play a Claude session behind a trust dialog.
+
+Run: python3 -m unittest discover mumu-team/tests
+"""
+import json
+import os
+import pathlib
+import subprocess
+import sys
+import tempfile
+import unittest
+
+BIN = pathlib.Path(__file__).resolve().parent.parent / "bin"
+PANE = "w1:p1"
+
+# One fake for all three tools, chosen by the name it is called as; state lives in files under $FAKE.
+FAKE = r'''#!/usr/bin/env python3
+import json, os, pathlib, sys
+d, tool, a = pathlib.Path(os.environ["FAKE"]), pathlib.Path(sys.argv[0]).name, sys.argv[1:]
+with open(d / "calls", "a") as f:
+    f.write(json.dumps([tool] + a) + "\n")
+blocked = (d / "trust").exists() and not (d / "answered").exists()
+if tool == "gh":
+    print("main")
+elif tool == "git":
+    if a[2:4] == ["worktree", "add"]:
+        pathlib.Path(a[5]).mkdir(parents=True)
+    elif a[2:4] == ["config", "core.hooksPath"]:
+        sys.exit(1)
+    elif a[2] == "rev-parse":
+        print(d / "hooks")
+elif a[:2] == ["tab", "create"]:
+    print(json.dumps({"result": {"root_pane": {"pane_id": "%s"}}}))
+elif a[:2] == ["agent", "start"]:
+    print(json.dumps({"error": {"code": "agent_not_ready"}} if blocked else {"result": {}}))
+elif a[:2] == ["agent", "read"]:
+    print("Quick safety check\n ❯ No, exit\n   Yes, I trust this folder" if blocked else "❯")
+elif a[:2] == ["agent", "send-keys"] and a[3:] == ["down", "enter"] and blocked:
+    (d / "answered").touch()
+elif a[:2] == ["agent", "prompt"]:
+    (d / "prompted").touch()
+elif a[:2] == ["agent", "list"]:
+    status = "blocked" if blocked else "working" if (d / "prompted").exists() else "idle"
+    print(json.dumps({"result": {"agents": [{"name": "start-7", "agent_status": status, "interactive_ready": not blocked}]}}))
+''' % PANE
+
+
+class WorkerStart(unittest.TestCase):
+    def setUp(self):
+        self.tmp = pathlib.Path(tempfile.mkdtemp())
+        self.repo = self.tmp / "repo"
+        self.repo.mkdir()
+        for tool in ("herdr", "git", "gh"):
+            (self.tmp / tool).write_text(FAKE)
+            (self.tmp / tool).chmod(0o755)
+
+    def start(self, *extra, trust=True):
+        if trust:
+            (self.tmp / "trust").touch()
+        env = dict(os.environ, FAKE=str(self.tmp), PATH=f"{self.tmp}:{BIN}:{os.environ['PATH']}",
+                   WORKER_START_TIMEOUT="3", WORKER_START_POLL="0.01")
+        done = subprocess.run([sys.executable, str(BIN / "worker-start.py"), str(self.repo), "start-7", "low", *extra],
+                              env=env, capture_output=True, text=True, timeout=30)
+        calls = [json.loads(l) for l in (self.tmp / "calls").read_text().splitlines()]
+        return done, calls
+
+    def status(self):
+        env = dict(os.environ, FAKE=str(self.tmp))
+        out = subprocess.run([str(self.tmp / "herdr"), "agent", "list"], env=env, capture_output=True, text=True).stdout
+        return json.loads(out)["result"]["agents"][0]["agent_status"]
+
+    def test_trust_dialog_answered_yes_then_prompted_and_working(self):
+        done, calls = self.start("--prompt", "/mumu-team:kickoff work u leader l")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        tree = self.repo / ".claude" / "worktrees" / "start-7"
+        self.assertEqual(done.stdout, f"start-7@{PANE} {tree}\n")
+        keys = calls.index(["herdr", "agent", "send-keys", PANE, "down", "enter"])
+        prompt = calls.index(["herdr", "agent", "prompt", PANE, "/mumu-team:kickoff work u leader l"])
+        self.assertLess(keys, prompt, "prompted before the trust dialog was answered")
+        self.assertEqual(self.status(), "working")
+        self.assertIn(["git", "-C", str(self.repo), "worktree", "add", "--detach", str(tree), "origin/main"], calls)
+        self.assertTrue((self.tmp / "hooks" / "pre-commit").exists() and (self.tmp / "hooks" / "pre-push").exists())
+
+    def test_no_dialog_sends_no_keys(self):
+        done, calls = self.start(trust=False)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertFalse([c for c in calls if c[1:3] == ["agent", "send-keys"]])
+        self.assertFalse([c for c in calls if c[1:3] == ["agent", "prompt"]])
+
+    def test_continue_reuses_the_worktree_and_resumes(self):
+        (self.repo / ".claude" / "worktrees" / "start-7").mkdir(parents=True)
+        done, calls = self.start("--continue", trust=False)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertFalse([c for c in calls if c[0] == "git" and "worktree" in c])
+        start = next(c for c in calls if c[1:3] == ["agent", "start"])
+        self.assertEqual(start[start.index("--") + 1:], ["--name", "start-7", "--model", "opus", "--effort", "low", "--continue"])
+
+    def test_session_never_ready_fails_naming_the_pane(self):
+        (self.tmp / "herdr").write_text(FAKE.replace('and blocked:\n', 'and False:\n'))
+        done, _ = self.start()
+        self.assertEqual(done.returncode, 1)
+        self.assertIn(f"herdr agent read {PANE}", done.stderr)
+
+
+if __name__ == "__main__":
+    unittest.main()
