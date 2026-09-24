@@ -21,29 +21,53 @@ REPEAT = 3600
 WORD = {"blocked": "blocked", "idle": "idle", "done": "idle", "working": "working"}
 
 
+FORMS = ("GOAL: <goal>", "MISSION: leader of <parent-url>", "MISSION: worker on <issue-url>",
+         "EXPECT: <expectations>", "SUBSCRIBE: <name> <issue-url>")
+
+
+def kind(line):
+    """What a mission line is: `blank`, `goal`, `leader`, `worker`, `expect`, `subscribe`, or None for a line none of `FORMS` matches."""
+    fields = line.split()
+    key = fields[0].upper() if fields else ""
+    if not fields:
+        return "blank"
+    if key in ("GOAL:", "EXPECT:"):
+        return key[:-1].lower()
+    if key == "MISSION:" and len(fields) == 4 and fields[1:3] in (["leader", "of"], ["worker", "on"]):
+        return fields[1]
+    if key == "SUBSCRIBE:" and len(fields) == 3:
+        return "subscribe"
+    return None
+
+
+def unrecognised(text):
+    """The lines of a mission that `kind` does not recognise, which `read_mission` skips."""
+    return [line for line in text.splitlines() if kind(line) is None]
+
+
 def read_mission(text):
     """`([parent-url, ...], {name: issue-url})` of a leader's mission, or None for a worker's."""
     parents, workers = [], {}
     for line in text.splitlines():
-        fields = line.split()
-        key = fields[0].upper() if fields else ""
-        if key == "MISSION:" and fields[1:2] == ["worker"]:
+        k, fields = kind(line), line.split()
+        if k == "worker":
             return None
-        if key == "MISSION:" and fields[1:2] == ["leader"]:
+        if k == "leader":
             parents.append(fields[-1])
-        if key == "SUBSCRIBE:" and len(fields) >= 3:
+        if k == "subscribe":
             workers[fields[1]] = fields[2]
     return parents, workers
 
 
-def mission_file():
-    """This session's mission, found as `<config dir>/plugins/data/*/mission/$CLAUDE_CODE_SESSION_ID.md`, or None.
+def mission_file(session=None):
+    """The mission of `session` (this one's, `$CLAUDE_CODE_SESSION_ID`, by default), found as `<config dir>/plugins/data/*/mission/<session>.md`, or None.
 
     A script run from the lead's Bash has no `CLAUDE_PLUGIN_DATA`, and the
     session id is unique, so the glob finds at most one.
     """
     config = pathlib.Path(os.environ.get("CLAUDE_CONFIG_DIR") or pathlib.Path.home() / ".claude")
-    return next(iter(sorted(config.glob(f"plugins/data/*/mission/{os.environ['CLAUDE_CODE_SESSION_ID']}.md"))), None)
+    session = session or os.environ["CLAUDE_CODE_SESSION_ID"]
+    return next(iter(sorted(config.glob(f"plugins/data/*/mission/{session}.md"))), None)
 
 
 def subscribed(line, name):

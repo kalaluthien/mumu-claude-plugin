@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Close a worker in one call: its Claude session, the background-work dialog, its tab, and its mission line.
+"""Close a worker in one call: its Claude session, the background-work dialog, its tab, its mission line and its own mission.
 
 usage: worker-close.py <name>
 
@@ -7,7 +7,9 @@ Sends `/exit` to the agent herdr lists as `<name>`, and presses Enter once when
 the "Background work is running" dialog shows, whose first option exits; then
 waits until herdr no longer lists the agent, closes every tab labelled
 `<name>`, and removes `SUBSCRIBE: <name> ...` from this session's mission
-(`team.mission_file`). An agent already gone skips to the tab. Prints
+(`team.mission_file`), and deletes the worker's own mission, found by the
+session id herdr lists as its `agent_session` before `/exit`; none found, none
+deleted. An agent already gone skips to the tab. Prints
 `closed <name>`. `WORKER_CLOSE_TIMEOUT` (60) and `WORKER_CLOSE_POLL` (1) are seconds.
 """
 import json
@@ -31,12 +33,15 @@ def run(*argv):
     return done.stdout
 
 
+def agent(name):
+    """The agent herdr lists as `name`, or None."""
+    return next((a for a in json.loads(run("herdr", "agent", "list"))["result"]["agents"] if a.get("name") == name), None)
+
+
 def pane(name):
     """The pane of the agent herdr lists as `name`, or None."""
-    for a in json.loads(run("herdr", "agent", "list"))["result"]["agents"]:
-        if a.get("name") == name:
-            return a["pane_id"]
-    return None
+    a = agent(name)
+    return a and a["pane_id"]
 
 
 def exit_session(name, timeout, poll):
@@ -62,6 +67,7 @@ def main(argv):
     name = argv[0]
     timeout, poll = float(os.environ.get("WORKER_CLOSE_TIMEOUT", 60)), float(os.environ.get("WORKER_CLOSE_POLL", 1))
     try:
+        session = ((agent(name) or {}).get("agent_session") or {}).get("value")
         exit_session(name, timeout, poll)
         for tab in json.loads(run("herdr", "tab", "list"))["result"]["tabs"]:
             if tab.get("label") == name:
@@ -72,6 +78,9 @@ def main(argv):
     mission = team.mission_file()
     if mission is not None:
         team.unsubscribe(mission, name)
+    own = team.mission_file(session) if session else None
+    if own is not None:
+        own.unlink(missing_ok=True)
     print(f"closed {name}")
     return 0
 
