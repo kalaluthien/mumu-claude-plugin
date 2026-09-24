@@ -3,10 +3,12 @@
 Run: python3 -m unittest discover mumu-team/tests
 """
 import json
+import os
 import pathlib
 import shlex
 import subprocess
 import sys
+import tempfile
 import unittest
 
 HOOK = pathlib.Path(__file__).resolve().parent.parent / "bin" / "approved.py"
@@ -87,9 +89,19 @@ MERGE_PASSED = [
 ]
 
 
-def run(command):
+def run(command, env=None):
     payload = json.dumps({"tool_input": {"command": command}})
-    return subprocess.run([sys.executable, str(HOOK)], input=payload, capture_output=True, text=True)
+    return subprocess.run([sys.executable, str(HOOK)], input=payload, capture_output=True, text=True, env=env)
+
+
+def with_pr(head, comments):
+    """An env whose `gh` serves one PR at `head` holding `comments`."""
+    tmp = pathlib.Path(tempfile.mkdtemp())
+    pr = {"headRefOid": head, "comments": [{"body": b} for b in comments], "reviews": []}
+    (tmp / "pr.json").write_text(json.dumps(pr))
+    (tmp / "gh").write_text(f"#!/bin/sh\ncat {tmp / 'pr.json'}\n")
+    (tmp / "gh").chmod(0o755)
+    return dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}")
 
 
 class HookBypass(unittest.TestCase):
@@ -119,6 +131,21 @@ class MergeGate(unittest.TestCase):
         result = run(f"gh pr merge {pr} --squash --match-head-commit {'0' * 40}")
         self.assertEqual(result.returncode, 2)
         self.assertIn("is not the PR head", result.stderr)  # past the text gate, at the PR check
+
+    def test_approval_in_any_case_with_or_without_the_colon_passes_only_at_the_head(self):
+        """Reviewers write `APPROVED: <sha>`; `Approved <sha>` comments GitHub already holds still count."""
+        head, other = "a" * 40, "b" * 40
+        merge = f"gh pr merge {URL} --squash --match-head-commit {head}"
+        for form in ("APPROVED: {}", "Approved {}", "approved: {}", "APPROVED {}\nchecked the tests"):
+            with self.subTest(form=form):
+                ok = run(merge, with_pr(head, [form.format(head)]))
+                self.assertEqual(ok.returncode, 0, ok.stderr)
+                stale = run(merge, with_pr(head, [form.format(other)]))
+                self.assertEqual(stale.returncode, 2, stale.stderr)
+                self.assertIn("APPROVED:", stale.stderr)
+        for body in (f"FINDINGS: {head}", f"not approved: {head}", f"Approvedx {head}", f"APPROVED: {head} but"):
+            with self.subTest(body=body):
+                self.assertEqual(run(merge, with_pr(head, [body])).returncode, 2)
 
     def test_text_naming_the_merge_passes(self):
         for command in MERGE_PASSED:
