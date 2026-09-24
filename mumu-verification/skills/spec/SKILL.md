@@ -1,6 +1,7 @@
 ---
 name: spec
 description: Use when a change touches states, transitions, a lifecycle, permissions, ownership or a protocol, or a rule stated as never, always, only after or at most - even if only the code was asked for - or when `*.als` files model the changed code, or when asked what the specs cover. Not for one function's input and output, nor for a value - a threshold, a colour, a size, a photometric target (test).
+user-invocable: false
 ---
 
 # Spec

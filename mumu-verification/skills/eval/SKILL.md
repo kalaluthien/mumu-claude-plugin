@@ -1,6 +1,7 @@
 ---
 name: eval
 description: Use when a prompt, skill, rubric or model of a Claude plugin or an LLM app changes, when its outputs need judging, or when asked what its evals cover. Not for deterministic code (test).
+user-invocable: false
 ---
 
 # Eval

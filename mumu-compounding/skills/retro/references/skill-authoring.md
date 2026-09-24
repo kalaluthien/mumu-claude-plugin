@@ -59,6 +59,7 @@ A sweep's zero counts only once its pattern has found one known hit.
 - `disable-model-invocation: true` on a skill only a person types: a command
   is an order given, not an operation offered. Its `description` says what
   it does, since no model chooses it by the situation.
+- `user-invocable: false` on a skill only the model loads: it leaves the `/` menu.
 - A skill a person types takes free-form text: it finds what it needs (a url,
   a name, a goal) anywhere in the text, asks for what is missing, and never
   refuses for wording, because a person does not remember a grammar. Its

@@ -1,6 +1,7 @@
 ---
 name: writing-documents
 description: Use before writing any document, page or diagram a person will read - explain, draw, map, walk through, compare, report, an issue or pull request body, what the facts imply (so what) - or before asking the user to settle a decision, proposal or plan with open choices (grill me), even when only the content was asked for. Not for code or its comments.
+user-invocable: false
 ---
 
 # writing-documents

@@ -1,6 +1,7 @@
 ---
 name: test
 description: Use when a change alters what code does - a bug fix, a feature, a new rule, an endpoint, a command - even if only the fix was asked for or the repo has no tests, or when asked what the tests cover. Not for a refactor that keeps behaviour.
+user-invocable: false
 ---
 
 # Test
