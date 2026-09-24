@@ -1,4 +1,4 @@
-"""The hook-bypass check of approved.py: real bypasses refused, text naming the hooks path passed.
+"""approved.py: real bypasses and unpinned merges refused, text only naming them passed.
 
 Run: python3 -m unittest discover mumu-team/tests
 """
@@ -40,6 +40,32 @@ PASSED = [
     f"git config --get {KEY}",
 ]
 
+URL = "https://github.com/o/r/pull/1"
+MERGE = f"gh pr merge {URL} --squash"
+
+MERGE_REFUSED = [
+    MERGE,
+    f"bash -c '{MERGE}'",
+    f'bash -c "echo hi && {MERGE}"',
+    f"eval '{MERGE}'",
+    f"eval {MERGE}",
+    f'echo "$({MERGE})"',
+    f"echo `{MERGE}`",
+    f"bash <<'EOF'\n{MERGE}\nEOF",
+    f"cat <<EOF | sh\n{MERGE}\nEOF",
+    f"cat <<EOF\n$({MERGE})\nEOF",
+    f"cat <<'EOF'\nnot closed\n{MERGE}",
+]
+
+MERGE_PASSED = [
+    f"cat > /tmp/note.md <<'EOF'\nrun {MERGE} later\nEOF",
+    f"gh issue comment 1 --body-file - <<'EOF'\nthe lead's {MERGE} was refused\nEOF",
+    f'gh issue reopen 9 --comment "refused: {MERGE}"',
+    f"gh pr create --title t --body \"$(cat <<'EOF'\nnever {MERGE} unpinned\nEOF\n)\"",
+    'grep -n "pr merge" mumu-team/bin/approved.py',
+    f'git commit -m "gate {MERGE}"',
+]
+
 
 def run(command):
     payload = json.dumps({"tool_input": {"command": command}})
@@ -57,6 +83,25 @@ class HookBypass(unittest.TestCase):
 
     def test_text_naming_the_hooks_path_passes(self):
         for command in PASSED:
+            with self.subTest(command):
+                result = run(command)
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class MergeGate(unittest.TestCase):
+    def test_every_unpinned_merge_is_refused(self):
+        for command in MERGE_REFUSED:
+            with self.subTest(command):
+                self.assertEqual(run(command).returncode, 2)
+
+    def test_merge_at_an_unapproved_sha_is_refused(self):
+        pr = "https://github.com/kalaluthien/mumu-claude-plugin/pull/23"
+        result = run(f"gh pr merge {pr} --squash --match-head-commit {'0' * 40}")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("is not the PR head", result.stderr)  # past the text gate, at the PR check
+
+    def test_text_naming_the_merge_passes(self):
+        for command in MERGE_PASSED:
             with self.subTest(command):
                 result = run(command)
                 self.assertEqual(result.returncode, 0, result.stderr)

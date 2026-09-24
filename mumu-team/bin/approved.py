@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 """Refuse a `gh pr merge` that is not pinned to a sha a reviewer approved, and a git hook bypass.
 
-PreToolUse hook on Bash. The command is split into commands as a shell would
-split it -- at a newline, `;`, `&&`, `|` or `(` -- and in each one every
+PreToolUse hook on Bash. Heredoc bodies are dropped, unless a shell reads them
+or an unquoted one holds `$(` or a backtick; the rest is split into commands as
+a shell would split it -- at a newline, `;`, `&&`, `|` or `(` -- and in each one every
 `pr [-R <repo>]... merge`, counted with quotes, backslashes and redirects
-removed and inside every quoted word too, must be the one `gh ... pr merge` that command
-runs, after an env prefix or a wrapper such as `rtk`. That merge passes only
+removed, must be the one `gh ... pr merge` that command runs, after an env
+prefix or a wrapper such as `rtk`. A quoted word is counted inside too when it
+holds `$(` or a backtick, or its command names a shell such as `bash` or `eval`,
+which runs its words as text. That merge passes only
 when it names one PR by its url, combines no short flags and holds no `{`, `}`,
 `*`, `?` or `[` a shell would expand, and only when it carries one
 `--match-head-commit <sha>` of 40 hex digits, that sha is the PR's head, and the
 PR holds a comment or a review whose first line is `Approved <sha>`. Any other
-`pr merge` -- inside `bash -c`, `eval`, a here-string, a comment, a quoted
-message, or a command that cannot be lexed -- is refused, since text cannot tell
-a merge a shell will run from one it will not; write such text with a file
-tool. A merge built from a variable or an
+`pr merge` -- inside `bash -c`, `eval`, `$(...)`, a here-string, a comment, or
+a command that cannot be lexed -- is refused; text only naming it -- a heredoc
+body, a `--body` or `-m` string, `grep "pr merge"` -- passes. A heredoc opener
+inside quotes is still read as one. A merge built from a variable or an
 escape code such as `$'\x6d'` is not seen. A payload or a PR that
 cannot be read is refused too (exit 2).
 
@@ -36,6 +39,10 @@ SEPARATORS = set(";&|()\n")
 DESCRIPTOR = re.compile(r"(^|[\s;&|()])(?:\d+|\{\w+\})(?=[<>])")
 QUOTING = re.compile(r"[\"'\\]")
 MENTION = re.compile(r"\bpr\b[\s\S]*?\bmerge\b")
+SHELLS = ("sh", "bash", "zsh", "dash", "ksh", "fish", "eval", "ssh", "xargs")  # each runs its words as a command
+SHELL = re.compile(rf"(?:^|[\s;&|(`/])(?:{'|'.join(SHELLS)})(?=$|[\s;&|)`])")
+HEREDOC = re.compile(r"(?<!<)<<(-?)[ \t]*(['\"]?)([A-Za-z_][\w.-]*)\2")
+RUNS = re.compile(r"\$\(|`")
 HOOKS_PATH = re.compile(r"^(['\"]?|--config-env=|GIT_CONFIG_KEY_\d+=['\"]?)core\.hookspath(['\"]?=|['\"]?$)", re.I)  # `-c k=v`, `'k'=v`, `--config-env=k=V`, `KEY_0=k`
 HOOKS_PATH_TEXT = re.compile(r"(-c\s*|--config-env=|key_\d+=)core\.hookspath\b|\bconfig\b(?![^;&|\n]*\bget\b)[^;&|\n]*core\.hookspath[ \t]+[^\s;&|]")
 
@@ -62,6 +69,25 @@ def segments(text, join=True):
             segment.append(word)
 
 
+def without_heredocs(text):
+    """Drop each closed heredoc body that is only text: no shell on its line reads it, and a quoted or `$(`-free one."""
+    lines, kept, i = text.split("\n"), [], 0
+    while i < len(lines):
+        line = lines[i]
+        kept.append(line)
+        i += 1
+        for opener in HEREDOC.finditer(line):
+            end = next((j for j in range(i, len(lines))
+                        if (lines[j].lstrip("\t") if opener[1] else lines[j]) == opener[3]), None)
+            if end is None:  # an unclosed body: read the rest as commands
+                break
+            body = lines[i:end]
+            if SHELL.search(line) or not opener[2] and RUNS.search("\n".join(body)):
+                kept += body
+            i = end + 1
+    return "\n".join(kept)
+
+
 def unredirected(words):
     """Drop each redirect: its operator and its target."""
     kept, skip = [], False
@@ -76,9 +102,12 @@ def unredirected(words):
 
 
 def mentions(words):
-    """Count `pr [-R <repo>]... merge` in the words, and in each word a shell could run as text."""
+    """Count `pr [-R <repo>]... merge` in the words, and in each word a shell runs as a command."""
     count = 0
+    shell = any(os.path.basename(word) in SHELLS for word in words)
     for word in words:
+        if not (shell or RUNS.search(word)):  # a message, a body or a pattern
+            continue
         word = QUOTING.sub("", word).strip()
         try:
             inner = list(segments(word))
@@ -222,11 +251,12 @@ try:
     cwd = cwd if cwd and os.path.isdir(cwd) else None
 except (ValueError, KeyError, TypeError) as err:
     refuse(f"could not read the payload ({type(err).__name__}: {err})")
+text = without_heredocs(command)
 try:
-    commands = list(segments(command))
+    commands = list(segments(text))
 except ValueError:  # an unclosed quote
     commands = []
-    if MENTION.search(QUOTING.sub("", command)):
+    if MENTION.search(QUOTING.sub("", text)):
         refuse("this command cannot be lexed and names `pr merge`; run `gh pr merge` on its own line")
 try:
     readings = []
