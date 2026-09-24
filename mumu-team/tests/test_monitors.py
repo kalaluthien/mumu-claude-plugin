@@ -23,7 +23,7 @@ watch, lead = load("worker-watch"), load("lead-heartbeat")
 PARENT = "https://github.com/o/r/issues/1"
 URL = "https://github.com/o/r/issues/7"
 LEAD = f"Goal: g\nMission: leader of {PARENT}\nExpect: e\n"
-MISSION = LEAD + f"Worker: a-7 {URL}\n"
+MISSION = LEAD + f"SUBSCRIBE: a-7 {URL}\n"
 PARENT2 = "https://github.com/o/r/issues/2"
 TWO = LEAD + f"Goal: h\nMission: leader of {PARENT2}\nExpect: e\n"
 
@@ -97,12 +97,12 @@ class Team(unittest.TestCase):
     def test_reading(self):
         read = lead.team.read_mission
         self.assertEqual(read(MISSION), ([PARENT], {"a-7": URL}))
-        self.assertEqual(read(MISSION + "Worker: half\n"), ([PARENT], {"a-7": URL}))
+        self.assertEqual(read(MISSION + "SUBSCRIBE: half\n"), ([PARENT], {"a-7": URL}))
         self.assertEqual(read(LEAD), ([PARENT], {}))
 
     def test_every_parent_is_read_in_order(self):
         read = lead.team.read_mission
-        self.assertEqual(read(TWO + f"Worker: a-7 {URL}\n"), ([PARENT, PARENT2], {"a-7": URL}))
+        self.assertEqual(read(TWO + f"SUBSCRIBE: a-7 {URL}\n"), ([PARENT, PARENT2], {"a-7": URL}))
         self.assertIsNone(read(f"Goal: g\nMission: worker on {URL}\n"))
 
     def test_words_hold_the_last_word_on_unknown_for_both_monitors(self):
@@ -240,7 +240,7 @@ class Scripts(unittest.TestCase):
 
     def test_mission_keys_in_either_case_reach_tick(self):
         """The mission is written `MISSION:`, and one written `Mission:` before that still counts, in both monitors."""
-        for keys in (("Goal:", "Mission:", "Worker:"), ("GOAL:", "MISSION:", "WORKER:"), ("goal:", "mission:", "worker:")):
+        for keys in (("Goal:", "Mission:", "Subscribe:"), ("GOAL:", "MISSION:", "SUBSCRIBE:"), ("goal:", "mission:", "subscribe:")):
             goal, mission, worker = keys
             text = f"{goal} g\n{mission} leader of {PARENT}\n{worker} a-7 {URL}\n"
             with self.subTest(keys=keys):

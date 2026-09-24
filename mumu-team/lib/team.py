@@ -2,7 +2,8 @@
 
 The mission is `<plugin data dir>/mission/$CLAUDE_CODE_SESSION_ID.md`. A
 leader's reads one `MISSION: leader of <parent-url>` line per parent it holds, and one
-`WORKER: <name> <issue-url>` line per worker; a worker's reads
+`SUBSCRIBE: <name> <issue-url>` line per worker, which `worker-start.py`
+writes and `worker-close.py` removes; a worker's reads
 `MISSION: worker ...`, and a monitor in its session exits at once, as it does
 before any poll when `MUMU_ROLE=worker`, which `worker-start.py` sets on the tab.
 `MONITOR_POLL` sets the poll interval in seconds (10), `MONITOR_WAIT` how long
@@ -30,9 +31,38 @@ def read_mission(text):
             return None
         if key == "MISSION:" and fields[1:2] == ["leader"]:
             parents.append(fields[-1])
-        if key == "WORKER:" and len(fields) >= 3:
+        if key == "SUBSCRIBE:" and len(fields) >= 3:
             workers[fields[1]] = fields[2]
     return parents, workers
+
+
+def mission_file():
+    """This session's mission, found as `<config dir>/plugins/data/*/mission/$CLAUDE_CODE_SESSION_ID.md`, or None.
+
+    A script run from the lead's Bash has no `CLAUDE_PLUGIN_DATA`, and the
+    session id is unique, so the glob finds at most one.
+    """
+    config = pathlib.Path(os.environ.get("CLAUDE_CONFIG_DIR") or pathlib.Path.home() / ".claude")
+    return next(iter(sorted(config.glob(f"plugins/data/*/mission/{os.environ['CLAUDE_CODE_SESSION_ID']}.md"))), None)
+
+
+def subscribed(line, name):
+    """Whether `line` is a `SUBSCRIBE: <name> ...` line, in any case."""
+    fields = line.split()
+    return len(fields) >= 2 and fields[0].upper() == "SUBSCRIBE:" and fields[1] == name
+
+
+def subscribe(path, name, url):
+    """Append `SUBSCRIBE: <name> <url>` to the mission at `path`, unless a line for `name` is there."""
+    text = path.read_text()
+    if not any(subscribed(line, name) for line in text.splitlines()):
+        path.write_text(text + ("\n" if text and not text.endswith("\n") else "") + f"SUBSCRIBE: {name} {url}\n")
+
+
+def unsubscribe(path, name):
+    """Remove every `SUBSCRIBE: <name> ...` line from the mission at `path`."""
+    lines = path.read_text().splitlines(keepends=True)
+    path.write_text("".join(line for line in lines if not subscribed(line, name)))
 
 
 def words(last, workers, agents):
