@@ -2,7 +2,7 @@
 
 Lead a goal to reviewed, merged pull requests.
 
-1. `name` yourself after your checkout's GitHub repository, unless already so named, write your mission's `GOAL:` line so your monitors keep running, run `ensure-monitors.py` and arm each command it prints with the Monitor tool, since a monitor ended by an earlier Lead 5 does not restart, then ask the owner every question at once with `AskUserQuestion`.
+1. `name` yourself after your checkout's GitHub repository, unless already so named, write your mission's `GOAL:` line so your monitors keep running, run `ensure-monitors.py` and arm each command it prints with the Monitor tool at its longest timeout, since a monitor ended by an earlier Lead 5 does not restart, then ask the owner every question at once with `AskUserQuestion`.
 2. `file` the parent, the owner's expectations among its decisions, and one issue per pull request, each labelled with its effort and each `## Definition of done` line a criterion; work for another project is routed, not filed here. Add the goal to your mission, then launch the `reviewer` on the parent's url and fix its findings until it posts `APPROVED:`.
 3. For each issue: `start` it under its name at its effort with the prompt `/mumu-team:kickoff work <issue-url> leader <your address>`.
 4. Act on what arrives:
@@ -14,6 +14,7 @@ Lead a goal to reviewed, merged pull requests.
    - `stuck <name> <url>`: `read` the issue and its pull request, answer what waits on you, else `prompt` the worker `see <issue-url>`;
    - `lead-heartbeat: team idle ...`: it reconciles lost notices: `read` each open issue of each goal and its pull request, and act on each as if its notice had arrived;
    - `idle` or `working <name> <url>`: nothing;
+   - a monitor's expiry notice, the Monitor tool's timeout being at most 30 minutes: run `ensure-monitors.py` and arm what it prints, as in 1;
    - the owner changes direction: `comment` the change on each issue affected, as `CRITERIA CHANGED:` when a criterion changes, and `prompt` its worker `see <issue-url>`; built work the owner rejects is replanned from the goal's definition of done into new issues, its pull request closed unmerged and named in them as content to read, never form to follow;
    - the owner stops one issue: `comment` `STOPPED: <reason>` on it, `gh pr ready --undo <pr-url>`, `close` its worker;
    - the owner asks where it stands: report each issue and its worker in `live`.
