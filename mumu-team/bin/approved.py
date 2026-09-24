@@ -2,9 +2,10 @@
 """Refuse a `gh pr merge` that is not pinned to a sha a reviewer approved, and a git hook bypass.
 
 PreToolUse hook on Bash. A closed heredoc body is dropped only when every
-command on its opener's line is a text reader (`cat`, `tee`, `gh issue|pr|release`,
-`git commit|tag|notes`: builtins, which no alias shadows; with no env prefix
-such as `GIT_EDITOR=sh` and no `-e`/`--edit`, since an editor may run it), no
+command on its opener's line is a text reader (`cat`, `tee`, or `gh issue|pr|release`,
+builtins no alias shadows; with no env prefix such as `GH_EDITOR=sh` and no
+editor flag such as `-e`, `-eb` or `--editor`, since an editor may run it; never
+`git`, whose editor an earlier line may set), no
 pipe follows the opener, and the body is quoted or holds no `$(` or backtick;
 openers are found outside quotes and comments. The rest is split into commands as
 a shell would split it -- at a newline, `;`, `&&`, `|` or `(` -- and in each one every
@@ -12,7 +13,7 @@ a shell would split it -- at a newline, `;`, `&&`, `|` or `(` -- and in each one
 removed, must be the one `gh ... pr merge` that command runs, after an env
 prefix or a wrapper such as `rtk`. Every quoted word is counted inside too, but
 a text one without `$(` or a backtick: a `grep` or `rg` pattern, or the value of a
-message or body flag (`-m`, `--body`, `--comment`, ...) of such a reader. That merge passes only
+body flag (`--body`, `--comment`, `--title`, ...) of such a reader. That merge passes only
 when it names one PR by its url, combines no short flags and holds no `{`, `}`,
 `*`, `?` or `[` a shell would expand, and only when it carries one
 `--match-head-commit <sha>` of 40 hex digits, that sha is the PR's head, and the
@@ -46,9 +47,10 @@ HEREDOC = re.compile(r"<<(-?)[ \t]*(['\"]?)([A-Za-z_][\w.-]*)\2")
 RUNS = re.compile(r"\$\(|`")
 WORD = re.compile(r"[^\s;&|()<>`'\"]+")
 ASSIGNMENT = re.compile(r"\w+=")
-READERS = {"cat": None, "tee": None, "gh": {"issue", "pr", "release"}, "git": {"commit", "tag", "notes"}}  # builtins no alias can shadow
+READERS = {"cat": None, "tee": None, "gh": {"issue", "pr", "release"}}  # builtins no alias can shadow; git may open an editor set lines before
+EDITOR = re.compile(r"-[^-]*e|--edit")  # `-e`, `-eb`, `--edit`, `--editor`
 TEXT_COMMANDS = {"grep", "egrep", "fgrep", "rg"}  # each reads its quoted words as text
-TEXT_FLAGS = {"-m", "--message", "-b", "--body", "-t", "--title", "--comment", "--subject", "--notes"}  # of gh and git
+TEXT_FLAGS = {"-b", "--body", "-t", "--title", "--comment", "--notes"}  # of gh
 HOOKS_PATH = re.compile(r"^(['\"]?|--config-env=|GIT_CONFIG_KEY_\d+=['\"]?)core\.hookspath(['\"]?=|['\"]?$)", re.I)  # `-c k=v`, `'k'=v`, `--config-env=k=V`, `KEY_0=k`
 HOOKS_PATH_TEXT = re.compile(r"(-c\s*|--config-env=|key_\d+=)core\.hookspath\b|\bconfig\b(?![^;&|\n]*\bget\b)[^;&|\n]*core\.hookspath[ \t]+[^\s;&|]")
 
@@ -135,10 +137,10 @@ def without_heredocs(text):
 
 
 def reader(words):
-    """Whether the command in words, from its first word, reads text only as text: `cat`, `tee`, or a builtin `gh` or `git` subcommand, with no env prefix (`GIT_EDITOR=sh`) and no editor (`-e`)."""
+    """Whether the command in words, from its first word, reads text only as text: `cat`, `tee`, or a builtin `gh` subcommand, with no env prefix (`GH_EDITOR=sh`) and no editor flag."""
     head = os.path.basename(words[0]) if words else ""
     return head in READERS and (READERS[head] is None or words[1:2] and words[1] in READERS[head]) \
-        and not {"-e", "--edit"} & set(words)
+        and not any(EDITOR.match(w) for w in words)
 
 
 def text_word(words, i):

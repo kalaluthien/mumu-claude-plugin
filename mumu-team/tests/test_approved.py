@@ -71,6 +71,10 @@ MERGE_REFUSED = [
     f"GIT_EDITOR=sh git commit --allow-empty -e -F - <<'EOF'\n{MERGE}\nEOF",
     f"GIT_EDITOR=sh git commit --allow-empty -e -m '{MERGE}'",
     f"git commit --allow-empty --edit -m '{MERGE}'",
+    f"export GIT_EDITOR=sh\ngit commit --allow-empty -eF - <<'EOF'\n{MERGE}\nEOF",
+    f"export GH_EDITOR=sh\ngh issue create -eb '{MERGE}'",
+    f"export GH_EDITOR=sh\ngh issue create --editor --body '{MERGE}'",
+    f"git commit -m '{MERGE}'",
     f"grep -q x f && sh -c '{MERGE}'",
 ]
 
@@ -80,7 +84,6 @@ MERGE_PASSED = [
     f'gh issue reopen 9 --comment "refused: {MERGE}"',
     f"gh pr create --title t --body \"$(cat <<'EOF'\nnever {MERGE} unpinned\nEOF\n)\"",
     'grep -n "pr merge" mumu-team/bin/approved.py',
-    f'git commit -m "gate {MERGE}"',
 ]
 
 
