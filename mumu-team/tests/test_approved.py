@@ -1,14 +1,12 @@
-"""approved.py: real bypasses and unpinned merges refused, text only naming them passed.
+"""approved.py: real bypasses and every raw merge refused, text only naming them passed.
 
 Run: python3 -m unittest discover mumu-team/tests
 """
 import json
-import os
 import pathlib
 import shlex
 import subprocess
 import sys
-import tempfile
 import unittest
 
 HOOK = pathlib.Path(__file__).resolve().parent.parent / "bin" / "approved.py"
@@ -40,6 +38,7 @@ PASSED = [
     f"grep -rn {KEY} .",
     f"git config {KEY}",
     f"git config --get {KEY}",
+    "gh issue create --title t --body-file - <<'EOF'\nthe hook refuses git commit --no-verify and git commit -n\nEOF",
 ]
 
 URL = "https://github.com/o/r/pull/1"
@@ -47,6 +46,8 @@ MERGE = f"gh pr merge {URL} --squash"
 
 MERGE_REFUSED = [
     MERGE,
+    f"{MERGE} --match-head-commit {'a' * 40}",
+    f"gh -R o/r pr merge 1 --squash --match-head-commit {'a' * 40}",
     f"bash -c '{MERGE}'",
     f'bash -c "echo hi && {MERGE}"',
     f"eval '{MERGE}'",
@@ -86,22 +87,13 @@ MERGE_PASSED = [
     f'gh issue reopen 9 --comment "refused: {MERGE}"',
     f"gh pr create --title t --body \"$(cat <<'EOF'\nnever {MERGE} unpinned\nEOF\n)\"",
     'grep -n "pr merge" mumu-team/bin/approved.py',
+    f"merge.py {URL}",
 ]
 
 
-def run(command, env=None):
+def run(command):
     payload = json.dumps({"tool_input": {"command": command}})
-    return subprocess.run([sys.executable, str(HOOK)], input=payload, capture_output=True, text=True, env=env)
-
-
-def with_pr(head, comments):
-    """An env whose `gh` serves one PR at `head` holding `comments`."""
-    tmp = pathlib.Path(tempfile.mkdtemp())
-    pr = {"headRefOid": head, "comments": [{"body": b} for b in comments], "reviews": []}
-    (tmp / "pr.json").write_text(json.dumps(pr))
-    (tmp / "gh").write_text(f"#!/bin/sh\ncat {tmp / 'pr.json'}\n")
-    (tmp / "gh").chmod(0o755)
-    return dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}")
+    return subprocess.run([sys.executable, str(HOOK)], input=payload, capture_output=True, text=True)
 
 
 class HookBypass(unittest.TestCase):
@@ -121,31 +113,12 @@ class HookBypass(unittest.TestCase):
 
 
 class MergeGate(unittest.TestCase):
-    def test_every_unpinned_merge_is_refused(self):
+    def test_every_raw_merge_is_refused_pinned_or_not(self):
         for command in MERGE_REFUSED:
             with self.subTest(command):
-                self.assertEqual(run(command).returncode, 2)
-
-    def test_merge_at_an_unapproved_sha_is_refused(self):
-        pr = "https://github.com/kalaluthien/mumu-claude-plugin/pull/23"
-        result = run(f"gh pr merge {pr} --squash --match-head-commit {'0' * 40}")
-        self.assertEqual(result.returncode, 2)
-        self.assertIn("is not the PR head", result.stderr)  # past the text gate, at the PR check
-
-    def test_approval_in_any_case_with_or_without_the_colon_passes_only_at_the_head(self):
-        """Reviewers write `APPROVED: <sha>`; `Approved <sha>` comments GitHub already holds still count."""
-        head, other = "a" * 40, "b" * 40
-        merge = f"gh pr merge {URL} --squash --match-head-commit {head}"
-        for form in ("APPROVED: {}", "Approved {}", "approved: {}", "APPROVED {}\nchecked the tests"):
-            with self.subTest(form=form):
-                ok = run(merge, with_pr(head, [form.format(head)]))
-                self.assertEqual(ok.returncode, 0, ok.stderr)
-                stale = run(merge, with_pr(head, [form.format(other)]))
-                self.assertEqual(stale.returncode, 2, stale.stderr)
-                self.assertIn("APPROVED:", stale.stderr)
-        for body in (f"FINDINGS: {head}", f"not approved: {head}", f"Approvedx {head}", f"APPROVED: {head} but"):
-            with self.subTest(body=body):
-                self.assertEqual(run(merge, with_pr(head, [body])).returncode, 2)
+                result = run(command)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("merge.py", result.stderr)
 
     def test_text_naming_the_merge_passes(self):
         for command in MERGE_PASSED:

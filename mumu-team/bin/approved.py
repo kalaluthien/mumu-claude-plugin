@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Refuse a `gh pr merge` that is not pinned to a sha a reviewer approved, and a git hook bypass.
+"""Refuse any raw `gh pr merge`, since `merge.py` is the only merge path, and a git hook bypass.
 
 PreToolUse hook on Bash. A closed heredoc body is dropped only when every
 command on its opener's line is a text reader (`cat`, `tee`, or `gh issue|pr|release`,
@@ -8,36 +8,28 @@ editor flag such as `-e`, `-eb` or `--editor`, since an editor may run it; never
 `git`, whose editor an earlier line may set), no
 pipe follows the opener, and the body is quoted or holds no `$(` or backtick;
 openers are found outside quotes and comments. The rest is split into commands as
-a shell would split it -- at a newline, `;`, `&&`, `|` or `(` -- and in each one every
-`pr [-R <repo>]... merge`, counted with quotes, backslashes and redirects
-removed, must be the one `gh ... pr merge` that command runs, after an env
-prefix or a wrapper such as `rtk`. Every quoted word is counted inside too, but
-a text one without `$(` or a backtick: a `grep` or `rg` pattern, or the value of a
-body flag (`--body`, `--comment`, `--title`, ...) of such a reader. That merge passes only
-when it names one PR by its url, combines no short flags and holds no `{`, `}`,
-`*`, `?` or `[` a shell would expand, and only when it carries one
-`--match-head-commit <sha>` of 40 hex digits, that sha is the PR's head, and the
-PR holds a comment or a review whose first line is `APPROVED: <sha>`, read in any
-case with the colon optional, so `Approved <sha>` still counts. Any other
-`pr merge` -- inside `bash -c`, `eval`, `watch`, `$(...)`, a heredoc another
-command reads, a here-string, a comment, or a command that cannot be lexed -- is
-refused; text only naming it as above passes. A merge built from a variable or an
-escape code such as `$'\x6d'` is not seen. A payload or a PR that
-cannot be read is refused too (exit 2).
+a shell would split it -- at a newline, `;`, `&&`, `|` or `(` -- and any
+`pr [-R <repo>]... merge` in it, counted with quotes, backslashes and redirects
+removed, is refused: run as a command, or inside `bash -c`, `eval`, `watch`,
+`$(...)`, a heredoc another command reads, a here-string, a comment, or a command
+that cannot be lexed. Every quoted word is counted inside too, but a text one
+without `$(` or a backtick: a `grep` or `rg` pattern, or the value of a body flag
+(`--body`, `--comment`, `--title`, ...) of such a reader; text only naming it
+passes. A merge built from a variable or an escape code such as `$'\x6d'` is not
+seen. A payload that cannot be read is refused too (exit 2).
 
 A command that skips a git hook is refused too, in any command and inside a quoted
 word: `--no-verify` or an abbreviation of it after `git`, `-n` in a `git commit`
 flag cluster (not a value such as `-m -n`), and setting `core.hooksPath` by
 `-c`, `--config-env`, `git config <key> <value>` or a `GIT_CONFIG_KEY_*` variable;
-text only naming it -- a heredoc body, a message, `echo`, `grep`, a read
-`git config <key>` -- passes, even when the command cannot be lexed. A command naming
-none of `merge`, `git` or `hookspath` exits 0 unread.
+text only naming it -- a heredoc body a reader reads, a message, `echo`, `grep`, a
+read `git config <key>` -- passes, even when the command cannot be lexed. A command
+naming none of `merge`, `git` or `hookspath` exits 0 unread.
 """
 import json
 import os
 import re
 import shlex
-import subprocess
 import sys
 
 SEPARATORS = set(";&|()\n")
@@ -52,9 +44,11 @@ READERS = {"cat": None, "tee": None, "gh": {"issue", "pr", "release"}}  # builti
 EDITOR = re.compile(r"-[^-]*e|--edit")  # `-e`, `-eb`, `--edit`, `--editor`
 TEXT_COMMANDS = {"grep", "egrep", "fgrep", "rg"}  # each reads its quoted words as text
 TEXT_FLAGS = {"-b", "--body", "-t", "--title", "--comment", "--notes"}  # of gh
-APPROVAL = re.compile(r"approved:?\s+(\S+)", re.I)  # `APPROVED: <sha>`, and `Approved <sha>` GitHub already holds
 HOOKS_PATH = re.compile(r"^(['\"]?|--config-env=|GIT_CONFIG_KEY_\d+=['\"]?)core\.hookspath(['\"]?=|['\"]?$)", re.I)  # `-c k=v`, `'k'=v`, `--config-env=k=V`, `KEY_0=k`
 HOOKS_PATH_TEXT = re.compile(r"(-c\s*|--config-env=|key_\d+=)core\.hookspath\b|\bconfig\b(?![^;&|\n]*\bget\b)[^;&|\n]*core\.hookspath[ \t]+[^\s;&|]")
+
+
+RAW_MERGE = "a raw `pr merge` is refused; run `merge.py <pr-url>` in a Bash call of its own, and write text naming the merge with a file tool"
 
 
 def refuse(reason):
@@ -197,49 +191,6 @@ def mentions(words):
     return count
 
 
-def gh_merge(words):
-    for i, word in enumerate(words):
-        if os.path.basename(word) != "gh":
-            continue
-        rest = words[i + 1:]
-        for expected in ("pr", "merge"):  # `-R <repo>` may stand before `pr` or before `merge`
-            while rest and (rest[0] in ("-R", "--repo") and len(rest) >= 2 or rest[0].startswith("--repo=")):
-                rest = rest[1:] if rest[0].startswith("--repo=") else rest[2:]
-            if rest[:1] != [expected]:
-                break
-            rest = rest[1:]
-        else:
-            yield rest
-
-
-def target(args):
-    """Read the merge's words as gh does: its one PR url and its one head pin."""
-    takes_value = {"-R", "--repo", "--match-head-commit", "-b", "--body", "-F", "--body-file",
-                   "-t", "--subject", "-A", "--author-email"}
-    if any(set(arg) & set("`${}*?[") or arg == "--" for arg in args):  # a shell may expand one word into several
-        refuse("write `gh pr merge` without `` ` ``, `$`, `{`, `}`, `*`, `?`, `[` or `--`, so its words are the ones gh gets")
-    names, pins, flag = [], [], None
-    for arg in args:
-        if flag:
-            pins += [arg] if flag == "--match-head-commit" else []
-            flag = None
-        elif re.fullmatch(r"-[A-Za-z]{2,}.*", arg):  # gh reads `-sb 31` as `-s -b 31`
-            refuse(f"write `{arg}` as separate flags, so the PR the hook reads is the one gh merges")
-        elif arg in takes_value:
-            flag = arg
-        elif arg.startswith("--match-head-commit="):
-            pins.append(arg.split("=", 1)[1])
-        elif not arg.startswith("-"):
-            names.append(arg)
-    if len(pins) != 1 or not re.fullmatch(r"[0-9a-f]{40}", pins[0]):
-        refuse("`gh pr merge` must carry one `--match-head-commit <sha>`, the full sha the reviewer approved")
-    if len(names) != 1:
-        refuse(f"`gh pr merge` must name exactly one PR by number or url, not {names or 'none'}")
-    if not re.fullmatch(r"https://github\.com/[\w.-]+/[\w.-]+/pull/\d+", names[0]):
-        refuse(f"name the PR by its url, not `{names[0]}`: a url fixes the PR whatever `-R`, `GH_REPO` or the directory say")
-    return names[0], pins[0]
-
-
 def bypasses(words):
     """Whether the words skip a git hook: `--no-verify` or its abbreviation, `git commit -n`, or setting `core.hooksPath`."""
     words = unredirected(words)
@@ -287,23 +238,6 @@ def bypass_text(text):
     return "--no-v" in text or bool(HOOKS_PATH_TEXT.search(text)) or bool(commit and re.compile(r"\s-[a-z]*n").search(text, commit.end()))
 
 
-def check(args, cwd):
-    url, sha = target(args)
-    view = ["gh", "pr", "view", url, "--json", "headRefOid,comments,reviews"]
-    run = subprocess.run(view, capture_output=True, text=True, cwd=cwd)
-    try:
-        pr = json.loads(run.stdout) if run.returncode == 0 else None
-        head = pr["headRefOid"]
-    except (ValueError, KeyError, TypeError):
-        refuse(f"could not read the PR ({' '.join(view)}): {run.stderr.strip() or run.stdout.strip()}")
-    if sha != head:
-        refuse(f"--match-head-commit {sha} is not the PR head {head}; the approval, if any, is stale")
-    notes = (pr.get("comments") or []) + (pr.get("reviews") or [])
-    first_lines = [n["body"].strip().splitlines()[0].strip() for n in notes if n["body"].strip()]
-    if not any(APPROVAL.fullmatch(line) and APPROVAL.fullmatch(line)[1].lower() == head for line in first_lines):
-        refuse(f"no PR comment or review opens with `APPROVED: {head}`; launch the reviewer agent at this sha")
-
-
 raw = sys.stdin.read()
 if not re.search(r"merge|git|hookspath", QUOTING.sub("", raw), re.I):
     sys.exit(0)
@@ -312,8 +246,6 @@ try:
     command = payload["tool_input"]["command"]
     if not isinstance(command, str):
         raise TypeError(f"command is {type(command).__name__}")
-    cwd = payload.get("cwd")
-    cwd = cwd if cwd and os.path.isdir(cwd) else None
 except (ValueError, KeyError, TypeError) as err:
     refuse(f"could not read the payload ({type(err).__name__}: {err})")
 text = without_heredocs(command)
@@ -322,24 +254,18 @@ try:
 except ValueError:  # an unclosed quote
     commands = []
     if MENTION.search(QUOTING.sub("", text)):
-        refuse("this command cannot be lexed and names `pr merge`; run `gh pr merge` on its own line")
+        refuse(RAW_MERGE)
 try:
     readings = []
     for join in (True, False):
         try:
-            readings.append(list(segments(command, join)))
+            readings.append(list(segments(text, join)))
         except ValueError:  # an unclosed quote: bash still runs every line before it
             readings.append(None)
-    if None in readings and bypass_text(command) or \
+    if None in readings and bypass_text(text) or \
             any(bypasses(words) for reading in readings if reading for words in reading):
         refuse("hook bypass refused: fix what the hook refused, or BLOCKED the owner")
-    merges = []
-    for words in commands:
-        found = list(gh_merge(unredirected(words)))
-        if len(found) != mentions(words):
-            refuse("a `pr merge` in this command is not a command of its own; run `gh pr merge` on its own line, and write text naming it with a file tool")
-        merges += found
+    if any(mentions(words) for words in commands):
+        refuse(RAW_MERGE)
 except Exception as err:  # exit 1 would let the command run
     refuse(f"could not read the command ({type(err).__name__})")
-for args in merges:
-    check(args, cwd)
