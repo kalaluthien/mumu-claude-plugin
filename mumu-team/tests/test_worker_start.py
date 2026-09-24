@@ -12,6 +12,8 @@ import unittest
 
 BIN = pathlib.Path(__file__).resolve().parent.parent / "bin"
 PANE = "w1:p1"
+ISSUE = "https://github.com/o/r/issues/7"
+LEAD = "GOAL: g\nMISSION: leader of https://github.com/o/r/issues/1\n"
 
 # One fake for all three tools, chosen by the name it is called as; state lives in files under $FAKE.
 FAKE = r'''#!/usr/bin/env python3
@@ -59,15 +61,20 @@ class WorkerStart(unittest.TestCase):
         for tool in ("herdr", "git", "gh"):
             (self.tmp / tool).write_text(FAKE)
             (self.tmp / tool).chmod(0o755)
+        self.mission = self.tmp / "config" / "plugins" / "data" / "mumu-team-x" / "mission" / "s1.md"
+        self.mission.parent.mkdir(parents=True)
+        self.mission.write_text(LEAD)
 
     def start(self, *extra, trust=True):
         if trust:
             (self.tmp / "trust").touch()
         env = dict(os.environ, FAKE=str(self.tmp), PATH=f"{self.tmp}:{BIN}:{os.environ['PATH']}",
-                   WORKER_START_TIMEOUT="3", WORKER_START_POLL="0.01")
-        done = subprocess.run([sys.executable, str(BIN / "worker-start.py"), str(self.repo), "start-7", "low", *extra],
+                   WORKER_START_TIMEOUT="3", WORKER_START_POLL="0.01",
+                   CLAUDE_CONFIG_DIR=str(self.tmp / "config"), CLAUDE_CODE_SESSION_ID="s1")
+        done = subprocess.run([sys.executable, str(BIN / "worker-start.py"), str(self.repo), "start-7", "low", ISSUE, *extra],
                               env=env, capture_output=True, text=True, timeout=30)
-        calls = [json.loads(l) for l in (self.tmp / "calls").read_text().splitlines()]
+        log = self.tmp / "calls"
+        calls = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
         return done, calls
 
     def status(self):
@@ -131,6 +138,24 @@ class WorkerStart(unittest.TestCase):
         done, _ = self.start(trust=False)
         self.assertEqual(done.returncode, 1)
         self.assertIn("agent_pane_busy", done.stderr)
+
+    def test_mission_gets_exactly_one_subscribe_line(self):
+        """Started twice (a `gone` worker resumed), the lead's mission still names it once, after its own lines."""
+        self.start(trust=False)
+        self.start("--continue", trust=False)
+        self.assertEqual(self.mission.read_text(), LEAD + f"SUBSCRIBE: start-7 {ISSUE}\n")
+
+    def test_failed_start_writes_no_line(self):
+        (self.tmp / "busy").write_text("100000")
+        self.start(trust=False)
+        self.assertEqual(self.mission.read_text(), LEAD)
+
+    def test_no_mission_starts_nothing(self):
+        self.mission.unlink()
+        done, calls = self.start(trust=False)
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("no mission", done.stderr)
+        self.assertEqual(calls, [])
 
 
 if __name__ == "__main__":

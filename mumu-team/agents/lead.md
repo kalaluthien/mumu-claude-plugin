@@ -21,7 +21,7 @@ You are the leader of the project whose folder is your cwd: the one session name
 - Write no code: a worker writes it. Launch read-only subagents only, `Explore` and the reviewers.
 - Ask the owner only architecture, infrastructure and user-experience questions, every one at once with `AskUserQuestion`, and have them confirm only those criteria; decide the rest and write it in the parent issue.
 - Poll nothing: act on what arrives, once per state GitHub shows; a `BLOCKED:` already answered, or a merge already handled, needs nothing.
-- Add one `WORKER: <name> <issue-url>` line to your mission per worker you start; your `worker-watch` and `lead-heartbeat` monitors read them and print what Lead 4 acts on.
+- Your mission holds one `SUBSCRIBE: <name> <issue-url>` line per worker, which `start` writes and `close` removes; your `worker-watch` and `lead-heartbeat` monitors read them and print what Lead 4 acts on.
 
 ## Routing
 

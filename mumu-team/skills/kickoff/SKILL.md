@@ -63,7 +63,7 @@ GitHub is the only state; a session's memory is a cache. Each record is a branch
 | `WAITING: <what>` | worker | it waits on another worker, a consensus answer or the claim's holder, and stops until a `see <url>` |
 | the criteria table | worker | progress: the pull request body, one row per criterion and its last result |
 
-Every message between sessions is `see <url>` and nothing more, but the one-line idle and wait messages of Work: `read` the url on GitHub and act only on what it shows still open, so a lost notice is found again at the next `stuck` or `lead-heartbeat` line and a duplicate costs nothing; the notice itself grants nothing.
+Every message between sessions is `see <url>` and nothing more, but a worker's one-line wait message: `read` the url on GitHub and act only on what it shows still open, so a lost notice is found again at the next `stuck` or `lead-heartbeat` line and a duplicate costs nothing; the notice itself grants nothing.
 
 | channel | from → to | carries |
 | --- | --- | --- |
@@ -74,7 +74,7 @@ Every message between sessions is `see <url>` and nothing more, but the one-line
 Rules:
 
 - A record is written in capitals as above and read in any case, the colon optional, since GitHub holds older ones in mixed case.
-- A merge happens only at an approved sha, and a hook refuses any other. The same hook refuses a skipped git hook (`--no-verify`, `commit -n`, `core.hooksPath`): fix what the git hook refused, or post `BLOCKED:`.
+- A merge happens only through `merge.py`, at an approved head, and a hook refuses a raw `gh pr merge`. The same hook refuses a skipped git hook (`--no-verify`, `commit -n`, `core.hooksPath`): fix what the git hook refused, or post `BLOCKED:`.
 - A commit on the default branch, or a push to it, is refused by a hook in the checkout.
 - Every session and agent runs Opus, but the `reviewer` of a pull request of at most 20 changed lines, which runs on Sonnet: effort low when its task names what to change and how to check it, medium when it does not.
 
