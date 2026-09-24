@@ -1,25 +1,37 @@
 # Doctypes
 
 A document answers one question. Its doctype is how it explains, picked by the
-question and never by the subject; its medium is where it is read.
+question and never by the subject; its medium is where it is read. The parts
+below: doctypes, yardsticks, media, markdown forms, page, figures, prose.
 
 ## Doctypes
 
 | doctype | answers | its parts, in order |
 | --- | --- | --- |
 | `diagram` | what it is made of, how its parts connect | the title; the one thing to read off it; each figure with the text it serves; its key; the source |
-| `narrative` | how it works, why it is so, what will be done | a one-line thesis; a map of the whole; chapters in the order understanding builds, each headed by its answer to one question, with its evidence; a reason the source omits, called absent; the source at a sha |
-| `comparison` | which one, what differs | the question; the verdict and what would change it; the yardstick, fixed before any option; each option against it, bold only on the cells the verdict turns on |
+| `narrative` | how it works, why it is so, what will be done | a one-line thesis; a map of the whole; chapters in the order understanding builds, each headed by its one claim, each paragraph claim, reason, evidence and consequence, never a list of findings; a reason the source omits, called absent; the source at a sha |
+| `comparison` | which one, what differs | the question and, in one line, what blocks it; the verdict and what would change it; the yardstick by [Yardsticks](#yardsticks), fixed before any option; each option as what of the blocker it removes, against the yardstick, bold only on the cells the verdict turns on |
 
 - A repository's structure is a diagram, what a PR changed a comparison, why
   a design is so a narrative, a decision a comparison, and a proposal one
-  with leaving things as they are among its options.
+  among to-be plans, each with what it deletes, and leaving things as is.
 - Two questions: a narrative, the diagram its map, the comparison a chapter.
 - A part no fact settles is a blank: the reader's decision.
 - Asked only what follows, the answer has no doctype and no parts: it skips
   every fact already on screen, says what they imply, then the one action it
   recommends, and nothing after; when nothing follows, it says so plainly
   instead of inventing a step.
+
+## Yardsticks
+
+A yardstick the user names but does not define is read in this sense; a
+finding with no evidence a check can read is no row.
+
+| named | measured as |
+| --- | --- |
+| interaction, output, structure, theory | how a person and the agents reach the result, where the person enters, decides and gets it back; what shipped, split without overlap, each part on the same criteria; simplicity, completeness, soundness, modularity, encapsulation, each measured; the one-sentence theory it rests on, judged for clarity and soundness |
+| upkeep: modularity, encapsulation, simplification, unification, structural completeness, cognitive brevity | one row per finding: the module, the quality it fails, its evidence (a count, a duplicate, a reader with no consumer, a time), the follow-up |
+| simpler, for a redesign | fewer components (files, entities, scripts, CI steps, prose-only rules), one shape per kind and one reader per rule, fewer dependencies: before and after counted by script, and any growth named |
 
 ## Media
 
@@ -58,6 +70,8 @@ with only the calls, files, states and boundaries the question needs.
   at most.
 - The work, not the plumbing: labels, values and errors, no prose about how
   the page behaves; one fact takes one form everywhere.
+- A page the reader acts on opens with one annotated sample item: each part
+  named, what to press, what the answer is used for.
 - No motion of its own; a transition only answers a reader's action.
 
 ## Figures
@@ -84,3 +98,9 @@ with only the calls, files, states and boundaries the question needs.
 - A heading on a change says what is true after it.
 - Short words, one idea a sentence, active voice; a new term is defined where
   it first appears or cut; no word that sells.
+- Rules taken from outside land as a section of the existing document, only
+  those it uses, with no provenance column and no skipped or not-found row.
+- A Korean page keeps each term that has an English name in English, Korean
+  only the grammar between, and none of `아니라`, ` 대 `, `이름하다`, `추정했다`.
+- Before Check, a separate Opus editor rewrites only a Korean page's text, terms
+  and `<title>` frozen; a diff of the tag stream shows only text nodes changed.

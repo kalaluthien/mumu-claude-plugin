@@ -34,7 +34,7 @@ nothing is filed in memory.
 A guard's own crash permits and names itself, so a bug in the check costs one
 unjudged call, not a wall across everything it guards.
 
-Three harness facts, each of which makes a hook enforce nothing when missed:
+Four harness facts, each of which makes a hook misfire when missed:
 
 - Exit 2 blocks only on events that can block; on `PostToolUse`,
   `SessionStart`, `Notification` and their kind it prints and execution goes on.
@@ -42,15 +42,45 @@ Three harness facts, each of which makes a hook enforce nothing when missed:
   exit 0, so a script that announces always exits 0.
 - A `PreToolUse` matcher lists tool names; a call to a tool it does not name
   is never seen.
+- `SessionStart` fires again after `/clear` and each compaction, its `source`
+  saying which, and `SessionEnd` never fires on `kill -9`.
 
-## Absence
+## Readers
 
-A stale input arrives as an absence that looks like a pass.
+A reader answering from the wrong line or from silence looks like a pass.
 
-- A missing directory is a refusal, not an empty result.
+- A missing directory is a refusal, not an empty result; an absence that one
+  reading cannot tell from a pass refuses, with an explicit override.
+- Answer yes, no or *could not look*, each its own override: a second reader
+  whose no-match branch is silence goes stale unseen.
+- Anchor on the line printed for the fact itself, before any optional step,
+  matched by equality: a grep for a literal also matches its own definition.
+- The producer and the reader share the anchor by import; the case spells it
+  separately, so a drift in either fails.
+- Check the shape of what a parser returns: `json.loads` and
+  `ast.literal_eval` return any value, not the dict you expect.
+- Probe a predicate over where an effect lands once per form that moves it:
+  subshell, pipeline, `&`, `-c` string, heredoc, `pushd`.
+- `git diff --cached --name-only` names only a rename's destination; pass
+  `--no-renames`.
 - Print what was read, from where, and which branch was taken.
 - Give a polling loop a terminal branch: for a finished subject, absence is
   the steady state.
+
+## Widening a guard
+
+A guard patched one exhibit at a time keeps the route nobody showed.
+
+- Before the branch, state the bad state and list every route to it: each
+  verb, the REST and GraphQL calls, a variable or `xargs` spelling.
+- When a finding's fix is a new branch in the code the last fix added,
+  withdraw the mechanism: allow-list the forms it can read, over raw text.
+- A new rule applies at every site that decides the same question, one case
+  per site; a set spelled twice drifts, so name it once.
+- Before an allow-list replaces a deny-list, diff both over the same tree, and
+  count what an "I cannot judge" branch turns off over the real record.
+- A git hook reaches every worktree of the clone, and a changed allowance
+  breaks other suites' fixtures: run every suite, then read CI for the sha.
 
 ## Verifying one
 
@@ -61,3 +91,7 @@ refusal share one. Beside every refusal branch put named allow cases for the
 ordinary neighbours — the next directory, the read-only verb, the quoted
 string that only mentions the guarded phrase — because a suite of refusals
 stays green while the guard refuses too much.
+
+A clean `git merge` runs no `pre-commit`, so drive a git hook with
+`git commit`; drive a harness hook in a real run of `claude -p --settings
+<json>`, which adds it beside the global hooks.

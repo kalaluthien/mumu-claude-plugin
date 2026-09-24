@@ -16,12 +16,17 @@ template, its headings, its comment kinds. The topic is the one named, else the 
 3. **Medium**: markdown in one of its forms, or a page from
    [page.html](assets/page.html), whose `#round` form asks a round of
    questions.
-4. **Plan** a page or a figure: one line naming the doctype, each figure
-   with the paragraph beside it; then write.
-5. **Check** a page: `"${CLAUDE_PLUGIN_ROOT}/bin/page-check.sh" <page>` clicks
+4. **Plan**: the reader, the question, one claim per chapter and where its
+   evidence sits; a page or a figure adds one line naming the doctype, each
+   figure with the paragraph beside it; then write.
+5. **Check**: reread for order, each claim against its evidence, cuts and
+   register. A page: `"${CLAUDE_PLUGIN_ROOT}/bin/page-check.sh" <page>` clicks
    each control once and prints `pass`; on `FAIL`, fix and rerun; exit 2 says
    why it could not run.
 6. **Deliver** by [Delivery](#delivery).
+7. **Resubmit** a rejected draft: first a reader, an editor and a hostile
+   fact-checker, never skipped, each say why it fails; edit by what they agree
+   on, the rest settled by the user's words.
 
 ## Page rules over the Artifact tool
 

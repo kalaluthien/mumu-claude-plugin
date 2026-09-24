@@ -66,7 +66,10 @@ alloy exec -f -q -o "$out" spec/<module>/check.als && ls "$out"
 
 - Re-run `check.als` after each edit to either file.
 - Start at `for 3` and raise the scope while each check finishes within a minute; report the scope each ran at.
+- Read [alloy](references/alloy.md) § Running before the first run.
 
 ## 4. Check the code against the model
 
 Each `pred` is an operation: its guard is a precondition the code checks before the effect, and its effect the only state it changes. Each `fact` and `assert` is an invariant the code never breaks. For each, name the code that enforces it and the test that fails when that code is removed; one with neither is a gap: report it.
+
+Before trusting a green check, read [alloy](references/alloy.md) § A check green without its rule.
