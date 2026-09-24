@@ -9,6 +9,7 @@ After `clean` pulls a merged PR, the lead maps the PR's changed paths (`gh pr di
 | changed path | takes effect | step |
 | --- | --- | --- |
 | `*/bin/*`, `*/references/*.md` | at once | none |
+| `mumu-team/lib/team.py`, `mumu-team/bin/worker-watch.py`, `mumu-team/bin/lead-heartbeat.py` | at a monitor's restart | `herdr agent prompt <pane> "stop your worker-watch and lead-heartbeat tasks, rerun ensure-monitors.py, and arm what it prints"` for each lead in `herdr agent list` |
 | `*/skills/*/SKILL.md` (body or list), `*/hooks/hooks.json`, `*/agents/*.md` used as a subagent | `/reload-plugins` | `herdr agent prompt <pane> "/reload-plugins"` for each agent in `herdr agent list` |
 | `*/agents/*.md` a session runs as (`--agent`: `lead.md`, `worker.md`) | restart | below |
 
