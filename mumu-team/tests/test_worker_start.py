@@ -32,6 +32,12 @@ elif tool == "git":
 elif a[:2] == ["tab", "create"]:
     print(json.dumps({"result": {"root_pane": {"pane_id": "%s"}}}))
 elif a[:2] == ["agent", "start"]:
+    busy = d / "busy"
+    n = int(busy.read_text()) if busy.exists() else 0
+    if n:
+        busy.write_text(str(n - 1))
+        print(json.dumps({"error": {"code": "agent_pane_busy", "message": "not an available shell"}}))
+        sys.exit(1)
     print(json.dumps({"error": {"code": "agent_not_ready"}} if blocked else {"result": {}}))
 elif a[:2] == ["agent", "read"]:
     print("Quick safety check\n ❯ No, exit\n   Yes, I trust this folder" if blocked else "❯")
@@ -113,6 +119,18 @@ class WorkerStart(unittest.TestCase):
         done, _ = self.start()
         self.assertEqual(done.returncode, 1)
         self.assertIn(f"herdr agent read {PANE}", done.stderr)
+
+    def test_start_retried_while_pane_busy(self):
+        (self.tmp / "busy").write_text("2")
+        done, calls = self.start(trust=False)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(len([c for c in calls if c[1:3] == ["agent", "start"]]), 3)
+
+    def test_pane_always_busy_fails_naming_the_error(self):
+        (self.tmp / "busy").write_text("100000")
+        done, _ = self.start(trust=False)
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("agent_pane_busy", done.stderr)
 
 
 if __name__ == "__main__":
