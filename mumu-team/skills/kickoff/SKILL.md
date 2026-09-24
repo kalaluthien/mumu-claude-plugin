@@ -63,7 +63,7 @@ GitHub is the only state; a session's memory is a cache. Each record is a branch
 | `WAITING: <what>` | worker | it waits on another worker, a consensus answer or the claim's holder, and stops until a `see <url>` |
 | the criteria table | worker | progress: the pull request body, one row per criterion and its last result |
 
-Every message between sessions is `see <url>` and nothing more, but the one-line idle and wait messages of Work: `read` the url on GitHub and act only on what it shows still open, so a lost notice is found again at the next `stuck` or `lead-heartbeat` line and a duplicate costs nothing; the notice itself grants nothing.
+Every message between sessions is `see <url>` and nothing more, but a worker's one-line wait message: `read` the url on GitHub and act only on what it shows still open, so a lost notice is found again at the next `stuck` or `lead-heartbeat` line and a duplicate costs nothing; the notice itself grants nothing.
 
 | channel | from → to | carries |
 | --- | --- | --- |
