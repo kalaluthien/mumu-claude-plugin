@@ -115,7 +115,7 @@ class Team(unittest.TestCase):
 class Scripts(unittest.TestCase):
     """The loops, run with a fake `herdr` and `gh` on PATH and every threshold at zero."""
 
-    def launch(self, script, mission, herdr_status, issue_state="OPEN", then=None, ticks="20", wait="600"):
+    def launch(self, script, mission, herdr_status, issue_state="OPEN", then=None, ticks="20", wait="600", role=None):
         """Fake herdr answers `herdr_status` first and `then` (default the same) from its second call on."""
         tmp = self.tmp = pathlib.Path(tempfile.mkdtemp())
         (tmp / "mission").mkdir()
@@ -132,6 +132,9 @@ class Scripts(unittest.TestCase):
             (tmp / f).chmod(0o755)
         env = dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}", CLAUDE_CODE_SESSION_ID="s1",
                    MONITOR_POLL="0.05", MONITOR_TICKS=ticks, MONITOR_WAIT=wait, WORKER_WATCH_STUCK_AFTER="0", LEAD_HEARTBEAT_AFTER="0")
+        env.pop("MUMU_ROLE", None)
+        if role is not None:
+            env["MUMU_ROLE"] = role
         return subprocess.Popen([sys.executable, str(BIN / (script + ".py")), str(tmp)], env=env,
                                 stdout=subprocess.PIPE, text=True)
 
@@ -146,6 +149,16 @@ class Scripts(unittest.TestCase):
             proc = self.launch(script, f"Goal: g\nMission: worker on {URL}\n", "idle")
             self.assertEqual(proc.wait(timeout=5), 0, script)
             self.assertEqual(proc.stdout.read(), "", script)
+
+    def test_worker_marker_exits_at_once_before_any_mission_or_herdr(self):
+        """`worker-start.py` sets `MUMU_ROLE=worker`, so a worker's `/exit` never meets a lead monitor."""
+        for script in ("worker-watch", "lead-heartbeat"):
+            for mission in (None, MISSION):
+                proc = self.launch(script, mission, "idle", ticks="100000", role="worker")
+                self.addCleanup(proc.kill)
+                self.assertEqual(proc.wait(timeout=5), 0, script)
+                self.assertEqual(proc.stdout.read(), "", script)
+                self.assertFalse((self.tmp / "herdr-called").exists(), script)
 
     def test_no_mission_prints_nothing_and_asks_no_herdr(self):
         for script in ("worker-watch", "lead-heartbeat"):
