@@ -5,7 +5,8 @@ usage: worker-start.py <checkout> <name> <effort> [--continue] [--prompt <text>]
 
 The worktree is `<checkout>/.claude/worktrees/<name>`, added detached at
 `origin/<default>` when missing and reused when present; the git guard is
-copied as `repo.md`'s `checkout` does. Claude runs as `--agent mumu-team:worker`, whose Stop hook
+copied as `repo.md`'s `checkout` does, and `/.claude/worktrees/` is added
+to the checkout's `info/exclude` so worktrees never show as untracked. Claude runs as `--agent mumu-team:worker`, whose Stop hook
 holds it until its issue lands or is blocked. `--continue` resumes the worktree's
 last Claude session. The trust dialog defaults to "No, exit", so it is
 answered `down enter`. Prints `<name>@<pane> <worktree>` once the session is
@@ -20,6 +21,7 @@ import sys
 import time
 
 TRUST = "Yes, I trust this folder"
+IGNORE = "/.claude/worktrees/"
 
 
 def run(*argv, cwd=None):
@@ -37,6 +39,11 @@ def checkout(repo, name):
         run("git", "-C", repo, "fetch", "origin")
         default = run("gh", "repo", "view", "--json", "defaultBranchRef", "-q", ".defaultBranchRef.name", cwd=repo).strip()
         run("git", "-C", repo, "worktree", "add", "--detach", str(tree), f"origin/{default}")
+    exclude = pathlib.Path(run("git", "-C", repo, "rev-parse", "--path-format=absolute", "--git-path", "info/exclude").strip())
+    text = exclude.read_text() if exclude.exists() else ""
+    if IGNORE not in text.splitlines():
+        exclude.parent.mkdir(parents=True, exist_ok=True)
+        exclude.write_text(text + ("\n" if text and not text.endswith("\n") else "") + IGNORE + "\n")
     if subprocess.run(["git", "-C", repo, "config", "core.hooksPath"], capture_output=True).returncode != 0:
         hooks = pathlib.Path(run("git", "-C", repo, "rev-parse", "--path-format=absolute", "--git-path", "hooks").strip())
         guard = shutil.which("default-branch-guard.sh")
