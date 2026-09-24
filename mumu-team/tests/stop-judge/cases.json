@@ -48,7 +48,7 @@
    "issue": {"state": "OPEN", "comments": ["WAITING: held by another session: branch `fix-login-99` exists on the remote and this checkout is not on it."]}, "prs": [],
    "last": "The issue is already claimed by another session; I commented that and am stopping."},
   {"id": "waiting-other-worker", "split": "test", "label": "stop", "reason": "it waits on another worker's merge, recorded on the issue, and is woken by `see <url>` (agents/worker.md:15)",
-   "issue": {"state": "OPEN", "comments": ["WAITING: #120 to merge the `mission.py` interface; its worker will send `see <url>` when it lands."]},
+   "issue": {"state": "OPEN", "comments": ["WAITING: #120 to merge the `inject-mission.py` interface; its worker will send `see <url>` when it lands."]},
    "prs": [{"number": 107, "state": "OPEN", "reviewDecision": "", "comments": []}],
    "last": "Messaged the worker on #120 what I wait for. Waiting for its see <url>."},
   {"id": "consensus-proposal", "split": "dev", "label": "stop", "reason": "a consensus proposal waits for the other worker's one answer (agents/worker.md:16)",

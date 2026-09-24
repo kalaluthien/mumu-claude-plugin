@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-"""Start a worker in one call: its worktree, its tab, its Claude session, the folder-trust dialog, and its first prompt.
+"""Start a worker in one call: its worktree, its tab, its Claude session, the folder-trust dialog, its first prompt, and its mission line.
 
-usage: worker-start.py <checkout> <name> <effort> [--continue] [--prompt <text>]
+usage: worker-start.py <checkout> <name> <effort> <issue-url> [--continue] [--prompt <text>]
 
 The worktree is `<checkout>/.claude/worktrees/<name>`, added detached at
 `origin/<default>` when missing and reused when present; the git guard is
-copied as `repo.md`'s `checkout` does, and `/.claude/worktrees/` is added
+copied into the checkout's hooks, and `/.claude/worktrees/` is added
 to the checkout's `info/exclude` so worktrees never show as untracked. The tab
 sets `MUMU_ROLE=worker`, on which the lead monitors exit at once (`lib/team.py`). Claude runs as `--agent mumu-team:worker`, whose Stop hook
 holds it until its issue lands or is blocked. `--continue` resumes the worktree's
 last Claude session. The trust dialog defaults to "No, exit", so it is
-answered `down enter`. Prints `<name>@<pane> <worktree>` once the session is
-ready. `agent start` is retried while herdr answers `agent_pane_busy`.
+answered `down enter`. Once the session is ready, `SUBSCRIBE: <name> <issue-url>`
+is appended to this session's mission (`team.mission_file`) unless a line for
+`<name>` is there, and `<name>@<pane> <worktree>` printed; with no mission it
+fails before anything starts. `agent start` is retried while herdr answers `agent_pane_busy`.
 `WORKER_START_TIMEOUT` (60) and `WORKER_START_POLL` (1) are seconds.
 """
 import json
@@ -21,6 +23,9 @@ import shutil
 import subprocess
 import sys
 import time
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
+import team  # noqa: E402
 
 TRUST = "Yes, I trust this folder"
 IGNORE = "/.claude/worktrees/"
@@ -108,10 +113,14 @@ def main(argv):
             prompt = next(it, None)
         else:
             args.append(a)
-    if len(args) != 3 or (prompt is None and "--prompt" in argv):
-        print("usage: worker-start.py <checkout> <name> <effort> [--continue] [--prompt <text>]", file=sys.stderr)
+    if len(args) != 4 or (prompt is None and "--prompt" in argv):
+        print("usage: worker-start.py <checkout> <name> <effort> <issue-url> [--continue] [--prompt <text>]", file=sys.stderr)
         return 2
-    repo, name, effort = args
+    repo, name, effort, url = args
+    mission = team.mission_file()
+    if mission is None:
+        print("worker-start.py: no mission for this session; write its GOAL: line first", file=sys.stderr)
+        return 1
     try:
         tree = checkout(repo, name)
         pane = json.loads(run("herdr", "tab", "create", "--cwd", str(tree), "--label", name, "--env", "MUMU_ROLE=worker", "--no-focus"))["result"]["root_pane"]["pane_id"]
@@ -120,6 +129,7 @@ def main(argv):
         await_ready(name, pane, timeout, poll)
         if prompt:
             run("herdr", "agent", "prompt", pane, prompt)
+        team.subscribe(mission, name, url)
     except RuntimeError as e:
         print(f"worker-start.py: {e}", file=sys.stderr)
         return 1
