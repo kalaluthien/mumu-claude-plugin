@@ -238,6 +238,21 @@ class Scripts(unittest.TestCase):
     def test_heartbeat_once_with_zero_workers(self):
         self.assertEqual(self.lines(self.launch("lead-heartbeat", LEAD, None)), [f"lead-heartbeat: team idle 0m, mission {PARENT}"])
 
+    def test_mission_keys_in_either_case_reach_tick(self):
+        """The mission is written `MISSION:`, and one written `Mission:` before that still counts, in both monitors."""
+        for keys in (("Goal:", "Mission:", "Worker:"), ("GOAL:", "MISSION:", "WORKER:"), ("goal:", "mission:", "worker:")):
+            goal, mission, worker = keys
+            text = f"{goal} g\n{mission} leader of {PARENT}\n{worker} a-7 {URL}\n"
+            with self.subTest(keys=keys):
+                self.assertEqual(self.lines(self.launch("worker-watch", text, "blocked")), [f"blocked a-7 {URL}"])
+                self.assertEqual(self.lines(self.launch("lead-heartbeat", text, "blocked")),
+                                 [f"lead-heartbeat: team idle 0m, mission {PARENT}"])
+        for mission in ("Mission:", "MISSION:"):
+            with self.subTest(worker_mission=mission):
+                proc = self.launch("worker-watch", f"GOAL: g\n{mission} worker on {URL}\n", "idle")
+                self.assertEqual(proc.wait(timeout=5), 0)
+                self.assertFalse((self.tmp / "herdr-called").exists())
+
     def test_heartbeat_names_every_parent(self):
         self.assertEqual(self.lines(self.launch("lead-heartbeat", TWO, None)),
                          [f"lead-heartbeat: team idle 0m, mission {PARENT} {PARENT2}"])

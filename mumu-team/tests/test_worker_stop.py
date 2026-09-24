@@ -16,7 +16,7 @@ import json, os, pathlib, sys
 d = pathlib.Path(os.environ["FAKE"])
 with open(d / "calls", "a") as f:
     f.write(json.dumps(sys.argv[1:]) + "\n")
-print((d / "issue.json").read_text())
+print((d / ("prs.json" if sys.argv[1:3] == ["pr", "list"] else "issue.json")).read_text())
 '''
 
 
@@ -28,8 +28,9 @@ class WorkerStop(unittest.TestCase):
         self.tree = self.tmp / "repo" / ".claude" / "worktrees" / "stop-guard-19"
         self.tree.mkdir(parents=True)
 
-    def stop(self, agent_type="mumu-team:worker", state="OPEN", comments=(), cwd=None):
+    def stop(self, agent_type="mumu-team:worker", state="OPEN", comments=(), cwd=None, prs=()):
         (self.tmp / "issue.json").write_text(json.dumps({"state": state, "comments": [{"body": b} for b in comments]}))
+        (self.tmp / "prs.json").write_text(json.dumps(list(prs)))
         payload = {"hook_event_name": "Stop", "session_id": "s", "cwd": str(cwd or self.tree), "stop_hook_active": False}
         if agent_type:
             payload["agent_type"] = agent_type
@@ -59,6 +60,34 @@ class WorkerStop(unittest.TestCase):
                 outs, _ = self.stop(**kwargs)
                 self.assertFalse(self.refused(outs), outs)
                 self.assertTrue(outs and all(o.returncode == 0 for o in outs), outs)
+
+    def test_worker_stops_on_every_record_in_any_case_with_or_without_the_colon(self):
+        """Records are written `UPPERCASE:` and read case-insensitively, the colon optional, so old comments still count."""
+        for last in ("BLOCKED: which name?", "blocked: which name?", "Blocked which name?",
+                     "STOPPED: the owner dropped it", "Stopped: the owner dropped it",
+                     "WAITING: #120 to merge `lib/tree.py`", "Waiting: for #121's answer", "waiting on #120"):
+            with self.subTest(last=last):
+                outs, _ = self.stop(comments=["a plan", last])
+                self.assertFalse(self.refused(outs), outs)
+
+    def test_worker_stops_once_a_pull_request_from_its_branch_merged(self):
+        merged = {"number": 5, "state": "MERGED", "headRefName": "stop-guard-19"}
+        outs, calls = self.stop(prs=[merged])
+        self.assertFalse(self.refused(outs), outs)
+        self.assertIn("stop-guard-19", json.loads(calls[-1]))
+
+    def test_worker_is_refused_when_no_merged_pull_request_is_its_own(self):
+        for prs in ([{"number": 5, "state": "OPEN", "headRefName": "stop-guard-19"}],
+                    [{"number": 5, "state": "CLOSED", "headRefName": "stop-guard-19"}],
+                    [{"number": 5, "state": "MERGED", "headRefName": "other-guard-19"}]):
+            with self.subTest(prs=prs):
+                self.assertTrue(self.refused(self.stop(prs=prs)[0]))
+
+    def test_record_words_inside_a_comment_do_not_stop(self):
+        for last in ("Progress: I was blocked: by a flaky fixture", "Not waiting on anyone", "Answer: stopped: no",
+                     "Blockedness is low", "Waitingroom booked"):
+            with self.subTest(last=last):
+                self.assertTrue(self.refused(self.stop(comments=[last])[0]))
 
     def test_session_without_worker_agent_stops_and_reads_nothing(self):
         for agent_type in (None, "mumu-team:lead", "mumu-team:reviewer"):

@@ -21,4 +21,4 @@ A worker's worktree goes in its leader's own checkout only, never in another rep
 
 - `file`: `--parent` creates the issue even when the link fails (a parent's 100 sub-issues, closed ones included, or a server error), so relink the printed url with `gh issue edit <url> --parent <parent-url>`, never create it again.
 - `pr` and `merge`: an error such as `GraphQL: Something went wrong` may still have landed, so `read` the state before retrying; just after a push `headRefOid` can name the old head, which `git ls-remote origin refs/heads/<branch>` does not.
-- Waiting on CI: a pull request whose `gh pr view --json mergeable` is `CONFLICTING` gets no run, and a job with `needs` is absent from `gh pr checks` until they finish, so wait in the foreground with `gh run watch <id> --exit-status`.
+- CI: a pull request whose `gh pr view --json mergeable` is `CONFLICTING` gets no run, and a job with `needs` is absent from `gh pr checks` until they finish, so wait in the foreground with `gh run watch <id> --exit-status`.

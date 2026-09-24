@@ -17,7 +17,8 @@ body flag (`--body`, `--comment`, `--title`, ...) of such a reader. That merge p
 when it names one PR by its url, combines no short flags and holds no `{`, `}`,
 `*`, `?` or `[` a shell would expand, and only when it carries one
 `--match-head-commit <sha>` of 40 hex digits, that sha is the PR's head, and the
-PR holds a comment or a review whose first line is `Approved <sha>`. Any other
+PR holds a comment or a review whose first line is `APPROVED: <sha>`, read in any
+case with the colon optional, so `Approved <sha>` still counts. Any other
 `pr merge` -- inside `bash -c`, `eval`, `watch`, `$(...)`, a heredoc another
 command reads, a here-string, a comment, or a command that cannot be lexed -- is
 refused; text only naming it as above passes. A merge built from a variable or an
@@ -51,6 +52,7 @@ READERS = {"cat": None, "tee": None, "gh": {"issue", "pr", "release"}}  # builti
 EDITOR = re.compile(r"-[^-]*e|--edit")  # `-e`, `-eb`, `--edit`, `--editor`
 TEXT_COMMANDS = {"grep", "egrep", "fgrep", "rg"}  # each reads its quoted words as text
 TEXT_FLAGS = {"-b", "--body", "-t", "--title", "--comment", "--notes"}  # of gh
+APPROVAL = re.compile(r"approved:?\s+(\S+)", re.I)  # `APPROVED: <sha>`, and `Approved <sha>` GitHub already holds
 HOOKS_PATH = re.compile(r"^(['\"]?|--config-env=|GIT_CONFIG_KEY_\d+=['\"]?)core\.hookspath(['\"]?=|['\"]?$)", re.I)  # `-c k=v`, `'k'=v`, `--config-env=k=V`, `KEY_0=k`
 HOOKS_PATH_TEXT = re.compile(r"(-c\s*|--config-env=|key_\d+=)core\.hookspath\b|\bconfig\b(?![^;&|\n]*\bget\b)[^;&|\n]*core\.hookspath[ \t]+[^\s;&|]")
 
@@ -298,8 +300,8 @@ def check(args, cwd):
         refuse(f"--match-head-commit {sha} is not the PR head {head}; the approval, if any, is stale")
     notes = (pr.get("comments") or []) + (pr.get("reviews") or [])
     first_lines = [n["body"].strip().splitlines()[0].strip() for n in notes if n["body"].strip()]
-    if f"Approved {head}" not in first_lines:
-        refuse(f"no PR comment or review opens with `Approved {head}`; launch the reviewer agent at this sha")
+    if not any(APPROVAL.fullmatch(line) and APPROVAL.fullmatch(line)[1].lower() == head for line in first_lines):
+        refuse(f"no PR comment or review opens with `APPROVED: {head}`; launch the reviewer agent at this sha")
 
 
 raw = sys.stdin.read()
