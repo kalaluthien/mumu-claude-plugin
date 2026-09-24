@@ -16,3 +16,9 @@ A worker's worktree goes in its leader's own checkout only, never in another rep
 | `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file -`; later `gh pr edit <pr> --body-file -` |
 | `merge` | `gh pr merge <pr-url> --squash --match-head-commit <approved sha>` |
 | `clean` | for each worker `git -C <checkout> worktree remove <worktree>`, `git -C <checkout> branch -D <branch>` and `git -C <checkout> push origin --delete <branch>`, the branch being merged by squash; then `git -C <checkout> pull --ff-only`, and remove each of `<hooks>/pre-commit` and `<hooks>/pre-push` that `cmp -s` finds equal to the guard |
+
+## Traps
+
+- `file`: `--parent` creates the issue even when the link fails (a parent's 100 sub-issues, closed ones included, or a server error), so relink the printed url with `gh issue edit <url> --parent <parent-url>`, never create it again.
+- `pr` and `merge`: an error such as `GraphQL: Something went wrong` may still have landed, so `read` the state before retrying; just after a push `headRefOid` can name the old head, which `git ls-remote origin refs/heads/<branch>` does not.
+- Waiting on CI: a pull request whose `gh pr view --json mergeable` is `CONFLICTING` gets no run, and a job with `needs` is absent from `gh pr checks` until they finish, so wait in the foreground with `gh run watch <id> --exit-status`.

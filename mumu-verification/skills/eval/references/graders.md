@@ -34,6 +34,8 @@ A `tool_used` grader's tool must be in the case's `allowed_tools`. Under ablatio
 
 A skill's trigger is decided by its `description` and checked with code: about 20 prompts, half that should fire it and half near misses sharing its words, each a case with a `tool_used: Skill` grader (`min: 1`; for a near miss `min: 0` and `max: 0`), 3 runs each. Tune the description on 60% of them and judge it on the other 40%.
 
+`plugin eval` fires a skill more readily than a live session: confirm a trigger change, and any step moved out of a playbook, live with `claude -p --output-format stream-json`, counting Skill `tool_use` calls before and after.
+
 ## 3. A judge, when code cannot
 
 Only for a mode that needs reading to decide, once it has about 20 labelled traces on each side. The prompt has four parts:

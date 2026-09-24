@@ -8,6 +8,7 @@ A lesson filed here: a procedure goes into the skill that owns the work,
 edited in its source and never under `~/.claude/plugins/cache/`, or a new one
 in `~/.claude/skills/`, as the steps as run with what varied between runs as
 parameters; how a delegate should work goes into its `agents/<name>.md`.
+The parts below: folder, sweeping, frontmatter, body, register.
 
 ## Folder
 
@@ -25,8 +26,23 @@ parameters; how a delegate should work goes into its `agents/<name>.md`.
   tests, eval grader patterns) for the old path and the bare file name until
   neither is found stale, then open each new link once, because a stale path
   fails only when that step runs.
+- Moving a rule: re-derive it against each member of its new home, and empty
+  the old home only once a grep of the destination finds the rule's nouns.
+- A `directory` marketplace loads plugins from its checkout, so a merge pulled
+  there needs no update and a worktree's edit reaches no session.
 - No file under a skill is named `skill.md` in any case: on a case-insensitive
   filesystem it is the same file as `SKILL.md`.
+
+## Sweeping
+
+A sweep's zero counts only once its pattern has found one known hit.
+
+- List the surfaces before the spellings: the tracked tree, untracked files,
+  other checkouts, every memory pool, issue and pull request bodies.
+- Sweep a hyphenated name as `<a>[ _-]<b>` case-insensitively, and a moved
+  rule by its vocabulary, since a move rewords it.
+- Re-read each edited file top to bottom, because the survivor sits nearest
+  the correction; grep a changed signature tree-wide as `fn(`.
 
 ## Frontmatter
 
@@ -38,7 +54,8 @@ parameters; how a delegate should work goes into its `agents/<name>.md`.
   and no angle brackets: the listing truncates long entries and drops the
   least-used first. A `Not for …` clause names the sibling that could claim
   the same request, because negative scope stops over-triggering and more
-  positive description does not.
+  positive description does not. `plugin eval` overstates firing: count
+  Skill calls in live `claude -p --output-format stream-json` runs.
 - `disable-model-invocation: true` on a skill only a person types: a command
   is an order given, not an operation offered. Its `description` says what
   it does, since no model chooses it by the situation.
@@ -88,6 +105,11 @@ held at once. Plain imperatives, no capitals and no `MUST`; keep a prohibition
 a prohibition. One term per concept, no dates or versions, no constant without
 the reason for its value. An example that repeats its instruction anchors the
 agent to the sample instead of the rule.
+
+- Write a rule's consumer in the same change, with hostile cases, and
+  compress a rule clause by clause against the original.
+- A replacement rule gets a forward pass, what it now refuses, and a backward
+  pass, what leaned on the old shape; a rule stated twice is fixed twice.
 
 A vendored skill is a byte-identical copy of its upstream, named on the first
 line of its body: an upgrade replaces the whole file, and any edit breaks that

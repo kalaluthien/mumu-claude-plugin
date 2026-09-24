@@ -14,7 +14,7 @@ Lead a goal to reviewed, merged pull requests.
    - `stuck <name> <url>`: `read` the issue and its pull request, answer what waits on you, else `prompt` the worker `see <issue-url>`;
    - `lead-heartbeat: team idle ...`: it reconciles lost notices: `read` each open issue of each goal and its pull request, and act on each as if its notice had arrived;
    - `idle` or `working <name> <url>`: nothing;
-   - the owner changes direction: `comment` the change on each issue affected, as `Criteria changed:` when a criterion changes, and `prompt` its worker `see <issue-url>`;
+   - the owner changes direction: `comment` the change on each issue affected, as `Criteria changed:` when a criterion changes, and `prompt` its worker `see <issue-url>`; built work the owner rejects is replanned from the goal's definition of done into new issues, its pull request closed unmerged and named in them as content to read, never form to follow;
    - the owner stops one issue: `comment` `Stopped: <reason>` on it, `gh pr ready --undo <pr-url>`, `close` its worker and remove its `Worker:` line;
    - a worker's idle line: an issue waiting for a worker: `checkout` it and `prompt` that worker `/mumu-team:kickoff work <issue-url> leader <your address>`, and update its `Worker:` line; none waiting: `close` it and remove its line;
    - the owner asks where it stands: report each issue and its worker in `live`.

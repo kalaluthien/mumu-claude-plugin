@@ -10,7 +10,7 @@ A trace is the whole run: the input, every step between (tool calls and results,
 
 | system | traces |
 | --- | --- |
-| Claude plugin or skill | `claude plugin eval <dir> --keep-temp --json <file>` over realistic prompts: each run's `tracePath` is its trace, deleted without `--keep-temp`, so copy the traces into `evals/analysis/traces/` first. Or session transcripts in `~/.claude/projects/<project>/*.jsonl` |
+| Claude plugin or skill | `claude plugin eval <dir> --keep-temp --json <file>` over realistic prompts: each run's `tracePath` is its trace, deleted without `--keep-temp`, so copy the traces into `evals/analysis/traces/` first. Or session transcripts in `~/.claude/projects/<project>/*.jsonl`, read as [transcripts](transcripts.md) says |
 | LLM app | its logs or observability tool (Langfuse, Phoenix, Braintrust, LangSmith), exported to JSONL |
 | neither, or too few to cover the inputs | synthetic inputs, below, run through the system |
 
