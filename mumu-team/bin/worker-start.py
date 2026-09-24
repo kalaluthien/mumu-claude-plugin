@@ -11,7 +11,8 @@ sets `MUMU_ROLE=worker`, on which the lead monitors exit at once (`lib/team.py`)
 holds it until its issue lands or is blocked. `--continue` resumes the worktree's
 last Claude session. The trust dialog defaults to "No, exit", so it is
 answered `down enter`. Prints `<name>@<pane> <worktree>` once the session is
-ready. `WORKER_START_TIMEOUT` (60) and `WORKER_START_POLL` (1) are seconds.
+ready. `agent start` is retried while herdr answers `agent_pane_busy`.
+`WORKER_START_TIMEOUT` (60) and `WORKER_START_POLL` (1) are seconds.
 """
 import json
 import os
@@ -76,6 +77,27 @@ def await_ready(name, pane, timeout, poll):
     raise RuntimeError(f"{name} not ready after {timeout:g}s; see `herdr agent read {pane}`")
 
 
+def start(name, pane, claude_args, timeout, poll):
+    """`herdr agent start`, retried while the new tab's shell is still busy (`agent_pane_busy`).
+
+    `agent_not_ready` means a trust dialog, which await_ready answers; any other error raises.
+    """
+    deadline = time.time() + timeout
+    while True:
+        done = subprocess.run(["herdr", "agent", "start", name, "--kind", "claude", "--pane", pane, "--"] + claude_args,
+                              capture_output=True, text=True)
+        out = (done.stdout + done.stderr).strip()
+        try:
+            code = json.loads(out.splitlines()[-1]).get("error", {}).get("code") if out else None
+        except (ValueError, AttributeError):
+            code = None
+        if code is None and done.returncode == 0 or code == "agent_not_ready":
+            return
+        if code != "agent_pane_busy" or time.time() >= deadline:
+            raise RuntimeError(f"herdr agent start {name}: {out}")
+        time.sleep(poll)
+
+
 def main(argv):
     args, resume, prompt = [], False, None
     it = iter(argv)
@@ -93,11 +115,9 @@ def main(argv):
     try:
         tree = checkout(repo, name)
         pane = json.loads(run("herdr", "tab", "create", "--cwd", str(tree), "--label", name, "--env", "MUMU_ROLE=worker", "--no-focus"))["result"]["root_pane"]["pane_id"]
-        # A trust dialog makes `agent start` report agent_not_ready; await_ready answers it.
-        subprocess.run(["herdr", "agent", "start", name, "--kind", "claude", "--pane", pane, "--",
-                        "--name", name, "--agent", "mumu-team:worker", "--model", "opus", "--effort", effort] + (["--continue"] if resume else []),
-                       capture_output=True, text=True)
-        await_ready(name, pane, float(os.environ.get("WORKER_START_TIMEOUT", 60)), float(os.environ.get("WORKER_START_POLL", 1)))
+        timeout, poll = float(os.environ.get("WORKER_START_TIMEOUT", 60)), float(os.environ.get("WORKER_START_POLL", 1))
+        start(name, pane, ["--name", name, "--agent", "mumu-team:worker", "--model", "opus", "--effort", effort] + (["--continue"] if resume else []), timeout, poll)
+        await_ready(name, pane, timeout, poll)
         if prompt:
             run("herdr", "agent", "prompt", pane, prompt)
     except RuntimeError as e:
