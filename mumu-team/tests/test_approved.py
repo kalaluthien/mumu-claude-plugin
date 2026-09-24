@@ -65,6 +65,9 @@ MERGE_REFUSED = [
     f"watch -n1 '{MERGE}'",
     f"git -c alias.x='!{MERGE}' x",
     f"echo '{MERGE}' | sh",
+    f"git -c alias.x='!sh' x <<'EOF'\n{MERGE}\nEOF",
+    f"git -c alias.x='!f(){{ eval \"$2\"; }};f' x -m '{MERGE}'",
+    f"gh x --body '{MERGE}'",
     f"grep -q x f && sh -c '{MERGE}'",
 ]
 

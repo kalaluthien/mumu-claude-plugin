@@ -2,7 +2,8 @@
 """Refuse a `gh pr merge` that is not pinned to a sha a reviewer approved, and a git hook bypass.
 
 PreToolUse hook on Bash. A closed heredoc body is dropped only when every
-command on its opener's line is a text reader (`cat`, `gh`, `git`, `tee`), no
+command on its opener's line is a text reader (`cat`, `tee`, `gh issue|pr|release`,
+`git commit|tag|notes`: builtins, which no alias shadows), no
 pipe follows the opener, and the body is quoted or holds no `$(` or backtick;
 openers are found outside quotes and comments. The rest is split into commands as
 a shell would split it -- at a newline, `;`, `&&`, `|` or `(` -- and in each one every
@@ -10,7 +11,7 @@ a shell would split it -- at a newline, `;`, `&&`, `|` or `(` -- and in each one
 removed, must be the one `gh ... pr merge` that command runs, after an env
 prefix or a wrapper such as `rtk`. Every quoted word is counted inside too, but
 a text one without `$(` or a backtick: a `grep` or `rg` pattern, or the value of a
-message or body flag (`-m`, `--body`, `--comment`, ...) of `gh` or `git`. That merge passes only
+message or body flag (`-m`, `--body`, `--comment`, ...) of such a reader. That merge passes only
 when it names one PR by its url, combines no short flags and holds no `{`, `}`,
 `*`, `?` or `[` a shell would expand, and only when it carries one
 `--match-head-commit <sha>` of 40 hex digits, that sha is the PR's head, and the
@@ -44,7 +45,7 @@ HEREDOC = re.compile(r"<<(-?)[ \t]*(['\"]?)([A-Za-z_][\w.-]*)\2")
 RUNS = re.compile(r"\$\(|`")
 WORD = re.compile(r"[^\s;&|()<>`'\"]+")
 ASSIGNMENT = re.compile(r"\w+=")
-BODY_READERS = {"cat", "gh", "git", "tee"}  # each reads a heredoc as text, never as a command
+READERS = {"cat": None, "tee": None, "gh": {"issue", "pr", "release"}, "git": {"commit", "tag", "notes"}}  # builtins no alias can shadow
 TEXT_COMMANDS = {"grep", "egrep", "fgrep", "rg"}  # each reads its quoted words as text
 TEXT_FLAGS = {"-m", "--message", "-b", "--body", "-t", "--title", "--comment", "--subject", "--notes"}  # of gh and git
 HOOKS_PATH = re.compile(r"^(['\"]?|--config-env=|GIT_CONFIG_KEY_\d+=['\"]?)core\.hookspath(['\"]?=|['\"]?$)", re.I)  # `-c k=v`, `'k'=v`, `--config-env=k=V`, `KEY_0=k`
@@ -104,7 +105,7 @@ def scan(line, stack):
         elif start and WORD.match(line, j):
             word = WORD.match(line, j)[0]
             if not ASSIGNMENT.match(word):
-                heads.append(os.path.basename(word))
+                heads.append(WORD.findall(line, j))
                 start = False
             j += len(word) - 1
         elif not c.isspace():
@@ -127,18 +128,26 @@ def without_heredocs(text):
             if end is None:  # an unclosed body: read the rest as commands
                 break
             body = lines[i:end]
-            if piped or not set(heads) <= BODY_READERS or not opener[2] and RUNS.search("\n".join(body)):
+            if piped or not all(map(reader, heads)) or not opener[2] and RUNS.search("\n".join(body)):
                 kept += body
             i = end + 1
     return "\n".join(kept)
 
 
+def reader(words):
+    """Whether the command in words, from its first word, reads text only as text: `cat`, `tee`, or a builtin `gh` or `git` subcommand."""
+    while words and ASSIGNMENT.match(words[0]):
+        words = words[1:]
+    head = os.path.basename(words[0]) if words else ""
+    return head in READERS and (READERS[head] is None or words[1:2] and words[1] in READERS[head])
+
+
 def text_word(words, i):
-    """Whether words[i] is only text: a grep pattern, or a message or body flag's value of gh or git."""
+    """Whether words[i] is only text: a grep pattern, or a message or body flag's value of a reader."""
     if RUNS.search(words[i]):
         return False
     head = next((os.path.basename(w) for w in words if not ASSIGNMENT.match(w)), "")
-    return head in TEXT_COMMANDS or head in ("gh", "git") and \
+    return head in TEXT_COMMANDS or reader(words) and \
         (i > 0 and words[i - 1] in TEXT_FLAGS or words[i].split("=", 1)[0] in TEXT_FLAGS)
 
 
