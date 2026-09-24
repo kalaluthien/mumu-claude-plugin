@@ -7,6 +7,7 @@ import os
 import pathlib
 import subprocess
 import tempfile
+import time
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -49,7 +50,9 @@ def parent(state="OPEN", subs=(("OPEN", "a plan"),)):
 
 
 def row(pid, ppid, command):
-    return f"{pid:>6} {ppid:>6} {command}"
+    """A `ps -o pid=,ppid=,lstart=,command=` row started a minute from now, after any code change."""
+    start = time.strftime("%a %b %d %H:%M:%S %Y", time.localtime(time.time() + 60))
+    return f"{pid:>6} {ppid:>6} {start} {command}"
 
 
 def monitors(*names):

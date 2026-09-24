@@ -7,20 +7,25 @@ import pathlib
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 BIN = pathlib.Path(__file__).resolve().parent.parent / "bin"
 CLAUDE, OTHER_CLAUDE = 100, 200
 
 
-def row(pid, ppid, command):
-    return f"{pid:>6} {ppid:>6} {command}"
+NOW = time.strftime("%a %b %d %H:%M:%S %Y", time.localtime(time.time() + 60))
+OLD = "Mon Jan  1 00:00:00 2001"
 
 
-def monitor(pid, claude, name):
+def row(pid, ppid, command, start=NOW):
+    return f"{pid:>6} {ppid:>6} {start} {command}"
+
+
+def monitor(pid, claude, name, start=NOW):
     """A monitor as the plugin runs it: a shell under Claude, and python under the shell."""
-    return [row(pid, claude, f"/bin/zsh -c eval '\"/p/bin/{name}.py\" \"/d\"'"),
-            row(pid + 1, pid, f"python3 /p/bin/{name}.py /d")]
+    return [row(pid, claude, f"/bin/zsh -c eval '\"/p/bin/{name}.py\" \"/d\"'", start),
+            row(pid + 1, pid, f"python3 /p/bin/{name}.py /d", start)]
 
 
 class EnsureMonitors(unittest.TestCase):
@@ -54,6 +59,10 @@ class EnsureMonitors(unittest.TestCase):
     def test_another_sessions_monitors_do_not_count(self):
         self.assertEqual(self.ensure(*monitor(300, OTHER_CLAUDE, "worker-watch"), *monitor(400, OTHER_CLAUDE, "lead-heartbeat")),
                          ["worker-watch", "lead-heartbeat"])
+
+    def test_monitor_older_than_its_code_is_named(self):
+        self.assertEqual(self.ensure(*monitor(300, CLAUDE, "worker-watch", OLD), *monitor(400, CLAUDE, "lead-heartbeat")),
+                         ["worker-watch"])
 
     def test_line_is_the_command_to_arm(self):
         self.ensure()
