@@ -67,6 +67,10 @@ class EnsureMonitors(unittest.TestCase):
         self.assertEqual(self.ensure(*monitor(300, CLAUDE, "worker-watch", OLD), *monitor(400, CLAUDE, "lead-heartbeat")),
                          ["worker-watch"])
 
+    def test_fresh_copy_beside_stale_one_counts(self):
+        self.assertEqual(self.ensure(*monitor(300, CLAUDE, "lead-heartbeat", OLD), *monitor(400, CLAUDE, "lead-heartbeat"),
+                                     *monitor(500, CLAUDE, "worker-watch")), [])
+
     def test_line_is_the_command_to_arm(self):
         self.ensure()
         env = dict(os.environ, PATH=f"{self.tmp}:{os.environ['PATH']}", CLAUDE_PID=str(CLAUDE),
