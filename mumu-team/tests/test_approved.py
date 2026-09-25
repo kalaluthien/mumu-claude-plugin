@@ -90,6 +90,8 @@ MERGE_REFUSED = [
     f"sed -i '' -ne'e {MERGE}' f",
     f"sed -i '' 's/x/{MERGE}/ge' f",
     f"sed -i '' 's/.*/{MERGE}/w /dev/stdout' f | sh",
+    f"sed -i '' 's/.*/{MERGE}/W /dev/stdout' f | sh",
+    f"sed -i '' -e 's/.*/{MERGE}/' -e 'W /dev/stdout' f | sh",
 ]
 
 # Text only naming the merge in a pattern or an in-place edit: refused on main (#87).

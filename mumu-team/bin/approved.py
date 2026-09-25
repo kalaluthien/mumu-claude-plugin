@@ -14,7 +14,7 @@ removed, is refused: run as a command, or inside `bash -c`, `eval`, `watch`,
 `$(...)`, a heredoc another command reads, a here-string, a comment, or a command
 that cannot be lexed. Every quoted word is counted inside too, but a text one
 without `$(` or a backtick: a `grep`, `rg` or `git grep` (no `-O` pager) pattern, a
-`sed -i` word when none runs or writes a command (`e`, `w`), or the value of a body flag
+`sed -i` word when none runs or writes a command (`e`, `w`, `W`), or the value of a body flag
 (`--body`, `--comment`, `--title`, ...) of such a reader; text only naming it
 passes. A merge built from a variable or an escape code such as `$'\x6d'` is not
 seen. A payload that cannot be read is refused too (exit 2).
@@ -46,7 +46,7 @@ EDITOR = re.compile(r"-[^-]*e|--edit")  # `-e`, `-eb`, `--edit`, `--editor`
 TEXT_COMMANDS = {"grep", "egrep", "fgrep", "rg"}  # each reads its quoted words as text
 PAGER = re.compile(r"-[^-]*O|--op")  # `git grep -O<cmd>`, `-iO`, `--open-files-in-pager=<cmd>`
 IN_PLACE = re.compile(r"-[A-Za-z]*i|--in-place")  # `sed -i ''`, `-i.bak`, `-Ei`
-SED_RUNS = re.compile(r"(?<![A-Za-z])[ew](?![\w.-])|/[gpIiMm0-9]*[ew][gpIiMm0-9]*(?![\w./-])")  # an `e` or `w` command, an `s///e` or `w` flag
+SED_RUNS = re.compile(r"(?<![A-Za-z])[ewW](?![\w.-])|/[gpIiMm0-9]*[ewW][gpIiMm0-9]*(?![\w./-])")  # an `e`, `w` or `W` command or `s///` flag
 SED_EXPRESSION = re.compile(r"^(-[A-Za-z]*?e|--expression=)")  # `-ne'e cmd'` is the script `e cmd`
 TEXT_FLAGS = {"-b", "--body", "-t", "--title", "--comment", "--notes"}  # of gh
 HOOKS_PATH = re.compile(r"^(['\"]?|--config-env=|GIT_CONFIG_KEY_\d+=['\"]?)core\.hookspath(['\"]?=|['\"]?$)", re.I)  # `-c k=v`, `'k'=v`, `--config-env=k=V`, `KEY_0=k`
