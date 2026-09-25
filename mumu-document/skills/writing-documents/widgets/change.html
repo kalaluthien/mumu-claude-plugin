@@ -1,20 +1,21 @@
 <!-- change: a structure morphing from before to after, on the player.
-  anatomy: a .stage (a tree of nodes as in file-tree, or a figure) whose changed nodes carry data-change="add" or "remove" and data-step="k"; an <ol class="steps"> whose first caption is the before and each later one names what that step adds or removes; needs player.html once on the page.
-  fill: step 1 is the before, with no node marked; one change of one idea per later step; a kept node carries no mark; the motion shows only that step's caption.
+  anatomy: a .stage (a tree of nodes as in file-tree, or a figure) whose changed nodes carry data-change="add", "modify" or "remove" and data-step="k"; an <ol class="steps"> whose first caption is the before and each later one names what that step adds or removes; needs player.html once on the page.
+  fill: step 1 is the before, with no node marked; one change of one idea per later step; a kept node carries no mark, and the unchanged neighbours a change touches stay to show its reach; the motion shows only that step's caption.
   states: default: the before; hover: none beyond the controls; focus: outline on a control; open: none; disabled: Back at the first step, Next at the last.
   motion: an added node appears and a removed node fades over --motion, only on a step change; the static form shows the after, removed nodes struck through.
   keyboard: the player's controls.
-  screen reader: each step's caption is announced as it shows; a removed node reads its gone tag, an added one its new tag.
+  screen reader: each step's caption is announced as it shows; a removed node reads its gone tag, a modified one its changed tag, an added one its new tag.
   use when: what a change adds and removes in a structure, shown in order.
   not when: a structure with no before (file-tree); many unrelated edits (table). -->
 <style>
-  [data-widget="change"] { --change-add: var(--ok); --change-remove: var(--fail); --change-faded: var(--disabled); --change-indent: var(--sp-4);
+  [data-widget="change"] { --change-add: var(--ok); --change-modify: var(--warn); --change-remove: var(--fail); --change-faded: var(--disabled); --change-indent: var(--sp-4);
     background: var(--fill); border: var(--line) solid var(--border); border-radius: var(--radius-s); padding: var(--sp-2) var(--sp-3); }
   [data-widget="change"] .stage, [data-widget="change"] .stage ul { list-style: none; margin: 0; padding-inline-start: var(--change-indent); }
   [data-widget="change"] > .stage { padding-inline-start: 0; }
   [data-widget="change"] .name { font-family: var(--mono); font-size: var(--fs-m); overflow-wrap: anywhere; }
   [data-widget="change"] .tag { font-size: var(--fs-s); margin-inline-start: var(--sp-1); }
   [data-widget="change"] [data-change="add"] .tag { color: var(--change-add); }
+  [data-widget="change"] [data-change="modify"] .tag { color: var(--change-modify); }
   [data-widget="change"] [data-change="remove"] .tag { color: var(--change-remove); }
   [data-widget="change"] [data-change="remove"] .name { text-decoration: line-through; color: var(--muted); }
   @media screen and (prefers-reduced-motion: no-preference) {
@@ -33,13 +34,15 @@
         <ul>
           <li><span class="name">{{kept file}}</span></li>
           <li data-change="remove" data-step="2"><span class="name">{{removed file}}</span><span class="tag">{{gone}}</span></li>
-          <li data-change="add" data-step="3"><span class="name">{{added file}}</span><span class="tag">{{new}}</span></li>
+          <li data-change="modify" data-step="3"><span class="name">{{modified file}}</span><span class="tag">{{changed}}</span></li>
+          <li data-change="add" data-step="4"><span class="name">{{added file}}</span><span class="tag">{{new}}</span></li>
         </ul></li>
     </ul>
     <ol class="steps">
       <li>{{before: the structure, and what is wrong with it}}</li>
       <li>{{step 2: what goes, and why}}</li>
-      <li>{{step 3: what comes, and why}}</li>
+      <li>{{step 3: what changes, and why}}</li>
+      <li>{{step 4: what comes, and why}}</li>
     </ol>
   </div>
 </section>

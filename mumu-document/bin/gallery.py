@@ -16,7 +16,7 @@ MODES = ("light", "dark")
 STATES = ("default", "hover", "focus", "open", "disabled")
 KOREAN = {
     "Back|Play|Pause|Next|Step": "뒤로|재생|멈춤|다음|단계",
-    "gone": "삭제", "new": "추가", "Recommended": "추천", "Answer": "답", "Answer block": "답 블록",
+    "gone": "삭제", "changed": "변경", "new": "추가", "Recommended": "추천", "Answer": "답", "Answer block": "답 블록",
     "Build the answer block": "답 블록 만들기", "Evidence": "근거", "Bold": "굵은 글씨", "n": "1",
     "Copied: paste it into the chat": "복사했어요. 채팅에 붙여 넣으세요.",
     "Selected: copy it and paste it into the chat": "선택했어요. 복사해서 채팅에 붙여 넣으세요.",

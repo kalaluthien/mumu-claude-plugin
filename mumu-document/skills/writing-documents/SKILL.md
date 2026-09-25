@@ -40,7 +40,7 @@ naming a file in `widgets/`, and `bin/skill-check.py` fails on any other.
 | a structure before and after a change: what it adds and removes | `change` | a diff of the tree |
 | rows sharing columns: options, findings, done-criteria | `table` | a table |
 | questions only the reader can settle | `round` | by [Rounds](#rounds) |
-| a claim with its reason and evidence, or steps with their checks | `section` | a heading over paragraphs or a numbered list |
+| a claim with its reason and evidence (code, or the hunk that changed), or steps with their checks | `section` | a heading over paragraphs or a numbered list; a hunk as a `diff` code block |
 
 ## Composition
 
@@ -52,8 +52,9 @@ naming a file in `widgets/`, and `bin/skill-check.py` fails on any other.
   followed then deleted, every `{{...}}` filled or its element deleted; a
   widget's `<style>` and `<script>` once per page however many copies;
   `{{id}}` unique per copy, so inline SVG ids never collide. A played `flow`
-  or a `change` also needs [player.html](player.html) once; `data-player="scroll"`
-  drives it by scrolling instead of buttons.
+  or a `change` also needs [player.html](player.html) once, verbatim;
+  `data-player="scroll"` drives it by scrolling instead of buttons. A figure
+  over 9 boxes is two figures.
 - The skin is the design system: primitives, semantic tokens (colour roles,
   diagram palette, type, space, line, radius, layout, motion) and each
   widget's own tokens; a page adds none of its own values. The accent marks
@@ -69,7 +70,10 @@ naming a file in `widgets/`, and `bin/skill-check.py` fails on any other.
 - Name things instead of counting them: a count goes stale, a name can be
   grepped. A heading says what is true, as a sentence.
 - Short words, one idea a sentence, active voice; a new term is defined where
-  it first appears or cut; no word that sells.
+  it first appears or cut; no word that sells. A change you judge wrong is
+  said so, plainly.
+- A step caption names one change and its effect, never what the figure
+  shows.
 - An Artifact page is Korean, always: `<html lang="ko">`; every visible word
   in Korean - headings, prose, captions, figure labels, alt text and
   each control, a widget's fixed words included; the polite `-요` or `-니다`,
@@ -101,7 +105,12 @@ Where the ask says, else where it is obvious, else ask once with
 
 - chat: markdown;
 - GitHub issue or pull request: the body or a comment by the repository's
-  procedure, else `gh issue create`;
+  procedure, else `gh issue create`. Unless that procedure sets the form, a
+  body opens with one sentence on why, then the Mermaid figure of what the
+  change alters, then the proof (each check and its result), then the files
+  in reading order, each with its why; files with nothing to say share one
+  closing line, and a misleading `+`/`-` count is called out. Each
+  `path:line` links to the blob at the head sha;
 - Artifact page: `<slug>.html` in the session's scratch directory, published
   with the `Artifact` tool, else opened with `open`;
 - repository page: where the repository keeps pages, linked from its README,

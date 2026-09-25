@@ -2,9 +2,10 @@
 # usage: page-check.sh <page.html>
 # Loads the page in a 320 px frame twice, with motion and with reduced motion, clicks
 # each control once, and prints one line per run:
-# `<mode> <scroll>/<client> <smallest text>px <smallest Hangul or Han>px anim <running> steps <shown>/<total> pass|FAIL`,
-# then `pass` or `FAIL`. A run fails on a sideways scroll, text under 11 px (Hangul or Han
-# under 12 px) or an uncaught error; the reduced run also on a running animation or
+# `<mode> <scroll>/<client> <smallest text>px <smallest Hangul or Han>px anim <running> steps <shown>/<total>`
+# `... labels <n> pass|FAIL`, then `pass` or `FAIL`. A run fails on a sideways scroll, text
+# under 11 px (Hangul or Han under 12 px), an SVG label overlapping another or leaving its
+# figure (n counts them), or an uncaught error; the reduced run also on a running animation or
 # transition, or a player showing fewer captions than it has steps.
 # Exit 0 pass, 1 FAIL, 2 when it could not run, saying why.
 set -eu
@@ -34,9 +35,19 @@ f.onload = function () {
       total += li.length;
       shown += Array.prototype.filter.call(li, function (l) { return l.checkVisibility(); }).length;
     });
+    var bad = 0;
+    d.querySelectorAll('svg').forEach(function (g) {
+      var box = g.getBoundingClientRect(), r = Array.prototype.map.call(g.querySelectorAll('text'), function (x) { return x.getBoundingClientRect(); })
+        .filter(function (x) { return x.width && x.height; });
+      r.forEach(function (a, i) {
+        var hit = a.left < box.left - 1 || a.right > box.right + 1 || a.top < box.top - 1 || a.bottom > box.bottom + 1;
+        r.forEach(function (b, j) { hit = hit || i != j && Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1; });
+        bad += hit ? 1 : 0;
+      });
+    });
     var reduced = w.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var ok = e.scrollWidth == e.clientWidth && s[0] >= 11 && s[1] >= 12 && (!reduced || (anim == 0 && shown == total));
-    document.body.dataset.r = (reduced ? 'reduced ' : 'motion ') + e.scrollWidth + '/' + e.clientWidth + ' ' + s[0] + 'px ' + s[1] + 'px anim ' + anim + ' steps ' + shown + '/' + total + (ok ? ' pass' : ' FAIL');
+    var ok = e.scrollWidth == e.clientWidth && s[0] >= 11 && s[1] >= 12 && bad == 0 && (!reduced || (anim == 0 && shown == total));
+    document.body.dataset.r = (reduced ? 'reduced ' : 'motion ') + e.scrollWidth + '/' + e.clientWidth + ' ' + s[0] + 'px ' + s[1] + 'px anim ' + anim + ' steps ' + shown + '/' + total + ' labels ' + bad + (ok ? ' pass' : ' FAIL');
   }, 500);
 };
 f.src = location.hash.slice(1);
