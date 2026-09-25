@@ -123,6 +123,7 @@ ASSIGNMENT_PASSED = [
     "S=/tmp/x | cat",
     "S=/tmp/x\ngit grep -n x",
     "S=/tmp/x\nsed -i '' 's/a/b/' f",
+    "C=/x; gh pr view 96 --json state -q .state && git -C $C log -1",
 ]
 
 def run(command, description=""):
