@@ -1,6 +1,6 @@
 <!-- preview: a result (a page, a screen, an email) shown small first; a button opens it at full size.
   anatomy: a section with an h2; a figure: a .frame holding the result scaled down, an <iframe sandbox srcdoc> of its HTML or an <img src alt>; a figcaption with the caption and the open button; a <dialog> with a bar (its title, the close button) and a .full box the script fills with a copy of the result.
-  fill: one result per copy; srcdoc holds the whole result HTML with every " written &quot;, nothing fetched from the network; an image result replaces the iframe with <img src="data:..." alt="{{what it shows}}">; the caption says what the result is and where it appears.
+  fill: one result per copy; srcdoc holds the whole result HTML with every " written &quot;, nothing fetched from the network; an image result replaces the iframe with <img src="data:..." alt="{{what it shows}}"> and sets --preview-ratio on the widget to the image's width / height; the caption says what the result is and where it appears.
   states: default: the small frame; hover: the button's border turns accent; focus: outline on the button; open: the full view over the page, or in place when forced; disabled: the button dims and refuses input.
   motion: the full view fades and drops in over --motion as it opens.
   keyboard: Tab to the open button; Enter or Space opens the full view, focus moves into it; the close button or Esc closes it and focus returns to the open button.

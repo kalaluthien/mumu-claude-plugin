@@ -36,7 +36,7 @@ image, exported by [github.md](references/github.md).
 | who calls the system and what it calls: actors, entry points, boundaries | `system-context` | its SVG |
 | behaviour: what happens in one use case | `use-case`, one per use case | its SVG, then a numbered list of calls |
 | a sequence the reader follows one step at a time: a request travelling the system | `use-case`, played | a numbered list, one step and its reason each |
-| a structure before and after a change: what it adds, modifies and removes | `before-after` | its SVG, or a diff of the tree |
+| a structure before and after a change: what it adds, modifies and removes | `before-after` | a diff of the tree |
 | states and the events that move between them: a job's life, a connection | `state-machine` | its SVG, then a table of state, event, next state |
 | rows sharing columns: options, findings, done-criteria | `table` | a table |
 | two dimensions crossed, one mark per cell: options against criteria, roles against permissions | `matrix` | a table, a symbol per cell and its key |
