@@ -53,6 +53,10 @@ claude plugin eval <plugin dir> --case <case> --runs 3
 
 The first run in a directory asks whether to trust the plugin; a headless session cannot answer, so pass `--trust-plugin` for a plugin whose code you have read. One `--case` per call: a second one replaces the first. A case whose `case.yaml` names a `scaffold_script` needs `--scaffold`, or it runs in an empty directory.
 
+- `<plugin dir>` is an absolute path or `./<dir>`: a bare name runs the installed copy in the plugin cache.
+- A run reads the plugin's files live: edit nothing in it until the run ends, or run a committed copy (`git worktree add --detach`).
+- A grader of a file the run writes needs `--allow-tools Write`, or both arms score 0. Pass `--keep-temp` on every run, so a failure's trace can be read.
+
 Run each case more than once: the system is not deterministic. For regression, every run must pass (`--threshold 1.0`, the default); for capability, one pass in the runs shows it can. Each run starts from a clean directory; a harness of your own must do the same, or runs that share files or caches fail together.
 
 Read the score delta between the with-plugin and without-plugin arms. A regression case below its bar is a defect in the change. Read the transcripts of failed runs, not only the score: a failure may be the grader's.
