@@ -1,13 +1,13 @@
 ---
 name: kickoff
-description: Leads a goal to reviewed, merged pull requests, works one issue of it, reports where it stands, resumes it after a restart or stops it early. Free text in any language is fine.
+description: Leads a goal to reviewed, merged pull requests, works one issue of it, reports where it stands, hands it to a successor, resumes it or stops it early. Free text in any language is fine.
 disable-model-invocation: true
 argument-hint: fix the login timeout, tracked in https://github.com/o/r/issues/12
 ---
 
 Arguments: $ARGUMENTS
 
-The arguments are loose text in any language: find what the row needs anywhere in them (a goal, an issue or parent url, a leader address), ask with `AskUserQuestion` for what is missing, and never refuse for wording. Only `work <issue-url> leader <address>` keeps its exact shape, since only a session writes it.
+The arguments are loose text in any language: find what the row needs anywhere in them (a goal, an issue or parent url, a leader address), ask with `AskUserQuestion` for what is missing, and never refuse for wording. Only `work <issue-url> leader <address>` and `succeed <pane> <parent-url> ...` keep their exact shape, since only a session writes them.
 
 Your role's rules are in [agents/lead.md](../../agents/lead.md) and [agents/worker.md](../../agents/worker.md); when your system prompt is not already that body, read `worker.md` before the `work` row and `lead.md` before any other.
 
@@ -16,16 +16,17 @@ Match the text to one row, open that playbook, and copy its steps verbatim into 
 | when | playbook |
 | --- | --- |
 | work one issue: `work <issue-url> leader <address>`, the prompt a leader sends a worker | [references/work.md](references/work.md) |
+| take over as a lead's successor: `succeed <pane> <parent-url> ...`, the prompt a lead sends its successor, or hand over: "succession", "hand over", "replace yourself" | [references/succession.md](references/succession.md) |
 | where it stands: "status", "how is it going", "what is left" | [references/status.md](references/status.md) |
 | the owner stops the goal early: "stop", "cancel", "drop this goal" | [references/stop.md](references/stop.md) |
-| resume after a restart: "continue", "pick up where you left off", or no text while this session's mission exists | [references/resume.md](references/resume.md) |
+| resume: "continue", "pick up where you left off", or no text while this session's mission exists | [references/resume.md](references/resume.md) |
 | lead a goal: a task, a bug or a feature in words, perhaps with its issue or parent url, or `see <url>` from another leader | [references/lead.md](references/lead.md) |
 | nothing above fits | ask one question with `AskUserQuestion`, then match again |
 
 
 [references/panes.md](references/panes.md) drives other sessions and [references/repo.md](references/repo.md) holds issues, branches and pull requests; each maps the verbs below and in the playbooks to commands.
 
-Your mission is `${CLAUDE_PLUGIN_DATA}/mission/${CLAUDE_SESSION_ID}.md`, which a hook shows you every turn and every agent you launch at its start; a leader writes one `GOAL:` and `MISSION:` pair per goal it holds:
+Your mission is `${CLAUDE_PLUGIN_DATA}/mission/<key>.md`, `<key>` being your session's `--name` (else `${CLAUDE_SESSION_ID}`), the path a hook prints with it every turn and every agent you launch at its start; a leader writes one `GOAL:` and `MISSION:` pair per goal it holds:
 
 ```
 GOAL: <the parent goal in words, not its url>

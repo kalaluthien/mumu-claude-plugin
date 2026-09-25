@@ -12,6 +12,9 @@ import tempfile
 import time
 import unittest
 
+# The session's name keys its mission (`team.mission_path`): run as no named Claude session.
+os.environ["CLAUDE_PID"] = str(os.getpid())
+
 BIN = pathlib.Path(__file__).resolve().parent.parent / "bin"
 
 

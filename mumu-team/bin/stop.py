@@ -86,7 +86,7 @@ def worker():
 
 
 def lead():
-    path = pathlib.Path(os.environ.get("CLAUDE_PLUGIN_DATA", ""), "mission", payload.get("session_id", "") + ".md")
+    path = team.mission_path(os.environ.get("CLAUDE_PLUGIN_DATA", ""), payload.get("session_id"))
     if not path.is_file():
         return
     read = team.read_mission(path.read_text())

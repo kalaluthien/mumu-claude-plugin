@@ -10,6 +10,9 @@ import sys
 import tempfile
 import unittest
 
+# The session's name keys its mission (`team.mission_path`): run as no named Claude session.
+os.environ["CLAUDE_PID"] = str(os.getpid())
+
 BIN = pathlib.Path(__file__).resolve().parent.parent / "bin"
 ISSUE = "https://github.com/o/r/issues/7"
 OTHER = "SUBSCRIBE: other-8 https://github.com/o/r/issues/8\n"
@@ -144,6 +147,30 @@ class WorkerClose(unittest.TestCase):
     def test_missing_worker_mission_is_no_error(self):
         self.worker.unlink()
         self.assertClosed(*self.close())
+
+    def test_worker_mission_keyed_by_its_name_is_deleted(self):
+        (self.tmp / "session").unlink()
+        named = self.mission.with_name("close-7.md")
+        named.write_text(f"GOAL: g\nMISSION: worker on {ISSUE}\n")
+        self.assertEqual(self.close()[0].returncode, 0)
+        self.assertFalse(named.exists(), "worker mission keyed by name left")
+
+    def test_successor_closing_its_original_keeps_their_shared_mission(self):
+        (self.tmp / "session").unlink()
+        self.mission.rename(self.mission.with_name("close-7.md"))
+        self.mission = self.mission.with_name("close-7.md")
+        env = dict(os.environ, FAKE=str(self.tmp), PATH=f"{self.tmp}:{os.environ['PATH']}",
+                   WORKER_CLOSE_TIMEOUT="1", WORKER_CLOSE_POLL="0.01", CLAUDE_CONFIG_DIR=str(self.tmp / "config"),
+                   CLAUDE_CODE_SESSION_ID="s1", CLAUDE_PID=self.claude("close-7"))
+        done = subprocess.run([sys.executable, str(BIN / "worker-close.py"), "close-7"], env=env,
+                              capture_output=True, text=True, timeout=30)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertTrue(self.mission.exists(), "the successor's own mission deleted")
+
+    def claude(self, name):
+        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)", "--name", name])
+        self.addCleanup(proc.kill)
+        return str(proc.pid)
 
     def test_unknown_session_id_is_no_error_and_deletes_nothing(self):
         (self.tmp / "session").unlink()

@@ -9,6 +9,7 @@ Lead a goal to reviewed, merged pull requests.
    - `see <issue-url>` naming a `BLOCKED:` comment: `comment` the answer, then `prompt` the worker `see <issue-url>`; when it asks for work that needs its own pull request, the answer is the url of the issue you `file` for it, which then goes through 3;
    - `see <issue-url>` naming `BLOCKED: stuck on <criterion>`, or two workers escalating after one round of consensus: decide; a changed criterion is edited into the issue and `comment`ed as `CRITERIA CHANGED: <old> → <new>`; then `prompt` each worker `see <issue-url>`;
    - `see <pr-url>`: `read` it; once it shows merged, `close` its worker, and when no issue of its goal is open, go to 5 for that goal;
+   - `see <issue-url>` naming a `BLOCKED:` on an auto-mode refusal: check the exact step it names (`merge.py`, the reviewer's approval, `git -C <worktree> rm` of tracked clean files), then run it yourself;
    - `blocked <name> <url>`: the worker is at a permission prompt, which is the owner's to clear, so tell the owner;
    - `gone <name> <url>` while its issue is open: `start` it again in its worktree, resuming;
    - `stuck <name> <url>`: `read` the issue and its pull request, answer what waits on you, else `prompt` the worker `see <issue-url>`;

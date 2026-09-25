@@ -1,6 +1,8 @@
 """What the `worker-watch` and `lead-heartbeat` monitors share: the lead's mission, each worker's word, and the poll loop.
 
-The mission is `<plugin data dir>/mission/$CLAUDE_CODE_SESSION_ID.md`. A
+The mission is `<plugin data dir>/mission/<key>.md`, `<key>` being the
+session's `--name` (`mission_path`), so a successor of the same name finds it; it
+is a cache of GitHub, which `rebuild` refills for a lead. A
 leader's reads one `MISSION: leader of <parent-url>` line per parent it holds, and one
 `SUBSCRIBE: <name> <issue-url>` line per worker, which `worker-start.py`
 writes and `worker-close.py` removes; a worker's reads
@@ -59,15 +61,82 @@ def read_mission(text):
     return parents, workers
 
 
-def mission_file(session=None):
-    """The mission of `session` (this one's, `$CLAUDE_CODE_SESSION_ID`, by default), found as `<config dir>/plugins/data/*/mission/<session>.md`, or None.
+def session_name(pid=None):
+    """The `--name` (or `-n`) the Claude process was started with, or None.
 
-    A script run from the lead's Bash has no `CLAUDE_PLUGIN_DATA`, and the
-    session id is unique, so the glob finds at most one.
+    That process is `pid`, else `$CLAUDE_PID`, else the nearest of this one's
+    four closest ancestors started with a name, since a hook may run under a shell.
+    """
+    pids = [pid or os.environ.get("CLAUDE_PID") or os.getppid()]
+    for _ in range(4):
+        try:
+            ps = subprocess.run(["ps", "-o", "ppid=,args=", "-p", str(pids[-1])], capture_output=True, text=True).stdout.split()
+        except OSError:
+            return None
+        if not ps:
+            return None
+        name = next((ps[i + 1] for i, a in enumerate(ps[:-1]) if i and a in ("--name", "-n")), None)
+        if name or pid or os.environ.get("CLAUDE_PID"):
+            return name
+        pids.append(ps[0])
+    return None
+
+
+def mission_path(data_dir, session=None):
+    """This session's mission in `data_dir`: `mission/<name>.md`, but `mission/<session id>.md` when only that exists
+    (a mission written before the name keyed it) or the session has no name; `session` defaults to `$CLAUDE_CODE_SESSION_ID`."""
+    by_id = pathlib.Path(data_dir, "mission", (session or os.environ.get("CLAUDE_CODE_SESSION_ID", "")) + ".md")
+    name = session_name()
+    if not name or by_id.exists() and not by_id.with_name(name + ".md").exists():
+        return by_id
+    return by_id.with_name(name + ".md")
+
+
+def mission_file(key=None):
+    """The mission named `key`, or this session's (`mission_path`), in `<config dir>/plugins/data/*/`, or None.
+
+    A script run from the lead's Bash has no `CLAUDE_PLUGIN_DATA`, and names
+    and session ids are unique, so at most one is found.
     """
     config = pathlib.Path(os.environ.get("CLAUDE_CONFIG_DIR") or pathlib.Path.home() / ".claude")
-    session = session or os.environ["CLAUDE_CODE_SESSION_ID"]
-    return next(iter(sorted(config.glob(f"plugins/data/*/mission/{session}.md"))), None)
+    found = (config.glob(f"plugins/data/*/mission/{key}.md") if key
+             else (mission_path(d) for d in config.glob("plugins/data/*")))
+    return next((p for p in sorted(found) if p.exists()), None)
+
+
+GOALS = """query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) {
+  issues(states: OPEN, first: 100) { nodes { title url
+    subIssues(first: 100) { nodes { number url state } } } } } }"""
+
+
+def rebuild(cwd):
+    """A lead's mission rebuilt from GitHub in the checkout `cwd`, or None when it holds no goal or cannot be read.
+
+    Each open issue with sub-issues is a goal (`GOAL:`, `MISSION: leader of`),
+    and each open sub-issue whose branch `*-<number>` exists on origin is a
+    worker (`SUBSCRIBE: <branch> <url>`): one `gh` call and one `git` call.
+    """
+    try:
+        repo = subprocess.run(["gh", "repo", "view", "--json", "owner,name", "-q", '.owner.login + "/" + .name'],
+                              cwd=cwd, capture_output=True, text=True, check=True).stdout.strip()
+        owner, name = repo.split("/")
+        data = json.loads(subprocess.run(["gh", "api", "graphql", "-f", f"query={GOALS}", "-f", f"owner={owner}",
+                                          "-f", f"name={name}"], cwd=cwd, capture_output=True, text=True, check=True).stdout)
+        heads = subprocess.run(["git", "ls-remote", "--heads", "origin"], cwd=cwd,
+                               capture_output=True, text=True, check=True).stdout.split()
+    except (OSError, ValueError, subprocess.CalledProcessError):
+        return None
+    branches = [h.removeprefix("refs/heads/") for h in heads if h.startswith("refs/heads/")]
+    goals = [i for i in data["data"]["repository"]["issues"]["nodes"] if i["subIssues"]["nodes"]]
+    lines = []
+    for goal in goals:
+        lines += [f"GOAL: {goal['title']}", f"MISSION: leader of {goal['url']}", f"EXPECT: the ## Decisions of {goal['url']}", ""]
+    for goal in goals:
+        for sub in goal["subIssues"]["nodes"]:
+            branch = next((b for b in branches if b.endswith(f"-{sub['number']}")), None)
+            if sub["state"] == "OPEN" and branch:
+                lines.append(f"SUBSCRIBE: {branch} {sub['url']}")
+    return "\n".join(lines) + "\n" if goals else None
 
 
 def subscribed(line, name):
@@ -117,7 +186,7 @@ def poll(data_dir, tick):
     """
     if os.environ.get("MUMU_ROLE") == "worker":
         return
-    mission = pathlib.Path(data_dir, "mission", os.environ["CLAUDE_CODE_SESSION_ID"] + ".md")
+    mission = mission_path(data_dir)
     interval = float(os.environ.get("MONITOR_POLL", 10))
     ticks = int(os.environ.get("MONITOR_TICKS", 0))
     wait = float(os.environ.get("MONITOR_WAIT", 600))
