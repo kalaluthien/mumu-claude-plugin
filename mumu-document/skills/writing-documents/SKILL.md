@@ -1,6 +1,6 @@
 ---
 name: writing-documents
-description: Use before writing a document a person will read outside the chat - a GitHub issue or pull request body or comment, an Artifact page, a repository page (README, docs) - to explain, draw, map, walk through, compare or report something, even when only the content was asked for. Not for a plain chat answer, nor for code or its comments, nor for asking the user open questions (that is `grill-me`).
+description: Use before writing a document a person will read outside the chat - a GitHub issue or pull request body or comment, an Artifact page, a repository page (README, docs) - to explain, draw, chart data, map, walk through, compare or report something, even when only the content or a chart was asked for; a chart on such a page is drawn here, not by `dataviz`. Not for a plain chat answer, nor for code or its comments, nor for asking the user open questions (that is `grill-me`).
 user-invocable: false
 ---
 
@@ -8,8 +8,9 @@ user-invocable: false
 
 **Goal**: the reader gets what they need, in the order they need it, in the
 form that shows it best, and can act on it. A format the running skill or the
-repository states wins: its template, headings, comment kinds. The topic is
-the one named, else the conversation's.
+repository states wins: its template, headings, comment kinds; a design or
+chart skill such as `dataviz` does not, since the skin and widgets here are
+the page's whole design. The topic is the one named, else the conversation's.
 
 ## Doctypes
 
@@ -24,12 +25,13 @@ its moves; a move with nothing to say is dropped.
 
 ## Mapping
 
-The content picks the widget, one rule per row; a new rule is a new row
-naming a file in `references/artifact/widgets/`, and `scripts/skill/skill-check.py`
+The content picks the widget, one rule per row; a new rule is a new row naming
+a file in `references/artifact/widgets/`, and `scripts/skill/skill-check.py`
 fails on any other; a `chart` row also names its kinds, each a line of the
-widget's spec. `scripts/artifact/gallery.py` renders every widget in every
-state, light and dark. A figure on GitHub or a repository page is an SVG
-image, exported by [github.md](references/github.md).
+widget's spec. Data is drawn only by the `chart` widget, with no chart
+library. `scripts/artifact/gallery.py` renders every widget in every state,
+light and dark. A figure on GitHub or a repository page is an SVG image,
+exported by [github.md](references/github.md).
 
 | when the content is | widget | in markdown |
 | --- | --- | --- |

@@ -18,8 +18,8 @@
   defines its own tokens. A page adds no values of its own. Links take
   `--link`; the ink accent marks focus, hover and the current step only.
 - The skin and widgets are a page's only design rules: before the `Artifact`
-  call, do not run its `quickstart` or load `artifact-design` or
-  `artifact-capabilities`; the tool only publishes the file.
+  call, do not run its `quickstart` or load `artifact-design`,
+  `artifact-capabilities` or `dataviz`; the tool only publishes the file.
 
 ## Korean
 
