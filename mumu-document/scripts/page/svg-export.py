@@ -12,8 +12,8 @@ import pathlib
 import re
 import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "chrome"))
-import chrome  # noqa: E402
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import check  # noqa: E402
 
 FRAME = r"""<iframe id=f style="width:800px;height:800px;border:0"></iframe>
 <script>
@@ -57,7 +57,7 @@ f.src = location.hash.slice(1);
 
 def figures(page):
     """The page's figures as standalone SVG strings, or None when Chrome gave nothing back."""
-    return chrome.render(FRAME, page, "--force-prefers-reduced-motion", "--blink-settings=preferredColorScheme=1")
+    return check.render(FRAME, page, "--force-prefers-reduced-motion", "--blink-settings=preferredColorScheme=1")[0]
 
 
 def main():
@@ -65,8 +65,8 @@ def main():
         print("usage: svg-export.py <page.html> <out dir>", file=sys.stderr)
         return 2
     page, out = pathlib.Path(sys.argv[1]).resolve(), pathlib.Path(sys.argv[2])
-    if not page.is_file() or not chrome.available():
-        print(f"svg-export.py: no file {page}" if not page.is_file() else f"svg-export.py: no Chrome at {chrome.CHROME}",
+    if not page.is_file() or not os.access(check.CHROME, os.X_OK):
+        print(f"svg-export.py: no file {page}" if not page.is_file() else f"svg-export.py: no Chrome at {check.CHROME}",
               file=sys.stderr)
         return 2
     svgs = figures(page)

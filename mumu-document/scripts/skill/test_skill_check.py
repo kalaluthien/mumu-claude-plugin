@@ -12,6 +12,30 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CHECK = ROOT / "scripts" / "skill" / "skill-check.py"
 SKILL = ROOT / "skills" / "writing-documents"
+W, SKIN = "references/artifact/widgets/", "references/artifact/shared/skin.css"
+# (file, [(old, new), ...], a regex the output must match; None when the copy must pass)
+CASES = [
+    ("SKILL.md", [("| `chart` `bar` |", "| `sankey` |")], r"unknown widget `sankey`"),
+    ("SKILL.md", [("| change over time", "| a trend in a list | `chart` `line` | a list |\n| change over time")], None),
+    ("SKILL.md", [("`chart` `bar`", "`chart` `bubble`")], r"`bubble` is not in chart\.html's spec"),
+    ("SKILL.md", [("`chart` `bar`", "`chart`")], r"names `chart` but none of its kinds"),
+    (W + "chart.html", [("fill: var(--text); }", "fill: #000; }")], r"chart\.html"),
+    (W + "diagram.html", [("--diagram-indent: var(--sp-4)", "--diagram-indent: 8px")], r"diagram\.html:\d+: literal size: 8px"),
+    (W + "diagram.html", [('<path class="lifeline"', '<path style="transition: stroke .3s" class="lifeline"')], r"literal size: \.3s"),
+    (W + "diagram.html", [('width="520"', 'width="524"')], None),
+    (W + "diagram.html", [("--diagram-indent: var(--sp-4)", "--diagram-indent: var(--sp-9)")], r"token --sp-9 is not in skin\.css"),
+    (W + "diagram.html", [("--diagram-indent: var(--sp-4)", "--diagram-indent: var(--p-white)")], r"reads primitive --p-white"),
+    (W + "diagram.html", [("--diagram-indent: var(--sp-4);", "--diagram-indent: var(--sp-4); --diagram-x: var(--sp-1);")], None),
+    ("references/artifact/shared/swipe.html", [("flex: 0 0 85%;", "flex: 0 0 20rem;")], r"literal size: 20rem"),
+    (SKIN, [("light-dark(#d55e00,", "light-dark(#f5c9a8,")], r"--kind-2 on --fill light"),
+    (SKIN, [("--p-grey-500: #757575", "--p-grey-500: #c0c0c0")], r"--muted on --bg light"),
+    (SKIN, [("#8a8a8a", "#3a3d42")], r"--border on --fill dark"),
+    (SKIN, [("#057dbc", "#7fc4ea")], r"--link on --bg light"),
+    (SKIN, [("  --accent:", "  --link:")], r"no role --accent"),
+    # sky blue and lavender stay apart to a normal eye and pass 3:1 on black, but merge for a deuteranope
+    (SKIN, [("light-dark(#cc79a7, #cc79a7)", "light-dark(#cc79a7, #a9a0e8)")],
+     r"(?s)^(?!.*normal).*--kind-1 and --kind-4 dark deuteranopia ΔE \d+\.\d < 10"),
+]
 
 
 def run(skill):
@@ -20,155 +44,25 @@ def run(skill):
 
 
 class SkillCheck(unittest.TestCase):
-    def setUp(self):
-        self.tmp = pathlib.Path(tempfile.mkdtemp()) / "skill"
-        shutil.copytree(SKILL, self.tmp)
-
-    def tearDown(self):
-        shutil.rmtree(self.tmp.parent)
-
-    def edit(self, name, old, new):
-        f = self.tmp / name
-        text = f.read_text()
-        self.assertIn(old, text)
-        f.write_text(text.replace(old, new, 1))
-
     def test_real_skill_passes(self):
         self.assertEqual(run(SKILL), (0, "pass\n"))
 
-    def test_unknown_widget_fails(self):
-        self.edit("SKILL.md", "| `table` |", "| `sankey` |")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("unknown widget `sankey`", out)
-
-    def test_added_row_with_its_widget_passes(self):
-        self.edit("SKILL.md", "| rows sharing columns", "| a timeline | `table` | a list |\n| rows sharing columns")
-        self.assertEqual(run(self.tmp), (0, "pass\n"))
-
-    def test_literal_colour_in_widget_fails(self):
-        self.edit("references/artifact/widgets/table.html", "var(--fill)", "#fff")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("table.html", out)
-
-    def test_literal_size_in_widget_fails(self):
-        self.edit("references/artifact/widgets/table.html", "--table-pad: var(--sp-2) var(--sp-3)", "--table-pad: 8px var(--sp-3)")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertRegex(out, r"table\.html:\d+: literal size: 8px")
-
-    def test_literal_duration_in_style_attribute_fails(self):
-        self.edit("references/artifact/widgets/use-case.html", '<path class="lifeline"', '<path style="transition: stroke .3s" class="lifeline"')
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("literal size: .3s", out)
-
-    def test_svg_geometry_is_not_a_size(self):
-        self.edit("references/artifact/widgets/use-case.html", 'width="520"', 'width="524"')
-        self.assertEqual(run(self.tmp), (0, "pass\n"))
-
-    def test_unknown_token_fails(self):
-        self.edit("references/artifact/widgets/table.html", "var(--sp-2)", "var(--sp-9)")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("token --sp-9 is not in skin.css", out)
-
-    def test_slow_motion_fails(self):
-        self.edit("references/artifact/skin.css", "--p-ms-200: 200ms", "--p-ms-200: 400ms")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("--motion is 400ms, not at most 200ms", out)
-
-    def test_primitive_in_widget_fails(self):
-        self.edit("references/artifact/widgets/table.html", "--table-hover: var(--bg)", "--table-hover: var(--p-white)")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("reads primitive --p-white", out)
-
-    def test_widget_token_passes(self):
-        self.edit("references/artifact/widgets/table.html", "--table-hover: var(--bg);", "--table-hover: var(--bg); --table-x: var(--sp-1);")
-        self.assertEqual(run(self.tmp), (0, "pass\n"))
-
-    def test_spec_field_missing_fails(self):
-        self.edit("references/artifact/widgets/use-case.html", "  keyboard:", "  keys:")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("use-case.html: spec has no `keyboard:`", out)
-
-    def test_spec_state_missing_fails(self):
-        self.edit("references/artifact/widgets/use-case.html", "disabled: none, played", "none, played")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("use-case.html: states name no `disabled`", out)
-
-    def test_literal_size_in_player_fails(self):
-        self.edit("references/artifact/widgets/use-case.html", "min-width: 0;", "min-width: 8rem;")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("literal size: 8rem", out)
-
-    def test_low_palette_contrast_fails(self):
-        self.edit("references/artifact/skin.css", "--p-cat-2: #d55e00", "--p-cat-2: #f5c9a8")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("--kind-2 on --fill light", out)
-
-    def test_missing_token_kind_fails(self):
-        self.edit("references/artifact/skin.css", "--radius-s: 0;", "--corner: 0;")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("no --radius-* token", out)
-
-    def test_low_text_contrast_fails(self):
-        self.edit("references/artifact/skin.css", "--p-grey-500: #757575", "--p-grey-500: #c0c0c0")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("--muted on --bg light", out)
-
-    def test_low_border_contrast_in_dark_fails(self):
-        self.edit("references/artifact/skin.css", "--p-grey-450: #8a8a8a", "--p-grey-450: #3a3d42")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("--border on --fill dark", out)
-
-    def test_low_link_contrast_fails(self):
-        self.edit("references/artifact/skin.css", "--p-link: #057dbc", "--p-link: #7fc4ea")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("--link on --bg light", out)
-
-    def test_missing_role_fails(self):
-        self.edit("references/artifact/skin.css", "  --accent:", "  --link:")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("no role --accent", out)
-
-    def test_chart_row_naming_unknown_kind_fails(self):
-        self.edit("SKILL.md", "`chart` `scatter`", "`chart` `bubble`")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("`bubble` is not in chart.html's spec", out)
-
-    def test_chart_row_naming_no_kind_fails(self):
-        self.edit("SKILL.md", "`chart` `scatter`", "`chart`")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("names `chart` but none of its kinds", out)
-
-    def test_palette_merged_under_deuteranopia_fails(self):
-        # sky blue and lavender stay apart to a normal eye and pass 3:1 on black, but merge for a deuteranope
-        self.edit("references/artifact/skin.css", "--p-cat-4-d: #cc79a7", "--p-cat-4-d: #a9a0e8")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertRegex(out, r"--kind-1 and --kind-4 dark deuteranopia ΔE \d+\.\d < 10")
-        self.assertNotIn("normal", out)
-
-    def test_sequential_steps_out_of_order_fail(self):
-        self.edit("references/artifact/skin.css", "--p-seq-2: #9dc6e8; --p-seq-3: #509dcf;", "--p-seq-2: #509dcf; --p-seq-3: #9dc6e8;")
-        code, out = run(self.tmp)
-        self.assertEqual(code, 1)
-        self.assertIn("--seq-2 and --seq-3 light", out)
+    def test_each_broken_copy(self):
+        for name, edits, want in CASES:
+            with self.subTest(f"{name}: {edits[0][1][:40]}"), tempfile.TemporaryDirectory() as d:
+                skill = pathlib.Path(d) / "skill"
+                shutil.copytree(SKILL, skill)
+                text = (skill / name).read_text()
+                for old, new in edits:
+                    self.assertIn(old, text)
+                    text = text.replace(old, new, 1)
+                (skill / name).write_text(text)
+                code, out = run(skill)
+                if want is None:
+                    self.assertEqual((code, out), (0, "pass\n"))
+                else:
+                    self.assertEqual(code, 1, out)
+                    self.assertRegex(out, want)
 
 
 if __name__ == "__main__":

@@ -25,36 +25,24 @@ its moves; a move with nothing to say is dropped.
 
 ## Mapping
 
-The content picks the widget, one rule per row; a new rule is a new row naming
-a file in `references/artifact/widgets/`, and `scripts/skill/skill-check.py`
-fails on any other; a `chart` row also names its kinds, each a line of the
-widget's spec. Data is drawn only by the `chart` widget, with no chart
-library. `scripts/artifact/gallery.py` renders every widget in every state,
-light and dark. A figure on GitHub or a repository page is an SVG image,
-exported by [github.md](references/github.md).
+A widget exists only where this skill tuned, combined or made one; everything
+else is plain HTML the skin styles: headings over paragraphs, lists, a
+`<table>`, evidence in `<details>`, code in `<pre>`. The content picks
+the widget, one rule per row; a new rule is a new row naming a file in
+`references/artifact/widgets/` and, for `diagram` and `chart`, its kind, and
+`scripts/skill/skill-check.py` fails on any other. Data is drawn only by the
+`chart` widget, with no chart library. `scripts/skill/gallery.py` renders
+every widget in every state, light and dark. A figure in markdown is an SVG
+image, exported by [markdown.md](references/markdown.md).
 
 | when the content is | widget | in markdown |
 | --- | --- | --- |
-| a software system's structure: files, modules, their roles | `file-tree`, first on the page | a code-block tree, one comment per line |
-| who calls the system and what it calls: actors, entry points, boundaries | `system-context` | its SVG |
-| behaviour: what happens in one use case | `use-case`, one per use case | its SVG, then a numbered list of calls |
-| a sequence the reader follows one step at a time: a request travelling the system | `use-case`, played | a numbered list, one step and its reason each |
-| a structure before and after a change: what it adds, modifies and removes | `before-after` | a diff of the tree |
-| states and the events that move between them: a job's life, a connection | `state-machine` | its SVG, then a table of state, event, next state |
-| rows sharing columns: options, findings, done-criteria | `table` | a table |
-| two dimensions crossed, one mark per cell: options against criteria, roles against permissions | `matrix` | a table, a symbol per cell and its key |
-| values compared across categories: which is largest, by how much | `chart` `bar`; `dot` when zero is no baseline or each category has a before and after | its SVG, then the table |
-| change over time: a trend, a rise, a fall | `chart` `line`; `spark` beside a number in a table or list | its SVG, then the table |
-| a relationship between two measures: does one rise with the other | `chart` `scatter` | its SVG, then the table |
-| a distribution: how one measure spreads, its centre and outliers | `chart` `histogram`; `box` to compare it across groups | its SVG, then the table |
-| parts of a whole: each part's share of a total, per category | `chart` `stacked` | its SVG, then the table with a total column |
-| one measure over two categories crossed: requests by hour and weekday | `chart` `heatmap` | its SVG, then the table |
-| many groups: the same chart per group, more series than one chart holds | `chart` `data-facet` | one SVG per group, then the table |
-| many items the reader narrows or reorders by their attributes | `filter` | a table sorted by the key that matters most |
-| a result the reader should see as it is: a page, a screen, an email | `preview` | an image of it |
-| steps the reader carries out one at a time, each done before the next | `stepwise` | a numbered list, each step with its check |
-| a term the reader may not know, used where the prose must not stop for it | `hint` | the term with its meaning in parentheses, once |
-| a claim with its reason and evidence (code, or the hunk that changed) | `section` | a heading over paragraphs; a hunk as a `diff` code block |
+| a software system's structure: files, modules, their roles | `diagram` `file-tree`, first on the page | a code-block tree, one comment per line |
+| a structure before and after a change: what it adds, modifies and removes | `diagram` `file-tree`, slid | a diff of the tree |
+| who calls the system and what it calls: actors, entry points, boundaries | `diagram` `system-context` | its SVG |
+| behaviour: what happens in one use case; swiped, a request the reader follows call by call | `diagram` `use-case`, one per use case | its SVG, then a numbered list of calls |
+| values compared across categories: which is largest, by how much | `chart` `bar` | its SVG, then the table |
+| change over time: a trend, a rise, a fall | `chart` `line` | its SVG, then the table |
 
 ## Routing
 
@@ -63,9 +51,8 @@ Where the ask says, else where it is obvious, else ask once with
 
 | the document goes to | read |
 | --- | --- |
-| a GitHub issue, pull request, or a comment on one | [github.md](references/github.md) |
+| a GitHub issue, pull request or comment; a repository page: a README, `docs/` | [markdown.md](references/markdown.md) |
 | an Artifact page | [artifact.md](references/artifact.md) |
-| a repository page: a README, a file under `docs/` | [repository.md](references/repository.md) |
 
 Delivered anywhere, give the one-sentence version in chat.
 
@@ -76,7 +63,7 @@ Delivered anywhere, give the one-sentence version in chat.
   first sentence under it.
 - Short words, one idea a sentence, active voice; a new term is defined where
   it first appears or cut; no word that sells. A change you judge wrong is
-  said so, plainly.
+  said so, plainly; a reason the source omits is called absent, not guessed.
 - A step caption names one change and its effect, never what the figure
   shows.
 - An Artifact page is Korean, a hard rule: `<html lang="ko">`, and every
