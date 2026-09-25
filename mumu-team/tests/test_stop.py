@@ -24,6 +24,8 @@ a = sys.argv[1:]
 if a[:2] == ["api", "graphql"]:
     n = next(x for x in a if x.startswith("n="))[2:]
     name = f"parent-{n}.json"
+elif a[0] == "api" and "/git/ref/heads/" in a[1]:
+    name = f"ref-{a[1].rsplit('/', 1)[1]}.json"
 elif a[:2] == ["pr", "list"] and "-R" in a:
     name = f"merged-{a[a.index('--head') + 1]}.json"
 else:
@@ -75,15 +77,17 @@ class Hook(unittest.TestCase):
         (self.data / "mission").mkdir(parents=True)
 
     def stop(self, agent_type="mumu-team:worker", state="OPEN", comments=(), cwd=None, prs=(), mission=None,
-             running=("worker-watch", "lead-heartbeat"), parents=None, merged=()):
+             running=("worker-watch", "lead-heartbeat"), parents=None, merged=(), tip="m1"):
         (self.tmp / "issue.json").write_text(json.dumps({"state": state, "comments": [{"body": b} for b in comments]}))
         (self.tmp / "prs.json").write_text(json.dumps(list(prs)))
         for n, answer in (parents or {}).items():
             (self.tmp / f"parent-{n}.json").write_text(json.dumps(answer))
-        for old in self.tmp.glob("merged-*.json"):
+        for old in [*self.tmp.glob("merged-*.json"), *self.tmp.glob("ref-*.json")]:
             old.unlink()
         for name in merged:
-            (self.tmp / f"merged-{name}.json").write_text(json.dumps([{"number": 5}]))
+            (self.tmp / f"merged-{name}.json").write_text(json.dumps([{"state": "MERGED", "headRefOid": "m1"}]))
+        for name in [*merged, "stop-guard-19"]:
+            (self.tmp / f"ref-{name}.json").write_text(json.dumps({"object": {"sha": tip}}))
         if mission is not None:
             (self.data / "mission" / "s.md").write_text(mission)
         table = [row(1, 0, "launchd"), row(CLAUDE, 1, "claude"), *monitors(*running)]
@@ -136,10 +140,14 @@ class WorkerStop(Hook):
                 self.assertFalse(self.refused(outs), outs)
 
     def test_worker_stops_once_a_pull_request_from_its_branch_merged(self):
-        merged = {"number": 5, "state": "MERGED", "headRefName": "stop-guard-19"}
+        merged = {"number": 5, "state": "MERGED", "headRefName": "stop-guard-19", "headRefOid": "m1"}
         outs, calls = self.stop(prs=[merged])
         self.assertFalse(self.refused(outs), outs)
-        self.assertIn("stop-guard-19", json.loads(calls[-1]))
+        self.assertTrue(any("stop-guard-19" in c for c in calls))
+
+    def test_worker_on_a_reopened_issue_ignores_a_merge_under_its_reused_branch(self):
+        merged = {"number": 5, "state": "MERGED", "headRefName": "stop-guard-19", "headRefOid": "old"}
+        self.assertTrue(self.refused(self.stop(prs=[merged], tip="new")[0]))
 
     def test_worker_is_refused_when_no_merged_pull_request_is_its_own(self):
         for prs in ([{"number": 5, "state": "OPEN", "headRefName": "stop-guard-19"}],
@@ -239,7 +247,12 @@ class LeadStop(Hook):
         outs, calls = self.lead(mission=mission, merged=["stop-guard-8"])
         self.assertTrue(self.refused(outs))
         self.assertIn("worker-close.py stop-guard-8", self.reason(outs))
-        self.assertIn("o/r", json.loads(calls[-1]))
+        self.assertTrue(any("o/r" in c for c in calls), calls)
+
+    def test_lead_ignores_a_merge_under_a_reused_worker_name(self):
+        mission = self.MISSION + f"SUBSCRIBE: stop-guard-8 {SUB}\n"
+        outs, _ = self.lead(mission=mission, merged=["stop-guard-8"], tip="new")
+        self.assertNotIn("worker-close.py", self.reason(outs))
         self.assertFalse(self.refused(self.lead(mission=mission)[0]))
 
     def test_lead_with_an_open_parent_whose_sub_issues_all_closed_is_told_to_resolve(self):

@@ -30,7 +30,7 @@ def changed(m):
 
 
 def running(table, root):
-    """The monitors among `table`'s `(pid, ppid, start, command)` rows whose process descends from pid `root` and started after its code last changed."""
+    """The monitors among `table`'s `(pid, ppid, start, command)` rows whose process descends from pid `root` and started after its code last changed; a stale copy does not cancel a fresh one."""
     parent = {pid: ppid for pid, ppid, _, _ in table}
 
     def descends(pid):
@@ -42,8 +42,8 @@ def running(table, root):
                 return True
         return False
 
-    mine = [(m, start) for pid, _, start, command in table for m in MONITORS if f"/{m}.py" in command and descends(pid)]
-    return {m for m, _ in mine} - {m for m, start in mine if start < changed(m)}
+    return {m for pid, _, start, command in table for m in MONITORS
+            if f"/{m}.py" in command and descends(pid) and start >= changed(m)}
 
 
 def ps():

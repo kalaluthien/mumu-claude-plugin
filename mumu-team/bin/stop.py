@@ -49,6 +49,18 @@ def gh(*args):
         sys.exit(0)
 
 
+def tip(repo, branch):
+    """The sha the remote `branch` of `repo` (`owner/name`, or `{owner}/{repo}` for cwd's) points at, or None."""
+    ref = gh("api", f"repos/{repo}/git/ref/heads/{branch}")
+    return ref.get("object", {}).get("sha") if isinstance(ref, dict) else None
+
+
+def current(prs, repo, branch):
+    """Whether a merged one of `prs` is the branch's current claim: its head is the branch's tip, so a merge under a reused name before the reopen does not count."""
+    merged = [p["headRefOid"] for p in prs if p["state"] == "MERGED"]
+    return bool(merged) and tip(repo, branch) in merged
+
+
 def block(reason):
     print(json.dumps({"decision": "block", "reason": reason}))
     sys.exit(0)
@@ -64,7 +76,7 @@ def worker():
         return
     prs = [p for p in gh("pr", "list", "--head", branch, "--state", "all", "--json",
                          "url,state,headRefName,headRefOid,comments,reviews") if p.get("headRefName") == branch]
-    if any(p["state"] == "MERGED" for p in prs):
+    if current(prs, "{owner}/{repo}", branch):
         return
     pr = next((p for p in prs if p["state"] == "OPEN"), None)
     if pr is None:
@@ -115,7 +127,8 @@ def lead():
             steps.append(f"Every sub-issue of {parent} is closed: go to Lead 5 and `resolve` it.")
     for name, url in workers.items():
         m = ISSUE.fullmatch(url)
-        if m and gh("pr", "list", "-R", f"{m[1]}/{m[2]}", "--head", name, "--state", "merged", "--json", "number"):
+        if m and current(gh("pr", "list", "-R", f"{m[1]}/{m[2]}", "--head", name, "--state", "merged", "--json", "state,headRefOid"),
+                         f"{m[1]}/{m[2]}", name):
             steps.append(f"The pull request of {name} merged: `close` its worker with `worker-close.py {name}`.")
     if steps:
         block(" ".join(steps))
