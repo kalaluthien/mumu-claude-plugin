@@ -77,7 +77,14 @@ def gallery(skill):
             + ".theme-light, .theme-dark { padding: var(--sp-3); margin: var(--sp-4) 0; border: var(--line) solid var(--border); }\n"
             + "</style>\n" + "\n".join(styles)
             + "\n<main>\n<h1>위젯 모음</h1>\n<p class=\"read\"><code>writing-documents</code>의 모든 위젯을 모든 상태로, 밝은 테마와 어두운 테마에서 보여 줍니다.</p>\n"
-            + "\n".join(sections) + "\n</main>\n" + "\n".join(scripts) + "\n</html>\n")
+            + contents("\n".join(sections)) + "\n".join(sections) + "\n</main>\n" + "\n".join(scripts) + "\n</html>\n")
+
+
+def contents(body):
+    """The page's <nav>: a link to each <h2> by its id, as artifact.md's Composition asks."""
+    links = "".join(f'<li><a href="#{i}">{re.sub(r"<[^>]+>", "", text).strip()}</a></li>'
+                    for i, text in re.findall(r'<h2 id="([^"]+)">(.*?)</h2>', body, re.S))
+    return f"<nav><ol>{links}</ol></nav>\n"
 
 
 def main():

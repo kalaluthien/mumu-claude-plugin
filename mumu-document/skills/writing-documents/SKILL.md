@@ -21,7 +21,7 @@ its moves; a move with nothing to say is dropped.
 | doctype | the reader | moves, in order |
 | --- | --- | --- |
 | `proposal` | must agree to what is not settled: a plan, a design, an issue, a choice | **plan**: the goal and when it is done · **narrative and comparison**: why, and the options against one set of criteria, fixed before any option · **settled answers**: what `grill-me` settled with the reader · **decide**: the recommendation and the fact that would change it |
-| `textbook` | must understand or use what is settled: a system, a change, a result | **explain**: what it is made of and how it works · **teach**: one claim per section, with its reason and evidence · **guide**: the steps the reader takes, each with its check · **report**: what was done, its evidence, the next action |
+| `textbook` | must understand or use what is settled: a system, a change, a result | **explain**: what it is made of, how it works and the traps a user hits · **teach**: one claim per section, with its reason and evidence · **guide**: the steps the reader takes, each with its check · **report**: what was done, its evidence, the next action |
 
 ## Mapping
 

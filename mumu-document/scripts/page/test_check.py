@@ -36,6 +36,8 @@ CHART_FAILS = [
     ("if (f.dataset.chart === 'line') { var m = f.querySelector('circle.mark'); m.setAttribute('cy', +m.getAttribute('cy') + 3); }", "cy"),
     ("if (f.dataset.chart === 'bar') { var m = f.querySelector('rect.mark'); var s = f.querySelector('svg'), a = s.dataset.x.split(' '); a[1] = 1; s.dataset.x = a.join(' '); }", "does not span"),
 ]
+FOUR = "".join(f'<h2 id="s{i}">부분 {i}</h2><p>내용이에요.</p>' for i in range(1, 5))
+NAV = '<nav><ol>' + "".join(f'<li><a href="#s{i}">부분 {i}</a></li>' for i in range(1, 5)) + '</ol></nav>'
 STUCK = "<script>document.addEventListener('click', function (e) { if (e.target.closest('.controls')) e.stopImmediatePropagation(); }, true);</script></html>"
 
 
@@ -66,6 +68,20 @@ class Check(unittest.TestCase):
                 code, out = run(GOOD.replace(old, new))
                 self.assertEqual(code, 1, out)
                 self.assertIn(line, out)
+
+    def test_contents_at_four_h2s(self):
+        page = GOOD.replace('<h2>저장소 <code>jobs.db</code></h2>', FOUR)
+        code, out = run(page)
+        self.assertEqual(code, 1, out)
+        self.assertIn("contents 4 h2 0 linked FAIL", out)
+        code, out = run(page.replace("<h1>작업 큐의 구조</h1>", "<h1>작업 큐의 구조</h1>" + NAV))
+        self.assertEqual(code, 0, out)
+        self.assertIn("contents 4 h2 4 linked nav pass", out)
+
+    def test_no_contents_under_four_h2s(self):
+        code, out = run(GOOD.replace("<h1>작업 큐의 구조</h1>", "<h1>작업 큐의 구조</h1>" + NAV))
+        self.assertEqual(code, 1, out)
+        self.assertIn("contents 1 h2 0 linked nav FAIL", out)
 
     def test_gallery_passes(self):
         code, out = run(self.gallery)
