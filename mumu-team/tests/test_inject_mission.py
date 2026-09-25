@@ -10,6 +10,9 @@ import sys
 import tempfile
 import unittest
 
+# The session's name keys its mission (`team.session_key`): run as no named Claude session.
+os.environ["CLAUDE_PID"] = str(os.getpid())
+
 BIN = pathlib.Path(__file__).resolve().parent.parent / "bin"
 URL = "https://github.com/o/r/issues/1"
 LEAD = f"GOAL: g\nMISSION: leader of {URL}\nEXPECT: e; lead rules\n\nSUBSCRIBE: topic-2 https://github.com/o/r/issues/2\n"

@@ -10,6 +10,9 @@ import sys
 import tempfile
 import unittest
 
+# The session's name keys its mission (`team.session_key`): run as no named Claude session.
+os.environ["CLAUDE_PID"] = str(os.getpid())
+
 BIN = pathlib.Path(__file__).resolve().parent.parent / "bin"
 PANE = "w1:p1"
 ISSUE = "https://github.com/o/r/issues/7"

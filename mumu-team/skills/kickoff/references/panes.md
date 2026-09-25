@@ -5,7 +5,7 @@ Every command names its target pane.
 | verb | command |
 | --- | --- |
 | `ready` | `$HERDR_PANE_ID` is set, and `herdr integration status` has no `claude: not installed` line; without both no session can be addressed or report its state. The fix is to run inside herdr, and `herdr integration install claude` |
-| your address | `<your name>@$HERDR_PANE_ID` |
+| your address | `<your name>`, the bare name `herdr agent get` resolves; `<name>@<pane>` is `agent_not_found` |
 | `live` | `herdr agent list`, whose JSON gives each agent's `pane_id`, `tab_id` and `agent_status` |
 | `start` | `worker-start.py <checkout> <name> <effort> <issue-url> [--continue] [--prompt <text>] [--owner-effort]`: `<effort>` is `low` or `medium`, any other refused unless `--owner-effort` says the owner named it; adds or reuses the worktree `<checkout>/.claude/worktrees/<name>`, opens its tab, starts Claude at that effort, answers the folder-trust dialog, sends the prompt, adds `SUBSCRIBE: <name> <issue-url>` to your mission, and prints `<name>@<pane> <worktree>` |
 | `name` | this session's three names: `herdr tab rename <tab> <name>`, the tab being `herdr pane get $HERDR_PANE_ID`'s `tab_id`; `herdr agent rename $HERDR_PANE_ID <name>`; and `herdr agent prompt $HERDR_PANE_ID "/rename <name>"`, which applies when the turn ends |

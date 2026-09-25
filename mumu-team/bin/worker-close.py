@@ -8,9 +8,9 @@ in `DIALOGS` at most once, by the key its row names: the background-work dialog
 exits, and a pending feedback draft is discarded, never sent, since sending is
 the owner's to decide. It then waits until herdr no longer lists the agent, closes every tab labelled
 `<name>`, and removes `SUBSCRIBE: <name> ...` from this session's mission
-(`team.mission_file`), and deletes the worker's own mission, found by the
-session id herdr lists as its `agent_session` before `/exit`; none found, none
-deleted. An agent already gone skips to the tab. Prints
+(`team.mission_file`), and deletes the worker's own mission, found by `<name>`
+or else by the session id herdr lists as its `agent_session` before `/exit`;
+none found, none deleted. An agent already gone skips to the tab. Prints
 `closed <name>`. `WORKER_CLOSE_TIMEOUT` (60) and `WORKER_CLOSE_POLL` (1) are seconds.
 The keys go through `herdr agent send-keys`, so auto mode needs the allow rule
 `Bash(herdr agent send-keys *)`.
@@ -90,7 +90,7 @@ def main(argv):
     mission = team.mission_file()
     if mission is not None:
         team.unsubscribe(mission, name)
-    own = team.mission_file(session) if session else None
+    own = team.mission_file(name) or (team.mission_file(session) if session else None)
     if own is not None:
         own.unlink(missing_ok=True)
     print(f"closed {name}")

@@ -1,0 +1,16 @@
+schema_version: "1.0"
+name: resume-adopt
+context:
+  scaffold_script: setup.sh
+execution:
+  prompt: "/mumu-team:kickoff continue where you left off before the restart"
+  max_turns: 6
+  timeout_seconds: 240
+  allowed_tools: [Skill, Read, Glob, Grep]
+graders:
+  # The sandbox denies reading the config dir, so the grader counts the attempt to list it.
+  - name: lists-missions
+    type: tool_used
+    tool: Glob
+    input_match: "plugins/data/[^/]+/mission"
+    min: 1
