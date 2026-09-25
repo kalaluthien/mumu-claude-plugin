@@ -10,7 +10,7 @@ the owner's to decide. It then waits until herdr no longer lists the agent, clos
 `<name>`, and removes `SUBSCRIBE: <name> ...` from this session's mission
 (`team.mission_file`), and deletes the worker's own mission, found by `<name>`
 or else by the session id herdr lists as its `agent_session` before `/exit`;
-none found, none deleted. An agent already gone skips to the tab. Prints
+none found, or this session's own (a lead's successor closing the original), none deleted. An agent already gone skips to the tab. Prints
 `closed <name>`. `WORKER_CLOSE_TIMEOUT` (60) and `WORKER_CLOSE_POLL` (1) are seconds.
 The keys go through `herdr agent send-keys`, so auto mode needs the allow rule
 `Bash(herdr agent send-keys *)`.
@@ -91,7 +91,7 @@ def main(argv):
     if mission is not None:
         team.unsubscribe(mission, name)
     own = team.mission_file(name) or (team.mission_file(session) if session else None)
-    if own is not None:
+    if own is not None and own != mission:  # a lead's successor closes the original, whose mission is its own
         own.unlink(missing_ok=True)
     print(f"closed {name}")
     return 0

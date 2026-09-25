@@ -50,5 +50,76 @@ class InjectMission(unittest.TestCase):
         self.assertIsNone(self.inject(None))
 
 
+FAKE = r'''#!/usr/bin/env python3
+import json, os, sys
+with open(os.environ["CALLS"], "a") as f:
+    f.write(json.dumps([os.path.basename(sys.argv[0])] + sys.argv[1:]) + "\n")
+a = sys.argv[1:]
+if a[:2] == ["repo", "view"]:
+    print("o/r")
+elif a[:2] == ["api", "graphql"]:
+    sub = lambda n, state: {"number": n, "url": f"https://github.com/o/r/issues/{n}", "state": state}
+    print(json.dumps({"data": {"repository": {"issues": {"nodes": [
+        {"title": "Goal one", "url": "https://github.com/o/r/issues/1",
+         "subIssues": {"nodes": [sub(2, "OPEN"), sub(3, "CLOSED"), sub(4, "OPEN")]}},
+        {"title": "A plain issue", "url": "https://github.com/o/r/issues/9", "subIssues": {"nodes": []}}]}}}}))
+elif a[:1] == ["ls-remote"]:
+    print("aaa\trefs/heads/main\nbbb\trefs/heads/fix-thing-2\nccc\trefs/heads/old-3")
+'''
+REBUILT = ("GOAL: Goal one\nMISSION: leader of https://github.com/o/r/issues/1\n"
+           "EXPECT: the ## Decisions of https://github.com/o/r/issues/1\n\n"
+           "SUBSCRIBE: fix-thing-2 https://github.com/o/r/issues/2\n")
+
+
+class NameKeyedCache(unittest.TestCase):
+    """The mission is keyed by the session's `--name`, so a new session id finds it, and a lead's missing one is rebuilt from GitHub."""
+
+    def setUp(self):
+        self.tmp = pathlib.Path(tempfile.mkdtemp())
+        for tool in ("gh", "git"):
+            (self.tmp / tool).write_text(FAKE)
+            (self.tmp / tool).chmod(0o755)
+        self.calls = self.tmp / "calls"
+        self.data = self.tmp / "data"
+
+    def claude(self, name):
+        """A stand-in Claude process started with `--name <name>`, as `team.session_name` reads it from ps."""
+        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)", "--name", name])
+        self.addCleanup(proc.kill)
+        return str(proc.pid)
+
+    def inject(self, session, pid):
+        env = dict(os.environ, CLAUDE_PLUGIN_DATA=str(self.data), CLAUDE_PID=pid, CALLS=str(self.calls),
+                   PATH=f"{self.tmp}:{os.environ['PATH']}")
+        done = subprocess.run([sys.executable, str(BIN / "inject-mission.py")], env=env, capture_output=True, text=True,
+                              input=json.dumps({"hook_event_name": "UserPromptSubmit", "session_id": session, "cwd": str(self.tmp)}))
+        self.assertEqual(done.returncode, 0, done.stderr)
+        return json.loads(done.stdout)["hookSpecificOutput"]["additionalContext"] if done.stdout else None
+
+    def gh_calls(self):
+        return sum(json.loads(line)[0] == "gh" for line in self.calls.read_text().splitlines()) if self.calls.exists() else 0
+
+    def test_a_new_session_id_reads_the_mission_its_name_wrote(self):
+        (self.data / "mission").mkdir(parents=True)
+        (self.data / "mission" / "r-lead.md").write_text(LEAD)
+        self.assertIn(LEAD, self.inject("new-id", self.claude("r-lead")))
+        self.assertEqual(self.gh_calls(), 0)
+
+    def test_a_missing_lead_mission_is_rebuilt_from_github_then_read_with_no_gh(self):
+        pid = self.claude("r-lead")
+        self.assertIn(REBUILT, self.inject("s1", pid))
+        self.assertEqual((self.data / "mission" / "r-lead.md").read_text(), REBUILT)
+        before = self.gh_calls()
+        self.assertGreater(before, 0)
+        for session in ("s1", "s2"):
+            self.assertIn(REBUILT, self.inject(session, pid))
+        self.assertEqual(self.gh_calls(), before)
+
+    def test_a_session_not_named_as_a_lead_runs_no_gh(self):
+        self.assertIsNone(self.inject("s1", self.claude("topic-2")))
+        self.assertIsNone(self.inject("s1", str(os.getpid())))
+        self.assertEqual(self.gh_calls(), 0)
+
+
 if __name__ == "__main__":
     unittest.main()
