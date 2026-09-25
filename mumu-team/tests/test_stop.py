@@ -147,7 +147,7 @@ class WorkerStop(Hook):
 
     def test_worker_stops_once_its_merged_branch_is_deleted(self):
         merged = {"number": 5, "state": "MERGED", "headRefName": "stop-guard-19", "headRefOid": "m1"}
-        self.assertFalse(self.refused(self.stop(prs=[merged], tip=None)[0]))
+        self.assertFalse(self.refused(self.stop(prs=[merged], tip=None, state="CLOSED")[0]))
 
     def test_worker_on_a_reopened_issue_ignores_a_merge_under_its_reused_branch(self):
         merged = {"number": 5, "state": "MERGED", "headRefName": "stop-guard-19", "headRefOid": "old"}
@@ -255,8 +255,13 @@ class LeadStop(Hook):
 
     def test_lead_is_told_to_close_a_worker_whose_merged_branch_is_deleted(self):
         mission = self.MISSION + f"SUBSCRIBE: stop-guard-8 {SUB}\n"
-        outs, _ = self.lead(mission=mission, merged=["stop-guard-8"], tip=None)
+        outs, _ = self.lead(mission=mission, merged=["stop-guard-8"], tip=None, state="CLOSED")
         self.assertIn("worker-close.py stop-guard-8", self.reason(outs))
+
+    def test_lead_ignores_an_old_merge_while_a_reopened_worker_has_not_pushed(self):
+        mission = self.MISSION + f"SUBSCRIBE: stop-guard-8 {SUB}\n"
+        outs, _ = self.lead(mission=mission, merged=["stop-guard-8"], tip=None)
+        self.assertNotIn("worker-close.py", self.reason(outs))
 
     def test_lead_ignores_a_merge_under_a_reused_worker_name(self):
         mission = self.MISSION + f"SUBSCRIBE: stop-guard-8 {SUB}\n"
