@@ -27,5 +27,7 @@ link on a repository page, so it follows the branch it is read on.
    <dir>` writes `<dir>/<page>-<n>.svg`, one per figure, styles inlined.
 3. On GitHub, reference it as `![<what it shows>](./<page>-<n>.svg)` and pass
    `--attach './<page>-<n>.svg#<what it shows>'` to `gh pr|issue
-   create|edit|comment`, which uploads it and rewrites the reference. On a
-   repository page, commit it beside the page, its alt one sentence.
+   create|edit|comment`, which uploads it and rewrites the reference; every
+   later `--body-file` edit re-passes `--attach` for each figure, or the path
+   stays local. On a repository page, commit it beside the page, its alt one
+   sentence.

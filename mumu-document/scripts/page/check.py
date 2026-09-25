@@ -17,6 +17,8 @@ usage: check.py <page.html>
   a mark whose name lacks its cell's text, a mark the arrow keys do not reach, a slide not
   starting at its first table or not reaching its last through Next, no data table, a summary that is not one sentence,
   or facet panels on different scales.
+- swipe, in real time over the DevTools pipe (virtual time fires no IntersectionObserver after a
+  scroll): each live swipe strip scrolled to its end; fails when its step is not the last.
 Exit 0 pass, 1 FAIL, 2 when it could not run, saying why.
 """
 import html
@@ -27,6 +29,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 REDUCED = "--force-prefers-reduced-motion"
@@ -171,6 +174,44 @@ def render(frame, page, *flags):
         os.unlink(f.name)
     m = re.search(r'data-r="([^"]*)"', r.stdout)
     return (json.loads(html.unescape(m.group(1))) if m else None), bool(re.search(r'CONSOLE.*"Uncaught', r.stderr))
+
+
+def swipe(page):
+    """[(step reached, steps)] of each live swipe after its strip is scrolled to the end, in real time."""
+    cmd_r, cmd_w = os.pipe()
+    out_r, out_w = os.pipe()
+    def fds():  # Chrome reads commands on fd 3 and answers on fd 4
+        a, b = os.dup(cmd_r), os.dup(out_w)
+        os.dup2(a, 3)
+        os.dup2(b, 4)
+    chrome = subprocess.Popen([CHROME, "--headless", "--remote-debugging-pipe", "--window-size=400,900",
+                               f"--user-data-dir={tempfile.mkdtemp()}", "about:blank"], preexec_fn=fds, close_fds=False,
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    os.close(cmd_r)
+    os.close(out_w)
+    buf, ids = b"", iter(range(1, 100))
+    def send(method, session=None, **params):
+        nonlocal buf
+        n = next(ids)
+        os.write(cmd_w, json.dumps({"id": n, "method": method, "params": params, **({"sessionId": session} if session else {})}).encode() + b"\0")
+        while True:
+            while b"\0" not in buf:
+                buf += os.read(out_r, 65536)
+            msg, buf = buf.split(b"\0", 1)
+            msg = json.loads(msg)
+            if msg.get("id") == n:
+                return msg.get("result", {})
+    try:
+        target = send("Target.createTarget", url=f"file://{page}")["targetId"]
+        session = send("Target.attachToTarget", targetId=target, flatten=True)["sessionId"]
+        run = lambda js: send("Runtime.evaluate", session, expression=js, returnByValue=True)["result"].get("value")
+        time.sleep(1.5)
+        run("document.querySelectorAll('[data-swipe].live .steps').forEach(function (s) { s.scrollLeft = s.scrollWidth; })")
+        time.sleep(1)
+        return run("Array.prototype.map.call(document.querySelectorAll('[data-swipe].live'), function (r) {"
+                   " return [+r.dataset.at + 1, r.querySelectorAll('.steps > li').length]; })")
+    finally:
+        chrome.kill()
 
 
 def layout(r, error):
@@ -359,6 +400,9 @@ def main():
             failed |= bool(out)
             marks = sum(len(p["marks"]) for p in one["panels"])
             print(f"chart {mode} {n} {one['kind']} marks {marks} keys {len(one['seen'])} " + ("FAIL: " + "; ".join(out) if out else "pass"))
+    for i, (at, n) in enumerate(swipe(page), 1):
+        failed |= at != n
+        print(f"swipe {i} step {at}/{n} " + ("pass" if at == n else "FAIL"))
     print("FAIL" if failed else "pass")
     return 1 if failed else 0
 

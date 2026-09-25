@@ -81,6 +81,12 @@ class Check(unittest.TestCase):
                 self.assertEqual(code, 1, out)
                 self.assertIn(word, out)
 
+    def test_swipe_that_does_not_react_fails(self):
+        dead = "<script>window.IntersectionObserver = function () { this.observe = function () {}; };</script><style>"
+        code, out = run(self.gallery.replace("<style>", dead, 1))
+        self.assertEqual(code, 1, out)
+        self.assertIn("swipe 1 step 1/3 FAIL", out)
+
 
 if __name__ == "__main__":
     unittest.main()
