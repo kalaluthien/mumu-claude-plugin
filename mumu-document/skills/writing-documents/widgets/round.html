@@ -1,0 +1,45 @@
+<!-- round: the open questions only the reader can settle, one fieldset
+     each, numbered Q1, Q2, the recommendation prefilled as the answer. The
+     form writes nowhere: it builds the answer block the reader pastes back
+     (Rounds in SKILL.md). One round per page; keep the script. -->
+<style>
+  [data-widget="round"] fieldset { border: 1px solid var(--border); margin: 0 0 1rem; padding: .75rem 1rem; }
+  [data-widget="round"] legend { font-weight: 600; padding: 0 .25rem; }
+  [data-widget="round"] textarea { width: 100%; box-sizing: border-box; font: inherit; }
+  [data-widget="round"] #out { margin-top: 1rem; font-family: ui-monospace, monospace; }
+</style>
+<form id="round" data-widget="round" data-target="{{target}}" data-round="{{n}}" aria-labelledby="{{id}}">
+  <h2 id="{{id}}">{{what the answers decide}}</h2>
+  <fieldset>
+    <legend>Q1: {{question title}}</legend>
+    <p>{{question body}}</p>
+    <p><strong>Recommended:</strong> {{recommended answer}}</p>
+    <label for="Q1">Answer</label>
+    <textarea id="Q1" name="Q1" rows="3">{{recommended answer}}</textarea>
+  </fieldset>
+  <button type="submit">Build the answer block</button> <span id="status" role="status"></span>
+  <label for="out" hidden>Answer block</label>
+  <textarea id="out" rows="8" readonly hidden></textarea>
+</form>
+<script>
+  const form = document.getElementById('round');
+  const out = document.getElementById('out');
+  const status = document.getElementById('status');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const answers = [...form.querySelectorAll('fieldset textarea')].map((t) => {
+      const lines = t.value.trim() ? t.value.trim().split('\n') : [];
+      return [`${t.name}:`, ...lines.map((l) => `  ${l}`)].join('\n');
+    });
+    out.value = [`writing-documents: ${form.dataset.target}, round ${form.dataset.round}`, ...answers].join('\n');
+    out.hidden = false;
+    out.labels[0].hidden = false;
+    out.select();
+    try {
+      await navigator.clipboard.writeText(out.value);
+      status.textContent = 'Copied: paste it into the chat';
+    } catch {
+      status.textContent = 'Selected: copy it and paste it into the chat';
+    }
+  });
+</script>

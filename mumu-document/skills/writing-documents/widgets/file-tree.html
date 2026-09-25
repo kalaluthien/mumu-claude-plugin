@@ -1,0 +1,34 @@
+<!-- file-tree: a system's structure, first on the page. A folder is a
+     <details> the reader opens and closes; open only the level the page is
+     about. Every node carries a .note: its role in one line, or a quoted
+     excerpt in <blockquote> with its path:line. A .tag marks a change
+     (new, changed, gone); a gone node gets class "gone". Grouped as the reader
+     thinks of the system; a folder no reader needs is one collapsed line. -->
+<style>
+  [data-widget="file-tree"] { background: var(--fill); border: 1px solid var(--border); padding: .5rem .75rem; }
+  [data-widget="file-tree"] ul { list-style: none; margin: 0; padding-inline-start: 1.1rem; border-inline-start: 1px dashed var(--border); }
+  [data-widget="file-tree"] > ul { padding-inline-start: 0; border: 0; }
+  [data-widget="file-tree"] li { margin: .2rem 0; }
+  [data-widget="file-tree"] summary { cursor: pointer; }
+  [data-widget="file-tree"] .name { font-family: ui-monospace, monospace; font-size: .92rem; overflow-wrap: anywhere; }
+  [data-widget="file-tree"] .note { color: var(--muted); font-size: .9rem; margin: .15rem 0 .35rem 1.1rem; }
+  [data-widget="file-tree"] blockquote { margin: .15rem 0 .35rem 1.1rem; padding-inline-start: .5rem; border-inline-start: 2px solid var(--border); font-size: .9rem; }
+  [data-widget="file-tree"] .tag { font-size: .8rem; border: 1px solid var(--border); border-radius: 4px; padding: 0 .3rem; margin-inline-start: .35rem; color: var(--muted); }
+  [data-widget="file-tree"] .gone .name { text-decoration: line-through; color: var(--muted); }
+</style>
+<section aria-labelledby="{{id}}">
+  <h2 id="{{id}}">{{what the structure shows, as a sentence}}</h2>
+  <div data-widget="file-tree">
+    <ul>
+      <li><details open><summary><span class="name">{{folder}}/</span></summary>
+        <p class="note">{{its role}}</p>
+        <ul>
+          <li><details><summary><span class="name">{{file}}</span><span class="tag">{{change}}</span></summary>
+            <p class="note">{{its role}}</p>
+            <blockquote><code>{{quoted line}}</code> <span class="muted">{{path:line}}</span></blockquote>
+          </details></li>
+          <li class="gone"><span class="name">{{removed file}}</span><span class="tag">gone</span></li>
+        </ul></details></li>
+    </ul>
+  </div>
+</section>

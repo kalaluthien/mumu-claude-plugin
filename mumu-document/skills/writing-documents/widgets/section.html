@@ -1,0 +1,18 @@
+<!-- section: one claim, headed by the claim as a sentence; each paragraph
+     claim, reason, evidence, consequence. Steps the reader takes go in an
+     <ol>, each step with the check that shows it worked. Evidence folds into
+     <details>, cited as path:line at a sha; a reason the source omits is
+     called absent, not guessed. -->
+<style>
+  [data-widget="section"] details { margin: .5rem 0; }
+  [data-widget="section"] summary { cursor: pointer; color: var(--muted); }
+</style>
+<section data-widget="section" aria-labelledby="{{id}}">
+  <h2 id="{{id}}">{{the claim, as a sentence}}</h2>
+  <p>{{the reason, then the consequence}}</p>
+  <ol><li>{{step}}: {{its check}}</li></ol>
+  <details>
+    <summary>Evidence: <code>{{path:line}}</code></summary>
+    <pre tabindex="0" role="region" aria-label="{{path:line}}"><code>{{the code}}</code></pre>
+  </details>
+</section>

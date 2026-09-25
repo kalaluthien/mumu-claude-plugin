@@ -1,0 +1,35 @@
+/* skin: carried verbatim into the page's one <style>. Six colour roles, each
+   light-dark(light, dark); widgets use only these roles. */
+:root {
+  color-scheme: light dark;
+  --text: light-dark(#1d1d1f, #ececec);
+  --muted: light-dark(#5b5f66, #a3a7ae);
+  --bg: light-dark(#fbfaf7, #17181a);
+  --fill: light-dark(#ffffff, #222427);
+  --border: light-dark(#8a877f, #767a82);
+  --accent: light-dark(#2458c6, #8fb4ff);
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+body { background: var(--bg); color: var(--text); margin: 0;
+       font: 16px/1.5 system-ui, sans-serif; padding: 24px 16px; }
+main { max-width: 48rem; margin: 0 auto; }
+h1 { font-size: 1.4rem; margin: 0 0 1rem; }
+h2 { font-size: 1.15rem; margin: 1.75rem 0 .5rem; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.read { border-inline-start: 3px solid var(--text); padding-inline-start: .75rem; font-size: 1.1rem; }
+.muted, footer { color: var(--muted); font-size: .9rem; }
+footer { margin-top: 2rem; }
+code, pre { font: .9em/1.45 ui-monospace, monospace; }
+pre { overflow-x: auto; background: var(--fill); border: 1px solid var(--border); padding: .75rem; }
+.scroll { overflow-x: auto; }
+figure { margin: 0; }
+svg { display: block; }
+svg text { fill: var(--text); font: 14px system-ui, sans-serif; }
+svg .label { fill: var(--muted); font-size: 12px; }
+svg .box { fill: var(--fill); stroke: var(--border); }
+svg .edge { stroke: var(--text); stroke-width: 2; fill: none; }
+svg .edge.inferred { stroke-dasharray: 4 4; }
+svg .tip { fill: var(--text); }
+svg .mask { fill: var(--bg); }
