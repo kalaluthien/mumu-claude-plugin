@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Start a worker in one call: its worktree, its tab, its Claude session, the folder-trust dialog, its first prompt, and its mission line.
 
-usage: worker-start.py <checkout> <name> <effort> <issue-url> [--continue] [--prompt <text>]
+usage: worker-start.py <checkout> <name> <effort> <issue-url> [--continue] [--prompt <text>] [--owner-effort]
 
 The worktree is `<checkout>/.claude/worktrees/<name>`, added detached at
 `origin/<default>` when missing and reused when present; the git guard is
@@ -15,6 +15,8 @@ is appended to this session's mission (`team.mission_file`) unless a line for
 `<name>` is there, and `<name>@<pane> <worktree>` printed; with no mission it
 fails before anything starts. `<name>` must be `<topic>-<n>`, `<n>` the issue number in `<issue-url>`
 and `<topic>` lowercase words joined by `-`, or it fails before anything starts. `agent start` is retried while herdr answers `agent_pane_busy`.
+`<effort>` must be `low` or `medium`, or it fails with 2 before anything starts,
+unless `--owner-effort` says the owner named that effort in so many words.
 `WORKER_START_TIMEOUT` (60) and `WORKER_START_POLL` (1) are seconds.
 """
 import json
@@ -106,22 +108,27 @@ def start(name, pane, claude_args, timeout, poll):
 
 
 def main(argv):
-    args, resume, prompt = [], False, None
+    args, resume, prompt, owner_effort = [], False, None, False
     it = iter(argv)
     for a in it:
         if a == "--continue":
             resume = True
+        elif a == "--owner-effort":
+            owner_effort = True
         elif a == "--prompt":
             prompt = next(it, None)
         else:
             args.append(a)
     if len(args) != 4 or (prompt is None and "--prompt" in argv):
-        print("usage: worker-start.py <checkout> <name> <effort> <issue-url> [--continue] [--prompt <text>]", file=sys.stderr)
+        print("usage: worker-start.py <checkout> <name> <effort> <issue-url> [--continue] [--prompt <text>] [--owner-effort]", file=sys.stderr)
         return 2
     repo, name, effort, url = args
     number = re.search(r"/issues/(\d+)/?$", url)
     if not number or not re.fullmatch(rf"[a-z0-9]+(-[a-z0-9]+)*-{number[1]}", name):
         print(f"worker-start.py: name {name!r} must be <topic>-{number[1] if number else '<issue>'}", file=sys.stderr)
+        return 2
+    if effort not in ("low", "medium") and not owner_effort:
+        print(f"worker-start.py: effort {effort!r} must be low or medium; pass --owner-effort only when the owner named it", file=sys.stderr)
         return 2
     mission = team.mission_file()
     if mission is None:

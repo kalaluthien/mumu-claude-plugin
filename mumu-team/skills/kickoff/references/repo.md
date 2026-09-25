@@ -7,7 +7,7 @@ A worker's worktree goes in its leader's own checkout only, never in another rep
 | verb | command |
 | --- | --- |
 | `read` | `gh issue view <url> --json title,body,comments,parent`, or `gh pr view <url> --json title,body,comments,headRefOid`; a goal's issues are its sub-issues, `gh api repos/<repo>/issues/<parent>/sub_issues` |
-| `file` | parent: `gh issue create -R <repo> --title "<title>" --body-file -`; issue: `gh label create effort:<effort> -R <repo> --force`, then the same create with `--parent <parent-url> --label effort:<effort>` |
+| `file` | parent: `gh issue create -R <repo> --title "<title>" --body-file -`; issue: `gh label create effort:<effort> -R <repo> --force`, `<effort>` `low` or `medium` unless the owner named another, then the same create with `--parent <parent-url> --label effort:<effort>` |
 | `comment` | `gh issue comment <url> --body-file -` |
 | `resolve` | `gh issue close <url> --comment "<summary>"` |
 | `handoff` | `gh issue transfer <url> <owner>/<target-repo>`, which prints the new url; then `prompt` the target project's leader `see <new-url>` |
