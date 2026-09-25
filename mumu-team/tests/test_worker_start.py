@@ -65,13 +65,13 @@ class WorkerStart(unittest.TestCase):
         self.mission.parent.mkdir(parents=True)
         self.mission.write_text(LEAD)
 
-    def start(self, *extra, trust=True, name="start-7", url=ISSUE):
+    def start(self, *extra, trust=True, name="start-7", url=ISSUE, effort="low"):
         if trust:
             (self.tmp / "trust").touch()
         env = dict(os.environ, FAKE=str(self.tmp), PATH=f"{self.tmp}:{BIN}:{os.environ['PATH']}",
                    WORKER_START_TIMEOUT="3", WORKER_START_POLL="0.01",
                    CLAUDE_CONFIG_DIR=str(self.tmp / "config"), CLAUDE_CODE_SESSION_ID="s1")
-        done = subprocess.run([sys.executable, str(BIN / "worker-start.py"), str(self.repo), name, "low", url, *extra],
+        done = subprocess.run([sys.executable, str(BIN / "worker-start.py"), str(self.repo), name, effort, url, *extra],
                               env=env, capture_output=True, text=True, timeout=30)
         log = self.tmp / "calls"
         calls = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
@@ -177,6 +177,28 @@ class WorkerStart(unittest.TestCase):
         done, calls = self.start(trust=False, name="writing-documents-74", url="https://github.com/o/r/issues/73")
         self.assertNotEqual(done.returncode, 0)
         self.assertEqual(calls, [])
+
+    def test_high_effort_refused_before_side_effects(self):
+        done, calls = self.start(trust=False, effort="high")
+        self.assertEqual(done.returncode, 2)
+        self.assertIn("--owner-effort", done.stderr)
+        self.assertEqual(len(done.stderr.strip().splitlines()), 1)
+        self.assertEqual(calls, [], "worktree or tab touched")
+        self.assertEqual(self.mission.read_text(), LEAD)
+
+    def test_high_effort_with_owner_flag_starts_at_high(self):
+        done, calls = self.start("--owner-effort", trust=False, effort="high")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        start = next(c for c in calls if c[1:3] == ["agent", "start"])
+        self.assertEqual(start[start.index("--effort") + 1], "high")
+
+    def test_low_and_medium_start(self):
+        for effort in ("low", "medium"):
+            with self.subTest(effort=effort):
+                done, calls = self.start(trust=False, effort=effort)
+                self.assertEqual(done.returncode, 0, done.stderr)
+                start = [c for c in calls if c[1:3] == ["agent", "start"]][-1]
+                self.assertEqual(start[start.index("--effort") + 1], effort)
 
 
 if __name__ == "__main__":
