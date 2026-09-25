@@ -4,7 +4,7 @@
 usage: gallery.py <out.html> [skill dir], default the writing-documents skill beside this script.
 Each copy sits in a .theme-light or .theme-dark box with data-state set, which the skin and
 the widgets read to force that state; a widget with fixtures beside this script
-(<widget>-fixtures.html, filled copies) shows each fixture by default and the first in every state; open adds `open` to each <details> and shows what is
+(<widget>-fixtures.html, filled copies, as chart-fixtures.html) shows each fixture by default and the first in every state; open adds `open` to each <details> and shows what is
 hidden, disabled adds `disabled` to each control. The page is Korean, as every Artifact
 page is: a control's label takes its Korean from KOREAN, and every other placeholder reads
 예시 (example).

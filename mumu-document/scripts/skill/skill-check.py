@@ -43,11 +43,6 @@ CSS = re.compile(r"<style>(.*?)</style>|style=\"([^\"]*)\"", re.S)
 DEFINED = re.compile(r"(--[\w-]+)\s*:\s*([^;]+);")
 
 
-def mapping_widgets(skill_md):
-    """The widget each row of the table headed `| when the content is` names: its first backticked word."""
-    return [cell[0] for cell in mapping_cells(skill_md)]
-
-
 def mapping_cells(skill_md):
     """Each mapping row's backticked words in its widget cell, the widget first; a cell with none gives its text."""
     rows, inside = [], False
