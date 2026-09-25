@@ -10,7 +10,7 @@ import sys
 import tempfile
 import unittest
 
-# The session's name keys its mission (`team.session_key`): run as no named Claude session.
+# The session's name keys its mission (`team.mission_path`): run as no named Claude session.
 os.environ["CLAUDE_PID"] = str(os.getpid())
 
 BIN = pathlib.Path(__file__).resolve().parent.parent / "bin"
@@ -114,6 +114,15 @@ class NameKeyedCache(unittest.TestCase):
         for session in ("s1", "s2"):
             self.assertIn(REBUILT, self.inject(session, pid))
         self.assertEqual(self.gh_calls(), before)
+
+    def test_a_named_session_whose_mission_is_under_its_id_still_reads_it(self):
+        (self.data / "mission").mkdir(parents=True)
+        (self.data / "mission" / "s1.md").write_text(WORKER)
+        self.assertIn(WORKER, self.inject("s1", self.claude("topic-2")))
+        (self.data / "mission" / "s1.md").write_text(LEAD)
+        self.assertIn(LEAD, self.inject("s1", self.claude("r-lead")))
+        self.assertEqual(self.gh_calls(), 0)
+        self.assertFalse((self.data / "mission" / "r-lead.md").exists())
 
     def test_a_session_not_named_as_a_lead_runs_no_gh(self):
         self.assertIsNone(self.inject("s1", self.claude("topic-2")))

@@ -1,7 +1,7 @@
 """What the `worker-watch` and `lead-heartbeat` monitors share: the lead's mission, each worker's word, and the poll loop.
 
 The mission is `<plugin data dir>/mission/<key>.md`, `<key>` being the
-session's `--name` (`session_key`), so a restart under the same name finds it; it
+session's `--name` (`mission_path`), so a successor of the same name finds it; it
 is a cache of GitHub, which `rebuild` refills for a lead. A
 leader's reads one `MISSION: leader of <parent-url>` line per parent it holds, and one
 `SUBSCRIBE: <name> <issue-url>` line per worker, which `worker-start.py`
@@ -82,19 +82,26 @@ def session_name(pid=None):
     return None
 
 
-def session_key(session=None):
-    """The mission's file stem: this session's name, else `session` or `$CLAUDE_CODE_SESSION_ID`."""
-    return session_name() or session or os.environ.get("CLAUDE_CODE_SESSION_ID", "")
+def mission_path(data_dir, session=None):
+    """This session's mission in `data_dir`: `mission/<name>.md`, but `mission/<session id>.md` when only that exists
+    (a mission written before the name keyed it) or the session has no name; `session` defaults to `$CLAUDE_CODE_SESSION_ID`."""
+    by_id = pathlib.Path(data_dir, "mission", (session or os.environ.get("CLAUDE_CODE_SESSION_ID", "")) + ".md")
+    name = session_name()
+    if not name or by_id.exists() and not by_id.with_name(name + ".md").exists():
+        return by_id
+    return by_id.with_name(name + ".md")
 
 
 def mission_file(key=None):
-    """The mission of `key` (this session's `session_key` by default), found as `<config dir>/plugins/data/*/mission/<key>.md`, or None.
+    """The mission named `key`, or this session's (`mission_path`), in `<config dir>/plugins/data/*/`, or None.
 
-    A script run from the lead's Bash has no `CLAUDE_PLUGIN_DATA`, and the
-    key is unique, so the glob finds at most one.
+    A script run from the lead's Bash has no `CLAUDE_PLUGIN_DATA`, and names
+    and session ids are unique, so at most one is found.
     """
     config = pathlib.Path(os.environ.get("CLAUDE_CONFIG_DIR") or pathlib.Path.home() / ".claude")
-    return next(iter(sorted(config.glob(f"plugins/data/*/mission/{key or session_key()}.md"))), None)
+    found = (config.glob(f"plugins/data/*/mission/{key}.md") if key
+             else (mission_path(d) for d in config.glob("plugins/data/*")))
+    return next((p for p in sorted(found) if p.exists()), None)
 
 
 GOALS = """query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) {
@@ -179,7 +186,7 @@ def poll(data_dir, tick):
     """
     if os.environ.get("MUMU_ROLE") == "worker":
         return
-    mission = pathlib.Path(data_dir, "mission", session_key() + ".md")
+    mission = mission_path(data_dir)
     interval = float(os.environ.get("MONITOR_POLL", 10))
     ticks = int(os.environ.get("MONITOR_TICKS", 0))
     wait = float(os.environ.get("MONITOR_WAIT", 600))

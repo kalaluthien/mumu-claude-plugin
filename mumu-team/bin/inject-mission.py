@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Show a session its mission on every prompt, and each agent it launches at the agent's start.
 
-The mission is `$CLAUDE_PLUGIN_DATA/mission/<key>.md`, `<key>` being
-`team.session_key`, written by the model where `kickoff` names it. It is a
+The mission is `$CLAUDE_PLUGIN_DATA/mission/<name>.md`, `team.mission_path`, written by the model where `kickoff` names it. It is a
 cache of GitHub: missing in a session named `*-lead`, it is rebuilt with
 `team.rebuild` and written; present, no `gh` runs. No file and nothing rebuilt,
 no output. Each line `team.read_mission` would skip is named in a warning with
@@ -18,7 +17,7 @@ import team  # noqa: E402
 
 payload = json.load(sys.stdin)
 event = payload["hook_event_name"]
-path = pathlib.Path(os.environ["CLAUDE_PLUGIN_DATA"], "mission", team.session_key(payload["session_id"]) + ".md")
+path = team.mission_path(os.environ["CLAUDE_PLUGIN_DATA"], payload["session_id"])
 if not path.exists() and path.stem.endswith("-lead"):
     rebuilt = team.rebuild(payload.get("cwd") or os.getcwd())
     if rebuilt:
