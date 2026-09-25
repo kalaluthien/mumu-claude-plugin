@@ -2,11 +2,8 @@
   anatomy: a heading; a figure[data-chart] holding a figcaption (one sentence: the one thing to read off the chart), an empty .plot the script draws an SVG into, and a <details> with the data <table>: a row header per row, one numeric <td> per value column, units allowed in a cell; the table is the chart's only data and its text alternative.
   fill: numbers exactly as the source gives them; at most 4 value columns, one colour each, else one chart per group; a <tr data-note="{{a few words}}"> writes that note beside the row's mark, once or twice a chart; the summary names the finding, not the chart.
   kinds: one spec each below: the table's columns, the marks, when to use it and when not.
-  bar: category | one value. Horizontal bars from zero, the value at each bar's end. Use when: values compared across categories, where zero means none. Not when: zero is not a meaningful baseline (dot); values over time (line).
-  dot: category | one or two values. A dot per value on an axis from the data, two values joined by a line and named above the first row. Use when: zero is not a meaningful baseline, or before and after per category. Not when: parts of a total (stacked).
-  line: time | up to 4 series. A line per series, a point per value, each line named at its end. Use when: change over time. Not when: fewer than 4 points (bar); unordered categories (bar).
-  scatter: item | measure x | measure y. A dot per item, both axes named. Use when: does one measure rise with another. Not when: one measure (bar).
-  stacked: category | up to 4 parts. A bar per category split into its parts from zero, the total at its end, each part named above the first bar. Use when: parts of a whole, per category. Not when: comparing one part across categories (bar of that part); one category (bar of its parts).
+  bar: category | one value. Horizontal bars from zero, the value at each bar's end. Use when: values compared across categories, where zero means none. Not when: values over time (line).
+  line: time | up to 4 series. A line per series, a point per value, each line named at its end. Use when: change over time. Not when: fewer than 4 points or unordered categories (bar).
   slide: optional, by ../shared/slide.html (data-slide, data-labels): one caption per step and one <table> per step in the <details>, in step order; the axes span every step; marks move to the next table's values; unplayed, the chart stands at its last table.
   screen reader: each mark is an image named by its row, column and cell text, shown in a tip on hover; the table follows.
   not when: fewer than 3 numbers (a sentence); the exact values are the point (table). -->
@@ -20,7 +17,7 @@
     & svg text { fill: var(--text); }
     & svg :is(.tick, .note) { fill: var(--muted); }
     & svg .grid { stroke: var(--chart-grid); stroke-width: var(--line); }
-    & svg :is(.axis, .span) { stroke: var(--chart-axis); stroke-width: var(--line); }
+    & svg .axis { stroke: var(--chart-axis); stroke-width: var(--line); }
     & svg .k1 { fill: var(--kind-1); stroke: var(--kind-1); } & svg .k2 { fill: var(--kind-2); stroke: var(--kind-2); }
     & svg .k3 { fill: var(--kind-3); stroke: var(--kind-3); } & svg .k4 { fill: var(--kind-4); stroke: var(--kind-4); }
     & svg path.line { fill: none; stroke-width: var(--line-strong); }
@@ -43,7 +40,6 @@
     const num = (s) => parseFloat(s.replace(/[−–]/g, '-').replace(/[^\d.eE+-]/g, ''));
     const fmt = (v) => v.toLocaleString(document.documentElement.lang || undefined);
     const ext = (vs) => [Math.min(...vs), Math.max(...vs)];
-    const sum = (vs) => vs.reduce((a, b) => a + b, 0);
     const el = (parent, tag, attrs = {}, text) => {
       const e = document.createElementNS(NS, tag);
       Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
@@ -104,49 +100,18 @@
       return { axes, labels, mark, done };
     };
     const name = (head, r, j, one) => (one ? `${r.label}: ${r.text[j]}` : `${r.label}, ${head[j + 1]}: ${r.text[j]}`);
-    // bar, dot, stacked: a row per category, its label above its mark, a value axis below
-    const rows = (kind) => (svg, data, sets, head, W, u) => {
+    // bar: a row per category, its label above its bar, the value at its end, a value axis below
+    const bar = (svg, data, sets, head, W, u) => {
       const L = layers(svg);
-      const all = sets.flat();
-      const cols = head.slice(1);
-      const range = kind === 'bar' ? ext([0, ...all.flatMap((r) => r.v)])
-        : kind === 'stacked' ? ext([0, ...all.map((r) => sum(r.v))]) : ext(all.flatMap((r) => r.v));
-      const end = (r) => (kind === 'bar' ? r.text[0] : kind === 'stacked' ? fmt(sum(r.v)) : '');
-      const endW = Math.max(0, ...data.map((r) => measure(svg, end(r))));
-      const d = fit(svg, range, W - endW - u * 3, u);
-      const X = scale(d, r2(d.first / 2 + 1), r2(W - Math.max(d.last / 2 + 1, endW ? endW + u / 2 : 0)));
+      const endW = Math.max(0, ...data.map((r) => measure(svg, r.text[0])));
+      const d = fit(svg, ext([0, ...sets.flat().map((r) => r.v[0])]), W - endW - u * 3, u);
+      const X = scale(d, r2(d.first / 2 + 1), r2(W - Math.max(d.last / 2 + 1, endW + u / 2)));
       let y = 0;
-      if ((kind === 'dot' || kind === 'stacked') && cols.length > 1 && data.length) {
-        const lines = [];
-        cols.forEach((c, j) => {
-          const w = measure(svg, c) + u * 0.75;
-          const x = Math.min(kind === 'dot' ? X(data[0].v[j]) : X(sum(data[0].v.slice(0, j))), W - w);
-          let k = lines.findIndex((spans) => spans.every(([a, b]) => x + w + u / 2 <= a || x >= b + u / 2));
-          if (k < 0) k = lines.push([]) - 1;
-          lines[k].push([x, x + w]);
-          el(L.labels, 'rect', { class: `k${j + 1}`, x, y: k * u * 1.4 + u * 0.15, width: u / 4, height: u });
-          el(L.labels, 'text', { x: x + u * 0.5, y: k * u * 1.4 + u }, c);
-        });
-        y = lines.length * u * 1.4 + u * 0.2;
-      }
-      const top = y;
       data.forEach((r) => {
         el(L.labels, 'text', { x: X.r0, y: y + u }, r.label);
         const by = y + u * 1.5;
-        const mid = by + u / 2;
-        const key = `r${r.i}`;
-        if (kind === 'bar') {
-          L.mark(`${key}c0`, 'rect', { class: 'mark k1', x: Math.min(X(0), X(r.v[0])), y: by, width: r2(Math.abs(X(r.v[0]) - X(0))), height: u }, name(head, r, 0, true));
-        } else if (kind === 'stacked') {
-          r.v.forEach((v, j) => {
-            const x = X(sum(r.v.slice(0, j)));
-            L.mark(`${key}c${j}`, 'rect', { class: `mark k${j + 1}`, x, y: by, width: r2(X(sum(r.v.slice(0, j + 1))) - x), height: u }, name(head, r, j));
-          });
-        } else {
-          if (r.v.length > 1) el(L.axes, 'line', { class: 'span', x1: X(Math.min(...r.v)), x2: X(Math.max(...r.v)), y1: mid, y2: mid });
-          r.v.forEach((v, j) => L.mark(`${key}c${j}`, 'circle', { class: `mark k${j + 1}`, cx: X(v), cy: mid, r: u * 0.4 }, name(head, r, j, r.v.length === 1)));
-        }
-        if (end(r)) el(L.labels, 'text', { x: r2(Math.max(X(0), X(kind === 'bar' ? r.v[0] : sum(r.v))) + u / 3), y: by + u * 0.85 }, end(r));
+        L.mark(`r${r.i}c0`, 'rect', { class: 'mark k1', x: Math.min(X(0), X(r.v[0])), y: by, width: r2(Math.abs(X(r.v[0]) - X(0))), height: u }, name(head, r, 0, true));
+        el(L.labels, 'text', { x: r2(Math.max(X(0), X(r.v[0])) + u / 3), y: by + u * 0.85 }, r.text[0]);
         y = by + u * 1.9;
         if (r.note) {
           el(L.labels, 'text', { class: 'note', x: X.r0, y: y + u * 0.2 }, r.note);
@@ -154,76 +119,59 @@
         }
       });
       d.ticks.forEach((t) => {
-        el(L.axes, 'line', { class: 'grid', x1: X(t), x2: X(t), y1: top, y2: y });
+        el(L.axes, 'line', { class: 'grid', x1: X(t), x2: X(t), y1: 0, y2: y });
         el(L.labels, 'text', { class: 'tick', x: X(t), y: y + u * 1.1, 'text-anchor': 'middle' }, fmt(t));
       });
-      if (kind === 'bar' || kind === 'stacked') el(L.axes, 'line', { class: 'axis', x1: X(0), x2: X(0), y1: top, y2: y });
+      el(L.axes, 'line', { class: 'axis', x1: X(0), x2: X(0), y1: 0, y2: y });
       expose(svg, 'x', X);
       size(svg, W, y + u * 1.5);
       L.done();
     };
-    // line, scatter: x across, y up
-    const plane = (kind) => (svg, data, sets, head, W, u) => {
+    // line: time across, values up, each series named at its end
+    const line = (svg, data, sets, head, W, u) => {
       const L = layers(svg);
       const all = sets.flat();
-      const line = kind === 'line';
       const numeric = all.every((r) => !Number.isNaN(num(r.label)));
-      const xOf = (r, i) => (line ? (numeric ? num(r.label) : i) : r.v[0]);
-      const series = line ? head.slice(1) : [];
-      const xr = line ? (numeric ? ext(all.map((r) => num(r.label))) : [0, Math.max(...sets.map((s) => s.length)) - 1]) : ext(all.map((r) => r.v[0]));
-      const yr = line ? ext(all.flatMap((r) => r.v)) : ext(all.map((r) => r.v[1]));
+      const xOf = (r, i) => (numeric ? num(r.label) : i);
+      const series = head.slice(1);
+      const xr = numeric ? ext(all.map((r) => num(r.label))) : [0, Math.max(...sets.map((s) => s.length)) - 1];
       const H = u * 16;
-      const top = u * (line ? 1 : 2);
       const bottom = H - u * 2.2;
-      const dy = nice(yr, Math.max(2, Math.floor((bottom - top) / (u * 3))));
-      const Y = scale(dy, bottom, top);
+      const dy = nice(ext(all.flatMap((r) => r.v)), Math.max(2, Math.floor((bottom - u) / (u * 3))));
+      const Y = scale(dy, bottom, u);
       const left = Math.max(...dy.ticks.map((t) => measure(svg, fmt(t)))) + u / 2;
-      const right = line ? Math.max(...series.map((s) => measure(svg, s))) + u : u;
-      let X;
-      let xText = fmt;
-      if (line) {
-        const w = Math.max(...data.map((r) => measure(svg, r.label))) + u;
-        const every = Math.max(1, Math.ceil((data.length * w) / (W - left - right)));
-        const at = new Map(data.map((r, i) => [xOf(r, i), r.label]));
-        X = scale({ lo: xr[0], hi: xr[1] === xr[0] ? xr[0] + 1 : xr[1], ticks: [...at.keys()].filter((t, i) => i % every === 0) },
-          r2(left + w / 2), r2(W - Math.max(right, w / 2)));
-        xText = (t) => at.get(t);
-      } else {
-        const d = fit(svg, xr, W - left - right, u);
-        X = scale(d, r2(Math.max(left, d.first / 2 + 1)), r2(W - Math.max(right, d.last / 2 + 1)));
-      }
+      const right = Math.max(...series.map((s) => measure(svg, s))) + u;
+      const w = Math.max(...data.map((r) => measure(svg, r.label))) + u;
+      const every = Math.max(1, Math.ceil((data.length * w) / (W - left - right)));
+      const at = new Map(data.map((r, i) => [xOf(r, i), r.label]));
+      const X = scale({ lo: xr[0], hi: xr[1] === xr[0] ? xr[0] + 1 : xr[1], ticks: [...at.keys()].filter((t, i) => i % every === 0) },
+        r2(left + w / 2), r2(W - Math.max(right, w / 2)));
       dy.ticks.forEach((t) => {
         el(L.axes, 'line', { class: t === 0 ? 'axis' : 'grid', x1: X.r0, x2: X.r1, y1: Y(t), y2: Y(t) });
         el(L.labels, 'text', { class: 'tick', x: r2(X.r0 - u / 3), y: r2(Y(t) + u * 0.35), 'text-anchor': 'end' }, fmt(t));
       });
-      X.d.ticks.forEach((t) => el(L.labels, 'text', { class: 'tick', x: X(t), y: bottom + u * 1.7, 'text-anchor': 'middle' }, xText(t)));
-      const note = (r, x, yy) => el(L.labels, 'text', { class: 'note', x, y: r2(Math.max(u, yy - u * 0.7)), 'text-anchor': x < W / 2 ? 'start' : 'end' }, r.note);
-      if (!line) {
-        el(L.labels, 'text', { class: 'tick', x: 0, y: u }, head[2]);
-        el(L.labels, 'text', { class: 'tick', x: W, y: H + u * 1.2, 'text-anchor': 'end' }, head[1]);
-        data.forEach((r) => {
-          L.mark(`r${r.i}`, 'circle', { class: 'mark k1', cx: X(r.v[0]), cy: Y(r.v[1]), r: u * 0.35 }, `${r.label}: ${head[1]} ${r.text[0]}, ${head[2]} ${r.text[1]}`);
-          if (r.note) note(r, X(r.v[0]), Y(r.v[1]));
-        });
-      } else {
-        const ends = [];
-        series.forEach((s, j) => {
-          const pts = data.map((r, i) => [X(xOf(r, i)), Y(r.v[j])]);
-          L.mark(`p${j}`, 'path', { class: `line k${j + 1}`, d: pts.map(([x, yy], i) => `${i ? 'L' : 'M'}${x} ${yy}`).join(' ') });
-          data.forEach((r, i) => L.mark(`r${r.i}c${j}`, 'circle', { class: `mark k${j + 1}`, cx: pts[i][0], cy: pts[i][1], r: u * 0.3 }, name(head, r, j, series.length === 1)));
-          if (pts.length) ends.push({ text: s, x: pts[pts.length - 1][0], y: pts[pts.length - 1][1] });
-        });
-        ends.sort((a, b) => a.y - b.y).forEach((e, i, a) => { if (i) e.y = Math.max(e.y, a[i - 1].y + u * 1.1); });
-        const over = ends.length ? ends[ends.length - 1].y - (H - u * 0.4) : 0;
-        ends.forEach((e) => el(L.labels, 'text', { x: r2(e.x + u / 2), y: r2(Math.min(H - u * 0.3, Math.max(u, e.y - Math.max(0, over) + u * 0.35))) }, e.text));
-        data.forEach((r, i) => { if (r.note) note(r, X(xOf(r, i)), Y(r.v[0])); });
-      }
+      X.d.ticks.forEach((t) => el(L.labels, 'text', { class: 'tick', x: X(t), y: bottom + u * 1.7, 'text-anchor': 'middle' }, at.get(t)));
+      const ends = [];
+      series.forEach((s, j) => {
+        const pts = data.map((r, i) => [X(xOf(r, i)), Y(r.v[j])]);
+        L.mark(`p${j}`, 'path', { class: `line k${j + 1}`, d: pts.map(([x, yy], i) => `${i ? 'L' : 'M'}${x} ${yy}`).join(' ') });
+        data.forEach((r, i) => L.mark(`r${r.i}c${j}`, 'circle', { class: `mark k${j + 1}`, cx: pts[i][0], cy: pts[i][1], r: u * 0.3 }, name(head, r, j, series.length === 1)));
+        if (pts.length) ends.push({ text: s, x: pts[pts.length - 1][0], y: pts[pts.length - 1][1] });
+      });
+      ends.sort((a, b) => a.y - b.y).forEach((e, i, a) => { if (i) e.y = Math.max(e.y, a[i - 1].y + u * 1.1); });
+      const over = ends.length ? ends[ends.length - 1].y - (H - u * 0.4) : 0;
+      ends.forEach((e) => el(L.labels, 'text', { x: r2(e.x + u / 2), y: r2(Math.min(H - u * 0.3, Math.max(u, e.y - Math.max(0, over) + u * 0.35))) }, e.text));
+      data.forEach((r, i) => {
+        if (!r.note) return;
+        const x = X(xOf(r, i));
+        el(L.labels, 'text', { class: 'note', x, y: r2(Math.max(u, Y(r.v[0]) - u * 0.7)), 'text-anchor': x < W / 2 ? 'start' : 'end' }, r.note);
+      });
       expose(svg, 'x', X);
       expose(svg, 'y', Y);
-      size(svg, W, line ? H : H + u * 1.6);
+      size(svg, W, H);
       L.done();
     };
-    const kinds = { bar: rows('bar'), dot: rows('dot'), stacked: rows('stacked'), line: plane('line'), scatter: plane('scatter') };
+    const kinds = { bar, line };
     const read = (table) => ({
       head: [...table.tHead.rows[0].cells].map((c) => c.textContent.trim()),
       data: [...table.tBodies[0].rows].map((tr, i) => {

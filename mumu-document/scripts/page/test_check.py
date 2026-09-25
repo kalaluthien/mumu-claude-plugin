@@ -32,7 +32,7 @@ FAILS = [
 BREAK = "<script>document.querySelectorAll('[data-widget=\"chart\"]').forEach(function (f) { %s });</script></html>"
 CHART_FAILS = [
     ("if (f.dataset.chart === 'bar') { var m = f.querySelector('rect.mark'); m.setAttribute('width', +m.getAttribute('width') + 3); }", "width"),
-    ("if (f.dataset.chart === 'scatter') f.querySelector('circle.mark').remove();", "no mark"),
+    ("if (f.dataset.chart === 'line') f.querySelector('circle.mark').remove();", "no mark"),
     ("if (f.dataset.chart === 'line') { var m = f.querySelector('circle.mark'); m.setAttribute('cy', +m.getAttribute('cy') + 3); }", "cy"),
     ("if (f.dataset.chart === 'bar') { var m = f.querySelector('rect.mark'); var s = f.querySelector('svg'), a = s.dataset.x.split(' '); a[1] = 1; s.dataset.x = a.join(' '); }", "does not span"),
 ]
@@ -70,7 +70,7 @@ class Check(unittest.TestCase):
     def test_gallery_passes(self):
         code, out = run(self.gallery)
         self.assertEqual(code, 0, out)
-        for kind in ("bar", "dot", "line", "scatter", "stacked"):
+        for kind in ("bar", "line"):
             self.assertIn(f" {kind} marks", out)
 
     def test_each_chart_rule_fails(self):

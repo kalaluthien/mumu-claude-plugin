@@ -25,13 +25,15 @@ its moves; a move with nothing to say is dropped.
 
 ## Mapping
 
-The content picks the widget, one rule per row; a new rule is a new row naming
-a file in `references/artifact/widgets/`, and `scripts/skill/skill-check.py`
-fails on any other; a `chart` row also names its kinds, each a line of the
-widget's spec. Data is drawn only by the `chart` widget, with no chart
-library. `scripts/skill/gallery.py` renders every widget in every state,
-light and dark. A figure in markdown is an SVG image, exported by
-[markdown.md](references/markdown.md).
+A widget exists only where this skill tuned, combined or made one; everything
+else is plain HTML the skin styles: headings over paragraphs, lists, a
+`<table>`, evidence in `<details>`, code in `<pre>`. The content picks
+the widget, one rule per row; a new rule is a new row naming a file in
+`references/artifact/widgets/` and, for `diagram` and `chart`, its kind, and
+`scripts/skill/skill-check.py` fails on any other. Data is drawn only by the
+`chart` widget, with no chart library. `scripts/skill/gallery.py` renders
+every widget in every state, light and dark. A figure in markdown is an SVG
+image, exported by [markdown.md](references/markdown.md).
 
 | when the content is | widget | in markdown |
 | --- | --- | --- |
@@ -39,17 +41,8 @@ light and dark. A figure in markdown is an SVG image, exported by
 | a structure before and after a change: what it adds, modifies and removes | `diagram` `file-tree`, slid | a diff of the tree |
 | who calls the system and what it calls: actors, entry points, boundaries | `diagram` `system-context` | its SVG |
 | behaviour: what happens in one use case; swiped, a request the reader follows call by call | `diagram` `use-case`, one per use case | its SVG, then a numbered list of calls |
-| states and the events that move between them: a job's life, a connection | `diagram` `state-machine` | its SVG, then a table of state, event, next state |
-| rows sharing columns: options, findings, done-criteria | `table` | a table |
-| two dimensions crossed, one mark per cell: options against criteria, roles against permissions | `table`, marked | a table, a symbol per cell and its key |
-| values compared across categories: which is largest, by how much | `chart` `bar`; `dot` when zero is no baseline or each category has a before and after | its SVG, then the table |
+| values compared across categories: which is largest, by how much | `chart` `bar` | its SVG, then the table |
 | change over time: a trend, a rise, a fall | `chart` `line` | its SVG, then the table |
-| a relationship between two measures: does one rise with the other | `chart` `scatter` | its SVG, then the table |
-| a distribution: how one measure spreads, its centre and outliers | `chart` `bar`, one bar per bin | its SVG, then the table |
-| parts of a whole: each part's share of a total, per category | `chart` `stacked` | its SVG, then the table with a total column |
-| a result the reader should see as it is: a page, a screen, an email | `preview` | an image of it |
-| steps the reader carries out one at a time, each done before the next | `stepwise` | a numbered list, each step with its check |
-| a claim with its reason and evidence (code, or the hunk that changed) | `section` | a heading over paragraphs; a hunk as a `diff` code block |
 
 ## Routing
 

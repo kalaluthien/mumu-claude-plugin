@@ -4,7 +4,7 @@
    the duet. Display serif (Playfair Display) for h1 and h2 at weight 400, body
    serif (Source Serif 4) for prose, sans (Inter) for h3, controls, captions,
    figure labels and metadata; Noto Serif KR and Noto Sans KR for Korean.
-   Corners square, no shadows; a state-machine state keeps round corners. The
+   Corners square, no shadows. The
    accent is ink: focus, hover and the current step; links take --link.
    Borders on controls and figure boxes are body grey (3:1, so a hover to ink
    shows); row dividers are --hairline. Figures add kinds and status colours,
@@ -83,6 +83,9 @@ pre { overflow-x: auto; background: var(--fill); border: var(--line) solid var(-
       border-radius: var(--radius-s); padding: var(--sp-3); }
 .scroll { overflow-x: auto; }
 figure { margin: 0; }
+table { border-collapse: collapse; min-width: 100%; background: var(--fill); }
+th, td { border-bottom: var(--line) solid var(--hairline); padding: var(--sp-2) var(--sp-3); text-align: start; vertical-align: top; }
+tbody th { font-weight: normal; }
 .ok { color: var(--ok); } .warn { color: var(--warn); } .fail { color: var(--fail); }
 
 /* states: default, hover, focus, open, disabled; [data-state] forces one for

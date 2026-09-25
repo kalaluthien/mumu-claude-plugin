@@ -18,10 +18,7 @@ MODES = ("light", "dark")
 STATES = ("default", "hover", "focus", "open", "disabled")
 KOREAN = {
     "Back|Next": "뒤로|다음",
-    "gone": "삭제", "changed": "변경", "new": "추가", "Evidence": "근거", "Bold": "굵은 글씨",
-    "high": "높음", "mid": "보통", "low": "낮음", "none": "없음", "Key": "범례",
-    "done": "완료", "Done, next step": "완료, 다음 단계",
-    "Open at full size": "크게 보기", "Close": "닫기",
+    "gone": "삭제", "changed": "변경", "new": "추가", "Data table": "데이터 표",
 }
 NAMES = {"default": "기본", "hover": "올림", "focus": "초점", "open": "펼침", "disabled": "꺼짐",
          "light": "밝은 테마", "dark": "어두운 테마"}

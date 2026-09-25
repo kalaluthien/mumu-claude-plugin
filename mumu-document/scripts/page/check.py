@@ -255,7 +255,7 @@ def chart(chart):
     marks = {m["data-key"]: m for m in p["marks"] if "data-key" in m}
     for i, (label, cells) in enumerate(tables[chart["at"]]):
         v = [num(c) for c in cells]
-        keys = [f"r{i}"] if kind == "scatter" else [f"r{i}c{j}" for j in range(len(v))]
+        keys = [f"r{i}c{j}" for j in range(len(v))]
         for k in keys:
             if k not in marks:
                 out.append(f"row {i + 1} ({label}) has no mark {k}")
@@ -268,29 +268,17 @@ def chart(chart):
                 out.append(f"mark {k} name {name!r} lacks {texts}")
         def expect(k, *pairs):  # (what, the mark's value, the value its scale gives)
             out.extend(f"{k} {what} {got} is not {w:.2f}" for what, got, w in pairs if not near(got, w))
-        if kind in ("bar", "stacked", "dot"):
-            X, lo, hi = scale(p["x"])
-            if kind in ("bar", "stacked") and not lo <= 0 <= hi:
+        X, lo, hi = scale(p["x"])
+        if kind == "bar":
+            if not lo <= 0 <= hi:
                 out.append(f"axis {lo}..{hi} does not start at zero")
-            for j, k in enumerate(keys):
-                m = marks[k]
-                if kind == "bar":
-                    want = (min(X(0), X(v[0])), abs(X(v[0]) - X(0)))
-                    expect(k, ("x", m.get("x"), want[0]), ("width", m.get("width"), want[1]))
-                elif kind == "stacked":
-                    a, b = X(sum(v[:j])), X(sum(v[:j + 1]))
-                    expect(k, ("x", m.get("x"), a), ("width", m.get("width"), b - a))
-                else:
-                    expect(k, ("cx", m.get("cx"), X(v[j])))
+            m = marks[keys[0]]
+            expect(keys[0], ("x", m.get("x"), min(X(0), X(v[0]))), ("width", m.get("width"), abs(X(v[0]) - X(0))))
         else:
-            X, _, _ = scale(p["x"])
             Y, _, _ = scale(p["y"])
-            if kind == "scatter":
-                expect(keys[0], ("cx", marks[keys[0]].get("cx"), X(v[0])), ("cy", marks[keys[0]].get("cy"), Y(v[1])))
-            else:
-                xv = num(label) if numeric else i
-                for j, k in enumerate(keys):
-                    expect(k, ("cx", marks[k].get("cx"), X(xv)), ("cy", marks[k].get("cy"), Y(v[j])))
+            xv = num(label) if numeric else i
+            for j, k in enumerate(keys):
+                expect(k, ("cx", marks[k].get("cx"), X(xv)), ("cy", marks[k].get("cy"), Y(v[j])))
     for path in (m for m in p["marks"] if m.get("data-key", "").startswith("p")):
         j = path["data-key"][1:]
         pts = [(float(m["cx"]), float(m["cy"])) for m in p["marks"] if re.fullmatch(rf"r\d+c{j}", m.get("data-key", ""))]
@@ -300,11 +288,7 @@ def chart(chart):
         if p.get(axis):
             _, lo, hi = scale(p[axis])
             data = everything
-            if kind == "scatter":
-                data = [num(c[0 if axis == "x" else 1]) for t in tables for _, c in t]
-            elif kind == "stacked":
-                data = [sum(map(num, c)) for t in tables for _, c in t]
-            elif axis == "x" and kind == "line":
+            if axis == "x" and kind == "line":
                 data = [num(label) for t in tables for label, _ in t] if numeric else [0]
             if not (lo - TOLERANCE <= min(data) and max(data) <= hi + TOLERANCE):
                 out.append(f"{axis} axis {lo}..{hi} does not span the data {min(data)}..{max(data)}")
