@@ -1,18 +1,23 @@
-<!-- section: one claim, headed by the claim as a sentence; each paragraph
-     claim, reason, evidence, consequence. Steps the reader takes go in an
-     <ol>, each step with the check that shows it worked. Evidence folds into
-     <details>, cited as path:line at a sha; a reason the source omits is
-     called absent, not guessed. -->
+<!-- section: one claim with its reason and evidence, or steps with their checks.
+  anatomy: an h2 stating the claim as a sentence; paragraphs; an <ol> of steps, each with its check; evidence folded in <details> as path:line with the code.
+  fill: each paragraph claim, reason, evidence, consequence; a reason the source omits is called absent, not guessed.
+  states: default; hover: the evidence summary turns accent; focus: outline on the summary; open: the evidence reveals; disabled: none.
+  motion: the evidence fades and drops in over --motion as it opens.
+  keyboard: Tab to the evidence summary; Enter or Space opens it.
+  screen reader: a section named by its h2; the summary is a disclosure.
+  use when: a claim, an explanation, the steps of a guide.
+  not when: rows sharing columns (table); structure or behaviour a figure shows better. -->
 <style>
-  [data-widget="section"] details { margin: .5rem 0; }
-  [data-widget="section"] summary { cursor: pointer; color: var(--muted); }
+  [data-widget="section"] { --section-evidence: var(--muted); }
+  [data-widget="section"] details { margin: var(--sp-2) 0; }
+  [data-widget="section"] summary { color: var(--section-evidence); }
 </style>
 <section data-widget="section" aria-labelledby="{{id}}">
   <h2 id="{{id}}">{{the claim, as a sentence}}</h2>
   <p>{{the reason, then the consequence}}</p>
   <ol><li>{{step}}: {{its check}}</li></ol>
   <details>
-    <summary>Evidence: <code>{{path:line}}</code></summary>
+    <summary>{{Evidence}}: <code>{{path:line}}</code></summary>
     <pre tabindex="0" role="region" aria-label="{{path:line}}"><code>{{the code}}</code></pre>
   </details>
 </section>

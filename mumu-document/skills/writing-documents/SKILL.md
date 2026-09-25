@@ -29,12 +29,15 @@ they imply, then the one action recommended, or plainly that none follows.
 
 The content picks the widget, one rule per row; a new rule is a new row
 naming a file in `widgets/`, and `bin/skill-check.py` fails on any other.
+`bin/gallery.py` renders every widget in every state, light and dark.
 
 | when the content is | widget | in markdown |
 | --- | --- | --- |
 | a software system's structure: files, modules, their roles | `file-tree`, first on the page | a code-block tree, one comment per line |
 | who calls the system and what it calls: actors, entry points, boundaries | `context` | Mermaid `flowchart` on GitHub, a text sketch in chat |
 | behaviour: what happens in one use case | `flow`, one per use case | a numbered list of calls; Mermaid `sequenceDiagram` on GitHub |
+| a sequence the reader follows one step at a time: a request travelling the system | `flow`, played | a numbered list, one step and its reason each |
+| a structure before and after a change: what it adds and removes | `change` | a diff of the tree |
 | rows sharing columns: options, findings, done-criteria | `table` | a table |
 | questions only the reader can settle | `round` | by [Rounds](#rounds) |
 | a claim with its reason and evidence, or steps with their checks | `section` | a heading over paragraphs or a numbered list |
@@ -45,12 +48,16 @@ naming a file in `widgets/`, and `bin/skill-check.py` fails on any other.
   holding [skin.css](skin.css) verbatim, then `<main>` with the `h1`, a
   `p.read` of the one thing to read off the page, the widgets in move order,
   and a `footer` citing the source at a sha. Nothing fetched.
-- Each widget is its file in `widgets/`, copied whole, its comment followed
-  then deleted, every `{{...}}` filled or its element deleted; a widget's
-  `<style>` once per page however many copies; `{{id}}` unique per copy, so
-  inline SVG ids never collide.
-- Colour only through the skin's roles: `--text`, `--muted`, `--bg`,
-  `--fill`, `--border`, `--accent`, the accent only for links and focus.
+- Each widget is its file in `widgets/`, copied whole, its spec comment
+  followed then deleted, every `{{...}}` filled or its element deleted; a
+  widget's `<style>` and `<script>` once per page however many copies;
+  `{{id}}` unique per copy, so inline SVG ids never collide. A played `flow`
+  or a `change` also needs [player.html](player.html) once; `data-player="scroll"`
+  drives it by scrolling instead of buttons.
+- The skin is the design system: primitives, semantic tokens (colour roles,
+  diagram palette, type, space, line, radius, layout, motion) and each
+  widget's own tokens; a page adds none of its own values. The accent marks
+  links, focus and the current step only.
 - Markdown (chat, GitHub, any agent): the moves as headings, each widget as
   its markdown column; Mermaid only on GitHub.
 - The skin and widgets are a page's only design rules: before the `Artifact`
@@ -63,8 +70,12 @@ naming a file in `widgets/`, and `bin/skill-check.py` fails on any other.
   grepped. A heading says what is true, as a sentence.
 - Short words, one idea a sentence, active voice; a new term is defined where
   it first appears or cut; no word that sells.
-- A Korean page keeps each term that has an English name in English, Korean
-  only for the grammar between.
+- An Artifact page is Korean, always: `<html lang="ko">`; every visible word
+  in Korean - headings, prose, captions, figure labels, alt text and
+  each control, a widget's fixed words included; the polite `-요` or `-니다`,
+  never a plain `-다`, in everyday words. English only inside `<code>` or as a
+  name or path; a technical term once as Korean with the English in
+  parentheses, as 큐(queue).
 
 ## Rounds
 
@@ -103,8 +114,9 @@ Delivered elsewhere, give the one-sentence version in chat.
 - Every part no fact settles is settled by [Rounds](#rounds); nothing is
   acted on before.
 - Reread for order, each claim against its evidence, cuts and register.
-- A page: `"${CLAUDE_PLUGIN_ROOT}/bin/page-check.sh" <page>` clicks each
-  control once at 320 px and prints `pass`; on `FAIL` fix and rerun; exit 2
-  says why it could not run.
+- A page: `"${CLAUDE_PLUGIN_ROOT}/bin/page-check.sh" <page>` loads it at
+  320 px, clicks each control once, again with reduced motion, and prints
+  `pass`; on `FAIL` fix and rerun; exit 2 says why it could not run. An
+  Artifact page also passes `"${CLAUDE_PLUGIN_ROOT}/bin/korean-check.py" <page>`.
 - A rejected draft is edited only after a reader, an editor and a hostile
   fact-checker each say why it fails.

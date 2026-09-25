@@ -2,7 +2,6 @@
 max_turns: 16
 timeout_seconds: 420
 allowed_tools: [Skill, Read, Write]
-runs: 3
 ---
 
 Our tool `tiny-queue`:
