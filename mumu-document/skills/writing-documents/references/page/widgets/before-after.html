@@ -1,0 +1,132 @@
+<!-- before-after: a structure morphing from before to after, on the player.
+  anatomy: a .stage (a tree of nodes as in file-tree, or a figure) whose changed nodes carry data-change="add", "modify" or "remove" and data-step="k"; an <ol class="steps"> whose first caption is the before and each later one names what that step adds or removes; the player is built in.
+  fill: step 1 is the before, with no node marked; one change of one idea per later step; a kept node carries no mark, and the unchanged neighbours a change touches stay to show its reach; the motion shows only that step's caption.
+  states: default: the before; hover: none beyond the controls; focus: outline on a control; open: none; disabled: Back at the first step, Next at the last.
+  motion: an added node appears and a removed node fades over --motion, only on a step change; the static form shows the after, removed nodes struck through.
+  player: built in, never autoplays: the root keeps data-player (buttons) or data-player="scroll", and data-labels naming Back|Play|Pause|Next|Step in the page's language; the script adds a caption line and Back, Play or Pause, Next, a scrubber and a step count; at step k, parts with data-step up to k get .on and the one at k .now. With data-player="scroll" the stage sticks and the caption crossing mid-viewport sets the step, reversing exactly on scroll up. Under prefers-reduced-motion: reduce, in print or without script, every caption is listed, numbered, and the stage stands at its last step.
+  keyboard: the player's controls.
+  screen reader: each step's caption is announced as it shows; a removed node reads its gone tag, a modified one its changed tag, an added one its new tag.
+  use when: what a change adds and removes in a structure, shown in order.
+  not when: a structure with no before (file-tree); many unrelated edits (table). -->
+<style>
+  [data-widget="before-after"] { --before-after-add: var(--ok); --before-after-modify: var(--warn); --before-after-remove: var(--fail); --before-after-faded: var(--disabled); --before-after-indent: var(--sp-4);
+    background: var(--fill); border: var(--line) solid var(--border); border-radius: var(--radius-s); padding: var(--sp-2) var(--sp-3); }
+  [data-widget="before-after"] .stage, [data-widget="before-after"] .stage ul { list-style: none; margin: 0; padding-inline-start: var(--before-after-indent); }
+  [data-widget="before-after"] > .stage { padding-inline-start: 0; }
+  [data-widget="before-after"] .name { font-family: var(--mono); font-size: var(--fs-m); overflow-wrap: anywhere; }
+  [data-widget="before-after"] .tag { font-size: var(--fs-s); margin-inline-start: var(--sp-1); }
+  [data-widget="before-after"] [data-change="add"] .tag { color: var(--before-after-add); }
+  [data-widget="before-after"] [data-change="modify"] .tag { color: var(--before-after-modify); }
+  [data-widget="before-after"] [data-change="remove"] .tag { color: var(--before-after-remove); }
+  [data-widget="before-after"] [data-change="remove"] .name { text-decoration: line-through; color: var(--muted); }
+  @media screen and (prefers-reduced-motion: no-preference) {
+    [data-widget="before-after"].live [data-change] { transition: opacity var(--motion) var(--ease-out); }
+    [data-widget="before-after"].live [data-change="add"]:not(.on) { opacity: 0; }
+    [data-widget="before-after"].live [data-change="remove"]:not(.on) .name { text-decoration: none; color: var(--text); }
+    [data-widget="before-after"].live [data-change="remove"].on { opacity: var(--before-after-faded); }
+    [data-widget="before-after"].live [data-change]:not(.on) .tag { visibility: hidden; }
+  }
+</style>
+<style>
+  [data-widget="before-after"][data-player] { --before-after-gap: var(--sp-2); }
+  [data-widget="before-after"][data-player] .steps { margin: var(--before-after-gap) 0; }
+  [data-widget="before-after"][data-player] .caption, [data-widget="before-after"][data-player] .controls { display: none; }
+  [data-widget="before-after"][data-player] .controls { gap: var(--before-after-gap); align-items: center; flex-wrap: wrap; margin: var(--before-after-gap) 0; }
+  [data-widget="before-after"][data-player] .controls input { flex: 1 1 auto; min-width: 0; accent-color: var(--accent); }
+  [data-widget="before-after"][data-player] .count { color: var(--muted); font-size: var(--fs-m); }
+  @media screen and (prefers-reduced-motion: no-preference) {
+    [data-widget="before-after"][data-player].live .steps { display: none; }
+    [data-widget="before-after"][data-player].live .caption { display: block; }
+    [data-widget="before-after"][data-player].live .controls { display: flex; }
+    [data-widget="before-after"][data-player="scroll"].live .caption, [data-widget="before-after"][data-player="scroll"].live .controls { display: none; }
+    [data-widget="before-after"][data-player="scroll"].live .steps { display: block; padding-inline-start: var(--sp-5); }
+    [data-widget="before-after"][data-player="scroll"].live .stage { position: sticky; top: 0; z-index: 1; background: var(--bg); }
+    [data-widget="before-after"][data-player="scroll"].live .steps > li { min-height: var(--scroll-step); color: var(--muted); transition: color var(--motion-fast) var(--ease-out); }
+    [data-widget="before-after"][data-player="scroll"].live .steps > li.now { color: var(--text); }
+  }
+</style>
+<script>
+  document.querySelectorAll('[data-widget="before-after"][data-player]').forEach((root) => {
+    const steps = [...root.querySelectorAll('.steps > li')];
+    const n = steps.length;
+    const dwell = 2400;
+    const [backText, playText, pauseText, nextText, stepText] = (root.dataset.labels || 'Back|Play|Pause|Next|Step').split('|');
+    const scroll = root.dataset.player === 'scroll';
+    const caption = document.createElement('p');
+    caption.className = 'caption';
+    caption.setAttribute('aria-live', 'polite');
+    const controls = document.createElement('div');
+    controls.className = 'controls';
+    controls.innerHTML = '<button type="button"></button><button type="button"></button><button type="button"></button>'
+      + '<input type="range" min="1" step="1"><span class="count"></span>';
+    root.append(caption, controls);
+    const [back, play, next] = controls.querySelectorAll('button');
+    const range = controls.querySelector('input');
+    back.textContent = backText;
+    play.textContent = playText;
+    next.textContent = nextText;
+    range.setAttribute('aria-label', stepText);
+    const count = controls.querySelector('.count');
+    range.max = n;
+    root.dataset.steps = n;
+    let at = 1;
+    let timer = null;
+    const stop = () => { clearInterval(timer); timer = null; play.textContent = playText; };
+    const show = (k) => {
+      at = Math.min(Math.max(k, 1), n);
+      steps.forEach((li, i) => li.classList.toggle('now', i === at - 1));
+      root.querySelectorAll('[data-step]').forEach((el) => {
+        el.classList.toggle('on', +el.dataset.step <= at);
+        el.classList.toggle('now', +el.dataset.step === at);
+      });
+      const li = steps[at - 1];
+      if (li.dataset.x) {
+        root.style.setProperty('--x', `${li.dataset.x}px`);
+        root.style.setProperty('--y', `${li.dataset.y}px`);
+      }
+      caption.textContent = `${at}. ${li.textContent.trim()}`;
+      range.value = at;
+      count.textContent = `${at} / ${n}`;
+      back.disabled = at === 1;
+      next.disabled = at === n;
+      if (at === n) stop();
+    };
+    back.addEventListener('click', () => { stop(); show(at - 1); });
+    next.addEventListener('click', () => { stop(); show(at + 1); });
+    range.addEventListener('input', () => { stop(); show(+range.value); });
+    play.addEventListener('click', () => {
+      if (timer) { stop(); return; }
+      if (at === n) show(1);
+      play.textContent = pauseText;
+      timer = setInterval(() => show(at + 1), dwell);
+    });
+    if (scroll) {
+      const seen = new IntersectionObserver((entries) => entries.forEach((e) => {
+        if (e.isIntersecting) show(steps.indexOf(e.target) + 1);
+      }), { root: document, rootMargin: '-50% 0px -50% 0px' });
+      steps.forEach((li) => seen.observe(li));
+    }
+    root.classList.add('live');
+    show(1);
+  });
+</script>
+<section aria-labelledby="{{id}}">
+  <h2 id="{{id}}">{{the change, as a noun phrase}}</h2>
+  <div data-widget="before-after" data-player data-labels="{{Back|Play|Pause|Next|Step}}">
+    <ul class="stage">
+      <li><span class="name">{{folder}}/</span>
+        <ul>
+          <li><span class="name">{{kept file}}</span></li>
+          <li data-change="remove" data-step="2"><span class="name">{{removed file}}</span><span class="tag">{{gone}}</span></li>
+          <li data-change="modify" data-step="3"><span class="name">{{modified file}}</span><span class="tag">{{changed}}</span></li>
+          <li data-change="add" data-step="4"><span class="name">{{added file}}</span><span class="tag">{{new}}</span></li>
+        </ul></li>
+    </ul>
+    <ol class="steps">
+      <li>{{before: the structure, and what is wrong with it}}</li>
+      <li>{{step 2: what goes, and why}}</li>
+      <li>{{step 3: what changes, and why}}</li>
+      <li>{{step 4: what comes, and why}}</li>
+    </ol>
+  </div>
+</section>

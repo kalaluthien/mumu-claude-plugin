@@ -4,5 +4,8 @@
   "description": "A document explains one question.",
   "author": {
     "name": "kalaluthien"
+  },
+  "experimental": {
+    "evals": "rubrics"
   }
 }

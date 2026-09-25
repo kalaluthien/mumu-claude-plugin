@@ -1,0 +1,61 @@
+<!-- system-context: who enters the system and what it reaches.
+  anatomy: the system as one .box.main in the middle; callers left, callees right; each line a .part: a one-way .edge with its label on a .mask; a key in the figcaption.
+  fill: the unchanged neighbours a change touches stay, unmarked, to show its reach; every line labelled with what crosses it, one with a real example value; dashed (.inferred) where inferred, not read; coordinates divisible by 4, arrows orthogonal with r=8 elbows, labels 8 px off their line; .main on 2 boxes at most; .k1-.k4 mark kinds of box, .ok/.warn/.fail an edge's status; every id prefixed with {{id}}.
+  states: default; hover: the .part turns accent; focus: the same, with an outline; open: none, nothing folds; disabled: none.
+  motion: an edge's colour eases over --motion-fast.
+  keyboard: Tab moves through the figure and each .part.
+  screen reader: role="img" with <title> and <desc>; the desc says the figure in one sentence.
+  use when: actors, entry points and boundaries.
+  not when: the order of calls (use-case); the inside of the system (file-tree). -->
+<style>
+[data-widget="system-context"] svg { display: block; }
+[data-widget="system-context"] svg text { fill: var(--text); font: var(--fs-svg) var(--sans); }
+[data-widget="system-context"] svg .label { fill: var(--muted); font-size: var(--fs-svg-label); }
+[data-widget="system-context"] svg .box { fill: var(--fill); stroke: var(--border); }
+[data-widget="system-context"] svg .box.main { stroke: var(--text); stroke-width: var(--line-strong); }
+[data-widget="system-context"] svg .box.k1 { stroke: var(--kind-1); } [data-widget="system-context"] svg .box.k2 { stroke: var(--kind-2); }
+[data-widget="system-context"] svg .box.k3 { stroke: var(--kind-3); } [data-widget="system-context"] svg .box.k4 { stroke: var(--kind-4); }
+[data-widget="system-context"] svg .edge { stroke: var(--text); stroke-width: var(--line-strong); fill: none;
+            transition: stroke var(--motion-fast) var(--ease-out); }
+[data-widget="system-context"] svg .edge.inferred { stroke-dasharray: 4 4; }
+[data-widget="system-context"] svg .edge.ok { stroke: var(--ok); } [data-widget="system-context"] svg .edge.warn { stroke: var(--warn); } [data-widget="system-context"] svg .edge.fail { stroke: var(--fail); }
+[data-widget="system-context"] svg .lifeline { stroke: var(--border); stroke-width: var(--line); stroke-dasharray: 4 4; }
+[data-widget="system-context"] svg .tip { fill: var(--text); }
+[data-widget="system-context"] svg .mask { fill: var(--bg); }
+[data-widget="system-context"] svg .part { outline: none; }
+[data-widget="system-context"] svg .part:hover .edge, [data-widget="system-context"] svg .part:focus-visible .edge, [data-state="hover"] [data-widget="system-context"] svg .part:first-of-type .edge { stroke: var(--accent); }
+[data-widget="system-context"] svg .part:hover text, [data-widget="system-context"] svg .part:focus-visible text, [data-state="hover"] [data-widget="system-context"] svg .part:first-of-type text { fill: var(--accent); }
+[data-state="focus"] [data-widget="system-context"] svg .part:first-of-type { outline: var(--line-strong) solid var(--accent); }
+</style>
+<section aria-labelledby="{{id}}">
+  <h2 id="{{id}}">{{the system and its neighbours, as a noun phrase}}</h2>
+  <figure data-widget="system-context" class="scroll" tabindex="0" aria-labelledby="{{id}}-title">
+    <svg width="520" height="160" viewBox="0 0 520 160" role="img" aria-labelledby="{{id}}-title" aria-describedby="{{id}}-desc">
+      <title id="{{id}}-title">{{context: system}}</title>
+      <desc id="{{id}}-desc">{{the figure in one sentence}}</desc>
+      <defs>
+        <marker id="{{id}}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+          <path class="tip" d="M0,0 L10,5 L0,10 z"/>
+        </marker>
+      </defs>
+      <rect class="box" x="8" y="48" width="128" height="64" rx="8"/>
+      <text x="72" y="76" text-anchor="middle">{{caller}}</text>
+      <text class="label" x="72" y="96" text-anchor="middle">{{person | system}}</text>
+      <rect class="box main" x="196" y="40" width="128" height="80" rx="8"/>
+      <text x="260" y="76" text-anchor="middle">{{system}}</text>
+      <text class="label" x="260" y="96" text-anchor="middle">{{what it is}}</text>
+      <rect class="box" x="384" y="48" width="128" height="64" rx="8"/>
+      <text x="448" y="76" text-anchor="middle">{{callee}}</text>
+      <text class="label" x="448" y="96" text-anchor="middle">{{external system}}</text>
+      <g class="part" tabindex="0">
+        <path class="edge" d="M136,80 H192" marker-end="url(#{{id}}-arrow)"/>
+        <rect class="mask" x="136" y="128" width="248" height="24"/>
+        <text class="label" x="140" y="144">{{what crosses, e.g. POST /jobs id=7}}</text>
+      </g>
+      <g class="part" tabindex="0">
+        <path class="edge inferred" d="M324,80 H380" marker-end="url(#{{id}}-arrow)"/>
+      </g>
+    </svg>
+    <figcaption class="muted">{{box, line, dashed: what each means; what was merged or dropped}}</figcaption>
+  </figure>
+</section>
