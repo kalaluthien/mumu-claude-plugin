@@ -65,13 +65,13 @@ class WorkerStart(unittest.TestCase):
         self.mission.parent.mkdir(parents=True)
         self.mission.write_text(LEAD)
 
-    def start(self, *extra, trust=True):
+    def start(self, *extra, trust=True, name="start-7", url=ISSUE):
         if trust:
             (self.tmp / "trust").touch()
         env = dict(os.environ, FAKE=str(self.tmp), PATH=f"{self.tmp}:{BIN}:{os.environ['PATH']}",
                    WORKER_START_TIMEOUT="3", WORKER_START_POLL="0.01",
                    CLAUDE_CONFIG_DIR=str(self.tmp / "config"), CLAUDE_CODE_SESSION_ID="s1")
-        done = subprocess.run([sys.executable, str(BIN / "worker-start.py"), str(self.repo), "start-7", "low", ISSUE, *extra],
+        done = subprocess.run([sys.executable, str(BIN / "worker-start.py"), str(self.repo), name, "low", url, *extra],
                               env=env, capture_output=True, text=True, timeout=30)
         log = self.tmp / "calls"
         calls = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
@@ -155,6 +155,27 @@ class WorkerStart(unittest.TestCase):
         done, calls = self.start(trust=False)
         self.assertEqual(done.returncode, 1)
         self.assertIn("no mission", done.stderr)
+        self.assertEqual(calls, [])
+
+    def test_name_without_issue_number_refused_before_side_effects(self):
+        url = "https://github.com/o/r/issues/73"
+        done, calls = self.start(trust=False, name="rebuild-writing-documents", url=url)
+        self.assertNotEqual(done.returncode, 0)
+        self.assertIn("<topic>-73", done.stderr)
+        self.assertEqual(calls, [], "worktree or tab touched")
+        self.assertFalse((self.repo / ".claude" / "worktrees").exists())
+        self.assertEqual(self.mission.read_text(), LEAD)
+
+    def test_name_ending_in_the_issue_number_passes(self):
+        url = "https://github.com/o/r/issues/73"
+        (self.tmp / "herdr").write_text(FAKE.replace('"name": "start-7"', '"name": "writing-documents-73"'))
+        done, _ = self.start(trust=False, name="writing-documents-73", url=url)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("SUBSCRIBE: writing-documents-73", self.mission.read_text())
+
+    def test_name_ending_in_another_issue_number_refused(self):
+        done, calls = self.start(trust=False, name="writing-documents-74", url="https://github.com/o/r/issues/73")
+        self.assertNotEqual(done.returncode, 0)
         self.assertEqual(calls, [])
 
 
