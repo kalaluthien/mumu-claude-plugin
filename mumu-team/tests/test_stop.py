@@ -86,7 +86,7 @@ class Hook(unittest.TestCase):
             old.unlink()
         for name in merged:
             (self.tmp / f"merged-{name}.json").write_text(json.dumps([{"state": "MERGED", "headRefOid": "m1"}]))
-        for name in [*merged, "stop-guard-19"]:
+        for name in [*merged, "stop-guard-19"] if tip else []:
             (self.tmp / f"ref-{name}.json").write_text(json.dumps({"object": {"sha": tip}}))
         if mission is not None:
             (self.data / "mission" / "s.md").write_text(mission)
@@ -144,6 +144,10 @@ class WorkerStop(Hook):
         outs, calls = self.stop(prs=[merged])
         self.assertFalse(self.refused(outs), outs)
         self.assertTrue(any("stop-guard-19" in c for c in calls))
+
+    def test_worker_stops_once_its_merged_branch_is_deleted(self):
+        merged = {"number": 5, "state": "MERGED", "headRefName": "stop-guard-19", "headRefOid": "m1"}
+        self.assertFalse(self.refused(self.stop(prs=[merged], tip=None)[0]))
 
     def test_worker_on_a_reopened_issue_ignores_a_merge_under_its_reused_branch(self):
         merged = {"number": 5, "state": "MERGED", "headRefName": "stop-guard-19", "headRefOid": "old"}
@@ -248,6 +252,11 @@ class LeadStop(Hook):
         self.assertTrue(self.refused(outs))
         self.assertIn("worker-close.py stop-guard-8", self.reason(outs))
         self.assertTrue(any("o/r" in c for c in calls), calls)
+
+    def test_lead_is_told_to_close_a_worker_whose_merged_branch_is_deleted(self):
+        mission = self.MISSION + f"SUBSCRIBE: stop-guard-8 {SUB}\n"
+        outs, _ = self.lead(mission=mission, merged=["stop-guard-8"], tip=None)
+        self.assertIn("worker-close.py stop-guard-8", self.reason(outs))
 
     def test_lead_ignores_a_merge_under_a_reused_worker_name(self):
         mission = self.MISSION + f"SUBSCRIBE: stop-guard-8 {SUB}\n"

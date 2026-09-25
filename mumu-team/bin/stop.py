@@ -56,9 +56,12 @@ def tip(repo, branch):
 
 
 def current(prs, repo, branch):
-    """Whether a merged one of `prs` is the branch's current claim: its head is the branch's tip, so a merge under a reused name before the reopen does not count."""
+    """Whether a merged one of `prs` is the branch's current claim: its head is the branch's tip, or the branch is gone (deleted after its merge), so a merge under a reused name before the reopen does not count."""
     merged = [p["headRefOid"] for p in prs if p["state"] == "MERGED"]
-    return bool(merged) and tip(repo, branch) in merged
+    if not merged:
+        return False
+    t = tip(repo, branch)
+    return t is None or t in merged
 
 
 def block(reason):
