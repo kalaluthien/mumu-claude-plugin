@@ -18,17 +18,14 @@
   defines its own tokens. A page adds no values of its own. Links take
   `--link`; the ink accent marks focus, hover and the current step only.
 - The skin and widgets are a page's only design rules: before the `Artifact`
-  call, do not run its `quickstart` or load `artifact-design` or
-  `artifact-capabilities`; the tool only publishes the file.
+  call, do not run its `quickstart` or load `artifact-design`,
+  `artifact-capabilities` or `dataviz`; the tool only publishes the file.
 
 ## Korean
 
-An Artifact page is Korean, always: `<html lang="ko">`; every visible word in
-Korean - headings, prose, captions, figure labels, alt text and each control,
-a widget's fixed words included; the polite `-요` or `-니다`, never a plain
-`-다`, in everyday words. English only inside `<code>` or as a name or path; a
-technical term once as Korean with the English in parentheses, as 큐(queue).
-A heading stays a noun phrase: 작업 큐의 구조, not 작업 큐는 세 파일이에요.
+The hard rule in `SKILL.md` covers every visible word: headings, prose,
+captions, figure and chart labels, alt text and each control, a widget's
+fixed words included. A heading stays a noun phrase: 작업 큐의 구조, not 작업 큐는 세 파일이에요.
 A sentence reads as a Korean speaker would say it: one idea, its subject and
 verb plain, no English word order, no stacked nouns and no borrowed metaphor
 (스타일을 품어요 → 스타일을 파일 안에 담고 있어요).

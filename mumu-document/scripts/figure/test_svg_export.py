@@ -68,6 +68,12 @@ class SvgExport(unittest.TestCase):
         self.assertEqual(width, "280")
         self.assertGreater(int(dark), 200)
 
+    def test_chart_svg_is_written(self):
+        chart = '<figure data-widget="chart"><div class="plot"><svg role="group" viewBox="0 0 80 80" width="80" height="80"><rect class="box" x="8" y="8" width="40" height="40" role="img" aria-label="막대"/></svg></div></figure>'
+        r, d = export(PAGE.replace("</main>", chart + "</main>"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("<rect", (d / "page-3.svg").read_text())
+
     def test_page_without_figures_fails(self):
         r, _ = export(PAGE.replace("<figure>", "<div hidden>").replace("</figure>", "</div>").replace('role="img"', ""))
         self.assertEqual(r.returncode, 1)
