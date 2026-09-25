@@ -9,14 +9,14 @@ A unit is a widget file in references/page/widgets/. Fails on:
   token neither the skin nor the unit defines; a spec comment missing a field, or a
   states field missing a state;
 - in references/page/skin.css: a missing token kind; a motion token over 200ms; a colour pair under
-  WCAG AA in light or dark: text and status 4.5:1, border and diagram kinds 3:1.
+  WCAG AA in light or dark: text, link and status 4.5:1, border and diagram kinds 3:1.
 Exit 0 pass, 1 on any failure.
 """
 import pathlib
 import re
 import sys
 
-TEXT = ("text", "muted", "accent", "ok", "warn", "fail")
+TEXT = ("text", "muted", "accent", "link", "ok", "warn", "fail")
 LINES = ("border", "kind-1", "kind-2", "kind-3", "kind-4")
 GROUNDS = ("bg", "fill")
 KINDS = ("--p-", "--fs-", "--sp-", "--line", "--radius-", "--page-width", "--gutter", "--rhythm",

@@ -115,22 +115,28 @@ class SkillCheck(unittest.TestCase):
         self.assertIn("--kind-2 on --fill light", out)
 
     def test_missing_token_kind_fails(self):
-        self.edit("references/page/skin.css", "--radius-s: 4px;", "--corner: 4px;")
+        self.edit("references/page/skin.css", "--radius-s: 0;", "--corner: 0;")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("no --radius-* token", out)
 
     def test_low_text_contrast_fails(self):
-        self.edit("references/page/skin.css", "--p-ink-600: #5b5f66", "--p-ink-600: #c0c0c0")
+        self.edit("references/page/skin.css", "--p-grey-500: #757575", "--p-grey-500: #c0c0c0")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("--muted on --bg light", out)
 
     def test_low_border_contrast_in_dark_fails(self):
-        self.edit("references/page/skin.css", "--p-ink-500: #767a82", "--p-ink-500: #3a3d42")
+        self.edit("references/page/skin.css", "--p-grey-450: #8a8a8a", "--p-grey-450: #3a3d42")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("--border on --fill dark", out)
+
+    def test_low_link_contrast_fails(self):
+        self.edit("references/page/skin.css", "--p-link: #057dbc", "--p-link: #7fc4ea")
+        code, out = run(self.tmp)
+        self.assertEqual(code, 1)
+        self.assertIn("--link on --bg light", out)
 
     def test_missing_role_fails(self):
         self.edit("references/page/skin.css", "  --accent:", "  --link:")
