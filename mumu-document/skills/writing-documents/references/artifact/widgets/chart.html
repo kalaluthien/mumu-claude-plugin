@@ -20,36 +20,37 @@
   use when: numbers the reader should see as a pattern: a comparison, a trend, a spread, a relation, a share.
   not when: fewer than 3 numbers (a sentence); the exact values are the point (table). -->
 <style>
-  [data-widget="chart"] { --chart-grid: var(--hairline); --chart-axis: var(--border); --chart-gap: var(--sp-2); --chart-panel: calc(var(--page-width) / 3);
-    position: relative; }
-  [data-widget="chart"] figcaption { margin-bottom: var(--chart-gap); }
-  [data-widget="chart"] .panel { overflow-x: auto; }
-  [data-widget="chart"] .name { margin: 0; font: 700 var(--fs-m) var(--sans); }
-  [data-widget="chart"][data-facet] .plot { display: grid; gap: var(--chart-gap); grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--chart-panel)), 1fr)); }
-  [data-widget="chart"] svg { display: block; width: 100%; font: var(--fs-svg-label) var(--sans); }
-  [data-widget="chart"] svg text { fill: var(--text); }
-  [data-widget="chart"] svg .tick, [data-widget="chart"] svg .note { fill: var(--muted); }
-  [data-widget="chart"] svg .grid { stroke: var(--chart-grid); stroke-width: var(--line); }
-  [data-widget="chart"] svg .axis, [data-widget="chart"] svg .span { stroke: var(--chart-axis); stroke-width: var(--line); }
-  [data-widget="chart"] svg .k1 { fill: var(--kind-1); stroke: var(--kind-1); } [data-widget="chart"] svg .k2 { fill: var(--kind-2); stroke: var(--kind-2); }
-  [data-widget="chart"] svg .k3 { fill: var(--kind-3); stroke: var(--kind-3); } [data-widget="chart"] svg .k4 { fill: var(--kind-4); stroke: var(--kind-4); }
-  [data-widget="chart"] svg .s1 { fill: var(--seq-1); } [data-widget="chart"] svg .s2 { fill: var(--seq-2); } [data-widget="chart"] svg .s3 { fill: var(--seq-3); }
-  [data-widget="chart"] svg .s4 { fill: var(--seq-4); } [data-widget="chart"] svg .s5 { fill: var(--seq-5); }
-  [data-widget="chart"] svg path.line { fill: none; stroke-width: var(--line-strong); }
-  [data-widget="chart"] svg .bin, [data-chart="heatmap"] svg .mark { stroke: var(--bg); stroke-width: var(--line); }
-  [data-widget="chart"] svg .box-plot { fill: var(--fill); stroke-width: var(--line-strong); }
-  [data-widget="chart"] svg .box-plot .median { stroke: var(--text); }
-  [data-widget="chart"] svg .mark { outline: none; cursor: default; }
-  [data-widget="chart"] svg .mark:hover, [data-state="hover"] [data-widget="chart"] svg .mark[tabindex="0"] { stroke: var(--accent); stroke-width: var(--line-strong); }
-  [data-widget="chart"] svg .mark:focus-visible, [data-state="focus"] [data-widget="chart"] svg .mark[tabindex="0"] { stroke: var(--accent); stroke-width: var(--line-mark); }
-  [data-widget="chart"] .tip { position: absolute; z-index: 2; pointer-events: none; white-space: nowrap; font: var(--fs-m) var(--sans);
-    background: var(--fill); border: var(--line) solid var(--border); padding: var(--sp-1) var(--sp-2); }
-  [data-widget="chart"] .tip[hidden] { display: none; }
+  [data-widget="chart"] {
+    --chart-grid: var(--hairline); --chart-axis: var(--border); --chart-gap: var(--sp-2); --chart-panel: calc(var(--page-width) / 3);
+    position: relative;
+    & figcaption { margin-bottom: var(--chart-gap); }
+    & .panel { overflow-x: auto; }
+    & .name { margin: 0; font: 700 var(--fs-m) var(--sans); }
+    &[data-facet] .plot { display: grid; gap: var(--chart-gap); grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--chart-panel)), 1fr)); }
+    & svg { display: block; width: 100%; font: var(--fs-svg-label) var(--sans); }
+    & svg text { fill: var(--text); }
+    & svg :is(.tick, .note) { fill: var(--muted); }
+    & svg .grid { stroke: var(--chart-grid); stroke-width: var(--line); }
+    & svg :is(.axis, .span) { stroke: var(--chart-axis); stroke-width: var(--line); }
+    & svg .k1 { fill: var(--kind-1); stroke: var(--kind-1); } & svg .k2 { fill: var(--kind-2); stroke: var(--kind-2); }
+    & svg .k3 { fill: var(--kind-3); stroke: var(--kind-3); } & svg .k4 { fill: var(--kind-4); stroke: var(--kind-4); }
+    & svg .s1 { fill: var(--seq-1); } & svg .s2 { fill: var(--seq-2); } & svg .s3 { fill: var(--seq-3); } & svg .s4 { fill: var(--seq-4); } & svg .s5 { fill: var(--seq-5); }
+    & svg path.line { fill: none; stroke-width: var(--line-strong); }
+    & svg .bin, &[data-chart="heatmap"] svg .mark { stroke: var(--bg); stroke-width: var(--line); }
+    & svg .box-plot { fill: var(--fill); stroke-width: var(--line-strong); }
+    & svg .box-plot .median { stroke: var(--text); }
+    & svg .mark { outline: none; cursor: default; }
+    & svg .mark:hover, [data-state="hover"] & svg .mark[tabindex="0"] { stroke: var(--accent); stroke-width: var(--line-strong); }
+    & svg .mark:focus-visible, [data-state="focus"] & svg .mark[tabindex="0"] { stroke: var(--accent); stroke-width: var(--line-mark); }
+    & .tip { position: absolute; z-index: 2; pointer-events: none; white-space: nowrap; font: var(--fs-m) var(--sans);
+      background: var(--fill); border: var(--line) solid var(--border); padding: var(--sp-1) var(--sp-2); }
+    & .tip[hidden] { display: none; }
+  }
   @media screen and (prefers-reduced-motion: no-preference) {
     [data-widget="chart"].live svg :is(.mark, .mark *, .line) { transition: x var(--motion) var(--ease-out), y var(--motion) var(--ease-out),
       width var(--motion) var(--ease-out), height var(--motion) var(--ease-out), cx var(--motion) var(--ease-out), cy var(--motion) var(--ease-out),
       d var(--motion) var(--ease-out), fill var(--motion) var(--ease-out); }
-        }
+  }
 </style>
 <script>
   (() => {

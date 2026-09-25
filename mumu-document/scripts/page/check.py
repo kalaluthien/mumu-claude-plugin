@@ -263,7 +263,8 @@ def chart(chart):
             if not all(t in name for t in texts):
                 out.append(f"mark {k} name {name!r} lacks {texts}")
         p = panel_of[keys[0]]
-        bad = lambda what, got, want: out.append(f"{k} {what} {got} is not {want:.2f}")
+        def expect(k, *pairs):  # (what, the mark's value, the value its scale gives)
+            out.extend(f"{k} {what} {got} is not {w:.2f}" for what, got, w in pairs if not near(got, w))
         if kind in ("bar", "stacked", "dot", "box"):
             X, lo, hi = scale(p["x"])
             if kind in ("bar", "stacked") and not lo <= 0 <= hi:
@@ -272,24 +273,17 @@ def chart(chart):
                 m = marks[k]
                 if kind == "bar":
                     want = (min(X(0), X(v[0])), abs(X(v[0]) - X(0)))
-                    for what, got, w in (("x", m.get("x"), want[0]), ("width", m.get("width"), want[1])):
-                        if not near(got, w):
-                            bad(what, got, w)
+                    expect(k, ("x", m.get("x"), want[0]), ("width", m.get("width"), want[1]))
                 elif kind == "stacked":
                     a, b = X(sum(v[:j])), X(sum(v[:j + 1]))
-                    for what, got, w in (("x", m.get("x"), a), ("width", m.get("width"), b - a)):
-                        if not near(got, w):
-                            bad(what, got, w)
+                    expect(k, ("x", m.get("x"), a), ("width", m.get("width"), b - a))
                 elif kind == "dot":
-                    if not near(m.get("cx"), X(v[j])):
-                        bad("cx", m.get("cx"), X(v[j]))
+                    expect(k, ("cx", m.get("cx"), X(v[j])))
                 else:
                     mn, q1, med, q3, mx = v
-                    for what, got, w in (("whisker x1", m["whisker"].get("x1"), X(mn)), ("whisker x2", m["whisker"].get("x2"), X(mx)),
-                                         ("box x", m["box"].get("x"), X(q1)), ("box width", m["box"].get("width"), X(q3) - X(q1)),
-                                         ("median", m["median"].get("x1"), X(med))):
-                        if not near(got, w):
-                            bad(what, got, w)
+                    expect(k, ("whisker x1", m["whisker"].get("x1"), X(mn)), ("whisker x2", m["whisker"].get("x2"), X(mx)),
+                           ("box x", m["box"].get("x"), X(q1)), ("box width", m["box"].get("width"), X(q3) - X(q1)),
+                           ("median", m["median"].get("x1"), X(med)))
         elif kind == "heatmap":
             lo, hi = map(float, p["v"].split())
             for j, k in enumerate(keys):
@@ -306,20 +300,14 @@ def chart(chart):
                 a, b = X(v[0]), X(v[1])
                 if ylo > 0:
                     out.append(f"histogram counts start at {ylo}, not zero")
-                for what, got, w in (("x", m.get("x"), a), ("width", m.get("width"), b - a),
-                                     ("y", m.get("y"), Y(v[2])), ("height", m.get("height"), Y(0) - Y(v[2]))):
-                    if not near(got, w):
-                        bad(what, got, w)
+                expect(keys[0], ("x", m.get("x"), a), ("width", m.get("width"), b - a),
+                       ("y", m.get("y"), Y(v[2])), ("height", m.get("height"), Y(0) - Y(v[2])))
             elif kind == "scatter":
-                for what, got, w in (("cx", m.get("cx"), X(v[0])), ("cy", m.get("cy"), Y(v[1]))):
-                    if not near(got, w):
-                        bad(what, got, w)
+                expect(keys[0], ("cx", m.get("cx"), X(v[0])), ("cy", m.get("cy"), Y(v[1])))
             else:
                 xv = num(label) if numeric else position[i]
                 for j, k in enumerate(keys):
-                    for what, got, w in (("cx", marks[k].get("cx"), X(xv)), ("cy", marks[k].get("cy"), Y(v[j]))):
-                        if not near(got, w):
-                            bad(what, got, w)
+                    expect(k, ("cx", marks[k].get("cx"), X(xv)), ("cy", marks[k].get("cy"), Y(v[j])))
     if kind in ("line", "spark"):
         for p in chart["panels"]:
             for path in (m for m in p["marks"] if m.get("data-key", "").startswith("p")):
