@@ -13,7 +13,8 @@ a shell would split it -- at a newline, `;`, `&&`, `|` or `(` -- and any
 removed, is refused: run as a command, or inside `bash -c`, `eval`, `watch`,
 `$(...)`, a heredoc another command reads, a here-string, a comment, or a command
 that cannot be lexed. Every quoted word is counted inside too, but a text one
-without `$(` or a backtick: a `grep` or `rg` pattern, or the value of a body flag
+without `$(` or a backtick: a `grep`, `rg` or `git grep` (no `-O` pager) pattern, a
+`sed -i` word when none runs or writes a command (`e`, `w`, `W`), or the value of a body flag
 (`--body`, `--comment`, `--title`, ...) of such a reader; text only naming it
 passes. A merge built from a variable or an escape code such as `$'\x6d'` is not
 seen. A payload that cannot be read is refused too (exit 2).
@@ -43,6 +44,10 @@ ASSIGNMENT = re.compile(r"\w+=")
 READERS = {"cat": None, "tee": None, "gh": {"issue", "pr", "release"}}  # builtins no alias can shadow; git may open an editor set lines before
 EDITOR = re.compile(r"-[^-]*e|--edit")  # `-e`, `-eb`, `--edit`, `--editor`
 TEXT_COMMANDS = {"grep", "egrep", "fgrep", "rg"}  # each reads its quoted words as text
+PAGER = re.compile(r"-[^-]*O|--op")  # `git grep -O<cmd>`, `-iO`, `--open-files-in-pager=<cmd>`
+IN_PLACE = re.compile(r"-[A-Za-z]*i|--in-place")  # `sed -i ''`, `-i.bak`, `-Ei`
+SED_RUNS = re.compile(r"(?<![A-Za-z])[ewW](?![\w.-])|/[gpIiMm0-9]*[ewW][gpIiMm0-9]*(?![\w./-])")  # an `e`, `w` or `W` command or `s///` flag
+SED_EXPRESSION = re.compile(r"^(-[A-Za-z]*?e|--expression=)")  # `-ne'e cmd'` is the script `e cmd`
 TEXT_FLAGS = {"-b", "--body", "-t", "--title", "--comment", "--notes"}  # of gh
 HOOKS_PATH = re.compile(r"^(['\"]?|--config-env=|GIT_CONFIG_KEY_\d+=['\"]?)core\.hookspath(['\"]?=|['\"]?$)", re.I)  # `-c k=v`, `'k'=v`, `--config-env=k=V`, `KEY_0=k`
 HOOKS_PATH_TEXT = re.compile(r"(-c\s*|--config-env=|key_\d+=)core\.hookspath\b|\bconfig\b(?![^;&|\n]*\bget\b)[^;&|\n]*core\.hookspath[ \t]+[^\s;&|]")
@@ -144,8 +149,24 @@ def text_word(words, i):
     if RUNS.search(words[i]):
         return False
     head = next((os.path.basename(w) for w in words if not ASSIGNMENT.match(w)), "")
-    return head in TEXT_COMMANDS or reader(words) and \
+    if head in ("git", "sed") and ASSIGNMENT.match(words[i]):  # `GIT_PAGER=...` runs
+        return False
+    return head in TEXT_COMMANDS or git_grep(words) or sed_in_place(words) or reader(words) and \
         (i > 0 and words[i - 1] in TEXT_FLAGS or words[i].split("=", 1)[0] in TEXT_FLAGS)
+
+
+def git_grep(words):
+    """Whether the words are `git grep` with no git option before it and no pager flag (`-O`, `--open-files-in-pager`), which runs a command."""
+    words = [w for w in words if not ASSIGNMENT.match(w)]
+    return os.path.basename(words[0]) == "git" and words[1:2] == ["grep"] and \
+        not any(PAGER.match(w) for w in words[2:])
+
+
+def sed_in_place(words):
+    """Whether the words are `sed -i`, whose output goes to its files, with no script word that runs (`e`) or writes (`w`) a command."""
+    words = [w for w in words if not ASSIGNMENT.match(w)]
+    return os.path.basename(words[0]) == "sed" and any(IN_PLACE.match(w) for w in words[1:]) and \
+        not any(SED_RUNS.search(SED_EXPRESSION.sub("", w)) for w in words[1:])
 
 
 def unredirected(words):

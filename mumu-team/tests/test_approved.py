@@ -79,6 +79,28 @@ MERGE_REFUSED = [
     f"export GH_EDITOR=sh\ngh issue create --editor --body '{MERGE}'",
     f"git commit -m '{MERGE}'",
     f"grep -q x f && sh -c '{MERGE}'",
+    f"git grep -O'{MERGE}' x",
+    f"git grep --open-files-in-pager='{MERGE}' x",
+    f"git -c core.pager=sh grep -O -e '{MERGE}'",
+    f"GIT_PAGER='{MERGE}' git grep -O x",
+    f"sed -n '1e {MERGE}' f",
+    f"sed -i '' 's/x/{MERGE}/e' f",
+    f"sed -i '' -e'e {MERGE}' f",
+    f"sed -n 's/.*/{MERGE}/p' f | sh",
+    f"sed -i '' -ne'e {MERGE}' f",
+    f"sed -i '' 's/x/{MERGE}/ge' f",
+    f"sed -i '' 's/.*/{MERGE}/w /dev/stdout' f | sh",
+    f"sed -i '' 's/.*/{MERGE}/W /dev/stdout' f | sh",
+    f"sed -i '' -e 's/.*/{MERGE}/' -e 'W /dev/stdout' f | sh",
+]
+
+# Text only naming the merge in a pattern or an in-place edit: refused on main (#87).
+TEXT_MERGE_PASSED = [
+    "git grep -n 'pr merge' mumu-team",
+    f"git grep -e '{MERGE}' -- '*.md'",
+    "sed -i '' 's/gh pr merge/merge.py/' AGENTS.md",
+    f"sed -i.bak -e '/{MERGE}/d' notes.md",
+    f"sed -i '' 's/{MERGE}/merge.py/g' mumu-team/skills/kickoff/references/work.md",
 ]
 
 MERGE_PASSED = [
@@ -121,7 +143,7 @@ class MergeGate(unittest.TestCase):
                 self.assertIn("merge.py", result.stderr)
 
     def test_text_naming_the_merge_passes(self):
-        for command in MERGE_PASSED:
+        for command in MERGE_PASSED + TEXT_MERGE_PASSED:
             with self.subTest(command):
                 result = run(command)
                 self.assertEqual(result.returncode, 0, result.stderr)
