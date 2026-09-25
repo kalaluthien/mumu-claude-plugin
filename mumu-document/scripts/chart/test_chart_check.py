@@ -59,6 +59,13 @@ class ChartCheck(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("keyboard", out)
 
+    def test_player_stuck_at_first_table_fails(self):
+        stuck = "<script>document.addEventListener('click', function (e) { if (e.target.closest('.controls')) e.stopImmediatePropagation(); }, true);</script></html>"
+        code, out = run(lambda page: page.replace("</html>", stuck))
+        self.assertEqual(code, 1)
+        self.assertIn("buttons player stands at table 1, not its last, 2", out)
+        self.assertIn("scroll player stands at table 1, not its last, 3", out)
+
     def test_two_sentence_summary_fails(self):
         code, out = run(lambda page: page.replace("부산의 하루 요청이 가장 많아요.", "부산의 하루 요청이 가장 많아요. 광주가 가장 적어요.", 1))
         self.assertEqual(code, 1)

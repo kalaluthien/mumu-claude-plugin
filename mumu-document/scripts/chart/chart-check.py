@@ -11,6 +11,8 @@ data-y: domain low, high, range start, end) and its marks, and fails a chart on:
   of 5 from the lowest value to the highest, or an axis not spanning every step's data;
 - a value with no mark, or a mark whose name lacks its cell's text;
 - a mark the arrow keys do not reach from the first;
+- a player that does not start at its first table, or does not reach its last through Next
+  (headless Chrome fires no IntersectionObserver after a scroll, so scrolling is not driven here);
 - no data table, or a summary (figcaption) that is not one sentence;
 - facet panels on different scales.
 Exit 0 pass, 1 FAIL, 2 when it could not run, saying why.
@@ -31,13 +33,14 @@ f.onload = function () {
   setTimeout(function () {
     var d = f.contentDocument, out = [];
     var attrs = function (e) { var o = {}; Array.prototype.forEach.call(e.attributes, function (a) { o[a.name] = a.value; }); return o; };
-    d.querySelectorAll('[data-widget="chart"]').forEach(function (fig) {
+    var collect = function (fig, moved) {
       var tables = Array.prototype.map.call(fig.querySelectorAll('details table'), function (t) {
         return { head: Array.prototype.map.call(t.tHead.rows[0].cells, function (c) { return c.textContent.trim(); }),
                  rows: Array.prototype.map.call(t.tBodies[0].rows, function (r) { return Array.prototype.map.call(r.cells, function (c) { return c.textContent.trim(); }); }) };
       });
       var marks = Array.prototype.slice.call(fig.querySelectorAll('.mark')), seen = [];
       var m = marks.filter(function (x) { return x.getAttribute('tabindex') === '0'; })[0];
+      if (m) { m.focus(); m.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true })); m = d.activeElement; }
       for (var i = 0; m && i < marks.length; i++) {
         m.focus();
         if (d.activeElement !== m) break;
@@ -45,7 +48,8 @@ f.onload = function () {
         m.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
         m = d.activeElement === m ? null : d.activeElement;
       }
-      out.push({ kind: fig.dataset.chart, facet: fig.hasAttribute('data-facet'), at: +fig.dataset.at, tables: tables, seen: seen,
+      return { kind: fig.dataset.chart, facet: fig.hasAttribute('data-facet'), at: +fig.dataset.at, tables: tables, seen: seen,
+        player: fig.dataset.player === undefined ? null : fig.dataset.player || 'buttons', live: fig.classList.contains('live'), moved: moved,
         summary: (fig.querySelector('figcaption') || { textContent: '' }).textContent.trim(),
         panels: Array.prototype.map.call(fig.querySelectorAll('.plot svg'), function (s) {
           return { x: s.dataset.x, y: s.dataset.y, v: s.dataset.v, marks: Array.prototype.map.call(s.querySelectorAll('.marks > *'), function (k) {
@@ -53,9 +57,17 @@ f.onload = function () {
             Array.prototype.forEach.call(k.children, function (c) { a[c.getAttribute('class')] = attrs(c); });
             return a;
           }) };
-        }) });
-    });
-    document.body.dataset.r = JSON.stringify(out);
+        }) };
+    };
+    var figs = Array.prototype.slice.call(d.querySelectorAll('[data-widget="chart"]'));
+    figs.forEach(function (fig) { out.push(collect(fig, false)); });
+    var live = figs.filter(function (fig) { return fig.classList.contains('live'); });
+    (function move(i) {  // step each player to its last table with Next (hidden but live for scroll), then read it again
+      if (i === live.length) { document.body.dataset.r = JSON.stringify(out); return; }
+      var fig = live[i], next = fig.querySelectorAll('.controls button')[2], steps = fig.querySelectorAll('.steps > li');
+      for (var k = 0; k < steps.length && !next.disabled; k++) next.click();
+      setTimeout(function () { out.push(collect(fig, true)); move(i + 1); }, 300);
+    })(0);
   }, 500);
 };
 f.src = location.hash.slice(1);
@@ -90,6 +102,11 @@ def check(chart):
         return ["no data table"]
     if not re.fullmatch(r"[^.!?]+[.!?]", chart["summary"]):
         out.append(f"summary is not one sentence: {chart['summary']!r}")
+    last = len(chart["tables"]) - 1
+    if chart["player"] and (chart["moved"] or not chart["live"]) and chart["at"] != last:
+        out.append(f"{chart['player']} player stands at table {chart['at'] + 1}, not its last, {last + 1}")
+    if chart["player"] == "buttons" and chart["live"] and not chart["moved"] and chart["at"] != 0:
+        out.append(f"player starts at table {chart['at'] + 1}, not its first")
     split = lambda row: (row[0], row[1], row[2:]) if chart["facet"] else (None, row[0], row[1:])
     tables = [[split(r) for r in t["rows"]] for t in chart["tables"]]
     rows = tables[chart["at"]]
