@@ -29,16 +29,16 @@ The content picks the widget, one rule per row; a new rule is a new row naming
 a file in `references/artifact/widgets/`, and `scripts/skill/skill-check.py`
 fails on any other; a `chart` row also names its kinds, each a line of the
 widget's spec. Data is drawn only by the `chart` widget, with no chart
-library. `scripts/artifact/gallery.py` renders every widget in every state,
-light and dark. A figure on GitHub or a repository page is an SVG image,
-exported by [github.md](references/github.md).
+library. `scripts/skill/gallery.py` renders every widget in every state,
+light and dark. A figure in markdown is an SVG image, exported by
+[markdown.md](references/markdown.md).
 
 | when the content is | widget | in markdown |
 | --- | --- | --- |
 | a software system's structure: files, modules, their roles | `diagram` `file-tree`, first on the page | a code-block tree, one comment per line |
-| a structure before and after a change: what it adds, modifies and removes | `diagram` `file-tree`, played | a diff of the tree |
+| a structure before and after a change: what it adds, modifies and removes | `diagram` `file-tree`, slid | a diff of the tree |
 | who calls the system and what it calls: actors, entry points, boundaries | `diagram` `system-context` | its SVG |
-| behaviour: what happens in one use case; played, a request the reader follows one step at a time | `diagram` `use-case`, one per use case | its SVG, then a numbered list of calls |
+| behaviour: what happens in one use case; swiped, a request the reader follows call by call | `diagram` `use-case`, one per use case | its SVG, then a numbered list of calls |
 | states and the events that move between them: a job's life, a connection | `diagram` `state-machine` | its SVG, then a table of state, event, next state |
 | rows sharing columns: options, findings, done-criteria | `table` | a table |
 | two dimensions crossed, one mark per cell: options against criteria, roles against permissions | `table`, marked | a table, a symbol per cell and its key |
@@ -62,9 +62,8 @@ Where the ask says, else where it is obvious, else ask once with
 
 | the document goes to | read |
 | --- | --- |
-| a GitHub issue, pull request, or a comment on one | [github.md](references/github.md) |
+| a GitHub issue, pull request or comment; a repository page: a README, `docs/` | [markdown.md](references/markdown.md) |
 | an Artifact page | [artifact.md](references/artifact.md) |
-| a repository page: a README, a file under `docs/` | [repository.md](references/repository.md) |
 
 Delivered anywhere, give the one-sentence version in chat.
 

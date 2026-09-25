@@ -21,4 +21,4 @@ graders:
     target: {source: file, path: tiny-queue.html}
     match: contains
     flags: s
-    pattern: '<main(?:(?!data-widget=).)*data-widget="file-tree".*?<details'
+    pattern: '<main(?:(?!data-widget=).)*<[a-z]+(?=[^>]*\sdata-diagram="file-tree")[^>]*\sdata-widget="diagram".*?<details'
