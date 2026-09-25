@@ -3,7 +3,7 @@
   "owner": { "name": "kalaluthien" },
   "description": "Four Claude Code plugins: a team that lands reviewed pull requests, documents, verification, and lessons that compound.",
   "plugins": [
-    { "name": "mumu-document", "source": "./mumu-document", "description": "A document explains one question." },
+    { "name": "mumu-document", "source": "./mumu-document", "description": "Documents a person reads outside the chat: GitHub bodies, Artifact pages, repository pages." },
     { "name": "mumu-team", "source": "./mumu-team", "description": "Work lands only as a PR merged at a sha a reviewer approved." },
     { "name": "mumu-verification", "source": "./mumu-verification", "description": "A change is checked against a contract that predates it." },
     { "name": "mumu-compounding", "source": "./mumu-compounding", "description": "A lesson is filed once, where its reader looks, before the session ends." }

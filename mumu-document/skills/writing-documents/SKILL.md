@@ -1,79 +1,80 @@
 ---
 name: writing-documents
-description: Use before writing any document, page or diagram a person will read - explain, draw, map, walk through, compare, report, an issue or pull request body, what the facts imply (so what) - or before asking the user to settle a decision, proposal or plan with open choices (grill me), even when only the content was asked for. Not for code or its comments.
+description: Use before writing a document a person will read outside the chat - a GitHub issue or pull request body or comment, an Artifact page, a repository page (README, docs) - to explain, draw, map, walk through, compare or report something, even when only the content was asked for. Not for a plain chat answer, nor for code or its comments, nor for asking the user open questions (that is `grill-me`).
 user-invocable: false
 ---
 
 # writing-documents
 
-Write the document by [doctype.md](references/doctype.md); read it first. A
-format the running skill or the repository states wins over it: its
-template, its headings, its comment kinds. The topic is the one named, else the conversation's.
+**Goal**: the reader gets what they need, in the order they need it, in the
+form that shows it best, and can act on it. A format the running skill or the
+repository states wins: its template, headings, comment kinds. The topic is
+the one named, else the conversation's.
 
-1. **Doctype**: the question picks it; build its parts in order. Asked only
-   what follows, answer as `doctype.md` says, with no doctype.
-2. **Blanks**: a part no fact settles is the user's; settle every blank by
-   [Rounds](#rounds) before delivering, and act on nothing before that.
-3. **Medium**: markdown in one of its forms, or a page from
-   [page.html](assets/page.html), whose `#round` form asks a round of
-   questions.
-4. **Plan**: the reader, the question, one claim per chapter and where its
-   evidence sits; a page or a figure adds one line naming the doctype, each
-   figure with the paragraph beside it; then write.
-5. **Check**: reread for order, each claim against its evidence, cuts and
-   register. A page: `"${CLAUDE_PLUGIN_ROOT}/bin/page-check.sh" <page>` clicks
-   each control once and prints `pass`; on `FAIL`, fix and rerun; exit 2 says
-   why it could not run.
-6. **Deliver** by [Delivery](#delivery).
-7. **Resubmit** a rejected draft: first a reader, an editor and a hostile
-   fact-checker, never skipped, each say why it fails; edit by what they agree
-   on, the rest settled by the user's words.
+## Doctypes
 
-## Page rules over the Artifact tool
+The reader's situation picks the doctype; its moves, in order, are the
+document's parts. The outermost purpose is the doctype, the others nest as
+its moves; a move with nothing to say is dropped.
 
-`page.html` and `doctype.md` are the page's only design rules: read
-`page.html` before any `Artifact` call, and do not run its `quickstart` or
-load `artifact-design` or `artifact-capabilities`. The `Artifact` tool only
-publishes the finished file.
+| doctype | the reader | moves, in order |
+| --- | --- | --- |
+| `proposal` | must agree to what is not settled: a plan, a design, an issue, a choice | **plan**: the goal and when it is done · **narrative and comparison**: why, and the options against one set of criteria, fixed before any option · **settled answers**: what `grill-me` settled with the reader · **decide**: the recommendation and the fact that would change it |
+| `textbook` | must understand or use what is settled: a system, a change, a result | **explain**: what it is made of and how it works · **teach**: one claim per section, with its reason and evidence · **guide**: the steps the reader takes, each with its check · **report**: what was done, its evidence, the next action |
 
-## Rounds
+## Mapping
 
-- A question waits while one it rests on is open, as a definition of done
-  waits on its scope; the **frontier** is every question whose prerequisites
-  are settled.
-- Each round asks the whole frontier, numbered `Q1`, `Q2`, each with
-  `Recommended:` and your answer under it; then wait.
-- Facts are yours to find; a pending lookup holds back only the questions
-  under it.
-- Attack each answer once before writing it: a counterexample, an edge case,
-  a check that can fail, or a term or code of the repository that says
-  otherwise. Write it once it survives, or once the user restates it knowing
-  the attack.
-- Done when every blank is filled and the user confirms the document.
+The content picks the widget, one rule per row; a new rule is a new row
+naming a file in `references/artifact/widgets/`, and `scripts/skill/skill-check.py`
+fails on any other. `scripts/artifact/gallery.py` renders every widget in every
+state, light and dark. A figure on GitHub or a repository page is an SVG
+image, exported by [github.md](references/github.md).
 
-| the round | where |
-| --- | --- |
-| four questions or fewer, with `AskUserQuestion` in the session | `AskUserQuestion` |
-| more, with the `Artifact` tool in the session | a page of questions in the `#round` form, recommendations prefilled |
-| otherwise | numbered text in chat |
+| when the content is | widget | in markdown |
+| --- | --- | --- |
+| a software system's structure: files, modules, their roles | `file-tree`, first on the page | a code-block tree, one comment per line |
+| who calls the system and what it calls: actors, entry points, boundaries | `system-context` | its SVG |
+| behaviour: what happens in one use case | `use-case`, one per use case | its SVG, then a numbered list of calls |
+| a sequence the reader follows one step at a time: a request travelling the system | `use-case`, played | a numbered list, one step and its reason each |
+| a structure before and after a change: what it adds, modifies and removes | `before-after` | a diff of the tree |
+| states and the events that move between them: a job's life, a connection | `state-machine` | its SVG, then a table of state, event, next state |
+| rows sharing columns: options, findings, done-criteria | `table` | a table |
+| two dimensions crossed, one mark per cell: options against criteria, roles against permissions | `matrix` | a table, a symbol per cell and its key |
+| many items the reader narrows or reorders by their attributes | `filter` | a table sorted by the key that matters most |
+| a result the reader should see as it is: a page, a screen, an email | `preview` | an image of it |
+| steps the reader carries out one at a time, each done before the next | `stepwise` | a numbered list, each step with its check |
+| a term the reader may not know, used where the prose must not stop for it | `hint` | the term with its meaning in parentheses, once |
+| a claim with its reason and evidence (code, or the hunk that changed) | `section` | a heading over paragraphs; a hunk as a `diff` code block |
 
-The form writes nowhere: it builds a block the user pastes back, its first
-line `writing-documents: <target>, round <n>`, then each `Qn:` with the
-answer indented two spaces under it. An answer equal to its recommendation
-accepts it, an empty one leaves the question open, and a block that matches
-no round is said to match none.
-
-## Delivery
+## Routing
 
 Where the ask says, else where it is obvious, else ask once with
-`AskUserQuestion`:
+`AskUserQuestion`; then read the one file for that place and follow it.
 
-- chat: markdown;
-- GitHub issue: the body or a comment by the repository's procedure, else
-  `gh issue create`;
-- page: `<slug>.html` in the session's scratch directory, published with the
-  `Artifact` tool, else opened with `open`;
-- repository page: where the repository keeps pages, linked from its README,
-  landed by its procedure.
+| the document goes to | read |
+| --- | --- |
+| a GitHub issue, pull request, or a comment on one | [github.md](references/github.md) |
+| an Artifact page | [artifact.md](references/artifact.md) |
+| a repository page: a README, a file under `docs/` | [repository.md](references/repository.md) |
 
-Delivered elsewhere, give the one-sentence version in chat.
+Delivered anywhere, give the one-sentence version in chat.
+
+## Writing
+
+- Name things instead of counting them: a count goes stale, a name can be
+  grepped. A heading is a noun phrase naming its part; the claim goes in the
+  first sentence under it.
+- Short words, one idea a sentence, active voice; a new term is defined where
+  it first appears or cut; no word that sells. A change you judge wrong is
+  said so, plainly.
+- A step caption names one change and its effect, never what the figure
+  shows.
+
+## Done when
+
+- A part no fact settles goes to `grill-me` by name, and the document carries
+  only its settled answers; nothing is written before.
+- Reread for order, each claim against its evidence, cuts and register.
+- The checks the routed file names print `pass`.
+- A rejected draft is edited only after a reader, an editor and a hostile
+  fact-checker each say why it fails.

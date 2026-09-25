@@ -1,0 +1,58 @@
+<!-- hint: a word or a name that opens a short card explaining it; inline, inside a <p>, not a section.
+  anatomy: a <span data-widget="hint"> inside running text: a .term <button popovertarget> styled as a dotted-underlined word, then a .card <span popover> with the explanation; no heading.
+  fill: the term exactly as the sentence uses it; the card one to three short sentences a reader needs to keep reading, never the only place a fact lives; several hints per page, each with its own {{id}}.
+  states: default: the word with a dotted underline; hover: the word turns accent, and on a device that hovers the card opens; focus: outline on the word, and keyboard focus opens the card; open: the card shows under the word, above it near the bottom edge; disabled: the word dims and opens nothing.
+  motion: the card fades and drops in over --motion as it opens.
+  keyboard: Tab to the word opens the card, Tab away closes it; Enter or Space toggles it; Esc closes it.
+  screen reader: the word is a button announcing expanded or collapsed; the card follows it in reading order.
+  use when: a term, an acronym or a name some readers know and others do not.
+  not when: the explanation is needed by every reader (write it in the sentence); longer than three sentences (section); a phone-only page where every hint is tapped (write it in the sentence). -->
+<style>
+  [data-widget="hint"] { --hint-width: calc(var(--page-width) / 2); --hint-gap: var(--sp-1); --hint-x: 0; --hint-y: 0; }
+  [data-widget="hint"] .term { font: inherit; color: inherit; background: none; border: 0; border-radius: 0; padding: 0; cursor: help;
+    text-decoration: underline dotted; text-decoration-thickness: var(--line); text-underline-offset: var(--hint-gap);
+    transition: color var(--motion-fast) var(--ease-out); }
+  [data-widget="hint"] .term:hover, [data-state="hover"] [data-widget="hint"] .term { color: var(--accent); }
+  [data-widget="hint"] .card { position: absolute; inset: auto; left: var(--hint-x); top: var(--hint-y); margin: 0;
+    box-sizing: border-box; width: var(--hint-width); max-width: calc(100% - 2 * var(--gutter));
+    padding: var(--sp-2) var(--sp-3); background: var(--fill); color: var(--text); font-size: var(--fs-m);
+    border: var(--line) solid var(--border); border-radius: var(--radius-s); }
+  [data-widget="hint"] .card:popover-open { animation: reveal var(--motion) var(--ease-out); }
+  [data-state="open"] [data-widget="hint"] .card { display: block; position: static; margin-top: var(--hint-gap); animation: reveal var(--motion) var(--ease-out); }
+</style>
+<script>
+  (() => {
+    const hover = matchMedia('(hover: hover) and (pointer: fine)');
+    document.querySelectorAll('[data-widget="hint"]').forEach((hint) => {
+      const term = hint.querySelector('.term');
+      const card = hint.querySelector('.card');
+      let pinned = false;
+      let byHover = false;
+      let timer;
+      const place = () => {
+        const r = term.getBoundingClientRect();
+        const vw = document.documentElement.clientWidth;
+        const gutter = parseFloat(getComputedStyle(document.body).paddingInlineStart) || 0;
+        const w = card.offsetWidth, h = card.offsetHeight, gap = parseFloat(getComputedStyle(term).textUnderlineOffset) || 0;
+        const x = Math.max(gutter, Math.min(r.left, vw - w - gutter));
+        const below = r.bottom + h + gap <= innerHeight || r.top < h + gap;
+        const y = below ? r.bottom + gap : r.top - h - gap;
+        hint.style.setProperty('--hint-x', `${x + scrollX}px`);
+        hint.style.setProperty('--hint-y', `${y + scrollY}px`);
+      };
+      const show = () => { clearTimeout(timer); if (!card.matches(':popover-open') && !term.disabled) card.showPopover(); };
+      const hide = () => { clearTimeout(timer); timer = setTimeout(() => { if (!pinned && card.matches(':popover-open')) card.hidePopover(); }, parseFloat(getComputedStyle(hint).getPropertyValue('--motion')) || 0); };
+      card.addEventListener('toggle', (e) => { if (e.newState === 'open') place(); else pinned = byHover = false; });
+      term.addEventListener('click', (e) => {
+        if (byHover && card.matches(':popover-open') && !pinned) { e.preventDefault(); pinned = true; }
+      });
+      term.addEventListener('pointerenter', () => { if (hover.matches) { byHover = true; show(); } });
+      term.addEventListener('pointerleave', () => { if (hover.matches) hide(); });
+      card.addEventListener('pointerenter', () => { if (hover.matches) clearTimeout(timer); });
+      card.addEventListener('pointerleave', () => { if (hover.matches) hide(); });
+      term.addEventListener('focus', () => { if (term.matches(':focus-visible')) { byHover = true; show(); } });
+      term.addEventListener('blur', () => { if (!pinned && card.matches(':popover-open')) card.hidePopover(); });
+    });
+  })();
+</script>
+<p>{{sentence before}} <span data-widget="hint"><button type="button" class="term" popovertarget="{{id}}-card">{{term}}</button><span id="{{id}}-card" class="card" popover>{{what the term means, in one to three short sentences}}</span></span> {{sentence after}}</p>

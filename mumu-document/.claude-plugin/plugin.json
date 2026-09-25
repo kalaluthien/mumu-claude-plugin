@@ -1,8 +1,11 @@
 {
   "name": "mumu-document",
   "version": "0.0.0",
-  "description": "A document explains one question.",
+  "description": "Documents a person reads outside the chat: GitHub bodies, Artifact pages, repository pages.",
   "author": {
     "name": "kalaluthien"
+  },
+  "experimental": {
+    "evals": "rubrics"
   }
 }

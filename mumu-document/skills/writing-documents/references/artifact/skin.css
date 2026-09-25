@@ -1,0 +1,109 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Noto+Sans+KR:wght@400;700&family=Noto+Serif+KR:wght@400;700&family=Playfair+Display&family=Source+Serif+4:wght@400;700&display=swap");
+/* skin: the design system of design.md, carried verbatim into the page's one <style>.
+   Tokens in three tiers: primitives (--p-*) hold raw values and only the
+   semantic tier reads them; semantic tokens name a role; each widget defines
+   its own --<widget>-* tokens from semantic ones. A widget reads only
+   semantic or its own tokens, never a primitive or a literal.
+   Layout: one column of --page-width, a --gutter each side, sections
+   --rhythm apart; at phone width (320 px) nothing scrolls sideways but a
+   figure, a table or code, each in its own .scroll box.
+   Motion: --motion-fast for hover and focus, --motion for a reveal, easing
+   --ease-out; only a change of state animates, and nothing does under
+   prefers-reduced-motion: reduce.
+   Fonts: the one fetch a page makes; offline, each stack falls back to an
+   installed face. */
+:root {
+  color-scheme: light dark;
+  /* primitives */
+  --p-black: #000000; --p-white: #ffffff; --p-grey-500: #757575; --p-grey-200: #e0e0e0;
+  --p-grey-400: #a3a3a3; --p-grey-450: #8a8a8a; --p-grey-800: #333333; --p-night-900: #111111;
+  --p-link: #057dbc; --p-link-d: #5cb8ea;
+  --p-cat-1: #2f6fd6; --p-cat-2: #0f7f74; --p-cat-3: #b8560a; --p-cat-4: #8a4fcf;
+  --p-cat-1-d: #7aa7ff; --p-cat-2-d: #4fd1c1; --p-cat-3-d: #f0a050; --p-cat-4-d: #c49bff;
+  --p-green-700: #1f7a3a; --p-amber-800: #855600; --p-red-700: #b8302a;
+  --p-green-300: #6fd68a; --p-amber-300: #f2c14e; --p-red-300: #ff7b72;
+  --p-size-1: .25rem; --p-size-2: .5rem; --p-size-3: .75rem; --p-size-4: 1rem;
+  --p-size-5: 1.75rem;
+  --p-ms-100: 100ms; --p-ms-200: 200ms; --p-vh-60: 60vh;
+
+  /* semantic: colour roles, each light-dark(light, dark) */
+  --text: light-dark(var(--p-black), var(--p-white));
+  --muted: light-dark(var(--p-grey-500), var(--p-grey-400));
+  --bg: light-dark(var(--p-white), var(--p-black));
+  --fill: light-dark(var(--p-white), var(--p-night-900));
+  --border: light-dark(var(--p-grey-500), var(--p-grey-450));
+  --hairline: light-dark(var(--p-grey-200), var(--p-grey-800));
+  --accent: light-dark(var(--p-black), var(--p-white));
+  --link: light-dark(var(--p-link), var(--p-link-d));
+  /* semantic: diagram palette; kinds mark a node's kind by its edge, status
+     colours mark success, warning and failure in text and edges */
+  --kind-1: light-dark(var(--p-cat-1), var(--p-cat-1-d));
+  --kind-2: light-dark(var(--p-cat-2), var(--p-cat-2-d));
+  --kind-3: light-dark(var(--p-cat-3), var(--p-cat-3-d));
+  --kind-4: light-dark(var(--p-cat-4), var(--p-cat-4-d));
+  --ok: light-dark(var(--p-green-700), var(--p-green-300));
+  --warn: light-dark(var(--p-amber-800), var(--p-amber-300));
+  --fail: light-dark(var(--p-red-700), var(--p-red-300));
+  /* semantic: type, space, line, radius, layout, motion */
+  --display: "Playfair Display", "Noto Serif KR", Georgia, "AppleMyungjo", serif;
+  --serif: "Source Serif 4", "Noto Serif KR", Georgia, "AppleMyungjo", serif;
+  --sans: "Inter", "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --mono: ui-monospace, monospace;
+  --fs-s: .8rem; --fs-m: .9rem; --fs-base: 1rem; --fs-l: 1.2rem; --fs-xl: 1.25rem;
+  --fs-h2: 1.625rem; --fs-h1: 2rem; --track-display: -.01em;
+  --fs-svg: 14px; --fs-svg-label: 12px;
+  --sp-1: var(--p-size-1); --sp-2: var(--p-size-2); --sp-3: var(--p-size-3);
+  --sp-4: var(--p-size-4); --sp-5: var(--p-size-5);
+  --line: 1px; --line-strong: 2px; --line-mark: 3px;
+  --radius-s: 0;
+  --page-width: 48rem; --gutter: var(--p-size-4); --rhythm: var(--p-size-5);
+  --motion-fast: var(--p-ms-100); --motion: var(--p-ms-200);
+  --ease-out: cubic-bezier(.2, .7, .3, 1);
+  --shift: calc(-1 * var(--p-size-1));
+  --scroll-step: var(--p-vh-60);
+  --disabled: .5;
+}
+:root[data-theme="light"], .theme-light { color-scheme: light; }
+:root[data-theme="dark"], .theme-dark { color-scheme: dark; }
+.theme-light, .theme-dark { background: var(--bg); color: var(--text); }
+
+/* layout */
+body { background: var(--bg); color: var(--text); margin: 0;
+       font: var(--fs-base)/1.5 var(--serif); padding: var(--rhythm) var(--gutter); }
+main { max-width: var(--page-width); margin: 0 auto; }
+h1, h2 { font-family: var(--display); font-weight: 400; letter-spacing: var(--track-display); line-height: 1.1; }
+h1 { font-size: var(--fs-h1); margin: 0 0 var(--sp-4); }
+h2 { font-size: var(--fs-h2); margin: var(--rhythm) 0 var(--sp-2); }
+h3 { font: 700 var(--fs-xl)/1.2 var(--sans); margin: var(--sp-4) 0 var(--sp-2); }
+a { color: var(--link); }
+:is(h1, h2) code { font-size: .8em; }
+figcaption, .muted, footer, summary, label, legend, th { font-family: var(--sans); }
+.read { border-inline-start: var(--line-mark) solid var(--text); padding-inline-start: var(--sp-3); font-size: var(--fs-l); }
+.muted, footer { color: var(--muted); font-size: var(--fs-m); }
+footer { margin-top: var(--rhythm); padding-top: var(--sp-3); border-top: var(--line) solid var(--hairline); }
+code, pre { font-family: var(--mono); font-size: var(--fs-m); }
+pre { overflow-x: auto; background: var(--fill); border: var(--line) solid var(--border);
+      border-radius: var(--radius-s); padding: var(--sp-3); }
+.scroll { overflow-x: auto; }
+figure { margin: 0; }
+.ok { color: var(--ok); } .warn { color: var(--warn); } .fail { color: var(--fail); }
+
+/* states: default, hover, focus, open, disabled; [data-state] forces one for
+   the gallery */
+:focus-visible, [data-state="focus"] :is(summary, button, textarea, [tabindex]) {
+  outline: var(--line-strong) solid var(--accent); outline-offset: var(--line-strong); }
+summary { cursor: pointer; transition: color var(--motion-fast) var(--ease-out); }
+summary:hover, [data-state="hover"] summary { color: var(--accent); }
+details[open] > :not(summary) { animation: reveal var(--motion) var(--ease-out); }
+@keyframes reveal { from { opacity: 0; transform: translateY(var(--shift)); } }
+button { font: 700 var(--fs-m) var(--sans); color: var(--text); background: var(--fill); cursor: pointer;
+         border: var(--line) solid var(--border); border-radius: var(--radius-s); padding: var(--sp-1) var(--sp-3);
+         transition: border-color var(--motion-fast) var(--ease-out); }
+button:hover, [data-state="hover"] button { border-color: var(--accent); }
+textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); background: var(--fill);
+           border: var(--line) solid var(--border); border-radius: var(--radius-s); }
+:disabled { opacity: var(--disabled); cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after { animation: none !important; transition: none !important; }
+}
