@@ -49,7 +49,7 @@ def in_state(body, state):
 
 
 def gallery(skill):
-    page = skill / "references" / "page"
+    page = skill / "references" / "artifact"
     skin = (page / "skin.css").read_text()
     head, sections = [], []
     for f in sorted((page / "widgets").glob("*.html")):

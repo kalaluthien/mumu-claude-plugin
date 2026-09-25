@@ -1,11 +1,11 @@
-"""`page-check.sh` fails a figure whose labels collide or leave it, and a hint a tap does not open."""
+"""`artifact-check.sh` fails a figure whose labels collide or leave it, and a hint a tap does not open."""
 import pathlib
 import subprocess
 import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-CHECK = ROOT / "scripts" / "page" / "page-check.sh"
+CHECK = ROOT / "scripts" / "artifact" / "artifact-check.sh"
 CHROME = pathlib.Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 PAGE = """<!doctype html><html lang="ko"><meta charset="utf-8"><title>그림</title>
 <main><svg width="280" height="80" viewBox="0 0 280 80">

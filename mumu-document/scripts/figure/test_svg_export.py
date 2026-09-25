@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-CHECK = ROOT / "scripts" / "github" / "svg-export.py"
+CHECK = ROOT / "scripts" / "figure" / "svg-export.py"
 CHROME = pathlib.Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 PAGE = """<!doctype html><html lang="ko"><meta charset="utf-8"><title>그림</title>
 <style>:root { color-scheme: light dark; --ink: light-dark(#1a1a1a, #eeeeee); --bg: light-dark(#ffffff, #111111); }

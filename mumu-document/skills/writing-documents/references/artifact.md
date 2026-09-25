@@ -3,16 +3,16 @@
 ## Composition
 
 - A page is one HTML file that opens from `file://`: `<title>`, one `<style>`
-  holding [skin.css](page/skin.css) verbatim, then `<main>` with the `h1`, a
+  holding [skin.css](artifact/skin.css) verbatim, then `<main>` with the `h1`, a
   `p.read` of the one thing to read off the page, the widgets in move order,
   and a `footer` citing the source at a sha. Nothing fetched but the skin's
   fonts, which fall back to installed faces offline.
-- Each widget is its file in [widgets/](page/widgets/), copied whole, its spec
+- Each widget is its file in [widgets/](artifact/widgets/), copied whole, its spec
   comment followed then deleted, every `{{...}}` filled or its element
   deleted. A widget carries its own `<style>` and `<script>`: once per page
   however many copies; `{{id}}` unique per copy, so inline SVG ids never
   collide. A figure over 9 boxes is two figures.
-- The skin is the design system of [design.md](page/design.md), an
+- The skin is the design system of [design.md](artifact/design.md), an
   editorial black on white: primitives, semantic tokens (colour roles,
   diagram palette, type, space, line, radius, layout, motion); each widget
   defines its own tokens. A page adds no values of its own. Links take
@@ -40,7 +40,7 @@ published with the `Artifact` tool, else opened with `open`.
 
 ## Checks
 
-- `"${CLAUDE_PLUGIN_ROOT}/scripts/page/page-check.sh" <page>` loads it at
+- `"${CLAUDE_PLUGIN_ROOT}/scripts/artifact/artifact-check.sh" <page>` loads it at
   320 px, taps each hint, clicks each control once, again with reduced
   motion, and prints `pass`; on `FAIL` fix and rerun; exit 2 says why it could
   not run.

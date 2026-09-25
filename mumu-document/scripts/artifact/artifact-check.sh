@@ -1,5 +1,5 @@
 #!/bin/sh
-# usage: page-check.sh <page.html>
+# usage: artifact-check.sh <page.html>
 # Loads the page in a 320 px frame twice, with motion and with reduced motion, taps each
 # hint (an enabled [popovertarget] control) open and shut, clicks each control once, and prints one
 # line per run:
@@ -11,11 +11,11 @@
 # Exit 0 pass, 1 FAIL, 2 when it could not run, saying why.
 set -eu
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-[ $# -eq 1 ] || { echo "usage: page-check.sh <page.html>" >&2; exit 2; }
-[ -f "$1" ] || { echo "page-check.sh: no file $1" >&2; exit 2; }
-[ -x "$CHROME" ] || { echo "page-check.sh: no Chrome at $CHROME" >&2; exit 2; }
+[ $# -eq 1 ] || { echo "usage: artifact-check.sh <page.html>" >&2; exit 2; }
+[ -f "$1" ] || { echo "artifact-check.sh: no file $1" >&2; exit 2; }
+[ -x "$CHROME" ] || { echo "artifact-check.sh: no Chrome at $CHROME" >&2; exit 2; }
 P=$(cd "$(dirname "$1")" && pwd -P)/$(basename "$1")
-F="${TMPDIR:-/tmp}/page-check-frame.html"
+F="${TMPDIR:-/tmp}/artifact-check-frame.html"
 cat >| "$F" <<'EOF'
 <iframe id=f style="width:320px;height:800px;border:0"></iframe>
 <script>
@@ -63,7 +63,7 @@ run() {
   R=$("$CHROME" --headless --disable-gpu --allow-file-access-from-files --dump-dom "$@" \
     --enable-logging=stderr --virtual-time-budget=3000 "file://$F#file://$P" 2>"$F.log" |
     sed -n 's/.*data-r="\([^"]*\)".*/\1/p')
-  [ -n "$R" ] || { echo "page-check.sh: could not read $P" >&2; exit 2; }
+  [ -n "$R" ] || { echo "artifact-check.sh: could not read $P" >&2; exit 2; }
   grep -q 'CONSOLE.*"Uncaught' "$F.log" && R="${R% *} error FAIL"
   echo "$R"
 }

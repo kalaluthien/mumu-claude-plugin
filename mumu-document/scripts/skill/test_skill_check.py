@@ -47,99 +47,99 @@ class SkillCheck(unittest.TestCase):
         self.assertEqual(run(self.tmp), (0, "pass\n"))
 
     def test_literal_colour_in_widget_fails(self):
-        self.edit("references/page/widgets/table.html", "var(--fill)", "#fff")
+        self.edit("references/artifact/widgets/table.html", "var(--fill)", "#fff")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("table.html", out)
 
     def test_literal_size_in_widget_fails(self):
-        self.edit("references/page/widgets/table.html", "--table-pad: var(--sp-2) var(--sp-3)", "--table-pad: 8px var(--sp-3)")
+        self.edit("references/artifact/widgets/table.html", "--table-pad: var(--sp-2) var(--sp-3)", "--table-pad: 8px var(--sp-3)")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertRegex(out, r"table\.html:\d+: literal size: 8px")
 
     def test_literal_duration_in_style_attribute_fails(self):
-        self.edit("references/page/widgets/use-case.html", '<path class="lifeline"', '<path style="transition: stroke .3s" class="lifeline"')
+        self.edit("references/artifact/widgets/use-case.html", '<path class="lifeline"', '<path style="transition: stroke .3s" class="lifeline"')
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("literal size: .3s", out)
 
     def test_svg_geometry_is_not_a_size(self):
-        self.edit("references/page/widgets/use-case.html", 'width="520"', 'width="524"')
+        self.edit("references/artifact/widgets/use-case.html", 'width="520"', 'width="524"')
         self.assertEqual(run(self.tmp), (0, "pass\n"))
 
     def test_unknown_token_fails(self):
-        self.edit("references/page/widgets/table.html", "var(--sp-2)", "var(--sp-9)")
+        self.edit("references/artifact/widgets/table.html", "var(--sp-2)", "var(--sp-9)")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("token --sp-9 is not in skin.css", out)
 
     def test_slow_motion_fails(self):
-        self.edit("references/page/skin.css", "--p-ms-200: 200ms", "--p-ms-200: 400ms")
+        self.edit("references/artifact/skin.css", "--p-ms-200: 200ms", "--p-ms-200: 400ms")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("--motion is 400ms, not at most 200ms", out)
 
     def test_primitive_in_widget_fails(self):
-        self.edit("references/page/widgets/table.html", "--table-hover: var(--bg)", "--table-hover: var(--p-white)")
+        self.edit("references/artifact/widgets/table.html", "--table-hover: var(--bg)", "--table-hover: var(--p-white)")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("reads primitive --p-white", out)
 
     def test_widget_token_passes(self):
-        self.edit("references/page/widgets/table.html", "--table-hover: var(--bg);", "--table-hover: var(--bg); --table-x: var(--sp-1);")
+        self.edit("references/artifact/widgets/table.html", "--table-hover: var(--bg);", "--table-hover: var(--bg); --table-x: var(--sp-1);")
         self.assertEqual(run(self.tmp), (0, "pass\n"))
 
     def test_spec_field_missing_fails(self):
-        self.edit("references/page/widgets/use-case.html", "  keyboard:", "  keys:")
+        self.edit("references/artifact/widgets/use-case.html", "  keyboard:", "  keys:")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("use-case.html: spec has no `keyboard:`", out)
 
     def test_spec_state_missing_fails(self):
-        self.edit("references/page/widgets/use-case.html", "disabled: none, played", "none, played")
+        self.edit("references/artifact/widgets/use-case.html", "disabled: none, played", "none, played")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("use-case.html: states name no `disabled`", out)
 
     def test_literal_size_in_player_fails(self):
-        self.edit("references/page/widgets/use-case.html", "min-width: 0;", "min-width: 8rem;")
+        self.edit("references/artifact/widgets/use-case.html", "min-width: 0;", "min-width: 8rem;")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("literal size: 8rem", out)
 
     def test_low_palette_contrast_fails(self):
-        self.edit("references/page/skin.css", "--p-cat-2: #0f7f74", "--p-cat-2: #9fd8d2")
+        self.edit("references/artifact/skin.css", "--p-cat-2: #0f7f74", "--p-cat-2: #9fd8d2")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("--kind-2 on --fill light", out)
 
     def test_missing_token_kind_fails(self):
-        self.edit("references/page/skin.css", "--radius-s: 0;", "--corner: 0;")
+        self.edit("references/artifact/skin.css", "--radius-s: 0;", "--corner: 0;")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("no --radius-* token", out)
 
     def test_low_text_contrast_fails(self):
-        self.edit("references/page/skin.css", "--p-grey-500: #757575", "--p-grey-500: #c0c0c0")
+        self.edit("references/artifact/skin.css", "--p-grey-500: #757575", "--p-grey-500: #c0c0c0")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("--muted on --bg light", out)
 
     def test_low_border_contrast_in_dark_fails(self):
-        self.edit("references/page/skin.css", "--p-grey-450: #8a8a8a", "--p-grey-450: #3a3d42")
+        self.edit("references/artifact/skin.css", "--p-grey-450: #8a8a8a", "--p-grey-450: #3a3d42")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("--border on --fill dark", out)
 
     def test_low_link_contrast_fails(self):
-        self.edit("references/page/skin.css", "--p-link: #057dbc", "--p-link: #7fc4ea")
+        self.edit("references/artifact/skin.css", "--p-link: #057dbc", "--p-link: #7fc4ea")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("--link on --bg light", out)
 
     def test_missing_role_fails(self):
-        self.edit("references/page/skin.css", "  --accent:", "  --link:")
+        self.edit("references/artifact/skin.css", "  --accent:", "  --link:")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("no role --accent", out)

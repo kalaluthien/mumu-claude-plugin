@@ -25,8 +25,8 @@ its moves; a move with nothing to say is dropped.
 ## Mapping
 
 The content picks the widget, one rule per row; a new rule is a new row
-naming a file in `references/page/widgets/`, and `scripts/skill/skill-check.py`
-fails on any other. `scripts/page/gallery.py` renders every widget in every
+naming a file in `references/artifact/widgets/`, and `scripts/skill/skill-check.py`
+fails on any other. `scripts/artifact/gallery.py` renders every widget in every
 state, light and dark. A figure on GitHub or a repository page is an SVG
 image, exported by [github.md](references/github.md).
 
@@ -54,7 +54,7 @@ Where the ask says, else where it is obvious, else ask once with
 | the document goes to | read |
 | --- | --- |
 | a GitHub issue, pull request, or a comment on one | [github.md](references/github.md) |
-| an Artifact page | [page.md](references/page.md) |
+| an Artifact page | [artifact.md](references/artifact.md) |
 | a repository page: a README, a file under `docs/` | [repository.md](references/repository.md) |
 
 Delivered anywhere, give the one-sentence version in chat.

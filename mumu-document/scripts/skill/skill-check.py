@@ -2,13 +2,13 @@
 """Check the writing-documents skill's mapping, widgets and design system; print `pass` or each failure.
 
 usage: skill-check.py [skill dir], default the writing-documents skill beside this script.
-A unit is a widget file in references/page/widgets/. Fails on:
+A unit is a widget file in references/artifact/widgets/. Fails on:
 - a mapping row in SKILL.md naming no widget file;
 - in a unit: a literal colour anywhere; a literal size or duration in its CSS (a <style>
   or a style=""; SVG geometry attributes are content); a primitive token (--p-*) or a
   token neither the skin nor the unit defines; a spec comment missing a field, or a
   states field missing a state;
-- in references/page/skin.css: a missing token kind; a motion token over 200ms; a colour pair under
+- in references/artifact/skin.css: a missing token kind; a motion token over 200ms; a colour pair under
   WCAG AA in light or dark: text, link and status 4.5:1, border and diagram kinds 3:1.
 Exit 0 pass, 1 on any failure.
 """
@@ -107,14 +107,14 @@ def unit_failures(f, semantic):
 
 def failures(skill):
     out = []
-    widgets = skill / "references" / "page" / "widgets"
+    widgets = skill / "references" / "artifact" / "widgets"
     rows = mapping_widgets((skill / "SKILL.md").read_text())
     if not rows:
         out.append("SKILL.md: no mapping table headed `| when the content is`")
     for name in rows:
         if not (widgets / f"{name}.html").is_file():
             out.append(f"SKILL.md: mapping row names unknown widget `{name}`")
-    tokens = dict(DEFINED.findall((skill / "references" / "page" / "skin.css").read_text()))
+    tokens = dict(DEFINED.findall((skill / "references" / "artifact" / "skin.css").read_text()))
     semantic = {t for t in tokens if not t.startswith("--p-")}
     for f in sorted(widgets.glob("*.html")):
         out += unit_failures(f, semantic)

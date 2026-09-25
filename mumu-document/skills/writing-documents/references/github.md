@@ -18,10 +18,10 @@ No Mermaid: an SVG reads the same on every client.
 
 ## Figures
 
-1. Draw the figure as its widget on a page, by [page.md](page.md)'s
+1. Draw the figure as its widget on a page, by [artifact.md](artifact.md)'s
    Composition; its labels may stay English here, since the page is not
    published.
-2. Export it: `"${CLAUDE_PLUGIN_ROOT}/scripts/github/svg-export.py" <page>
+2. Export it: `"${CLAUDE_PLUGIN_ROOT}/scripts/figure/svg-export.py" <page>
    <dir>` writes `<dir>/<page>-<n>.svg`, one per figure, with the styles
    inlined and the page's background behind them.
 3. Reference it in the body as `![<what it shows>](./<page>-<n>.svg)` and
