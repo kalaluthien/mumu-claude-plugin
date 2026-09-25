@@ -113,8 +113,21 @@ MERGE_PASSED = [
 ]
 
 
-def run(command):
-    payload = json.dumps({"tool_input": {"command": command}})
+# An assignment-only command before a redirect, heredoc or pipe: exit 2 with IndexError at 58dd603 (#87).
+# The description names the merge, as a live payload's may, so the hook reads the command.
+ASSIGNMENT_PASSED = [
+    "S=/tmp/x\ncat >> $S/h.md <<'EOF'\ntext\nEOF",
+    "S=/tmp/x\ncat > $S/h.md",
+    "S=/tmp/x; cat $S/a | grep b",
+    "S=/tmp/x T=y && git status",
+    "S=/tmp/x | cat",
+    "S=/tmp/x\ngit grep -n x",
+    "S=/tmp/x\nsed -i '' 's/a/b/' f",
+    "C=/x; gh pr view 96 --json state -q .state && git -C $C log -1",
+]
+
+def run(command, description=""):
+    payload = json.dumps({"tool_input": {"command": command, "description": description}})
     return subprocess.run([sys.executable, str(HOOK)], input=payload, capture_output=True, text=True)
 
 
@@ -147,6 +160,34 @@ class MergeGate(unittest.TestCase):
             with self.subTest(command):
                 result = run(command)
                 self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class AssignmentOnly(unittest.TestCase):
+    def test_an_assignment_only_command_is_read_not_refused(self):
+        for command in ASSIGNMENT_PASSED:
+            with self.subTest(command):
+                result = run(command, "append the merge notes")
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_a_merge_after_an_assignment_only_command_is_still_refused(self):
+        result = run(f"S=/tmp/x\n{MERGE}")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("merge.py", result.stderr)
+
+    def test_every_helper_reads_an_empty_and_an_assignment_only_word_list(self):
+        sys.path.insert(0, str(HOOK.parent))
+        import approved
+        whole = [approved.reader, approved.git_grep, approved.sed_in_place,
+                 approved.unredirected, approved.mentions, approved.bypasses]
+        indexed = [approved.text_word, approved.config_value]
+        for words in ([], ["S=/tmp/x"], ["S=/tmp/x", "T=y"]):
+            for helper in whole:
+                with self.subTest(helper=helper.__name__, words=words):
+                    helper(words)
+            for helper in indexed:
+                for i in range(len(words)):
+                    with self.subTest(helper=helper.__name__, words=words, i=i):
+                        helper(words, i)
 
 
 if __name__ == "__main__":
