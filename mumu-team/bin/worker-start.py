@@ -13,12 +13,14 @@ last Claude session. The trust dialog defaults to "No, exit", so it is
 answered `down enter`. Once the session is ready, `SUBSCRIBE: <name> <issue-url>`
 is appended to this session's mission (`team.mission_file`) unless a line for
 `<name>` is there, and `<name>@<pane> <worktree>` printed; with no mission it
-fails before anything starts. `agent start` is retried while herdr answers `agent_pane_busy`.
+fails before anything starts. `<name>` must be `<topic>-<n>`, `<n>` the issue number in `<issue-url>`
+and `<topic>` lowercase words joined by `-`, or it fails before anything starts. `agent start` is retried while herdr answers `agent_pane_busy`.
 `WORKER_START_TIMEOUT` (60) and `WORKER_START_POLL` (1) are seconds.
 """
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -117,6 +119,10 @@ def main(argv):
         print("usage: worker-start.py <checkout> <name> <effort> <issue-url> [--continue] [--prompt <text>]", file=sys.stderr)
         return 2
     repo, name, effort, url = args
+    number = re.search(r"/issues/(\d+)/?$", url)
+    if not number or not re.fullmatch(rf"[a-z0-9]+(-[a-z0-9]+)*-{number[1]}", name):
+        print(f"worker-start.py: name {name!r} must be <topic>-{number[1] if number else '<issue>'}", file=sys.stderr)
+        return 2
     mission = team.mission_file()
     if mission is None:
         print("worker-start.py: no mission for this session; write its GOAL: line first", file=sys.stderr)
