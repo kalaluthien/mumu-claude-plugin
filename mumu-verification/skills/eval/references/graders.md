@@ -28,7 +28,9 @@ Many modes that sound subjective reduce to a word list, a pattern, a parse or an
 | `claude plugin eval` | `regex`, `tool_used`, `tool_order`, `file_exists` | `llm`, its `criteria` the pass and fail |
 | promptfoo | `regex`, `javascript`, `python` | `llm-rubric` |
 
-The runner names a bad or missing field when it loads a case.
+The runner names a bad or missing field when it loads a case, and an unknown key such as `negate` fails the load, shown as `0 case(s)`: "never used" is `tool_used` with `min: 0` and `max: 0`.
+
+A `regex` count of an attribute anchors on the whitespace before it (`\sdata-widget="flow"`), since inlined styles repeat it as a `[data-widget="flow"]` selector.
 
 A `tool_used` grader's tool must be in the case's `allowed_tools`. Under ablation a grader with `arm: with-only` (a `tool_used: Skill` grader is one by default) reports whether the plugin fired instead of scoring, unless it is the case's only grader; give a case at least one grader that scores both arms.
 
