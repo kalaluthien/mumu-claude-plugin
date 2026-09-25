@@ -158,14 +158,14 @@ def text_word(words, i):
 def git_grep(words):
     """Whether the words are `git grep` with no git option before it and no pager flag (`-O`, `--open-files-in-pager`), which runs a command."""
     words = [w for w in words if not ASSIGNMENT.match(w)]
-    return os.path.basename(words[0]) == "git" and words[1:2] == ["grep"] and \
+    return words[:1] != [] and os.path.basename(words[0]) == "git" and words[1:2] == ["grep"] and \
         not any(PAGER.match(w) for w in words[2:])
 
 
 def sed_in_place(words):
     """Whether the words are `sed -i`, whose output goes to its files, with no script word that runs (`e`) or writes (`w`) a command."""
     words = [w for w in words if not ASSIGNMENT.match(w)]
-    return os.path.basename(words[0]) == "sed" and any(IN_PLACE.match(w) for w in words[1:]) and \
+    return words[:1] != [] and os.path.basename(words[0]) == "sed" and any(IN_PLACE.match(w) for w in words[1:]) and \
         not any(SED_RUNS.search(SED_EXPRESSION.sub("", w)) for w in words[1:])
 
 
@@ -259,34 +259,39 @@ def bypass_text(text):
     return "--no-v" in text or bool(HOOKS_PATH_TEXT.search(text)) or bool(commit and re.compile(r"\s-[a-z]*n").search(text, commit.end()))
 
 
-raw = sys.stdin.read()
-if not re.search(r"merge|git|hookspath", QUOTING.sub("", raw), re.I):
-    sys.exit(0)
-try:
-    payload = json.loads(raw)
-    command = payload["tool_input"]["command"]
-    if not isinstance(command, str):
-        raise TypeError(f"command is {type(command).__name__}")
-except (ValueError, KeyError, TypeError) as err:
-    refuse(f"could not read the payload ({type(err).__name__}: {err})")
-text = without_heredocs(command)
-try:
-    commands = list(segments(text))
-except ValueError:  # an unclosed quote
-    commands = []
-    if MENTION.search(QUOTING.sub("", text)):
-        refuse(RAW_MERGE)
-try:
-    readings = []
-    for join in (True, False):
-        try:
-            readings.append(list(segments(text, join)))
-        except ValueError:  # an unclosed quote: bash still runs every line before it
-            readings.append(None)
-    if None in readings and bypass_text(text) or \
-            any(bypasses(words) for reading in readings if reading for words in reading):
-        refuse("hook bypass refused: fix what the hook refused, or BLOCKED the owner")
-    if any(mentions(words) for words in commands):
-        refuse(RAW_MERGE)
-except Exception as err:  # exit 1 would let the command run
-    refuse(f"could not read the command ({type(err).__name__})")
+def main():
+    raw = sys.stdin.read()
+    if not re.search(r"merge|git|hookspath", QUOTING.sub("", raw), re.I):
+        sys.exit(0)
+    try:
+        payload = json.loads(raw)
+        command = payload["tool_input"]["command"]
+        if not isinstance(command, str):
+            raise TypeError(f"command is {type(command).__name__}")
+    except (ValueError, KeyError, TypeError) as err:
+        refuse(f"could not read the payload ({type(err).__name__}: {err})")
+    text = without_heredocs(command)
+    try:
+        commands = list(segments(text))
+    except ValueError:  # an unclosed quote
+        commands = []
+        if MENTION.search(QUOTING.sub("", text)):
+            refuse(RAW_MERGE)
+    try:
+        readings = []
+        for join in (True, False):
+            try:
+                readings.append(list(segments(text, join)))
+            except ValueError:  # an unclosed quote: bash still runs every line before it
+                readings.append(None)
+        if None in readings and bypass_text(text) or \
+                any(bypasses(words) for reading in readings if reading for words in reading):
+            refuse("hook bypass refused: fix what the hook refused, or BLOCKED the owner")
+        if any(mentions(words) for words in commands):
+            refuse(RAW_MERGE)
+    except Exception as err:  # exit 1 would let the command run
+        refuse(f"could not read the command ({type(err).__name__})")
+
+
+if __name__ == "__main__":
+    main()
