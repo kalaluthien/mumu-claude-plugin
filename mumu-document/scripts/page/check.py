@@ -10,6 +10,8 @@ usage: check.py <page.html>
   aria-label, title and placeholder, skipping <code>, <pre>, <kbd> and <samp>, and joining a
   block across inline tags: fails on <html lang> other than "ko", a run of 3 or more English
   words, a sentence ending in a plain -다., or a heading that is a sentence.
+- contents: a page with CONTENTS or more <h2> in <main> opens, before the first, with a <nav>
+  linking each by its id; one with fewer has no <nav>.
 - chart, with motion and with reduced motion (a slide then stands at its last table): each
   chart against its own table and scales (the svg's data-x and data-y: domain low, high,
   range start, end); fails on a mark off its value (bars from zero), a value with no mark or
@@ -33,6 +35,7 @@ CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 REDUCED = "--force-prefers-reduced-motion"
 TOLERANCE = 0.02
 MIN_RUN = 3
+CONTENTS = 4
 WORD = r"[A-Za-z]+(?:['’-][A-Za-z]+)*[.,:;!?]?"
 ENGLISH = re.compile(rf"{WORD}(?:\s+{WORD}){{{MIN_RUN - 1},}}")
 SENTENCE = re.compile(r"[^.!?\n]*[.!?]")
@@ -100,7 +103,11 @@ f.onload = function () {
       ['alt', 'aria-label', 'title', 'placeholder'].forEach(function (a) { if (el.getAttribute(a)) out.push(el.getAttribute(a)); });
     });
     var heads = Array.prototype.map.call(d.querySelectorAll('h1,h2,h3,h4,h5,h6'), function (h) { return h.textContent.replace(/\s+/g, ' ').trim(); });
-    document.body.dataset.r = JSON.stringify({ lang: d.documentElement.lang, text: out, headings: heads });
+    var h2 = Array.prototype.slice.call(d.querySelectorAll('main h2')), nav = d.querySelector('main nav');
+    if (nav && h2.length && !(nav.compareDocumentPosition(h2[0]) & 4)) nav = null;
+    var links = nav ? Array.prototype.map.call(nav.querySelectorAll('a[href^="#"]'), function (a) { return a.getAttribute('href').slice(1); }) : [];
+    document.body.dataset.r = JSON.stringify({ lang: d.documentElement.lang, text: out, headings: heads,
+      h2: h2.length, linked: h2.filter(function (h) { return h.id && links.indexOf(h.id) >= 0; }).length, nav: !!d.querySelector('main nav') });
   }, 300);
 };
 f.src = location.hash.slice(1);
@@ -315,6 +322,10 @@ def main():
     out = korean(runs[KOREAN, "motion"][0])
     failed |= bool(out)
     print("\n".join(f"korean {o} FAIL" for o in out) if out else "korean pass")
+    k = runs[KOREAN, "motion"][0]
+    ok = k["linked"] == k["h2"] if k["h2"] >= CONTENTS else not k["nav"]
+    failed |= not ok
+    print(f"contents {k['h2']} h2 {k['linked']} linked" + (" nav" if k["nav"] else "") + (" pass" if ok else " FAIL"))
     for mode in ("motion", "reduced"):
         for n, one in enumerate(runs[CHART, mode][0], 1):
             out = chart(one)

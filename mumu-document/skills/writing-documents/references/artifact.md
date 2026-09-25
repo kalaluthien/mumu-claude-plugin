@@ -5,7 +5,8 @@
 - A page is one HTML file that opens from `file://`: `<title>`, one `<style>`
   holding [skin.css](artifact/shared/skin.css) verbatim, then `<main>` with
   the `h1`, a `p.read` of the one thing to read off the page, the widgets in
-  move order, and a `footer` citing the source at a sha.
+  move order, and a `footer` citing the source at a sha. With 4 or more
+  `h2`s, a `nav` after `p.read` links each by its id; with fewer, none.
 - Each widget is its file in [widgets/](artifact/widgets/), copied whole, its
   spec comment followed then deleted, every `{{...}}` filled or its element
   deleted; its `<style>` and `<script>` once per page, `{{id}}` unique per
@@ -34,7 +35,7 @@ published with the `Artifact` tool, else opened with `open`.
 ## Check
 
 `"${CLAUDE_PLUGIN_ROOT}/scripts/page/check.py" <page>` loads it at 320 px
-with and without motion, clicks each control, reads its Korean and
+with and without motion, clicks each control, reads its Korean and `nav` and
 checks each chart against its table and swipes each strip in real time; fix
 each `FAIL` line and rerun until the
 last line is `pass`; exit 2 says why it could not run.
