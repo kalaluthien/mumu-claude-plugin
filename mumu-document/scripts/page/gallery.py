@@ -3,10 +3,10 @@
 
 usage: gallery.py <out.html> [skill dir], default the writing-documents skill beside this script.
 Each copy sits in a .theme-light or .theme-dark box with data-state set, which the skin and
-the widgets read to force that state; open adds `open` to each <details> and shows a round's
-answer block, disabled adds `disabled` to each control. The page is Korean, as every Artifact
-page is: a control's label takes its Korean from KOREAN, a round's number is 1, and every other
-placeholder reads 예시 (example).
+the widgets read to force that state; open adds `open` to each <details> and shows what is
+hidden, disabled adds `disabled` to each control. The page is Korean, as every Artifact
+page is: a control's label takes its Korean from KOREAN, and every other placeholder reads
+예시 (example).
 """
 import pathlib
 import re
@@ -16,10 +16,7 @@ MODES = ("light", "dark")
 STATES = ("default", "hover", "focus", "open", "disabled")
 KOREAN = {
     "Back|Play|Pause|Next|Step": "뒤로|재생|멈춤|다음|단계",
-    "gone": "삭제", "changed": "변경", "new": "추가", "Recommended": "추천", "Answer": "답", "Answer block": "답 블록",
-    "Build the answer block": "답 블록 만들기", "Evidence": "근거", "Bold": "굵은 글씨", "n": "1",
-    "Copied: paste it into the chat": "복사했어요. 채팅에 붙여 넣으세요.",
-    "Selected: copy it and paste it into the chat": "선택했어요. 복사해서 채팅에 붙여 넣으세요.",
+    "gone": "삭제", "changed": "변경", "new": "추가", "Evidence": "근거", "Bold": "굵은 글씨",
     "high": "높음", "mid": "보통", "low": "낮음", "none": "없음", "Key": "범례",
     "done": "완료", "Done, next step": "완료, 다음 단계",
     "%n of %total shown": "전체 %total개 중 %n개", "Filter and sort": "거르기와 정렬", "Search": "검색",

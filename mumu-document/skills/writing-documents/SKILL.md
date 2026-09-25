@@ -1,6 +1,6 @@
 ---
 name: writing-documents
-description: Use before writing a document a person will read outside the chat - a GitHub issue or pull request body or comment, an Artifact page, a repository page (README, docs) - to explain, draw, map, walk through, compare or report something, and before asking the user to settle a decision, proposal or plan with open choices (an interview), even when only the content was asked for. Not for a plain chat answer, nor for code or its comments.
+description: Use before writing a document a person will read outside the chat - a GitHub issue or pull request body or comment, an Artifact page, a repository page (README, docs) - to explain, draw, map, walk through, compare or report something, even when only the content was asked for. Not for a plain chat answer, nor for code or its comments, nor for asking the user open questions (that is `grill-me`).
 user-invocable: false
 ---
 
@@ -19,7 +19,7 @@ its moves; a move with nothing to say is dropped.
 
 | doctype | the reader | moves, in order |
 | --- | --- | --- |
-| `proposal` | must agree to what is not settled: a plan, a design, an issue, a choice | **plan**: the goal and when it is done · **narrative and comparison**: why, and the options against one set of criteria, fixed before any option · **interactive form**: the questions only the reader can settle · **decide**: the recommendation and the fact that would change it |
+| `proposal` | must agree to what is not settled: a plan, a design, an issue, a choice | **plan**: the goal and when it is done · **narrative and comparison**: why, and the options against one set of criteria, fixed before any option · **settled answers**: what `grill-me` settled with the reader · **decide**: the recommendation and the fact that would change it |
 | `textbook` | must understand or use what is settled: a system, a change, a result | **explain**: what it is made of and how it works · **teach**: one claim per section, with its reason and evidence · **guide**: the steps the reader takes, each with its check · **report**: what was done, its evidence, the next action |
 
 ## Mapping
@@ -44,7 +44,6 @@ image, exported by [github.md](references/github.md).
 | a result the reader should see as it is: a page, a screen, an email | `preview` | an image of it |
 | steps the reader carries out one at a time, each done before the next | `stepwise` | a numbered list, each step with its check |
 | a term the reader may not know, used where the prose must not stop for it | `hint` | the term with its meaning in parentheses, once |
-| questions only the reader can settle | `question` | by [interview.md](references/interview.md) |
 | a claim with its reason and evidence (code, or the hunk that changed) | `section` | a heading over paragraphs; a hunk as a `diff` code block |
 
 ## Routing
@@ -57,7 +56,6 @@ Where the ask says, else where it is obvious, else ask once with
 | a GitHub issue, pull request, or a comment on one | [github.md](references/github.md) |
 | an Artifact page | [page.md](references/page.md) |
 | a repository page: a README, a file under `docs/` | [repository.md](references/repository.md) |
-| the user, as questions to settle | [interview.md](references/interview.md) |
 
 Delivered anywhere, give the one-sentence version in chat.
 
@@ -74,8 +72,8 @@ Delivered anywhere, give the one-sentence version in chat.
 
 ## Done when
 
-- Every part no fact settles is settled by an interview; nothing is acted on
-  before.
+- A part no fact settles goes to `grill-me` by name, and the document carries
+  only its settled answers; nothing is written before.
 - Reread for order, each claim against its evidence, cuts and register.
 - The checks the routed file names print `pass`.
 - A rejected draft is edited only after a reader, an editor and a hostile
