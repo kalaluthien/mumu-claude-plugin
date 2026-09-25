@@ -34,7 +34,7 @@ published with the `Artifact` tool, else opened with `open`.
 ## Check
 
 `"${CLAUDE_PLUGIN_ROOT}/scripts/page/check.py" <page>` loads it at 320 px
-with and without motion, taps each hint and control, reads its Korean and
+with and without motion, clicks each control, reads its Korean and
 checks each chart against its table and swipes each strip in real time; fix
 each `FAIL` line and rerun until the
 last line is `pass`; exit 2 says why it could not run.

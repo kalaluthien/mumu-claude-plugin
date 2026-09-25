@@ -43,16 +43,12 @@ light and dark. A figure in markdown is an SVG image, exported by
 | rows sharing columns: options, findings, done-criteria | `table` | a table |
 | two dimensions crossed, one mark per cell: options against criteria, roles against permissions | `table`, marked | a table, a symbol per cell and its key |
 | values compared across categories: which is largest, by how much | `chart` `bar`; `dot` when zero is no baseline or each category has a before and after | its SVG, then the table |
-| change over time: a trend, a rise, a fall | `chart` `line`; `spark` beside a number in a table or list | its SVG, then the table |
+| change over time: a trend, a rise, a fall | `chart` `line` | its SVG, then the table |
 | a relationship between two measures: does one rise with the other | `chart` `scatter` | its SVG, then the table |
-| a distribution: how one measure spreads, its centre and outliers | `chart` `histogram`; `box` to compare it across groups | its SVG, then the table |
+| a distribution: how one measure spreads, its centre and outliers | `chart` `bar`, one bar per bin | its SVG, then the table |
 | parts of a whole: each part's share of a total, per category | `chart` `stacked` | its SVG, then the table with a total column |
-| one measure over two categories crossed: requests by hour and weekday | `chart` `heatmap` | its SVG, then the table |
-| many groups: the same chart per group, more series than one chart holds | `chart` `data-facet` | one SVG per group, then the table |
-| many items the reader narrows or reorders by their attributes | `filter` | a table sorted by the key that matters most |
 | a result the reader should see as it is: a page, a screen, an email | `preview` | an image of it |
 | steps the reader carries out one at a time, each done before the next | `stepwise` | a numbered list, each step with its check |
-| a term the reader may not know, used where the prose must not stop for it | `hint` | the term with its meaning in parentheses, once |
 | a claim with its reason and evidence (code, or the hunk that changed) | `section` | a heading over paragraphs; a hunk as a `diff` code block |
 
 ## Routing

@@ -2,10 +2,9 @@
 """Check an Artifact page in headless Chrome; print one line per check, then `pass` or `FAIL`.
 
 usage: check.py <page.html>
-- layout, in a 320 px frame, with motion and with reduced motion: after tapping each hint
-  (an enabled [popovertarget]) open and shut and clicking each control once, it fails on a
-  sideways scroll, text under 11 px (Hangul or Han under 12 px), an SVG label overlapping
-  another or leaving its figure, a hint a tap leaves shut, or an uncaught error; the reduced
+- layout, in a 320 px frame, with motion and with reduced motion: after clicking each control
+  once, it fails on a sideways scroll, text under 11 px (Hangul or Han under 12 px), an SVG
+  label overlapping another or leaving its figure, or an uncaught error; the reduced
   run also on a running animation or a slide or swipe showing fewer captions than it has steps.
 - korean: over every text node, the <title>, SVG <title> and <desc>, and each alt,
   aria-label, title and placeholder, skipping <code>, <pre>, <kbd> and <samp>, and joining a
@@ -14,9 +13,8 @@ usage: check.py <page.html>
 - chart, with motion and with reduced motion (a slide then stands at its last table): each
   chart against its own table and scales (the svg's data-x and data-y: domain low, high,
   range start, end); fails on a mark off its value (bars from zero), a value with no mark or
-  a mark whose name lacks its cell's text, a mark the arrow keys do not reach, a slide not
-  starting at its first table or not reaching its last through Next, no data table, a summary that is not one sentence,
-  or facet panels on different scales.
+  a mark whose name lacks its cell's text, a slide not starting at its first table or not
+  reaching its last through Next, no data table, or a summary that is not one sentence.
 - swipe, in real time over the DevTools pipe (virtual time fires no IntersectionObserver after a
   scroll): each live swipe strip scrolled to its end; fails when its step is not the last.
 Exit 0 pass, 1 FAIL, 2 when it could not run, saying why.
@@ -34,7 +32,6 @@ import time
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 REDUCED = "--force-prefers-reduced-motion"
 TOLERANCE = 0.02
-STEPS = 5
 MIN_RUN = 3
 WORD = r"[A-Za-z]+(?:['’-][A-Za-z]+)*[.,:;!?]?"
 ENGLISH = re.compile(rf"{WORD}(?:\s+{WORD}){{{MIN_RUN - 1},}}")
@@ -45,12 +42,7 @@ LAYOUT = r"""<iframe id=f style="width:320px;height:800px;border:0"></iframe>
 <script>
 f.onload = function () {
   f.onload = null;
-  var d = f.contentDocument, w = f.contentWindow, hints = d.querySelectorAll('[popovertarget]:not(:disabled)'), opened = 0;
-  hints.forEach(function (h) {
-    var t = d.getElementById(h.getAttribute('popovertarget'));
-    h.click();
-    if (t && t.matches(':popover-open')) { opened++; h.click(); }
-  });
+  var d = f.contentDocument, w = f.contentWindow;
   d.querySelectorAll('button,summary,input,select').forEach(function (c) { c.click(); });
   var anim = d.getAnimations().filter(function (a) { return a.playState === 'running'; }).length;
   setTimeout(function () {
@@ -77,7 +69,7 @@ f.onload = function () {
     });
     var reduced = w.matchMedia('(prefers-reduced-motion: reduce)').matches;
     document.body.dataset.r = JSON.stringify({ reduced: reduced, scroll: e.scrollWidth, client: e.clientWidth, latin: s[0], hangul: s[1],
-      anim: anim, shown: shown, total: total, labels: bad, opened: opened, hints: hints.length });
+      anim: anim, shown: shown, total: total, labels: bad });
   }, 500);
 };
 f.src = location.hash.slice(1);
@@ -126,25 +118,11 @@ f.onload = function () {
         return { head: Array.prototype.map.call(t.tHead.rows[0].cells, function (c) { return c.textContent.trim(); }),
                  rows: Array.prototype.map.call(t.tBodies[0].rows, function (r) { return Array.prototype.map.call(r.cells, function (c) { return c.textContent.trim(); }); }) };
       });
-      var marks = Array.prototype.slice.call(fig.querySelectorAll('.mark')), seen = [];
-      var m = marks.filter(function (x) { return x.getAttribute('tabindex') === '0'; })[0];
-      if (m) { m.focus(); m.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true })); m = d.activeElement; }
-      for (var i = 0; m && i < marks.length; i++) {
-        m.focus();
-        if (d.activeElement !== m) break;
-        seen.push(m.dataset.key);
-        m.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
-        m = d.activeElement === m ? null : d.activeElement;
-      }
-      return { kind: fig.dataset.chart, facet: fig.hasAttribute('data-facet'), at: +fig.dataset.at, tables: tables, seen: seen,
+      return { kind: fig.dataset.chart, at: +fig.dataset.at, tables: tables,
         slide: fig.hasAttribute('data-slide'), live: fig.classList.contains('live'), moved: moved,
         summary: (fig.querySelector('figcaption') || { textContent: '' }).textContent.trim(),
         panels: Array.prototype.map.call(fig.querySelectorAll('.plot svg'), function (s) {
-          return { x: s.dataset.x, y: s.dataset.y, v: s.dataset.v, marks: Array.prototype.map.call(s.querySelectorAll('.marks > *'), function (k) {
-            var a = attrs(k);
-            Array.prototype.forEach.call(k.children, function (c) { a[c.getAttribute('class')] = attrs(c); });
-            return a;
-          }) };
+          return { x: s.dataset.x, y: s.dataset.y, marks: Array.prototype.map.call(s.querySelectorAll('.marks > *'), attrs) };
         }) };
     };
     var figs = Array.prototype.slice.call(d.querySelectorAll('[data-widget="chart"]'));
@@ -217,9 +195,9 @@ def swipe(page):
 def layout(r, error):
     """The run's line and whether it passed."""
     ok = (r["scroll"] == r["client"] and r["latin"] >= 11 and r["hangul"] >= 12 and r["labels"] == 0
-          and r["opened"] == r["hints"] and not error and (not r["reduced"] or (r["anim"] == 0 and r["shown"] == r["total"])))
+          and not error and (not r["reduced"] or (r["anim"] == 0 and r["shown"] == r["total"])))
     line = (f"layout {'reduced' if r['reduced'] else 'motion'} {r['scroll']}/{r['client']} {r['latin']}px {r['hangul']}px "
-            f"anim {r['anim']} steps {r['shown']}/{r['total']} labels {r['labels']} hints {r['opened']}/{r['hints']}"
+            f"anim {r['anim']} steps {r['shown']}/{r['total']} labels {r['labels']}"
             + (" error" if error else ""))
     return line + (" pass" if ok else " FAIL"), ok
 
@@ -270,29 +248,14 @@ def chart(chart):
         out.append(f"slide stands at table {chart['at'] + 1}, not its last, {last + 1}")
     if chart["slide"] and chart["live"] and not chart["moved"] and chart["at"] != 0:
         out.append(f"slide starts at table {chart['at'] + 1}, not its first")
-    split = lambda row: (row[0], row[1], row[2:]) if chart["facet"] else (None, row[0], row[1:])
-    tables = [[split(r) for r in t["rows"]] for t in chart["tables"]]
-    rows = tables[chart["at"]]
-    everything = [v for t in tables for _, _, cells in t for v in map(num, cells)]
-    numeric = all(num(label) is not None for t in tables for _, label, _ in t)
-    marks = {m["data-key"]: m for p in chart["panels"] for m in p["marks"] if "data-key" in m}
-    named = [k for k in marks if not k.startswith("p")]  # every mark but a line's path
-    if sorted(chart["seen"]) != sorted(named):
-        out.append(f"keyboard reaches {len(set(chart['seen']))} of {len(named)} marks")
-    panel_of = {}
-    for p in chart["panels"]:
-        for m in p["marks"]:
-            panel_of[m.get("data-key")] = p
-    if chart["facet"] and len({(p["x"], p["y"]) for p in chart["panels"]}) > 1:
-        out.append("facet panels on different scales")
-    position = {}
-    for i, (group, label, cells) in enumerate(rows):
-        position[i] = sum(1 for g, _, _ in rows[:i] if g == group)
-    lo_v = min(everything)
-    hi_v = max(everything)
-    for i, (group, label, cells) in enumerate(rows):
+    tables = [[(r[0], r[1:]) for r in t["rows"]] for t in chart["tables"]]
+    everything = [v for t in tables for _, cells in t for v in map(num, cells)]
+    numeric = all(num(label) is not None for t in tables for label, _ in t)
+    p = chart["panels"][0]
+    marks = {m["data-key"]: m for m in p["marks"] if "data-key" in m}
+    for i, (label, cells) in enumerate(tables[chart["at"]]):
         v = [num(c) for c in cells]
-        keys = [f"r{i}"] if kind in ("scatter", "histogram", "box") else [f"r{i}c{j}" for j in range(len(v))]
+        keys = [f"r{i}"] if kind == "scatter" else [f"r{i}c{j}" for j in range(len(v))]
         for k in keys:
             if k not in marks:
                 out.append(f"row {i + 1} ({label}) has no mark {k}")
@@ -303,10 +266,9 @@ def chart(chart):
             texts = cells if len(keys) == 1 else [cells[j]]
             if not all(t in name for t in texts):
                 out.append(f"mark {k} name {name!r} lacks {texts}")
-        p = panel_of[keys[0]]
         def expect(k, *pairs):  # (what, the mark's value, the value its scale gives)
             out.extend(f"{k} {what} {got} is not {w:.2f}" for what, got, w in pairs if not near(got, w))
-        if kind in ("bar", "stacked", "dot", "box"):
+        if kind in ("bar", "stacked", "dot"):
             X, lo, hi = scale(p["x"])
             if kind in ("bar", "stacked") and not lo <= 0 <= hi:
                 out.append(f"axis {lo}..{hi} does not start at zero")
@@ -318,59 +280,34 @@ def chart(chart):
                 elif kind == "stacked":
                     a, b = X(sum(v[:j])), X(sum(v[:j + 1]))
                     expect(k, ("x", m.get("x"), a), ("width", m.get("width"), b - a))
-                elif kind == "dot":
-                    expect(k, ("cx", m.get("cx"), X(v[j])))
                 else:
-                    mn, q1, med, q3, mx = v
-                    expect(k, ("whisker x1", m["whisker"].get("x1"), X(mn)), ("whisker x2", m["whisker"].get("x2"), X(mx)),
-                           ("box x", m["box"].get("x"), X(q1)), ("box width", m["box"].get("width"), X(q3) - X(q1)),
-                           ("median", m["median"].get("x1"), X(med)))
-        elif kind == "heatmap":
-            lo, hi = map(float, p["v"].split())
-            for j, k in enumerate(keys):
-                want = 3 if hi == lo else min(STEPS, int((v[j] - lo) / (hi - lo) * STEPS) + 1)
-                if f"s{want}" not in marks[k].get("class", "").split():
-                    out.append(f"heatmap {k} value {cells[j]} is not in step s{want}: {marks[k].get('class')}")
-            if (lo, hi) != (lo_v, hi_v):
-                out.append(f"heatmap steps span {lo}..{hi}, not the data's {lo_v}..{hi_v}")
+                    expect(k, ("cx", m.get("cx"), X(v[j])))
         else:
-            X, xlo, xhi = scale(p["x"])
-            Y, ylo, yhi = scale(p["y"])
-            m = marks[keys[0]]
-            if kind == "histogram":
-                a, b = X(v[0]), X(v[1])
-                if ylo > 0:
-                    out.append(f"histogram counts start at {ylo}, not zero")
-                expect(keys[0], ("x", m.get("x"), a), ("width", m.get("width"), b - a),
-                       ("y", m.get("y"), Y(v[2])), ("height", m.get("height"), Y(0) - Y(v[2])))
-            elif kind == "scatter":
-                expect(keys[0], ("cx", m.get("cx"), X(v[0])), ("cy", m.get("cy"), Y(v[1])))
+            X, _, _ = scale(p["x"])
+            Y, _, _ = scale(p["y"])
+            if kind == "scatter":
+                expect(keys[0], ("cx", marks[keys[0]].get("cx"), X(v[0])), ("cy", marks[keys[0]].get("cy"), Y(v[1])))
             else:
-                xv = num(label) if numeric else position[i]
+                xv = num(label) if numeric else i
                 for j, k in enumerate(keys):
                     expect(k, ("cx", marks[k].get("cx"), X(xv)), ("cy", marks[k].get("cy"), Y(v[j])))
-    if kind in ("line", "spark"):
-        for p in chart["panels"]:
-            for path in (m for m in p["marks"] if m.get("data-key", "").startswith("p")):
-                j = path["data-key"][1:]
-                pts = [(float(m["cx"]), float(m["cy"])) for m in p["marks"] if re.fullmatch(rf"r\d+c{j}", m.get("data-key", ""))]
-                if path_points(path.get("d", "")) != pts:
-                    out.append(f"line {path['data-key']} does not pass through its points")
-    for p in chart["panels"]:
-        for axis in ("x", "y"):
-            if p.get(axis) and kind not in ("heatmap",):
-                _, lo, hi = scale(p[axis])
-                data = everything if axis == "y" or kind in ("bar", "stacked", "dot", "box") else None
-                if kind == "scatter":
-                    data = [num(c[0 if axis == "x" else 1]) for t in tables for _, _, c in t]
-                elif kind == "histogram":
-                    data = [num(x) for t in tables for _, _, c in t for x in (c[:2] if axis == "x" else c[2:])]
-                elif kind == "stacked":
-                    data = [sum(map(num, c)) for t in tables for _, _, c in t]
-                elif axis == "x" and kind in ("line", "spark"):
-                    data = [num(label) for t in tables for _, label, _ in t] if numeric else [0]
-                if data and not lo - TOLERANCE <= min(data) and max(data) <= hi + TOLERANCE:
-                    out.append(f"{axis} axis {lo}..{hi} does not span the data {min(data)}..{max(data)}")
+    for path in (m for m in p["marks"] if m.get("data-key", "").startswith("p")):
+        j = path["data-key"][1:]
+        pts = [(float(m["cx"]), float(m["cy"])) for m in p["marks"] if re.fullmatch(rf"r\d+c{j}", m.get("data-key", ""))]
+        if path_points(path.get("d", "")) != pts:
+            out.append(f"line {path['data-key']} does not pass through its points")
+    for axis in ("x", "y"):
+        if p.get(axis):
+            _, lo, hi = scale(p[axis])
+            data = everything
+            if kind == "scatter":
+                data = [num(c[0 if axis == "x" else 1]) for t in tables for _, c in t]
+            elif kind == "stacked":
+                data = [sum(map(num, c)) for t in tables for _, c in t]
+            elif axis == "x" and kind == "line":
+                data = [num(label) for t in tables for label, _ in t] if numeric else [0]
+            if not (lo - TOLERANCE <= min(data) and max(data) <= hi + TOLERANCE):
+                out.append(f"{axis} axis {lo}..{hi} does not span the data {min(data)}..{max(data)}")
     return out
 
 def main():
@@ -399,7 +336,7 @@ def main():
             out = chart(one)
             failed |= bool(out)
             marks = sum(len(p["marks"]) for p in one["panels"])
-            print(f"chart {mode} {n} {one['kind']} marks {marks} keys {len(one['seen'])} " + ("FAIL: " + "; ".join(out) if out else "pass"))
+            print(f"chart {mode} {n} {one['kind']} marks {marks} " + ("FAIL: " + "; ".join(out) if out else "pass"))
     for i, (at, n) in enumerate(swipe(page), 1):
         failed |= at != n
         print(f"swipe {i} step {at}/{n} " + ("pass" if at == n else "FAIL"))

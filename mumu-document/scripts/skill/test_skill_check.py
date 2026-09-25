@@ -26,12 +26,8 @@ CASES = [
     (W + "table.html", [("var(--sp-2)", "var(--sp-9)")], r"token --sp-9 is not in skin\.css"),
     (W + "table.html", [("--table-hover: var(--bg)", "--table-hover: var(--p-white)")], r"reads primitive --p-white"),
     (W + "table.html", [("--table-hover: var(--bg);", "--table-hover: var(--bg); --table-x: var(--sp-1);")], None),
-    (W + "diagram.html", [("  keyboard:", "  keys:")], r"diagram\.html: spec has no `keyboard:`"),
-    (W + "diagram.html", [("disabled: none, played", "none, played")], r"diagram\.html: states name no `disabled`"),
     ("references/artifact/shared/swipe.html", [("flex: 0 0 85%;", "flex: 0 0 20rem;")], r"literal size: 20rem"),
-    (SKIN, [("--motion: 200ms", "--motion: 400ms")], r"--motion is 400ms, not at most 200ms"),
     (SKIN, [("light-dark(#d55e00,", "light-dark(#f5c9a8,")], r"--kind-2 on --fill light"),
-    (SKIN, [("--radius-s: 0;", "--corner: 0;")], r"no --radius-\* token"),
     (SKIN, [("--p-grey-500: #757575", "--p-grey-500: #c0c0c0")], r"--muted on --bg light"),
     (SKIN, [("#8a8a8a", "#3a3d42")], r"--border on --fill dark"),
     (SKIN, [("#057dbc", "#7fc4ea")], r"--link on --bg light"),
@@ -39,8 +35,6 @@ CASES = [
     # sky blue and lavender stay apart to a normal eye and pass 3:1 on black, but merge for a deuteranope
     (SKIN, [("light-dark(#cc79a7, #cc79a7)", "light-dark(#cc79a7, #a9a0e8)")],
      r"(?s)^(?!.*normal).*--kind-1 and --kind-4 dark deuteranopia ΔE \d+\.\d < 10"),
-    (SKIN, [("--seq-2: light-dark(#9dc6e8", "--seq-2: light-dark(#509dcf"), ("--seq-3: light-dark(#509dcf", "--seq-3: light-dark(#9dc6e8")],
-     r"--seq-2 and --seq-3 light"),
 ]
 
 

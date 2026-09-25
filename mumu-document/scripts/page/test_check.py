@@ -13,7 +13,6 @@ GOOD = """<!doctype html><html lang="ko"><meta charset="utf-8"><title>작업 큐
 <h2>저장소 <code>jobs.db</code></h2>
 <p>큐(queue)는 <code>POST /jobs with a body</code>로 일을 받아요. 저장소는 SQLite입니다.</p>
 <pre>git log --oneline main</pre>
-<p><button popovertarget="h1">큐</button>에 일을 넣어요.</p><div id="h1" popover>일을 차례로 담아 두는 곳이에요.</div>
 <svg width="280" height="80" viewBox="0 0 280 80"><title>흐름: 일 하나를 넣기</title>
 <text x="8" y="24" font-size="14">작업자</text><text x="160" y="24" font-size="14">저장소</text></svg>
 <div id="c"></div></main>
@@ -22,7 +21,6 @@ GOOD = """<!doctype html><html lang="ko"><meta charset="utf-8"><title>작업 큐
 FAILS = [
     ('x="160"', 'x="24"', "labels 2"),
     ('x="160"', 'x="250"', "labels 1"),
-    ('<div id="h1" popover>', '<div id="h1">', "hints 0/1"),
     (' lang="ko"', "", 'lang is "", not "ko"'),
     ("저장소는 SQLite입니다.", "the <strong>job</strong> store", "English: the job store"),
     ("'다음'", "'Play the steps'", "English: Play the steps"),
@@ -35,7 +33,8 @@ BREAK = "<script>document.querySelectorAll('[data-widget=\"chart\"]').forEach(fu
 CHART_FAILS = [
     ("if (f.dataset.chart === 'bar') { var m = f.querySelector('rect.mark'); m.setAttribute('width', +m.getAttribute('width') + 3); }", "width"),
     ("if (f.dataset.chart === 'scatter') f.querySelector('circle.mark').remove();", "no mark"),
-    ("if (f.dataset.chart === 'line') { var m = f.querySelectorAll('.mark')[2]; m.setAttribute('class', 'point'); }", "keyboard"),
+    ("if (f.dataset.chart === 'line') { var m = f.querySelector('circle.mark'); m.setAttribute('cy', +m.getAttribute('cy') + 3); }", "cy"),
+    ("if (f.dataset.chart === 'bar') { var m = f.querySelector('rect.mark'); var s = f.querySelector('svg'), a = s.dataset.x.split(' '); a[1] = 1; s.dataset.x = a.join(' '); }", "does not span"),
 ]
 STUCK = "<script>document.addEventListener('click', function (e) { if (e.target.closest('.controls')) e.stopImmediatePropagation(); }, true);</script></html>"
 
@@ -71,7 +70,7 @@ class Check(unittest.TestCase):
     def test_gallery_passes(self):
         code, out = run(self.gallery)
         self.assertEqual(code, 0, out)
-        for kind in ("bar", "dot", "line", "spark", "scatter", "histogram", "box", "stacked", "heatmap"):
+        for kind in ("bar", "dot", "line", "scatter", "stacked"):
             self.assertIn(f" {kind} marks", out)
 
     def test_each_chart_rule_fails(self):

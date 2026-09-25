@@ -21,9 +21,6 @@ KOREAN = {
     "gone": "삭제", "changed": "변경", "new": "추가", "Evidence": "근거", "Bold": "굵은 글씨",
     "high": "높음", "mid": "보통", "low": "낮음", "none": "없음", "Key": "범례",
     "done": "완료", "Done, next step": "완료, 다음 단계",
-    "%n of %total shown": "전체 %total개 중 %n개", "Filter and sort": "거르기와 정렬", "Search": "검색",
-    "Sort": "정렬", "Written order": "쓴 순서", "Name": "이름", "Clear all": "모두 지우기",
-    "No item matches; clear a filter": "맞는 항목이 없어요. 조건을 하나 지워 보세요.",
     "Open at full size": "크게 보기", "Close": "닫기",
 }
 NAMES = {"default": "기본", "hover": "올림", "focus": "초점", "open": "펼침", "disabled": "꺼짐",

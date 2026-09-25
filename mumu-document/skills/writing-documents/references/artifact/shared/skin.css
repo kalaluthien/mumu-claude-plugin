@@ -34,17 +34,11 @@
   --link: light-dark(#057dbc, #5cb8ea);
   /* semantic: diagram palette; kinds (Okabe-Ito, told apart under
      deuteranopia and protanopia) mark a node's kind by its edge and a chart's
-     series; the sequential steps run from the lowest value to the highest;
-     status colours mark success, warning and failure in text and edges */
+     series; status colours mark success, warning and failure in text and edges */
   --kind-1: light-dark(#0072b2, #56b4e9);
   --kind-2: light-dark(#d55e00, #e69f00);
   --kind-3: light-dark(#009e73, #009e73);
   --kind-4: light-dark(#cc79a7, #cc79a7);
-  --seq-1: light-dark(#dfedfa, #00304d);
-  --seq-2: light-dark(#9dc6e8, #005481);
-  --seq-3: light-dark(#509dcf, #007cb2);
-  --seq-4: light-dark(#0075ad, #65a4d1);
-  --seq-5: light-dark(#004e80, #afd0ec);
   --ok: light-dark(#1f7a3a, #6fd68a);
   --warn: light-dark(#855600, #f2c14e);
   --fail: light-dark(#b8302a, #ff7b72);

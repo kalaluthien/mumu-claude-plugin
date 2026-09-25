@@ -7,13 +7,11 @@ A unit is a widget in references/artifact/widgets/ or a shared part in reference
   `kinds` field but none of its kinds, or a further backticked word no spec line starts with;
 - in a unit: a literal colour anywhere; a literal size or duration in its CSS (a <style>
   or a style=""; SVG geometry attributes are content); a primitive token (--p-*) or a
-  token neither the skin nor the unit defines; in a widget, a spec comment missing a field,
-  or a states field missing a state;
-- in references/artifact/shared/skin.css: a missing token kind; a motion token over 200ms; a colour pair under
+  token neither the skin nor the unit defines;
+- in references/artifact/shared/skin.css: a colour pair under
   WCAG AA in light or dark: text, link and status 4.5:1, border and diagram kinds 3:1; two
   diagram kinds under CIEDE2000 10 apart, to normal vision or after simulating deuteranopia
-  or protanopia (Machado 2009, full severity); sequential steps not moving away from --bg
-  in lightness, or two neighbours under CIEDE2000 10 apart in any of those visions.
+  or protanopia (Machado 2009, full severity).
 Exit 0 pass, 1 on any failure.
 """
 import itertools
@@ -25,13 +23,7 @@ import sys
 TEXT = ("text", "muted", "accent", "link", "ok", "warn", "fail")
 LINES = ("border", "kind-1", "kind-2", "kind-3", "kind-4")
 GROUNDS = ("bg", "fill")
-KINDS = ("--p-", "--fs-", "--sp-", "--line", "--radius-", "--page-width", "--gutter", "--rhythm",
-         "--motion", "--ease-")
-FIELDS = ("anatomy", "states", "motion", "keyboard", "screen reader", "use when", "not when")
-STATES = ("default", "hover", "focus", "open", "disabled")
-MOTION_MAX_MS = 200
 DELTA_E_MIN = 10
-SEQUENCE = tuple(f"seq-{k}" for k in range(1, 6))
 VISIONS = {  # linear-RGB matrices, Machado, Oliveira and Fernandes 2009, severity 1.0
     "normal": ((1, 0, 0), (0, 1, 0), (0, 0, 1)),
     "deuteranopia": ((0.367322, 0.860646, -0.227968), (0.280085, 0.672501, 0.047413), (-0.011820, 0.042940, 0.968881)),
@@ -130,7 +122,7 @@ def delta_e(lab1, lab2):
 
 
 def palette_failures(skin):
-    """Diagram kinds told apart and sequential steps ordered, in both modes and every vision."""
+    """Diagram kinds told apart in both modes and every vision."""
     out = []
     for mode, i in (("light", 0), ("dark", 1)):
         for vision in VISIONS:
@@ -138,19 +130,10 @@ def palette_failures(skin):
             for (a, la), (b, lb) in itertools.combinations(kinds, 2):
                 if delta_e(la, lb) < DELTA_E_MIN:
                     out.append(f"skin.css: --{a} and --{b} {mode} {vision} ΔE {delta_e(la, lb):.1f} < {DELTA_E_MIN}")
-            if "bg" not in skin or not all(k in skin for k in SEQUENCE):
-                continue
-            ground = seen(skin["bg"][i], vision)[0]
-            steps = [seen(skin[k][i], vision) for k in SEQUENCE]
-            for (a, la), (b, lb) in zip(zip(SEQUENCE, steps), zip(SEQUENCE[1:], steps[1:])):
-                if abs(lb[0] - ground) <= abs(la[0] - ground) or delta_e(la, lb) < DELTA_E_MIN:
-                    out.append(f"skin.css: --{a} and --{b} {mode} {vision}: not moving away from --bg, or ΔE {delta_e(la, lb):.1f} < {DELTA_E_MIN}")
-    if not all(k in skin for k in SEQUENCE):
-        out.append("skin.css: no sequential steps --seq-1 to --seq-5")
     return out
 
 
-def unit_failures(f, semantic, widget=True):
+def unit_failures(f, semantic):
     out, text = [], f.read_text()
     for n, line in enumerate(text.splitlines(), 1):
         if LITERAL.search(line):
@@ -166,17 +149,6 @@ def unit_failures(f, semantic, widget=True):
             out.append(f"{f.name}: reads primitive {name}")
         elif name not in semantic and name not in own:
             out.append(f"{f.name}: token {name} is not in skin.css or {f.name}")
-    if not widget:
-        return out
-    spec = re.match(r"<!--(.*?)-->", text, re.S)
-    spec = spec.group(1) if spec else ""
-    for field in FIELDS:
-        if not re.search(rf"^\s*{field}:", spec, re.M):
-            out.append(f"{f.name}: spec has no `{field}:`")
-    states = re.search(r"^\s*states:(.*)$", spec, re.M)
-    for state in STATES:
-        if states and not re.search(rf"\b{state}\b", states.group(1)):
-            out.append(f"{f.name}: states name no `{state}`")
     return out
 
 
@@ -200,17 +172,8 @@ def failures(skill):
     shared = skill / "references" / "artifact" / "shared"
     tokens = dict(DEFINED.findall((shared / "skin.css").read_text()))
     semantic = {t for t in tokens if not t.startswith("--p-")}
-    for f in sorted(widgets.glob("*.html")):
+    for f in sorted(widgets.glob("*.html")) + sorted(shared.glob("*.html")):
         out += unit_failures(f, semantic)
-    for f in sorted(shared.glob("*.html")):
-        out += unit_failures(f, semantic, widget=False)
-    for kind in KINDS:
-        if not any(t.startswith(kind) for t in tokens):
-            out.append(f"skin.css: no {kind}* token")
-    for name in sorted(t for t in semantic if t.startswith("--motion")):
-        ms = re.fullmatch(r"\s*(\d+)ms\s*", resolve(tokens[name], tokens))
-        if not ms or int(ms.group(1)) > MOTION_MAX_MS:
-            out.append(f"skin.css: {name} is {resolve(tokens[name], tokens).strip()}, not at most {MOTION_MAX_MS}ms")
     skin = roles(tokens)
     for role in TEXT + LINES + GROUNDS:
         if role not in skin:

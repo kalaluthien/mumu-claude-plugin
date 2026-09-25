@@ -1,32 +1,21 @@
 <!-- chart: numbers drawn as a chart from the table they sit in; data-chart picks the kind.
   anatomy: a heading; a figure[data-chart] holding a figcaption (one sentence: the one thing to read off the chart), an empty .plot the script draws an SVG into, and a <details> with the data <table>: a row header per row, one numeric <td> per value column, units allowed in a cell; the table is the chart's only data and its text alternative.
-  fill: numbers exactly as the source gives them; at most 4 value columns, one colour each, else data-facet; a <tr data-note="{{a few words}}"> writes that note beside the row's mark, once or twice a chart; the summary names the finding, not the chart.
+  fill: numbers exactly as the source gives them; at most 4 value columns, one colour each, else one chart per group; a <tr data-note="{{a few words}}"> writes that note beside the row's mark, once or twice a chart; the summary names the finding, not the chart.
   kinds: one spec each below: the table's columns, the marks, when to use it and when not.
   bar: category | one value. Horizontal bars from zero, the value at each bar's end. Use when: values compared across categories, where zero means none. Not when: zero is not a meaningful baseline (dot); values over time (line).
   dot: category | one or two values. A dot per value on an axis from the data, two values joined by a line and named above the first row. Use when: zero is not a meaningful baseline, or before and after per category. Not when: parts of a total (stacked).
-  line: time | up to 4 series. A line per series, a focusable point per value, each line named at its end. Use when: change over time. Not when: fewer than 4 points (bar); unordered categories (bar).
-  spark: time | one value. A word-sized line with its last value, no axes; beside a number in a table cell or list item, never in a sentence. Use when: the trend behind a number. Not when: the reader must read values off it (line).
-  scatter: item | measure x | measure y. A dot per item, both axes named. Use when: does one measure rise with another. Not when: one measure (bar, histogram).
-  histogram: bin | from | to | count. Adjacent bars over the bins, counts from zero. Use when: how one measure spreads, from counts already binned. Not when: the same spread across groups (box).
-  box: group | min | lower quartile | median | upper quartile | max. A whisker from min to max, a box between the quartiles, a line at the median. Use when: one measure's spread compared across groups. Not when: one group (histogram); the reader does not know quartiles (dot of the medians).
+  line: time | up to 4 series. A line per series, a point per value, each line named at its end. Use when: change over time. Not when: fewer than 4 points (bar); unordered categories (bar).
+  scatter: item | measure x | measure y. A dot per item, both axes named. Use when: does one measure rise with another. Not when: one measure (bar).
   stacked: category | up to 4 parts. A bar per category split into its parts from zero, the total at its end, each part named above the first bar. Use when: parts of a whole, per category. Not when: comparing one part across categories (bar of that part); one category (bar of its parts).
-  heatmap: row | a column per level. A cell per value, 5 steps of --seq-1 to --seq-5 from the lowest to the highest, a key of the steps with its lowest and highest value. Use when: one measure over two categories crossed. Not when: a mark for yes, partial or no (table, marked).
-  data-facet: on any kind, the table's first column names a group; one small chart per group, sharing its scales. Use when: more series than one chart holds, or one chart repeated per group. Not when: 2 or 3 series (one chart).
-  states: default: the chart; hover: the mark turns accent and a tip shows its value; focus: the same with the mark's accent stroke, on the mark keyboard reached; open: the data table shows; disabled: none, played: Back at the first step, Next at the last.
-  motion: played, marks move to the next table's values over --motion, only on a step change.
-  slide: optional, by ../shared/slide.html (data-slide, data-labels): one caption per step and one <table> per step in the <details>, in step order; the axes span every step; unplayed, the chart stands at its last table.
-  keyboard: Tab reaches the chart's first mark; arrow keys move mark to mark, Home and End to the first and last; the details summary opens the table; played, Back and Next.
-  screen reader: each mark is an image named by its row, column and cell text; the figcaption names the figure; the table follows.
-  use when: numbers the reader should see as a pattern: a comparison, a trend, a spread, a relation, a share.
+  slide: optional, by ../shared/slide.html (data-slide, data-labels): one caption per step and one <table> per step in the <details>, in step order; the axes span every step; marks move to the next table's values; unplayed, the chart stands at its last table.
+  screen reader: each mark is an image named by its row, column and cell text, shown in a tip on hover; the table follows.
   not when: fewer than 3 numbers (a sentence); the exact values are the point (table). -->
 <style>
   [data-widget="chart"] {
-    --chart-grid: var(--hairline); --chart-axis: var(--border); --chart-gap: var(--sp-2); --chart-panel: calc(var(--page-width) / 3);
+    --chart-grid: var(--hairline); --chart-axis: var(--border); --chart-gap: var(--sp-2);
     position: relative;
     & figcaption { margin-bottom: var(--chart-gap); }
-    & .panel { overflow-x: auto; }
-    & .name { margin: 0; font: 700 var(--fs-m) var(--sans); }
-    &[data-facet] .plot { display: grid; gap: var(--chart-gap); grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--chart-panel)), 1fr)); }
+    & .plot { overflow-x: auto; }
     & svg { display: block; width: 100%; font: var(--fs-svg-label) var(--sans); }
     & svg text { fill: var(--text); }
     & svg :is(.tick, .note) { fill: var(--muted); }
@@ -34,14 +23,9 @@
     & svg :is(.axis, .span) { stroke: var(--chart-axis); stroke-width: var(--line); }
     & svg .k1 { fill: var(--kind-1); stroke: var(--kind-1); } & svg .k2 { fill: var(--kind-2); stroke: var(--kind-2); }
     & svg .k3 { fill: var(--kind-3); stroke: var(--kind-3); } & svg .k4 { fill: var(--kind-4); stroke: var(--kind-4); }
-    & svg .s1 { fill: var(--seq-1); } & svg .s2 { fill: var(--seq-2); } & svg .s3 { fill: var(--seq-3); } & svg .s4 { fill: var(--seq-4); } & svg .s5 { fill: var(--seq-5); }
     & svg path.line { fill: none; stroke-width: var(--line-strong); }
-    & svg .bin, &[data-chart="heatmap"] svg .mark { stroke: var(--bg); stroke-width: var(--line); }
-    & svg .box-plot { fill: var(--fill); stroke-width: var(--line-strong); }
-    & svg .box-plot .median { stroke: var(--text); }
     & svg .mark { outline: none; cursor: default; }
-    & svg .mark:hover, [data-state="hover"] & svg .mark[tabindex="0"] { stroke: var(--accent); stroke-width: var(--line-strong); }
-    & svg .mark:focus-visible, [data-state="focus"] & svg .mark[tabindex="0"] { stroke: var(--accent); stroke-width: var(--line-mark); }
+    & svg .mark:hover, [data-state="hover"] & svg .mark:first-child { stroke: var(--accent); stroke-width: var(--line-strong); }
     & .tip { position: absolute; z-index: 2; pointer-events: none; white-space: nowrap; font: var(--fs-m) var(--sans);
       background: var(--fill); border: var(--line) solid var(--border); padding: var(--sp-1) var(--sp-2); }
     & .tip[hidden] { display: none; }
@@ -110,20 +94,17 @@
         old.set(key, m);
         Object.entries(attrs).forEach(([k, v]) => m.setAttribute(k, v));
         if (label) {
-          if (!m.hasAttribute('tabindex')) m.setAttribute('tabindex', '-1');
           m.setAttribute('role', 'img');
           m.setAttribute('aria-label', label);
         }
         seen.add(key);
         return m;
       };
-      const part = (g, name, tag, attrs) => Object.entries(attrs)
-        .reduce((p, [k, v]) => { p.setAttribute(k, v); return p; }, g.querySelector(`.${name}`) || el(g, tag, { class: name }));
       const done = () => old.forEach((m, k) => { if (!seen.has(k)) m.remove(); });
-      return { axes, labels, mark, part, done };
+      return { axes, labels, mark, done };
     };
     const name = (head, r, j, one) => (one ? `${r.label}: ${r.text[j]}` : `${r.label}, ${head[j + 1]}: ${r.text[j]}`);
-    // bar, dot, stacked, box: a row per category, its label above its mark, a value axis below
+    // bar, dot, stacked: a row per category, its label above its mark, a value axis below
     const rows = (kind) => (svg, data, sets, head, W, u) => {
       const L = layers(svg);
       const all = sets.flat();
@@ -161,15 +142,9 @@
             const x = X(sum(r.v.slice(0, j)));
             L.mark(`${key}c${j}`, 'rect', { class: `mark k${j + 1}`, x, y: by, width: r2(X(sum(r.v.slice(0, j + 1))) - x), height: u }, name(head, r, j));
           });
-        } else if (kind === 'dot') {
+        } else {
           if (r.v.length > 1) el(L.axes, 'line', { class: 'span', x1: X(Math.min(...r.v)), x2: X(Math.max(...r.v)), y1: mid, y2: mid });
           r.v.forEach((v, j) => L.mark(`${key}c${j}`, 'circle', { class: `mark k${j + 1}`, cx: X(v), cy: mid, r: u * 0.4 }, name(head, r, j, r.v.length === 1)));
-        } else {
-          const g = L.mark(key, 'g', { class: 'mark box-plot k1' }, `${r.label}: ${cols.map((c, j) => `${c} ${r.text[j]}`).join(', ')}`);
-          const [min, q1, med, q3, max] = r.v;
-          L.part(g, 'whisker', 'line', { x1: X(min), x2: X(max), y1: mid, y2: mid });
-          L.part(g, 'box', 'rect', { x: X(q1), width: r2(X(q3) - X(q1)), y: by, height: u });
-          L.part(g, 'median', 'line', { x1: X(med), x2: X(med), y1: by, y2: by + u });
         }
         if (end(r)) el(L.labels, 'text', { x: r2(Math.max(X(0), X(kind === 'bar' ? r.v[0] : sum(r.v))) + u / 3), y: by + u * 0.85 }, end(r));
         y = by + u * 1.9;
@@ -187,34 +162,30 @@
       size(svg, W, y + u * 1.5);
       L.done();
     };
-    // line, spark, scatter, histogram: x across, y up
+    // line, scatter: x across, y up
     const plane = (kind) => (svg, data, sets, head, W, u) => {
       const L = layers(svg);
       const all = sets.flat();
-      const spark = kind === 'spark';
+      const line = kind === 'line';
       const numeric = all.every((r) => !Number.isNaN(num(r.label)));
-      const xOf = (r, i) => (kind === 'scatter' ? r.v[0] : numeric ? num(r.label) : i);
-      const series = kind === 'line' || spark ? head.slice(1) : [];
-      const xr = kind === 'histogram' ? ext(all.flatMap((r) => r.v.slice(0, 2)))
-        : kind === 'scatter' ? ext(all.map((r) => r.v[0])) : numeric ? ext(all.map((r) => num(r.label))) : [0, Math.max(...sets.map((t) => t.length)) - 1];
-      const yr = kind === 'histogram' ? [0, Math.max(...all.map((r) => r.v[2]))] : kind === 'scatter' ? ext(all.map((r) => r.v[1])) : ext(all.flatMap((r) => r.v));
-      const H = spark ? u * 2 : u * 16;
-      const top = spark ? u * 0.4 : u * (kind === 'scatter' ? 2 : 1);
-      const bottom = spark ? H - u * 0.4 : H - u * 2.2;
-      const flat = yr[0] === yr[1];
-      const dy = spark ? { lo: yr[0] - flat, hi: yr[1] + flat, ticks: [] } : nice(yr, Math.max(2, Math.floor((bottom - top) / (u * 3))));
+      const xOf = (r, i) => (line ? (numeric ? num(r.label) : i) : r.v[0]);
+      const series = line ? head.slice(1) : [];
+      const xr = line ? (numeric ? ext(all.map((r) => num(r.label))) : [0, Math.max(...sets.map((s) => s.length)) - 1]) : ext(all.map((r) => r.v[0]));
+      const yr = line ? ext(all.flatMap((r) => r.v)) : ext(all.map((r) => r.v[1]));
+      const H = u * 16;
+      const top = u * (line ? 1 : 2);
+      const bottom = H - u * 2.2;
+      const dy = nice(yr, Math.max(2, Math.floor((bottom - top) / (u * 3))));
       const Y = scale(dy, bottom, top);
-      const left = spark ? u * 0.3 : Math.max(...dy.ticks.map((t) => measure(svg, fmt(t)))) + u / 2;
-      const last = data[data.length - 1];
-      const right = spark ? measure(svg, last ? last.text[0] : '') + u * 0.6
-        : kind === 'line' ? Math.max(...series.map((s) => measure(svg, s))) + u : u;
+      const left = Math.max(...dy.ticks.map((t) => measure(svg, fmt(t)))) + u / 2;
+      const right = line ? Math.max(...series.map((s) => measure(svg, s))) + u : u;
       let X;
       let xText = fmt;
-      if (kind === 'line' || spark) {
-        const w = spark ? 0 : Math.max(...data.map((r) => measure(svg, r.label))) + u;
+      if (line) {
+        const w = Math.max(...data.map((r) => measure(svg, r.label))) + u;
         const every = Math.max(1, Math.ceil((data.length * w) / (W - left - right)));
         const at = new Map(data.map((r, i) => [xOf(r, i), r.label]));
-        X = scale({ lo: xr[0], hi: xr[1] === xr[0] ? xr[0] + 1 : xr[1], ticks: spark ? [] : [...at.keys()].filter((t, i) => i % every === 0) },
+        X = scale({ lo: xr[0], hi: xr[1] === xr[0] ? xr[0] + 1 : xr[1], ticks: [...at.keys()].filter((t, i) => i % every === 0) },
           r2(left + w / 2), r2(W - Math.max(right, w / 2)));
         xText = (t) => at.get(t);
       } else {
@@ -226,14 +197,10 @@
         el(L.labels, 'text', { class: 'tick', x: r2(X.r0 - u / 3), y: r2(Y(t) + u * 0.35), 'text-anchor': 'end' }, fmt(t));
       });
       X.d.ticks.forEach((t) => el(L.labels, 'text', { class: 'tick', x: X(t), y: bottom + u * 1.7, 'text-anchor': 'middle' }, xText(t)));
-      if (kind === 'scatter') {
+      const note = (r, x, yy) => el(L.labels, 'text', { class: 'note', x, y: r2(Math.max(u, yy - u * 0.7)), 'text-anchor': x < W / 2 ? 'start' : 'end' }, r.note);
+      if (!line) {
         el(L.labels, 'text', { class: 'tick', x: 0, y: u }, head[2]);
         el(L.labels, 'text', { class: 'tick', x: W, y: H + u * 1.2, 'text-anchor': 'end' }, head[1]);
-      }
-      const note = (r, x, yy) => el(L.labels, 'text', { class: 'note', x, y: r2(Math.max(u, yy - u * 0.7)), 'text-anchor': x < W / 2 ? 'start' : 'end' }, r.note);
-      if (kind === 'histogram') {
-        data.forEach((r) => L.mark(`r${r.i}`, 'rect', { class: 'mark bin k1', x: X(r.v[0]), width: r2(X(r.v[1]) - X(r.v[0])), y: Y(r.v[2]), height: r2(Y(0) - Y(r.v[2])) }, `${r.label}: ${r.text[2]}`));
-      } else if (kind === 'scatter') {
         data.forEach((r) => {
           L.mark(`r${r.i}`, 'circle', { class: 'mark k1', cx: X(r.v[0]), cy: Y(r.v[1]), r: u * 0.35 }, `${r.label}: ${head[1]} ${r.text[0]}, ${head[2]} ${r.text[1]}`);
           if (r.note) note(r, X(r.v[0]), Y(r.v[1]));
@@ -243,8 +210,8 @@
         series.forEach((s, j) => {
           const pts = data.map((r, i) => [X(xOf(r, i)), Y(r.v[j])]);
           L.mark(`p${j}`, 'path', { class: `line k${j + 1}`, d: pts.map(([x, yy], i) => `${i ? 'L' : 'M'}${x} ${yy}`).join(' ') });
-          data.forEach((r, i) => L.mark(`r${r.i}c${j}`, 'circle', { class: `mark k${j + 1}`, cx: pts[i][0], cy: pts[i][1], r: u * (spark ? 0.2 : 0.3) }, name(head, r, j, series.length === 1)));
-          if (pts.length) ends.push({ text: spark ? last.text[j] : s, x: pts[pts.length - 1][0], y: pts[pts.length - 1][1] });
+          data.forEach((r, i) => L.mark(`r${r.i}c${j}`, 'circle', { class: `mark k${j + 1}`, cx: pts[i][0], cy: pts[i][1], r: u * 0.3 }, name(head, r, j, series.length === 1)));
+          if (pts.length) ends.push({ text: s, x: pts[pts.length - 1][0], y: pts[pts.length - 1][1] });
         });
         ends.sort((a, b) => a.y - b.y).forEach((e, i, a) => { if (i) e.y = Math.max(e.y, a[i - 1].y + u * 1.1); });
         const over = ends.length ? ends[ends.length - 1].y - (H - u * 0.4) : 0;
@@ -253,70 +220,26 @@
       }
       expose(svg, 'x', X);
       expose(svg, 'y', Y);
-      size(svg, W, kind === 'scatter' ? H + u * 1.6 : H);
+      size(svg, W, line ? H : H + u * 1.6);
       L.done();
     };
-    // heatmap: a cell per value, coloured in 5 steps from the lowest value to the highest
-    const heatmap = (svg, data, sets, head, W, u) => {
-      const L = layers(svg);
-      const all = sets.flat();
-      const cols = head.slice(1);
-      const [lo, hi] = ext(all.flatMap((r) => r.v));
-      const step = (v) => (hi === lo ? 3 : Math.min(5, Math.floor(((v - lo) / (hi - lo)) * 5) + 1));
-      const left = Math.max(0, ...data.map((r) => measure(svg, r.label))) + u / 2;
-      const cw = r2(Math.max(u * 2, ...cols.map((c) => measure(svg, c) + u / 2), (W - left) / cols.length));
-      const ch = u * 2;
-      const top = u * 1.5;
-      cols.forEach((c, j) => el(L.labels, 'text', { x: r2(left + cw * (j + 0.5)), y: u, 'text-anchor': 'middle' }, c));
-      data.forEach((r, i) => {
-        el(L.labels, 'text', { x: 0, y: r2(top + ch * i + ch / 2 + u * 0.35) }, r.label);
-        r.v.forEach((v, j) => L.mark(`r${r.i}c${j}`, 'rect', { class: `mark s${step(v)}`, x: r2(left + cw * j), y: top + ch * i, width: cw, height: ch }, name(head, r, j)));
-      });
-      const ky = top + ch * data.length + u * 0.8;
-      const kx = measure(svg, fmt(lo)) + u / 2;
-      el(L.labels, 'text', { class: 'tick', x: 0, y: ky + u * 0.85 }, fmt(lo));
-      [1, 2, 3, 4, 5].forEach((k) => el(L.axes, 'rect', { class: `s${k}`, x: r2(kx + (k - 1) * u * 2), y: ky, width: u * 2, height: u }));
-      el(L.labels, 'text', { class: 'tick', x: r2(kx + u * 10.5), y: ky + u * 0.85 }, fmt(hi));
-      svg.dataset.v = `${lo} ${hi}`;
-      size(svg, Math.max(W, left + cw * cols.length, kx + u * 11 + measure(svg, fmt(hi))), ky + u * 1.4);
-      L.done();
-    };
-    const kinds = { bar: rows('bar'), dot: rows('dot'), stacked: rows('stacked'), box: rows('box'),
-      line: plane('line'), spark: plane('spark'), scatter: plane('scatter'), histogram: plane('histogram'), heatmap };
-    const read = (table, facet) => {
-      const head = [...table.tHead.rows[0].cells].map((c) => c.textContent.trim());
-      const data = [...table.tBodies[0].rows].map((tr, i) => {
-        const cells = [...tr.cells].map((c) => c.textContent.trim());
-        const [group, label, ...text] = facet ? cells : [null, ...cells];
-        return { i, group, label, text, v: text.map(num), note: tr.dataset.note };
-      });
-      return { head: facet ? head.slice(1) : head, data };
-    };
+    const kinds = { bar: rows('bar'), dot: rows('dot'), stacked: rows('stacked'), line: plane('line'), scatter: plane('scatter') };
+    const read = (table) => ({
+      head: [...table.tHead.rows[0].cells].map((c) => c.textContent.trim()),
+      data: [...table.tBodies[0].rows].map((tr, i) => {
+        const [label, ...text] = [...tr.cells].map((c) => c.textContent.trim());
+        return { i, label, text, v: text.map(num), note: tr.dataset.note };
+      }),
+    });
     const draw = (fig) => {
-      const facet = fig.hasAttribute('data-facet');
-      const tables = [...fig.querySelectorAll('table')].map((t) => read(t, facet));
+      const tables = [...fig.querySelectorAll('table')].map(read);
       const { head, data } = tables[+fig.dataset.at];
-      const groups = facet ? [...new Set(data.map((r) => r.group))] : [null];
-      // every row list any step or panel draws: the axes span them all
-      const sets = tables.flatMap((t) => [...new Set(t.data.map((r) => r.group))].map((g) => t.data.filter((r) => r.group === g)));
       const plot = fig.querySelector('.plot');
-      [...plot.children].slice(groups.length).forEach((p) => p.remove());
-      groups.forEach((g, i) => {
-        let panel = plot.children[i];
-        if (!panel) {
-          panel = plot.appendChild(document.createElement('div'));
-          panel.className = 'panel';
-          if (facet) panel.append(Object.assign(document.createElement('p'), { className: 'name' }));
-          panel.append(document.createElementNS(NS, 'svg'));
-        }
-        if (facet) panel.querySelector('.name').textContent = g;
-        const svg = panel.querySelector('svg');
-        svg.setAttribute('role', 'group');
-        svg.setAttribute('aria-label', g ?? fig.querySelector('figcaption').textContent.trim());
-        kinds[fig.dataset.chart](svg, data.filter((r) => r.group === g), sets, head, panel.clientWidth, parseFloat(getComputedStyle(svg).fontSize));
-      });
-      const marks = [...fig.querySelectorAll('.mark')];
-      if (marks.length && !marks.some((m) => m.getAttribute('tabindex') === '0')) marks[0].setAttribute('tabindex', '0');
+      const svg = plot.querySelector('svg') || plot.appendChild(document.createElementNS(NS, 'svg'));
+      svg.setAttribute('role', 'group');
+      svg.setAttribute('aria-label', fig.querySelector('figcaption').textContent.trim());
+      // the axes span every step's rows
+      kinds[fig.dataset.chart](svg, data, tables.map((s) => s.data), head, plot.clientWidth, parseFloat(getComputedStyle(svg).fontSize));
     };
     document.querySelectorAll('[data-widget="chart"]').forEach((fig) => {
       fig.dataset.at = fig.querySelectorAll('table').length - 1;
@@ -338,18 +261,6 @@
       const hide = () => { tip.hidden = true; };
       fig.addEventListener('pointerover', (e) => { const m = e.target.closest('.mark'); if (m) show(m); else hide(); });
       fig.addEventListener('pointerleave', hide);
-      fig.addEventListener('focusin', (e) => { if (e.target.closest('.mark')) show(e.target.closest('.mark')); });
-      fig.addEventListener('focusout', hide);
-      fig.addEventListener('keydown', (e) => {
-        const marks = [...fig.querySelectorAll('.mark')];
-        const i = marks.indexOf(e.target);
-        const j = { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1, ArrowUp: i - 1, Home: 0, End: marks.length - 1 }[e.key];
-        if (i < 0 || j === undefined) return;
-        e.preventDefault();
-        const m = marks[Math.max(0, Math.min(j, marks.length - 1))];
-        marks.forEach((x) => x.setAttribute('tabindex', x === m ? '0' : '-1'));
-        m.focus();
-      });
       let width = fig.querySelector('.plot').clientWidth;
       new ResizeObserver(() => {
         const w = fig.querySelector('.plot').clientWidth;
