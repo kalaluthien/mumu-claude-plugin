@@ -2,7 +2,7 @@
 """Export each figure of a page as a standalone SVG, for a GitHub body or a repository page.
 
 usage: svg-export.py <page.html> <out dir>
-Renders the page in headless Chrome (light scheme), takes each <svg role="img">, copies every
+Renders the page in headless Chrome (light scheme), takes each <svg role="img"> and each chart's svg, copies every
 element's computed paint and type onto it as attributes (where it differs from its parent's), drops classes, adds the page's
 background behind it, and writes <out dir>/<page stem>-<n>.svg, printing each path.
 Exit 0 written, 1 when the page has no figure, 2 when it could not run, saying why.
@@ -25,7 +25,7 @@ f.onload = function () {
   setTimeout(function () {
     var d = f.contentDocument, w = f.contentWindow, out = [];
     var bg = w.getComputedStyle(d.body).backgroundColor;
-    d.querySelectorAll('svg[role="img"]').forEach(function (g) {
+    d.querySelectorAll('svg[role="img"], [data-widget="chart"] .plot svg').forEach(function (g) {
       var c = g.cloneNode(true), src = [g].concat(Array.from(g.querySelectorAll('*'))),
           dst = [c].concat(Array.from(c.querySelectorAll('*')));
       src.forEach(function (s, i) {
@@ -74,7 +74,7 @@ def main():
         print(f"svg-export.py: could not read {page}", file=sys.stderr)
         return 2
     if not svgs:
-        print(f"no figure: {page} has no <svg role=\"img\">")
+        print(f"no figure: {page} has no <svg role=\"img\"> or chart")
         return 1
     out.mkdir(parents=True, exist_ok=True)
     for n, svg in enumerate(svgs, 1):

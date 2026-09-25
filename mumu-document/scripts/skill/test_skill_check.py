@@ -37,10 +37,10 @@ class SkillCheck(unittest.TestCase):
         self.assertEqual(run(SKILL), (0, "pass\n"))
 
     def test_unknown_widget_fails(self):
-        self.edit("SKILL.md", "| `table` |", "| `chart` |")
+        self.edit("SKILL.md", "| `table` |", "| `sankey` |")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
-        self.assertIn("unknown widget `chart`", out)
+        self.assertIn("unknown widget `sankey`", out)
 
     def test_added_row_with_its_widget_passes(self):
         self.edit("SKILL.md", "| rows sharing columns", "| a timeline | `table` | a list |\n| rows sharing columns")
@@ -109,7 +109,7 @@ class SkillCheck(unittest.TestCase):
         self.assertIn("literal size: 8rem", out)
 
     def test_low_palette_contrast_fails(self):
-        self.edit("references/artifact/skin.css", "--p-cat-2: #0f7f74", "--p-cat-2: #9fd8d2")
+        self.edit("references/artifact/skin.css", "--p-cat-2: #d55e00", "--p-cat-2: #f5c9a8")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("--kind-2 on --fill light", out)
@@ -143,6 +143,32 @@ class SkillCheck(unittest.TestCase):
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("no role --accent", out)
+
+    def test_chart_row_naming_unknown_kind_fails(self):
+        self.edit("SKILL.md", "`chart` `scatter`", "`chart` `bubble`")
+        code, out = run(self.tmp)
+        self.assertEqual(code, 1)
+        self.assertIn("`bubble` is not in chart.html's spec", out)
+
+    def test_chart_row_naming_no_kind_fails(self):
+        self.edit("SKILL.md", "`chart` `scatter`", "`chart`")
+        code, out = run(self.tmp)
+        self.assertEqual(code, 1)
+        self.assertIn("names `chart` but none of its kinds", out)
+
+    def test_palette_merged_under_deuteranopia_fails(self):
+        # sky blue and lavender stay apart to a normal eye and pass 3:1 on black, but merge for a deuteranope
+        self.edit("references/artifact/skin.css", "--p-cat-4-d: #cc79a7", "--p-cat-4-d: #a9a0e8")
+        code, out = run(self.tmp)
+        self.assertEqual(code, 1)
+        self.assertRegex(out, r"--kind-1 and --kind-4 dark deuteranopia ΔE \d+\.\d < 10")
+        self.assertNotIn("normal", out)
+
+    def test_sequential_steps_out_of_order_fail(self):
+        self.edit("references/artifact/skin.css", "--p-seq-2: #9dc6e8; --p-seq-3: #509dcf;", "--p-seq-2: #509dcf; --p-seq-3: #9dc6e8;")
+        code, out = run(self.tmp)
+        self.assertEqual(code, 1)
+        self.assertIn("--seq-2 and --seq-3 light", out)
 
 
 if __name__ == "__main__":

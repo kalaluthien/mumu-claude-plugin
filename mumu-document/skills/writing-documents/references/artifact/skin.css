@@ -18,8 +18,10 @@
   --p-black: #000000; --p-white: #ffffff; --p-grey-500: #757575; --p-grey-200: #e0e0e0;
   --p-grey-400: #a3a3a3; --p-grey-450: #8a8a8a; --p-grey-800: #333333; --p-night-900: #111111;
   --p-link: #057dbc; --p-link-d: #5cb8ea;
-  --p-cat-1: #2f6fd6; --p-cat-2: #0f7f74; --p-cat-3: #b8560a; --p-cat-4: #8a4fcf;
-  --p-cat-1-d: #7aa7ff; --p-cat-2-d: #4fd1c1; --p-cat-3-d: #f0a050; --p-cat-4-d: #c49bff;
+  --p-cat-1: #0072b2; --p-cat-2: #d55e00; --p-cat-3: #009e73; --p-cat-4: #cc79a7;
+  --p-cat-1-d: #56b4e9; --p-cat-2-d: #e69f00; --p-cat-3-d: #009e73; --p-cat-4-d: #cc79a7;
+  --p-seq-1: #dfedfa; --p-seq-2: #9dc6e8; --p-seq-3: #509dcf; --p-seq-4: #0075ad; --p-seq-5: #004e80;
+  --p-seq-1-d: #00304d; --p-seq-2-d: #005481; --p-seq-3-d: #007cb2; --p-seq-4-d: #65a4d1; --p-seq-5-d: #afd0ec;
   --p-green-700: #1f7a3a; --p-amber-800: #855600; --p-red-700: #b8302a;
   --p-green-300: #6fd68a; --p-amber-300: #f2c14e; --p-red-300: #ff7b72;
   --p-size-1: .25rem; --p-size-2: .5rem; --p-size-3: .75rem; --p-size-4: 1rem;
@@ -35,12 +37,19 @@
   --hairline: light-dark(var(--p-grey-200), var(--p-grey-800));
   --accent: light-dark(var(--p-black), var(--p-white));
   --link: light-dark(var(--p-link), var(--p-link-d));
-  /* semantic: diagram palette; kinds mark a node's kind by its edge, status
-     colours mark success, warning and failure in text and edges */
+  /* semantic: diagram palette; kinds (Okabe-Ito, told apart under
+     deuteranopia and protanopia) mark a node's kind by its edge and a chart's
+     series; the sequential steps run from the lowest value to the highest;
+     status colours mark success, warning and failure in text and edges */
   --kind-1: light-dark(var(--p-cat-1), var(--p-cat-1-d));
   --kind-2: light-dark(var(--p-cat-2), var(--p-cat-2-d));
   --kind-3: light-dark(var(--p-cat-3), var(--p-cat-3-d));
   --kind-4: light-dark(var(--p-cat-4), var(--p-cat-4-d));
+  --seq-1: light-dark(var(--p-seq-1), var(--p-seq-1-d));
+  --seq-2: light-dark(var(--p-seq-2), var(--p-seq-2-d));
+  --seq-3: light-dark(var(--p-seq-3), var(--p-seq-3-d));
+  --seq-4: light-dark(var(--p-seq-4), var(--p-seq-4-d));
+  --seq-5: light-dark(var(--p-seq-5), var(--p-seq-5-d));
   --ok: light-dark(var(--p-green-700), var(--p-green-300));
   --warn: light-dark(var(--p-amber-800), var(--p-amber-300));
   --fail: light-dark(var(--p-red-700), var(--p-red-300));
