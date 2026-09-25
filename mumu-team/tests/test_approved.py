@@ -79,6 +79,28 @@ MERGE_REFUSED = [
     f"export GH_EDITOR=sh\ngh issue create --editor --body '{MERGE}'",
     f"git commit -m '{MERGE}'",
     f"grep -q x f && sh -c '{MERGE}'",
+    f"git grep -O'{MERGE}' x",
+    f"git grep --open-files-in-pager='{MERGE}' x",
+    f"git -c core.pager=sh grep -O -e '{MERGE}'",
+    f"GIT_PAGER='{MERGE}' git grep -O x",
+    f"sed -n '1e {MERGE}' f",
+    f"sed -i '' 's/x/{MERGE}/e' f",
+    f"sed -i '' -e'e {MERGE}' f",
+    f"sed -n 's/.*/{MERGE}/p' f | sh",
+    f"sed -i '' -ne'e {MERGE}' f",
+    f"sed -i '' 's/x/{MERGE}/ge' f",
+    f"sed -i '' 's/.*/{MERGE}/w /dev/stdout' f | sh",
+    f"sed -i '' 's/.*/{MERGE}/W /dev/stdout' f | sh",
+    f"sed -i '' -e 's/.*/{MERGE}/' -e 'W /dev/stdout' f | sh",
+]
+
+# Text only naming the merge in a pattern or an in-place edit: refused on main (#87).
+TEXT_MERGE_PASSED = [
+    "git grep -n 'pr merge' mumu-team",
+    f"git grep -e '{MERGE}' -- '*.md'",
+    "sed -i '' 's/gh pr merge/merge.py/' AGENTS.md",
+    f"sed -i.bak -e '/{MERGE}/d' notes.md",
+    f"sed -i '' 's/{MERGE}/merge.py/g' mumu-team/skills/kickoff/references/work.md",
 ]
 
 MERGE_PASSED = [
@@ -91,8 +113,21 @@ MERGE_PASSED = [
 ]
 
 
-def run(command):
-    payload = json.dumps({"tool_input": {"command": command}})
+# An assignment-only command before a redirect, heredoc or pipe: exit 2 with IndexError at 58dd603 (#87).
+# The description names the merge, as a live payload's may, so the hook reads the command.
+ASSIGNMENT_PASSED = [
+    "S=/tmp/x\ncat >> $S/h.md <<'EOF'\ntext\nEOF",
+    "S=/tmp/x\ncat > $S/h.md",
+    "S=/tmp/x; cat $S/a | grep b",
+    "S=/tmp/x T=y && git status",
+    "S=/tmp/x | cat",
+    "S=/tmp/x\ngit grep -n x",
+    "S=/tmp/x\nsed -i '' 's/a/b/' f",
+    "C=/x; gh pr view 96 --json state -q .state && git -C $C log -1",
+]
+
+def run(command, description=""):
+    payload = json.dumps({"tool_input": {"command": command, "description": description}})
     return subprocess.run([sys.executable, str(HOOK)], input=payload, capture_output=True, text=True)
 
 
@@ -121,10 +156,38 @@ class MergeGate(unittest.TestCase):
                 self.assertIn("merge.py", result.stderr)
 
     def test_text_naming_the_merge_passes(self):
-        for command in MERGE_PASSED:
+        for command in MERGE_PASSED + TEXT_MERGE_PASSED:
             with self.subTest(command):
                 result = run(command)
                 self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class AssignmentOnly(unittest.TestCase):
+    def test_an_assignment_only_command_is_read_not_refused(self):
+        for command in ASSIGNMENT_PASSED:
+            with self.subTest(command):
+                result = run(command, "append the merge notes")
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_a_merge_after_an_assignment_only_command_is_still_refused(self):
+        result = run(f"S=/tmp/x\n{MERGE}")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("merge.py", result.stderr)
+
+    def test_every_helper_reads_an_empty_and_an_assignment_only_word_list(self):
+        sys.path.insert(0, str(HOOK.parent))
+        import approved
+        whole = [approved.reader, approved.git_grep, approved.sed_in_place,
+                 approved.unredirected, approved.mentions, approved.bypasses]
+        indexed = [approved.text_word, approved.config_value]
+        for words in ([], ["S=/tmp/x"], ["S=/tmp/x", "T=y"]):
+            for helper in whole:
+                with self.subTest(helper=helper.__name__, words=words):
+                    helper(words)
+            for helper in indexed:
+                for i in range(len(words)):
+                    with self.subTest(helper=helper.__name__, words=words, i=i):
+                        helper(words, i)
 
 
 if __name__ == "__main__":

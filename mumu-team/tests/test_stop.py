@@ -190,6 +190,16 @@ class WorkerStop(Hook):
         answered = dict(pr, comments=pr["comments"] + [note("APPROVED: 0ld5ha", "2026-09-24T04:00:00Z")])
         self.assertNotIn("FINDINGS", self.reason(self.stop(prs=[answered])[0]))
 
+    def test_approved_head_names_the_record_for_a_pending_owner_sign_off(self):
+        """#87: an approval the owner has not signed off is not a merge; the reason names the record that stops."""
+        pr = dict(OPEN_PR, comments=[note("APPROVED: abc123", "2026-09-24T01:00:00Z")])
+        self.assertIn("`BLOCKED: owner review of <pr-url>`", self.reason(self.stop(prs=[pr])[0]))
+        self.assertFalse(self.refused(self.stop(prs=[pr], comments=["BLOCKED: owner review of https://github.com/o/r/pull/5"])[0]))
+
+    def test_open_pull_request_awaiting_a_verdict_names_the_bounded_wait(self):
+        """#87: while the worker's own reviewer or eval runs, the reason names a bounded foreground wait, not another stop."""
+        self.assertIn("bounded foreground", self.reason(self.stop(prs=[OPEN_PR])[0]))
+
 
 class LeadStop(Hook):
     MISSION = f"GOAL: g\nMISSION: leader of {PARENT}\n"
