@@ -72,7 +72,8 @@ def worker():
               "then launch its reviewer, before you stop.")
     if approved(pr):
         block(f"{pr['url']} is approved at its head: run `merge.py {pr['url']}` as a Bash call of its own, "
-              "then `prompt` the leader `see <pr-url>`.")
+              "then `prompt` the leader `see <pr-url>`; while the owner's sign-off is pending, push any pending commit, "
+              "else `comment` `BLOCKED: owner review of <pr-url>` on the issue.")
     notes = [(n.get("createdAt") or n.get("submittedAt") or "", n["body"]) for n in (pr.get("comments") or []) + (pr.get("reviews") or [])]
     records = [body for _, body in sorted(notes) if REVIEW.match(body)]
     if records and records[-1].lstrip()[:8].lower() == "findings":
@@ -80,7 +81,8 @@ def worker():
               f"and resume that reviewer with `SendMessage` `see {pr['url']}`.")
     block(f"Issue #{issue} is still open: merge its pull request at an approved sha, or `comment` "
           "`BLOCKED: <question>` on it and `prompt` the leader `see <issue-url>`, or `WAITING: <what>` when another "
-          "worker will send you `see <url>`, before you stop.")
+          "worker will send you `see <url>`, before you stop. While your own reviewer or eval runs, wait in one "
+          "bounded foreground Bash poll (`for i in $(seq 1 36); do <done-test> && break; sleep 10; done`) instead of stopping.")
 
 
 def lead():
