@@ -1,0 +1,33 @@
+schema_version: "1.1"
+name: trend-chart
+runs: 3
+execution:
+  prompt: |
+    Monthly sign-ups for `tiny-queue`:
+
+    | month | web | app |
+    | --- | --- | --- |
+    | Jan | 120 | 40 |
+    | Feb | 135 | 62 |
+    | Mar | 128 | 90 |
+    | Apr | 140 | 131 |
+    | May | 138 | 170 |
+    | Jun | 142 | 214 |
+
+    Show the trend as a page saved to `trend.html` in the current directory.
+  max_turns: 16
+  timeout_seconds: 420
+  allowed_tools: [Skill, Read, Write]
+graders:
+  - name: line-chart
+    type: regex
+    target: {source: file, path: trend.html}
+    match: contains
+    flags: s
+    pattern: '<figure(?=[^>]*\sdata-widget="chart")(?=[^>]*\sdata-chart="line")[^>]*>.*?<table.*?<thead'
+  - name: no-legend
+    type: regex
+    target: {source: file, path: trend.html}
+    match: not_contains
+    flags: is
+    pattern: 'data-chart="line"(?:(?!</figure>).)*(?:class="[^"]*\b(?:legend|key)\b|범례)'

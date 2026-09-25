@@ -59,13 +59,13 @@ class SkillCheck(unittest.TestCase):
         self.assertRegex(out, r"table\.html:\d+: literal size: 8px")
 
     def test_literal_duration_in_style_attribute_fails(self):
-        self.edit("references/artifact/widgets/use-case.html", '<path class="lifeline"', '<path style="transition: stroke .3s" class="lifeline"')
+        self.edit("references/artifact/widgets/diagram.html", '<path class="lifeline"', '<path style="transition: stroke .3s" class="lifeline"')
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("literal size: .3s", out)
 
     def test_svg_geometry_is_not_a_size(self):
-        self.edit("references/artifact/widgets/use-case.html", 'width="520"', 'width="524"')
+        self.edit("references/artifact/widgets/diagram.html", 'width="520"', 'width="524"')
         self.assertEqual(run(self.tmp), (0, "pass\n"))
 
     def test_unknown_token_fails(self):
@@ -75,7 +75,7 @@ class SkillCheck(unittest.TestCase):
         self.assertIn("token --sp-9 is not in skin.css", out)
 
     def test_slow_motion_fails(self):
-        self.edit("references/artifact/skin.css", "--p-ms-200: 200ms", "--p-ms-200: 400ms")
+        self.edit("references/artifact/shared/skin.css", "--motion: 200ms", "--motion: 400ms")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("--motion is 400ms, not at most 200ms", out)
@@ -91,55 +91,55 @@ class SkillCheck(unittest.TestCase):
         self.assertEqual(run(self.tmp), (0, "pass\n"))
 
     def test_spec_field_missing_fails(self):
-        self.edit("references/artifact/widgets/use-case.html", "  keyboard:", "  keys:")
+        self.edit("references/artifact/widgets/diagram.html", "  keyboard:", "  keys:")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
-        self.assertIn("use-case.html: spec has no `keyboard:`", out)
+        self.assertIn("diagram.html: spec has no `keyboard:`", out)
 
     def test_spec_state_missing_fails(self):
-        self.edit("references/artifact/widgets/use-case.html", "disabled: none, played", "none, played")
+        self.edit("references/artifact/widgets/diagram.html", "disabled: none, played", "none, played")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
-        self.assertIn("use-case.html: states name no `disabled`", out)
+        self.assertIn("diagram.html: states name no `disabled`", out)
 
-    def test_literal_size_in_player_fails(self):
-        self.edit("references/artifact/widgets/use-case.html", "min-width: 0;", "min-width: 8rem;")
+    def test_literal_size_in_shared_part_fails(self):
+        self.edit("references/artifact/shared/swipe.html", "flex: 0 0 85%;", "flex: 0 0 20rem;")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
-        self.assertIn("literal size: 8rem", out)
+        self.assertIn("literal size: 20rem", out)
 
     def test_low_palette_contrast_fails(self):
-        self.edit("references/artifact/skin.css", "--p-cat-2: #d55e00", "--p-cat-2: #f5c9a8")
+        self.edit("references/artifact/shared/skin.css", "light-dark(#d55e00,", "light-dark(#f5c9a8,")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("--kind-2 on --fill light", out)
 
     def test_missing_token_kind_fails(self):
-        self.edit("references/artifact/skin.css", "--radius-s: 0;", "--corner: 0;")
+        self.edit("references/artifact/shared/skin.css", "--radius-s: 0;", "--corner: 0;")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("no --radius-* token", out)
 
     def test_low_text_contrast_fails(self):
-        self.edit("references/artifact/skin.css", "--p-grey-500: #757575", "--p-grey-500: #c0c0c0")
+        self.edit("references/artifact/shared/skin.css", "--p-grey-500: #757575", "--p-grey-500: #c0c0c0")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("--muted on --bg light", out)
 
     def test_low_border_contrast_in_dark_fails(self):
-        self.edit("references/artifact/skin.css", "--p-grey-450: #8a8a8a", "--p-grey-450: #3a3d42")
+        self.edit("references/artifact/shared/skin.css", "#8a8a8a", "#3a3d42")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("--border on --fill dark", out)
 
     def test_low_link_contrast_fails(self):
-        self.edit("references/artifact/skin.css", "--p-link: #057dbc", "--p-link: #7fc4ea")
+        self.edit("references/artifact/shared/skin.css", "#057dbc", "#7fc4ea")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("--link on --bg light", out)
 
     def test_missing_role_fails(self):
-        self.edit("references/artifact/skin.css", "  --accent:", "  --link:")
+        self.edit("references/artifact/shared/skin.css", "  --accent:", "  --link:")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("no role --accent", out)
@@ -158,14 +158,15 @@ class SkillCheck(unittest.TestCase):
 
     def test_palette_merged_under_deuteranopia_fails(self):
         # sky blue and lavender stay apart to a normal eye and pass 3:1 on black, but merge for a deuteranope
-        self.edit("references/artifact/skin.css", "--p-cat-4-d: #cc79a7", "--p-cat-4-d: #a9a0e8")
+        self.edit("references/artifact/shared/skin.css", "light-dark(#cc79a7, #cc79a7)", "light-dark(#cc79a7, #a9a0e8)")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertRegex(out, r"--kind-1 and --kind-4 dark deuteranopia ΔE \d+\.\d < 10")
         self.assertNotIn("normal", out)
 
     def test_sequential_steps_out_of_order_fail(self):
-        self.edit("references/artifact/skin.css", "--p-seq-2: #9dc6e8; --p-seq-3: #509dcf;", "--p-seq-2: #509dcf; --p-seq-3: #9dc6e8;")
+        self.edit("references/artifact/shared/skin.css", "--seq-2: light-dark(#9dc6e8", "--seq-2: light-dark(#509dcf")
+        self.edit("references/artifact/shared/skin.css", "--seq-3: light-dark(#509dcf", "--seq-3: light-dark(#9dc6e8")
         code, out = run(self.tmp)
         self.assertEqual(code, 1)
         self.assertIn("--seq-2 and --seq-3 light", out)

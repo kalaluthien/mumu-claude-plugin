@@ -35,14 +35,13 @@ exported by [github.md](references/github.md).
 
 | when the content is | widget | in markdown |
 | --- | --- | --- |
-| a software system's structure: files, modules, their roles | `file-tree`, first on the page | a code-block tree, one comment per line |
-| who calls the system and what it calls: actors, entry points, boundaries | `system-context` | its SVG |
-| behaviour: what happens in one use case | `use-case`, one per use case | its SVG, then a numbered list of calls |
-| a sequence the reader follows one step at a time: a request travelling the system | `use-case`, played | a numbered list, one step and its reason each |
-| a structure before and after a change: what it adds, modifies and removes | `before-after` | a diff of the tree |
-| states and the events that move between them: a job's life, a connection | `state-machine` | its SVG, then a table of state, event, next state |
+| a software system's structure: files, modules, their roles | `diagram` `file-tree`, first on the page | a code-block tree, one comment per line |
+| a structure before and after a change: what it adds, modifies and removes | `diagram` `file-tree`, played | a diff of the tree |
+| who calls the system and what it calls: actors, entry points, boundaries | `diagram` `system-context` | its SVG |
+| behaviour: what happens in one use case; played, a request the reader follows one step at a time | `diagram` `use-case`, one per use case | its SVG, then a numbered list of calls |
+| states and the events that move between them: a job's life, a connection | `diagram` `state-machine` | its SVG, then a table of state, event, next state |
 | rows sharing columns: options, findings, done-criteria | `table` | a table |
-| two dimensions crossed, one mark per cell: options against criteria, roles against permissions | `matrix` | a table, a symbol per cell and its key |
+| two dimensions crossed, one mark per cell: options against criteria, roles against permissions | `table`, marked | a table, a symbol per cell and its key |
 | values compared across categories: which is largest, by how much | `chart` `bar`; `dot` when zero is no baseline or each category has a before and after | its SVG, then the table |
 | change over time: a trend, a rise, a fall | `chart` `line`; `spark` beside a number in a table or list | its SVG, then the table |
 | a relationship between two measures: does one rise with the other | `chart` `scatter` | its SVG, then the table |

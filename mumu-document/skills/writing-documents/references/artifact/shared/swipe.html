@@ -1,0 +1,49 @@
+<!-- swipe: separate moments read in order, as a strip of cards swiped sideways; copied once per page, after the widgets.
+  Use for a sequence of distinct events (the calls of a use case), each card whole on its own; for one change on the
+  same marks, slide. A root with data-swipe holds a stage and an <ol class="steps">, one card per step; the strip snaps
+  card by card to touch, trackpad or the arrow keys, and the card most in view is the step: each [data-step] up to k
+  gets .on and the one at k .now, the token moves to the card's data-x and data-y, the root gets data-at k - 1, and
+  `step` fires on it. Under reduced motion, in print or without script it does nothing: every caption stays listed and
+  the widget stands at its last step. -->
+<style>
+  @media screen and (prefers-reduced-motion: no-preference) {
+    [data-swipe].live .steps { display: flex; gap: var(--sp-2); overflow-x: auto; scroll-snap-type: x mandatory;
+      list-style: none; padding: 0; margin: var(--sp-2) 0; }
+    [data-swipe].live .steps > li { flex: 0 0 85%; scroll-snap-align: center; padding: var(--sp-2) var(--sp-3);
+      border: var(--line) solid var(--hairline); color: var(--muted); transition: color var(--motion-fast) var(--ease-out); }
+    [data-swipe].live .steps > li.now { color: var(--text); border-color: var(--accent); }
+    [data-swipe].live .steps:focus-visible { outline: var(--line-strong) solid var(--accent); }
+  }
+</style>
+<script>
+  (() => {
+    const start = () => document.querySelectorAll('[data-swipe]').forEach((root) => {
+      const strip = root.querySelector('.steps');
+      const steps = [...strip.children];
+      const n = steps.length;
+      if (n < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      strip.tabIndex = 0;
+      const show = (k) => {
+        steps.forEach((li, i) => li.classList.toggle('now', i === k - 1));
+        root.querySelectorAll('[data-step]').forEach((el) => {
+          el.classList.toggle('on', +el.dataset.step <= k);
+          el.classList.toggle('now', +el.dataset.step === k);
+        });
+        const li = steps[k - 1];
+        if (li.dataset.x) {
+          root.style.setProperty('--x', `${li.dataset.x}px`);
+          root.style.setProperty('--y', `${li.dataset.y}px`);
+        }
+        root.dataset.at = k - 1;
+        root.dispatchEvent(new CustomEvent('step'));
+      };
+      const seen = new IntersectionObserver((entries) => entries.forEach((e) => {
+        if (e.isIntersecting) show(steps.indexOf(e.target) + 1);
+      }), { root: strip, threshold: 0.6 });
+      steps.forEach((li) => seen.observe(li));
+      root.classList.add('live');
+      show(1);
+    });
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>

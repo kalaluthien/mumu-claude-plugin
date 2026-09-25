@@ -10,12 +10,12 @@
   histogram: bin | from | to | count. Adjacent bars over the bins, counts from zero. Use when: how one measure spreads, from counts already binned. Not when: the same spread across groups (box).
   box: group | min | lower quartile | median | upper quartile | max. A whisker from min to max, a box between the quartiles, a line at the median. Use when: one measure's spread compared across groups. Not when: one group (histogram); the reader does not know quartiles (dot of the medians).
   stacked: category | up to 4 parts. A bar per category split into its parts from zero, the total at its end, each part named above the first bar. Use when: parts of a whole, per category. Not when: comparing one part across categories (bar of that part); one category (bar of its parts).
-  heatmap: row | a column per level. A cell per value, 5 steps of --seq-1 to --seq-5 from the lowest to the highest, a key of the steps with its lowest and highest value. Use when: one measure over two categories crossed. Not when: a mark for yes, partial or no (matrix).
+  heatmap: row | a column per level. A cell per value, 5 steps of --seq-1 to --seq-5 from the lowest to the highest, a key of the steps with its lowest and highest value. Use when: one measure over two categories crossed. Not when: a mark for yes, partial or no (table, marked).
   data-facet: on any kind, the table's first column names a group; one small chart per group, sharing its scales. Use when: more series than one chart holds, or one chart repeated per group. Not when: 2 or 3 series (one chart).
   states: default: the chart; hover: the mark turns accent and a tip shows its value; focus: the same with the mark's accent stroke, on the mark keyboard reached; open: the data table shows; disabled: none, played: Back at the first step, Next at the last.
   motion: played, marks move to the next table's values over --motion, only on a step change.
-  player: optional, never autoplays: data-player (buttons) or data-player="scroll" with data-labels naming Back|Play|Pause|Next|Step, an <ol class="steps"> with one caption per step and one <table> per step in the <details>, in step order; the axes span every step. With data-player="scroll" the plot sticks and the caption crossing mid-viewport sets the step. Under prefers-reduced-motion: reduce, in print or without script, every caption is listed and the chart stands at its last table.
-  keyboard: Tab reaches the chart's first mark; arrow keys move mark to mark, Home and End to the first and last; the details summary opens the table; played, the player's controls.
+  slide: optional, by ../shared/slide.html (data-slide, data-labels): one caption per step and one <table> per step in the <details>, in step order; the axes span every step; unplayed, the chart stands at its last table.
+  keyboard: Tab reaches the chart's first mark; arrow keys move mark to mark, Home and End to the first and last; the details summary opens the table; played, Back and Next.
   screen reader: each mark is an image named by its row, column and cell text; the figcaption names the figure; the table follows.
   use when: numbers the reader should see as a pattern: a comparison, a trend, a spread, a relation, a share.
   not when: fewer than 3 numbers (a sentence); the exact values are the point (table). -->
@@ -45,23 +45,11 @@
   [data-widget="chart"] .tip { position: absolute; z-index: 2; pointer-events: none; white-space: nowrap; font: var(--fs-m) var(--sans);
     background: var(--fill); border: var(--line) solid var(--border); padding: var(--sp-1) var(--sp-2); }
   [data-widget="chart"] .tip[hidden] { display: none; }
-  [data-widget="chart"][data-player] .caption, [data-widget="chart"][data-player] .controls { display: none; }
-  [data-widget="chart"][data-player] .controls { gap: var(--chart-gap); align-items: center; flex-wrap: wrap; margin: var(--chart-gap) 0; }
-  [data-widget="chart"][data-player] .controls input { flex: 1 1 auto; min-width: 0; accent-color: var(--accent); }
-  [data-widget="chart"][data-player] .count { color: var(--muted); font-size: var(--fs-m); }
   @media screen and (prefers-reduced-motion: no-preference) {
     [data-widget="chart"].live svg :is(.mark, .mark *, .line) { transition: x var(--motion) var(--ease-out), y var(--motion) var(--ease-out),
       width var(--motion) var(--ease-out), height var(--motion) var(--ease-out), cx var(--motion) var(--ease-out), cy var(--motion) var(--ease-out),
       d var(--motion) var(--ease-out), fill var(--motion) var(--ease-out); }
-    [data-widget="chart"][data-player].live .steps { display: none; }
-    [data-widget="chart"][data-player].live .caption { display: block; }
-    [data-widget="chart"][data-player].live .controls { display: flex; }
-    [data-widget="chart"][data-player="scroll"].live :is(.caption, .controls) { display: none; }
-    [data-widget="chart"][data-player="scroll"].live .steps { display: block; padding-inline-start: var(--sp-5); }
-    [data-widget="chart"][data-player="scroll"].live .plot { position: sticky; top: 0; z-index: 1; background: var(--bg); }
-    [data-widget="chart"][data-player="scroll"].live .steps > li { min-height: var(--scroll-step); color: var(--muted); transition: color var(--motion-fast) var(--ease-out); }
-    [data-widget="chart"][data-player="scroll"].live .steps > li.now { color: var(--text); }
-  }
+        }
 </style>
 <script>
   (() => {
@@ -329,65 +317,10 @@
       const marks = [...fig.querySelectorAll('.mark')];
       if (marks.length && !marks.some((m) => m.getAttribute('tabindex') === '0')) marks[0].setAttribute('tabindex', '0');
     };
-    const player = (fig, n) => {
-      const steps = [...fig.querySelectorAll('.steps > li')];
-      const dwell = 2400;
-      const [backText, playText, pauseText, nextText, stepText] = (fig.dataset.labels || 'Back|Play|Pause|Next|Step').split('|');
-      const caption = document.createElement('p');
-      caption.className = 'caption';
-      caption.setAttribute('aria-live', 'polite');
-      const controls = document.createElement('div');
-      controls.className = 'controls';
-      controls.innerHTML = '<button type="button"></button><button type="button"></button><button type="button"></button>'
-        + '<input type="range" min="1" step="1"><span class="count"></span>';
-      fig.append(caption, controls);
-      const [back, play, next] = controls.querySelectorAll('button');
-      const range = controls.querySelector('input');
-      const count = controls.querySelector('.count');
-      back.textContent = backText;
-      play.textContent = playText;
-      next.textContent = nextText;
-      range.setAttribute('aria-label', stepText);
-      range.max = n;
-      let at = 1;
-      let timer = null;
-      const stop = () => { clearInterval(timer); timer = null; play.textContent = playText; };
-      const show = (k) => {
-        at = Math.min(Math.max(k, 1), n);
-        steps.forEach((li, i) => li.classList.toggle('now', i === at - 1));
-        fig.dataset.at = at - 1;
-        draw(fig);
-        caption.textContent = `${at}. ${steps[at - 1].textContent.trim()}`;
-        range.value = at;
-        count.textContent = `${at} / ${n}`;
-        back.disabled = at === 1;
-        next.disabled = at === n;
-        if (at === n) stop();
-      };
-      back.addEventListener('click', () => { stop(); show(at - 1); });
-      next.addEventListener('click', () => { stop(); show(at + 1); });
-      range.addEventListener('input', () => { stop(); show(+range.value); });
-      play.addEventListener('click', () => {
-        if (timer) { stop(); return; }
-        if (at === n) show(1);
-        play.textContent = pauseText;
-        timer = setInterval(() => show(at + 1), dwell);
-      });
-      if (fig.dataset.player === 'scroll') {
-        const seen = new IntersectionObserver((entries) => entries.forEach((e) => {
-          if (e.isIntersecting) show(steps.indexOf(e.target) + 1);
-        }), { root: document, rootMargin: '-50% 0px -50% 0px' });
-        steps.forEach((li) => seen.observe(li));
-      }
-      fig.classList.add('live');
-      show(1);
-    };
     document.querySelectorAll('[data-widget="chart"]').forEach((fig) => {
-      const n = fig.querySelectorAll('table').length;
-      const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      fig.dataset.at = n - 1;
-      if (fig.hasAttribute('data-player') && n > 1 && !still) player(fig, n);
-      else draw(fig);
+      fig.dataset.at = fig.querySelectorAll('table').length - 1;
+      draw(fig);
+      fig.addEventListener('step', () => draw(fig));
       const tip = fig.appendChild(document.createElement('div'));
       tip.className = 'tip';
       tip.hidden = true;

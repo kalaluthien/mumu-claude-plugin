@@ -3,11 +3,12 @@
 
 usage: gallery.py <out.html> [skill dir], default the writing-documents skill beside this script.
 Each copy sits in a .theme-light or .theme-dark box with data-state set, which the skin and
-the widgets read to force that state; a widget with fixtures beside this script
-(<widget>-fixtures.html, filled copies, as chart-fixtures.html) shows each fixture by default and the first in every state; open adds `open` to each <details> and shows what is
-hidden, disabled adds `disabled` to each control. The page is Korean, as every Artifact
-page is: a control's label takes its Korean from KOREAN, and every other placeholder reads
-예시 (example).
+the widgets read to force that state. A widget shows each template section in every state; a
+widget with fixtures beside this script (<widget>-fixtures.html, filled copies) shows each fixture
+by default and the first in every state. Open adds `open` to each <details> and shows what is
+hidden; disabled adds `disabled` to each control. The shared parts come once, their scripts
+last. The page is Korean: a control's label takes its Korean from KOREAN, and every other
+placeholder reads 예시 (example).
 """
 import pathlib
 import re
@@ -16,7 +17,7 @@ import sys
 MODES = ("light", "dark")
 STATES = ("default", "hover", "focus", "open", "disabled")
 KOREAN = {
-    "Back|Play|Pause|Next|Step": "뒤로|재생|멈춤|다음|단계",
+    "Back|Next": "뒤로|다음",
     "gone": "삭제", "changed": "변경", "new": "추가", "Evidence": "근거", "Bold": "굵은 글씨",
     "high": "높음", "mid": "보통", "low": "낮음", "none": "없음", "Key": "범례",
     "done": "완료", "Done, next step": "완료, 다음 단계",
@@ -51,23 +52,29 @@ def in_state(body, state):
 
 def gallery(skill):
     page = skill / "references" / "artifact"
-    skin = (page / "skin.css").read_text()
+    skin = (page / "shared" / "skin.css").read_text()
     head, sections = [], []
     for f in sorted((page / "widgets").glob("*.html")):
         blocks, body = parts(f.read_text())
         head += blocks
         fixtures = pathlib.Path(__file__).with_name(f"{f.stem}-fixtures.html")
-        bodies = re.split(r"\n(?=<figure)", parts(fixtures.read_text())[1].strip()) if fixtures.exists() else [body]
+        if fixtures.exists():
+            bodies, full = re.split(r"\n(?=<figure)", parts(fixtures.read_text())[1].strip()), 1
+        else:
+            bodies = re.split(r"\n(?=<section)", body.strip())
+            full = len(bodies)
         copies = []
         for mode in MODES:
             for n, one in enumerate(bodies):
-                for state in STATES if n == 0 else STATES[:1]:
+                for state in STATES if n < full else STATES[:1]:
                     uid = f"{f.stem}-{mode}-{state}-{n}"
                     copies.append(f'<div class="theme-{mode}" data-state="{state}">\n'
                                   f'<p class="muted"><code>{f.stem}</code> · {NAMES[state]} · {NAMES[mode]}</p>\n'
                                   f'{fill(in_state(one.replace("{{id}}", uid), state))}</div>')
         sections.append(f'<section aria-labelledby="g-{f.stem}">\n<h2 id="g-{f.stem}"><code>{f.stem}</code></h2>\n'
                         + "\n".join(copies) + "\n</section>")
+    for f in sorted((page / "shared").glob("*.html")):
+        head += parts(f.read_text())[0]
     styles = [b for b in head if b.startswith("<style>")]
     scripts = [b for b in head if b.startswith("<script>")]
     return ("<!doctype html>\n<html lang=\"ko\">\n<meta charset=\"utf-8\">\n"

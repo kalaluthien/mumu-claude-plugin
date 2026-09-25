@@ -1,0 +1,202 @@
+<!-- diagram: a structure or a behaviour drawn; data-diagram picks the kind, and any kind can play its steps.
+  anatomy: a section with an h2 over a div[data-widget="diagram"][data-diagram] holding a figure.stage and, played, an <ol class="steps">; file-tree is nested lists, the SVG kinds are .box nodes and .part lines, each a one-way .edge with its .label (on a .mask where it crosses a line), role="img" with <title> and <desc>, and a key in the figcaption.
+  fill: only the nodes the reader needs; the unchanged neighbours a change touches stay unmarked, to show its reach; a changed node carries data-change="add", "modify" or "remove" and a .tag word; one label carries a real example value; dashed (.inferred) where inferred, not read; .main on 2 boxes at most; .k1-.k4 mark kinds of box, .ok/.warn/.fail an edge's status; SVG coordinates divisible by 4, arrows orthogonal with r=8 elbows, labels 8 px off their line; every id prefixed with {{id}}.
+  kinds: one template each below; copy the one the content needs.
+  file-tree: a system's structure, first on the page: each folder a <details> whose <summary> holds its .name; under a node a .note (its role in one line) or a <blockquote> excerpt with its path:line; open only the level the page is about, the new or central part first; a folder no reader needs is one collapsed line. Played: what a change adds, modifies and removes, one idea per step. Use when: files, modules or components, or a change to them. Not when: under four flat items (a list).
+  system-context: the system as one .box.main in the middle, callers left, callees right, every line labelled with what crosses it. Use when: actors, entry points and boundaries. Not when: the order of calls (use-case).
+  state-machine: an initial dot, each state a rounded .box, a final ring; every transition labelled `event [guard] / action`, a self-loop for an event that keeps the state. Use when: a lifecycle, a status field, a protocol. Not when: calls in order (use-case).
+  use-case: participants as .box across the top, a .lifeline under each, time downward, each call a numbered .part; a step adds 48 to y and to the svg height; two use cases, two copies. Played: a card per call, a .token travels them. Use when: what happens in one use case. Not when: who reaches whom, without order (system-context).
+  played: optional; file-tree by ../shared/slide.html (data-slide, data-labels), use-case by ../shared/swipe.html (data-swipe); the steps one caption each, a file-tree's first the before; a part with data-step="k" shows from step k (an added node appears, a removed one fades, the token moves to the card's data-x and data-y). Not played: delete those attributes, the token and the steps.
+  states: default: still, or played at step 1; hover: a summary or a .part turns accent; focus: the same with an outline, or on a control; open: the tree's folders reveal; disabled: none, played: Back at the first step, Next at the last.
+  motion: a folder's children and a step's parts fade in over --motion, an edge's colour eases over --motion-fast; only on a change of state.
+  keyboard: Tab to each summary or .part, Enter or Space opens a folder; played, the slide's Back and Next or the swipe's strip and arrow keys.
+  screen reader: a summary is a disclosure; the SVG's desc lists its parts in order; a changed node reads its tag; played, each caption is announced as it shows.
+  use when: a structure or a behaviour a figure shows better than prose.
+  not when: rows sharing columns (table); numbers (chart). -->
+<style>
+  [data-widget="diagram"] {
+    --diagram-indent: var(--sp-4); --diagram-add: var(--ok); --diagram-modify: var(--warn);
+    --diagram-remove: var(--fail); --diagram-pending: var(--disabled); --x: 0; --y: 0;
+    & ul { list-style: none; margin: 0; padding-inline-start: var(--diagram-indent); border-inline-start: var(--line) dashed var(--border); }
+    & .stage > ul { padding-inline-start: 0; border: 0; }
+    & .stage:has(> ul) { background: var(--fill); border: var(--line) solid var(--border); padding: var(--sp-2) var(--sp-3); }
+    & li { margin: var(--sp-1) 0; }
+    & .name { font-family: var(--mono); font-size: var(--fs-m); overflow-wrap: anywhere; }
+    & :is(.note, blockquote) { color: var(--muted); font-size: var(--fs-m); margin: var(--sp-1) 0 var(--sp-2) var(--diagram-indent); }
+    & blockquote { color: var(--text); padding-inline-start: var(--sp-2); border-inline-start: var(--line-strong) solid var(--border); }
+    & .tag { font: var(--fs-s) var(--sans); margin-inline-start: var(--sp-1); }
+    & [data-change="add"] .tag { color: var(--diagram-add); }
+    & [data-change="modify"] .tag { color: var(--diagram-modify); }
+    & [data-change="remove"] .tag { color: var(--diagram-remove); }
+    & [data-change="remove"] .name { text-decoration: line-through; color: var(--muted); }
+    & svg { display: block; }
+    & svg text { fill: var(--text); font: var(--fs-svg) var(--sans); }
+    & svg .label { fill: var(--muted); font-size: var(--fs-svg-label); }
+    & .box { fill: var(--fill); stroke: var(--border); }
+    & .box.main { stroke: var(--text); stroke-width: var(--line-strong); }
+    & .box.k1 { stroke: var(--kind-1); } & .box.k2 { stroke: var(--kind-2); } & .box.k3 { stroke: var(--kind-3); } & .box.k4 { stroke: var(--kind-4); }
+    & :is(.start, .end-dot, .tip) { fill: var(--text); }
+    & .end { fill: none; stroke: var(--text); stroke-width: var(--line-strong); }
+    & .edge { stroke: var(--text); stroke-width: var(--line-strong); fill: none; }
+    & .edge.inferred { stroke-dasharray: 4 4; }
+    & .edge.ok { stroke: var(--ok); } & .edge.warn { stroke: var(--warn); } & .edge.fail { stroke: var(--fail); }
+    & .lifeline { stroke: var(--border); stroke-width: var(--line); stroke-dasharray: 4 4; }
+    & .mask { fill: var(--bg); }
+    & .part { outline: none; }
+    & .part:is(:hover, :focus-visible) .edge, [data-state="hover"] & .part:first-of-type .edge { stroke: var(--accent); }
+    & .part:is(:hover, :focus-visible) text, [data-state="hover"] & .part:first-of-type text { fill: var(--accent); }
+    & .part:focus-visible, [data-state="focus"] & .part:first-of-type { outline: var(--line-strong) solid var(--accent); }
+    & .token { fill: var(--accent); display: none; }
+  }
+  @media screen and (prefers-reduced-motion: no-preference) {
+    [data-widget="diagram"] {
+      & :is(.edge, .part text) { transition: stroke var(--motion-fast) var(--ease-out), fill var(--motion-fast) var(--ease-out); }
+      &.live [data-step] { transition: opacity var(--motion) var(--ease-out); }
+      &.live [data-step]:not(.on) { opacity: var(--diagram-pending); }
+      &.live [data-change="add"]:not(.on) { opacity: 0; }
+      &.live [data-change="remove"]:not(.on) { opacity: 1; }
+      &.live [data-change="remove"]:not(.on) .name { text-decoration: none; color: var(--text); }
+      &.live [data-change="remove"].on { opacity: var(--diagram-pending); }
+      &.live [data-change]:not(.on) .tag { visibility: hidden; }
+      &.live .token { display: inline; transform: translate(var(--x), var(--y)); transition: transform var(--motion) var(--ease-out); }
+      &.live .now .edge { stroke: var(--accent); }
+      &.live .now text { fill: var(--accent); }
+    }
+  }
+</style>
+<section aria-labelledby="{{id}}">
+  <h2 id="{{id}}">{{the system, as a noun phrase}}</h2>
+  <div data-widget="diagram" data-diagram="file-tree" data-slide data-labels="{{Back|Next}}">
+    <figure class="stage">
+      <ul>
+        <li><details open><summary><span class="name">{{folder}}/</span></summary>
+          <p class="note">{{its role}}</p>
+          <ul>
+            <li><details><summary><span class="name">{{kept file}}</span></summary>
+              <p class="note">{{its role}}</p>
+              <blockquote><code>{{quoted line}}</code> <span class="muted">{{path:line}}</span></blockquote>
+            </details></li>
+            <li data-change="remove" data-step="2"><span class="name">{{removed file}}</span><span class="tag">{{gone}}</span></li>
+            <li data-change="modify" data-step="3"><span class="name">{{modified file}}</span><span class="tag">{{changed}}</span></li>
+            <li data-change="add" data-step="4"><span class="name">{{added file}}</span><span class="tag">{{new}}</span></li>
+          </ul></details></li>
+      </ul>
+    </figure>
+    <ol class="steps">
+      <li>{{before: the structure, and what is wrong with it}}</li>
+      <li>{{step 2: what goes, and why}}</li>
+      <li>{{step 3: what changes, and why}}</li>
+      <li>{{step 4: what comes, and why}}</li>
+    </ol>
+  </div>
+</section>
+<section aria-labelledby="{{id}}">
+  <h2 id="{{id}}">{{the system and its neighbours, as a noun phrase}}</h2>
+  <div data-widget="diagram" data-diagram="system-context">
+    <figure class="stage scroll" tabindex="0" aria-labelledby="{{id}}-title">
+      <svg width="520" height="160" viewBox="0 0 520 160" role="img" aria-labelledby="{{id}}-title" aria-describedby="{{id}}-desc">
+        <title id="{{id}}-title">{{context: system}}</title>
+        <desc id="{{id}}-desc">{{the figure in one sentence}}</desc>
+        <defs>
+          <marker id="{{id}}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+            <path class="tip" d="M0,0 L10,5 L0,10 z"/>
+          </marker>
+        </defs>
+        <rect class="box" x="8" y="48" width="128" height="64"/>
+        <text x="72" y="76" text-anchor="middle">{{caller}}</text>
+        <text class="label" x="72" y="96" text-anchor="middle">{{person | system}}</text>
+        <rect class="box main" x="196" y="40" width="128" height="80"/>
+        <text x="260" y="76" text-anchor="middle">{{system}}</text>
+        <text class="label" x="260" y="96" text-anchor="middle">{{what it is}}</text>
+        <rect class="box" x="384" y="48" width="128" height="64"/>
+        <text x="448" y="76" text-anchor="middle">{{callee}}</text>
+        <text class="label" x="448" y="96" text-anchor="middle">{{external system}}</text>
+        <g class="part" tabindex="0">
+          <path class="edge" d="M136,80 H192" marker-end="url(#{{id}}-arrow)"/>
+          <rect class="mask" x="136" y="128" width="248" height="24"/>
+          <text class="label" x="140" y="144">{{what crosses, e.g. POST /jobs id=7}}</text>
+        </g>
+        <g class="part" tabindex="0">
+          <path class="edge inferred" d="M324,80 H380" marker-end="url(#{{id}}-arrow)"/>
+        </g>
+      </svg>
+      <figcaption class="muted">{{box, line, dashed: what each means; what was merged or dropped}}</figcaption>
+    </figure>
+  </div>
+</section>
+<section aria-labelledby="{{id}}">
+  <h2 id="{{id}}">{{the thing and its states, as a noun phrase}}</h2>
+  <div data-widget="diagram" data-diagram="state-machine">
+    <figure class="stage scroll" tabindex="0" aria-labelledby="{{id}}-title">
+      <svg width="520" height="168" viewBox="0 0 520 168" role="img" aria-labelledby="{{id}}-title" aria-describedby="{{id}}-desc">
+        <title id="{{id}}-title">{{states: thing}}</title>
+        <desc id="{{id}}-desc">{{the states, then each transition as from, event, to}}</desc>
+        <defs>
+          <marker id="{{id}}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+            <path class="tip" d="M0,0 L10,5 L0,10 z"/>
+          </marker>
+        </defs>
+        <circle class="start" cx="24" cy="80" r="8"/>
+        <path class="edge" d="M32,80 H60" marker-end="url(#{{id}}-arrow)"/>
+        <rect class="box main" x="64" y="56" width="128" height="48" rx="8"/>
+        <text x="128" y="84" text-anchor="middle">{{state A}}</text>
+        <rect class="box" x="288" y="56" width="128" height="48" rx="8"/>
+        <text x="352" y="84" text-anchor="middle">{{state B}}</text>
+        <circle class="end" cx="488" cy="80" r="12"/>
+        <circle class="end-dot" cx="488" cy="80" r="6"/>
+        <g class="part" tabindex="0">
+          <path class="edge" d="M192,80 H284" marker-end="url(#{{id}}-arrow)"/>
+          <text class="label" x="240" y="72" text-anchor="middle">{{event, e.g. submit id=7}}</text>
+        </g>
+        <g class="part" tabindex="0">
+          <path class="edge" d="M352,104 V124 Q352,132 344,132 H136 Q128,132 128,124 V108" marker-end="url(#{{id}}-arrow)"/>
+          <text class="label" x="240" y="152" text-anchor="middle">{{event [guard] / action}}</text>
+        </g>
+        <g class="part" tabindex="0">
+          <path class="edge inferred" d="M112,56 V40 Q112,32 120,32 H136 Q144,32 144,40 V52" marker-end="url(#{{id}}-arrow)"/>
+          <text class="label" x="128" y="24" text-anchor="middle">{{event that keeps the state}}</text>
+        </g>
+        <g class="part" tabindex="0">
+          <path class="edge" d="M416,80 H472" marker-end="url(#{{id}}-arrow)"/>
+        </g>
+      </svg>
+      <figcaption class="muted">{{dot, box, ring, bold box, dashed: what each means; what was merged or dropped}}</figcaption>
+    </figure>
+  </div>
+</section>
+<section aria-labelledby="{{id}}">
+  <h2 id="{{id}}">{{use case, as a noun phrase}}</h2>
+  <div data-widget="diagram" data-diagram="use-case" data-swipe>
+    <figure class="stage scroll" tabindex="0" aria-labelledby="{{id}}-title">
+      <svg width="520" height="208" viewBox="0 0 520 208" role="img" aria-labelledby="{{id}}-title" aria-describedby="{{id}}-desc">
+        <title id="{{id}}-title">{{flow: use case}}</title>
+        <desc id="{{id}}-desc">{{the flow in one sentence}}</desc>
+        <defs>
+          <marker id="{{id}}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+            <path class="tip" d="M0,0 L10,5 L0,10 z"/>
+          </marker>
+        </defs>
+        <rect class="box" x="8" y="8" width="128" height="40"/>
+        <text x="72" y="32" text-anchor="middle">{{participant A}}</text>
+        <rect class="box" x="196" y="8" width="128" height="40"/>
+        <text x="260" y="32" text-anchor="middle">{{participant B}}</text>
+        <rect class="box" x="384" y="8" width="128" height="40"/>
+        <text x="448" y="32" text-anchor="middle">{{participant C}}</text>
+        <path class="lifeline" d="M72,48 V200 M260,48 V200 M448,48 V200"/>
+        <g class="part" tabindex="0" data-step="1"><path class="edge" d="M72,88 H256" marker-end="url(#{{id}}-arrow)"/>
+          <text class="label" x="80" y="80">1 {{call and its value}}</text></g>
+        <g class="part" tabindex="0" data-step="2"><path class="edge" d="M260,136 H444" marker-end="url(#{{id}}-arrow)"/>
+          <text class="label" x="268" y="128">2 {{call}}</text></g>
+        <g class="part" tabindex="0" data-step="3"><path class="edge" d="M448,184 H76" marker-end="url(#{{id}}-arrow)"/>
+          <text class="label" x="268" y="176">3 {{reply}}</text></g>
+        <circle class="token" cx="0" cy="0" r="6"/>
+      </svg>
+      <figcaption class="muted">{{what was left out of this use case}}</figcaption>
+    </figure>
+    <ol class="steps">
+      <li data-x="256" data-y="88">{{step 1: what moves, and why}}</li>
+      <li data-x="444" data-y="136">{{step 2: what moves, and why}}</li>
+      <li data-x="76" data-y="184">{{step 3: what comes back, and why}}</li>
+    </ol>
+  </div>
+</section>

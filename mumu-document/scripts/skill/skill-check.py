@@ -2,14 +2,14 @@
 """Check the writing-documents skill's mapping, widgets and design system; print `pass` or each failure.
 
 usage: skill-check.py [skill dir], default the writing-documents skill beside this script.
-A unit is a widget file in references/artifact/widgets/. Fails on:
+A unit is a widget in references/artifact/widgets/ or a shared part in references/artifact/shared/. Fails on:
 - a mapping row in SKILL.md naming no widget file; a row naming a widget whose spec has a
   `kinds` field but none of its kinds, or a further backticked word no spec line starts with;
 - in a unit: a literal colour anywhere; a literal size or duration in its CSS (a <style>
   or a style=""; SVG geometry attributes are content); a primitive token (--p-*) or a
-  token neither the skin nor the unit defines; a spec comment missing a field, or a
-  states field missing a state;
-- in references/artifact/skin.css: a missing token kind; a motion token over 200ms; a colour pair under
+  token neither the skin nor the unit defines; in a widget, a spec comment missing a field,
+  or a states field missing a state;
+- in references/artifact/shared/skin.css: a missing token kind; a motion token over 200ms; a colour pair under
   WCAG AA in light or dark: text, link and status 4.5:1, border and diagram kinds 3:1; two
   diagram kinds under CIEDE2000 10 apart, to normal vision or after simulating deuteranopia
   or protanopia (Machado 2009, full severity); sequential steps not moving away from --bg
@@ -150,7 +150,7 @@ def palette_failures(skin):
     return out
 
 
-def unit_failures(f, semantic):
+def unit_failures(f, semantic, widget=True):
     out, text = [], f.read_text()
     for n, line in enumerate(text.splitlines(), 1):
         if LITERAL.search(line):
@@ -166,6 +166,8 @@ def unit_failures(f, semantic):
             out.append(f"{f.name}: reads primitive {name}")
         elif name not in semantic and name not in own:
             out.append(f"{f.name}: token {name} is not in skin.css or {f.name}")
+    if not widget:
+        return out
     spec = re.match(r"<!--(.*?)-->", text, re.S)
     spec = spec.group(1) if spec else ""
     for field in FIELDS:
@@ -195,10 +197,13 @@ def failures(skill):
                 out.append(f"SKILL.md: `{word}` is not in {name}.html's spec")
         if re.search(r"^\s*kinds:", spec, re.M) and not words:
             out.append(f"SKILL.md: a mapping row names `{name}` but none of its kinds")
-    tokens = dict(DEFINED.findall((skill / "references" / "artifact" / "skin.css").read_text()))
+    shared = skill / "references" / "artifact" / "shared"
+    tokens = dict(DEFINED.findall((shared / "skin.css").read_text()))
     semantic = {t for t in tokens if not t.startswith("--p-")}
     for f in sorted(widgets.glob("*.html")):
         out += unit_failures(f, semantic)
+    for f in sorted(shared.glob("*.html")):
+        out += unit_failures(f, semantic, widget=False)
     for kind in KINDS:
         if not any(t.startswith(kind) for t in tokens):
             out.append(f"skin.css: no {kind}* token")
