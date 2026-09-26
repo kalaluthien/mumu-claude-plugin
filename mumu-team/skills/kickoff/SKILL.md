@@ -37,7 +37,7 @@ The only place these terms are defined; every other file uses them as written he
 | goal | an issue labelled `kind:goal`: an outcome the owner wants, owned by its project's leader, split into goals or tasks at any depth; closed as completed when all it holds is done and its criteria pass |
 | root goal | a goal with no parent: the leader holds it; another project's work is a root goal in that project's repository |
 | task | an issue labelled `kind:task` and `effort:<effort>`: one change, one pull request, one worker, never split; owned by its worker, closed as completed by its merged pull request |
-| backlog | an issue labelled `kind:backlog`: the owner's words kept for later, owned by no one and never worked; relabelled `kind:goal`, it starts |
+| backlog | an issue labelled `kind:backlog`: the owner's words kept for later, owned by no one and never worked; its body is the first words as said, and later words go on it as comments; relabelled `kind:goal` or `kind:task`, its body is replaced by the contract and it starts |
 | kind | exactly one of the labels `kind:goal`, `kind:task`, `kind:backlog`; `effort:*` means effort only. A closed issue of the same kind as new work is reopened, never filed again |
 | body | an issue's current contract, only `## Goal` and `## Definition of done`, edited in place |
 | comment | history: a record opening with its keyword, or a plain reference comment |
