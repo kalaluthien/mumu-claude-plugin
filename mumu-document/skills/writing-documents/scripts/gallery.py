@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Write the design system's gallery: every widget in every state, light and dark.
 
-usage: gallery.py <out.html> [skill dir], default the writing-documents skill beside this script.
+usage: gallery.py <out.html> [skill dir], default the skill this script sits in.
 Each copy sits in a .theme-light or .theme-dark box with data-state set, which the skin and
 the widgets read to force that state. A widget shows each template section in every state; a
 widget with fixtures beside this script (<widget>-fixtures.html, filled copies) shows each fixture
@@ -89,7 +89,7 @@ def contents(body):
 
 def main():
     skill = pathlib.Path(sys.argv[2]) if len(sys.argv) > 2 else \
-        pathlib.Path(__file__).resolve().parents[2] / "skills" / "writing-documents"
+        pathlib.Path(__file__).resolve().parents[1]
     pathlib.Path(sys.argv[1]).write_text(gallery(skill))
     return 0
 

@@ -23,7 +23,7 @@ link on a repository page, so it follows the branch it is read on.
 
 1. Draw the figure as its widget on a page, by [artifact.md](artifact.md)'s
    Composition; its labels may stay English, since the page is not published.
-2. Export it: `"${CLAUDE_PLUGIN_ROOT}/scripts/page/svg-export.py" <page>
+2. Export it: `"${CLAUDE_PLUGIN_ROOT}/skills/writing-documents/scripts/svg-export.py" <page>
    <dir>` writes `<dir>/<page>-<n>.svg`, one per figure, styles inlined.
 3. On GitHub, reference it as `![<what it shows>](./<page>-<n>.svg)` and pass
    `--attach './<page>-<n>.svg#<what it shows>'` to `gh pr|issue

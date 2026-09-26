@@ -30,8 +30,8 @@ else is plain HTML the skin styles: headings over paragraphs, lists, a
 `<table>`, evidence in `<details>`, code in `<pre>`. The content picks
 the widget, one rule per row; a new rule is a new row naming a file in
 `references/artifact/widgets/` and, for `diagram` and `chart`, its kind, and
-`scripts/skill/skill-check.py` fails on any other. Data is drawn only by the
-`chart` widget, with no chart library. `scripts/skill/gallery.py` renders
+`scripts/skill-check.py` fails on any other. Data is drawn only by the
+`chart` widget, with no chart library. `scripts/gallery.py` renders
 every widget in every state, light and dark. A figure in markdown is an SVG
 image, exported by [markdown.md](references/markdown.md).
 
@@ -78,6 +78,6 @@ Delivered anywhere, give the one-sentence version in chat.
   only its settled answers; nothing is written before.
 - Reread for order, each claim against its evidence, cuts and register.
 - The checks the routed file names print `pass`.
-- An Artifact page: `"${CLAUDE_PLUGIN_ROOT}/scripts/page/check.py" <page.html>` prints one line per check, then `pass` or `FAIL`.
+- An Artifact page: `"${CLAUDE_PLUGIN_ROOT}/skills/writing-documents/scripts/check.py" <page.html>` prints one line per check, then `pass` or `FAIL`.
 - A rejected draft is edited only after a reader, an editor and a hostile
   fact-checker each say why it fails.

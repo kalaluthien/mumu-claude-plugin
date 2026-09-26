@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check the writing-documents skill's mapping, widgets and design system; print `pass` or each failure.
 
-usage: skill-check.py [skill dir], default the writing-documents skill beside this script.
+usage: skill-check.py [skill dir], default the skill this script sits in.
 A unit is a widget in references/artifact/widgets/ or a shared part in references/artifact/shared/. Fails on:
 - a mapping row in SKILL.md naming no widget file; a row naming a widget whose spec has a
   `kinds` field but none of its kinds, or a further backticked word no spec line starts with;
@@ -192,7 +192,7 @@ def failures(skill):
 
 def main():
     skill = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else \
-        pathlib.Path(__file__).resolve().parents[2] / "skills" / "writing-documents"
+        pathlib.Path(__file__).resolve().parents[1]
     out = failures(skill)
     print("\n".join(out + ["FAIL"]) if out else "pass")
     return 1 if out else 0
