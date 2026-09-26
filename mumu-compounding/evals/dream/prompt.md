@@ -5,7 +5,7 @@ allowed_tools: [Bash, Read, Glob, Grep, Edit, Write]
 runs: 3
 ---
 
-/mumu-compounding:dream with config folder ./config. AskUserQuestion is not available here, so write the input you would give it to ./question.json instead, then take my pick: every fix except those on orphan.md. First build the fixture with this one Bash call, then run the skill:
+/mumu-compounding:dream with config folder ./config. AskUserQuestion is not available here, so write the input you would give it in round n to ./question-n.json instead, then take my pick in every round: every fix except those on orphan.md. First build the fixture with this one Bash call, then run the skill:
 
 ```sh
 mkdir -p config/projects/-a/memory config/projects/-b/memory

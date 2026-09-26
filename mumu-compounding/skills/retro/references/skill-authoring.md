@@ -65,6 +65,14 @@ row last; the agent copies that playbook's steps verbatim into its todo list,
 because a paraphrase drops them. A check every playbook needs runs after the
 match, and a step cited from another playbook is named with it.
 
+A skill that asks the owner in batches loops within the same call until
+nothing is left but what the owner rejected, never deferring the rest to a
+next run, because the owner invoked it to finish the job. A skill that files
+or curates lessons routes each through retro's whole routing table
+(auto-memory, `CLAUDE.md`, skill, references, agent, hook), never a subset,
+because a lesson routed to fewer destinations stays in memory when a file
+should hold it.
+
 ## Register
 
 Cut a rule before you shorten it: compliance falls with the number of rules
