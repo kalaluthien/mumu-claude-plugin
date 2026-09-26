@@ -12,8 +12,7 @@ The worktree is `<checkout>/.claude/worktrees/<name>`, added detached at
 `origin/<default>` when missing; the git guard is copied into the checkout's
 hooks, and `/.claude/worktrees/` is added to the checkout's `info/exclude` so
 worktrees never show as untracked. The tab sets `MUMU_ROLE=worker`, on which
-`team-watch` exits at once. Claude runs as `--agent mumu-team:worker`, whose
-Stop hook holds it until its task closes or is blocked. The trust dialog
+`team-watch` exits at once. Claude runs as `--agent mumu-team:worker`. The trust dialog
 defaults to "No, exit", so it is answered `down enter`. Prints
 `<name>@<pane> <worktree>`. With `--leader` it is prompted
 `/mumu-team:kickoff work <task-url> leader <address>`. `agent start` is
