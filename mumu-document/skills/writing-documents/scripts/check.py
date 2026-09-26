@@ -206,9 +206,16 @@ HOLDER = ("(function (a) { var t = document.getElementById(decodeURIComponent(a.
           " return t && t.closest('[data-chapter]') ? Array.prototype.indexOf.call(document.querySelectorAll('[data-chapter]'),"
           " t.closest('[data-chapter]')) : -1; })")
 
+# each live swipe's [step reached, steps, its token inside its stage's box, or null with no token]
+SWIPES = ("Array.prototype.map.call(document.querySelectorAll('[data-swipe].live'), function (r) {"
+          " var t = r.querySelector('.token'), a = t && t.getBoundingClientRect(), b = r.querySelector('.stage').getBoundingClientRect();"
+          " return [+r.dataset.at + 1, r.querySelectorAll('.steps > li').length,"
+          " t ? a.left >= b.left - 1 && a.right <= b.right + 1 && a.top >= b.top - 1 && a.bottom <= b.bottom + 1 : null]; })")
+
 
 def browse(page, paged):
-    """(each live swipe's [step reached, steps] once scrolled to its end, a `paged` page's chapter_checks), in real time."""
+    """(each live swipe's [step reached, steps, steps whose token lies outside its stage's view, or None with no token]
+    once scrolled card by card to its end, a `paged` page's chapter_checks), in real time."""
     cmd_r, cmd_w = os.pipe()
     out_r, out_w = os.pipe()
     def fds():  # Chrome reads commands on fd 3 and answers on fd 4
@@ -238,11 +245,19 @@ def browse(page, paged):
         run = lambda js: send("Runtime.evaluate", session, expression=js, returnByValue=True)["result"].get("value")
         time.sleep(1.5)
         chapters = paged and chapter_checks(page, run, lambda url: send("Page.navigate", session, url=url))
-        run("document.querySelectorAll('[data-chapter]').forEach(function (c) { c.hidden = false; });"
-            "document.querySelectorAll('[data-swipe].live .steps').forEach(function (s) { s.scrollLeft = s.scrollWidth; })")
-        time.sleep(1)
-        return run("Array.prototype.map.call(document.querySelectorAll('[data-swipe].live'), function (r) {"
-                   " return [+r.dataset.at + 1, r.querySelectorAll('.steps > li').length]; })"), chapters
+        run("document.querySelectorAll('[data-chapter]').forEach(function (c) { c.hidden = false; })")
+        rows, out = run(SWIPES), {}
+        for k in range(max((n for _, n, _ in rows), default=0)):
+            run(f"document.querySelectorAll('[data-swipe].live .steps').forEach(function (s) {{"
+                f" s.children[Math.min({k}, s.children.length - 1)].scrollIntoView({{inline: 'center', block: 'nearest'}}); }})")
+            time.sleep(1)
+            rows = run(SWIPES)
+            for i, (_, n, seen) in enumerate(rows):
+                if seen is not None:
+                    out.setdefault(i, [])
+                    if not seen and k < n:
+                        out[i].append(k + 1)
+        return [[at, n, out.get(i)] for i, (at, n, _) in enumerate(rows)], chapters
     finally:
         chrome.kill()
 
@@ -468,9 +483,11 @@ def main():
             failed |= bool(out)
             marks = sum(len(p["marks"]) for p in one["panels"])
             print(f"chart {mode} {n} {one['kind']} marks {marks} " + ("FAIL: " + "; ".join(out) if out else "pass"))
-    for i, (at, n) in enumerate(swipes, 1):
-        failed |= at != n
+    for i, (at, n, out) in enumerate(swipes, 1):
+        failed |= at != n or bool(out)
         print(f"swipe {i} step {at}/{n} " + ("pass" if at == n else "FAIL"))
+        if out is not None:
+            print(f"swipe {i} token in view {n - len(out)}/{n} " + ("FAIL: steps " + ", ".join(map(str, out)) if out else "pass"))
     print("FAIL" if failed else "pass")
     return 1 if failed else 0
 
