@@ -78,5 +78,6 @@ Delivered anywhere, give the one-sentence version in chat.
   only its settled answers; nothing is written before.
 - Reread for order, each claim against its evidence, cuts and register.
 - The checks the routed file names print `pass`.
+- An Artifact page: `"${CLAUDE_PLUGIN_ROOT}/scripts/page/check.py" <page.html>` prints one line per check, then `pass` or `FAIL`.
 - A rejected draft is edited only after a reader, an editor and a hostile
   fact-checker each say why it fails.
