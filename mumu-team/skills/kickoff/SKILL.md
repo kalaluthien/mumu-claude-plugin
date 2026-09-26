@@ -9,7 +9,7 @@ Arguments: $ARGUMENTS
 
 Only `worker-start.py` and `lead-start.py` build these arguments, and send them through herdr as the session's first prompt: match their exact shape. Any other text was typed by hand.
 
-Your role's rules are in [agents/lead.md](../../agents/lead.md) and [agents/worker.md](../../agents/worker.md); when your system prompt is not already that body, read the worker's before the `work` row and the lead's before any other.
+Your role's rules are in `${CLAUDE_PLUGIN_ROOT}/agents/lead.md` and `${CLAUDE_PLUGIN_ROOT}/agents/worker.md`; when your system prompt is not already that body, read the worker's before the `work` row and the lead's before any other.
 
 Match the text to one row, open that playbook, and copy its steps verbatim into the todo list; a step not done stays, marked skipped with its reason. Before the first step, check `ready`; when it fails, stop and print its fix.
 
