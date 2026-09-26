@@ -280,7 +280,7 @@ class Reread(unittest.TestCase):
 
 
 
-# `issue list` answers the issues of `held.json` whose kind its arguments name, as `kind:<kind>`.
+# `issue list` answers the issues of `held.json` whose kind its arguments name, as `kind:<kind>`, and scope, as `scope:<folder>`, when named.
 STOP_GH = r'''#!/usr/bin/env python3
 import json, os, pathlib, re, sys
 d = pathlib.Path(os.environ["FAKE"])
@@ -289,7 +289,9 @@ with open(d / "calls", "a") as f:
 a = sys.argv[1:]
 f = d / "held.json"
 kinds = set(re.findall(r"kind:(\w+)", " ".join(a)))
-print(json.dumps([{"url": i["url"]} for i in json.loads(f.read_text() if f.exists() else "[]") if i["kind"] in kinds]))
+scope = re.search(r"scope:([\w-]+)", " ".join(a))
+print(json.dumps([{"url": i["url"]} for i in json.loads(f.read_text() if f.exists() else "[]")
+                  if i["kind"] in kinds and (not scope or i.get("scope") == scope[1])]))
 '''
 
 CLAUDE = 100
@@ -305,9 +307,12 @@ class Hook(unittest.TestCase):
         self.tree = self.tmp / "repo" / ".claude" / "worktrees" / "stop-guard-19-2"
         self.tree.mkdir(parents=True)
 
-    def stop(self, agent_type="mumu-team:worker", cwd=None, goals=(), tasks=(), watch=None):
+    def stop(self, agent_type="mumu-team:worker", cwd=None, goals=(), tasks=(), watch=None, name="r-lead", scoped=()):
         (self.tmp / "held.json").write_text(json.dumps([{"url": u, "kind": "goal"} for u in goals]
-                                                       + [{"url": u, "kind": "task"} for u in tasks]))
+                                                       + [{"url": u, "kind": "task"} for u in tasks]
+                                                       + [{"url": u, "kind": "goal", "scope": f} for u, f in scoped]))
+        (self.tmp / "herdr").write_text(f"#!/bin/sh\necho '{json.dumps({'result': {'agents': [{'name': name, 'pane_id': 'w1:p1'}]}})}'\n")
+        (self.tmp / "herdr").chmod(0o755)
         table = [(1, 0, "launchd"), (CLAUDE, 1, "claude"), (200, 1, "claude --name other")]
         if watch is not None:
             table += [(300, watch, "/bin/zsh -c '\"/p/scripts\"/team-watch.py'"), (301, 300, "python3 /p/scripts/team-watch.py")]
@@ -320,7 +325,7 @@ class Hook(unittest.TestCase):
         commands = [h["command"] for entry in json.loads((PLUGIN / "hooks" / "hooks.json").read_text())["hooks"].get("Stop", [])
                     for h in entry["hooks"]]
         env = dict(os.environ, FAKE=str(self.tmp), CLAUDE_PLUGIN_ROOT=str(PLUGIN), PATH=f"{self.tmp}:{os.environ['PATH']}",
-                   CLAUDE_PID=str(CLAUDE))
+                   CLAUDE_PID=str(CLAUDE), HERDR_PANE_ID="w1:p1")
         outs = [subprocess.run(c, shell=True, input=json.dumps(payload), env=env, capture_output=True, text=True, timeout=30)
                 for c in commands]
         calls = (self.tmp / "calls").read_text().splitlines() if (self.tmp / "calls").exists() else []
@@ -366,6 +371,16 @@ class LeadStop(Hook):
         self.assertTrue(self.refused(outs))
         self.assertIn(HELD_TASK, self.reason(outs))
         self.assertFalse(self.refused(self.lead(tasks=[HELD_TASK], watch=CLAUDE)[0]))
+
+    def test_folder_lead_counts_only_its_scope_and_repo_lead_counts_all(self):
+        (self.tmp / "repo" / "docs").mkdir()
+        scoped = [(HELD_GOAL, "team")]
+        self.assertFalse(self.refused(self.lead(name="docs-lead", scoped=scoped)[0]))
+        outs, calls = self.lead(name="docs-lead", scoped=[*scoped, (HELD_TASK, "docs")])
+        self.assertTrue(self.refused(outs))
+        self.assertNotIn(HELD_GOAL, self.reason(outs))
+        self.assertIn("label:scope:docs", " ".join(json.loads(calls[0])))
+        self.assertIn(HELD_GOAL, self.reason(self.lead(name="r-lead", scoped=scoped)[0]))
 
     def test_lead_stops_otherwise(self):
         for kwargs in ({"goals": [HELD_GOAL], "watch": CLAUDE}, {}, {"watch": CLAUDE}):

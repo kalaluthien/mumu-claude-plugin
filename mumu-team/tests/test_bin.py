@@ -329,7 +329,7 @@ elif a[:2] == ["agent", "prompt"]:
     (d / "prompted").touch()
 elif a[:2] == ["agent", "list"]:
     status = "blocked" if blocked else "working" if (d / "prompted").exists() else "idle"
-    print(json.dumps({"result": {"agents": [{"name": (d / "name").read_text() if (d / "name").exists() else "", "agent_status": status, "interactive_ready": not blocked}]}}))
+    print(json.dumps({"result": {"agents": [{"name": (d / "name").read_text() if (d / "name").exists() else "", "pane_id": "w9:p9", "agent_status": status, "interactive_ready": not blocked}]}}))
 ''' % PANE
 
 
@@ -535,6 +535,13 @@ class LeadStart(unittest.TestCase):
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertEqual(self.claude_argv(calls), ("main-lead-next", ["--name", "main-lead", "--agent", "mumu-team:lead", "--model", "opus", "--effort", "high"]))
         self.assertIn(["herdr", "agent", "prompt", PANE, "/mumu-team:kickoff succeed w9:p9"], calls)
+
+    def test_succeed_from_a_folder_lead_keeps_its_name(self):
+        (self.tmp / "name").write_text("docs-lead")
+        done, calls = self.start("--succeed", "w9:p9")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(self.claude_argv(calls)[0], "docs-lead-next")
+        self.assertEqual(self.claude_argv(calls)[1][:2], ["--name", "docs-lead"])
 
     def test_live_lead_refuses_a_second(self):
         (self.tmp / "name").write_text("main-lead")
