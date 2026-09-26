@@ -40,7 +40,8 @@ file for every project.
    - a lesson a skill, a references file, an agent or a hook should hold:
      FILE a task, an issue without the `backlog` label, in the repository
      whose checkout holds that file (`git -C <its folder> remote get-url
-     origin`), with its `scope:<folder>` label where the repository has such labels, its body a
+     origin`), with its `scope:<folder>` label where the repository has
+     such labels, its body a
      `## Goal` naming the file and the lesson and a `## Definition of done`
      whose check finds the lesson in that file; the pool entry stays until
      the repository states it;
