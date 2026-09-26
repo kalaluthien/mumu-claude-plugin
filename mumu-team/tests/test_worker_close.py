@@ -10,13 +10,7 @@ import sys
 import tempfile
 import unittest
 
-# The session's name keys its mission (`team.mission_path`): run as no named Claude session.
-os.environ["CLAUDE_PID"] = str(os.getpid())
-
 BIN = pathlib.Path(__file__).resolve().parent.parent / "bin"
-ISSUE = "https://github.com/o/r/issues/7"
-OTHER = "SUBSCRIBE: other-8 https://github.com/o/r/issues/8\n"
-LEAD = "GOAL: g\nMISSION: leader of https://github.com/o/r/issues/1\n"
 
 # State lives in files under $FAKE: `alive` while the session runs, `exiting` counts the polls a plain /exit takes to leave herdr's list,
 # and `screen` names the exit dialog showing. /exit shows the `background` dialog when that file exists, else the screen a `draft`
@@ -44,8 +38,6 @@ if a[:2] == ["agent", "list"]:
             exiting.unlink()
             alive.unlink()
     agent = {"name": "close-7", "pane_id": "w1:p7", "tab_id": "w1:t7", "agent_status": "idle"}
-    if (d / "session").exists():
-        agent["agent_session"] = {"agent": "claude", "kind": "id", "value": (d / "session").read_text()}
     agents = [agent] if alive.exists() else []
     print(json.dumps({"result": {"agents": agents}}))
 elif a[:2] == ["agent", "prompt"] and a[3] == "/exit" and not (d / "stuck").exists():
@@ -76,17 +68,10 @@ class WorkerClose(unittest.TestCase):
         (self.tmp / "herdr").write_text(FAKE)
         (self.tmp / "herdr").chmod(0o755)
         (self.tmp / "alive").touch()
-        self.mission = self.tmp / "config" / "plugins" / "data" / "mumu-team-x" / "mission" / "s1.md"
-        self.mission.parent.mkdir(parents=True)
-        self.mission.write_text(LEAD + f"SUBSCRIBE: close-7 {ISSUE}\n" + OTHER)
-        self.worker = self.mission.with_name("w7.md")
-        self.worker.write_text(f"GOAL: g\nMISSION: worker on {ISSUE}\n")
-        (self.tmp / "session").write_text("w7")
 
     def close(self):
         env = dict(os.environ, FAKE=str(self.tmp), PATH=f"{self.tmp}:{os.environ['PATH']}",
-                   WORKER_CLOSE_TIMEOUT="1", WORKER_CLOSE_POLL="0.01",
-                   CLAUDE_CONFIG_DIR=str(self.tmp / "config"), CLAUDE_CODE_SESSION_ID="s1")
+                   WORKER_CLOSE_TIMEOUT="1", WORKER_CLOSE_POLL="0.01")
         done = subprocess.run([sys.executable, str(BIN / "worker-close.py"), "close-7"],
                               env=env, capture_output=True, text=True, timeout=30)
         calls = [json.loads(l) for l in (self.tmp / "calls").read_text().splitlines()]
@@ -97,8 +82,6 @@ class WorkerClose(unittest.TestCase):
         self.assertEqual(done.stdout, "closed close-7\n")
         self.assertFalse((self.tmp / "alive").exists(), "session left running")
         self.assertEqual([c for c in calls if c[:2] == ["tab", "close"]], [["tab", "close", "w1:t7"]])
-        self.assertEqual(self.mission.read_text(), LEAD + OTHER)
-        self.assertFalse(self.worker.exists(), "worker mission left")
 
     def test_exit_without_dialog_sends_no_keys(self):
         done, calls = self.close()
@@ -144,56 +127,18 @@ class WorkerClose(unittest.TestCase):
         self.assertEqual(done.returncode, 1)
         self.assertEqual(self.keys(calls), [["esc"]])
 
-    def test_missing_worker_mission_is_no_error(self):
-        self.worker.unlink()
-        self.assertClosed(*self.close())
-
-    def test_worker_mission_keyed_by_its_name_is_deleted(self):
-        (self.tmp / "session").unlink()
-        named = self.mission.with_name("close-7.md")
-        named.write_text(f"GOAL: g\nMISSION: worker on {ISSUE}\n")
-        self.assertEqual(self.close()[0].returncode, 0)
-        self.assertFalse(named.exists(), "worker mission keyed by name left")
-
-    def test_successor_closing_its_original_keeps_their_shared_mission(self):
-        (self.tmp / "session").unlink()
-        self.mission.rename(self.mission.with_name("close-7.md"))
-        self.mission = self.mission.with_name("close-7.md")
-        env = dict(os.environ, FAKE=str(self.tmp), PATH=f"{self.tmp}:{os.environ['PATH']}",
-                   WORKER_CLOSE_TIMEOUT="1", WORKER_CLOSE_POLL="0.01", CLAUDE_CONFIG_DIR=str(self.tmp / "config"),
-                   CLAUDE_CODE_SESSION_ID="s1", CLAUDE_PID=self.claude("close-7"))
-        done = subprocess.run([sys.executable, str(BIN / "worker-close.py"), "close-7"], env=env,
-                              capture_output=True, text=True, timeout=30)
-        self.assertEqual(done.returncode, 0, done.stderr)
-        self.assertTrue(self.mission.exists(), "the successor's own mission deleted")
-
-    def claude(self, name):
-        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)", "--name", name])
-        self.addCleanup(proc.kill)
-        return str(proc.pid)
-
-    def test_unknown_session_id_is_no_error_and_deletes_nothing(self):
-        (self.tmp / "session").unlink()
-        done, calls = self.close()
-        self.assertEqual(done.returncode, 0, done.stderr)
-        self.assertTrue(self.worker.exists())
-        self.assertEqual(self.mission.read_text(), LEAD + OTHER)
-
-    def test_session_already_gone_still_closes_tab_and_line(self):
+    def test_session_already_gone_still_closes_its_tab(self):
         (self.tmp / "alive").unlink()
-        self.worker.unlink()
         done, calls = self.close()
         self.assertClosed(done, calls)
         self.assertFalse([c for c in calls if c[:2] == ["agent", "prompt"]])
 
-    def test_session_that_never_exits_keeps_tab_and_line(self):
+    def test_session_that_never_exits_keeps_its_tab(self):
         (self.tmp / "stuck").touch()
         done, calls = self.close()
         self.assertEqual(done.returncode, 1)
         self.assertIn("herdr agent read w1:p7", done.stderr)
         self.assertFalse([c for c in calls if c[:2] == ["tab", "close"]])
-        self.assertIn(f"SUBSCRIBE: close-7 {ISSUE}", self.mission.read_text())
-        self.assertTrue(self.worker.exists(), "mission deleted while its session runs")
 
 
 if __name__ == "__main__":

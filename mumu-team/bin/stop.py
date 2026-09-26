@@ -5,18 +5,16 @@ Only `agent_type` `mumu-team:worker` or `mumu-team:lead` is read; any other
 session stops and reads nothing. What `gh` cannot read lets the session stop,
 so an outage never traps it.
 
-Worker: the issue is the `<n>` of the worktree `.claude/worktrees/<topic>-<n>`
+Worker: its task is the `<n>` of the worktree `.claude/worktrees/<topic>-<n>-<k>`
 the cwd lies in, its branch the worktree's name; a cwd outside one stops. It
-stops once the issue is closed, a pull request from its branch merged, or the
-issue's last comment is `BLOCKED:`, `STOPPED:` or `WAITING:` (any case, the
-colon optional). Otherwise the reason names the next step: `merge.py` for an
-approved head, fixing a newest `FINDINGS:`, opening a missing pull request.
+stops once the task is closed, or while its last keyword comment is
+`BLOCKED:` (any case, the colon optional). Otherwise the reason names the next
+step: `merge.py` for an approved head, fixing a newest `FINDINGS:`, opening a
+missing pull request.
 
-Lead: its mission is `$CLAUDE_PLUGIN_DATA/mission/<session id>.md`; none, it
-stops. It is refused when a monitor of `ensure-monitors.py` is not running, an
-open sub-issue of a parent its mission leads has `BLOCKED:` as its last
-comment, a `SUBSCRIBE:` line names a worker whose branch merged, or a parent
-stays open with every sub-issue closed. Waiting on the owner stops.
+Lead: refused only while its checkout's repository has an open root goal and
+no `team-watch` process descends from `$CLAUDE_PID`; the reason names the
+command to arm with the Monitor tool.
 """
 import json
 import os
@@ -30,12 +28,7 @@ sys.path.insert(0, str(BIN.parent / "lib"))
 import team  # noqa: E402
 from merge import approved  # noqa: E402
 
-RECORD = re.compile(r"\s*(blocked|stopped|waiting)\b", re.I)
-REVIEW = re.compile(r"\s*(approved|findings)\b", re.I)
-BLOCKED = re.compile(r"\s*blocked\b", re.I)
-ISSUE = re.compile(r"https://github\.com/([\w.-]+)/([\w.-]+)/issues/(\d+)")
-SUB_ISSUES = ("query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){issue(number:$n){"
-              "state subIssues(first:100){nodes{url state comments(last:1){nodes{body}}}}}}}")
+KEYWORD = re.compile(r"\s*(blocked|decided|approved|findings)\b", re.I)
 
 payload = json.load(sys.stdin)
 cwd = payload.get("cwd") or "."
@@ -49,92 +42,68 @@ def gh(*args):
         sys.exit(0)
 
 
-def tip(repo, branch):
-    """The sha the remote `branch` of `repo` (`owner/name`, or `{owner}/{repo}` for cwd's) points at, or None."""
-    ref = gh("api", f"repos/{repo}/git/ref/heads/{branch}")
-    return ref.get("object", {}).get("sha") if isinstance(ref, dict) else None
-
-
-def current(prs, repo, branch, closed):
-    """Whether a merged one of `prs` is the branch's current claim: its head is the branch's tip, or the branch is gone (deleted after its merge) while its issue is `closed`, so a merge under a reused name before the reopen does not count."""
-    merged = [p["headRefOid"] for p in prs if p["state"] == "MERGED"]
-    if not merged:
-        return False
-    t = tip(repo, branch)
-    return t in merged if t else closed
-
-
 def block(reason):
     print(json.dumps({"decision": "block", "reason": reason}))
     sys.exit(0)
 
 
+def last_keyword(comments):
+    """The lowercased keyword of the newest comment that opens with one, or None."""
+    found = [m[1].lower() for c in comments if (m := KEYWORD.match(c["body"]))]
+    return found[-1] if found else None
+
+
 def worker():
-    tree = re.search(r"/\.claude/worktrees/([^/]+-(\d+))(?:/|$)", cwd)
+    tree = re.search(r"/\.claude/worktrees/([a-z0-9-]+-(\d+)-\d+)(?:/|$)", cwd)
     if not tree:
         return
-    branch, issue = tree[1], tree[2]
-    read = gh("issue", "view", issue, "--json", "state,comments")
-    if read["state"] == "CLOSED" or read["comments"] and RECORD.match(read["comments"][-1]["body"]):
+    branch, task = tree[1], tree[2]
+    read = gh("issue", "view", task, "--json", "state,comments")
+    if read["state"] == "CLOSED" or last_keyword(read["comments"]) == "blocked":
         return
-    prs = [p for p in gh("pr", "list", "--head", branch, "--state", "all", "--json",
-                         "url,state,headRefName,headRefOid,comments,reviews") if p.get("headRefName") == branch]
-    if current(prs, "{owner}/{repo}", branch, False):
-        return
-    pr = next((p for p in prs if p["state"] == "OPEN"), None)
-    if pr is None:
-        block(f"Issue #{issue} has no open pull request: write the criteria table and open it with `pr`, "
+    prs = [p for p in gh("pr", "list", "--head", branch, "--state", "open", "--json",
+                         "url,headRefName,headRefOid,comments,reviews") if p.get("headRefName") == branch]
+    if not prs:
+        block(f"Task #{task} has no open pull request: write the criteria table and open it with `pr`, "
               "then launch its reviewer, before you stop.")
+    pr = prs[0]
     if approved(pr):
         block(f"{pr['url']} is approved at its head: run `merge.py {pr['url']}` as a Bash call of its own, "
               "then `prompt` the leader `see <pr-url>`; while the owner's sign-off is pending, push any pending commit, "
-              "else `comment` `BLOCKED: owner review of <pr-url>` on the issue.")
+              "else `comment` `BLOCKED: owner review of <pr-url>` on the task.")
     notes = [(n.get("createdAt") or n.get("submittedAt") or "", n["body"]) for n in (pr.get("comments") or []) + (pr.get("reviews") or [])]
-    records = [body for _, body in sorted(notes) if REVIEW.match(body)]
-    if records and records[-1].lstrip()[:8].lower() == "findings":
+    if last_keyword([{"body": body} for _, body in sorted(notes)]) == "findings":
         block(f"The newest review record on {pr['url']} is `FINDINGS:`: fix each, rerun every criterion, push, "
               f"and resume that reviewer with `SendMessage` `see {pr['url']}`.")
-    block(f"Issue #{issue} is still open: merge its pull request at an approved sha, or `comment` "
-          "`BLOCKED: <question>` on it and `prompt` the leader `see <issue-url>`, or `WAITING: <what>` when another "
-          "worker will send you `see <url>`, before you stop. While your own reviewer or eval runs, wait in one "
-          "bounded foreground Bash poll (`for i in $(seq 1 36); do <done-test> && break; sleep 10; done`) instead of stopping.")
+    block(f"Task #{task} is still open: merge its pull request at an approved sha, or `comment` "
+          "`BLOCKED: <question>` on it and `prompt` the leader `see <task-url>`, before you stop. While your own "
+          "reviewer or eval runs, wait in one bounded foreground Bash poll "
+          "(`for i in $(seq 1 36); do <done-test> && break; sleep 10; done`) instead of stopping.")
+
+
+def watching(root):
+    """Whether a `team-watch.py` process descends from pid `root`."""
+    table = subprocess.run(["ps", "-axo", "pid=,ppid=,command="], capture_output=True, text=True).stdout.splitlines()
+    rows = [(int(r[0]), int(r[1]), r[2] if len(r) > 2 else "") for r in (line.split(None, 2) for line in table)]
+    parent = {pid: ppid for pid, ppid, _ in rows}
+
+    def descends(pid):
+        seen = set()
+        while pid in parent and pid not in seen:
+            seen.add(pid)
+            pid = parent[pid]
+            if pid == root:
+                return True
+        return False
+
+    return any("/team-watch.py" in command and descends(pid) for pid, _, command in rows)
 
 
 def lead():
-    path = team.mission_path(os.environ.get("CLAUDE_PLUGIN_DATA", ""), payload.get("session_id"))
-    if not path.is_file():
-        return
-    read = team.read_mission(path.read_text())
-    if read is None:
-        return
-    parents, workers = read
-    steps = []
-    env = dict(os.environ, CLAUDE_CODE_SESSION_ID=payload.get("session_id", ""))
-    missing = subprocess.run([sys.executable, str(BIN / "ensure-monitors.py")], env=env, capture_output=True, text=True)
-    if missing.returncode == 0 and missing.stdout.strip():
-        steps.append("A lead monitor is not running: run `ensure-monitors.py` and arm each command it prints with the Monitor tool.")
-    for parent in parents:
-        m = ISSUE.fullmatch(parent)
-        if not m:
-            continue
-        issue = gh("api", "graphql", "-f", f"query={SUB_ISSUES}", "-F", f"o={m[1]}", "-F", f"r={m[2]}", "-F", f"n={m[3]}")
-        issue = ((issue.get("data") or {}).get("repository") or {}).get("issue")
-        if not issue:
-            continue
-        subs = issue["subIssues"]["nodes"]
-        for sub in subs:
-            last = sub["comments"]["nodes"]
-            if sub["state"] == "OPEN" and last and BLOCKED.match(last[-1]["body"]):
-                steps.append(f"{sub['url']} ends in `BLOCKED:`: `comment` the answer, then `prompt` its worker `see <issue-url>`.")
-        if issue["state"] == "OPEN" and subs and all(s["state"] == "CLOSED" for s in subs):
-            steps.append(f"Every sub-issue of {parent} is closed: go to Lead 5 and `resolve` it.")
-    for name, url in workers.items():
-        m = ISSUE.fullmatch(url)
-        if m and current(gh("pr", "list", "-R", f"{m[1]}/{m[2]}", "--head", name, "--state", "merged", "--json", "state,headRefOid"),
-                         f"{m[1]}/{m[2]}", name, gh("issue", "view", url, "--json", "state").get("state") == "CLOSED"):
-            steps.append(f"The pull request of {name} merged: `close` its worker with `worker-close.py {name}`.")
-    if steps:
-        block(" ".join(steps))
+    goals = team.root_goals(cwd)
+    if goals and not watching(int(os.environ.get("CLAUDE_PID") or os.getppid())):
+        block(f"You hold open root goals ({' '.join(goals)}) and `team-watch` is not running: arm "
+              f"`\"{BIN / 'team-watch.py'}\"` with the Monitor tool at its longest timeout, in your checkout, before you stop.")
 
 
 if payload.get("agent_type") == "mumu-team:worker":

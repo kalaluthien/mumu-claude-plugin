@@ -10,13 +10,9 @@ import sys
 import tempfile
 import unittest
 
-# The session's name keys its mission (`team.mission_path`): run as no named Claude session.
-os.environ["CLAUDE_PID"] = str(os.getpid())
-
 BIN = pathlib.Path(__file__).resolve().parent.parent / "bin"
 PANE = "w1:p1"
 ISSUE = "https://github.com/o/r/issues/7"
-LEAD = "GOAL: g\nMISSION: leader of https://github.com/o/r/issues/1\n"
 
 # One fake for all three tools, chosen by the name it is called as; state lives in files under $FAKE.
 FAKE = r'''#!/usr/bin/env python3
@@ -26,17 +22,20 @@ with open(d / "calls", "a") as f:
     f.write(json.dumps([tool] + a) + "\n")
 blocked = (d / "trust").exists() and not (d / "answered").exists()
 if tool == "gh":
-    print("main")
+    print((d / "prs").read_text() if a[:2] == ["pr", "list"] and (d / "prs").exists() else "" if a[:2] == ["pr", "list"] else "main")
 elif tool == "git":
     if a[2:4] == ["worktree", "add"]:
         pathlib.Path(a[5]).mkdir(parents=True)
     elif a[2:4] == ["config", "core.hooksPath"]:
         sys.exit(1)
+    elif a[2] == "ls-remote":
+        print((d / "heads").read_text() if (d / "heads").exists() else "")
     elif a[2] == "rev-parse":
         print(d / a[-1].split("/")[-1])
 elif a[:2] == ["tab", "create"]:
     print(json.dumps({"result": {"root_pane": {"pane_id": "%s"}}}))
 elif a[:2] == ["agent", "start"]:
+    (d / "name").write_text(a[2])
     busy = d / "busy"
     n = int(busy.read_text()) if busy.exists() else 0
     if n:
@@ -52,7 +51,7 @@ elif a[:2] == ["agent", "prompt"]:
     (d / "prompted").touch()
 elif a[:2] == ["agent", "list"]:
     status = "blocked" if blocked else "working" if (d / "prompted").exists() else "idle"
-    print(json.dumps({"result": {"agents": [{"name": "start-7", "agent_status": status, "interactive_ready": not blocked}]}}))
+    print(json.dumps({"result": {"agents": [{"name": (d / "name").read_text() if (d / "name").exists() else "", "agent_status": status, "interactive_ready": not blocked}]}}))
 ''' % PANE
 
 
@@ -64,17 +63,13 @@ class WorkerStart(unittest.TestCase):
         for tool in ("herdr", "git", "gh"):
             (self.tmp / tool).write_text(FAKE)
             (self.tmp / tool).chmod(0o755)
-        self.mission = self.tmp / "config" / "plugins" / "data" / "mumu-team-x" / "mission" / "s1.md"
-        self.mission.parent.mkdir(parents=True)
-        self.mission.write_text(LEAD)
 
-    def start(self, *extra, trust=True, name="start-7", url=ISSUE, effort="low"):
+    def start(self, *extra, trust=True, topic="start", url=ISSUE, effort="low"):
         if trust:
             (self.tmp / "trust").touch()
         env = dict(os.environ, FAKE=str(self.tmp), PATH=f"{self.tmp}:{BIN}:{os.environ['PATH']}",
-                   WORKER_START_TIMEOUT="3", WORKER_START_POLL="0.01",
-                   CLAUDE_CONFIG_DIR=str(self.tmp / "config"), CLAUDE_CODE_SESSION_ID="s1")
-        done = subprocess.run([sys.executable, str(BIN / "worker-start.py"), str(self.repo), name, effort, url, *extra],
+                   WORKER_START_TIMEOUT="3", WORKER_START_POLL="0.01")
+        done = subprocess.run([sys.executable, str(BIN / "worker-start.py"), str(self.repo), topic, effort, url, *extra],
                               env=env, capture_output=True, text=True, timeout=30)
         log = self.tmp / "calls"
         calls = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
@@ -88,8 +83,8 @@ class WorkerStart(unittest.TestCase):
     def test_trust_dialog_answered_yes_then_prompted_and_working(self):
         done, calls = self.start("--prompt", "/mumu-team:kickoff work u leader l")
         self.assertEqual(done.returncode, 0, done.stderr)
-        tree = self.repo / ".claude" / "worktrees" / "start-7"
-        self.assertEqual(done.stdout, f"start-7@{PANE} {tree}\n")
+        tree = self.repo / ".claude" / "worktrees" / "start-7-1"
+        self.assertEqual(done.stdout, f"start-7-1@{PANE} {tree}\n")
         keys = calls.index(["herdr", "agent", "send-keys", PANE, "down", "enter"])
         prompt = calls.index(["herdr", "agent", "prompt", PANE, "/mumu-team:kickoff work u leader l"])
         self.assertLess(keys, prompt, "prompted before the trust dialog was answered")
@@ -117,12 +112,12 @@ class WorkerStart(unittest.TestCase):
         self.assertFalse([c for c in calls if c[1:3] == ["agent", "prompt"]])
 
     def test_continue_reuses_the_worktree_and_resumes(self):
-        (self.repo / ".claude" / "worktrees" / "start-7").mkdir(parents=True)
+        (self.repo / ".claude" / "worktrees" / "start-7-1").mkdir(parents=True)
         done, calls = self.start("--continue", trust=False)
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertFalse([c for c in calls if c[0] == "git" and "worktree" in c])
         start = next(c for c in calls if c[1:3] == ["agent", "start"])
-        self.assertEqual(start[start.index("--") + 1:], ["--name", "start-7", "--agent", "mumu-team:worker", "--model", "opus", "--effort", "low", "--continue"])
+        self.assertEqual(start[start.index("--") + 1:], ["--name", "start-7-1", "--agent", "mumu-team:worker", "--model", "opus", "--effort", "low", "--continue"])
 
     def test_session_never_ready_fails_naming_the_pane(self):
         (self.tmp / "herdr").write_text(FAKE.replace('and blocked:\n', 'and False:\n'))
@@ -142,44 +137,36 @@ class WorkerStart(unittest.TestCase):
         self.assertEqual(done.returncode, 1)
         self.assertIn("agent_pane_busy", done.stderr)
 
-    def test_mission_gets_exactly_one_subscribe_line(self):
-        """Started twice (a `gone` worker resumed), the lead's mission still names it once, after its own lines."""
-        self.start(trust=False)
-        self.start("--continue", trust=False)
-        self.assertEqual(self.mission.read_text(), LEAD + f"SUBSCRIBE: start-7 {ISSUE}\n")
+    def test_attempt_is_one_more_than_the_largest_found(self):
+        """Issue 12 with remote branches `a-12-1` and `b-12-2` gets k=3; other issues' names never count; none found gives k=1."""
+        url = "https://github.com/o/r/issues/12"
+        done, _ = self.start(trust=False, topic="fix-login", url=url)
+        self.assertTrue(done.stdout.startswith("fix-login-12-1@"), done.stdout + done.stderr)
+        (self.tmp / "heads").write_text("s1\trefs/heads/a-12-1\ns2\trefs/heads/b-12-2\ns3\trefs/heads/c-112-9\ns4\trefs/heads/d-12\n")
+        done, _ = self.start(trust=False, topic="fix-login", url=url)
+        self.assertTrue(done.stdout.startswith("fix-login-12-3@"), done.stdout + done.stderr)
+        (self.tmp / "prs").write_text("e-12-4\nf-13-8\n")
+        done, _ = self.start(trust=False, topic="fix-login", url=url)
+        self.assertTrue(done.stdout.startswith("fix-login-12-5@"), done.stdout + done.stderr)
 
-    def test_failed_start_writes_no_line(self):
-        (self.tmp / "busy").write_text("100000")
-        self.start(trust=False)
-        self.assertEqual(self.mission.read_text(), LEAD)
+    def test_local_worktree_counts_as_an_attempt(self):
+        (self.repo / ".claude" / "worktrees" / "start-7-1").mkdir(parents=True)
+        done, _ = self.start(trust=False)
+        self.assertTrue(done.stdout.startswith("start-7-2@"), done.stdout + done.stderr)
 
-    def test_no_mission_starts_nothing(self):
-        self.mission.unlink()
-        done, calls = self.start(trust=False)
+    def test_continue_without_a_worktree_fails_before_the_tab(self):
+        done, calls = self.start("--continue", trust=False)
         self.assertEqual(done.returncode, 1)
-        self.assertIn("no mission", done.stderr)
-        self.assertEqual(calls, [])
+        self.assertIn("--continue", done.stderr)
+        self.assertFalse([c for c in calls if c[0] == "herdr"])
 
-    def test_name_without_issue_number_refused_before_side_effects(self):
-        url = "https://github.com/o/r/issues/73"
-        done, calls = self.start(trust=False, name="rebuild-writing-documents", url=url)
-        self.assertNotEqual(done.returncode, 0)
-        self.assertIn("<topic>-73", done.stderr)
-        self.assertEqual(calls, [], "worktree or tab touched")
+    def test_topic_not_lowercase_words_refused_before_side_effects(self):
+        for topic in ("Fix_Login", "fix--login", ""):
+            with self.subTest(topic=topic):
+                done, calls = self.start(trust=False, topic=topic)
+                self.assertEqual(done.returncode, 2)
+                self.assertEqual(calls, [], "worktree or tab touched")
         self.assertFalse((self.repo / ".claude" / "worktrees").exists())
-        self.assertEqual(self.mission.read_text(), LEAD)
-
-    def test_name_ending_in_the_issue_number_passes(self):
-        url = "https://github.com/o/r/issues/73"
-        (self.tmp / "herdr").write_text(FAKE.replace('"name": "start-7"', '"name": "writing-documents-73"'))
-        done, _ = self.start(trust=False, name="writing-documents-73", url=url)
-        self.assertEqual(done.returncode, 0, done.stderr)
-        self.assertIn("SUBSCRIBE: writing-documents-73", self.mission.read_text())
-
-    def test_name_ending_in_another_issue_number_refused(self):
-        done, calls = self.start(trust=False, name="writing-documents-74", url="https://github.com/o/r/issues/73")
-        self.assertNotEqual(done.returncode, 0)
-        self.assertEqual(calls, [])
 
     def test_high_effort_refused_before_side_effects(self):
         done, calls = self.start(trust=False, effort="high")
@@ -187,7 +174,6 @@ class WorkerStart(unittest.TestCase):
         self.assertIn("--owner-effort", done.stderr)
         self.assertEqual(len(done.stderr.strip().splitlines()), 1)
         self.assertEqual(calls, [], "worktree or tab touched")
-        self.assertEqual(self.mission.read_text(), LEAD)
 
     def test_high_effort_with_owner_flag_starts_at_high(self):
         done, calls = self.start("--owner-effort", trust=False, effort="high")
