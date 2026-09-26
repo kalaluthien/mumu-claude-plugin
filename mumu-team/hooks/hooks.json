@@ -1,11 +1,5 @@
 {
   "hooks": {
-    "UserPromptSubmit": [
-      { "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/bin/inject-mission.py" }] }
-    ],
-    "SubagentStart": [
-      { "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/bin/inject-mission.py" }] }
-    ],
     "Stop": [
       { "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/bin/stop.py" }] }
     ],

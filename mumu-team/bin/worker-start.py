@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
-"""Start a worker in one call: its worktree, its tab, its Claude session, the folder-trust dialog, its first prompt, and its mission line.
+"""Start a worker in one call: its name, its worktree, its tab, its Claude session, the folder-trust dialog and its first prompt.
 
-usage: worker-start.py <checkout> <name> <effort> <issue-url> [--continue] [--prompt <text>] [--owner-effort]
+usage: worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--prompt <text>] [--owner-effort]
 
+The worker's name is `<topic>-<n>-<k>`, `<n>` the task's number and `<k>` its
+attempt: 1 + the largest `k` of any remote branch, pull request head or local
+worktree named `*-<n>-<k>`, so a reopened task gets a fresh name; `--continue`
+reuses the newest local worktree of `<n>` and resumes its last Claude session,
+failing when there is none. `<topic>` must be lowercase words joined by `-`.
 The worktree is `<checkout>/.claude/worktrees/<name>`, added detached at
-`origin/<default>` when missing and reused when present; the git guard is
-copied into the checkout's hooks, and `/.claude/worktrees/` is added
-to the checkout's `info/exclude` so worktrees never show as untracked. The tab
-sets `MUMU_ROLE=worker`, on which the lead monitors exit at once (`lib/team.py`). Claude runs as `--agent mumu-team:worker`, whose Stop hook
-holds it until its issue lands or is blocked. `--continue` resumes the worktree's
-last Claude session. The trust dialog defaults to "No, exit", so it is
-answered `down enter`. Once the session is ready, `SUBSCRIBE: <name> <issue-url>`
-is appended to this session's mission (`team.mission_file`) unless a line for
-`<name>` is there, and `<name>@<pane> <worktree>` printed; with no mission it
-fails before anything starts. `<name>` must be `<topic>-<n>`, `<n>` the issue number in `<issue-url>`
-and `<topic>` lowercase words joined by `-`, or it fails before anything starts. `agent start` is retried while herdr answers `agent_pane_busy`.
-`<effort>` must be `low` or `medium`, or it fails with 2 before anything starts,
-unless `--owner-effort` says the owner named that effort in so many words.
-`WORKER_START_TIMEOUT` (60) and `WORKER_START_POLL` (1) are seconds.
+`origin/<default>` when missing; the git guard is copied into the checkout's
+hooks, and `/.claude/worktrees/` is added to the checkout's `info/exclude` so
+worktrees never show as untracked. The tab sets `MUMU_ROLE=worker`, on which
+`team-watch` exits at once. Claude runs as `--agent mumu-team:worker`, whose
+Stop hook holds it until its task closes or is blocked. The trust dialog
+defaults to "No, exit", so it is answered `down enter`. Prints
+`<name>@<pane> <worktree>`. `agent start` is retried while herdr answers
+`agent_pane_busy`. `<effort>` must be `low` or `medium`, or it fails with 2
+before anything starts, unless `--owner-effort` says the owner named that
+effort in so many words. `WORKER_START_TIMEOUT` (60) and `WORKER_START_POLL`
+(1) are seconds.
 """
 import json
 import os
@@ -27,9 +29,6 @@ import shutil
 import subprocess
 import sys
 import time
-
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-import team  # noqa: E402
 
 TRUST = "Yes, I trust this folder"
 IGNORE = "/.claude/worktrees/"
@@ -43,11 +42,27 @@ def run(*argv, cwd=None):
     return done.stdout
 
 
+def attempts(repo, n):
+    """Each `k` of a remote branch, pull request head or local worktree of `repo` named `*-<n>-<k>`."""
+    name = re.compile(rf"[a-z0-9]+(?:-[a-z0-9]+)*-{n}-(\d+)")
+    heads = run("git", "-C", repo, "ls-remote", "--heads", "origin").split()
+    prs = run("gh", "pr", "list", "--state", "all", "--limit", "1000", "--json", "headRefName", "-q", ".[].headRefName", cwd=repo).split()
+    trees = pathlib.Path(repo, ".claude", "worktrees")
+    local = [p.name for p in trees.iterdir()] if trees.is_dir() else []
+    return [int(m[1]) for h in [h.removeprefix("refs/heads/") for h in heads] + prs + local if (m := name.fullmatch(h))]
+
+
+def local_attempt(repo, topic, n):
+    """The newest `k` of a local worktree `<topic>-<n>-<k>` in `repo`, or None."""
+    trees = pathlib.Path(repo, ".claude", "worktrees")
+    ks = [int(m[1]) for p in (trees.iterdir() if trees.is_dir() else []) if (m := re.fullmatch(rf"{re.escape(topic)}-{n}-(\d+)", p.name))]
+    return max(ks, default=None)
+
+
 def checkout(repo, name):
     """The worktree for `name`, added at the default branch unless it exists, with the guard in the checkout's hooks."""
     tree = pathlib.Path(repo, ".claude", "worktrees", name)
     if not tree.exists():
-        run("git", "-C", repo, "fetch", "origin")
         default = run("gh", "repo", "view", "--json", "defaultBranchRef", "-q", ".defaultBranchRef.name", cwd=repo).strip()
         run("git", "-C", repo, "worktree", "add", "--detach", str(tree), f"origin/{default}")
     exclude = pathlib.Path(run("git", "-C", repo, "rev-parse", "--path-format=absolute", "--git-path", "info/exclude").strip())
@@ -120,21 +135,22 @@ def main(argv):
         else:
             args.append(a)
     if len(args) != 4 or (prompt is None and "--prompt" in argv):
-        print("usage: worker-start.py <checkout> <name> <effort> <issue-url> [--continue] [--prompt <text>] [--owner-effort]", file=sys.stderr)
+        print("usage: worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--prompt <text>] [--owner-effort]", file=sys.stderr)
         return 2
-    repo, name, effort, url = args
+    repo, topic, effort, url = args
     number = re.search(r"/issues/(\d+)/?$", url)
-    if not number or not re.fullmatch(rf"[a-z0-9]+(-[a-z0-9]+)*-{number[1]}", name):
-        print(f"worker-start.py: name {name!r} must be <topic>-{number[1] if number else '<issue>'}", file=sys.stderr)
+    if not number or not re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", topic):
+        print(f"worker-start.py: topic {topic!r} must be lowercase words joined by -, and {url!r} a task url", file=sys.stderr)
         return 2
     if effort not in ("low", "medium") and not owner_effort:
         print(f"worker-start.py: effort {effort!r} must be low or medium; pass --owner-effort only when the owner named it", file=sys.stderr)
         return 2
-    mission = team.mission_file()
-    if mission is None:
-        print("worker-start.py: no mission for this session; write its GOAL: line first", file=sys.stderr)
-        return 1
     try:
+        run("git", "-C", repo, "fetch", "origin")
+        k = local_attempt(repo, topic, number[1]) if resume else 1 + max(attempts(repo, number[1]), default=0)
+        if k is None:
+            raise RuntimeError(f"--continue: no worktree {topic}-{number[1]}-<k> in {repo}/.claude/worktrees")
+        name = f"{topic}-{number[1]}-{k}"
         tree = checkout(repo, name)
         pane = json.loads(run("herdr", "tab", "create", "--cwd", str(tree), "--label", name, "--env", "MUMU_ROLE=worker", "--no-focus"))["result"]["root_pane"]["pane_id"]
         timeout, poll = float(os.environ.get("WORKER_START_TIMEOUT", 60)), float(os.environ.get("WORKER_START_POLL", 1))
@@ -142,7 +158,6 @@ def main(argv):
         await_ready(name, pane, timeout, poll)
         if prompt:
             run("herdr", "agent", "prompt", pane, prompt)
-        team.subscribe(mission, name, url)
     except RuntimeError as e:
         print(f"worker-start.py: {e}", file=sys.stderr)
         return 1

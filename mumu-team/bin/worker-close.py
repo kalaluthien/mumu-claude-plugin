@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Close a worker in one call: its Claude session, its exit dialogs, its tab, its mission line and its own mission.
+"""Close a worker in one call: its Claude session, its exit dialogs and its tab.
 
 usage: worker-close.py <name>
 
@@ -7,23 +7,16 @@ Sends `/exit` to the agent herdr lists as `<name>`, and answers each exit dialog
 in `DIALOGS` at most once, by the key its row names: the background-work dialog
 exits, and a pending feedback draft is discarded, never sent, since sending is
 the owner's to decide. It then waits until herdr no longer lists the agent, closes every tab labelled
-`<name>`, and removes `SUBSCRIBE: <name> ...` from this session's mission
-(`team.mission_file`), and deletes the worker's own mission, found by `<name>`
-or else by the session id herdr lists as its `agent_session` before `/exit`;
-none found, or this session's own (a lead's successor closing the original), none deleted. An agent already gone skips to the tab. Prints
+`<name>`. An agent already gone skips to the tab. Prints
 `closed <name>`. `WORKER_CLOSE_TIMEOUT` (60) and `WORKER_CLOSE_POLL` (1) are seconds.
 The keys go through `herdr agent send-keys`, so auto mode needs the allow rule
 `Bash(herdr agent send-keys *)`.
 """
 import json
 import os
-import pathlib
 import subprocess
 import sys
 import time
-
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-import team  # noqa: E402
 
 # (screen text, key) per exit dialog, as Claude Code v2.1.282 shows it (issue #79).
 DIALOGS = [
@@ -79,7 +72,6 @@ def main(argv):
     name = argv[0]
     timeout, poll = float(os.environ.get("WORKER_CLOSE_TIMEOUT", 60)), float(os.environ.get("WORKER_CLOSE_POLL", 1))
     try:
-        session = ((agent(name) or {}).get("agent_session") or {}).get("value")
         exit_session(name, timeout, poll)
         for tab in json.loads(run("herdr", "tab", "list"))["result"]["tabs"]:
             if tab.get("label") == name:
@@ -87,12 +79,6 @@ def main(argv):
     except RuntimeError as e:
         print(f"worker-close.py: {e}", file=sys.stderr)
         return 1
-    mission = team.mission_file()
-    if mission is not None:
-        team.unsubscribe(mission, name)
-    own = team.mission_file(name) or (team.mission_file(session) if session else None)
-    if own is not None and own != mission:  # a lead's successor closes the original, whose mission is its own
-        own.unlink(missing_ok=True)
     print(f"closed {name}")
     return 0
 

@@ -1,206 +1,36 @@
-"""What the `worker-watch` and `lead-heartbeat` monitors share: the lead's mission, each worker's word, and the poll loop.
+"""What `stop.py` and `team-watch.py` read: a lead's open root goals on GitHub and its workers in herdr.
 
-The mission is `<plugin data dir>/mission/<key>.md`, `<key>` being the
-session's `--name` (`mission_path`), so a successor of the same name finds it; it
-is a cache of GitHub, which `rebuild` refills for a lead. A
-leader's reads one `MISSION: leader of <parent-url>` line per parent it holds, and one
-`SUBSCRIBE: <name> <issue-url>` line per worker, which `worker-start.py`
-writes and `worker-close.py` removes; a worker's reads
-`MISSION: worker ...`, and a monitor in its session exits at once, as it does
-before any poll when `MUMU_ROLE=worker`, which `worker-start.py` sets on the tab.
-`MONITOR_POLL` sets the poll interval in seconds (10), `MONITOR_WAIT` how long
-a monitor waits for a mission file before it exits (600), and `MONITOR_TICKS`
-stops the loop after that many polls, for a test (unset: never).
-Each key is read in any case, so a mission written `Mission:` still counts.
+A lead is the one session of its checkout (its cwd); its workers are the herdr
+agents named `<topic>-<n>-<k>` whose cwd lies in `<checkout>/.claude/worktrees/`.
 """
 import json
-import os
 import pathlib
+import re
 import subprocess
-import time
 
-REPEAT = 3600
-WORD = {"blocked": "blocked", "idle": "idle", "done": "idle", "working": "working"}
-
-
-FORMS = ("GOAL: <goal>", "MISSION: leader of <parent-url>", "MISSION: worker on <issue-url>",
-         "EXPECT: <expectations>", "SUBSCRIBE: <name> <issue-url>")
+WORKER = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*-(\d+)-(\d+)")
+ROOT_GOALS = ["issue", "list", "--label", "goal", "--state", "open", "--search", "no:parent-issue", "--json", "url"]
 
 
-def kind(line):
-    """What a mission line is: `blank`, `goal`, `leader`, `worker`, `expect`, `subscribe`, or None for a line none of `FORMS` matches."""
-    fields = line.split()
-    key = fields[0].upper() if fields else ""
-    if not fields:
-        return "blank"
-    if key in ("GOAL:", "EXPECT:"):
-        return key[:-1].lower()
-    if key == "MISSION:" and len(fields) == 4 and fields[1:3] in (["leader", "of"], ["worker", "on"]):
-        return fields[1]
-    if key == "SUBSCRIBE:" and len(fields) == 3:
-        return "subscribe"
-    return None
-
-
-def unrecognised(text):
-    """The lines of a mission that `kind` does not recognise, which `read_mission` skips."""
-    return [line for line in text.splitlines() if kind(line) is None]
-
-
-def read_mission(text):
-    """`([parent-url, ...], {name: issue-url})` of a leader's mission, or None for a worker's."""
-    parents, workers = [], {}
-    for line in text.splitlines():
-        k, fields = kind(line), line.split()
-        if k == "worker":
-            return None
-        if k == "leader":
-            parents.append(fields[-1])
-        if k == "subscribe":
-            workers[fields[1]] = fields[2]
-    return parents, workers
-
-
-def session_name(pid=None):
-    """The `--name` (or `-n`) the Claude process was started with, or None.
-
-    That process is `pid`, else `$CLAUDE_PID`, else the nearest of this one's
-    four closest ancestors started with a name, since a hook may run under a shell.
-    """
-    pids = [pid or os.environ.get("CLAUDE_PID") or os.getppid()]
-    for _ in range(4):
-        try:
-            ps = subprocess.run(["ps", "-o", "ppid=,args=", "-p", str(pids[-1])], capture_output=True, text=True).stdout.split()
-        except OSError:
-            return None
-        if not ps:
-            return None
-        name = next((ps[i + 1] for i, a in enumerate(ps[:-1]) if i and a in ("--name", "-n")), None)
-        if name or pid or os.environ.get("CLAUDE_PID"):
-            return name
-        pids.append(ps[0])
-    return None
-
-
-def mission_path(data_dir, session=None):
-    """This session's mission in `data_dir`: `mission/<name>.md`, but `mission/<session id>.md` when only that exists
-    (a mission written before the name keyed it) or the session has no name; `session` defaults to `$CLAUDE_CODE_SESSION_ID`."""
-    by_id = pathlib.Path(data_dir, "mission", (session or os.environ.get("CLAUDE_CODE_SESSION_ID", "")) + ".md")
-    name = session_name()
-    if not name or by_id.exists() and not by_id.with_name(name + ".md").exists():
-        return by_id
-    return by_id.with_name(name + ".md")
-
-
-def mission_file(key=None):
-    """The mission named `key`, or this session's (`mission_path`), in `<config dir>/plugins/data/*/`, or None.
-
-    A script run from the lead's Bash has no `CLAUDE_PLUGIN_DATA`, and names
-    and session ids are unique, so at most one is found.
-    """
-    config = pathlib.Path(os.environ.get("CLAUDE_CONFIG_DIR") or pathlib.Path.home() / ".claude")
-    found = (config.glob(f"plugins/data/*/mission/{key}.md") if key
-             else (mission_path(d) for d in config.glob("plugins/data/*")))
-    return next((p for p in sorted(found) if p.exists()), None)
-
-
-GOALS = """query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) {
-  issues(states: OPEN, first: 100) { nodes { title url
-    subIssues(first: 100) { nodes { number url state } } } } } }"""
-
-
-def rebuild(cwd):
-    """A lead's mission rebuilt from GitHub in the checkout `cwd`, or None when it holds no goal or cannot be read.
-
-    Each open issue with sub-issues is a goal (`GOAL:`, `MISSION: leader of`),
-    and each open sub-issue whose branch `*-<number>` exists on origin is a
-    worker (`SUBSCRIBE: <branch> <url>`): one `gh` call and one `git` call.
-    """
+def root_goals(cwd):
+    """The urls of the open root goals of `cwd`'s repository, or None when `gh` cannot read them."""
     try:
-        repo = subprocess.run(["gh", "repo", "view", "--json", "owner,name", "-q", '.owner.login + "/" + .name'],
-                              cwd=cwd, capture_output=True, text=True, check=True).stdout.strip()
-        owner, name = repo.split("/")
-        data = json.loads(subprocess.run(["gh", "api", "graphql", "-f", f"query={GOALS}", "-f", f"owner={owner}",
-                                          "-f", f"name={name}"], cwd=cwd, capture_output=True, text=True, check=True).stdout)
-        heads = subprocess.run(["git", "ls-remote", "--heads", "origin"], cwd=cwd,
-                               capture_output=True, text=True, check=True).stdout.split()
-    except (OSError, ValueError, subprocess.CalledProcessError):
+        run = subprocess.run(["gh", *ROOT_GOALS], cwd=cwd, capture_output=True, text=True)
+        return [i["url"] for i in json.loads(run.stdout)] if run.returncode == 0 else None
+    except (OSError, ValueError, KeyError, TypeError):
         return None
-    branches = [h.removeprefix("refs/heads/") for h in heads if h.startswith("refs/heads/")]
-    goals = [i for i in data["data"]["repository"]["issues"]["nodes"] if i["subIssues"]["nodes"]]
-    lines = []
-    for goal in goals:
-        lines += [f"GOAL: {goal['title']}", f"MISSION: leader of {goal['url']}", f"EXPECT: the ## Decisions of {goal['url']}", ""]
-    for goal in goals:
-        for sub in goal["subIssues"]["nodes"]:
-            branch = next((b for b in branches if b.endswith(f"-{sub['number']}")), None)
-            if sub["state"] == "OPEN" and branch:
-                lines.append(f"SUBSCRIBE: {branch} {sub['url']}")
-    return "\n".join(lines) + "\n" if goals else None
-
-
-def subscribed(line, name):
-    """Whether `line` is a `SUBSCRIBE: <name> ...` line, in any case."""
-    fields = line.split()
-    return len(fields) >= 2 and fields[0].upper() == "SUBSCRIBE:" and fields[1] == name
-
-
-def subscribe(path, name, url):
-    """Append `SUBSCRIBE: <name> <url>` to the mission at `path`, unless a line for `name` is there."""
-    text = path.read_text()
-    if not any(subscribed(line, name) for line in text.splitlines()):
-        path.write_text(text + ("\n" if text and not text.endswith("\n") else "") + f"SUBSCRIBE: {name} {url}\n")
-
-
-def unsubscribe(path, name):
-    """Remove every `SUBSCRIBE: <name> ...` line from the mission at `path`."""
-    lines = path.read_text().splitlines(keepends=True)
-    path.write_text("".join(line for line in lines if not subscribed(line, name)))
-
-
-def words(last, workers, agents):
-    """Each worker's word from herdr's `{name: agent_status}`: `blocked`, `idle`, `working`, or `gone` when not listed.
-
-    `unknown` keeps the `last` word, and a worker not yet seen is `working`.
-    """
-    return {name: WORD.get(agents[name], last.get(name, "working")) if name in agents else "gone" for name in workers}
 
 
 def agents():
-    """herdr's `{name: agent_status}`, or None when `herdr agent list` cannot be run or read."""
+    """herdr's agents, or None when `herdr agent list` cannot be run or read."""
     try:
-        listed = subprocess.run(["herdr", "agent", "list"], capture_output=True, text=True)
-        return {a.get("name"): a["agent_status"] for a in json.loads(listed.stdout)["result"]["agents"]}
-    except (OSError, ValueError, KeyError):
+        return json.loads(subprocess.run(["herdr", "agent", "list"], capture_output=True, text=True).stdout)["result"]["agents"]
+    except (OSError, ValueError, KeyError, TypeError):
         return None
 
 
-def poll(data_dir, tick):
-    """Call `tick(parents, workers, words, now)` every poll while a leader's mission exists, and print the lines it returns.
-
-    Returns when the mission is a worker's, when a mission file once seen is
-    gone (Lead 5 deletes it, so `/exit` meets no running monitor), when no
-    mission file appears within `MONITOR_WAIT` seconds (a worker that never
-    wrote one), or after `MONITOR_TICKS` polls. A poll with no parent yet (Lead
-    1's `GOAL:` stub), or whose `herdr agent list` fails, is skipped.
-    """
-    if os.environ.get("MUMU_ROLE") == "worker":
-        return
-    mission = mission_path(data_dir)
-    interval = float(os.environ.get("MONITOR_POLL", 10))
-    ticks = int(os.environ.get("MONITOR_TICKS", 0))
-    wait = float(os.environ.get("MONITOR_WAIT", 600))
-    last, n, seen, start = {}, 0, False, time.time()
-    while not ticks or n < ticks:
-        n += 1
-        exists = mission.exists()
-        read = read_mission(mission.read_text()) if exists else ([], {})
-        if read is None or seen and not exists or not seen and time.time() - start >= wait:
-            return
-        seen = seen or exists
-        listed = agents() if read[0] else None
-        if listed is not None:
-            last = words(last, read[1], listed)
-            for line in tick(*read, last, time.time()):
-                print(line, flush=True)
-        time.sleep(interval)
+def workers(listed, checkout):
+    """`{name: agent_status}` of the agents in `listed` that are workers of the lead of `checkout`."""
+    root = pathlib.Path(checkout).resolve() / ".claude" / "worktrees"
+    return {a["name"]: a.get("agent_status") for a in listed
+            if WORKER.fullmatch(a.get("name") or "") and pathlib.Path(a.get("cwd") or "/").resolve().is_relative_to(root)}
