@@ -42,6 +42,14 @@ def run(*argv, cwd=None):
     return done.stdout
 
 
+def root(path):
+    """`path` made absolute, raising unless it is a git checkout's root (it holds `.git`)."""
+    repo = pathlib.Path(path).resolve()
+    if not (repo / ".git").exists():
+        raise RuntimeError(f"{path}: not the root of a git checkout")
+    return str(repo)
+
+
 def attempts(repo, n):
     """Each `k` of a remote branch, pull request head or local worktree of `repo` named `*-<n>-<k>`."""
     name = re.compile(rf"[a-z0-9]+(?:-[a-z0-9]+)*-{n}-(\d+)")
@@ -146,6 +154,7 @@ def main(argv):
         print(f"worker-start.py: effort {effort!r} must be low or medium; pass --owner-effort only when the owner named it", file=sys.stderr)
         return 2
     try:
+        repo = root(repo)
         run("git", "-C", repo, "fetch", "origin")
         k = local_attempt(repo, topic, number[1]) if resume else 1 + max(attempts(repo, number[1]), default=0)
         if k is None:

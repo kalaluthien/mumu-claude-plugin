@@ -18,19 +18,19 @@ GOAL = "https://github.com/o/main/issues/9"
 
 class LeadStart(unittest.TestCase):
     def setUp(self):
-        self.tmp = pathlib.Path(tempfile.mkdtemp())
+        self.tmp = pathlib.Path(tempfile.mkdtemp()).resolve()
         self.repo = self.tmp / "repo"
-        self.repo.mkdir()
+        (self.repo / ".git").mkdir(parents=True)
         for tool in ("herdr", "git", "gh"):
             (self.tmp / tool).write_text(FAKE)
             (self.tmp / tool).chmod(0o755)
 
-    def start(self, *extra):
+    def start(self, *extra, checkout=None, cwd=None):
         (self.tmp / "trust").touch()
         env = dict(os.environ, FAKE=str(self.tmp), PATH=f"{self.tmp}:{os.environ['PATH']}",
                    LEAD_START_TIMEOUT="3", LEAD_START_POLL="0.01")
-        done = subprocess.run([sys.executable, str(BIN / "lead-start.py"), str(self.repo), *extra],
-                              env=env, capture_output=True, text=True, timeout=30)
+        done = subprocess.run([sys.executable, str(BIN / "lead-start.py"), checkout or str(self.repo), *extra],
+                              env=env, cwd=cwd, capture_output=True, text=True, timeout=30)
         log = self.tmp / "calls"
         return done, [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
 
@@ -72,6 +72,20 @@ class LeadStart(unittest.TestCase):
         self.assertEqual(done.returncode, 1)
         self.assertIn("already live", done.stderr)
         self.assertFalse([c for c in calls if c[1:3] in (["tab", "create"], ["agent", "start"])])
+
+    def test_relative_checkout_opens_the_tab_at_its_absolute_root(self):
+        done, calls = self.start(GOAL, checkout="repo", cwd=self.tmp)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn(["herdr", "tab", "create", "--cwd", str(self.repo.resolve()), "--label", "main-lead"], calls)
+
+    def test_non_root_checkout_fails_naming_it_and_opens_no_tab(self):
+        (self.repo / "sub").mkdir()
+        (self.tmp / "plain").mkdir()
+        for path in (str(self.repo / "sub"), str(self.tmp / "plain")):
+            done, calls = self.start(GOAL, checkout=path)
+            self.assertEqual(done.returncode, 1, path)
+            self.assertIn(path, done.stderr)
+            self.assertFalse([c for c in calls if c[1:3] == ["tab", "create"]], path)
 
     def test_bad_arguments_start_nothing(self):
         for extra in (["--succeed"], ["--continue"], [GOAL, GOAL]):

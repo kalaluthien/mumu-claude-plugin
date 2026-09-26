@@ -6,7 +6,7 @@ usage: lead-start.py <checkout> [<goal-url> | --succeed <pane>] [-- <claude flag
 The lead's name is `<repo>-lead`, `<repo>` the name `gh repo view` gives in
 `<checkout>`, lowercased, each run of other than letters, digits, `-` and `_`
 made one `-`, and cut to 22 characters, so `<repo>-lead-next` fits herdr's 32;
-`<checkout>` is the checkout's root, where its tab opens. It is prompted
+`<checkout>` is the checkout's root, made absolute, where its tab opens; any other path fails with 1. It is prompted
 `/mumu-team:kickoff see <goal-url>` with a goal, `/mumu-team:kickoff` without
 one (resume), and `/mumu-team:kickoff succeed <pane>` with `--succeed`, whose
 tab and herdr agent are `<repo>-lead-next` until the successor renames itself.
@@ -43,8 +43,8 @@ def main(argv):
     elif not 1 <= len(argv) <= 2 or argv[1:] and argv[1].startswith("-"):
         print(USAGE, file=sys.stderr)
         return 2
-    repo = argv[0]
     try:
+        repo = ws.root(argv[0])
         name = ws.run("gh", "repo", "view", "--json", "name", "-q", ".name", cwd=repo).strip()
         lead = re.sub(r"[^a-z0-9_-]+", "-", name.lower())[:22].strip("-") + "-lead"
         if not succeed and ws.agent(lead):
