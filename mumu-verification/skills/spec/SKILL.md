@@ -6,16 +6,11 @@ user-invocable: false
 
 # Spec
 
-Model the change in Alloy and check the invariant it must keep before the code changes.
+Model the change in Alloy and check the invariant it must keep before the code changes: sigs, facts and one `check` per invariant, no scenarios.
 
 Terms and rules: `${CLAUDE_PLUGIN_ROOT}/skills/test/references/contract.md`; read it first.
 
-## 1. Find what the repo has
-
-```sh
-command -v alloy
-git ls-files '*.als'
-```
+## Find what the repo has
 
 | found, in this order | do |
 | --- | --- |
@@ -24,53 +19,51 @@ git ls-files '*.als'
 | `*.als` files | use their layout; read the model covering the change |
 | none | initialise `spec/<module>/model.als` and `spec/<module>/check.als` |
 
-## 2. Write or edit the model
-
-`model.als` holds what the system is; `check.als` holds what must hold of it.
+## Write the model
 
 ```alloy
-module model
-
+module model                       -- model.als: what the system is; no commands
 sig Thing { ... }
-
 fact Wellformed { ... }            -- what the system guarantees by construction
-
 pred step[...] { ... }             -- one operation
 ```
 
 ```alloy
-open model
-
+open model                         -- check.als: what must hold of it
 assert KeepsInvariant { ... }      -- what the change must not break
-check KeepsInvariant for 3
-
+check KeepsInvariant for 3         -- named for what holds
 run step for 3                     -- shows the model has an instance
 ```
 
-- `model.als` has no commands; `check.als` has the asserts, the `check`s and at least one `run`.
-- Name each `check` for what holds.
-- A value is not modelled: `Int` is only as wide as the scope says (default `4 Int`, -8..7), wraps silently, has no reals, and cannot solve a 24-bit colour. Model its order or a small integer with `but N Int` set wide enough; the value itself goes to `test`.
+A value is not modelled: `Int` wraps at the scope's width (-8..7 by default) and has no reals. Model its order or a small integer with `but N Int`; the value itself goes to `test`.
 
-## 3. Check
+Syntax that misleads: a `module` name has no hyphen and equals its path; a temporal word (`before`, `after`, `once`) cannot name a pred. `always A implies B` is `(always A) implies B`; `P until Q` demands that `Q` comes, `Q releases P` does not.
+
+## Check
 
 ```sh
 out=$(mktemp -d)/alloy
 alloy exec -f -q -o "$out" spec/<module>/check.als && ls "$out"
 ```
 
-| in `$out` | the `check` |
+| in `$out` | means |
 | --- | --- |
-| `<Check>-solution-0.md` | found a counterexample; the file is it |
-| no file for it | holds within its scope |
+| `<Check>-solution-0.md` | a counterexample, the file itself |
+| no file for a `check` | it holds within its scope |
 | `<Run>-solution-0.md` | the `run` found an instance; none means the facts contradict |
 | nothing, and a non-zero exit | the model did not parse; read the error |
 
-- Re-run `check.als` after each edit to either file.
-- Start at `for 3` and raise the scope while each check finishes within a minute; report the scope each ran at.
-- Read [alloy](references/alloy.md) § Running before the first run.
+`exec` runs only the root file's commands (`-c <name>` picks one); `-o -` drops the result lines. Re-run after each edit to either file, editing none while a run continues. Start at `for 3` and raise the scope while each check finishes within a minute; report the scope each ran at.
 
-## 4. Check the code against the model
+## Check the code against the model
 
-Each `pred` is an operation: its guard is a precondition the code checks before the effect, and its effect the only state it changes. Each `fact` and `assert` is an invariant the code never breaks. For each, name the code that enforces it and the test that fails when that code is removed; one with neither is a gap: report it.
+Each `pred`'s guard is a precondition the code checks before the effect, and its effect the only state it changes; each `fact` and `assert` is an invariant the code never breaks. For each, name the code that enforces it and the test that fails when that code is removed; one with neither is a gap: report it.
 
-Before trusting a green check, read [alloy](references/alloy.md) § A check green without its rule.
+A green check can hold without its rule:
+
+- An UNSAT alone names nothing, since the scope refuses too: pair it with a SAT at the same scope differing in one conjunct.
+- `x.f in S` holds over an empty `x.f`: write `some x.f and x.f in S`. A `var` term outside a temporal operator is read at state 0: put it inside the `eventually` where the rule bites.
+- A rule written into the event's own pred cannot redden: give it its own pred with a Defect run (expect 1), RepairExcludes (0) and RepairAdmits (1, the code's own sequence).
+- A frame condition alone pins nothing: add a command from the empty state with the producer forbidden, expecting 0.
+- Scope 1 of a sig makes two navigations one relation: run at 2 as well. A model wider than the code that reads it is a false claim.
+- Mutate a rule before trusting it: break its guard once and its frame once, and watch each check go red.
