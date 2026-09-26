@@ -26,14 +26,10 @@ its moves; a move with nothing to say is dropped.
 ## Mapping
 
 A widget exists only where this skill tuned, combined or made one; everything
-else is plain HTML the skin styles: headings over paragraphs, lists, a
-`<table>`, evidence in `<details>`, code in `<pre>`. The content picks
-the widget, one rule per row; a new rule is a new row naming a file in
-`references/artifact/widgets/` and, for `diagram` and `chart`, its kind, and
-`scripts/skill-check.py` fails on any other. Data is drawn only by the
-`chart` widget, with no chart library. `scripts/gallery.py` renders
-every widget in every state, light and dark. A figure in markdown is an SVG
-image, exported by [markdown.md](references/markdown.md).
+else is plain HTML the skin styles. The content picks the widget, one rule per
+row; a new row names a file in `references/` and its kind, and
+`scripts/skill-check.py` fails on any other. Data is drawn only by the `chart`
+widget, with no chart library.
 
 | when the content is | widget | in markdown |
 | --- | --- | --- |
@@ -47,14 +43,27 @@ image, exported by [markdown.md](references/markdown.md).
 ## Routing
 
 Where the ask says, else where it is obvious, else ask once with
-`AskUserQuestion`; then read the one file for that place and follow it.
+`AskUserQuestion`. An Artifact page follows [artifact.md](references/artifact.md).
+A GitHub issue, pull request or comment follows the repository's procedure,
+else `gh issue create`; a repository page (a README, a doc) is linked from the
+README and lands by a pull request. There the moves are headings, each widget
+its markdown column above, and no Mermaid, since an SVG reads the same on every
+client. Delivered anywhere, give the one-sentence version in chat.
 
-| the document goes to | read |
-| --- | --- |
-| a GitHub issue, pull request or comment; a repository page: a README, `docs/` | [markdown.md](references/markdown.md) |
-| an Artifact page | [artifact.md](references/artifact.md) |
+## GitHub body
 
-Delivered anywhere, give the one-sentence version in chat.
+Unless the repository's procedure sets the form, a body is one sentence on why
+the change exists, the figure of what it alters, the proof (each check run and
+its result), then the files in reading order, each with its why; a misleading
+line count is called out. A `path:line` links to the blob at the head sha,
+or relatively on a repository page.
+
+A figure is its widget drawn on a page by [artifact.md](references/artifact.md),
+labels in English allowed, then written as SVG by `check.py <page> --svg <dir>`.
+On GitHub, reference it as `![<alt>](./<page>-<n>.svg)` and pass
+`--attach './<page>-<n>.svg#<alt>'` to `gh`; every later edit of the body
+re-passes `--attach` for each figure, or the path stays local. On a repository
+page, commit it beside the page.
 
 ## Writing
 
@@ -66,18 +75,12 @@ Delivered anywhere, give the one-sentence version in chat.
   said so, plainly; a reason the source omits is called absent, not guessed.
 - A step caption names one change and its effect, never what the figure
   shows.
-- An Artifact page is Korean, a hard rule: `<html lang="ko">`, and every
-  visible word Korean, in the polite `-요` or `-니다`, never a plain `-다`,
-  and in everyday words. English stays only inside `<code>` or as a name or
-  path; a technical term appears once as Korean with the English in
-  parentheses, as 큐(queue).
 
 ## Done when
 
 - A part no fact settles goes to `grill-me` by name, and the document carries
   only its settled answers; nothing is written before.
 - Reread for order, each claim against its evidence, cuts and register.
-- The checks the routed file names print `pass`.
-- An Artifact page: `"${CLAUDE_PLUGIN_ROOT}/skills/writing-documents/scripts/check.py" <page.html>` prints one line per check, then `pass` or `FAIL`.
+- An Artifact page: `"${CLAUDE_PLUGIN_ROOT}/skills/writing-documents/scripts/check.py" <page.html>` prints `pass` last.
 - A rejected draft is edited only after a reader, an editor and a hostile
   fact-checker each say why it fails.

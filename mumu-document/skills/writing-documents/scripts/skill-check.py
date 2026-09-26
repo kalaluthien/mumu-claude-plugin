@@ -1,18 +1,7 @@
 #!/usr/bin/env python3
-"""Check the writing-documents skill's mapping, widgets and design system; print `pass` or each failure.
+"""Check the skill's mapping, widgets and skin; print `pass`, or each failure then `FAIL`.
 
-usage: skill-check.py [skill dir], default the skill this script sits in.
-A unit is a widget in references/artifact/widgets/ or a shared part in references/artifact/shared/. Fails on:
-- a mapping row in SKILL.md naming no widget file; a row naming a widget whose spec has a
-  `kinds` field but none of its kinds, or a further backticked word no spec line starts with;
-- in a unit: a literal colour anywhere; a literal size or duration in its CSS (a <style>
-  or a style=""; SVG geometry attributes are content); a primitive token (--p-*) or a
-  token neither the skin nor the unit defines;
-- in references/artifact/shared/skin.css: a colour pair under
-  WCAG AA in light or dark: text, link and status 4.5:1, border and diagram kinds 3:1; two
-  diagram kinds under CIEDE2000 10 apart, to normal vision or after simulating deuteranopia
-  or protanopia (Machado 2009, full severity).
-Exit 0 pass, 1 on any failure.
+usage: skill-check.py [skill dir]. Widgets are references/*.html; page.html's <style id="skin"> is the skin.
 """
 import itertools
 import math
@@ -32,6 +21,7 @@ VISIONS = {  # linear-RGB matrices, Machado, Oliveira and Fernandes 2009, severi
 LITERAL = re.compile(r"#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(")
 SIZE = re.compile(r"(?<![\w.-])\d*\.?\d+(px|rem|em|ms|s|pt|ch|vh|vw)\b")
 CSS = re.compile(r"<style>(.*?)</style>|style=\"([^\"]*)\"", re.S)
+SKIN = re.compile(r'<style id="skin">.*?</style>', re.S)
 DEFINED = re.compile(r"(--[\w-]+)\s*:\s*([^;]+);")
 
 
@@ -129,12 +119,12 @@ def palette_failures(skin):
             kinds = [(k, seen(skin[k][i], vision)) for k in LINES[1:] if k in skin]
             for (a, la), (b, lb) in itertools.combinations(kinds, 2):
                 if delta_e(la, lb) < DELTA_E_MIN:
-                    out.append(f"skin.css: --{a} and --{b} {mode} {vision} ΔE {delta_e(la, lb):.1f} < {DELTA_E_MIN}")
+                    out.append(f"skin: --{a} and --{b} {mode} {vision} ΔE {delta_e(la, lb):.1f} < {DELTA_E_MIN}")
     return out
 
 
 def unit_failures(f, semantic):
-    out, text = [], f.read_text()
+    out, text = [], SKIN.sub("", f.read_text())
     for n, line in enumerate(text.splitlines(), 1):
         if LITERAL.search(line):
             out.append(f"{f.name}:{n}: literal colour: {line.strip()}")
@@ -148,18 +138,18 @@ def unit_failures(f, semantic):
         if name.startswith("--p-"):
             out.append(f"{f.name}: reads primitive {name}")
         elif name not in semantic and name not in own:
-            out.append(f"{f.name}: token {name} is not in skin.css or {f.name}")
+            out.append(f"{f.name}: token {name} is not in the skin or {f.name}")
     return out
 
 
 def failures(skill):
     out = []
-    widgets = skill / "references" / "artifact" / "widgets"
+    widgets = skill / "references"
     rows = mapping_cells((skill / "SKILL.md").read_text())
     if not rows:
         out.append("SKILL.md: no mapping table headed `| when the content is`")
     for name, *words in rows:
-        if not (widgets / f"{name}.html").is_file():
+        if name == "page" or not (widgets / f"{name}.html").is_file():
             out.append(f"SKILL.md: mapping row names unknown widget `{name}`")
             continue
         spec = re.match(r"<!--(.*?)-->", (widgets / f"{name}.html").read_text(), re.S)
@@ -169,15 +159,15 @@ def failures(skill):
                 out.append(f"SKILL.md: `{word}` is not in {name}.html's spec")
         if re.search(r"^\s*kinds:", spec, re.M) and not words:
             out.append(f"SKILL.md: a mapping row names `{name}` but none of its kinds")
-    shared = skill / "references" / "artifact" / "shared"
-    tokens = dict(DEFINED.findall((shared / "skin.css").read_text()))
+    skin = SKIN.search((widgets / "page.html").read_text())
+    tokens = dict(DEFINED.findall(skin.group(0) if skin else ""))
     semantic = {t for t in tokens if not t.startswith("--p-")}
-    for f in sorted(widgets.glob("*.html")) + sorted(shared.glob("*.html")):
+    for f in sorted(widgets.glob("*.html")):
         out += unit_failures(f, semantic)
     skin = roles(tokens)
     for role in TEXT + LINES + GROUNDS:
         if role not in skin:
-            out.append(f"skin.css: no role --{role}: light-dark(light, dark)")
+            out.append(f"skin: no role --{role}: light-dark(light, dark)")
     for fg in TEXT + LINES:
         for bg in GROUNDS:
             if fg not in skin or bg not in skin:
@@ -186,14 +176,12 @@ def failures(skill):
             for mode, i in (("light", 0), ("dark", 1)):
                 ratio = contrast(skin[fg][i], skin[bg][i])
                 if ratio < need:
-                    out.append(f"skin.css: --{fg} on --{bg} {mode} {ratio:.2f}:1 < {need}:1")
+                    out.append(f"skin: --{fg} on --{bg} {mode} {ratio:.2f}:1 < {need}:1")
     return out + palette_failures(skin)
 
 
 def main():
-    skill = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else \
-        pathlib.Path(__file__).resolve().parents[1]
-    out = failures(skill)
+    out = failures(pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else pathlib.Path(__file__).resolve().parents[1])
     print("\n".join(out + ["FAIL"]) if out else "pass")
     return 1 if out else 0
 
