@@ -18,4 +18,4 @@ Lead a goal to reviewed, merged pull requests.
    - the owner changes direction: `decide.py` the change on each issue affected, with `--criteria` when a criterion changes, and `prompt` its worker `see <task-url>`; built work the owner rejects is replanned from the goal's definition of done into new tasks, its pull request closed unmerged and named in them as content to read, never form to follow;
    - the owner stops one task: `stop` it and `close` its worker;
    - the owner asks where it stands: report each task and its worker in `live`.
-5. `resolve` the goal with a summary, then `close` each of its workers still live and `clean`; a closed goal whose parent now holds nothing open goes through 5 in turn.
+5. `resolve` the goal with a summary, then `close` each of its workers still live and `clean`; a closed goal whose parent now holds nothing open goes through 5 in turn. When you then hold no open root goal and no worker is live, `prompt` yourself `/compact Keep only: each goal and task closed this session with its url, PR and one-line result; open backlog issues; drop tool output.`
