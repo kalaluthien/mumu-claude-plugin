@@ -17,8 +17,8 @@ def listed(kind):
     return _result(kind, "list")[kind + "s"]
 
 
-def agent(name):
-    return next((a for a in listed("agent") if a.get("name") == name), None)
+def agent(key, field="name"):
+    return next((a for a in listed("agent") if a.get(field) == key), None)
 
 
 def open_tab(cwd, label, *flags):

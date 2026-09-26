@@ -2,8 +2,6 @@
 import json
 import subprocess
 
-HELD = ["issue", "list", "--state", "open", "--search", "no:parent-issue label:kind:goal,kind:task", "--json", "url"]
-
 
 def run(*argv, cwd=None, stdin=None):
     """stdout of `argv`, raising with its stderr and stdout when it cannot start or exits non-zero."""
@@ -26,9 +24,10 @@ def repo(field, cwd=None):
     return gh("repo", "view", "--json", field, "-q", f".{field}" + (".name" if field == "defaultBranchRef" else ""), cwd=cwd).strip()
 
 
-def held(cwd):
-    """The urls of the open root goals and root tasks of `cwd`'s repository, or None when `gh` cannot read them."""
+def held(cwd, folder=None):
+    """The urls of the open root goals and root tasks of `cwd`'s repository, only `scope:<folder>`'s when given, or None when `gh` cannot read them."""
+    search = "no:parent-issue label:kind:goal,kind:task" + (f" label:scope:{folder}" if folder else "")
     try:
-        return [i["url"] for i in json.loads(gh(*HELD, cwd=cwd))]
+        return [i["url"] for i in json.loads(gh("issue", "list", "--state", "open", "--search", search, "--json", "url", cwd=cwd))]
     except (RuntimeError, ValueError, KeyError, TypeError):
         return None

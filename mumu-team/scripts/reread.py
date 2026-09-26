@@ -33,12 +33,9 @@ def uses(transcript):
 def reads(name, tool, given, ref):
     """Whether one tool call reads `ref`."""
     if tool == "Read":
-        path = given.get("file_path") or ""
-        return bool(path) and pathlib.Path(path).resolve() == ref.resolve()
-    if tool == "Bash":
-        command = given.get("command") or ""
-        return any(root in command for root in ROOTS) and re.search(rf"(?<![\w.-]){re.escape(name)}(?![\w.-])", command) is not None
-    return False
+        return bool(given.get("file_path")) and pathlib.Path(given["file_path"]).resolve() == ref.resolve()
+    command = (given.get("command") or "") if tool == "Bash" else ""
+    return any(root in command for root in ROOTS) and re.search(rf"(?<![\w.-]){re.escape(name)}(?![\w.-])", command) is not None
 
 
 def changed(transcript):
