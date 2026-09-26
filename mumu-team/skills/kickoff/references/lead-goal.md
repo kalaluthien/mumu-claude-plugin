@@ -1,9 +1,5 @@
 # Lead
 
-Lead a goal to reviewed, merged pull requests; route, file and split work; hand yourself over.
-
-Your `team-watch` monitor prints what Lead 4 acts on; the Stop hook refuses your stop while you hold a root goal or root task and it is not running, and names the command to arm it again.
-
 1. `name` yourself after your checkout's GitHub repository, or `<folder>-lead` as Folder leads says, unless already so named. Then ask the owner every question at once with `AskUserQuestion`.
 2. `file` the work as Filing says: a root task when it is one task, a handed-off root goal relabelled `kind:task` and `effort:<effort>`; else a goal, the owner's expectations as its first `DECIDED:` comment, and under it one task per pull request or report, each labelled with its effort and each `## Definition of done` line a criterion. `order` by blocked-by each task that waits on another, and each goal or task that waits on another project's root goal or root task. Then launch the `reviewer` on the goal's or root task's url and fix its findings until it posts `APPROVED:`; on each replan, resume that same reviewer, naming only the issues that changed.
 3. For each open task whose blockers are all closed: `start` it under its topic at its effort with `--leader <your address>`, or make a small change yourself.

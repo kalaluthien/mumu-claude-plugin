@@ -15,7 +15,6 @@ The rules that change live in the file When to read names, each read with `Read`
 - Write no code: a worker writes it, but for the one exception, a small change.
 - Launch read-only subagents only, `Explore` and the reviewers.
 - Poll nothing: act on what arrives, once per state GitHub shows; a `BLOCKED:` already answered, or a merge already handled, needs nothing.
-- Kickoff reaches you only as the prompt a script sends. Follow a playbook the owner's words call for yourself, at the moment When to read names.
 
 # When to read
 

@@ -1,6 +1,6 @@
 # Verbs
 
-The command each verb runs. A goal and its tasks live in its leader's repository, and a worker's worktree in its leader's own checkout only. The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, and `<hooks>` is `git -C <checkout> rev-parse --path-format=absolute --git-path hooks`.
+A goal and its tasks live in its leader's repository, and a worker's worktree in its leader's own checkout only. The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, and `<hooks>` is `git -C <checkout> rev-parse --path-format=absolute --git-path hooks`.
 
 ## Panes: herdr
 
