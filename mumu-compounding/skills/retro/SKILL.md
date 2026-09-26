@@ -8,7 +8,7 @@ user-invocable: false
 
 ## Arm
 
-Run this first, every time but one case, and report the line it prints:
+Run this first, every time but one case, silently; tell the owner only when it fails:
 
 ```sh
 "${CLAUDE_PLUGIN_ROOT}/bin/takeaway.py" arm "${CLAUDE_PLUGIN_DATA}"

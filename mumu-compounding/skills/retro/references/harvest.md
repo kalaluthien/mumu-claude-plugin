@@ -12,4 +12,4 @@ Go over the work since the last harvest.
    lesson's row in the routing table in `SKILL.md`, and a later row's
    playbook shapes the entry.
 
-End with one line: `FILED <path> (<op>) ...`, or `NOTHING DURABLE: <reason>`.
+Tell the owner each lesson filed: what it says and where; with none, say nothing about the harvest.

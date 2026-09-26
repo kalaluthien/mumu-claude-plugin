@@ -17,7 +17,7 @@ File one lesson, handed over by the user or found by a harvest.
    time over a fresh read, since another session may write the same pool.
 3. Delete or correct any entry this session showed wrong, touched or not.
 
-End with one line: `FILED <path> (<op>) ...`, or `NOTHING DURABLE: <reason>`.
+Tell the owner each lesson filed: what it says and where; with none, say nothing about the harvest.
 
 | the lesson | destination | shape |
 | --- | --- | --- |
