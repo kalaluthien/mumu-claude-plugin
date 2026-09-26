@@ -38,12 +38,12 @@ file for every project.
    - one lesson kept in two or more pools under any name: it holds for every
      project, so lesson.md's last row applies;
    - a lesson a skill, a references file, an agent or a hook should hold:
-     FILE a `kind:task` issue in the repository whose checkout holds that
-     file (`git -C <its folder> remote get-url origin`), with its
-     `scope:<folder>` label where the repository has such labels, its body a
-     `## Goal` naming the file and the lesson and a `## Definition of done`
-     whose check finds the lesson in that file; the pool entry stays until
-     the repository states it;
+     FILE a task, an issue without the `backlog` label, in the repository
+     whose checkout holds that file (`git -C <its folder> remote get-url
+     origin`), with its `scope:<folder>` label where the repository has
+     such labels, its body a `## Goal` naming the file and the lesson and a
+     `## Definition of done` whose check finds the lesson in that file; the
+     pool entry stays until the repository states it;
    - an entry the repository already states: DELETE it.
 3. No fix found that was not rejected in this call: say so, with the
    fixes applied in earlier rounds, and stop; in the first round, write
