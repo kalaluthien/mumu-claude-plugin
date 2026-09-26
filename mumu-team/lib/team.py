@@ -9,7 +9,7 @@ import re
 import subprocess
 
 WORKER = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*-(\d+)-(\d+)")
-ROOT_GOALS = ["issue", "list", "--label", "goal", "--state", "open", "--search", "no:parent-issue", "--json", "url"]
+ROOT_GOALS = ["issue", "list", "--label", "kind:goal", "--state", "open", "--search", "no:parent-issue", "--json", "url"]
 
 
 def root_goals(cwd):
