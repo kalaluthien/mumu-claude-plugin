@@ -52,8 +52,10 @@ file for every project.
    one `AskUserQuestion` question, `multiSelect: true`, one option per fix:
    the top 4 by impact, each option's label the action (ADD, EDIT, DELETE
    or FILE) and file, its description the reason; a file and its
-   `MEMORY.md` line are one fix. The options chosen are approved and the
-   rest rejected.
+   `MEMORY.md` line are one fix, and so are a lesson moved and the copies
+   it replaces. The tool takes 2 to 4 options, so a lone fix gets a
+   second option, `None`. The options chosen are approved and the rest
+   rejected.
 5. Apply only the approved fixes; a file only rejected fixes name is never
    touched, and no issue is filed that was not chosen. Report each fix
    applied or skipped.
