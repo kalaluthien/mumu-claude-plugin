@@ -41,9 +41,8 @@ file for every project.
      FILE a task, an issue without the `backlog` label, in the repository
      whose checkout holds that file (`git -C <its folder> remote get-url
      origin`), with its `scope:<folder>` label where the repository has
-     such labels, its body a
-     `## Goal` naming the file and the lesson and a `## Definition of done`
-     whose check finds the lesson in that file; the pool entry stays until
+     such labels, its body a `## Goal` naming the file and the lesson and
+     a `## Definition of done` whose check finds the lesson in that file; the pool entry stays until
      the repository states it;
    - an entry the repository already states: DELETE it.
 3. No fix found that was not rejected in this call: say so, with the
