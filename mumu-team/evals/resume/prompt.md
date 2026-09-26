@@ -5,4 +5,4 @@ allowed_tools: [Skill, Read, Glob, Grep]
 runs: 3
 ---
 
-/mumu-team:kickoff continue where you left off before the restart
+/mumu-team:kickoff

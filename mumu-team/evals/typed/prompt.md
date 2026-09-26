@@ -5,4 +5,4 @@ allowed_tools: [Skill, Read, Glob, Grep]
 runs: 3
 ---
 
-/mumu-team:kickoff drop this goal, we are not doing it any more
+/mumu-team:kickoff 로그인이 가끔 타임아웃 나는 거 고쳐 줘

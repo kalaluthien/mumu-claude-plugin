@@ -13,7 +13,6 @@ A worker's worktree goes in its leader's own checkout only, never in another rep
 | `decide` | `decide.py <url> [--criteria <file>] < <decision>`: posts `DECIDED: <decision>`, and with `--criteria` first replaces the body's `## Definition of done` by the file's lines |
 | `resolve` | `gh issue close <url> --reason completed --comment "<summary>"` |
 | `stop` | `gh issue close <url> --reason "not planned" --comment "<reason>"`, then `gh pr ready --undo <pr-url>` for its open pull request |
-| `handoff` | `file` a root goal in `<owner>/<target-repo>`, `order` the goal here after it, then `prompt` the target project's leader `see <new-url>` |
 | `claim` | `git fetch origin && ! git ls-remote --exit-code origin refs/heads/<branch> && git switch -c <branch> origin/<default> && git push -u origin <branch>`, the branch named after the worktree; a branch found is yours only when this checkout is on it |
 | `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file -`; later `gh pr edit <pr> --body-file -` |
 | `merge` | `merge.py <pr-url>`: squash-merges pinned to the head only when a comment or review opens `APPROVED: <head>`; a raw `gh pr merge` is refused |

@@ -30,7 +30,7 @@ herdr agent start probe-<side> --kind claude --pane <pane> -- --name probe-<side
 | `/` menu | `herdr pane send-text <pane> "/<plugin>:"`, no enter, then `herdr pane read <pane>`: a hidden skill reads "No commands match". Control: a prefix that still lists a skill (`/mumu-team:` lists `kickoff`); clear with `herdr agent send-keys <pane> ctrl+u`. Then prompt the model to load each changed skill with the Skill tool |
 | a hook that reads a mission | write it yourself to `~/.claude/plugins/data/<plugin>-inline/mission/<session id>.md`, since auto mode refuses a probe that writes its own or arms monitors; delete it before `/exit` |
 | a lead | cwd a scratch `git init` repo whose `origin` is `https://github.com/o/r.git`, so no `gh` write lands |
-| a worker | the branch's `worker-start.py <checkout> probe-<x> low <issue-url> --prompt "<text>"`, ended by `worker-close.py probe-<x>` and `git worktree remove` |
+| a worker | the branch's `worker-start.py <checkout> probe-<x> low <issue-url>`, then `herdr agent prompt <pane> "<text>"`, ended by `worker-close.py probe-<x>` and `git worktree remove` |
 
 A scratch plugin whose parts each answer with a marker token, one numbered line per part, is read faster than a transcript.
 
