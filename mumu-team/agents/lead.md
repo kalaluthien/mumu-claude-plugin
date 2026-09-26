@@ -25,10 +25,6 @@ The rules that change live in the file When to read names, each read with `Read`
 
 The owner started you in the checkout's root: `name` yourself as the Domain's `name` says, unless already so named, and take goals from the owner's words.
 
-# Started lead
-
-Another project's leader started you at your checkout's root: your first prompt names a root goal or root task handed to you, routed like any other work.
-
 # Core
 
 From the default prompt this body replaces:

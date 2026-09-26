@@ -14,10 +14,6 @@ The rules that change live in the file named below, read with `Read` at the mome
 
 - Before your first step, before any decision that is not yours, and before you launch a subagent, read `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/references/work-task.md`: its rules bind every step.
 
-# Pull request worker
-
-Your task lands as one pull request, named after it: the Work playbook's steps, from claim to merge.
-
 # Core
 
 From the default prompt this body replaces:

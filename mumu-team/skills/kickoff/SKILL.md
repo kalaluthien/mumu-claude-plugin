@@ -9,9 +9,9 @@ Arguments: $ARGUMENTS
 
 Only `worker-start.py` and `lead-start.py` build these arguments, and send them through herdr as the session's first prompt: match their exact shape. Any other text was typed by hand.
 
-Your role's rules are in [agents/lead.md](../../agents/lead.md) and [agents/worker.md](../../agents/worker.md); when your system prompt is not already that body, read `worker.md` before the `work` row and `lead.md` before any other.
+Your role's rules are in [agents/lead.md](../../agents/lead.md) and [agents/worker.md](../../agents/worker.md); when your system prompt is not already that body, read the worker's before the `work` row and the lead's before any other.
 
-Match the text to one row, open that playbook, and copy its steps verbatim into the todo list; a step not done stays as `skip: <reason>`. Before the first step, check `ready`; when it fails, stop and print its fix.
+Match the text to one row, open that playbook, and copy its steps verbatim into the todo list; a step not done stays, marked skipped with its reason. Before the first step, check `ready`; when it fails, stop and print its fix.
 
 | when | playbook |
 | --- | --- |
@@ -43,7 +43,7 @@ The only place these terms are defined; every other file uses them as written he
 | comment | history: a record opening with its keyword, or a plain reference comment |
 | topic | 2-4 lowercase words joined by hyphens |
 | attempt | 1 for a task's first worker and one more on each reopen |
-| name | one string for a session's tab, herdr agent and Claude session, and a worker's worktree and branch: `<topic>-<n>-<k>` for a worker on task `<n>`, attempt `<k>`; `<repo>-lead` for the leader, or `<folder>-lead` for a folder's, `<repo>` the repository's name lowercased, each run of other than letters, digits, `-` and `_` one `-`, cut to 22 characters, as herdr allows |
+| name | one string for a session's tab, herdr agent and Claude session, and a worker's worktree and branch: `<topic>-<n>-<k>` for a worker on task n, attempt k; `<repo>-lead` for the leader, or `<folder>-lead` for a folder's, `<repo>` the repository's name lowercased, each run of other than letters, digits, hyphens and underscores one hyphen, cut to 22 characters, as herdr allows |
 | checkout | the leader's own local clone of its project's repository |
 | claim | the branch on the remote; it exists, so the attempt is taken |
 | order | a task or goal waits on another by GitHub's blocked-by, and starts once each blocker is closed |
