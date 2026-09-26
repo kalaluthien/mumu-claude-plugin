@@ -14,7 +14,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
 import gh  # noqa: E402
 import herdr  # noqa: E402
 import names  # noqa: E402
-from command import run  # noqa: E402
+from gh import run  # noqa: E402
 
 class Run(unittest.TestCase):
     def test_stdout_with_stdin_and_cwd(self):

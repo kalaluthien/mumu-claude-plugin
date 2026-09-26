@@ -10,8 +10,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
 import herdr  # noqa: E402
 import names  # noqa: E402
-from command import run  # noqa: E402
-from gh import gh, repo as repo_view  # noqa: E402
+from gh import gh, repo as repo_view, run  # noqa: E402
 
 
 def attempts(repo, n, topic=None, remote=True):

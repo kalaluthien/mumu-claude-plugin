@@ -8,7 +8,7 @@ import sys
 SCRIPTS = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS.parent / "lib"))
 import gh  # noqa: E402
-from command import run  # noqa: E402
+from gh import run  # noqa: E402
 
 
 def watching(root):
