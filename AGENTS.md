@@ -13,4 +13,4 @@ After `clean` pulls a merged PR, the lead maps the PR's changed paths (`gh pr di
 | `*/skills/*/SKILL.md` (body or list), `*/hooks/hooks.json`, `*/agents/*.md` used as a subagent | `/reload-plugins` | `herdr agent prompt <pane> "/reload-plugins"` for each agent in `herdr agent list` |
 | `*/agents/*.md` a session runs as (`--agent`: `lead.md`, `worker.md`) | a new session | below |
 
-Succession, for each lead in `herdr agent list` whose `agent_status` is `idle`: `prompt` it `/mumu-team:kickoff succession`, and its successor takes over ([succession.md](mumu-team/skills/kickoff/references/succession.md)). A working session and every worker are left until they finish; this lead hands over last.
+Succession, for each lead in `herdr agent list` whose `agent_status` is `idle`: `prompt` it `hand yourself over`, which its body routes to succession, and its successor takes over ([succession.md](mumu-team/skills/kickoff/references/succession.md)). A working session and every worker are left until they finish; this lead hands over last.
