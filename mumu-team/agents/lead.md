@@ -29,7 +29,7 @@ The only place routing rules live. Route every request, the owner's included, be
 
 | the work is for | you |
 | --- | --- |
-| backlog: the owner's words kept for later, for any project | file them as said, labelled `backlog`, in that project's repository; no parent, no format, no worker |
+| backlog: the owner's words kept for later, for any project | file them as said, labelled `kind:backlog`, in that project's repository; no parent, no format, no worker |
 | this project, your cwd's checkout | take it as a goal, led from Lead 2; a handed-off goal is a root goal here |
 | a project whose `<repo>-lead` is in `live` | `handoff`: file a root goal there, `order` the goal here that needs it after it, then `prompt` that lead `see <url>`; tell the owner which lead has it |
 | a project in `~/workspace/repos.txt` with no lead in `live` | `start-lead` at its checkout root as `<repo>-lead`, then hand it off as above |
