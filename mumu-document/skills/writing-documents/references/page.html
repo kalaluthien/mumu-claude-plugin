@@ -7,7 +7,7 @@
   Next, the arrow keys and a count; the reader compares the same marks.
   swipe: a root with data-swipe over a stage and an <ol class="steps">: a strip of cards, the card in view the step;
   each step a separate moment. Played, at step k each [data-step] up to k gets .on, the one at k .now, the root
-  data-at k - 1 and a `step` event; under reduced motion, in print or without script, every caption stays listed,
+  data-at k - 1 and a `step` event, and a card's data-x scrolls a stage wider than the column to it; under reduced motion, in print or without script, every caption stays listed,
   every chapter shown, and the widget stands at its last step.
   table: only for values the reader compares across rows, few columns, the first a row label, headers with scope;
   each one <div class="scroll" role="region" aria-labelledby="t-<id>" tabindex="0"> holding the <table> and its
@@ -22,7 +22,8 @@
 /* skin: the owner's design system.
    Look: a soft gothic page, black on white; dark mode inverts the duet. One
    face, Nanum Gothic, for every text role: h1 and h2 at weight 800, h3 at 700,
-   prose, controls, captions, figure labels and metadata at 400.
+   prose, controls, captions, figure labels and metadata at 400; a defined
+   term (dfn) at 700, upright, since Hangul has no italic.
    Corners square, no shadows. The
    accent is ink: focus, hover and the current step; links take --link.
    Borders on controls and figure boxes are body grey (3:1, so a hover to ink
@@ -103,6 +104,7 @@ figure { margin: 0; }
 table { border-collapse: collapse; min-width: 100%; background: var(--fill); }
 th, td { border-bottom: var(--line) solid var(--hairline); padding: var(--sp-2) var(--sp-3); text-align: start; vertical-align: top; }
 tbody th { font-weight: normal; }
+dfn { font-style: normal; font-weight: 700; }
 caption { text-align: start; }
 .scroll :is(th, td):first-child { position: sticky; inset-inline-start: 0; background: var(--fill); }
 .num { text-align: end; font-variant-numeric: tabular-nums; }
@@ -257,6 +259,14 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
         if (li.dataset.x) {
           root.style.setProperty('--x', `${li.dataset.x}px`);
           root.style.setProperty('--y', `${li.dataset.y}px`);
+          // a stage wider than the column scrolls to center the token
+          const stage = root.querySelector('.stage');
+          const svg = stage && stage.querySelector('svg');
+          if (svg) {
+            const s = svg.getBoundingClientRect();
+            const x = s.left - stage.getBoundingClientRect().left + stage.scrollLeft + li.dataset.x * s.width / (svg.viewBox.baseVal.width || s.width);
+            stage.scrollTo({ left: x - stage.clientWidth / 2, behavior: 'smooth' });
+          }
         }
         root.dataset.at = k - 1;
         root.dispatchEvent(new CustomEvent('step'));

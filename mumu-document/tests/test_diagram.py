@@ -56,7 +56,7 @@ class Diagram(unittest.TestCase):
         cls.pw.stop()
 
     def open(self, html, **context):
-        ctx = self.browser.new_context(viewport={"width": 400, "height": 900}, **context)
+        ctx = self.browser.new_context(**{"viewport": {"width": 400, "height": 900}, **context})
         self.addCleanup(ctx.close)
         p = ctx.new_page()
         p.route(re.compile(r"^https?://"), lambda r: r.abort())
@@ -88,6 +88,23 @@ class Diagram(unittest.TestCase):
             next_.click()
         self.assertLess(first, height(), "the tree is no shorter at step 1 than at its last step")
         self.assertEqual(p.locator("li[data-change='add']").evaluate(OPACITY), 1)
+
+    def test_swiped_token_stays_in_the_stage(self):
+        p = self.open(page("use-case"), viewport={"width": 360, "height": 800})
+        stage = p.locator(".stage")
+        self.assertGreater(stage.evaluate("(s) => s.scrollWidth - s.clientWidth"), 0, "the use case fits the column")
+        cards = p.locator(".steps > li")
+        for k in range(cards.count()):
+            with self.subTest(step=k + 1):
+                cards.nth(k).evaluate("(li) => li.scrollIntoView({ inline: 'center', block: 'nearest' })")
+                # once the swipe reaches this step, the token's move ends and the stage's scroll holds still between polls
+                p.wait_for_function("""(k) => { const r = document.querySelector('[data-swipe]'), s = r.querySelector('.stage');
+                  const still = r.dataset.held === `${k} ${s.scrollLeft}`;
+                  r.dataset.held = `${k} ${s.scrollLeft}`;
+                  return +r.dataset.at === k && !document.getAnimations().length && still; }""", arg=k, polling=200, timeout=3000)
+                token, box = (p.locator(s).evaluate("(e) => e.getBoundingClientRect().toJSON()") for s in (".token", ".stage"))
+                self.assertTrue(box["left"] <= token["left"] and token["right"] <= box["right"]
+                                and box["top"] <= token["top"] and token["bottom"] <= box["bottom"], (token, box))
 
     def test_focus_highlights_connections(self):
         for kind, edits, node, reached, far in FOCUS:

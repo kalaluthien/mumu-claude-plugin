@@ -189,7 +189,7 @@
       // the axes span every step's rows
       kinds[fig.dataset.chart](svg, data, tables.map((s) => s.data), head, plot.clientWidth, parseFloat(getComputedStyle(svg).fontSize));
     };
-    document.querySelectorAll('[data-widget="chart"]').forEach((fig) => {
+    const start = () => document.querySelectorAll('[data-widget="chart"]').forEach((fig) => {
       fig.dataset.at = fig.querySelectorAll('table').length - 1;
       draw(fig);
       fig.addEventListener('step', () => draw(fig));
@@ -215,6 +215,7 @@
         if (w !== width) { width = w; draw(fig); }
       }).observe(fig.querySelector('.plot'));
     });
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
   })();
 </script>
 <section aria-labelledby="{{id}}">

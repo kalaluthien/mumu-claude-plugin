@@ -35,10 +35,10 @@ The only place these terms are defined; every other file uses them as written he
 | worker | a session on one task in its own worktree |
 | reviewer | the `reviewer` agent: it reviews a plan, a pull request or a report comment it did not write, and alone writes `APPROVED:` |
 | root task | a task with no parent: the leader holds it; another project's work is a root task in that project's repository; a chore is a root task, `effort:low` |
-| task | an issue labelled `kind:task` and `effort:<effort>`: one change, one worker, never split, owned by its worker; it ends in one pull request, closed as completed by its merge, or, when its `## Definition of done` names a report comment, in that comment on the task, closed as completed by its worker at the report's `APPROVED:` |
-| backlog | an issue labelled `kind:backlog`: the owner's words kept for later, owned by no one and never worked; its body is the first words as said, and later words go on it as comments; relabelled `kind:task`, its body is replaced by the contract and it starts |
-| kind | exactly one of the labels `kind:task`, `kind:backlog`. A closed issue of the same kind as new work is reopened, never filed again |
-| body | an issue's current contract, only `## Goal` and `## Definition of done`, edited in place |
+| task | an issue without the `backlog` label, labelled `effort:<effort>`: one change, one worker per share, owned by its worker; it ends in one pull request, closed as completed by its merge, or, when its `## Definition of done` names a report comment, in that comment on the task, closed as completed by its worker at the report's `APPROVED:`; split into shares, it is resolved by its leader once every row has merged |
+| share | a row of a task's `## Shares` table, share \| DoD \| after: its topic, the ids of the criteria it checks (`D1:`), and the rows it waits on; each row has its own worker, worktree, branch `<share>-<n>-<k>` and pull request. A task is one share by default, with no `## Shares`, and is split only when 2+ rows have no `after` between them |
+| backlog | an issue labelled `backlog`: the owner's words kept for later, owned by no one and never worked; its body is the first words as said, and later words go on it as comments; once its `backlog` label is removed, its body is replaced by the contract and it starts |
+| body | an issue's current contract, only `## Goal`, `## Definition of done` and, split, `## Shares`, edited in place; a split task's body, labels and close are its leader's alone |
 | comment | history: a record opening with its keyword, or a plain reference comment |
 | topic | 2-4 lowercase words joined by hyphens |
 | attempt | 1 for a task's first worker and one more on each reopen |
@@ -54,7 +54,7 @@ GitHub is the only state; a session's memory is a cache. A record is a comment o
 
 | keyword | written by | means |
 | --- | --- | --- |
-| `BLOCKED:` | worker | `BLOCKED: <question>`, a decision that is not the worker's, or `BLOCKED: stuck on <criterion>`, 3 iterations passed no new criterion |
+| `BLOCKED:` | worker | `BLOCKED: <question>`, a decision that is not the worker's, or `BLOCKED: stuck on <criterion>`, 3 iterations passed no new criterion; a share's worker writes only its pull request and `BLOCKED: <share>: ...` comments |
 | `DECIDED:` | leader | `DECIDED: <answer>` through `decide.py`, which also edits the body's criteria when they change |
 | `APPROVED:` | reviewer | the plan, the pull request at the head sha it names, or the report comment it names, may go on |
 | `FINDINGS:` | reviewer | one line per defect: where, the defect, the fix |
@@ -88,7 +88,7 @@ Writing, for every issue, pull request and comment:
 - As short as it can be: bullets or a table, no narration; cite urls, `path:line`s and shas instead of restating them.
 - A title is verb-first and at most 40 characters.
 - Headings are noun phrases: a body carries `## Goal` and `## Definition of done`, one criterion per line; decisions and their reasons are `DECIDED:` comments.
-- A pull request body is `Closes #<task>` over the criteria table: each criterion, the command run and its result, pass or fail, with the count or line that shows it.
+- A pull request body is `Closes #<task>`, or a share's `Part of #<task>`, over the criteria table: each criterion, the command run and its result, pass or fail, with the count or line that shows it.
 
 # Verbs
 

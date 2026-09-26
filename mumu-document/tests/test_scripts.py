@@ -156,7 +156,9 @@ FAILS = [
     ("SQLite입니다.", "SQLite입니다. <code>api/</code>, <code>queue.py</code>, <code>worker.py:12</code>를 거쳐요.",
      "no file-tree for jobs.db, api/, queue.py, worker.py"),
 ]
-BREAK = "<script>document.querySelectorAll('[data-widget=\"chart\"]').forEach(function (f) { %s });</script></html>"
+# after the charts draw, which waits for the page to parse
+BREAK = ("<script>addEventListener('DOMContentLoaded', function () {"
+         " document.querySelectorAll('[data-widget=\"chart\"]').forEach(function (f) { %s }); });</script></html>")
 CHART_FAILS = [
     ("if (f.dataset.chart === 'bar') { var m = f.querySelector('rect.mark'); m.setAttribute('width', +m.getAttribute('width') + 3); }", "width"),
     ("if (f.dataset.chart === 'line') f.querySelector('circle.mark').remove();", "no mark"),
@@ -269,6 +271,7 @@ class Check(unittest.TestCase):
         self.assertEqual(code, 0, out)
         for kind in ("bar", "line"):
             self.assertIn(f" {kind} marks", out)
+        self.assertIn("swipe 1 token in view 3/3 pass", out)
 
     def test_each_chart_rule_fails(self):
         for js, word in CHART_FAILS + [(None, "slide stands at table 1, not its last, 2")]:
@@ -282,6 +285,13 @@ class Check(unittest.TestCase):
         code, out = check(self.gallery.replace("<style>", dead, 1))
         self.assertEqual(code, 1, out)
         self.assertIn("swipe 1 step 1/3 FAIL", out)
+
+    def test_token_out_of_view_fails(self):
+        # step 2's card sends the token past the stage's scroll width
+        self.assertIn('data-x="444"', self.gallery)
+        code, out = check(self.gallery.replace('data-x="444"', 'data-x="1400"'))
+        self.assertEqual(code, 1, out)
+        self.assertIn("swipe 1 token in view 2/3 FAIL: steps 2", out)
 
 
 
