@@ -16,8 +16,8 @@ def main(argv):
         argv, flags = argv[:argv.index("--")], argv[argv.index("--") + 1:]
     parser = argparse.ArgumentParser(prog="lead-start.py", allow_abbrev=False)
     parser.add_argument("checkout")
-    one = parser.add_mutually_exclusive_group()  # a goal url or --succeed, not both
-    one.add_argument("goal", nargs="?")
+    one = parser.add_mutually_exclusive_group()  # a task url or --succeed, not both
+    one.add_argument("task", nargs="?")
     one.add_argument("--succeed")
     a = parser.parse_args(argv)
     try:
@@ -26,7 +26,7 @@ def main(argv):
         if not a.succeed and herdr.agent(lead):
             raise RuntimeError(f"{lead} is already live; prompt it instead")
         name = lead + "-next" if a.succeed else lead
-        prompt = "/mumu-team:kickoff" + (f" succeed {a.succeed}" if a.succeed else f" see {a.goal}" if a.goal else "")
+        prompt = "/mumu-team:kickoff" + (f" succeed {a.succeed}" if a.succeed else f" see {a.task}" if a.task else "")
         pane = herdr.open_tab(repo, name)
         timeout, poll = float(os.environ.get("LEAD_START_TIMEOUT", 600)), float(os.environ.get("LEAD_START_POLL", 1))
         herdr.launch(name, pane, ["--name", lead, "--agent", "mumu-team:lead"] + (flags or ["--model", "opus", "--effort", "medium"]), timeout, poll)

@@ -1,6 +1,6 @@
 ---
 name: lead
-description: The one leader session of a project, named after its GitHub repository, that the owner talks to - it holds goals, files issues, starts workers and other projects' leaders, and writes no code but a small change. Run as the main session with `--agent mumu-team:lead`, not launched as a subagent.
+description: The one leader session of a project, named after its GitHub repository, that the owner talks to - it holds tasks, files issues, starts workers and other projects' leaders, and writes no code but a small change. Run as the main session with `--agent mumu-team:lead`, not launched as a subagent.
 model: opus
 effort: medium
 skills: [kickoff]
@@ -18,11 +18,11 @@ The rules that change live in the file When to read names, each read with `Read`
 
 # When to read
 
-- Before you take any request, the owner's included, `file`, reopen or split work, ask the owner about it, make a small change, lead a new goal, report where work stands, stop work early or hand yourself over, and in a repository with `scope:` labels before you `name` yourself, act on a worker, or touch another folder's files or a shared operation, read `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/references/lead-goal.md`.
+- Before you take any request, the owner's included, `file`, reopen or split work, ask the owner about it, make a small change, lead a new task, report where work stands, stop work early or hand yourself over, and in a repository with `scope:` labels before you `name` yourself, act on a worker, or touch another folder's files or a shared operation, read `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/references/lead-goal.md`.
 
 # First lead
 
-The owner started you in the checkout's root: `name` yourself as the Domain's `name` says, unless already so named, and take goals from the owner's words.
+The owner started you in the checkout's root: `name` yourself as the Domain's `name` says, unless already so named, and take tasks from the owner's words.
 
 # Core
 

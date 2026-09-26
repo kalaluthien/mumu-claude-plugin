@@ -1,6 +1,6 @@
 ---
 name: kickoff
-description: Starts a session on its mumu-team role from the prompt a script sends it - work a task, lead a handed-over goal, succeed a lead, or resume.
+description: Starts a session on its mumu-team role from the prompt a script sends it - work a task, lead a handed-over task, succeed a lead, or resume.
 disable-model-invocation: true
 argument-hint: work https://github.com/o/r/issues/13 leader r-lead
 ---
@@ -16,7 +16,7 @@ Match the text to one row, open that playbook, and copy its steps verbatim into 
 | when | playbook |
 | --- | --- |
 | work one task: `work <task-url> leader <address>`, from `worker-start.py --leader` | [references/work-task.md](references/work-task.md) |
-| lead a goal handed over: `see <goal-url>`, from `lead-start.py <checkout> <goal-url>` | [references/lead-goal.md](references/lead-goal.md) |
+| lead a task handed over: `see <task-url>`, from `lead-start.py <checkout> <task-url>` | [references/lead-goal.md](references/lead-goal.md) |
 | take over as a lead's successor: `succeed <pane>`, from `lead-start.py --succeed` | [references/lead-goal.md](references/lead-goal.md)'s Succession |
 | resume: no text, from `lead-start.py <checkout>` | [references/lead-goal.md](references/lead-goal.md)'s Succession |
 | any other text | none: reply that plain words go to the project's lead in its tab, or from any session through `/mumu-team:handoff`, and stop |
@@ -31,14 +31,13 @@ The only place these terms are defined; every other file uses them as written he
 | term | meaning |
 | --- | --- |
 | project | a Claude project folder: the leader's cwd, a checkout of the GitHub repository named `<repo>` |
-| leader | the one session per project, or per plugin folder in a repository with `scope:` labels, named as `name` says: the owner talks to it, and it holds the project's root goals and root tasks and starts workers and other projects' leaders |
+| leader | the one session per project, or per plugin folder in a repository with `scope:` labels, named as `name` says: the owner talks to it, and it holds the project's root tasks and starts workers and other projects' leaders |
 | worker | a session on one task in its own worktree |
 | reviewer | the `reviewer` agent: it reviews a plan, a pull request or a report comment it did not write, and alone writes `APPROVED:` |
-| goal | an issue labelled `kind:goal`: an outcome the owner wants, filed only when it holds two or more tasks, owned by its project's leader, split into goals or tasks at any depth, related or not; its criteria state outcomes, never that a task below merged, and "the owner says it is done" is one; closed as completed when all it holds is done and its criteria pass |
-| root goal, root task | a goal or task with no parent: the leader holds it; another project's work is a root goal or root task in that project's repository; a chore is a root task, `effort:low` |
-| task | an issue labelled `kind:task` and `effort:<effort>`, under a goal or a root task itself: one change, one worker, never split, owned by its worker; it ends in one pull request, closed as completed by its merge, or, when its `## Definition of done` names a report comment, in that comment on the task, closed as completed by its worker at the report's `APPROVED:` |
-| backlog | an issue labelled `kind:backlog`: the owner's words kept for later, owned by no one and never worked; its body is the first words as said, and later words go on it as comments; relabelled `kind:goal` or `kind:task`, its body is replaced by the contract and it starts |
-| kind | exactly one of the labels `kind:goal`, `kind:task`, `kind:backlog`. A closed issue of the same kind as new work is reopened, never filed again |
+| root task | a task with no parent: the leader holds it; another project's work is a root task in that project's repository; a chore is a root task, `effort:low` |
+| task | an issue labelled `kind:task` and `effort:<effort>`: one change, one worker, never split, owned by its worker; it ends in one pull request, closed as completed by its merge, or, when its `## Definition of done` names a report comment, in that comment on the task, closed as completed by its worker at the report's `APPROVED:` |
+| backlog | an issue labelled `kind:backlog`: the owner's words kept for later, owned by no one and never worked; its body is the first words as said, and later words go on it as comments; relabelled `kind:task`, its body is replaced by the contract and it starts |
+| kind | exactly one of the labels `kind:task`, `kind:backlog`. A closed issue of the same kind as new work is reopened, never filed again |
 | body | an issue's current contract, only `## Goal` and `## Definition of done`, edited in place |
 | comment | history: a record opening with its keyword, or a plain reference comment |
 | topic | 2-4 lowercase words joined by hyphens |
@@ -46,7 +45,7 @@ The only place these terms are defined; every other file uses them as written he
 | name | one string for a session's tab, herdr agent and Claude session, and a worker's worktree and branch: `<topic>-<n>-<k>` for a worker on task n, attempt k; `<repo>-lead` for the leader, or `<folder>-lead` for a folder's, `<repo>` the repository's name lowercased, each run of other than letters, digits, hyphens and underscores one hyphen, cut to 22 characters, as herdr allows |
 | checkout | the leader's own local clone of its project's repository |
 | claim | the branch on the remote; it exists, so the attempt is taken |
-| order | a task or goal waits on another by GitHub's blocked-by, and starts once each blocker is closed |
+| order | a task waits on another by GitHub's blocked-by, and starts once each blocker is closed |
 | approval | a comment whose first line is `APPROVED: <sha>`, valid while the head is that sha, or `APPROVED: <comment-url>` for a report |
 | criterion | one `## Definition of done` line, a check → its pass condition: a check that can fail, and that the honest empty outcome can pass |
 | stop | an issue closed as not planned, its pull request left draft |
@@ -93,7 +92,7 @@ Writing, for every issue, pull request and comment:
 
 # Verbs
 
-A goal and its tasks live in its leader's repository, and a worker's worktree in its leader's own checkout only. The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, and `<hooks>` is `git -C <checkout> rev-parse --path-format=absolute --git-path hooks`.
+A task lives in its leader's repository, and a worker's worktree in its leader's own checkout only. The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, and `<hooks>` is `git -C <checkout> rev-parse --path-format=absolute --git-path hooks`.
 
 ## Panes: herdr
 
@@ -107,7 +106,7 @@ Every command names its target pane.
 | `start` | `worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--leader <your address>] [--owner-effort]`: starts the worker `<topic>-<n>-<k>` at the next attempt, or the newest with `--continue`, in its own worktree and tab, prompted kickoff's `work` |
 | `name` | this session's three names: `herdr tab rename <tab> <name>`, the tab being `herdr pane get $HERDR_PANE_ID`'s `tab_id`; `herdr agent rename $HERDR_PANE_ID <name>`; and `herdr agent prompt $HERDR_PANE_ID "/rename <name>"`, which applies when the turn ends |
 | `prompt` | `herdr agent prompt <name> "<text>"`, by name, since a remembered pane id can be stale; success prints before delivery and a busy pane or open dialog can swallow the text, so read the pane before and after and resend when no turn carries it; failing twice, tell the owner |
-| `start-lead` | `lead-start.py <checkout> [<goal-url> \| --succeed <pane>] [-- <claude flags>]`, at the checkout's root: starts `<repo>-lead` in a new tab, refusing when one is live, and prompts its kickoff; a start-up dialog in its tab is the owner's to answer there |
+| `start-lead` | `lead-start.py <checkout> [<task-url> \| --succeed <pane>] [-- <claude flags>]`, at the checkout's root: starts `<repo>-lead` in a new tab, refusing when one is live, and prompts its kickoff; a start-up dialog in its tab is the owner's to answer there |
 | `broadcast` | `prompt` each lead in `live` but you `see <url>`, one `herdr agent prompt <literal-name> "see <url>"` Bash call per agent, no loop and no variable, so the allow rule matches it |
 | `close` | `worker-close.py <name>`: exits the session, answering its exit dialogs, and closes each tab labelled `<name>`, the session live or gone |
 
@@ -115,8 +114,8 @@ Every command names its target pane.
 
 | verb | command |
 | --- | --- |
-| `read` | `gh issue view <url> --json title,body,comments,labels,state,parent`, or `gh pr view <url> --json title,body,comments,headRefOid`; what a goal holds is its sub-issues, `gh api repos/<repo>/issues/<n>/sub_issues`, each read the same way down to the tasks |
-| `file` | `gh label create <label> -R <repo> --force` for each label, then `gh issue create -R <repo> --title "<title>" --label <label>... --body-file -`, with `--parent <goal-url>` unless it is a root goal or root task; a task's effort is low or medium unless the owner named another |
+| `read` | `gh issue view <url> --json title,body,comments,labels,state,parent`, or `gh pr view <url> --json title,body,comments,headRefOid` |
+| `file` | `gh label create <label> -R <repo> --force` for each label, then `gh issue create -R <repo> --title "<title>" --label <label>... --body-file -`; a task's effort is low or medium unless the owner named another |
 | `order` | `gh api -X POST repos/<repo>/issues/<n>/dependencies/blocked_by -F issue_id=<id>`, `<id>` the blocker's `gh api repos/<owner>/<repo>/issues/<m> -q .id`, in this repository or another |
 | `comment` | `gh issue comment <url> --body-file -` |
 | `decide` | `decide.py <url> [--criteria <file>] < <decision>`: posts `DECIDED: <decision>`, and with `--criteria` first replaces the body's `## Definition of done` by the file's lines |
@@ -129,6 +128,5 @@ Every command names its target pane.
 
 ## Traps
 
-- `file`: `--parent` creates the issue even when the link fails, so relink the printed url with `gh issue edit <url> --parent <goal-url>`, never create it again.
 - `pr` and `merge`: an error such as `GraphQL: Something went wrong` may still have landed, so `read` the state before retrying; just after a push `headRefOid` can name the old head, which `git ls-remote origin refs/heads/<branch>` does not.
 - CI: a conflicting pull request gets no run, and a job with `needs` is absent from `gh pr checks` until they finish, so wait in the foreground with `gh run watch <id> --exit-status`.
