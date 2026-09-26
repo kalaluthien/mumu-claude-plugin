@@ -297,6 +297,7 @@ print(json.dumps([{"url": i["url"]} for i in json.loads(f.read_text() if f.exist
 CLAUDE = 100
 HELD_GOAL = "https://github.com/o/r/issues/7"
 HELD_TASK = "https://github.com/o/r/issues/8"
+OTHER_TASK = "https://github.com/o/r/issues/9"
 
 
 class Hook(unittest.TestCase):
@@ -310,7 +311,7 @@ class Hook(unittest.TestCase):
     def stop(self, agent_type="mumu-team:worker", cwd=None, goals=(), tasks=(), watch=None, name="r-lead", scoped=()):
         (self.tmp / "held.json").write_text(json.dumps([{"url": u, "kind": "goal"} for u in goals]
                                                        + [{"url": u, "kind": "task"} for u in tasks]
-                                                       + [{"url": u, "kind": "goal", "scope": f} for u, f in scoped]))
+                                                       + [{"url": u, "kind": "task", "scope": f} for u, f in scoped]))
         (self.tmp / "herdr").write_text(f"#!/bin/sh\necho '{json.dumps({'result': {'agents': [{'name': name, 'pane_id': 'w1:p1'}]}})}'\n")
         (self.tmp / "herdr").chmod(0o755)
         table = [(1, 0, "launchd"), (CLAUDE, 1, "claude"), (200, 1, "claude --name other")]
@@ -340,7 +341,7 @@ class Hook(unittest.TestCase):
 
 class OtherStop(Hook):
     def test_worker_with_an_open_task_and_no_pull_request_stops_and_reads_nothing(self):
-        outs, calls = self.stop(goals=[HELD_GOAL], tasks=[HELD_TASK])
+        outs, calls = self.stop(tasks=[HELD_TASK])
         self.assertFalse(self.refused(outs), outs)
         self.assertTrue(outs and all(o.returncode == 0 for o in outs), outs)
         self.assertEqual(calls, [])
@@ -348,7 +349,7 @@ class OtherStop(Hook):
     def test_session_without_lead_agent_stops_and_reads_nothing(self):
         for agent_type in (None, "mumu-team:reviewer", "general-purpose"):
             with self.subTest(agent_type=agent_type):
-                outs, calls = self.stop(agent_type=agent_type, goals=[HELD_GOAL])
+                outs, calls = self.stop(agent_type=agent_type, tasks=[HELD_TASK])
                 self.assertFalse(self.refused(outs), outs)
                 self.assertEqual(calls, [])
 
@@ -357,33 +358,34 @@ class LeadStop(Hook):
     def lead(self, **kwargs):
         return self.stop(agent_type="mumu-team:lead", cwd=self.tmp / "repo", **kwargs)
 
-    def test_open_root_goal_without_team_watch_is_refused_naming_the_command(self):
+    def test_open_root_task_without_team_watch_is_refused_naming_the_command(self):
         for watch in (None, 200):  # none, or another session's
             with self.subTest(watch=watch):
-                outs, calls = self.lead(goals=[HELD_GOAL], watch=watch)
+                outs, calls = self.lead(tasks=[HELD_TASK], watch=watch)
                 self.assertTrue(self.refused(outs))
                 self.assertIn("team-watch.py", self.reason(outs))
-                self.assertIn(HELD_GOAL, self.reason(outs))
+                self.assertIn(HELD_TASK, self.reason(outs))
+                self.assertIn("root tasks", self.reason(outs))
                 self.assertIn("no:parent-issue", " ".join(json.loads(calls[0])))
-
-    def test_open_root_task_alone_without_team_watch_is_refused(self):
-        outs, _ = self.lead(tasks=[HELD_TASK])
-        self.assertTrue(self.refused(outs))
-        self.assertIn(HELD_TASK, self.reason(outs))
         self.assertFalse(self.refused(self.lead(tasks=[HELD_TASK], watch=CLAUDE)[0]))
+
+    def test_open_goal_is_not_held(self):
+        outs, calls = self.lead(goals=[HELD_GOAL])
+        self.assertFalse(self.refused(outs), outs)
+        self.assertNotIn("kind:goal", " ".join(json.loads(calls[0])))
 
     def test_folder_lead_counts_only_its_scope_and_repo_lead_counts_all(self):
         (self.tmp / "repo" / "docs").mkdir()
-        scoped = [(HELD_GOAL, "team")]
+        scoped = [(OTHER_TASK, "team")]
         self.assertFalse(self.refused(self.lead(name="docs-lead", scoped=scoped)[0]))
         outs, calls = self.lead(name="docs-lead", scoped=[*scoped, (HELD_TASK, "docs")])
         self.assertTrue(self.refused(outs))
-        self.assertNotIn(HELD_GOAL, self.reason(outs))
+        self.assertNotIn(OTHER_TASK, self.reason(outs))
         self.assertIn("label:scope:docs", " ".join(json.loads(calls[0])))
-        self.assertIn(HELD_GOAL, self.reason(self.lead(name="r-lead", scoped=scoped)[0]))
+        self.assertIn(OTHER_TASK, self.reason(self.lead(name="r-lead", scoped=scoped)[0]))
 
     def test_lead_stops_otherwise(self):
-        for kwargs in ({"goals": [HELD_GOAL], "watch": CLAUDE}, {}, {"watch": CLAUDE}):
+        for kwargs in ({"tasks": [HELD_TASK], "watch": CLAUDE}, {}, {"watch": CLAUDE}):
             with self.subTest(**kwargs):
                 outs, _ = self.lead(**kwargs)
                 self.assertFalse(self.refused(outs), outs)
@@ -427,7 +429,7 @@ class TeamWatch(unittest.TestCase):
             for n, s, mine in agents]}})
         (self.tmp / f"herdr.{poll}").write_text(text)
 
-    def goals(self, poll, *urls, kind="goal"):
+    def held(self, poll, *urls, kind="task"):
         """The open parentless issues from poll `poll` on, each of `kind`, or `FAIL`."""
         (self.tmp / f"gh.{poll}").write_text("FAIL" if urls == ("FAIL",) else json.dumps([{"url": u, "kind": kind} for u in urls]))
 
@@ -446,9 +448,9 @@ class TeamWatch(unittest.TestCase):
         count = self.tmp / f"{tool}.count"
         return int(count.read_text()) if count.exists() else 0
 
-    def test_no_goals_runs_every_poll_silently(self):
+    def test_no_tasks_runs_every_poll_silently(self):
         self.herdr(0)
-        self.goals(0)
+        self.held(0)
         self.assertEqual(self.run_watch(ticks=30, idle="0"), [])
         self.assertEqual(self.polls("herdr"), 30)
 
@@ -456,7 +458,7 @@ class TeamWatch(unittest.TestCase):
         self.herdr(0, ("fix-a-12-1", "working", True))
         self.herdr(3, "FAIL")
         self.herdr(4, ("fix-a-12-1", "blocked", True))
-        self.goals(0, "FAIL")
+        self.held(0, "FAIL")
         self.assertEqual(self.run_watch(ticks=8, idle="0"), ["blocked fix-a-12-1"])
         self.assertEqual(self.polls("herdr"), 8)
 
@@ -470,21 +472,21 @@ class TeamWatch(unittest.TestCase):
 
     def test_no_working_worker_for_the_idle_period_prints_one_idle_line(self):
         self.herdr(0, ("fix-a-12-1", "idle", True))
-        self.goals(0, "https://github.com/o/r/issues/7")
+        self.held(0, "https://github.com/o/r/issues/7")
         lines = self.run_watch(ticks=20, idle="0.05")
         self.assertEqual(lines[0], "idle fix-a-12-1")
         self.assertEqual(lines[1:], ["team idle 0m"])
 
-    def test_a_root_task_alone_prints_the_idle_line(self):
+    def test_a_goal_or_backlog_alone_prints_no_idle_line(self):
         self.herdr(0, ("fix-a-12-1", "idle", True))
-        self.goals(0, "https://github.com/o/r/issues/8", kind="task")
-        self.assertEqual(self.run_watch(ticks=20, idle="0.05")[1:], ["team idle 0m"])
-        self.goals(0, "https://github.com/o/r/issues/9", kind="backlog")
-        self.assertEqual(self.run_watch(ticks=20, idle="0.05")[1:], [])
+        for kind in ("goal", "backlog"):
+            with self.subTest(kind=kind):
+                self.held(0, "https://github.com/o/r/issues/9", kind=kind)
+                self.assertEqual(self.run_watch(ticks=20, idle="0.05")[1:], [])
 
     def test_a_working_worker_prints_no_idle_line(self):
         self.herdr(0, ("fix-a-12-1", "working", True))
-        self.goals(0, "https://github.com/o/r/issues/7")
+        self.held(0, "https://github.com/o/r/issues/7")
         self.assertEqual(self.run_watch(ticks=20, idle="0"), [])
 
     def test_in_a_worker_session_it_exits_at_once(self):

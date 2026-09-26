@@ -561,7 +561,7 @@ class WorkerStart(unittest.TestCase):
                 self.assertEqual(start[start.index("--effort") + 1], effort)
 
 
-GOAL = "https://github.com/o/main/issues/9"
+TASK = "https://github.com/o/main/issues/9"
 
 
 class LeadStart(unittest.TestCase):
@@ -586,23 +586,23 @@ class LeadStart(unittest.TestCase):
         start = next(c for c in calls if c[1:3] == ["agent", "start"])
         return start[3], start[start.index("--") + 1:]
 
-    def test_goal_starts_the_lead_agent_and_prompts_see(self):
-        done, calls = self.start(GOAL)
+    def test_task_starts_the_lead_agent_and_prompts_see(self):
+        done, calls = self.start(TASK)
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertEqual(done.stdout, f"main-lead@{PANE}\n")
         self.assertEqual(self.claude_argv(calls), ("main-lead", ["--name", "main-lead", "--agent", "mumu-team:lead", "--model", "opus", "--effort", "medium"]))
         self.assertIn(["herdr", "tab", "create", "--cwd", str(self.repo), "--label", "main-lead"], calls)
         keys = calls.index(["herdr", "agent", "send-keys", PANE, "down", "enter"])
-        prompt = calls.index(["herdr", "agent", "prompt", PANE, f"/mumu-team:kickoff see {GOAL}"])
+        prompt = calls.index(["herdr", "agent", "prompt", PANE, f"/mumu-team:kickoff see {TASK}"])
         self.assertLess(keys, prompt, "prompted before the trust dialog was answered")
 
     def test_repo_name_is_made_a_herdr_name(self):
         (self.tmp / "gh").write_text("#!/bin/sh\necho Kalaluthien.GitHub.io.and-a-long-tail\n")
-        done, calls = self.start(GOAL)
+        done, calls = self.start(TASK)
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertEqual(self.claude_argv(calls)[0], "kalaluthien-github-io-lead")
 
-    def test_no_goal_prompts_resume(self):
+    def test_no_task_prompts_resume(self):
         done, calls = self.start()
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertIn(["herdr", "agent", "prompt", PANE, "/mumu-team:kickoff"], calls)
@@ -623,13 +623,13 @@ class LeadStart(unittest.TestCase):
 
     def test_live_lead_refuses_a_second(self):
         (self.tmp / "name").write_text("main-lead")
-        done, calls = self.start(GOAL)
+        done, calls = self.start(TASK)
         self.assertEqual(done.returncode, 1)
         self.assertIn("already live", done.stderr)
         self.assertFalse([c for c in calls if c[1:3] in (["tab", "create"], ["agent", "start"])])
 
     def test_relative_checkout_opens_the_tab_at_its_absolute_root(self):
-        done, calls = self.start(GOAL, checkout="repo", cwd=self.tmp)
+        done, calls = self.start(TASK, checkout="repo", cwd=self.tmp)
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertIn(["herdr", "tab", "create", "--cwd", str(self.repo.resolve()), "--label", "main-lead"], calls)
 
@@ -637,13 +637,13 @@ class LeadStart(unittest.TestCase):
         (self.repo / "sub").mkdir()
         (self.tmp / "plain").mkdir()
         for path in (str(self.repo / "sub"), str(self.tmp / "plain")):
-            done, calls = self.start(GOAL, checkout=path)
+            done, calls = self.start(TASK, checkout=path)
             self.assertEqual(done.returncode, 1, path)
             self.assertIn(path, done.stderr)
             self.assertFalse([c for c in calls if c[1:3] == ["tab", "create"]], path)
 
     def test_bad_arguments_start_nothing(self):
-        for extra in (["--succeed"], ["--continue"], [GOAL, GOAL]):
+        for extra in (["--succeed"], ["--continue"], [TASK, TASK]):
             done, calls = self.start(*extra)
             self.assertEqual(done.returncode, 2, extra)
             self.assertFalse(calls, extra)

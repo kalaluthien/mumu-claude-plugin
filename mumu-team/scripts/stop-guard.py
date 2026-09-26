@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stop hook: refuse a lead's stop while it holds an open root goal or root task, a `<folder>-lead` only `scope:<folder>`'s, and no `team-watch` descends from `$CLAUDE_PID`."""
+"""Stop hook: refuse a lead's stop while it holds an open root task, a `<folder>-lead` only `scope:<folder>`'s, and no `team-watch` descends from `$CLAUDE_PID`."""
 import json
 import os
 import pathlib
@@ -33,5 +33,5 @@ except RuntimeError:
     folder = ""
 held = payload.get("agent_type") == "mumu-team:lead" and gh.held(cwd, folder if folder and (pathlib.Path(cwd) / folder).is_dir() else None)
 if held and not watching(int(os.environ.get("CLAUDE_PID") or os.getppid())):
-    print(json.dumps({"decision": "block", "reason": f"You hold open root goals or root tasks ({' '.join(held)}) and `team-watch` is not running: arm "
+    print(json.dumps({"decision": "block", "reason": f"You hold open root tasks ({' '.join(held)}) and `team-watch` is not running: arm "
                       f"`\"{SCRIPTS / 'team-watch.py'}\"` with the Monitor tool at its longest timeout, in your checkout, before you stop."}))
