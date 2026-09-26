@@ -1,20 +1,16 @@
 #!/usr/bin/env python3
-"""Start a project's lead in one call: its tab, its Claude session as `--agent mumu-team:lead`, the folder-trust dialog and its kickoff prompt.
+"""Start a project's lead in one call: its tab, its Claude session as `--agent mumu-team:lead` and its kickoff prompt.
 
 usage: lead-start.py <checkout> [<goal-url> | --succeed <pane>] [-- <claude flags>]
 
-The lead's name is `lib/names.py`'s `lead` of the name `gh repo view` gives in
-`<checkout>`, short enough that `<repo>-lead-next` fits herdr's 32;
-`<checkout>` is the checkout's root, made absolute, where its tab opens; any other path fails with 1. It is prompted
-`/mumu-team:kickoff see <goal-url>` with a goal, `/mumu-team:kickoff` without
-one (resume), and `/mumu-team:kickoff succeed <pane>` with `--succeed`, whose
-tab and herdr agent are `<repo>-lead-next` until the successor renames itself.
-Without `--succeed` it fails with 1 when `<repo>-lead` is already live, so a
-project never gets a second lead. Claude runs with `--name <repo>-lead --agent
-mumu-team:lead` and the flags after `--`, else `--model opus --effort medium`.
-The tab opens focused, so the owner sees any start-up dialog it waits on.
-Prints `<name>@<pane>`. `LEAD_START_TIMEOUT` (600) and `LEAD_START_POLL` (1)
-are seconds.
+The lead is `lib/names.py`'s `lead` of the repository's name, its tab opened,
+focused, at `<checkout>`, which must be a checkout's root. It is prompted
+`/mumu-team:kickoff see <goal-url>`, `/mumu-team:kickoff` (resume) without a
+goal, or `/mumu-team:kickoff succeed <pane>`, whose tab and agent are
+`<repo>-lead-next` until the successor renames itself; without `--succeed` it
+fails with 1 while `<repo>-lead` is live. Claude runs with `--name <repo>-lead`
+and the flags after `--`, else `--model opus --effort medium`. Prints
+`<name>@<pane>`. `LEAD_START_TIMEOUT` (600) and `LEAD_START_POLL` (1) are seconds.
 """
 import os
 import pathlib

@@ -3,14 +3,12 @@
 
 usage: worker-close.py <name>
 
-Sends `/exit` to the agent herdr lists as `<name>`, and answers each exit dialog
-in `DIALOGS` at most once, by the key its row names: the background-work dialog
-exits, and a pending feedback draft is discarded, never sent, since sending is
-the owner's to decide. It then waits until herdr no longer lists the agent, closes every tab labelled
-`<name>`. An agent already gone skips to the tab. Prints
-`closed <name>`. `WORKER_CLOSE_TIMEOUT` (60) and `WORKER_CLOSE_POLL` (1) are seconds.
-The keys go through `herdr agent send-keys`, so auto mode needs the allow rule
-`Bash(herdr agent send-keys *)`.
+Sends `/exit` to the agent `<name>`, answers each exit dialog in `DIALOGS` at
+most once (a feedback draft is discarded, never sent: sending is the owner's),
+waits until herdr no longer lists the agent, or skips that when it is gone, and
+closes every tab labelled `<name>`. Prints `closed <name>`.
+`WORKER_CLOSE_TIMEOUT` (60) and `WORKER_CLOSE_POLL` (1) are seconds; auto mode
+needs the allow rule `Bash(herdr agent send-keys *)`.
 """
 import os
 import pathlib
@@ -29,20 +27,14 @@ DIALOGS = [
 ]
 
 
-def pane(name):
-    """The pane of the agent herdr lists as `name`, or None."""
-    a = herdr.agent(name)
-    return a and a["pane_id"]
-
-
 def exit_session(name, timeout, poll):
     """`/exit` the agent `name`, answering each dialog in `DIALOGS` at most once, and return once herdr no longer lists it."""
-    target = pane(name)
+    target = (herdr.agent(name) or {}).get("pane_id")
     if target is None:
         return
     herdr.prompt(target, "/exit")
     answered, deadline = set(), time.time() + timeout
-    while pane(name) is not None:
+    while herdr.agent(name):
         if time.time() >= deadline:
             raise RuntimeError(f"{name} still running after {timeout:g}s; see `herdr agent read {target}`")
         screen = herdr.screen(target)
@@ -62,7 +54,7 @@ def main(argv):
     timeout, poll = float(os.environ.get("WORKER_CLOSE_TIMEOUT", 60)), float(os.environ.get("WORKER_CLOSE_POLL", 1))
     try:
         exit_session(name, timeout, poll)
-        for tab in herdr.tabs():
+        for tab in herdr.listed("tab"):
             if tab.get("label") == name:
                 herdr.close_tab(tab["tab_id"])
     except RuntimeError as e:

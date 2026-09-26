@@ -32,7 +32,7 @@ def main(argv):
         print("usage: tab-sweep.py <checkout>", file=sys.stderr)
         return 2
     try:
-        for tab in stale_tabs(herdr.panes(), herdr.agents(), argv[0]):
+        for tab in stale_tabs(herdr.listed("pane"), herdr.listed("agent"), argv[0]):
             herdr.close_tab(tab)
             print(tab)
     except RuntimeError as e:

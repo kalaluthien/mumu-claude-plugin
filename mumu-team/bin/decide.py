@@ -3,12 +3,11 @@
 
 usage: decide.py <issue-url> [--criteria <file>] < decision
 
-The decision is read from stdin; the comment's first line opens `DECIDED:`,
-added unless the text already opens with it. With `--criteria`, the body's
-`## Definition of done` section, up to the next `## ` heading or the end, is
-replaced by the file's lines first, and every other section (`## Goal`) is kept
-as it was; a body with no such section gains one at the end. Exits non-zero
-with the failing `gh` call's message, and posts no comment when the edit fails.
+The comment is stdin, opened with `DECIDED:` unless it already is. With
+`--criteria`, the body's `## Definition of done` section, up to the next `## `
+heading or the end, is first replaced by the file's lines, or added at the end,
+every other section kept. Exits non-zero with the failing `gh` call's message,
+posting no comment when the edit fails.
 """
 import pathlib
 import re

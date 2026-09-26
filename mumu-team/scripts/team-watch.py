@@ -55,7 +55,7 @@ def main():
     while not ticks or n < ticks:
         n += 1
         try:
-            listed = herdr.agents()
+            listed = herdr.listed("agent")
         except RuntimeError:
             listed = None
         if listed is not None:

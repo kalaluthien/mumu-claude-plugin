@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
-"""Start a worker in one call: its name, its worktree, its tab, its Claude session, the folder-trust dialog and its kickoff prompt.
+"""Start a worker in one call: its name, its worktree, its tab, its Claude session and its kickoff prompt.
 
 usage: worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--leader <address>] [--owner-effort]
 
-The worker's name and worktree are `lib/names.py`'s, `<k>` the attempt:
-1 + the largest `k` of any remote branch, pull request head or local worktree
-of task `<n>`, so a reopened task gets a fresh name; `--continue` reuses the
-newest local worktree of `<topic>` and `<n>` and resumes its last Claude
-session, failing when there is none. The worktree is added detached at
-`origin/<default>` when missing; the git guard is copied into the checkout's
-hooks, and the worktrees' folder is added to the checkout's `info/exclude`. The
-tab sets `MUMU_ROLE=worker`, on which `team-watch` exits at once. Claude runs as
-`--agent mumu-team:worker`, started by `lib/herdr.py`'s `launch`. With
+The name and worktree are `lib/names.py`'s, `<k>` 1 + the largest attempt of
+task `<n>` in a remote branch, pull request head or local worktree; `--continue`
+takes the newest local worktree of `<topic>` and `<n>` and resumes its session.
+A missing worktree is added detached at `origin/<default>`, the git guard is
+copied into the checkout's hooks and the worktrees are added to `info/exclude`.
+The tab sets `MUMU_ROLE=worker`, on which `team-watch` exits. Claude runs as
+`--agent mumu-team:worker` at `<effort>`, `low` or `medium` unless
+`--owner-effort` says the owner named it, else it fails with 2. With
 `--leader` it is prompted `/mumu-team:kickoff work <task-url> leader <address>`.
-`<effort>` must be `low` or `medium`, or it fails with 2 before anything
-starts, unless `--owner-effort` says the owner named that effort in so many
-words. Prints `<name>@<pane> <worktree>`. `WORKER_START_TIMEOUT` (60) and
+Prints `<name>@<pane> <worktree>`. `WORKER_START_TIMEOUT` (60) and
 `WORKER_START_POLL` (1) are seconds.
 """
 import os
@@ -31,17 +28,14 @@ from command import run  # noqa: E402
 from gh import gh, repo as repo_view  # noqa: E402
 
 
-def attempts(repo, n):
-    """Each `k` of a remote branch, pull request head or local worktree of `repo` named `*-<n>-<k>`."""
-    heads = run("git", "-C", repo, "ls-remote", "--heads", "origin").split()
-    prs = gh("pr", "list", "--state", "all", "--limit", "1000", "--json", "headRefName", "-q", ".[].headRefName", cwd=repo).split()
-    return [k for h in [h.removeprefix("refs/heads/") for h in heads] + prs + local(repo) if (k := names.attempt(h, n=n)) is not None]
-
-
-def local(repo):
-    """The names of `repo`'s local worktrees."""
+def attempts(repo, n, topic=None, remote=True):
+    """Each `k` of a local worktree of `repo` for task `n` and `topic`, and with `remote` of each branch and pull request head."""
     trees = names.worktrees(repo)
-    return [p.name for p in trees.iterdir()] if trees.is_dir() else []
+    found = [p.name for p in trees.iterdir()] if trees.is_dir() else []
+    if remote:
+        found += [h.removeprefix("refs/heads/") for h in run("git", "-C", repo, "ls-remote", "--heads", "origin").split()]
+        found += gh("pr", "list", "--state", "all", "--limit", "1000", "--json", "headRefName", "-q", ".[].headRefName", cwd=repo).split()
+    return [k for h in found if (k := names.attempt(h, topic, n)) is not None]
 
 
 def worktree(repo, name):
@@ -92,8 +86,7 @@ def main(argv):
     try:
         repo = str(names.checkout(repo))
         run("git", "-C", repo, "fetch", "origin")
-        k = max((k for h in local(repo) if (k := names.attempt(h, topic, number[1])) is not None), default=None) if resume \
-            else 1 + max(attempts(repo, number[1]), default=0)
+        k = max(attempts(repo, number[1], topic, False), default=None) if resume else 1 + max(attempts(repo, number[1]), default=0)
         if k is None:
             raise RuntimeError(f"--continue: no worktree {topic}-{number[1]}-<k> in {names.worktrees(repo)}")
         name = names.worker(topic, number[1], k)
