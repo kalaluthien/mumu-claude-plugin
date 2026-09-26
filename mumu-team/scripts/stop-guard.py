@@ -15,8 +15,8 @@ import pathlib
 import subprocess
 import sys
 
-BIN = pathlib.Path(__file__).resolve().parent
-sys.path.insert(0, str(BIN.parent / "lib"))
+SCRIPTS = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPTS.parent / "lib"))
 import team  # noqa: E402
 
 payload = json.load(sys.stdin)
@@ -50,7 +50,7 @@ def lead():
     held = team.held(cwd)
     if held and not watching(int(os.environ.get("CLAUDE_PID") or os.getppid())):
         block(f"You hold open root goals or root tasks ({' '.join(held)}) and `team-watch` is not running: arm "
-              f"`\"{BIN / 'team-watch.py'}\"` with the Monitor tool at its longest timeout, in your checkout, before you stop.")
+              f"`\"{SCRIPTS / 'team-watch.py'}\"` with the Monitor tool at its longest timeout, in your checkout, before you stop.")
 
 
 if payload.get("agent_type") == "mumu-team:lead":

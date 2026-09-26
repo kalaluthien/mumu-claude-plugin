@@ -19,7 +19,7 @@ class Reread(unittest.TestCase):
     def setUp(self):
         self.tmp = pathlib.Path(tempfile.mkdtemp())
         self.plugin = self.tmp / "mumu-team"
-        shutil.copytree(ROOT / "bin", self.plugin / "bin")
+        shutil.copytree(ROOT / "scripts", self.plugin / "scripts")
         shutil.copytree(ROOT / "hooks", self.plugin / "hooks")
         self.refs = self.plugin / "skills" / "kickoff" / "references"
         self.refs.mkdir(parents=True)
@@ -82,7 +82,7 @@ class Reread(unittest.TestCase):
 
     def test_a_missing_transcript_names_nothing(self):
         env = dict(os.environ, CLAUDE_PLUGIN_ROOT=str(self.plugin))
-        out = subprocess.run([str(self.plugin / "bin" / "reread.py")], input=json.dumps({"transcript_path": "/nope"}),
+        out = subprocess.run([str(self.plugin / "scripts" / "reread.py")], input=json.dumps({"transcript_path": "/nope"}),
                              env=env, capture_output=True, text=True, timeout=30)
         self.assertEqual((out.returncode, out.stdout), (0, ""))
 

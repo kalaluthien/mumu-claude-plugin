@@ -41,7 +41,7 @@ class Hook(unittest.TestCase):
                                                        + [{"url": u, "kind": "task"} for u in tasks]))
         table = [(1, 0, "launchd"), (CLAUDE, 1, "claude"), (200, 1, "claude --name other")]
         if watch is not None:
-            table += [(300, watch, "/bin/zsh -c '\"/p/bin\"/team-watch.py'"), (301, 300, "python3 /p/bin/team-watch.py")]
+            table += [(300, watch, "/bin/zsh -c '\"/p/scripts\"/team-watch.py'"), (301, 300, "python3 /p/scripts/team-watch.py")]
         (self.tmp / "table").write_text("".join(f"{p:>6} {pp:>6} {c}\n" for p, pp, c in table))
         (self.tmp / "ps").write_text(f"#!/bin/sh\ncat '{self.tmp / 'table'}'\n")
         (self.tmp / "ps").chmod(0o755)

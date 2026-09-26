@@ -10,7 +10,7 @@ import sys
 import tempfile
 import unittest
 
-BIN = pathlib.Path(__file__).resolve().parent.parent / "bin"
+SCRIPTS = pathlib.Path(__file__).resolve().parent.parent / "scripts"
 
 # One fake for both tools: poll i reads `<tool>.<i>` (else the highest one below it); a file holding `FAIL` exits 1.
 # gh answers only the issues whose kind its arguments name, as `kind:<kind>`.
@@ -58,7 +58,7 @@ class TeamWatch(unittest.TestCase):
         env.pop("MUMU_ROLE", None)
         if role:
             env["MUMU_ROLE"] = role
-        done = subprocess.run([sys.executable, str(BIN / "team-watch.py")], cwd=self.checkout, env=env,
+        done = subprocess.run([sys.executable, str(SCRIPTS / "team-watch.py")], cwd=self.checkout, env=env,
                               capture_output=True, text=True, timeout=60)
         self.assertEqual(done.returncode, 0, done.stderr)
         return done.stdout.splitlines()
