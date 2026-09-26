@@ -21,7 +21,7 @@ MAIN = """<main>
   <p class="read">정리기가 멈춰 있어요.</p>
   <h2 id="s1">작업별 상태</h2>
   <h3 id="s1-a">이번 주</h3>
-  <p>세 작업을 비교해요.</p>
+  <p>세 <dfn>작업</dfn>을 비교해요.</p>
   <div class="scroll" role="region" aria-labelledby="t-jobs" tabindex="0"><table>
     <caption id="t-jobs">작업 세 개</caption>
     <thead><tr>%s</tr></thead>
@@ -40,7 +40,7 @@ PROBE = """() => {
   const out = { scroll: e.scrollWidth, inner: innerWidth, boxScroll: box.scrollWidth, boxClient: box.clientWidth,
     name: document.getElementById(box.getAttribute('aria-labelledby'))?.textContent,
     caption: css(box.querySelector('caption')).textAlign, num: css(box.querySelector('td.num')).textAlign,
-    faces: {} };
+    dfn: css(document.querySelector('dfn')).fontStyle, faces: {} };
   for (const s of %s) out.faces[s] = css(document.querySelector(s)).fontFamily.split(',')[0].replace(/["']/g, '').trim();
   box.scrollLeft = box.scrollWidth;
   out.scrolled = box.scrollLeft;
@@ -105,6 +105,9 @@ class PhoneTable(unittest.TestCase):
         skin = SKIN.read_text()
         self.assertEqual(re.findall(r"family=([^:&\"]+)", skin), ["Nanum+Gothic"])
         self.assertNotRegex(skin, r"Playfair|Source Serif|Noto Serif|AppleMyungjo")
+
+    def test_defined_term_stands_upright(self):
+        self.assertEqual(self.r["dfn"], "normal", "Hangul has no italic, so Chrome slants it")
 
 
 if __name__ == "__main__":
