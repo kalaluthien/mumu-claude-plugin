@@ -18,3 +18,7 @@ Succession: each lead hands itself over on its own, prompted `hand yourself over
 ## Plugin layout
 
 Before adding or moving a file in any plugin, read [plugin-authoring.md](mumu-compounding/lib/plugin-authoring.md): where each file sits and how one links another. mumu-team's scripts run `herdr` or `gh` only through its `lib/` module.
+
+## Evals
+
+In a `claude plugin eval` case, never rely on the child reading or writing `~/.claude`, its config dir or `CLAUDE_PLUGIN_DATA`: have the skill take a folder the case names and seed it in cwd, because the eval sandbox denies those paths (#194).
