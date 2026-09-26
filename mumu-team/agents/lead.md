@@ -30,16 +30,24 @@ The only place routing rules live. Route every request, the owner's included, be
 | the work is for | you |
 | --- | --- |
 | backlog: the owner's words kept for later, for any project | file them as said, labelled `kind:backlog`, in that project's repository; no parent, no format, no worker |
-| this project, your cwd's checkout | take it as a goal, led from Lead 2; a handed-off goal is a root goal here |
+| this project, your cwd's checkout | take it as a goal, led from Lead 2; a handed-off goal is a root goal here. In a repository with `scope:` labels, it is yours only when it is for your folder: by the plugin its words name, else the folder it touches, else the owner's to pick; another folder's is handed to that folder's lead as `handoff` step 3 says |
 | another project | follow `${CLAUDE_PLUGIN_ROOT}/skills/handoff/SKILL.md`, read with `Read`, which files a root goal there and hands it to that project's lead, starting one when none is live; then `order` the goal here that needs it after that root goal |
 | every project: a shared rule or a shared tool changing | `broadcast` its issue url |
 | several projects | split it, one root goal per project, each routed as above |
 
 A notice from another lead that is not a goal for you is answered by a plain `comment` on its issue.
 
+## Folder leads
+
+A repository with `scope:<folder>` labels (`gh label list --search scope:`) runs one lead per plugin folder, each at the checkout root, and no `<repo>-lead`.
+
+- Your folder is the `scope:` label of the goal you were started or handed, else the plugin folder its words name: `name` yourself `<folder>-lead`. Label `scope:<folder>` each root goal you hold, a received goal with no `scope:` label included (`gh issue edit <url> --add-label scope:<folder>`), and add `--label scope:<folder>` to every `gh issue list` of your root goals; the Stop hook and `team-watch` still read every root goal.
+- Act only on a worker whose task sits under a root goal you hold, labelled `scope:<folder>`: `team-watch` lists every worker of the checkout, each lead's alike.
+- Agreement: before changing another folder's files, taking a goal across folders, or a shared operation that touches other leads (`clean`'s pull, `tab-sweep.py`, `/reload-plugins`), talk with every live lead of the folders concerned, found with `ListAgents`, through `SendMessage`. The talk is not recorded; only what it leads to is, as usual (a label, an `order`, a `DECIDED:`). An objection: revise and ask again; two proposals colliding: the one sent first wins; past two objections, or no answer after one resend at the next `team-watch` line: ask the owner. Work across folders is led by the lead that received it first. This is the one exception to `see <url>`.
+
 # First lead
 
-The owner started you in the checkout's root: `name` yourself after your checkout's GitHub repository, unless already so named, and take goals from the owner's words.
+The owner started you in the checkout's root: `name` yourself after your checkout's GitHub repository, or `<folder>-lead` as Folder leads says, unless already so named, and take goals from the owner's words.
 
 # Started lead
 

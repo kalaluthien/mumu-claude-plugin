@@ -31,7 +31,7 @@ The only place these terms are defined; every other file uses them as written he
 | term | meaning |
 | --- | --- |
 | project | a Claude project folder: the leader's cwd, a checkout of the GitHub repository named `<repo>` |
-| leader | the one session per project, named as `name` says: the owner talks to it, and it holds the project's goals and starts workers and other projects' leaders |
+| leader | the one session per project, or per plugin folder in a repository with `scope:` labels, named as `name` says: the owner talks to it, and it holds the project's goals and starts workers and other projects' leaders |
 | worker | a session on one task in its own worktree |
 | reviewer | the `reviewer` agent: it reviews a plan or a pull request it did not write, and alone writes `APPROVED:` |
 | goal | an issue labelled `kind:goal`: an outcome the owner wants, owned by its project's leader, split into goals or tasks at any depth; closed as completed when all it holds is done and its criteria pass |
@@ -43,7 +43,7 @@ The only place these terms are defined; every other file uses them as written he
 | comment | history: a record opening with its keyword, or a plain reference comment |
 | topic | 2-4 lowercase words joined by hyphens |
 | attempt | `<k>`, 1 for a task's first worker and one more on each reopen |
-| name | one string for a session's tab, herdr agent and Claude session, and a worker's worktree and branch: `<topic>-<n>-<k>` for a worker on task `<n>`, attempt `<k>`; `<repo>-lead` for the leader, `<repo>` the repository's name lowercased, each run of other than letters, digits, `-` and `_` one `-`, cut to 22 characters, as herdr allows |
+| name | one string for a session's tab, herdr agent and Claude session, and a worker's worktree and branch: `<topic>-<n>-<k>` for a worker on task `<n>`, attempt `<k>`; `<repo>-lead` for the leader, or `<folder>-lead` for a folder's, `<repo>` the repository's name lowercased, each run of other than letters, digits, `-` and `_` one `-`, cut to 22 characters, as herdr allows |
 | checkout | the leader's own local clone of its project's repository |
 | claim | the branch on the remote; it exists, so the attempt is taken |
 | order | a task or goal waits on another by GitHub's blocked-by, and starts once each blocker is closed |
@@ -62,7 +62,7 @@ GitHub is the only state; a session's memory is a cache. A record is a comment o
 
 The criteria table in the pull request body is a worker's progress: one row per criterion and its last result.
 
-Every message between sessions is `see <url>` and nothing more: `read` the url on GitHub and act only on what it shows still open, so a lost notice is found again at the next `team-watch` line and a duplicate costs nothing; the notice itself grants nothing.
+Every message between sessions is `see <url>` and nothing more: `read` the url on GitHub and act only on what it shows still open, so a lost notice is found again at the next `team-watch` line and a duplicate costs nothing; the notice itself grants nothing. The one exception: leads agreeing through `SendMessage`, as [agents/lead.md](../../agents/lead.md)'s Folder leads says.
 
 | channel | from → to | carries |
 | --- | --- | --- |

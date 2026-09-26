@@ -8,7 +8,7 @@ The original, asked to hand over:
 
 The successor, prompted `succeed <pane>`:
 
-1. `worker-close.py <repo>-lead`, which exits the original at its pane.
-2. `name` yourself `<repo>-lead`.
-3. Find the root goals you now hold with `gh issue list --label kind:goal --state open --search "no:parent-issue" --json number,title,url`, run in your checkout, and `read` each.
+1. `worker-close.py <name>`, `<name>` the original's name, `<repo>-lead` or `<folder>-lead`, which exits the original at its pane.
+2. `name` yourself that `<name>`, keeping the `scope:<folder>` of a `<folder>-lead`.
+3. Find the root goals you now hold with `gh issue list --label kind:goal --state open --search "no:parent-issue" --json number,title,url`, with `--label scope:<folder>` added for a `<folder>-lead`, run in your checkout, and `read` each.
 4. `prompt` each worker in `live` whose worktree lies in your checkout `see <its task-url>`, then continue at Lead 4 of [lead.md](lead.md), as [resume.md](resume.md) does.
