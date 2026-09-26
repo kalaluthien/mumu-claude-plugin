@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Stop hook: refuse a lead's stop while its repository has an open root goal or root task and no `team-watch` descends from `$CLAUDE_PID`.
-
-Any other session stops unread; what `gh` cannot read lets the lead stop.
-"""
+"""Stop hook: refuse a lead's stop while its repository has an open root goal or root task and no `team-watch` descends from `$CLAUDE_PID`."""
 import json
 import os
 import pathlib

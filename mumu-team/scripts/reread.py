@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""UserPromptSubmit hook: tell the session to re-read each kickoff references file changed since it last read it.
-
-A read is a `Read` of the file, or a `Bash` command naming this plugin's root and
-the file's name; a change is an mtime after the newest read.
-"""
+"""UserPromptSubmit hook: tell the session to re-read each kickoff references file changed since it last read it."""
 import datetime
 import json
 import os

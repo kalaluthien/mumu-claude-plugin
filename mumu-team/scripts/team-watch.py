@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""The `team-watch` monitor, run in a lead's checkout: one line per change of its workers, and one while its team sits idle.
-
-Lines: `<word> <name>` for `blocked`, `idle`, `working`, or `gone`; and `team idle
-<minutes>m` once no worker has worked for `TEAM_WATCH_IDLE` seconds while a root
-goal or root task is open, at most hourly. A failed poll is skipped; in a worker's
-tab it exits. `MONITOR_POLL` is the interval, `MONITOR_TICKS` a test's poll count.
-"""
+"""The `team-watch` monitor, run in a lead's checkout: one line per change of its workers, and one while its team sits idle."""
 import os
 import pathlib
 import sys

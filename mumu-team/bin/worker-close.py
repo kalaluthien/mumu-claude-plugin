@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Close a worker: `/exit` its session, answering each exit dialog, and close every tab labelled `<name>`.
-
-usage: worker-close.py <name>; a feedback draft is discarded, never sent, since sending is the owner's.
-"""
+"""Close a worker: `/exit` its session, answering each exit dialog, and close every tab labelled `<name>`."""
 import os
 import pathlib
 import sys

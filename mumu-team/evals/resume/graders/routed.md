@@ -1,6 +1,6 @@
 ---
 type: tool_used
 tool: Read
-input_match: kickoff/references/resume\.md
+input_match: kickoff/references/succession\.md
 arm: with-only
 ---

@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-"""Start a worker: its name, worktree, tab, Claude session as `--agent mumu-team:worker`, and kickoff prompt.
-
-usage: worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--leader <address>] [--owner-effort]
-
-`<k>` is 1 + the largest attempt of task `<n>` in a remote branch, pull request
-head or worktree; `--continue` resumes the newest worktree. It also installs the
-git guard and excludes the worktrees. Prints `<name>@<pane> <worktree>`.
-"""
+"""Start a worker: its name, worktree, tab, Claude session as `--agent mumu-team:worker`, and kickoff prompt."""
 import argparse
 import os
 import pathlib

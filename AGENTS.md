@@ -8,7 +8,7 @@ After `clean` pulls a merged PR, the lead maps the PR's changed paths (`gh pr di
 
 | changed path | takes effect | step |
 | --- | --- | --- |
-| `*/bin/*`, `*/scripts/*`, `*/references/*.md`, the lead's and worker's changing rules included (`mumu-team/skills/kickoff/references/`: routing, planning, folder leads, small change, subagents, playbooks) | at once | none: `mumu-team/scripts/reread.py`, a `UserPromptSubmit` hook, tells each session that read a changed references file to read it again at its next prompt |
+| `*/bin/*`, `*/scripts/*`, `*/references/*.md`, the lead's and worker's changing rules included (`mumu-team/skills/kickoff/references/`: planning, verbs, playbooks) | at once | none: `mumu-team/scripts/reread.py`, a `UserPromptSubmit` hook, tells each session that read a changed references file to read it again at its next prompt |
 | `mumu-team/lib/*.py`, `mumu-team/scripts/team-watch.py` | when the monitor starts again | `herdr agent prompt <literal-name> "stop your team-watch task and arm the command the Stop hook names"` for each lead in `herdr agent list` |
 | `*/skills/*/SKILL.md` (body or list), `*/hooks/hooks.json`, `*/agents/*.md` used as a subagent | `/reload-plugins` | `herdr agent prompt <literal-name> "/reload-plugins"` for each agent in `herdr agent list` |
 | `*/agents/*.md` a session runs as (`--agent`: `lead.md`, `worker.md`), a body of only its role, what it never does and when to read each references file | a new session | below |

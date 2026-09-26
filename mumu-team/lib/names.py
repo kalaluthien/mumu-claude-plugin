@@ -1,7 +1,4 @@
-"""The names of a project's sessions and the folders they work in; it runs no command.
-
-A worker is `<topic>-<n>-<k>` for task `<n>`, attempt `<k>`, in `<checkout>/.claude/worktrees/<name>`.
-"""
+"""The names of a project's sessions and the folders they work in; it runs no command."""
 import pathlib
 import re
 

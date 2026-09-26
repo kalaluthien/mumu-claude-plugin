@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Post a lead's `DECIDED:` comment on an issue, with `--criteria` first replacing its `## Definition of done` by the file's lines.
-
-usage: decide.py <issue-url> [--criteria <file>] < decision
-"""
+"""Post a lead's `DECIDED:` comment on an issue, with `--criteria` first replacing its `## Definition of done` by the file's lines."""
 import pathlib
 import re
 import sys

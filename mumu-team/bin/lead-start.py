@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""Start a project's lead: its tab at the checkout's root, Claude as `--agent mumu-team:lead`, and its kickoff prompt.
-
-usage: lead-start.py <checkout> [<goal-url> | --succeed <pane>] [-- <claude flags>]
-
-A successor runs as `<repo>-lead-next` until it renames itself; otherwise it fails
-while `<repo>-lead` is live. Prints `<name>@<pane>`.
-"""
+"""Start a project's lead: its tab at the checkout's root, Claude as `--agent mumu-team:lead`, and its kickoff prompt."""
 import argparse
 import os
 import pathlib

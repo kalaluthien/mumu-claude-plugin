@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""PreToolUse hook on Bash: refuse a raw `gh pr merge`, since `merge.py` is the only merge path, and a git hook bypass.
-
-The command is split as a shell would, and each word a shell could run is read
-inside too; text only naming a merge or a bypass passes: a heredoc body a text
-reader reads, a message or body flag, a `grep` pattern. A payload that cannot be
-read is refused (exit 2).
-"""
+"""PreToolUse hook on Bash: refuse a raw `gh pr merge`, since `merge.py` is the only merge path, and a git hook bypass."""
 import json
 import os
 import re
