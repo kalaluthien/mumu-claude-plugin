@@ -5,8 +5,9 @@ import sys
 import tempfile
 import unittest
 
-ROOT = pathlib.Path(__file__).resolve().parents[2]
-CHECK, GALLERY = ROOT / "scripts" / "page" / "check.py", ROOT / "scripts" / "skill" / "gallery.py"
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+SCRIPTS = ROOT / "skills" / "writing-documents" / "scripts"
+CHECK, GALLERY = SCRIPTS / "check.py", SCRIPTS / "gallery.py"
 CHROME = pathlib.Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 GOOD = """<!doctype html><html lang="ko"><meta charset="utf-8"><title>작업 큐 구조</title>
 <main><h1>작업 큐의 구조</h1>

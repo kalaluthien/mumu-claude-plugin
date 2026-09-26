@@ -4,7 +4,7 @@
 usage: measure-document.py <ref> [<ref> ...]; one row per ref, read with git, never the working tree.
 
 - files: `git ls-files mumu-document` at the ref.
-- lines: their newline count, as `wc -l` totals it, mumu-document/scripts/ excluded.
+- lines: their newline count, as `wc -l` totals it, scripts and tests excluded.
 - concepts: widget files + skin tokens (each `--name:` defined in skin.css) + table rows
   (header and divider excluded) and numbered list items in the text: SKILL.md, every
   reference `.md` and each widget's spec comment.
@@ -44,7 +44,7 @@ def measure(ref):
     lines = concepts = instructions = 0
     for path in paths:
         body = git("show", f"{ref}:{path}")
-        if not path.startswith(ROOT + "/scripts/"):
+        if not re.search(r"/(scripts|tests)/", path):
             lines += body.count("\n")
         if "/widgets/" in path and path.endswith(".html"):
             concepts += 1

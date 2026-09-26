@@ -1,6 +1,6 @@
 """`skill-check.py` on the real skill and on broken copies: each check can fail.
 
-Run: for d in mumu-document/scripts/*/; do python3 -m unittest discover -s "$d"; done
+Run: uvx --with playwright pytest mumu-document/tests -q
 """
 import pathlib
 import shutil
@@ -9,8 +9,8 @@ import sys
 import tempfile
 import unittest
 
-ROOT = pathlib.Path(__file__).resolve().parents[2]
-CHECK = ROOT / "scripts" / "skill" / "skill-check.py"
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+CHECK = ROOT / "skills" / "writing-documents" / "scripts" / "skill-check.py"
 SKILL = ROOT / "skills" / "writing-documents"
 W, SKIN = "references/artifact/widgets/", "references/artifact/shared/skin.css"
 # (file, [(old, new), ...], a regex the output must match; None when the copy must pass)

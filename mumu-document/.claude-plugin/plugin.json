@@ -4,8 +4,5 @@
   "description": "Documents a person reads outside the chat: GitHub bodies, Artifact pages, repository pages.",
   "author": {
     "name": "kalaluthien"
-  },
-  "experimental": {
-    "evals": "rubrics"
   }
 }

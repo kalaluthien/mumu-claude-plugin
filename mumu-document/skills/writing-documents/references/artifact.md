@@ -59,7 +59,7 @@ published with the `Artifact` tool, else opened with `open`.
 
 ## Check
 
-`"${CLAUDE_PLUGIN_ROOT}/scripts/page/check.py" <page>` loads it at 320 px
+`"${CLAUDE_PLUGIN_ROOT}/skills/writing-documents/scripts/check.py" <page>` loads it at 320 px
 with and without motion, clicks each control, reads its Korean, `nav` and
 `#` links, checks each chart against its table, and in real time swipes each
 strip and opens each chapter by its `nav`, pager, `#<id>` and back; fix
