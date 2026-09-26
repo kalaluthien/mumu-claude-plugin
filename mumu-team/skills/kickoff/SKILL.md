@@ -43,7 +43,7 @@ The only place these terms are defined; every other file uses them as written he
 | comment | history: a record opening with its keyword, or a plain reference comment |
 | topic | 2-4 lowercase words joined by hyphens |
 | attempt | `<k>`, 1 for a task's first worker and one more on each reopen |
-| name | one string for a session's tab, herdr agent and Claude session, and a worker's worktree and branch: `<topic>-<n>-<k>` for a worker on task `<n>`, attempt `<k>`; `<repo>-lead` for the leader |
+| name | one string for a session's tab, herdr agent and Claude session, and a worker's worktree and branch: `<topic>-<n>-<k>` for a worker on task `<n>`, attempt `<k>`; `<repo>-lead` for the leader, `<repo>` the repository's name lowercased, each run of other than letters, digits, `-` and `_` one `-`, cut to 22 characters, as herdr allows |
 | checkout | the leader's own local clone of its project's repository |
 | claim | the branch on the remote; it exists, so the attempt is taken |
 | order | a task or goal waits on another by GitHub's blocked-by, and starts once each blocker is closed |

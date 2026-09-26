@@ -48,6 +48,12 @@ class LeadStart(unittest.TestCase):
         prompt = calls.index(["herdr", "agent", "prompt", PANE, f"/mumu-team:kickoff see {GOAL}"])
         self.assertLess(keys, prompt, "prompted before the trust dialog was answered")
 
+    def test_repo_name_is_made_a_herdr_name(self):
+        (self.tmp / "gh").write_text("#!/bin/sh\necho Kalaluthien.GitHub.io.and-a-long-tail\n")
+        done, calls = self.start(GOAL)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(self.claude_argv(calls)[0], "kalaluthien-github-io-lead")
+
     def test_no_goal_prompts_resume(self):
         done, calls = self.start()
         self.assertEqual(done.returncode, 0, done.stderr)
