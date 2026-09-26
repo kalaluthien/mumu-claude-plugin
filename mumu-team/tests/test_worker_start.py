@@ -57,23 +57,38 @@ elif a[:2] == ["agent", "list"]:
 
 class WorkerStart(unittest.TestCase):
     def setUp(self):
-        self.tmp = pathlib.Path(tempfile.mkdtemp())
+        self.tmp = pathlib.Path(tempfile.mkdtemp()).resolve()
         self.repo = self.tmp / "repo"
-        self.repo.mkdir()
+        (self.repo / ".git").mkdir(parents=True)
         for tool in ("herdr", "git", "gh"):
             (self.tmp / tool).write_text(FAKE)
             (self.tmp / tool).chmod(0o755)
 
-    def start(self, *extra, trust=True, topic="start", url=ISSUE, effort="low"):
+    def start(self, *extra, trust=True, topic="start", url=ISSUE, effort="low", checkout=None, cwd=None):
         if trust:
             (self.tmp / "trust").touch()
         env = dict(os.environ, FAKE=str(self.tmp), PATH=f"{self.tmp}:{BIN}:{os.environ['PATH']}",
                    WORKER_START_TIMEOUT="3", WORKER_START_POLL="0.01")
-        done = subprocess.run([sys.executable, str(BIN / "worker-start.py"), str(self.repo), topic, effort, url, *extra],
-                              env=env, capture_output=True, text=True, timeout=30)
+        done = subprocess.run([sys.executable, str(BIN / "worker-start.py"), checkout or str(self.repo), topic, effort, url, *extra],
+                              env=env, cwd=cwd, capture_output=True, text=True, timeout=30)
         log = self.tmp / "calls"
         calls = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
         return done, calls
+
+    def test_relative_checkout_opens_the_tab_at_the_absolute_worktree(self):
+        done, calls = self.start(checkout="repo", cwd=self.tmp)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        tree = str(self.repo.resolve() / ".claude" / "worktrees" / "start-7-1")
+        self.assertEqual([c[4] for c in calls if c[1:3] == ["tab", "create"]], [tree])
+
+    def test_non_root_checkout_fails_naming_it_and_opens_no_tab(self):
+        (self.repo / "sub").mkdir()
+        (self.tmp / "plain").mkdir()
+        for path in (str(self.repo / "sub"), str(self.tmp / "plain")):
+            done, calls = self.start(checkout=path)
+            self.assertEqual(done.returncode, 1, path)
+            self.assertIn(path, done.stderr)
+            self.assertFalse([c for c in calls if c[1:3] == ["tab", "create"]], path)
 
     def status(self):
         env = dict(os.environ, FAKE=str(self.tmp))
