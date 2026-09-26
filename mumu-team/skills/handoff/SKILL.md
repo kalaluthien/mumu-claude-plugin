@@ -6,7 +6,7 @@ argument-hint: 로그인 타임아웃 고쳐 줘, kalaluthien/garden
 
 # Handoff
 
-Hand the owner's request to the project's lead: the one session that holds its goals. The words of [kickoff's Domain](${CLAUDE_PLUGIN_ROOT}/skills/kickoff/SKILL.md) and its [repo.md](${CLAUDE_PLUGIN_ROOT}/skills/kickoff/references/repo.md) and [panes.md](${CLAUDE_PLUGIN_ROOT}/skills/kickoff/references/panes.md) verbs apply.
+Hand the owner's request to the project's lead: the one session that holds its goals. The words of [kickoff's Domain](${CLAUDE_PLUGIN_ROOT}/skills/kickoff/SKILL.md) and its [repo-verbs.md](${CLAUDE_PLUGIN_ROOT}/skills/kickoff/references/repo-verbs.md) and [pane-verbs.md](${CLAUDE_PLUGIN_ROOT}/skills/kickoff/references/pane-verbs.md) verbs apply.
 
 1. The project is the repository the words name, else the cwd's. Its checkout is the parent of `git rev-parse --path-format=absolute --git-common-dir` run in the cwd, or its line `<folder> <owner/repo>` in `~/workspace/repos.txt`: `~/workspace/<folder>/<repo>`, or `~/workspace/<folder>` when the folder ends in `/`. A project in neither is the owner's to add there or drop: ask with `AskUserQuestion`.
 2. Words that add to a goal or task already open there (`gh issue list -R <repo> --search "<words> label:kind:goal,kind:task"`): `comment` them on it, as said, and go to step 3 with its url. Otherwise `file` a root goal in that repository: a title of the request, `## Goal` quoting the owner's words as said, and `## Definition of done` as `- set by <repo>-lead`, since the lead asks the owner for its criteria.

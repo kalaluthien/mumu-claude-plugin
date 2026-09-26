@@ -100,7 +100,7 @@ TEXT_MERGE_PASSED = [
     f"git grep -e '{MERGE}' -- '*.md'",
     "sed -i '' 's/gh pr merge/merge.py/' AGENTS.md",
     f"sed -i.bak -e '/{MERGE}/d' notes.md",
-    f"sed -i '' 's/{MERGE}/merge.py/g' mumu-team/skills/kickoff/references/work.md",
+    f"sed -i '' 's/{MERGE}/merge.py/g' mumu-team/skills/kickoff/references/work-task.md",
 ]
 
 MERGE_PASSED = [
