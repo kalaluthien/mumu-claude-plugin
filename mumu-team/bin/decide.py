@@ -10,9 +10,12 @@ replaced by the file's lines first, and every other section (`## Goal`) is kept
 as it was; a body with no such section gains one at the end. Exits non-zero
 with the failing `gh` call's message, and posts no comment when the edit fails.
 """
+import pathlib
 import re
-import subprocess
 import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
+from gh import gh  # noqa: E402
 
 DONE = re.compile(r"^## Definition of done[ \t]*\n.*?(?=^## |\Z)", re.M | re.S)
 
@@ -25,13 +28,6 @@ def replace_criteria(body, criteria):
     return body.rstrip("\n") + "\n\n" + section
 
 
-def gh(*args, stdin=None):
-    done = subprocess.run(["gh", *args], input=stdin, capture_output=True, text=True)
-    if done.returncode:
-        sys.exit(f"decide.py: gh {' '.join(args[:2])}: {done.stderr.strip()}")
-    return done.stdout
-
-
 def main(argv):
     if len(argv) not in (1, 3) or len(argv) == 3 and argv[1] != "--criteria":
         sys.exit("usage: decide.py <issue-url> [--criteria <file>] < decision")
@@ -39,13 +35,16 @@ def main(argv):
     decision = sys.stdin.read().strip()
     if not decision:
         sys.exit("decide.py: no decision on stdin")
-    if len(argv) == 3:
-        body = gh("issue", "view", url, "--json", "body", "-q", ".body")
-        with open(argv[2]) as f:
-            gh("issue", "edit", url, "--body-file", "-", stdin=replace_criteria(body, f.read()))
     if not re.match(r"decided\b", decision, re.I):
         decision = "DECIDED: " + decision
-    print(gh("issue", "comment", url, "--body-file", "-", stdin=decision + "\n").strip())
+    try:
+        if len(argv) == 3:
+            body = gh("issue", "view", url, "--json", "body", "-q", ".body")
+            with open(argv[2]) as f:
+                gh("issue", "edit", url, "--body-file", "-", stdin=replace_criteria(body, f.read()))
+        print(gh("issue", "comment", url, "--body-file", "-", stdin=decision + "\n").strip())
+    except RuntimeError as e:
+        sys.exit(f"decide.py: {e}")
 
 
 if __name__ == "__main__":

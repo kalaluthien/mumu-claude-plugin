@@ -8,9 +8,12 @@ colon optional, so `Approved <sha>` counts), and runs
 after the read is refused by GitHub. Exits non-zero with the reason otherwise.
 """
 import json
+import pathlib
 import re
-import subprocess
 import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
+from gh import gh  # noqa: E402
 
 URL = re.compile(r"https://github\.com/[\w.-]+/[\w.-]+/pull/\d+")
 APPROVAL = re.compile(r"approved:?\s+(\S+)", re.I)
@@ -27,14 +30,17 @@ def main(args):
     if len(args) != 1 or not URL.fullmatch(args[0]):
         sys.exit("usage: merge.py <pr-url>, the PR's full https://github.com/<owner>/<repo>/pull/<n> url")
     url = args[0]
-    view = subprocess.run(["gh", "pr", "view", url, "--json", "headRefOid,comments,reviews"], capture_output=True, text=True)
-    if view.returncode:
-        sys.exit(f"merge.py: could not read {url}: {view.stderr.strip()}")
-    pr = json.loads(view.stdout)
+    try:
+        pr = json.loads(gh("pr", "view", url, "--json", "headRefOid,comments,reviews"))
+    except RuntimeError as e:
+        sys.exit(f"merge.py: could not read {url}: {e}")
     head = pr["headRefOid"]
     if not approved(pr):
         sys.exit(f"merge.py: no comment or review opens with `APPROVED: {head}`; launch the reviewer at this head")
-    sys.exit(subprocess.run(["gh", "pr", "merge", url, "--squash", "--match-head-commit", head]).returncode)
+    try:
+        print(gh("pr", "merge", url, "--squash", "--match-head-commit", head), end="")
+    except RuntimeError as e:
+        sys.exit(f"merge.py: {e}")
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ Lines: `<word> <name>` when a worker's herdr state changes, `<word>` being
 `team idle <minutes>m` once no worker has been `working` for `TEAM_WATCH_IDLE`
 seconds (1200) while the checkout's repository has an open root goal or root
 task, again at most once an hour while that holds. A worker is named
-`<topic>-<n>-<k>`, so its task is issue `<n>`. It never exits for lack of goals, and a poll whose `herdr`
+as `lib/names.py` says. It never exits for lack of goals, and a poll whose `herdr`
 or `gh` call fails is skipped; in a worker's session (`MUMU_ROLE=worker`) it
 exits at once. `MONITOR_POLL` is the poll interval in seconds (10), and
 `MONITOR_TICKS` stops it after that many polls, for a test (unset: never).
@@ -19,7 +19,9 @@ import sys
 import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-import team  # noqa: E402
+import gh  # noqa: E402
+import herdr  # noqa: E402
+import names  # noqa: E402
 
 REPEAT = 3600
 WORD = {"blocked": "blocked", "idle": "idle", "done": "idle", "working": "working"}
@@ -52,12 +54,15 @@ def main():
     last, state, n = {}, (None, None), 0
     while not ticks or n < ticks:
         n += 1
-        listed = team.agents()
+        try:
+            listed = herdr.agents()
+        except RuntimeError:
+            listed = None
         if listed is not None:
-            last, lines = changes(last, team.workers(listed, checkout))
+            last, lines = changes(last, names.workers(listed, checkout))
             now = time.time()
             state, due = idle(state, "working" in last.values(), now, after)
-            if due and team.held(checkout):
+            if due and gh.held(checkout):
                 state = (state[0], now)
                 lines.append(f"team idle {int((now - state[0]) // 60)}m")
             for line in lines:
