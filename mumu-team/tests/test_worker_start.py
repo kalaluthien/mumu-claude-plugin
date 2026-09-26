@@ -108,7 +108,7 @@ class WorkerStart(unittest.TestCase):
         self.assertTrue((self.tmp / "hooks" / "pre-commit").exists() and (self.tmp / "hooks" / "pre-push").exists())
 
     def test_tab_marks_the_session_a_worker(self):
-        """The marker the lead monitors exit on (`lib/team.py`)."""
+        """The marker the lead monitors exit on (`scripts/team-watch.py`)."""
         _, calls = self.start(trust=False)
         tab = next(c for c in calls if c[1:3] == ["tab", "create"])
         self.assertIn("--env", tab)

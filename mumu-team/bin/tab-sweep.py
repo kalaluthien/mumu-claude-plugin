@@ -4,27 +4,25 @@
 usage: tab-sweep.py <checkout>
 
 A tab is stale when every one of its panes runs no agent `herdr agent list`
-names and has its cwd under `<checkout>/.claude/worktrees/`; leads' tabs and
+names and has its cwd in a worktree of `<checkout>` (`lib/names.py`); leads' tabs and
 other checkouts' tabs never match. Closes each with `herdr tab close` and
 prints its tab id, one per line.
 """
-import json
 import pathlib
-import subprocess
 import sys
 
-
-def herdr(*argv):
-    return subprocess.run(["herdr", *argv], capture_output=True, text=True, check=True).stdout
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
+import herdr  # noqa: E402
+import names  # noqa: E402
 
 
 def stale_tabs(panes, agents, checkout):
     """Tab ids whose every pane is agentless and under `checkout`'s worktrees."""
-    root = pathlib.Path(checkout) / ".claude" / "worktrees"
+    root = names.worktrees(checkout)
     busy = {a["pane_id"] for a in agents}
     tabs = {}
     for p in panes:
-        ok = p["pane_id"] not in busy and pathlib.Path(p["cwd"]).is_relative_to(root) and pathlib.Path(p["cwd"]) != root
+        ok = p["pane_id"] not in busy and (cwd := pathlib.Path(p["cwd"]).resolve()).is_relative_to(root) and cwd != root
         tabs[p["tab_id"]] = tabs.get(p["tab_id"], True) and ok
     return [t for t, ok in tabs.items() if ok]
 
@@ -33,11 +31,13 @@ def main(argv):
     if len(argv) != 1:
         print("usage: tab-sweep.py <checkout>", file=sys.stderr)
         return 2
-    panes = json.loads(herdr("pane", "list"))["result"]["panes"]
-    agents = json.loads(herdr("agent", "list"))["result"]["agents"]
-    for tab in stale_tabs(panes, agents, argv[0]):
-        herdr("tab", "close", tab)
-        print(tab)
+    try:
+        for tab in stale_tabs(herdr.listed("pane"), herdr.listed("agent"), argv[0]):
+            herdr.close_tab(tab)
+            print(tab)
+    except RuntimeError as e:
+        print(f"tab-sweep.py: {e}", file=sys.stderr)
+        return 1
     return 0
 
 

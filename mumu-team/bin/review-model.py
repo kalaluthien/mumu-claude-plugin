@@ -4,9 +4,12 @@
 usage: review-model.py <base> <head>, run in the checkout; the count is the
 insertions plus deletions of `git diff --shortstat <base>...<head>`.
 """
+import pathlib
 import re
-import subprocess
 import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
+from command import run  # noqa: E402
 
 SMALL = 20
 
@@ -24,11 +27,11 @@ def main():
     if len(sys.argv) != 3:
         print("usage: review-model.py <base> <head>", file=sys.stderr)
         return 2
-    diff = subprocess.run(["git", "diff", "--shortstat", f"{sys.argv[1]}...{sys.argv[2]}"], capture_output=True, text=True)
-    if diff.returncode != 0:
-        print(f"review-model.py: {diff.stderr.strip()}", file=sys.stderr)
+    try:
+        lines = changed(run("git", "diff", "--shortstat", f"{sys.argv[1]}...{sys.argv[2]}"))
+    except RuntimeError as e:
+        print(f"review-model.py: {e}", file=sys.stderr)
         return 2
-    lines = changed(diff.stdout)
     print(f"{model_for(lines)} ({lines} changed lines)")
     return 0
 

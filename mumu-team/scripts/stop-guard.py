@@ -12,12 +12,12 @@ names the command to arm with the Monitor tool.
 import json
 import os
 import pathlib
-import subprocess
 import sys
 
 SCRIPTS = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS.parent / "lib"))
-import team  # noqa: E402
+import gh  # noqa: E402
+from command import run  # noqa: E402
 
 payload = json.load(sys.stdin)
 cwd = payload.get("cwd") or "."
@@ -30,7 +30,7 @@ def block(reason):
 
 def watching(root):
     """Whether a `team-watch.py` process descends from pid `root`."""
-    table = subprocess.run(["ps", "-axo", "pid=,ppid=,command="], capture_output=True, text=True).stdout.splitlines()
+    table = run("ps", "-axo", "pid=,ppid=,command=").splitlines()
     rows = [(int(r[0]), int(r[1]), r[2] if len(r) > 2 else "") for r in (line.split(None, 2) for line in table)]
     parent = {pid: ppid for pid, ppid, _ in rows}
 
@@ -47,7 +47,7 @@ def watching(root):
 
 
 def lead():
-    held = team.held(cwd)
+    held = gh.held(cwd)
     if held and not watching(int(os.environ.get("CLAUDE_PID") or os.getppid())):
         block(f"You hold open root goals or root tasks ({' '.join(held)}) and `team-watch` is not running: arm "
               f"`\"{SCRIPTS / 'team-watch.py'}\"` with the Monitor tool at its longest timeout, in your checkout, before you stop.")
