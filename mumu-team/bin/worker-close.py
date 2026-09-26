@@ -1,14 +1,7 @@
 #!/usr/bin/env python3
-"""Close a worker in one call: its Claude session, its exit dialogs and its tab.
+"""Close a worker: `/exit` its session, answering each exit dialog, and close every tab labelled `<name>`.
 
-usage: worker-close.py <name>
-
-Sends `/exit` to the agent `<name>`, answers each exit dialog in `DIALOGS` at
-most once (a feedback draft is discarded, never sent: sending is the owner's),
-waits until herdr no longer lists the agent, or skips that when it is gone, and
-closes every tab labelled `<name>`. Prints `closed <name>`.
-`WORKER_CLOSE_TIMEOUT` (60) and `WORKER_CLOSE_POLL` (1) are seconds; auto mode
-needs the allow rule `Bash(herdr agent send-keys *)`.
+usage: worker-close.py <name>; a feedback draft is discarded, never sent, since sending is the owner's.
 """
 import os
 import pathlib
@@ -58,10 +51,8 @@ def main(argv):
             if tab.get("label") == name:
                 herdr.close_tab(tab["tab_id"])
     except RuntimeError as e:
-        print(f"worker-close.py: {e}", file=sys.stderr)
-        return 1
+        sys.exit(f"worker-close.py: {e}")
     print(f"closed {name}")
-    return 0
 
 
 if __name__ == "__main__":

@@ -1,17 +1,10 @@
 #!/usr/bin/env python3
-"""The `team-watch` monitor: one line per change of a lead's workers, and one while its team sits idle.
+"""The `team-watch` monitor, run in a lead's checkout: one line per change of its workers, and one while its team sits idle.
 
-usage: team-watch.py, run in the lead's checkout by the plugin's `monitors.json`.
-
-Lines: `<word> <name>` when a worker's herdr state changes, `<word>` being
-`blocked`, `idle`, `working`, or `gone` once herdr no longer lists it; and
-`team idle <minutes>m` once no worker has been `working` for `TEAM_WATCH_IDLE`
-seconds (1200) while the checkout's repository has an open root goal or root
-task, again at most once an hour while that holds. A worker is named
-as `lib/names.py` says. It never exits for lack of goals, and a poll whose `herdr`
-or `gh` call fails is skipped; in a worker's session (`MUMU_ROLE=worker`) it
-exits at once. `MONITOR_POLL` is the poll interval in seconds (10), and
-`MONITOR_TICKS` stops it after that many polls, for a test (unset: never).
+Lines: `<word> <name>` for `blocked`, `idle`, `working`, or `gone`; and `team idle
+<minutes>m` once no worker has worked for `TEAM_WATCH_IDLE` seconds while a root
+goal or root task is open, at most hourly. A failed poll is skipped; in a worker's
+tab it exits. `MONITOR_POLL` is the interval, `MONITOR_TICKS` a test's poll count.
 """
 import os
 import pathlib

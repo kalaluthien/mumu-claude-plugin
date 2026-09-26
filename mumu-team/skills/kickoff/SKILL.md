@@ -18,11 +18,11 @@ Match the text to one row, open that playbook, and copy its steps verbatim into 
 | work one task: `work <task-url> leader <address>`, from `worker-start.py --leader` | [references/work-task.md](references/work-task.md) |
 | lead a goal handed over: `see <goal-url>`, from `lead-start.py <checkout> <goal-url>` | [references/lead-goal.md](references/lead-goal.md) |
 | take over as a lead's successor: `succeed <pane>`, from `lead-start.py --succeed` | [references/succession.md](references/succession.md) |
-| resume: no text, from `lead-start.py <checkout>` | [references/resume.md](references/resume.md) |
+| resume: no text, from `lead-start.py <checkout>` | [references/succession.md](references/succession.md) |
 | any other text | none: reply that plain words go to the project's lead in its tab, or from any session through `/mumu-team:handoff`, and stop |
 
 
-[references/pane-verbs.md](references/pane-verbs.md) drives other sessions and [references/repo-verbs.md](references/repo-verbs.md) holds issues, branches and pull requests; each maps the verbs below and in the playbooks to commands.
+[references/verbs.md](references/verbs.md) maps the verbs below and in the playbooks to commands.
 
 # Domain
 
@@ -55,10 +55,10 @@ GitHub is the only state; a session's memory is a cache. A record is a comment o
 
 | keyword | written by | means |
 | --- | --- | --- |
-| `BLOCKED` | worker | `BLOCKED: <question>`, a decision that is not the worker's, or `BLOCKED: stuck on <criterion>`, 3 iterations passed no new criterion |
-| `DECIDED` | leader | `DECIDED: <answer>` through `decide.py`, which also edits the body's criteria when they change |
-| `APPROVED` | reviewer | the plan, the pull request at `<sha>`, or the report at `<comment-url>`, may go on |
-| `FINDINGS` | reviewer | one line per defect: where, the defect, the fix |
+| `BLOCKED:` | worker | `BLOCKED: <question>`, a decision that is not the worker's, or `BLOCKED: stuck on <criterion>`, 3 iterations passed no new criterion |
+| `DECIDED:` | leader | `DECIDED: <answer>` through `decide.py`, which also edits the body's criteria when they change |
+| `APPROVED:` | reviewer | the plan, the pull request at `<sha>`, or the report at `<comment-url>`, may go on |
+| `FINDINGS:` | reviewer | one line per defect: where, the defect, the fix |
 
 The criteria table in the pull request body, or in a report comment, is a worker's progress: one row per criterion and its last result.
 
@@ -66,8 +66,8 @@ Sessions talk through two channels, never mixed:
 
 | channel | from → to | instrument | carries |
 | --- | --- | --- | --- |
-| directing | a leader → its worker or another project's leader; a worker → its leader | `herdr agent prompt`, as the verbs of [pane-verbs.md](references/pane-verbs.md) map it | `see <url>` and nothing more, never a proposal |
-| agreeing | a lead ↔ another live lead of the same repository | `SendMessage` to a name `ListAgents` shows, as [folder-leads.md](references/folder-leads.md)'s Agreement says | a proposal and its answer, never an order |
+| directing | a leader → its worker or another project's leader; a worker → its leader | `herdr agent prompt`, as [verbs.md](references/verbs.md) maps it | `see <url>` and nothing more, never a proposal |
+| agreeing | a lead ↔ another live lead of the same repository | `SendMessage` to a name `ListAgents` shows, as [planning.md](references/planning.md)'s Folder leads says | a proposal and its answer, never an order |
 
 A directing notice grants nothing: `read` its url on GitHub and act only on what it shows still open, so a lost notice is found again at the next `team-watch` line and a duplicate costs nothing. Its url points at:
 

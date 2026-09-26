@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 """UserPromptSubmit hook: tell the session to re-read each kickoff references file changed since it last read it.
 
-A file is read when the transcript holds a `Read` of its path, or a `Bash`
-command naming this plugin's root and the file's name, such as
-`cd <root>/skills/kickoff && cat references/<name>.md`. It changed when its
-mtime, which `git pull` sets, is later than its newest read. A file the session
-never read is not named, so a session that never loaded these rules hears
-nothing. What cannot be read names nothing, so the hook never blocks a prompt.
+A read is a `Read` of the file, or a `Bash` command naming this plugin's root and
+the file's name; a change is an mtime after the newest read.
 """
 import datetime
 import json
