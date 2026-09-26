@@ -31,7 +31,13 @@ def close_tab(tab):
 
 
 def screen(pane):
-    return run("herdr", "agent", "read", pane, "--lines", "40")
+    """The pane's last lines, or its visible screen while herdr refuses `--lines` to an agent at work."""
+    try:
+        return run("herdr", "agent", "read", pane, "--lines", "40")
+    except RuntimeError as e:
+        if '"agent_not_idle"' not in str(e):
+            raise
+        return run("herdr", "agent", "read", pane, "--source", "visible")
 
 
 def keys(pane, *names):

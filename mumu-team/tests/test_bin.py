@@ -231,9 +231,16 @@ if a[:2] == ["agent", "list"]:
         if not left:
             exiting.unlink()
             alive.unlink()
-    agent = {"name": "close-7", "pane_id": "w1:p7", "tab_id": "w1:t7", "agent_status": "idle"}
+    status = "blocked" if (d / "blocked").exists() and screen.exists() else "working" if (d / "working").exists() else "idle"
+    agent = {"name": "close-7", "pane_id": "w1:p7", "tab_id": "w1:t7", "agent_status": status}
     agents = [agent] if alive.exists() else []
     print(json.dumps({"result": {"agents": agents}}))
+elif a[:2] == ["agent", "prompt"] and (d / "blocked").exists() and screen.exists():
+    print(json.dumps({"error": {"code": "agent_blocked"}}))
+    sys.exit(1)
+elif a[:2] == ["agent", "read"] and "--lines" in a and (d / "working").exists():
+    print(json.dumps({"error": {"code": "agent_not_idle"}}))
+    sys.exit(1)
 elif a[:2] == ["agent", "prompt"] and a[3] == "/exit" and not (d / "stuck").exists():
     if (d / "background").exists():
         screen.write_text("background")
@@ -291,6 +298,22 @@ class WorkerClose(unittest.TestCase):
         self.assertEqual([calls[i] for i in keys], [["agent", "send-keys", "w1:p7", "enter"]])
         self.assertLess(calls.index(["agent", "prompt", "w1:p7", "/exit"]), keys[0])
         self.assertLess(keys[0], calls.index(["tab", "close", "w1:t7"]), "tab closed before the session exited")
+
+    def test_blocked_at_dialog_answers_it_without_exit(self):
+        (self.tmp / "blocked").touch()
+        (self.tmp / "screen").write_text("background")
+        done, calls = self.close()
+        self.assertClosed(done, calls)
+        self.assertFalse([c for c in calls if c[:2] == ["agent", "prompt"]])
+        self.assertEqual(self.keys(calls), [["enter"]])
+
+    def test_working_agent_read_from_visible_screen(self):
+        (self.tmp / "working").touch()
+        (self.tmp / "background").touch()
+        done, calls = self.close()
+        self.assertClosed(done, calls)
+        self.assertIn(["agent", "read", "w1:p7", "--source", "visible"], calls)
+        self.assertEqual(self.keys(calls), [["enter"]])
 
     def keys(self, calls):
         return [c[3:] for c in calls if c[:2] == ["agent", "send-keys"]]
