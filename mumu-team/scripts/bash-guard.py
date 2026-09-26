@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""PreToolUse hook on Bash: refuse a raw `gh pr merge`, since `merge.py` is the only merge path, and a git hook bypass."""
+"""PreToolUse hook on Bash: refuse a raw `gh pr merge`, since `merge.py` is the only merge path, and a git hook bypass,
+even as text only naming either, which goes through a file and `--body-file`."""
 import json
 import os
 import re
@@ -11,22 +12,8 @@ DESCRIPTOR = re.compile(r"(^|[\s;&|()])(?:\d+|\{\w+\})(?=[<>])")
 QUOTING = re.compile(r"[\"'\\]")
 MENTION = re.compile(r"\bpr\b[\s\S]*?\bmerge\b")
 PR_MERGE = re.compile(r"(?:^|\0)pr(?:\0(?:-R|--repo)\0[^\0]*|\0--repo=[^\0]*)*\0merge(?=\0|$)")  # words joined by NUL
-HEREDOC = re.compile(r"<<(-?)[ \t]*(['\"]?)([A-Za-z_][\w.-]*)\2")
-RUNS = re.compile(r"\$\(|`")
-WORD = re.compile(r"[^\s;&|()<>`'\"]+")
-ASSIGNMENT = re.compile(r"\w+=")
-READERS = {"cat": None, "tee": None, "gh": {"issue", "pr", "release"}}  # builtins no alias can shadow; git may open an editor set lines before
-EDITOR = re.compile(r"-[^-]*e|--edit")  # `-e`, `-eb`, `--edit`, `--editor`
-TEXT_COMMANDS = {"grep", "egrep", "fgrep", "rg"}  # each reads its quoted words as text
-PAGER = re.compile(r"-[^-]*O|--op")  # `git grep -O<cmd>`, `-iO`, `--open-files-in-pager=<cmd>`
-IN_PLACE = re.compile(r"-[A-Za-z]*i|--in-place")  # `sed -i ''`, `-i.bak`, `-Ei`
-SED_RUNS = re.compile(r"(?<![A-Za-z])[ewW](?![\w.-])|/[gpIiMm0-9]*[ewW][gpIiMm0-9]*(?![\w./-])")  # an `e`, `w` or `W` command or `s///` flag
-SED_EXPRESSION = re.compile(r"^(-[A-Za-z]*?e|--expression=)")  # `-ne'e cmd'` is the script `e cmd`
-TEXT_FLAGS = {"-b", "--body", "-t", "--title", "--comment", "--notes"}  # of gh
 HOOKS_PATH = re.compile(r"^(['\"]?|--config-env=|GIT_CONFIG_KEY_\d+=['\"]?)core\.hookspath(['\"]?=|['\"]?$)", re.I)  # `-c k=v`, `'k'=v`, `--config-env=k=V`, `KEY_0=k`
 HOOKS_PATH_TEXT = re.compile(r"(-c\s*|--config-env=|key_\d+=)core\.hookspath\b|\bconfig\b(?![^;&|\n]*\bget\b)[^;&|\n]*core\.hookspath[ \t]+[^\s;&|]")
-
-
 RAW_MERGE = "a raw `pr merge` is refused; run `merge.py <pr-url>` in a Bash call of its own, and write text naming the merge with a file tool"
 
 
@@ -60,87 +47,6 @@ def lexed(text, join=True):
         return None
 
 
-def scan(line, stack):
-    """Read one line as a shell would: its heredoc openers, the command words it runs, and whether a pipe follows an opener."""
-    openers, heads, piped, start, j = [], [], False, True, 0
-    while j < len(line):
-        c, context = line[j], stack[-1] if stack else None
-        if context == "'":
-            stack.pop() if c == "'" else None
-        elif c == "\\":
-            j += 1
-        elif line.startswith("$(", j):
-            stack.append("(")
-            start, j = True, j + 1
-        elif context == '"':
-            stack.pop() if c == '"' else stack.append("`") if c == "`" else None
-            start = c == "`"
-        elif c == "#" and (j == 0 or line[j - 1] in " \t;&|("):  # a comment
-            break
-        elif c in "'\"(" or c == "`" and context != "`":
-            stack.append(c)
-            start = c in "(`"
-        elif c == ")" and context == "(" or c == "`" and context == "`":
-            stack.pop()
-        elif c in ";&|":
-            piped |= c == "|" and bool(openers)
-            start = True
-        elif line.startswith("<<", j) and not line.startswith("<<<", j) and HEREDOC.match(line, j):
-            openers.append(HEREDOC.match(line, j))
-            j = openers[-1].end() - 1
-        elif start and WORD.match(line, j):
-            word = WORD.match(line, j)[0]
-            heads.append(WORD.findall(line, j))  # an env prefix too, which no reader has
-            start = bool(ASSIGNMENT.match(word))
-            j += len(word) - 1
-        elif not c.isspace():
-            start = False
-        j += 1
-    return openers, heads, piped
-
-
-def without_heredocs(text):
-    """Drop each closed heredoc body that only a text reader reads, quoted or without `$(`; keep every other body as commands."""
-    lines, kept, stack, i = text.split("\n"), [], [], 0
-    while i < len(lines):
-        line = lines[i]
-        kept.append(line)
-        i += 1
-        openers, heads, piped = scan(line, stack)
-        for opener in openers:
-            end = next((j for j in range(i, len(lines))
-                        if (lines[j].lstrip("\t") if opener[1] else lines[j]) == opener[3]), None)
-            if end is None:  # an unclosed body: read the rest as commands
-                break
-            body = lines[i:end]
-            if piped or not all(map(reader, heads)) or not opener[2] and RUNS.search("\n".join(body)):
-                kept += body
-            i = end + 1
-    return "\n".join(kept)
-
-
-def reader(words):
-    """Whether the command in words, from its first word, reads text only as text: `cat`, `tee`, or a builtin `gh` subcommand, with no env prefix (`GH_EDITOR=sh`) and no editor flag."""
-    head = os.path.basename(words[0]) if words else ""
-    return head in READERS and (READERS[head] is None or words[1:2] and words[1] in READERS[head]) \
-        and not any(EDITOR.match(w) for w in words)
-
-
-def text_word(words, i):
-    """Whether words[i] is only text: a `grep` pattern, a `git grep` word with no pager flag (`-O`), a `sed -i` word when no
-    script word runs (`e`) or writes (`w`) a command, or a message or body flag's value of a reader."""
-    bare = [w for w in words if not ASSIGNMENT.match(w)]
-    head, rest = (os.path.basename(bare[0]), bare[1:]) if bare else ("", [])
-    if RUNS.search(words[i]) or head in ("git", "sed") and ASSIGNMENT.match(words[i]):  # `GIT_PAGER=...` runs
-        return False
-    if head == "git" and rest[:1] == ["grep"]:
-        return not any(PAGER.match(w) for w in rest[1:])
-    if head == "sed" and any(IN_PLACE.match(w) for w in rest):
-        return not any(SED_RUNS.search(SED_EXPRESSION.sub("", w)) for w in rest)
-    return head in TEXT_COMMANDS or reader(words) and \
-        (i > 0 and words[i - 1] in TEXT_FLAGS or words[i].split("=", 1)[0] in TEXT_FLAGS)
-
-
 def unredirected(words):
     """Drop each redirect: its operator and its target."""
     kept, skip = [], False
@@ -155,11 +61,9 @@ def unredirected(words):
 
 
 def mentions(words):
-    """Count `pr [-R <repo>]... merge` in the words, and in each word but a text one, which a shell could run."""
+    """Count `pr [-R <repo>]... merge` in the words, and in each word, which a shell could run."""
     count = 0
-    for i, word in enumerate(words):
-        if text_word(words, i):
-            continue
+    for word in words:
         word = QUOTING.sub("", word).strip()
         inner = lexed(word)
         if inner is None:  # an unclosed quote
@@ -225,12 +129,11 @@ def main():
             raise TypeError(f"command is {type(command).__name__}")
     except (ValueError, KeyError, TypeError) as err:
         refuse(f"could not read the payload ({type(err).__name__}: {err})")
-    text = without_heredocs(command)
     try:
-        readings = [lexed(text), lexed(text, False)]  # None for an unclosed quote: bash still runs every line before it
-        if readings[0] is None and MENTION.search(QUOTING.sub("", text)):
+        readings = [lexed(command), lexed(command, False)]  # None for an unclosed quote: bash still runs every line before it
+        if readings[0] is None and MENTION.search(QUOTING.sub("", command)):
             refuse(RAW_MERGE)
-        if None in readings and bypass_text(text) or \
+        if None in readings and bypass_text(command) or \
                 any(bypasses(words) for reading in readings if reading for words in reading):
             refuse("hook bypass refused: fix what the hook refused, or BLOCKED the owner")
         if any(mentions(words) for words in readings[0] or []):
