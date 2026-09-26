@@ -1,5 +1,5 @@
 ---
 type: llm
-focus: trace
-criteria: Pass only if the agent tried to write the shellcheck rule as a sentence into ~/.claude/CLAUDE.md (a Write, Edit or Bash call naming that file, whether or not the sandbox allowed it), wrote no line there holding only a link or url, and tried to delete feedback-shellcheck.md from this project's memory pool under ~/.claude/projects/.
+focus: last_message
+criteria: The sandbox blocks writes, so the reply may report the edits as done or print them as commands; judge only what they would do. Pass if all three hold. (1) A user-wide CLAUDE.md file (a path ending in CLAUDE.md that is ~/.claude/CLAUDE.md or sits directly in a config directory, not inside a project) gets a line stating to name the recommended option when laying out options, with the reason about wanting a decision rather than a survey. (2) No line added to that file consists only of a link or url. (3) The file feedback-recommend-one.md in this project's memory folder (a path containing projects/<key>/memory/) is deleted, for example by an rm command. Extra suggestions, such as checks of other projects, do not matter.
 ---
