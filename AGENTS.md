@@ -17,13 +17,4 @@ Succession: each lead hands itself over on its own, prompted `hand yourself over
 
 ## Plugin layout
 
-A file in any plugin here sits where [Anthropic's standard layout](https://code.claude.com/docs/en/plugins-reference#standard-layout) and this table say. A script is named in lowercase words joined by `-` for what it does or prints, never a verdict, state or measurement, with its language extension.
-
-| file | goes in |
-| --- | --- |
-| command a document, `~/.claude/settings.json` or another plugin names bare | `bin/<name>`, on the Bash tool's `PATH` |
-| hook or monitor command | `scripts/<name>.py`, run from `hooks/hooks.json` or `monitors/monitors.json` through `${CLAUDE_PLUGIN_ROOT}/scripts/` |
-| script only one skill runs | `skills/<skill>/scripts/<name>.py`, run by that `SKILL.md` through `${CLAUDE_PLUGIN_ROOT}` |
-| module scripts import | `lib/<noun>.py`, each doing one thing, as mumu-team's `herdr`, `gh` and `names`; a script imports no other script, and mumu-team's runs `herdr` or `gh` only through its module |
-| test | `tests/test_<name>.py`, named after the file or folder it checks, `-` as `_` |
-| eval case | `evals/<case>/prompt.md` and `graders/<check>.md`, no `case.yaml` |
+Before adding or moving a file in any plugin, read [plugin-authoring.md](mumu-compounding/lib/plugin-authoring.md): where each file sits and how one links another. mumu-team's scripts run `herdr` or `gh` only through its `lib/` module.

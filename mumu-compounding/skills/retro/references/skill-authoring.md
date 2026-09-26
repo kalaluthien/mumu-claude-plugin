@@ -4,19 +4,14 @@ Write only what the reader cannot derive: house conventions, defaults that
 surprise, values that must match another file. An `agents/*.md` file takes a
 skill's frontmatter rules; its body is the delegate's system prompt.
 
-A lesson filed here: a procedure goes into the skill that owns the work,
+A lesson filed here: a procedure belongs to the skill that owns the work,
 edited in its source, never in the plugin cache, or a new skill in
 `~/.claude/skills/`, as the steps as run with what varied as parameters; how
-a delegate should work goes into its `agents/<name>.md`.
+a delegate should work belongs to its `agents/<name>.md`.
 
 ## Folder
 
-- A skill folder holds `SKILL.md` and only `references/` (documents it loads),
-  `scripts/` (code it runs) and `assets/` (files it copies). A file two skills
-  use lives in the one whose steps build with it, and the other links it by
-  `${CLAUDE_PLUGIN_ROOT}/skills/<skill>/...`; a skill links its own files by
-  relative path. At a plugin's root sit only folders the harness or several
-  skills run, never a loose document.
+- Where each file sits, and how one links another: [plugin-authoring.md](../../../lib/plugin-authoring.md).
 - Moving a file or a rule: `git mv`, then search the plugin, tests and eval
   graders for the old path and bare name until none is stale, and open each
   new link once, because a stale path fails only when that step runs. A
@@ -68,8 +63,7 @@ handing work over. Its `SKILL.md` is a routing table, each row a situation in
 the words a person would use and its playbook, tried in order with a fallback
 row last; the agent copies that playbook's steps verbatim into its todo list,
 because a paraphrase drops them. A check every playbook needs runs after the
-match, and a step cited from another playbook is named with it. A playbook runs a script by
-`${CLAUDE_PLUGIN_ROOT}`, since a command runs from any directory.
+match, and a step cited from another playbook is named with it.
 
 ## Register
 
