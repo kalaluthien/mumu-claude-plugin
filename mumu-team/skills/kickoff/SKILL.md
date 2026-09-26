@@ -17,8 +17,8 @@ Match the text to one row, open that playbook, and copy its steps verbatim into 
 | --- | --- |
 | work one task: `work <task-url> leader <address>`, from `worker-start.py --leader` | [references/work-task.md](references/work-task.md) |
 | lead a goal handed over: `see <goal-url>`, from `lead-start.py <checkout> <goal-url>` | [references/lead-goal.md](references/lead-goal.md) |
-| take over as a lead's successor: `succeed <pane>`, from `lead-start.py --succeed` | [references/succession.md](references/succession.md) |
-| resume: no text, from `lead-start.py <checkout>` | [references/succession.md](references/succession.md) |
+| take over as a lead's successor: `succeed <pane>`, from `lead-start.py --succeed` | [references/lead-goal.md](references/lead-goal.md)'s Succession |
+| resume: no text, from `lead-start.py <checkout>` | [references/lead-goal.md](references/lead-goal.md)'s Succession |
 | any other text | none: reply that plain words go to the project's lead in its tab, or from any session through `/mumu-team:handoff`, and stop |
 
 
@@ -67,7 +67,7 @@ Sessions talk through two channels, never mixed:
 | channel | from → to | instrument | carries |
 | --- | --- | --- | --- |
 | directing | a leader → its worker or another project's leader; a worker → its leader | `herdr agent prompt`, as [verbs.md](references/verbs.md) maps it | `see <url>` and nothing more, never a proposal |
-| agreeing | a lead ↔ another live lead of the same repository | `SendMessage` to a name `ListAgents` shows, as [planning.md](references/planning.md)'s Folder leads says | a proposal and its answer, never an order |
+| agreeing | a lead ↔ another live lead of the same repository | `SendMessage` to a name `ListAgents` shows, as [lead-goal.md](references/lead-goal.md)'s Folder leads says | a proposal and its answer, never an order |
 
 A directing notice grants nothing: `read` its url on GitHub and act only on what it shows still open, so a lost notice is found again at the next `team-watch` line and a duplicate costs nothing. Its url points at:
 
