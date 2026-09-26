@@ -19,10 +19,12 @@ DIALOGS = [
 
 def exit_session(name, timeout, poll):
     """`/exit` the agent `name`, answering each dialog in `DIALOGS` at most once, and return once herdr no longer lists it."""
-    target = (herdr.agent(name) or {}).get("pane_id")
+    agent = herdr.agent(name) or {}
+    target = agent.get("pane_id")
     if target is None:
         return
-    herdr.prompt(target, "/exit")
+    if agent.get("agent_status") != "blocked":  # blocked: a dialog is already up, and herdr refuses a prompt with `agent_blocked`
+        herdr.prompt(target, "/exit")
     answered, deadline = set(), time.time() + timeout
     while herdr.agent(name):
         if time.time() >= deadline:
