@@ -151,6 +151,9 @@ FAILS = [
     ('<div id="c">', '<img alt="the job queue" src="x.png"><div id="c">', "English: the job queue"),
     ("SQLite입니다.", "SQLite이다.", "plain ending: 저장소는 SQLite이다."),
     ("<h1>작업 큐의 구조</h1>", "<h1>큐가 일을 받습니다</h1>", "sentence heading: 큐가 일을 받습니다"),
+    ("<pre>git log --oneline main</pre>", "<pre>요청 → 큐 → 작업자</pre>", "no use-case for '요청 → 큐 → 작업자'"),
+    ("SQLite입니다.", "SQLite입니다. <code>api/</code>, <code>queue.py</code>, <code>worker.py:12</code>를 거쳐요.",
+     "no file-tree for jobs.db, api/, queue.py, worker.py"),
 ]
 BREAK = "<script>document.querySelectorAll('[data-widget=\"chart\"]').forEach(function (f) { %s });</script></html>"
 CHART_FAILS = [
@@ -167,6 +170,18 @@ CHAPTERS = ('<nav><ol>' + "".join(f'<li><a href="#c{i}">장 {i}</a></li>' for i 
                       f'<p><dfn id="t{i}">용어 {i}</dfn>를 정의해요. <a href="#t{(i % 3) + 1}">다음 용어</a>를 봐요.</p></section>'
                       for i in range(1, 4)))
 PAGED = GOOD.replace('<h2>저장소 <code>jobs.db</code></h2>', CHAPTERS).replace("</html>", PART + "</html>")
+REPORT = GOOD.replace("<pre>git log --oneline main</pre>", '<div class="scroll"><table><thead><tr><th>도시</th><th>요청(건)</th></tr></thead>'
+                      '<tbody><tr><td>서울</td><td>1,240</td></tr><tr><td>부산</td><td>1,870</td></tr></tbody></table></div>')
+
+
+def dream(name):
+    """A fixture page of `pages/<name>.html`'s main in the skin, with the diagram widget's style."""
+    shell = re.sub(r"^<!--.*?-->\s*", "", (REFS / "page.html").read_text(), flags=re.S).replace("{{title}}", "dream 스킬 설계안")
+    style = "\n".join(b for b in parts((REFS / "diagram.html").read_text())[0] if b.startswith("<style"))
+    main = (ROOT / "tests" / "pages" / f"{name}.html").read_text().strip()
+    return re.sub(r"<main>.*?</main>", lambda m: style + "\n" + main, shell, flags=re.S)
+
+
 STUCK = "<script>document.addEventListener('click', function (e) { if (e.target.closest('.controls')) e.stopImmediatePropagation(); }, true);</script></html>"
 
 
@@ -195,6 +210,21 @@ class Check(unittest.TestCase):
                 code, out = check(GOOD.replace(old, new))
                 self.assertEqual(code, 1, out)
                 self.assertIn(line, out)
+
+    def test_page_that_skips_mapping_widgets_fails(self):
+        code, out = check(dream("dream"))
+        self.assertEqual(code, 1, out)
+        self.assertRegex(out, r"mapping 8 files 1 flows FAIL: no file-tree for .*; no use-case for '/dream ")
+
+    def test_page_with_mapping_widgets_passes(self):
+        code, out = check(dream("dream-drawn"))
+        self.assertEqual((code, out.splitlines()[-1]), (0, "pass"), out)
+        self.assertIn("mapping 8 files 0 flows pass", out)
+
+    def test_plain_report_needs_no_widget(self):
+        code, out = check(REPORT)
+        self.assertEqual((code, out.splitlines()[-1]), (0, "pass"), out)
+        self.assertIn("mapping 1 files 0 flows pass", out)
 
     def test_contents_at_four_h2s(self):
         page = GOOD.replace('<h2>저장소 <code>jobs.db</code></h2>', FOUR)

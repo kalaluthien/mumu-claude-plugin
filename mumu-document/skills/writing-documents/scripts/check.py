@@ -20,6 +20,7 @@ REDUCED = "--force-prefers-reduced-motion"
 TOLERANCE = 0.02
 MIN_RUN = 3
 CONTENTS = 4
+FILES = 4  # a file-tree from this many files named, as the Mapping says
 WORD = r"[A-Za-z]+(?:['’-][A-Za-z]+)*[.,:;!?]?"
 ENGLISH = re.compile(rf"{WORD}(?:\s+{WORD}){{{MIN_RUN - 1},}}")
 SENTENCE = re.compile(r"[^.!?\n]*[.!?]")
@@ -70,6 +71,8 @@ f.onload = function () {
   setTimeout(function () {
     var d = f.contentDocument, w = f.contentWindow, groups = new Map(), out = [];
     var SKIP = 'script,style,template,noscript', CODE = 'code,pre,kbd,samp';
+    // Mapping: a file named by path, or a flow drawn in text with arrows, outside any widget
+    var PATH = /^[~.\w$-]*(\/[\w.*$-]*)*(\.[A-Za-z]\w{0,4}|\/)$/, ARROW = /[→⟶⇒➜➔▶]/g, BLOCK = 'pre,p,li,td,th,dd,figcaption';
     var block = function (el) {
       while (el.parentElement && !(el instanceof w.SVGElement) && !/^(button|label|option|summary)$/i.test(el.tagName)
              && w.getComputedStyle(el).display === 'inline') el = el.parentElement;
@@ -91,7 +94,14 @@ f.onload = function () {
     var h2 = Array.prototype.slice.call(d.querySelectorAll('main h2')), nav = d.querySelector('main nav');
     if (nav && h2.length && !(nav.compareDocumentPosition(h2[0]) & 4)) nav = null;
     var links = nav ? Array.prototype.map.call(nav.querySelectorAll('a[href^="#"]'), function (a) { return a.getAttribute('href').slice(1); }) : [];
+    var loose = function (sel) { return Array.prototype.filter.call(d.querySelectorAll(sel), function (e) { return !e.closest('[data-widget]'); }); };
+    var arrows = function (e) { return (e.textContent.match(ARROW) || []).length >= 2; };
+    var paths = loose('code').map(function (c) { return c.textContent.trim().replace(/:\d.*$/, ''); }).filter(function (p) { return PATH.test(p); });
+    var flows = loose(BLOCK).filter(function (e) { return arrows(e) && !Array.prototype.some.call(e.querySelectorAll(BLOCK), arrows); })
+      .map(function (e) { return e.textContent.replace(/\s+/g, ' ').trim().slice(0, 40); });
     document.body.dataset.r = JSON.stringify({ lang: d.documentElement.lang, text: out, headings: heads,
+      paths: paths.filter(function (p, i) { return paths.indexOf(p) === i; }), flows: flows,
+      diagrams: Array.prototype.map.call(d.querySelectorAll('[data-widget="diagram"]'), function (e) { return e.dataset.diagram; }),
       h2: h2.length, linked: h2.filter(function (h) { return h.id && links.indexOf(h.id) >= 0; }).length, nav: !!d.querySelector('main nav'),
       broken: Array.prototype.map.call(d.querySelectorAll('a[href^="#"]'), function (a) { return a.getAttribute('href'); })
         .filter(function (h) { return h.length > 1 && !d.getElementById(decodeURIComponent(h.slice(1))); }),
@@ -302,6 +312,17 @@ def korean(page):
     return out
 
 
+def mapping(page):
+    """Each widget a Mapping row demands that the page lacks: a file-tree for the files it names, a use-case for a flow
+    drawn in text."""
+    out = []
+    if len(page["paths"]) >= FILES and "file-tree" not in page["diagrams"]:
+        out.append(f"no file-tree for {', '.join(page['paths'])}")
+    if page["flows"] and "use-case" not in page["diagrams"]:
+        out.append(f"no use-case for {page['flows'][0]!r}")
+    return out
+
+
 def num(s):
     m = re.sub(r"[^\d.eE+-]", "", s.replace("−", "-").replace("–", "-"))
     try:
@@ -424,6 +445,9 @@ def main():
     ok = k["linked"] == k["h2"] if k["h2"] >= CONTENTS or k["chapters"] else not k["nav"]
     failed |= not ok
     print(f"contents {k['h2']} h2 {k['linked']} linked" + (" nav" if k["nav"] else "") + (" pass" if ok else " FAIL"))
+    out = mapping(k)
+    failed |= bool(out)
+    print(f"mapping {len(k['paths'])} files {len(k['flows'])} flows " + ("FAIL: " + "; ".join(out) if out else "pass"))
     for link in k["broken"]:
         failed = True
         print(f"links {link} has no target FAIL")
