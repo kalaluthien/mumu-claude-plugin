@@ -1,0 +1,52 @@
+<!-- chapters: a page of h2 chapters holding h3 sections, read one chapter at a time; copied once per page, after the widgets.
+  Each chapter is a <section data-chapter> opening with its <h2 id>; the page's <nav> links each chapter's h2. The part
+  shows the chapter holding the element the URL's #id names (no #id: the first; an id outside every chapter: the one
+  shown) and hides the rest, so a link to any id, the <nav> and the back button switch chapters. It adds a pager to each
+  chapter's end, links to the previous and next chapters named by their h2s, and marks the <nav> link of the chapter
+  shown with aria-current. In print or without script it does nothing: every chapter stays shown. -->
+<style>
+  [data-chapter] .pager { display: flex; justify-content: space-between; gap: var(--sp-3); margin-top: var(--rhythm);
+    padding-top: var(--sp-3); border-top: var(--line) solid var(--hairline); font-family: var(--sans); }
+  [data-chapter] .pager [rel="next"] { margin-inline-start: auto; text-align: end; }
+  main nav [aria-current] { color: var(--text); font-weight: 700; }
+  @media print { [data-chapter][hidden] { display: block; } [data-chapter] .pager { display: none; } }
+</style>
+<script>
+  (() => {
+    const start = () => {
+      const chapters = [...document.querySelectorAll('[data-chapter]')];
+      if (chapters.length < 2) return;
+      const head = (c) => c.querySelector('h2');
+      chapters.forEach((c, i) => {
+        const pager = document.createElement('div');
+        pager.className = 'pager';
+        [[chapters[i - 1], 'prev'], [chapters[i + 1], 'next']].forEach(([to, rel]) => {
+          if (!to) return;
+          const a = document.createElement('a');
+          a.href = `#${head(to).id}`;
+          a.rel = rel;
+          const name = head(to).textContent.trim();
+          a.textContent = rel === 'prev' ? `← ${name}` : `${name} →`;
+          pager.append(a);
+        });
+        c.append(pager);
+      });
+      let shown = null;
+      const show = () => {
+        const id = decodeURIComponent(location.hash.slice(1));
+        const target = id ? document.getElementById(id) : null;
+        const at = !id ? chapters[0] : (target && target.closest('[data-chapter]')) || shown || chapters[0];
+        chapters.forEach((c) => { c.hidden = c !== at; });
+        document.querySelectorAll('main nav a[href^="#"]').forEach((a) => {
+          const to = document.getElementById(decodeURIComponent(a.hash.slice(1)));
+          if (to && at.contains(to)) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current');
+        });
+        shown = at;
+        if (target && at.contains(target)) target.scrollIntoView();
+      };
+      addEventListener('hashchange', show);
+      show();
+    };
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
