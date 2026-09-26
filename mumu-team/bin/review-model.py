@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Print the model a pull request's `reviewer` runs on: `sonnet` for at most 20 changed lines, else `opus`.
 
-usage: review-size.py <base> <head>, run in the checkout; the count is the
+usage: review-model.py <base> <head>, run in the checkout; the count is the
 insertions plus deletions of `git diff --shortstat <base>...<head>`.
 """
 import re
@@ -22,11 +22,11 @@ def model_for(lines):
 
 def main():
     if len(sys.argv) != 3:
-        print("usage: review-size.py <base> <head>", file=sys.stderr)
+        print("usage: review-model.py <base> <head>", file=sys.stderr)
         return 2
     diff = subprocess.run(["git", "diff", "--shortstat", f"{sys.argv[1]}...{sys.argv[2]}"], capture_output=True, text=True)
     if diff.returncode != 0:
-        print(f"review-size.py: {diff.stderr.strip()}", file=sys.stderr)
+        print(f"review-model.py: {diff.stderr.strip()}", file=sys.stderr)
         return 2
     lines = changed(diff.stdout)
     print(f"{model_for(lines)} ({lines} changed lines)")

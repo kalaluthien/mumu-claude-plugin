@@ -1,4 +1,4 @@
-"""What `stop.py` and `team-watch.py` read: a lead's open root goals and root tasks on GitHub and its workers in herdr.
+"""What `stop-guard.py` and `team-watch.py` read: a lead's open root goals and root tasks on GitHub and its workers in herdr.
 
 A lead is the one session of its checkout (its cwd); its workers are the herdr
 agents named `<topic>-<n>-<k>` whose cwd lies in `<checkout>/.claude/worktrees/`.

@@ -57,7 +57,7 @@ RAW_MERGE = "a raw `pr merge` is refused; run `merge.py <pr-url>` in a Bash call
 
 
 def refuse(reason):
-    print(f"approved: {reason}", file=sys.stderr)
+    print(f"bash-guard: {reason}", file=sys.stderr)
     sys.exit(2)
 
 

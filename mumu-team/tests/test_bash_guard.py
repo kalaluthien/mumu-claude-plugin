@@ -1,7 +1,8 @@
-"""approved.py: real bypasses and every raw merge refused, text only naming them passed.
+"""bash-guard.py: real bypasses and every raw merge refused, text only naming them passed.
 
 Run: python3 -m unittest discover mumu-team/tests
 """
+import importlib.machinery
 import json
 import pathlib
 import shlex
@@ -9,7 +10,7 @@ import subprocess
 import sys
 import unittest
 
-HOOK = pathlib.Path(__file__).resolve().parent.parent / "bin" / "approved.py"
+HOOK = pathlib.Path(__file__).resolve().parent.parent / "scripts" / "bash-guard.py"
 KEY = "core.hooksPath"
 
 REFUSED = [
@@ -108,7 +109,7 @@ MERGE_PASSED = [
     f"gh issue comment 1 --body-file - <<'EOF'\nthe lead's {MERGE} was refused\nEOF",
     f'gh issue reopen 9 --comment "refused: {MERGE}"',
     f"gh pr create --title t --body \"$(cat <<'EOF'\nnever {MERGE} unpinned\nEOF\n)\"",
-    'grep -n "pr merge" mumu-team/bin/approved.py',
+    'grep -n "pr merge" mumu-team/scripts/bash-guard.py',
     f"merge.py {URL}",
 ]
 
@@ -175,11 +176,10 @@ class AssignmentOnly(unittest.TestCase):
         self.assertIn("merge.py", result.stderr)
 
     def test_every_helper_reads_an_empty_and_an_assignment_only_word_list(self):
-        sys.path.insert(0, str(HOOK.parent))
-        import approved
-        whole = [approved.reader, approved.git_grep, approved.sed_in_place,
-                 approved.unredirected, approved.mentions, approved.bypasses]
-        indexed = [approved.text_word, approved.config_value]
+        guard = importlib.machinery.SourceFileLoader("bash_guard", str(HOOK)).load_module()
+        whole = [guard.reader, guard.git_grep, guard.sed_in_place,
+                 guard.unredirected, guard.mentions, guard.bypasses]
+        indexed = [guard.text_word, guard.config_value]
         for words in ([], ["S=/tmp/x"], ["S=/tmp/x", "T=y"]):
             for helper in whole:
                 with self.subTest(helper=helper.__name__, words=words):
