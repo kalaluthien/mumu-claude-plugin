@@ -1,9 +1,19 @@
-"""Every `gh` command mumu-team runs, each raising `RuntimeError` when gh fails, but `held`, which answers None."""
+"""Run one external command, and every `gh` command mumu-team runs, each raising `RuntimeError` when it fails, but `held`, which answers None."""
 import json
-
-from command import run
+import subprocess
 
 HELD = ["issue", "list", "--state", "open", "--search", "no:parent-issue label:kind:goal,kind:task", "--json", "url"]
+
+
+def run(*argv, cwd=None, stdin=None):
+    """stdout of `argv`, raising with its stderr and stdout when it cannot start or exits non-zero."""
+    try:
+        done = subprocess.run(argv, cwd=cwd, input=stdin, capture_output=True, text=True)
+    except OSError as e:
+        raise RuntimeError(f"{argv[0]}: {e}") from e
+    if done.returncode != 0:
+        raise RuntimeError(f"{' '.join(argv)}: {' '.join(s.strip() for s in (done.stderr, done.stdout) if s.strip())}")
+    return done.stdout
 
 
 def gh(*argv, cwd=None, stdin=None):

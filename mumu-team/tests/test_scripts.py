@@ -43,7 +43,12 @@ PASSED = [
     f"grep -rn {KEY} .",
     f"git config {KEY}",
     f"git config --get {KEY}",
+]
+
+# Text only naming a bypass is refused too: it goes through a file and `--body-file` (#158).
+TEXT_REFUSED = [
     "gh issue create --title t --body-file - <<'EOF'\nthe hook refuses git commit --no-verify and git commit -n\nEOF",
+    "gh issue create --title t --body-file - <<'EOF'\nthe owner's git commit --no-verify\nEOF",
 ]
 
 PR_URL = "https://github.com/o/r/pull/1"
@@ -99,22 +104,20 @@ MERGE_REFUSED = [
     f"sed -i '' -e 's/.*/{MERGE}/' -e 'W /dev/stdout' f | sh",
 ]
 
-# Text only naming the merge in a pattern or an in-place edit: refused on main (#87).
-TEXT_MERGE_PASSED = [
+# Text only naming the merge, in a heredoc, a body or a pattern, is refused too: it goes through a file (#158).
+TEXT_MERGE_REFUSED = [
     "git grep -n 'pr merge' mumu-team",
-    f"git grep -e '{MERGE}' -- '*.md'",
-    "sed -i '' 's/gh pr merge/merge.py/' AGENTS.md",
-    f"sed -i.bak -e '/{MERGE}/d' notes.md",
-    f"sed -i '' 's/{MERGE}/merge.py/g' mumu-team/skills/kickoff/references/work-task.md",
-]
-
-MERGE_PASSED = [
+    f"sed -i '' 's/{MERGE}/merge.py/g' notes.md",
     f"cat > /tmp/note.md <<'EOF'\nrun {MERGE} later\nEOF",
     f"gh issue comment 1 --body-file - <<'EOF'\nthe lead's {MERGE} was refused\nEOF",
     f'gh issue reopen 9 --comment "refused: {MERGE}"',
-    f"gh pr create --title t --body \"$(cat <<'EOF'\nnever {MERGE} unpinned\nEOF\n)\"",
     'grep -n "pr merge" mumu-team/scripts/bash-guard.py',
+]
+
+MERGE_PASSED = [
     f"merge.py {PR_URL}",
+    "gh pr view 1 --json state",
+    "git merge-base HEAD origin/main",
 ]
 
 
@@ -145,7 +148,14 @@ class HookBypass(unittest.TestCase):
                     self.assertEqual(result.returncode, 2, result.stderr)
                     self.assertIn("hook bypass refused", result.stderr)
 
-    def test_text_naming_the_hooks_path_passes(self):
+    def test_text_naming_a_bypass_is_refused(self):
+        for command in TEXT_REFUSED:
+            with self.subTest(command):
+                result = run(command)
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertIn("hook bypass refused", result.stderr)
+
+    def test_reading_or_naming_the_hooks_path_passes(self):
         for command in PASSED:
             with self.subTest(command):
                 result = run(command)
@@ -153,15 +163,15 @@ class HookBypass(unittest.TestCase):
 
 
 class MergeGate(unittest.TestCase):
-    def test_every_raw_merge_is_refused_pinned_or_not(self):
-        for command in MERGE_REFUSED:
+    def test_every_raw_merge_is_refused_pinned_or_not_or_as_text(self):
+        for command in MERGE_REFUSED + TEXT_MERGE_REFUSED:
             with self.subTest(command):
                 result = run(command)
                 self.assertEqual(result.returncode, 2)
                 self.assertIn("merge.py", result.stderr)
 
-    def test_text_naming_the_merge_passes(self):
-        for command in MERGE_PASSED + TEXT_MERGE_PASSED:
+    def test_merge_py_and_other_commands_pass(self):
+        for command in MERGE_PASSED:
             with self.subTest(command):
                 result = run(command)
                 self.assertEqual(result.returncode, 0, result.stderr)
@@ -181,8 +191,8 @@ class AssignmentOnly(unittest.TestCase):
 
     def test_every_helper_reads_an_empty_and_an_assignment_only_word_list(self):
         guard = importlib.machinery.SourceFileLoader("bash_guard", str(HOOK)).load_module()
-        whole = [guard.reader, guard.unredirected, guard.mentions, guard.bypasses]
-        indexed = [guard.text_word, guard.config_value]
+        whole = [guard.unredirected, guard.mentions, guard.bypasses]
+        indexed = [guard.config_value]
         for words in ([], ["S=/tmp/x"], ["S=/tmp/x", "T=y"]):
             for helper in whole:
                 with self.subTest(helper=helper.__name__, words=words):

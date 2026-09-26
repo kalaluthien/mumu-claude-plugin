@@ -1,7 +1,5 @@
 # Work
 
-Work one task of a goal, as the worker its leader started.
-
 Rules for every step:
 
 - Before building, read the prior work in the repository and its issues, and the official docs and a web example only for a new mechanism or API.
