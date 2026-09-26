@@ -2,9 +2,8 @@
 
 ## Composition
 
-- A page is one HTML file that opens from `file://`: `<title>`, one `<style>`
-  holding [skin.css](artifact/shared/skin.css) verbatim, then `<main>` with
-  the `h1`, a `p.read` of the one thing to read off the page, the widgets in
+- A page is one HTML file that opens from `file://`: one `<style>` holding
+  [skin.css](artifact/shared/skin.css) verbatim, then `<main>` with the `h1`, a `p.read` of the one thing to read off the page, the widgets in
   move order, and a `footer` citing the source at a sha. With 4 or more
   `h2`s, a `nav` after `p.read` links each by its id; with fewer, none.
 - Each widget is its file in [widgets/](artifact/widgets/), copied whole, its
@@ -15,9 +14,25 @@
   the widgets: [slide](artifact/shared/slide.html) changes one stage in place
   (the reader compares the same marks), [swipe](artifact/shared/swipe.html)
   is a strip of cards (each step a separate moment).
-- The skin and widgets are the page's whole design: no values of its own, and
-  no `quickstart`, `artifact-design`, `artifact-capabilities` or `dataviz`
-  before the `Artifact` call, which only publishes the file.
+
+## Base skills
+
+Load `artifact-design` before writing the page, directly, not through the
+`Artifact` tool's `quickstart`, since the page is a plain HTML file; load
+`artifact-diagramming` before filling a `diagram` widget. Where they disagree
+with this skill, this skill overrides them:
+
+- The skin and widgets are the page's whole design, overriding
+  `artifact-design`'s design plan and editorial process: no palette, typeface
+  or value of the page's own.
+- `<html lang="ko">` overrides `artifact-design`'s skeleton rule of no
+  `<html>` tag, since `check.py` reads the `lang`.
+- Data is drawn by the `chart` widget alone, overriding `artifact-design`'s
+  rule to load a charting library.
+- The Check loop below overrides `artifact-design`'s "Write, look once,
+  publish": rerun `check.py` until it prints `pass`.
+- A widget's anatomy overrides `artifact-diagramming`'s Inline SVG mechanics:
+  its sizes, markers, `<title>` and `<desc>`, and a key in the `figcaption`.
 
 ## Korean
 
