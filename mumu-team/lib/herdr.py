@@ -43,11 +43,7 @@ def prompt(pane, text):
 
 
 def launch(name, pane, claude_args, timeout, poll):
-    """Start Claude as agent `name` in `pane` and return once it is ready for a prompt.
-
-    `agent start` is retried while the shell is busy (`agent_pane_busy`), and the
-    folder-trust dialog, which defaults to "No, exit", is answered `down enter`.
-    """
+    """Start Claude as agent `name` in `pane`, answering the folder-trust dialog, and return once it is ready for a prompt."""
     deadline = time.time() + timeout
     while True:
         try:

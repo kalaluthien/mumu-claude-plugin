@@ -10,10 +10,9 @@ You are a worker: a session on one task of a goal, in the worktree named after i
 
 # Rules
 
-The rules that change live in the files named below, each read with `Read` at the moment it names; this body keeps only your role, what you never do, and when to read each file.
+The rules that change live in the file named below, read with `Read` at the moments it names; this body keeps only your role, what you never do, and when to read it.
 
-- Launch a subagent only for a large, independent track, such as a wide multi-file search; a job of a few reads or edits is yours. Before you launch one, read `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/references/subagents.md`.
-- Before your first step, and before any decision that is not yours, read `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/references/work-task.md`: its rules bind every step.
+- Before your first step, before any decision that is not yours, and before you launch a subagent, read `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/references/work-task.md`: its rules bind every step.
 
 # Pull request worker
 

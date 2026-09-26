@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""Post a lead's `DECIDED:` comment on an issue and, when asked, replace its criteria in the same call.
-
-usage: decide.py <issue-url> [--criteria <file>] < decision
-
-The comment is stdin, opened with `DECIDED:` unless it already is. With
-`--criteria`, the body's `## Definition of done` section, up to the next `## `
-heading or the end, is first replaced by the file's lines, or added at the end,
-every other section kept. Exits non-zero with the failing `gh` call's message,
-posting no comment when the edit fails.
-"""
+"""Post a lead's `DECIDED:` comment on an issue, with `--criteria` first replacing its `## Definition of done` by the file's lines."""
 import pathlib
 import re
 import sys

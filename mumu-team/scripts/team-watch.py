@@ -1,18 +1,5 @@
 #!/usr/bin/env python3
-"""The `team-watch` monitor: one line per change of a lead's workers, and one while its team sits idle.
-
-usage: team-watch.py, run in the lead's checkout by the plugin's `monitors.json`.
-
-Lines: `<word> <name>` when a worker's herdr state changes, `<word>` being
-`blocked`, `idle`, `working`, or `gone` once herdr no longer lists it; and
-`team idle <minutes>m` once no worker has been `working` for `TEAM_WATCH_IDLE`
-seconds (1200) while the checkout's repository has an open root goal or root
-task, again at most once an hour while that holds. A worker is named
-as `lib/names.py` says. It never exits for lack of goals, and a poll whose `herdr`
-or `gh` call fails is skipped; in a worker's session (`MUMU_ROLE=worker`) it
-exits at once. `MONITOR_POLL` is the poll interval in seconds (10), and
-`MONITOR_TICKS` stops it after that many polls, for a test (unset: never).
-"""
+"""The `team-watch` monitor, run in a lead's checkout: one line per change of its workers, and one while its team sits idle."""
 import os
 import pathlib
 import sys
@@ -34,39 +21,29 @@ def changes(last, now):
     return words, lines + [f"gone {name}" for name in last if name not in now]
 
 
-def idle(state, working, now, after):
-    """Next state `(quiet since, printed at)` and whether an idle line is due, from whether any worker works."""
-    since, printed = state
-    if working:
-        return (None, None), False
-    since = now if since is None else since
-    due = now - since >= after and (printed is None or now - printed >= REPEAT)
-    return (since, printed), due
-
-
 def main():
     if os.environ.get("MUMU_ROLE") == "worker":
         return
-    checkout = os.getcwd()
-    interval = float(os.environ.get("MONITOR_POLL", 10))
-    ticks = int(os.environ.get("MONITOR_TICKS", 0))
-    after = float(os.environ.get("TEAM_WATCH_IDLE", 1200))
-    last, state, n = {}, (None, None), 0
+    checkout, ticks = os.getcwd(), int(os.environ.get("MONITOR_TICKS", 0))
+    interval, after = float(os.environ.get("MONITOR_POLL", 10)), float(os.environ.get("TEAM_WATCH_IDLE", 1200))
+    last, since, printed, n = {}, None, None, 0  # the team quiet since, the idle line printed at
     while not ticks or n < ticks:
         n += 1
         try:
-            listed = herdr.listed("agent")
+            last, lines = changes(last, names.workers(herdr.listed("agent"), checkout))
         except RuntimeError:
-            listed = None
-        if listed is not None:
-            last, lines = changes(last, names.workers(listed, checkout))
-            now = time.time()
-            state, due = idle(state, "working" in last.values(), now, after)
-            if due and gh.held(checkout):
-                state = (state[0], now)
-                lines.append(f"team idle {int((now - state[0]) // 60)}m")
-            for line in lines:
-                print(line, flush=True)
+            time.sleep(interval)
+            continue
+        now = time.time()
+        if "working" in last.values():
+            since = printed = None
+        else:
+            since = since or now
+            if now - since >= after and (printed is None or now - printed >= REPEAT) and gh.held(checkout):
+                printed = now
+                lines.append(f"team idle {int((now - since) // 60)}m")
+        for line in lines:
+            print(line, flush=True)
         time.sleep(interval)
 
 

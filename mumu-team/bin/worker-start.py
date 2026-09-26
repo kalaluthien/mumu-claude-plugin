@@ -1,20 +1,6 @@
 #!/usr/bin/env python3
-"""Start a worker in one call: its name, its worktree, its tab, its Claude session and its kickoff prompt.
-
-usage: worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--leader <address>] [--owner-effort]
-
-The name and worktree are `lib/names.py`'s, `<k>` 1 + the largest attempt of
-task `<n>` in a remote branch, pull request head or local worktree; `--continue`
-takes the newest local worktree of `<topic>` and `<n>` and resumes its session.
-A missing worktree is added detached at `origin/<default>`, the git guard is
-copied into the checkout's hooks and the worktrees are added to `info/exclude`.
-The tab sets `MUMU_ROLE=worker`, on which `team-watch` exits. Claude runs as
-`--agent mumu-team:worker` at `<effort>`, `low` or `medium` unless
-`--owner-effort` says the owner named it, else it fails with 2. With
-`--leader` it is prompted `/mumu-team:kickoff work <task-url> leader <address>`.
-Prints `<name>@<pane> <worktree>`. `WORKER_START_TIMEOUT` (60) and
-`WORKER_START_POLL` (1) are seconds.
-"""
+"""Start a worker: its name, worktree, tab, Claude session as `--agent mumu-team:worker`, and kickoff prompt."""
+import argparse
 import os
 import pathlib
 import re
@@ -61,30 +47,23 @@ def worktree(repo, name):
 
 
 def main(argv):
-    args, resume, leader, owner_effort = [], False, None, False
-    it = iter(argv)
-    for a in it:
-        if a == "--continue":
-            resume = True
-        elif a == "--owner-effort":
-            owner_effort = True
-        elif a == "--leader":
-            leader = next(it, None)
-        else:
-            args.append(a)
-    if len(args) != 4 or (leader is None and "--leader" in argv):
-        print("usage: worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--leader <address>] [--owner-effort]", file=sys.stderr)
-        return 2
-    repo, topic, effort, url = args
+    parser = argparse.ArgumentParser(prog="worker-start.py", allow_abbrev=False)
+    for arg in ("checkout", "topic", "effort", "url"):
+        parser.add_argument(arg)
+    parser.add_argument("--continue", dest="resume", action="store_true")
+    parser.add_argument("--leader")
+    parser.add_argument("--owner-effort", action="store_true")
+    a = parser.parse_args(argv)
+    topic, effort, url, resume = a.topic, a.effort, a.url, a.resume
     number = re.search(r"/issues/(\d+)/?$", url)
     if not number or not re.fullmatch(names.TOPIC, topic):
         print(f"worker-start.py: topic {topic!r} must be lowercase words joined by -, and {url!r} a task url", file=sys.stderr)
         return 2
-    if effort not in ("low", "medium") and not owner_effort:
+    if effort not in ("low", "medium") and not a.owner_effort:
         print(f"worker-start.py: effort {effort!r} must be low or medium; pass --owner-effort only when the owner named it", file=sys.stderr)
         return 2
     try:
-        repo = str(names.checkout(repo))
+        repo = str(names.checkout(a.checkout))
         run("git", "-C", repo, "fetch", "origin")
         k = max(attempts(repo, number[1], topic, False), default=None) if resume else 1 + max(attempts(repo, number[1]), default=0)
         if k is None:
@@ -94,13 +73,11 @@ def main(argv):
         pane = herdr.open_tab(tree, name, "--env", "MUMU_ROLE=worker", "--no-focus")
         timeout, poll = float(os.environ.get("WORKER_START_TIMEOUT", 60)), float(os.environ.get("WORKER_START_POLL", 1))
         herdr.launch(name, pane, ["--name", name, "--agent", "mumu-team:worker", "--model", "opus", "--effort", effort] + (["--continue"] if resume else []), timeout, poll)
-        if leader:
-            herdr.prompt(pane, f"/mumu-team:kickoff work {url} leader {leader}")
+        if a.leader:
+            herdr.prompt(pane, f"/mumu-team:kickoff work {url} leader {a.leader}")
     except RuntimeError as e:
-        print(f"worker-start.py: {e}", file=sys.stderr)
-        return 1
+        sys.exit(f"worker-start.py: {e}")
     print(f"{name}@{pane} {tree}")
-    return 0
 
 
 if __name__ == "__main__":

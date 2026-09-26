@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-"""Squash-merge a pull request at the head a reviewer approved: the only merge path.
-
-usage: merge.py <pr-url>, as a Bash call of its own. It reads the PR's head,
-finds a comment or review whose first line is `APPROVED: <head>` (any case, the
-colon optional, so `Approved <sha>` counts), and runs
-`gh pr merge <pr-url> --squash --match-head-commit <head>`, so a head that moves
-after the read is refused by GitHub. Exits non-zero with the reason otherwise.
-"""
+"""Squash-merge a pull request at a head some comment or review opens `APPROVED: <head>` on: the only merge path."""
 import json
 import pathlib
 import re
