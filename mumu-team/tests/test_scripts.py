@@ -1,9 +1,4 @@
-"""The hook and monitor `scripts/`, each run as Claude Code runs it:
-
-- bash-guard.py: real bypasses and every raw merge refused, text only naming them passed.
-- The `UserPromptSubmit` hook of `hooks/hooks.json`, run as Claude Code runs it, on a copy of the plugin and a written transcript.
-- The `Stop` hook of `hooks/hooks.json`, run as Claude Code runs it, against a fake gh that plays the open parentless issues, and a fake ps.
-- `team-watch.py` run as the monitor runs it, in a lead's checkout, against a fake herdr and gh whose answers change per poll.
+"""The hook and monitor `scripts/`, each run as Claude Code runs it, against fakes on PATH and a written transcript.
 
 Run: python3 -m unittest discover mumu-team/tests
 """

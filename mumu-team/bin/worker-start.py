@@ -61,7 +61,7 @@ def main(argv):
     parser.add_argument("--leader")
     parser.add_argument("--owner-effort", action="store_true")
     a = parser.parse_args(argv)
-    repo, topic, effort, url, leader, resume = a.checkout, a.topic, a.effort, a.url, a.leader, a.resume
+    topic, effort, url, resume = a.topic, a.effort, a.url, a.resume
     number = re.search(r"/issues/(\d+)/?$", url)
     if not number or not re.fullmatch(names.TOPIC, topic):
         print(f"worker-start.py: topic {topic!r} must be lowercase words joined by -, and {url!r} a task url", file=sys.stderr)
@@ -70,7 +70,7 @@ def main(argv):
         print(f"worker-start.py: effort {effort!r} must be low or medium; pass --owner-effort only when the owner named it", file=sys.stderr)
         return 2
     try:
-        repo = str(names.checkout(repo))
+        repo = str(names.checkout(a.checkout))
         run("git", "-C", repo, "fetch", "origin")
         k = max(attempts(repo, number[1], topic, False), default=None) if resume else 1 + max(attempts(repo, number[1]), default=0)
         if k is None:
@@ -80,8 +80,8 @@ def main(argv):
         pane = herdr.open_tab(tree, name, "--env", "MUMU_ROLE=worker", "--no-focus")
         timeout, poll = float(os.environ.get("WORKER_START_TIMEOUT", 60)), float(os.environ.get("WORKER_START_POLL", 1))
         herdr.launch(name, pane, ["--name", name, "--agent", "mumu-team:worker", "--model", "opus", "--effort", effort] + (["--continue"] if resume else []), timeout, poll)
-        if leader:
-            herdr.prompt(pane, f"/mumu-team:kickoff work {url} leader {leader}")
+        if a.leader:
+            herdr.prompt(pane, f"/mumu-team:kickoff work {url} leader {a.leader}")
     except RuntimeError as e:
         sys.exit(f"worker-start.py: {e}")
     print(f"{name}@{pane} {tree}")

@@ -1,11 +1,4 @@
-"""The `bin/` commands, each run against fakes on PATH:
-
-- `decide.py` run against a fake gh on PATH that holds one issue body and logs each comment and edit.
-- `merge.py` run against a fake `gh`: it merges only at the head a reviewer approved.
-- `worker-close.py` run against a fake herdr that logs every call and plays a Claude session and its exit dialogs.
-- `review-model.py`: the model by the pull request's size.
-- `worker-start.py` run against a fake herdr, git and gh that log every call and play a Claude session behind a trust dialog.
-- `lead-start.py` run against the fake herdr, git and gh of the `worker-start.py` tests, whose `gh` names the repository `main`.
+"""The `bin/` commands, each run against fake `herdr`, `git` and `gh` commands on PATH that log every call.
 
 Run: python3 -m unittest discover mumu-team/tests
 """

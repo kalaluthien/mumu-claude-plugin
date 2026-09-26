@@ -27,39 +27,29 @@ def changes(last, now):
     return words, lines + [f"gone {name}" for name in last if name not in now]
 
 
-def idle(state, working, now, after):
-    """Next state `(quiet since, printed at)` and whether an idle line is due, from whether any worker works."""
-    since, printed = state
-    if working:
-        return (None, None), False
-    since = now if since is None else since
-    due = now - since >= after and (printed is None or now - printed >= REPEAT)
-    return (since, printed), due
-
-
 def main():
     if os.environ.get("MUMU_ROLE") == "worker":
         return
-    checkout = os.getcwd()
-    interval = float(os.environ.get("MONITOR_POLL", 10))
-    ticks = int(os.environ.get("MONITOR_TICKS", 0))
-    after = float(os.environ.get("TEAM_WATCH_IDLE", 1200))
-    last, state, n = {}, (None, None), 0
+    checkout, ticks = os.getcwd(), int(os.environ.get("MONITOR_TICKS", 0))
+    interval, after = float(os.environ.get("MONITOR_POLL", 10)), float(os.environ.get("TEAM_WATCH_IDLE", 1200))
+    last, since, printed, n = {}, None, None, 0  # the team quiet since, the idle line printed at
     while not ticks or n < ticks:
         n += 1
         try:
-            listed = herdr.listed("agent")
+            last, lines = changes(last, names.workers(herdr.listed("agent"), checkout))
         except RuntimeError:
-            listed = None
-        if listed is not None:
-            last, lines = changes(last, names.workers(listed, checkout))
-            now = time.time()
-            state, due = idle(state, "working" in last.values(), now, after)
-            if due and gh.held(checkout):
-                state = (state[0], now)
-                lines.append(f"team idle {int((now - state[0]) // 60)}m")
-            for line in lines:
-                print(line, flush=True)
+            time.sleep(interval)
+            continue
+        now = time.time()
+        if "working" in last.values():
+            since = printed = None
+        else:
+            since = since or now
+            if now - since >= after and (printed is None or now - printed >= REPEAT) and gh.held(checkout):
+                printed = now
+                lines.append(f"team idle {int((now - since) // 60)}m")
+        for line in lines:
+            print(line, flush=True)
         time.sleep(interval)
 
 
