@@ -1,4 +1,4 @@
-"""The harvest Stop hook `bin/takeaway.py`, run on a fake transcript in an armed repository.
+"""The harvest Stop hook `scripts/takeaway.py`, run on a fake transcript in an armed repository.
 
 Run: python3 -m unittest discover mumu-compounding/tests
 """
@@ -10,7 +10,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 
-HOOK = pathlib.Path(__file__).resolve().parent.parent / "bin" / "takeaway.py"
+HOOK = pathlib.Path(__file__).resolve().parent.parent / "scripts" / "takeaway.py"
 PROMPT = "Before you stop, harvest this session's work with the retro skill."
 
 
