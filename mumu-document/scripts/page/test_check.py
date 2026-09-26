@@ -38,6 +38,12 @@ CHART_FAILS = [
 ]
 FOUR = "".join(f'<h2 id="s{i}">부분 {i}</h2><p>내용이에요.</p>' for i in range(1, 5))
 NAV = '<nav><ol>' + "".join(f'<li><a href="#s{i}">부분 {i}</a></li>' for i in range(1, 5)) + '</ol></nav>'
+PART = (ROOT / "skills" / "writing-documents" / "references" / "artifact" / "shared" / "chapters.html").read_text()
+CHAPTERS = ('<nav><ol>' + "".join(f'<li><a href="#c{i}">장 {i}</a></li>' for i in range(1, 4)) + '</ol></nav>'
+            + "".join(f'<section data-chapter><h2 id="c{i}">장 {i}</h2><p>내용이에요.</p><h3 id="c{i}-a">절 {i}</h3>'
+                      f'<p><dfn id="t{i}">용어 {i}</dfn>를 정의해요. <a href="#t{(i % 3) + 1}">다음 용어</a>를 봐요.</p></section>'
+                      for i in range(1, 4)))
+PAGED = GOOD.replace('<h2>저장소 <code>jobs.db</code></h2>', CHAPTERS).replace("</html>", PART + "</html>")
 STUCK = "<script>document.addEventListener('click', function (e) { if (e.target.closest('.controls')) e.stopImmediatePropagation(); }, true);</script></html>"
 
 
@@ -82,6 +88,29 @@ class Check(unittest.TestCase):
         code, out = run(GOOD.replace("<h1>작업 큐의 구조</h1>", "<h1>작업 큐의 구조</h1>" + NAV))
         self.assertEqual(code, 1, out)
         self.assertIn("contents 1 h2 0 linked nav FAIL", out)
+
+    def test_chapter_page_passes(self):
+        code, out = run(PAGED)
+        self.assertEqual(code, 0, out)
+        self.assertIn("chapters 3 load 10/10 nav 3/3 pager 4/4 back 1/1 pass", out)
+
+    def test_each_chapter_rule_fails(self):
+        for old, new, line in [
+            ("addEventListener('hashchange', show);", "", "nav link #c2 shows chapters [1], not 2"),
+            ("c.hidden = c !== at;", "", "a load with no #id shows chapters [1, 2, 3], not 1"),
+            ('<section data-chapter><h2 id="c3">', '<h2 id="c3">', "1 h3 outside a chapter"),
+            ('<a href="#t2">', '<a href="#x">', "links #x has no target FAIL"),
+        ]:
+            with self.subTest(line):
+                self.assertIn(old, PAGED)
+                code, out = run(PAGED.replace(old, new))
+                self.assertEqual(code, 1, out)
+                self.assertIn(line, out)
+
+    def test_nested_page_without_chapters_fails(self):
+        code, out = run(GOOD.replace("</p>", '</p><h3 id="x">절</h3><p><a href="#x">절</a>로 가요.</p>', 1))
+        self.assertEqual(code, 1, out)
+        self.assertIn("chapters 0 FAIL: 1 h3 outside a chapter", out)
 
     def test_gallery_passes(self):
         code, out = run(self.gallery)

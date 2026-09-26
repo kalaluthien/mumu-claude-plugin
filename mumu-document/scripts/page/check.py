@@ -10,8 +10,12 @@ usage: check.py <page.html>
   aria-label, title and placeholder, skipping <code>, <pre>, <kbd> and <samp>, and joining a
   block across inline tags: fails on <html lang> other than "ko", a run of 3 or more English
   words, a sentence ending in a plain -다., or a heading that is a sentence.
-- contents: a page with CONTENTS or more <h2> in <main> opens, before the first, with a <nav>
-  linking each by its id; one with fewer has no <nav>.
+- contents: a page with CONTENTS or more <h2> in <main>, or with chapters, opens, before the first, with a
+  <nav> linking each by its id; one with fewer has no <nav>.
+- links, printed only on a failure: fails on an <a href="#x"> that no element's id matches.
+- chapters, printed only for a page with a [data-chapter], or an <h3> and an <h2>, in real time: fails on an <h3>
+  outside a chapter, a single chapter, or unless exactly the chapter holding the id is shown after a load with no #id (the
+  first), each <nav> link, each pager link, each load of the page at #<id> for every id in a chapter, and a back.
 - chart, with motion and with reduced motion (a slide then stands at its last table): each
   chart against its own table and scales (the svg's data-x and data-y: domain low, high,
   range start, end); fails on a mark off its value (bars from zero), a value with no mark or
@@ -22,6 +26,7 @@ usage: check.py <page.html>
 Exit 0 pass, 1 FAIL, 2 when it could not run, saying why.
 """
 import html
+import itertools
 import json
 import os
 import pathlib
@@ -47,6 +52,7 @@ f.onload = function () {
   f.onload = null;
   var d = f.contentDocument, w = f.contentWindow;
   d.querySelectorAll('button,summary,input,select').forEach(function (c) { c.click(); });
+  d.querySelectorAll('[data-chapter]').forEach(function (c) { c.hidden = false; });
   var anim = d.getAnimations().filter(function (a) { return a.playState === 'running'; }).length;
   setTimeout(function () {
     var e = d.documentElement, t = d.createTreeWalker(d.body, 4), n, z, s = [1 / 0, 1 / 0];
@@ -107,7 +113,11 @@ f.onload = function () {
     if (nav && h2.length && !(nav.compareDocumentPosition(h2[0]) & 4)) nav = null;
     var links = nav ? Array.prototype.map.call(nav.querySelectorAll('a[href^="#"]'), function (a) { return a.getAttribute('href').slice(1); }) : [];
     document.body.dataset.r = JSON.stringify({ lang: d.documentElement.lang, text: out, headings: heads,
-      h2: h2.length, linked: h2.filter(function (h) { return h.id && links.indexOf(h.id) >= 0; }).length, nav: !!d.querySelector('main nav') });
+      h2: h2.length, linked: h2.filter(function (h) { return h.id && links.indexOf(h.id) >= 0; }).length, nav: !!d.querySelector('main nav'),
+      broken: Array.prototype.map.call(d.querySelectorAll('a[href^="#"]'), function (a) { return a.getAttribute('href'); })
+        .filter(function (h) { return h.length > 1 && !d.getElementById(decodeURIComponent(h.slice(1))); }),
+      chapters: d.querySelectorAll('[data-chapter]').length,
+      loose: Array.prototype.filter.call(d.querySelectorAll('main h3'), function (h) { return !h.closest('[data-chapter]'); }).length });
   }, 300);
 };
 f.src = location.hash.slice(1);
@@ -161,8 +171,18 @@ def render(frame, page, *flags):
     return (json.loads(html.unescape(m.group(1))) if m else None), bool(re.search(r'CONSOLE.*"Uncaught', r.stderr))
 
 
-def swipe(page):
-    """[(step reached, steps)] of each live swipe after its strip is scrolled to the end, in real time."""
+SHOWN = "Array.prototype.map.call(document.querySelectorAll('[data-chapter]'), function (c) { return c.checkVisibility(); })"
+CHAPTER_IDS = ("(function () { var c = Array.prototype.slice.call(document.querySelectorAll('[data-chapter]'));"
+               " return Array.prototype.map.call(document.querySelectorAll('[data-chapter] [id]'), function (e) {"
+               " return [e.id, c.indexOf(e.closest('[data-chapter]'))]; }); })()")
+HOLDER = ("(function (a) { var t = document.getElementById(decodeURIComponent(a.hash.slice(1)));"
+          " return t && t.closest('[data-chapter]') ? Array.prototype.indexOf.call(document.querySelectorAll('[data-chapter]'),"
+          " t.closest('[data-chapter]')) : -1; })")
+
+
+def browse(page, paged):
+    """(swipes, chapters): [(step reached, steps)] of each live swipe after its strip is scrolled to the end, and for a
+    `paged` page ({check: [passed, tried]}, [failures]) of its chapter navigation; in real time."""
     cmd_r, cmd_w = os.pipe()
     out_r, out_w = os.pipe()
     def fds():  # Chrome reads commands on fd 3 and answers on fd 4
@@ -174,7 +194,7 @@ def swipe(page):
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     os.close(cmd_r)
     os.close(out_w)
-    buf, ids = b"", iter(range(1, 100))
+    buf, ids = b"", itertools.count(1)
     def send(method, session=None, **params):
         nonlocal buf
         n = next(ids)
@@ -191,12 +211,56 @@ def swipe(page):
         session = send("Target.attachToTarget", targetId=target, flatten=True)["sessionId"]
         run = lambda js: send("Runtime.evaluate", session, expression=js, returnByValue=True)["result"].get("value")
         time.sleep(1.5)
-        run("document.querySelectorAll('[data-swipe].live .steps').forEach(function (s) { s.scrollLeft = s.scrollWidth; })")
+        chapters = paged and chapter_checks(page, run, lambda url: send("Page.navigate", session, url=url))
+        run("document.querySelectorAll('[data-chapter]').forEach(function (c) { c.hidden = false; });"
+            "document.querySelectorAll('[data-swipe].live .steps').forEach(function (s) { s.scrollLeft = s.scrollWidth; })")
         time.sleep(1)
         return run("Array.prototype.map.call(document.querySelectorAll('[data-swipe].live'), function (r) {"
-                   " return [+r.dataset.at + 1, r.querySelectorAll('.steps > li').length]; })")
+                   " return [+r.dataset.at + 1, r.querySelectorAll('.steps > li').length]; })"), chapters
     finally:
         chrome.kill()
+
+
+def chapter_checks(page, run, navigate):
+    """({check: [passed, tried]}, [failures]): each way to a chapter must show that chapter alone."""
+    n = len(run(SHOWN))
+    tally, out = {k: [0, 0] for k in ("load", "nav", "pager", "back")}, []
+    def expect(check, want, what):
+        tally[check][1] += 1
+        for _ in range(20):
+            got = run(SHOWN)
+            if got == [i == want for i in range(n)]:
+                tally[check][0] += 1
+                return
+            time.sleep(0.05)
+        out.append(f"{what} shows chapters {[i + 1 for i, v in enumerate(got) if v]}, not {want + 1}")
+    def load(fragment):
+        navigate("about:blank")
+        navigate(f"file://{page}{fragment}")
+        for _ in range(40):
+            if run("location.hash === " + json.dumps(fragment) + " && document.readyState === 'complete'"):
+                break
+            time.sleep(0.05)
+    load("")
+    expect("load", 0, "a load with no #id")
+    for i, (link, at) in enumerate(run("Array.prototype.map.call(document.querySelectorAll('main nav a[href^=\"#\"]'),"
+                                       f" function (a) {{ return [a.getAttribute('href'), {HOLDER}(a)]; }})")):
+        if at >= 0:
+            run(f"document.querySelectorAll('main nav a[href^=\"#\"]')[{i}].click()")
+            expect("nav", at, f"nav link {link}")
+    load("")
+    for i in range(n - 1):
+        run(f"document.querySelectorAll('[data-chapter]')[{i}].querySelector('.pager [rel=next]').click()")
+        expect("pager", i + 1, f"next from chapter {i + 1}")
+    run("history.back()")
+    expect("back", n - 2, "back from the last chapter")
+    for i in range(n - 1, 0, -1):
+        run(f"(function (a) {{ a && a.click(); }})(document.querySelectorAll('[data-chapter]')[{i}].querySelector('.pager [rel=prev]'))")
+        expect("pager", i - 1, f"previous from chapter {i + 1}")
+    for eid, at in run(CHAPTER_IDS):
+        load("#" + eid)
+        expect("load", at, f"a load at #{eid}")
+    return tally, out
 
 
 def layout(r, error):
@@ -323,16 +387,30 @@ def main():
     failed |= bool(out)
     print("\n".join(f"korean {o} FAIL" for o in out) if out else "korean pass")
     k = runs[KOREAN, "motion"][0]
-    ok = k["linked"] == k["h2"] if k["h2"] >= CONTENTS else not k["nav"]
+    ok = k["linked"] == k["h2"] if k["h2"] >= CONTENTS or k["chapters"] else not k["nav"]
     failed |= not ok
     print(f"contents {k['h2']} h2 {k['linked']} linked" + (" nav" if k["nav"] else "") + (" pass" if ok else " FAIL"))
+    for link in k["broken"]:
+        failed = True
+        print(f"links {link} has no target FAIL")
+    paged = k["chapters"] > 0 or (k["h2"] and k["loose"])
+    swipes, chapters = browse(page, k["chapters"] > 1)
+    if paged:
+        tally, out = chapters or ({}, [])
+        if k["loose"]:
+            out.append(f"{k['loose']} h3 outside a chapter")
+        if k["chapters"] == 1:
+            out.append("one chapter")
+        failed |= bool(out)
+        print(f"chapters {k['chapters']} " + "".join(f"{c} {p}/{t} " for c, (p, t) in tally.items())
+              + ("FAIL: " + "; ".join(out) if out else "pass"))
     for mode in ("motion", "reduced"):
         for n, one in enumerate(runs[CHART, mode][0], 1):
             out = chart(one)
             failed |= bool(out)
             marks = sum(len(p["marks"]) for p in one["panels"])
             print(f"chart {mode} {n} {one['kind']} marks {marks} " + ("FAIL: " + "; ".join(out) if out else "pass"))
-    for i, (at, n) in enumerate(swipe(page), 1):
+    for i, (at, n) in enumerate(swipes, 1):
         failed |= at != n
         print(f"swipe {i} step {at}/{n} " + ("pass" if at == n else "FAIL"))
     print("FAIL" if failed else "pass")
