@@ -17,12 +17,11 @@ the content needs, copied whole, its spec comment followed then deleted, every
 
 ## Base skills
 
-Load `artifact-design` before writing the page, directly, not through the
-`Artifact` tool's `quickstart`, and `artifact-diagramming` before filling a
-`diagram`. This skill overrides both: the skin and widgets are the whole
-design, with no palette, typeface or chart library of the page's own; the
-page keeps `<html lang="ko">`; `check.py` runs until `pass`, not a single look;
-a widget's anatomy wins over their SVG mechanics.
+This skill overrides `artifact-design`, `artifact-diagramming` and the
+`Artifact` tool's `quickstart`: the skin and widgets are the whole design, with
+no palette, typeface or chart library of the page's own; the page keeps
+`<html lang="ko">`; `check.py` runs until `pass`, not a single look; a widget's
+anatomy wins over their SVG mechanics.
 
 ## Korean
 

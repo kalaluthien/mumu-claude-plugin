@@ -29,7 +29,9 @@ A widget exists only where this skill tuned, combined or made one; everything
 else is plain HTML the skin styles. The content picks the widget, one rule per
 row; a new row names a file in `references/` and its kind, and
 `scripts/skill-check.py` fails on any other. Data is drawn only by the `chart`
-widget, with no chart library.
+widget, with no chart library. On a page, `check.py` fails a skipped row: four
+files or more named by path in `<code>` with no `file-tree`, or a flow drawn in
+text with arrows (→, ▶) with no `use-case`.
 
 | when the content is | widget | in markdown |
 | --- | --- | --- |
