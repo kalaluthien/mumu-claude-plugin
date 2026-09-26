@@ -8,7 +8,7 @@ assumption>", and a procedure you had to work out keeps its steps as run.
 
 1. Search every project's auto-memory, `~/.claude/projects/*/memory/`, for
    the same lesson, and read what is there now. Pick the last row of the
-   routing table in `SKILL.md` it fits; when that row is this file, the last
+   routing table in retro's `SKILL.md` it fits; when that row is this file, the last
    row of the table below. A pool's key is its project's absolute path with
    every character but a letter or digit as `-`, so derive the key from the
    path, never back.
@@ -24,4 +24,4 @@ Tell the owner each lesson filed: what it says and where; with none, say nothing
 | the lesson | destination |
 | --- | --- |
 | holds for this project: a fact, a trap, the user's preference, a procedure that worked once | auto-memory, one fact per file as the harness's memory instructions give it |
-| another project's pool already holds it, or the user gave it for all work | `~/.claude/CLAUDE.md`: one instruction and one clause of reason, in the section naming the work |
+| holds for every project: another project's pool already holds it, or the user gave it for all work | `~/.claude/CLAUDE.md`: its sentence, one instruction and one clause of reason, in the section naming the work, never only a link, since an issue or file it names changes; then DELETE its copy in this project's pool |
