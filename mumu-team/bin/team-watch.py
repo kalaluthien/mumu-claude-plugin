@@ -6,9 +6,9 @@ usage: team-watch.py, run in the lead's checkout by the plugin's `monitors.json`
 Lines: `<word> <name>` when a worker's herdr state changes, `<word>` being
 `blocked`, `idle`, `working`, or `gone` once herdr no longer lists it; and
 `team idle <minutes>m` once no worker has been `working` for `TEAM_WATCH_IDLE`
-seconds (1200) while the checkout's repository has an open root goal, again at
-most once an hour while that holds. A worker is named `<topic>-<n>-<k>`, so its
-task is issue `<n>`. It never exits for lack of goals, and a poll whose `herdr`
+seconds (1200) while the checkout's repository has an open root goal or root
+task, again at most once an hour while that holds. A worker is named
+`<topic>-<n>-<k>`, so its task is issue `<n>`. It never exits for lack of goals, and a poll whose `herdr`
 or `gh` call fails is skipped; in a worker's session (`MUMU_ROLE=worker`) it
 exits at once. `MONITOR_POLL` is the poll interval in seconds (10), and
 `MONITOR_TICKS` stops it after that many polls, for a test (unset: never).
@@ -57,7 +57,7 @@ def main():
             last, lines = changes(last, team.workers(listed, checkout))
             now = time.time()
             state, due = idle(state, "working" in last.values(), now, after)
-            if due and team.root_goals(checkout):
+            if due and team.held(checkout):
                 state = (state[0], now)
                 lines.append(f"team idle {int((now - state[0]) // 60)}m")
             for line in lines:

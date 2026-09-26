@@ -31,12 +31,12 @@ The only place these terms are defined; every other file uses them as written he
 | term | meaning |
 | --- | --- |
 | project | a Claude project folder: the leader's cwd, a checkout of the GitHub repository named `<repo>` |
-| leader | the one session per project, or per plugin folder in a repository with `scope:` labels, named as `name` says: the owner talks to it, and it holds the project's goals and starts workers and other projects' leaders |
+| leader | the one session per project, or per plugin folder in a repository with `scope:` labels, named as `name` says: the owner talks to it, and it holds the project's root goals and root tasks and starts workers and other projects' leaders |
 | worker | a session on one task in its own worktree |
-| reviewer | the `reviewer` agent: it reviews a plan or a pull request it did not write, and alone writes `APPROVED:` |
-| goal | an issue labelled `kind:goal`: an outcome the owner wants, owned by its project's leader, split into goals or tasks at any depth; closed as completed when all it holds is done and its criteria pass |
-| root goal | a goal with no parent: the leader holds it; another project's work is a root goal in that project's repository |
-| task | an issue labelled `kind:task` and `effort:<effort>`: one change, one pull request, one worker, never split; owned by its worker, closed as completed by its merged pull request |
+| reviewer | the `reviewer` agent: it reviews a plan, a pull request or a report comment it did not write, and alone writes `APPROVED:` |
+| goal | an issue labelled `kind:goal`: an outcome the owner wants, filed only when it holds two or more tasks, owned by its project's leader, split into goals or tasks at any depth, related or not; its criteria state outcomes, never that a task below merged, and "the owner says it is done" is one; closed as completed when all it holds is done and its criteria pass |
+| root goal, root task | a goal or task with no parent: the leader holds it; another project's work is a root goal or root task in that project's repository; a chore is a root task, `effort:low` |
+| task | an issue labelled `kind:task` and `effort:<effort>`, under a goal or a root task itself: one change, one worker, never split, owned by its worker; it ends in one pull request, closed as completed by its merge, or, when its `## Definition of done` names a report comment, in that comment on the task, closed as completed by its worker at the report's `APPROVED:` |
 | backlog | an issue labelled `kind:backlog`: the owner's words kept for later, owned by no one and never worked; its body is the first words as said, and later words go on it as comments; relabelled `kind:goal` or `kind:task`, its body is replaced by the contract and it starts |
 | kind | exactly one of the labels `kind:goal`, `kind:task`, `kind:backlog`; `effort:*` means effort only. A closed issue of the same kind as new work is reopened, never filed again |
 | body | an issue's current contract, only `## Goal` and `## Definition of done`, edited in place |
@@ -47,7 +47,7 @@ The only place these terms are defined; every other file uses them as written he
 | checkout | the leader's own local clone of its project's repository |
 | claim | the branch on the remote; it exists, so the attempt is taken |
 | order | a task or goal waits on another by GitHub's blocked-by, and starts once each blocker is closed |
-| approval | a comment whose first line is `APPROVED: <sha>`, valid while the head is that sha |
+| approval | a comment whose first line is `APPROVED: <sha>`, valid while the head is that sha, or `APPROVED: <comment-url>` for a report |
 | criterion | one `## Definition of done` line, `check → pass condition`: a check that can fail, and that the honest empty outcome can pass |
 | stop | an issue closed as not planned, its pull request left draft |
 
@@ -57,10 +57,10 @@ GitHub is the only state; a session's memory is a cache. A record is a comment o
 | --- | --- | --- |
 | `BLOCKED` | worker | `BLOCKED: <question>`, a decision that is not the worker's, or `BLOCKED: stuck on <criterion>`, 3 iterations passed no new criterion |
 | `DECIDED` | leader | `DECIDED: <answer>` through `decide.py`, which also edits the body's criteria when they change |
-| `APPROVED` | reviewer | the plan, or the pull request at `<sha>`, may go on |
+| `APPROVED` | reviewer | the plan, the pull request at `<sha>`, or the report at `<comment-url>`, may go on |
 | `FINDINGS` | reviewer | one line per defect: where, the defect, the fix |
 
-The criteria table in the pull request body is a worker's progress: one row per criterion and its last result.
+The criteria table in the pull request body, or in a report comment, is a worker's progress: one row per criterion and its last result.
 
 Sessions talk through two channels, never mixed:
 

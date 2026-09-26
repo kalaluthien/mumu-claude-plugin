@@ -13,8 +13,9 @@ import unittest
 BIN = pathlib.Path(__file__).resolve().parent.parent / "bin"
 
 # One fake for both tools: poll i reads `<tool>.<i>` (else the highest one below it); a file holding `FAIL` exits 1.
+# gh answers only the issues whose kind its arguments name, as `kind:<kind>`.
 FAKE = r'''#!/usr/bin/env python3
-import os, pathlib, sys
+import json, os, pathlib, re, sys
 d, tool = pathlib.Path(os.environ["FAKE"]), pathlib.Path(sys.argv[0]).name
 count = d / f"{tool}.count"
 i = int(count.read_text()) if count.exists() else 0
@@ -23,6 +24,10 @@ answer = max((p for p in d.glob(f"{tool}.[0-9]*") if int(p.suffix[1:]) <= i), ke
 text = answer.read_text() if answer else "[]"
 if text.strip() == "FAIL":
     sys.exit(1)
+if tool == "gh":
+    a = sys.argv[1:]
+    kinds = set(re.findall(r"kind:(\w+)", " ".join(a)))
+    text = json.dumps([{"url": i["url"]} for i in json.loads(text) if i["kind"] in kinds])
 print(text)
 '''
 
@@ -43,8 +48,9 @@ class TeamWatch(unittest.TestCase):
             for n, s, mine in agents]}})
         (self.tmp / f"herdr.{poll}").write_text(text)
 
-    def goals(self, poll, *urls):
-        (self.tmp / f"gh.{poll}").write_text("FAIL" if urls == ("FAIL",) else json.dumps([{"url": u} for u in urls]))
+    def goals(self, poll, *urls, kind="goal"):
+        """The open parentless issues from poll `poll` on, each of `kind`, or `FAIL`."""
+        (self.tmp / f"gh.{poll}").write_text("FAIL" if urls == ("FAIL",) else json.dumps([{"url": u, "kind": kind} for u in urls]))
 
     def run_watch(self, ticks, idle="1000", role=None):
         env = dict(os.environ, FAKE=str(self.tmp), PATH=f"{self.tmp}:{os.environ['PATH']}",
@@ -89,6 +95,13 @@ class TeamWatch(unittest.TestCase):
         lines = self.run_watch(ticks=20, idle="0.05")
         self.assertEqual(lines[0], "idle fix-a-12-1")
         self.assertEqual(lines[1:], ["team idle 0m"])
+
+    def test_a_root_task_alone_prints_the_idle_line(self):
+        self.herdr(0, ("fix-a-12-1", "idle", True))
+        self.goals(0, "https://github.com/o/r/issues/8", kind="task")
+        self.assertEqual(self.run_watch(ticks=20, idle="0.05")[1:], ["team idle 0m"])
+        self.goals(0, "https://github.com/o/r/issues/9", kind="backlog")
+        self.assertEqual(self.run_watch(ticks=20, idle="0.05")[1:], [])
 
     def test_a_working_worker_prints_no_idle_line(self):
         self.herdr(0, ("fix-a-12-1", "working", True))

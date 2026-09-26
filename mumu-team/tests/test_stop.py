@@ -1,4 +1,4 @@
-"""The `Stop` hook of `hooks/hooks.json`, run as Claude Code runs it, against a fake gh that plays the task, its pull requests and the root goals, and a fake ps.
+"""The `Stop` hook of `hooks/hooks.json`, run as Claude Code runs it, against a fake gh that plays the open parentless issues, and a fake ps.
 
 Run: python3 -m unittest discover mumu-team/tests
 """
@@ -11,25 +11,21 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
+# `issue list` answers the issues of `held.json` whose kind its arguments name, as `kind:<kind>`.
 FAKE_GH = r'''#!/usr/bin/env python3
-import json, os, pathlib, sys
+import json, os, pathlib, re, sys
 d = pathlib.Path(os.environ["FAKE"])
 with open(d / "calls", "a") as f:
     f.write(json.dumps(sys.argv[1:]) + "\n")
 a = sys.argv[1:]
-name = {("issue", "list"): "goals.json", ("issue", "view"): "issue.json", ("pr", "list"): "prs.json"}[tuple(a[:2])]
-f = d / name
-print(f.read_text() if f.exists() else "[]")
+f = d / "held.json"
+kinds = set(re.findall(r"kind:(\w+)", " ".join(a)))
+print(json.dumps([{"url": i["url"]} for i in json.loads(f.read_text() if f.exists() else "[]") if i["kind"] in kinds]))
 '''
 
 CLAUDE = 100
-OPEN_PR = {"url": "https://github.com/o/r/pull/5", "headRefName": "stop-guard-19-2", "headRefOid": "abc123",
-           "comments": [], "reviews": []}
 GOAL = "https://github.com/o/r/issues/7"
-
-
-def note(body, at):
-    return {"body": body, "createdAt": at}
+TASK = "https://github.com/o/r/issues/8"
 
 
 class Hook(unittest.TestCase):
@@ -40,10 +36,9 @@ class Hook(unittest.TestCase):
         self.tree = self.tmp / "repo" / ".claude" / "worktrees" / "stop-guard-19-2"
         self.tree.mkdir(parents=True)
 
-    def stop(self, agent_type="mumu-team:worker", state="OPEN", comments=(), cwd=None, prs=(), goals=(), watch=None):
-        (self.tmp / "issue.json").write_text(json.dumps({"state": state, "comments": [{"body": b} for b in comments]}))
-        (self.tmp / "prs.json").write_text(json.dumps(list(prs)))
-        (self.tmp / "goals.json").write_text(json.dumps([{"url": u} for u in goals]))
+    def stop(self, agent_type="mumu-team:worker", cwd=None, goals=(), tasks=(), watch=None):
+        (self.tmp / "held.json").write_text(json.dumps([{"url": u, "kind": "goal"} for u in goals]
+                                                       + [{"url": u, "kind": "task"} for u in tasks]))
         table = [(1, 0, "launchd"), (CLAUDE, 1, "claude"), (200, 1, "claude --name other")]
         if watch is not None:
             table += [(300, watch, "/bin/zsh -c '\"/p/bin\"/team-watch.py'"), (301, 300, "python3 /p/bin/team-watch.py")]
@@ -69,73 +64,19 @@ class Hook(unittest.TestCase):
         return "".join(json.loads(o.stdout)["reason"] for o in outs if o.stdout.strip())
 
 
-class WorkerStop(Hook):
-    def test_open_task_whose_last_keyword_is_blocked_stops(self):
-        for comments in (["a plan", "BLOCKED: which name?"], ["  BLOCKED: stuck on x"], ["blocked which name?"],
-                         ["BLOCKED: which name?", "a plain reference to #12"]):
-            with self.subTest(comments=comments):
-                outs, calls = self.stop(comments=comments, prs=[OPEN_PR])
-                self.assertFalse(self.refused(outs), outs)
-                self.assertTrue(outs and all(o.returncode == 0 for o in outs), outs)
-                self.assertEqual(json.loads(calls[0])[:3], ["issue", "view", "19"])
+class OtherStop(Hook):
+    def test_worker_with_an_open_task_and_no_pull_request_stops_and_reads_nothing(self):
+        outs, calls = self.stop(goals=[GOAL], tasks=[TASK])
+        self.assertFalse(self.refused(outs), outs)
+        self.assertTrue(outs and all(o.returncode == 0 for o in outs), outs)
+        self.assertEqual(calls, [])
 
-    def test_open_task_otherwise_is_refused(self):
-        for comments in ((), ["a plan", "not BLOCKED: here"], ["BLOCKED: which name?", "DECIDED: stop-guard"],
-                         ["Progress: I was blocked: by a flaky fixture"], ["Blockedness is low"],
-                         ["Waiting: #120 to merge"], ["Stopped: dropped"]):
-            with self.subTest(comments=comments):
-                self.assertTrue(self.refused(self.stop(comments=comments, prs=[OPEN_PR])[0]))
-
-    def test_closed_task_stops(self):
-        for comments in ((), ["DECIDED: dropped"]):
-            self.assertFalse(self.refused(self.stop(state="CLOSED", comments=comments)[0]))
-
-    def test_reopened_task_with_a_merged_old_attempt_is_refused(self):
-        """Issue 19 reopened: `stop-guard-19-1` merged long ago; the worker on `-19-2` still has work while it is open."""
-        self.tree.rename(self.tree.with_name("stop-guard-19-1"))
-        tree = self.tmp / "repo" / ".claude" / "worktrees" / "stop-guard-19-2"
-        tree.mkdir()
-        outs, calls = self.stop(cwd=tree, prs=[])
-        self.assertTrue(self.refused(outs))
-        self.assertIn(["pr", "list", "--head", "stop-guard-19-2"], [json.loads(c)[:4] for c in calls])
-
-    def test_session_without_worker_or_lead_agent_stops_and_reads_nothing(self):
+    def test_session_without_lead_agent_stops_and_reads_nothing(self):
         for agent_type in (None, "mumu-team:reviewer", "general-purpose"):
             with self.subTest(agent_type=agent_type):
-                outs, calls = self.stop(agent_type=agent_type)
+                outs, calls = self.stop(agent_type=agent_type, goals=[GOAL])
                 self.assertFalse(self.refused(outs), outs)
                 self.assertEqual(calls, [])
-
-    def test_worker_outside_a_task_worktree_stops(self):
-        for cwd in (self.tmp, self.tmp / "repo" / ".claude" / "worktrees" / "stop-guard-19"):
-            cwd.mkdir(exist_ok=True)
-            outs, calls = self.stop(cwd=cwd)
-            self.assertFalse(self.refused(outs), outs)
-            self.assertEqual(calls, [])
-
-    def test_worker_without_a_pull_request_is_told_to_open_one(self):
-        outs, _ = self.stop(comments=["a plan"])
-        self.assertIn("open it with `pr`", self.reason(outs))
-        self.assertNotIn("open it with `pr`", self.reason(self.stop(comments=["a plan"], prs=[OPEN_PR])[0]))
-
-    def test_worker_with_an_approved_unmerged_head_is_told_to_run_merge_py(self):
-        pr = dict(OPEN_PR, comments=[note("APPROVED: abc123", "2026-09-24T01:00:00Z")])
-        self.assertIn("merge.py https://github.com/o/r/pull/5", self.reason(self.stop(prs=[pr])[0]))
-        self.assertIn("`BLOCKED: owner review of <pr-url>`", self.reason(self.stop(prs=[pr])[0]))
-        stale = dict(OPEN_PR, comments=[note("APPROVED: 0ld5ha", "2026-09-24T01:00:00Z")])
-        self.assertNotIn("merge.py", self.reason(self.stop(prs=[stale])[0]))
-
-    def test_worker_whose_newest_review_record_is_findings_is_told_to_fix_and_resume(self):
-        pr = dict(OPEN_PR, comments=[note("APPROVED: 0ld5ha", "2026-09-24T01:00:00Z"), note("a note", "2026-09-24T03:00:00Z")],
-                  reviews=[{"body": "FINDINGS:\n- x", "submittedAt": "2026-09-24T02:00:00Z"}])
-        outs, _ = self.stop(prs=[pr])
-        self.assertIn("`FINDINGS:`", self.reason(outs))
-        self.assertIn("see https://github.com/o/r/pull/5", self.reason(outs))
-        answered = dict(pr, comments=pr["comments"] + [note("APPROVED: 0ld5ha", "2026-09-24T04:00:00Z")])
-        self.assertNotIn("FINDINGS", self.reason(self.stop(prs=[answered])[0]))
-
-    def test_open_pull_request_awaiting_a_verdict_names_the_bounded_wait(self):
-        self.assertIn("bounded foreground", self.reason(self.stop(prs=[OPEN_PR])[0]))
 
 
 class LeadStop(Hook):
@@ -149,10 +90,16 @@ class LeadStop(Hook):
                 self.assertTrue(self.refused(outs))
                 self.assertIn("team-watch.py", self.reason(outs))
                 self.assertIn(GOAL, self.reason(outs))
-                self.assertIn("no:parent-issue", json.loads(calls[0]))
+                self.assertIn("no:parent-issue", " ".join(json.loads(calls[0])))
+
+    def test_open_root_task_alone_without_team_watch_is_refused(self):
+        outs, _ = self.lead(tasks=[TASK])
+        self.assertTrue(self.refused(outs))
+        self.assertIn(TASK, self.reason(outs))
+        self.assertFalse(self.refused(self.lead(tasks=[TASK], watch=CLAUDE)[0]))
 
     def test_lead_stops_otherwise(self):
-        for kwargs in ({"goals": [GOAL], "watch": CLAUDE}, {"goals": []}, {"goals": [], "watch": CLAUDE}):
+        for kwargs in ({"goals": [GOAL], "watch": CLAUDE}, {}, {"watch": CLAUDE}):
             with self.subTest(**kwargs):
                 outs, _ = self.lead(**kwargs)
                 self.assertFalse(self.refused(outs), outs)
