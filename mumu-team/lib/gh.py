@@ -25,8 +25,8 @@ def repo(field, cwd=None):
 
 
 def held(cwd, folder=None):
-    """The urls of the open root tasks of `cwd`'s repository, only `scope:<folder>`'s when given, or None when `gh` cannot read them."""
-    search = "no:parent-issue label:kind:task" + (f" label:scope:{folder}" if folder else "")
+    """The urls of the open root tasks, every parentless issue but a backlog, of `cwd`'s repository, only `scope:<folder>`'s when given, or None when `gh` cannot read them."""
+    search = "no:parent-issue -label:backlog" + (f" label:scope:{folder}" if folder else "")
     try:
         return [i["url"] for i in json.loads(gh("issue", "list", "--state", "open", "--search", search, "--json", "url", cwd=cwd))]
     except (RuntimeError, ValueError, KeyError, TypeError):

@@ -280,7 +280,7 @@ class Reread(unittest.TestCase):
 
 
 
-# `issue list` answers the issues of `held.json` whose kind its arguments name, as `kind:<kind>`, and scope, as `scope:<folder>`, when named.
+# `issue list` answers the issues of `held.json` whose labels match its search: each `label:<l>` present, each `-label:<l>` absent.
 STOP_GH = r'''#!/usr/bin/env python3
 import json, os, pathlib, re, sys
 d = pathlib.Path(os.environ["FAKE"])
@@ -288,14 +288,14 @@ with open(d / "calls", "a") as f:
     f.write(json.dumps(sys.argv[1:]) + "\n")
 a = sys.argv[1:]
 f = d / "held.json"
-kinds = set(re.findall(r"kind:(\w+)", " ".join(a)))
-scope = re.search(r"scope:([\w-]+)", " ".join(a))
+s = " ".join(a)
+want, bar = re.findall(r"(?<!-)label:([\w:-]+)", s), re.findall(r"-label:([\w:-]+)", s)
 print(json.dumps([{"url": i["url"]} for i in json.loads(f.read_text() if f.exists() else "[]")
-                  if i["kind"] in kinds and (not scope or i.get("scope") == scope[1])]))
+                  if all(l in i["labels"] for l in want) and not any(l in i["labels"] for l in bar)]))
 '''
 
 CLAUDE = 100
-HELD_GOAL = "https://github.com/o/r/issues/7"
+BACKLOG = "https://github.com/o/r/issues/7"
 HELD_TASK = "https://github.com/o/r/issues/8"
 OTHER_TASK = "https://github.com/o/r/issues/9"
 
@@ -308,10 +308,10 @@ class Hook(unittest.TestCase):
         self.tree = self.tmp / "repo" / ".claude" / "worktrees" / "stop-guard-19-2"
         self.tree.mkdir(parents=True)
 
-    def stop(self, agent_type="mumu-team:worker", cwd=None, goals=(), tasks=(), watch=None, name="r-lead", scoped=()):
-        (self.tmp / "held.json").write_text(json.dumps([{"url": u, "kind": "goal"} for u in goals]
-                                                       + [{"url": u, "kind": "task"} for u in tasks]
-                                                       + [{"url": u, "kind": "task", "scope": f} for u, f in scoped]))
+    def stop(self, agent_type="mumu-team:worker", cwd=None, backlog=(), tasks=(), watch=None, name="r-lead", scoped=()):
+        (self.tmp / "held.json").write_text(json.dumps([{"url": u, "labels": ["backlog"]} for u in backlog]
+                                                       + [{"url": u, "labels": ["effort:low"]} for u in tasks]
+                                                       + [{"url": u, "labels": ["effort:low", f"scope:{f}"]} for u, f in scoped]))
         (self.tmp / "herdr").write_text(f"#!/bin/sh\necho '{json.dumps({'result': {'agents': [{'name': name, 'pane_id': 'w1:p1'}]}})}'\n")
         (self.tmp / "herdr").chmod(0o755)
         table = [(1, 0, "launchd"), (CLAUDE, 1, "claude"), (200, 1, "claude --name other")]
@@ -369,10 +369,11 @@ class LeadStop(Hook):
                 self.assertIn("no:parent-issue", " ".join(json.loads(calls[0])))
         self.assertFalse(self.refused(self.lead(tasks=[HELD_TASK], watch=CLAUDE)[0]))
 
-    def test_open_goal_is_not_held(self):
-        outs, calls = self.lead(goals=[HELD_GOAL])
+    def test_open_backlog_is_not_held_and_no_kind_label_is_searched(self):
+        outs, calls = self.lead(backlog=[BACKLOG])
         self.assertFalse(self.refused(outs), outs)
-        self.assertNotIn("kind:goal", " ".join(json.loads(calls[0])))
+        self.assertIn("-label:backlog", " ".join(json.loads(calls[0])))
+        self.assertNotIn("kind:", " ".join(json.loads(calls[0])))
 
     def test_folder_lead_counts_only_its_scope_and_repo_lead_counts_all(self):
         (self.tmp / "repo" / "docs").mkdir()
@@ -394,7 +395,7 @@ class LeadStop(Hook):
 SCRIPTS = pathlib.Path(__file__).resolve().parent.parent / "scripts"
 
 # One fake for both tools: poll i reads `<tool>.<i>` (else the highest one below it); a file holding `FAIL` exits 1.
-# gh answers only the issues whose kind its arguments name, as `kind:<kind>`.
+# gh answers only the issues whose labels match its search: each `label:<l>` present, each `-label:<l>` absent.
 WATCH_FAKE = r'''#!/usr/bin/env python3
 import json, os, pathlib, re, sys
 d, tool = pathlib.Path(os.environ["WATCH_FAKE"]), pathlib.Path(sys.argv[0]).name
@@ -407,8 +408,10 @@ if text.strip() == "FAIL":
     sys.exit(1)
 if tool == "gh":
     a = sys.argv[1:]
-    kinds = set(re.findall(r"kind:(\w+)", " ".join(a)))
-    text = json.dumps([{"url": i["url"]} for i in json.loads(text) if i["kind"] in kinds])
+    s = " ".join(a)
+    want, bar = re.findall(r"(?<!-)label:([\w:-]+)", s), re.findall(r"-label:([\w:-]+)", s)
+    text = json.dumps([{"url": i["url"]} for i in json.loads(text)
+                       if all(l in i["labels"] for l in want) and not any(l in i["labels"] for l in bar)])
 print(text)
 '''
 
@@ -429,9 +432,9 @@ class TeamWatch(unittest.TestCase):
             for n, s, mine in agents]}})
         (self.tmp / f"herdr.{poll}").write_text(text)
 
-    def held(self, poll, *urls, kind="task"):
-        """The open parentless issues from poll `poll` on, each of `kind`, or `FAIL`."""
-        (self.tmp / f"gh.{poll}").write_text("FAIL" if urls == ("FAIL",) else json.dumps([{"url": u, "kind": kind} for u in urls]))
+    def held(self, poll, *urls, labels=("effort:low",)):
+        """The open parentless issues from poll `poll` on, each with `labels`, or `FAIL`."""
+        (self.tmp / f"gh.{poll}").write_text("FAIL" if urls == ("FAIL",) else json.dumps([{"url": u, "labels": list(labels)} for u in urls]))
 
     def run_watch(self, ticks, idle="1000", role=None):
         env = dict(os.environ, WATCH_FAKE=str(self.tmp), PATH=f"{self.tmp}:{os.environ['PATH']}",
@@ -477,12 +480,10 @@ class TeamWatch(unittest.TestCase):
         self.assertEqual(lines[0], "idle fix-a-12-1")
         self.assertEqual(lines[1:], ["team idle 0m"])
 
-    def test_a_goal_or_backlog_alone_prints_no_idle_line(self):
+    def test_a_backlog_alone_prints_no_idle_line(self):
         self.herdr(0, ("fix-a-12-1", "idle", True))
-        for kind in ("goal", "backlog"):
-            with self.subTest(kind=kind):
-                self.held(0, "https://github.com/o/r/issues/9", kind=kind)
-                self.assertEqual(self.run_watch(ticks=20, idle="0.05")[1:], [])
+        self.held(0, "https://github.com/o/r/issues/9", labels=("backlog",))
+        self.assertEqual(self.run_watch(ticks=20, idle="0.05")[1:], [])
 
     def test_a_working_worker_prints_no_idle_line(self):
         self.herdr(0, ("fix-a-12-1", "working", True))

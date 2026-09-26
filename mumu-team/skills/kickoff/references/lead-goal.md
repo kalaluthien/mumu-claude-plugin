@@ -23,7 +23,7 @@ Continue a lead's work from GitHub, in a session resumed or in a fresh one of th
 
 Resume, and a successor once named:
 
-1. Find the root tasks you hold with `gh issue list --state open --search "no:parent-issue label:kind:task" --json number,title,url`, with `--label scope:<folder>` added for a `<folder>-lead`, run in your checkout.
+1. Find the root tasks you hold with `gh issue list --state open --search "no:parent-issue -label:backlog" --json number,title,url`, with `--label scope:<folder>` added for a `<folder>-lead`, run in your checkout.
 2. `read` each and its pull request; `prompt` each worker in `live` whose worktree lies in your checkout `see <its task-url>`.
 3. Continue at Lead 4, acting on each open task as if its notice had arrived.
 
@@ -37,7 +37,7 @@ Route every request, the owner's included, before taking it:
 
 | the work is for | you |
 | --- | --- |
-| backlog: the owner's words kept for later, for any project | file them as said, labelled `kind:backlog`, in that project's repository, with the `scope:<folder>` routing picks where it has such labels; no parent, no format, no worker |
+| backlog: the owner's words kept for later, for any project | file them as said, labelled `backlog`, in that project's repository, with the `scope:<folder>` routing picks where it has such labels; no parent, no format, no worker |
 | this project, your cwd's checkout | take it as a root task, led from Lead 2. With `scope:` labels, it is yours only for your folder: by the plugin its words name, else the folder it touches, else the owner's to pick; another folder's goes to its lead as `handoff` step 3 says |
 | another project | follow `${CLAUDE_PLUGIN_ROOT}/skills/handoff/SKILL.md`, read with `Read`, then `order` the work here that needs it after its root task |
 | every project: a shared rule or tool changing | `broadcast` its issue url |
