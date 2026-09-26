@@ -6,6 +6,7 @@ import importlib.machinery
 import json
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -97,6 +98,11 @@ d, a = pathlib.Path(__file__).parent, sys.argv[1:]
 pr = json.loads((d / "pr.json").read_text())
 if a[:2] == ["pr", "view"]:
     print(json.dumps(pr))
+elif a[0] == "api":
+    (d / "compared").write_text(a[1])
+    print(pr.get("behind", 0))
+elif a[:2] == ["issue", "view"]:
+    print(json.dumps({"body": pr.get("issues", {}).get(a[2], "## Goal\nx\n")}))
 elif a[:2] == ["pr", "merge"]:
     (d / "merged").write_text(json.dumps(a))
     head = (d / "head").read_text() if (d / "head").exists() else pr["headRefOid"]
@@ -105,10 +111,16 @@ elif a[:2] == ["pr", "merge"]:
 '''
 
 
-def merge(comments, moved_to=None, reviews=(), url=PR_URL):
-    """Run merge.py on a PR at HEAD holding `comments`; `moved_to` moves the head once it is read. Return (result, merge words or None)."""
+SHARED = "## Goal\nx\n\n## Shares\n| share | DoD | after |\n| --- | --- | --- |\n| a | D1 | |\n"
+
+
+def merge(comments, moved_to=None, reviews=(), url=PR_URL, title="t", body="", commits=(), issues=None, behind=0):
+    """Run merge.py on a PR at HEAD holding `comments`; `moved_to` moves the head once it is read, `issues` maps an issue url to
+    its body, `behind` counts the base's commits the head lacks. Return (result, merge words or None)."""
     tmp = pathlib.Path(tempfile.mkdtemp())
-    pr = {"headRefOid": HEAD, "comments": [{"body": b} for b in comments], "reviews": [{"body": b} for b in reviews]}
+    pr = {"headRefOid": HEAD, "comments": [{"body": b} for b in comments], "reviews": [{"body": b} for b in reviews],
+          "title": title, "body": body, "commits": [{"messageHeadline": h, "messageBody": b} for h, b in commits],
+          "baseRefName": "main", "issues": issues or {}, "behind": behind}
     (tmp / "pr.json").write_text(json.dumps(pr))
     if moved_to:
         (tmp / "head").write_text(moved_to)
@@ -157,6 +169,40 @@ class Merge(unittest.TestCase):
                 result, words = merge([f"APPROVED: {HEAD}"], url=arg)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIsNone(words)
+
+    def test_a_closing_keyword_on_a_task_with_shares_is_refused_wherever_it_is(self):
+        """`## Shares` on the task named by `Part of` or by the keyword itself refuses any closing keyword, in any of the three places."""
+        task, other = "https://github.com/o/r/issues/5", "https://github.com/o/r/issues/6"
+        cases = {"title": dict(title="a: fix it, closes #6", body="Part of #5"),
+                 "body": dict(body=f"Part of {task}\n\nFixes: #6"),
+                 "commit": dict(body="Part of #5", commits=[("a: step", "resolved o/r#6")]),
+                 "the task itself": dict(body="Closes #5")}
+        for where, pr in cases.items():
+            with self.subTest(where=where):
+                result, words = merge([f"APPROVED: {HEAD}"], issues={task: SHARED, other: "## Goal\nx\n"}, **pr)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIsNone(words)
+                self.assertIn(task, result.stderr)
+
+    def test_a_task_with_shares_merges_as_part_of_it(self):
+        result, words = merge([f"APPROVED: {HEAD}"], title="a: add x", body="Part of #5", commits=[("a: add x", "")],
+                              issues={"https://github.com/o/r/issues/5": SHARED})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIsNotNone(words)
+
+    def test_a_task_without_shares_still_merges_with_closes(self):
+        result, words = merge([f"APPROVED: {HEAD}"], body="Closes #5", commits=[("fix #5", "closes #5")],
+                              issues={"https://github.com/o/r/issues/5": "## Goal\nx\n\n## Definition of done\n- a → b\n"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIsNotNone(words)
+
+    def test_a_head_behind_its_base_is_refused_before_any_merge(self):
+        _, words = merge([f"APPROVED: {HEAD}"], behind=0)
+        self.assertIsNotNone(words)
+        result, words = merge([f"APPROVED: {HEAD}"], behind=2)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIsNone(words)
+        self.assertIn("merge it in", result.stderr)
 
 
 
@@ -300,7 +346,8 @@ with open(d / "calls", "a") as f:
     f.write(json.dumps([tool] + a) + "\n")
 blocked = (d / "trust").exists() and not (d / "answered").exists()
 if tool == "gh":
-    print((d / "prs").read_text() if a[:2] == ["pr", "list"] and (d / "prs").exists() else "" if a[:2] == ["pr", "list"] else "main")
+    prs = d / ("open_prs" if "open" in a else "prs")
+    print((prs.read_text() if prs.exists() else "") if a[:2] == ["pr", "list"] else "main")
 elif tool == "git":
     if a[2:4] == ["worktree", "add"]:
         pathlib.Path(a[5]).mkdir(parents=True)
@@ -312,6 +359,9 @@ elif tool == "git":
         print(d / a[-1].split("/")[-1])
 elif a[:2] == ["tab", "create"]:
     print(json.dumps({"result": {"root_pane": {"pane_id": "%s"}}}))
+elif a[:2] == ["tab", "list"]:
+    labels = (d / "tabs").read_text().split() if (d / "tabs").exists() else []
+    print(json.dumps({"result": {"tabs": [{"label": l, "tab_id": "w1:t" + str(i)} for i, l in enumerate(labels)]}}))
 elif a[:2] == ["agent", "start"]:
     (d / "name").write_text(a[2])
     busy = d / "busy"
@@ -446,6 +496,34 @@ class WorkerStart(unittest.TestCase):
         (self.repo / ".claude" / "worktrees" / "start-7-1").mkdir(parents=True)
         done, _ = self.start(trust=False)
         self.assertTrue(done.stdout.startswith("start-7-2@"), done.stdout + done.stderr)
+
+    def test_new_attempt_refused_while_one_has_an_open_pr_or_a_live_tab(self):
+        """`start-7-1` open as a pull request or a tab blocks `start-7-2`; other topics, tasks and closed pull requests do not."""
+        for held, other in ((("open_prs", "start-7-1\n"), ("tabs", "other-7-1 start-8-1\n")),
+                            (("tabs", "start-7-1\n"), ("open_prs", "other-7-3\nstart-17-1\n"))):
+            with self.subTest(held=held):
+                for f in ("open_prs", "tabs", "calls"):
+                    (self.tmp / f).unlink(missing_ok=True)
+                shutil.rmtree(self.repo / ".claude", ignore_errors=True)
+                (self.tmp / other[0]).write_text(other[1])
+                (self.tmp / "prs").write_text("start-7-1\n")
+                done, calls = self.start(trust=False)
+                self.assertEqual(done.returncode, 0, done.stderr)
+                self.assertTrue(done.stdout.startswith("start-7-2@"), done.stdout)
+                (self.tmp / held[0]).write_text(held[1])
+                (self.tmp / "calls").unlink()
+                done, calls = self.start(trust=False)
+                self.assertEqual(done.returncode, 1)
+                self.assertIn("start-7-1", done.stderr)
+                self.assertFalse([c for c in calls if c[1:3] == ["tab", "create"] or c[0] == "git" and "worktree" in c])
+
+    def test_continue_is_exempt_from_the_open_attempt_refusal(self):
+        (self.repo / ".claude" / "worktrees" / "start-7-1").mkdir(parents=True)
+        (self.tmp / "open_prs").write_text("start-7-1\n")
+        (self.tmp / "tabs").write_text("start-7-1\n")
+        done, _ = self.start("--continue", trust=False)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertTrue(done.stdout.startswith("start-7-1@"), done.stdout)
 
     def test_continue_without_a_worktree_fails_before_the_tab(self):
         done, calls = self.start("--continue", trust=False)

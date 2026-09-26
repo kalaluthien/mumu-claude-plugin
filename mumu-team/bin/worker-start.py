@@ -23,6 +23,13 @@ def attempts(repo, n, topic=None, remote=True):
     return [k for h in found if (k := names.attempt(h, topic, n)) is not None]
 
 
+def busy(repo, n, topic):
+    """The names of `topic`'s attempts on task `n` that have an open pull request or a live tab."""
+    heads = gh("pr", "list", "--state", "open", "--limit", "1000", "--json", "headRefName", "-q", ".[].headRefName", cwd=repo).split()
+    labels = [t.get("label") for t in herdr.listed("tab")]
+    return sorted({h for h in heads + labels if names.attempt(h, topic, n) is not None})
+
+
 def worktree(repo, name):
     """The worktree for `name`, added at the default branch unless it exists, with the guard in the checkout's hooks."""
     tree = names.worktrees(repo) / name
@@ -64,6 +71,8 @@ def main(argv):
     try:
         repo = str(names.checkout(a.checkout))
         run("git", "-C", repo, "fetch", "origin")
+        if not resume and (held := busy(repo, number[1], topic)):
+            raise RuntimeError(f"{', '.join(held)} has an open pull request or a live tab: finish or `stop` it before a new attempt, or pass --continue to resume it")
         k = max(attempts(repo, number[1], topic, False), default=None) if resume else 1 + max(attempts(repo, number[1]), default=0)
         if k is None:
             raise RuntimeError(f"--continue: no worktree {topic}-{number[1]}-<k> in {names.worktrees(repo)}")
