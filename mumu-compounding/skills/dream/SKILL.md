@@ -1,6 +1,6 @@
 ---
 name: dream
-description: Checks every auto-memory pool for broken index links, unindexed files, duplicate names and one lesson kept in several pools, then fixes only the ones the owner picks.
+description: Checks every auto-memory pool for broken index links, unindexed files, duplicate names, one lesson kept in several pools and lessons a skill, agent or hook should hold, then fixes only the ones the owner picks, round by round.
 disable-model-invocation: true
 ---
 
@@ -32,15 +32,29 @@ file for every project.
    SH
    ```
 
-2. Read every pool's files, and find one lesson kept in two or more pools
-   under any name: it holds for every project, so lesson.md's last row
-   applies.
-3. Nothing found: say so, and write nothing.
-4. Otherwise put the fixes to the owner as one `AskUserQuestion`
-   question, `multiSelect: true`, one option per fix: the top 4 by impact,
-   each option's label the action (ADD, EDIT or DELETE) and file, its
-   description the reason; a file and its `MEMORY.md` line are one fix. The
-   options chosen are approved and the rest rejected; more than 4 fixes, name
-   the rest in one line after the answer, left for the next `/dream`.
+2. Read every pool's files, and route each entry through the table in
+   [retro's SKILL.md](${CLAUDE_PLUGIN_ROOT}/skills/retro/SKILL.md), which
+   gives these fixes:
+   - one lesson kept in two or more pools under any name: it holds for every
+     project, so lesson.md's last row applies;
+   - a lesson a skill, a references file, an agent or a hook should hold:
+     FILE a `kind:task` issue in the repository whose checkout holds that
+     file (`git -C <its folder> remote get-url origin`), with its
+     `scope:<folder>` label where the repository has such labels, its body a
+     `## Goal` naming the file and the lesson and a `## Definition of done`
+     whose check finds the lesson in that file; the pool entry stays until
+     the repository states it;
+   - an entry the repository already states: DELETE it.
+3. No fix found that was not rejected in this call: say so, with the
+   fixes applied in earlier rounds, and stop; in the first round, write
+   nothing.
+4. Otherwise put the fixes not yet rejected in this call to the owner as
+   one `AskUserQuestion` question, `multiSelect: true`, one option per fix:
+   the top 4 by impact, each option's label the action (ADD, EDIT, DELETE
+   or FILE) and file, its description the reason; a file and its
+   `MEMORY.md` line are one fix. The options chosen are approved and the
+   rest rejected.
 5. Apply only the approved fixes; a file only rejected fixes name is never
-   touched. Report each fix applied or skipped.
+   touched, and no issue is filed that was not chosen. Report each fix
+   applied or skipped.
+6. Go back to step 1: one `/dream` runs rounds until step 3 stops it.
