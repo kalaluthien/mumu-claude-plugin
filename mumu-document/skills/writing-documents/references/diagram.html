@@ -1,12 +1,14 @@
 <!-- diagram: a structure or a behaviour drawn; data-diagram picks the kind, and any kind can play its steps.
-  anatomy: a section with an h2 over a div[data-widget="diagram"][data-diagram] holding a figure.stage and, played, an <ol class="steps">; file-tree is nested lists, the SVG kinds are .box nodes and .part lines, each a one-way .edge with its .label (on a .mask where it crosses a line), role="img" with <title> and <desc>, and a key in the figcaption.
-  fill: only the nodes the reader needs; the unchanged neighbours a change touches stay unmarked, to show its reach; a changed node carries data-change="add", "modify" or "remove" and a .tag word; one label carries a real example value; dashed (.inferred) where inferred, not read; .main on 2 boxes at most; .k1-.k4 mark kinds of box, .ok/.warn/.fail an edge's status; SVG coordinates divisible by 4, arrows orthogonal with r=8 elbows, labels 8 px off their line; every id prefixed with {{id}}.
+  anatomy: a section with an h2 over a div[data-widget="diagram"][data-diagram] holding a figure.stage and, played, an <ol class="steps">; file-tree is nested lists, the SVG kinds are .box nodes and .part lines, each a one-way .edge with its .label (on a .mask where it crosses a line), role="img" with <title> and <desc>, and a key in the figcaption; the script adds a .legend before the stage when 2 or more kinds (.k1-.k4) are drawn.
+  fill: only the nodes the reader needs; the unchanged neighbours a change touches stay unmarked, to show its reach; a changed node carries data-change="add", "modify" or "remove" and a .tag word; one label carries a real example value; dashed (.inferred) where inferred, not read; .main on 2 boxes at most; .k1-.k4 mark kinds of node, named in order by the root's data-kinds="{{k1|k2}}"; .ok/.warn/.fail an edge's status; SVG coordinates divisible by 4, arrows orthogonal with r=8 elbows, labels 8 px off their line; every id prefixed with {{id}}.
   kinds: one template each below; copy the one the content needs.
   file-tree: a system's structure, first on the page: each folder a <details> whose <summary> holds its .name; under a node a .note (its role in one line) or a <blockquote> excerpt with its path:line; open only the level the page is about, the new or central part first; a folder no reader needs is one collapsed line. Played: what a change adds, modifies and removes, one idea per step. Use when: files, modules or components, or a change to them. Not when: under four flat items (a list).
   system-context: the system as one .box.main in the middle, callers left, callees right, every line labelled with what crosses it. Use when: actors, entry points and boundaries. Not when: the order of calls (use-case).
   use-case: participants as .box across the top, a .lifeline under each, time downward, each call a numbered .part; a step adds 48 to y and to the svg height; two use cases, two copies. Played: a card per call, a .token travels them. Use when: what happens in one use case. Not when: who reaches whom, without order (system-context).
-  played: optional; file-tree by page.html's slide, use-case by its swipe; the steps one caption each, a file-tree's first the before; a part with data-step="k" shows from step k (an added node appears, a removed one fades, the token moves to the card's data-x and data-y). Not played: delete those attributes, the token and the steps.
-  keyboard: Tab to each summary or .part, Enter or Space opens a folder; played, the slide's Back and Next or the swipe's strip and arrow keys.
+  played: optional; file-tree by page.html's slide, use-case by its swipe; the steps one caption each, a file-tree's first the before; a part with data-step="k" shows from step k (an added node takes no space until it appears, a removed one fades, the token moves to the card's data-x and data-y). Not played: delete those attributes, the token and the steps.
+  focus: hover, keyboard focus or a tap on a node or .part keeps it, its lines and the nodes they reach full and dims the rest (a file-tree's lines join a node to its folder and its children); hover off, Escape or a second tap restores all. The .part's ends are the nodes nearest its first and last point.
+  legend: 2 or more kinds, each kind a button with aria-pressed; pressed off, its nodes and their lines fade. Without script, in print or before any focus nothing dims.
+  keyboard: Tab to each summary, file row, .box or .part, Enter or Space opens a folder or pins the focus, Escape clears it; played, the slide's Back and Next or the swipe's strip and arrow keys.
   screen reader: a summary is a disclosure; the SVG's desc lists its parts in order; a changed node reads its tag; played, each caption is announced as it shows.
   use when: a structure or a behaviour a figure shows better than prose.
   not when: rows sharing columns (a table); numbers (chart). -->
@@ -14,6 +16,7 @@
   [data-widget="diagram"] {
     --diagram-indent: var(--sp-4); --diagram-add: var(--ok); --diagram-modify: var(--warn);
     --diagram-remove: var(--fail); --diagram-pending: var(--disabled); --x: 0; --y: 0;
+    --diagram-dim: calc(var(--disabled) / 2); --diagram-off: calc(var(--disabled) / 5);
     & ul { list-style: none; margin: 0; padding-inline-start: var(--diagram-indent); border-inline-start: var(--line) dashed var(--border); }
     & .stage > ul { padding-inline-start: 0; border: 0; }
     & .stage:has(> ul) { background: var(--fill); border: var(--line) solid var(--border); padding: var(--sp-2) var(--sp-3); }
@@ -31,7 +34,7 @@
     & svg .label { fill: var(--muted); font-size: var(--fs-svg-label); }
     & .box { fill: var(--fill); stroke: var(--border); }
     & .box.main { stroke: var(--text); stroke-width: var(--line-strong); }
-    & .box.k1 { stroke: var(--kind-1); } & .box.k2 { stroke: var(--kind-2); } & .box.k3 { stroke: var(--kind-3); } & .box.k4 { stroke: var(--kind-4); }
+    & .box:is(.k1, .k2, .k3, .k4) { stroke: var(--diagram-kind); }
     & .tip { fill: var(--text); }
     & .edge { stroke: var(--text); stroke-width: var(--line-strong); fill: none; }
     & .edge.inferred { stroke-dasharray: 4 4; }
@@ -43,13 +46,24 @@
     & .part:is(:hover, :focus-visible) text, [data-state="hover"] & .part:first-of-type text { fill: var(--accent); }
     & .part:focus-visible, [data-state="focus"] & .part:first-of-type { outline: var(--line-strong) solid var(--accent); }
     & .token { fill: var(--accent); display: none; }
+    & li:is(.k1, .k2, .k3, .k4) > .name, & li:is(.k1, .k2, .k3, .k4) > details > summary .name { border-bottom: var(--line-strong) solid var(--diagram-kind); }
+    & .k1 { --diagram-kind: var(--kind-1); } & .k2 { --diagram-kind: var(--kind-2); } & .k3 { --diagram-kind: var(--kind-3); } & .k4 { --diagram-kind: var(--kind-4); }
+    & .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-2) 0; }
+    & .legend button::before { content: ""; display: inline-block; inline-size: var(--sp-3); block-size: var(--sp-3);
+      margin-inline-end: var(--sp-1); vertical-align: middle; background: var(--diagram-kind); }
+    & .legend [aria-pressed="false"] { color: var(--muted); text-decoration: line-through; }
+    & .legend [aria-pressed="false"]::before { opacity: var(--diagram-off); }
   }
+  @media screen {
+    [data-widget="diagram"] { & .dim { opacity: var(--diagram-dim); } & .off { opacity: var(--diagram-off); } }
+  }
+  @media print { [data-widget="diagram"] .legend { display: none; } }
   @media screen and (prefers-reduced-motion: no-preference) {
     [data-widget="diagram"] {
       & :is(.edge, .part text) { transition: stroke var(--motion-fast) var(--ease-out), fill var(--motion-fast) var(--ease-out); }
       &.live [data-step] { transition: opacity var(--motion) var(--ease-out); }
       &.live [data-step]:not(.on) { opacity: var(--diagram-pending); }
-      &.live [data-change="add"]:not(.on) { opacity: 0; }
+      &.live [data-change="add"]:not(.on) { display: none; }
       &.live [data-change="remove"]:not(.on) { opacity: 1; }
       &.live [data-change="remove"]:not(.on) .name { text-decoration: none; color: var(--text); }
       &.live [data-change="remove"].on { opacity: var(--diagram-pending); }
@@ -60,6 +74,104 @@
     }
   }
 </style>
+<script>
+  (() => {
+    // focus: a node or .part, its lines and the nodes they reach stay full, the rest dims; the legend turns a kind off
+    const KINDS = ['k1', 'k2', 'k3', 'k4'];
+    const num = (el, a) => +el.getAttribute(a) || 0;
+    const gap = (p, r) => Math.hypot(Math.max(r.x - p.x, 0, p.x - r.x - r.w), Math.max(r.y - p.y, 0, p.y - r.y - r.h));
+    const graph = (root) => {
+      const nodes = [], edges = [];
+      if (root.dataset.diagram === 'file-tree') {
+        root.querySelectorAll('.stage li').forEach((li) => {
+          const summary = li.querySelector(':scope > details > summary');
+          if (!summary) li.tabIndex = 0;
+          nodes.push({ el: li, handle: summary || li,
+            own: [...li.querySelectorAll(':scope > :not(ul, details), :scope > details > :not(ul)')] });
+        });
+        nodes.forEach((n) => {
+          const up = nodes.find((m) => m.el === n.el.parentElement.closest('li'));
+          if (up) edges.push({ own: [], ends: [up, n] });
+        });
+      } else {
+        const texts = [...root.querySelectorAll('svg > text')];
+        root.querySelectorAll('svg .box').forEach((box) => {
+          const r = { x: num(box, 'x'), y: num(box, 'y'), w: num(box, 'width'), h: num(box, 'height') };
+          box.tabIndex = 0;
+          nodes.push({ el: box, handle: box, r,
+            own: [box, ...texts.filter((t) => gap({ x: num(t, 'x'), y: num(t, 'y') }, r) === 0)] });
+        });
+        root.querySelectorAll('svg .part').forEach((part) => {
+          const line = part.querySelector('.edge');
+          if (!line || !nodes.length) return;
+          const ends = [0, line.getTotalLength()].map((at) => {
+            const p = line.getPointAtLength(at);
+            return nodes.reduce((a, n) => (gap(p, n.r) < gap(p, a.r) ? n : a));
+          });
+          edges.push({ el: part, handle: part, own: [...part.children], ends });
+        });
+      }
+      return { nodes, edges };
+    };
+    const start = () => document.querySelectorAll('[data-widget="diagram"]').forEach((root) => {
+      const { nodes, edges } = graph(root);
+      const items = [...nodes, ...edges];
+      const owner = new Map();
+      items.forEach((x) => [x.handle, ...x.own].forEach((el) => el && owner.set(el, x)));
+      const at = (el) => {
+        for (; el && el !== root; el = el.parentNode) if (owner.has(el)) return owner.get(el);
+        return null;
+      };
+      let pinned = null, passing = null;
+      const show = () => {
+        const on = pinned || passing;
+        const keep = new Set(on ? [on] : []);
+        edges.forEach((e) => {
+          if (on && (e === on || e.ends.includes(on))) [e, ...e.ends].forEach((x) => keep.add(x));
+        });
+        items.forEach((x) => x.own.forEach((el) => el.classList.toggle('dim', !!on && !keep.has(x))));
+      };
+      const pin = (x) => { pinned = pinned === x ? null : x; show(); };
+      root.addEventListener('pointerover', (e) => { if (e.pointerType === 'mouse') { passing = at(e.target); show(); } });
+      root.addEventListener('pointerleave', () => { passing = null; show(); });
+      root.addEventListener('focusin', (e) => { passing = e.target.matches(':focus-visible') ? at(e.target) : null; show(); });
+      root.addEventListener('focusout', () => { passing = null; show(); });
+      root.addEventListener('click', (e) => { if (!e.target.closest('.legend, .controls')) pin(at(e.target)); });
+      root.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { pinned = passing = null; show(); return; }
+        const x = at(e.target);
+        if ((e.key === 'Enter' || e.key === ' ') && x && x.handle === e.target && e.target.localName !== 'summary') {
+          e.preventDefault();
+          pin(x);
+        }
+      });
+      const kinds = KINDS.filter((k) => nodes.some((n) => n.el.classList.contains(k)));
+      if (kinds.length < 2) return;
+      const names = (root.dataset.kinds || '').split('|');
+      const legend = document.createElement('div');
+      legend.className = 'legend';
+      const filter = () => {
+        const off = new Set(kinds.filter((k) => legend.querySelector(`.${k}`).getAttribute('aria-pressed') === 'false'));
+        const gone = new Set(nodes.filter((n) => [...off].some((k) => n.el.classList.contains(k))));
+        edges.forEach((e) => { if (e.ends.some((n) => gone.has(n))) gone.add(e); });
+        items.forEach((x) => x.own.forEach((el) => el.classList.toggle('off', gone.has(x))));
+      };
+      kinds.forEach((k) => {
+        const b = legend.appendChild(document.createElement('button'));
+        b.type = 'button';
+        b.className = k;
+        b.setAttribute('aria-pressed', 'true');
+        b.textContent = names[KINDS.indexOf(k)] || KINDS.indexOf(k) + 1;
+        b.addEventListener('click', () => {
+          b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+          filter();
+        });
+      });
+      root.querySelector('.stage').before(legend);
+    });
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
 <section aria-labelledby="{{id}}">
   <h2 id="{{id}}">{{the system, as a noun phrase}}</h2>
   <div data-widget="diagram" data-diagram="file-tree" data-slide data-labels="{{Back|Next}}">
@@ -88,7 +200,7 @@
 </section>
 <section aria-labelledby="{{id}}">
   <h2 id="{{id}}">{{the system and its neighbours, as a noun phrase}}</h2>
-  <div data-widget="diagram" data-diagram="system-context">
+  <div data-widget="diagram" data-diagram="system-context" data-kinds="{{caller kind|callee kind}}">
     <figure class="stage scroll" tabindex="0" aria-labelledby="{{id}}-title">
       <svg width="520" height="160" viewBox="0 0 520 160" role="img" aria-labelledby="{{id}}-title" aria-describedby="{{id}}-desc">
         <title id="{{id}}-title">{{context: system}}</title>
@@ -98,13 +210,13 @@
             <path class="tip" d="M0,0 L10,5 L0,10 z"/>
           </marker>
         </defs>
-        <rect class="box" x="8" y="48" width="128" height="64"/>
+        <rect class="box k1" x="8" y="48" width="128" height="64"/>
         <text x="72" y="76" text-anchor="middle">{{caller}}</text>
         <text class="label" x="72" y="96" text-anchor="middle">{{person | system}}</text>
         <rect class="box main" x="196" y="40" width="128" height="80"/>
         <text x="260" y="76" text-anchor="middle">{{system}}</text>
         <text class="label" x="260" y="96" text-anchor="middle">{{what it is}}</text>
-        <rect class="box" x="384" y="48" width="128" height="64"/>
+        <rect class="box k2" x="384" y="48" width="128" height="64"/>
         <text x="448" y="76" text-anchor="middle">{{callee}}</text>
         <text class="label" x="448" y="96" text-anchor="middle">{{external system}}</text>
         <g class="part" tabindex="0">

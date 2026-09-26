@@ -19,7 +19,8 @@ CHROME = pathlib.Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chr
 # The gallery: every widget in every state, light and dark, in a .theme-* box with data-state set, which the skin and
 # the widgets read to force that state; the chart shows each fixture below by default and the first in every state.
 STATES = ("default", "hover", "focus", "open", "disabled")
-KOREAN = {"Back|Next": "뒤로|다음", "gone": "삭제", "changed": "변경", "new": "추가", "Data table": "데이터 표"}
+KOREAN = {"Back|Next": "뒤로|다음", "gone": "삭제", "changed": "변경", "new": "추가", "Data table": "데이터 표",
+          "caller kind|callee kind": "사람|외부 시스템"}
 FIXTURES = {"chart": """<figure data-widget="chart" data-chart="bar">
   <figcaption>부산의 하루 요청이 가장 많아요.</figcaption>
   <div class="plot"></div>
