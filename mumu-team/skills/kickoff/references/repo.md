@@ -7,13 +7,12 @@ A worker's worktree goes in its leader's own checkout only, never in another rep
 | verb | command |
 | --- | --- |
 | `read` | `gh issue view <url> --json title,body,comments,labels,state,parent`, or `gh pr view <url> --json title,body,comments,headRefOid`; what a goal holds is its sub-issues, `gh api repos/<repo>/issues/<n>/sub_issues`, each read the same way down to the tasks |
-| `file` | root goal: `gh issue create -R <repo> --title "<title>" --label kind:goal --body-file -`; a goal under a goal: the same with `--parent <goal-url>`; task: `gh label create effort:<effort> -R <repo> --force`, `<effort>` `low` or `medium` unless the owner named another, then the same create with `--parent <goal-url> --label kind:task --label effort:<effort>` |
+| `file` | root goal: `gh label create kind:goal -R <repo> --force`, then `gh issue create -R <repo> --title "<title>" --label kind:goal --body-file -`; a goal under a goal: the same with `--parent <goal-url>`; task: `gh label create effort:<effort> -R <repo> --force`, `<effort>` `low` or `medium` unless the owner named another, then the same create with `--parent <goal-url> --label kind:task --label effort:<effort>` |
 | `order` | `gh api -X POST repos/<repo>/issues/<n>/dependencies/blocked_by -F issue_id=<id>`, `<id>` the blocker's `gh api repos/<owner>/<repo>/issues/<m> -q .id`, in this repository or another |
 | `comment` | `gh issue comment <url> --body-file -` |
 | `decide` | `decide.py <url> [--criteria <file>] < <decision>`: posts `DECIDED: <decision>`, and with `--criteria` first replaces the body's `## Definition of done` by the file's lines |
 | `resolve` | `gh issue close <url> --reason completed --comment "<summary>"` |
 | `stop` | `gh issue close <url> --reason "not planned" --comment "<reason>"`, then `gh pr ready --undo <pr-url>` for its open pull request |
-| `handoff` | `file` a root goal in `<owner>/<target-repo>`, `order` the goal here after it, then `prompt` the target project's leader `see <new-url>` |
 | `claim` | `git fetch origin && ! git ls-remote --exit-code origin refs/heads/<branch> && git switch -c <branch> origin/<default> && git push -u origin <branch>`, the branch named after the worktree; a branch found is yours only when this checkout is on it |
 | `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file -`; later `gh pr edit <pr> --body-file -` |
 | `merge` | `merge.py <pr-url>`: squash-merges pinned to the head only when a comment or review opens `APPROVED: <head>`; a raw `gh pr merge` is refused |

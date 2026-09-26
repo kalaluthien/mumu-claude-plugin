@@ -81,12 +81,12 @@ class WorkerStart(unittest.TestCase):
         return json.loads(out)["result"]["agents"][0]["agent_status"]
 
     def test_trust_dialog_answered_yes_then_prompted_and_working(self):
-        done, calls = self.start("--prompt", "/mumu-team:kickoff work u leader l")
+        done, calls = self.start("--leader", "l")
         self.assertEqual(done.returncode, 0, done.stderr)
         tree = self.repo / ".claude" / "worktrees" / "start-7-1"
         self.assertEqual(done.stdout, f"start-7-1@{PANE} {tree}\n")
         keys = calls.index(["herdr", "agent", "send-keys", PANE, "down", "enter"])
-        prompt = calls.index(["herdr", "agent", "prompt", PANE, "/mumu-team:kickoff work u leader l"])
+        prompt = calls.index(["herdr", "agent", "prompt", PANE, f"/mumu-team:kickoff work {ISSUE} leader l"])
         self.assertLess(keys, prompt, "prompted before the trust dialog was answered")
         self.assertEqual(self.status(), "working")
         self.assertIn(["git", "-C", str(self.repo), "worktree", "add", "--detach", str(tree), "origin/main"], calls)

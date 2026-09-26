@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Start a worker in one call: its name, its worktree, its tab, its Claude session, the folder-trust dialog and its first prompt.
+"""Start a worker in one call: its name, its worktree, its tab, its Claude session, the folder-trust dialog and its kickoff prompt.
 
-usage: worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--prompt <text>] [--owner-effort]
+usage: worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--leader <address>] [--owner-effort]
 
 The worker's name is `<topic>-<n>-<k>`, `<n>` the task's number and `<k>` its
 attempt: 1 + the largest `k` of any remote branch, pull request head or local
@@ -15,8 +15,9 @@ worktrees never show as untracked. The tab sets `MUMU_ROLE=worker`, on which
 `team-watch` exits at once. Claude runs as `--agent mumu-team:worker`, whose
 Stop hook holds it until its task closes or is blocked. The trust dialog
 defaults to "No, exit", so it is answered `down enter`. Prints
-`<name>@<pane> <worktree>`. `agent start` is retried while herdr answers
-`agent_pane_busy`. `<effort>` must be `low` or `medium`, or it fails with 2
+`<name>@<pane> <worktree>`. With `--leader` it is prompted
+`/mumu-team:kickoff work <task-url> leader <address>`. `agent start` is
+retried while herdr answers `agent_pane_busy`. `<effort>` must be `low` or `medium`, or it fails with 2
 before anything starts, unless `--owner-effort` says the owner named that
 effort in so many words. `WORKER_START_TIMEOUT` (60) and `WORKER_START_POLL`
 (1) are seconds.
@@ -123,19 +124,19 @@ def start(name, pane, claude_args, timeout, poll):
 
 
 def main(argv):
-    args, resume, prompt, owner_effort = [], False, None, False
+    args, resume, leader, owner_effort = [], False, None, False
     it = iter(argv)
     for a in it:
         if a == "--continue":
             resume = True
         elif a == "--owner-effort":
             owner_effort = True
-        elif a == "--prompt":
-            prompt = next(it, None)
+        elif a == "--leader":
+            leader = next(it, None)
         else:
             args.append(a)
-    if len(args) != 4 or (prompt is None and "--prompt" in argv):
-        print("usage: worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--prompt <text>] [--owner-effort]", file=sys.stderr)
+    if len(args) != 4 or (leader is None and "--leader" in argv):
+        print("usage: worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--leader <address>] [--owner-effort]", file=sys.stderr)
         return 2
     repo, topic, effort, url = args
     number = re.search(r"/issues/(\d+)/?$", url)
@@ -156,8 +157,8 @@ def main(argv):
         timeout, poll = float(os.environ.get("WORKER_START_TIMEOUT", 60)), float(os.environ.get("WORKER_START_POLL", 1))
         start(name, pane, ["--name", name, "--agent", "mumu-team:worker", "--model", "opus", "--effort", effort] + (["--continue"] if resume else []), timeout, poll)
         await_ready(name, pane, timeout, poll)
-        if prompt:
-            run("herdr", "agent", "prompt", pane, prompt)
+        if leader:
+            run("herdr", "agent", "prompt", pane, f"/mumu-team:kickoff work {url} leader {leader}")
     except RuntimeError as e:
         print(f"worker-start.py: {e}", file=sys.stderr)
         return 1

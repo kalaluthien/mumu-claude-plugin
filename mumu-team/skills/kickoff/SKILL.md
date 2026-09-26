@@ -1,27 +1,25 @@
 ---
 name: kickoff
-description: Leads a goal to reviewed, merged pull requests, works one task of it, reports where it stands, hands it to a successor, resumes it or stops it early. Free text in any language is fine.
+description: Starts a session on its mumu-team role from the prompt a script sends it - work a task, lead a handed-over goal, succeed a lead, or resume.
 disable-model-invocation: true
-argument-hint: fix the login timeout, tracked in https://github.com/o/r/issues/12
+argument-hint: work https://github.com/o/r/issues/13 leader r-lead
 ---
 
 Arguments: $ARGUMENTS
 
-The arguments are loose text in any language: find what the row needs anywhere in them (a goal, a goal or task url, a leader address), ask with `AskUserQuestion` for what is missing, and never refuse for wording. Only `work <task-url> leader <address>` and `succeed <pane>` keep their exact shape, since only a session writes them.
+Only `worker-start.py` and `lead-start.py` build these arguments, and send them through herdr as the session's first prompt: match their exact shape. Any other text was typed by hand.
 
 Your role's rules are in [agents/lead.md](../../agents/lead.md) and [agents/worker.md](../../agents/worker.md); when your system prompt is not already that body, read `worker.md` before the `work` row and `lead.md` before any other.
 
-Match the text to one row, open that playbook, and copy its steps verbatim into the todo list; a step not done stays as `skip: <reason>`. Rows are tried in order; the first that fits wins. Before the first step, check `ready`; when it fails, stop and print its fix.
+Match the text to one row, open that playbook, and copy its steps verbatim into the todo list; a step not done stays as `skip: <reason>`. Before the first step, check `ready`; when it fails, stop and print its fix.
 
 | when | playbook |
 | --- | --- |
-| work one task: `work <task-url> leader <address>`, the prompt a leader sends a worker | [references/work.md](references/work.md) |
-| take over as a lead's successor: `succeed <pane>`, the prompt a lead sends its successor, or hand over: "succession", "hand over", "replace yourself" | [references/succession.md](references/succession.md) |
-| where it stands: "status", "how is it going", "what is left" | [references/status.md](references/status.md) |
-| the owner stops a goal early: "stop", "cancel", "drop this goal" | [references/stop.md](references/stop.md) |
-| resume: "continue", "pick up where you left off", or no text | [references/resume.md](references/resume.md) |
-| lead a goal: a task, a bug or a feature in words, perhaps with its goal or task url, or `see <url>` from another leader | [references/lead.md](references/lead.md) |
-| nothing above fits | ask one question with `AskUserQuestion`, then match again |
+| work one task: `work <task-url> leader <address>`, from `worker-start.py --leader` | [references/work.md](references/work.md) |
+| lead a goal handed over: `see <goal-url>`, from `lead-start.py <checkout> <goal-url>` | [references/lead.md](references/lead.md) |
+| take over as a lead's successor: `succeed <pane>`, from `lead-start.py --succeed` | [references/succession.md](references/succession.md) |
+| resume: no text, from `lead-start.py <checkout>` | [references/resume.md](references/resume.md) |
+| any other text | none: reply that plain words go to the project's lead in its tab, or from any session through `/mumu-team:handoff`, and stop |
 
 
 [references/panes.md](references/panes.md) drives other sessions and [references/repo.md](references/repo.md) holds issues, branches and pull requests; each maps the verbs below and in the playbooks to commands.
@@ -45,7 +43,7 @@ The only place these terms are defined; every other file uses them as written he
 | comment | history: a record opening with its keyword, or a plain reference comment |
 | topic | 2-4 lowercase words joined by hyphens |
 | attempt | `<k>`, 1 for a task's first worker and one more on each reopen |
-| name | one string for a session's tab, herdr agent and Claude session, and a worker's worktree and branch: `<topic>-<n>-<k>` for a worker on task `<n>`, attempt `<k>`; `<repo>-lead` for the leader |
+| name | one string for a session's tab, herdr agent and Claude session, and a worker's worktree and branch: `<topic>-<n>-<k>` for a worker on task `<n>`, attempt `<k>`; `<repo>-lead` for the leader, `<repo>` the repository's name lowercased, each run of other than letters, digits, `-` and `_` one `-`, cut to 22 characters, as herdr allows |
 | checkout | the leader's own local clone of its project's repository |
 | claim | the branch on the remote; it exists, so the attempt is taken |
 | order | a task or goal waits on another by GitHub's blocked-by, and starts once each blocker is closed |

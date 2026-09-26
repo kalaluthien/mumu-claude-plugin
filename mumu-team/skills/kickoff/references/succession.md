@@ -4,7 +4,7 @@ Replace a lead with a fresh session of the same name, never restart it: the succ
 
 The original, asked to hand over:
 
-1. `start-lead` your successor at your checkout root, its tab and herdr agent named `<repo>-lead-next` and its Claude `--name <repo>-lead`, with the other flags `ps -o args= -p $CLAUDE_PID` shows but `--continue` and `--resume`, prompted `/mumu-team:kickoff succeed <your pane>`; then stop.
+1. `start-lead` your successor with `--succeed <your pane>` at your checkout root, passing after `--` the flags `ps -o args= -p $CLAUDE_PID` shows but the program, `--continue`, `--resume`, `--name` and `--agent`; then stop.
 
 The successor, prompted `succeed <pane>`:
 
