@@ -2,7 +2,7 @@
 name: dream
 description: Checks every auto-memory pool for broken index links, unindexed files, duplicate names and one lesson kept in several pools, then fixes only the rows the owner approves, each file backed up first.
 disable-model-invocation: true
-argument-hint: approve all but the rows on orphan.md
+argument-hint: approve all but row 2
 ---
 
 # dream
