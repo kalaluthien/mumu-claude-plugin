@@ -8,19 +8,21 @@
   swipe: a root with data-swipe over a stage and an <ol class="steps">: a strip of cards, the card in view the step;
   each step a separate moment. Played, at step k each [data-step] up to k gets .on, the one at k .now, the root
   data-at k - 1 and a `step` event; under reduced motion, in print or without script, every caption stays listed,
-  every chapter shown, and the widget stands at its last step. -->
+  every chapter shown, and the widget stands at its last step.
+  table: only for values the reader compares across rows, few columns, the first a row label, headers with scope;
+  each one <div class="scroll" role="region" aria-labelledby="t-<id>" tabindex="0"> holding the <table> and its
+  <caption id="t-<id>">, so a wide one scrolls in its box with its first column held; a number cell class="num". -->
 <!doctype html>
 <html lang="ko">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{title}}</title>
 <style id="skin">
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Noto+Sans+KR:wght@400;700&family=Noto+Serif+KR:wght@400;700&family=Playfair+Display&family=Source+Serif+4:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap");
 /* skin: the owner's design system.
-   Look: an editorial magazine (after Wired), black on white; dark mode inverts
-   the duet. Display serif (Playfair Display) for h1 and h2 at weight 400, body
-   serif (Source Serif 4) for prose, sans (Inter) for h3, controls, captions,
-   figure labels and metadata; Noto Serif KR and Noto Sans KR for Korean.
+   Look: a soft gothic page, black on white; dark mode inverts the duet. One
+   face, Nanum Gothic, for every text role: h1 and h2 at weight 800, h3 at 700,
+   prose, controls, captions, figure labels and metadata at 400.
    Corners square, no shadows. The
    accent is ink: focus, hover and the current step; links take --link.
    Borders on controls and figure boxes are body grey (3:1, so a hover to ink
@@ -30,7 +32,8 @@
    more share; a semantic token names a role; each widget defines its own
    --<widget>-* tokens from semantic ones and reads nothing else.
    Layout: one column of --page-width, a --gutter each side, sections --rhythm
-   apart; at 320 px nothing scrolls sideways but a .scroll box.
+   apart; at 320 px nothing scrolls sideways but a .scroll box, which holds a
+   table's first column in view.
    Motion: --motion-fast for hover and focus, --motion for a reveal, easing
    --ease-out; only a change of state animates, none under reduced motion.
    Fonts: the one fetch a page makes; offline, installed faces. */
@@ -60,9 +63,7 @@
   --warn: light-dark(#855600, #f2c14e);
   --fail: light-dark(#b8302a, #ff7b72);
   /* semantic: type, space, line, radius, layout, motion */
-  --display: "Playfair Display", "Noto Serif KR", Georgia, "AppleMyungjo", serif;
-  --serif: "Source Serif 4", "Noto Serif KR", Georgia, "AppleMyungjo", serif;
-  --sans: "Inter", "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --sans: "Nanum Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
   --mono: ui-monospace, monospace;
   --fs-s: .8rem; --fs-m: .9rem; --fs-base: 1rem; --fs-l: 1.2rem;
   --fs-h2: 1.625rem; --fs-h1: 2rem;
@@ -83,15 +84,14 @@
 
 /* layout */
 body { background: var(--bg); color: var(--text); margin: 0;
-       font: var(--fs-base)/1.5 var(--serif); padding: var(--rhythm) var(--gutter); }
+       font: var(--fs-base)/1.5 var(--sans); padding: var(--rhythm) var(--gutter); }
 main { max-width: var(--page-width); margin: 0 auto; }
-h1, h2 { font-family: var(--display); font-weight: 400; letter-spacing: -.01em; line-height: 1.1; }
+h1, h2 { font-weight: 800; letter-spacing: -.01em; line-height: 1.2; }
 h1 { font-size: var(--fs-h1); margin: 0 0 var(--sp-4); }
 h2 { font-size: var(--fs-h2); margin: var(--rhythm) 0 var(--sp-2); }
 h3 { font: 700 var(--fs-l)/1.2 var(--sans); margin: var(--sp-4) 0 var(--sp-2); }
 a { color: var(--link); }
 :is(h1, h2) code { font-size: .8em; }
-figcaption, .muted, footer, summary, label, legend, th { font-family: var(--sans); }
 .read { border-inline-start: var(--line-mark) solid var(--text); padding-inline-start: var(--sp-3); font-size: var(--fs-l); }
 .muted, footer { color: var(--muted); font-size: var(--fs-m); }
 footer { margin-top: var(--rhythm); padding-top: var(--sp-3); border-top: var(--line) solid var(--hairline); }
@@ -103,6 +103,9 @@ figure { margin: 0; }
 table { border-collapse: collapse; min-width: 100%; background: var(--fill); }
 th, td { border-bottom: var(--line) solid var(--hairline); padding: var(--sp-2) var(--sp-3); text-align: start; vertical-align: top; }
 tbody th { font-weight: normal; }
+caption { text-align: start; }
+.scroll :is(th, td):first-child { position: sticky; inset-inline-start: 0; background: var(--fill); }
+.num { text-align: end; font-variant-numeric: tabular-nums; }
 .ok { color: var(--ok); } .warn { color: var(--warn); } .fail { color: var(--fail); }
 
 /* states: default, hover, focus, open, disabled; [data-state] forces one for

@@ -75,6 +75,11 @@ page, commit it beside the page.
   said so, plainly; a reason the source omits is called absent, not guessed.
 - A step caption names one change and its effect, never what the figure
   shows.
+- A table only when the reader compares values across rows; one record's
+  fields are a `<dl>`, items with one attribute a list, items read one at a
+  time with prose values an `h3` each. A table stays narrow: split it before
+  adding a column, its first column the row's label; on a page it sits in the
+  scroll box of [page.html](references/page.html)'s comment.
 
 ## Done when
 
