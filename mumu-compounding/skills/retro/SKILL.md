@@ -25,9 +25,9 @@ row belongs there.
 
 | when | playbook |
 | --- | --- |
-| one lesson to keep, handed over or found by a harvest: "remember this", a fact, a trap, the user's preference, a procedure that worked once; a stop's harvest, learning turned on, going over the work for what should outlive the session | [references/lesson.md](references/lesson.md) |
+| one lesson to keep, handed over or found by a harvest: "remember this", a fact, a trap, the user's preference, a procedure that worked once; a stop's harvest, learning turned on, going over the work for what should outlive the session | [lesson.md](${CLAUDE_PLUGIN_ROOT}/lib/lesson.md) |
 | writing or editing a SKILL.md or an `agents/*.md` file; a lesson that is a procedure auto-memory already holds and has now worked again, or how a delegate should work | [references/skill-authoring.md](references/skill-authoring.md) |
 | writing or editing a hook or its script; a lesson that is something a check could decide | [references/hook-authoring.md](references/hook-authoring.md) |
-| nothing above fits | [references/lesson.md](references/lesson.md) |
+| nothing above fits | [lesson.md](${CLAUDE_PLUGIN_ROOT}/lib/lesson.md) |
 
 File nothing the repository or its history already states.

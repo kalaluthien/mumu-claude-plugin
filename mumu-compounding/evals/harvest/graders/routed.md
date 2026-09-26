@@ -1,6 +1,6 @@
 ---
 type: tool_used
 tool: Read
-input_match: references/lesson\.md
+input_match: lib/lesson\.md
 arm: with-only
 ---
