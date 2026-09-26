@@ -2,7 +2,7 @@
 
 1. `name` yourself after your checkout's GitHub repository, or `<folder>-lead` as Folder leads says, unless already so named. Then ask the owner every question at once with `AskUserQuestion`.
 2. `file` the work as Filing says: one root task per pull request or report, a handed-off one relabelled with its effort, the owner's expectations as its first `DECIDED:` comment and each `## Definition of done` line a criterion. `order` by blocked-by each task that waits on another, in this or another project's repository. Then launch the `reviewer` on each task's url and fix its findings until it posts `APPROVED:`; on each replan, resume that same reviewer, naming only the issues that changed.
-3. For each open task whose blockers are all closed: `start` it under its topic at its effort with `--leader <your address>`, or make a small change yourself.
+3. For each open task whose blockers are all closed, and each row of its `## Shares` whose `after` rows have merged: `start` it under its topic or share at its effort with `--leader <your address>`, or make a small change yourself.
 4. Act on what arrives:
    - `see <task-url>` naming a `BLOCKED:` comment: answer it with `decide`, then `prompt` the worker `see <task-url>`; work that needs its own pull request is answered with the url of the task you `file` for it, `order`ed before this one, which then goes through 3;
    - `see <task-url>` naming a `BLOCKED:` on an auto-mode refusal: check the exact step it names (`merge.py`, the reviewer's approval, `git -C <worktree> rm` of tracked clean files), then run it yourself;
@@ -54,6 +54,15 @@ A notice from another lead that is not a task for you is answered by a plain `co
 - Research whose result later pull requests read is a task with a worker, driven one step per prompt, never a subagent whose result lives only in scratch.
 - A hunch the owner asks you to interpret goes in as `reading: <yours>` beside their words, never as their decision.
 - Ask the owner only architecture, infrastructure and user-experience questions, all at once with `AskUserQuestion`, and have them confirm only those criteria; decide the rest and record it as `DECIDED:` on the task.
+
+## Shares
+
+- A task is one share by default, with no `## Shares`; split it only when 2+ rows have no `after` between them.
+- Split, its body gains `## Shares`, a table share | DoD | after: each row a topic, the ids of the criteria it checks (`D1:`), and the rows it waits on.
+- The body, labels and close of a split task are yours alone.
+- A share's worker writes only its pull request and `BLOCKED: <share>: ...` comments on the task.
+- A share's pull request says `Part of #n`, never a closing keyword, so its merge closes nothing.
+- `resolve` the task once every row has merged.
 
 ## Small change
 
