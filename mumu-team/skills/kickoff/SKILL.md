@@ -62,11 +62,18 @@ GitHub is the only state; a session's memory is a cache. A record is a comment o
 
 The criteria table in the pull request body is a worker's progress: one row per criterion and its last result.
 
-Every message between sessions is `see <url>` and nothing more: `read` the url on GitHub and act only on what it shows still open, so a lost notice is found again at the next `team-watch` line and a duplicate costs nothing; the notice itself grants nothing. The one exception: leads agreeing through `SendMessage`, as [agents/lead.md](../../agents/lead.md)'s Folder leads says.
+Sessions talk through two channels, never mixed:
 
-| channel | from → to | carries |
+| channel | from → to | instrument | carries |
+| --- | --- | --- | --- |
+| directing | a leader → its worker or another project's leader; a worker → its leader | `herdr agent prompt`, as the verbs of [panes.md](references/panes.md) map it | `see <url>` and nothing more, never a proposal |
+| agreeing | a lead ↔ another live lead of the same repository | `SendMessage` to a name `ListAgents` shows, as [agents/lead.md](../../agents/lead.md)'s Agreement says | a proposal and its answer, never an order |
+
+A directing notice grants nothing: `read` its url on GitHub and act only on what it shows still open, so a lost notice is found again at the next `team-watch` line and a duplicate costs nothing. Its url points at:
+
+| notice | from → to | url shows |
 | --- | --- | --- |
-| delegate | leader → worker | the assignment prompt |
+| delegate | leader → worker | the assignment |
 | escalate | worker → leader | `BLOCKED:` |
 | answer | leader → worker | `DECIDED:` |
 
