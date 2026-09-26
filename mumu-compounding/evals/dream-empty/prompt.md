@@ -5,7 +5,7 @@ allowed_tools: [Bash, Read, Glob, Grep, Edit, Write]
 runs: 3
 ---
 
-/mumu-compounding:dream with config folder ./config and backup folder ./backup, a new folder. First build the fixture with this one Bash call, then run the skill:
+/mumu-compounding:dream with config folder ./config. First build the fixture with this one Bash call, then run the skill:
 
 ```sh
 mkdir -p config/projects/-a/memory config/projects/-b/memory
