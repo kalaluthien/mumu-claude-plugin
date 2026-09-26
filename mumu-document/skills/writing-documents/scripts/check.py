@@ -1,29 +1,8 @@
 #!/usr/bin/env python3
-"""Check an Artifact page in headless Chrome; print one line per check, then `pass` or `FAIL`.
+"""Check an Artifact page in headless Chrome, printing one line per check then `pass` or `FAIL`;
+with --svg, write each figure as a standalone SVG instead.
 
-usage: check.py <page.html>
-- layout, in a 320 px frame, with motion and with reduced motion: after clicking each control
-  once, it fails on a sideways scroll, text under 11 px (Hangul or Han under 12 px), an SVG
-  label overlapping another or leaving its figure, or an uncaught error; the reduced
-  run also on a running animation or a slide or swipe showing fewer captions than it has steps.
-- korean: over every text node, the <title>, SVG <title> and <desc>, and each alt,
-  aria-label, title and placeholder, skipping <code>, <pre>, <kbd> and <samp>, and joining a
-  block across inline tags: fails on <html lang> other than "ko", a run of 3 or more English
-  words, a sentence ending in a plain -다., or a heading that is a sentence.
-- contents: a page with CONTENTS or more <h2> in <main>, or with chapters, opens, before the first, with a
-  <nav> linking each by its id; one with fewer has no <nav>.
-- links, printed only on a failure: fails on an <a href="#x"> that no element's id matches.
-- chapters, printed only for a page with a [data-chapter], or an <h3> and an <h2>, in real time: fails on an <h3>
-  outside a chapter, a single chapter, or unless exactly the chapter holding the id is shown after a load with no #id (the
-  first), each <nav> link, each pager link, each load of the page at #<id> for every id in a chapter, and a back.
-- chart, with motion and with reduced motion (a slide then stands at its last table): each
-  chart against its own table and scales (the svg's data-x and data-y: domain low, high,
-  range start, end); fails on a mark off its value (bars from zero), a value with no mark or
-  a mark whose name lacks its cell's text, a slide not starting at its first table or not
-  reaching its last through Next, no data table, or a summary that is not one sentence.
-- swipe, in real time over the DevTools pipe (virtual time fires no IntersectionObserver after a
-  scroll): each live swipe strip scrolled to its end; fails when its step is not the last.
-Exit 0 pass, 1 FAIL, 2 when it could not run, saying why.
+usage: check.py <page.html> [--svg <out dir>]. Exit 0 pass or written, 1 FAIL or no figure, 2 could not run.
 """
 import html
 import itertools
@@ -123,6 +102,44 @@ f.onload = function () {
 f.src = location.hash.slice(1);
 </script>
 """
+SVG = r"""<iframe id=f style="width:800px;height:800px;border:0"></iframe>
+<script>
+var PROPS = ['fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-dasharray', 'stroke-linecap',
+  'stroke-linejoin', 'stroke-opacity', 'opacity', 'marker-start', 'marker-end', 'font-family', 'font-size',
+  'font-weight', 'font-style', 'text-anchor', 'dominant-baseline', 'paint-order', 'visibility', 'display'];
+f.onload = function () {
+  f.onload = null;
+  setTimeout(function () {
+    var d = f.contentDocument, w = f.contentWindow, out = [];
+    var bg = w.getComputedStyle(d.body).backgroundColor;
+    d.querySelectorAll('svg[role="img"], [data-widget="chart"] .plot svg').forEach(function (g) {
+      var c = g.cloneNode(true), src = [g].concat(Array.from(g.querySelectorAll('*'))),
+          dst = [c].concat(Array.from(c.querySelectorAll('*')));
+      src.forEach(function (s, i) {
+        var cs = w.getComputedStyle(s), up = i ? w.getComputedStyle(s.parentElement) : null, t = dst[i];
+        PROPS.forEach(function (p) {
+          var v = cs.getPropertyValue(p).replace(/url\("(#[^"]+)"\)/, 'url($1)');
+          var same = up && up.getPropertyValue(p).replace(/url\("(#[^"]+)"\)/, 'url($1)') === v;
+          if (p === 'opacity' ? v !== '1' : p === 'display' ? v === 'none' : !same) t.setAttribute(p, v);
+        });
+        t.removeAttribute('class'); t.removeAttribute('style'); t.removeAttribute('tabindex');
+      });
+      var box = g.getBoundingClientRect(), vb = g.viewBox.baseVal;
+      c.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      c.setAttribute('width', Math.round(vb && vb.width || box.width));
+      c.setAttribute('height', Math.round(vb && vb.height || box.height));
+      var r = d.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      r.setAttribute('x', vb ? vb.x : 0); r.setAttribute('y', vb ? vb.y : 0);
+      r.setAttribute('width', '100%'); r.setAttribute('height', '100%'); r.setAttribute('fill', bg);
+      c.insertBefore(r, c.firstChild);
+      out.push(new XMLSerializer().serializeToString(c));
+    });
+    document.body.dataset.r = JSON.stringify(out);
+  }, 300);
+};
+f.src = location.hash.slice(1);
+</script>
+"""
 CHART = r"""<iframe id=f style="width:800px;height:800px;border:0"></iframe>
 <script>
 f.onload = function () {
@@ -181,8 +198,7 @@ HOLDER = ("(function (a) { var t = document.getElementById(decodeURIComponent(a.
 
 
 def browse(page, paged):
-    """(swipes, chapters): [(step reached, steps)] of each live swipe after its strip is scrolled to the end, and for a
-    `paged` page ({check: [passed, tried]}, [failures]) of its chapter navigation; in real time."""
+    """(each live swipe's [step reached, steps] once scrolled to its end, a `paged` page's chapter_checks), in real time."""
     cmd_r, cmd_w = os.pipe()
     out_r, out_w = os.pipe()
     def fds():  # Chrome reads commands on fd 3 and answers on fd 4
@@ -365,14 +381,32 @@ def chart(chart):
                 out.append(f"{axis} axis {lo}..{hi} does not span the data {min(data)}..{max(data)}")
     return out
 
+def export(page, out):
+    """Write each figure of `page` to <out>/<page stem>-<n>.svg in the light scheme, printing each path."""
+    svgs = render(SVG, page, REDUCED, "--blink-settings=preferredColorScheme=1")[0]
+    if svgs is None:
+        print(f"check.py: could not read {page}", file=sys.stderr)
+        return 2
+    if not svgs:
+        print(f"no figure: {page} has no <svg role=\"img\"> or chart")
+        return 1
+    out.mkdir(parents=True, exist_ok=True)
+    for n, svg in enumerate(svgs, 1):
+        (out / f"{page.stem}-{n}.svg").write_text(svg)
+        print(out / f"{page.stem}-{n}.svg")
+    return 0
+
+
 def main():
-    if len(sys.argv) != 2:
-        print("usage: check.py <page.html>", file=sys.stderr)
+    if len(sys.argv) not in (2, 4) or len(sys.argv) == 4 and sys.argv[2] != "--svg":
+        print("usage: check.py <page.html> [--svg <out dir>]", file=sys.stderr)
         return 2
     page = pathlib.Path(sys.argv[1]).resolve()
     if not page.is_file() or not os.access(CHROME, os.X_OK):
         print(f"check.py: no file {page}" if not page.is_file() else f"check.py: no Chrome at {CHROME}", file=sys.stderr)
         return 2
+    if len(sys.argv) == 4:
+        return export(page, pathlib.Path(sys.argv[3]))
     runs = {(frame, mode): render(frame, page, *flags) for frame in (LAYOUT, KOREAN, CHART)
             for mode, flags in (("motion", ()), ("reduced", (REDUCED,))) if frame != KOREAN or mode == "motion"}
     if any(r is None for r, _ in runs.values()):
