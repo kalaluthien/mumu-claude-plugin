@@ -1,5 +1,11 @@
-#!/bin/sh
-cat > todo.py <<'PY'
+---
+max_turns: 8
+allowed_tools: [Read, Glob, Grep, Edit, Write, Bash, Skill]
+---
+
+Here is todo.py:
+
+```python
 import json, pathlib, sys
 
 STORE = pathlib.Path("todo.json")
@@ -26,4 +32,6 @@ def main(argv):
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
-PY
+```
+
+Users report that `python todo.py add ""` creates an empty item. Fix it so a blank title is rejected with an error.

@@ -1,5 +1,11 @@
-#!/bin/sh
-cat > orders.py <<'PY'
+---
+max_turns: 8
+allowed_tools: [Read, Glob, Grep, Edit, Write, Bash, Skill]
+---
+
+Here is orders.py:
+
+```python
 class Order:
     def __init__(self, price):
         self.price = price
@@ -18,4 +24,6 @@ class Order:
         assert self.state == "paid"
         self.refunded = self.price
         self.state = "refunded"
-PY
+```
+
+Add partial refunds to orders.py: refund(amount) may be called several times on a paid order, and the order counts as refunded once the refunds reach the price. An order must never end up both shipped and fully refunded.
