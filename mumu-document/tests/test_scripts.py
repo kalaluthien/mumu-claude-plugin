@@ -189,6 +189,8 @@ FAILS = [
     ('<div id="c">', '<div id="c" style="width:600px">', "FAIL: widest main > div#c"),
     ('<pre>git log --oneline main</pre>', '<div class="scroll"><table><thead><tr><th>도시</th><th>요청</th></tr></thead><tbody><tr><td>서울</td><td>1,240</td></tr><tr><td>부산</td><td>1,870</td></tr></tbody></table></div>', "units 1 tables FAIL: table 1 column '요청' has bare numbers"),
     ('<pre>git log --oneline main</pre>', '<div class="scroll"><table><thead><tr><th>도시</th><th>평균 지연</th></tr></thead><tbody><tr><td>서울</td><td>12.5</td></tr><tr><td>부산</td><td>-3</td></tr></tbody></table></div>', "column '평균 지연' has bare numbers"),
+    ("<pre>git log --oneline main</pre>", "<pre>def run():\n    a = 1\n    b = 2\n    return a + b</pre>",
+     "quotes code quote without path caption 'def run():' FAIL"),
 ]
 # (what to replace in GOOD, its replacement, a word no line may hold): each passes
 PASSES = [
@@ -200,6 +202,10 @@ PASSES = [
     ('<pre>git log --oneline main</pre>', '<div class="scroll"><table><thead><tr><th>도시</th><th>평균 지연</th></tr></thead><tbody><tr><td>서울</td><td>12.5 ms</td></tr><tr><td>부산</td><td>3 ms</td></tr></tbody></table></div>', 'bare numbers'),
     ('<pre>git log --oneline main</pre>', '<div class="scroll"><table><thead><tr><th>도시</th><th>비율</th></tr></thead><tbody><tr><td>서울</td><td>12%</td></tr><tr><td>부산</td><td>3%</td></tr></tbody></table></div>', 'bare numbers'),
     ('<pre>git log --oneline main</pre>', '<div class="scroll"><table><thead><tr><th>도시</th><th>지연 ms</th></tr></thead><tbody><tr><td>서울</td><td>12</td></tr><tr><td>부산</td><td>3</td></tr></tbody></table></div>', 'bare numbers'),
+    ("<pre>git log --oneline main</pre>", '<figure class="code"><figcaption><a href="https://github.com/o/r/blob/0123abc/queue.py#L3-L6">'
+     '<code>queue.py:3-6</code></a></figcaption><pre><code>def run():\n    a = 1\n<mark>    b = 2</mark>\n⋯\n'
+     '    return a + b</code></pre></figure>', "quotes"),
+    ("<pre>git log --oneline main</pre>", "<pre>def run():\n    a = 1\n    return a</pre>", "quotes"),
 ]
 # after the charts draw, which waits for the page to parse
 BREAK = ("<script>addEventListener('DOMContentLoaded', function () {"

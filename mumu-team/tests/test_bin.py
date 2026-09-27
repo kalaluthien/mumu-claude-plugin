@@ -565,11 +565,20 @@ elif a[:2] == ["agent", "start"]:
         sys.exit(1)
     print(json.dumps({"error": {"code": "agent_not_ready"}} if blocked else {"result": {}}))
 elif a[:2] == ["agent", "read"]:
-    print("Quick safety check\n ❯ No, exit\n   Yes, I trust this folder" if blocked else "❯")
+    typed = (d / "typed").read_text() if (d / "typed").exists() else ""
+    print("Quick safety check\n ❯ No, exit\n   Yes, I trust this folder" if blocked else "❯ " + typed)
 elif a[:2] == ["agent", "send-keys"] and a[3:] == ["down", "enter"] and blocked:
     (d / "answered").touch()
-elif a[:2] == ["agent", "prompt"]:
+elif a[:2] == ["agent", "send-keys"] and a[3:] == ["enter"] and (d / "typed").exists() and not (d / "dead").exists():
+    (d / "typed").unlink()
     (d / "prompted").touch()
+elif a[:2] == ["agent", "prompt"]:
+    unsent = d / "unsent"
+    if (d / "dead").exists() or unsent.exists():
+        unsent.unlink(missing_ok=True)
+        (d / "typed").write_text(a[3])
+    else:
+        (d / "prompted").touch()
 elif a[:2] == ["agent", "list"]:
     status = "blocked" if blocked else "working" if (d / "prompted").exists() else "idle"
     print(json.dumps({"result": {"agents": [{"name": (d / "name").read_text() if (d / "name").exists() else "", "pane_id": "w9:p9", "agent_status": status, "interactive_ready": not blocked}]}}))
@@ -628,6 +637,23 @@ class WorkerStart(unittest.TestCase):
         self.assertEqual(self.status(), "working")
         self.assertIn(["git", "-C", str(self.repo), "worktree", "add", "-b", "go-start-7-1", str(tree), "origin/main"], calls)
         self.assertEqual(sorted(p.name for p in (self.tmp / "hooks").iterdir()), ["pre-commit"])
+
+    def test_prompt_typed_but_unsent_is_sent_with_enter(self):
+        (self.tmp / "unsent").touch()
+        done, calls = self.start("--leader", "l", trust=False)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertTrue(done.stdout.startswith(f"go-start-7-1@{PANE} "), done.stdout)
+        self.assertEqual(self.status(), "working")
+        self.assertIn(["herdr", "agent", "send-keys", PANE, "enter"], calls)
+
+    def test_prompt_never_delivered_fails_naming_the_pane(self):
+        (self.tmp / "dead").touch()
+        done, calls = self.start("--leader", "l", trust=False)
+        self.assertEqual(done.returncode, 1)
+        self.assertIn(f"herdr agent read {PANE}", done.stderr)
+        self.assertEqual(done.stdout, "")
+        sends = [c for c in calls if c[1:3] == ["agent", "prompt"] or c[1:3] == ["agent", "send-keys"] and c[4:] == ["enter"]]
+        self.assertEqual(len(sends), 3, "one prompt and at most two resends")
 
     def test_tab_marks_the_session_a_worker(self):
         """The marker the lead monitors exit on (`scripts/team-watch.py`)."""

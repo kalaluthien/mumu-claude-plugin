@@ -48,6 +48,24 @@ def prompt(pane, text):
     run("herdr", "agent", "prompt", pane, text)
 
 
+def deliver(name, pane, text, timeout, poll, resends=2):
+    """Prompt agent `name` in `pane` with `text` until its turn starts: Enter when the text sits typed but unsent, else the text again, at most `resends` times."""
+    for attempt in range(resends + 1):
+        if attempt == 0:
+            prompt(pane, text)
+        elif text[:40] in screen(pane):
+            keys(pane, "enter")
+        else:
+            prompt(pane, text)
+        deadline = time.time() + timeout / (resends + 1)
+        while time.time() < deadline:
+            a = agent(name)
+            if a and a.get("agent_status") not in (None, "idle"):
+                return
+            time.sleep(poll)
+    raise RuntimeError(f"{name} never took its prompt after {resends} resends; see `herdr agent read {pane}`")
+
+
 def launch(name, pane, claude_args, timeout, poll):
     """Start Claude as agent `name` in `pane`, answering the folder-trust dialog, and return once it is ready for a prompt."""
     deadline = time.time() + timeout
