@@ -22,6 +22,6 @@ a loose document.
 - A `SKILL.md` names a path a command runs, or a file outside the skill's
   folder, as `${CLAUDE_PLUGIN_ROOT}/<path>`, substituted when the skill loads,
   since a command runs from any directory.
-- A link into the skill's own folder, such as `[lesson.md](references/lesson.md)`,
+- A link into the skill's own folder, such as `[skill-authoring.md](references/skill-authoring.md)`,
   stays relative, and so does every link from a file opened with Read, which
   is read verbatim with nothing substituted: relative to that file.
