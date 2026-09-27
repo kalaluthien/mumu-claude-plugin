@@ -106,6 +106,23 @@ class Diagram(unittest.TestCase):
                 self.assertTrue(box["left"] <= token["left"] and token["right"] <= box["right"]
                                 and box["top"] <= token["top"] and token["bottom"] <= box["bottom"], (token, box))
 
+    def test_swipe_steps_by_button_and_counts(self):
+        p = self.open(page("use-case"), viewport={"width": 360, "height": 800})
+        root, n = p.locator("[data-swipe]"), p.locator(".steps > li").count()
+        back, next_ = p.locator("[data-swipe] .controls button").nth(0), p.locator("[data-swipe] .controls button").nth(1)
+        count = p.locator("[data-swipe] .controls .count")
+        self.assertEqual(count.text_content(), f"1 / {n}")
+        self.assertTrue(back.is_disabled())
+        for k in range(2, n + 1):
+            next_.click()
+            p.wait_for_function("(k) => +document.querySelector('[data-swipe]').dataset.at === k - 1", arg=k, timeout=3000)
+            self.assertEqual(count.text_content(), f"{k} / {n}")
+        self.assertTrue(next_.is_disabled())
+        back.click()
+        p.wait_for_function("(n) => +document.querySelector('[data-swipe]').dataset.at === n - 2", arg=n, timeout=3000)
+        self.assertEqual(root.evaluate("(r) => [...r.querySelectorAll('.controls button')].map((b) => b.getAttribute('aria-label'))"),
+                         ["뒤로", "다음"])
+
     def test_focus_highlights_connections(self):
         for kind, edits, node, reached, far in FOCUS:
             with self.subTest(kind):
