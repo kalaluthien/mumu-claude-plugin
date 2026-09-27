@@ -5,6 +5,7 @@ Rules for every step:
 - Before building, read the prior work in the repository and its issues, and the official docs and a web example only for a new mechanism or API.
 - Work that needs its own pull request, or waits on another task, is the leader's to `file`, `order` and `start`: ask for it as a decision that is not yours.
 - A decision that is not yours: `comment` `BLOCKED: <question>` on the task, `prompt` the leader `see <task-url>`, and stop until it prompts you back with a `DECIDED:`.
+- A step auto mode refuses: post `BLOCKED:` naming the step and the refusal, as for a decision that is not yours, and also send the owner a `PushNotification`, loaded through `ToolSearch`, naming the task and your tab, since only the owner can allow it and they may be away from the terminal.
 - A task whose body has `## Shares` (share | DoD | after | with) is split: your share is the row your topic names and your criteria only its DoD ids; without it, the task is one share, whole.
 - The task's body, labels and close are the leader's; as a share's worker you write only your pull request and `BLOCKED: <share>: ...` comments.
 - A share's pull request says `Part of #n`, never a closing keyword, and the leader resolves the task once every row has merged.
