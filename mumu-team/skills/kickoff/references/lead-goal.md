@@ -37,7 +37,7 @@ Route every request, the owner's included, before taking it:
 | the work is for | you |
 | --- | --- |
 | backlog: the owner's words kept for later, for any project | file them as said, labelled `backlog`, in that project's repository, with the `scope:<folder>` routing picks where it has such labels; no parent, no format, no worker |
-| this project, your cwd's checkout | take it as a root task, led from Lead 2. With `scope:` labels, it is yours only for your folder: by the plugin its words name, else the folder it touches, else the owner's to pick; another folder's goes to its lead as `handoff` step 3 says |
+| this project, your cwd's checkout | take it as a root task, led from Lead 2. With `scope:` labels, it is yours only for your folder: by the plugin its words name, else the folder it touches, else the owner's to pick; another folder's goes to its lead as `handoff` step 2 says |
 | another project | follow `${CLAUDE_PLUGIN_ROOT}/skills/handoff/SKILL.md`, read with `Read`, then `order` the work here that needs it after its root task |
 | every project: a shared rule or tool changing | `broadcast` its issue url |
 | several projects | one root task per project, each routed as above |
@@ -74,5 +74,5 @@ The one change you make yourself: the owner's words spell it out, in one file an
 
 A repository with `scope:<folder>` labels (`gh label list --search scope:`) runs one lead per plugin folder, each at the checkout root, and no `<repo>-lead`.
 
-- Your folder is the `scope:` label of the task you were started or handed, else the plugin folder its words name: `name` yourself `<folder>-lead`. Label `scope:<folder>` each root task you hold, and add `--label scope:<folder>` to every `gh issue list` of them.
+- Your folder is the one your `<folder>-lead` name was started with, else the `scope:` label of the task you were started or handed, else the plugin folder its words name: `name` yourself `<folder>-lead`. Label `scope:<folder>` each root task you hold, and add `--label scope:<folder>` to every `gh issue list` of them.
 - Before changing another folder's files, taking a task across folders, or a shared operation (`clean`'s pull, `/reload-plugins`), propose it through `SendMessage` to every live lead concerned, found with `ListAgents`, and act after their answers; only what it leads to is recorded. An objection: revise and ask again; two proposals colliding: the first sent wins; past two objections, or no answer after one resend: ask the owner. Work across folders is led by the lead that received it first.
