@@ -35,7 +35,7 @@ open model                         -- check.als: what must hold of it
 -- "An order must never end up both shipped and fully refunded."
 assert NeverShippedAndRefunded { ... }  -- named for what holds
 check NeverShippedAndRefunded for 3 expect 0
-run refund for 3 expect 1          -- shows the model has an instance
+run refund for 3 expect 1          -- a flow run: the use case has an instance
 ```
 
 Properties come from the owner's words: each sentence stating never, always, only after or at most becomes one assert quoting it, ranked by harm (money, data, safety first). Each module asserts every step stays inside its `trans`, and each call into a `Remote` gets a `Fail` outcome with a check that the caller stays inside `trans`; these two quote the `trans` or the `Remote` they guard, not an owner's sentence. State that changes hangs on the noun it belongs to as a `var` field, never on one `Time` sig holding every field, so a drawn sig shows its own state. Delete a field or edge that no rule reads.
@@ -46,11 +46,11 @@ Syntax that misleads: a `module` name has no hyphen and equals its path; a tempo
 
 ## Check
 
-Every `check` and `run` carries `expect`: `alloy exec` exits 0 on a counterexample without one. Run `${CLAUDE_PLUGIN_ROOT}/skills/spec/scripts/verify.sh` at the repo's root, never a copy in the repo: it names each missed or missing expect, and each `check` with no `refuses_<Name>` in a test file, one under `test/`, `tests/`, `__tests__/` or `androidTest/` or named `test_*`, `*_test.*`, `*.test.*` or `*Test.<ext>`, never under `spec/`, `docs/` or `build/`. Start at `for 3` and raise the scope while each check finishes within a minute.
+Every `check` and `run` carries `expect`: `alloy exec` exits 0 on a counterexample without one. Run `${CLAUDE_PLUGIN_ROOT}/skills/spec/scripts/verify.sh` at the repo's root, never a copy in the repo: it names each missed or missing expect, each `check` with no `refuses_<Name>` and each flow run with no `scenario_<pred>` in a test file, one under `test/`, `tests/`, `__tests__/` or `androidTest/` or named `test_*`, `*_test.*`, `*.test.*` or `*Test.<ext>`, never under `spec/`, `docs/` or `build/`. Start at `for 3` and raise the scope while each check finishes within a minute.
 
 ## Check the code against the model
 
-Each `pred`'s guard is a precondition the code checks before the effect, and its effect the only state it changes; each `fact` and `assert` is an invariant the code never breaks. Each `check <Name>` has a test `refuses_<Name>` that drives the entry point toward the forbidden state and fails when the guarding code is removed.
+Each `pred`'s guard is a precondition the code checks before the effect, and its effect the only state it changes; each `fact` and `assert` is an invariant the code never breaks. Each `check <Name>` has a test `refuses_<Name>` that drives the entry point toward the forbidden state and fails when the guarding code is removed. A flow run names a pred alone, `run refund`, one use case the model allows, and has a test `scenario_<pred>` that drives that flow end to end; a run with its own `{ }` body is a guard run, the SAT pairing a check, and needs none.
 
 A green check can hold without its rule:
 
