@@ -39,10 +39,12 @@ Before writing any section, the author settles the whole piece, in this order:
 4. **Form**: each section the one form that carries its point: a sentence for
    a claim, a list for parallel items, a table for values compared across
    rows, a figure or widget by Mapping; whatever does not prove the claim is
-   cut.
+   cut. A figure's or table's caption says what to read off it, and the
+   sentence before it names it.
 5. **Widgets**: at most 1 under each `h2` or `h3` and 5 on a page, of them at
    most 2 `filter` or `controls`, since most readers never touch a control and
-   the claim stands in the text too; more is a second page.
+   the claim stands in the text too; one sentence before a widget the reader
+   drives says what to try; more is a second page.
 6. **Ending**: the last section says what the reader does next, or that
    nothing is needed, and repeats no summary.
 
