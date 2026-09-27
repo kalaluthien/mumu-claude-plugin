@@ -638,15 +638,17 @@ class WorkerStart(unittest.TestCase):
         done, _ = self.start(trust=False)
         self.assertEqual(done.returncode, 0, done.stderr)
 
-    def test_a_split_needs_two_rows_with_no_after_between_them(self):
-        head = "## Goal\nx\n\n## Shares\n\n| share | DoD | after | with |\n| --- | --- | --- | --- |\n"
-        chain = head + "| go-start | D1 | | |\n| go-next | D2 | go-start | |\n| go-last | D3 | go-next | |\n"
-        self.refused("no two rows without an `after`", body=chain)
-        self.refused("no two rows without an `after`", body=head + "| go-start | D1 | | |\n")
-        (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": [{"name": "effort:low"}],
-                                                    "body": chain + "| go-side | D4 | go-start | |\n"}))
+    def test_a_purely_sequential_split_starts_each_row_once_its_after_rows_merged(self):
+        body = ("## Goal\nx\n\n## Shares\n\n| share | DoD | after | with |\n| --- | --- | --- | --- |\n"
+                "| go-first | D1 | | |\n| go-start | D2 | go-first | |\n| go-last | D3 | go-start | |\n")
+        self.refused("is after go-first", body=body)
+        (self.tmp / "merged").write_text("go-first-7-1\n")
+        (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": [{"name": "effort:low"}], "body": body}))
         done, _ = self.start(trust=False)
         self.assertEqual(done.returncode, 0, done.stderr)
+        done, _ = self.start(trust=False, topic="go-last")
+        self.assertEqual(done.returncode, 1, done.stdout)
+        self.assertIn("is after go-start", done.stderr)
 
     def test_low_and_medium_start(self):
         for effort in ("low", "medium"):

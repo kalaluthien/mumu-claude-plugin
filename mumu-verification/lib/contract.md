@@ -16,11 +16,11 @@ A change is checked against a contract that predates it, stated so that a check 
 - Use the repo's layout. With none, initialise the default the skill names and tell the owner "no <kind> layout found; initialised <path>".
 - Read the bar where the repo states it (CI, a contributing guide, agent instructions); with none, the spec skill's `scripts/verify.sh` passes, a branch's p95 is at most the worst of 5 runs of main on the same instrument, and a skill's number is its default. Asked where verification stands, give each kind's layout, coverage, last result and gap to the bar.
 - The owner sets the bar and judges traces; the agent writes the checks and the change, and never judges a trace for the owner.
-- Code a spec or test must observe writes the event log; a transition with no line is a gap to report.
+- A transition no test reads from state, nor from an end-to-end run, is observed by the event log; code with no line there is a gap to report.
 - Write the check before the change and watch it fail for the reason the change addresses. An eval comes first only for a failure mode seen in a trace or a hard constraint the owner stated; otherwise error analysis does.
 - A before and after is a delta only from the same instrument, run, unit and sha: re-measure the old side, and restart after a merge mid-run rather than splice.
 - A check asserts a contract or a path, never one output byte for byte.
-- A failing check is a defect in the change or the design: never loosen a check, a fact or a scope to make it pass.
+- A failing check is a defect in the change or the design: never loosen a check, a fact or a scope to make it pass, but to mark a code gap `gap #<issue>` as the test skill says.
 
 ## Breaking a check
 
