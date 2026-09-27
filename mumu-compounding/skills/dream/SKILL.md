@@ -30,6 +30,7 @@ file for every project.
    done
    ls "$root"/*/memory | grep '\.md$' | grep -vx MEMORY.md | sort | uniq -d | sed 's/^/duplicate name: /'
    SH
+   "${CLAUDE_PLUGIN_ROOT}/scripts/confirmations.py" stale "<config>"
    ```
 
 2. Read every pool's files, and route each entry through the table in
@@ -44,7 +45,9 @@ file for every project.
      holds, hand the edit, naming the file and the lesson, to that
      project's lead through `/mumu-team:handoff` instead, and the entry
      goes at a later round that finds it stated;
-   - an entry the repository already states: DELETE it.
+   - an entry the repository already states: DELETE it;
+   - a lesson `stale` lists, never found again in 60 days: DELETE it, at
+     the cost that line prints, only when the owner picks it.
 3. No fix found that was not rejected in this call: say so, with the
    fixes applied in earlier rounds, and stop, offering no other change;
    in the first round, write nothing.

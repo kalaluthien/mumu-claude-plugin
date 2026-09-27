@@ -1,0 +1,351 @@
+{
+ "about": "Hand-labelled harvest candidates of #208 D1, labelled by two subagents from the raw transcripts and GitHub before takeaway.py candidates existed. Each transcript is ~/.claude/projects/<folder>/<session>.jsonl cut to its first <lines> lines, its window the work since the last completed harvest; compacted: a compact_boundary lies in that window.",
+ "transcripts": {
+  "24db7c6e-d831-43c5-afd2-b5061759fe3c": {
+   "folder": "-Users-hyungmokim-workspace-plugins--claude-worktrees-owner-overrides-lessons-205-1",
+   "lines": 495,
+   "compacted": false,
+   "labels": [
+    {
+     "kind": "failure",
+     "at": "2026-09-27T05:52:15.655Z",
+     "uuid": "bfe552cf-04a4-4b84-830d-b1a251daa098"
+    },
+    {
+     "kind": "refusal",
+     "at": "2026-09-27T06:01:13.768Z",
+     "uuid": "c8d32f42-36ad-4769-8ab4-474f1433e762"
+    },
+    {
+     "kind": "failure",
+     "at": "2026-09-27T06:01:28.152Z",
+     "uuid": "110146dd-93f7-4d8f-a0a9-271e59fed134"
+    },
+    {
+     "kind": "failure",
+     "at": "2026-09-27T06:01:44.601Z",
+     "uuid": "6682bd32-4384-4f88-8356-f86afe0365cc"
+    },
+    {
+     "kind": "failure",
+     "at": "2026-09-27T06:02:28.669Z",
+     "uuid": "1d5ee141-7738-4e06-a43e-c7b917d353a6"
+    }
+   ]
+  },
+  "41a3a369-4df0-4417-8cb5-0e49494c10e0": {
+   "folder": "-Users-hyungmokim-workspace-plugins",
+   "lines": 550,
+   "compacted": true,
+   "labels": [
+    {
+     "kind": "refusal",
+     "at": "2026-09-26T04:49:22.380Z",
+     "uuid": "82091489-5121-4f9e-9c8d-f2209ee150b6"
+    }
+   ]
+  },
+  "6e700295-01ca-4565-bdcf-845020e6d28b": {
+   "folder": "-Users-hyungmokim-workspace-plugins",
+   "lines": 552,
+   "compacted": false,
+   "labels": [
+    {
+     "kind": "override",
+     "at": "2026-09-26T01:00:28.463Z",
+     "uuid": "a9e1095b-6abb-4581-bff7-6a92c534aca3"
+    },
+    {
+     "kind": "override",
+     "at": "2026-09-26T01:00:28.463Z",
+     "uuid": "a9e1095b-6abb-4581-bff7-6a92c534aca3"
+    },
+    {
+     "kind": "override",
+     "at": "2026-09-26T01:00:28.463Z",
+     "uuid": "a9e1095b-6abb-4581-bff7-6a92c534aca3"
+    },
+    {
+     "kind": "override",
+     "at": "2026-09-26T01:05:52.344Z",
+     "uuid": "b41ab255-0e0a-4501-b631-78a64fda3bbb"
+    },
+    {
+     "kind": "override",
+     "at": "2026-09-26T01:05:52.344Z",
+     "uuid": "b41ab255-0e0a-4501-b631-78a64fda3bbb"
+    },
+    {
+     "kind": "override",
+     "at": "2026-09-26T01:05:52.344Z",
+     "uuid": "b41ab255-0e0a-4501-b631-78a64fda3bbb"
+    },
+    {
+     "kind": "override",
+     "at": "2026-09-26T01:10:17.489Z",
+     "uuid": "cd5834a0-1fc8-4eae-a92b-c2eccbd80878"
+    },
+    {
+     "kind": "override",
+     "at": "2026-09-26T01:10:17.489Z",
+     "uuid": "cd5834a0-1fc8-4eae-a92b-c2eccbd80878"
+    },
+    {
+     "kind": "override",
+     "at": "2026-09-26T01:16:35.477Z",
+     "uuid": "2f4b1361-a781-45bd-a24f-946d353b2757"
+    },
+    {
+     "kind": "findings",
+     "at": "2026-09-26T01:17:59Z",
+     "url": "https://github.com/kalaluthien/dotclaude/issues/52#issuecomment-5841876383"
+    },
+    {
+     "kind": "findings",
+     "at": "2026-09-26T01:22:52Z",
+     "url": "https://github.com/kalaluthien/mumu-claude-plugin/issues/103#issuecomment-5841909081"
+    }
+   ]
+  },
+  "737020a6-6dc6-44fd-8e3d-ec8be448bfa5": {
+   "folder": "-Users-hyungmokim-workspace-plugins--claude-worktrees-charts-77",
+   "lines": 1552,
+   "compacted": true,
+   "labels": [
+    {
+     "kind": "failure",
+     "at": "2026-09-25T13:58:03.078Z",
+     "uuid": "42e0459c-849c-4498-a54d-bc29f8a5926f"
+    },
+    {
+     "kind": "failure",
+     "at": "2026-09-25T14:11:39.603Z",
+     "uuid": "057a6389-cff3-41e7-b47e-ad0507b56b99"
+    },
+    {
+     "kind": "failure",
+     "at": "2026-09-25T14:33:04.907Z",
+     "uuid": "1e173e8a-f300-436d-9dc4-3d4e81e12e92"
+    },
+    {
+     "kind": "blocked",
+     "at": "2026-09-25T14:45:38Z",
+     "url": "https://github.com/kalaluthien/mumu-claude-plugin/issues/77#issuecomment-5834328666"
+    }
+   ]
+  },
+  "8085e3af-43bb-419e-8922-fc57723f00c7": {
+   "folder": "-Users-hyungmokim-workspace-plugins--claude-worktrees-verification-skill-use-216-1",
+   "lines": 1324,
+   "compacted": true,
+   "labels": [
+    {
+     "kind": "failure",
+     "at": "2026-09-27T02:51:00.240Z",
+     "uuid": "0d5ab813-83a9-4824-8af8-c32e973dafb4"
+    },
+    {
+     "kind": "redo",
+     "at": "2026-09-27T02:53:31.999Z",
+     "uuid": "b22f19e8-2fe1-4c7e-b271-1347f4fe0080"
+    },
+    {
+     "kind": "failure",
+     "at": "2026-09-27T03:10:41.361Z",
+     "uuid": "e2c67cc9-69b2-4953-b887-8087b18be54c"
+    },
+    {
+     "kind": "failure",
+     "at": "2026-09-27T03:16:44.941Z",
+     "uuid": "465ff55e-f1a5-4fc6-8c0c-014212c490b0"
+    }
+   ]
+  },
+  "a571ab49-19ad-47d9-8f12-6bbc7ee0951b": {
+   "folder": "-Users-hyungmokim-workspace-plugins--claude-worktrees-widen-allowances-228-1",
+   "lines": 411,
+   "compacted": false,
+   "labels": [
+    {
+     "kind": "refusal",
+     "at": "2026-09-27T05:54:33.800Z",
+     "uuid": "a42b5b06-ad23-40c7-8bcf-d2da3b1d92f9"
+    },
+    {
+     "kind": "blocked",
+     "at": "2026-09-27T05:54:42Z",
+     "url": "https://github.com/kalaluthien/mumu-claude-plugin/issues/228#issuecomment-5853157522"
+    },
+    {
+     "kind": "refusal",
+     "at": "2026-09-27T06:08:32.900Z",
+     "uuid": "d5676ee2-2ca1-4a7b-90cd-b92c05773e1a"
+    },
+    {
+     "kind": "refusal",
+     "at": "2026-09-27T06:10:41.726Z",
+     "uuid": "672f1acf-ad7f-440c-b0a5-5342b6186865"
+    },
+    {
+     "kind": "refusal",
+     "at": "2026-09-27T06:17:44.101Z",
+     "uuid": "550c74ab-bbdd-4294-863b-9a9c1fc6396c"
+    },
+    {
+     "kind": "failure",
+     "at": "2026-09-27T06:18:31.074Z",
+     "uuid": "dd81643c-46a4-4167-8ddd-bec0a68b7156"
+    },
+    {
+     "kind": "failure",
+     "at": "2026-09-27T06:22:55.171Z",
+     "uuid": "cb952646-3ac6-4736-844a-9f685d649a14"
+    },
+    {
+     "kind": "refusal",
+     "at": "2026-09-27T06:23:22.053Z",
+     "uuid": "1cd0b257-4730-44ef-9147-9dcc1137f20f"
+    }
+   ]
+  },
+  "aab6850b-83a2-4eeb-90ae-7b569c2b51f1": {
+   "folder": "-Users-hyungmokim-workspace-plugins--claude-worktrees-worker-close-79",
+   "lines": 60,
+   "compacted": false,
+   "labels": []
+  },
+  "adf981ee-3fbf-498a-b81b-23fe3f0f9429": {
+   "folder": "-Users-hyungmokim-workspace-plugins",
+   "lines": 2106,
+   "compacted": true,
+   "labels": [
+    {
+     "kind": "override",
+     "at": "2026-09-27T05:26:49.208Z",
+     "uuid": "30738e18-4afb-4b44-b94e-9cb5bb329854"
+    },
+    {
+     "kind": "override",
+     "at": "2026-09-27T05:29:59.644Z",
+     "uuid": "8ed62dbd-fadd-416f-bcd0-78196ec34f6d"
+    },
+    {
+     "kind": "override",
+     "at": "2026-09-27T05:34:38.762Z",
+     "uuid": "d0ff8cf9-3062-4067-b5fb-4d3edd70e538"
+    },
+    {
+     "kind": "override",
+     "at": "2026-09-27T05:41:17.219Z",
+     "uuid": "b73485a5-625e-4f0b-9300-5bd8c8c99d7f"
+    },
+    {
+     "kind": "override",
+     "at": "2026-09-27T05:41:17.219Z",
+     "uuid": "b73485a5-625e-4f0b-9300-5bd8c8c99d7f"
+    },
+    {
+     "kind": "override",
+     "at": "2026-09-27T05:41:17.219Z",
+     "uuid": "b73485a5-625e-4f0b-9300-5bd8c8c99d7f"
+    },
+    {
+     "kind": "blocked",
+     "at": "2026-09-27T05:52:32Z",
+     "url": "https://github.com/kalaluthien/dotclaude/issues/84#issuecomment-5853142652"
+    },
+    {
+     "kind": "blocked",
+     "at": "2026-09-27T06:01:37Z",
+     "url": "https://github.com/kalaluthien/dotclaude/issues/84#issuecomment-5853204428"
+    },
+    {
+     "kind": "blocked",
+     "at": "2026-09-27T06:11:49Z",
+     "url": "https://github.com/kalaluthien/dotclaude/issues/84#issuecomment-5853260834"
+    },
+    {
+     "kind": "override",
+     "at": "2026-09-27T06:49:34.347Z",
+     "uuid": "c7630faf-3d8a-4aea-b218-588753c23723"
+    }
+   ]
+  },
+  "aef1a790-68af-47b7-a6a9-8b71129b1131": {
+   "folder": "-Users-hyungmokim-workspace-plugins--claude-worktrees-worker-agreement-213-1",
+   "lines": 349,
+   "compacted": false,
+   "labels": [
+    {
+     "kind": "refusal",
+     "at": "2026-09-27T02:27:13.219Z",
+     "uuid": "b6140763-cf17-411e-8711-95ed1e2a5a3a"
+    },
+    {
+     "kind": "failure",
+     "at": "2026-09-27T02:31:30.506Z",
+     "uuid": "fc839bc7-12ef-4fdf-92ca-a6837b2f31fd"
+    },
+    {
+     "kind": "failure",
+     "at": "2026-09-27T02:31:38.274Z",
+     "uuid": "69e067b2-01f6-4ce0-b938-be5bdf312e7a"
+    },
+    {
+     "kind": "failure",
+     "at": "2026-09-27T02:31:40.553Z",
+     "uuid": "4a80f3c5-b2ab-41c7-a77e-ecf45b89b834"
+    }
+   ]
+  },
+  "c9ad4927-84bf-4dfe-a795-3e48982d7c40": {
+   "folder": "-Users-hyungmokim-workspace-plugins--claude-worktrees-guard-main-ruleset-236-1",
+   "lines": 393,
+   "compacted": false,
+   "labels": [
+    {
+     "kind": "refusal",
+     "at": "2026-09-27T06:43:42.429Z",
+     "uuid": "07c8aabf-de36-498a-b03a-c92b7f9d7537"
+    },
+    {
+     "kind": "refusal",
+     "at": "2026-09-27T06:44:11.333Z",
+     "uuid": "a23735d3-3a51-4acc-b0c0-148c99d617aa"
+    },
+    {
+     "kind": "refusal",
+     "at": "2026-09-27T06:46:56.062Z",
+     "uuid": "a1ebc724-1561-43b3-8b59-2316142d2351"
+    },
+    {
+     "kind": "refusal",
+     "at": "2026-09-27T06:47:35.527Z",
+     "uuid": "3a0ace5e-1d3d-4e67-96c6-a7cecd21b1cc"
+    }
+   ]
+  },
+  "e60207f1-71d6-4b4e-ad59-7930a42f3ef4": {
+   "folder": "-Users-hyungmokim-workspace-plugins--claude-worktrees-cut-rules-158-1",
+   "lines": 1068,
+   "compacted": true,
+   "labels": [
+    {
+     "kind": "failure",
+     "at": "2026-09-26T08:49:10.360Z",
+     "uuid": "3a6ffde3-c3bc-434e-90d3-b0db8d5dcee8"
+    },
+    {
+     "kind": "failure",
+     "at": "2026-09-26T08:59:25.983Z",
+     "uuid": "9518a439-a185-4848-baea-09851883c281"
+    },
+    {
+     "kind": "refusal",
+     "at": "2026-09-26T09:10:56.463Z",
+     "uuid": "83592ad7-31c5-487c-a7f1-8527cc74f500"
+    }
+   ]
+  }
+ }
+}

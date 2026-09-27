@@ -145,5 +145,76 @@ class Dream(Hook):
         self.assertTrue(self.stamp.exists())
 
 
+def entry(minutes_ago, *blocks, **extra):
+    at = datetime.now(timezone.utc) - timedelta(minutes=minutes_ago)
+    kind = "assistant" if blocks and blocks[0].get("type") == "tool_use" else "user"
+    return {"type": kind, "timestamp": at.isoformat().replace("+00:00", "Z"), "message": {"content": list(blocks)},
+            **extra}
+
+
+def bash(id_, command):
+    return {"type": "tool_use", "id": id_, "name": "Bash", "input": {"command": command}}
+
+
+def result(id_, text, error=False):
+    return {"type": "tool_result", "tool_use_id": id_, "content": text, "is_error": error}
+
+
+class Candidates(unittest.TestCase):
+    """`takeaway.py candidates <transcript>`: the surprises since the last harvest."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.dir = pathlib.Path(tmp.name)
+        bin_ = self.dir / "bin"
+        bin_.mkdir()
+        # a fake gh: one FINDINGS comment inside the window and one before it on issue 7
+        (bin_ / "gh").write_text("#!/bin/sh\ncase \"$*\" in *issues/7/comments*) cat \"%s\";; *) exit 1;; esac\n"
+                                 % (self.dir / "comments.jsonl"))
+        (bin_ / "gh").chmod(0o755)
+        self.env = dict(os.environ, PATH=f"{bin_}:{os.environ['PATH']}")
+
+    def lines(self, entries, comments=()):
+        (self.dir / "comments.jsonl").write_text("".join(json.dumps(c) + "\n" for c in comments))
+        transcript = self.dir / "t.jsonl"
+        transcript.write_text("".join(json.dumps(e) + "\n" for e in entries))
+        return subprocess.run(["python3", str(HOOK), "candidates", str(transcript)], env=self.env,
+                              capture_output=True, text=True, check=True).stdout.splitlines()
+
+    def test_each_signal_since_the_last_harvest_compaction_included(self):
+        ask = {"type": "tool_use", "id": "q", "name": "AskUserQuestion", "input": {"questions": [
+            {"question": "Lock or merge?", "options": [{"label": "Lock (Recommended)"}, {"label": "Merge"}]}]}}
+        stamp = (datetime.now(timezone.utc) - timedelta(minutes=45)).isoformat().replace("+00:00", "Z")
+        before = (datetime.now(timezone.utc) - timedelta(minutes=300)).isoformat().replace("+00:00", "Z")
+        entries = [entry(200, bash("0", "false")), entry(199, result("0", "Exit code 1", True)),
+                   summary(190, True), summary(189, False),
+                   entry(60, bash("1", "npm test")), entry(59, result("1", "Exit code 1", True)),
+                   {"type": "system", "subtype": "compact_boundary"},
+                   entry(50, bash("2", "rm x")), entry(49, result("2", "Permission for this action was denied", True)),
+                   entry(40, ask), entry(39, result("q", "answered"), toolUseResult={"answers": {"Lock or merge?": "Merge"}}),
+                   entry(30, bash("3", "git commit --amend --no-edit && gh issue view 7 -R o/r")),
+                   entry(29, result("3", "ok"))]
+        comments = [{"body": "FINDINGS:\n- a defect", "created_at": stamp, "html_url": "https://github.com/o/r/issues/7#c1"},
+                    {"body": "FINDINGS: old", "created_at": before, "html_url": "https://github.com/o/r/issues/7#c0"},
+                    {"body": "APPROVED: abc", "created_at": stamp, "html_url": "https://github.com/o/r/issues/7#c2"}]
+        out = self.lines(entries, comments)
+        kinds = [line.split()[1] for line in out[:-1]]
+        self.assertEqual(sorted(kinds), ["failure", "findings", "override", "redo", "refusal"])
+        self.assertIn("https://github.com/o/r/issues/7#c1", "\n".join(out))
+        self.assertEqual(out[-1], "candidates: 5")
+
+    def test_a_harvest_running_now_does_not_end_the_window(self):
+        entries = [entry(60, bash("1", "npm test")), entry(59, result("1", "Exit code 1", True)), summary(1, True)]
+        self.assertEqual(self.lines(entries)[-1], "candidates: 1")
+
+    def test_a_quiet_session_has_none(self):
+        entries = [entry(60, bash("1", "ls")), entry(59, result("1", "a b")),
+                   entry(40, {"type": "tool_use", "id": "q", "name": "AskUserQuestion", "input": {"questions": [
+                       {"question": "Q?", "options": [{"label": "A (Recommended)"}, {"label": "B"}]}]}}),
+                   entry(39, result("q", "answered"), toolUseResult={"answers": {"Q?": "A (Recommended)"}})]
+        self.assertEqual(self.lines(entries), ["candidates: 0"])
+
+
 if __name__ == "__main__":
     unittest.main()
