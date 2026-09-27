@@ -35,12 +35,15 @@ def main(argv):
     one = parser.add_mutually_exclusive_group()  # a task url or --succeed, not both
     one.add_argument("task", nargs="?")
     one.add_argument("--succeed")
+    parser.add_argument("--folder")  # a folder lead: `<folder>-lead`, with a task or none
     a = parser.parse_args(argv)
+    if a.folder and a.succeed:
+        parser.error("--folder: a successor keeps its original's name")
     try:
         repo = names.checkout(a.checkout)
         if a.succeed and not flags and os.environ.get("CLAUDE_PID"):  # the original's own flags, read from its process
             flags = inherited(run("ps", "-o", "args=", "-p", os.environ["CLAUDE_PID"]))
-        lead = a.succeed and (herdr.agent(a.succeed, "pane_id") or {}).get("name") or names.lead(repo_view("name", repo))  # a folder lead keeps its name
+        lead = a.succeed and (herdr.agent(a.succeed, "pane_id") or {}).get("name") or names.lead(a.folder or repo_view("name", repo))  # a successor keeps its name
         if not a.succeed and herdr.agent(lead):
             raise RuntimeError(f"{lead} is already live; prompt it instead")
         name = lead + "-next" if a.succeed else lead
