@@ -12,7 +12,7 @@
    - `idle <name>`: `read` its task and pull request, answer what waits on you, else `prompt` the worker `see <task-url>`;
    - `team idle <m>m`, or you resumed: `read` each open root task you hold, and its pull request or report comment, and act on each as if its notice had arrived;
    - `working <name>`: nothing; a monitor's expiry notice: arm the command the Stop hook names;
-   - the owner changes direction: `decide` the change on each issue affected and `prompt` its worker `see <task-url>`; built work the owner rejects is replanned from the task's definition of done into new tasks, its pull request closed unmerged and named in them as content to read, never form to follow;
+   - the owner changes direction: `decide` the change on each issue affected and `prompt` its worker `see <task-url>`; built work the owner rejects is replanned on the same task, reopened with its criteria widened by `decide.py --criteria` and led under a new attempt, its pull request closed unmerged and named on it as content to read, never form to follow;
    - the owner stops a task: `stop` it, `close` its worker, and `comment` on it its pull request and what is left;
    - the owner asks where work stands: `read` each task named, else each you hold, and its pull request or report comment, and report one row per task: its state, that pull request or comment, and its worker's `agent_status` in `live`, or none.
 5. A task closed, `close` its worker and `clean`. When you then hold no open root task and no worker is live, `prompt` yourself `/compact Keep only: each task closed this session with its url, PR and one-line result; open backlog issues; drop tool output.`
