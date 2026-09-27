@@ -179,6 +179,7 @@ class MergeGate(unittest.TestCase):
 
 U = "https://github.com/o/r/issues/7"
 LONG, FORTY = "Fix " + "x" * 37, "Fix " + "x" * 36
+BODY = "## Goal\n\nx\n\n## Definition of done\n\n- D1: a → b\n"
 
 # (agent, command, the refusal's words or None when it passes): a rule of the kickoff skill each role keeps.
 ROLE_CASES = [
@@ -193,9 +194,9 @@ ROLE_CASES = [
     ("lead", f"decide.py {U} <<'EOF'\nuse x\nEOF", None),
     ("worker", f"decide.py {U} < /tmp/d", "the lead's"),
     ("worker", f"gh pr comment 1 --body-file approval.md", "reviewer's alone"),
-    ("lead", f'gh issue create -R o/r --title "{LONG}" --label effort:low --body-file - <<\'EOF\'\nb\nEOF', "at most 40"),
+    ("lead", f'gh issue create -R o/r --title "{LONG}" --label effort:low --body-file - <<\'EOF\'\n{BODY}EOF', "at most 40"),
     ("worker", f'gh pr create --base main --head b --title "{LONG}" --body-file -', "at most 40"),
-    ("lead", f'gh issue create -R o/r --title "{FORTY}" --label effort:low --body-file - <<\'EOF\'\nb\nEOF', None),
+    ("lead", f'gh issue create -R o/r --title "{FORTY}" --label effort:low --body-file - <<\'EOF\'\n{BODY}EOF', None),
     ("worker", f"gh issue edit {U} --add-label effort:low", "its lead's"),
     ("worker", f'gh issue close {U} --reason "not planned" --comment x', "its lead's"),
     ("worker", f"gh issue reopen {U}", "its lead's"),
@@ -203,6 +204,15 @@ ROLE_CASES = [
     ("lead", f"gh issue edit {U} --add-label effort:low", None),
     ("lead", f'gh issue close {U} --reason "not planned" --comment x', None),
     ("worker", "gh pr edit 1 --body-file - <<'EOF'\nCloses #7\nEOF", None),
+    ("lead", f"gh issue create -R o/r --title t --label effort:low --body-file - <<'EOF'\n{BODY}\n## Notes\n\nwhy\nEOF", "only `## Goal`"),
+    ("lead", "gh issue create -R o/r --title t --label effort:low --body-file - <<'EOF'\n## Goal\n\nx\nEOF", "only `## Goal`"),
+    ("lead", f"gh issue edit {U} --body-file - <<'EOF'\nno sections\nEOF", "only `## Goal`"),
+    ("lead", f"gh issue create -R o/r --title t --label effort:low --body-file - <<'EOF'\n{BODY}\n## Shares\n\n| a |\nEOF", None),
+    ("lead", "gh issue create -R o/r --title t --label backlog --body-file - <<'EOF'\nthe owner's words\nEOF", None),
+    ("worker", 'herdr agent prompt mumu-team-lead "see https://github.com/o/r/pull/3"', None),
+    ("worker", 'herdr agent prompt w1:p1 "/rename fix-login-7-1"', None),
+    ("worker", 'herdr agent prompt mumu-team-lead "the PR is ready, please merge"', "only `see <url>`"),
+    ("lead", 'herdr agent prompt fix-login-7-1 "/reload-plugins"', None),
 ]
 
 

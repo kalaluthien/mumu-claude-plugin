@@ -2,7 +2,8 @@
 """PreToolUse hook on Bash: refuse a raw `gh pr merge`, since `merge.py` is the only merge path, and a git hook bypass,
 even as text only naming either, which goes through a file and `--body-file`; and in a lead's or worker's session, what
 the kickoff skill gives another role: `APPROVED:` and `FINDINGS:` the reviewer's, `DECIDED:` the lead's through
-`decide.py`, a task's body, labels, reopening and stop its lead's, and no title over 40 characters."""
+`decide.py`, a task's body, labels, reopening and stop its lead's, a body only its three sections, a worker's prompt
+only `see <url>`, and no title over 40 characters."""
 import json
 import os
 import pathlib
@@ -20,7 +21,9 @@ HOOKS_PATH_TEXT = re.compile(r"(-c\s*|--config-env=|key_\d+=)core\.hookspath\b|\
 ROLES = {"mumu-team:lead": "lead", "mumu-team:worker": "worker"}
 GH_WRITE = re.compile(r"\bgh\s+(?:(?:-R|--repo)[=\s]\S+\s+)*(issue|pr)\s+(comment|review|create|edit|close|reopen)\b")
 KEYWORD = re.compile(r"\s*(approved|findings|decided)\b", re.I)
-HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n([^\n]*)")
+HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n(.*?)(?=\n\s*\2\s*(?:\n|$)|\Z)", re.S)
+SECTIONS = {"Goal", "Definition of done", "Shares"}
+SEE = re.compile(r"see https://github\.com/\S+|/rename \S+")
 TITLE = 40
 RAW_MERGE = "a raw `pr merge` is refused; run `merge.py <pr-url>` in a Bash call of its own, and write text naming the merge with a file tool"
 
@@ -138,7 +141,7 @@ def option(words, *flags):
 
 
 def writes(command, cwd):
-    """(`issue` or `pr`, its verb, its words, the first line of each text it writes) for each `gh issue|pr <verb>` in
+    """(`issue` or `pr`, its verb, its words, each text it writes) for each `gh issue|pr <verb>` in
     `command`: its `--body`, its `--body-file` read from `cwd`, or a heredoc opened on its line."""
     found = []
     for m in GH_WRITE.finditer(command):
@@ -155,7 +158,7 @@ def writes(command, cwd):
         doc = HEREDOC.search(command, m.start())
         if doc and doc.start() < m.start() + len(line):
             texts.append(doc[3])
-        found.append((m[1], m[2], words, [(t.strip().splitlines() or [""])[0] for t in texts]))
+        found.append((m[1], m[2], words, texts))
     return found
 
 
@@ -163,8 +166,21 @@ def role_refusal(command, role, cwd):
     """What `command` does that the kickoff skill gives another role than `role`, a lead or a worker, else None."""
     if role == "worker" and any(os.path.basename(w) == "decide.py" for words in lexed(command) or [] for w in words):
         return "`DECIDED:` and `decide.py` are the lead's: post `BLOCKED: <question>` and prompt your lead"
-    for kind, verb, words, lines in writes(command, cwd):
-        for line in lines:
+    if role == "worker":
+        for words in lexed(command) or []:
+            words = unredirected(words)
+            at = next((i for i, w in enumerate(words) if os.path.basename(w) == "herdr"), None)
+            if at is not None and words[at + 1:at + 3] == ["agent", "prompt"] and len(words) > at + 4 \
+                    and not SEE.fullmatch(words[at + 4].strip()):
+                return "a worker prompts its lead only `see <url>`: post the rest on the task or pull request and prompt `see <its url>`"
+    for kind, verb, words, texts in writes(command, cwd):
+        labels = [w for i, w in enumerate(words) if i and words[i - 1] in ("--label", "-l")]
+        for text in texts:
+            headings = set(re.findall(r"^## +(.+?)[ \t]*$", text, re.M))
+            if kind == "issue" and verb in ("create", "edit") and "backlog" not in ",".join(labels).split(",") \
+                    and (headings - SECTIONS or not {"Goal", "Definition of done"} <= headings):
+                return "a task's body is only `## Goal`, `## Definition of done` and, split, `## Shares`; decisions go in `DECIDED:` comments"
+        for line in [(t.strip().splitlines() or [""])[0] for t in texts]:
             m = KEYWORD.match(line)
             if m and m[1].lower() in ("approved", "findings"):
                 return f"`{m[1].upper()}:` is the reviewer's alone: launch the `reviewer` agent to post it"

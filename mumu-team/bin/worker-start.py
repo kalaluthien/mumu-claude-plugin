@@ -33,6 +33,13 @@ def shares(body):
     return {r[0]: re.findall(names.TOPIC, r[2]) for r in rows[2:] if len(r) >= 3}
 
 
+def unordered(rows):
+    """Whether two of the `{share: [after rows]}` have no `after` between them, directly or through others."""
+    def reach(a, b, seen=()):
+        return b in rows.get(a, []) or any(reach(c, b, seen + (a,)) for c in rows.get(a, []) if c not in seen)
+    return any(not reach(a, b) and not reach(b, a) for a in rows for b in rows if a < b)
+
+
 def refusal(issue, n, topic, effort, heads):
     """Why task `n`, as `task` reads it, may not start a worker on `topic` at `effort`, `heads` the merged pull requests' branches; None when it may."""
     if issue["state"] != "OPEN":
@@ -46,6 +53,8 @@ def refusal(issue, n, topic, effort, heads):
         return f"task #{n} waits on {', '.join(issue['blockers'])} by blocked-by: start it once each is closed"
     rows = shares(issue["body"])
     if rows is not None:
+        if not unordered(rows):
+            return f"task #{n}'s `## Shares` has no two rows without an `after` between them: make it one share, with no `## Shares`"
         if topic not in rows:
             return f"task #{n} is split: its topic is a `## Shares` row ({', '.join(rows)}), not {topic!r}"
         waiting = [r for r in rows[topic] if not any(names.attempt(h, r, n) is not None for h in heads)]

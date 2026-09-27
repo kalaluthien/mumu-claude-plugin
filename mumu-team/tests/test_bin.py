@@ -629,12 +629,22 @@ class WorkerStart(unittest.TestCase):
 
     def test_a_share_starts_only_as_a_row_after_its_rows_merged(self):
         body = ("## Goal\nx\n\n## Shares\n\n| share | DoD | after | with |\n| --- | --- | --- | --- |\n"
-                "| go-first | D1 | | go-start: interface agreed first |\n| go-start | D2 | go-first | |\n")
+                "| go-first | D1 | | go-start: interface agreed first |\n| go-start | D2 | go-first | |\n| go-side | D3 | | |\n")
         self.refused("its topic is a `## Shares` row", body=body.replace("go-start", "go-later"))
         self.refused("is after go-first", body=body)
         (self.tmp / "merged").write_text("go-first-8-1\ngo-first-7-1\n")
         (self.tmp / "issue").unlink()
         (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": [{"name": "effort:low"}], "body": body}))
+        done, _ = self.start(trust=False)
+        self.assertEqual(done.returncode, 0, done.stderr)
+
+    def test_a_split_needs_two_rows_with_no_after_between_them(self):
+        head = "## Goal\nx\n\n## Shares\n\n| share | DoD | after | with |\n| --- | --- | --- | --- |\n"
+        chain = head + "| go-start | D1 | | |\n| go-next | D2 | go-start | |\n| go-last | D3 | go-next | |\n"
+        self.refused("no two rows without an `after`", body=chain)
+        self.refused("no two rows without an `after`", body=head + "| go-start | D1 | | |\n")
+        (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": [{"name": "effort:low"}],
+                                                    "body": chain + "| go-side | D4 | go-start | |\n"}))
         done, _ = self.start(trust=False)
         self.assertEqual(done.returncode, 0, done.stderr)
 
