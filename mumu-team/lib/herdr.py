@@ -2,7 +2,7 @@
 import json
 import time
 
-from gh import run
+from github import run
 
 
 def _result(*argv):

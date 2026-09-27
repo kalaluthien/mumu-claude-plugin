@@ -5,7 +5,7 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-from gh import gh  # noqa: E402
+from github import gh  # noqa: E402
 
 DONE = re.compile(r"^## Definition of done[ \t]*\n.*?(?=^## |\Z)", re.M | re.S)
 

@@ -8,7 +8,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
 import herdr  # noqa: E402
 import names  # noqa: E402
-from gh import repo as repo_view  # noqa: E402
+from github import repo as repo_view  # noqa: E402
 
 def main(argv):
     flags = []

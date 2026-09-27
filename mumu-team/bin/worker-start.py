@@ -10,7 +10,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
 import herdr  # noqa: E402
 import names  # noqa: E402
-from gh import gh, guard, repo as repo_view, run  # noqa: E402
+from github import gh, merged, repo as repo_view, run, task  # noqa: E402
 
 
 def attempts(repo, n, topic=None, remote=True):
@@ -21,6 +21,36 @@ def attempts(repo, n, topic=None, remote=True):
         found += [h.removeprefix("refs/heads/") for h in run("git", "-C", repo, "ls-remote", "--heads", "origin").split()]
         found += gh("pr", "list", "--state", "all", "--limit", "1000", "--json", "headRefName", "-q", ".[].headRefName", cwd=repo).split()
     return [k for h in found if (k := names.attempt(h, topic, n)) is not None]
+
+
+def shares(body):
+    """`{share: [after rows]}` of the body's `## Shares` table, or None when the task is not split."""
+    m = re.search(r"^## Shares[ \t]*\n(.*?)(?=^## |\Z)", body, re.M | re.S)
+    if not m:
+        return None
+    rows = [[c.strip() for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))] for line in m[1].splitlines() if line.strip().startswith("|")]
+    return {r[0]: re.findall(names.TOPIC, r[2]) for r in rows[2:] if len(r) >= 3}
+
+
+def refusal(issue, n, topic, effort, heads):
+    """Why task `n`, as `task` reads it, may not start a worker on `topic` at `effort`, `heads` the merged pull requests' branches; None when it may."""
+    if issue["state"] != "OPEN":
+        return f"task #{n} is {issue['state'].lower()}: a stopped or finished task starts no worker; reopen it first"
+    if "backlog" in issue["labels"]:
+        return f"#{n} is labelled backlog, which is never worked: remove the label and write its contract first"
+    efforts = [label.removeprefix("effort:") for label in issue["labels"] if label.startswith("effort:")]
+    if efforts != [effort]:
+        return f"task #{n} is labelled {', '.join('effort:' + e for e in efforts) or 'with no effort:<effort>'}: start it at its one effort label"
+    if issue["blockers"]:
+        return f"task #{n} waits on {', '.join(issue['blockers'])} by blocked-by: start it once each is closed"
+    rows = shares(issue["body"])
+    if rows is not None:
+        if topic not in rows:
+            return f"task #{n} is split: its topic is a `## Shares` row ({', '.join(rows)}), not {topic!r}"
+        waiting = [r for r in rows[topic] if not any(names.attempt(h, r, n) is not None for h in heads)]
+        if waiting:
+            return f"share {topic!r} of task #{n} is after {', '.join(waiting)}: start it once each has merged"
+    return None
 
 
 def busy(repo, n, topic):
@@ -61,16 +91,18 @@ def main(argv):
     a = parser.parse_args(argv)
     topic, effort, url, resume = a.topic, a.effort, a.url, a.resume
     number = re.search(r"/issues/(\d+)/?$", url)
-    if not number or not re.fullmatch(names.TOPIC, topic):
-        print(f"worker-start.py: topic {topic!r} must be lowercase words joined by -, and {url!r} a task url", file=sys.stderr)
+    if not number or not re.fullmatch(names.TOPIC, topic) or not 2 <= len(topic.split("-")) <= 4:
+        print(f"worker-start.py: topic {topic!r} must be 2-4 lowercase words joined by -, and {url!r} a task url", file=sys.stderr)
         return 2
     if effort not in ("low", "medium") and not a.owner_effort:
         print(f"worker-start.py: effort {effort!r} must be low or medium; pass --owner-effort only when the owner named it", file=sys.stderr)
         return 2
     try:
         repo = str(names.checkout(a.checkout))
+        issue = task(repo, number[1])
+        if why := refusal(issue, number[1], topic, effort, merged(repo) if shares(issue["body"]) else []):
+            raise RuntimeError(why)
         run("git", "-C", repo, "fetch", "origin")
-        guard(repo)
         if not resume and (held := busy(repo, number[1], topic)):
             raise RuntimeError(f"{', '.join(held)} has an open pull request or a live tab: finish or `stop` it before a new attempt, or pass --continue to resume it")
         k = max(attempts(repo, number[1], topic, False), default=None) if resume else 1 + max(attempts(repo, number[1]), default=0)

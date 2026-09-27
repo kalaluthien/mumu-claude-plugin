@@ -6,7 +6,7 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-from gh import gh  # noqa: E402
+from github import gh  # noqa: E402
 
 URL = re.compile(r"https://github\.com/[\w.-]+/[\w.-]+/pull/\d+")
 APPROVAL = re.compile(r"approved:?\s+(\S+)", re.I)
