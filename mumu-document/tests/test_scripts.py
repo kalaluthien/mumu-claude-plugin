@@ -106,7 +106,6 @@ FIXTURES = {"chart": """<figure data-widget="chart" data-chart="bar">
     <div role="group" data-name="size2" aria-label="두 배">
       <button type="button" data-value="1">한 배</button><button type="button" data-value="2">두 배</button>
     </div>
-    <div class="presets"><button type="button" data-preset="size=30">크게</button></div>
     <p>넓이 <output data-calc="3 * size * size * size2" data-digits="0"></output></p>
   </div>
 </figure>"""}
@@ -361,7 +360,9 @@ class Check(unittest.TestCase):
 BROKEN = [
     ('<div role="group" data-name="tone"', '<label>안 쓰는 값 <input type="range" name="unused" min="0" max="10" value="5">'
      '<output></output></label><div role="group" data-name="tone"', "controls 1 slider unused changes nothing"),
-    ('data-preset="size=12 light=20 tone=cool"', 'data-preset="sise=12"', "controls 1 preset 작고 어둡게 changes nothing"),
+    # a preset, cut as it repeats the sliders and toggles
+    ('<div role="group" data-name="tone"', '<button type="button" data-preset="size=12">작게</button><div role="group" data-name="tone"',
+     "controls 1 button 작게 changes nothing"),
     ("<main>", "<style>main nav.drawer.open { visibility: hidden; }</style><main>", "contents button changes nothing"),
     ("<main>", "<script>addEventListener('click', function (e) { if (e.target.closest('.top')) e.stopImmediatePropagation(); }, true);"
      "</script><main>", "top button changes nothing"),
@@ -392,7 +393,7 @@ class Widgets(unittest.TestCase):
         code, out = check(self.page)
         self.assertEqual((code, out.splitlines()[-1]), (0, "pass"), out)
         self.assertIn("layout motion 305/305", out)
-        self.assertIn("clicks 24/24 pass", out)
+        self.assertIn("clicks 22/22 pass", out)
 
     def test_each_broken_control_fails(self):
         for old, new, line in BROKEN:

@@ -241,8 +241,8 @@ SWIPES = ("Array.prototype.map.call(document.querySelectorAll('[data-swipe].live
           " t ? a.left >= b.left - 1 && a.right <= b.right + 1 && a.top >= b.top - 1 && a.bottom <= b.bottom + 1 : null]; })")
 
 # [what was tried, the controls that changed nothing]: each filter and controls widget's control, then the reading aids;
-# a control passes when its states differ: a slider at its min and max, each of a group's buttons from the others, a preset
-# against the controls scrambled, the text box against no word, a reading-aid button against the page before it
+# a control passes when its states differ: a slider at its min and max, each of a group's buttons from the others, any other
+# button against the state before it, the text box against no word, a reading-aid button against the page before it
 CLICKS = r"""(async function () {
   var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
   var tried = 0, dead = [];
@@ -297,18 +297,13 @@ CLICKS = r"""(async function () {
       if (state(root) === before) dead.push(name + ' search box' + ' changes nothing');
       box.value = ''; box.dispatchEvent(new Event('input', { bubbles: true })); await wait(30);
     }
-    var presets = live(root.querySelectorAll('[data-preset]'));
-    for (var q = 0; q < presets.length; q++) {
-      var changed = false;
-      for (var end = 0; end < 2 && !changed; end++) {
-        for (var k2 = 0; k2 < sliders.length; k2++) await slide(sliders[k2], end ? sliders[k2].max : sliders[k2].min);
-        for (var g2 = 0; g2 < groups.length; g2++) { var gb = live(groups[g2].querySelectorAll('button')); if (gb.length) await click(gb[end ? 0 : gb.length - 1]); }
-        var from = state(root);
-        await click(presets[q]);
-        changed = state(root) !== from;
-      }
+    // a button outside a group, which the widget does not run, such as a preset
+    var others = live(root.querySelectorAll('button:not([role="group"] button)'));
+    for (var q = 0; q < others.length; q++) {
+      var from = state(root);
+      await click(others[q]);
       tried++;
-      if (!changed) dead.push(name + ' preset ' + presets[q].textContent.trim() + ' changes nothing');
+      if (state(root) === from) dead.push(name + ' button ' + others[q].textContent.trim() + ' changes nothing');
     }
   }
   // the chapters as the page shows them, since browse unhid them all

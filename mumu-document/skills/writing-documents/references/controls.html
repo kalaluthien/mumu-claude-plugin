@@ -5,7 +5,6 @@
   slider: a label holding the name, an input type="range" name="<n>" with min, max, step and value, and an empty
   output data-unit="<unit>" the script fills with the value.
   toggle: a div role="group" data-name="<n>" aria-label="<name>" of buttons with data-value; the first is pressed.
-  preset: a button data-preset="<n>=<v> <n>=<v>" that sets those controls at once.
   stage: the script sets each control on the .stage as data-<n>="<value>" and, when a number, --<n>; the author's
   style draws with var(--<n>, <start>) in calc(), as r, cx, width, opacity or transform, and picks a toggle's look by
   .stage[data-<n>="<v>"]; a `controls` event on the figure carries { values, stage } for a script of the author's own.
@@ -26,7 +25,7 @@
     & .panel label { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 var(--sp-2); font-size: var(--fs-m); }
     & .panel label input { grid-column: 1 / -1; order: 1; width: 100%; margin: 0; accent-color: var(--accent); }
     & .panel output { font-variant-numeric: tabular-nums; }
-    & [role="group"], & .presets { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+    & [role="group"] { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
     & [role="group"] button + button { margin-inline-start: calc(-1 * var(--sp-1) - var(--line)); }
     & [aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
   }
@@ -97,17 +96,6 @@
         });
       });
       sliders.forEach((s) => s.addEventListener('input', update));
-      root.querySelectorAll('[data-preset]').forEach((b) => b.addEventListener('click', () => {
-        b.dataset.preset.trim().split(/\s+/).forEach((pair) => {
-          const [k, x] = pair.split('=');
-          const s = sliders.find((e) => e.name === k);
-          if (s) s.value = x;
-          const g = toggles.find((e) => e.dataset.name === k);
-          const to = g && [...g.querySelectorAll('button')].find((e) => e.dataset.value === x);
-          if (to) press(g, to);
-        });
-        update();
-      }));
       if (before) paint(before, read());
       root.classList.add('live');
       update();
@@ -123,7 +111,6 @@
     <div role="group" data-name="{{n}}" aria-label="{{name}}">
       <button type="button" data-value="{{value}}">{{value name}}</button>
     </div>
-    <div class="presets"><button type="button" data-preset="{{n}}={{value}}">{{preset name}}</button></div>
     <output data-calc="{{arithmetic over the names}}" data-digits="{{decimals}}" data-unit="{{unit}}"></output>
   </div>
 </figure>
