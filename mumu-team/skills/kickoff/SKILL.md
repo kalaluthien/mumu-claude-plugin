@@ -80,7 +80,7 @@ Rules:
 
 - A keyword is written in capitals as above and read in any case, the colon optional.
 - A merge happens only through `merge.py`, at an approved head, and a hook refuses a raw `gh pr merge`. The same hook refuses a skipped git hook: fix what the git hook refused, or post `BLOCKED:`.
-- A commit on the default branch is refused by a hook in the checkout, and a push to it by the repository's ruleset, which `start` ensures.
+- A commit on the default branch is refused by a hook in the checkout, and a push to it by the repository's ruleset; a merge squashes and deletes its head branch.
 - Every session and agent runs Opus, but the `reviewer` of a pull request of at most 20 changed lines, which runs on Sonnet: effort low when its task names what to change and how to check it, medium when it does not.
 
 Writing, for every issue, pull request and comment:
@@ -103,7 +103,7 @@ Every command names its target pane.
 | `ready` | `$HERDR_PANE_ID` is set, and `herdr integration status` has no `claude: not installed` line; the fix is to run inside herdr, and `herdr integration install claude` |
 | your address | your bare name, which `herdr agent get` resolves; `<name>@<pane>` is not found |
 | `live` | `herdr agent list`, whose JSON gives each agent's pane, tab and `agent_status` |
-| `start` | `worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--leader <your address>] [--owner-effort]`: starts the worker `<topic>-<n>-<k>` at the next attempt, or the newest with `--continue`, in its own worktree and tab, prompted kickoff's `work` |
+| `start` | `worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--leader <your address>] [--owner-effort]`: starts the worker `<topic>-<n>-<k>` at the next attempt, or the newest with `--continue`, in its own worktree and tab, prompted kickoff's `work`; it refuses a task closed, labelled `backlog`, blocked, at another effort than its label, or a share before its `after` rows merged |
 | `name` | this session's three names: `herdr tab rename <tab> <name>`, the tab being `herdr pane get $HERDR_PANE_ID`'s `tab_id`; `herdr agent rename $HERDR_PANE_ID <name>`; and `herdr agent prompt $HERDR_PANE_ID "/rename <name>"`, which applies when the turn ends |
 | `prompt` | `herdr agent prompt <name> "<text>"`, by name, since a remembered pane id can be stale; success prints before delivery and a busy pane or open dialog can swallow the text, so read the pane before and after and resend when no turn carries it; failing twice, tell the owner |
 | `start-lead` | `lead-start.py <checkout> [<task-url>] [--folder <folder>] [-- <claude flags>]`, or `--succeed <pane>` for the task and folder, at the checkout's root: starts `<repo>-lead`, or `<folder>-lead` with `--folder`, in a new tab, refusing when one is live, and prompts its kickoff; a start-up dialog in its tab is the owner's to answer there |
@@ -124,7 +124,7 @@ Every command names its target pane.
 | `claim` | `git fetch origin && ! git ls-remote --exit-code origin refs/heads/<branch> && git push -u origin <branch>`, `<branch>` the worktree's own, named after it, which `worker-start.py` adds it on; a branch found is yours only when this checkout is on it |
 | `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file -`; later `gh pr edit <pr> --body-file -` |
 | `merge` | `merge.py <pr-url>`: squash-merges pinned to the head only when a comment or review opens `APPROVED: <head>` |
-| `clean` | for each worker `git -C <checkout> worktree remove <worktree>`, `git -C <checkout> branch -D <branch>` and `git -C <checkout> push origin --delete <branch>`; then `git -C <checkout> pull --ff-only`, and remove the hook when `cmp -s` finds it equal to `default-branch-guard.sh` as `rm <hooks>/pre-commit`, `<hooks>` written out as its literal path, no variable, so the allow rules match it |
+| `clean` | for each worker `git -C <checkout> worktree remove <worktree>`, `git -C <checkout> branch -D <branch>` and, while `git -C <checkout> ls-remote --exit-code origin refs/heads/<branch>` finds it, since a merge deletes it, `git -C <checkout> push origin --delete <branch>`; then `git -C <checkout> pull --ff-only`, and remove the hook when `cmp -s` finds it equal to `default-branch-guard.sh` as `rm <hooks>/pre-commit`, `<hooks>` written out as its literal path, no variable, so the allow rules match it |
 
 ## Traps
 

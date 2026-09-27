@@ -24,32 +24,6 @@ def repo(field, cwd=None):
     return gh("repo", "view", "--json", field, "-q", f".{field}" + (".name" if field == "defaultBranchRef" else ""), cwd=cwd).strip()
 
 
-RULESET = {
-    "name": "mumu-default-branch",
-    "target": "branch",
-    "enforcement": "active",
-    "bypass_actors": [],
-    "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
-    "rules": [
-        {"type": "deletion"},
-        {"type": "non_fast_forward"},
-        # 0 approvals: merge.py's `APPROVED:` is a comment, not a GitHub review.
-        {"type": "pull_request", "parameters": {
-            "required_approving_review_count": 0, "dismiss_stale_reviews_on_push": False,
-            "require_code_owner_review": False, "require_last_push_approval": False,
-            "required_review_thread_resolution": False}},
-    ],
-}
-
-
-def guard(cwd=None):
-    """Create `RULESET` on `cwd`'s repository unless a ruleset of its name exists, so the server refuses a push to the default branch; True when created."""
-    if RULESET["name"] in gh("api", "repos/{owner}/{repo}/rulesets", "-q", ".[].name", cwd=cwd).splitlines():
-        return False
-    gh("api", "-X", "POST", "repos/{owner}/{repo}/rulesets", "--input", "-", cwd=cwd, stdin=json.dumps(RULESET))
-    return True
-
-
 def held(cwd, folder=None):
     """The urls of the open root tasks, every parentless issue but a backlog, of `cwd`'s repository, only `scope:<folder>`'s when given, or None when `gh` cannot read them."""
     search = "no:parent-issue -label:backlog" + (f" label:scope:{folder}" if folder else "")
@@ -62,3 +36,16 @@ def held(cwd, folder=None):
 def labels(cwd, n):
     """The label names of issue `n` of `cwd`'s repository."""
     return [label["name"] for label in json.loads(gh("issue", "view", str(n), "--json", "labels", cwd=cwd))["labels"]]
+
+
+def task(cwd, n):
+    """Issue `n` of `cwd`'s repository: its state, label names, body, and the url of each blocker by blocked-by still open."""
+    issue = json.loads(gh("issue", "view", str(n), "--json", "state,labels,body", cwd=cwd))
+    blockers = json.loads(gh("api", f"repos/{{owner}}/{{repo}}/issues/{n}/dependencies/blocked_by", cwd=cwd) or "[]")
+    return {"state": issue["state"], "labels": [label["name"] for label in issue["labels"]], "body": issue.get("body") or "",
+            "blockers": [b["html_url"] for b in blockers if b.get("state") == "open"]}
+
+
+def merged(cwd):
+    """The head branch of each merged pull request of `cwd`'s repository."""
+    return gh("pr", "list", "--state", "merged", "--limit", "1000", "--json", "headRefName", "-q", ".[].headRefName", cwd=cwd).split()

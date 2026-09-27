@@ -5,7 +5,7 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-from gh import gh  # noqa: E402
+import github  # noqa: E402
 
 DONE = re.compile(r"^## Definition of done[ \t]*\n.*?(?=^## |\Z)", re.M | re.S)
 
@@ -29,10 +29,10 @@ def main(argv):
         decision = "DECIDED: " + decision
     try:
         if len(argv) == 3:
-            body = gh("issue", "view", url, "--json", "body", "-q", ".body")
+            body = github.gh("issue", "view", url, "--json", "body", "-q", ".body")
             with open(argv[2]) as f:
-                gh("issue", "edit", url, "--body-file", "-", stdin=replace_criteria(body, f.read()))
-        print(gh("issue", "comment", url, "--body-file", "-", stdin=decision + "\n").strip())
+                github.gh("issue", "edit", url, "--body-file", "-", stdin=replace_criteria(body, f.read()))
+        print(github.gh("issue", "comment", url, "--body-file", "-", stdin=decision + "\n").strip())
     except RuntimeError as e:
         sys.exit(f"decide.py: {e}")
 
