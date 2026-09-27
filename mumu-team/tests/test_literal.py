@@ -1,5 +1,6 @@
 """Each routine step the kickoff skill's Verbs and the reviewer write, placeholders filled, is one literal command an
-owner allow rule matches, and `bash-guard.py` lets it through (#281).
+owner allow rule matches, and `bash-guard.py` lets it through; a refused self-modifying edit reaches the owner as one
+apply command (#281).
 
 Run: uvx pytest mumu-team/tests -q
 """
@@ -18,6 +19,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SKILL = ROOT / "skills" / "kickoff" / "SKILL.md"
 REVIEWER = ROOT / "agents" / "reviewer.md"
 HOOK = ROOT / "scripts" / "bash-guard.py"
+WORK = ROOT / "skills" / "kickoff" / "references" / "work-task.md"
 # rules already in the owner's ~/.claude/settings.json, fixed: the test adds no other
 RULES = ALLOW + ["gh *", "worker-start.py *", "lead-start.py *", "worker-close.py *", "merge.py https://github.com/*"]
 VERBS = ("start", "start-lead", "close", "merge")
@@ -86,6 +88,22 @@ class Literal(unittest.TestCase):
         command = f"gh pr comment {PR} --body 'APPROVED: 8bd0af5dbae98300d657961961b6954f760dd82c\nChecked the diff at the head.'"
         self.assert_literal(command, "mumu-team:reviewer")
         self.assertTrue(fnmatch.fnmatchcase(command, "gh *"))
+
+
+class RefusedStep(unittest.TestCase):
+    def rule(self):
+        """`work-task.md`'s bullet for a step auto mode refuses."""
+        lines = [line for line in WORK.read_text().splitlines() if line.startswith("- A step auto mode refuses")]
+        self.assertEqual(len(lines), 1)
+        return lines[0]
+
+    def test_a_refused_self_modifying_edit_goes_to_the_owner_as_one_apply_command(self):
+        rule = self.rule()
+        self.assertIn("self-modifying edit, to a rules, guard or agent file", rule)
+        self.assertIn("with the Write tool as a patch", rule)
+        self.assertIn("exactly one owner command", rule)
+        self.assertEqual(re.findall(r"`! [^`]+`", rule), ["`! git -C <worktree> apply <patch-path>`"])
+        self.assertRegex(rule, r"then .*commit, push and finish to merge with no further owner turn\.$")
 
 
 if __name__ == "__main__":
