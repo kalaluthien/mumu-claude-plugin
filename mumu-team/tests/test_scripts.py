@@ -217,21 +217,102 @@ ROLE_CASES = [
 ]
 
 
+# `issue view` answers `body.md`, `pr list` the merged heads in `heads`; each call is logged to `calls`.
+ISSUE_GH = r'''#!/usr/bin/env python3
+import json, os, pathlib, sys
+d = pathlib.Path(os.environ["FAKE"])
+with open(d / "calls", "a") as f:
+    f.write(json.dumps(sys.argv[1:]) + "\n")
+a = sys.argv[1:]
+for name, verb in (("body.md", ["issue", "view"]), ("heads", ["pr", "list"])):
+    if a[:2] == verb and (d / name).exists():
+        print((d / name).read_text())
+'''
+
+
+def fake_issue_gh():
+    """A temporary folder holding `ISSUE_GH` as `gh`, and the env that puts it first on PATH."""
+    tmp = pathlib.Path(tempfile.mkdtemp())
+    (tmp / "gh").write_text(ISSUE_GH)
+    (tmp / "gh").chmod(0o755)
+    return tmp, dict(os.environ, FAKE=str(tmp), PATH=f"{tmp}:{os.environ['PATH']}")
+
+
 class RoleRules(unittest.TestCase):
     def test_each_role_keeps_to_its_own_records(self):
         cwd = tempfile.mkdtemp()
         pathlib.Path(cwd, "approval.md").write_text("APPROVED: aaaa\n")
+        _, env = fake_issue_gh()
         for agent, command, refusal in ROLE_CASES:
             with self.subTest(agent=agent, command=command):
                 payload = {"tool_input": {"command": command}, "cwd": cwd}
                 if agent:
                     payload["agent_type"] = f"mumu-team:{agent}"
-                result = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload), capture_output=True, text=True)
+                result = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload), capture_output=True, text=True, env=env)
                 if refusal:
                     self.assertEqual(result.returncode, 2, result.stderr)
                     self.assertIn(refusal, result.stderr)
                 else:
                     self.assertEqual(result.returncode, 0, result.stderr)
+
+
+SHARES = BODY + "\n## Shares\n\n| share | DoD | after | with |\n| --- | --- | --- | --- |\n| split-guard | D1 | | |\n| guard-docs | D4 | split-guard | |\n"
+CLOSES = [f'gh issue close {U} --reason completed --comment "done"', 'gh issue close 7 -R o/r --comment done',
+          'gh -R o/r issue close 7 --reason COMPLETED']
+
+
+class SplitResolve(unittest.TestCase):
+    """A split task closes as completed only once each `## Shares` row has a merged pull request `<row>-<n>-<k>` (#273)."""
+
+    def close(self, command, body, heads=(), agent="lead"):
+        tmp, env = fake_issue_gh()
+        (tmp / "body.md").write_text(body)
+        (tmp / "heads").write_text("\n".join(heads))
+        payload = {"tool_input": {"command": command}, "cwd": str(tmp), "agent_type": f"mumu-team:{agent}"}
+        result = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload), capture_output=True, text=True, env=env)
+        calls = [json.loads(c) for c in (tmp / "calls").read_text().splitlines()] if (tmp / "calls").exists() else []
+        return result, calls
+
+    def test_a_row_without_a_merged_pull_request_refuses_the_close_naming_it(self):
+        heads = ["split-guard-7-1", "guard-docs-8-1", "guard-docsx-7-1"]  # another task's and another topic's heads
+        for command in CLOSES:
+            with self.subTest(command):
+                result, calls = self.close(command, SHARES, heads)
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertIn("guard-docs", result.stderr)
+                self.assertNotIn("split-guard,", result.stderr)
+                self.assertTrue(calls and all(c[:2] in (["issue", "view"], ["pr", "list"]) for c in calls), calls)
+
+    def test_every_row_refused_when_none_merged(self):
+        result, _ = self.close(CLOSES[0], SHARES)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("split-guard, guard-docs", result.stderr)
+
+    def test_every_row_merged_or_no_shares_closes(self):
+        for body, heads in ((SHARES, ["split-guard-7-1", "guard-docs-7-2"]), (BODY, [])):
+            for command in CLOSES:
+                with self.subTest(body=body, command=command):
+                    result, _ = self.close(command, body, heads)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_a_worker_closing_a_report_task_without_shares_passes(self):
+        result, _ = self.close(CLOSES[0], BODY, agent="worker")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_stop_of_a_split_task_is_not_refused(self):
+        for reason in ('"not planned"', "not_planned", "'NOT PLANNED'"):
+            with self.subTest(reason):
+                result, calls = self.close(f"gh issue close {U} --reason {reason} --comment x", SHARES)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(calls, [])
+
+    def test_an_unreadable_task_refuses_the_close(self):
+        tmp, env = fake_issue_gh()
+        (tmp / "gh").write_text("#!/bin/sh\necho 'HTTP 502' >&2\nexit 1\n")
+        payload = {"tool_input": {"command": CLOSES[0]}, "cwd": str(tmp)}
+        result = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload), capture_output=True, text=True, env=env)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("could not read", result.stderr)
 
 
 class AssignmentOnly(unittest.TestCase):

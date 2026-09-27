@@ -3,13 +3,18 @@
 even as text only naming either, which goes through a file and `--body-file`; and in a lead's or worker's session, what
 the kickoff skill gives another role: `APPROVED:` and `FINDINGS:` the reviewer's, `DECIDED:` the lead's through
 `decide.py`, a task's body, labels, reopening and stop its lead's, a body only its three sections, a worker's prompt
-only `see <url>`, and no title over 40 characters."""
+only `see <url>`, and no title over 40 characters; and in any session, closing a split task as completed while a row of
+its `## Shares` has no merged pull request."""
 import json
 import os
 import pathlib
 import re
 import shlex
 import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
+import github  # noqa: E402
+import names  # noqa: E402
 
 SEPARATORS = set(";&|()\n")
 DESCRIPTOR = re.compile(r"(^|[\s;&|()])(?:\d+|\{\w+\})(?=[<>])")
@@ -25,6 +30,8 @@ HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n(.*?)(?=\n\s*\2\s*(?:\n|$)|
 SECTIONS = {"Goal", "Definition of done", "Shares"}
 SEE = re.compile(r"see https://github\.com/\S+|/rename \S+")
 TITLE = 40
+ISSUE = re.compile(r"(?:https://github\.com/([^/\s]+/[^/\s]+)/issues/)?#?(\d+)/?")
+VALUED = {"--reason", "-r", "--comment", "-c", "--repo", "-R"}
 RAW_MERGE = "a raw `pr merge` is refused; run `merge.py <pr-url>` in a Bash call of its own, and write text naming the merge with a file tool"
 
 
@@ -195,6 +202,39 @@ def role_refusal(command, role, cwd):
     return None
 
 
+def early_resolve(command, cwd):
+    """Why a `gh issue close` in `command`, as completed, of a task whose body has `## Shares` may not run yet: the rows
+    with no merged pull request whose head is `<row>-<n>-<k>`; else None."""
+    for kind, verb, words, _ in writes(command, cwd):
+        reason = (option(words, "--reason", "-r") or "completed").replace("_", " ").lower()
+        if (kind, verb) != ("issue", "close") or reason != "completed":
+            continue
+        args, skip = [], False
+        for word in words[words.index("close") + 1:]:
+            if skip:
+                skip = False
+            elif word in VALUED:
+                skip = True
+            elif not word.startswith("-"):
+                args.append(word)
+        m = next((m for w in args if (m := ISSUE.fullmatch(w))), None)
+        if not m:
+            continue
+        repo = ["-R", r] if (r := m[1] or option(words, "--repo", "-R")) else []
+        try:
+            rows = names.shares(github.gh("issue", "view", m[2], *repo, "--json", "body", "-q", ".body", cwd=cwd))
+            if rows is None:
+                continue
+            heads = github.gh("pr", "list", *repo, "--state", "merged", "--limit", "1000", "--json", "headRefName",
+                              "-q", ".[].headRefName", cwd=cwd).split()
+        except RuntimeError as err:
+            return f"could not read whether task #{m[2]} is split: {err}"
+        waiting = [row for row in rows if not any(names.attempt(h, row, m[2]) is not None for h in heads)]
+        if waiting:
+            return f"task #{m[2]} is split and its rows {', '.join(waiting)} have no merged pull request: `resolve` it once every row has merged"
+    return None
+
+
 def main():
     raw = sys.stdin.read()
     if not re.search(r"merge|git|hookspath|gh|decide", QUOTING.sub("", raw), re.I):
@@ -217,6 +257,8 @@ def main():
             refuse(RAW_MERGE)
         role = ROLES.get(payload.get("agent_type"))
         if role and (why := role_refusal(command, role, payload.get("cwd") or ".")):
+            refuse(why)
+        if why := early_resolve(command, payload.get("cwd") or "."):
             refuse(why)
     except Exception as err:  # exit 1 would let the command run
         refuse(f"could not read the command ({type(err).__name__})")

@@ -18,6 +18,15 @@ def attempt(name, topic=None, n=None):
     return int(m[3]) if m and topic in (None, m[1]) and (n is None or int(n) == int(m[2])) else None
 
 
+def shares(body):
+    """`{share: [after rows]}` of the body's `## Shares` table, or None when the task is not split."""
+    m = re.search(r"^## Shares[ \t]*\n(.*?)(?=^## |\Z)", body, re.M | re.S)
+    if not m:
+        return None
+    rows = [[c.strip() for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))] for line in m[1].splitlines() if line.strip().startswith("|")]
+    return {r[0]: re.findall(TOPIC, r[2]) for r in rows[2:] if len(r) >= 3}
+
+
 def lead(repo):
     """`<repo>-lead`, `repo` lowercased, each run of other than letters, digits, `-` and `_` one `-`, cut to 22."""
     return re.sub(r"[^a-z0-9_-]+", "-", repo.lower())[:22].strip("-") + "-lead"

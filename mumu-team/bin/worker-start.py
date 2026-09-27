@@ -24,15 +24,6 @@ def attempts(repo, n, topic=None, remote=True):
     return [k for h in found if (k := names.attempt(h, topic, n)) is not None]
 
 
-def shares(body):
-    """`{share: [after rows]}` of the body's `## Shares` table, or None when the task is not split."""
-    m = re.search(r"^## Shares[ \t]*\n(.*?)(?=^## |\Z)", body, re.M | re.S)
-    if not m:
-        return None
-    rows = [[c.strip() for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))] for line in m[1].splitlines() if line.strip().startswith("|")]
-    return {r[0]: re.findall(names.TOPIC, r[2]) for r in rows[2:] if len(r) >= 3}
-
-
 def refusal(issue, n, topic, effort, heads):
     """Why task `n`, as `task` reads it, may not start a worker on `topic` at `effort`, `heads` the merged pull requests' branches; None when it may."""
     if issue["state"] != "OPEN":
@@ -44,7 +35,7 @@ def refusal(issue, n, topic, effort, heads):
         return f"task #{n} is labelled {', '.join('effort:' + e for e in efforts) or 'with no effort:<effort>'}: start it at its one effort label"
     if issue["blockers"]:
         return f"task #{n} waits on {', '.join(issue['blockers'])} by blocked-by: start it once each is closed"
-    rows = shares(issue["body"])
+    rows = names.shares(issue["body"])
     if rows is not None:
         if topic not in rows:
             return f"task #{n} is split: its topic is a `## Shares` row ({', '.join(rows)}), not {topic!r}"
@@ -101,7 +92,7 @@ def main(argv):
     try:
         repo = str(names.checkout(a.checkout))
         issue = task(repo, number[1])
-        if why := refusal(issue, number[1], topic, effort, merged(repo) if shares(issue["body"]) else []):
+        if why := refusal(issue, number[1], topic, effort, merged(repo) if names.shares(issue["body"]) else []):
             raise RuntimeError(why)
         run("git", "-C", repo, "fetch", "origin")
         if not resume and (held := busy(repo, number[1], topic)):

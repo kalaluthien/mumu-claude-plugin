@@ -119,7 +119,7 @@ Every command names its target pane.
 | `order` | `gh api -X POST repos/<repo>/issues/<n>/dependencies/blocked_by -F issue_id=<id>`, `<id>` the blocker's `gh api repos/<owner>/<repo>/issues/<m> -q .id`, in this repository or another |
 | `comment` | `gh issue comment <url> --body-file -` |
 | `decide` | `decide.py <url> [--criteria <file>] < <decision>`: posts `DECIDED: <decision>`, and with `--criteria` first replaces the body's `## Definition of done` by the file's lines |
-| `resolve` | `gh issue close <url> --reason completed --comment "<summary>"` |
+| `resolve` | `gh issue close <url> --reason completed --comment "<summary>"`, which `bash-guard.py` refuses for a split task while a `## Shares` row has no merged pull request `<row>-<n>-<k>` |
 | `stop` | `gh issue close <url> --reason "not planned" --comment "<reason>"`, then `gh pr ready --undo <pr-url>` for its open pull request |
 | `claim` | `git fetch origin && ! git ls-remote --exit-code origin refs/heads/<branch> && git push -u origin <branch>`, `<branch>` the worktree's own, named after it, which `worker-start.py` adds it on; a branch found is yours only when this checkout is on it |
 | `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file -`; later `gh pr edit <pr> --body-file -` |
