@@ -470,6 +470,18 @@ class Assemble(unittest.TestCase):
             r = subprocess.run([sys.executable, str(CHECK), str(page)], capture_output=True, text=True)
             self.assertIn('focus FAIL: no role or name: <span tabindex="0">', r.stdout)
 
+    def test_source_note_with_no_link_fails(self):
+        for note, line in (('<p data-widget="source">출처: 원 보고서, 9월 23일</p>', "sources 1/2 FAIL: no link and no 출처 없음: 출처: 원 보고서"),
+                           ('<p data-widget="source">출처: <a href="#">원 보고서</a></p>', "sources 1/2 FAIL"),
+                           ('<p data-widget="source">출처 없음: 작성자가 잰 값이에요.</p>', "sources 2/2 pass")):
+            with self.subTest(line), tempfile.TemporaryDirectory() as d:
+                body, page = pathlib.Path(d) / "body.html", pathlib.Path(d) / "page.html"
+                body.write_text('<h1>출처</h1>\n<p class="read">두 값을 비교해요.</p>\n' + note + "\n"
+                                '<p class="read">다른 값이에요.</p>\n<p data-widget="source">출처: <a href="https://example.com">표</a></p>\n')
+                self.assertEqual(assemble(str(body), str(page)).returncode, 0)
+                r = subprocess.run([sys.executable, str(CHECK), str(page)], capture_output=True, text=True)
+                self.assertIn(line, r.stdout)
+
     def test_source_note_under_a_claim_passes(self):
         note = ('<p data-widget="source">출처: <a href="https://example.com/report">원 보고서</a>, '
                 '<time datetime="2026-09-23">9월 23일</time> → <a href="https://example.com/summary">요약 기사</a></p>')

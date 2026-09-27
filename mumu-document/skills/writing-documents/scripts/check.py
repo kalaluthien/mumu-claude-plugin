@@ -146,6 +146,9 @@ f.onload = function () {
       broken: Array.prototype.map.call(d.querySelectorAll('a[href^="#"]'), function (a) { return a.getAttribute('href'); })
         .filter(function (h) { return h.length > 1 && !d.getElementById(decodeURIComponent(h.slice(1))); }),
       chapters: d.querySelectorAll('[data-chapter]').length, unnamed: unnamed(d),
+      // each source note: a link to a source, or 출처 없음 said plainly
+      sources: Array.prototype.map.call(d.querySelectorAll('[data-widget="source"]'), function (e) {
+        return e.querySelector('a[href]:not([href="#"])') || e.textContent.indexOf('출처 없음') >= 0 ? '' : e.textContent.trim().slice(0, 40); }),
       loose: Array.prototype.filter.call(d.querySelectorAll('main h3'), function (h) { return !h.closest('[data-chapter]'); }).length });
   }, 300);
 };
@@ -659,6 +662,11 @@ def main():
     print(f"mapping {len(k['paths'])} files {len(k['flows'])} flows " + ("FAIL: " + "; ".join(out) if out else "pass"))
     failed |= bool(k["unnamed"])
     print("focus " + ("FAIL: no role or name: " + "; ".join(k["unnamed"]) if k["unnamed"] else "pass"))
+    if k["sources"]:
+        bare = [s for s in k["sources"] if s]
+        failed |= bool(bare)
+        print(f"sources {len(k['sources']) - len(bare)}/{len(k['sources'])} "
+              + ("FAIL: no link and no 출처 없음: " + "; ".join(bare) if bare else "pass"))
     for link in k["broken"]:
         failed = True
         print(f"links {link} has no target FAIL")
