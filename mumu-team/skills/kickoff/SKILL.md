@@ -94,6 +94,8 @@ Writing, for every issue, pull request and comment:
 
 A task lives in its leader's repository, and a worker's worktree in its leader's own checkout only. The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, and `<hooks>` is `git -C <checkout> rev-parse --path-format=absolute --git-path hooks`.
 
+`start`, `start-lead`, `close`, `merge` and `clean`'s git commands each run as the literal command written, one Bash call of its own by its bare name, with no path, interpreter, `cd`, `&&`, `;`, pipe, loop, redirect, `git -C` or variable, so an owner allow rule matches it; `bash-guard.py` refuses any other form.
+
 ## Panes: herdr
 
 Every command names its target pane.
