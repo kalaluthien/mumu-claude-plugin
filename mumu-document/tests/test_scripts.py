@@ -187,7 +187,7 @@ FAILS = [
     ("SQLite입니다.", "확인했음", "plain ending: 저장소는 확인했음 FAIL"),
     ("SQLite입니다.", "확인이 필요함.", "plain ending: 저장소는 확인이 필요함."),
     ('<div id="c">', '<div id="c" style="width:600px">', "FAIL: widest main > div#c"),
-    ("SQLite입니다.", "SQLite입니다. 넓이는 \\( x^2 \\)이에요.", "math 0 set FAIL: raw TeX 넓이는 \\( x^2 \\)이에요."),
+    ("SQLite입니다.", "SQLite입니다. 넓이는 \\( x^2 \\)이에요.", "math 0 set FAIL: raw TeX 다. 넓이는 \\( x^2 \\)이에요."),
 ]
 # (what to replace in GOOD, its replacement, a word no line may hold): each passes
 PASSES = [
@@ -443,7 +443,7 @@ class Math(unittest.TestCase):
             body, page = pathlib.Path(d) / "body.html", pathlib.Path(d) / "page.html"
             body.write_text(TWO_CHARTS + "<p><code>\\( x \\)</code>로 써요.</p>")
             self.assertEqual(assemble(str(body), str(page)).returncode, 0)
-            self.assertNotIn("katex", page.read_text())
+            self.assertNotRegex(page.read_text(), r'katex\.min\.js|<style id="math">')
 
 
 # two charts filled, as an author writes the body

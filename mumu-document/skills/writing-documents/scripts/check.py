@@ -107,7 +107,8 @@ f.onload = function () {
       var p = n.parentElement;
       if (!p || p.closest(SKIP) || !n.data.trim()) continue;
       held = held.concat(n.data.match(HOLE) || []);
-      if (TEX.test(n.data) && !p.closest(CODE)) raw.push(n.data.replace(/\s+/g, ' ').trim().slice(0, 40));
+      var tex = n.data.replace(/\s+/g, ' ').search(TEX);  // the TeX and a few words before it
+      if (tex >= 0 && !p.closest(CODE)) raw.push(n.data.replace(/\s+/g, ' ').slice(Math.max(0, tex - 8), tex + 24).trim());
       var at = n.data.replace(/\s+/g, ' ').search(/->|=>/);  // the arrow and a few words either side
       if (at >= 0 && !p.closest(PROSE)) ascii.push(n.data.replace(/\s+/g, ' ').slice(Math.max(0, at - 12), at + 14).trim());
       var b = block(p);
