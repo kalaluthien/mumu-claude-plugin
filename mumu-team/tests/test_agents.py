@@ -1,4 +1,4 @@
-"""Each role agent keeps its share of the default system prompt that `--agent` replaces, and the one reviewer agent defaults to Opus.
+"""Each role agent keeps its share of the default system prompt that `--agent` replaces, and the one judge agent defaults to Opus.
 
 Run: python3 -m unittest discover mumu-team/tests
 """
@@ -35,7 +35,7 @@ ALL = set(ITEMS)
 ROLES = {
     "lead": ALL,
     "worker": ALL - {"pasted content", "bang command"},
-    "reviewer": {"security", "denied call", "dedicated tools", "path:line", "code style", "pronouns", "faithful reports", "act once informed"},
+    "judge": {"security", "denied call", "dedicated tools", "path:line", "code style", "pronouns", "faithful reports", "act once informed"},
 }
 
 
@@ -61,10 +61,10 @@ class Core(unittest.TestCase):
                 self.assertTrue(0 < words <= MAX_WORDS, f"{role}: {words} words")
 
 
-class ReviewerAgent(unittest.TestCase):
-    def test_one_reviewer_agent_defaults_to_opus(self):
-        self.assertEqual(sorted(p.stem for p in AGENTS.glob("review*.md")), ["reviewer"])
-        _, front, _ = (AGENTS / "reviewer.md").read_text().split("---\n", 2)
+class JudgeAgent(unittest.TestCase):
+    def test_one_judge_agent_defaults_to_opus(self):
+        self.assertEqual(sorted(p.stem for p in AGENTS.glob("*.md")), ["judge", "lead", "worker"])
+        _, front, _ = (AGENTS / "judge.md").read_text().split("---\n", 2)
         self.assertIn("model: opus", front.splitlines())
 
 

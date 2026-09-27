@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print the `reviewer`'s model: `sonnet` for at most 20 changed lines, else `opus`.
+"""Print the `judge`'s model: `sonnet` for at most 20 changed lines, else `opus`.
 
 usage: review-model.py <base> <head>, run in the checkout.
 """

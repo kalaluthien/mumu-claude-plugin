@@ -33,7 +33,7 @@ The only place these terms are defined; every other file uses them as written he
 | project | a Claude project folder: the leader's cwd, a checkout of the GitHub repository named `<repo>` |
 | leader | the one session per project, or per plugin folder in a repository with `scope:` labels, named as `name` says: the owner talks to it, and it holds the project's root tasks and starts workers and other projects' leaders |
 | worker | a session on one task in its own worktree |
-| reviewer | the `reviewer` agent: it reviews a plan, a pull request or a report comment it did not write, and alone writes `APPROVED:` |
+| judge | the `judge` agent: it judges a plan, a pull request or a report comment it did not write, each criterion by its kind against a rubric the worker never sees, and alone writes `APPROVED:` |
 | root task | a task with no parent: the leader holds it; another project's work is a root task in that project's repository; a chore is a root task, `effort:low` |
 | task | an issue without the `backlog` label, labelled `effort:<effort>`: one change, one worker per share, owned by its worker; it ends in one pull request, closed as completed by its merge, or, when its `## Definition of done` names a report comment, in that comment on the task, closed as completed by its worker at the report's `APPROVED:`; split into shares, it is resolved by its leader once every row has merged |
 | share | a row of a task's `## Shares` table, share \| DoD \| after \| with: its topic, the ids of the criteria it checks (`D1:`), the rows it waits on, and what it shares with which rows. A task is one share by default, with no `## Shares`; its leader may split it by its Definition of done or content into shares, run in parallel or in sequence by `after`, each with its own worker, worktree, branch `<share>-<n>-<k>` and pull request |
@@ -47,7 +47,8 @@ The only place these terms are defined; every other file uses them as written he
 | claim | the branch on the remote; it exists, so the attempt is taken |
 | order | a task waits on another by GitHub's blocked-by, and starts once each blocker is closed |
 | approval | a comment whose first line is `APPROVED: <sha>`, valid while the head is that sha or a merge of the default branch into it that leaves its own diff byte-identical, or `APPROVED: <comment-url>` for a report |
-| criterion | one `## Definition of done` line, a check → its pass condition: a check that can fail, and that the honest empty outcome can pass |
+| criterion | one `## Definition of done` line, its kind, then a check → its pass condition: a check that can fail, and that the honest empty outcome can pass |
+| kind | a criterion's first token: `[exists]`, a file or line is present or absent; `[test]`, a test passes; `[quality]`, a rubric score |
 | stop | an issue closed as not planned, its pull request left draft |
 
 GitHub is the only state; a session's memory is a cache. A record is a comment opening with one of four keywords:
@@ -56,8 +57,8 @@ GitHub is the only state; a session's memory is a cache. A record is a comment o
 | --- | --- | --- |
 | `BLOCKED:` | worker | `BLOCKED: <question>`, a decision that is not the worker's, or `BLOCKED: stuck on <criterion>`, 3 iterations passed no new criterion; a share's worker writes only its pull request and `BLOCKED: <share>: ...` comments |
 | `DECIDED:` | leader | `DECIDED: <answer>` through `decide.py`, which also edits the body's criteria when they change |
-| `APPROVED:` | reviewer | the plan, the pull request at the head sha it names, or the report comment it names, may go on |
-| `FINDINGS:` | reviewer | one line per defect: where, the defect, the fix |
+| `APPROVED:` | judge | the plan, the pull request at the head sha it names, or the report comment it names, may go on |
+| `FINDINGS:` | judge | one line per criterion missed: the criterion, the gap, the direction of the fix |
 
 The criteria table in the pull request body, or in a report comment, is a worker's progress: one row per criterion and its last result.
 
@@ -81,14 +82,14 @@ Rules:
 - A keyword is written in capitals as above and read in any case, the colon optional.
 - A merge happens only through `merge.py`, at an approved head or one the approval carries to, and a hook refuses a raw `gh pr merge`. The same hook refuses a skipped git hook: fix what the git hook refused, or post `BLOCKED:`.
 - A commit on the default branch is refused by a hook in the checkout, and a push to it by the repository's ruleset; a merge squashes and deletes its head branch.
-- Every session and agent runs Opus, but the `reviewer` of a pull request of at most 20 changed lines, which runs on Sonnet: effort low when its task names what to change and how to check it, medium when it does not.
+- Every session and agent runs Opus, but the `judge` of a pull request of at most 20 changed lines, which runs on Sonnet: effort low when its task names what to change and how to check it, medium when it does not.
 
 Writing, for every issue, pull request and comment:
 
 - As short as it can be: bullets or a table, no narration; cite urls, `path:line`s and shas instead of restating them.
 - A title is verb-first and at most 40 characters.
 - Headings are noun phrases: a body carries `## Goal` and `## Definition of done`, one criterion per line; decisions and their reasons are `DECIDED:` comments.
-- A pull request body is `Closes #<task>`, or a share's `Part of #<task>`, over the criteria table: each criterion, the command run and its result, pass or fail, with the count or line that shows it.
+- A pull request body is `Closes #<task>`, or a share's `Part of #<task>`, over the criteria table: each criterion, the command run and its result, pass or fail, with the count or line that shows it, and an `on main` column, filled for a `[test]` row with the new test's failing line run against the default branch.
 
 # Verbs
 

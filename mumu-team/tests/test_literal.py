@@ -1,4 +1,4 @@
-"""Each routine step the kickoff skill's Verbs and the reviewer write, placeholders filled, is one literal command an
+"""Each routine step the kickoff skill's Verbs and the judge write, placeholders filled, is one literal command an
 owner allow rule matches, and `bash-guard.py` lets it through; a refused self-modifying edit reaches the owner as one
 apply command (#281).
 
@@ -17,7 +17,7 @@ from test_clean import ALLOW  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SKILL = ROOT / "skills" / "kickoff" / "SKILL.md"
-REVIEWER = ROOT / "agents" / "reviewer.md"
+JUDGE = ROOT / "agents" / "judge.md"
 HOOK = ROOT / "scripts" / "bash-guard.py"
 WORK = ROOT / "skills" / "kickoff" / "references" / "work-task.md"
 # rules already in the owner's ~/.claude/settings.json, fixed: the test adds no other
@@ -50,9 +50,9 @@ def verb_commands():
     return found
 
 
-def reviewer_commands():
-    """Each `gh ... comment` command reviewer.md writes, filled."""
-    return [fill(c) for c in re.findall(r"`(gh (?:pr|issue) comment [^`]+)`", REVIEWER.read_text())]
+def judge_commands():
+    """Each `gh ... comment` command judge.md writes, filled."""
+    return [fill(c) for c in re.findall(r"`(gh (?:pr|issue) comment [^`]+)`", JUDGE.read_text())]
 
 
 def guard(command, agent=None):
@@ -76,17 +76,17 @@ class Literal(unittest.TestCase):
             with self.subTest(verb=verb, command=command):
                 self.assert_literal(command)
 
-    def test_the_reviewer_names_its_post_as_one_literal_command(self):
-        commands = reviewer_commands()
+    def test_the_judge_names_its_post_as_one_literal_command(self):
+        commands = judge_commands()
         self.assertEqual(sorted(c.split()[1] for c in commands), ["issue", "pr"])
         for command in commands:
             with self.subTest(command=command):
                 self.assertIn("\n", command)  # a verdict spans lines
-                self.assert_literal(command, "mumu-team:reviewer")
+                self.assert_literal(command, "mumu-team:judge")
 
     def test_a_two_line_verdict_passes_the_guard_and_the_gh_rule(self):
         command = f"gh pr comment {PR} --body 'APPROVED: 8bd0af5dbae98300d657961961b6954f760dd82c\nChecked the diff at the head.'"
-        self.assert_literal(command, "mumu-team:reviewer")
+        self.assert_literal(command, "mumu-team:judge")
         self.assertTrue(fnmatch.fnmatchcase(command, "gh *"))
 
 

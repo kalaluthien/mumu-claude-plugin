@@ -332,10 +332,10 @@ class MergeCarry(unittest.TestCase):
         self.assertRefused(result, words, self.head)
         self.assertIn("cannot be read", result.stderr)
 
-    def test_step_4_resumes_the_reviewer_only_when_the_merge_is_refused_again(self):
+    def test_step_4_resumes_the_judge_only_when_the_merge_is_refused_again(self):
         step = next(l for l in (ROOT / "skills/kickoff/references/work-task.md").read_text().splitlines() if l.startswith("4. "))
         after = step[step.index("merge the default branch in"):]
-        self.assertRegex(after.split(". ")[0], r"`merge` again.*only when `merge\.py` refuses.*resume the reviewer")
+        self.assertRegex(after.split(". ")[0], r"`merge` again.*only when `merge\.py` refuses.*resume the judge")
 
     def test_the_approval_of_pull_request_268_carries_across_its_merge_of_main(self):
         """Replays #268: `APPROVED: A`, then head H merges the non-empty 459d5b9 of main in."""
