@@ -697,6 +697,46 @@ def git(repo, *args):
     subprocess.run(["git", "-C", repo, *args], check=True, capture_output=True)
 
 
+# The hook ../scripts/sync.sh (workspace repo) writes as pre-commit and pre-push.
+WRAPPER = """#!/bin/sh
+guard="%s"
+hook=$(basename "$0")
+in=$(mktemp) || exit 1
+trap 'rm -f "$in"' EXIT
+cat >| "$in"
+GUARD="$guard" sh -c '. "$GUARD"' "$hook" "$@" < "$in" || exit 1
+[ -f "hooks/$hook" ] || exit 0
+"hooks/$hook" "$@" < "$in"
+""" % (BIN / "default-branch-guard.sh")
+
+
+class DefaultBranchGuard(unittest.TestCase):
+    def setUp(self):
+        self.tmp = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp)
+        self.remote, self.repo = self.tmp / "remote.git", self.tmp / "repo"
+        git(self.tmp, "init", "-q", "--bare", "-b", "main", str(self.remote))
+        git(self.tmp, "init", "-q", "-b", "main", str(self.repo))
+        git(self.repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "base")
+        git(self.repo, "push", "-q", str(self.remote), "main", "main:topic")
+        for hook in ("pre-commit", "pre-push"):
+            path = self.repo / ".git" / "hooks" / hook
+            path.write_text(WRAPPER)
+            path.chmod(0o755)
+
+    def test_a_push_deleting_a_branch_from_the_default_branch_passes(self):
+        out = subprocess.run(["git", "push", str(self.remote), "--delete", "topic"], cwd=self.repo, capture_output=True, text=True)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        branches = subprocess.run(["git", "-C", self.remote, "branch", "--list"], capture_output=True, text=True, check=True).stdout
+        self.assertEqual(branches.split(), ["*", "main"])
+
+    def test_a_commit_on_the_default_branch_is_refused(self):
+        out = subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "--allow-empty", "-m", "x"],
+                             cwd=self.repo, capture_output=True, text=True)
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn('the default branch "main" is refused', out.stderr)
+
+
 class ReviewModel(unittest.TestCase):
     def test_twenty_changed_lines_get_sonnet_and_twenty_one_get_opus(self):
         with tempfile.TemporaryDirectory() as repo:
