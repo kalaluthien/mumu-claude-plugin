@@ -27,7 +27,9 @@ Write an acceptance test (the app driven as its user drives it: the CLI, the HTT
 
 Drive a screen in a browser and assert what it shows; a Claude plugin's hook, dialog, monitor or `/` menu, by the plugin probe below. Run the tests.
 
-Each `check <Name>` in `spec/` has a `refuses_<Name>` test. Where `$SPEC_EVENTS` is set, tests assert that each step it logs is in the module's `trans`. A `@load` scenario runs at twice the largest limit the code declares, with zero errors and no step outside `trans`; a `@fault` scenario fails each `Remote` call once.
+Each `check <Name>` in `spec/` has a `refuses_<Name>` test that fails on the rule's own assertion, at the lowest level that reaches the rule: a module test, else an end-to-end run on the real platform (a device, a browser, a live service), else the event log. A test that dies before its assertion (a missing dispatcher, a platform class, an image never decoded) reaches nothing: move it up a level, never land it as a gap. Where `$SPEC_EVENTS` is set, tests assert that each step it logs is in the module's `trans`. A `@load` scenario runs at twice the largest limit the code declares, with zero errors and no step outside `trans`; a `@fault` scenario fails each `Remote` call once.
+
+A rule the code breaks, when the change is not to fix it, is a code gap: file an issue quoting the check's command and failing output, and land the witness disabled, or the check `expect 1`, with `gap #<issue>` on its line; `verify.sh` counts each.
 
 A value rule - a threshold, a colour, a size - lives once as a named constant where the code reads it, and its test states the literal: `isFlat(5.0f)`, never `isFlat(TOLERANCE)`.
 
