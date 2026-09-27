@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""PreToolUse on Bash and Stop: in a repo holding `spec/verify.sh`, run it before a `git commit` and before a stop
-that leaves changes, refusing either while it fails, with its FAIL lines. A repo without it is commit-nudge.py's.
+"""PreToolUse on Bash and Stop: in a repo holding a `spec/` model, run the verify skill's gate before a `git commit`
+and before a stop that leaves changes, refusing either while it fails, with its FAIL lines. A repo without one is
+commit-nudge.py's.
 A stop already held once goes on, so a gate the session cannot turn green never traps it. Exit 0 always.
 """
 import json
@@ -10,7 +11,9 @@ import shlex
 import subprocess
 import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
+PLUGIN = pathlib.Path(__file__).resolve().parent.parent
+GATE = PLUGIN / "skills" / "verify" / "scripts" / "verify.sh"
+sys.path.insert(0, str(PLUGIN / "lib"))
 from fit import COMMIT  # noqa: E402
 
 
@@ -26,12 +29,11 @@ def main():
     if m and m.group(3):
         cwd = os.path.join(cwd, os.path.expanduser(shlex.split(m.group(3))[0]))
     root = git(cwd, "rev-parse", "--show-toplevel")
-    gate = pathlib.Path(root, "spec", "verify.sh")
-    if not (root and gate.is_file()) or not (m or stop and not call.get("stop_hook_active") and git(root, "status", "--porcelain")):
+    if not (root and any(pathlib.Path(root, "spec").rglob("*.als"))) or not (m or stop and not call.get("stop_hook_active") and git(root, "status", "--porcelain")):
         return
-    p = subprocess.run([str(gate)], cwd=root, capture_output=True, text=True)
+    p = subprocess.run([str(GATE)], cwd=root, capture_output=True, text=True)
     fails = [l for l in (p.stdout + p.stderr).splitlines() if l.startswith("FAIL")] or p.stderr.splitlines()[-5:]
-    why = "spec/verify.sh fails:\n" + "\n".join(fails) + "\nFix the change or the model until it passes; never loosen an expect."
+    why = "verify.sh fails:\n" + "\n".join(fails) + "\nFix the change or the model until it passes; never loosen an expect."
     if p.returncode:
         print(json.dumps({"decision": "block", "reason": why} if stop else {"hookSpecificOutput": {
             "hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": why}}))

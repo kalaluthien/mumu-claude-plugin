@@ -14,7 +14,7 @@ A change is checked against a contract that predates it, stated so that a check 
 ## Rules
 
 - Use the repo's layout. With none, initialise the default the skill names and tell the owner "no <kind> layout found; initialised <path>".
-- Read the bar where the repo states it (CI, a contributing guide, agent instructions); with none, `spec/verify.sh` passes, a branch's p95 is at most the worst of 5 runs of main on the same instrument, and a skill's number is its default. Asked where verification stands, give each kind's layout, coverage, last result and gap to the bar.
+- Read the bar where the repo states it (CI, a contributing guide, agent instructions); with none, the verify skill's gate passes, a branch's p95 is at most the worst of 5 runs of main on the same instrument, and a skill's number is its default. Asked where verification stands, give each kind's layout, coverage, last result and gap to the bar.
 - The owner sets the bar and judges traces; the agent writes the checks and the change, and never judges a trace for the owner.
 - Code a spec or test must observe writes the event log; a transition with no line is a gap to report.
 - Write the check before the change and watch it fail for the reason the change addresses. An eval comes first only for a failure mode seen in a trace or a hard constraint the owner stated; otherwise error analysis does.

@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# The one done command, copied to a repo as spec/verify.sh: every Alloy command under spec/ meets its `expect`,
+# The one done command, run from the plugin at a repo's root: every Alloy command under spec/ meets its `expect`,
 # every `check` has a `refuses_<Name>` test and every such test a check, then the suite passes. Exit 1 names each miss.
-TESTS=${VERIFY_TESTS:-"python3 -m unittest discover -s tests"}  # this repo's test command
-cd "$(dirname "$0")/.." || exit 2
+TESTS=${VERIFY_TESTS:-"python3 -m unittest discover -s tests"}  # the repo's test command, set in its settings' env
 out=$(mktemp -d) && trap 'rm -rf "$out"' EXIT
 fail=0
 models=$(grep -rlE '^[[:space:]]*(check|run)[[:space:]{]' spec --include='*.als' 2>/dev/null | sort)
@@ -11,11 +10,15 @@ for f in $models; do
   alloy exec -f -q -o "$out/${f//\//_}" "$f" >"$out/log" 2>&1 || [ -f "$out/${f//\//_}/receipt.json" ] ||
     { echo "FAIL $f: did not parse"; fail=1; }
 done
-grep -rhoE --exclude-dir=spec --exclude-dir=.git 'refuses_[A-Za-z0-9_]+' . | sort -u >"$out/witnesses"
 [ -n "$models" ] && { python3 - "$out" "$fail" <<'PY' || fail=1; }
-import json, pathlib, sys
-out = pathlib.Path(sys.argv[1])
-witnesses = set(out.joinpath("witnesses").read_text().split())
+import json, os, pathlib, re, sys
+out, witnesses = pathlib.Path(sys.argv[1]), set()
+TEST = re.compile(r"(^|/)(tests?|__tests__|androidTest)/|(^|/)test_[^/]*$|_test\.[^/]*$|\.test\.[^/]*$|Test\.[^/.]+$")
+for d, dirs, files in os.walk("."):  # a witness counts only in a test file
+    dirs[:] = [x for x in dirs if x[0] != "." and x not in ("spec", "docs", "build", "node_modules")]
+    for f in files:
+        if TEST.search(os.path.join(d, f)[2:]):
+            witnesses |= set(re.findall(r"refuses_\w+", pathlib.Path(d, f).read_text(errors="ignore")))
 checks, bad = set(), []
 for receipt in sorted(out.glob("*/receipt.json")):
     for name, c in json.loads(receipt.read_text())["commands"].items():
