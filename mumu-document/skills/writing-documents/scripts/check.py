@@ -138,6 +138,10 @@ f.onload = function () {
       h2: h2.length, linked: h2.filter(function (h) { return h.id && links.indexOf(h.id) >= 0; }).length, nav: !!d.querySelector('main nav'),
       broken: Array.prototype.map.call(d.querySelectorAll('a[href^="#"]'), function (a) { return a.getAttribute('href'); })
         .filter(function (h) { return h.length > 1 && !d.getElementById(decodeURIComponent(h.slice(1))); }),
+      quotes: loose('pre').filter(function (e) {  // a quote of 4+ lines with no figure.code path caption
+        var cap = e.closest('figure.code') && e.closest('figure.code').querySelector(':scope > figcaption');
+        return e.textContent.replace(/\n+$/, '').split('\n').length >= 4 && !(cap && /\S+:\d+(-\d+)?/.test(cap.textContent));
+      }).map(function (e) { return e.textContent.trim().split('\n')[0].slice(0, 40); }),
       chapters: d.querySelectorAll('[data-chapter]').length, math: d.querySelectorAll('.katex').length,
       raw: raw.concat(Array.prototype.map.call(d.querySelectorAll('.katex-error'), function (e) { return e.textContent.slice(0, 40); })),
       loose: Array.prototype.filter.call(d.querySelectorAll('main h3'), function (h) { return !h.closest('[data-chapter]'); }).length });
@@ -659,6 +663,9 @@ def main():
     if k["math"] or k["raw"]:
         failed |= bool(k["raw"])
         print(f"math {k['math']} set " + ("FAIL: raw TeX " + "; ".join(k["raw"]) if k["raw"] else "pass"))
+    for q in k["quotes"]:
+        failed = True
+        print(f"quotes code quote without path caption {q!r} FAIL")
     for link in k["broken"]:
         failed = True
         print(f"links {link} has no target FAIL")
