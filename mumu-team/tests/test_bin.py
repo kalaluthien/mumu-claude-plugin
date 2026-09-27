@@ -476,7 +476,7 @@ class WorkerStart(unittest.TestCase):
         prompt = calls.index(["herdr", "agent", "prompt", PANE, f"/mumu-team:kickoff work {ISSUE} leader l"])
         self.assertLess(keys, prompt, "prompted before the trust dialog was answered")
         self.assertEqual(self.status(), "working")
-        self.assertIn(["git", "-C", str(self.repo), "worktree", "add", "-b", "start-7-1", str(tree), "origin/main"], calls)
+        self.assertIn(["git", "-C", str(self.repo), "worktree", "add", "-b", "go-start-7-1", str(tree), "origin/main"], calls)
         self.assertEqual(sorted(p.name for p in (self.tmp / "hooks").iterdir()), ["pre-commit"])
 
     def test_tab_marks_the_session_a_worker(self):
@@ -662,7 +662,7 @@ class WorkerStart(unittest.TestCase):
             self.assertEqual(done.returncode, 0, done.stderr)
         adds = [c[4:] for c in calls if c[3:5] == ["worktree", "add"]]
         trees = self.repo / ".claude" / "worktrees"
-        self.assertEqual(adds, [["add", "-b", f"start-7-{k}", str(trees / f"start-7-{k}"), "origin/main"] for k in (1, 2)])
+        self.assertEqual(adds, [["add", "-b", f"go-start-7-{k}", str(trees / f"go-start-7-{k}"), "origin/main"] for k in (1, 2)])
 
 
 class Worktree(unittest.TestCase):
