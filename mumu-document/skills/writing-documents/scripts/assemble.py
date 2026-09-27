@@ -2,7 +2,7 @@
 """Print one widget's spec, or wrap a page's body in the skin and the code of each widget it uses.
 
 usage: assemble.py --spec <widget> | assemble.py <body.html> <page.html>
-The widgets are page (the shell), chart and each diagram kind; the body is what goes inside <main>.
+The widgets are page (the shell), chart, filter, controls and each diagram kind; the body is what goes inside <main>.
 Exit 0 printed or written, 2 an unknown widget or kind, or a missing file.
 """
 import html
@@ -14,6 +14,8 @@ REFS = pathlib.Path(__file__).resolve().parents[1] / "references"
 BLOCK = re.compile(r"<style[^>]*>.*?</style>\s*|<script>.*?</script>\s*", re.S)
 # spec lines on what a widget's script does, not on what the author writes
 SCRIPTED = ("focus", "legend", "keyboard", "screen reader")
+# widgets whose spec is their whole comment and body, as against the diagram's kinds
+WHOLE = ("chart", "filter", "controls")
 
 
 def unit(name):
@@ -32,7 +34,7 @@ def kinds():
 
 def spec(widget):
     """A widget's spec comment and body template, unindented, with no style or script; a diagram kind's alone."""
-    if widget in ("page", "chart"):
+    if widget == "page" or widget in WHOLE:
         comment, _, body = unit(widget)
         if widget == "page":
             body = re.search(r"<main>.*?</main>", body, re.S).group(0)
@@ -49,8 +51,8 @@ def assemble(body):
     body = re.sub(r"^\s*<main>|</main>\s*$", "", body).strip()
     used = list(dict.fromkeys(re.findall(r'data-widget="([^"]*)"', body)))
     for w in used:
-        if w not in ("chart", "diagram"):
-            raise LookupError(f"unknown widget {w!r}; widgets: chart, diagram")
+        if w not in (*WHOLE, "diagram"):
+            raise LookupError(f"unknown widget {w!r}; widgets: {', '.join(WHOLE)}, diagram")
     for k in dict.fromkeys(re.findall(r'data-diagram="([^"]*)"', body)):
         if k not in kinds():
             raise LookupError(f"unknown diagram kind {k!r}; kinds: {', '.join(kinds())}")
@@ -68,8 +70,8 @@ def assemble(body):
 def main():
     args = sys.argv[1:]
     if len(args) == 2 and args[0] == "--spec":
-        if args[1] not in ("page", "chart", *kinds()):
-            print(f"assemble.py: unknown widget {args[1]!r}; widgets: page, chart, {', '.join(kinds())}", file=sys.stderr)
+        if args[1] not in ("page", *WHOLE, *kinds()):
+            print(f"assemble.py: unknown widget {args[1]!r}; widgets: page, {', '.join((*WHOLE, *kinds()))}", file=sys.stderr)
             return 2
         sys.stdout.write(spec(args[1]))
         return 0

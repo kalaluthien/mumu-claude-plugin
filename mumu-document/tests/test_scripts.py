@@ -89,6 +89,26 @@ FIXTURES = {"chart": """<figure data-widget="chart" data-chart="bar">
       <tbody><tr><th scope="row">1주</th><td>2</td></tr><tr><th scope="row">2주</th><td>1</td></tr><tr><th scope="row">3주</th><td>1</td></tr><tr><th scope="row">4주</th><td>0</td></tr></tbody>
     </table>
   </div></details>
+</figure>""",
+            "filter": """<div data-widget="filter" data-for="{{id}}" data-unit="개">
+  <div role="group" data-facet="kind" aria-label="갈래">
+    <button type="button" data-tag="">전체</button><button type="button" data-tag="빛">빛</button><button type="button" data-tag="색">색</button>
+  </div>
+  <input type="search" aria-label="주제에서 찾기" placeholder="찾을 말">
+  <output aria-live="polite"></output>
+</div>
+<ul id="{{id}}"><li data-kind="빛">창가의 빛</li><li data-kind="빛">역광</li><li data-kind="색">피부색</li></ul>""",
+            "controls": """<figure data-widget="controls" data-split="처음|지금">
+  <figcaption>크기를 바꾸며 원을 봐요.</figcaption>
+  <div class="stage"><svg viewBox="0 0 120 80" role="img" aria-label="원"><circle cx="60" cy="40" style="r: calc(var(--size, 20) * 1px)"/></svg></div>
+  <div class="panel">
+    <label>크기 <input type="range" name="size" min="10" max="30" value="20"><output data-unit="px"></output></label>
+    <div role="group" data-name="size2" aria-label="두 배">
+      <button type="button" data-value="1">한 배</button><button type="button" data-value="2">두 배</button>
+    </div>
+    <div class="presets"><button type="button" data-preset="size=30">크게</button></div>
+    <p>넓이 <output data-calc="3 * size * size * size2" data-digits="0"></output></p>
+  </div>
 </figure>"""}
 
 
@@ -115,7 +135,7 @@ def gallery():
         blocks, body = parts(f.read_text())
         head += blocks
         if f.stem in FIXTURES:
-            bodies, full = re.split(r"\n(?=<figure)", FIXTURES[f.stem].strip()), 1
+            bodies, full = re.split(r"\n(?=<figure|<div data-widget)", FIXTURES[f.stem].strip()), 1
         else:
             bodies = re.split(r"\n(?=<section)", body.strip())
             full = len(bodies)
@@ -278,7 +298,7 @@ class Check(unittest.TestCase):
     def test_chapter_page_passes(self):
         code, out = check(PAGED)
         self.assertEqual(code, 0, out)
-        self.assertIn("chapters 3 load 10/10 nav 3/3 pager 4/4 back 1/1 pass", out)
+        self.assertIn("chapters 3 load 10/10 nav 6/6 pager 4/4 back 1/1 pass", out)
 
     def test_each_chapter_rule_fails(self):
         for old, new, line in [
@@ -304,6 +324,7 @@ class Check(unittest.TestCase):
         for kind in ("bar", "line"):
             self.assertIn(f" {kind} marks", out)
         self.assertIn("swipe 1 token in view 3/3 pass", out)
+        self.assertRegex(out, r"clicks (\d+)/\1 pass")
 
     def test_each_chart_rule_fails(self):
         for js, word in CHART_FAILS + [(None, "slide stands at table 1, not its last, 2")]:
@@ -336,6 +357,52 @@ class Check(unittest.TestCase):
 
 
 
+# (what to replace in the assembled widgets page, its replacement, a line the output must hold)
+BROKEN = [
+    ('<div role="group" data-name="tone"', '<label>안 쓰는 값 <input type="range" name="unused" min="0" max="10" value="5">'
+     '<output></output></label><div role="group" data-name="tone"', "controls 1 slider unused changes nothing"),
+    ('data-preset="size=12 light=20 tone=cool"', 'data-preset="sise=12"', "controls 1 preset 작고 어둡게 changes nothing"),
+    ("<main>", "<style>main nav.drawer.open { visibility: hidden; }</style><main>", "contents button changes nothing"),
+    ("<main>", "<script>addEventListener('click', function (e) { if (e.target.closest('.top')) e.stopImmediatePropagation(); }, true);"
+     "</script><main>", "top button changes nothing"),
+    ("<main>", "<script>history.back = function () {};</script><main>", "back button returns to"),
+    ("<main>", "<style>.flash { animation: none; }</style><main>", "does not flash its target"),
+    ("<main>", "<script>addEventListener('input', function (e) { if (e.target.type === 'search') e.stopImmediatePropagation(); },"
+     " true);</script><main>", "filter 1 search box changes nothing"),
+    ('data-tag="빛"', 'data-tag=""', "filter 2 갈래 빛 changes nothing"),
+]
+
+
+def widgets_page():
+    """tests/pages/widgets.html's body assembled into a page."""
+    with tempfile.TemporaryDirectory() as d:
+        page = pathlib.Path(d) / "page.html"
+        subprocess.run([sys.executable, str(ASSEMBLE), str(ROOT / "tests" / "pages" / "widgets.html"), str(page)], check=True,
+                       capture_output=True)
+        return page.read_text()
+
+
+@unittest.skipUnless(CHROME.exists(), "no Chrome")
+class Widgets(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.page = widgets_page()
+
+    def test_page_with_every_new_part_passes(self):
+        code, out = check(self.page)
+        self.assertEqual((code, out.splitlines()[-1]), (0, "pass"), out)
+        self.assertIn("layout motion 305/305", out)
+        self.assertIn("clicks 24/24 pass", out)
+
+    def test_each_broken_control_fails(self):
+        for old, new, line in BROKEN:
+            with self.subTest(line):
+                self.assertIn(old, self.page)
+                code, out = check(self.page.replace(old, new, 1))
+                self.assertEqual(code, 1, out)
+                self.assertIn(line, out)
+
+
 def assemble(*args):
     return subprocess.run([sys.executable, str(ASSEMBLE), *args], capture_output=True, text=True)
 
@@ -348,7 +415,7 @@ TWO_CHARTS = ('<h1>도시별 요청</h1>\n<p class="read">부산의 요청이 �
 
 class Assemble(unittest.TestCase):
     def test_each_spec_is_small_and_unstyled(self):
-        for widget in ("page", "chart", "file-tree", "system-context", "use-case"):
+        for widget in ("page", "chart", "filter", "controls", "file-tree", "system-context", "use-case"):
             with self.subTest(widget):
                 r = assemble("--spec", widget)
                 self.assertEqual(r.returncode, 0, r.stderr)

@@ -240,10 +240,130 @@ SWIPES = ("Array.prototype.map.call(document.querySelectorAll('[data-swipe].live
           " return [+r.dataset.at + 1, r.querySelectorAll('.steps > li').length,"
           " t ? a.left >= b.left - 1 && a.right <= b.right + 1 && a.top >= b.top - 1 && a.bottom <= b.bottom + 1 : null]; })")
 
+# [what was tried, the controls that changed nothing]: each filter and controls widget's control, then the reading aids;
+# a control passes when its states differ: a slider at its min and max, each of a group's buttons from the others, a preset
+# against the controls scrambled, the text box against no word, a reading-aid button against the page before it
+CLICKS = r"""(async function () {
+  var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  var tried = 0, dead = [];
+  // whether fn() holds within two seconds, for a transition that a loaded machine slows
+  var until = async function (fn) { for (var i = 0; i < 40 && !fn(); i++) await wait(50); return fn(); };
+  var shown = function (el) { return el.checkVisibility({ visibilityProperty: true }); };
+  var look = function (el) {
+    var cs = getComputedStyle(el), r = el.getBoundingClientRect();
+    return [el.hidden, Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height), cs.fill, cs.stroke, cs.opacity,
+      cs.transform, cs.display, cs.visibility, el.childElementCount ? '' : el.textContent];
+  };
+  var state = function (root) {
+    if (root.dataset.widget === 'filter') {
+      var list = document.getElementById(root.dataset.for);
+      return JSON.stringify([list ? Array.prototype.map.call(list.querySelectorAll('tr, li, :scope > *'), function (e) { return e.hidden; }) : [],
+        (root.querySelector('output') || {}).textContent]);
+    }
+    var els = [];
+    root.querySelectorAll('.stage:not(.before), .stage:not(.before) *, output[data-calc]').forEach(function (e) { els.push(look(e)); });
+    return JSON.stringify(els);
+  };
+  var click = async function (b) { b.click(); await wait(30); };
+  var slide = async function (s, v) { s.value = v; s.dispatchEvent(new Event('input', { bubbles: true })); await wait(30); };
+  var live = function (els) { return Array.prototype.filter.call(els, function (e) { return !e.matches(':disabled'); }); };
+  var roots = document.querySelectorAll('[data-widget="filter"].live, [data-widget="controls"].live');
+  for (var w = 0; w < roots.length; w++) {
+    var root = roots[w], name = root.dataset.widget + ' ' + (1 + Array.prototype.slice.call(roots, 0, w).filter(function (r) { return r.dataset.widget === root.dataset.widget; }).length);
+    var groups = root.querySelectorAll('[role="group"]');
+    for (var g = 0; g < groups.length; g++) {
+      var bs = live(groups[g].querySelectorAll('button')), seen = [];
+      for (var i = 0; i < bs.length; i++) { await click(bs[i]); seen.push(state(root)); }
+      bs.forEach(function (b, i) {
+        tried++;
+        if (seen.some(function (s, j) { return j !== i && s === seen[i]; })) dead.push(name + ' ' + groups[g].getAttribute('aria-label') + ' ' + b.textContent.trim() + ' changes nothing');
+      });
+      if (bs.length) await click(bs[0]);
+    }
+    var sliders = live(root.querySelectorAll('input[type="range"]'));
+    for (var k = 0; k < sliders.length; k++) {
+      var s = sliders[k], was = s.value;
+      await slide(s, s.min || 0); var lo = state(root);
+      await slide(s, s.max || 100); var hi = state(root);
+      tried++;
+      if (lo === hi) dead.push(name + ' slider ' + s.name + ' changes nothing');
+      await slide(s, was);
+    }
+    var box = root.querySelector('input[type="search"]');
+    if (box && !box.disabled) {
+      var before = state(root);
+      box.value = '␀␀'; box.dispatchEvent(new Event('input', { bubbles: true })); await wait(30);
+      tried++;
+      if (state(root) === before) dead.push(name + ' search box' + ' changes nothing');
+      box.value = ''; box.dispatchEvent(new Event('input', { bubbles: true })); await wait(30);
+    }
+    var presets = live(root.querySelectorAll('[data-preset]'));
+    for (var q = 0; q < presets.length; q++) {
+      var changed = false;
+      for (var end = 0; end < 2 && !changed; end++) {
+        for (var k2 = 0; k2 < sliders.length; k2++) await slide(sliders[k2], end ? sliders[k2].max : sliders[k2].min);
+        for (var g2 = 0; g2 < groups.length; g2++) { var gb = live(groups[g2].querySelectorAll('button')); if (gb.length) await click(gb[end ? 0 : gb.length - 1]); }
+        var from = state(root);
+        await click(presets[q]);
+        changed = state(root) !== from;
+      }
+      tried++;
+      if (!changed) dead.push(name + ' preset ' + presets[q].textContent.trim() + ' changes nothing');
+    }
+  }
+  // the chapters as the page shows them, since browse unhid them all
+  dispatchEvent(new HashChangeEvent('hashchange')); await wait(100);
+  var nav = document.querySelector('main nav.drawer'), toggle = document.querySelector('.dock .contents');
+  if (nav && toggle && shown(toggle)) {
+    // a close an earlier step began may still be hiding it
+    var closed = !(await until(function () { return !shown(nav); }));
+    await click(toggle);
+    var open = await until(function () { return shown(nav); });
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    var shut = await until(function () { return !shown(nav); });
+    tried++;
+    if (closed || !open || !shut) dead.push('contents button' + ' changes nothing');
+  }
+  // the top button shows once scrolled far, so at the foot of the page or of any chapter long enough
+  var top = document.querySelector('.dock .top'), heads = document.querySelectorAll('[data-chapter] > h2[id]');
+  for (var c = -1; top && c < heads.length && !shown(top); c++) {
+    if (c >= 0) { location.hash = '#' + heads[c].id; await wait(200); }
+    scrollTo(0, document.documentElement.scrollHeight); await wait(200);
+  }
+  if (top && shown(top)) {
+    await click(top);
+    tried++;
+    if (!await until(function () { return scrollY <= 1; })) dead.push('top button' + ' changes nothing');
+  }
+  var back = document.querySelector('.dock .back');
+  var link = Array.prototype.find.call(document.querySelectorAll('main a[href^="#"]'), function (a) {
+    var t = document.getElementById(decodeURIComponent(a.hash.slice(1)));
+    return t && a.hash !== location.hash && !a.closest('nav, .pager');
+  });
+  if (back && link) {
+    var holder = link.closest('[data-chapter]');
+    if (holder && !shown(link)) { location.hash = '#' + holder.querySelector('h2').id; await wait(200); }
+    link.scrollIntoView(); await wait(200);
+    var y = scrollY, hash = location.hash;
+    link.click(); await wait(100);
+    var flash = document.getElementById(decodeURIComponent(link.hash.slice(1))).getAnimations()
+      .some(function (a) { return a.animationName === 'flash'; });
+    tried++;
+    if (!shown(back)) dead.push('back button not shown after a link');
+    else {
+      await click(back); await wait(300);
+      if (Math.abs(scrollY - y) > 2 || location.hash !== hash) dead.push('back button returns to ' + Math.round(scrollY) + location.hash + ', not ' + Math.round(y) + hash);
+    }
+    tried++;
+    if (!flash) dead.push(link.hash + ' does not flash its target');
+  }
+  return [tried, dead];
+})()"""
+
 
 def browse(page, paged):
     """(each live swipe's [step reached, steps, steps whose token lies outside its stage's view, or None with no token]
-    once scrolled card by card to its end, a `paged` page's chapter_checks), in real time."""
+    once scrolled card by card to its end, a `paged` page's chapter_checks, CLICKS' result), in real time."""
     cmd_r, cmd_w = os.pipe()
     out_r, out_w = os.pipe()
     def fds():  # Chrome reads commands on fd 3 and answers on fd 4
@@ -270,7 +390,7 @@ def browse(page, paged):
     try:
         target = send("Target.createTarget", url=f"file://{page}")["targetId"]
         session = send("Target.attachToTarget", targetId=target, flatten=True)["sessionId"]
-        run = lambda js: send("Runtime.evaluate", session, expression=js, returnByValue=True)["result"].get("value")
+        run = lambda js: send("Runtime.evaluate", session, expression=js, returnByValue=True, awaitPromise=True)["result"].get("value")
         time.sleep(1.5)
         chapters = paged and chapter_checks(page, run, lambda url: send("Page.navigate", session, url=url))
         run("document.querySelectorAll('[data-chapter]').forEach(function (c) { c.hidden = false; })")
@@ -285,7 +405,7 @@ def browse(page, paged):
                     out.setdefault(i, [])
                     if not seen and k < n:
                         out[i].append(k + 1)
-        return [[at, n, out.get(i)] for i, (at, n, _) in enumerate(rows)], chapters
+        return [[at, n, out.get(i)] for i, (at, n, _) in enumerate(rows)], chapters, run(CLICKS)
     finally:
         chrome.kill()
 
@@ -534,7 +654,7 @@ def main():
         failed = True
         print(f"links {link} has no target FAIL")
     paged = k["chapters"] > 0 or (k["h2"] and k["loose"])
-    swipes, chapters = browse(page, k["chapters"] > 1)
+    swipes, chapters, (tried, dead) = browse(page, k["chapters"] > 1)
     if paged:
         tally, out = chapters or ({}, [])
         if k["loose"]:
@@ -555,6 +675,9 @@ def main():
         print(f"swipe {i} step {at}/{n} " + ("pass" if at == n else "FAIL"))
         if out is not None:
             print(f"swipe {i} token in view {n - len(out)}/{n} " + ("FAIL: steps " + ", ".join(map(str, out)) if out else "pass"))
+    if tried:
+        failed |= bool(dead)
+        print(f"clicks {tried - len(dead)}/{tried} " + ("FAIL: " + "; ".join(dead) if dead else "pass"))
     print("FAIL" if failed else "pass")
     return 1 if failed else 0
 

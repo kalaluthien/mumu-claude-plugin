@@ -1,0 +1,71 @@
+<!-- filter: narrows a long list to the items a reader looks for, by tags and a word; one copy per list.
+  anatomy: a div[data-widget="filter"] whose data-for names the id of the list it filters: a table or a .scroll box
+  holding one (its body rows), a ul or ol (its li), or any box (its children, as cards); each item carries
+  data-<facet>="<tag> <tag>", space-separated.
+  groups: a div role="group" per facet, data-facet="<facet>" and aria-label its name, holding a button per tag with
+  data-tag, the first 전체 with data-tag=""; one is pressed at a time.
+  search: an optional input type="search" with an aria-label; it keeps an item whose text holds the word, in any case.
+  count: an empty output the script fills with `n / N` and data-unit (개, 건); without script the widget hides.
+  use when: 12 items or more that the reader scans for a few, by a facet the items share.
+  not when: fewer items (a list), or the reader compares every row (a table alone). -->
+<style>
+  [data-widget="filter"] {
+    --filter-gap: var(--sp-2);
+    display: flex; flex-wrap: wrap; align-items: center; gap: var(--filter-gap); margin: var(--sp-3) 0;
+    &:not(.live) { display: none; }
+    & [role="group"] { display: flex; flex-wrap: wrap; }
+    & [role="group"] button + button { border-inline-start-width: 0; }
+    & [aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+    & input { flex: 1 1 calc(var(--page-width) / 4); min-width: 0; padding: var(--sp-1) var(--sp-2); }
+    & output { color: var(--muted); font-size: var(--fs-m); font-variant-numeric: tabular-nums; }
+  }
+  .filtered [hidden] { display: none; }
+</style>
+<script>
+  (() => {
+    const start = () => document.querySelectorAll('[data-widget="filter"]').forEach((root) => {
+      const list = document.getElementById(root.dataset.for);
+      if (!list) return;
+      const table = list.matches('table') ? list : list.querySelector(':scope > table');
+      const items = table ? [...table.tBodies].flatMap((b) => [...b.rows]) : [...list.children];
+      const groups = [...root.querySelectorAll('[role="group"][data-facet]')];
+      const box = root.querySelector('input[type="search"]');
+      const count = root.querySelector('output');
+      const apply = () => {
+        const word = box ? box.value.trim().toLowerCase() : '';
+        const chosen = groups.map((g) => [g.dataset.facet, (g.querySelector('[aria-pressed="true"]') || g).dataset.tag || '']);
+        let n = 0;
+        items.forEach((item) => {
+          const ok = chosen.every(([facet, tag]) => !tag || (item.getAttribute(`data-${facet}`) || '').split(/\s+/).includes(tag))
+            && (!word || item.textContent.toLowerCase().includes(word));
+          item.hidden = !ok;
+          n += ok;
+        });
+        if (count) count.textContent = `${n} / ${items.length}${root.dataset.unit || ''}`;
+      };
+      groups.forEach((g) => {
+        const buttons = [...g.querySelectorAll('button')];
+        buttons.forEach((b, i) => {
+          b.setAttribute('aria-pressed', i === 0);
+          b.addEventListener('click', () => {
+            buttons.forEach((x) => x.setAttribute('aria-pressed', x === b));
+            apply();
+          });
+        });
+      });
+      if (box) box.addEventListener('input', apply);
+      list.classList.add('filtered');
+      root.classList.add('live');
+      apply();
+    });
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
+<div data-widget="filter" data-for="{{id of the list}}" data-unit="{{unit}}">
+  <div role="group" data-facet="{{facet}}" aria-label="{{facet name}}">
+    <button type="button" data-tag="">전체</button>
+    <button type="button" data-tag="{{tag}}">{{tag name}}</button>
+  </div>
+  <input type="search" aria-label="{{what the word searches}}" placeholder="{{a word to find}}">
+  <output aria-live="polite"></output>
+</div>
