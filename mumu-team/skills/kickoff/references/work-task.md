@@ -34,7 +34,7 @@ A share's worker agrees a change that crosses its split with the sibling's worke
 
 ## Subagents
 
-Launch one only for a large, independent track, such as a wide multi-file search; a job of a few reads or edits is yours.
+Launch one for any independent track you judge worth it, such as a wide multi-file search or a rival approach; a job of a few reads or edits is quicker done yourself.
 
 - Give two subagents at once different files, scratch files included: they share your branch and scratchpad.
 - Brief one with the ask verbatim under its own label, adding no premise of your own, and set its bounds as the harness enforces them (a sha to read, a worktree, its tools), since a prose "do not" binds nothing, nor reaches what it launches unless the brief says so.
