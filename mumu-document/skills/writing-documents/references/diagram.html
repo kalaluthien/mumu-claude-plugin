@@ -206,10 +206,12 @@
           if (L) row.sort((a, b) => a.key - b.key);
           row.forEach((s, k) => { s.at = k; });
         });
-        const span = rows.map((row) => row.reduce((t, s) => t + s.w, 0) + GAP * (row.length - 1)), full = Math.max(...span);
+        // a line passing through a layer keeps a third of the gap to its neighbours, so it adds little width
+        const gap = (a, b) => (a.w && b.w ? GAP : GAP / 3);
+        const span = rows.map((row) => row.reduce((t, s, k) => t + s.w + (k ? gap(row[k - 1], s) : 0), 0)), full = Math.max(...span);
         rows.forEach((row, L) => {
           let x = PAD + Math.round((full - span[L]) / 8) * 4;
-          row.forEach((s) => { s.x = x; s.y = PAD + L * ROW; x += s.w + GAP; });
+          row.forEach((s, k) => { if (k) x += gap(row[k - 1], s); s.x = x; s.y = PAD + L * ROW; x += s.w; });
         });
         const mid = (s) => s.x + s.w / 2;
         // each box's lines leave its bottom and reach its top spread along it, in the order of where they go
