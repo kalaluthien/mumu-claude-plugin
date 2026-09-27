@@ -451,6 +451,15 @@ class Assemble(unittest.TestCase):
             r = subprocess.run([sys.executable, str(CHECK), str(page)], capture_output=True, text=True)
             self.assertEqual(r.stdout.splitlines()[-1], "pass", r.stdout)
 
+    @unittest.skipUnless(CHROME.exists(), "no Chrome")
+    def test_assembled_page_of_every_chart_passes(self):
+        with tempfile.TemporaryDirectory() as d:
+            body, page = pathlib.Path(d) / "body.html", pathlib.Path(d) / "page.html"
+            body.write_text('<h1>차트 모음</h1>\n<p class="read">차트는 키보드와 터치로도 읽어요.</p>\n' + FIXTURES["chart"])
+            self.assertEqual(assemble(str(body), str(page)).returncode, 0)
+            r = subprocess.run([sys.executable, str(CHECK), str(page)], capture_output=True, text=True)
+            self.assertEqual(r.stdout.splitlines()[-1], "pass", r.stdout)
+
 
 W, SKIN = "references/", "references/page.html"
 # (file, [(old, new), ...], a regex the output must match; None when the copy must pass)
