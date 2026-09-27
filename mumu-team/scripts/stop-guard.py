@@ -27,11 +27,15 @@ def watching(root):
 
 payload = json.load(sys.stdin)
 cwd = payload.get("cwd") or "."
-try:  # a `<folder>-lead`, its folder in `cwd`, holds only `scope:<folder>`'s
+try:  # the checkout's root, so a cwd drifted into a subfolder keeps its folder
+    root = github.run("git", "-C", cwd, "rev-parse", "--show-toplevel").strip() or cwd
+except RuntimeError:
+    root = cwd
+try:  # a `<folder>-lead`, its folder in the checkout's root, holds only `scope:<folder>`'s
     folder = (herdr.agent(os.environ.get("HERDR_PANE_ID"), "pane_id") or {}).get("name", "").removesuffix("-lead")
 except RuntimeError:
     folder = ""
-held = payload.get("agent_type") == "mumu-team:lead" and github.held(cwd, folder if folder and (pathlib.Path(cwd) / folder).is_dir() else None)
+held = payload.get("agent_type") == "mumu-team:lead" and github.held(cwd, folder if folder and (pathlib.Path(root) / folder).is_dir() else None)
 if held and not watching(int(os.environ.get("CLAUDE_PID") or os.getppid())):
     print(json.dumps({"decision": "block", "reason": f"You hold open root tasks ({' '.join(held)}) and `team-watch` is not running: arm "
                       f"`\"{SCRIPTS / 'team-watch.py'}\"` with the Monitor tool at its longest timeout, in your checkout, before you stop."}))

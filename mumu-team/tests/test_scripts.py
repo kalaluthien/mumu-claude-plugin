@@ -523,6 +523,18 @@ class LeadStop(Hook):
         self.assertIn("label:scope:docs", " ".join(json.loads(calls[0])))
         self.assertIn(OTHER_TASK, self.reason(self.lead(name="r-lead", scoped=scoped)[0]))
 
+    def test_folder_lead_keeps_its_scope_from_a_subfolder_or_the_root(self):
+        subprocess.run(["git", "init", "-q", str(self.tmp / "repo")], check=True)
+        (self.tmp / "repo" / "docs").mkdir()
+        scoped = [(OTHER_TASK, "team")]
+        for cwd in (self.tmp / "repo" / "docs", self.tmp / "repo"):
+            with self.subTest(cwd=cwd):
+                self.assertFalse(self.refused(self.stop(agent_type="mumu-team:lead", cwd=cwd, name="docs-lead", scoped=scoped)[0]))
+                outs, calls = self.stop(agent_type="mumu-team:lead", cwd=cwd, name="docs-lead", scoped=[*scoped, (HELD_TASK, "docs")])
+                self.assertTrue(self.refused(outs))
+                self.assertNotIn(OTHER_TASK, self.reason(outs))
+                self.assertIn("label:scope:docs", " ".join(json.loads(calls[-1])))
+
     def test_lead_stops_otherwise(self):
         for kwargs in ({"tasks": [HELD_TASK], "watch": CLAUDE}, {}, {"watch": CLAUDE}):
             with self.subTest(**kwargs):
