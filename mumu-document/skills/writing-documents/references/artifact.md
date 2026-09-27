@@ -4,9 +4,10 @@
 
 A page is one HTML file that opens from disk. Its author writes only the body,
 what goes inside `<main>`, by `assemble.py --spec page`: what goes in the page,
-how chapters nest and how a widget plays its steps. Content whose parts each
-hold sections is read a chapter at a time; content with none stays one scroll,
-with no `h3`. Each `h2` and `h3` has an id, and a sentence that names another
+how chapters nest and how a widget plays its steps. Content in parts, each with
+two or more topics, is read a chapter at a time: a part is a
+`<section data-chapter>`, a topic an `h3`. Content with no parts stays one
+scroll, with no `h3`. Each `h2` and `h3` has an id, and a sentence that names another
 section links it. A key term is defined once, as `<dfn id="t-<term>">` where it
 first appears, and its later mentions link there, once a paragraph.
 

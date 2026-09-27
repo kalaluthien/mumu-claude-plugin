@@ -41,7 +41,7 @@ def spec(widget):
         key = lambda line: (re.match(r"\s*([a-z][\w -]*): ", line) or [None, None])[1]
         drop = set(kinds()) - {widget} | set(SCRIPTED)
         comment = "\n".join(line for line in comment.splitlines() if key(line) not in drop)
-    return re.sub(r"(?m)^[ \t]+(?=<)", "", comment + "\n" + body + "\n")
+    return comment + "\n" + re.sub(r"(?m)^[ \t]+", "", body) + "\n"
 
 
 def assemble(body):
