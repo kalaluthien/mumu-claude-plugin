@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Start a project's lead: its tab at the checkout's root, Claude as `--agent mumu-team:lead`, and its kickoff prompt."""
+"""Start a project's lead: its tab at the checkout's root, Claude as `--agent mumu-team:lead`, and its kickoff prompt.
+
+`--replace` makes the calling session the one replaced: once the lead is live, a detached `worker-close.py --pane`
+closes the caller's session and tab after the caller's turn ends."""
 import argparse
 import os
 import pathlib
+import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
@@ -35,10 +39,14 @@ def main(argv):
     one = parser.add_mutually_exclusive_group()  # a task url or --succeed, not both
     one.add_argument("task", nargs="?")
     one.add_argument("--succeed")
+    one.add_argument("--replace", action="store_true")  # close the calling session once its turn ends
     parser.add_argument("--folder")  # a folder lead: `<folder>-lead`, with a task or none
     a = parser.parse_args(argv)
     if a.folder and a.succeed:
         parser.error("--folder: a successor keeps its original's name")
+    caller = os.environ.get("HERDR_PANE_ID")
+    if a.replace and not caller:
+        parser.error("--replace: run it inside herdr, from the session to replace")
     try:
         repo = names.checkout(a.checkout)
         if a.succeed and not flags and os.environ.get("CLAUDE_PID"):  # the original's own flags, read from its process
@@ -52,6 +60,9 @@ def main(argv):
         timeout, poll = float(os.environ.get("LEAD_START_TIMEOUT", 600)), float(os.environ.get("LEAD_START_POLL", 1))
         herdr.launch(name, pane, ["--name", lead, "--agent", "mumu-team:lead"] + (flags or ["--model", "opus", "--effort", "medium"]), timeout, poll)
         herdr.prompt(pane, prompt)
+        if a.replace:  # in its own session, so the Bash tool that ran this call does not reap it
+            subprocess.Popen([sys.executable, str(pathlib.Path(__file__).resolve().parent / "worker-close.py"), "--pane", caller],
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     except RuntimeError as e:
         sys.exit(f"lead-start.py: {e}")
     print(f"{name}@{pane}")
