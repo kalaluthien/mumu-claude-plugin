@@ -11,10 +11,10 @@ import unittest
 from unittest import mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-import gh  # noqa: E402
+import github  # noqa: E402
 import herdr  # noqa: E402
 import names  # noqa: E402
-from gh import run  # noqa: E402
+from github import run  # noqa: E402
 
 class Run(unittest.TestCase):
     def test_stdout_with_stdin_and_cwd(self):
@@ -87,19 +87,19 @@ class Gh(unittest.TestCase):
 
     def test_repo_reads_one_field(self):
         with mock.patch.dict(os.environ, {**self.env, "FAKE_OUT": "main"}):
-            self.assertEqual(gh.repo("defaultBranchRef"), "main")
+            self.assertEqual(github.repo("defaultBranchRef"), "main")
         self.assertEqual(self.calls(), [["repo", "view", "--json", "defaultBranchRef", "-q", ".defaultBranchRef.name"]])
 
     def test_held_reads_urls_or_answers_none(self):
         with mock.patch.dict(os.environ, {**self.env, "FAKE_OUT": json.dumps([{"url": "u1"}])}):
-            self.assertEqual(gh.held("."), ["u1"])
+            self.assertEqual(github.held("."), ["u1"])
         for out, code in [("not json", "0"), ("[]", "1")]:
             with self.subTest(out=out), mock.patch.dict(os.environ, {**self.env, "FAKE_OUT": out, "FAKE_EXIT": code}):
-                self.assertIsNone(gh.held("."))
+                self.assertIsNone(github.held("."))
 
     def test_failure_raises(self):
         with mock.patch.dict(os.environ, {**self.env, "FAKE_EXIT": "1"}):
-            self.assertRaises(RuntimeError, gh.gh, "issue", "view", "u")
+            self.assertRaises(RuntimeError, github.gh, "issue", "view", "u")
 
 
 HERDR = r'''#!/usr/bin/env python3

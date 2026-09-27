@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """PreToolUse hook on Bash: refuse a raw `gh pr merge`, since `merge.py` is the only merge path, and a git hook bypass,
-even as text only naming either, which goes through a file and `--body-file`."""
+even as text only naming either, which goes through a file and `--body-file`; and in a lead's or worker's session, what
+the kickoff skill gives another role: `APPROVED:` and `FINDINGS:` the reviewer's, `DECIDED:` the lead's through
+`decide.py`, a task's body, labels, reopening and stop its lead's, a body only its three sections, a worker's prompt
+only `see <url>`, and no title over 40 characters."""
 import json
 import os
+import pathlib
 import re
 import shlex
 import sys
@@ -14,6 +18,13 @@ MENTION = re.compile(r"\bpr\b[\s\S]*?\bmerge\b")
 PR_MERGE = re.compile(r"(?:^|\0)pr(?:\0(?:-R|--repo)\0[^\0]*|\0--repo=[^\0]*)*\0merge(?=\0|$)")  # words joined by NUL
 HOOKS_PATH = re.compile(r"^(['\"]?|--config-env=|GIT_CONFIG_KEY_\d+=['\"]?)core\.hookspath(['\"]?=|['\"]?$)", re.I)  # `-c k=v`, `'k'=v`, `--config-env=k=V`, `KEY_0=k`
 HOOKS_PATH_TEXT = re.compile(r"(-c\s*|--config-env=|key_\d+=)core\.hookspath\b|\bconfig\b(?![^;&|\n]*\bget\b)[^;&|\n]*core\.hookspath[ \t]+[^\s;&|]")
+ROLES = {"mumu-team:lead": "lead", "mumu-team:worker": "worker"}
+GH_WRITE = re.compile(r"\bgh\s+(?:(?:-R|--repo)[=\s]\S+\s+)*(issue|pr)\s+(comment|review|create|edit|close|reopen)\b")
+KEYWORD = re.compile(r"\s*(approved|findings|decided)\b", re.I)
+HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n(.*?)(?=\n\s*\2\s*(?:\n|$)|\Z)", re.S)
+SECTIONS = {"Goal", "Definition of done", "Shares"}
+SEE = re.compile(r"see https://github\.com/\S+|/rename \S+")
+TITLE = 40
 RAW_MERGE = "a raw `pr merge` is refused; run `merge.py <pr-url>` in a Bash call of its own, and write text naming the merge with a file tool"
 
 
@@ -118,9 +129,75 @@ def bypass_text(text):
     return "--no-v" in text or bool(HOOKS_PATH_TEXT.search(text)) or bool(commit and re.compile(r"\s-[a-z]*n").search(text, commit.end()))
 
 
+def option(words, *flags):
+    """The value of the first of `flags` in `words`, as `--flag v`, `--flag=v` or `-f v`, else None."""
+    for i, word in enumerate(words):
+        for flag in flags:
+            if word == flag and i + 1 < len(words):
+                return words[i + 1]
+            if flag.startswith("--") and word.startswith(flag + "="):
+                return word[len(flag) + 1:]
+    return None
+
+
+def writes(command, cwd):
+    """(`issue` or `pr`, its verb, its words, each text it writes) for each `gh issue|pr <verb>` in
+    `command`: its `--body`, its `--body-file` read from `cwd`, or a heredoc opened on its line."""
+    found = []
+    for m in GH_WRITE.finditer(command):
+        end = command.find("\n", m.start())
+        line = command[m.start():end if end >= 0 else len(command)]
+        words = (lexed(line) or [line.split()] or [[]])[0]
+        texts = [t for t in (option(words, "--body", "-b"),) if t is not None]
+        path = option(words, "--body-file", "-F")
+        if path and path != "-":
+            try:
+                texts.append((pathlib.Path(cwd) / path).read_text())
+            except OSError:
+                pass
+        doc = HEREDOC.search(command, m.start())
+        if doc and doc.start() < m.start() + len(line):
+            texts.append(doc[3])
+        found.append((m[1], m[2], words, texts))
+    return found
+
+
+def role_refusal(command, role, cwd):
+    """What `command` does that the kickoff skill gives another role than `role`, a lead or a worker, else None."""
+    if role == "worker" and any(os.path.basename(w) == "decide.py" for words in lexed(command) or [] for w in words):
+        return "`DECIDED:` and `decide.py` are the lead's: post `BLOCKED: <question>` and prompt your lead"
+    if role == "worker":
+        for words in lexed(command) or []:
+            words = unredirected(words)
+            at = next((i for i, w in enumerate(words) if os.path.basename(w) == "herdr"), None)
+            if at is not None and words[at + 1:at + 3] == ["agent", "prompt"] and len(words) > at + 4 \
+                    and not SEE.fullmatch(words[at + 4].strip()):
+                return "a worker prompts its lead only `see <url>`: post the rest on the task or pull request and prompt `see <its url>`"
+    for kind, verb, words, texts in writes(command, cwd):
+        labels = [w for i, w in enumerate(words) if i and words[i - 1] in ("--label", "-l")]
+        for text in texts:
+            headings = set(re.findall(r"^## +(.+?)[ \t]*$", text, re.M))
+            if kind == "issue" and verb in ("create", "edit") and "backlog" not in ",".join(labels).split(",") \
+                    and (headings - SECTIONS or not {"Goal", "Definition of done"} <= headings):
+                return "a task's body is only `## Goal`, `## Definition of done` and, split, `## Shares`; decisions go in `DECIDED:` comments"
+        for line in [(t.strip().splitlines() or [""])[0] for t in texts]:
+            m = KEYWORD.match(line)
+            if m and m[1].lower() in ("approved", "findings"):
+                return f"`{m[1].upper()}:` is the reviewer's alone: launch the `reviewer` agent to post it"
+            if m and verb in ("comment", "review"):
+                return "`DECIDED:` goes through `decide.py <url> < <decision>`, the lead's"
+        title = option(words, "--title", "-t")
+        if verb in ("create", "edit") and title is not None and len(title) > TITLE:
+            return f"a title is at most {TITLE} characters, verb first; this one has {len(title)}"
+        stop = verb == "close" and (option(words, "--reason", "-r") or "").replace("_", " ").lower() == "not planned"
+        if role == "worker" and kind == "issue" and (verb in ("edit", "reopen") or stop):
+            return "a task's body, labels, reopening and stop are its lead's: post `BLOCKED: <question>` and prompt your lead"
+    return None
+
+
 def main():
     raw = sys.stdin.read()
-    if not re.search(r"merge|git|hookspath", QUOTING.sub("", raw), re.I):
+    if not re.search(r"merge|git|hookspath|gh|decide", QUOTING.sub("", raw), re.I):
         sys.exit(0)
     try:
         payload = json.loads(raw)
@@ -138,6 +215,9 @@ def main():
             refuse("hook bypass refused: fix what the hook refused, or BLOCKED the owner")
         if any(mentions(words) for words in readings[0] or []):
             refuse(RAW_MERGE)
+        role = ROLES.get(payload.get("agent_type"))
+        if role and (why := role_refusal(command, role, payload.get("cwd") or ".")):
+            refuse(why)
     except Exception as err:  # exit 1 would let the command run
         refuse(f"could not read the command ({type(err).__name__})")
 

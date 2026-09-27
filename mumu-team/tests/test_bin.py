@@ -114,7 +114,7 @@ elif a[:2] == ["pr", "merge"]:
 SHARED = "## Goal\nx\n\n## Shares\n| share | DoD | after | with |\n| --- | --- | --- | --- |\n| a | D1 | | b: interface agreed first |\n"
 
 
-def merge(comments, moved_to=None, reviews=(), url=PR_URL, title="t", body="", commits=(), issues=None, behind=0):
+def merge(comments, moved_to=None, reviews=(), url=PR_URL, title="t", body="Closes #3", commits=(), issues=None, behind=0):
     """Run merge.py on a PR at HEAD holding `comments`; `moved_to` moves the head once it is read, `issues` maps an issue url to
     its body, `behind` counts the base's commits the head lacks. Return (result, merge words or None)."""
     tmp = pathlib.Path(tempfile.mkdtemp())
@@ -195,6 +195,18 @@ class Merge(unittest.TestCase):
                               issues={"https://github.com/o/r/issues/5": "## Goal\nx\n\n## Definition of done\n- a → b\n"})
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIsNotNone(words)
+
+    def test_a_body_naming_no_task_is_refused_before_any_merge(self):
+        for body in ("", "criteria only", "see #3"):
+            with self.subTest(body=body):
+                result, words = merge([f"APPROVED: {HEAD}"], body=body)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("names no task", result.stderr)
+                self.assertIsNone(words)
+        for body in ("Closes #3\n\n| D1 | pass |", "Part of #3", "Fixes https://github.com/o/r/issues/3"):
+            with self.subTest(body=body):
+                result, words = merge([f"APPROVED: {HEAD}"], body=body)
+                self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_a_head_behind_its_base_is_refused_before_any_merge(self):
         _, words = merge([f"APPROVED: {HEAD}"], behind=0)
@@ -369,12 +381,14 @@ with open(d / "calls", "a") as f:
     f.write(json.dumps([tool] + a) + "\n")
 blocked = (d / "trust").exists() and not (d / "answered").exists()
 if tool == "gh":
-    prs, rulesets = d / ("open_prs" if "open" in a else "prs"), d / "rulesets"
-    if a[:2] == ["api", "-X"]:
-        with open(rulesets, "a") as f:
-            f.write(json.loads(sys.stdin.read())["name"] + "\n")
-    elif a[:1] == ["api"]:
-        print(rulesets.read_text() if rulesets.exists() else "")
+    prs = d / ("open_prs" if "open" in a else "prs")
+    if a[:2] == ["issue", "view"]:
+        effort = (d / "effort").read_text() if (d / "effort").exists() else "low"
+        print((d / "issue").read_text() if (d / "issue").exists() else json.dumps({"state": "OPEN", "labels": [{"name": "effort:" + effort}], "body": ""}))
+    elif a[:1] == ["api"] and a[1].endswith("/dependencies/blocked_by"):
+        print((d / "blockers").read_text() if (d / "blockers").exists() else "[]")
+    elif a[:2] == ["pr", "list"] and "merged" in a:
+        print((d / "merged").read_text() if (d / "merged").exists() else "")
     else:
         print((prs.read_text() if prs.exists() else "") if a[:2] == ["pr", "list"] else "main")
 elif tool == "git":
@@ -421,9 +435,10 @@ class WorkerStart(unittest.TestCase):
             (self.tmp / tool).write_text(START_FAKE)
             (self.tmp / tool).chmod(0o755)
 
-    def start(self, *extra, trust=True, topic="start", url=ISSUE, effort="low", checkout=None, cwd=None):
+    def start(self, *extra, trust=True, topic="go-start", url=ISSUE, effort="low", checkout=None, cwd=None):
         if trust:
             (self.tmp / "trust").touch()
+        (self.tmp / "effort").write_text(effort)
         env = dict(os.environ, START_FAKE=str(self.tmp), PATH=f"{self.tmp}:{BIN}:{os.environ['PATH']}",
                    WORKER_START_TIMEOUT="3", WORKER_START_POLL="0.01")
         done = subprocess.run([sys.executable, str(BIN / "worker-start.py"), checkout or str(self.repo), topic, effort, url, *extra],
@@ -435,7 +450,7 @@ class WorkerStart(unittest.TestCase):
     def test_relative_checkout_opens_the_tab_at_the_absolute_worktree(self):
         done, calls = self.start(checkout="repo", cwd=self.tmp)
         self.assertEqual(done.returncode, 0, done.stderr)
-        tree = str(self.repo.resolve() / ".claude" / "worktrees" / "start-7-1")
+        tree = str(self.repo.resolve() / ".claude" / "worktrees" / "go-start-7-1")
         self.assertEqual([c[4] for c in calls if c[1:3] == ["tab", "create"]], [tree])
 
     def test_non_root_checkout_fails_naming_it_and_opens_no_tab(self):
@@ -455,26 +470,14 @@ class WorkerStart(unittest.TestCase):
     def test_trust_dialog_answered_yes_then_prompted_and_working(self):
         done, calls = self.start("--leader", "l")
         self.assertEqual(done.returncode, 0, done.stderr)
-        tree = self.repo / ".claude" / "worktrees" / "start-7-1"
-        self.assertEqual(done.stdout, f"start-7-1@{PANE} {tree}\n")
+        tree = self.repo / ".claude" / "worktrees" / "go-start-7-1"
+        self.assertEqual(done.stdout, f"go-start-7-1@{PANE} {tree}\n")
         keys = calls.index(["herdr", "agent", "send-keys", PANE, "down", "enter"])
         prompt = calls.index(["herdr", "agent", "prompt", PANE, f"/mumu-team:kickoff work {ISSUE} leader l"])
         self.assertLess(keys, prompt, "prompted before the trust dialog was answered")
         self.assertEqual(self.status(), "working")
-        self.assertIn(["git", "-C", str(self.repo), "worktree", "add", "-b", "start-7-1", str(tree), "origin/main"], calls)
+        self.assertIn(["git", "-C", str(self.repo), "worktree", "add", "-b", "go-start-7-1", str(tree), "origin/main"], calls)
         self.assertEqual(sorted(p.name for p in (self.tmp / "hooks").iterdir()), ["pre-commit"])
-
-    def test_ruleset_created_on_the_first_start_only(self):
-        """The server-side guard on the default branch: created when absent, left alone once there."""
-        creates = []
-        for _ in range(2):
-            (self.tmp / "calls").unlink(missing_ok=True)
-            done, calls = self.start(trust=False)
-            self.assertEqual(done.returncode, 0, done.stderr)
-            creates.append([c for c in calls if c[:4] == ["gh", "api", "-X", "POST"]])
-        self.assertEqual([len(c) for c in creates], [1, 0])
-        self.assertEqual(creates[0][0][4], "repos/{owner}/{repo}/rulesets")
-        self.assertEqual((self.tmp / "rulesets").read_text(), "mumu-default-branch\n")
 
     def test_tab_marks_the_session_a_worker(self):
         """The marker the lead monitors exit on (`scripts/team-watch.py`)."""
@@ -496,12 +499,12 @@ class WorkerStart(unittest.TestCase):
         self.assertFalse([c for c in calls if c[1:3] == ["agent", "prompt"]])
 
     def test_continue_reuses_the_worktree_and_resumes(self):
-        (self.repo / ".claude" / "worktrees" / "start-7-1").mkdir(parents=True)
+        (self.repo / ".claude" / "worktrees" / "go-start-7-1").mkdir(parents=True)
         done, calls = self.start("--continue", trust=False)
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertFalse([c for c in calls if c[0] == "git" and "worktree" in c])
         start = next(c for c in calls if c[1:3] == ["agent", "start"])
-        self.assertEqual(start[start.index("--") + 1:], ["--name", "start-7-1", "--agent", "mumu-team:worker", "--model", "opus", "--effort", "low", "--continue"])
+        self.assertEqual(start[start.index("--") + 1:], ["--name", "go-start-7-1", "--agent", "mumu-team:worker", "--model", "opus", "--effort", "low", "--continue"])
 
     def test_session_never_ready_fails_naming_the_pane(self):
         (self.tmp / "herdr").write_text(START_FAKE.replace('and blocked:\n', 'and False:\n'))
@@ -534,37 +537,37 @@ class WorkerStart(unittest.TestCase):
         self.assertTrue(done.stdout.startswith("fix-login-12-5@"), done.stdout + done.stderr)
 
     def test_local_worktree_counts_as_an_attempt(self):
-        (self.repo / ".claude" / "worktrees" / "start-7-1").mkdir(parents=True)
+        (self.repo / ".claude" / "worktrees" / "go-start-7-1").mkdir(parents=True)
         done, _ = self.start(trust=False)
-        self.assertTrue(done.stdout.startswith("start-7-2@"), done.stdout + done.stderr)
+        self.assertTrue(done.stdout.startswith("go-start-7-2@"), done.stdout + done.stderr)
 
     def test_new_attempt_refused_while_one_has_an_open_pr_or_a_live_tab(self):
-        """`start-7-1` open as a pull request or a tab blocks `start-7-2`; other topics, tasks and closed pull requests do not."""
-        for held, other in ((("open_prs", "start-7-1\n"), ("tabs", "other-7-1 start-8-1\n")),
-                            (("tabs", "start-7-1\n"), ("open_prs", "other-7-3\nstart-17-1\n"))):
+        """`go-start-7-1` open as a pull request or a tab blocks `go-start-7-2`; other topics, tasks and closed pull requests do not."""
+        for held, other in ((("open_prs", "go-start-7-1\n"), ("tabs", "other-7-1 go-start-8-1\n")),
+                            (("tabs", "go-start-7-1\n"), ("open_prs", "other-7-3\nstart-17-1\n"))):
             with self.subTest(held=held):
                 for f in ("open_prs", "tabs", "calls"):
                     (self.tmp / f).unlink(missing_ok=True)
                 shutil.rmtree(self.repo / ".claude", ignore_errors=True)
                 (self.tmp / other[0]).write_text(other[1])
-                (self.tmp / "prs").write_text("start-7-1\n")
+                (self.tmp / "prs").write_text("go-start-7-1\n")
                 done, calls = self.start(trust=False)
                 self.assertEqual(done.returncode, 0, done.stderr)
-                self.assertTrue(done.stdout.startswith("start-7-2@"), done.stdout)
+                self.assertTrue(done.stdout.startswith("go-start-7-2@"), done.stdout)
                 (self.tmp / held[0]).write_text(held[1])
                 (self.tmp / "calls").unlink()
                 done, calls = self.start(trust=False)
                 self.assertEqual(done.returncode, 1)
-                self.assertIn("start-7-1", done.stderr)
+                self.assertIn("go-start-7-1", done.stderr)
                 self.assertFalse([c for c in calls if c[1:3] == ["tab", "create"] or c[0] == "git" and "worktree" in c])
 
     def test_continue_is_exempt_from_the_open_attempt_refusal(self):
-        (self.repo / ".claude" / "worktrees" / "start-7-1").mkdir(parents=True)
-        (self.tmp / "open_prs").write_text("start-7-1\n")
-        (self.tmp / "tabs").write_text("start-7-1\n")
+        (self.repo / ".claude" / "worktrees" / "go-start-7-1").mkdir(parents=True)
+        (self.tmp / "open_prs").write_text("go-start-7-1\n")
+        (self.tmp / "tabs").write_text("go-start-7-1\n")
         done, _ = self.start("--continue", trust=False)
         self.assertEqual(done.returncode, 0, done.stderr)
-        self.assertTrue(done.stdout.startswith("start-7-1@"), done.stdout)
+        self.assertTrue(done.stdout.startswith("go-start-7-1@"), done.stdout)
 
     def test_continue_without_a_worktree_fails_before_the_tab(self):
         done, calls = self.start("--continue", trust=False)
@@ -573,7 +576,7 @@ class WorkerStart(unittest.TestCase):
         self.assertFalse([c for c in calls if c[0] == "herdr"])
 
     def test_topic_not_lowercase_words_refused_before_side_effects(self):
-        for topic in ("Fix_Login", "fix--login", ""):
+        for topic in ("Fix_Login", "fix--login", "", "fix", "one-two-three-four-five"):
             with self.subTest(topic=topic):
                 done, calls = self.start(trust=False, topic=topic)
                 self.assertEqual(done.returncode, 2)
@@ -593,6 +596,58 @@ class WorkerStart(unittest.TestCase):
         start = next(c for c in calls if c[1:3] == ["agent", "start"])
         self.assertEqual(start[start.index("--effort") + 1], "high")
 
+    def refused(self, why, **issue):
+        """Start on a task the fake serves as `issue`, over an open one labelled `effort:low`: refused naming `why`, before any worktree or tab."""
+        task = {"state": "OPEN", "labels": [{"name": "effort:low"}], "body": ""}
+        task.update(issue)
+        (self.tmp / "issue").write_text(json.dumps(task))
+        done, calls = self.start(trust=False)
+        self.assertEqual(done.returncode, 1, done.stdout)
+        self.assertIn(why, done.stderr)
+        self.assertFalse([c for c in calls if c[0] == "herdr" or c[:1] == ["git"] and "worktree" in c])
+        self.assertFalse((self.repo / ".claude" / "worktrees").exists())
+
+    def test_a_closed_task_starts_no_worker(self):
+        self.refused("a stopped or finished task starts no worker", state="CLOSED")
+
+    def test_a_backlog_issue_is_never_worked(self):
+        self.refused("never worked", labels=[{"name": "backlog"}, {"name": "effort:low"}])
+
+    def test_the_effort_must_be_the_tasks_one_label(self):
+        for labels in ([], [{"name": "effort:medium"}], [{"name": "effort:low"}, {"name": "effort:medium"}]):
+            with self.subTest(labels=labels):
+                self.refused("its one effort label", labels=labels)
+
+    def test_an_open_blocker_holds_the_task(self):
+        (self.tmp / "blockers").write_text(json.dumps([{"html_url": "https://github.com/o/r/issues/3", "state": "open"}]))
+        self.refused("waits on https://github.com/o/r/issues/3")
+
+    def test_a_closed_blocker_lets_it_start(self):
+        (self.tmp / "blockers").write_text(json.dumps([{"html_url": "https://github.com/o/r/issues/3", "state": "closed"}]))
+        done, _ = self.start(trust=False)
+        self.assertEqual(done.returncode, 0, done.stderr)
+
+    def test_a_share_starts_only_as_a_row_after_its_rows_merged(self):
+        body = ("## Goal\nx\n\n## Shares\n\n| share | DoD | after | with |\n| --- | --- | --- | --- |\n"
+                "| go-first | D1 | | go-start: interface agreed first |\n| go-start | D2 | go-first | |\n| go-side | D3 | | |\n")
+        self.refused("its topic is a `## Shares` row", body=body.replace("go-start", "go-later"))
+        self.refused("is after go-first", body=body)
+        (self.tmp / "merged").write_text("go-first-8-1\ngo-first-7-1\n")
+        (self.tmp / "issue").unlink()
+        (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": [{"name": "effort:low"}], "body": body}))
+        done, _ = self.start(trust=False)
+        self.assertEqual(done.returncode, 0, done.stderr)
+
+    def test_a_split_needs_two_rows_with_no_after_between_them(self):
+        head = "## Goal\nx\n\n## Shares\n\n| share | DoD | after | with |\n| --- | --- | --- | --- |\n"
+        chain = head + "| go-start | D1 | | |\n| go-next | D2 | go-start | |\n| go-last | D3 | go-next | |\n"
+        self.refused("no two rows without an `after`", body=chain)
+        self.refused("no two rows without an `after`", body=head + "| go-start | D1 | | |\n")
+        (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": [{"name": "effort:low"}],
+                                                    "body": chain + "| go-side | D4 | go-start | |\n"}))
+        done, _ = self.start(trust=False)
+        self.assertEqual(done.returncode, 0, done.stderr)
+
     def test_low_and_medium_start(self):
         for effort in ("low", "medium"):
             with self.subTest(effort=effort):
@@ -607,7 +662,7 @@ class WorkerStart(unittest.TestCase):
             self.assertEqual(done.returncode, 0, done.stderr)
         adds = [c[4:] for c in calls if c[3:5] == ["worktree", "add"]]
         trees = self.repo / ".claude" / "worktrees"
-        self.assertEqual(adds, [["add", "-b", f"start-7-{k}", str(trees / f"start-7-{k}"), "origin/main"] for k in (1, 2)])
+        self.assertEqual(adds, [["add", "-b", f"go-start-7-{k}", str(trees / f"go-start-7-{k}"), "origin/main"] for k in (1, 2)])
 
 
 class Worktree(unittest.TestCase):
@@ -647,10 +702,10 @@ class LeadStart(unittest.TestCase):
             (self.tmp / tool).write_text(START_FAKE)
             (self.tmp / tool).chmod(0o755)
 
-    def start(self, *extra, checkout=None, cwd=None):
+    def start(self, *extra, checkout=None, cwd=None, pid=""):
         (self.tmp / "trust").touch()
         env = dict(os.environ, START_FAKE=str(self.tmp), PATH=f"{self.tmp}:{os.environ['PATH']}",
-                   LEAD_START_TIMEOUT="3", LEAD_START_POLL="0.01")
+                   LEAD_START_TIMEOUT="3", LEAD_START_POLL="0.01", CLAUDE_PID=pid)
         done = subprocess.run([sys.executable, str(BIN / "lead-start.py"), checkout or str(self.repo), *extra],
                               env=env, cwd=cwd, capture_output=True, text=True, timeout=30)
         log = self.tmp / "calls"
@@ -694,6 +749,17 @@ class LeadStart(unittest.TestCase):
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertEqual(self.claude_argv(calls)[0], "docs-lead-next")
         self.assertEqual(self.claude_argv(calls)[1][:2], ["--name", "docs-lead"])
+
+    def test_succeed_without_flags_passes_on_the_originals_own(self):
+        """Read from `ps` of `$CLAUDE_PID`: all but the program, `--continue`, `--resume`, `--name` and `--agent`."""
+        (self.tmp / "name").write_text("main-lead")
+        (self.tmp / "ps").write_text("#!/bin/sh\n[ \"$4\" = 123 ] && echo claude --name main-lead --agent mumu-team:lead "
+                                     "--resume abc --model opus --effort high --continue --permission-mode auto\n")
+        (self.tmp / "ps").chmod(0o755)
+        done, calls = self.start("--succeed", "w9:p9", pid="123")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(self.claude_argv(calls)[1], ["--name", "main-lead", "--agent", "mumu-team:lead", "--model", "opus",
+                                                      "--effort", "high", "--permission-mode", "auto"])
 
     def test_folder_names_a_folder_lead_with_no_task(self):
         done, calls = self.start("--folder", "mumu-document")
@@ -741,6 +807,28 @@ class LeadStart(unittest.TestCase):
             done, calls = self.start(*extra)
             self.assertEqual(done.returncode, 2, extra)
             self.assertFalse(calls, extra)
+
+
+class LeadName(unittest.TestCase):
+    def name(self, labels, folders=(), args=(ISSUE,)):
+        tmp = pathlib.Path(tempfile.mkdtemp()).resolve()
+        for f in folders:
+            (tmp / f).mkdir()
+        (tmp / "gh").write_text("#!/bin/sh\nif [ \"$1\" = issue ]; then echo '%s'; else echo Mumu.Plugin; fi\n"
+                                % json.dumps({"labels": [{"name": l} for l in labels]}))
+        (tmp / "gh").chmod(0o755)
+        env = dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}")
+        done = subprocess.run([sys.executable, str(BIN / "lead-name.py"), *args], cwd=tmp, env=env, capture_output=True, text=True)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        return done.stdout.strip()
+
+    def test_a_scoped_task_names_its_folder_lead(self):
+        self.assertEqual(self.name(["effort:low", "scope:docs"], ["docs"]), "docs-lead")
+
+    def test_otherwise_the_repository_lead(self):
+        self.assertEqual(self.name(["effort:low"]), "mumu-plugin-lead")
+        self.assertEqual(self.name(["scope:docs"]), "mumu-plugin-lead")
+        self.assertEqual(self.name([], args=()), "mumu-plugin-lead")
 
 
 REVIEW = importlib.machinery.SourceFileLoader("review_model", str(BIN / "review-model.py")).load_module()

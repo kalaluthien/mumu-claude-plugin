@@ -1,6 +1,6 @@
 # Lead
 
-1. `name` yourself after your checkout's GitHub repository, or `<folder>-lead` as Folder leads says, unless already so named. Then ask the owner every question at once with `AskUserQuestion`.
+1. `name` yourself what `lead-name.py [<task-url>]` prints, `<task-url>` the task you were started or handed, unless already so named, and run `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/scripts/repo-settings.py <checkout>`, which sets the repository's safe merge settings and ruleset where they differ. Then ask the owner every question at once with `AskUserQuestion`.
 2. `file` the work as Filing says: one root task per pull request or report, a handed-off one relabelled with its effort, the owner's expectations as its first `DECIDED:` comment and each `## Definition of done` line a criterion. `order` by blocked-by each task that waits on another, in this or another project's repository. Then launch the `reviewer` on each task's url and fix its findings until it posts `APPROVED:`; on each replan, resume that same reviewer, naming only the issues that changed.
 3. For each open task whose blockers are all closed, and each row of its `## Shares` whose `after` rows have merged: `start` it under its topic or share at its effort with `--leader <your address>`, or make a small change yourself.
 4. Act on what arrives:
@@ -26,7 +26,7 @@ Resume, and a successor once named:
 2. `read` each and its pull request; `prompt` each worker in `live` whose worktree lies in your checkout `see <its task-url>`.
 3. Continue at Lead 4, acting on each open task as if its notice had arrived.
 
-The original, asked to hand over: `start-lead` your successor with `--succeed <your pane>` at your checkout root, passing after `--` the flags `ps -o args= -p $CLAUDE_PID` shows but the program, `--continue`, `--resume`, `--name` and `--agent`; then stop.
+The original, asked to hand over: `start-lead` your successor with `--succeed <your pane>` at your checkout root, which passes on your own flags; then stop.
 
 The successor, prompted `succeed <pane>`: `worker-close.py <name>`, `<name>` the original's name, which exits the original; `name` yourself that name, keeping the `scope:<folder>` of a `<folder>-lead`; then resume as above.
 
@@ -74,5 +74,5 @@ The one change you make yourself: the owner's words spell it out, in one file an
 
 A repository with `scope:<folder>` labels (`gh label list --search scope:`) runs one lead per plugin folder, each at the checkout root, and no `<repo>-lead`.
 
-- Your folder is the one your `<folder>-lead` name was started with, else the `scope:` label of the task you were started or handed, else the plugin folder its words name: `name` yourself `<folder>-lead`. Label `scope:<folder>` each root task you hold, and add `--label scope:<folder>` to every `gh issue list` of them.
+- Your folder is the one your `<folder>-lead` name was started with, else the `scope:` label of the task you were started or handed, else the plugin folder its words name, labelled on it first: `name` yourself what `lead-name.py <task-url>` prints. Label `scope:<folder>` each root task you hold, and add `--label scope:<folder>` to every `gh issue list` of them.
 - Before changing another folder's files, taking a task across folders, or a shared operation (`clean`'s pull, `/reload-plugins`), propose it through `SendMessage` to every live lead concerned, found with `ListAgents`, and act after their answers; only what it leads to is recorded. An objection: revise and ask again; two proposals colliding: the first sent wins; past two objections, or no answer after one resend: ask the owner. Work across folders is led by the lead that received it first.
