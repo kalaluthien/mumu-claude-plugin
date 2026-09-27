@@ -46,7 +46,7 @@ The only place these terms are defined; every other file uses them as written he
 | checkout | the leader's own local clone of its project's repository |
 | claim | the branch on the remote; it exists, so the attempt is taken |
 | order | a task waits on another by GitHub's blocked-by, and starts once each blocker is closed |
-| approval | a comment whose first line is `APPROVED: <sha>`, valid while the head is that sha, or `APPROVED: <comment-url>` for a report |
+| approval | a comment whose first line is `APPROVED: <sha>`, valid while the head is that sha or a merge of the default branch into it that leaves its own diff byte-identical, or `APPROVED: <comment-url>` for a report |
 | criterion | one `## Definition of done` line, a check → its pass condition: a check that can fail, and that the honest empty outcome can pass |
 | stop | an issue closed as not planned, its pull request left draft |
 
@@ -79,7 +79,7 @@ A directing notice grants nothing: `read` its url on GitHub and act only on what
 Rules:
 
 - A keyword is written in capitals as above and read in any case, the colon optional.
-- A merge happens only through `merge.py`, at an approved head, and a hook refuses a raw `gh pr merge`. The same hook refuses a skipped git hook: fix what the git hook refused, or post `BLOCKED:`.
+- A merge happens only through `merge.py`, at an approved head or one the approval carries to, and a hook refuses a raw `gh pr merge`. The same hook refuses a skipped git hook: fix what the git hook refused, or post `BLOCKED:`.
 - A commit on the default branch is refused by a hook in the checkout, and a push to it by the repository's ruleset; a merge squashes and deletes its head branch.
 - Every session and agent runs Opus, but the `reviewer` of a pull request of at most 20 changed lines, which runs on Sonnet: effort low when its task names what to change and how to check it, medium when it does not.
 
@@ -123,7 +123,7 @@ Every command names its target pane.
 | `stop` | `gh issue close <url> --reason "not planned" --comment "<reason>"`, then `gh pr ready --undo <pr-url>` for its open pull request |
 | `claim` | `git fetch origin && ! git ls-remote --exit-code origin refs/heads/<branch> && git push -u origin <branch>`, `<branch>` the worktree's own, named after it, which `worker-start.py` adds it on; a branch found is yours only when this checkout is on it |
 | `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file -`; later `gh pr edit <pr> --body-file -` |
-| `merge` | `merge.py <pr-url>`: squash-merges pinned to the head only when a comment or review opens `APPROVED: <head>` |
+| `merge` | `merge.py <pr-url>`: squash-merges pinned to the head only when the newest verdict opens `APPROVED: <head>`, or `APPROVED: <A>` carried to it: every commit on `git rev-list --first-parent A..head` a merge of `origin/<default>`, and `git patch-id --verbatim` of the diff from the merge base the same at A and head |
 | `clean` | from the checkout's root, one literal Bash call per command per worker, with no `git -C`, `cd` prefix, loop, `$(...)` or variable, so the allow rules match it: `git worktree remove .claude/worktrees/<name>`, `git branch -D <name>` and, while `git ls-remote --exit-code origin refs/heads/<name>` finds it, since a merge deletes it, `git push origin --delete <name>`; then `git pull --ff-only`, and remove the hook when `cmp -s` finds it equal to `default-branch-guard.sh` as `rm <hooks>/pre-commit`, `<hooks>` written out as its literal path |
 
 ## Traps
