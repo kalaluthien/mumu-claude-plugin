@@ -61,7 +61,7 @@ class Rubric(unittest.TestCase):
             "one source": re.sub(r"Sources: Nielsen 1994 \(visibility[^\n]*\n[^\n]*\n[^\n]*\n",
                                  "Sources: Nielsen 1994.\n", good, count=1),
             "no kinds": good.replace("Kinds: both.", "", 1),
-            "five levels": good.replace("- 3: every indicator holds; the caption", "- 4: more.\n- 3: every indicator holds; the caption", 1),
+            "five levels": good.replace("- 3: all five hold.", "- 4: more.\n- 3: all five hold.", 1),
             "a dimension renamed": good.replace("## Visual", "## Look", 1),
             "interaction on static": re.sub(r"Kinds:(\s+)interactive\.", r"Kinds:\1both.", good, count=1),
         }

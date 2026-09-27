@@ -177,16 +177,18 @@ Heiser and Lonn 2001; Segel and Heer 2010.
 
 ### Data display
 
-Charts and tables show values truthfully and readably: an honest scale and
-baseline, units, labels on the marks rather than a distant key, a position or
-length encoding for values to be compared, and the values themselves
-available. `n/a` without data. Kinds: both.
+Charts and tables show values truthfully and readably. Check five
+indicators: an honest scale and baseline; the unit of every value visible
+without opening anything, on an axis, a series name or the caption; each
+series named on or beside its marks, not in a distant key; exact values
+available, as a table or labels; a caption that states the finding. `n/a`
+without data. Kinds: both.
 
-- 3: every indicator holds; the caption states the finding.
-- 2: one missing unit or label, or a finding left for the reader to find.
-- 1: a truncated or unmarked baseline, colour as the only key, or no way to
-  read exact values.
-- 0: the display distorts the data.
+- 3: all five hold.
+- 2: one fails.
+- 1: two or more fail, or colour is the only way to tell series apart.
+- 0: the display distorts the data: a truncated bar baseline, a skewed
+  scale, values that differ from the source.
 
 Sources: Cleveland and McGill 1984; Hullman and Diakopoulos 2011; WCAG 2.2
 (1.1.1, 1.4.1).
