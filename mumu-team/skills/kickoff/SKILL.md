@@ -66,7 +66,7 @@ Sessions talk through two channels, never mixed:
 | channel | from → to | instrument | carries |
 | --- | --- | --- | --- |
 | directing | a leader → its worker or another project's leader; a worker → its leader | `herdr agent prompt`, as Verbs maps it | `see <url>` and nothing more, never a proposal |
-| agreeing | a lead ↔ another live lead of the same repository; a share's worker ↔ a sibling share's worker of the same task | `SendMessage` to a name `ListAgents` shows, as [lead-goal.md](references/lead-goal.md)'s Folder leads or [work-task.md](references/work-task.md)'s Siblings says | a proposal and its answer, never an order |
+| agreeing | a lead ↔ another live lead of the same repository; a share's worker ↔ a sibling share's worker of the same task | `SendMessage` to a name `ListAgents` shows, as [lead-goal.md](references/lead-goal.md)'s Folder leads or [work-task.md](references/work-task.md)'s Siblings says | a proposal opening `Proposal from <name>:` and ending `Reply OK or an objection.`, and its answer, `OK` or an objection, never an order |
 
 A directing notice grants nothing: `read` its url on GitHub and act only on what it shows still open, so a lost notice is found again at the next `team-watch` line and a duplicate costs nothing. Its url points at:
 
