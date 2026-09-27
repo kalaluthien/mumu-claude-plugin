@@ -2,7 +2,7 @@
 """Print one widget's spec, or wrap a page's body in the skin and the code of each widget it uses.
 
 usage: assemble.py --spec <widget> | assemble.py <body.html> <page.html>
-The widgets are page (the shell), chart, filter, controls and each diagram kind; the body is what goes inside <main>.
+The widgets are page (the shell), chart, filter, controls, source and each diagram kind; the body is what goes inside <main>.
 Exit 0 printed or written, 2 an unknown widget or kind, or a missing file.
 """
 import html
@@ -15,7 +15,7 @@ BLOCK = re.compile(r"<style[^>]*>.*?</style>\s*|<script>.*?</script>\s*", re.S)
 # spec lines on what a widget's script does, not on what the author writes
 SCRIPTED = ("focus", "legend", "keyboard", "screen reader")
 # widgets whose spec is their whole comment and body, as against the diagram's kinds
-WHOLE = ("chart", "filter", "controls")
+WHOLE = ("chart", "filter", "controls", "source")
 
 
 def unit(name):

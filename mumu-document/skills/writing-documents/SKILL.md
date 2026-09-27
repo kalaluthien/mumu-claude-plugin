@@ -43,6 +43,7 @@ text with arrows (→, ▶) with no `use-case`.
 | change over time: a trend, a rise, a fall | `chart` `line` | its SVG, then the table |
 | many items the reader narrows to the few they need, by a tag or a word: rows, a list, cards | `filter` | the table, sorted by the tag |
 | a result that follows inputs the reader moves: a formula, a setting and its effect | `controls` | the formula, then a table of a few inputs and results |
+| where a figure's, a table's or a claim's facts come from, and what they came through | `source`, under it | a line `출처: [title](url), date → [title](url)` |
 
 ## Routing
 

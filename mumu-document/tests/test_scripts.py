@@ -460,8 +460,20 @@ class Assemble(unittest.TestCase):
             r = subprocess.run([sys.executable, str(CHECK), str(page)], capture_output=True, text=True)
             self.assertEqual(r.stdout.splitlines()[-1], "pass", r.stdout)
 
+    def test_source_note_under_a_claim_passes(self):
+        note = ('<p data-widget="source">출처: <a href="https://example.com/report">원 보고서</a>, '
+                '<time datetime="2026-09-23">9월 23일</time> → <a href="https://example.com/summary">요약 기사</a></p>')
+        with tempfile.TemporaryDirectory() as d:
+            body, page = pathlib.Path(d) / "body.html", pathlib.Path(d) / "page.html"
+            body.write_text('<h1>출처</h1>\n<p class="read">인용 33개 중 5개는 근거가 없었어요.</p>\n' + note + "\n")
+            r = assemble(str(body), str(page))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn('[data-widget="source"] {', page.read_text().partition("<main>")[0], "no source style")
+            r = subprocess.run([sys.executable, str(CHECK), str(page)], capture_output=True, text=True)
+            self.assertEqual(r.stdout.splitlines()[-1], "pass", r.stdout)
 
-W, SKIN = "references/", "references/page.html"
+
+W, SKIN ="references/", "references/page.html"
 # (file, [(old, new), ...], a regex the output must match; None when the copy must pass)
 CASES = [
     ("SKILL.md", [("| `chart` `bar` |", "| `sankey` |")], r"unknown widget `sankey`"),
