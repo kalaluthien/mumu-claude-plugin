@@ -435,9 +435,12 @@ def chapter_checks(page, run, navigate):
         out.append(f"{what} shows chapters {[i + 1 for i, v in enumerate(got) if v]}, not {want + 1}")
     def load(fragment):
         navigate("about:blank")
-        navigate(f"file://{page}{fragment}")
+        url = pathlib.Path(page).absolute().as_uri() + fragment
+        navigate(url)
+        # about:blank has no hash and is complete too, so wait for the page's own address
         for _ in range(40):
-            if run("location.hash === " + json.dumps(fragment) + " && document.readyState === 'complete'"):
+            if run(f"location.href === {json.dumps(url)}"
+                   " && document.readyState === 'complete'"):
                 break
             time.sleep(0.05)
     load("")
