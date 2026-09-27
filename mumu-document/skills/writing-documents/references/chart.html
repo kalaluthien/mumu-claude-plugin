@@ -5,7 +5,7 @@
   bar: category | one value. Horizontal bars from zero, the value at each bar's end. Use when: values compared across categories, where zero means none. Not when: values over time (line).
   line: time | up to 4 series. A line per series, a point per value, each line named at its end. Use when: change over time. Not when: fewer than 4 points or unordered categories (bar).
   slide: optional, by page.html's slide: one caption per step and one <table> per step in the <details>, in step order; the axes span every step; marks move to the next table's values; unplayed, the chart stands at its last table.
-  keyboard and pointer: Tab reaches one mark per chart, the arrow keys, Home and End move mark to mark, Escape hides the tip; a pointer or tap anywhere on the plot reads the nearest mark.
+  keyboard and pointer: Tab reaches one mark per chart, the arrow keys, Home and End move mark to mark, Escape hides the tip; a pointer or tap on the plot reads the nearest mark within 24 px, the target size of WCAG 2.5.8; a tap elsewhere hides it.
   screen reader: each mark is an image named by its row, column and cell text, shown in a tip as it is read; the table follows.
   not when: fewer than 3 numbers (a sentence); the exact values are the point (table). -->
 <style>
@@ -216,16 +216,17 @@
       const roam = (keep) => marks().forEach((m) => { m.tabIndex = m === keep ? 0 : -1; });
       roam(marks()[0]);
       fig.addEventListener('step', () => roam(marks().find((m) => m.tabIndex === 0) || marks()[0]));
-      // the whole plot is the target: a pointer or tap reads the mark nearest it
+      // a pointer or tap reads the mark nearest it, within a 24 px target; farther, or off the plot, the tip hides
       const nearest = (e) => marks().reduce((a, m) => {
         const r = m.getBoundingClientRect();
         const d = Math.hypot(Math.max(r.left - e.clientX, 0, e.clientX - r.right), Math.max(r.top - e.clientY, 0, e.clientY - r.bottom));
         return d < a.d ? { m, d } : a;
-      }, { m: null, d: Infinity }).m;
+      }, { m: null, d: 24 }).m;
       const plot = fig.querySelector('.plot');
-      plot.addEventListener('pointermove', (e) => { const m = nearest(e); if (m) show(m); });
-      plot.addEventListener('pointerdown', (e) => { const m = nearest(e); if (m) { roam(m); show(m); } });
+      plot.addEventListener('pointermove', (e) => { const m = nearest(e); if (m) show(m); else if (e.pointerType === 'mouse') hide(); });
+      plot.addEventListener('pointerdown', (e) => { const m = nearest(e); if (m) { roam(m); show(m); } else hide(); });
       plot.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') hide(); });
+      document.addEventListener('pointerdown', (e) => { if (!plot.contains(e.target)) hide(); });
       fig.addEventListener('focusin', (e) => { if (e.target.matches('.mark')) { roam(e.target); show(e.target); } });
       fig.addEventListener('focusout', hide);
       fig.addEventListener('keydown', (e) => {

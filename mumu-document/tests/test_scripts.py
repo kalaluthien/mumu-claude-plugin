@@ -483,7 +483,7 @@ class Assemble(unittest.TestCase):
             self.assertEqual(r.stdout.splitlines()[-1], "pass", r.stdout)
 
 
-W, SKIN ="references/", "references/page.html"
+W, SKIN = "references/", "references/page.html"
 # (file, [(old, new), ...], a regex the output must match; None when the copy must pass)
 CASES = [
     ("SKILL.md", [("| `chart` `bar` |", "| `sankey` |")], r"unknown widget `sankey`"),

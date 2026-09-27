@@ -120,7 +120,7 @@ class Diagram(unittest.TestCase):
         self.assertTrue(next_.is_disabled())
         back.click()
         p.wait_for_function("(n) => +document.querySelector('[data-swipe]').dataset.at === n - 2", arg=n, timeout=3000)
-        self.assertEqual(root.evaluate("(r) => [...r.querySelectorAll('.controls button')].map((b) => b.getAttribute('aria-label'))"),
+        self.assertEqual(root.evaluate("(r) => [...r.querySelectorAll('.controls button')].map((b) => b.textContent)"),
                          ["뒤로", "다음"])
 
     def test_every_focus_stop_has_a_role_and_a_name(self):

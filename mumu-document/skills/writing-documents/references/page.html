@@ -9,7 +9,8 @@
   slide: a root with data-slide and data-labels="뒤로|다음" over an <ol class="steps">: one stage changes in place, Back,
   Next, the arrow keys and a count; the reader compares the same marks.
   swipe: a root with data-swipe over a stage and an <ol class="steps">: a strip of cards, the card in view the step;
-  each step a separate moment, with Back, Next and a count under the strip. Played, at step k each [data-step] up to k gets .on, the one at k .now, the root
+  each step a separate moment, with Back and Next in words (data-labels, 뒤로|다음 by default) and a count under the
+  strip, so one pointer steps it without a swipe. Played, at step k each [data-step] up to k gets .on, the one at k .now, the root
   data-at k - 1 and a `step` event, and a card's data-x scrolls a stage wider than the column to it; under reduced motion, in print or without script, every caption stays listed,
   every chapter shown, and the widget stands at its last step.
   table: only for values the reader compares across rows, few columns, the first a row label, headers with scope;
@@ -290,12 +291,10 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
       // Back, a count and Next under the strip, for a reader with no swipe
       const controls = document.createElement('div');
       controls.className = 'controls';
-      controls.innerHTML = '<button type="button">‹</button><span class="count"></span><button type="button">›</button>';
+      controls.innerHTML = '<button type="button"></button><span class="count"></span><button type="button"></button>';
       strip.after(controls);
       const [back, next] = controls.querySelectorAll('button');
-      const [was, then] = (root.dataset.labels || '뒤로|다음').split('|');
-      back.setAttribute('aria-label', was);
-      next.setAttribute('aria-label', then);
+      [back.textContent, next.textContent] = (root.dataset.labels || '뒤로|다음').split('|');
       let at = 1;
       const go = (k) => {
         const li = steps[Math.min(Math.max(k, 1), n) - 1];

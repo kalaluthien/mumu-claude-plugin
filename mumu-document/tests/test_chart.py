@@ -103,6 +103,23 @@ class Chart(unittest.TestCase):
                         else:
                             p.mouse.move(x, y)
                         self.assertEqual(self.tip(p, fig), dot.get_attribute("aria-label"))
+                # a tap outside the plot hides it, and a tap far from every mark reads none
+                p.locator("body").dispatch_event("pointerdown", {"pointerType": "touch", "bubbles": True})
+                self.assertIsNone(self.tip(p, fig), "a tap outside the plot left the tip")
+                plot = fig.locator(".plot").bounding_box()
+                far = p.evaluate("""([fig, x0, y0, w, h]) => {  // the plot point farthest from every mark
+                  const ms = [...fig.querySelectorAll('.plot .mark')].map((m) => m.getBoundingClientRect());
+                  let best = [0, 0, -1];
+                  for (let x = x0; x < x0 + w; x += 4) for (let y = y0; y < y0 + h; y += 4) {
+                    const d = Math.min(...ms.map((r) => Math.hypot(Math.max(r.left - x, 0, x - r.right), Math.max(r.top - y, 0, y - r.bottom))));
+                    if (d > best[2]) best = [x, y, d];
+                  }
+                  return best; }""", [fig.element_handle(), plot["x"], plot["y"], plot["width"], plot["height"]])
+                self.assertGreater(far[2], 24, far)
+                fig.locator(".plot").dispatch_event("pointerdown", {"pointerType": "touch", "clientX": x, "clientY": y, "bubbles": True})
+                self.assertIsNotNone(self.tip(p, fig))
+                fig.locator(".plot").dispatch_event("pointerdown", {"pointerType": "touch", "clientX": far[0], "clientY": far[1], "bubbles": True})
+                self.assertIsNone(self.tip(p, fig), "a tap far from every mark read one")
             finally:
                 browser.close()
 
