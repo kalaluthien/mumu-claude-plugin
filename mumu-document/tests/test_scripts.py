@@ -39,13 +39,13 @@ FIXTURES = {"chart": """<figure data-widget="chart" data-chart="bar">
   <figcaption>2022년부터 모바일 사용자가 웹 사용자보다 많아요.</figcaption>
   <div class="plot"></div>
   <details><summary>표로 보기</summary><div class="scroll"><table>
-    <thead><tr><th scope="col">연도</th><th scope="col">웹(%)</th><th scope="col">모바일(%)</th><th scope="col">데스크톱 앱(%)</th></tr></thead>
+    <thead><tr><th scope="col">연도</th><th scope="col">웹</th><th scope="col">모바일</th><th scope="col">데스크톱 앱</th></tr></thead>
     <tbody>
-      <tr><th scope="row">2019</th><td>52</td><td>21</td><td>12</td></tr>
-      <tr><th scope="row">2020</th><td>50</td><td>30</td><td>13</td></tr>
-      <tr><th scope="row">2021</th><td>47</td><td>41</td><td>15</td></tr>
-      <tr data-note="새 앱 출시"><th scope="row">2022</th><td>45</td><td>55</td><td>14</td></tr>
-      <tr><th scope="row">2023</th><td>44</td><td>63</td><td>16</td></tr>
+      <tr><th scope="row">2019</th><td>52%</td><td>21%</td><td>12%</td></tr>
+      <tr><th scope="row">2020</th><td>50%</td><td>30%</td><td>13%</td></tr>
+      <tr><th scope="row">2021</th><td>47%</td><td>41%</td><td>15%</td></tr>
+      <tr data-note="새 앱 출시"><th scope="row">2022</th><td>45%</td><td>55%</td><td>14%</td></tr>
+      <tr><th scope="row">2023</th><td>44%</td><td>63%</td><td>16%</td></tr>
     </tbody>
   </table></div></details>
 </figure>
