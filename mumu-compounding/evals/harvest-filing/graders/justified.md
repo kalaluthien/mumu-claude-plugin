@@ -1,5 +1,8 @@
 ---
-type: llm
-focus: last_message
-criteria: Judge only what the reply says about the npm ci lesson. Pass if it says that lesson got a new entry and gives any reason an existing entry could not take it, such as that no existing entry covers dependencies or builds, or naming the closest entry and why it did not fit. Fail if it gives no such reason, or does not mention the npm ci lesson.
+# the ADD's one line: nearest entry, or none, and why; a regex, since the haiku judge failed such replies 2 runs in 3
+type: regex
+target: last_message
+match: contains
+flags: i
+pattern: 'npm ci[\s\S]*(no (existing|other|saved) (entry|entries|memory|memories|note)|none of the (existing|saved)|nearest|closest|could(n''t| not) be extended|none could)'
 ---
