@@ -4,7 +4,8 @@ even as text only naming either, which goes through a file and `--body-file`; an
 the kickoff skill gives another role: `APPROVED:` and `FINDINGS:` the reviewer's, `DECIDED:` the lead's through
 `decide.py`, a task's body, labels, reopening and stop its lead's, a body only its three sections, a worker's prompt
 only `see <url>`, and no title over 40 characters; and in any session, closing a split task as completed while a row of
-its `## Shares` has no merged pull request."""
+its `## Shares` has no merged pull request; and a routine step (`merge.py`, `worker-start.py`, `lead-start.py`,
+`worker-close.py`, `clean`'s git commands), or the reviewer's post, in any form but the literal one an allow rule matches."""
 import json
 import os
 import pathlib
@@ -33,6 +34,22 @@ TITLE = 40
 ISSUE = re.compile(r"(?:https://github\.com/([^/\s]+/[^/\s]+)/issues/)?#?(\d+)/?")
 VALUED = {"--reason", "-r", "--comment", "-c", "--repo", "-R"}
 RAW_MERGE = "a raw `pr merge` is refused; run `merge.py <pr-url>` in a Bash call of its own, and write text naming the merge with a file tool"
+# each routine step, as its script's name or git's words, and the literal form an owner allow rule matches
+ROUTINE = {
+    "merge.py": "merge.py <pr-url>",
+    "worker-start.py": "worker-start.py <checkout> <topic> <effort> <task-url> [flags]",
+    "lead-start.py": "lead-start.py <checkout> [<task-url>] [flags]",
+    "worker-close.py": "worker-close.py <name>",
+    ("worktree", "remove"): "git worktree remove .claude/worktrees/<name>",
+    ("branch", "-D"): "git branch -D <name>",
+    ("push", "origin", "--delete"): "git push origin --delete <name>",
+    ("pull", "--ff-only"): "git pull --ff-only",
+}
+PREFIX = re.compile(r"(?:do|then|else|elif|!|\{|time|exec|nohup|command|env|xargs|sudo|uvx?|run|(?:python|pypy)[\d.]*|(?:ba|z|da)?sh"
+                    r"|-.*|\w+=.*)", re.S)  # words that may stand before a run command: keywords, runners, flags, assignments
+SHELLS = {"bash", "sh", "zsh", "dash", "eval"}
+REVIEWER_POST = "the reviewer posts as one literal command, `gh pr comment <pr-url> --body '<verdict lines>'` or " \
+                "`gh issue comment <url> --body '<verdict lines>'`: no file, stdin, heredoc or `$(...)`"
 
 
 def refuse(reason):
@@ -202,6 +219,55 @@ def role_refusal(command, role, cwd):
     return None
 
 
+def routine(words):
+    """The `ROUTINE` key the words run and the index of its first word, past keywords, runners, flags and assignments; else None."""
+    for i, word in enumerate(words):
+        name = os.path.basename(word)
+        if name in ROUTINE:
+            return name, i
+        if name == "git":
+            rest = words[i + 1:]
+            while rest and rest[0].startswith("-"):  # git's own options; these take a value
+                rest = rest[2:] if rest[0] in ("-C", "-c", "--git-dir", "--work-tree", "--namespace") else rest[1:]
+            return next(((key, i) for key in ROUTINE if isinstance(key, tuple) and rest[:1] == [key[0]]
+                         and set(key[1:]) <= set(rest)), None)
+        if not (PREFIX.fullmatch(word) or PREFIX.fullmatch(name)):
+            return None
+    return None
+
+
+def routine_refusal(reading):
+    """Why a routine step in the command's segments `reading` is not its literal form, a Bash call of its own; else None."""
+    for words in reading or []:
+        found = routine(words)
+        if found is None and words and os.path.basename(words[0]) in SHELLS:  # `bash -c '...'`, `eval '...'`
+            found = next((routine(inner) for word in words[1:] for inner in lexed(word) or [] if routine(inner)), None)
+            if found:
+                found = found[0], -1
+        if found is None:
+            continue
+        key, at = found
+        form = [key] if isinstance(key, str) else ["git", *key]
+        if len(reading) > 1 or at or words[:len(form)] != form or \
+                any("$" in w or "`" in w or set(w) <= set("<>&|") and set(w) & set("<>") for w in words):
+            return f"a routine step runs as one literal Bash call of its own, `{ROUTINE[key]}`: by its bare name, with no path, " \
+                   "interpreter, `cd`, `&&`, `;`, pipe, loop, redirect, `git -C` or variable, so the owner's allow rule matches it"
+    return None
+
+
+def reviewer_refusal(command):
+    """Why the reviewer's post in `command` is not its literal form, `gh pr|issue comment <url> --body '<lines>'`; else None."""
+    reading = lexed(command)
+    if reading is None:
+        return REVIEWER_POST if GH_WRITE.search(command) and re.search(r"--body-file|-F\b|<<|\$\(", command) else None
+    for words in reading:
+        m = GH_WRITE.match(" ".join(words))
+        if m and m[2] in ("comment", "review") and (option(words, "--body-file", "-F") is not None or any(
+                "$(" in w or set(w) <= set("<>&|") and "<" in w for w in words)):
+            return REVIEWER_POST
+    return None
+
+
 def early_resolve(command, cwd):
     """Why a `gh issue close` in `command`, as completed, of a task whose body has `## Shares` may not run yet: the rows
     with no merged pull request whose head is `<row>-<n>-<k>`; else None."""
@@ -237,7 +303,7 @@ def early_resolve(command, cwd):
 
 def main():
     raw = sys.stdin.read()
-    if not re.search(r"merge|git|hookspath|gh|decide", QUOTING.sub("", raw), re.I):
+    if not re.search(r"merge|git|hookspath|gh|decide|start\.py|close\.py", QUOTING.sub("", raw), re.I):
         sys.exit(0)
     try:
         payload = json.loads(raw)
@@ -255,6 +321,10 @@ def main():
             refuse("hook bypass refused: fix what the hook refused, or BLOCKED the owner")
         if any(mentions(words) for words in readings[0] or []):
             refuse(RAW_MERGE)
+        if why := routine_refusal(readings[0]):
+            refuse(why)
+        if payload.get("agent_type") == "mumu-team:reviewer" and (why := reviewer_refusal(command)):
+            refuse(why)
         role = ROLES.get(payload.get("agent_type"))
         if role and (why := role_refusal(command, role, payload.get("cwd") or ".")):
             refuse(why)

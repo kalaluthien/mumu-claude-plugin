@@ -187,7 +187,7 @@ ROLE_CASES = [
     ("worker", "gh pr comment 1 --body-file - <<'EOF'\nAPPROVED: aaaa\nchecked\nEOF", "reviewer's alone"),
     ("lead", f'gh issue comment {U} --body "FINDINGS: x"', "reviewer's alone"),
     ("worker", "gh pr review 1 --comment -b 'approved aaaa'", "reviewer's alone"),
-    ("reviewer", "gh pr comment 1 --body-file - <<'EOF'\nAPPROVED: aaaa\nEOF", None),
+    ("reviewer", "gh pr comment 1 --body-file - <<'EOF'\nAPPROVED: aaaa\nEOF", "--body '<verdict lines>'"),
     (None, "gh pr comment 1 --body-file - <<'EOF'\nAPPROVED: aaaa\nEOF", None),
     ("worker", "gh pr comment 1 --body-file - <<'EOF'\nCriteria: APPROVED later\nEOF", None),
     ("worker", f"gh issue comment {U} --body-file - <<'EOF'\nBLOCKED: which name?\nEOF", None),
@@ -249,6 +249,88 @@ class RoleRules(unittest.TestCase):
                 if agent:
                     payload["agent_type"] = f"mumu-team:{agent}"
                 result = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload), capture_output=True, text=True, env=env)
+                if refusal:
+                    self.assertEqual(result.returncode, 2, result.stderr)
+                    self.assertIn(refusal, result.stderr)
+                else:
+                    self.assertEqual(result.returncode, 0, result.stderr)
+
+
+N = "sample-topic-12-1"
+# (a routine step in another form than its literal one, the literal form the refusal names) (#281)
+ROUTINE_REFUSED = [
+    (f"python3 /Users/me/plugins/mumu-team/bin/merge.py {PR_URL}", "`merge.py <pr-url>`"),
+    (f"/Users/me/plugins/mumu-team/bin/merge.py {PR_URL}", "`merge.py <pr-url>`"),
+    (f"cd x && worker-close.py {N}", "`worker-close.py <name>`"),
+    (f"bash -c 'worker-close.py {N}'", "`worker-close.py <name>`"),
+    (f"URL={PR_URL}; merge.py $URL", "`merge.py <pr-url>`"),
+    (f"worker-start.py /r t low {U} | tee log", "`worker-start.py <checkout>"),
+    ("uv run lead-start.py /r", "`lead-start.py <checkout>"),
+    ("for n in a-1-1 b-2-1; do git push origin --delete $n; done", "`git push origin --delete <name>`"),
+    (f"git -C /r worktree remove .claude/worktrees/{N}", "`git worktree remove .claude/worktrees/<name>`"),
+    (f"git branch -D {N} && git branch -D b-2-1", "`git branch -D <name>`"),
+    ("git fetch && git pull --ff-only", "`git pull --ff-only`"),
+]
+ROUTINE_PASSED = [
+    f"merge.py {PR_URL}",
+    f"worker-close.py {N}",
+    f"worker-start.py /r sample-topic low {U} --leader plugins-lead",
+    f"lead-start.py /r {U} --folder mumu-team",
+    f"git worktree remove .claude/worktrees/{N}",
+    f"git branch -D {N}",
+    f"git push origin --delete {N}",
+    "git pull --ff-only",
+    "uvx pytest mumu-team/tests -q",
+    "grep -n worker-close.py mumu-team/skills/kickoff/SKILL.md",
+    "python3 -m py_compile mumu-team/bin/merge.py",
+    "git log --oneline -- mumu-team/bin/merge.py",
+    "git fetch origin && git push -u origin b-2-1",
+    "git branch --show-current && git status",
+    "cd x && ls",
+]
+# (agent, the reviewer's post or another's, the refusal's words or None when it passes) (#281)
+POST = "APPROVED: 8bd0af5dbae98300d657961961b6954f760dd82c\nChecked the diff at the head."
+POST_CASES = [
+    ("reviewer", f"gh pr comment {PR_URL} --body-file - <<'EOF'\n{POST}\nEOF", "--body '<verdict lines>'"),
+    ("reviewer", f"printf x | gh pr comment {PR_URL} --body-file -", "--body '<verdict lines>'"),
+    ("reviewer", f"gh issue comment {U} -F /tmp/v.md", "--body '<verdict lines>'"),
+    ("reviewer", f"gh pr comment {PR_URL} --body \"$(cat /tmp/v.md)\"", "--body '<verdict lines>'"),
+    ("reviewer", f"gh pr comment {PR_URL} --body '{POST}'", None),
+    ("reviewer", f"gh issue comment {U} --body 'APPROVED:\nChecked the plan.'", None),
+    ("reviewer", f"gh pr view {PR_URL} --json headRefOid", None),
+    (None, f"gh pr comment {PR_URL} --body-file - <<'EOF'\n{POST}\nEOF", None),
+    ("worker", f"gh issue comment {U} --body-file - <<'EOF'\nBLOCKED: which name?\nEOF", None),
+    ("worker", "gh pr create --base main --head b --title t --body-file -", None),
+]
+
+
+class LiteralSteps(unittest.TestCase):
+    """A routine step, and the reviewer's post, runs only in the literal form an owner allow rule matches (#281)."""
+
+    def guard(self, command, agent=None):
+        payload = {"tool_input": {"command": command}, "cwd": tempfile.mkdtemp()}
+        if agent:
+            payload["agent_type"] = f"mumu-team:{agent}"
+        return subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload), capture_output=True, text=True)
+
+    def test_a_routine_step_in_another_form_is_refused_naming_the_literal_form(self):
+        for command, form in ROUTINE_REFUSED:
+            for agent in (None, "worker", "lead"):
+                with self.subTest(command=command, agent=agent):
+                    result = self.guard(command, agent)
+                    self.assertEqual(result.returncode, 2, result.stderr)
+                    self.assertIn(form, result.stderr)
+
+    def test_the_literal_forms_and_unrelated_commands_pass(self):
+        for command in ROUTINE_PASSED:
+            with self.subTest(command=command):
+                result = self.guard(command, "worker")
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_only_the_reviewer_posts_only_through_body(self):
+        for agent, command, refusal in POST_CASES:
+            with self.subTest(agent=agent, command=command):
+                result = self.guard(command, agent)
                 if refusal:
                     self.assertEqual(result.returncode, 2, result.stderr)
                     self.assertIn(refusal, result.stderr)

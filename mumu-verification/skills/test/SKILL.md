@@ -12,7 +12,7 @@ Terms and rules: `${CLAUDE_PLUGIN_ROOT}/lib/contract.md`; read it first.
 
 ## Find what the repo has
 
-Use the test command the repo declares (a `test` target, `package.json`'s `scripts.test`, the runner its manifest configures), and put new tests beside the existing ones, named alike. With none, initialise the language's standard runner with a module test per core module and `tests/scenarios/`, the one catalog of end-to-end runs, tagged `@load` and `@fault`; fold old unit tests into the module test they exercise.
+Use the test command the repo declares (a `test` target, `package.json`'s `scripts.test`, the runner its manifest configures), and put new tests beside the existing ones, named alike. With none, initialise the language's standard runner with a module test per core module and `tests/scenarios/`, the end-to-end runs, tagged `@load` and `@fault`; fold old unit tests into the module test they exercise.
 
 Set `VERIFY_TESTS` to that command in the repo's `.claude/settings.json` `env`, for that gate, which a hook runs before each `git commit` and before a stop with changes.
 
@@ -27,7 +27,7 @@ Write an acceptance test (the app driven as its user drives it: the CLI, the HTT
 
 Drive a screen in a browser and assert what it shows; a Claude plugin's hook, dialog, monitor or `/` menu, by the plugin probe below. Run the tests.
 
-Each `check <Name>` in `spec/` has a `refuses_<Name>` test that fails on the rule's own assertion, at the lowest level that reaches the rule: a module test, else an end-to-end run on the real platform (a device, a browser, a live service), else the event log. A test that dies before its assertion (a missing dispatcher, a platform class, an image never decoded) reaches nothing: move it up a level, never land it as a gap. Where `$SPEC_EVENTS` is set, tests assert that each step it logs is in the module's `trans`. A `@load` scenario runs at twice the largest limit the code declares, with zero errors and no step outside `trans`; a `@fault` scenario fails each `Remote` call once.
+Each `check <Name>` in `spec/` has a `refuses_<Name>` test that fails on the rule's own assertion, at the lowest level that reaches the rule: a module test, else an end-to-end run on the real platform (a device, a browser, a live service), else the event log. A test that dies before its assertion (a missing dispatcher, a platform class, an image never decoded) reaches nothing: move it up a level, never land it as a gap. Each use case in the owner's words, a user doing one thing to its end, is a flow `run <pred>` in `spec/` with a `scenario_<pred>` test that drives it end to end. Where `$SPEC_EVENTS` is set, tests assert that each step it logs is in the module's `trans`. A `@load` scenario runs at twice the largest limit the code declares, with zero errors and no step outside `trans`; a `@fault` scenario fails each `Remote` call once.
 
 A rule the code breaks, when the change is not to fix it, is a code gap: file an issue quoting the check's command and failing output, and land the witness disabled, or the check `expect 1`, with `gap #<issue>` on its line; `verify.sh` counts each.
 
