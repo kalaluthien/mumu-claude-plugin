@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # The one done command, run from the plugin at a repo's root: every Alloy command under spec/ meets its `expect`,
 # every `check` has a `refuses_<Name>` test and every such test a check, then the suite passes. Exit 1 names each miss.
-TESTS=${VERIFY_TESTS:-"python3 -m unittest discover -s tests"}  # the repo's test command, set in its settings' env
 out=$(mktemp -d) && trap 'rm -rf "$out"' EXIT
 fail=0
 models=$(grep -rlE '^[[:space:]]*(check|run)[[:space:]{]' spec --include='*.als' 2>/dev/null | sort)
@@ -32,5 +31,6 @@ if sys.argv[2] == "0":  # a file that did not parse hides its checks
 print("".join(f"FAIL {b}\n" for b in bad), end="")
 sys.exit(1 if bad else 0)
 PY
-$TESTS || { echo "FAIL tests: $TESTS"; fail=1; }
+if [ -z "$VERIFY_TESTS" ]; then echo "FAIL tests: set VERIFY_TESTS to the repo's test command in .claude/settings.json env"; fail=1
+else $VERIFY_TESTS || { echo "FAIL tests: $VERIFY_TESTS"; fail=1; }; fi
 exit $fail
