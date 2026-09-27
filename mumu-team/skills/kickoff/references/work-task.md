@@ -20,12 +20,13 @@ Steps, resumed at the one the task and its pull request or report show:
 
 ## Siblings
 
-A share's worker agrees a change that crosses its split with the sibling's worker, as leads agree across folders:
+A share's worker agrees a change that crosses its split with a sibling's worker, as leads agree across folders:
 
-- Your siblings are the other rows of your task's `## Shares`, their workers the live sessions `ListAgents` names `<row>-<n>-*`, and your row's `with` names what you share with which.
-- Before you change a file, an interface or a rule that a sibling's row or its open pull request (`gh pr diff <pr> --name-only`) also touches, propose the change through `SendMessage` to that sibling's worker and act after its answer.
+- Your siblings are the live workers of your task's other rows, the sessions `ListAgents` names `<row>-<n>-*`, and your row's `with` names what you share with which; a merged row is read from its pull request, not messaged.
+- Before you change a file, an interface or a rule that a sibling's row or its open pull request (`gh pr diff <pr> --name-only`) also touches, send that sibling's worker a proposal through `SendMessage`, opening `Proposal from <name>:` and ending `Reply OK or an objection.`, and act after its answer.
+- The answer is `OK`, or an objection with its reason.
 - An objection: revise the proposal and ask again.
-- Past two objections, or no answer after one resend, `comment` `BLOCKED: <share>: <question>` and go on as for any decision that is not yours.
+- Past two objections, or no answer after one resend: `comment` `BLOCKED: <share>: <question>` and go on as for any decision that is not yours.
 - Record only the outcome, in your pull request body, never the exchange.
 
 ## Report
