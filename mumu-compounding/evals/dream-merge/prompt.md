@@ -18,3 +18,9 @@ printf 'CI restores node_modules from a cache keyed on the hash of package-lock.
 printf 'CI does not rebuild node_modules when only .npmrc changes; bump CACHE_VERSION in .github/workflows/ci.yml to force it.\n' > "$pool/pitfall-ci-cache-npmrc.md"
 printf 'The staging database resets every Sunday.\n' > "$pool/staging-reset.md"
 ```
+
+When the skill has finished, run this one Bash call:
+
+```sh
+cat $(ls config/projects/-a/memory/*.md | grep -v '/MEMORY\.md$') > pool-after.txt
+```
