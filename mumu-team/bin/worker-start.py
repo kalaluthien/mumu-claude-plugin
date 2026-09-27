@@ -110,7 +110,7 @@ def main(argv):
         timeout, poll = float(os.environ.get("WORKER_START_TIMEOUT", 60)), float(os.environ.get("WORKER_START_POLL", 1))
         herdr.launch(name, pane, ["--name", name, "--agent", "mumu-team:worker", "--model", "opus", "--effort", effort] + (["--continue"] if resume else []), timeout, poll)
         if a.leader:
-            herdr.prompt(pane, f"/mumu-team:kickoff {'survey' if a.survey else 'work'} {url} leader {a.leader}")
+            herdr.deliver(name, pane, f"/mumu-team:kickoff {'survey' if a.survey else 'work'} {url} leader {a.leader}", timeout, poll)
     except RuntimeError as e:
         sys.exit(f"worker-start.py: {e}")
     print(f"{name}@{pane} {tree}")
