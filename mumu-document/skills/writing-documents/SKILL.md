@@ -23,6 +23,31 @@ its moves; a move with nothing to say is dropped.
 | `proposal` | must agree to what is not settled: a plan, a design, an issue, a choice | **plan**: the goal and when it is done · **narrative and comparison**: why, and the options against one set of criteria, fixed before any option · **settled answers**: what `grill-me` settled with the reader · **decide**: the recommendation and the fact that would change it |
 | `textbook` | must understand or use what is settled: a system, a change, a result | **explain**: what it is made of, how it works and the traps a user hits · **teach**: one claim per section, with its reason and evidence · **guide**: the steps the reader takes, each with its check · **report**: what was done, its evidence, the next action |
 
+## Composition
+
+Before writing any section, the author settles the whole piece, in this order:
+
+1. **Answer**: the reader's question, and its answer in one sentence; that
+   sentence opens the document, before the first heading (a page's `p.read`).
+2. **Outline**: the moves as headings, each a noun phrase that carries its
+   section's claim (부산이 앞지른 요청, not 요청 수), so the headings read alone
+   state the argument, as a pyramid under the answer; a section with no claim
+   is merged or cut.
+3. **Order**: overview to detail: the whole, then its parts, then their
+   detail; time or step order only for a sequence; the reader's own
+   exploration, such as a `filter` over every row, last.
+4. **Form**: each section the one form that carries its point: a sentence for
+   a claim, a list for parallel items, a table for values compared across
+   rows, a figure or widget by Mapping; whatever does not prove the claim is
+   cut.
+5. **Widgets**: at most 1 under each `h2` or `h3` and 5 on a page, of them at
+   most 2 `filter` or `controls`, since most readers never touch a control and
+   the claim stands in the text too; more is a second page.
+6. **Ending**: the last section says what the reader does next, or that
+   nothing is needed, and repeats no summary.
+
+On a page, `check.py` fails the first rule and the widget limits.
+
 ## Mapping
 
 A widget exists only where this skill tuned, combined or made one; everything
@@ -78,8 +103,8 @@ page, commit it beside the page.
 ## Writing
 
 - Name things instead of counting them: a count goes stale, a name can be
-  grepped. A heading is a noun phrase naming its part; the claim goes in the
-  first sentence under it.
+  grepped. A heading is a noun phrase carrying its part's claim, which the
+  first sentence under it states.
 - Short words, one idea a sentence, active voice; a new term is defined where
   it first appears or cut; no word that sells. A change you judge wrong is
   said so, plainly; a reason the source omits is called absent, not guessed.

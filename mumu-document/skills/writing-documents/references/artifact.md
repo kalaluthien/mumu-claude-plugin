@@ -1,6 +1,6 @@
 # Artifact page
 
-## Composition
+## Structure
 
 A page is one HTML file that opens from disk. Its author writes only the body,
 what goes inside `<main>`, by `assemble.py --spec page`: what goes in the page,
