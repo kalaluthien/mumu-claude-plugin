@@ -17,8 +17,9 @@ the folder the owner names, else `${CLAUDE_CONFIG_DIR:-$HOME/.claude}`, and
    that worked, often one the owner accepted or a success by an unplanned
    path, "when <situation>, keep <action>, because <what it saved>"; a
    procedure you had to work out keeps its steps as run. Merge drafts of one
-   cause, and have each cite its evidence in the text you file: a
-   candidate's timestamp or url, or a `path:line`.
+   cause. Each cites its evidence in every ADD or EDIT it becomes, an edit
+   of an old entry too: a candidate's timestamp with its time, not a date
+   alone, or its url, or a `path:line`.
 3. Of n drafts file all when n ≤ 3, else the 3 + (2(n−3)+2)//5 that cost the
    most when repeated, and tell the owner in one line how many were dropped.
 
