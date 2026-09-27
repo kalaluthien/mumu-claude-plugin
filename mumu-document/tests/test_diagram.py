@@ -12,7 +12,7 @@ import unittest
 from test_scripts import ASSEMBLE, CHECK, CHROME, REFS, in_state, parts
 
 try:
-    from playwright.sync_api import sync_playwright
+    from playwright.sync_api import TimeoutError as PlaywrightTimeout, sync_playwright
 except ImportError:
     sync_playwright = None
 
@@ -53,6 +53,10 @@ def network(tasks=TASKS):
             '<figcaption class="muted">색은 작업의 상태, 점선은 짐작한 관계예요.</figcaption></figure></div></section>')
 
 
+# the same graph with every label 8 syllables long, the most a label may have
+LONG = [("가나다라마바사" + c,) + task[1:] for c, task in zip("아자차카타파하거너", TASKS)]
+
+
 def layers(tasks=TASKS):
     """Each task's layer: the longest chain of blockers above it."""
     depth = {}
@@ -67,7 +71,8 @@ SHAPES = """(svg) => { const n = (e, a) => +e.getAttribute(a), m = svg.getScreen
   return { boxes: [...svg.querySelectorAll('rect.box')].map((b) => ({ x: n(b, 'x'), y: n(b, 'y'), w: n(b, 'width'), h: n(b, 'height') })),
     texts: [...svg.querySelectorAll(':scope > text')].map((t) => { const b = t.getBBox(); return { x: b.x, y: b.y, w: b.width, h: b.height }; }),
     ends: [...svg.querySelectorAll('.part .edge')].map((e) => [pt(e.getPointAtLength(0)), pt(e.getPointAtLength(e.getTotalLength()))]),
-    scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth }; }"""
+    scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth,
+    figure: svg.getBoundingClientRect().width, stage: svg.parentElement.clientWidth }; }"""
 
 
 def overlap(a, b):
@@ -92,8 +97,8 @@ FADED = """(root) => { root.querySelectorAll('details').forEach((d) => { d.open 
     return o < 1 || getComputedStyle(el).visibility !== 'visible' || !el.getClientRects().length; }).map((el) => el.outerHTML.slice(0, 60)); }"""
 
 
-def page(kind, edits=(), section=None):
-    blocks, body = parts((REFS / "diagram.html").read_text())
+def page(kind, edits=(), section=None, source=None):
+    blocks, body = parts(source or (REFS / "diagram.html").read_text())
     section = section or next(s for s in re.split(r"\n(?=<section)", body.strip()) if f'data-diagram="{kind}"' in s)
     for old, new in edits:
         section, n = (old.subn(new, section) if hasattr(old, "subn") else (section.replace(old, new), section.count(old)))
@@ -124,7 +129,11 @@ class Diagram(unittest.TestCase):
         p.route(re.compile(r"^https?://"), lambda r: r.abort())
         p.set_content(html)
         if context.get("java_script_enabled", True):
-            p.wait_for_function("!document.querySelector('[data-diagram=network] .stage > dl') || !!document.querySelector('.detail')")
+            try:  # a network is drawn once its fonts load; a copy without its script never draws it
+                p.wait_for_function("!document.querySelector('[data-diagram=network] .stage > dl') || !!document.querySelector('.detail')",
+                                    timeout=3000)
+            except PlaywrightTimeout:
+                pass
         self.base = p.locator("[data-widget]").evaluate(FADED)  # the played steps still pending
         return p
 
@@ -227,16 +236,19 @@ class Diagram(unittest.TestCase):
         self.assertLess(self.opacity(p, "rect.box.k2"), 1)
 
     def test_network_layout(self):
-        want = layers()
         cycle = [list(x) for x in TASKS]
         cycle[8] = cycle[8][:3] + [[(1, "", "페이지 위젯을 다시 막아요")]]  # the last task blocks the first: a cycle
-        for name, tasks in (("tasks", TASKS), ("cycle", cycle)):
+        wide = self.open(page("network", section=network()), viewport={"width": 1200, "height": 800}).locator("svg").evaluate(SHAPES)
+        rows = sorted(set(b["y"] for b in wide["boxes"]))
+        self.assertEqual([rows.index(b["y"]) for b in wide["boxes"]], layers(), "not layered by longest path")
+        for name, tasks in (("tasks", TASKS), ("long labels", LONG), ("cycle", cycle)):
             with self.subTest(name):
                 shapes = [self.open(page("network", section=network(tasks)), viewport={"width": 320, "height": 800})
                           .locator("svg").evaluate(SHAPES) for _ in range(2)]
                 self.assertEqual(shapes[0], shapes[1], "two loads draw different coordinates")
                 g = shapes[0]
                 self.assertEqual(g["scroll"], g["client"], "the page scrolls sideways")
+                self.assertLessEqual(g["figure"], g["stage"], "the figure is wider than its column")
                 boxes = g["boxes"]
                 self.assertEqual(len(boxes), len(tasks))
                 for (i, a), (j, b) in ((x, y) for x in enumerate(boxes) for y in enumerate(boxes) if x[0] < y[0]):
@@ -245,25 +257,30 @@ class Diagram(unittest.TestCase):
                     self.assertTrue(inside(text, box), f"label {i} spills out of its box: {text} {box}")
                 links = [(i, j) for i, task in enumerate(tasks, 1) for j, _, _ in task[3]]
                 self.assertEqual([(nearest(boxes, a) + 1, nearest(boxes, b) + 1) for a, b in g["ends"]], links)
-                if name == "tasks":
-                    rows = sorted(set(b["y"] for b in boxes))
-                    self.assertEqual([rows.index(b["y"]) for b in boxes], want, "not layered by longest path")
+                if name != "cycle":
+                    for i, j in links:
+                        self.assertLess(boxes[i - 1]["y"], boxes[j - 1]["y"], f"line {i}-{j} does not run down")
 
-    def test_network_page_passes_check(self):
-        with tempfile.TemporaryDirectory() as d:
-            body, out = pathlib.Path(d) / "body.html", pathlib.Path(d) / "page.html"
-            body.write_text('<h1>작업 관계</h1>\n<p class="read">네트워크 그림이 두 작업을 막고 있어요.</p>\n' + network())
-            r = subprocess.run([sys.executable, str(ASSEMBLE), str(body), str(out)], capture_output=True, text=True)
-            self.assertEqual(r.returncode, 0, r.stderr)
-            r = subprocess.run([sys.executable, str(CHECK), str(out)], capture_output=True, text=True)
-            self.assertEqual(r.stdout.splitlines()[-1], "pass", r.stdout)
+    def test_network_page_passes_check_up_to_nine_nodes(self):
+        tenth = [("회고", "k1", "끝난 뒤 돌아봐요.", [])]
+        for tasks, want in ((TASKS, "pass"), (TASKS + tenth, "FAIL")):
+            with self.subTest(nodes=len(tasks)), tempfile.TemporaryDirectory() as d:
+                body, out = pathlib.Path(d) / "body.html", pathlib.Path(d) / "page.html"
+                body.write_text('<h1>작업 관계</h1>\n<p class="read">네트워크 그림이 두 작업을 막고 있어요.</p>\n' + network(tasks))
+                r = subprocess.run([sys.executable, str(ASSEMBLE), str(body), str(out)], capture_output=True, text=True)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                r = subprocess.run([sys.executable, str(CHECK), str(out)], capture_output=True, text=True)
+                self.assertEqual(r.stdout.splitlines()[-1], want, r.stdout)
+                if want == "FAIL":
+                    self.assertIn("network of 10 nodes over 9", r.stdout)
 
     def test_network_detail(self):
         p = self.open(page("network", section=network()))
         detail = p.locator("output.detail")
-        self.assertEqual(detail.get_attribute("aria-live"), "polite")
         self.assertEqual(detail.inner_text().strip(), "")
+        self.assertEqual(detail.evaluate("(d) => d.getBoundingClientRect().height"), 0, "an empty panel takes room")
         p.hover("rect.box.k3", position={"x": 4, "y": 4})
+        self.assertEqual(detail.get_attribute("aria-live"), "off", "a hover is announced")
         self.assertIn("페이지 위젯", detail.inner_text())
         self.assertIn("#254 카메라 페이지의 위젯을 지켜요.", detail.inner_text())
         p.mouse.move(399, 899)
@@ -271,6 +288,7 @@ class Diagram(unittest.TestCase):
         p.click("rect.box.k3", position={"x": 4, "y": 4})
         p.mouse.move(399, 899)
         self.assertIn("#254", detail.inner_text(), "a click does not pin")
+        self.assertEqual(detail.get_attribute("aria-live"), "polite", "a pin is not announced")
         p.keyboard.press("Escape")
         self.assertEqual(detail.inner_text().strip(), "", "Escape leaves the panel filled")
         p.mouse.move(399, 899)
@@ -313,6 +331,45 @@ class Diagram(unittest.TestCase):
                     p.emulate_media(media="print")
                     self.assert_restored(p, "print", [])
                 self.assertEqual(p.locator(".stage > dl").evaluate(shown), mode != "screen", mode)
+                if mode != "print":  # a shown list's links take Tab, a hidden one's do not
+                    self.assertEqual(p.locator(".stage > dl a").first.evaluate("(a) => a.tabIndex"), 0 if mode != "screen" else -1)
+
+    def test_network_status_is_a_dash_not_a_colour(self):
+        p = self.open(page("network", section=network()))
+        style = lambda c: p.locator(f".part .edge{c}").first.evaluate(
+            "(e) => [getComputedStyle(e).stroke, getComputedStyle(e).strokeDasharray]")
+        plain, *rest = [style(c) for c in (":not(.ok, .warn, .fail, .inferred)", ".ok", ".warn", ".fail", ".inferred")]
+        self.assertEqual({s for s, _ in [plain, *rest]}, {plain[0]}, "a status is a colour")
+        self.assertEqual(len({d for _, d in [plain, *rest[1:]]}), 4, "two statuses share a dash")
+
+    def test_must_fail_copies(self):
+        source = (REFS / "diagram.html").read_text()
+        main = subprocess.run(["git", "show", "origin/main:mumu-document/skills/writing-documents/references/diagram.html"],
+                              capture_output=True, text=True, cwd=REFS).stdout
+        copies = {"head": (source, None), "main's diagram.html": (main, "drawn"),
+                  "no panel update": (source.replace("        if (detail) note(on && source.get(on.el));\n", ""), "panel"),
+                  "no width measurement": (source.replace("pen.measureText(t.textContent).width", "0"), "width"),
+                  "no .detail exclusion": (source.replace("'.legend, .controls, .detail'", "'.legend, .controls'"), "pin")}
+        for name, (copy, broken) in copies.items():
+            with self.subTest(name):
+                self.assertTrue(broken is None or copy != source, "the copy changes nothing")
+                p = self.open(page("network", section=network(), source=copy))
+                got = {"drawn": p.locator("svg rect.box").count() == len(TASKS)}
+                if got["drawn"]:
+                    g = p.locator("svg").evaluate(SHAPES)
+                    got["width"] = all(inside(x, b) for x, b in zip(g["texts"], g["boxes"]))
+                    p.hover("rect.box.k3", position={"x": 4, "y": 4})
+                    got["panel"] = "#254" in p.locator(".detail").inner_text()
+                    p.click("rect.box:nth-of-type(2)", position={"x": 4, "y": 4})
+                    p.mouse.move(399, 899)
+                    link = p.locator(".detail").get_by_text("평가 실행을 막아요")
+                    if link.count():
+                        link.click()
+                    got["pin"] = "평가를 main과" in p.locator(".detail").inner_text()
+                if broken:
+                    self.assertFalse(got.get(broken, False), f"{name} passes {broken}")
+                else:
+                    self.assertEqual(set(got.values()), {True}, got)
 
     def test_nothing_fades_without_script_motion_or_screen(self):
         for kind, edits, node, _, _ in FOCUS:

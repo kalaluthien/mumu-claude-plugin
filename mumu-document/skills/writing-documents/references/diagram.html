@@ -5,8 +5,8 @@
   file-tree: a system's structure, first on the page: each folder a <details> whose <summary> holds its .name; under a node a .note (its role in one line) or a <blockquote> excerpt with its path:line; open only the level the page is about, the new or central part first; a folder no reader needs is one collapsed line. Played: what a change adds, modifies and removes, one idea per step. Use when: files, modules or components, or a change to them. Not when: under four flat items (a list).
   system-context: the system as one .box.main in the middle, callers left, callees right, every line labelled with what crosses it. Use when: actors, entry points and boundaries. Not when: the order of calls (use-case).
   use-case: participants as .box across the top, a .lifeline under each, time downward, each call a numbered .part; a step adds 48 to y and to the svg height; two use cases, two copies. Played: a card per call, a .token travels them. Use when: what happens in one use case. Not when: who reaches whom, without order (system-context).
-  network: nodes and the links between them, drawn by the script from a dl: each dt a node, id {{id}}-tN, class kN, a label of 8 syllables at most; its dd the full name, then one in-page link per line out, classed .ok, .warn, .fail or .inferred; 9 nodes at most. Layered top-down by longest path, a box as wide as its label. Use when: tasks and what blocks them, sessions and who waits on whom, files and what reads them; what a node reaches. Not when: an order in time (use-case); one system and its callers (system-context).
-  network: hover or focus shows a node's dt and dd in the panel under the figure, a click or Enter pins it, a panel link pins its target, Escape clears. Without script, in print or under reduced motion, the dl stays listed.
+  network: nodes and the links between them, drawn by the script from a dl: each dt a node, id {{id}}-tN, class kN, a label of 8 syllables at most; its dd the full name, then one in-page link per line out, its status a dash, not a colour: .warn long, .fail dotted, .inferred short, named in the figcaption; 9 nodes at most. Layered top-down by longest path, wrapped to the column, a box as wide as its label. Use when: tasks and what blocks them, sessions and who waits on whom, files and what reads them; what a node reaches. Not when: an order in time (use-case); one system and its callers (system-context).
+  network: hover or focus shows a node's dt and dd in the panel under the figure, a click or Enter pins and announces it, a panel link pins its target, Escape clears. Without script, in print or under reduced motion, the dl stays listed.
   played: optional; file-tree by page.html's slide, use-case by its swipe; the steps one caption each, a file-tree's first the before; a part with data-step="k" shows from step k (an added node takes no space until it appears, a removed one fades, the token moves to the card's data-x and data-y). Not played: delete those attributes, the token and the steps.
   focus: hover, keyboard focus or a tap on a node or .part keeps it, its lines and the nodes they reach full and dims the rest (a file-tree's lines join a node to its folder and its children); hover off, Escape or a second tap restores all. The .part's ends are the nodes nearest its first and last point.
   legend: 2 or more kinds, each kind a button with aria-pressed; pressed off, its nodes and their lines fade. Without script, in print or before any focus nothing dims.
@@ -52,8 +52,12 @@
     & .k1 { --diagram-kind: var(--kind-1); } & .k2 { --diagram-kind: var(--kind-2); } & .k3 { --diagram-kind: var(--kind-3); } & .k4 { --diagram-kind: var(--kind-4); }
     & .stage > dl dt { font-weight: 700; }
     & .stage > dl dd { margin: 0 0 var(--sp-2) var(--diagram-indent); }
-    & .detail { display: block; min-block-size: calc(var(--sp-4) * 4); margin-block-start: var(--sp-2); padding-block-start: var(--sp-2);
+    & .detail { display: block; margin-block-start: var(--sp-2); padding-block-start: var(--sp-2);
       border-block-start: var(--line) solid var(--border); font-size: var(--fs-m); }
+    & .detail:empty { display: none; }
+    &[data-diagram="network"] .edge:is(.ok, .warn, .fail) { stroke: var(--text); }
+    &[data-diagram="network"] .edge.warn { stroke-dasharray: 12 4; }
+    &[data-diagram="network"] .edge.fail { stroke-dasharray: 2 4; }
     & .detail :is(dl, dd) { margin: 0; }
     & .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-2) 0; }
     & .legend button::before { content: ""; display: inline-block; inline-size: var(--sp-3); block-size: var(--sp-3);
@@ -140,13 +144,16 @@
         if (dd && dd.localName === 'dd') dd.querySelectorAll('a[href^="#"]').forEach((a) => {
           const j = index.get(decodeURIComponent(a.getAttribute('href').slice(1)));
           if (j !== undefined && j !== i) links.push([i, j, a]);
-          a.tabIndex = -1;
         });
       });
+      // the dl is hidden, and its links out of the tab order, only where the stylesheet hides it
+      const hidden = matchMedia('screen and (prefers-reduced-motion: no-preference)');
+      const tab = () => dl.querySelectorAll('a').forEach((a) => (hidden.matches ? a.tabIndex = -1 : a.removeAttribute('tabindex')));
+      hidden.addEventListener('change', tab);
       const svg = make(document.createDocumentFragment(), 'svg', { width: 0, height: 0 });
       stage.insertBefore(svg, dl);
       const head = root.closest('section') && root.closest('section').getAttribute('aria-labelledby');
-      svg.setAttribute('role', 'img');
+      svg.setAttribute('role', 'group');
       if (head) svg.setAttribute('aria-labelledby', head);
       make(make(make(svg, 'defs', {}), 'marker', { id: `${terms[0].id}-arrow`, viewBox: '0 0 10 10', refX: 9, refY: 5,
         markerWidth: 8, markerHeight: 8, markerUnits: 'userSpaceOnUse', orient: 'auto' }), 'path', { class: 'tip', d: 'M0,0 L10,5 L0,10 z' });
@@ -154,7 +161,8 @@
         class: ['edge', ...['ok', 'warn', 'fail', 'inferred'].filter((c) => a.classList.contains(c))].join(' '),
         'marker-end': `url(#${terms[0].id}-arrow)` }));
       const boxes = terms.map((dt) => {
-        const box = make(svg, 'rect', { class: ['box', ...KINDS.filter((k) => dt.classList.contains(k))].join(' '), height: H });
+        const box = make(svg, 'rect', { class: ['box', ...KINDS.filter((k) => dt.classList.contains(k))].join(' '), height: H,
+          role: 'button', 'aria-label': dt.textContent.trim() });
         source.set(box, dt);
         return box;
       });
@@ -173,12 +181,19 @@
         };
         terms.forEach((_, u) => { if (!seen[u]) visit(u); });
         const down = links.map((l) => (flip.has(l) ? [l[1], l[0]] : [l[0], l[1]]));
-        const layer = terms.map(() => 0);
-        post.reverse().forEach((u) => down.forEach(([a, b]) => { if (a === u) layer[b] = Math.max(layer[b], layer[a] + 1); }));
+        // each node one layer below its lowest source, or further down while that layer is full at the stage's width
+        const widths = labels.map((t) => Math.max(48, Math.ceil((pen.measureText(t.textContent).width + 24) / 4) * 4));
+        const cap = stage.clientWidth - 2 * PAD || Infinity, layer = [], used = [];
+        post.reverse().forEach((u) => {
+          let L = Math.max(0, ...down.filter(([, b]) => b === u).map(([a]) => layer[a] + 1));
+          while (used[L] && used[L] + GAP + widths[u] > cap) L++;
+          used[L] = (used[L] ? used[L] + GAP : 0) + widths[u];
+          layer[u] = L;
+        });
         // a slot per node, and per layer a long line crosses; each layer ordered by the mean place of what feeds it
         const rows = [];
         const slot = (L, w) => { const s = { w, up: [] }; (rows[L] = rows[L] || []).push(s); return s; };
-        const cells = labels.map((t, i) => slot(layer[i], Math.max(48, Math.ceil((pen.measureText(t.textContent).width + 24) / 4) * 4)));
+        const cells = widths.map((w, i) => slot(layer[i], w));
         const routes = down.map(([a, b]) => {
           const r = [cells[a]];
           for (let L = layer[a] + 1; L < layer[b]; L++) r.push(slot(L, 0));
@@ -218,8 +233,9 @@
         Object.entries({ width: w, height: h, viewBox: `0 0 ${w} ${h}` }).forEach(([k, v]) => svg.setAttribute(k, v));
         const detail = document.createElement('output');
         detail.className = 'detail';
-        detail.setAttribute('aria-live', 'polite');
+        detail.setAttribute('aria-live', 'off');
         stage.after(detail);
+        tab();
       });
     };
     const start = () => document.querySelectorAll('[data-widget="diagram"]').forEach((root) => {
@@ -240,6 +256,7 @@
       const note = (dt) => {
         if (dt === noted) return;
         noted = dt;
+        detail.setAttribute('aria-live', pinned ? 'polite' : 'off');
         const list = document.createElement('dl');
         if (dt) [dt, dt.nextElementSibling].forEach((el) => { if (el && (el === dt || el.localName === 'dd')) list.append(el.cloneNode(true)); });
         list.querySelectorAll('[id], [tabindex]').forEach((el) => { el.removeAttribute('id'); el.removeAttribute('tabindex'); });
