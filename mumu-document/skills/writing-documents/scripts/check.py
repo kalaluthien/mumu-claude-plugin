@@ -23,8 +23,8 @@ CONTENTS = 4
 FILES = 4  # a file-tree from this many files named, as the Mapping says
 WORD = r"[A-Za-z]+(?:['’-][A-Za-z]+)*[.,:;!?]?"
 ENGLISH = re.compile(rf"{WORD}(?:\s+{WORD}){{{MIN_RUN - 1},}}")
-SENTENCE = re.compile(r"[^.!?\n]*[.!?]")
-PLAIN = re.compile(r"(?<!니)다\.$")
+# a sentence ends at . ! or ? with no digit either side, so 4.00점 stays whole; its last one may have no mark
+SENTENCE = re.compile(r"(?:[^.!?\n]|(?<=\d)[.!?]|[.!?](?=\d))+(?:(?<!\d)[.!?](?!\d)|$)")
 SENTENCE_HEADING = re.compile(r"(니다|[아어여해예에세네지]요|다)[.!?]?$|[.!?]$")
 LAYOUT = r"""<iframe id=f style="width:320px;height:800px;border:0"></iframe>
 <script>
@@ -57,8 +57,24 @@ f.onload = function () {
       });
     });
     var reduced = w.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // the element reaching furthest right that no scroll box holds, named by its path
+    var name = function (el) {
+      return el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + Array.prototype.map.call(el.classList, function (c) { return '.' + c; }).join('');
+    };
+    var held = function (el) {
+      for (var a = el.parentElement; a && a !== d.body; a = a.parentElement)
+        if (w.getComputedStyle(a).overflowX !== 'visible') return true;
+      return false;
+    };
+    var far = null, right = -1 / 0;
+    d.body.querySelectorAll('*').forEach(function (el) {
+      var r = el.getBoundingClientRect().right;
+      if (r >= right && !held(el)) { right = r; far = el; }
+    });
+    var path = [];
+    for (var a = far; a && a !== d.body && path.length < 3; a = a.parentElement) path.unshift(name(a));
     document.body.dataset.r = JSON.stringify({ reduced: reduced, scroll: e.scrollWidth, client: e.clientWidth, latin: s[0], hangul: s[1],
-      anim: anim, shown: shown, total: total, labels: bad });
+      anim: anim, shown: shown, total: total, labels: bad, widest: path.join(' > ') });
   }, 500);
 };
 f.src = location.hash.slice(1);
@@ -78,15 +94,25 @@ f.onload = function () {
              && w.getComputedStyle(el).display === 'inline') el = el.parentElement;
       return el;
     };
-    var t = d.createTreeWalker(d.documentElement, 4), n;
+    var t = d.createTreeWalker(d.documentElement, 4), n, ascii = [], held = [];
+    // a placeholder left in text or an attribute; an ASCII arrow in prose
+    var HOLE = /\{\{[^}]*\}\}/g, PROSE = CODE + ',[data-widget]';
+    d.querySelectorAll('*').forEach(function (el) {
+      if (!el.closest(SKIP)) Array.prototype.forEach.call(el.attributes, function (a) { held = held.concat(a.value.match(HOLE) || []); });
+    });
     while ((n = t.nextNode())) {
       var p = n.parentElement;
       if (!p || p.closest(SKIP) || !n.data.trim()) continue;
+      held = held.concat(n.data.match(HOLE) || []);
+      var at = n.data.replace(/\s+/g, ' ').search(/->|=>/);  // the arrow and a few words either side
+      if (at >= 0 && !p.closest(PROSE)) ascii.push(n.data.replace(/\s+/g, ' ').slice(Math.max(0, at - 12), at + 14).trim());
       var b = block(p);
       if (!groups.has(b)) groups.set(b, []);
       groups.get(b).push(p.closest(CODE) ? '\n' : n.data);
     }
-    groups.forEach(function (g) { out.push(g.join('')); });
+    // a table cell is data: a terse value there ends without a mark, so only its marked sentences are read
+    var cells = [];
+    groups.forEach(function (g, b) { (b.closest && b.closest('td,th') ? cells : out).push(g.join('')); });
     d.querySelectorAll('[alt],[aria-label],[title],[placeholder]').forEach(function (el) {
       ['alt', 'aria-label', 'title', 'placeholder'].forEach(function (a) { if (el.getAttribute(a)) out.push(el.getAttribute(a)); });
     });
@@ -99,7 +125,9 @@ f.onload = function () {
     var paths = loose('code').map(function (c) { return c.textContent.trim().replace(/:\d.*$/, ''); }).filter(function (p) { return PATH.test(p); });
     var flows = loose(BLOCK).filter(function (e) { return arrows(e) && !Array.prototype.some.call(e.querySelectorAll(BLOCK), arrows); })
       .map(function (e) { return e.textContent.replace(/\s+/g, ' ').trim().slice(0, 40); });
-    document.body.dataset.r = JSON.stringify({ lang: d.documentElement.lang, text: out, headings: heads,
+    document.body.dataset.r = JSON.stringify({ lang: d.documentElement.lang, text: out, headings: heads, ascii: ascii, cells: cells,
+      held: held.filter(function (h, i) { return held.indexOf(h) === i; }), skin: !!d.querySelector('style#skin'),
+      h1: !!d.querySelector('h1'), drawn: loose('svg').filter(function (g) { return !g.parentElement.closest('svg'); }).length,
       paths: paths.filter(function (p, i) { return paths.indexOf(p) === i; }), flows: flows,
       diagrams: Array.prototype.map.call(d.querySelectorAll('[data-widget="diagram"]'), function (e) { return e.dataset.diagram; }),
       h2: h2.length, linked: h2.filter(function (h) { return h.id && links.indexOf(h.id) >= 0; }).length, nav: !!d.querySelector('main nav'),
@@ -311,18 +339,35 @@ def layout(r, error):
     line = (f"layout {'reduced' if r['reduced'] else 'motion'} {r['scroll']}/{r['client']} {r['latin']}px {r['hangul']}px "
             f"anim {r['anim']} steps {r['shown']}/{r['total']} labels {r['labels']}"
             + (" error" if error else ""))
-    return line + (" pass" if ok else " FAIL"), ok
+    return line + (" pass" if ok else f" FAIL: widest {r['widest']}"), ok
+
+
+def jong(c):
+    """The final consonant's index of a Hangul syllable, else -1."""
+    return (ord(c) - 0xAC00) % 28 if "가" <= c <= "힣" else -1
+
+
+def plain(sentence):
+    """Whether a sentence ends in a plain -다 (솔루션이다, 했다, 한다) or a noun form (했음, 필요함), not a noun (바다, 다음)."""
+    s = sentence.rstrip(".!?").rstrip()
+    if len(s) < 2:
+        return False
+    if s[-1] == "다":
+        return s[-2] in "이없같많좋않싶" or jong(s[-2]) in (4, 20)  # ㄴ: 한다, 된다; ㅆ: 했다, 있다
+    return s[-1] in "함됨" or s[-1] == "음" and jong(s[-2]) == 20  # 했음, 있음, not 마음
 
 
 def korean(page):
     out = []
     if page["lang"] != "ko":
         out.append(f'lang is "{page["lang"]}", not "ko"')
-    for text in page["text"]:
+    for text, cell in [(t, False) for t in page["text"]] + [(t, True) for t in page["cells"]]:
         for line in text.split("\n"):
             line = re.sub(r"\s+", " ", line).strip()
             out += [f"English: {m.group(0)}" for m in ENGLISH.finditer(line)]
-            out += [f"plain ending: {s.strip()}" for s in SENTENCE.findall(line) if PLAIN.search(s.strip())]
+            out += [f"plain ending: {s.strip()}" for s in SENTENCE.findall(line) if plain(s.strip())
+                    and not (cell and s.strip()[-1] not in ".!?")]
+    out += [f"ASCII arrow: {t}" for t in page["ascii"]]
     out += [f"sentence heading: {h}" for h in page["headings"] if SENTENCE_HEADING.search(h)]
     return out
 
@@ -335,7 +380,15 @@ def mapping(page):
         out.append(f"no file-tree for {', '.join(page['paths'])}")
     if page["flows"] and "use-case" not in page["diagrams"]:
         out.append(f"no use-case for {page['flows'][0]!r}")
+    if page["drawn"]:
+        out.append(f"{page['drawn']} hand-drawn figure outside a widget")
     return out
+
+
+def shell(page):
+    """What the page lacks of its shell: the skin, an h1, each {{...}} filled."""
+    return ([] if page["skin"] else ['no <style id="skin">']) + ([] if page["h1"] else ["no h1"]) + [
+        f"{h} left" for h in page["held"]]
 
 
 def num(s):
@@ -364,7 +417,8 @@ def chart(chart):
     out, kind = [], chart["kind"]
     if not chart["tables"] or not chart["tables"][0]["rows"]:
         return ["no data table"]
-    if not re.fullmatch(r"[^.!?]+[.!?]", chart["summary"]):
+    said = [s for s in SENTENCE.findall(chart["summary"]) if s.strip()]
+    if len(said) != 1 or not re.search(r"[.!?]$", said[0]):
         out.append(f"summary is not one sentence: {chart['summary']!r}")
     last = len(chart["tables"]) - 1
     if chart["slide"] and (chart["moved"] or not chart["live"]) and chart["at"] != last:
@@ -433,6 +487,12 @@ def export(page, out):
     return 0
 
 
+def empty(source):
+    """Whether the page shows no text: nothing but its head, styles, scripts, comments and tags."""
+    body = re.sub(r"<(head|title|style|script|template)\b.*?</\1>|<!--.*?-->|<[^>]*>", " ", source, flags=re.S | re.I)
+    return not html.unescape(body).strip()
+
+
 def main():
     if len(sys.argv) not in (2, 4) or len(sys.argv) == 4 and sys.argv[2] != "--svg":
         print("usage: check.py <page.html> [--svg <out dir>]", file=sys.stderr)
@@ -443,6 +503,10 @@ def main():
         return 2
     if len(sys.argv) == 4:
         return export(page, pathlib.Path(sys.argv[3]))
+    if empty(page.read_text(errors="replace")):
+        print("empty")
+        print("FAIL")
+        return 1
     runs = {(frame, mode): render(frame, page, *flags) for frame in (LAYOUT, KOREAN, CHART)
             for mode, flags in (("motion", ()), ("reduced", (REDUCED,))) if frame != KOREAN or mode == "motion"}
     if any(r is None for r, _ in runs.values()):
@@ -453,6 +517,9 @@ def main():
         line, ok = layout(*runs[LAYOUT, mode])
         failed |= not ok
         print(line)
+    out = shell(runs[KOREAN, "motion"][0])
+    failed |= bool(out)
+    print("shell " + ("FAIL: " + "; ".join(out) if out else "pass"))
     out = korean(runs[KOREAN, "motion"][0])
     failed |= bool(out)
     print("\n".join(f"korean {o} FAIL" for o in out) if out else "korean pass")

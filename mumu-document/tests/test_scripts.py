@@ -14,6 +14,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills" / "writing-documents"
 REFS = SKILL / "references"
 CHECK, SKILL_CHECK = SKILL / "scripts" / "check.py", SKILL / "scripts" / "skill-check.py"
+ASSEMBLE = SKILL / "scripts" / "assemble.py"
 CHROME = pathlib.Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 
 # The gallery: every widget in every state, light and dark, in a .theme-* box with data-state set, which the skin and
@@ -132,13 +133,13 @@ def gallery():
             + "\n".join(b for b in head if b.startswith("<script")) + "\n</html>\n")
 
 
-GOOD = """<!doctype html><html lang="ko"><meta charset="utf-8"><title>작업 큐 구조</title>
+GOOD = """<!doctype html><html lang="ko"><meta charset="utf-8"><title>작업 큐 구조</title><style id="skin"></style>
 <main><h1>작업 큐의 구조</h1>
 <h2>저장소 <code>jobs.db</code></h2>
 <p>큐(queue)는 <code>POST /jobs with a body</code>로 일을 받아요. 저장소는 SQLite입니다.</p>
 <pre>git log --oneline main</pre>
-<svg width="280" height="80" viewBox="0 0 280 80"><title>흐름: 일 하나를 넣기</title>
-<text x="8" y="24" font-size="14">작업자</text><text x="160" y="24" font-size="14">저장소</text></svg>
+<div data-widget="diagram" data-diagram="system-context"><svg width="280" height="80" viewBox="0 0 280 80"><title>흐름: 일 하나를 넣기</title>
+<text x="8" y="24" font-size="14">작업자</text><text x="160" y="24" font-size="14">저장소</text></svg></div>
 <div id="c"></div></main>
 <script>document.getElementById('c').textContent = '다음';</script></html>"""
 # (what to replace in GOOD, its replacement, a line the output must hold)
@@ -155,6 +156,24 @@ FAILS = [
     ("<pre>git log --oneline main</pre>", "<pre>요청 → 큐 → 작업자</pre>", "no use-case for '요청 → 큐 → 작업자'"),
     ("SQLite입니다.", "SQLite입니다. <code>api/</code>, <code>queue.py</code>, <code>worker.py:12</code>를 거쳐요.",
      "no file-tree for jobs.db, api/, queue.py, worker.py"),
+    ("<title>작업 큐 구조</title>", "<title>{{title}}</title>", "shell FAIL: {{title}} left"),
+    ('<style id="skin"></style>', "", 'shell FAIL: no <style id="skin">'),
+    ("<h1>작업 큐의 구조</h1>", "<p>작업 큐의 구조</p>", "shell FAIL: no h1"),
+    ("SQLite입니다.", "SQLite입니다. 요청 -&gt; 큐로 가요.", "korean ASCII arrow: Lite입니다. 요청 -> 큐로 가요. FAIL"),
+    ("SQLite입니다.", "SQLite입니다. 요청 =&gt; 큐로 가요.", "korean ASCII arrow: Lite입니다. 요청 => 큐로 가요. FAIL"),
+    ('<div data-widget="diagram" data-diagram="system-context">', "<div>", "1 hand-drawn figure outside a widget"),
+    ("SQLite입니다.", "좋은 솔루션이다", "plain ending: 저장소는 좋은 솔루션이다 FAIL"),
+    ("SQLite입니다.", "좋은 솔루션이다.", "plain ending: 저장소는 좋은 솔루션이다."),
+    ("SQLite입니다.", "확인했음", "plain ending: 저장소는 확인했음 FAIL"),
+    ("SQLite입니다.", "확인이 필요함.", "plain ending: 저장소는 확인이 필요함."),
+    ('<div id="c">', '<div id="c" style="width:600px">', "FAIL: widest main > div#c"),
+]
+# (what to replace in GOOD, its replacement, a word no line may hold): each passes
+PASSES = [
+    ("SQLite입니다.", "SQLite입니다. <code>a -&gt; b</code>로 써요.", "arrow"),
+    ("SQLite입니다.", "바다.", "plain ending"),
+    ("SQLite입니다.", "마음이에요.", "plain ending"),
+    ("SQLite입니다.", "4.00점이에요.", "plain ending"),
 ]
 # after the charts draw, which waits for the page to parse
 BREAK = ("<script>addEventListener('DOMContentLoaded', function () {"
@@ -205,6 +224,19 @@ class Check(unittest.TestCase):
     def test_good_page_passes(self):
         code, out = check(GOOD)
         self.assertEqual((code, out.splitlines()[-1]), (0, "pass"), out)
+        self.assertNotRegex(out, r"\{\{|hand-drawn|arrow")
+
+    def test_each_near_miss_passes(self):
+        for old, new, word in PASSES:
+            with self.subTest(new):
+                self.assertIn(old, GOOD)
+                code, out = check(GOOD.replace(old, new))
+                self.assertEqual((code, out.splitlines()[-1]), (0, "pass"), out)
+                self.assertNotIn(word, out)
+
+    def test_empty_page_fails(self):
+        code, out = check(GOOD.split("<main>")[0] + "<main>\n</main></html>")
+        self.assertEqual((code, out.splitlines()), (1, ["empty", "FAIL"]), out)
 
     def test_each_rule_fails(self):
         for old, new, line in FAILS:
@@ -280,6 +312,15 @@ class Check(unittest.TestCase):
                 self.assertEqual(code, 1, out)
                 self.assertIn(word, out)
 
+    def test_chart_summary_splits_at_marks_not_decimals(self):
+        said = "부산의 하루 요청이 가장 많아요."
+        self.assertIn(said, self.gallery)
+        code, out = check(self.gallery.replace(said, "부산의 평균이 4.00점이에요."))
+        self.assertEqual(code, 0, out)
+        code, out = check(self.gallery.replace(said, "부산이 많아요. 대구는 적어요."))
+        self.assertEqual(code, 1, out)
+        self.assertIn("summary is not one sentence", out)
+
     def test_swipe_that_does_not_react_fails(self):
         dead = "<script>window.IntersectionObserver = function () { this.observe = function () {}; };</script><style>"
         code, out = check(self.gallery.replace("<style>", dead, 1))
@@ -294,6 +335,54 @@ class Check(unittest.TestCase):
         self.assertIn("swipe 1 token in view 2/3 FAIL: steps 2", out)
 
 
+
+def assemble(*args):
+    return subprocess.run([sys.executable, str(ASSEMBLE), *args], capture_output=True, text=True)
+
+
+# two charts filled, as an author writes the body
+TWO_CHARTS = ('<h1>도시별 요청</h1>\n<p class="read">부산의 요청이 가장 많아요.</p>\n' + "".join(
+    f'<section aria-labelledby="s{i}"><h2 id="s{i}">요청 {i + 1}</h2>\n{f}\n</section>\n'
+    for i, f in enumerate(re.split(r"\n(?=<figure)", FIXTURES["chart"].strip())[:2])))
+
+
+class Assemble(unittest.TestCase):
+    def test_each_spec_is_small_and_unstyled(self):
+        for widget in ("page", "chart", "file-tree", "system-context", "use-case"):
+            with self.subTest(widget):
+                r = assemble("--spec", widget)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertLessEqual(len(r.stdout.encode()), 4096)
+                self.assertNotRegex(r.stdout, r"<style|<script")
+                self.assertIn("{{", r.stdout)
+
+    def test_unknown_widget_is_named(self):
+        self.assertEqual(assemble("--spec", "sankey").returncode, 2)
+        with tempfile.TemporaryDirectory() as d:
+            body, page = pathlib.Path(d) / "body.html", pathlib.Path(d) / "page.html"
+            body.write_text(TWO_CHARTS.replace('data-widget="chart"', 'data-widget="sankey"', 1))
+            r = assemble(str(body), str(page))
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("'sankey'", r.stderr)
+            body.write_text(TWO_CHARTS + '<div data-widget="diagram" data-diagram="mind-map"></div>')
+            r = assemble(str(body), str(page))
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("'mind-map'", r.stderr)
+            self.assertFalse(page.exists())
+
+    @unittest.skipUnless(CHROME.exists(), "no Chrome")
+    def test_assembled_page_passes_with_each_script_once(self):
+        with tempfile.TemporaryDirectory() as d:
+            body, page = pathlib.Path(d) / "body.html", pathlib.Path(d) / "page.html"
+            body.write_text(TWO_CHARTS)
+            self.assertEqual(assemble(str(body), str(page)).returncode, 0)
+            text = page.read_text()
+            first = parts((REFS / "chart.html").read_text())[0]
+            for block in first:
+                self.assertEqual(text.count(block.strip()), 1, block[:60])
+            self.assertIn("<title>도시별 요청</title>", text)
+            r = subprocess.run([sys.executable, str(CHECK), str(page)], capture_output=True, text=True)
+            self.assertEqual(r.stdout.splitlines()[-1], "pass", r.stdout)
 
 
 W, SKIN = "references/", "references/page.html"
