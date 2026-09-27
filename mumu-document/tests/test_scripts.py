@@ -187,7 +187,7 @@ FAILS = [
     ("SQLite입니다.", "확인했음", "plain ending: 저장소는 확인했음 FAIL"),
     ("SQLite입니다.", "확인이 필요함.", "plain ending: 저장소는 확인이 필요함."),
     ('<div id="c">', '<div id="c" style="width:600px">', "FAIL: widest main > div#c"),
-    ("SQLite입니다.", "SQLite입니다. 넓이는 \\( x^2 \\)이에요.", "math 0 set FAIL: raw TeX 다. 넓이는 \\( x^2 \\)이에요."),
+    ("SQLite입니다.", "SQLite입니다. 넓이는 \\( x^2 \\)이에요.", "math 0 set FAIL: raw TeX 니다. 넓이는 \\( x^2 \\)이에요."),
 ]
 # (what to replace in GOOD, its replacement, a word no line may hold): each passes
 PASSES = [
