@@ -58,7 +58,7 @@ A notice from another lead that is not a task for you is answered by a plain `co
 
 ## Shares
 
-- A task is one share by default, with no `## Shares`; split it only when 2+ rows have no `after` between them and pass Filing's split test.
+- A task is one share by default, with no `## Shares`; split it by its Definition of done or content into shares, each with its own worker, worktree, branch and pull request, run in parallel where Filing's split test passes and else in sequence by `after`.
 - Split, its body gains `## Shares`, a table share | DoD | after | with: each row a topic, the ids of the criteria it checks (`D1:`), the rows it waits on, and what it shares with which rows by the split test's lens, `merge at the end`, `interface agreed first` or `knowledge read only`.
 - Post each interface agreed first as a `DECIDED:` on the task before its rows start, so both rows build against it.
 - The body, labels and close of a split task are yours alone.
