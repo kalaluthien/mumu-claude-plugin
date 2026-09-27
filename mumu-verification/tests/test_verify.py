@@ -13,7 +13,7 @@ VERIFY = pathlib.Path(__file__).resolve().parent.parent / "skills" / "spec" / "s
 MODEL = "sig A { f: set A }\nassert NoSelf { no a: A | a in a.f }\nfact { no a: A | a in a.f }\nrun {} for 2 expect 1\n"
 GOOD, WITNESS = "check NoSelf for 2 expect 0\n", "def refuses_NoSelf(): pass\n"
 NONE = "FAIL check NoSelf: no refuses_NoSelf test\n"
-CASES = {  # name: (check.als tail or None for no spec, {file: text}, suite command), (exit, stdout)
+CASES = {  # name: (check.als tail or None for no spec, {file: text}, suite command or None unset), (exit, stdout)
     "passes": ((GOOD, {"test_m.py": WITNESS}, "true"), (0, "")),
     "no model": ((None, {}, "true"), (0, "no model\n")),
     "parse": (("check NoSelf for 2 expect 0 }\n", {"test_m.py": WITNESS}, "true"), (1, "FAIL spec/m/check.als: did not parse\n")),
@@ -28,6 +28,8 @@ CASES = {  # name: (check.als tail or None for no spec, {file: text}, suite comm
     "witness in *Test.kt": ((GOOD, {"src/k/ATest.kt": WITNESS}, "true"), (0, "")),
     "suite": ((GOOD, {"test_m.py": WITNESS}, "false"), (1, "FAIL tests: false\n")),
     "no model, suite": ((None, {}, "false"), (1, "no model\nFAIL tests: false\n")),
+    "suite unset": ((GOOD, {"tests/test_m.py": WITNESS + "print('ran')\n"}, None),
+                    (1, "FAIL tests: set VERIFY_TESTS to the repo's test command in .claude/settings.json env\n")),
 }
 
 
@@ -42,8 +44,9 @@ class Verify(unittest.TestCase):
                 for path, text in tests.items():
                     pathlib.Path(repo, path).parent.mkdir(parents=True, exist_ok=True)
                     pathlib.Path(repo, path).write_text(text)
+                env = {k: v for k, v in os.environ.items() if k != "VERIFY_TESTS"}
                 p = subprocess.run([VERIFY], cwd=repo, capture_output=True, text=True,
-                                   env={**os.environ, "VERIFY_TESTS": suite})
+                                   env=env if suite is None else {**env, "VERIFY_TESTS": suite})
                 self.assertEqual((p.returncode, p.stdout), want)
 
 
