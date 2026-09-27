@@ -64,7 +64,7 @@ A notice from another lead that is not a task for you is answered by a plain `co
 - The body, labels and close of a split task are yours alone.
 - A share's worker writes only its pull request and `BLOCKED: <share>: ...` comments on the task.
 - A share's pull request says `Part of #n`, never a closing keyword, so its merge closes nothing.
-- `resolve` the task once every row has merged.
+- `resolve` the task once every row has merged, which `bash-guard.py` checks, naming each row not merged.
 
 ## Small change
 

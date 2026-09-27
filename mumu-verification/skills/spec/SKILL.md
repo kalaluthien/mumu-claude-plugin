@@ -42,7 +42,7 @@ Properties come from the owner's words: each sentence stating never, always, onl
 
 A value is not modelled: `Int` wraps at the scope's width (-8..7 by default) and has no reals. Model its order or a small integer with `but N Int`; the value itself goes to `test`.
 
-Syntax that misleads: a `module` name has no hyphen and equals its path; a temporal word (`before`, `after`, `once`) cannot name a pred. `always A implies B` is `(always A) implies B`; `P until Q` demands that `Q` comes, `Q releases P` does not.
+Syntax that misleads: a `module` name has no hyphen and equals its path; a temporal word (`before`, `after`, `once`) cannot name a pred, nor a command keyword (`check`, `run`, `expect`, `for`, `but`) a sig, field or pred: it is a syntax error at its first use. `always A implies B` is `(always A) implies B`; `P until Q` demands that `Q` comes, `Q releases P` does not.
 
 ## Check
 
@@ -56,6 +56,6 @@ A green check can hold without its rule:
 
 - An UNSAT alone names nothing, since the scope refuses too: pair it with a SAT at the same scope differing in one conjunct.
 - `x.f in S` holds over an empty `x.f`: write `some x.f and x.f in S`. A `var` term outside a temporal operator is read at state 0: put it inside the `eventually` where the rule bites.
-- A rule written into the event's own pred cannot redden: give it its own pred with a Defect run (expect 1), RepairExcludes (0) and RepairAdmits (1, the code's own sequence).
+- A rule written into the event's own pred, or an assert restating a `fact`, cannot redden: give it its own pred with a Defect run (expect 1), RepairExcludes (0) and RepairAdmits (1, the code's own sequence).
 - A frame condition alone pins nothing: add a command from the empty state with the producer forbidden, expecting 0.
 - Scope 1 of a sig makes two navigations one relation: run at 2 as well. A model wider than the code that reads it is a false claim.
