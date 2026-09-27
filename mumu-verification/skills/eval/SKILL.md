@@ -72,7 +72,7 @@ Code first: many modes that sound subjective reduce to a pattern, a parse or an 
 
 - An unknown key fails the load, shown as `0 case(s)`: "never used" is `tool_used` with `min: 0` and `max: 0`, and its tool must be in `allowed_tools`.
 - Under ablation a `with-only` grader (`tool_used: Skill` by default) reports whether the plugin fired instead of scoring: give each case one grader that scores both arms.
-- A skill's trigger is its `description`: about 20 prompts, half that should fire it and half near misses sharing its words, each graded by `tool_used: Skill`, 3 runs each; tune on 60%, judge on 40%. `plugin eval` fires skills more readily than a live session: confirm a trigger change live, counting Skill calls in `claude -p --output-format stream-json`.
+- A skill's trigger is its `description`: about 20 prompts, half that should fire it and half near misses sharing its words, each graded by `tool_used: Skill`, 3 runs each; tune on 60%, judge on 40%. `plugin eval` fires skills more readily than a live session: confirm a trigger change live, beside the plugins a session really loads, with `${CLAUDE_PLUGIN_ROOT}/skills/eval/scripts/replay.py <plugin> <case>... --with <plugin dir>... [--agent <agent>]`. How often past sessions whose change fitted a mumu-verification skill called it: `skill-use.py`, beside it.
 
 A judge, only for a mode that needs reading, once it has about 20 labelled traces on each side. Its prompt has four parts:
 

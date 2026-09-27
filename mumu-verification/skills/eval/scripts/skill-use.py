@@ -1,18 +1,12 @@
 #!/usr/bin/env python3
 """Count, over Claude Code session transcripts, how often a change fitted a mumu-verification skill and the skill was called.
 
-A session is one top-level `<projects>/*/*.jsonl` whose first record is at or after --since. Its kind is its
-`agent-setting` (`mumu-team:worker` worker, `mumu-team:lead` lead), else `headless` for an `sdk-cli`
-entrypoint (evals, probes, `claude -p`), else `plain`. A skill fits a session when a file it changed
-matches that skill's description, read from the path and the text written; its changes are its Edit, Write
-and MultiEdit calls, and the diff of each pull request it links (a `pr-link` record) whose head branch is
-the session's name, since a worker often edits through Bash:
-  test  a code file (.py .sh .js .ts .kt ...) outside a test folder or test_* name
-  spec  an `.als` file, or written text stating a protocol rule (never, always, only after, at most, ...)
-  eval  a prompt of a Claude plugin: SKILL.md, skills/**/references/*.md, agents/*.md, commands/*.md,
-        evals/**, CLAUDE.md, AGENTS.md
-Files in a temp dir, a scratchpad or `~/.claude/projects` (memory) are not a change. A session called a
-skill when a Skill tool call or a typed slash command names `mumu-verification:<skill>`. It listed the
+A session is one top-level `<projects>/*/*.jsonl` whose first record is at or after --since. Its kind is
+`headless` for an `sdk-cli` entrypoint (evals, probes, `claude -p`, a replay run as a worker included), else
+its `agent-setting` (`mumu-team:worker` worker, `mumu-team:lead` lead), else `plain`. A skill fits a session when a file it changed
+fits it by `lib/fit.py`; its changes are its Edit, Write and MultiEdit calls, and the diff of each pull
+request it links (a `pr-link` record) whose head branch is the session's name, since a worker often edits
+through Bash. A session called a skill when a Skill tool call or a typed slash command names `mumu-verification:<skill>`. It listed the
 plugin when a `skill_listing` attachment names `mumu-verification:`, and the plugin's SessionStart hook
 reached it when its text is in the transcript.
 
@@ -25,31 +19,14 @@ import glob
 import json
 import os
 import re
+import pathlib
 import subprocess
 import sys
 
-SKILLS = ("test", "spec", "eval")
-CODE = re.compile(r"\.(py|sh|bash|zsh|js|mjs|cjs|ts|tsx|jsx|kt|kts|java|swift|rs|go|rb|c|cc|cpp|h)$")
-TEST_PATH = re.compile(r"(^|/)(tests?|__tests__|spec)/|(^|/)test_[^/]*$|_test\.[a-z]+$|\.test\.[a-z]+$")
-RULE = re.compile(r"\b(never|always|only after|at most|at least once|lifecycle|transition|permission|ownership|protocol)\b", re.I)
-PROMPT = re.compile(r"(^|/)(SKILL\.md|CLAUDE\.md|AGENTS\.md)$|/skills/.+/references/[^/]+\.md$|/(agents|commands)/[^/]+\.md$|/evals/")
-NOT_CHANGE = re.compile(r"^(/tmp/|/private/|/var/folders/)|/scratchpad/|/\.claude/projects/")
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+from fit import CALL, SKILLS, added, fits  # noqa: E402
+
 HOOK_TEXT = "load the matching mumu-verification skill"
-CALL = re.compile(r"mumu-verification:(test|spec|eval)\b")
-
-
-def fits(path, text):
-    """The skills whose description a write of `text` to `path` fits."""
-    if not path or NOT_CHANGE.search(path):
-        return set()
-    out = set()
-    if CODE.search(path) and not TEST_PATH.search(path):
-        out.add("test")
-    if path.endswith(".als") or RULE.search(text or ""):
-        out.add("spec")
-    if PROMPT.search(path):
-        out.add("eval")
-    return out
 
 
 def written(name, inp):
@@ -115,15 +92,7 @@ def pr_changes(url):
     diff = subprocess.run(["gh", "pr", "diff", url], capture_output=True, text=True)
     if head.returncode or diff.returncode:
         return None
-    files, path = collections.defaultdict(list), None
-    for line in diff.stdout.splitlines():
-        if line.startswith("diff --git "):
-            path = "/" + line.split(" b/", 1)[-1]
-        elif path and line.startswith("+") and not line.startswith("+++"):
-            files[path].append(line[1:])
-        elif path and line.startswith("+++ "):
-            files[path]
-    return head.stdout.strip(), [(p, "\n".join(t)) for p, t in files.items()]
+    return head.stdout.strip(), list(added(diff.stdout).items())
 
 
 def add_prs(sessions):
@@ -140,11 +109,13 @@ def add_prs(sessions):
 
 
 def kind(s):
+    if s["entry"] == "sdk-cli":
+        return "headless"
     if s["setting"] == "mumu-team:worker":
         return "worker"
     if s["setting"] == "mumu-team:lead":
         return "lead"
-    return "headless" if s["entry"] == "sdk-cli" else "plain"
+    return "plain"
 
 
 def main():
