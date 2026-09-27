@@ -256,6 +256,39 @@ class RoleRules(unittest.TestCase):
                     self.assertEqual(result.returncode, 0, result.stderr)
 
 
+WORDS = "the owner's words\r\nkept as said\r\n"
+# (the issue's labels, the body file a worker writes, the edit's flags, the refusal's words or None when it passes) (#94)
+SURVEY_CASES = [
+    (["backlog"], "the owner's words\nkept as said\n\n## Survey\n\n- found: x.py:3\n", "", None),
+    (["backlog"], "the owner's words\nkept as said\n\n## Survey\n\n- found: x.py:3\n", f" -R o/r", None),
+    (["effort:low"], "the owner's words\nkept as said\n\n## Survey\n\n- found\n", "", "its lead's"),
+    (["backlog"], "the owner's words, edited\n\n## Survey\n\n- found\n", "", "exactly one `## Survey`"),
+    (["backlog"], "the owner's words\nkept as said\n\n## Survey\n\na\n\n## Survey\n\nb\n", "", "exactly one `## Survey`"),
+    (["backlog"], "the owner's words\nkept as said\n", "", "exactly one `## Survey`"),
+    (["backlog"], "the owner's words\nkept as said\n\n## Survey\n\n- found\n", " --remove-label backlog", "its lead's"),
+    (["backlog"], "the owner's words\nkept as said\n\n## Survey\n\n- found\n", " --title x", "its lead's"),
+]
+
+
+class SurveyEdit(unittest.TestCase):
+    """A worker edits a backlog's body only to write its one `## Survey` below the owner's words (#94)."""
+
+    def test_a_worker_edits_only_a_backlogs_survey(self):
+        for labels, body, flags, refusal in SURVEY_CASES:
+            with self.subTest(labels=labels, body=body, flags=flags):
+                tmp, env = fake_issue_gh()
+                (tmp / "body.md").write_text(json.dumps({"body": WORDS + "\r\n## Survey\r\n\r\nold\r\n", "labels": [{"name": n} for n in labels]}))
+                (tmp / "survey.md").write_text(body)
+                payload = {"tool_input": {"command": f"gh issue edit {U}{flags} --body-file survey.md"}, "cwd": str(tmp),
+                           "agent_type": "mumu-team:worker"}
+                result = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload), capture_output=True, text=True, env=env)
+                if refusal:
+                    self.assertEqual(result.returncode, 2, result.stderr)
+                    self.assertIn(refusal, result.stderr)
+                else:
+                    self.assertEqual(result.returncode, 0, result.stderr)
+
+
 N = "sample-topic-12-1"
 # (a routine step in another form than its literal one, the literal form the refusal names) (#281)
 ROUTINE_REFUSED = [

@@ -6,6 +6,7 @@
 4. Act on what arrives:
    - `see <task-url>` naming a `BLOCKED:` comment: answer it with `decide`, then `prompt` the worker `see <task-url>`; work that needs its own pull request is answered with the url of the task you `file` for it, `order`ed before this one, which then goes through 3;
    - `see <pr-url>`, or `see <task-url>` of a report task closed at its `APPROVED:`: `read` it; once it shows merged or closed, `close` its worker, go to 3 for each task it unblocked, and go to 5 for its task;
+   - `see <backlog-url>` from a survey worker: `read` it; once it shows the survey's `APPROVED:`, `close` the worker and `clean` its worktree, the backlog left open and labelled `backlog`;
    - `blocked <name>`: the worker waits at a tool-use prompt, which is the owner's to answer, so tell the owner;
    - `gone <name>` while its task is open: `start` it again with `--continue`;
    - `idle <name>`: `read` its task and pull request, answer what waits on you, else `prompt` the worker `see <task-url>`;
@@ -36,7 +37,7 @@ Route every request, the owner's included, before taking it:
 
 | the work is for | you |
 | --- | --- |
-| backlog: the owner's words kept for later, for any project | file them as said, labelled `backlog`, in that project's repository, with the `scope:<folder>` routing picks where it has such labels; no parent, no format, no worker |
+| backlog: the owner's words kept for later, for any project | file them as said, labelled `backlog`, in that project's repository, with the `scope:<folder>` routing picks where it has such labels; no parent, no format, and no worker but a survey worker: the owner asking to survey a backlog, `start` it under a topic at effort low or medium with `--survey --leader <your address>` |
 | this project, your cwd's checkout | take it as a root task, led from Lead 2. With `scope:` labels, it is yours only for your folder: by the plugin its words name, else the folder it touches, else the owner's to pick; another folder's goes to its lead as `handoff` step 2 says |
 | another project | follow `${CLAUDE_PLUGIN_ROOT}/skills/handoff/SKILL.md`, read with `Read`, then `order` the work here that needs it after its root task |
 | every project: a shared rule or tool changing | `broadcast` its issue url |
