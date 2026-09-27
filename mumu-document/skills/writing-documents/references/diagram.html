@@ -116,7 +116,7 @@
       const items = [...nodes, ...edges];
       // each node and line a button named by its words, or a wordless line by its ends; the SVG a group, so they are read
       const words = (x) => x.own.map((el) => el.textContent.trim()).filter(Boolean).join(' ');
-      const handles = items.filter((x) => x.handle.localName !== 'summary');
+      const handles = items.filter((x) => x.handle && x.handle.localName !== 'summary');
       handles.forEach((x) => {
         x.handle.tabIndex = 0;
         x.handle.setAttribute('role', 'button');

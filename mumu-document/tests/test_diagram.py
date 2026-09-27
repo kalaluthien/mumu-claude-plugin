@@ -60,7 +60,10 @@ class Diagram(unittest.TestCase):
         self.addCleanup(ctx.close)
         p = ctx.new_page()
         p.route(re.compile(r"^https?://"), lambda r: r.abort())
+        errors = []
+        p.on("pageerror", lambda e: errors.append(str(e)))
         p.set_content(html)
+        self.assertEqual(errors, [], "the page threw")
         self.base = p.locator("[data-widget]").evaluate(FADED)  # the played steps still pending
         return p
 
@@ -131,6 +134,7 @@ class Diagram(unittest.TestCase):
                 p = self.open(page(kind))
                 got = p.locator("[data-widget]").evaluate(stops)
                 self.assertTrue(got)
+                self.assertTrue(any(role == "button" for role, _ in got), "no part is a button")
                 for role, name in got:
                     self.assertIn(role, ("button", "summary", "figure", "region"), (role, name))
                     self.assertTrue(name, role)
