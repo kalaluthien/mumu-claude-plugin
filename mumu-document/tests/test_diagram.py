@@ -18,7 +18,7 @@ FOCUS = [
     ("file-tree", [], f"{TREE}:first-child summary", [".stage > ul > li > details > summary"], f"{TREE}[data-change='modify'] .name"),
     ("system-context", [], "rect.box.k1", ["rect.box.main", ".part:nth-of-type(1) .edge"], "rect.box.k2"),
     # the reply joins A and C; without it, C is not reached from A
-    ("use-case", [(re.compile(r'\s*<g class="part" tabindex="0" data-step="3">.*?</g>', re.S), "")],
+    ("use-case", [(re.compile(r'\s*<g class="part" data-step="3">.*?</g>', re.S), "")],
      "rect.box:nth-of-type(1)", ["rect.box:nth-of-type(2)", ".part[data-step='1'] .edge"], "rect.box:nth-of-type(3)"),
 ]
 OPACITY = "(el) => { let o = 1; for (; el; el = el.parentElement) o *= +getComputedStyle(el).opacity; return o; }"
@@ -122,6 +122,25 @@ class Diagram(unittest.TestCase):
         p.wait_for_function("(n) => +document.querySelector('[data-swipe]').dataset.at === n - 2", arg=n, timeout=3000)
         self.assertEqual(root.evaluate("(r) => [...r.querySelectorAll('.controls button')].map((b) => b.getAttribute('aria-label'))"),
                          ["뒤로", "다음"])
+
+    def test_every_focus_stop_has_a_role_and_a_name(self):
+        stops = """(root) => [...root.querySelectorAll('[tabindex]:not([tabindex="-1"]), button, summary')].map((e) => [
+          e.getAttribute('role') || e.localName, e.getAttribute('aria-label') || e.textContent.trim()])"""
+        for kind in ("file-tree", "system-context", "use-case"):
+            with self.subTest(kind):
+                p = self.open(page(kind))
+                got = p.locator("[data-widget]").evaluate(stops)
+                self.assertTrue(got)
+                for role, name in got:
+                    self.assertIn(role, ("button", "summary", "figure", "region"), (role, name))
+                    self.assertTrue(name, role)
+                self.assertEqual(p.locator("[data-widget] svg[role='img']").count(), 0, "an img hides its buttons")
+        p = self.open(page("system-context"))
+        part = p.locator(".part").nth(1)
+        self.assertEqual(part.get_attribute("aria-label"), "예시 예시 → 예시 예시")
+        part.focus()
+        p.keyboard.press("Enter")
+        self.assertEqual(part.get_attribute("aria-pressed"), "true")
 
     def test_focus_highlights_connections(self):
         for kind, edits, node, reached, far in FOCUS:

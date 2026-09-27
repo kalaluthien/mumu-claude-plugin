@@ -285,6 +285,8 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
       const n = steps.length;
       if (n < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       strip.tabIndex = 0;
+      strip.setAttribute('role', 'region');
+      strip.setAttribute('aria-label', '단계');
       // Back, a count and Next under the strip, for a reader with no swipe
       const controls = document.createElement('div');
       controls.className = 'controls';

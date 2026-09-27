@@ -120,6 +120,18 @@ f.onload = function () {
     var h2 = Array.prototype.slice.call(d.querySelectorAll('main h2')), nav = d.querySelector('main nav');
     if (nav && h2.length && !(nav.compareDocumentPosition(h2[0]) & 4)) nav = null;
     var links = nav ? Array.prototype.map.call(nav.querySelectorAll('a[href^="#"]'), function (a) { return a.getAttribute('href').slice(1); }) : [];
+    // each focus stop in a widget: a role, its tag's or its own, and a name
+    var unnamed = function (d) {
+      var NATIVE = 'a[href], button, input, select, textarea, summary, figure';
+      var named = function (e) {
+        var ids = (e.getAttribute('aria-labelledby') || '').split(/\s+/).map(function (i) { return d.getElementById(i); });
+        return (e.getAttribute('aria-label') || '').trim() || ids.some(function (x) { return x && x.textContent.trim(); })
+          || (e.matches('a, button, summary') && e.textContent.trim()) || (e.closest('label') && e.closest('label').textContent.trim());
+      };
+      return Array.prototype.filter.call(d.querySelectorAll('[data-widget] :is([tabindex]:not([tabindex="-1"]), ' + NATIVE + ')'),
+        function (e) { return e.tabIndex >= 0 && (!(e.getAttribute('role') || e.matches(NATIVE)) || !named(e)); })
+        .map(function (e) { return e.outerHTML.slice(0, 40); });
+    };
     var loose = function (sel) { return Array.prototype.filter.call(d.querySelectorAll(sel), function (e) { return !e.closest('[data-widget]'); }); };
     var arrows = function (e) { return (e.textContent.match(ARROW) || []).length >= 2; };
     var paths = loose('code').map(function (c) { return c.textContent.trim().replace(/:\d.*$/, ''); }).filter(function (p) { return PATH.test(p); });
@@ -133,7 +145,7 @@ f.onload = function () {
       h2: h2.length, linked: h2.filter(function (h) { return h.id && links.indexOf(h.id) >= 0; }).length, nav: !!d.querySelector('main nav'),
       broken: Array.prototype.map.call(d.querySelectorAll('a[href^="#"]'), function (a) { return a.getAttribute('href'); })
         .filter(function (h) { return h.length > 1 && !d.getElementById(decodeURIComponent(h.slice(1))); }),
-      chapters: d.querySelectorAll('[data-chapter]').length,
+      chapters: d.querySelectorAll('[data-chapter]').length, unnamed: unnamed(d),
       loose: Array.prototype.filter.call(d.querySelectorAll('main h3'), function (h) { return !h.closest('[data-chapter]'); }).length });
   }, 300);
 };
@@ -150,7 +162,7 @@ f.onload = function () {
   setTimeout(function () {
     var d = f.contentDocument, w = f.contentWindow, out = [];
     var bg = w.getComputedStyle(d.body).backgroundColor;
-    d.querySelectorAll('svg[role="img"], [data-widget="chart"] .plot svg').forEach(function (g) {
+    d.querySelectorAll('svg[role="img"], [data-widget="chart"] .plot svg, [data-widget="diagram"] .stage > svg').forEach(function (g) {
       var c = g.cloneNode(true), src = [g].concat(Array.from(g.querySelectorAll('*'))),
           dst = [c].concat(Array.from(c.querySelectorAll('*')));
       src.forEach(function (s, i) {
@@ -645,6 +657,8 @@ def main():
     out = mapping(k)
     failed |= bool(out)
     print(f"mapping {len(k['paths'])} files {len(k['flows'])} flows " + ("FAIL: " + "; ".join(out) if out else "pass"))
+    failed |= bool(k["unnamed"])
+    print("focus " + ("FAIL: no role or name: " + "; ".join(k["unnamed"]) if k["unnamed"] else "pass"))
     for link in k["broken"]:
         failed = True
         print(f"links {link} has no target FAIL")

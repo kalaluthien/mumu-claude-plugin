@@ -9,7 +9,7 @@
   focus: hover, keyboard focus or a tap on a node or .part keeps it, its lines and the nodes they reach full and dims the rest (a file-tree's lines join a node to its folder and its children); hover off, Escape or a second tap restores all. The .part's ends are the nodes nearest its first and last point.
   legend: 2 or more kinds, each kind a button with aria-pressed; pressed off, its nodes and their lines fade. Without script, in print or before any focus nothing dims.
   keyboard: Tab to each summary, file row, .box or .part, Enter or Space opens a folder or pins the focus, Escape clears it; played, the slide's Back and Next or the swipe's strip and arrow keys.
-  screen reader: a summary is a disclosure; the SVG's desc lists its parts in order; a changed node reads its tag; played, each caption is announced as it shows.
+  screen reader: a summary is a disclosure; each other node and line a button named by its words, pressed while pinned; the SVG's desc lists its parts in order; a changed node reads its tag; played, each caption is announced as it shows.
   use when: a structure or a behaviour a figure shows better than prose.
   not when: rows sharing columns (a table); numbers (chart). -->
 <style>
@@ -85,8 +85,7 @@
       if (root.dataset.diagram === 'file-tree') {
         root.querySelectorAll('.stage li').forEach((li) => {
           const summary = li.querySelector(':scope > details > summary');
-          if (!summary) li.tabIndex = 0;
-          nodes.push({ el: li, handle: summary || li,
+          nodes.push({ el: li, handle: summary || li.querySelector(':scope > .name') || li,
             own: [...li.querySelectorAll(':scope > :not(ul, details), :scope > details > :not(ul)')] });
         });
         nodes.forEach((n) => {
@@ -97,7 +96,6 @@
         const texts = [...root.querySelectorAll('svg > text')];
         root.querySelectorAll('svg .box').forEach((box) => {
           const r = { x: num(box, 'x'), y: num(box, 'y'), w: num(box, 'width'), h: num(box, 'height') };
-          box.tabIndex = 0;
           nodes.push({ el: box, handle: box, r,
             own: [box, ...texts.filter((t) => gap({ x: num(t, 'x'), y: num(t, 'y') }, r) === 0)] });
         });
@@ -116,6 +114,15 @@
     const start = () => document.querySelectorAll('[data-widget="diagram"]').forEach((root) => {
       const { nodes, edges } = graph(root);
       const items = [...nodes, ...edges];
+      // each node and line a button named by its words, or a wordless line by its ends; the SVG a group, so they are read
+      const words = (x) => x.own.map((el) => el.textContent.trim()).filter(Boolean).join(' ');
+      const handles = items.filter((x) => x.handle.localName !== 'summary');
+      handles.forEach((x) => {
+        x.handle.tabIndex = 0;
+        x.handle.setAttribute('role', 'button');
+        x.handle.setAttribute('aria-label', words(x) || x.ends.map(words).join(' → '));
+      });
+      root.querySelectorAll('svg[role="img"]').forEach((svg) => svg.setAttribute('role', 'group'));
       const owner = new Map();
       items.forEach((x) => [x.handle, ...x.own].forEach((el) => el && owner.set(el, x)));
       const at = (el) => {
@@ -130,6 +137,7 @@
           if (on && (e === on || e.ends.includes(on))) [e, ...e.ends].forEach((x) => keep.add(x));
         });
         items.forEach((x) => x.own.forEach((el) => el.classList.toggle('dim', !!on && !keep.has(x))));
+        handles.forEach((x) => x.handle.setAttribute('aria-pressed', x === pinned));
       };
       const pin = (x) => { pinned = pinned === x ? null : x; show(); };
       root.addEventListener('pointerover', (e) => { if (e.pointerType === 'mouse') { passing = at(e.target); show(); } });
@@ -219,12 +227,12 @@
         <rect class="box k2" x="384" y="48" width="128" height="64"/>
         <text x="448" y="76" text-anchor="middle">{{callee}}</text>
         <text class="label" x="448" y="96" text-anchor="middle">{{external system}}</text>
-        <g class="part" tabindex="0">
+        <g class="part">
           <path class="edge" d="M136,80 H192" marker-end="url(#{{id}}-arrow)"/>
           <rect class="mask" x="136" y="128" width="248" height="24"/>
           <text class="label" x="140" y="144">{{what crosses, e.g. POST /jobs id=7}}</text>
         </g>
-        <g class="part" tabindex="0">
+        <g class="part">
           <path class="edge inferred" d="M324,80 H380" marker-end="url(#{{id}}-arrow)"/>
         </g>
       </svg>
@@ -251,11 +259,11 @@
         <rect class="box" x="384" y="8" width="128" height="40"/>
         <text x="448" y="32" text-anchor="middle">{{participant C}}</text>
         <path class="lifeline" d="M72,48 V200 M260,48 V200 M448,48 V200"/>
-        <g class="part" tabindex="0" data-step="1"><path class="edge" d="M72,88 H256" marker-end="url(#{{id}}-arrow)"/>
+        <g class="part" data-step="1"><path class="edge" d="M72,88 H256" marker-end="url(#{{id}}-arrow)"/>
           <text class="label" x="80" y="80">1 {{call and its value}}</text></g>
-        <g class="part" tabindex="0" data-step="2"><path class="edge" d="M260,136 H444" marker-end="url(#{{id}}-arrow)"/>
+        <g class="part" data-step="2"><path class="edge" d="M260,136 H444" marker-end="url(#{{id}}-arrow)"/>
           <text class="label" x="268" y="128">2 {{call}}</text></g>
-        <g class="part" tabindex="0" data-step="3"><path class="edge" d="M448,184 H76" marker-end="url(#{{id}}-arrow)"/>
+        <g class="part" data-step="3"><path class="edge" d="M448,184 H76" marker-end="url(#{{id}}-arrow)"/>
           <text class="label" x="268" y="176">3 {{reply}}</text></g>
         <circle class="token" cx="0" cy="0" r="6"/>
       </svg>

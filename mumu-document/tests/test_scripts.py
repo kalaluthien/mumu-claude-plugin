@@ -461,6 +461,15 @@ class Assemble(unittest.TestCase):
             r = subprocess.run([sys.executable, str(CHECK), str(page)], capture_output=True, text=True)
             self.assertEqual(r.stdout.splitlines()[-1], "pass", r.stdout)
 
+    def test_focus_stop_with_no_role_fails(self):
+        with tempfile.TemporaryDirectory() as d:
+            body, page = pathlib.Path(d) / "body.html", pathlib.Path(d) / "page.html"
+            body.write_text('<h1>초점</h1>\n<p class="read">출처에 초점이 멈춰요.</p>\n'
+                            '<p data-widget="source">출처: <span tabindex="0">원 보고서</span></p>\n')
+            self.assertEqual(assemble(str(body), str(page)).returncode, 0)
+            r = subprocess.run([sys.executable, str(CHECK), str(page)], capture_output=True, text=True)
+            self.assertIn('focus FAIL: no role or name: <span tabindex="0">', r.stdout)
+
     def test_source_note_under_a_claim_passes(self):
         note = ('<p data-widget="source">출처: <a href="https://example.com/report">원 보고서</a>, '
                 '<time datetime="2026-09-23">9월 23일</time> → <a href="https://example.com/summary">요약 기사</a></p>')
