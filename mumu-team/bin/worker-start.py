@@ -10,7 +10,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
 import herdr  # noqa: E402
 import names  # noqa: E402
-from gh import gh, repo as repo_view, run  # noqa: E402
+from gh import gh, guard, repo as repo_view, run  # noqa: E402
 
 
 def attempts(repo, n, topic=None, remote=True):
@@ -31,7 +31,7 @@ def busy(repo, n, topic):
 
 
 def worktree(repo, name):
-    """The worktree for `name`, added at the default branch unless it exists, with the guard in the checkout's hooks."""
+    """The worktree for `name`, added at the default branch unless it exists, with the guard as the checkout's pre-commit hook."""
     tree = names.worktrees(repo) / name
     if not tree.exists():
         run("git", "-C", repo, "worktree", "add", "--detach", str(tree), f"origin/{repo_view('defaultBranchRef', repo)}")
@@ -44,11 +44,10 @@ def worktree(repo, name):
         run("git", "-C", repo, "config", "core.hooksPath")
     except RuntimeError:
         hooks = pathlib.Path(run("git", "-C", repo, "rev-parse", "--path-format=absolute", "--git-path", "hooks").strip())
-        guard = shutil.which("default-branch-guard.sh")
-        for hook in ("pre-commit", "pre-push"):
-            if guard and not (hooks / hook).exists():
-                hooks.mkdir(parents=True, exist_ok=True)
-                shutil.copy(guard, hooks / hook)
+        script = shutil.which("default-branch-guard.sh")
+        if script and not (hooks / "pre-commit").exists():
+            hooks.mkdir(parents=True, exist_ok=True)
+            shutil.copy(script, hooks / "pre-commit")
     return tree
 
 
@@ -71,6 +70,7 @@ def main(argv):
     try:
         repo = str(names.checkout(a.checkout))
         run("git", "-C", repo, "fetch", "origin")
+        guard(repo)
         if not resume and (held := busy(repo, number[1], topic)):
             raise RuntimeError(f"{', '.join(held)} has an open pull request or a live tab: finish or `stop` it before a new attempt, or pass --continue to resume it")
         k = max(attempts(repo, number[1], topic, False), default=None) if resume else 1 + max(attempts(repo, number[1]), default=0)
