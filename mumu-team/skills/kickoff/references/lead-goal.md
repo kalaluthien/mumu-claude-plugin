@@ -50,6 +50,7 @@ A notice from another lead that is not a task for you is answered by a plain `co
 - Hold any number of root tasks at once, a chore one at `effort:low`.
 - Search the issues first, `gh issue list -R <repo> --state all --search <words>`: work of the same kind as a closed issue (#67 and #84 both hid a skill from the `/` menu) reopens it with `gh issue reopen`, widens its criteria with `decide.py --criteria` and is led under a new attempt; otherwise file a new issue that links it.
 - File the fewest tasks at the widest scope: work sharing a mechanism is one task, split by feature, never by layer, and a new finding or a review's defect widens the task it relates to. File them all, then write the order and cross-references.
+- Split test: split work, into tasks or a task into shares, only where its order has slack and its conflict can be made indirect; check through several lenses: one merge at the end is enough, an interface agreed first lets each part be built apart, or what the parts share is knowledge each only reads.
 - A defect you find is fixed in the current work or filed as its own task, and you say which; noted on an issue with no owner, it is dropped.
 - Research whose result later pull requests read is a task with a worker, driven one step per prompt, never a subagent whose result lives only in scratch.
 - A hunch the owner asks you to interpret goes in as `reading: <yours>` beside their words, never as their decision.
@@ -57,7 +58,7 @@ A notice from another lead that is not a task for you is answered by a plain `co
 
 ## Shares
 
-- A task is one share by default, with no `## Shares`; split it only when 2+ rows have no `after` between them.
+- A task is one share by default, with no `## Shares`; split it only when 2+ rows have no `after` between them and pass Filing's split test.
 - Split, its body gains `## Shares`, a table share | DoD | after: each row a topic, the ids of the criteria it checks (`D1:`), and the rows it waits on.
 - The body, labels and close of a split task are yours alone.
 - A share's worker writes only its pull request and `BLOCKED: <share>: ...` comments on the task.
