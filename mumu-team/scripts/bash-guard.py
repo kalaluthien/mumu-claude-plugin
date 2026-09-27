@@ -2,7 +2,8 @@
 """PreToolUse hook on Bash: refuse a raw `gh pr merge`, since `merge.py` is the only merge path, and a git hook bypass,
 even as text only naming either, which goes through a file and `--body-file`; and in a lead's or worker's session, what
 the kickoff skill gives another role: `APPROVED:` and `FINDINGS:` the judge's, `DECIDED:` the lead's through
-`decide.py`, a task's body, labels, reopening and stop its lead's, a body only its three sections, a worker's prompt
+`decide.py`, a task's body, labels, reopening and stop its lead's, a body only its three sections, a backlog's body a
+worker's only as its one `## Survey` below the owner's words, a worker's prompt
 only `see <url>`, and no title over 40 characters; and in any session, closing a split task as completed while a row of
 its `## Shares` has no merged pull request; and a routine step (`merge.py`, `worker-start.py`, `lead-start.py`,
 `worker-close.py`, `clean`'s git commands), or the judge's post, in any form but the literal one an allow rule matches."""
@@ -33,7 +34,8 @@ SEE = re.compile(r"see https://github\.com/\S+|/rename \S+")
 TITLE = 40
 ISSUE = re.compile(r"(?:https://github\.com/([^/\s]+/[^/\s]+)/issues/)?#?(\d+)/?")
 VALUED = {"--reason", "-r", "--comment", "-c", "--repo", "-R"}
-RAW_MERGE = "a raw `pr merge` is refused; run `merge.py <pr-url>` in a Bash call of its own, and write text naming the merge with a file tool"
+LEADS = "a task's body, labels, reopening and stop are its lead's: post `BLOCKED: <question>` and prompt your lead"
+RAW_MERGE ="a raw `pr merge` is refused; run `merge.py <pr-url>` in a Bash call of its own, and write text naming the merge with a file tool"
 # each routine step, as its script's name or git's words, and the literal form an owner allow rule matches
 ROUTINE = {
     "merge.py": "merge.py <pr-url>",
@@ -186,6 +188,35 @@ def writes(command, cwd):
     return found
 
 
+def survey_refusal(words, texts, cwd):
+    """Why a worker's `gh issue edit` in `words`, writing `texts`, is not a survey of a backlog: only a new body, of an issue
+    labelled `backlog`, keeping the words above its `## Survey` and holding exactly one `## Survey`; None when it is."""
+    args, skip = [], False
+    for word in words[words.index("edit") + 1:]:
+        if skip:
+            skip = False
+        elif word in ("--body", "-b", "--body-file", "-F", "--repo", "-R"):
+            skip = True
+        elif word.startswith("-") and word.split("=")[0] not in ("--body", "--body-file", "--repo"):
+            return LEADS
+        elif not word.startswith("-"):
+            args.append(word)
+    m = next((m for w in args if (m := ISSUE.fullmatch(w))), None)
+    if not m or len(texts) != 1:
+        return LEADS
+    repo = ["-R", r] if (r := m[1] or option(words, "--repo", "-R")) else []
+    try:
+        issue = json.loads(github.gh("issue", "view", m[2], *repo, "--json", "body,labels", cwd=cwd))
+    except (RuntimeError, ValueError):
+        return LEADS
+    if "backlog" not in [label["name"] for label in issue.get("labels", [])]:
+        return LEADS
+    old, new = (re.split(r"^## +Survey[ \t]*$", t.replace("\r\n", "\n"), flags=re.M) for t in (issue["body"] or "", texts[0]))
+    if len(new) != 2 or old[0].rstrip() != new[0].rstrip():
+        return "a survey keeps the backlog's words above `## Survey` as they are, and its body holds exactly one `## Survey`"
+    return None
+
+
 def role_refusal(command, role, cwd):
     """What `command` does that the kickoff skill gives another role than `role`, a lead or a worker, else None."""
     if role == "worker" and any(os.path.basename(w) == "decide.py" for words in lexed(command) or [] for w in words):
@@ -198,7 +229,11 @@ def role_refusal(command, role, cwd):
                     and not SEE.fullmatch(words[at + 4].strip()):
                 return "a worker prompts its lead only `see <url>`: post the rest on the task or pull request and prompt `see <its url>`"
     for kind, verb, words, texts in writes(command, cwd):
-        labels = [w for i, w in enumerate(words) if i and words[i - 1] in ("--label", "-l")]
+        if role == "worker" and (kind, verb) == ("issue", "edit"):
+            if why := survey_refusal(words, texts, cwd):
+                return why
+            continue
+        labels =[w for i, w in enumerate(words) if i and words[i - 1] in ("--label", "-l")]
         for text in texts:
             headings = set(re.findall(r"^## +(.+?)[ \t]*$", text, re.M))
             if kind == "issue" and verb in ("create", "edit") and "backlog" not in ",".join(labels).split(",") \
@@ -214,8 +249,8 @@ def role_refusal(command, role, cwd):
         if verb in ("create", "edit") and title is not None and len(title) > TITLE:
             return f"a title is at most {TITLE} characters, verb first; this one has {len(title)}"
         stop = verb == "close" and (option(words, "--reason", "-r") or "").replace("_", " ").lower() == "not planned"
-        if role == "worker" and kind == "issue" and (verb in ("edit", "reopen") or stop):
-            return "a task's body, labels, reopening and stop are its lead's: post `BLOCKED: <question>` and prompt your lead"
+        if role == "worker" and kind == "issue" and (verb == "reopen" or stop):
+            return LEADS
     return None
 
 

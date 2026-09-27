@@ -191,6 +191,8 @@ FAILS = [
     ("SQLite입니다.", "확인했음", "plain ending: 저장소는 확인했음 FAIL"),
     ("SQLite입니다.", "확인이 필요함.", "plain ending: 저장소는 확인이 필요함."),
     ('<div id="c">', '<div id="c" style="width:600px">', "FAIL: widest main > div#c"),
+    ("<pre>git log --oneline main</pre>", "<pre>def run():\n    a = 1\n    b = 2\n    return a + b</pre>",
+     "quotes code quote without path caption 'def run():' FAIL"),
 ]
 # (what to replace in GOOD, its replacement, a word no line may hold): each passes
 PASSES = [
@@ -198,6 +200,10 @@ PASSES = [
     ("SQLite입니다.", "바다.", "plain ending"),
     ("SQLite입니다.", "마음이에요.", "plain ending"),
     ("SQLite입니다.", "4.00점이에요.", "plain ending"),
+    ("<pre>git log --oneline main</pre>", '<figure class="code"><figcaption><a href="https://github.com/o/r/blob/0123abc/queue.py#L3-L6">'
+     '<code>queue.py:3-6</code></a></figcaption><pre><code>def run():\n    a = 1\n<mark>    b = 2</mark>\n⋯\n'
+     '    return a + b</code></pre></figure>', "quotes"),
+    ("<pre>git log --oneline main</pre>", "<pre>def run():\n    a = 1\n    return a</pre>", "quotes"),
 ]
 # after the charts draw, which waits for the page to parse
 BREAK = ("<script>addEventListener('DOMContentLoaded', function () {"

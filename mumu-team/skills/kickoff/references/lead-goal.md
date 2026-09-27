@@ -6,12 +6,13 @@
 4. Act on what arrives:
    - `see <task-url>` naming a `BLOCKED:` comment: answer it with `decide`, then `prompt` the worker `see <task-url>`; work that needs its own pull request is answered with the url of the task you `file` for it, `order`ed before this one, which then goes through 3;
    - `see <pr-url>`, or `see <task-url>` of a report task closed at its `APPROVED:`: `read` it; once it shows merged or closed, `close` its worker, go to 3 for each task it unblocked, and go to 5 for its task;
+   - `see <backlog-url>` from a survey worker: `read` it; once it shows the survey's `APPROVED:`, `close` the worker and `clean` its worktree, the backlog left open and labelled `backlog`;
    - `blocked <name>`: the worker waits at a tool-use prompt, which is the owner's to answer, so tell the owner;
    - `gone <name>` while its task is open: `start` it again with `--continue`;
    - `idle <name>`: `read` its task and pull request, answer what waits on you, else `prompt` the worker `see <task-url>`;
    - `team idle <m>m`, or you resumed: `read` each open root task you hold, and its pull request or report comment, and act on each as if its notice had arrived;
    - `working <name>`: nothing; a monitor's expiry notice: arm the command the Stop hook names;
-   - the owner changes direction: `decide` the change on each issue affected and `prompt` its worker `see <task-url>`; built work the owner rejects is replanned on the same task, reopened with its criteria widened by `decide.py --criteria` and led under a new attempt, its pull request closed unmerged and named on it as content to read, never form to follow;
+   - the owner changes direction: `decide` the change on each issue affected and `prompt` its worker `see <task-url>`; built work the owner rejects is replanned on the same task, reopened with its criteria widened by `decide.py --criteria` and its title and `## Goal` rewritten as Filing says, and led under a new attempt, its pull request closed unmerged and named on it as content to read, never form to follow;
    - the owner stops a task: `stop` it, `close` its worker, and `comment` on it its pull request and what is left;
    - the owner asks where work stands: `read` each task named, else each you hold, and its pull request or report comment, and report one row per task: its state, that pull request or comment, and its worker's `agent_status` in `live`, or none.
 5. A task closed, `close` its worker and `clean`. When you then hold no open root task and no worker is live, `prompt` yourself `/compact Keep only: each task closed this session with its url, PR and one-line result; open backlog issues; drop tool output.`
@@ -36,7 +37,7 @@ Route every request, the owner's included, before taking it:
 
 | the work is for | you |
 | --- | --- |
-| backlog: the owner's words kept for later, for any project | file them as said, labelled `backlog`, in that project's repository, with the `scope:<folder>` routing picks where it has such labels; no parent, no format, no worker |
+| backlog: the owner's words kept for later, for any project | file them as said, labelled `backlog`, in that project's repository, with the `scope:<folder>` routing picks where it has such labels; no parent, no format, and no worker but a survey worker: the owner asking to survey a backlog, `start` it under a topic at effort low or medium with `--survey --leader <your address>` |
 | this project, your cwd's checkout | take it as a root task, led from Lead 2. With `scope:` labels, it is yours only for your folder: by the plugin its words name, else the folder it touches, else the owner's to pick; another folder's goes to its lead as `handoff` step 2 says |
 | another project | follow `${CLAUDE_PLUGIN_ROOT}/skills/handoff/SKILL.md`, read with `Read`, then `order` the work here that needs it after its root task |
 | every project: a shared rule or tool changing | `broadcast` its issue url |
@@ -48,7 +49,7 @@ A notice from another lead that is not a task for you is answered by a plain `co
 
 - Hold any number of root tasks at once, a chore one at `effort:low`.
 - Open each criterion of a new task with its kind, `[exists]`, `[test]` or `[quality]`, as the kickoff skill's Domain defines it; a task filed before kinds keeps its criteria.
-- Search the issues first, `gh issue list -R <repo> --state all --search <words>`: work of the same kind as a closed issue (#67 and #84 both hid a skill from the `/` menu) reopens it with `gh issue reopen`, widens its criteria with `decide.py --criteria` and is led under a new attempt; otherwise file a new issue that links it.
+- Search the issues first, `gh issue list -R <repo> --state all --search <words>`: work of the same kind as a closed issue (#67 and #84 both hid a skill from the `/` menu) reopens it with `gh issue reopen`, widens its criteria with `decide.py --criteria`, rewrites its title and `## Goal` to the new gap with `gh issue edit --title --body-file` before the plan review, since `decide.py --criteria` replaces only `## Definition of done`, and is led under a new attempt; otherwise file a new issue that links it.
 - File the fewest tasks at the widest scope: work sharing a mechanism is one task, split by feature, never by layer, and a new finding or a review's defect widens the task it relates to. File them all, then write the order and cross-references.
 - Split test: split work, into tasks or a task into shares, only where its order has slack and its conflict can be made indirect; check through several lenses: one merge at the end is enough, an interface agreed first lets each part be built apart, or what the parts share is knowledge each only reads.
 - A defect you find is fixed in the current work or filed as its own task, and you say which; noted on an issue with no owner, it is dropped.

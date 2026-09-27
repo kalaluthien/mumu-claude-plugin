@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Start a worker: its name, worktree, tab, Claude session as `--agent mumu-team:worker`, and kickoff prompt."""
+"""Start a worker, or with `--survey` a backlog's survey worker: its name, worktree, tab, Claude session as `--agent mumu-team:worker`, and kickoff prompt."""
 import argparse
 import os
 import pathlib
@@ -24,12 +24,15 @@ def attempts(repo, n, topic=None, remote=True):
     return [k for h in found if (k := names.attempt(h, topic, n)) is not None]
 
 
-def refusal(issue, n, topic, effort, heads):
-    """Why task `n`, as `task` reads it, may not start a worker on `topic` at `effort`, `heads` the merged pull requests' branches; None when it may."""
+def refusal(issue, n, topic, effort, heads, survey=False):
+    """Why task `n`, as `task` reads it, may not start a worker on `topic` at `effort`, or with `survey` a survey worker on
+    backlog `n`, `heads` the merged pull requests' branches; None when it may."""
     if issue["state"] != "OPEN":
         return f"task #{n} is {issue['state'].lower()}: a stopped or finished task starts no worker; reopen it first"
+    if survey:
+        return None if "backlog" in issue["labels"] else f"#{n} is not labelled backlog: --survey starts only a backlog's survey worker"
     if "backlog" in issue["labels"]:
-        return f"#{n} is labelled backlog, which is never worked: remove the label and write its contract first"
+        return f"#{n} is labelled backlog, which is never worked: remove the label and write its contract first, or pass --survey to survey it"
     efforts = [label.removeprefix("effort:") for label in issue["labels"] if label.startswith("effort:")]
     if efforts != [effort]:
         return f"task #{n} is labelled {', '.join('effort:' + e for e in efforts) or 'with no effort:<effort>'}: start it at its one effort label"
@@ -80,6 +83,7 @@ def main(argv):
     parser.add_argument("--continue", dest="resume", action="store_true")
     parser.add_argument("--leader")
     parser.add_argument("--owner-effort", action="store_true")
+    parser.add_argument("--survey", action="store_true")
     a = parser.parse_args(argv)
     topic, effort, url, resume = a.topic, a.effort, a.url, a.resume
     number = re.search(r"/issues/(\d+)/?$", url)
@@ -92,7 +96,7 @@ def main(argv):
     try:
         repo = str(names.checkout(a.checkout))
         issue = task(repo, number[1])
-        if why := refusal(issue, number[1], topic, effort, merged(repo) if names.shares(issue["body"]) else []):
+        if why := refusal(issue, number[1], topic, effort, merged(repo) if names.shares(issue["body"]) and not a.survey else [], a.survey):
             raise RuntimeError(why)
         run("git", "-C", repo, "fetch", "origin")
         if not resume and (held := busy(repo, number[1], topic)):
@@ -106,7 +110,7 @@ def main(argv):
         timeout, poll = float(os.environ.get("WORKER_START_TIMEOUT", 60)), float(os.environ.get("WORKER_START_POLL", 1))
         herdr.launch(name, pane, ["--name", name, "--agent", "mumu-team:worker", "--model", "opus", "--effort", effort] + (["--continue"] if resume else []), timeout, poll)
         if a.leader:
-            herdr.prompt(pane, f"/mumu-team:kickoff work {url} leader {a.leader}")
+            herdr.deliver(name, pane, f"/mumu-team:kickoff {'survey' if a.survey else 'work'} {url} leader {a.leader}", timeout, poll)
     except RuntimeError as e:
         sys.exit(f"worker-start.py: {e}")
     print(f"{name}@{pane} {tree}")

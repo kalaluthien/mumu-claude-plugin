@@ -25,22 +25,25 @@ its moves; a move with nothing to say is dropped.
 
 ## Composition
 
-Before writing any section, the author settles the whole piece, in this order:
+Before writing any section, the author settles the whole piece, in this order;
+[rubric.md](references/rubric.md) grades it by the criteria each step names:
 
-1. **Answer**: the reader's question, and its answer in one sentence; that
-   sentence opens the document, before the first heading (a page's `p.read`).
-2. **Outline**: the moves as headings, each a noun phrase that carries its
-   section's claim (부산이 앞지른 요청, not 요청 수), so the headings read alone
-   state the argument, as a pyramid under the answer; a section with no claim
-   is merged or cut.
-3. **Order**: overview to detail: the whole, then its parts, then their
-   detail; time or step order only for a sequence; the reader's own
-   exploration, such as a `filter` over every row, last.
-4. **Form**: each section the one form that carries its point: a sentence for
-   a claim, a list for parallel items, a table for values compared across
-   rows, a figure or widget by Mapping; whatever does not prove the claim is
-   cut. A figure's or table's caption says what to read off it, and the
-   sentence before it names it.
+1. **Answer** (Pyramid and MECE, Narrative): the reader's question, what is at
+   stake for them, and the answer in one sentence; that sentence opens the
+   document, before the first heading (a page's `p.read`).
+2. **Outline** (Pyramid and MECE): the moves as headings, each a noun phrase
+   that carries its section's claim (부산이 앞지른 요청, not 요청 수), so the
+   headings read alone state the argument under the answer; siblings neither
+   overlap nor leave a gap; a section with no claim is merged or cut.
+3. **Order** (Narrative): overview to detail, each section answering the
+   question the one before raises; time or step order only for a sequence;
+   the reader's own exploration, such as a `filter` over every row, last.
+4. **Form** (Emphasis, Coherence): each section the one form that carries its
+   point: a sentence for a claim, a list for parallel items, a table for
+   values compared across rows, a figure or widget by Mapping; space follows
+   importance, and whatever does not prove the claim is cut. A figure's or
+   table's caption says what to read off it, and the sentence before it
+   names it.
 5. **Widgets**: at most 1 under each `h2` or `h3` and 5 on a page, of them at
    most 2 `filter` or `controls`, since most readers never touch a control and
    the claim stands in the text too; one sentence before a widget the reader
