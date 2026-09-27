@@ -111,7 +111,7 @@ elif a[:2] == ["pr", "merge"]:
 '''
 
 
-SHARED = "## Goal\nx\n\n## Shares\n| share | DoD | after |\n| --- | --- | --- |\n| a | D1 | |\n"
+SHARED = "## Goal\nx\n\n## Shares\n| share | DoD | after | with |\n| --- | --- | --- | --- |\n| a | D1 | | b: interface agreed first |\n"
 
 
 def merge(comments, moved_to=None, reviews=(), url=PR_URL, title="t", body="", commits=(), issues=None, behind=0):
