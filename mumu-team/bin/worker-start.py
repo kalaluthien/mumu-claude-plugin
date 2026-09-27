@@ -31,10 +31,10 @@ def busy(repo, n, topic):
 
 
 def worktree(repo, name):
-    """The worktree for `name`, added at the default branch unless it exists, with the guard as the checkout's pre-commit hook."""
+    """The worktree for `name` on its own new branch `name` from the default branch, unless it exists, with the guard as the checkout's pre-commit hook."""
     tree = names.worktrees(repo) / name
     if not tree.exists():
-        run("git", "-C", repo, "worktree", "add", "--detach", str(tree), f"origin/{repo_view('defaultBranchRef', repo)}")
+        run("git", "-C", repo, "worktree", "add", "-b", name, str(tree), f"origin/{repo_view('defaultBranchRef', repo)}")
     exclude = pathlib.Path(run("git", "-C", repo, "rev-parse", "--path-format=absolute", "--git-path", "info/exclude").strip())
     text = exclude.read_text() if exclude.exists() else ""
     if names.IGNORE not in text.splitlines():

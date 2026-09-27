@@ -379,7 +379,7 @@ if tool == "gh":
         print((prs.read_text() if prs.exists() else "") if a[:2] == ["pr", "list"] else "main")
 elif tool == "git":
     if a[2:4] == ["worktree", "add"]:
-        pathlib.Path(a[5]).mkdir(parents=True)
+        pathlib.Path(a[-2]).mkdir(parents=True)
     elif a[2:4] == ["config", "core.hooksPath"]:
         sys.exit(1)
     elif a[2] == "ls-remote":
@@ -461,7 +461,7 @@ class WorkerStart(unittest.TestCase):
         prompt = calls.index(["herdr", "agent", "prompt", PANE, f"/mumu-team:kickoff work {ISSUE} leader l"])
         self.assertLess(keys, prompt, "prompted before the trust dialog was answered")
         self.assertEqual(self.status(), "working")
-        self.assertIn(["git", "-C", str(self.repo), "worktree", "add", "--detach", str(tree), "origin/main"], calls)
+        self.assertIn(["git", "-C", str(self.repo), "worktree", "add", "-b", "start-7-1", str(tree), "origin/main"], calls)
         self.assertEqual(sorted(p.name for p in (self.tmp / "hooks").iterdir()), ["pre-commit"])
 
     def test_ruleset_created_on_the_first_start_only(self):
@@ -601,6 +601,39 @@ class WorkerStart(unittest.TestCase):
                 start = [c for c in calls if c[1:3] == ["agent", "start"]][-1]
                 self.assertEqual(start[start.index("--effort") + 1], effort)
 
+    def test_each_attempt_adds_its_worktree_on_its_own_branch(self):
+        for k in (1, 2):
+            done, calls = self.start(trust=False)
+            self.assertEqual(done.returncode, 0, done.stderr)
+        adds = [c[4:] for c in calls if c[3:5] == ["worktree", "add"]]
+        trees = self.repo / ".claude" / "worktrees"
+        self.assertEqual(adds, [["add", "-b", f"start-7-{k}", str(trees / f"start-7-{k}"), "origin/main"] for k in (1, 2)])
+
+
+class Worktree(unittest.TestCase):
+    """`worker-start.py`'s worktree step against real git: a new branch named after the worker, from the default branch."""
+
+    def setUp(self):
+        self.tmp = pathlib.Path(tempfile.mkdtemp()).resolve()
+        self.addCleanup(shutil.rmtree, self.tmp)
+        self.remote, self.repo = self.tmp / "remote.git", self.tmp / "repo"
+        git(self.tmp, "init", "-q", "--bare", "-b", "main", str(self.remote))
+        git(self.tmp, "clone", "-q", str(self.remote), str(self.repo))
+        git(self.repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "base")
+        git(self.repo, "push", "-q", "origin", "main")
+        self.start = importlib.machinery.SourceFileLoader("worker_start", str(BIN / "worker-start.py")).load_module()
+        self.start.repo_view = lambda field, repo: "main"
+
+    def test_worktree_is_on_a_new_branch_named_after_the_worker_not_detached(self):
+        base = git(self.repo, "rev-parse", "origin/main").strip()
+        heads = {}
+        for name in ("code-7-1", "report-8-1", "code-7-2"):
+            tree = self.start.worktree(str(self.repo), name)
+            self.assertEqual(git(tree, "branch", "--show-current").strip(), name)
+            self.assertEqual(git(tree, "rev-parse", "HEAD").strip(), base)
+            heads[name] = git(tree, "rev-parse", "--abbrev-ref", "HEAD").strip()
+        self.assertEqual(len(set(heads.values())), 3, heads)
+
 
 TASK = "https://github.com/o/main/issues/9"
 
@@ -694,7 +727,7 @@ REVIEW = importlib.machinery.SourceFileLoader("review_model", str(BIN / "review-
 
 
 def git(repo, *args):
-    subprocess.run(["git", "-C", repo, *args], check=True, capture_output=True)
+    return subprocess.run(["git", "-C", repo, *args], check=True, capture_output=True, text=True).stdout
 
 
 # The hook ../scripts/sync.sh (workspace repo) writes as pre-commit and pre-push.

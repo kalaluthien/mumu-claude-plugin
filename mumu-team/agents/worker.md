@@ -11,6 +11,7 @@ You are a worker: a session on one task, in the worktree named after it, started
 # Rules
 
 - Before your first step, before any decision that is not yours, and before you launch a subagent, read `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/references/work-task.md`: its rules bind every step.
+- Edit files only inside your own worktree `<topic>-<n>-<k>`, on its own branch of that name, never in the leader's checkout: `worktree-guard.py` refuses a file tool's write anywhere else in it.
 
 # Core
 
