@@ -184,17 +184,17 @@ BODY = "## Goal\n\nx\n\n## Definition of done\n\n- D1: a → b\n"
 
 # (agent, command, the refusal's words or None when it passes): a rule of the kickoff skill each role keeps.
 ROLE_CASES = [
-    ("worker", "gh pr comment 1 --body-file - <<'EOF'\nAPPROVED: aaaa\nchecked\nEOF", "reviewer's alone"),
-    ("lead", f'gh issue comment {U} --body "FINDINGS: x"', "reviewer's alone"),
-    ("worker", "gh pr review 1 --comment -b 'approved aaaa'", "reviewer's alone"),
-    ("reviewer", "gh pr comment 1 --body-file - <<'EOF'\nAPPROVED: aaaa\nEOF", "--body '<verdict lines>'"),
+    ("worker", "gh pr comment 1 --body-file - <<'EOF'\nAPPROVED: aaaa\nchecked\nEOF", "judge's alone"),
+    ("lead", f'gh issue comment {U} --body "FINDINGS: x"', "judge's alone"),
+    ("worker", "gh pr review 1 --comment -b 'approved aaaa'", "judge's alone"),
+    ("judge", "gh pr comment 1 --body-file - <<'EOF'\nAPPROVED: aaaa\nEOF", "--body '<verdict lines>'"),
     (None, "gh pr comment 1 --body-file - <<'EOF'\nAPPROVED: aaaa\nEOF", None),
     ("worker", "gh pr comment 1 --body-file - <<'EOF'\nCriteria: APPROVED later\nEOF", None),
     ("worker", f"gh issue comment {U} --body-file - <<'EOF'\nBLOCKED: which name?\nEOF", None),
     ("lead", f"gh issue comment {U} --body-file - <<'EOF'\nDECIDED: use x\nEOF", "decide.py"),
     ("lead", f"decide.py {U} <<'EOF'\nuse x\nEOF", None),
     ("worker", f"decide.py {U} < /tmp/d", "the lead's"),
-    ("worker", f"gh pr comment 1 --body-file approval.md", "reviewer's alone"),
+    ("worker", f"gh pr comment 1 --body-file approval.md", "judge's alone"),
     ("lead", f'gh issue create -R o/r --title "{LONG}" --label effort:low --body-file - <<\'EOF\'\n{BODY}EOF', "at most 40"),
     ("worker", f'gh pr create --base main --head b --title "{LONG}" --body-file -', "at most 40"),
     ("lead", f'gh issue create -R o/r --title "{FORTY}" --label effort:low --body-file - <<\'EOF\'\n{BODY}EOF', None),
@@ -256,6 +256,39 @@ class RoleRules(unittest.TestCase):
                     self.assertEqual(result.returncode, 0, result.stderr)
 
 
+WORDS = "the owner's words\r\nkept as said\r\n"
+# (the issue's labels, the body file a worker writes, the edit's flags, the refusal's words or None when it passes) (#94)
+SURVEY_CASES = [
+    (["backlog"], "the owner's words\nkept as said\n\n## Survey\n\n- found: x.py:3\n", "", None),
+    (["backlog"], "the owner's words\nkept as said\n\n## Survey\n\n- found: x.py:3\n", f" -R o/r", None),
+    (["effort:low"], "the owner's words\nkept as said\n\n## Survey\n\n- found\n", "", "its lead's"),
+    (["backlog"], "the owner's words, edited\n\n## Survey\n\n- found\n", "", "exactly one `## Survey`"),
+    (["backlog"], "the owner's words\nkept as said\n\n## Survey\n\na\n\n## Survey\n\nb\n", "", "exactly one `## Survey`"),
+    (["backlog"], "the owner's words\nkept as said\n", "", "exactly one `## Survey`"),
+    (["backlog"], "the owner's words\nkept as said\n\n## Survey\n\n- found\n", " --remove-label backlog", "its lead's"),
+    (["backlog"], "the owner's words\nkept as said\n\n## Survey\n\n- found\n", " --title x", "its lead's"),
+]
+
+
+class SurveyEdit(unittest.TestCase):
+    """A worker edits a backlog's body only to write its one `## Survey` below the owner's words (#94)."""
+
+    def test_a_worker_edits_only_a_backlogs_survey(self):
+        for labels, body, flags, refusal in SURVEY_CASES:
+            with self.subTest(labels=labels, body=body, flags=flags):
+                tmp, env = fake_issue_gh()
+                (tmp / "body.md").write_text(json.dumps({"body": WORDS + "\r\n## Survey\r\n\r\nold\r\n", "labels": [{"name": n} for n in labels]}))
+                (tmp / "survey.md").write_text(body)
+                payload = {"tool_input": {"command": f"gh issue edit {U}{flags} --body-file survey.md"}, "cwd": str(tmp),
+                           "agent_type": "mumu-team:worker"}
+                result = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload), capture_output=True, text=True, env=env)
+                if refusal:
+                    self.assertEqual(result.returncode, 2, result.stderr)
+                    self.assertIn(refusal, result.stderr)
+                else:
+                    self.assertEqual(result.returncode, 0, result.stderr)
+
+
 N = "sample-topic-12-1"
 # (a routine step in another form than its literal one, the literal form the refusal names) (#281)
 ROUTINE_REFUSED = [
@@ -288,16 +321,16 @@ ROUTINE_PASSED = [
     "git branch --show-current && git status",
     "cd x && ls",
 ]
-# (agent, the reviewer's post or another's, the refusal's words or None when it passes) (#281)
+# (agent, the judge's post or another's, the refusal's words or None when it passes) (#281)
 POST = "APPROVED: 8bd0af5dbae98300d657961961b6954f760dd82c\nChecked the diff at the head."
 POST_CASES = [
-    ("reviewer", f"gh pr comment {PR_URL} --body-file - <<'EOF'\n{POST}\nEOF", "--body '<verdict lines>'"),
-    ("reviewer", f"printf x | gh pr comment {PR_URL} --body-file -", "--body '<verdict lines>'"),
-    ("reviewer", f"gh issue comment {U} -F /tmp/v.md", "--body '<verdict lines>'"),
-    ("reviewer", f"gh pr comment {PR_URL} --body \"$(cat /tmp/v.md)\"", "--body '<verdict lines>'"),
-    ("reviewer", f"gh pr comment {PR_URL} --body '{POST}'", None),
-    ("reviewer", f"gh issue comment {U} --body 'APPROVED:\nChecked the plan.'", None),
-    ("reviewer", f"gh pr view {PR_URL} --json headRefOid", None),
+    ("judge", f"gh pr comment {PR_URL} --body-file - <<'EOF'\n{POST}\nEOF", "--body '<verdict lines>'"),
+    ("judge", f"printf x | gh pr comment {PR_URL} --body-file -", "--body '<verdict lines>'"),
+    ("judge", f"gh issue comment {U} -F /tmp/v.md", "--body '<verdict lines>'"),
+    ("judge", f"gh pr comment {PR_URL} --body \"$(cat /tmp/v.md)\"", "--body '<verdict lines>'"),
+    ("judge", f"gh pr comment {PR_URL} --body '{POST}'", None),
+    ("judge", f"gh issue comment {U} --body 'APPROVED:\nChecked the plan.'", None),
+    ("judge", f"gh pr view {PR_URL} --json headRefOid", None),
     (None, f"gh pr comment {PR_URL} --body-file - <<'EOF'\n{POST}\nEOF", None),
     ("worker", f"gh issue comment {U} --body-file - <<'EOF'\nBLOCKED: which name?\nEOF", None),
     ("worker", "gh pr create --base main --head b --title t --body-file -", None),
@@ -305,7 +338,7 @@ POST_CASES = [
 
 
 class LiteralSteps(unittest.TestCase):
-    """A routine step, and the reviewer's post, runs only in the literal form an owner allow rule matches (#281)."""
+    """A routine step, and the judge's post, runs only in the literal form an owner allow rule matches (#281)."""
 
     def guard(self, command, agent=None):
         payload = {"tool_input": {"command": command}, "cwd": tempfile.mkdtemp()}
@@ -327,7 +360,7 @@ class LiteralSteps(unittest.TestCase):
                 result = self.guard(command, "worker")
                 self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_only_the_reviewer_posts_only_through_body(self):
+    def test_only_the_judge_posts_only_through_body(self):
         for agent, command, refusal in POST_CASES:
             with self.subTest(agent=agent, command=command):
                 result = self.guard(command, agent)
@@ -567,7 +600,7 @@ class OtherStop(Hook):
         self.assertEqual(calls, [])
 
     def test_session_without_lead_agent_stops_and_reads_nothing(self):
-        for agent_type in (None, "mumu-team:reviewer", "general-purpose"):
+        for agent_type in (None, "mumu-team:judge", "general-purpose"):
             with self.subTest(agent_type=agent_type):
                 outs, calls = self.stop(agent_type=agent_type, tasks=[HELD_TASK])
                 self.assertFalse(self.refused(outs), outs)

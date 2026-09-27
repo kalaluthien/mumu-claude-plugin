@@ -332,10 +332,10 @@ class MergeCarry(unittest.TestCase):
         self.assertRefused(result, words, self.head)
         self.assertIn("cannot be read", result.stderr)
 
-    def test_step_4_resumes_the_reviewer_only_when_the_merge_is_refused_again(self):
+    def test_step_4_resumes_the_judge_only_when_the_merge_is_refused_again(self):
         step = next(l for l in (ROOT / "skills/kickoff/references/work-task.md").read_text().splitlines() if l.startswith("4. "))
         after = step[step.index("merge the default branch in"):]
-        self.assertRegex(after.split(". ")[0], r"`merge` again.*only when `merge\.py` refuses.*resume the reviewer")
+        self.assertRegex(after.split(". ")[0], r"`merge` again.*only when `merge\.py` refuses.*resume the judge")
 
     def test_the_approval_of_pull_request_268_carries_across_its_merge_of_main(self):
         """Replays #268: `APPROVED: A`, then head H merges the non-empty 459d5b9 of main in."""
@@ -762,6 +762,21 @@ class WorkerStart(unittest.TestCase):
 
     def test_a_backlog_issue_is_never_worked(self):
         self.refused("never worked", labels=[{"name": "backlog"}, {"name": "effort:low"}])
+
+    def test_survey_starts_a_backlogs_survey_worker(self):
+        """`--survey` starts a backlog's survey worker, prompted `survey`, at the effort given though it has no label (#94)."""
+        (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": [{"name": "backlog"}], "body": "the owner's words"}))
+        done, calls = self.start("--survey", "--leader", "l", effort="medium")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertTrue(done.stdout.startswith("go-start-7-1@"), done.stdout)
+        self.assertIn(["herdr", "agent", "prompt", PANE, f"/mumu-team:kickoff survey {ISSUE} leader l"], calls)
+
+    def test_survey_of_a_task_is_refused(self):
+        (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": [{"name": "effort:low"}], "body": ""}))
+        done, calls = self.start("--survey", trust=False)
+        self.assertEqual(done.returncode, 1, done.stdout)
+        self.assertIn("not labelled backlog", done.stderr)
+        self.assertFalse([c for c in calls if c[0] == "herdr"])
 
     def test_the_effort_must_be_the_tasks_one_label(self):
         for labels in ([], [{"name": "effort:medium"}], [{"name": "effort:low"}, {"name": "effort:medium"}]):
