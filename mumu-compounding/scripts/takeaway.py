@@ -10,6 +10,9 @@ The hook blocks with PROMPT only when the repository (its git common dir) is
 armed, no transcript entry came from `claude -p` or the SDK, WORK_THRESHOLD
 tool calls of any kind were made since the harvest its last block asked for,
 and HARVEST_INTERVAL minutes passed since that block; else it exits silently.
+So it asks once at 40 calls in a session, then again only after 40 more calls
+and 120 min. Failures, refusals or pushback as a trigger reached few sessions
+beyond it that later wrote a memory (replay-harvest-triggers.py, #217).
 """
 import hashlib
 import json
@@ -18,8 +21,8 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 
-WORK_THRESHOLD = int(os.environ.get("WORK_THRESHOLD", "8"))
-HARVEST_INTERVAL = float(os.environ.get("HARVEST_INTERVAL", "30"))
+WORK_THRESHOLD = int(os.environ.get("WORK_THRESHOLD", "40"))
+HARVEST_INTERVAL = float(os.environ.get("HARVEST_INTERVAL", "120"))
 PROMPT = "Before you stop, harvest this session's work with the retro skill."
 
 
