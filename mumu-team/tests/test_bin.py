@@ -12,7 +12,8 @@ import sys
 import tempfile
 import unittest
 
-BIN = pathlib.Path(__file__).resolve().parent.parent / "bin"
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+BIN = ROOT / "bin"
 ISSUE_URL = "https://github.com/o/r/issues/12"
 ISSUE_BODY = "## Goal\n\nKeep `## Goal` text as is.\n\n## Definition of done\n\n- old check → old pass\n\n## Notes\n\nkept\n"
 
@@ -114,11 +115,14 @@ elif a[:2] == ["pr", "merge"]:
 SHARED = "## Goal\nx\n\n## Shares\n| share | DoD | after | with |\n| --- | --- | --- | --- |\n| a | D1 | | b: interface agreed first |\n"
 
 
-def merge(comments, moved_to=None, reviews=(), url=PR_URL, title="t", body="Closes #3", commits=(), issues=None, behind=0):
-    """Run merge.py on a PR at HEAD holding `comments`; `moved_to` moves the head once it is read, `issues` maps an issue url to
-    its body, `behind` counts the base's commits the head lacks. Return (result, merge words or None)."""
+def merge(comments, moved_to=None, reviews=(), url=PR_URL, title="t", body="Closes #3", commits=(), issues=None, behind=0,
+          head=HEAD, cwd=None):
+    """Run merge.py in `cwd` on a PR at `head` holding `comments`, each a body or a comment's dict; `moved_to` moves the head once
+    it is read, `issues` maps an issue url to its body, `behind` counts the base's commits the head lacks. Return (result, merge
+    words or None)."""
     tmp = pathlib.Path(tempfile.mkdtemp())
-    pr = {"headRefOid": HEAD, "comments": [{"body": b} for b in comments], "reviews": [{"body": b} for b in reviews],
+    notes = lambda bodies: [b if isinstance(b, dict) else {"body": b} for b in bodies]
+    pr = {"headRefOid": head, "comments": notes(comments), "reviews": notes(reviews),
           "title": title, "body": body, "commits": [{"messageHeadline": h, "messageBody": b} for h, b in commits],
           "baseRefName": "main", "issues": issues or {}, "behind": behind}
     (tmp / "pr.json").write_text(json.dumps(pr))
@@ -127,7 +131,7 @@ def merge(comments, moved_to=None, reviews=(), url=PR_URL, title="t", body="Clos
     (tmp / "gh").write_text(MERGE_GH)
     (tmp / "gh").chmod(0o755)
     env = dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}")
-    result = subprocess.run([sys.executable, str(MERGE), url], capture_output=True, text=True, env=env)
+    result = subprocess.run([sys.executable, str(MERGE), url], capture_output=True, text=True, env=env, cwd=cwd or tmp)
     merged = tmp / "merged"
     return result, json.loads(merged.read_text()) if merged.exists() else None
 
@@ -216,6 +220,152 @@ class Merge(unittest.TestCase):
         self.assertIsNone(words)
         self.assertIn("merge it in", result.stderr)
 
+
+GIT_ENV = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t",
+               GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
+
+
+def carry_git(repo, *argv):
+    """stdout of `git <argv>` in `repo`, with no hook, signing or user config."""
+    return subprocess.run(["git", "-c", "core.hooksPath=/dev/null", "-c", "commit.gpgsign=false", *argv], cwd=repo, env=GIT_ENV,
+                          capture_output=True, text=True, check=True).stdout.strip()
+
+
+def commit(repo, message, **files):
+    """Write each file, commit them as `message`, and return the new sha."""
+    for name, text in files.items():
+        (repo / name).write_text(text)
+    carry_git(repo, "add", "-A")
+    carry_git(repo, "commit", "-q", "--allow-empty", "-m", message)
+    return carry_git(repo, "rev-parse", "HEAD")
+
+
+def remerge(repo, approved, main, **files):
+    """Merge `main` into `approved` again on a detached head, writing each file into the merge commit; return its sha."""
+    carry_git(repo, "checkout", "-q", "--detach", approved)
+    carry_git(repo, "merge", "-q", "--no-ff", "--no-commit", main)
+    return commit(repo, f"Merge {main}", **files)
+
+
+class MergeCarry(unittest.TestCase):
+    """An `APPROVED: <A>` carries to the head only across merges of origin/main that keep the diff from the merge base."""
+
+    def setUp(self):
+        self.repo = repo = pathlib.Path(tempfile.mkdtemp())
+        carry_git(repo, "init", "-q", "-b", "main")
+        self.base = commit(repo, "base", **{"base.txt": "x\n"})
+        carry_git(repo, "checkout", "-q", "-b", "pr")
+        self.approved = commit(repo, "pr change", **{"pr.txt": "  indented\n"})
+        carry_git(repo, "checkout", "-q", "main")
+        self.main = commit(repo, "main moves on", **{"main.txt": "y\n"})
+        carry_git(repo, "update-ref", "refs/remotes/origin/main", self.main)
+        self.head = remerge(repo, self.approved, self.main)
+
+    def run_merge(self, head, comments=None):
+        return merge(comments or [f"APPROVED: {self.approved}"], head=head, cwd=self.repo)
+
+    def assertRefused(self, result, words, head, approved=None):
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIsNone(words)
+        self.assertIn(approved or self.approved, result.stderr)
+        self.assertIn(head, result.stderr)
+
+    def test_an_approval_carries_across_a_merge_of_main(self):
+        result, words = self.run_merge(self.head)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(words, ["pr", "merge", PR_URL, "--squash", "--match-head-commit", self.head])
+
+    def test_a_changed_patch_does_not_carry(self):
+        for name, text in (("an extra edit", "  indented\nmore\n"), ("a re-indent", "    indented\n")):
+            with self.subTest(name=name):
+                head = remerge(self.repo, self.approved, self.main, **{"pr.txt": text})
+                result, words = self.run_merge(head)
+                self.assertRefused(result, words, head)
+                self.assertIn("patch-id", result.stderr)
+
+    def test_a_commit_on_the_path_that_is_no_merge_of_main_does_not_carry(self):
+        carry_git(self.repo, "checkout", "-q", "--detach", self.head)
+        on_top = commit(self.repo, "empty, so the patch is unchanged")
+        carry_git(self.repo, "checkout", "-q", "--detach", self.approved)
+        side = commit(self.repo, "a side branch off the approved commit")
+        merged_side = remerge(self.repo, self.approved, side)
+        for name, head in (("a plain commit", on_top), ("a merge of a branch not on main", merged_side)):
+            with self.subTest(name=name):
+                result, words = self.run_merge(head)
+                self.assertRefused(result, words, head)
+                self.assertIn("not a merge", result.stderr)
+
+    def test_an_approval_of_no_ancestor_does_not_carry(self):
+        """A force-pushed head with the same patch: a rewritten A is no ancestor of it."""
+        carry_git(self.repo, "checkout", "-q", "--detach", self.base)
+        rewritten = commit(self.repo, "pr change, rewritten", **{"pr.txt": "  indented\n"})
+        head = remerge(self.repo, rewritten, self.main)
+        result, words = self.run_merge(head)
+        self.assertRefused(result, words, head)
+        self.assertIn("not an ancestor", result.stderr)
+
+    def test_findings_newer_than_the_approval_refuse(self):
+        approve = {"body": f"APPROVED: {self.approved}", "createdAt": "2026-01-01T00:00:01Z"}
+        findings = {"body": f"FINDINGS: {self.approved}\n- a defect", "createdAt": "2026-01-01T00:00:02Z"}
+        result, words = self.run_merge(self.head, [findings, approve])
+        self.assertRefused(result, words, self.head)
+        self.assertIn("FINDINGS", result.stderr)
+        again = {"body": f"APPROVED: {self.head}", "submittedAt": "2026-01-01T00:00:03Z"}
+        result, words = merge([findings, approve], reviews=[again], head=self.head, cwd=self.repo)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_findings_newer_than_an_approval_of_the_head_refuse(self):
+        result, words = merge([f"APPROVED: {HEAD}", f"FINDINGS: {HEAD}"])
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIsNone(words)
+        self.assertIn(HEAD, result.stderr)
+
+    def test_an_unreadable_or_empty_diff_does_not_carry(self):
+        carry_git(self.repo, "checkout", "-q", "--detach", self.base)
+        empty = commit(self.repo, "no change")
+        head = remerge(self.repo, empty, self.main)
+        result, words = merge([f"APPROVED: {empty}"], head=head, cwd=self.repo)
+        self.assertRefused(result, words, head, empty)
+        self.assertIn("empty", result.stderr)
+        carry_git(self.repo, "update-ref", "-d", "refs/remotes/origin/main")
+        result, words = self.run_merge(self.head)
+        self.assertRefused(result, words, self.head)
+        self.assertIn("cannot be read", result.stderr)
+
+    def test_step_4_resumes_the_reviewer_only_when_the_merge_is_refused_again(self):
+        step = next(l for l in (ROOT / "skills/kickoff/references/work-task.md").read_text().splitlines() if l.startswith("4. "))
+        after = step[step.index("merge the default branch in"):]
+        self.assertRegex(after.split(". ")[0], r"`merge` again.*only when `merge\.py` refuses.*resume the reviewer")
+
+    def test_the_approval_of_pull_request_268_carries_across_its_merge_of_main(self):
+        """Replays #268: `APPROVED: A`, then head H merges the non-empty 459d5b9 of main in."""
+        approved, head, main = "a0693293473f796f93ec5b841f75c2df13d1dee7", "156135ca449009d226c7ead34db16e0a60124cef", "459d5b9"
+        repo = pathlib.Path(tempfile.mkdtemp())
+        carry_git(repo, "init", "-q")
+        common = carry_git(ROOT, "rev-parse", "--path-format=absolute", "--git-common-dir")
+        (repo / ".git/objects/info/alternates").write_text(f"{common}/objects\n")
+        carry_git(repo, "remote", "add", "origin", carry_git(ROOT, "remote", "get-url", "origin"))
+        try:
+            carry_git(repo, "fetch", "-q", "origin", "refs/pull/268/head")
+        except subprocess.CalledProcessError as e:
+            self.skipTest(f"offline: git fetch origin refs/pull/268/head failed: {e.stderr.strip()}")
+        carry_git(repo, "update-ref", "refs/remotes/origin/main", main)
+        result, words = merge([f"APPROVED: {approved}"], head=head, cwd=repo)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(words[-1], head)
+        carry_git(repo, "checkout", "-q", "--detach", head)
+        on_top = commit(repo, "a plain commit on top")
+        probe = "experiments/263/ruleB1.md"
+        cases = {"a plain commit on top": on_top,
+                 "an extra edit in the merge": remerge(repo, approved, main, **{probe: "Probe ruleB1 for #263.\nmore\n"}),
+                 "a re-indent in the merge": remerge(repo, approved, main, **{probe: "  Probe ruleB1 for #263.\n"})}
+        for name, bad in cases.items():
+            with self.subTest(name=name):
+                result, words = merge([f"APPROVED: {approved}"], head=bad, cwd=repo)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIsNone(words)
+                self.assertIn(approved, result.stderr)
+                self.assertIn(bad, result.stderr)
 
 
 # State lives in files under $CLOSE_HERDR: `alive` while the session runs, `exiting` counts the polls a plain /exit takes to leave herdr's list,
