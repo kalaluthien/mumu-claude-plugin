@@ -51,17 +51,19 @@ class Debounce(unittest.TestCase):
         return [summary(minutes_ago + 1, True)] + calls(3) + [summary(minutes_ago, False)] + calls(n)
 
     def test_enough_calls_within_the_interval_do_not_block(self):
-        self.assertFalse(self.blocks(self.after_block(10, 8)))
+        self.assertFalse(self.blocks(self.after_block(100, 40)))
 
     def test_enough_calls_after_the_interval_block(self):
-        self.assertTrue(self.blocks(self.after_block(40, 8)))
+        self.assertTrue(self.blocks(self.after_block(130, 40)))
 
     def test_few_calls_after_the_interval_do_not_block(self):
-        self.assertFalse(self.blocks(self.after_block(40, 7)))
+        self.assertFalse(self.blocks(self.after_block(130, 39)))
 
     def test_first_stop_with_enough_calls_blocks(self):
-        self.assertTrue(self.blocks(calls(8)))
+        self.assertTrue(self.blocks(calls(40)))
 
+    def test_first_stop_with_few_calls_does_not_block(self):
+        self.assertFalse(self.blocks(calls(39)))
 
 if __name__ == "__main__":
     unittest.main()
