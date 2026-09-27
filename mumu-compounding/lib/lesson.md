@@ -17,8 +17,8 @@ the folder the owner names, else `${CLAUDE_CONFIG_DIR:-$HOME/.claude}`, and
    that worked, often one the owner accepted or a success by an unplanned
    path, "when <situation>, keep <action>, because <what it saved>"; a
    procedure you had to work out keeps its steps as run. Merge drafts of one
-   cause, and have each cite its evidence: a candidate's timestamp or url, or
-   a `path:line`.
+   cause, and have each cite its evidence in the text you file: a
+   candidate's timestamp or url, or a `path:line`.
 3. Of n drafts file all when n ≤ 3, else the 3 + (2(n−3)+2)//5 that cost the
    most when repeated, and tell the owner in one line how many were dropped.
 
@@ -39,10 +39,10 @@ the folder the owner names, else `${CLAUDE_CONFIG_DIR:-$HOME/.claude}`, and
    Never rewrite a file to fold a lesson in; edit `MEMORY.md` one line at a time over a fresh read, since another
    session may write the same pool.
 3. A surprise a lesson already on file should have prevented: CONFIRM it,
-   and promote it to a hook or skill through `/mumu-team:handoff`, as a task
-   in the GitHub repository of its project, whose path is the `cwd` of a
-   transcript in its pool's folder, naming the lesson and the repeat's
-   evidence. A project with no GitHub repository gets no task: tell the owner
+   and promote it through `/mumu-team:handoff`: a task, in the GitHub
+   repository of its project, whose path is the `cwd` of a transcript in its
+   pool's folder, to turn the lesson into a hook or a skill step, naming
+   which, the lesson and the repeat's evidence. A project with no GitHub repository gets no task: tell the owner
    in one line instead.
 4. Delete or correct any entry this session showed wrong, touched or not.
 
