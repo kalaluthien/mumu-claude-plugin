@@ -2,7 +2,8 @@
 
 File each lesson, handed over by the user or found by a harvest. A harvest
 goes over the work since the last one: a surprise (a failed check, a refusal,
-a step redone, a success by an unplanned path) becomes a rule to act on at a
+a step redone, a success by an unplanned path, an owner's answer that
+overrode your recommendation) becomes a rule to act on at a
 task's start, "when <situation>, do <action>, because <the broken
 assumption>", and a procedure you had to work out keeps its steps as run.
 
