@@ -121,7 +121,7 @@ Every command names its target pane.
 | `decide` | `decide.py <url> [--criteria <file>] < <decision>`: posts `DECIDED: <decision>`, and with `--criteria` first replaces the body's `## Definition of done` by the file's lines |
 | `resolve` | `gh issue close <url> --reason completed --comment "<summary>"` |
 | `stop` | `gh issue close <url> --reason "not planned" --comment "<reason>"`, then `gh pr ready --undo <pr-url>` for its open pull request |
-| `claim` | `git fetch origin && ! git ls-remote --exit-code origin refs/heads/<branch> && git switch -c <branch> origin/<default> && git push -u origin <branch>`, the branch named after the worktree; a branch found is yours only when this checkout is on it |
+| `claim` | `git fetch origin && ! git ls-remote --exit-code origin refs/heads/<branch> && git push -u origin <branch>`, `<branch>` the worktree's own, named after it, which `worker-start.py` adds it on; a branch found is yours only when this checkout is on it |
 | `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file -`; later `gh pr edit <pr> --body-file -` |
 | `merge` | `merge.py <pr-url>`: squash-merges pinned to the head only when a comment or review opens `APPROVED: <head>` |
 | `clean` | for each worker `git -C <checkout> worktree remove <worktree>`, `git -C <checkout> branch -D <branch>` and, while `git -C <checkout> ls-remote --exit-code origin refs/heads/<branch>` finds it, since a merge deletes it, `git -C <checkout> push origin --delete <branch>`; then `git -C <checkout> pull --ff-only`, and remove the hook when `cmp -s` finds it equal to `default-branch-guard.sh` as `rm <hooks>/pre-commit`, `<hooks>` written out as its literal path, no variable, so the allow rules match it |

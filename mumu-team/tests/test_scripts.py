@@ -7,6 +7,7 @@ import importlib.machinery
 import json
 import os
 import pathlib
+import re
 import shlex
 import shutil
 import subprocess
@@ -595,6 +596,51 @@ class TeamWatch(unittest.TestCase):
         self.herdr(0, ("fix-a-12-1", "blocked", True))
         self.assertEqual(self.run_watch(ticks=0, role="worker"), [])
         self.assertEqual(self.polls("herdr"), 0)
+
+
+class WorktreeGuard(unittest.TestCase):
+    """The PreToolUse hooks hooks.json runs for a file tool: a worker writes only in its own worktree."""
+
+    def setUp(self):
+        self.tmp = pathlib.Path(tempfile.mkdtemp()).resolve()
+        self.addCleanup(shutil.rmtree, self.tmp)
+        self.checkout = self.tmp / "repo"
+        self.tree = self.checkout / ".claude" / "worktrees" / "keep-244-1"
+        (self.tree / "sub").mkdir(parents=True)
+
+    def call(self, tool, path, cwd):
+        key = "notebook_path" if tool == "NotebookEdit" else "file_path"
+        payload = {"hook_event_name": "PreToolUse", "tool_name": tool, "cwd": str(cwd), "tool_input": {key: str(path)}}
+        commands = [h["command"] for entry in json.loads((PLUGIN / "hooks" / "hooks.json").read_text())["hooks"]["PreToolUse"]
+                    if re.fullmatch(entry["matcher"], tool) for h in entry["hooks"]]
+        self.assertTrue(commands, f"no hook for {tool}")
+        env = dict(os.environ, CLAUDE_PLUGIN_ROOT=str(PLUGIN))
+        return [subprocess.run(c, shell=True, input=json.dumps(payload), env=env, capture_output=True, text=True, timeout=30)
+                for c in commands]
+
+    def test_a_worker_writing_in_the_leaders_checkout_is_refused_naming_its_worktree(self):
+        for tool in ("Edit", "Write", "NotebookEdit"):
+            for cwd in (self.tree, self.tree / "sub"):
+                for path in (self.checkout / "a.py", "../../../a.py" if cwd == self.tree else "../../../../a.py",
+                             self.checkout / ".claude" / "worktrees" / "other-9-1" / "a.py"):
+                    with self.subTest(tool=tool, cwd=cwd, path=path):
+                        outs = self.call(tool, path, cwd)
+                        self.assertEqual([o.returncode for o in outs], [2], outs)
+                        self.assertIn(str(self.tree), outs[0].stderr)
+
+    def test_a_worker_writing_in_its_worktree_or_outside_the_checkout_passes(self):
+        for tool in ("Edit", "Write", "NotebookEdit"):
+            for path in (self.tree / "a.py", self.tree / "sub" / "b.py", "sub/c.py", self.tmp / "scratch" / "d.md"):
+                with self.subTest(tool=tool, path=path):
+                    outs = self.call(tool, path, self.tree)
+                    self.assertEqual([o.returncode for o in outs], [0], outs)
+
+    def test_a_lead_at_the_checkout_root_passes(self):
+        for tool in ("Edit", "Write", "NotebookEdit"):
+            for path in (self.checkout / "a.py", "a.py", self.tree / "a.py"):
+                with self.subTest(tool=tool, path=path):
+                    outs = self.call(tool, path, self.checkout)
+                    self.assertEqual([o.returncode for o in outs], [0], outs)
 
 
 if __name__ == "__main__":
