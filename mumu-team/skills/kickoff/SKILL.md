@@ -92,7 +92,7 @@ Writing, for every issue, pull request and comment:
 
 # Verbs
 
-A task lives in its leader's repository, and a worker's worktree in its leader's own checkout only. The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, and `<hooks>` is `git -C <checkout> rev-parse --path-format=absolute --git-path hooks`.
+A body, a comment or a decision is written with a file tool to `<path>` first, never a heredoc, since `bash-guard.py` reads a heredoc as the command. A task lives in its leader's repository, and a worker's worktree in its leader's own checkout only. The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, and `<hooks>` is `git -C <checkout> rev-parse --path-format=absolute --git-path hooks`.
 
 `start`, `start-lead`, `close`, `merge` and `clean`'s git commands each run as the literal command written, one Bash call of its own by its bare name, with no path, interpreter, `cd`, `&&`, `;`, pipe, loop, redirect, `git -C` or variable, so an owner allow rule matches it; `bash-guard.py` refuses any other form.
 
@@ -108,7 +108,7 @@ Every command names its target pane.
 | `start` | `worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--leader <your address>] [--owner-effort]`: starts the worker `<topic>-<n>-<k>` at the next attempt, or the newest with `--continue`, in its own worktree and tab, prompted kickoff's `work`; it refuses a task closed, labelled `backlog`, blocked, at another effort than its label, or a share before its `after` rows merged |
 | `name` | this session's three names: `herdr tab rename <tab> <name>`, the tab being `herdr pane get $HERDR_PANE_ID`'s `tab_id`; `herdr agent rename $HERDR_PANE_ID <name>`; and `herdr agent prompt $HERDR_PANE_ID "/rename <name>"`, which applies when the turn ends |
 | `prompt` | `herdr agent prompt <name> "<text>"`, by name, since a remembered pane id can be stale; success prints before delivery and a busy pane or open dialog can swallow the text, so read the pane before and after and resend when no turn carries it; failing twice, tell the owner |
-| `start-lead` | `lead-start.py <checkout> [<task-url>] [--folder <folder>] [-- <claude flags>]`, or `--succeed <pane>` for the task and folder, at the checkout's root: starts `<repo>-lead`, or `<folder>-lead` with `--folder`, in a new tab, refusing when one is live, and prompts its kickoff; a start-up dialog in its tab is the owner's to answer there |
+| `start-lead` | `lead-start.py <checkout> [<task-url>] [--folder <folder>] [-- <claude flags>]`, or `--succeed <pane>` for the task and folder, or `--replace` for the task to close the calling session once its turn ends, at the checkout's root: starts `<repo>-lead`, or `<folder>-lead` with `--folder`, in a new tab, refusing when one is live, and prompts its kickoff; a start-up dialog in its tab is the owner's to answer there |
 | `broadcast` | `prompt` each lead in `live` but you `see <url>`, one `herdr agent prompt <literal-name> "see <url>"` Bash call per agent, no loop and no variable, so the allow rule matches it |
 | `close` | `worker-close.py <name>`: exits the session, answering its exit dialogs, and closes each tab labelled `<name>`, the session live or gone |
 
@@ -117,14 +117,14 @@ Every command names its target pane.
 | verb | command |
 | --- | --- |
 | `read` | `gh issue view <url> --json title,body,comments,labels,state,parent`, or `gh pr view <url> --json title,body,comments,headRefOid` |
-| `file` | `gh label create <label> -R <repo> --force` for each label, then `gh issue create -R <repo> --title "<title>" --label <label>... --body-file -`; a task's effort is low or medium unless the owner named another |
+| `file` | `gh label create <label> -R <repo> --force` for each label, then `gh issue create -R <repo> --title "<title>" --label <label>... --body-file <path>`; a task's effort is low or medium unless the owner named another |
 | `order` | `gh api -X POST repos/<repo>/issues/<n>/dependencies/blocked_by -F issue_id=<id>`, `<id>` the blocker's `gh api repos/<owner>/<repo>/issues/<m> -q .id`, in this repository or another |
-| `comment` | `gh issue comment <url> --body-file -` |
-| `decide` | `decide.py <url> [--criteria <file>] < <decision>`: posts `DECIDED: <decision>`, and with `--criteria` first replaces the body's `## Definition of done` by the file's lines |
+| `comment` | `gh issue comment <url> --body-file <path>` |
+| `decide` | `decide.py <url> [--criteria <file>] < <path>`: posts `DECIDED: <decision>`, the text of `<path>`, and with `--criteria` first replaces the body's `## Definition of done` by the file's lines |
 | `resolve` | `gh issue close <url> --reason completed --comment "<summary>"`, which `bash-guard.py` refuses for a split task while a `## Shares` row has no merged pull request `<row>-<n>-<k>` |
 | `stop` | `gh issue close <url> --reason "not planned" --comment "<reason>"`, then `gh pr ready --undo <pr-url>` for its open pull request |
 | `claim` | `git fetch origin && ! git ls-remote --exit-code origin refs/heads/<branch> && git push -u origin <branch>`, `<branch>` the worktree's own, named after it, which `worker-start.py` adds it on; a branch found is yours only when this checkout is on it |
-| `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file -`; later `gh pr edit <pr> --body-file -` |
+| `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file <path>`; later `gh pr edit <pr> --body-file <path>` |
 | `merge` | `merge.py <pr-url>`: squash-merges pinned to the head only when the newest verdict opens `APPROVED: <head>`, or `APPROVED: <A>` carried to it: every commit on `git rev-list --first-parent A..head` a merge of `origin/<default>`, and `git patch-id --verbatim` of the diff from the merge base the same at A and head |
 | `clean` | from the checkout's root, one literal Bash call per command per worker, with no `git -C`, `cd` prefix, loop, `$(...)` or variable, so the allow rules match it: `git worktree remove .claude/worktrees/<name>`, `git branch -D <name>` and, while `git ls-remote --exit-code origin refs/heads/<name>` finds it, since a merge deletes it, `git push origin --delete <name>`; then `git pull --ff-only`, and remove the hook when `cmp -s` finds it equal to `default-branch-guard.sh` as `rm <hooks>/pre-commit`, `<hooks>` written out as its literal path |
 
