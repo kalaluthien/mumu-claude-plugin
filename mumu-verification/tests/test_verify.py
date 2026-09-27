@@ -13,6 +13,7 @@ VERIFY = pathlib.Path(__file__).resolve().parent.parent / "skills" / "spec" / "s
 MODEL = "sig A { f: set A }\nassert NoSelf { no a: A | a in a.f }\nfact { no a: A | a in a.f }\nrun {} for 2 expect 1\n"
 GOOD, WITNESS = "check NoSelf for 2 expect 0\n", "def refuses_NoSelf(): pass\n"
 NONE = "FAIL check NoSelf: no refuses_NoSelf test\n"
+FLOW, SCENARIO = GOOD + "pred grow[a: A] { some a.f }\nrun grow for 2 expect 1", "def scenario_grow(): pass\n"
 CASES = {  # name: (check.als tail or None for no spec, {file: text}, suite command or None unset), (exit, stdout)
     "passes": ((GOOD, {"test_m.py": WITNESS}, "true"), (0, "")),
     "no model": ((None, {}, "true"), (0, "no model\n")),
@@ -28,6 +29,12 @@ CASES = {  # name: (check.als tail or None for no spec, {file: text}, suite comm
     "witness in *Test.kt": ((GOOD, {"src/k/ATest.kt": WITNESS}, "true"), (0, "")),
     "gaps counted": (("check NoSelf for 2 expect 0 -- gap #7\n", {"tests/test_a.py": "# gap #12\n" + WITNESS + "# gap #7\n"}, "true"),
                      (0, "GAP #7: 2 marks\nGAP #12: 1 marks\n")),
+    "flow run paired": ((FLOW + "\n", {"tests/test_a.py": WITNESS + SCENARIO}, "true"), (0, "")),
+    "flow run unpaired": ((FLOW + "\n", {"tests/test_a.py": WITNESS}, "true"), (1, "FAIL run grow: no scenario_grow test\n")),
+    "stale scenario": ((GOOD, {"tests/test_a.py": WITNESS + SCENARIO}, "true"), (1, "FAIL test scenario_grow: names no flow run\n")),
+    "flow run gap": ((FLOW + " -- gap #9\n", {"tests/test_a.py": WITNESS}, "true"), (0, "GAP #9: 1 marks\n")),
+    "guard run unpaired": ((GOOD + "run Admits { some a: A | some a.f } for 2 expect 1\n", {"tests/test_a.py": WITNESS}, "true"),
+                           (0, "")),
     "suite": ((GOOD, {"test_m.py": WITNESS}, "false"), (1, "FAIL tests: false\n")),
     "no model, suite": ((None, {}, "false"), (1, "no model\nFAIL tests: false\n")),
     "suite unset": ((GOOD, {"tests/test_m.py": WITNESS + "print('ran')\n"}, None),
