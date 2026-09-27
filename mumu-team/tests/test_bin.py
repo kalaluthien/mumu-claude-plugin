@@ -369,8 +369,14 @@ with open(d / "calls", "a") as f:
     f.write(json.dumps([tool] + a) + "\n")
 blocked = (d / "trust").exists() and not (d / "answered").exists()
 if tool == "gh":
-    prs = d / ("open_prs" if "open" in a else "prs")
-    print((prs.read_text() if prs.exists() else "") if a[:2] == ["pr", "list"] else "main")
+    prs, rulesets = d / ("open_prs" if "open" in a else "prs"), d / "rulesets"
+    if a[:2] == ["api", "-X"]:
+        with open(rulesets, "a") as f:
+            f.write(json.loads(sys.stdin.read())["name"] + "\n")
+    elif a[:1] == ["api"]:
+        print(rulesets.read_text() if rulesets.exists() else "")
+    else:
+        print((prs.read_text() if prs.exists() else "") if a[:2] == ["pr", "list"] else "main")
 elif tool == "git":
     if a[2:4] == ["worktree", "add"]:
         pathlib.Path(a[5]).mkdir(parents=True)
@@ -456,7 +462,19 @@ class WorkerStart(unittest.TestCase):
         self.assertLess(keys, prompt, "prompted before the trust dialog was answered")
         self.assertEqual(self.status(), "working")
         self.assertIn(["git", "-C", str(self.repo), "worktree", "add", "--detach", str(tree), "origin/main"], calls)
-        self.assertTrue((self.tmp / "hooks" / "pre-commit").exists() and (self.tmp / "hooks" / "pre-push").exists())
+        self.assertEqual(sorted(p.name for p in (self.tmp / "hooks").iterdir()), ["pre-commit"])
+
+    def test_ruleset_created_on_the_first_start_only(self):
+        """The server-side guard on the default branch: created when absent, left alone once there."""
+        creates = []
+        for _ in range(2):
+            (self.tmp / "calls").unlink(missing_ok=True)
+            done, calls = self.start(trust=False)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            creates.append([c for c in calls if c[:4] == ["gh", "api", "-X", "POST"]])
+        self.assertEqual([len(c) for c in creates], [1, 0])
+        self.assertEqual(creates[0][0][4], "repos/{owner}/{repo}/rulesets")
+        self.assertEqual((self.tmp / "rulesets").read_text(), "mumu-default-branch\n")
 
     def test_tab_marks_the_session_a_worker(self):
         """The marker the lead monitors exit on (`scripts/team-watch.py`)."""

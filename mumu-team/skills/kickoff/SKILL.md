@@ -80,7 +80,7 @@ Rules:
 
 - A keyword is written in capitals as above and read in any case, the colon optional.
 - A merge happens only through `merge.py`, at an approved head, and a hook refuses a raw `gh pr merge`. The same hook refuses a skipped git hook: fix what the git hook refused, or post `BLOCKED:`.
-- A commit on the default branch, or a push to it, is refused by a hook in the checkout.
+- A commit on the default branch is refused by a hook in the checkout, and a push to it by the repository's ruleset, which `start` ensures.
 - Every session and agent runs Opus, but the `reviewer` of a pull request of at most 20 changed lines, which runs on Sonnet: effort low when its task names what to change and how to check it, medium when it does not.
 
 Writing, for every issue, pull request and comment:
@@ -124,7 +124,7 @@ Every command names its target pane.
 | `claim` | `git fetch origin && ! git ls-remote --exit-code origin refs/heads/<branch> && git switch -c <branch> origin/<default> && git push -u origin <branch>`, the branch named after the worktree; a branch found is yours only when this checkout is on it |
 | `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file -`; later `gh pr edit <pr> --body-file -` |
 | `merge` | `merge.py <pr-url>`: squash-merges pinned to the head only when a comment or review opens `APPROVED: <head>` |
-| `clean` | for each worker `git -C <checkout> worktree remove <worktree>`, `git -C <checkout> branch -D <branch>` and `git -C <checkout> push origin --delete <branch>`; then `git -C <checkout> pull --ff-only`, and remove each hook `cmp -s` finds equal to `default-branch-guard.sh` as `rm <hooks>/pre-commit` or `rm <hooks>/pre-push`, `<hooks>` written out as its literal path, no variable, so the allow rules match it |
+| `clean` | for each worker `git -C <checkout> worktree remove <worktree>`, `git -C <checkout> branch -D <branch>` and `git -C <checkout> push origin --delete <branch>`; then `git -C <checkout> pull --ff-only`, and remove the hook when `cmp -s` finds it equal to `default-branch-guard.sh` as `rm <hooks>/pre-commit`, `<hooks>` written out as its literal path, no variable, so the allow rules match it |
 
 ## Traps
 
