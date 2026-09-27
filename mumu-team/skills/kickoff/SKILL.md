@@ -92,7 +92,7 @@ Writing, for every issue, pull request and comment:
 
 # Verbs
 
-A task lives in its leader's repository, and a worker's worktree in its leader's own checkout only. The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, and `<hooks>` is `git -C <checkout> rev-parse --path-format=absolute --git-path hooks`.
+A body, a comment or a decision is written with a file tool to `<path>` first, never a heredoc, since `bash-guard.py` reads a heredoc as the command. A task lives in its leader's repository, and a worker's worktree in its leader's own checkout only. The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, and `<hooks>` is `git -C <checkout> rev-parse --path-format=absolute --git-path hooks`.
 
 `start`, `start-lead`, `close`, `merge` and `clean`'s git commands each run as the literal command written, one Bash call of its own by its bare name, with no path, interpreter, `cd`, `&&`, `;`, pipe, loop, redirect, `git -C` or variable, so an owner allow rule matches it; `bash-guard.py` refuses any other form.
 
@@ -117,14 +117,14 @@ Every command names its target pane.
 | verb | command |
 | --- | --- |
 | `read` | `gh issue view <url> --json title,body,comments,labels,state,parent`, or `gh pr view <url> --json title,body,comments,headRefOid` |
-| `file` | `gh label create <label> -R <repo> --force` for each label, then `gh issue create -R <repo> --title "<title>" --label <label>... --body-file -`; a task's effort is low or medium unless the owner named another |
+| `file` | `gh label create <label> -R <repo> --force` for each label, then `gh issue create -R <repo> --title "<title>" --label <label>... --body-file <path>`; a task's effort is low or medium unless the owner named another |
 | `order` | `gh api -X POST repos/<repo>/issues/<n>/dependencies/blocked_by -F issue_id=<id>`, `<id>` the blocker's `gh api repos/<owner>/<repo>/issues/<m> -q .id`, in this repository or another |
-| `comment` | `gh issue comment <url> --body-file -` |
-| `decide` | `decide.py <url> [--criteria <file>] < <decision>`: posts `DECIDED: <decision>`, and with `--criteria` first replaces the body's `## Definition of done` by the file's lines |
+| `comment` | `gh issue comment <url> --body-file <path>` |
+| `decide` | `decide.py <url> [--criteria <file>] < <path>`: posts `DECIDED: <decision>`, the text of `<path>`, and with `--criteria` first replaces the body's `## Definition of done` by the file's lines |
 | `resolve` | `gh issue close <url> --reason completed --comment "<summary>"`, which `bash-guard.py` refuses for a split task while a `## Shares` row has no merged pull request `<row>-<n>-<k>` |
 | `stop` | `gh issue close <url> --reason "not planned" --comment "<reason>"`, then `gh pr ready --undo <pr-url>` for its open pull request |
 | `claim` | `git fetch origin && ! git ls-remote --exit-code origin refs/heads/<branch> && git push -u origin <branch>`, `<branch>` the worktree's own, named after it, which `worker-start.py` adds it on; a branch found is yours only when this checkout is on it |
-| `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file -`; later `gh pr edit <pr> --body-file -` |
+| `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file <path>`; later `gh pr edit <pr> --body-file <path>` |
 | `merge` | `merge.py <pr-url>`: squash-merges pinned to the head only when the newest verdict opens `APPROVED: <head>`, or `APPROVED: <A>` carried to it: every commit on `git rev-list --first-parent A..head` a merge of `origin/<default>`, and `git patch-id --verbatim` of the diff from the merge base the same at A and head |
 | `clean` | from the checkout's root, one literal Bash call per command per worker, with no `git -C`, `cd` prefix, loop, `$(...)` or variable, so the allow rules match it: `git worktree remove .claude/worktrees/<name>`, `git branch -D <name>` and, while `git ls-remote --exit-code origin refs/heads/<name>` finds it, since a merge deletes it, `git push origin --delete <name>`; then `git pull --ff-only`, and remove the hook when `cmp -s` finds it equal to `default-branch-guard.sh` as `rm <hooks>/pre-commit`, `<hooks>` written out as its literal path |
 
