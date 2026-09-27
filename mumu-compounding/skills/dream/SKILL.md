@@ -38,25 +38,26 @@ file for every project.
    - one lesson kept in two or more pools under any name: it holds for every
      project, so lesson.md's last row applies;
    - a lesson a skill, a references file, an agent or a hook should hold:
-     FILE a task, an issue without the `backlog` label, in the repository
-     whose checkout holds that file (`git -C <its folder> remote get-url
-     origin`), with its `scope:<folder>` label where the repository has
-     such labels, its body a `## Goal` naming the file and the lesson and a
-     `## Definition of done` whose check finds the lesson in that file; the
-     pool entry stays until the repository states it;
+     EDIT that file, adding the lesson as a step or rule where it applies,
+     and DELETE the pool entry once the file states it; in a git checkout
+     whose default branch a hook guards, as in a project a mumu-team lead
+     holds, hand the edit, naming the file and the lesson, to that
+     project's lead through `/mumu-team:handoff` instead, and the entry
+     goes at a later round that finds it stated;
    - an entry the repository already states: DELETE it.
 3. No fix found that was not rejected in this call: say so, with the
    fixes applied in earlier rounds, and stop, offering no other change;
    in the first round, write nothing.
 4. Otherwise put the fixes not yet rejected in this call to the owner as
    one `AskUserQuestion` question, `multiSelect: true`, one option per fix:
-   the top 4 by impact, each option's label the action (ADD, EDIT, DELETE
-   or FILE) and file, its description the reason; a file and its
+   the top 4 by impact, each option's label the action (ADD, EDIT or
+   DELETE) and file, its description the reason and its cost, `<n> files,
+   <m> lines` touched; a file and its
    `MEMORY.md` line are one fix, and so are a lesson moved and the copies
    it replaces. The tool takes 2 to 4 options, so a lone fix gets a
    second option, `None`. The options chosen are approved and the rest
    rejected.
 5. Apply only the approved fixes; a file only rejected fixes name is never
-   touched, and no issue is filed that was not chosen. Report each fix
+   touched, and nothing is handed off that was not chosen. Report each fix
    applied or skipped.
 6. Go back to step 1: one dream runs rounds until step 3 stops it.
