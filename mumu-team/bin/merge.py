@@ -102,9 +102,9 @@ def main(args):
     approved, stale = approval(pr)
     if not approved:
         after = f"; `APPROVED: {stale}` is older than a `FINDINGS:`" if stale else ""
-        sys.exit(f"merge.py: no comment or review opens with `APPROVED: {head}` since the newest `FINDINGS:`{after}; launch the reviewer at this head")
+        sys.exit(f"merge.py: no comment or review opens with `APPROVED: {head}` since the newest `FINDINGS:`{after}; launch the judge at this head")
     if approved != head and (why := uncarried(approved, head, f"origin/{pr['baseRefName']}")):
-        sys.exit(f"merge.py: `APPROVED: {approved}` does not carry to the head {head}: {why}; resume the reviewer at this head")
+        sys.exit(f"merge.py: `APPROVED: {approved}` does not carry to the head {head}: {why}; resume the judge at this head")
     if not (CLOSING.search(pr.get("body") or "") or PART.search(pr.get("body") or "")):
         sys.exit("merge.py: the body names no task: open it with `Closes #<task>`, or a share's `Part of #<task>`, over the criteria table")
     try:

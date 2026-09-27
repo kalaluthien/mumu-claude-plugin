@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """PreToolUse hook on Bash: refuse a raw `gh pr merge`, since `merge.py` is the only merge path, and a git hook bypass,
 even as text only naming either, which goes through a file and `--body-file`; and in a lead's or worker's session, what
-the kickoff skill gives another role: `APPROVED:` and `FINDINGS:` the reviewer's, `DECIDED:` the lead's through
+the kickoff skill gives another role: `APPROVED:` and `FINDINGS:` the judge's, `DECIDED:` the lead's through
 `decide.py`, a task's body, labels, reopening and stop its lead's, a body only its three sections, a worker's prompt
 only `see <url>`, and no title over 40 characters; and in any session, closing a split task as completed while a row of
 its `## Shares` has no merged pull request; and a routine step (`merge.py`, `worker-start.py`, `lead-start.py`,
-`worker-close.py`, `clean`'s git commands), or the reviewer's post, in any form but the literal one an allow rule matches."""
+`worker-close.py`, `clean`'s git commands), or the judge's post, in any form but the literal one an allow rule matches."""
 import json
 import os
 import pathlib
@@ -48,7 +48,7 @@ ROUTINE = {
 PREFIX = re.compile(r"(?:do|then|else|elif|!|\{|time|exec|nohup|command|env|xargs|sudo|uvx?|run|(?:python|pypy)[\d.]*|(?:ba|z|da)?sh"
                     r"|-.*|\w+=.*)", re.S)  # words that may stand before a run command: keywords, runners, flags, assignments
 SHELLS = {"bash", "sh", "zsh", "dash", "eval"}
-REVIEWER_POST = "the reviewer posts as one literal command, `gh pr comment <pr-url> --body '<verdict lines>'` or " \
+JUDGE_POST = "the judge posts as one literal command, `gh pr comment <pr-url> --body '<verdict lines>'` or " \
                 "`gh issue comment <url> --body '<verdict lines>'`: no file, stdin, heredoc or `$(...)`"
 
 
@@ -207,7 +207,7 @@ def role_refusal(command, role, cwd):
         for line in [(t.strip().splitlines() or [""])[0] for t in texts]:
             m = KEYWORD.match(line)
             if m and m[1].lower() in ("approved", "findings"):
-                return f"`{m[1].upper()}:` is the reviewer's alone: launch the `reviewer` agent to post it"
+                return f"`{m[1].upper()}:` is the judge's alone: launch the `judge` agent to post it"
             if m and verb in ("comment", "review"):
                 return "`DECIDED:` goes through `decide.py <url> < <decision>`, the lead's"
         title = option(words, "--title", "-t")
@@ -255,16 +255,16 @@ def routine_refusal(reading):
     return None
 
 
-def reviewer_refusal(command):
-    """Why the reviewer's post in `command` is not its literal form, `gh pr|issue comment <url> --body '<lines>'`; else None."""
+def judge_refusal(command):
+    """Why the judge's post in `command` is not its literal form, `gh pr|issue comment <url> --body '<lines>'`; else None."""
     reading = lexed(command)
     if reading is None:
-        return REVIEWER_POST if GH_WRITE.search(command) and re.search(r"--body-file|-F\b|<<|\$\(", command) else None
+        return JUDGE_POST if GH_WRITE.search(command) and re.search(r"--body-file|-F\b|<<|\$\(", command) else None
     for words in reading:
         m = GH_WRITE.match(" ".join(words))
         if m and m[2] in ("comment", "review") and (option(words, "--body-file", "-F") is not None or any(
                 "$(" in w or set(w) <= set("<>&|") and "<" in w for w in words)):
-            return REVIEWER_POST
+            return JUDGE_POST
     return None
 
 
@@ -323,7 +323,7 @@ def main():
             refuse(RAW_MERGE)
         if why := routine_refusal(readings[0]):
             refuse(why)
-        if payload.get("agent_type") == "mumu-team:reviewer" and (why := reviewer_refusal(command)):
+        if payload.get("agent_type") == "mumu-team:judge" and (why := judge_refusal(command)):
             refuse(why)
         role = ROLES.get(payload.get("agent_type"))
         if role and (why := role_refusal(command, role, payload.get("cwd") or ".")):
