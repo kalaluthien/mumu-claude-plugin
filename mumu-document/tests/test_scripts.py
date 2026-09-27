@@ -187,6 +187,7 @@ FAILS = [
     ("SQLite입니다.", "확인했음", "plain ending: 저장소는 확인했음 FAIL"),
     ("SQLite입니다.", "확인이 필요함.", "plain ending: 저장소는 확인이 필요함."),
     ('<div id="c">', '<div id="c" style="width:600px">', "FAIL: widest main > div#c"),
+    ("SQLite입니다.", "SQLite입니다. 넓이는 \\( x^2 \\)이에요.", "math 0 set FAIL: raw TeX 넓이는 \\( x^2 \\)이에요."),
 ]
 # (what to replace in GOOD, its replacement, a word no line may hold): each passes
 PASSES = [
@@ -194,6 +195,7 @@ PASSES = [
     ("SQLite입니다.", "바다.", "plain ending"),
     ("SQLite입니다.", "마음이에요.", "plain ending"),
     ("SQLite입니다.", "4.00점이에요.", "plain ending"),
+    ("SQLite입니다.", "SQLite입니다. <code>\\( x^2 \\)</code>로 써요.", "math"),
 ]
 # after the charts draw, which waits for the page to parse
 BREAK = ("<script>addEventListener('DOMContentLoaded', function () {"
@@ -405,6 +407,43 @@ class Widgets(unittest.TestCase):
 
 def assemble(*args):
     return subprocess.run([sys.executable, str(ASSEMBLE), *args], capture_output=True, text=True)
+
+
+def math_page():
+    """tests/pages/math.html's body assembled into a page."""
+    with tempfile.TemporaryDirectory() as d:
+        page = pathlib.Path(d) / "page.html"
+        assemble(str(ROOT / "tests" / "pages" / "math.html"), str(page))
+        return page.read_text()
+
+
+@unittest.skipUnless(CHROME.exists(), "no Chrome")
+class Math(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.page = math_page()
+
+    def test_math_page_passes(self):
+        code, out = check(self.page)
+        self.assertEqual((code, out.splitlines()[-1]), (0, "pass"), out)
+        self.assertIn("math 5 set pass", out)
+        self.assertIn("layout motion 320/320", out)
+
+    def test_long_display_without_its_scroll_box_fails(self):
+        box = ".katex-display { overflow-x: auto; overflow-y: hidden;"
+        self.assertIn(box, self.page)
+        code, out = check(self.page.replace(box, ".katex-display {"))
+        self.assertEqual(code, 1, out)
+        self.assertIn("FAIL: widest span.katex-html", out)
+
+    def test_katex_only_for_tex_outside_code(self):
+        self.assertEqual(self.page.count('<style id="math">'), 1)
+        self.assertEqual(self.page.count("katex.min.js"), 1)
+        with tempfile.TemporaryDirectory() as d:
+            body, page = pathlib.Path(d) / "body.html", pathlib.Path(d) / "page.html"
+            body.write_text(TWO_CHARTS + "<p><code>\\( x \\)</code>로 써요.</p>")
+            self.assertEqual(assemble(str(body), str(page)).returncode, 0)
+            self.assertNotIn("katex", page.read_text())
 
 
 # two charts filled, as an author writes the body
