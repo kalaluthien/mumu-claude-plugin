@@ -2,10 +2,14 @@
 
 Run: uvx --with playwright pytest mumu-document/tests -q
 """
+import pathlib
 import re
+import subprocess
+import sys
+import tempfile
 import unittest
 
-from test_scripts import CHROME, REFS, in_state, parts
+from test_scripts import ASSEMBLE, CHECK, CHROME, REFS, in_state, parts
 
 try:
     from playwright.sync_api import sync_playwright
@@ -20,7 +24,65 @@ FOCUS = [
     # the reply joins A and C; without it, C is not reached from A
     ("use-case", [(re.compile(r'\s*<g class="part" tabindex="0" data-step="3">.*?</g>', re.S), "")],
      "rect.box:nth-of-type(1)", ["rect.box:nth-of-type(2)", ".part[data-step='1'] .edge"], "rect.box:nth-of-type(3)"),
+    ("network", [], "rect.box.k1", ["rect.box:nth-of-type(2)", "rect.box:nth-of-type(3)", ".part:nth-of-type(2) .edge"], "rect.box.k3"),
 ]
+# the task graph, one application the task names: a task, what it blocks, its state as its kind
+TASKS = [  # (label, kind, full name, [(target, edge class, link text)])
+    ("페이지 위젯", "k3", "<code>#254</code> 카메라 페이지의 위젯을 지켜요.", [(2, "ok", "네트워크 그림을 풀어요"), (4, "ok", "검사 규칙을 풀어요"),
+                                                          (9, "inferred", "마감 보고를 풀 수도 있어요")]),
+    ("네트워크 그림", "k2", "<code>#295</code> 그림 위젯에 네트워크 종류를 더해요.", [(5, "warn", "스킬 표 갱신을 막아요"), (6, "", "평가 실행을 막아요")]),
+    ("차트 점 지도", "k1", "<code>#284</code> 차트에 점 지도를 더해요.", [(6, "inferred", "평가 실행을 막을 수 있어요")]),
+    ("검사 규칙", "k2", "<code>#271</code> 검사 규칙을 정리해요.", [(7, "", "규칙 정리를 막아요")]),
+    ("스킬 표 갱신", "k1", "스킬 표에 새 위젯을 적어요.", [(8, "", "배포 안내를 막아요")]),
+    ("평가 실행", "k1", "평가를 main과 비교해요.", [(8, "fail", "배포 안내를 막아요")]),
+    ("규칙 정리", "k1", "겹치는 규칙을 합쳐요.", [(9, "", "마감 보고를 막아요")]),
+    ("배포 안내", "k1", "리드에게 다시 읽기를 알려요.", [(9, "", "마감 보고를 막아요")]),
+    ("마감 보고", "k1", "끝난 일을 보고해요.", []),
+]
+
+
+def network(tasks=TASKS):
+    """The task graph as an author writes it: a dt per task, its dd the full name then a link per task it blocks."""
+    rows = "".join(
+        f'<dt id="n-t{i}" class="{kind}">{label}</dt>\n<dd>{name} ' + " ".join(
+            f'<a{f" class={chr(34)}{c}{chr(34)}" if c else ""} href="#n-t{j}">{text}</a>' for j, c, text in links) + "</dd>\n"
+        for i, (label, kind, name, links) in enumerate(tasks, 1))
+    return ('<section aria-labelledby="n"><h2 id="n">작업이 서로 막는 관계</h2>\n'
+            '<div data-widget="diagram" data-diagram="network" data-kinds="할 일|진행 중|끝남">\n'
+            f'<figure class="stage scroll" tabindex="0"><dl>\n{rows}</dl>\n'
+            '<figcaption class="muted">색은 작업의 상태, 점선은 짐작한 관계예요.</figcaption></figure></div></section>')
+
+
+def layers(tasks=TASKS):
+    """Each task's layer: the longest chain of blockers above it."""
+    depth = {}
+    def d(i):
+        if i not in depth:
+            depth[i] = max([d(j) + 1 for j, t in enumerate(tasks, 1) if any(k == i for k, _, _ in t[3])], default=0)
+        return depth[i]
+    return [d(i) for i in range(1, len(tasks) + 1)]
+# a network's boxes, its label boxes, each line's first and last point, and the page's widths
+SHAPES = """(svg) => { const n = (e, a) => +e.getAttribute(a), m = svg.getScreenCTM();
+  const pt = (p) => ({ x: p.x, y: p.y });
+  return { boxes: [...svg.querySelectorAll('rect.box')].map((b) => ({ x: n(b, 'x'), y: n(b, 'y'), w: n(b, 'width'), h: n(b, 'height') })),
+    texts: [...svg.querySelectorAll(':scope > text')].map((t) => { const b = t.getBBox(); return { x: b.x, y: b.y, w: b.width, h: b.height }; }),
+    ends: [...svg.querySelectorAll('.part .edge')].map((e) => [pt(e.getPointAtLength(0)), pt(e.getPointAtLength(e.getTotalLength()))]),
+    scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth }; }"""
+
+
+def overlap(a, b):
+    return min(a["x"] + a["w"], b["x"] + b["w"]) > max(a["x"], b["x"]) and min(a["y"] + a["h"], b["y"] + b["h"]) > max(a["y"], b["y"])
+
+
+def inside(a, b):
+    return b["x"] <= a["x"] and a["x"] + a["w"] <= b["x"] + b["w"] and b["y"] <= a["y"] and a["y"] + a["h"] <= b["y"] + b["h"]
+
+
+def nearest(boxes, p):
+    gap = lambda b: (max(b["x"] - p["x"], 0, p["x"] - b["x"] - b["w"]) ** 2 + max(b["y"] - p["y"], 0, p["y"] - b["y"] - b["h"]) ** 2)
+    return min(range(len(boxes)), key=lambda i: gap(boxes[i]))
+
+
 OPACITY = "(el) => { let o = 1; for (; el; el = el.parentElement) o *= +getComputedStyle(el).opacity; return o; }"
 # every node and line that is not full, shown and laid out, all folders open and revealed
 FADED = """(root) => { root.querySelectorAll('details').forEach((d) => { d.open = true; });
@@ -30,9 +92,9 @@ FADED = """(root) => { root.querySelectorAll('details').forEach((d) => { d.open 
     return o < 1 || getComputedStyle(el).visibility !== 'visible' || !el.getClientRects().length; }).map((el) => el.outerHTML.slice(0, 60)); }"""
 
 
-def page(kind, edits=()):
+def page(kind, edits=(), section=None):
     blocks, body = parts((REFS / "diagram.html").read_text())
-    section = next(s for s in re.split(r"\n(?=<section)", body.strip()) if f'data-diagram="{kind}"' in s)
+    section = section or next(s for s in re.split(r"\n(?=<section)", body.strip()) if f'data-diagram="{kind}"' in s)
     for old, new in edits:
         section, n = (old.subn(new, section) if hasattr(old, "subn") else (section.replace(old, new), section.count(old)))
         assert n, old
@@ -61,6 +123,8 @@ class Diagram(unittest.TestCase):
         p = ctx.new_page()
         p.route(re.compile(r"^https?://"), lambda r: r.abort())
         p.set_content(html)
+        if context.get("java_script_enabled", True):
+            p.wait_for_function("!document.querySelector('[data-diagram=network] .stage > dl') || !!document.querySelector('.detail')")
         self.base = p.locator("[data-widget]").evaluate(FADED)  # the played steps still pending
         return p
 
@@ -161,6 +225,94 @@ class Diagram(unittest.TestCase):
         p.tap(".legend button >> nth=1")
         self.assertEqual(p.locator(".legend button").nth(1).get_attribute("aria-pressed"), "false")
         self.assertLess(self.opacity(p, "rect.box.k2"), 1)
+
+    def test_network_layout(self):
+        want = layers()
+        cycle = [list(x) for x in TASKS]
+        cycle[8] = cycle[8][:3] + [[(1, "", "페이지 위젯을 다시 막아요")]]  # the last task blocks the first: a cycle
+        for name, tasks in (("tasks", TASKS), ("cycle", cycle)):
+            with self.subTest(name):
+                shapes = [self.open(page("network", section=network(tasks)), viewport={"width": 320, "height": 800})
+                          .locator("svg").evaluate(SHAPES) for _ in range(2)]
+                self.assertEqual(shapes[0], shapes[1], "two loads draw different coordinates")
+                g = shapes[0]
+                self.assertEqual(g["scroll"], g["client"], "the page scrolls sideways")
+                boxes = g["boxes"]
+                self.assertEqual(len(boxes), len(tasks))
+                for (i, a), (j, b) in ((x, y) for x in enumerate(boxes) for y in enumerate(boxes) if x[0] < y[0]):
+                    self.assertFalse(overlap(a, b), f"boxes {i + 1} and {j + 1} overlap")
+                for i, (box, text) in enumerate(zip(boxes, g["texts"]), 1):
+                    self.assertTrue(inside(text, box), f"label {i} spills out of its box: {text} {box}")
+                links = [(i, j) for i, task in enumerate(tasks, 1) for j, _, _ in task[3]]
+                self.assertEqual([(nearest(boxes, a) + 1, nearest(boxes, b) + 1) for a, b in g["ends"]], links)
+                if name == "tasks":
+                    rows = sorted(set(b["y"] for b in boxes))
+                    self.assertEqual([rows.index(b["y"]) for b in boxes], want, "not layered by longest path")
+
+    def test_network_page_passes_check(self):
+        with tempfile.TemporaryDirectory() as d:
+            body, out = pathlib.Path(d) / "body.html", pathlib.Path(d) / "page.html"
+            body.write_text('<h1>작업 관계</h1>\n<p class="read">네트워크 그림이 두 작업을 막고 있어요.</p>\n' + network())
+            r = subprocess.run([sys.executable, str(ASSEMBLE), str(body), str(out)], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            r = subprocess.run([sys.executable, str(CHECK), str(out)], capture_output=True, text=True)
+            self.assertEqual(r.stdout.splitlines()[-1], "pass", r.stdout)
+
+    def test_network_detail(self):
+        p = self.open(page("network", section=network()))
+        detail = p.locator("output.detail")
+        self.assertEqual(detail.get_attribute("aria-live"), "polite")
+        self.assertEqual(detail.inner_text().strip(), "")
+        p.hover("rect.box.k3", position={"x": 4, "y": 4})
+        self.assertIn("페이지 위젯", detail.inner_text())
+        self.assertIn("#254 카메라 페이지의 위젯을 지켜요.", detail.inner_text())
+        p.mouse.move(399, 899)
+        self.assertEqual(detail.inner_text().strip(), "", "hover off leaves the panel filled")
+        p.click("rect.box.k3", position={"x": 4, "y": 4})
+        p.mouse.move(399, 899)
+        self.assertIn("#254", detail.inner_text(), "a click does not pin")
+        p.keyboard.press("Escape")
+        self.assertEqual(detail.inner_text().strip(), "", "Escape leaves the panel filled")
+        p.mouse.move(399, 899)
+        p.focus("rect.box:nth-of-type(2)")
+        p.keyboard.press("Enter")
+        self.assertIn("#295", detail.inner_text(), "focus and Enter do not fill the panel")
+        p.mouse.move(399, 899)
+        detail.get_by_text("평가 실행을 막아요").click()
+        self.assertIn("평가를 main과 비교해요.", detail.inner_text(), "a panel link does not pin its target")
+        self.assert_focused(p, ["rect.box:nth-of-type(6)", "rect.box:nth-of-type(2)", "rect.box:nth-of-type(8)"],
+                            "rect.box:nth-of-type(1)", "panel link")
+        p.mouse.move(399, 899)
+        self.assertIn("평가를 main과 비교해요.", detail.inner_text(), "the pin does not stay")
+
+    def test_network_focus_and_filter(self):
+        p = self.open(page("network", section=network()))
+        dimmed = "(r) => [...r.querySelectorAll('.dim')].length"
+        before = p.locator("[data-widget]").evaluate(dimmed)
+        p.click("rect.box:nth-of-type(2)", position={"x": 4, "y": 4})
+        self.assert_focused(p, ["rect.box:nth-of-type(1)", "rect.box:nth-of-type(5)", "rect.box:nth-of-type(6)",
+                                ".part:nth-of-type(4) .edge"], "rect.box:nth-of-type(3)", "click")
+        p.keyboard.press("Escape")
+        self.assertEqual(p.locator("[data-widget]").evaluate(dimmed), before, "Escape leaves nodes dimmed")
+        p.locator(".legend button").nth(1).click()  # 진행 중: tasks 2 and 4
+        gone = {2, 4}
+        for i in range(1, len(TASKS) + 1):
+            self.assertEqual(self.opacity(p, f"rect.box:nth-of-type({i})") < 1, i in gone, f"box {i}")
+        links = [(i, j) for i, task in enumerate(TASKS, 1) for j, _, _ in task[3]]
+        for n, (i, j) in enumerate(links, 1):
+            self.assertEqual(self.opacity(p, f".part:nth-of-type({n}) .edge") < 1, bool({i, j} & gone), f"line {i}-{j}")
+
+    def test_network_list_without_script_motion_or_screen(self):
+        shown = "(dl) => dl.getBoundingClientRect().width > 100 && dl.checkVisibility()"
+        for mode, context in (("no script", {"java_script_enabled": False}), ("reduced motion", {"reduced_motion": "reduce"}),
+                              ("screen", {}), ("print", {})):
+            with self.subTest(mode):
+                p = self.open(page("network", section=network()), **context)
+                if mode == "print":
+                    p.click("rect.box.k3", position={"x": 4, "y": 4})
+                    p.emulate_media(media="print")
+                    self.assert_restored(p, "print", [])
+                self.assertEqual(p.locator(".stage > dl").evaluate(shown), mode != "screen", mode)
 
     def test_nothing_fades_without_script_motion_or_screen(self):
         for kind, edits, node, _, _ in FOCUS:

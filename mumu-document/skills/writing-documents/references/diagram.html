@@ -5,6 +5,8 @@
   file-tree: a system's structure, first on the page: each folder a <details> whose <summary> holds its .name; under a node a .note (its role in one line) or a <blockquote> excerpt with its path:line; open only the level the page is about, the new or central part first; a folder no reader needs is one collapsed line. Played: what a change adds, modifies and removes, one idea per step. Use when: files, modules or components, or a change to them. Not when: under four flat items (a list).
   system-context: the system as one .box.main in the middle, callers left, callees right, every line labelled with what crosses it. Use when: actors, entry points and boundaries. Not when: the order of calls (use-case).
   use-case: participants as .box across the top, a .lifeline under each, time downward, each call a numbered .part; a step adds 48 to y and to the svg height; two use cases, two copies. Played: a card per call, a .token travels them. Use when: what happens in one use case. Not when: who reaches whom, without order (system-context).
+  network: nodes and the links between them, drawn by the script from a dl: each dt a node, id {{id}}-tN, class kN, a label of 8 syllables at most; its dd the full name, then one in-page link per line out, classed .ok, .warn, .fail or .inferred; 9 nodes at most. Layered top-down by longest path, a box as wide as its label. Use when: tasks and what blocks them, sessions and who waits on whom, files and what reads them; what a node reaches. Not when: an order in time (use-case); one system and its callers (system-context).
+  network: hover or focus shows a node's dt and dd in the panel under the figure, a click or Enter pins it, a panel link pins its target, Escape clears. Without script, in print or under reduced motion, the dl stays listed.
   played: optional; file-tree by page.html's slide, use-case by its swipe; the steps one caption each, a file-tree's first the before; a part with data-step="k" shows from step k (an added node takes no space until it appears, a removed one fades, the token moves to the card's data-x and data-y). Not played: delete those attributes, the token and the steps.
   focus: hover, keyboard focus or a tap on a node or .part keeps it, its lines and the nodes they reach full and dims the rest (a file-tree's lines join a node to its folder and its children); hover off, Escape or a second tap restores all. The .part's ends are the nodes nearest its first and last point.
   legend: 2 or more kinds, each kind a button with aria-pressed; pressed off, its nodes and their lines fade. Without script, in print or before any focus nothing dims.
@@ -48,6 +50,11 @@
     & .token { fill: var(--accent); display: none; }
     & li:is(.k1, .k2, .k3, .k4) > .name, & li:is(.k1, .k2, .k3, .k4) > details > summary .name { border-bottom: var(--line-strong) solid var(--diagram-kind); }
     & .k1 { --diagram-kind: var(--kind-1); } & .k2 { --diagram-kind: var(--kind-2); } & .k3 { --diagram-kind: var(--kind-3); } & .k4 { --diagram-kind: var(--kind-4); }
+    & .stage > dl dt { font-weight: 700; }
+    & .stage > dl dd { margin: 0 0 var(--sp-2) var(--diagram-indent); }
+    & .detail { display: block; min-block-size: calc(var(--sp-4) * 4); margin-block-start: var(--sp-2); padding-block-start: var(--sp-2);
+      border-block-start: var(--line) solid var(--border); font-size: var(--fs-m); }
+    & .detail :is(dl, dd) { margin: 0; }
     & .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-2) 0; }
     & .legend button::before { content: ""; display: inline-block; inline-size: var(--sp-3); block-size: var(--sp-3);
       margin-inline-end: var(--sp-1); vertical-align: middle; background: var(--diagram-kind); }
@@ -57,7 +64,7 @@
   @media screen {
     [data-widget="diagram"] { & .dim { opacity: var(--diagram-dim); } & .off { opacity: var(--diagram-off); } }
   }
-  @media print { [data-widget="diagram"] .legend { display: none; } }
+  @media print { [data-widget="diagram"] :is(.legend, .detail) { display: none; } }
   @media screen and (prefers-reduced-motion: no-preference) {
     [data-widget="diagram"] {
       & :is(.edge, .part text) { transition: stroke var(--motion-fast) var(--ease-out), fill var(--motion-fast) var(--ease-out); }
@@ -71,6 +78,7 @@
       &.live .token { display: inline; transform: translate(var(--x), var(--y)); transition: transform var(--motion) var(--ease-out); }
       &.live .now .edge { stroke: var(--accent); }
       &.live .now text { fill: var(--accent); }
+      & .stage:has(> svg) > dl { position: absolute; inline-size: var(--line); block-size: var(--line); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     }
   }
 </style>
@@ -113,7 +121,111 @@
       }
       return { nodes, edges };
     };
+    // network: the dl drawn as boxes in layers, top-down by longest path, and a line per in-page link
+    const SVG = 'http://www.w3.org/2000/svg', PAD = 8, H = 40, ROW = 88, GAP = 24;
+    const source = new WeakMap();  // a drawn box -> its dt
+    const make = (parent, tag, attrs) => {
+      const el = parent.appendChild(document.createElementNS(SVG, tag));
+      Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+      return el;
+    };
+    const draw = (root) => {
+      const stage = root.querySelector('.stage'), dl = stage && stage.querySelector(':scope > dl');
+      const terms = dl ? [...dl.querySelectorAll(':scope > dt')] : [];
+      if (!terms.length) return Promise.resolve();
+      const index = new Map(terms.map((dt, i) => [dt.id, i]));
+      const links = [];  // [from, to, its link]
+      terms.forEach((dt, i) => {
+        const dd = dt.nextElementSibling;
+        if (dd && dd.localName === 'dd') dd.querySelectorAll('a[href^="#"]').forEach((a) => {
+          const j = index.get(decodeURIComponent(a.getAttribute('href').slice(1)));
+          if (j !== undefined && j !== i) links.push([i, j, a]);
+          a.tabIndex = -1;
+        });
+      });
+      const svg = make(document.createDocumentFragment(), 'svg', { width: 0, height: 0 });
+      stage.insertBefore(svg, dl);
+      const head = root.closest('section') && root.closest('section').getAttribute('aria-labelledby');
+      svg.setAttribute('role', 'img');
+      if (head) svg.setAttribute('aria-labelledby', head);
+      make(make(make(svg, 'defs', {}), 'marker', { id: `${terms[0].id}-arrow`, viewBox: '0 0 10 10', refX: 9, refY: 5,
+        markerWidth: 8, markerHeight: 8, markerUnits: 'userSpaceOnUse', orient: 'auto' }), 'path', { class: 'tip', d: 'M0,0 L10,5 L0,10 z' });
+      const lines = links.map(([, , a]) => make(make(svg, 'g', { class: 'part' }), 'path', {
+        class: ['edge', ...['ok', 'warn', 'fail', 'inferred'].filter((c) => a.classList.contains(c))].join(' '),
+        'marker-end': `url(#${terms[0].id}-arrow)` }));
+      const boxes = terms.map((dt) => {
+        const box = make(svg, 'rect', { class: ['box', ...KINDS.filter((k) => dt.classList.contains(k))].join(' '), height: H });
+        source.set(box, dt);
+        return box;
+      });
+      const labels = terms.map((dt) => Object.assign(make(svg, 'text', { 'text-anchor': 'middle' }), { textContent: dt.textContent.trim() }));
+      const style = getComputedStyle(labels[0]), font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      return document.fonts.load(font, labels.map((t) => t.textContent).join('')).catch(() => {}).then(() => {
+        const pen = document.createElement('canvas').getContext('2d');
+        pen.font = font;
+        // depth first in source order: a link back to a node still open closes a cycle and is laid out reversed
+        const seen = terms.map(() => 0), post = [], flip = new Set();
+        const visit = (u) => {
+          seen[u] = 1;
+          links.forEach((l) => { if (l[0] !== u) return; if (seen[l[1]] === 1) flip.add(l); else if (!seen[l[1]]) visit(l[1]); });
+          seen[u] = 2;
+          post.push(u);
+        };
+        terms.forEach((_, u) => { if (!seen[u]) visit(u); });
+        const down = links.map((l) => (flip.has(l) ? [l[1], l[0]] : [l[0], l[1]]));
+        const layer = terms.map(() => 0);
+        post.reverse().forEach((u) => down.forEach(([a, b]) => { if (a === u) layer[b] = Math.max(layer[b], layer[a] + 1); }));
+        // a slot per node, and per layer a long line crosses; each layer ordered by the mean place of what feeds it
+        const rows = [];
+        const slot = (L, w) => { const s = { w, up: [] }; (rows[L] = rows[L] || []).push(s); return s; };
+        const cells = labels.map((t, i) => slot(layer[i], Math.max(48, Math.ceil((pen.measureText(t.textContent).width + 24) / 4) * 4)));
+        const routes = down.map(([a, b]) => {
+          const r = [cells[a]];
+          for (let L = layer[a] + 1; L < layer[b]; L++) r.push(slot(L, 0));
+          r.push(cells[b]);
+          r.forEach((s, k) => { if (k) s.up.push(r[k - 1]); });
+          return r;
+        });
+        rows.forEach((row, L) => {
+          if (L) row.forEach((s, k) => { s.key = s.up.length ? s.up.reduce((t, p) => t + p.at, 0) / s.up.length : k; });
+          if (L) row.sort((a, b) => a.key - b.key);
+          row.forEach((s, k) => { s.at = k; });
+        });
+        const span = rows.map((row) => row.reduce((t, s) => t + s.w, 0) + GAP * (row.length - 1)), full = Math.max(...span);
+        rows.forEach((row, L) => {
+          let x = PAD + Math.round((full - span[L]) / 8) * 4;
+          row.forEach((s) => { s.x = x; s.y = PAD + L * ROW; x += s.w + GAP; });
+        });
+        const mid = (s) => s.x + s.w / 2;
+        // each box's lines leave its bottom and reach its top spread along it, in the order of where they go
+        cells.forEach((s) => {
+          const out = routes.filter((r) => r[0] === s), in_ = routes.filter((r) => r[r.length - 1] === s);
+          out.sort((a, b) => mid(a[1]) - mid(b[1])).forEach((r, k) => { r.x0 = s.x + Math.round(s.w * (k + 1) / (out.length + 1)); });
+          in_.sort((a, b) => mid(a[a.length - 2]) - mid(b[b.length - 2])).forEach((r, k) => { r.x1 = s.x + Math.round(s.w * (k + 1) / (in_.length + 1)); });
+        });
+        routes.forEach((r, n) => {
+          const end = r[r.length - 1];
+          const at = [[r.x0, r[0].y + H], ...r.slice(1, -1).flatMap((s) => [[s.x, s.y], [s.x, s.y + H]]), [r.x1, end.y]];
+          if (flip.has(links[n])) at.reverse();
+          lines[n].setAttribute('d', at.map(([x, y], k) => `${k ? 'L' : 'M'}${x},${y}`).join(' '));
+        });
+        cells.forEach((s, i) => {
+          Object.entries({ x: s.x, y: s.y, width: s.w }).forEach(([k, v]) => boxes[i].setAttribute(k, v));
+          labels[i].setAttribute('x', mid(s));
+          labels[i].setAttribute('y', s.y + 25);
+        });
+        const w = full + 2 * PAD, h = 2 * PAD + (rows.length - 1) * ROW + H;
+        Object.entries({ width: w, height: h, viewBox: `0 0 ${w} ${h}` }).forEach(([k, v]) => svg.setAttribute(k, v));
+        const detail = document.createElement('output');
+        detail.className = 'detail';
+        detail.setAttribute('aria-live', 'polite');
+        stage.after(detail);
+      });
+    };
     const start = () => document.querySelectorAll('[data-widget="diagram"]').forEach((root) => {
+      if (root.dataset.diagram === 'network') draw(root).then(() => wire(root)); else wire(root);
+    });
+    const wire = (root) => {
       const { nodes, edges } = graph(root);
       const items = [...nodes, ...edges];
       const owner = new Map();
@@ -122,9 +234,20 @@
         for (; el && el !== root; el = el.parentNode) if (owner.has(el)) return owner.get(el);
         return null;
       };
-      let pinned = null, passing = null;
+      let pinned = null, passing = null, noted = null;
+      const detail = root.querySelector(':scope > .detail');
+      // the panel: the shown node's dt and dd, their links kept and ids dropped
+      const note = (dt) => {
+        if (dt === noted) return;
+        noted = dt;
+        const list = document.createElement('dl');
+        if (dt) [dt, dt.nextElementSibling].forEach((el) => { if (el && (el === dt || el.localName === 'dd')) list.append(el.cloneNode(true)); });
+        list.querySelectorAll('[id], [tabindex]').forEach((el) => { el.removeAttribute('id'); el.removeAttribute('tabindex'); });
+        detail.replaceChildren(...(dt ? [list] : []));
+      };
       const show = () => {
         const on = pinned || passing;
+        if (detail) note(on && source.get(on.el));
         const keep = new Set(on ? [on] : []);
         edges.forEach((e) => {
           if (on && (e === on || e.ends.includes(on))) [e, ...e.ends].forEach((x) => keep.add(x));
@@ -136,7 +259,18 @@
       root.addEventListener('pointerleave', () => { passing = null; show(); });
       root.addEventListener('focusin', (e) => { passing = e.target.matches(':focus-visible') ? at(e.target) : null; show(); });
       root.addEventListener('focusout', () => { passing = null; show(); });
-      root.addEventListener('click', (e) => { if (!e.target.closest('.legend, .controls')) pin(at(e.target)); });
+      root.addEventListener('click', (e) => { if (!e.target.closest('.legend, .controls, .detail')) pin(at(e.target)); });
+      // after the pin above, which a panel click must skip while its link is still in the panel
+      root.addEventListener('click', (e) => {
+        const a = detail && detail.contains(e.target) && e.target.closest('a[href^="#"]');
+        const id = a && decodeURIComponent(a.getAttribute('href').slice(1));
+        const x = nodes.find((n) => source.get(n.el) && source.get(n.el).id === id);
+        if (!x) return;
+        e.preventDefault();
+        pinned = x;
+        show();
+        x.handle.focus();
+      });
       root.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') { pinned = passing = null; show(); return; }
         const x = at(e.target);
@@ -168,7 +302,7 @@
         });
       });
       root.querySelector('.stage').before(legend);
-    });
+    };
     if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
   })();
 </script>
@@ -266,5 +400,23 @@
       <li data-x="444" data-y="136">{{step 2: what moves, and why}}</li>
       <li data-x="76" data-y="184">{{step 3: what comes back, and why}}</li>
     </ol>
+  </div>
+</section>
+<section aria-labelledby="{{id}}">
+  <h2 id="{{id}}">{{the network, as a noun phrase}}</h2>
+  <div data-widget="diagram" data-diagram="network" data-kinds="{{k1|k2|k3}}">
+    <figure class="stage scroll" tabindex="0">
+      <dl>
+        <dt id="{{id}}-t1" class="k1">{{short name}}</dt>
+        <dd>{{full name}} <a href="#{{id}}-t2">{{what the link means, e.g. blocks #12}}</a> <a class="warn" href="#{{id}}-t3">{{link}}</a></dd>
+        <dt id="{{id}}-t2" class="k2">{{short name}}</dt>
+        <dd>{{full name}} <a class="inferred" href="#{{id}}-t4">{{link}}</a></dd>
+        <dt id="{{id}}-t3" class="k2">{{short name}}</dt>
+        <dd>{{full name}}</dd>
+        <dt id="{{id}}-t4" class="k3">{{short name}}</dt>
+        <dd>{{full name}}</dd>
+      </dl>
+      <figcaption class="muted">{{kinds, line, dashed: what each means; what was left out}}</figcaption>
+    </figure>
   </div>
 </section>
