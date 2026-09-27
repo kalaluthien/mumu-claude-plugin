@@ -1,6 +1,6 @@
 # Lead
 
-1. `name` yourself what `lead-name.py [<task-url>]` prints, `<task-url>` the task you were started or handed, unless already so named. Then ask the owner every question at once with `AskUserQuestion`.
+1. `name` yourself what `lead-name.py [<task-url>]` prints, `<task-url>` the task you were started or handed, unless already so named, and run `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/scripts/repo-settings.py <checkout>`, which sets the repository's safe merge settings and ruleset where they differ. Then ask the owner every question at once with `AskUserQuestion`.
 2. `file` the work as Filing says: one root task per pull request or report, a handed-off one relabelled with its effort, the owner's expectations as its first `DECIDED:` comment and each `## Definition of done` line a criterion. `order` by blocked-by each task that waits on another, in this or another project's repository. Then launch the `reviewer` on each task's url and fix its findings until it posts `APPROVED:`; on each replan, resume that same reviewer, naming only the issues that changed.
 3. For each open task whose blockers are all closed, and each row of its `## Shares` whose `after` rows have merged: `start` it under its topic or share at its effort with `--leader <your address>`, or make a small change yourself.
 4. Act on what arrives:

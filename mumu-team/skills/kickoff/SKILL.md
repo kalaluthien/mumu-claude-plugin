@@ -11,7 +11,7 @@ Only `worker-start.py` and `lead-start.py` build these arguments, and send them 
 
 Your role's rules are in `${CLAUDE_PLUGIN_ROOT}/agents/lead.md` and `${CLAUDE_PLUGIN_ROOT}/agents/worker.md`; when your system prompt is not already that body, read the worker's before the `work` row and the lead's before any other.
 
-Match the text to one row, open that playbook, and copy its steps verbatim into the todo list; a step not done stays, marked skipped with its reason. Before the first step, check `ready`; when it fails, stop and print its fix. On any row but `work`, then run `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/scripts/repo-settings.py <checkout>`, which sets the repository's safe merge settings and ruleset, changing only what differs.
+Match the text to one row, open that playbook, and copy its steps verbatim into the todo list; a step not done stays, marked skipped with its reason. Before the first step, check `ready`; when it fails, stop and print its fix.
 
 | when | playbook |
 | --- | --- |
