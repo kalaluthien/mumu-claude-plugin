@@ -159,6 +159,11 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
   <p class="read">{{the one thing to read off the page}}</p>
   <nav><ol><li><a href="#{{id}}">{{h2}}</a></li></ol></nav>
   {{widgets and plain HTML, in move order}}
+  <section data-chapter>
+    <h2 id="{{id}}">{{part, when parts hold sections}}</h2>
+    <h3 id="{{id}}">{{section}}</h3>
+    {{its widgets and plain HTML}}
+  </section>
   <footer>{{source}} <code>{{sha}}</code></footer>
 </main>
 <script>

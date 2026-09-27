@@ -1,7 +1,7 @@
 ---
 max_turns: 16
 timeout_seconds: 420
-allowed_tools: [Skill, Read, Write]
+allowed_tools: [Skill, Read, Write, Bash]
 runs: 3
 ---
 

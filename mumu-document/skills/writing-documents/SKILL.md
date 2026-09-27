@@ -1,6 +1,6 @@
 ---
 name: writing-documents
-description: Use before writing a document a person will read outside the chat - a GitHub issue or pull request body or comment, an Artifact page, a repository page (README, docs) - to explain, draw, chart data, map, walk through, compare or report something, even when only the content or a chart was asked for; a chart on such a page is drawn here, not by `dataviz`. Not for a plain chat answer, nor for code or its comments, nor for asking the user open questions (that is `grill-me`).
+description: Use before writing a document a person will read outside the chat - a GitHub issue or pull request body or comment, an Artifact page, a repository page (README, docs) - to explain, draw, chart data, map, walk through, compare or report something, even when only the content or a chart was asked for; a chart on such a page is drawn here, not by `dataviz`, and an Artifact page is designed here, so load this before the `Artifact` tool's `quickstart`, which it skips with `artifact-design` and `artifact-diagramming`. Not for a plain chat answer, nor for code or its comments, nor for asking the user open questions (that is `grill-me`).
 user-invocable: false
 ---
 
@@ -45,7 +45,13 @@ text with arrows (→, ▶) with no `use-case`.
 ## Routing
 
 Where the ask says, else where it is obvious, else ask once with
-`AskUserQuestion`. An Artifact page follows [artifact.md](references/artifact.md).
+`AskUserQuestion`. An Artifact page skips the `Artifact` tool's `quickstart`,
+`artifact-design` and `artifact-diagramming`: the skin and widgets are its
+whole design, with no palette, typeface or chart library of its own. Its
+author reads each widget's spec with
+`"${CLAUDE_PLUGIN_ROOT}/skills/writing-documents/scripts/assemble.py" --spec <widget>`,
+writes only the body, and `assemble.py <body> <page>` adds the skin and widget
+code, as [artifact.md](references/artifact.md) says.
 A GitHub issue, pull request or comment follows the repository's procedure,
 else `gh issue create`; a repository page (a README, a doc) is linked from the
 README and lands by a pull request. There the moves are headings, each widget
@@ -55,9 +61,9 @@ client. Delivered anywhere, give the one-sentence version in chat.
 ## GitHub body
 
 Unless the repository's procedure sets the form, a body is one sentence on why
-the change exists, the figure of what it alters, the proof (each check run and
-its result), then the files in reading order, each with its why; a misleading
-line count is called out. A `path:line` links to the blob at the head sha,
+the change exists, a figure only when the change has a structure or behaviour
+to draw, the proof (each check run and its result), then the files in reading
+order, each with its why; a misleading line count is called out. A `path:line` links to the blob at the head sha,
 or relatively on a repository page.
 
 A figure is its widget drawn on a page by [artifact.md](references/artifact.md),
