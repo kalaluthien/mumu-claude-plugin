@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tiny-queue의 구조와 동작</title>
+<style id="skin">
+@import url("https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap");
+/* skin: the owner's design system.
+   Look: a soft gothic page, black on white; dark mode inverts the duet. One
+   face, Nanum Gothic, for every text role: h1 and h2 at weight 800, h3 at 700,
+   prose, controls, captions, figure labels and metadata at 400; a defined
+   term (dfn) at 700, upright, since Hangul has no italic.
+   Corners square, no shadows. The
+   accent is ink: focus, hover and the current step; links take --link.
+   Borders on controls and figure boxes are body grey (3:1, so a hover to ink
+   shows); row dividers are --hairline. Figures add kinds and status colours,
+   which the magazine lacks.
+   Tokens in three tiers: a primitive (--p-*) holds a raw value two roles or
+   more share; a semantic token names a role; each widget defines its own
+   --<widget>-* tokens from semantic ones and reads nothing else.
+   Layout: one column of --page-width, a --gutter each side, sections --rhythm
+   apart; at 320 px nothing scrolls sideways but a .scroll box, which holds a
+   table's first column in view.
+   Motion: --motion-fast for hover and focus, --motion for a reveal, easing
+   --ease-out; only a change of state animates, none under reduced motion.
+   Fonts: the one fetch a page makes; offline, installed faces. */
+:root {
+  color-scheme: light dark;
+  /* primitives */
+  --p-black: #000000; --p-white: #ffffff; --p-grey-500: #757575;
+  --p-size-1: .25rem; --p-size-4: 1rem; --p-size-5: 1.75rem;
+
+  /* semantic: colour roles, each light-dark(light, dark) */
+  --text: light-dark(var(--p-black), var(--p-white));
+  --muted: light-dark(var(--p-grey-500), #a3a3a3);
+  --bg: light-dark(var(--p-white), #312e2d);
+  --fill: light-dark(var(--p-white), #3a3635);
+  --border: light-dark(var(--p-grey-500), #8a8a8a);
+  --hairline: light-dark(#e0e0e0, #4a4543);
+  --accent: light-dark(var(--p-black), var(--p-white));
+  --link: light-dark(#057dbc, #5cb8ea);
+  /* semantic: diagram palette; kinds (Okabe-Ito, told apart under
+     deuteranopia and protanopia) mark a node's kind by its edge and a chart's
+     series; status colours mark success, warning and failure in text and edges */
+  --kind-1: light-dark(#0072b2, #56b4e9);
+  --kind-2: light-dark(#d55e00, #e69f00);
+  --kind-3: light-dark(#009e73, #009e73);
+  --kind-4: light-dark(#cc79a7, #cc79a7);
+  --ok: light-dark(#1f7a3a, #6fd68a);
+  --warn: light-dark(#855600, #f2c14e);
+  --fail: light-dark(#b8302a, #ff7b72);
+  /* semantic: type, space, line, radius, layout, motion */
+  --sans: "Nanum Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --mono: ui-monospace, monospace;
+  --fs-s: .8rem; --fs-m: .9rem; --fs-base: 1rem; --fs-l: 1.2rem;
+  --fs-h2: 1.625rem; --fs-h1: 2rem;
+  --fs-svg: 14px; --fs-svg-label: 12px;
+  --sp-1: var(--p-size-1); --sp-2: .5rem; --sp-3: .75rem;
+  --sp-4: var(--p-size-4); --sp-5: var(--p-size-5);
+  --line: 1px; --line-strong: 2px; --line-mark: 3px;
+  --radius-s: 0;
+  --page-width: 48rem; --gutter: var(--p-size-4); --rhythm: var(--p-size-5);
+  --motion-fast: 100ms; --motion: 200ms;
+  --ease-out: cubic-bezier(.2, .7, .3, 1);
+  --scroll-step: 60vh;
+  --disabled: .5;
+}
+:root[data-theme="light"], .theme-light { color-scheme: light; }
+:root[data-theme="dark"], .theme-dark { color-scheme: dark; }
+.theme-light, .theme-dark { background: var(--bg); color: var(--text); }
+
+/* layout */
+body { background: var(--bg); color: var(--text); margin: 0;
+       font: var(--fs-base)/1.5 var(--sans); padding: var(--rhythm) var(--gutter); }
+main { max-width: var(--page-width); margin: 0 auto; }
+h1, h2 { font-weight: 800; letter-spacing: -.01em; line-height: 1.2; }
+h1 { font-size: var(--fs-h1); margin: 0 0 var(--sp-4); }
+h2 { font-size: var(--fs-h2); margin: var(--rhythm) 0 var(--sp-2); }
+h3 { font: 700 var(--fs-l)/1.2 var(--sans); margin: var(--sp-4) 0 var(--sp-2); }
+a { color: var(--link); }
+:is(h1, h2) code { font-size: .8em; }
+.read { border-inline-start: var(--line-mark) solid var(--text); padding-inline-start: var(--sp-3); font-size: var(--fs-l); }
+.muted, footer { color: var(--muted); font-size: var(--fs-m); }
+footer { margin-top: var(--rhythm); padding-top: var(--sp-3); border-top: var(--line) solid var(--hairline); }
+code, pre { font-family: var(--mono); font-size: var(--fs-m); }
+pre { overflow-x: auto; background: var(--fill); border: var(--line) solid var(--border);
+      border-radius: var(--radius-s); padding: var(--sp-3); }
+.scroll { overflow-x: auto; }
+figure { margin: 0; }
+table { border-collapse: collapse; min-width: 100%; background: var(--fill); }
+th, td { border-bottom: var(--line) solid var(--hairline); padding: var(--sp-2) var(--sp-3); text-align: start; vertical-align: top; }
+tbody th { font-weight: normal; }
+dfn { font-style: normal; font-weight: 700; }
+caption { text-align: start; }
+.scroll :is(th, td):first-child { position: sticky; inset-inline-start: 0; background: var(--fill); }
+.num { text-align: end; font-variant-numeric: tabular-nums; }
+.ok { color: var(--ok); } .warn { color: var(--warn); } .fail { color: var(--fail); }
+
+/* states: default, hover, focus, open, disabled; [data-state] forces one for
+   the test gallery */
+:focus-visible, [data-state="focus"] :is(summary, button, textarea, [tabindex]) {
+  outline: var(--line-strong) solid var(--accent); outline-offset: var(--line-strong); }
+summary { cursor: pointer; transition: color var(--motion-fast) var(--ease-out); }
+summary:hover, [data-state="hover"] summary { color: var(--accent); }
+details[open] > :not(summary) { animation: reveal var(--motion) var(--ease-out); }
+@keyframes reveal { from { opacity: 0; transform: translateY(calc(-1 * var(--sp-1))); } }
+button { font: 700 var(--fs-m) var(--sans); color: var(--text); background: var(--fill); cursor: pointer;
+         border: var(--line) solid var(--border); border-radius: var(--radius-s); padding: var(--sp-1) var(--sp-3);
+         transition: border-color var(--motion-fast) var(--ease-out); }
+button:hover, [data-state="hover"] button { border-color: var(--accent); }
+textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); background: var(--fill);
+           border: var(--line) solid var(--border); border-radius: var(--radius-s); }
+:disabled { opacity: var(--disabled); cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after { animation: none !important; transition: none !important; }
+}
+</style>
+<style>
+  [data-chapter] .pager { display: flex; justify-content: space-between; gap: var(--sp-3); margin-top: var(--rhythm);
+    padding-top: var(--sp-3); border-top: var(--line) solid var(--hairline); font-family: var(--sans); }
+  [data-chapter] .pager [rel="next"] { margin-inline-start: auto; text-align: end; }
+  main nav [aria-current] { color: var(--text); font-weight: 700; }
+  @media print { [data-chapter][hidden] { display: block; } [data-chapter] .pager { display: none; } }
+  [data-slide] .steps { margin: var(--sp-2) 0; }
+  [data-slide] :is(.caption, .controls) { display: none; }
+  [data-slide] .controls { gap: var(--sp-2); align-items: center; margin: var(--sp-2) 0; }
+  [data-slide] .count { color: var(--muted); font-size: var(--fs-m); }
+  @media screen and (prefers-reduced-motion: no-preference) {
+    [data-slide].live .steps { display: none; }
+    [data-slide].live .caption { display: block; }
+    [data-slide].live .controls { display: flex; }
+  }
+  @media screen and (prefers-reduced-motion: no-preference) {
+    [data-swipe].live .steps { display: flex; gap: var(--sp-2); overflow-x: auto; scroll-snap-type: x mandatory;
+      list-style: none; padding: 0; margin: var(--sp-2) 0; }
+    [data-swipe].live .steps > li { flex: 0 0 85%; scroll-snap-align: center; padding: var(--sp-2) var(--sp-3);
+      border: var(--line) solid var(--hairline); color: var(--muted); transition: color var(--motion-fast) var(--ease-out); }
+    [data-swipe].live .steps > li.now { color: var(--text); border-color: var(--accent); }
+    [data-swipe].live .steps:focus-visible { outline: var(--line-strong) solid var(--accent); }
+  }
+</style>
+<style>
+  [data-widget="diagram"] {
+    --diagram-indent: var(--sp-4); --diagram-add: var(--ok); --diagram-modify: var(--warn);
+    --diagram-remove: var(--fail); --diagram-pending: var(--disabled); --x: 0; --y: 0;
+    --diagram-dim: calc(var(--disabled) / 2); --diagram-off: calc(var(--disabled) / 5);
+    & ul { list-style: none; margin: 0; padding-inline-start: var(--diagram-indent); border-inline-start: var(--line) dashed var(--border); }
+    & .stage > ul { padding-inline-start: 0; border: 0; }
+    & .stage:has(> ul) { background: var(--fill); border: var(--line) solid var(--border); padding: var(--sp-2) var(--sp-3); }
+    & li { margin: var(--sp-1) 0; }
+    & .name { font-family: var(--mono); font-size: var(--fs-m); overflow-wrap: anywhere; }
+    & :is(.note, blockquote) { color: var(--muted); font-size: var(--fs-m); margin: var(--sp-1) 0 var(--sp-2) var(--diagram-indent); }
+    & blockquote { color: var(--text); padding-inline-start: var(--sp-2); border-inline-start: var(--line-strong) solid var(--border); }
+    & .tag { font: var(--fs-s) var(--sans); margin-inline-start: var(--sp-1); }
+    & [data-change="add"] .tag { color: var(--diagram-add); }
+    & [data-change="modify"] .tag { color: var(--diagram-modify); }
+    & [data-change="remove"] .tag { color: var(--diagram-remove); }
+    & [data-change="remove"] .name { text-decoration: line-through; color: var(--muted); }
+    & svg { display: block; }
+    & svg text { fill: var(--text); font: var(--fs-svg) var(--sans); }
+    & svg .label { fill: var(--muted); font-size: var(--fs-svg-label); }
+    & .box { fill: var(--fill); stroke: var(--border); }
+    & .box.main { stroke: var(--text); stroke-width: var(--line-strong); }
+    & .box:is(.k1, .k2, .k3, .k4) { stroke: var(--diagram-kind); }
+    & .tip { fill: var(--text); }
+    & .edge { stroke: var(--text); stroke-width: var(--line-strong); fill: none; }
+    & .edge.inferred { stroke-dasharray: 4 4; }
+    & .edge.ok { stroke: var(--ok); } & .edge.warn { stroke: var(--warn); } & .edge.fail { stroke: var(--fail); }
+    & .lifeline { stroke: var(--border); stroke-width: var(--line); stroke-dasharray: 4 4; }
+    & .mask { fill: var(--bg); }
+    & .part { outline: none; }
+    & .part:is(:hover, :focus-visible) .edge, [data-state="hover"] & .part:first-of-type .edge { stroke: var(--accent); }
+    & .part:is(:hover, :focus-visible) text, [data-state="hover"] & .part:first-of-type text { fill: var(--accent); }
+    & .part:focus-visible, [data-state="focus"] & .part:first-of-type { outline: var(--line-strong) solid var(--accent); }
+    & .token { fill: var(--accent); display: none; }
+    & li:is(.k1, .k2, .k3, .k4) > .name, & li:is(.k1, .k2, .k3, .k4) > details > summary .name { border-bottom: var(--line-strong) solid var(--diagram-kind); }
+    & .k1 { --diagram-kind: var(--kind-1); } & .k2 { --diagram-kind: var(--kind-2); } & .k3 { --diagram-kind: var(--kind-3); } & .k4 { --diagram-kind: var(--kind-4); }
+    & .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-2) 0; }
+    & .legend button::before { content: ""; display: inline-block; inline-size: var(--sp-3); block-size: var(--sp-3);
+      margin-inline-end: var(--sp-1); vertical-align: middle; background: var(--diagram-kind); }
+    & .legend [aria-pressed="false"] { color: var(--muted); text-decoration: line-through; }
+    & .legend [aria-pressed="false"]::before { opacity: var(--diagram-off); }
+  }
+  @media screen {
+    [data-widget="diagram"] { & .dim { opacity: var(--diagram-dim); } & .off { opacity: var(--diagram-off); } }
+  }
+  @media print { [data-widget="diagram"] .legend { display: none; } }
+  @media screen and (prefers-reduced-motion: no-preference) {
+    [data-widget="diagram"] {
+      & :is(.edge, .part text) { transition: stroke var(--motion-fast) var(--ease-out), fill var(--motion-fast) var(--ease-out); }
+      &.live [data-step] { transition: opacity var(--motion) var(--ease-out); }
+      &.live [data-step]:not(.on) { opacity: var(--diagram-pending); }
+      &.live [data-change="add"]:not(.on) { display: none; }
+      &.live [data-change="remove"]:not(.on) { opacity: 1; }
+      &.live [data-change="remove"]:not(.on) .name { text-decoration: none; color: var(--text); }
+      &.live [data-change="remove"].on { opacity: var(--diagram-pending); }
+      &.live [data-change]:not(.on) .tag { visibility: hidden; }
+      &.live .token { display: inline; transform: translate(var(--x), var(--y)); transition: transform var(--motion) var(--ease-out); }
+      &.live .now .edge { stroke: var(--accent); }
+      &.live .now text { fill: var(--accent); }
+    }
+  }
+</style>
+<main>
+<h1>tiny-queue의 구조와 동작</h1>
+<p class="read"><code>tiny-queue</code>는 작업을 <code>jobs.db</code> 한 파일에 저장하고, 작업자가 가장 오래된 작업부터 하나씩 실행하며, 실패한 작업은 세 번까지 다시 시도해요.</p>
+<p>파일은 여섯 개예요. 명령줄 입구인 <code>cli.py</code>, 작업을 다루는 <code>queue/</code> 폴더, 웹 화면인 <code>web/</code> 폴더, 그리고 데이터 파일 <code>jobs.db</code>로 나뉘어요.</p>
+<div data-widget="diagram" data-diagram="file-tree">
+<figure class="stage">
+<ul>
+<li><details open><summary><span class="name">tiny-queue/</span></summary>
+<p class="note">도구 전체예요.</p>
+<ul>
+<li><span class="name">cli.py</span> <span class="note">명령 <code>tq push</code>와 <code>tq work</code>를 받아요.</span></li>
+<li><details open><summary><span class="name">queue/</span></summary>
+<p class="note">작업을 저장하고 실행하고 다시 시도해요.</p>
+<ul>
+<li><span class="name">store.py</span> <span class="note">작업과 상태를 <code>jobs.db</code>에 기록해요.</span></li>
+<li><span class="name">worker.py</span> <span class="note">대기 중인 작업을 하나씩 꺼내 실행해요.</span></li>
+<li><span class="name">retry.py</span> <span class="note">실패한 작업을 세 번까지 대기로 되돌려요.</span></li>
+</ul></details></li>
+<li><details><summary><span class="name">web/</span></summary>
+<p class="note">작업 목록을 보여 주는 웹 화면이에요.</p>
+<ul>
+<li><span class="name">app.py</span> <span class="note">상태별 작업 목록을 보여 주는 Flask 페이지예요.</span></li>
+</ul></details></li>
+<li><span class="name">jobs.db</span> <span class="note">모든 작업이 들어 있는 SQLite 파일이에요.</span></li>
+</ul></details></li>
+</ul>
+</figure>
+</div>
+
+<section data-chapter>
+<h2>저장</h2>
+<h3>작업의 네 가지 상태</h3>
+<p>작업(job)은 <code>queue/store.py</code>가 <code>jobs.db</code>에 한 줄씩 기록해요. 작업마다 아래 상태 중 하나를 가져요.</p>
+<ul>
+<li><dfn id="t-pending">대기</dfn>(<code>pending</code>): 아직 아무 작업자도 가져가지 않았어요.</li>
+<li><dfn id="t-running">실행 중</dfn>(<code>running</code>): 작업자가 가져가서 실행하고 있어요.</li>
+<li><dfn id="t-done">완료</dfn>(<code>done</code>): 문제없이 끝났어요.</li>
+<li><dfn id="t-failed">실패</dfn>(<code>failed</code>): 실행하다 오류가 났어요.</li>
+</ul>
+<h3>작업 넣기</h3>
+<p><code>tq push &lt;job&gt;</code>를 실행하면 <code>cli.py</code>가 새 작업을 <a href="#t-pending">대기</a> 상태로 넣어요. 넣기만 하고 실행하지는 않아요. 실행은 <a href="#worker">작업자</a>가 맡아요.</p>
+</section>
+
+<section data-chapter>
+<h2>실행</h2>
+<h3>작업자</h3>
+<p><code>tq work</code>를 실행하면 <code>queue/worker.py</code>가 시작돼요. 작업자(worker)는 작업 하나를 이 순서로 처리해요.</p>
+<ol>
+<li>가장 오래된 <a href="#t-pending">대기</a> 작업을 하나 가져와요.</li>
+<li>그 작업을 <a href="#t-running">실행 중</a>으로 바꿔요.</li>
+<li>작업을 실행해요.</li>
+<li>성공하면 <a href="#t-done">완료</a>로, 오류가 나면 <a href="#t-failed">실패</a>로 바꿔요.</li>
+</ol>
+<h3>웹 화면</h3>
+<p><code>web/app.py</code>는 Flask로 만든 페이지예요. 작업을 상태별로 나눠 보여 줘요. 멈춘 작업이 있는지 여기서 확인할 수 있어요. 멈춘 작업은 <a href="#stuck">멈춘 작업 되살리기</a>에서 설명해요.</p>
+</section>
+
+<section data-chapter>
+<h2>실패 처리</h2>
+<h3>실패한 작업 다시 시도하기</h3>
+<p><code>queue/retry.py</code>는 <a href="#t-failed">실패</a>한 작업을 다시 <a href="#t-pending">대기</a>로 돌려놓아요. 한 작업에 최대 세 번까지만 해요. 세 번 모두 실패하면 그 작업은 계속 실패 상태로 남아요. 아래 그림은 7번 작업이 한 번 실패한 뒤 다시 시도해서 성공하는 과정이에요.</p>
+<div data-widget="diagram" data-diagram="use-case" data-swipe>
+<figure class="stage scroll">
+<svg width="520" height="304" viewBox="0 0 520 304" role="img">
+<title id="rt-title">실패한 7번 작업을 다시 시도하기</title>
+<desc id="rt-desc">작업자가 7번 작업을 실행하다 실패하고, retry.py가 대기로 되돌린 뒤, 작업자가 다시 가져가 완료해요.</desc>
+<defs>
+<marker id="rt-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+<path class="tip" d="M0,0 L10,5 L0,10 z"/>
+</marker>
+</defs>
+<rect class="box" x="8" y="8" width="128" height="40"/>
+<text x="72" y="32" text-anchor="middle">worker.py</text>
+<rect class="box" x="196" y="8" width="128" height="40"/>
+<text x="260" y="32" text-anchor="middle">jobs.db</text>
+<rect class="box" x="384" y="8" width="128" height="40"/>
+<text x="448" y="32" text-anchor="middle">retry.py</text>
+<path class="lifeline" d="M72,48 V296 M260,48 V296 M448,48 V296"/>
+<g class="part" data-step="1"><path class="edge" d="M72,88 H256" marker-end="url(#rt-arrow)"/>
+<text class="label" x="80" y="80">1 7번을 실행 중으로</text></g>
+<g class="part" data-step="2"><path class="edge fail" d="M72,136 H256" marker-end="url(#rt-arrow)"/>
+<text class="label" x="80" y="128">2 오류, 실패로</text></g>
+<g class="part" data-step="3"><path class="edge" d="M448,184 H264" marker-end="url(#rt-arrow)"/>
+<text class="label" x="276" y="176">3 대기로 (1/3회)</text></g>
+<g class="part" data-step="4"><path class="edge" d="M72,232 H256" marker-end="url(#rt-arrow)"/>
+<text class="label" x="80" y="224">4 다시 실행 중으로</text></g>
+<g class="part" data-step="5"><path class="edge ok" d="M72,280 H256" marker-end="url(#rt-arrow)"/>
+<text class="label" x="80" y="272">5 성공, 완료로</text></g>
+<circle class="token" cx="0" cy="0" r="6"/>
+</svg>
+<figcaption class="muted">작업을 실제로 실행하는 부분과, 누가 언제 retry.py를 부르는지는 빠져 있어요. 요청 내용에 그 설명이 없어요.</figcaption>
+</figure>
+<ol class="steps">
+<li>작업자가 가장 오래된 대기 작업인 7번을 가져와 실행 중으로 바꿔요.</li>
+<li>실행하다 오류가 나서 작업자가 7번을 실패로 바꿔요.</li>
+<li>retry.py가 7번을 대기로 되돌려요. 첫 번째 재시도예요.</li>
+<li>작업자가 7번을 다시 가져가 실행 중으로 바꿔요.</li>
+<li>이번에는 성공해서 7번이 완료가 돼요.</li>
+</ol>
+</div>
+<h3>멈춘 작업 되살리기</h3>
+<p>작업자가 실행 도중에 죽으면, 그 작업은 <a href="#t-running">실행 중</a> 상태로 계속 남아요. 다른 작업자는 대기 작업만 가져가므로 이 작업을 아무도 다시 실행하지 않아요. <code>tq work --reset</code>을 실행해야 이 작업이 대기로 돌아가요.</p>
+<p>주의할 점이 두 가지 있어요.</p>
+<ul>
+<li>세 번 실패한 작업은 저절로 다시 실행되지 않아요.</li>
+<li>작업자가 죽어서 멈춘 작업은 재시도 대상이 아니에요. 실패가 아니라 실행 중 상태이기 때문이에요.</li>
+</ul>
+</section>
+<footer>출처: <code>tiny-queue</code> 구조에 대한 요청 내용이에요.</footer>
+</main>
+<script>
+  (() => {
+    const start = () => {
+      const chapters = [...document.querySelectorAll('[data-chapter]')];
+      if (chapters.length < 2) return;
+      const head = (c) => c.querySelector('h2');
+      chapters.forEach((c, i) => {
+        const pager = document.createElement('div');
+        pager.className = 'pager';
+        [[chapters[i - 1], 'prev'], [chapters[i + 1], 'next']].forEach(([to, rel]) => {
+          if (!to) return;
+          const a = document.createElement('a');
+          a.href = `#${head(to).id}`;
+          a.rel = rel;
+          const name = head(to).textContent.trim();
+          a.textContent = rel === 'prev' ? `← ${name}` : `${name} →`;
+          pager.append(a);
+        });
+        c.append(pager);
+      });
+      let shown = null;
+      const show = () => {
+        const id = decodeURIComponent(location.hash.slice(1));
+        const target = id ? document.getElementById(id) : null;
+        const at = !id ? chapters[0] : (target && target.closest('[data-chapter]')) || shown || chapters[0];
+        chapters.forEach((c) => { c.hidden = c !== at; });
+        document.querySelectorAll('main nav a[href^="#"]').forEach((a) => {
+          const to = document.getElementById(decodeURIComponent(a.hash.slice(1)));
+          if (to && at.contains(to)) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current');
+        });
+        shown = at;
+        if (target && at.contains(target)) target.scrollIntoView();
+      };
+      addEventListener('hashchange', show);
+      show();
+    };
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
+<script>
+  (() => {
+    const start = () => document.querySelectorAll('[data-slide]').forEach((root) => {
+      const steps = [...root.querySelectorAll('.steps > li')];
+      const n = steps.length;
+      if (n < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const caption = document.createElement('p');
+      caption.className = 'caption';
+      caption.setAttribute('aria-live', 'polite');
+      const controls = document.createElement('div');
+      controls.className = 'controls';
+      controls.innerHTML = '<button type="button"></button><button type="button"></button><span class="count"></span>';
+      root.append(caption, controls);
+      const [back, next] = controls.querySelectorAll('button');
+      [back.textContent, next.textContent] = (root.dataset.labels || 'Back|Next').split('|');
+      let at = 1;
+      const show = (k) => {
+        at = Math.min(Math.max(k, 1), n);
+        root.querySelectorAll('[data-step]').forEach((el) => {
+          el.classList.toggle('on', +el.dataset.step <= at);
+          el.classList.toggle('now', +el.dataset.step === at);
+        });
+        root.dataset.at = at - 1;
+        root.dispatchEvent(new CustomEvent('step'));
+        caption.textContent = `${at}. ${steps[at - 1].textContent.trim()}`;
+        controls.querySelector('.count').textContent = `${at} / ${n}`;
+        back.disabled = at === 1;
+        next.disabled = at === n;
+      };
+      back.addEventListener('click', () => show(at - 1));
+      next.addEventListener('click', () => show(at + 1));
+      root.addEventListener('keydown', (e) => {
+        const d = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+        if (d && !e.target.closest('svg')) { e.preventDefault(); show(at + d); }
+      });
+      root.classList.add('live');
+      show(1);
+    });
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
+<script>
+  (() => {
+    const start = () => document.querySelectorAll('[data-swipe]').forEach((root) => {
+      const strip = root.querySelector('.steps');
+      const steps = [...strip.children];
+      const n = steps.length;
+      if (n < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      strip.tabIndex = 0;
+      const show = (k) => {
+        steps.forEach((li, i) => li.classList.toggle('now', i === k - 1));
+        root.querySelectorAll('[data-step]').forEach((el) => {
+          el.classList.toggle('on', +el.dataset.step <= k);
+          el.classList.toggle('now', +el.dataset.step === k);
+        });
+        const li = steps[k - 1];
+        if (li.dataset.x) {
+          root.style.setProperty('--x', `${li.dataset.x}px`);
+          root.style.setProperty('--y', `${li.dataset.y}px`);
+          // a stage wider than the column scrolls to center the token
+          const stage = root.querySelector('.stage');
+          const svg = stage && stage.querySelector('svg');
+          if (svg) {
+            const s = svg.getBoundingClientRect();
+            const x = s.left - stage.getBoundingClientRect().left + stage.scrollLeft + li.dataset.x * s.width / (svg.viewBox.baseVal.width || s.width);
+            stage.scrollTo({ left: x - stage.clientWidth / 2, behavior: 'smooth' });
+          }
+        }
+        root.dataset.at = k - 1;
+        root.dispatchEvent(new CustomEvent('step'));
+      };
+      const seen = new IntersectionObserver((entries) => entries.forEach((e) => {
+        if (e.isIntersecting) show(steps.indexOf(e.target) + 1);
+      }), { root: strip, threshold: 0.6 });
+      steps.forEach((li) => seen.observe(li));
+      root.classList.add('live');
+      show(1);
+    });
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
+<script>
+  (() => {
+    // focus: a node or .part, its lines and the nodes they reach stay full, the rest dims; the legend turns a kind off
+    const KINDS = ['k1', 'k2', 'k3', 'k4'];
+    const num = (el, a) => +el.getAttribute(a) || 0;
+    const gap = (p, r) => Math.hypot(Math.max(r.x - p.x, 0, p.x - r.x - r.w), Math.max(r.y - p.y, 0, p.y - r.y - r.h));
+    const graph = (root) => {
+      const nodes = [], edges = [];
+      if (root.dataset.diagram === 'file-tree') {
+        root.querySelectorAll('.stage li').forEach((li) => {
+          const summary = li.querySelector(':scope > details > summary');
+          if (!summary) li.tabIndex = 0;
+          nodes.push({ el: li, handle: summary || li,
+            own: [...li.querySelectorAll(':scope > :not(ul, details), :scope > details > :not(ul)')] });
+        });
+        nodes.forEach((n) => {
+          const up = nodes.find((m) => m.el === n.el.parentElement.closest('li'));
+          if (up) edges.push({ own: [], ends: [up, n] });
+        });
+      } else {
+        const texts = [...root.querySelectorAll('svg > text')];
+        root.querySelectorAll('svg .box').forEach((box) => {
+          const r = { x: num(box, 'x'), y: num(box, 'y'), w: num(box, 'width'), h: num(box, 'height') };
+          box.tabIndex = 0;
+          nodes.push({ el: box, handle: box, r,
+            own: [box, ...texts.filter((t) => gap({ x: num(t, 'x'), y: num(t, 'y') }, r) === 0)] });
+        });
+        root.querySelectorAll('svg .part').forEach((part) => {
+          const line = part.querySelector('.edge');
+          if (!line || !nodes.length) return;
+          const ends = [0, line.getTotalLength()].map((at) => {
+            const p = line.getPointAtLength(at);
+            return nodes.reduce((a, n) => (gap(p, n.r) < gap(p, a.r) ? n : a));
+          });
+          edges.push({ el: part, handle: part, own: [...part.children], ends });
+        });
+      }
+      return { nodes, edges };
+    };
+    const start = () => document.querySelectorAll('[data-widget="diagram"]').forEach((root) => {
+      const { nodes, edges } = graph(root);
+      const items = [...nodes, ...edges];
+      const owner = new Map();
+      items.forEach((x) => [x.handle, ...x.own].forEach((el) => el && owner.set(el, x)));
+      const at = (el) => {
+        for (; el && el !== root; el = el.parentNode) if (owner.has(el)) return owner.get(el);
+        return null;
+      };
+      let pinned = null, passing = null;
+      const show = () => {
+        const on = pinned || passing;
+        const keep = new Set(on ? [on] : []);
+        edges.forEach((e) => {
+          if (on && (e === on || e.ends.includes(on))) [e, ...e.ends].forEach((x) => keep.add(x));
+        });
+        items.forEach((x) => x.own.forEach((el) => el.classList.toggle('dim', !!on && !keep.has(x))));
+      };
+      const pin = (x) => { pinned = pinned === x ? null : x; show(); };
+      root.addEventListener('pointerover', (e) => { if (e.pointerType === 'mouse') { passing = at(e.target); show(); } });
+      root.addEventListener('pointerleave', () => { passing = null; show(); });
+      root.addEventListener('focusin', (e) => { passing = e.target.matches(':focus-visible') ? at(e.target) : null; show(); });
+      root.addEventListener('focusout', () => { passing = null; show(); });
+      root.addEventListener('click', (e) => { if (!e.target.closest('.legend, .controls')) pin(at(e.target)); });
+      root.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { pinned = passing = null; show(); return; }
+        const x = at(e.target);
+        if ((e.key === 'Enter' || e.key === ' ') && x && x.handle === e.target && e.target.localName !== 'summary') {
+          e.preventDefault();
+          pin(x);
+        }
+      });
+      const kinds = KINDS.filter((k) => nodes.some((n) => n.el.classList.contains(k)));
+      if (kinds.length < 2) return;
+      const names = (root.dataset.kinds || '').split('|');
+      const legend = document.createElement('div');
+      legend.className = 'legend';
+      const filter = () => {
+        const off = new Set(kinds.filter((k) => legend.querySelector(`.${k}`).getAttribute('aria-pressed') === 'false'));
+        const gone = new Set(nodes.filter((n) => [...off].some((k) => n.el.classList.contains(k))));
+        edges.forEach((e) => { if (e.ends.some((n) => gone.has(n))) gone.add(e); });
+        items.forEach((x) => x.own.forEach((el) => el.classList.toggle('off', gone.has(x))));
+      };
+      kinds.forEach((k) => {
+        const b = legend.appendChild(document.createElement('button'));
+        b.type = 'button';
+        b.className = k;
+        b.setAttribute('aria-pressed', 'true');
+        b.textContent = names[KINDS.indexOf(k)] || KINDS.indexOf(k) + 1;
+        b.addEventListener('click', () => {
+          b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+          filter();
+        });
+      });
+      root.querySelector('.stage').before(legend);
+    });
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
+</html>
