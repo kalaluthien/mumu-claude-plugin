@@ -5,7 +5,6 @@
 3. For each open task whose blockers are all closed, and each row of its `## Shares` whose `after` rows have merged: `start` it under its topic or share at its effort with `--leader <your address>`, or make a small change yourself.
 4. Act on what arrives:
    - `see <task-url>` naming a `BLOCKED:` comment: answer it with `decide`, then `prompt` the worker `see <task-url>`; work that needs its own pull request is answered with the url of the task you `file` for it, `order`ed before this one, which then goes through 3;
-   - `see <task-url>` naming a `BLOCKED:` on an auto-mode refusal: check the exact step it names (`merge.py`, the reviewer's approval, `git -C <worktree> rm` of tracked clean files), then run it yourself;
    - `see <pr-url>`, or `see <task-url>` of a report task closed at its `APPROVED:`: `read` it; once it shows merged or closed, `close` its worker, go to 3 for each task it unblocked, and go to 5 for its task;
    - `blocked <name>`: the worker waits at a tool-use prompt, which is the owner's to answer, so tell the owner;
    - `gone <name>` while its task is open: `start` it again with `--continue`;
