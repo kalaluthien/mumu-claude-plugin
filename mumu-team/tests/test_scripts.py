@@ -395,18 +395,25 @@ class LeadStop(Hook):
 SCRIPTS = pathlib.Path(__file__).resolve().parent.parent / "scripts"
 
 # One fake for both tools: poll i reads `<tool>.<i>` (else the highest one below it); a file holding `FAIL` exits 1.
-# gh answers only the issues whose labels match its search: each `label:<l>` present, each `-label:<l>` absent.
+# gh answers only the issues whose labels match its search: each `label:<l>` present, each `-label:<l>` absent;
+# `gh issue view <n>`, counted in `gh.view.count`, answers the labels of the issue whose url ends `/<n>` in the newest answer.
 WATCH_FAKE = r'''#!/usr/bin/env python3
 import json, os, pathlib, re, sys
 d, tool = pathlib.Path(os.environ["WATCH_FAKE"]), pathlib.Path(sys.argv[0]).name
-count = d / f"{tool}.count"
+view = sys.argv[1:3] == ["issue", "view"]
+count = d / f"{tool}{'.view' if view else ''}.count"
 i = int(count.read_text()) if count.exists() else 0
 count.write_text(str(i + 1))
+if view:
+    i = int((d / "gh.count").read_text()) if (d / "gh.count").exists() else 0
 answer = max((p for p in d.glob(f"{tool}.[0-9]*") if int(p.suffix[1:]) <= i), key=lambda p: int(p.suffix[1:]), default=None)
 text = answer.read_text() if answer else "[]"
 if text.strip() == "FAIL":
     sys.exit(1)
-if tool == "gh":
+if view:
+    issue = next(i for i in json.loads(text) if i["url"].endswith(f"/{sys.argv[3]}"))
+    text = json.dumps({"labels": [{"name": l} for l in issue["labels"]]})
+elif tool == "gh":
     a = sys.argv[1:]
     s = " ".join(a)
     want, bar = re.findall(r"(?<!-)label:([\w:-]+)", s), re.findall(r"-label:([\w:-]+)", s)
@@ -428,7 +435,8 @@ class TeamWatch(unittest.TestCase):
     def herdr(self, poll, *agents):
         """herdr's answer from poll `poll` on: `(name, status, in this checkout)` per agent, or `FAIL`."""
         text = "FAIL" if agents == ("FAIL",) else json.dumps({"result": {"agents": [
-            {"name": n, "agent_status": s, "cwd": str(self.checkout / ".claude" / "worktrees" / n if mine else self.tmp / "other" / n)}
+            {"name": n, "agent_status": s, "pane_id": f"p-{n}",
+             "cwd": str(self.checkout / ".claude" / "worktrees" / n if mine else self.tmp / "other" / n)}
             for n, s, mine in agents]}})
         (self.tmp / f"herdr.{poll}").write_text(text)
 
@@ -436,8 +444,8 @@ class TeamWatch(unittest.TestCase):
         """The open parentless issues from poll `poll` on, each with `labels`, or `FAIL`."""
         (self.tmp / f"gh.{poll}").write_text("FAIL" if urls == ("FAIL",) else json.dumps([{"url": u, "labels": list(labels)} for u in urls]))
 
-    def run_watch(self, ticks, idle="1000", role=None):
-        env = dict(os.environ, WATCH_FAKE=str(self.tmp), PATH=f"{self.tmp}:{os.environ['PATH']}",
+    def run_watch(self, ticks, idle="1000", role=None, lead="repo-lead"):
+        env = dict(os.environ, WATCH_FAKE=str(self.tmp), PATH=f"{self.tmp}:{os.environ['PATH']}", HERDR_PANE_ID=f"p-{lead}",
                    MONITOR_POLL="0.01", MONITOR_TICKS=str(ticks), TEAM_WATCH_IDLE=idle)
         env.pop("MUMU_ROLE", None)
         if role:
@@ -489,6 +497,43 @@ class TeamWatch(unittest.TestCase):
         self.herdr(0, ("fix-a-12-1", "working", True))
         self.held(0, "https://github.com/o/r/issues/7")
         self.assertEqual(self.run_watch(ticks=20, idle="0"), [])
+
+    def folders(self, *states, lead="team-lead", team=("scope:team",)):
+        """A checkout with folders `team` and `docs`, and fake workers `fix-a-12-1` of task 12, labelled `team`, and `fix-b-13-1` of `scope:docs`."""
+        for f in ("team", "docs"):
+            (self.checkout / f).mkdir()
+        (self.tmp / "gh.0").write_text(json.dumps([{"url": "https://github.com/o/r/issues/12", "labels": list(team)},
+                                                   {"url": "https://github.com/o/r/issues/13", "labels": ["scope:docs"]}]))
+        for poll, (a, b) in enumerate(states):
+            self.herdr(poll * 2, (lead, "idle", False), ("fix-a-12-1", a, True), ("fix-b-13-1", b, True))
+
+    def test_a_folder_lead_sees_only_its_folders_workers(self):
+        self.folders(("working", "working"), ("blocked", "blocked"), ("idle", "idle"))
+        self.assertEqual(self.run_watch(ticks=8, lead="team-lead"), ["blocked fix-a-12-1", "idle fix-a-12-1"])
+
+    def test_a_repo_lead_or_an_unscoped_repository_sees_every_worker(self):
+        for lead, folders in (("repo-lead", True), ("team-lead", False)):
+            with self.subTest(lead=lead, folders=folders):
+                self.setUp()
+                self.folders(("working", "working"), ("blocked", "blocked"), lead=lead)
+                if not folders:
+                    (self.checkout / "team").rmdir()
+                self.assertEqual(self.run_watch(ticks=4, lead=lead), ["blocked fix-a-12-1", "blocked fix-b-13-1"])
+                self.assertEqual(self.polls("gh.view"), 0)
+
+    def test_another_folders_working_worker_leaves_the_idle_line(self):
+        self.folders(("idle", "working"))
+        lines = self.run_watch(ticks=20, idle="0.05", lead="team-lead")
+        self.assertEqual(lines, ["idle fix-a-12-1", "team idle 0m"])
+
+    def test_only_the_leads_own_tasks_count_for_the_idle_line(self):
+        self.folders(("idle", "idle"), team=("scope:team", "backlog"))  # only docs holds an open root task
+        self.assertEqual(self.run_watch(ticks=20, idle="0.05", lead="team-lead"), ["idle fix-a-12-1"])
+
+    def test_each_workers_task_is_read_once_over_many_polls(self):
+        self.folders(("working", "working"), ("blocked", "idle"), ("working", "blocked"), ("idle", "working"))
+        self.run_watch(ticks=12, lead="team-lead")
+        self.assertEqual(self.polls("gh.view"), 2)
 
     def test_in_a_worker_session_it_exits_at_once(self):
         self.herdr(0, ("fix-a-12-1", "blocked", True))

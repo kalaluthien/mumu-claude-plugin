@@ -57,3 +57,8 @@ def held(cwd, folder=None):
         return [i["url"] for i in json.loads(gh("issue", "list", "--state", "open", "--search", search, "--json", "url", cwd=cwd))]
     except (RuntimeError, ValueError, KeyError, TypeError):
         return None
+
+
+def labels(cwd, n):
+    """The label names of issue `n` of `cwd`'s repository."""
+    return [label["name"] for label in json.loads(gh("issue", "view", str(n), "--json", "labels", cwd=cwd))["labels"]]
