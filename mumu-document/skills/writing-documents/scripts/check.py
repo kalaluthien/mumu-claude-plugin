@@ -276,7 +276,7 @@ CLICKS = r"""(async function () {
         (root.querySelector('output') || {}).textContent]);
     }
     var els = [];
-    root.querySelectorAll('.stage:not(.before), .stage:not(.before) *, output[data-calc]').forEach(function (e) { els.push(look(e)); });
+    root.querySelectorAll('.stage, .stage *, output[data-calc]').forEach(function (e) { els.push(look(e)); });
     return JSON.stringify(els);
   };
   var click = async function (b) { b.click(); await wait(30); };

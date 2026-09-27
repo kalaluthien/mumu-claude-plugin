@@ -10,6 +10,11 @@ import sys
 import tempfile
 import unittest
 
+try:
+    from playwright.sync_api import sync_playwright
+except ImportError:
+    sync_playwright = None
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills" / "writing-documents"
 REFS = SKILL / "references"
@@ -98,7 +103,7 @@ FIXTURES = {"chart": """<figure data-widget="chart" data-chart="bar">
   <output aria-live="polite"></output>
 </div>
 <ul id="{{id}}"><li data-kind="빛">창가의 빛</li><li data-kind="빛">역광</li><li data-kind="색">피부색</li></ul>""",
-            "controls": """<figure data-widget="controls" data-split="처음|지금">
+            "controls": """<figure data-widget="controls">
   <figcaption>크기를 바꾸며 원을 봐요.</figcaption>
   <div class="stage"><svg viewBox="0 0 120 80" role="img" aria-label="원"><circle cx="60" cy="40" style="r: calc(var(--size, 20) * 1px)"/></svg></div>
   <div class="panel">
@@ -394,6 +399,24 @@ class Widgets(unittest.TestCase):
         self.assertEqual((code, out.splitlines()[-1]), (0, "pass"), out)
         self.assertIn("layout motion 305/305", out)
         self.assertIn("clicks 22/22 pass", out)
+
+    @unittest.skipUnless(sync_playwright, "no playwright")
+    def test_controls_stage_keeps_the_column(self):
+        # a figure once asking for a split still draws one stage, as wide as the column
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(channel="chrome")
+            try:
+                p = browser.new_page(viewport={"width": 320, "height": 800})
+                p.route(re.compile(r"^https?://"), lambda r: r.abort())
+                p.set_content(self.page.replace('<figure data-widget="controls">', '<figure data-widget="controls" data-split="처음|지금">', 1))
+                got = p.evaluate("""() => { const f = document.querySelector('[data-widget="controls"]');
+                  f.closest('[data-chapter]').hidden = false;
+                  return [f.querySelectorAll('.stage').length, f.querySelector('.stage').getBoundingClientRect().width, f.clientWidth]; }""")
+            finally:
+                browser.close()
+        self.assertEqual(got[0], 1, got)
+        self.assertGreater(got[2], 0, got)
+        self.assertGreaterEqual(got[1], got[2] - 1, got)
 
     def test_each_broken_control_fails(self):
         for old, new, line in BROKEN:

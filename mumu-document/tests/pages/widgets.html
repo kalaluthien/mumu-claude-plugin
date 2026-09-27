@@ -7,7 +7,7 @@
 </ol></nav>
 <section data-chapter>
   <h2 id="c1">긴 장</h2>
-  <p>이 장은 길어요. <a href="#c3-split">나란히 보기</a>로 가면 돌아가기 버튼이 나타나요.</p>
+  <p>이 장은 길어요. <a href="#c3-lamp">조명 원</a>로 가면 돌아가기 버튼이 나타나요.</p>
   <h3 id="c1-a">앞부분</h3>
     <p>긴 장의 1번째 문단이에요. 맨 위로 버튼은 이렇게 긴 장에서 쓸모가 있어요.</p>
     <p>긴 장의 2번째 문단이에요. 맨 위로 버튼은 이렇게 긴 장에서 쓸모가 있어요.</p>
@@ -109,12 +109,12 @@
 </section>
 <section data-chapter>
   <h2 id="c3">조절</h2>
-  <h3 id="c3-split">나란히 보기</h3>
+  <h3 id="c3-lamp">조명 원</h3>
   <style>
     #lamp circle { r: calc(var(--size, 20) * 1px); opacity: calc(var(--light, 50) / 100); fill: var(--kind-2); }
     #lamp[data-tone="cool"] circle { fill: var(--kind-1); }
   </style>
-  <figure data-widget="controls" data-split="처음|지금">
+  <figure data-widget="controls">
     <figcaption>크기와 밝기를 바꾸며 원이 어떻게 달라지는지 봐요.</figcaption>
     <div class="stage" id="lamp"><svg viewBox="0 0 200 120" role="img" aria-labelledby="lamp-t"><title id="lamp-t">조명 원</title>
       <circle cx="100" cy="60"/></svg></div>
