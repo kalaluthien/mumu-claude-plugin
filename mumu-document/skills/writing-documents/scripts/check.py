@@ -239,11 +239,19 @@ SWIPES = ("Array.prototype.map.call(document.querySelectorAll('[data-swipe].live
           " var t = r.querySelector('.token'), a = t && t.getBoundingClientRect(), b = r.querySelector('.stage').getBoundingClientRect();"
           " return [+r.dataset.at + 1, r.querySelectorAll('.steps > li').length,"
           " t ? a.left >= b.left - 1 && a.right <= b.right + 1 && a.top >= b.top - 1 && a.bottom <= b.bottom + 1 : null]; })")
-# [whether each live swipe stands at card k with nothing running in it, its step, stage and strip scroll], k given
+# each live swipe's [whether it stands at card k, whether an animation runs in it, its step, stage and strip scroll]
 SETTLE = ("(function (k) { return Array.prototype.map.call(document.querySelectorAll('[data-swipe].live'), function (r) {"
           " var s = r.querySelector('.stage'), n = r.querySelectorAll('.steps > li').length;"
-          " return [+r.dataset.at === Math.min(k, n - 1) && r.getAnimations({subtree: true}).every(function (a) {"
-          " return a.playState !== 'running'; }), r.dataset.at, s ? s.scrollLeft : 0, r.querySelector('.steps').scrollLeft]; }); })(%d)")
+          " return [+r.dataset.at === Math.min(k, n - 1), r.getAnimations({subtree: true}).some(function (a) {"
+          " return a.playState === 'running'; }), r.dataset.at, s ? s.scrollLeft : 0, r.querySelector('.steps').scrollLeft]; }); })(%d)")
+
+
+def until(fn, seconds):
+    """fn()'s value once it is true or `seconds` have passed, polled every 50 ms, since a loaded machine slows the page."""
+    end = time.monotonic() + seconds
+    while not (value := fn()) and time.monotonic() < end:
+        time.sleep(0.05)
+    return value
 
 # [what was tried, the controls that changed nothing]: each filter and controls widget's control, then the reading aids;
 # a control passes when its states differ: a slider at its min and max, each of a group's buttons from the others, a preset
@@ -397,19 +405,17 @@ def browse(page, paged):
         session = send("Target.attachToTarget", targetId=target, flatten=True)["sessionId"]
         run = lambda js: send("Runtime.evaluate", session, expression=js, returnByValue=True, awaitPromise=True)["result"].get("value")
         def settle(k):
-            """Wait until each live swipe stands at card k, still, or, one that does not react, stays still 3 s; 20 s at most."""
-            last, still = None, 0
-            for _ in range(200):
+            """Wait until each live swipe stands at card k with nothing moving, or, one that does not react, keeps still
+            3 s; 20 s at most."""
+            end, last, since = time.monotonic() + 20, None, 0
+            while time.monotonic() < end:
                 now = run(SETTLE % k)
-                still = still + 1 if now == last else 0
-                if still and all(r[0] for r in now) or still >= 30:
+                if now != last:
+                    last, since = now, time.monotonic()
+                elif not any(r[1] for r in now) and (all(r[0] for r in now) or time.monotonic() - since >= 3):
                     return
-                last = now
-                time.sleep(0.1)
-        for _ in range(200):
-            if run("location.protocol === 'file:' && document.readyState === 'complete'"):
-                break
-            time.sleep(0.1)
+                time.sleep(0.05)
+        until(lambda: run("location.protocol === 'file:' && document.readyState === 'complete'"), 20)
         settle(0)
         chapters = paged and chapter_checks(page, run, lambda url: send("Page.navigate", session, url=url))
         run("document.querySelectorAll('[data-chapter]').forEach(function (c) { c.hidden = false; })")
@@ -435,20 +441,15 @@ def chapter_checks(page, run, navigate):
     tally, out = {k: [0, 0] for k in ("load", "nav", "pager", "back")}, []
     def expect(check, want, what):
         tally[check][1] += 1
-        for _ in range(20):
-            got = run(SHOWN)
-            if got == [i == want for i in range(n)]:
-                tally[check][0] += 1
-                return
-            time.sleep(0.05)
+        if until(lambda: run(SHOWN) == [i == want for i in range(n)], 5):
+            tally[check][0] += 1
+            return
+        got = run(SHOWN)
         out.append(f"{what} shows chapters {[i + 1 for i, v in enumerate(got) if v]}, not {want + 1}")
     def load(fragment):
         navigate("about:blank")
         navigate(f"file://{page}{fragment}")
-        for _ in range(40):
-            if run("location.hash === " + json.dumps(fragment) + " && document.readyState === 'complete'"):
-                break
-            time.sleep(0.05)
+        until(lambda: run("location.hash === " + json.dumps(fragment) + " && document.readyState === 'complete'"), 20)
     load("")
     expect("load", 0, "a load with no #id")
     for i, (link, at) in enumerate(run("Array.prototype.map.call(document.querySelectorAll('main nav a[href^=\"#\"]'),"
