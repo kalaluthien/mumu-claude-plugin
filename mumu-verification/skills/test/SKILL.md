@@ -6,7 +6,7 @@ user-invocable: false
 
 # Test
 
-Write the failing tests first, then the change that makes them pass; `spec/verify.sh` passing is done.
+Write the failing tests first, then the change that makes them pass; `${CLAUDE_PLUGIN_ROOT}/skills/spec/scripts/verify.sh` passing at the repo's root is done.
 
 Terms and rules: `${CLAUDE_PLUGIN_ROOT}/lib/contract.md`; read it first.
 
@@ -14,7 +14,7 @@ Terms and rules: `${CLAUDE_PLUGIN_ROOT}/lib/contract.md`; read it first.
 
 Use the test command the repo declares (a `test` target, `package.json`'s `scripts.test`, the runner its manifest configures), and put new tests beside the existing ones, named alike. With none, initialise the language's standard runner with a module test per core module and `tests/scenarios/`, the one catalog of end-to-end runs, tagged `@load` and `@fault`; fold old unit tests into the module test they exercise.
 
-With no `spec/verify.sh`, copy [verify.sh](assets/verify.sh) there and set its `TESTS` to the repo's test command. A hook runs it before each `git commit` and before a stop with changes, and refuses while it fails.
+Set `VERIFY_TESTS` to that command in the repo's `.claude/settings.json` `env`, for that gate, which a hook runs before each `git commit` and before a stop with changes.
 
 ## Red
 
@@ -33,7 +33,7 @@ A value rule - a threshold, a colour, a size - lives once as a named constant wh
 
 ## Green
 
-Make the change. Run `spec/verify.sh`; it passes. Then undo the change alone, watch the new tests fail, and restore it.
+Make the change. Run `${CLAUDE_PLUGIN_ROOT}/skills/spec/scripts/verify.sh`; it passes. Then undo the change alone, watch the new tests fail, and restore it.
 
 ## Plugin probe
 
