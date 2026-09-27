@@ -93,7 +93,9 @@ page, commit it beside the page.
 
 - A part no fact settles goes to `grill-me` by name, and the document carries
   only its settled answers; nothing is written before.
-- Reread for order, each claim against its evidence, cuts and register.
+- Reread for order, each claim against its evidence, cuts and register, then
+  grade it against [rubric.md](references/rubric.md) and fix each criterion
+  scored below 2.
 - An Artifact page: `"${CLAUDE_PLUGIN_ROOT}/skills/writing-documents/scripts/check.py" <page.html>` prints `pass` last.
 - A rejected draft is edited only after a reader, an editor and a hostile
   fact-checker each say why it fails.
