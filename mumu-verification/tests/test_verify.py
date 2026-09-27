@@ -9,7 +9,7 @@ import subprocess
 import tempfile
 import unittest
 
-VERIFY = pathlib.Path(__file__).resolve().parent.parent / "skills" / "verify" / "scripts" / "verify.sh"
+VERIFY = pathlib.Path(__file__).resolve().parent.parent / "skills" / "spec" / "scripts" / "verify.sh"
 MODEL = "sig A { f: set A }\nassert NoSelf { no a: A | a in a.f }\nfact { no a: A | a in a.f }\nrun {} for 2 expect 1\n"
 GOOD, WITNESS = "check NoSelf for 2 expect 0\n", "def refuses_NoSelf(): pass\n"
 NONE = "FAIL check NoSelf: no refuses_NoSelf test\n"

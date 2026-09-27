@@ -46,7 +46,7 @@ Syntax that misleads: a `module` name has no hyphen and equals its path; a tempo
 
 ## Check
 
-Every `check` and `run` carries `expect`: `alloy exec` exits 0 on a counterexample without one. Run the verify skill's gate: it names each missed or missing expect, and each `check` with no `refuses_<Name>` test. Start at `for 3` and raise the scope while each check finishes within a minute.
+Every `check` and `run` carries `expect`: `alloy exec` exits 0 on a counterexample without one. Run `${CLAUDE_PLUGIN_ROOT}/skills/spec/scripts/verify.sh` at the repo's root, never a copy in the repo: it names each missed or missing expect, and each `check` with no `refuses_<Name>` in a test file, one under `test/`, `tests/`, `__tests__/` or `androidTest/` or named `test_*`, `*_test.*`, `*.test.*` or `*Test.<ext>`, never under `spec/`, `docs/` or `build/`. Start at `for 3` and raise the scope while each check finishes within a minute.
 
 ## Check the code against the model
 

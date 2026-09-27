@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PreToolUse on Bash and Stop: in a repo holding a `spec/` model, run the verify skill's gate before a `git commit`
+"""PreToolUse on Bash and Stop: in a repo holding a `spec/` model, run the spec skill's gate before a `git commit`
 and before a stop that leaves changes, refusing either while it fails, with its FAIL lines. A repo without one is
 commit-nudge.py's.
 A stop already held once goes on, so a gate the session cannot turn green never traps it. Exit 0 always.
@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 PLUGIN = pathlib.Path(__file__).resolve().parent.parent
-GATE = PLUGIN / "skills" / "verify" / "scripts" / "verify.sh"
+GATE = PLUGIN / "skills" / "spec" / "scripts" / "verify.sh"
 sys.path.insert(0, str(PLUGIN / "lib"))
 from fit import COMMIT  # noqa: E402
 
