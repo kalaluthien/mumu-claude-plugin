@@ -12,7 +12,7 @@ section links it. A key term is defined once, as `<dfn id="t-<term>">` where it
 first appears, and its later mentions link there, once a paragraph.
 
 A widget is the template `assemble.py --spec <widget>` prints for the content's
-kind (`chart`, `file-tree`, `system-context`, `use-case`), its spec followed,
+kind (`chart`, `file-tree`, `system-context`, `use-case`, `filter`, `controls`), its spec followed,
 every `{{...}}` filled or its element deleted, `{{id}}` unique per copy. A
 figure over 9 boxes is two figures. Then
 `"${CLAUDE_PLUGIN_ROOT}/skills/writing-documents/scripts/assemble.py" <body.html> <slug>.html`
@@ -37,6 +37,7 @@ published with the `Artifact` tool, else opened locally.
 `"${CLAUDE_PLUGIN_ROOT}/skills/writing-documents/scripts/check.py" <page>` loads
 it at 320 px with and without motion, clicks each control, reads its Korean,
 contents and links, checks each chart against its table, and in real time
-swipes each strip and opens each chapter by its nav, pager, link and back;
+swipes each strip, opens each chapter by its nav, pager, link and back, and
+fails a filter, controls or reading-aid control that changes nothing;
 fix each `FAIL` line and rerun until the last line is `pass`; exit 2 says why
 it could not run.
