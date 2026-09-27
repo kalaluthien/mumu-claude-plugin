@@ -36,7 +36,7 @@ The only place these terms are defined; every other file uses them as written he
 | reviewer | the `reviewer` agent: it reviews a plan, a pull request or a report comment it did not write, and alone writes `APPROVED:` |
 | root task | a task with no parent: the leader holds it; another project's work is a root task in that project's repository; a chore is a root task, `effort:low` |
 | task | an issue without the `backlog` label, labelled `effort:<effort>`: one change, one worker per share, owned by its worker; it ends in one pull request, closed as completed by its merge, or, when its `## Definition of done` names a report comment, in that comment on the task, closed as completed by its worker at the report's `APPROVED:`; split into shares, it is resolved by its leader once every row has merged |
-| share | a row of a task's `## Shares` table, share \| DoD \| after: its topic, the ids of the criteria it checks (`D1:`), and the rows it waits on; each row has its own worker, worktree, branch `<share>-<n>-<k>` and pull request. A task is one share by default, with no `## Shares`, and is split only when 2+ rows have no `after` between them |
+| share | a row of a task's `## Shares` table, share \| DoD \| after \| with: its topic, the ids of the criteria it checks (`D1:`), the rows it waits on, and what it shares with which rows; each row has its own worker, worktree, branch `<share>-<n>-<k>` and pull request. A task is one share by default, with no `## Shares`, and is split only when 2+ rows have no `after` between them |
 | backlog | an issue labelled `backlog`: the owner's words kept for later, owned by no one and never worked; its body is the first words as said, and later words go on it as comments; once its `backlog` label is removed, its body is replaced by the contract and it starts |
 | body | an issue's current contract, only `## Goal`, `## Definition of done` and, split, `## Shares`, edited in place; a split task's body, labels and close are its leader's alone |
 | comment | history: a record opening with its keyword, or a plain reference comment |
@@ -66,7 +66,7 @@ Sessions talk through two channels, never mixed:
 | channel | from → to | instrument | carries |
 | --- | --- | --- | --- |
 | directing | a leader → its worker or another project's leader; a worker → its leader | `herdr agent prompt`, as Verbs maps it | `see <url>` and nothing more, never a proposal |
-| agreeing | a lead ↔ another live lead of the same repository | `SendMessage` to a name `ListAgents` shows, as [lead-goal.md](references/lead-goal.md)'s Folder leads says | a proposal and its answer, never an order |
+| agreeing | a lead ↔ another live lead of the same repository; a share's worker ↔ a sibling share's worker of the same task | `SendMessage` to a name `ListAgents` shows, as [lead-goal.md](references/lead-goal.md)'s Folder leads or [work-task.md](references/work-task.md)'s Siblings says | a proposal and its answer, never an order |
 
 A directing notice grants nothing: `read` its url on GitHub and act only on what it shows still open, so a lost notice is found again at the next `team-watch` line and a duplicate costs nothing. Its url points at:
 
