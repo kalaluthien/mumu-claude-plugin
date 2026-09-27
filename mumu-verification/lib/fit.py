@@ -16,6 +16,7 @@ RULE = re.compile(r"\b(never|always|only after|at most|at least once|lifecycle|t
 PROMPT = re.compile(r"(^|/)(SKILL\.md|CLAUDE\.md|AGENTS\.md)$|/skills/.+/references/[^/]+\.md$|/(agents|commands)/[^/]+\.md$|/evals/")
 NOT_CHANGE = re.compile(r"^(/tmp/|/private/|/var/folders/)|/scratchpad/|/\.claude/projects/")
 CALL = re.compile(r"mumu-verification:(test|spec|eval)\b")
+COMMIT = re.compile(r"(^|[;&|(]\s*|\s)git(\s+-C\s+(\S+))?\s+commit\b")
 
 
 def fits(path, text):

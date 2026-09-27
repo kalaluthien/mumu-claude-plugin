@@ -6,9 +6,9 @@ user-invocable: false
 
 # Spec
 
-Model the change in Alloy and check the invariant it must keep before the code changes: sigs, facts and one `check` per invariant, no scenarios.
+Model the change in Alloy, check the rule it must keep before the code changes, and keep the model one drawable map of the system.
 
-Terms and rules: `${CLAUDE_PLUGIN_ROOT}/skills/test/references/contract.md`; read it first.
+Terms and rules: `${CLAUDE_PLUGIN_ROOT}/lib/contract.md`; read it first.
 
 ## Find what the repo has
 
@@ -16,24 +16,29 @@ Terms and rules: `${CLAUDE_PLUGIN_ROOT}/skills/test/references/contract.md`; rea
 | --- | --- |
 | a model in another checked language (TLA+, Quint, Lean) | use it and the checker the repo runs it with |
 | no `alloy` on PATH | say so, name where to get it (alloytools.org), and stop before writing anything; never check a model by reading it |
-| `*.als` files | use their layout; read the model covering the change |
-| none | initialise `spec/<module>/model.als` and `spec/<module>/check.als` |
+| `*.als` files | keep their layout; read the model covering the change |
+| none | initialise `spec/map.als`, and `spec/<module>/model.als` and `check.als` per module the change touches |
 
 ## Write the model
 
+`spec/map.als` is the structure a person reads: `sig Module { calls: set Module }`, `sig Remote in Module`, and one lifecycle `trans` per module. A change inside one module leaves it alone. Asked for a picture, draw a Mermaid view from `calls` and `trans`; check none in.
+
 ```alloy
 module model                       -- model.als: what the system is; no commands
-sig Thing { ... }
+sig Order { ... }                  -- a sig is the owner's noun
 fact Wellformed { ... }            -- what the system guarantees by construction
-pred step[...] { ... }             -- one operation
+pred refund[...] { ... }           -- a pred is a verb: one operation, its guard and its effect
 ```
 
 ```alloy
 open model                         -- check.als: what must hold of it
-assert KeepsInvariant { ... }      -- what the change must not break
-check KeepsInvariant for 3         -- named for what holds
-run step for 3                     -- shows the model has an instance
+-- "An order must never end up both shipped and fully refunded."
+assert NeverShippedAndRefunded { ... }  -- named for what holds
+check NeverShippedAndRefunded for 3 expect 0
+run refund for 3 expect 1          -- shows the model has an instance
 ```
+
+Properties come from the owner's words: each sentence stating never, always, only after or at most becomes one assert quoting it, ranked by harm (money, data, safety first). Each module asserts every step stays inside its `trans`, and each call into a `Remote` gets a `Fail` outcome with a check that the caller stays inside `trans`. Delete a field or edge that no rule reads.
 
 A value is not modelled: `Int` wraps at the scope's width (-8..7 by default) and has no reals. Model its order or a small integer with `but N Int`; the value itself goes to `test`.
 
@@ -41,23 +46,11 @@ Syntax that misleads: a `module` name has no hyphen and equals its path; a tempo
 
 ## Check
 
-```sh
-out=$(mktemp -d)/alloy
-alloy exec -f -q -o "$out" spec/<module>/check.als && ls "$out"
-```
-
-| in `$out` | means |
-| --- | --- |
-| `<Check>-solution-0.md` | a counterexample, the file itself |
-| no file for a `check` | it holds within its scope |
-| `<Run>-solution-0.md` | the `run` found an instance; none means the facts contradict |
-| nothing, and a non-zero exit | the model did not parse; read the error |
-
-`exec` runs only the root file's commands (`-c <name>` picks one); `-o -` drops the result lines. Re-run after each edit to either file, editing none while a run continues. Start at `for 3` and raise the scope while each check finishes within a minute; report the scope each ran at.
+Every `check` and `run` carries `expect`: `alloy exec` exits 0 on a counterexample without one. Run `spec/verify.sh`, copied from `${CLAUDE_PLUGIN_ROOT}/skills/test/assets/verify.sh` when missing: it names each missed or missing expect, and each `check` with no `refuses_<Name>` test. Start at `for 3` and raise the scope while each check finishes within a minute.
 
 ## Check the code against the model
 
-Each `pred`'s guard is a precondition the code checks before the effect, and its effect the only state it changes; each `fact` and `assert` is an invariant the code never breaks. For each, name the code that enforces it and the test that fails when that code is removed; one with neither is a gap: report it.
+Each `pred`'s guard is a precondition the code checks before the effect, and its effect the only state it changes; each `fact` and `assert` is an invariant the code never breaks. Each `check <Name>` has a test `refuses_<Name>` that drives the entry point toward the forbidden state and fails when the guarding code is removed.
 
 A green check can hold without its rule:
 
@@ -66,4 +59,3 @@ A green check can hold without its rule:
 - A rule written into the event's own pred cannot redden: give it its own pred with a Defect run (expect 1), RepairExcludes (0) and RepairAdmits (1, the code's own sequence).
 - A frame condition alone pins nothing: add a command from the empty state with the producer forbidden, expecting 0.
 - Scope 1 of a sig makes two navigations one relation: run at 2 as well. A model wider than the code that reads it is a false claim.
-- Mutate a rule before trusting it: break its guard once and its frame once, and watch each check go red.

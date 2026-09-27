@@ -6,13 +6,15 @@ user-invocable: false
 
 # Test
 
-Write the failing acceptance and integration tests first, then the change that makes them pass.
+Write the failing tests first, then the change that makes them pass; `spec/verify.sh` passing is done.
 
-Terms and rules: [contract](references/contract.md); read it first.
+Terms and rules: `${CLAUDE_PLUGIN_ROOT}/lib/contract.md`; read it first.
 
 ## Find what the repo has
 
-Use the test command the repo declares (a `test` target, `package.json`'s `scripts.test`, the runner its manifest configures), and put new tests beside the existing ones, named alike. With none, initialise `tests/acceptance/` and `tests/integration/` with the language's standard runner.
+Use the test command the repo declares (a `test` target, `package.json`'s `scripts.test`, the runner its manifest configures), and put new tests beside the existing ones, named alike. With none, initialise the language's standard runner with a module test per core module and `tests/scenarios/`, the one catalog of end-to-end runs, tagged `@load` and `@fault`; fold old unit tests into the module test they exercise.
+
+With no `spec/verify.sh`, copy [verify.sh](assets/verify.sh) there and set its `TESTS` to the repo's test command. A hook runs it before each `git commit` and before a stop with changes, and refuses while it fails.
 
 ## Red
 
@@ -25,11 +27,13 @@ Write an acceptance test (the app driven as its user drives it: the CLI, the HTT
 
 Drive a screen in a browser and assert what it shows; a Claude plugin's hook, dialog, monitor or `/` menu, by the plugin probe below. Run the tests.
 
+Each `check <Name>` in `spec/` has a `refuses_<Name>` test. Where `$SPEC_EVENTS` is set, tests assert that each step it logs is in the module's `trans`. A `@load` scenario runs at twice the largest limit the code declares, with zero errors and no step outside `trans`; a `@fault` scenario fails each `Remote` call once.
+
 A value rule - a threshold, a colour, a size - lives once as a named constant where the code reads it, and its test states the literal: `isFlat(5.0f)`, never `isFlat(TOLERANCE)`.
 
 ## Green
 
-Make the change. Run the new tests and the whole suite; both pass. Then undo the change alone, watch the new tests fail, and restore it.
+Make the change. Run `spec/verify.sh`; it passes. Then undo the change alone, watch the new tests fail, and restore it.
 
 ## Plugin probe
 

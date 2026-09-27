@@ -17,9 +17,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-from fit import CALL, SKILLS, added, fits  # noqa: E402
-
-COMMIT = re.compile(r"(^|[;&|(]\s*|\s)git(\s+-C\s+(\S+))?\s+commit\b")
+from fit import CALL, COMMIT, SKILLS, added, fits  # noqa: E402
 
 
 def committed(cwd):
