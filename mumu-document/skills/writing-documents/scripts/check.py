@@ -315,7 +315,8 @@ CLICKS = r"""(async function () {
   dispatchEvent(new HashChangeEvent('hashchange')); await wait(100);
   var nav = document.querySelector('main nav.drawer'), toggle = document.querySelector('.dock .contents');
   if (nav && toggle && shown(toggle)) {
-    var closed = shown(nav);
+    // a close an earlier step began may still be hiding it
+    var closed = !(await until(function () { return !shown(nav); }));
     await click(toggle);
     var open = await until(function () { return shown(nav); });
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
