@@ -55,6 +55,7 @@ A notice from another lead that is not a task for you is answered by a plain `co
 - Research whose result later pull requests read is a task with a worker, driven one step per prompt, never a subagent whose result lives only in scratch.
 - A hunch the owner asks you to interpret goes in as `reading: <yours>` beside their words, never as their decision.
 - Ask the owner only architecture, infrastructure and user-experience questions, all at once with `AskUserQuestion`, and have them confirm only those criteria; decide the rest and record it as `DECIDED:` on the task.
+- Before asking the owner, search earlier `DECIDED:` comments and closed issues for the same case, `gh search issues "<words>" -R <repo> --include-prs`, which reads comments too; found, follow that decision and tell the owner, citing its url, instead of asking.
 
 ## Shares
 
