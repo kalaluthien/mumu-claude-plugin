@@ -8,7 +8,23 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
 import herdr  # noqa: E402
 import names  # noqa: E402
-from github import repo as repo_view  # noqa: E402
+from github import repo as repo_view, run  # noqa: E402
+
+DROPPED = {"--continue": 0, "-c": 0, "--resume": 1, "-r": 1, "--name": 1, "-n": 1, "--agent": 1}
+
+
+def inherited(args):
+    """The flags of the command line `args` a successor keeps: all but the program, `--continue`, `--resume`, `--name` and `--agent`."""
+    words, kept = args.split()[1:], []
+    while words:
+        word = words.pop(0)
+        flag = word.split("=", 1)[0]
+        if flag in DROPPED:
+            del words[:DROPPED[flag] if "=" not in word else 0]
+        else:
+            kept.append(word)
+    return kept
+
 
 def main(argv):
     flags = []
@@ -22,6 +38,8 @@ def main(argv):
     a = parser.parse_args(argv)
     try:
         repo = names.checkout(a.checkout)
+        if a.succeed and not flags and os.environ.get("CLAUDE_PID"):  # the original's own flags, read from its process
+            flags = inherited(run("ps", "-o", "args=", "-p", os.environ["CLAUDE_PID"]))
         lead = a.succeed and (herdr.agent(a.succeed, "pane_id") or {}).get("name") or names.lead(repo_view("name", repo))  # a folder lead keeps its name
         if not a.succeed and herdr.agent(lead):
             raise RuntimeError(f"{lead} is already live; prompt it instead")

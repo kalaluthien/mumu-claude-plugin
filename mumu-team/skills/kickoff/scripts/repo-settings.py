@@ -14,7 +14,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import names  # noqa: E402
-from github import gh  # noqa: E402
+import github  # noqa: E402
 
 REPO = {"allow_squash_merge": True, "allow_merge_commit": False, "allow_rebase_merge": False, "delete_branch_on_merge": True}
 RULESET_NAME = "mumu-default-branch"
@@ -49,7 +49,7 @@ def differs(want, have):
 
 
 def api(cwd, *argv, body=None):
-    out = gh("api", *argv, *(["--input", "-"] if body is not None else []), cwd=cwd, stdin=json.dumps(body) if body is not None else None)
+    out = github.gh("api", *argv, *(["--input", "-"] if body is not None else []), cwd=cwd, stdin=json.dumps(body) if body is not None else None)
     return json.loads(out) if out.strip() else None
 
 
@@ -59,7 +59,7 @@ def apply(cwd):
     if differs(REPO, api(cwd, "repos/{owner}/{repo}")):
         api(cwd, "-X", "PATCH", "repos/{owner}/{repo}", body=REPO)
         changed.append("repository")
-    default = gh("repo", "view", "--json", "defaultBranchRef", "-q", ".defaultBranchRef.name", cwd=cwd).strip()
+    default = github.repo("defaultBranchRef", cwd)
     runs = api(cwd, f"repos/{{owner}}/{{repo}}/commits/{default}/check-runs") or {}
     want = ruleset({r["name"] for r in runs.get("check_runs", [])})
     found = next((r for r in api(cwd, "repos/{owner}/{repo}/rulesets") or [] if r.get("name") == RULESET_NAME), None)

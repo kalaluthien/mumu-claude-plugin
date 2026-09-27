@@ -114,7 +114,7 @@ elif a[:2] == ["pr", "merge"]:
 SHARED = "## Goal\nx\n\n## Shares\n| share | DoD | after | with |\n| --- | --- | --- | --- |\n| a | D1 | | b: interface agreed first |\n"
 
 
-def merge(comments, moved_to=None, reviews=(), url=PR_URL, title="t", body="", commits=(), issues=None, behind=0):
+def merge(comments, moved_to=None, reviews=(), url=PR_URL, title="t", body="Closes #3", commits=(), issues=None, behind=0):
     """Run merge.py on a PR at HEAD holding `comments`; `moved_to` moves the head once it is read, `issues` maps an issue url to
     its body, `behind` counts the base's commits the head lacks. Return (result, merge words or None)."""
     tmp = pathlib.Path(tempfile.mkdtemp())
@@ -195,6 +195,18 @@ class Merge(unittest.TestCase):
                               issues={"https://github.com/o/r/issues/5": "## Goal\nx\n\n## Definition of done\n- a → b\n"})
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIsNotNone(words)
+
+    def test_a_body_naming_no_task_is_refused_before_any_merge(self):
+        for body in ("", "criteria only", "see #3"):
+            with self.subTest(body=body):
+                result, words = merge([f"APPROVED: {HEAD}"], body=body)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("names no task", result.stderr)
+                self.assertIsNone(words)
+        for body in ("Closes #3\n\n| D1 | pass |", "Part of #3", "Fixes https://github.com/o/r/issues/3"):
+            with self.subTest(body=body):
+                result, words = merge([f"APPROVED: {HEAD}"], body=body)
+                self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_a_head_behind_its_base_is_refused_before_any_merge(self):
         _, words = merge([f"APPROVED: {HEAD}"], behind=0)
@@ -647,10 +659,10 @@ class LeadStart(unittest.TestCase):
             (self.tmp / tool).write_text(START_FAKE)
             (self.tmp / tool).chmod(0o755)
 
-    def start(self, *extra, checkout=None, cwd=None):
+    def start(self, *extra, checkout=None, cwd=None, pid=""):
         (self.tmp / "trust").touch()
         env = dict(os.environ, START_FAKE=str(self.tmp), PATH=f"{self.tmp}:{os.environ['PATH']}",
-                   LEAD_START_TIMEOUT="3", LEAD_START_POLL="0.01")
+                   LEAD_START_TIMEOUT="3", LEAD_START_POLL="0.01", CLAUDE_PID=pid)
         done = subprocess.run([sys.executable, str(BIN / "lead-start.py"), checkout or str(self.repo), *extra],
                               env=env, cwd=cwd, capture_output=True, text=True, timeout=30)
         log = self.tmp / "calls"
@@ -695,6 +707,17 @@ class LeadStart(unittest.TestCase):
         self.assertEqual(self.claude_argv(calls)[0], "docs-lead-next")
         self.assertEqual(self.claude_argv(calls)[1][:2], ["--name", "docs-lead"])
 
+    def test_succeed_without_flags_passes_on_the_originals_own(self):
+        """Read from `ps` of `$CLAUDE_PID`: all but the program, `--continue`, `--resume`, `--name` and `--agent`."""
+        (self.tmp / "name").write_text("main-lead")
+        (self.tmp / "ps").write_text("#!/bin/sh\n[ \"$4\" = 123 ] && echo claude --name main-lead --agent mumu-team:lead "
+                                     "--resume abc --model opus --effort high --continue --permission-mode auto\n")
+        (self.tmp / "ps").chmod(0o755)
+        done, calls = self.start("--succeed", "w9:p9", pid="123")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(self.claude_argv(calls)[1], ["--name", "main-lead", "--agent", "mumu-team:lead", "--model", "opus",
+                                                      "--effort", "high", "--permission-mode", "auto"])
+
     def test_live_lead_refuses_a_second(self):
         (self.tmp / "name").write_text("main-lead")
         done, calls = self.start(TASK)
@@ -721,6 +744,28 @@ class LeadStart(unittest.TestCase):
             done, calls = self.start(*extra)
             self.assertEqual(done.returncode, 2, extra)
             self.assertFalse(calls, extra)
+
+
+class LeadName(unittest.TestCase):
+    def name(self, labels, folders=(), args=(ISSUE,)):
+        tmp = pathlib.Path(tempfile.mkdtemp()).resolve()
+        for f in folders:
+            (tmp / f).mkdir()
+        (tmp / "gh").write_text("#!/bin/sh\nif [ \"$1\" = issue ]; then echo '%s'; else echo Mumu.Plugin; fi\n"
+                                % json.dumps({"labels": [{"name": l} for l in labels]}))
+        (tmp / "gh").chmod(0o755)
+        env = dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}")
+        done = subprocess.run([sys.executable, str(BIN / "lead-name.py"), *args], cwd=tmp, env=env, capture_output=True, text=True)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        return done.stdout.strip()
+
+    def test_a_scoped_task_names_its_folder_lead(self):
+        self.assertEqual(self.name(["effort:low", "scope:docs"], ["docs"]), "docs-lead")
+
+    def test_otherwise_the_repository_lead(self):
+        self.assertEqual(self.name(["effort:low"]), "mumu-plugin-lead")
+        self.assertEqual(self.name(["scope:docs"]), "mumu-plugin-lead")
+        self.assertEqual(self.name([], args=()), "mumu-plugin-lead")
 
 
 REVIEW = importlib.machinery.SourceFileLoader("review_model", str(BIN / "review-model.py")).load_module()

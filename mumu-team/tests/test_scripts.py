@@ -177,6 +177,52 @@ class MergeGate(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
 
 
+U = "https://github.com/o/r/issues/7"
+LONG, FORTY = "Fix " + "x" * 37, "Fix " + "x" * 36
+
+# (agent, command, the refusal's words or None when it passes): a rule of the kickoff skill each role keeps.
+ROLE_CASES = [
+    ("worker", "gh pr comment 1 --body-file - <<'EOF'\nAPPROVED: aaaa\nchecked\nEOF", "reviewer's alone"),
+    ("lead", f'gh issue comment {U} --body "FINDINGS: x"', "reviewer's alone"),
+    ("worker", "gh pr review 1 --comment -b 'approved aaaa'", "reviewer's alone"),
+    ("reviewer", "gh pr comment 1 --body-file - <<'EOF'\nAPPROVED: aaaa\nEOF", None),
+    (None, "gh pr comment 1 --body-file - <<'EOF'\nAPPROVED: aaaa\nEOF", None),
+    ("worker", "gh pr comment 1 --body-file - <<'EOF'\nCriteria: APPROVED later\nEOF", None),
+    ("worker", f"gh issue comment {U} --body-file - <<'EOF'\nBLOCKED: which name?\nEOF", None),
+    ("lead", f"gh issue comment {U} --body-file - <<'EOF'\nDECIDED: use x\nEOF", "decide.py"),
+    ("lead", f"decide.py {U} <<'EOF'\nuse x\nEOF", None),
+    ("worker", f"decide.py {U} < /tmp/d", "the lead's"),
+    ("worker", f"gh pr comment 1 --body-file approval.md", "reviewer's alone"),
+    ("lead", f'gh issue create -R o/r --title "{LONG}" --label effort:low --body-file - <<\'EOF\'\nb\nEOF', "at most 40"),
+    ("worker", f'gh pr create --base main --head b --title "{LONG}" --body-file -', "at most 40"),
+    ("lead", f'gh issue create -R o/r --title "{FORTY}" --label effort:low --body-file - <<\'EOF\'\nb\nEOF', None),
+    ("worker", f"gh issue edit {U} --add-label effort:low", "its lead's"),
+    ("worker", f'gh issue close {U} --reason "not planned" --comment x', "its lead's"),
+    ("worker", f"gh issue reopen {U}", "its lead's"),
+    ("worker", f'gh issue close {U} --reason completed --comment "done"', None),
+    ("lead", f"gh issue edit {U} --add-label effort:low", None),
+    ("lead", f'gh issue close {U} --reason "not planned" --comment x', None),
+    ("worker", "gh pr edit 1 --body-file - <<'EOF'\nCloses #7\nEOF", None),
+]
+
+
+class RoleRules(unittest.TestCase):
+    def test_each_role_keeps_to_its_own_records(self):
+        cwd = tempfile.mkdtemp()
+        pathlib.Path(cwd, "approval.md").write_text("APPROVED: aaaa\n")
+        for agent, command, refusal in ROLE_CASES:
+            with self.subTest(agent=agent, command=command):
+                payload = {"tool_input": {"command": command}, "cwd": cwd}
+                if agent:
+                    payload["agent_type"] = f"mumu-team:{agent}"
+                result = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(payload), capture_output=True, text=True)
+                if refusal:
+                    self.assertEqual(result.returncode, 2, result.stderr)
+                    self.assertIn(refusal, result.stderr)
+                else:
+                    self.assertEqual(result.returncode, 0, result.stderr)
+
+
 class AssignmentOnly(unittest.TestCase):
     def test_an_assignment_only_command_is_read_not_refused(self):
         for command in ASSIGNMENT_PASSED:

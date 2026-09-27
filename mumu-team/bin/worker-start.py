@@ -10,7 +10,8 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
 import herdr  # noqa: E402
 import names  # noqa: E402
-from github import gh, merged, repo as repo_view, run, task  # noqa: E402
+import github  # noqa: E402
+from github import merged, repo as repo_view, run, task  # noqa: E402
 
 
 def attempts(repo, n, topic=None, remote=True):
@@ -19,7 +20,7 @@ def attempts(repo, n, topic=None, remote=True):
     found = [p.name for p in trees.iterdir()] if trees.is_dir() else []
     if remote:
         found += [h.removeprefix("refs/heads/") for h in run("git", "-C", repo, "ls-remote", "--heads", "origin").split()]
-        found += gh("pr", "list", "--state", "all", "--limit", "1000", "--json", "headRefName", "-q", ".[].headRefName", cwd=repo).split()
+        found += github.gh("pr", "list", "--state", "all", "--limit", "1000", "--json", "headRefName", "-q", ".[].headRefName", cwd=repo).split()
     return [k for h in found if (k := names.attempt(h, topic, n)) is not None]
 
 
@@ -55,7 +56,7 @@ def refusal(issue, n, topic, effort, heads):
 
 def busy(repo, n, topic):
     """The names of `topic`'s attempts on task `n` that have an open pull request or a live tab."""
-    heads = gh("pr", "list", "--state", "open", "--limit", "1000", "--json", "headRefName", "-q", ".[].headRefName", cwd=repo).split()
+    heads = github.gh("pr", "list", "--state", "open", "--limit", "1000", "--json", "headRefName", "-q", ".[].headRefName", cwd=repo).split()
     labels = [t.get("label") for t in herdr.listed("tab")]
     return sorted({h for h in heads + labels if names.attempt(h, topic, n) is not None})
 

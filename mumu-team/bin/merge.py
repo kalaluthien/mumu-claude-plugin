@@ -6,7 +6,7 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-from github import gh  # noqa: E402
+import github  # noqa: E402
 
 URL = re.compile(r"https://github\.com/[\w.-]+/[\w.-]+/pull/\d+")
 APPROVAL = re.compile(r"approved:?\s+(\S+)", re.I)
@@ -37,7 +37,7 @@ def issues(pattern, text, repo):
 def shared(pr, repo):
     """The first issue the PR closes or is part of whose body has `## Shares`, else None."""
     for url in dict.fromkeys(u for t in texts(pr) for pattern in (CLOSING, PART) for u in issues(pattern, t, repo)):
-        if SHARES.search(json.loads(gh("issue", "view", url, "--json", "body"))["body"] or ""):
+        if SHARES.search(json.loads(github.gh("issue", "view", url, "--json", "body"))["body"] or ""):
             return url
     return None
 
@@ -47,14 +47,16 @@ def main(args):
         sys.exit("usage: merge.py <pr-url>, the PR's full https://github.com/<owner>/<repo>/pull/<n> url")
     url = args[0]
     try:
-        pr = json.loads(gh("pr", "view", url, "--json", "headRefOid,comments,reviews,title,body,commits,baseRefName"))
+        pr = json.loads(github.gh("pr", "view", url, "--json", "headRefOid,comments,reviews,title,body,commits,baseRefName"))
     except RuntimeError as e:
         sys.exit(f"merge.py: could not read {url}: {e}")
     head, repo = pr["headRefOid"], "/".join(url.split("/")[3:5])
     if not approved(pr):
         sys.exit(f"merge.py: no comment or review opens with `APPROVED: {head}`; launch the reviewer at this head")
+    if not (CLOSING.search(pr.get("body") or "") or PART.search(pr.get("body") or "")):
+        sys.exit("merge.py: the body names no task: open it with `Closes #<task>`, or a share's `Part of #<task>`, over the criteria table")
     try:
-        behind = int(gh("api", f"repos/{repo}/compare/{pr['baseRefName']}...{head}", "-q", ".behind_by"))
+        behind = int(github.gh("api", f"repos/{repo}/compare/{pr['baseRefName']}...{head}", "-q", ".behind_by"))
         task = shared(pr, repo)
     except (RuntimeError, ValueError, KeyError, TypeError) as e:
         sys.exit(f"merge.py: could not read {url}'s base or task: {e}")
@@ -63,7 +65,7 @@ def main(args):
     if task and any(CLOSING.search(t) for t in texts(pr)):
         sys.exit(f"merge.py: {task} has `## Shares`, so only its lead closes it; drop each closing keyword from the title, body and commits, and write `Part of #<n>`")
     try:
-        print(gh("pr", "merge", url, "--squash", "--match-head-commit", head), end="")
+        print(github.gh("pr", "merge", url, "--squash", "--match-head-commit", head), end="")
     except RuntimeError as e:
         sys.exit(f"merge.py: {e}")
 
