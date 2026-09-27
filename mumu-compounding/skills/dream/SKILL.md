@@ -1,7 +1,6 @@
 ---
 name: dream
-description: Checks every auto-memory pool for broken index links, unindexed files, duplicate names, one lesson kept in several pools and lessons a skill, agent or hook should hold, then fixes only the ones the owner picks, round by round.
-disable-model-invocation: true
+description: Use when the Stop hook asks for a dream, or the owner asks to review every auto-memory pool - broken index links, unindexed files, duplicate names, one lesson kept in several pools, lessons a skill, agent or hook should hold - fixing only what the owner picks. Not for filing one session's lessons (retro).
 ---
 
 # dream
@@ -59,4 +58,4 @@ file for every project.
 5. Apply only the approved fixes; a file only rejected fixes name is never
    touched, and no issue is filed that was not chosen. Report each fix
    applied or skipped.
-6. Go back to step 1: one `/dream` runs rounds until step 3 stops it.
+6. Go back to step 1: one dream runs rounds until step 3 stops it.
