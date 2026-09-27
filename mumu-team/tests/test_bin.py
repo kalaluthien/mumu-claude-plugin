@@ -695,6 +695,26 @@ class LeadStart(unittest.TestCase):
         self.assertEqual(self.claude_argv(calls)[0], "docs-lead-next")
         self.assertEqual(self.claude_argv(calls)[1][:2], ["--name", "docs-lead"])
 
+    def test_folder_names_a_folder_lead_with_no_task(self):
+        done, calls = self.start("--folder", "mumu-document")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(done.stdout, f"mumu-document-lead@{PANE}\n")
+        self.assertEqual(self.claude_argv(calls), ("mumu-document-lead", ["--name", "mumu-document-lead", "--agent", "mumu-team:lead", "--model", "opus", "--effort", "medium"]))
+        self.assertIn(["herdr", "tab", "create", "--cwd", str(self.repo), "--label", "mumu-document-lead"], calls)
+        self.assertIn(["herdr", "agent", "prompt", PANE, "/mumu-team:kickoff"], calls)
+
+    def test_folder_with_a_task_prompts_see(self):
+        done, calls = self.start(TASK, "--folder", "docs")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(self.claude_argv(calls)[0], "docs-lead")
+        self.assertIn(["herdr", "agent", "prompt", PANE, f"/mumu-team:kickoff see {TASK}"], calls)
+
+    def test_live_folder_lead_refuses_a_second(self):
+        (self.tmp / "name").write_text("docs-lead")
+        done, calls = self.start("--folder", "docs")
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("docs-lead is already live", done.stderr)
+
     def test_live_lead_refuses_a_second(self):
         (self.tmp / "name").write_text("main-lead")
         done, calls = self.start(TASK)
@@ -717,7 +737,7 @@ class LeadStart(unittest.TestCase):
             self.assertFalse([c for c in calls if c[1:3] == ["tab", "create"]], path)
 
     def test_bad_arguments_start_nothing(self):
-        for extra in (["--succeed"], ["--continue"], [TASK, TASK]):
+        for extra in (["--succeed"], ["--continue"], [TASK, TASK], ["--folder"], ["--succeed", "w9:p9", "--folder", "docs"]):
             done, calls = self.start(*extra)
             self.assertEqual(done.returncode, 2, extra)
             self.assertFalse(calls, extra)

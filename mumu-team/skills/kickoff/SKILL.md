@@ -18,7 +18,7 @@ Match the text to one row, open that playbook, and copy its steps verbatim into 
 | work one task: `work <task-url> leader <address>`, from `worker-start.py --leader` | [references/work-task.md](references/work-task.md) |
 | lead a task handed over: `see <task-url>`, from `lead-start.py <checkout> <task-url>` | [references/lead-goal.md](references/lead-goal.md) |
 | take over as a lead's successor: `succeed <pane>`, from `lead-start.py --succeed` | [references/lead-goal.md](references/lead-goal.md)'s Succession |
-| resume: no text, from `lead-start.py <checkout>` | [references/lead-goal.md](references/lead-goal.md)'s Succession |
+| resume: no text, from `lead-start.py <checkout> [--folder <folder>]` | [references/lead-goal.md](references/lead-goal.md)'s Succession |
 | any other text | none: reply that plain words go to the project's lead in its tab, or from any session through `/mumu-team:handoff`, and stop |
 
 
@@ -106,7 +106,7 @@ Every command names its target pane.
 | `start` | `worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--leader <your address>] [--owner-effort]`: starts the worker `<topic>-<n>-<k>` at the next attempt, or the newest with `--continue`, in its own worktree and tab, prompted kickoff's `work` |
 | `name` | this session's three names: `herdr tab rename <tab> <name>`, the tab being `herdr pane get $HERDR_PANE_ID`'s `tab_id`; `herdr agent rename $HERDR_PANE_ID <name>`; and `herdr agent prompt $HERDR_PANE_ID "/rename <name>"`, which applies when the turn ends |
 | `prompt` | `herdr agent prompt <name> "<text>"`, by name, since a remembered pane id can be stale; success prints before delivery and a busy pane or open dialog can swallow the text, so read the pane before and after and resend when no turn carries it; failing twice, tell the owner |
-| `start-lead` | `lead-start.py <checkout> [<task-url> \| --succeed <pane>] [-- <claude flags>]`, at the checkout's root: starts `<repo>-lead` in a new tab, refusing when one is live, and prompts its kickoff; a start-up dialog in its tab is the owner's to answer there |
+| `start-lead` | `lead-start.py <checkout> [<task-url>] [--folder <folder>] [-- <claude flags>]`, or `--succeed <pane>` for the task and folder, at the checkout's root: starts `<repo>-lead`, or `<folder>-lead` with `--folder`, in a new tab, refusing when one is live, and prompts its kickoff; a start-up dialog in its tab is the owner's to answer there |
 | `broadcast` | `prompt` each lead in `live` but you `see <url>`, one `herdr agent prompt <literal-name> "see <url>"` Bash call per agent, no loop and no variable, so the allow rule matches it |
 | `close` | `worker-close.py <name>`: exits the session, answering its exit dialogs, and closes each tab labelled `<name>`, the session live or gone |
 
