@@ -38,7 +38,7 @@ check NeverShippedAndRefunded for 3 expect 0
 run refund for 3 expect 1          -- shows the model has an instance
 ```
 
-Properties come from the owner's words: each sentence stating never, always, only after or at most becomes one assert quoting it, ranked by harm (money, data, safety first). Each module asserts every step stays inside its `trans`, and each call into a `Remote` gets a `Fail` outcome with a check that the caller stays inside `trans`. Delete a field or edge that no rule reads.
+Properties come from the owner's words: each sentence stating never, always, only after or at most becomes one assert quoting it, ranked by harm (money, data, safety first). Each module asserts every step stays inside its `trans`, and each call into a `Remote` gets a `Fail` outcome with a check that the caller stays inside `trans`; these two quote the `trans` or the `Remote` they guard, not an owner's sentence. State that changes hangs on the noun it belongs to as a `var` field, never on one `Time` sig holding every field, so a drawn sig shows its own state. Delete a field or edge that no rule reads.
 
 A value is not modelled: `Int` wraps at the scope's width (-8..7 by default) and has no reals. Model its order or a small integer with `but N Int`; the value itself goes to `test`.
 
