@@ -110,5 +110,94 @@ class PhoneTable(unittest.TestCase):
         self.assertEqual(self.r["dfn"], "normal", "Hangul has no italic, so Chrome slants it")
 
 
+ASSEMBLE = ROOT / "skills" / "writing-documents" / "scripts" / "assemble.py"
+# where the focus is: its text, whether a closed drawer or a hidden element holds it
+FOCUS = """() => { const a = document.activeElement;
+  return [a.textContent.trim().slice(0, 20), !!a.closest('nav:not(.open)') && innerWidth < 1200, !a.checkVisibility({ visibilityProperty: true })]; }"""
+
+
+def aids(width, steps):
+    """Run `steps(page)` on tests/pages/widgets.html assembled, `width` px wide."""
+    import subprocess
+    import sys
+    from playwright.sync_api import sync_playwright
+    with tempfile.TemporaryDirectory() as d, sync_playwright() as p:
+        f = pathlib.Path(d) / "page.html"
+        subprocess.run([sys.executable, str(ASSEMBLE), str(ROOT / "tests" / "pages" / "widgets.html"), str(f)], check=True,
+                       capture_output=True)
+        browser = p.chromium.launch(executable_path=str(CHROME))
+        try:
+            page = browser.new_page(viewport={"width": width, "height": 800})
+            page.goto(f.as_uri() + "#c1")
+            page.wait_for_timeout(300)
+            return steps(page)
+        finally:
+            browser.close()
+
+
+@unittest.skipUnless(CHROME.exists(), "no Chrome")
+class ReadingAids(unittest.TestCase):
+    def test_tab_skips_closed_drawer_and_hidden_buttons(self):
+        def steps(page):
+            seen = []
+            for _ in range(40):
+                page.keyboard.press("Tab")
+                seen.append(page.evaluate(FOCUS))
+            return seen
+        seen = aids(400, steps)
+        self.assertEqual([s for s in seen if s[1] or s[2]], [], seen)
+        self.assertIn("목차", [s[0] for s in seen])
+
+    def test_drawer_opens_and_closes_by_button_escape_and_backdrop(self):
+        def steps(page):
+            shown = lambda: page.evaluate("document.querySelector('main nav').checkVisibility({ visibilityProperty: true })")
+            out = [shown()]
+            page.click(".dock .contents")
+            page.wait_for_timeout(300)
+            out += [shown(), page.evaluate("!!document.activeElement.closest('main nav')")]
+            page.keyboard.press("Escape")
+            page.wait_for_timeout(300)
+            out += [shown(), page.evaluate("document.activeElement.className")]
+            page.click(".dock .contents")
+            page.wait_for_timeout(300)
+            page.mouse.click(390, 400)
+            page.wait_for_timeout(300)
+            return out + [shown()]
+        self.assertEqual(aids(400, steps), [False, True, True, False, "contents", False])
+
+    def test_drawer_docks_open_from_1200px(self):
+        r = aids(1300, lambda page: page.evaluate("""() => { const nav = document.querySelector('main nav');
+          return [nav.checkVisibility({ visibilityProperty: true }), document.querySelector('.dock .contents').checkVisibility(),
+                  nav.getBoundingClientRect().right <= document.querySelector('main').getBoundingClientRect().left]; }"""))
+        self.assertEqual(r, [True, False, True])
+
+    def test_heading_in_view_is_marked_in_the_shown_chapter(self):
+        def steps(page):
+            page.evaluate("document.getElementById('c1-b').scrollIntoView()")
+            page.wait_for_timeout(200)
+            return page.evaluate("[...document.querySelectorAll('main nav a.here')].map((a) => a.getAttribute('href'))")
+        self.assertEqual(aids(400, steps), ["#c1-b"])
+
+    def test_back_returns_to_the_spot_and_its_id_and_rebinds_no_key(self):
+        def steps(page):
+            page.evaluate("document.querySelector('#c1 + p a').scrollIntoView()")
+            page.wait_for_timeout(200)
+            y = page.evaluate("scrollY")
+            page.click("#c1 + p a")
+            page.wait_for_timeout(200)
+            gone = page.evaluate("[location.hash, document.querySelector('.dock .back').checkVisibility()]")
+            page.keyboard.press("Backspace")
+            page.keyboard.press("ArrowLeft")
+            page.wait_for_timeout(200)
+            kept = page.evaluate("location.hash")
+            page.click(".dock .back")
+            page.wait_for_timeout(300)
+            return [y, gone, kept, page.evaluate("[scrollY, location.hash, document.querySelector('.dock .back').hidden]")]
+        y, gone, kept, back = aids(400, steps)
+        self.assertEqual((gone, kept), (["#c3-split", True], "#c3-split"))
+        self.assertEqual(back[1:], ["#c1", True])
+        self.assertLessEqual(abs(back[0] - y), 2)
+
+
 if __name__ == "__main__":
     unittest.main()

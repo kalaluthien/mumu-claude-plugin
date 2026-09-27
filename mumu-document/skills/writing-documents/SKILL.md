@@ -41,6 +41,8 @@ text with arrows (→, ▶) with no `use-case`.
 | behaviour: what happens in one use case; swiped, a request the reader follows call by call | `diagram` `use-case`, one per use case | its SVG, then a numbered list of calls |
 | values compared across categories: which is largest, by how much | `chart` `bar` | its SVG, then the table |
 | change over time: a trend, a rise, a fall | `chart` `line` | its SVG, then the table |
+| many items the reader narrows to the few they need, by a tag or a word: rows, a list, cards | `filter` | the table, sorted by the tag |
+| a result that follows inputs the reader moves: a formula, a setting and its effect | `controls` | the formula, then a table of a few inputs and results |
 
 ## Routing
 
