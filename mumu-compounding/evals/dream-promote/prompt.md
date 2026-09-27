@@ -1,11 +1,11 @@
 ---
 max_turns: 40
 timeout_seconds: 600
-allowed_tools: [Bash, Read, Glob, Grep, Edit, Write]
+allowed_tools: [Skill, Bash, Read, Glob, Grep, Edit, Write]
 runs: 3
 ---
 
-/mumu-compounding:dream with config folder ./config. AskUserQuestion is not available here, so write the input you would give it in round n to ./question-n.json instead, then take my pick in every round: none. `tools/` stands for a checkout of the repository example/tools, since git cannot write a `.git` folder here. First build the fixture with this one Bash call, then run the skill:
+Review my auto-memory pools with the dream skill, config folder ./config. AskUserQuestion is not available here, so write the input you would give it in round n to ./question-n.json instead, then take my pick in every round: none. `tools/` stands for a checkout of the repository example/tools, since git cannot write a `.git` folder here. First build the fixture with this one Bash call, then run the skill:
 
 ```sh
 mkdir -p tools/skills/release

@@ -1,6 +1,7 @@
 ---
 name: dream
-description: Use when the Stop hook asks for a dream, or the owner asks to review every auto-memory pool - broken index links, unindexed files, duplicate names, one lesson kept in several pools, lessons a skill, agent or hook should hold - fixing only what the owner picks. Not for filing one session's lessons (retro).
+description: Use when the Stop hook asks for a dream, or when auto-memory pools have drifted - a MEMORY.md link to a missing file, a memory file no index lists, two files of one name, one lesson saved in several projects' pools, a lesson a skill, agent or hook should hold - fixing only what the owner picks. Not for filing one session's lessons (retro).
+user-invocable: false
 ---
 
 # dream
@@ -45,8 +46,8 @@ file for every project.
      pool entry stays until the repository states it;
    - an entry the repository already states: DELETE it.
 3. No fix found that was not rejected in this call: say so, with the
-   fixes applied in earlier rounds, and stop; in the first round, write
-   nothing.
+   fixes applied in earlier rounds, and stop, offering no other change;
+   in the first round, write nothing.
 4. Otherwise put the fixes not yet rejected in this call to the owner as
    one `AskUserQuestion` question, `multiSelect: true`, one option per fix:
    the top 4 by impact, each option's label the action (ADD, EDIT, DELETE
