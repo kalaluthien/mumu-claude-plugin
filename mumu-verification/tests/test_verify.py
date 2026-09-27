@@ -26,6 +26,8 @@ CASES = {  # name: (check.als tail or None for no spec, {file: text}, suite comm
     "witness in tests/": ((GOOD, {"tests/test_a.py": WITNESS}, "true"), (0, "")),
     "witness in androidTest/": ((GOOD, {"app/src/androidTest/k/A.kt": WITNESS}, "true"), (0, "")),
     "witness in *Test.kt": ((GOOD, {"src/k/ATest.kt": WITNESS}, "true"), (0, "")),
+    "gaps counted": (("check NoSelf for 2 expect 0 -- gap #7\n", {"tests/test_a.py": "# gap #12\n" + WITNESS + "# gap #7\n"}, "true"),
+                     (0, "GAP #7: 2 marks\nGAP #12: 1 marks\n")),
     "suite": ((GOOD, {"test_m.py": WITNESS}, "false"), (1, "FAIL tests: false\n")),
     "no model, suite": ((None, {}, "false"), (1, "no model\nFAIL tests: false\n")),
     "suite unset": ((GOOD, {"tests/test_m.py": WITNESS + "print('ran')\n"}, None),
