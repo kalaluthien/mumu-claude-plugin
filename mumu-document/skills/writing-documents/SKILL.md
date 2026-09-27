@@ -39,6 +39,7 @@ text with arrows (→, ▶) with no `use-case`.
 | a structure before and after a change: what it adds, modifies and removes | `diagram` `file-tree`, slid | a diff of the tree |
 | who calls the system and what it calls: actors, entry points, boundaries | `diagram` `system-context` | its SVG |
 | behaviour: what happens in one use case; swiped, a request the reader follows call by call | `diagram` `use-case`, one per use case | its SVG, then a numbered list of calls |
+| things and the links between them: tasks and what blocks them, sessions and who waits on whom; what a node reaches | `diagram` `network`, 9 nodes at most | a list: each node, then the nodes it links to |
 | values compared across categories: which is largest, by how much | `chart` `bar` | its SVG, then the table |
 | change over time: a trend, a rise, a fall | `chart` `line` | its SVG, then the table |
 | many items the reader narrows to the few they need, by a tag or a word: rows, a list, cards | `filter` | the table, sorted by the tag |

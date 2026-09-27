@@ -15,7 +15,7 @@ Unicode look-alikes: `assemble.py` sets it in KaTeX's TeX fonts, and `check.py`
 fails TeX left raw.
 
 A widget is the template `assemble.py --spec <widget>` prints for the content's
-kind (`chart`, `file-tree`, `system-context`, `use-case`, `filter`, `controls`), its spec followed,
+kind (`chart`, `file-tree`, `system-context`, `use-case`, `network`, `filter`, `controls`), its spec followed,
 every `{{...}}` filled or its element deleted, `{{id}}` unique per copy. A
 figure over 9 boxes is two figures. Then
 `"${CLAUDE_PLUGIN_ROOT}/skills/writing-documents/scripts/assemble.py" <body.html> <slug>.html`

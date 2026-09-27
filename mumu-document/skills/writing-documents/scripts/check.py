@@ -21,6 +21,7 @@ TOLERANCE = 0.02
 MIN_RUN = 3
 CONTENTS = 4
 FILES = 4  # a file-tree from this many files named, as the Mapping says
+NODES = 9  # a network over this many nodes is two figures, as artifact.md says
 WORD = r"[A-Za-z]+(?:['’-][A-Za-z]+)*[.,:;!?]?"
 ENGLISH = re.compile(rf"{WORD}(?:\s+{WORD}){{{MIN_RUN - 1},}}")
 # a sentence ends at . ! or ? with no digit either side, so 4.00점 stays whole; its last one may have no mark
@@ -135,6 +136,7 @@ f.onload = function () {
       h1: !!d.querySelector('h1'), drawn: loose('svg').filter(function (g) { return !g.parentElement.closest('svg, .katex'); }).length,
       paths: paths.filter(function (p, i) { return paths.indexOf(p) === i; }), flows: flows,
       diagrams: Array.prototype.map.call(d.querySelectorAll('[data-widget="diagram"]'), function (e) { return e.dataset.diagram; }),
+      nodes: Array.prototype.map.call(d.querySelectorAll('[data-diagram="network"] .stage > dl'), function (l) { return l.querySelectorAll(':scope > dt').length; }),
       h2: h2.length, linked: h2.filter(function (h) { return h.id && links.indexOf(h.id) >= 0; }).length, nav: !!d.querySelector('main nav'),
       broken: Array.prototype.map.call(d.querySelectorAll('a[href^="#"]'), function (a) { return a.getAttribute('href'); })
         .filter(function (h) { return h.length > 1 && !d.getElementById(decodeURIComponent(h.slice(1))); }),
@@ -504,12 +506,13 @@ def korean(page):
 
 def mapping(page):
     """Each widget a Mapping row demands that the page lacks: a file-tree for the files it names, a use-case for a flow
-    drawn in text."""
+    drawn in text; and a network over NODES nodes, which is two figures."""
     out = []
     if len(page["paths"]) >= FILES and "file-tree" not in page["diagrams"]:
         out.append(f"no file-tree for {', '.join(page['paths'])}")
     if page["flows"] and "use-case" not in page["diagrams"]:
         out.append(f"no use-case for {page['flows'][0]!r}")
+    out += [f"network of {n} nodes over {NODES}" for n in page["nodes"] if n > NODES]
     if page["drawn"]:
         out.append(f"{page['drawn']} hand-drawn figure outside a widget")
     return out
