@@ -1,0 +1,74 @@
+<!-- original, deliberately weak: an interactive page written by hand for the rubric's anchor set -->
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=1200">
+<title>dashboard</title>
+<style>
+  body { font: 13px sans-serif; margin: 20px; width: 1100px; }
+  .big { font-size: 22px; font-weight: bold; }
+  .btn { display: inline-block; padding: 4px 10px; background: #eee; margin-right: 4px; cursor: pointer; }
+  .btn.sel { background: #9c9; }
+  .panel { display: none; }
+  .panel.show { display: block; }
+  #ticker { color: #aaa; }
+  .dot { width: 14px; height: 14px; display: inline-block; }
+</style>
+<body>
+<div class="big">응답 시간 분석 v2 (최종)</div>
+<p id="ticker"></p>
+<p>이 페이지는 우리 서비스의 여러 가지 지표를 보여주는 인터랙티브 페이지입니다. 아래의 버튼을 눌러서 여러 가지를 확인할 수 있으며, 차트는 자동으로 움직이게 되어 있어서 보기에도 좋습니다. 지난번 회의에서 이야기가 나왔던 부분과 관련이 있습니다.</p>
+<div>
+  <span class="btn sel" onclick="show(1, this)">A</span>
+  <span class="btn" onclick="show(2, this)">B</span>
+  <span class="btn" onclick="show(3, this)">C</span>
+  <span class="btn" onclick="spin()">⟳</span>
+</div>
+<div class="panel show" id="p1">
+  <svg width="600" height="260" viewBox="0 0 600 260">
+    <line x1="40" y1="230" x2="580" y2="230" stroke="#999"/>
+    <text x="4" y="232" font-size="10">180</text>
+    <text x="4" y="30" font-size="10">230</text>
+    <g id="bars">
+      <rect x="70" y="170" width="60" height="60" fill="#e66"/>
+      <rect x="170" y="120" width="60" height="110" fill="#6e6"/>
+      <rect x="270" y="40" width="60" height="190" fill="#e66"/>
+      <rect x="370" y="150" width="60" height="80" fill="#6e6"/>
+      <rect x="470" y="90" width="60" height="140" fill="#e66"/>
+    </g>
+    <span class="dot" style="background:#e66"></span>
+  </svg>
+  <p><span class="dot" style="background:#e66"></span> <span class="dot" style="background:#6e6"></span></p>
+  <p>보시다시피 차이가 매우 크다는 것을 알 수 있습니다. 특히 세 번째가 눈에 띄는데 이는 여러 요인이 복합적으로 작용한 결과로 보입니다.</p>
+</div>
+<div class="panel" id="p2">
+  <p>여기서는 설정값을 바꿔볼 수 있습니다.</p>
+  <input type="range" min="1" max="10" value="4" oninput="calc(this.value)">
+  <span id="out"></span>
+  <p>값을 바꾸면 결과가 바뀝니다. 적절한 값을 찾는 것이 중요합니다.</p>
+</div>
+<div class="panel" id="p3">
+  <p>결론: 캐시 서버를 교체해야 합니다. 비용은 월 40만 원 정도 늘어나지만 충분히 가치가 있다고 판단되며 다음 분기 안에 진행하는 것이 바람직할 것으로 사료됩니다. 자세한 내용은 담당자에게 문의 바랍니다.</p>
+</div>
+<script>
+  function show(n, el) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('show'));
+    document.getElementById('p' + n).classList.add('show');
+    document.querySelectorAll('.btn').forEach(b => b.classList.remove('sel'));
+    el.classList.add('sel');
+  }
+  function calc(v) {
+    setTimeout(() => { document.getElementById('out').textContent = (v * 37 % 11) + 180; }, 1500);
+  }
+  function spin() {
+    document.querySelectorAll('#bars rect').forEach(r => r.setAttribute('height', Math.random() * 190));
+  }
+  let t = 0;
+  setInterval(() => {
+    t++;
+    document.getElementById('ticker').textContent = '업데이트 중... ' + t;
+    document.querySelectorAll('#bars rect').forEach((r, i) => r.setAttribute('y', 40 + ((t + i * 30) % 130)));
+  }, 700);
+</script>
+</body>
+</html>

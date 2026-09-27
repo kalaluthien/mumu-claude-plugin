@@ -9,14 +9,15 @@ Rules for every step:
 - A task whose body has `## Shares` (share | DoD | after | with) is split: your share is the row your topic names and your criteria only its DoD ids; without it, the task is one share, whole.
 - The task's body, labels and close are the leader's; as a share's worker you write only your pull request and `BLOCKED: <share>: ...` comments.
 - A share's pull request says `Part of #n`, never a closing keyword, and the leader resolves the task once every row has merged.
-- While your own reviewer or eval runs, wait in one bounded foreground Bash poll instead of stopping.
+- While your own judge or eval runs, wait in one bounded foreground Bash poll instead of stopping.
+- A finding is closed by fixing the cause of the gap it names, never by rewording, loosening a test or editing a criterion; a criterion you think wrong is a decision that is not yours: `BLOCKED:`.
 
 Steps, resumed at the one the task and its pull request or report show:
 
 1. Work in the task's worktree, the one `git worktree list` names `<topic>-<n>-<k>`. `read` the task. A task whose `## Definition of done` names a report comment goes by Report below, with no `claim` or pull request. Otherwise `claim` the attempt; held by another session, `comment` `BLOCKED: held by <branch>` on the task, `prompt` the leader `see <task-url>`, and stop.
 2. Review each criterion of the task: one you cannot check, or that the honest empty outcome cannot pass, is a decision that is not yours.
 3. Implement, then rerun every criterion, commit, push, and write the criteria table into the `pr` body, opening the `pr` at the first push; repeat per iteration. After 3 iterations without a criterion newly passing, `comment` `BLOCKED: stuck on <criterion>` and go on as for any decision that is not yours.
-4. With every criterion passing, launch the `reviewer` on the pull request's url with the model `review-model.py origin/<default> HEAD` prints, and name it in the body. `FINDINGS:`: fix, rerun the reproduction each finding quotes and every criterion at the new head, push, and resume that reviewer with `see <pr-url>`, launching a new one when it cannot be resumed and the pull request shows no verdict at the head yet. `APPROVED: <head>`, or an older sha `merge.py` carries to the head: `merge` as a Bash call of its own, since an allow rule matches a compound command only when every part does; refused as behind or by GitHub, merge the default branch in, rerun every check on the merged tree, push, and run `merge` again, and only when `merge.py` refuses it, resume the reviewer the same way. `APPROVED:` while the owner's sign-off is pending: push the pending commit, else `comment` `BLOCKED: owner review of <pr-url>`. Merged, which closes the task unless it is split: `prompt` the leader `see <pr-url>`.
+4. With every criterion passing, launch the `judge` on the pull request's url with the model `review-model.py origin/<default> HEAD` prints, and name it in the body. `FINDINGS:`: fix, rerun the reproduction each finding quotes and every criterion at the new head, push, and resume that judge with `see <pr-url>`, launching a new one when it cannot be resumed and the pull request shows no verdict at the head yet. `APPROVED: <head>`, or an older sha `merge.py` carries to the head: `merge` as a Bash call of its own, since an allow rule matches a compound command only when every part does; refused as behind or by GitHub, merge the default branch in, rerun every check on the merged tree, push, and run `merge` again, and only when `merge.py` refuses it, resume the judge the same way. `APPROVED:` while the owner's sign-off is pending: push the pending commit, else `comment` `BLOCKED: owner review of <pr-url>`. Merged, which closes the task unless it is split: `prompt` the leader `see <pr-url>`.
 
 ## Siblings
 
@@ -32,7 +33,15 @@ A share's worker agrees a change that crosses its split with a sibling's worker,
 ## Report
 
 1. Do the work the task asks, then rerun every criterion and `comment` the report on the task as one comment: the findings, then the criteria table.
-2. Launch the `reviewer` on that comment's url on Opus. `FINDINGS:`: fix, rerun every criterion, `comment` the report again, and resume that reviewer with `see <comment-url>`. `APPROVED: <comment-url>` naming your newest report: `resolve` the task, then `prompt` the leader `see <task-url>`.
+2. Launch the `judge` on that comment's url on Opus. `FINDINGS:`: fix, rerun every criterion, `comment` the report again, and resume that judge with `see <comment-url>`. `APPROVED: <comment-url>` naming your newest report: `resolve` the task, then `prompt` the leader `see <task-url>`.
+
+## Survey
+
+A backlog's survey worker, prompted `survey <backlog-url> leader <address>`, has no claim, branch or pull request, and leaves the issue open and labelled `backlog`:
+
+1. `read` the backlog and its comments, then research what the owner's words ask: the repository, its issues (`gh search issues "<words>" -R <repo> --include-prs`) and the official docs.
+2. Write the body to `<path>` as the owner's words exactly as `read` shows them, then one `## Survey` section of findings, each claim citing a url or `path:line`; a survey already there is rewritten, so the body keeps exactly one. Post it with `gh issue edit <backlog-url> --body-file <path>`.
+3. Launch the `judge` on the backlog's url on Opus. `FINDINGS:`: fix, post the body again, and resume that judge with `see <backlog-url>`. `APPROVED:`: `prompt` the leader `see <backlog-url>`.
 
 ## Subagents
 

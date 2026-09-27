@@ -1,11 +1,12 @@
 # Lead
 
 1. `name` yourself what `lead-name.py [<task-url>]` prints, `<task-url>` the task you were started or handed, unless already so named, and run `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/scripts/repo-settings.py <checkout>`, which sets the repository's safe merge settings and ruleset where they differ. Then ask the owner every question at once with `AskUserQuestion`.
-2. `file` the work as Filing says: one root task per pull request or report, a handed-off one relabelled with its effort, the owner's expectations as its first `DECIDED:` comment and each `## Definition of done` line a criterion. `order` by blocked-by each task that waits on another, in this or another project's repository. Then launch the `reviewer` on each task's url and fix its findings until it posts `APPROVED:`; on each replan, resume that same reviewer, naming only the issues that changed.
+2. `file` the work as Filing says: one root task per pull request or report, a handed-off one relabelled with its effort, the owner's expectations as its first `DECIDED:` comment and each `## Definition of done` line a criterion. `order` by blocked-by each task that waits on another, in this or another project's repository. Then launch the `judge` on each task's url and fix its findings until it posts `APPROVED:`; on each replan, resume that same judge, naming only the issues that changed.
 3. For each open task whose blockers are all closed, and each row of its `## Shares` whose `after` rows have merged: `start` it under its topic or share at its effort with `--leader <your address>`, or make a small change yourself.
 4. Act on what arrives:
    - `see <task-url>` naming a `BLOCKED:` comment: answer it with `decide`, then `prompt` the worker `see <task-url>`; work that needs its own pull request is answered with the url of the task you `file` for it, `order`ed before this one, which then goes through 3;
    - `see <pr-url>`, or `see <task-url>` of a report task closed at its `APPROVED:`: `read` it; once it shows merged or closed, `close` its worker, go to 3 for each task it unblocked, and go to 5 for its task;
+   - `see <backlog-url>` from a survey worker: `read` it; once it shows the survey's `APPROVED:`, `close` the worker and `clean` its worktree, the backlog left open and labelled `backlog`;
    - `blocked <name>`: the worker waits at a tool-use prompt, which is the owner's to answer, so tell the owner;
    - `gone <name>` while its task is open: `start` it again with `--continue`;
    - `idle <name>`: `read` its task and pull request, answer what waits on you, else `prompt` the worker `see <task-url>`;
@@ -36,7 +37,7 @@ Route every request, the owner's included, before taking it:
 
 | the work is for | you |
 | --- | --- |
-| backlog: the owner's words kept for later, for any project | file them as said, labelled `backlog`, in that project's repository, with the `scope:<folder>` routing picks where it has such labels; no parent, no format, no worker |
+| backlog: the owner's words kept for later, for any project | file them as said, labelled `backlog`, in that project's repository, with the `scope:<folder>` routing picks where it has such labels; no parent, no format, and no worker but a survey worker: the owner asking to survey a backlog, `start` it under a topic at effort low or medium with `--survey --leader <your address>` |
 | this project, your cwd's checkout | take it as a root task, led from Lead 2. With `scope:` labels, it is yours only for your folder: by the plugin its words name, else the folder it touches, else the owner's to pick; another folder's goes to its lead as `handoff` step 2 says |
 | another project | follow `${CLAUDE_PLUGIN_ROOT}/skills/handoff/SKILL.md`, read with `Read`, then `order` the work here that needs it after its root task |
 | every project: a shared rule or tool changing | `broadcast` its issue url |
@@ -47,6 +48,7 @@ A notice from another lead that is not a task for you is answered by a plain `co
 ## Filing
 
 - Hold any number of root tasks at once, a chore one at `effort:low`.
+- Open each criterion of a new task with its kind, `[exists]`, `[test]` or `[quality]`, as the kickoff skill's Domain defines it; a task filed before kinds keeps its criteria.
 - Search the issues first, `gh issue list -R <repo> --state all --search <words>`: work of the same kind as a closed issue (#67 and #84 both hid a skill from the `/` menu) reopens it with `gh issue reopen`, widens its criteria with `decide.py --criteria` and is led under a new attempt; otherwise file a new issue that links it.
 - File the fewest tasks at the widest scope: work sharing a mechanism is one task, split by feature, never by layer, and a new finding or a review's defect widens the task it relates to. File them all, then write the order and cross-references.
 - Split test: split work, into tasks or a task into shares, only where its order has slack and its conflict can be made indirect; check through several lenses: one merge at the end is enough, an interface agreed first lets each part be built apart, or what the parts share is knowledge each only reads.
@@ -68,7 +70,7 @@ A notice from another lead that is not a task for you is answered by a plain `co
 
 ## Small change
 
-The one change you make yourself: the owner's words spell it out, in one file and about 5 changed lines, with no script logic. Make it in a worktree off the default branch, `pr` it on the task reopened or filed for it, launch the `reviewer` with the model `review-model.py` prints, `merge` it at its `APPROVED:` head, and remove the worktree and branch as `clean` does.
+The one change you make yourself: the owner's words spell it out, in one file and about 5 changed lines, with no script logic. Make it in a worktree off the default branch, `pr` it on the task reopened or filed for it, launch the `judge` with the model `review-model.py` prints, `merge` it at its `APPROVED:` head, and remove the worktree and branch as `clean` does.
 
 ## Folder leads
 
