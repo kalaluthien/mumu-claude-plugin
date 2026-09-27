@@ -401,7 +401,8 @@ class Widgets(unittest.TestCase):
     def test_page_with_every_new_part_passes(self):
         code, out = check(self.page)
         self.assertEqual((code, out.splitlines()[-1]), (0, "pass"), out)
-        self.assertIn("layout motion 305/305", out)
+        # its width with or without a scrollbar, as a late hashchange may hide chapters again
+        self.assertRegex(out, r"layout motion (\d+)/\1 .* pass")
         self.assertIn("clicks 24/24 pass", out)
 
     def test_each_broken_control_fails(self):
