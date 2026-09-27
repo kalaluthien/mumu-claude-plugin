@@ -125,6 +125,9 @@ page, commit it beside the page.
 
 - A part no fact settles goes to `grill-me` by name, and the document carries
   only its settled answers; nothing is written before.
+- Reread against Composition: the headings read alone state the argument,
+  each section's first sentence is its point, and each figure is named in the
+  sentence before it; fix each miss.
 - Reread for order, each claim against its evidence, cuts and register, then
   grade it against [rubric.md](references/rubric.md) and fix each criterion
   scored below 2.
