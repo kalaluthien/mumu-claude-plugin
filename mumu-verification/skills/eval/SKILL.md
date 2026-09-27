@@ -8,7 +8,7 @@ user-invocable: false
 
 Find the failure modes in real traces first, then check each with code or with a judge validated against human labels.
 
-Terms and rules: `${CLAUDE_PLUGIN_ROOT}/skills/test/references/contract.md`; read it first. An eval runs cases through an LLM system, each graded pass or fail, and checks a failure mode seen in a trace, never a quality picked in advance ("helpfulness").
+Terms and rules: `${CLAUDE_PLUGIN_ROOT}/lib/contract.md`; read it first. An eval runs cases through an LLM system, each graded pass or fail, and checks a failure mode seen in a trace, never a quality picked in advance ("helpfulness").
 
 | suite | bar |
 | --- | --- |
