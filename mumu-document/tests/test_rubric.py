@@ -51,6 +51,12 @@ class Rubric(unittest.TestCase):
     def test_rubric_passes(self):
         self.assertEqual(failures(RUBRIC.read_text()), [])
 
+    def test_judge_procedure(self):
+        procedure = RUBRIC.read_text().split("## Judge procedure", 1)[1]
+        steps = re.findall(r"(?m)^\d\. \*\*([^*]+)\*\*", procedure)
+        self.assertEqual(steps, ["Blind.", "One at a time.", "Evidence first.", "Length earns nothing.",
+                                 "Two graders.", "Anchor set."])
+
     def test_skill_reread_grades_against_rubric(self):
         done = SKILL.read_text().split("## Done when", 1)[1]
         self.assertRegex(done, r"Reread[^\n]*\n[^\n]*\[rubric\.md\]\(references/rubric\.md\)")

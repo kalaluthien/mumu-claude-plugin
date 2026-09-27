@@ -288,3 +288,29 @@ pace set by the reader. Kinds: interactive.
 
 Sources: Segel and Heer 2010; Shneiderman 1996; Moreno and Mayer 2007
 (guided activity, pacing); Kosara and Mackinlay 2013; Boy et al. 2015.
+
+## Judge procedure
+
+A model that grades follows these steps; the research behind each is in the
+same pull request. The author's own reread applies steps 3 and 4; a grade
+another person relies on takes all six.
+
+1. **Blind.** The grader is a fresh context that did not write the document.
+   It reads this rubric and the document under a neutral name, with no
+   author, source, verdict or label such as "draft" or "weak".
+2. **One at a time.** Each document is graded against the levels on its own,
+   never against another document.
+3. **Evidence first.** For each criterion, in this file's order: quote the
+   line or name the element that bears on it, check each indicator, then give
+   the score. With nothing falling short, the score is 3.
+4. **Length earns nothing.** A longer document, section or quote scores no
+   higher for its length.
+5. **Two graders.** Two graders grade independently. Where they differ by one
+   level, the grade is their mean; by two or more, a third grader grades that
+   criterion and the median stands.
+6. **Anchor set.** After this file changes, grade the documents in
+   `mumu-document/tests/rubric/` again. Each criterion needs exact agreement
+   on at least half the documents it applies to and agreement within one
+   level on at least 80%. Each weakened copy must score lower in its weakened
+   dimension and within one level in the others. A criterion under the bar is
+   rewritten or dropped.
