@@ -14,6 +14,7 @@ import unittest
 
 SCRIPT = pathlib.Path(__file__).resolve().parent.parent / "scripts" / "run-verify.py"
 MODEL = "sig A { f: set A }\nassert NoSelf { no a: A | a in a.f }\nfact { no a: A | a in a.f }\ncheck NoSelf for 2 expect 0\n"
+MODEL += "pred grow[a: A] { some a.f }\nrun grow for 2 expect 1\n"
 
 
 class RunVerify(unittest.TestCase):
@@ -24,7 +25,7 @@ class RunVerify(unittest.TestCase):
 
     def hook(self, gate=None, event="PreToolUse", command="git add -A && git commit -m x", **call):
         """gate: None for no model, 1 for a check with no witness, 0 for one with its witness."""
-        for path, text in {"spec/m.als": MODEL, "tests/test_m.py": "def refuses_NoSelf(): pass\n"}.items():
+        for path, text in {"spec/m.als": MODEL, "tests/test_m.py": "def refuses_NoSelf(): pass\ndef scenario_grow(): pass\n"}.items():
             if gate is not None and (path.startswith("spec") or gate == 0):
                 pathlib.Path(self.repo.name, path).parent.mkdir(exist_ok=True)
                 pathlib.Path(self.repo.name, path).write_text(text)
