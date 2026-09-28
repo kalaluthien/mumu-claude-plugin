@@ -96,7 +96,7 @@ Writing, for every issue, pull request and comment:
 
 A body, a comment or a decision is written with a file tool to `<path>` first, never a heredoc, since `bash-guard.py` reads a heredoc as the command. A task lives in its leader's repository, and a worker's worktree in its leader's own checkout only. The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, and `<hooks>` is `git -C <checkout> rev-parse --path-format=absolute --git-path hooks`.
 
-`start`, `start-lead`, `close`, `merge` and `clean`'s git commands each run as the literal command written, one Bash call of its own by its bare name, with no path, interpreter, `cd`, `&&`, `;`, pipe, loop, redirect, `git -C` or variable, so an owner allow rule matches it; `bash-guard.py` refuses any other form.
+`start`, `start-lead`, `close`, `merge` and `clean`'s git commands each run as the literal command written, one Bash call of its own by its bare name, with no path, interpreter, `cd`, `&&`, `;`, pipe, loop, redirect or variable, so an owner allow rule matches it; `bash-guard.py` refuses any other form. The same git step in a checkout other than the cwd, such as a second clone of the repository, runs as `git -C <literal path> <step>`, its one git option.
 
 ## Panes: herdr
 
