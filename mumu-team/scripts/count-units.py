@@ -7,8 +7,9 @@ usage: count-units.py [<plugin-dir>] [--model <model>] [--samples <n>] [--jobs <
 <plugin-dir> defaults to this plugin. Features: skills, agents, hook registrations, monitors, `bin/`
 executables and eval cases, each listed by name. Sonnet reads every `.md` file outside `tests/` and `evals/`,
 the rubric excepted, cut by code into numbered sentences. Each ask runs --samples times (3) and the majority
-stands: per file, each sentence's instructions and elaboration by their median and the terms most name; over
-every instruction-bearing sentence, the duplicate groups; over every term, the variant groups. --json also
+stands: per file, each sentence's instructions and elaboration by their median and the terms most name; for
+each instruction-bearing sentence and the NEAR sentences sharing the most words, whether the pair is one
+directive, the pairs joined into duplicate groups; over every term, the variant groups. --json also
 writes the whole result, and --out keeps each reply, reused by a rerun into it. Exit 0 counted, 2 could not run.
 """
 import argparse
@@ -25,6 +26,9 @@ import time
 PLUGIN = pathlib.Path(__file__).resolve().parents[1]
 RUBRIC = PLUGIN / "lib" / "size-rubric.md"
 CHUNK = 60
+NEAR = 3
+PAIRS = 80
+WORD = re.compile(r"[a-z0-9_:./<>-]{3,}")
 SKIPPED = ("tests", "evals", "__pycache__")
 END = re.compile(r"(?<=[.?!])\s+(?=[A-Z`(\[*])|(?<=;)\s+")
 FILE_ASK = """Count the file {path} by the rubric. It is cut into sentences, each on a line as `id| sentence`, the id
@@ -36,9 +40,10 @@ file's terms, each once, at the line of its first use:
 <file path="{path}">
 {text}
 </file>"""
-DUPLICATE_ASK = """Below is every sentence of mumu-team that states an instruction, one per line as `id | path:line | sentence`.
-Find the duplicates by the rubric: each group of two or more sentences that state one directive.
-Reply with only one fenced json block: {{"groups": [["<id>", "<id>", ...], ...]}}, an empty list when none.
+DUPLICATE_ASK = """Below are pairs of sentences of mumu-team that state instructions, one pair per line as
+`pair | path:line | sentence || path:line | sentence`. Score each pair 1 when its two sentences state one directive, a
+duplicate by the rubric, else 0.
+Reply with only one fenced json block that scores every pair: {{"pairs": {{"<pair>": 0, ...}}}}
 
 {items}"""
 VARIANT_ASK = """Below is every term of mumu-team, one per line as `term | path:line | the line where it is first used`.
@@ -176,6 +181,20 @@ def majority(groupings, samples):
     return [g for g in out.values() if len(g) > 1]
 
 
+def neighbours(by_id):
+    """Each instruction sentence paired with its NEAR sentences sharing the most words, by Jaccard, each pair once in
+    the order first met."""
+    ids = list(by_id)
+    bags = {i: set(WORD.findall(by_id[i]["text"].lower())) for i in ids}
+    out = {}
+    for a in ids:
+        scored = sorted(((len(bags[a] & bags[b]) / len(bags[a] | bags[b]), b) for b in ids if b != a and bags[a] & bags[b]),
+                        key=lambda x: -x[0])
+        for _, b in scored[:NEAR]:
+            out.setdefault(tuple(sorted((a, b), key=ids.index)), None)
+    return list(out)
+
+
 def count_file(path, root, model, out, samples, pool):
     """This file's sentences, each scored by the median of `samples` asks, and the terms more than half of them
     name, each with its path and line; a file of more than CHUNK sentences is asked in even parts."""
@@ -215,10 +234,16 @@ def count(root, model, jobs, out=None, samples=3):
         per_file = list(pool.map(lambda p: count_file(p, root, model, out, samples, asks), texts(root)))
         rows = [r for f, _ in per_file for r in f]
         by_id = {r["id"]: r for r in rows if r["instructions"]}
-        prompt = DUPLICATE_ASK.format(items="\n".join(f"{i} | {r['path']}:{r['line']} | {r['text']}" for i, r in by_id.items()))
-        groups = majority([[[x for x in dict.fromkeys(g) if x in by_id] for g in reply["groups"]]
-                           for reply in asks.map(lambda name: ask(prompt, model, name, out, "groups"), votes(samples, "duplicates"))],
-                          samples)
+        near = [f"{a}|{b}" for a, b in neighbours(by_id)]
+        batches = [near[k:k + PAIRS] for k in range(0, len(near), PAIRS)]
+        jobs = [(DUPLICATE_ASK.format(items="\n".join(
+                    f"{pair} | {where(by_id[pair.split('|')[0]])} | {by_id[pair.split('|')[0]]['text']} || "
+                    f"{where(by_id[pair.split('|')[1]])} | {by_id[pair.split('|')[1]]['text']}" for pair in batch)),
+                 name if k == 1 else f"{name}@{k}") for name in votes(samples, "duplicates") for k, batch in enumerate(batches, 1)]
+        replies = list(asks.map(lambda job: ask(job[0], model, job[1], out, "pairs"), jobs))
+        groups = majority([[pair.split("|") for r in replies[n * len(batches):(n + 1) * len(batches)]
+                            for pair, same in r["pairs"].items() if same == 1 and pair in near]
+                           for n in range(samples)], samples)
         first = {}
         for t in (t for _, ts in per_file for t in ts):
             first.setdefault(t["name"], t)

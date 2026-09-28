@@ -18,7 +18,7 @@ count_units = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(count_units)
 
 FILES = {
-    "skills/one/SKILL.md": "# One\n\nDo this; never that. It is `One`.\n",
+    "skills/one/SKILL.md": "# One\n\nRead the rules; never that. It is `One`.\n",
     "agents/boss.md": "---\nname: boss\ndescription: The boss.\n---\nRead the rules with `gh issue view`.\n",
     "hooks/hooks.json": json.dumps({"hooks": {"Stop": [{"hooks": [{"command": "${CLAUDE_PLUGIN_ROOT}/scripts/stop.py"}]}],
                                               "PreToolUse": [{"matcher": "Bash", "hooks": [{"command": "\"${X}\"/scripts/g.py a"}]}]}}),
@@ -31,14 +31,16 @@ FILES = {
 
 # The fake answers by what the ask names: a file's counts, then the duplicate and variant passes.
 FAKE = r'''#!/usr/bin/env python3
+import json
 import sys
 ask = sys.stdin.read()
 if ask.startswith("Count the file skills/one/SKILL.md"):
     body = '{"sentences": {"3.1": [1, 0], "3.2": [1, 0], "3.3": [0, 1]}, "terms": [{"name": "`One`", "line": "3.3"}]}'
 elif ask.startswith("Count the file agents/boss.md"):
     body = '{"sentences": {"3.1": [0, 1], "5.1": [1, 0]}, "terms": [{"name": "boss (the agent)", "line": 2}, {"name": "gh issue view <url>", "line": 5}]}'
-elif "states an instruction" in ask:
-    body = '{"groups": [["agents/boss.md#5.1", "skills/one/SKILL.md#3.1"], ["skills/one/SKILL.md#3.2"]]}'
+elif ask.startswith("Below are pairs"):
+    pairs = [line.split(" | ")[0] for line in ask.splitlines() if " || " in line]
+    body = json.dumps({"pairs": {p: int(p == "agents/boss.md#5.1|skills/one/SKILL.md#3.1") for p in pairs}})
 else:
     body = '{"variants": [["One", "Boss"], ["ghost"]]}'
 print("thinking\n```json\n" + body + "\n```")
@@ -83,7 +85,7 @@ class Code(unittest.TestCase):
                              capture_output=True, text=True, env=env)
         self.assertEqual(out.returncode, 0, out.stderr)
         for line in ["files 7", "features 7", "instructions 3", "duplicates 1", "elaboration 2", "terms 3, variants 1",
-                     "  agents/boss.md:5 Read the rules with `gh issue view`. = skills/one/SKILL.md:3 Do this;",
+                     "  agents/boss.md:5 Read the rules with `gh issue view`. = skills/one/SKILL.md:3 Read the rules;",
                      "  one skills/one/SKILL.md:3 = boss agents/boss.md:2",
                      "  elaboration 1 agents/boss.md:3 The boss.", "  term agents/boss.md:5 gh issue view",
                      "  instruction 1 skills/one/SKILL.md:3 never that."]:
