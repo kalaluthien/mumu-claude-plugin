@@ -42,7 +42,7 @@ elif ask.startswith("Below are pairs"):
     pairs = [line.split(" | ")[0] for line in ask.splitlines() if " || " in line]
     body = json.dumps({"pairs": {p: int(p == "agents/boss.md#5.1|skills/one/SKILL.md#3.1") for p in pairs}})
 else:
-    body = '{"variants": [["One", "Boss"], ["ghost"]]}'
+    body = '{"variants": {"one": ["Boss", "ghost"], "boss": []}}'
 print("thinking\n```json\n" + body + "\n```")
 '''
 
@@ -91,6 +91,18 @@ class Code(unittest.TestCase):
                      "  instruction 1 skills/one/SKILL.md:3 never that."]:
             self.assertIn(line, out.stdout.splitlines())
         self.assertEqual(json.loads((fakes / "r.json").read_text())["totals"]["instructions"], 3)
+
+    def test_a_sentence_cut_at_semicolons_that_directs_nothing_scores_one_elaboration(self):
+        rows = [{"line": 1, "text": "It exists because A;", "instructions": 0, "elaboration": 1},
+                {"line": 1, "text": "it polls.", "instructions": 0, "elaboration": 1},
+                {"line": 2, "text": "Read it;", "instructions": 1, "elaboration": 0},
+                {"line": 2, "text": "since B.", "instructions": 0, "elaboration": 1}]
+        count_units.whole(rows)
+        self.assertEqual([r["elaboration"] for r in rows], [1, 0, 0, 1])
+
+    def test_a_term_drops_heading_marks_and_arguments(self):
+        self.assertEqual([count_units.term(n) for n in ["## Goal", "`gh issue view <url>`", "boss (the agent)"]],
+                         ["goal", "gh issue view", "boss"])
 
     def test_majority_keeps_pairs_grouped_in_more_than_half_the_samples(self):
         self.assertEqual(count_units.majority([[["a", "b", "c"]], [["a", "b"], ["c", "d"]], [["b", "a"], ["d", "c"]]], 3),

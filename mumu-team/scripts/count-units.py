@@ -28,6 +28,7 @@ RUBRIC = PLUGIN / "lib" / "size-rubric.md"
 CHUNK = 60
 NEAR = 3
 PAIRS = 80
+QUERIES = 40
 WORD = re.compile(r"[a-z0-9_:./<>-]{3,}")
 SKIPPED = ("tests", "evals", "__pycache__")
 END = re.compile(r"(?<=[.?!])\s+(?=[A-Z`(\[*])|(?<=;)\s+")
@@ -46,11 +47,16 @@ duplicate by the rubric, else 0.
 Reply with only one fenced json block that scores every pair: {{"pairs": {{"<pair>": 0, ...}}}}
 
 {items}"""
-VARIANT_ASK = """Below is every term of mumu-team, one per line as `term | path:line | the line where it is first used`.
-Find the variants by the rubric: each group of two or more terms that name one entity.
-Reply with only one fenced json block: {{"variants": [["<term>", "<term>", ...], ...]}}, an empty list when none.
+VARIANT_ASK = """Below is every term of mumu-team, one per line as `term | path:line | the line where it is first used`,
+then some of them as queries. For each query, find by the rubric every other term that names the same entity.
+Reply with only one fenced json block: {{"variants": {{"<query>": ["<term>", ...], ...}}}}, an empty list for a
+query with none.
 
-{items}"""
+<terms>
+{items}
+</terms>
+
+Queries: {queries}"""
 
 
 def features(root):
@@ -145,7 +151,7 @@ def ask(prompt, model, name, out, need):
 
 def term(name):
     """A term's name as counted: no quotes or backticks, no annotation, a command's arguments cut."""
-    name = re.sub(r"\s*\(.*\)$", "", name.strip().strip("`'\"").strip())
+    name = re.sub(r"\s*\(.*\)$", "", name.strip().lstrip("#").strip().strip("`'\"").strip())
     return re.split(r"\s+(?=[-<\[])", name)[0].strip("`").lower()
 
 
@@ -216,12 +222,27 @@ def count_file(path, root, model, out, samples, pool):
         rows.append({"id": f"{rel}#{i}", "path": rel, "line": n, "text": s,
                      "instructions": statistics.median_low(int(x[0]) for x in scored),
                      "elaboration": statistics.median_low(int(x[1]) for x in scored)})
+    whole(rows)
     named = {}
     for f in found:
         for name, t in {term(t["name"]): t for t in f["terms"] if term(t["name"])}.items():
             named.setdefault(name, []).append(int(str(t["line"]).split(".")[0]))
     terms = [{"name": name, "path": rel, "line": min(at)} for name, at in named.items() if len(at) * 2 > samples]
     return rows, terms
+
+
+def whole(rows):
+    """A sentence cut only at its semicolons that directs nothing scores one elaboration, on its first part."""
+    k = 0
+    while k < len(rows):
+        end = k
+        while end + 1 < len(rows) and rows[end]["text"].endswith(";") and rows[end + 1]["line"] == rows[k]["line"]:
+            end += 1
+        part = rows[k:end + 1]
+        if len(part) > 1 and not any(r["instructions"] for r in part) and any(r["elaboration"] for r in part):
+            for r in part:
+                r["elaboration"] = int(r is part[0])
+        k = end + 1
 
 
 def line_of(root, item):
@@ -247,11 +268,16 @@ def count(root, model, jobs, out=None, samples=3):
         first = {}
         for t in (t for _, ts in per_file for t in ts):
             first.setdefault(t["name"], t)
-        prompt = VARIANT_ASK.format(items="\n".join(f"{name} | {t['path']}:{t['line']} | {line_of(root, t)}"
-                                                     for name, t in first.items()))
-        variants = majority([[[term(n) for n in dict.fromkeys(v) if term(n) in first] for v in reply["variants"]]
-                             for reply in asks.map(lambda name: ask(prompt, model, name, out, "variants"), votes(samples, "variants"))],
-                            samples)
+        items = "\n".join(f"{name} | {t['path']}:{t['line']} | {line_of(root, t)}" for name, t in first.items())
+        names = list(first)
+        queries = [names[k:k + QUERIES] for k in range(0, len(names), QUERIES)]
+        jobs = [(VARIANT_ASK.format(items=items, queries=", ".join(q)), name if k == 1 else f"{name}@{k}")
+                for name in votes(samples, "variants") for k, q in enumerate(queries, 1)]
+        replies = list(asks.map(lambda job: ask(job[0], model, job[1], out, "variants"), jobs))
+        variants = majority([[[term(q), term(v)] for r in replies[n * len(queries):(n + 1) * len(queries)]
+                              for q, found in r["variants"].items() for v in found
+                              if term(q) in first and term(v) in first and term(v) != term(q)]
+                             for n in range(samples)], samples)
     return {"sentences": rows, "duplicates": [[by_id[x] for x in g] for g in groups], "terms": list(first.values()),
             "variants": [[first[n] for n in v] for v in variants]}
 
