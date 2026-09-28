@@ -37,7 +37,8 @@ f.onload = function () {
   var anim = d.getAnimations().filter(function (a) { return a.playState === 'running'; }).length;
   setTimeout(function () {
     var e = d.documentElement, t = d.createTreeWalker(d.body, 4), n, z, s = [1 / 0, 1 / 0];
-    while ((n = t.nextNode())) if (n.data.trim() && !/^(script|style|title)$/i.test(n.parentElement.tagName)) {
+    // math sets its own script sizes, so its text is not read for the smallest font
+    while ((n = t.nextNode())) if (n.data.trim() && !/^(script|style|title)$/i.test(n.parentElement.tagName) && !n.parentElement.closest('.katex')) {
       z = /[\p{sc=Hangul}\p{sc=Han}]/u.test(n.data) ? 1 : 0;
       s[z] = Math.min(s[z], parseFloat(w.getComputedStyle(n.parentElement).fontSize));
     }
@@ -87,7 +88,9 @@ f.onload = function () {
   f.onload = null;
   setTimeout(function () {
     var d = f.contentDocument, w = f.contentWindow, groups = new Map(), out = [];
-    var SKIP = 'script,style,template,noscript', CODE = 'code,pre,kbd,samp';
+    var SKIP = 'script,style,template,noscript,.katex', CODE = 'code,pre,kbd,samp';
+    // TeX left as text outside code, which KaTeX did not set, and each formula it could not parse
+    var TEX = /\\[()[\]]|\$\$/, raw = [];
     // Mapping: a file named by path, or a flow drawn in text with arrows, outside any widget
     var PATH = /^[~.\w$-]*(\/[\w.*$-]*)*(\.[A-Za-z]\w{0,4}|\/)$/, ARROW = /[→⟶⇒➜➔▶]/g, BLOCK = 'pre,p,li,td,th,dd,figcaption';
     var block = function (el) {
@@ -105,6 +108,8 @@ f.onload = function () {
       var p = n.parentElement;
       if (!p || p.closest(SKIP) || !n.data.trim()) continue;
       held = held.concat(n.data.match(HOLE) || []);
+      var tex = n.data.replace(/\s+/g, ' ').search(TEX);  // the TeX and a few words before it
+      if (tex >= 0 && !p.closest(CODE)) raw.push(n.data.replace(/\s+/g, ' ').slice(Math.max(0, tex - 8), tex + 24).trim());
       var at = n.data.replace(/\s+/g, ' ').search(/->|=>/);  // the arrow and a few words either side
       if (at >= 0 && !p.closest(PROSE)) ascii.push(n.data.replace(/\s+/g, ' ').slice(Math.max(0, at - 12), at + 14).trim());
       var b = block(p);
@@ -128,7 +133,7 @@ f.onload = function () {
       .map(function (e) { return e.textContent.replace(/\s+/g, ' ').trim().slice(0, 40); });
     document.body.dataset.r = JSON.stringify({ lang: d.documentElement.lang, text: out, headings: heads, ascii: ascii, cells: cells,
       held: held.filter(function (h, i) { return held.indexOf(h) === i; }), skin: !!d.querySelector('style#skin'),
-      h1: !!d.querySelector('h1'), drawn: loose('svg').filter(function (g) { return !g.parentElement.closest('svg'); }).length,
+      h1: !!d.querySelector('h1'), drawn: loose('svg').filter(function (g) { return !g.parentElement.closest('svg, .katex'); }).length,
       paths: paths.filter(function (p, i) { return paths.indexOf(p) === i; }), flows: flows,
       diagrams: Array.prototype.map.call(d.querySelectorAll('[data-widget="diagram"]'), function (e) { return e.dataset.diagram; }),
       nodes: Array.prototype.map.call(d.querySelectorAll('[data-diagram="network"] .stage > dl'), function (l) { return l.querySelectorAll(':scope > dt').length; }),
@@ -139,7 +144,8 @@ f.onload = function () {
         var cap = e.closest('figure.code') && e.closest('figure.code').querySelector(':scope > figcaption');
         return e.textContent.replace(/\n+$/, '').split('\n').length >= 4 && !(cap && /\S+:\d+(-\d+)?/.test(cap.textContent));
       }).map(function (e) { return e.textContent.trim().split('\n')[0].slice(0, 40); }),
-      chapters: d.querySelectorAll('[data-chapter]').length,
+      chapters: d.querySelectorAll('[data-chapter]').length, math: d.querySelectorAll('.katex').length,
+      raw: raw.concat(Array.prototype.map.call(d.querySelectorAll('.katex-error'), function (e) { return e.textContent.slice(0, 40); })),
       tables: Array.prototype.map.call(d.querySelectorAll('table'), function (t) {
         var text = function (c) { return c.textContent.replace(/\s+/g, ' ').trim(); };
         return [t.tHead && t.tHead.rows.length ? Array.prototype.map.call(t.tHead.rows[t.tHead.rows.length - 1].cells, text) : [],
@@ -700,6 +706,9 @@ def main():
     out = mapping(k)
     failed |= bool(out)
     print(f"mapping {len(k['paths'])} files {len(k['flows'])} flows " + ("FAIL: " + "; ".join(out) if out else "pass"))
+    if k["math"] or k["raw"]:
+        failed |= bool(k["raw"])
+        print(f"math {k['math']} set " + ("FAIL: raw TeX " + "; ".join(k["raw"]) if k["raw"] else "pass"))
     out = units(k)
     failed |= bool(out)
     print(f"units {len(k['tables'])} tables " + ("FAIL: " + "; ".join(out) if out else "pass"))
