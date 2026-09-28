@@ -11,10 +11,10 @@ import unittest
 from unittest import mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-import github  # noqa: E402
+import gh  # noqa: E402
 import herdr  # noqa: E402
-import names  # noqa: E402
-from github import run  # noqa: E402
+import sessions  # noqa: E402
+from gh import run  # noqa: E402
 
 class Run(unittest.TestCase):
     def test_stdout_with_stdin_and_cwd(self):
@@ -32,30 +32,30 @@ class Run(unittest.TestCase):
 
 class Names(unittest.TestCase):
     def test_worker_round_trips_its_attempt(self):
-        self.assertEqual(names.worker("fold-rest", 22, 3), "fold-rest-22-3")
-        self.assertEqual(names.attempt("fold-rest-22-3"), 3)
-        self.assertEqual(names.attempt("fold-rest-22-3", n=22), 3)
-        self.assertEqual(names.attempt("fold-rest-22-3", "fold-rest", 22), 3)
+        self.assertEqual(sessions.worker("fold-rest", 22, 3), "fold-rest-22-3")
+        self.assertEqual(sessions.attempt("fold-rest-22-3"), 3)
+        self.assertEqual(sessions.attempt("fold-rest-22-3", n=22), 3)
+        self.assertEqual(sessions.attempt("fold-rest-22-3", "fold-rest", 22), 3)
 
     def test_attempt_refuses_other_names_tasks_and_topics(self):
         for name, topic, n in [("mumu-lead", None, None), ("Fold-22-1", None, None), ("fold-22", None, None),
                                ("fold-22-1", None, 2), ("fold-22-1", "rest", 22), (None, None, None)]:
             with self.subTest(name=name, topic=topic, n=n):
-                self.assertIsNone(names.attempt(name, topic, n))
+                self.assertIsNone(sessions.attempt(name, topic, n))
 
     def test_lead_is_cut_so_its_successor_fits_herdr(self):
-        self.assertEqual(names.lead("mumu-claude-plugin"), "mumu-claude-plugin-lead")
-        self.assertEqual(names.lead("My Repo.v2"), "my-repo-v2-lead")
-        self.assertLessEqual(len(names.lead("x" * 40) + "-next"), 32)
+        self.assertEqual(sessions.lead("mumu-claude-plugin"), "mumu-claude-plugin-lead")
+        self.assertEqual(sessions.lead("My Repo.v2"), "my-repo-v2-lead")
+        self.assertLessEqual(len(sessions.lead("x" * 40) + "-next"), 32)
 
     def test_checkout_is_a_root_holding_git(self):
         with tempfile.TemporaryDirectory() as tmp:
-            self.assertRaises(RuntimeError, names.checkout, tmp)
+            self.assertRaises(RuntimeError, sessions.checkout, tmp)
             (pathlib.Path(tmp) / ".git").mkdir()
-            self.assertEqual(names.checkout(tmp), pathlib.Path(tmp).resolve())
+            self.assertEqual(sessions.checkout(tmp), pathlib.Path(tmp).resolve())
 
     def test_workers_are_named_workers_under_the_checkouts_worktrees(self):
-        root = names.worktrees("/w/plugins")
+        root = sessions.worktrees("/w/plugins")
         listed = [
             {"name": "fold-rest-22-1", "cwd": str(root / "fold-rest-22-1"), "agent_status": "working"},
             {"name": "plugins-lead", "cwd": "/w/plugins", "agent_status": "idle"},
@@ -63,7 +63,7 @@ class Names(unittest.TestCase):
             {"name": "sib-6-1", "cwd": "/w/plugins-2/.claude/worktrees/sib-6-1"},
             {"name": "no-cwd-7-1"},
         ]
-        self.assertEqual(names.workers(listed, "/w/plugins"), {"fold-rest-22-1": "working"})
+        self.assertEqual(sessions.workers(listed, "/w/plugins"), {"fold-rest-22-1": "working"})
 
 
 GH = r'''#!/usr/bin/env python3
@@ -87,19 +87,19 @@ class Gh(unittest.TestCase):
 
     def test_repo_reads_one_field(self):
         with mock.patch.dict(os.environ, {**self.env, "FAKE_OUT": "main"}):
-            self.assertEqual(github.repo("defaultBranchRef"), "main")
+            self.assertEqual(gh.repo("defaultBranchRef"), "main")
         self.assertEqual(self.calls(), [["repo", "view", "--json", "defaultBranchRef", "-q", ".defaultBranchRef.name"]])
 
     def test_held_reads_urls_or_answers_none(self):
         with mock.patch.dict(os.environ, {**self.env, "FAKE_OUT": json.dumps([{"url": "u1"}])}):
-            self.assertEqual(github.held("."), ["u1"])
+            self.assertEqual(gh.held("."), ["u1"])
         for out, code in [("not json", "0"), ("[]", "1")]:
             with self.subTest(out=out), mock.patch.dict(os.environ, {**self.env, "FAKE_OUT": out, "FAKE_EXIT": code}):
-                self.assertIsNone(github.held("."))
+                self.assertIsNone(gh.held("."))
 
     def test_failure_raises(self):
         with mock.patch.dict(os.environ, {**self.env, "FAKE_EXIT": "1"}):
-            self.assertRaises(RuntimeError, github.gh, "issue", "view", "u")
+            self.assertRaises(RuntimeError, gh.gh, "issue", "view", "u")
 
 
 HERDR = r'''#!/usr/bin/env python3

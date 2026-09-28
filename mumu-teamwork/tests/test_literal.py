@@ -19,9 +19,9 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SKILL = ROOT / "skills" / "kickoff" / "SKILL.md"
 JUDGE = ROOT / "agents" / "judge.md"
 HOOK = ROOT / "scripts" / "bash-guard.py"
-WORK = ROOT / "skills" / "kickoff" / "references" / "work-task.md"
+WORK = ROOT / "skills" / "kickoff" / "references" / "worker-playbook.md"
 # rules already in the owner's ~/.claude/settings.json, fixed: the test adds no other
-RULES = ALLOW + ["gh *", "worker-start.py *", "lead-start.py *", "worker-close.py *", "merge.py https://github.com/*"]
+RULES = ALLOW + ["gh *", "worker-start.py *", "lead-start.py *", "session-close.py *", "pr-merge.py https://github.com/*"]
 VERBS = ("start", "start-lead", "close", "merge")
 PR = "https://github.com/kalaluthien/mumu-claude-plugin/pull/261"
 VALUES = {
@@ -92,7 +92,7 @@ class Literal(unittest.TestCase):
 
 class RefusedStep(unittest.TestCase):
     def rule(self):
-        """`work-task.md`'s bullet for a step auto mode refuses."""
+        """`worker-playbook.md`'s bullet for a step auto mode refuses."""
         lines = [line for line in WORK.read_text().splitlines() if line.lstrip().startswith("- A step auto mode refuses")]
         self.assertEqual(len(lines), 1)
         return lines[0]

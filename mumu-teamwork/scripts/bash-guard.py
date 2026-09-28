@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""PreToolUse hook on Bash: refuse a raw `gh pr merge`, since `merge.py` is the only merge path, and a git hook bypass,
+"""PreToolUse hook on Bash: refuse a raw `gh pr merge`, since `pr-merge.py` is the only merge path, and a git hook bypass,
 even as text only naming either, which goes through a file and `--body-file`; and in a lead's or worker's session, what
 the kickoff skill gives another role: `APPROVED:` and `FINDINGS:` the judge's, `DECIDED:` the lead's through
-`decide.py`, a task's body, labels, reopening and stop its lead's, a body only its three sections, a backlog's body a
+`decision-post.py`, a task's body, labels, reopening and stop its lead's, a body only its three sections, a backlog's body a
 worker's only as its one `## Survey` below the owner's words, a worker's prompt
 only `see <url>`, and no title over 40 characters; and in any session, closing a split task as completed while a row of
-its `## Shares` has no merged pull request; and a routine step (`merge.py`, `worker-start.py`, `lead-start.py`,
-`worker-close.py`, `clean`'s git commands), or the judge's post, in any form but the literal one an allow rule matches."""
+its `## Shares` has no merged pull request; and a routine step (`pr-merge.py`, `worker-start.py`, `lead-start.py`,
+`session-close.py`, `clean`'s git commands), or the judge's post, in any form but the literal one an allow rule matches."""
 import json
 import os
 import pathlib
@@ -15,8 +15,8 @@ import shlex
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-import github  # noqa: E402
-import names  # noqa: E402
+import gh  # noqa: E402
+import sessions  # noqa: E402
 
 SEPARATORS = set(";&|()\n")
 DESCRIPTOR = re.compile(r"(^|[\s;&|()])(?:\d+|\{\w+\})(?=[<>])")
@@ -35,13 +35,13 @@ TITLE = 40
 ISSUE = re.compile(r"(?:https://github\.com/([^/\s]+/[^/\s]+)/issues/)?#?(\d+)/?")
 VALUED = {"--reason", "-r", "--comment", "-c", "--repo", "-R"}
 LEADS = "a task's body, labels, reopening and stop are its lead's: post `BLOCKED: <question>` and prompt your lead"
-RAW_MERGE ="a raw `pr merge` is refused; run `merge.py <pr-url>` in a Bash call of its own, and write text naming the merge with a file tool"
+RAW_MERGE ="a raw `pr merge` is refused; run `pr-merge.py <pr-url>` in a Bash call of its own, and write text naming the merge with a file tool"
 # each routine step, as its script's name or git's words, and the literal form an owner allow rule matches
 ROUTINE = {
-    "merge.py": "merge.py <pr-url>",
+    "pr-merge.py": "pr-merge.py <pr-url>",
     "worker-start.py": "worker-start.py <checkout> <topic> <effort> <task-url> [flags]",
     "lead-start.py": "lead-start.py <checkout> [<task-url>] [flags]",
-    "worker-close.py": "worker-close.py <name>",
+    "session-close.py": "session-close.py <name>",
     ("worktree", "remove"): "git worktree remove .claude/worktrees/<name>",
     ("branch", "-D"): "git branch -D <name>",
     ("push", "origin", "--delete"): "git push origin --delete <name>",
@@ -207,7 +207,7 @@ def survey_refusal(words, texts, cwd):
         return LEADS
     repo = ["-R", r] if (r := m[1] or option(words, "--repo", "-R")) else []
     try:
-        issue = json.loads(github.gh("issue", "view", m[2], *repo, "--json", "body,labels", cwd=cwd))
+        issue = json.loads(gh.gh("issue", "view", m[2], *repo, "--json", "body,labels", cwd=cwd))
     except (RuntimeError, ValueError):
         return LEADS
     if "backlog" not in [label["name"] for label in issue.get("labels", [])]:
@@ -220,8 +220,8 @@ def survey_refusal(words, texts, cwd):
 
 def role_refusal(command, role, cwd):
     """What `command` does that the kickoff skill gives another role than `role`, a lead or a worker, else None."""
-    if role == "worker" and any(os.path.basename(w) == "decide.py" for words in lexed(command) or [] for w in words):
-        return "`DECIDED:` and `decide.py` are the lead's: post `BLOCKED: <question>` and prompt your lead"
+    if role == "worker" and any(os.path.basename(w) == "decision-post.py" for words in lexed(command) or [] for w in words):
+        return "`DECIDED:` and `decision-post.py` are the lead's: post `BLOCKED: <question>` and prompt your lead"
     if role == "worker":
         for words in lexed(command) or []:
             words = unredirected(words)
@@ -245,7 +245,7 @@ def role_refusal(command, role, cwd):
             if m and m[1].lower() in ("approved", "findings"):
                 return f"`{m[1].upper()}:` is the judge's alone: launch the `judge` agent to post it"
             if m and verb in ("comment", "review"):
-                return "`DECIDED:` goes through `decide.py <url> < <decision>`, the lead's"
+                return "`DECIDED:` goes through `decision-post.py <url> < <decision>`, the lead's"
         title = option(words, "--title", "-t")
         if verb in ("create", "edit") and title is not None and len(title) > TITLE:
             return f"a title is at most {TITLE} characters, verb first; this one has {len(title)}"
@@ -326,14 +326,14 @@ def early_resolve(command, cwd):
             continue
         repo = ["-R", r] if (r := m[1] or option(words, "--repo", "-R")) else []
         try:
-            rows = names.shares(github.gh("issue", "view", m[2], *repo, "--json", "body", "-q", ".body", cwd=cwd))
+            rows = sessions.shares(gh.gh("issue", "view", m[2], *repo, "--json", "body", "-q", ".body", cwd=cwd))
             if rows is None:
                 continue
-            heads = github.gh("pr", "list", *repo, "--state", "merged", "--limit", "1000", "--json", "headRefName",
+            heads = gh.gh("pr", "list", *repo, "--state", "merged", "--limit", "1000", "--json", "headRefName",
                               "-q", ".[].headRefName", cwd=cwd).split()
         except RuntimeError as err:
             return f"could not read whether task #{m[2]} is split: {err}"
-        waiting = [row for row in rows if not any(names.attempt(h, row, m[2]) is not None for h in heads)]
+        waiting = [row for row in rows if not any(sessions.attempt(h, row, m[2]) is not None for h in heads)]
         if waiting:
             return f"task #{m[2]} is split and its rows {', '.join(waiting)} have no merged pull request: `resolve` it once every row has merged"
     return None
@@ -341,7 +341,7 @@ def early_resolve(command, cwd):
 
 def main():
     raw = sys.stdin.read()
-    if not re.search(r"merge|git|hookspath|gh|decide|start\.py|close\.py", QUOTING.sub("", raw), re.I):
+    if not re.search(r"merge|git|hookspath|gh|decision|start\.py|close\.py", QUOTING.sub("", raw), re.I):
         sys.exit(0)
     try:
         payload = json.loads(raw)

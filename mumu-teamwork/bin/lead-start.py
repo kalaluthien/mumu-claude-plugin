@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Start a project's lead: its tab at the checkout's root, Claude as `--agent mumu-teamwork:lead`, and its kickoff prompt.
 
-`--replace` makes the calling session the one replaced: once the lead is live, a detached `worker-close.py --pane`
+`--replace` makes the calling session the one replaced: once the lead is live, a detached `session-close.py --pane`
 closes the caller's session and tab after the caller's turn ends."""
 import argparse
 import os
@@ -11,8 +11,8 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
 import herdr  # noqa: E402
-import names  # noqa: E402
-from github import repo as repo_view, run  # noqa: E402
+import sessions  # noqa: E402
+from gh import repo as repo_view, run  # noqa: E402
 
 DROPPED = {"--continue": 0, "-c": 0, "--resume": 1, "-r": 1, "--name": 1, "-n": 1, "--agent": 1}
 
@@ -48,10 +48,10 @@ def main(argv):
     if a.replace and not caller:
         parser.error("--replace: run it inside herdr, from the session to replace")
     try:
-        repo = names.checkout(a.checkout)
+        repo = sessions.checkout(a.checkout)
         if a.succeed and not flags and os.environ.get("CLAUDE_PID"):  # the original's own flags, read from its process
             flags = inherited(run("ps", "-o", "args=", "-p", os.environ["CLAUDE_PID"]))
-        lead = a.succeed and (herdr.agent(a.succeed, "pane_id") or {}).get("name") or names.lead(a.folder or repo_view("name", repo))  # a successor keeps its name
+        lead = a.succeed and (herdr.agent(a.succeed, "pane_id") or {}).get("name") or sessions.lead(a.folder or repo_view("name", repo))  # a successor keeps its name
         if not a.succeed and herdr.agent(lead):
             raise RuntimeError(f"{lead} is already live; prompt it instead")
         name = lead + "-next" if a.succeed else lead
@@ -61,7 +61,7 @@ def main(argv):
         herdr.launch(name, pane, ["--name", lead, "--agent", "mumu-teamwork:lead"] + (flags or ["--model", "opus", "--effort", "medium"]), timeout, poll)
         herdr.prompt(pane, prompt)
         if a.replace:  # in its own session, so the Bash tool that ran this call does not reap it
-            subprocess.Popen([sys.executable, str(pathlib.Path(__file__).resolve().parent / "worker-close.py"), "--pane", caller],
+            subprocess.Popen([sys.executable, str(pathlib.Path(__file__).resolve().parent / "session-close.py"), "--pane", caller],
                              stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     except RuntimeError as e:
         sys.exit(f"lead-start.py: {e}")

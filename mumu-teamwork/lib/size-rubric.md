@@ -1,6 +1,6 @@
 # Size rubric
 
-How `scripts/count-units.py` has Sonnet count mumu-teamwork's text: every `.md`
+How `scripts/size-count.py` has Sonnet count mumu-teamwork's text: every `.md`
 file outside `tests/` and `evals/`, this one excepted, cut by code at each
 sentence end and semicolon into sentences, each with an id and its line. Score
 every sentence as [instructions, elaboration]; a sentence with neither, such as
@@ -25,8 +25,8 @@ file or another, whatever its wording. A group of n sentences stating one
 directive counts n - 1 duplicates; list every member.
 
 - Counts, as one: `A share's worker writes only its pull request and BLOCKED: <share>: ... comments on the task.`
-  (lead-goal.md) beside `as a share's worker you write only your pull request and BLOCKED: <share>: ... comments`
-  (work-task.md).
+  (lead-playbook.md) beside `as a share's worker you write only your pull request and BLOCKED: <share>: ... comments`
+  (worker-playbook.md).
 - Does not count: `start ... one Bash call of its own` beside `merge as a Bash call of its own`, the same form
   asked of two different commands.
 

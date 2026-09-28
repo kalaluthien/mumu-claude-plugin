@@ -18,7 +18,7 @@ The rules that change live in the file When to read names, each read with `Read`
 
 # When to read
 
-- Before you take any request, the owner's included, `file`, reopen or split work, ask the owner about it, make a small change, lead a new task, report where work stands, stop work early or hand yourself over, and in a repository with `scope:` labels before you `name` yourself, act on a worker, or touch another folder's files or a shared operation, read `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/references/lead-goal.md`.
+- Before you take any request, the owner's included, `file`, reopen or split work, ask the owner about it, make a small change, lead a new task, report where work stands, stop work early or hand yourself over, and in a repository with `scope:` labels before you `name` yourself, act on a worker, or touch another folder's files or a shared operation, read `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/references/lead-playbook.md`.
 
 # First lead
 

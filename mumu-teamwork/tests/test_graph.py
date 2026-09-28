@@ -17,9 +17,9 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PLUGIN_ROOT = "${CLAUDE_PLUGIN_ROOT}"
-# the harness, pytest and the eval runner find these by where they sit; the owner runs `count-units.py` by hand (#326)
+# the harness, pytest and the eval runner find these by where they sit; the owner runs `size-count.py` by hand (#326)
 ROOTS = (".claude-plugin/plugin.json", "hooks/hooks.json", "monitors/monitors.json", "agents/*.md", "skills/*/SKILL.md",
-         "evals/*/prompt.md", "evals/*/graders/*.md", "tests/test_*.py", "scripts/count-units.py")
+         "evals/*/prompt.md", "evals/*/graders/*.md", "tests/test_*.py", "scripts/size-count.py")
 # files outside the plugin a file may name
 OUTSIDE = {"AGENTS.md", "settings.json", "plugin-authoring.md", "repos.txt", "marketplace.json", "sync.sh"}
 # a skill named bare in prose, as `kickoff's Domain`
@@ -196,8 +196,8 @@ class Graph(unittest.TestCase):
     def test_a_reference_to_a_missing_section_fails(self):
         def change(copy):
             path = copy / "skills" / "kickoff" / "SKILL.md"
-            path.write_text(path.read_text() + "\nSee [lead-goal.md](references/lead-goal.md)'s Gone.\n")
-        self.assertIn("dangling section: skills/kickoff/SKILL.md names skills/kickoff/references/lead-goal.md's Gone",
+            path.write_text(path.read_text() + "\nSee [lead-playbook.md](references/lead-playbook.md)'s Gone.\n")
+        self.assertIn("dangling section: skills/kickoff/SKILL.md names skills/kickoff/references/lead-playbook.md's Gone",
                       self.seeded(change))
 
     def test_a_domain_term_defined_twice_fails(self):

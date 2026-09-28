@@ -2,7 +2,7 @@
 """Print mumu-teamwork's size: files, features and lines by code, then instructions, duplicates, elaboration and
 terms by Sonnet against lib/size-rubric.md, each Sonnet item with its `path:line`.
 
-usage: count-units.py [<plugin-dir>] [--model <model>] [--samples <n>] [--jobs <n>] [--json <file>] [--out <dir>]
+usage: size-count.py [<plugin-dir>] [--model <model>] [--samples <n>] [--jobs <n>] [--json <file>] [--out <dir>]
 
 <plugin-dir> defaults to this plugin. Features: skills, agents, hook registrations, monitors, `bin/`
 executables and eval cases, each listed by name. Sonnet reads every `.md` file outside `tests/` and `evals/`,

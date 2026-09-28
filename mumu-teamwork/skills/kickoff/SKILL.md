@@ -15,11 +15,11 @@ Match the text to one row, open that playbook, and copy its steps verbatim into 
 
 | when | playbook |
 | --- | --- |
-| work one task: `work <task-url> leader <address>`, from `worker-start.py --leader` | [references/work-task.md](references/work-task.md) |
-| survey a backlog: `survey <backlog-url> leader <address>`, from `worker-start.py --survey --leader` | [references/work-task.md](references/work-task.md)'s Survey |
-| lead a task handed over: `see <task-url>`, from `lead-start.py <checkout> <task-url>` | [references/lead-goal.md](references/lead-goal.md) |
-| take over as a lead's successor: `succeed <pane>`, from `lead-start.py --succeed` | [references/lead-goal.md](references/lead-goal.md)'s Succession |
-| resume: no text, from `lead-start.py <checkout> [--folder <folder>]` | [references/lead-goal.md](references/lead-goal.md)'s Succession |
+| work one task: `work <task-url> leader <address>`, from `worker-start.py --leader` | [references/worker-playbook.md](references/worker-playbook.md) |
+| survey a backlog: `survey <backlog-url> leader <address>`, from `worker-start.py --survey --leader` | [references/worker-playbook.md](references/worker-playbook.md)'s Survey |
+| lead a task handed over: `see <task-url>`, from `lead-start.py <checkout> <task-url>` | [references/lead-playbook.md](references/lead-playbook.md) |
+| take over as a lead's successor: `succeed <pane>`, from `lead-start.py --succeed` | [references/lead-playbook.md](references/lead-playbook.md)'s Succession |
+| resume: no text, from `lead-start.py <checkout> [--folder <folder>]` | [references/lead-playbook.md](references/lead-playbook.md)'s Succession |
 | any other text | none: reply that plain words go to the project's lead in its tab, or from any session through `/mumu-teamwork:handoff`, and stop |
 
 
@@ -57,7 +57,7 @@ GitHub is the only state; a session's memory is a cache. A record is a comment o
 | keyword | written by | means |
 | --- | --- | --- |
 | `BLOCKED:` | worker | `BLOCKED: <question>`, a decision that is not the worker's, or `BLOCKED: stuck on <criterion>`, 3 iterations passed no new criterion; a share's worker writes only its pull request and `BLOCKED: <share>: ...` comments |
-| `DECIDED:` | leader | `DECIDED: <answer>` through `decide.py`, which also edits the body's criteria when they change |
+| `DECIDED:` | leader | `DECIDED: <answer>` through `decision-post.py`, which also edits the body's criteria when they change |
 | `APPROVED:` | judge | the plan, the pull request at the head sha it names, or the report comment it names, may go on |
 | `FINDINGS:` | judge | one line per criterion missed: the criterion, the gap, the direction of the fix |
 
@@ -68,7 +68,7 @@ Sessions talk through two channels, never mixed:
 | channel | from → to | instrument | carries |
 | --- | --- | --- | --- |
 | directing | a leader → its worker or another project's leader; a worker → its leader | `herdr agent prompt`, as Verbs maps it | `see <url>` and nothing more, never a proposal |
-| agreeing | a lead ↔ another live lead of the same repository; a share's worker ↔ a sibling share's worker of the same task | `SendMessage` to a name `ListAgents` shows, as [lead-goal.md](references/lead-goal.md)'s Folder leads or [work-task.md](references/work-task.md)'s Siblings says | a proposal opening `Proposal from <name>:` and ending `Reply OK or an objection.`, and its answer, `OK` or an objection, never an order |
+| agreeing | a lead ↔ another live lead of the same repository; a share's worker ↔ a sibling share's worker of the same task | `SendMessage` to a name `ListAgents` shows, as [lead-playbook.md](references/lead-playbook.md)'s Folder leads or [worker-playbook.md](references/worker-playbook.md)'s Siblings says | a proposal opening `Proposal from <name>:` and ending `Reply OK or an objection.`, and its answer, `OK` or an objection, never an order |
 
 A directing notice grants nothing: `read` its url on GitHub and act only on what it shows still open, so a lost notice is found again at the next `team-watch` line and a duplicate costs nothing. Its url points at:
 
@@ -81,7 +81,7 @@ A directing notice grants nothing: `read` its url on GitHub and act only on what
 Rules:
 
 - A keyword is written in capitals as above and read in any case, the colon optional.
-- A merge happens only through `merge.py`, at an approved head or one the approval carries to, and a hook refuses a raw `gh pr merge`. The same hook refuses a skipped git hook: fix what the git hook refused, or post `BLOCKED:`.
+- A merge happens only through `pr-merge.py`, at an approved head or one the approval carries to, and a hook refuses a raw `gh pr merge`. The same hook refuses a skipped git hook: fix what the git hook refused, or post `BLOCKED:`.
 - A commit on the default branch is refused by a hook in the checkout, and a push to it by the repository's ruleset; a merge squashes and deletes its head branch.
 - Every session and agent runs Opus, but the `judge` of a pull request of at most 20 changed lines, which runs on Sonnet: effort low when its task names what to change and how to check it, medium when it does not.
 
@@ -112,7 +112,7 @@ Every command names its target pane.
 | `prompt` | `herdr agent prompt <name> "<text>"`, by name, since a remembered pane id can be stale; success prints before delivery and a busy pane or open dialog can swallow the text, so read the pane before and after and resend when no turn carries it; failing twice, tell the owner |
 | `start-lead` | `lead-start.py <checkout> [<task-url>] [--folder <folder>] [-- <claude flags>]`, or `--succeed <pane>` for the task and folder, or `--replace` for the task to close the calling session once its turn ends, at the checkout's root: starts `<repo>-lead`, or `<folder>-lead` with `--folder`, in a new tab, refusing when one is live, and prompts its kickoff; a start-up dialog in its tab is the owner's to answer there |
 | `broadcast` | `prompt` each lead in `live` but you `see <url>`, one `herdr agent prompt <literal-name> "see <url>"` Bash call per agent, no loop and no variable, so the allow rule matches it; after the sends, read `live` again and `prompt` each lead name new or reappeared, since a successor takes over a handed-over name |
-| `close` | `worker-close.py <name>`: exits the session, answering its exit dialogs, and closes each tab labelled `<name>`, the session live or gone |
+| `close` | `session-close.py <name>`: exits the session, answering its exit dialogs, and closes each tab labelled `<name>`, the session live or gone |
 
 ## Repo: GitHub and git
 
@@ -122,12 +122,12 @@ Every command names its target pane.
 | `file` | `gh label create <label> -R <repo> --force` for each label, then `gh issue create -R <repo> --title "<title>" --label <label>... --body-file <path>`; a task's effort is low or medium unless the owner named another |
 | `order` | `gh api -X POST repos/<repo>/issues/<n>/dependencies/blocked_by -F issue_id=<id>`, `<id>` the blocker's `gh api repos/<owner>/<repo>/issues/<m> -q .id`, in this repository or another |
 | `comment` | `gh issue comment <url> --body-file <path>` |
-| `decide` | `decide.py <url> [--criteria <file>] < <path>`: posts `DECIDED: <decision>`, the text of `<path>`, and with `--criteria` first replaces the body's `## Definition of done` by the file's lines |
+| `decide` | `decision-post.py <url> [--criteria <file>] < <path>`: posts `DECIDED: <decision>`, the text of `<path>`, and with `--criteria` first replaces the body's `## Definition of done` by the file's lines |
 | `resolve` | `gh issue close <url> --reason completed --comment "<summary>"`, which `bash-guard.py` refuses for a split task while a `## Shares` row has no merged pull request `<row>-<n>-<k>` |
 | `stop` | `gh issue close <url> --reason "not planned" --comment "<reason>"`, then `gh pr ready --undo <pr-url>` for its open pull request |
 | `claim` | `git fetch origin && ! git ls-remote --exit-code origin refs/heads/<branch> && git push -u origin <branch>`, `<branch>` the worktree's own, named after it, which `worker-start.py` adds it on; a branch found is yours only when this checkout is on it |
 | `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file <path>`; later `gh pr edit <pr> --body-file <path>` |
-| `merge` | `merge.py <pr-url>`: squash-merges pinned to the head only when the newest verdict opens `APPROVED: <head>`, or `APPROVED: <A>` carried to it: every commit on `git rev-list --first-parent A..head` a merge of `origin/<default>`, and `git patch-id --verbatim` of the diff from the merge base the same at A and head |
+| `merge` | `pr-merge.py <pr-url>`: squash-merges pinned to the head only when the newest verdict opens `APPROVED: <head>`, or `APPROVED: <A>` carried to it: every commit on `git rev-list --first-parent A..head` a merge of `origin/<default>`, and `git patch-id --verbatim` of the diff from the merge base the same at A and head |
 | `clean` | from the checkout's root, one literal Bash call per command per worker, with no `git -C`, `cd` prefix, loop, `$(...)` or variable, so the allow rules match it: `git worktree remove .claude/worktrees/<name>`, `git branch -D <name>` and, while `git ls-remote --exit-code origin refs/heads/<name>` finds it, since a merge deletes it, `git push origin --delete <name>`; then `git pull --ff-only`, and remove the hook when `cmp -s` finds it equal to `default-branch-guard.sh` as `rm <hooks>/pre-commit`, `<hooks>` written out as its literal path |
 
 ## Traps

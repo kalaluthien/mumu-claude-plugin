@@ -59,7 +59,7 @@ def main(argv):
     if argv == ["--self"]:
         pane = os.environ.get("HERDR_PANE_ID")
         if not pane:
-            print("worker-close.py --self: run it inside herdr, from the session to exit", file=sys.stderr)
+            print("session-close.py --self: run it inside herdr, from the session to exit", file=sys.stderr)
             return 2
         # in its own session, so the Bash tool that ran this call does not reap it before the tab closes
         subprocess.Popen([sys.executable, str(pathlib.Path(__file__).resolve()), "--pane", pane],
@@ -67,7 +67,7 @@ def main(argv):
         print(f"closing {pane} once this turn ends")
         return 0
     if len(argv) != (2 if argv[:1] == ["--pane"] else 1) or argv[-1].startswith("-"):
-        print("usage: worker-close.py <name> | --pane <pane> | --self", file=sys.stderr)
+        print("usage: session-close.py <name> | --pane <pane> | --self", file=sys.stderr)
         return 2
     name = argv[-1]
     timeout, poll = float(os.environ.get("WORKER_CLOSE_TIMEOUT", 60)), float(os.environ.get("WORKER_CLOSE_POLL", 1))
@@ -80,7 +80,7 @@ def main(argv):
                 if tab.get("label") == name:
                     herdr.close_tab(tab["tab_id"])
     except RuntimeError as e:
-        sys.exit(f"worker-close.py: {e}")
+        sys.exit(f"session-close.py: {e}")
     print(f"closed {name}")
 
 

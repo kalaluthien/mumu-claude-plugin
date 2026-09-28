@@ -10,8 +10,8 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 JUDGE = ROOT / "agents" / "judge.md"
 SKILL = ROOT / "skills" / "kickoff" / "SKILL.md"
-LEAD = ROOT / "skills" / "kickoff" / "references" / "lead-goal.md"
-WORK = ROOT / "skills" / "kickoff" / "references" / "work-task.md"
+LEAD = ROOT / "skills" / "kickoff" / "references" / "lead-playbook.md"
+WORK = ROOT / "skills" / "kickoff" / "references" / "worker-playbook.md"
 KINDS = ("`[exists]`", "`[test]`", "`[quality]`")
 
 

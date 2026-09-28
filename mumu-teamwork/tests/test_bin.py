@@ -44,7 +44,7 @@ class Decide(unittest.TestCase):
 
     def decide(self, text, *args):
         env = dict(os.environ, FAKE=str(self.tmp), PATH=f"{self.tmp}:{os.environ['PATH']}")
-        done = subprocess.run([sys.executable, str(BIN / "decide.py"), ISSUE_URL, *args], input=text, env=env,
+        done = subprocess.run([sys.executable, str(BIN / "decision-post.py"), ISSUE_URL, *args], input=text, env=env,
                               capture_output=True, text=True, timeout=30)
         log = self.tmp / "calls"
         return done, [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
@@ -87,7 +87,7 @@ class Decide(unittest.TestCase):
         self.assertEqual(calls, [])
 
 
-MERGE = pathlib.Path(__file__).resolve().parent.parent / "bin" / "merge.py"
+MERGE = pathlib.Path(__file__).resolve().parent.parent / "bin" / "pr-merge.py"
 PR_URL = "https://github.com/o/r/pull/1"
 HEAD, OLD = "a" * 40, "b" * 40
 
@@ -117,7 +117,7 @@ SHARED = "## Goal\nx\n\n## Shares\n| share | DoD | after | with |\n| --- | --- |
 
 def merge(comments, moved_to=None, reviews=(), url=PR_URL, title="t", body="Closes #3", commits=(), issues=None, behind=0,
           head=HEAD, cwd=None, files=(), base_files=()):
-    """Run merge.py in `cwd` on a PR at `head` holding `comments`, each a body or a comment's dict; `moved_to` moves the head once
+    """Run pr-merge.py in `cwd` on a PR at `head` holding `comments`, each a body or a comment's dict; `moved_to` moves the head once
     it is read, `issues` maps an issue url to its body, `behind` counts the base's commits the head lacks. Return (result, merge
     words or None)."""
     tmp = pathlib.Path(tempfile.mkdtemp())
@@ -231,7 +231,7 @@ class Merge(unittest.TestCase):
         result, words = merge([f"APPROVED: {HEAD}"], behind=2, files=["a.py"], base_files=["c.py"])
         self.assertIsNone(words)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("merge it in, push and run merge.py again; no rerun needed", result.stderr)
+        self.assertIn("merge it in, push and run pr-merge.py again; no rerun needed", result.stderr)
 
 
 GIT_ENV = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t",
@@ -346,9 +346,9 @@ class MergeCarry(unittest.TestCase):
         self.assertIn("cannot be read", result.stderr)
 
     def test_step_4_resumes_the_judge_only_when_the_merge_is_refused_again(self):
-        step = next(l for l in (ROOT / "skills/kickoff/references/work-task.md").read_text().splitlines() if l.startswith("4. "))
+        step = next(l for l in (ROOT / "skills/kickoff/references/worker-playbook.md").read_text().splitlines() if l.startswith("4. "))
         after = step[step.index("merge the default branch in"):]
-        self.assertRegex(after.split(". ")[0], r"`merge` again.*only when `merge\.py` refuses.*resume the judge")
+        self.assertRegex(after.split(". ")[0], r"`merge` again.*only when `pr-merge\.py` refuses.*resume the judge")
 
     def test_the_approval_of_pull_request_268_carries_across_its_merge_of_main(self):
         """Replays #268: `APPROVED: A`, then head H merges the non-empty 459d5b9 of main in."""
@@ -448,7 +448,7 @@ class WorkerClose(unittest.TestCase):
     def close(self):
         env = dict(os.environ, CLOSE_HERDR=str(self.tmp), PATH=f"{self.tmp}:{os.environ['PATH']}",
                    WORKER_CLOSE_TIMEOUT="1", WORKER_CLOSE_POLL="0.01")
-        done = subprocess.run([sys.executable, str(BIN / "worker-close.py"), "close-7"],
+        done = subprocess.run([sys.executable, str(BIN / "session-close.py"), "close-7"],
                               env=env, capture_output=True, text=True, timeout=30)
         calls = [json.loads(l) for l in (self.tmp / "calls").read_text().splitlines()]
         return done, calls
@@ -1037,7 +1037,7 @@ class LeadName(unittest.TestCase):
         self.assertEqual(self.name([], args=()), "mumu-plugin-lead")
 
 
-REVIEW = importlib.machinery.SourceFileLoader("review_model", str(BIN / "review-model.py")).load_module()
+REVIEW = importlib.machinery.SourceFileLoader("judge_model", str(BIN / "judge-model.py")).load_module()
 
 
 def git(repo, *args):
@@ -1096,7 +1096,7 @@ class ReviewModel(unittest.TestCase):
                 path.write_text("".join(f"{i}\n" for i in range(n)))
                 git(repo, "add", "f.txt")
                 git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", str(n))
-                out = subprocess.run([str(BIN / "review-model.py"), "main", "HEAD"], cwd=repo, capture_output=True, text=True, check=True)
+                out = subprocess.run([str(BIN / "judge-model.py"), "main", "HEAD"], cwd=repo, capture_output=True, text=True, check=True)
                 printed.append(out.stdout.strip())
                 git(repo, "reset", "-q", "--hard", "main")
             self.assertEqual(printed, ["sonnet (20 changed lines)", "opus (21 changed lines)"])

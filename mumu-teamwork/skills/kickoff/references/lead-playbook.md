@@ -13,10 +13,10 @@
    - `team idle <m>m`, or you resumed: `read` each open root task you hold, and its pull request or report comment, and act on each as if its notice had arrived;
    - `working <name>`: nothing; a monitor's expiry notice: arm the command the Stop hook names;
    - after a `/reload-plugins`: arm the command the Stop hook names when no team-watch of yours is live, and `prompt` each of your live workers `see <its task-url>`, since a reload may end the monitor and leaves every worker idle;
-   - the owner changes direction: `decide` the change on each issue affected and `prompt` its worker `see <task-url>`; built work the owner rejects is replanned on the same task, reopened with its criteria widened by `decide.py --criteria` and its title and `## Goal` rewritten as Filing says, and led under a new attempt, its pull request closed unmerged and named on it as content to read, never form to follow;
+   - the owner changes direction: `decide` the change on each issue affected and `prompt` its worker `see <task-url>`; built work the owner rejects is replanned on the same task, reopened with its criteria widened by `decision-post.py --criteria` and its title and `## Goal` rewritten as Filing says, and led under a new attempt, its pull request closed unmerged and named on it as content to read, never form to follow;
    - the owner stops a task: `stop` it, `close` its worker, and `comment` on it its pull request and what is left;
    - the owner asks where work stands: `read` each task named, else each you hold, and its pull request or report comment, and report one row per task: its state, that pull request or comment, and its worker's `agent_status` in `live`, or none.
-5. A task closed, `close` its worker and `clean`. When you then hold no open root task and no worker is live, exit by agreement, since one lead must stay live to take the owner's next words: send every other live lead `ListAgents` shows, of any repository, a proposal to exit through `SendMessage`; once each answers `OK`, run `worker-close.py --self`, which exits this session and closes its tab once your turn ends. The only live lead, or one given an objection, stays and `prompt`s itself `/compact Keep only: each task closed this session with its url, PR and one-line result; open backlog issues; drop tool output.` While your own exit proposal is pending, object to another lead's.
+5. A task closed, `close` its worker and `clean`. When you then hold no open root task and no worker is live, exit by agreement, since one lead must stay live to take the owner's next words: send every other live lead `ListAgents` shows, of any repository, a proposal to exit through `SendMessage`; once each answers `OK`, run `session-close.py --self`, which exits this session and closes its tab once your turn ends. The only live lead, or one given an objection, stays and `prompt`s itself `/compact Keep only: each task closed this session with its url, PR and one-line result; open backlog issues; drop tool output.` While your own exit proposal is pending, object to another lead's.
 
 ## Succession
 
@@ -30,7 +30,7 @@ Resume, and a successor once named:
 
 The original, asked to hand over: `start-lead` your successor with `--succeed <your pane>` at your checkout root, which passes on your own flags; then stop.
 
-The successor, prompted `succeed <pane>`: `worker-close.py <name>`, `<name>` the original's name, which exits the original; `name` yourself that name, keeping the `scope:<folder>` of a `<folder>-lead`; then resume as above.
+The successor, prompted `succeed <pane>`: `session-close.py <name>`, `<name>` the original's name, which exits the original; `name` yourself that name, keeping the `scope:<folder>` of a `<folder>-lead`; then resume as above.
 
 ## Routing
 
@@ -51,7 +51,7 @@ A notice from another lead that is not a task for you is answered by a plain `co
 - Hold any number of root tasks at once, a chore one at `effort:low`.
 - Open each criterion of a new task with its kind, `[exists]`, `[test]` or `[quality]`, as the kickoff skill's Domain defines it; a task filed before kinds keeps its criteria.
 - Before posting a plan's criteria, run each "no FAIL" guard they name on main and confirm each criterion's check still reads its input once the change lands, since a guard already failing on main blocks the worker and a check whose input the task removes passes vacuously (#338).
-- Search the issues first, `gh issue list -R <repo> --state all --search <words>`: work of the same kind as a closed issue (#67 and #84 both hid a skill from the `/` menu) reopens it with `gh issue reopen`, widens its criteria with `decide.py --criteria`, rewrites its title and `## Goal` to the new gap with `gh issue edit --title --body-file` before the plan review, since `decide.py --criteria` replaces only `## Definition of done`, the two run in sequence, never as parallel calls, and the body is then grepped for the old wording, since each rewrites the whole body and a parallel pair can restore the old text (#331), and is led under a new attempt, and when its fixes touch files another open task rewrites, a `DECIDED:` on both names which task owns each fix and they are `order`ed by blocked-by before the judge, which otherwise flags the overlap; otherwise file a new issue that links it.
+- Search the issues first, `gh issue list -R <repo> --state all --search <words>`: work of the same kind as a closed issue (#67 and #84 both hid a skill from the `/` menu) reopens it with `gh issue reopen`, widens its criteria with `decision-post.py --criteria`, rewrites its title and `## Goal` to the new gap with `gh issue edit --title --body-file` before the plan review, since `decision-post.py --criteria` replaces only `## Definition of done`, the two run in sequence, never as parallel calls, and the body is then grepped for the old wording, since each rewrites the whole body and a parallel pair can restore the old text (#331), and is led under a new attempt, and when its fixes touch files another open task rewrites, a `DECIDED:` on both names which task owns each fix and they are `order`ed by blocked-by before the judge, which otherwise flags the overlap; otherwise file a new issue that links it.
 - File the fewest tasks at the widest scope: work sharing a mechanism is one task, split by feature, never by layer, and a new finding or a review's defect widens the task it relates to. File them all, then write the order and cross-references.
 - Split test: split work, into tasks or a task into shares, only where its order has slack and its conflict can be made indirect; check through several lenses: one merge at the end is enough, an interface agreed first lets each part be built apart, or what the parts share is knowledge each only reads.
 - A defect you find is fixed in the current work or filed as its own task, and you say which; noted on an issue with no owner, it is dropped.
@@ -73,7 +73,7 @@ A notice from another lead that is not a task for you is answered by a plain `co
 
 ## Small change
 
-The one change you make yourself: the owner's words spell it out, in one file and about 5 changed lines, with no script logic. Make it in a worktree off the default branch, `pr` it on the task reopened or filed for it, launch the `judge` with the model `review-model.py` prints, `merge` it at its `APPROVED:` head, and remove the worktree and branch as `clean` does.
+The one change you make yourself: the owner's words spell it out, in one file and about 5 changed lines, with no script logic. Make it in a worktree off the default branch, `pr` it on the task reopened or filed for it, launch the `judge` with the model `judge-model.py` prints, `merge` it at its `APPROVED:` head, and remove the worktree and branch as `clean` does.
 
 ## Folder leads
 

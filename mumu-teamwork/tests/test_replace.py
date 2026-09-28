@@ -139,11 +139,11 @@ class Replace(unittest.TestCase):
 
 
 class ExitSelf(unittest.TestCase):
-    """`worker-close.py --self`: an idle lead exits its own session once its turn ends, from a detached child."""
+    """`session-close.py --self`: an idle lead exits its own session once its turn ends, from a detached child."""
     setUp, calls, wait_for = Replace.setUp, Replace.calls, Replace.wait_for
 
     def test_self_exits_the_caller_after_its_turn_and_closes_its_tab(self):
-        done = subprocess.run([sys.executable, str(BIN / "worker-close.py"), "--self"], env=self.env, capture_output=True, text=True, timeout=30)
+        done = subprocess.run([sys.executable, str(BIN / "session-close.py"), "--self"], env=self.env, capture_output=True, text=True, timeout=30)
         self.assertEqual(done.returncode, 0, done.stderr)
         time.sleep(0.3)
         self.assertNotIn(["herdr", "agent", "prompt", CALLER, "/exit"], [c["call"] for c in self.calls()], "exit sent during the turn")
@@ -155,7 +155,7 @@ class ExitSelf(unittest.TestCase):
     def test_self_needs_herdr(self):
         env = dict(self.env)
         del env["HERDR_PANE_ID"]
-        done = subprocess.run([sys.executable, str(BIN / "worker-close.py"), "--self"], env=env, capture_output=True, text=True, timeout=30)
+        done = subprocess.run([sys.executable, str(BIN / "session-close.py"), "--self"], env=env, capture_output=True, text=True, timeout=30)
         self.assertEqual(done.returncode, 2)
         self.assertFalse(self.calls())
 

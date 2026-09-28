@@ -8,9 +8,9 @@ import sys
 import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-import github  # noqa: E402
+import gh  # noqa: E402
 import herdr  # noqa: E402
-import names  # noqa: E402
+import sessions  # noqa: E402
 
 REPEAT = 3600
 WORD = {"blocked": "blocked", "idle": "idle", "done": "idle", "working": "working"}
@@ -36,7 +36,7 @@ def scoped(workers, checkout, f, owned):
         return workers
     for name in workers.keys() - owned.keys():
         try:
-            owned[name] = f"scope:{f}" in github.labels(checkout, names.WORKER.fullmatch(name)[2])
+            owned[name] = f"scope:{f}" in gh.labels(checkout, sessions.WORKER.fullmatch(name)[2])
         except (RuntimeError, ValueError, KeyError, TypeError):
             pass  # read again at the next poll
     return {name: s for name, s in workers.items() if owned.get(name)}
@@ -53,7 +53,7 @@ def main():
         try:
             listed = herdr.listed("agent")
             f = folder(listed, checkout)
-            last, lines = changes(last, scoped(names.workers(listed, checkout), checkout, f, owned))
+            last, lines = changes(last, scoped(sessions.workers(listed, checkout), checkout, f, owned))
         except RuntimeError:
             time.sleep(interval)
             continue
@@ -62,7 +62,7 @@ def main():
             since = printed = None
         else:
             since = since or now
-            if now - since >= after and (printed is None or now - printed >= REPEAT) and github.held(checkout, f):
+            if now - since >= after and (printed is None or now - printed >= REPEAT) and gh.held(checkout, f):
                 printed = now
                 lines.append(f"team idle {int((now - since) // 60)}m")
         for line in lines:

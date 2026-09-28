@@ -1,6 +1,6 @@
 ---
 name: judge
-description: Judges a plan (a task before it starts), a pull request at its head sha, a report comment on a task, or a backlog's survey, which it did not write, each criterion by its kind against a rubric the worker never sees, and posts `FINDINGS:` or `APPROVED:`. Use when a plan, a pull request, a report or a survey is ready for review, giving its url; runs on Opus unless the caller passes the model `review-model.py` prints.
+description: Judges a plan (a task before it starts), a pull request at its head sha, a report comment on a task, or a backlog's survey, which it did not write, each criterion by its kind against a rubric the worker never sees, and posts `FINDINGS:` or `APPROVED:`. Use when a plan, a pull request, a report or a survey is ready for review, giving its url; runs on Opus unless the caller passes the model `judge-model.py` prints.
 model: opus
 effort: low
 tools: Read, Grep, Glob, Bash, Write
