@@ -1,6 +1,6 @@
 ---
 name: rendering
-description: Use before writing a document a person will read outside the chat - a GitHub issue or pull request body or comment, an Artifact page, a repository page (README, docs) - to explain, draw, chart data, map, walk through, compare or report something, even when only the content or a chart was asked for; a chart on such a page is drawn here, not by `dataviz`, and an Artifact page is designed here, so load this before the `Artifact` tool's `quickstart`, which it skips with `artifact-design` and `artifact-diagramming`. Not for a plain chat answer, nor for code or its comments, nor for asking the user open questions (that is `grill-me`).
+description: Use before making a page a person reads outside the chat - an Artifact or HTML page: a proposal, a system or specification document, a textbook or other teaching material, a report - to explain, draw, chart data, map, walk through, compare or report something, even when only the content or a chart was asked for; a chart on such a page is drawn here, not by `dataviz`, and an Artifact page is designed here, so load this before the `Artifact` tool's `quickstart`, which it skips with `artifact-design` and `artifact-diagramming`. Not for markdown on an issue tracker or in a repository (that is `writing`), nor for a plain chat answer, nor for code or its comments, nor for asking the user open questions (that is `grill-me`).
 user-invocable: false
 ---
 
@@ -64,18 +64,18 @@ widget, with no chart library. On a page, `check.py` fails a skipped row: four
 files or more named by path in `<code>` with no `file-tree`, or a flow drawn in
 text with arrows (→, ▶) with no `use-case`.
 
-| when the content is | widget | in markdown |
-| --- | --- | --- |
-| a software system's structure: files, modules, their roles | `diagram` `file-tree`, first on the page | a code-block tree, one comment per line |
-| a structure before and after a change: what it adds, modifies and removes | `diagram` `file-tree`, slid | a diff of the tree |
-| who calls the system and what it calls: actors, entry points, boundaries | `diagram` `system-context` | its SVG |
-| behaviour: what happens in one use case; swiped, a request the reader follows call by call | `diagram` `use-case`, one per use case | its SVG, then a numbered list of calls |
-| things and the links between them: tasks and what blocks them, sessions and who waits on whom; what a node reaches | `diagram` `network`, 9 nodes at most | a list: each node, then the nodes it links to |
-| values compared across categories: which is largest, by how much | `chart` `bar` | its SVG, then the table |
-| change over time: a trend, a rise, a fall | `chart` `line` | its SVG, then the table |
-| many items the reader narrows to the few they need, by a tag or a word: rows, a list, cards | `filter` | the table, sorted by the tag |
-| a result that follows inputs the reader moves: a formula, a setting and its effect | `controls` | the formula, then a table of a few inputs and results |
-| where a figure's, a table's or a claim's facts come from, and what they came through | `source`, under it | a line `출처: [title](url), date → [title](url)` |
+| when the content is | widget |
+| --- | --- |
+| a software system's structure: files, modules, their roles | `diagram` `file-tree`, first on the page |
+| a structure before and after a change: what it adds, modifies and removes | `diagram` `file-tree`, slid |
+| who calls the system and what it calls: actors, entry points, boundaries | `diagram` `system-context` |
+| behaviour: what happens in one use case; swiped, a request the reader follows call by call | `diagram` `use-case`, one per use case |
+| things and the links between them: tasks and what blocks them, sessions and who waits on whom; what a node reaches | `diagram` `network`, 9 nodes at most |
+| values compared across categories: which is largest, by how much | `chart` `bar` |
+| change over time: a trend, a rise, a fall | `chart` `line` |
+| many items the reader narrows to the few they need, by a tag or a word: rows, a list, cards | `filter` |
+| a result that follows inputs the reader moves: a formula, a setting and its effect | `controls` |
+| where a figure's, a table's or a claim's facts come from, and what they came through | `source`, under it |
 
 ## Routing
 
@@ -87,26 +87,9 @@ author reads each widget's spec with
 `"${CLAUDE_PLUGIN_ROOT}/skills/rendering/scripts/assemble.py" --spec <widget>`,
 writes only the body, and `assemble.py <body> <page>` adds the skin and widget
 code, as [artifact.md](references/artifact.md) says.
-A GitHub issue, pull request or comment follows the repository's procedure,
-else `gh issue create`; a repository page (a README, a doc) is linked from the
-README and lands by a pull request. There the moves are headings, each widget
-its markdown column above, and no Mermaid, since an SVG reads the same on every
-client. Delivered anywhere, give the one-sentence version in chat.
-
-## GitHub body
-
-Unless the repository's procedure sets the form, a body is one sentence on why
-the change exists, a figure only when the change has a structure or behaviour
-to draw, the proof (each check run and its result), then the files in reading
-order, each with its why; a misleading line count is called out. A `path:line` links to the blob at the head sha,
-or relatively on a repository page.
-
-A figure is its widget drawn on a page by [artifact.md](references/artifact.md),
-labels in English allowed, then written as SVG by `check.py <page> --svg <dir>`.
-On GitHub, reference it as `![<alt>](./<page>-<n>.svg)` and pass
-`--attach './<page>-<n>.svg#<alt>'` to `gh`; every later edit of the body
-re-passes `--attach` for each figure, or the path stays local. On a repository
-page, commit it beside the page.
+Markdown on an issue tracker or in a repository is `writing`'s; a figure it
+needs is drawn here as a widget and written as SVG by `check.py <page> --svg
+<dir>`. Delivered anywhere, give the one-sentence version in chat.
 
 ## Writing
 
@@ -131,8 +114,7 @@ page, commit it beside the page.
 - Code quoted on a page sits in `<figure class="code">`: a `<figcaption>`
   holding `<a href="…/blob/<sha>/<path>#L<a>-L<b>"><code><path>:<a>-<b></code></a>`,
   then `<pre><code>`, `<mark>` on each line that matters, one `⋯` line per
-  cut; `check.py` fails a `pre` of 4 or more lines with no such caption. In a
-  GitHub body, quote code as a sha permalink with a line range on its own line.
+  cut; `check.py` fails a `pre` of 4 or more lines with no such caption.
 
 ## Done when
 
