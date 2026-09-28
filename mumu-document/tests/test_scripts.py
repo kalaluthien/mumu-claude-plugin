@@ -10,6 +10,11 @@ import sys
 import tempfile
 import unittest
 
+try:
+    from playwright.sync_api import sync_playwright
+except ImportError:
+    sync_playwright = None
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills" / "writing-documents"
 REFS = SKILL / "references"
@@ -98,7 +103,7 @@ FIXTURES = {"chart": """<figure data-widget="chart" data-chart="bar">
   <output aria-live="polite"></output>
 </div>
 <ul id="{{id}}"><li data-kind="빛">창가의 빛</li><li data-kind="빛">역광</li><li data-kind="색">피부색</li></ul>""",
-            "controls": """<figure data-widget="controls" data-split="처음|지금">
+            "controls": """<figure data-widget="controls">
   <figcaption>크기를 바꾸며 원을 봐요.</figcaption>
   <div class="stage"><svg viewBox="0 0 120 80" role="img" aria-label="원"><circle cx="60" cy="40" style="r: calc(var(--size, 20) * 1px)"/></svg></div>
   <div class="panel">
@@ -106,7 +111,6 @@ FIXTURES = {"chart": """<figure data-widget="chart" data-chart="bar">
     <div role="group" data-name="size2" aria-label="두 배">
       <button type="button" data-value="1">한 배</button><button type="button" data-value="2">두 배</button>
     </div>
-    <div class="presets"><button type="button" data-preset="size=30">크게</button></div>
     <p>넓이 <output data-calc="3 * size * size * size2" data-digits="0"></output></p>
   </div>
 </figure>"""}
@@ -357,6 +361,18 @@ class Check(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertIn("chapters 3 load 10/10 nav 6/6 pager 4/4 back 1/1 pass", out)
 
+    @unittest.skipUnless(sync_playwright, "no playwright")
+    def test_marker_is_no_load_target(self):
+        # a network draws its arrow marker once its fonts load, after a load at #id has shown a chapter; no link targets one
+        ids = re.search(r"^CHAPTER_IDS = (\(.*?\))\n[A-Z]", CHECK.read_text(), re.S | re.M).group(1)
+        with sync_playwright() as pw:
+            b = pw.chromium.launch(channel="chrome")
+            p = b.new_page()
+            p.set_content('<section data-chapter><h2 id="c1">장</h2><svg><defs><marker id="c1-arrow"></marker></defs></svg></section>')
+            got = p.evaluate(eval(ids))
+            b.close()
+        self.assertEqual(got, [["c1", 0]])
+
     def test_each_chapter_rule_fails(self):
         for old, new, line in [
             ("addEventListener('hashchange', show);", "", "nav link #c2 shows chapters [1], not 2"),
@@ -423,7 +439,9 @@ class Check(unittest.TestCase):
 BROKEN = [
     ('<div role="group" data-name="tone"', '<label>안 쓰는 값 <input type="range" name="unused" min="0" max="10" value="5">'
      '<output></output></label><div role="group" data-name="tone"', "controls 1 slider unused changes nothing"),
-    ('data-preset="size=12 light=20 tone=cool"', 'data-preset="sise=12"', "controls 1 preset 작고 어둡게 changes nothing"),
+    # a preset, cut as it repeats the sliders and toggles
+    ('<div role="group" data-name="tone"', '<button type="button" data-preset="size=12">작게</button><div role="group" data-name="tone"',
+     "controls 1 button 작게 changes nothing"),
     ("<main>", "<style>main nav.drawer.open { visibility: hidden; }</style><main>", "contents button changes nothing"),
     ("<main>", "<script>addEventListener('click', function (e) { if (e.target.closest('.top')) e.stopImmediatePropagation(); }, true);"
      "</script><main>", "top button changes nothing"),
@@ -455,7 +473,25 @@ class Widgets(unittest.TestCase):
         self.assertEqual((code, out.splitlines()[-1]), (0, "pass"), out)
         # its width with or without a scrollbar, as a late hashchange may hide chapters again
         self.assertRegex(out, r"layout motion (\d+)/\1 .* pass")
-        self.assertIn("clicks 24/24 pass", out)
+        self.assertIn("clicks 22/22 pass", out)
+
+    @unittest.skipUnless(sync_playwright, "no playwright")
+    def test_controls_stage_keeps_the_column(self):
+        # a figure once asking for a split still draws one stage, as wide as the column
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(channel="chrome")
+            try:
+                p = browser.new_page(viewport={"width": 320, "height": 800})
+                p.route(re.compile(r"^https?://"), lambda r: r.abort())
+                p.set_content(self.page.replace('<figure data-widget="controls">', '<figure data-widget="controls" data-split="처음|지금">', 1))
+                got = p.evaluate("""() => { const f = document.querySelector('[data-widget="controls"]');
+                  f.closest('[data-chapter]').hidden = false;
+                  return [f.querySelectorAll('.stage').length, f.querySelector('.stage').getBoundingClientRect().width, f.clientWidth]; }""")
+            finally:
+                browser.close()
+        self.assertEqual(got[0], 1, got)
+        self.assertGreater(got[2], 0, got)
+        self.assertGreaterEqual(got[1], got[2] - 1, got)
 
     def test_each_broken_control_fails(self):
         for old, new, line in BROKEN:
@@ -515,11 +551,11 @@ TWO_CHARTS = ('<h1>도시별 요청</h1>\n<p class="read">부산의 요청이 �
 
 class Assemble(unittest.TestCase):
     def test_each_spec_is_small_and_unstyled(self):
-        for widget in ("page", "chart", "filter", "controls", "file-tree", "system-context", "use-case", "network"):
+        for widget in ("page", "chart", "filter", "controls", "source", "file-tree", "system-context", "use-case", "network"):
             with self.subTest(widget):
                 r = assemble("--spec", widget)
                 self.assertEqual(r.returncode, 0, r.stderr)
-                self.assertLessEqual(len(r.stdout.encode()), 4096)
+                self.assertLessEqual(len(r.stdout.encode()), 3700)
                 self.assertNotRegex(r.stdout, r"<style|<script")
                 self.assertIn("{{", r.stdout)
 
@@ -548,6 +584,52 @@ class Assemble(unittest.TestCase):
             for block in first:
                 self.assertEqual(text.count(block.strip()), 1, block[:60])
             self.assertIn("<title>도시별 요청</title>", text)
+            r = subprocess.run([sys.executable, str(CHECK), str(page)], capture_output=True, text=True)
+            self.assertEqual(r.stdout.splitlines()[-1], "pass", r.stdout)
+
+    @unittest.skipUnless(CHROME.exists(), "no Chrome")
+    def test_assembled_page_of_every_chart_passes(self):
+        with tempfile.TemporaryDirectory() as d:
+            body, page = pathlib.Path(d) / "body.html", pathlib.Path(d) / "page.html"
+            charts = re.split(r"\n(?=<figure)", FIXTURES["chart"].strip())
+            nav = "".join(f'<li><a href="#s{i}">차트 {i + 1}</a></li>' for i in range(len(charts)))
+            body.write_text('<h1>차트 모음</h1>\n<p class="read">차트는 키보드와 터치로도 읽어요.</p>\n'
+                            f'<nav><ol>{nav}</ol></nav>\n' + "".join(
+                f'<section aria-labelledby="s{i}"><h2 id="s{i}">차트 {i + 1}</h2>\n{f}\n</section>\n' for i, f in enumerate(charts)))
+            self.assertEqual(assemble(str(body), str(page)).returncode, 0)
+            r = subprocess.run([sys.executable, str(CHECK), str(page)], capture_output=True, text=True)
+            self.assertEqual(r.stdout.splitlines()[-1], "pass", r.stdout)
+
+    def test_focus_stop_with_no_role_fails(self):
+        with tempfile.TemporaryDirectory() as d:
+            body, page = pathlib.Path(d) / "body.html", pathlib.Path(d) / "page.html"
+            body.write_text('<h1>초점</h1>\n<p class="read">출처에 초점이 멈춰요.</p>\n'
+                            '<p data-widget="source">출처: <span tabindex="0">원 보고서</span></p>\n')
+            self.assertEqual(assemble(str(body), str(page)).returncode, 0)
+            r = subprocess.run([sys.executable, str(CHECK), str(page)], capture_output=True, text=True)
+            self.assertIn('focus FAIL: no role or name: <span tabindex="0">', r.stdout)
+
+    def test_source_note_with_no_link_fails(self):
+        for note, line in (('<p data-widget="source">출처: 원 보고서, 9월 23일</p>', "sources 1/2 FAIL: no link and no 출처 없음: 출처: 원 보고서"),
+                           ('<p data-widget="source">출처: <a href="#">원 보고서</a></p>', "sources 1/2 FAIL"),
+                           ('<p data-widget="source">출처 없음: 작성자가 잰 값이에요.</p>', "sources 2/2 pass")):
+            with self.subTest(line), tempfile.TemporaryDirectory() as d:
+                body, page = pathlib.Path(d) / "body.html", pathlib.Path(d) / "page.html"
+                body.write_text('<h1>출처</h1>\n<p class="read">두 값을 비교해요.</p>\n' + note + "\n"
+                                '<p class="read">다른 값이에요.</p>\n<p data-widget="source">출처: <a href="https://example.com">표</a></p>\n')
+                self.assertEqual(assemble(str(body), str(page)).returncode, 0)
+                r = subprocess.run([sys.executable, str(CHECK), str(page)], capture_output=True, text=True)
+                self.assertIn(line, r.stdout)
+
+    def test_source_note_under_a_claim_passes(self):
+        note = ('<p data-widget="source">출처: <a href="https://example.com/report">원 보고서</a>, '
+                '<time datetime="2026-09-23">9월 23일</time> → <a href="https://example.com/summary">요약 기사</a></p>')
+        with tempfile.TemporaryDirectory() as d:
+            body, page = pathlib.Path(d) / "body.html", pathlib.Path(d) / "page.html"
+            body.write_text('<h1>출처</h1>\n<p class="read">인용 33개 중 5개는 근거가 없었어요.</p>\n' + note + "\n")
+            r = assemble(str(body), str(page))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn('[data-widget="source"] {', page.read_text().partition("<main>")[0], "no source style")
             r = subprocess.run([sys.executable, str(CHECK), str(page)], capture_output=True, text=True)
             self.assertEqual(r.stdout.splitlines()[-1], "pass", r.stdout)
 

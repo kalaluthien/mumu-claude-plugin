@@ -127,6 +127,18 @@ f.onload = function () {
     var h2 = Array.prototype.slice.call(d.querySelectorAll('main h2')), nav = d.querySelector('main nav');
     if (nav && h2.length && !(nav.compareDocumentPosition(h2[0]) & 4)) nav = null;
     var links = nav ? Array.prototype.map.call(nav.querySelectorAll('a[href^="#"]'), function (a) { return a.getAttribute('href').slice(1); }) : [];
+    // each focus stop in a widget: a role, its tag's or its own, and a name
+    var unnamed = function (d) {
+      var NATIVE = 'a[href], button, input, select, textarea, summary, figure';
+      var named = function (e) {
+        var ids = (e.getAttribute('aria-labelledby') || '').split(/\s+/).map(function (i) { return d.getElementById(i); });
+        return (e.getAttribute('aria-label') || '').trim() || ids.some(function (x) { return x && x.textContent.trim(); })
+          || (e.matches('a, button, summary') && e.textContent.trim()) || (e.closest('label') && e.closest('label').textContent.trim());
+      };
+      return Array.prototype.filter.call(d.querySelectorAll('[data-widget] :is([tabindex]:not([tabindex="-1"]), ' + NATIVE + ')'),
+        function (e) { return e.tabIndex >= 0 && (!(e.getAttribute('role') || e.matches(NATIVE)) || !named(e)); })
+        .map(function (e) { return e.outerHTML.slice(0, 40); });
+    };
     var loose = function (sel) { return Array.prototype.filter.call(d.querySelectorAll(sel), function (e) { return !e.closest('[data-widget]'); }); };
     var arrows = function (e) { return (e.textContent.match(ARROW) || []).length >= 2; };
     var paths = loose('code').map(function (c) { return c.textContent.trim().replace(/:\d.*$/, ''); }).filter(function (p) { return PATH.test(p); });
@@ -154,13 +166,16 @@ f.onload = function () {
         var cap = e.closest('figure.code') && e.closest('figure.code').querySelector(':scope > figcaption');
         return e.textContent.replace(/\n+$/, '').split('\n').length >= 4 && !(cap && /\S+:\d+(-\d+)?/.test(cap.textContent));
       }).map(function (e) { return e.textContent.trim().split('\n')[0].slice(0, 40); }),
-      chapters: d.querySelectorAll('[data-chapter]').length, math: d.querySelectorAll('.katex').length,
+      chapters: d.querySelectorAll('[data-chapter]').length, unnamed: unnamed(d), math: d.querySelectorAll('.katex').length,
       raw: raw.concat(Array.prototype.map.call(d.querySelectorAll('.katex-error'), function (e) { return e.textContent.slice(0, 40); })),
       tables: Array.prototype.map.call(d.querySelectorAll('table'), function (t) {
         var text = function (c) { return c.textContent.replace(/\s+/g, ' ').trim(); };
         return [t.tHead && t.tHead.rows.length ? Array.prototype.map.call(t.tHead.rows[t.tHead.rows.length - 1].cells, text) : [],
           Array.prototype.map.call(t.tBodies.length ? t.tBodies[0].rows : [], function (r) { return Array.prototype.map.call(r.cells, text); })];
       }),
+      // each source note: a link to a source, or 출처 없음 said plainly
+      sources: Array.prototype.map.call(d.querySelectorAll('[data-widget="source"]'), function (e) {
+        return e.querySelector('a[href]:not([href="#"])') || e.textContent.indexOf('출처 없음') >= 0 ? '' : e.textContent.trim().slice(0, 40); }),
       loose: Array.prototype.filter.call(d.querySelectorAll('main h3'), function (h) { return !h.closest('[data-chapter]'); }).length });
   }, 300);
 };
@@ -177,7 +192,7 @@ f.onload = function () {
   setTimeout(function () {
     var d = f.contentDocument, w = f.contentWindow, out = [];
     var bg = w.getComputedStyle(d.body).backgroundColor;
-    d.querySelectorAll('svg[role="img"], [data-widget="chart"] .plot svg').forEach(function (g) {
+    d.querySelectorAll('svg[role="img"], [data-widget="chart"] .plot svg, [data-widget="diagram"] .stage > svg').forEach(function (g) {
       var c = g.cloneNode(true), src = [g].concat(Array.from(g.querySelectorAll('*'))),
           dst = [c].concat(Array.from(c.querySelectorAll('*')));
       src.forEach(function (s, i) {
@@ -255,7 +270,7 @@ def render(frame, page, *flags):
 
 SHOWN = "Array.prototype.map.call(document.querySelectorAll('[data-chapter]'), function (c) { return c.checkVisibility(); })"
 CHAPTER_IDS = ("(function () { var c = Array.prototype.slice.call(document.querySelectorAll('[data-chapter]'));"
-               " return Array.prototype.map.call(document.querySelectorAll('[data-chapter] [id]'), function (e) {"
+               " return Array.prototype.map.call(document.querySelectorAll('[data-chapter] [id]:not(defs *)'), function (e) {"
                " return [e.id, c.indexOf(e.closest('[data-chapter]'))]; }); })()")
 HOLDER = ("(function (a) { var t = document.getElementById(decodeURIComponent(a.hash.slice(1)));"
           " return t && t.closest('[data-chapter]') ? Array.prototype.indexOf.call(document.querySelectorAll('[data-chapter]'),"
@@ -281,8 +296,8 @@ def until(fn, seconds):
     return value
 
 # [what was tried, the controls that changed nothing]: each filter and controls widget's control, then the reading aids;
-# a control passes when its states differ: a slider at its min and max, each of a group's buttons from the others, a preset
-# against the controls scrambled, the text box against no word, a reading-aid button against the page before it
+# a control passes when its states differ: a slider at its min and max, each of a group's buttons from the others, any other
+# button against the state before it, the text box against no word, a reading-aid button against the page before it
 CLICKS = r"""(async function () {
   var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
   var tried = 0, dead = [];
@@ -301,7 +316,7 @@ CLICKS = r"""(async function () {
         (root.querySelector('output') || {}).textContent]);
     }
     var els = [];
-    root.querySelectorAll('.stage:not(.before), .stage:not(.before) *, output[data-calc]').forEach(function (e) { els.push(look(e)); });
+    root.querySelectorAll('.stage, .stage *, output[data-calc]').forEach(function (e) { els.push(look(e)); });
     return JSON.stringify(els);
   };
   var click = async function (b) { b.click(); await wait(30); };
@@ -337,18 +352,13 @@ CLICKS = r"""(async function () {
       if (state(root) === before) dead.push(name + ' search box' + ' changes nothing');
       box.value = ''; box.dispatchEvent(new Event('input', { bubbles: true })); await wait(30);
     }
-    var presets = live(root.querySelectorAll('[data-preset]'));
-    for (var q = 0; q < presets.length; q++) {
-      var changed = false;
-      for (var end = 0; end < 2 && !changed; end++) {
-        for (var k2 = 0; k2 < sliders.length; k2++) await slide(sliders[k2], end ? sliders[k2].max : sliders[k2].min);
-        for (var g2 = 0; g2 < groups.length; g2++) { var gb = live(groups[g2].querySelectorAll('button')); if (gb.length) await click(gb[end ? 0 : gb.length - 1]); }
-        var from = state(root);
-        await click(presets[q]);
-        changed = state(root) !== from;
-      }
+    // a button outside a group, which the widget does not run, such as a preset
+    var others = live(root.querySelectorAll('button:not([role="group"] button)'));
+    for (var q = 0; q < others.length; q++) {
+      var from = state(root);
+      await click(others[q]);
       tried++;
-      if (!changed) dead.push(name + ' preset ' + presets[q].textContent.trim() + ' changes nothing');
+      if (state(root) === from) dead.push(name + ' button ' + others[q].textContent.trim() + ' changes nothing');
     }
   }
   // the chapters as the page shows them, since browse unhid them all
@@ -475,8 +485,10 @@ def chapter_checks(page, run, navigate):
         out.append(f"{what} shows chapters {[i + 1 for i, v in enumerate(got) if v]}, not {want + 1}")
     def load(fragment):
         navigate("about:blank")
-        navigate(f"file://{page}{fragment}")
-        until(lambda: run("location.hash === " + json.dumps(fragment) + " && document.readyState === 'complete'"), 20)
+        url = pathlib.Path(page).absolute().as_uri() + fragment
+        navigate(url)
+        # about:blank has no hash and is complete too, so wait for the page's own address
+        until(lambda: run(f"location.href === {json.dumps(url)} && document.readyState === 'complete'"), 20)
     load("")
     expect("load", 0, "a load with no #id")
     for i, (link, at) in enumerate(run("Array.prototype.map.call(document.querySelectorAll('main nav a[href^=\"#\"]'),"
@@ -738,6 +750,13 @@ def main():
     for q in k["quotes"]:
         failed = True
         print(f"quotes code quote without path caption {q!r} FAIL")
+    failed |= bool(k["unnamed"])
+    print("focus " + ("FAIL: no role or name: " + "; ".join(k["unnamed"]) if k["unnamed"] else "pass"))
+    if k["sources"]:
+        bare = [s for s in k["sources"] if s]
+        failed |= bool(bare)
+        print(f"sources {len(k['sources']) - len(bare)}/{len(k['sources'])} "
+              + ("FAIL: no link and no 출처 없음: " + "; ".join(bare) if bare else "pass"))
     for link in k["broken"]:
         failed = True
         print(f"links {link} has no target FAIL")

@@ -198,7 +198,7 @@ class ReadingAids(unittest.TestCase):
             page.wait_for_timeout(300)
             return [y, gone, kept, page.evaluate("[scrollY, location.hash, document.querySelector('.dock .back').hidden]")]
         y, gone, kept, back = aids(400, steps)
-        self.assertEqual((gone, kept), (["#c3-split", True], "#c3-split"))
+        self.assertEqual((gone, kept), (["#c3-lamp", True], "#c3-lamp"))
         self.assertEqual(back[1:], ["#c1", True])
         self.assertLessEqual(abs(back[0] - y), 2)
 

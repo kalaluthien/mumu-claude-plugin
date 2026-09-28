@@ -22,7 +22,7 @@ FOCUS = [
     ("file-tree", [], f"{TREE}:first-child summary", [".stage > ul > li > details > summary"], f"{TREE}[data-change='modify'] .name"),
     ("system-context", [], "rect.box.k1", ["rect.box.main", ".part:nth-of-type(1) .edge"], "rect.box.k2"),
     # the reply joins A and C; without it, C is not reached from A
-    ("use-case", [(re.compile(r'\s*<g class="part" tabindex="0" data-step="3">.*?</g>', re.S), "")],
+    ("use-case", [(re.compile(r'\s*<g class="part" data-step="3">.*?</g>', re.S), "")],
      "rect.box:nth-of-type(1)", ["rect.box:nth-of-type(2)", ".part[data-step='1'] .edge"], "rect.box:nth-of-type(3)"),
     ("network", [], "rect.box.k1", ["rect.box:nth-of-type(2)", "rect.box:nth-of-type(3)", ".part:nth-of-type(2) .edge"], "rect.box.k3"),
 ]
@@ -49,7 +49,7 @@ def network(tasks=TASKS):
         for i, (label, kind, name, links) in enumerate(tasks, 1))
     return ('<section aria-labelledby="n"><h2 id="n">작업이 서로 막는 관계</h2>\n'
             '<div data-widget="diagram" data-diagram="network" data-kinds="할 일|진행 중|끝남">\n'
-            f'<figure class="stage scroll" tabindex="0"><dl>\n{rows}</dl>\n'
+            f'<figure class="stage scroll" tabindex="0" aria-labelledby="n"><dl>\n{rows}</dl>\n'
             '<figcaption class="muted">색은 작업의 상태, 점선은 짐작한 관계예요.</figcaption></figure></div></section>')
 
 
@@ -127,6 +127,8 @@ class Diagram(unittest.TestCase):
         self.addCleanup(ctx.close)
         p = ctx.new_page()
         p.route(re.compile(r"^https?://"), lambda r: r.abort())
+        errors = []
+        p.on("pageerror", lambda e: errors.append(str(e)))
         p.set_content(html)
         if context.get("java_script_enabled", True):
             try:  # a network is drawn once its fonts load; a copy without its script never draws it
@@ -134,6 +136,7 @@ class Diagram(unittest.TestCase):
                                     timeout=3000)
             except PlaywrightTimeout:
                 pass
+        self.assertEqual(errors, [], "the page threw")
         self.base = p.locator("[data-widget]").evaluate(FADED)  # the played steps still pending
         return p
 
@@ -178,6 +181,43 @@ class Diagram(unittest.TestCase):
                 token, box = (p.locator(s).evaluate("(e) => e.getBoundingClientRect().toJSON()") for s in (".token", ".stage"))
                 self.assertTrue(box["left"] <= token["left"] and token["right"] <= box["right"]
                                 and box["top"] <= token["top"] and token["bottom"] <= box["bottom"], (token, box))
+
+    def test_swipe_steps_by_button_and_counts(self):
+        p = self.open(page("use-case"), viewport={"width": 360, "height": 800})
+        root, n = p.locator("[data-swipe]"), p.locator(".steps > li").count()
+        back, next_ = p.locator("[data-swipe] .controls button").nth(0), p.locator("[data-swipe] .controls button").nth(1)
+        count = p.locator("[data-swipe] .controls .count")
+        self.assertEqual(count.text_content(), f"1 / {n}")
+        self.assertTrue(back.is_disabled())
+        for k in range(2, n + 1):
+            next_.click()
+            p.wait_for_function("(k) => +document.querySelector('[data-swipe]').dataset.at === k - 1", arg=k, timeout=3000)
+            self.assertEqual(count.text_content(), f"{k} / {n}")
+        self.assertTrue(next_.is_disabled())
+        back.click()
+        p.wait_for_function("(n) => +document.querySelector('[data-swipe]').dataset.at === n - 2", arg=n, timeout=3000)
+        self.assertEqual(root.evaluate("(r) => [...r.querySelectorAll('.controls button')].map((b) => b.textContent)"),
+                         ["뒤로", "다음"])
+
+    def test_every_focus_stop_has_a_role_and_a_name(self):
+        stops = """(root) => [...root.querySelectorAll('[tabindex]:not([tabindex="-1"]), button, summary')].map((e) => [
+          e.getAttribute('role') || e.localName, e.getAttribute('aria-label') || e.textContent.trim()])"""
+        for kind in ("file-tree", "system-context", "use-case"):
+            with self.subTest(kind):
+                p = self.open(page(kind))
+                got = p.locator("[data-widget]").evaluate(stops)
+                self.assertTrue(got)
+                self.assertTrue(any(role == "button" for role, _ in got), "no part is a button")
+                for role, name in got:
+                    self.assertIn(role, ("button", "summary", "figure", "region"), (role, name))
+                    self.assertTrue(name, role)
+                self.assertEqual(p.locator("[data-widget] svg[role='img']").count(), 0, "an img hides its buttons")
+        p = self.open(page("system-context"))
+        part = p.locator(".part").nth(1)
+        self.assertEqual(part.get_attribute("aria-label"), "예시 예시 → 예시 예시")
+        part.focus()
+        p.keyboard.press("Enter")
+        self.assertEqual(part.get_attribute("aria-pressed"), "true")
 
     def test_focus_highlights_connections(self):
         for kind, edits, node, reached, far in FOCUS:
@@ -347,7 +387,7 @@ class Diagram(unittest.TestCase):
         # the file before the network kind (#307), which must fail; main has the kind since
         main = subprocess.run(["git", "show", "3734462~1:mumu-document/skills/writing-documents/references/diagram.html"],
                               capture_output=True, text=True, cwd=REFS).stdout
-        copies = {"head": (source, None), "main's diagram.html": (main, "drawn"),
+        copies = {"head": (source, None), "diagram.html before #307": (main, "drawn"),
                   "no panel update": (source.replace("        if (detail) note(on && source.get(on.el));\n", ""), "panel"),
                   "no width measurement": (source.replace("pen.measureText(t.textContent).width", "0"), "width"),
                   "no .detail exclusion": (source.replace("'.legend, .controls, .detail'", "'.legend, .controls'"), "pin")}

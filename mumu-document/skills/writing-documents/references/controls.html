@@ -5,13 +5,11 @@
   slider: a label holding the name, an input type="range" name="<n>" with min, max, step and value, and an empty
   output data-unit="<unit>" the script fills with the value.
   toggle: a div role="group" data-name="<n>" aria-label="<name>" of buttons with data-value; the first is pressed.
-  preset: a button data-preset="<n>=<v> <n>=<v>" that sets those controls at once.
   stage: the script sets each control on the .stage as data-<n>="<value>" and, when a number, --<n>; the author's
   style draws with var(--<n>, <start>) in calc(), as r, cx, width, opacity or transform, and picks a toggle's look by
   .stage[data-<n>="<v>"]; a `controls` event on the figure carries { values, stage } for a script of the author's own.
   readout: an output data-calc="<arithmetic over the names, Math.* allowed>" data-digits="<decimals>" data-unit="<unit>"
   shows the result, in the stage for a number alone or in the panel.
-  split: data-split="처음|지금" on the figure puts a copy of the stage at the starting values beside the live one.
   use when: the reader learns how a result depends on one to four inputs by moving them.
   not when: the reader only needs the values (a table), or the steps come in an order (slide). -->
 <style>
@@ -19,14 +17,12 @@
     --controls-gap: var(--sp-3);
     & .stage svg { display: block; width: 100%; height: auto; font: var(--fs-svg-label) var(--sans); }
     & .stage > output { display: block; font-size: var(--fs-h2); font-weight: 800; font-variant-numeric: tabular-nums; }
-    & .split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--controls-gap); }
-    & .split .label { margin: 0 0 var(--sp-1); color: var(--muted); font-size: var(--fs-m); }
     & .panel { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--controls-gap); }
     &:not(.live) .panel { display: none; }
     & .panel label { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 var(--sp-2); font-size: var(--fs-m); }
     & .panel label input { grid-column: 1 / -1; order: 1; width: 100%; margin: 0; accent-color: var(--accent); }
     & .panel output { font-variant-numeric: tabular-nums; }
-    & [role="group"], & .presets { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+    & [role="group"] { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
     & [role="group"] button + button { margin-inline-start: calc(-1 * var(--sp-1) - var(--line)); }
     & [aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
   }
@@ -58,27 +54,6 @@
         scope.querySelectorAll('output[data-calc]').forEach((o) => calc(o, v));
         root.dispatchEvent(new CustomEvent('controls', { detail: { values: v, stage: scope } }));
       };
-      let before = null;
-      if (root.dataset.split && stage) {
-        const [was, now] = root.dataset.split.split('|');
-        before = stage.cloneNode(true);
-        before.classList.add('before');
-        before.querySelectorAll('[id]').forEach((e) => e.removeAttribute('id'));
-        before.setAttribute('aria-hidden', 'true');
-        before.inert = true;
-        const split = document.createElement('div');
-        split.className = 'split';
-        stage.replaceWith(split);
-        const side = (s, label) => {
-          const d = document.createElement('div');
-          const p = document.createElement('p');
-          p.className = 'label';
-          p.textContent = label;
-          d.append(p, s);
-          return d;
-        };
-        split.append(side(before, was), side(stage, now));
-      }
       const update = () => {
         const v = read();
         sliders.forEach((s) => {
@@ -97,18 +72,6 @@
         });
       });
       sliders.forEach((s) => s.addEventListener('input', update));
-      root.querySelectorAll('[data-preset]').forEach((b) => b.addEventListener('click', () => {
-        b.dataset.preset.trim().split(/\s+/).forEach((pair) => {
-          const [k, x] = pair.split('=');
-          const s = sliders.find((e) => e.name === k);
-          if (s) s.value = x;
-          const g = toggles.find((e) => e.dataset.name === k);
-          const to = g && [...g.querySelectorAll('button')].find((e) => e.dataset.value === x);
-          if (to) press(g, to);
-        });
-        update();
-      }));
-      if (before) paint(before, read());
       root.classList.add('live');
       update();
     });
@@ -123,7 +86,6 @@
     <div role="group" data-name="{{n}}" aria-label="{{name}}">
       <button type="button" data-value="{{value}}">{{value name}}</button>
     </div>
-    <div class="presets"><button type="button" data-preset="{{n}}={{value}}">{{preset name}}</button></div>
     <output data-calc="{{arithmetic over the names}}" data-digits="{{decimals}}" data-unit="{{unit}}"></output>
   </div>
 </figure>

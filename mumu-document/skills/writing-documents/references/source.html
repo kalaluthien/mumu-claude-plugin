@@ -1,0 +1,19 @@
+<!-- source: where the facts of a figure, a table or a claim come from; one note under each thing it backs.
+  anatomy: a p[data-widget="source"] right after the figure, table or paragraph it backs (inside a figure, after its
+  figcaption), opening 출처, then per source an a whose href is the source (a url, or #<id> of a section of the page)
+  holding its title, and its date as a time with datetime; several sources are joined by a comma.
+  chain: a fact that came through a middle source (a summary, a search, an agent) names each hop, the origin first
+  and the one read last, joined by →, so the reader sees what stands between the fact and them.
+  absent: a claim whose source the author does not have says 출처 없음, never a guessed link; check.py fails a note
+  with neither a link nor 출처 없음.
+  use when: a number, a quote, a figure or a table the reader would ask the origin of.
+  not when: the page's own reasoning, or the whole page comes from one source the footer names. -->
+<style>
+  [data-widget="source"] {
+    color: var(--muted); font-size: var(--fs-s); margin: var(--sp-1) 0 var(--sp-3); overflow-wrap: anywhere;
+    & a { color: inherit; }
+    & time { font-variant-numeric: tabular-nums; }
+  }
+  @media print { [data-widget="source"] a[href^="http"]::after { content: " (" attr(href) ")"; } }
+</style>
+<p data-widget="source">출처: <a href="{{url of the origin}}">{{origin title}}</a>, <time datetime="{{yyyy-mm-dd}}">{{date as said}}</time> → <a href="{{url of the source read}}">{{title of the source read}}</a></p>
