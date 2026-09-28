@@ -19,9 +19,9 @@
     --diagram-indent: var(--sp-4); --diagram-add: var(--ok); --diagram-modify: var(--warn);
     --diagram-remove: var(--fail); --diagram-pending: var(--disabled); --x: 0; --y: 0;
     --diagram-dim: calc(var(--disabled) / 2); --diagram-off: calc(var(--disabled) / 5);
-    & ul { list-style: none; margin: 0; padding-inline-start: var(--diagram-indent); border-inline-start: var(--line) dashed var(--border); }
+    & ul { list-style: none; margin: 0; padding-inline-start: var(--diagram-indent); border-inline-start: var(--line) solid var(--text); }
     & .stage > ul { padding-inline-start: 0; border: 0; }
-    & .stage:has(> ul) { background: var(--fill); border: var(--line) solid var(--border); padding: var(--sp-2) var(--sp-3); }
+    & .stage:has(> ul) { border: var(--line) solid var(--text); padding: var(--sp-2) var(--sp-3); }
     & li { margin: var(--sp-1) 0; }
     & .name { font-family: var(--mono); font-size: var(--fs-m); overflow-wrap: anywhere; }
     & :is(.note, blockquote) { color: var(--muted); font-size: var(--fs-m); margin: var(--sp-1) 0 var(--sp-2) var(--diagram-indent); }
@@ -32,28 +32,31 @@
     & [data-change="remove"] .tag { color: var(--diagram-remove); }
     & [data-change="remove"] .name { text-decoration: line-through; color: var(--muted); }
     & svg { display: block; }
-    & svg text { fill: var(--text); font: var(--fs-svg) var(--sans); }
-    & svg .label { fill: var(--muted); font-size: var(--fs-svg-label); }
-    & .box { fill: var(--fill); stroke: var(--border); }
-    & .box.main { stroke: var(--text); stroke-width: var(--line-strong); }
+    /* print diagram, as the reference manual draws one: thin ink lines, small black labels; a node a rounded frame on
+       paper, the main one square on grey; a dotted lifeline; a detail framed like its 보기 box; the caption numbered below */
+    & svg text { fill: var(--text); font: var(--fs-svg-label) var(--sans); }
+    & .box { fill: var(--bg); stroke: var(--text); stroke-width: var(--line); rx: var(--sp-2); }
+    & .box.main { fill: var(--fill); rx: 0; }
     & .box:is(.k1, .k2, .k3, .k4) { stroke: var(--diagram-kind); }
     & .tip { fill: var(--text); }
-    & .edge { stroke: var(--text); stroke-width: var(--line-strong); fill: none; }
+    & .edge { stroke: var(--text); stroke-width: var(--line); fill: none; }
     & .edge.inferred { stroke-dasharray: 4 4; }
     & .edge.ok { stroke: var(--ok); } & .edge.warn { stroke: var(--warn); } & .edge.fail { stroke: var(--fail); }
-    & .lifeline { stroke: var(--border); stroke-width: var(--line); stroke-dasharray: 4 4; }
+    & .lifeline { stroke: var(--muted); stroke-width: var(--line); stroke-dasharray: 1 3; }
     & .mask { fill: var(--bg); }
     & .part { outline: none; }
     & .part:is(:hover, :focus-visible) .edge, [data-state="hover"] & .part:first-of-type .edge { stroke: var(--accent); }
-    & .part:is(:hover, :focus-visible) text, [data-state="hover"] & .part:first-of-type text { fill: var(--accent); }
+    & .part:is(:hover, :focus-visible) text, [data-state="hover"] & .part:first-of-type text { fill: var(--accent-text); }
     & .part:focus-visible, [data-state="focus"] & .part:first-of-type { outline: var(--line-strong) solid var(--accent); }
     & .token { fill: var(--accent); display: none; }
     & li:is(.k1, .k2, .k3, .k4) > .name, & li:is(.k1, .k2, .k3, .k4) > details > summary .name { border-bottom: var(--line-strong) solid var(--diagram-kind); }
     & .k1 { --diagram-kind: var(--kind-1); } & .k2 { --diagram-kind: var(--kind-2); } & .k3 { --diagram-kind: var(--kind-3); } & .k4 { --diagram-kind: var(--kind-4); }
     & .stage > dl dt { font-weight: 700; }
     & .stage > dl dd { margin: 0 0 var(--sp-2) var(--diagram-indent); }
-    & .detail { display: block; margin-block-start: var(--sp-2); padding-block-start: var(--sp-2);
-      border-block-start: var(--line) solid var(--border); font-size: var(--fs-m); }
+    & .detail { display: block; margin-block-start: var(--sp-2); padding: var(--sp-2) var(--sp-3);
+      border: var(--line) solid var(--text); font-size: var(--fs-m); }
+    & figcaption { font-size: var(--fs-m); color: var(--text); counter-increment: fig; margin-top: var(--sp-2); }
+    & figcaption::before { content: "그림 " counter(fig) ". "; font-weight: 700; }
     & .detail:empty { display: none; }
     &[data-diagram="network"] .edge:is(.ok, .warn, .fail) { stroke: var(--text); }
     &[data-diagram="network"] .edge.warn { stroke-dasharray: 12 4; }
@@ -81,7 +84,7 @@
       &.live [data-change]:not(.on) .tag { visibility: hidden; }
       &.live .token { display: inline; transform: translate(var(--x), var(--y)); transition: transform var(--motion) var(--ease-out); }
       &.live .now .edge { stroke: var(--accent); }
-      &.live .now text { fill: var(--accent); }
+      &.live .now text { fill: var(--accent-text); }
       & .stage:has(> svg) > dl { position: absolute; inline-size: var(--line); block-size: var(--line); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     }
   }

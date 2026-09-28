@@ -10,14 +10,18 @@
   not when: fewer than 3 numbers (a sentence); the exact values are the point (table). -->
 <style>
   [data-widget="chart"] {
-    --chart-grid: var(--hairline); --chart-axis: var(--border); --chart-gap: var(--sp-2);
+    --chart-grid: var(--hairline); --chart-axis: var(--text); --chart-gap: var(--sp-2);
     position: relative;
-    & figcaption { margin-bottom: var(--chart-gap); }
+    /* a print figure: the caption below as 그림 n., thin ink axes, a faint dotted grid */
+    &:is(figure) { display: flex; flex-direction: column; }
+    & > figcaption { order: 1; margin: var(--chart-gap) 0 0; font-size: var(--fs-m); counter-increment: fig; }
+    & > figcaption::before { content: "그림 " counter(fig) ". "; font-weight: 700; }
+    & > details { order: 2; }
     & .plot { overflow-x: auto; }
     & svg { display: block; width: 100%; font: var(--fs-svg-label) var(--sans); }
     & svg text { fill: var(--text); }
     & svg :is(.tick, .note) { fill: var(--muted); }
-    & svg .grid { stroke: var(--chart-grid); stroke-width: var(--line); }
+    & svg .grid { stroke: var(--chart-grid); stroke-width: var(--line); stroke-dasharray: 1 3; }
     & svg .axis { stroke: var(--chart-axis); stroke-width: var(--line); }
     & svg .k1 { fill: var(--kind-1); stroke: var(--kind-1); } & svg .k2 { fill: var(--kind-2); stroke: var(--kind-2); }
     & svg .k3 { fill: var(--kind-3); stroke: var(--kind-3); } & svg .k4 { fill: var(--kind-4); stroke: var(--kind-4); }
@@ -34,6 +38,7 @@
       width var(--motion) var(--ease-out), height var(--motion) var(--ease-out), cx var(--motion) var(--ease-out), cy var(--motion) var(--ease-out),
       d var(--motion) var(--ease-out), fill var(--motion) var(--ease-out); }
   }
+
 </style>
 <script>
   (() => {

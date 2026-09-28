@@ -26,17 +26,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{title}}</title>
 <style id="skin">
-@import url("https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Nanum+Myeongjo:wght@400;700&display=swap");
 /* skin: the owner's design system.
-   Look: a soft gothic page, black on white; dark mode inverts the duet. One
-   face, Nanum Gothic, for every text role: h1 and h2 at weight 800, h3 at 700,
-   prose, controls, captions, figure labels and metadata at 400; a defined
-   term (dfn) at 700, upright, since Hangul has no italic.
-   Corners square, no shadows. The
-   accent is ink: focus, hover and the current step; links take --link.
-   Borders on controls and figure boxes are body grey (3:1, so a hover to ink
-   shows); row dividers are --hairline. Figures add kinds and status colours,
-   which the magazine lacks.
+   Look: a major textbook, ink on cream paper, always light: a page never
+   follows a dark system or host theme. Prose is Nanum Myeongjo 400 at 10pt,
+   leading 1.7, justified with a 1em first-line indent; headings, captions,
+   controls, figure labels and metadata are Nanum Gothic: h2 at 800 numbered
+   ❶, h3 at 700 numbered (1); the h1 a chapter block, Myeongjo 700 on a grey
+   band under a double rule; a defined term (dfn) at 700, upright, since
+   Hangul has no italic. Lists take dashes, the footer a dotted rule.
+   Corners square, no shadows. The accent is Claude's orange, a step deeper
+   (#d97757 is 2.8:1 on --fill, under a mark's 3:1): focus, hover and the
+   current step; text in orange, the heading numbers and links, takes
+   --accent-text, deeper again for 4.5:1.
+   Borders on controls and figure boxes are ink; row dividers are --hairline.
+   Tables are booktabs, captioned 표 n. above; figures 그림 n. below.
    Tokens in three tiers: a primitive (--p-*) holds a raw value two roles or
    more share; a semantic token names a role; each widget defines its own
    --<widget>-* tokens from semantic ones and reads nothing else.
@@ -49,83 +53,101 @@
    Motion: --motion-fast for hover and focus, --motion for a reveal, easing
    --ease-out; only a change of state animates, none under reduced motion.
    Fonts: the one fetch a page makes; offline, installed faces. */
+@counter-style circled { system: fixed; symbols: "❶" "❷" "❸" "❹" "❺" "❻" "❼" "❽" "❾" "❿"; suffix: " "; }
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   /* primitives */
-  --p-black: #000000; --p-white: #ffffff; --p-grey-500: #757575;
-  --p-size-1: .25rem; --p-size-4: 1rem; --p-size-5: 1.75rem;
+  --p-black: #1b1a18; --p-white: #fcfbf7; --p-grey-500: #67635c;
+  --p-size-1: .25rem; --p-size-4: 1rem;
 
-  /* semantic: colour roles, each light-dark(light, dark) */
-  --text: light-dark(var(--p-black), var(--p-white));
-  --muted: light-dark(var(--p-grey-500), #a3a3a3);
-  --bg: light-dark(var(--p-white), #312e2d);
-  --fill: light-dark(var(--p-white), #3a3635);
-  --border: light-dark(var(--p-grey-500), #8a8a8a);
-  --hairline: light-dark(#e0e0e0, #4a4543);
-  --accent: light-dark(var(--p-black), var(--p-white));
-  --link: light-dark(#057dbc, #5cb8ea);
-  /* semantic: diagram palette; kinds (Okabe-Ito, told apart under
-     deuteranopia and protanopia) mark a node's kind by its edge and a chart's
-     series; status colours mark success, warning and failure in text and edges */
-  --kind-1: light-dark(#0072b2, #56b4e9);
-  --kind-2: light-dark(#d55e00, #e69f00);
-  --kind-3: light-dark(#009e73, #009e73);
-  --kind-4: light-dark(#cc79a7, #cc79a7);
-  --ok: light-dark(#1f7a3a, #6fd68a);
-  --warn: light-dark(#855600, #f2c14e);
-  --fail: light-dark(#b8302a, #ff7b72);
+  /* semantic: colour roles, light only */
+  --text: var(--p-black);
+  --muted: var(--p-grey-500);
+  --bg: var(--p-white);
+  --fill: #f4f2ec;
+  --border: #6f6b63;
+  --hairline: #d9d5cb;
+  --accent: #c96442;
+  --accent-text: #a9502f;
+  --link: var(--accent-text);
+  --chapter: #5b5953;
+  /* semantic: diagram palette; kinds (told apart under deuteranopia and
+     protanopia) mark a node's kind by its edge and a chart's series; status
+     colours mark success, warning and failure in text and edges */
+  --kind-1: #1f4e79;
+  --kind-2: #b0521c;
+  --kind-3: #2e7050;
+  --kind-4: var(--p-black);
+  --ok: #1f7a3a;
+  --warn: #855600;
+  --fail: #b8302a;
   /* semantic: type, space, line, radius, layout, motion */
+  --serif: "Nanum Myeongjo", "AppleMyungjo", "Batang", serif;
   --sans: "Nanum Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
   --mono: ui-monospace, monospace;
   /* type: body 10pt, each size a ratio of it; none under 12px, check.py's floor for Hangul */
   --fs-base: 10pt; --fs-s: max(12px, .8 * var(--fs-base)); --fs-m: max(12px, .9 * var(--fs-base));
-  --fs-l: calc(1.2 * var(--fs-base)); --fs-h2: calc(1.625 * var(--fs-base)); --fs-h1: calc(2 * var(--fs-base));
+  --fs-l: calc(1.1 * var(--fs-base)); --fs-h2: calc(1.3 * var(--fs-base)); --fs-h1: calc(1.8 * var(--fs-base));
   --fs-svg: max(12px, .875 * var(--fs-base)); --fs-svg-label: max(12px, .75 * var(--fs-base));
   --fs-table: var(--fs-m);
   --sp-1: var(--p-size-1); --sp-2: .5rem; --sp-3: .75rem;
-  --sp-4: var(--p-size-4); --sp-5: var(--p-size-5);
+  --sp-4: var(--p-size-4); --sp-5: 1.75rem;
   --line: 1px; --line-strong: 2px; --line-mark: 3px;
   --radius-s: 0;
-  --page-width: 48rem; --gutter: var(--p-size-4); --rhythm: var(--p-size-5);
+  --page-width: 36rem; --gutter: var(--p-size-4); --rhythm: 2.5rem;
   --motion-fast: 100ms; --motion: 200ms;
   --ease-out: cubic-bezier(.2, .7, .3, 1);
   --scroll-step: 60vh;
   --drawer-width: 16rem;
-  --mark: light-dark(#fff1a8, #5c4b00);
+  --mark: #efe9d2;
   --disabled: .5;
 }
-:root[data-theme="light"], .theme-light { color-scheme: light; }
-:root[data-theme="dark"], .theme-dark { color-scheme: dark; }
-.theme-light, .theme-dark { background: var(--bg); color: var(--text); }
 
 /* layout */
-body { background: var(--bg); color: var(--text); margin: 0;
-       font: var(--fs-base)/1.5 var(--sans); padding: var(--rhythm) var(--gutter); overflow-wrap: break-word; }
-main { max-width: var(--page-width); margin: 0 auto; }
-h1, h2 { font-weight: 800; letter-spacing: -.01em; line-height: 1.2; }
-h1 { font-size: var(--fs-h1); margin: 0 0 var(--sp-4); }
-h2 { font-size: var(--fs-h2); margin: var(--rhythm) 0 var(--sp-2); }
-h3 { font: 700 var(--fs-l)/1.2 var(--sans); margin: var(--sp-4) 0 var(--sp-2); }
+body { background: var(--bg); color: var(--text); margin: 0; font: 400 var(--fs-base)/1.7 var(--serif);
+       padding: var(--rhythm) var(--gutter); overflow-wrap: break-word; word-break: keep-all; }
+main { max-width: var(--page-width); margin: 0 auto; counter-reset: h2 h3 fig tab; }
+main p:not(.read) { text-align: justify; }
+main > p:not(.read), main > section > p { text-indent: 1em; }
+h1, h2, h3, figcaption, caption, summary, button, nav, footer, th, .tip, .count, .muted { font-family: var(--sans); }
+/* chapter block: the title on a grey band under a double rule */
+h1 { font: 700 var(--fs-h1)/1.35 var(--serif); text-align: center; color: var(--bg); background: var(--chapter);
+     padding: var(--rhythm) var(--sp-4); margin: 0 0 var(--rhythm); border-top: var(--line-mark) double var(--chapter);
+     box-shadow: 0 calc(-1 * var(--sp-2)) 0 calc(-1 * var(--line)) var(--bg), 0 calc(-1 * var(--sp-2) - var(--line)) 0 0 var(--chapter); }
+/* heading with its circled number, subheading (1) */
+h2 { font-weight: 800; font-size: var(--fs-h2); letter-spacing: -.01em; line-height: 1.2;
+     margin: calc(1.25 * var(--rhythm)) 0 var(--sp-3); counter-increment: h2; counter-reset: h3; }
+main > h2::before, main > section > h2::before { content: counter(h2, circled) "\00a0"; color: var(--accent-text); }
+h3 { font: 700 var(--fs-l)/1.4 var(--sans); margin: var(--sp-4) 0 var(--sp-2); counter-increment: h3; }
+h3::before { content: "(" counter(h3) ") "; }
 a { color: var(--link); }
 :is(h1, h2) code { font-size: .8em; }
-.read { border-inline-start: var(--line-mark) solid var(--text); padding-inline-start: var(--sp-3); font-size: var(--fs-l); }
-.muted, footer { color: var(--muted); font-size: var(--fs-m); }
-footer { margin-top: var(--rhythm); padding-top: var(--sp-3); border-top: var(--line) solid var(--hairline); }
+/* dash lists */
+main ul { padding-inline-start: 1.5em; }
+main ul > li { list-style: "– "; }
+main ul > li::marker { font-family: var(--sans); }
+.read { border-block: var(--line) solid var(--text); padding: var(--sp-3) var(--sp-2); }
+nav { font-size: var(--fs-m); }
+.muted { color: var(--muted); font-size: var(--fs-m); }
+/* footnote rule */
+footer { color: var(--muted); font-size: var(--fs-s); line-height: 1.6; margin-top: var(--rhythm); padding-top: var(--sp-3);
+         border-top: var(--line) dotted var(--border); }
 code, pre { font-family: var(--mono); font-size: var(--fs-m); }
-pre { overflow-x: auto; background: var(--fill); border: var(--line) solid var(--border);
-      border-radius: var(--radius-s); padding: var(--sp-3); }
+pre { overflow-x: auto; border-inline-start: var(--line) solid var(--text); padding: 0 var(--sp-3); }
 .scroll { overflow-x: auto; }
 figure { margin: 0; }
 figure.code figcaption { overflow-wrap: anywhere; }
 pre mark { display: inline-block; min-width: 100%; background: var(--mark); color: inherit; }
-table { border-collapse: collapse; min-width: 100%; background: var(--fill); font-size: var(--fs-table); }
-th, td { border-bottom: var(--line) solid var(--hairline); padding: var(--sp-2) var(--sp-3); text-align: start; vertical-align: top;
-         word-break: keep-all; }
+/* tables: booktabs, the caption above as 표 n. */
+table { border-collapse: collapse; min-width: 100%; font-size: var(--fs-table); border-block: var(--line-strong) solid var(--text); }
+th, td { padding: var(--sp-2) var(--sp-3); text-align: start; vertical-align: top; word-break: keep-all; }
+thead th { border-bottom: var(--line) solid var(--text); font-weight: 700; text-align: center; }
 :is(th, td):not(.num) { min-width: 6em; }
 tbody th { font-weight: normal; }
 dfn { font-style: normal; font-weight: 700; }
-caption { text-align: start; }
-.scroll :is(th, td):first-child { position: sticky; inset-inline-start: 0; background: var(--fill); }
+caption { text-align: start; font-size: var(--fs-m); padding-bottom: var(--sp-2); counter-increment: tab; }
+caption::before { content: "표 " counter(tab) ". "; font-weight: 700; }
+.scroll :is(th, td):first-child { position: sticky; inset-inline-start: 0; background: var(--bg); }
 .num { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ok { color: var(--ok); } .warn { color: var(--warn); } .fail { color: var(--fail); }
 
@@ -133,12 +155,13 @@ caption { text-align: start; }
    the test gallery */
 :focus-visible, [data-state="focus"] :is(summary, button, textarea, [tabindex]) {
   outline: var(--line-strong) solid var(--accent); outline-offset: var(--line-strong); }
-summary { cursor: pointer; transition: color var(--motion-fast) var(--ease-out); }
-summary:hover, [data-state="hover"] summary { color: var(--accent); }
+summary { cursor: pointer; font-size: var(--fs-m); color: var(--muted); transition: color var(--motion-fast) var(--ease-out); }
+summary:hover, [data-state="hover"] summary { color: var(--accent-text); }
 details[open] > :not(summary) { animation: reveal var(--motion) var(--ease-out); }
 @keyframes reveal { from { opacity: 0; transform: translateY(calc(-1 * var(--sp-1))); } }
-button { font: 700 var(--fs-m) var(--sans); color: var(--text); background: var(--fill); cursor: pointer;
-         border: var(--line) solid var(--border); border-radius: var(--radius-s); padding: var(--sp-1) var(--sp-3);
+/* controls: thin ink frames like the manual's boxed labels */
+button { font: 400 var(--fs-m) var(--sans); color: var(--text); background: var(--bg); cursor: pointer;
+         border: var(--line) solid var(--text); border-radius: var(--radius-s); padding: var(--sp-1) var(--sp-3);
          transition: border-color var(--motion-fast) var(--ease-out); }
 button:hover, [data-state="hover"] button { border-color: var(--accent); }
 textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); background: var(--fill);
@@ -158,7 +181,7 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
 <style>
   [role="group"][data-choice] { display: flex; flex-wrap: wrap; }
   [role="group"][data-choice] > button + button { border-inline-start-width: 0; }
-  [role="group"][data-choice] > [aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+  [role="group"][data-choice] > [aria-pressed="true"] { font-weight: 700; text-decoration: underline; text-underline-offset: var(--sp-1); }
   .katex-display { overflow-x: auto; overflow-y: hidden; padding-block: var(--sp-1); }
   [data-chapter] .pager { display: flex; justify-content: space-between; gap: var(--sp-3); margin-top: var(--rhythm);
     padding-top: var(--sp-3); border-top: var(--line) solid var(--hairline); font-family: var(--sans); }
