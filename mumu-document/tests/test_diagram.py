@@ -344,7 +344,8 @@ class Diagram(unittest.TestCase):
 
     def test_must_fail_copies(self):
         source = (REFS / "diagram.html").read_text()
-        main = subprocess.run(["git", "show", "origin/main:mumu-document/skills/writing-documents/references/diagram.html"],
+        # the file before the network kind (#307), which must fail; main has the kind since
+        main = subprocess.run(["git", "show", "3734462~1:mumu-document/skills/writing-documents/references/diagram.html"],
                               capture_output=True, text=True, cwd=REFS).stdout
         copies = {"head": (source, None), "main's diagram.html": (main, "drawn"),
                   "no panel update": (source.replace("        if (detail) note(on && source.get(on.el));\n", ""), "panel"),
