@@ -1,25 +1,26 @@
 # Size rubric
 
 How `scripts/count-units.py` has Sonnet count mumu-team's text: every `.md`
-file outside `tests/` and `evals/`, this one excepted, each line shown
-numbered. Every item is cited by its file and line; an item spread over
-several lines is cited at its first.
+file outside `tests/` and `evals/`, this one excepted, cut by code into
+sentences, each with an id and its line. Score every sentence as
+[instructions, elaboration]; a sentence with neither, such as a table row that
+only defines, scores [0, 0].
 
 ## Instruction
 
 One independent directive that changes the reader's next action: what to do,
-never to do, or the condition that decides which. A line, sentence or table row
-carrying several directives counts each; a definition of a name is a term, not
-an instruction, unless it also directs.
+never to do, or the condition that decides which. A sentence or table row
+carrying several directives scores each; a definition of a name directs
+nothing unless it also says what to do.
 
 - Counts, as two: `Prefer dedicated file and search tools to the shell; run independent calls in parallel.`
-- Does not count: `| topic | 2-4 lowercase words joined by hyphens |`, a definition that directs nothing.
+- Does not count: `| topic | 2-4 lowercase words joined by hyphens |`, a definition.
 
 ## Duplicate
 
 An instruction whose directive another instruction already states, in the same
-file or another, whatever its wording. A group of n instructions stating one
-directive counts n - 1 duplicates; every member is listed.
+file or another, whatever its wording. A group of n sentences stating one
+directive counts n - 1 duplicates; list every member.
 
 - Counts, as one: `A share's worker writes only its pull request and BLOCKED: <share>: ... comments on the task.`
   (lead-goal.md) beside `as a share's worker you write only your pull request and BLOCKED: <share>: ... comments`
@@ -30,21 +31,22 @@ directive counts n - 1 duplicates; every member is listed.
 ## Elaboration
 
 Text that changes no action: an explanation, a reason, an example, a
-description of how something works. Each such sentence counts one, and so does
-each reason or example clause inside a directive's sentence.
+description of how something works. A sentence that directs nothing scores one;
+a directive's sentence scores one for each reason or example clause it carries.
 
 - Counts, as one: `since a remembered pane id can be stale`, the reason clause of `prompt ... by name`.
 - Does not count: `by name` in the same sentence, the directive itself.
 
 ## Term
 
-A proper name the reader must know to act: a word the text defines or uses as a
-name (`share`, `claim`), a command, script or file (`worker-start.py`), a label
-or keyword (`APPROVED:`). Each distinct name counts once across all files;
-a word used in its everyday sense is none. A variant is a second name for an
-entity another term already names, flagged with both names and where each is
-used.
+A proper name the reader must know to act, which the text either sets in code
+format or defines: a word a table row or a sentence defines (`share`, `claim`),
+a command, script, skill or file (`worker-start.py`), a label or keyword
+(`APPROVED:`). Name a command by its program and subcommand, with no arguments
+or flags; a heading, a placeholder such as `<url>` or a word in its everyday
+sense is none. A variant is a second term for an entity another term already
+names.
 
 - Counts, as one: `worker-start.py`, however many files name it.
-- Does not count: `folder` in `a Claude project folder`, an everyday word.
-- A variant: `lead` beside `leader`, both naming the one session per project.
+- Does not count: `folder` in `a Claude project folder`, an everyday word never defined.
+- A variant: `kickoff` beside `/mumu-team:kickoff`, both naming the one skill.

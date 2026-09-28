@@ -18,8 +18,8 @@ count_units = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(count_units)
 
 FILES = {
-    "skills/one/SKILL.md": "# One\n\nDo this; never that.\n",
-    "agents/boss.md": "---\nname: boss\n---\nRead the rules.\n",
+    "skills/one/SKILL.md": "# One\n\nDo this; never that. It is `One`.\n",
+    "agents/boss.md": "---\nname: boss\ndescription: The boss.\n---\nRead the rules with `gh issue view`.\n",
     "hooks/hooks.json": json.dumps({"hooks": {"Stop": [{"hooks": [{"command": "${CLAUDE_PLUGIN_ROOT}/scripts/stop.py"}]}],
                                               "PreToolUse": [{"matcher": "Bash", "hooks": [{"command": "\"${X}\"/scripts/g.py a"}]}]}}),
     "monitors/monitors.json": json.dumps([{"name": "watch", "command": "w"}]),
@@ -34,13 +34,13 @@ FAKE = r'''#!/usr/bin/env python3
 import sys
 ask = sys.stdin.read()
 if ask.startswith("Count the file skills/one/SKILL.md"):
-    body = '{"instructions": [{"line": 3, "text": "do this"}, {"line": 3, "text": "never that"}], "elaboration": [], "terms": [{"line": 1, "name": "One"}]}'
+    body = '{"sentences": {"3.1": [2, 0], "3.2": [0, 1]}, "terms": [{"name": "`One`", "line": 3}]}'
 elif ask.startswith("Count the file agents/boss.md"):
-    body = '{"instructions": [{"line": 4, "text": "read the rules"}], "elaboration": [{"line": 2, "text": "name"}], "terms": [{"line": 2, "name": "boss"}, {"line": 4, "name": "One"}]}'
-elif "every instruction" in ask:
-    body = '{"groups": [["i0", "i2"], ["i1"]]}'
+    body = '{"sentences": {"3.1": [0, 1], "5.1": [1, 0]}, "terms": [{"name": "boss (the agent)", "line": 2}, {"name": "gh issue view <url>", "line": 5}]}'
+elif "states an instruction" in ask:
+    body = '{"groups": [["agents/boss.md#5.1", "skills/one/SKILL.md#3.1"], ["skills/one/SKILL.md#3.2"]]}'
 else:
-    body = '{"variants": [["One", "boss"], ["ghost"]]}'
+    body = '{"variants": [["One", "Boss"], ["ghost"]]}'
 print("thinking\n```json\n" + body + "\n```")
 '''
 
@@ -61,12 +61,18 @@ class Code(unittest.TestCase):
     def test_files_and_lines_leave_caches_out(self):
         files = count_units.tree(self.root)
         self.assertEqual(len(files), len(FILES) - 1)
-        by, total = count_units.lines(files, self.root)
+        by, total = count_units.lines(files)
         self.assertEqual((by[".py"], total), (3, sum(len(t.splitlines()) for t in FILES.values())))
 
     def test_sonnet_reads_only_md_outside_tests_and_evals(self):
         self.assertEqual(sorted(p.relative_to(self.root).as_posix() for p in count_units.texts(self.root)),
                          ["agents/boss.md", "skills/one/SKILL.md"])
+
+    def test_sentences_skip_headings_fences_and_front_matter_but_its_description(self):
+        text = "---\nname: x\ndescription: Says x. Then y.\n---\n# H\n\n```\ncode. More.\n```\n| a | b |\n| --- | --- |\nOne. Two? `three` too.\n"
+        self.assertEqual(count_units.sentences(text), [
+            ("3.1", 3, "Says x."), ("3.2", 3, "Then y."), ("10.1", 10, "| a | b |"),
+            ("12.1", 12, "One."), ("12.2", 12, "Two?"), ("12.3", 12, "`three` too.")])
 
     def test_counts_by_the_fake_and_prints_each_item_with_its_path_line(self):
         fakes = pathlib.Path(tempfile.mkdtemp())
@@ -76,12 +82,13 @@ class Code(unittest.TestCase):
         out = subprocess.run([sys.executable, str(SCRIPT), str(self.root), "--json", str(fakes / "r.json")],
                              capture_output=True, text=True, env=env)
         self.assertEqual(out.returncode, 0, out.stderr)
-        for line in ["files 7", "features 7", "instructions 3", "duplicates 1", "elaboration 1", "terms 2, variants 1",
-                     "  agents/boss.md:4 read the rules = skills/one/SKILL.md:3 never that",
-                     "  One agents/boss.md:4 = boss agents/boss.md:2",
-                     "  elaboration agents/boss.md:2 name", "  term agents/boss.md:4 One"]:
+        for line in ["files 7", "features 7", "instructions 3", "duplicates 1", "elaboration 2", "terms 3, variants 1",
+                     "  agents/boss.md:5 Read the rules with `gh issue view`. = skills/one/SKILL.md:3 Do this; never that.",
+                     "  one skills/one/SKILL.md:3 = boss agents/boss.md:2",
+                     "  elaboration 1 agents/boss.md:3 The boss.", "  term agents/boss.md:5 gh issue view",
+                     "  instruction 2 skills/one/SKILL.md:3 Do this; never that."]:
             self.assertIn(line, out.stdout.splitlines())
-        self.assertEqual(len(json.loads((fakes / "r.json").read_text())["instructions"]), 3)
+        self.assertEqual(json.loads((fakes / "r.json").read_text())["totals"]["instructions"], 3)
 
     def test_no_json_reply_exits_2(self):
         fakes = pathlib.Path(tempfile.mkdtemp())
