@@ -93,7 +93,7 @@ class Literal(unittest.TestCase):
 class RefusedStep(unittest.TestCase):
     def rule(self):
         """`work-task.md`'s bullet for a step auto mode refuses."""
-        lines = [line for line in WORK.read_text().splitlines() if line.startswith("- A step auto mode refuses")]
+        lines = [line for line in WORK.read_text().splitlines() if line.lstrip().startswith("- A step auto mode refuses")]
         self.assertEqual(len(lines), 1)
         return lines[0]
 
