@@ -111,7 +111,7 @@ Every command names its target pane.
 | `name` | this session's three names: `herdr tab rename <tab> <name>`, the tab being `herdr pane get $HERDR_PANE_ID`'s `tab_id`; `herdr agent rename $HERDR_PANE_ID <name>`; and `herdr agent prompt $HERDR_PANE_ID "/rename <name>"`, which applies when the turn ends |
 | `prompt` | `herdr agent prompt <name> "<text>"`, by name, since a remembered pane id can be stale; success prints before delivery and a busy pane or open dialog can swallow the text, so read the pane before and after and resend when no turn carries it; failing twice, tell the owner |
 | `start-lead` | `lead-start.py <checkout> [<task-url>] [--folder <folder>] [-- <claude flags>]`, or `--succeed <pane>` for the task and folder, or `--replace` for the task to close the calling session once its turn ends, at the checkout's root: starts `<repo>-lead`, or `<folder>-lead` with `--folder`, in a new tab, refusing when one is live, and prompts its kickoff; a start-up dialog in its tab is the owner's to answer there |
-| `broadcast` | `prompt` each lead in `live` but you `see <url>`, one `herdr agent prompt <literal-name> "see <url>"` Bash call per agent, no loop and no variable, so the allow rule matches it |
+| `broadcast` | `prompt` each lead in `live` but you `see <url>`, one `herdr agent prompt <literal-name> "see <url>"` Bash call per agent, no loop and no variable, so the allow rule matches it; after the sends, read `live` again and `prompt` each lead name new or reappeared, since a successor takes over a handed-over name |
 | `close` | `worker-close.py <name>`: exits the session, answering its exit dialogs, and closes each tab labelled `<name>`, the session live or gone |
 
 ## Repo: GitHub and git
