@@ -3,7 +3,7 @@
 
 A session is one top-level `<projects>/*/*.jsonl` whose first record is at or after --since. Its kind is
 `headless` for an `sdk-cli` entrypoint (evals, probes, `claude -p`, a replay run as a worker included), else
-its `agent-setting` (`mumu-team:worker` worker, `mumu-team:lead` lead), else `plain`. A skill fits a session when a file it changed
+its `agent-setting` (`mumu-teamwork:worker` worker, `mumu-teamwork:lead` lead), else `plain`. A skill fits a session when a file it changed
 fits it by `lib/fit.py`; its changes are its Edit, Write and MultiEdit calls, and the diff of each pull
 request it links (a `pr-link` record) whose head branch is the session's name, since a worker often edits
 through Bash. A session called a skill when a Skill tool call or a typed slash command names `mumu-verification:<skill>`. It listed the
@@ -111,9 +111,9 @@ def add_prs(sessions):
 def kind(s):
     if s["entry"] == "sdk-cli":
         return "headless"
-    if s["setting"] == "mumu-team:worker":
+    if s["setting"] == "mumu-teamwork:worker":
         return "worker"
-    if s["setting"] == "mumu-team:lead":
+    if s["setting"] == "mumu-teamwork:lead":
         return "lead"
     return "plain"
 

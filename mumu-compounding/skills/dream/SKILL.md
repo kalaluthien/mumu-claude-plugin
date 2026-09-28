@@ -41,9 +41,9 @@ file for every project.
    - a lesson a skill, a references file, an agent or a hook should hold:
      EDIT that file, adding the lesson as a step or rule where it applies,
      and DELETE the pool entry once the file states it; in a git checkout
-     whose default branch a hook guards, as in a project a mumu-team lead
+     whose default branch a hook guards, as in a project a mumu-teamwork lead
      holds, hand the edit, naming the file and the lesson, to that
-     project's lead through `/mumu-team:handoff` instead, and the entry
+     project's lead through `/mumu-teamwork:handoff` instead, and the entry
      goes at a later round that finds it stated;
    - an entry the repository already states: DELETE it;
    - a lesson `stale` lists, never found again in 60 days: DELETE it, at
