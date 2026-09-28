@@ -591,7 +591,11 @@ class Assemble(unittest.TestCase):
     def test_assembled_page_of_every_chart_passes(self):
         with tempfile.TemporaryDirectory() as d:
             body, page = pathlib.Path(d) / "body.html", pathlib.Path(d) / "page.html"
-            body.write_text('<h1>차트 모음</h1>\n<p class="read">차트는 키보드와 터치로도 읽어요.</p>\n' + FIXTURES["chart"])
+            charts = re.split(r"\n(?=<figure)", FIXTURES["chart"].strip())
+            nav = "".join(f'<li><a href="#s{i}">차트 {i + 1}</a></li>' for i in range(len(charts)))
+            body.write_text('<h1>차트 모음</h1>\n<p class="read">차트는 키보드와 터치로도 읽어요.</p>\n'
+                            f'<nav><ol>{nav}</ol></nav>\n' + "".join(
+                f'<section aria-labelledby="s{i}"><h2 id="s{i}">차트 {i + 1}</h2>\n{f}\n</section>\n' for i, f in enumerate(charts)))
             self.assertEqual(assemble(str(body), str(page)).returncode, 0)
             r = subprocess.run([sys.executable, str(CHECK), str(page)], capture_output=True, text=True)
             self.assertEqual(r.stdout.splitlines()[-1], "pass", r.stdout)
