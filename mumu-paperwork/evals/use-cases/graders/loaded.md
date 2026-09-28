@@ -1,6 +1,6 @@
 ---
 type: tool_used
 tool: Skill
-input_match: writing
+input_match: rendering
 arm: both
 ---
