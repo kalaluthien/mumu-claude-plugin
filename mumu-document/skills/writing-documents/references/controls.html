@@ -4,12 +4,13 @@
   controls and readouts.
   slider: a label holding the name, an input type="range" name="<n>" with min, max, step and value, and an empty
   output data-unit="<unit>" the script fills with the value.
-  toggle: a div role="group" data-name="<n>" aria-label="<name>" of buttons with data-value; the first is pressed.
+  toggle: a div role="group" data-choice (page's choice) data-name="<n>" aria-label="<name>" of buttons with data-value.
   stage: the script sets each control on the .stage as data-<n>="<value>" and, when a number, --<n>; the author's
   style draws with var(--<n>, <start>) in calc(), as r, cx, width, opacity or transform, and picks a toggle's look by
   .stage[data-<n>="<v>"]; a `controls` event on the figure carries { values, stage } for a script of the author's own.
-  readout: an output data-calc="<arithmetic over the names, Math.* allowed>" data-digits="<decimals>" data-unit="<unit>"
-  shows the result, in the stage for a number alone or in the panel.
+  readout: an output data-calc="<arithmetic over the names>" data-digits="<decimals>" data-unit="<unit>" shows the
+  result, in the stage for a number alone or in the panel; the arithmetic is numbers, names, + - * / % **, brackets,
+  and Math's constants and functions (Math.PI, Math.sqrt(x)), read by a parser of its own, as a host may forbid eval.
   use when: the reader learns how a result depends on one to four inputs by moving them.
   not when: the reader only needs the values (a table), or the steps come in an order (slide). -->
 <style>
@@ -22,9 +23,6 @@
     & .panel label { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 var(--sp-2); font-size: var(--fs-m); }
     & .panel label input { grid-column: 1 / -1; order: 1; width: 100%; margin: 0; accent-color: var(--accent); }
     & .panel output { font-variant-numeric: tabular-nums; }
-    & [role="group"] { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
-    & [role="group"] button + button { margin-inline-start: calc(-1 * var(--sp-1) - var(--line)); }
-    & [aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
   }
 </style>
 <script>
@@ -39,9 +37,46 @@
         toggles.forEach((g) => { v[g.dataset.name] = (g.querySelector('[aria-pressed="true"]') || g).dataset.value || ''; });
         return v;
       };
+      // arithmetic over the names, read without eval: numbers, names, + - * / % **, brackets and Math.<name>
+      const evaluate = (text, v) => {
+        const tokens = text.match(/\d*\.?\d+(?:e[+-]?\d+)?|Math\.\w+|\w+|\*\*|\S/gi) || [];
+        let i = 0;
+        const peek = () => tokens[i], take = (t) => { if (tokens[i] !== t) throw new SyntaxError(text); i++; };
+        const sum = () => {
+          let r = product();
+          while (peek() === '+' || peek() === '-') r = tokens[i++] === '+' ? r + product() : r - product();
+          return r;
+        };
+        const product = () => {
+          let r = unary();
+          while (['*', '/', '%'].includes(peek())) { const op = tokens[i++], x = unary(); r = op === '*' ? r * x : op === '/' ? r / x : r % x; }
+          return r;
+        };
+        const unary = () => (peek() === '-' ? (i++, -unary()) : peek() === '+' ? (i++, unary()) : power());
+        const power = () => { const b = atom(); if (peek() === '**') { i++; return b ** unary(); } return b; };
+        const atom = () => {
+          const t = tokens[i++];
+          if (t === '(') { const r = sum(); take(')'); return r; }
+          if (/^[\d.]/.test(t)) return +t;
+          if (/^Math\./.test(t) && Object.hasOwn(Math, t.slice(5))) {
+            const m = Math[t.slice(5)];
+            if (typeof m === 'number') return m;
+            take('(');
+            const args = peek() === ')' ? [] : [sum()];
+            while (peek() === ',') { i++; args.push(sum()); }
+            take(')');
+            return m(...args);
+          }
+          if (t !== undefined && Object.hasOwn(v, t)) return v[t] === '' ? NaN : +v[t];
+          throw new SyntaxError(text);
+        };
+        const r = sum();
+        if (i < tokens.length) throw new SyntaxError(text);
+        return r;
+      };
       const calc = (out, v) => {
         let r;
-        try { r = new Function(...Object.keys(v), `return (${out.dataset.calc});`)(...Object.values(v)); } catch (e) { r = NaN; }
+        try { r = evaluate(out.dataset.calc, v); } catch (e) { r = NaN; }
         const d = out.dataset.digits;
         const text = typeof r === 'number' ? r.toLocaleString('ko', d ? { minimumFractionDigits: +d, maximumFractionDigits: +d } : {}) : String(r);
         out.textContent = text + (out.dataset.unit || '');
@@ -63,14 +98,7 @@
         if (stage) paint(stage, v);
         root.querySelectorAll('output[data-calc]').forEach((o) => { if (!o.closest('.stage')) calc(o, v); });
       };
-      const press = (g, b) => g.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b));
-      toggles.forEach((g) => {
-        const buttons = [...g.querySelectorAll('button')];
-        buttons.forEach((b, i) => {
-          b.setAttribute('aria-pressed', i === 0);
-          b.addEventListener('click', () => { press(g, b); update(); });
-        });
-      });
+      toggles.forEach((g) => g.addEventListener('change', update));
       sliders.forEach((s) => s.addEventListener('input', update));
       root.classList.add('live');
       update();
@@ -83,7 +111,7 @@
   <div class="stage">{{an SVG drawn with the controls, or an output with data-calc}}</div>
   <div class="panel">
     <label>{{name}} <input type="range" name="{{n}}" min="{{min}}" max="{{max}}" step="{{step}}" value="{{start}}"><output data-unit="{{unit}}"></output></label>
-    <div role="group" data-name="{{n}}" aria-label="{{name}}">
+    <div role="group" data-choice data-name="{{n}}" aria-label="{{name}}">
       <button type="button" data-value="{{value}}">{{value name}}</button>
     </div>
     <output data-calc="{{arithmetic over the names}}" data-digits="{{decimals}}" data-unit="{{unit}}"></output>

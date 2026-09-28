@@ -116,8 +116,8 @@ FOCUS = """() => { const a = document.activeElement;
   return [a.textContent.trim().slice(0, 20), !!a.closest('nav:not(.open)') && innerWidth < 1200, !a.checkVisibility({ visibilityProperty: true })]; }"""
 
 
-def aids(width, steps):
-    """Run `steps(page)` on tests/pages/widgets.html assembled, `width` px wide."""
+def aids(width, steps, head=""):
+    """Run `steps(page)` on tests/pages/widgets.html assembled, `width` px wide, `head` put before its first script."""
     import subprocess
     import sys
     from playwright.sync_api import sync_playwright
@@ -125,6 +125,8 @@ def aids(width, steps):
         f = pathlib.Path(d) / "page.html"
         subprocess.run([sys.executable, str(ASSEMBLE), str(ROOT / "tests" / "pages" / "widgets.html"), str(f)], check=True,
                        capture_output=True)
+        if head:
+            f.write_text(f.read_text().replace("<main>", head + "<main>", 1))
         browser = p.chromium.launch(executable_path=str(CHROME))
         try:
             page = browser.new_page(viewport={"width": width, "height": 800})
@@ -168,6 +170,39 @@ class ReadingAids(unittest.TestCase):
             page.mouse.click(390, 400)
             return out + [shown(False)]
         self.assertEqual(aids(400, steps), [False, True, True, False, "contents", False])
+
+    def test_open_drawer_keeps_tab_inside_it(self):
+        def steps(page):
+            page.click(".dock .contents")
+            page.wait_for_function("document.querySelector('main nav').checkVisibility({ visibilityProperty: true })")
+            seen = []
+            for _ in range(30):
+                page.keyboard.press("Tab")
+                seen.append(page.evaluate("""() => { const a = document.activeElement;
+                  return [a.textContent.trim().slice(0, 20), a === document.body || !!a.closest('main nav')]; }"""))
+            return seen
+        seen = aids(400, steps)
+        self.assertEqual([s for s in seen if not s[1]], [], seen)
+        self.assertTrue(any(s[0] for s in seen), seen)
+
+    def test_back_waits_for_a_slow_chapter(self):
+        # the chapter script's hashchange handler, the first one registered, runs 300 ms late
+        slow = """<script>(() => { const add = window.addEventListener; let first = true;
+          window.addEventListener = function (type, fn, ...rest) {
+            if (type === 'hashchange' && first) { first = false; const f = fn; fn = (e) => setTimeout(() => f(e), 300); }
+            return add.call(this, type, fn, ...rest); }; })();</script>"""
+        def steps(page):
+            page.evaluate("document.querySelector('#c1 + p a').scrollIntoView()")
+            page.wait_for_timeout(200)
+            y = page.evaluate("scrollY")
+            page.click("#c1 + p a")
+            page.wait_for_timeout(500)
+            page.click(".dock .back")
+            page.wait_for_timeout(800)
+            return [y, page.evaluate("[scrollY, location.hash]")]
+        y, back = aids(400, steps, head=slow)
+        self.assertEqual(back[1], "#c1")
+        self.assertLessEqual(abs(back[0] - y), 2, (y, back))
 
     def test_drawer_docks_open_from_1200px(self):
         r = aids(1300, lambda page: page.evaluate("""() => { const nav = document.querySelector('main nav');

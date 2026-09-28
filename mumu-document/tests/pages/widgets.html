@@ -64,13 +64,13 @@
   <h2 id="c2">거르기</h2>
   <h3 id="c2-table">작업 표</h3>
   <div data-widget="filter" data-for="jobs" data-unit="개">
-    <div role="group" data-facet="p" aria-label="우선순위">
+    <div role="group" data-choice data-facet="p" aria-label="우선순위">
       <button type="button" data-tag="">전체</button><button type="button" data-tag="P0">P0</button><button type="button" data-tag="P1">P1</button><button type="button" data-tag="P2">P2</button>
     </div>
-    <div role="group" data-facet="stage" aria-label="단계">
+    <div role="group" data-choice data-facet="stage" aria-label="단계">
       <button type="button" data-tag="">전체</button><button type="button" data-tag="1">1단계</button><button type="button" data-tag="2">2단계</button><button type="button" data-tag="3">3단계</button>
     </div>
-    <input type="search" aria-label="작업 이름이나 설명에서 찾기" placeholder="찾을 말">
+    <label>작업 이름이나 설명에서 찾기 <input type="search" placeholder="찾을 말"></label>
     <output aria-live="polite"></output>
   </div>
   <div class="scroll" id="jobs" role="region" aria-labelledby="t-jobs" tabindex="0"><table>
@@ -93,7 +93,7 @@
   </table></div>
   <h3 id="c2-cards">주제 목록</h3>
   <div data-widget="filter" data-for="topics" data-unit="개">
-    <div role="group" data-facet="kind" aria-label="갈래">
+    <div role="group" data-choice data-facet="kind" aria-label="갈래">
       <button type="button" data-tag="">전체</button><button type="button" data-tag="빛">빛</button><button type="button" data-tag="구도">구도</button><button type="button" data-tag="색">색</button>
     </div>
     <output aria-live="polite"></output>
@@ -121,7 +121,7 @@
     <div class="panel">
       <label>크기 <input type="range" name="size" min="10" max="50" step="1" value="20"><output data-unit="px"></output></label>
       <label>밝기 <input type="range" name="light" min="10" max="100" step="10" value="50"><output data-unit="%"></output></label>
-      <div role="group" data-name="tone" aria-label="색">
+      <div role="group" data-choice data-name="tone" aria-label="색">
         <button type="button" data-value="warm">따뜻하게</button><button type="button" data-value="cool">차갑게</button>
       </div>
       <p>넓이 <output data-calc="Math.PI * size * size" data-digits="0" data-unit="px²"></output></p>
