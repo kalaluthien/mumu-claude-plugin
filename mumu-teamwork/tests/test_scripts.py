@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 HOOK = pathlib.Path(__file__).resolve().parent.parent / "scripts" / "bash-guard.py"
@@ -704,6 +705,67 @@ print(text)
 '''
 
 
+# A usage-limit rejection as Claude Code 2.1.283 wrote it to a transcript, trimmed of its usage and ids.
+def rejection(at):
+    return {"parentUuid": "d675", "isSidechain": False, "type": "assistant", "uuid": "8ca9", "timestamp": "2026-09-27T14:35:27.517Z",
+            "message": {"model": "<synthetic>", "role": "assistant", "stop_reason": "stop_sequence", "type": "message",
+                        "content": [{"type": "text", "text": "You've hit your session limit · resets 12:20am (Asia/Seoul)"}]},
+            "quotaLimits": {"status": "rejected", "resetsAt": at, "unifiedRateLimitFallbackAvailable": False,
+                            "rateLimitType": "five_hour", "overageStatus": "rejected", "isUsingOverage": False},
+            "error": "rate_limit", "isApiErrorMessage": True, "apiErrorStatus": 429, "sessionId": "cc15"}
+
+
+REPLY = {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "done"}]}}
+
+
+class UsageLimit(unittest.TestCase):
+    """`team-watch.py`'s reading of a transcript's tail."""
+
+    watch = importlib.machinery.SourceFileLoader("team_watch", str(SCRIPTS / "team-watch.py")).load_module()
+
+    def test_a_rejection_ahead_is_a_limit_and_a_passed_one_none(self):
+        now = 1_790_500_000
+        ahead, passed = self.watch.stall([json.dumps(rejection(now + 60))]), self.watch.stall([json.dumps(rejection(now - 60))])
+        self.assertEqual((ahead, passed), (now + 60, now - 60))
+        self.assertEqual(self.watch.limit([ahead, None], now), now + 60)
+        self.assertIsNone(self.watch.limit([passed, None], now))
+        self.assertEqual(self.watch.stalled([passed, ahead, None], now), [now - 60])
+
+    def test_a_cut_or_garbage_line_is_ignored_and_a_later_reply_clears_it(self):
+        line = json.dumps(rejection(1_790_500_000))
+        self.assertIsNone(self.watch.stall([line[40:], "garbage \"assistant\" {", "[\"assistant\"]"]))
+        self.assertEqual(self.watch.stall([line[40:]], prior=7), 7)
+        self.assertEqual(self.watch.stall([line, line[:-5]]), 1_790_500_000)
+        self.assertIsNone(self.watch.stall([line, json.dumps(REPLY)]))
+        self.assertEqual(self.watch.stall([json.dumps({"type": "user", "message": {"content": "hi"}})], prior=7), 7)
+
+    def test_the_tail_starts_at_its_bound_and_keeps_an_unfinished_line_for_the_next_read(self):
+        tmp = pathlib.Path(tempfile.mkdtemp())
+        path = tmp / "projects" / "-w" / "s-1.jsonl"
+        path.parent.mkdir(parents=True)
+        path.write_text(json.dumps(rejection(1)) + "\n" + "x" * self.watch.TAIL + "\n")
+        os.environ["CLAUDE_CONFIG_DIR"] = str(tmp)
+        try:
+            t = self.watch.Transcripts()
+        finally:
+            del os.environ["CLAUDE_CONFIG_DIR"]
+        self.assertEqual(t.stalls(["s-1", "s-none"]), [None])  # the rejection lies before the tail
+        line = json.dumps(rejection(9))
+        with path.open("a") as f:
+            f.write(line[:30])
+        self.assertEqual(t.stalls(["s-1"]), [None])
+        with path.open("a") as f:
+            f.write(line[30:] + "\n")
+        self.assertEqual(t.stalls(["s-1"]), [9])
+
+    def test_the_reset_line_names_each_worker_and_waits_for_nothing_while_the_lead_works(self):
+        words = {"a-1-1": "idle", "b-2-1": "working", "c-3-1": "idle"}
+        line = self.watch.reset_line(1_790_522_400, words, "idle")
+        self.assertTrue(line.endswith(": idle a-1-1 c-3-1; working b-2-1"), line)
+        self.assertIsNone(self.watch.reset_line(1_790_522_400, {"b-2-1": "working"}, "working"))
+        self.assertIsNotNone(self.watch.reset_line(1_790_522_400, words, "working"))
+
+
 class TeamWatch(unittest.TestCase):
     def setUp(self):
         self.tmp = pathlib.Path(tempfile.mkdtemp())
@@ -716,7 +778,7 @@ class TeamWatch(unittest.TestCase):
     def herdr(self, poll, *agents):
         """herdr's answer from poll `poll` on: `(name, status, in this checkout)` per agent, or `FAIL`."""
         text = "FAIL" if agents == ("FAIL",) else json.dumps({"result": {"agents": [
-            {"name": n, "agent_status": s, "pane_id": f"p-{n}",
+            {"name": n, "agent_status": s, "pane_id": f"p-{n}", "agent_session": {"kind": "id", "value": f"s-{n}"},
              "cwd": str(self.checkout / ".claude" / "worktrees" / n if mine else self.tmp / "other" / n)}
             for n, s, mine in agents]}})
         (self.tmp / f"herdr.{poll}").write_text(text)
@@ -727,11 +789,12 @@ class TeamWatch(unittest.TestCase):
 
     def run_watch(self, ticks, idle="1000", role=None, lead="repo-lead"):
         env = dict(os.environ, WATCH_FAKE=str(self.tmp), PATH=f"{self.tmp}:{os.environ['PATH']}", HERDR_PANE_ID=f"p-{lead}",
-                   MONITOR_POLL="0.01", MONITOR_TICKS=str(ticks), TEAM_WATCH_IDLE=idle)
+                   MONITOR_POLL="0.01", MONITOR_TICKS=str(ticks), TEAM_WATCH_IDLE=idle, TEAM_WATCH_MARGIN="0",
+                   CLAUDE_CONFIG_DIR=str(self.tmp / "config"))
         env.pop("MUMU_ROLE", None)
         if role:
             env["MUMU_ROLE"] = role
-        done = subprocess.run([sys.executable, str(SCRIPTS / "team-watch.py")], cwd=self.checkout, env=env,
+        done = subprocess.run([sys.executable, str(SCRIPTS / "team-watch.py"), str(self.tmp / "data")], cwd=self.checkout, env=env,
                               capture_output=True, text=True, timeout=60)
         self.assertEqual(done.returncode, 0, done.stderr)
         return done.stdout.splitlines()
@@ -815,6 +878,40 @@ class TeamWatch(unittest.TestCase):
         self.folders(("working", "working"), ("blocked", "idle"), ("working", "blocked"), ("idle", "working"))
         self.run_watch(ticks=12, lead="team-lead")
         self.assertEqual(self.polls("gh.view"), 2)
+
+    def transcript(self, name, *entries):
+        """Session `s-<name>`'s transcript in the fake config folder, appended with `entries`."""
+        path = self.tmp / "config" / "projects" / f"-work-{name}" / f"s-{name}.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a") as f:
+            f.writelines(json.dumps(e) + "\n" for e in entries)
+
+    def reset(self, at):
+        return f"usage reset {datetime.datetime.fromtimestamp(at).strftime('%H:%M')}"
+
+    def test_a_limit_holds_every_line_then_one_reset_line_names_the_workers(self):
+        at = int(time.time()) + 2
+        self.transcript("fix-a-12-1", REPLY, rejection(at))
+        self.herdr(0, ("repo-lead", "idle", False), ("fix-a-12-1", "working", True), ("fix-b-13-1", "working", True))
+        self.herdr(1, ("repo-lead", "idle", False), ("fix-a-12-1", "idle", True), ("fix-b-13-1", "working", True))
+        self.held(0, "https://github.com/o/r/issues/7")
+        self.assertEqual(self.run_watch(ticks=8), [f"{self.reset(at)}: idle fix-a-12-1; working fix-b-13-1"])
+        self.assertEqual(self.run_watch(ticks=8), [])  # the same data folder: claimed
+
+    def test_a_run_started_after_the_reset_on_a_stalled_session_prints_one_line(self):
+        at = int(time.time()) - 60
+        self.transcript("repo-lead", rejection(at))
+        self.herdr(0, ("repo-lead", "idle", False), ("fix-a-12-1", "idle", True))
+        self.assertEqual(self.run_watch(ticks=8), [f"{self.reset(at)}: idle fix-a-12-1"])
+
+    def test_a_reply_after_the_rejection_or_a_working_lead_prints_no_reset_line(self):
+        at = int(time.time()) - 60
+        self.transcript("fix-a-12-1", rejection(at), REPLY)
+        self.transcript("fix-b-13-1", rejection(at))
+        self.herdr(0, ("repo-lead", "working", False), ("fix-a-12-1", "working", True), ("fix-b-13-1", "working", True))
+        self.assertEqual(self.run_watch(ticks=8), [])
+        self.herdr(0, ("repo-lead", "idle", False), ("fix-a-12-1", "idle", True))
+        self.assertEqual(self.run_watch(ticks=8), ["idle fix-a-12-1"])
 
     def test_in_a_worker_session_it_exits_at_once(self):
         self.herdr(0, ("fix-a-12-1", "blocked", True))

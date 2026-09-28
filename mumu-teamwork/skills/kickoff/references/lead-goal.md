@@ -11,6 +11,7 @@
    - `gone <name>` while its task is open: `start` it again with `--continue`;
    - `idle <name>`: `read` its task and pull request, answer what waits on you, else `prompt` the worker `see <task-url>`;
    - `team idle <m>m`, or you resumed: `read` each open root task you hold, and its pull request or report comment, and act on each as if its notice had arrived;
+   - `usage reset <time>: idle <names>; working <names>`, a usage limit just lifted: act as on `team idle`, and `prompt` each worker named idle `see <its task-url>`;
    - `working <name>`: nothing; a monitor's expiry notice: arm the command the Stop hook names;
    - after a `/reload-plugins`: arm the command the Stop hook names when no team-watch of yours is live, and `prompt` each of your live workers `see <its task-url>`, since a reload may end the monitor and leaves every worker idle;
    - the owner changes direction: `decide` the change on each issue affected and `prompt` its worker `see <task-url>`; built work the owner rejects is replanned on the same task, reopened with its criteria widened by `decide.py --criteria` and its title and `## Goal` rewritten as Filing says, and led under a new attempt, its pull request closed unmerged and named on it as content to read, never form to follow;
