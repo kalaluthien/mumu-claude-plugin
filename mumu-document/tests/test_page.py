@@ -214,6 +214,10 @@ CELLS = """() => [...document.querySelectorAll('#t-jobs ~ tbody :is(th, td), #t-
   }
   return [c.classList.contains('num'), c.textContent.trim(), lines.size, Math.min(...lines.values())]; })"""
 WIDE = """() => [document.documentElement.scrollWidth, innerWidth]"""
+# page width, then the marked line's box width against its pre's content box width
+QUOTE = """() => { const pre = document.querySelector('figure.code pre'), s = getComputedStyle(pre);
+  return [document.documentElement.scrollWidth, innerWidth, pre.querySelector('mark').getBoundingClientRect().width,
+    pre.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight)]; }"""
 
 
 def overflow_page(width, steps):
@@ -262,6 +266,11 @@ class PhoneType(unittest.TestCase):
                 scroll, inner, back = overflow_page(width, steps)
                 self.assertTrue(back)
                 self.assertLessEqual(scroll, inner)
+
+    def test_code_quote_fits_and_marks_whole_line(self):
+        scroll, inner, mark, content = overflow_page(320, lambda page: page.evaluate(QUOTE))
+        self.assertLessEqual(scroll, inner, "a long path caption widens the page")
+        self.assertAlmostEqual(mark, content, delta=1, msg="the mark fills the pre's line")
 
 
 if __name__ == "__main__":

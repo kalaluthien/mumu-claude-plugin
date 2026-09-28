@@ -127,6 +127,11 @@ page, commit it beside the page.
   brackets, as 지연(ms), or in each cell; on a chart's axes and a diagram's
   labels. On a page, `check.py` fails a table column, a chart's included, of
   bare numbers with no unit in its header or cells.
+- Code quoted on a page sits in `<figure class="code">`: a `<figcaption>`
+  holding `<a href="…/blob/<sha>/<path>#L<a>-L<b>"><code><path>:<a>-<b></code></a>`,
+  then `<pre><code>`, `<mark>` on each line that matters, one `⋯` line per
+  cut; `check.py` fails a `pre` of 4 or more lines with no such caption. In a
+  GitHub body, quote code as a sha permalink with a line range on its own line.
 
 ## Done when
 
