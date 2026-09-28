@@ -2,20 +2,21 @@
 """Print mumu-team's size: files, features and lines by code, then instructions, duplicates, elaboration and
 terms by Sonnet against lib/size-rubric.md, each Sonnet item with its `path:line`.
 
-usage: count-units.py [<plugin-dir>] [--model <model>] [--jobs <n>] [--json <file>] [--out <dir>]
+usage: count-units.py [<plugin-dir>] [--model <model>] [--samples <n>] [--jobs <n>] [--json <file>] [--out <dir>]
 
 <plugin-dir> defaults to this plugin. Features: skills, agents, hook registrations, monitors, `bin/`
 executables and eval cases, each listed by name. Sonnet reads every `.md` file outside `tests/` and `evals/`,
-the rubric excepted, cut by code into numbered sentences: one call per file scores each sentence's
-instructions and elaboration and lists the file's terms, then one call over every instruction-bearing sentence
-finds duplicates and one over every term finds variants. --json also writes the whole result, and --out keeps
-each reply. Exit 0 counted, 2 could not run.
+the rubric excepted, cut by code into numbered sentences. Each ask runs --samples times (3) and the majority
+stands: per file, each sentence's instructions and elaboration by their median and the terms most name; over
+every instruction-bearing sentence, the duplicate groups; over every term, the variant groups. --json also
+writes the whole result, and --out keeps each reply, reused by a rerun into it. Exit 0 counted, 2 could not run.
 """
 import argparse
 import concurrent.futures
 import json
 import pathlib
 import re
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -24,7 +25,7 @@ import time
 PLUGIN = pathlib.Path(__file__).resolve().parents[1]
 RUBRIC = PLUGIN / "lib" / "size-rubric.md"
 SKIPPED = ("tests", "evals", "__pycache__")
-END = re.compile(r"(?<=[.?!])\s+(?=[A-Z`(\[*])")
+END = re.compile(r"(?<=[.?!])\s+(?=[A-Z`(\[*])|(?<=;)\s+")
 FILE_ASK = """Count the file {path} by the rubric. It is cut into sentences, each on a line as `id| sentence`, the id
 being its line number, a dot and its place in the line.
 Reply with only one fenced json block that scores every sentence id as [instructions, elaboration] and lists the
@@ -88,7 +89,7 @@ def texts(root):
 
 def sentences(text):
     """[(id, line, sentence)] of a Markdown file's prose: fences, headings, table rules and blank lines left out,
-    of the front matter only its description, each line cut after a sentence's end."""
+    of the front matter only its description, each line cut after a sentence's end or a semicolon."""
     out, fenced, front = [], False, text.startswith("---\n")
     for n, line in enumerate(text.splitlines(), 1):
         if front:
@@ -108,7 +109,13 @@ def sentences(text):
 
 def ask(prompt, model, name, out):
     """The last fenced json block of one fresh `claude -p` reply, the rubric as its system prompt; one retry.
-    Each call's time goes to stderr, and its reply to `name` in `out` when given."""
+    Each call's time goes to stderr, and its reply to `name` in `out` when given, which a rerun into the same
+    folder reuses."""
+    kept = out / f"{name.replace('/', '__')}.txt" if out else None
+    if kept and kept.exists():
+        blocks = re.findall(r"```(?:json)?\s*(\{.*?\})\s*```", kept.read_text(), re.S)
+        if blocks:
+            return json.loads(blocks[-1])
     system = "You count text by this rubric, exactly and the same way every time.\n\n" + RUBRIC.read_text()
     for attempt in (1, 2):
         start = time.monotonic()
@@ -117,8 +124,8 @@ def ask(prompt, model, name, out):
                                   "--strict-mcp-config", "--no-session-persistence", "--system-prompt", system],
                                  input=prompt, capture_output=True, text=True, cwd=cwd, timeout=1800)
         print(f"{name}: {time.monotonic() - start:.0f}s, exit {run.returncode}", file=sys.stderr, flush=True)
-        if out:
-            (out / f"{name.replace('/', '__')}.txt").write_text(run.stdout)
+        if kept:
+            kept.write_text(run.stdout)
         blocks = re.findall(r"```(?:json)?\s*(\{.*?\})\s*```", run.stdout, re.S)
         try:
             if not run.returncode and blocks:
@@ -135,18 +142,56 @@ def term(name):
     return re.split(r"\s+(?=[-<\[])", name)[0].strip("`").lower()
 
 
-def count_file(path, root, model, out):
-    """This file's scored sentences and its terms, each with its path and line."""
+def votes(samples, name):
+    """The name of each of `samples` asks: `name`, then `name.2` and on."""
+    return [name if k == 1 else f"{name}.{k}" for k in range(1, samples + 1)]
+
+
+def majority(groupings, samples):
+    """The groups of items that fall in one group together in more than half of `samples` groupings, joined
+    where they share an item, in the order first seen."""
+    together, order = {}, {}
+    for groups in groupings:
+        for group in groups:
+            for x in group:
+                order.setdefault(x, len(order))
+            for a in group:
+                for b in group:
+                    if order[a] < order[b]:
+                        together[a, b] = together.get((a, b), 0) + 1
+    parent = {x: x for x in order}
+
+    def top(x):
+        while parent[x] != x:
+            x = parent[x]
+        return x
+    for (a, b), n in together.items():
+        if n * 2 > samples:
+            parent[top(b)] = top(a)
+    out = {}
+    for x in sorted(order, key=order.get):
+        out.setdefault(top(x), []).append(x)
+    return [g for g in out.values() if len(g) > 1]
+
+
+def count_file(path, root, model, out, samples, pool):
+    """This file's sentences, each scored by the median of `samples` asks, and the terms more than half of them
+    name, each with its path and line."""
     rel = path.relative_to(root).as_posix()
     cut = sentences(path.read_text())
-    found = ask(FILE_ASK.format(path=rel, text="\n".join(f"{i}| {s}" for i, _, s in cut)), model, rel, out)
-    scores = found["sentences"]
+    prompt = FILE_ASK.format(path=rel, text="\n".join(f"{i}| {s}" for i, _, s in cut))
+    found = list(pool.map(lambda name: ask(prompt, model, name, out), votes(samples, rel)))
     rows = []
     for i, n, s in cut:
-        instructions, elaboration = (list(scores.get(i) or [0, 0]) + [0, 0])[:2]
+        scored = [(list(f["sentences"].get(i) or [0, 0]) + [0, 0])[:2] for f in found]
         rows.append({"id": f"{rel}#{i}", "path": rel, "line": n, "text": s,
-                     "instructions": int(instructions), "elaboration": int(elaboration)})
-    terms = [{"name": term(t["name"]), "path": rel, "line": int(t["line"])} for t in found["terms"] if term(t["name"])]
+                     "instructions": statistics.median_low(int(x[0]) for x in scored),
+                     "elaboration": statistics.median_low(int(x[1]) for x in scored)})
+    named = {}
+    for f in found:
+        for name, t in {term(t["name"]): t for t in f["terms"] if term(t["name"])}.items():
+            named.setdefault(name, []).append(int(str(t["line"]).split(".")[0]))
+    terms = [{"name": name, "path": rel, "line": min(at)} for name, at in named.items() if len(at) * 2 > samples]
     return rows, terms
 
 
@@ -155,23 +200,25 @@ def line_of(root, item):
     return source[item["line"] - 1].strip() if 0 < item["line"] <= len(source) else ""
 
 
-def count(root, model, jobs, out=None):
-    with concurrent.futures.ThreadPoolExecutor(jobs) as pool:
-        per_file = list(pool.map(lambda p: count_file(p, root, model, out), texts(root)))
-    rows = [r for f, _ in per_file for r in f]
-    directing = [r for r in rows if r["instructions"]]
-    listing = "\n".join(f"{r['id']} | {r['path']}:{r['line']} | {r['text']}" for r in directing)
-    by_id = {r["id"]: r for r in directing}
-    groups = [[by_id[x] for x in dict.fromkeys(g) if x in by_id]
-              for g in ask(DUPLICATE_ASK.format(items=listing), model, "duplicates", out)["groups"]]
-    first = {}
-    for t in (t for _, ts in per_file for t in ts):
-        first.setdefault(t["name"], t)
-    listing = "\n".join(f"{name} | {t['path']}:{t['line']} | {line_of(root, t)}" for name, t in first.items())
-    variants = [[first[term(n)] for n in dict.fromkeys(v) if term(n) in first]
-                for v in ask(VARIANT_ASK.format(items=listing), model, "variants", out)["variants"]]
-    return {"sentences": rows, "duplicates": [g for g in groups if len(g) > 1], "terms": list(first.values()),
-            "variants": [v for v in variants if len(v) > 1]}
+def count(root, model, jobs, out=None, samples=3):
+    with concurrent.futures.ThreadPoolExecutor(jobs) as pool, concurrent.futures.ThreadPoolExecutor(jobs) as asks:
+        per_file = list(pool.map(lambda p: count_file(p, root, model, out, samples, asks), texts(root)))
+        rows = [r for f, _ in per_file for r in f]
+        by_id = {r["id"]: r for r in rows if r["instructions"]}
+        prompt = DUPLICATE_ASK.format(items="\n".join(f"{i} | {r['path']}:{r['line']} | {r['text']}" for i, r in by_id.items()))
+        groups = majority([[[x for x in dict.fromkeys(g) if x in by_id] for g in reply["groups"]]
+                           for reply in asks.map(lambda name: ask(prompt, model, name, out), votes(samples, "duplicates"))],
+                          samples)
+        first = {}
+        for t in (t for _, ts in per_file for t in ts):
+            first.setdefault(t["name"], t)
+        prompt = VARIANT_ASK.format(items="\n".join(f"{name} | {t['path']}:{t['line']} | {line_of(root, t)}"
+                                                     for name, t in first.items()))
+        variants = majority([[[term(n) for n in dict.fromkeys(v) if term(n) in first] for v in reply["variants"]]
+                             for reply in asks.map(lambda name: ask(prompt, model, name, out), votes(samples, "variants"))],
+                            samples)
+    return {"sentences": rows, "duplicates": [[by_id[x] for x in g] for g in groups], "terms": list(first.values()),
+            "variants": [[first[n] for n in v] for v in variants]}
 
 
 def where(item):
@@ -182,9 +229,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("dir", nargs="?", type=pathlib.Path, default=PLUGIN)
     parser.add_argument("--model", default="sonnet")
-    parser.add_argument("--jobs", type=int, default=8)
+    parser.add_argument("--jobs", type=int, default=24)
     parser.add_argument("--json", type=pathlib.Path)
     parser.add_argument("--out", type=pathlib.Path)
+    parser.add_argument("--samples", type=int, default=3)
     args = parser.parse_args()
     root = args.dir.resolve()
     if args.out:
@@ -198,7 +246,7 @@ def main():
         print(f"  {kind} {len(names)}: {', '.join(names)}")
     print(f"lines {total}: " + ", ".join(f"{k} {v}" for k, v in by_kind.items()))
     try:
-        units = count(root, args.model, args.jobs, args.out)
+        units = count(root, args.model, args.jobs, args.out, args.samples)
     except (RuntimeError, subprocess.TimeoutExpired, KeyError, TypeError, ValueError, AttributeError) as error:
         print(f"could not count: {error}", file=sys.stderr)
         return 2

@@ -1,8 +1,9 @@
 # Size rubric
 
 How `scripts/count-units.py` has Sonnet count mumu-team's text: every `.md`
-file outside `tests/` and `evals/`, this one excepted, cut by code into
-sentences, each with an id and its line. Score every sentence as
+file outside `tests/` and `evals/`, this one excepted, cut by code at each
+sentence end and semicolon into sentences, each with an id and its line. Score
+every sentence as
 [instructions, elaboration]; a sentence with neither, such as a table row that
 only defines, scores [0, 0].
 
@@ -11,7 +12,9 @@ only defines, scores [0, 0].
 One independent directive that changes the reader's next action: what to do,
 never to do, or the condition that decides which. A sentence or table row
 carrying several directives scores each; a definition of a name directs
-nothing unless it also says what to do.
+nothing unless it also says what to do. A rule the reader applies counts even
+when stated as a fact: a criterion, a pass condition, an item of a checklist,
+what a role the file addresses does (`You alone write APPROVED:`).
 
 - Counts, as two: `Prefer dedicated file and search tools to the shell; run independent calls in parallel.`
 - Does not count: `| topic | 2-4 lowercase words joined by hyphens |`, a definition.
