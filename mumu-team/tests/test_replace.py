@@ -138,6 +138,28 @@ class Replace(unittest.TestCase):
             self.assertFalse(self.calls(), extra)
 
 
+class ExitSelf(unittest.TestCase):
+    """`worker-close.py --self`: an idle lead exits its own session once its turn ends, from a detached child."""
+    setUp, calls, wait_for = Replace.setUp, Replace.calls, Replace.wait_for
+
+    def test_self_exits_the_caller_after_its_turn_and_closes_its_tab(self):
+        done = subprocess.run([sys.executable, str(BIN / "worker-close.py"), "--self"], env=self.env, capture_output=True, text=True, timeout=30)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        time.sleep(0.3)
+        self.assertNotIn(["herdr", "agent", "prompt", CALLER, "/exit"], [c["call"] for c in self.calls()], "exit sent during the turn")
+        (self.tmp / "turn-ended").touch()
+        calls = self.wait_for(["herdr", "tab", "close", CALLER_TAB])
+        self.assertNotEqual({c["sid"] for c in calls}, {os.getsid(0)}, "the close ran in the caller's own session")
+        self.assertFalse((self.tmp / "alive").exists(), "the caller left running")
+
+    def test_self_needs_herdr(self):
+        env = dict(self.env)
+        del env["HERDR_PANE_ID"]
+        done = subprocess.run([sys.executable, str(BIN / "worker-close.py"), "--self"], env=env, capture_output=True, text=True, timeout=30)
+        self.assertEqual(done.returncode, 2)
+        self.assertFalse(self.calls())
+
+
 class HandoffStep(unittest.TestCase):
     """handoff's step for the owner asking a plain session to become the lead: one literal `lead-start.py --replace` call."""
 

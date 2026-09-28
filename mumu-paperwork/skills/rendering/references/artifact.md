@@ -26,12 +26,12 @@ widget fails `check.py`.
 ## Korean
 
 Every visible word is Korean, a widget's fixed words and each control
-included, in the polite -요 or -니다, never a plain -다, and in everyday words.
+included, in the formal -습니다/-ㅂ니다, never -요 or a plain -다, and in everyday words.
 English stays only inside `<code>` or as a name or path; a technical term
 appears once as Korean with the English in parentheses, as 큐(queue). A heading
-stays a noun phrase: 작업 큐의 구조, not 작업 큐는 세 파일이에요. A sentence reads
+stays a noun phrase: 작업 큐의 구조, not 작업 큐는 세 파일입니다. A sentence reads
 as a Korean speaker would say it: no English word order, no stacked nouns, no
-borrowed metaphor (스타일을 품어요 → 스타일을 파일 안에 담고 있어요).
+borrowed metaphor (스타일을 품습니다 → 스타일을 파일 안에 담고 있습니다).
 
 ## Delivery and check
 
