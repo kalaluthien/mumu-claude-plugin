@@ -49,7 +49,7 @@ def network(tasks=TASKS):
         for i, (label, kind, name, links) in enumerate(tasks, 1))
     return ('<section aria-labelledby="n"><h2 id="n">작업이 서로 막는 관계</h2>\n'
             '<div data-widget="diagram" data-diagram="network" data-kinds="할 일|진행 중|끝남">\n'
-            f'<figure class="stage scroll" tabindex="0"><dl>\n{rows}</dl>\n'
+            f'<figure class="stage scroll" tabindex="0" aria-labelledby="n"><dl>\n{rows}</dl>\n'
             '<figcaption class="muted">색은 작업의 상태, 점선은 짐작한 관계예요.</figcaption></figure></div></section>')
 
 
@@ -384,9 +384,10 @@ class Diagram(unittest.TestCase):
 
     def test_must_fail_copies(self):
         source = (REFS / "diagram.html").read_text()
-        main = subprocess.run(["git", "show", "origin/main:mumu-document/skills/writing-documents/references/diagram.html"],
+        # the file before the network kind (#307), which must fail; main has the kind since
+        main = subprocess.run(["git", "show", "3734462~1:mumu-document/skills/writing-documents/references/diagram.html"],
                               capture_output=True, text=True, cwd=REFS).stdout
-        copies = {"head": (source, None), "main's diagram.html": (main, "drawn"),
+        copies = {"head": (source, None), "diagram.html before #307": (main, "drawn"),
                   "no panel update": (source.replace("        if (detail) note(on && source.get(on.el));\n", ""), "panel"),
                   "no width measurement": (source.replace("pen.measureText(t.textContent).width", "0"), "width"),
                   "no .detail exclusion": (source.replace("'.legend, .controls, .detail'", "'.legend, .controls'"), "pin")}
