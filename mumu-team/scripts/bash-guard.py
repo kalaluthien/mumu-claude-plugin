@@ -50,6 +50,7 @@ ROUTINE = {
 PREFIX = re.compile(r"(?:do|then|else|elif|!|\{|time|exec|nohup|command|env|xargs|sudo|uvx?|run|(?:python|pypy)[\d.]*|(?:ba|z|da)?sh"
                     r"|-.*|\w+=.*)", re.S)  # words that may stand before a run command: keywords, runners, flags, assignments
 SHELLS = {"bash", "sh", "zsh", "dash", "eval"}
+SUBSTITUTION = re.compile(r"\$\([^()]*\)|`[^`]*`")  # `$(...)` or `...`, which the lexer splits off its word
 JUDGE_POST = "the judge posts as one literal command, `gh pr comment <pr-url> --body '<verdict lines>'` or " \
                 "`gh issue comment <url> --body '<verdict lines>'`: no file, stdin, heredoc or `$(...)`"
 
@@ -282,11 +283,13 @@ def routine_refusal(reading):
         if found is None:
             continue
         key, at = found
-        form = [key] if isinstance(key, str) else ["git", *key]
+        other = words[1:3] if words[1:2] == ["-C"] else []  # `git -C <literal path> <step>`: a checkout other than the cwd
+        form = [key] if isinstance(key, str) else ["git", *other, *key]
         if len(reading) > 1 or at or words[:len(form)] != form or \
                 any("$" in w or "`" in w or set(w) <= set("<>&|") and set(w) & set("<>") for w in words):
             return f"a routine step runs as one literal Bash call of its own, `{ROUTINE[key]}`: by its bare name, with no path, " \
-                   "interpreter, `cd`, `&&`, `;`, pipe, loop, redirect, `git -C` or variable, so the owner's allow rule matches it"
+                   "interpreter, `cd`, `&&`, `;`, pipe, loop, redirect or variable, so the owner's allow rule matches it; in a " \
+                   "checkout other than the cwd, a git step's one option is `git -C <literal path> <step>`"
     return None
 
 
@@ -356,7 +359,7 @@ def main():
             refuse("hook bypass refused: fix what the hook refused, or BLOCKED the owner")
         if any(mentions(words) for words in readings[0] or []):
             refuse(RAW_MERGE)
-        if why := routine_refusal(readings[0]):
+        if why := routine_refusal(readings[0]) or routine_refusal(lexed(SUBSTITUTION.sub("$_", command))):
             refuse(why)
         if payload.get("agent_type") == "mumu-team:judge" and (why := judge_refusal(command)):
             refuse(why)
