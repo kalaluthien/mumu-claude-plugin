@@ -111,12 +111,19 @@ problem it poses for them, and moves from that problem to its resolution.
 Kinds: both.
 
 - 3: the opening says what is at stake for this reader; each section answers
-  the question the one before raises; the problem leads to its resolution.
+  the question the one before raises; the problem leads to its resolution;
+  and each objection or rival option this reader would raise is met where
+  it arises, a property a well-ordered page often lacks.
   Example: "A fix waits a day because builds take 20 minutes. Caching
   dependencies cuts that to 4; below is how, and when it does not help."
-- 2: one section arrives before the reader has a reason to want it.
+  Met objection: a plan to merge three repositories into one that, right
+  after the plan, asks "why not publish the shared code as a package?" and
+  answers it with the week of version bumps each change costs.
+- 2: one section arrives before the reader has a reason to want it, or one
+  objection or rival the reader would raise goes unmet.
   Example: a full setup section placed before any word on what the setup is
-  for.
+  for; or a well-ordered plan to merge three repositories that never says
+  why a shared package would not do.
 - 1: the order is the writer's (the history of the work, the file order), or
   the stake comes late or never.
   Example: "First we tried Redis. Then memcached. Then ..." with the finding
@@ -126,7 +133,7 @@ Kinds: both.
 
 Sources: Flower 1979; Swales 1990 (create a research space); Minto 2009
 (situation, complication, question); Dahlstrom 2014; Segel and Heer 2010;
-Knaflic 2015.
+Knaflic 2015; Toulmin 1958 (rebuttal).
 
 ### Pyramid and MECE
 
@@ -160,19 +167,25 @@ NN/g inverted pyramid; Digital.gov (most important first).
 An opening overview, headings and labels let the reader predict what comes,
 skim, and find a part again. Kinds: both.
 
-- 3: the opening says what follows; each heading names its content; a long
-  document can be entered at any part (headings with anchors, a contents
-  list).
+- 3: the opening says the page's plan, how its parts relate and why in
+  that order, which a contents list of titles alone does not; each heading
+  names its content; a long document can be entered at any part (headings
+  with anchors, a contents list).
   Example: "This guide covers install, configure and upgrade", then those
-  three headings, each linkable.
-- 2: one vague heading ("Notes", "Misc").
-  Example: a heading "Details" over the error codes.
+  three headings, each linkable. Plan: "First why the build slowed, then
+  the three fixes against one cost, then the order to apply them."
+- 2: one vague heading ("Notes", "Misc"), or an opening with no plan: its
+  answer, then a list of titles that never says how they connect.
+  Example: a heading "Details" over the error codes; or a page that opens
+  "Move to the new runner", then a contents list of five titles and
+  nothing on why they come in that order.
 - 1: a long run of text with no heading, or a heading that misleads.
   Example: a heading "Install" over the uninstall steps.
 - 0: one unbroken wall of text.
   Example: a two-thousand-word page in one paragraph.
 
-Sources: Lorch and Lorch 1996; ISO 24495-1 2023 (findable); Mayer and Moreno
+Sources: Lorch and Lorch 1996; Meyer, Brandt and Bluth 1980 (top-level
+structure); ISO 24495-1 2023 (findable); Mayer and Moreno
 2003 (signalling); Write the Docs (skimmable, addressable); GOV.UK content
 design.
 
@@ -183,11 +196,16 @@ opening, a heading, a first or last sentence) and the space it needs, and a
 minor point gets less. Kinds: both.
 
 - 3: after one skim the reader can name the key point; space is spent in
-  order of importance.
+  order of importance; the opening and each section end on their point, the
+  stress position, never on a caveat or aside, which a careful page often
+  lets trail its point.
   Example: the decision in the first sentence and its own section; caveats
   in a short list at the end.
-- 2: one minor point given more space or prominence than it merits.
-  Example: three paragraphs of background before a one-line result.
+- 2: one minor point given more space or prominence than it merits, or one
+  key paragraph that ends on its caveat.
+  Example: three paragraphs of background before a one-line result; or an
+  opening "Drop the legacy API in March. Two customers may not be ready",
+  the doubt in the place the reader remembers.
 - 1: the key point buried: mid-paragraph, under a minor heading, or given the
   least space of any part.
   Example: the dropped platform named once, mid-paragraph, under "Other

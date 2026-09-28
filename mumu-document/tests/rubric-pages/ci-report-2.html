@@ -1,0 +1,726 @@
+<!-- #321 D2 sample: prompt ci-report (prompts.json), page 2, written by writing-documents at 9f061ec -->
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2분기 CI가 느려지고 자주 실패한 이유와 대책</title>
+<style id="skin">
+@import url("https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap");
+/* skin: the owner's design system.
+   Look: a soft gothic page, black on white; dark mode inverts the duet. One
+   face, Nanum Gothic, for every text role: h1 and h2 at weight 800, h3 at 700,
+   prose, controls, captions, figure labels and metadata at 400; a defined
+   term (dfn) at 700, upright, since Hangul has no italic.
+   Corners square, no shadows. The
+   accent is ink: focus, hover and the current step; links take --link.
+   Borders on controls and figure boxes are body grey (3:1, so a hover to ink
+   shows); row dividers are --hairline. Figures add kinds and status colours,
+   which the magazine lacks.
+   Tokens in three tiers: a primitive (--p-*) holds a raw value two roles or
+   more share; a semantic token names a role; each widget defines its own
+   --<widget>-* tokens from semantic ones and reads nothing else.
+   Layout: one column of --page-width, a --gutter each side, sections --rhythm
+   apart; from 75rem the contents drawer docks beside it, --drawer-width wide;
+   at 320 px nothing scrolls sideways but a .scroll box, which holds a
+   table's first column in view; a long word, code or url wraps.
+   Tables: smaller type than prose; a number cell right-aligned, unwrapped;
+   a text cell at least 6em and broken between words, as Korean is set.
+   Motion: --motion-fast for hover and focus, --motion for a reveal, easing
+   --ease-out; only a change of state animates, none under reduced motion.
+   Fonts: the one fetch a page makes; offline, installed faces. */
+:root {
+  color-scheme: light dark;
+  /* primitives */
+  --p-black: #000000; --p-white: #ffffff; --p-grey-500: #757575;
+  --p-size-1: .25rem; --p-size-4: 1rem; --p-size-5: 1.75rem;
+
+  /* semantic: colour roles, each light-dark(light, dark) */
+  --text: light-dark(var(--p-black), var(--p-white));
+  --muted: light-dark(var(--p-grey-500), #a3a3a3);
+  --bg: light-dark(var(--p-white), #312e2d);
+  --fill: light-dark(var(--p-white), #3a3635);
+  --border: light-dark(var(--p-grey-500), #8a8a8a);
+  --hairline: light-dark(#e0e0e0, #4a4543);
+  --accent: light-dark(var(--p-black), var(--p-white));
+  --link: light-dark(#057dbc, #5cb8ea);
+  /* semantic: diagram palette; kinds (Okabe-Ito, told apart under
+     deuteranopia and protanopia) mark a node's kind by its edge and a chart's
+     series; status colours mark success, warning and failure in text and edges */
+  --kind-1: light-dark(#0072b2, #56b4e9);
+  --kind-2: light-dark(#d55e00, #e69f00);
+  --kind-3: light-dark(#009e73, #009e73);
+  --kind-4: light-dark(#cc79a7, #cc79a7);
+  --ok: light-dark(#1f7a3a, #6fd68a);
+  --warn: light-dark(#855600, #f2c14e);
+  --fail: light-dark(#b8302a, #ff7b72);
+  /* semantic: type, space, line, radius, layout, motion */
+  --sans: "Nanum Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --mono: ui-monospace, monospace;
+  /* type: body 10pt, each size a ratio of it; none under 12px, check.py's floor for Hangul */
+  --fs-base: 10pt; --fs-s: max(12px, .8 * var(--fs-base)); --fs-m: max(12px, .9 * var(--fs-base));
+  --fs-l: calc(1.2 * var(--fs-base)); --fs-h2: calc(1.625 * var(--fs-base)); --fs-h1: calc(2 * var(--fs-base));
+  --fs-svg: max(12px, .875 * var(--fs-base)); --fs-svg-label: max(12px, .75 * var(--fs-base));
+  --fs-table: var(--fs-m);
+  --sp-1: var(--p-size-1); --sp-2: .5rem; --sp-3: .75rem;
+  --sp-4: var(--p-size-4); --sp-5: var(--p-size-5);
+  --line: 1px; --line-strong: 2px; --line-mark: 3px;
+  --radius-s: 0;
+  --page-width: 48rem; --gutter: var(--p-size-4); --rhythm: var(--p-size-5);
+  --motion-fast: 100ms; --motion: 200ms;
+  --ease-out: cubic-bezier(.2, .7, .3, 1);
+  --scroll-step: 60vh;
+  --drawer-width: 16rem;
+  --mark: light-dark(#fff1a8, #5c4b00);
+  --disabled: .5;
+}
+:root[data-theme="light"], .theme-light { color-scheme: light; }
+:root[data-theme="dark"], .theme-dark { color-scheme: dark; }
+.theme-light, .theme-dark { background: var(--bg); color: var(--text); }
+
+/* layout */
+body { background: var(--bg); color: var(--text); margin: 0;
+       font: var(--fs-base)/1.5 var(--sans); padding: var(--rhythm) var(--gutter); overflow-wrap: break-word; }
+main { max-width: var(--page-width); margin: 0 auto; }
+h1, h2 { font-weight: 800; letter-spacing: -.01em; line-height: 1.2; }
+h1 { font-size: var(--fs-h1); margin: 0 0 var(--sp-4); }
+h2 { font-size: var(--fs-h2); margin: var(--rhythm) 0 var(--sp-2); }
+h3 { font: 700 var(--fs-l)/1.2 var(--sans); margin: var(--sp-4) 0 var(--sp-2); }
+a { color: var(--link); }
+:is(h1, h2) code { font-size: .8em; }
+.read { border-inline-start: var(--line-mark) solid var(--text); padding-inline-start: var(--sp-3); font-size: var(--fs-l); }
+.muted, footer { color: var(--muted); font-size: var(--fs-m); }
+footer { margin-top: var(--rhythm); padding-top: var(--sp-3); border-top: var(--line) solid var(--hairline); }
+code, pre { font-family: var(--mono); font-size: var(--fs-m); }
+pre { overflow-x: auto; background: var(--fill); border: var(--line) solid var(--border);
+      border-radius: var(--radius-s); padding: var(--sp-3); }
+.scroll { overflow-x: auto; }
+figure { margin: 0; }
+figure.code figcaption { overflow-wrap: anywhere; }
+pre mark { display: inline-block; min-width: 100%; background: var(--mark); color: inherit; }
+table { border-collapse: collapse; min-width: 100%; background: var(--fill); font-size: var(--fs-table); }
+th, td { border-bottom: var(--line) solid var(--hairline); padding: var(--sp-2) var(--sp-3); text-align: start; vertical-align: top;
+         word-break: keep-all; }
+:is(th, td):not(.num) { min-width: 6em; }
+tbody th { font-weight: normal; }
+dfn { font-style: normal; font-weight: 700; }
+caption { text-align: start; }
+.scroll :is(th, td):first-child { position: sticky; inset-inline-start: 0; background: var(--fill); }
+.num { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ok { color: var(--ok); } .warn { color: var(--warn); } .fail { color: var(--fail); }
+
+/* states: default, hover, focus, open, disabled; [data-state] forces one for
+   the test gallery */
+:focus-visible, [data-state="focus"] :is(summary, button, textarea, [tabindex]) {
+  outline: var(--line-strong) solid var(--accent); outline-offset: var(--line-strong); }
+summary { cursor: pointer; transition: color var(--motion-fast) var(--ease-out); }
+summary:hover, [data-state="hover"] summary { color: var(--accent); }
+details[open] > :not(summary) { animation: reveal var(--motion) var(--ease-out); }
+@keyframes reveal { from { opacity: 0; transform: translateY(calc(-1 * var(--sp-1))); } }
+button { font: 700 var(--fs-m) var(--sans); color: var(--text); background: var(--fill); cursor: pointer;
+         border: var(--line) solid var(--border); border-radius: var(--radius-s); padding: var(--sp-1) var(--sp-3);
+         transition: border-color var(--motion-fast) var(--ease-out); }
+button:hover, [data-state="hover"] button { border-color: var(--accent); }
+textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); background: var(--fill);
+           border: var(--line) solid var(--border); border-radius: var(--radius-s); }
+:disabled { opacity: var(--disabled); cursor: not-allowed; }
+
+@media screen and (min-width: 75rem) {
+  body:has(main nav.drawer) { padding-inline-start: calc(var(--drawer-width) + 2 * var(--gutter)); }
+  :root main nav.drawer { transform: none; visibility: visible; }
+  .dock .contents, .backdrop { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after { animation: none !important; transition: none !important; }
+}
+</style>
+<style>
+  .katex-display { overflow-x: auto; overflow-y: hidden; padding-block: var(--sp-1); }
+  [data-chapter] .pager { display: flex; justify-content: space-between; gap: var(--sp-3); margin-top: var(--rhythm);
+    padding-top: var(--sp-3); border-top: var(--line) solid var(--hairline); font-family: var(--sans); }
+  [data-chapter] .pager [rel="next"] { margin-inline-start: auto; text-align: end; }
+  main nav [aria-current] { color: var(--text); font-weight: 700; }
+  @media print { [data-chapter][hidden] { display: block; } [data-chapter] .pager { display: none; } }
+  [data-slide] .steps { margin: var(--sp-2) 0; }
+  [data-slide] :is(.caption, .controls) { display: none; }
+  [data-slide] .controls { gap: var(--sp-2); align-items: center; margin: var(--sp-2) 0; }
+  [data-slide] .count { color: var(--muted); font-size: var(--fs-m); }
+  @media screen and (prefers-reduced-motion: no-preference) {
+    [data-slide].live .steps { display: none; }
+    [data-slide].live .caption { display: block; }
+    [data-slide].live .controls { display: flex; }
+  }
+  @media screen and (prefers-reduced-motion: no-preference) {
+    [data-swipe].live .steps { display: flex; gap: var(--sp-2); overflow-x: auto; scroll-snap-type: x mandatory;
+      list-style: none; padding: 0; margin: var(--sp-2) 0; }
+    [data-swipe].live .steps > li { flex: 0 0 85%; scroll-snap-align: center; padding: var(--sp-2) var(--sp-3);
+      border: var(--line) solid var(--hairline); color: var(--muted); transition: color var(--motion-fast) var(--ease-out); }
+    [data-swipe].live .steps > li.now { color: var(--text); border-color: var(--accent); }
+    [data-swipe].live .steps:focus-visible { outline: var(--line-strong) solid var(--accent); }
+  }
+  main nav.drawer { position: fixed; z-index: 3; inset-block: 0; inset-inline-start: 0; overflow-y: auto;
+    width: min(var(--drawer-width), 85%); box-sizing: border-box; padding: var(--rhythm) var(--gutter);
+    background: var(--bg); border-inline-end: var(--line) solid var(--hairline); transform: translateX(-100%);
+    visibility: hidden; transition: transform var(--motion) var(--ease-out), visibility var(--motion); }
+  main nav.drawer.open { transform: none; visibility: visible; transition-property: transform; }
+  main nav.drawer ol { padding-inline-start: var(--sp-4); }
+  main nav.drawer li:not(:has(> [aria-current])) > ol { display: none; }
+  main nav.drawer a { display: block; padding-inline-start: var(--sp-2); border-inline-start: var(--line-mark) solid transparent; }
+  main nav.drawer a.here { border-color: var(--accent); color: var(--text); }
+  .backdrop { position: fixed; z-index: 2; inset: 0; background: var(--text); opacity: .3; }
+  .dock { position: fixed; z-index: 1; inset-block-end: var(--sp-4); inset-inline-end: var(--gutter); display: flex;
+    gap: var(--sp-2); max-width: calc(100% - 2 * var(--gutter)); }
+  .dock .back { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  body:has(.dock) { padding-bottom: calc(3 * var(--rhythm)); }
+  .flash { animation: flash calc(8 * var(--motion)) var(--ease-out); }
+  @keyframes flash { from { background: var(--mark); } }
+  @media print { main nav.drawer { position: static; transform: none; visibility: visible; } .dock, .backdrop { display: none; } }
+</style>
+<style>
+  [data-widget="chart"] {
+    --chart-grid: var(--hairline); --chart-axis: var(--border); --chart-gap: var(--sp-2);
+    position: relative;
+    & figcaption { margin-bottom: var(--chart-gap); }
+    & .plot { overflow-x: auto; }
+    & svg { display: block; width: 100%; font: var(--fs-svg-label) var(--sans); }
+    & svg text { fill: var(--text); }
+    & svg :is(.tick, .note) { fill: var(--muted); }
+    & svg .grid { stroke: var(--chart-grid); stroke-width: var(--line); }
+    & svg .axis { stroke: var(--chart-axis); stroke-width: var(--line); }
+    & svg .k1 { fill: var(--kind-1); stroke: var(--kind-1); } & svg .k2 { fill: var(--kind-2); stroke: var(--kind-2); }
+    & svg .k3 { fill: var(--kind-3); stroke: var(--kind-3); } & svg .k4 { fill: var(--kind-4); stroke: var(--kind-4); }
+    & svg path.line { fill: none; stroke-width: var(--line-strong); }
+    & svg .mark { outline: none; cursor: default; }
+    & svg .mark:hover, [data-state="hover"] & svg .mark:first-child { stroke: var(--accent); stroke-width: var(--line-strong); }
+    & .tip { position: absolute; z-index: 2; pointer-events: none; white-space: nowrap; font: var(--fs-m) var(--sans);
+      background: var(--fill); border: var(--line) solid var(--border); padding: var(--sp-1) var(--sp-2); }
+    & .tip[hidden] { display: none; }
+  }
+  @media screen and (prefers-reduced-motion: no-preference) {
+    [data-widget="chart"].live svg :is(.mark, .mark *, .line) { transition: x var(--motion) var(--ease-out), y var(--motion) var(--ease-out),
+      width var(--motion) var(--ease-out), height var(--motion) var(--ease-out), cx var(--motion) var(--ease-out), cy var(--motion) var(--ease-out),
+      d var(--motion) var(--ease-out), fill var(--motion) var(--ease-out); }
+  }
+</style>
+<main>
+<h1>2분기 CI가 느려지고 자주 실패한 이유와 대책</h1>
+<p class="read">CI 대기 시간은 1월 11분에서 6월 24분으로 두 배 넘게 늘었고, 4월에 넣은 브라우저 테스트와 5월에 줄인 러너(runner)와 시기가 겹칩니다. 비용이 들지 않는 두 가지, 곧 브라우저 테스트를 main 병합 때만 돌리기와 의존성 캐시를 먼저 하고, 그래도 15분 밑으로 내려가지 않으면 러너 4대를 되살리길 권합니다.</p>
+<nav><ol>
+<li><a href="#goal">목표와 완료 기준</a></li>
+<li><a href="#slower">4월과 5월에 두 번 뛴 CI 시간</a></li>
+<li><a href="#flakier">실패의 85%를 차지하는 테스트 외 원인</a></li>
+<li><a href="#options">같은 기준으로 비교한 세 가지 대책</a></li>
+<li><a href="#decide">무료 대책 먼저, 러너는 측정 뒤에</a></li>
+</ol></nav>
+
+<section aria-labelledby="goal">
+<h2 id="goal">목표와 완료 기준</h2>
+<p>목표는 CI를 3월 수준으로 되돌리는 것입니다. 아래 두 가지를 한 달 동안 지키면 완료로 봅니다.</p>
+<ul>
+<li>CI 시간 중앙값 15분 이하 (3월 14분)</li>
+<li>코드 문제가 아닌 실패(불안정한 테스트, 다운로드 시간 초과, 디스크 부족)를 지금의 절반 이하로</li>
+</ul>
+</section>
+
+<section aria-labelledby="slower">
+<h2 id="slower">4월과 5월에 두 번 뛴 CI 시간</h2>
+<p>CI 시간은 1분기에는 한 달에 1–2분씩 늘다가, 4월에 5분, 5월에 4분이 한꺼번에 늘었습니다. 4월에는 푸시마다 도는 브라우저 테스트 40개를 넣었고, 5월에는 러너를 12대에서 8대로 줄였습니다. 아래 선 그래프에서 두 번의 급등을 볼 수 있습니다. 다만 두 변화가 각각 몇 분을 늘렸는지는 따로 재지 않았으므로, 시기가 겹친다는 사실까지만 말할 수 있습니다.</p>
+<figure data-widget="chart" data-chart="line">
+<figcaption>3월에서 5월 사이 두 달 동안 9분이 늘어, 한 해 증가분의 대부분이 이때 생겼습니다.</figcaption>
+<div class="plot"></div>
+<details>
+<summary>4–5월에 급등한 월별 CI 시간</summary>
+<div class="scroll"><table>
+<thead><tr><th scope="col">월</th><th scope="col">중앙값(분)</th></tr></thead>
+<tbody>
+<tr><th scope="row">1월</th><td>11</td></tr>
+<tr><th scope="row">2월</th><td>12</td></tr>
+<tr><th scope="row">3월</th><td>14</td></tr>
+<tr data-note="브라우저 테스트 추가"><th scope="row">4월</th><td>19</td></tr>
+<tr data-note="러너 축소"><th scope="row">5월</th><td>23</td></tr>
+<tr><th scope="row">6월</th><td>24</td></tr>
+</tbody>
+</table></div>
+</details>
+</figure>
+</section>
+
+<section aria-labelledby="flakier">
+<h2 id="flakier">실패의 85%를 차지하는 테스트 외 원인</h2>
+<p>2분기(4–6월) 실패 258건 가운데 코드가 실제로 틀려서 난 실패는 38건(15%)뿐입니다. 나머지 220건(85%)은 다시 돌리면 통과할 수도 있는 실패여서, 개발자가 재실행에 시간을 씁니다. 아래 막대 그래프처럼 가장 큰 원인은 불안정한 브라우저 테스트로, 전체의 55%입니다.</p>
+<figure data-widget="chart" data-chart="bar">
+<figcaption>불안정한 브라우저 테스트 하나가 실제 실패보다 네 배 가까이 많습니다.</figcaption>
+<div class="plot"></div>
+<details>
+<summary>브라우저 테스트가 가장 큰 실패 원인</summary>
+<div class="scroll"><table>
+<thead><tr><th scope="col">실패 원인</th><th scope="col">실패 수(건, 4–6월)</th></tr></thead>
+<tbody>
+<tr data-note="전체의 55%"><th scope="row">불안정한 브라우저 테스트</th><td>142</td></tr>
+<tr><th scope="row">의존성 다운로드 시간 초과</th><td>61</td></tr>
+<tr><th scope="row">실제 테스트 실패</th><td>38</td></tr>
+<tr><th scope="row">러너 디스크 부족</th><td>17</td></tr>
+</tbody>
+</table></div>
+</details>
+</figure>
+</section>
+
+<section aria-labelledby="options">
+<h2 id="options">같은 기준으로 비교한 세 가지 대책</h2>
+<p>세 대책을 시간, 실패, 비용, 위험의 네 기준으로 비교했습니다. 아래 표의 실패 건수는 2분기 기록에서 해당 원인이 차지한 건수이고, 대책이 없앨 수 있는 최대치입니다.</p>
+<div class="scroll" role="region" aria-labelledby="t-options" tabindex="0"><table>
+<caption id="t-options">비용이 없는 두 대책이 실패 원인 대부분을 겨냥합니다</caption>
+<thead><tr><th scope="col">대책</th><th scope="col">겨냥하는 실패(건, 4–6월)</th><th scope="col">추가 비용(달러/월)</th><th scope="col">위험</th></tr></thead>
+<tbody>
+<tr><th scope="row">브라우저 테스트를 main 병합 때만 실행</th><td class="num">최대 142건</td><td class="num">0달러</td><td>불안정한 테스트를 고치지는 않고 main 쪽으로 옮기므로, main이 자주 깨질 수 있습니다.</td></tr>
+<tr><th scope="row">의존성 캐시</th><td class="num">최대 61건</td><td class="num">0달러</td><td>캐시가 오래되면 틀린 버전으로 빌드될 수 있어, 잠금 파일(lock file) 기준으로 캐시를 갱신해야 합니다.</td></tr>
+<tr><th scope="row">러너 4대 추가 (8대→12대)</th><td class="num">0건</td><td class="num">600달러 (연 7,200달러)</td><td>대기 시간만 줄이고 실패는 줄이지 않습니다. 디스크 부족 17건은 대수와 무관합니다.</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<section aria-labelledby="decide">
+<h2 id="decide">무료 대책 먼저, 러너는 측정 뒤에</h2>
+<p>이번 주에 브라우저 테스트를 main 병합 때만 돌리도록 바꾸고 의존성 캐시를 켜길 권합니다. 두 대책 모두 비용이 없고, 2분기 실패의 79%(203건)가 이 두 원인에서 나왔습니다. 브라우저 테스트가 main에서 깨지는 일을 막으려면, 자주 실패하는 테스트를 따로 골라 고치는 작업을 함께 잡아야 합니다.</p>
+<p>2주 뒤 CI 시간 중앙값을 다시 재서, 15분을 넘으면 러너 4대(월 600달러)를 되살리길 권합니다. 러너를 먼저 늘리면 시간이 얼마나 줄지는 알 수 있어도, 실패는 그대로 남습니다. 디스크 부족 17건은 어느 대책으로도 풀리지 않으므로, 러너 정리 작업을 따로 잡아야 합니다.</p>
+</section>
+
+<footer>출처: 팀 CI 기록, 2026년 1–6월 월별 중앙값과 4–6월 실패 원인 집계</footer>
+</main>
+<script>
+  // math, before the scripts that read headings: KaTeX, which assemble.py loads only for a body with TeX, sets it
+  if (window.renderMathInElement) renderMathInElement(document.querySelector('main') || document.body, {
+    delimiters: [{ left: '\\[', right: '\\]', display: true }, { left: '\\(', right: '\\)', display: false }],
+    throwOnError: false });
+</script>
+<script>
+  (() => {
+    const start = () => {
+      const chapters = [...document.querySelectorAll('[data-chapter]')];
+      if (chapters.length < 2) return;
+      const head = (c) => c.querySelector('h2');
+      chapters.forEach((c, i) => {
+        const pager = document.createElement('div');
+        pager.className = 'pager';
+        [[chapters[i - 1], 'prev'], [chapters[i + 1], 'next']].forEach(([to, rel]) => {
+          if (!to) return;
+          const a = document.createElement('a');
+          a.href = `#${head(to).id}`;
+          a.rel = rel;
+          const name = head(to).textContent.trim();
+          a.textContent = rel === 'prev' ? `← ${name}` : `${name} →`;
+          pager.append(a);
+        });
+        c.append(pager);
+      });
+      let shown = null;
+      const show = () => {
+        const id = decodeURIComponent(location.hash.slice(1));
+        const target = id ? document.getElementById(id) : null;
+        const at = !id ? chapters[0] : (target && target.closest('[data-chapter]')) || shown || chapters[0];
+        chapters.forEach((c) => { c.hidden = c !== at; });
+        document.querySelectorAll('main nav a[href^="#"]').forEach((a) => {
+          const to = document.getElementById(decodeURIComponent(a.hash.slice(1)));
+          if (to && at.contains(to)) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current');
+        });
+        shown = at;
+        if (target && at.contains(target)) target.scrollIntoView();
+      };
+      addEventListener('hashchange', show);
+      show();
+    };
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
+<script>
+  (() => {
+    const start = () => document.querySelectorAll('[data-slide]').forEach((root) => {
+      const steps = [...root.querySelectorAll('.steps > li')];
+      const n = steps.length;
+      if (n < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const caption = document.createElement('p');
+      caption.className = 'caption';
+      caption.setAttribute('aria-live', 'polite');
+      const controls = document.createElement('div');
+      controls.className = 'controls';
+      controls.innerHTML = '<button type="button"></button><button type="button"></button><span class="count"></span>';
+      root.append(caption, controls);
+      const [back, next] = controls.querySelectorAll('button');
+      [back.textContent, next.textContent] = (root.dataset.labels || 'Back|Next').split('|');
+      let at = 1;
+      const show = (k) => {
+        at = Math.min(Math.max(k, 1), n);
+        root.querySelectorAll('[data-step]').forEach((el) => {
+          el.classList.toggle('on', +el.dataset.step <= at);
+          el.classList.toggle('now', +el.dataset.step === at);
+        });
+        root.dataset.at = at - 1;
+        root.dispatchEvent(new CustomEvent('step'));
+        caption.textContent = `${at}. ${steps[at - 1].textContent.trim()}`;
+        controls.querySelector('.count').textContent = `${at} / ${n}`;
+        back.disabled = at === 1;
+        next.disabled = at === n;
+      };
+      back.addEventListener('click', () => show(at - 1));
+      next.addEventListener('click', () => show(at + 1));
+      root.addEventListener('keydown', (e) => {
+        const d = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+        if (d && !e.target.closest('svg')) { e.preventDefault(); show(at + d); }
+      });
+      root.classList.add('live');
+      show(1);
+    });
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
+<script>
+  (() => {
+    const start = () => document.querySelectorAll('[data-swipe]').forEach((root) => {
+      const strip = root.querySelector('.steps');
+      const steps = [...strip.children];
+      const n = steps.length;
+      if (n < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      strip.tabIndex = 0;
+      const show = (k) => {
+        steps.forEach((li, i) => li.classList.toggle('now', i === k - 1));
+        root.querySelectorAll('[data-step]').forEach((el) => {
+          el.classList.toggle('on', +el.dataset.step <= k);
+          el.classList.toggle('now', +el.dataset.step === k);
+        });
+        const li = steps[k - 1];
+        if (li.dataset.x) {
+          root.style.setProperty('--x', `${li.dataset.x}px`);
+          root.style.setProperty('--y', `${li.dataset.y}px`);
+          // a stage wider than the column scrolls to center the token
+          const stage = root.querySelector('.stage');
+          const svg = stage && stage.querySelector('svg');
+          if (svg) {
+            const s = svg.getBoundingClientRect();
+            const x = s.left - stage.getBoundingClientRect().left + stage.scrollLeft + li.dataset.x * s.width / (svg.viewBox.baseVal.width || s.width);
+            stage.scrollTo({ left: x - stage.clientWidth / 2, behavior: 'smooth' });
+          }
+        }
+        root.dataset.at = k - 1;
+        root.dispatchEvent(new CustomEvent('step'));
+      };
+      const seen = new IntersectionObserver((entries) => entries.forEach((e) => {
+        if (e.isIntersecting) show(steps.indexOf(e.target) + 1);
+      }), { root: strip, threshold: 0.6 });
+      steps.forEach((li) => seen.observe(li));
+      root.classList.add('live');
+      show(1);
+    });
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
+<script>
+  (() => {
+    // reading aids: the contents drawer, the heading in view, back to the top, and back to the spot before a link
+    const start = () => {
+      const nav = document.querySelector('main nav');
+      const dock = document.createElement('div');
+      dock.className = 'dock';
+      const button = (name, text, label) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = name;
+        b.textContent = text;
+        if (label) b.setAttribute('aria-label', label);
+        b.hidden = true;
+        dock.append(b);
+        return b;
+      };
+      const back = button('back', '');
+      const top = button('top', '↑', '맨 위로');
+      document.body.append(dock);
+      const target = (a) => document.getElementById(decodeURIComponent(a.hash.slice(1)));
+      let links = [];
+      if (nav) {
+        nav.querySelectorAll('a[href^="#"]').forEach((a) => {
+          const h = target(a);
+          const chapter = h && h.matches('[data-chapter] > h2') && h.closest('[data-chapter]');
+          const heads = chapter ? [...chapter.querySelectorAll('h3[id]')] : [];
+          if (!heads.length || a.parentElement.querySelector('ol')) return;
+          const ol = document.createElement('ol');
+          heads.forEach((s) => {
+            const li = document.createElement('li');
+            const x = document.createElement('a');
+            x.href = `#${s.id}`;
+            x.textContent = s.textContent.trim();
+            li.append(x);
+            ol.append(li);
+          });
+          a.after(ol);
+        });
+        links = [...nav.querySelectorAll('a[href^="#"]')];
+        nav.id = nav.id || 'contents';
+        nav.classList.add('drawer');
+        const toggle = button('contents', '목차');
+        toggle.hidden = false;
+        toggle.setAttribute('aria-controls', nav.id);
+        const backdrop = document.createElement('div');
+        backdrop.className = 'backdrop';
+        document.body.append(backdrop);
+        const docked = matchMedia('(min-width: 75rem)');
+        const set = (open) => {
+          nav.classList.toggle('open', open);
+          backdrop.hidden = !open;
+          toggle.setAttribute('aria-expanded', open);
+          if (!open && nav.contains(document.activeElement)) toggle.focus();
+        };
+        toggle.addEventListener('click', () => {
+          set(!nav.classList.contains('open'));
+          if (nav.classList.contains('open')) (nav.querySelector('[aria-current] ~ ol .here, .here, a') || nav).focus();
+        });
+        backdrop.addEventListener('click', () => set(false));
+        nav.addEventListener('click', (e) => { if (e.target.closest('a') && !docked.matches) set(false); });
+        addEventListener('keydown', (e) => { if (e.key === 'Escape' && nav.classList.contains('open')) set(false); });
+        set(false);
+      }
+      // the last heading shown above a quarter of the window, marked in the contents
+      const above = (h) => h.checkVisibility() && h.getBoundingClientRect().top <= innerHeight / 4;
+      let queued = false;
+      const spy = () => {
+        queued = false;
+        top.hidden = scrollY < innerHeight;
+        let here = null;
+        links.forEach((a) => {
+          const h = target(a);
+          if (h && above(h) && (!here || target(here).getBoundingClientRect().top <= h.getBoundingClientRect().top)) here = a;
+        });
+        links.forEach((a) => a.classList.toggle('here', a === here));
+      };
+      const soon = () => { if (!queued) { queued = true; requestAnimationFrame(spy); } };
+      addEventListener('scroll', soon, { passive: true });
+      addEventListener('resize', soon);
+      top.addEventListener('click', () => scrollTo({ top: 0 }));
+      // each entry an in-page link left keeps its scroll spot in history.state; the entry it opened keeps where from
+      const where = () => {
+        let at = '';
+        document.querySelectorAll('main :is(h2, h3)').forEach((h) => { if (above(h)) at = h.textContent.trim(); });
+        return at;
+      };
+      const label = () => {
+        const s = history.state;
+        back.hidden = !(s && 'from' in s);
+        back.textContent = s && s.from ? `← 돌아가기 · ${s.from}` : '← 돌아가기';
+      };
+      document.addEventListener('click', (e) => {
+        const a = e.target.closest && e.target.closest('a[href^="#"]');
+        if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        const to = target(a);
+        if (!to) return;
+        if (a.hash !== location.hash) {
+          const from = where();
+          history.replaceState({ ...history.state, y: scrollY }, '');
+          setTimeout(() => { history.replaceState({ from }, ''); label(); });
+        }
+        setTimeout(() => {
+          to.classList.remove('flash');
+          void to.offsetWidth;
+          to.classList.add('flash');
+        });
+      });
+      document.addEventListener('animationend', (e) => { if (e.animationName === 'flash') e.target.classList.remove('flash'); });
+      back.addEventListener('click', () => { if (history.state && 'from' in history.state) history.back(); });
+      // the chapter script shows the chapter on hashchange, then this returns to the spot
+      let spot = null;
+      const restore = () => { if (spot !== null) { scrollTo(0, spot); spot = null; } soon(); };
+      addEventListener('popstate', (e) => {
+        label();
+        if (e.state && typeof e.state.y === 'number') { spot = e.state.y; setTimeout(restore, 50); }
+      });
+      addEventListener('hashchange', restore);
+      label();
+      spy();
+    };
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
+<script>
+  (() => {
+    const NS = 'http://www.w3.org/2000/svg';
+    const r2 = (v) => Math.round(v * 100) / 100;
+    const num = (s) => parseFloat(s.replace(/[−–]/g, '-').replace(/[^\d.eE+-]/g, ''));
+    const fmt = (v) => v.toLocaleString(document.documentElement.lang || undefined);
+    const ext = (vs) => [Math.min(...vs), Math.max(...vs)];
+    const el = (parent, tag, attrs = {}, text) => {
+      const e = document.createElementNS(NS, tag);
+      Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
+      if (text !== undefined) e.textContent = text;
+      parent.append(e);
+      return e;
+    };
+    const measure = (svg, text) => {
+      const t = el(svg, 'text', {}, text);
+      const w = t.getComputedTextLength();
+      t.remove();
+      return w;
+    };
+    // the scale-and-axis helper: nice ticks over a range, a linear scale, ticks that fit their labels
+    const nice = ([lo, hi], n) => {
+      if (lo === hi) { lo -= 1; hi += 1; }
+      const raw = (hi - lo) / Math.max(n, 1);
+      const p = 10 ** Math.floor(Math.log10(raw));
+      const step = [1, 2, 5, 10].map((m) => m * p).find((s) => s >= raw * (1 - 1e-9));
+      const a = Math.floor(lo / step + 1e-9) * step;
+      const ticks = [];
+      for (let t = a; t < hi + step - 1e-9 * step; t += step) ticks.push(+t.toPrecision(12));
+      return { lo: ticks[0], hi: ticks[ticks.length - 1], ticks };
+    };
+    const scale = (d, r0, r1) => Object.assign((v) => r2(r0 + ((v - d.lo) / (d.hi - d.lo)) * (r1 - r0)), { d, r0, r1 });
+    const fit = (svg, range, span, u) => {
+      for (let n = Math.max(2, Math.floor(span / (u * 4))); ; n -= 1) {
+        const d = nice(range, n);
+        const w = d.ticks.map((t) => measure(svg, fmt(t)));
+        if (n <= 1 || span / (d.ticks.length - 1) >= Math.max(...w) + u) return { ...d, first: w[0], last: w[w.length - 1] };
+      }
+    };
+    const expose = (svg, axis, s) => { svg.dataset[axis] = `${s.d.lo} ${s.d.hi} ${s.r0} ${s.r1}`; };
+    const size = (svg, w, h) => {
+      svg.setAttribute('viewBox', `0 0 ${r2(w)} ${r2(h)}`);
+      svg.setAttribute('height', r2(h));
+      svg.style.width = w > svg.parentElement.clientWidth + 1 ? `${r2(w)}px` : '';
+    };
+    // layers: axes behind, marks kept between draws so a step change moves them, labels on top
+    const layers = (svg) => {
+      const [axes, marks, labels] = ['axes', 'marks', 'labels'].map((c) => svg.querySelector(`.${c}`) || el(svg, 'g', { class: c }));
+      axes.replaceChildren();
+      labels.replaceChildren();
+      const old = new Map([...marks.children].map((m) => [m.dataset.key, m]));
+      const seen = new Set();
+      const mark = (key, tag, attrs, label) => {
+        const m = old.get(key) || el(marks, tag, { 'data-key': key });
+        old.set(key, m);
+        Object.entries(attrs).forEach(([k, v]) => m.setAttribute(k, v));
+        if (label) {
+          m.setAttribute('role', 'img');
+          m.setAttribute('aria-label', label);
+        }
+        seen.add(key);
+        return m;
+      };
+      const done = () => old.forEach((m, k) => { if (!seen.has(k)) m.remove(); });
+      return { axes, labels, mark, done };
+    };
+    const name = (head, r, j, one) => (one ? `${r.label}: ${r.text[j]}` : `${r.label}, ${head[j + 1]}: ${r.text[j]}`);
+    // bar: a row per category, its label above its bar, the value at its end, a value axis below
+    const bar = (svg, data, sets, head, W, u) => {
+      const L = layers(svg);
+      const endW = Math.max(0, ...data.map((r) => measure(svg, r.text[0])));
+      const d = fit(svg, ext([0, ...sets.flat().map((r) => r.v[0])]), W - endW - u * 3, u);
+      const X = scale(d, r2(d.first / 2 + 1), r2(W - Math.max(d.last / 2 + 1, endW + u / 2)));
+      let y = 0;
+      data.forEach((r) => {
+        el(L.labels, 'text', { x: X.r0, y: y + u }, r.label);
+        const by = y + u * 1.5;
+        L.mark(`r${r.i}c0`, 'rect', { class: 'mark k1', x: Math.min(X(0), X(r.v[0])), y: by, width: r2(Math.abs(X(r.v[0]) - X(0))), height: u }, name(head, r, 0, true));
+        el(L.labels, 'text', { x: r2(Math.max(X(0), X(r.v[0])) + u / 3), y: by + u * 0.85 }, r.text[0]);
+        y = by + u * 1.9;
+        if (r.note) {
+          el(L.labels, 'text', { class: 'note', x: X.r0, y: y + u * 0.2 }, r.note);
+          y += u * 1.4;
+        }
+      });
+      d.ticks.forEach((t) => {
+        el(L.axes, 'line', { class: 'grid', x1: X(t), x2: X(t), y1: 0, y2: y });
+        el(L.labels, 'text', { class: 'tick', x: X(t), y: y + u * 1.1, 'text-anchor': 'middle' }, fmt(t));
+      });
+      el(L.axes, 'line', { class: 'axis', x1: X(0), x2: X(0), y1: 0, y2: y });
+      expose(svg, 'x', X);
+      size(svg, W, y + u * 1.5);
+      L.done();
+    };
+    // line: time across, values up, each series named at its end
+    const line = (svg, data, sets, head, W, u) => {
+      const L = layers(svg);
+      const all = sets.flat();
+      const numeric = all.every((r) => !Number.isNaN(num(r.label)));
+      const xOf = (r, i) => (numeric ? num(r.label) : i);
+      const series = head.slice(1);
+      const xr = numeric ? ext(all.map((r) => num(r.label))) : [0, Math.max(...sets.map((s) => s.length)) - 1];
+      const H = u * 16;
+      const bottom = H - u * 2.2;
+      const dy = nice(ext(all.flatMap((r) => r.v)), Math.max(2, Math.floor((bottom - u) / (u * 3))));
+      const Y = scale(dy, bottom, u);
+      const left = Math.max(...dy.ticks.map((t) => measure(svg, fmt(t)))) + u / 2;
+      const right = Math.max(...series.map((s) => measure(svg, s))) + u;
+      const w = Math.max(...data.map((r) => measure(svg, r.label))) + u;
+      const every = Math.max(1, Math.ceil((data.length * w) / (W - left - right)));
+      const at = new Map(data.map((r, i) => [xOf(r, i), r.label]));
+      const X = scale({ lo: xr[0], hi: xr[1] === xr[0] ? xr[0] + 1 : xr[1], ticks: [...at.keys()].filter((t, i) => i % every === 0) },
+        r2(left + w / 2), r2(W - Math.max(right, w / 2)));
+      dy.ticks.forEach((t) => {
+        el(L.axes, 'line', { class: t === 0 ? 'axis' : 'grid', x1: X.r0, x2: X.r1, y1: Y(t), y2: Y(t) });
+        el(L.labels, 'text', { class: 'tick', x: r2(X.r0 - u / 3), y: r2(Y(t) + u * 0.35), 'text-anchor': 'end' }, fmt(t));
+      });
+      X.d.ticks.forEach((t) => el(L.labels, 'text', { class: 'tick', x: X(t), y: bottom + u * 1.7, 'text-anchor': 'middle' }, at.get(t)));
+      const ends = [];
+      series.forEach((s, j) => {
+        const pts = data.map((r, i) => [X(xOf(r, i)), Y(r.v[j])]);
+        L.mark(`p${j}`, 'path', { class: `line k${j + 1}`, d: pts.map(([x, yy], i) => `${i ? 'L' : 'M'}${x} ${yy}`).join(' ') });
+        data.forEach((r, i) => L.mark(`r${r.i}c${j}`, 'circle', { class: `mark k${j + 1}`, cx: pts[i][0], cy: pts[i][1], r: u * 0.3 }, name(head, r, j, series.length === 1)));
+        if (pts.length) ends.push({ text: s, x: pts[pts.length - 1][0], y: pts[pts.length - 1][1] });
+      });
+      ends.sort((a, b) => a.y - b.y).forEach((e, i, a) => { if (i) e.y = Math.max(e.y, a[i - 1].y + u * 1.1); });
+      const over = ends.length ? ends[ends.length - 1].y - (H - u * 0.4) : 0;
+      ends.forEach((e) => el(L.labels, 'text', { x: r2(e.x + u / 2), y: r2(Math.min(H - u * 0.3, Math.max(u, e.y - Math.max(0, over) + u * 0.35))) }, e.text));
+      data.forEach((r, i) => {
+        if (!r.note) return;
+        const x = X(xOf(r, i));
+        el(L.labels, 'text', { class: 'note', x, y: r2(Math.max(u, Y(r.v[0]) - u * 0.7)), 'text-anchor': x < W / 2 ? 'start' : 'end' }, r.note);
+      });
+      expose(svg, 'x', X);
+      expose(svg, 'y', Y);
+      size(svg, W, H);
+      L.done();
+    };
+    const kinds = { bar, line };
+    const read = (table) => ({
+      head: [...table.tHead.rows[0].cells].map((c) => c.textContent.trim()),
+      data: [...table.tBodies[0].rows].map((tr, i) => {
+        const [label, ...text] = [...tr.cells].map((c) => c.textContent.trim());
+        return { i, label, text, v: text.map(num), note: tr.dataset.note };
+      }),
+    });
+    const draw = (fig) => {
+      const tables = [...fig.querySelectorAll('table')].map(read);
+      const { head, data } = tables[+fig.dataset.at];
+      const plot = fig.querySelector('.plot');
+      const svg = plot.querySelector('svg') || plot.appendChild(document.createElementNS(NS, 'svg'));
+      svg.setAttribute('role', 'group');
+      svg.setAttribute('aria-label', fig.querySelector('figcaption').textContent.trim());
+      // the axes span every step's rows
+      kinds[fig.dataset.chart](svg, data, tables.map((s) => s.data), head, plot.clientWidth, parseFloat(getComputedStyle(svg).fontSize));
+    };
+    const start = () => document.querySelectorAll('[data-widget="chart"]').forEach((fig) => {
+      fig.dataset.at = fig.querySelectorAll('table').length - 1;
+      draw(fig);
+      fig.addEventListener('step', () => draw(fig));
+      const tip = fig.appendChild(document.createElement('div'));
+      tip.className = 'tip';
+      tip.hidden = true;
+      tip.setAttribute('aria-hidden', 'true');
+      const show = (m) => {
+        tip.textContent = m.getAttribute('aria-label');
+        tip.hidden = false;
+        const f = fig.getBoundingClientRect();
+        const r = m.getBoundingClientRect();
+        const y = r.top - f.top - tip.offsetHeight - 4;
+        tip.style.left = `${Math.max(0, Math.min(r.left + r.width / 2 - f.left - tip.offsetWidth / 2, f.width - tip.offsetWidth))}px`;
+        tip.style.top = `${y < 0 ? r.bottom - f.top + 4 : y}px`;
+      };
+      const hide = () => { tip.hidden = true; };
+      fig.addEventListener('pointerover', (e) => { const m = e.target.closest('.mark'); if (m) show(m); else hide(); });
+      fig.addEventListener('pointerleave', hide);
+      let width = fig.querySelector('.plot').clientWidth;
+      new ResizeObserver(() => {
+        const w = fig.querySelector('.plot').clientWidth;
+        if (w !== width) { width = w; draw(fig); }
+      }).observe(fig.querySelector('.plot'));
+    });
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
+</html>
