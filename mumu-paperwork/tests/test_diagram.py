@@ -22,8 +22,8 @@ FOCUS = [
     ("file-tree", [], f"{TREE}:first-child summary", [".stage > ul > li > details > summary"], f"{TREE}[data-change='modify'] .name"),
     ("system-context", [], "rect.box.k1", ["rect.box.main", ".part:nth-of-type(1) .edge"], "rect.box.k2"),
     # the reply joins A and C; without it, C is not reached from A
-    ("use-case", [(re.compile(r'\s*<g class="part" data-step="3">.*?</g>', re.S), "")],
-     "rect.box:nth-of-type(1)", ["rect.box:nth-of-type(2)", ".part[data-step='1'] .edge"], "rect.box:nth-of-type(3)"),
+    ("use-case", [(re.compile(r'\s*<li style="--from: 3; --to: 1;">.*?</li>'), "")],
+     ".flow > .box:nth-of-type(1)", [".flow > .box:nth-of-type(2)", ".flow li:nth-child(1)"], ".flow > .box:nth-of-type(3)"),
     ("network", [], "rect.box.k1", ["rect.box:nth-of-type(2)", "rect.box:nth-of-type(3)", ".part:nth-of-type(2) .edge"], "rect.box.k3"),
 ]
 # the task graph, one application the task names: a task, what it blocks, its state as its kind
@@ -88,6 +88,18 @@ def nearest(boxes, p):
     return min(range(len(boxes)), key=lambda i: gap(boxes[i]))
 
 
+# a use case of 3 participants and 6 calls, from one of their lanes to another, labelled as an author labels them
+CALLS = [(1, 2, "POST /jobs"), (2, 1, "id=7, queued 저장"), (3, 2, "리스 60초 요청"), (2, 3, "작업 7 넘김"),
+         (3, 2, "done 기록"), (1, 2, "GET /jobs/7")]
+# each text node's box that does not lie inside the widget's box, which a clipped or scrolled label leaves
+CLIPPED = """(root) => { const w = root.getBoundingClientRect(), out = [], t = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let n; (n = t.nextNode());) {
+    if (!n.data.trim() || n.parentElement.closest('style, script, title, desc')) continue;
+    const r = document.createRange(); r.selectNodeContents(n);  // an SVG text's range has no boxes: its element's box
+    const boxes = n.parentElement instanceof SVGElement ? [n.parentElement.getBoundingClientRect()] : r.getClientRects();
+    for (const b of boxes) if (b.width && (b.left < w.left - 1 || b.right > w.right + 1 || b.top < w.top - 1 || b.bottom > w.bottom + 1))
+      out.push(n.data.trim().slice(0, 30)); }
+  return [...new Set(out)]; }"""
 OPACITY = "(el) => { let o = 1; for (; el; el = el.parentElement) o *= +getComputedStyle(el).opacity; return o; }"
 # every node and line that is not full, shown and laid out, all folders open and revealed
 FADED = """(root) => { root.querySelectorAll('details').forEach((d) => { d.open = true; });
@@ -165,39 +177,16 @@ class Diagram(unittest.TestCase):
         self.assertLess(first, height(), "the tree is no shorter at step 1 than at its last step")
         self.assertEqual(p.locator("li[data-change='add']").evaluate(OPACITY), 1)
 
-    def test_swiped_token_stays_in_the_stage(self):
-        p = self.open(page("use-case"), viewport={"width": 360, "height": 800})
-        stage = p.locator(".stage")
-        self.assertGreater(stage.evaluate("(s) => s.scrollWidth - s.clientWidth"), 0, "the use case fits the column")
-        cards = p.locator(".steps > li")
-        for k in range(cards.count()):
-            with self.subTest(step=k + 1):
-                cards.nth(k).evaluate("(li) => li.scrollIntoView({ inline: 'center', block: 'nearest' })")
-                # once the swipe reaches this step, the token's move ends and the stage's scroll holds still between polls
-                p.wait_for_function("""(k) => { const r = document.querySelector('[data-swipe]'), s = r.querySelector('.stage');
-                  const still = r.dataset.held === `${k} ${s.scrollLeft}`;
-                  r.dataset.held = `${k} ${s.scrollLeft}`;
-                  return +r.dataset.at === k && !document.getAnimations().length && still; }""", arg=k, polling=200, timeout=3000)
-                token, box = (p.locator(s).evaluate("(e) => e.getBoundingClientRect().toJSON()") for s in (".token", ".stage"))
-                self.assertTrue(box["left"] <= token["left"] and token["right"] <= box["right"]
-                                and box["top"] <= token["top"] and token["bottom"] <= box["bottom"], (token, box))
-
-    def test_swipe_steps_by_button_and_counts(self):
-        p = self.open(page("use-case"), viewport={"width": 360, "height": 800})
-        root, n = p.locator("[data-swipe]"), p.locator(".steps > li").count()
-        back, next_ = p.locator("[data-swipe] .controls button").nth(0), p.locator("[data-swipe] .controls button").nth(1)
-        count = p.locator("[data-swipe] .controls .count")
-        self.assertEqual(count.text_content(), f"1 / {n}")
-        self.assertTrue(back.is_disabled())
-        for k in range(2, n + 1):
-            next_.click()
-            p.wait_for_function("(k) => +document.querySelector('[data-swipe]').dataset.at === k - 1", arg=k, timeout=3000)
-            self.assertEqual(count.text_content(), f"{k} / {n}")
-        self.assertTrue(next_.is_disabled())
-        back.click()
-        p.wait_for_function("(n) => +document.querySelector('[data-swipe]').dataset.at === n - 2", arg=n, timeout=3000)
-        self.assertEqual(root.evaluate("(r) => [...r.querySelectorAll('.controls button')].map((b) => b.textContent)"),
-                         ["뒤로", "다음"])
+    def test_use_case_is_one_still_figure(self):
+        calls = "".join(f'<li style="--from: {i}; --to: {j};">{label}</li>' for i, j, label in CALLS)
+        html = page("use-case", [(re.compile(r"<ol>.*?</ol>", re.S), f"<ol>{calls}</ol>")])
+        p = self.open(html, viewport={"width": 320, "height": 800})
+        root = p.locator("[data-widget]")
+        self.assertEqual(root.locator("button, .steps").count(), 0, "a button or a step-card strip in the widget")
+        text = root.text_content()
+        self.assertEqual({label: text.count(label) for *_, label in CALLS}, {label: 1 for *_, label in CALLS}, "a label repeats")
+        self.assertEqual(root.locator(".flow li").count(), len(CALLS))
+        self.assertEqual(root.evaluate(CLIPPED), [], "a text box leaves the widget's box at 320 px")
 
     def test_every_focus_stop_has_a_role_and_a_name(self):
         stops = """(root) => [...root.querySelectorAll('[tabindex]:not([tabindex="-1"]), button, summary')].map((e) => [

@@ -40,7 +40,7 @@ published with the `Artifact` tool, else opened locally.
 `"${CLAUDE_PLUGIN_ROOT}/skills/rendering/scripts/check.py" <page>` loads
 it at 320 px with and without motion, clicks each control, reads its Korean,
 contents and links, checks each chart against its table, and in real time
-swipes each strip, opens each chapter by its nav, pager, link and back, and
+opens each chapter by its nav, pager, link and back, and
 fails a filter, controls or reading-aid control that changes nothing;
 fix each `FAIL` line and rerun until the last line is `pass`; exit 2 says why
 it could not run.
