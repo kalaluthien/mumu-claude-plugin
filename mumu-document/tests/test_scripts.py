@@ -245,11 +245,16 @@ def dream(name):
 STUCK = "<script>document.addEventListener('click', function (e) { if (e.target.closest('.controls')) e.stopImmediatePropagation(); }, true);</script></html>"
 
 
-def check(html):
+# check.py with every sleep a twentieth as long, so the page runs twenty times slower against its waits
+SLOW = ("-c", "import runpy, sys, time; sleep = time.sleep; time.sleep = lambda s: sleep(s / 20); sys.argv = sys.argv[1:];"
+              " runpy.run_path(sys.argv[0], run_name='__main__')")
+
+
+def check(html, *python):
     with tempfile.TemporaryDirectory() as d:
         page = pathlib.Path(d) / "page.html"
         page.write_text(html)
-        r = subprocess.run([sys.executable, str(CHECK), str(page)], capture_output=True, text=True)
+        r = subprocess.run([sys.executable, *python, str(CHECK), str(page)], capture_output=True, text=True)
         return r.returncode, r.stdout
 
 
@@ -400,6 +405,11 @@ class Check(unittest.TestCase):
         self.assertEqual(code, 1, out)
         self.assertIn("swipe 1 step 1/3 FAIL", out)
 
+    def test_slow_page_is_still_swiped(self):
+        code, out = check(self.gallery, *SLOW)
+        self.assertEqual(code, 0, out)
+        self.assertEqual(len(re.findall(r"swipe \d+ token in view 3/3 pass", out)), 10, out)
+
     def test_token_out_of_view_fails(self):
         # step 2's card sends the token past the stage's scroll width
         self.assertIn('data-x="444"', self.gallery)
@@ -443,7 +453,8 @@ class Widgets(unittest.TestCase):
     def test_page_with_every_new_part_passes(self):
         code, out = check(self.page)
         self.assertEqual((code, out.splitlines()[-1]), (0, "pass"), out)
-        self.assertIn("layout motion 305/305", out)
+        # its width with or without a scrollbar, as a late hashchange may hide chapters again
+        self.assertRegex(out, r"layout motion (\d+)/\1 .* pass")
         self.assertIn("clicks 24/24 pass", out)
 
     def test_each_broken_control_fails(self):
