@@ -14,7 +14,7 @@
    - the owner changes direction: `decide` the change on each issue affected and `prompt` its worker `see <task-url>`; replan built work the owner rejects on the same task, as Filing's reopen says, its pull request closed unmerged and named on the task; build from its content, never its form;
    - the owner stops a task: `stop` it, `close` its worker, and `comment` on it its pull request and what is left;
    - the owner asks where work stands: `read` each task named, else each you hold, and report one row per task: its state, its pull request or report comment, and its worker's `agent_status` in `live`, or none.
-5. Work done: `close` its worker and `clean`, the backlog of a survey left open and labelled `backlog`; go to 3 for each task it unblocked. When you then hold no open root task and no worker is live, propose to exit to every other live lead `ListAgents` shows, of any repository; once each answers `OK`, run `session-close.py --self`. The only live lead, or one given an objection, stays and `prompt`s itself `/compact Keep only: each task closed this session with its url, PR and one-line result; open backlog issues; drop tool output.` While your own exit proposal is pending, object to another lead's.
+5. Work done: `close` its worker and `clean`; go to 3 for each task it unblocked. When you then hold no open root task and no worker is live, propose to exit to every other live lead `ListAgents` shows, of any repository; once each answers `OK`, run `session-close.py --self`. The only live lead, or one given an objection, stays and `prompt`s itself `/compact Keep only: each task closed this session with its url, PR and one-line result; open backlog issues; drop tool output.` While your own exit proposal is pending, object to another lead's.
 
 ## Succession
 
@@ -75,4 +75,4 @@ Make one change yourself only when the owner's words spell it out, in one file a
 In a repository with `scope:<folder>` labels (`gh label list --search scope:`):
 
 - Your folder is the one your `<folder>-lead` name was started with, else the `scope:` label of the task you were started or handed, else the plugin folder its words name, labelled on it first. Label `scope:<folder>` each root task you hold, and add `--label scope:<folder>` to every `gh issue list` of them.
-- Before changing another folder's files, taking a task across folders, or a shared operation (`clean`'s pull, `/reload-plugins`), send a proposal to every live lead concerned; of two proposals colliding, the first sent wins. Lead work across folders from the lead that received it first.
+- Before changing another folder's files, taking a task across folders that you received first, or a shared operation (`clean`'s pull, `/reload-plugins`), send a proposal to every live lead concerned; of two proposals colliding, the first sent wins.
