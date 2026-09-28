@@ -146,6 +146,11 @@ f.onload = function () {
       }).map(function (e) { return e.textContent.trim().split('\n')[0].slice(0, 40); }),
       chapters: d.querySelectorAll('[data-chapter]').length, math: d.querySelectorAll('.katex').length,
       raw: raw.concat(Array.prototype.map.call(d.querySelectorAll('.katex-error'), function (e) { return e.textContent.slice(0, 40); })),
+      tables: Array.prototype.map.call(d.querySelectorAll('table'), function (t) {
+        var text = function (c) { return c.textContent.replace(/\s+/g, ' ').trim(); };
+        return [t.tHead && t.tHead.rows.length ? Array.prototype.map.call(t.tHead.rows[t.tHead.rows.length - 1].cells, text) : [],
+          Array.prototype.map.call(t.tBodies.length ? t.tBodies[0].rows : [], function (r) { return Array.prototype.map.call(r.cells, text); })];
+      }),
       loose: Array.prototype.filter.call(d.querySelectorAll('main h3'), function (h) { return !h.closest('[data-chapter]'); }).length });
   }, 300);
 };
@@ -518,6 +523,24 @@ def mapping(page):
     return out
 
 
+BARE = re.compile(r"[+\-−–]?\d[\d,]*(\.\d+)?")
+# a unit in a header: in brackets or after a slash, a symbol, or a unit word at its end
+UNIT = re.compile(r"[(\[/%‰°₩$€¥£×]|(?<![A-Za-z])(ms|s|m|km|cm|mm|kg|g|KB|MB|GB|TB|px|pt|Hz|fps|rpm)$"
+                  r"|(원|개|건|회|번|명|초|분|시간|일|주|달|년|배|점|위|장|줄|쪽|퍼센트)$")
+
+
+def units(page):
+    """Each table column, a chart's axes included, of bare numbers with no unit in its header or cells; the first column,
+    the row label, is exempt."""
+    out = []
+    for n, (head, rows) in enumerate(page["tables"], 1):
+        for j in range(1, max(map(len, rows), default=0)):
+            cells = [r[j] for r in rows if j < len(r) and r[j]]
+            if cells and all(BARE.fullmatch(c) for c in cells) and not (j < len(head) and UNIT.search(head[j])):
+                out.append(f"table {n} column {head[j] if j < len(head) else j + 1!r} has bare numbers")
+    return out
+
+
 def shell(page):
     """What the page lacks of its shell: the skin, an h1, each {{...}} filled."""
     return ([] if page["skin"] else ['no <style id="skin">']) + ([] if page["h1"] else ["no h1"]) + [
@@ -666,6 +689,9 @@ def main():
     if k["math"] or k["raw"]:
         failed |= bool(k["raw"])
         print(f"math {k['math']} set " + ("FAIL: raw TeX " + "; ".join(k["raw"]) if k["raw"] else "pass"))
+    out = units(k)
+    failed |= bool(out)
+    print(f"units {len(k['tables'])} tables " + ("FAIL: " + "; ".join(out) if out else "pass"))
     for q in k["quotes"]:
         failed = True
         print(f"quotes code quote without path caption {q!r} FAIL")

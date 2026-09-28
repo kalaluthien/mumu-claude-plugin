@@ -199,5 +199,70 @@ class ReadingAids(unittest.TestCase):
         self.assertLessEqual(abs(back[0] - y), 2)
 
 
+# each role's computed font size, in px, and whether it keeps the order h1 > h2 > h3 > body > table
+SIZES = """() => { document.querySelector('main').append(document.createElement('h3'));
+  const px = (s) => parseFloat(getComputedStyle(document.querySelector(s)).fontSize);
+  return { h1: px('h1'), h2: px('h2'), h3: px('h3'), body: px('main > p:not(.read)'), table: px('td') }; }"""
+# per table cell, [whether it is a number cell, its line count, the fewest characters on one of its lines]
+CELLS = """() => [...document.querySelectorAll('#t-jobs ~ tbody :is(th, td), #t-jobs ~ thead th')].map((c) => {
+  const lines = new Map(), walk = document.createTreeWalker(c, NodeFilter.SHOW_TEXT);
+  for (let n; (n = walk.nextNode());) for (let i = 0; i < n.data.length; i++) {
+    if (!n.data[i].trim()) continue;
+    const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + 1);
+    const top = Math.round(r.getBoundingClientRect().top);
+    lines.set(top, (lines.get(top) || 0) + 1);
+  }
+  return [c.classList.contains('num'), c.textContent.trim(), lines.size, Math.min(...lines.values())]; })"""
+WIDE = """() => [document.documentElement.scrollWidth, innerWidth]"""
+
+
+def overflow_page(width, steps):
+    """Run `steps(page)` on tests/pages/overflow.html assembled, `width` px wide, each details open."""
+    import subprocess
+    import sys
+    from playwright.sync_api import sync_playwright
+    with tempfile.TemporaryDirectory() as d, sync_playwright() as p:
+        f = pathlib.Path(d) / "page.html"
+        subprocess.run([sys.executable, str(ASSEMBLE), str(ROOT / "tests" / "pages" / "overflow.html"), str(f)], check=True,
+                       capture_output=True)
+        browser = p.chromium.launch(executable_path=str(CHROME))
+        try:
+            page = browser.new_page(viewport={"width": width, "height": 800})
+            page.goto(f.as_uri())
+            page.wait_for_timeout(300)
+            page.evaluate("document.querySelectorAll('details').forEach((d) => { d.open = true; })")
+            return steps(page)
+        finally:
+            browser.close()
+
+
+@unittest.skipUnless(CHROME.exists(), "no Chrome")
+class PhoneType(unittest.TestCase):
+    def test_body_is_10pt_and_sizes_keep_their_order(self):
+        s = overflow_page(360, lambda page: page.evaluate(SIZES))
+        self.assertAlmostEqual(s["body"], 40 / 3, places=1, msg="10pt, 2pt under 16px = 12pt")
+        self.assertGreater(s["h1"], s["h2"], s)
+        self.assertGreater(s["h2"], s["h3"], s)
+        self.assertGreater(s["h3"], s["body"], s)
+        self.assertGreater(s["body"], s["table"], s)
+
+    def test_table_cells_read_at_320px(self):
+        cells = overflow_page(320, lambda page: page.evaluate(CELLS))
+        self.assertTrue(any(n for n, *_ in cells) and any(not n for n, *_ in cells), cells)
+        self.assertEqual([c for c in cells if c[0] and c[2] > 1], [], "a number wraps")
+        self.assertEqual([c for c in cells if not c[0] and c[2] > 1 and c[3] < 4], [], "a line under 4 characters")
+
+    def test_page_keeps_its_width_with_over_long_content(self):
+        def steps(page):
+            page.click("a[href='#s-tree']:not(nav a)")
+            page.wait_for_timeout(300)
+            return page.evaluate(WIDE) + [page.evaluate("document.querySelector('.dock .back').checkVisibility()")]
+        for width in (320, 360):
+            with self.subTest(width):
+                scroll, inner, back = overflow_page(width, steps)
+                self.assertTrue(back)
+                self.assertLessEqual(scroll, inner)
+
+
 if __name__ == "__main__":
     unittest.main()
