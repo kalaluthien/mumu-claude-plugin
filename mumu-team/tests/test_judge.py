@@ -77,7 +77,7 @@ class Judge(unittest.TestCase):
         self.assertRegex(review, r"weighted total of 80 or more with no lens under 50")
 
     def test_a_finding_quotes_the_criterion_missed_and_names_none_met(self):
-        post = step(4)
+        post = step(5)
         self.assertRegex(post, r"the criterion quoted, the gap, and the direction of the fix")
         self.assertIn("name no criterion met", post)
 

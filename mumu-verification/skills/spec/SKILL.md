@@ -50,7 +50,7 @@ Every `check` and `run` carries `expect`: `alloy exec` exits 0 on a counterexamp
 
 ## Check the code against the model
 
-Each `pred`'s guard is a precondition the code checks before the effect, and its effect the only state it changes; each `fact` and `assert` is an invariant the code never breaks. Each `check <Name>` has a test `refuses_<Name>` that drives the entry point toward the forbidden state and fails when the guarding code is removed. A flow run names a pred alone, `run refund`, one use case the model allows, and has a test `scenario_<pred>` that drives that flow end to end; a run with its own `{ }` body is a guard run, the SAT pairing a check, and needs none.
+Each `pred`'s guard is a precondition the code checks before the effect, and its effect the only state it changes; each `fact` and `assert` is an invariant the code never breaks. Each `check <Name>` has a test `refuses_<Name>` that drives the entry point toward the forbidden state and fails when the guarding code is removed. Each module, a folder under `spec/` with a check, has at least one flow run, a run naming a pred alone, `run refund`, one use case the model allows, or else a `gap #<issue>` mark; each flow run has a test `scenario_<pred>` that drives that flow end to end; a run with its own `{ }` body is a guard run, the SAT pairing a check, and needs none.
 
 A green check can hold without its rule:
 

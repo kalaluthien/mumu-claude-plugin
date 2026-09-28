@@ -35,6 +35,14 @@ A share's worker agrees a change that crosses its split with a sibling's worker,
 1. Do the work the task asks, then rerun every criterion and `comment` the report on the task as one comment: the findings, then the criteria table.
 2. Launch the `judge` on that comment's url on Opus. `FINDINGS:`: fix, rerun every criterion, `comment` the report again, and resume that judge with `see <comment-url>`. `APPROVED: <comment-url>` naming your newest report: `resolve` the task, then `prompt` the leader `see <task-url>`.
 
+## Survey
+
+A backlog's survey worker, prompted `survey <backlog-url> leader <address>`, has no claim, branch or pull request, and leaves the issue open and labelled `backlog`:
+
+1. `read` the backlog and its comments, then research what the owner's words ask: the repository, its issues (`gh search issues "<words>" -R <repo> --include-prs`) and the official docs.
+2. Write the body to `<path>` as the owner's words exactly as `read` shows them, then one `## Survey` section of findings, each claim citing a url or `path:line`; a survey already there is rewritten, so the body keeps exactly one. Post it with `gh issue edit <backlog-url> --body-file <path>`.
+3. Launch the `judge` on the backlog's url on Opus. `FINDINGS:`: fix, post the body again, and resume that judge with `see <backlog-url>`. `APPROVED:`: `prompt` the leader `see <backlog-url>`.
+
 ## Subagents
 
 Launch one for any independent track you judge worth it, such as a wide multi-file search or a rival approach; a job of a few reads or edits is quicker done yourself.
