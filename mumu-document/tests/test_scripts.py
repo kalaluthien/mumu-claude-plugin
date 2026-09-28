@@ -258,10 +258,10 @@ def check(html, *python):
         return r.returncode, r.stdout
 
 
-def widget_check(html):
+def widget_check(html, *args):
     """check() of the gallery, which holds every widget in every state and so is no composed page: its composition
     line must fail on its widget count, and the code is that of every other line."""
-    code, out = check(html)
+    code, out = check(html, *args)
     lines = out.splitlines()[:-1]
     assert any(re.match(r"composition .*FAIL: .*widgets on the page, over", l) for l in lines), out
     return int(any("FAIL" in l for l in lines if not l.startswith("composition "))), out
@@ -406,7 +406,7 @@ class Check(unittest.TestCase):
         self.assertIn("swipe 1 step 1/3 FAIL", out)
 
     def test_slow_page_is_still_swiped(self):
-        code, out = check(self.gallery, *SLOW)
+        code, out = widget_check(self.gallery, *SLOW)
         self.assertEqual(code, 0, out)
         self.assertEqual(len(re.findall(r"swipe \d+ token in view 3/3 pass", out)), 10, out)
 
