@@ -16,7 +16,7 @@
    - the owner changes direction: `decide` the change on each issue affected and `prompt` its worker `see <task-url>`; built work the owner rejects is replanned on the same task, reopened with its criteria widened by `decide.py --criteria` and its title and `## Goal` rewritten as Filing says, and led under a new attempt, its pull request closed unmerged and named on it as content to read, never form to follow;
    - the owner stops a task: `stop` it, `close` its worker, and `comment` on it its pull request and what is left;
    - the owner asks where work stands: `read` each task named, else each you hold, and its pull request or report comment, and report one row per task: its state, that pull request or comment, and its worker's `agent_status` in `live`, or none.
-5. A task closed, `close` its worker and `clean`. When you then hold no open root task and no worker is live, `prompt` yourself `/compact Keep only: each task closed this session with its url, PR and one-line result; open backlog issues; drop tool output.`
+5. A task closed, `close` its worker and `clean`. When you then hold no open root task and no worker is live, exit by agreement, since one lead must stay live to take the owner's next words: send every other live lead `ListAgents` shows, of any repository, a proposal to exit through `SendMessage`; once each answers `OK`, run `worker-close.py --self`, which exits this session and closes its tab once your turn ends. The only live lead, or one given an objection, stays and `prompt`s itself `/compact Keep only: each task closed this session with its url, PR and one-line result; open backlog issues; drop tool output.` While your own exit proposal is pending, object to another lead's.
 
 ## Succession
 
