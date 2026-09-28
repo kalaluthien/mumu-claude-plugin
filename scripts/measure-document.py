@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Print mumu-document's four measures at a git ref: files, lines, concepts, instructions.
+"""Print mumu-paperwork's four measures at a git ref: files, lines, concepts, instructions.
 
 usage: measure-document.py <ref> [<ref> ...]; one row per ref, read with git, never the working tree.
 
-- files: `git ls-files mumu-document` at the ref.
+- files: `git ls-files mumu-paperwork` at the ref.
 - lines: their newline count, as `wc -l` totals it, scripts and tests excluded.
 - concepts: widget files + skin tokens (each `--name:` defined in skin.css) + table rows
   (header and divider excluded) and numbered list items in the text: SKILL.md, every
@@ -15,7 +15,7 @@ import re
 import subprocess
 import sys
 
-ROOT = "mumu-document"
+ROOT = "mumu-paperwork"
 VERBS = frozenset("""add ask attach avoid check choose copy cut delete do don't draw drop export fill fix
 follow give hand keep link load make mark name open pair pass pick place prefer publish put read
 render reference reread reserve run say send set show start take use write""".split())

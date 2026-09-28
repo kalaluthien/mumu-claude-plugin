@@ -1,4 +1,4 @@
 ---
 type: regex
-pattern: lead-start\.py \S+ --folder[ =]mumu-document
+pattern: lead-start\.py \S+ --folder[ =]mumu-paperwork
 ---

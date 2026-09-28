@@ -1,0 +1,168 @@
+<h1>아주 긴 내용이 들어간 폭 시험 페이지</h1>
+<p class="read">어떤 부품에 긴 내용을 넣어도 페이지 폭은 휴대폰 화면을 넘지 않아요.</p>
+<nav><ol>
+  <li><a href="#s-text">긴 글과 코드</a></li>
+  <li><a href="#s-table">긴 표</a></li>
+  <li><a href="#s-chart">긴 이름의 막대</a></li>
+  <li><a href="#s-tree">긴 파일 이름이 들어간 구조를 아주 길게 설명하는 제목</a></li>
+  <li><a href="#s-context">긴 이름의 이웃</a></li>
+  <li><a href="#s-flow">긴 흐름</a></li>
+  <li><a href="#s-filter">긴 태그 거르기</a></li>
+  <li><a href="#s-controls">긴 이름의 조절</a></li>
+</ol></nav>
+<h2 id="s-text">긴 글과 코드</h2>
+<p>설정 파일은 <code>mumu-paperwork/skills/rendering/references/an-extremely-long-file-name-that-never-breaks.html</code>에 있어요.</p>
+<p>원본 주소는 <a href="https://example.com/a/very/long/path/that/keeps/going/without/any/break/at/all/index.html">https://example.com/a/very/long/path/that/keeps/going/without/any/break/at/all/index.html</a>이에요.</p>
+<pre>uvx --with playwright pytest mumu-paperwork/tests -q -k "overflow and not slow and not flaky and not skipped_on_ci"</pre>
+<figure class="code">
+  <figcaption><a href="https://github.com/kalaluthien/mumu-claude-plugin/blob/a31e56a/mumu-paperwork/skills/rendering/references/a/very/deeply/nested/folder/with/a/rather/long/name/skin/page.html#L109-L111"><code>mumu-paperwork/skills/rendering/references/a/very/deeply/nested/folder/with/a/rather/long/name/skin/page.html:109-111</code></a></figcaption>
+  <pre><code>code, pre { font-family: var(--mono); }
+<mark>pre { overflow-x: auto; }</mark>
+⋯
+figure { margin: 0; }</code></pre>
+</figure>
+<p><a href="#s-tree">긴 파일 이름이 들어간 구조를 아주 길게 설명하는 제목</a>으로 가면 돌아가기 버튼이 긴 제목을 달아요.</p>
+<h2 id="s-table">긴 표</h2>
+<div class="scroll" role="region" aria-labelledby="t-jobs" tabindex="0"><table>
+  <caption id="t-jobs">작업 세 개의 요청과 지연</caption>
+  <thead><tr><th scope="col">작업</th><th scope="col">하는 일</th><th scope="col">요청(건)</th><th scope="col">오류(건)</th><th scope="col">평균 지연</th><th scope="col">최대 지연</th></tr></thead>
+  <tbody>
+    <tr><th scope="row">수집기</th><td>여러 서버에서 들어온 요청을 모아서 한 줄로 세운 다음 정리기에 넘겨요.</td><td class="num">1,240,000</td><td class="num">12,480</td><td class="num">1,204 ms</td><td class="num">98,310 ms</td></tr>
+    <tr><th scope="row">정리기</th><td>오래된 기록을 날짜별로 묶어서 지우고 남은 기록의 목록을 새로 만들어요.</td><td class="num">87,000</td><td class="num">3,905</td><td class="num">15,870 ms</td><td class="num">240,112 ms</td></tr>
+    <tr><th scope="row">보고서</th><td>한 주 동안의 합계를 내고 팀마다 보낼 요약을 써요.</td><td class="num">3,905,210</td><td class="num">210</td><td class="num">402 ms</td><td class="num">12,004 ms</td></tr>
+  </tbody>
+</table></div>
+<section aria-labelledby="s-chart">
+  <h2 id="s-chart">긴 이름의 막대</h2>
+  <figure data-widget="chart" data-chart="bar">
+    <figcaption>이름이 아주 긴 도시의 하루 요청이 가장 많아요.</figcaption>
+    <div class="plot"></div>
+    <details><summary>표로 보기</summary><div class="scroll"><table>
+      <thead><tr><th scope="col">도시</th><th scope="col">하루 요청(건)</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">서울특별시 강남구 역삼동 테헤란로</th><td>1,240</td></tr>
+        <tr><th scope="row">부산광역시 해운대구 우동 센텀중앙로</th><td>1,870</td></tr>
+        <tr><th scope="row">대구</th><td>620</td></tr>
+      </tbody>
+    </table></div></details>
+  </figure>
+</section>
+<section aria-labelledby="s-tree">
+  <h2 id="s-tree">긴 파일 이름이 들어간 구조를 아주 길게 설명하는 제목</h2>
+  <div data-widget="diagram" data-diagram="file-tree" data-slide data-labels="뒤로|다음">
+    <figure class="stage">
+      <ul>
+        <li><details open><summary><span class="name">mumu-paperwork/skills/rendering/</span></summary>
+          <p class="note">문서를 쓰는 기술이에요.</p>
+          <ul>
+            <li><details><summary><span class="name">references/an-extremely-long-file-name-that-never-breaks.html</span></summary>
+              <p class="note">긴 이름의 참고 파일이에요.</p>
+              <blockquote><code>const anExtremelyLongIdentifierThatNeverBreaksAnywhere = 1;</code> <span class="muted">references/an-extremely-long-file-name-that-never-breaks.html:12</span></blockquote>
+            </details></li>
+            <li data-change="modify" data-step="2"><span class="name">scripts/check-every-page-at-phone-width.py</span><span class="tag">변경</span></li>
+            <li data-change="add" data-step="3"><span class="name">tests/pages/overflow-with-very-long-content.html</span><span class="tag">추가</span></li>
+          </ul></details></li>
+      </ul>
+    </figure>
+    <ol class="steps">
+      <li>처음에는 긴 이름이 화면을 넘었어요.</li>
+      <li>검사 스크립트가 폭을 재도록 바뀌어요.</li>
+      <li>긴 내용을 담은 시험 페이지가 생겨요.</li>
+    </ol>
+  </div>
+</section>
+<section aria-labelledby="s-context">
+  <h2 id="s-context">긴 이름의 이웃</h2>
+  <div data-widget="diagram" data-diagram="system-context" data-kinds="사람|외부 시스템">
+    <figure class="stage scroll" tabindex="0" aria-labelledby="cx-title">
+      <svg width="520" height="160" viewBox="0 0 520 160" role="img" aria-labelledby="cx-title" aria-describedby="cx-desc">
+        <title id="cx-title">이웃: 작업 큐</title>
+        <desc id="cx-desc">작성자가 작업 큐에 작업을 넣고 작업 큐가 저장소에 써요.</desc>
+        <defs>
+          <marker id="cx-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+            <path class="tip" d="M0,0 L10,5 L0,10 z"/>
+          </marker>
+        </defs>
+        <rect class="box k1" x="8" y="48" width="128" height="64"/>
+        <text x="72" y="76" text-anchor="middle">작성자</text>
+        <text class="label" x="72" y="96" text-anchor="middle">사람</text>
+        <rect class="box main" x="196" y="40" width="128" height="80"/>
+        <text x="260" y="76" text-anchor="middle">작업 큐</text>
+        <text class="label" x="260" y="96" text-anchor="middle">작업을 모아요</text>
+        <rect class="box k2" x="384" y="48" width="128" height="64"/>
+        <text x="448" y="76" text-anchor="middle">저장소</text>
+        <text class="label" x="448" y="96" text-anchor="middle">외부 시스템</text>
+        <g class="part" tabindex="0">
+          <path class="edge" d="M136,80 H192" marker-end="url(#cx-arrow)"/>
+          <rect class="mask" x="136" y="128" width="248" height="24"/>
+          <text class="label" x="140" y="144">작업 넣기, 번호 7</text>
+        </g>
+        <g class="part" tabindex="0">
+          <path class="edge" d="M324,80 H380" marker-end="url(#cx-arrow)"/>
+        </g>
+      </svg>
+      <figcaption class="muted">상자는 시스템이고 선은 오가는 요청이에요.</figcaption>
+    </figure>
+  </div>
+</section>
+<section aria-labelledby="s-flow">
+  <h2 id="s-flow">긴 흐름</h2>
+  <div data-widget="diagram" data-diagram="use-case" data-swipe>
+    <figure class="stage scroll" tabindex="0" aria-labelledby="uc-title">
+      <svg width="520" height="208" viewBox="0 0 520 208" role="img" aria-labelledby="uc-title" aria-describedby="uc-desc">
+        <title id="uc-title">흐름: 작업 하나 넣기</title>
+        <desc id="uc-desc">작성자가 작업을 넣으면 큐가 저장소에 쓰고 결과를 돌려줘요.</desc>
+        <defs>
+          <marker id="uc-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+            <path class="tip" d="M0,0 L10,5 L0,10 z"/>
+          </marker>
+        </defs>
+        <rect class="box" x="8" y="8" width="128" height="40"/>
+        <text x="72" y="32" text-anchor="middle">작성자</text>
+        <rect class="box" x="196" y="8" width="128" height="40"/>
+        <text x="260" y="32" text-anchor="middle">작업 큐</text>
+        <rect class="box" x="384" y="8" width="128" height="40"/>
+        <text x="448" y="32" text-anchor="middle">저장소</text>
+        <path class="lifeline" d="M72,48 V200 M260,48 V200 M448,48 V200"/>
+        <g class="part" tabindex="0" data-step="1"><path class="edge" d="M72,88 H256" marker-end="url(#uc-arrow)"/>
+          <text class="label" x="80" y="80">1 작업 넣기, 번호 7</text></g>
+        <g class="part" tabindex="0" data-step="2"><path class="edge" d="M260,136 H444" marker-end="url(#uc-arrow)"/>
+          <text class="label" x="268" y="128">2 기록 쓰기</text></g>
+        <g class="part" tabindex="0" data-step="3"><path class="edge" d="M448,184 H76" marker-end="url(#uc-arrow)"/>
+          <text class="label" x="268" y="176">3 결과</text></g>
+        <circle class="token" cx="0" cy="0" r="6"/>
+      </svg>
+      <figcaption class="muted">실패하는 경우는 뺐어요.</figcaption>
+    </figure>
+    <ol class="steps">
+      <li data-x="256" data-y="88">작성자가 아주 긴 설명을 단 작업을 큐에 넣어요. 설명이 길어도 카드 안에서 줄을 바꿔요.</li>
+      <li data-x="444" data-y="136">큐가 <code>jobs/2026/09/27/an-extremely-long-record-name-that-never-breaks.json</code>에 기록을 써요.</li>
+      <li data-x="76" data-y="184">저장소가 결과를 작성자에게 돌려줘요.</li>
+    </ol>
+  </div>
+</section>
+<h2 id="s-filter">긴 태그 거르기</h2>
+<div data-widget="filter" data-for="topics" data-unit="개">
+  <div role="group" data-choice data-facet="kind" aria-label="갈래">
+    <button type="button" data-tag="">전체</button><button type="button" data-tag="빛">창가에서 들어오는 부드러운 빛</button><button type="button" data-tag="구도">화면을 셋으로 나누는 구도</button><button type="button" data-tag="색">하얀 벽을 하얗게 맞추는 색</button>
+  </div>
+  <label>주제 이름에서 찾기 <input type="search" placeholder="찾을 말"></label>
+  <output aria-live="polite"></output>
+</div>
+<ul id="topics">
+  <li data-kind="빛">창가의 빛</li>
+  <li data-kind="빛">역광</li>
+  <li data-kind="구도">삼분할</li>
+  <li data-kind="구도">수평선</li>
+  <li data-kind="색">화이트 밸런스</li>
+  <li data-kind="색">피부색</li>
+</ul>
+<h2 id="s-controls">긴 이름의 조절</h2>
+<figure data-widget="controls">
+  <figcaption>거리를 바꾸면 코가 얼마나 커 보이는지 숫자로 봐요.</figcaption>
+  <div class="stage"><output data-calc="d / (d - 0.107) * 1000000" data-digits="0" data-unit="배만큼 크게 보여요"></output></div>
+  <div class="panel">
+    <label>카메라에서 얼굴까지의 아주 먼 거리 <input type="range" name="d" min="0.3" max="3" step="0.1" value="1.2"><output data-unit="m"></output></label>
+  </div>
+</figure>
+<footer>시험용 페이지예요. <code>abc1234</code></footer>

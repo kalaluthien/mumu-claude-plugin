@@ -955,11 +955,11 @@ class LeadStart(unittest.TestCase):
                                                       "--effort", "high", "--permission-mode", "auto"])
 
     def test_folder_names_a_folder_lead_with_no_task(self):
-        done, calls = self.start("--folder", "mumu-document")
+        done, calls = self.start("--folder", "mumu-paperwork")
         self.assertEqual(done.returncode, 0, done.stderr)
-        self.assertEqual(done.stdout, f"mumu-document-lead@{PANE}\n")
-        self.assertEqual(self.claude_argv(calls), ("mumu-document-lead", ["--name", "mumu-document-lead", "--agent", "mumu-team:lead", "--model", "opus", "--effort", "medium"]))
-        self.assertIn(["herdr", "tab", "create", "--cwd", str(self.repo), "--label", "mumu-document-lead"], calls)
+        self.assertEqual(done.stdout, f"mumu-paperwork-lead@{PANE}\n")
+        self.assertEqual(self.claude_argv(calls), ("mumu-paperwork-lead", ["--name", "mumu-paperwork-lead", "--agent", "mumu-team:lead", "--model", "opus", "--effort", "medium"]))
+        self.assertIn(["herdr", "tab", "create", "--cwd", str(self.repo), "--label", "mumu-paperwork-lead"], calls)
         self.assertIn(["herdr", "agent", "prompt", PANE, "/mumu-team:kickoff"], calls)
 
     def test_folder_with_a_task_prompts_see(self):

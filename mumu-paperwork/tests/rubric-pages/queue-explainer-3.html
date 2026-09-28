@@ -1,0 +1,958 @@
+<!-- #321 D2 sample: prompt queue-explainer (prompts.json), page 3, written by rendering at 9f061ec -->
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>작업 큐 서비스의 동작 방식</title>
+<style id="skin">
+@import url("https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap");
+/* skin: the owner's design system.
+   Look: a soft gothic page, black on white; dark mode inverts the duet. One
+   face, Nanum Gothic, for every text role: h1 and h2 at weight 800, h3 at 700,
+   prose, controls, captions, figure labels and metadata at 400; a defined
+   term (dfn) at 700, upright, since Hangul has no italic.
+   Corners square, no shadows. The
+   accent is ink: focus, hover and the current step; links take --link.
+   Borders on controls and figure boxes are body grey (3:1, so a hover to ink
+   shows); row dividers are --hairline. Figures add kinds and status colours,
+   which the magazine lacks.
+   Tokens in three tiers: a primitive (--p-*) holds a raw value two roles or
+   more share; a semantic token names a role; each widget defines its own
+   --<widget>-* tokens from semantic ones and reads nothing else.
+   Layout: one column of --page-width, a --gutter each side, sections --rhythm
+   apart; from 75rem the contents drawer docks beside it, --drawer-width wide;
+   at 320 px nothing scrolls sideways but a .scroll box, which holds a
+   table's first column in view; a long word, code or url wraps.
+   Tables: smaller type than prose; a number cell right-aligned, unwrapped;
+   a text cell at least 6em and broken between words, as Korean is set.
+   Motion: --motion-fast for hover and focus, --motion for a reveal, easing
+   --ease-out; only a change of state animates, none under reduced motion.
+   Fonts: the one fetch a page makes; offline, installed faces. */
+:root {
+  color-scheme: light dark;
+  /* primitives */
+  --p-black: #000000; --p-white: #ffffff; --p-grey-500: #757575;
+  --p-size-1: .25rem; --p-size-4: 1rem; --p-size-5: 1.75rem;
+
+  /* semantic: colour roles, each light-dark(light, dark) */
+  --text: light-dark(var(--p-black), var(--p-white));
+  --muted: light-dark(var(--p-grey-500), #a3a3a3);
+  --bg: light-dark(var(--p-white), #312e2d);
+  --fill: light-dark(var(--p-white), #3a3635);
+  --border: light-dark(var(--p-grey-500), #8a8a8a);
+  --hairline: light-dark(#e0e0e0, #4a4543);
+  --accent: light-dark(var(--p-black), var(--p-white));
+  --link: light-dark(#057dbc, #5cb8ea);
+  /* semantic: diagram palette; kinds (Okabe-Ito, told apart under
+     deuteranopia and protanopia) mark a node's kind by its edge and a chart's
+     series; status colours mark success, warning and failure in text and edges */
+  --kind-1: light-dark(#0072b2, #56b4e9);
+  --kind-2: light-dark(#d55e00, #e69f00);
+  --kind-3: light-dark(#009e73, #009e73);
+  --kind-4: light-dark(#cc79a7, #cc79a7);
+  --ok: light-dark(#1f7a3a, #6fd68a);
+  --warn: light-dark(#855600, #f2c14e);
+  --fail: light-dark(#b8302a, #ff7b72);
+  /* semantic: type, space, line, radius, layout, motion */
+  --sans: "Nanum Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --mono: ui-monospace, monospace;
+  /* type: body 10pt, each size a ratio of it; none under 12px, check.py's floor for Hangul */
+  --fs-base: 10pt; --fs-s: max(12px, .8 * var(--fs-base)); --fs-m: max(12px, .9 * var(--fs-base));
+  --fs-l: calc(1.2 * var(--fs-base)); --fs-h2: calc(1.625 * var(--fs-base)); --fs-h1: calc(2 * var(--fs-base));
+  --fs-svg: max(12px, .875 * var(--fs-base)); --fs-svg-label: max(12px, .75 * var(--fs-base));
+  --fs-table: var(--fs-m);
+  --sp-1: var(--p-size-1); --sp-2: .5rem; --sp-3: .75rem;
+  --sp-4: var(--p-size-4); --sp-5: var(--p-size-5);
+  --line: 1px; --line-strong: 2px; --line-mark: 3px;
+  --radius-s: 0;
+  --page-width: 48rem; --gutter: var(--p-size-4); --rhythm: var(--p-size-5);
+  --motion-fast: 100ms; --motion: 200ms;
+  --ease-out: cubic-bezier(.2, .7, .3, 1);
+  --scroll-step: 60vh;
+  --drawer-width: 16rem;
+  --mark: light-dark(#fff1a8, #5c4b00);
+  --disabled: .5;
+}
+:root[data-theme="light"], .theme-light { color-scheme: light; }
+:root[data-theme="dark"], .theme-dark { color-scheme: dark; }
+.theme-light, .theme-dark { background: var(--bg); color: var(--text); }
+
+/* layout */
+body { background: var(--bg); color: var(--text); margin: 0;
+       font: var(--fs-base)/1.5 var(--sans); padding: var(--rhythm) var(--gutter); overflow-wrap: break-word; }
+main { max-width: var(--page-width); margin: 0 auto; }
+h1, h2 { font-weight: 800; letter-spacing: -.01em; line-height: 1.2; }
+h1 { font-size: var(--fs-h1); margin: 0 0 var(--sp-4); }
+h2 { font-size: var(--fs-h2); margin: var(--rhythm) 0 var(--sp-2); }
+h3 { font: 700 var(--fs-l)/1.2 var(--sans); margin: var(--sp-4) 0 var(--sp-2); }
+a { color: var(--link); }
+:is(h1, h2) code { font-size: .8em; }
+.read { border-inline-start: var(--line-mark) solid var(--text); padding-inline-start: var(--sp-3); font-size: var(--fs-l); }
+.muted, footer { color: var(--muted); font-size: var(--fs-m); }
+footer { margin-top: var(--rhythm); padding-top: var(--sp-3); border-top: var(--line) solid var(--hairline); }
+code, pre { font-family: var(--mono); font-size: var(--fs-m); }
+pre { overflow-x: auto; background: var(--fill); border: var(--line) solid var(--border);
+      border-radius: var(--radius-s); padding: var(--sp-3); }
+.scroll { overflow-x: auto; }
+figure { margin: 0; }
+figure.code figcaption { overflow-wrap: anywhere; }
+pre mark { display: inline-block; min-width: 100%; background: var(--mark); color: inherit; }
+table { border-collapse: collapse; min-width: 100%; background: var(--fill); font-size: var(--fs-table); }
+th, td { border-bottom: var(--line) solid var(--hairline); padding: var(--sp-2) var(--sp-3); text-align: start; vertical-align: top;
+         word-break: keep-all; }
+:is(th, td):not(.num) { min-width: 6em; }
+tbody th { font-weight: normal; }
+dfn { font-style: normal; font-weight: 700; }
+caption { text-align: start; }
+.scroll :is(th, td):first-child { position: sticky; inset-inline-start: 0; background: var(--fill); }
+.num { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ok { color: var(--ok); } .warn { color: var(--warn); } .fail { color: var(--fail); }
+
+/* states: default, hover, focus, open, disabled; [data-state] forces one for
+   the test gallery */
+:focus-visible, [data-state="focus"] :is(summary, button, textarea, [tabindex]) {
+  outline: var(--line-strong) solid var(--accent); outline-offset: var(--line-strong); }
+summary { cursor: pointer; transition: color var(--motion-fast) var(--ease-out); }
+summary:hover, [data-state="hover"] summary { color: var(--accent); }
+details[open] > :not(summary) { animation: reveal var(--motion) var(--ease-out); }
+@keyframes reveal { from { opacity: 0; transform: translateY(calc(-1 * var(--sp-1))); } }
+button { font: 700 var(--fs-m) var(--sans); color: var(--text); background: var(--fill); cursor: pointer;
+         border: var(--line) solid var(--border); border-radius: var(--radius-s); padding: var(--sp-1) var(--sp-3);
+         transition: border-color var(--motion-fast) var(--ease-out); }
+button:hover, [data-state="hover"] button { border-color: var(--accent); }
+textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); background: var(--fill);
+           border: var(--line) solid var(--border); border-radius: var(--radius-s); }
+:disabled { opacity: var(--disabled); cursor: not-allowed; }
+
+@media screen and (min-width: 75rem) {
+  body:has(main nav.drawer) { padding-inline-start: calc(var(--drawer-width) + 2 * var(--gutter)); }
+  :root main nav.drawer { transform: none; visibility: visible; }
+  .dock .contents, .backdrop { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after { animation: none !important; transition: none !important; }
+}
+</style>
+<style>
+  .katex-display { overflow-x: auto; overflow-y: hidden; padding-block: var(--sp-1); }
+  [data-chapter] .pager { display: flex; justify-content: space-between; gap: var(--sp-3); margin-top: var(--rhythm);
+    padding-top: var(--sp-3); border-top: var(--line) solid var(--hairline); font-family: var(--sans); }
+  [data-chapter] .pager [rel="next"] { margin-inline-start: auto; text-align: end; }
+  main nav [aria-current] { color: var(--text); font-weight: 700; }
+  @media print { [data-chapter][hidden] { display: block; } [data-chapter] .pager { display: none; } }
+  [data-slide] .steps { margin: var(--sp-2) 0; }
+  [data-slide] :is(.caption, .controls) { display: none; }
+  [data-slide] .controls { gap: var(--sp-2); align-items: center; margin: var(--sp-2) 0; }
+  [data-slide] .count { color: var(--muted); font-size: var(--fs-m); }
+  @media screen and (prefers-reduced-motion: no-preference) {
+    [data-slide].live .steps { display: none; }
+    [data-slide].live .caption { display: block; }
+    [data-slide].live .controls { display: flex; }
+  }
+  @media screen and (prefers-reduced-motion: no-preference) {
+    [data-swipe].live .steps { display: flex; gap: var(--sp-2); overflow-x: auto; scroll-snap-type: x mandatory;
+      list-style: none; padding: 0; margin: var(--sp-2) 0; }
+    [data-swipe].live .steps > li { flex: 0 0 85%; scroll-snap-align: center; padding: var(--sp-2) var(--sp-3);
+      border: var(--line) solid var(--hairline); color: var(--muted); transition: color var(--motion-fast) var(--ease-out); }
+    [data-swipe].live .steps > li.now { color: var(--text); border-color: var(--accent); }
+    [data-swipe].live .steps:focus-visible { outline: var(--line-strong) solid var(--accent); }
+  }
+  main nav.drawer { position: fixed; z-index: 3; inset-block: 0; inset-inline-start: 0; overflow-y: auto;
+    width: min(var(--drawer-width), 85%); box-sizing: border-box; padding: var(--rhythm) var(--gutter);
+    background: var(--bg); border-inline-end: var(--line) solid var(--hairline); transform: translateX(-100%);
+    visibility: hidden; transition: transform var(--motion) var(--ease-out), visibility var(--motion); }
+  main nav.drawer.open { transform: none; visibility: visible; transition-property: transform; }
+  main nav.drawer ol { padding-inline-start: var(--sp-4); }
+  main nav.drawer li:not(:has(> [aria-current])) > ol { display: none; }
+  main nav.drawer a { display: block; padding-inline-start: var(--sp-2); border-inline-start: var(--line-mark) solid transparent; }
+  main nav.drawer a.here { border-color: var(--accent); color: var(--text); }
+  .backdrop { position: fixed; z-index: 2; inset: 0; background: var(--text); opacity: .3; }
+  .dock { position: fixed; z-index: 1; inset-block-end: var(--sp-4); inset-inline-end: var(--gutter); display: flex;
+    gap: var(--sp-2); max-width: calc(100% - 2 * var(--gutter)); }
+  .dock .back { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  body:has(.dock) { padding-bottom: calc(3 * var(--rhythm)); }
+  .flash { animation: flash calc(8 * var(--motion)) var(--ease-out); }
+  @keyframes flash { from { background: var(--mark); } }
+  @media print { main nav.drawer { position: static; transform: none; visibility: visible; } .dock, .backdrop { display: none; } }
+</style>
+<style>
+  [data-widget="diagram"] {
+    --diagram-indent: var(--sp-4); --diagram-add: var(--ok); --diagram-modify: var(--warn);
+    --diagram-remove: var(--fail); --diagram-pending: var(--disabled); --x: 0; --y: 0;
+    --diagram-dim: calc(var(--disabled) / 2); --diagram-off: calc(var(--disabled) / 5);
+    & ul { list-style: none; margin: 0; padding-inline-start: var(--diagram-indent); border-inline-start: var(--line) dashed var(--border); }
+    & .stage > ul { padding-inline-start: 0; border: 0; }
+    & .stage:has(> ul) { background: var(--fill); border: var(--line) solid var(--border); padding: var(--sp-2) var(--sp-3); }
+    & li { margin: var(--sp-1) 0; }
+    & .name { font-family: var(--mono); font-size: var(--fs-m); overflow-wrap: anywhere; }
+    & :is(.note, blockquote) { color: var(--muted); font-size: var(--fs-m); margin: var(--sp-1) 0 var(--sp-2) var(--diagram-indent); }
+    & blockquote { color: var(--text); padding-inline-start: var(--sp-2); border-inline-start: var(--line-strong) solid var(--border); }
+    & .tag { font: var(--fs-s) var(--sans); margin-inline-start: var(--sp-1); }
+    & [data-change="add"] .tag { color: var(--diagram-add); }
+    & [data-change="modify"] .tag { color: var(--diagram-modify); }
+    & [data-change="remove"] .tag { color: var(--diagram-remove); }
+    & [data-change="remove"] .name { text-decoration: line-through; color: var(--muted); }
+    & svg { display: block; }
+    & svg text { fill: var(--text); font: var(--fs-svg) var(--sans); }
+    & svg .label { fill: var(--muted); font-size: var(--fs-svg-label); }
+    & .box { fill: var(--fill); stroke: var(--border); }
+    & .box.main { stroke: var(--text); stroke-width: var(--line-strong); }
+    & .box:is(.k1, .k2, .k3, .k4) { stroke: var(--diagram-kind); }
+    & .tip { fill: var(--text); }
+    & .edge { stroke: var(--text); stroke-width: var(--line-strong); fill: none; }
+    & .edge.inferred { stroke-dasharray: 4 4; }
+    & .edge.ok { stroke: var(--ok); } & .edge.warn { stroke: var(--warn); } & .edge.fail { stroke: var(--fail); }
+    & .lifeline { stroke: var(--border); stroke-width: var(--line); stroke-dasharray: 4 4; }
+    & .mask { fill: var(--bg); }
+    & .part { outline: none; }
+    & .part:is(:hover, :focus-visible) .edge, [data-state="hover"] & .part:first-of-type .edge { stroke: var(--accent); }
+    & .part:is(:hover, :focus-visible) text, [data-state="hover"] & .part:first-of-type text { fill: var(--accent); }
+    & .part:focus-visible, [data-state="focus"] & .part:first-of-type { outline: var(--line-strong) solid var(--accent); }
+    & .token { fill: var(--accent); display: none; }
+    & li:is(.k1, .k2, .k3, .k4) > .name, & li:is(.k1, .k2, .k3, .k4) > details > summary .name { border-bottom: var(--line-strong) solid var(--diagram-kind); }
+    & .k1 { --diagram-kind: var(--kind-1); } & .k2 { --diagram-kind: var(--kind-2); } & .k3 { --diagram-kind: var(--kind-3); } & .k4 { --diagram-kind: var(--kind-4); }
+    & .stage > dl dt { font-weight: 700; }
+    & .stage > dl dd { margin: 0 0 var(--sp-2) var(--diagram-indent); }
+    & .detail { display: block; margin-block-start: var(--sp-2); padding-block-start: var(--sp-2);
+      border-block-start: var(--line) solid var(--border); font-size: var(--fs-m); }
+    & .detail:empty { display: none; }
+    &[data-diagram="network"] .edge:is(.ok, .warn, .fail) { stroke: var(--text); }
+    &[data-diagram="network"] .edge.warn { stroke-dasharray: 12 4; }
+    &[data-diagram="network"] .edge.fail { stroke-dasharray: 2 4; }
+    & .detail :is(dl, dd) { margin: 0; }
+    & .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-2) 0; }
+    & .legend button::before { content: ""; display: inline-block; inline-size: var(--sp-3); block-size: var(--sp-3);
+      margin-inline-end: var(--sp-1); vertical-align: middle; background: var(--diagram-kind); }
+    & .legend [aria-pressed="false"] { color: var(--muted); text-decoration: line-through; }
+    & .legend [aria-pressed="false"]::before { opacity: var(--diagram-off); }
+  }
+  @media screen {
+    [data-widget="diagram"] { & .dim { opacity: var(--diagram-dim); } & .off { opacity: var(--diagram-off); } }
+  }
+  @media print { [data-widget="diagram"] :is(.legend, .detail) { display: none; } }
+  @media screen and (prefers-reduced-motion: no-preference) {
+    [data-widget="diagram"] {
+      & :is(.edge, .part text) { transition: stroke var(--motion-fast) var(--ease-out), fill var(--motion-fast) var(--ease-out); }
+      &.live [data-step] { transition: opacity var(--motion) var(--ease-out); }
+      &.live [data-step]:not(.on) { opacity: var(--diagram-pending); }
+      &.live [data-change="add"]:not(.on) { display: none; }
+      &.live [data-change="remove"]:not(.on) { opacity: 1; }
+      &.live [data-change="remove"]:not(.on) .name { text-decoration: none; color: var(--text); }
+      &.live [data-change="remove"].on { opacity: var(--diagram-pending); }
+      &.live [data-change]:not(.on) .tag { visibility: hidden; }
+      &.live .token { display: inline; transform: translate(var(--x), var(--y)); transition: transform var(--motion) var(--ease-out); }
+      &.live .now .edge { stroke: var(--accent); }
+      &.live .now text { fill: var(--accent); }
+      & .stage:has(> svg) > dl { position: absolute; inline-size: var(--line); block-size: var(--line); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    }
+  }
+</style>
+<main>
+<h1>작업 큐 서비스의 동작 방식</h1>
+<p class="read">작업 하나는 SQLite 표의 한 줄이고, 워커는 60초짜리 <a href="#t-lease">임대</a>를 20초마다 갱신하는 동안에만 그 작업을 가져요. 그래서 갱신이 끊긴 긴 작업은 두 번 실행되고, 재시도는 작업이 자기 결과를 먼저 확인할 때만 안전해요.</p>
+<nav><ol>
+<li><a href="#files">받기, 보관, 실행, 관찰로 나뉜 파일 구조</a></li>
+<li><a href="#states">작업 상태와 그 상태를 바꾸는 쪽</a></li>
+<li><a href="#flow">요청 하나가 완료되기까지의 흐름</a></li>
+<li><a href="#takeover">죽은 워커의 작업을 이어받는 과정</a></li>
+<li><a href="#trap-renew">갱신을 빠뜨린 긴 작업의 중복 실행</a></li>
+<li><a href="#trap-retry">결과를 확인하지 않는 재시도의 중복 효과</a></li>
+<li><a href="#metrics">큐 길이와 임대 만료 수로 보는 이상 신호</a></li>
+<li><a href="#next">새 작업을 넣기 전에 확인할 일</a></li>
+</ol></nav>
+
+<p>이 문서는 이 서비스를 처음 맡은 엔지니어를 위한 안내예요. 요청이 어떻게 흘러가는지, 그리고 새 작업을 짤 때 어디서 사고가 나는지 알 수 있어요. 핵심 용어는 <dfn id="t-lease">임대(lease)</dfn> 하나예요. 임대는 워커 하나가 작업을 정해진 시간 동안만 혼자 맡는 권리예요.</p>
+
+<section aria-labelledby="files">
+<h2 id="files">받기, 보관, 실행, 관찰로 나뉜 파일 구조</h2>
+<p>서비스는 받는 쪽(<code>api</code>), 보관하는 쪽(<code>queue</code>), 실행하는 쪽(<code>worker</code>), 지켜보는 쪽(<code>ops</code>)의 네 폴더로 나뉘어요. 아래 파일 구조에서 각 파일을 열면 역할이 보여요.</p>
+<div data-widget="diagram" data-diagram="file-tree">
+<figure class="stage">
+<ul>
+<li><details open><summary><span class="name">api/</span></summary>
+<p class="note">바깥 요청을 받는 입구예요.</p>
+<ul>
+<li><details open><summary><span class="name">server.py</span></summary>
+<p class="note">HTTP 입구예요. <code>POST /jobs</code>로 작업을 받고 <code>GET /jobs/&lt;id&gt;</code>로 상태를 알려 줘요.</p>
+</details></li>
+</ul></details></li>
+<li><details open><summary><span class="name">queue/</span></summary>
+<p class="note">작업을 보관하고 누가 맡을지 정해요.</p>
+<ul>
+<li><details open><summary><span class="name">store.py</span></summary>
+<p class="note">SQLite의 <code>jobs</code> 표를 다뤄요. 작업마다 상태 하나를 가져요.</p>
+</details></li>
+<li><details open><summary><span class="name">lease.py</span></summary>
+<p class="note">워커에게 작업을 60초 동안 빌려주고, 20초마다 갱신을 받아요.</p>
+</details></li>
+</ul></details></li>
+<li><details open><summary><span class="name">worker/</span></summary>
+<p class="note">작업을 실제로 실행해요.</p>
+<ul>
+<li><details open><summary><span class="name">main.py</span></summary>
+<p class="note">임대받고, 실행하고, 완료나 실패로 표시하는 일을 반복해요.</p>
+</details></li>
+<li><details open><summary><span class="name">retry.py</span></summary>
+<p class="note">실패한 작업을 10초, 40초, 160초 뒤에 최대 세 번 다시 실행해요.</p>
+</details></li>
+</ul></details></li>
+<li><details open><summary><span class="name">ops/</span></summary>
+<p class="note">운영 상태를 밖으로 알려요.</p>
+<ul>
+<li><details open><summary><span class="name">metrics.py</span></summary>
+<p class="note">큐 길이와 임대 만료 수를 지표로 내보내요.</p>
+</details></li>
+</ul></details></li>
+</ul>
+</figure>
+</div>
+</section>
+
+<section aria-labelledby="states">
+<h2 id="states">작업 상태와 그 상태를 바꾸는 쪽</h2>
+<p>작업은 <code>jobs</code> 표에서 네 가지 상태 중 하나를 가지며, 누가 언제 바꾸는지가 정해져 있어요.</p>
+<dl>
+<dt><code>queued</code> (대기)</dt><dd>API가 작업을 받아 처음 저장한 상태예요. 아무 워커도 맡지 않았어요.</dd>
+<dt><code>running</code> (실행 중)</dt><dd>워커 하나가 임대를 받아 실행하고 있는 상태예요.</dd>
+<dt><code>done</code> (완료)</dt><dd>워커가 실행을 끝내고 성공으로 표시한 상태예요.</dd>
+<dt><code>failed</code> (실패)</dt><dd>워커가 실패로 표시한 상태예요. 재시도 횟수가 남았으면 다시 실행돼요.</dd>
+</dl>
+</section>
+
+<section aria-labelledby="flow">
+<h2 id="flow">요청 하나가 완료되기까지의 흐름</h2>
+<p>정상적인 요청은 아래 흐름 그림처럼 여덟 단계를 거쳐요. 그림 아래 카드를 옆으로 넘기면 단계마다 무엇이 오가는지 보여요.</p>
+<div data-widget="diagram" data-diagram="use-case" data-swipe>
+<figure class="stage scroll" tabindex="0" aria-labelledby="uc1-title">
+<svg width="592" height="440" viewBox="0 0 592 440" role="img" aria-labelledby="uc1-title" aria-describedby="uc1-desc">
+<title id="uc1-title">흐름: 작업 등록부터 완료까지</title>
+<desc id="uc1-desc">클라이언트가 작업을 보내면 API가 대기 상태로 저장하고, 워커가 임대받아 실행한 뒤 완료로 표시하며, 클라이언트는 상태 조회로 완료를 확인해요.</desc>
+<defs>
+<marker id="uc1-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+<path class="tip" d="M0,0 L10,5 L0,10 z"/>
+</marker>
+</defs>
+<rect class="box" x="8" y="8" width="120" height="40"/>
+<text x="68" y="32" text-anchor="middle">클라이언트</text>
+<rect class="box main" x="160" y="8" width="120" height="40"/>
+<text x="220" y="32" text-anchor="middle">API</text>
+<rect class="box main" x="312" y="8" width="120" height="40"/>
+<text x="372" y="32" text-anchor="middle">jobs 표</text>
+<rect class="box" x="464" y="8" width="120" height="40"/>
+<text x="524" y="32" text-anchor="middle">워커</text>
+<path class="lifeline" d="M68,48 V432 M220,48 V432 M372,48 V432 M524,48 V432"/>
+<g class="part" tabindex="0" data-step="1"><path class="edge" d="M68,88 H216" marker-end="url(#uc1-arrow)"/>
+<text class="label" x="76" y="80">1 POST /jobs</text></g>
+<g class="part" tabindex="0" data-step="2"><path class="edge" d="M220,136 H368" marker-end="url(#uc1-arrow)"/>
+<text class="label" x="228" y="128">2 queued로 저장</text></g>
+<g class="part" tabindex="0" data-step="3"><path class="edge" d="M220,184 H72" marker-end="url(#uc1-arrow)"/>
+<text class="label" x="76" y="176">3 id 42 응답</text></g>
+<g class="part" tabindex="0" data-step="4"><path class="edge" d="M524,232 H376" marker-end="url(#uc1-arrow)"/>
+<text class="label" x="380" y="224">4 임대 60초</text></g>
+<g class="part" tabindex="0" data-step="5"><path class="edge" d="M524,280 H376" marker-end="url(#uc1-arrow)"/>
+<text class="label" x="380" y="272">5 20초마다 갱신</text></g>
+<g class="part" tabindex="0" data-step="6"><path class="edge" d="M524,328 H376" marker-end="url(#uc1-arrow)"/>
+<text class="label" x="380" y="320">6 done 표시</text></g>
+<g class="part" tabindex="0" data-step="7"><path class="edge" d="M68,376 H216" marker-end="url(#uc1-arrow)"/>
+<text class="label" x="76" y="368">7 GET /jobs/42</text></g>
+<g class="part" tabindex="0" data-step="8"><path class="edge" d="M220,424 H72" marker-end="url(#uc1-arrow)"/>
+<text class="label" x="76" y="416">8 done 응답</text></g>
+<circle class="token" cx="0" cy="0" r="6"/>
+</svg>
+<figcaption class="muted">작업 번호 42는 예시예요. 실패와 재시도는 <a href="#trap-retry">재시도 절</a>에서 다뤄요.</figcaption>
+</figure>
+<ol class="steps">
+<li data-x="216" data-y="88">클라이언트가 <code>POST /jobs</code>로 작업을 보내요.</li>
+<li data-x="368" data-y="136">API가 작업을 <code>queued</code> 상태로 표에 저장해요.</li>
+<li data-x="72" data-y="184">API가 작업 번호를 돌려줘요. 클라이언트는 이 번호로 나중에 상태를 물어요.</li>
+<li data-x="376" data-y="232">워커가 대기 중인 작업을 60초 동안 임대받고, 작업은 <code>running</code>이 돼요.</li>
+<li data-x="376" data-y="280">워커는 실행하는 동안 20초마다 임대를 갱신해 60초 만료를 뒤로 미뤄요.</li>
+<li data-x="376" data-y="328">실행이 끝나면 워커가 작업을 <code>done</code>으로 표시해요. 실패했다면 <code>failed</code>로 표시해요.</li>
+<li data-x="216" data-y="376">클라이언트가 <code>GET /jobs/42</code>로 상태를 물어요.</li>
+<li data-x="72" data-y="424">API가 표에서 읽은 상태 <code>done</code>을 돌려줘요.</li>
+</ol>
+</div>
+</section>
+
+<section aria-labelledby="takeover">
+<h2 id="takeover">죽은 워커의 작업을 이어받는 과정</h2>
+<p>워커가 실행 도중 죽으면 갱신이 멈추고, 마지막 갱신 60초 뒤 <a href="#t-lease">임대</a>가 끝나 다른 워커가 작업을 가져가요. 아래 흐름 그림은 시각을 예로 들어 이 과정을 보여 줘요.</p>
+<div data-widget="diagram" data-diagram="use-case" data-swipe>
+<figure class="stage scroll" tabindex="0" aria-labelledby="uc2-title">
+<svg width="520" height="256" viewBox="0 0 520 256" role="img" aria-labelledby="uc2-title" aria-describedby="uc2-desc">
+<title id="uc2-title">흐름: 워커가 죽은 뒤 다른 워커가 이어받기</title>
+<desc id="uc2-desc">워커 A가 임대를 받고 한 번 갱신한 뒤 죽고, 임대가 만료되자 워커 B가 같은 작업을 임대받아요.</desc>
+<defs>
+<marker id="uc2-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+<path class="tip" d="M0,0 L10,5 L0,10 z"/>
+</marker>
+</defs>
+<rect class="box" x="8" y="8" width="128" height="40"/>
+<text x="72" y="32" text-anchor="middle">워커 A</text>
+<rect class="box main" x="196" y="8" width="128" height="40"/>
+<text x="260" y="32" text-anchor="middle">jobs 표</text>
+<rect class="box" x="384" y="8" width="128" height="40"/>
+<text x="448" y="32" text-anchor="middle">워커 B</text>
+<path class="lifeline" d="M72,48 V248 M260,48 V248 M448,48 V248"/>
+<g class="part" tabindex="0" data-step="1"><path class="edge" d="M72,88 H256" marker-end="url(#uc2-arrow)"/>
+<text class="label" x="80" y="80">1 임대 12:00:00</text></g>
+<g class="part" tabindex="0" data-step="2"><path class="edge" d="M72,136 H256" marker-end="url(#uc2-arrow)"/>
+<text class="label" x="80" y="128">2 갱신 12:00:20</text></g>
+<g class="part" tabindex="0" data-step="3"><path class="edge fail" d="M72,184 H256" marker-end="url(#uc2-arrow)"/>
+<text class="label" x="80" y="176">3 A 죽음, 갱신 없음</text></g>
+<g class="part" tabindex="0" data-step="4"><path class="edge ok" d="M448,232 H264" marker-end="url(#uc2-arrow)"/>
+<text class="label" x="268" y="224">4 B 임대 12:01:20 뒤</text></g>
+<circle class="token" cx="0" cy="0" r="6"/>
+</svg>
+<figcaption class="muted">시각은 예시예요. 빨간 선은 오지 않은 갱신, 초록 선은 이어받기예요.</figcaption>
+</figure>
+<ol class="steps">
+<li data-x="256" data-y="88">워커 A가 12:00:00에 작업을 임대받아요. 만료는 12:01:00이에요.</li>
+<li data-x="256" data-y="136">A가 12:00:20에 갱신해 만료가 12:01:20으로 밀려요.</li>
+<li data-x="256" data-y="184">A가 12:00:30쯤 죽어 12:00:40 갱신이 오지 않아요. 만료는 12:01:20에 그대로 남아요.</li>
+<li data-x="264" data-y="232">12:01:20이 지나 임대가 끝나면 워커 B가 같은 작업을 임대받아 처음부터 실행해요.</li>
+</ol>
+</div>
+</section>
+
+<section aria-labelledby="trap-renew">
+<h2 id="trap-renew">갱신을 빠뜨린 긴 작업의 중복 실행</h2>
+<p>60초보다 오래 걸리는 작업이 갱신을 하지 않으면, 워커가 살아 있는데도 같은 작업이 두 번 실행돼요. 서비스는 갱신이 끊긴 이유를 구분하지 못하기 때문이에요. 워커가 죽은 것과 갱신을 잊은 것이 표에서는 똑같이 보여요.</p>
+<ol>
+<li>워커 A가 작업을 임대받고 실행을 시작해요.</li>
+<li>작업이 60초 넘게 걸리는데 갱신이 없어서 <a href="#t-lease">임대</a>가 끝나요.</li>
+<li>워커 B가 같은 작업을 임대받아 실행해요. 이제 A와 B가 동시에 같은 작업을 해요.</li>
+</ol>
+<p>막는 방법은 실행이 60초를 넘을 수 있는 작업이라면 실행 중에도 20초마다 갱신이 나가게 하는 거예요. 갱신 간격을 60초에 가깝게 늘리면 한 번만 늦어도 만료되니 20초를 지키세요.</p>
+</section>
+
+<section aria-labelledby="trap-retry">
+<h2 id="trap-retry">결과를 확인하지 않는 재시도의 중복 효과</h2>
+<p>재시도는 작업을 처음부터 다시 실행하므로, 이전 실행이 이미 남긴 결과를 한 번 더 만들 수 있어요. 실패한 작업은 아래 표처럼 최대 세 번, 점점 긴 간격을 두고 다시 실행돼요. 그래서 한 작업은 처음 실행까지 합쳐 최대 네 번 실행돼요.</p>
+<div class="scroll" role="region" aria-labelledby="t-retry" tabindex="0">
+<table>
+<caption id="t-retry">재시도 간격: 대기 시간은 한 번에 네 배씩 늘어요</caption>
+<thead><tr><th scope="col">재시도</th><th scope="col" class="num">직전 실패 뒤 대기(초)</th><th scope="col" class="num">첫 실패 뒤 누적 대기(초)</th></tr></thead>
+<tbody>
+<tr><th scope="row">첫 번째</th><td class="num">10</td><td class="num">10</td></tr>
+<tr><th scope="row">두 번째</th><td class="num">40</td><td class="num">50</td></tr>
+<tr><th scope="row">세 번째</th><td class="num">160</td><td class="num">210</td></tr>
+</tbody>
+</table>
+</div>
+<p>누적 대기에는 실행에 걸린 시간이 빠져 있어요. 세 번째 재시도도 실패한 뒤 어떻게 되는지는 이 설명의 출처에 나와 있지 않아요.</p>
+<p>예를 들어 메일을 보낸 직후 실패로 끝난 작업은 재시도 때 메일을 또 보내요. 이를 막으려면 작업을 <dfn id="t-idempotent">멱등(idempotent)</dfn>하게 만들어야 해요. 멱등하다는 건 여러 번 실행해도 한 번 실행한 것과 결과가 같다는 뜻이에요. 이 서비스에서는 작업이 일을 하기 전에 자기 결과가 이미 있는지 확인하는 방식으로 멱등하게 만들어요. 예를 들면 작업 번호로 보낸 기록을 찾아보고, 있으면 건너뛰는 식이에요.</p>
+</section>
+
+<section aria-labelledby="metrics">
+<h2 id="metrics">큐 길이와 임대 만료 수로 보는 이상 신호</h2>
+<p><code>ops/metrics.py</code>가 내보내는 두 지표는 각각 다른 문제를 알려 줘요.</p>
+<dl>
+<dt>큐 길이</dt><dd>대기 중인 작업의 수예요. 계속 늘어나면 워커가 들어오는 작업을 따라잡지 못하고 있다는 뜻이에요.</dd>
+<dt>임대 만료 수</dt><dd>갱신 없이 끝난 <a href="#t-lease">임대</a>의 수예요. 늘어나면 워커가 죽고 있거나, <a href="#trap-renew">갱신을 빠뜨린 긴 작업</a>이 있다는 뜻이에요. 둘 다 작업이 두 번 실행될 수 있는 상황이에요.</dd>
+</dl>
+</section>
+
+<section aria-labelledby="next">
+<h2 id="next">새 작업을 넣기 전에 확인할 일</h2>
+<p>새 작업 종류를 추가할 때는 다음 세 가지를 확인하세요.</p>
+<ul>
+<li>60초를 넘을 수 있는 작업이면 실행 중에도 20초마다 임대가 갱신되는지 확인하세요.</li>
+<li>작업이 일을 하기 전에 자기 결과가 이미 있는지 확인해, 두 번 실행돼도 결과가 한 번뿐인지 확인하세요.</li>
+<li>배포한 뒤 임대 만료 수가 늘지 않는지 지표로 확인하세요.</li>
+</ul>
+</section>
+
+<footer>출처: 요청에 적힌 서비스 설명이에요. 이 폴더에는 코드가 없어 파일을 직접 읽지 않았고, 커밋도 아직 없어요.</footer>
+</main>
+<script>
+  // math, before the scripts that read headings: KaTeX, which assemble.py loads only for a body with TeX, sets it
+  if (window.renderMathInElement) renderMathInElement(document.querySelector('main') || document.body, {
+    delimiters: [{ left: '\\[', right: '\\]', display: true }, { left: '\\(', right: '\\)', display: false }],
+    throwOnError: false });
+</script>
+<script>
+  (() => {
+    const start = () => {
+      const chapters = [...document.querySelectorAll('[data-chapter]')];
+      if (chapters.length < 2) return;
+      const head = (c) => c.querySelector('h2');
+      chapters.forEach((c, i) => {
+        const pager = document.createElement('div');
+        pager.className = 'pager';
+        [[chapters[i - 1], 'prev'], [chapters[i + 1], 'next']].forEach(([to, rel]) => {
+          if (!to) return;
+          const a = document.createElement('a');
+          a.href = `#${head(to).id}`;
+          a.rel = rel;
+          const name = head(to).textContent.trim();
+          a.textContent = rel === 'prev' ? `← ${name}` : `${name} →`;
+          pager.append(a);
+        });
+        c.append(pager);
+      });
+      let shown = null;
+      const show = () => {
+        const id = decodeURIComponent(location.hash.slice(1));
+        const target = id ? document.getElementById(id) : null;
+        const at = !id ? chapters[0] : (target && target.closest('[data-chapter]')) || shown || chapters[0];
+        chapters.forEach((c) => { c.hidden = c !== at; });
+        document.querySelectorAll('main nav a[href^="#"]').forEach((a) => {
+          const to = document.getElementById(decodeURIComponent(a.hash.slice(1)));
+          if (to && at.contains(to)) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current');
+        });
+        shown = at;
+        if (target && at.contains(target)) target.scrollIntoView();
+      };
+      addEventListener('hashchange', show);
+      show();
+    };
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
+<script>
+  (() => {
+    const start = () => document.querySelectorAll('[data-slide]').forEach((root) => {
+      const steps = [...root.querySelectorAll('.steps > li')];
+      const n = steps.length;
+      if (n < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const caption = document.createElement('p');
+      caption.className = 'caption';
+      caption.setAttribute('aria-live', 'polite');
+      const controls = document.createElement('div');
+      controls.className = 'controls';
+      controls.innerHTML = '<button type="button"></button><button type="button"></button><span class="count"></span>';
+      root.append(caption, controls);
+      const [back, next] = controls.querySelectorAll('button');
+      [back.textContent, next.textContent] = (root.dataset.labels || 'Back|Next').split('|');
+      let at = 1;
+      const show = (k) => {
+        at = Math.min(Math.max(k, 1), n);
+        root.querySelectorAll('[data-step]').forEach((el) => {
+          el.classList.toggle('on', +el.dataset.step <= at);
+          el.classList.toggle('now', +el.dataset.step === at);
+        });
+        root.dataset.at = at - 1;
+        root.dispatchEvent(new CustomEvent('step'));
+        caption.textContent = `${at}. ${steps[at - 1].textContent.trim()}`;
+        controls.querySelector('.count').textContent = `${at} / ${n}`;
+        back.disabled = at === 1;
+        next.disabled = at === n;
+      };
+      back.addEventListener('click', () => show(at - 1));
+      next.addEventListener('click', () => show(at + 1));
+      root.addEventListener('keydown', (e) => {
+        const d = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+        if (d && !e.target.closest('svg')) { e.preventDefault(); show(at + d); }
+      });
+      root.classList.add('live');
+      show(1);
+    });
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
+<script>
+  (() => {
+    const start = () => document.querySelectorAll('[data-swipe]').forEach((root) => {
+      const strip = root.querySelector('.steps');
+      const steps = [...strip.children];
+      const n = steps.length;
+      if (n < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      strip.tabIndex = 0;
+      const show = (k) => {
+        steps.forEach((li, i) => li.classList.toggle('now', i === k - 1));
+        root.querySelectorAll('[data-step]').forEach((el) => {
+          el.classList.toggle('on', +el.dataset.step <= k);
+          el.classList.toggle('now', +el.dataset.step === k);
+        });
+        const li = steps[k - 1];
+        if (li.dataset.x) {
+          root.style.setProperty('--x', `${li.dataset.x}px`);
+          root.style.setProperty('--y', `${li.dataset.y}px`);
+          // a stage wider than the column scrolls to center the token
+          const stage = root.querySelector('.stage');
+          const svg = stage && stage.querySelector('svg');
+          if (svg) {
+            const s = svg.getBoundingClientRect();
+            const x = s.left - stage.getBoundingClientRect().left + stage.scrollLeft + li.dataset.x * s.width / (svg.viewBox.baseVal.width || s.width);
+            stage.scrollTo({ left: x - stage.clientWidth / 2, behavior: 'smooth' });
+          }
+        }
+        root.dataset.at = k - 1;
+        root.dispatchEvent(new CustomEvent('step'));
+      };
+      const seen = new IntersectionObserver((entries) => entries.forEach((e) => {
+        if (e.isIntersecting) show(steps.indexOf(e.target) + 1);
+      }), { root: strip, threshold: 0.6 });
+      steps.forEach((li) => seen.observe(li));
+      root.classList.add('live');
+      show(1);
+    });
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
+<script>
+  (() => {
+    // reading aids: the contents drawer, the heading in view, back to the top, and back to the spot before a link
+    const start = () => {
+      const nav = document.querySelector('main nav');
+      const dock = document.createElement('div');
+      dock.className = 'dock';
+      const button = (name, text, label) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = name;
+        b.textContent = text;
+        if (label) b.setAttribute('aria-label', label);
+        b.hidden = true;
+        dock.append(b);
+        return b;
+      };
+      const back = button('back', '');
+      const top = button('top', '↑', '맨 위로');
+      document.body.append(dock);
+      const target = (a) => document.getElementById(decodeURIComponent(a.hash.slice(1)));
+      let links = [];
+      if (nav) {
+        nav.querySelectorAll('a[href^="#"]').forEach((a) => {
+          const h = target(a);
+          const chapter = h && h.matches('[data-chapter] > h2') && h.closest('[data-chapter]');
+          const heads = chapter ? [...chapter.querySelectorAll('h3[id]')] : [];
+          if (!heads.length || a.parentElement.querySelector('ol')) return;
+          const ol = document.createElement('ol');
+          heads.forEach((s) => {
+            const li = document.createElement('li');
+            const x = document.createElement('a');
+            x.href = `#${s.id}`;
+            x.textContent = s.textContent.trim();
+            li.append(x);
+            ol.append(li);
+          });
+          a.after(ol);
+        });
+        links = [...nav.querySelectorAll('a[href^="#"]')];
+        nav.id = nav.id || 'contents';
+        nav.classList.add('drawer');
+        const toggle = button('contents', '목차');
+        toggle.hidden = false;
+        toggle.setAttribute('aria-controls', nav.id);
+        const backdrop = document.createElement('div');
+        backdrop.className = 'backdrop';
+        document.body.append(backdrop);
+        const docked = matchMedia('(min-width: 75rem)');
+        const set = (open) => {
+          nav.classList.toggle('open', open);
+          backdrop.hidden = !open;
+          toggle.setAttribute('aria-expanded', open);
+          if (!open && nav.contains(document.activeElement)) toggle.focus();
+        };
+        toggle.addEventListener('click', () => {
+          set(!nav.classList.contains('open'));
+          if (nav.classList.contains('open')) (nav.querySelector('[aria-current] ~ ol .here, .here, a') || nav).focus();
+        });
+        backdrop.addEventListener('click', () => set(false));
+        nav.addEventListener('click', (e) => { if (e.target.closest('a') && !docked.matches) set(false); });
+        addEventListener('keydown', (e) => { if (e.key === 'Escape' && nav.classList.contains('open')) set(false); });
+        set(false);
+      }
+      // the last heading shown above a quarter of the window, marked in the contents
+      const above = (h) => h.checkVisibility() && h.getBoundingClientRect().top <= innerHeight / 4;
+      let queued = false;
+      const spy = () => {
+        queued = false;
+        top.hidden = scrollY < innerHeight;
+        let here = null;
+        links.forEach((a) => {
+          const h = target(a);
+          if (h && above(h) && (!here || target(here).getBoundingClientRect().top <= h.getBoundingClientRect().top)) here = a;
+        });
+        links.forEach((a) => a.classList.toggle('here', a === here));
+      };
+      const soon = () => { if (!queued) { queued = true; requestAnimationFrame(spy); } };
+      addEventListener('scroll', soon, { passive: true });
+      addEventListener('resize', soon);
+      top.addEventListener('click', () => scrollTo({ top: 0 }));
+      // each entry an in-page link left keeps its scroll spot in history.state; the entry it opened keeps where from
+      const where = () => {
+        let at = '';
+        document.querySelectorAll('main :is(h2, h3)').forEach((h) => { if (above(h)) at = h.textContent.trim(); });
+        return at;
+      };
+      const label = () => {
+        const s = history.state;
+        back.hidden = !(s && 'from' in s);
+        back.textContent = s && s.from ? `← 돌아가기 · ${s.from}` : '← 돌아가기';
+      };
+      document.addEventListener('click', (e) => {
+        const a = e.target.closest && e.target.closest('a[href^="#"]');
+        if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        const to = target(a);
+        if (!to) return;
+        if (a.hash !== location.hash) {
+          const from = where();
+          history.replaceState({ ...history.state, y: scrollY }, '');
+          setTimeout(() => { history.replaceState({ from }, ''); label(); });
+        }
+        setTimeout(() => {
+          to.classList.remove('flash');
+          void to.offsetWidth;
+          to.classList.add('flash');
+        });
+      });
+      document.addEventListener('animationend', (e) => { if (e.animationName === 'flash') e.target.classList.remove('flash'); });
+      back.addEventListener('click', () => { if (history.state && 'from' in history.state) history.back(); });
+      // the chapter script shows the chapter on hashchange, then this returns to the spot
+      let spot = null;
+      const restore = () => { if (spot !== null) { scrollTo(0, spot); spot = null; } soon(); };
+      addEventListener('popstate', (e) => {
+        label();
+        if (e.state && typeof e.state.y === 'number') { spot = e.state.y; setTimeout(restore, 50); }
+      });
+      addEventListener('hashchange', restore);
+      label();
+      spy();
+    };
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
+<script>
+  (() => {
+    // focus: a node or .part, its lines and the nodes they reach stay full, the rest dims; the legend turns a kind off
+    const KINDS = ['k1', 'k2', 'k3', 'k4'];
+    const num = (el, a) => +el.getAttribute(a) || 0;
+    const gap = (p, r) => Math.hypot(Math.max(r.x - p.x, 0, p.x - r.x - r.w), Math.max(r.y - p.y, 0, p.y - r.y - r.h));
+    const graph = (root) => {
+      const nodes = [], edges = [];
+      if (root.dataset.diagram === 'file-tree') {
+        root.querySelectorAll('.stage li').forEach((li) => {
+          const summary = li.querySelector(':scope > details > summary');
+          if (!summary) li.tabIndex = 0;
+          nodes.push({ el: li, handle: summary || li,
+            own: [...li.querySelectorAll(':scope > :not(ul, details), :scope > details > :not(ul)')] });
+        });
+        nodes.forEach((n) => {
+          const up = nodes.find((m) => m.el === n.el.parentElement.closest('li'));
+          if (up) edges.push({ own: [], ends: [up, n] });
+        });
+      } else {
+        const texts = [...root.querySelectorAll('svg > text')];
+        root.querySelectorAll('svg .box').forEach((box) => {
+          const r = { x: num(box, 'x'), y: num(box, 'y'), w: num(box, 'width'), h: num(box, 'height') };
+          box.tabIndex = 0;
+          nodes.push({ el: box, handle: box, r,
+            own: [box, ...texts.filter((t) => gap({ x: num(t, 'x'), y: num(t, 'y') }, r) === 0)] });
+        });
+        root.querySelectorAll('svg .part').forEach((part) => {
+          const line = part.querySelector('.edge');
+          if (!line || !nodes.length) return;
+          const ends = [0, line.getTotalLength()].map((at) => {
+            const p = line.getPointAtLength(at);
+            return nodes.reduce((a, n) => (gap(p, n.r) < gap(p, a.r) ? n : a));
+          });
+          edges.push({ el: part, handle: part, own: [...part.children], ends });
+        });
+      }
+      return { nodes, edges };
+    };
+    // network: the dl drawn as boxes in layers, top-down by longest path, and a line per in-page link
+    const SVG = 'http://www.w3.org/2000/svg', PAD = 8, H = 40, ROW = 88, GAP = 24;
+    const source = new WeakMap();  // a drawn box -> its dt
+    const make = (parent, tag, attrs) => {
+      const el = parent.appendChild(document.createElementNS(SVG, tag));
+      Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+      return el;
+    };
+    const draw = (root) => {
+      const stage = root.querySelector('.stage'), dl = stage && stage.querySelector(':scope > dl');
+      const terms = dl ? [...dl.querySelectorAll(':scope > dt')] : [];
+      if (!terms.length) return Promise.resolve();
+      const index = new Map(terms.map((dt, i) => [dt.id, i]));
+      const links = [];  // [from, to, its link]
+      terms.forEach((dt, i) => {
+        const dd = dt.nextElementSibling;
+        if (dd && dd.localName === 'dd') dd.querySelectorAll('a[href^="#"]').forEach((a) => {
+          const j = index.get(decodeURIComponent(a.getAttribute('href').slice(1)));
+          if (j !== undefined && j !== i) links.push([i, j, a]);
+        });
+      });
+      // the dl is hidden, and its links out of the tab order, only where the stylesheet hides it
+      const hidden = matchMedia('screen and (prefers-reduced-motion: no-preference)');
+      const tab = () => dl.querySelectorAll('a').forEach((a) => (hidden.matches ? a.tabIndex = -1 : a.removeAttribute('tabindex')));
+      hidden.addEventListener('change', tab);
+      const svg = make(document.createDocumentFragment(), 'svg', { width: 0, height: 0 });
+      stage.insertBefore(svg, dl);
+      const head = root.closest('section') && root.closest('section').getAttribute('aria-labelledby');
+      svg.setAttribute('role', 'group');
+      if (head) svg.setAttribute('aria-labelledby', head);
+      make(make(make(svg, 'defs', {}), 'marker', { id: `${terms[0].id}-arrow`, viewBox: '0 0 10 10', refX: 9, refY: 5,
+        markerWidth: 8, markerHeight: 8, markerUnits: 'userSpaceOnUse', orient: 'auto' }), 'path', { class: 'tip', d: 'M0,0 L10,5 L0,10 z' });
+      const lines = links.map(([, , a]) => make(make(svg, 'g', { class: 'part' }), 'path', {
+        class: ['edge', ...['ok', 'warn', 'fail', 'inferred'].filter((c) => a.classList.contains(c))].join(' '),
+        'marker-end': `url(#${terms[0].id}-arrow)` }));
+      const boxes = terms.map((dt) => {
+        const box = make(svg, 'rect', { class: ['box', ...KINDS.filter((k) => dt.classList.contains(k))].join(' '), height: H,
+          role: 'button', 'aria-label': dt.textContent.trim() });
+        source.set(box, dt);
+        return box;
+      });
+      const labels = terms.map((dt) => Object.assign(make(svg, 'text', { 'text-anchor': 'middle' }), { textContent: dt.textContent.trim() }));
+      const style = getComputedStyle(labels[0]), font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      return document.fonts.load(font, labels.map((t) => t.textContent).join('')).catch(() => {}).then(() => {
+        const pen = document.createElement('canvas').getContext('2d');
+        pen.font = font;
+        // depth first in source order: a link back to a node still open closes a cycle and is laid out reversed
+        const seen = terms.map(() => 0), post = [], flip = new Set();
+        const visit = (u) => {
+          seen[u] = 1;
+          links.forEach((l) => { if (l[0] !== u) return; if (seen[l[1]] === 1) flip.add(l); else if (!seen[l[1]]) visit(l[1]); });
+          seen[u] = 2;
+          post.push(u);
+        };
+        terms.forEach((_, u) => { if (!seen[u]) visit(u); });
+        const down = links.map((l) => (flip.has(l) ? [l[1], l[0]] : [l[0], l[1]]));
+        // each node one layer below its lowest source, or further down while that layer is full at the stage's width
+        const widths = labels.map((t) => Math.max(48, Math.ceil((pen.measureText(t.textContent).width + 24) / 4) * 4));
+        const cap = stage.clientWidth - 2 * PAD || Infinity, layer = [], used = [];
+        post.reverse().forEach((u) => {
+          let L = Math.max(0, ...down.filter(([, b]) => b === u).map(([a]) => layer[a] + 1));
+          while (used[L] && used[L] + GAP + widths[u] > cap) L++;
+          used[L] = (used[L] ? used[L] + GAP : 0) + widths[u];
+          layer[u] = L;
+        });
+        // a slot per node, and per layer a long line crosses; each layer ordered by the mean place of what feeds it
+        const rows = [];
+        const slot = (L, w) => { const s = { w, up: [] }; (rows[L] = rows[L] || []).push(s); return s; };
+        const cells = widths.map((w, i) => slot(layer[i], w));
+        const routes = down.map(([a, b]) => {
+          const r = [cells[a]];
+          for (let L = layer[a] + 1; L < layer[b]; L++) r.push(slot(L, 0));
+          r.push(cells[b]);
+          r.forEach((s, k) => { if (k) s.up.push(r[k - 1]); });
+          return r;
+        });
+        rows.forEach((row, L) => {
+          if (L) row.forEach((s, k) => { s.key = s.up.length ? s.up.reduce((t, p) => t + p.at, 0) / s.up.length : k; });
+          if (L) row.sort((a, b) => a.key - b.key);
+          row.forEach((s, k) => { s.at = k; });
+        });
+        // a line passing through a layer keeps a third of the gap to its neighbours, so it adds little width
+        const gap = (a, b) => (a.w && b.w ? GAP : GAP / 3);
+        const span = rows.map((row) => row.reduce((t, s, k) => t + s.w + (k ? gap(row[k - 1], s) : 0), 0)), full = Math.max(...span);
+        rows.forEach((row, L) => {
+          let x = PAD + Math.round((full - span[L]) / 8) * 4;
+          row.forEach((s, k) => { if (k) x += gap(row[k - 1], s); s.x = x; s.y = PAD + L * ROW; x += s.w; });
+        });
+        const mid = (s) => s.x + s.w / 2;
+        // each box's lines leave its bottom and reach its top spread along it, in the order of where they go
+        cells.forEach((s) => {
+          const out = routes.filter((r) => r[0] === s), in_ = routes.filter((r) => r[r.length - 1] === s);
+          out.sort((a, b) => mid(a[1]) - mid(b[1])).forEach((r, k) => { r.x0 = s.x + Math.round(s.w * (k + 1) / (out.length + 1)); });
+          in_.sort((a, b) => mid(a[a.length - 2]) - mid(b[b.length - 2])).forEach((r, k) => { r.x1 = s.x + Math.round(s.w * (k + 1) / (in_.length + 1)); });
+        });
+        routes.forEach((r, n) => {
+          const end = r[r.length - 1];
+          const at = [[r.x0, r[0].y + H], ...r.slice(1, -1).flatMap((s) => [[s.x, s.y], [s.x, s.y + H]]), [r.x1, end.y]];
+          if (flip.has(links[n])) at.reverse();
+          lines[n].setAttribute('d', at.map(([x, y], k) => `${k ? 'L' : 'M'}${x},${y}`).join(' '));
+        });
+        cells.forEach((s, i) => {
+          Object.entries({ x: s.x, y: s.y, width: s.w }).forEach(([k, v]) => boxes[i].setAttribute(k, v));
+          labels[i].setAttribute('x', mid(s));
+          labels[i].setAttribute('y', s.y + 25);
+        });
+        const w = full + 2 * PAD, h = 2 * PAD + (rows.length - 1) * ROW + H;
+        Object.entries({ width: w, height: h, viewBox: `0 0 ${w} ${h}` }).forEach(([k, v]) => svg.setAttribute(k, v));
+        const detail = document.createElement('output');
+        detail.className = 'detail';
+        detail.setAttribute('aria-live', 'off');
+        stage.after(detail);
+        tab();
+      });
+    };
+    const start = () => document.querySelectorAll('[data-widget="diagram"]').forEach((root) => {
+      if (root.dataset.diagram === 'network') draw(root).then(() => wire(root)); else wire(root);
+    });
+    const wire = (root) => {
+      const { nodes, edges } = graph(root);
+      const items = [...nodes, ...edges];
+      const owner = new Map();
+      items.forEach((x) => [x.handle, ...x.own].forEach((el) => el && owner.set(el, x)));
+      const at = (el) => {
+        for (; el && el !== root; el = el.parentNode) if (owner.has(el)) return owner.get(el);
+        return null;
+      };
+      let pinned = null, passing = null, noted = null;
+      const detail = root.querySelector(':scope > .detail');
+      // the panel: the shown node's dt and dd, their links kept and ids dropped
+      const note = (dt) => {
+        if (dt === noted) return;
+        noted = dt;
+        detail.setAttribute('aria-live', pinned ? 'polite' : 'off');
+        const list = document.createElement('dl');
+        if (dt) [dt, dt.nextElementSibling].forEach((el) => { if (el && (el === dt || el.localName === 'dd')) list.append(el.cloneNode(true)); });
+        list.querySelectorAll('[id], [tabindex]').forEach((el) => { el.removeAttribute('id'); el.removeAttribute('tabindex'); });
+        detail.replaceChildren(...(dt ? [list] : []));
+      };
+      const show = () => {
+        const on = pinned || passing;
+        if (detail) note(on && source.get(on.el));
+        const keep = new Set(on ? [on] : []);
+        edges.forEach((e) => {
+          if (on && (e === on || e.ends.includes(on))) [e, ...e.ends].forEach((x) => keep.add(x));
+        });
+        items.forEach((x) => x.own.forEach((el) => el.classList.toggle('dim', !!on && !keep.has(x))));
+      };
+      const pin = (x) => { pinned = pinned === x ? null : x; show(); };
+      root.addEventListener('pointerover', (e) => { if (e.pointerType === 'mouse') { passing = at(e.target); show(); } });
+      root.addEventListener('pointerleave', () => { passing = null; show(); });
+      root.addEventListener('focusin', (e) => { passing = e.target.matches(':focus-visible') ? at(e.target) : null; show(); });
+      root.addEventListener('focusout', () => { passing = null; show(); });
+      root.addEventListener('click', (e) => { if (!e.target.closest('.legend, .controls, .detail')) pin(at(e.target)); });
+      // after the pin above, which a panel click must skip while its link is still in the panel
+      root.addEventListener('click', (e) => {
+        const a = detail && detail.contains(e.target) && e.target.closest('a[href^="#"]');
+        const id = a && decodeURIComponent(a.getAttribute('href').slice(1));
+        const x = nodes.find((n) => source.get(n.el) && source.get(n.el).id === id);
+        if (!x) return;
+        e.preventDefault();
+        pinned = x;
+        show();
+        x.handle.focus();
+      });
+      root.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { pinned = passing = null; show(); return; }
+        const x = at(e.target);
+        if ((e.key === 'Enter' || e.key === ' ') && x && x.handle === e.target && e.target.localName !== 'summary') {
+          e.preventDefault();
+          pin(x);
+        }
+      });
+      const kinds = KINDS.filter((k) => nodes.some((n) => n.el.classList.contains(k)));
+      if (kinds.length < 2) return;
+      const names = (root.dataset.kinds || '').split('|');
+      const legend = document.createElement('div');
+      legend.className = 'legend';
+      const filter = () => {
+        const off = new Set(kinds.filter((k) => legend.querySelector(`.${k}`).getAttribute('aria-pressed') === 'false'));
+        const gone = new Set(nodes.filter((n) => [...off].some((k) => n.el.classList.contains(k))));
+        edges.forEach((e) => { if (e.ends.some((n) => gone.has(n))) gone.add(e); });
+        items.forEach((x) => x.own.forEach((el) => el.classList.toggle('off', gone.has(x))));
+      };
+      kinds.forEach((k) => {
+        const b = legend.appendChild(document.createElement('button'));
+        b.type = 'button';
+        b.className = k;
+        b.setAttribute('aria-pressed', 'true');
+        b.textContent = names[KINDS.indexOf(k)] || KINDS.indexOf(k) + 1;
+        b.addEventListener('click', () => {
+          b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+          filter();
+        });
+      });
+      root.querySelector('.stage').before(legend);
+    };
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
+</html>
