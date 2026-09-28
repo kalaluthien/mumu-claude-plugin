@@ -3,9 +3,8 @@
 How `scripts/count-units.py` has Sonnet count mumu-team's text: every `.md`
 file outside `tests/` and `evals/`, this one excepted, cut by code at each
 sentence end and semicolon into sentences, each with an id and its line. Score
-every sentence as
-[instructions, elaboration]; a sentence with neither, such as a table row that
-only defines, scores [0, 0].
+every sentence as [instructions, elaboration]; a sentence with neither, such as
+a table row that only defines, scores [0, 0].
 
 ## Instruction
 
