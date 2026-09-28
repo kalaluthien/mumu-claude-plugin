@@ -155,6 +155,7 @@ def gallery():
 
 GOOD = """<!doctype html><html lang="ko"><meta charset="utf-8"><title>작업 큐 구조</title><style id="skin"></style>
 <main><h1>작업 큐의 구조</h1>
+<p class="read">큐는 일을 저장소에 쌓고, 작업자가 하나씩 꺼내 가요.</p>
 <h2>저장소 <code>jobs.db</code></h2>
 <p>큐(queue)는 <code>POST /jobs with a body</code>로 일을 받아요. 저장소는 SQLite입니다.</p>
 <pre>git log --oneline main</pre>
@@ -162,6 +163,9 @@ GOOD = """<!doctype html><html lang="ko"><meta charset="utf-8"><title>작업 큐
 <text x="8" y="24" font-size="14">작업자</text><text x="160" y="24" font-size="14">저장소</text></svg></div>
 <div id="c"></div></main>
 <script>document.getElementById('c').textContent = '다음';</script></html>"""
+ANSWER = '<p class="read">큐는 일을 저장소에 쌓고, 작업자가 하나씩 꺼내 가요.</p>'
+FIGURE = ('<div data-widget="diagram" data-diagram="system-context"><svg width="280" height="80" viewBox="0 0 280 80">'
+          '<title>흐름: 일 하나를 꺼내기</title><text x="8" y="24" font-size="14">큐</text></svg></div>')
 # (what to replace in GOOD, its replacement, a line the output must hold)
 FAILS = [
     ('x="160"', 'x="24"', "labels 2"),
@@ -254,6 +258,15 @@ def check(html, *python):
         return r.returncode, r.stdout
 
 
+def widget_check(html, *args):
+    """check() of the gallery, which holds every widget in every state and so is no composed page: its composition
+    line must fail on its widget count, and the code is that of every other line."""
+    code, out = check(html, *args)
+    lines = out.splitlines()[:-1]
+    assert any(re.match(r"composition .*FAIL: .*widgets on the page, over", l) for l in lines), out
+    return int(any("FAIL" in l for l in lines if not l.startswith("composition "))), out
+
+
 @unittest.skipUnless(CHROME.exists(), "no Chrome")
 class Check(unittest.TestCase):
     @classmethod
@@ -300,6 +313,31 @@ class Check(unittest.TestCase):
         self.assertEqual((code, out.splitlines()[-1]), (0, "pass"), out)
         self.assertIn("mapping 1 files 0 flows pass", out)
 
+    def test_page_without_answer_fails(self):
+        for lead in ("", '<p class="read">큐의 구조</p>', "<p>큐의 구조를 봐요.</p>"):
+            with self.subTest(lead):
+                code, out = check(GOOD.replace(ANSWER, lead))
+                self.assertEqual(code, 0 if lead.endswith("요.</p>") else 1, out)
+                self.assertIn("composition 1 sentences before h2 1 widgets pass" if lead.endswith("요.</p>")
+                              else "composition 0 sentences before h2 1 widgets FAIL: no sentence of the answer", out)
+
+    def test_widgets_over_limit_fail(self):
+        code, out = check(GOOD.replace("</svg></div>", "</svg></div>" + FIGURE))
+        self.assertEqual(code, 1, out)
+        self.assertIn("composition 1 sentences before h2 2 widgets FAIL: 2 widgets under '저장소 jobs.db', over 1", out)
+        code, out = check(GOOD.replace("</svg></div>", '</svg></div><h2 id="s1">두 번째 그림</h2>' + FIGURE))
+        self.assertEqual(code, 0, out)
+        self.assertIn("composition 1 sentences before h2 2 widgets pass", out)
+        for n, code in ((5, 0), (6, 1)):
+            with self.subTest(n):
+                sections = "".join(f'<h2 id="s{i}">그림 <code>{i}</code></h2>{FIGURE}' for i in range(n))
+                nav = '<nav><ol>' + "".join(f'<li><a href="#s{i}">그림 {i}</a></li>' for i in range(n)) + '</ol></nav>'
+                page = re.sub(r"<h2>.*</svg></div>", lambda m: nav + sections, GOOD, flags=re.S)
+                got, out = check(page)
+                self.assertEqual(got, code, out)
+                self.assertIn(f"composition 1 sentences before h2 {n} widgets "
+                              + ("pass" if code == 0 else "FAIL: 6 widgets on the page, over 5"), out)
+
     def test_contents_at_four_h2s(self):
         page = GOOD.replace('<h2>저장소 <code>jobs.db</code></h2>', FOUR)
         code, out = check(page)
@@ -338,7 +376,7 @@ class Check(unittest.TestCase):
         self.assertIn("chapters 0 FAIL: 1 h3 outside a chapter", out)
 
     def test_gallery_passes(self):
-        code, out = check(self.gallery)
+        code, out = widget_check(self.gallery)
         self.assertEqual(code, 0, out)
         for kind in ("bar", "line"):
             self.assertIn(f" {kind} marks", out)
@@ -348,34 +386,34 @@ class Check(unittest.TestCase):
     def test_each_chart_rule_fails(self):
         for js, word in CHART_FAILS + [(None, "slide stands at table 1, not its last, 2")]:
             with self.subTest(word):
-                code, out = check(self.gallery.replace("</html>", STUCK if js is None else BREAK % js))
+                code, out = widget_check(self.gallery.replace("</html>", STUCK if js is None else BREAK % js))
                 self.assertEqual(code, 1, out)
                 self.assertIn(word, out)
 
     def test_chart_summary_splits_at_marks_not_decimals(self):
         said = "부산의 하루 요청이 가장 많아요."
         self.assertIn(said, self.gallery)
-        code, out = check(self.gallery.replace(said, "부산의 평균이 4.00점이에요."))
+        code, out = widget_check(self.gallery.replace(said, "부산의 평균이 4.00점이에요."))
         self.assertEqual(code, 0, out)
-        code, out = check(self.gallery.replace(said, "부산이 많아요. 대구는 적어요."))
+        code, out = widget_check(self.gallery.replace(said, "부산이 많아요. 대구는 적어요."))
         self.assertEqual(code, 1, out)
         self.assertIn("summary is not one sentence", out)
 
     def test_swipe_that_does_not_react_fails(self):
         dead = "<script>window.IntersectionObserver = function () { this.observe = function () {}; };</script><style>"
-        code, out = check(self.gallery.replace("<style>", dead, 1))
+        code, out = widget_check(self.gallery.replace("<style>", dead, 1))
         self.assertEqual(code, 1, out)
         self.assertIn("swipe 1 step 1/3 FAIL", out)
 
     def test_slow_page_is_still_swiped(self):
-        code, out = check(self.gallery, *SLOW)
+        code, out = widget_check(self.gallery, *SLOW)
         self.assertEqual(code, 0, out)
         self.assertEqual(len(re.findall(r"swipe \d+ token in view 3/3 pass", out)), 10, out)
 
     def test_token_out_of_view_fails(self):
         # step 2's card sends the token past the stage's scroll width
         self.assertIn('data-x="444"', self.gallery)
-        code, out = check(self.gallery.replace('data-x="444"', 'data-x="1400"'))
+        code, out = widget_check(self.gallery.replace('data-x="444"', 'data-x="1400"'))
         self.assertEqual(code, 1, out)
         self.assertIn("swipe 1 token in view 2/3 FAIL: steps 2", out)
 
