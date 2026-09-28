@@ -5,7 +5,7 @@ allowed_tools: [Skill, Bash, Read, Glob, Grep, Edit, Write]
 runs: 3
 ---
 
-We're done for today in `tools/`. Before you stop, go over this session's work and keep whatever should outlive it, config folder ./config. `tools/` stands for a checkout of the GitHub repository example/tools and `notes/` for a plain folder with no repository, since git cannot write a `.git` folder here. `/mumu-team:handoff` is not available here, so write each request you would hand it to ./handoff-n.md instead. First build the fixture with this one Bash call, then harvest:
+We're done for today in `tools/`. Before you stop, go over this session's work and keep whatever should outlive it, config folder ./config. `tools/` stands for a checkout of the GitHub repository example/tools and `notes/` for a plain folder with no repository, since git cannot write a `.git` folder here. `/mumu-teamwork:handoff` is not available here, so write each request you would hand it to ./handoff-n.md instead. First build the fixture with this one Bash call, then harvest:
 
 ```sh
 mkdir -p tools notes

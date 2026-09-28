@@ -1,8 +1,0 @@
-[
-  {
-    "name": "team-watch",
-    "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/team-watch.py",
-    "description": "Each change of this lead's workers, and a line while its team sits idle",
-    "when": "on-skill-invoke:mumu-team:kickoff"
-  }
-]

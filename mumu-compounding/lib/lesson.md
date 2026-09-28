@@ -41,7 +41,7 @@ A lesson handed over goes to Filing; a harvest runs Harvest first.
 5. DELETE or correct any entry this session showed wrong; a lesson moved to
    a later row DELETEs what it replaces in this project's pool.
 6. A repeat an entry should have prevented: CONFIRM it, and
-   `/mumu-team:handoff` a task to its project's GitHub repository, a
+   `/mumu-teamwork:handoff` a task to its project's GitHub repository, a
    transcript's `cwd` in its pool's folder, to make it a hook or skill
    step, naming which, the lesson and the repeat's evidence; with no
    repository, tell the owner in one line.

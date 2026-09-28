@@ -71,7 +71,7 @@ def main():
     ap.add_argument("plugin", type=pathlib.Path, help="the plugin under test")
     ap.add_argument("cases", nargs="+", type=pathlib.Path, help="case dirs holding prompt.md and graders/")
     ap.add_argument("--with", dest="others", action="append", default=[], type=pathlib.Path, help="another plugin dir to load")
-    ap.add_argument("--agent", help="run the session as this agent, e.g. mumu-team:worker")
+    ap.add_argument("--agent", help="run the session as this agent, e.g. mumu-teamwork:worker")
     ap.add_argument("--runs", type=int, default=3)
     ap.add_argument("--turns", type=int, default=10)
     ap.add_argument("-j", type=int, default=6)
