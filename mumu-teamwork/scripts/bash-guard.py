@@ -329,8 +329,7 @@ def early_resolve(command, cwd):
             rows = sessions.shares(gh.gh("issue", "view", m[2], *repo, "--json", "body", "-q", ".body", cwd=cwd))
             if rows is None:
                 continue
-            heads = gh.gh("pr", "list", *repo, "--state", "merged", "--limit", "1000", "--json", "headRefName",
-                              "-q", ".[].headRefName", cwd=cwd).split()
+            heads = gh.heads(cwd, "merged", *repo)
         except RuntimeError as err:
             return f"could not read whether task #{m[2]} is split: {err}"
         waiting = [row for row in rows if not any(sessions.attempt(h, row, m[2]) is not None for h in heads)]

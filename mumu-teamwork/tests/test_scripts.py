@@ -1,6 +1,6 @@
 """The hook and monitor `scripts/`, each run as Claude Code runs it, against fakes on PATH and a written transcript.
 
-Run: python3 -m unittest discover mumu-teamwork/tests
+Run: uvx pytest mumu-teamwork/tests -q
 """
 import datetime
 import importlib.machinery
@@ -306,7 +306,7 @@ ROUTINE_REFUSED = [
 ROUTINE_PASSED = [
     f"pr-merge.py {PR_URL}",
     f"session-close.py {N}",
-    f"worker-start.py /r sample-topic low {U} --leader plugins-lead",
+    f"worker-start.py /r sample-topic low {U} --lead plugins-lead",
     f"lead-start.py /r {U} --folder mumu-teamwork",
     f"git worktree remove .claude/worktrees/{N}",
     f"git branch -D {N}",
@@ -842,7 +842,7 @@ class WorktreeGuard(unittest.TestCase):
         return [subprocess.run(c, shell=True, input=json.dumps(payload), env=env, capture_output=True, text=True, timeout=30)
                 for c in commands]
 
-    def test_a_worker_writing_in_the_leaders_checkout_is_refused_naming_its_worktree(self):
+    def test_a_worker_writing_in_the_leads_checkout_is_refused_naming_its_worktree(self):
         for tool in ("Edit", "Write", "NotebookEdit"):
             for cwd in (self.tree, self.tree / "sub"):
                 for path in (self.checkout / "a.py", "../../../a.py" if cwd == self.tree else "../../../../a.py",

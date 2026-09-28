@@ -1,6 +1,6 @@
 """mumu-teamwork's components as a graph of who registers, runs, reads or names whom: each file a node, each Markdown
 heading a node of its file. The check fails on a file no root reaches, a reference to a missing file or section, and a
-Domain term defined twice.
+term defined twice across the Domain and Verbs.
 
 Run: uvx pytest mumu-teamwork/tests -q; `python3 mumu-teamwork/tests/test_graph.py` prints the edges and each finding.
 """
@@ -32,7 +32,10 @@ IMPORT = re.compile(r"^\s*(?:from (\w+) import|import (\w+))", re.M)
 
 
 def files(root):
-    return sorted(p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file() and "__pycache__" not in p.parts)
+    """The plugin's files, caches left out."""
+    rel = (p.relative_to(root) for p in root.rglob("*") if p.is_file())
+    return sorted(f.as_posix() for f in rel if not any(s == "__pycache__" or s.startswith(".") and s != ".claude-plugin"
+                                                       for s in f.parts))
 
 
 def headings(text):
@@ -147,19 +150,18 @@ def graph(root):
                 reached.add(t)
                 todo.append(t)
     findings += [f"orphan: {f}, which no root reaches" for f in tree if f not in reached]
-    findings += [f"Domain term defined twice: {t}" for t in duplicates(texts.get("skills/kickoff/SKILL.md", ""))]
+    findings += [f"term defined twice: {t}" for t in duplicates(texts.get("skills/kickoff/SKILL.md", ""))]
     return tree, sections, sorted(edges), findings
 
 
 def duplicates(skill):
-    """Each first-column term the Domain's `term` and `keyword` tables define more than once."""
-    domain = re.search(r"^# Domain\n(.*?)(?=^# |\Z)", skill, re.M | re.S)
+    """Each first-column name kickoff's `term`, `keyword` and `verb` tables define more than once."""
     seen, twice, table = set(), [], False
-    for line in (domain[1] if domain else "").splitlines():
+    for line in skill.splitlines():
         cells = [c.strip().strip("`") for c in line.strip().strip("|").split("|")] if line.startswith("|") else []
         if not cells:
             table = False
-        elif cells[0] in ("term", "keyword"):
+        elif cells[0] in ("term", "keyword", "verb"):
             table = True
         elif table and not set(cells[0]) <= set("-: "):
             if cells[0] in seen:
@@ -204,7 +206,13 @@ class Graph(unittest.TestCase):
         def change(copy):
             path = copy / "skills" / "kickoff" / "SKILL.md"
             path.write_text(path.read_text().replace("| project |", "| task | again |\n| project |", 1))
-        self.assertIn("Domain term defined twice: task", self.seeded(change))
+        self.assertIn("term defined twice: task", self.seeded(change))
+
+    def test_a_verb_that_redefines_a_domain_term_fails(self):
+        def change(copy):
+            path = copy / "skills" / "kickoff" / "SKILL.md"
+            path.write_text(path.read_text().replace("| `comment` |", "| `topic` | again |\n| `comment` |", 1))
+        self.assertIn("term defined twice: topic", self.seeded(change))
 
 
 def main():

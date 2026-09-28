@@ -1,6 +1,6 @@
 """The kickoff Verbs rows that post a body pass it as a file, so text naming a raw merge posts past `bash-guard.py` (#294).
 
-Run: python3 -m unittest discover mumu-teamwork/tests
+Run: uvx pytest mumu-teamwork/tests -q
 """
 import json
 import pathlib

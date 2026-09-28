@@ -10,7 +10,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
 import herdr  # noqa: E402
 import sessions  # noqa: E402
-from gh import gh, merged, repo as repo_view, run, task  # noqa: E402
+from gh import heads, repo as repo_view, run, task  # noqa: E402
 
 
 def attempts(repo, n, topic=None, remote=True):
@@ -19,13 +19,13 @@ def attempts(repo, n, topic=None, remote=True):
     found = [p.name for p in trees.iterdir()] if trees.is_dir() else []
     if remote:
         found += [h.removeprefix("refs/heads/") for h in run("git", "-C", repo, "ls-remote", "--heads", "origin").split()]
-        found += gh("pr", "list", "--state", "all", "--limit", "1000", "--json", "headRefName", "-q", ".[].headRefName", cwd=repo).split()
+        found += heads(repo, "all")
     return [k for h in found if (k := sessions.attempt(h, topic, n)) is not None]
 
 
-def refusal(issue, n, topic, effort, heads, survey=False):
+def refusal(issue, n, topic, effort, merged, survey=False):
     """Why task `n`, as `task` reads it, may not start a worker on `topic` at `effort`, or with `survey` a survey worker on
-    backlog `n`, `heads` the merged pull requests' branches; None when it may."""
+    backlog `n`, `merged` the merged pull requests' branches; None when it may."""
     if issue["state"] != "OPEN":
         return f"task #{n} is {issue['state'].lower()}: a stopped or finished task starts no worker; reopen it first"
     if survey:
@@ -41,7 +41,7 @@ def refusal(issue, n, topic, effort, heads, survey=False):
     if rows is not None:
         if topic not in rows:
             return f"task #{n} is split: its topic is a `## Shares` row ({', '.join(rows)}), not {topic!r}"
-        waiting = [r for r in rows[topic] if not any(sessions.attempt(h, r, n) is not None for h in heads)]
+        waiting = [r for r in rows[topic] if not any(sessions.attempt(h, r, n) is not None for h in merged)]
         if waiting:
             return f"share {topic!r} of task #{n} is after {', '.join(waiting)}: start it once each has merged"
     return None
@@ -49,9 +49,9 @@ def refusal(issue, n, topic, effort, heads, survey=False):
 
 def busy(repo, n, topic):
     """The names of `topic`'s attempts on task `n` that have an open pull request or a live tab."""
-    heads = gh("pr", "list", "--state", "open", "--limit", "1000", "--json", "headRefName", "-q", ".[].headRefName", cwd=repo).split()
+    opened = heads(repo, "open")
     labels = [t.get("label") for t in herdr.listed("tab")]
-    return sorted({h for h in heads + labels if sessions.attempt(h, topic, n) is not None})
+    return sorted({h for h in opened + labels if sessions.attempt(h, topic, n) is not None})
 
 
 def worktree(repo, name):
@@ -80,7 +80,7 @@ def main(argv):
     for arg in ("checkout", "topic", "effort", "url"):
         parser.add_argument(arg)
     parser.add_argument("--continue", dest="resume", action="store_true")
-    parser.add_argument("--leader")
+    parser.add_argument("--lead")
     parser.add_argument("--owner-effort", action="store_true")
     parser.add_argument("--survey", action="store_true")
     a = parser.parse_args(argv)
@@ -95,7 +95,7 @@ def main(argv):
     try:
         repo = str(sessions.checkout(a.checkout))
         issue = task(repo, number[1])
-        if why := refusal(issue, number[1], topic, effort, merged(repo) if sessions.shares(issue["body"]) and not a.survey else [], a.survey):
+        if why := refusal(issue, number[1], topic, effort, heads(repo, "merged") if sessions.shares(issue["body"]) and not a.survey else [], a.survey):
             raise RuntimeError(why)
         run("git", "-C", repo, "fetch", "origin")
         if not resume and (held := busy(repo, number[1], topic)):
@@ -108,8 +108,8 @@ def main(argv):
         pane = herdr.open_tab(tree, name, "--env", "MUMU_ROLE=worker", "--no-focus")
         timeout, poll = float(os.environ.get("WORKER_START_TIMEOUT", 60)), float(os.environ.get("WORKER_START_POLL", 1))
         herdr.launch(name, pane, ["--name", name, "--agent", "mumu-teamwork:worker", "--model", "opus", "--effort", effort] + (["--continue"] if resume else []), timeout, poll)
-        if a.leader:
-            herdr.deliver(name, pane, f"/mumu-teamwork:kickoff {'survey' if a.survey else 'work'} {url} leader {a.leader}", timeout, poll)
+        if a.lead:
+            herdr.deliver(name, pane, f"/mumu-teamwork:kickoff {'survey' if a.survey else 'work'} {url} lead {a.lead}", timeout, poll)
     except RuntimeError as e:
         sys.exit(f"worker-start.py: {e}")
     print(f"{name}@{pane} {tree}")

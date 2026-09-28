@@ -1,6 +1,6 @@
 """`skills/kickoff/scripts/repo-settings.py`, run against a fake `gh` that keeps a repository's settings and rulesets in files.
 
-Run: python3 -m unittest discover mumu-teamwork/tests
+Run: uvx pytest mumu-teamwork/tests -q
 """
 import json
 import os

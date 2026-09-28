@@ -1,6 +1,6 @@
 """`lib/`'s modules, `gh` and `herdr` run as fakes that log their calls.
 
-Run: python3 -m unittest discover mumu-teamwork/tests
+Run: uvx pytest mumu-teamwork/tests -q
 """
 import json
 import os

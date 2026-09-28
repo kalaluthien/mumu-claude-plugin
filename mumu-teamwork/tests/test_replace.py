@@ -1,6 +1,6 @@
 """`lead-start.py --replace`: a plain session starts its project's lead, and a detached child closes the session once its turn ends.
 
-Run: python3 -m unittest discover mumu-teamwork/tests
+Run: uvx pytest mumu-teamwork/tests -q
 """
 import fnmatch
 import json

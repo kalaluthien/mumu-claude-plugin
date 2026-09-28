@@ -1,7 +1,7 @@
 """`scripts/size-count.py`: the code counts on a small plugin, and the Sonnet counts against a fake `claude`
 on PATH that answers each ask with a fixed reply (#326).
 
-Run: python3 -m pytest mumu-teamwork/tests -q
+Run: uvx pytest mumu-teamwork/tests -q
 """
 import importlib.util
 import json

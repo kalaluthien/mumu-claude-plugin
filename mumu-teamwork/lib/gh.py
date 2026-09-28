@@ -46,6 +46,6 @@ def task(cwd, n):
             "blockers": [b["html_url"] for b in blockers if b.get("state") == "open"]}
 
 
-def merged(cwd):
-    """The head branch of each merged pull request of `cwd`'s repository."""
-    return gh("pr", "list", "--state", "merged", "--limit", "1000", "--json", "headRefName", "-q", ".[].headRefName", cwd=cwd).split()
+def heads(cwd, state, *repo):
+    """The head branch of each `state` pull request, `open`, `merged` or `all`, of `cwd`'s repository, or of `-R <repo>` given as `repo`."""
+    return gh("pr", "list", *repo, "--state", state, "--limit", "1000", "--json", "headRefName", "-q", ".[].headRefName", cwd=cwd).split()

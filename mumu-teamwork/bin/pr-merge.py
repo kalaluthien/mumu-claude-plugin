@@ -9,6 +9,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
 import gh  # noqa: E402
+import sessions  # noqa: E402
 
 URL = re.compile(r"https://github\.com/[\w.-]+/[\w.-]+/pull/\d+")
 APPROVAL = re.compile(r"approved:?\s+(\S+)", re.I)
@@ -16,7 +17,6 @@ FINDINGS = re.compile(r"findings\b:?.*", re.I)
 REF = r"(?:([\w.-]+/[\w.-]+)?#(\d+)|https://github\.com/([\w.-]+/[\w.-]+)/issues/(\d+))"
 CLOSING = re.compile(rf"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\s+{REF}", re.I)
 PART = re.compile(rf"\bpart of:?\s+{REF}", re.I)
-SHARES = re.compile(r"^## Shares\s*$", re.M)
 
 
 def approval(pr):
@@ -85,7 +85,7 @@ def issues(pattern, text, repo):
 def shared(pr, repo):
     """The first issue the PR closes or is part of whose body has `## Shares`, else None."""
     for url in dict.fromkeys(u for t in texts(pr) for pattern in (CLOSING, PART) for u in issues(pattern, t, repo)):
-        if SHARES.search(json.loads(gh.gh("issue", "view", url, "--json", "body"))["body"] or ""):
+        if sessions.shares(json.loads(gh.gh("issue", "view", url, "--json", "body"))["body"] or "") is not None:
             return url
     return None
 

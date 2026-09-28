@@ -1,6 +1,6 @@
 """The `bin/` commands, each run against fake `herdr`, `git` and `gh` commands on PATH that log every call.
 
-Run: python3 -m unittest discover mumu-teamwork/tests
+Run: uvx pytest mumu-teamwork/tests -q
 """
 import importlib.machinery
 import json
@@ -640,12 +640,12 @@ class WorkerStart(unittest.TestCase):
         return json.loads(out)["result"]["agents"][0]["agent_status"]
 
     def test_trust_dialog_answered_yes_then_prompted_and_working(self):
-        done, calls = self.start("--leader", "l")
+        done, calls = self.start("--lead", "l")
         self.assertEqual(done.returncode, 0, done.stderr)
         tree = self.repo / ".claude" / "worktrees" / "go-start-7-1"
         self.assertEqual(done.stdout, f"go-start-7-1@{PANE} {tree}\n")
         keys = calls.index(["herdr", "agent", "send-keys", PANE, "down", "enter"])
-        prompt = calls.index(["herdr", "agent", "prompt", PANE, f"/mumu-teamwork:kickoff work {ISSUE} leader l"])
+        prompt = calls.index(["herdr", "agent", "prompt", PANE, f"/mumu-teamwork:kickoff work {ISSUE} lead l"])
         self.assertLess(keys, prompt, "prompted before the trust dialog was answered")
         self.assertEqual(self.status(), "working")
         self.assertIn(["git", "-C", str(self.repo), "worktree", "add", "-b", "go-start-7-1", str(tree), "origin/main"], calls)
@@ -653,7 +653,7 @@ class WorkerStart(unittest.TestCase):
 
     def test_prompt_typed_but_unsent_is_sent_with_enter(self):
         (self.tmp / "unsent").touch()
-        done, calls = self.start("--leader", "l", trust=False)
+        done, calls = self.start("--lead", "l", trust=False)
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertTrue(done.stdout.startswith(f"go-start-7-1@{PANE} "), done.stdout)
         self.assertEqual(self.status(), "working")
@@ -661,7 +661,7 @@ class WorkerStart(unittest.TestCase):
 
     def test_prompt_never_delivered_fails_naming_the_pane(self):
         (self.tmp / "dead").touch()
-        done, calls = self.start("--leader", "l", trust=False)
+        done, calls = self.start("--lead", "l", trust=False)
         self.assertEqual(done.returncode, 1)
         self.assertIn(f"herdr agent read {PANE}", done.stderr)
         self.assertEqual(done.stdout, "")
@@ -805,10 +805,10 @@ class WorkerStart(unittest.TestCase):
     def test_survey_starts_a_backlogs_survey_worker(self):
         """`--survey` starts a backlog's survey worker, prompted `survey`, at the effort given though it has no label (#94)."""
         (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": [{"name": "backlog"}], "body": "the owner's words"}))
-        done, calls = self.start("--survey", "--leader", "l", effort="medium")
+        done, calls = self.start("--survey", "--lead", "l", effort="medium")
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertTrue(done.stdout.startswith("go-start-7-1@"), done.stdout)
-        self.assertIn(["herdr", "agent", "prompt", PANE, f"/mumu-teamwork:kickoff survey {ISSUE} leader l"], calls)
+        self.assertIn(["herdr", "agent", "prompt", PANE, f"/mumu-teamwork:kickoff survey {ISSUE} lead l"], calls)
 
     def test_survey_of_a_task_is_refused(self):
         (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": [{"name": "effort:low"}], "body": ""}))

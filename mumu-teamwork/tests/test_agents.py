@@ -1,6 +1,6 @@
 """Each role agent keeps its share of the default system prompt that `--agent` replaces, and the one judge agent defaults to Opus.
 
-Run: python3 -m unittest discover mumu-teamwork/tests
+Run: uvx pytest mumu-teamwork/tests -q
 """
 import pathlib
 import re
@@ -22,13 +22,13 @@ ITEMS = {
     "code style": "the code around it",
     "pronouns": "they/them",
     "confirm hard-to-reverse": "Confirm first any action that is hard to reverse",
-    "publishing": "external service publishes it",
+    "publishing": "sending content to an external service",
     "look before deleting": "before deleting or overwriting",
     "faithful reports": "Report faithfully",
     "bang command": "`! <command>`",
     "skills": "through Skill",
     "memory": "recalled memory",
-    "context summarising": "summarized and continues",
+    "context summarising": "Never wrap up early",
     "act once informed": "With enough information, act",
 }
 ALL = set(ITEMS)

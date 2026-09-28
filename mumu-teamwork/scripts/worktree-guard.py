@@ -38,7 +38,7 @@ def main():
     checkout, tree = found
     target = (cwd / pathlib.Path(path).expanduser()).resolve()
     if target.is_relative_to(checkout) and not target.is_relative_to(tree):
-        refuse(f"{target} is outside your worktree {tree}: a worker edits files only there, never in the leader's checkout {checkout}")
+        refuse(f"{target} is outside your worktree {tree}: a worker edits files only there, never in the lead's checkout {checkout}")
 
 
 if __name__ == "__main__":
