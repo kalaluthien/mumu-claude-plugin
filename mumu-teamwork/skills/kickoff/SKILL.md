@@ -49,7 +49,7 @@ Keep all state on GitHub, in these records:
 | `BLOCKED:` | worker | `BLOCKED: <question>`, or `BLOCKED: stuck on <criterion>` |
 | `DECIDED:` | lead | `DECIDED: <answer>`, posted with `decide` |
 | `APPROVED:` | judge | `APPROVED: <sha>`: the pull request may merge while its head is that sha or a merge of the default branch into it that leaves its own diff byte-identical; `APPROVED: <comment-url>`: the report may close; `APPROVED:` alone: the plan or survey may go on |
-| `FINDINGS:` | judge | `FINDINGS:`, then one line per criterion missed |
+| `FINDINGS:` | judge | as `judge.md` step 5 writes it |
 
 Talk to another session through one of two channels, never mixed:
 
@@ -58,7 +58,7 @@ Talk to another session through one of two channels, never mixed:
 | directing | a lead → its worker or another project's lead; a worker → its lead | `prompt` | `see <url>` and nothing more |
 | agreeing | a lead ↔ another live lead of the same repository; a share's worker ↔ a sibling share's worker of the same task | `SendMessage` to a name `ListAgents` shows | a proposal opening `Proposal from <name>:` and ending `Reply OK or an objection.`, and its answer, `OK` or an objection with its reason |
 
-On `see <url>`, `read` the url and act only on what it shows still open. Send a proposal before the change it names and act after every answer; on an objection, revise and ask again; past two objections, or with no answer after one resend, escalate: a lead to the owner, a worker as a decision that is not its own. Record only a proposal's outcome, never the exchange.
+On `see <url>`, `read` the url and act only on what it shows still open. Act on a proposal only after every answer; on an objection, revise and ask again; past two objections, or with no answer after one resend, escalate: a lead to the owner, a worker as a decision that is not its own. Record only a proposal's outcome, never the exchange.
 
 Rules:
 
@@ -91,7 +91,7 @@ Name the target pane in every command.
 | `ready` | `$HERDR_PANE_ID` is set, and `herdr integration status` has no `claude: not installed` line; the fix is to run inside herdr, and `herdr integration install claude` |
 | your address | your bare name, never `<name>@<pane>` |
 | `live` | `herdr agent list`: each agent's pane, tab and `agent_status` |
-| `start` | `worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--lead <your address>] [--owner-effort] [--survey]`: `--continue` for the newest attempt, `--survey` for a backlog's survey worker |
+| `start` | `worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--lead <your address>] [--owner-effort] [--survey]` |
 | `rename` | give this session a name: `herdr tab rename <tab> <name>`, the tab being `herdr pane get $HERDR_PANE_ID`'s `tab_id`; `herdr agent rename $HERDR_PANE_ID <name>`; and `herdr agent prompt $HERDR_PANE_ID "/rename <name>"` |
 | `prompt` | `herdr agent prompt <name> "<text>"`, by name; read the pane before and after, and resend when no turn carries the text; failing twice, tell the owner |
 | `start-lead` | `lead-start.py <checkout> [<task-url>] [--folder <folder>] [-- <claude flags>]` at the checkout's root, or `--succeed <pane>` for the task and folder, or `--replace` to close the calling session once its turn ends; never answer a start-up dialog in its tab |
@@ -106,15 +106,15 @@ Name the target pane in every command.
 | `file` | `gh label create <label> -R <repo> --force` for each label, then `gh issue create -R <repo> --title "<title>" --label <label>... --body-file <path>`; a task's effort is low when it names what to change and how to check it, else medium, unless the owner named another |
 | `order` | make a task wait on another until it closes: `gh api -X POST repos/<repo>/issues/<n>/dependencies/blocked_by -F issue_id=<id>`, `<id>` the blocker's `gh api repos/<owner>/<repo>/issues/<m> -q .id`, in this repository or another |
 | `comment` | `gh issue comment <url> --body-file <path>` |
-| `decide` | `decision-post.py <url> [--criteria <file>] < <path>`, `--criteria` to replace the body's `## Definition of done` by the file's lines |
+| `decide` | `decision-post.py <url> [--criteria <file>] < <path>` |
 | `resolve` | `gh issue close <url> --reason completed --comment "<summary>"` |
 | `stop` | close an issue as not planned: `gh issue close <url> --reason "not planned" --comment "<reason>"`, then `gh pr ready --undo <pr-url>` for its open pull request |
 | `claim` | take an attempt by its branch on the remote: `git fetch origin && ! git ls-remote --exit-code origin refs/heads/<branch> && git push -u origin <branch>`, `<branch>` the worktree's own, named after it; a branch found is yours only when this checkout is on it |
 | `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file <path>`; later `gh pr edit <pr> --body-file <path>` |
-| `merge` | `pr-merge.py <pr-url>`, at the head an `APPROVED:` names or carries to |
+| `merge` | `pr-merge.py <pr-url>` |
 | `clean` | from the checkout's root, one literal Bash call per command per worker, with no `git -C`, `cd` prefix, loop, `$(...)` or variable: `git worktree remove .claude/worktrees/<name>`, `git branch -D <name>` and, while `git ls-remote --exit-code origin refs/heads/<name>` finds it, `git push origin --delete <name>`; then `git pull --ff-only`, and remove the hook when `cmp -s` finds it equal to `default-branch-guard.sh` as `rm <hooks>/pre-commit`, `<hooks>` written out as its literal path |
 
 ## Traps
 
 - `pr` and `merge`: after an error such as `GraphQL: Something went wrong`, `read` the state before retrying; just after a push, read the head with `git ls-remote origin refs/heads/<branch>`.
-- CI: wait in the foreground with `gh run watch <id> --exit-status`, never on `gh pr checks`, and merge the default branch in first when the pull request conflicts.
+- CI: wait in the foreground with `gh run watch <id> --exit-status`, never on `gh pr checks`.

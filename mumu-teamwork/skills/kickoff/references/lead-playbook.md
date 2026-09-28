@@ -1,18 +1,17 @@
 # Lead
 
-1. `rename` yourself what `lead-name.py [<task-url>]` prints for the task you were started or handed, unless already so named, and run `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/scripts/repo-settings.py <checkout>`. Then ask the owner as Filing says.
+1. `rename` yourself what `lead-name.py [<task-url>]` prints, unless already so named, and run `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/scripts/repo-settings.py <checkout>`. Then ask the owner as Filing says.
 2. `file` the work as Filing says: one root task per pull request or report, a handed-off one relabelled with its effort, the owner's expectations as its first `DECIDED:` and each `## Definition of done` line a criterion. `order` each task that waits on another, in this or another project's repository. Then launch the `judge` on each task's url until it posts `APPROVED:`; on a replan, name to it only the issues that changed.
 3. For each open task whose blockers are all closed, and each share whose `after` shares have merged: `start` it under its topic or share at its effort with `--lead <your address>`, or make a small change yourself.
-4. Act on what arrives, once per state GitHub shows:
+4. Act on what arrives, polling nothing, once per state GitHub shows:
    - `see <task-url>` naming a `BLOCKED:`: `decide` it, then `prompt` the worker `see <task-url>`; answer work that needs its own pull request with the url of the task you `file` and `order` before this one;
    - `see <pr-url>`, `see <task-url>` of a report task, or `see <backlog-url>`: once `read` shows it merged, closed, or its survey's `APPROVED:`, go to 5 for it;
    - `blocked <name>`: tell the owner the worker waits at a tool-use prompt;
    - `gone <name>` while its task is open: `start` it again with `--continue`;
    - `idle <name>`: `read` its task and pull request, answer what waits on you, else `prompt` the worker `see <task-url>`;
-   - `team idle <m>m`, or you resumed: go to Succession;
+   - `team idle <m>m`, a monitor's expiry notice, a `/reload-plugins`, or you resumed: go to Succession;
    - `working <name>`: nothing;
-   - a monitor's expiry notice, or a `/reload-plugins`: arm the command the Stop hook names when no team-watch of yours is live; after a reload, go to Succession;
-   - the owner changes direction: `decide` the change on each issue affected and `prompt` its worker `see <task-url>`; replan built work the owner rejects on the same task, as Filing's reopen says, its pull request closed unmerged and named on the task, building from its content, never its form;
+   - the owner changes direction: `decide` the change on each issue affected and `prompt` its worker `see <task-url>`; replan built work the owner rejects on the same task, as Filing's reopen says, its pull request closed unmerged and named on the task; build from its content, never its form;
    - the owner stops a task: `stop` it, `close` its worker, and `comment` on it its pull request and what is left;
    - the owner asks where work stands: `read` each task named, else each you hold, and report one row per task: its state, its pull request or report comment, and its worker's `agent_status` in `live`, or none.
 5. Work done: `close` its worker and `clean`, the backlog of a survey left open and labelled `backlog`; go to 3 for each task it unblocked. When you then hold no open root task and no worker is live, propose to exit to every other live lead `ListAgents` shows, of any repository; once each answers `OK`, run `session-close.py --self`. The only live lead, or one given an objection, stays and `prompt`s itself `/compact Keep only: each task closed this session with its url, PR and one-line result; open backlog issues; drop tool output.` While your own exit proposal is pending, object to another lead's.
@@ -27,9 +26,10 @@ The successor, prompted `succeed <pane>`: `close` the original by its name, and 
 
 Then, and on resuming:
 
-1. List the root tasks you hold with `gh issue list --state open --search "no:parent-issue -label:backlog" --json number,title,url` in your checkout.
-2. `read` each and its pull request or report comment; `prompt` each worker in `live` whose worktree lies in your checkout `see <its task-url>`.
-3. Continue at Lead 4, acting on each open task as if its notice had arrived.
+1. Arm the command the Stop hook names when no team-watch of yours is live.
+2. List the root tasks you hold with `gh issue list --state open --search "no:parent-issue -label:backlog" --json number,title,url` in your checkout.
+3. `read` each and its pull request or report comment; `prompt` each worker in `live` whose worktree lies in your checkout `see <its task-url>`.
+4. Continue at Lead 4, acting on each open task as if its notice had arrived.
 
 ## Routing
 
@@ -54,7 +54,7 @@ Answer another lead's notice that is not a task for you with a plain `comment` o
 - File the fewest tasks at the widest scope: work sharing a mechanism is one task, split by feature, never by layer; a new finding or a judge's defect widens the task it relates to. File them all, then `order` them and write the cross-references.
 - Split work, into tasks or a task into shares, only where its order has slack and its conflict can be made indirect: one merge at the end is enough, an interface agreed first lets each part be built apart, or what the parts share is knowledge each only reads.
 - Fix a defect you find in the current work or `file` it as its own task, and say which.
-- `file` research that later pull requests build on as a task with a worker, driven one step per prompt; research for your own judgement, or in a skill the owner invokes, may run in subagents, its result reaching the owner or an issue.
+- `file` research that later pull requests build on as a task with a worker, driven one step per prompt; run research for your own judgement, or in a skill the owner invokes, in subagents, and give its result to the owner or an issue.
 - Put a hunch the owner asks you to interpret as `reading: <yours>` beside their words, never as their decision.
 - Ask the owner only architecture, infrastructure and user-experience questions, all at once with `AskUserQuestion`, and have them confirm only those criteria; decide the rest and `decide` it on the task.
 - `file` a user-experience question with an industry best practice as a research task first, and ask the owner after its report.

@@ -12,7 +12,6 @@ Lead the project of your cwd: take the owner's words and bring each piece of wor
 - Read `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/references/lead-playbook.md` with `Read`, never a `Skill` call, at each moment When to read names.
 - Write no code but a small change.
 - Launch only subagents that write no repository file but scratch files.
-- Poll nothing: act on what arrives.
 
 # When to read
 
