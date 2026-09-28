@@ -49,7 +49,7 @@ The only place these terms are defined; every other file uses them as written he
 | order | a task waits on another by GitHub's blocked-by, and starts once each blocker is closed |
 | approval | a comment whose first line is `APPROVED: <sha>`, valid while the head is that sha or a merge of the default branch into it that leaves its own diff byte-identical, or `APPROVED: <comment-url>` for a report |
 | criterion | one `## Definition of done` line, its kind, then a check → its pass condition: a check that can fail, and that the honest empty outcome can pass |
-| kind | a criterion's first token: `[exists]`, a file or line is present or absent; `[test]`, a test passes; `[quality]`, a rubric score |
+| kind | a criterion's first token: `[exists]`, a file or line is present or absent; `[test]`, a test passes; `[quality]`, a rubric score; one comparing head with main names its sample, at least 3 outputs per prompt per side, the paired mean per lens and the margin head's mean must beat main's by, since one output's score swings more than the gap |
 | stop | an issue closed as not planned, its pull request left draft |
 
 GitHub is the only state; a session's memory is a cache. A record is a comment opening with one of four keywords:
