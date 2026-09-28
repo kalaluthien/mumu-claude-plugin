@@ -9,8 +9,8 @@ import pathlib
 import re
 import sys
 
-TEXT = ("text", "muted", "accent", "link", "ok", "warn", "fail")
-LINES = ("border", "kind-1", "kind-2", "kind-3", "kind-4")
+TEXT = ("text", "muted", "accent-text", "link", "ok", "warn", "fail")
+LINES = ("border", "accent", "kind-1", "kind-2", "kind-3", "kind-4")
 GROUNDS = ("bg", "fill")
 DELTA_E_MIN = 10
 VISIONS = {  # linear-RGB matrices, Machado, Oliveira and Fernandes 2009, severity 1.0
@@ -49,12 +49,12 @@ def resolve(value, tokens, depth=0):
 
 
 def roles(tokens):
-    """{role: (light, dark)} for each token whose resolved value is light-dark(#light, #dark)."""
+    """{role: #rrggbb} for each token whose resolved value is one colour; the skin is light only."""
     out = {}
     for name, value in tokens.items():
-        m = re.fullmatch(r"light-dark\(\s*(#[0-9a-fA-F]{6})\s*,\s*(#[0-9a-fA-F]{6})\s*\)", resolve(value, tokens).strip())
-        if m:
-            out[name[2:]] = (m.group(1), m.group(2))
+        value = resolve(value, tokens).strip()
+        if re.fullmatch(r"#[0-9a-fA-F]{6}", value):
+            out[name[2:]] = value
     return out
 
 
@@ -112,14 +112,13 @@ def delta_e(lab1, lab2):
 
 
 def palette_failures(skin):
-    """Diagram kinds told apart in both modes and every vision."""
+    """Diagram kinds told apart in every vision."""
     out = []
-    for mode, i in (("light", 0), ("dark", 1)):
-        for vision in VISIONS:
-            kinds = [(k, seen(skin[k][i], vision)) for k in LINES[1:] if k in skin]
-            for (a, la), (b, lb) in itertools.combinations(kinds, 2):
-                if delta_e(la, lb) < DELTA_E_MIN:
-                    out.append(f"skin: --{a} and --{b} {mode} {vision} ΔE {delta_e(la, lb):.1f} < {DELTA_E_MIN}")
+    for vision in VISIONS:
+        kinds = [(k, seen(skin[k], vision)) for k in LINES if k.startswith("kind-") and k in skin]
+        for (a, la), (b, lb) in itertools.combinations(kinds, 2):
+            if delta_e(la, lb) < DELTA_E_MIN:
+                out.append(f"skin: --{a} and --{b} {vision} ΔE {delta_e(la, lb):.1f} < {DELTA_E_MIN}")
     return out
 
 
@@ -167,16 +166,15 @@ def failures(skill):
     skin = roles(tokens)
     for role in TEXT + LINES + GROUNDS:
         if role not in skin:
-            out.append(f"skin: no role --{role}: light-dark(light, dark)")
+            out.append(f"skin: no role --{role}: #rrggbb")
     for fg in TEXT + LINES:
         for bg in GROUNDS:
             if fg not in skin or bg not in skin:
                 continue
             need = 4.5 if fg in TEXT else 3.0
-            for mode, i in (("light", 0), ("dark", 1)):
-                ratio = contrast(skin[fg][i], skin[bg][i])
-                if ratio < need:
-                    out.append(f"skin: --{fg} on --{bg} {mode} {ratio:.2f}:1 < {need}:1")
+            ratio = contrast(skin[fg], skin[bg])
+            if ratio < need:
+                out.append(f"skin: --{fg} on --{bg} {ratio:.2f}:1 < {need}:1")
     return out + palette_failures(skin)
 
 

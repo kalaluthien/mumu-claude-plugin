@@ -10,7 +10,8 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SKIN = ROOT / "skills" / "rendering" / "references" / "page.html"
 CHROME = pathlib.Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
-FACE = "Nanum Gothic"
+# the textbook pair: Myeongjo for the chapter title and reading text, Gothic for headings, captions and controls
+SERIF, FACE = "Nanum Myeongjo", "Nanum Gothic"
 ROLES = ("h1", "h2", "h3", "main > p", "button", "figcaption", "caption", "th", "td", "footer")
 COLUMNS = ("작업", "요청(건)", "오류(건)", "평균(ms)", "최대(ms)")
 ROWS = [("수집기", "1,240,000", "12,480", "1,204", "98,310"),
@@ -98,13 +99,13 @@ class PhoneTable(unittest.TestCase):
     def test_caption_and_numbers_align(self):
         self.assertEqual((self.r["caption"], self.r["num"]), ("start", "end"))
 
-    def test_every_text_role_is_nanum_gothic(self):
-        self.assertEqual(self.r["faces"], {s: FACE for s in ROLES})
+    def test_each_text_role_takes_its_face(self):
+        self.assertEqual(self.r["faces"], {s: SERIF if s in ("h1", "main > p", "td") else FACE for s in ROLES})
 
-    def test_skin_loads_only_nanum_gothic(self):
+    def test_skin_loads_only_the_nanum_pair(self):
         skin = SKIN.read_text()
-        self.assertEqual(re.findall(r"family=([^:&\"]+)", skin), ["Nanum+Gothic"])
-        self.assertNotRegex(skin, r"Playfair|Source Serif|Noto Serif|AppleMyungjo")
+        self.assertEqual(re.findall(r"family=([^:&\"]+)", skin), ["Nanum+Gothic", "Nanum+Myeongjo"])
+        self.assertNotRegex(skin, r"Playfair|Source Serif|Noto Serif")
 
     def test_defined_term_stands_upright(self):
         self.assertEqual(self.r["dfn"], "normal", "Hangul has no italic, so Chrome slants it")

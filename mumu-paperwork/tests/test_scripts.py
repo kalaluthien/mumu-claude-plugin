@@ -22,7 +22,7 @@ CHECK, SKILL_CHECK = SKILL / "scripts" / "check.py", SKILL / "scripts" / "skill-
 ASSEMBLE = SKILL / "scripts" / "assemble.py"
 CHROME = pathlib.Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 
-# The gallery: every widget in every state, light and dark, in a .theme-* box with data-state set, which the skin and
+# The gallery: every widget in every state, in a box with data-state set, which the skin and
 # the widgets read to force that state; the chart shows each fixture below by default and the first in every state.
 STATES = ("default", "hover", "focus", "open", "disabled")
 KOREAN = {"Back|Next": "뒤로|다음", "gone": "삭제", "changed": "변경", "new": "추가", "Data table": "데이터 표",
@@ -143,9 +143,9 @@ def gallery():
         else:
             bodies = re.split(r"\n(?=<section)", body.strip())
             full = len(bodies)
-        copies = [f'<div class="theme-{mode}" data-state="{state}">\n<p class="muted"><code>{f.stem}</code> 예시</p>\n'
-                  f'{in_state(one.replace("{{id}}", f"{f.stem}-{mode}-{state}-{n}"), state)}</div>'
-                  for mode in ("light", "dark") for n, one in enumerate(bodies) for state in (STATES if n < full else STATES[:1])]
+        copies = [f'<div data-state="{state}">\n<p class="muted"><code>{f.stem}</code> 예시</p>\n'
+                  f'{in_state(one.replace("{{id}}", f"{f.stem}-{state}-{n}"), state)}</div>'
+                  for n, one in enumerate(bodies) for state in (STATES if n < full else STATES[:1])]
         sections.append(f'<section><h2 id="g-{f.stem}"><code>{f.stem}</code></h2>\n' + "\n".join(copies) + "\n</section>")
     shell = (REFS / "page.html").read_text()
     head += parts(shell)[0]
@@ -249,9 +249,6 @@ def dream(name):
 STUCK = "<script>document.addEventListener('click', function (e) { if (e.target.closest('.controls')) e.stopImmediatePropagation(); }, true);</script></html>"
 
 
-# check.py with every sleep a twentieth as long, so the page runs twenty times slower against its waits
-SLOW = ("-c", "import runpy, sys, time; sleep = time.sleep; time.sleep = lambda s: sleep(s / 20); sys.argv = sys.argv[1:];"
-              " runpy.run_path(sys.argv[0], run_name='__main__')")
 
 
 def check(html, *python):
@@ -396,7 +393,6 @@ class Check(unittest.TestCase):
         self.assertEqual(code, 0, out)
         for kind in ("bar", "line"):
             self.assertIn(f" {kind} marks", out)
-        self.assertIn("swipe 1 token in view 3/3 pass", out)
         self.assertRegex(out, r"clicks (\d+)/\1 pass")
 
     def test_each_chart_rule_fails(self):
@@ -415,23 +411,18 @@ class Check(unittest.TestCase):
         self.assertEqual(code, 1, out)
         self.assertIn("summary is not one sentence", out)
 
-    def test_swipe_that_does_not_react_fails(self):
-        dead = "<script>window.IntersectionObserver = function () { this.observe = function () {}; };</script><style>"
-        code, out = widget_check(self.gallery.replace("<style>", dead, 1))
+    def test_every_tabbable_part_is_named(self):
+        # the widgets whose script makes a part a Tab stop: each diagram kind's nodes and lines, file rows, a chart's marks
+        for widget in [f'data-diagram="{k}"' for k in ("file-tree", "system-context", "use-case", "network")] + ['data-widget="chart"']:
+            self.assertIn(widget, self.gallery)
+        code, out = widget_check(self.gallery)
+        self.assertIn("focus pass", out)
+        # the check can fail: the diagram's parts left without a role, as the old code in the rubric samples leaves them
+        role = "x.handle.setAttribute('role', 'button');"
+        self.assertIn(role, self.gallery)
+        code, out = widget_check(self.gallery.replace(role, ""))
         self.assertEqual(code, 1, out)
-        self.assertIn("swipe 1 step 1/3 FAIL", out)
-
-    def test_slow_page_is_still_swiped(self):
-        code, out = widget_check(self.gallery, *SLOW)
-        self.assertEqual(code, 0, out)
-        self.assertEqual(len(re.findall(r"swipe \d+ token in view 3/3 pass", out)), 10, out)
-
-    def test_token_out_of_view_fails(self):
-        # step 2's card sends the token past the stage's scroll width
-        self.assertIn('data-x="444"', self.gallery)
-        code, out = widget_check(self.gallery.replace('data-x="444"', 'data-x="1400"'))
-        self.assertEqual(code, 1, out)
-        self.assertIn("swipe 1 token in view 2/3 FAIL: steps 2", out)
+        self.assertRegex(out, r'focus FAIL: no role or name: .*<li style="--from')
 
 
 
@@ -548,7 +539,7 @@ class Widgets(unittest.TestCase):
           return [label ? label.checkVisibility() && label.textContent.trim() : null, before, empty(),
                   root.querySelector('output').textContent]; }""")
         self.assertEqual(errors, [])
-        self.assertEqual(got, ["작업 이름이나 설명에서 찾기", [], ["맞는 항목이 없어요."], "0 / 12개"])
+        self.assertEqual(got, ["작업 이름이나 설명에서 찾기", [], ["맞는 항목이 없습니다."], "0 / 12개"])
 
     def test_each_broken_control_fails(self):
         for old, new, line in BROKEN:
@@ -700,20 +691,21 @@ CASES = [
     ("SKILL.md", [("`chart` `bar`", "`chart`")], r"names `chart` but none of its kinds"),
     (W + "chart.html", [("fill: var(--text); }", "fill: #000; }")], r"chart\.html"),
     (W + "diagram.html", [("--diagram-indent: var(--sp-4)", "--diagram-indent: 8px")], r"diagram\.html:\d+: literal size: 8px"),
-    (W + "diagram.html", [('<path class="lifeline"', '<path style="transition: stroke .3s" class="lifeline"')], r"literal size: \.3s"),
+    (W + "diagram.html", [('<div class="flow" style="--lanes: 3;"', '<div class="flow" style="--lanes: 3; transition: color .3s;"')], r"literal size: \.3s"),
     (W + "diagram.html", [('width="520"', 'width="524"')], None),
     (W + "diagram.html", [("--diagram-indent: var(--sp-4)", "--diagram-indent: var(--sp-9)")], r"token --sp-9 is not in the skin"),
     (W + "diagram.html", [("--diagram-indent: var(--sp-4)", "--diagram-indent: var(--p-white)")], r"reads primitive --p-white"),
     (W + "diagram.html", [("--diagram-indent: var(--sp-4);", "--diagram-indent: var(--sp-4); --diagram-x: var(--sp-1);")], None),
-    (SKIN, [("flex: 0 0 85%;", "flex: 0 0 20rem;")], r"literal size: 20rem"),
-    (SKIN, [("light-dark(#d55e00,", "light-dark(#f5c9a8,")], r"--kind-2 on --fill light"),
-    (SKIN, [("--p-grey-500: #757575", "--p-grey-500: #c0c0c0")], r"--muted on --bg light"),
-    (SKIN, [("#8a8a8a", "#3a3d42")], r"--border on --fill dark"),
-    (SKIN, [("#057dbc", "#7fc4ea")], r"--link on --bg light"),
+    (SKIN, [("[data-slide] .steps { margin: var(--sp-2) 0; }", "[data-slide] .steps { margin: 20rem 0; }")], r"literal size: 20rem"),
+    (SKIN, [("--kind-2: var(--accent)", "--kind-2: #f5c9a8")], r"--kind-2 on --fill"),
+    (SKIN, [("--p-grey-500: #67635c", "--p-grey-500: #c0c0c0")], r"--muted on --bg"),
+    (SKIN, [("--border: #6f6b63", "--border: #d0ccc4")], r"--border on --fill"),
+    (SKIN, [("--link: var(--accent-text)", "--link: #e0a080")], r"--link on --bg"),
     (SKIN, [("  --accent:", "  --link:")], r"no role --accent"),
-    # sky blue and lavender stay apart to a normal eye and pass 3:1 on black, but merge for a deuteranope
-    (SKIN, [("light-dark(#cc79a7, #cc79a7)", "light-dark(#cc79a7, #a9a0e8)")],
-     r"(?s)^(?!.*normal).*--kind-1 and --kind-4 dark deuteranopia ΔE \d+\.\d < 10"),
+    (SKIN, [("--accent: #c96442", "--accent: #d97757")], r"--accent on --fill 2\.\d+:1 < 3\.0:1"),
+    # orange and olive stay apart to a normal eye and pass 3:1 on cream, but merge for a deuteranope
+    (SKIN, [("--kind-4: #8c8274", "--kind-4: #5f7a1f")],
+     r"(?s)^(?!.*normal).*--kind-2 and --kind-4 deuteranopia ΔE \d+\.\d < 10"),
 ]
 
 
@@ -725,6 +717,18 @@ def skill_check(skill):
 class SkillCheck(unittest.TestCase):
     def test_real_skill_passes(self):
         self.assertEqual(skill_check(SKILL), (0, "pass\n"))
+
+    def test_orange_text_on_cream_fails(self):
+        # the skin's plain light tokens are read: Claude's orange as body text on the cream paper is 3.0:1, under 4.5:1
+        with tempfile.TemporaryDirectory() as d:
+            skill = pathlib.Path(d) / "skill"
+            shutil.copytree(SKILL, skill)
+            page = skill / SKIN
+            text = re.sub(r"(\n  --text:)[^;]+;", r"\1 #D97757;", page.read_text(), count=1)
+            page.write_text(re.sub(r"(\n  --bg:)[^;]+;", r"\1 #fcfbf7;", text, count=1))
+            code, out = skill_check(skill)
+            self.assertEqual(code, 1, out)
+            self.assertRegex(out, r"--text on --bg 3\.0\d:1 < 4\.5:1")
 
     def test_each_broken_copy(self):
         for name, edits, want in CASES:

@@ -107,38 +107,21 @@ figure { margin: 0; }</code></pre>
 </section>
 <section aria-labelledby="s-flow">
   <h2 id="s-flow">긴 흐름</h2>
-  <div data-widget="diagram" data-diagram="use-case" data-swipe>
-    <figure class="stage scroll" tabindex="0" aria-labelledby="uc-title">
-      <svg width="520" height="208" viewBox="0 0 520 208" role="img" aria-labelledby="uc-title" aria-describedby="uc-desc">
-        <title id="uc-title">흐름: 작업 하나 넣기</title>
-        <desc id="uc-desc">작성자가 작업을 넣으면 큐가 저장소에 쓰고 결과를 돌려줘요.</desc>
-        <defs>
-          <marker id="uc-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
-            <path class="tip" d="M0,0 L10,5 L0,10 z"/>
-          </marker>
-        </defs>
-        <rect class="box" x="8" y="8" width="128" height="40"/>
-        <text x="72" y="32" text-anchor="middle">작성자</text>
-        <rect class="box" x="196" y="8" width="128" height="40"/>
-        <text x="260" y="32" text-anchor="middle">작업 큐</text>
-        <rect class="box" x="384" y="8" width="128" height="40"/>
-        <text x="448" y="32" text-anchor="middle">저장소</text>
-        <path class="lifeline" d="M72,48 V200 M260,48 V200 M448,48 V200"/>
-        <g class="part" tabindex="0" data-step="1"><path class="edge" d="M72,88 H256" marker-end="url(#uc-arrow)"/>
-          <text class="label" x="80" y="80">1 작업 넣기, 번호 7</text></g>
-        <g class="part" tabindex="0" data-step="2"><path class="edge" d="M260,136 H444" marker-end="url(#uc-arrow)"/>
-          <text class="label" x="268" y="128">2 기록 쓰기</text></g>
-        <g class="part" tabindex="0" data-step="3"><path class="edge" d="M448,184 H76" marker-end="url(#uc-arrow)"/>
-          <text class="label" x="268" y="176">3 결과</text></g>
-        <circle class="token" cx="0" cy="0" r="6"/>
-      </svg>
+  <div data-widget="diagram" data-diagram="use-case">
+    <figure class="stage" aria-labelledby="s-flow">
+      <div class="flow" style="--lanes: 3;">
+        <p class="box">작성자</p>
+        <p class="box">작업 큐</p>
+        <p class="box">저장소</p>
+        <ol>
+          <li style="--from: 1; --to: 2;">작업 넣기, 번호 7</li>
+          <li style="--from: 2; --to: 3;"><code>jobs/2026/09/27/an-extremely-long-record-name-that-never-breaks.json</code> 쓰기</li>
+          <li style="--from: 3; --to: 1;">결과</li>
+        </ol>
+      </div>
+      <ol class="notes"><li value="1">작성자가 아주 긴 설명을 단 작업을 큐에 넣어요. 설명이 길어도 그림 안에서 줄을 바꿔요.</li></ol>
       <figcaption class="muted">실패하는 경우는 뺐어요.</figcaption>
     </figure>
-    <ol class="steps">
-      <li data-x="256" data-y="88">작성자가 아주 긴 설명을 단 작업을 큐에 넣어요. 설명이 길어도 카드 안에서 줄을 바꿔요.</li>
-      <li data-x="444" data-y="136">큐가 <code>jobs/2026/09/27/an-extremely-long-record-name-that-never-breaks.json</code>에 기록을 써요.</li>
-      <li data-x="76" data-y="184">저장소가 결과를 작성자에게 돌려줘요.</li>
-    </ol>
   </div>
 </section>
 <h2 id="s-filter">긴 태그 거르기</h2>

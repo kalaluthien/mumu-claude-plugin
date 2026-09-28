@@ -82,47 +82,28 @@
 
   <h2 id="dream">dream이 하는 일</h2>
   <p>owner가 <code>/dream</code>을 입력할 때만 돌아요(<code>disable-model-invocation: true</code>). 훅이 없어서 평소 세션에는 비용이 들지 않아요. retro는 세션마다 교훈을 적고, dream은 쌓인 메모리를 한꺼번에 정리해요.</p>
-  <div data-widget="diagram" data-diagram="use-case" data-swipe>
-    <figure class="stage scroll" tabindex="0" aria-labelledby="flow-title">
-      <svg width="520" height="352" viewBox="0 0 520 352" role="img" aria-labelledby="flow-title" aria-describedby="flow-desc">
-        <title id="flow-title">흐름: /dream 한 번 실행</title>
-        <desc id="flow-desc">주인이 /dream을 부르면 dream이 메모리를 점검하고, 제안 표를 보여 주고, 승인된 줄만 백업한 뒤 고치고, 되돌리는 명령을 알려 줘요.</desc>
-        <defs>
-          <marker id="flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
-            <path class="tip" d="M0,0 L10,5 L0,10 z"/>
-          </marker>
-        </defs>
-        <rect class="box" x="8" y="8" width="128" height="40"/>
-        <text x="72" y="32" text-anchor="middle">주인</text>
-        <rect class="box main" x="196" y="8" width="128" height="40"/>
-        <text x="260" y="32" text-anchor="middle">dream</text>
-        <rect class="box" x="384" y="8" width="128" height="40"/>
-        <text x="448" y="32" text-anchor="middle">메모리 폴더들</text>
-        <path class="lifeline" d="M72,48 V344 M260,48 V344 M448,48 V344"/>
-        <g class="part" data-step="1"><path class="edge" d="M72,88 H256" marker-end="url(#flow-arrow)"/>
-          <text class="label" x="80" y="80">1 /dream 입력</text></g>
-        <g class="part" data-step="2"><path class="edge" d="M260,136 H444" marker-end="url(#flow-arrow)"/>
-          <text class="label" x="268" y="128">2 네 가지 점검</text></g>
-        <g class="part" data-step="3"><path class="edge" d="M260,184 H76" marker-end="url(#flow-arrow)"/>
-          <text class="label" x="80" y="176">3 제안 표 3줄</text></g>
-        <g class="part" data-step="4"><path class="edge" d="M72,232 H256" marker-end="url(#flow-arrow)"/>
-          <text class="label" x="80" y="224">4 2줄만 승인</text></g>
-        <g class="part" data-step="5"><path class="edge" d="M260,280 H444" marker-end="url(#flow-arrow)"/>
-          <text class="label" x="268" y="272">5 백업 후 2줄 수정</text></g>
-        <g class="part" data-step="6"><path class="edge" d="M260,328 H76" marker-end="url(#flow-arrow)"/>
-          <text class="label" x="80" y="320">6 되돌리는 명령</text></g>
-        <circle class="token" cx="0" cy="0" r="6"/>
-      </svg>
+  <div data-widget="diagram" data-diagram="use-case">
+    <figure class="stage" aria-labelledby="dream">
+      <div class="flow" style="--lanes: 3;">
+        <p class="box">주인</p>
+        <p class="box main">dream</p>
+        <p class="box">메모리 폴더들</p>
+        <ol>
+          <li style="--from: 1; --to: 2;"><code>/dream</code> 입력</li>
+          <li style="--from: 2; --to: 3;">네 가지 점검</li>
+          <li style="--from: 2; --to: 1;">제안 표 3줄</li>
+          <li style="--from: 1; --to: 2;">2줄만 승인</li>
+          <li style="--from: 2; --to: 3;">백업 후 2줄 수정</li>
+          <li style="--from: 2; --to: 1;">되돌리는 명령</li>
+        </ol>
+      </div>
+      <ol class="notes">
+        <li value="1">주인이 원할 때만 입력해요. 훅이 없어서 평소 세션은 비용이 없어요.</li>
+        <li value="2">깨진 링크, 목차에 없는 파일, 같은 이름은 셸로 찾고, 여러 폴더에 있는 같은 교훈만 모델이 판단해요.</li>
+        <li value="5">승인된 줄만 <code>${CLAUDE_PLUGIN_DATA}/dream/</code>에 복사한 뒤 고쳐요.</li>
+      </ol>
       <figcaption class="muted">찾은 것이 없으면 3번에서 "찾은 것 없음"을 알리고 끝나요. 거절된 줄은 파일이 그대로예요.</figcaption>
     </figure>
-    <ol class="steps">
-      <li data-x="256" data-y="88">주인이 원할 때만 <code>/dream</code>을 입력해요. 훅이 없어서 평소 세션은 비용이 없어요.</li>
-      <li data-x="444" data-y="136">모든 메모리 폴더를 봐요. 깨진 링크, 목차에 없는 파일, 같은 이름은 셸로 찾고, 여러 폴더에 있는 같은 교훈만 모델이 판단해요.</li>
-      <li data-x="76" data-y="184">작업·항목·이유를 담은 표를 보여 줘요. 아직 아무것도 쓰지 않아요.</li>
-      <li data-x="256" data-y="232">주인은 줄마다 승인하거나 거절해요.</li>
-      <li data-x="444" data-y="280">승인된 줄만 <code>${CLAUDE_PLUGIN_DATA}/dream/</code>에 복사한 뒤 고쳐요.</li>
-      <li data-x="76" data-y="328">고친 파일마다 되돌리는 명령을 알려 줘요.</li>
-    </ol>
   </div>
   <p>백업은 <code>${CLAUDE_PLUGIN_DATA}/dream/&lt;시각&gt;/</code>에 복사하는 한 줄이라 스크립트가 필요 없어요.</p>
 
