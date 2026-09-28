@@ -8,6 +8,7 @@
     ],
     "PreToolUse": [
       { "matcher": "Bash", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/bash-guard.py" }] },
+      { "matcher": "Agent", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/judge-allow.py" }] },
       { "matcher": "Edit|Write|NotebookEdit", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/worktree-guard.py" }] }
     ]
   }
