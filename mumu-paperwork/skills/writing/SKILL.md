@@ -24,7 +24,7 @@ The reader's situation picks the moves, in order; a move with nothing to say is 
 
 ## Text forms
 
-Each section takes the one form that carries its point: a sentence for a claim, a list for parallel items, a table only for values compared across rows, narrow, its first column the row's label.
+Each section takes the one form that carries its point: a sentence for a claim, a list for parallel items, a table only for values compared across rows, narrow, its first column the row's label. Prefer explaining through one good example where one exists: a short code block, a command and its output, or a before/after.
 
 | when the content is | in markdown |
 | --- | --- |

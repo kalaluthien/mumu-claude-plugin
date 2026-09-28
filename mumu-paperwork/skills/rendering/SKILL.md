@@ -44,7 +44,11 @@ Before writing any section, the author settles the whole piece, in this order;
    values compared across rows, a figure or widget by Mapping; space follows
    importance, and whatever does not prove the claim is cut. A figure's or
    table's caption says what to read off it, and the sentence before it
-   names it.
+   names it. By default each concept the page explains gets a diagram,
+   pseudocode of 3 lines at most (longer code is quoted as Writing says) or a
+   worked example beside it where one fits, as in
+   [The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/):
+   a figure between the paragraphs it serves, never a gallery at the end.
 5. **Widgets**: at most 1 under each `h2` or `h3` and 5 on a page, of them at
    most 2 `filter` or `controls`, since most readers never touch a control and
    the claim stands in the text too; one sentence before a widget the reader
