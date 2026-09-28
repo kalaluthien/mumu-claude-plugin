@@ -12,7 +12,7 @@ section links it. A key term is defined once, as `<dfn id="t-<term>">` where it
 first appears, and its later mentions link there, once a paragraph.
 
 A widget is the template `assemble.py --spec <widget>` prints for the content's
-kind (`chart`, `file-tree`, `system-context`, `use-case`, `filter`, `controls`, `source`), its spec followed,
+kind (`chart`, `file-tree`, `system-context`, `use-case`, `network`, `filter`, `controls`, `source`), its spec followed,
 every `{{...}}` filled or its element deleted, `{{id}}` unique per copy. A
 figure over 9 boxes is two figures. Then
 `"${CLAUDE_PLUGIN_ROOT}/skills/writing-documents/scripts/assemble.py" <body.html> <slug>.html`
