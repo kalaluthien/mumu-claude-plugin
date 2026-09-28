@@ -91,6 +91,11 @@ page, commit it beside the page.
   time with prose values an `h3` each. A table stays narrow: split it before
   adding a column, its first column the row's label; on a page it sits in the
   scroll box of [page.html](references/page.html)'s comment.
+- A measurable quantity carries its unit: a time, a size, a count per time,
+  money, a percent of what. In text beside the number; in a table header, in
+  brackets, as 지연(ms), or in each cell; on a chart's axes and a diagram's
+  labels. On a page, `check.py` fails a table column, a chart's included, of
+  bare numbers with no unit in its header or cells.
 
 ## Done when
 

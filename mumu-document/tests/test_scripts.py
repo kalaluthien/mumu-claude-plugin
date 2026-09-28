@@ -41,11 +41,11 @@ FIXTURES = {"chart": """<figure data-widget="chart" data-chart="bar">
   <details><summary>표로 보기</summary><div class="scroll"><table>
     <thead><tr><th scope="col">연도</th><th scope="col">웹</th><th scope="col">모바일</th><th scope="col">데스크톱 앱</th></tr></thead>
     <tbody>
-      <tr><th scope="row">2019</th><td>52</td><td>21</td><td>12</td></tr>
-      <tr><th scope="row">2020</th><td>50</td><td>30</td><td>13</td></tr>
-      <tr><th scope="row">2021</th><td>47</td><td>41</td><td>15</td></tr>
-      <tr data-note="새 앱 출시"><th scope="row">2022</th><td>45</td><td>55</td><td>14</td></tr>
-      <tr><th scope="row">2023</th><td>44</td><td>63</td><td>16</td></tr>
+      <tr><th scope="row">2019</th><td>52%</td><td>21%</td><td>12%</td></tr>
+      <tr><th scope="row">2020</th><td>50%</td><td>30%</td><td>13%</td></tr>
+      <tr><th scope="row">2021</th><td>47%</td><td>41%</td><td>15%</td></tr>
+      <tr data-note="새 앱 출시"><th scope="row">2022</th><td>45%</td><td>55%</td><td>14%</td></tr>
+      <tr><th scope="row">2023</th><td>44%</td><td>63%</td><td>16%</td></tr>
     </tbody>
   </table></div></details>
 </figure>
@@ -187,6 +187,8 @@ FAILS = [
     ("SQLite입니다.", "확인했음", "plain ending: 저장소는 확인했음 FAIL"),
     ("SQLite입니다.", "확인이 필요함.", "plain ending: 저장소는 확인이 필요함."),
     ('<div id="c">', '<div id="c" style="width:600px">', "FAIL: widest main > div#c"),
+    ('<pre>git log --oneline main</pre>', '<div class="scroll"><table><thead><tr><th>도시</th><th>요청</th></tr></thead><tbody><tr><td>서울</td><td>1,240</td></tr><tr><td>부산</td><td>1,870</td></tr></tbody></table></div>', "units 1 tables FAIL: table 1 column '요청' has bare numbers"),
+    ('<pre>git log --oneline main</pre>', '<div class="scroll"><table><thead><tr><th>도시</th><th>평균 지연</th></tr></thead><tbody><tr><td>서울</td><td>12.5</td></tr><tr><td>부산</td><td>-3</td></tr></tbody></table></div>', "column '평균 지연' has bare numbers"),
     ("<pre>git log --oneline main</pre>", "<pre>def run():\n    a = 1\n    b = 2\n    return a + b</pre>",
      "quotes code quote without path caption 'def run():' FAIL"),
 ]
@@ -196,6 +198,10 @@ PASSES = [
     ("SQLite입니다.", "바다.", "plain ending"),
     ("SQLite입니다.", "마음이에요.", "plain ending"),
     ("SQLite입니다.", "4.00점이에요.", "plain ending"),
+    ('<pre>git log --oneline main</pre>', '<div class="scroll"><table><thead><tr><th>도시</th><th>요청(건)</th></tr></thead><tbody><tr><td>서울</td><td>1,240</td></tr><tr><td>부산</td><td>1,870</td></tr></tbody></table></div>', 'bare numbers'),
+    ('<pre>git log --oneline main</pre>', '<div class="scroll"><table><thead><tr><th>도시</th><th>평균 지연</th></tr></thead><tbody><tr><td>서울</td><td>12.5 ms</td></tr><tr><td>부산</td><td>3 ms</td></tr></tbody></table></div>', 'bare numbers'),
+    ('<pre>git log --oneline main</pre>', '<div class="scroll"><table><thead><tr><th>도시</th><th>비율</th></tr></thead><tbody><tr><td>서울</td><td>12%</td></tr><tr><td>부산</td><td>3%</td></tr></tbody></table></div>', 'bare numbers'),
+    ('<pre>git log --oneline main</pre>', '<div class="scroll"><table><thead><tr><th>도시</th><th>지연 ms</th></tr></thead><tbody><tr><td>서울</td><td>12</td></tr><tr><td>부산</td><td>3</td></tr></tbody></table></div>', 'bare numbers'),
     ("<pre>git log --oneline main</pre>", '<figure class="code"><figcaption><a href="https://github.com/o/r/blob/0123abc/queue.py#L3-L6">'
      '<code>queue.py:3-6</code></a></figcaption><pre><code>def run():\n    a = 1\n<mark>    b = 2</mark>\n⋯\n'
      '    return a + b</code></pre></figure>', "quotes"),
