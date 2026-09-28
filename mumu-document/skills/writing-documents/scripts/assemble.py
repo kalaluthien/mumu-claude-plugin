@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Print one widget's spec, or wrap a page's body in the skin and the code of each widget it uses.
+r"""Print one widget's spec, or wrap a page's body in the skin and the code of each widget it uses.
 
 usage: assemble.py --spec <widget> | assemble.py <body.html> <page.html>
 The widgets are page (the shell), chart, filter, controls and each diagram kind; the body is what goes inside <main>.
+A body with TeX, \( … \) or \[ … \], also gets KaTeX: its script from jsdelivr and references/katex.css inline.
 Exit 0 printed or written, 2 an unknown widget or kind, or a missing file.
 """
 import html
@@ -16,6 +17,9 @@ BLOCK = re.compile(r"<style[^>]*>.*?</style>\s*|<script>.*?</script>\s*", re.S)
 SCRIPTED = ("focus", "legend", "keyboard", "screen reader")
 # widgets whose spec is their whole comment and body, as against the diagram's kinds
 WHOLE = ("chart", "filter", "controls")
+# KaTeX's version pinned with references/katex.css's; an Artifact page loads only scripts from jsdelivr, so its style is inline
+KATEX = "https://cdn.jsdelivr.net/npm/katex@0.18.9/dist/"
+TEX = re.compile(r"\\[(\[]")
 
 
 def unit(name):
@@ -62,6 +66,9 @@ def assemble(body):
     own = [b for w in used for b in unit(w)[1]]
     styles = [b for b in blocks + own if b.startswith("<style")]
     scripts = [b for b in blocks + own if b.startswith("<script")]
+    if TEX.search(re.sub(r"<(code|pre)\b.*?</\1>", "", body, flags=re.S)):
+        styles.append('<style id="math">\n' + (REFS / "katex.css").read_text().strip() + "\n</style>")
+        scripts[:0] = [f'<script src="{KATEX}{f}"></script>' for f in ("katex.min.js", "contrib/auto-render.min.js")]
     head, _, _ = shell.partition("<main>")
     return (head.replace("{{title}}", title).rstrip() + "\n" + "\n".join(styles) + "\n<main>\n" + body + "\n</main>\n"
             + "\n".join(scripts) + "\n</html>\n")

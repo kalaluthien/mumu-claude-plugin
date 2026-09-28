@@ -14,7 +14,9 @@
   every chapter shown, and the widget stands at its last step.
   table: only for values the reader compares across rows, few columns, the first a row label, headers with scope;
   each one <div class="scroll" role="region" aria-labelledby="t-<id>" tabindex="0"> holding the <table> and its
-  <caption id="t-<id>">, so a wide one scrolls in its box with its first column held; a number cell class="num". -->
+  <caption id="t-<id>">, so a wide one scrolls in its box with its first column held; a number cell class="num".
+  math: TeX in prose, \( … \) inline and \[ … \] display, never inside code; assemble.py then adds KaTeX, which sets
+  it in its TeX fonts, and a display equation wider than the column scrolls in its own box. -->
 <!doctype html>
 <html lang="ko">
 <meta charset="utf-8">
@@ -149,6 +151,7 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
 }
 </style>
 <style>
+  .katex-display { overflow-x: auto; overflow-y: hidden; padding-block: var(--sp-1); }
   [data-chapter] .pager { display: flex; justify-content: space-between; gap: var(--sp-3); margin-top: var(--rhythm);
     padding-top: var(--sp-3); border-top: var(--line) solid var(--hairline); font-family: var(--sans); }
   [data-chapter] .pager [rel="next"] { margin-inline-start: auto; text-align: end; }
@@ -201,6 +204,12 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
   </section>
   <footer>{{source}} <code>{{sha}}</code></footer>
 </main>
+<script>
+  // math, before the scripts that read headings: KaTeX, which assemble.py loads only for a body with TeX, sets it
+  if (window.renderMathInElement) renderMathInElement(document.querySelector('main') || document.body, {
+    delimiters: [{ left: '\\[', right: '\\]', display: true }, { left: '\\(', right: '\\)', display: false }],
+    throwOnError: false });
+</script>
 <script>
   (() => {
     const start = () => {
