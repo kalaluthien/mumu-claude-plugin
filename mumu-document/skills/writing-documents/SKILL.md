@@ -30,7 +30,8 @@ Before writing any section, the author settles the whole piece, in this order;
 
 1. **Answer** (Pyramid and MECE, Narrative): the reader's question, what is at
    stake for them, and the answer in one sentence; that sentence opens the
-   document, before the first heading (a page's `p.read`).
+   document, before the first heading (a page's `p.read`). It claims no more
+   than the evidence below shows: a condition not yet measured stays in it.
 2. **Outline** (Pyramid and MECE): the moves as headings, each a noun phrase
    that carries its section's claim (부산이 앞지른 요청, not 요청 수), so the
    headings read alone state the argument under the answer; siblings neither
@@ -127,7 +128,8 @@ page, commit it beside the page.
   only its settled answers; nothing is written before.
 - Reread against Composition: the headings read alone state the argument,
   each section's first sentence is its point, and each figure is named in the
-  sentence before it; fix each miss.
+  sentence before it; the answer, a heading or a table cell never claims more
+  than a later section allows; fix each miss.
 - Reread for order, each claim against its evidence, cuts and register, then
   grade it against [rubric.md](references/rubric.md) and fix each criterion
   scored below 2.
