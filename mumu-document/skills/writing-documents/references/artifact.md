@@ -9,7 +9,10 @@ two or more topics, is read a chapter at a time: a part is a
 `<section data-chapter>`, a topic an `h3`. Content with no parts stays one
 scroll, with no `h3`. Each `h2` and `h3` has an id, and a sentence that names another
 section links it. A key term is defined once, as `<dfn id="t-<term>">` where it
-first appears, and its later mentions link there, once a paragraph.
+first appears, and its later mentions link there, once a paragraph. A formula is
+TeX in the prose, `\( … \)` inline and `\[ … \]` display, never an image or
+Unicode look-alikes: `assemble.py` sets it in KaTeX's TeX fonts, and `check.py`
+fails TeX left raw.
 
 A widget is the template `assemble.py --spec <widget>` prints for the content's
 kind (`chart`, `file-tree`, `system-context`, `use-case`, `network`, `filter`, `controls`, `source`), its spec followed,
