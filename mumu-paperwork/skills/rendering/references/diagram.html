@@ -1,23 +1,23 @@
-<!-- diagram: a structure or a behaviour drawn; data-diagram picks the kind, and any kind can play its steps.
-  anatomy: a section with an h2 over a div[data-widget="diagram"][data-diagram] holding a figure.stage and, played, an <ol class="steps">; file-tree is nested lists, the SVG kinds are .box nodes and .part lines, each a one-way .edge with its .label (on a .mask over a line), role="img" with <title> and <desc>, and a key in the figcaption.
+<!-- diagram: a structure or a behaviour drawn; data-diagram picks the kind, and any kind but use-case can play its steps.
+  anatomy: a section with an h2 over a div[data-widget="diagram"][data-diagram] holding a figure.stage and, played, an <ol class="steps">; file-tree is nested lists, use-case a .flow of .box lanes over an ol of calls, the SVG kinds are .box nodes and .part lines, each a one-way .edge with its .label (on a .mask over a line), role="img" with <title> and <desc>, and a key in the figcaption.
   fill: only the nodes the reader needs; a change's unchanged neighbours stay unmarked, to show its reach; a changed node carries data-change="add", "modify" or "remove" and a .tag word; one label shows a real value; dashed (.inferred) where guessed, not read; .main on 2 boxes at most; .k1-.k4 mark kinds of node, named in order by data-kinds="{{k1|k2}}"; .ok/.warn/.fail an edge's status; SVG coordinates divisible by 4, arrows orthogonal with r=8 elbows, labels 8 px off their line; every id prefixed with {{id}}.
   kinds: copy the template below the content needs.
   file-tree: a system's structure, first on the page: each folder a <details> whose <summary> holds its .name; under a node a .note (its role in one line) or a <blockquote> excerpt with its path:line; open only the level the page is about, the new or central part first; a folder no reader needs is one collapsed line. Played: what a change adds, modifies and removes, one idea per step. Use when: files, modules or components, or a change to them. Not when: under four flat items (a list).
   system-context: the system as one .box.main in the middle, callers left, callees right, every line labelled with what crosses it. Use when: actors, entry points and boundaries. Not when: the order of calls (use-case).
-  use-case: participants as .box across the top, a .lifeline under each, time downward, each call a numbered .part 48 below the last (the svg 48 taller); two use cases, two copies. Played: a card per call. Use when: one use case's calls in order. Not when: who reaches whom (system-context).
+  use-case: one still figure read top to bottom, no steps: a div.flow style="--lanes: N;" holding a p.box per participant, 4 at most, then an ol, one li per call in order, style="--from: i; --to: j;" (lanes counted from 1, i and j apart), its text the call and its value; the skin numbers it, draws its arrow from lane i to lane j under its label, and a dotted lifeline down each lane, all fitted to the column; .inferred dashes a guessed call, .ok/.warn/.fail its status. A call that needs more than its label gets one line in the ol.notes under the flow, li value="k" for call k; no note repeats a label; no notes, drop the ol.notes. Two use cases, two copies. Use when: one use case's calls in order. Not when: who reaches whom (system-context).
   network: nodes and the links between them, drawn by the script from a dl: each dt a node, id {{id}}-tN, class kN, a label of 8 syllables at most; its dd the full name, then one in-page link per line out, its status a dash, not a colour: .warn long, .fail dotted, .inferred short, named in the figcaption; 9 nodes at most. Layered top-down by longest path, wrapped to the column, a box as wide as its label. Use when: tasks and what blocks them, sessions and who waits on whom, files and what reads them; what a node reaches. Not when: an order in time (use-case); one system and its callers (system-context).
   network: hover or focus shows a node's dt and dd in the panel under the figure, a click or Enter pins and announces it, a panel link pins its target, Escape clears. Without script, in print or under reduced motion, the dl stays listed.
-  played: optional; file-tree by page.html's slide, use-case by its swipe; the steps one caption each, a file-tree's first the before; a part with data-step="k" shows from step k (the token moves to the card's data-x and data-y). Not played: drop those, the token and the steps.
-  focus: hover, keyboard focus or a tap on a node or .part keeps it, its lines and the nodes they reach full and dims the rest (a file-tree's lines join a node to its folder and its children); hover off, Escape or a second tap restores all. The .part's ends are the nodes nearest its first and last point.
+  played: optional, by page.html's slide; the steps one caption each, a file-tree's first the before; a part with data-step="k" shows from step k. Not played: drop those and the steps.
+  focus: hover, keyboard focus or a tap on a node or line (a .part, a use-case call) keeps it, its lines and the nodes they reach full and dims the rest (a file-tree's lines join a node to its folder and its children); hover off, Escape or a second tap restores all. The .part's ends are the nodes nearest its first and last point, a call's its two lanes.
   legend: 2 or more kinds, each kind a button with aria-pressed; pressed off, its nodes and their lines fade. Without script, in print or before any focus nothing dims.
-  keyboard: Tab to each summary, file row, .box or .part, Enter or Space opens a folder or pins the focus, Escape clears it; played, the slide's Back and Next or the swipe's strip and arrow keys.
-  screen reader: a summary is a disclosure; each other node and line a button named by its words, pressed while pinned; the SVG's desc lists its parts in order; a changed node reads its tag; played, each caption is announced as it shows.
+  keyboard: Tab to each summary, file row, .box, .part or call, Enter or Space opens a folder or pins the focus, Escape clears it; played, the slide's Back, Next and arrow keys.
+  screen reader: a summary is a disclosure; each other node and line a button named by its words, pressed while pinned; the SVG's desc lists its parts in order, a use-case's calls read in order; a changed node reads its tag; played, each caption is announced as it shows.
   use when: a figure shows it better than prose.
   not when: rows sharing columns (a table); numbers (chart). -->
 <style>
   [data-widget="diagram"] {
     --diagram-indent: var(--sp-4); --diagram-add: var(--ok); --diagram-modify: var(--warn);
-    --diagram-remove: var(--fail); --diagram-pending: var(--disabled); --x: 0; --y: 0;
+    --diagram-remove: var(--fail); --diagram-pending: var(--disabled);
     --diagram-dim: calc(var(--disabled) / 2); --diagram-off: calc(var(--disabled) / 5);
     & ul { list-style: none; margin: 0; padding-inline-start: var(--diagram-indent); border-inline-start: var(--line) solid var(--text); }
     & .stage > ul { padding-inline-start: 0; border: 0; }
@@ -48,7 +48,6 @@
     & .part:is(:hover, :focus-visible) .edge, [data-state="hover"] & .part:first-of-type .edge { stroke: var(--accent); }
     & .part:is(:hover, :focus-visible) text, [data-state="hover"] & .part:first-of-type text { fill: var(--accent-text); }
     & .part:focus-visible, [data-state="focus"] & .part:first-of-type { outline: var(--line-strong) solid var(--accent); }
-    & .token { fill: var(--accent); display: none; }
     & li:is(.k1, .k2, .k3, .k4) > .name, & li:is(.k1, .k2, .k3, .k4) > details > summary .name { border-bottom: var(--line-strong) solid var(--diagram-kind); }
     & .k1 { --diagram-kind: var(--kind-1); } & .k2 { --diagram-kind: var(--kind-2); } & .k3 { --diagram-kind: var(--kind-3); } & .k4 { --diagram-kind: var(--kind-4); }
     & .stage > dl dt { font-weight: 700; }
@@ -62,6 +61,34 @@
     &[data-diagram="network"] .edge.warn { stroke-dasharray: 12 4; }
     &[data-diagram="network"] .edge.fail { stroke-dasharray: 2 4; }
     & .detail :is(dl, dd) { margin: 0; }
+    /* use-case: the lanes equal columns, a dotted lifeline down each one's middle; a call spans its lanes' middles, its
+       number and label over its arrow, which a lane-to-lane sign points; the label's box covers the lifelines it crosses */
+    & .flow { --lane: calc(100% / var(--lanes)); display: grid; grid-template-columns: repeat(var(--lanes), minmax(0, 1fr));
+      font: var(--fs-m) var(--sans); }
+    & .flow > .box { margin: 0 var(--sp-1); padding: var(--sp-1); border: var(--line) solid var(--text); border-radius: var(--sp-2);
+      text-align: center; overflow-wrap: anywhere; }
+    & .flow > .box.main { background: var(--fill); border-radius: 0; }
+    & .flow > .box:is(.k1, .k2, .k3, .k4) { border-color: var(--diagram-kind); }
+    & .flow > ol { grid-column: 1 / -1; position: relative; margin: 0; padding: 0 0 var(--sp-3); list-style: none; counter-reset: call; }
+    & .flow > ol::before { content: ""; position: absolute; inset: 0;
+      background: linear-gradient(to right, transparent calc(50% - var(--line) / 2), var(--muted) 0 calc(50% + var(--line) / 2), transparent 0)
+        0 0 / var(--lane) 100% repeat-x;
+      mask: repeating-linear-gradient(to bottom, var(--text) 0 var(--line), transparent 0 var(--sp-1)); }
+    & .flow li { --edge: var(--text); --d: clamp(-1, var(--to) - var(--from), 1); position: relative; box-sizing: border-box;
+      margin: var(--sp-3) 0 0 calc((min(var(--from), var(--to)) - .5) * var(--lane));
+      inline-size: calc(max(var(--to) - var(--from), var(--from) - var(--to)) * var(--lane));
+      padding: 0 var(--sp-2) var(--sp-1); border-bottom: var(--line) solid var(--edge); background: var(--bg) content-box;
+      overflow-wrap: anywhere; counter-increment: call; outline: none; }
+    & .flow li::before { content: counter(call) " "; font-weight: 700; }
+    & .flow li::after { content: ""; position: absolute; inline-size: var(--sp-2); block-size: var(--sp-2);
+      inset-block-end: calc(var(--sp-2) / -2 - var(--line) / 2);
+      inset-inline-start: calc(clamp(0%, var(--d) * 100%, 100%) - (var(--d) + 1) * var(--sp-2) / 2);
+      background: var(--edge); clip-path: polygon(0 0, 100% 50%, 0 100%); transform: scaleX(var(--d)); }
+    & .flow li.inferred { border-bottom-style: dashed; }
+    & .flow li.ok { --edge: var(--ok); } & .flow li.warn { --edge: var(--warn); } & .flow li.fail { --edge: var(--fail); }
+    & .flow li:is(:hover, :focus-visible), [data-state="hover"] & .flow li:first-child { --edge: var(--accent); color: var(--accent-text); }
+    & .flow li:focus-visible, [data-state="focus"] & .flow li:first-child { outline: var(--line-strong) solid var(--accent); }
+    & .notes { margin: var(--sp-2) 0 0; padding-inline-start: var(--sp-4); font-size: var(--fs-m); }
     & .legend { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-2) 0; }
     & .legend button::before { content: ""; display: inline-block; inline-size: var(--sp-3); block-size: var(--sp-3);
       margin-inline-end: var(--sp-1); vertical-align: middle; background: var(--diagram-kind); }
@@ -82,7 +109,6 @@
       &.live [data-change="remove"]:not(.on) .name { text-decoration: none; color: var(--text); }
       &.live [data-change="remove"].on { opacity: var(--diagram-pending); }
       &.live [data-change]:not(.on) .tag { visibility: hidden; }
-      &.live .token { display: inline; transform: translate(var(--x), var(--y)); transition: transform var(--motion) var(--ease-out); }
       &.live .now .edge { stroke: var(--accent); }
       &.live .now text { fill: var(--accent-text); }
       & .stage:has(> svg) > dl { position: absolute; inline-size: var(--line); block-size: var(--line); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -106,6 +132,13 @@
         nodes.forEach((n) => {
           const up = nodes.find((m) => m.el === n.el.parentElement.closest('li'));
           if (up) edges.push({ own: [], ends: [up, n] });
+        });
+      } else if (root.dataset.diagram === 'use-case') {
+        // a lane per .box; a call's ends are the lanes its --from and --to name
+        root.querySelectorAll('.flow > .box').forEach((box) => nodes.push({ el: box, handle: box, own: [box] }));
+        root.querySelectorAll('.flow > ol > li').forEach((li) => {
+          const ends = ['--from', '--to'].map((p) => nodes[+getComputedStyle(li).getPropertyValue(p) - 1]);
+          if (ends.every(Boolean)) edges.push({ el: li, handle: li, own: [li], ends });
         });
       } else {
         const texts = [...root.querySelectorAll('svg > text')];
@@ -398,38 +431,21 @@
 </section>
 <section aria-labelledby="{{id}}">
   <h2 id="{{id}}">{{use case, as a noun phrase}}</h2>
-  <div data-widget="diagram" data-diagram="use-case" data-swipe>
-    <figure class="stage scroll" tabindex="0" aria-labelledby="{{id}}-title">
-      <svg width="520" height="208" viewBox="0 0 520 208" role="img" aria-labelledby="{{id}}-title" aria-describedby="{{id}}-desc">
-        <title id="{{id}}-title">{{flow: use case}}</title>
-        <desc id="{{id}}-desc">{{the flow in one sentence}}</desc>
-        <defs>
-          <marker id="{{id}}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
-            <path class="tip" d="M0,0 L10,5 L0,10 z"/>
-          </marker>
-        </defs>
-        <rect class="box" x="8" y="8" width="128" height="40"/>
-        <text x="72" y="32" text-anchor="middle">{{participant A}}</text>
-        <rect class="box" x="196" y="8" width="128" height="40"/>
-        <text x="260" y="32" text-anchor="middle">{{participant B}}</text>
-        <rect class="box" x="384" y="8" width="128" height="40"/>
-        <text x="448" y="32" text-anchor="middle">{{participant C}}</text>
-        <path class="lifeline" d="M72,48 V200 M260,48 V200 M448,48 V200"/>
-        <g class="part" data-step="1"><path class="edge" d="M72,88 H256" marker-end="url(#{{id}}-arrow)"/>
-          <text class="label" x="80" y="80">1 {{call and its value}}</text></g>
-        <g class="part" data-step="2"><path class="edge" d="M260,136 H444" marker-end="url(#{{id}}-arrow)"/>
-          <text class="label" x="268" y="128">2 {{call}}</text></g>
-        <g class="part" data-step="3"><path class="edge" d="M448,184 H76" marker-end="url(#{{id}}-arrow)"/>
-          <text class="label" x="268" y="176">3 {{reply}}</text></g>
-        <circle class="token" cx="0" cy="0" r="6"/>
-      </svg>
+  <div data-widget="diagram" data-diagram="use-case">
+    <figure class="stage" aria-labelledby="{{id}}">
+      <div class="flow" style="--lanes: 3;">
+        <p class="box">{{participant A}}</p>
+        <p class="box">{{participant B}}</p>
+        <p class="box">{{participant C}}</p>
+        <ol>
+          <li style="--from: 1; --to: 2;">{{call and its value}}</li>
+          <li style="--from: 2; --to: 3;">{{call}}</li>
+          <li style="--from: 3; --to: 1;">{{reply}}</li>
+        </ol>
+      </div>
+      <ol class="notes"><li value="2">{{what call 2 does that its label does not say}}</li></ol>
       <figcaption class="muted">{{what was left out of this use case}}</figcaption>
     </figure>
-    <ol class="steps">
-      <li data-x="256" data-y="88">{{step 1: what moves, and why}}</li>
-      <li data-x="444" data-y="136">{{step 2: what moves, and why}}</li>
-      <li data-x="76" data-y="184">{{step 3: what comes back, and why}}</li>
-    </ol>
   </div>
 </section>
 <section aria-labelledby="{{id}}">

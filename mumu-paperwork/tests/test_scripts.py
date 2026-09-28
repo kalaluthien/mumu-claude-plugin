@@ -249,9 +249,6 @@ def dream(name):
 STUCK = "<script>document.addEventListener('click', function (e) { if (e.target.closest('.controls')) e.stopImmediatePropagation(); }, true);</script></html>"
 
 
-# check.py with every sleep a twentieth as long, so the page runs twenty times slower against its waits
-SLOW = ("-c", "import runpy, sys, time; sleep = time.sleep; time.sleep = lambda s: sleep(s / 20); sys.argv = sys.argv[1:];"
-              " runpy.run_path(sys.argv[0], run_name='__main__')")
 
 
 def check(html, *python):
@@ -396,7 +393,6 @@ class Check(unittest.TestCase):
         self.assertEqual(code, 0, out)
         for kind in ("bar", "line"):
             self.assertIn(f" {kind} marks", out)
-        self.assertIn("swipe 1 token in view 3/3 pass", out)
         self.assertRegex(out, r"clicks (\d+)/\1 pass")
 
     def test_each_chart_rule_fails(self):
@@ -415,23 +411,18 @@ class Check(unittest.TestCase):
         self.assertEqual(code, 1, out)
         self.assertIn("summary is not one sentence", out)
 
-    def test_swipe_that_does_not_react_fails(self):
-        dead = "<script>window.IntersectionObserver = function () { this.observe = function () {}; };</script><style>"
-        code, out = widget_check(self.gallery.replace("<style>", dead, 1))
+    def test_every_tabbable_part_is_named(self):
+        # the widgets whose script makes a part a Tab stop: each diagram kind's nodes and lines, file rows, a chart's marks
+        for widget in [f'data-diagram="{k}"' for k in ("file-tree", "system-context", "use-case", "network")] + ['data-widget="chart"']:
+            self.assertIn(widget, self.gallery)
+        code, out = widget_check(self.gallery)
+        self.assertIn("focus pass", out)
+        # the check can fail: the diagram's parts left without a role, as the old code in the rubric samples leaves them
+        role = "x.handle.setAttribute('role', 'button');"
+        self.assertIn(role, self.gallery)
+        code, out = widget_check(self.gallery.replace(role, ""))
         self.assertEqual(code, 1, out)
-        self.assertIn("swipe 1 step 1/3 FAIL", out)
-
-    def test_slow_page_is_still_swiped(self):
-        code, out = widget_check(self.gallery, *SLOW)
-        self.assertEqual(code, 0, out)
-        self.assertEqual(len(re.findall(r"swipe \d+ token in view 3/3 pass", out)), 5, out)
-
-    def test_token_out_of_view_fails(self):
-        # step 2's card sends the token past the stage's scroll width
-        self.assertIn('data-x="444"', self.gallery)
-        code, out = widget_check(self.gallery.replace('data-x="444"', 'data-x="1400"'))
-        self.assertEqual(code, 1, out)
-        self.assertIn("swipe 1 token in view 2/3 FAIL: steps 2", out)
+        self.assertRegex(out, r'focus FAIL: no role or name: .*<li style="--from')
 
 
 

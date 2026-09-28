@@ -9,12 +9,9 @@
   choice: a div role="group" data-choice of buttons, one pressed at a time, the first at start; a click presses one and
   fires `change` on the group, which a widget's script reads by its [aria-pressed="true"] button.
   slide: a root with data-slide and data-labels="뒤로|다음" over an <ol class="steps">: one stage changes in place, Back,
-  Next, the arrow keys and a count; the reader compares the same marks.
-  swipe: a root with data-swipe over a stage and an <ol class="steps">: a strip of cards, the card in view the step;
-  each step a separate moment, with Back and Next in words (data-labels, 뒤로|다음 by default) and a count under the
-  strip, so one pointer steps it without a swipe. Played, at step k each [data-step] up to k gets .on, the one at k .now, the root
-  data-at k - 1 and a `step` event, and a card's data-x scrolls a stage wider than the column to it; under reduced motion, in print or without script, every caption stays listed,
-  every chapter shown, and the widget stands at its last step.
+  Next, the arrow keys and a count; the reader compares the same marks. Played, at step k each [data-step] up to k gets
+  .on, the one at k .now, the root data-at k - 1 and a `step` event; under reduced motion, in print or without script,
+  every caption stays listed, every chapter shown, and the widget stands at its last step.
   table: only for values the reader compares across rows, few columns, the first a row label, headers with scope;
   each one <div class="scroll" role="region" aria-labelledby="t-<id>" tabindex="0"> holding the <table> and its
   <caption id="t-<id>">, so a wide one scrolls in its box with its first column held; a number cell class="num".
@@ -190,22 +187,12 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
   @media print { [data-chapter][hidden] { display: block; } [data-chapter] .pager { display: none; } }
   [data-slide] .steps { margin: var(--sp-2) 0; }
   [data-slide] :is(.caption, .controls) { display: none; }
-  :is([data-slide], [data-swipe]) .controls { gap: var(--sp-2); align-items: center; margin: var(--sp-2) 0; }
-  :is([data-slide], [data-swipe]) .count { color: var(--muted); font-size: var(--fs-m); font-variant-numeric: tabular-nums; }
-  [data-swipe] .controls { display: none; }
+  [data-slide] .controls { gap: var(--sp-2); align-items: center; margin: var(--sp-2) 0; }
+  [data-slide] .count { color: var(--muted); font-size: var(--fs-m); font-variant-numeric: tabular-nums; }
   @media screen and (prefers-reduced-motion: no-preference) {
     [data-slide].live .steps { display: none; }
     [data-slide].live .caption { display: block; }
     [data-slide].live .controls { display: flex; }
-  }
-  @media screen and (prefers-reduced-motion: no-preference) {
-    [data-swipe].live .steps { display: flex; gap: var(--sp-2); overflow-x: auto; scroll-snap-type: x mandatory;
-      list-style: none; padding: 0; margin: var(--sp-2) 0; }
-    [data-swipe].live .steps > li { flex: 0 0 85%; scroll-snap-align: center; padding: var(--sp-2) var(--sp-3);
-      border: var(--line) solid var(--hairline); color: var(--muted); transition: color var(--motion-fast) var(--ease-out); }
-    [data-swipe].live .steps > li.now { color: var(--text); border-color: var(--accent); }
-    [data-swipe].live .steps:focus-visible { outline: var(--line-strong) solid var(--accent); }
-    [data-swipe].live .controls { display: flex; }
   }
   main nav.drawer { position: fixed; z-index: 3; inset-block: 0; inset-inline-start: 0; overflow-y: auto;
     width: min(var(--drawer-width), 85%); box-sizing: border-box; padding: var(--rhythm) var(--gutter);
@@ -333,67 +320,6 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
         const d = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
         if (d && !e.target.closest('svg')) { e.preventDefault(); show(at + d); }
       });
-      root.classList.add('live');
-      show(1);
-    });
-    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
-  })();
-</script>
-<script>
-  (() => {
-    const start = () => document.querySelectorAll('[data-swipe]').forEach((root) => {
-      const strip = root.querySelector('.steps');
-      const steps = [...strip.children];
-      const n = steps.length;
-      if (n < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      strip.tabIndex = 0;
-      strip.setAttribute('role', 'region');
-      strip.setAttribute('aria-label', '단계');
-      // Back, a count and Next under the strip, for a reader with no swipe
-      const controls = document.createElement('div');
-      controls.className = 'controls';
-      controls.innerHTML = '<button type="button"></button><span class="count"></span><button type="button"></button>';
-      strip.after(controls);
-      const [back, next] = controls.querySelectorAll('button');
-      [back.textContent, next.textContent] = (root.dataset.labels || '뒤로|다음').split('|');
-      let at = 1;
-      const go = (k) => {
-        const li = steps[Math.min(Math.max(k, 1), n) - 1];
-        const s = strip.getBoundingClientRect(), r = li.getBoundingClientRect();
-        strip.scrollTo({ left: strip.scrollLeft + r.left - s.left - (s.width - r.width) / 2, behavior: 'smooth' });
-      };
-      back.addEventListener('click', () => go(at - 1));
-      next.addEventListener('click', () => go(at + 1));
-      const show = (k) => {
-        at = k;
-        controls.querySelector('.count').textContent = `${k} / ${n}`;
-        back.disabled = k === 1;
-        next.disabled = k === n;
-        steps.forEach((li, i) => li.classList.toggle('now', i === k - 1));
-        root.querySelectorAll('[data-step]').forEach((el) => {
-          el.classList.toggle('on', +el.dataset.step <= k);
-          el.classList.toggle('now', +el.dataset.step === k);
-        });
-        const li = steps[k - 1];
-        if (li.dataset.x) {
-          root.style.setProperty('--x', `${li.dataset.x}px`);
-          root.style.setProperty('--y', `${li.dataset.y}px`);
-          // a stage wider than the column scrolls to center the token
-          const stage = root.querySelector('.stage');
-          const svg = stage && stage.querySelector('svg');
-          if (svg) {
-            const s = svg.getBoundingClientRect();
-            const x = s.left - stage.getBoundingClientRect().left + stage.scrollLeft + li.dataset.x * s.width / (svg.viewBox.baseVal.width || s.width);
-            stage.scrollTo({ left: x - stage.clientWidth / 2, behavior: 'smooth' });
-          }
-        }
-        root.dataset.at = k - 1;
-        root.dispatchEvent(new CustomEvent('step'));
-      };
-      const seen = new IntersectionObserver((entries) => entries.forEach((e) => {
-        if (e.isIntersecting) show(steps.indexOf(e.target) + 1);
-      }), { root: strip, threshold: 0.6 });
-      steps.forEach((li) => seen.observe(li));
       root.classList.add('live');
       show(1);
     });
