@@ -706,14 +706,14 @@ CASES = [
     (W + "diagram.html", [("--diagram-indent: var(--sp-4)", "--diagram-indent: var(--p-white)")], r"reads primitive --p-white"),
     (W + "diagram.html", [("--diagram-indent: var(--sp-4);", "--diagram-indent: var(--sp-4); --diagram-x: var(--sp-1);")], None),
     (SKIN, [("flex: 0 0 85%;", "flex: 0 0 20rem;")], r"literal size: 20rem"),
-    (SKIN, [("--kind-2: #b0521c", "--kind-2: #f5c9a8")], r"--kind-2 on --fill"),
+    (SKIN, [("--kind-2: var(--accent)", "--kind-2: #f5c9a8")], r"--kind-2 on --fill"),
     (SKIN, [("--p-grey-500: #67635c", "--p-grey-500: #c0c0c0")], r"--muted on --bg"),
     (SKIN, [("--border: #6f6b63", "--border: #d0ccc4")], r"--border on --fill"),
     (SKIN, [("--link: var(--accent-text)", "--link: #e0a080")], r"--link on --bg"),
     (SKIN, [("  --accent:", "  --link:")], r"no role --accent"),
     (SKIN, [("--accent: #c96442", "--accent: #d97757")], r"--accent on --fill 2\.\d+:1 < 3\.0:1"),
-    # rust and olive stay apart to a normal eye and pass 3:1 on cream, but merge for a deuteranope
-    (SKIN, [("--kind-4: var(--p-black)", "--kind-4: #5f7a1f")],
+    # orange and olive stay apart to a normal eye and pass 3:1 on cream, but merge for a deuteranope
+    (SKIN, [("--kind-4: #8c8274", "--kind-4: #5f7a1f")],
      r"(?s)^(?!.*normal).*--kind-2 and --kind-4 deuteranopia ΔE \d+\.\d < 10"),
 ]
 
