@@ -15,7 +15,7 @@ ITEMS = {
     "security": "Security:",
     "terminal markdown": "markdown in a terminal",
     "denied call": "denied tool call",
-    "hooks": "Hook output is user feedback",
+    "hooks": "hook output as user feedback",
     "pasted content": "<pasted_content>",
     "dedicated tools": "dedicated file and search tools",
     "path:line": "`path:line`",
