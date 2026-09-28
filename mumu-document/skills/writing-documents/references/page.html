@@ -111,6 +111,8 @@ pre { overflow-x: auto; background: var(--fill); border: var(--line) solid var(-
       border-radius: var(--radius-s); padding: var(--sp-3); }
 .scroll { overflow-x: auto; }
 figure { margin: 0; }
+figure.code figcaption { overflow-wrap: anywhere; }
+pre mark { display: inline-block; min-width: 100%; background: var(--mark); color: inherit; }
 table { border-collapse: collapse; min-width: 100%; background: var(--fill); font-size: var(--fs-table); }
 th, td { border-bottom: var(--line) solid var(--hairline); padding: var(--sp-2) var(--sp-3); text-align: start; vertical-align: top;
          word-break: keep-all; }
