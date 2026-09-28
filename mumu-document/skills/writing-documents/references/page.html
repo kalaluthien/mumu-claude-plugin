@@ -3,9 +3,11 @@
   chapters; else delete it), the widgets and plain HTML in move order, and a footer citing the source at a sha.
   chapters: parts that each hold sections are each a <section data-chapter> opening with its <h2 id>, sections as h3s;
   the page shows the chapter holding the URL's #id (none: the first), adds a pager, and marks the nav link shown.
-  reading aids, added by the script: the nav becomes a contents drawer (a 목차 button, a backdrop, Esc; docked open
-  from 75rem) listing the h3s of each chapter under its link and marking the heading in view; a 맨 위로 button once
+  reading aids, added by the script: the nav becomes a contents drawer (a 목차 button, a backdrop, Esc; modal while
+  open, the page behind it inert; docked open from 75rem) listing the h3s of each chapter under its link and marking the heading in view; a 맨 위로 button once
   scrolled; after an in-page link, a 돌아가기 button back to the spot before it, and a flash on the link's target.
+  choice: a div role="group" data-choice of buttons, one pressed at a time, the first at start; a click presses one and
+  fires `change` on the group, which a widget's script reads by its [aria-pressed="true"] button.
   slide: a root with data-slide and data-labels="뒤로|다음" over an <ol class="steps">: one stage changes in place, Back,
   Next, the arrow keys and a count; the reader compares the same marks.
   swipe: a root with data-swipe over a stage and an <ol class="steps">: a strip of cards, the card in view the step;
@@ -154,6 +156,9 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
 }
 </style>
 <style>
+  [role="group"][data-choice] { display: flex; flex-wrap: wrap; }
+  [role="group"][data-choice] > button + button { border-inline-start-width: 0; }
+  [role="group"][data-choice] > [aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
   .katex-display { overflow-x: auto; overflow-y: hidden; padding-block: var(--sp-1); }
   [data-chapter] .pager { display: flex; justify-content: space-between; gap: var(--sp-3); margin-top: var(--rhythm);
     padding-top: var(--sp-3); border-top: var(--line) solid var(--hairline); font-family: var(--sans); }
@@ -214,6 +219,22 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
   if (window.renderMathInElement) renderMathInElement(document.querySelector('main') || document.body, {
     delimiters: [{ left: '\\[', right: '\\]', display: true }, { left: '\\(', right: '\\)', display: false }],
     throwOnError: false });
+</script>
+<script>
+  (() => {
+    // choice: one pressed button per group, for the widgets that read it
+    const press = (g, b) => g.querySelectorAll(':scope > button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+    const start = () => document.querySelectorAll('[role="group"][data-choice]').forEach((g) => {
+      press(g, g.querySelector(':scope > [aria-pressed="true"]') || g.querySelector(':scope > button'));
+    });
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest && e.target.closest('[role="group"][data-choice] > button');
+      if (!b || b.getAttribute('aria-pressed') === 'true') return;
+      press(b.parentElement, b);
+      b.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
 </script>
 <script>
   (() => {
@@ -405,9 +426,13 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
         backdrop.className = 'backdrop';
         document.body.append(backdrop);
         const docked = matchMedia('(min-width: 75rem)');
+        // open over the page, the drawer is modal: all but it and its backdrop is inert, so Tab stays in it
         const set = (open) => {
           nav.classList.toggle('open', open);
           backdrop.hidden = !open;
+          for (let el = nav; el !== document.body; el = el.parentElement) {
+            [...el.parentElement.children].forEach((x) => { if (x !== el && x !== backdrop) x.inert = open && !docked.matches; });
+          }
           toggle.setAttribute('aria-expanded', open);
           if (!open && nav.contains(document.activeElement)) toggle.focus();
         };
@@ -418,6 +443,7 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
         backdrop.addEventListener('click', () => set(false));
         nav.addEventListener('click', (e) => { if (e.target.closest('a') && !docked.matches) set(false); });
         addEventListener('keydown', (e) => { if (e.key === 'Escape' && nav.classList.contains('open')) set(false); });
+        docked.addEventListener('change', () => set(false));
         set(false);
       }
       // the last heading shown above a quarter of the window, marked in the contents
@@ -466,14 +492,24 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
       });
       document.addEventListener('animationend', (e) => { if (e.animationName === 'flash') e.target.classList.remove('flash'); });
       back.addEventListener('click', () => { if (history.state && 'from' in history.state) history.back(); });
-      // the chapter script shows the chapter on hashchange, then this returns to the spot
-      let spot = null;
-      const restore = () => { if (spot !== null) { scrollTo(0, spot); spot = null; } soon(); };
+      // back to the spot once the entry's target is shown: after the chapter script's hashchange when the hash moved,
+      // else at once; a chapter still hidden is waited for frame by frame
+      let spot = null, hash = location.hash;
+      const restore = (frames = 120) => {
+        if (spot === null) return soon();
+        const to = document.getElementById(decodeURIComponent(location.hash.slice(1))) || document.querySelector('main');
+        if (to && !to.checkVisibility() && frames) return requestAnimationFrame(() => restore(frames - 1));
+        scrollTo(0, spot);
+        spot = null;
+        soon();
+      };
       addEventListener('popstate', (e) => {
         label();
-        if (e.state && typeof e.state.y === 'number') { spot = e.state.y; setTimeout(restore, 50); }
+        const moved = location.hash !== hash;
+        hash = location.hash;
+        if (e.state && typeof e.state.y === 'number') { spot = e.state.y; if (!moved) restore(); }
       });
-      addEventListener('hashchange', restore);
+      addEventListener('hashchange', () => { hash = location.hash; restore(); });
       label();
       spy();
     };

@@ -96,10 +96,10 @@ FIXTURES = {"chart": """<figure data-widget="chart" data-chart="bar">
   </div></details>
 </figure>""",
             "filter": """<div data-widget="filter" data-for="{{id}}" data-unit="개">
-  <div role="group" data-facet="kind" aria-label="갈래">
+  <div role="group" data-choice data-facet="kind" aria-label="갈래">
     <button type="button" data-tag="">전체</button><button type="button" data-tag="빛">빛</button><button type="button" data-tag="색">색</button>
   </div>
-  <input type="search" aria-label="주제에서 찾기" placeholder="찾을 말">
+  <label>주제에서 찾기 <input type="search" placeholder="찾을 말"></label>
   <output aria-live="polite"></output>
 </div>
 <ul id="{{id}}"><li data-kind="빛">창가의 빛</li><li data-kind="빛">역광</li><li data-kind="색">피부색</li></ul>""",
@@ -108,7 +108,7 @@ FIXTURES = {"chart": """<figure data-widget="chart" data-chart="bar">
   <div class="stage"><svg viewBox="0 0 120 80" role="img" aria-label="원"><circle cx="60" cy="40" style="r: calc(var(--size, 20) * 1px)"/></svg></div>
   <div class="panel">
     <label>크기 <input type="range" name="size" min="10" max="30" value="20"><output data-unit="px"></output></label>
-    <div role="group" data-name="size2" aria-label="두 배">
+    <div role="group" data-choice data-name="size2" aria-label="두 배">
       <button type="button" data-value="1">한 배</button><button type="button" data-value="2">두 배</button>
     </div>
     <p>넓이 <output data-calc="3 * size * size * size2" data-digits="0"></output></p>
@@ -437,10 +437,10 @@ class Check(unittest.TestCase):
 
 # (what to replace in the assembled widgets page, its replacement, a line the output must hold)
 BROKEN = [
-    ('<div role="group" data-name="tone"', '<label>안 쓰는 값 <input type="range" name="unused" min="0" max="10" value="5">'
-     '<output></output></label><div role="group" data-name="tone"', "controls 1 slider unused changes nothing"),
+    ('<div role="group" data-choice data-name="tone"', '<label>안 쓰는 값 <input type="range" name="unused" min="0" max="10" value="5">'
+     '<output></output></label><div role="group" data-choice data-name="tone"', "controls 1 slider unused changes nothing"),
     # a preset, cut as it repeats the sliders and toggles
-    ('<div role="group" data-name="tone"', '<button type="button" data-preset="size=12">작게</button><div role="group" data-name="tone"',
+    ('<div role="group" data-choice data-name="tone"', '<button type="button" data-preset="size=12">작게</button><div role="group" data-choice data-name="tone"',
      "controls 1 button 작게 changes nothing"),
     ("<main>", "<style>main nav.drawer.open { visibility: hidden; }</style><main>", "contents button changes nothing"),
     ("<main>", "<script>addEventListener('click', function (e) { if (e.target.closest('.top')) e.stopImmediatePropagation(); }, true);"
@@ -492,6 +492,63 @@ class Widgets(unittest.TestCase):
         self.assertEqual(got[0], 1, got)
         self.assertGreater(got[2], 0, got)
         self.assertGreaterEqual(got[1], got[2] - 1, got)
+
+    def run_page(self, html, js):
+        """`js` evaluated on `html` at 320 px, with no network, every chapter shown."""
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(channel="chrome")
+            try:
+                p = browser.new_page(viewport={"width": 320, "height": 800})
+                p.route(re.compile(r"^https?://"), lambda r: r.abort())
+                errors = []
+                p.on("pageerror", lambda e: errors.append(str(e)))
+                p.set_content(html)
+                p.evaluate("document.querySelectorAll('[data-chapter]').forEach((c) => { c.hidden = false; })")
+                return p.evaluate(js), errors
+            finally:
+                browser.close()
+
+    @unittest.skipUnless(sync_playwright, "no playwright")
+    def test_readout_needs_no_eval(self):
+        # a host whose content security policy forbids eval, as an artifact host may
+        csp = '<meta http-equiv="Content-Security-Policy" content="script-src \'unsafe-inline\'">'
+        got, errors = self.run_page(self.page.replace("<meta charset", csp + "<meta charset", 1),
+                                    "[...document.querySelectorAll('output[data-calc]')].map((o) => o.textContent)")
+        self.assertEqual(errors, [])
+        self.assertEqual(got, ["1,257px²", "1.098배"])
+
+    @unittest.skipUnless(sync_playwright, "no playwright")
+    def test_readout_reads_arithmetic(self):
+        cases = {"2 + 3 * 4": "14", "(2 + 3) * 4": "20", "-2 ** 2": "-4", "2 ** 3 ** 2": "512", "7 % 4": "3", "size / 4": "5",
+                 "Math.max(size, 30) - Math.PI": "26.858", "Math.sqrt(16)": "4", "1e3 / .5": "2,000", "size +": "NaN",
+                 "alert(1)": "NaN", "constructor": "NaN", "Math.constructor": "NaN"}
+        figure = ('<figure data-widget="controls"><div class="stage"></div><div class="panel"><label>크기 '
+                  '<input type="range" name="size" min="10" max="30" value="20"><output></output></label>'
+                  + "".join(f'<output data-calc="{c}"></output>' for c in cases) + "</div></figure>")
+        page = re.sub(r"<main>.*?</main>", lambda _: f"<main>{figure}</main>", self.page, count=1, flags=re.S)
+        got, errors = self.run_page(page, "[...document.querySelectorAll('output[data-calc]')].map((o) => o.textContent)")
+        self.assertEqual(errors, [])
+        self.assertEqual(dict(zip(cases, got)), cases)
+
+    def test_one_choice_script_and_style(self):
+        # the group of buttons, one pressed: its script and pressed style once, in page.html
+        refs = {f.name: f.read_text() for f in (ROOT / "skills" / "writing-documents" / "references").glob("*.html")}
+        setters = {n: len(re.findall(r"setAttribute\('aria-pressed'", t)) for n, t in refs.items() if 'role="group"' in t}
+        styles = {n: len(re.findall(r'\[aria-pressed="true"\][^{,;]*\{', t)) for n, t in refs.items()}
+        self.assertEqual({n: c for n, c in setters.items() if c}, {"page.html": 1})
+        self.assertEqual({n: c for n, c in styles.items() if c}, {"page.html": 1})
+
+    @unittest.skipUnless(sync_playwright, "no playwright")
+    def test_filter_search_is_labelled_and_says_when_empty(self):
+        got, errors = self.run_page(self.page, """() => {
+          const root = document.querySelector('[data-widget="filter"]'), box = root.querySelector('input[type="search"]');
+          const label = box.labels[0], empty = () => [...root.querySelectorAll('p')].filter((p) => p.checkVisibility()).map((p) => p.textContent);
+          const before = empty();
+          box.value = '없는말'; box.dispatchEvent(new Event('input', { bubbles: true }));
+          return [label ? label.checkVisibility() && label.textContent.trim() : null, before, empty(),
+                  root.querySelector('output').textContent]; }""")
+        self.assertEqual(errors, [])
+        self.assertEqual(got, ["작업 이름이나 설명에서 찾기", [], ["맞는 항목이 없어요."], "0 / 12개"])
 
     def test_each_broken_control_fails(self):
         for old, new, line in BROKEN:
