@@ -249,7 +249,7 @@ def render(frame, page, *flags):
 
 SHOWN = "Array.prototype.map.call(document.querySelectorAll('[data-chapter]'), function (c) { return c.checkVisibility(); })"
 CHAPTER_IDS = ("(function () { var c = Array.prototype.slice.call(document.querySelectorAll('[data-chapter]'));"
-               " return Array.prototype.map.call(document.querySelectorAll('[data-chapter] [id]'), function (e) {"
+               " return Array.prototype.map.call(document.querySelectorAll('[data-chapter] [id]:not(defs *)'), function (e) {"
                " return [e.id, c.indexOf(e.closest('[data-chapter]'))]; }); })()")
 HOLDER = ("(function (a) { var t = document.getElementById(decodeURIComponent(a.hash.slice(1)));"
           " return t && t.closest('[data-chapter]') ? Array.prototype.indexOf.call(document.querySelectorAll('[data-chapter]'),"

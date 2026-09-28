@@ -310,6 +310,18 @@ class Check(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertIn("chapters 3 load 10/10 nav 6/6 pager 4/4 back 1/1 pass", out)
 
+    @unittest.skipUnless(sync_playwright, "no playwright")
+    def test_marker_is_no_load_target(self):
+        # a network draws its arrow marker once its fonts load, after a load at #id has shown a chapter; no link targets one
+        ids = re.search(r"^CHAPTER_IDS = (\(.*?\))\n[A-Z]", CHECK.read_text(), re.S | re.M).group(1)
+        with sync_playwright() as pw:
+            b = pw.chromium.launch(channel="chrome")
+            p = b.new_page()
+            p.set_content('<section data-chapter><h2 id="c1">장</h2><svg><defs><marker id="c1-arrow"></marker></defs></svg></section>')
+            got = p.evaluate(eval(ids))
+            b.close()
+        self.assertEqual(got, [["c1", 0]])
+
     def test_each_chapter_rule_fails(self):
         for old, new, line in [
             ("addEventListener('hashchange', show);", "", "nav link #c2 shows chapters [1], not 2"),
