@@ -90,6 +90,11 @@ def shared(pr, repo):
     return None
 
 
+def paths(compare):
+    """Each path a compare response's diff from the merge base changes, a rename's old path included."""
+    return {p for f in compare.get("files") or [] for p in (f["filename"], f.get("previous_filename")) if p}
+
+
 def main(args):
     if len(args) != 1 or not URL.fullmatch(args[0]):
         sys.exit("usage: merge.py <pr-url>, the PR's full https://github.com/<owner>/<repo>/pull/<n> url")
@@ -108,12 +113,17 @@ def main(args):
     if not (CLOSING.search(pr.get("body") or "") or PART.search(pr.get("body") or "")):
         sys.exit("merge.py: the body names no task: open it with `Closes #<task>`, or a share's `Part of #<task>`, over the criteria table")
     try:
-        behind = int(github.gh("api", f"repos/{repo}/compare/{pr['baseRefName']}...{head}", "-q", ".behind_by"))
-        task = shared(pr, repo)
+        ahead = json.loads(github.gh("api", f"repos/{repo}/compare/{pr['baseRefName']}...{head}"))
+        behind, task = int(ahead["behind_by"]), shared(pr, repo)
+        both = sorted(paths(ahead) & paths(json.loads(github.gh("api", f"repos/{repo}/compare/{head}...{pr['baseRefName']}")))) if behind else []
     except (RuntimeError, ValueError, KeyError, TypeError) as e:
         sys.exit(f"merge.py: could not read {url}'s base or task: {e}")
+    if behind and both:
+        sys.exit(f"merge.py: the head lacks {behind} commit(s) of {pr['baseRefName']}, which change paths it changes too: {', '.join(both)}; "
+                 "merge it in, rerun every check on the merged tree, push and run merge.py again")
     if behind:
-        sys.exit(f"merge.py: the head lacks {behind} commit(s) of {pr['baseRefName']}; merge it in, rerun every criterion, push and run merge.py again")
+        sys.exit(f"merge.py: the head lacks {behind} commit(s) of {pr['baseRefName']}, which change no path it changes; "
+                 "merge it in, push and run merge.py again; no rerun needed")
     if task and any(CLOSING.search(t) for t in texts(pr)):
         sys.exit(f"merge.py: {task} has `## Shares`, so only its lead closes it; drop each closing keyword from the title, body and commits, and write `Part of #<n>`")
     try:

@@ -300,7 +300,6 @@ ROUTINE_REFUSED = [
     (f"worker-start.py /r t low {U} | tee log", "`worker-start.py <checkout>"),
     ("uv run lead-start.py /r", "`lead-start.py <checkout>"),
     ("for n in a-1-1 b-2-1; do git push origin --delete $n; done", "`git push origin --delete <name>`"),
-    (f"git -C /r worktree remove .claude/worktrees/{N}", "`git worktree remove .claude/worktrees/<name>`"),
     (f"git branch -D {N} && git branch -D b-2-1", "`git branch -D <name>`"),
     ("git fetch && git pull --ff-only", "`git pull --ff-only`"),
 ]
@@ -359,6 +358,23 @@ class LiteralSteps(unittest.TestCase):
             with self.subTest(command=command):
                 result = self.guard(command, "worker")
                 self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_a_git_step_in_another_checkout_passes_only_as_one_literal_c_path(self):
+        """`git -C <literal path> <step>`, alone in a Bash call, reaches a second checkout, such as `~/.claude` (#325)."""
+        cases = [("git -C ~/.claude pull --ff-only", True), ("git -C /abs/path branch -D foo", True),
+                 (f"git -C /r worktree remove .claude/worktrees/{N}", True), ("git -C ~/.claude pull --ff-only -q", True),
+                 ('git -C "$D" pull --ff-only', False), ("git -C $(pwd) pull --ff-only", False),
+                 ("git -C /a -C /b pull --ff-only", False), ("git -c a.b=c -C /a pull --ff-only", False),
+                 ("git -C /a -c a.b=c pull --ff-only", False), ("git --git-dir /a/.git pull --ff-only", False),
+                 ("git -C /a fetch && git -C /a pull --ff-only", False),
+                 ("git -C /a pull --ff-only; ls", False), ("git -C /a pull --ff-only | cat", False)]
+        for command, passes in cases:
+            for agent in (None, "worker", "lead"):
+                with self.subTest(command=command, agent=agent):
+                    result = self.guard(command, agent)
+                    self.assertEqual(result.returncode, 0 if passes else 2, result.stderr)
+                    if not passes:
+                        self.assertIn("`git -C <literal path> <step>`", result.stderr)
 
     def test_only_the_judge_posts_only_through_body(self):
         for agent, command, refusal in POST_CASES:

@@ -2,9 +2,11 @@
 """Close a worker: `/exit` its session, answering each exit dialog, and close every tab labelled `<name>`.
 
 `--pane <pane>`, which `lead-start.py --replace` runs detached, closes the session in that pane instead, named or not:
-once its turn ends, it exits it the same way and closes its tab by id."""
+once its turn ends, it exits it the same way and closes its tab by id.
+`--self` runs that `--pane` close on the calling session's own pane, detached so it outlives the call: an idle lead exits itself."""
 import os
 import pathlib
+import subprocess
 import sys
 import time
 
@@ -54,8 +56,18 @@ def close_pane(pane, timeout, poll, idle_timeout):
 
 
 def main(argv):
+    if argv == ["--self"]:
+        pane = os.environ.get("HERDR_PANE_ID")
+        if not pane:
+            print("worker-close.py --self: run it inside herdr, from the session to exit", file=sys.stderr)
+            return 2
+        # in its own session, so the Bash tool that ran this call does not reap it before the tab closes
+        subprocess.Popen([sys.executable, str(pathlib.Path(__file__).resolve()), "--pane", pane],
+                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        print(f"closing {pane} once this turn ends")
+        return 0
     if len(argv) != (2 if argv[:1] == ["--pane"] else 1) or argv[-1].startswith("-"):
-        print("usage: worker-close.py <name> | --pane <pane>", file=sys.stderr)
+        print("usage: worker-close.py <name> | --pane <pane> | --self", file=sys.stderr)
         return 2
     name = argv[-1]
     timeout, poll = float(os.environ.get("WORKER_CLOSE_TIMEOUT", 60)), float(os.environ.get("WORKER_CLOSE_POLL", 1))

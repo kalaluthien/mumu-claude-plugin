@@ -100,8 +100,8 @@ pr = json.loads((d / "pr.json").read_text())
 if a[:2] == ["pr", "view"]:
     print(json.dumps(pr))
 elif a[0] == "api":
-    (d / "compared").write_text(a[1])
-    print(pr.get("behind", 0))
+    files = pr.get("files", []) if a[1].startswith("repos/o/r/compare/main...") else pr.get("base_files", [])
+    print(json.dumps({"behind_by": pr.get("behind", 0), "files": [{"filename": f} for f in files]}))
 elif a[:2] == ["issue", "view"]:
     print(json.dumps({"body": pr.get("issues", {}).get(a[2], "## Goal\nx\n")}))
 elif a[:2] == ["pr", "merge"]:
@@ -116,7 +116,7 @@ SHARED = "## Goal\nx\n\n## Shares\n| share | DoD | after | with |\n| --- | --- |
 
 
 def merge(comments, moved_to=None, reviews=(), url=PR_URL, title="t", body="Closes #3", commits=(), issues=None, behind=0,
-          head=HEAD, cwd=None):
+          head=HEAD, cwd=None, files=(), base_files=()):
     """Run merge.py in `cwd` on a PR at `head` holding `comments`, each a body or a comment's dict; `moved_to` moves the head once
     it is read, `issues` maps an issue url to its body, `behind` counts the base's commits the head lacks. Return (result, merge
     words or None)."""
@@ -124,7 +124,8 @@ def merge(comments, moved_to=None, reviews=(), url=PR_URL, title="t", body="Clos
     notes = lambda bodies: [b if isinstance(b, dict) else {"body": b} for b in bodies]
     pr = {"headRefOid": head, "comments": notes(comments), "reviews": notes(reviews),
           "title": title, "body": body, "commits": [{"messageHeadline": h, "messageBody": b} for h, b in commits],
-          "baseRefName": "main", "issues": issues or {}, "behind": behind}
+          "baseRefName": "main", "issues": issues or {}, "behind": behind,
+          "files": list(files), "base_files": list(base_files)}
     (tmp / "pr.json").write_text(json.dumps(pr))
     if moved_to:
         (tmp / "head").write_text(moved_to)
@@ -219,6 +220,18 @@ class Merge(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIsNone(words)
         self.assertIn("merge it in", result.stderr)
+
+    def test_a_behind_refusal_names_the_paths_both_sides_change(self):
+        """Paths the PR and the base's new commits both change ask for a rerun; none shared skips it."""
+        result, words = merge([f"APPROVED: {HEAD}"], behind=2, files=["a.py", "b.md"], base_files=["b.md", "c.py"])
+        self.assertIsNone(words)
+        self.assertIn("b.md", result.stderr)
+        self.assertNotIn("a.py", result.stderr)
+        self.assertIn("rerun every check on the merged tree", result.stderr)
+        result, words = merge([f"APPROVED: {HEAD}"], behind=2, files=["a.py"], base_files=["c.py"])
+        self.assertIsNone(words)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("merge it in, push and run merge.py again; no rerun needed", result.stderr)
 
 
 GIT_ENV = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t",
@@ -955,11 +968,11 @@ class LeadStart(unittest.TestCase):
                                                       "--effort", "high", "--permission-mode", "auto"])
 
     def test_folder_names_a_folder_lead_with_no_task(self):
-        done, calls = self.start("--folder", "mumu-document")
+        done, calls = self.start("--folder", "mumu-paperwork")
         self.assertEqual(done.returncode, 0, done.stderr)
-        self.assertEqual(done.stdout, f"mumu-document-lead@{PANE}\n")
-        self.assertEqual(self.claude_argv(calls), ("mumu-document-lead", ["--name", "mumu-document-lead", "--agent", "mumu-team:lead", "--model", "opus", "--effort", "medium"]))
-        self.assertIn(["herdr", "tab", "create", "--cwd", str(self.repo), "--label", "mumu-document-lead"], calls)
+        self.assertEqual(done.stdout, f"mumu-paperwork-lead@{PANE}\n")
+        self.assertEqual(self.claude_argv(calls), ("mumu-paperwork-lead", ["--name", "mumu-paperwork-lead", "--agent", "mumu-team:lead", "--model", "opus", "--effort", "medium"]))
+        self.assertIn(["herdr", "tab", "create", "--cwd", str(self.repo), "--label", "mumu-paperwork-lead"], calls)
         self.assertIn(["herdr", "agent", "prompt", PANE, "/mumu-team:kickoff"], calls)
 
     def test_folder_with_a_task_prompts_see(self):
