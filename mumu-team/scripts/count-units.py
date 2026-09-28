@@ -24,6 +24,7 @@ import time
 
 PLUGIN = pathlib.Path(__file__).resolve().parents[1]
 RUBRIC = PLUGIN / "lib" / "size-rubric.md"
+CHUNK = 60
 SKIPPED = ("tests", "evals", "__pycache__")
 END = re.compile(r"(?<=[.?!])\s+(?=[A-Z`(\[*])|(?<=;)\s+")
 FILE_ASK = """Count the file {path} by the rubric. It is cut into sentences, each on a line as `id| sentence`, the id
@@ -107,15 +108,16 @@ def sentences(text):
     return out
 
 
-def ask(prompt, model, name, out):
-    """The last fenced json block of one fresh `claude -p` reply, the rubric as its system prompt; one retry.
+def ask(prompt, model, name, out, need):
+    """The last fenced json block of one fresh `claude -p` reply that has the key `need`, the rubric as its
+    system prompt; one retry.
     Each call's time goes to stderr, and its reply to `name` in `out` when given, which a rerun into the same
     folder reuses."""
     kept = out / f"{name.replace('/', '__')}.txt" if out else None
     if kept and kept.exists():
         blocks = re.findall(r"```(?:json)?\s*(\{.*?\})\s*```", kept.read_text(), re.S)
-        if blocks:
-            return json.loads(blocks[-1])
+        if blocks and need in (found := json.loads(blocks[-1])):
+            return found
     system = "You count text by this rubric, exactly and the same way every time.\n\n" + RUBRIC.read_text()
     for attempt in (1, 2):
         start = time.monotonic()
@@ -128,8 +130,8 @@ def ask(prompt, model, name, out):
             kept.write_text(run.stdout)
         blocks = re.findall(r"```(?:json)?\s*(\{.*?\})\s*```", run.stdout, re.S)
         try:
-            if not run.returncode and blocks:
-                return json.loads(blocks[-1])
+            if not run.returncode and blocks and need in (found := json.loads(blocks[-1])):
+                return found
         except json.JSONDecodeError:
             pass
         if attempt == 2:
@@ -176,11 +178,19 @@ def majority(groupings, samples):
 
 def count_file(path, root, model, out, samples, pool):
     """This file's sentences, each scored by the median of `samples` asks, and the terms more than half of them
-    name, each with its path and line."""
+    name, each with its path and line; a file of more than CHUNK sentences is asked in even parts."""
     rel = path.relative_to(root).as_posix()
     cut = sentences(path.read_text())
-    prompt = FILE_ASK.format(path=rel, text="\n".join(f"{i}| {s}" for i, _, s in cut))
-    found = list(pool.map(lambda name: ask(prompt, model, name, out), votes(samples, rel)))
+    size = -(-len(cut) // -(-len(cut) // CHUNK)) if cut else 1
+    parts = [cut[k:k + size] for k in range(0, len(cut), size)]
+    jobs = [(FILE_ASK.format(path=rel, text="\n".join(f"{i}| {s}" for i, _, s in part)),
+             name if k == 1 else f"{name}@{k}") for name in votes(samples, rel) for k, part in enumerate(parts, 1)]
+    replies = list(pool.map(lambda job: ask(job[0], model, job[1], out, "sentences"), jobs))
+    found = []
+    for n in range(samples):
+        mine = replies[n * len(parts):(n + 1) * len(parts)]
+        found.append({"sentences": {i: v for r in mine for i, v in r["sentences"].items()},
+                      "terms": [t for r in mine for t in r.get("terms", [])]})
     rows = []
     for i, n, s in cut:
         scored = [(list(f["sentences"].get(i) or [0, 0]) + [0, 0])[:2] for f in found]
@@ -207,7 +217,7 @@ def count(root, model, jobs, out=None, samples=3):
         by_id = {r["id"]: r for r in rows if r["instructions"]}
         prompt = DUPLICATE_ASK.format(items="\n".join(f"{i} | {r['path']}:{r['line']} | {r['text']}" for i, r in by_id.items()))
         groups = majority([[[x for x in dict.fromkeys(g) if x in by_id] for g in reply["groups"]]
-                           for reply in asks.map(lambda name: ask(prompt, model, name, out), votes(samples, "duplicates"))],
+                           for reply in asks.map(lambda name: ask(prompt, model, name, out, "groups"), votes(samples, "duplicates"))],
                           samples)
         first = {}
         for t in (t for _, ts in per_file for t in ts):
@@ -215,7 +225,7 @@ def count(root, model, jobs, out=None, samples=3):
         prompt = VARIANT_ASK.format(items="\n".join(f"{name} | {t['path']}:{t['line']} | {line_of(root, t)}"
                                                      for name, t in first.items()))
         variants = majority([[[term(n) for n in dict.fromkeys(v) if term(n) in first] for v in reply["variants"]]
-                             for reply in asks.map(lambda name: ask(prompt, model, name, out), votes(samples, "variants"))],
+                             for reply in asks.map(lambda name: ask(prompt, model, name, out, "variants"), votes(samples, "variants"))],
                             samples)
     return {"sentences": rows, "duplicates": [[by_id[x] for x in g] for g in groups], "terms": list(first.values()),
             "variants": [[first[n] for n in v] for v in variants]}
