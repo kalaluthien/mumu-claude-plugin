@@ -1,8 +1,0 @@
-{
-  "name": "mumu-document",
-  "version": "0.0.0",
-  "description": "Documents a person reads outside the chat: GitHub bodies, Artifact pages, repository pages.",
-  "author": {
-    "name": "kalaluthien"
-  }
-}
