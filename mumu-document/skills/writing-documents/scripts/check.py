@@ -22,6 +22,7 @@ MIN_RUN = 3
 CONTENTS = 4
 FILES = 4  # a file-tree from this many files named, as the Mapping says
 SECTION_WIDGETS, PAGE_WIDGETS = 1, 5  # the most widgets under one h2 or h3, and on a page, as Composition says
+NODES = 9  # a network over this many nodes is two figures, as artifact.md says
 WORD = r"[A-Za-z]+(?:['’-][A-Za-z]+)*[.,:;!?]?"
 ENGLISH = re.compile(rf"{WORD}(?:\s+{WORD}){{{MIN_RUN - 1},}}")
 # a sentence ends at . ! or ? with no digit either side, so 4.00점 stays whole; its last one may have no mark
@@ -140,6 +141,7 @@ f.onload = function () {
       h1: !!d.querySelector('h1'), drawn: loose('svg').filter(function (g) { return !g.parentElement.closest('svg'); }).length,
       paths: paths.filter(function (p, i) { return paths.indexOf(p) === i; }), flows: flows, lead: lead, parts: parts,
       diagrams: Array.prototype.map.call(d.querySelectorAll('[data-widget="diagram"]'), function (e) { return e.dataset.diagram; }),
+      nodes: Array.prototype.map.call(d.querySelectorAll('[data-diagram="network"] .stage > dl'), function (l) { return l.querySelectorAll(':scope > dt').length; }),
       h2: h2.length, linked: h2.filter(function (h) { return h.id && links.indexOf(h.id) >= 0; }).length, nav: !!d.querySelector('main nav'),
       broken: Array.prototype.map.call(d.querySelectorAll('a[href^="#"]'), function (a) { return a.getAttribute('href'); })
         .filter(function (h) { return h.length > 1 && !d.getElementById(decodeURIComponent(h.slice(1))); }),
@@ -148,6 +150,11 @@ f.onload = function () {
         return e.textContent.replace(/\n+$/, '').split('\n').length >= 4 && !(cap && /\S+:\d+(-\d+)?/.test(cap.textContent));
       }).map(function (e) { return e.textContent.trim().split('\n')[0].slice(0, 40); }),
       chapters: d.querySelectorAll('[data-chapter]').length,
+      tables: Array.prototype.map.call(d.querySelectorAll('table'), function (t) {
+        var text = function (c) { return c.textContent.replace(/\s+/g, ' ').trim(); };
+        return [t.tHead && t.tHead.rows.length ? Array.prototype.map.call(t.tHead.rows[t.tHead.rows.length - 1].cells, text) : [],
+          Array.prototype.map.call(t.tBodies.length ? t.tBodies[0].rows : [], function (r) { return Array.prototype.map.call(r.cells, text); })];
+      }),
       loose: Array.prototype.filter.call(d.querySelectorAll('main h3'), function (h) { return !h.closest('[data-chapter]'); }).length });
   }, 300);
 };
@@ -508,12 +515,13 @@ def korean(page):
 
 def mapping(page):
     """Each widget a Mapping row demands that the page lacks: a file-tree for the files it names, a use-case for a flow
-    drawn in text."""
+    drawn in text; and a network over NODES nodes, which is two figures."""
     out = []
     if len(page["paths"]) >= FILES and "file-tree" not in page["diagrams"]:
         out.append(f"no file-tree for {', '.join(page['paths'])}")
     if page["flows"] and "use-case" not in page["diagrams"]:
         out.append(f"no use-case for {page['flows'][0]!r}")
+    out += [f"network of {n} nodes over {NODES}" for n in page["nodes"] if n > NODES]
     if page["drawn"]:
         out.append(f"{page['drawn']} hand-drawn figure outside a widget")
     return out
@@ -527,6 +535,24 @@ def composition(page):
     out += [f"{n} widgets under {h or 'the top'!r}, over {SECTION_WIDGETS}" for h, n in page["parts"] if n > SECTION_WIDGETS]
     total = sum(n for _, n in page["parts"])
     return len(said), total, out + ([f"{total} widgets on the page, over {PAGE_WIDGETS}"] if total > PAGE_WIDGETS else [])
+
+
+BARE = re.compile(r"[+\-−–]?\d[\d,]*(\.\d+)?")
+# a unit in a header: in brackets or after a slash, a symbol, or a unit word at its end
+UNIT = re.compile(r"[(\[/%‰°₩$€¥£×]|(?<![A-Za-z])(ms|s|m|km|cm|mm|kg|g|KB|MB|GB|TB|px|pt|Hz|fps|rpm)$"
+                  r"|(원|개|건|회|번|명|초|분|시간|일|주|달|년|배|점|위|장|줄|쪽|퍼센트)$")
+
+
+def units(page):
+    """Each table column, a chart's axes included, of bare numbers with no unit in its header or cells; the first column,
+    the row label, is exempt."""
+    out = []
+    for n, (head, rows) in enumerate(page["tables"], 1):
+        for j in range(1, max(map(len, rows), default=0)):
+            cells = [r[j] for r in rows if j < len(r) and r[j]]
+            if cells and all(BARE.fullmatch(c) for c in cells) and not (j < len(head) and UNIT.search(head[j])):
+                out.append(f"table {n} column {head[j] if j < len(head) else j + 1!r} has bare numbers")
+    return out
 
 
 def shell(page):
@@ -677,6 +703,9 @@ def main():
     said, total, out = composition(k)
     failed |= bool(out)
     print(f"composition {said} sentences before h2 {total} widgets " + ("FAIL: " + "; ".join(out) if out else "pass"))
+    out = units(k)
+    failed |= bool(out)
+    print(f"units {len(k['tables'])} tables " + ("FAIL: " + "; ".join(out) if out else "pass"))
     for q in k["quotes"]:
         failed = True
         print(f"quotes code quote without path caption {q!r} FAIL")
