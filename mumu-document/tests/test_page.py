@@ -150,19 +150,23 @@ class ReadingAids(unittest.TestCase):
 
     def test_drawer_opens_and_closes_by_button_escape_and_backdrop(self):
         def steps(page):
-            shown = lambda: page.evaluate("document.querySelector('main nav').checkVisibility({ visibilityProperty: true })")
-            out = [shown()]
+            js = "document.querySelector('main nav').checkVisibility({ visibilityProperty: true })"
+            def shown(want):
+                """Whether the drawer shows, once it does as `want` or 5 s pass, since a loaded machine slows its transition."""
+                try:
+                    page.wait_for_function(js if want else "!" + js, timeout=5000)
+                except Exception:
+                    pass
+                return page.evaluate(js)
+            out = [shown(False)]
             page.click(".dock .contents")
-            page.wait_for_timeout(300)
-            out += [shown(), page.evaluate("!!document.activeElement.closest('main nav')")]
+            out += [shown(True), page.evaluate("!!document.activeElement.closest('main nav')")]
             page.keyboard.press("Escape")
-            page.wait_for_timeout(300)
-            out += [shown(), page.evaluate("document.activeElement.className")]
+            out += [shown(False), page.evaluate("document.activeElement.className")]
             page.click(".dock .contents")
-            page.wait_for_timeout(300)
+            shown(True)
             page.mouse.click(390, 400)
-            page.wait_for_timeout(300)
-            return out + [shown()]
+            return out + [shown(False)]
         self.assertEqual(aids(400, steps), [False, True, True, False, "contents", False])
 
     def test_drawer_docks_open_from_1200px(self):
