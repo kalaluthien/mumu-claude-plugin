@@ -21,6 +21,7 @@ TOLERANCE = 0.02
 MIN_RUN = 3
 CONTENTS = 4
 FILES = 4  # a file-tree from this many files named, as the Mapping says
+SECTION_WIDGETS, PAGE_WIDGETS = 1, 5  # the most widgets under one h2 or h3, and on a page, as Composition says
 NODES = 9  # a network over this many nodes is two figures, as artifact.md says
 WORD = r"[A-Za-z]+(?:['’-][A-Za-z]+)*[.,:;!?]?"
 ENGLISH = re.compile(rf"{WORD}(?:\s+{WORD}){{{MIN_RUN - 1},}}")
@@ -143,10 +144,19 @@ f.onload = function () {
     var paths = loose('code').map(function (c) { return c.textContent.trim().replace(/:\d.*$/, ''); }).filter(function (p) { return PATH.test(p); });
     var flows = loose(BLOCK).filter(function (e) { return arrows(e) && !Array.prototype.some.call(e.querySelectorAll(BLOCK), arrows); })
       .map(function (e) { return e.textContent.replace(/\s+/g, ' ').trim().slice(0, 40); });
+    // Composition: the paragraphs before the first h2, and the widgets under each h2 or h3, the page's top included
+    var lead = Array.prototype.filter.call(d.querySelectorAll('main p'), function (p) {
+      return !p.closest('nav,[data-widget]') && (!h2.length || p.compareDocumentPosition(h2[0]) & 4);
+    }).map(function (p) { return p.textContent.replace(/\s+/g, ' ').trim(); });
+    var parts = [['', 0]];
+    d.querySelectorAll('main h2, main h3, main [data-widget]').forEach(function (e) {
+      if (/^h[23]$/i.test(e.tagName)) parts.push([e.textContent.replace(/\s+/g, ' ').trim(), 0]);
+      else if (!e.parentElement.closest('[data-widget]')) parts[parts.length - 1][1]++;
+    });
     document.body.dataset.r = JSON.stringify({ lang: d.documentElement.lang, text: out, headings: heads, ascii: ascii, cells: cells,
       held: held.filter(function (h, i) { return held.indexOf(h) === i; }), skin: !!d.querySelector('style#skin'),
       h1: !!d.querySelector('h1'), drawn: loose('svg').filter(function (g) { return !g.parentElement.closest('svg, .katex'); }).length,
-      paths: paths.filter(function (p, i) { return paths.indexOf(p) === i; }), flows: flows,
+      paths: paths.filter(function (p, i) { return paths.indexOf(p) === i; }), flows: flows, lead: lead, parts: parts,
       diagrams: Array.prototype.map.call(d.querySelectorAll('[data-widget="diagram"]'), function (e) { return e.dataset.diagram; }),
       nodes: Array.prototype.map.call(d.querySelectorAll('[data-diagram="network"] .stage > dl'), function (l) { return l.querySelectorAll(':scope > dt').length; }),
       h2: h2.length, linked: h2.filter(function (h) { return h.id && links.indexOf(h.id) >= 0; }).length, nav: !!d.querySelector('main nav'),
@@ -555,6 +565,16 @@ def mapping(page):
     return out
 
 
+def composition(page):
+    """What the page's composition lacks: a sentence of the answer before the first h2, and at most SECTION_WIDGETS
+    widgets in a section and PAGE_WIDGETS on the page."""
+    said = [s for p in page["lead"] for s in SENTENCE.findall(p) if re.search(r"[.!?]$", s.strip())]
+    out = [] if said else ["no sentence of the answer before the first h2"]
+    out += [f"{n} widgets under {h or 'the top'!r}, over {SECTION_WIDGETS}" for h, n in page["parts"] if n > SECTION_WIDGETS]
+    total = sum(n for _, n in page["parts"])
+    return len(said), total, out + ([f"{total} widgets on the page, over {PAGE_WIDGETS}"] if total > PAGE_WIDGETS else [])
+
+
 BARE = re.compile(r"[+\-−–]?\d[\d,]*(\.\d+)?")
 # a unit in a header: in brackets or after a slash, a symbol, or a unit word at its end
 UNIT = re.compile(r"[(\[/%‰°₩$€¥£×]|(?<![A-Za-z])(ms|s|m|km|cm|mm|kg|g|KB|MB|GB|TB|px|pt|Hz|fps|rpm)$"
@@ -718,6 +738,9 @@ def main():
     out = mapping(k)
     failed |= bool(out)
     print(f"mapping {len(k['paths'])} files {len(k['flows'])} flows " + ("FAIL: " + "; ".join(out) if out else "pass"))
+    said, total, out = composition(k)
+    failed |= bool(out)
+    print(f"composition {said} sentences before h2 {total} widgets " + ("FAIL: " + "; ".join(out) if out else "pass"))
     if k["math"] or k["raw"]:
         failed |= bool(k["raw"])
         print(f"math {k['math']} set " + ("FAIL: raw TeX " + "; ".join(k["raw"]) if k["raw"] else "pass"))

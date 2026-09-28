@@ -23,6 +23,37 @@ its moves; a move with nothing to say is dropped.
 | `proposal` | must agree to what is not settled: a plan, a design, an issue, a choice | **plan**: the goal and when it is done · **narrative and comparison**: why, and the options against one set of criteria, fixed before any option · **settled answers**: what `grill-me` settled with the reader · **decide**: the recommendation and the fact that would change it |
 | `textbook` | must understand or use what is settled: a system, a change, a result | **explain**: what it is made of, how it works and the traps a user hits · **teach**: one claim per section, with its reason and evidence · **guide**: the steps the reader takes, each with its check · **report**: what was done, its evidence, the next action |
 
+## Composition
+
+Before writing any section, the author settles the whole piece, in this order;
+[rubric.md](references/rubric.md) grades it by the criteria each step names:
+
+1. **Answer** (Pyramid and MECE, Narrative): the reader's question, what is at
+   stake for them, and the answer in one sentence; that sentence opens the
+   document, before the first heading (a page's `p.read`). It claims no more
+   than the evidence below shows: a condition not yet measured stays in it.
+2. **Outline** (Pyramid and MECE): the moves as headings, each a noun phrase
+   that carries its section's claim (부산이 앞지른 요청, not 요청 수), so the
+   headings read alone state the argument under the answer; siblings neither
+   overlap nor leave a gap; a section with no claim is merged or cut.
+3. **Order** (Narrative): overview to detail, each section answering the
+   question the one before raises; time or step order only for a sequence;
+   the reader's own exploration, such as a `filter` over every row, last.
+4. **Form** (Emphasis, Coherence): each section the one form that carries its
+   point: a sentence for a claim, a list for parallel items, a table for
+   values compared across rows, a figure or widget by Mapping; space follows
+   importance, and whatever does not prove the claim is cut. A figure's or
+   table's caption says what to read off it, and the sentence before it
+   names it.
+5. **Widgets**: at most 1 under each `h2` or `h3` and 5 on a page, of them at
+   most 2 `filter` or `controls`, since most readers never touch a control and
+   the claim stands in the text too; one sentence before a widget the reader
+   drives says what to try; more is a second page.
+6. **Ending**: the last section says what the reader does next, or that
+   nothing is needed, and repeats no summary.
+
+On a page, `check.py` fails the first rule and the widget limits.
+
 ## Mapping
 
 A widget exists only where this skill tuned, combined or made one; everything
@@ -80,8 +111,8 @@ page, commit it beside the page.
 ## Writing
 
 - Name things instead of counting them: a count goes stale, a name can be
-  grepped. A heading is a noun phrase naming its part; the claim goes in the
-  first sentence under it.
+  grepped. A heading is a noun phrase carrying its part's claim, which the
+  first sentence under it states.
 - Short words, one idea a sentence, active voice; a new term is defined where
   it first appears or cut; no word that sells. A change you judge wrong is
   said so, plainly; a reason the source omits is called absent, not guessed.
@@ -107,6 +138,10 @@ page, commit it beside the page.
 
 - A part no fact settles goes to `grill-me` by name, and the document carries
   only its settled answers; nothing is written before.
+- Reread against Composition: the headings read alone state the argument,
+  each section's first sentence is its point, and each figure is named in the
+  sentence before it; the answer, a heading or a table cell never claims more
+  than a later section allows; fix each miss.
 - Reread for order, each claim against its evidence, cuts and register, then
   grade it against [rubric.md](references/rubric.md) and fix each criterion
   scored below 2.
