@@ -7,7 +7,7 @@
   search: an optional label, its visible text naming what the word searches, holding an input type="search"; it keeps
   an item whose text holds the word, in any case.
   count: an empty output the script fills with `n / N` and data-unit (개, 건); with none kept, a sentence under it says
-  so, data-empty or 맞는 항목이 없어요; without script the widget hides.
+  so, data-empty or 맞는 항목이 없습니다; without script the widget hides.
   use when: 12 items or more that the reader scans for a few, by a facet the items share.
   not when: fewer items (a list), or the reader compares every row (a table alone). -->
 <style>
@@ -35,7 +35,7 @@
       const count = root.querySelector('output');
       const empty = document.createElement('p');
       empty.className = 'empty';
-      empty.textContent = root.dataset.empty || '맞는 항목이 없어요.';
+      empty.textContent = root.dataset.empty || '맞는 항목이 없습니다.';
       (count || root).after(empty);
       const apply = () => {
         const word = box ? box.value.trim().toLowerCase() : '';

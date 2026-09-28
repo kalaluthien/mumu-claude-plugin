@@ -48,6 +48,7 @@ No Mermaid, HTML or image by default. A structure or behaviour text cannot carry
 
 - Name things instead of counting them: a count goes stale, a name can be grepped.
 - Short words, one idea a sentence, active voice; a new term is defined where it first appears or cut; no word that sells. A change you judge wrong is said so, plainly; a reason the source omits is called absent, not guessed.
+- Korean text takes the formal -습니다/-ㅂ니다 endings, never -요 or a plain -다.
 - A measurable quantity carries its unit, beside the number or in the table header, as 지연(ms).
 
 ## Done when

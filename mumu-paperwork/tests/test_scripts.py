@@ -548,7 +548,7 @@ class Widgets(unittest.TestCase):
           return [label ? label.checkVisibility() && label.textContent.trim() : null, before, empty(),
                   root.querySelector('output').textContent]; }""")
         self.assertEqual(errors, [])
-        self.assertEqual(got, ["작업 이름이나 설명에서 찾기", [], ["맞는 항목이 없어요."], "0 / 12개"])
+        self.assertEqual(got, ["작업 이름이나 설명에서 찾기", [], ["맞는 항목이 없습니다."], "0 / 12개"])
 
     def test_each_broken_control_fails(self):
         for old, new, line in BROKEN:

@@ -37,3 +37,14 @@ class Numbers(unittest.TestCase):
                 self.assertIsNone(re.search(pattern, self.PAGE % body, flags))
         with self.subTest("outside main"):
             self.assertIsNone(re.search(pattern, "<p>214 120</p>" + self.PAGE % "<h1>가입</h1>", flags))
+
+
+class Formal(unittest.TestCase):
+    """Each page case's formal grader: a page in -습니다 passes, one sentence in -요 fails it."""
+
+    def test_formal_register(self):
+        for case in ("use-cases", "nested-chapters", "trend-chart"):
+            pattern, flags = grader(case, "formal")
+            with self.subTest(case):
+                self.assertTrue(re.search(pattern, "<main><p>작업을 저장합니다.</p>\n<p>다시 시도합니다.</p></main>", flags))
+                self.assertIsNone(re.search(pattern, "<main><p>작업을 저장합니다.</p>\n<p>다시 시도해요.</p></main>", flags))
