@@ -11,8 +11,8 @@ import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-RUBRIC = ROOT / "skills" / "typesetting" / "references" / "rubric.md"
-SKILL = ROOT / "skills" / "typesetting" / "SKILL.md"
+RUBRIC = ROOT / "skills" / "rendering" / "references" / "rubric.md"
+SKILL = ROOT / "skills" / "rendering" / "SKILL.md"
 ANCHORS = ROOT / "tests" / "rubric"
 KEY = ANCHORS / "answer-key.json"
 DIMENSIONS = ["Content", "Structure", "Language", "Visual", "Interaction"]

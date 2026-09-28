@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-SKIN = ROOT / "skills" / "typesetting" / "references" / "page.html"
+SKIN = ROOT / "skills" / "rendering" / "references" / "page.html"
 CHROME = pathlib.Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 FACE = "Nanum Gothic"
 ROLES = ("h1", "h2", "h3", "main > p", "button", "figcaption", "caption", "th", "td", "footer")
@@ -110,7 +110,7 @@ class PhoneTable(unittest.TestCase):
         self.assertEqual(self.r["dfn"], "normal", "Hangul has no italic, so Chrome slants it")
 
 
-ASSEMBLE = ROOT / "skills" / "typesetting" / "scripts" / "assemble.py"
+ASSEMBLE = ROOT / "skills" / "rendering" / "scripts" / "assemble.py"
 # where the focus is: its text, whether a closed drawer or a hidden element holds it
 FOCUS = """() => { const a = document.activeElement;
   return [a.textContent.trim().slice(0, 20), !!a.closest('nav:not(.open)') && innerWidth < 1200, !a.checkVisibility({ visibilityProperty: true })]; }"""

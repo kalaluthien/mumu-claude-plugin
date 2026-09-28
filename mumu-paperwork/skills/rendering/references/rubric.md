@@ -517,7 +517,7 @@ was shown on this rubric or is unproven.
    to the truth than one grader's; kept because it makes each disagreement
    visible and settles it by rule (Verga et al. 2024).
 6. **Anchor set.** After this file changes, run
-   `"${CLAUDE_PLUGIN_ROOT}/skills/typesetting/scripts/grade.py"`: it
+   `"${CLAUDE_PLUGIN_ROOT}/skills/rendering/scripts/grade.py"`: it
    grades the documents in `mumu-paperwork/tests/rubric/` by steps 1 to 5 and
    prints each criterion's agreement with `answer-key.json` there, each
    document's profile, and each weakened copy against its base. Each

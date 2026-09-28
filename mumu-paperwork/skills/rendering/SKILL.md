@@ -1,10 +1,10 @@
 ---
-name: typesetting
+name: rendering
 description: Use before writing a document a person will read outside the chat - a GitHub issue or pull request body or comment, an Artifact page, a repository page (README, docs) - to explain, draw, chart data, map, walk through, compare or report something, even when only the content or a chart was asked for; a chart on such a page is drawn here, not by `dataviz`, and an Artifact page is designed here, so load this before the `Artifact` tool's `quickstart`, which it skips with `artifact-design` and `artifact-diagramming`. Not for a plain chat answer, nor for code or its comments, nor for asking the user open questions (that is `grill-me`).
 user-invocable: false
 ---
 
-# typesetting
+# rendering
 
 **Goal**: the reader gets what they need, in the order they need it, in the
 form that shows it best, and can act on it. A format the running skill or the
@@ -84,7 +84,7 @@ Where the ask says, else where it is obvious, else ask once with
 `artifact-design` and `artifact-diagramming`: the skin and widgets are its
 whole design, with no palette, typeface or chart library of its own. Its
 author reads each widget's spec with
-`"${CLAUDE_PLUGIN_ROOT}/skills/typesetting/scripts/assemble.py" --spec <widget>`,
+`"${CLAUDE_PLUGIN_ROOT}/skills/rendering/scripts/assemble.py" --spec <widget>`,
 writes only the body, and `assemble.py <body> <page>` adds the skin and widget
 code, as [artifact.md](references/artifact.md) says.
 A GitHub issue, pull request or comment follows the repository's procedure,
@@ -145,6 +145,6 @@ page, commit it beside the page.
 - Reread for order, each claim against its evidence, cuts and register, then
   grade it against [rubric.md](references/rubric.md) and fix each criterion
   scored below 2.
-- An Artifact page: `"${CLAUDE_PLUGIN_ROOT}/skills/typesetting/scripts/check.py" <page.html>` prints `pass` last.
+- An Artifact page: `"${CLAUDE_PLUGIN_ROOT}/skills/rendering/scripts/check.py" <page.html>` prints `pass` last.
 - A rejected draft is edited only after a reader, an editor and a hostile
   fact-checker each say why it fails.

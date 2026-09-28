@@ -16,7 +16,7 @@ except ImportError:
     sync_playwright = None
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-SKILL = ROOT / "skills" / "typesetting"
+SKILL = ROOT / "skills" / "rendering"
 REFS = SKILL / "references"
 CHECK, SKILL_CHECK = SKILL / "scripts" / "check.py", SKILL / "scripts" / "skill-check.py"
 ASSEMBLE = SKILL / "scripts" / "assemble.py"
@@ -532,7 +532,7 @@ class Widgets(unittest.TestCase):
 
     def test_one_choice_script_and_style(self):
         # the group of buttons, one pressed: its script and pressed style once, in page.html
-        refs = {f.name: f.read_text() for f in (ROOT / "skills" / "typesetting" / "references").glob("*.html")}
+        refs = {f.name: f.read_text() for f in (ROOT / "skills" / "rendering" / "references").glob("*.html")}
         setters = {n: len(re.findall(r"setAttribute\('aria-pressed'", t)) for n, t in refs.items() if 'role="group"' in t}
         styles = {n: len(re.findall(r'\[aria-pressed="true"\][^{,;]*\{', t)) for n, t in refs.items()}
         self.assertEqual({n: c for n, c in setters.items() if c}, {"page.html": 1})

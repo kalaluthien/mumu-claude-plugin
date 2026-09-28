@@ -11,7 +11,7 @@ import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-ASSEMBLE = ROOT / "skills" / "typesetting" / "scripts" / "assemble.py"
+ASSEMBLE = ROOT / "skills" / "rendering" / "scripts" / "assemble.py"
 CHROME = pathlib.Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 spec = importlib.util.spec_from_file_location("run_evals", ROOT / "scripts" / "run-evals.py")
 run_evals = importlib.util.module_from_spec(spec)

@@ -18,7 +18,7 @@ A widget is the template `assemble.py --spec <widget>` prints for the content's
 kind (`chart`, `file-tree`, `system-context`, `use-case`, `network`, `filter`, `controls`, `source`), its spec followed,
 every `{{...}}` filled or its element deleted, `{{id}}` unique per copy. A
 figure over 9 boxes is two figures. Then
-`"${CLAUDE_PLUGIN_ROOT}/skills/typesetting/scripts/assemble.py" <body.html> <slug>.html`
+`"${CLAUDE_PLUGIN_ROOT}/skills/rendering/scripts/assemble.py" <body.html> <slug>.html`
 writes the page: the skin, the `h1` as its title, and each widget's style and
 script once. The page keeps `<html lang="ko">`; a hand-drawn `<svg>` outside a
 widget fails `check.py`.
@@ -37,7 +37,7 @@ borrowed metaphor (스타일을 품어요 → 스타일을 파일 안에 담고 
 
 `<slug>.html`, named for its topic, in the session's scratch directory,
 published with the `Artifact` tool, else opened locally.
-`"${CLAUDE_PLUGIN_ROOT}/skills/typesetting/scripts/check.py" <page>` loads
+`"${CLAUDE_PLUGIN_ROOT}/skills/rendering/scripts/check.py" <page>` loads
 it at 320 px with and without motion, clicks each control, reads its Korean,
 contents and links, checks each chart against its table, and in real time
 swipes each strip, opens each chapter by its nav, pager, link and back, and

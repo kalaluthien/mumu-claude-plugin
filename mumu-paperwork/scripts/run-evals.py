@@ -17,7 +17,7 @@ import sys
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-CHECK = ROOT / "skills" / "typesetting" / "scripts" / "check.py"
+CHECK = ROOT / "skills" / "rendering" / "scripts" / "check.py"
 
 
 def pages(case):
