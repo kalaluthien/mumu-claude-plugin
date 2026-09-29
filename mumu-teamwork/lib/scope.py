@@ -10,6 +10,7 @@ import re
 
 MAPPING = "checks.json"
 JUDGE = "judge"
+JUDGE_MODEL = "sonnet"  # a pull request's judge at any size; a plan's runs on judge.md's own model
 PASSED = re.compile(r"passed:?\s+([0-9a-f]{40})", re.I)
 
 
@@ -50,11 +51,6 @@ def changed(compare):
     list also names `checks.json`, which needs every check."""
     files = compare.get("files") or []
     return {p for f in files for p in (f["filename"], f.get("previous_filename")) if p} | ({MAPPING} if len(files) >= 300 else set())
-
-
-def model(lines):
-    """The judge's model: `sonnet` for at most 20 changed lines, else `opus`."""
-    return "sonnet" if lines <= 20 else "opus"
 
 
 def names(tree):

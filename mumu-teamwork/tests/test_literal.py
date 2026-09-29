@@ -25,7 +25,7 @@ RULES = ALLOW + ["gh *", "worker-start.py *", "lead-start.py *", "session-close.
 VERBS = ("start", "start-lead", "close", "merge")
 PR = "https://github.com/kalaluthien/mumu-claude-plugin/pull/261"
 VALUES = {
-    "checkout": "/Users/me/workspace/plugins", "topic": "sample-topic", "effort": "low",
+    "checkout": "/Users/me/workspace/plugins", "topic": "sample-topic", "model": "sonnet", "effort": "low",
     "task-url": "https://github.com/kalaluthien/mumu-claude-plugin/issues/12", "your address": "plugins-lead",
     "folder": "mumu-teamwork", "claude flags": "--model opus", "name": "sample-topic-12-1", "pr-url": PR,
     "url": "https://github.com/kalaluthien/mumu-claude-plugin/issues/12",
