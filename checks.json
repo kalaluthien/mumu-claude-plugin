@@ -4,7 +4,7 @@
     {"paths": ["*/bin/**", "*/lib/**", "*/scripts/**", "*/monitors/**", "*/tests/**"], "checks": ["judge", "{0}/tests/test_*.py"]},
     {"paths": ["*/evals/*/**"], "checks": ["judge", "{0}/tests/test_*.py", "{0}/evals/{1}"]},
     {"paths": ["*/skills/**", "*/agents/**", "*/hooks/**", "*/.claude-plugin/**"], "checks": ["judge", "{0}/tests/test_*.py", "{0}/evals/*"]},
-    {"paths": ["AGENTS.md", "CLAUDE.md"], "checks": ["judge", "mumu-teamwork/tests/test_graph.py"]},
+    {"paths": ["AGENTS.md", "CLAUDE.md"], "checks": ["judge", "teamwork/tests/test_graph.py"]},
     {"paths": [".gitignore", "scripts/*"], "checks": ["judge"]}
   ]
 }
