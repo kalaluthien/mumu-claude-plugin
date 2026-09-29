@@ -1283,15 +1283,17 @@ class CheckScope(unittest.TestCase):
         for files in (["no-such-folder/x.txt"], ["checks.json"], []):
             with self.subTest(files=files):
                 printed = self.scope(files)
-                self.assertTrue(printed[0].startswith("judge: opus") or printed[0].startswith("judge: sonnet"))
+                self.assertEqual(printed[0], "judge: sonnet")
                 self.assertEqual(printed[1:], self.every)
 
-    def test_the_judge_model_is_sonnet_to_twenty_changed_lines(self):
-        self.assertEqual(self.scope(["no-such-folder/x.txt"], lines=20)[0], "judge: sonnet (20 changed lines)")
-        self.assertEqual(self.scope(["no-such-folder/x.txt"], lines=21)[0], "judge: opus (21 changed lines)")
+    def test_the_judge_runs_on_sonnet_at_any_size(self):
+        """A pull request's judge is Sonnet at any size, where main put Opus above 20 changed lines (#361)."""
+        for lines in (20, 21, 500):
+            with self.subTest(lines=lines):
+                self.assertEqual(self.scope(["no-such-folder/x.txt"], lines=lines)[0], "judge: sonnet")
 
     def test_a_repository_without_the_mapping_needs_the_judge_alone(self):
-        self.assertEqual(self.scope(["mumu-teamwork/bin/pr-merge.py"], mapping=False), ["judge: sonnet (0 changed lines)"])
+        self.assertEqual(self.scope(["mumu-teamwork/bin/pr-merge.py"], mapping=False), ["judge: sonnet"])
 
 if __name__ == "__main__":
     unittest.main()
