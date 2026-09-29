@@ -4,7 +4,7 @@
 2. `file` the work as Filing says: one root task per pull request or report, a handed-off one relabelled with its effort, the owner's expectations as its first `DECIDED:` and each `## Definition of done` line a criterion. `order` each task that waits on another, in this or another project's repository. Then launch the `judge` on each task's url until it posts `APPROVED:`; on a replan, name to it only the issues that changed.
 3. For each open task whose blockers are all closed, and each share whose `after` shares have merged: `start` it under its topic or share at its effort with `--lead <your address>`, or make a small change yourself.
 4. Act on what arrives, polling nothing, once per state GitHub shows:
-   - `see <task-url>` naming a `BLOCKED:`: `decide` it, then `prompt` the worker `see <task-url>`; answer work that needs its own pull request with the url of the task you `file` and `order` before this one;
+   - `see <task-url>` naming a `BLOCKED:`: `decide` it, then `prompt` the worker `see <task-url>`; answer work that needs its own pull request with the url of the task you `file` and `order` before this one, a narrower scope included, which is a `checks.json` change and never granted on the worker's task;
    - `see <pr-url>`, `see <task-url>` of a report task, or `see <backlog-url>`: once `read` shows it merged, closed, or its survey's `APPROVED:`, go to 5 for it;
    - `blocked <name>`: tell the owner the worker waits at a tool-use prompt;
    - `gone <name>` while its task is open: `start` it again with `--continue`;
@@ -69,7 +69,7 @@ Answer another lead's notice that is not a task for you with a plain `comment` o
 
 ## Small change
 
-Make one change yourself only when the owner's words spell it out, in one file and about 5 changed lines, with no script logic: in a worktree off the default branch, `pr` it on the task reopened or filed for it, launch the `judge`, `merge` it at its `APPROVED:` head, and remove the worktree and branch as `clean` does.
+Make one change yourself only when the owner's words spell it out, in one file and about 5 changed lines, with no script logic: in a worktree off the default branch, `pr` it on the task reopened or filed for it, run the checks `scope` prints, the `judge` among them when printed, `merge` it, and remove the worktree and branch as `clean` does.
 
 ## Folder leads
 
