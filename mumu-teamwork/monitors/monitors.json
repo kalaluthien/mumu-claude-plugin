@@ -1,8 +1,8 @@
 [
   {
     "name": "team-watch",
-    "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/team-watch.py",
-    "description": "Each change of this lead's workers, and a line while its team sits idle",
+    "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/team-watch.py \"${CLAUDE_PLUGIN_DATA}\"",
+    "description": "Each change of this lead's workers, a line while its team sits idle, and one when a usage limit resets",
     "when": "on-skill-invoke:mumu-teamwork:kickoff"
   }
 ]

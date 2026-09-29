@@ -10,7 +10,7 @@ You are a worker on one task, in its own worktree. Follow these steps in order:
 
 ## Task #88: Hold the reviewer until CI passes
 
-Our Claude Code plugin runs a worker agent from `agents/worker.md`; the playbook it follows is `skills/kickoff/references/work-task.md`, whose steps include:
+Our Claude Code plugin runs a worker agent from `agents/worker.md`; the playbook it follows is `skills/kickoff/references/worker-playbook.md`, whose steps include:
 
 ```markdown
 3. Implement, then rerun every criterion, commit, push, and open the pull request at the first push.

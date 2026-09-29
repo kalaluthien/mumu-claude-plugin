@@ -6,7 +6,9 @@ the kickoff skill gives another role: `APPROVED:` and `FINDINGS:` the judge's, `
 worker's only as its one `## Survey` below the owner's words, a worker's prompt
 only `see <url>`, and no title over 40 characters; and in any session, closing a split task as completed while a row of
 its `## Shares` has no merged pull request; and a routine step (`pr-merge.py`, `worker-start.py`, `lead-start.py`,
-`session-close.py`, `clean`'s git commands), or the judge's post, in any form but the literal one an allow rule matches."""
+`session-close.py`, `clean`'s git commands), or the judge's post, in any form but the literal one an allow rule matches; and it allows, itself, the literal form of each routine step, so
+the owner's settings need no allow rule for them."""
+import fnmatch
 import json
 import os
 import pathlib
@@ -51,6 +53,17 @@ PREFIX = re.compile(r"(?:do|then|else|elif|!|\{|time|exec|nohup|command|env|xarg
                     r"|-.*|\w+=.*)", re.S)  # words that may stand before a run command: keywords, runners, flags, assignments
 SHELLS = {"bash", "sh", "zsh", "dash", "eval"}
 SUBSTITUTION = re.compile(r"\$\([^()]*\)|`[^`]*`")  # `$(...)` or `...`, which the lexer splits off its word
+# the owner's allow rules this hook answers for itself (#355), matched as Claude Code matches a rule: the whole command
+ALLOWED = [
+    "herdr agent prompt *", "herdr agent rename *", "herdr agent read *", "herdr tab rename *", "herdr agent send-keys *",
+    "worker-start.py *", "lead-start.py *", "pr-merge.py https://github.com/*", "decision-post.py https://github.com/*",
+    "session-close.py *",
+    "git worktree remove .claude/worktrees/*", "git worktree remove --force .claude/worktrees/*",
+    "git worktree remove --force --force .claude/worktrees/*", "git worktree unlock .claude/worktrees/*",
+    "git worktree prune", "git branch -D *", "git push origin --delete *", "git pull --ff-only", "git pull --ff-only -q",
+    "rm -rf .claude/worktrees/*", "rm */.git/hooks/pre-commit",
+]
+UNSAFE = re.compile(r"[$`\\\n*?\[\]{}~]|\.\.")  # an expansion, escape, glob, or a path leaving its folder
 JUDGE_POST = "the judge posts as one literal command, `gh pr comment <pr-url> --body '<verdict lines>'` or " \
                 "`gh issue comment <url> --body '<verdict lines>'`: no file, stdin, heredoc or `$(...)`"
 
@@ -306,6 +319,19 @@ def judge_refusal(command):
     return None
 
 
+def allowed(command):
+    """Whether `command` is one simple command an `ALLOWED` rule matches whole: no expansion, glob, `..`, separator or
+    redirect, but `decision-post.py`'s `< <file>`."""
+    reading = lexed(command)
+    if UNSAFE.search(command) or not reading or len(reading) != 1:
+        return False
+    words = reading[0]
+    redirects = [i for i, w in enumerate(words) if set(w) & set("<>") and set(w) <= set("<>&|")]
+    if redirects and (words[0] != "decision-post.py" or redirects != [len(words) - 2] or words[-2] != "<"):
+        return False
+    return any(fnmatch.fnmatchcase(command.strip(), rule) for rule in ALLOWED)
+
+
 def early_resolve(command, cwd):
     """Why a `gh issue close` in `command`, as completed, of a task whose body has `## Shares` may not run yet: the rows
     with no merged pull request whose head is `<row>-<n>-<k>`; else None."""
@@ -340,7 +366,7 @@ def early_resolve(command, cwd):
 
 def main():
     raw = sys.stdin.read()
-    if not re.search(r"merge|git|hookspath|gh|decision|start\.py|close\.py", QUOTING.sub("", raw), re.I):
+    if not re.search(r"merge|git|hookspath|gh|decision|start\.py|close\.py|herdr|worktrees", QUOTING.sub("", raw), re.I):
         sys.exit(0)
     try:
         payload = json.loads(raw)
@@ -367,6 +393,9 @@ def main():
             refuse(why)
         if why := early_resolve(command, payload.get("cwd") or "."):
             refuse(why)
+        if allowed(command):
+            print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow",
+                                                     "permissionDecisionReason": "mumu-teamwork: a routine step's literal form"}}))
     except Exception as err:  # exit 1 would let the command run
         refuse(f"could not read the command ({type(err).__name__})")
 

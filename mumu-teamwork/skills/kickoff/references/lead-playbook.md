@@ -9,7 +9,7 @@
    - `blocked <name>`: tell the owner the worker waits at a tool-use prompt;
    - `gone <name>` while its task is open: `start` it again with `--continue`;
    - `idle <name>`: `read` its task and pull request, answer what waits on you, else `prompt` the worker `see <task-url>`;
-   - `team idle <m>m`, a monitor's expiry notice, a `/reload-plugins`, or you resumed: go to Succession;
+   - `team idle <m>m`, `usage reset <time>: ...`, a monitor's expiry notice, a `/reload-plugins`, or you resumed: go to Succession;
    - `working <name>`: nothing;
    - the owner changes direction: `decide` the change on each issue affected and `prompt` its worker `see <task-url>`; replan built work the owner rejects on the same task, as Filing's reopen says, its pull request closed unmerged and named on the task; build from its content, never its form;
    - the owner stops a task: `stop` it, `close` its worker, and `comment` on it its pull request and what is left;
