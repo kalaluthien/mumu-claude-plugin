@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""Squash-merge a pull request whose newest verdict is `APPROVED: <head>`, or `APPROVED: <A>` carried to the head across merges
-of the default branch that leave its own diff byte-identical: the only merge path."""
+"""Squash-merge a pull request once each check its scope needs has a pass at the head, or one carried to it: the only merge path.
+
+The judge's pass is its newest `APPROVED: <A>`, carried across merges of the default branch that leave the PR's own diff
+byte-identical; any check's pass, the judge's included, carries across commits that change no path the mapping assigns to it."""
 import json
 import pathlib
 import re
@@ -9,6 +11,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
 import gh  # noqa: E402
+import scope  # noqa: E402
 import sessions  # noqa: E402
 
 URL = re.compile(r"https://github\.com/[\w.-]+/[\w.-]+/pull/\d+")
@@ -90,9 +93,37 @@ def shared(pr, repo):
     return None
 
 
-def paths(compare):
-    """Each path a compare response's diff from the merge base changes, a rename's old path included."""
-    return {p for f in compare.get("files") or [] for p in (f["filename"], f.get("previous_filename")) if p}
+def notes(pr):
+    """The PR's comments and reviews, oldest first."""
+    return sorted((pr.get("comments") or []) + (pr.get("reviews") or []), key=lambda n: n.get("createdAt") or n.get("submittedAt") or "")
+
+
+def unpassed(pr, repo, base, mapping, names, need):
+    """A line for each check of `need` with no pass at the head nor one carried to it."""
+    head, since, gaps = pr["headRefOid"], {}, []
+
+    def diff(sha):
+        """The paths changed from `sha` to the head, or None when `sha` is not an ancestor of it."""
+        if sha not in since:
+            compare = gh.api(f"repos/{repo}/compare/{sha}...{head}")
+            since[sha] = scope.changed(compare) if compare.get("status") in ("ahead", "identical") else None
+        return since[sha]
+
+    passed = scope.passes(notes(pr))
+    for check in need:
+        if check == scope.JUDGE:
+            approved, stale = approval(pr)
+            if not approved:
+                after = f"; `APPROVED: {stale}` is older than a `FINDINGS:`" if stale else ""
+                gaps.append(f"no comment or review opens with `APPROVED: {head}` since the newest `FINDINGS:`{after}; launch the judge at this head")
+            elif approved != head and (why := uncarried(approved, head, base)) and not scope.carried(check, diff(approved), mapping, names):
+                gaps.append(f"`APPROVED: {approved}` does not carry to the head {head}: {why}, and the commits since change paths the judge "
+                            "checks; resume the judge at this head")
+        elif head not in (shas := passed.get(check, [])) and not any(scope.carried(check, diff(s), mapping, names) for s in reversed(shas)):
+            gaps.append(f"`{check}` has no pass at the head {head}"
+                        + (f" and the commits since {shas[-1]} change paths it checks" if shas else "")
+                        + f"; run it and post `PASSED: {head}` with a line naming it")
+    return gaps
 
 
 def main(args):
@@ -103,27 +134,29 @@ def main(args):
         pr = json.loads(gh.gh("pr", "view", url, "--json", "headRefOid,comments,reviews,title,body,commits,baseRefName"))
     except RuntimeError as e:
         sys.exit(f"pr-merge.py: could not read {url}: {e}")
-    head, repo = pr["headRefOid"], "/".join(url.split("/")[3:5])
-    approved, stale = approval(pr)
-    if not approved:
-        after = f"; `APPROVED: {stale}` is older than a `FINDINGS:`" if stale else ""
-        sys.exit(f"pr-merge.py: no comment or review opens with `APPROVED: {head}` since the newest `FINDINGS:`{after}; launch the judge at this head")
-    if approved != head and (why := uncarried(approved, head, f"origin/{pr['baseRefName']}")):
-        sys.exit(f"pr-merge.py: `APPROVED: {approved}` does not carry to the head {head}: {why}; resume the judge at this head")
+    head, repo, base = pr["headRefOid"], "/".join(url.split("/")[3:5]), pr["baseRefName"]
     if not (CLOSING.search(pr.get("body") or "") or PART.search(pr.get("body") or "")):
         sys.exit("pr-merge.py: the body names no task: open it with `Closes #<task>`, or a share's `Part of #<task>`, over the criteria table")
     try:
-        ahead = json.loads(gh.gh("api", f"repos/{repo}/compare/{pr['baseRefName']}...{head}"))
+        mapping, ahead, tree = gh.change(repo, base, head)
+        names = scope.names(tree) if tree else set()
+        need = scope.needs(scope.changed(ahead), mapping, names)
         behind, task = int(ahead["behind_by"]), shared(pr, repo)
-        both = sorted(paths(ahead) & paths(json.loads(gh.gh("api", f"repos/{repo}/compare/{head}...{pr['baseRefName']}")))) if behind else []
+        moved = scope.changed(gh.api(f"repos/{repo}/compare/{head}...{base}")) if behind else set()
+        gaps = [] if behind else unpassed(pr, repo, f"origin/{base}", mapping, names, need)
     except (RuntimeError, ValueError, KeyError, TypeError) as e:
-        sys.exit(f"pr-merge.py: could not read {url}'s base or task: {e}")
-    if behind and both:
-        sys.exit(f"pr-merge.py: the head lacks {behind} commit(s) of {pr['baseRefName']}, which change paths it changes too: {', '.join(both)}; "
+        sys.exit(f"pr-merge.py: could not read {url}'s scope, base or task: {e}")
+    if behind and mapping is None and (both := sorted(scope.changed(ahead) & moved)):
+        sys.exit(f"pr-merge.py: the head lacks {behind} commit(s) of {base}, which change paths it changes too: {', '.join(both)}; "
                  "merge it in, rerun every check on the merged tree, push and run pr-merge.py again")
+    if behind and (rerun := [c for c in need if c != scope.JUDGE and any(c in scope.assigned(p, mapping, names) for p in moved)]):
+        sys.exit(f"pr-merge.py: the head lacks {behind} commit(s) of {base}, which change paths these checks cover: {', '.join(rerun)}; "
+                 "merge it in, rerun only those on the merged tree, post their `PASSED:`, push and run pr-merge.py again")
     if behind:
-        sys.exit(f"pr-merge.py: the head lacks {behind} commit(s) of {pr['baseRefName']}, which change no path it changes; "
+        sys.exit(f"pr-merge.py: the head lacks {behind} commit(s) of {base}, which change no path its checks cover; "
                  "merge it in, push and run pr-merge.py again; no rerun needed")
+    if gaps:
+        sys.exit("pr-merge.py: " + "\n".join(gaps))
     if task and any(CLOSING.search(t) for t in texts(pr)):
         sys.exit(f"pr-merge.py: {task} has `## Shares`, so only its lead closes it; drop each closing keyword from the title, body and commits, and write `Part of #<n>`")
     try:

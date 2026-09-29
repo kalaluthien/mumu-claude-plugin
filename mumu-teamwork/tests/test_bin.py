@@ -6,6 +6,7 @@ import importlib.machinery
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -14,6 +15,8 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 BIN = ROOT / "bin"
+sys.path.insert(0, str(ROOT / "lib"))
+from scope import pattern  # noqa: E402
 ISSUE_URL = "https://github.com/o/r/issues/12"
 ISSUE_BODY = "## Goal\n\nKeep `## Goal` text as is.\n\n## Definition of done\n\n- old check → old pass\n\n## Notes\n\nkept\n"
 
@@ -94,14 +97,28 @@ HEAD, OLD = "a" * 40, "b" * 40
 # `gh pr view` serves pr.json; `gh pr merge` logs its words and, like GitHub, refuses a pin that is not the head,
 # read from `head` when present, so a test can move the head between the view and the merge.
 MERGE_GH = r'''#!/usr/bin/env python3
-import json, pathlib, sys
+import base64, json, pathlib, sys
 d, a = pathlib.Path(__file__).parent, sys.argv[1:]
 pr = json.loads((d / "pr.json").read_text())
 if a[:2] == ["pr", "view"]:
     print(json.dumps(pr))
+elif a[0] == "api" and a[1].startswith("repos/o/r/contents/checks.json"):
+    if "mapping" not in pr:
+        sys.exit("gh: Not Found (HTTP 404)")
+    print(json.dumps({"content": base64.b64encode(json.dumps(pr["mapping"]).encode()).decode()}))
+elif a[0] == "api" and a[1].startswith("repos/o/r/git/trees/"):
+    print(json.dumps({"tree": [{"path": n} for n in pr.get("tree", [])], "truncated": False}))
 elif a[0] == "api":
-    files = pr.get("files", []) if a[1].startswith("repos/o/r/compare/main...") else pr.get("base_files", [])
-    print(json.dumps({"behind_by": pr.get("behind", 0), "files": [{"filename": f} for f in files]}))
+    since = a[1].removeprefix("repos/o/r/compare/").split("...")[0]
+    if since == "main":
+        files = pr.get("files", [])
+    elif since in pr.get("since", {}):
+        files = pr["since"][since]
+    else:
+        files = pr.get("base_files", [])
+    status = "ahead" if since == "main" or since in pr.get("since", {}) else "diverged"
+    files = [f if isinstance(f, dict) else {"filename": f} for f in files]
+    print(json.dumps({"behind_by": pr.get("behind", 0), "status": status, "files": files}))
 elif a[:2] == ["issue", "view"]:
     print(json.dumps({"body": pr.get("issues", {}).get(a[2], "## Goal\nx\n")}))
 elif a[:2] == ["pr", "merge"]:
@@ -116,7 +133,7 @@ SHARED = "## Goal\nx\n\n## Shares\n| share | DoD | after | with |\n| --- | --- |
 
 
 def merge(comments, moved_to=None, reviews=(), url=PR_URL, title="t", body="Closes #3", commits=(), issues=None, behind=0,
-          head=HEAD, cwd=None, files=(), base_files=()):
+          head=HEAD, cwd=None, files=(), base_files=(), **scoped):
     """Run pr-merge.py in `cwd` on a PR at `head` holding `comments`, each a body or a comment's dict; `moved_to` moves the head once
     it is read, `issues` maps an issue url to its body, `behind` counts the base's commits the head lacks. Return (result, merge
     words or None)."""
@@ -125,7 +142,7 @@ def merge(comments, moved_to=None, reviews=(), url=PR_URL, title="t", body="Clos
     pr = {"headRefOid": head, "comments": notes(comments), "reviews": notes(reviews),
           "title": title, "body": body, "commits": [{"messageHeadline": h, "messageBody": b} for h, b in commits],
           "baseRefName": "main", "issues": issues or {}, "behind": behind,
-          "files": list(files), "base_files": list(base_files)}
+          "files": list(files), "base_files": list(base_files), **scoped}
     (tmp / "pr.json").write_text(json.dumps(pr))
     if moved_to:
         (tmp / "head").write_text(moved_to)
@@ -348,7 +365,7 @@ class MergeCarry(unittest.TestCase):
     def test_step_4_resumes_the_judge_only_when_the_merge_is_refused_again(self):
         step = next(l for l in (ROOT / "skills/kickoff/references/worker-playbook.md").read_text().splitlines() if l.startswith("4. "))
         after = step[step.index("merge the default branch in"):]
-        self.assertRegex(after.split(". ")[0], r"`merge` again.*only when `pr-merge\.py` refuses.*resume the judge")
+        self.assertRegex(after.split(". ")[0], r"`merge` again.*only when `pr-merge\.py` names the judge, resume it")
 
     def test_the_approval_of_pull_request_268_carries_across_its_merge_of_main(self):
         """Replays #268: `APPROVED: A`, then head H merges the non-empty 459d5b9 of main in."""
@@ -1037,9 +1054,6 @@ class LeadName(unittest.TestCase):
         self.assertEqual(self.name([], args=()), "mumu-plugin-lead")
 
 
-REVIEW = importlib.machinery.SourceFileLoader("judge_model", str(BIN / "judge-model.py")).load_module()
-
-
 def git(repo, *args):
     return subprocess.run(["git", "-C", repo, *args], check=True, capture_output=True, text=True).stdout
 
@@ -1084,28 +1098,194 @@ class DefaultBranchGuard(unittest.TestCase):
         self.assertIn('the default branch "main" is refused', out.stderr)
 
 
-class ReviewModel(unittest.TestCase):
-    def test_twenty_changed_lines_get_sonnet_and_twenty_one_get_opus(self):
-        with tempfile.TemporaryDirectory() as repo:
-            git(repo, "init", "-q", "-b", "main")
-            git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "base")
-            git(repo, "checkout", "-q", "-b", "topic")
-            path = pathlib.Path(repo, "f.txt")
-            printed = []
-            for n in (20, 21):
-                path.write_text("".join(f"{i}\n" for i in range(n)))
-                git(repo, "add", "f.txt")
-                git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", str(n))
-                out = subprocess.run([str(BIN / "judge-model.py"), "main", "HEAD"], cwd=repo, capture_output=True, text=True, check=True)
-                printed.append(out.stdout.strip())
-                git(repo, "reset", "-q", "--hard", "main")
-            self.assertEqual(printed, ["sonnet (20 changed lines)", "opus (21 changed lines)"])
+SCOPE = BIN / "check-scope.py"
+# A mapping and the tree it reads: skills need the evals, a script its test, a test itself, a note nothing.
+FIXTURE = {"every": ["judge", "*/tests/test_*.py", "*/evals/*"],
+           "rules": [{"paths": ["p/skills/**"], "checks": ["judge", "p/evals/*"]},
+                     {"paths": ["p/bin/*.py"], "checks": ["judge", "p/tests/test_bin.py"]},
+                     {"paths": ["p/tests/test_*.py"], "checks": ["judge", "p/tests/test_{0}.py"]},
+                     {"paths": ["p/notes/**"], "checks": []}]}
+FIXTURE_TREE = ["checks.json", "p", "p/bin", "p/bin/x.py", "p/tests", "p/tests/test_bin.py", "p/tests/test_hooks.py", "p/evals",
+                "p/evals/a", "p/evals/a/prompt.md", "p/evals/b", "p/evals/b/prompt.md", "p/skills", "p/skills/s", "p/skills/s/SKILL.md",
+                "p/notes", "p/notes/n.md"]
+EVERY = ["p/evals/a", "p/evals/b", "p/tests/test_bin.py", "p/tests/test_hooks.py"]
 
-    def test_insertions_and_deletions_both_count(self):
-        self.assertEqual(REVIEW.changed(" 2 files changed, 10 insertions(+), 2 deletions(-)"), 12)
-        self.assertEqual(REVIEW.changed(" 1 file changed, 1 deletion(-)"), 1)
-        self.assertEqual(REVIEW.changed(""), 0)
 
+def passed(sha, *checks):
+    return f"PASSED: {sha}\n" + "".join(f"- {c}\n" for c in checks)
+
+
+def scoped(comments, files, **pr):
+    """`merge` on a PR changing `files` under the fixture mapping."""
+    return merge(comments, files=files, mapping=FIXTURE, tree=FIXTURE_TREE, **pr)
+
+
+class MergeScope(unittest.TestCase):
+    """pr-merge.py requires a pass of each check the scope needs, and of no other."""
+
+    def test_a_check_the_scope_needs_without_a_pass_refuses(self):
+        result, words = scoped([f"APPROVED: {HEAD}"], ["p/bin/x.py"])
+        self.assertIsNone(words)
+        self.assertIn("`p/tests/test_bin.py` has no pass", result.stderr)
+        self.assertIn(f"PASSED: {HEAD}", result.stderr)
+        for other in ("test_hooks", "p/evals/"):
+            self.assertNotIn(other, result.stderr)
+
+    def test_the_checks_the_scope_leaves_out_are_not_asked(self):
+        result, words = scoped([f"APPROVED: {HEAD}", passed(HEAD, "p/tests/test_bin.py")], ["p/bin/x.py"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(words[-1], HEAD)
+        result, words = scoped([], ["p/notes/n.md"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_the_judge_is_asked_when_the_scope_names_it(self):
+        result, words = scoped([passed(HEAD, "p/tests/test_bin.py")], ["p/bin/x.py"])
+        self.assertIsNone(words)
+        self.assertIn("launch the judge", result.stderr)
+
+    def test_a_change_to_the_mapping_or_an_unmapped_path_needs_every_check(self):
+        for files in (["checks.json"], ["p/notes/n.md", "checks.json"], ["p/other.txt"]):
+            with self.subTest(files=files):
+                result, words = scoped([passed(HEAD, "p/tests/test_bin.py")], files)
+                self.assertIsNone(words)
+                for check in EVERY[:2] + EVERY[3:]:
+                    self.assertIn(f"`{check}` has no pass", result.stderr)
+                self.assertNotIn("`p/tests/test_bin.py` has no pass", result.stderr)
+                self.assertIn("launch the judge", result.stderr)
+                result, words = scoped([f"APPROVED: {HEAD}", passed(HEAD, *EVERY)], files)
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_a_record_names_its_checks_on_the_lines_after_it(self):
+        for record in (f"PASSED: {HEAD}\np/tests/test_bin.py", f"passed {HEAD}\n- `p/tests/test_bin.py`"):
+            with self.subTest(record=record):
+                result, words = scoped([f"APPROVED: {HEAD}", record], ["p/bin/x.py"])
+                self.assertEqual(result.returncode, 0, result.stderr)
+        for record in (f"PASSED: {OLD}\np/tests/test_bin.py", f"PASSED: {HEAD} p/tests/test_bin.py", f"see PASSED: {HEAD}\np/tests/test_bin.py"):
+            with self.subTest(record=record):
+                result, words = scoped([f"APPROVED: {HEAD}", record], ["p/bin/x.py"])
+                self.assertIsNone(words)
+
+    def test_a_repository_without_the_mapping_needs_only_the_judge(self):
+        result, words = merge([f"APPROVED: {HEAD}"], files=["p/bin/x.py", "checks.json"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class MergeScopeCarry(unittest.TestCase):
+    """A pass at an earlier commit carries to the head while the commits since change none of its check's paths."""
+
+    def test_a_pass_carries_across_commits_outside_its_paths(self):
+        for since in (["p/notes/n.md"], []):
+            with self.subTest(since=since):
+                result, words = scoped([f"APPROVED: {OLD}", passed(OLD, "p/tests/test_bin.py")], ["p/bin/x.py"], since={OLD: since})
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(words[-1], HEAD)
+        result, words = scoped([f"APPROVED: {HEAD}", passed(OLD, "p/tests/test_bin.py")], ["p/bin/x.py", "p/skills/s/SKILL.md"],
+                               since={OLD: ["p/skills/s/SKILL.md"]}, **{})
+        self.assertIn("`p/evals/a` has no pass", result.stderr)
+        self.assertNotIn("test_bin", result.stderr)
+
+    def test_the_judge_is_asked_again_after_a_commit_inside_its_paths(self):
+        result, words = scoped([f"APPROVED: {OLD}", passed(HEAD, "p/tests/test_bin.py")], ["p/bin/x.py"], since={OLD: ["p/bin/x.py"]})
+        self.assertIsNone(words)
+        self.assertIn(f"`APPROVED: {OLD}` does not carry", result.stderr)
+        self.assertIn("resume the judge", result.stderr)
+
+    def test_a_commit_inside_its_paths_names_only_that_check_to_rerun(self):
+        result, words = scoped([f"APPROVED: {HEAD}", passed(OLD, "p/tests/test_bin.py", "p/tests/test_hooks.py")],
+                               ["p/bin/x.py", "p/tests/test_hooks.py"], since={OLD: ["p/tests/test_hooks.py"]})
+        self.assertIsNone(words)
+        self.assertIn(f"`p/tests/test_hooks.py` has no pass at the head {HEAD} and the commits since {OLD}", result.stderr)
+        self.assertNotIn("test_bin", result.stderr)
+
+    def test_a_commit_editing_the_mapping_reruns_every_check(self):
+        result, words = scoped([f"APPROVED: {OLD}", passed(OLD, "p/tests/test_bin.py")], ["p/bin/x.py"], since={OLD: ["checks.json"]})
+        self.assertIsNone(words)
+        self.assertIn("`p/tests/test_bin.py` has no pass", result.stderr)
+        self.assertIn(f"`APPROVED: {OLD}` does not carry", result.stderr)
+
+    def test_a_pass_at_no_ancestor_of_the_head_does_not_carry(self):
+        result, words = scoped([f"APPROVED: {HEAD}", passed(OLD, "p/tests/test_bin.py")], ["p/bin/x.py"])
+        self.assertIsNone(words)
+        self.assertIn("`p/tests/test_bin.py` has no pass", result.stderr)
+
+    def test_a_behind_refusal_names_only_the_checks_the_base_touches(self):
+        cases = {"p/skills/s/SKILL.md": [], "p/bin/y.py": ["p/tests/test_bin.py"], "checks.json": ["p/tests/test_bin.py"]}
+        for moved, rerun in cases.items():
+            with self.subTest(moved=moved):
+                result, words = scoped([f"APPROVED: {HEAD}", passed(HEAD, "p/tests/test_bin.py")], ["p/bin/x.py"], behind=2, base_files=[moved])
+                self.assertIsNone(words)
+                if rerun:
+                    self.assertIn(f"these checks cover: {', '.join(rerun)}; merge it in, rerun only those", result.stderr)
+                else:
+                    self.assertIn("no rerun needed", result.stderr)
+
+
+def tree_names(root):
+    """Each tracked file of `root` and each folder above one."""
+    files = subprocess.run(["git", "-C", root, "ls-files"], capture_output=True, text=True, check=True).stdout.split()
+    return sorted({str(parent) for f in files for parent in [pathlib.PurePosixPath(f), *pathlib.PurePosixPath(f).parents][:-1]})
+
+
+REPO = ROOT.parent
+
+
+class CheckScope(unittest.TestCase):
+    """check-scope.py prints what this repository's checks.json assigns to a PR's changed paths."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.mapping = json.loads((REPO / "checks.json").read_text())
+        cls.tree = tree_names(REPO)
+        cls.every = sorted(c for c in cls.tree if any(re.fullmatch(pattern(g), c) for g in cls.mapping["every"] if g != "judge"))
+
+    def scope(self, files, mapping=True, lines=0):
+        tmp = pathlib.Path(tempfile.mkdtemp())
+        pr = {"headRefOid": HEAD, "baseRefName": "main", "tree": self.tree, "files": [{"filename": f, "additions": lines} for f in files]}
+        if mapping:
+            pr["mapping"] = self.mapping
+        (tmp / "pr.json").write_text(json.dumps(pr))
+        (tmp / "gh").write_text(MERGE_GH)
+        (tmp / "gh").chmod(0o755)
+        env = dict(os.environ, PATH=f"{tmp}:{os.environ['PATH']}")
+        done = subprocess.run([sys.executable, str(SCOPE), PR_URL], capture_output=True, text=True, env=env, cwd=tmp)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        return done.stdout.splitlines()
+
+    def test_the_every_set_is_every_test_file_and_eval_case(self):
+        self.assertEqual(self.every, sorted(c for c in self.tree if re.fullmatch(r"[^/]+/tests/test_[^/]+\.py|[^/]+/evals/[^/]+", c)))
+        self.assertGreater(len(self.every), 50)
+
+    def test_a_rules_file_change_needs_the_judge_and_its_plugins_evals_only(self):
+        printed = self.scope(["mumu-teamwork/skills/kickoff/references/worker-playbook.md"])
+        self.assertTrue(printed[0].startswith("judge: "))
+        self.assertTrue(all(c.startswith("mumu-teamwork/") for c in printed[1:]))
+        self.assertIn("mumu-teamwork/evals/work", printed)
+        self.assertLess(len(printed), len(self.every) // 2)
+
+    def test_a_script_change_needs_its_tests_and_no_eval(self):
+        printed = self.scope(["mumu-teamwork/bin/pr-merge.py"])
+        self.assertIn("mumu-teamwork/tests/test_bin.py", printed)
+        self.assertFalse([c for c in printed if "/evals/" in c])
+        self.assertFalse([c for c in printed if not c.startswith(("judge: ", "mumu-teamwork/"))])
+
+    def test_a_hook_change_needs_the_hook_tests(self):
+        printed = self.scope(["mumu-teamwork/scripts/bash-guard.py"])
+        self.assertIn("mumu-teamwork/tests/test_scripts.py", printed)
+        self.assertFalse([c for c in printed if not c.startswith(("judge: ", "mumu-teamwork/"))])
+
+    def test_an_unmapped_path_or_the_mapping_itself_needs_the_full_set(self):
+        for files in (["no-such-folder/x.txt"], ["checks.json"], []):
+            with self.subTest(files=files):
+                printed = self.scope(files)
+                self.assertTrue(printed[0].startswith("judge: opus") or printed[0].startswith("judge: sonnet"))
+                self.assertEqual(printed[1:], self.every)
+
+    def test_the_judge_model_is_sonnet_to_twenty_changed_lines(self):
+        self.assertEqual(self.scope(["no-such-folder/x.txt"], lines=20)[0], "judge: sonnet (20 changed lines)")
+        self.assertEqual(self.scope(["no-such-folder/x.txt"], lines=21)[0], "judge: opus (21 changed lines)")
+
+    def test_a_repository_without_the_mapping_needs_the_judge_alone(self):
+        self.assertEqual(self.scope(["mumu-teamwork/bin/pr-merge.py"], mapping=False), ["judge: sonnet (0 changed lines)"])
 
 if __name__ == "__main__":
     unittest.main()

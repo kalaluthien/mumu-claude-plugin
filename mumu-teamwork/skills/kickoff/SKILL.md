@@ -43,6 +43,7 @@ Use these terms as defined here, and define none elsewhere; look up each verb in
 | criterion | one `## Definition of done` line, its kind, then a check → its pass condition: a check that can fail, and that the honest empty outcome can pass |
 | kind | a criterion's first token: `[exists]`, a file or line is present or absent; `[test]`, a test passes; `[quality]`, a rubric score; one comparing head with main names its sample, at least 3 outputs per prompt per side, the paired mean per lens and the margin head's mean must beat main's by |
 | playbook | a file of `references/`: a role's changing rules and steps |
+| check | the judge, a test file or an eval case that a pull request's diff needs, as `scope` prints from the mapping `checks.json` at the repository's root; narrowing it is a change to that file, never a worker's, asked as `BLOCKED:` on its own task |
 
 Keep all state on GitHub, in these records:
 
@@ -50,7 +51,8 @@ Keep all state on GitHub, in these records:
 | --- | --- | --- |
 | `BLOCKED:` | worker | `BLOCKED: <question>`, or `BLOCKED: stuck on <criterion>` |
 | `DECIDED:` | lead | `DECIDED: <answer>`, posted with `decide` |
-| `APPROVED:` | judge | `APPROVED: <sha>`: the pull request may merge while its head is that sha or a merge of the default branch into it that leaves its own diff byte-identical; `APPROVED: <comment-url>`: the report may close; `APPROVED:` alone: the plan or survey may go on |
+| `PASSED:` | worker | `PASSED: <sha>`, then one line per check of the scope, but the judge, that passed at that sha |
+| `APPROVED:` | judge | `APPROVED: <sha>`: the judge's pass of the pull request; `APPROVED: <comment-url>`: the report may close; `APPROVED:` alone: the plan or survey may go on |
 | `FINDINGS:` | judge | as `judge.md` step 5 writes it |
 
 Talk to another session through one of two channels, never mixed:
@@ -67,7 +69,8 @@ Rules:
 - Write a keyword in capitals as above; read it in any case, the colon optional.
 - Merge only with `merge`; fix what a git hook refuses, never skip it, or post `BLOCKED:`.
 - Commit and push only on a branch other than the default.
-- Run every session and agent on Opus, but a pull request's `judge` on the model `judge-model.py origin/<default> HEAD` prints.
+- Run every session and agent on Opus, but a pull request's `judge` on the model `scope` prints.
+- Run on a pull request only the checks `scope` prints, and of those only the ones `merge` names: a pass carries to the head across commits that change no path the mapping assigns to its check, and the judge's also across merges of the default branch that leave its own diff byte-identical.
 - Launch the `judge` on a url, and after fixing its `FINDINGS:` resume that judge with `see <url>`, launching a new one only when it cannot be resumed and the url shows no verdict at the head.
 
 Writing, for every issue, pull request and comment:
@@ -113,7 +116,8 @@ Name the target pane in every command.
 | `stop` | close an issue as not planned: `gh issue close <url> --reason "not planned" --comment "<reason>"`, then `gh pr ready --undo <pr-url>` for its open pull request |
 | `claim` | take an attempt by its branch on the remote: `git fetch origin && ! git ls-remote --exit-code origin refs/heads/<branch> && git push -u origin <branch>`, `<branch>` the worktree's own, named after it; a branch found is yours only when this checkout is on it |
 | `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file <path>`; later `gh pr edit <pr> --body-file <path>` |
-| `merge` | `pr-merge.py <pr-url>` |
+| `scope` | `check-scope.py <pr-url>`: the checks the pull request's diff needs, the judge first with its model |
+| `merge` | `pr-merge.py <pr-url>`: refused while a check of the scope has no pass at the head nor one carried to it, naming each |
 | `clean` | from the checkout's root, one literal Bash call per command per worker, with no `git -C`, `cd` prefix, loop, `$(...)` or variable: `git worktree remove .claude/worktrees/<name>`, `git branch -D <name>` and, while `git ls-remote --exit-code origin refs/heads/<name>` finds it, `git push origin --delete <name>`; then `git pull --ff-only`, and remove the hook when `cmp -s` finds it equal to `default-branch-guard.sh` as `rm <hooks>/pre-commit`, `<hooks>` written out as its literal path |
 
 ## Traps

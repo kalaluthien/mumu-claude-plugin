@@ -1,4 +1,5 @@
 """Run one external command, and every `gh` command mumu-teamwork runs, each raising `RuntimeError` when it fails, but `held`, which answers None."""
+import base64
 import json
 import subprocess
 
@@ -22,6 +23,28 @@ def gh(*argv, cwd=None, stdin=None):
 def repo(field, cwd=None):
     """One field of `gh repo view` in `cwd`: `name`, or `defaultBranchRef` read as its name."""
     return gh("repo", "view", "--json", field, "-q", f".{field}" + (".name" if field == "defaultBranchRef" else ""), cwd=cwd).strip()
+
+
+def api(path):
+    """The JSON of `gh api <path>`."""
+    return json.loads(gh("api", path))
+
+
+def mapping(repo, ref):
+    """The checks mapping `checks.json` at `ref` of `repo`, or None when `ref` has no such file."""
+    try:
+        blob = api(f"repos/{repo}/contents/checks.json?ref={ref}")
+    except RuntimeError as e:
+        if "HTTP 404" in str(e):
+            return None
+        raise
+    return json.loads(base64.b64decode(blob["content"]))
+
+
+def change(repo, base, head):
+    """(the mapping at `base`, the compare of `base...head`, the tree listing at `head` or None without a mapping) of `repo`."""
+    mapped = mapping(repo, base)
+    return mapped, api(f"repos/{repo}/compare/{base}...{head}"), api(f"repos/{repo}/git/trees/{head}?recursive=1") if mapped else None
 
 
 def held(cwd, folder=None):
