@@ -8,7 +8,8 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-import github  # noqa: E402
+import gh  # noqa: E402
+import sessions  # noqa: E402
 
 URL = re.compile(r"https://github\.com/[\w.-]+/[\w.-]+/pull/\d+")
 APPROVAL = re.compile(r"approved:?\s+(\S+)", re.I)
@@ -16,7 +17,6 @@ FINDINGS = re.compile(r"findings\b:?.*", re.I)
 REF = r"(?:([\w.-]+/[\w.-]+)?#(\d+)|https://github\.com/([\w.-]+/[\w.-]+)/issues/(\d+))"
 CLOSING = re.compile(rf"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\s+{REF}", re.I)
 PART = re.compile(rf"\bpart of:?\s+{REF}", re.I)
-SHARES = re.compile(r"^## Shares\s*$", re.M)
 
 
 def approval(pr):
@@ -34,8 +34,8 @@ def approval(pr):
 
 
 def git(*argv, stdin=None):
-    """stdout of `git <argv>` in the checkout merge.py runs from."""
-    return github.run("git", *argv, stdin=stdin)
+    """stdout of `git <argv>` in the checkout pr-merge.py runs from."""
+    return gh.run("git", *argv, stdin=stdin)
 
 
 def ancestor(sha, of):
@@ -85,7 +85,7 @@ def issues(pattern, text, repo):
 def shared(pr, repo):
     """The first issue the PR closes or is part of whose body has `## Shares`, else None."""
     for url in dict.fromkeys(u for t in texts(pr) for pattern in (CLOSING, PART) for u in issues(pattern, t, repo)):
-        if SHARES.search(json.loads(github.gh("issue", "view", url, "--json", "body"))["body"] or ""):
+        if sessions.shares(json.loads(gh.gh("issue", "view", url, "--json", "body"))["body"] or "") is not None:
             return url
     return None
 
@@ -97,39 +97,39 @@ def paths(compare):
 
 def main(args):
     if len(args) != 1 or not URL.fullmatch(args[0]):
-        sys.exit("usage: merge.py <pr-url>, the PR's full https://github.com/<owner>/<repo>/pull/<n> url")
+        sys.exit("usage: pr-merge.py <pr-url>, the PR's full https://github.com/<owner>/<repo>/pull/<n> url")
     url = args[0]
     try:
-        pr = json.loads(github.gh("pr", "view", url, "--json", "headRefOid,comments,reviews,title,body,commits,baseRefName"))
+        pr = json.loads(gh.gh("pr", "view", url, "--json", "headRefOid,comments,reviews,title,body,commits,baseRefName"))
     except RuntimeError as e:
-        sys.exit(f"merge.py: could not read {url}: {e}")
+        sys.exit(f"pr-merge.py: could not read {url}: {e}")
     head, repo = pr["headRefOid"], "/".join(url.split("/")[3:5])
     approved, stale = approval(pr)
     if not approved:
         after = f"; `APPROVED: {stale}` is older than a `FINDINGS:`" if stale else ""
-        sys.exit(f"merge.py: no comment or review opens with `APPROVED: {head}` since the newest `FINDINGS:`{after}; launch the judge at this head")
+        sys.exit(f"pr-merge.py: no comment or review opens with `APPROVED: {head}` since the newest `FINDINGS:`{after}; launch the judge at this head")
     if approved != head and (why := uncarried(approved, head, f"origin/{pr['baseRefName']}")):
-        sys.exit(f"merge.py: `APPROVED: {approved}` does not carry to the head {head}: {why}; resume the judge at this head")
+        sys.exit(f"pr-merge.py: `APPROVED: {approved}` does not carry to the head {head}: {why}; resume the judge at this head")
     if not (CLOSING.search(pr.get("body") or "") or PART.search(pr.get("body") or "")):
-        sys.exit("merge.py: the body names no task: open it with `Closes #<task>`, or a share's `Part of #<task>`, over the criteria table")
+        sys.exit("pr-merge.py: the body names no task: open it with `Closes #<task>`, or a share's `Part of #<task>`, over the criteria table")
     try:
-        ahead = json.loads(github.gh("api", f"repos/{repo}/compare/{pr['baseRefName']}...{head}"))
+        ahead = json.loads(gh.gh("api", f"repos/{repo}/compare/{pr['baseRefName']}...{head}"))
         behind, task = int(ahead["behind_by"]), shared(pr, repo)
-        both = sorted(paths(ahead) & paths(json.loads(github.gh("api", f"repos/{repo}/compare/{head}...{pr['baseRefName']}")))) if behind else []
+        both = sorted(paths(ahead) & paths(json.loads(gh.gh("api", f"repos/{repo}/compare/{head}...{pr['baseRefName']}")))) if behind else []
     except (RuntimeError, ValueError, KeyError, TypeError) as e:
-        sys.exit(f"merge.py: could not read {url}'s base or task: {e}")
+        sys.exit(f"pr-merge.py: could not read {url}'s base or task: {e}")
     if behind and both:
-        sys.exit(f"merge.py: the head lacks {behind} commit(s) of {pr['baseRefName']}, which change paths it changes too: {', '.join(both)}; "
-                 "merge it in, rerun every check on the merged tree, push and run merge.py again")
+        sys.exit(f"pr-merge.py: the head lacks {behind} commit(s) of {pr['baseRefName']}, which change paths it changes too: {', '.join(both)}; "
+                 "merge it in, rerun every check on the merged tree, push and run pr-merge.py again")
     if behind:
-        sys.exit(f"merge.py: the head lacks {behind} commit(s) of {pr['baseRefName']}, which change no path it changes; "
-                 "merge it in, push and run merge.py again; no rerun needed")
+        sys.exit(f"pr-merge.py: the head lacks {behind} commit(s) of {pr['baseRefName']}, which change no path it changes; "
+                 "merge it in, push and run pr-merge.py again; no rerun needed")
     if task and any(CLOSING.search(t) for t in texts(pr)):
-        sys.exit(f"merge.py: {task} has `## Shares`, so only its lead closes it; drop each closing keyword from the title, body and commits, and write `Part of #<n>`")
+        sys.exit(f"pr-merge.py: {task} has `## Shares`, so only its lead closes it; drop each closing keyword from the title, body and commits, and write `Part of #<n>`")
     try:
-        print(github.gh("pr", "merge", url, "--squash", "--match-head-commit", head), end="")
+        print(gh.gh("pr", "merge", url, "--squash", "--match-head-commit", head), end="")
     except RuntimeError as e:
-        sys.exit(f"merge.py: {e}")
+        sys.exit(f"pr-merge.py: {e}")
 
 
 if __name__ == "__main__":

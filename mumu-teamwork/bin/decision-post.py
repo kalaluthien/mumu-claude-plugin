@@ -5,7 +5,7 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-import github  # noqa: E402
+import gh  # noqa: E402
 
 DONE = re.compile(r"^## Definition of done[ \t]*\n.*?(?=^## |\Z)", re.M | re.S)
 
@@ -20,21 +20,21 @@ def replace_criteria(body, criteria):
 
 def main(argv):
     if len(argv) not in (1, 3) or len(argv) == 3 and argv[1] != "--criteria":
-        sys.exit("usage: decide.py <issue-url> [--criteria <file>] < decision")
+        sys.exit("usage: decision-post.py <issue-url> [--criteria <file>] < decision")
     url = argv[0]
     decision = sys.stdin.read().strip()
     if not decision:
-        sys.exit("decide.py: no decision on stdin")
+        sys.exit("decision-post.py: no decision on stdin")
     if not re.match(r"decided\b", decision, re.I):
         decision = "DECIDED: " + decision
     try:
         if len(argv) == 3:
-            body = github.gh("issue", "view", url, "--json", "body", "-q", ".body")
+            body = gh.gh("issue", "view", url, "--json", "body", "-q", ".body")
             with open(argv[2]) as f:
-                github.gh("issue", "edit", url, "--body-file", "-", stdin=replace_criteria(body, f.read()))
-        print(github.gh("issue", "comment", url, "--body-file", "-", stdin=decision + "\n").strip())
+                gh.gh("issue", "edit", url, "--body-file", "-", stdin=replace_criteria(body, f.read()))
+        print(gh.gh("issue", "comment", url, "--body-file", "-", stdin=decision + "\n").strip())
     except RuntimeError as e:
-        sys.exit(f"decide.py: {e}")
+        sys.exit(f"decision-post.py: {e}")
 
 
 if __name__ == "__main__":

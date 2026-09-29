@@ -16,9 +16,9 @@ import tempfile
 import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-import github  # noqa: E402
+import gh  # noqa: E402
 import herdr  # noqa: E402
-import names  # noqa: E402
+import sessions  # noqa: E402
 
 REPEAT = 3600
 WORD = {"blocked": "blocked", "idle": "idle", "done": "idle", "working": "working"}
@@ -46,7 +46,7 @@ def scoped(workers, checkout, f, owned):
         return workers
     for name in workers.keys() - owned.keys():
         try:
-            owned[name] = f"scope:{f}" in github.labels(checkout, names.WORKER.fullmatch(name)[2])
+            owned[name] = f"scope:{f}" in gh.labels(checkout, sessions.WORKER.fullmatch(name)[2])
         except (RuntimeError, ValueError, KeyError, TypeError):
             pass  # read again at the next poll
     return {name: s for name, s in workers.items() if owned.get(name)}
@@ -95,9 +95,9 @@ class Transcripts:
         self.config = pathlib.Path(os.environ.get("CLAUDE_CONFIG_DIR") or pathlib.Path.home() / ".claude")
         self.seen = {}  # session id: [path, offset, unfinished line, stall]
 
-    def stalls(self, sessions):
+    def stalls(self, ids):
         out = []
-        for sid in sessions:
+        for sid in ids:
             s = self.seen.get(sid)
             if s is None:
                 found = glob.glob(str(self.config / "projects" / "*" / f"{glob.escape(sid)}.jsonl"))
@@ -145,14 +145,14 @@ def main():
         try:
             listed = herdr.listed("agent")
             f = folder(listed, checkout)
-            workers = scoped(names.workers(listed, checkout), checkout, f, owned)
+            workers = scoped(sessions.workers(listed, checkout), checkout, f, owned)
             words, lines = changes(last, workers)
         except RuntimeError:
             time.sleep(interval)
             continue
         lead = next((a for a in listed if a.get("pane_id") == pane), {})
-        sessions = [(a.get("agent_session") or {}).get("value") for a in listed if a is lead or a.get("name") in workers]
-        stalls = [t + margin for t in transcripts.stalls([s for s in sessions if s]) if t]
+        ids = [(a.get("agent_session") or {}).get("value") for a in listed if a is lead or a.get("name") in workers]
+        stalls = [t + margin for t in transcripts.stalls([s for s in ids if s]) if t]
         now = time.time()
         if (until := limit(stalls, now)) is not None:
             held = True
@@ -171,7 +171,7 @@ def main():
             since = printed = None
         else:
             since = since or now
-            if now - since >= after and (printed is None or now - printed >= REPEAT) and github.held(checkout, f):
+            if now - since >= after and (printed is None or now - printed >= REPEAT) and gh.held(checkout, f):
                 printed = now
                 lines.append(f"team idle {int((now - since) // 60)}m")
         for line in lines:

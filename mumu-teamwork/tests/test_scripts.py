@@ -1,6 +1,6 @@
 """The hook and monitor `scripts/`, each run as Claude Code runs it, against fakes on PATH and a written transcript.
 
-Run: python3 -m unittest discover mumu-teamwork/tests
+Run: uvx pytest mumu-teamwork/tests -q
 """
 import datetime
 import importlib.machinery
@@ -109,7 +109,7 @@ MERGE_REFUSED = [
 # Text only naming the merge, in a heredoc, a body or a pattern, is refused too: it goes through a file (#158).
 TEXT_MERGE_REFUSED = [
     "git grep -n 'pr merge' mumu-teamwork",
-    f"sed -i '' 's/{MERGE}/merge.py/g' notes.md",
+    f"sed -i '' 's/{MERGE}/pr-merge.py/g' notes.md",
     f"cat > /tmp/note.md <<'EOF'\nrun {MERGE} later\nEOF",
     f"gh issue comment 1 --body-file - <<'EOF'\nthe lead's {MERGE} was refused\nEOF",
     f'gh issue reopen 9 --comment "refused: {MERGE}"',
@@ -117,7 +117,7 @@ TEXT_MERGE_REFUSED = [
 ]
 
 MERGE_PASSED = [
-    f"merge.py {PR_URL}",
+    f"pr-merge.py {PR_URL}",
     "gh pr view 1 --json state",
     "git merge-base HEAD origin/main",
 ]
@@ -170,7 +170,7 @@ class MergeGate(unittest.TestCase):
             with self.subTest(command):
                 result = run(command)
                 self.assertEqual(result.returncode, 2)
-                self.assertIn("merge.py", result.stderr)
+                self.assertIn("pr-merge.py", result.stderr)
 
     def test_merge_py_and_other_commands_pass(self):
         for command in MERGE_PASSED:
@@ -192,9 +192,9 @@ ROLE_CASES = [
     (None, "gh pr comment 1 --body-file - <<'EOF'\nAPPROVED: aaaa\nEOF", None),
     ("worker", "gh pr comment 1 --body-file - <<'EOF'\nCriteria: APPROVED later\nEOF", None),
     ("worker", f"gh issue comment {U} --body-file - <<'EOF'\nBLOCKED: which name?\nEOF", None),
-    ("lead", f"gh issue comment {U} --body-file - <<'EOF'\nDECIDED: use x\nEOF", "decide.py"),
-    ("lead", f"decide.py {U} <<'EOF'\nuse x\nEOF", None),
-    ("worker", f"decide.py {U} < /tmp/d", "the lead's"),
+    ("lead", f"gh issue comment {U} --body-file - <<'EOF'\nDECIDED: use x\nEOF", "decision-post.py"),
+    ("lead", f"decision-post.py {U} <<'EOF'\nuse x\nEOF", None),
+    ("worker", f"decision-post.py {U} < /tmp/d", "the lead's"),
     ("worker", f"gh pr comment 1 --body-file approval.md", "judge's alone"),
     ("lead", f'gh issue create -R o/r --title "{LONG}" --label effort:low --body-file - <<\'EOF\'\n{BODY}EOF', "at most 40"),
     ("worker", f'gh pr create --base main --head b --title "{LONG}" --body-file -', "at most 40"),
@@ -293,11 +293,11 @@ class SurveyEdit(unittest.TestCase):
 N = "sample-topic-12-1"
 # (a routine step in another form than its literal one, the literal form the refusal names) (#281)
 ROUTINE_REFUSED = [
-    (f"python3 /Users/me/plugins/mumu-teamwork/bin/merge.py {PR_URL}", "`merge.py <pr-url>`"),
-    (f"/Users/me/plugins/mumu-teamwork/bin/merge.py {PR_URL}", "`merge.py <pr-url>`"),
-    (f"cd x && worker-close.py {N}", "`worker-close.py <name>`"),
-    (f"bash -c 'worker-close.py {N}'", "`worker-close.py <name>`"),
-    (f"URL={PR_URL}; merge.py $URL", "`merge.py <pr-url>`"),
+    (f"python3 /Users/me/plugins/mumu-teamwork/bin/pr-merge.py {PR_URL}", "`pr-merge.py <pr-url>`"),
+    (f"/Users/me/plugins/mumu-teamwork/bin/pr-merge.py {PR_URL}", "`pr-merge.py <pr-url>`"),
+    (f"cd x && session-close.py {N}", "`session-close.py <name>`"),
+    (f"bash -c 'session-close.py {N}'", "`session-close.py <name>`"),
+    (f"URL={PR_URL}; pr-merge.py $URL", "`pr-merge.py <pr-url>`"),
     (f"worker-start.py /r t low {U} | tee log", "`worker-start.py <checkout>"),
     ("uv run lead-start.py /r", "`lead-start.py <checkout>"),
     ("for n in a-1-1 b-2-1; do git push origin --delete $n; done", "`git push origin --delete <name>`"),
@@ -305,18 +305,18 @@ ROUTINE_REFUSED = [
     ("git fetch && git pull --ff-only", "`git pull --ff-only`"),
 ]
 ROUTINE_PASSED = [
-    f"merge.py {PR_URL}",
-    f"worker-close.py {N}",
-    f"worker-start.py /r sample-topic low {U} --leader plugins-lead",
+    f"pr-merge.py {PR_URL}",
+    f"session-close.py {N}",
+    f"worker-start.py /r sample-topic low {U} --lead plugins-lead",
     f"lead-start.py /r {U} --folder mumu-teamwork",
     f"git worktree remove .claude/worktrees/{N}",
     f"git branch -D {N}",
     f"git push origin --delete {N}",
     "git pull --ff-only",
     "uvx pytest mumu-teamwork/tests -q",
-    "grep -n worker-close.py mumu-teamwork/skills/kickoff/SKILL.md",
-    "python3 -m py_compile mumu-teamwork/bin/merge.py",
-    "git log --oneline -- mumu-teamwork/bin/merge.py",
+    "grep -n session-close.py mumu-teamwork/skills/kickoff/SKILL.md",
+    "python3 -m py_compile mumu-teamwork/bin/pr-merge.py",
+    "git log --oneline -- mumu-teamwork/bin/pr-merge.py",
     "git fetch origin && git push -u origin b-2-1",
     "git branch --show-current && git status",
     "cd x && ls",
@@ -457,7 +457,7 @@ class AssignmentOnly(unittest.TestCase):
     def test_a_merge_after_an_assignment_only_command_is_still_refused(self):
         result = run(f"S=/tmp/x\n{MERGE}")
         self.assertEqual(result.returncode, 2)
-        self.assertIn("merge.py", result.stderr)
+        self.assertIn("pr-merge.py", result.stderr)
 
     def test_every_helper_reads_an_empty_and_an_assignment_only_word_list(self):
         guard = importlib.machinery.SourceFileLoader("bash_guard", str(HOOK)).load_module()
@@ -485,7 +485,7 @@ class Reread(unittest.TestCase):
         shutil.copytree(PLUGIN / "hooks", self.plugin / "hooks")
         self.refs = self.plugin / "skills" / "kickoff" / "references"
         self.refs.mkdir(parents=True)
-        for name in ("work-task.md", "task.md", "routing.md"):
+        for name in ("worker-playbook.md", "task.md", "routing.md"):
             (self.refs / name).write_text("rules\n")
             self.touch(name, changed=False)
 
@@ -517,34 +517,34 @@ class Reread(unittest.TestCase):
         return "Read", {"file_path": str(self.refs / name)}
 
     def test_read_then_changed_names_that_file_once(self):
-        self.touch("work-task.md", changed=True)
-        context = self.prompt(self.read("work-task.md"))
-        self.assertEqual(context.count(str(self.refs / "work-task.md")), 1, context)
+        self.touch("worker-playbook.md", changed=True)
+        context = self.prompt(self.read("worker-playbook.md"))
+        self.assertEqual(context.count(str(self.refs / "worker-playbook.md")), 1, context)
         self.assertNotIn("routing.md", context)
 
     def test_read_by_bash_through_the_plugin_root_counts(self):
-        self.touch("work-task.md", changed=True)
-        command = f"cd {self.plugin}/skills/kickoff && cat references/work-task.md"
-        self.assertIn("work-task.md", self.prompt(("Bash", {"command": command})))
+        self.touch("worker-playbook.md", changed=True)
+        command = f"cd {self.plugin}/skills/kickoff && cat references/worker-playbook.md"
+        self.assertIn("worker-playbook.md", self.prompt(("Bash", {"command": command})))
 
     def test_read_and_unchanged_names_nothing(self):
-        self.assertEqual(self.prompt(self.read("work-task.md"), self.read("routing.md")), "")
+        self.assertEqual(self.prompt(self.read("worker-playbook.md"), self.read("routing.md")), "")
 
     def test_changed_but_never_read_names_nothing(self):
-        self.touch("work-task.md", changed=True)
+        self.touch("worker-playbook.md", changed=True)
         self.touch("task.md", changed=True)
         self.assertEqual(self.prompt(self.read("routing.md")), "")
         self.assertEqual(self.prompt(), "")
 
     def test_a_name_inside_another_name_or_another_checkout_is_no_read(self):
         self.touch("task.md", changed=True)
-        self.assertEqual(self.prompt(("Bash", {"command": f"cat {self.refs}/work-task.md"}),
+        self.assertEqual(self.prompt(("Bash", {"command": f"cat {self.refs}/worker-playbook.md"}),
                                      ("Bash", {"command": "cat /elsewhere/references/task.md"}),
                                      ("Read", {"file_path": "/elsewhere/references/task.md"})), "")
 
     def test_a_missing_transcript_names_nothing(self):
         env = dict(os.environ, CLAUDE_PLUGIN_ROOT=str(self.plugin))
-        out = subprocess.run([str(self.plugin / "scripts" / "reread.py")], input=json.dumps({"transcript_path": "/nope"}),
+        out = subprocess.run([str(self.plugin / "scripts" / "playbook-reread.py")], input=json.dumps({"transcript_path": "/nope"}),
                              env=env, capture_output=True, text=True, timeout=30)
         self.assertEqual((out.returncode, out.stdout), (0, ""))
 
@@ -939,7 +939,7 @@ class WorktreeGuard(unittest.TestCase):
         return [subprocess.run(c, shell=True, input=json.dumps(payload), env=env, capture_output=True, text=True, timeout=30)
                 for c in commands]
 
-    def test_a_worker_writing_in_the_leaders_checkout_is_refused_naming_its_worktree(self):
+    def test_a_worker_writing_in_the_leads_checkout_is_refused_naming_its_worktree(self):
         for tool in ("Edit", "Write", "NotebookEdit"):
             for cwd in (self.tree, self.tree / "sub"):
                 for path in (self.checkout / "a.py", "../../../a.py" if cwd == self.tree else "../../../../a.py",

@@ -6,7 +6,7 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-import names  # noqa: E402
+import sessions  # noqa: E402
 
 
 def refuse(reason):
@@ -16,7 +16,7 @@ def refuse(reason):
 
 def worktree(cwd):
     """`(checkout, worktree)` when `cwd` lies under `<checkout>/.claude/worktrees/<name>`, else None."""
-    parts, marker = cwd.parts, names.WORKTREES.parts
+    parts, marker = cwd.parts, sessions.WORKTREES.parts
     found = [i for i in range(len(parts) - len(marker)) if parts[i:i + len(marker)] == marker]
     if not found:
         return None
@@ -38,7 +38,7 @@ def main():
     checkout, tree = found
     target = (cwd / pathlib.Path(path).expanduser()).resolve()
     if target.is_relative_to(checkout) and not target.is_relative_to(tree):
-        refuse(f"{target} is outside your worktree {tree}: a worker edits files only there, never in the leader's checkout {checkout}")
+        refuse(f"{target} is outside your worktree {tree}: a worker edits files only there, never in the lead's checkout {checkout}")
 
 
 if __name__ == "__main__":

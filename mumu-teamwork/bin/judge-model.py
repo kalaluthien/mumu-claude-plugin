@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Print the `judge`'s model: `sonnet` for at most 20 changed lines, else `opus`.
 
-usage: review-model.py <base> <head>, run in the checkout.
+usage: judge-model.py <base> <head>, run in the checkout.
 """
 import pathlib
 import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-from github import run  # noqa: E402
+from gh import run  # noqa: E402
 
 
 def changed(shortstat):
@@ -18,9 +18,9 @@ def changed(shortstat):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        sys.exit("usage: review-model.py <base> <head>")
+        sys.exit("usage: judge-model.py <base> <head>")
     try:
         lines = changed(run("git", "diff", "--shortstat", f"{sys.argv[1]}...{sys.argv[2]}"))
     except RuntimeError as e:
-        sys.exit(f"review-model.py: {e}")
+        sys.exit(f"judge-model.py: {e}")
     print(f"{'sonnet' if lines <= 20 else 'opus'} ({lines} changed lines)")

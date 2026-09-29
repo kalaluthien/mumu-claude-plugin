@@ -1,7 +1,7 @@
-"""`scripts/count-units.py`: the code counts on a small plugin, and the Sonnet counts against a fake `claude`
+"""`scripts/size-count.py`: the code counts on a small plugin, and the Sonnet counts against a fake `claude`
 on PATH that answers each ask with a fixed reply (#326).
 
-Run: python3 -m pytest mumu-teamwork/tests -q
+Run: uvx pytest mumu-teamwork/tests -q
 """
 import importlib.util
 import json
@@ -12,10 +12,10 @@ import sys
 import tempfile
 import unittest
 
-SCRIPT = pathlib.Path(__file__).resolve().parent.parent / "scripts" / "count-units.py"
-spec = importlib.util.spec_from_file_location("count_units", SCRIPT)
-count_units = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(count_units)
+SCRIPT = pathlib.Path(__file__).resolve().parent.parent / "scripts" / "size-count.py"
+spec = importlib.util.spec_from_file_location("size_count", SCRIPT)
+size_count = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(size_count)
 
 FILES = {
     "skills/one/SKILL.md": "# One\n\nRead the rules; never that. It is `One`.\n",
@@ -55,24 +55,24 @@ class Code(unittest.TestCase):
             (self.root / rel).write_text(text)
 
     def test_features_list_each_kind_by_name(self):
-        self.assertEqual(count_units.features(self.root), {
+        self.assertEqual(size_count.features(self.root), {
             "skills": ["one"], "agents": ["boss"],
             "hook registrations": ["Stop stop.py", "PreToolUse[Bash] g.py"],
             "monitors": ["watch"], "bin executables": ["go.py"], "eval cases": ["case-a"]})
 
     def test_files_and_lines_leave_caches_out(self):
-        files = count_units.tree(self.root)
+        files = size_count.tree(self.root)
         self.assertEqual(len(files), len(FILES) - 1)
-        by, total = count_units.lines(files)
+        by, total = size_count.lines(files)
         self.assertEqual((by[".py"], total), (3, sum(len(t.splitlines()) for t in FILES.values())))
 
     def test_sonnet_reads_only_md_outside_tests_and_evals(self):
-        self.assertEqual(sorted(p.relative_to(self.root).as_posix() for p in count_units.texts(self.root)),
+        self.assertEqual(sorted(p.relative_to(self.root).as_posix() for p in size_count.texts(self.root)),
                          ["agents/boss.md", "skills/one/SKILL.md"])
 
     def test_sentences_skip_headings_fences_and_front_matter_but_its_description(self):
         text = "---\nname: x\ndescription: Says x. Then y.\n---\n# H\n\n```\ncode. More.\n```\n| a | b |\n| --- | --- |\nOne. Two? `three` too; four.\n"
-        self.assertEqual(count_units.sentences(text), [
+        self.assertEqual(size_count.sentences(text), [
             ("3.1", 3, "Says x."), ("3.2", 3, "Then y."), ("10.1", 10, "| a | b |"),
             ("12.1", 12, "One."), ("12.2", 12, "Two?"), ("12.3", 12, "`three` too;"), ("12.4", 12, "four.")])
 
@@ -97,17 +97,17 @@ class Code(unittest.TestCase):
                 {"line": 1, "text": "it polls.", "instructions": 0, "elaboration": 1},
                 {"line": 2, "text": "Read it;", "instructions": 1, "elaboration": 0},
                 {"line": 2, "text": "since B.", "instructions": 0, "elaboration": 1}]
-        count_units.whole(rows)
+        size_count.whole(rows)
         self.assertEqual([r["elaboration"] for r in rows], [1, 0, 0, 1])
 
     def test_a_term_drops_heading_marks_and_arguments(self):
-        self.assertEqual([count_units.term(n) for n in ["## Goal", "`gh issue view <url>`", "boss (the agent)"]],
+        self.assertEqual([size_count.term(n) for n in ["## Goal", "`gh issue view <url>`", "boss (the agent)"]],
                          ["goal", "gh issue view", "boss"])
 
     def test_majority_keeps_pairs_grouped_in_more_than_half_the_samples(self):
-        self.assertEqual(count_units.majority([[["a", "b", "c"]], [["a", "b"], ["c", "d"]], [["b", "a"], ["d", "c"]]], 3),
+        self.assertEqual(size_count.majority([[["a", "b", "c"]], [["a", "b"], ["c", "d"]], [["b", "a"], ["d", "c"]]], 3),
                          [["a", "b"], ["c", "d"]])
-        self.assertEqual(count_units.majority([[["a", "b"]], [], []], 3), [])
+        self.assertEqual(size_count.majority([[["a", "b"]], [], []], 3), [])
 
     def test_no_json_reply_exits_2(self):
         fakes = pathlib.Path(tempfile.mkdtemp())

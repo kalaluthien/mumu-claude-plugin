@@ -9,9 +9,8 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-import names  # noqa: E402
-import github  # noqa: E402
-from github import repo as repo_view  # noqa: E402
+import sessions  # noqa: E402
+from gh import gh, repo as repo_view  # noqa: E402
 
 
 def main(argv):
@@ -19,10 +18,10 @@ def main(argv):
         sys.exit("usage: lead-name.py [<task-url>]")
     try:
         scopes = [label["name"].removeprefix("scope:") for label in
-                  json.loads(github.gh("issue", "view", argv[0], "--json", "labels"))["labels"]
+                  json.loads(gh("issue", "view", argv[0], "--json", "labels"))["labels"]
                   if label["name"].startswith("scope:")] if argv else []
         folders = [f for f in scopes if pathlib.Path(f).is_dir()]
-        print(f"{folders[0]}-lead" if len(folders) == 1 else names.lead(repo_view("name")))
+        print(f"{folders[0]}-lead" if len(folders) == 1 else sessions.lead(repo_view("name")))
     except (RuntimeError, ValueError, KeyError, TypeError) as e:
         sys.exit(f"lead-name.py: {e}")
 

@@ -1,6 +1,6 @@
 """The kickoff Verbs rows that post a body pass it as a file, so text naming a raw merge posts past `bash-guard.py` (#294).
 
-Run: python3 -m unittest discover mumu-teamwork/tests
+Run: uvx pytest mumu-teamwork/tests -q
 """
 import json
 import pathlib
@@ -13,7 +13,7 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 HOOK = ROOT / "scripts" / "bash-guard.py"
 SKILL = ROOT / "skills" / "kickoff" / "SKILL.md"
-ROWS = {"comment": "gh issue comment", "file": "gh issue create", "pr": "gh pr create", "decide": "decide.py"}
+ROWS = {"comment": "gh issue comment", "file": "gh issue create", "pr": "gh pr create", "decide": "decision-post.py"}
 FILLS = {"<url>": "https://github.com/o/r/issues/1", "<repo>": "o/r", "<title>": "Fix the thing", "<label>...": "effort:low",
          "<default>": "main", "<branch>": "b", "<pr>": "1", "[--criteria <file>] ": ""}
 BODY = "## Goal\nNo `gh pr " + "merge 7` by hand.\n\n## Definition of done\nD1: a check -> passes\n"

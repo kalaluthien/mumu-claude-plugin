@@ -25,12 +25,11 @@ LITERAL = {
     "herdr agent read *": f"herdr agent read {N}",
     "herdr tab rename *": f"herdr tab rename w1:t2 {N}",
     "herdr agent send-keys *": f"herdr agent send-keys {N} enter",
-    "worker-start.py *": f"worker-start.py /Users/me/workspace/plugins sample-topic low {U} --leader plugins-lead",
+    "worker-start.py *": f"worker-start.py /Users/me/workspace/plugins sample-topic low {U} --lead plugins-lead",
     "lead-start.py *": f"lead-start.py /Users/me/workspace/plugins {U} --folder mumu-teamwork",
-    "merge.py https://github.com/*": f"merge.py {PR}",
-    "decide.py https://github.com/*": f"decide.py {U} < /tmp/decision.md",
-    "worker-close.py *": f"worker-close.py {N}",
-    "tab-sweep.py *": "tab-sweep.py plugins-lead",
+    "pr-merge.py https://github.com/*": f"pr-merge.py {PR}",
+    "decision-post.py https://github.com/*": f"decision-post.py {U} < /tmp/decision.md",
+    "session-close.py *": f"session-close.py {N}",
     "git worktree remove .claude/worktrees/*": f"git worktree remove .claude/worktrees/{N}",
     "git worktree remove --force .claude/worktrees/*": f"git worktree remove --force .claude/worktrees/{N}",
     "git worktree remove --force --force .claude/worktrees/*": f"git worktree remove --force --force .claude/worktrees/{N}",
@@ -93,7 +92,7 @@ class Allow(unittest.TestCase):
                     self.assertIsNone(decision(self.guard(other)))
 
     def test_near_misses_get_no_allow(self):
-        for command in [f"merge.py http://evil/{PR}", f"decide.py {U} > /tmp/x", f"merge.py {PR} < /tmp/x",
+        for command in [f"pr-merge.py http://evil/{PR}", f"decision-post.py {U} > /tmp/x", f"pr-merge.py {PR} < /tmp/x",
                         "rm -rf .claude/worktrees/../..", "rm -rf .claude/worktrees/*", "rm -rf /x/.claude/worktrees/a",
                         f"git branch -D {N} ~", "git pull --ff-only origin main", "git worktree remove /tmp/x",
                         "herdr pane close w1:p2", "gh pr view 1", "ls"]:
@@ -120,7 +119,7 @@ class JudgeAllow(unittest.TestCase):
     def test_the_agent_matcher_runs_it(self):
         hooks = json.loads((ROOT / "hooks" / "hooks.json").read_text())["hooks"]["PreToolUse"]
         agent = [h for h in hooks if h["matcher"] == "Agent"]
-        self.assertEqual([h["hooks"][0]["command"] for h in agent], ["${CLAUDE_PLUGIN_ROOT}/scripts/judge-allow.py"])
+        self.assertEqual([h["hooks"][0]["command"] for h in agent], ['"${CLAUDE_PLUGIN_ROOT}"/scripts/judge-allow.py'])
 
 
 if __name__ == "__main__":

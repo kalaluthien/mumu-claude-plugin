@@ -3,7 +3,7 @@
 
 usage: repo-settings.py <checkout>
 
-- squash is the only merge method, as `merge.py` merges;
+- squash is the only merge method, as `pr-merge.py` merges;
 - a merged head branch is deleted;
 - the default branch takes changes only by a pull request, is never deleted or force-pushed, and, where the
   repository has checks, merges only with them passing on a head up to date with it.
@@ -13,8 +13,8 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
-import names  # noqa: E402
-import github  # noqa: E402
+import sessions  # noqa: E402
+import gh  # noqa: E402
 
 REPO = {"allow_squash_merge": True, "allow_merge_commit": False, "allow_rebase_merge": False, "delete_branch_on_merge": True}
 RULESET_NAME = "mumu-default-branch"
@@ -25,7 +25,7 @@ def ruleset(checks):
     rules = [
         {"type": "deletion"},
         {"type": "non_fast_forward"},
-        # 0 approvals: one account cannot approve its own pull request, and merge.py's `APPROVED:` is a comment.
+        # 0 approvals: one account cannot approve its own pull request, and pr-merge.py's `APPROVED:` is a comment.
         {"type": "pull_request", "parameters": {
             "required_approving_review_count": 0, "dismiss_stale_reviews_on_push": False,
             "require_code_owner_review": False, "require_last_push_approval": False,
@@ -49,7 +49,7 @@ def differs(want, have):
 
 
 def api(cwd, *argv, body=None):
-    out = github.gh("api", *argv, *(["--input", "-"] if body is not None else []), cwd=cwd, stdin=json.dumps(body) if body is not None else None)
+    out = gh.gh("api", *argv, *(["--input", "-"] if body is not None else []), cwd=cwd, stdin=json.dumps(body) if body is not None else None)
     return json.loads(out) if out.strip() else None
 
 
@@ -59,7 +59,7 @@ def apply(cwd):
     if differs(REPO, api(cwd, "repos/{owner}/{repo}")):
         api(cwd, "-X", "PATCH", "repos/{owner}/{repo}", body=REPO)
         changed.append("repository")
-    default = github.repo("defaultBranchRef", cwd)
+    default = gh.repo("defaultBranchRef", cwd)
     runs = api(cwd, f"repos/{{owner}}/{{repo}}/commits/{default}/check-runs") or {}
     want = ruleset({r["name"] for r in runs.get("check_runs", [])})
     found = next((r for r in api(cwd, "repos/{owner}/{repo}/rulesets") or [] if r.get("name") == RULESET_NAME), None)
@@ -76,7 +76,7 @@ def main(argv):
     if len(argv) != 1:
         sys.exit("usage: repo-settings.py <checkout>")
     try:
-        changed = apply(str(names.checkout(argv[0])))
+        changed = apply(str(sessions.checkout(argv[0])))
     except (RuntimeError, ValueError, KeyError, TypeError) as e:
         sys.exit(f"repo-settings.py: {e}")
     print("changed: " + ", ".join(changed) if changed else "unchanged")

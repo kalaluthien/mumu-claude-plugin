@@ -10,8 +10,8 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 JUDGE = ROOT / "agents" / "judge.md"
 SKILL = ROOT / "skills" / "kickoff" / "SKILL.md"
-LEAD = ROOT / "skills" / "kickoff" / "references" / "lead-goal.md"
-WORK = ROOT / "skills" / "kickoff" / "references" / "work-task.md"
+LEAD = ROOT / "skills" / "kickoff" / "references" / "lead-playbook.md"
+WORK = ROOT / "skills" / "kickoff" / "references" / "worker-playbook.md"
 KINDS = ("`[exists]`", "`[test]`", "`[quality]`")
 
 
@@ -88,7 +88,8 @@ class Judge(unittest.TestCase):
 class Worker(unittest.TestCase):
     def test_a_finding_is_closed_at_its_cause(self):
         self.assertRegex(WORK.read_text(), r"A finding is closed by fixing the cause of the gap it names, never by rewording, "
-                                           r"loosening a test or editing a criterion; a criterion you think wrong is .*`BLOCKED:`")
+                                           r"loosening a test or editing a criterion\.")
+        self.assertRegex(WORK.read_text(), r"for a criterion you think wrong, .*: `comment` `BLOCKED: <question>`")
 
 
 if __name__ == "__main__":
