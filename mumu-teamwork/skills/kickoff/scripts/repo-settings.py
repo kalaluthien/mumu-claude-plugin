@@ -4,9 +4,7 @@
 usage: repo-settings.py <checkout>
 
 - squash is the only merge method, as `pr-merge.py` merges;
-- a merged head branch is deleted;
-- the default branch takes changes only by a pull request, is never deleted or force-pushed, and, where the
-  repository has checks, merges only with them passing on a head up to date with it.
+- a merged head branch is deleted.
 """
 import json
 import pathlib
@@ -17,26 +15,7 @@ import sessions  # noqa: E402
 import gh  # noqa: E402
 
 REPO = {"allow_squash_merge": True, "allow_merge_commit": False, "allow_rebase_merge": False, "delete_branch_on_merge": True}
-RULESET_NAME = "mumu-default-branch"
-
-
-def ruleset(checks):
-    """The default branch's ruleset, requiring `checks` up to date when there are any."""
-    rules = [
-        {"type": "deletion"},
-        {"type": "non_fast_forward"},
-        # 0 approvals: one account cannot approve its own pull request, and pr-merge.py's `APPROVED:` is a comment.
-        {"type": "pull_request", "parameters": {
-            "required_approving_review_count": 0, "dismiss_stale_reviews_on_push": False,
-            "require_code_owner_review": False, "require_last_push_approval": False,
-            "required_review_thread_resolution": False, "allowed_merge_methods": ["squash"]}},
-    ]
-    if checks:
-        rules.append({"type": "required_status_checks", "parameters": {
-            "strict_required_status_checks_policy": True,
-            "required_status_checks": [{"context": c} for c in sorted(checks)]}})
-    return {"name": RULESET_NAME, "target": "branch", "enforcement": "active", "bypass_actors": [],
-            "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}}, "rules": rules}
+# No default-branch rulesets step: GitHub answers it 403 on a free plan's private repository.
 
 
 def differs(want, have):
@@ -54,22 +33,11 @@ def api(cwd, *argv, body=None):
 
 
 def apply(cwd):
-    """Set `REPO` and the ruleset on `cwd`'s repository where they differ; the list of what changed."""
-    changed = []
-    if differs(REPO, api(cwd, "repos/{owner}/{repo}")):
-        api(cwd, "-X", "PATCH", "repos/{owner}/{repo}", body=REPO)
-        changed.append("repository")
-    default = gh.repo("defaultBranchRef", cwd)
-    runs = api(cwd, f"repos/{{owner}}/{{repo}}/commits/{default}/check-runs") or {}
-    want = ruleset({r["name"] for r in runs.get("check_runs", [])})
-    found = next((r for r in api(cwd, "repos/{owner}/{repo}/rulesets") or [] if r.get("name") == RULESET_NAME), None)
-    if found is None:
-        api(cwd, "-X", "POST", "repos/{owner}/{repo}/rulesets", body=want)
-        changed.append("ruleset created")
-    elif differs(want, api(cwd, f"repos/{{owner}}/{{repo}}/rulesets/{found['id']}")):
-        api(cwd, "-X", "PUT", f"repos/{{owner}}/{{repo}}/rulesets/{found['id']}", body=want)
-        changed.append("ruleset updated")
-    return changed
+    """Set `REPO` on `cwd`'s repository where it differs; the list of what changed."""
+    if not differs(REPO, api(cwd, "repos/{owner}/{repo}")):
+        return []
+    api(cwd, "-X", "PATCH", "repos/{owner}/{repo}", body=REPO)
+    return ["repository"]
 
 
 def main(argv):
