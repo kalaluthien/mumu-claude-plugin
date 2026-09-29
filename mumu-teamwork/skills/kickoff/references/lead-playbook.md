@@ -38,7 +38,7 @@ Route every request, the owner's included, before taking it:
 | the work is for | you |
 | --- | --- |
 | backlog: the owner's words kept for later, for any project | `file` them as said, labelled `backlog` and, where the repository has them, `scope:<folder>`, in that project's repository, with no parent and no format; the owner asking to survey one: `start` it under a topic at effort low or medium with `--survey --lead <your address>`; the owner starting one: remove its `backlog` label and replace its body by the contract |
-| this project | take it as a root task, from Lead 2; with `scope:` labels, only for your folder, found as `handoff` step 2 says, and another folder's goes to its lead |
+| this project | make it yourself when it is a small change, else take it as a root task, from Lead 2; with `scope:` labels, only for your folder, found as `handoff` step 2 says, and another folder's goes to its lead |
 | another project | follow `${CLAUDE_PLUGIN_ROOT}/skills/handoff/SKILL.md`, read with `Read`, then `order` the work here that needs it after its root task |
 | every project: a shared rule or tool changing | `broadcast` its issue url |
 | several projects | one root task per project, each routed as above |
@@ -69,7 +69,7 @@ Answer another lead's notice that is not a task for you with a plain `comment` o
 
 ## Small change
 
-Make one change yourself only when the owner's words spell it out, in one file and about 5 changed lines, with no script logic: in a worktree off the default branch, `pr` it on the task reopened or filed for it, run the checks `scope` prints, the `judge` among them when printed, `merge` it, and remove the worktree and branch as `clean` does.
+Make a change yourself when its words name what to change and how to check it, and it has at most 30 changed lines in any number of files: file or reopen no issue and launch no judge. In a worktree off the default branch, `pr` it with a body naming no task, run the checks `scope` prints but the judge, `comment` their `PASSED:`, `merge` it, and remove the worktree and branch as `clean` does. Past 30 lines, `file` it as a task.
 
 ## Folder leads
 

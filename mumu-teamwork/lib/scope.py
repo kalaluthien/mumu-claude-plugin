@@ -52,6 +52,11 @@ def changed(compare):
     return {p for f in files for p in (f["filename"], f.get("previous_filename")) if p} | ({MAPPING} if len(files) >= 300 else set())
 
 
+def lines(compare):
+    """The changed lines of a compare response's diff: each file's additions plus deletions."""
+    return sum(f.get("additions", 0) + f.get("deletions", 0) for f in compare.get("files") or [])
+
+
 def model(lines):
     """The judge's model: `sonnet` for at most 20 changed lines, else `opus`."""
     return "sonnet" if lines <= 20 else "opus"

@@ -78,7 +78,7 @@ Writing, for every issue, pull request and comment:
 - As short as it can be: bullets or a table, no narration; cite urls, `path:line`s and shas instead of restating them.
 - A title is verb-first and at most 40 characters.
 - Headings are noun phrases: a body carries `## Goal` and `## Definition of done`, one criterion per line.
-- A pull request body is `Closes #<task>`, or a share's `Part of #<task>`, over the criteria table: each criterion, the command run and its result, pass or fail, with the count or line that shows it, and an `on main` column, filled for a `[test]` row with the new test's failing line run against the default branch.
+- A pull request body is `Closes #<task>`, or a share's `Part of #<task>`, or for a lead's small change no task, over the criteria table: each criterion, the command run and its result, pass or fail, with the count or line that shows it, and an `on main` column, filled for a `[test]` row with the new test's failing line run against the default branch.
 - A report comment is the findings over the same criteria table.
 
 # Verbs
@@ -117,7 +117,7 @@ Name the target pane in every command.
 | `claim` | take an attempt by its branch on the remote: `git fetch origin && ! git ls-remote --exit-code origin refs/heads/<branch> && git push -u origin <branch>`, `<branch>` the worktree's own, named after it; a branch found is yours only when this checkout is on it |
 | `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file <path>`; later `gh pr edit <pr> --body-file <path>` |
 | `scope` | `check-scope.py <pr-url>`: the checks the pull request's diff needs, the judge first with its model |
-| `merge` | `pr-merge.py <pr-url>`: refused while a check of the scope has no pass at the head nor one carried to it, naming each |
+| `merge` | `pr-merge.py <pr-url>`: refused while a check of the scope has no pass at the head nor one carried to it, naming each; a body naming no task is a small change, its scope without the judge, refused past 30 changed lines |
 | `clean` | from the checkout's root, one literal Bash call per command per worker, with no `git -C`, `cd` prefix, loop, `$(...)` or variable: `git worktree remove .claude/worktrees/<name>`, `git branch -D <name>` and, while `git ls-remote --exit-code origin refs/heads/<name>` finds it, `git push origin --delete <name>`; then `git pull --ff-only`, and remove the hook when `cmp -s` finds it equal to `default-branch-guard.sh` as `rm <hooks>/pre-commit`, `<hooks>` written out as its literal path |
 
 ## Traps

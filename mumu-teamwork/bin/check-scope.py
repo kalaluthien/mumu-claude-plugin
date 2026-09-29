@@ -23,6 +23,6 @@ if __name__ == "__main__":
         need = scope.needs(scope.changed(ahead), mapping, scope.names(tree) if tree else set())
     except (RuntimeError, ValueError, KeyError, TypeError) as e:
         sys.exit(f"check-scope.py: could not read {sys.argv[1]}'s scope: {e}")
-    lines = sum(f.get("additions", 0) + f.get("deletions", 0) for f in ahead.get("files") or [])
+    lines = scope.lines(ahead)
     for check in need:
         print(f"judge: {scope.model(lines)} ({lines} changed lines)" if check == scope.JUDGE else check)
