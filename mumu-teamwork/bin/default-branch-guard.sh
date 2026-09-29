@@ -1,8 +1,7 @@
 #!/bin/sh
 # Git pre-commit: refuse a commit on the repository's default branch, so
 # work lands only through a pull request and `pull --ff-only` stays clean.
-# A push to it is refused by the server's ruleset (skills/kickoff/scripts/repo-settings.py), so run
-# as any other hook, such as pre-push, it passes: `push --delete` works on it.
+# Run as any other hook, such as pre-push, it passes: `push --delete` works on it.
 # The default branch is origin's HEAD, else init.defaultBranch, else main.
 
 default=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)
