@@ -218,10 +218,11 @@ class Merge(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIsNotNone(words)
 
-    def test_a_body_naming_no_task_is_refused_before_any_merge(self):
+    def test_a_body_naming_no_task_over_30_lines_is_refused_before_any_merge(self):
+        big = [{"filename": "a.py", "additions": 20, "deletions": 11}]
         for body in ("", "criteria only", "see #3"):
             with self.subTest(body=body):
-                result, words = merge([f"APPROVED: {HEAD}"], body=body)
+                result, words = merge([f"APPROVED: {HEAD}"], body=body, files=big)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("names no task", result.stderr)
                 self.assertIsNone(words)
@@ -1170,6 +1171,34 @@ class MergeScope(unittest.TestCase):
             with self.subTest(record=record):
                 result, words = scoped([f"APPROVED: {HEAD}", record], ["p/bin/x.py"])
                 self.assertIsNone(words)
+
+    def test_a_small_change_naming_no_task_merges_without_the_judge(self):
+        """A body naming no task with at most 30 changed lines, in any number of files, needs every check of its scope but the judge."""
+        small = [{"filename": "p/bin/x.py", "additions": 10, "deletions": 5}, {"filename": "p/skills/s/SKILL.md", "additions": 15}]
+        result, words = scoped([passed(HEAD, "p/tests/test_bin.py", "p/evals/a", "p/evals/b")], small, body="Fix x: see line 3")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(words[-1], HEAD)
+
+    def test_a_small_change_naming_no_task_still_needs_its_test_checks(self):
+        result, words = scoped([passed(HEAD, "p/evals/a", "p/evals/b")], [{"filename": "p/bin/x.py", "additions": 30}], body="")
+        self.assertIsNone(words)
+        self.assertIn("`p/tests/test_bin.py` has no pass", result.stderr)
+        self.assertNotIn("judge", result.stderr)
+
+    def test_a_change_naming_no_task_at_31_lines_is_refused(self):
+        big = [{"filename": "p/bin/x.py", "additions": 16}, {"filename": "p/notes/n.md", "additions": 10, "deletions": 5}]
+        result, words = scoped([f"APPROVED: {HEAD}", passed(HEAD, "p/tests/test_bin.py")], big, body="")
+        self.assertIsNone(words)
+        self.assertIn("names no task, and its 31 changed lines exceed a small change's 30", result.stderr)
+
+    def test_a_change_naming_no_task_with_a_binary_file_is_refused(self):
+        files = [{"filename": "p/bin/x.py", "additions": 3, "status": "modified", "patch": "@@"},
+                 {"filename": "p/notes/logo.png", "status": "modified", "changes": 0}]
+        result, words = scoped([passed(HEAD, "p/tests/test_bin.py")], files, body="")
+        self.assertIsNone(words)
+        self.assertIn("p/notes/logo.png change with no lines to count", result.stderr)
+        result, words = scoped([passed(HEAD, "p/tests/test_bin.py")], files[:1], body="")
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_a_repository_without_the_mapping_needs_only_the_judge(self):
         result, words = merge([f"APPROVED: {HEAD}"], files=["p/bin/x.py", "checks.json"])

@@ -2,7 +2,8 @@
 """Squash-merge a pull request once each check its scope needs has a pass at the head, or one carried to it: the only merge path.
 
 The judge's pass is its newest `APPROVED: <A>`, carried across merges of the default branch that leave the PR's own diff
-byte-identical; any check's pass, the judge's included, carries across commits that change no path the mapping assigns to it."""
+byte-identical; any check's pass, the judge's included, carries across commits that change no path the mapping assigns to it.
+A body naming no task is a lead's small change: at most `SMALL` changed lines, needing every check of its scope but the judge."""
 import json
 import pathlib
 import re
@@ -20,6 +21,7 @@ FINDINGS = re.compile(r"findings\b:?.*", re.I)
 REF = r"(?:([\w.-]+/[\w.-]+)?#(\d+)|https://github\.com/([\w.-]+/[\w.-]+)/issues/(\d+))"
 CLOSING = re.compile(rf"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\s+{REF}", re.I)
 PART = re.compile(rf"\bpart of:?\s+{REF}", re.I)
+SMALL = 30
 
 
 def approval(pr):
@@ -135,12 +137,18 @@ def main(args):
     except RuntimeError as e:
         sys.exit(f"pr-merge.py: could not read {url}: {e}")
     head, repo, base = pr["headRefOid"], "/".join(url.split("/")[3:5]), pr["baseRefName"]
-    if not (CLOSING.search(pr.get("body") or "") or PART.search(pr.get("body") or "")):
-        sys.exit("pr-merge.py: the body names no task: open it with `Closes #<task>`, or a share's `Part of #<task>`, over the criteria table")
     try:
         mapping, ahead, tree = gh.change(repo, base, head)
         names = scope.names(tree) if tree else set()
         need = scope.needs(scope.changed(ahead), mapping, names)
+        if not (CLOSING.search(pr.get("body") or "") or PART.search(pr.get("body") or "")):
+            if (lines := scope.lines(ahead)) > SMALL:
+                sys.exit(f"pr-merge.py: the body names no task, and its {lines} changed lines exceed a small change's {SMALL}: "
+                         "open it with `Closes #<task>`, or a share's `Part of #<task>`, over the criteria table")
+            if unsized := scope.binary(ahead):
+                sys.exit(f"pr-merge.py: the body names no task, and {', '.join(unsized)} change with no lines to count: "
+                         "open it with `Closes #<task>`, or a share's `Part of #<task>`, over the criteria table")
+            need = [c for c in need if c != scope.JUDGE]
         behind, task = int(ahead["behind_by"]), shared(pr, repo)
         moved = scope.changed(gh.api(f"repos/{repo}/compare/{head}...{base}")) if behind else set()
         gaps = [] if behind else unpassed(pr, repo, f"origin/{base}", mapping, names, need)

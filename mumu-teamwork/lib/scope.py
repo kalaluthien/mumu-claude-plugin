@@ -53,6 +53,17 @@ def changed(compare):
     return {p for f in files for p in (f["filename"], f.get("previous_filename")) if p} | ({MAPPING} if len(files) >= 300 else set())
 
 
+def lines(compare):
+    """The changed lines of a compare response's diff: each file's additions plus deletions."""
+    return sum(f.get("additions", 0) + f.get("deletions", 0) for f in compare.get("files") or [])
+
+
+def binary(compare):
+    """Each path a compare response's diff changes with no lines to count: added, changed or removed with no patch."""
+    return [f["filename"] for f in compare.get("files") or []
+            if f.get("status") in ("added", "modified", "removed") and "patch" not in f and not f.get("changes")]
+
+
 def names(tree):
     """The path of each file and folder in a `git/trees` response: the checks that can run at that commit."""
     if tree.get("truncated"):
