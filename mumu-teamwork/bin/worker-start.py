@@ -12,6 +12,9 @@ import herdr  # noqa: E402
 import sessions  # noqa: E402
 from gh import heads, repo as repo_view, run, task  # noqa: E402
 
+# The worker's model and effort, which its lead picks per task by kickoff's table.
+MODELS, EFFORTS = ("opus", "sonnet"), ("low", "medium", "high")
+
 
 def attempts(repo, n, topic=None, remote=True):
     """Each `k` of a local worktree of `repo` for task `n` and `topic`, and with `remote` of each branch and pull request head."""
@@ -23,8 +26,8 @@ def attempts(repo, n, topic=None, remote=True):
     return [k for h in found if (k := sessions.attempt(h, topic, n)) is not None]
 
 
-def refusal(issue, n, topic, effort, merged, survey=False):
-    """Why task `n`, as `task` reads it, may not start a worker on `topic` at `effort`, or with `survey` a survey worker on
+def refusal(issue, n, topic, merged, survey=False):
+    """Why task `n`, as `task` reads it, may not start a worker on `topic`, or with `survey` a survey worker on
     backlog `n`, `merged` the merged pull requests' branches; None when it may."""
     if issue["state"] != "OPEN":
         return f"task #{n} is {issue['state'].lower()}: a stopped or finished task starts no worker; reopen it first"
@@ -32,9 +35,6 @@ def refusal(issue, n, topic, effort, merged, survey=False):
         return None if "backlog" in issue["labels"] else f"#{n} is not labelled backlog: --survey starts only a backlog's survey worker"
     if "backlog" in issue["labels"]:
         return f"#{n} is labelled backlog, which is never worked: remove the label and write its contract first, or pass --survey to survey it"
-    efforts = [label.removeprefix("effort:") for label in issue["labels"] if label.startswith("effort:")]
-    if efforts != [effort]:
-        return f"task #{n} is labelled {', '.join('effort:' + e for e in efforts) or 'with no effort:<effort>'}: start it at its one effort label"
     if issue["blockers"]:
         return f"task #{n} waits on {', '.join(issue['blockers'])} by blocked-by: start it once each is closed"
     rows = sessions.shares(issue["body"])
@@ -77,25 +77,24 @@ def worktree(repo, name):
 
 def main(argv):
     parser = argparse.ArgumentParser(prog="worker-start.py", allow_abbrev=False)
-    for arg in ("checkout", "topic", "effort", "url"):
-        parser.add_argument(arg)
+    parser.add_argument("checkout")
+    parser.add_argument("topic")
+    parser.add_argument("model", choices=MODELS)
+    parser.add_argument("effort", choices=EFFORTS)
+    parser.add_argument("url")
     parser.add_argument("--continue", dest="resume", action="store_true")
     parser.add_argument("--lead")
-    parser.add_argument("--owner-effort", action="store_true")
     parser.add_argument("--survey", action="store_true")
     a = parser.parse_args(argv)
-    topic, effort, url, resume = a.topic, a.effort, a.url, a.resume
+    topic, url, resume = a.topic, a.url, a.resume
     number = re.search(r"/issues/(\d+)/?$", url)
     if not number or not re.fullmatch(sessions.TOPIC, topic) or not 2 <= len(topic.split("-")) <= 4:
         print(f"worker-start.py: topic {topic!r} must be 2-4 lowercase words joined by -, and {url!r} a task url", file=sys.stderr)
         return 2
-    if effort not in ("low", "medium") and not a.owner_effort:
-        print(f"worker-start.py: effort {effort!r} must be low or medium; pass --owner-effort only when the owner named it", file=sys.stderr)
-        return 2
     try:
         repo = str(sessions.checkout(a.checkout))
         issue = task(repo, number[1])
-        if why := refusal(issue, number[1], topic, effort, heads(repo, "merged") if sessions.shares(issue["body"]) and not a.survey else [], a.survey):
+        if why := refusal(issue, number[1], topic, heads(repo, "merged") if sessions.shares(issue["body"]) and not a.survey else [], a.survey):
             raise RuntimeError(why)
         run("git", "-C", repo, "fetch", "origin")
         if not resume and (held := busy(repo, number[1], topic)):
@@ -107,7 +106,7 @@ def main(argv):
         tree = worktree(repo, name)
         pane = herdr.open_tab(tree, name, "--env", "MUMU_ROLE=worker", "--no-focus")
         timeout, poll = float(os.environ.get("WORKER_START_TIMEOUT", 60)), float(os.environ.get("WORKER_START_POLL", 1))
-        herdr.launch(name, pane, ["--name", name, "--agent", "mumu-teamwork:worker", "--model", "opus", "--effort", effort] + (["--continue"] if resume else []), timeout, poll)
+        herdr.launch(name, pane, ["--name", name, "--agent", "mumu-teamwork:worker", "--model", a.model, "--effort", a.effort] + (["--continue"] if resume else []), timeout, poll)
         if a.lead:
             herdr.deliver(name, pane, f"/mumu-teamwork:kickoff {'survey' if a.survey else 'work'} {url} lead {a.lead}", timeout, poll)
     except RuntimeError as e:

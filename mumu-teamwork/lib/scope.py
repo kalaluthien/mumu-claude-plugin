@@ -10,6 +10,7 @@ import re
 
 MAPPING = "checks.json"
 JUDGE = "judge"
+JUDGE_MODEL = "sonnet"  # a pull request's judge at any size; a plan's runs on judge.md's own model
 PASSED = re.compile(r"passed:?\s+([0-9a-f]{40})", re.I)
 
 
@@ -55,11 +56,6 @@ def changed(compare):
 def lines(compare):
     """The changed lines of a compare response's diff: each file's additions plus deletions."""
     return sum(f.get("additions", 0) + f.get("deletions", 0) for f in compare.get("files") or [])
-
-
-def model(lines):
-    """The judge's model: `sonnet` for at most 20 changed lines, else `opus`."""
-    return "sonnet" if lines <= 20 else "opus"
 
 
 def names(tree):

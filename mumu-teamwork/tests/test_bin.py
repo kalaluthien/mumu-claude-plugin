@@ -564,8 +564,7 @@ blocked = (d / "trust").exists() and not (d / "answered").exists()
 if tool == "gh":
     prs = d / ("open_prs" if "open" in a else "prs")
     if a[:2] == ["issue", "view"]:
-        effort = (d / "effort").read_text() if (d / "effort").exists() else "low"
-        print((d / "issue").read_text() if (d / "issue").exists() else json.dumps({"state": "OPEN", "labels": [{"name": "effort:" + effort}], "body": ""}))
+        print((d / "issue").read_text() if (d / "issue").exists() else json.dumps({"state": "OPEN", "labels": [], "body": ""}))
     elif a[:1] == ["api"] and a[1].endswith("/dependencies/blocked_by"):
         print((d / "blockers").read_text() if (d / "blockers").exists() else "[]")
     elif a[:2] == ["pr", "list"] and "merged" in a:
@@ -625,13 +624,12 @@ class WorkerStart(unittest.TestCase):
             (self.tmp / tool).write_text(START_FAKE)
             (self.tmp / tool).chmod(0o755)
 
-    def start(self, *extra, trust=True, topic="go-start", url=ISSUE, effort="low", checkout=None, cwd=None):
+    def start(self, *extra, trust=True, topic="go-start", url=ISSUE, model="opus", effort="low", checkout=None, cwd=None):
         if trust:
             (self.tmp / "trust").touch()
-        (self.tmp / "effort").write_text(effort)
         env = dict(os.environ, START_FAKE=str(self.tmp), PATH=f"{self.tmp}:{BIN}:{os.environ['PATH']}",
                    WORKER_START_TIMEOUT="3", WORKER_START_POLL="0.01")
-        done = subprocess.run([sys.executable, str(BIN / "worker-start.py"), checkout or str(self.repo), topic, effort, url, *extra],
+        done = subprocess.run([sys.executable, str(BIN / "worker-start.py"), checkout or str(self.repo), topic, model, effort, url, *extra],
                               env=env, cwd=cwd, capture_output=True, text=True, timeout=30)
         log = self.tmp / "calls"
         calls = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
@@ -790,22 +788,43 @@ class WorkerStart(unittest.TestCase):
                 self.assertEqual(calls, [], "worktree or tab touched")
         self.assertFalse((self.repo / ".claude" / "worktrees").exists())
 
-    def test_high_effort_refused_before_side_effects(self):
-        done, calls = self.start(trust=False, effort="high")
+    def test_each_model_and_effort_starts_the_worker_on_them(self):
+        """The lead's pick from kickoff's table reaches the worker's session as `--model <model> --effort <effort>` (#361)."""
+        for model in ("opus", "sonnet"):
+            for effort in ("low", "medium", "high"):
+                with self.subTest(model=model, effort=effort):
+                    done, calls = self.start(trust=False, model=model, effort=effort)
+                    self.assertEqual(done.returncode, 0, done.stderr)
+                    start = [c for c in calls if c[1:3] == ["agent", "start"]][-1]
+                    self.assertEqual(start[start.index("--model"):start.index("--effort") + 2], ["--model", model, "--effort", effort])
+
+    def test_another_model_or_effort_is_refused_before_side_effects(self):
+        for model, effort in (("haiku", "low"), ("opus", "max"), ("sonnet", "xhigh"), ("low", "opus")):
+            with self.subTest(model=model, effort=effort):
+                done, calls = self.start(trust=False, model=model, effort=effort)
+                self.assertEqual(done.returncode, 2)
+                self.assertIn("invalid choice", done.stderr)
+                self.assertEqual(calls, [], "worktree or tab touched")
+
+    def test_no_owner_effort_flag(self):
+        done, calls = self.start("--owner-effort", trust=False, effort="high")
         self.assertEqual(done.returncode, 2)
-        self.assertIn("--owner-effort", done.stderr)
-        self.assertEqual(len(done.stderr.strip().splitlines()), 1)
+        self.assertIn("unrecognized arguments: --owner-effort", done.stderr)
         self.assertEqual(calls, [], "worktree or tab touched")
 
-    def test_high_effort_with_owner_flag_starts_at_high(self):
-        done, calls = self.start("--owner-effort", trust=False, effort="high")
-        self.assertEqual(done.returncode, 0, done.stderr)
-        start = next(c for c in calls if c[1:3] == ["agent", "start"])
-        self.assertEqual(start[start.index("--effort") + 1], "high")
+    def test_effort_labels_are_not_read(self):
+        """A task labelled with no, another or several `effort:` labels starts at the effort given (#361)."""
+        for labels in ([], [{"name": "effort:medium"}], [{"name": "effort:low"}, {"name": "effort:medium"}]):
+            with self.subTest(labels=labels):
+                (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": labels, "body": ""}))
+                done, calls = self.start(trust=False, model="sonnet", effort="high")
+                self.assertEqual(done.returncode, 0, done.stderr)
+                start = [c for c in calls if c[1:3] == ["agent", "start"]][-1]
+                self.assertEqual(start[start.index("--effort") + 1], "high")
 
     def refused(self, why, **issue):
-        """Start on a task the fake serves as `issue`, over an open one labelled `effort:low`: refused naming `why`, before any worktree or tab."""
-        task = {"state": "OPEN", "labels": [{"name": "effort:low"}], "body": ""}
+        """Start on a task the fake serves as `issue`, over an open one: refused naming `why`, before any worktree or tab."""
+        task = {"state": "OPEN", "labels": [], "body": ""}
         task.update(issue)
         (self.tmp / "issue").write_text(json.dumps(task))
         done, calls = self.start(trust=False)
@@ -818,10 +837,10 @@ class WorkerStart(unittest.TestCase):
         self.refused("a stopped or finished task starts no worker", state="CLOSED")
 
     def test_a_backlog_issue_is_never_worked(self):
-        self.refused("never worked", labels=[{"name": "backlog"}, {"name": "effort:low"}])
+        self.refused("never worked", labels=[{"name": "backlog"}])
 
     def test_survey_starts_a_backlogs_survey_worker(self):
-        """`--survey` starts a backlog's survey worker, prompted `survey`, at the effort given though it has no label (#94)."""
+        """`--survey` starts a backlog's survey worker, prompted `survey`, on the model and effort given (#94)."""
         (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": [{"name": "backlog"}], "body": "the owner's words"}))
         done, calls = self.start("--survey", "--lead", "l", effort="medium")
         self.assertEqual(done.returncode, 0, done.stderr)
@@ -829,16 +848,11 @@ class WorkerStart(unittest.TestCase):
         self.assertIn(["herdr", "agent", "prompt", PANE, f"/mumu-teamwork:kickoff survey {ISSUE} lead l"], calls)
 
     def test_survey_of_a_task_is_refused(self):
-        (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": [{"name": "effort:low"}], "body": ""}))
+        (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": [], "body": ""}))
         done, calls = self.start("--survey", trust=False)
         self.assertEqual(done.returncode, 1, done.stdout)
         self.assertIn("not labelled backlog", done.stderr)
         self.assertFalse([c for c in calls if c[0] == "herdr"])
-
-    def test_the_effort_must_be_the_tasks_one_label(self):
-        for labels in ([], [{"name": "effort:medium"}], [{"name": "effort:low"}, {"name": "effort:medium"}]):
-            with self.subTest(labels=labels):
-                self.refused("its one effort label", labels=labels)
 
     def test_an_open_blocker_holds_the_task(self):
         (self.tmp / "blockers").write_text(json.dumps([{"html_url": "https://github.com/o/r/issues/3", "state": "open"}]))
@@ -856,7 +870,7 @@ class WorkerStart(unittest.TestCase):
         self.refused("is after go-first", body=body)
         (self.tmp / "merged").write_text("go-first-8-1\ngo-first-7-1\n")
         (self.tmp / "issue").unlink()
-        (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": [{"name": "effort:low"}], "body": body}))
+        (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": [], "body": body}))
         done, _ = self.start(trust=False)
         self.assertEqual(done.returncode, 0, done.stderr)
 
@@ -865,20 +879,12 @@ class WorkerStart(unittest.TestCase):
                 "| go-first | D1 | | |\n| go-start | D2 | go-first | |\n| go-last | D3 | go-start | |\n")
         self.refused("is after go-first", body=body)
         (self.tmp / "merged").write_text("go-first-7-1\n")
-        (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": [{"name": "effort:low"}], "body": body}))
+        (self.tmp / "issue").write_text(json.dumps({"state": "OPEN", "labels": [], "body": body}))
         done, _ = self.start(trust=False)
         self.assertEqual(done.returncode, 0, done.stderr)
         done, _ = self.start(trust=False, topic="go-last")
         self.assertEqual(done.returncode, 1, done.stdout)
         self.assertIn("is after go-start", done.stderr)
-
-    def test_low_and_medium_start(self):
-        for effort in ("low", "medium"):
-            with self.subTest(effort=effort):
-                done, calls = self.start(trust=False, effort=effort)
-                self.assertEqual(done.returncode, 0, done.stderr)
-                start = [c for c in calls if c[1:3] == ["agent", "start"]][-1]
-                self.assertEqual(start[start.index("--effort") + 1], effort)
 
     def test_each_attempt_adds_its_worktree_on_its_own_branch(self):
         for k in (1, 2):
@@ -1297,15 +1303,17 @@ class CheckScope(unittest.TestCase):
         for files in (["no-such-folder/x.txt"], ["checks.json"], []):
             with self.subTest(files=files):
                 printed = self.scope(files)
-                self.assertTrue(printed[0].startswith("judge: opus") or printed[0].startswith("judge: sonnet"))
+                self.assertEqual(printed[0], "judge: sonnet")
                 self.assertEqual(printed[1:], self.every)
 
-    def test_the_judge_model_is_sonnet_to_twenty_changed_lines(self):
-        self.assertEqual(self.scope(["no-such-folder/x.txt"], lines=20)[0], "judge: sonnet (20 changed lines)")
-        self.assertEqual(self.scope(["no-such-folder/x.txt"], lines=21)[0], "judge: opus (21 changed lines)")
+    def test_the_judge_runs_on_sonnet_at_any_size(self):
+        """A pull request's judge is Sonnet at any size, where main put Opus above 20 changed lines (#361)."""
+        for lines in (20, 21, 500):
+            with self.subTest(lines=lines):
+                self.assertEqual(self.scope(["no-such-folder/x.txt"], lines=lines)[0], "judge: sonnet")
 
     def test_a_repository_without_the_mapping_needs_the_judge_alone(self):
-        self.assertEqual(self.scope(["mumu-teamwork/bin/pr-merge.py"], mapping=False), ["judge: sonnet (0 changed lines)"])
+        self.assertEqual(self.scope(["mumu-teamwork/bin/pr-merge.py"], mapping=False), ["judge: sonnet"])
 
 if __name__ == "__main__":
     unittest.main()
