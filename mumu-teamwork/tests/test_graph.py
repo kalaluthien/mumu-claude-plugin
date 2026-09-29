@@ -10,6 +10,7 @@ import pathlib
 import posixpath
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import tokenize
@@ -32,10 +33,12 @@ IMPORT = re.compile(r"^\s*(?:from (\w+) import|import (\w+))", re.M)
 
 
 def files(root):
-    """The plugin's files, caches left out."""
-    rel = (p.relative_to(root) for p in root.rglob("*") if p.is_file())
-    return sorted(f.as_posix() for f in rel if not any(s == "__pycache__" or s.startswith(".") and s != ".claude-plugin"
-                                                       for s in f.parts))
+    """The plugin's files, dot folders and what git ignores left out."""
+    rel = [p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()]
+    rel = [f for f in rel if not any(s.startswith(".") and s != ".claude-plugin" for s in f.split("/"))]
+    ignored = subprocess.run(["git", "-C", str(root), "check-ignore", "--stdin"], input="\n".join(rel),
+                             capture_output=True, text=True).stdout.split("\n")
+    return sorted(set(rel) - set(ignored))
 
 
 def headings(text):

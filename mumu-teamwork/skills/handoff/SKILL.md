@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Use when a request in plain words asks for work in a project's repository and this session is not a mumu-teamwork lead or worker, or when the owner asks this session to become the project's lead ("너 lead로 승격해").
+description: Use when a request in plain words asks for work in a project's repository and this session is not a mumu-teamwork lead or worker, or when the owner asks this session to become the project's lead ("너 lead로 승격해"). Never for a lead or worker session.
 argument-hint: 로그인 타임아웃 고쳐 줘, kalaluthien/garden
 ---
 
