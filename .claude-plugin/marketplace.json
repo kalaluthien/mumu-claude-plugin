@@ -3,9 +3,9 @@
   "owner": { "name": "kalaluthien" },
   "description": "Four Claude Code plugins: a team that lands reviewed pull requests, documents, verification, and lessons that compound.",
   "plugins": [
-    { "name": "mumu-paperwork", "source": "./mumu-paperwork", "description": "Documents a person reads outside the chat: GitHub bodies, Artifact pages, repository pages." },
-    { "name": "mumu-teamwork", "source": "./mumu-teamwork", "description": "Work lands only as a PR merged at a sha a judge approved." },
-    { "name": "mumu-verification", "source": "./mumu-verification", "description": "A change is checked against a contract that predates it." },
-    { "name": "mumu-compounding", "source": "./mumu-compounding", "description": "A lesson is filed once, where its reader looks, before the session ends." }
+    { "name": "paperwork", "source": "./paperwork", "description": "Documents a person reads outside the chat: GitHub bodies, Artifact pages, repository pages." },
+    { "name": "teamwork", "source": "./teamwork", "description": "Work lands only as a PR merged at a sha a judge approved." },
+    { "name": "checkerwork", "source": "./checkerwork", "description": "A change is checked against a contract that predates it." },
+    { "name": "homework", "source": "./homework", "description": "A lesson is filed once, where its reader looks, before the session ends." }
   ]
 }

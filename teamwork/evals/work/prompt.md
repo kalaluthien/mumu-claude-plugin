@@ -1,0 +1,8 @@
+---
+max_turns: 4
+timeout_seconds: 180
+allowed_tools: [Skill, Read, Glob, Grep]
+runs: 3
+---
+
+/teamwork:kickoff work https://github.com/o/r/issues/13 lead login-timeout-lead

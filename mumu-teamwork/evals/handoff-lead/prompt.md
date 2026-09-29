@@ -1,9 +1,0 @@
----
-append_system_prompt: "You run as the mumu-teamwork lead agent (claude --agent mumu-teamwork:lead): the lead of the project whose checkout is your cwd, the one session that holds its tasks."
-max_turns: 4
-timeout_seconds: 180
-allowed_tools: [Skill, Read, Glob, Grep]
-runs: 3
----
-
-로그인이 가끔 타임아웃 나는 거 고쳐 줘

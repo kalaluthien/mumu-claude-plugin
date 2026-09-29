@@ -1,0 +1,6 @@
+{
+  "name": "teamwork",
+  "version": "0.1.0",
+  "description": "Work lands only as a PR merged at a sha a judge approved.",
+  "author": { "name": "kalaluthien" }
+}
