@@ -41,7 +41,7 @@ RAW_MERGE ="a raw `pr merge` is refused; run `pr-merge.py <pr-url>` in a Bash ca
 # each routine step, as its script's name or git's words, and the literal form an owner allow rule matches
 ROUTINE = {
     "pr-merge.py": "pr-merge.py <pr-url>",
-    "worker-start.py": "worker-start.py <checkout> <topic> <effort> <task-url> [flags]",
+    "worker-start.py": "worker-start.py <checkout> <topic> <model> <effort> <task-url> [flags]",
     "lead-start.py": "lead-start.py <checkout> [<task-url>] [flags]",
     "session-close.py": "session-close.py <name>",
     ("worktree", "remove"): "git worktree remove .claude/worktrees/<name>",

@@ -32,7 +32,7 @@ Use these terms as defined here, and define none elsewhere; look up each verb in
 | judge | the `judge` agent |
 | verdict | the judge's comment: `APPROVED:` or `FINDINGS:` |
 | root task | a task with no parent, held by its lead; another project's work is a root task in that project's repository |
-| task | an issue without the `backlog` label, labelled `effort:<effort>`: one change, ending in one pull request, or in a report comment when its `## Definition of done` names one |
+| task | an issue without the `backlog` label: one change, ending in one pull request, or in a report comment when its `## Definition of done` names one |
 | share | a row of a split task's `## Shares` table, share \| DoD \| after \| with: its topic, the ids of the criteria it checks (`D1:`), the shares it waits on, and what it shares with which; a task with no `## Shares` is one share |
 | backlog | an issue labelled `backlog`: the owner's words kept for later, as said, with at most one `## Survey` section below them and later words as comments |
 | body | an issue's current contract, only `## Goal`, `## Definition of done` and, split, `## Shares`, edited in place; a split task's body, labels and close are its lead's alone |
@@ -96,19 +96,31 @@ Name the target pane in every command.
 | `ready` | `$HERDR_PANE_ID` is set, and `herdr integration status` has no `claude: not installed` line; the fix is to run inside herdr, and `herdr integration install claude` |
 | your address | your bare name, never `<name>@<pane>` |
 | `live` | `herdr agent list`: each agent's pane, tab and `agent_status` |
-| `start` | `worker-start.py <checkout> <topic> <effort> <task-url> [--continue] [--lead <your address>] [--owner-effort] [--survey]` |
+| `start` | `worker-start.py <checkout> <topic> <model> <effort> <task-url> [--continue] [--lead <your address>] [--survey]`, `<model>` and `<effort>` as Worker model and effort picks |
 | `rename` | give this session a name: `herdr tab rename <tab> <name>`, the tab being `herdr pane get $HERDR_PANE_ID`'s `tab_id`; `herdr agent rename $HERDR_PANE_ID <name>`; and `herdr agent prompt $HERDR_PANE_ID "/rename <name>"` |
 | `prompt` | `herdr agent prompt <name> "<text>"`, by name; read the pane before and after, and resend when no turn carries the text; failing twice, tell the owner |
 | `start-lead` | `lead-start.py <checkout> [<task-url>] [--folder <folder>] [-- <claude flags>]` at the checkout's root, or `--succeed <pane>` for the task and folder, or `--replace` to close the calling session once its turn ends; never answer a start-up dialog in its tab |
 | `broadcast` | `prompt` each lead in `live` but you `see <url>`, one `herdr agent prompt <literal-name> "see <url>"` Bash call per agent, no loop and no variable; after the sends, read `live` again and `prompt` each lead name new or reappeared |
 | `close` | `session-close.py <name>`, the session live or gone |
 
+## Worker model and effort
+
+Pick one model and one effort per task, unless the owner named them, by its clarity and whether it needs compound judgement, after [Choosing between Sonnet 5.5 and Opus 5.5](https://claude.dev/blog/building-with-claude-sonnet-5-5/); the lead stays on `opus` at `medium`:
+
+| pick | when the task |
+| --- | --- |
+| `sonnet` | has a clear spec and a way to check the result, or is well-defined work run repeatedly: a bug fix, a feature iterated on, investigation, review, drafting, a document |
+| `opus` | needs careful judgement: complex, long-horizon or compound decisions, or the hardest problems |
+| `low` | applies a change its words spell out |
+| `medium` | pursues a goal |
+| `high` | reviews exceptions: edge cases, failures and what the rules leave open |
+
 ## Repo: GitHub and git
 
 | verb | command |
 | --- | --- |
 | `read` | `gh issue view <url> --json title,body,comments,labels,state,parent`, or `gh pr view <url> --json title,body,comments,headRefOid` |
-| `file` | `gh label create <label> -R <repo> --force` for each label, then `gh issue create -R <repo> --title "<title>" --label <label>... --body-file <path>`; a task's effort is low when it names what to change and how to check it, else medium, unless the owner named another |
+| `file` | `gh label create <label> -R <repo> --force` for each label, then `gh issue create -R <repo> --title "<title>" --label <label>... --body-file <path>` |
 | `order` | make a task wait on another until it closes: `gh api -X POST repos/<repo>/issues/<n>/dependencies/blocked_by -F issue_id=<id>`, `<id>` the blocker's `gh api repos/<owner>/<repo>/issues/<m> -q .id`, in this repository or another |
 | `comment` | `gh issue comment <url> --body-file <path>` |
 | `decide` | `decision-post.py <url> [--criteria <file>] < <path>` |
