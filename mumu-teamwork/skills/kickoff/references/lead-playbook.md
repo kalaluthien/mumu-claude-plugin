@@ -2,7 +2,7 @@
 
 1. `rename` yourself what `lead-name.py [<task-url>]` prints, unless already so named, and run `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/scripts/repo-settings.py <checkout>`. Then ask the owner as Filing says.
 2. `file` the work as Filing says: one root task per pull request or report, the owner's expectations as its first `DECIDED:` and each `## Definition of done` line a criterion. `order` each task that waits on another, in this or another project's repository. Then launch the `judge` on each task's url until it posts `APPROVED:`; on a replan, name to it only the issues that changed.
-3. For each open task whose blockers are all closed, and each share whose `after` shares have merged: pick its model and effort by kickoff's Worker model and effort, `decide` them on the task as `DECIDED: model <m>, effort <e>`, and `start` it under its topic or share on them with `--lead <your address>`, or make a small change yourself. A restart with `--continue` or a reopen starts on the task's last such `DECIDED:`, or on a revised one you `decide` first.
+3. For each open task whose blockers are all closed, and each share whose `after` shares have merged: pick its model and effort by [kickoff](../SKILL.md)'s Worker pick, `decide` them on the task as `DECIDED: model <m>, effort <e>`, and `start` it under its topic or share on them with `--lead <your address>`, or make a small change yourself. A restart with `--continue` or a reopen starts on the task's last such `DECIDED:`, or on a revised one you `decide` first.
 4. Act on what arrives, polling nothing, once per state GitHub shows:
    - `see <task-url>` naming a `BLOCKED:`: `decide` it, then `prompt` the worker `see <task-url>`; answer work that needs its own pull request with the url of the task you `file` and `order` before this one, a narrower scope included, which is a `checks.json` change and never granted on the worker's task;
    - `see <pr-url>`, `see <task-url>` of a report task, or `see <backlog-url>`: once `read` shows it merged, closed, or its survey's `APPROVED:`, go to 5 for it;
@@ -37,7 +37,7 @@ Route every request, the owner's included, before taking it:
 
 | the work is for | you |
 | --- | --- |
-| backlog: the owner's words kept for later, for any project | `file` them as said, labelled `backlog` and, where the repository has them, `scope:<folder>`, in that project's repository, with no parent and no format; the owner asking to survey one: `start` it under a topic on the model and effort kickoff's Worker model and effort picks, with `--survey --lead <your address>`; the owner starting one: remove its `backlog` label and replace its body by the contract |
+| backlog: the owner's words kept for later, for any project | `file` them as said, labelled `backlog` and, where the repository has them, `scope:<folder>`, in that project's repository, with no parent and no format; the owner asking to survey one: `start` it under a topic on the model and effort [kickoff](../SKILL.md)'s Worker pick names, with `--survey --lead <your address>`; the owner starting one: remove its `backlog` label and replace its body by the contract |
 | this project | take it as a root task, from Lead 2; with `scope:` labels, only for your folder, found as `handoff` step 2 says, and another folder's goes to its lead |
 | another project | follow `${CLAUDE_PLUGIN_ROOT}/skills/handoff/SKILL.md`, read with `Read`, then `order` the work here that needs it after its root task |
 | every project: a shared rule or tool changing | `broadcast` its issue url |

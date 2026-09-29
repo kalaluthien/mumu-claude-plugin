@@ -96,16 +96,16 @@ Name the target pane in every command.
 | `ready` | `$HERDR_PANE_ID` is set, and `herdr integration status` has no `claude: not installed` line; the fix is to run inside herdr, and `herdr integration install claude` |
 | your address | your bare name, never `<name>@<pane>` |
 | `live` | `herdr agent list`: each agent's pane, tab and `agent_status` |
-| `start` | `worker-start.py <checkout> <topic> <model> <effort> <task-url> [--continue] [--lead <your address>] [--survey]`, `<model>` and `<effort>` as Worker model and effort picks |
+| `start` | `worker-start.py <checkout> <topic> <model> <effort> <task-url> [--continue] [--lead <your address>] [--survey]`, `<model>` and `<effort>` as Worker pick says |
 | `rename` | give this session a name: `herdr tab rename <tab> <name>`, the tab being `herdr pane get $HERDR_PANE_ID`'s `tab_id`; `herdr agent rename $HERDR_PANE_ID <name>`; and `herdr agent prompt $HERDR_PANE_ID "/rename <name>"` |
 | `prompt` | `herdr agent prompt <name> "<text>"`, by name; read the pane before and after, and resend when no turn carries the text; failing twice, tell the owner |
 | `start-lead` | `lead-start.py <checkout> [<task-url>] [--folder <folder>] [-- <claude flags>]` at the checkout's root, or `--succeed <pane>` for the task and folder, or `--replace` to close the calling session once its turn ends; never answer a start-up dialog in its tab |
 | `broadcast` | `prompt` each lead in `live` but you `see <url>`, one `herdr agent prompt <literal-name> "see <url>"` Bash call per agent, no loop and no variable; after the sends, read `live` again and `prompt` each lead name new or reappeared |
 | `close` | `session-close.py <name>`, the session live or gone |
 
-## Worker model and effort
+## Worker pick
 
-Pick one model and one effort per task, unless the owner named them, by its clarity and whether it needs compound judgement, after [Choosing between Sonnet 5.5 and Opus 5.5](https://claude.dev/blog/building-with-claude-sonnet-5-5/); the lead stays on `opus` at `medium`:
+Pick one model and one effort per task, unless the owner named them, by its clarity and whether it needs compound judgement, after [the blog post's choice between Sonnet and Opus](https://claude.dev/blog/building-with-claude-sonnet-5-5/); the lead stays on `opus` at `medium`:
 
 | pick | when the task |
 | --- | --- |
