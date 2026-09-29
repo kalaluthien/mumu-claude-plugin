@@ -808,7 +808,7 @@ class WorkerStart(unittest.TestCase):
     def test_no_owner_effort_flag(self):
         done, calls = self.start("--owner-effort", trust=False, effort="high")
         self.assertEqual(done.returncode, 2)
-        self.assertIn("--owner-effort", done.stderr)
+        self.assertIn("unrecognized arguments: --owner-effort", done.stderr)
         self.assertEqual(calls, [], "worktree or tab touched")
 
     def test_effort_labels_are_not_read(self):
