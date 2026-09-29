@@ -145,6 +145,9 @@ def main(args):
             if (lines := scope.lines(ahead)) > SMALL:
                 sys.exit(f"pr-merge.py: the body names no task, and its {lines} changed lines exceed a small change's {SMALL}: "
                          "open it with `Closes #<task>`, or a share's `Part of #<task>`, over the criteria table")
+            if unsized := scope.binary(ahead):
+                sys.exit(f"pr-merge.py: the body names no task, and {', '.join(unsized)} change with no lines to count: "
+                         "open it with `Closes #<task>`, or a share's `Part of #<task>`, over the criteria table")
             need = [c for c in need if c != scope.JUDGE]
         behind, task = int(ahead["behind_by"]), shared(pr, repo)
         moved = scope.changed(gh.api(f"repos/{repo}/compare/{head}...{base}")) if behind else set()

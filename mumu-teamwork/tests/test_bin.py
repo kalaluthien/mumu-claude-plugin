@@ -1191,6 +1191,15 @@ class MergeScope(unittest.TestCase):
         self.assertIsNone(words)
         self.assertIn("names no task, and its 31 changed lines exceed a small change's 30", result.stderr)
 
+    def test_a_change_naming_no_task_with_a_binary_file_is_refused(self):
+        files = [{"filename": "p/bin/x.py", "additions": 3, "status": "modified", "patch": "@@"},
+                 {"filename": "p/notes/logo.png", "status": "modified", "changes": 0}]
+        result, words = scoped([passed(HEAD, "p/tests/test_bin.py")], files, body="")
+        self.assertIsNone(words)
+        self.assertIn("p/notes/logo.png change with no lines to count", result.stderr)
+        result, words = scoped([passed(HEAD, "p/tests/test_bin.py")], files[:1], body="")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_a_repository_without_the_mapping_needs_only_the_judge(self):
         result, words = merge([f"APPROVED: {HEAD}"], files=["p/bin/x.py", "checks.json"])
         self.assertEqual(result.returncode, 0, result.stderr)
