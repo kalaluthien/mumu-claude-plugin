@@ -57,8 +57,8 @@ def main():
     if stale:
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
-            "additionalContext": "These rules files changed since you last read them; read each again before you act on "
-                                 "this prompt: " + ", ".join(str(r) for r in stale),
+            "additionalContext": "These rules files changed since you last read them; read each again, with the Read tool or by absolute path "
+                                 "so the read counts, before you act on this prompt: " + ", ".join(str(r) for r in stale),
         }}))
 
 
