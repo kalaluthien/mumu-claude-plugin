@@ -4,7 +4,7 @@
 2. `file` the work as Filing says: one root task per pull request or report, the owner's expectations as its first `DECIDED:` and each `## Definition of done` line a criterion. `order` each task that waits on another, in this or another project's repository. Then launch the `judge` on each task's url until it posts `APPROVED:`; on a replan, name to it only the issues that changed.
 3. For each open task whose blockers are all closed, and each share whose `after` shares have merged: pick its model and effort by [kickoff](../SKILL.md)'s Worker pick, `decide` them on the task as `DECIDED: model <m>, effort <e>`, and `start` it under its topic or share on them with `--lead <your address>`, or make a small change yourself. A restart with `--continue` or a reopen starts on the task's last such `DECIDED:`, or on a revised one you `decide` first.
 4. Act on what arrives, polling nothing, once per state GitHub shows:
-   - `see <task-url>` naming a `BLOCKED:`: `decide` it, then `prompt` the worker `see <task-url>`; answer work that needs its own pull request with the url of the task you `file` and `order` before this one, a narrower scope included, which is a `checks.json` change and never granted on the worker's task;
+   - `see <task-url>` naming a `BLOCKED:`: `decide` it, then `prompt` the worker `see <task-url>`; answer work that needs its own pull request with the url of the task you `file` and `order` before this one, a narrower scope included, which is a `gates.json` change and never granted on the worker's task;
    - `see <pr-url>`, `see <task-url>` of a report task, or `see <backlog-url>`: once `read` shows it merged, closed, or its survey's `APPROVED:`, go to 5 for it;
    - `blocked <name>`: tell the owner the worker waits at a tool-use prompt;
    - `gone <name>` while its task is open: `start` it again with `--continue`;
@@ -48,10 +48,11 @@ Answer another lead's notice that is not a task for you with a plain `comment` o
 ## Filing
 
 - Hold any number of root tasks at once, a chore one included.
-- Open each criterion of a new task with its kind, `[exists]`, `[test]` or `[quality]`; a task filed before kinds keeps its criteria.
-- Give each `[test]` criterion a reason it fails on main, which the task names, and no criterion that only runs a check already passing on main (a build, a spec guard, `pgrep`, the scope's checks); a criterion keeping a rule also forbids passing by deleting its assertion.
-- Before posting a plan's criteria, run each "no FAIL" guard they name on main, and confirm each criterion's check still reads its input once the change lands.
-- Give a task that changes how work is split, run, reviewed or tested a criterion replaying past merged pull requests, their checks and session transcripts against the change, because a process change argued only from its design misses the cases history already holds.
+- Derive the criteria from the Goal and each `DECIDED:`, split into one-sentence clauses, one criterion each; a rule sentence (never, always, only after, at most) becomes a `[check]` quoting it.
+- Open each criterion of a new task with its kind, `[check]` or `[score]`, as kickoff's `kind` row says.
+- Before posting a plan, run each criterion's check on main and quote its output in the criterion, and confirm the check still reads its input once the change lands; a criterion keeping a rule also forbids passing by deleting its assertion.
+- A guard that already passes on main is no criterion: the scope's gates own it, and where no gate runs it, the task adds one that fails on main.
+- Give a task that changes how work is split, run, reviewed or tested a criterion replaying past merged pull requests, their gates and session transcripts against the change, because a process change argued only from its design misses the cases history already holds.
 - Search the issues first, `gh issue list -R <repo> --state all --search <words>`. Reopen a closed issue of the same kind of work: `gh issue reopen`, then `decide` with `--criteria` to widen its criteria, then `gh issue edit --title --body-file` to rewrite its title and `## Goal` to the new gap, each after the last, never in parallel, and grep the body for the old wording; lead it under a new attempt. When its fixes touch files another open task rewrites, `decide` on both which task owns each fix and `order` them, before the judge. Otherwise `file` a new issue that links it.
 - File the fewest tasks at the widest scope: work sharing a mechanism is one task, split by feature, never by layer; a new finding or a judge's defect widens the task it relates to. File them all, then `order` them and write the cross-references.
 - Split work, into tasks or a task into shares, only where its order has slack and its conflict can be made indirect: one merge at the end is enough, an interface agreed first lets each part be built apart, or what the parts share is knowledge each only reads.
@@ -70,7 +71,7 @@ Answer another lead's notice that is not a task for you with a plain `comment` o
 
 ## Small change
 
-Make a change yourself when its words name what to change and how to check it, and it has at most 30 changed lines in any number of files: file or reopen no issue and launch no judge. In a worktree off the default branch, `pr` it with a body naming no task, run the checks `scope` prints but the judge, `comment` their `PASSED:`, `merge` it, and remove the worktree and branch as `clean` does. Past 30 lines, `file` it as a task.
+Make a change yourself when its words name what to change and how to check it, and it has at most 30 changed lines in any number of files: file or reopen no issue and launch no judge. In a worktree off the default branch, `pr` it with a body naming no task, run the gates `scope` prints but the judge, `comment` their `PASSED:`, `merge` it, and remove the worktree and branch as `clean` does. Past 30 lines, `file` it as a task.
 
 ## Folder leads
 
