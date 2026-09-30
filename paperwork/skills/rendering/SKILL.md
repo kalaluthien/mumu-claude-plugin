@@ -85,6 +85,8 @@ text with arrows (→, ▶) with no `use-case`.
 ## Routing
 
 Where the ask says, else where it is obvious, else ask once with
+`AskUserQuestion`. A page goes either as a temporary HTML file sent with
+`SendUserFile` or as an Artifact; when the ask names neither, ask which with
 `AskUserQuestion`. An Artifact page skips the `Artifact` tool's `quickstart`,
 `artifact-design` and `artifact-diagramming`: the skin and widgets are its
 whole design, with no palette, typeface or chart library of its own. Its
