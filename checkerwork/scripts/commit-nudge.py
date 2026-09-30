@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""PostToolUse on Bash: after a `git commit` whose change fits a checkerwork skill the session has not loaded, ask for it.
+"""PostToolUse on Bash: after a `git commit` whose change fits a mode category of `checkerwork:contract`, unloaded, ask for it.
 
 The change is the commit at HEAD, read after the call, since a worker often writes the files and commits in one
-Bash call; each changed file is matched by `lib/fit.py` against its path and its added lines. A skill is loaded when
-the transcript holds a Skill call naming `checkerwork:<skill>`. Each skill is asked for once per session,
-recorded under the plugin's data dir. Exit 0 always: the ask is the JSON `decision: block`, whose reason reaches the
+Bash call; each changed file is matched by `lib/fit.py` against its path and its added lines. The skill is loaded when
+the transcript holds a Skill call or typed command naming `checkerwork:contract`. It is asked for once per session,
+recorded under the plugin's data dir, naming each fitting category. Exit 0 always: the ask is the JSON `decision: block`, whose reason reaches the
 model; a crash asks nothing and names itself on stderr.
 """
 import json
@@ -17,7 +17,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-from fit import CALL, COMMIT, SKILLS, added, fits  # noqa: E402
+from fit import CALL, COMMIT, CATEGORIES, added, fits  # noqa: E402
 
 
 def committed(cwd):
@@ -27,17 +27,13 @@ def committed(cwd):
 
 
 def loaded(transcript):
-    """The checkerwork skills the transcript shows a Skill call or a typed command for."""
-    got = set()
+    """Whether the transcript shows a Skill call or a typed command for `checkerwork:contract`."""
     try:
         lines = open(transcript, errors="replace")
     except (OSError, TypeError):
-        return got
+        return False
     with lines:
-        for line in lines:
-            if '"Skill"' in line or "<command-name>" in line:
-                got |= set(CALL.findall(line))
-    return got
+        return any(('"Skill"' in line or "<command-name>" in line) and CALL.search(line) for line in lines)
 
 
 def main():
@@ -50,21 +46,19 @@ def main():
         cwd = os.path.join(cwd, os.path.expanduser(shlex.split(m.group(3))[0]))
     fit = {}
     for path, text in committed(cwd).items():
-        for skill in fits(path, text):
-            fit.setdefault(skill, path)
+        for category in fits(path, text):
+            fit.setdefault(category, path)
     data = pathlib.Path(os.environ.get("CLAUDE_PLUGIN_DATA") or tempfile.gettempdir()) / "commit-nudge"
     mark = data / re.sub(r"[^\w-]", "_", str(call.get("session_id", "none")))
-    asked = set(mark.read_text().split()) if mark.exists() else set()
-    missing = [s for s in SKILLS if s in fit and s not in asked]
-    missing = [s for s in missing if s not in loaded(call.get("transcript_path"))] if missing else []
-    if not missing:
+    if not fit or mark.exists() or loaded(call.get("transcript_path")):
         return
     data.mkdir(parents=True, exist_ok=True)
-    mark.write_text(" ".join(sorted(asked | set(missing))))
-    why = "; ".join(f"checkerwork:{s} ({fit[s][1:]})" for s in missing)
+    mark.write_text("contract")
+    why = "; ".join(f"{p} ({fit[p][1:]})" for p in CATEGORIES if p in fit)
     print(json.dumps({"decision": "block", "reason": (
-        f"This commit's change fits {why}, not loaded in this session. Load each now with the Skill tool, even when "
-        "your steps end at this commit, and do what it asks where it applies in a new commit; asked once per skill.")}))
+        f"This commit's change fits checkerwork:contract's {why} modes, and the skill is not loaded in this session. "
+        "Load it now with the Skill tool, even when your steps end at this commit, read the modes its table routes that work to, and do what "
+        "they ask where it applies in a new commit; asked once per session.")}))
 
 
 if __name__ == "__main__":
