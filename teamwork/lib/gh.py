@@ -31,9 +31,9 @@ def api(path):
 
 
 def mapping(repo, ref):
-    """The checks mapping `checks.json` at `ref` of `repo`, or None when `ref` has no such file."""
+    """The gates mapping `gates.json` at `ref` of `repo`, or None when `ref` has no such file."""
     try:
-        blob = api(f"repos/{repo}/contents/checks.json?ref={ref}")
+        blob = api(f"repos/{repo}/contents/gates.json?ref={ref}")
     except RuntimeError as e:
         if "HTTP 404" in str(e):
             return None

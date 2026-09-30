@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Squash-merge a pull request once each check its scope needs has a pass at the head, or one carried to it: the only merge path.
+"""Squash-merge a pull request once each gate its scope needs has a pass at the head, or one carried to it: the only merge path.
 
 The judge's pass is its newest `APPROVED: <A>`, carried across merges of the default branch that leave the PR's own diff
-byte-identical; any check's pass, the judge's included, carries across commits that change no path the mapping assigns to it.
-A body naming no task is a lead's small change: at most `SMALL` changed lines, needing every check of its scope but the judge."""
+byte-identical; any gate's pass, the judge's included, carries across commits that change no path the mapping assigns to it.
+A body naming no task is a lead's small change: at most `SMALL` changed lines, needing every gate of its scope but the judge."""
 import json
 import pathlib
 import re
@@ -101,7 +101,7 @@ def notes(pr):
 
 
 def unpassed(pr, repo, base, mapping, names, need):
-    """A line for each check of `need` with no pass at the head nor one carried to it."""
+    """A line for each gate of `need` with no pass at the head nor one carried to it."""
     head, since, gaps = pr["headRefOid"], {}, []
 
     def diff(sha):
@@ -112,18 +112,18 @@ def unpassed(pr, repo, base, mapping, names, need):
         return since[sha]
 
     passed = scope.passes(notes(pr))
-    for check in need:
-        if check == scope.JUDGE:
+    for gate in need:
+        if gate == scope.JUDGE:
             approved, stale = approval(pr)
             if not approved:
                 after = f"; `APPROVED: {stale}` is older than a `FINDINGS:`" if stale else ""
                 gaps.append(f"no comment or review opens with `APPROVED: {head}` since the newest `FINDINGS:`{after}; launch the judge at this head")
-            elif approved != head and (why := uncarried(approved, head, base)) and not scope.carried(check, diff(approved), mapping, names):
+            elif approved != head and (why := uncarried(approved, head, base)) and not scope.carried(gate, diff(approved), mapping, names):
                 gaps.append(f"`APPROVED: {approved}` does not carry to the head {head}: {why}, and the commits since change paths the judge "
-                            "checks; resume the judge at this head")
-        elif head not in (shas := passed.get(check, [])) and not any(scope.carried(check, diff(s), mapping, names) for s in reversed(shas)):
-            gaps.append(f"`{check}` has no pass at the head {head}"
-                        + (f" and the commits since {shas[-1]} change paths it checks" if shas else "")
+                            "gates; resume the judge at this head")
+        elif head not in (shas := passed.get(gate, [])) and not any(scope.carried(gate, diff(s), mapping, names) for s in reversed(shas)):
+            gaps.append(f"`{gate}` has no pass at the head {head}"
+                        + (f" and the commits since {shas[-1]} change paths it covers" if shas else "")
                         + f"; run it and post `PASSED: {head}` with a line naming it")
     return gaps
 
@@ -156,12 +156,12 @@ def main(args):
         sys.exit(f"pr-merge.py: could not read {url}'s scope, base or task: {e}")
     if behind and mapping is None and (both := sorted(scope.changed(ahead) & moved)):
         sys.exit(f"pr-merge.py: the head lacks {behind} commit(s) of {base}, which change paths it changes too: {', '.join(both)}; "
-                 "merge it in, rerun every check on the merged tree, push and run pr-merge.py again")
+                 "merge it in, rerun every gate on the merged tree, push and run pr-merge.py again")
     if behind and (rerun := [c for c in need if c != scope.JUDGE and any(c in scope.assigned(p, mapping, names) for p in moved)]):
-        sys.exit(f"pr-merge.py: the head lacks {behind} commit(s) of {base}, which change paths these checks cover: {', '.join(rerun)}; "
+        sys.exit(f"pr-merge.py: the head lacks {behind} commit(s) of {base}, which change paths these gates cover: {', '.join(rerun)}; "
                  "merge it in, rerun only those on the merged tree, post their `PASSED:`, push and run pr-merge.py again")
     if behind:
-        sys.exit(f"pr-merge.py: the head lacks {behind} commit(s) of {base}, which change no path its checks cover; "
+        sys.exit(f"pr-merge.py: the head lacks {behind} commit(s) of {base}, which change no path its gates cover; "
                  "merge it in, push and run pr-merge.py again; no rerun needed")
     if gaps:
         sys.exit("pr-merge.py: " + "\n".join(gaps))

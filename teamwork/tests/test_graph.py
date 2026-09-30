@@ -22,7 +22,7 @@ PLUGIN_ROOT = "${CLAUDE_PLUGIN_ROOT}"
 ROOTS = (".claude-plugin/plugin.json", "hooks/hooks.json", "monitors/monitors.json", "agents/*.md", "skills/*/SKILL.md",
          "evals/*/prompt.md", "evals/*/graders/*.md", "tests/test_*.py", "scripts/size-count.py")
 # files outside the plugin a file may name
-OUTSIDE = {"AGENTS.md", "checks.json", "settings.json", "plugin-authoring.md", "repos.txt", "marketplace.json", "sync.sh"}
+OUTSIDE = {"AGENTS.md", "gates.json", "settings.json", "plugin-authoring.md", "repos.txt", "marketplace.json", "sync.sh"}
 # a skill named bare in prose, as `kickoff's Domain`
 ALIASES = {"kickoff": "skills/kickoff/SKILL.md", "handoff": "skills/handoff/SKILL.md"}
 FILE = re.compile(r"(?<![\w.$/{}-])((?:\$\{CLAUDE_PLUGIN_ROOT\}/)?[\w./-]*[\w-]+\.(?:py|md|sh|json))\b")
