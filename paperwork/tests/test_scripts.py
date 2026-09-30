@@ -206,7 +206,7 @@ FAILS = [
 PASSES = [
     ("SQLite입니다.", "SQLite입니다. <code>a -&gt; b</code>로 써요.", "arrow"),
     ("SQLite입니다.", "바다.", "plain ending"),
-    ("SQLite입니다.", 'SQLite입니다. <span data-widget="diagram"><b role="button" aria-label="cli.py tq push job">파일</b></span>', "English"),
+    ("</svg></div>", '</svg><b role="button" aria-label="cli.py tq push job">파일</b></div>', "English"),
     ("SQLite입니다.", "마음이에요.", "plain ending"),
     ("SQLite입니다.", "4.00점이에요.", "plain ending"),
     ("SQLite입니다.", "SQLite입니다. <code>\\( x^2 \\)</code>로 써요.", "math"),
