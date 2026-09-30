@@ -2,8 +2,15 @@
 # The one done command, run from the plugin at a repo's root: every Alloy command under spec/ meets its `expect`,
 # each `check` has a `refuses_<Name>` test, each flow `run <pred>` a `scenario_<pred>`, and back, each module folder
 # with a check a flow run, then the suite passes.
+# Exit 0 on a tree unchanged since the run began records that tree in .git/verify-passed, which lets the commit hook through.
 # Exit 1 names each miss; each `gap #<issue>` line in a test or a model is counted without failing, and excuses its run.
 out=$(mktemp -d) && trap 'rm -rf "$out"' EXIT
+tree() {  # the tree tracked and untracked content makes, by a scratch index (run-verify.py's tree_id)
+  local d idx t; d=$(mktemp -d); idx=$(git rev-parse --path-format=absolute --git-path index 2>/dev/null)
+  [ -f "$idx" ] && cp "$idx" "$d/index"
+  GIT_INDEX_FILE="$d/index" git add -A >/dev/null 2>&1; t=$(GIT_INDEX_FILE="$d/index" git write-tree 2>/dev/null); rm -rf "$d"; echo "$t"
+}
+before=$(tree)
 fail=0
 models=$(grep -rlE '^[[:space:]]*(check|run)[[:space:]{]' spec --include='*.als' 2>/dev/null | sort)
 [ -z "$models" ] && echo "no model"
@@ -49,4 +56,5 @@ sys.exit(1 if bad else 0)
 PY
 if [ -z "$VERIFY_TESTS" ]; then echo "FAIL tests: set VERIFY_TESTS to the repo's test command in .claude/settings.json env"; fail=1
 else bash -c "$VERIFY_TESTS" || { echo "FAIL tests: $VERIFY_TESTS"; fail=1; }; fi
+[ "$fail" = 0 ] && [ -n "$before" ] && [ "$(tree)" = "$before" ] && echo "$before" > "$(git rev-parse --path-format=absolute --git-path verify-passed)"
 exit $fail
