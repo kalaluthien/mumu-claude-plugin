@@ -1,4 +1,4 @@
-# Test: add
+# Test: write
 
 A change to what code does: write the failing tests first, then the change that makes them pass.
 

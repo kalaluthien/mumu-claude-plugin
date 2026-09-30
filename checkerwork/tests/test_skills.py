@@ -9,8 +9,10 @@ import unittest
 PLUGIN = pathlib.Path(__file__).resolve().parent.parent
 SKILL = PLUGIN / "skills" / "contract"
 REFS = SKILL / "references"
-MODES = ["eval-audit", "eval-compare", "eval-judge", "eval-optimize", "eval-setup", "eval-triage", "spec-change",
-         "spec-verify", "test-add", "test-probe", "test-prune"]
+MODES = ["eval-audit", "eval-calibrate", "eval-compare", "eval-optimize", "eval-triage", "eval-write", "spec-verify",
+         "spec-write", "test-audit", "test-probe", "test-write"]
+OLD = [a + "-" + b for a, b in (("eval", "setup"), ("test", "setup"), ("spec", "setup"), ("eval", "judge"), ("test", "add"),
+                              ("test", "prune"), ("spec", "change"))]
 TABLE_LINK = re.compile(r"^\|.*\]\(([^)#]+\.md)\)", re.M)
 LINK = re.compile(r"\]\(([^)#]+\.md)\)")
 TOPIC = re.compile(r"^(eval|test|spec)/[a-z-]+-playbook\.md$")
@@ -36,12 +38,12 @@ class Skills(unittest.TestCase):
 
     def test_setup_is_the_first_step_of_a_change_mode(self):
         self.assertEqual(len(MODES), 11)
-        for mode, layout in (("test-add", "test layout"), ("spec-change", "model")):
+        for mode, layout in (("test-write", "test layout"), ("spec-write", "model")):
             first = (REFS / f"{mode}.md").read_text().split("\n1. ", 1)[1].split("\n", 1)[0]
             self.assertTrue(first.startswith(f"A repo with no {layout}, only then:"), mode)
         for f in PLUGIN.rglob("*"):
             if f.is_file() and f.suffix in (".md", ".py", ".json", ".sh") and f.name != "test_skills.py":
-                self.assertIsNone(re.search(r"(test|spec)-setup", f.read_text(errors="replace")), f.name)
+                self.assertIsNone(re.search("|".join(OLD), f.read_text(errors="replace")), f.name)
 
     def test_eval_compare_reads_only_shared_playbooks(self):
         got = links(REFS / "eval-compare.md")

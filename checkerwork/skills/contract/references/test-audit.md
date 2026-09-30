@@ -1,4 +1,4 @@
-# Test: prune
+# Test: audit
 
 Cut the tests that prove nothing another proves, or that assert a bare equality.
 

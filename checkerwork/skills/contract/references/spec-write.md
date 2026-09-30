@@ -1,4 +1,4 @@
-# Spec: change
+# Spec: write
 
 A change to states, transitions, permissions or a protocol: model it and check the rule it must keep before the code changes.
 
