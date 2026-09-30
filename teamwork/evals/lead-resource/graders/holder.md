@@ -2,6 +2,6 @@
 type: regex
 target: last_message
 match: contains
-flags: i
-pattern: 'DECIDED:[^\n]*holder|holder[^\n]*(#32|tile-seam-32-1)|holder[^\n]*\n\n?(\|[^\n]*\n){1,2}\| *1 *\| *#32'
+flags: im
+pattern: '^`?#31 starts:(?![^\n]*(rigctl ps|no run|\bfree\b))[^\n]*\b(lead|holder|DECIDED|prompt(s|ed)?)\b'
 ---
