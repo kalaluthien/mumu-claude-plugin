@@ -143,7 +143,12 @@ f.onload = function () {
         .map(function (e) { return e.outerHTML.slice(0, 40); });
     };
     var loose = function (sel) { return Array.prototype.filter.call(d.querySelectorAll(sel), function (e) { return !e.closest('[data-widget]'); }); };
-    var arrows = function (e) { return (e.textContent.match(ARROW) || []).length >= 2; };
+    // an arrow in math is logic, not a step, and KaTeX writes each twice
+    var arrows = function (e) {
+      var c = e.cloneNode(true);
+      c.querySelectorAll('.katex').forEach(function (k) { k.remove(); });
+      return (c.textContent.match(ARROW) || []).length >= 2;
+    };
     var paths = loose('code').map(function (c) { return c.textContent.trim().replace(/:\d.*$/, ''); }).filter(function (p) { return PATH.test(p); });
     var flows = loose(BLOCK).filter(function (e) { return arrows(e) && !Array.prototype.some.call(e.querySelectorAll(BLOCK), arrows); })
       .map(function (e) { return e.textContent.replace(/\s+/g, ' ').trim().slice(0, 40); });

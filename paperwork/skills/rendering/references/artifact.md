@@ -7,7 +7,9 @@ what goes inside `<main>`, by `assemble.py --spec page`: what goes in the page,
 how chapters nest and how a widget plays its steps. Content in parts, each with
 two or more topics, is read a chapter at a time: a part is a
 `<section data-chapter>`, a topic an `h3`. Content with no parts stays one
-scroll, with no `h3`. Each `h2` and `h3` has an id, and a sentence that names another
+scroll, with no `h3`. Count the `h2`s before writing: at 4 or more, or with
+chapters, a `nav` after `p.read` links each one, else there is none; `check.py`
+fails either miscount. Each `h2` and `h3` has an id, and a sentence that names another
 section links it. A key term is defined once, as `<dfn id="t-<term>">` where it
 first appears, and its later mentions link there, once a paragraph. A formula is
 TeX in the prose, `\( … \)` inline and `\[ … \]` display, never an image or
@@ -15,7 +17,7 @@ Unicode look-alikes: `assemble.py` sets it in KaTeX's TeX fonts, and `check.py`
 fails TeX left raw.
 
 A widget is the template `assemble.py --spec <widget>` prints for the content's
-kind (`chart`, `file-tree`, `system-context`, `use-case`, `network`, `filter`, `controls`, `source`), its spec followed,
+kind (`chart`, `file-tree`, `system-context`, `use-case`, `network`, `ui-diff`, `filter`, `controls`, `source`), its spec followed,
 every `{{...}}` filled or its element deleted, `{{id}}` unique per copy. A
 figure over 9 boxes is two figures. Then
 `"${CLAUDE_PLUGIN_ROOT}/skills/rendering/scripts/assemble.py" <body.html> <slug>.html`
