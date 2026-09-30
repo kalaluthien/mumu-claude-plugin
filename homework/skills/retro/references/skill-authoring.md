@@ -3,6 +3,9 @@
 Write only what the reader cannot derive: house conventions, defaults that
 surprise, values that must match another file. An `agents/*.md` file takes a
 skill's frontmatter rules; its body is the delegate's system prompt.
+A delegate's report is its final message, never a file it writes: the brief
+asks for it so. A slash command in a delegate's prompt is plain text: the brief
+names the skill for it to call.
 
 A lesson filed here: a procedure belongs to the skill that owns the work,
 edited in its source, never in the plugin cache, or a new skill in
@@ -42,6 +45,10 @@ a delegate should work belongs to its `agents/<name>.md`.
 - `disable-model-invocation: true` on a skill only a person types, its
   description saying what it does; `user-invocable: false` on one only the
   model loads.
+- A key the build does not read is accepted in silence: confirm a key by what
+  the session's skill list shows, never by the absence of an error.
+- A skill whose file is not yours to edit: a `Skill(<name>)` deny rule in a
+  settings file stops the model's call only; the typed form still runs.
 - A skill a person types takes free-form text: it finds what it needs
   anywhere in it, asks for what is missing, and never refuses for wording; its
   `argument-hint` is a plain example, not a grammar.
@@ -82,6 +89,8 @@ the reason for its value. An example that repeats its instruction anchors
 the agent to the sample instead of the rule.
 
 - Write a rule's consumer in the same change, with hostile cases.
+- A conditional rule loads when the agent opens a matching file with `Read`,
+  never on a write or a shell read: scope it to paths the agent will open.
 - A replacement rule gets a forward pass, what it now refuses, and a backward
   pass, what leaned on the old shape; a rule stated twice is fixed twice.
 
