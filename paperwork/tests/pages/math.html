@@ -4,6 +4,7 @@
 <p>평균이 \( \mu \)이고 표준편차가 \( \sigma \)인 정규분포(normal distribution)의 밀도는 다음과 같아요.</p>
 <p>\[ f(x) = \frac{1}{\sigma\sqrt{2\pi}} \exp\left( -\frac{(x-\mu)^2}{2\sigma^2} \right) \]</p>
 <p>넓이가 1인 까닭은 가우스 적분 \( \int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi} \)에 있어요.</p>
+<p>밀도는 평균에서 가장 높아요: \( x = \mu \Rightarrow f(x) = \frac{1}{\sigma\sqrt{2\pi}} \)</p>
 <p>\[ \int_{-\infty}^{\infty} f(x)\,dx = \frac{1}{\sigma\sqrt{2\pi}} \int_{-\infty}^{\infty} \exp\left( -\frac{(x-\mu)^2}{2\sigma^2} \right) dx = \frac{1}{\sqrt{\pi}} \int_{-\infty}^{\infty} e^{-t^2}\,dt = 1 \]</p>
 <p>코드 안의 TeX는 그대로 보여요: <code>\( x^2 \)</code></p>
 <footer>가우스 적분 <code>a2ae34f</code></footer>
