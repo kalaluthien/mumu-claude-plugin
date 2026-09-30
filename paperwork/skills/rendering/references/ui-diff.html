@@ -34,7 +34,7 @@
     & .notes { margin: var(--sp-2) 0 0; padding-inline-start: var(--sp-4); }
     & .notes ul { margin: 0; padding: 0; }
     & .chip { padding: 0 var(--sp-1); border-color: var(--hairline); background: var(--fill); }
-    & .chip[aria-pressed="true"] { border-color: var(--ui-diff-mark); }
+    & .chip.held { border-color: var(--ui-diff-mark); }
     & .panes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ui-diff-gap); margin-top: var(--ui-diff-gap); }
     & .pane { min-width: 0; outline-offset: var(--line-strong); }
     & .name { margin: 0 0 var(--sp-1); font: 700 var(--fs-m) var(--sans); overflow-wrap: anywhere; }
@@ -77,7 +77,7 @@
       root.querySelectorAll('.chip').forEach((c) => {
         c.setAttribute('aria-pressed', 'false');
         ['pointerenter', 'pointerleave', 'focus', 'blur'].forEach((e) => c.addEventListener(e, () => setTimeout(mark)));
-        c.addEventListener('click', () => { c.setAttribute('aria-pressed', c.getAttribute('aria-pressed') !== 'true'); mark(); });
+        c.addEventListener('click', () => { c.setAttribute('aria-pressed', c.classList.toggle('held')); mark(); });
       });
       root.addEventListener('step', () => { paint(); mark(); });
       paint();
