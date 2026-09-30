@@ -7,6 +7,7 @@
       { "matcher": "Bash", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/run-verify.py" }] }
     ],
     "PostToolUse": [
+      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/run-verify.py" }] },
       { "matcher": "Bash", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/commit-nudge.py" }] }
     ],
     "Stop": [
