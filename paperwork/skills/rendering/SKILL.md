@@ -88,8 +88,8 @@ Where the ask says, else where it is obvious, else ask once with
 `AskUserQuestion`. An Artifact page skips the `Artifact` tool's `quickstart`,
 `artifact-design` and `artifact-diagramming`: the skin and widgets are its
 whole design, with no palette, typeface or chart library of its own. Its
-author reads the page's spec, its contents `nav` included, and each widget's with
-`"${CLAUDE_PLUGIN_ROOT}/skills/rendering/scripts/assemble.py" --spec page` and `--spec <widget>`,
+author reads each widget's spec with
+`"${CLAUDE_PLUGIN_ROOT}/skills/rendering/scripts/assemble.py" --spec <widget>`,
 writes only the body, and `assemble.py <body> <page>` adds the skin and widget
 code, as [artifact.md](references/artifact.md) says.
 Markdown on an issue tracker or in a repository is `writing`'s; a figure it

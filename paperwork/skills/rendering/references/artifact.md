@@ -7,7 +7,9 @@ what goes inside `<main>`, by `assemble.py --spec page`: what goes in the page,
 how chapters nest and how a widget plays its steps. Content in parts, each with
 two or more topics, is read a chapter at a time: a part is a
 `<section data-chapter>`, a topic an `h3`. Content with no parts stays one
-scroll, with no `h3`. Each `h2` and `h3` has an id, and a sentence that names another
+scroll, with no `h3`. Count the `h2`s before writing: at 4 or more, or with
+chapters, a `nav` after `p.read` links each one, else there is none; `check.py`
+fails either miscount. Each `h2` and `h3` has an id, and a sentence that names another
 section links it. A key term is defined once, as `<dfn id="t-<term>">` where it
 first appears, and its later mentions link there, once a paragraph. A formula is
 TeX in the prose, `\( … \)` inline and `\[ … \]` display, never an image or
