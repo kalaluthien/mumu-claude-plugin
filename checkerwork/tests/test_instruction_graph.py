@@ -16,6 +16,7 @@ CLEAN = {
     "AGENTS.md": """# Agents
 
 Read [the guide](docs/guide.md#setup) before a change, and run `scripts/build.sh`.
+A link is written as `[name](references/name.md)`, relative to the file.
 
 ## Domain
 

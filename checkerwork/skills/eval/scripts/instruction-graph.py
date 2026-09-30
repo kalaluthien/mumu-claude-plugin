@@ -78,6 +78,11 @@ def headings(text):
     return out
 
 
+def prose(text):
+    """`text` with each code span and fence blanked, offsets kept: a link written there is shown, not followed."""
+    return re.sub(r"^(```|~~~).*?^\1|`[^`\n]+`", lambda m: re.sub(r"[^\n]", " ", m[0]), text, flags=re.M | re.S)
+
+
 def slug(heading):
     """GitHub's anchor for a heading."""
     return re.sub(r"[^\w\- ]", "", heading.replace("`", "").lower()).replace(" ", "-")
@@ -102,7 +107,11 @@ def mentions(source, text):
         text = re.sub(r'\\?"(\$\{?CLAUDE_(?:PLUGIN_ROOT|PROJECT_DIR)\}?)\\?"', r"\1", text)
         return [(t, "registers") for t in tokens(text)]
     if source.endswith(".md"):
-        return [(t, "reads" if t.endswith(".md") else "runs") for t in tokens(LINK.sub(" ", text))]
+        kept, at = [], 0
+        for m in LINK.finditer(prose(text)):
+            kept, at = kept + [text[at:m.start()]], m.end()
+        text = " ".join(kept + [text[at:]])
+        return [(t, "reads" if t.endswith(".md") else "runs") for t in tokens(text)]
     if source.endswith(".sh") or "." not in pathlib.PurePosixPath(source).name:
         return [(t, "names" if line.lstrip().startswith("#") else "runs")
                 for line in text.splitlines() for t in tokens(line)]
@@ -295,7 +304,7 @@ def check(root, config=None):
         body = text(source)
         md = source.endswith(".md")
         if md:
-            for m in LINK.finditer(body):
+            for m in LINK.finditer(prose(body)):
                 ref = m[1] or m[3]
                 if re.match(r"[a-z][\w+.-]*:", ref) or ref.startswith(("<", "{")) or "$" in ref.split("#")[0][1:]:
                     continue
