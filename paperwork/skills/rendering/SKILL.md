@@ -74,6 +74,7 @@ text with arrows (→, ▶) with no `use-case`.
 | a structure before and after a change: what it adds, modifies and removes | `diagram` `file-tree`, slid |
 | who calls the system and what it calls: actors, entry points, boundaries | `diagram` `system-context` |
 | behaviour: what happens in one use case: a request the reader follows call by call, in one still figure | `diagram` `use-case`, one per use case |
+| a UI's behaviour before and after a change: what it draws, measures or hides, side by side, step by step | `ui-diff`, slid |
 | things and the links between them: tasks and what blocks them, sessions and who waits on whom; what a node reaches | `diagram` `network`, 9 nodes at most |
 | values compared across categories: which is largest, by how much | `chart` `bar` |
 | change over time: a trend, a rise, a fall | `chart` `line` |

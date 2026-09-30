@@ -1,0 +1,56 @@
+<h1>맨 아래에서 여는 대화의 높이</h1>
+<p class="read">너비를 아는 추정은 처음부터 474px을 잡아 두므로, 측정 뒤에 화면이 밀리지 않습니다.</p>
+<h2 id="compare">고정 추정과 너비 추정의 차이</h2>
+<p>아래 그림은 같은 대화를 두 방식으로 여는 과정입니다. 다음 단추나 막대로 단계를 옮기고, 설명 속 코드 칩에 올리면 그 칩이 가리키는 창이나 줄이 표시됩니다.</p>
+<figure data-widget="ui-diff" data-slide data-labels="뒤로|다음|단계">
+  <figcaption>이미지 줄의 높이를 96으로 고정할 때와 너비로 계산할 때</figcaption>
+  <div class="card">
+    <div class="code">
+      <p data-step="1"><code id="ud-l1">estimatePx(row) → 96</code></p>
+      <p data-step="2"><code id="ud-l2">lineHeightPx per line → tileStripEstimatePx</code><code id="ud-l3">withChromePx(estimate, chromePx(row))</code></p>
+      <p data-step="4"><code id="ud-l4">ResizeObserver → admitMeasuredPartSample → commit</code></p>
+    </div>
+    <div class="notes">
+      <ul data-step="1">
+        <li><button type="button" class="chip" data-for="ud-before"><code>left</code></button> 이미지 줄을 96px로 잡습니다.</li>
+        <li><button type="button" class="chip" data-for="ud-after"><code>right</code></button> 같은 줄을 너비로 계산합니다.</li>
+      </ul>
+      <ul data-step="2">
+        <li><button type="button" class="chip" data-for="ud-l2"><code>line 1</code></button> 줄마다 타일 높이를 구해 474px이 됩니다.</li>
+        <li><button type="button" class="chip" data-for="ud-l3"><code>line 2</code></button> 아래 단추 줄 32px을 더해 506px이 됩니다.</li>
+      </ul>
+      <ul data-step="4">
+        <li><button type="button" class="chip" data-for="ud-before ud-after"><code>both</code></button> 측정이 끝난 같은 순간에 보여 줍니다.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="panes">
+    <div class="pane" id="ud-before">
+      <p class="name">고정 96</p>
+      <ol class="view" data-scroll="end">
+        <li data-states="estimated 4:revealed" style="--h: 48">user 48</li>
+        <li data-states="estimated 4:revealed" style="--h: 80">trace 80</li>
+        <li data-states="estimated 4:revealed" style="--h: 80">prose 80</li>
+        <li data-states="estimated 3:measured 4:revealed" style="--h: 96">images 96</li>
+        <li data-step="4" data-states="revealed" style="--h: 32">footer 32</li>
+      </ol>
+      <p class="status"><span data-step="1">합계 1,788px · 11줄 · 숨김</span><span data-step="3">합계 1,788px · 11줄 · 측정 중</span><span data-step="4">합계 2,166px · 6줄 · 보임</span></p>
+    </div>
+    <div class="pane" id="ud-after">
+      <p class="name">너비 추정</p>
+      <ol class="view" data-scroll="end">
+        <li data-states="estimated 4:revealed" style="--h: 80">trace 80</li>
+        <li data-states="estimated 4:revealed" style="--h: 80">prose 80</li>
+        <li data-states="estimated 3:measured 4:revealed" style="--h: 506">images 506</li>
+      </ol>
+      <p class="status"><span data-step="1">합계 1,788px · 11줄 · 숨김</span><span data-step="2">합계 2,166px · 6줄 · 숨김</span><span data-step="4">합계 2,166px · 6줄 · 보임</span></p>
+    </div>
+  </div>
+  <ol class="steps">
+    <li data-title="처음 추정">두 창 모두 아직 아무것도 재지 않았고, 왼쪽은 이미지 줄을 96px로 잡습니다.</li>
+    <li data-title="높이 계산">오른쪽은 줄마다 타일 너비로 높이를 구해 506px을 미리 잡습니다.</li>
+    <li data-title="측정">두 창 모두 이미지를 숨긴 채 실제 높이를 잽니다.</li>
+    <li data-title="보여 주기">왼쪽은 378px 늘어난 뒤 다시 맞추고, 오른쪽은 그대로 보여 줍니다.</li>
+  </ol>
+</figure>
+<footer>출처 없음 · 시험용 예시 <code>0000000</code></footer>

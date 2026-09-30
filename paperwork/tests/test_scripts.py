@@ -599,7 +599,8 @@ TWO_CHARTS = ('<h1>도시별 요청</h1>\n<p class="read">부산의 요청이 �
 
 class Assemble(unittest.TestCase):
     def test_each_spec_is_small_and_unstyled(self):
-        for widget in ("page", "chart", "filter", "controls", "source", "file-tree", "system-context", "use-case", "network"):
+        for widget in ("page", "chart", "filter", "controls", "source", "ui-diff", "file-tree", "system-context", "use-case",
+                       "network"):
             with self.subTest(widget):
                 r = assemble("--spec", widget)
                 self.assertEqual(r.returncode, 0, r.stderr)

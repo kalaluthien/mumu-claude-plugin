@@ -8,8 +8,9 @@
   scrolled; after an in-page link, a 돌아가기 button back to the spot before it, and a flash on the link's target.
   choice: a div role="group" data-choice of buttons, one pressed at a time, the first at start; a click presses one and
   fires `change` on the group, which a widget's script reads by its [aria-pressed="true"] button.
-  slide: a root with data-slide and data-labels="뒤로|다음" over an <ol class="steps">: one stage changes in place, Back,
-  Next, the arrow keys and a count; the reader compares the same marks. Played, at step k each [data-step] up to k gets
+  slide: a root with data-slide and data-labels="뒤로|다음|단계" over an <ol class="steps">: one stage changes in place, Back,
+  Next, a step slider, the arrow keys and a count; the reader compares the same marks; a step li's data-title shows
+  over the stage as 단계 k · <title>. Played, at step k each [data-step] up to k gets
   .on, the one at k .now, the root data-at k - 1 and a `step` event; under reduced motion, in print or without script,
   every caption stays listed, every chapter shown, and the widget stands at its last step.
   table: only for values the reader compares across rows, few columns, the first a row label, headers with scope;
@@ -186,13 +187,16 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
   main nav [aria-current] { color: var(--text); font-weight: 700; }
   @media print { [data-chapter][hidden] { display: block; } [data-chapter] .pager { display: none; } }
   [data-slide] .steps { margin: var(--sp-2) 0; }
-  [data-slide] :is(.caption, .controls) { display: none; }
-  [data-slide] .controls { gap: var(--sp-2); align-items: center; margin: var(--sp-2) 0; }
+  [data-slide] :is(.caption, .controls, .step-title) { display: none; }
+  [data-slide] .controls { flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin: var(--sp-2) 0; }
+  [data-slide] .controls input { flex: 1 1 100%; min-width: 0; margin: 0; accent-color: var(--accent); }
+  [data-slide] .step-title { margin: 0 0 var(--sp-2); color: var(--muted); font: var(--fs-m) var(--sans); }
   [data-slide] .count { color: var(--muted); font-size: var(--fs-m); font-variant-numeric: tabular-nums; }
   @media screen and (prefers-reduced-motion: no-preference) {
     [data-slide].live .steps { display: none; }
     [data-slide].live .caption { display: block; }
     [data-slide].live .controls { display: flex; }
+    [data-slide].live .step-title { display: block; }
   }
   main nav.drawer { position: fixed; z-index: 3; inset-block: 0; inset-inline-start: 0; overflow-y: auto;
     width: min(var(--drawer-width), 85%); box-sizing: border-box; padding: var(--rhythm) var(--gutter);
@@ -296,10 +300,22 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
       caption.setAttribute('aria-live', 'polite');
       const controls = document.createElement('div');
       controls.className = 'controls';
-      controls.innerHTML = '<button type="button"></button><button type="button"></button><span class="count"></span>';
+      controls.innerHTML = '<input type="range" min="1" step="1"><button type="button"></button><button type="button"></button><span class="count"></span>';
       root.append(caption, controls);
       const [back, next] = controls.querySelectorAll('button');
-      [back.textContent, next.textContent] = (root.dataset.labels || 'Back|Next').split('|');
+      const labels = (root.dataset.labels || 'Back|Next|Step').split('|');
+      [back.textContent, next.textContent] = labels;
+      const word = labels[2] || 'Step';
+      const slider = controls.querySelector('input');
+      slider.max = n;
+      slider.setAttribute('aria-label', word);
+      // the step's own name over the stage, when a step has one
+      const title = document.createElement('p');
+      title.className = 'step-title';
+      if (steps.some((s) => s.dataset.title)) {
+        const cap = root.firstElementChild;
+        if (cap && cap.matches('figcaption')) cap.after(title); else root.prepend(title);
+      }
       let at = 1;
       const show = (k) => {
         at = Math.min(Math.max(k, 1), n);
@@ -311,9 +327,12 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
         root.dispatchEvent(new CustomEvent('step'));
         caption.textContent = `${at}. ${steps[at - 1].textContent.trim()}`;
         controls.querySelector('.count').textContent = `${at} / ${n}`;
+        title.textContent = steps[at - 1].dataset.title ? `${word} ${at} · ${steps[at - 1].dataset.title}` : '';
+        slider.value = at;
         back.disabled = at === 1;
         next.disabled = at === n;
       };
+      slider.addEventListener('input', () => show(+slider.value));
       back.addEventListener('click', () => show(at - 1));
       next.addEventListener('click', () => show(at + 1));
       root.addEventListener('keydown', (e) => {
