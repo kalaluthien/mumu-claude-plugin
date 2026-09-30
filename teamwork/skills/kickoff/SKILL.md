@@ -106,14 +106,14 @@ Name the target pane in every command.
 
 ## Worker pick
 
-Pick one model and one effort per task, unless the owner named them, by its clarity and whether it needs compound judgement, after [the blog post's choice between Sonnet and Opus](https://claude.dev/blog/building-with-claude-sonnet-5-5/); the lead stays on `opus` at `medium`:
+Pick one model and one effort per task, unless the owner named them, after [the blog post's choice between Sonnet and Opus](https://claude.dev/blog/building-with-claude-sonnet-5-5/); the lead stays on `opus` at `medium`. `sonnet` is the default, since a task's criteria already are its spec and its checks; an `opus` pick names in its `DECIDED:` the design the criteria leave open:
 
 | pick | when the task |
 | --- | --- |
-| `sonnet` | has a clear spec and a way to check the result, or is well-defined work run repeatedly: a bug fix, a feature iterated on, investigation, review, drafting, a document |
-| `opus` | needs careful judgement: complex, long-horizon or compound decisions, or the hardest problems |
-| `low` | applies a change its words spell out |
-| `medium` | pursues a goal |
+| `sonnet` | is any but the next row's: a bug fix, a failing test or eval made to pass, a feature iterated on, investigation, review, drafting, a document |
+| `opus` | leaves its worker a design its criteria do not settle: an interface, a trade-off across layers, a rule other sessions follow; or stopped at `BLOCKED: stuck on` under `sonnet` |
+| `low` | names what to change, its criteria leaving only the doing: a fix whose cause is known, a rename, a move, a removal, a release, a document's wording |
+| `medium` | leaves its worker to find the cause or choose the approach |
 | `high` | reviews exceptions: edge cases, failures and what the rules leave open |
 
 ## Repo: GitHub and git
@@ -137,3 +137,4 @@ Pick one model and one effort per task, unless the owner named them, by its clar
 
 - `pr` and `merge`: after an error such as `GraphQL: Something went wrong`, `read` the state before retrying; just after a push, read the head with `git ls-remote origin refs/heads/<branch>`.
 - CI: wait in the foreground with `gh run watch <id> --exit-status`, never on `gh pr checks`.
+- Evals: name the plugin to `claude plugin eval` as a path, `./<plugin>`, in a criterion too; a bare name loads the installed copy, runs no case and still exits 0.
