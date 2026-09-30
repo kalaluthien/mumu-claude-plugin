@@ -1,5 +1,6 @@
 <!-- ui-diff: a UI's behaviour before and after a change, side by side, played step by step; one comparison per copy.
-  anatomy: a figure[data-widget="ui-diff"] with data-slide, opening with a figcaption (what is compared), then a .card
+  anatomy: a figure[data-widget="ui-diff"] with data-slide, opening with a figcaption (what is compared) and its source
+  note, if any (inside the figure, or it counts as a second widget), then a .card
   of pseudo-code and notes, a .panes of two .pane, and an ol.steps; every id prefixed with {{id}}.
   pane: a div.pane id="{{id}}-<side>" holding a p.name (the version), an ol.view (the UI's viewport, scrolled in its
   own box; data-scroll="end" holds it at the bottom) of li rows, each its label and size (user 48px) and style="--h: <px
