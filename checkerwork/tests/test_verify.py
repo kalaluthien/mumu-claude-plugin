@@ -44,7 +44,8 @@ CASES = {  # name: (check.als tail or None for no spec, {file: text}, suite comm
                                (0, "GAP #4: 1 marks\n")),
     "map alone": ((GOOD, {"spec/map.als": "module map\nsig A {}\n", "tests/test_a.py": WITNESS}, "true"), (0, "")),
     "suite": ((GOOD, {"test_m.py": WITNESS}, "false"), (1, "FAIL tests: false\n")),
-    "no model, suite": ((None, {}, "false"), (1, "no model\nFAIL tests: false\n")),
+    "suite chained": ((GOOD, {"test_m.py": WITNESS}, "true && false"), (1, "FAIL tests: true && false\n")),
+    "no model, suite":((None, {}, "false"), (1, "no model\nFAIL tests: false\n")),
     "suite unset": ((GOOD, {"tests/test_m.py": WITNESS + "print('ran')\n"}, None),
                     (1, "FAIL tests: set VERIFY_TESTS to the repo's test command in .claude/settings.json env\n")),
 }
