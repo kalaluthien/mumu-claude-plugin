@@ -9,7 +9,7 @@ Arguments: $ARGUMENTS
 
 When your system prompt is not already your role's body, read `${CLAUDE_PLUGIN_ROOT}/agents/worker.md` before a `work` or `survey` row and `${CLAUDE_PLUGIN_ROOT}/agents/lead.md` before any other.
 
-Match the arguments to one row by its exact shape, open that playbook, and copy its steps verbatim into the todo list; a step not done stays, marked skipped with its reason. Before the first step, check `ready`; when it fails, stop and print its fix.
+Match the arguments to one row by its exact shape, open that playbook with `Read` before any other tool call but your role's body, and copy its steps verbatim into the todo list; a step not done stays, marked skipped with its reason. Before the first step, check `ready`; when it fails, stop and print its fix.
 
 | when | playbook |
 | --- | --- |
