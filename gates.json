@@ -1,0 +1,10 @@
+{
+  "every": ["judge", "*/tests/test_*.py", "*/evals/*"],
+  "rules": [
+    {"paths": ["*/bin/**", "*/lib/**", "*/scripts/**", "*/monitors/**", "*/tests/**"], "gates": ["judge", "{0}/tests/test_*.py"]},
+    {"paths": ["*/evals/*/**"], "gates": ["judge", "{0}/tests/test_*.py", "{0}/evals/{1}"]},
+    {"paths": ["*/skills/**", "*/agents/**", "*/hooks/**", "*/.claude-plugin/**"], "gates": ["judge", "{0}/tests/test_*.py", "{0}/evals/*"]},
+    {"paths": ["AGENTS.md", "CLAUDE.md"], "gates": ["judge", "teamwork/tests/test_graph.py"]},
+    {"paths": [".gitignore", "scripts/*"], "gates": ["judge"]}
+  ]
+}

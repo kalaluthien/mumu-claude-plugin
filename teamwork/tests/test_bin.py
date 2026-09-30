@@ -102,7 +102,7 @@ d, a = pathlib.Path(__file__).parent, sys.argv[1:]
 pr = json.loads((d / "pr.json").read_text())
 if a[:2] == ["pr", "view"]:
     print(json.dumps(pr))
-elif a[0] == "api" and a[1].startswith("repos/o/r/contents/checks.json"):
+elif a[0] == "api" and a[1].startswith("repos/o/r/contents/gates.json"):
     if "mapping" not in pr:
         sys.exit("gh: Not Found (HTTP 404)")
     print(json.dumps({"content": base64.b64encode(json.dumps(pr["mapping"]).encode()).decode()}))
@@ -245,7 +245,7 @@ class Merge(unittest.TestCase):
         self.assertIsNone(words)
         self.assertIn("b.md", result.stderr)
         self.assertNotIn("a.py", result.stderr)
-        self.assertIn("rerun every check on the merged tree", result.stderr)
+        self.assertIn("rerun every gate on the merged tree", result.stderr)
         result, words = merge([f"APPROVED: {HEAD}"], behind=2, files=["a.py"], base_files=["c.py"])
         self.assertIsNone(words)
         self.assertNotEqual(result.returncode, 0)
@@ -1105,14 +1105,14 @@ class DefaultBranchGuard(unittest.TestCase):
         self.assertIn('the default branch "main" is refused', out.stderr)
 
 
-SCOPE = BIN / "check-scope.py"
+SCOPE = BIN / "gate-scope.py"
 # A mapping and the tree it reads: skills need the evals, a script its test, a test itself, a note nothing.
 FIXTURE = {"every": ["judge", "*/tests/test_*.py", "*/evals/*"],
-           "rules": [{"paths": ["p/skills/**"], "checks": ["judge", "p/evals/*"]},
-                     {"paths": ["p/bin/*.py"], "checks": ["judge", "p/tests/test_bin.py"]},
-                     {"paths": ["p/tests/test_*.py"], "checks": ["judge", "p/tests/test_{0}.py"]},
-                     {"paths": ["p/notes/**"], "checks": []}]}
-FIXTURE_TREE = ["checks.json", "p", "p/bin", "p/bin/x.py", "p/tests", "p/tests/test_bin.py", "p/tests/test_hooks.py", "p/evals",
+           "rules": [{"paths": ["p/skills/**"], "gates": ["judge", "p/evals/*"]},
+                     {"paths": ["p/bin/*.py"], "gates": ["judge", "p/tests/test_bin.py"]},
+                     {"paths": ["p/tests/test_*.py"], "gates": ["judge", "p/tests/test_{0}.py"]},
+                     {"paths": ["p/notes/**"], "gates": []}]}
+FIXTURE_TREE = ["gates.json", "p", "p/bin", "p/bin/x.py", "p/tests", "p/tests/test_bin.py", "p/tests/test_hooks.py", "p/evals",
                 "p/evals/a", "p/evals/a/prompt.md", "p/evals/b", "p/evals/b/prompt.md", "p/skills", "p/skills/s", "p/skills/s/SKILL.md",
                 "p/notes", "p/notes/n.md"]
 EVERY = ["p/evals/a", "p/evals/b", "p/tests/test_bin.py", "p/tests/test_hooks.py"]
@@ -1128,7 +1128,7 @@ def scoped(comments, files, **pr):
 
 
 class MergeScope(unittest.TestCase):
-    """pr-merge.py requires a pass of each check the scope needs, and of no other."""
+    """pr-merge.py requires a pass of each gate the scope needs, and of no other."""
 
     def test_a_check_the_scope_needs_without_a_pass_refuses(self):
         result, words = scoped([f"APPROVED: {HEAD}"], ["p/bin/x.py"])
@@ -1151,7 +1151,7 @@ class MergeScope(unittest.TestCase):
         self.assertIn("launch the judge", result.stderr)
 
     def test_a_change_to_the_mapping_or_an_unmapped_path_needs_every_check(self):
-        for files in (["checks.json"], ["p/notes/n.md", "checks.json"], ["p/other.txt"]):
+        for files in (["gates.json"], ["p/notes/n.md", "gates.json"], ["p/other.txt"]):
             with self.subTest(files=files):
                 result, words = scoped([passed(HEAD, "p/tests/test_bin.py")], files)
                 self.assertIsNone(words)
@@ -1173,7 +1173,7 @@ class MergeScope(unittest.TestCase):
                 self.assertIsNone(words)
 
     def test_a_small_change_naming_no_task_merges_without_the_judge(self):
-        """A body naming no task with at most 30 changed lines, in any number of files, needs every check of its scope but the judge."""
+        """A body naming no task with at most 30 changed lines, in any number of files, needs every gate of its scope but the judge."""
         small = [{"filename": "p/bin/x.py", "additions": 10, "deletions": 5}, {"filename": "p/skills/s/SKILL.md", "additions": 15}]
         result, words = scoped([passed(HEAD, "p/tests/test_bin.py", "p/evals/a", "p/evals/b")], small, body="Fix x: see line 3")
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -1201,7 +1201,7 @@ class MergeScope(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_a_repository_without_the_mapping_needs_only_the_judge(self):
-        result, words = merge([f"APPROVED: {HEAD}"], files=["p/bin/x.py", "checks.json"])
+        result, words = merge([f"APPROVED: {HEAD}"], files=["p/bin/x.py", "gates.json"])
         self.assertEqual(result.returncode, 0, result.stderr)
 
 
@@ -1233,7 +1233,7 @@ class MergeScopeCarry(unittest.TestCase):
         self.assertNotIn("test_bin", result.stderr)
 
     def test_a_commit_editing_the_mapping_reruns_every_check(self):
-        result, words = scoped([f"APPROVED: {OLD}", passed(OLD, "p/tests/test_bin.py")], ["p/bin/x.py"], since={OLD: ["checks.json"]})
+        result, words = scoped([f"APPROVED: {OLD}", passed(OLD, "p/tests/test_bin.py")], ["p/bin/x.py"], since={OLD: ["gates.json"]})
         self.assertIsNone(words)
         self.assertIn("`p/tests/test_bin.py` has no pass", result.stderr)
         self.assertIn(f"`APPROVED: {OLD}` does not carry", result.stderr)
@@ -1244,13 +1244,13 @@ class MergeScopeCarry(unittest.TestCase):
         self.assertIn("`p/tests/test_bin.py` has no pass", result.stderr)
 
     def test_a_behind_refusal_names_only_the_checks_the_base_touches(self):
-        cases = {"p/skills/s/SKILL.md": [], "p/bin/y.py": ["p/tests/test_bin.py"], "checks.json": ["p/tests/test_bin.py"]}
+        cases = {"p/skills/s/SKILL.md": [], "p/bin/y.py": ["p/tests/test_bin.py"], "gates.json": ["p/tests/test_bin.py"]}
         for moved, rerun in cases.items():
             with self.subTest(moved=moved):
                 result, words = scoped([f"APPROVED: {HEAD}", passed(HEAD, "p/tests/test_bin.py")], ["p/bin/x.py"], behind=2, base_files=[moved])
                 self.assertIsNone(words)
                 if rerun:
-                    self.assertIn(f"these checks cover: {', '.join(rerun)}; merge it in, rerun only those", result.stderr)
+                    self.assertIn(f"these gates cover: {', '.join(rerun)}; merge it in, rerun only those", result.stderr)
                 else:
                     self.assertIn("no rerun needed", result.stderr)
 
@@ -1265,11 +1265,11 @@ REPO = ROOT.parent
 
 
 class CheckScope(unittest.TestCase):
-    """check-scope.py prints what this repository's checks.json assigns to a PR's changed paths."""
+    """gate-scope.py prints what this repository's gates.json assigns to a PR's changed paths."""
 
     @classmethod
     def setUpClass(cls):
-        cls.mapping = json.loads((REPO / "checks.json").read_text())
+        cls.mapping = json.loads((REPO / "gates.json").read_text())
         cls.tree = tree_names(REPO)
         cls.every = sorted(c for c in cls.tree if any(re.fullmatch(pattern(g), c) for g in cls.mapping["every"] if g != "judge"))
 
@@ -1309,7 +1309,7 @@ class CheckScope(unittest.TestCase):
         self.assertFalse([c for c in printed if not c.startswith(("judge: ", "teamwork/"))])
 
     def test_an_unmapped_path_or_the_mapping_itself_needs_the_full_set(self):
-        for files in (["no-such-folder/x.txt"], ["checks.json"], []):
+        for files in (["no-such-folder/x.txt"], ["gates.json"], []):
             with self.subTest(files=files):
                 printed = self.scope(files)
                 self.assertEqual(printed[0], "judge: sonnet")
