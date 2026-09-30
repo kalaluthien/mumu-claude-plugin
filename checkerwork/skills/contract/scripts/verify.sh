@@ -3,7 +3,9 @@
 # each `check` has a `refuses_<Name>` test, each flow `run <pred>` a `scenario_<pred>`, and back, each module folder
 # with a check a flow run, then the suite passes.
 # Exit 0 on a tree unchanged since the run began records that tree in .git/verify-passed, which lets the commit hook through.
+# A model whose content, and that of each spec/ file it opens, has a receipt under the git common dir is not run (lib/receipt.py).
 # Exit 1 names each miss; each `gap #<issue>` line in a test or a model is counted without failing, and excuses its run.
+here=$(cd "$(dirname "$0")" && pwd)
 out=$(mktemp -d) && trap 'rm -rf "$out"' EXIT
 tree() {  # the tree tracked and untracked content makes, by a scratch index (run-verify.py's tree_id)
   local d idx t; d=$(mktemp -d); idx=$(git rev-parse --path-format=absolute --git-path index 2>/dev/null)
@@ -15,8 +17,8 @@ fail=0
 models=$(grep -rlE '^[[:space:]]*(check|run)[[:space:]{]' spec --include='*.als' 2>/dev/null | sort)
 [ -z "$models" ] && echo "no model"
 for f in $models; do
-  alloy exec -f -q -o "$out/${f//\//_}" "$f" >"$out/log" 2>&1 || [ -f "$out/${f//\//_}/receipt.json" ] ||
-    { echo "FAIL $f: did not parse"; fail=1; }
+  python3 "$here/run-model.py" "$f" "$out/${f//\//_}" "$out/log"
+  [ -f "$out/${f//\//_}/receipt.json" ] || { echo "FAIL $f: did not parse"; fail=1; }
 done
 [ -n "$models" ] && { python3 - "$out" "$fail" <<'PY' || fail=1; }
 import json, os, pathlib, re, sys
