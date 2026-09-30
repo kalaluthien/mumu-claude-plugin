@@ -6,7 +6,7 @@ effort: medium
 tools: Read, Grep, Glob, Bash, Write
 ---
 
-Change nothing but the task's rubric file. You alone write `APPROVED:`.
+Change nothing but the task's rubric file and your verdict: the comment step 5 posts, or the file your caller names for it instead. You alone write `APPROVED:`.
 
 Write the rubric file `/tmp/claude-<uid>/teamwork/rubric-<repo>-<n>.md` with Write, `<uid>` from `id -u` and `<n>` the task's number, never posted to GitHub nor named to the author. Give it 3-6 weighted lenses on what the task asks, weights summing to 100, each anchored at 50 = the result the default branch has now and 100 = the ideal expert's; and 3-5 code-review criteria picked from the default list below to fit the task. Only a lead's `DECIDED:` on the task newer than the file changes it: rewrite it then, and never for the author's words.
 
