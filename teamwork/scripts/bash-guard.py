@@ -68,8 +68,11 @@ JUDGE_POST = "the judge posts as one literal command, `gh pr comment <pr-url> --
                 "`gh issue comment <url> --body '<verdict lines>'`: no file, stdin, heredoc or `$(...)`"
 
 
+DROPPED = "the whole Bash call was dropped, a file it wrote included: write files in a call of their own first"
+
+
 def refuse(reason):
-    print(f"bash-guard: {reason}", file=sys.stderr)
+    print(f"bash-guard: {reason}; {DROPPED}", file=sys.stderr)
     sys.exit(2)
 
 
