@@ -1,12 +1,13 @@
 {
   "hooks": {
     "SessionStart": [
-      { "hooks": [{ "type": "command", "command": "echo 'Before changing what code does, load the matching checkerwork skill, even when the request asks only for the change.'" }] }
+      { "hooks": [{ "type": "command", "command": "echo 'Before changing what code, a prompt or a skill does, load checkerwork:contract, even when the request asks only for the change.'" }] }
     ],
     "PreToolUse": [
       { "matcher": "Bash", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/run-verify.py" }] }
     ],
     "PostToolUse": [
+      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/run-verify.py" }] },
       { "matcher": "Bash", "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/commit-nudge.py" }] }
     ],
     "Stop": [

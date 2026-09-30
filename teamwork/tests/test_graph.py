@@ -12,7 +12,7 @@ import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SCRIPT = ROOT.parent / "checkerwork" / "skills" / "eval" / "scripts" / "instruction-graph.py"
+SCRIPT = ROOT.parent / "checkerwork" / "skills" / "contract" / "scripts" / "instruction-graph.py"
 spec = importlib.util.spec_from_file_location("instruction_graph", SCRIPT)
 instruction_graph = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(instruction_graph)

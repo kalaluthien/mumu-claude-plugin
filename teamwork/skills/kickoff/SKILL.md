@@ -41,9 +41,9 @@ Use these terms as defined here, and define none elsewhere; look up each verb in
 | attempt | 1 for a task's first worker and one more on each reopen |
 | name | one string for a session's tab, herdr agent and Claude session, and a worker's worktree and branch: `<topic>-<n>-<k>` for a worker on task n, attempt k; `<repo>-lead` for the lead, or `<folder>-lead` for a folder's, `<repo>` the repository's name lowercased, each run of other than letters, digits, hyphens and underscores one hyphen, cut to 22 characters |
 | criterion | one `## Definition of done` line, its kind, then a check → its pass condition: a check that can fail, and that the honest empty outcome can pass |
-| kind | a criterion's first token: `[exists]`, a file or line is present or absent; `[test]`, a test passes; `[quality]`, a rubric score; one comparing head with main names its sample, at least 3 outputs per prompt per side, the paired mean per lens and the margin head's mean must beat main's by |
+| kind | a criterion's first token: `[check]`, a command or run whose output decides the pass, in the repository or outside it, quoted failing on main, or, where main already behaves, failing on a named break of the line that guards it; `[score]`, a score by the judge's rubric, or by an eval grader over a sample when the task commits a code-graded case, never by a person; one comparing head with main names its sample, sized as its case needs, the paired mean per lens and the margin head's mean must beat main's by |
 | playbook | a file of `references/`: a role's changing rules and steps |
-| check | the judge, a test file or an eval case that a pull request's diff needs, as `scope` prints from the mapping `checks.json` at the repository's root; narrowing it is a change to that file, never a worker's, asked as `BLOCKED:` on its own task |
+| gate | the judge, a test file or an eval case that a pull request's diff must pass before `merge`, as `scope` prints from the mapping `gates.json` at the repository's root; narrowing it is a change to that file, never a worker's, asked as `BLOCKED:` on its own task |
 
 Keep all state on GitHub, in these records:
 
@@ -51,7 +51,7 @@ Keep all state on GitHub, in these records:
 | --- | --- | --- |
 | `BLOCKED:` | worker | `BLOCKED: <question>`, or `BLOCKED: stuck on <criterion>` |
 | `DECIDED:` | lead | `DECIDED: <answer>`, posted with `decide` |
-| `PASSED:` | worker | `PASSED: <sha>`, then one line per check of the scope, but the judge, that passed at that sha |
+| `PASSED:` | worker | `PASSED: <sha>`, then one line per gate of the scope, but the judge, that passed at that sha |
 | `APPROVED:` | judge | `APPROVED: <sha>`: the judge's pass of the pull request; `APPROVED: <comment-url>`: the report may close; `APPROVED:` alone: the plan or survey may go on |
 | `FINDINGS:` | judge | as `judge.md` step 5 writes it |
 
@@ -70,7 +70,7 @@ Rules:
 - Merge only with `merge`; fix what a git hook refuses, never skip it, or post `BLOCKED:`.
 - Commit and push only on a branch other than the default.
 - Run every session and agent on Opus, but a pull request's `judge` on the model `scope` prints.
-- Run on a pull request only the checks `scope` prints, and of those only the ones `merge` names: a pass carries to the head across commits that change no path the mapping assigns to its check, and the judge's also across merges of the default branch that leave its own diff byte-identical.
+- Run on a pull request only the gates `scope` prints, and of those only the ones `merge` names: a pass carries to the head across commits that change no path the mapping assigns to its gate, and the judge's also across merges of the default branch that leave its own diff byte-identical.
 - Launch the `judge` on a url, and after fixing its `FINDINGS:` resume that judge with `see <url>`, launching a new one only when it cannot be resumed and the url shows no verdict at the head.
 
 Writing, for every issue, pull request and comment:
@@ -78,7 +78,7 @@ Writing, for every issue, pull request and comment:
 - As short as it can be: bullets or a table, no narration; cite urls, `path:line`s and shas instead of restating them.
 - A title is verb-first and at most 40 characters.
 - Headings are noun phrases: a body carries `## Goal` and `## Definition of done`, one criterion per line.
-- A pull request body is `Closes #<task>`, or a share's `Part of #<task>`, or for a lead's small change no task, over the criteria table: each criterion, the command run and its result, pass or fail, with the count or line that shows it, and an `on main` column, filled for a `[test]` row with the new test's failing line run against the default branch.
+- A pull request body is `Closes #<task>`, or a share's `Part of #<task>`, or for a lead's small change no task, over the criteria table: each criterion, the command run and its result, pass or fail, with the count or line that shows it, and an `on main` column, filled for every criterion with its check's failing output run against the default branch.
 - A report comment is the findings over the same criteria table.
 
 # Verbs
@@ -128,8 +128,8 @@ Pick one model and one effort per task, unless the owner named them, by its clar
 | `stop` | close an issue as not planned: `gh issue close <url> --reason "not planned" --comment "<reason>"`, then `gh pr ready --undo <pr-url>` for its open pull request |
 | `claim` | take an attempt by its branch on the remote: `git fetch origin && ! git ls-remote --exit-code origin refs/heads/<branch> && git push -u origin <branch>`, `<branch>` the worktree's own, named after it; a branch found is yours only when this checkout is on it |
 | `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file <path>`; later `gh pr edit <pr> --body-file <path>` |
-| `scope` | `check-scope.py <pr-url>`: the checks the pull request's diff needs, the judge first with its model |
-| `merge` | `pr-merge.py <pr-url>`: refused while a check of the scope has no pass at the head nor one carried to it, naming each; a body naming no task is a small change, its scope without the judge, refused past 30 changed lines |
+| `scope` | `gate-scope.py <pr-url>`: the gates the pull request's diff needs, the judge first with its model |
+| `merge` | `pr-merge.py <pr-url>`: refused while a gate of the scope has no pass at the head nor one carried to it, naming each; a body naming no task is a small change, its scope without the judge, refused past 30 changed lines |
 | `clean` | from the checkout's root, one literal Bash call per command per worker, with no `git -C`, `cd` prefix, loop, `$(...)` or variable: `git worktree remove .claude/worktrees/<name>`, `git branch -D <name>` and, while `git ls-remote --exit-code origin refs/heads/<name>` finds it, `git push origin --delete <name>`; then `git pull --ff-only`, and remove the hook when `cmp -s` finds it equal to `default-branch-guard.sh` as `rm <hooks>/pre-commit`, `<hooks>` written out as its literal path |
 
 ## Traps

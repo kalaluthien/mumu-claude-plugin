@@ -1,6 +1,26 @@
+---
+name: contract
+description: Use when a change alters what code does - a bug fix, a feature, a new rule, an endpoint, a command - even if only the change was asked for or the repo has no tests; when it touches states, transitions, a lifecycle, permissions, ownership or a protocol, or a rule stated as never, always, only after or at most, or `*.als` files model the changed code; when a prompt, skill, rubric or model of a Claude plugin or an LLM app changes, its outputs need judging, or an eval's score must rise; or when rival answers, drafts or plans must be compared and the best picked against a rubric; or when tests, specs or evals need setting up, auditing or pruning, a failing eval needs triage, or someone asks what they cover. Not for a refactor that keeps behaviour.
+user-invocable: false
+---
+
 # Contract
 
-A change is checked against a contract that predates it, stated so that a check can fail.
+A change is checked against a contract that predates it, stated so that a check can fail. Read this page, then each mode the work fits, spec before test:
+
+| the work | mode |
+| --- | --- |
+| a product or LLM app with no eval suite | [eval-write](references/eval-write.md) |
+| an eval suite exists, and whether to trust it; an eval run failed or flips | [eval-audit](references/eval-audit.md) |
+| a runnable suite and a score to raise: a pass rate, a skill's trigger | [eval-optimize](references/eval-optimize.md) |
+| an LLM judge to build or validate against human labels | [eval-calibrate](references/eval-calibrate.md) |
+| rival answers, drafts or plans to compare against a rubric in one conversation | [eval-compare](references/eval-compare.md) |
+| a change to what code does, or to a value: a threshold, a colour, a size; a plugin change `claude plugin eval` cannot reach: a hook, a dialog, a monitor, the `/` menu; a repo with no test layout is set up first | [test-write](references/test-write.md) |
+| tests that prove nothing another proves, or assert a bare equality | [test-audit](references/test-audit.md) |
+| a change to states, transitions, a lifecycle, permissions, ownership or a protocol, or a never, always, only after or at most rule; `*.als` files; a repo with no model is set up first | [spec-write](references/spec-write.md) |
+| code to check against the model, or a model with preds, facts or checks nothing uses | [spec-audit](references/spec-audit.md) |
+
+A prompt, skill, rubric or model of a Claude plugin or an LLM app is code whose checks are evals.
 
 | term | meaning |
 | --- | --- |
@@ -13,14 +33,14 @@ A change is checked against a contract that predates it, stated so that a check 
 
 ## Rules
 
-- Use the repo's layout. With none, initialise the default the skill names and tell the owner "no <kind> layout found; initialised <path>".
-- Read the bar where the repo states it (CI, a contributing guide, agent instructions); with none, the spec skill's `scripts/verify.sh` passes, a branch's p95 is at most the worst of 5 runs of main on the same instrument, and a skill's number is its default. Asked where verification stands, give each kind's layout, coverage, last result and gap to the bar.
+- Use the repo's layout. With none, initialise the default the mode names and tell the owner "no <kind> layout found; initialised <path>".
+- Read the bar where the repo states it (CI, a contributing guide, agent instructions); with none, `${CLAUDE_PLUGIN_ROOT}/skills/contract/scripts/verify.sh` passes, a branch's p95 is at most the worst of 5 runs of main on the same instrument, and a mode's number is its default. Asked where verification stands, give each kind's layout, coverage, last result and gap to the bar.
 - The owner sets the bar and judges traces; the agent writes the checks and the change, and never judges a trace for the owner.
 - A transition no test reads from state, nor from an end-to-end run, is observed by the event log; code with no line there is a gap to report.
 - Write the check before the change and watch it fail for the reason the change addresses. An eval comes first only for a failure mode seen in a trace or a hard constraint the owner stated; otherwise error analysis does.
 - A before and after is a delta only from the same instrument, run, unit and sha: re-measure the old side, and restart after a merge mid-run rather than splice.
 - A check asserts a contract or a path, never one output byte for byte.
-- A failing check is a defect in the change or the design: never loosen a check, a fact or a scope to make it pass, but to mark a code gap `gap #<issue>` as the test skill says.
+- A failing check is a defect in the change or the design: never loosen a check, a fact or a scope to make it pass, but to mark a code gap `gap #<issue>` as [test/contracts-playbook.md](references/test/contracts-playbook.md) says.
 
 ## Breaking a check
 

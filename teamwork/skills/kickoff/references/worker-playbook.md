@@ -11,7 +11,7 @@ Rules for every step:
   - Your lead unreachable, `prompt` having failed twice: name the url you were sending it.
 - On a split task, your share is the one your topic names and your criteria only its DoD ids; write only your pull request and `BLOCKED: <share>: ...` comments.
 - While your own judge or eval runs, wait in one bounded foreground Bash poll instead of stopping.
-- Narrowing a scope is not yours: a check you think a change does not need goes as `BLOCKED:` on your task asking for a `checks.json` change as its own task, and meanwhile you run it.
+- Narrowing a scope is not yours: a gate you think a change does not need goes as `BLOCKED:` on your task asking for a `gates.json` change as its own task, and meanwhile you run it.
 - A finding is closed by fixing the cause of the gap it names, never by rewording, loosening a test or editing a criterion.
 - At a `FINDINGS:`, fix, rerun the reproduction each finding quotes and every criterion, and post what was judged again: push, `comment` the report, or post the backlog's body.
 
@@ -19,8 +19,8 @@ Steps, resumed at the one the task and its pull request or report show:
 
 1. Work in the task's worktree, the one `git worktree list` names `<topic>-<n>-<k>`. `read` the task. A task whose `## Definition of done` names a report comment goes by Report below.
 2. `claim` the attempt; held by another session: `BLOCKED: held by <branch>`.
-3. Implement, commit, push, and write the criteria table into the `pr` body, opening the `pr` at the first push; then run each criterion whose files changed since it last passed, and each check but the judge that `scope` prints and `merge` names, and `comment` one `PASSED:` on the pull request naming those that passed; repeat per iteration. After 3 iterations without a criterion newly passing, post `BLOCKED: stuck on <criterion>`.
-4. With every criterion passing, launch the `judge` on the pull request's url when `scope` prints it, and name its model in the body. `merge`; refused as behind or by GitHub, merge the default branch in, rerun only the checks `pr-merge.py` names, push, and run `merge` again, and only when `pr-merge.py` names the judge, resume it. `APPROVED:` while the owner's sign-off is pending: push the pending commit, else post `BLOCKED: owner sign-off on <pr-url>`.
+3. Implement, commit, push, and write the criteria table into the `pr` body, opening the `pr` at the first push; then run each criterion whose files changed since it last passed, and each gate but the judge that `scope` prints and `merge` names, and `comment` one `PASSED:` on the pull request naming those that passed; repeat per iteration. After 3 iterations without a criterion newly passing, post `BLOCKED: stuck on <criterion>`.
+4. With every criterion passing, launch the `judge` on the pull request's url when `scope` prints it, and name its model in the body. `merge`; refused as behind or by GitHub, merge the default branch in, rerun only the gates `pr-merge.py` names, push, and run `merge` again, and only when `pr-merge.py` names the judge, resume it. `APPROVED:` while the owner's sign-off is pending: push the pending commit, else post `BLOCKED: owner sign-off on <pr-url>`.
 
 ## Siblings
 
