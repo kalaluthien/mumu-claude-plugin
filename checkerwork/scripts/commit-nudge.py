@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""PostToolUse on Bash: after a `git commit` whose change fits a playbook of `checkerwork:contract`, unloaded, ask for it.
+"""PostToolUse on Bash: after a `git commit` whose change fits a mode category of `checkerwork:contract`, unloaded, ask for it.
 
 The change is the commit at HEAD, read after the call, since a worker often writes the files and commits in one
 Bash call; each changed file is matched by `lib/fit.py` against its path and its added lines. The skill is loaded when
 the transcript holds a Skill call or typed command naming `checkerwork:contract`. It is asked for once per session,
-recorded under the plugin's data dir, naming each fitting playbook. Exit 0 always: the ask is the JSON `decision: block`, whose reason reaches the
+recorded under the plugin's data dir, naming each fitting category. Exit 0 always: the ask is the JSON `decision: block`, whose reason reaches the
 model; a crash asks nothing and names itself on stderr.
 """
 import json
@@ -17,7 +17,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-from fit import CALL, COMMIT, PLAYBOOKS, added, fits  # noqa: E402
+from fit import CALL, COMMIT, CATEGORIES, added, fits  # noqa: E402
 
 
 def committed(cwd):
@@ -46,18 +46,18 @@ def main():
         cwd = os.path.join(cwd, os.path.expanduser(shlex.split(m.group(3))[0]))
     fit = {}
     for path, text in committed(cwd).items():
-        for playbook in fits(path, text):
-            fit.setdefault(playbook, path)
+        for category in fits(path, text):
+            fit.setdefault(category, path)
     data = pathlib.Path(os.environ.get("CLAUDE_PLUGIN_DATA") or tempfile.gettempdir()) / "commit-nudge"
     mark = data / re.sub(r"[^\w-]", "_", str(call.get("session_id", "none")))
     if not fit or mark.exists() or loaded(call.get("transcript_path")):
         return
     data.mkdir(parents=True, exist_ok=True)
     mark.write_text("contract")
-    why = "; ".join(f"{p}.md ({fit[p][1:]})" for p in PLAYBOOKS if p in fit)
+    why = "; ".join(f"{p} ({fit[p][1:]})" for p in CATEGORIES if p in fit)
     print(json.dumps({"decision": "block", "reason": (
-        f"This commit's change fits checkerwork:contract's playbooks {why}, and the skill is not loaded in this session. "
-        "Load it now with the Skill tool, even when your steps end at this commit, read those playbooks, and do what "
+        f"This commit's change fits checkerwork:contract's {why} modes, and the skill is not loaded in this session. "
+        "Load it now with the Skill tool, even when your steps end at this commit, read the modes its table routes that work to, and do what "
         "they ask where it applies in a new commit; asked once per session.")}))
 
 

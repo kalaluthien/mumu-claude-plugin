@@ -1,6 +1,6 @@
-# Climb
+# Eval: optimize
 
-Raise one score of a runnable suite by changes kept only when cases the change was not tuned on improve. With no suite that runs and scores, stop and build one ([eval-graders.md](eval-graders.md)).
+Raise one score of a runnable suite by changes kept only when cases the change was not tuned on improve. With no suite that runs and scores, stop: it needs setting up first. Run it by [eval/runner-playbook.md](eval/runner-playbook.md) § Run. A skill's trigger is two scores, the fire rate and the quiet rate ([eval/graders-playbook.md](eval/graders-playbook.md)): climb one without letting the other fall.
 
 A climb's files sit in the repo's eval folder, `evals/climb/<name>/`, fed by the runner's own output (`claude plugin eval --json`): `README.md` holds the goal, the split's case ids and one row per round; `baseline/` and `v<N>/` each hold `run.json`, `traces/` (gitignored) and, but baseline, `change.md` (first line the change, then why) and `change.patch`.
 
@@ -20,15 +20,7 @@ A climb's files sit in the repo's eval folder, `evals/climb/<name>/`, fed by the
 4. Keep the change only when test rises beyond the noise floor and train does not fall; train up and test flat is overfitting, and a guardrail outside noise also reverts it. Add the round's row to `README.md`: round, change, test, train, each guardrail.
 5. Stop at the owner's rule: fewer than their smallest gain over three rounds in a row, N rounds, or a check-in each round.
 
-Two or three rounds inside the noise floor: stop changing content and sort each remaining train failure, a fresh subagent reading as in step 1:
-
-| bucket | sign | instead |
-| --- | --- | --- |
-| artifact gap | the model lacked a fact or rule and guessed | go on climbing |
-| grader | the output looks right and failed, or prompt and grader ask different things | fix the grader, regrade every round, and restart from baseline if the order of rounds flips |
-| harness | the run died before a scorable output | fix it, excluding those runs meanwhile |
-| structure | the fact is in the artifact and was never reached | reorganise: split, route or merge, rather than add text |
-| variance | identical runs flip as much as a round moves | report the best so far, offer more runs |
+Two or three rounds inside the noise floor: stop changing content and sort each remaining train failure by [eval/buckets-playbook.md](eval/buckets-playbook.md); an artifact gap goes on climbing, and a grader fix regrades every round, restarting from baseline if the order of rounds flips.
 
 ## Report
 

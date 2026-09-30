@@ -51,21 +51,21 @@ class CommitNudge(unittest.TestCase):
         out, _ = self.hook()
         self.assertEqual(out["decision"], "block")
         self.assertIn("checkerwork:contract", out["reason"])
-        self.assertIn("eval.md (skills/tidy/SKILL.md)", out["reason"])
-        self.assertNotIn("test.md", out["reason"])
+        self.assertIn("eval (skills/tidy/SKILL.md)", out["reason"])
+        self.assertNotIn("test (", out["reason"])
 
     def test_asks_for_test_after_a_code_commit(self):
         self.commit("scripts/guard.py", "x = 1\n")
         out, _ = self.hook()
-        self.assertIn("test.md (scripts/guard.py)", out["reason"])
+        self.assertIn("test (scripts/guard.py)", out["reason"])
 
-    def test_names_each_fitting_playbook_in_one_ask(self):
+    def test_names_each_fitting_category_in_one_ask(self):
         self.commit("scripts/guard.py", "x = 1\n")
         self.commit("skills/tidy/SKILL.md", "x\n")
         git(self.repo, "reset", "-q", "--soft", "HEAD~2")
         git(self.repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "both")
         reason = self.hook()[0]["reason"]
-        self.assertIn("test.md (scripts/guard.py); eval.md (skills/tidy/SKILL.md)", reason)
+        self.assertIn("test (scripts/guard.py); eval (skills/tidy/SKILL.md)", reason)
 
     def test_asks_once_per_session(self):
         self.commit("skills/tidy/SKILL.md", "x\n")
@@ -90,7 +90,7 @@ class CommitNudge(unittest.TestCase):
     def test_reads_the_repo_git_c_names(self):
         self.commit("agents/worker.md", "x\n")
         out, _ = self.hook(command="git -C repo commit -m x", cwd=self.tmp.name)
-        self.assertIn("eval.md (agents/worker.md)", out["reason"])
+        self.assertIn("eval (agents/worker.md)", out["reason"])
 
     def test_names_the_path_under_diff_noprefix(self):
         git(self.repo, "config", "diff.noprefix", "true")

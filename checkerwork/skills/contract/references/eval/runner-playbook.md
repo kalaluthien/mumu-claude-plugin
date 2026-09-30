@@ -1,12 +1,10 @@
-# Eval
-
-Find the failure modes in real traces first, then check each with code or with a judge validated against human labels, and move a score only by changes cases they were not tuned on confirm.
+# Runner
 
 An eval runs cases through an LLM system, each graded pass or fail, and checks one failure mode seen in a trace, never a quality picked in advance ("helpfulness"). One eval covers one flow: several flows are several evals.
 
 | suite | bar |
 | --- | --- |
-| regression | every run of every case passes its code graders; a drop blocks the change. A judge here gates on its corrected pass rate ([eval-judge.md](eval-judge.md), step 6), never on one verdict |
+| regression | every run of every case passes its code graders; a drop blocks the change. A judge here gates on its corrected pass rate ([judge-playbook.md](judge-playbook.md) § Validate, step 6), never on one verdict |
 | capability | starts low, a hill to climb; never gates. A case that passes steadily moves to regression |
 
 A suite that has long passed everything catches nothing new: retire its cases or run them less often, and add cases from fresh failures.
@@ -20,19 +18,6 @@ A suite that has long passed everything catches nothing new: retire its cases or
 | another harness in `evals/` or the test runner | use it |
 
 Also look for traces, human labels or notes on them, and judge prompts. With no runner, initialise `evals/` (a plugin: `claude plugin eval init --bare <case>`; an app: `npx promptfoo init --no-interactive evals`) and gitignore its results directory. Never replace a runner the repo has, nor call the model around the app's own entry point.
-
-Then take the first step that fits, to its end:
-
-| the repo has | playbook |
-| --- | --- |
-| a suite, and the question is whether to trust it | audit it: each grader traces to an observed mode, answers pass or fail, and is code where code can decide; each judge has TPR and TNR on a held-out split; each case runs more than once from a clean directory; failing transcripts are read. Report what fails, most harmful first, naming the file and the fix |
-| a runnable suite, and a score to raise: a pass rate, a skill's trigger | [eval-climb.md](eval-climb.md) |
-| fewer than about 100 traces carrying a person's verdict and note | [eval-analysis.md](eval-analysis.md) |
-| a failure taxonomy, and a mode in it with no check | [eval-graders.md](eval-graders.md) |
-| an LLM judge with no measured agreement with human labels | [eval-judge.md](eval-judge.md) |
-| none of these | [eval-analysis.md](eval-analysis.md) |
-
-Asked for a judge, a score or a metric before that analysis exists, even with a few traces in hand, do not write it: say it would measure a guess no label can check, and start error analysis. A code check of a hard constraint the owner stated ("valid JSON") is the one exception.
 
 ## Run
 

@@ -4,7 +4,7 @@ It writes `evals/analysis/notes.csv` (`trace,verdict,note`) and `evals/analysis/
 
 ## Traces
 
-A trace is the whole run: the input, every tool call, retrieved context and reasoning, and the output. For a plugin, run realistic prompts with `claude plugin eval <dir> --keep-temp --json <file>` and copy each run's `tracePath` into `evals/analysis/traces/`, since it is deleted otherwise; a file the run wrote is the last `Write` for that path in the trace. Or read session transcripts ([eval.md](eval.md) § Transcripts). For an app, export its logs or observability tool to JSONL. Sample about 100, some at random and the rest spread across what varies, never the first N; build a small viewer first if the format is hard to read.
+A trace is the whole run: the input, every tool call, retrieved context and reasoning, and the output. For a plugin, run realistic prompts with `claude plugin eval <dir> --keep-temp --json <file>` and copy each run's `tracePath` into `evals/analysis/traces/`, since it is deleted otherwise; a file the run wrote is the last `Write` for that path in the trace. Or read session transcripts ([runner-playbook.md](runner-playbook.md) § Transcripts). For an app, export its logs or observability tool to JSONL. Sample about 100, some at random and the rest spread across what varies, never the first N; build a small viewer first if the format is hard to read.
 
 Before pulling production logs, ask whether a retention rule will force their deletion or they hold personal data that cannot sit in the repo; if so, keep only their ids and fetch at run time, or have the owner anonymise a sample.
 
@@ -23,4 +23,4 @@ Open coding: for each trace the owner records a verdict and one note naming the 
 
 Axial coding: group the notes into failure modes, each with a name, a definition a second person could apply, a count and two or three example traces; merge modes differing only in wording, split one whose examples need different fixes. For a multi-step agent, count failures by the last step that went right and the first that went wrong. Stop when about 20 more traces change nothing, then re-read the first traces.
 
-Sort each mode: a prompt that never asked for the behaviour is fixed in the prompt; asked clearly and not done gets a check ([eval-graders.md](eval-graders.md)), then the fix; a product or tool bug is filed as a bug; rare and cheap, or already fixed, is noted. Rank the rest by frequency and harm (synthetic counts by harm alone), and repeat after a model switch, a prompt rewrite or an incident.
+Sort each mode: a prompt that never asked for the behaviour is fixed in the prompt; asked clearly and not done gets a check ([graders-playbook.md](graders-playbook.md)), then the fix; a product or tool bug is filed as a bug; rare and cheap, or already fixed, is noted. Rank the rest by frequency and harm (synthetic counts by harm alone), and repeat after a model switch, a prompt rewrite or an incident.

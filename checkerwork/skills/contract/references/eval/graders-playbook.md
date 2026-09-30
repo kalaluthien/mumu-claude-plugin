@@ -15,13 +15,6 @@ A repository's instruction files (`CLAUDE.md`, `AGENTS.md`, skills, agents, hook
 
 - An unknown key fails the load, shown as `0 case(s)`: "never used" is `tool_used` with `min: 0` and `max: 0`, and its tool must be in `allowed_tools`.
 - Under ablation a `with-only` grader (`tool_used: Skill` by default) reports whether the plugin fired instead of scoring: give each case one grader that scores both arms.
-- A skill's trigger is its `description`: about 20 prompts, half that should fire it and half near misses sharing its words, each graded by `tool_used: Skill`, 3 runs each. Report the fire rate on the first half and the quiet rate on the near misses apart, never one pass rate that hides a trade between them; raise either by [eval-climb.md](eval-climb.md). `plugin eval` fires skills more readily than a live session: confirm a trigger change live, beside the plugins a session really loads, with `${CLAUDE_PLUGIN_ROOT}/skills/contract/scripts/replay.py <plugin> <case>... --with <plugin dir>... [--agent <agent>]`. How often past sessions whose change fitted a checkerwork playbook called the skill: `skill-use.py`, beside it.
+- A skill's trigger is its `description`: about 20 prompts, half that should fire it and half near misses sharing its words, each graded by `tool_used: Skill`, 3 runs each. Report the fire rate on the first half and the quiet rate on the near misses apart, never one pass rate that hides a trade between them; raise either by a climb, the `eval-optimize` mode. `plugin eval` fires skills more readily than a live session: confirm a trigger change live, beside the plugins a session really loads, with `${CLAUDE_PLUGIN_ROOT}/skills/contract/scripts/replay.py <plugin> <case>... --with <plugin dir>... [--agent <agent>]`. How often past sessions whose change fitted a checkerwork playbook called the skill: `skill-use.py`, beside it.
 
-A judge, only for a mode that needs reading, once it has about 20 labelled traces on each side. Its prompt has four parts:
-
-1. Task: one mode ("whether the reply quotes a price not in the listing"), never "whether the reply is good".
-2. Pass and fail: what each verdict means, with concrete fail examples.
-3. Examples: two to four labelled traces from the train split, both verdicts, each critiqued before its verdict.
-4. Output: `{"critique": "...", "result": "Pass" | "Fail"}`, enforced by structured output where the provider has it.
-
-One condition per judge: a cheap judge fails correct replies on a criterion of several parts, so split it into one grader each, and make any part a word or pattern decides a `regex`. Give it only the passage the decision needs; pin a capable model to a dated version, and move to a cheaper one only once it agrees as well. Then validate it ([eval-judge.md](eval-judge.md)).
+A judge, only for a mode that needs reading, once it has about 20 labelled traces on each side: [judge-playbook.md](judge-playbook.md).

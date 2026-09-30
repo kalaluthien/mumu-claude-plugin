@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Count, over Claude Code session transcripts, how often a change fitted a `checkerwork:contract` playbook and the skill was called.
+"""Count, over Claude Code session transcripts, how often a change fitted a `checkerwork:contract` mode category and the skill was called.
 
 A session is one top-level `<projects>/*/*.jsonl` whose first record is at or after --since. Its kind is
 `headless` for an `sdk-cli` entrypoint (evals, probes, `claude -p`, a replay run as a worker included), else
-its `agent-setting` (`teamwork:worker` worker, `teamwork:lead` lead), else `plain`. A playbook fits a session when a file it changed
+its `agent-setting` (`teamwork:worker` worker, `teamwork:lead` lead), else `plain`. A category fits a session when a file it changed
 fits it by `lib/fit.py`; its changes are its Edit, Write and MultiEdit calls, and the diff of each pull
 request it links (a `pr-link` record) whose head branch is the session's name, since a worker often edits
 through Bash. A session called the skill when a Skill tool call or a typed slash command names `checkerwork:contract`; a
@@ -11,7 +11,7 @@ session before the plugin had one skill named others, and counts as not calling 
 plugin when a `skill_listing` attachment names `checkerwork:`, and the plugin's SessionStart hook
 reached it when its text is in the transcript.
 
-Output: a markdown table per kind and playbook, then each non-empty cell's session ids, `--ids` long.
+Output: a markdown table per kind and category, then each non-empty cell's session ids, `--ids` long.
 """
 import argparse
 import collections
@@ -25,7 +25,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
-from fit import CALL, PLAYBOOKS, added, fits  # noqa: E402
+from fit import CALL, CATEGORIES, added, fits  # noqa: E402
 
 HOOK_TEXT = "load checkerwork:contract"
 
@@ -131,12 +131,12 @@ def main():
     unread = [] if args.no_prs else add_prs(sessions)
     kinds = collections.Counter(kind(s) for s in sessions)
     print(f"sessions: {len(sessions)} since {args.since} ({', '.join(f'{k} {n}' for k, n in sorted(kinds.items()))})\n")
-    print("| kind | playbook | fit | fit, listed | fit, called | fit, not listed, called | called, no fit |")
+    print("| kind | category | fit | fit, listed | fit, called | fit, not listed, called | called, no fit |")
     print("| --- | --- | --- | --- | --- | --- | --- |")
     cells = {}
     for k in sorted(kinds):
         ks = [s for s in sessions if kind(s) == k]
-        for sk in PLAYBOOKS:
+        for sk in CATEGORIES:
             row = {
                 "fit": [s for s in ks if sk in s["fit"]],
                 "fit, listed": [s for s in ks if sk in s["fit"] and s["listed"]],
