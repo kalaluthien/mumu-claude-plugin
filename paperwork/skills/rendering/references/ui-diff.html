@@ -2,8 +2,10 @@
   anatomy: a figure[data-widget="ui-diff"] with data-slide, opening with a figcaption (what is compared), then a .card
   of pseudo-code and notes, a .panes of two .pane, and an ol.steps; every id prefixed with {{id}}.
   pane: a div.pane id="{{id}}-<side>" holding a p.name (the version), an ol.view (the UI's viewport, scrolled in its
-  own box; data-scroll="end" holds it at the bottom) of li rows, each its label and size (user 48) and style="--h: <px
+  own box; data-scroll="end" holds it at the bottom) of li rows, each its label and size (user 48px) and style="--h: <px
   of the drawn UI>", then a p.status, a line of what the pane reads now: total, rows mounted, shown or not.
+  numbers: each with its unit, 474px, 6줄, in rows, status lines and any table of the same values beside the widget,
+  whose headers carry it in brackets, 변경 전(px).
   states: a row's data-states lists its state from each step on, as "estimated 3:measured 6:revealed" (the first from
   step 1): estimated, a guess not yet real, grey hatch in a dashed frame; measured, real but hidden, filled under a hatch
   in a solid frame; revealed, what the reader sees, solid fill; the pattern and the frame tell them apart, not colour.
@@ -100,14 +102,14 @@
       <ol class="view" data-scroll="end">
         <li data-states="{{estimated 3:measured 6:revealed}}" style="--h: {{px}}">{{label and size}}</li>
       </ol>
-      <p class="status"><span data-step="1">{{what the pane reads now}}</span></p>
+      <p class="status"><span data-step="1">{{what the pane reads now, each number with its unit}}</span></p>
     </div>
     <div class="pane" id="{{id}}-after">
       <p class="name">{{the version after}}</p>
       <ol class="view" data-scroll="end">
         <li data-states="{{estimated 3:measured 6:revealed}}" style="--h: {{px}}">{{label and size}}</li>
       </ol>
-      <p class="status"><span data-step="1">{{what the pane reads now}}</span></p>
+      <p class="status"><span data-step="1">{{what the pane reads now, each number with its unit}}</span></p>
     </div>
   </div>
   <ol class="steps">

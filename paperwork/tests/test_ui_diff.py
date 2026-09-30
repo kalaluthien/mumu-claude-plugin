@@ -83,7 +83,7 @@ class Played(unittest.TestCase):
         page = self.open()
         for k in (1, 2, 3, 4):
             with self.subTest(step=k):
-                self.assertEqual("footer 32" in self.step(page, k)["rows"], k >= 4)
+                self.assertEqual("footer 32px" in self.step(page, k)["rows"], k >= 4)
         self.assertEqual(self.errors, [])
 
     def test_row_states_differ_by_pattern_or_border(self):
