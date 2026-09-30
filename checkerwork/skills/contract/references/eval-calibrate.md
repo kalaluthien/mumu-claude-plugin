@@ -1,4 +1,4 @@
-# Eval: judge
+# Eval: calibrate
 
 Build or validate an LLM judge against the owner's labels.
 
