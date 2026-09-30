@@ -2,6 +2,10 @@
 
 A judge grades one failure mode that needs reading, once it has about 20 labelled traces on each side; its numbers are not used until it agrees with the owner. A code grader gets a unit test instead, passing and failing inputs for every condition.
 
+## When
+
+A judge grades a failure mode error analysis found ([analysis-playbook.md](analysis-playbook.md)). Asked for a judge, a score or a metric before that analysis exists, even with a few traces in hand, do not write it: say it would measure a guess no label can check, and start the analysis. A code check of a hard constraint the owner stated ("valid JSON") is the one exception.
+
 ## Prompt
 
 1. Task: one mode ("whether the reply quotes a price not in the listing"), never "whether the reply is good".
