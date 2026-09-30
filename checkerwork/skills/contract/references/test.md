@@ -1,14 +1,6 @@
----
-name: test
-description: Use when a change alters what code does - a bug fix, a feature, a new rule, an endpoint, a command - even if only the fix was asked for or the repo has no tests, or when asked what the tests cover. Not for a refactor that keeps behaviour.
-user-invocable: false
----
-
 # Test
 
-Write the failing tests first, then the change that makes them pass; `${CLAUDE_PLUGIN_ROOT}/skills/spec/scripts/verify.sh` passing at the repo's root is done.
-
-Terms and rules: `${CLAUDE_PLUGIN_ROOT}/lib/contract.md`; read it first.
+Write the failing tests first, then the change that makes them pass; `${CLAUDE_PLUGIN_ROOT}/skills/contract/scripts/verify.sh` passing at the repo's root is done.
 
 ## Find what the repo has
 
@@ -35,7 +27,7 @@ A value rule - a threshold, a colour, a size - lives once as a named constant wh
 
 ## Green
 
-Make the change. Run `${CLAUDE_PLUGIN_ROOT}/skills/spec/scripts/verify.sh`; it passes. Then undo the change alone, watch the new tests fail, and restore it.
+Make the change. Run `${CLAUDE_PLUGIN_ROOT}/skills/contract/scripts/verify.sh`; it passes. Then undo the change alone, watch the new tests fail, and restore it.
 
 ## Plugin probe
 
@@ -44,7 +36,7 @@ What `claude plugin eval` cannot reach is shown in live herdr sessions, main bes
 1. Sides: main's plugin dir is `git -C <checkout> worktree add --detach <scratch>/main origin/<default>`, the branch's its worktree; edit neither while its probe runs.
 2. Start each side with the block below. The pane is `result.root_pane.pane_id`; names are lowercase; `agent_pane_busy` means the shell's rc still runs, so retry every 2 s. `--env` shortens a timer or puts a fake `gh` first on PATH. An untrusted cwd's folder dialog takes `herdr agent send-keys <pane> down`, then `enter`.
 3. Drive with `herdr agent prompt <pane> "<text>"`, reading the pane and resending when a prompt right after start vanished. The `/` menu: `herdr pane send-text <pane> "/<plugin>:"` without enter, then `herdr pane read <pane>`: a hidden skill reads "No commands match", against a prefix that still lists one. A lead: cwd a scratch `git init` repo whose origin is `https://github.com/o/r.git`, so no GitHub write lands. A worker: the branch's `worker-start.py <checkout> probe-<x> low <issue-url>`, ended by `session-close.py probe-<x>`.
-4. Read `herdr agent read <pane> --lines 30`, a monitor by `ps`, and tool calls in the session's transcript ([eval](../eval/SKILL.md) § Transcripts).
+4. Read `herdr agent read <pane> --lines 30`, a monitor by `ps`, and tool calls in the session's transcript ([eval.md](eval.md) § Transcripts).
 5. End: `escape` a busy session, prompt `/exit`, close both tabs, remove main's copy, and report each side's result, main beside branch.
 
 ```sh

@@ -1,4 +1,4 @@
-"""Which checkerwork skills a change fits, read from a changed file's path and the text written to it.
+"""Which playbooks of the checkerwork `contract` skill a change fits, read from a changed file's path and the text written to it.
 
   test  a code file (.py .sh .js .ts .kt ...) outside a test folder or test_* name
   spec  an `.als` file, or written text stating a protocol rule (never, always, only after, at most, ...)
@@ -9,18 +9,18 @@ Files in a temp dir, a scratchpad or `~/.claude/projects` (memory) are not a cha
 import collections
 import re
 
-SKILLS = ("test", "spec", "eval")
+PLAYBOOKS = ("test", "spec", "eval")
 CODE = re.compile(r"\.(py|sh|bash|zsh|js|mjs|cjs|ts|tsx|jsx|kt|kts|java|swift|rs|go|rb|c|cc|cpp|h)$")
 TEST_PATH = re.compile(r"(^|/)(tests?|__tests__|spec)/|(^|/)test_[^/]*$|_test\.[a-z]+$|\.test\.[a-z]+$")
 RULE = re.compile(r"\b(never|always|only after|at most|at least once|lifecycle|transition|permission|ownership|protocol)\b", re.I)
 PROMPT = re.compile(r"(^|/)(SKILL\.md|CLAUDE\.md|AGENTS\.md)$|/skills/.+/references/[^/]+\.md$|/(agents|commands)/[^/]+\.md$|/evals/")
 NOT_CHANGE = re.compile(r"^(/tmp/|/private/|/var/folders/)|/scratchpad/|/\.claude/projects/")
-CALL = re.compile(r"checkerwork:(test|spec|eval)\b")
+CALL = re.compile(r"checkerwork:contract\b")
 COMMIT = re.compile(r"(^|[;&|(]\s*|\s)git(\s+-C\s+(\S+))?\s+commit\b")
 
 
 def fits(path, text):
-    """The skills whose description a write of `text` to `path` fits; `path` is absolute or starts with /."""
+    """The playbooks whose rows a write of `text` to `path` fits; `path` is absolute or starts with /."""
     if not path or NOT_CHANGE.search(path):
         return set()
     out = set()

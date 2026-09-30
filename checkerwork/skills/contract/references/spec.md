@@ -1,14 +1,6 @@
----
-name: spec
-description: Use when a change touches states, transitions, a lifecycle, permissions, ownership or a protocol, or a rule stated as never, always, only after or at most - even if only the code was asked for - or when `*.als` files model the changed code, or when asked what the specs cover. Not for one function's input and output, nor for a value - a threshold, a colour, a size, a photometric target (test).
-user-invocable: false
----
-
 # Spec
 
 Model the change in Alloy, check the rule it must keep before the code changes, and keep the model one drawable map of the system.
-
-Terms and rules: `${CLAUDE_PLUGIN_ROOT}/lib/contract.md`; read it first.
 
 ## Find what the repo has
 
@@ -40,13 +32,13 @@ run refund for 3 expect 1          -- a flow run: the use case has an instance
 
 Properties come from the owner's words: each sentence stating never, always, only after or at most becomes one assert quoting it, ranked by harm (money, data, safety first). Each module asserts every step stays inside its `trans`, and each call into a `Remote` gets a `Fail` outcome with a check that the caller stays inside `trans`; these two quote the `trans` or the `Remote` they guard, not an owner's sentence. State that changes hangs on the noun it belongs to as a `var` field, never on one `Time` sig holding every field, so a drawn sig shows its own state. Delete a field or edge that no rule reads.
 
-A value is not modelled: `Int` wraps at the scope's width (-8..7 by default) and has no reals. Model its order or a small integer with `but N Int`; the value itself goes to `test`.
+A value is not modelled: `Int` wraps at the scope's width (-8..7 by default) and has no reals. Model its order or a small integer with `but N Int`; the value itself goes to [test.md](test.md).
 
 Syntax that misleads: a `module` name has no hyphen and equals its path; a temporal word (`before`, `after`, `once`) cannot name a pred, nor a command keyword (`check`, `run`, `expect`, `for`, `but`) a sig, field or pred: it is a syntax error at its first use. `always A implies B` is `(always A) implies B`; `P until Q` demands that `Q` comes, `Q releases P` does not.
 
 ## Check
 
-Every `check` and `run` carries `expect`: `alloy exec` exits 0 on a counterexample without one. Run `${CLAUDE_PLUGIN_ROOT}/skills/spec/scripts/verify.sh` at the repo's root, never a copy in the repo: it names each missed or missing expect, each `check` with no `refuses_<Name>` and each flow run with no `scenario_<pred>` in a test file, one under `test/`, `tests/`, `__tests__/` or `androidTest/` or named `test_*`, `*_test.*`, `*.test.*` or `*Test.<ext>`, never under `spec/`, `docs/` or `build/`. Start at `for 3` and raise the scope while each check finishes within a minute.
+Every `check` and `run` carries `expect`: `alloy exec` exits 0 on a counterexample without one. Run `${CLAUDE_PLUGIN_ROOT}/skills/contract/scripts/verify.sh` at the repo's root, never a copy in the repo: it names each missed or missing expect, each `check` with no `refuses_<Name>` and each flow run with no `scenario_<pred>` in a test file, one under `test/`, `tests/`, `__tests__/` or `androidTest/` or named `test_*`, `*_test.*`, `*.test.*` or `*Test.<ext>`, never under `spec/`, `docs/` or `build/`. Start at `for 3` and raise the scope while each check finishes within a minute.
 
 ## Check the code against the model
 

@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""Count, over Claude Code session transcripts, how often a change fitted a checkerwork skill and the skill was called.
+"""Count, over Claude Code session transcripts, how often a change fitted a `checkerwork:contract` playbook and the skill was called.
 
 A session is one top-level `<projects>/*/*.jsonl` whose first record is at or after --since. Its kind is
 `headless` for an `sdk-cli` entrypoint (evals, probes, `claude -p`, a replay run as a worker included), else
-its `agent-setting` (`teamwork:worker` worker, `teamwork:lead` lead), else `plain`. A skill fits a session when a file it changed
+its `agent-setting` (`teamwork:worker` worker, `teamwork:lead` lead), else `plain`. A playbook fits a session when a file it changed
 fits it by `lib/fit.py`; its changes are its Edit, Write and MultiEdit calls, and the diff of each pull
 request it links (a `pr-link` record) whose head branch is the session's name, since a worker often edits
-through Bash. A session called a skill when a Skill tool call or a typed slash command names `checkerwork:<skill>`. It listed the
+through Bash. A session called the skill when a Skill tool call or a typed slash command names `checkerwork:contract`; a
+session before the plugin had one skill named others, and counts as not calling it. It listed the
 plugin when a `skill_listing` attachment names `checkerwork:`, and the plugin's SessionStart hook
 reached it when its text is in the transcript.
 
-Output: a markdown table per kind and skill, then each non-empty cell's session ids, `--ids` long.
+Output: a markdown table per kind and playbook, then each non-empty cell's session ids, `--ids` long.
 """
 import argparse
 import collections
@@ -24,9 +25,9 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
-from fit import CALL, SKILLS, added, fits  # noqa: E402
+from fit import CALL, PLAYBOOKS, added, fits  # noqa: E402
 
-HOOK_TEXT = "load the matching checkerwork skill"
+HOOK_TEXT = "load checkerwork:contract"
 
 
 def written(name, inp):
@@ -43,7 +44,7 @@ def written(name, inp):
 def session(path):
     """One transcript's facts, or None when it holds no record with a timestamp."""
     s = {"id": os.path.basename(path)[:-6], "start": None, "setting": None, "entry": None, "name": None,
-         "fit": set(), "called": set(), "listed": False, "hook": False, "prs": set()}
+         "fit": set(), "called": False, "listed": False, "hook": False, "prs": set()}
     with open(path, errors="replace") as f:
         for line in f:
             try:
@@ -69,7 +70,7 @@ def session(path):
             m = d.get("message")
             content = m.get("content") if isinstance(m, dict) else None
             if t == "user" and isinstance(content, str) and "<command-name>" in content:
-                s["called"] |= set(re.findall(r"<command-name>/checkerwork:(\w+)", content))
+                s["called"] |= bool(CALL.search(content.split("<command-name>", 1)[1]))
             if t != "assistant" or not isinstance(content, list):
                 continue
             for b in content:
@@ -77,7 +78,7 @@ def session(path):
                     continue
                 inp = b.get("input") or {}
                 if b.get("name") == "Skill":
-                    s["called"] |= set(CALL.findall(str(inp.get("skill", ""))))
+                    s["called"] |= bool(CALL.search(str(inp.get("skill", ""))))
                 for p, text in written(b.get("name"), inp):
                     s["fit"] |= fits(p, text)
     return s if s["start"] else None
@@ -130,18 +131,18 @@ def main():
     unread = [] if args.no_prs else add_prs(sessions)
     kinds = collections.Counter(kind(s) for s in sessions)
     print(f"sessions: {len(sessions)} since {args.since} ({', '.join(f'{k} {n}' for k, n in sorted(kinds.items()))})\n")
-    print("| kind | skill | fit | fit, listed | fit, called | fit, not listed, called | called, no fit |")
+    print("| kind | playbook | fit | fit, listed | fit, called | fit, not listed, called | called, no fit |")
     print("| --- | --- | --- | --- | --- | --- | --- |")
     cells = {}
     for k in sorted(kinds):
         ks = [s for s in sessions if kind(s) == k]
-        for sk in SKILLS:
+        for sk in PLAYBOOKS:
             row = {
                 "fit": [s for s in ks if sk in s["fit"]],
                 "fit, listed": [s for s in ks if sk in s["fit"] and s["listed"]],
-                "fit, called": [s for s in ks if sk in s["fit"] and sk in s["called"]],
-                "fit, not listed, called": [s for s in ks if sk in s["fit"] and not s["listed"] and sk in s["called"]],
-                "called, no fit": [s for s in ks if sk in s["called"] and sk not in s["fit"]],
+                "fit, called": [s for s in ks if sk in s["fit"] and s["called"]],
+                "fit, not listed, called": [s for s in ks if sk in s["fit"] and not s["listed"] and s["called"]],
+                "called, no fit": [s for s in ks if s["called"] and not s["fit"]],
             }
             print(f"| {k} | {sk} | " + " | ".join(str(len(v)) for v in row.values()) + " |")
             cells.update({(k, sk, c): v for c, v in row.items() if v})
