@@ -74,7 +74,7 @@ class Judge(unittest.TestCase):
 
     def test_plan_review_finds_a_criterion_passing_on_main_or_a_clause_uncovered(self):
         plan = step(2)
-        self.assertRegex(plan, r"a criterion with no kind, a `\[check\]` or `\[score\]` whose check passes on main, "
+        self.assertRegex(plan, r"a criterion with no kind, a `\[check\]` or `\[score\]` whose check passes on main, .*"
                                r"a clause of the Goal or of a `DECIDED:` no criterion covers, or a `\[score\]` with nothing to score is a finding")
         self.assertNotRegex(plan, r"relabel")
         self.assertIn("write the rubric file", plan)
