@@ -29,6 +29,8 @@ claude plugin eval <plugin dir> --case <case> --runs 3 --trust-plugin --keep-tem
 - `<plugin dir>` is absolute or `./<dir>`: a bare name runs the installed copy. The run reads it live: edit nothing until it ends, or run a committed copy.
 - `--trust-plugin` answers the trust prompt a headless run cannot, for code you have read. `--no-publish` keeps the report off claude.ai. One `--case` per call; a `scaffold_script` needs `--scaffold`; a grader of a written file needs `--allow-tools Write`, and a case whose reply must run code, or a `tool_used: Bash` grader, `--allow-tools Write Bash`.
 - Run each case more than once from a clean directory: regression passes every run, capability once. Read the arms' score delta and the failed transcripts, not only the score: a failure may be the grader's.
+- Trust a pattern grader's pass over free text only after reading the line each match came from in a trace kept with `--keep-temp`: a match can be a chance word.
+- Run evals before bulk model grading, never beside it: both draw on one usage limit, and a run that hits it is void.
 
 ## Transcripts
 
