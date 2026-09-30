@@ -48,5 +48,5 @@ print("".join(f"FAIL {b}\n" for b in bad), end="")
 sys.exit(1 if bad else 0)
 PY
 if [ -z "$VERIFY_TESTS" ]; then echo "FAIL tests: set VERIFY_TESTS to the repo's test command in .claude/settings.json env"; fail=1
-else $VERIFY_TESTS || { echo "FAIL tests: $VERIFY_TESTS"; fail=1; }; fi
+else bash -c "$VERIFY_TESTS" || { echo "FAIL tests: $VERIFY_TESTS"; fail=1; }; fi
 exit $fail

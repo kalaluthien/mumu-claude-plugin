@@ -65,6 +65,8 @@ A case's input and environment come from a trace that showed the mode, trimmed t
 
 Code first: many modes that sound subjective reduce to a pattern, a parse or an execution. Grade the outcome the user sees, not the path, unless the path is the defect.
 
+A repository's instruction files (`CLAUDE.md`, `AGENTS.md`, skills, agents, hooks, and the documents they link) are checked by code, with no setup: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/eval/scripts/instruction-graph.py [<repo or plugin dir>]` names each reference to a missing file or section, each instruction file no root reaches and each term two term tables define, and exits 1 on any; `--edges` prints the graph. An optional `.instruction-graph.json` at the repository's root adds `roots` and `ignore` globs and `outside` names.
+
 | runner | code graders | judge |
 | --- | --- | --- |
 | `claude plugin eval` | `regex`, `tool_used`, `tool_order`, `file_exists` | `llm` |
