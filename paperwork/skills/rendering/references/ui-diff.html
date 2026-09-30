@@ -4,7 +4,8 @@
   of pseudo-code and notes, a .panes of two .pane, and an ol.steps; every id prefixed with {{id}}.
   pane: a div.pane id="{{id}}-<side>" holding a p.name (the version), an ol.view (the UI's viewport, scrolled in its
   own box; data-scroll="end" holds it at the bottom) of li rows, each its label and size (user 48px) and style="--h: <px
-  of the drawn UI>", then a p.status, a line of what the pane reads now: total, rows mounted, shown or not.
+  of the drawn UI>", then a p.status, a line of what the pane reads now: total, rows mounted, shown or not; a label or state word ends as a
+  noun (숨김, 보임, 측정 중), never in -함 or -됨, which check.py fails as a plain ending.
   numbers: each with its unit, 474px, 6줄, in rows, status lines and any table of the same values beside the widget,
   whose headers carry it in brackets, 변경 전(px).
   states: a row's data-states lists its state from each step on, as "estimated 3:measured 6:revealed" (the first from
