@@ -9,8 +9,10 @@ import unittest
 PLUGIN = pathlib.Path(__file__).resolve().parent.parent
 SKILL = PLUGIN / "skills" / "contract"
 REFS = SKILL / "references"
-MODES = ["eval-audit", "eval-judge", "eval-optimize", "eval-setup", "eval-triage", "spec-change", "spec-setup",
-         "spec-verify", "test-add", "test-probe", "test-prune", "test-setup"]
+MODES = ["eval-audit", "eval-calibrate", "eval-compare", "eval-optimize", "eval-write", "spec-audit", "spec-write",
+         "test-audit", "test-write"]
+OLD = [a + "-" + b for a, b in (("eval", "setup"), ("test", "setup"), ("spec", "setup"), ("eval", "judge"), ("eval", "triage"),
+                              ("test", "add"), ("test", "prune"), ("test", "probe"), ("spec", "change"), ("spec", "verify"))]
 TABLE_LINK = re.compile(r"^\|.*\]\(([^)#]+\.md)\)", re.M)
 LINK = re.compile(r"\]\(([^)#]+\.md)\)")
 TOPIC = re.compile(r"^(eval|test|spec)/[a-z-]+-playbook\.md$")
@@ -33,6 +35,28 @@ class Skills(unittest.TestCase):
         self.assertEqual(sorted(p.relative_to(REFS.resolve()).as_posix() for p in got), [f"{m}.md" for m in MODES])
         for p in got:
             self.assertTrue(p.is_file(), p)
+
+    def test_setup_is_the_first_step_of_a_change_mode(self):
+        self.assertEqual(len(MODES), 9)
+        for mode, layout in (("test-write", "test layout"), ("spec-write", "model")):
+            first = (REFS / f"{mode}.md").read_text().split("\n1. ", 1)[1].split("\n", 1)[0]
+            self.assertTrue(first.startswith(f"A repo with no {layout}, only then:"), mode)
+        for f in PLUGIN.rglob("*"):
+            if f.is_file() and f.suffix in (".md", ".py", ".json", ".sh") and f.name != "test_skills.py":
+                self.assertIsNone(re.search("|".join(OLD), f.read_text(errors="replace")), f.name)
+
+    def test_absorbed_modes_keep_their_playbooks_and_steps(self):
+        for mode, needle in (("test-write", "test/probe-playbook.md"), ("eval-audit", "eval/buckets-playbook.md")):
+            self.assertIn(needle, (REFS / f"{mode}.md").read_text(), mode)
+        audit = (REFS / "spec-audit.md").read_text()
+        self.assertIn("against the model", audit)
+        self.assertIn("no code or test uses", audit)
+
+    def test_eval_compare_reads_only_shared_playbooks(self):
+        got = links(REFS / "eval-compare.md")
+        self.assertTrue(got)
+        for p in got:
+            self.assertRegex(p.relative_to(REFS.resolve()).as_posix(), TOPIC)
 
     def test_no_mode_routes_to_another_mode(self):
         modes = {(REFS / f"{m}.md").resolve() for m in MODES}

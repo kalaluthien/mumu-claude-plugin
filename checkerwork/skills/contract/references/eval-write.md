@@ -1,4 +1,4 @@
-# Eval: setup
+# Eval: write
 
 A product with no suite: find the failure modes in real traces first, then check each with code or a validated judge.
 
