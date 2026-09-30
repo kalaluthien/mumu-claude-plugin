@@ -3,5 +3,5 @@ type: regex
 target: last_message
 match: contains
 flags: i
-pattern: 'holder[^\n]{0,40}#32[^\n]{0,80}#31'
+pattern: '#32[^\n]*(after it|then|first|before)[^\n]*#31|\| *1 *\| *#32[^\n]*\n\| *2 *\| *#31'
 ---

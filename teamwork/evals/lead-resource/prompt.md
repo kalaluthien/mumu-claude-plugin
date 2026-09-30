@@ -6,9 +6,11 @@ allowed_tools: [Skill, Read, Glob, Grep]
 runs: 4
 ---
 
-Bash cannot run here, so gh, herdr and the machine cannot be reached: what they show is below. Load the teamwork:kickoff skill, read its references/lead-playbook.md, and act on the notice by that playbook. Reply with one `sh` block of every command you would run now, in order, then the full text of each file a command posts, under the file's name, and nothing else.
+/teamwork:kickoff see https://github.com/o/r/issues/31
 
-The notice: `idle render-cache-31-1`
+Bash cannot run here, so gh, herdr and the machine cannot be reached: what they show is below. Act on it by your playbook, and reply with one `sh` block of every command you would run now, in order, then the full text of each file a command posts, under the file's name, and nothing else.
+
+The notice that came with it: `idle render-cache-31-1`
 
 The open root tasks you hold in o/r, each plan approved:
 

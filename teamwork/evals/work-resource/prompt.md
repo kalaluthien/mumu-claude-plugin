@@ -6,7 +6,9 @@ allowed_tools: [Skill, Read, Glob, Grep]
 runs: 4
 ---
 
-Bash cannot run here, so gh, herdr and the machine cannot be reached: what they show is below. Load the teamwork:kickoff skill, read its references/worker-playbook.md, and go on with your task by that playbook. Reply with one `sh` block of every command you would run now, in order, then the full text of each file a command posts, under the file's name, then one line `then: <what you do once those commands end>`, and nothing else.
+/teamwork:kickoff work https://github.com/o/r/issues/31 lead r-lead
+
+Bash cannot run here, so gh, herdr and the machine cannot be reached: what they show is below. Go on with your task by your playbook, and reply with one `sh` block of every command you would run now, in order, then the full text of each file a command posts, under the file's name, then one line `then: <what you do once those commands end>`, and nothing else.
 
 You are render-cache-31-1, the worker of https://github.com/o/r/issues/31 "Cache rendered tiles", at step 3: the change is committed and pushed, its pull request https://github.com/o/r/pull/40 is open, and D1 passed. Your lead is r-lead.
 
