@@ -5,13 +5,15 @@
 A page is one HTML file that opens from disk. Its author writes only the body,
 what goes inside `<main>`, by `assemble.py --spec page`: what goes in the page,
 how chapters nest and how a widget plays its steps. Content in parts, each with
-two or more topics, is read a chapter at a time: a part is a
-`<section data-chapter>`, a topic an `h3`. Content with no parts stays one
-scroll, with no `h3`. Count the `h2`s before writing: at 4 or more, or with
-chapters, a `nav` after `p.read` links each one, else there is none; `check.py`
-fails either miscount. Each `h2` and `h3` has an id, and a sentence that names another
+two or more topics, is read a chapter at a time: each part the request names is
+one `<section data-chapter>` holding its `h2`, its topics `h3`s inside it, never
+a flat page of `h2`s, however many. Content with no parts stays one scroll,
+with no `h3`. Then count the `h2`s: at 4 or more, or with chapters, a `nav`
+after `p.read` links each one, else there is none; `check.py` fails either
+miscount. Each `h2` and `h3` has an id, and a sentence that names another
 section links it. A key term is defined once, as `<dfn id="t-<term>">` where it
-first appears, and its later mentions link there, once a paragraph. A formula is
+first appears, and a later mention links there, once a paragraph, so no `dfn`
+stands without a link to it. A formula is
 TeX in the prose, `\( … \)` inline and `\[ … \]` display, never an image or
 Unicode look-alikes: `assemble.py` sets it in KaTeX's TeX fonts, and `check.py`
 fails TeX left raw.
@@ -28,7 +30,8 @@ widget fails `check.py`.
 ## Korean
 
 Every visible word is Korean, a widget's fixed words and each control
-included, in the formal -습니다/-ㅂ니다, never -요 or a plain -다, and in everyday words.
+included, in the formal -습니다/-ㅂ니다, never -요 or a plain -다, and in everyday words;
+a list item or a last line ends the same way, never in a noun form such as 추가됨.
 English stays only inside `<code>` or as a name or path; a technical term
 appears once as Korean with the English in parentheses, as 큐(queue). A heading
 stays a noun phrase: 작업 큐의 구조, not 작업 큐는 세 파일입니다. A sentence reads
