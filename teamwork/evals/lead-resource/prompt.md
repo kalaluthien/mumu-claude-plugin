@@ -8,7 +8,7 @@ runs: 4
 
 /teamwork:kickoff see https://github.com/o/r/issues/31
 
-Bash cannot run here, so gh, herdr and the machine cannot be reached: what they show is below. Act on it by your playbook, and reply with one `sh` block of every command you would run now, in order, then the full text of each file a command posts, under the file's name, and nothing else.
+Bash cannot run here, so gh, herdr and the machine cannot be reached: what they show is below. Act on it by your playbook, and reply with one `sh` block of every command you would run now, in order, then the full text of each file a command posts, under the file's name, then one line `rig-1: <the tasks that get rig-1, in the order they get it, or none>`, and nothing else.
 
 The notice that came with it: `idle render-cache-31-1`
 
