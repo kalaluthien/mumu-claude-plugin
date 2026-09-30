@@ -112,8 +112,8 @@ Pick one model and one effort per task, unless the owner named them, after [the 
 | --- | --- |
 | `sonnet` | is any but the next row's: a bug fix, a failing test or eval made to pass, a feature iterated on, investigation, review, drafting, a document |
 | `opus` | leaves its worker a design its criteria do not settle: an interface, a trade-off across layers, a rule other sessions follow; or stopped at `BLOCKED: stuck on` under `sonnet` |
-| `low` | applies a change its words spell out |
-| `medium` | pursues a goal |
+| `low` | names what to change, its criteria leaving only the doing: a fix whose cause is known, a rename, a move, a removal, a release, a document's wording |
+| `medium` | leaves its worker to find the cause or choose the approach |
 | `high` | reviews exceptions: edge cases, failures and what the rules leave open |
 
 ## Repo: GitHub and git
