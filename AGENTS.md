@@ -10,6 +10,7 @@ After `clean` pulls a merged PR, the lead maps the PR's changed paths (`gh pr di
 | --- | --- | --- |
 | `*/bin/*`, `*/scripts/*`, `*/references/*.md`, the lead's and worker's changing rules included (`teamwork/skills/kickoff/references/`: the playbooks) | at once | none: `teamwork/scripts/playbook-reread.py`, a `UserPromptSubmit` hook, tells each session that read a changed references file to read it again at its next prompt |
 | `teamwork/lib/*.py`, `teamwork/scripts/team-watch.py` | when the monitor starts again | `herdr agent prompt <literal-name> "stop your team-watch task and arm the command the Stop hook names"` for each lead in `herdr agent list` |
+| a hook's script moved or renamed (`*/hooks/hooks.json` naming its new path) | `/reload-plugins`, the hook off until then | the `/reload-plugins` prompt of the next row for each agent, before any other step |
 | `*/skills/*/SKILL.md` (body or list), `*/hooks/hooks.json`, `*/agents/*.md` used as a subagent | `/reload-plugins` | `herdr agent prompt <literal-name> "/reload-plugins"` for each agent in `herdr agent list` |
 | `*/agents/*.md` a session runs as (`--agent`: `lead.md`, `worker.md`), a body of only its role, what it never does and when to read each references file | a new session | below |
 
