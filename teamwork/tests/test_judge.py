@@ -79,6 +79,30 @@ class Judge(unittest.TestCase):
         self.assertNotRegex(plan, r"relabel")
         self.assertIn("write the rubric file", plan)
 
+    def test_plan_review_finds_what_a_later_audit_caught(self):
+        plan = step(2)
+        for finding in (r"Judge overlap by the files each open task's fixes would touch, .*never from the plans' words",
+                        r"a rate or a count of passes with no guard against reaching it by editing its grader or checker",
+                        r"decided by an eval, or by a count over runs, that does not write out its literal command, flags and grader included",
+                        r"a file read or a test still to be written is none",
+                        r"whose main side is quoted from an earlier run instead of measured beside head",
+                        r"a gate the plan's files map to in `gates\.json` that the plan or an open task shows failing on main, "
+                        r"with no criterion or blocker covering it",
+                        r"run each one's check on the default branch as the plan writes it, .*never by a variant of yours",
+                        r"each criterion that passes on main or cannot run there, .* gets a finding line of its own, opening with its id"):
+            with self.subTest(finding=finding):
+                self.assertRegex(plan, finding)
+
+    def test_filing_asks_of_a_plan_what_the_judge_finds(self):
+        filing = section(LEAD, "Filing")
+        for ask in (r"as its literal command, flags and grader included",
+                    r"a guard against reaching it by editing its grader or checker",
+                    r"measure main beside head, never quote it from an earlier run",
+                    r"list the files its fixes would touch, a shared one included, and `order` it with each open task touching one",
+                    r"a gate those files map to in `gates\.json` that fails on main, add a criterion or a blocker covering it"):
+            with self.subTest(ask=ask):
+                self.assertRegex(filing, ask)
+
     def test_pull_request_review_judges_each_kind_against_the_rubric(self):
         review = step(3)
         self.assertRegex(review, r"writing it first as in 2 when missing, and reuse it when present")
