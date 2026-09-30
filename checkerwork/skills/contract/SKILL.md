@@ -11,16 +11,14 @@ A change is checked against a contract that predates it, stated so that a check 
 | the work | mode |
 | --- | --- |
 | a product or LLM app with no eval suite | [eval-write](references/eval-write.md) |
-| an eval suite exists, and whether to trust it | [eval-audit](references/eval-audit.md) |
+| an eval suite exists, and whether to trust it; an eval run failed or flips | [eval-audit](references/eval-audit.md) |
 | a runnable suite and a score to raise: a pass rate, a skill's trigger | [eval-optimize](references/eval-optimize.md) |
 | an LLM judge to build or validate against human labels | [eval-calibrate](references/eval-calibrate.md) |
-| an eval run failed or flips | [eval-triage](references/eval-triage.md) |
 | rival answers, drafts or plans to compare against a rubric in one conversation | [eval-compare](references/eval-compare.md) |
-| a change to what code does, or to a value: a threshold, a colour, a size; a repo with no test layout is set up first | [test-write](references/test-write.md) |
+| a change to what code does, or to a value: a threshold, a colour, a size; a plugin change `claude plugin eval` cannot reach: a hook, a dialog, a monitor, the `/` menu; a repo with no test layout is set up first | [test-write](references/test-write.md) |
 | tests that prove nothing another proves, or assert a bare equality | [test-audit](references/test-audit.md) |
-| a plugin change `claude plugin eval` cannot reach: a hook, a dialog, a monitor, the `/` menu | [test-probe](references/test-probe.md) |
 | a change to states, transitions, a lifecycle, permissions, ownership or a protocol, or a never, always, only after or at most rule; `*.als` files; a repo with no model is set up first | [spec-write](references/spec-write.md) |
-| code to check against the model | [spec-verify](references/spec-verify.md) |
+| code to check against the model, or a model with preds, facts or checks nothing uses | [spec-audit](references/spec-audit.md) |
 
 A prompt, skill, rubric or model of a Claude plugin or an LLM app is code whose checks are evals.
 
