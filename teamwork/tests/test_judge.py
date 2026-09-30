@@ -89,7 +89,7 @@ class Judge(unittest.TestCase):
                         r"a gate the plan's files map to in `gates\.json` that the plan or an open task shows failing on main, "
                         r"with no criterion or blocker covering it",
                         r"run each one's check on the default branch as the plan writes it, .*never by a variant of yours",
-                        r"each criterion that passes on main or cannot run there gets a finding line of its own, opening with its id"):
+                        r"each criterion that passes on main or cannot run there, .* gets a finding line of its own, opening with its id"):
             with self.subTest(finding=finding):
                 self.assertRegex(plan, finding)
 
