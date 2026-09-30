@@ -120,8 +120,11 @@ f.onload = function () {
     // a table cell is data: a terse value there ends without a mark, so only its marked sentences are read
     var cells = [];
     groups.forEach(function (g, b) { (b.closest && b.closest('td,th') ? cells : out).push(g.join('')); });
+    // a diagram names each node button from its text, code joined to its neighbours, which is read above
     d.querySelectorAll('[alt],[aria-label],[title],[placeholder]').forEach(function (el) {
-      ['alt', 'aria-label', 'title', 'placeholder'].forEach(function (a) { if (el.getAttribute(a)) out.push(el.getAttribute(a)); });
+      ['alt', 'aria-label', 'title', 'placeholder'].forEach(function (a) {
+        if (el.getAttribute(a) && !(a === 'aria-label' && el.getAttribute('role') === 'button' && el.closest('[data-widget="diagram"]'))) out.push(el.getAttribute(a));
+      });
     });
     var heads = Array.prototype.map.call(d.querySelectorAll('h1,h2,h3,h4,h5,h6'), function (h) { return h.textContent.replace(/\s+/g, ' ').trim(); });
     var h2 = Array.prototype.slice.call(d.querySelectorAll('main h2')), nav = d.querySelector('main nav');
