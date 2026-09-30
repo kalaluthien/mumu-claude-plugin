@@ -270,6 +270,34 @@ def widget_check(html, *args):
     return int(any("FAIL" in l for l in lines if not l.startswith("composition "))), out
 
 
+class Layout(unittest.TestCase):
+    """check.layout on a run's numbers: a script with no text node has no size to be too small."""
+
+    def line(self, **over):
+        sys.path.insert(0, str(SKILL / "scripts"))
+        try:
+            import check as check_module
+        finally:
+            sys.path.pop(0)
+        r = {"scroll": 320, "client": 320, "latin": 14, "hangul": 14, "labels": 0, "reduced": False,
+             "anim": 0, "shown": 0, "total": 0, "widest": "body > p", **over}
+        return check_module.layout(r, False)
+
+    def test_no_latin_text_passes(self):
+        line, ok = self.line(latin=None)
+        self.assertTrue(ok and line.endswith(" pass"), line)
+
+    def test_no_hangul_text_passes(self):
+        line, ok = self.line(hangul=None)
+        self.assertTrue(ok and line.endswith(" pass"), line)
+
+    def test_small_size_fails_beside_a_present_one(self):
+        for over in ({"latin": 10}, {"hangul": 11}):
+            line, ok = self.line(**over)
+            self.assertFalse(ok, line)
+            self.assertIn("FAIL: widest body > p", line)
+
+
 @unittest.skipUnless(CHROME.exists(), "no Chrome")
 class Check(unittest.TestCase):
     @classmethod
