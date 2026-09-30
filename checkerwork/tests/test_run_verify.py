@@ -155,6 +155,7 @@ class RunVerifySkips(unittest.TestCase):
                 break
             time.sleep(0.05)
         self.assertIsNone(run.poll())  # not exited yet
+        self.hook(event="PostToolUse", tool_input={"command": str(VERIFY), "run_in_background": True})  # its launch
         self.assertIsNone(self.hook())  # the hook runs the gate
         self.assertEqual(self.count(), 1)
         pathlib.Path(go).write_text("")
