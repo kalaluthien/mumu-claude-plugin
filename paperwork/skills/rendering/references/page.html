@@ -1,6 +1,7 @@
 <!-- page: the shell of every Artifact page, copied whole; fill each {{...}} or delete its element.
   main: the h1, a p.read of the one thing to read off the page, a nav linking each h2 by its id (4 or more h2s, or
-  chapters; else delete it), the widgets and plain HTML in move order, and a footer citing the source at a sha.
+  chapters, which the script adds when it is left out; else delete it), the widgets and plain HTML in move order, and
+  a footer citing the source at a sha.
   chapters: parts that each hold sections are each a <section data-chapter> opening with its <h2 id>, sections as h3s;
   the page shows the chapter holding the URL's #id (none: the first), adds a pager, and marks the nav link shown.
   reading aids, added by the script: the nav becomes a contents drawer (a 목차 button, a backdrop, Esc; modal while
@@ -247,6 +248,27 @@ textarea, input, select { font: var(--fs-base) var(--sans); color: var(--text); 
       press(b.parentElement, b);
       b.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
     });
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
+<script>
+  (() => {
+    // contents: a page of 4 or more h2s, or of chapters, left with no nav gets one before its first h2
+    const start = () => {
+      const heads = [...document.querySelectorAll('main h2')];
+      if (!heads.length || document.querySelector('main nav') || (heads.length < 4 && document.querySelectorAll('[data-chapter]').length < 2)) return;
+      const nav = document.createElement('nav'), ol = document.createElement('ol');
+      heads.forEach((h, i) => {
+        h.id = h.id || `h2-${i + 1}`;
+        const li = document.createElement('li'), a = document.createElement('a');
+        a.href = `#${h.id}`;
+        a.textContent = h.textContent.trim();
+        li.append(a);
+        ol.append(li);
+      });
+      nav.append(ol);
+      (heads[0].closest('[data-chapter]') || heads[0]).before(nav);
+    };
     if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
   })();
 </script>
