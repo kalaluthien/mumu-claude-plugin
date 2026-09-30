@@ -45,4 +45,4 @@ Rename the four plugins to `-work` names without the `mumu-` prefix: `mumu-teamw
 EOF
 ````
 
-Then launch the teamwork:judge agent once per plan, on ./plan-66.txt, whose repository has no checkout here, and on ./plan-369.txt, whose repository's default branch is checked out at ./repo. Tell each judge the file is a task's plan to judge, and to write the comment it would post to ./verdict-66.txt or ./verdict-369.txt instead of posting it.
+Then launch the teamwork:judge agent once per plan, on ./plan-66.txt, whose repository has no checkout here, and on ./plan-369.txt, whose repository's default branch is checked out at ./repo. Tell each judge the file is a task's plan to judge, and to write the comment it would post to ./verdict-66.txt or ./verdict-369.txt instead of posting it. Run each judge in the foreground, never in the background, and reply only once both verdict files exist.

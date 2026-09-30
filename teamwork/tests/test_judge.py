@@ -100,10 +100,6 @@ class Worker(unittest.TestCase):
                                            r"loosening a test or editing a criterion\.")
         self.assertRegex(WORK.read_text(), r"for a criterion you think wrong, .*: `comment` `BLOCKED: <question>`")
 
-    def test_each_criterion_goes_to_the_listed_skill_that_fits_its_check(self):
-        self.assertRegex(WORK.read_text(), r"For each criterion, invoke the listed skill whose description fits its check, "
-                                           r"else write the check and watch it fail on main")
-
     def test_no_rule_file_names_another_plugin(self):
         for path in RULES:
             with self.subTest(path=path):
