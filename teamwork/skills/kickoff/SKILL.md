@@ -51,7 +51,7 @@ Keep all state on GitHub, in these records:
 | --- | --- | --- |
 | `BLOCKED:` | worker | `BLOCKED: <question>`, or `BLOCKED: stuck on <criterion>` |
 | `DECIDED:` | lead | `DECIDED: <answer>`, posted with `decide` |
-| `PASSED:` | worker | `PASSED: <sha>`, the full 40-character sha, then one line per gate of the scope, but the judge, that passed at that sha: the gate's name as `scope` prints it, with no result after it |
+| `PASSED:` | worker | `PASSED: <sha>`, then one line per gate of the scope, but the judge, that passed at that sha |
 | `APPROVED:` | judge | `APPROVED: <sha>`: the judge's pass of the pull request; `APPROVED: <comment-url>`: the report may close; `APPROVED:` alone: the plan or survey may go on |
 | `FINDINGS:` | judge | as `judge.md` step 5 writes it |
 
@@ -72,7 +72,6 @@ Rules:
 - Run every session and agent on Opus, but a pull request's `judge` on the model `scope` prints.
 - Run on a pull request only the gates `scope` prints, and of those only the ones `merge` names: a pass carries to the head across commits that change no path the mapping assigns to its gate, and the judge's also across merges of the default branch that leave its own diff byte-identical.
 - Launch the `judge` on a url, and after fixing its `FINDINGS:` resume that judge with `see <url>`, launching a new one only when it cannot be resumed and the url shows no verdict at the head.
-- Never post a judge's verdict yourself: when its comment is refused, resume that judge to post it once the owner allows it.
 
 Writing, for every issue, pull request and comment:
 
