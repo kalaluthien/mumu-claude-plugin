@@ -137,3 +137,4 @@ Pick one model and one effort per task, unless the owner named them, after [the 
 
 - `pr` and `merge`: after an error such as `GraphQL: Something went wrong`, `read` the state before retrying; just after a push, read the head with `git ls-remote origin refs/heads/<branch>`.
 - CI: wait in the foreground with `gh run watch <id> --exit-status`, never on `gh pr checks`.
+- Evals: name the plugin to `claude plugin eval` as a path, `./<plugin>`, in a criterion too; a bare name loads the installed copy, runs no case and still exits 0.
