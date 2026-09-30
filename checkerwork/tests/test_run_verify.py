@@ -1,6 +1,6 @@
 """What `run-verify.py` answers: in a repo holding a `spec/` model and no gate script of its own, the plugin's red gate
-refuses a commit and a stop with changes, naming its failures; a tree the gate passed, or a session's own `verify.sh`
-passed, runs it no more, and a busy machine gate is answered at once with "run it yourself".
+refuses a commit, naming its failures; a tree the gate passed, or `verify.sh` passed by its own record, runs it no more,
+a busy machine gate is answered at once with "run it yourself", and a stop is never gated.
 
 Run: python3 -m unittest discover checkerwork/tests
 """
@@ -14,7 +14,9 @@ import tempfile
 import time
 import unittest
 
-SCRIPT = pathlib.Path(__file__).resolve().parent.parent / "scripts" / "run-verify.py"
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+SCRIPT = ROOT / "scripts" / "run-verify.py"
+VERIFY = ROOT / "skills" / "contract" / "scripts" / "verify.sh"
 MODEL = "sig A { f: set A }\nassert NoSelf { no a: A | a in a.f }\nfact { no a: A | a in a.f }\ncheck NoSelf for 2 expect 0\n"
 MODEL += "pred grow[a: A] { some a.f }\nrun grow for 2 expect 1\n"
 
@@ -49,13 +51,6 @@ class RunVerify(unittest.TestCase):
     @unittest.skipUnless(shutil.which("alloy"), "alloy not on PATH")
     def test_allows_a_green_commit(self):
         self.assertIsNone(self.hook(gate=0))
-
-    def test_holds_a_stop_with_changes_once(self):
-        self.assertIn("FAIL check NoSelf", self.hook(gate=1, event="Stop")["reason"])
-        self.assertIsNone(self.hook(event="Stop", stop_hook_active=True))
-        subprocess.run(["git", "-C", self.repo.name, "add", "-A"], check=True)
-        subprocess.run(["git", "-C", self.repo.name, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "x"])
-        self.assertIsNone(self.hook(event="Stop"))
 
 
 class RunVerifySkips(unittest.TestCase):
@@ -98,13 +93,13 @@ class RunVerifySkips(unittest.TestCase):
     def test_a_passed_tree_runs_the_gate_once_and_a_change_runs_it_again(self):
         self.assertIsNone(self.hook())
         self.assertIsNone(self.hook())
-        self.assertIsNone(self.hook(event="Stop"))
+        self.assertIsNone(self.hook())
         self.assertEqual(self.count(), 1)
         pathlib.Path(self.repo, "new.txt").write_text("a")  # untracked content counts
         self.hook()
         self.assertEqual(self.count(), 2)
         pathlib.Path(self.repo, "new.txt").write_text("b")  # one byte
-        self.hook(event="Stop")
+        self.hook()
         self.assertEqual(self.count(), 3)
 
     def test_a_busy_machine_gate_is_answered_at_once_and_an_absent_one_is_not_read(self):
@@ -124,15 +119,52 @@ class RunVerifySkips(unittest.TestCase):
         self.assertIsNone(self.hook())
         self.assertEqual(self.count(), 2)
 
-    def test_a_pass_the_session_ran_lets_the_commit_through(self):
-        self.busy_gate("0/1 held: none; room no")
-        self.assertIsNone(self.hook(event="PostToolUse", command="./checkerwork/skills/spec/scripts/verify.sh"))
-        self.assertIsNone(self.hook())
-        self.assertEqual(self.count(), 0)
-        pathlib.Path(self.repo, "a.txt").write_text("a")
-        self.assertEqual(self.hook()["hookSpecificOutput"]["permissionDecision"], "deny")
-        self.hook(event="PostToolUse", command="git status")  # another call passes nothing
-        self.assertEqual(self.hook()["hookSpecificOutput"]["permissionDecision"], "deny")
+    def test_a_stop_is_never_gated_and_no_stop_hook_is_registered(self):
+        pathlib.Path(self.repo, "a.txt").write_text("a")  # a changed tree that never passed
+        for machine in (None, "0/1 held: none; room no"):
+            if machine:
+                self.busy_gate(machine)
+            self.assertIsNone(self.hook(event="Stop", tool_input={}))  # a Stop call carries no command
+            self.assertEqual(self.count(), 0)
+        hooks = json.loads((ROOT / "hooks" / "hooks.json").read_text())["hooks"]
+        self.assertNotIn("Stop", hooks)
+        self.assertNotIn("run-verify", json.dumps(hooks.get("PostToolUse")))
+
+    def verify(self, tests, how="background"):
+        """Run the real verify.sh at the repo's root as a Bash call would; `tests` is the repo's test command."""
+        pathlib.Path(self.repo, "spec", "m.als").write_text("sig A {}\n")  # no command, so no alloy
+        env = {**os.environ, "VERIFY_TESTS": tests}
+        if how == "background":
+            return subprocess.Popen([str(VERIFY)], cwd=self.repo, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return subprocess.Popen(f"bash {VERIFY} 2>&1 | tail -20", shell=True, cwd=self.repo, env=env, stdout=subprocess.DEVNULL)
+
+    def test_a_verify_run_that_exited_0_lets_the_next_commit_through(self):
+        self.busy_gate("0/1 held: none; room no")  # the hook could not run the gate
+        for how in ("background", "foreground"):
+            with self.subTest(how):
+                pathlib.Path(self.repo, f"{how}.txt").write_text(how)  # a new tree each time
+                self.assertEqual(self.verify("true", how).wait(30), 0)
+                self.assertIsNone(self.hook())
+                self.assertEqual(self.count(), 0)
+
+    def test_no_pass_is_recorded_before_the_exit_or_by_a_failure_or_a_changed_tree(self):
+        started, go = os.path.join(self.tmp.name, "started"), os.path.join(self.tmp.name, "go")
+        run = self.verify(f"touch {started}; while [ ! -e {go} ]; do sleep 0.05; done")
+        for _ in range(200):
+            if os.path.exists(started):
+                break
+            time.sleep(0.05)
+        self.assertIsNone(run.poll())  # not exited yet
+        self.assertIsNone(self.hook())  # the hook runs the gate
+        self.assertEqual(self.count(), 1)
+        pathlib.Path(go).write_text("")
+        self.assertEqual(run.wait(30), 0)
+        pathlib.Path(self.repo, "b.txt").write_text("b")
+        for tests, code in (("false", 1), (f"echo x >> {self.repo}/changed.txt", 0)):
+            before = self.count()
+            self.assertEqual(self.verify(tests).wait(30), code)
+            self.assertIsNone(self.hook())
+            self.assertEqual(self.count(), before + 1, tests)
 
 
 if __name__ == "__main__":
