@@ -8,8 +8,8 @@ runs: 3
 Two tasks were filed with the plans below, and no work has started on either. gh cannot reach GitHub here. First build the fixture with this one Bash call:
 
 ````sh
-mkdir -p repo/teamwork && cd repo && git init -q && printf 'Enable mumu-teamwork and mumu-paperwork in each checkout.\n' > teamwork/README.md && git add -A && git -c user.name=o -c user.email=o@o commit -qm main && cd ..
-cat > plan-66.md <<'EOF'
+mkdir -p repo/teamwork && cd repo && git init -q && printf 'Enable mumu-teamwork and mumu-paperwork in each checkout.\n' > teamwork/notes.txt && git add -A && git -c user.name=o -c user.email=o@o commit -qm main && cd ..
+cat > plan-66.txt <<'EOF'
 # Cut spec to 3,000 lines, few comments
 
 ## Goal
@@ -22,11 +22,11 @@ After #15 moves the volatile docs into `spec/`, simplify `spec/` with no rule lo
 
 - D1: [exists] `wc -l spec/**/*.als` total and the counts of sigs, preds and asserts (`rg -c '^\s*(sig|pred|assert) '`) before/after quoted in the PR; the total is lower.
 - D2: [exists] every removed or merged sig, field, pred, assert, check or run → PR table row: what replaced it, or why no rule needs it (duplicate of `<name>`, restates `fact <name>`, read by no rule).
-- D3: [exists] regression guard, green before and after: `scripts/check-spec.sh` → 0 `FAIL`; the mumu-verification spec `verify.sh` at the repo root → no missed or missing expect, no check without `refuses_`, no flow run without `scenario_`; the Gradle build passes.
+- D3: [exists] regression guard, green before and after: `scripts/check-spec` → 0 `FAIL`; the mumu-verification spec verifier at the repo root → no missed or missing expect, no check without `refuses_`, no flow run without `scenario_`; the Gradle build passes.
 - D4: [test] each renamed or merged check keeps a `refuses_` test that goes red when its guarding code is removed; the PR quotes one such red run per merged check.
 - D5: [quality] each area's `model.als` reads as one map a person can draw: owner nouns as sigs, one pred per operation, no field or edge no rule reads.
 EOF
-cat > plan-369.md <<'EOF'
+cat > plan-369.txt <<'EOF'
 # Rename plugins to -work names
 
 ## Goal
@@ -45,4 +45,4 @@ Rename the four plugins to `-work` names without the `mumu-` prefix: `mumu-teamw
 EOF
 ````
 
-Then launch the teamwork:judge agent once per plan, on ./plan-66.md, whose repository has no checkout here, and on ./plan-369.md, whose repository's default branch is checked out at ./repo. Tell each judge the file is a task's plan to judge, and to write the comment it would post to ./verdict-66.md or ./verdict-369.md instead of posting it.
+Then launch the teamwork:judge agent once per plan, on ./plan-66.txt, whose repository has no checkout here, and on ./plan-369.txt, whose repository's default branch is checked out at ./repo. Tell each judge the file is a task's plan to judge, and to write the comment it would post to ./verdict-66.txt or ./verdict-369.txt instead of posting it.
