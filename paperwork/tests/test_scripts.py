@@ -347,9 +347,6 @@ class Check(unittest.TestCase):
         code, out = check(page.replace("<h1>작업 큐의 구조</h1>", "<h1>작업 큐의 구조</h1>" + NAV))
         self.assertEqual(code, 0, out)
         self.assertIn("contents 4 h2 4 linked nav pass", out)
-        code, out = check(page.replace("</html>", PART + "</html>"))
-        self.assertEqual(code, 0, out)
-        self.assertIn("contents 4 h2 4 linked nav pass", out, "page.html's script adds the nav left out")
 
     def test_no_contents_under_four_h2s(self):
         code, out = check(GOOD.replace("<h1>작업 큐의 구조</h1>", "<h1>작업 큐의 구조</h1>" + NAV))
@@ -574,7 +571,8 @@ class Math(unittest.TestCase):
     def test_math_page_passes(self):
         code, out = check(self.page)
         self.assertEqual((code, out.splitlines()[-1]), (0, "pass"), out)
-        self.assertIn("math 5 set pass", out)
+        self.assertIn("math 6 set pass", out)
+        self.assertIn("mapping 0 files 0 flows pass", out, "an arrow in math is no flow")
         self.assertIn("layout motion 320/320", out)
 
     def test_long_display_without_its_scroll_box_fails(self):

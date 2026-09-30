@@ -99,6 +99,7 @@ class Played(unittest.TestCase):
         self.assertEqual(looks["estimated"][1], "dashed")
         self.assertIn("gradient", looks["measured"][0])
         self.assertNotIn("gradient", looks["revealed"][0])
+        self.assertEqual(self.errors, [])
 
     def test_status_lines_follow_the_step(self):
         page = self.open()
