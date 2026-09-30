@@ -24,4 +24,4 @@ A judge, only for a mode that needs reading, once it has about 20 labelled trace
 3. Examples: two to four labelled traces from the train split, both verdicts, each critiqued before its verdict.
 4. Output: `{"critique": "...", "result": "Pass" | "Fail"}`, enforced by structured output where the provider has it.
 
-Give it only the passage the decision needs; pin a capable model to a dated version, and move to a cheaper one only once it agrees as well. Then validate it ([eval-judge.md](eval-judge.md)).
+One condition per judge: a cheap judge fails correct replies on a criterion of several parts, so split it into one grader each, and make any part a word or pattern decides a `regex`. Give it only the passage the decision needs; pin a capable model to a dated version, and move to a cheaper one only once it agrees as well. Then validate it ([eval-judge.md](eval-judge.md)).
