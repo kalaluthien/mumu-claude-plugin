@@ -8,7 +8,7 @@ runs: 3
 Two tasks were filed with the plans below, and no work has started on either. gh cannot reach GitHub here. First build the fixture with this one Bash call:
 
 ````sh
-mkdir -p repo/teamwork && cd repo && git init -q && printf 'Enable mumu-teamwork and mumu-paperwork in each checkout.\n' > teamwork/notes.txt && git add -A && git -c user.name=o -c user.email=o@o commit -qm main && cd ..
+mkdir -p repo/teamwork && printf 'Enable mumu-teamwork and mumu-paperwork in each checkout.\n' > repo/teamwork/notes.txt
 cat > plan-66.txt <<'EOF'
 # Cut spec to 3,000 lines, few comments
 
@@ -45,4 +45,4 @@ Rename the four plugins to `-work` names without the `mumu-` prefix: `mumu-teamw
 EOF
 ````
 
-Then launch the teamwork:judge agent once per plan, on ./plan-66.txt, whose repository has no checkout here, and on ./plan-369.txt, whose repository's default branch is checked out at ./repo. Tell each judge the file is a task's plan to judge, and to write the comment it would post to ./verdict-66.txt or ./verdict-369.txt instead of posting it. Run each judge in the foreground, never in the background, and reply only once both verdict files exist.
+Then launch the teamwork:judge agent once per plan, on ./plan-66.txt, whose repository has no checkout here, and on ./plan-369.txt, whose repository's default branch holds the files in ./repo; this sandbox forbids a `.git` folder, so git commands run there with `--no-index`. Tell each judge the file is a task's plan to judge, and to write the comment it would post to ./verdict-66.txt or ./verdict-369.txt instead of posting it. Run each judge in the foreground, never in the background, and reply only once both verdict files exist.
