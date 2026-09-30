@@ -35,7 +35,9 @@ Before writing any section, the author settles the whole piece, in this order;
 2. **Outline** (Pyramid and MECE): the moves as headings, each a noun phrase
    that carries its section's claim (부산이 앞지른 요청, not 요청 수), so the
    headings read alone state the argument under the answer; siblings neither
-   overlap nor leave a gap; a section with no claim is merged or cut.
+   overlap nor leave a gap; a section with no claim is merged or cut. A page
+   of 4 or more `h2`s, or of chapters, lists them in its `nav` after `p.read`;
+   `check.py` fails a page that counts them wrong.
 3. **Order** (Narrative): overview to detail, each section answering the
    question the one before raises; time or step order only for a sequence;
    the reader's own exploration, such as a `filter` over every row, last.
