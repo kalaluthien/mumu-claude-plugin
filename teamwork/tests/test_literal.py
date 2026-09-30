@@ -63,6 +63,13 @@ def guard(command, agent=None):
 
 
 class Literal(unittest.TestCase):
+    def test_a_refusal_says_the_whole_call_was_dropped_and_to_write_the_file_first(self):
+        result = guard(f"printf 'body' > scratch.md && gh pr merge {PR}")
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("whole Bash call was dropped", result.stderr)
+        self.assertIn("file it wrote included", result.stderr)
+        self.assertIn("write files in a call of their own first", result.stderr)
+
     def assert_literal(self, command, agent=None):
         self.assertNotRegex(command, FORBIDDEN)
         self.assertTrue(any(fnmatch.fnmatchcase(command, rule) for rule in RULES), command)

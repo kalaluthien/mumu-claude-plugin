@@ -49,6 +49,7 @@ Answer another lead's notice that is not a task for you with a plain `comment` o
 
 - Hold any number of root tasks at once, a chore one included.
 - Open each criterion of a new task with its kind, `[exists]`, `[test]` or `[quality]`; a task filed before kinds keeps its criteria.
+- Give each `[test]` criterion a reason it fails on main, which the task names, and no criterion that only runs a check already passing on main (a build, a spec guard, `pgrep`, the scope's checks); a criterion keeping a rule also forbids passing by deleting its assertion.
 - Before posting a plan's criteria, run each "no FAIL" guard they name on main, and confirm each criterion's check still reads its input once the change lands.
 - Give a task that changes how work is split, run, reviewed or tested a criterion replaying past merged pull requests, their checks and session transcripts against the change, because a process change argued only from its design misses the cases history already holds.
 - Search the issues first, `gh issue list -R <repo> --state all --search <words>`. Reopen a closed issue of the same kind of work: `gh issue reopen`, then `decide` with `--criteria` to widen its criteria, then `gh issue edit --title --body-file` to rewrite its title and `## Goal` to the new gap, each after the last, never in parallel, and grep the body for the old wording; lead it under a new attempt. When its fixes touch files another open task rewrites, `decide` on both which task owns each fix and `order` them, before the judge. Otherwise `file` a new issue that links it.
