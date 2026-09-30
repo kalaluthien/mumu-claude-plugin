@@ -1,6 +1,6 @@
 ---
 name: contract
-description: Use when a change alters what code does - a bug fix, a feature, a new rule, an endpoint, a command - even if only the change was asked for or the repo has no tests; when it touches states, transitions, a lifecycle, permissions, ownership or a protocol, or a rule stated as never, always, only after or at most, or `*.als` files model the changed code; when a prompt, skill, rubric or model of a Claude plugin or an LLM app changes, its outputs need judging, or an eval's score must rise; or when tests, specs or evals need setting up, auditing or pruning, a failing eval needs triage, or someone asks what they cover. Not for a refactor that keeps behaviour.
+description: Use when a change alters what code does - a bug fix, a feature, a new rule, an endpoint, a command - even if only the change was asked for or the repo has no tests; when it touches states, transitions, a lifecycle, permissions, ownership or a protocol, or a rule stated as never, always, only after or at most, or `*.als` files model the changed code; when a prompt, skill, rubric or model of a Claude plugin or an LLM app changes, its outputs need judging, or an eval's score must rise; or when rival answers, drafts or plans must be compared and the best picked against a rubric; or when tests, specs or evals need setting up, auditing or pruning, a failing eval needs triage, or someone asks what they cover. Not for a refactor that keeps behaviour.
 user-invocable: false
 ---
 
@@ -15,12 +15,11 @@ A change is checked against a contract that predates it, stated so that a check 
 | a runnable suite and a score to raise: a pass rate, a skill's trigger | [eval-optimize](references/eval-optimize.md) |
 | an LLM judge to build or validate against human labels | [eval-judge](references/eval-judge.md) |
 | an eval run failed or flips | [eval-triage](references/eval-triage.md) |
-| a repo with no test layout | [test-setup](references/test-setup.md) |
-| a change to what code does, or to a value: a threshold, a colour, a size | [test-add](references/test-add.md) |
+| rival answers, drafts or plans to compare against a rubric in one conversation | [eval-compare](references/eval-compare.md) |
+| a change to what code does, or to a value: a threshold, a colour, a size; a repo with no test layout is set up first | [test-add](references/test-add.md) |
 | tests that prove nothing another proves, or assert a bare equality | [test-prune](references/test-prune.md) |
 | a plugin change `claude plugin eval` cannot reach: a hook, a dialog, a monitor, the `/` menu | [test-probe](references/test-probe.md) |
-| a repo with no model, and a change to states or rules | [spec-setup](references/spec-setup.md) |
-| a change to states, transitions, a lifecycle, permissions, ownership or a protocol, or a never, always, only after or at most rule; `*.als` files | [spec-change](references/spec-change.md) |
+| a change to states, transitions, a lifecycle, permissions, ownership or a protocol, or a never, always, only after or at most rule; `*.als` files; a repo with no model is set up first | [spec-change](references/spec-change.md) |
 | code to check against the model | [spec-verify](references/spec-verify.md) |
 
 A prompt, skill, rubric or model of a Claude plugin or an LLM app is code whose checks are evals.
