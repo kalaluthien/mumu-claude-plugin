@@ -106,12 +106,12 @@ Name the target pane in every command.
 
 ## Worker pick
 
-Pick one model and one effort per task, unless the owner named them, by its clarity and whether it needs compound judgement, after [the blog post's choice between Sonnet and Opus](https://claude.dev/blog/building-with-claude-sonnet-5-5/); the lead stays on `opus` at `medium`:
+Pick one model and one effort per task, unless the owner named them, after [the blog post's choice between Sonnet and Opus](https://claude.dev/blog/building-with-claude-sonnet-5-5/); the lead stays on `opus` at `medium`. `sonnet` is the default, since a task's criteria already are its spec and its checks; an `opus` pick names in its `DECIDED:` the design the criteria leave open:
 
 | pick | when the task |
 | --- | --- |
-| `sonnet` | has a clear spec and a way to check the result, or is well-defined work run repeatedly: a bug fix, a feature iterated on, investigation, review, drafting, a document |
-| `opus` | needs careful judgement: complex, long-horizon or compound decisions, or the hardest problems |
+| `sonnet` | is any but the next row's: a bug fix, a failing test or eval made to pass, a feature iterated on, investigation, review, drafting, a document |
+| `opus` | leaves its worker a design its criteria do not settle: an interface, a trade-off across layers, a rule other sessions follow; or stopped at `BLOCKED: stuck on` under `sonnet` |
 | `low` | applies a change its words spell out |
 | `medium` | pursues a goal |
 | `high` | reviews exceptions: edge cases, failures and what the rules leave open |
