@@ -35,9 +35,7 @@ Before writing any section, the author settles the whole piece, in this order;
 2. **Outline** (Pyramid and MECE): the moves as headings, each a noun phrase
    that carries its section's claim (부산이 앞지른 요청, not 요청 수), so the
    headings read alone state the argument under the answer; siblings neither
-   overlap nor leave a gap; a section with no claim is merged or cut. A page
-   of 4 or more `h2`s, or of chapters, lists them in its `nav` after `p.read`;
-   `check.py` fails a page that counts them wrong.
+   overlap nor leave a gap; a section with no claim is merged or cut.
 3. **Order** (Narrative): overview to detail, each section answering the
    question the one before raises; time or step order only for a sequence;
    the reader's own exploration, such as a `filter` over every row, last.
@@ -90,8 +88,8 @@ Where the ask says, else where it is obvious, else ask once with
 `AskUserQuestion`. An Artifact page skips the `Artifact` tool's `quickstart`,
 `artifact-design` and `artifact-diagramming`: the skin and widgets are its
 whole design, with no palette, typeface or chart library of its own. Its
-author reads each widget's spec with
-`"${CLAUDE_PLUGIN_ROOT}/skills/rendering/scripts/assemble.py" --spec <widget>`,
+author reads the page's spec, its contents `nav` included, and each widget's with
+`"${CLAUDE_PLUGIN_ROOT}/skills/rendering/scripts/assemble.py" --spec page` and `--spec <widget>`,
 writes only the body, and `assemble.py <body> <page>` adds the skin and widget
 code, as [artifact.md](references/artifact.md) says.
 Markdown on an issue tracker or in a repository is `writing`'s; a figure it
