@@ -179,6 +179,7 @@ FAILS = [
     ("'다음'", "'Play the steps'", "English: Play the steps"),
     ("흐름: 일 하나를 넣기", "Flow: add a job", "English: Flow: add a job"),
     ('<div id="c">', '<img alt="the job queue" src="x.png"><div id="c">', "English: the job queue"),
+    ("SQLite입니다.", 'SQLite입니다. <div data-widget="filter"><button aria-label="the job queue">큐</button></div>', "English: the job queue"),
     ("SQLite입니다.", "SQLite이다.", "plain ending: 저장소는 SQLite이다."),
     ("<h1>작업 큐의 구조</h1>", "<h1>큐가 일을 받습니다</h1>", "sentence heading: 큐가 일을 받습니다"),
     ("<pre>git log --oneline main</pre>", "<pre>요청 → 큐 → 작업자</pre>", "no use-case for '요청 → 큐 → 작업자'"),
@@ -205,6 +206,7 @@ FAILS = [
 PASSES = [
     ("SQLite입니다.", "SQLite입니다. <code>a -&gt; b</code>로 써요.", "arrow"),
     ("SQLite입니다.", "바다.", "plain ending"),
+    ("</svg></div>", '</svg><b role="button" aria-label="cli.py tq push job">파일</b></div>', "English"),
     ("SQLite입니다.", "마음이에요.", "plain ending"),
     ("SQLite입니다.", "4.00점이에요.", "plain ending"),
     ("SQLite입니다.", "SQLite입니다. <code>\\( x^2 \\)</code>로 써요.", "math"),
