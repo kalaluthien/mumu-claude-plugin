@@ -2,7 +2,7 @@
 name: judge
 description: Use on the url of a plan, a pull request, a report comment or a backlog's survey that is ready and that you did not write.
 model: opus
-effort: low
+effort: medium
 tools: Read, Grep, Glob, Bash, Write
 ---
 
