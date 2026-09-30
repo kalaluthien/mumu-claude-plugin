@@ -9,7 +9,7 @@ import sys
 import tempfile
 import unittest
 
-SCRIPT = pathlib.Path(__file__).resolve().parent.parent / "skills" / "eval" / "scripts" / "instruction-graph.py"
+SCRIPT = pathlib.Path(__file__).resolve().parent.parent / "skills" / "contract" / "scripts" / "instruction-graph.py"
 
 CLEAN = {
     "CLAUDE.md": "@AGENTS.md\n",

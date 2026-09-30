@@ -1,0 +1,7 @@
+# Test: add
+
+A change to what code does: write the failing tests first, then the change that makes them pass.
+
+1. Find the repo's test command and where its tests sit: [test/runner-playbook.md](test/runner-playbook.md).
+2. Red: write an acceptance test and an integration test, each asserting a contract or a path ([test/contracts-playbook.md](test/contracts-playbook.md)); a Claude plugin's hook, dialog, monitor or `/` menu is shown in a live session instead ([test/probe-playbook.md](test/probe-playbook.md)). A change the model in `spec/` covers also gets its witnesses ([test/witness-playbook.md](test/witness-playbook.md)). Run the tests and watch each fail for the reason the change addresses.
+3. Green: make the change. Run `${CLAUDE_PLUGIN_ROOT}/skills/contract/scripts/verify.sh`; it passes. Then undo the change alone, watch the new tests fail, and restore it.

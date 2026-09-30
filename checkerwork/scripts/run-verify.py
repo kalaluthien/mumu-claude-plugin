@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PreToolUse on Bash, PostToolUse on Bash and Stop: in a repo holding a `spec/` model, run the spec skill's gate before
+"""PreToolUse on Bash, PostToolUse on Bash and Stop: in a repo holding a `spec/` model, run the contract skill's gate before
 a `git commit` and before a stop that leaves changes, refusing either while it fails, with its FAIL lines. A repo
 without one is commit-nudge.py's.
 The gate runs at most once per working tree (tracked and untracked content): a tree it passed, or that the session's
@@ -18,7 +18,7 @@ import sys
 import tempfile
 
 PLUGIN = pathlib.Path(__file__).resolve().parent.parent
-GATE = pathlib.Path(os.environ.get("VERIFY_GATE") or PLUGIN / "skills" / "spec" / "scripts" / "verify.sh")  # tests stub it
+GATE = pathlib.Path(os.environ.get("VERIFY_GATE") or PLUGIN / "skills" / "contract" / "scripts" / "verify.sh")  # tests stub it
 sys.path.insert(0, str(PLUGIN / "lib"))
 from fit import COMMIT  # noqa: E402
 

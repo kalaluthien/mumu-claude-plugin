@@ -9,7 +9,7 @@ import sys
 import tempfile
 import unittest
 
-SCRIPT = pathlib.Path(__file__).resolve().parent.parent / "skills" / "eval" / "scripts" / "judge-agreement.py"
+SCRIPT = pathlib.Path(__file__).resolve().parent.parent / "skills" / "contract" / "scripts" / "judge-agreement.py"
 
 
 def csv_of(counts):
