@@ -1,0 +1,120 @@
+<!-- ui-diff: a UI's behaviour before and after a change, side by side, played step by step; one comparison per copy.
+  anatomy: a figure[data-widget="ui-diff"] with data-slide, opening with a figcaption (what is compared) and its source
+  note, if any (inside the figure, or it counts as a second widget), then a .card
+  of pseudo-code and notes, a .panes of two .pane, and an ol.steps; every id prefixed with {{id}}.
+  pane: a div.pane id="{{id}}-<side>" holding a p.name (the version), an ol.view (the UI's viewport, scrolled in its
+  own box; data-scroll="end" holds it at the bottom) of li rows, each its label and size (user 48px) and style="--h: <px
+  of the drawn UI>", then a p.status, a line of what the pane reads now: total, rows mounted, shown or not; a label or state word ends as a
+  noun (숨김, 보임, 측정 중), never in -함 or -됨, which check.py fails as a plain ending.
+  numbers: each with its unit, 474px, 6줄, in rows, status lines and any table of the same values beside the widget,
+  whose headers carry it in brackets, 변경 전(px).
+  states: a row's data-states lists its state from each step on, as "estimated 3:measured 6:revealed" (the first from
+  step 1): estimated, a guess not yet real, grey hatch in a dashed frame; measured, real but hidden, filled under a hatch
+  in a solid frame; revealed, what the reader sees, solid fill; the pattern and the frame tell them apart, not colour.
+  card: a .code of 3 lines at most, each a code id="{{id}}-l<n>", then a ul.notes of bullets, each opening with a
+  button.chip data-for="<ids>" holding a <code> (left, both, lines 1–2): hover, focus or a click marks the panes or
+  lines it names.
+  swap: .code, .notes and each .status hold one child per step they change at, with data-step; the latest reached
+  shows. A row or other part with data-step="k" shows from step k.
+  played: by page.html's slide, one li per step, its data-title the step's name, its text one change and its effect;
+  under reduced motion, in print or without script, every step is listed and the widget stands at its last step.
+  keyboard: Tab to each chip, Enter or Space pins its mark; the slide's Back, Next, step slider and arrow keys.
+  use when: a UI's behaviour differs before and after a change: what it draws, measures or hides, step by step.
+  not when: files a change touches (file-tree), calls in order (use-case), numbers over time (chart). -->
+<style>
+  [data-widget="ui-diff"] {
+    --ui-diff-gap: var(--sp-3); --ui-diff-px: calc(var(--line) / 4); --ui-diff-view: calc(14 * var(--sp-4));
+    --ui-diff-real: var(--kind-3); --ui-diff-mark: var(--accent);
+    --ui-diff-fill: color-mix(in srgb, var(--ui-diff-real) 30%, var(--bg));
+    --ui-diff-hatch: repeating-linear-gradient(135deg, color-mix(in srgb, var(--border) 45%, transparent) 0 var(--line), transparent 0 var(--sp-2));
+    --ui-diff-veil: repeating-linear-gradient(135deg, var(--bg) 0 var(--line-strong), transparent 0 var(--sp-2));
+    margin: var(--sp-3) 0;
+    & .card { border: var(--line) solid var(--border); padding: var(--sp-2) var(--sp-3); font-size: var(--fs-m); }
+    & .code > * { display: block; margin: 0; }
+    & .code code { display: block; overflow-wrap: anywhere; }
+    & .notes { margin: var(--sp-2) 0 0; padding-inline-start: var(--sp-4); }
+    & .notes ul { margin: 0; padding: 0; }
+    & .chip { padding: 0 var(--sp-1); border-color: var(--hairline); background: var(--fill); }
+    & .chip.held { border-color: var(--ui-diff-mark); }
+    & .panes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ui-diff-gap); margin-top: var(--ui-diff-gap); }
+    & .pane { min-width: 0; outline-offset: var(--line-strong); }
+    & .name { margin: 0 0 var(--sp-1); font: 700 var(--fs-m) var(--sans); overflow-wrap: anywhere; }
+    & .view { list-style: none; margin: 0; padding: var(--sp-1); max-height: var(--ui-diff-view); overflow-y: auto;
+      border: var(--line) solid var(--text); display: flex; flex-direction: column; gap: var(--sp-1); }
+    & .view > li { flex: none; box-sizing: border-box; min-height: calc(var(--h, 48) * var(--ui-diff-px)); padding: 0 var(--sp-1);
+      font: var(--fs-s) var(--mono); overflow-wrap: anywhere; border: var(--line) solid var(--text);
+      transition: background-color var(--motion) var(--ease-out); }
+    & .view > [data-now="estimated"] { border-style: dashed; border-color: var(--border); background: var(--ui-diff-hatch); }
+    & .view > [data-now="measured"] { border-color: var(--ui-diff-real);
+      background: var(--ui-diff-veil), var(--ui-diff-fill); }
+    & .view > [data-now="revealed"] { border-color: var(--ui-diff-real); background: var(--ui-diff-fill); }
+    & .status { margin: var(--sp-1) 0 0; color: var(--muted); font: var(--fs-s) var(--sans); overflow-wrap: anywhere; }
+    & .keyed { outline: var(--line-strong) solid var(--ui-diff-mark); }
+    & .code .keyed { outline: 0; background: var(--mark); }
+    &:not(.live) :is(.code, .notes, .status) > :not(:last-child) { display: none; }
+    &.live [data-step]:not(.on), &.live :is(.code, .notes, .status) > .on:has(~ .on) { display: none; }
+  }
+</style>
+<script>
+  (() => {
+    const start = () => document.querySelectorAll('[data-widget="ui-diff"]').forEach((root) => {
+      const rows = [...root.querySelectorAll('.view > [data-states]')].map((row) => [row, row.dataset.states.trim().split(/\s+/)
+        .map((s, i) => (s.includes(':') ? [+s.split(':')[0], s.split(':')[1]] : [i ? Infinity : 1, s]))]);
+      // each row's state at step k: the last of its list from a step at or before k; unplayed, the last step
+      const paint = () => {
+        const k = root.classList.contains('live') ? +root.dataset.at + 1 : Infinity;
+        rows.forEach(([row, list]) => { row.dataset.now = list.filter(([from]) => from <= k).pop()?.[1] || list[0][1]; });
+        root.querySelectorAll('.view[data-scroll="end"]').forEach((v) => { v.scrollTop = v.scrollHeight; });
+      };
+      const targets = (chip) => (chip.dataset.for || '').split(/\s+/).map((id) => document.getElementById(id)).filter(Boolean);
+      const mark = () => {
+        const on = new Set();
+        root.querySelectorAll('.chip').forEach((c) => {
+          if (c.matches(':hover, :focus-visible, [aria-pressed="true"]')) targets(c).forEach((t) => on.add(t));
+        });
+        root.querySelectorAll('.keyed').forEach((t) => { if (!on.has(t)) t.classList.remove('keyed'); });
+        on.forEach((t) => t.classList.add('keyed'));
+      };
+      root.querySelectorAll('.chip').forEach((c) => {
+        c.setAttribute('aria-pressed', 'false');
+        ['pointerenter', 'pointerleave', 'focus', 'blur'].forEach((e) => c.addEventListener(e, () => setTimeout(mark)));
+        c.addEventListener('click', () => { c.setAttribute('aria-pressed', c.classList.toggle('held')); mark(); });
+      });
+      root.addEventListener('step', () => { paint(); mark(); });
+      paint();
+    });
+    if (document.readyState === 'loading') addEventListener('DOMContentLoaded', start); else start();
+  })();
+</script>
+<figure data-widget="ui-diff" data-slide data-labels="{{Back|Next|Step}}">
+  <figcaption>{{what is compared: the before and the after}}</figcaption>
+  <div class="card">
+    <div class="code">
+      <p data-step="1"><code id="{{id}}-l1">{{pseudo-code line}}</code></p>
+    </div>
+    <div class="notes">
+      <ul data-step="1">
+        <li><button type="button" class="chip" data-for="{{id}}-before"><code>{{key}}</code></button> {{what it says of that part}}</li>
+      </ul>
+    </div>
+  </div>
+  <div class="panes">
+    <div class="pane" id="{{id}}-before">
+      <p class="name">{{the version before}}</p>
+      <ol class="view" data-scroll="end">
+        <li data-states="{{estimated 3:measured 6:revealed}}" style="--h: {{px}}">{{label and size}}</li>
+      </ol>
+      <p class="status"><span data-step="1">{{what the pane reads now, each number with its unit}}</span></p>
+    </div>
+    <div class="pane" id="{{id}}-after">
+      <p class="name">{{the version after}}</p>
+      <ol class="view" data-scroll="end">
+        <li data-states="{{estimated 3:measured 6:revealed}}" style="--h: {{px}}">{{label and size}}</li>
+      </ol>
+      <p class="status"><span data-step="1">{{what the pane reads now, each number with its unit}}</span></p>
+    </div>
+  </div>
+  <ol class="steps">
+    <li data-title="{{step name}}">{{one change and its effect}}</li>
+  </ol>
+</figure>

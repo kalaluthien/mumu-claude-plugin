@@ -25,7 +25,7 @@ CHROME = pathlib.Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chr
 # The gallery: every widget in every state, in a box with data-state set, which the skin and
 # the widgets read to force that state; the chart shows each fixture below by default and the first in every state.
 STATES = ("default", "hover", "focus", "open", "disabled")
-KOREAN = {"Back|Next": "뒤로|다음", "gone": "삭제", "changed": "변경", "new": "추가", "Data table": "데이터 표",
+KOREAN = {"Back|Next|Step": "뒤로|다음|단계", "gone": "삭제", "changed": "변경", "new": "추가", "Data table": "데이터 표",
           "caller kind|callee kind": "사람|외부 시스템"}
 FIXTURES = {"chart": """<figure data-widget="chart" data-chart="bar">
   <figcaption>부산의 하루 요청이 가장 많아요.</figcaption>
@@ -571,7 +571,8 @@ class Math(unittest.TestCase):
     def test_math_page_passes(self):
         code, out = check(self.page)
         self.assertEqual((code, out.splitlines()[-1]), (0, "pass"), out)
-        self.assertIn("math 5 set pass", out)
+        self.assertIn("math 6 set pass", out)
+        self.assertIn("mapping 0 files 0 flows pass", out, "an arrow in math is no flow")
         self.assertIn("layout motion 320/320", out)
 
     def test_long_display_without_its_scroll_box_fails(self):
@@ -599,7 +600,8 @@ TWO_CHARTS = ('<h1>도시별 요청</h1>\n<p class="read">부산의 요청이 �
 
 class Assemble(unittest.TestCase):
     def test_each_spec_is_small_and_unstyled(self):
-        for widget in ("page", "chart", "filter", "controls", "source", "file-tree", "system-context", "use-case", "network"):
+        for widget in ("page", "chart", "filter", "controls", "source", "ui-diff", "file-tree", "system-context", "use-case",
+                       "network"):
             with self.subTest(widget):
                 r = assemble("--spec", widget)
                 self.assertEqual(r.returncode, 0, r.stderr)
