@@ -65,6 +65,33 @@ def layers(tasks=TASKS):
             depth[i] = max([d(j) + 1 for j, t in enumerate(tasks, 1) if any(k == i for k, _, _ in t[3])], default=0)
         return depth[i]
     return [d(i) for i in range(1, len(tasks) + 1)]
+# a flow of 12 steps and 40 weighted lines, one a self-loop: each step to the next, the one after, and five on, and four more
+STEPS = ["접수", "분류", "대기열", "배정", "검토", "수정", "재검토", "승인", "배포", "확인", "보고", "종료"]
+FLOWS = [(i, (i + d) % 12) for i in range(12) for d in (1, 2, 5)] + [(0, 6), (3, 9), (7, 2), (4, 4)]
+WAIT = {f: (f[0] * 7 + f[1] * 3) % 50 + 1 for f in FLOWS}  # minutes
+
+
+def flow(layout):
+    """The flow as an author writes it: a dt per step, its dd the full name then a link per line out, with its minutes."""
+    rows = "".join(f'<dt id="f-t{i + 1}" class="k{1 + i % 2}">{step}</dt>\n<dd>{step} 단계예요. ' + " ".join(
+        f'<a href="#f-t{b + 1}" data-value="{WAIT[a, b]}">대기 {WAIT[a, b]}분</a>' for a, b in FLOWS if a == i) + "</dd>\n"
+        for i, step in enumerate(STEPS))
+    return ('<section aria-labelledby="f"><h2 id="f">단계 사이의 대기 시간</h2>\n'
+            f'<div data-widget="diagram" data-diagram="flow-graph" data-layout="{layout}" data-kinds="사람|기계">\n'
+            f'<figure class="stage scroll" tabindex="0" aria-labelledby="f"><dl>\n{rows}</dl>\n'
+            '<figcaption class="muted">선이 굵을수록 오래 기다렸어요.</figcaption></figure></div></section>')
+
+
+# the lines in the order of FLOWS, as each dd lists them: grouped by their first step
+LINES = sorted(FLOWS, key=lambda f: f[0])
+LAYOUTS = ("columns", "arc", "ellipse")
+# each line's first and last point, its width and opacity, and whether its label shows
+STROKES = """(svg) => [...svg.querySelectorAll('.part')].map((g, n) => { const e = g.querySelector('.edge'), s = getComputedStyle(e);
+  const p = (at) => { const q = e.getPointAtLength(at); return { x: q.x, y: q.y }; };
+  return { ends: [p(0), p(e.getTotalLength())], width: parseFloat(s.strokeWidth), opacity: +s.strokeOpacity,
+    label: svg.querySelectorAll('.labels .label')[n].checkVisibility() }; })"""
+
+
 # a network's boxes, its label boxes, each line's first and last point, and the page's widths
 SHAPES = """(svg) => { const n = (e, a) => +e.getAttribute(a), m = svg.getScreenCTM();
   const pt = (p) => ({ x: p.x, y: p.y });
@@ -144,7 +171,8 @@ class Diagram(unittest.TestCase):
         p.set_content(html)
         if context.get("java_script_enabled", True):
             try:  # a network is drawn once its fonts load; a copy without its script never draws it
-                p.wait_for_function("!document.querySelector('[data-diagram=network] .stage > dl') || !!document.querySelector('.detail')",
+                p.wait_for_function("!document.querySelector(':is([data-diagram=network], [data-diagram=flow-graph]) .stage > dl')"
+                                    " || !!document.querySelector('.detail')",
                                     timeout=3000)
             except PlaywrightTimeout:
                 pass
@@ -370,6 +398,50 @@ class Diagram(unittest.TestCase):
         plain, *rest = [style(c) for c in (":not(.ok, .warn, .fail, .inferred)", ".ok", ".warn", ".fail", ".inferred")]
         self.assertEqual({s for s, _ in [plain, *rest]}, {plain[0]}, "a status is a colour")
         self.assertEqual(len({d for _, d in [plain, *rest[1:]]}), 4, "two statuses share a dash")
+
+    def test_flow_graph_pages_pass_check(self):
+        for layout in LAYOUTS:
+            with self.subTest(layout), tempfile.TemporaryDirectory() as d:
+                body, out = pathlib.Path(d) / "body.html", pathlib.Path(d) / "page.html"
+                body.write_text('<h1>대기 흐름</h1>\n<p class="read">검토 단계에서 가장 오래 기다려요.</p>\n' + flow(layout))
+                r = subprocess.run([sys.executable, str(ASSEMBLE), str(body), str(out)], capture_output=True, text=True)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                r = subprocess.run([sys.executable, str(CHECK), str(out)], capture_output=True, text=True)
+                self.assertEqual(r.stdout.splitlines()[-1], "pass", r.stdout)
+                self.assertEqual(len(re.findall(r"(?m)^layout \w+ .* labels 0 pass$", r.stdout)), 2, r.stdout)
+
+    def test_flow_graph_weight_focus_and_labels(self):
+        spec = subprocess.run([sys.executable, str(ASSEMBLE), "--spec", "flow-graph"], capture_output=True, text=True).stdout
+        top = int(re.search(r"the (\d+) heaviest lines show their text", spec).group(1))
+        self.assertLess(top, len(FLOWS))
+        for layout in LAYOUTS:
+            with self.subTest(layout):
+                p = self.open(page("flow-graph", section=flow(layout)), viewport={"width": 320, "height": 800})
+                svg = p.locator("svg")
+                lines = svg.evaluate(STROKES)
+                self.assertEqual(len(lines), len(FLOWS))
+                # the heavier of two lines is wider and more opaque
+                heavy, light = LINES.index(max(FLOWS, key=WAIT.get)), LINES.index(min(FLOWS, key=WAIT.get))
+                self.assertGreater(lines[heavy]["width"], lines[light]["width"])
+                self.assertGreater(lines[heavy]["opacity"], lines[light]["opacity"])
+                # labels on the heaviest lines alone, as many as the spec says
+                shown = [n for n, line in enumerate(lines) if line["label"]]
+                self.assertEqual(len(shown), top)
+                self.assertEqual(sorted(WAIT[LINES[n]] for n in shown), sorted(WAIT.values())[-top:])
+                # the self-loop: one line from its step back to itself
+                boxes = svg.evaluate(SHAPES)["boxes"]
+                loops = [n for n, line in enumerate(lines) if {nearest(boxes, e) for e in line["ends"]} == {4}]
+                self.assertEqual(loops, [LINES.index((4, 4))])
+                # a click on a step whose line has no label keeps its lines and neighbours, shows that label, and dims the rest
+                hidden = next(n for n in range(len(LINES)) if not lines[n]["label"] and LINES[n][0] != LINES[n][1])
+                step = LINES[hidden][0]
+                p.locator("rect.box").nth(step).click(position={"x": 4, "y": 4})
+                near = {step} | {b for a, b in FLOWS if a == step} | {a for a, b in FLOWS if b == step}
+                for i in range(len(STEPS)):
+                    self.assertEqual(self.opacity(p, f"rect.box >> nth={i}") == 1, i in near, f"box {i + 1}")
+                for n, (a, b) in enumerate(LINES):
+                    self.assertEqual(self.opacity(p, f".part >> nth={n} >> .edge") == 1, step in (a, b), f"line {a + 1}-{b + 1}")
+                self.assertTrue(svg.evaluate(STROKES)[hidden]["label"], "a chosen step's line keeps its label hidden")
 
     def test_must_fail_copies(self):
         source = (REFS / "diagram.html").read_text()

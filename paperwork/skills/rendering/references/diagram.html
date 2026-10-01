@@ -6,6 +6,7 @@
   system-context: the system as one .box.main in the middle, callers left, callees right, every line labelled with what crosses it. Use when: actors, entry points and boundaries. Not when: the order of calls (use-case).
   use-case: one still figure read top to bottom, no steps: a div.flow style="--lanes: N;" holding a p.box per participant, 4 at most, then an ol, one li per call in order, style="--from: i; --to: j;" (lanes counted from 1, i and j apart), its text the call and its value; the skin numbers it, draws its arrow from lane i to lane j under its label, and a dotted lifeline down each lane, all fitted to the column; .inferred dashes a guessed call, .ok/.warn/.fail its status. A call that needs more than its label gets one line in the ol.notes under the flow, li value="k" for call k; no note repeats a label; no notes, drop the ol.notes. Two use cases, two copies; a page whose calls name 4 or more files also opens with a file-tree of them (Mapping). Use when: one use case's calls in order. Not when: who reaches whom (system-context).
   network: nodes and the links between them, drawn by the script from a dl: each dt a node, id {{id}}-tN, class kN, a label of 8 syllables at most; its dd the full name, then one in-page link per line out, its status a dash, not a colour: .warn long, .fail dotted, .inferred short, named in the figcaption; 9 nodes at most. Layered top-down by longest path, wrapped to the column, a box as wide as its label. Use when: tasks and what blocks them, sessions and who waits on whom, files and what reads them; what a node reaches. Not when: an order in time (use-case); one system and its callers (system-context).
+  flow-graph: how much moves between things, counts or minutes on each line, drawn by the script from a dl as network's: each dt a node, id {{id}}-tN, class kN, a label of 8 syllables at most; its dd the full name, then one in-page link per line out, data-value its number, its text that value with its unit in 12 characters at most (대기 42분), a link to its own dt a self-loop; status dashes as network's. Each line's width and opacity grow with the square root of its value; the 6 heaviest lines show their text, the others while a node or line is chosen. data-layout picks columns (left to right by longest path: stages), arc (one row, lines forward arched above and back below: an order) or ellipse (a ring: a cycle, or no order). 20 nodes at most; wider than the column, the figure scrolls sideways in its .stage.scroll box. Use when: 10 nodes or more, or values on the links. Not when: 9 nodes or fewer with no values (network).
   network: hover or focus shows a node's dt and dd in the panel under the figure, a click or Enter pins and announces it, a panel link pins its target, Escape clears. Without script, in print or under reduced motion, the dl stays listed.
   played: optional, by page.html's slide; the steps one caption each, a file-tree's first the before; a part with data-step="k" shows from step k. Not played: drop those and the steps.
   focus: hover, keyboard focus or a tap on a node or line (a .part, a use-case call) keeps it, its lines and the nodes they reach full and dims the rest (a file-tree's lines join a node to its folder and its children); hover off, Escape or a second tap restores all. The .part's ends are the nodes nearest its first and last point, a call's its two lanes.
@@ -57,9 +58,16 @@
     & figcaption { font-size: var(--fs-m); color: var(--text); counter-increment: fig; margin-top: var(--sp-2); }
     & figcaption::before { content: "그림 " counter(fig) ". "; font-weight: 700; }
     & .detail:empty { display: none; }
-    &[data-diagram="network"] .edge:is(.ok, .warn, .fail) { stroke: var(--text); }
-    &[data-diagram="network"] .edge.warn { stroke-dasharray: 12 4; }
-    &[data-diagram="network"] .edge.fail { stroke-dasharray: 2 4; }
+    &:is([data-diagram="network"], [data-diagram="flow-graph"]) .edge:is(.ok, .warn, .fail) { stroke: var(--text); }
+    &:is([data-diagram="network"], [data-diagram="flow-graph"]) .edge.warn { stroke-dasharray: 12 4; }
+    &:is([data-diagram="network"], [data-diagram="flow-graph"]) .edge.fail { stroke-dasharray: 2 4; }
+    /* flow-graph: a clear wide line takes the pointer; a label sits on a halo over its line, shown on the heaviest lines and
+       on those a choice keeps */
+    &[data-diagram="flow-graph"] .hit { fill: none; stroke: transparent; stroke-width: var(--sp-3); }
+    &[data-diagram="flow-graph"] .label { paint-order: stroke; stroke: var(--bg); stroke-width: var(--sp-1); stroke-linejoin: round;
+      font-variant-numeric: tabular-nums; }
+    &[data-diagram="flow-graph"] .label:is(:not(.top, .kept), .dim) { display: none; }
+    &[data-diagram="flow-graph"] .part:is(:hover, :focus-visible) .tip { fill: var(--accent); }
     & .detail :is(dl, dd) { margin: 0; }
     /* use-case: the lanes equal columns, a dotted lifeline down each one's middle; a call spans its lanes' middles, its
        number and label over its arrow, which a lane-to-lane sign points; the label's box covers the lifelines it crosses */
@@ -150,11 +158,11 @@
         root.querySelectorAll('svg .part').forEach((part) => {
           const line = part.querySelector('.edge');
           if (!line || !nodes.length) return;
-          const ends = [0, line.getTotalLength()].map((at) => {
+          const ends = route.has(part) ? route.get(part).slice(0, 2).map((k) => nodes[k]) : [0, line.getTotalLength()].map((at) => {
             const p = line.getPointAtLength(at);
             return nodes.reduce((a, n) => (gap(p, n.r) < gap(p, a.r) ? n : a));
           });
-          edges.push({ el: part, handle: part, own: [...part.children], ends });
+          edges.push({ el: part, handle: part, own: [...part.children, ...(route.has(part) ? route.get(part).slice(2) : [])], ends });
         });
       }
       return { nodes, edges };
@@ -162,12 +170,168 @@
     // network: the dl drawn as boxes in layers, top-down by longest path, and a line per in-page link
     const SVG = 'http://www.w3.org/2000/svg', PAD = 8, H = 40, ROW = 88, GAP = 24;
     const source = new WeakMap();  // a drawn box -> its dt
+    const route = new WeakMap();  // a flow-graph's drawn line -> the indexes of its two boxes, then its label
     const make = (parent, tag, attrs) => {
       const el = parent.appendChild(document.createElementNS(SVG, tag));
       Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
       return el;
     };
+    // flow-graph: a line's width and opacity grow with the square root of its value, and the TOP heaviest show their label
+    const TOP = 6, COL = 120, ROWS = 96, LOOP = 40;
+    const at = (p, t) => {  // the point at t on the cubic through p's four points
+      const k = [(1 - t) ** 3, 3 * (1 - t) ** 2 * t, 3 * (1 - t) * t * t, t ** 3];
+      return { x: p.reduce((a, q, i) => a + k[i] * q.x, 0), y: p.reduce((a, q, i) => a + k[i] * q.y, 0) };
+    };
+    const mid = (c) => ({ x: c.x + c.w / 2, y: c.y + H / 2 });
+    const rim = (c, to) => {  // where the ray from box c's middle toward `to` leaves the box
+      const m = mid(c), dx = to.x - m.x, dy = to.y - m.y;
+      const k = Math.min(dx ? c.w / 2 / Math.abs(dx) : Infinity, dy ? H / 2 / Math.abs(dy) : Infinity);
+      return { x: m.x + dx * k, y: m.y + dy * k };
+    };
+    const bent = (a, b, bend) => {  // from box a to box b, bowed to one side, so a→b and b→a bow apart
+      const p = mid(a), q = mid(b), c = { x: (p.x + q.x) / 2 - (q.y - p.y) * bend, y: (p.y + q.y) / 2 + (q.x - p.x) * bend };
+      const s = rim(a, c), e = rim(b, c), third = (u) => ({ x: u.x + (c.x - u.x) * 2 / 3, y: u.y + (c.y - u.y) * 2 / 3 });
+      return [s, third(s), third(e), e];
+    };
+    const loop = (c, u) => {  // out of box c on the side u, a unit vector, points to, and back in
+      const m = mid(c), b = rim(c, { x: m.x + u.x * 1e4, y: m.y + u.y * 1e4 });
+      const to = (k, l) => ({ x: b.x + u.x * k - u.y * l, y: b.y + u.y * k + u.x * l });
+      return [to(0, 10), to(LOOP, 28), to(LOOP, -28), to(0, -10)];
+    };
+    const ranks = (n, links) => {  // each node's longest path from a source; a link closing a cycle counts reversed
+      const seen = Array(n).fill(0), post = [], down = [];
+      const visit = (u) => {
+        seen[u] = 1;
+        links.forEach(([a, b]) => {
+          if (a !== u || b === u) return;
+          if (seen[b] === 1) down.push([b, a]); else { down.push([a, b]); if (!seen[b]) visit(b); }
+        });
+        seen[u] = 2;
+        post.push(u);
+      };
+      for (let u = 0; u < n; u++) if (!seen[u]) visit(u);
+      const rank = Array(n).fill(0);
+      post.reverse().forEach((u) => { rank[u] = Math.max(0, ...down.filter(([, b]) => b === u).map(([a]) => rank[a] + 1)); });
+      return rank;
+    };
+    // the ends of a box's lines on one side, spread along it in the order of where their other ends lie
+    const spread = (ends, along, size) => ends.sort((a, b) => a.key - b.key).forEach((e, k) => e.set(along + size * ((k + .5) / ends.length - .5) * .7));
+    const LAYOUTS = {
+      // columns left to right by longest path, each ordered by the mean row of what feeds it; a line forward runs side to side
+      columns: (cells, links, n) => {
+        const rank = ranks(n, links), cols = [], row = [];
+        rank.forEach((r, i) => (cols[r] = cols[r] || []).push(i));
+        cols.forEach((col, r) => {
+          const key = new Map(col.map((i, k) => {
+            const up = links.filter(([a, b]) => b === i && rank[a] < r).map(([a]) => row[a]);
+            return [i, up.length ? up.reduce((t, v) => t + v, 0) / up.length : k];
+          }));
+          col.sort((a, b) => key.get(a) - key.get(b)).forEach((i, k) => { row[i] = k; });
+        });
+        const tall = Math.max(...cols.map((c) => c.length));
+        let x = 0;
+        cols.forEach((col) => {
+          const w = Math.max(...col.map((i) => cells[i].w));
+          col.forEach((i, k) => Object.assign(cells[i], { x: x + (w - cells[i].w) / 2, y: (k + (tall - col.length) / 2) * ROWS }));
+          x += w + COL;
+        });
+        const ends = cells.map(() => ({ out: [], in: [] }));
+        const curves = links.map(([a, b]) => {
+          if (a === b) return loop(cells[a], { x: 0, y: -1 });
+          if (rank[b] <= rank[a]) return bent(cells[a], cells[b], .25);
+          const p = [{ x: cells[a].x + cells[a].w }, {}, {}, { x: cells[b].x }];
+          ends[a].out.push({ key: mid(cells[b]).y, set: (y) => { p[0].y = y; } });
+          ends[b].in.push({ key: mid(cells[a]).y, set: (y) => { p[3].y = y; } });
+          return p;
+        });
+        cells.forEach((c, i) => { spread(ends[i].out, mid(c).y, H); spread(ends[i].in, mid(c).y, H); });
+        return curves.map((p) => {
+          if (p[1].x !== undefined) return p;
+          const dx = (p[3].x - p[0].x) / 2;
+          return [p[0], { x: p[0].x + dx, y: p[0].y }, { x: p[3].x - dx, y: p[3].y }, p[3]];
+        });
+      },
+      // one row in the order of the flow; a line forward arches above it, a line back below, higher the further it goes
+      arc: (cells, links, n) => {
+        const rank = ranks(n, links), order = cells.map((_, i) => i).sort((a, b) => rank[a] - rank[b] || a - b);
+        let x = 0;
+        order.forEach((i) => { Object.assign(cells[i], { x, y: 0 }); x += cells[i].w + GAP; });
+        const ends = cells.map(() => ({ top: [], bottom: [] }));
+        const curves = links.map(([a, b]) => {
+          if (a === b) return loop(cells[a], { x: 0, y: -1 });
+          const back = mid(cells[b]).x < mid(cells[a]).x, side = back ? 'bottom' : 'top', y = back ? H : 0;
+          const lift = (back ? 1 : -1) * Math.min(240, Math.max(32, Math.abs(mid(cells[b]).x - mid(cells[a]).x) * .3)) * 4 / 3;
+          const p = [{ y }, { y: y + lift }, { y: y + lift }, { y }];
+          ends[a][side].push({ key: mid(cells[b]).x, set: (v) => { p[0].x = p[1].x = v; } });
+          ends[b][side].push({ key: mid(cells[a]).x, set: (v) => { p[3].x = p[2].x = v; } });
+          return p;
+        });
+        cells.forEach((c, i) => { spread(ends[i].top, mid(c).x, c.w); spread(ends[i].bottom, mid(c).x, c.w); });
+        return curves;
+      },
+      // round a ring in the order of the flow, widened until no two boxes touch; a line bows across it, a loop points out
+      ellipse: (cells, links, n) => {
+        const rank = ranks(n, links), order = cells.map((_, i) => i).sort((a, b) => rank[a] - rank[b] || a - b);
+        let ry = (H + GAP) * n / (2 * Math.PI), rx = Math.max(ry * 1.6, cells.reduce((t, c) => t + c.w + GAP, 0) / (2 * Math.PI));
+        const place = () => order.forEach((i, k) => {
+          const a = 2 * Math.PI * k / n - Math.PI / 2;
+          Object.assign(cells[i], { x: rx * Math.cos(a) - cells[i].w / 2, y: ry * Math.sin(a) - H / 2, a });
+        });
+        const touch = (p, q) => Math.min(p.x + p.w, q.x + q.w) + GAP / 2 > Math.max(p.x, q.x) && Math.min(p.y, q.y) + H + GAP / 2 > Math.max(p.y, q.y);
+        for (place(); cells.some((p, i) => cells.some((q, j) => i < j && touch(p, q))); place()) { rx *= 1.1; ry *= 1.1; }
+        return links.map(([a, b]) => (a === b ? loop(cells[a], { x: Math.cos(cells[a].a), y: Math.sin(cells[a].a) })
+          : bent(cells[a], cells[b], .18)));
+      },
+    };
+    const weigh = (root, links, lines, widths, pen) => {
+      const cells = widths.map((w) => ({ w })), r1 = (v) => Math.round(v * 10) / 10, xy = (p) => `${r1(p.x)},${r1(p.y)}`;
+      const curves = (LAYOUTS[root.dataset.layout] || LAYOUTS.columns)(cells, links, widths.length);
+      const values = links.map(([, , a]) => Math.max(+a.dataset.value || 0, 0)), most = Math.max(...values) || 1;
+      // each line ends short of its head, whose tip touches the box
+      const shapes = curves.map((p, n) => {
+        const f = Math.sqrt(values[n] / most), lw = 1 + 7 * f, s = 6 + 1.2 * lw;
+        const dx = p[3].x - p[2].x, dy = p[3].y - p[2].y, d = Math.hypot(dx, dy) || 1, u = { x: dx / d, y: dy / d };
+        const end = { x: p[3].x - u.x * s * .8, y: p[3].y - u.y * s * .8 }, base = { x: p[3].x - u.x * s, y: p[3].y - u.y * s };
+        const tip = [p[3], { x: base.x - u.y * s / 2, y: base.y + u.x * s / 2 }, { x: base.x + u.y * s / 2, y: base.y - u.x * s / 2 }];
+        return { p: [...p.slice(0, 3), end], lw, op: .35 + .65 * f, tip, bend: p };
+      });
+      // labels, the heaviest first, each at the point along its line, or a label's height off it, that covers the least
+      // of the labels placed before it, then of the boxes
+      const area = (a, b) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+      const boxes = cells.map((c) => ({ x: c.x - 2, y: c.y - 2, w: c.w + 4, h: H + 4 })), spots = [];
+      const heavy = links.map((_, n) => n).sort((a, b) => values[b] - values[a] || a - b);
+      heavy.forEach((n) => {
+        const w = pen.measureText(links[n][2].textContent.trim()).width + 8, h = 18;
+        const tries = [.5, .4, .6, .3, .7, .2, .8, .45, .55, .35, .65, .25, .75, .15, .85].map((t) => at(shapes[n].bend, t))
+          .flatMap((q) => [0, -h, h, -2 * h, 2 * h].map((off) => ({ x: q.x - w / 2, y: q.y - h / 2 + off, w, h })));
+        const cost = (b) => 1e3 * spots.reduce((t, o) => t + (o ? area(b, o) : 0), 0) + boxes.reduce((t, o) => t + area(b, o), 0);
+        spots[n] = tries.reduce((best, b) => (cost(b) < cost(best) ? b : best));
+      });
+      // everything moved to start PAD from the top left, the hull of each line's points bounding its curve
+      const all = [...cells.map((c) => ({ x: c.x, y: c.y, w: c.w, h: H })), ...spots,
+        ...shapes.flatMap((s) => [...s.bend, ...s.tip].map((q) => ({ x: q.x - s.lw, y: q.y - s.lw, w: 2 * s.lw, h: 2 * s.lw })))];
+      const x0 = Math.min(...all.map((b) => b.x)) - PAD, y0 = Math.min(...all.map((b) => b.y)) - PAD;
+      const move = (q) => ({ x: q.x - x0, y: q.y - y0 });
+      shapes.forEach((s, n) => {
+        const part = lines[n].parentNode;
+        const [a, b, c, e] = s.p.map(move), d = `M${xy(a)} C${xy(b)} ${xy(c)} ${xy(e)}`;
+        part.querySelector('.hit').setAttribute('d', d);
+        lines[n].setAttribute('d', d);
+        Object.assign(lines[n].style, { strokeWidth: `${r1(s.lw)}px`, strokeOpacity: r1(s.op * 100) / 100 });
+        const tip = part.querySelector('.tip');
+        tip.setAttribute('d', `M${s.tip.map((q) => xy(move(q))).join(' L')} z`);
+        tip.style.fillOpacity = r1(s.op * 100) / 100;
+        const label = route.get(part)[2];
+        label.setAttribute('x', r1(spots[n].x + spots[n].w / 2 - x0));
+        label.setAttribute('y', r1(spots[n].y + spots[n].h / 2 - y0 + 4));
+        label.classList.toggle('top', heavy.indexOf(n) < TOP);
+      });
+      cells.forEach((c) => { c.x = r1(c.x - x0); c.y = r1(c.y - y0); });
+      return Object.assign(cells, { w: Math.ceil(Math.max(...all.map((b) => b.x + b.w)) - x0 + PAD),
+        h: Math.ceil(Math.max(...all.map((b) => b.y + b.h)) - y0 + PAD) });
+    };
     const draw = (root) => {
+      const flow = root.dataset.diagram === 'flow-graph';
       const stage = root.querySelector('.stage'), dl = stage && stage.querySelector(':scope > dl');
       const terms = dl ? [...dl.querySelectorAll(':scope > dt')] : [];
       if (!terms.length) return Promise.resolve();
@@ -177,7 +341,7 @@
         const dd = dt.nextElementSibling;
         if (dd && dd.localName === 'dd') dd.querySelectorAll('a[href^="#"]').forEach((a) => {
           const j = index.get(decodeURIComponent(a.getAttribute('href').slice(1)));
-          if (j !== undefined && j !== i) links.push([i, j, a]);
+          if (j !== undefined && (flow || j !== i)) links.push([i, j, a]);
         });
       });
       // the dl is hidden, and its links out of the tab order, only where the stylesheet hides it
@@ -189,11 +353,20 @@
       const head = root.closest('section') && root.closest('section').getAttribute('aria-labelledby');
       svg.setAttribute('role', 'group');
       if (head) svg.setAttribute('aria-labelledby', head);
-      make(make(make(svg, 'defs', {}), 'marker', { id: `${terms[0].id}-arrow`, viewBox: '0 0 10 10', refX: 9, refY: 5,
+      if (!flow) make(make(make(svg, 'defs', {}), 'marker', { id: `${terms[0].id}-arrow`, viewBox: '0 0 10 10', refX: 9, refY: 5,
         markerWidth: 8, markerHeight: 8, markerUnits: 'userSpaceOnUse', orient: 'auto' }), 'path', { class: 'tip', d: 'M0,0 L10,5 L0,10 z' });
-      const lines = links.map(([, , a]) => make(make(svg, 'g', { class: 'part' }), 'path', {
-        class: ['edge', ...['ok', 'warn', 'fail', 'inferred'].filter((c) => a.classList.contains(c))].join(' '),
-        'marker-end': `url(#${terms[0].id}-arrow)` }));
+      const lines = links.map(([i, j, a]) => {
+        const part = make(svg, 'g', { class: 'part' });
+        const status = ['edge', ...['ok', 'warn', 'fail', 'inferred'].filter((c) => a.classList.contains(c))].join(' ');
+        if (!flow) return make(part, 'path', { class: status, 'marker-end': `url(#${terms[0].id}-arrow)` });
+        // a wide clear line to hit, the line, its head and its label; named by its ends and its label
+        route.set(part, [i, j]);
+        part.setAttribute('aria-label', `${terms[i].textContent.trim()} → ${terms[j].textContent.trim()} ${a.textContent.trim()}`);
+        make(part, 'path', { class: 'hit' });
+        const line = make(part, 'path', { class: status });
+        make(part, 'path', { class: 'tip' });
+        return line;
+      });
       const boxes = terms.map((dt) => {
         const box = make(svg, 'rect', { class: ['box', ...KINDS.filter((k) => dt.classList.contains(k))].join(' '), height: H,
           role: 'button', 'aria-label': dt.textContent.trim() });
@@ -201,71 +374,81 @@
         return box;
       });
       const labels = terms.map((dt) => Object.assign(make(svg, 'text', { 'text-anchor': 'middle' }), { textContent: dt.textContent.trim() }));
+      // a flow-graph's line labels in a layer over every line and box, each still its line's
+      if (flow) {
+        const layer = make(svg, 'g', { class: 'labels' });
+        lines.forEach((line, n) => route.get(line.parentNode).push(
+          Object.assign(make(layer, 'text', { class: 'label', 'text-anchor': 'middle' }), { textContent: links[n][2].textContent.trim() })));
+      }
       const style = getComputedStyle(labels[0]), font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
       return document.fonts.load(font, labels.map((t) => t.textContent).join('')).catch(() => {}).then(() => {
         const pen = document.createElement('canvas').getContext('2d');
         pen.font = font;
-        // depth first in source order: a link back to a node still open closes a cycle and is laid out reversed
-        const seen = terms.map(() => 0), post = [], flip = new Set();
-        const visit = (u) => {
-          seen[u] = 1;
-          links.forEach((l) => { if (l[0] !== u) return; if (seen[l[1]] === 1) flip.add(l); else if (!seen[l[1]]) visit(l[1]); });
-          seen[u] = 2;
-          post.push(u);
-        };
-        terms.forEach((_, u) => { if (!seen[u]) visit(u); });
-        const down = links.map((l) => (flip.has(l) ? [l[1], l[0]] : [l[0], l[1]]));
-        // each node one layer below its lowest source, or further down while that layer is full at the stage's width
         const widths = labels.map((t) => Math.max(48, Math.ceil((pen.measureText(t.textContent).width + 24) / 4) * 4));
-        const cap = stage.clientWidth - 2 * PAD || Infinity, layer = [], used = [];
-        post.reverse().forEach((u) => {
-          let L = Math.max(0, ...down.filter(([, b]) => b === u).map(([a]) => layer[a] + 1));
-          while (used[L] && used[L] + GAP + widths[u] > cap) L++;
-          used[L] = (used[L] ? used[L] + GAP : 0) + widths[u];
-          layer[u] = L;
-        });
-        // a slot per node, and per layer a long line crosses; each layer ordered by the mean place of what feeds it
-        const rows = [];
-        const slot = (L, w) => { const s = { w, up: [] }; (rows[L] = rows[L] || []).push(s); return s; };
-        const cells = widths.map((w, i) => slot(layer[i], w));
-        const routes = down.map(([a, b]) => {
-          const r = [cells[a]];
-          for (let L = layer[a] + 1; L < layer[b]; L++) r.push(slot(L, 0));
-          r.push(cells[b]);
-          r.forEach((s, k) => { if (k) s.up.push(r[k - 1]); });
-          return r;
-        });
-        rows.forEach((row, L) => {
-          if (L) row.forEach((s, k) => { s.key = s.up.length ? s.up.reduce((t, p) => t + p.at, 0) / s.up.length : k; });
-          if (L) row.sort((a, b) => a.key - b.key);
-          row.forEach((s, k) => { s.at = k; });
-        });
-        // a line passing through a layer keeps a third of the gap to its neighbours, so it adds little width
-        const gap = (a, b) => (a.w && b.w ? GAP : GAP / 3);
-        const span = rows.map((row) => row.reduce((t, s, k) => t + s.w + (k ? gap(row[k - 1], s) : 0), 0)), full = Math.max(...span);
-        rows.forEach((row, L) => {
-          let x = PAD + Math.round((full - span[L]) / 8) * 4;
-          row.forEach((s, k) => { if (k) x += gap(row[k - 1], s); s.x = x; s.y = PAD + L * ROW; x += s.w; });
-        });
-        const mid = (s) => s.x + s.w / 2;
-        // each box's lines leave its bottom and reach its top spread along it, in the order of where they go
-        cells.forEach((s) => {
-          const out = routes.filter((r) => r[0] === s), in_ = routes.filter((r) => r[r.length - 1] === s);
-          out.sort((a, b) => mid(a[1]) - mid(b[1])).forEach((r, k) => { r.x0 = s.x + Math.round(s.w * (k + 1) / (out.length + 1)); });
-          in_.sort((a, b) => mid(a[a.length - 2]) - mid(b[b.length - 2])).forEach((r, k) => { r.x1 = s.x + Math.round(s.w * (k + 1) / (in_.length + 1)); });
-        });
-        routes.forEach((r, n) => {
-          const end = r[r.length - 1];
-          const at = [[r.x0, r[0].y + H], ...r.slice(1, -1).flatMap((s) => [[s.x, s.y], [s.x, s.y + H]]), [r.x1, end.y]];
-          if (flip.has(links[n])) at.reverse();
-          lines[n].setAttribute('d', at.map(([x, y], k) => `${k ? 'L' : 'M'}${x},${y}`).join(' '));
-        });
+        const layered = () => {
+          // depth first in source order: a link back to a node still open closes a cycle and is laid out reversed
+          const seen = terms.map(() => 0), post = [], flip = new Set();
+          const visit = (u) => {
+            seen[u] = 1;
+            links.forEach((l) => { if (l[0] !== u) return; if (seen[l[1]] === 1) flip.add(l); else if (!seen[l[1]]) visit(l[1]); });
+            seen[u] = 2;
+            post.push(u);
+          };
+          terms.forEach((_, u) => { if (!seen[u]) visit(u); });
+          const down = links.map((l) => (flip.has(l) ? [l[1], l[0]] : [l[0], l[1]]));
+          // each node one layer below its lowest source, or further down while that layer is full at the stage's width
+          const cap = stage.clientWidth - 2 * PAD || Infinity, layer = [], used = [];
+          post.reverse().forEach((u) => {
+            let L = Math.max(0, ...down.filter(([, b]) => b === u).map(([a]) => layer[a] + 1));
+            while (used[L] && used[L] + GAP + widths[u] > cap) L++;
+            used[L] = (used[L] ? used[L] + GAP : 0) + widths[u];
+            layer[u] = L;
+          });
+          // a slot per node, and per layer a long line crosses; each layer ordered by the mean place of what feeds it
+          const rows = [];
+          const slot = (L, w) => { const s = { w, up: [] }; (rows[L] = rows[L] || []).push(s); return s; };
+          const cells = widths.map((w, i) => slot(layer[i], w));
+          const routes = down.map(([a, b]) => {
+            const r = [cells[a]];
+            for (let L = layer[a] + 1; L < layer[b]; L++) r.push(slot(L, 0));
+            r.push(cells[b]);
+            r.forEach((s, k) => { if (k) s.up.push(r[k - 1]); });
+            return r;
+          });
+          rows.forEach((row, L) => {
+            if (L) row.forEach((s, k) => { s.key = s.up.length ? s.up.reduce((t, p) => t + p.at, 0) / s.up.length : k; });
+            if (L) row.sort((a, b) => a.key - b.key);
+            row.forEach((s, k) => { s.at = k; });
+          });
+          // a line passing through a layer keeps a third of the gap to its neighbours, so it adds little width
+          const gap = (a, b) => (a.w && b.w ? GAP : GAP / 3);
+          const span = rows.map((row) => row.reduce((t, s, k) => t + s.w + (k ? gap(row[k - 1], s) : 0), 0)), full = Math.max(...span);
+          rows.forEach((row, L) => {
+            let x = PAD + Math.round((full - span[L]) / 8) * 4;
+            row.forEach((s, k) => { if (k) x += gap(row[k - 1], s); s.x = x; s.y = PAD + L * ROW; x += s.w; });
+          });
+          const mid = (s) => s.x + s.w / 2;
+          // each box's lines leave its bottom and reach its top spread along it, in the order of where they go
+          cells.forEach((s) => {
+            const out = routes.filter((r) => r[0] === s), in_ = routes.filter((r) => r[r.length - 1] === s);
+            out.sort((a, b) => mid(a[1]) - mid(b[1])).forEach((r, k) => { r.x0 = s.x + Math.round(s.w * (k + 1) / (out.length + 1)); });
+            in_.sort((a, b) => mid(a[a.length - 2]) - mid(b[b.length - 2])).forEach((r, k) => { r.x1 = s.x + Math.round(s.w * (k + 1) / (in_.length + 1)); });
+          });
+          routes.forEach((r, n) => {
+            const end = r[r.length - 1];
+            const at = [[r.x0, r[0].y + H], ...r.slice(1, -1).flatMap((s) => [[s.x, s.y], [s.x, s.y + H]]), [r.x1, end.y]];
+            if (flip.has(links[n])) at.reverse();
+            lines[n].setAttribute('d', at.map(([x, y], k) => `${k ? 'L' : 'M'}${x},${y}`).join(' '));
+          });
+          return Object.assign(cells, { w: full + 2 * PAD, h: 2 * PAD + (rows.length - 1) * ROW + H });
+        };
+        const cells = flow ? weigh(root, links, lines, widths, pen) : layered();
         cells.forEach((s, i) => {
           Object.entries({ x: s.x, y: s.y, width: s.w }).forEach(([k, v]) => boxes[i].setAttribute(k, v));
-          labels[i].setAttribute('x', mid(s));
+          labels[i].setAttribute('x', s.x + s.w / 2);
           labels[i].setAttribute('y', s.y + 25);
         });
-        const w = full + 2 * PAD, h = 2 * PAD + (rows.length - 1) * ROW + H;
+        const { w, h } = cells;
         Object.entries({ width: w, height: h, viewBox: `0 0 ${w} ${h}` }).forEach(([k, v]) => svg.setAttribute(k, v));
         const detail = document.createElement('output');
         detail.className = 'detail';
@@ -275,7 +458,7 @@
       });
     };
     const start = () => document.querySelectorAll('[data-widget="diagram"]').forEach((root) => {
-      if (root.dataset.diagram === 'network') draw(root).then(() => wire(root)); else wire(root);
+      if (['network', 'flow-graph'].includes(root.dataset.diagram)) draw(root).then(() => wire(root)); else wire(root);
     });
     const wire = (root) => {
       const { nodes, edges } = graph(root);
@@ -286,7 +469,7 @@
       handles.forEach((x) => {
         x.handle.tabIndex = 0;
         x.handle.setAttribute('role', 'button');
-        x.handle.setAttribute('aria-label', words(x) || x.ends.map(words).join(' → '));
+        if (!x.handle.hasAttribute('aria-label')) x.handle.setAttribute('aria-label', words(x) || x.ends.map(words).join(' → '));
       });
       root.querySelectorAll('svg[role="img"]').forEach((svg) => svg.setAttribute('role', 'group'));
       const owner = new Map();
@@ -315,6 +498,7 @@
           if (on && (e === on || e.ends.includes(on))) [e, ...e.ends].forEach((x) => keep.add(x));
         });
         items.forEach((x) => x.own.forEach((el) => el.classList.toggle('dim', !!on && !keep.has(x))));
+        edges.forEach((e) => e.own.forEach((el) => el.classList.toggle('kept', !!on && keep.has(e))));
         handles.forEach((x) => x.handle.setAttribute('aria-pressed', x === pinned));
       };
       const pin = (x) => { pinned = pinned === x ? null : x; show(); };
@@ -463,6 +647,20 @@
         <dd>{{full name}}</dd>
       </dl>
       <figcaption class="muted">{{kinds, line, dashed: what each means; what was left out}}</figcaption>
+    </figure>
+  </div>
+</section>
+<section aria-labelledby="{{id}}">
+  <h2 id="{{id}}">{{the flow, as a noun phrase}}</h2>
+  <div data-widget="diagram" data-diagram="flow-graph" data-layout="{{columns|arc|ellipse}}" data-kinds="{{k1|k2}}">
+    <figure class="stage scroll" tabindex="0" aria-labelledby="{{id}}">
+      <dl>
+        <dt id="{{id}}-t1" class="k1">{{short name}}</dt>
+        <dd>{{full name}} <a href="#{{id}}-t2" data-value="{{42}}">{{value and unit, e.g. 42분}}</a> <a href="#{{id}}-t1" data-value="{{3}}">{{self-loop}}</a></dd>
+        <dt id="{{id}}-t2" class="k2">{{short name}}</dt>
+        <dd>{{full name}} <a class="inferred" href="#{{id}}-t1" data-value="{{5}}">{{value}}</a></dd>
+      </dl>
+      <figcaption class="muted">{{width and dashes: what each means; what was left out}}</figcaption>
     </figure>
   </div>
 </section>
