@@ -53,6 +53,7 @@ references and hooks.
    repository that owns the file (`gh issue create -R <owner>/<repo>
    --label backlog`), its body naming each file, reason and cost, `<n>
    files, <m> lines`, never a memory file's body. A pool with no
-   repository: name the fix and its cost in the final message instead.
+   repository: name the fix and its cost in the final message instead,
+   asking nothing.
 5. Report each fix applied, each issue's url and each fix left; with none
    found, say so, offering no other change, and write nothing.
