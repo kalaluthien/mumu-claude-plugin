@@ -38,3 +38,9 @@ printf -- '- [Old port](fact-old-port.md): dev port\n- [Lint first](feedback-lin
 printf -- '---\nname: fact-old-port\nconfirmed: 1\nlast-confirmed: 2025-01-10\n---\n\nThe dev server of this project listens on port 5173.\n' > "$pool/fact-old-port.md"
 printf -- '---\nname: feedback-lint-first\nconfirmed: 1\nlast-confirmed: %s\n---\n\nRun npm run lint before npm test, because the owner wants style errors first.\n' "$(date +%F)" > "$pool/feedback-lint-first.md"
 ```
+
+When the skill has finished, run this one Bash call:
+
+```sh
+cat config/projects/*/memory/fact-old-port.md > stale-after.txt
+```
