@@ -11,6 +11,7 @@ Own one task end to end, in the worktree named after it, by the kickoff skill's 
 
 - Before your first step, before any decision that is not yours, and before you launch a subagent, read `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/references/worker-playbook.md` and follow its rules at every step.
 - Edit files only inside your own worktree `<topic>-<n>-<k>`, on its own branch of that name, never in the lead's checkout.
+- Tidy nothing: change no memory entry and no file outside your task beyond the lessons you add through `retro`.
 
 # Core
 

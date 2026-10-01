@@ -1,6 +1,7 @@
 ---
+# the body names the stale file and a cost
 type: regex
-target: {source: file, path: question-1.json}
+target: {source: file, path: issue-body.md}
 match: contains
-pattern: 'fact-old-port'
+pattern: '^(?=[\s\S]*fact-old-port)(?=[\s\S]*\d+ (?:files?|lines?))'
 ---
