@@ -48,12 +48,13 @@ references and hooks.
    lesson.md's EDIT extends an entry, a small lesson a file should hold added there and its entry
    deleted. A file in a checkout whose default branch is guarded changes
    the way that repository takes changes, as its `AGENTS.md` says.
-4. A fix the table gives that is not obvious or is large, a lesson
-   `stale` lists among them, waits on the owner: file it as one `backlog` issue in the
+4. A change the table and lesson.md do not give is no fix: never apply,
+   file or name it. A fix they give that is not obvious or is large, a
+   lesson `stale` lists among them, waits on the owner: file it as one `backlog` issue in the
    repository that owns the file (`gh issue create -R <owner>/<repo>
    --label backlog`), its body naming each file, reason and cost, `<n>
    files, <m> lines`, never a memory file's body. A pool with no
-   repository: name the fix and its cost in the final message instead,
-   asking nothing.
+   repository: list the fix and its cost in the final message instead,
+   as left for the owner, asking nothing.
 5. Report each fix applied, each issue's url and each fix left; with none
    found, say so, offering no other change, and write nothing.
