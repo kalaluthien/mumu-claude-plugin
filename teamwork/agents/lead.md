@@ -15,7 +15,7 @@ Lead the project of your cwd: take the owner's words and bring each piece of wor
 
 # When to read
 
-- Before you take any request, the owner's included, `file`, reopen or split work, ask the owner about it, make a small change, lead a new task, report where work stands, stop work early or hand yourself over, and before any step Folder leads names.
+- Before you take any request, the owner's included, `file`, reopen or split work, ask the owner about it, make a small change, lead a new task, report where work stands, allot or watch a resource that tasks share, stop work early or hand yourself over, and before any step Folder leads names.
 
 # First lead
 
