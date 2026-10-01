@@ -487,7 +487,9 @@ def chapter_checks(page, run, navigate):
 
 def layout(r, error):
     """The run's line and whether it passed."""
-    ok = (r["scroll"] == r["client"] and r["latin"] >= 11 and r["hangul"] >= 12 and r["labels"] == 0
+    # a script with no text node reads null, has no size to be too small, and passes its check
+    ok = (r["scroll"] == r["client"] and (r["latin"] is None or r["latin"] >= 11)
+          and (r["hangul"] is None or r["hangul"] >= 12) and r["labels"] == 0
           and not error and (not r["reduced"] or (r["anim"] == 0 and r["shown"] == r["total"])))
     line = (f"layout {'reduced' if r['reduced'] else 'motion'} {r['scroll']}/{r['client']} {r['latin']}px {r['hangul']}px "
             f"anim {r['anim']} steps {r['shown']}/{r['total']} labels {r['labels']}"
