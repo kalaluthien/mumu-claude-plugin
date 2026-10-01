@@ -1,20 +1,26 @@
 ---
 name: dream
-description: Use when the Stop hook asks for a dream, or when auto-memory pools have drifted - a MEMORY.md link to a missing file, a memory file no index lists, two files of one name, one lesson saved in several projects' pools, a lesson a skill, agent or hook should hold - fixing only what the owner picks. Not for filing one session's lessons (retro).
+description: Use when the Stop hook asks for a dream, or when auto-memory pools have drifted - a MEMORY.md link to a missing file, a memory file no index lists, two files of one name, one lesson saved in several places, a lesson a skill, agent or hook should hold - applying the obvious fixes itself and filing the rest as a backlog issue. Not for filing one session's lessons (retro).
 user-invocable: false
 ---
 
 # dream
 
-retro files lessons one session at a time; dream reviews the pools they
-built. Apply [lesson.md](${CLAUDE_PLUGIN_ROOT}/lib/lesson.md)'s operations
-and destinations, reading its "this project" and "this session" as every pool.
+retro files lessons one session at a time; dream reviews what they built,
+never waiting on an answer. Apply [lesson.md](${CLAUDE_PLUGIN_ROOT}/lib/lesson.md)'s
+operations and destinations, reading its "this project" and "this session"
+as every pool.
 
-`<config>` is the folder the owner names, else `${CLAUDE_CONFIG_DIR:-$HOME/.claude}`:
-its pools are `<config>/projects/*/memory/`, and `<config>/CLAUDE.md` is the
-file for every project.
+`<config>` is the folder the owner names, else `${CLAUDE_CONFIG_DIR:-$HOME/.claude}`.
+The sources are its pools, `<config>/projects/*/memory/`, `<config>/CLAUDE.md`,
+and in each pool's checkout, the folder whose path gives the pool's key,
+the files holding lessons: `AGENTS.md`, `CLAUDE.md`, skills, agents,
+references and hooks.
 
-1. List what the shell can find:
+1. Judge from this session's own instructions whether it may change memory
+   and shared files. Bound to one task or scope, it may not: end dream
+   there, changing and filing nothing, with one line saying why.
+2. List what the shell can find:
 
    ```sh
    root="<config>/projects" bash <<'SH'
@@ -33,34 +39,22 @@ file for every project.
    "${CLAUDE_PLUGIN_ROOT}/scripts/confirmations.py" stale "<config>"
    ```
 
-2. Read every pool's files, and route each entry through the table in
-   [retro's SKILL.md](${CLAUDE_PLUGIN_ROOT}/skills/retro/SKILL.md), which
-   gives these fixes:
-   - one lesson kept in two or more pools under any name: it holds for every
-     project, so lesson.md's last row applies;
-   - a lesson a skill, a references file, an agent or a hook should hold:
-     EDIT that file, adding the lesson as a step or rule where it applies,
-     and DELETE the pool entry once the file states it; in a git checkout
-     whose default branch a hook guards, as in a project a teamwork lead
-     holds, hand the edit, naming the file and the lesson, to that
-     project's lead through `/teamwork:handoff` instead, and the entry
-     goes at a later round that finds it stated;
-   - an entry the repository already states: DELETE it;
-   - a lesson `stale` lists, never found again in 60 days: DELETE it, at
-     the cost that line prints, only when the owner picks it.
-3. No fix found that was not rejected in this call: say so, with the
-   fixes applied in earlier rounds, and stop, offering no other change;
-   in the first round, write nothing.
-4. Otherwise put the fixes not yet rejected in this call to the owner as
-   one `AskUserQuestion` question, `multiSelect: true`, one option per fix:
-   the top 4 by impact, each option's label the action (ADD, EDIT or
-   DELETE) and file, its description the reason and its cost, `<n> files,
-   <m> lines` touched; a file and its
-   `MEMORY.md` line are one fix, and so are a lesson moved and the copies
-   it replaces. The tool takes 2 to 4 options, so a lone fix gets a
-   second option, `None`. The options chosen are approved and the rest
-   rejected.
-5. Apply only the approved fixes; a file only rejected fixes name is never
-   touched, and nothing is handed off that was not chosen. Report each fix
-   applied or skipped.
-6. Go back to step 1: one dream runs rounds until step 3 stops it.
+3. Read every source, routing each entry through the table in
+   [retro's SKILL.md](${CLAUDE_PLUGIN_ROOT}/skills/retro/SKILL.md). Apply
+   each obvious fix at once: a dangling link's line dropped, an unindexed
+   file indexed, an entry a repository file already states deleted, one
+   lesson kept in several places kept in one (lesson.md's last row for
+   pools), two entries on one subject or mechanism merged into one as
+   lesson.md's EDIT extends an entry, a small lesson a file should hold added there and its entry
+   deleted. A file in a checkout whose default branch is guarded changes
+   the way that repository takes changes, as its `AGENTS.md` says.
+4. A change the table and lesson.md do not give is no fix: never apply,
+   file or name it. A fix they give that is not obvious or is large, a
+   lesson `stale` lists among them, waits on the owner: file it as one `backlog` issue in the
+   repository that owns the file (`gh issue create -R <owner>/<repo>
+   --label backlog`), its body naming each file, reason and cost, `<n>
+   files, <m> lines`, never a memory file's body. A pool with no
+   repository: list the fix and its cost in the final message instead,
+   as left for the owner, asking nothing.
+5. Report each fix applied, each issue's url and each fix left; with none
+   found, say so, offering no other change, and write nothing.
