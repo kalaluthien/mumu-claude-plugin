@@ -5,7 +5,7 @@ allowed_tools: [Skill, Bash, Read, Glob, Grep, Edit, Write]
 runs: 3
 ---
 
-My Claude memory under ./config (its CLAUDE.md and the pools in projects/*/memory) has drifted: an index line points at a note that is gone, and a note sits in no index. Go over all of it and tidy it up. AskUserQuestion is not available here, so write the input you would give it in round n to ./question-n.json instead, then take my pick in every round: none. First build the fixture with this one Bash call:
+My Claude memory under ./config (its CLAUDE.md and the pools in projects/*/memory) has drifted: an index line points at a note that is gone, and a note sits in no index. Go over all of it and tidy it up. First build the fixture with this one Bash call:
 
 ```sh
 mkdir -p config/projects/-a/memory config/projects/-b/memory

@@ -1,14 +1,14 @@
 # Lead
 
 1. `rename` yourself what `lead-name.py [<task-url>]` prints, unless already so named, and run `${CLAUDE_PLUGIN_ROOT}/skills/kickoff/scripts/repo-settings.py <checkout>`. Then ask the owner as Filing says.
-2. `file` the work as Filing says: one root task per pull request or report, the owner's expectations as its first `DECIDED:` and each `## Definition of done` line a criterion. `order` each task that waits on another, in this or another project's repository. Then launch the `judge` on each task's url until it posts `APPROVED:`; on a replan, name to it only the issues that changed.
-3. For each open task whose blockers are all closed, and each share whose `after` shares have merged: pick its model and effort by [kickoff](../SKILL.md)'s Worker pick, `decide` them on the task as `DECIDED: model <m>, effort <e>`, and `start` it under its topic or share on them with `--lead <your address>`, or make a small change yourself. A restart with `--continue` or a reopen starts on the task's last such `DECIDED:`, or on a revised one you `decide` first.
+2. `file` the work as Filing says: one root task per pull request or report, the owner's expectations as its first `DECIDED:` and each `## Definition of done` line a criterion. `order` each task that waits on another, in this or another project's repository; a report task that blocks another project's task gets its follow-up filed and ordered before the report closes. Then, once every `decide` and body edit is done, launch the `judge` on each task's url until it posts `APPROVED:`; on a replan, name to it only the issues that changed.
+3. For each open task whose blockers are all closed, and each share whose `after` shares have merged: pick its model and effort by [kickoff](../SKILL.md)'s Worker pick, `decide` them on the task as `DECIDED: model <m>, effort <e>`, and `start` it under its topic or share on them with `--lead <your address>`, or make a small change yourself. Before starting one whose check needs what another open task's also needs, allot it as Resources says. A restart with `--continue` or a reopen starts on the task's last such `DECIDED:`, or on a revised one you `decide` first.
 4. Act on what arrives, polling nothing, once per state GitHub shows:
-   - `see <task-url>` naming a `BLOCKED:`: `decide` it, then `prompt` the worker `see <task-url>`; answer work that needs its own pull request with the url of the task you `file` and `order` before this one, a narrower scope included, which is a `gates.json` change and never granted on the worker's task;
-   - `see <pr-url>`, `see <task-url>` of a report task, or `see <backlog-url>`: once `read` shows it merged, closed, or its survey's `APPROVED:`, go to 5 for it;
+   - `see <task-url>` naming a `BLOCKED:`: `decide` it in a call of its own, then, once it returns, `prompt` the worker `see <task-url>`; answer work that needs its own pull request with the url of the task you `file` and `order` before this one, a narrower scope included, which is a `gates.json` change and never granted on the worker's task;
+   - `see <pr-url>`, `see <task-url>` of a report task, or `see <backlog-url>`: once `read` shows it merged, closed, or its survey's `APPROVED:`, go to 5 for it, `resolve`-ing its task first when that is still open;
    - `blocked <name>`: tell the owner the worker waits at a tool-use prompt;
    - `gone <name>` while its task is open: `start` it again with `--continue`;
-   - `idle <name>`: `read` its task and pull request, answer what waits on you, else `prompt` the worker `see <task-url>`;
+   - `idle <name>`: `read` its task and pull request, watch as Resources says, answer what waits on you, else read its pane, since a dialog shows as `idle`: tell the owner it waits and never answer it, else `prompt` the worker `see <task-url>`;
    - `team idle <m>m`, `usage reset <time>: ...`, a monitor's expiry notice, a `/reload-plugins`, or you resumed: go to Succession;
    - `working <name>`: nothing;
    - the owner changes direction: `decide` the change on each issue affected and `prompt` its worker `see <task-url>`; replan built work the owner rejects on the same task, as Filing's reopen says, its pull request closed unmerged and named on the task; build from its content, never its form;
@@ -26,7 +26,7 @@ The successor, prompted `succeed <pane>`: `close` the original by its name, and 
 
 Then, and on resuming:
 
-1. Arm the command the Stop hook names when no team-watch of yours is live.
+1. Arm the command the Stop hook names when no team-watch of yours is live; to stop one, end the process that is a child of your own session, with its child, never by a task name, since a monitor runs under a generated id and other sessions run the same script.
 2. List the root tasks you hold with `gh issue list --state open --search "no:parent-issue -label:backlog" --json number,title,url` in your checkout.
 3. `read` each and its pull request or report comment; `prompt` each worker in `live` whose worktree lies in your checkout `see <its task-url>`.
 4. Continue at Lead 4, acting on each open task as if its notice had arrived.
@@ -74,7 +74,7 @@ Answer another lead's notice that is not a task for you with a plain `comment` o
 
 ## Small change
 
-Make a change yourself when its words name what to change and how to check it, and it has at most 30 changed lines in any number of files: file or reopen no issue and launch no judge. In a worktree off the default branch, `pr` it with a body naming no task, run the gates `scope` prints but the judge, `comment` their `PASSED:`, `merge` it, and remove the worktree and branch as `clean` does. Past 30 lines, `file` it as a task.
+Make a change yourself when its words name what to change and how to check it, and it has at most 30 changed lines in any number of files: file or reopen no issue and launch no judge. In a worktree off the default branch, `pr` it with a body naming no task, run the gates `scope` prints but the judge, `comment` their `PASSED:`, `merge` it, and remove the worktree and branch as `clean` does. Past 30 lines, `file` it as a task. Print its `scope` first: when its gates are many and an open task's pull request already runs them, add the lines to that task as criteria instead.
 
 ## Folder leads
 
@@ -82,3 +82,18 @@ In a repository with `scope:<folder>` labels (`gh label list --search scope:`):
 
 - Your folder is the one your `<folder>-lead` name was started with, else the `scope:` label of the task you were started or handed, else the plugin folder its words name, labelled on it first. Label `scope:<folder>` each root task you hold, and add `--label scope:<folder>` to every `gh issue list` of them.
 - Before changing another folder's files, taking a task across folders that you received first, or a shared operation (`clean`'s pull, `/reload-plugins`), send a proposal to every live lead concerned; of two proposals colliding, the first sent wins.
+
+## Resources
+
+- A resource that takes one user at a time has one holder: `decide` on each task that needs it the holder and the order after it, under no new record keyword.
+- Order the task that unblocks another first, then the shorter turn.
+- Run distinct resources in parallel, and give a task the cheapest one that can run its check.
+- Schedule when a resource starts and stops in that `decide`; the worker holding it then does it on your word, so holders in a row share one start.
+- A resource busy outside its holder's use is stray: free it at once, or ask the owner when you cannot.
+- Watch at each `idle` notice and each handback, never on a timer: list the live processes on each resource, map each to its worktree and compare with the holder named; check a worker's word "running" against that list before you report it.
+- At a handback with none of the holder's processes left, `decide` the next holder and `prompt` its worker `see <task-url>`.
+- Keep a machine's concrete resources, their names, how many and the commands that list and end them, in your auto-memory, never in a repository file.
+
+## Usage limit
+
+- Near or at a usage limit, `decide` a pause on each task and `prompt` its worker `see <task-url>`; at the reset, `decide` the resume and `prompt` each again, the time asked of the owner until a session shows it.
