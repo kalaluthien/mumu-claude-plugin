@@ -1,7 +1,7 @@
 ---
-# title and labels as dream names them
+# one backlog issue in the owning repository
 type: regex
 target: {source: file, path: gh.txt}
 match: contains
-pattern: 'issue create(?=[^\n]*Confirm dream fixes)(?=[^\n]*backlog)(?=[^\n]*scope:homework)'
+pattern: '^(?=[\s\S]*issue create(?=[^\n]*example/tools)(?=[^\n]*backlog))(?![\s\S]*issue create[\s\S]*issue create)'
 ---

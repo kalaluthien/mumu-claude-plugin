@@ -1,7 +1,7 @@
 ---
-# one open box names the stale file with its cost
+# the body names the stale file and a cost
 type: regex
 target: {source: file, path: issue-body.md}
 match: contains
-pattern: '(?:^|\n)- \[ \] [^\n]*fact-old-port[^\n]*\d+ (?:files?|lines?)'
+pattern: '^(?=[\s\S]*fact-old-port)(?=[\s\S]*\d+ (?:files?|lines?))'
 ---

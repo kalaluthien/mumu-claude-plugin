@@ -1,5 +1,5 @@
 ---
-# the public body never quotes the memory
+# the body never quotes the memory
 type: regex
 target: {source: file, path: issue-body.md}
 match: contains
