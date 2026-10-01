@@ -329,6 +329,30 @@ class Check(unittest.TestCase):
                 self.assertEqual(code, 1, out)
                 self.assertIn(line, out)
 
+    def test_controls_figure_with_nothing_to_move_fails(self):
+        # an author-written SVG tagged controls: it fails with no slider or choice, and passes with one
+        figure = ('<h2>대기 흐름</h2><figure data-widget="controls" id="flow-1"><figcaption>대기 흐름을 그려요.</figcaption>'
+                  '<div class="stage"><svg width="200" height="60" viewBox="0 0 200 60" role="img"><title>대기 흐름</title>'
+                  '<text x="8" y="24" font-size="14">대기</text></svg></div>{}</figure><div id="c"></div>')
+        slider = ('<div class="panel"><label>비율 <input type="range" name="k" min="0" max="1" step="0.1" value="0.5">'
+                  '<output data-unit="배"></output></label></div>')
+        for panel, want in (("", 1), (slider, 0)):
+            with self.subTest(panel=bool(panel)):
+                code, out = check(GOOD.replace('<div id="c"></div>', figure.format(panel)))
+                self.assertEqual(code, want, out)
+                self.assertEqual("controls '#flow-1' draws with no slider or choice" in out, not panel, out)
+        self.assertRegex(out, r"(?m)^mapping .* pass$")
+
+    def test_scaled_svg_text_reads_as_shown(self):
+        # 12px text in a 900-wide viewBox drawn 300 px wide shows at 4px
+        page = (GOOD.replace('width="280" height="80" viewBox="0 0 280 80"', 'width="300" height="30" viewBox="0 0 900 90"')
+                .replace('font-size="14"', 'font-size="12"'))
+        code, out = check(page)
+        self.assertEqual(code, 1, out)
+        self.assertRegex(out, r"(?m)^layout motion \S+ \S+ 4px .* FAIL")
+        code, out = check(GOOD.replace('font-size="14"', 'font-size="12"'))
+        self.assertRegex(out, r"(?m)^layout motion \S+ \S+ 12px .* pass$")
+
     def test_page_that_skips_mapping_widgets_fails(self):
         code, out = check(dream("dream"))
         self.assertEqual(code, 1, out)
@@ -631,7 +655,7 @@ TWO_CHARTS = ('<h1>도시별 요청</h1>\n<p class="read">부산의 요청이 �
 class Assemble(unittest.TestCase):
     def test_each_spec_is_small_and_unstyled(self):
         for widget in ("page", "chart", "filter", "controls", "source", "ui-diff", "file-tree", "system-context", "use-case",
-                       "network"):
+                       "network", "flow-graph"):
             with self.subTest(widget):
                 r = assemble("--spec", widget)
                 self.assertEqual(r.returncode, 0, r.stderr)

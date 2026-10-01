@@ -44,7 +44,8 @@ Before writing any section, the author settles the whole piece, in this order;
    values compared across rows, a figure or widget by Mapping; space follows
    importance, and whatever does not prove the claim is cut. A figure's or
    table's caption says what to read off it, and the sentence before it
-   names it. By default each concept the page explains gets a diagram,
+   names it. After a figure, the prose gives three parts: what it draws, what
+   it means, and one real example read off it. By default each concept the page explains gets a diagram,
    pseudocode of 3 lines at most (longer code is quoted as Writing says) or a
    worked example beside it where one fits, as in
    [The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/):
@@ -76,6 +77,7 @@ text with arrows (→, ▶) with no `use-case`.
 | behaviour: what happens in one use case: a request the reader follows call by call, in one still figure | `diagram` `use-case`, one per use case |
 | a UI's behaviour before and after a change: what it draws, measures or hides, side by side, step by step | `ui-diff`, slid |
 | things and the links between them: tasks and what blocks them, sessions and who waits on whom; what a node reaches | `diagram` `network`, 9 nodes at most |
+| how much moves between things: counts or minutes on each link, or more than 9 nodes | `diagram` `flow-graph`, 20 nodes at most |
 | values compared across categories: which is largest, by how much | `chart` `bar` |
 | change over time: a trend, a rise, a fall | `chart` `line` |
 | many items the reader narrows to the few they need, by a tag or a word: rows, a list, cards | `filter` |

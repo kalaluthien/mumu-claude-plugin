@@ -19,13 +19,14 @@ Unicode look-alikes: `assemble.py` sets it in KaTeX's TeX fonts, and `check.py`
 fails TeX left raw.
 
 A widget is the template `assemble.py --spec <widget>` prints for the content's
-kind (`chart`, `file-tree`, `system-context`, `use-case`, `network`, `ui-diff`, `filter`, `controls`, `source`), its spec followed,
+kind (`chart`, `file-tree`, `system-context`, `use-case`, `network`, `flow-graph`, `ui-diff`, `filter`, `controls`, `source`), its spec followed,
 every `{{...}}` filled or its element deleted, `{{id}}` unique per copy. A
-figure over 9 boxes is two figures. Then
+`network` over 9 boxes, or a `flow-graph` over 20, is two figures. Then
 `"${CLAUDE_PLUGIN_ROOT}/skills/rendering/scripts/assemble.py" <body.html> <slug>.html`
 writes the page: the skin, the `h1` as its title, and each widget's style and
 script once. The page keeps `<html lang="ko">`; a hand-drawn `<svg>` outside a
-widget fails `check.py`.
+widget fails `check.py`, and so does one in a `controls` figure with no slider or
+choice to move it.
 
 ## Korean
 

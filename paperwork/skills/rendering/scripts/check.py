@@ -22,7 +22,7 @@ MIN_RUN = 3
 CONTENTS = 4
 FILES = 4  # a file-tree from this many files named, as the Mapping says
 SECTION_WIDGETS, PAGE_WIDGETS = 1, 5  # the most widgets under one h2 or h3, and on a page, as Composition says
-NODES = 9  # a network over this many nodes is two figures, as artifact.md says
+NODES = {"network": 9, "flow-graph": 20}  # a figure over this many nodes is two figures, as artifact.md says
 WORD = r"[A-Za-z]+(?:['’-][A-Za-z]+)*[.,:;!?]?"
 ENGLISH = re.compile(rf"{WORD}(?:\s+{WORD}){{{MIN_RUN - 1},}}")
 # a sentence ends at . ! or ? with no digit either side, so 4.00점 stays whole; its last one may have no mark
@@ -38,10 +38,12 @@ f.onload = function () {
   var anim = d.getAnimations().filter(function (a) { return a.playState === 'running'; }).length;
   setTimeout(function () {
     var e = d.documentElement, t = d.createTreeWalker(d.body, 4), n, z, s = [1 / 0, 1 / 0];
-    // math sets its own script sizes, so its text is not read for the smallest font
+    // math sets its own script sizes, so its text is not read for the smallest font; an SVG's text is read as shown,
+    // its size scaled by the SVG's viewBox and transforms
     while ((n = t.nextNode())) if (n.data.trim() && !/^(script|style|title)$/i.test(n.parentElement.tagName) && !n.parentElement.closest('.katex')) {
       z = /[\p{sc=Hangul}\p{sc=Han}]/u.test(n.data) ? 1 : 0;
-      s[z] = Math.min(s[z], parseFloat(w.getComputedStyle(n.parentElement).fontSize));
+      var size = parseFloat(w.getComputedStyle(n.parentElement).fontSize), m = n.parentElement instanceof w.SVGGraphicsElement && n.parentElement.getScreenCTM();
+      s[z] = Math.min(s[z], Math.round(size * (m ? Math.hypot(m.a, m.b) : 1) * 10) / 10);
     }
     var shown = 0, total = 0;
     d.querySelectorAll('[data-slide]').forEach(function (p) {
@@ -166,7 +168,12 @@ f.onload = function () {
       h1: !!d.querySelector('h1'), drawn: loose('svg').filter(function (g) { return !g.parentElement.closest('svg, .katex'); }).length,
       paths: paths.filter(function (p, i) { return paths.indexOf(p) === i; }), flows: flows, lead: lead, parts: parts,
       diagrams: Array.prototype.map.call(d.querySelectorAll('[data-widget="diagram"]'), function (e) { return e.dataset.diagram; }),
-      nodes: Array.prototype.map.call(d.querySelectorAll('[data-diagram="network"] .stage > dl'), function (l) { return l.querySelectorAll(':scope > dt').length; }),
+      nodes: Array.prototype.map.call(d.querySelectorAll('[data-diagram="network"] .stage > dl, [data-diagram="flow-graph"] .stage > dl'), function (l) {
+        return [l.closest('[data-diagram]').dataset.diagram, l.querySelectorAll(':scope > dt').length]; }),
+      // a controls figure that draws but holds no slider or choice to move it, named by its id or caption
+      still: Array.prototype.filter.call(d.querySelectorAll('[data-widget="controls"]'), function (c) {
+        return c.querySelector('svg') && !c.querySelector('.panel :is(input[type="range"][name], [role="group"][data-choice])');
+      }).map(function (c) { return c.id ? '#' + c.id : (c.querySelector('figcaption') || c).textContent.replace(/\s+/g, ' ').trim().slice(0, 40); }),
       h2: h2.length, linked: h2.filter(function (h) { return h.id && links.indexOf(h.id) >= 0; }).length, nav: !!d.querySelector('main nav'),
       broken: Array.prototype.map.call(d.querySelectorAll('a[href^="#"]'), function (a) { return a.getAttribute('href'); })
         .filter(function (h) { return h.length > 1 && !d.getElementById(decodeURIComponent(h.slice(1))); }),
@@ -529,13 +536,14 @@ def korean(page):
 
 def mapping(page):
     """Each widget a Mapping row demands that the page lacks: a file-tree for the files it names, a use-case for a flow
-    drawn in text; and a network over NODES nodes, which is two figures."""
+    drawn in text; a network or flow-graph over its NODES, which is two figures; and a controls figure with nothing to move."""
     out = []
     if len(page["paths"]) >= FILES and "file-tree" not in page["diagrams"]:
         out.append(f"no file-tree for {', '.join(page['paths'])}")
     if page["flows"] and "use-case" not in page["diagrams"]:
         out.append(f"no use-case for {page['flows'][0]!r}")
-    out += [f"network of {n} nodes over {NODES}" for n in page["nodes"] if n > NODES]
+    out += [f"{kind} of {n} nodes over {NODES[kind]}" for kind, n in page["nodes"] if n > NODES[kind]]
+    out += [f"controls {name!r} draws with no slider or choice" for name in page["still"]]
     if page["drawn"]:
         out.append(f"{page['drawn']} hand-drawn figure outside a widget")
     return out
