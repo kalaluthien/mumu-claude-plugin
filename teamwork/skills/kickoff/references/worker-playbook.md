@@ -12,6 +12,7 @@ Rules for every step:
 - On a split task, your share is the one your topic names and your criteria only its DoD ids; write only your pull request and `BLOCKED: <share>: ...` comments.
 - Use a resource that takes one user at a time only as the holder your task's last `DECIDED:` on it names, never because you find it free, and keep no loop waiting on it: with no holder named, ask as a decision that is not yours; named after another, do your other work, then stop until the lead prompts you.
 - As holder, take all you need from the resource in one turn, start or stop it only on the lead's word, release it, `comment` that plainly on your task and `prompt` the lead `see <task-url>`, who passes it on.
+- Held by a `DECIDED:` until another task merges, `comment` `BLOCKED:` at once asking to start the part whose files that task never touches.
 - While your own judge or eval runs, wait in one bounded foreground Bash poll instead of stopping.
 - Narrowing a scope is not yours: a gate you think a change does not need goes as `BLOCKED:` on your task asking for a `gates.json` change as its own task, and meanwhile you run it.
 - A finding is closed by fixing the cause of the gap it names, never by rewording, loosening a test or editing a criterion.
