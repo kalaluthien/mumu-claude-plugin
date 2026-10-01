@@ -16,6 +16,9 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
+import machine_gate  # noqa: E402
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 CHECK = ROOT / "skills" / "rendering" / "scripts" / "check.py"
 
@@ -96,6 +99,7 @@ def main(args):
         i = args.index("--json")
         out = args[i + 1] if i + 1 < len(args) and not args[i + 1].startswith("-") else "-"
         del args[i:i + (2 if out != "-" else 1)]
+    machine_gate.queue("paperwork run-evals")
     with tempfile.TemporaryDirectory() as d:
         raw = pathlib.Path(d) / "result.json"
         code = subprocess.run(["claude", "plugin", "eval", str(ROOT), "--keep-temp", "--json", str(raw), *args]).returncode
