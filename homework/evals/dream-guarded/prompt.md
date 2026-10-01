@@ -1,6 +1,6 @@
 ---
-max_turns: 30
-timeout_seconds: 400
+max_turns: 40
+timeout_seconds: 600
 allowed_tools: [Skill, Bash, Read, Glob, Grep, Edit, Write]
 runs: 3
 ---
@@ -29,18 +29,22 @@ chmod +x bin/gh
 G=/opt/homebrew/bin/git
 $G init -q --template= -b main --separate-git-dir=tools.git tools
 $G -C tools remote add origin https://github.com/example/tools.git
-printf '# tools\n' > tools/README.md
+mkdir -p tools/skills/release
+printf -- '---\nname: release\ndescription: Cuts a release.\n---\n\n1. Bump the version in package.json.\n2. Tag the commit and push the tag.\n' > tools/skills/release/SKILL.md
+printf '# Agents\n\nChange this repository only through a branch and a pull request; the pre-commit hook refuses commits on main.\n' > tools/AGENTS.md
 $G -C tools add -A && $G -C tools -c user.email=a@b -c user.name=a commit -q -m init
+mkdir -p tools.git/hooks
+printf '#!/bin/sh\n[ "$(/opt/homebrew/bin/git rev-parse --abbrev-ref HEAD)" = main ] && { echo "pre-commit: no commits on main, use a branch" >&2; exit 1; }\nexit 0\n' > tools.git/hooks/pre-commit
+chmod +x tools.git/hooks/pre-commit
 pool="config/projects/$(printf %s "$PWD/tools" | sed 's/[^A-Za-z0-9]/-/g')/memory"
 mkdir -p "$pool"
 printf '# Preferences\n\nAnswer in English.\n' > config/CLAUDE.md
-printf -- '- [Old port](fact-old-port.md): dev port\n- [Lint first](feedback-lint-first.md): lint before tests\n' > "$pool/MEMORY.md"
-printf -- '---\nname: fact-old-port\nconfirmed: 1\nlast-confirmed: 2025-01-10\n---\n\nThe dev server of this project listens on port 5173.\n' > "$pool/fact-old-port.md"
-printf -- '---\nname: feedback-lint-first\nconfirmed: 1\nlast-confirmed: %s\n---\n\nRun npm run lint before npm test, because the owner wants style errors first.\n' "$(date +%F)" > "$pool/feedback-lint-first.md"
+printf -- '- [Release tests](procedure-release-tests.md): test before tagging\n' > "$pool/MEMORY.md"
+printf 'When cutting a release with the release skill, run npm test between bumping the version and tagging, because a pushed tag once pointed at a broken build; this worked on the last three releases.\n' > "$pool/procedure-release-tests.md"
 ```
 
 When the skill has finished, run this one Bash call:
 
 ```sh
-cat config/projects/*/memory/fact-old-port.md > stale-after.txt
+G=/opt/homebrew/bin/git; $G -C tools log --oneline main > main-log.txt; { $G -C tools branch; cat gh.txt 2>/dev/null; } > after.txt
 ```

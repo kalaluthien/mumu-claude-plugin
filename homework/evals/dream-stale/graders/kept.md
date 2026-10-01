@@ -1,6 +1,7 @@
 ---
+# the stale file is still on disk
 type: regex
-target: {source: file, path: config/projects/-tools/memory/fact-old-port.md}
+target: {source: file, path: stale-after.txt}
 match: contains
 pattern: 'port 5173'
 ---
