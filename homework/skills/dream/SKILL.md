@@ -1,6 +1,6 @@
 ---
 name: dream
-description: Use when the Stop hook asks for a dream, or when auto-memory pools have drifted - a MEMORY.md link to a missing file, a memory file no index lists, two files of one name, one lesson saved in several projects' pools, a lesson a skill, agent or hook should hold - fixing only what the owner picks. Not for filing one session's lessons (retro).
+description: Use when the Stop hook asks for a dream, or when auto-memory pools have drifted - a MEMORY.md link to a missing file, a memory file no index lists, two files of one name, one lesson saved in several projects' pools, a lesson a skill, agent or hook should hold - fixing each itself and leaving only a stale lesson's deletion to the owner's tick on a GitHub issue. Not for filing one session's lessons (retro).
 user-invocable: false
 ---
 
@@ -9,12 +9,25 @@ user-invocable: false
 retro files lessons one session at a time; dream reviews the pools they
 built. Apply [lesson.md](${CLAUDE_PLUGIN_ROOT}/lib/lesson.md)'s operations
 and destinations, reading its "this project" and "this session" as every pool.
+Dream never waits on an answer: it applies every fix but a stale lesson's
+deletion, and leaves that one for the owner to tick on an issue.
 
 `<config>` is the folder the owner names, else `${CLAUDE_CONFIG_DIR:-$HOME/.claude}`:
 its pools are `<config>/projects/*/memory/`, and `<config>/CLAUDE.md` is the
-file for every project.
+file for every project. `<repo>` is the repository the owner names, else
+`kalaluthien/mumu-claude-plugin`. The open `Confirm dream fixes` issue, when
+there is one, is the url in `<config>/dream-issue.txt`; its body is one
+`- [ ]` line per fix waiting on the owner: `- [ ] DELETE
+projects/<pool>/memory/<file>: <reason>; <n> files, <m> lines`. The
+repository is public, so a line never quotes a memory file's body nor a
+path outside `projects/<pool>/memory/`.
 
-1. List what the shell can find:
+1. With `<config>/dream-issue.txt` present, read the issue:
+   `gh issue view <url> --json state,body`. Closed: remove the file.
+   Open: apply each ticked `- [x]` fix, and drop its line and each line
+   whose file is gone; with no line left, `gh issue close <url>` and remove
+   the file, else `gh issue edit <url> --body-file <body>`.
+2. List what the shell can find:
 
    ```sh
    root="<config>/projects" bash <<'SH'
@@ -33,9 +46,11 @@ file for every project.
    "${CLAUDE_PLUGIN_ROOT}/scripts/confirmations.py" stale "<config>"
    ```
 
-2. Read every pool's files, and route each entry through the table in
+3. Read every pool's files, and route each entry through the table in
    [retro's SKILL.md](${CLAUDE_PLUGIN_ROOT}/skills/retro/SKILL.md), which
    gives these fixes:
+   - a dangling link: DELETE the `MEMORY.md` line; a file no index lists:
+     ADD its `MEMORY.md` line, unless another fix below removes it;
    - one lesson kept in two or more pools under any name: it holds for every
      project, so lesson.md's last row applies;
    - a lesson a skill, a references file, an agent or a hook should hold:
@@ -47,20 +62,17 @@ file for every project.
      goes at a later round that finds it stated;
    - an entry the repository already states: DELETE it;
    - a lesson `stale` lists, never found again in 60 days: DELETE it, at
-     the cost that line prints, only when the owner picks it.
-3. No fix found that was not rejected in this call: say so, with the
-   fixes applied in earlier rounds, and stop, offering no other change;
-   in the first round, write nothing.
-4. Otherwise put the fixes not yet rejected in this call to the owner as
-   one `AskUserQuestion` question, `multiSelect: true`, one option per fix:
-   the top 4 by impact, each option's label the action (ADD, EDIT or
-   DELETE) and file, its description the reason and its cost, `<n> files,
-   <m> lines` touched; a file and its
-   `MEMORY.md` line are one fix, and so are a lesson moved and the copies
-   it replaces. The tool takes 2 to 4 options, so a lone fix gets a
-   second option, `None`. The options chosen are approved and the rest
-   rejected.
-5. Apply only the approved fixes; a file only rejected fixes name is never
-   touched, and nothing is handed off that was not chosen. Report each fix
-   applied or skipped.
-6. Go back to step 1: one dream runs rounds until step 3 stops it.
+     the cost that line prints, only once the owner ticks it on the issue.
+4. No fix found: say so, with the fixes applied in earlier rounds, and
+   stop; in the first round, write nothing.
+5. Apply each fix but a stale lesson's deletion; a file and its `MEMORY.md`
+   line are one fix, and so are a lesson moved and the copies it replaces.
+   Put each stale deletion not on the issue yet as a line there: edit the
+   open issue's body, else write the body to a file and
+   `gh issue create -R <repo> --title "Confirm dream fixes" --label backlog --label scope:homework --body-file <body>`,
+   writing the url it prints to `<config>/dream-issue.txt`.
+6. Report each fix applied, and the issue's url when it has lines. When this
+   session's own instructions have it report its work to another session,
+   tell that session the url the way they say, and go on without waiting.
+7. Go back to step 2: one dream runs rounds until step 4 stops it, a fix
+   already on the issue counting as none found.

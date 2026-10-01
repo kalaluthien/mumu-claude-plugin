@@ -32,4 +32,6 @@ printf '# Preferences\n\nAnswer in English.\n' > config/CLAUDE.md
 printf -- '- [Old port](fact-old-port.md): dev port\n- [Lint first](feedback-lint-first.md): lint before tests\n' > "$pool/MEMORY.md"
 printf -- '---\nname: fact-old-port\nconfirmed: 1\nlast-confirmed: 2025-01-10\n---\n\nThe dev server of this project listens on port 5173.\n' > "$pool/fact-old-port.md"
 printf -- '---\nname: feedback-lint-first\nconfirmed: 1\nlast-confirmed: %s\n---\n\nRun npm run lint before npm test, because the owner wants style errors first.\n' "$(date +%F)" > "$pool/feedback-lint-first.md"
+printf 'https://github.com/example/tools/issues/7\n' > config/dream-issue.txt
+printf '%s\n' '{"state": "OPEN", "body": "Tick a fix to approve it; the next dream applies it.\n\n- [x] DELETE projects/-tools/memory/fact-old-port.md: confirmed once, last on 2025-01-10; 2 files, 8 lines\n"}' > issue.json
 ```

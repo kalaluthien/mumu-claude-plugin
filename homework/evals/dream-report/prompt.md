@@ -5,7 +5,7 @@ allowed_tools: [Skill, Bash, Read, Glob, Grep, Edit, Write]
 runs: 3
 ---
 
-Review my auto-memory pools with the dream skill, config folder ./config. gh cannot reach GitHub here: `./bin/gh`, which the fixture builds, stands in for it, so run `./bin/gh` wherever the skill runs gh. First build the fixture with this one Bash call, then run the skill:
+Review my auto-memory pools with the dream skill, config folder ./config. gh cannot reach GitHub here: `./bin/gh`, which the fixture builds, stands in for it, so run `./bin/gh` wherever the skill runs gh. This session reports its work to the lead demo-lead: whatever it would tell demo-lead, it writes to ./report.txt. First build the fixture with this one Bash call, then run the skill:
 
 ```sh
 mkdir -p bin
