@@ -10,7 +10,8 @@
 
 Both fields sit in the file's frontmatter; a missing `confirmed` reads 1 and a
 missing `last-confirmed` reads the file's modification date. `confirm` changes
-those two lines only, adding them, or a frontmatter, when missing.
+those two lines only, in place at any indent (Claude Code nests them under
+`metadata:`), adding them, or a frontmatter, when missing.
 """
 import glob
 import os
@@ -18,7 +19,7 @@ import re
 import sys
 from datetime import date, timedelta
 
-FIELD = re.compile(r"^(confirmed|last-confirmed):[ \t]*(.*)$", re.M)
+FIELD = re.compile(r"^[ \t]*(confirmed|last-confirmed):[ \t]*(.*)$", re.M)
 
 
 def split(text):
@@ -49,8 +50,8 @@ def confirm(path, today):
     front, body = split(text)
     front = front if front is not None else ""
     for name, value in (("confirmed", str(count + 1)), ("last-confirmed", today.isoformat())):
-        line = re.compile(rf"^{name}:.*$", re.M)
-        front = line.sub(f"{name}: {value}", front) if line.search(front) else front + f"{name}: {value}\n"
+        line = re.compile(rf"^([ \t]*){name}:.*$", re.M)
+        front = line.sub(rf"\g<1>{name}: {value}", front) if line.search(front) else front + f"{name}: {value}\n"
     with open(path, "w", encoding="utf-8") as handle:
         handle.write(f"---\n{front}---\n{body}")
     print(f"{path}: confirmed {count + 1}, last-confirmed {today.isoformat()}")
