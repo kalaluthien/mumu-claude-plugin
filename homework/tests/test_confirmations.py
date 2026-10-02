@@ -60,6 +60,12 @@ class Confirm(Pool):
         run("confirm", str(lesson))
         self.assertEqual(lesson.read_text(), f"---\nconfirmed: 2\nlast-confirmed: {TODAY}\n---\nBody.\n")
 
+    def test_fields_nested_under_metadata_are_raised_in_place(self):
+        lesson = self.write("pitfall-e.md", "---\nname: e\nmetadata:\n  type: feedback\n  confirmed: 4\n"
+                                             "  last-confirmed: 2026-01-02\n---\n\nBody.\n")
+        run("confirm", str(lesson))
+        self.assertEqual(lesson.read_text(), "---\nname: e\nmetadata:\n  type: feedback\n  confirmed: 5\n"
+                                             f"  last-confirmed: {TODAY}\n---\n\nBody.\n")
 
 class Stale(Pool):
     def test_only_an_old_lesson_never_found_again_is_listed_and_none_is_deleted(self):
