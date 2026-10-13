@@ -1,0 +1,73 @@
+"""The team as observed: live sessions from herdr, issues and pull requests from GitHub, and the next action each
+gap between them asks for. The `reconcile-team` monitor prints a manager's; the `route-event` hook a worker's."""
+import json
+import os
+import re
+import subprocess
+
+
+def run(*argv):
+    p = subprocess.run(argv, capture_output=True, text=True)
+    return json.loads(p.stdout) if p.returncode == 0 and p.stdout.strip() else None
+
+
+def sessions():
+    """Every live agent, and this session's own entry, found by its pane."""
+    listed = (run("herdr", "agent", "list") or {}).get("result", {}).get("agents", [])
+    return listed, next((a for a in listed if a.get("pane_id") == os.environ.get("HERDR_PANE_ID")), {})
+
+
+def agent(name):
+    return next((a for a in sessions()[0] if a.get("name") == name), None)
+
+
+def screen(pane):
+    return subprocess.run(["herdr", "agent", "read", pane, "--source", "visible"], capture_output=True, text=True).stdout
+
+
+def issues(project=None):
+    """Open issues, only those labelled `scope:<project>` when the repository has that label."""
+    scoped = project and any(x["name"] == f"scope:{project}" for x in run("gh", "label", "list", "--json", "name") or [])
+    label = ["--label", f"scope:{project}"] if scoped else []
+    return run("gh", "issue", "list", "--state", "open", "--limit", "200", "--json", "number,title,body,comments,url", *label) or []
+
+
+def holds(issue, name):
+    """A worker holds each issue that names it, in its body or a comment."""
+    text = " ".join([issue["body"], *(c["body"] for c in issue["comments"])])
+    return re.search(rf"(?<![\w-]){re.escape(name)}(?![\w-])", text) is not None
+
+
+def asking(issue):
+    """True when the issue's last record is a worker's question no `DECIDED:` has answered yet."""
+    records = [c["body"].lstrip()[:8].upper() for c in issue["comments"]]
+    records = [r for r in records if r in ("BLOCKED:", "DECIDED:")]
+    return bool(records) and records[-1] == "BLOCKED:"
+
+
+def manager_actions(me, listed):
+    """One line per gap between GitHub and the manager's team, each naming the action that closes it."""
+    team = [a["name"] for a in listed if a.get("workspace_id") == me.get("workspace_id") and a is not me and a.get("name")]
+    status = {a.get("name"): a.get("agent_status") for a in listed}
+    found, lines = issues(me["name"].removesuffix("-manager")), []
+    for i in found:
+        if not any(holds(i, n) for n in team):
+            lines.append(f"route #{i['number']} {i['title']}: no live worker holds it; route it, or leave it for later")
+        if asking(i):
+            lines.append(f"answer #{i['number']}: its worker asks; post your DECIDED: there, then SendMessage the worker")
+    for n in team:
+        held = " ".join(f"#{i['number']}" for i in found if holds(i, n)) or "nothing open"
+        if status[n] == "blocked":
+            lines.append(f"blocked {n}: it waits at a tool-use prompt; tell the owner its tab")
+        elif status[n] in ("idle", "done"):
+            lines.append(f"idle {n}: holds {held}; SendMessage it what waits, or close it when it holds nothing open")
+    prs = run("gh", "pr", "list", "--state", "merged", "--limit", "50", "--json", "number,headRefName") or []
+    for p, n in ((p, n) for p in prs for n in team if p["headRefName"] == n or p["headRefName"].startswith(n + "-")):
+        lines.append(f"merged #{p['number']} by {n}: once {n} holds nothing open, close it and clean its worktree")
+    return lines
+
+
+def worker_goal(me):
+    """The open issues this worker holds, each with what waits on it."""
+    return [f"#{i['number']} {i['title']} ({i['url']}): " + ("waits on your manager" if asking(i) else "open")
+            for i in issues() if holds(i, me["name"])]
