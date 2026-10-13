@@ -75,36 +75,6 @@ def trig_key(level_id, t):
     return f'{level_id}:@>{t["to"]}#{t["label"]}'
 
 
-def named(data):
-    """The model as the checks and Alloy read it: each label or title that carries a `name` becomes that name, and
-    so does every reference to it (a node's label from subject, an edge's from edge, when and then); the page
-    keeps the labels. Also returns each label given two names."""
-    names, out = {"node": {}, "edge": {}}, []
-    kind = lambda x: "edge" if "to" in x else "node"
-
-    def collect(x):
-        if isinstance(x, dict):
-            for k in ("label", "title"):
-                if x.get("name") and isinstance(x.get(k), str):
-                    if names[kind(x)].setdefault(x[k], x["name"]) != x["name"]:
-                        out.append(f'"{x[k]}" has two names, {names[kind(x)][x[k]]} and {x["name"]}; give each its own label')
-            for v in x.values():
-                collect(v)
-        elif isinstance(x, list):
-            for v in x:
-                collect(v)
-
-    def rename(x, key=None):
-        if isinstance(x, dict):
-            return {k: (x["name"] if k in ("label", "title") and x.get("name") else rename(v, k)) for k, v in x.items() if k != "name"}
-        if isinstance(x, list):
-            return [rename(v, key) for v in x]
-        refs = names["node"] if key == "subject" else names["edge"] if key in ("edge", "when", "then") else {}
-        return refs.get(x, x)
-    collect(data)
-    return (rename(data) if names["node"] or names["edge"] else data), sorted(set(out))
-
-
 def levels_of(data):
     """Every level, root first, as (level, the id of the node that opens it): the root is the model's `level`, and
     a node's `opens` is the level drawn inside it. A level's id is its opener's id, or root."""
@@ -235,8 +205,7 @@ def forks(seq):
 
 class Model:
     def __init__(self, data):
-        data, twice = named(data)
-        self.parse_problems = twice + (parse(data) if "level" in data else [])
+        self.parse_problems = parse(data) if "level" in data else []
         data = flat(data)
         self.m = data
         self.levels = {L["id"]: L for L in data["levels"]}

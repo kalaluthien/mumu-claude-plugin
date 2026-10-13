@@ -3,8 +3,13 @@
 Brackets name the check that enforces a line. Every name below is also the
 name Alloy sees ([proof-commands.md](proof-commands.md)).
 
-Set the top-level `lang` to `ko` when the page is Korean: the engine's own
-words (main path, optional, Levels, Insight) then show in Korean; it is `en` by default.
+Every term is English whatever the reader's language: the model's and each
+level's `title`, and each node, edge, trigger, partition and region `label`
+(`Defining`, not `정하기` or `정하기 (Defining)`) [names]. Only descriptions
+(`what`, `why`, `text`, `intent`, a step's `does` and `expects`, `next`) are
+in the reader's language. Set the top-level `lang` to `ko` when they are
+Korean: the engine's own words (main path, optional, Levels, Insight) then
+show in Korean; it is `en` by default.
 
 ## Plan
 
@@ -264,11 +269,7 @@ Names are unique across the model, ignoring case, spaces, `-` and `_`; only
 an edge's label may recur, since one verb or one artifact can appear many
 times [unique-names]. No name is an Alloy keyword (`open`, `run`, `in`, `until`,
 `check`, …) or a word the translation declares (`Now`, `Call`, `happens`, `at`,
-`self`, `result`) [naming]. A label in another language, such as `결정 묻기`,
-takes a `name` in English (`"name": "grilling"`) on its node, edge, trigger
-or workflow level: the checks and Alloy read the name, references (`edge`,
-`when`, `then`, `subject`) still give the label, and the page shows only the
-label [names]. Each kind has its own form, in the name [naming]:
+`self`, `result`) [naming]. Each kind has its own form [naming]:
 
 | Kind | Form | Example |
 |---|---|---|
