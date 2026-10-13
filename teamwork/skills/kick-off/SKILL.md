@@ -36,7 +36,7 @@ Open the playbook of the first row that fits with `Read` and follow it; the `rou
 
 ## Rules
 
-- **Talk**: `tell` is the one way to reach a session, so any request, answer or handback reads the same; prompt only `/teamwork:kick-off` through `start` and your own `/rename`. Whatever must outlive a session goes on its issue first.
+- **Talk**: whenever your step leaves a session waiting on you, or needs one to act, `tell` it, so any request, answer or handback reads the same and no step names its own channel; prompt only `/teamwork:kick-off` through `start` and your own `/rename`. Whatever must outlive a session goes on its issue first.
 - **Short writing**: bullets or a table, no narration; cite urls, `path:line`s and shas; a title verb-first.
 
 ## Verbs
