@@ -25,7 +25,7 @@ def herdr(*argv):
 
 def open_pane(name, cwd, own_workspace):
     into = [] if own_workspace else ["--workspace", herdr("pane", "get", os.environ["HERDR_PANE_ID"])["pane"]["workspace_id"]]
-    pane = herdr("workspace" if own_workspace else "tab", "create", *into, "--cwd", cwd, "--label", name, "--no-focus")["root_pane"]
+    pane = herdr("workspace" if own_workspace else "tab", "create", *into, "--cwd", cwd, "--label", name.removesuffix("-manager") if own_workspace else name, "--no-focus")["root_pane"]
     team.run("herdr", "tab", "rename", pane["tab_id"], name)
     team.run("herdr", "pane", "rename", pane["pane_id"], name)
     return pane["pane_id"]
@@ -63,7 +63,7 @@ parser.add_argument("--model", required=True)  # no default: the caller picks pe
 parser.add_argument("--effort", required=True)
 a = parser.parse_args()
 if team.agent(a.name):
-    sys.exit(f"start-session.py: {a.name} is already live: tell it instead of starting another.")
+    sys.exit(f"start-session.py: {a.name} is already live: hand it the work instead of starting another.")
 text = f"/teamwork:kick-off {a.args}"
 try:
     pane = open_pane(a.name, str(pathlib.Path(a.cwd).resolve()), a.team)
@@ -77,4 +77,4 @@ try:
 except RuntimeError as e:
     sys.exit(f"start-session.py: {e}. Look at its pane with `herdr agent read {a.name}` before starting it again.")
 where = "a new workspace of its own" if a.team else "a new tab of your workspace"
-print(f"{a.name} started in {where} (pane {pane}) and took its kick-off; tell it what it needs.")
+print(f"{a.name} started in {where} (pane {pane}) and took its kick-off.")
