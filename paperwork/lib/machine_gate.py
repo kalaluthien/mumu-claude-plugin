@@ -3,8 +3,7 @@
 queue() takes a slot for this process through `gate.sh hold <own pid>` and exports HOMEOPS_GATE_HELD, so the job's
 children nest under it. It takes none when HOMEOPS_GATE_HELD already names a live holder (the gate's own nesting rule)
 or when no gate is found; a `hold` that fails other than 75 lets the job run, since a broken gate must not stop work.
-The gate is found as checkerwork/scripts/run-verify.py finds it: $HOMEOPS_GATE, else the subjects/gate/hook.sh
-registered in ~/.claude/settings.json.
+The gate is $HOMEOPS_GATE, else the subjects/gate/hook.sh registered in ~/.claude/settings.json.
 """
 import os
 import pathlib
