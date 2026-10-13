@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-"""Close the session NAME: once its turn ends, `/exit` it, answering each exit dialog, and close its tab, or its
-workspace when the tab was the workspace's last.
+"""usage: close-session.py <name>
 
-usage: close-session.py <name>
-
-Closing your own session runs detached, so it outlives the Bash call that asked for it."""
+Once NAME's turn ends, `/exit` it, answering each exit dialog, and close its tab, or its workspace when the tab was the
+last; closing your own session runs detached, so it outlives the Bash call that asked for it."""
 import os
 import pathlib
 import subprocess

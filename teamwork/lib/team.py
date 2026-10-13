@@ -27,9 +27,9 @@ def screen(pane):
 
 def issues(project=None):
     """Open issues, only those labelled `scope:<project>` when the repository has that label."""
-    scoped = project and any(x["name"] == f"scope:{project}" for x in run("gh", "label", "list", "--json", "name") or [])
-    label = ["--label", f"scope:{project}"] if scoped else []
-    return run("gh", "issue", "list", "--state", "open", "--limit", "200", "--json", "number,title,body,comments,url", *label) or []
+    scoped = project and f"scope:{project}" in [x["name"] for x in run("gh", "label", "list", "--search", "scope:", "--json", "name") or []]
+    return run("gh", "issue", "list", "--state", "open", "--limit", "200", "--json", "number,title,body,comments,url",
+               *(["--label", f"scope:{project}"] if scoped else [])) or []
 
 
 def holds(issue, name):
@@ -40,9 +40,8 @@ def holds(issue, name):
 
 def asking(issue):
     """True when the issue's last record is a worker's question no `DECIDED:` has answered yet."""
-    records = [c["body"].lstrip()[:8].upper() for c in issue["comments"]]
-    records = [r for r in records if r in ("BLOCKED:", "DECIDED:")]
-    return bool(records) and records[-1] == "BLOCKED:"
+    records = [r for c in issue["comments"] if (r := c["body"].lstrip()[:8].upper()) in ("BLOCKED:", "DECIDED:")]
+    return records[-1:] == ["BLOCKED:"]
 
 
 def manager_actions(me, listed):

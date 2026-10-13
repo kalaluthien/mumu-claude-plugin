@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-"""Start a Claude session named NAME in CWD on model M at effort E, its first turn `/teamwork:kick-off ARGS`.
+"""usage: start-session.py <name> <cwd> <args> --model M --effort E [--team]
 
-usage: start-session.py <name> <cwd> <args> --model M --effort E [--team]
-
-The session gets a new tab in the caller's workspace, or with `--team` a new workspace of its own, and its tab, first
-pane, agent and Claude session all take NAME, so one name finds it everywhere."""
+Start a Claude session NAME in CWD, its first turn `/teamwork:kick-off ARGS`, in a new tab of the caller's workspace or
+with `--team` a workspace of its own; its tab, first pane, agent and Claude session all take NAME."""
 import argparse
 import os
 import pathlib

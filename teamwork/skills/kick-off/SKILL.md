@@ -43,7 +43,7 @@ Open the playbook of the first row that fits with `Read` and follow it; the `rou
 
 ## Verbs
 
-Issues and pull requests live on GitHub; the default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
+Issues and pull requests live on GitHub, sessions in herdr, addressed by name; the default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
 
 | verb | command |
 | --- | --- |
@@ -53,11 +53,6 @@ Issues and pull requests live on GitHub; the default branch is `gh repo view --j
 | `comment` | `gh issue comment <url> --body-file <path>`; `decide` is a `comment` of a `DECIDED:` |
 | `resolve` | `gh issue close <url> --reason completed --comment "<summary>"`, or `--reason "not planned"` for work stopped |
 | `judge` | `Agent` on `sonnet` at `high`, its prompt `Read ${CLAUDE_PLUGIN_ROOT}/skills/kick-off/references/judge.md, then judge <url or path>.`; resume it with `SendMessage` |
-
-With herdr, address a session by its name:
-
-| verb | command |
-| --- | --- |
 | `rename` | `herdr tab rename <tab> <name>` and `herdr pane rename $HERDR_PANE_ID <name>`, the tab from `herdr pane get $HERDR_PANE_ID`, then `herdr agent rename $HERDR_PANE_ID <name>` and `herdr agent prompt $HERDR_PANE_ID "/rename <name>"`; a manager also `herdr workspace rename <workspace> <name>` |
 | `start` | `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/start-session.py <name> <cwd> "<kick-off arguments>" --model <m> --effort <e> [--team]`: a tab in your workspace, or with `--team` a new one |
 | `look` | `herdr agent read <name> --lines 40`: the session's screen |
