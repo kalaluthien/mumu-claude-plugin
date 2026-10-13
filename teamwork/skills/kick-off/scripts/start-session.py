@@ -81,7 +81,7 @@ def main(argv):
     except RuntimeError as e:
         sys.exit(f"start-session.py: {e}. Look at its pane with `herdr agent read {a.name}` before starting it again.")
     where = "a new workspace of its own" if a.team else "a new tab of your workspace"
-    print(f"{a.name} started in {where} (pane {pane}) and took its kick-off; it answers by SendMessage.")
+    print(f"{a.name} started in {where} (pane {pane}) and took its kick-off; tell it what it needs.")
 
 
 if __name__ == "__main__":
