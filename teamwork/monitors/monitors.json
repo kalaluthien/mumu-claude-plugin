@@ -1,8 +1,5 @@
 [
-  {
-    "name": "reconcile-team",
-    "command": "\"${CLAUDE_PLUGIN_ROOT}\"/monitors/reconcile-team.py",
+  { "name": "reconcile-team", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/monitors/reconcile-team.py",
     "description": "Each gap between GitHub and this manager's team, with the action that closes it, once per change",
-    "when": "on-skill-invoke:teamwork:kick-off"
-  }
+    "when": "on-skill-invoke:teamwork:kick-off" }
 ]

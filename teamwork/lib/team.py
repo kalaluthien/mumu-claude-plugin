@@ -1,5 +1,3 @@
-"""The team as observed: live sessions from herdr, issues and pull requests from GitHub, and the next action each
-gap between them asks for. The `reconcile-team` monitor prints a manager's; the `route-event` hook a worker's."""
 import json
 import os
 import re
@@ -32,26 +30,22 @@ def screen(pane):
 
 
 def issues(project=None):
-    """Open issues, only those labelled `scope:<project>` when the repository has that label."""
     scoped = project and f"scope:{project}" in [x["name"] for x in run("gh", "label", "list", "--search", "scope:", "--json", "name") or []]
     return run("gh", "issue", "list", "--state", "open", "--limit", "200", "--json", "number,title,body,comments,url",
                *(["--label", f"scope:{project}"] if scoped else []))
 
 
 def holds(issue, name):
-    """A worker holds each issue that names it, in its body or a comment."""
     text = " ".join([issue["body"], *(c["body"] for c in issue["comments"])])
     return re.search(rf"(?<![\w-]){re.escape(name)}(?![\w-])", text) is not None
 
 
 def asking(issue):
-    """True when the issue's last record is a worker's question no `DECIDED:` has answered yet."""
     records = [r for c in issue["comments"] if (r := c["body"].lstrip()[:8].upper()) in ("BLOCKED:", "DECIDED:")]
     return records[-1:] == ["BLOCKED:"]
 
 
 def manager_actions(me, listed):
-    """One line per gap between GitHub and the manager's team with the action that closes it; None when a read failed."""
     team = [a["name"] for a in listed if a.get("workspace_id") == me.get("workspace_id") and a is not me and a.get("name")]
     status = {a.get("name"): a.get("agent_status") for a in listed}
     found, lines = issues(me["name"].removesuffix("-manager")), []
@@ -62,19 +56,18 @@ def manager_actions(me, listed):
         if not any(holds(i, n) for n in team):
             lines.append(f"route #{i['number']} {i['title']}: no live worker holds it; route it, or leave it for later")
         if asking(i):
-            lines.append(f"answer #{i['number']}: its worker asks; post your DECIDED: there, then SendMessage the worker")
+            lines.append(f"answer #{i['number']}: its worker asks; post your DECIDED: there; the worker waits on it")
     for n in team:
         held = " ".join(f"#{i['number']}" for i in found if holds(i, n)) or "nothing open"
         if status[n] == "blocked":
-            lines.append(f"blocked {n}: it waits at a tool-use prompt; tell the owner its tab")
+            lines.append(f"blocked {n}: it waits at a tool-use prompt; the owner needs its tab")
         elif status[n] in ("idle", "done"):
-            lines.append(f"idle {n}: holds {held}; SendMessage it what waits, or close it when it holds nothing open")
+            lines.append(f"idle {n}: holds {held}; it needs what waits, or close it when it holds nothing open")
     for p, n in ((p, n) for p in prs for n in team if p["headRefName"] == n or p["headRefName"].startswith(n + "-")):
         lines.append(f"merged #{p['number']} by {n}: once {n} holds nothing open, close it and clean its worktree")
     return lines
 
 
 def worker_goal(me):
-    """The open issues this worker holds, each with what waits on it."""
     return [f"#{i['number']} {i['title']} ({i['url']}): " + ("waits on your manager" if asking(i) else "open")
             for i in issues() or [] if holds(i, me["name"])]

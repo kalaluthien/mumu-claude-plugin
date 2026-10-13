@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-"""usage: close-session.py <name>
-
-Once NAME's turn ends, `/exit` it, answering each exit dialog, and close its tab, or its workspace when the tab was the
-last; closing your own session runs detached, so it outlives the Bash call that asked for it."""
 import os
 import pathlib
 import subprocess
@@ -47,16 +43,13 @@ def close(name):
     print(f"{name} exited and its {'workspace' if last else 'tab'} closed.")
 
 
-def main(argv):
-    if len(argv) != 1:
-        sys.exit("usage: close-session.py <name>")
-    own = (team.agent(argv[0]) or {}).get("pane_id", "") == os.environ.get("HERDR_PANE_ID")
-    if own and not os.environ.get("CLOSE_SESSION_DETACHED"):
-        subprocess.Popen([sys.executable, __file__, argv[0]], env={**os.environ, "CLOSE_SESSION_DETACHED": "1"},
-                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-        return print(f"{argv[0]} closes once this turn ends.")
-    close(argv[0])
-
-
-if __name__ == "__main__":
-    main(sys.argv[1:])
+if len(sys.argv) != 2:
+    sys.exit("usage: close-session.py <name>")
+name = sys.argv[1]
+own = (team.agent(name) or {}).get("pane_id", "") == os.environ.get("HERDR_PANE_ID")
+if own and not os.environ.get("CLOSE_SESSION_DETACHED"):  # detached, so it outlives the Bash call that asked for it
+    subprocess.Popen([sys.executable, __file__, name], env={**os.environ, "CLOSE_SESSION_DETACHED": "1"},
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    print(f"{name} closes once this turn ends.")
+else:
+    close(name)
