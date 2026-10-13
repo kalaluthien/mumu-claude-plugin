@@ -10,7 +10,9 @@ rediscovers it. `/run-skill-generator` writes it.
    - `failed`: a recorded recipe failed.
 2. **Recipe or code**: for `failed`, first find whether the recipe or the code broke: a code
    fault is the session's work, not the recipe's; stop here.
-3. **Owner types it**: `/run-skill-generator` is typed by a person, never called through the
-   Skill tool: end the report with one line asking the owner to type it in
-   this repository, saying whether the recipe is missing or failed and, for
-   `failed`, what changed in the build or launch.
+3. **Send it to yourself**: `/run-skill-generator` is never called through the
+   Skill tool, since it runs only as a typed prompt: when `HERDR_PANE_ID` is set,
+   run `herdr agent prompt $HERDR_PANE_ID "/run-skill-generator <missing|failed: what changed>"`,
+   naming for `failed` what changed in the build or launch; it runs once this
+   turn ends. Else end the report with one line asking the owner to type it in
+   this repository, with the same words.
