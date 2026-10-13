@@ -4,7 +4,7 @@ The working rules of this repository and of every plugin in it. Each rule carrie
 
 ## Repository
 
-- **Live checkout**: sessions load the plugins straight from this checkout, so a merge reaches them once the checkout pulls. Refresh by what changed: a script or a `references/` file works at once; a `SKILL.md` or a `hooks.json` at `/reload-plugins`; a monitor's code when the monitor starts again.
+- **Live checkout**: sessions load the plugins straight from this checkout, so a merge reaches them once the checkout pulls. Refresh by what changed: a script or a `references/` file works at once; a `SKILL.md` or a `hooks.json` at `/reload-plugins`, which the session that merges it prompts to each agent in `herdr agent list` once the checkout has pulled, `herdr agent prompt <name> "/reload-plugins"`, before any other step when a hook's script moved or was renamed, since that hook stays off until then; a monitor's code when the monitor starts again.
 - **No CLAUDE.md**: rules sit only in `AGENTS.md`, since Claude Code reads `AGENTS.md` when no `CLAUDE.md` exists, and a second file splits them.
 - **Landing**: a change lands by a pull request that cites its issue, merged once a fresh subagent that did not write it reviews the diff from the merge base and approves its head sha.
 - **Every line acts**: keep a line in a rule, skill or document only when it changes the reader's next action.
