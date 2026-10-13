@@ -8,7 +8,8 @@ The reader must review a change or a text: a pull request, a diff, a draft, a do
 - **Where to look**: a short list of the 1 to 3 places that need the reader's judgement, each a link to its row below.
 - **Rows**: in `.notes`, one `.row` per hunk or passage worth a note: the text in a `<pre>` (a diff keeps its `+` and `-` lines) or a `<p>`, and an `<aside>` beside it with the note; `class="high"` or `"mid"` marks the severity, plain is a remark. Group rows under an `h3` per file, files in the order a reviewer reads them, the interface before its callers.
 - **What is skipped**: files with nothing to note are one line each under the rows, never shown whole; past 15 files, one table row per folder instead (files, lines added and removed, what changed there), and rows only for the places to look.
-- **Reply**: `.reply` holds the notes as plain text, one `path:line — note` per line, so the reader pastes them into the review.
+- **Reply**: while the change is open, `.reply` holds the notes as plain text, one `path:line — note` per line, so the reader pastes them into the review; a merged or closed change has no `.reply`.
+- **Counts agree**: every count in `.answer` and `.figures` is the count of the rows and lists below it, computed after they are final.
 
 ## Steps
 

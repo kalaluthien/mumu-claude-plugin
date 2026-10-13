@@ -71,9 +71,9 @@ bar while a run plays; the drawing; and the note.
   standing (guard, assumed, ideal, holds, or a dashed "can break") and opens
   to its sentence, then its formula laid out over lines (body under its
   quantifier, keywords in the mid ink), then the run that breaks it.
-- **Nothing selected.** The level's media; at the root, first the plan's
-  Scope (the question, what was opened deep or left closed, what Alloy
-  checked). A node left closed by the plan says so in its note.
+- **Nothing selected.** The level's media, and no panel on the plan: the
+  reader asked for the system, not for how it was drawn. A node left closed
+  by the plan says so in its note.
 - **Plan.** `show` can hide formulas, replays or media.
 
 ## Runs

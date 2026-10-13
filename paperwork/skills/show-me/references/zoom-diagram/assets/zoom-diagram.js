@@ -504,7 +504,7 @@ function mountZoomDiagram(root, M) {
     const p = $(".zd-note"), L = levels[st.level];
     root.dataset.level = st.level; root.dataset.sel = st.sel ? (st.sel.node || st.sel.edge || st.sel.run) : "";
     p.classList.toggle("is-sel", !!st.sel); p.classList.toggle("is-run", !!(st.sel && st.sel.run));
-    if (!st.sel) p.innerHTML = (L.parent ? "" : scope()) + media(L.media, hash(L.id));
+    if (!st.sel) p.innerHTML = media(L.media, hash(L.id));
     else if (st.sel.run) p.innerHTML = runNote(runOf(st.sel.run), st.sel.at);
     else if (st.sel.node) {
       const n = nodes[st.sel.node], T = KIND[L.kind], closed = ((M.plan || {}).shallow || []).includes(n.id);
@@ -561,13 +561,6 @@ function mountZoomDiagram(root, M) {
     const L = levels[levelOf(k)]; if (!L) return [];
     const e = L.edges.find(e => edgeKey(L.id, e) === k) || (L.triggers || []).find(t => trigKey(L.id, t) === k);
     return [L, e];
-  }
-  // the root's Scope: what the plan agreed with the user to open, leave closed and prove
-  function scope() {
-    const P = M.plan || {}, names = ids => (ids || []).map(id => nodes[id] ? esc(nodes[id].label) : "").filter(Boolean).join(", ");
-    const PROVE = { full: "rules, Scenarios and failure paths", rules: "rules only", off: "nothing" };
-    const rows = [["question", P.intent ? esc(P.intent) : ""], ["opened deep", names(P.deep)], ["left closed", names(P.shallow)], ["Alloy checks", P.prove && P.prove !== "full" ? PROVE[P.prove] : ""]].filter(r => r[1]);
-    return rows.length ? `<div class="zd-grp zd-scope"><h5>Scope</h5><dl class="zd-facts">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></div>` : "";
   }
   // pin the note beside the selection (wide) or under the board pointing at it (narrow)
   function place(reveal) {
