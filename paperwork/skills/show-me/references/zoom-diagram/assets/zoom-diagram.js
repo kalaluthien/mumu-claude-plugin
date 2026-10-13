@@ -101,7 +101,8 @@ function mountZoomDiagram(root, M) {
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
   const GX = 92, GY = 82, NW = 124, NH = 46, PAD = 30;
-  const FONT_N = '17px "Patrick Hand", "Gaegu", "Comic Neue", cursive', FONT_E = '15px "Patrick Hand", "Gaegu", "Comic Neue", cursive';
+  const HAND = '"Poor Story", "IBM Plex Sans KR", "IBM Plex Sans", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif';
+  const FONT_N = "17px " + HAND, FONT_E = "15px " + HAND;
   const meas = (() => { const c = document.createElement("canvas").getContext("2d"); return (t, f) => { c.font = f; return c.measureText(t).width; }; })();
   const MARKS = { happy: "main path", failure: "failure path", optional: "optional", unsure: "unconfirmed" };
   const GLYPH = { happy: '<path d="M1 4H23" class="lg lg-happy"/>', failure: '<path d="M1 4H23" class="lg lg-failure"/>', optional: '<path d="M1 4H23" class="lg lg-optional"/>', unsure: '<text x="12" y="8" text-anchor="middle" class="lg-q">?</text>' };

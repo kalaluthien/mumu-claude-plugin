@@ -1,6 +1,6 @@
 .zd{
   --zd-fail:#b42318;
-  --zd-hand:"Patrick Hand","Gaegu","Comic Neue",cursive;
+  --zd-hand:"Poor Story",var(--zd-sans);
   --zd-paper:#ffffff; --zd-board:#fcfcfc; --zd-sunk:#eef0f3; --zd-hi:#14181f; --zd-mid:#4b5462; --zd-lo:#8a929e;
   --zd-line:#c9ced6; --zd-edge:#9aa2ad; --zd-faint:#e4e7ec;
   --zd-sans:"IBM Plex Sans KR","IBM Plex Sans","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
@@ -15,7 +15,7 @@
 .zd button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
 .zd :focus-visible:not(.node):not(.edge){outline:1px solid var(--zd-mid);outline-offset:3px;border-radius:6px}
 .zd code{font-family:var(--zd-mono);background:none;padding:0;border-radius:0;font-size:inherit}
-.zd svg text{font-family:"Patrick Hand","Gaegu","Comic Neue",cursive}
+.zd svg text{font-family:var(--zd-hand)}
 .zd .n-fill{fill:var(--zd-paper);stroke:none}
 .zd .n-ink{fill:none;stroke:var(--zd-hi);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .zd .n-lab{fill:var(--zd-hi);font-size:17px}
