@@ -17,11 +17,11 @@ Take the owner's words and bring each piece of work to a merged pull request or 
    - Ask the owner only architecture, infrastructure and user-experience questions, all at once with `AskUserQuestion`; decide the rest.
    - Write `## Goal` quoting the owner's words, and `## Definition of done`, one criterion per clause of the Goal and of each `DECIDED:`; run each check on main and quote its output; a rule sentence (never, always, only after) becomes a `[check]` quoting it; a comparison of head with main measures main beside head; a change to how work is split, run or reviewed adds a criterion replaying past merged pull requests and their transcripts against it.
    - `decide` the owner's expectations as the first `DECIDED:`; `order` it after each open task touching one of its files; a report that blocks another project's task gets that task's follow-up filed and ordered before the report closes.
-   - Once every `decide` and body edit is done, launch the judge on the task's url until it posts `APPROVED:`.
+   - Once every `decide` and body edit is done, launch the judge on the task's url until it replies `approve`.
 4. **Start** each open task whose blockers are closed: pick its model and effort by Worker pick, `decide` them as `DECIDED: model <m>, effort <e>`, then in the checkout `git worktree add -b <name> .claude/worktrees/<name> origin/<default>` and `start` `<name>` there, prompted `/teamwork:kick-off work <task-url> manager <your name>`, on that model and effort. A task needing a resource another task also needs is allotted as Resources says first.
 5. **Answer** what arrives, polling nothing, once per state GitHub shows:
    - `see <task-url>` naming a `BLOCKED:`: `decide` it in a call of its own, then `prompt` the worker `see <task-url>`; work that needs its own pull request gets its own task, filed and ordered first, a narrower scope included;
-   - `see <pr-url>` or a report's url: once `read` shows it merged or its report `APPROVED:`, `resolve` its task if still open and go to 6;
+   - `see <pr-url>` or a report's url: once `read` shows it merged, or its report answered by the worker's `resolve`, `resolve` its task if still open and go to 6;
    - `blocked <name>`: tell the owner the worker waits at a tool-use prompt;
    - `idle <name>`: `read` its task and pull request and answer what waits on you; else `look` at it, since a dialog shows as idle: tell the owner it waits, never answer it; else `prompt` it `see <task-url>`;
    - `gone <name>` while its task is open: `start` it again in its worktree, prompted the same, with `-- --continue`;
@@ -45,7 +45,7 @@ One model and one effort per task, unless the owner named them; you stay on `opu
 
 ## Small change
 
-Words that name what to change and how to check it, at most 30 changed lines: no task. In a worktree off the default branch, `pr` it with a body naming no task over the criteria table, launch the judge on it, `merge` at its `APPROVED:` of the head, and clean as step 6 does; words that came as a task already filed put `Closes #<n>` in the body instead, so the merge closes it. Past 30 lines, or when an open task's pull request already runs its checks, it is that task's criteria or a task of its own.
+Words that name what to change and how to check it, at most 30 changed lines: no task. In a worktree off the default branch, `pr` it with a body naming no task over the criteria table, launch the judge on it, `merge` at its `approve` of the head, and clean as step 6 does; words that came as a task already filed put `Closes #<n>` in the body instead, so the merge closes it. Past 30 lines, or when an open task's pull request already runs its checks, it is that task's criteria or a task of its own.
 
 ## Resources
 

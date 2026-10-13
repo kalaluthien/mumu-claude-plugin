@@ -43,16 +43,14 @@ Match the arguments to the first row that fits, open its playbook with `Read`, a
 | --- | --- | --- |
 | `BLOCKED:` | worker | `BLOCKED: <question>`, or `BLOCKED: stuck on <criterion>` |
 | `DECIDED:` | manager | `DECIDED: <answer>` |
-| `APPROVED:` | judge | `APPROVED: <sha>`, a pull request at that head; `APPROVED: <comment-url>`, a report; `APPROVED:` alone, a plan |
-| `FINDINGS:` | judge | one line per gap, as `judge.md` says |
 
 Write a keyword in capitals; read it in any case.
 
 ## Rules
 
 - **See a url**: a session prompts another only `see <url>`, the url holding what it means; on `see <url>`, `read` it and act only on what it shows still open.
-- **Judge approves**: work lands only as a pull request merged at a head the judge approved, or a report it approved; no script enforces this, so check the `APPROVED:` sha against the head yourself before `merge`.
-- **Verdicts are the judge's**: never post `APPROVED:` or `FINDINGS:` yourself; after fixing a `FINDINGS:`, resume that judge with `see <url>`; when its comment is refused, resume it once the owner allows.
+- **Judge approves**: work lands only as a pull request merged at a head the judge approved, or a report it approved; no script enforces this, so check the sha its `approve` names against the head yourself before `merge`.
+- **Verdicts are the judge's**: the judge answers in its reply and posts nothing; never write a verdict yourself; after fixing its findings, resume that judge with `see <url>`.
 - **Side branch**: commit and push only on a branch other than the default; fix what a git hook refuses, never skip it.
 - **File first**: write a body, a comment or a decision to a scratch file with a file tool, then post it with `--body-file`.
 - **Short writing**: bullets or a table, no narration; cite urls, `path:line`s and shas; a title verb-first, at most 40 characters.
