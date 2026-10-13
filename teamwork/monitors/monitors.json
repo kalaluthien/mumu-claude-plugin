@@ -1,5 +1,5 @@
 [
-  { "name": "reconcile-team", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/monitors/reconcile-team.py",
-    "description": "Each gap between GitHub and this manager's team, with the action that closes it, once per change",
+  { "name": "heartbeat", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/monitors/heartbeat.py",
+    "description": "Each gap between GitHub and this manager's team, with the action that closes it, once per change, and the exit once its workers are all gone",
     "when": "on-skill-invoke:teamwork:kick-off" }
 ]
