@@ -14,8 +14,10 @@ command failed in a repository with no `.claude/skills/run-*/` skill, `failed`
 when a call of such a skill failed. The hook asks when the points reach the
 threshold or the recipe is missing or failed, and a memory count at
 MEMORY_LIMIT rides on that ask, since a tidy alone rarely pays. It never asks
-at the stop right after its own ask, in a headless session, or while a Stop
-hook already blocks.
+at the stop right after its own ask, in a headless session, outside a git
+repository, or while a Stop hook already blocks. Enabling the plugin for a
+project is the opt-in, with no arm step of its own, since auto mode refused
+the old arm command's write to the plugin's data folder.
 
 The threshold adapts: each `empty` outcome raises it by UP and each `filed`
 lowers it by DOWN, between LOWEST and HIGHEST, so it settles where about
@@ -55,9 +57,13 @@ def segment(entries):
     return entries[start:end]
 
 
-def has_recipe(cwd):
+def toplevel(cwd):
     run = subprocess.run(["git", "-C", cwd or ".", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
-    root = run.stdout.strip() if run.returncode == 0 else None
+    return run.stdout.strip() if run.returncode == 0 else None
+
+
+def has_recipe(cwd):
+    root = toplevel(cwd)
     folder = os.path.join(root, ".claude", "skills") if root else None
     return bool(folder and os.path.isdir(folder) and any(n.startswith("run-") for n in os.listdir(folder)))
 
@@ -135,7 +141,7 @@ def hook():
     session, stops = payload.get("session_id", ""), sum(1 for e in entries if transcript.is_stop(e))
     # the stop right after an ask holds the wrap-up's own work
     just_asked = state["asked"].get(session) == stops - 1
-    if not just_asked and (found["points"] >= threshold or found["recipe"] != "fine"):
+    if not just_asked and (found["points"] >= threshold or found["recipe"] != "fine") and toplevel(payload.get("cwd")):
         reason = sentence(dict(found, memory=state["memory"]), threshold) + ASK
         state["asked"][session], state["pending"] = stops, True
         if state["memory"] >= MEMORY_LIMIT:
