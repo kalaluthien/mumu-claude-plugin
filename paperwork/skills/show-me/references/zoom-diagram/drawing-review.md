@@ -6,8 +6,8 @@
 - Every mark has a job, with one signal per meaning.
 - Nothing needs explaining: no title, figure number, hint or display switch.
 - Calm: one eased movement per navigation, and none under reduced motion.
-- Type has roles: names on the drawing in handwriting, identifiers and
-  formulas in mono, sentences in sans, kinds and field labels in small caps.
+- Type has roles: names and sentences in sans, identifiers and
+  formulas in mono, kinds and field labels in small caps.
 
 ## What a right drawing shows
 

@@ -71,7 +71,7 @@ async def _check(path, shots=None, font_css=None):
             for scheme in ("light", "dark"):
                 tag = f"{width}px {scheme}"
                 page = await browser.new_page(viewport={"width": width, "height": 900}, color_scheme=scheme)
-                if css:   # offline machines: supply the handwriting face, since fits depends on it
+                if css:   # offline machines: supply the sans face, since fits depends on it
                     await page.add_init_script("document.addEventListener('DOMContentLoaded',()=>{const s=document.createElement('style');s.textContent=" + json.dumps(css) + ";document.head.appendChild(s);});")
                 errors = []
                 page.on("pageerror", lambda e: errors.append(str(e)))
