@@ -46,36 +46,48 @@ def _stats(scored, base):
             "error": statistics.median(abs(s[0] - s[cut + 2]) for s in scored)}
 
 
+def fit(rows, seed=0):
+    """Calibrate on the first FIT of ROWS (oldest first): the narrowest per-task levels and total levels whose coverage
+    over the later half of that part reaches TARGET, each with that coverage; None when too few tasks."""
+    k = int(len(rows) * FIT)
+    if k < task_estimate.MIN_GROUP:
+        return None
+    levels, cover = LEVELS[-1], None
+    for lv in LEVELS:
+        part = _score(rows[:k], k // 2, lv)
+        cover = sum(s[1] <= s[0] <= s[2] for s in part) / len(part)
+        if cover >= TARGET:
+            levels = lv
+            break
+    total_levels, total_cover = LEVELS[-1], None
+    for lv in LEVELS:
+        hit, runs = _runs(rows, k // 2, k, lv, seed)
+        total_cover = hit / runs if runs else None
+        if runs and total_cover >= TARGET:
+            total_levels = lv
+            break
+    return levels, cover, total_levels, total_cover
+
+
 def backtest(rows, seed=0):
-    """The fitted levels and fit coverage, the held-out stats of the estimator and the baseline, and the coverage of
+    """The fitted levels and fit coverages, the held-out stats of the estimator and the baseline, and the coverage of
     the bootstrap total over each run of RUN held-out tasks. None when too few tasks to fit and score."""
     rows = sorted(rows, key=lambda r: r["end"])
     k = int(len(rows) * FIT)
-    if k < task_estimate.MIN_GROUP or len(rows) - k < RUN:
+    fitted = fit(rows, seed)
+    if fitted is None or len(rows) - k < RUN:
         return None
-    levels, fit_cover = LEVELS[-1], None
-    for lv in LEVELS:
-        fit = _score(rows[:k], k // 2, lv)
-        fit_cover = sum(s[1] <= s[0] <= s[2] for s in fit) / len(fit)
-        if fit_cover >= TARGET:
-            levels = lv
-            break
+    levels, cover, total_levels, total_cover = fitted
     held = _score(rows, k, levels)
-    total_levels, total_fit = LEVELS[-1], None
-    for lv in LEVELS:
-        covered, runs = _runs(rows, k // 2, k, lv, seed)
-        total_fit = covered / runs if runs else None
-        if runs and total_fit >= TARGET:
-            total_levels = lv
-            break
-    covered, runs = _runs(rows, k, len(rows), total_levels, seed)
-    return {"tasks": len(rows), "scored": len(held), "levels": levels, "fit_coverage": fit_cover,
-            "estimator": _stats(held, False), "baseline": _stats(held, True), "total_levels": total_levels, "total_fit_coverage": total_fit, "covered": covered, "runs": runs}
+    hit, runs = _runs(rows, k, len(rows), total_levels, seed)
+    return {"tasks": len(rows), "scored": len(held), "levels": levels, "fit_coverage": cover,
+            "estimator": _stats(held, False), "baseline": _stats(held, True), "total_levels": total_levels,
+            "total_fit_coverage": total_cover, "covered": hit, "runs": runs}
 
 
 def as_of(rows, cutoff, numbers):
-    """For each task in NUMBERS: (number, low, high, actual hours), estimated from the tasks closed before CUTOFF."""
-    prior = [r for r in rows if r["end"] < cutoff]
+    """For each task in NUMBERS: (number, low, high, actual hours), estimated from the tasks closed before CUTOFF, the NUMBERS themselves left out of that history."""
+    prior = [r for r in rows if r["end"] < cutoff and r["number"] not in numbers]
     out = []
     for r in rows:
         if r["number"] in numbers:

@@ -2,7 +2,7 @@
 """usage: estimate-task-time.py [--from-json <file>] [--gaps-json <file>] [--expect-restarts <n>] [--wait <name>=<hours>]...
                                [--seed <n>] [<issue url>...]
 
-Print a time range per open task, its sample count and a total range, from the hours past tasks of the same first label
+Print a time range per open task, its sample count and a total range at levels fitted on the history, from the hours past tasks of the same first label
 took (all past tasks when fewer than 5 share it). The total is a bootstrap over those hours, repeatable by `--seed`.
 Past hours already hold the usual restarts and waits, so the script adds only what the history lacks: `--expect-restarts
 <n>` adds n restarts at the median hours of a restart that cost time (from `--gaps-json`, the output of `list-session-gaps.py --json`,
@@ -16,6 +16,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import session_gaps  # noqa: E402
+import task_backtest  # noqa: E402
 import task_estimate  # noqa: E402
 import task_history  # noqa: E402
 
@@ -58,13 +59,17 @@ def main(argv):
     opt, waits, urls = options(argv)
     history, tasks = load(opt, urls)
     groups = []
+    fitted = task_backtest.fit(sorted(history, key=lambda r: r["end"]), int(opt["seed"]))
+    levels, total_levels = (fitted[0], fitted[2]) if fitted else ((0.1, 0.9), (0.1, 0.9))
+    print(f"levels p{levels[0]*100:.0f}-p{levels[1]*100:.0f} per task, p{total_levels[0]*100:.0f}-p{total_levels[1]*100:.0f} total"
+          f" ({'fitted on the first 60% of the history, as backtest-estimate.py scores them' if fitted else 'default: too few past tasks to fit'})")
     print("task\tlow h\thigh h\tsamples\tnote")
     for t in tasks:
         hours, fallback = task_estimate.group(history, t["labels"])
         groups.append(hours)
-        low, high = task_estimate.quantile(hours, 0.1), task_estimate.quantile(hours, 0.9)
+        low, high = task_estimate.quantile(hours, levels[0]), task_estimate.quantile(hours, levels[1])
         print(f"#{t['number']}\t{low:.1f}\t{high:.1f}\t{len(hours)}\t{'all past tasks used' if fallback else 'same first label'}")
-    low, high = task_estimate.total_range(groups, int(opt["seed"]))
+    low, high = task_estimate.total_range(groups, int(opt["seed"]), total_levels)
     extra = 0.0
     if opt["expect-restarts"]:
         gaps = json.load(open(opt["gaps-json"])) if "gaps-json" in opt else list(session_gaps.summaries(
@@ -77,7 +82,7 @@ def main(argv):
     for name, hours in waits:
         extra += hours
         print(f"wait {name}\t{hours:.1f}h")
-    print(f"total\t{low + extra:.1f}\t{high + extra:.1f}\tp10-p90 of {task_estimate.DRAWS} bootstrap sums over {len(tasks)} tasks"
+    print(f"total\t{low + extra:.1f}\t{high + extra:.1f}\t{task_estimate.DRAWS} bootstrap sums over {len(tasks)} tasks"
           f"{', plus the rows above' if extra else ''}")
 
 
