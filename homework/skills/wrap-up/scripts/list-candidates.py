@@ -25,7 +25,8 @@ REDO = re.compile(r"git\s+commit\b[^;&|\n]*--amend|git\s+(reset|revert|restore)\
                   r"|git\s+push\b[^;&|\n]*(\s-f\b|--force)")
 ISSUE_URL = re.compile(r"https://github\.com/([\w.-]+/[\w.-]+)/(?:issues|pull)/(\d+)")
 GH_NUMBER = re.compile(r"\bgh\s+(?:issue|pr)\s+\w+\s+(?:[^|;&\n]*?\s)?#?(\d+)\b")
-GH_REPO = re.compile(r"(?:-R|--repo)[\s=]+([\w.-]+/[\w.-]+)|\bapi\s+(?:-\S+\s+)*repos/([\w.-]+/[\w.-]+)/(?:issues|pulls)/(\d+)")
+REPO_FLAG = r"(?:-R|--repo)[\s=]+([\w.-]+/[\w.-]+)"
+GH_REPO = re.compile(REPO_FLAG + r"|\bapi\s+(?:-\S+\s+)*repos/([\w.-]+/[\w.-]+)/(?:issues|pulls)/(\d+)")
 OPENS = re.compile(r"\s*(findings|blocked)\b:?", re.I)
 
 
@@ -33,9 +34,9 @@ def since_last_ask(entries):
     """Index after the stop that ended the wrap-up the last ask asked for, a running one aside."""
     asks = [i for i, e in enumerate(entries) if transcript.asked_at(e)]
     for ask in reversed(asks):
-        later = [i for i in range(ask + 1, len(entries)) if transcript.is_stop(entries[i])]
-        if later:
-            return later[0] + 1
+        after = next((i for i in range(ask + 1, len(entries)) if transcript.is_stop(entries[i])), None)
+        if after is not None:
+            return after + 1
     return 0
 
 
@@ -62,7 +63,7 @@ def github_refs(window):
                     repos.append(found.group(1) or found.group(2))
                     if found.group(3):
                         refs.add((found.group(2), found.group(3)))
-                named = re.search(r"(?:-R|--repo)[\s=]+([\w.-]+/[\w.-]+)", command)
+                named = re.search(REPO_FLAG, command)
                 bare += [(named.group(1) if named else None, n) for n in GH_NUMBER.findall(command)]
         for result in transcript.blocks_of(entry, "tool_result"):
             if re.search(r"\bgh\s+(?:issue|pr)\s+create\b", uses.get(result.get("tool_use_id"), "")):
@@ -78,9 +79,11 @@ def comments(repo, number, start, end):
     for path, at in ((f"repos/{repo}/issues/{number}/comments", "created_at"),
                      (f"repos/{repo}/pulls/{number}/reviews", "submitted_at")):
         run = subprocess.run(["gh", "api", "--paginate", path, "--jq", ".[] | @json"], capture_output=True, text=True)
-        for item in [] if run.returncode else map(json.loads, run.stdout.splitlines()):
+        if run.returncode:
+            continue
+        for item in map(json.loads, run.stdout.splitlines()):
             first = ((item.get("body") or "").strip().splitlines() or [""])[0]
-            when = transcript.seconds({"timestamp": item.get(at)})
+            when = transcript.seconds(item.get(at))
             found = OPENS.match(first)
             if found and when is not None and start <= when <= end:
                 yield f"{item.get(at)} {found.group(1).lower()} {item.get('html_url')} {first[:80]}"
@@ -100,11 +103,12 @@ def candidates(entries):
         for result in transcript.blocks_of(entry, "tool_result"):
             use = uses.get(result.get("tool_use_id")) or {}
             if result.get("is_error"):
-                kind = "refusal" if REFUSAL.search(transcript.text_of(result)) else "failure"
-                lines.append(f"{at} {kind} {use.get('name', '?')}: {transcript.text_of(result)[:120]!r}")
+                text = transcript.text_of(result)
+                kind = "refusal" if REFUSAL.search(text) else "failure"
+                lines.append(f"{at} {kind} {use.get('name', '?')}: {text[:120]!r}")
             elif use.get("name") == "AskUserQuestion":
                 lines += [f"{at} override {what}" for what in overrides(use, entry)]
-    times = [t for t in map(transcript.seconds, window) if t is not None]
+    times = [t for t in (transcript.seconds(e.get("timestamp")) for e in window) if t is not None]
     if times:
         for repo, number in github_refs(window):
             lines += comments(repo, number, times[0], times[-1])

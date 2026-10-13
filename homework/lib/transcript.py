@@ -34,9 +34,9 @@ def text_of(block):
     return body if isinstance(body, str) else json.dumps(body, ensure_ascii=False)
 
 
-def seconds(entry):
+def seconds(stamp):
     try:
-        return datetime.fromisoformat(str(entry.get("timestamp")).replace("Z", "+00:00")).timestamp()
+        return datetime.fromisoformat(str(stamp).replace("Z", "+00:00")).timestamp()
     except ValueError:
         return None
 

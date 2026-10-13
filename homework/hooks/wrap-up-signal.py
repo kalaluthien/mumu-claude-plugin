@@ -48,10 +48,11 @@ RECIPE = re.compile(r"(^|[:/])run-[\w-]+")
 
 def segment(entries):
     """Entries since the previous stop, a trailing stop entry dropped."""
-    while entries and transcript.is_stop(entries[-1]):
-        entries = entries[:-1]
-    stops = [i for i, e in enumerate(entries) if transcript.is_stop(e)]
-    return entries[stops[-1] + 1:] if stops else entries
+    end = len(entries)
+    while end and transcript.is_stop(entries[end - 1]):
+        end -= 1
+    start = next((i + 1 for i in range(end - 1, -1, -1) if transcript.is_stop(entries[i])), 0)
+    return entries[start:end]
 
 
 def has_recipe(cwd):
@@ -73,7 +74,8 @@ def counts(entries, cwd):
                 continue
             failures += 1
             use = uses.get(result.get("tool_use_id")) or {}
-            said = (use.get("input") or {}).get("skill") or (use.get("input") or {}).get("command") or ""
+            given = use.get("input") or {}
+            said = given.get("skill") or given.get("command") or ""
             if (use.get("name") == "Skill" and RECIPE.search(said)) or ".claude/skills/run-" in said:
                 recipe_failed = True
             elif use.get("name") == "Bash" and RUNS.search(said):
@@ -105,34 +107,39 @@ def fixed():
         return None
 
 
-def sentence(found, threshold, memory):
+def threshold_of(state):
+    override = fixed()
+    return state["threshold"] if override is None else override
+
+
+def sentence(found, threshold):
     generator = "" if found["recipe"] == "fine" else ", to record with /run-skill-generator"
-    return TEMPLATE.format(threshold=threshold, memory_limit=MEMORY_LIMIT, generator=generator,
-                           **{**found, "memory": memory})
+    return TEMPLATE.format(threshold=threshold, memory_limit=MEMORY_LIMIT, generator=generator, **found)
 
 
 def hook():
     payload = json.load(sys.stdin)
     data = os.environ.get("CLAUDE_PLUGIN_DATA")
-    entries = transcript.entries_of(payload.get("transcript_path") or "")
-    if not data or entries is None or payload.get("stop_hook_active"):
+    if not data or payload.get("stop_hook_active"):
         return 0
-    override = fixed()
-    if override is None and any(str(e.get("entrypoint", "")).startswith("sdk") for e in entries):
+    entries = transcript.entries_of(payload.get("transcript_path") or "")
+    if entries is None:
+        return 0
+    entrypoint = next((str(e["entrypoint"]) for e in entries if "entrypoint" in e), "")
+    if fixed() is None and entrypoint.startswith("sdk"):
         return 0
     state = load(data)
     found = counts(entries, payload.get("cwd"))
     state["memory"] += found["memory"]
-    threshold = state["threshold"] if override is None else override
+    threshold = threshold_of(state)
     session, stops = payload.get("session_id", ""), sum(1 for e in entries if transcript.is_stop(e))
     # the stop right after an ask holds the wrap-up's own work
     just_asked = state["asked"].get(session) == stops - 1
-    harvest = found["points"] >= threshold
-    tidy = state["memory"] >= MEMORY_LIMIT
-    if not just_asked and (harvest or found["recipe"] != "fine"):
-        reason = sentence(found, threshold, state["memory"]) + ASK
+    if not just_asked and (found["points"] >= threshold or found["recipe"] != "fine"):
+        reason = sentence(dict(found, memory=state["memory"]), threshold) + ASK
         state["asked"][session], state["pending"] = stops, True
-        state["memory"] = 0 if tidy else state["memory"]
+        if state["memory"] >= MEMORY_LIMIT:
+            state["memory"] = 0
         json.dump({"decision": "block", "reason": reason}, sys.stdout)
     save(data, state)
     return 0
@@ -162,9 +169,9 @@ if __name__ == "__main__":
             print(f"no transcript: {args[0]}", file=sys.stderr)
             sys.exit(1)
         cwd = next((e["cwd"] for e in reversed(entries) if e.get("cwd")), None)
-        found = counts(entries, cwd)
-        override = fixed()
-        print(sentence(found, START if override is None else override, found["memory"]))
+        data = os.environ.get("CLAUDE_PLUGIN_DATA")
+        state = load(data) if data else {"threshold": START}
+        print(sentence(counts(entries, cwd), threshold_of(state)))
         sys.exit(0)
     print(__doc__.split("\n\n")[1], file=sys.stderr)
     sys.exit(2)

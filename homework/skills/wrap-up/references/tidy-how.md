@@ -1,7 +1,7 @@
 # Tidy
 
 Review what earlier sessions kept, over the targets of
-[tidy-what.md](tidy-what.md), and never wait on an answer.
+[tidy-what.md](tidy-what.md).
 
 1. **Bound**: judge from this session's own instructions whether it may
    change memory and shared files. Bound to one task or scope, it may not:
@@ -20,12 +20,11 @@ Review what earlier sessions kept, over the targets of
    6. **Size**: an index past its load limit is cut to one line per entry; a skill grown past a few focused parts is split, not extended.
 5. **Obvious only**: apply a fix at once when the steps above give it and it
    is small; a change to a skill, hook or script counts only when its own
-   check still passes after it. A file in a repository changes the way that
-   repository takes changes, as its `AGENTS.md` says.
+   check still passes after it.
 6. **Leave the rest**: a fix that is not obvious or is large, or a lesson
    `list-drift.py` lists as never found again, goes as one issue in the
    repository that owns the file, labelled `backlog`, its body naming each
    file, reason and cost, `<n> files, <m> lines`, never a memory file's body.
    A pool with no repository: list the fix and its cost in the final message.
 7. **Report** each fix applied, each issue's url and each fix left; with none
-   found, say so, and change nothing.
+   found, say so.

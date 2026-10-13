@@ -3,7 +3,8 @@ import os
 import re
 from datetime import date
 
-FIELD = re.compile(r"^[ \t]*(confirmed|last-confirmed):[ \t]*(.*)$", re.M)
+# groups: indent, name, value
+FIELD = re.compile(r"^([ \t]*)(confirmed|last-confirmed):[ \t]*(.*)$", re.M)
 
 
 def split(text):
@@ -12,11 +13,10 @@ def split(text):
     return (found.group(1) or "", text[found.end():]) if found else (None, text)
 
 
-def fields(path):
-    """(confirmed, last-confirmed): a missing count reads 1, a missing date the file's modification date."""
-    with open(path, encoding="utf-8") as handle:
-        front, _ = split(handle.read())
-    values = dict(FIELD.findall(front or ""))
+def fields(path, text):
+    """(confirmed, last-confirmed) of a file's text: a missing count reads 1, a missing date the file's modification date."""
+    front, _ = split(text)
+    values = {name: value for _, name, value in FIELD.findall(front or "")}
     try:
         count = int(values.get("confirmed", "1"))
     except ValueError:

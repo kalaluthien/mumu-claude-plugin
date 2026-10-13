@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """Raise a memory file's confirmation count when its lesson is found again.
 
-  count-confirmations.py confirm <memory file>   raise `confirmed` by one and set
-                                                 `last-confirmed` to today
+  count-confirmations.py <memory file>   raise `confirmed` by one and set
+                                         `last-confirmed` to today
 
-Both fields sit in the file's frontmatter. `confirm` changes those two lines
+Both fields sit in the file's frontmatter. It changes those two lines
 only, in place at any indent (Claude Code nests them under `metadata:`),
 adding them, or a frontmatter, when missing.
 """
 import os
-import re
 import sys
 from datetime import date
 
@@ -20,12 +19,13 @@ import memory  # noqa: E402
 def confirm(path, today):
     with open(path, encoding="utf-8") as handle:
         text = handle.read()
-    count, _ = memory.fields(path)
+    count, _ = memory.fields(path, text)
     front, body = memory.split(text)
-    front = front if front is not None else ""
-    for name, value in (("confirmed", str(count + 1)), ("last-confirmed", today.isoformat())):
-        line = re.compile(rf"^([ \t]*){name}:.*$", re.M)
-        front = line.sub(rf"\g<1>{name}: {value}", front) if line.search(front) else front + f"{name}: {value}\n"
+    front = front or ""
+    values = {"confirmed": str(count + 1), "last-confirmed": today.isoformat()}
+    present = {name for _, name, _ in memory.FIELD.findall(front)}
+    front = memory.FIELD.sub(lambda m: f"{m.group(1)}{m.group(2)}: {values[m.group(2)]}", front)
+    front += "".join(f"{name}: {value}\n" for name, value in values.items() if name not in present)
     with open(path, "w", encoding="utf-8") as handle:
         handle.write(f"---\n{front}---\n{body}")
     print(f"{path}: confirmed {count + 1}, last-confirmed {today.isoformat()}")
@@ -34,7 +34,7 @@ def confirm(path, today):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    if len(args) == 2 and args[0] == "confirm":
-        sys.exit(confirm(args[1], date.today()))
+    if len(args) == 1:
+        sys.exit(confirm(args[0], date.today()))
     print(__doc__.split("\n\n")[1], file=sys.stderr)
     sys.exit(2)

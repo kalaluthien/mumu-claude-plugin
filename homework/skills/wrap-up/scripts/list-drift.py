@@ -26,17 +26,23 @@ INDEX_LINES, INDEX_BYTES = 200, 25_000
 LINK = re.compile(r"\]\(([^)]+\.md)\)")
 
 
+def read(path):
+    with open(path, encoding="utf-8") as handle:
+        return handle.read()
+
+
 def drift(pools, today):
     found, names = [], defaultdict(list)
     for pool in pools:
         index = os.path.join(pool, "MEMORY.md")
-        text = open(index, encoding="utf-8").read() if os.path.exists(index) else ""
+        text = read(index) if os.path.exists(index) else ""
         linked = set(LINK.findall(text))
         found += [f"dangling link: {index} -> {name}" for name in sorted(linked)
                   if not os.path.exists(os.path.join(pool, name))]
-        if len(text.splitlines()) > INDEX_LINES or len(text.encode()) > INDEX_BYTES:
-            found.append(f"index past its load limit: {index}, {len(text.splitlines())} lines, "
-                         f"{len(text.encode())} bytes; only the first {INDEX_LINES} lines or {INDEX_BYTES} bytes load")
+        lines, size = len(text.splitlines()), len(text.encode())
+        if lines > INDEX_LINES or size > INDEX_BYTES:
+            found.append(f"index past its load limit: {index}, {lines} lines, {size} bytes; "
+                         f"only the first {INDEX_LINES} lines or {INDEX_BYTES} bytes load")
         for path in sorted(glob.glob(os.path.join(glob.escape(pool), "*.md"))):
             name = os.path.basename(path)
             if name == "MEMORY.md":
@@ -44,11 +50,11 @@ def drift(pools, today):
             names[name].append(path)
             if name not in linked:
                 found.append(f"unindexed: {path}")
-            body = open(path, encoding="utf-8").read()
+            body = read(path)
             missing = [f for f in ("When it applies:", "When it is wrong:") if f not in body]
             if missing:
                 found.append(f"missing {' and '.join(missing)} {path}")
-            count, last = memory.fields(path)
+            count, last = memory.fields(path, body)
             if count <= 1 and today - last > timedelta(days=STALE_DAYS):
                 found.append(f"never found again: {path}, confirmed {count}, last-confirmed {last.isoformat()}")
     found += [f"one name in {len(paths)} pools: {' '.join(paths)}" for paths in names.values() if len(paths) > 1]

@@ -74,11 +74,7 @@ match, and a step cited from another playbook is named with it.
 
 A skill that asks the owner in batches loops within the same call until
 nothing is left but what the owner rejected, never deferring the rest to a
-next run, because the owner invoked it to finish the job. A skill that files
-or curates lessons routes each through harvest's whole routing table
-(auto-memory, `CLAUDE.md`, skill, references, agent, hook), never a subset,
-because a lesson routed to fewer destinations stays in memory when a file
-should hold it.
+next run, because the owner invoked it to finish the job.
 
 ## Register
 
