@@ -50,5 +50,5 @@ handed over by a person skips to step 4.
    which, the lesson and the repeat's evidence; with no tracker, tell the
    owner in one line.
 
-Tell the owner each lesson filed: its operation, text and file, and an add's
-one line; with none, say nothing.
+8. **Report**: tell the owner each lesson filed: its operation, text and file,
+   and an add's one line; with none, say nothing.

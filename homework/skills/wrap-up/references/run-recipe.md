@@ -2,8 +2,7 @@
 
 A recipe is a project skill at `.claude/skills/run-<name>/` that tells `/run`,
 `/verify` and any agent how to build, launch and check the repository, so none
-rediscovers it. `/run-skill-generator` writes it: it gets the app running from
-a clean environment and commits what worked.
+rediscovers it. `/run-skill-generator` writes it.
 
 1. **Recipe state**: read the signal's recipe:
    - `missing`: this session worked out by trial how to build, run or test,

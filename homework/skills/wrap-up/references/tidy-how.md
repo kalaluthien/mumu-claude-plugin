@@ -1,8 +1,5 @@
 # Tidy
 
-Review what earlier sessions kept, over the targets of
-[tidy-what.md](tidy-what.md).
-
 1. **Bound**: judge from this session's own instructions whether it may
    change memory and shared files. Bound to one task or scope, it may not:
    stop here, changing nothing, with one line saying why.

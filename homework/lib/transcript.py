@@ -4,7 +4,7 @@ import json
 import os
 from datetime import datetime
 
-# the hook's sentence opens with it, and the harvest finds the last ask by it
+# one constant, so the hook's sentence and the harvest's search for it cannot drift apart
 SIGNAL = "Wrap-up signal:"
 
 

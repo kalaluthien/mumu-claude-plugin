@@ -1,13 +1,14 @@
 # Skills and agents
 
-Write only what the reader cannot derive: house conventions, defaults that
+**Underivable only**: write only what the reader cannot derive: house conventions, defaults that
 surprise, values that must match another file. An `agents/*.md` file takes a
 skill's frontmatter rules; its body is the delegate's system prompt.
-A delegate's report is its final message, never a file it writes: the brief
+
+**Delegates**: a delegate's report is its final message, never a file it writes: the brief
 asks for it so. A slash command in a delegate's prompt is plain text: the brief
 names the skill for it to call.
 
-A lesson filed here: a procedure belongs to the skill that owns the work,
+**Lesson filed**: a procedure belongs to the skill that owns the work,
 edited in its source, never in the plugin cache, or a new skill in
 `~/.claude/skills/`, as the steps as run with what varied as parameters; how
 a delegate should work belongs to its `agents/<name>.md`.
