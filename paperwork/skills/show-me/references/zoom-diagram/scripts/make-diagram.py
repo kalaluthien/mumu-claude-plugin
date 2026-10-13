@@ -57,15 +57,20 @@ def prepare(model):
     rule's standing from Alloy's stored answers."""
     from diagram import formula, prover
     from diagram import plan as params
-    from diagram.model import Model, flat, walk_steps
+    from diagram.model import Model, flat, trig_key, walk_steps
     model = flat(model)   # the page reads the levels as one list
     model["plan"] = params.effective(model)
     M = Model(model)
+    # M reads names where the page reads labels, so a walk's keys are rebuilt from the page's own edges and triggers
+    page_edges = {f'{L["id"]}:{e["from"]}>{e["to"]}#{i}': (L, e) for L in model["levels"] for i, e in enumerate(L["edges"])}
+    page_trigs = {trig_key(L["id"], t2): trig_key(L["id"], t) for L, L2 in zip(model["levels"], M.m["levels"])
+                  for t, t2 in zip(L.get("triggers", []), L2.get("triggers", []))}
+
     # each Scenario's walk, resolved once here, so the page replays exactly what the checks and Alloy saw
     def key(k):
-        L, e = M.edges.get(k, (None, None))
+        L, e = page_edges.get(k, (None, None))
         if not e:
-            return k   # a trigger's key is the same on both sides
+            return page_trigs.get(k, k)
         twins = sum(1 for x in L["edges"] if (x["from"], x["to"]) == (e["from"], e["to"]))
         return f'{L["id"]}:{e["from"]}>{e["to"]}' + (f'#{e["label"]}' if twins > 1 else "")
     for s in model["scenarios"]:

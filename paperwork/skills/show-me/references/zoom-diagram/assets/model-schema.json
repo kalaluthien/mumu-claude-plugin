@@ -288,6 +288,10 @@
      "type": "string",
      "description": "A noun phrase for the whole."
     },
+    "name": {
+     "type": "string",
+     "description": "Workflow levels: the English name the checks and Alloy read when the title is in another language."
+    },
     "why": {
      "type": "string",
      "description": "What this level shows."
@@ -326,7 +330,7 @@
        "to",
        "label"
       ],
-      "description": "{to, label, every?, what, ops, rules}"
+      "description": "{to, label, name?, every?, what, ops, rules}"
      }
     },
     "syncs": {
@@ -379,6 +383,10 @@
        },
        "label": {
         "type": "string"
+       },
+       "name": {
+        "type": "string",
+        "description": "The English name the checks and Alloy read when the label is in another language."
        },
        "x": {
         "type": "integer",
@@ -473,6 +481,10 @@
        },
        "label": {
         "type": "string"
+       },
+       "name": {
+        "type": "string",
+        "description": "The English name the checks and Alloy read when the label is in another language."
        },
        "what": {
         "type": "string"

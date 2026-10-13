@@ -264,7 +264,7 @@ def names(M):
         for lit in re.findall(r"\{([^}]*)\}", str(t)):
             found += [(v.strip(), lit) for v in lit.split(",")]
     out = {f'"{n}" in {where} is a word Alloy or the translation reserves; rename it' for n, where in found if n in F.RESERVED}
-    out |= {f'{where} gives no Alloy name ("{n}"); write it in ASCII letters' for n, where in found if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", str(n))}
+    out |= {f'{where} gives no Alloy name ("{n}"); write it in ASCII letters, or give it a "name" in them' for n, where in found if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", str(n))}
     return sorted(out)
 
 
