@@ -62,13 +62,13 @@ def manager_actions(me, listed):
         if not any(holds(i, n) for n in team):
             lines.append(f"route #{i['number']} {i['title']}: no live worker holds it; route it, or leave it for later")
         if asking(i):
-            lines.append(f"answer #{i['number']}: its worker asks; post your DECIDED: there, then SendMessage the worker")
+            lines.append(f"answer #{i['number']}: its worker asks; post your DECIDED: there, then tell the worker")
     for n in team:
         held = " ".join(f"#{i['number']}" for i in found if holds(i, n)) or "nothing open"
         if status[n] == "blocked":
             lines.append(f"blocked {n}: it waits at a tool-use prompt; tell the owner its tab")
         elif status[n] in ("idle", "done"):
-            lines.append(f"idle {n}: holds {held}; SendMessage it what waits, or close it when it holds nothing open")
+            lines.append(f"idle {n}: holds {held}; tell it what waits, or close it when it holds nothing open")
     for p, n in ((p, n) for p in prs for n in team if p["headRefName"] == n or p["headRefName"].startswith(n + "-")):
         lines.append(f"merged #{p['number']} by {n}: once {n} holds nothing open, close it and clean its worktree")
     return lines

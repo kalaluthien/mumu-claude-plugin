@@ -36,7 +36,7 @@ Open the playbook of the first row that fits with `Read` and follow it; the `rou
 
 ## Rules
 
-- **Talk**: reach a session by `SendMessage` to its name from `ListAgents`, one message naming the url that holds what it needs, so any request, answer or handback reads the same; prompt only `/teamwork:kick-off` through `start` and your own `/rename`. Whatever must outlive a session goes on its issue first.
+- **Talk**: `tell` is the one way to reach a session, so any request, answer or handback reads the same; prompt only `/teamwork:kick-off` through `start` and your own `/rename`. Whatever must outlive a session goes on its issue first.
 - **Short writing**: bullets or a table, no narration; cite urls, `path:line`s and shas; a title verb-first.
 
 ## Verbs
@@ -51,7 +51,8 @@ Issues and pull requests live on GitHub, sessions in herdr, addressed by name; t
 | `nest` | `gh api -X POST repos/<repo>/issues/<backlog>/sub_issues -F sub_issue_id=<id>`, `<id>` from `gh api repos/<repo>/issues/<task> -q .id` |
 | `comment` | `gh issue comment <url> --body-file <path>`; `decide` is a `comment` of a `DECIDED:` |
 | `resolve` | `gh issue close <url> --reason completed --comment "<summary>"`, or `--reason "not planned"` for work stopped |
-| `judge` | a fresh `Agent` on `sonnet` at `high` that reviews work it did not write and replies only to you, its prompt `Read ${CLAUDE_PLUGIN_ROOT}/skills/kick-off/references/judge.md, then judge <url or path>.`; resume it with `SendMessage` |
+| `tell` | `SendMessage` to the name from `ListAgents`, one message naming the url that holds what it needs |
+| `judge` | a fresh `Agent` on `sonnet` at `high` that reviews work it did not write and replies only to you, its prompt `Read ${CLAUDE_PLUGIN_ROOT}/skills/kick-off/references/judge.md, then judge <url or path>.`; `tell` it to resume |
 | `rename` | `herdr tab rename <tab> <name>` and `herdr pane rename $HERDR_PANE_ID <name>`, the tab from `herdr pane get $HERDR_PANE_ID`, then `herdr agent rename $HERDR_PANE_ID <name>` and `herdr agent prompt $HERDR_PANE_ID "/rename <name>"`; a manager also `herdr workspace rename <workspace> <name>` |
 | `start` | `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/start-session.py <name> <cwd> "<kick-off arguments>" --model <m> --effort <e> [--team]`: a tab in your workspace, or with `--team` a new one |
 | `close` | `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/close-session.py <name>`, your own name included |

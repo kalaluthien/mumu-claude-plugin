@@ -67,7 +67,7 @@ def main(argv):
     parser.add_argument("--effort", required=True)
     a = parser.parse_args(argv)
     if team.agent(a.name):
-        sys.exit(f"start-session.py: {a.name} is already live: SendMessage it instead of starting another.")
+        sys.exit(f"start-session.py: {a.name} is already live: tell it instead of starting another.")
     text = f"/teamwork:kick-off {a.args}"
     try:
         pane = open_pane(a.name, str(pathlib.Path(a.cwd).resolve()), a.team)
