@@ -24,4 +24,5 @@ The reader must choose among options: approaches, designs, layouts, tools, plans
 | --- | --- |
 | cards differ in length and order | the same parts in each, the same order; what only one card has goes in the criteria table or is cut |
 | options look alike | the one-sentence test failed: redesign one |
+| the text names items a mock lacks | every mock shows every item the text names, or the text names fewer |
 | a mock overflows on a phone | the cards stack under 30rem; keep a mock under 15rem wide or scale it with `transform` inside an `overflow: hidden` box |

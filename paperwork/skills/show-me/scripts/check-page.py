@@ -7,7 +7,8 @@
 usage: check-page.py <page.html> [--shots DIR]
 
 Exit 0 and a last line `ok` when, at both widths, the page does not scroll sideways, no element but one inside a
-scroll box (`.scroll`, `pre`) runs past the right edge, no text is under 12 px, no text in a drawing shows under 10 px tall, and no script throws.
+scroll box (`.scroll`, `pre`) runs past the right edge, no drawing needs a sideways scroll to be seen whole, no text is under 12 px, no text
+in a drawing shows under 10 px tall or is cut at the drawing's edge, and no script throws.
 """
 import asyncio
 import pathlib
@@ -30,6 +31,12 @@ PROBE = """() => {
   for (const e of document.querySelectorAll('svg text')) {   // a drawing scaled down to the phone shrinks its text with it
     const h = e.getBoundingClientRect().height;
     if (h && h < 10 && e.textContent.trim()) bad.push(`text in a drawing shows under 10 px tall: "${e.textContent.trim().slice(0, 20)}"`);
+    const r = e.getBoundingClientRect(), s = e.ownerSVGElement.getBoundingClientRect();
+    if (r.width && (r.right > s.right + 1 || r.left < s.left - 1)) bad.push(`text in a drawing is cut at its edge: "${e.textContent.trim().slice(0, 20)}"`);
+  }
+  for (const svg of document.querySelectorAll('svg:not(svg svg)')) {   // a figure seen only by scrolling sideways is not seen whole
+    for (let a = svg.parentElement; a && a !== document.body; a = a.parentElement)
+      if (a.scrollWidth > a.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(a).overflowX)) { bad.push(`a drawing needs a sideways scroll (${Math.round(svg.getBoundingClientRect().width)} px in ${a.clientWidth} px)`); break; }
   }
   return [...new Set(bad)].slice(0, 20);
 }"""

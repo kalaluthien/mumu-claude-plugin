@@ -131,7 +131,9 @@ two could), or else becomes a field named by its verb (`runs on` is `runsOn`).
 An attribute that points at a component on the same level is drawn [typed].
 
 **Triggers.** `triggers` on a workflow or state level bring something in from
-outside: a one-off arrival, or a repeating one with `every`. A trigger is
+outside: a one-off arrival, or a repeating one with `every`. `every` is a
+timer the system keeps and is drawn as a clock; requests that people or other
+systems send at a rate are a one-off arrival, their rate in the `what`. A trigger is
 named like the level's edges, and is used by any Scenario whose steps enter
 that level at the trigger's node.
 
