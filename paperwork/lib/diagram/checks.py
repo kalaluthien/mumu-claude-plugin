@@ -300,6 +300,31 @@ def media(M):
     return out
 
 
+def pairs(text):
+    s = re.sub(r"\s+", "", text.casefold())
+    return {s[i:i + 2] for i in range(len(s) - 1)}
+
+
+def facts(M):
+    """Facts hold the system's own facts, never the diagram's plan: an item echoes the plan when it holds a third of
+    the intent's character pairs, in whatever language, or names two of the plan's views or the model's levels."""
+    m, out = M.m, []
+    intent = pairs(m["plan"].get("intent", ""))
+    names = {x.casefold() for x in [v.get("name", "") for v in m["plan"].get("views", [])] + [L["title"] for L in m["levels"]] if x}
+    for L in m["levels"]:
+        for owner in [L] + L["nodes"] + L["edges"]:
+            for md in owner.get("media", []):
+                if md.get("type") != "facts":
+                    continue
+                for item in md.get("items", []):
+                    text = " ".join(map(str, item))
+                    if (intent and len(pairs(text) & intent) * 3 >= len(intent)) or sum(n in text.casefold() for n in names) >= 2:
+                        where = owner.get("id", L["id"])
+                        out.append(f'{L["id"]}: the facts on {where} restate the plan ("{item[0]}"); keep the plan for the hand-over and state the system\'s facts')
+                        break
+    return out
+
+
 def unique_names(M):
     m = M.m
     norm = lambda t: re.sub(r"[\s_-]+", " ", t.strip().lower())
@@ -451,6 +476,7 @@ RULES = [
     ("depth", "an overview stops one level below the root", depth),
     ("naming", "labels follow their kind; abstract components depend only on abstract ones; marks are known", naming),
     ("media", "media sit where its type allows; an insight names a move, the usual design, the gain and a rule", media),
+    ("facts", "facts state the system's facts, never the plan: no item restates the intent or lists the views", facts),
     ("unique-names", "no two things the reader sees share a name", unique_names),
     ("typed", "types are names the module declares; signatures, attributes and relations agree with the drawing", typed),
     ("vocabulary", "formulas are Alloy over the model's names, every variable bound and none hiding a name", vocabulary),

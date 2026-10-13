@@ -333,6 +333,8 @@ Add `media` when something concrete explains faster than a sentence.
 | edges only | `payload` (what travels along it), `diff` (`before` and `after`, drawn as a line diff) |
 | anywhere, one per level | `insight` |
 
+`facts` hold the system's own facts (names, counts, paths, limits, sources) and never the plan: the question, the views, depth, proof scope and base commit go to the hand-over in chat, not the page [facts].
+
 - Give edges media as readily as nodes.
 - Mark made-up media `invented: true`; the reader sees "e.g.".
 - Give a `title` only when it says more than the type does.

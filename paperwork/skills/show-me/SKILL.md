@@ -31,7 +31,7 @@ An answer that fits on one screen as a table or a short fenced tree needs no pag
 - **Only what it needs**: no section, widget or control the answer does not use; a fact that does not change the reader's view is cut, and so is a part that repeats another.
 - **Checked facts**: every name, number, status and path comes from a file read, a command run or a page opened in this session; one not checked says "not verified"; a count the page states is the count of what it shows.
 - **One language**: the page, labels included, is in the language the user's instructions name, else the ask's; a zoom diagram's terms stay English (its `model-writing.md`).
-- **No one to ask**: when a playbook says to ask the user and no one can answer (a non-interactive run), take your proposed answers and say so on the page.
+- **No one to ask**: when a playbook says to ask the user and no one can answer (a non-interactive run), take your proposed answers and state them in the hand-over, never on the page.
 
 ## Done when
 
