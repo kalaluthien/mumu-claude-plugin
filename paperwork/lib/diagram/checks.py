@@ -264,7 +264,11 @@ def names(M):
         for lit in re.findall(r"\{([^}]*)\}", str(t)):
             found += [(v.strip(), lit) for v in lit.split(",")]
     out = {f'"{n}" in {where} is a word Alloy or the translation reserves; rename it' for n, where in found if n in F.RESERVED}
-    out |= {f'{where} gives no Alloy name ("{n}"); write it in ASCII letters, or give it a "name" in them' for n, where in found if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", str(n))}
+    out |= {f'{where} gives no Alloy name ("{n}"); write it in ASCII letters' for n, where in found if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", str(n))}
+    # terms are English whatever the reader's language; only descriptions follow it
+    terms = [m.get("title", "")] + [t for L in m["levels"] for t in [L.get("title", "")]
+             + [x.get("label", "") for x in L["nodes"] + L["edges"] + L.get("triggers", []) + L.get("partitions", []) + L.get("regions", [])]]
+    out |= {f'"{t}" is a term: write it in English, and only descriptions in the reader\'s language' for t in terms if not str(t).isascii()}
     return sorted(out)
 
 
@@ -431,7 +435,7 @@ LINT = {"basis", "explained", "size", "mechanism", "paths", "depth", "naming", "
 
 RULES = [
     ("form", "the file is well formed: one root, known kinds, initial states, named edges, refs as [name](url), a valid plan", form),
-    ("names", "every name is an ASCII Alloy name, clear of Alloy's keywords and the translation's words", names),
+    ("names", "every name is an ASCII Alloy name, clear of Alloy's keywords and the translation's words; every term is English", names),
     ("steps", "every Scenario step says what it does and expects, and follows an edge or opens or closes a level", steps),
     ("scoped", "the root and every level things enter from outside have Scenarios of their own (plan scenarios: every asks it of all); steps never climb above where they start", scoped),
     ("coverage", "every operation, rule, node, edge and trigger is used by some Scenario", coverage),
