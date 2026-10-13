@@ -6,9 +6,9 @@ script or hook with its failing case, and nothing is filed in memory.
 
 ## Contract
 
-- It lives in the owning skill's `scripts/`, so it goes with the procedure
-  that reaches it; a top-level `scripts/` holds what a hook, CI or two skills
-  run. Its extension names its language.
+- It lives beside the hook or skill that runs it, as the repository's
+  `AGENTS.md` places it, so it goes with the procedure that reaches it. Its
+  extension names its language.
 - The line under the shebang states its purpose. It handles its own errors
   and assumes no tool is installed.
 - One script answers one question: a sequence with judgement is a skill, one

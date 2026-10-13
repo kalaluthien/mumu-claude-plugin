@@ -14,9 +14,9 @@ a delegate should work belongs to its `agents/<name>.md`.
 
 ## Folder
 
-- Where each file sits, and how one links another: [plugin-authoring.md](../../../lib/plugin-authoring.md).
-- Moving a file or a rule: `git mv`, then search the plugin, tests and eval
-  graders for the old path and bare name until none is stale, and open each
+- Where each file sits, and how one links another: the repository's `AGENTS.md`.
+- Moving a file or a rule: `git mv`, then search the plugin and its checks
+  for the old path and bare name until none is stale, and open each
   new link once, because a stale path fails only when that step runs. A
   moved rule is re-derived against each member of its new home, and the old
   home emptied only once a grep of the destination finds the rule's nouns.
@@ -75,7 +75,7 @@ match, and a step cited from another playbook is named with it.
 A skill that asks the owner in batches loops within the same call until
 nothing is left but what the owner rejected, never deferring the rest to a
 next run, because the owner invoked it to finish the job. A skill that files
-or curates lessons routes each through retro's whole routing table
+or curates lessons routes each through harvest's whole routing table
 (auto-memory, `CLAUDE.md`, skill, references, agent, hook), never a subset,
 because a lesson routed to fewer destinations stays in memory when a file
 should hold it.
