@@ -3,7 +3,7 @@
 `make-diagram.py alloy model.json out.als` writes the model as one Alloy 6 module;
 the `alloy` check runs it; without Alloy it says `skipped: no Alloy` and
 `check` exits 3. Each command's answer is kept under a hash of its text, so a
-change reruns only the commands it touches; edit with `--quick`. Commands run
+change reruns only the commands it touches. Commands run
 one per core, each for at most 120 s (`ZOOM_DIAGRAM_ALLOY_SECONDS`); one that
 runs out is reported as unproved and is not retried until the limit is raised.
 Shrink the rule's scope or split the rule instead; raise the limit only to

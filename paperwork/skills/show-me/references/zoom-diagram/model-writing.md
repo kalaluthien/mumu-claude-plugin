@@ -92,7 +92,7 @@ straight to the join, and the next step joins them:
 |---|---|---|
 | `schema`: nothing that changes over time matters | component | relation |
 | `workflow`: state lives only while a run goes | activity | artifact handed on |
-| `state`: state persists and can be counted; give `subject` and `initial` | state | event |
+| `state`: state persists and can be counted | state | event |
 
 Pick the kind by what the reader follows: the activities of a run (workflow), or the
 life of one thing (state). A repository persists, but pushing it is a run.
@@ -110,7 +110,8 @@ life of one thing (state). A repository persists, but pushing it is a run.
   make the condition its guard.
 - An artifact that is a component shown elsewhere gets `is: <component id>`.
 - A state level names its `subject`, the one thing whose states these are; each
-  state is a subset of it. A level may give `init`, a formula true at the start.
+  state is a subset of it. It gives `initial`, one state per region (below), and
+  may give `init`, a formula true at the start.
 - A component with exactly one instance (a harness, a policy) is `singleton`.
 
 **Abstract components.** A component marked `abstract` is drawn dotted. It is
@@ -160,7 +161,6 @@ marks what a source does not confirm ("?").
 orthogonal regions (Harel): parts of one thing that change state at the same time and on their
 own, such as a branch on your machine and the same branch on GitHub.
 
-- Give `initial` one state per region.
 - Events stay inside their region.
 - Regions meet only through `syncs` (Meng and Jackson):
   `{ "name", "when": event, "where": state, "then": event }`. When the
@@ -225,8 +225,7 @@ An operation is a method, `Receiver.verb(name: Type, …) → Result` [typed].
   or names what it `modifies` (`"Branch.tip"`), is a call that happens at one
   moment. Any other operation is a query: a function the model reads.
 - **Conditions.** `pre` holds when it is called and `post` after, written over
-  `self`, its parameters and `result`. Write the next state with `after`;
-  `modifies` lists every attribute the call may change, and nothing else does.
+  `self`, its parameters and `result`; `modifies` lists every attribute the call may change, and nothing else does.
 - **One per verb.** Keep one operation per verb and drop compositions: open,
   up and jump are all `Board.goto`. Write the signature before the sentence.
 
@@ -315,7 +314,7 @@ not from memory of similar apps:
   primary. Pick the block type that the code renders (`tabs`, `list`,
   `button`, `choices`, …).
 - With no code, use the product's screenshots or documentation; a screen you
-  had to guess is `invented: true` and reads "e.g.".
+  had to guess is made up (Media).
 
 ### Media
 

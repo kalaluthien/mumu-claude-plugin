@@ -11,7 +11,6 @@
 ## Steps
 
 1. Get the data with a command (`gh api`, `gh issue list --json`, `git log`), and compute counts, sums and periods with a script; keep the command for the source line.
-2. Chart the numbers the answer is about, and write the answer and the chart from the same computed numbers.
 
 ## Gotchas
 

@@ -1,5 +1,4 @@
-<!-- base-page: the shell every page playbook copies whole. Fill each {{...}}; delete each body part the playbook does
-  not name, and keep the CSS whole. A chart is <svg data-chart="bar|line" data-unit="…" data-values="label:number,…">;
+<!-- base-page: the shell every page playbook copies whole. Fill each {{...}} and keep the CSS whole. A chart is <svg data-chart="bar|line" data-unit="…" data-values="label:number,…">;
   a button with data-reply="text" writes that text into the .reply box. -->
 <!doctype html>
 <html lang="{{ko|en}}">
@@ -52,8 +51,8 @@ dl { display: grid; grid-template-columns: auto 1fr; gap: .25rem .75rem; margin:
 </style>
 <main>
   <h1>{{title}}</h1>
-  <p class="answer">{{the one sentence that answers the ask}}</p>
-  <div class="figures"><div><b>{{number and unit}}</b>{{what it counts}}</div></div>  <!-- deleted unless the Form names .figures -->
+  <p class="answer">{{the one sentence or number that answers the ask}}</p>
+  <div class="figures"><div><b>{{number and unit}}</b>{{what it counts; at most 3, none the rest shows}}</div></div>  <!-- deleted unless the Form names .figures -->
   {{the playbook's main form}}
   <!-- deleted unless the Form names .reply --><section class="reply"><h2>{{reply, in the page's language}}</h2><textarea readonly>{{the text the reader pastes back}}</textarea><button>{{copy}}</button></section>
   <section class="next"><h2>{{next step, in the page's language}}</h2><p>{{the reader's next action or choice}}</p></section>

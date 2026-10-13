@@ -5,7 +5,7 @@ description: Use when the user asks to see something rather than read about it -
 
 # show-me
 
-**Seen or not done**: a page the user has not seen does not exist; describing a picture in prose, or naming a file path, is not showing it. Show the topic named, else the conversation's.
+**Seen or not done**: describing a picture in prose, or naming a file path, is not showing it. Show the topic named, else the conversation's.
 
 ## Routing
 
@@ -27,7 +27,7 @@ An answer that fits on one screen as a table or a short fenced tree needs no pag
 
 ## Rules
 
-- **Page parts**: a page playbook's page is `${CLAUDE_PLUGIN_ROOT}/skills/show-me/assets/base-page.html` with its body parts in this order: `.answer`, the one sentence or number that answers the ask; `.figures`, at most 3 key numbers the rest does not show, each with its unit; the playbook's main form; `.reply`, the text the reader pastes back; `.next`, what the reader does next or the choice they make. Its Form says what each part holds; delete each body part it does not name, and keep the CSS whole.
+- **Page parts**: a page playbook fills `${CLAUDE_PLUGIN_ROOT}/skills/show-me/assets/base-page.html`; its Form says what each body part holds, and every table sits in a `.scroll` box.
 - **Only what it needs**: no section, widget or control the answer does not use; a fact that does not change the reader's view is cut, and so is a part that repeats another.
 - **Checked facts**: every name, number, status and path comes from a file read, a command run or a page opened in this session; one not checked says "not verified"; a count the page states is the count of what it shows.
 - **One language**: the page, labels included, is in the language the user's instructions name, else the ask's.
@@ -35,5 +35,5 @@ An answer that fits on one screen as a table or a short fenced tree needs no pag
 
 ## Done when
 
-1. `"${CLAUDE_PLUGIN_ROOT}/skills/show-me/scripts/check-page.py" <page> --shots <dir>` prints `ok` last, and you looked at both captures: the first screen answers the ask, the main figure reads at 1200 px, and text and figure agree. A zoom diagram passes its own `make` instead, and you looked at its `render --shots` captures the same way.
+1. `"${CLAUDE_PLUGIN_ROOT}/skills/show-me/scripts/check-page.py" <page> --shots <dir>` prints `ok` last, and you looked at both captures: the first screen answers the ask, the main form reads at 1200 px, and text and figure agree. A zoom diagram passes its own `make` instead, and you looked at its `render --shots` captures the same way.
 2. The page went out as Output says, and the chat reply gives the one-sentence answer and the next action, nothing more.

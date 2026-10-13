@@ -4,7 +4,6 @@
 
 - One thing to watch at a time: only the selection is inverted.
 - Every mark has a job and comes from the model, with one signal per meaning.
-  The one warning ink is used only for failure.
 - Nothing needs explaining: no title, figure number, hint or display switch.
 - Calm: one eased movement per navigation, and none under reduced motion.
 - Type has roles: names on the drawing in handwriting, identifiers and
@@ -14,8 +13,8 @@
 
 - **Nodes and marks.** A corner radius tells the level kind (components 4,
   activities 11, states pills); the initial state has a dot, an abstract
-  component is dotted, an opening node has a chevron. The main path is
-  heavier, a failure path is in the warning ink, an optional element is
+  component is dotted. The main path is
+  heavier, a failure path, and only it, is in the warning ink, an optional element is
   dashed, and an `unsure` one gets "?". The legend lists only marks in use.
 - **Edges.** Orthogonal; no label touches a node, another label or another
   edge, and edges from different sources never share a stretch of line.
@@ -34,6 +33,6 @@
 After `make-diagram.py make` passes, look at every level at both widths and in
 both themes (`render out.html --shots DIR` saves them). Check that arrow tips
 sit on borders, nothing is clipped, every opening node has a chevron, every
-node a screen shows (a part, a state, an activity) shows that screen, only the selection is
-inverted, and nothing would need explaining to a newcomer. On a
+node a screen shows (a part, a state, an activity) shows that screen, and the
+Principles hold. On a
 phone a wide level scrolls sideways in full screen; that is not clipping.
