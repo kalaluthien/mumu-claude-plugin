@@ -1,6 +1,6 @@
 # Recall
 
-Open when you take new work, before you file a task, and before you comment a `BLOCKED:`: the repository's history may already hold the answer, the decision or the attempt that failed.
+Open when you take new work, before you file an issue, and before you comment a `BLOCKED:`: the repository's history may already hold the answer, the decision or the attempt that failed.
 
 1. Run [recall-work.py](../scripts/recall-work.py) with the work's words, adding `--path <file>` for each file you will change; it follows renames.
 2. Read each line's kind and state: a `not planned` issue or a `closed` PR is an attempt stopped; learn why before you repeat it.
