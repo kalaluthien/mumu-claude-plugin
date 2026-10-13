@@ -1,0 +1,2869 @@
+{
+ "method": "44 interactive sessions sampled (random.seed(433)) from ~/.claude/projects with 3-40 stops; 8 subagents labelled every stop from per-segment digests by this guide.",
+ "guide": "# Labelling guide: is a stop worth a wrap-up?\n\nA Claude Code session stops each time the agent ends a turn. At a stop a hook may ask the agent to run `wrap-up`, a skill that either:\n\n- **harvest**: files this session's lessons into memory (a fact, a trap, the user's preference, a procedure that worked) so later sessions do not repeat a mistake;\n- **tidy**: tidies already-written memory and rule files (`MEMORY.md` index, memory files, `AGENTS.md`/`CLAUDE.md`, skills): duplicates, contradictions, dangling links, a lesson in the wrong place;\n- **recipe**: writes or refreshes a skill recording how to run and verify the repository, when the agent had to work that out by trial.\n\nEach digest lists a session's segments; segment k is everything between stop k-1 and stop k. Label every stop.\n\nA stop is **worth** (`true`) when its own segment holds at least one of:\n\n1. the user corrects, redirects or overrules the agent, or states a preference or rule meant to last;\n2. a failure, refusal or surprise whose cause the agent then found (not a one-off typo it simply retyped);\n3. a procedure worked out by trial that a later session would need again;\n4. a reviewer's `FINDINGS:`/`BLOCKED:` exchange that reveals a gap in how the agent works;\n5. memory or rule files written or edited in a way that leaves a duplicate, contradiction or stale line visible in the digest;\n6. the agent works out by trial how to build, run or test the repository.\n\nIt is **not worth** (`false`) when the segment is routine progress, a question answered, waiting, monitoring or a status ping; or when every lesson in it was already filed in that same segment (for example a retro/memory write that covers it, leaving no drift).\n\nJudge each segment on its own, never on what the hook said at the stop: `(hook said: ...)` lines show an old trigger and must not sway you. When the digest is too terse to tell, open the transcript at the path on the digest's first line (JSONL) and read around that segment's timestamps.\n\nWrite one JSON object per stop, one per line, to your output file:\n\n`{\"transcript\": \"<path from the digest's first line>\", \"stop\": <k>, \"worth\": true|false, \"route\": \"harvest\"|\"tidy\"|\"recipe\"|null, \"why\": \"<at most 15 words>\"}`\n\n`route` is the main route when worth, else null. Label every stop the digest shows, in order; a stop count mismatch is a failure to report.\n",
+ "stops": [
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-homeops--worktrees-320-ts-prefs/00e1df9a-997c-4b1e-8e73-2831fbd3129c.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "Tailscale read hang traced to macOS privacy prompt charged to herdr"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-homeops--worktrees-320-ts-prefs/00e1df9a-997c-4b1e-8e73-2831fbd3129c.jsonl",
+   "stop": 2,
+   "worth": true,
+   "route": "harvest",
+   "why": "perl alarm timeout on macOS and $? escaping worked out by trial"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-homeops--worktrees-320-ts-prefs/00e1df9a-997c-4b1e-8e73-2831fbd3129c.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "filing two memories; no drift visible"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-homeops--worktrees-320-ts-prefs/00e1df9a-997c-4b1e-8e73-2831fbd3129c.jsonl",
+   "stop": 4,
+   "worth": false,
+   "route": null,
+   "why": "review and merge; flaky host test rerun, cause not found"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-homeops--worktrees-320-ts-prefs/00e1df9a-997c-4b1e-8e73-2831fbd3129c.jsonl",
+   "stop": 5,
+   "worth": false,
+   "route": null,
+   "why": "status ping while waiting on reviewer"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-homeops--worktrees-332-colima-runs/06ecba4f-fbf2-4a2d-bfe8-d2f1184865de.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "campaign-claim needs campaign dir; colima launchd facts measured, not yet filed"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-homeops--worktrees-332-colima-runs/06ecba4f-fbf2-4a2d-bfe8-d2f1184865de.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "filing skill wrote the colima finding into existing memory"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-homeops--worktrees-332-colima-runs/06ecba4f-fbf2-4a2d-bfe8-d2f1184865de.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "posted measurement note and pinged planner; routine"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-homeops--worktrees-332-colima-runs/06ecba4f-fbf2-4a2d-bfe8-d2f1184865de.jsonl",
+   "stop": 4,
+   "worth": true,
+   "route": "harvest",
+   "why": "test-host failure traced to main baseline; mutation checks worked out"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-homeops--worktrees-332-colima-runs/06ecba4f-fbf2-4a2d-bfe8-d2f1184865de.jsonl",
+   "stop": 5,
+   "worth": false,
+   "route": null,
+   "why": "waiting for review"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-homeops--worktrees-332-colima-runs/06ecba4f-fbf2-4a2d-bfe8-d2f1184865de.jsonl",
+   "stop": 6,
+   "worth": true,
+   "route": "harvest",
+   "why": "reviewer found defect and missing tests; guard cannot expand $S path"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-homeops--worktrees-332-colima-runs/06ecba4f-fbf2-4a2d-bfe8-d2f1184865de.jsonl",
+   "stop": 7,
+   "worth": false,
+   "route": null,
+   "why": "waiting for round-2 review"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-homeops--worktrees-332-colima-runs/06ecba4f-fbf2-4a2d-bfe8-d2f1184865de.jsonl",
+   "stop": 8,
+   "worth": true,
+   "route": "harvest",
+   "why": "merge --match-head-commit failed on short sha; reach needs campaign dir"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-homeops--worktrees-332-colima-runs/06ecba4f-fbf2-4a2d-bfe8-d2f1184865de.jsonl",
+   "stop": 9,
+   "worth": false,
+   "route": null,
+   "why": "report, worktree removal, release; routine close"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-charts-77/737020a6-6dc6-44fd-8e3d-ec8be448bfa5.jsonl",
+   "stop": 1,
+   "worth": false,
+   "route": null,
+   "why": "blocked question; herdr lookup slip already covered by memory"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-charts-77/737020a6-6dc6-44fd-8e3d-ec8be448bfa5.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "retro found nothing new to file"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-charts-77/737020a6-6dc6-44fd-8e3d-ec8be448bfa5.jsonl",
+   "stop": 3,
+   "worth": true,
+   "route": "harvest",
+   "why": "headless scroll probe, dataviz preempting skill, legend grader pattern found by trial"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-charts-77/737020a6-6dc6-44fd-8e3d-ec8be448bfa5.jsonl",
+   "stop": 4,
+   "worth": false,
+   "route": null,
+   "why": "retro filed this session's lessons, no drift visible"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-charts-77/737020a6-6dc6-44fd-8e3d-ec8be448bfa5.jsonl",
+   "stop": 5,
+   "worth": false,
+   "route": null,
+   "why": "routine merge after owner approval"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-doc-skills-11/49837cf1-0a83-4efd-8066-3cb9fc82921f.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "tool_order grader schema dug from binary; auto mode refused binary read"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-doc-skills-11/49837cf1-0a83-4efd-8066-3cb9fc82921f.jsonl",
+   "stop": 2,
+   "worth": true,
+   "route": "harvest",
+   "why": "plugin eval withholds Artifact; stray subagent folder in main checkout"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-doc-skills-11/49837cf1-0a83-4efd-8066-3cb9fc82921f.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "leader accepted stand-in check; review launched"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-doc-skills-11/49837cf1-0a83-4efd-8066-3cb9fc82921f.jsonl",
+   "stop": 4,
+   "worth": false,
+   "route": null,
+   "why": "approved, merged, reported"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-document-layout-163-1/2ae47c6c-d2b9-4ac4-9595-5f2dc9fe3ae1.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "eval bare name hit installed plugin; reviewer comment refused, cause found"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-document-layout-163-1/2ae47c6c-d2b9-4ac4-9595-5f2dc9fe3ae1.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "retro filed this session's lessons"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-document-layout-163-1/2ae47c6c-d2b9-4ac4-9595-5f2dc9fe3ae1.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "routine merge after approval"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-fold-rest-22/3d372e8f-72fb-4698-bcbb-900d0cfdcd9e.jsonl",
+   "stop": 1,
+   "worth": false,
+   "route": null,
+   "why": "routine kickoff, PR opened, review launched"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-fold-rest-22/3d372e8f-72fb-4698-bcbb-900d0cfdcd9e.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "retro found nothing durable; waiting on review and #19"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-fold-rest-22/3d372e8f-72fb-4698-bcbb-900d0cfdcd9e.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "waiting for #19 to close"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-fold-rest-22/3d372e8f-72fb-4698-bcbb-900d0cfdcd9e.jsonl",
+   "stop": 4,
+   "worth": true,
+   "route": "harvest",
+   "why": "reviewer approved only in report, could not post PR comment; cause found"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-fold-rest-22/3d372e8f-72fb-4698-bcbb-900d0cfdcd9e.jsonl",
+   "stop": 5,
+   "worth": true,
+   "route": "harvest",
+   "why": "rebase refused as Git Destructive; merged main instead, unfiled here"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-fold-rest-22/3d372e8f-72fb-4698-bcbb-900d0cfdcd9e.jsonl",
+   "stop": 6,
+   "worth": false,
+   "route": null,
+   "why": "retro filed the force-push and comment lessons in this segment"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-fold-rest-22/3d372e8f-72fb-4698-bcbb-900d0cfdcd9e.jsonl",
+   "stop": 7,
+   "worth": false,
+   "route": null,
+   "why": "routine merge at approved sha and report to leader"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-guard-second-checkout-325-1/b5f60b7f-9299-4155-875f-4898266fbd78.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "guard edit refused; zsh diff shadowed by function, used /usr/bin/diff"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-guard-second-checkout-325-1/b5f60b7f-9299-4155-875f-4898266fbd78.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "waiting on owner to apply patch"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-guard-second-checkout-325-1/b5f60b7f-9299-4155-875f-4898266fbd78.jsonl",
+   "stop": 3,
+   "worth": true,
+   "route": "harvest",
+   "why": "retry lifted refusal for one call only; commit refused again"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-guard-second-checkout-325-1/b5f60b7f-9299-4155-875f-4898266fbd78.jsonl",
+   "stop": 4,
+   "worth": true,
+   "route": "harvest",
+   "why": "push after main merge refused again; retry window lost to test run"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-literal-clean-lines-259-1/288b037d-cfed-438a-95c6-912b57b4a22b.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "Instruction Poisoning refusal, owner retry; own test bug found"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-literal-clean-lines-259-1/288b037d-cfed-438a-95c6-912b57b4a22b.jsonl",
+   "stop": 2,
+   "worth": true,
+   "route": "harvest",
+   "why": "relayed retry not accepted by reviewer as owner permission"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-literal-clean-lines-259-1/288b037d-cfed-438a-95c6-912b57b4a22b.jsonl",
+   "stop": 3,
+   "worth": true,
+   "route": "harvest",
+   "why": "merge.py behind main; bash-guard refuses merge text; owner asked summary"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-measure-by-rubric-326-1/9f0118e1-e260-4ff9-b9a8-0015a7d62a22.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "Sonnet count spread fixed by trial: sentence cuts, voting, chunking; pkill guard"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-measure-by-rubric-326-1/9f0118e1-e260-4ff9-b9a8-0015a7d62a22.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "Retro filed lessons in this segment"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-measure-by-rubric-326-1/9f0118e1-e260-4ff9-b9a8-0015a7d62a22.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "Dream merged duplicate memory as owner chose; no drift left"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-measure-by-rubric-326-1/9f0118e1-e260-4ff9-b9a8-0015a7d62a22.jsonl",
+   "stop": 4,
+   "worth": true,
+   "route": "harvest",
+   "why": "Term-batch and semicolon bugs found; bash-guard refused hooksPath bypass"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-measure-by-rubric-326-1/9f0118e1-e260-4ff9-b9a8-0015a7d62a22.jsonl",
+   "stop": 5,
+   "worth": false,
+   "route": null,
+   "why": "Retro filed batching and reply-reuse lessons"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-measure-by-rubric-326-1/9f0118e1-e260-4ff9-b9a8-0015a7d62a22.jsonl",
+   "stop": 6,
+   "worth": true,
+   "route": "harvest",
+   "why": "BLOCKED: criterion '+1' unprovable from totals, needed lead rewrite"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-measure-by-rubric-326-1/9f0118e1-e260-4ff9-b9a8-0015a7d62a22.jsonl",
+   "stop": 7,
+   "worth": false,
+   "route": null,
+   "why": "Lead's rewritten criterion checked; judged and merged routinely"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-nested-chapters-eval-396-1/0983bf7d-18aa-4de4-bcda-a07ce2c24467.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "auto mode refused chmod on kept eval dirs"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-nested-chapters-eval-396-1/0983bf7d-18aa-4de4-bcda-a07ce2c24467.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "routine PR open per lead comment"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-nested-chapters-eval-396-1/0983bf7d-18aa-4de4-bcda-a07ce2c24467.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "lead merged branch elsewhere; stop"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-nested-chapters-eval-396-1/0983bf7d-18aa-4de4-bcda-a07ce2c24467.jsonl",
+   "stop": 4,
+   "worth": false,
+   "route": null,
+   "why": "status question answered"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-numeric-rules-21/4e1c3721-a544-4d2a-9190-d7de6a7402fd.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "Alloy int wraparound and bitwidth limits found by trial runs"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-numeric-rules-21/4e1c3721-a544-4d2a-9190-d7de6a7402fd.jsonl",
+   "stop": 2,
+   "worth": true,
+   "route": "harvest",
+   "why": "user doubted result; posted diff did not apply, diff.noprefix needs -p0"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-numeric-rules-21/4e1c3721-a544-4d2a-9190-d7de6a7402fd.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "waiting on PR 31, blocked comment posted"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-numeric-rules-21/4e1c3721-a544-4d2a-9190-d7de6a7402fd.jsonl",
+   "stop": 4,
+   "worth": false,
+   "route": null,
+   "why": "expected rebase conflict, diff rebuilt, PR opened"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-numeric-rules-21/4e1c3721-a544-4d2a-9190-d7de6a7402fd.jsonl",
+   "stop": 5,
+   "worth": false,
+   "route": null,
+   "why": "routine approved merge and idle report"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-page-check-hardening-253-2/14047117-0873-497a-992e-1fc74d7b3444.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "recipe",
+   "why": "Chrome fails in eval sandbox; load and CPU-throttle procedure; pkill guard"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-page-check-hardening-253-2/14047117-0873-497a-992e-1fc74d7b3444.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "Retro filed the session's lessons; no drift"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-page-check-hardening-253-2/14047117-0873-497a-992e-1fc74d7b3444.jsonl",
+   "stop": 3,
+   "worth": true,
+   "route": "harvest",
+   "why": "Drawer fixed waits; test_diagram broken on main since #307; pinned commit"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-rename-plugins-369-1/02b24f31-4629-4899-9c73-0e2dc9fd95fc.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "criterion check could not fail; cutover criteria unpassable pre-merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-rename-plugins-369-1/02b24f31-4629-4899-9c73-0e2dc9fd95fc.jsonl",
+   "stop": 2,
+   "worth": true,
+   "route": "harvest",
+   "why": "eval Bash grant keyed by plugin name; zsh noclobber log failure"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-rename-plugins-369-1/02b24f31-4629-4899-9c73-0e2dc9fd95fc.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "retro filed lessons in memory"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-rename-plugins-369-1/02b24f31-4629-4899-9c73-0e2dc9fd95fc.jsonl",
+   "stop": 4,
+   "worth": true,
+   "route": "harvest",
+   "why": "merge refused on main-failing eval; miscounts and eaten backticks"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-rename-plugins-369-1/02b24f31-4629-4899-9c73-0e2dc9fd95fc.jsonl",
+   "stop": 5,
+   "worth": false,
+   "route": null,
+   "why": "lead decision applied; routine handoff"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-rename-plugins-369-1/02b24f31-4629-4899-9c73-0e2dc9fd95fc.jsonl",
+   "stop": 6,
+   "worth": false,
+   "route": null,
+   "why": "user typed //exit; answered"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-session-refresh-59/3171f1bb-2c03-4f29-8187-3043c0b63cae.jsonl",
+   "stop": 1,
+   "worth": false,
+   "route": null,
+   "why": "probe answers; routine"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-session-refresh-59/3171f1bb-2c03-4f29-8187-3043c0b63cae.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "subagent reply relayed"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-session-refresh-59/3171f1bb-2c03-4f29-8187-3043c0b63cae.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "task notification; nothing new"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-shared-plugin-rules-428-1/907a5b59-3055-4439-82db-9a81788a11ac.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner redirected: print command to run, not poll for it"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-shared-plugin-rules-428-1/907a5b59-3055-4439-82db-9a81788a11ac.jsonl",
+   "stop": 2,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner corrected again: output the command, do not run it"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-shared-plugin-rules-428-1/907a5b59-3055-4439-82db-9a81788a11ac.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "checks passed, PR opened, scoring launched; routine"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-shared-plugin-rules-428-1/907a5b59-3055-4439-82db-9a81788a11ac.jsonl",
+   "stop": 4,
+   "worth": false,
+   "route": null,
+   "why": "retro filed refusal lesson; judge launched"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-skill-router-368-1/32429f5f-d015-4cf7-8d66-39a9df2833e3.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "guard false positive, self-matching test, haiku judge failures diagnosed"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-skill-router-368-1/32429f5f-d015-4cf7-8d66-39a9df2833e3.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "retro filed the haiku judge lesson"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-skill-router-368-1/32429f5f-d015-4cf7-8d66-39a9df2833e3.jsonl",
+   "stop": 3,
+   "worth": true,
+   "route": "harvest",
+   "why": "grader (?i) regex unsupported, target setting broke case; found"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-skill-router-368-1/32429f5f-d015-4cf7-8d66-39a9df2833e3.jsonl",
+   "stop": 4,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner decision reopened structure; pr-merge needs eval passes"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-skill-router-368-1/32429f5f-d015-4cf7-8d66-39a9df2833e3.jsonl",
+   "stop": 5,
+   "worth": false,
+   "route": null,
+   "why": "eval rerun results; waiting on suite"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-skill-router-368-1/32429f5f-d015-4cf7-8d66-39a9df2833e3.jsonl",
+   "stop": 6,
+   "worth": true,
+   "route": "harvest",
+   "why": "PASSED lines need bare paths, no bullets; eval drop cause found"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-spec-split-20/5e59e15f-5931-4678-964f-8e58e7f6686d.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "recipe",
+   "why": "plugin eval by name failed; local path form worked"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-spec-split-20/5e59e15f-5931-4678-964f-8e58e7f6686d.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "waiting on reviewer verdict"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-spec-split-20/5e59e15f-5931-4678-964f-8e58e7f6686d.jsonl",
+   "stop": 3,
+   "worth": true,
+   "route": "harvest",
+   "why": "approved merge refused as Merge Without Review; herdr send-text plus send-keys found"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-spec-split-20/5e59e15f-5931-4678-964f-8e58e7f6686d.jsonl",
+   "stop": 4,
+   "worth": false,
+   "route": null,
+   "why": "peer request noted, no new work"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-spec-split-20/5e59e15f-5931-4678-964f-8e58e7f6686d.jsonl",
+   "stop": 5,
+   "worth": true,
+   "route": "harvest",
+   "why": "retry refused again; approved.py hook needs pr merge on its own line"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "cd not carried through gate; eval page failures diagnosed"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "retro filed lessons, no drift"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 3,
+   "worth": true,
+   "route": "harvest",
+   "why": "check.py read formula as flow; cause fixed with test"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 4,
+   "worth": true,
+   "route": "harvest",
+   "why": "lead redirected fix; kill-guard refused pkill"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 5,
+   "worth": false,
+   "route": null,
+   "why": "confirmation of earlier fix"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 6,
+   "worth": false,
+   "route": null,
+   "why": "status ping"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 7,
+   "worth": false,
+   "route": null,
+   "why": "diagnosis progress, cause not yet confirmed"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 8,
+   "worth": true,
+   "route": "harvest",
+   "why": "lead redirected where the TOC fix belongs"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 9,
+   "worth": false,
+   "route": null,
+   "why": "results reported"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 10,
+   "worth": true,
+   "route": "recipe",
+   "why": "eval runner deletes run files; ran copy keeping pages"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 11,
+   "worth": true,
+   "route": "harvest",
+   "why": "cause found: rule belongs in artifact.md authors read first"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 12,
+   "worth": true,
+   "route": "harvest",
+   "why": "remaining eval failure traced to source note placement"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 13,
+   "worth": false,
+   "route": null,
+   "why": "retro filed lessons"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 14,
+   "worth": false,
+   "route": null,
+   "why": "routine commit and runs"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 15,
+   "worth": false,
+   "route": null,
+   "why": "status ping"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 16,
+   "worth": false,
+   "route": null,
+   "why": "eval results reported"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 17,
+   "worth": true,
+   "route": "harvest",
+   "why": "user says be proactive"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 18,
+   "worth": false,
+   "route": null,
+   "why": "lead decision followed"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 19,
+   "worth": false,
+   "route": null,
+   "why": "routine main merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 20,
+   "worth": false,
+   "route": null,
+   "why": "pause per lead decision"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 21,
+   "worth": false,
+   "route": null,
+   "why": "resume after compact"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 22,
+   "worth": false,
+   "route": null,
+   "why": "user question on run count answered"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 23,
+   "worth": true,
+   "route": "harvest",
+   "why": "5 suite failures traced to placeholder table and pressed style"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 24,
+   "worth": false,
+   "route": null,
+   "why": "retro filed lessons"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 25,
+   "worth": true,
+   "route": "harvest",
+   "why": "eval failed on -함 endings; widget guidance fixed"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 26,
+   "worth": true,
+   "route": "harvest",
+   "why": "bash-guard refused raw pr merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 27,
+   "worth": true,
+   "route": "harvest",
+   "why": "judge FINDINGS: pass comment, failing evals waved off"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 28,
+   "worth": false,
+   "route": null,
+   "why": "lead decision applied, judge resumed"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "stop": 29,
+   "worth": true,
+   "route": "harvest",
+   "why": "bash-guard refused non-literal pr-merge.py call again"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/09686537-ddd9-4344-aab7-e8e728b7c695.jsonl",
+   "stop": 1,
+   "worth": false,
+   "route": null,
+   "why": "Routine succession takeover"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/09686537-ddd9-4344-aab7-e8e728b7c695.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "Peer exit proposal answered OK"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/09686537-ddd9-4344-aab7-e8e728b7c695.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "Peer pull proposal answered OK"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/09686537-ddd9-4344-aab7-e8e728b7c695.jsonl",
+   "stop": 4,
+   "worth": false,
+   "route": null,
+   "why": "Owner asked handover; routine procedure run"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/1c9271f2-9324-458a-9f2e-46a6d91be1c5.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "Premise checked with owner; bash-guard refused text containing pr merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/1c9271f2-9324-458a-9f2e-46a6d91be1c5.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "Peer exit proposal answered OK"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/1c9271f2-9324-458a-9f2e-46a6d91be1c5.jsonl",
+   "stop": 3,
+   "worth": true,
+   "route": "harvest",
+   "why": "Judge FINDINGS on both plans' criteria; revised"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/1c9271f2-9324-458a-9f2e-46a6d91be1c5.jsonl",
+   "stop": 4,
+   "worth": false,
+   "route": null,
+   "why": "Retro and backlog filing; plan approval status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/1c9271f2-9324-458a-9f2e-46a6d91be1c5.jsonl",
+   "stop": 5,
+   "worth": false,
+   "route": null,
+   "why": "Baseline score received; re-judge requested"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/1c9271f2-9324-458a-9f2e-46a6d91be1c5.jsonl",
+   "stop": 6,
+   "worth": false,
+   "route": null,
+   "why": "Plans approved; waiting on dependency"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/1c9271f2-9324-458a-9f2e-46a6d91be1c5.jsonl",
+   "stop": 7,
+   "worth": false,
+   "route": null,
+   "why": "Monitor ping; still waiting"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/1c9271f2-9324-458a-9f2e-46a6d91be1c5.jsonl",
+   "stop": 8,
+   "worth": true,
+   "route": "harvest",
+   "why": "Owner overruled waiting on dotclaude#123: proceed now"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/1c9271f2-9324-458a-9f2e-46a6d91be1c5.jsonl",
+   "stop": 9,
+   "worth": false,
+   "route": null,
+   "why": "Worker idle ping; owner already ran refused deletes"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/1c9271f2-9324-458a-9f2e-46a6d91be1c5.jsonl",
+   "stop": 10,
+   "worth": false,
+   "route": null,
+   "why": "Relayed known auto-mode refusal on gates.json to owner"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/1c9271f2-9324-458a-9f2e-46a6d91be1c5.jsonl",
+   "stop": 11,
+   "worth": false,
+   "route": null,
+   "why": "Worker working ping"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/1c9271f2-9324-458a-9f2e-46a6d91be1c5.jsonl",
+   "stop": 12,
+   "worth": false,
+   "route": null,
+   "why": "Routine merge cleanup and next worker start"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/1c9271f2-9324-458a-9f2e-46a6d91be1c5.jsonl",
+   "stop": 13,
+   "worth": true,
+   "route": "harvest",
+   "why": "Deleted guard still installed as git hook via sync.sh; rm refused"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "restart: new session id leaves no mission file; adopted old one"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "retro filed the restart lesson this segment"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "owner task request, worked as asked"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 4,
+   "worth": true,
+   "route": "harvest",
+   "why": "documented lead address format found not to work in practice"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 5,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 6,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 7,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 8,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 9,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner rule: survey result implemented by widening same issue; rm refused"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 10,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 11,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 12,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 13,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 14,
+   "worth": false,
+   "route": null,
+   "why": "hook regression found and filed in #87 same segment"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 15,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 16,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner redirects size measure: exclude scripts, audit low-ROI checks"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 17,
+   "worth": false,
+   "route": null,
+   "why": "backlog rule merged into lead.md same segment"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 18,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 19,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 20,
+   "worth": false,
+   "route": null,
+   "why": "compact not reloading lead.md already in AGENTS.md"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 21,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 22,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 23,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 24,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 25,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 26,
+   "worth": false,
+   "route": null,
+   "why": "memory tidy done cleanly, no drift left"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 27,
+   "worth": false,
+   "route": null,
+   "why": "monitor bug filed into #68 same segment"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 28,
+   "worth": false,
+   "route": null,
+   "why": "false alarm cause filed into #68 same segment"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 29,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 30,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 31,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 32,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 33,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 34,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 35,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 36,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 37,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 38,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/2cad76f9-5a51-4f27-bfe6-045420b2820d.jsonl",
+   "stop": 39,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/9f44ed63-6d99-467b-bedc-b19673d3af7d.jsonl",
+   "stop": 1,
+   "worth": false,
+   "route": null,
+   "why": "plan drafted and sent to judge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/9f44ed63-6d99-467b-bedc-b19673d3af7d.jsonl",
+   "stop": 2,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner drops line-count criterion, wants refactor after work"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/9f44ed63-6d99-467b-bedc-b19673d3af7d.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "agreed to peer exit proposal"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/9f44ed63-6d99-467b-bedc-b19673d3af7d.jsonl",
+   "stop": 4,
+   "worth": true,
+   "route": "harvest",
+   "why": "judge FINDINGS: scorer beside tuned code, questions fixed late"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/9f44ed63-6d99-467b-bedc-b19673d3af7d.jsonl",
+   "stop": 5,
+   "worth": false,
+   "route": null,
+   "why": "plan approved; waiting on blocker"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/9f44ed63-6d99-467b-bedc-b19673d3af7d.jsonl",
+   "stop": 6,
+   "worth": false,
+   "route": null,
+   "why": "peer coordination added one criterion"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/9f44ed63-6d99-467b-bedc-b19673d3af7d.jsonl",
+   "stop": 7,
+   "worth": false,
+   "route": null,
+   "why": "plan re-approved"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/9f44ed63-6d99-467b-bedc-b19673d3af7d.jsonl",
+   "stop": 8,
+   "worth": false,
+   "route": null,
+   "why": "idle monitor ping"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/9f44ed63-6d99-467b-bedc-b19673d3af7d.jsonl",
+   "stop": 9,
+   "worth": false,
+   "route": null,
+   "why": "retro filed lessons; no drift visible"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/9f44ed63-6d99-467b-bedc-b19673d3af7d.jsonl",
+   "stop": 10,
+   "worth": false,
+   "route": null,
+   "why": "dream skipped as out of scope"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/9f44ed63-6d99-467b-bedc-b19673d3af7d.jsonl",
+   "stop": 11,
+   "worth": false,
+   "route": null,
+   "why": "criterion adjusted to new shared rule"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/9f44ed63-6d99-467b-bedc-b19673d3af7d.jsonl",
+   "stop": 12,
+   "worth": false,
+   "route": null,
+   "why": "status after reload"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/9f44ed63-6d99-467b-bedc-b19673d3af7d.jsonl",
+   "stop": 13,
+   "worth": false,
+   "route": null,
+   "why": "worker started"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/9f44ed63-6d99-467b-bedc-b19673d3af7d.jsonl",
+   "stop": 14,
+   "worth": true,
+   "route": "harvest",
+   "why": "git hooks call deleted guard script; commits fail, cause found"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/ac2da3b5-217c-4e41-986a-bcc7923e80e1.jsonl",
+   "stop": 1,
+   "worth": false,
+   "route": null,
+   "why": "probe ran as asked; routine"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/ac2da3b5-217c-4e41-986a-bcc7923e80e1.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "monitor ended; cause not investigated"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/ac2da3b5-217c-4e41-986a-bcc7923e80e1.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "monitor ended; cause not investigated"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-design-system-130-1/49ea2841-1864-4ff5-a530-2fdb521efcc8.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "planted lint break must compile; defect patches fail on main too"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-design-system-130-1/49ea2841-1864-4ff5-a530-2fdb521efcc8.jsonl",
+   "stop": 2,
+   "worth": true,
+   "route": "harvest",
+   "why": "lint pattern matched itself; gallery opens viewer; device test locale issues"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-design-system-130-1/49ea2841-1864-4ff5-a530-2fdb521efcc8.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "known DataStore trap and lint plural fixed routinely"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-design-system-130-1/49ea2841-1864-4ff5-a530-2fdb521efcc8.jsonl",
+   "stop": 4,
+   "worth": false,
+   "route": null,
+   "why": "planned break runs pass, routine commit"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-design-system-130-1/49ea2841-1864-4ff5-a530-2fdb521efcc8.jsonl",
+   "stop": 5,
+   "worth": false,
+   "route": null,
+   "why": "lead decision relayed, waiting on PR 129"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-design-system-130-1/49ea2841-1864-4ff5-a530-2fdb521efcc8.jsonl",
+   "stop": 6,
+   "worth": false,
+   "route": null,
+   "why": "routine merge conflict resolution"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-design-system-130-1/49ea2841-1864-4ff5-a530-2fdb521efcc8.jsonl",
+   "stop": 7,
+   "worth": true,
+   "route": "harvest",
+   "why": "uncommitted merge listed conflicted files twice, breaking conventions test"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-design-system-130-1/49ea2841-1864-4ff5-a530-2fdb521efcc8.jsonl",
+   "stop": 8,
+   "worth": false,
+   "route": null,
+   "why": "device run started; empty grep only"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-design-system-130-1/49ea2841-1864-4ff5-a530-2fdb521efcc8.jsonl",
+   "stop": 9,
+   "worth": false,
+   "route": null,
+   "why": "device tests passed, monitoring"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-design-system-130-1/49ea2841-1864-4ff5-a530-2fdb521efcc8.jsonl",
+   "stop": 10,
+   "worth": false,
+   "route": null,
+   "why": "QA passed, main merged cleanly"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-design-system-130-1/49ea2841-1864-4ff5-a530-2fdb521efcc8.jsonl",
+   "stop": 11,
+   "worth": false,
+   "route": null,
+   "why": "judge approved, merged, routine"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-e2e-scenario-audit-90-1/d2cb2828-7017-414e-bc1e-6e0dec048145.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "recipe",
+   "why": "worked out baseline E2E run, emulator sharing, unlock fix by trial"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-e2e-scenario-audit-90-1/d2cb2828-7017-414e-bc1e-6e0dec048145.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "retro ran; nothing new in this segment"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-e2e-scenario-audit-90-1/d2cb2828-7017-414e-bc1e-6e0dec048145.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "see-url ping; nothing new"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-e2e-scenario-audit-90-1/d2cb2828-7017-414e-bc1e-6e0dec048145.jsonl",
+   "stop": 4,
+   "worth": false,
+   "route": null,
+   "why": "status check answered"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-e2e-scenario-audit-90-1/d2cb2828-7017-414e-bc1e-6e0dec048145.jsonl",
+   "stop": 5,
+   "worth": false,
+   "route": null,
+   "why": "see-url ping; still waiting on emulator"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-e2e-scenario-audit-90-1/d2cb2828-7017-414e-bc1e-6e0dec048145.jsonl",
+   "stop": 6,
+   "worth": false,
+   "route": null,
+   "why": "see-url ping; run started"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-e2e-scenario-audit-90-1/d2cb2828-7017-414e-bc1e-6e0dec048145.jsonl",
+   "stop": 7,
+   "worth": false,
+   "route": null,
+   "why": "guard blocked prompt to lead; asked owner, cause self-stated"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-e2e-scenario-audit-90-1/d2cb2828-7017-414e-bc1e-6e0dec048145.jsonl",
+   "stop": 8,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner overruled: agent itself must send the command"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-e2e-scenario-audit-90-1/d2cb2828-7017-414e-bc1e-6e0dec048145.jsonl",
+   "stop": 9,
+   "worth": false,
+   "route": null,
+   "why": "test runs passed; results posted; routine"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-e2e-scenario-audit-90-1/d2cb2828-7017-414e-bc1e-6e0dec048145.jsonl",
+   "stop": 10,
+   "worth": false,
+   "route": null,
+   "why": "rewrote reply in Korean"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-e2e-scenario-audit-90-1/d2cb2828-7017-414e-bc1e-6e0dec048145.jsonl",
+   "stop": 11,
+   "worth": true,
+   "route": "harvest",
+   "why": "judge blocked: out-of-scope script change without a test"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-e2e-scenario-audit-90-1/d2cb2828-7017-414e-bc1e-6e0dec048145.jsonl",
+   "stop": 12,
+   "worth": true,
+   "route": "harvest",
+   "why": "fake emulator leftover: pkill -F failed, replaced by kill pid"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "recipe",
+   "why": "compile gives up at busy machine gate; learned to queue it in background"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "retro arm, compaction, usage limit; routine progress"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "status: build passed, full emulator run started"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 4,
+   "worth": false,
+   "route": null,
+   "why": "interim status of running E2E suite"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 5,
+   "worth": true,
+   "route": "harvest",
+   "why": "four failures; control run without new camera to isolate cause"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 6,
+   "worth": true,
+   "route": "harvest",
+   "why": "cause found: emulated back camera breaks three tests; sleep blocked"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 7,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner asks what it waits for; bash-guard refused compound worktree command"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 8,
+   "worth": false,
+   "route": null,
+   "why": "retro filed the emulated-camera lesson in this segment"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 9,
+   "worth": true,
+   "route": "recipe",
+   "why": "bash 3.2 empty array guard; selection test needs committed state"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 10,
+   "worth": false,
+   "route": null,
+   "why": "routine full run results and red run start"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 11,
+   "worth": true,
+   "route": "harvest",
+   "why": "found claimed mid-exposure test was never written; gap in own work"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 12,
+   "worth": false,
+   "route": null,
+   "why": "answered homeops load message; waiting"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 13,
+   "worth": false,
+   "route": null,
+   "why": "waiting on emulator run"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 14,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner complains it is slow and asks for speed"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 15,
+   "worth": true,
+   "route": "harvest",
+   "why": "plugin renamed to mumu-teamwork; scripts missing, stale hook path"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 16,
+   "worth": false,
+   "route": null,
+   "why": "retro found nothing new to file"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 17,
+   "worth": true,
+   "route": "harvest",
+   "why": "judge FINDINGS: test did not check rule, PR body lacked checks"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 18,
+   "worth": false,
+   "route": null,
+   "why": "merge.py asked for main merge; followed its guidance"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 19,
+   "worth": false,
+   "route": null,
+   "why": "status ping while emulator run continues"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 20,
+   "worth": false,
+   "route": null,
+   "why": "status ping while emulator run continues"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-emulator-camera-paths-47-1/57ec96a1-0495-43be-a759-a456b2bb93c8.jsonl",
+   "stop": 21,
+   "worth": false,
+   "route": null,
+   "why": "dream survey launched; no memory edits yet"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 1,
+   "worth": false,
+   "route": null,
+   "why": "BLOCKED on conflicting plan criteria before coding"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 2,
+   "worth": true,
+   "route": "recipe",
+   "why": "gate.sh path, exit 0 not pass, gate slot, Wikimedia agent found by trial"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "phone run refused by auto mode; cause not found"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 4,
+   "worth": true,
+   "route": "harvest",
+   "why": "gate.sh not on PATH; owner run failed, full path found"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 5,
+   "worth": true,
+   "route": "harvest",
+   "why": "gfxinfo janky share cannot judge static waiting state"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 6,
+   "worth": false,
+   "route": null,
+   "why": "probe rerun with framestats"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 7,
+   "worth": false,
+   "route": null,
+   "why": "logcat read refused; stopped and asked owner"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 8,
+   "worth": false,
+   "route": null,
+   "why": "machine gate busy; probe restarted"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 9,
+   "worth": false,
+   "route": null,
+   "why": "probe passed; asked owner for logcat output"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 10,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner asks lead to allow adb logcat in auto mode"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 11,
+   "worth": false,
+   "route": null,
+   "why": "measurement reported over bar"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 12,
+   "worth": false,
+   "route": null,
+   "why": "product slowness cause read from framestats"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 13,
+   "worth": false,
+   "route": null,
+   "why": "probe debugging, zero waiting frames"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 14,
+   "worth": false,
+   "route": null,
+   "why": "probe debugging continues"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 15,
+   "worth": false,
+   "route": null,
+   "why": "BLOCKED question on D5 result to lead"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 16,
+   "worth": false,
+   "route": null,
+   "why": "merged main, baseline run started"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 17,
+   "worth": true,
+   "route": "harvest",
+   "why": "agent cleared phone logcat against lead rule; self-reported slip"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 18,
+   "worth": false,
+   "route": null,
+   "why": "baseline numbers reported"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 19,
+   "worth": false,
+   "route": null,
+   "why": "head run result; empty set rejected"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 20,
+   "worth": false,
+   "route": null,
+   "why": "measurement result reported"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 21,
+   "worth": false,
+   "route": null,
+   "why": "changed probe running"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 22,
+   "worth": false,
+   "route": null,
+   "why": "baseline result reported"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 23,
+   "worth": false,
+   "route": null,
+   "why": "head over bar reported"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 24,
+   "worth": true,
+   "route": "harvest",
+   "why": "phone frame floor drifts between runs; fixed bar unreliable"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 25,
+   "worth": false,
+   "route": null,
+   "why": "diagnostic run clean"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 26,
+   "worth": true,
+   "route": "harvest",
+   "why": "sed -i silently failed on macOS, invalidating a run"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 27,
+   "worth": true,
+   "route": "harvest",
+   "why": "emulator test failures fixed; judge verdict comment refused by auto mode"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 28,
+   "worth": false,
+   "route": null,
+   "why": "retro filed two lessons; no drift visible"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 29,
+   "worth": false,
+   "route": null,
+   "why": "waiting on judge verdict"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-eyes-open-capture-101-1/c25fc218-6b6d-47d9-acd2-331d2cd09d82.jsonl",
+   "stop": 30,
+   "worth": true,
+   "route": "harvest",
+   "why": "judge FINDINGS wanted per-run stats; relayed approval refused again"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-own-app-install-174-1/b235e6ad-faa1-46fc-aa20-eaa57137ce9f.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "gate.sh off PATH found; guard trips on script name; refusal"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-own-app-install-174-1/b235e6ad-faa1-46fc-aa20-eaa57137ce9f.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "owner retry; install done, PR and judge launched"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-own-app-install-174-1/b235e6ad-faa1-46fc-aa20-eaa57137ce9f.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "judge approved; merged and prompted lead"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-phone-log-records-49-1/52f05563-858a-403e-b594-5cbc5d12124c.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "recipe",
+   "why": "gate exit 75 timeouts on shared machine while running gradle tests"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-phone-log-records-49-1/52f05563-858a-403e-b594-5cbc5d12124c.jsonl",
+   "stop": 2,
+   "worth": true,
+   "route": "recipe",
+   "why": "verify failed on architecture rule and formatting; fixed both"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-phone-log-records-49-1/52f05563-858a-403e-b594-5cbc5d12124c.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-phone-log-records-49-1/52f05563-858a-403e-b594-5cbc5d12124c.jsonl",
+   "stop": 4,
+   "worth": true,
+   "route": "harvest",
+   "why": "flaky DB test cause found: table absent right after open"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-phone-log-records-49-1/52f05563-858a-403e-b594-5cbc5d12124c.jsonl",
+   "stop": 5,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-phone-log-records-49-1/52f05563-858a-403e-b594-5cbc5d12124c.jsonl",
+   "stop": 6,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-phone-log-records-49-1/52f05563-858a-403e-b594-5cbc5d12124c.jsonl",
+   "stop": 7,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-phone-log-records-49-1/52f05563-858a-403e-b594-5cbc5d12124c.jsonl",
+   "stop": 8,
+   "worth": false,
+   "route": null,
+   "why": "guard refusal retyped as literal; routine"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-phone-log-records-49-1/52f05563-858a-403e-b594-5cbc5d12124c.jsonl",
+   "stop": 9,
+   "worth": false,
+   "route": null,
+   "why": "phone checks run, routine"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-phone-log-records-49-1/52f05563-858a-403e-b594-5cbc5d12124c.jsonl",
+   "stop": 10,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-phone-log-records-49-1/52f05563-858a-403e-b594-5cbc5d12124c.jsonl",
+   "stop": 11,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner complains about slowness, wants faster progress"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-phone-log-records-49-1/52f05563-858a-403e-b594-5cbc5d12124c.jsonl",
+   "stop": 12,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-phone-log-records-49-1/52f05563-858a-403e-b594-5cbc5d12124c.jsonl",
+   "stop": 13,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-phone-log-records-49-1/52f05563-858a-403e-b594-5cbc5d12124c.jsonl",
+   "stop": 14,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner: skip unneeded rechecks when merging after main moved"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-photo-bench-97-1/13a485d5-4910-43f7-bf96-4857a7b4ca06.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "recipe",
+   "why": "worktree lacks local.properties; gate exit 75; noclobber; float32 JSON"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-photo-bench-97-1/13a485d5-4910-43f7-bf96-4857a7b4ca06.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "loop rerun, no new lesson"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-photo-bench-97-1/13a485d5-4910-43f7-bf96-4857a7b4ca06.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "routine; kill-guard refusal self-explained"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-photo-bench-97-1/13a485d5-4910-43f7-bf96-4857a7b4ca06.jsonl",
+   "stop": 4,
+   "worth": false,
+   "route": null,
+   "why": "misdiagnosed gate timeout; real cause found next segment"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-photo-bench-97-1/13a485d5-4910-43f7-bf96-4857a7b4ca06.jsonl",
+   "stop": 5,
+   "worth": true,
+   "route": "recipe",
+   "why": "real cause: local.properties write blocked with commit; gradle needs it"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-reboot-cause-145-1/f810d76c-7a01-4360-a08c-c1320df4eecc.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "trailing & killed background build; noclobber and sleep blocks hit"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-reboot-cause-145-1/f810d76c-7a01-4360-a08c-c1320df4eecc.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "routine phone run started"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-reboot-cause-145-1/f810d76c-7a01-4360-a08c-c1320df4eecc.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "read run result; next variant started"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-reboot-cause-145-1/f810d76c-7a01-4360-a08c-c1320df4eecc.jsonl",
+   "stop": 4,
+   "worth": true,
+   "route": "harvest",
+   "why": "viewfinder test threw before binding; diagnosed with logging"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-reboot-cause-145-1/f810d76c-7a01-4360-a08c-c1320df4eecc.jsonl",
+   "stop": 5,
+   "worth": true,
+   "route": "harvest",
+   "why": "cause found: surfaceProvider read off main thread; not filed"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-reboot-cause-145-1/f810d76c-7a01-4360-a08c-c1320df4eecc.jsonl",
+   "stop": 6,
+   "worth": false,
+   "route": null,
+   "why": "routine runs pass"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-reboot-cause-145-1/f810d76c-7a01-4360-a08c-c1320df4eecc.jsonl",
+   "stop": 7,
+   "worth": true,
+   "route": "recipe",
+   "why": "E2E builds overwrite debug APK; must rebuild before app runs"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-reboot-cause-145-1/f810d76c-7a01-4360-a08c-c1320df4eecc.jsonl",
+   "stop": 8,
+   "worth": false,
+   "route": null,
+   "why": "routine launches started"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-reboot-cause-145-1/f810d76c-7a01-4360-a08c-c1320df4eecc.jsonl",
+   "stop": 9,
+   "worth": false,
+   "route": null,
+   "why": "report posted and checked; judge launched"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-reboot-cause-145-1/f810d76c-7a01-4360-a08c-c1320df4eecc.jsonl",
+   "stop": 10,
+   "worth": true,
+   "route": "harvest",
+   "why": "judge FINDINGS: counted runs lacked evidence of active session"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-reboot-cause-145-1/f810d76c-7a01-4360-a08c-c1320df4eecc.jsonl",
+   "stop": 11,
+   "worth": false,
+   "route": null,
+   "why": "approved, issue closed, lead told"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "emulator probe under load worked out; staleness cause found"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 2,
+   "worth": true,
+   "route": "harvest",
+   "why": "machine gate refused: run verify.sh first, known trap recurred"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "PR opened, runs queued; routine"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 4,
+   "worth": false,
+   "route": null,
+   "why": "retro filed lessons"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 5,
+   "worth": false,
+   "route": null,
+   "why": "lead decision read; status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 6,
+   "worth": false,
+   "route": null,
+   "why": "run results reported"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 7,
+   "worth": false,
+   "route": null,
+   "why": "merge main; failure cause still unknown"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 8,
+   "worth": true,
+   "route": "harvest",
+   "why": "build failed on shared Gradle cache lock held elsewhere"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 9,
+   "worth": true,
+   "route": "harvest",
+   "why": "retry never ran: log overwrite blocked, stale log reread"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 10,
+   "worth": false,
+   "route": null,
+   "why": "verification passed; status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 11,
+   "worth": false,
+   "route": null,
+   "why": "emulator done; waiting for phone"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 12,
+   "worth": false,
+   "route": null,
+   "why": "phone runs started; status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 13,
+   "worth": false,
+   "route": null,
+   "why": "lead decision applied; status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 14,
+   "worth": false,
+   "route": null,
+   "why": "path slip only; failure also on main"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 15,
+   "worth": false,
+   "route": null,
+   "why": "retro found no new lesson"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 16,
+   "worth": false,
+   "route": null,
+   "why": "lead decision applied; judge launched"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 17,
+   "worth": true,
+   "route": "harvest",
+   "why": "auto mode refused judge verdict; bash-guard refused extra prompt text"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 18,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner approval attempt blocked by guard on APPROVED comment"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 19,
+   "worth": true,
+   "route": "harvest",
+   "why": "merge refused: approval needed at new head after main merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 20,
+   "worth": false,
+   "route": null,
+   "why": "waiting for owner comment"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 21,
+   "worth": false,
+   "route": null,
+   "why": "main merged again; waiting"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 22,
+   "worth": false,
+   "route": null,
+   "why": "lead decision applied; judge relaunched"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 23,
+   "worth": true,
+   "route": "harvest",
+   "why": "judge refused writing verdict file; worker relayed text"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 24,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner asked agent to approve; guard blocks, owner must run"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 25,
+   "worth": false,
+   "route": null,
+   "why": "retro filed lessons, duplicate merged"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "stop": 26,
+   "worth": false,
+   "route": null,
+   "why": "merged after owner comment; routine"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-seam-error-values-45-1/cc154980-975b-4bb7-b17e-fe802438acfd.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "review-model.py missing; merge.py needs main merged and rerun"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-seam-error-values-45-1/cc154980-975b-4bb7-b17e-fe802438acfd.jsonl",
+   "stop": 2,
+   "worth": true,
+   "route": "harvest",
+   "why": "E2E flake: MediaStore seed collision, emulator lock screen; causes found"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-seam-error-values-45-1/cc154980-975b-4bb7-b17e-fe802438acfd.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "routine merge and report"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-simplify-spec-66-1/f5114223-eb48-4498-9eb0-c5628361cc6f.jsonl",
+   "stop": 1,
+   "worth": false,
+   "route": null,
+   "why": "routine spec survey and edits; failure resolved next segment"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-simplify-spec-66-1/f5114223-eb48-4498-9eb0-c5628361cc6f.jsonl",
+   "stop": 2,
+   "worth": true,
+   "route": "harvest",
+   "why": "verify.sh 'names no check' after removed asserts; BSD sed lacks \\l"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-simplify-spec-66-1/f5114223-eb48-4498-9eb0-c5628361cc6f.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "routine checks, PR and judge launch"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude--claude-worktrees-question-premise-rules-84-1/e3923788-8626-4346-b70e-4ca92922373e.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "Classifier refusal; probed --setting-sources \"\" to drop user CLAUDE.md for replays"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude--claude-worktrees-question-premise-rules-84-1/e3923788-8626-4346-b70e-4ca92922373e.jsonl",
+   "stop": 2,
+   "worth": true,
+   "route": "harvest",
+   "why": "Replay relative-path bug under cwd=/tmp found; second classifier refusal"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude--claude-worktrees-question-premise-rules-84-1/e3923788-8626-4346-b70e-4ca92922373e.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "Owner-allowed wording iterations run; results reported, no new lesson"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude--claude-worktrees-ste-reply-rules-119-1/f6a8f1fc-4bc6-4a27-9274-e3cb7833eb88.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "auto mode refused reading sampled transcripts; owner-run script asked"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude--claude-worktrees-ste-reply-rules-119-1/f6a8f1fc-4bc6-4a27-9274-e3cb7833eb88.jsonl",
+   "stop": 2,
+   "worth": true,
+   "route": "harvest",
+   "why": "retried refused action as script write; refused again as bypass"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude--claude-worktrees-ste-reply-rules-119-1/f6a8f1fc-4bc6-4a27-9274-e3cb7833eb88.jsonl",
+   "stop": 3,
+   "worth": true,
+   "route": "harvest",
+   "why": "report quoting transcripts refused for public repo"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 1,
+   "worth": false,
+   "route": null,
+   "why": "task filed and plan sent to judge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 2,
+   "worth": true,
+   "route": "harvest",
+   "why": "judge FINDINGS: plan had to split report from rule change"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "plans approved, worker started"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 4,
+   "worth": true,
+   "route": "harvest",
+   "why": "worker blocked; owner told to run a script that did not exist"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 5,
+   "worth": false,
+   "route": null,
+   "why": "monitor ping, worker working"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 6,
+   "worth": true,
+   "route": "harvest",
+   "why": "auto mode refused writing transcript dump script as bypass"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 7,
+   "worth": false,
+   "route": null,
+   "why": "monitor ping, worker working"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 8,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner rule: public report keeps only generalized rules, no real content"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 9,
+   "worth": true,
+   "route": "harvest",
+   "why": "judge FINDINGS: verbatim check would fail an honest report"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 10,
+   "worth": false,
+   "route": null,
+   "why": "plan approved, worker prompted"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 11,
+   "worth": false,
+   "route": null,
+   "why": "monitor ping"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 12,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner orders raw transcripts deleted"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 13,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner overrules: no report, put rules straight into CLAUDE.md"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 14,
+   "worth": true,
+   "route": "harvest",
+   "why": "own issue-body edit dropped a heading; judge caught it"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 15,
+   "worth": false,
+   "route": null,
+   "why": "plan approved, worker started"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 16,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner widens scope: all Korean-fit rules, settings.json in same PR"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 17,
+   "worth": false,
+   "route": null,
+   "why": "plan approved, new worker started"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 18,
+   "worth": true,
+   "route": "harvest",
+   "why": "auto mode blocked worker committing settings.json and CLAUDE.md"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 19,
+   "worth": false,
+   "route": null,
+   "why": "monitor ping"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 20,
+   "worth": true,
+   "route": "harvest",
+   "why": "lead ran gate-scope for blocked worker; workaround procedure"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 21,
+   "worth": false,
+   "route": null,
+   "why": "monitor ping"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 22,
+   "worth": true,
+   "route": "harvest",
+   "why": "merge refused as self-approval; owner sign-off needed"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/5ac0f237-496e-4186-b8c6-aaeb11e4bcf5.jsonl",
+   "stop": 23,
+   "worth": false,
+   "route": null,
+   "why": "routine session close after peer OK"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/fa806b7c-5e0d-44f7-9a2a-3f750ab311f3.jsonl",
+   "stop": 1,
+   "worth": false,
+   "route": null,
+   "why": "Plan posted; dependency already existed, trivial check"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/fa806b7c-5e0d-44f7-9a2a-3f750ab311f3.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "Judge approved plan; waiting on prerequisite"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/fa806b7c-5e0d-44f7-9a2a-3f750ab311f3.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "Peer exit OK; worker started"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/fa806b7c-5e0d-44f7-9a2a-3f750ab311f3.jsonl",
+   "stop": 4,
+   "worth": false,
+   "route": null,
+   "why": "Routine merge cleanup and ~/.claude pull"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/fa806b7c-5e0d-44f7-9a2a-3f750ab311f3.jsonl",
+   "stop": 5,
+   "worth": false,
+   "route": null,
+   "why": "Peer OK reply; waiting"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/fa806b7c-5e0d-44f7-9a2a-3f750ab311f3.jsonl",
+   "stop": 6,
+   "worth": false,
+   "route": null,
+   "why": "Peer OK reply; waiting"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/fa806b7c-5e0d-44f7-9a2a-3f750ab311f3.jsonl",
+   "stop": 7,
+   "worth": false,
+   "route": null,
+   "why": "Self close after all peers agreed"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-homeops/1d1858c0-07e7-48ef-845e-91471f8dcfbd.jsonl",
+   "stop": 1,
+   "worth": true,
+   "route": "harvest",
+   "why": "user overrules machine probing; auto mode refused tmux self-drive"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-homeops/1d1858c0-07e7-48ef-845e-91471f8dcfbd.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "routine routing to camera project"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-homeops/1d1858c0-07e7-48ef-845e-91471f8dcfbd.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "monitor ended, status ping"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-homeops/1d1858c0-07e7-48ef-845e-91471f8dcfbd.jsonl",
+   "stop": 4,
+   "worth": false,
+   "route": null,
+   "why": "monitor ended, status ping"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/11a3ce38-b098-410b-9983-43f865482523.jsonl",
+   "stop": 1,
+   "worth": false,
+   "route": null,
+   "why": "launched reviewer agent; waiting"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/11a3ce38-b098-410b-9983-43f865482523.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "relayed reviewer verdict on another author's PR"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/11a3ce38-b098-410b-9983-43f865482523.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "task notification; status repeat"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/33998db6-d0bd-4da7-a3c0-337f9e3850a5.jsonl",
+   "stop": 1,
+   "worth": false,
+   "route": null,
+   "why": "routine issue and PR; title length guard simply retyped"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/33998db6-d0bd-4da7-a3c0-337f9e3850a5.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "armed team-watch as hook asked"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/33998db6-d0bd-4da7-a3c0-337f9e3850a5.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "merge and cleanup; guard split commands per its own message"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/52992f61-1b97-4571-9fb7-2d5ca20d0498.jsonl",
+   "stop": 1,
+   "worth": false,
+   "route": null,
+   "why": "routine fix and merge; guard refusal self-explained"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/52992f61-1b97-4571-9fb7-2d5ca20d0498.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/52992f61-1b97-4571-9fb7-2d5ca20d0498.jsonl",
+   "stop": 3,
+   "worth": false,
+   "route": null,
+   "why": "routine progress, waiting or status"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/760f6e17-341a-4aa1-8205-ad9cf44224bf.jsonl",
+   "stop": 1,
+   "worth": false,
+   "route": null,
+   "why": "task filed, judge launched; routine"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/760f6e17-341a-4aa1-8205-ad9cf44224bf.jsonl",
+   "stop": 2,
+   "worth": false,
+   "route": null,
+   "why": "worker started; uninstall scope counted"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/760f6e17-341a-4aa1-8205-ad9cf44224bf.jsonl",
+   "stop": 3,
+   "worth": true,
+   "route": "harvest",
+   "why": "worker blocked: sync-test.sh fails on main, cause found"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/760f6e17-341a-4aa1-8205-ad9cf44224bf.jsonl",
+   "stop": 4,
+   "worth": true,
+   "route": "harvest",
+   "why": "push-to-main check can never pass since guard change, cause found"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/760f6e17-341a-4aa1-8205-ad9cf44224bf.jsonl",
+   "stop": 5,
+   "worth": true,
+   "route": "harvest",
+   "why": "plugin rename cleanup: sync, per-path uninstall worked out by trial"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 1,
+   "worth": false,
+   "route": null,
+   "why": "plan filed and review launched; routine"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 2,
+   "worth": true,
+   "route": "harvest",
+   "why": "plan review findings: long title, overlapping files"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 3,
+   "worth": true,
+   "route": "harvest",
+   "why": "worker start by trial: root_pane id, trust dialog default"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 4,
+   "worth": false,
+   "route": null,
+   "why": "PR merged; routine"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 5,
+   "worth": true,
+   "route": "harvest",
+   "why": "check-docs.py fails on main: removed writing contract files"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 6,
+   "worth": false,
+   "route": null,
+   "why": "idle monitor event; no action"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 7,
+   "worth": false,
+   "route": null,
+   "why": "working monitor event; no action"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 8,
+   "worth": false,
+   "route": null,
+   "why": "same known cause waived; already decided"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 9,
+   "worth": false,
+   "route": null,
+   "why": "monitor event; no action"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 10,
+   "worth": false,
+   "route": null,
+   "why": "PR merged; status report"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 11,
+   "worth": false,
+   "route": null,
+   "why": "monitor event; no action"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 12,
+   "worth": false,
+   "route": null,
+   "why": "worker closed; routine"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 13,
+   "worth": false,
+   "route": null,
+   "why": "monitor event; no action"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 14,
+   "worth": false,
+   "route": null,
+   "why": "monitor event; no action"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 15,
+   "worth": false,
+   "route": null,
+   "why": "monitor event; no action"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 16,
+   "worth": false,
+   "route": null,
+   "why": "PR merged, worker closed; routine"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 17,
+   "worth": false,
+   "route": null,
+   "why": "missing local.properties expected; continued"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 18,
+   "worth": false,
+   "route": null,
+   "why": "monitor event; no action"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 19,
+   "worth": true,
+   "route": "harvest",
+   "why": "gone event caused by worker renaming itself"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 20,
+   "worth": true,
+   "route": "harvest",
+   "why": "missing scratchpad log path; hooks folder missing, finding recorded"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 21,
+   "worth": true,
+   "route": "harvest",
+   "why": "approved.py false positive refusal; owner chose hooks for garden"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 22,
+   "worth": true,
+   "route": "harvest",
+   "why": "heartbeat idle minutes count from previous goal"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 23,
+   "worth": true,
+   "route": "harvest",
+   "why": "reviewer findings: exec never returns, guard reads hook name"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 24,
+   "worth": true,
+   "route": "harvest",
+   "why": "detached HEAD test let guard pass a commit"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 25,
+   "worth": false,
+   "route": null,
+   "why": "PR merged; routine"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 26,
+   "worth": false,
+   "route": null,
+   "why": "owner question answered with handoff command"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 27,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner overruled: lead spawns new session itself"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 28,
+   "worth": false,
+   "route": null,
+   "why": "PR merged, goal closed; routine"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 29,
+   "worth": true,
+   "route": "harvest",
+   "why": "owner rule: turn every leftover into tasks and delegate"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 30,
+   "worth": false,
+   "route": null,
+   "why": "briefing on request"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/aa259988-fa59-4f2f-86ef-58f162c0ab0e.jsonl",
+   "stop": 31,
+   "worth": false,
+   "route": null,
+   "why": "question about session name answered"
+  }
+ ]
+}
