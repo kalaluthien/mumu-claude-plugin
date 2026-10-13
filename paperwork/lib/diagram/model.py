@@ -355,7 +355,7 @@ TYPES = {"string": str, "array": list, "object": dict, "integer": int, "number":
 
 
 def shape(data, schema=SCHEMA, path="model"):
-    """Where the file departs from assets/model.schema.json, each as path: what is wrong (a small subset of
+    """Where the file departs from assets/model-schema.json, each as path: what is wrong (a small subset of
     JSON Schema: type, enum, required, properties, additionalProperties, items, $ref)."""
     if "$ref" in schema:
         schema = SCHEMA["definitions"][schema["$ref"].rsplit("/", 1)[1]]

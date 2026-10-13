@@ -70,9 +70,8 @@ Scenario is found, each `{"place", "does", "expects"}` [steps]:
   steps into or out of an opened node. Leaving a level may go straight along
   an edge of the node that opened it, and entering one straight along an edge
   into that node. When two edges could be taken, name one: `"edge": "label"`.
-- A component level has no time, so one step uses several of its parts
-  together: `"place": ["node", "argument", "value"]`, each next part along a
-  relation. Order lives in workflow and state levels.
+- On a component level one step uses several parts together:
+  `"place": ["node", "argument", "value"]`, each next part along a relation.
 - `does` says what happens in this step of this Scenario; `expects` says what
   is true once it is done, in words a reader can check.
 
@@ -302,8 +301,7 @@ right is busy.
 When people use the system through a screen, mock that screen in `screens`
 and give `ui: {screen, block}` to every node the screen shows: a part of it, a
 state it is in, or an activity whose result appears on it. Its
-note then shows the screen with that block picked out. Do this on every
-level whose nodes are parts of a screen, not only the first one you draw.
+note then shows the screen with that block picked out, on every level.
 
 A mock predicts what the real screen looks like, so build it from the source,
 not from memory of similar apps:

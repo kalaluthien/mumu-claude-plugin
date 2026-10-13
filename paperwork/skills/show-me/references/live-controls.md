@@ -10,6 +10,15 @@
 - **Reply**: `.reply` shows the result in the form the reader pastes (CSS, JSON, a cron line, a prompt), rewritten on every change from the same parameter values that draw the preview.
 - **Next**: paste the result back.
 
+## CSS
+
+```css
+.live { display: grid; gap: 1rem; } @media (min-width: 60rem) { .live { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); } }
+.controls label { display: block; margin: 0 0 .75rem; font-size: .9rem; }
+.controls input, .controls select { width: 100%; }
+.preview { border: 1px solid var(--ink); padding: 1rem; min-height: 8rem; }
+```
+
 ## Steps
 
 1. Name the parameters with their current values and allowed ranges.

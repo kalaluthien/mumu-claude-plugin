@@ -1,17 +1,13 @@
 # The model in Alloy
 
-`make-diagram.py alloy model.json out.als` writes the model as one Alloy 6 module;
-the `alloy` check runs it; without Alloy it says `skipped: no Alloy` and
-`check` exits 3. Each command's answer is kept under a hash of its text, so a
-change reruns only the commands it touches. Commands run
-one per core, each for at most 120 s (`ZOOM_DIAGRAM_ALLOY_SECONDS`); one that
-runs out is reported as unproved and is not retried until the limit is raised.
-Shrink the rule's scope or split the rule instead; raise the limit only to
-confirm once.
+`make-diagram.py alloy model.json out.als` writes the model as one Alloy 6 module,
+and the `alloy` check runs it; without Alloy, `check` exits 3. A command
+unproved after 120 s (`ZOOM_DIAGRAM_ALLOY_SECONDS`): shrink or split its rule;
+raise the limit only to confirm once.
 
-Alloy checks within small bounds, not for every size: passing means no
-counterexample within the scopes below. The zoom levels are not linked in the
-module: a level drawn inside a node is not tied to that node's moments.
+Passing means no counterexample within the Scopes below. The zoom levels are
+not linked in the module: a level drawn inside a node is not tied to that
+node's moments.
 
 ## Translation
 
@@ -56,14 +52,12 @@ Rules split three ways:
 So a `must` that fails its `holds_` check needs a mechanism: a guard on the
 event, or an operation's `pre` or `post`.
 
-`build` reads Alloy's stored answers, so the page shows each rule's standing
-(guard, assumed, ideal, holds or can break) and its counterexample. The
-plan's `prove` narrows what is asked: `rules` leaves out the Scenarios and
+The page shows each rule's standing and its counterexample. The plan's `prove` narrows what is asked: `rules` leaves out the Scenarios and
 failure paths, `off` asks nothing.
 
 ## Scopes
 
-Every command uses `for 3` (small scope: most counterexamples are small), room
+Every command uses `for 3`, room
 for every kind of call, and 8 moments (Alloy's `steps`). A Scenario gets two
 moments per visit on its longest level, plus three; an independence run, four. In runs, an abstract
 component gets three atoms per kind that extends it. The calls of a

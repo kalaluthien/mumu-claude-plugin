@@ -9,6 +9,15 @@
 - **Reply**: a button per card with `data-reply="I choose <label>, accepting <its risk>"`.
 - **Next**: the choice the reader makes.
 
+## CSS
+
+```css
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; margin: 1rem 0; }
+.cards > article { border: 1px solid var(--ink); padding: 1rem; display: flex; flex-direction: column; gap: .5rem; }
+.cards > article.pick { border: 3px solid var(--accent); }
+.cards h3 { margin: 0; }
+```
+
 ## Steps
 
 1. Fix the criteria before writing any option.

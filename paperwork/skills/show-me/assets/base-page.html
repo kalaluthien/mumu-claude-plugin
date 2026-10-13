@@ -28,21 +28,9 @@ th, td { text-align: left; padding: .4rem .6rem; border-bottom: 1px solid var(--
 td.num, th.num { text-align: right; white-space: nowrap; }
 figure { margin: 1.25rem 0; }
 svg { max-width: 100%; height: auto; display: block; }
-.figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .75rem; margin: 1rem 0; }
-.figures > div { background: var(--fill); padding: .75rem; }
-.figures b { display: block; font-size: 1.5rem; line-height: 1.2; }
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; margin: 1rem 0; }
-.cards > article { border: 1px solid var(--ink); padding: 1rem; display: flex; flex-direction: column; gap: .5rem; }
-.cards > article.pick { border: 3px solid var(--accent); }
-.cards h3 { margin: 0; }
-.notes .row { display: grid; gap: .5rem; margin: 0 0 1rem; }
-.notes aside { border-left: 3px solid var(--ink); padding: .25rem .75rem; font-size: .9rem; }
-.notes aside.high { border-color: var(--fail); } .notes aside.mid { border-color: var(--warn); }
-@media (min-width: 60rem) { .notes .row { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
-.live { display: grid; gap: 1rem; } @media (min-width: 60rem) { .live { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); } }
-.controls label { display: block; margin: 0 0 .75rem; font-size: .9rem; }
-.controls input, .controls select { width: 100%; }
-.preview { border: 1px solid var(--ink); padding: 1rem; min-height: 8rem; }
+.numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .75rem; margin: 1rem 0; }
+.numbers > div { background: var(--fill); padding: .75rem; }
+.numbers b { display: block; font-size: 1.5rem; line-height: 1.2; }
 .reply textarea { width: 100%; min-height: 6rem; font: .875rem/1.5 var(--mono); }
 button { font: inherit; padding: .4rem .9rem; border: 1px solid var(--ink); background: var(--bg); cursor: pointer; }
 dl { display: grid; grid-template-columns: auto 1fr; gap: .25rem .75rem; margin: 0; } dt { font-weight: 700; } dd { margin: 0; }
@@ -52,7 +40,7 @@ dl { display: grid; grid-template-columns: auto 1fr; gap: .25rem .75rem; margin:
 <main>
   <h1>{{title}}</h1>
   <p class="answer">{{the one sentence or number that answers the ask}}</p>
-  <div class="figures"><div><b>{{number and unit}}</b>{{what it counts; at most 3, none the rest shows}}</div></div>  <!-- deleted unless the Form names .figures -->
+  <div class="numbers"><div><b>{{number and unit}}</b>{{what it counts; at most 3, none the rest shows}}</div></div>  <!-- deleted unless the Form names .numbers -->
   {{the playbook's main form}}
   <!-- deleted unless the Form names .reply --><section class="reply"><h2>{{reply, in the page's language}}</h2><textarea readonly>{{the text the reader pastes back}}</textarea><button>{{copy}}</button></section>
   <section class="next"><h2>{{next step, in the page's language}}</h2><p>{{the reader's next action or choice}}</p></section>
