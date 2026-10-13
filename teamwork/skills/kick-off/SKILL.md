@@ -33,12 +33,10 @@ Open the playbook of the first row that fits with `Read` and follow it; the `rou
 | task | an issue a worker defines: `## Goal`, `## Definition of done` of criteria, and its order after other tasks |
 | criterion | a `[check]`, a command whose output decides, quoted failing on main; or a `[score]` by a rubric over a named sample, head against main |
 | record | a comment opening `BLOCKED:`, a worker's question, or `DECIDED:`, the manager's answer, route or order |
-| judge | a fresh subagent that reviews work it did not write and replies to its caller alone |
 
 ## Rules
 
 - **Talk**: reach a session by `SendMessage` to its name from `ListAgents`, one message naming the url that holds what it needs, so any request, answer or handback reads the same; prompt only `/teamwork:kick-off` through `start` and your own `/rename`. Whatever must outlive a session goes on its issue first.
-- **Side branch**: commit and push only on a branch other than the default; fix what a git hook refuses, never skip it.
 - **Short writing**: bullets or a table, no narration; cite urls, `path:line`s and shas; a title verb-first.
 
 ## Verbs
@@ -52,8 +50,7 @@ Issues and pull requests live on GitHub, sessions in herdr, addressed by name; t
 | `order` | `gh api -X POST repos/<repo>/issues/<n>/dependencies/blocked_by -F issue_id=<id>`, `<id>` from `gh api repos/<repo>/issues/<m> -q .id` |
 | `comment` | `gh issue comment <url> --body-file <path>`; `decide` is a `comment` of a `DECIDED:` |
 | `resolve` | `gh issue close <url> --reason completed --comment "<summary>"`, or `--reason "not planned"` for work stopped |
-| `judge` | `Agent` on `sonnet` at `high`, its prompt `Read ${CLAUDE_PLUGIN_ROOT}/skills/kick-off/references/judge.md, then judge <url or path>.`; resume it with `SendMessage` |
+| `judge` | a fresh `Agent` on `sonnet` at `high` that reviews work it did not write and replies only to you, its prompt `Read ${CLAUDE_PLUGIN_ROOT}/skills/kick-off/references/judge.md, then judge <url or path>.`; resume it with `SendMessage` |
 | `rename` | `herdr tab rename <tab> <name>` and `herdr pane rename $HERDR_PANE_ID <name>`, the tab from `herdr pane get $HERDR_PANE_ID`, then `herdr agent rename $HERDR_PANE_ID <name>` and `herdr agent prompt $HERDR_PANE_ID "/rename <name>"`; a manager also `herdr workspace rename <workspace> <name>` |
 | `start` | `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/start-session.py <name> <cwd> "<kick-off arguments>" --model <m> --effort <e> [--team]`: a tab in your workspace, or with `--team` a new one |
-| `look` | `herdr agent read <name> --lines 40`: the session's screen |
 | `close` | `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/close-session.py <name>`, your own name included |

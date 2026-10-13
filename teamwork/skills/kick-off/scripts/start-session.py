@@ -6,6 +6,7 @@ with `--team` a workspace of its own; its tab, first pane, agent and Claude sess
 import argparse
 import os
 import pathlib
+import subprocess
 import sys
 import time
 
@@ -25,11 +26,8 @@ def herdr(*argv):
 
 def open_pane(name, cwd, own_workspace):
     """The first pane of a new workspace, or of a new tab in the caller's workspace, named `name`."""
-    if own_workspace:
-        pane = herdr("workspace", "create", "--cwd", cwd, "--label", name, "--no-focus")["root_pane"]
-    else:
-        workspace = herdr("pane", "get", os.environ["HERDR_PANE_ID"])["pane"]["workspace_id"]
-        pane = herdr("tab", "create", "--workspace", workspace, "--cwd", cwd, "--label", name, "--no-focus")["root_pane"]
+    into = [] if own_workspace else ["--workspace", herdr("pane", "get", os.environ["HERDR_PANE_ID"])["pane"]["workspace_id"]]
+    pane = herdr("workspace" if own_workspace else "tab", "create", *into, "--cwd", cwd, "--label", name, "--no-focus")["root_pane"]
     team.run("herdr", "tab", "rename", pane["tab_id"], name)
     team.run("herdr", "pane", "rename", pane["pane_id"], name)
     return pane["pane_id"]
@@ -59,8 +57,10 @@ def main(argv):
     text = f"/teamwork:kick-off {a.args}"
     try:
         pane = open_pane(a.name, str(pathlib.Path(a.cwd).resolve()), a.team)
-        team.run("herdr", "agent", "start", a.name, "--kind", "claude", "--pane", pane, "--", "--name", a.name,
-                 "--plugin-dir", str(ROOT), "--model", a.model, "--effort", a.effort)
+        p = subprocess.run(["herdr", "agent", "start", a.name, "--kind", "claude", "--pane", pane, "--", "--name", a.name,
+                            "--plugin-dir", str(ROOT), "--model", a.model, "--effort", a.effort], capture_output=True, text=True)
+        if p.returncode and '"agent_not_ready"' not in p.stdout + p.stderr:  # not ready: the trust dialog holds it
+            raise RuntimeError(f"herdr agent start: {(p.stderr or p.stdout).strip()}")
         wait(a.name, pane, lambda s: s.get("interactive_ready") and s.get("agent_status") != "blocked",  # trust dialog
              lambda screen: "Yes, I trust this folder" in screen and team.run("herdr", "agent", "send-keys", pane, "down", "enter"),
              "not ready")

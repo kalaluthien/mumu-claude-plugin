@@ -50,7 +50,7 @@ def close(name):
 def main(argv):
     if len(argv) != 1:
         sys.exit("usage: close-session.py <name>")
-    own = (team.agent(argv[0]) or {}).get("pane_id") == os.environ.get("HERDR_PANE_ID")
+    own = (team.agent(argv[0]) or {}).get("pane_id", "") == os.environ.get("HERDR_PANE_ID")
     if own and not os.environ.get("CLOSE_SESSION_DETACHED"):
         subprocess.Popen([sys.executable, __file__, argv[0]], env={**os.environ, "CLOSE_SESSION_DETACHED": "1"},
                          stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)

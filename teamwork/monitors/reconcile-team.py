@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""The `reconcile-team` monitor: tell a manager, once per change, each gap between GitHub and its team and the action
-that closes it, so the manager works from observed state rather than remembered events. Silent in a session whose
-name does not end in `-manager`, since a worker starts the same skill."""
+"""The `reconcile-team` monitor: tell a manager, once per change, each gap between GitHub and its team with the action
+that closes it, so it works from observed state, not remembered events; silent outside a `-manager` session."""
 import os
 import pathlib
 import sys
@@ -16,8 +15,8 @@ shown = set()
 while True:
     listed, me = team.sessions()
     lines = team.manager_actions(me, listed) if me.get("name", "").endswith("-manager") else []
-    for line in lines:
+    for line in lines or []:  # a failed read (None) keeps what was shown, so the next poll repeats nothing
         if line not in shown:
             print(line, flush=True)
-    shown = set(lines)
+    shown = shown if lines is None else set(lines)
     time.sleep(POLL)
