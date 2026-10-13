@@ -71,7 +71,7 @@ Tasks and pull requests live on GitHub, a task being an issue. The default branc
 | `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file <path>`; later `gh pr edit <pr> --body-file <path>` |
 | `merge` | `gh pr merge <pr-url> --squash --delete-branch` |
 | `resolve` | `gh issue close <url> --reason completed --comment "<summary>"` |
-| `judge` | `Agent` on model `opus`, its prompt `Read ${CLAUDE_PLUGIN_ROOT}/skills/kick-off/references/judge.md, then judge <url>.` and nothing more; resume it with `SendMessage` |
+| `judge` | `Agent` on model `sonnet` for a pull request, else `opus`, its prompt `Read ${CLAUDE_PLUGIN_ROOT}/skills/kick-off/references/judge.md, then judge <url>.` and nothing more; resume it with `SendMessage` |
 | `stop` | `gh issue close <url> --reason "not planned" --comment "<reason>"`, then `gh pr close <pr-url>` |
 
 A session lives in a terminal multiplexer; with herdr, address every command to a name:
