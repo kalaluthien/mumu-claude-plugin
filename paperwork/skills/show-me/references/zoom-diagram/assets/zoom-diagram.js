@@ -284,16 +284,7 @@ function mountZoomDiagram(root, M) {
   function draw(fromBox) {
     const L = levels[st.level], K = KIND[L.kind], g0 = G0 = geom(L);
     const host = $(".zd-canvas"); host.innerHTML = "";
-    const fit = narrow() && !st.full, small = fit && host.clientWidth / g0.W * 15 < 9;
-    const svg = el(host, "svg", { viewBox: `0 0 ${g0.W} ${g0.H}`, style: fit ? `max-width:${Math.round(g0.W * 1.15)}px` : `min-width:${Math.round(g0.W * 0.72)}px;max-width:${Math.round(g0.W * 1.15)}px`, role: "img", "aria-label": `${L.title}, ${L.nodes.length} nodes` });
-    host.classList.toggle("small", small);
-    if (small) svg.addEventListener("click", ev => {
-      ev.stopPropagation();
-      const n = ev.target.closest && ev.target.closest(".node"), e = ev.target.closest && ev.target.closest(".edge");
-      full(true);
-      if (n) act(n.dataset.id, () => select({ node: n.dataset.id }));
-      else if (e) { const g = root.querySelector(`.zd-canvas .edge[data-key="${e.dataset.key}"]`); if (g) g.dispatchEvent(new MouseEvent("click", { bubbles: true })); }
-    }, true);
+    const svg = el(host, "svg", { viewBox: `0 0 ${g0.W} ${g0.H}`, role: "img", "aria-label": `${L.title}, ${L.nodes.length} nodes` });
     const world = el(svg, "g", { class: "world" });
     const edgeFade = () => { const r = host.scrollWidth - host.clientWidth; host.classList.toggle("more-r", host.scrollLeft < r - 2); host.classList.toggle("more-l", host.scrollLeft > 2); };
     host.onscroll = edgeFade; requestAnimationFrame(edgeFade);
@@ -393,6 +384,13 @@ function mountZoomDiagram(root, M) {
         if (ev.key === " ") { ev.preventDefault(); select({ node: n.id }); }
       });
     });
+    // the bounds take in every label drawn past the grid, so none is cut at the board's edge; on a phone the board
+    // shrinks until its smallest text is 9 px and scrolls sideways past that, on a wide screen it stops at 0.72
+    const bb = world.getBBox(), x0 = Math.min(0, Math.floor(bb.x - 6)), y0 = Math.min(0, Math.floor(bb.y - 6));
+    const x1 = Math.max(g0.W, Math.ceil(bb.x + bb.width + 6)), y1 = Math.max(g0.H, Math.ceil(bb.y + bb.height + 6)), w = x1 - x0;
+    const fonts = [...world.querySelectorAll("text")].map(t => parseFloat(getComputedStyle(t).fontSize)), k = narrow() ? 9 / Math.min(...fonts) : 0.72;
+    svg.setAttribute("viewBox", `${x0} ${y0} ${w} ${y1 - y0}`);
+    svg.setAttribute("style", `min-width:${Math.ceil(w * k)}px;max-width:${Math.round(w * 1.15)}px`);
     if (!still.matches && fromBox) {
       const t0 = performance.now(), D = 340;
       const mid = fromBox.up || fromBox.fade, s0 = fromBox.up ? 1.4 : fromBox.fade ? 0.9 : 0.2, cx = mid ? g0.W / 2 : fromBox.x + fromBox.w / 2, cy = mid ? g0.H / 2 : fromBox.y + fromBox.h / 2;

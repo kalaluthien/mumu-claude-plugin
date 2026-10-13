@@ -50,9 +50,9 @@ bar while a run plays; the drawing; and the note.
 - **Wide screens.** The note is pinned beside the selection, the drawing's
   column only as wide as the drawing, and a long note scrolls inside, at most
   a screen tall.
-- **Narrow screens.** The drawing fits the width (one too small to read opens
-  full screen on tap), and the note is a bottom sheet with the same round
-  close button as full screen.
+- **Narrow screens.** The drawing keeps its text at 9 px or more and scrolls
+  sideways past the width under the edge fade, and the note is a bottom sheet
+  with the same round close button as full screen.
 
 ## Note
 

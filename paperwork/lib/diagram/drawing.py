@@ -1,8 +1,8 @@
 """Drawing checks for a built zoom diagram, at 390 and 1200 px in light and dark (needs Playwright and the installed Chrome).
 
-fits: no sideways page scroll; each partition drawn as one block; drawn text at least 9 px on a phone in full screen (a drawing too small to read
-inline opens full screen on tap); on every level no node label wider than its node, no edge label on a node,
-another label or another edge, no edge through a node it does not join, no two edges from different sources
+fits: no sideways page scroll; each partition drawn as one block; drawn text at least 9 px on a phone (the board
+scrolls sideways inside its card rather than shrink further); on every level no node label wider than its node,
+no edge label on a node, another label or another edge, no edge through a node it does not join, no two edges from different sources
 sharing a stretch of line.
 """
 import asyncio
@@ -61,9 +61,6 @@ TEXT = """() => { let m = 99; document.querySelectorAll('svg text').forEach(t =>
   const s = t.ownerSVGElement, k = s.getBoundingClientRect().width / s.viewBox.baseVal.width;
   if (t.getBBox().width) m = Math.min(m, parseFloat(getComputedStyle(t).fontSize) * k); }); return m; }"""
 
-SMALL = """() => { const c = document.querySelector('#zd .zd-canvas'), s = c.querySelector('svg');
-  const k = s.getBoundingClientRect().width / s.viewBox.baseVal.width; return k * 15 < 9 && !c.classList.contains('small'); }"""
-
 
 async def _check(path, shots=None, font_css=None):
     url, problems = pathlib.Path(path).resolve().as_uri(), []
@@ -84,11 +81,7 @@ async def _check(path, shots=None, font_css=None):
                 await page.wait_for_timeout(200)
                 if await page.evaluate("document.documentElement.scrollWidth") > width:
                     problems.append(f"fits: {tag} scrolls sideways")
-                if await page.evaluate(SMALL):
-                    problems.append(f"fits: {tag} the inline drawing is too small and does not open full screen")
                 if width < 900:
-                    await page.evaluate("window.zd.full(true)")
-                    await page.wait_for_timeout(100)
                     if (px := await page.evaluate(TEXT)) < MIN_PX:
                         problems.append(f"fits: {tag} text {px:.1f}px < {MIN_PX}")
                 if shots:   # every level, for the critic's pass
