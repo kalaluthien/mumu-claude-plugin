@@ -21,6 +21,6 @@ The reader must know where things stand or what happened: a status, a trend, a c
 
 | symptom | fix |
 | --- | --- |
-| bars or labels crowd | over 12 labels: group them (weeks, top 8 and other) |
+| bars or labels crowd | over 12 labels: group them (weeks, top 8 and other); the base page drops an axis label that would overlap another, so bars compared across kinds get labels short enough that none is dropped at 390 px |
 | a zero or missing period looks like a gap | include it as `label:0` |
 | the answer and the chart disagree | both come from the same computed numbers; recompute, never round by hand |
