@@ -15,7 +15,9 @@ def quantile(values, p):
 
 
 def group_key(labels):
-    return sorted(labels)[0] if labels else ""
+    """The `scope:` label, else the first label in sorted order."""
+    scopes = sorted(x for x in labels if x.startswith("scope:"))
+    return scopes[0] if scopes else (sorted(labels)[0] if labels else "")
 
 
 def group(history, labels):
