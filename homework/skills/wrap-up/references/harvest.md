@@ -6,7 +6,7 @@ handed over by a person skips to step 4.
 1. **Candidates**: list candidates since the last wrap-up: `<skill>/scripts/list-candidates.py`.
 2. **Lenses**: over them and the session ask what was intended, what
    happened, why, and what to sustain or improve, then look through these
-   lenses of [Matt Pocock's retro skill](https://github.com/mattpocock/skills/blob/main/skills/engineering/retro/SKILL.md),
+   lenses of the retrospective skill in [Matt Pocock's skills](https://github.com/mattpocock/skills),
    each with the evidence that calls for it:
    - **Navigation**: finding a file or fact took long: a pointer where the search began.
    - **Checks**: a mistake a check could have caught: first read the repository's own check commands and CI, since one that exists but is unwired is the finding.
