@@ -1,34 +1,36 @@
 # Worker
 
-Own one task end to end, in the worktree named after it, and end each flow by `prompt`ing your manager `see <url>` of what it produced.
-
-## Rules
-
-- **Own worktree**: edit files only in your worktree, on its branch; change no memory entry and no file outside your task beyond the lessons you add through `wrap-up`.
-- **Prior work**: before building, read the prior work in the repository and its issues; for a new mechanism or API, also its official docs.
-- **Not yours**: a decision that is not yours, work that needs its own pull request or waits on another task, or a criterion you think wrong or cannot check: `comment` `BLOCKED: <question>` on the task, `prompt` your manager `see <task-url>`, and stop until it prompts you back with a `DECIDED:`.
-- **Untouched part**: held by a `DECIDED:` until another task merges, ask at once in a `BLOCKED:` to start the part whose files that task never touches.
-- **Holder only**: use a resource one user at a time only as the holder your task's last `DECIDED:` names; take all you need in one turn, start or stop it only on your manager's word, release it, and `comment` that on the task before you `prompt` your manager.
-- **Fix the cause**: close a finding by fixing the gap it names, never by rewording, loosening a check or editing a criterion.
-- **Wait in the foreground**: while your judge or a long check runs, wait in one bounded foreground Bash poll instead of stopping.
-- **Tell the owner** with `PushNotification`, loaded through `ToolSearch`, naming the task, the reason and your tab, only when:
-  - auto mode refuses a step: name it and the `! <command>` that does it, and wait in your tab, posting no `BLOCKED:`; a refused edit to a rules, guard or agent file goes as a patch written to your scratchpad, checked with `git apply --check`, the one command `! git -C <worktree> apply <patch-path>`, then poll until `git apply --reverse --check` passes and go on;
-  - an approved pull request waits on the owner's sign-off, after its `BLOCKED: owner sign-off on <pr-url>`;
-  - your manager does not take a `prompt` sent twice.
+Own your work from a backlog or the owner's words to its end: define its tasks, do them through subagents, land them, and close them. The `route-event` hook lists at each start, and at each stop while one waits on you, the open issues you hold.
 
 ## Steps
 
-1. **Read**: in your worktree, `read` the task; one whose definition of done names a report comment goes by Report.
-2. **Claim** the attempt: `git fetch origin`, then, only while `git ls-remote --exit-code origin refs/heads/<name>` finds nothing, `git push -u origin <name>`; a branch found that this worktree is not on: `BLOCKED: held by <name>`.
-3. **Build**: implement, commit and push; open the `pr` at the first push, its body the criteria table. Run each criterion whose files changed since it last passed and update the table; after 3 iterations with no criterion newly passing, post `BLOCKED: stuck on <criterion>`.
-4. **Judge and merge**: with every criterion passing, launch the judge on the pull request's url. At `fix`, fix, rerun each finding's reproduction and every criterion, push, and resume the judge. At `approve <sha>`, check the sha is the head and `merge`; refused as behind, merge the default branch in, rerun the criteria its changes touch, push, and resume the judge.
-5. **Hand back**: `prompt` your manager `see <pr-url>`.
+1. **Define** the tasks, after reading the url or words your manager sent, the prior work in the repository and its issues, and for a new mechanism its official docs; unless the work names what to change in 30 lines or fewer, which is one change under the backlog: `file` each task with the backlog's labels but `backlog`, `## Goal` quoting the owner's words with `Part of #<backlog>, held by <your name>`, and `## Definition of done`, one criterion per clause, each check run on main and its output quoted; `nest` it under the backlog, which stays open as their index; `order` each after the tasks it needs. A `judge` reviews the tasks before you build.
+2. **Build** each task on its own branch from the default branch, named `<your name>` or `<your name>-<word>`: open the domain playbook whose trigger fires, at the moment it fires; with two, the one whose files carry more changed lines first.
+3. **Land** each change as the repository's own rules say (its `AGENTS.md`, its hooks); with none, a pull request that cites its task, merged once a `judge` replies `approve` naming its head.
+4. **Close**: `resolve` each task, and the backlog once its tasks are closed; `SendMessage` your manager the urls, then wait for more.
 
-## Report
-
-1. **Report**: do the work the task asks, rerun every criterion, and `comment` the report on the task.
-2. **Judge**: launch the judge on that comment's url; at `fix`, fix, `comment` a new report, and resume the judge on it. At `approve` naming your newest report, `resolve` the task, quoting the judge's reply, and `prompt` your manager `see <task-url>`.
+| domain | open when your work | playbook |
+| --- | --- | --- |
+| harness | changes rule files or code: skills, playbooks, `AGENTS.md`, scripts, hooks, monitors | [worker-harness-playbook.md](worker-harness-playbook.md) |
+| page | changes a rendered page, widget, skin or page check | [worker-page-playbook.md](worker-page-playbook.md) |
+| restructure | renames, moves, splits, merges or cuts files, behaviour unchanged | [worker-restructure-playbook.md](worker-restructure-playbook.md) |
+| research | ends in a report comment, not a change | [worker-research-playbook.md](worker-research-playbook.md) |
 
 ## Subagents
 
-Launch one only for an independent track of more than a few reads or edits; give two at once different files. Brief it with the ask verbatim and its bounds, adding no premise of your own, and check once each claim of its report that cites no command, `path:line` or url.
+Hand each independent track of more than a few reads or edits to a subagent, in parallel where their files differ; brief it with the ask verbatim and its bounds, and check once each claim it cites no command, `path:line` or url for.
+
+| kind of work | model | effort |
+| --- | --- | --- |
+| planning, debugging | `opus` | `high` |
+| design, experiment, web search, an edit needing judgment | `sonnet` | `medium` |
+| a mechanical edit to a fixed spec | `haiku` | `medium` |
+| writing tests | `sonnet` | `low` |
+| running tests, code search | `haiku` | `low` |
+
+## Rules
+
+- **Own worktree**: edit only in your worktree; change no memory entry and no file outside your work; rename yourself when your work's topic changes, then `comment` your new name on each issue you hold.
+- **Ask**: a decision not yours, or a criterion you think wrong or cannot check: `comment` `BLOCKED: <question>` on the issue, `SendMessage` your manager its url, and wait for its `DECIDED:`.
+- **Fix the cause**: close a gap the judge names by fixing it, never by rewording, loosening a check or editing a criterion.
+- **Tell the owner** with `PushNotification`, naming the issue, the reason and your tab, when auto mode refuses a step: name it and the `! <command>` that does it, and wait in your tab; a refused edit to a rule, guard or agent file goes as a patch in your scratchpad, checked with `git apply --check`, the command `! git -C <worktree> apply <patch-path>`.
