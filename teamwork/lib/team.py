@@ -45,8 +45,12 @@ def asking(issue):
     return records[-1:] == ["BLOCKED:"]
 
 
+def members(me, listed):
+    return [a["name"] for a in listed if a.get("workspace_id") == me.get("workspace_id") and a is not me and a.get("name")]
+
+
 def manager_actions(me, listed):
-    team = [a["name"] for a in listed if a.get("workspace_id") == me.get("workspace_id") and a is not me and a.get("name")]
+    team = members(me, listed)
     status = {a.get("name"): a.get("agent_status") for a in listed}
     found, lines = issues(me["name"].removesuffix("-manager")), []
     prs = run("gh", "pr", "list", "--state", "merged", "--limit", "50", "--json", "number,headRefName")
@@ -66,6 +70,12 @@ def manager_actions(me, listed):
     for p, n in ((p, n) for p in prs for n in team if p["headRefName"] == n or p["headRefName"].startswith(n + "-")):
         lines.append(f"merged #{p['number']} by {n}: once {n} holds nothing open, close it and clean its worktree")
     return lines
+
+
+def exit_action(me, listed):
+    others = [a["name"] for a in listed if a is not me and a.get("name", "").endswith("-manager")]
+    return ("exit: no worker is live and nothing waits; " + (f"propose your exit to {', '.join(others)} as step 5 says" if others
+            else "you are the only live manager, so stay and /compact as step 5 says"))
 
 
 def worker_goal(me):
