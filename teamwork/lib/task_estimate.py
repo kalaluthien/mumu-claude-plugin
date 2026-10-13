@@ -28,11 +28,11 @@ def group(history, labels):
     return (same, False) if len(same) >= MIN_GROUP else ([r["hours"] for r in history], True)
 
 
-def total_range(groups, seed=0):
-    """p10-p90 of the sums of one random past duration per task: a bootstrap, never a sum of the bounds."""
+def total_range(groups, seed=0, levels=(0.1, 0.9)):
+    """The LEVELS quantiles (p10-p90 by default) of the sums of one random past duration per task: a bootstrap, never a sum of the bounds."""
     rng = random.Random(seed)
     sums = [sum(rng.choice(g) for g in groups) for _ in range(DRAWS)]
-    return quantile(sums, 0.1), quantile(sums, 0.9)
+    return quantile(sums, levels[0]), quantile(sums, levels[1])
 
 
 def restart_hours(summaries):
