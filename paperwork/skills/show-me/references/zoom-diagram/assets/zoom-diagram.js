@@ -8,14 +8,14 @@ function mountZoomDiagram(root, M) {
     "Earlier": "이전", "Later": "다음", "Step": "차례", "Close": "닫기", "Levels": "단계", "Scenarios": "시나리오",
     "{0}, {1} nodes": "{0}, 칸 {1}개", "{0} to {1}": "{0} → {1}", "every {0}": "매 {0}", "within {0}": "{0} 이내", "{0} of {1}": "{1} 중 {0}",
     "{0}, leaves {1}": "{0}, {1}에서 나감", "{0}, enters {1}": "{0}, {1}에 들어옴", ", opens a level": ", 아래 단계 있음", "{0}, with {1} selected": "{0}, {1} 선택됨",
-    "main path": "주 경로", "failure path": "실패 경로", "optional": "선택", "unconfirmed": "미확인", "abstract": "추상",
+    "main path": "주 경로", "failure path": "실패 경로", "optional": "선택 사항", "unconfirmed": "미확인", "abstract": "일반형",
     "from outside": "밖에서", "on a schedule": "정해진 때에", "initial": "시작", "not opened": "열지 않음",
-    "component": "구성 요소", "relation": "관계", "activity": "활동", "artifact": "결과물", "state": "상태", "event": "사건",
+    "component": "구성 요소", "relation": "관계", "activity": "활동", "artifact": "결과물", "state": "상태", "event": "일어난 일",
     "Attributes": "속성", "Operations": "동작", "Rules": "규칙", "Guard": "조건", "Syncs": "연동",
     "sets off {0}": "결과: {0}", "set off by {0}": "원인: {0}", "only while {0}": "{0} 동안만",
-    "pre": "전제", "post": "결과", "modifies": "바꿈", "must": "반드시", "should": "가급적",
-    "can break": "깨질 수 있음", "guard": "조건", "assumed": "가정", "ideal": "이상", "holds": "성립", "not checked": "확인 안 함",
-    "run that breaks it": "이 규칙이 깨지는 실행", "run that breaks": "깨지는 실행", "scenario": "시나리오", "expects": "기대", "vs": "대비", "e.g.": "예시",
+    "pre": "실행 전", "post": "실행 후", "modifies": "바꿈", "must": "반드시", "should": "가급적",
+    "can break": "깨질 수 있음", "guard": "조건", "assumed": "가정", "ideal": "이상적", "holds": "지켜짐", "not checked": "확인 안 함",
+    "run that breaks it": "이 규칙이 깨지는 실행", "run that breaks": "깨지는 실행", "scenario": "시나리오", "expects": "기대 결과", "vs": "대비", "e.g.": "예시",
     "screen": "화면", "tree": "트리", "code": "코드", "example": "예시", "quote": "인용", "pitfall": "함정", "checklist": "점검표", "payload": "전송 내용", "diff": "차이", "insight": "핵심", "facts": "사실"
   };
   const tr = (k, ...a) => (M.lang === "ko" && KO[k] || k).replace(/\{(\d)\}/g, (_, i) => a[i]);
