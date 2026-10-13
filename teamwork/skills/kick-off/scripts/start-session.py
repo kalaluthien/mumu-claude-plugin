@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
-"""Start a Claude session named NAME in CWD and give it PROMPT as its first turn.
+"""usage: start-session.py <name> <cwd> <args> --model M --effort E [--team]
 
-usage: start-session.py <name> <cwd> <prompt> [--team] [--model M] [--effort E] [-- <claude flags>]
-
-The session gets a new tab in the caller's workspace, or with `--team` a new workspace of its own, and its tab, first
-pane, agent and Claude session all take NAME, so one name finds it everywhere."""
+Start a Claude session NAME in CWD, its first turn `/teamwork:kick-off ARGS`, in a new tab of the caller's workspace or
+with `--team` a workspace of its own; its tab, first pane, agent and Claude session all take NAME."""
 import argparse
-import json
 import os
 import pathlib
 import subprocess
@@ -14,93 +11,66 @@ import sys
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]  # this plugin, loaded into the new session too
+sys.path.insert(0, str(ROOT / "lib"))
+import team  # noqa: E402
+
 TIMEOUT, POLL = float(os.environ.get("START_SESSION_TIMEOUT", 120)), 1.0
 
 
-def herdr(*argv, check=True):
-    p = subprocess.run(["herdr", *argv], capture_output=True, text=True)
-    if check and p.returncode:
-        raise RuntimeError(f"herdr {' '.join(argv[:2])}: {(p.stderr or p.stdout).strip()}")
-    return p
+def herdr(*argv):
+    out = team.run("herdr", *argv)
+    if out is None:
+        raise RuntimeError(f"herdr {' '.join(argv[:2])} failed")
+    return out["result"]
 
 
-def result(*argv):
-    return json.loads(herdr(*argv).stdout)["result"]
-
-
-def agent(name):
-    return next((a for a in result("agent", "list")["agents"] if a.get("name") == name), None)
-
-
-def screen(pane):
-    return herdr("agent", "read", pane, "--source", "visible", check=False).stdout
-
-
-def open_pane(name, cwd, team):
+def open_pane(name, cwd, own_workspace):
     """The first pane of a new workspace, or of a new tab in the caller's workspace, named `name`."""
-    if team:
-        made = result("workspace", "create", "--cwd", cwd, "--label", name, "--no-focus")
-    else:
-        own = result("pane", "get", os.environ["HERDR_PANE_ID"])["pane"]["workspace_id"]
-        made = result("tab", "create", "--workspace", own, "--cwd", cwd, "--label", name, "--no-focus")
-    pane = made["root_pane"]
-    herdr("tab", "rename", pane["tab_id"], name)
-    herdr("pane", "rename", pane["pane_id"], name)
+    into = [] if own_workspace else ["--workspace", herdr("pane", "get", os.environ["HERDR_PANE_ID"])["pane"]["workspace_id"]]
+    pane = herdr("workspace" if own_workspace else "tab", "create", *into, "--cwd", cwd, "--label", name, "--no-focus")["root_pane"]
+    team.run("herdr", "tab", "rename", pane["tab_id"], name)
+    team.run("herdr", "pane", "rename", pane["pane_id"], name)
     return pane["pane_id"]
 
 
-def launch(name, pane, claude_args):
-    """Start Claude as agent `name` in `pane`, answering the folder-trust dialog, until it takes input."""
-    p = herdr("agent", "start", name, "--kind", "claude", "--pane", pane, "--", *claude_args, check=False)
-    if p.returncode and '"agent_not_ready"' not in p.stdout + p.stderr:  # not ready: the trust dialog holds it
-        raise RuntimeError(f"herdr agent start: {(p.stderr or p.stdout).strip()}")
+def wait(name, pane, ready, nudge, what):
+    """Poll `name` until `ready(agent)`, calling `nudge(screen)` each round, or fail naming `what`."""
     deadline = time.time() + TIMEOUT
     while time.time() < deadline:
-        a = agent(name)
-        if a and a.get("interactive_ready") and a.get("agent_status") != "blocked":
+        if ready(team.agent(name) or {}):
             return
-        if "Yes, I trust this folder" in screen(pane):
-            herdr("agent", "send-keys", pane, "down", "enter")
+        nudge(team.screen(pane))
         time.sleep(POLL)
-    raise RuntimeError(f"{name} not ready after {TIMEOUT:g}s")
-
-
-def deliver(name, pane, text):
-    """Prompt `name` until its turn starts: Enter when the text sits typed but unsent, else the text again."""
-    for attempt in range(3):
-        if attempt and text[:40] in screen(pane):
-            herdr("agent", "send-keys", pane, "enter")
-        else:
-            herdr("agent", "prompt", pane, text)
-        deadline = time.time() + TIMEOUT / 3
-        while time.time() < deadline:
-            if (agent(name) or {}).get("agent_status") not in (None, "idle"):
-                return
-            time.sleep(POLL)
-    raise RuntimeError(f"{name} never took its prompt")
+    raise RuntimeError(f"{name} {what} after {TIMEOUT:g}s")
 
 
 def main(argv):
-    flags = argv[argv.index("--") + 1:] if "--" in argv else []
-    argv = argv[:argv.index("--")] if "--" in argv else argv
     parser = argparse.ArgumentParser(prog="start-session.py", allow_abbrev=False)
-    parser.add_argument("name")
-    parser.add_argument("cwd")
-    parser.add_argument("prompt")
+    for arg in ("name", "cwd", "args"):
+        parser.add_argument(arg)
     parser.add_argument("--team", action="store_true")
-    parser.add_argument("--model", default="opus")
-    parser.add_argument("--effort", default="medium")
+    parser.add_argument("--model", required=True)  # no default: the caller picks per role
+    parser.add_argument("--effort", required=True)
     a = parser.parse_args(argv)
-    if agent(a.name):
-        sys.exit(f"start-session.py: {a.name} is already live: prompt it `see <url>` instead of starting another.")
+    if team.agent(a.name):
+        sys.exit(f"start-session.py: {a.name} is already live: SendMessage it instead of starting another.")
+    text = f"/teamwork:kick-off {a.args}"
     try:
         pane = open_pane(a.name, str(pathlib.Path(a.cwd).resolve()), a.team)
-        launch(a.name, pane, ["--name", a.name, "--plugin-dir", str(ROOT), "--model", a.model, "--effort", a.effort, *flags])
-        deliver(a.name, pane, a.prompt)
+        p = subprocess.run(["herdr", "agent", "start", a.name, "--kind", "claude", "--pane", pane, "--", "--name", a.name,
+                            "--plugin-dir", str(ROOT), "--model", a.model, "--effort", a.effort], capture_output=True, text=True)
+        if p.returncode and '"agent_not_ready"' not in p.stdout + p.stderr:  # not ready: the trust dialog holds it
+            raise RuntimeError(f"herdr agent start: {(p.stderr or p.stdout).strip()}")
+        wait(a.name, pane, lambda s: s.get("interactive_ready") and s.get("agent_status") != "blocked",  # trust dialog
+             lambda screen: "Yes, I trust this folder" in screen and team.run("herdr", "agent", "send-keys", pane, "down", "enter"),
+             "not ready")
+        team.run("herdr", "agent", "prompt", pane, text)  # the one prompt a session is sent: its kick-off
+        wait(a.name, pane, lambda s: s.get("agent_status") not in (None, "idle"),  # typed but unsent: press Enter
+             lambda screen: text[:40] in screen and team.run("herdr", "agent", "send-keys", pane, "enter"), "never took its kick-off")
     except RuntimeError as e:
         sys.exit(f"start-session.py: {e}. Look at its pane with `herdr agent read {a.name}` before starting it again.")
     where = "a new workspace of its own" if a.team else "a new tab of your workspace"
-    print(f"{a.name} started in {where} (pane {pane}) and took its prompt; it answers with `see <url>` when it needs you.")
+    print(f"{a.name} started in {where} (pane {pane}) and took its kick-off; it answers by SendMessage.")
 
 
 if __name__ == "__main__":
