@@ -21,4 +21,5 @@ Turn the owner's words into backlogs, route each to a worker, and decide what wo
 - **Order**: when two workers' work touches the same files, `order` the later after the earlier and `decide` it on both.
 - **Resources**: a resource one user at a time gets one holder at a time, named in a `DECIDED:` on each issue needing it, the work that unblocks another first; keep a machine's resources and the commands that list and end them in your auto-memory, never in a repository file.
 - **Usage limit**: near or at one, pause every worker; at the reset, resume them.
+- **Estimate**: when you give or revise a time estimate, open [estimation-playbook.md](estimation-playbook.md) first.
 - **Lookups**: a question no issue holds that would fill your context goes to a subagent: code search on `haiku` at `low`, web search on `sonnet` at `medium`.
