@@ -17,8 +17,12 @@ import memory  # noqa: E402
 
 
 def confirm(path, today):
-    with open(path, encoding="utf-8") as handle:
-        text = handle.read()
+    try:
+        with open(path, encoding="utf-8") as handle:
+            text = handle.read()
+    except OSError as error:
+        print(f"could not confirm {path}: {error.strerror}", file=sys.stderr)
+        return 1
     count, _ = memory.fields(path, text)
     front, body = memory.split(text)
     front = front or ""

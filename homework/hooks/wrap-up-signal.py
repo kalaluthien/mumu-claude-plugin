@@ -7,21 +7,10 @@
   wrap-up-signal.py outcome <data> filed|empty
                                            report what the last asked wrap-up did
 
-The counts cover the segment since the previous stop: failed tool calls and
-tool calls make lesson points, memory files written add to a count kept since
-the last tidy, and a run recipe is `missing` when a build, test or launch
-command failed in a repository with no `.claude/skills/run-*/` skill, `failed`
-when a call of such a skill failed. The hook asks when the points reach the
-threshold or the recipe is missing or failed, and a memory count at
-MEMORY_LIMIT rides on that ask, since a tidy alone rarely pays. It never asks
-within ASK_GAP stops of its own ask, in a headless session, outside a git
-repository, or while a Stop hook already blocks. Enabling the plugin for a
-project is the opt-in, so no arm step writes to the data folder.
-
-The threshold adapts: each `empty` outcome raises it by UP and each `filed`
-lowers it by DOWN, between LOWEST and HIGHEST, so it settles where about
-DOWN / (UP + DOWN) of asks come back empty. WRAP_UP_THRESHOLD fixes it and lets a headless session ask too.
-Replay on labelled past stops: replay-score.py.
+A tidy rides on a lesson or recipe ask, since a tidy alone rarely pays.
+Enabling the plugin for a project is the opt-in, so no arm step writes to the
+data folder. Asks are scored by replay-score.py on fixtures/labels.json; the
+other fixtures are trimmed past stops to run the sentence on.
 """
 import json
 import os
@@ -30,6 +19,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib"))
+import memory as memory_file  # noqa: E402
 import transcript  # noqa: E402
 
 FAILURE_POINTS = 4
@@ -41,7 +31,6 @@ TEMPLATE = (transcript.SIGNAL + " {failures} failed tool calls and {calls} tool 
             "make {points:g} lesson points of {threshold:g}; {memory} memory files changed since the last "
             "tidy, of {memory_limit}; run recipe: {recipe}{generator}.")
 ASK = " Run the wrap-up skill with this sentence before you stop."
-MEMORY = re.compile(r"/memory/(?!MEMORY\.md)([\w.-]+\.md)")
 RUNS = re.compile(r"\b(pytest|tox|nox|make|cmake|gradlew|mvn|cargo\s+(test|build|run)|go\s+(test|build|run)"
                   r"|swift\s+(test|build|run)|xcodebuild|(npm|pnpm|yarn|bun)\s+(run\s+)?(test|build|start|dev)"
                   r"|uvx?\s+run|docker\s+(compose|build|run))\b")
@@ -74,7 +63,7 @@ def counts(entries, cwd):
         for use in transcript.blocks_of(entry, "tool_use"):
             calls += 1
             uses[use.get("id")] = use
-            memory.update(MEMORY.findall(json.dumps(use.get("input") or {})))
+            memory.update(memory_file.PATH.findall(json.dumps(use.get("input") or {})))
         for result in transcript.blocks_of(entry, "tool_result"):
             if not result.get("is_error"):
                 continue

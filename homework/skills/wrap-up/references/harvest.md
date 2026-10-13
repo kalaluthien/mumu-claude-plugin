@@ -19,7 +19,12 @@ handed over by a person skips to step 4.
    - improve: "when <situation>, do <action>, because <the broken assumption>";
    - sustain, an owner-accepted choice or a detour that worked: "when <situation>, keep <action>, because <what it saved>";
    - a procedure worked out: its steps as run.
-   Keep the 3 most severe, the costliest to repeat first, and 2 of every 5 beyond them, rounded to the nearest, telling the owner how many were dropped.
+   Keep the most severe, the costliest to repeat first, telling the owner how many were dropped:
+
+   | drafts | 1–3 | 4 | 5–6 | 7–8 | 9–11 | 12–14 | 15+ |
+   | --- | --- | --- | --- | --- | --- | --- | --- |
+   | kept | all | 3 | 4 | 5 | 6 | 7 | 8 |
+
 4. **Destination**: route each lesson to the first row it fits:
 
    | the lesson | destination |

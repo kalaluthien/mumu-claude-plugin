@@ -3,6 +3,8 @@ import os
 import re
 from datetime import date
 
+# a memory file's path, its index aside, as a tool call names it
+PATH = re.compile(r"/memory/(?!MEMORY\.md)([\w.-]+\.md)")
 # the indent is kept, so a field nested under `metadata:` is rewritten in place
 FIELD = re.compile(r"^([ \t]*)(confirmed|last-confirmed):[ \t]*(.*)$", re.M)
 
