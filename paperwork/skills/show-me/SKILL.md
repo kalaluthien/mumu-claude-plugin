@@ -27,15 +27,13 @@ An answer that fits on one screen as a table or a short fenced tree needs no pag
 
 ## Rules
 
-- **Answer first**: the page opens with one sentence, or one figure, that answers the ask; everything below supports it.
-- **Base page**: a page playbook starts from `${CLAUDE_PLUGIN_ROOT}/skills/show-me/assets/base-page.html` and keeps only the parts its playbook names.
+- **Page parts**: a page playbook's page is `${CLAUDE_PLUGIN_ROOT}/skills/show-me/assets/base-page.html` with its body parts in this order: `.answer`, the one sentence or number that answers the ask; `.figures`, at most 3 key numbers the rest does not show, each with its unit; the playbook's main form; `.reply`, the text the reader pastes back; `.next`, what the reader does next or the choice they make. Its Form says what each part holds; delete each body part it does not name, and keep the CSS whole.
 - **Only what it needs**: no section, widget or control the answer does not use; a fact that does not change the reader's view is cut, and so is a part that repeats another.
 - **Checked facts**: every name, number, status and path comes from a file read, a command run or a page opened in this session; one not checked says "not verified"; a count the page states is the count of what it shows.
-- **Next action**: the page ends with what the reader does next, or the choice they make.
 - **One language**: the page, labels included, is in the language the user's instructions name, else the ask's.
 - **No one to ask**: when a playbook says to ask the user and no one can answer (a non-interactive run), take your proposed answers and say so on the page.
 
 ## Done when
 
-1. `"${CLAUDE_PLUGIN_ROOT}/skills/show-me/scripts/check-page.py" <page> --shots <dir>` prints `ok` last, and you looked at both captures: the first screen answers the ask, the main figure reads at 1200 px, and text and figure agree. A zoom diagram passes its own `make` instead, carries a `next`, and you looked at its `render --shots` captures the same way.
+1. `"${CLAUDE_PLUGIN_ROOT}/skills/show-me/scripts/check-page.py" <page> --shots <dir>` prints `ok` last, and you looked at both captures: the first screen answers the ask, the main figure reads at 1200 px, and text and figure agree. A zoom diagram passes its own `make` instead, and you looked at its `render --shots` captures the same way.
 2. The page went out as Output says, and the chat reply gives the one-sentence answer and the next action, nothing more.

@@ -1,5 +1,6 @@
 {
  "title": "Netron",
+ "next": "Open a model in the viewer and follow the Scenario that matches your format.",
  "plan": {
   "intent": "Netron이 모델 파일 하나를 받아 형식을 알아보고, 읽고, 그래프로 배치해 보여 주기까지 무엇이 어떻게 맞물리는가",
   "views": [

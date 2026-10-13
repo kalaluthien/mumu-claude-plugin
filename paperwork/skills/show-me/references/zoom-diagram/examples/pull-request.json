@@ -1,5 +1,6 @@
 {
  "title": "GitHub pull request",
+ "next": "Walk the Scenario you care about, then read the rule that blocks a merge.",
  "plan": {
   "intent": "풀 리퀘스트 하나가 열려서 머지되거나 닫히기까지, 무엇이 지켜져야 머지할 수 있는가",
   "views": [

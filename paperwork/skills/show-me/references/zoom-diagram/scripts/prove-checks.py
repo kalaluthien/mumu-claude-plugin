@@ -38,6 +38,7 @@ MUTATIONS = {
     "form": [("pull-request", lambda m: lv(m, "root").pop("initial")),
              ("pull-request", lambda m: lv(m, "push").update(partitions=lv(m, "push").pop("regions"))),
              ("pull-request", lambda m: lv(m, "open-s").update(regions=[{"id": "a", "label": "A"}])),
+             ("pull-request", lambda m: m.update(next="")),
              ("pull-request", lambda m: m["plan"].pop("views")),
              ("pull-request", lambda m: m["plan"]["views"].append({"name": "x", "level": "nowhere"}))],
     "steps": ("pull-request", lambda m: sc(m, "land-change")["walk"].append(step("draft-s"))),

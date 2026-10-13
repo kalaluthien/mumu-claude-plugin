@@ -12,8 +12,9 @@ plain_verb = lambda w: not ((w.endswith("ed") and not w.endswith("eed")) or w.en
 
 
 def form(M):
-    """The file read as a model: every reference points at something (model.parse), and the plan holds together."""
-    return M.parse_problems + params.problems(M.m, M.child, [r[0] for r in RULES])
+    """The file read as a model: every reference points at something (model.parse), the plan holds together, and `next` says what the reader does after."""
+    empty_next = [] if M.m.get("next", "").strip() else ["`next` is empty: write the reader's next action or choice in one sentence"]
+    return M.parse_problems + params.problems(M.m, M.child, [r[0] for r in RULES]) + empty_next
 
 
 def steps(M):

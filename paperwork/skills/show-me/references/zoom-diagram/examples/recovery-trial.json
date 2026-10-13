@@ -1,5 +1,6 @@
 {
  "title": "RECOVERY dexamethasone trial",
+ "next": "Open the participant flow and read where the trial can lose a participant.",
  "plan": {
   "intent": "한 임상시험에서 참여자가 등록부터 분석까지 어떻게 흐르고, 무엇이 지켜져야 결과를 믿을 수 있는가",
   "views": [

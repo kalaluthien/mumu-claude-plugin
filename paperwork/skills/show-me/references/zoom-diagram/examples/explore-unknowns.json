@@ -1,5 +1,6 @@
 {
  "title": "explore-unknowns",
+ "next": "Follow one unknown through the loop and see what closes it.",
  "plan": {
   "intent": "모호한 요청에서 모르는 것을 드러내고 닫아 가는 explore-unknowns 스킬이 어떤 순서로 일하는가",
   "views": [

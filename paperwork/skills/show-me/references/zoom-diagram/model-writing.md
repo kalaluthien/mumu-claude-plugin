@@ -9,8 +9,6 @@ A model changes the defaults only in its `plan` (`make-diagram.py rules` lists
 them; `make-diagram.py plan model.json` prints the plan in effect). Say in `why`
 why each changed default was changed [form].
 
-Settle it with the user before modelling ([zoom-diagram.md](zoom-diagram.md), Interview).
-
 **Views.** Name the diagrams someone who works in this domain would look for
 first: an ER model and the API for a backend, page navigation for a front end,
 a CONSORT flow for a trial, the method and the claims for a paper. Each is
@@ -21,14 +19,13 @@ opened, or a reason to give.
 | Intent | Typical plan |
 |---|---|
 | explain the system to a newcomer | `depth: overview`, `prove: off` |
-| review a design | the defaults |
 | audit one part | `deep` that part, `shallow` the rest, `prove: rules` |
 
 **Depth.** `depth` is `overview` (root and one level), `working` (default) or
 `detailed` (also: every operation is one action someone can do or point to).
 At `working`, open a node when either holds:
-- **A use or a rule lives inside.** The reader needs its inside to follow a
-  Scenario, or a `must` rule is kept there.
+- **A Scenario or a rule lives inside.** The reader needs its inside to follow
+  a Scenario, or a `must` rule is kept there.
 - **A design decision lives inside.** It is hard or likely to change and sets
   what the system can do (Parnas), so an insight could be written about it.
   Machinery many cases share is drawn once.
@@ -47,27 +44,26 @@ Stop when either holds:
 ## Scenarios
 
 A Scenario is one independent question the model answers, walked over the
-nodes that answer it: a use, "When <actor> does X, Y happens", or, for a body
-of knowledge (a paper, a theory, a field), a claim, "To see why <claim>, …".
+nodes that answer it: a use ("When <actor> does X, Y happens") or, for a body
+of knowledge (a paper, a theory, a field), a claim ("To see why <claim>, …").
 Find candidates in the passes below, then drop any that is a part of another
 or a union of others [basis]. Stop when a pass adds nothing.
 
 1. Actor goals (Cockburn): every actor, other systems included, and every
    goal that ends in one result.
 2. Event sweep (McMenamin and Palmer): every outside, timed or state-change
-   event. An event that no candidate answers is a missing use.
+   event. An event that no candidate answers is a missing Scenario.
 3. Lifecycle gaps (CRUD): for each record, ask only about the empty create,
    read, change or retire cells.
 4. Claims: every claim a reader comes to check, walked from the claim to
    what it rests on.
 
 Root Scenarios are the goals people bring to the whole system. A level that
-things enter from outside (a trigger) gets the uses that start there; with
-`scenarios: every`, each inner level gets the uses of its own component or
-workflow [scoped]. Every element
-is used by some Scenario [coverage].
+things enter from outside (a trigger) gets the Scenarios that start there; with
+`scenarios: every`, each inner level gets the Scenarios of its own component or
+workflow [scoped].
 
-**Steps.** A Scenario's `walk` lists the steps of its one run, written as the
+**Steps.** A Scenario's `walk` lists the steps of one walk, written as the
 Scenario is found, each `{"place", "does", "expects"}` [steps]:
 - `place` is the node where the step happens. The first starts in the
   Scenario's own level; each next one follows one edge in its direction, or
@@ -133,9 +129,8 @@ An attribute that points at a component on the same level is drawn [typed].
 **Triggers.** `triggers` on a workflow or state level bring something in from
 outside: a one-off arrival, or a repeating one with `every`. `every` is a
 timer the system keeps and is drawn as a clock; requests that people or other
-systems send at a rate are a one-off arrival, their rate in the `what`. A trigger is
-named like the level's edges, and is used by any Scenario whose steps enter
-that level at the trigger's node.
+systems send at a rate are a one-off arrival, their rate in the `what`. Any
+Scenario whose steps enter that level at the trigger's node uses it.
 
 **Ports.** A workflow opened from an activity lists the parent's artifacts as
 `in` (to a node) and `out` (from a node, or a list of nodes when several
@@ -148,8 +143,8 @@ as the activity of whoever receives it [form].
 
 ## Paths and partitions
 
-Ask five questions of every level. Draw each answer that is true of the system;
-leave out any that would be forced.
+Ask these of every level. Draw each answer that is true of the system; leave
+out any that would be forced.
 
 | Ask | Draw |
 |---|---|
@@ -157,11 +152,9 @@ leave out any that would be forced.
 | Where can an activity fail, and where does the failure go? | an edge or port marked `failure`. Every gate, a node whose label starts with checking, reviewing, validating, verifying, testing, judging, approving, gating or evaluating, shows one [paths] |
 | What repeats until something holds? | the edge back, as a loop |
 | What happens only sometimes, or may not exist? | mark it `optional` (dashed) |
-| Who does each activity, where does each thing live, or what may it access? | `partitions` (lanes), when there are two or more answers: local and remote, people and agents |
-| Which parts of one thing change state on their own? | `regions` on a state level: a branch on your machine and on GitHub |
 
 A `failure` path is drawn in the one warning ink and `happy` heavier; `unsure`
-marks what no source confirms ("?").
+marks what a source does not confirm ("?").
 
 **Regions and syncs.** A state level's `regions` (each state's `region`) are
 orthogonal regions (Harel): parts of one thing that change state at the same time and on their
@@ -176,8 +169,10 @@ own, such as a branch on your machine and the same branch on GitHub.
 - Use regions instead of multiplying states: two regions of two states each
   replace four combined states.
 
-**Partitions** follow UML activity partitions and BPMN lanes. Use one
-criterion per level. Every node belongs to one partition, and each partition
+**Partitions** follow UML activity partitions and BPMN lanes. Give
+`partitions` when there are two or more answers to who does each activity,
+where each thing lives or what it may access (local and remote, people and
+agents). Use one criterion per level. Every node belongs to one partition, and each partition
 forms one block: no node of another partition sits inside the rectangle that
 spans its nodes. On a workflow level, an edge that crosses
 partitions needs a contract: a payload, a guard or an operation
@@ -190,17 +185,15 @@ carbon in a reservoir, days to answer), give the element a `qty`
 `{"value", "unit", "kind"}`; it is drawn as a small figure beside it
 [quantities]. Leave it out wherever a number would only decorate.
 
-| Kind | On | Means | Must add up |
-|---|---|---|---|
-| `stock` | node | what it holds | flows in and out are in its unit per time (`GtC`, `GtC/yr`) |
-| `count` | node or edge | how many | a counted node: what enters and what leaves each sum to its count |
-| `capacity` | node | at most this many | |
-| `flow` | edge | how much moves | a node that holds nothing passes on all it receives |
-| `delay` | edge | it happens within this time: a deadline | the source has an edge marked `failure` for when it passes |
+| Kind | On | Means |
+|---|---|---|
+| `stock` | node | what it holds |
+| `count` | node or edge | how many |
+| `capacity` | node | at most this many |
+| `flow` | edge | how much moves |
+| `delay` | edge | it happens within this time: a deadline |
 
-Sums are checked only where every edge on that side says how much, in one
-unit. Alloy reads no quantities; curves, rates over time and queues are
-`example` media.
+Curves, rates over time and queues are `example` media.
 
 ## Operations
 
@@ -262,7 +255,7 @@ run that breaks only it ([proof-commands.md](proof-commands.md)).
 - **Scope.** A rule about large numbers (`#nodes =< 7`) names the scope that
   can break it, as `"scope": "12 Drawn, 5 Int"`.
 - **Scenarios.** A Scenario uses the operations and rules that sit on what
-  its steps walk; it does not list them.
+  its steps walk; it does not list them [coverage].
 
 ## Names
 
@@ -274,25 +267,24 @@ times [unique-names]. No name is an Alloy keyword (`open`, `run`, `in`, `until`,
 
 | Kind | Form | Example |
 |---|---|---|
-| Scenario | verb phrase with object; a branch adds what differs | `land-change`, `ship-a-bet-replan` |
+| Scenario | verb phrase with object; a branch: see Branches | `land-change`, `ship-a-bet-replan` |
 | Operation | method on what it changes | `PullRequest.merge` |
 | Rule | a property | `least-privilege` |
 | level | noun phrase for the whole | `Pull request lifecycle` |
 | component | noun phrase; abstract may be an adjective or participle | `Commit`, `Hands-on` |
 | partition | noun phrase for who or where | `Squad` |
-| relation | present-tense verb, read from → to | `uses`, `points to` |
-| activity | verb in -ing | `Reviewing code` |
-| artifact, workflow trigger | noun phrase | `checked model` |
 | state | adjective or participle | `Merged` |
-| event, state trigger | plain verb | `merge`, `mark ready` |
+
+The rest (relation, activity, artifact, event, trigger) is named after the
+Levels table, and the lint prints the form it wants.
 
 ## Layout
 
 Leave `x` and `y` out and the engine places each node beside a placed
 neighbour, where its edges cross the fewest nodes and partitions stay blocks.
-Set them when a place means something or when `fits` fails: a small grid where
-neighbours share a row or column, a busy node goes in the middle, and two or
-three columns is usual. An edge between diagonal cells needs one empty corner.
+Set them when a place means something or when `fits` fails (the root first: it
+must fit 390 px): a small grid where neighbours share a row or column, a busy
+node goes in the middle, and two or three columns is usual. An edge between diagonal cells needs one empty corner.
 A long edge down a column runs on its right; give it `via: "left"` when the
 right is busy.
 
@@ -356,7 +348,3 @@ what it does. It has four parts:
 Write none when nothing is distinctive. A restated description is not an
 insight.
 
-Example: a pull request shows lines against the merge base, not the base
-branch's tip (`move`). A two-dot diff against the tip shows other people's
-merges as changes (`vs`). So the review holds still while the base moves
-(`gain`). The rule is `three-dot`.
