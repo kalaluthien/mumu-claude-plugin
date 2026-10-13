@@ -14,7 +14,7 @@ Turn the owner's words into backlogs, route each to a worker, and decide what wo
    - a worker's question: `decide` it on its issue in a call of its own, asking the owner with `AskUserQuestion` only architecture, infrastructure and user-experience questions, then `SendMessage` the worker;
    - the owner's new words on routed work: `comment` them on the backlog and `SendMessage` its holders; the owner stops work: `resolve` it as not planned and `close` its workers;
    - the owner asks where work stands: one row per backlog: its state, its holders and their `agent_status`.
-5. **Clean** a worker that holds nothing open: `close` it; in the checkout `git worktree remove .claude/worktrees/<name>`, `git branch -D <name>`, `git push origin --delete <name>` while `git ls-remote --exit-code origin refs/heads/<name>` finds it, then `git pull --ff-only`.
+5. **Clean** a worker that holds nothing open: `close` it, then `remove` it, in one line for every worker closed since the owner last ran it.
 
 ## Arbitrate
 

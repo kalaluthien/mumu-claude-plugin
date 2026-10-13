@@ -44,6 +44,20 @@ def wait(name, pane, ready, nudge, what):
     raise RuntimeError(f"{name} {what} after {TIMEOUT:g}s")
 
 
+def start(a, pane):
+    """`herdr agent start` in `pane`, retried while the new tab's shell is not up yet."""
+    deadline = time.time() + TIMEOUT
+    while True:
+        p = subprocess.run(["herdr", "agent", "start", a.name, "--kind", "claude", "--pane", pane, "--", "--name", a.name,
+                            "--plugin-dir", str(ROOT), "--model", a.model, "--effort", a.effort], capture_output=True, text=True)
+        out = p.stdout + p.stderr
+        if not p.returncode or '"agent_not_ready"' in out:  # not ready: the trust dialog holds it
+            return
+        if '"agent_pane_busy"' not in out or time.time() >= deadline:  # busy: the shell is still starting
+            raise RuntimeError(f"herdr agent start: {(p.stderr or p.stdout).strip()}")
+        time.sleep(POLL)
+
+
 def main(argv):
     parser = argparse.ArgumentParser(prog="start-session.py", allow_abbrev=False)
     for arg in ("name", "cwd", "args"):
@@ -57,10 +71,7 @@ def main(argv):
     text = f"/teamwork:kick-off {a.args}"
     try:
         pane = open_pane(a.name, str(pathlib.Path(a.cwd).resolve()), a.team)
-        p = subprocess.run(["herdr", "agent", "start", a.name, "--kind", "claude", "--pane", pane, "--", "--name", a.name,
-                            "--plugin-dir", str(ROOT), "--model", a.model, "--effort", a.effort], capture_output=True, text=True)
-        if p.returncode and '"agent_not_ready"' not in p.stdout + p.stderr:  # not ready: the trust dialog holds it
-            raise RuntimeError(f"herdr agent start: {(p.stderr or p.stdout).strip()}")
+        start(a, pane)
         wait(a.name, pane, lambda s: s.get("interactive_ready") and s.get("agent_status") != "blocked",  # trust dialog
              lambda screen: "Yes, I trust this folder" in screen and team.run("herdr", "agent", "send-keys", pane, "down", "enter"),
              "not ready")
