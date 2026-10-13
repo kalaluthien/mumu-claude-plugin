@@ -12,7 +12,7 @@ Own your work from a backlog or the owner's words to its end: define its tasks, 
 | domain | open when your work | playbook |
 | --- | --- | --- |
 | harness | changes rule files or code: skills, playbooks, rubrics, `AGENTS.md`, scripts, hooks, monitors, `lib/`, `bin/`; a test or eval case goes with what it checks | [worker-harness-playbook.md](worker-harness-playbook.md) |
-| page | changes a rendered page, widget, skin or page check, such as `check.py` | [worker-page-playbook.md](worker-page-playbook.md) |
+| page | changes a page, a playbook's page form, the base page or a page check, such as `check-page.py` | [worker-page-playbook.md](worker-page-playbook.md) |
 | restructure | renames, moves, splits, merges or cuts files to a size or a convention, behaviour unchanged | [worker-restructure-playbook.md](worker-restructure-playbook.md) |
 | research | ends in a report comment, not a change | [worker-research-playbook.md](worker-research-playbook.md) |
 

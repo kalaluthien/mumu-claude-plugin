@@ -1,7 +1,7 @@
 {
   "name": "paperwork",
   "version": "0.0.0",
-  "description": "Documents a person reads outside the chat: GitHub bodies, Artifact pages, repository pages.",
+  "description": "Pages a person sees instead of reads, and the questions that settle what they show.",
   "author": {
     "name": "kalaluthien"
   }

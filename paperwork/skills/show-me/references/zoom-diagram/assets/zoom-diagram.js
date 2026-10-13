@@ -1,0 +1,715 @@
+function mountZoomDiagram(root, M) {
+  const NS = "http://www.w3.org/2000/svg";
+  const still = matchMedia("(prefers-reduced-motion: reduce)");
+  const KIND = {
+    schema: { name: "schema", node: "component", edge: "relation", r: 4 },
+    workflow: { name: "workflow", node: "activity", edge: "artifact", r: 11 },
+    state: { name: "state machine", node: "state", edge: "event", r: 22 }
+  };
+  const levels = Object.fromEntries(M.levels.map(L => [L.id, L]));
+  const nodeLevel = {}, nodes = {};
+  M.levels.forEach(L => L.nodes.forEach(n => { nodes[n.id] = n; nodeLevel[n.id] = L.id; }));
+  const childOf = Object.fromEntries(M.levels.filter(L => L.parent).map(L => [L.parent, L.id]));
+  const ops = Object.fromEntries(M.operations.map(o => [o.slug, o]));
+  const rules = Object.fromEntries(M.rules.map(i => [i.slug, i]));
+  const show = Object.assign({ formulas: true, replay: true, media: true }, (M.plan || {}).show);   // what the plan lets the page show
+  const edgeKey = (lid, e) => lid + ":" + e.from + ">" + e.to + (levels[lid].edges.filter(x => x.from === e.from && x.to === e.to).length > 1 ? "#" + e.label : "");  // two edges one way: tell them apart
+  const trigKey = (lid, t) => lid + ":@>" + t.to + "#" + t.label;   // a trigger comes from outside the level
+  const qtyText = q => ({ count: `n=${q.value}`, capacity: `≤ ${q.value}`, delay: `within ${q.value}` }[q.kind] || String(q.value)) + (q.unit ? ` ${q.unit}` : "");
+  const levelOf = x => nodeLevel[x] || String(x).split(":")[0];   // a node id, or an edge or trigger key
+
+  /* A run is { key, kind, name, uses, length, items, calls }. Each item is a node or an edge key with the moments it
+     lasts, { x, from, to, step }: a node lasts the moment of its step; an edge from the moment after its source to
+     the moment it arrives, so a branch that skips ahead stays in flight until its join; `step` is the Scenario step
+     it belongs to ({ at, does, expects }). A new kind of run needs only its own builder in RUNS. */
+  // a Scenario's run is its walk, resolved once by the build: items { x, from, to, step } and the step sentences
+  function scenarioRun(s) {
+    const w = s.run || { items: [], steps: [], uses: [] };
+    const items = w.items.map(it => Object.assign({}, it, { step: w.steps[it.step] }));
+    return { kind: "scenario", name: s.slug, uses: new Set(w.uses), length: Math.max(0, ...items.map(it => it.to)) + 1, items };
+  }
+  // where each call of a run is drawn: an operation where it sits, an event, artifact or trigger by its label
+  const drawnAt = {};
+  const put = (c, x) => (drawnAt[c] = drawnAt[c] || []).push(x);
+  M.levels.forEach(L => {
+    L.nodes.forEach(n => (n.ops || []).forEach(o => put(o, n.id)));
+    L.edges.forEach(e => (e.ops || []).concat(L.kind !== "schema" && e.label ? [e.label] : []).forEach(o => put(o, edgeKey(L.id, e))));
+    (L.triggers || []).forEach(t => (t.ops || []).concat([t.label]).forEach(o => put(o, trigKey(L.id, t))));
+  });
+  function ruleRun(i) {
+    const calls = i.breaks || [];
+    const items = calls.flatMap((cs, k) => [...new Set(cs.flatMap(c => drawnAt[c] || []))].map(x => ({ x, from: k, to: k })));
+    return { kind: "rule", name: i.slug, uses: new Set([i.slug].concat(calls.flat())), length: calls.length, items, calls };
+  }
+  const RUNS = { scenario: slug => scenarioRun(M.scenarios.find(s => s.slug === slug)), rule: slug => ruleRun(rules[slug]) }, runCache = {};
+  const runOf = key => runCache[key] || (runCache[key] = Object.assign(RUNS[key.split(":")[0]](key.slice(key.indexOf(":") + 1)), { key }));
+  const active = (r, k) => r.items.filter(it => it.from <= k && k <= it.to);
+  // where a moment is drawn: the levels of the nodes reached in it, else of anything active in it
+  const momentLevels = (r, k) => { const act = active(r, k), ns = act.filter(it => nodes[it.x] && it.from === k);
+    return [...new Set((ns.length ? ns : act).map(it => levelOf(it.x)))]; };
+  // what is picked by default: the first node reached in the moment, else the first thing active
+  const firstPick = (r, k) => { const act = active(r, k); return ((act.find(it => nodes[it.x] && it.from === k) || act[0]) || {}).x || null; };
+  // side by side at a moment: the steps that reach a node of a workflow or state level in it, and the edges still in flight
+  const branches = (r, k) => new Set(r.items.filter(it => nodes[it.x] ? it.from === k && levels[nodeLevel[it.x]].kind !== "schema" : it.from <= k && k < it.to).map(it => nodes[it.x] ? it.step || it.x : it.x)).size;
+  // what the drawing shows: the pick (selected), the rest of the moment (highlighted), what came before, what is to come
+  function runView() {
+    const r = st.sel && st.sel.run && runOf(st.sel.run); if (!r) return null;
+    const at = st.sel.at, v = { state: {}, steps: {} }, rank = { later: 0, done: 1, now: 2 };
+    r.items.forEach(it => {
+      const s = it.from <= at && at <= it.to ? "now" : it.to < at ? "done" : "later";
+      if (!v.state[it.x] || rank[s] > rank[v.state[it.x]]) v.state[it.x] = s;
+      if (nodes[it.x] && !(v.steps[it.x] || []).includes(it.from)) (v.steps[it.x] = v.steps[it.x] || []).push(it.from);
+    });
+    return v;
+  }
+
+  const st = { level: M.root, sel: null, full: false, sheet: false };   // sel: { node }, { edge, e } or { run, at, pick }
+  root.classList.add("zd");
+  root.innerHTML = `
+  <div class="zd-main">
+    <div class="zd-board">
+      <div class="zd-top"><nav class="zd-crumbs" aria-label="Level path"></nav><button type="button" class="zd-fs" aria-label="Full screen"></button></div>
+      <nav class="zd-nav" aria-label="Levels and scenarios"></nav>
+      <p class="zd-why"></p><p class="zd-legend"></p>
+      <div class="zd-time" hidden><code></code><button type="button" data-d="-1" aria-label="Earlier">‹</button><div class="zd-rail"><div class="zd-ticks" aria-hidden="true"></div><input type="range" min="1" step="1" aria-label="Step"></div><button type="button" data-d="1" aria-label="Later">›</button><output></output><button type="button" class="zd-end" aria-label="Close">✕</button></div>
+      <div class="zd-stage"><div class="zd-canvas"></div><aside class="zd-note" aria-live="polite"></aside></div>
+    </div>
+  </div><div class="zd-scrim" hidden></div>`;
+  const $ = s => root.querySelector(s);
+  const narrow = () => root.clientWidth < 900;
+  const el = (p, tag, a = {}, t) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); if (t != null) e.textContent = t; p.appendChild(e); return e; };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  const GX = 92, GY = 82, NW = 124, NH = 46, PAD = 30;
+  const FONT_N = '17px "Patrick Hand", "Gaegu", "Comic Neue", cursive', FONT_E = '15px "Patrick Hand", "Gaegu", "Comic Neue", cursive';
+  const meas = (() => { const c = document.createElement("canvas").getContext("2d"); return (t, f) => { c.font = f; return c.measureText(t).width; }; })();
+  const MARKS = { happy: "main path", failure: "failure path", optional: "optional", unsure: "unconfirmed" };
+  const GLYPH = { happy: '<path d="M1 4H23" class="lg lg-happy"/>', failure: '<path d="M1 4H23" class="lg lg-failure"/>', optional: '<path d="M1 4H23" class="lg lg-optional"/>', unsure: '<text x="12" y="8" text-anchor="middle" class="lg-q">?</text>' };
+  const mk = m => `<span class="zd-mk"><svg viewBox="0 0 24 9" width="24" height="9" aria-hidden="true">${GLYPH[m]}</svg>${MARKS[m]}</span>`;
+  const pname = (L, id) => ((L.partitions || []).find(p => p.id === id) || { label: id }).label;
+  const marks = x => (x.mark || []).filter(m => MARKS[m]);
+  const shown = x => (x.label || "") + (marks(x).includes("unsure") ? " ?" : "");
+  // syncs (Meng and Jackson) read on the events themselves: "push (→ receive)" and "receive (← push)"
+  const syncsOf = (L, e) => (L.syncs || []).filter(y => e.label && (y.when === e.label || y.then === e.label));
+  const syncTag = (L, e) => syncsOf(L, e).map(y => y.when === e.label ? "→ " + y.then : "← " + y.when).join(", ");
+  const tagged = (L, e) => { const t = syncTag(L, e); return shown(e) + (t ? ` (${t})` : "") + (e.qty ? ` ${qtyText(e.qty)}` : ""); };
+  const pairKey = e => [e.from, e.to].sort().join("|");
+  // nodes without x and y are placed by the engine, one at a time beside a placed neighbour (one of its own
+  // partition first), in the free cell where its edges, drawn by route() itself, cross the fewest other nodes
+  function arrange(L) {
+    const todo = L.nodes.filter(n => n.x == null || n.y == null);
+    if (!todo.length) return;
+    const box = (c, r) => ({ x: c * 200, y: r * 130, w: NW, h: NH, c, r, gx: GX });
+    const at = {}, taken = new Set();
+    const put = (n, c, r) => { n.x = c; n.y = r; at[n.id] = box(c, r); taken.add(c + "," + r); };
+    L.nodes.filter(n => !todo.includes(n)).forEach(n => put(n, n.x, n.y));
+    const near = n => L.edges.filter(e => e.from !== e.to && (e.from === n.id || e.to === n.id)).map(e => e.from === n.id ? e.to : e.from);
+    while (todo.length) {
+      const n = todo.find(n => near(n).some(id => at[id])) || todo[0];
+      todo.splice(todo.indexOf(n), 1);
+      const placed = near(n).filter(id => at[id]), mates = L.nodes.filter(o => at[o.id] && o.partition && o.partition === n.partition);
+      const around = ids => ids.flatMap(id => [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([dc, dr]) => [at[id].c + dc, at[id].r + dr]));
+      let cells = around(placed.length ? placed : mates.map(o => o.id)).filter(([c, r]) => !taken.has(c + "," + r));
+      if (!cells.length) { const cmax = Math.max(-1, ...Object.values(at).map(b => b.c)); cells = [[cmax + 1, 0]]; }
+      // what the drawing check would object to, counted on every edge placed so far: edges through nodes, and
+      // stretches two edges from different sources share
+      const cost = ([c, r]) => {
+        const all = Object.assign({}, at, { [n.id]: box(c, r) });
+        const routes = L.edges.filter(e => e.from !== e.to && all[e.from] && all[e.to]).map(e => [e, route(all, e, 0)]);
+        const through = routes.reduce((k, [e, pts]) => k + Object.entries(all).filter(([id, b]) => id !== e.from && id !== e.to && pts.slice(1).some((p, i) => segHits(pts[i], p, b))).length, 0);
+        const segs = pts => pts.slice(1).map((p, i) => [pts[i], p]);
+        const along = ([a, b], [p, q]) => (a.x === b.x && p.x === q.x && Math.abs(a.x - p.x) < 4 && Math.min(Math.max(a.y, b.y), Math.max(p.y, q.y)) - Math.max(Math.min(a.y, b.y), Math.min(p.y, q.y)) > 12)
+          || (a.y === b.y && p.y === q.y && Math.abs(a.y - p.y) < 4 && Math.min(Math.max(a.x, b.x), Math.max(p.x, q.x)) - Math.max(Math.min(a.x, b.x), Math.min(p.x, q.x)) > 12);
+        const shared = routes.reduce((k, [e, pts], i) => k + routes.slice(i + 1).filter(([f, qs]) => f.from !== e.from && segs(pts).some(s1 => segs(qs).some(s2 => along(s1, s2)))).length, 0);
+        const loops = L.edges.some(e => e.from === e.to && (e.from === n.id || all[e.from] && all[e.from].c === c && Math.abs(all[e.from].r - r) === 1)) && L.nodes.some(o => o !== n && at[o.id] && at[o.id].r === r) ? 1 : 0;
+        const apart = mates.length && !mates.some(o => Math.abs(at[o.id].c - c) + Math.abs(at[o.id].r - r) === 1);
+        // and partitions stay blocks: no node inside the cells another partition spans
+        const placedNow = L.nodes.filter(o => all[o.id]), blocks = (L.partitions || []).reduce((k, P) => {
+          const own = placedNow.filter(o => o.partition === P.id).map(o => all[o.id]); if (!own.length) return k;
+          const [c0, c1, r0, r1] = [Math.min(...own.map(b => b.c)), Math.max(...own.map(b => b.c)), Math.min(...own.map(b => b.r)), Math.max(...own.map(b => b.r))];
+          return k + placedNow.filter(o => o.partition !== P.id && all[o.id].c >= c0 && all[o.id].c <= c1 && all[o.id].r >= r0 && all[o.id].r <= r1).length; }, 0);
+        // then keep it compact, reading left to right and wrapping down after three columns
+        const cs = Object.values(at).map(b => b.c), rs = Object.values(at).map(b => b.r);
+        const grow = (c < Math.min(...cs) || r < Math.min(...rs) ? 4 : 0) + (c > Math.max(...cs) && Math.max(...cs) - Math.min(...cs) >= 2 ? 6 : 0);
+        return (through + shared + blocks) * 100 + loops * 30 + (apart ? 50 : 0) + grow * 3 + r * 2 + c;
+      };
+      const best = cells.reduce((a, b) => cost(b) < cost(a) ? b : a);
+      put(n, best[0], best[1]);
+    }
+    const c0 = Math.min(...L.nodes.map(n => n.x)), r0 = Math.min(...L.nodes.map(n => n.y));
+    L.nodes.forEach(n => { n.x -= c0; n.y -= r0; });
+  }
+  function geom(L) {
+    arrange(L);
+    const h = NH;
+    const at = Object.fromEntries(L.nodes.map(n => [n.id, n]));
+    const nw = Math.max(NW, ...L.nodes.map(n => Math.ceil(meas(shown(n), FONT_N) + (childOf[n.id] ? 50 : 34))));
+    const cols = Math.max(...L.nodes.map(n => n.x)) + 1, rows = Math.max(...L.nodes.map(n => n.y)) + 1;
+    const loop = L.edges.some(e => e.from === e.to) ? 46 : 0;
+    const over = L.edges.some(e => e.from !== e.to && at[e.from].y === at[e.to].y && Math.abs(at[e.from].x - at[e.to].x) > 1) ? 44 : 0;
+    // a state level has one initial state, or one per region when its partitions are orthogonal regions
+    const inis = L.kind === "state" ? [].concat(L.initial || []).map(id => at[id]).filter(Boolean) : [];
+    const iniTopOf = n => L.nodes.some(o => o.y === n.y && o.x === n.x - 1), iniTop = inis.some(iniTopOf);
+    const parent = L.parent && levels[nodeLevel[L.parent]];
+    const flows = parent && parent.kind === "workflow" && L.kind === "workflow" ? (L.in || []).map(f => ({ f, kind: "in", at: f.to })).concat((L.out || []).flatMap(f => [].concat(f.from).map(at => ({ f, kind: "out", at })))) : [];
+    const used = {}, maxC = Math.max(...L.nodes.map(n => n.x)), maxR = Math.max(...L.nodes.map(n => n.y));
+    const long = (n, side) => L.edges.some(e => (e.from === n.id || e.to === n.id) && e.from !== e.to && (() => { const a = at[e.from], b = at[e.to];
+      if (a.y === b.y && Math.abs(a.x - b.x) > 1) return side === "top";
+      if (a.x === b.x && Math.abs(a.y - b.y) > 1) return side === (e.via === "left" ? "left" : "right");
+      if (a.x !== b.x && a.y !== b.y) {   // a diagonal edge leaves its source vertically and enters its target from the side
+        const dc = b.x - a.x, dr = b.y - a.y;
+        return e.from === n.id ? side === (dr > 0 ? "bottom" : "top") : side === (dc > 0 ? "left" : "right");
+      }
+      return false; })());
+    const free = (n, side) => !(used[n.id] || []).includes(side) && !long(n, side) && !(inis.includes(n) && side === (iniTopOf(n) ? "top" : "left"))
+      && !L.nodes.some(o => side === "top" ? o.x === n.x && o.y === n.y - 1 : side === "bottom" ? o.x === n.x && o.y === n.y + 1 : side === "left" ? o.y === n.y && o.x === n.x - 1 : o.y === n.y && o.x === n.x + 1);
+    const stub = (kind, t, at, text) => {
+      const n = at_(at), prefer = kind === "out" ? ["right", "bottom", "top", "left"] : ["top", "left", "bottom", "right"];
+      const side = prefer.find(sd => free(n, sd)) || prefer[0]; (used[n.id] = used[n.id] || []).push(side);
+      const flat = side === "left" || side === "right";
+      return { kind, t, n, side, text, len: flat ? Math.max(46, Math.ceil(meas(text, FONT_E) + 30)) : 36 };
+    };
+    const at_ = id => at[id];
+    const trig = (L.triggers || []).map(t => stub("trig", t, t.to, shown(t))).concat(flows.map(q => stub(q.kind, q.f, q.at, q.f.edge)));
+    const tTop = trig.some(q => q.side === "top" && q.n.y === 0) ? 54 : 0, tBot = trig.some(q => q.side === "bottom" && q.n.y === maxR) ? 54 : 0;
+    const tLeft = Math.max(0, ...trig.filter(q => q.side === "left" && q.n.x === 0).map(q => q.len + 18)), tRight = Math.max(0, ...trig.filter(q => q.side === "right" && q.n.x === maxC).map(q => q.len + 18));
+    const far = e => e.from !== e.to && at[e.from].x === at[e.to].x && Math.abs(at[e.from].y - at[e.to].y) > 1;
+    const side = L.edges.some(e => far(e) && e.via !== "left") ? 36 : 0, viaLeft = L.edges.some(e => far(e) && e.via === "left" && at[e.from].x === 0) ? 40 : 0;
+    const top = PAD + 6 + Math.max(loop, over, iniTop ? 32 : 0, tTop), left = PAD + Math.max(inis.some(n => !iniTopOf(n)) ? 26 : 0, tLeft, viaLeft);
+    const hl = L.edges.filter(e => e.from !== e.to && at[e.from].y === at[e.to].y).map(e => meas(tagged(L, e), FONT_E));
+    const gx = Math.max(GX, Math.ceil(Math.max(0, ...hl) + 34));
+    const W = left + cols * nw + (cols - 1) * gx + PAD + Math.max(side, tRight), H = top + rows * h + (rows - 1) * GY + PAD + tBot;
+    const box = {}; L.nodes.forEach(n => box[n.id] = { x: left + n.x * (nw + gx), y: top + n.y * (h + GY), w: nw, h, c: n.x, r: n.y, gx });
+    return { W, H, box, inis: inis.map(n => ({ id: n.id, top: iniTopOf(n) })), trig };
+  }
+  const segHits = (p, q, b) => {
+    const x0 = Math.min(p.x, q.x), x1 = Math.max(p.x, q.x), y0 = Math.min(p.y, q.y), y1 = Math.max(p.y, q.y);
+    return x1 > b.x - 6 && x0 < b.x + b.w + 6 && y1 > b.y - 6 && y0 < b.y + b.h + 6;
+  };
+  function route(box, e, lane) {
+    const A = box[e.from], B = box[e.to], off = lane * 10;
+    const ca = { x: A.x + A.w / 2, y: A.y + A.h / 2 }, cb = { x: B.x + B.w / 2, y: B.y + B.h / 2 };
+    const dc = B.c - A.c, dr = B.r - A.r;
+    if (e.from === e.to) { const x1 = A.x + 30, x2 = A.x + A.w - 30, y = A.y - 30; return [{ x: x1, y: A.y }, { x: x1, y }, { x: x2, y }, { x: x2, y: A.y }]; }
+    if (dr === 0 && Math.abs(dc) === 1) { const s = Math.sign(dc); return [{ x: s > 0 ? A.x + A.w : A.x, y: ca.y + off }, { x: s > 0 ? B.x : B.x + B.w, y: cb.y + off }]; }
+    if (dc === 0 && Math.abs(dr) === 1) { const s = Math.sign(dr); return [{ x: ca.x + off, y: s > 0 ? A.y + A.h : A.y }, { x: cb.x + off, y: s > 0 ? B.y : B.y + B.h }]; }
+    if (dr === 0) { const y = Math.min(A.y, B.y) - 32 + off; return [{ x: ca.x, y: A.y }, { x: ca.x, y }, { x: cb.x, y }, { x: cb.x, y: B.y }]; }
+    if (dc === 0 && e.via === "left") { const x = A.x - 32 + off; return [{ x: A.x, y: ca.y }, { x, y: ca.y }, { x, y: cb.y }, { x: B.x, y: cb.y }]; }
+    if (dc === 0) { const x = A.x + A.w + 32 + off; return [{ x: A.x + A.w, y: ca.y }, { x, y: ca.y }, { x, y: cb.y }, { x: B.x + B.w, y: cb.y }]; }
+    const vh = [{ x: ca.x, y: dr > 0 ? A.y + A.h : A.y }, { x: ca.x, y: cb.y }, { x: dc > 0 ? B.x : B.x + B.w, y: cb.y }];
+    const hv = [{ x: dc > 0 ? A.x + A.w : A.x, y: ca.y }, { x: cb.x, y: ca.y }, { x: cb.x, y: dr > 0 ? B.y : B.y + B.h }];
+    const others = Object.values(box).filter(b => b !== A && b !== B);
+    const clear = pts => !others.some(b => pts.slice(1).some((p, i) => segHits(pts[i], p, b)));
+    for (const r of (lane > 0 ? [hv, vh] : [vh, hv])) if (clear(r)) return r;
+    const gx = (dc > 0 ? A.x + A.w : A.x) + Math.sign(dc) * A.gx / 2 + off;
+    return [{ x: dc > 0 ? A.x + A.w : A.x, y: ca.y }, { x: gx, y: ca.y }, { x: gx, y: cb.y }, { x: dc > 0 ? B.x : B.x + B.w, y: cb.y }];
+  }
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+  const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) || 1; };
+  const rng = seed => { let x = seed; return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return ((x >>> 0) % 100000) / 100000; }; };
+  function smooth(pts) { // Catmull-Rom through the points
+    let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+      const c1 = { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 }, c2 = { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 };
+      d += ` C${c1.x.toFixed(1)},${c1.y.toFixed(1)} ${c2.x.toFixed(1)},${c2.y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+    }
+    return d;
+  }
+  function wobble(pts, seed, amp) { // displace along the normal with a slow, seeded wave
+    const R = rng(seed), f1 = 1.5 + R() * 1.5, f2 = 4 + R() * 3, a = R() * 6.28, b = R() * 6.28, n = pts.length;
+    return pts.map((p, i) => {
+      const q = pts[Math.min(n - 1, i + 1)], o = pts[Math.max(0, i - 1)], dx = q.x - o.x, dy = q.y - o.y, l = Math.hypot(dx, dy) || 1;
+      const t = i / Math.max(1, n - 1), w = amp * (0.7 * Math.sin(f1 * 6.28 * t + a) + 0.3 * Math.sin(f2 * 6.28 * t + b));
+      const taper = Math.min(1, i / 3, (n - 1 - i) / 3);
+      return { x: p.x - dy / l * w * taper, y: p.y + dx / l * w * taper };
+    });
+  }
+  function sample(pts, r, step) { // polyline with rounded corners, sampled evenly
+    const out = [pts[0]];
+    const push = p => { const z = out[out.length - 1], l = dist(z, p), k = Math.max(1, Math.round(l / step)); for (let j = 1; j <= k; j++) out.push({ x: z.x + (p.x - z.x) * j / k, y: z.y + (p.y - z.y) * j / k }); };
+    for (let i = 1; i < pts.length - 1; i++) {
+      const p = pts[i - 1], c = pts[i], n = pts[i + 1], r1 = Math.min(r, dist(p, c) / 2, dist(c, n) / 2);
+      const a = { x: c.x + (p.x - c.x) / dist(p, c) * r1, y: c.y + (p.y - c.y) / dist(p, c) * r1 };
+      const b = { x: c.x + (n.x - c.x) / dist(c, n) * r1, y: c.y + (n.y - c.y) / dist(c, n) * r1 };
+      push(a);
+      for (let j = 1; j <= 5; j++) { const t = j / 5; out.push({ x: (1 - t) * (1 - t) * a.x + 2 * (1 - t) * t * c.x + t * t * b.x, y: (1 - t) * (1 - t) * a.y + 2 * (1 - t) * t * c.y + t * t * b.y }); }
+    }
+    push(pts[pts.length - 1]);
+    return out;
+  }
+  function inkRect(x, y, w, h, r, seed) { // one hand stroke round a rounded box, overshooting where it starts
+    r = Math.min(r, h / 2, w / 2);
+    const R = rng(seed), per = 2 * (w + h) - 8 * r + 2 * Math.PI * r, segs = [w - 2 * r, Math.PI * r / 2, h - 2 * r, Math.PI * r / 2, w - 2 * r, Math.PI * r / 2, h - 2 * r, Math.PI * r / 2];
+    const at = t => {
+      t = ((t % per) + per) % per; let i = 0; while (t > segs[i] && i < 7) { t -= segs[i]; i++; }
+      const k = segs[i] ? t / segs[i] : 0, a = k * Math.PI / 2;
+      switch (i) {
+        case 0: return { x: x + r + t, y };
+        case 1: return { x: x + w - r + r * Math.sin(a), y: y + r - r * Math.cos(a) };
+        case 2: return { x: x + w, y: y + r + t };
+        case 3: return { x: x + w - r + r * Math.cos(a), y: y + h - r + r * Math.sin(a) };
+        case 4: return { x: x + w - r - t, y: y + h };
+        case 5: return { x: x + r - r * Math.sin(a), y: y + h - r + r * Math.cos(a) };
+        case 6: return { x, y: y + h - r - t };
+        default: return { x: x + r - r * Math.cos(a), y: y + r - r * Math.sin(a) };
+      }
+    };
+    const s0 = R() * per, total = per * (1.05 + R() * 0.04), N = Math.max(36, Math.round(per / 7)), pts = [];
+    for (let i = 0; i <= N; i++) pts.push(at(s0 + total * i / N));
+    const f1 = 2 + R() * 2, a1 = R() * 6.28, cx = x + w / 2, cy = y + h / 2;
+    return smooth(pts.map((p, i) => { const d = 1.1 * Math.sin(f1 * 6.28 * i / N + a1) + (i / N) * 1.4, l = Math.hypot(p.x - cx, p.y - cy) || 1; return { x: p.x + (p.x - cx) / l * d, y: p.y + (p.y - cy) / l * d }; }));
+  }
+  function inkHead(g, p, q, seed) { // two quick strokes for an arrowhead
+    const R = rng(seed), ang = Math.atan2(p.y - q.y, p.x - q.x), L = 9 + R() * 2, s = 0.42 + R() * 0.08;
+    [-1, 1].forEach(k => el(g, "path", { d: `M${(p.x - L * Math.cos(ang + k * s)).toFixed(1)},${(p.y - L * Math.sin(ang + k * s)).toFixed(1)} Q${(p.x - L * 0.45 * Math.cos(ang + k * s * 0.8)).toFixed(1)},${(p.y - L * 0.45 * Math.sin(ang + k * s * 0.8)).toFixed(1)} ${p.x.toFixed(1)},${p.y.toFixed(1)}`, class: "e-head" }));
+  }
+  function label(g, pts, text, lane, loop, tag, qty) {
+    let best = 0, bl = -1;
+    for (let i = 1; i < pts.length; i++) { const l = dist(pts[i - 1], pts[i]); if (l > bl) { bl = l; best = i; } }
+    if (loop) best = 2;
+    const p = pts[best - 1], q = pts[best], m = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 }, horiz = Math.abs(p.y - q.y) < 0.5;
+    const t = el(g, "text", horiz
+      ? { x: m.x, y: lane > 0 ? m.y + 18 : m.y - 8, "text-anchor": "middle", class: "e-lab" }
+      : { x: lane < 0 ? m.x - 9 : m.x + 9, y: m.y + 5, "text-anchor": lane < 0 ? "end" : "start", class: "e-lab" }, text);
+    if (tag) el(t, "tspan", { class: "e-sync" }, ` (${tag})`);
+    if (qty) el(t, "tspan", { class: "e-qty" }, ` ${qtyText(qty)}`);
+    const bb = t.getBBox(), plate = document.createElementNS(NS, "rect");
+    Object.entries({ x: bb.x - 3, y: bb.y, width: bb.width + 6, height: bb.height, rx: 3, class: "e-plate" }).forEach(([k, v]) => plate.setAttribute(k, v));
+    g.insertBefore(plate, t);
+  }
+
+  let G0 = null;
+  function draw(fromBox) {
+    const L = levels[st.level], K = KIND[L.kind], g0 = G0 = geom(L);
+    const host = $(".zd-canvas"); host.innerHTML = "";
+    const svg = el(host, "svg", { viewBox: `0 0 ${g0.W} ${g0.H}`, role: "img", "aria-label": `${L.title}, ${L.nodes.length} nodes` });
+    const world = el(svg, "g", { class: "world" });
+    const edgeFade = () => { const r = host.scrollWidth - host.clientWidth; host.classList.toggle("more-r", host.scrollLeft < r - 2); host.classList.toggle("more-l", host.scrollLeft > 2); };
+    host.onscroll = edgeFade; requestAnimationFrame(edgeFade);
+    const rv = runView();
+    const cls = (g, x) => { if (!rv) return; const s = rv.state[x]; g.classList.add(!s ? "dim" : s === "now" ? (x === st.sel.pick ? "lit" : "hl") : s); };
+    const groups = {}; L.edges.forEach(e => (groups[pairKey(e)] = groups[pairKey(e)] || []).push(e));
+    const part = {}, pbox = {};
+    (L.partitions || []).forEach((P, i) => {
+      const bs = L.nodes.filter(n => n.partition === P.id).map(n => g0.box[n.id]); if (!bs.length) return;
+      const x0 = Math.min(...bs.map(b => b.x)) - 16, y0 = Math.min(...bs.map(b => b.y)) - 28, x1 = Math.max(...bs.map(b => b.x + b.w)) + 16, y1 = Math.max(...bs.map(b => b.y + b.h)) + 12;
+      pbox[P.id] = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+      const g = el(world, "g", { class: "part", "data-p": P.id });
+      el(g, "path", { d: inkRect(x0, y0, x1 - x0, y1 - y0, 14, hash(L.id + P.id)), class: "p-ink" });
+      el(g, "text", { x: x0 + 12, y: y0 + 18, class: "p-lab" }, P.label);
+    });
+    L.nodes.forEach(n => { if (n.partition) part[n.id] = n.partition; });
+    L.edges.forEach(e => {
+      const k = edgeKey(L.id, e), grp = groups[pairKey(e)], lane = grp.length > 1 ? (grp.indexOf(e) ? 1 : -1) : 0, seed = hash(k);
+      const g = el(world, "g", { class: "edge", tabindex: 0, role: "button", "data-key": k, "aria-label": `${nodes[e.from].label} to ${nodes[e.to].label}${e.label ? ", " + e.label : ""}` });
+      marks(e).forEach(m => g.classList.add("m-" + m));
+      if (st.sel && st.sel.edge === k) g.classList.add("lit");
+      cls(g, k);
+      const pts = route(g0.box, e, lane), raw = sample(pts, 10, 5), d = smooth(wobble(raw, seed, 0.9));
+      el(g, "path", { d: smooth(raw), class: "e-hit" });
+      el(g, "path", { d, class: "e-line" });
+      inkHead(g, pts[pts.length - 1], raw[raw.length - 3], seed + 7);
+      if (e.label) label(g, pts, shown(e), lane, e.from === e.to, syncTag(L, e), e.qty);
+      const pa = part[e.from], pb = part[e.to], B = pa && pb && pa !== pb && pbox[pa];
+      if (B) { const q = raw.find(t => t.x < B.x || t.x > B.x + B.w || t.y < B.y || t.y > B.y + B.h); if (q) el(g, "rect", { x: q.x - 4, y: q.y - 4, width: 8, height: 8, class: "x-port" }); }
+      const pick = () => act(k, () => select({ edge: k, e }));
+      g.addEventListener("click", pick);
+      g.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); pick(); } });
+    });
+    g0.inis.forEach(({ id, top }) => {
+      const B = g0.box[id], seed = hash(L.id + "init" + id);
+      const [p, q] = top ? [{ x: B.x + B.w / 2, y: B.y - 22 }, { x: B.x + B.w / 2, y: B.y }] : [{ x: B.x - 24, y: B.y + B.h / 2 }, { x: B.x, y: B.y + B.h / 2 }];
+      el(world, "circle", { cx: p.x, cy: p.y, r: 4.5, class: "init" });
+      el(world, "path", { d: smooth(wobble(sample([p, q], 0, 4), seed, 0.6)), class: "e-line" });
+      inkHead(world, q, p, seed);
+    });
+    // stubs: a trigger from outside (open circle, clock hands when it repeats), or the parent's artifact
+    // entering or leaving this process at a square port; a port leads back up to that artifact
+    g0.trig.forEach(({ kind, t, n, side, len, text }) => {
+      const B = g0.box[n.id], out = kind === "out";
+      const k = kind === "trig" ? trigKey(L.id, t) : L.id + (out ? ":" + n.id + ">^" : ":^>" + n.id) + "#" + t.edge, seed = hash(k);
+      const g = el(world, "g", { class: "edge " + (kind === "trig" ? "trig" : "port"), tabindex: 0, role: "button", "data-key": k,
+        "aria-label": kind === "trig" ? `${t.every ? "every " + t.every : "from outside"} to ${n.label}, ${t.label}` : `${text}, ${out ? "leaves" : "enters"} ${levels[L.id].title}` });
+      const twin = kind === "trig" ? t : levels[nodeLevel[L.parent]].edges.find(e => e.label === t.edge) || {};   // a port wears its artifact's marks
+      marks(twin).forEach(m => g.classList.add("m-" + m));
+      if (kind === "trig") { if (st.sel && st.sel.edge === k) g.classList.add("lit"); cls(g, k); }
+      const edgePt = { top: { x: B.x + B.w / 2, y: B.y }, bottom: { x: B.x + B.w / 2, y: B.y + B.h }, left: { x: B.x, y: B.y + B.h / 2 }, right: { x: B.x + B.w, y: B.y + B.h / 2 } }[side];
+      const dir = { top: [0, -1], bottom: [0, 1], left: [-1, 0], right: [1, 0] }[side], far = { x: edgePt.x + dir[0] * len, y: edgePt.y + dir[1] * len };
+      const [p, q] = out ? [edgePt, far] : [far, edgePt], raw = sample([p, q], 0, 4), c = { x: far.x + dir[0] * 8, y: far.y + dir[1] * 8 };
+      el(g, "path", { d: smooth(raw), class: "e-hit" });
+      el(g, "path", { d: smooth(wobble(raw, seed, 0.6)), class: "e-line" });
+      inkHead(g, q, raw[raw.length - 3], seed + 7);
+      if (kind === "trig") {
+        el(g, "circle", { cx: c.x, cy: c.y, r: 8, class: "t-src" });
+        if (t.every) el(g, "path", { d: `M${c.x},${c.y - 5} L${c.x},${c.y} L${c.x + 4},${c.y + 2}`, class: "t-hand" });
+      } else el(g, "rect", { x: c.x - 6, y: c.y - 6, width: 12, height: 12, class: "x-port" });
+      label(g, [p, q], text, 0, false);
+      const pick = kind === "trig" ? () => act(k, () => select({ edge: k, e: t })) : () => {
+        const pl = nodeLevel[L.parent], pe = levels[pl].edges.find(e => e.label === t.edge && (out ? e.from === L.parent : e.to === L.parent));
+        const ptr = (levels[pl].triggers || []).find(x => x.label === t.edge && x.to === L.parent);
+        goto(pl, { up: true }, pe ? { edge: edgeKey(pl, pe), e: pe } : ptr ? { edge: trigKey(pl, ptr), e: ptr } : null);
+      };
+      g.addEventListener("click", pick);
+      g.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); pick(); } });
+    });
+    L.nodes.forEach(n => {
+      const b = g0.box[n.id], open = childOf[n.id], rx = Math.min(K.r, b.h / 2), seed = hash(L.id + n.id);
+      const g = el(world, "g", { class: "node" + (open ? " opens" : "") + (n.abstract ? " abstract" : ""), tabindex: 0, role: "button", "data-id": n.id, "data-p": n.partition || "", "aria-label": n.label + (open ? ", opens a level" : "") });
+      marks(n).forEach(m => g.classList.add("m-" + m));
+      if (st.sel && st.sel.node === n.id) g.classList.add("lit");
+      cls(g, n.id);
+      el(g, "rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx, class: "n-fill" });
+      el(g, "path", { d: inkRect(b.x, b.y, b.w, b.h, rx, seed), class: "n-ink" });
+      el(g, "text", { x: b.x + b.w / 2 - (open ? 8 : 0), y: b.y + b.h / 2 + 5.5, "text-anchor": "middle", class: "n-lab" }, shown(n));
+      if (n.qty) {   // how much it holds, on its bottom left corner
+        const txt = qtyText(n.qty), w = meas(txt, '13px "IBM Plex Mono", monospace') + 12, bq = el(g, "g", { class: "n-qty" });
+        el(bq, "rect", { x: b.x - 6, y: b.y + b.h - 9, width: w, height: 18, rx: 4 });
+        el(bq, "text", { x: b.x - 6 + w / 2, y: b.y + b.h + 4, "text-anchor": "middle" }, txt);
+      }
+      if (rv && rv.steps[n.id]) {   // the moments this node is reached in, on its top right corner
+        const ks = rv.steps[n.id], txt = ks.map(k => k + 1).join(" · "), w = Math.max(18, meas(txt, '12px "IBM Plex Mono", monospace') + 10);
+        const bg = el(g, "g", { class: "n-step" + (ks[0] <= st.sel.at ? " reached" : "") });
+        el(bg, "rect", { x: b.x + b.w - w + 6, y: b.y - 9, width: w, height: 18, rx: 9 });
+        el(bg, "text", { x: b.x + b.w - w / 2 + 6, y: b.y + 4, "text-anchor": "middle" }, txt);
+      }
+      if (open) {
+        el(g, "path", { d: `M${b.x + b.w - 19},${b.y + b.h / 2 - 5} q4,3 5,5 q-2,3 -5,5`, class: "n-chev" });
+        el(g, "rect", { x: b.x + b.w - 34, y: b.y, width: 34, height: b.h, class: "n-go" }).addEventListener("click", ev => { ev.stopPropagation(); goto(open, b); });
+      }
+      g.addEventListener("click", () => act(n.id, () => open && st.sel && st.sel.node === n.id ? goto(open, b) : select({ node: n.id })));
+      g.addEventListener("keydown", ev => {
+        if (ev.key === "Enter") { ev.preventDefault(); act(n.id, () => open ? goto(open, b) : select({ node: n.id })); }
+        if (ev.key === " ") { ev.preventDefault(); select({ node: n.id }); }
+      });
+    });
+    // the bounds take in every label drawn past the grid, so none is cut at the board's edge; on a phone the board
+    // shrinks until its smallest text is 9 px and scrolls sideways past that, on a wide screen it stops at 0.72
+    const bb = world.getBBox(), x0 = Math.min(0, Math.floor(bb.x - 6)), y0 = Math.min(0, Math.floor(bb.y - 6));
+    const x1 = Math.max(g0.W, Math.ceil(bb.x + bb.width + 6)), y1 = Math.max(g0.H, Math.ceil(bb.y + bb.height + 6)), w = x1 - x0;
+    const fonts = [...world.querySelectorAll("text")].map(t => parseFloat(getComputedStyle(t).fontSize)), k = narrow() ? 9 / Math.min(...fonts) : 0.72;
+    svg.setAttribute("viewBox", `${x0} ${y0} ${w} ${y1 - y0}`);
+    svg.setAttribute("style", `min-width:${Math.ceil(w * k)}px;max-width:${Math.round(w * 1.15)}px`);
+    if (!still.matches && fromBox) {
+      const t0 = performance.now(), D = 340;
+      const mid = fromBox.up || fromBox.fade, s0 = fromBox.up ? 1.4 : fromBox.fade ? 0.9 : 0.2, cx = mid ? g0.W / 2 : fromBox.x + fromBox.w / 2, cy = mid ? g0.H / 2 : fromBox.y + fromBox.h / 2;
+      const step = now => {
+        const t = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - t, 3), s = s0 + (1 - s0) * e;
+        world.setAttribute("transform", `translate(${(cx * (1 - s)).toFixed(2)},${(cy * (1 - s)).toFixed(2)}) scale(${s.toFixed(4)})`);
+        world.setAttribute("opacity", (0.1 + 0.9 * e).toFixed(3));
+        if (t < 1) requestAnimationFrame(step); else { world.removeAttribute("transform"); world.removeAttribute("opacity"); }
+      };
+      requestAnimationFrame(step);
+    }
+  }
+
+  function nav() {
+    const items = [];
+    const visit = (id, d) => { items.push([id, d]); levels[id].nodes.forEach(n => childOf[n.id] && visit(childOf[n.id], d + 1)); };
+    visit(M.root, 0);
+    const n = $(".zd-nav"), scen = M.scenarios.filter(s => nodeLevel[((s.run || { items: [] }).items.find(it => nodes[it.x]) || {}).x] === st.level);
+    // levels on the left; the Scenarios fill the rest, side by side, swiped through
+    const sect = (cls, title, count, body) => `<section class="${cls}"><h5 class="zd-sect">${title}<span>${count}</span></h5>${body}</section>`;
+    n.innerHTML = `<div class="zd-navgrid">` + sect("zd-nl", "Levels", items.length, `<ul class="zd-levels">${items.map(([id, d]) => `<li><button type="button" data-l="${id}" ${id === st.level ? 'aria-current="true"' : ""} style="--d:${d}">${d ? '<i class="tk" aria-hidden="true">└</i>' : ""}<span>${esc(levels[id].title)}</span></button></li>`).join("")}</ul>`)
+      + (scen.length ? sect("zd-ns", "Scenarios", scen.length, `<ul class="zd-scen">${scen.map(s => `<li><button type="button" data-s="${s.slug}" aria-pressed="${!!st.sel && st.sel.run === "scenario:" + s.slug}"><code>${s.slug}</code><span>${esc(s.text)}</span></button></li>`).join("")}</ul>`) : "") + `</div>`;
+    n.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { sheet(false); if (b.dataset.l !== st.level) goto(b.dataset.l); });
+    n.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { if (!show.replay) return; sheet(false); const key = "scenario:" + b.dataset.s; st.sel && st.sel.run === key ? end() : play(key, 0); });
+  }
+  function bar() {
+    const L = levels[st.level];
+    const ids = []; for (let id = st.level; id; id = levels[id].parent ? nodeLevel[levels[id].parent] : null) ids.unshift(id);
+    $(".zd-crumbs").innerHTML = ids.map((id, i) => i < ids.length - 1
+      ? `<button type="button" class="zd-up" data-up="${id}">${esc(levels[id].title)}</button><span class="zd-sep" aria-hidden="true">›</span>`
+      : `<button type="button" class="zd-lv" aria-expanded="${st.sheet}">${esc(levels[id].title)}<i aria-hidden="true">${st.sheet ? "▴" : "▾"}</i></button>`).join("");
+    root.querySelectorAll("[data-up]").forEach(b => b.onclick = () => goto(b.dataset.up, { up: true }));
+    $(".zd-lv").onclick = () => sheet(!st.sheet);
+    $(".zd-why").textContent = L.why;
+    const used = Object.keys(MARKS).filter(m => L.nodes.concat(L.edges).some(x => marks(x).includes(m)));
+    const ex = (svg, w) => `<span class="zd-mk"><svg viewBox="0 0 24 12" width="24" height="12" aria-hidden="true">${svg}</svg>${w}</span>`;
+    const T_ = L.triggers || [];
+    $(".zd-legend").innerHTML = used.map(mk).join("")
+      + (L.nodes.some(n => n.abstract) ? ex('<rect x="1.5" y="1.5" width="21" height="9" rx="2.5" class="lg lg-abs"/>', "abstract") : "")
+      + (T_.some(t => !t.every) ? ex('<circle cx="6" cy="6" r="4.5" class="lg"/><path d="M11 6H23" class="lg"/>', "from outside") : "")
+      + (T_.some(t => t.every) ? ex('<circle cx="6" cy="6" r="4.5" class="lg"/><path d="M6 3V6L8 7M11 6H23" class="lg"/>', "on a schedule") : "");
+    const fb = $(".zd-fs"); fb.textContent = st.full ? "✕" : "⤢"; fb.setAttribute("aria-label", st.full ? "Close full screen" : "Full screen");
+  }
+
+  const refs = list => (list && list.length) ? `<p class="zd-refs">${list.map(r => { const m = /^\[(.+?)\]\((https?:[^)\s]+)\)$/.exec(r.trim()); return m ? `<a href="${esc(m[2])}" target="_blank" rel="noopener">${esc(m[1])}</a>` : esc(r); }).join("")}</p>` : "";
+  const pchip = (L, id) => `<span class="zd-pc">${esc(pname(L, id))}</span>`;
+  const grp = (h, rows) => rows.length ? `<div class="zd-grp"><h5>${h}</h5><ul class="zd-list">${rows.join("")}</ul></div>` : "";
+  // Alloy formulas, laid out at build time; keywords in their own ink
+  const KW = new Set("all some no lone one set disj let not and or implies iff else in always eventually after before historically once until releases since triggered none univ iden Int sum".split(" "));
+  const fx = t => esc(t).replace(/[A-Za-z][A-Za-z0-9_]*/g, w => KW.has(w) ? `<i class="k">${w}</i>` : w);
+  const opRow = s => { const o = ops[s];
+    const cond = [["pre", o.preLayout || o.pre], ["post", o.postLayout || o.post]].filter(c => c[1]).map(([k, t]) => `<div class="fx"><span class="fk">${k}</span>${fx(t)}</div>`).join("")
+      + (o.modifies && o.modifies.length ? `<div class="fx"><span class="fk">modifies</span>${esc(o.modifies.join(", "))}</div>` : "");
+    return `<li><details><summary class="sig"><span><b>${esc(o.slug)}</b>${esc(o.sig)}</span></summary>${show.formulas ? cond : ""}<p>${esc(o.text)}</p>${refs(o.refs)}</details></li>`; };
+  // what Alloy found: a rule that can break shows the run that breaks it
+  const broken = i => !!i.breaks;
+  const breakRun = i => broken(i) ? `<div class="zd-run"><span class="fk">run that breaks it</span><ol>${(i.breaks).map((calls, k) => `<li>${show.replay ? `<button type="button" data-run="rule:${esc(i.slug)}" data-at="${k}">${calls.map(esc).join(" + ")}</button>` : calls.map(esc).join(" + ")}</li>`).join("")}</ol></div>` : "";
+  // a rule's chips: must or should, then how it stands: a guard of the behaviour, assumed, ideal, or what Alloy found
+  const standing = i => broken(i) ? "can break" : i.role || "";
+  const ruleRow = s => { const i = rules[s], how = standing(i);
+    return `<li><details><summary class="sig"><span><b>${i.slug}</b><em>${i.kind === "should" ? "should" : "must"}</em>${how ? `<em class="${broken(i) ? "brk" : ""}">${how}</em>` : ""}</span></summary><p>${esc(i.text)}</p>${show.formulas ? `<div class="fx">${fx(i.layout || i.formula)}</div>` : ""}${breakRun(i)}${refs(i.refs)}</details></li>`; };
+
+  function treeLines(items) {
+    const rows = items.map(t => { const d = (t.match(/^ */)[0].length) >> 1; return { d, name: t.trim() }; });
+    return rows.map((r, i) => {
+      let pre = "";
+      for (let k = 1; k <= r.d; k++) {
+        const later = rows.slice(i + 1).find(x => x.d <= k);
+        if (k < r.d) pre += later && later.d === k ? "│  " : "   ";
+        else pre += later && later.d === k ? "├─ " : "└─ ";
+      }
+      return `<div><span class="tp">${pre}</span>${esc(r.name)}</div>`;
+    }).join("");
+  }
+  // line diff by longest common subsequence: kept lines plain, removed lines struck, added lines marked
+  function diffLines(a, b) {
+    const A = String(a).split("\n"), B = String(b).split("\n"), T = A.map(() => Array(B.length + 1).fill(0));
+    T.push(Array(B.length + 1).fill(0));
+    for (let i = A.length - 1; i >= 0; i--) for (let j = B.length - 1; j >= 0; j--) T[i][j] = A[i] === B[j] ? T[i + 1][j + 1] + 1 : Math.max(T[i + 1][j], T[i][j + 1]);
+    const out = []; let i = 0, j = 0;
+    while (i < A.length || j < B.length) {
+      if (i < A.length && j < B.length && A[i] === B[j]) { out.push(["eq", A[i]]); i++; j++; }
+      else if (i < A.length && (j >= B.length || T[i + 1][j] >= T[i][j + 1])) out.push(["del", A[i++]]);
+      else out.push(["ins", B[j++]]);
+    }
+    return out;
+  }
+  function media(list, seed) {
+    return (list || []).filter(m => show.media || m.type === "screen").map((m, i) => {
+      const head = `<h5>${m.type === "example" && m.invented ? "" : `<b>${m.type}</b>`}${m.invented ? "<i>e.g.</i>" : ""}${m.title ? `<span>${esc(m.title)}</span>` : ""}</h5>`;
+      let body = "";
+      if (m.type === "screen") body = mock(m);
+      else if (m.type === "tree") body = `<div class="zd-tree">${treeLines(m.items)}</div>`;
+      else if (m.type === "code") body = `<pre class="zd-code">${esc(m.text)}</pre>`;
+      else if (m.type === "example") body = `<div class="zd-ex">${esc(m.text).split("\n").join("<br>")}</div>`;
+      else if (m.type === "quote") body = `<blockquote class="zd-quote">${esc(m.text).split("\n").join("<br>")}</blockquote>`;
+      else if (m.type === "pitfall") body = `<div class="zd-pit">${esc(m.text).split("\n").join("<br>")}</div>`;
+      else if (m.type === "payload") body = `<pre class="zd-code zd-pay">${esc(m.text)}</pre>`;
+      else if (m.type === "checklist") body = `<ul class="zd-check">${m.items.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
+      else if (m.type === "diff") body = `<div class="zd-diff">${diffLines(m.before, m.after).map(([k, t]) => `<div class="${k}"><i>${k === "del" ? "−" : k === "ins" ? "+" : ""}</i>${esc(t)}</div>`).join("")}</div>`;
+      else if (m.type === "insight") body = `<div class="zd-ins"><p>${esc(m.move)}</p><p class="vs">${esc(m.vs)}</p><p class="so">${esc(m.gain)} <code>${esc(m.rule)}</code></p></div>`;
+      else if (m.type === "facts") body = `<dl class="zd-facts">${m.items.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`;
+      return body ? `<div class="zd-grp zd-media">${head}${body}${refs(m.refs)}</div>` : "";
+    }).join("");
+  }
+  const mediaOf = x => (x.media || []).concat(x.ui ? [{ type: "screen", screen: x.ui.screen, block: x.ui.block }] : []);
+
+  function note() {
+    const p = $(".zd-note"), L = levels[st.level];
+    root.dataset.level = st.level; root.dataset.sel = st.sel ? (st.sel.node || st.sel.edge || st.sel.run) : "";
+    p.classList.toggle("is-sel", !!st.sel); p.classList.toggle("is-run", !!(st.sel && st.sel.run));
+    if (!st.sel) p.innerHTML = media(L.media, hash(L.id));
+    else if (st.sel.run) p.innerHTML = runNote(runOf(st.sel.run), st.sel.at);
+    else if (st.sel.node) {
+      const n = nodes[st.sel.node], T = KIND[L.kind], closed = ((M.plan || {}).shallow || []).includes(n.id);
+      p.innerHTML = `<header class="zd-nh"><p class="zd-meta"><span class="zd-type">${([].concat(L.initial || []).includes(n.id) ? "initial " : "") + (n.abstract ? "abstract " : "") + T.node}</span>${marks(n).map(mk).join("")}${n.partition ? pchip(L, n.partition) : ""}${closed ? `<span class="zd-pc">not opened</span>` : ""}</p><h4>${esc(n.label)}</h4></header>${closed && (M.plan.why || {}).shallow ? `<p class="what">${esc(M.plan.why.shallow)}</p>` : ""}<p class="what">${esc(n.what)}</p>${refs(n.refs)}${media(mediaOf(n), hash(n.id))}
+        ${grp("Attributes", (n.attrs || []).map(a => { const i = a.indexOf(":"); return `<li class="at"><b>${esc(a.slice(0, i))}</b>${esc(a.slice(i))}</li>`; }))}
+        ${grp("Operations", (n.ops || []).map(opRow))}
+        ${grp("Rules", (n.rules || []).map(ruleRow))}`;
+    } else {
+      const e = st.sel.e, T = KIND[L.kind];
+      const a = e.from ? nodes[e.from] : null, b = nodes[e.to], x = a && a.partition && b.partition && a.partition !== b.partition;
+      p.innerHTML = `<header class="zd-nh"><p class="zd-meta"><span class="zd-type">${T.edge}</span>${marks(e).map(mk).join("")}${e.is && nodes[e.is] ? `<button type="button" class="zd-is" data-is="${e.is}">${esc(levels[nodeLevel[e.is]].title)} ↗</button>` : ""}</p><h4>${esc(e.label || "")}</h4><p class="zd-route">${a ? esc(a.label) : e.every ? "every " + esc(e.every) : "from outside"}${x ? pchip(L, a.partition) : ""}<i>→</i>${esc(b.label)}${x ? pchip(L, b.partition) : ""}</p></header>
+        ${e.what ? `<p class="what">${esc(e.what)}</p>` : ""}${refs(e.refs)}${media(e.media, hash(st.sel.edge))}
+        ${grp("Operations", (e.ops || []).map(opRow))}${grp("Guard", (e.rules || []).map(ruleRow))}
+        ${grp("Syncs", syncsOf(L, e).map(y => `<li class="sy"><b>${esc(y.when === e.label ? "sets off " + y.then : "set off by " + y.when)}</b>${y.where && nodes[y.where] ? ` only while ${esc(nodes[y.where].label)}` : ""}${y.what ? `<span>${esc(y.what)}</span>` : ""}</li>`))}`;
+    }
+    if (p.innerHTML.trim()) p.innerHTML = `<div class="zd-body">${p.innerHTML}</div>`;   // the body scrolls; the pointer and close stay put
+    if (st.sel) { p.insertAdjacentHTML("afterbegin", `<button type="button" class="zd-x" aria-label="Close">✕</button>`); p.querySelector(".zd-x").onclick = () => { st.sel = null; render(); }; }
+    const isb = p.querySelector("[data-is]"); if (isb) isb.onclick = () => { const id = isb.dataset.is; goto(nodeLevel[id], null, { node: id }); };
+    p.querySelectorAll("[data-run]").forEach(b => b.onclick = () => play(b.dataset.run, +b.dataset.at));
+    p.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => act(b.dataset.pick, () => {}));
+    p.hidden = !p.innerHTML.trim();
+    p.querySelectorAll(".zd-mock .board").forEach(b => { const s = b.querySelector(".sel"); if (s) b.scrollTop = Math.max(0, s.offsetTop - 40); });   // a tall screen shows its picked part
+    place();
+  }
+  // the note of a run: its name; the step the pick belongs to, what it does and what it expects; the rest of the
+  // moment as chips to pick from; then the pick itself, how it was reached, and what the run uses there
+  function runNote(r, at) {
+    const use = (...xs) => [...new Set(xs.flat().filter(x => x && r.uses.has(x)))];
+    const rows = (n, via) => { const guard = use(...via.map(e => e.rules || []));
+      return grp("Operations", use(...via.map(e => e.ops || []), n ? n.ops || [] : []).map(opRow)) + grp("Guard", guard.map(ruleRow))
+        + grp("Rules", use(n ? n.rules || [] : []).filter(x => !guard.includes(x)).map(ruleRow)); };
+    const from = e => e.from ? esc(nodes[e.from].label) : e.every ? "every " + esc(e.every) : "from outside";
+    const here = active(r, at), xs = [...new Set(here.map(it => it.x))], pick = st.sel.pick;
+    const name = x => nodes[x] ? nodes[x].label : (edgeAt(x)[1] || {}).label || "";
+    const mine = here.find(it => it.x === pick && it.to === at) || here.find(it => nodes[it.x] && it.from === at) || {};
+    const step = mine.step;
+    const chips = xs.length > 1 ? `<p class="zd-picks">${xs.map(x => `<button type="button" data-pick="${esc(x)}" class="${nodes[x] ? "n" : "e"}" aria-pressed="${x === pick}">${esc(name(x))}</button>`).join("")}</p>` : "";
+    let body = "";
+    if (nodes[pick]) {
+      const n = nodes[pick], L = levels[nodeLevel[pick]], via = here.filter(it => !nodes[it.x] && it.to === at && (edgeAt(it.x)[1] || {}).to === pick).map(it => edgeAt(it.x)[1]);
+      body = `<p class="zd-meta"><span class="zd-type">${KIND[L.kind].node}</span>${L.id !== st.level ? `<span class="zd-lvl">${esc(L.title)}</span>` : ""}</p><h4>${esc(n.label)}</h4>
+        ${via.map(e => `<p class="zd-route">${from(e)}<i>→</i>${esc(e.label || "")}</p>`).join("")}<p class="what">${esc(n.what || "")}</p>${rows(n, via)}`;
+    } else if (pick) {
+      const [L, e] = edgeAt(pick);
+      if (e) body = `<p class="zd-meta"><span class="zd-type">${KIND[L.kind].edge}</span></p><h4>${esc(e.label || "")}</h4><p class="zd-route">${from(e)}<i>→</i>${esc(nodes[e.to].label)}</p>${e.what ? `<p class="what">${esc(e.what)}</p>` : ""}${rows(null, [e])}`;
+    }
+    const calls = r.calls && r.calls[at] ? `<p class="zd-calls">${r.calls[at].map(c => `<code>${esc(c)}</code>`).join(" + ")}</p>` : "";
+    const stepBox = step ? `<div class="zd-step"><p>${esc(step.does || "")}</p><p class="zd-expect"><span class="fk">expects</span>${esc(step.expects || "")}</p></div>` : "";
+    return `<header class="zd-nh"><p class="zd-meta"><span class="zd-type">${r.kind === "rule" ? "run that breaks" : "scenario"}</span></p><h4 class="id">${esc(r.name)}</h4></header>
+      ${calls}${stepBox}${chips}${body ? `<div class="zd-at">${body}</div>` : ""}`;
+  }
+  // an edge or trigger by its key
+  function edgeAt(k) {
+    const L = levels[levelOf(k)]; if (!L) return [];
+    const e = L.edges.find(e => edgeKey(L.id, e) === k) || (L.triggers || []).find(t => trigKey(L.id, t) === k);
+    return [L, e];
+  }
+  // pin the note beside the selection (wide) or under the board pointing at it (narrow)
+  function place(reveal) {
+    const p = $(".zd-note"), stage = $(".zd-stage"), side = !p.hidden && !narrow() && stage.clientWidth >= 720 && stage.clientWidth - 318 >= (G0 ? G0.W * 0.9 : 0);
+    root.classList.toggle("narrow", narrow());
+    stage.classList.toggle("side", side);
+    // beside the drawing, not across the room from it: the drawing's column is only as wide as the drawing
+    stage.style.setProperty("--cw", side && G0 ? Math.max(260, Math.min(stage.clientWidth - 360, Math.round(G0.W * 1.15))) + "px" : "");
+    p.style.marginTop = ""; p.style.removeProperty("--ny"); p.style.removeProperty("--nx");
+    // a phone's bottom sheet covers the lower screen: leave room to scroll the drawing above it
+    const sheetH = narrow() && st.sel && !p.hidden ? p.offsetHeight : 0;
+    root.style.setProperty("--sheet", sheetH + "px"); root.classList.toggle("has-sheet", !!sheetH);
+    const g = st.sel && $(".zd-canvas .lit");
+    if (!g) return;
+    if (reveal && narrow()) reveal_(g, sheetH);
+    const sr = stage.getBoundingClientRect(), gr = g.getBoundingClientRect();
+    if (side) {
+      const cy = gr.top + gr.height / 2 - sr.top, top = Math.max(0, cy - 44);
+      p.style.marginTop = top + "px"; p.style.setProperty("--ny", (cy - top) + "px");
+    } else {
+      const pr = p.getBoundingClientRect();
+      p.style.setProperty("--nx", Math.max(18, Math.min(pr.width - 18, gr.left + gr.width / 2 - pr.left)) + "px");
+    }
+  }
+  // bring what was just chosen into view: across the drawing, and above the sheet
+  function reveal_(g, sheetH) {
+    const host = $(".zd-canvas"), hr = host.getBoundingClientRect(), r = g.getBoundingClientRect();
+    if (r.left < hr.left || r.right > hr.right) host.scrollLeft += r.left + r.width / 2 - (hr.left + hr.width / 2);
+    const r2 = g.getBoundingClientRect(), view = window.innerHeight - sheetH, top = 12;
+    if (r2.top >= top && r2.bottom <= view - 12) return;
+    const by = r2.top + r2.height / 2 - (top + view) / 2;
+    if (st.full) root.scrollTop += by; else window.scrollBy(0, by);
+  }
+  let lastNarrow = null;
+  new ResizeObserver(() => { if (lastNarrow !== null && lastNarrow !== narrow()) render(); lastNarrow = narrow(); timebar(); place(); const h = $(".zd-canvas"); h && h.onscroll && h.onscroll(); }).observe(root);
+  // the level menu: a bottom sheet on a phone; on a wide screen it opens in place, below the path, over the drawing
+  function sheet(open) { st.sheet = open; root.classList.toggle("nav-open", st.sheet); $(".zd-scrim").hidden = !(st.sheet && narrow()); $(".zd-lv").setAttribute("aria-expanded", st.sheet); }
+  function full(on) {
+    st.full = on; root.classList.toggle("full", on);
+    document.documentElement.style.overflow = on ? "hidden" : "";
+    render();
+  }
+  $(".zd-fs").onclick = () => full(!st.full);
+  $(".zd-scrim").onclick = () => sheet(false);
+  // a sheet belongs to its card: when the card leaves the screen, close what floats over the page
+  if ("IntersectionObserver" in window) new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting || st.full) return;
+    if (st.sheet) sheet(false);
+    if (st.sel && narrow()) { st.sel = null; render(); }
+  })).observe(root);
+
+  function block(b) {
+    const t = b.type;
+    if (t === "title") return `<div class="mn">${esc(b.text)}</div>${b.sub ? `<div class="mp">${esc(b.sub)}</div>` : ""}`;
+    if (t === "tabs") return `<div class="mtabs">${b.items.map((x, i) => `<span${i === (b.active || 0) ? ' class="on"' : ""}>${esc(x)}</span>`).join("")}</div>`;
+    if (t === "list") return b.items.map(x => `<div class="mr">${esc(x)}</div>`).join("");
+    if (t === "nodes") return `<div class="tiny">${b.items.map((x, i) => `<span${i === b.active ? ' class="k"' : ""}>${esc(x)}</span>`).join("")}</div>`;
+    if (t === "button") return `<div class="mbtn">${esc(b.text)}</div>`;
+    if (t === "choices") return b.items.map((x, i) => `<div class="mr"><i class="rad${i === (b.active || 0) ? " on" : ""}"></i>${esc(x)}</div>`).join("") + (b.text ? `<div class="mbtn">${esc(b.text)}</div>` : "");
+    if (t === "code") return `<div class="mcode">${b.items.map(x => `<div class="${x[0] === "+" ? "add" : x[0] === "-" ? "del" : ""}">${esc(x)}</div>`).join("")}</div>`;
+    return `<div class="mp">${esc(b.text || "")}</div>`;
+  }
+  function mock(ui) {
+    const S = (M.screens || {})[ui.screen]; if (!S) return "";
+    const sel = S.blocks.find(b => b.id === ui.block) || {};
+    const box = b => `<div class="m${b.id === ui.block ? " sel" : ""}">${block(b)}${b.id === ui.block ? `<i class="h" style="left:-4px;top:-4px"></i><i class="h" style="right:-4px;top:-4px"></i><i class="h" style="left:-4px;bottom:-4px"></i><i class="h" style="right:-4px;bottom:-4px"></i><span class="tag">${esc(b.name)}</span>` : ""}</div>`;
+    return `<div class="zd-mock" role="img" aria-label="${esc(S.title)} with ${esc(sel.name || "")} selected">
+      <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span>${S.invented ? "e.g. " : ""}${esc(S.title)}</span><span>${esc(S.size || "")}</span></div>
+      <div class="fg"><ul class="layers">${S.blocks.map(b => `<li class="${b.id === ui.block ? "on" : ""}">${esc(b.name)}</li>`).join("")}</ul>
+        <div class="board"><div class="device">${S.blocks.map(box).join("")}</div></div></div></div>`;
+  }
+
+  // redrawing the same level (a selection) keeps where the reader had dragged or scrolled to
+  function render(fromBox) {
+    const host = $(".zd-canvas"), same = !fromBox && host.dataset.level === st.level;
+    const keep = same && { l: host.scrollLeft, t: host.scrollTop, r: root.scrollTop };
+    draw(fromBox); bar(); timebar(); nav(); note();
+    host.dataset.level = st.level;
+    if (keep) { host.scrollLeft = keep.l; host.scrollTop = keep.t; root.scrollTop = keep.r; }
+    if (st.sel && narrow()) requestAnimationFrame(() => place(true));
+  }
+  // start a run at a moment, or move through the current one; going to another level follows the moment there
+  function play(key, at, pick) {
+    const r = runOf(key); at = Math.max(0, Math.min(r.length - 1, at));
+    const sel = { run: key, at, pick: pick && active(r, at).some(it => it.x === pick) ? pick : firstPick(r, at) }, lv = momentLevels(r, at);
+    if (!lv.length || lv.includes(st.level)) { st.sel = sel; render(); } else goto(lv[0], null, sel);
+  }
+  const seek = d => st.sel && st.sel.run && play(st.sel.run, st.sel.at + d);
+  function end() { st.sel = null; render(); }
+  // a tap on the drawing while a run plays: what the step highlights is picked; another node of the run takes the
+  // run to that node's next step; an edge never moves the run; anything outside the run ends it and is selected
+  function act(x, otherwise) {
+    const r = st.sel && st.sel.run && runOf(st.sel.run); if (!r) return otherwise();
+    const mine = r.items.filter(it => it.x === x);
+    if (!mine.length) return otherwise();
+    if (active(r, st.sel.at).some(it => it.x === x)) { st.sel = Object.assign({}, st.sel, { pick: x }); render(); return; }
+    if (!nodes[x]) return;
+    const ks = mine.map(it => it.from), k = ks.find(k => k > st.sel.at);
+    play(st.sel.run, k != null ? k : ks[0], x);
+  }
+  const time = $(".zd-time"), slider = time.querySelector("input");
+  function timebar() {
+    const r = st.sel && st.sel.run && runOf(st.sel.run);
+    time.hidden = !r; if (!r) return;
+    const n = r.length, at = st.sel.at;
+    time.querySelector("code").textContent = r.name;
+    slider.max = n; slider.value = at + 1; slider.setAttribute("aria-valuetext", `${at + 1} of ${n}`);
+    time.querySelector("output").textContent = `${at + 1} / ${n}`;
+    // a tick per moment while they fit; on a narrow rail, a filled line with only the current moment's tick
+    const rail = time.querySelector(".zd-rail"), dense = rail.clientWidth / Math.max(1, n - 1) < 12, pos = k => n > 1 ? k / (n - 1) * 100 : 50;
+    rail.classList.toggle("dense", dense); rail.style.setProperty("--p", pos(at) + "%");
+    time.querySelector(".zd-ticks").innerHTML = Array.from({ length: n }, (_, k) => k).filter(k => !dense || k === at)
+      .map(k => `<i class="${k < at ? "done" : k === at ? "now" : ""}" style="left:${pos(k)}%">${"<b></b>".repeat(Math.max(1, branches(r, k)))}</i>`).join("");
+  }
+  slider.addEventListener("input", () => play(st.sel.run, slider.value - 1));
+  time.querySelectorAll("[data-d]").forEach(b => b.onclick = () => seek(+b.dataset.d));
+  time.querySelector(".zd-end").onclick = end;
+  function select(s) {
+    const same = st.sel && ((s.node && st.sel.node === s.node) || (s.edge && st.sel.edge === s.edge));
+    st.sel = same ? null : s; render();
+    const g = st.sel && (st.sel.node ? $(`.zd-canvas .node[data-id="${st.sel.node}"]`) : $(".zd-canvas .edge.lit"));
+    (g || root).focus({ preventScroll: true });
+  }
+  // how the new level arrives: out of the node that (eventually) opens it, back up, or a short fade for a jump sideways
+  function motion(to) {
+    if (to === st.level) return null;
+    for (let id = st.level; id; id = levels[id].parent ? nodeLevel[levels[id].parent] : null) if (id === to) return { up: true };
+    for (let id = to; levels[id].parent; id = nodeLevel[levels[id].parent]) if (nodeLevel[levels[id].parent] === st.level && G0) return G0.box[levels[id].parent];
+    return { fade: true };
+  }
+  // going to a level keeps a playing run when the run goes there (to its next moment there), and leaves it otherwise
+  function goto(id, from, sel) {
+    if (!sel && st.sel && st.sel.run) {
+      const r = runOf(st.sel.run), here = Array.from({ length: r.length }, (_, k) => k).filter(k => momentLevels(r, k).includes(id));
+      if (here.length) { const at = here.find(k => k >= st.sel.at) ?? here[0]; sel = { run: st.sel.run, at, pick: firstPick(r, at) }; }
+    }
+    from = from || motion(id); st.level = id; st.sel = sel || null;
+    if (!root.contains(document.activeElement)) root.focus({ preventScroll: true });
+    render(from);
+  }
+  root.tabIndex = -1;
+  document.addEventListener("keydown", ev => {
+    if (!(st.full || st.sheet || root.contains(document.activeElement))) return;
+    if ((ev.key === "ArrowLeft" || ev.key === "ArrowRight") && st.sel && st.sel.run && ev.target !== slider) { ev.preventDefault(); seek(ev.key === "ArrowLeft" ? -1 : 1); return; }
+    if (ev.key !== "Escape") return;
+    if (st.sheet) sheet(false);
+    else if (st.sel) { st.sel = null; render(); }
+    else if (st.full) full(false);
+    else if (levels[st.level].parent) goto(nodeLevel[levels[st.level].parent], { up: true });
+  });
+  render();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => render());
+  return { goto, select: s => select(s), play, full, state: st };
+}

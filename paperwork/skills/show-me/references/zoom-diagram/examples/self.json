@@ -1,0 +1,1175 @@
+{
+ "title": "zoom-diagram",
+ "plan": {
+  "intent": "zoom-diagram 플레이북이 시스템 하나를 받아 검사된 줌 다이어그램으로 돌려주기까지 무엇이 어떻게 맞물리는가",
+  "views": [
+   {"name": "Skill workflow", "level": "root"},
+   {"name": "Use discovery", "level": "elicit"},
+   {"name": "Model file schema", "level": "model"},
+   {"name": "Diagram grammar", "level": "level"},
+   {"name": "Check pipeline", "level": "check"},
+   {"name": "Viewer UI", "level": "render"},
+   {"name": "File layout", "why": "폴더가 그 자체로 목록이라 그리지 않습니다."}
+  ]
+ },
+ "scenarios": [
+  {
+   "slug": "diagram-a-system",
+   "text": "작성자가 이해하고 싶은 시스템을 건네면, 에이전트가 그 시스템을 분석해 모든 레벨을 오갈 수 있는 줌 다이어그램 하나로 돌려줍니다.",
+   "walk": [
+    {
+     "place": "elicit",
+     "does": "작성자가 시스템을 건네면 에이전트는 먼저 Eliciting에서 그 시스템의 쓰임을 모으기 시작합니다.",
+     "expects": "누가 무엇을 하러 오는지 쓰임을 모으는 일이 시작되어 있어야 합니다."
+    },
+    {
+     "place": "actors",
+     "does": "이제 Eliciting 안을 들여다봅니다. 에이전트는 다른 시스템까지 포함해 행위자를 모두 적고, 행위자마다 목표를 적습니다.",
+     "expects": "한 번에 하나의 결과로 끝나는 목표마다 쓰임 후보가 하나씩 생겨 있습니다."
+    },
+    {
+     "place": "events",
+     "does": "에이전트는 goal candidates를 들고 바깥 사건, 시간 사건, 상태 변화 사건을 모두 적어 다시 훑습니다.",
+     "expects": "어떤 후보도 답하지 않는 사건이 있었다면 그것이 빠진 쓰임 후보로 목록에 더해져 있습니다."
+    },
+    {
+     "place": "crud",
+     "does": "사건으로 보탠 후보까지 합친 목록으로, 시스템이 남기는 기록마다 누가 만들고 읽고 고치고 없애는지 표를 채웁니다.",
+     "expects": "표의 빈칸마다 '정말 아무도 안 하나'를 물어, 새로 드러난 쓰임이 후보에 더해져 있습니다."
+    },
+    {
+     "place": "prune",
+     "does": "모든 후보를 모아, 다른 쓰임의 한 단계이거나 다른 쓰임을 이어 붙인 것을 버립니다.",
+     "expects": "남은 후보는 어느 것도 다른 쓰임 몇 개를 합친 것과 같지 않아야 합니다."
+    },
+    {
+     "place": "elicit",
+     "does": "Finding uses에서 나와 다시 Eliciting으로 올라옵니다. 이번에는 쓰임 찾기가 끝난 자리입니다.",
+     "expects": "빠짐없이 모으고 거른 쓰임 목록이 손에 쥐어져 있어야 합니다."
+    },
+    {
+     "place": "model",
+     "does": "모은 쓰임 목록이 scenarios로 넘어가고, 에이전트는 Modeling에서 그 쓰임의 동사와 명사로 모델을 짜기 시작합니다.",
+     "expects": "쓰임마다 필요한 연산과 조건, 그림의 레벨과 노드와 선이 모델에 자리를 잡기 시작합니다."
+    },
+    {
+     "place": ["scenario", "operation", "type", "operation", "rule", "scenario", "step", "level", "level"],
+     "does": "Modeling 안을 들여다봅니다. 에이전트는 Model file에 쓰임, 연산, 타입, 조건, 레벨을 서로 이름으로 이어 적습니다.",
+     "expects": "쓰임은 쓰는 연산과 지키는 조건, 지나는 노드를 가리키고, 시그니처의 타입은 모두 모델이 아는 이름이어야 합니다."
+    },
+    {
+     "place": ["node", "edge", "port", "edge", "drawn", "node", "partition", "sync", "partition", "node"],
+     "does": "Level 안으로 들어가, 에이전트가 그림 한 장을 이루는 노드, 선, 포트, 구역, 동기화를 그립니다.",
+     "expects": "선마다 이름이 붙고, 거르는 활동에는 실패하는 길이 보이며, 영역 사이는 동기화로만 이어져 있어야 합니다."
+    },
+    {
+     "place": "level",
+     "does": "Level parts에서 나와 Model file의 Level로 돌아옵니다. 이제 그림 한 장이 다 그려진 상태입니다.",
+     "expects": "레벨마다 노드가 한 종류뿐이라 선의 뜻이 하나로 정해지고, 노드는 일곱 개를 넘지 않아야 합니다."
+    },
+    {
+     "place": "model",
+     "does": "Model file에서 나와 Modeling으로 돌아옵니다. 쓰임과 연산과 레벨이 모두 짜인 모델이 완성되었습니다.",
+     "expects": "모델이 model.json 파일 하나로 검사에 넘길 준비가 되어 있어야 합니다."
+    },
+    {
+     "place": "check",
+     "does": "에이전트가 model.json을 Checking에 넘겨 빠진 것이나 남는 것이 없는지 검사합니다.",
+     "expects": "이번에는 모든 검사를 통과해, 모델이 실패 보고서 없이 그대로 다음 단계로 넘어갑니다."
+    },
+    {
+     "place": "render",
+     "does": "checked model이 Rendering으로 넘어가고, 모델 파일 하나가 줌 다이어그램 하나로 그려집니다.",
+     "expects": "모든 요소가 쓰임에 쓰이고, 쓰임끼리 겹치지 않으며, 각 쓰임이 활동이나 상태를 지나는 모델만 그려집니다."
+    },
+    {
+     "place": ["header", "canvas", "timebar", "canvas", "note"],
+     "does": "Rendering 안을 들여다봅니다. 줌 다이어그램은 Header, Board, Time bar, Note가 함께 맞물린 화면으로 그려집니다.",
+     "expects": "화면의 이름과 숫자, 문장은 모두 모델에서 왔고, 폰과 데스크톱 어디서도 넘치거나 겹치지 않아야 합니다."
+    },
+    {
+     "place": "render",
+     "does": "Zoom diagram에서 나와 Rendering으로 돌아옵니다. 화면 그리기를 마친 자리입니다.",
+     "expects": "줌 다이어그램이 HTML 파일 하나로 묶여 독자에게 건넬 준비가 되어 있습니다."
+    },
+    {
+     "place": "read",
+     "does": "zoom-diagram.html이 독자에게 건네지고, 독자는 Reading에서 레벨을 오가며 시스템을 읽습니다.",
+     "expects": "작성자는 모든 레벨을 오갈 수 있는 줌 다이어그램 하나를 돌려받아, 시스템을 직접 탐색할 수 있습니다."
+    }
+   ],
+   "refs": [
+    "[C4 model](https://c4model.com/introduction)",
+    "[Harel 1987](https://www.inf.ed.ac.uk/teaching/courses/seoc/2006_2007/resources/statecharts.pdf)"
+   ]
+  },
+  {
+   "slug": "check-minimal",
+   "text": "에이전트가 모델을 검사 스크립트에 넣으면, 쓸모없이 남는 요소나 빠진 쓰임이 있는지 알려 주고, Alloy가 규칙과 움직임이 맞물리는지 풀어 봅니다. 모든 요소는 자기가 왜 필요한지 보이거나 문제로 지적됩니다.",
+   "walk": [
+    {
+     "place": "uses",
+     "does": "에이전트가 모델을 검사 스크립트에 넣으면 Checking uses가 먼저 쓰임을 기준으로 모델을 살핍니다.",
+     "expects": "모든 연산, 조건, 노드, 선이 어떤 쓰임에 쓰이고, 어떤 쓰임도 다른 쓰임을 합친 것이 아니어야 합니다."
+    },
+    {
+     "place": "types",
+     "does": "traced model을 넘겨받아, Checking types가 시그니처와 속성, 수식이 쓰는 이름을 확인합니다.",
+     "expects": "연산의 받는 쪽과 매개변수와 결과가 모두 모델이 그리거나 선언한 이름이어야 합니다."
+    },
+    {
+     "place": "structure",
+     "does": "typed model이 Checking structure로 넘어가, 레벨 크기와 이름 형식, 실패하는 길, 구역과 포트를 봅니다.",
+     "expects": "모든 쓰임이 활동이나 상태를 지나고, 모든 부품이 그런 쓰임에 나와야 합니다."
+    },
+    {
+     "place": "prove",
+     "does": "마지막으로 structured model을 Alloy 6 모듈로 옮겨, Alloy가 규칙과 움직임이 맞물리는지 직접 풀어 봅니다.",
+     "expects": "규칙끼리 모순이 없고 쓰임과 실패한 길이 실제로 일어날 수 있어, 모든 요소가 필요를 보이거나 문제로 지적됩니다."
+    }
+   ],
+   "refs": [
+    "[Gotel & Finkelstein 1994](https://discovery.ucl.ac.uk/749/)",
+    "[Ganter & Wille 1999](https://link.springer.com/doi/10.1007/978-3-642-59830-2)",
+    "[Independence of an axiom system](https://encyclopediaofmath.org/wiki/Independence_of_an_axiom_system)",
+    "[Practical Alloy](https://practicalalloy.github.io/)"
+   ]
+  },
+  {
+   "slug": "zoom",
+   "text": "독자가 노드를 열거나 경로나 레벨 목록에서 레벨을 고르면, 보드가 그 레벨의 그림으로 바뀌고 위의 설명도 그 레벨에 맞게 바뀝니다. 고르던 것은 풀립니다.",
+   "walk": [
+    {
+     "place": ["header", "canvas", "note"],
+     "does": "독자가 Board에서 노드를 열거나 Header의 경로나 레벨 목록에서 레벨을 고르면, 보드가 그 레벨로 옮겨 갑니다.",
+     "expects": "보드에는 고른 레벨이 그려지고 Header 설명도 그 레벨에 맞게 바뀌며, 고르던 것은 풀려 Note가 닫혀 있습니다."
+    }
+   ],
+   "refs": [
+    "[Bederson & Hollan 1994](https://www.lri.fr/~mbl/Teach/SituatedComputing/2017/papers/ZUI/pad++-uis94-p17-bederson.pdf)",
+    "[Furnas 1986](https://www.ifs.tuwien.ac.at/~mlanzenberger/teaching/ps/ws06/stuff/p16-furnas.pdf)"
+   ]
+  },
+  {
+   "slug": "inspect",
+   "text": "독자가 노드나 선을 고르면, 바로 옆에 그것이 무엇인지 쉬운 문장과 근거, 그리고 이해를 돕는 자료(화면 목업, 파일 트리, 코드, 예시)가 붙습니다. 그것이 어떤 쓰임에 필요한지, 어떤 연산과 조건에 걸려 있는지도 함께 보입니다.",
+   "walk": [
+    {
+     "place": ["canvas", "note"],
+     "does": "독자가 Board에서 노드나 선 하나를 누르면, 그것을 주제로 한 Note가 바로 곁에 붙습니다.",
+     "expects": "Note는 지금 레벨에서 고른 바로 그것만 설명하고, 관련 쓰임과 연산과 조건까지 함께 보여 줍니다."
+    }
+   ],
+   "refs": [
+    "[Shneiderman 1996](https://webspace.science.uu.nl/~telea001/uploads/VACourse/Shneiderman96.pdf)"
+   ]
+  },
+  {
+   "slug": "follow-scenario",
+   "text": "독자가 목록에서 쓰임 하나를 고르면, 그 쓰임이 한 순간씩 펼쳐집니다. 독자는 시간 막대를 끌거나 그림의 노드를 눌러 앞뒤로 오가고, 지금 닿은 것은 뒤집혀 보이며 옆에 어떻게 닿았는지와 거기서 쓰는 연산과 조건이 나옵니다. 나란히 갈라진 갈래는 같은 순간에 함께 닿고, 합류하는 곳은 들어온 길을 모두 보여 줍니다.",
+   "walk": [
+    {
+     "place": ["header", "canvas", "timebar", "canvas", "note"],
+     "does": "독자가 Header의 목록에서 쓰임을 고르면 Time bar가 나타나고, 막대에서 고른 순간을 Board가 그립니다.",
+     "expects": "그 순간에 닿은 것만 뒤집혀 보이고 지난 것은 진하게 칠해지며, Note에는 어떻게 닿았는지가 나옵니다."
+    }
+   ]
+  },
+  {
+   "slug": "embed-diagram",
+   "text": "페이지 작성자가 줌 다이어그램 엔진과 모델 파일을 다른 페이지에 넣으면, 그 페이지 안에서도 같은 줌 다이어그램이 그려지고 같은 방식으로 읽힙니다.",
+   "walk": [
+    {
+     "place": "render",
+     "does": "페이지 작성자가 다른 페이지의 한 자리에 줌 다이어그램 엔진을 붙이고 모델 파일을 넘깁니다.",
+     "expects": "엔진이 넘겨받은 모델 파일로 그 자리에 다이어그램을 그리기 시작합니다."
+    },
+    {
+     "place": "canvas",
+     "does": "Rendering 안을 들여다봅니다. 그 페이지의 한 자리에 Board가 그려집니다.",
+     "expects": "같은 줌 다이어그램이 그려져 같은 방식으로 읽히고, 그 자리에서도 넘치거나 겹치지 않아야 합니다."
+    }
+   ]
+  },
+  {
+   "slug": "diagram-a-system-fix",
+   "text": "검사에서 걸리면 에이전트가 실패 보고서를 들고 모델 단계로 돌아가 고친 뒤 다시 검사에 넣습니다.",
+   "walk": [
+    {
+     "place": "model",
+     "does": "에이전트가 Modeling에서 짠 모델을 model.json으로 묶어 검사에 넘깁니다.",
+     "expects": "검사에 넣을 모델 파일 하나가 준비되어 있습니다."
+    },
+    {
+     "place": "check",
+     "does": "Checking이 모델을 검사하다가 걸리는 항목을 찾습니다.",
+     "expects": "어느 검사에서 왜 걸렸는지 적은 실패 보고서가 나와 있어야 합니다."
+    },
+    {
+     "place": "model",
+     "does": "에이전트가 failure report를 들고 Modeling으로 돌아가, 보고서가 가리키는 항목을 고칩니다.",
+     "expects": "검사는 그대로 둔 채 모델의 새 판이 만들어져, 다시 검사에 넣을 수 있습니다."
+    }
+   ]
+  },
+  {
+   "slug": "find-missing-use",
+   "text": "에이전트가 행위자의 목표로 뽑은 후보를 바깥 사건으로 다시 훑으면, 어떤 후보도 답하지 않는 사건이 빠진 쓰임으로 드러나 목록에 더해집니다.",
+   "walk": [
+    {
+     "place": "actors",
+     "does": "에이전트가 Listing actor goals에서 행위자마다 목표를 적어 쓰임 후보를 뽑습니다.",
+     "expects": "행위자의 목표 하나마다 쓰임 후보가 하나씩 목록에 올라 있습니다."
+    },
+    {
+     "place": "events",
+     "does": "goal candidates를 들고 바깥 사건, 시간 사건, 상태 변화 사건을 모두 적어 후보와 맞춰 봅니다.",
+     "expects": "어떤 후보도 답하지 않는 사건이 빠진 쓰임으로 드러나 후보 목록에 더해져 있습니다."
+    },
+    {
+     "place": "crud",
+     "does": "새 후보까지 합친 목록으로 기록의 생애 표를 채우고, 빈칸만 질문으로 남깁니다.",
+     "expects": "빈칸에서 나온 후보까지 모여 거르기로 넘어갈 준비가 되어 있습니다."
+    },
+    {
+     "place": "prune",
+     "does": "Pruning에서 다른 쓰임의 한 단계이거나 이어 붙인 것에 지나지 않는 후보를 버립니다.",
+     "expects": "사건에서 드러난 쓰임은 다른 쓰임을 합친 것과 다르므로 버려지지 않고 남아 있습니다."
+    },
+    {
+     "place": "actors",
+     "does": "새 쓰임이 나왔으므로 open questions를 들고 Listing actor goals로 돌아가, 드러난 행위자와 사건으로 다시 훑습니다.",
+     "expects": "빠진 쓰임이 목록에 더해졌고, 다음 바퀴가 아무것도 더하지 않을 때 훑기를 멈춥니다."
+    }
+   ]
+  },
+  {
+   "slug": "write-a-scenario",
+   "text": "작성자가 쓰임 하나를 적으면, 그 쓰임이 쓰는 연산과 지키는 조건, 그림에서 지나가는 노드가 이름으로 서로 이어집니다.",
+   "walk": [
+    {
+     "place": ["scenario", "operation", "type", "operation", "rule", "scenario", "step", "level", "type"],
+     "does": "작성자가 Model file에 Scenario 하나를 적고, 쓰는 Operation과 지키는 Rule, 지나는 Level의 노드를 이름으로 겁니다.",
+     "expects": "쓰임이 가리키는 연산, 조건, 노드가 모두 모델에 있고, 연산의 시그니처 타입도 모델이 아는 이름이어야 합니다."
+    }
+   ]
+  },
+  {
+   "slug": "nest-a-level",
+   "text": "작성자가 노드 하나를 열어 그 안에 레벨을 두면, 그 레벨의 노드와 이름 붙은 선이 바깥 노드의 안쪽이 됩니다.",
+   "walk": [
+    {
+     "place": ["level", "level", "step", "scenario"],
+     "does": "작성자가 한 Level의 노드 하나를 열어 그 안에 한 단계 아래 Level을 둡니다.",
+     "expects": "안쪽 레벨은 한 종류의 노드를 둘 이상 일곱 개까지 갖고, 쓰임의 경로는 그 노드로 들어가고 나올 수 있습니다."
+    }
+   ]
+  },
+  {
+   "slug": "draw-a-level",
+   "text": "작성자가 레벨 하나를 그리면, 노드와 선과 트리거는 모두 이름과 표시를 가진 그려지는 것이 되고, 구역이 노드를 묶으며, 거르는 활동은 실패하는 길을 갖습니다.",
+   "walk": [
+    {
+     "place": ["partition", "node", "edge", "drawn", "node", "partition", "sync"],
+     "does": "작성자가 레벨 하나를 그리며 Node와 Edge를 놓고, Partition으로 노드를 묶고, 상태 영역 사이는 Sync로 잇습니다.",
+     "expects": "노드와 선은 모두 이름과 표시를 가진 Drawn이 되고, 선마다 이름이 있으며 거르는 활동에는 실패하는 길이 있습니다."
+    }
+   ]
+  },
+  {
+   "slug": "balance-a-level",
+   "text": "활동 하나를 열어 그 안의 과정을 그리면, 부모 레벨에서 그 활동에 드나드는 결과물이 포트로 다시 나타납니다.",
+   "walk": [
+    {
+     "place": ["port", "edge", "node"],
+     "does": "작성자가 활동 하나를 열어 그 안의 과정을 그리면, 부모 레벨에서 드나들던 결과물이 Port로 놓입니다.",
+     "expects": "열린 활동에 들어오고 나가는 결과물마다 그것을 대신하는 Port가 안쪽 과정에 하나씩 있어야 합니다."
+    }
+   ]
+  }
+ ],
+ "operations": [
+  {
+   "slug": "System.elicit",
+   "sig": "() → Scenario[]",
+   "text": "시스템을 쓰는 사람과 그 사람이 얻으려는 결과를 짝지어, 시스템이 제공하는 쓰임을 빠짐없이 모읍니다. 다른 쓰임을 이어 붙여 설명되는 것은 따로 세지 않습니다.",
+   "refs": ["[Meng & Jackson 2025](https://arxiv.org/abs/2508.14511)"]
+  },
+  {
+   "slug": "Model.build",
+   "sig": "(scenarios: Scenario[]) → Model",
+   "text": "모은 쓰임에 나오는 동사와 명사를 바탕으로 연산, 지켜야 할 조건, 그림의 레벨과 노드와 선을 만듭니다. 그림마다 선이 관계, 순서, 사건 가운데 무엇을 뜻하는지 하나로 정합니다.",
+   "refs": [
+    "[C4 model](https://c4model.com/introduction)",
+    "[Chen 1976](https://www.comp.nus.edu.sg/~lingtw/papers/tods76.chen.pdf)",
+    "[Harel 1987](https://www.inf.ed.ac.uk/teaching/courses/seoc/2006_2007/resources/statecharts.pdf)"
+   ]
+  },
+  {
+   "slug": "Model.revise",
+   "sig": "(report: FailureReport) → Model",
+   "text": "실패 보고서가 가리키는 항목을 고쳐 모델의 새 판을 만듭니다. 검사를 통과하려고 검사를 바꾸지는 않습니다."
+  },
+  {
+   "slug": "Model.verify",
+   "sig": "() → Model | FailureReport",
+   "text": "모델이 빠짐없고 군더더기 없는지 스크립트로 확인합니다. 모두 통과하면 그 모델을 그대로 넘기고, 하나라도 걸리면 어느 검사에서 왜 걸렸는지 적은 실패 보고서를 돌려줍니다.",
+   "refs": [
+    "[DeMillo et al. 1978](https://www.cerias.purdue.edu/apps/reports_and_papers/view/919)",
+    "[Jia & Harman 2011](https://huang.isis.vanderbilt.edu/cs4278/readings/mutation-testing.pdf)"
+   ]
+  },
+  {
+   "slug": "Model.render",
+   "sig": "() → ZoomDiagram",
+   "text": "모델 파일 하나를 줌 다이어그램 하나로 그립니다. 줌 다이어그램에 보이는 이름과 숫자, 문장은 모두 모델에서 가져오고, 그리는 쪽에서 새로 지어내지 않습니다.",
+   "refs": ["[anatomy](https://github.com/wheresryan22/anatomy)"]
+  },
+  {
+   "slug": "Page.mount",
+   "sig": "(diagram: ZoomDiagram, model: Model) → Board",
+   "text": "다른 웹 페이지의 한 자리에 줌 다이어그램 엔진을 붙이고 모델 파일을 넘겨, 그 자리에 같은 보드를 그립니다."
+  },
+  {
+   "slug": "Board.goto",
+   "sig": "(level: Level) → Board",
+   "text": "보드가 그리는 레벨을 바꿉니다. 노드 열기, 경로에서 위로 가기, 레벨 목록에서 고르기는 겉모습만 다를 뿐 모두 이 하나의 연산입니다.",
+   "refs": [
+    "[Bederson & Hollan 1994](https://www.lri.fr/~mbl/Teach/SituatedComputing/2017/papers/ZUI/pad++-uis94-p17-bederson.pdf)"
+   ],
+   "modifies": ["Board.shown", "Board.selected"],
+   "post": "after (self.shown = level and no self.selected)"
+  },
+  {
+   "slug": "Board.select",
+   "sig": "(target: Node | Edge) → Note",
+   "text": "지금 레벨에서 노드나 선 하나를 고르고, 그 곁에 노트를 붙입니다. 같은 것을 다시 누르면 선택이 풀립니다.",
+   "refs": [
+    "[Shneiderman 1996](https://webspace.science.uu.nl/~telea001/uploads/VACourse/Shneiderman96.pdf)"
+   ],
+   "modifies": ["Board.selected", "Note.topic"],
+   "pre": "target in self.shown.nodes + self.shown.nodes.~from",
+   "post": "after (self.selected = target and self.note.topic = target)"
+  },
+  {
+   "slug": "Board.follow",
+   "sig": "(scenario: Scenario, moment: Count) → Board",
+   "text": "쓰임 하나의 한 순간으로 갑니다. 그 순간에 닿은 노드를 뒤집고, 이미 지난 것은 진하게, 아직 오지 않은 것은 그대로, 쓰임 밖은 흐리게 그립니다. 고른 것과 함께 있을 수 없어서, 노드나 선을 고르면 쓰임이 끝납니다.",
+   "modifies": ["Board.inverted"],
+   "post": "after lone self.inverted"
+  }
+ ],
+ "rules": [
+  {
+   "slug": "traced",
+   "kind": "must",
+   "formula": "all element: Operation + Rule + Node + Edge | some use: Scenario | element in use.footprint",
+   "text": "모델의 모든 연산, 조건, 노드, 선은 적어도 하나의 쓰임에 쓰여야 합니다. 어떤 쓰임에도 쓰이지 않는 요소가 있다면 지워도 되는 군더더기이거나, 아직 찾지 못한 쓰임이 있다는 뜻입니다.",
+   "refs": ["[Gotel & Finkelstein 1994](https://discovery.ucl.ac.uk/749/)"]
+  },
+  {
+   "slug": "irreducible",
+   "kind": "must",
+   "formula": "all use: Scenario | use.footprint != {other: Scenario - use | other.footprint in use.footprint}.footprint",
+   "text": "어떤 쓰임도 다른 쓰임 몇 개를 합친 것과 같아서는 안 됩니다. 합친 것과 같다면 새로운 쓰임이 아니라 이미 있는 쓰임을 이어 붙인 것이므로 목록에서 뺍니다.",
+   "refs": [
+    "[Ganter & Wille 1999](https://link.springer.com/doi/10.1007/978-3-642-59830-2)",
+    "[Koyda & Stumme 2021](https://arxiv.org/abs/2104.07159)"
+   ]
+  },
+  {
+   "slug": "branching",
+   "kind": "must",
+   "formula": "all opener: Node | some opener.opens implies #opener.opens.nodes >= 2",
+   "text": "안으로 열리는 노드 안에는 노드가 적어도 둘 있어야 합니다. 하나뿐이라면 열어 봐도 새로 보이는 것이 없으므로, 그 레벨을 없애고 노드에 합칩니다.",
+   "refs": [
+    "[Harel 1987](https://www.inf.ed.ac.uk/teaching/courses/seoc/2006_2007/resources/statecharts.pdf)"
+   ]
+  },
+  {
+   "slug": "one-kind",
+   "kind": "must",
+   "formula": "all drawing: Level | lone drawing.nodes.kind",
+   "text": "한 그림의 노드는 모두 한 종류이고, 그래서 그림 안의 선도 모두 같은 뜻을 가집니다. 관계를 뜻하는 선과 순서를 뜻하는 선이 한 그림에 섞이면, 독자가 선마다 뜻을 짐작해야 하기 때문입니다.",
+   "refs": [
+    "[Chen 1976](https://www.comp.nus.edu.sg/~lingtw/papers/tods76.chen.pdf)",
+    "[Harel 1987](https://www.inf.ed.ac.uk/teaching/courses/seoc/2006_2007/resources/statecharts.pdf)"
+   ]
+  },
+  {
+   "slug": "named",
+   "kind": "should",
+   "formula": "all line: Edge | some line.label",
+   "text": "모든 선에는 이름이 있습니다. 관계라면 어떤 관계인지, 순서라면 무엇을 넘겨주는지, 사건이라면 어떤 사건인지를 적어, 독자가 선을 보고 바로 읽을 수 있게 합니다.",
+   "refs": ["[Chen 1976](https://www.comp.nus.edu.sg/~lingtw/papers/tods76.chen.pdf)"]
+  },
+  {
+   "slug": "small-level",
+   "kind": "should",
+   "formula": "all drawing: Level | #drawing.nodes =< 7",
+   "text": "한 레벨에는 노드를 일곱 개까지만 둡니다. 더 많으면 한눈에 읽기 어려우므로, 비슷한 것끼리 묶어 한 단계 아래 레벨로 내립니다.",
+   "refs": [
+    "[Cowan 2001](https://www.cambridge.org/core/journals/behavioral-and-brain-sciences/article/magical-number-4-in-shortterm-memory-a-reconsideration-of-mental-storage-capacity/44023F1147D4A1D44BDC0AD226838496)"
+   ],
+   "scope": "12 Drawn, 5 Int"
+  },
+  {
+   "slug": "one-accent",
+   "kind": "should",
+   "formula": "all board: Board | lone board.inverted",
+   "text": "한 화면에서 진하게 뒤집어 칠하는 것은 지금 고른 하나뿐입니다. 눈이 갈 곳이 하나여야 독자가 무엇을 보고 있는지 놓치지 않습니다.",
+   "refs": ["[anatomy](https://github.com/wheresryan22/anatomy)"]
+  },
+  {
+   "slug": "fits",
+   "kind": "should",
+   "formula": "all board: Board | board not in Overflows + SmallText and no board.overlaps",
+   "text": "폰과 데스크톱 어느 쪽에서도 화면이 옆으로 넘치지 않고, 그림 속 글자가 읽기 어려울 만큼 작아지지 않으며, 이름표와 선과 상자가 서로 겹치지 않아야 합니다."
+  },
+  {
+   "slug": "in-sync",
+   "kind": "must",
+   "formula": "all board: Board | no board.selected or (board.selected in board.shown.nodes + board.shown.nodes.~from and board.note.topic = board.selected)",
+   "text": "옆에 붙는 설명은 언제나 지금 보고 있는 레벨과 그 안에서 고른 것만 이야기합니다. 다른 레벨로 옮기면 이전 선택은 풀립니다.",
+   "refs": [
+    "[Shneiderman 1996](https://webspace.science.uu.nl/~telea001/uploads/VACourse/Shneiderman96.pdf)"
+   ]
+  },
+  {
+   "slug": "realized",
+   "kind": "must",
+   "formula": "all use: Scenario | some visited: use.walk.place | visited.kind in activity + state",
+   "text": "모든 쓰임은 적어도 한 번 활동이나 상태를 지나야 합니다. 그래야 그 기능이 어떤 메커니즘으로 이루어지는지 그림에 나타납니다.",
+   "refs": ["[Gero, Design prototypes (1990)](https://cs.gmu.edu/~jgero/publications/1990.html)"]
+  },
+  {
+   "slug": "participates",
+   "kind": "must",
+   "formula": "(some part: Node | part.kind = component) and (all part: Node | part.kind = component implies (some use: Scenario | part in use.walk.place and (some visited: use.walk.place | visited.kind in activity + state)))",
+   "text": "모델에는 부품이 있어야 하고, 모든 부품은 활동이나 상태를 지나는 어떤 쓰임에 나와야 합니다. 그래야 구조가 메커니즘과 이어집니다.",
+   "refs": ["[Gero, Design prototypes (1990)](https://cs.gmu.edu/~jgero/publications/1990.html)"]
+  },
+  {
+   "slug": "typed-words",
+   "kind": "must",
+   "formula": "all operation: Operation | operation.receiver in operation.words",
+   "text": "연산의 받는 쪽과 매개변수와 결과는 모두 모델이 그리거나 선언한 이름이고, 받는 쪽도 시그니처가 가리키는 이름 가운데 하나입니다. 모델이 모르는 타입이 시그니처에 나오지 않습니다."
+  },
+  {
+   "slug": "abstract-up",
+   "kind": "must",
+   "formula": "all line: Edge | line.from in Abstract implies line.to in Abstract",
+   "text": "점선 컴포넌트는 실선 컴포넌트에 기대지 않습니다. 기대는 쪽은 언제나 구체적인 쪽입니다."
+  },
+  {
+   "slug": "gates-fail",
+   "kind": "should",
+   "formula": "all gate: Gate | some line: gate.~from | failure in line.mark",
+   "text": "검사, 리뷰, 검증처럼 거르는 활동은 실패했을 때 어디로 가는지 그림에 보입니다."
+  },
+  {
+   "slug": "balanced-ports",
+   "kind": "must",
+   "formula": "all opener: Node, line: Edge | line.to = opener and some opener.opens implies (some port: Port | port.standsFor = line and port.direction = entering)",
+   "text": "열린 활동으로 들어오는 결과물은 그 안의 과정에 포트로 다시 나타납니다. 나가는 결과물도 마찬가지입니다.",
+   "refs": ["[Data flow diagram balancing](https://en.wikipedia.org/wiki/Data-flow_diagram)"]
+  },
+  {
+   "slug": "regions-by-sync",
+   "kind": "must",
+   "formula": "all line: Edge | line.from.~groups.by = region implies line.from.~groups = line.to.~groups",
+   "text": "상태 레벨의 영역 안에서 사건은 자기 영역을 벗어나지 않고, 영역 사이의 일은 동기화로만 잇습니다. 그래야 각 영역을 따로 읽을 수 있습니다.",
+   "refs": ["[Meng & Jackson 2025](https://arxiv.org/abs/2508.14511)"]
+  }
+ ],
+ "level": {
+  "kind": "workflow",
+  "title": "Lifecycle",
+  "why": "줌 다이어그램 하나가 만들어져 독자에게 읽히기까지 거치는 다섯 단계입니다. 단계마다 일을 마치면 결과를 다음 단계로 넘기고, 검사에서 문제가 나오면 모델 단계로 되돌아갑니다.",
+  "nodes": [
+   {
+    "id": "elicit",
+    "label": "Eliciting",
+    "x": 0,
+    "y": 0,
+    "what": "시스템을 쓰는 사람들이 무엇을 하러 오는지 모읍니다. 안을 열면 쓰임 후보를 어떤 순서로 찾고 거르는지 볼 수 있습니다.",
+    "ops": ["System.elicit"],
+    "partition": "agent",
+    "opens": {
+     "kind": "workflow",
+     "title": "Finding uses",
+     "why": "쓰임 후보를 세 번 훑어 찾고 거르는 순서입니다. 행위자의 목표로 뽑고, 바깥 사건으로 다시 훑고, 기록마다 비는 칸을 질문으로 삼은 뒤, 단계이거나 다른 쓰임의 합인 후보를 버립니다. 한 바퀴 돌아도 새로 남는 쓰임이 없으면 멈춥니다.",
+     "nodes": [
+      {
+       "id": "actors",
+       "label": "Listing actor goals",
+       "x": 0,
+       "y": 0,
+       "what": "다른 시스템까지 포함한 모든 행위자를 적고, 행위자마다 한 번에 하나의 결과로 끝나는 목표를 적습니다. 목표 하나가 쓰임 후보 하나입니다.",
+       "media": [
+        {
+         "type": "example",
+         "title": "Actor × goal (GitHub PR)",
+         "text": "작성자 — 변경을 리뷰받는다 → propose-change\n리뷰어 — 변경을 승인하거나 고칠 점을 돌려준다 → review-change\n작성자 — 기준 브랜치에 맞춘다 → sync-with-base"
+        }
+       ]
+      },
+      {
+       "id": "events",
+       "label": "Sweeping events",
+       "x": 1,
+       "y": 0,
+       "what": "시스템이 반응해야 하는 사건을 바깥에서 오는 것, 시간이 되어 오는 것, 상태가 바뀌어 오는 것으로 나눠 모두 적습니다. 어떤 후보도 답하지 않는 사건이 있으면 빠진 쓰임입니다.",
+       "media": [
+        {
+         "type": "example",
+         "title": "An event no use answered",
+         "text": "사건: 기준 브랜치가 앞서 나가 충돌이 생김\n답하는 쓰임이 없었음 → sync-with-base 추가"
+        }
+       ]
+      },
+      {
+       "id": "crud",
+       "label": "Finding lifecycle gaps",
+       "x": 1,
+       "y": 1,
+       "what": "시스템이 남기는 기록마다 누가 만들고, 읽고, 고치고, 없애는지 표로 채웁니다. 채운 칸은 대부분 쓰임의 단계라 버리고, 비어 있는 칸만 '이건 정말 아무도 안 하나'라는 질문으로 씁니다."
+      },
+      {
+       "id": "prune",
+       "label": "Pruning",
+       "x": 0,
+       "y": 1,
+       "what": "다른 쓰임의 한 단계이거나 다른 쓰임 몇 개를 이어 붙인 후보를 버립니다. 이 판단은 모델을 짠 뒤 basis 검사로 다시 확인합니다.",
+       "rules": ["irreducible"],
+       "media": [
+        {
+         "type": "pitfall",
+         "text": "기능 이름(export, settings)을 쓰임으로 적기 쉽습니다. 행위자와 그가 얻는 결과가 없으면 쓰임이 아닙니다. 화면마다 쓰임을 하나씩 두는 것도 같은 실수입니다. 화면은 노드이고, 쓰임은 화면을 가로지릅니다."
+        }
+       ]
+      }
+     ],
+     "edges": [
+      {
+       "from": "actors",
+       "to": "events",
+       "label": "goal candidates",
+       "what": "행위자-목표로 뽑은 후보 목록을 들고 사건으로 다시 훑습니다.",
+       "mark": ["happy"]
+      },
+      {
+       "from": "events",
+       "to": "crud",
+       "label": "event candidates",
+       "what": "사건으로 보탠 후보까지 합친 목록으로 기록의 빈칸을 봅니다.",
+       "mark": ["happy"]
+      },
+      {
+       "from": "crud",
+       "to": "prune",
+       "label": "gap candidates",
+       "what": "빈칸에서 나온 후보까지 모두 모아 거르기로 넘깁니다.",
+       "mark": ["happy"]
+      },
+      {
+       "from": "prune",
+       "to": "actors",
+       "label": "open questions",
+       "mark": ["optional"],
+       "what": "한 바퀴에서 새 쓰임이 나왔다면, 그 쓰임이 드러낸 행위자와 사건으로 다시 훑습니다. 한 바퀴가 아무것도 더하지 않으면 멈춥니다."
+      }
+     ],
+     "in": [{"edge": "system to explain", "to": "actors"}],
+     "out": [{"edge": "scenarios", "from": "prune"}]
+    }
+   },
+   {
+    "id": "model",
+    "label": "Modeling",
+    "x": 1,
+    "y": 0,
+    "what": "모은 쓰임을 바탕으로 연산과 조건, 그림의 레벨을 짭니다. 안을 열면 모델이 어떤 부품으로 이루어졌는지 볼 수 있습니다.",
+    "ops": ["Model.build", "Model.revise"],
+    "media": [
+     {
+      "type": "code",
+      "title": "A scenario in model.json",
+      "text": "{\n  \"slug\": \"diagram-a-system\",\n  \"text\": \"작성자가 시스템을 건네면 …\",\n  \"steps\": [\n    { \"at\": \"elicit\", \"does\": \"…\", \"expects\": \"…\" },\n    …\n  ]\n}"
+     }
+    ],
+    "partition": "agent",
+    "opens": {
+     "kind": "schema",
+     "title": "Model file",
+     "why": "모델 파일 하나가 무엇으로 이루어졌는지 보여 줍니다. 위 구역은 시스템이 무엇을 하는지(Meaning), 아래 구역은 그것을 어떻게 그리는지(Drawing)입니다.",
+     "nodes": [
+      {
+       "id": "type",
+       "label": "Type",
+       "partition": "meaning",
+       "attrs": ["name: Text", "sentence: Text?", "singleton: Bool"],
+       "rules": ["typed-words"],
+       "what": "연산의 받는 쪽, 매개변수, 결과와 속성이 쓰는 이름입니다. 그림에 있는 컴포넌트와 결과물, 워크플로의 실행이거나, 한 문장으로 선언한 바깥 타입과 값의 목록입니다. Alloy 모듈에서는 각각 시그니처가 됩니다.",
+       "x": 0,
+       "y": 0
+      },
+      {
+       "id": "operation",
+       "label": "Operation",
+       "x": 1,
+       "y": 0,
+       "what": "쓰임 안에서 일어나는 동작 하나입니다. 메서드처럼 무엇에 대해 무엇을 받아 무엇을 돌려주는지 적고(PullRequest.merge(base: Branch, method: MergeMethod) → Commit), 필요하면 부르기 전에 성립할 조건(pre), 부른 뒤에 성립할 조건(post), 바꾸는 속성(modifies)을 Alloy 식으로 덧붙입니다.",
+       "media": [
+        {
+         "type": "facts",
+         "title": "Where an operation sits",
+         "items": [
+          ["on a component", "그 부품의 메서드입니다. 받는 쪽이 그 부품입니다."],
+          ["on an activity", "그 활동을 수행하는 연산입니다. 그중 하나는 활동이 넘기는 결과물을 돌려줍니다."],
+          ["on a state", "그 상태에 있는 동안 돌아가는 연산입니다."],
+          ["on an event", "그 사건을 일으키는 연산입니다. 한 상태 레벨의 사건은 모두 같은 것을 바꿉니다."]
+         ]
+        }
+       ],
+       "attrs": [
+        "receiver: Type",
+        "words: Type[]",
+        "signature: Text",
+        "pre: Text?",
+        "post: Text?",
+        "modifies: Text[]"
+       ],
+       "partition": "meaning"
+      },
+      {
+       "id": "scenario",
+       "label": "Scenario",
+       "x": 2,
+       "y": 0,
+       "what": "시스템의 쓰임 하나입니다. 이름과 한 문장 설명, 그림에서 지나가는 step을 순서대로 적습니다. 쓰는 연산과 조건은 적지 않고 그 step들에서 계산됩니다.",
+       "rules": ["irreducible"],
+       "refs": ["[Meng & Jackson 2025](https://arxiv.org/abs/2508.14511)"],
+       "attrs": ["text: Text", "walk: Step[1..]", "footprint: (Operation | Rule | Node | Edge)[]"],
+       "partition": "meaning"
+      },
+      {
+       "id": "rule",
+       "label": "Rule",
+       "x": 3,
+       "y": 0,
+       "what": "어떤 경우에도 지켜져야 하는 조건 하나입니다. Alloy 6 식과 설명을 함께 둡니다. 어기면 결과가 깨지는 must와 어기면 더 나빠지는 should로 나눕니다.",
+       "refs": [
+        "[Independence of an axiom system](https://encyclopediaofmath.org/wiki/Independence_of_an_axiom_system)"
+       ],
+       "media": [
+        {
+         "type": "facts",
+         "title": "Where a rule sits",
+         "items": [
+          ["on a node", "그 부품, 활동, 상태에 있는 동안 늘 참입니다."],
+          ["on an edge (guard)", "그 관계, 결과물, 사건이 성립하거나 지나가기 전에 참이어야 합니다."]
+         ]
+        }
+       ],
+       "attrs": ["formula: Text", "kind: Strength"],
+       "partition": "meaning"
+      },
+      {
+       "id": "level",
+       "label": "Level",
+       "x": 1,
+       "y": 2,
+       "what": "그림 한 장입니다. 한 그림의 노드는 모두 한 종류이고, 그 종류가 선의 뜻(관계, 순서, 사건)을 정합니다. 상태 레벨은 상태가 바뀌는 대상(subject)을 밝힙니다. 안을 열면 레벨이 무엇으로 그려지는지 볼 수 있습니다.",
+       "rules": ["one-kind", "small-level"],
+       "refs": [
+        "[Harel 1987](https://www.inf.ed.ac.uk/teaching/courses/seoc/2006_2007/resources/statecharts.pdf)"
+       ],
+       "attrs": [
+        "title: Text",
+        "why: Text",
+        "nodes: Node[]",
+        "inputs: Port[]",
+        "outputs: Port[]",
+        "subject: Type?",
+        "init: Text?"
+       ],
+       "partition": "drawing",
+       "opens": {
+        "kind": "schema",
+        "title": "Level parts",
+        "why": "레벨 한 장이 무엇으로 그려지는지 보여 줍니다. 노드와 선은 이름과 표시를 가진 그려지는 것이고, 바깥에서 들어오는 트리거는 출발 노드가 없는 선입니다. 포트는 부모 레벨의 결과물이 드나드는 자리, 동기화는 상태 레벨의 영역을 잇는 규칙입니다.",
+        "nodes": [
+         {
+          "id": "drawn",
+          "label": "Drawn",
+          "abstract": true,
+          "x": 1,
+          "y": 0,
+          "attrs": ["label: Text?", "mark: Mark[]", "media: Text[]"],
+          "what": "그림에 그려지는 것입니다. 이름과 표시(주 경로, 실패, 선택, 미확인), 노트에 붙는 자료를 가집니다."
+         },
+         {
+          "id": "node",
+          "label": "Node",
+          "x": 1,
+          "y": 1,
+          "attrs": ["kind: NodeKind", "opens: Level?", "abstract: Bool", "gate: Bool"],
+          "rules": ["gates-fail"],
+          "what": "그림 속 상자 하나입니다. 레벨에 따라 컴포넌트(component), 활동(activity), 상태(state) 가운데 하나이고, 그 자리의 연산과 늘 참인 조건을 가집니다. 안으로 열리는 레벨을 가질 수 있습니다. 검사, 리뷰, 검증처럼 거르는 활동은 실패하는 길도 그립니다."
+         },
+         {
+          "id": "edge",
+          "label": "Edge",
+          "x": 0,
+          "y": 1,
+          "attrs": ["kind: EdgeKind", "from: Node?", "to: Node", "every: Text?"],
+          "rules": ["named", "abstract-up"],
+          "what": "두 노드를 잇는 선입니다. 레벨에 따라 관계(relation), 활동 사이를 오가는 결과물(artifact), 상태를 바꾸는 사건(event) 가운데 하나이고, 선 이름이 곧 그 관계, 결과물, 사건의 이름입니다. 지나기 전에 참이어야 하는 guard를 가질 수 있습니다. 점선 컴포넌트로 가는 관계는 그것의 한 종류라는 뜻입니다. 출발 노드가 없는 선은 레벨 밖에서 들어오는 트리거입니다. 한 번 오면 빈 원에서, 정해진 주기로 오면(every) 시계 바늘이 있는 원에서 들어옵니다."
+         },
+         {
+          "id": "port",
+          "label": "Port",
+          "x": 0,
+          "y": 2,
+          "attrs": ["standsFor: Edge", "direction: Direction"],
+          "what": "열린 활동 안의 과정에서, 부모 레벨의 결과물이 들어오고 나가는 자리입니다. 네모로 그리고, 누르면 부모의 그 결과물로 올라갑니다.",
+          "refs": ["[Data flow diagram balancing](https://en.wikipedia.org/wiki/Data-flow_diagram)"]
+         },
+         {
+          "id": "partition",
+          "label": "Partition",
+          "x": 1,
+          "y": 2,
+          "attrs": ["label: Text", "by: PartitionBy"],
+          "what": "한 레벨 안에서 누가 맡는지, 어디서 도는지, 무엇에 접근하는지가 다른 것들을 점선 구역으로 나눕니다. 상태 레벨에서는 동시에 따로 바뀌는 영역이 되어, 영역마다 시작 상태가 하나씩 있습니다."
+         },
+         {
+          "id": "sync",
+          "label": "Sync",
+          "x": 2,
+          "y": 2,
+          "attrs": ["when: Text", "where: Text?", "then: Text"],
+          "rules": ["regions-by-sync"],
+          "what": "상태 레벨의 두 영역을 잇는 규칙입니다. 한 영역의 사건이 일어나고 조건이 맞으면, 다른 영역의 사건이 따라 일어납니다. 선을 긋지 않고 사건 이름 옆에 A (→ B), B (← A)로 적습니다.",
+          "refs": ["[Meng & Jackson 2025, What You See Is What It Does](https://arxiv.org/abs/2508.14511)"]
+         }
+        ],
+        "edges": [
+         {"from": "edge", "to": "drawn", "label": "is"},
+         {"from": "node", "to": "drawn", "label": "is"},
+         {
+          "from": "edge",
+          "to": "node",
+          "label": "connects",
+          "what": "선은 같은 레벨의 두 노드를 잇습니다.",
+          "attr": "from"
+         },
+         {
+          "from": "port",
+          "to": "edge",
+          "label": "stands for",
+          "rules": ["balanced-ports"],
+          "what": "포트는 부모 레벨의 결과물 하나를 대신합니다."
+         },
+         {
+          "from": "partition",
+          "to": "node",
+          "label": "groups",
+          "what": "구역 하나는 격자 위의 노드들을 한 덩어리로 묶습니다."
+         },
+         {
+          "from": "sync",
+          "to": "partition",
+          "label": "joins",
+          "what": "동기화는 서로를 가리키지 않는 두 영역을 잇는 유일한 길입니다."
+         }
+        ]
+       }
+      },
+      {
+       "id": "step",
+       "label": "Step",
+       "x": 2,
+       "y": 1,
+       "what": "쓰임이 지나는 한 순간입니다. 어느 노드에 있는지(부품 레벨이면 함께 쓰는 부품 여럿), 그 순간에 무엇을 하는지, 끝나면 무엇이 참이어야 하는지를 적습니다. 나란히 일어나는 일은 갈래로 나뉘었다가 다음 step에서 합류합니다.",
+       "attrs": ["place: Node[1..]", "does: Text", "expects: Text"],
+       "media": [
+        {
+         "type": "code",
+         "title": "A step",
+         "text": "{ \"place\": \"validate\",\n  \"does\": \"변경과 시나리오가\n    만나 검증합니다.\",\n  \"expects\": \"기준을 넘으면\n    판이 나와 있습니다.\" }",
+         "invented": true
+        }
+       ],
+       "partition": "meaning"
+      }
+     ],
+     "edges": [
+      {
+       "from": "scenario",
+       "to": "operation",
+       "label": "uses",
+       "what": "쓰임은 지나가는 요소에 놓인 연산을 씁니다. 적지 않고 step들에서 계산됩니다."
+      },
+      {
+       "from": "operation",
+       "to": "type",
+       "label": "refers to",
+       "rules": ["typed-words"],
+       "what": "시그니처의 모든 타입은 모델이 그리거나 선언한 이름입니다.",
+       "attr": "words"
+      },
+      {
+       "from": "scenario",
+       "to": "rule",
+       "label": "holds",
+       "what": "쓰임은 지나가는 요소에 놓인 조건을 지킵니다. 적지 않고 step들에서 계산됩니다."
+      },
+      {
+       "from": "rule",
+       "to": "operation",
+       "label": "constrains",
+       "what": "조건은 연산이 어떤 경우에도 지켜야 할 것을 정합니다."
+      },
+      {
+       "from": "step",
+       "to": "level",
+       "label": "walks",
+       "rules": ["traced"],
+       "what": "step은 레벨 안의 노드에 있고, 열린 노드로 들어가거나 나옵니다."
+      },
+      {
+       "from": "level",
+       "to": "level",
+       "label": "nests",
+       "rules": ["branching"],
+       "mark": ["optional"],
+       "what": "노드 하나가 한 단계 아래 레벨을 열 수 있습니다."
+      },
+      {
+       "from": "level",
+       "to": "type",
+       "label": "tracks",
+       "attr": "subject",
+       "what": "상태 레벨은 상태가 바뀌는 대상 하나를 밝힙니다. 상태는 그 대상의 부분집합이고, 사건은 모두 그 대상에게 일어납니다."
+      },
+      {
+       "from": "scenario",
+       "to": "step",
+       "label": "has",
+       "attr": "walk",
+       "what": "쓰임은 순서대로 이어지는 step으로 이루어집니다."
+      }
+     ],
+     "partitions": [{"id": "meaning", "label": "Meaning"}, {"id": "drawing", "label": "Drawing"}]
+    }
+   },
+   {
+    "id": "check",
+    "label": "Checking",
+    "x": 1,
+    "y": 1,
+    "what": "만든 모델에 빠진 것이나 남는 것이 없는지 검사합니다. 문제가 나오면 모델 단계로 돌아가 고칩니다.",
+    "ops": ["Model.verify"],
+    "media": [
+     {
+      "type": "code",
+      "title": "make-diagram.py check",
+      "text": "pass  form\npass  names\npass  steps\npass  coverage\nwarn  basis\n      - nest-a-level is the union of ['write-a-scenario']; drop it\nok (unproved: skipped: --quick)",
+      "invented": true
+     }
+    ],
+    "partition": "agent",
+    "opens": {
+     "kind": "workflow",
+     "title": "Checks",
+     "why": "모델에 빠진 것, 남는 것, 어긋난 것이 없는지 차례로 확인하는 네 묶음의 검사입니다. 마지막 묶음은 Alloy가 모델을 직접 풀어 봅니다. 어느 검사에서든 걸리면 실패 보고서가 나가고, 모두 통과하면 모델이 그대로 나갑니다.",
+     "nodes": [
+      {
+       "id": "uses",
+       "label": "Checking uses",
+       "x": 0,
+       "y": 0,
+       "what": "모든 요소가 어떤 쓰임에 쓰이는지, 어떤 쓰임도 다른 쓰임을 합친 것이 아닌지, 쓰임의 경로가 선을 따라 이어지고 적은 연산과 조건이 그 경로 위에 있는지 봅니다.",
+       "refs": [
+        "[Gotel & Finkelstein 1994](https://discovery.ucl.ac.uk/749/)",
+        "[Ganter & Wille 1999](https://link.springer.com/doi/10.1007/978-3-642-59830-2)"
+       ]
+      },
+      {
+       "id": "types",
+       "label": "Checking types",
+       "x": 1,
+       "y": 0,
+       "what": "시그니처와 속성이 모듈이 선언하는 이름만 쓰는지, 수식이 Alloy 문법에 맞고 모든 변수가 묶여 있는지, 열린 과정이 부모의 결과물을 드나들게 하는지 봅니다.",
+       "rules": ["typed-words"]
+      },
+      {
+       "id": "structure",
+       "label": "Checking structure",
+       "x": 1,
+       "y": 1,
+       "what": "그림이 규칙대로 짜였는지 봅니다. 레벨 크기, 이름 형식, 주 경로와 실패하는 길, 구역과 동기화, 포트, 자료의 자리를 확인합니다.",
+       "rules": ["realized", "participates"]
+      },
+      {
+       "id": "prove",
+       "label": "Proving with Alloy",
+       "x": 0,
+       "y": 1,
+       "what": "모델을 Alloy 6 모듈로 옮겨 Alloy가 직접 답하게 합니다. 규칙들이 서로 모순되지 않는지, 조건마다 그것만 어기는 모델이 있는지, must 조건이 움직임 속에서도 늘 지켜지는지, 모든 쓰임과 실패한 길이 실제로 일어날 수 있는지 봅니다.",
+       "refs": [
+        "[Alloy](https://alloytools.org/)",
+        "[Practical Alloy](https://practicalalloy.github.io/)",
+        "[Independence of an axiom system](https://encyclopediaofmath.org/wiki/Independence_of_an_axiom_system)",
+        "[Torlak et al. 2008](https://groups.csail.mit.edu/sdg/pubs/2008/mincore-fm08.pdf)"
+       ]
+      }
+     ],
+     "edges": [
+      {
+       "from": "uses",
+       "to": "types",
+       "label": "traced model",
+       "rules": ["traced", "irreducible"],
+       "mark": ["happy"],
+       "what": "모든 요소가 쓰이고 쓰임끼리 겹치지 않는 모델이 타입 검사로 넘어갑니다."
+      },
+      {
+       "from": "types",
+       "to": "structure",
+       "label": "typed model",
+       "mark": ["happy"],
+       "what": "시그니처와 수식이 모듈의 이름만 쓰는 모델이 구조 검사로 넘어갑니다."
+      },
+      {
+       "from": "structure",
+       "to": "prove",
+       "label": "structured model",
+       "mark": ["happy"],
+       "what": "구조와 이름이 모두 맞는 모델만 Alloy로 옮깁니다."
+      }
+     ],
+     "in": [{"edge": "model.json", "to": "uses"}],
+     "out": [
+      {"edge": "checked model", "from": "prove"},
+      {"edge": "failure report", "from": ["uses", "types", "structure", "prove"]}
+     ]
+    }
+   },
+   {
+    "id": "render",
+    "label": "Rendering",
+    "x": 1,
+    "y": 2,
+    "what": "검사를 통과한 모델을 줌 다이어그램으로 그립니다. 안을 열면 줌 다이어그램 화면의 각 부분을 볼 수 있습니다.",
+    "ops": ["Model.render", "Page.mount"],
+    "media": [
+     {
+      "type": "checklist",
+      "title": "Before handing it over",
+      "items": ["두 폭, 두 테마에서 make-diagram.py render가 ok", "모든 레벨을 비평가처럼 직접 봄", "설명 없이 읽히지 않는 부분이 없음"]
+     }
+    ],
+    "partition": "agent",
+    "opens": {
+     "kind": "schema",
+     "title": "Zoom diagram",
+     "why": "완성된 줌 다이어그램 화면이 어떤 부분으로 나뉘고, 부분끼리 무엇을 주고받는지 보여 줍니다.",
+     "nodes": [
+      {
+       "id": "header",
+       "label": "Header",
+       "x": 0,
+       "y": 0,
+       "what": "그림 위의 머리입니다. 지금 레벨까지 거쳐 온 레벨이 이어져 있어 누르면 바로 올라가고, 끝의 현재 레벨 이름을 누르면 레벨 목록과 이 레벨의 쓰임이 펼쳐집니다. 그 아래 한두 문장이 이 레벨이 무엇을 보여 주는지 말합니다.",
+       "ui": {"screen": "diagram", "block": "caption"},
+       "attrs": ["path: Level[]", "text: Text"],
+       "refs": [
+        "[Shneiderman 1996](https://webspace.science.uu.nl/~telea001/uploads/VACourse/Shneiderman96.pdf)"
+       ]
+      },
+      {
+       "id": "timebar",
+       "label": "Time bar",
+       "x": 2,
+       "y": 0,
+       "what": "쓰임 하나를 고르면 그림 위에 나타나는 막대입니다. 순간마다 눈금이 하나씩 있고, 나란히 갈라진 순간에는 점이 겹쳐 쌓입니다. 끌거나 누르거나 화살표로 어느 순간으로든 앞뒤로 가며, 저절로 흘러가지는 않습니다.",
+       "ui": {"screen": "diagram", "block": "time"},
+       "attrs": ["moment: Count"],
+       "mark": ["optional"]
+      },
+      {
+       "id": "canvas",
+       "label": "Board",
+       "x": 1,
+       "y": 0,
+       "what": "지금 레벨의 손그림이 그려지는 곳입니다. 노드를 누르면 고르고, 오른쪽에 꺾쇠가 있는 노드는 꺾쇠를 누르거나 고른 노드를 한 번 더 누르면 그 안으로 들어갑니다.",
+       "ops": ["Board.goto", "Board.select", "Board.follow"],
+       "rules": ["one-accent", "fits"],
+       "ui": {"screen": "diagram", "block": "canvas"},
+       "refs": [
+        "[Bederson & Hollan 1994](https://www.lri.fr/~mbl/Teach/SituatedComputing/2017/papers/ZUI/pad++-uis94-p17-bederson.pdf)"
+       ],
+       "attrs": [
+        "shown: Level",
+        "selected: (Node | Edge)?",
+        "inverted: (Node | Edge)[]",
+        "note: Note",
+        "overflows: Bool",
+        "smallText: Bool",
+        "overlaps: Text[]"
+       ],
+       "singleton": true
+      },
+      {
+       "id": "note",
+       "label": "Note",
+       "x": 1,
+       "y": 1,
+       "what": "고른 노드나 선 곁에 붙는 카드입니다. 설명과 근거, 이해를 돕는 자료, 관련 쓰임과 연산과 조건이 차례로 나옵니다. 고른 것이 화면의 한 부분이면 실제 화면 목업이 들어갑니다.",
+       "rules": ["in-sync"],
+       "ui": {"screen": "diagram", "block": "note"},
+       "refs": [
+        "[Furnas 1986](https://www.ifs.tuwien.ac.at/~mlanzenberger/teaching/ps/ws06/stuff/p16-furnas.pdf)"
+       ],
+       "attrs": ["topic: (Node | Edge)?"],
+       "mark": ["optional"]
+      }
+     ],
+     "edges": [
+      {"from": "header", "to": "canvas", "label": "sets level", "what": "경로나 목록에서 고른 레벨을 보드가 그립니다."},
+      {"from": "canvas", "to": "note", "label": "fills", "what": "보드에서 고른 노드나 선이 노트의 주제가 됩니다."},
+      {
+       "from": "timebar",
+       "to": "canvas",
+       "label": "moves",
+       "what": "막대에서 고른 순간을 보드가 그립니다. 그 순간에 닿은 것은 뒤집히고, 지난 것은 진하게, 올 것은 그대로 그려집니다."
+      }
+     ],
+     "init": "no Board.selected and no Board.note.topic and no Board.inverted"
+    }
+   },
+   {
+    "id": "read",
+    "label": "Reading",
+    "x": 2,
+    "y": 2,
+    "what": "독자가 줌 다이어그램을 오가며 시스템을 읽습니다. 레벨을 옮기면 고른 것이 풀리고, 노드나 선을 고르면 그 곁에 설명이 붙습니다.",
+    "partition": "reader"
+   }
+  ],
+  "edges": [
+   {
+    "from": "elicit",
+    "to": "model",
+    "label": "scenarios",
+    "what": "모은 쓰임 목록이 모델을 짜는 단계의 입력이 됩니다.",
+    "mark": ["happy"]
+   },
+   {
+    "from": "model",
+    "to": "check",
+    "label": "model.json",
+    "what": "짠 모델을 JSON 파일 하나로 넘겨 검사합니다.",
+    "mark": ["happy"],
+    "media": [
+     {
+      "type": "payload",
+      "title": "model.json (excerpt)",
+      "text": "{\n  \"slug\": \"diagram-a-system-fix\",\n  \"steps\": [\n    { \"at\": \"model\", … },\n    { \"at\": \"check\", … },\n    { \"at\": \"model\", … }\n  ]\n}"
+     }
+    ]
+   },
+   {
+    "from": "check",
+    "to": "model",
+    "label": "failure report",
+    "what": "검사에서 걸린 항목과 그 이유를 들고 모델 단계로 돌아갑니다.",
+    "mark": ["failure"],
+    "media": [
+     {
+      "type": "payload",
+      "title": "A failure report",
+      "text": "FAIL  coverage\n      - no Scenario uses edge review-l:pr>commit#0; drop it or name the use it serves\n1 problem(s)",
+      "invented": true
+     },
+     {"type": "pitfall", "text": "검사를 통과시키려고 검사 스크립트를 고치기 쉽습니다. 고칠 것은 언제나 모델입니다."}
+    ]
+   },
+   {
+    "from": "check",
+    "to": "render",
+    "label": "checked model",
+    "rules": ["traced", "irreducible", "realized", "participates"],
+    "what": "모든 검사를 통과한 모델만 그리는 단계로 넘어갑니다.",
+    "mark": ["happy"],
+    "media": [
+     {
+      "type": "insight",
+      "move": "검사는 모두 지우기 시험입니다. 요소 하나를 지워도 깨지는 쓰임이 없으면 그 요소는 군더더기이고, 조건 하나가 나머지 조건에서 따라 나오면 그 조건도 군더더기입니다.",
+      "vs": "보통 다이어그램 도구는 문법만 확인하고, 그림에 무엇이 빠졌거나 남는지는 사람이 눈으로 찾습니다.",
+      "gain": "최소이고 완전한지가 감이 아니라 스크립트로 판정되고, 노트의 모든 요소가 자기를 필요로 하는 쓰임을 가리킬 수 있습니다.",
+      "rule": "traced"
+     }
+    ]
+   },
+   {
+    "from": "render",
+    "to": "read",
+    "label": "zoom-diagram.html",
+    "what": "그린 줌 다이어그램을 HTML 파일 하나로 독자에게 건넵니다.",
+    "mark": ["happy"],
+    "media": [{"type": "payload", "text": "zoom-diagram.html\n  engine (css, js) + model.json, one file"}]
+   }
+  ],
+  "partitions": [{"id": "agent", "label": "Agent"}, {"id": "reader", "label": "Reader"}],
+  "triggers": [
+   {
+    "to": "elicit",
+    "label": "system to explain",
+    "what": "작성자가 이해하고 싶은 시스템(코드, 문서, 설정, 프로세스, 화면)을 건넵니다."
+   }
+  ]
+ },
+ "screens": {
+  "diagram": {
+   "title": "Zoom diagram / phone",
+   "size": "390",
+   "blocks": [
+    {
+     "id": "caption",
+     "name": "Header",
+     "type": "text",
+     "text": "줌 다이어그램 하나가 만들어져 독자에게 읽히기까지 거치는 다섯 단계입니다."
+    },
+    {"id": "time", "name": "Time bar", "type": "text", "text": "‹  ●──●──◉──○──○  ›   3 / 5"},
+    {
+     "id": "canvas",
+     "name": "Board",
+     "type": "nodes",
+     "items": ["Eliciting", "Modeling", "Checking", "Rendering", "Reading"],
+     "active": 2
+    },
+    {
+     "id": "note",
+     "name": "Note",
+     "type": "title",
+     "text": "Checking",
+     "sub": "만든 모델에 빠진 것이나 남는 것이 없는지 검사합니다."
+    }
+   ]
+  }
+ },
+ "types": {
+  "System": "분석할 시스템입니다. 코드, 문서, 설정, 프로세스, 화면처럼 에이전트가 읽을 수 있는 것은 모두 여기에 듭니다.",
+  "Page": "줌 다이어그램을 넣을 웹 페이지의 한 자리입니다.",
+  "NodeKind": "{component, activity, state} 노드의 종류입니다. 레벨의 종류를 정하고, 그림에는 모서리 모양으로만 드러납니다.",
+  "EdgeKind": "{relation, artifact, event} 선의 종류입니다. 관계, 넘겨주는 결과물, 사건 가운데 하나입니다.",
+  "Strength": "{must, should} 조건의 세기입니다. 어기면 결과가 깨지는 must와, 어기면 더 나빠지는 should로 나눕니다.",
+  "Mark": "{happy, failure, optional, unsure} 노드와 선에 붙는 표시입니다. 주된 길, 실패한 길, 가끔만 있는 것, 출처가 확인되지 않은 것을 나눕니다.",
+  "Direction": "{entering, leaving} 포트가 부모의 결과물을 들이는지 내보내는지를 나눕니다.",
+  "PartitionBy": "{owner, place, access, region} 구역을 나누는 기준입니다. 맡은 쪽, 있는 곳, 접근 권한, 상태 레벨의 영역 가운데 하나입니다."
+ }
+}

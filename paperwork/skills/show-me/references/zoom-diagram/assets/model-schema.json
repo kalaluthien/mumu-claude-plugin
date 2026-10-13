@@ -1,0 +1,572 @@
+{
+ "$schema": "https://json-schema.org/draft-07/schema",
+ "title": "zoom-diagram model",
+ "type": "object",
+ "required": [
+  "title",
+  "level",
+  "scenarios",
+  "operations",
+  "rules"
+ ],
+ "properties": {
+  "title": {
+   "type": "string",
+   "description": "The page's and the file's name."
+  },
+  "next": {
+   "type": "string",
+   "description": "The reader's next action or choice, one sentence, shown under the diagram."
+  },
+  "plan": {
+   "type": "object",
+   "additionalProperties": false,
+   "description": "What this model changes from the defaults.",
+   "properties": {
+    "intent": {
+     "type": "string"
+    },
+    "views": {
+     "type": "array",
+     "description": "The diagrams a practitioner of this domain expects: {name, level} where a level draws it, or {name, why} when it is left out.",
+     "items": {
+      "type": "object",
+      "required": [
+       "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "name": {
+        "type": "string"
+       },
+       "level": {
+        "type": "string",
+        "description": "The id of the node that opens it, or root."
+       },
+       "why": {
+        "type": "string"
+       }
+      }
+     }
+    },
+    "depth": {
+     "enum": [
+      "overview",
+      "working",
+      "detailed"
+     ]
+    },
+    "deep": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "shallow": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "scenarios": {
+     "enum": [
+      "entry",
+      "every"
+     ]
+    },
+    "prove": {
+     "enum": [
+      "full",
+      "rules",
+      "off"
+     ]
+    },
+    "strict": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "max_nodes": {
+     "type": "integer"
+    },
+    "show": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "formulas": {
+       "type": "boolean"
+      },
+      "replay": {
+       "type": "boolean"
+      },
+      "media": {
+       "type": "boolean"
+      }
+     }
+    },
+    "why": {
+     "type": "object"
+    }
+   }
+  },
+  "types": {
+   "type": "object",
+   "description": "Outside types, \"Name\": \"One sentence.\", or shared values, \"Name\": \"{a, b} One sentence.\""
+  },
+  "screens": {
+   "type": "object",
+   "description": "Mock screens, read from the code that draws them: \"id\": {title, size, invented?, blocks: [{id, name, type: title|tabs|list|nodes|button|choices|code|text, text, sub, items, active}]}."
+  },
+  "scenarios": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "slug",
+     "text",
+     "walk"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "slug": {
+      "type": "string",
+      "description": "verb-object; a branch adds what differs: ship-a-bet-replan."
+     },
+     "text": {
+      "type": "string",
+      "description": "A use, When <actor> does X, Y happens; or a claim, To see why <claim>, …"
+     },
+     "walk": {
+      "type": "array",
+      "description": "Steps in order: {place, does, expects, edge?}; a list among them is a fork of branches (a step, a list of steps, or [])."
+     },
+     "refs": {
+      "$ref": "#/definitions/refs"
+     }
+    }
+   }
+  },
+  "operations": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "slug",
+     "sig",
+     "text"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "slug": {
+      "type": "string",
+      "description": "Receiver.verb"
+     },
+     "sig": {
+      "type": "string",
+      "description": "(name: Type, other: {a, b}, many: Type[]) → Result"
+     },
+     "text": {
+      "type": "string"
+     },
+     "pre": {
+      "type": "string",
+      "description": "Alloy over self and the parameters."
+     },
+     "post": {
+      "type": "string",
+      "description": "Alloy over self, the parameters and result; the next state with after."
+     },
+     "modifies": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Receiver.attribute it may change."
+     },
+     "refs": {
+      "$ref": "#/definitions/refs"
+     }
+    }
+   }
+  },
+  "rules": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "slug",
+     "kind",
+     "formula",
+     "text"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "slug": {
+      "type": "string",
+      "description": "a property: least-privilege"
+     },
+     "kind": {
+      "enum": [
+       "must",
+       "should"
+      ]
+     },
+     "formula": {
+      "type": "string",
+      "description": "Alloy 6 over the module's names."
+     },
+     "text": {
+      "type": "string"
+     },
+     "scope": {
+      "type": "string",
+      "description": "Only for large numbers: 12 Type, 5 Int."
+     },
+     "refs": {
+      "$ref": "#/definitions/refs"
+     }
+    }
+   }
+  },
+  "level": {
+   "$ref": "#/definitions/level"
+  }
+ },
+ "definitions": {
+  "refs": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "description": "[name](https://…)"
+  },
+  "media": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "type"
+    ],
+    "description": "example|code|quote|pitfall {title?, text, invented?, refs?}; facts {items: [[term, sentence]]}; tree {items}; checklist {items}; payload {text}; diff {before, after}; insight {move, vs, gain, rule}",
+    "properties": {
+     "type": {
+      "enum": [
+       "example",
+       "code",
+       "quote",
+       "pitfall",
+       "facts",
+       "tree",
+       "checklist",
+       "payload",
+       "diff",
+       "insight"
+      ]
+     }
+    }
+   }
+  },
+  "level": {
+   "type": "object",
+   "required": [
+    "kind",
+    "title",
+    "why",
+    "nodes",
+    "edges"
+   ],
+   "properties": {
+    "kind": {
+     "enum": [
+      "schema",
+      "workflow",
+      "state"
+     ]
+    },
+    "title": {
+     "type": "string",
+     "description": "A noun phrase for the whole."
+    },
+    "why": {
+     "type": "string",
+     "description": "What this level shows."
+    },
+    "subject": {
+     "type": "string",
+     "description": "State levels: the type whose states these are."
+    },
+    "initial": {
+     "type": [
+      "string",
+      "array"
+     ],
+     "description": "State levels: the initial state, one per region."
+    },
+    "init": {
+     "type": "string",
+     "description": "Alloy true at the start."
+    },
+    "partitions": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "id",
+       "label"
+      ]
+     },
+     "description": "Workflow lanes (who or where) or schema groups: one criterion per level."
+    },
+    "triggers": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "to",
+       "label"
+      ],
+      "description": "{to, label, every?, what, ops, rules}"
+     }
+    },
+    "syncs": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "name",
+       "when",
+       "then",
+       "what"
+      ],
+      "description": "{name, when: event, where?: state, then: event in another region, what}"
+     }
+    },
+    "in": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "edge",
+       "to"
+      ]
+     }
+    },
+    "out": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "edge",
+       "from"
+      ]
+     }
+    },
+    "media": {
+     "$ref": "#/definitions/media"
+    },
+    "nodes": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "id",
+       "label"
+      ],
+      "properties": {
+       "id": {
+        "type": "string"
+       },
+       "label": {
+        "type": "string"
+       },
+       "x": {
+        "type": "integer",
+        "description": "Grid column; leave x and y out to let the engine place the node."
+       },
+       "y": {
+        "type": "integer"
+       },
+       "what": {
+        "type": "string"
+       },
+       "partition": {
+        "type": "string"
+       },
+       "abstract": {
+        "type": "boolean"
+       },
+       "singleton": {
+        "type": "boolean"
+       },
+       "attrs": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "name: T, T?, T[], T[1..], A | B, (A, B)[], Bool"
+       },
+       "ops": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "rules": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "mark": {
+        "type": "array",
+        "items": {
+         "enum": [
+          "happy",
+          "failure",
+          "optional",
+          "unsure"
+         ]
+        }
+       },
+       "ui": {
+        "type": "object",
+        "required": [
+         "screen",
+         "block"
+        ]
+       },
+       "refs": {
+        "$ref": "#/definitions/refs"
+       },
+       "media": {
+        "$ref": "#/definitions/media"
+       },
+       "opens": {
+        "$ref": "#/definitions/level",
+        "description": "The level drawn inside this node."
+       },
+       "region": {
+        "type": "string"
+       },
+       "qty": {
+        "$ref": "#/definitions/qty"
+       }
+      }
+     }
+    },
+    "edges": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "from",
+       "to",
+       "label"
+      ],
+      "properties": {
+       "from": {
+        "type": "string"
+       },
+       "to": {
+        "type": "string"
+       },
+       "label": {
+        "type": "string"
+       },
+       "what": {
+        "type": "string"
+       },
+       "ops": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Events only."
+       },
+       "rules": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "On a workflow or state edge, a must is a guard."
+       },
+       "is": {
+        "type": "string",
+        "description": "An artifact that is a component: its id."
+       },
+       "attr": {
+        "type": "string",
+        "description": "A relation: the attribute it stands for."
+       },
+       "via": {
+        "enum": [
+         "left"
+        ]
+       },
+       "mark": {
+        "type": "array",
+        "items": {
+         "enum": [
+          "happy",
+          "failure",
+          "optional",
+          "unsure"
+         ]
+        }
+       },
+       "refs": {
+        "$ref": "#/definitions/refs"
+       },
+       "media": {
+        "$ref": "#/definitions/media"
+       },
+       "qty": {
+        "$ref": "#/definitions/qty"
+       }
+      }
+     }
+    },
+    "regions": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "id",
+       "label"
+      ]
+     },
+     "description": "State levels: orthogonal regions, parts of the subject that change state on their own."
+    }
+   },
+   "description": "A level: the root is the model's level, and a node's opens is the level inside it."
+  },
+  "qty": {
+   "type": "object",
+   "required": [
+    "value",
+    "kind"
+   ],
+   "additionalProperties": false,
+   "description": "How much: a stock, count or capacity on a node; a flow, count or delay (a deadline) on an edge.",
+   "properties": {
+    "value": {
+     "type": "number"
+    },
+    "unit": {
+     "type": "string",
+     "description": "GtC, USD, d, beds; a flow is in its stock's unit per time: GtC/yr."
+    },
+    "kind": {
+     "enum": [
+      "stock",
+      "count",
+      "capacity",
+      "flow",
+      "delay"
+     ]
+    }
+   }
+  }
+ }
+}
