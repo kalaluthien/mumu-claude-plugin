@@ -5,7 +5,7 @@
 Print a time range per open task, its sample count and a total range, from the hours past tasks of the same first label
 took (all past tasks when fewer than 5 share it). The total is a bootstrap over those hours, repeatable by `--seed`.
 Past hours already hold the usual restarts and waits, so the script adds only what the history lacks: `--expect-restarts
-<n>` adds n restarts at the mean hours one restart cost (from `--gaps-json`, the output of `list-session-gaps.py --json`,
+<n>` adds n restarts at the median hours of a restart that cost time (from `--gaps-json`, the output of `list-session-gaps.py --json`,
 else the transcripts of every named session), and each `--wait` adds its hours once, as a row of its own.
 `--from-json` is a fixture {"history": [...], "tasks": [{"number": 1, "labels": [...]}]} in place of GitHub."""
 import json
@@ -73,7 +73,7 @@ def main(argv):
         if each is None:
             sys.exit("estimate-task-time.py: no restart is recorded, so its hours are unknown; pass --wait instead.")
         extra += opt["expect-restarts"] * each
-        print(f"restart\t{opt['expect-restarts'] * each:.1f}h\t({opt['expect-restarts']:g} restarts x {each:.1f}h mean)")
+        print(f"restart\t{opt['expect-restarts'] * each:.1f}h\t({opt['expect-restarts']:g} restarts x {each:.1f}h median)")
     for name, hours in waits:
         extra += hours
         print(f"wait {name}\t{hours:.1f}h")

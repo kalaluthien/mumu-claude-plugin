@@ -4,6 +4,7 @@ import statistics
 
 MIN_GROUP = 5
 DRAWS = 1000
+MIN_COST = 0.05
 
 
 def quantile(values, p):
@@ -35,6 +36,7 @@ def total_range(groups, seed=0):
 
 
 def restart_hours(summaries):
-    """Mean hours one restart cost over every restart recorded; None when none restarted."""
-    hours = [h for s in summaries for h in s["restart_hours"]]
-    return statistics.fmean(hours) if hours else None
+    """Median hours of the restarts that cost time (over MIN_COST hours; the rest are immediate handoffs, which would make
+    the median 0); None when no such restart is recorded."""
+    hours = [h for s in summaries for h in s["restart_hours"] if h > MIN_COST]
+    return statistics.median(hours) if hours else None
