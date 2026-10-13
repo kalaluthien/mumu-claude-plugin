@@ -17,7 +17,7 @@ while True:
     if manager and lines is not None:
         crew = team.members(me, listed)
         staffed = staffed or bool(crew)
-        if staffed and not crew and not any(line.startswith("answer ") for line in lines):
+        if staffed and not crew and not lines:  # an open issue to route or answer is work not yet done
             lines.append(team.exit_action(me, listed))
     for line in lines or []:  # a failed read (None) keeps what was shown, so the next poll repeats nothing
         if line not in shown:
