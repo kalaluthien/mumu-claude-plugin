@@ -86,11 +86,15 @@ def backtest(rows, seed=0):
 
 
 def as_of(rows, cutoff, numbers):
-    """For each task in NUMBERS: (number, low, high, actual hours), estimated from the tasks closed before CUTOFF, the NUMBERS themselves left out of that history."""
-    prior = [r for r in rows if r["end"] < cutoff and r["number"] not in numbers]
+    """(history size, [(number, low, high, actual hours)]): each task in NUMBERS estimated from the tasks closed before
+    CUTOFF with the NUMBERS themselves left out, at the levels fitted on that history as the estimator fits them."""
+    prior = sorted((r for r in rows if r["end"] < cutoff and r["number"] not in numbers), key=lambda r: r["end"])
+    assert not numbers & {r["number"] for r in prior}, "a scored task is in its own history"
+    fitted = fit(prior)
+    levels = fitted[0] if fitted else (0.1, 0.9)
     out = []
     for r in rows:
         if r["number"] in numbers:
             hours, _ = task_estimate.group(prior, r["labels"])
-            out.append((r["number"], task_estimate.quantile(hours, 0.1), task_estimate.quantile(hours, 0.9), r["hours"]))
-    return out
+            out.append((r["number"], task_estimate.quantile(hours, levels[0]), task_estimate.quantile(hours, levels[1]), r["hours"]))
+    return len(prior), out

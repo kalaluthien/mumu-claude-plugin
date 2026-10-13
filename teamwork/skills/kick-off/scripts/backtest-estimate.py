@@ -36,13 +36,15 @@ def main(argv):
     for repo in repos:
         rows = task_history.rows(fixture[repo] if fixture else task_history.fetch(repo))
         if cutoff:
-            print(f"{repo} as of {cutoff}\ntask\tlow h\thigh h\tactual h\tinside")
+            size, scored = task_backtest.as_of(rows, cutoff, numbers)
+            print(f"{repo} as of {cutoff}: history of {size} tasks closed before it, the {len(numbers)} scored tasks left out\n"
+                  "task\tlow h\thigh h\tactual h\tinside")
             hit = 0
-            for number, low, high, actual in task_backtest.as_of(rows, cutoff, numbers):
+            for number, low, high, actual in scored:
                 inside = low <= actual <= high
                 hit += inside
                 print(f"#{number}\t{low:.1f}\t{high:.1f}\t{actual:.1f}\t{'yes' if inside else 'no: add the waits it lacked with --wait <name>=<hours>'}")
-            print(f"inside: {hit} of {len(numbers)}")
+            print(f"inside: {hit} of {len(numbers)} (a regression sample, not a pass line)")
             continue
         r = task_backtest.backtest(rows)
         if r is None:
