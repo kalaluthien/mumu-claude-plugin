@@ -96,6 +96,7 @@ def build(path, out):
     model = prepare(json.loads(pathlib.Path(path).read_text(encoding="utf-8")))
     page = (ASSETS / "zoom-diagram.html").read_text(encoding="utf-8")
     for slot, text in (("/*TITLE*/", model["title"]),
+                       ("/*LANG*/", model.get("lang", "en")),
                        ("/*CSS*/", (ASSETS / "zoom-diagram.css").read_text(encoding="utf-8")),
                        ("/*JS*/", (ASSETS / "zoom-diagram.js").read_text(encoding="utf-8")),
                        ("/*NEXT*/", html.escape(model.get("next", ""))),
