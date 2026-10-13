@@ -4,7 +4,6 @@ import argparse
 import os
 import pathlib
 import re
-import shutil
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
@@ -55,7 +54,7 @@ def busy(repo, n, topic):
 
 
 def worktree(repo, name):
-    """The worktree for `name` on its own new branch `name` from the default branch, unless it exists, with the guard as the checkout's pre-commit hook."""
+    """The worktree for `name` on its own new branch `name` from the default branch, unless it exists."""
     tree = sessions.worktrees(repo) / name
     if not tree.exists():
         run("git", "-C", repo, "worktree", "add", "-b", name, str(tree), f"origin/{repo_view('defaultBranchRef', repo)}")
@@ -64,14 +63,6 @@ def worktree(repo, name):
     if sessions.IGNORE not in text.splitlines():
         exclude.parent.mkdir(parents=True, exist_ok=True)
         exclude.write_text(text + ("\n" if text and not text.endswith("\n") else "") + sessions.IGNORE + "\n")
-    try:
-        run("git", "-C", repo, "config", "core.hooksPath")
-    except RuntimeError:
-        hooks = pathlib.Path(run("git", "-C", repo, "rev-parse", "--path-format=absolute", "--git-path", "hooks").strip())
-        script = shutil.which("default-branch-guard.sh")
-        if script and not (hooks / "pre-commit").exists():
-            hooks.mkdir(parents=True, exist_ok=True)
-            shutil.copy(script, hooks / "pre-commit")
     return tree
 
 
