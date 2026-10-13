@@ -53,7 +53,7 @@ Issues and pull requests live on GitHub, sessions in herdr, addressed by name; t
 | `resolve` | `gh issue close <url> --reason completed --comment "<summary>"`, or `--reason "not planned"` for work stopped |
 | `tell` | `SendMessage` to the name from `ListAgents`, one message naming the url that holds what it needs |
 | `judge` | a fresh `Agent` on `sonnet` at `high` that reviews work it did not write and replies only to you, its prompt `Read ${CLAUDE_PLUGIN_ROOT}/skills/kick-off/references/judge.md, then judge <url or path>.`; `tell` it to resume |
-| `rename` | `herdr tab rename <tab> <name>` and `herdr pane rename $HERDR_PANE_ID <name>`, the tab from `herdr pane get $HERDR_PANE_ID`, then `herdr agent rename $HERDR_PANE_ID <name>` and `herdr agent prompt $HERDR_PANE_ID "/rename <name>"`; a manager also `herdr workspace rename <workspace> <name>` |
+| `rename` | `herdr tab rename <tab> <name>` and `herdr pane rename $HERDR_PANE_ID <name>`, the tab from `herdr pane get $HERDR_PANE_ID`, then `herdr agent rename $HERDR_PANE_ID <name>` and `herdr agent prompt $HERDR_PANE_ID "/rename <name>"`; a manager also `herdr workspace rename <workspace> <project>`, its workspace named by the project |
 | `start` | `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/start-session.py <name> <cwd> "<kick-off arguments>" --model <m> --effort <e> [--team]`: a tab in your workspace, or with `--team` a new one |
 | `close` | `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/close-session.py <name>`, your own name included |
 | `remove` | ask the owner to run `! ${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/remove-worktree.py <name>...` in your tab, never running it yourself, since auto mode refuses its git steps |
