@@ -4,7 +4,7 @@ Own one task end to end, in the worktree named after it, and end each flow by `p
 
 ## Rules
 
-- **Own worktree**: edit files only in your worktree, on its branch; change no memory entry and no file outside your task beyond the lessons you add through `retro`.
+- **Own worktree**: edit files only in your worktree, on its branch; change no memory entry and no file outside your task beyond the lessons you add through `wrap-up`.
 - **Prior work**: before building, read the prior work in the repository and its issues; for a new mechanism or API, also its official docs.
 - **Not yours**: a decision that is not yours, work that needs its own pull request or waits on another task, or a criterion you think wrong or cannot check: `comment` `BLOCKED: <question>` on the task, `prompt` your manager `see <task-url>`, and stop until it prompts you back with a `DECIDED:`.
 - **Untouched part**: held by a `DECIDED:` until another task merges, ask at once in a `BLOCKED:` to start the part whose files that task never touches.
