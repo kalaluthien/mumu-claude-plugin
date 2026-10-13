@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import json
 import os
 import pathlib
 import subprocess
@@ -11,6 +12,8 @@ sys.path.insert(0, str(ROOT / "lib"))
 import team  # noqa: E402
 
 TIMEOUT, POLL = float(os.environ.get("START_SESSION_TIMEOUT", 120)), 1.0
+# claude.ai connectors (Gmail, Drive, Notion...) serve no teamwork role, and their tool list costs ~5k tokens every turn
+SETTINGS = json.dumps({"disableClaudeAiConnectors": True})
 
 
 def herdr(*argv):
@@ -42,7 +45,8 @@ def start(a, pane):
     deadline = time.time() + TIMEOUT
     while True:
         p = subprocess.run(["herdr", "agent", "start", a.name, "--kind", "claude", "--pane", pane, "--", "--name", a.name,
-                            "--plugin-dir", str(ROOT), "--model", a.model, "--effort", a.effort], capture_output=True, text=True)
+                            "--plugin-dir", str(ROOT), "--model", a.model, "--effort", a.effort,
+                            "--settings", SETTINGS], capture_output=True, text=True)
         out = p.stdout + p.stderr
         if not p.returncode or '"agent_not_ready"' in out:  # not ready: the trust dialog holds it
             return
