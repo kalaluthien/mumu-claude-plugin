@@ -14,10 +14,9 @@ command failed in a repository with no `.claude/skills/run-*/` skill, `failed`
 when a call of such a skill failed. The hook asks when the points reach the
 threshold or the recipe is missing or failed, and a memory count at
 MEMORY_LIMIT rides on that ask, since a tidy alone rarely pays. It never asks
-at the stop right after its own ask, in a headless session, outside a git
+within ASK_GAP stops of its own ask, in a headless session, outside a git
 repository, or while a Stop hook already blocks. Enabling the plugin for a
-project is the opt-in, with no arm step of its own, since auto mode refused
-the old arm command's write to the plugin's data folder.
+project is the opt-in, so no arm step writes to the data folder.
 
 The threshold adapts: each `empty` outcome raises it by UP and each `filed`
 lowers it by DOWN, between LOWEST and HIGHEST, so it settles where about
@@ -37,6 +36,7 @@ FAILURE_POINTS = 4
 CALLS_PER_POINT = 30
 START, UP, DOWN, LOWEST, HIGHEST = 8.0, 1.0, 0.125, 6.0, 12.0
 MEMORY_LIMIT = 8
+ASK_GAP = 3
 TEMPLATE = (transcript.SIGNAL + " {failures} failed tool calls and {calls} tool calls since the last stop "
             "make {points:g} lesson points of {threshold:g}; {memory} memory files changed since the last "
             "tidy, of {memory_limit}; run recipe: {recipe}{generator}.")
@@ -139,8 +139,8 @@ def hook():
     state["memory"] += found["memory"]
     threshold = threshold_of(state)
     session, stops = payload.get("session_id", ""), sum(1 for e in entries if transcript.is_stop(e))
-    # the stop right after an ask holds the wrap-up's own work
-    just_asked = state["asked"].get(session) == stops - 1
+    # the stops right after an ask hold the wrap-up's own work and its fallout
+    just_asked = stops - state["asked"].get(session, -ASK_GAP - 1) <= ASK_GAP
     if not just_asked and (found["points"] >= threshold or found["recipe"] != "fine") and toplevel(payload.get("cwd")):
         reason = sentence(dict(found, memory=state["memory"]), threshold) + ASK
         state["asked"][session], state["pending"] = stops, True

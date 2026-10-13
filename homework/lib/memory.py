@@ -3,7 +3,7 @@ import os
 import re
 from datetime import date
 
-# groups: indent, name, value
+# the indent is kept, so a field nested under `metadata:` is rewritten in place
 FIELD = re.compile(r"^([ \t]*)(confirmed|last-confirmed):[ \t]*(.*)$", re.M)
 
 
