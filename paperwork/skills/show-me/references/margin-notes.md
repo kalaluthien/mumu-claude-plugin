@@ -1,27 +1,25 @@
 # Margin notes
 
-The reader must review a change or a text: a pull request, a diff, a draft, a document. The page shows the text itself, with each note beside the line it is about, so the reader reads both at once.
-
 ## Form
 
-- **Verdict first**: `.answer` says what the change does and whether it is ready, in one sentence; `.figures` under it gives the size: files, lines added and removed, and the count of notes by severity.
-- **Where to look**: a short list of the 1 to 3 places that need the reader's judgement, each a link to its row below.
-- **Rows**: in `.notes`, one `.row` per hunk or passage worth a note: the text in a `<pre>` (a diff keeps its `+` and `-` lines) or a `<p>`, and an `<aside>` beside it with the note; `class="high"` or `"mid"` marks the severity, plain is a remark. Group rows under an `h3` per file, files in the order a reviewer reads them, the interface before its callers.
-- **What is skipped**: files with nothing to note are one line each under the rows, never shown whole; past 15 files, one table row per folder instead (files, lines added and removed, what changed there), and rows only for the places to look.
-- **Reply**: while the change is open, `.reply` holds the notes as plain text, one `path:line — note` per line, so the reader pastes them into the review; a merged or closed change has no `.reply`.
-- **Counts agree**: every count in `.answer` and `.figures` is the count of the rows and lists below it, computed after they are final.
+- **Answer**: `.answer` says what the change does and whether it is ready.
+- **Key numbers**: `.numbers` gives files, lines added and removed, and notes by severity.
+- **Where to look**: a list of the 1 to 3 rows that need the reader's judgement, each a link to its row.
+- **Rows**: in `.notes`, one `.row` per place worth a note: its text in a `<pre>` (a diff keeps its `+` and `-` lines) or a `<p>`, cut to the lines the note needs with `⋯` for what was cut, and an `<aside>` beside it with the note, which says why the line matters or what breaks, never what it does. Severity is by effect: `class="high"` breaks behaviour or a rule, `"mid"` makes a later change harder, plain is taste.
+- **Files**: rows sit under an `h3` per file, files in the order a reviewer reads them, the interface before its callers; a pull request's file heading links to the file at its `headRefOid`.
+- **Skipped**: files with nothing to note are one line each under the rows; past 15 files, a table with one row per folder (files, lines added and removed, what changed there), and rows only for Where to look.
+- **Reply**: for an open pull request or a draft, `.reply` holds the notes as plain text, one `path:line — note` per line; a merged or closed change has none.
+- **Next**: approve, ask for changes, or what to read first.
+
+## CSS
+
+```css
+.notes .row { display: grid; gap: .5rem; margin: 0 0 1rem; }
+.notes aside { border-left: 3px solid var(--ink); padding: .25rem .75rem; font-size: .9rem; }
+.notes aside.high { border-color: var(--fail); } .notes aside.mid { border-color: var(--warn); }
+@media (min-width: 60rem) { .notes .row { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
+```
 
 ## Steps
 
-1. Read the change itself: `gh pr view <n> --json title,body,files,headRefOid` and `gh pr diff <n>`, or the file and its history; never review from the description alone.
-2. Decide each note's severity by its effect: high breaks behaviour or a rule, mid makes a later change harder, plain is taste.
-3. Cut a hunk to the lines its note needs, with `⋯` for what was cut; link each file heading to the file on GitHub at the head commit.
-4. Build from the base page with `.answer`, `.figures`, the list of places, `.notes`, `.reply` and `.next`, the next action being approve, ask for changes, or what to read first.
-
-## Gotchas
-
-| symptom | fix |
-| --- | --- |
-| a long line pushes the page sideways | it stays inside its `<pre>`, which scrolls; never widen the column |
-| every hunk is shown | show only rows with a note; list the rest |
-| notes restate the code | a note says why the line matters or what breaks, never what it does |
+1. Read the change itself: `gh pr view <n> --json title,body,files,headRefOid` and `gh pr diff <n>`, or the text and its history.

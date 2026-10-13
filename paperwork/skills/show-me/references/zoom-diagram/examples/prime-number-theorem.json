@@ -1,5 +1,6 @@
 {
  "title": "Prime number theorem",
+ "next": "Pick a lemma and follow what it rests on back to the axioms.",
  "plan": {
   "intent": "소수 정리의 짧은 증명은 어떤 명제들이 어떤 순서로 서로에 기대어 성립하는가",
   "views": [

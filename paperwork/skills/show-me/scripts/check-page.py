@@ -41,7 +41,7 @@ PROBE = """() => {
       if (w > 2 && h > 2) bad.push(`text in a drawing overlaps other text: "${a.textContent.trim().slice(0, 20)}" and "${b.textContent.trim().slice(0, 20)}"`);
     }));
   }
-  for (const svg of document.querySelectorAll('svg:not(svg svg)')) {   // a figure seen only by scrolling sideways is not seen whole
+  for (const svg of document.querySelectorAll('svg:not(svg svg)')) {   // a drawing seen only by scrolling sideways is not seen whole
     for (let a = svg.parentElement; a && a !== document.body; a = a.parentElement)
       if (a.scrollWidth > a.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(a).overflowX)) { bad.push(`a drawing needs a sideways scroll (${Math.round(svg.getBoundingClientRect().width)} px in ${a.clientWidth} px)`); break; }
   }

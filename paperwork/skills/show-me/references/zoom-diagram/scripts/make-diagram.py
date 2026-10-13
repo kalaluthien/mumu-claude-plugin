@@ -123,7 +123,7 @@ def main(args):
                                      {"id": "b", "label": "Other part", "what": "One sentence."}],
                            "edges": [{"from": "a", "to": "b", "label": "uses", "what": "One sentence."}]}}
         pathlib.Path(args[1]).write_text(dump(start) + "\n", encoding="utf-8")
-        print("wrote", args[1], "(fields: assets/model.schema.json)")
+        print("wrote", args[1], "(fields: assets/model-schema.json)")
         return 0
     if cmd == "rules":
         for name, rule, _ in checks.RULES:

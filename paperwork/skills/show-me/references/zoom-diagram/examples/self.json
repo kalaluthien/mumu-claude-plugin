@@ -1,5 +1,6 @@
 {
  "title": "zoom-diagram",
+ "next": "Check the Scenario you are about to run, then open the level it enters.",
  "plan": {
   "intent": "zoom-diagram 플레이북이 시스템 하나를 받아 검사된 줌 다이어그램으로 돌려주기까지 무엇이 어떻게 맞물리는가",
   "views": [
