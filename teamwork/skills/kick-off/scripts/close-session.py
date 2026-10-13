@@ -12,7 +12,7 @@ import sys
 import time
 
 TIMEOUT, POLL = float(os.environ.get("CLOSE_SESSION_TIMEOUT", 3600)), 1.0
-# (screen text, key) per exit dialog Claude Code shows
+# Claude Code may ask these on /exit; each key is the answer that exits without saving anything
 DIALOGS = [
     ("Background work is running", "enter"),  # first option: Exit
     ("unsent feedback draft", "esc"),  # Esc to discard and exit

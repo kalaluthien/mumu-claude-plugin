@@ -30,12 +30,12 @@ Match the arguments to the first row that fits, open its playbook with `Read`, a
 | team | one manager and its workers, alone in one terminal workspace |
 | manager | the one session per project, or per plugin folder in a repository with `scope:` labels, that files tasks, starts workers and answers them |
 | worker | a session on one task, in its own worktree on its own branch |
-| judge | a fresh subagent, the only one that approves: launched with `Agent` on model `opus`, briefed `Read ${CLAUDE_PLUGIN_ROOT}/skills/kick-off/references/judge.md, then judge <url>.` and nothing more |
-| task | an issue for one change, ending in one pull request, or in a report comment when its definition of done names one; its body is `## Goal` and `## Definition of done`, edited in place |
-| backlog | an issue labelled `backlog`: the owner's words kept for later, as said, never worked until the manager rewrites it as a task |
+| judge | a fresh subagent, the only one that approves, given only its playbook's path and the url to judge, as `judge` says |
+| task | one change, ending in one pull request, or in a report comment when its definition of done names one; its body is `## Goal` and `## Definition of done`, edited in place |
+| backlog | the owner's words kept for later, as said, filed labelled `backlog` and never worked until the manager rewrites them as a task |
 | criterion | one line of a definition of done: `[check]`, a command whose output decides the pass, quoted failing on main; or `[score]`, the judge's score by its rubric, one comparing head with main naming its sample and margin; a check that can fail, and that the honest empty outcome can pass |
 | record | a comment opening with a keyword of Records |
-| name | one string for a session, its tab, its first pane and its agent, and a worker's worktree and branch: `<topic>-<n>-<k>` for task n, attempt k, the topic 2-4 lowercase words joined by `-`; `<repo>-manager`, or `<folder>-manager` in a repository with `scope:` labels, `<repo>` lowercased, each run of other characters one `-`, cut to 22 before the suffix |
+| name | one string for a session, its tab, its first pane and its agent, and a worker's worktree and branch: `<topic>-<n>-<k>` for task n, attempt k, the topic 2-4 lowercase words joined by `-`; `<repo>-manager`, or `<folder>-manager` in a repository with `scope:` labels, `<repo>` lowercased, each run of other characters one `-`, cut to 22 before the suffix; an agent or the owner may add panes to a tab for work |
 
 ## Records
 
@@ -52,7 +52,7 @@ Write a keyword in capitals; read it in any case.
 
 - **See a url**: a session prompts another only `see <url>`, the url holding what it means; on `see <url>`, `read` it and act only on what it shows still open.
 - **Judge approves**: work lands only as a pull request merged at a head the judge approved, or a report it approved; no script enforces this, so check the `APPROVED:` sha against the head yourself before `merge`.
-- **Verdicts are the judge's**: never post `APPROVED:` or `FINDINGS:` yourself; after fixing a `FINDINGS:`, resume that judge with `SendMessage` `see <url>`; when its comment is refused, resume it once the owner allows.
+- **Verdicts are the judge's**: never post `APPROVED:` or `FINDINGS:` yourself; after fixing a `FINDINGS:`, resume that judge with `see <url>`; when its comment is refused, resume it once the owner allows.
 - **Side branch**: commit and push only on a branch other than the default; fix what a git hook refuses, never skip it.
 - **File first**: write a body, a comment or a decision to a scratch file with a file tool, then post it with `--body-file`.
 - **Short writing**: bullets or a table, no narration; cite urls, `path:line`s and shas; a title verb-first, at most 40 characters.
@@ -60,7 +60,7 @@ Write a keyword in capitals; read it in any case.
 
 ## Verbs
 
-The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
+Tasks and pull requests live on GitHub, a task being an issue. The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
 
 | verb | command |
 | --- | --- |
@@ -71,6 +71,7 @@ The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef
 | `pr` | `gh pr create --base <default> --head <branch> --title "<title>" --body-file <path>`; later `gh pr edit <pr> --body-file <path>` |
 | `merge` | `gh pr merge <pr-url> --squash --delete-branch` |
 | `resolve` | `gh issue close <url> --reason completed --comment "<summary>"` |
+| `judge` | `Agent` on model `opus`, its prompt `Read ${CLAUDE_PLUGIN_ROOT}/skills/kick-off/references/judge.md, then judge <url>.` and nothing more; resume it with `SendMessage` |
 | `stop` | `gh issue close <url> --reason "not planned" --comment "<reason>"`, then `gh pr close <pr-url>` |
 
 A session lives in a terminal multiplexer; with herdr, address every command to a name:

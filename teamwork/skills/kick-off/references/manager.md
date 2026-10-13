@@ -45,7 +45,7 @@ One model and one effort per task, unless the owner named them; you stay on `opu
 
 ## Small change
 
-Words that name what to change and how to check it, at most 30 changed lines: no task. In a worktree off the default branch, `pr` it with a body naming no task over the criteria table, launch the judge on it, `merge` at its `APPROVED:` of the head, and clean as step 6 does. Past 30 lines, or when an open task's pull request already runs its checks, it is that task's criteria or a task of its own.
+Words that name what to change and how to check it, at most 30 changed lines: no task. In a worktree off the default branch, `pr` it with a body naming no task over the criteria table, launch the judge on it, `merge` at its `APPROVED:` of the head, and clean as step 6 does; words that came as a task already filed put `Closes #<n>` in the body instead, so the merge closes it. Past 30 lines, or when an open task's pull request already runs its checks, it is that task's criteria or a task of its own.
 
 ## Resources
 
