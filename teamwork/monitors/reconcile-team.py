@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-"""The `reconcile-team` monitor: tell a manager, once per change, each gap between GitHub and its team with the action
-that closes it, so it works from observed state, not remembered events; silent outside a `-manager` session."""
 import os
 import pathlib
 import sys

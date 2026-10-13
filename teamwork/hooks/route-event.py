@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""The `route-event` hook: on each event, gather what a teamwork session needs then and route it a line, so timing-bound
-steps live here instead of in the playbooks. Silent in a session not named `-manager` or `-worker`."""
+"""Timing-bound steps live in this hook, routed per event and role, instead of in the playbooks."""
 import json
 import pathlib
 import re
@@ -37,6 +36,5 @@ if kind != "PreToolUse" or GH_TEXT.search((event.get("tool_input") or {}).get("c
     listed, me = team.sessions(event.get("session_id"))
     name = me.get("name") or ""
     role = "manager" if name.endswith("-manager") else "worker" if name.endswith("-worker") else None
-    out = role and route(kind, event, role, me, listed)
-    if out:
+    if out := role and route(kind, event, role, me, listed):
         print(json.dumps(out))

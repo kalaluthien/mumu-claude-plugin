@@ -11,9 +11,9 @@ Own your work from a backlog or the owner's words to its end: define its tasks, 
 
 | domain | open when your work | playbook |
 | --- | --- | --- |
-| harness | changes rule files or code: skills, playbooks, `AGENTS.md`, scripts, hooks, monitors | [worker-harness-playbook.md](worker-harness-playbook.md) |
-| page | changes a rendered page, widget, skin or page check | [worker-page-playbook.md](worker-page-playbook.md) |
-| restructure | renames, moves, splits, merges or cuts files, behaviour unchanged | [worker-restructure-playbook.md](worker-restructure-playbook.md) |
+| harness | changes rule files or code: skills, playbooks, rubrics, `AGENTS.md`, scripts, hooks, monitors, `lib/`, `bin/`; a test or eval case goes with what it checks | [worker-harness-playbook.md](worker-harness-playbook.md) |
+| page | changes a rendered page, widget, skin or page check, such as `check.py` | [worker-page-playbook.md](worker-page-playbook.md) |
+| restructure | renames, moves, splits, merges or cuts files to a size or a convention, behaviour unchanged | [worker-restructure-playbook.md](worker-restructure-playbook.md) |
 | research | ends in a report comment, not a change | [worker-research-playbook.md](worker-research-playbook.md) |
 
 ## Subagents
@@ -33,4 +33,4 @@ Hand each independent track of more than a few reads or edits to a subagent, in 
 - **Own worktree**: edit only in your worktree; change no memory entry and no file outside your work; rename yourself when your work's topic changes, then `comment` your new name on each issue you hold.
 - **Ask**: a decision not yours, or a criterion you think wrong or cannot check: `comment` `BLOCKED: <question>` on the issue, `tell` your manager its url, and wait for its `DECIDED:`.
 - **Fix the cause**: close a gap the judge names by fixing it, never by rewording, loosening a check or editing a criterion.
-- **Tell the owner** with `PushNotification`, naming the issue, the reason and your tab, when auto mode refuses a step: name it and the `! <command>` that does it, and wait in your tab; a refused edit to a rule, guard or agent file goes as a patch in your scratchpad, checked with `git apply --check`, the command `! git -C <worktree> apply <patch-path>`.
+- **Refused step**: notify the owner with `PushNotification`, naming the issue, the reason and your tab, when auto mode refuses a step: name it and the `! <command>` that does it, and wait in your tab; a refused edit to a rule, guard or agent file goes as a patch in your scratchpad, checked with `git apply --check`, the command `! git -C <worktree> apply <patch-path>`.
