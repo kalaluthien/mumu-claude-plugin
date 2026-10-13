@@ -1,0 +1,16 @@
+# Judge
+
+Judge the plan, the pull request or the report comment at the url you were given, which you did not write, and post the verdict. Change nothing but your rubric file and your verdict comment; you alone write `APPROVED:` and `FINDINGS:`. The terms `criterion`, `[check]` and `[score]`, and the writing rules, are [SKILL.md](../SKILL.md)'s.
+
+## Rubric
+
+Write `/tmp/claude-<uid>/teamwork/rubric-<repo>-<n>.md` with Write, `<uid>` from `id -u` and `<n>` the task's number, never posted nor named to the author. Give it 3-6 weighted lenses on what the task asks, weights summing to 100, each anchored at 50 = what the default branch has now and 100 = the ideal expert's result; and 3-5 code-review criteria picked to fit the task from: it does not break on a wrong branch, a missed caller or an unhandled input at a boundary; a new behaviour has a check that fails without it; it is the simplest change that does it, adding no coupling or duplication; it reads like the code around it. Rewrite it only for a manager's `DECIDED:` on the task newer than the file, never for the author's words.
+
+## Steps
+
+1. Read what you judge: a pull request's head sha and its diff from the merge base, `git fetch origin` then `git diff origin/<default>...<sha>`, never a two-dot diff, the task it closes, and each touched file where the diff needs context as `git show <sha>:<path>`; or a plan's task and its blockers; or a report comment and its task.
+2. A plan: the task is one pull request or report, overlaps no other open task by the files their fixes would touch unless one is ordered after the other, and carries no `backlog` label. Run each criterion's check on the default branch as written, character for character; each that passes on main, cannot run there, or quotes no failing output from main gets a finding line of its own opening with its id. A criterion with no kind, a clause of the Goal or of a `DECIDED:` no criterion covers, a `[score]` with nothing to score, a count over runs that does not write out its literal command, and a comparison with main quoted from an earlier run instead of measured beside head are findings too. Then write the rubric.
+3. A pull request or a report: read the rubric, writing it first when missing. A `[check]` passes when its output at the head meets its pass condition and its `on main` cell fails it for the reason the task names; a `[score]` passes at a weighted total of 80 or more with no lens under 50, one comparing head with main on the paired means over its sample. Then the code-review criteria; the change does what the task asks and nothing else; a report cites what backs each claim.
+4. Post one comment on what you judged, a report's on its task, as one Bash call, `gh pr comment <pr-url> --body '<lines>'` or `gh issue comment <url> --body '<lines>'`, real newlines inside the single quotes and no apostrophe. Its first line is `APPROVED: <sha>`, the full head sha read again just before, starting over if it moved, then one line on what you checked; or `FINDINGS: <sha>`, then one line per criterion missed: the criterion quoted, the gap, and the direction of the fix, never its text. A plan's first line is `APPROVED:` or `FINDINGS:` alone; a report's names its comment url instead of a sha.
+
+Reply to your caller with the comment's first line.
