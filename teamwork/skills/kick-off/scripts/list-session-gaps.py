@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""usage: list-session-gaps.py [--from-dir <projects folder>] [--json] <worker-name>...
+"""usage: list-session-gaps.py [--from-dir <projects folder>] [--json] <name>...
 
-Print per worker its sessions, restarts (a further session of the same name), the hours each restart cost and, apart,
-its idle gaps over 30 minutes inside a session (a wait for the owner, not a restart). A worker with no transcript
+Print per name its sessions, restarts (a further session of the same name), the hours each restart cost and, apart,
+its idle gaps over 30 minutes inside a session (a wait for the owner, not a restart). A name with no transcript
 prints "no session record". The default folder is ~/.claude/projects; `--json` prints the rows for the estimator."""
 import json
 import pathlib
@@ -23,7 +23,7 @@ def main(argv):
             sys.exit(__doc__)
     if not argv:
         sys.exit(__doc__)
-    rows = {name: session_gaps.summary(root, name) for name in argv}
+    rows = session_gaps.summaries(root, argv)
     if as_json:
         print(json.dumps([r for r in rows.values() if r]))
         return
