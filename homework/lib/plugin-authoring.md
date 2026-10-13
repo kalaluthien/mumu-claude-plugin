@@ -11,7 +11,6 @@ language extension.
 | what two or more skills share | `lib/`: a module scripts import as `<noun>.py`, each doing one thing, and a document as `<noun>.md`; a script imports no other script |
 | hook, monitor or CI command, or a script two skills run | `scripts/<name>.py`, run from `hooks/hooks.json` or `monitors/monitors.json` through `${CLAUDE_PLUGIN_ROOT}/scripts/` |
 | a skill's own files | `skills/<skill>/`: `SKILL.md` and only `references/` (documents it loads), `scripts/` (code only it runs) and `assets/` (files it copies) |
-| test | `tests/test_<name>.py`, named after the file or folder it checks, `-` as `_` |
 | eval case | `evals/<case>/prompt.md` and `graders/<check>.md`, no `case.yaml` |
 
 At a plugin's root sit only folders the harness or several skills use, never

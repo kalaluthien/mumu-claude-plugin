@@ -1,25 +1,42 @@
 # Agents
 
-Every live session loads these plugins straight from this checkout, so they see a merge once the lead's `clean` pulls it.
+The working rules of this repository and of every plugin in it. Each rule carries a bold name, so a review or another file can cite it. A plugin's own rules live in its skills, never here.
 
-## After a merge
+## Repository
 
-After `clean` pulls a merged PR, the lead maps the PR's changed paths (`gh pr diff <pr> --name-only`) to what refreshes them, and does the strongest step any path needs; each `herdr agent prompt` below, succession's included, is one `herdr agent prompt <literal-name> "<text>"` Bash call per agent, no loop and no variable, so `Bash(herdr agent prompt *)` matches it:
-
-| changed path | takes effect | step |
-| --- | --- | --- |
-| `*/bin/*`, `*/scripts/*`, `*/references/*.md`, the lead's and worker's changing rules included (`teamwork/skills/kickoff/references/`: the playbooks) | at once | none: `teamwork/scripts/playbook-reread.py`, a `UserPromptSubmit` hook, tells each session that read a changed references file to read it again at its next prompt |
-| `teamwork/lib/*.py`, `teamwork/scripts/team-watch.py` | when the monitor starts again | `herdr agent prompt <literal-name> "stop your team-watch task and arm the command the Stop hook names"` for each lead in `herdr agent list` |
-| a hook's script moved or renamed (`*/hooks/hooks.json` naming its new path) | `/reload-plugins`, the hook off until then | the `/reload-plugins` prompt of the next row for each agent, before any other step |
-| `*/skills/*/SKILL.md` (body or list), `*/hooks/hooks.json`, `*/agents/*.md` used as a subagent | `/reload-plugins` | `herdr agent prompt <literal-name> "/reload-plugins"` for each agent in `herdr agent list` |
-| `*/agents/*.md` a session runs as (`--agent`: `lead.md`, `worker.md`), a body of only its role, what it never does and when to read each references file | a new session | below |
-
-Succession: each lead hands itself over on its own, prompted `hand yourself over` once its `agent_status` in `herdr agent list` is `idle`, which its body routes to succession, and its successor takes over under the same name ([lead-playbook.md](teamwork/skills/kickoff/references/lead-playbook.md)'s Succession). A working session and every worker are left until they finish; the lead that ran `clean` hands over last.
+- **Live checkout**: sessions load the plugins straight from this checkout, so a merge reaches them once the checkout pulls. Refresh by what changed: a script or a `references/` file works at once; a `SKILL.md` or a `hooks.json` at `/reload-plugins`; a monitor's code when the monitor starts again.
+- **No CLAUDE.md**: rules sit only in `AGENTS.md`, since Claude Code reads `AGENTS.md` when no `CLAUDE.md` exists, and a second file splits them.
+- **Every line acts**: keep a line in a rule, skill or document only when it changes the reader's next action.
 
 ## Plugin layout
 
-Before adding or moving a file in any plugin, read [plugin-authoring.md](homework/lib/plugin-authoring.md): where each file sits and how one links another. teamwork's scripts run `herdr` or `gh` only through its `lib/` module.
+- **Main parts**: build a plugin from `hooks/`, `monitors/` and `skills/`. Each is a module that works alone and reaches another only through a file or a command it names, never through its internals.
+- **No agents**: a plugin has no `agents/` folder; a role is a skill.
+- **Scripts beside their user**: a script sits in the folder of the hook, monitor or skill that runs it, such as `skills/<skill>/scripts/`, one script per use, never in a `scripts/` folder at the repository's or a plugin's root. Code two parts share is a module in the plugin's `lib/`, and a script imports no other script.
+- **bin for PATH only**: `bin/` holds only a command that must be found on `PATH`, such as one a document or a settings file names bare.
+- **No tests or evals**: no `tests/` or `evals/` folder; check a change by running it and by Evaluation below.
+- **Names**: a file name is lowercase words joined by `-`, saying what the file does or prints, never a verdict, state or measurement, with its language extension; a new file follows its siblings' pattern.
+- **Paths**: a `SKILL.md` names a command's path, or a file outside its skill, as `${CLAUDE_PLUGIN_ROOT}/<path>`, substituted when the skill loads; every other link is relative to the file that holds it, since a file opened with Read is read verbatim.
 
-## Evals
+## Skills
 
-In a `claude plugin eval` case, never rely on the child reading or writing `~/.claude`, its config dir or `CLAUDE_PLUGIN_DATA`: have the skill take a folder the case names and seed it in cwd, because the eval sandbox denies those paths (#194).
+- **Description**: `Use when …`, then optionally `Not for …`, as short as it can be.
+- **Body**: the task or use case the skill serves, its vocabulary (domain concepts and protocols), and only the sections the case needs, such as Gotchas, How to learn or Priorities.
+- **Routing table**: `SKILL.md` routes each case to a mode or playbook in `references/<case>.md`, named after the case it serves and shaped like a part of `SKILL.md`; it does not hold every case itself.
+- **Named rules**: give each major instruction a short name.
+- **Code computes**: calculation, aggregation and control go to `scripts/<verb>-<noun>.py`; the script prints predefined prose that says what its result means, so prose carries only definitions and judgement.
+- **Comments say why**: a comment holds no knowledge the reader needs; it says only why the code is so, kept current, and names and design carry the rest.
+
+## Design
+
+- **Three layers**: split a design into control structure, abstract domain and rules. The control core rarely changes and depends only on interfaces; the domain depends on no policy, entity type or tool, such as a terminal multiplexer, that may change; those are rules. Use the split only while designing: its names stay out of code and folders.
+- **Concept check**: check each concept you invent as a concept, its meaning, its boundary and what it replaces, before you build it.
+
+## Evaluation
+
+Use it to judge a change to an agent system, such as option A against option B.
+
+- **Fresh evaluator**: the evaluator is a subagent with a fresh context. Give it every input as links (files, urls, shas), never your opinion.
+- **Scores, not fixes**: it returns a score and a reason per criterion, and suggests no fix.
+- **Binary criteria**: split the judgement into yes-or-no questions, yes 2, ambiguous 1, no 0, mutually exclusive and together exhaustive within the change's intent, the regressions to guard and the prior research found.
+- **Pass mark**: scale so the current system scores about 50 on average and the ideal about 100. Set the pass mark from 70 for a very hard change to 90 for a very easy one, and revise until the mean of several runs passes it.
