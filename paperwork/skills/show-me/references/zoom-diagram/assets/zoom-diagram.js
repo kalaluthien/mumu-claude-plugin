@@ -1,6 +1,24 @@
 function mountZoomDiagram(root, M) {
   const NS = "http://www.w3.org/2000/svg";
   const still = matchMedia("(prefers-reduced-motion: reduce)");
+  // the engine's own words, keyed by their English text; a model with lang "ko" shows the Korean, else the English as written.
+  // {0} and {1} take the arguments of tr(), so word order may differ per language
+  const KO = {
+    "Level path": "단계 경로", "Full screen": "전체 화면", "Close full screen": "전체 화면 닫기", "Levels and scenarios": "단계와 시나리오",
+    "Earlier": "이전", "Later": "다음", "Step": "차례", "Close": "닫기", "Levels": "단계", "Scenarios": "시나리오",
+    "{0}, {1} nodes": "{0}, 칸 {1}개", "{0} to {1}": "{0} → {1}", "every {0}": "매 {0}", "within {0}": "{0} 이내", "{0} of {1}": "{1} 중 {0}",
+    "{0}, leaves {1}": "{0}, {1}에서 나감", "{0}, enters {1}": "{0}, {1}에 들어옴", ", opens a level": ", 아래 단계 있음", "{0}, with {1} selected": "{0}, {1} 선택됨",
+    "main path": "주 경로", "failure path": "실패 경로", "optional": "선택 사항", "unconfirmed": "미확인", "abstract": "일반형",
+    "from outside": "밖에서", "on a schedule": "정해진 때에", "initial": "시작", "not opened": "열지 않음",
+    "component": "구성 요소", "relation": "관계", "activity": "활동", "artifact": "결과물", "state": "상태", "event": "일어난 일",
+    "Attributes": "속성", "Operations": "동작", "Rules": "규칙", "Guard": "조건", "Syncs": "연동",
+    "sets off {0}": "결과: {0}", "set off by {0}": "원인: {0}", "only while {0}": "{0} 동안만",
+    "pre": "실행 전", "post": "실행 후", "modifies": "바꿈", "must": "반드시", "should": "가급적",
+    "can break": "깨질 수 있음", "guard": "조건", "assumed": "가정", "ideal": "이상적", "holds": "지켜짐", "not checked": "확인 안 함",
+    "run that breaks it": "이 규칙이 깨지는 실행", "run that breaks": "깨지는 실행", "scenario": "시나리오", "expects": "기대 결과", "vs": "대비", "e.g.": "예시",
+    "screen": "화면", "tree": "트리", "code": "코드", "example": "예시", "quote": "인용", "pitfall": "함정", "checklist": "점검표", "payload": "전송 내용", "diff": "차이", "insight": "핵심", "facts": "사실"
+  };
+  const tr = (k, ...a) => (M.lang === "ko" && KO[k] || k).replace(/\{(\d)\}/g, (_, i) => a[i]);
   const KIND = {
     schema: { name: "schema", node: "component", edge: "relation", r: 4 },
     workflow: { name: "workflow", node: "activity", edge: "artifact", r: 11 },
@@ -15,7 +33,8 @@ function mountZoomDiagram(root, M) {
   const show = Object.assign({ formulas: true, replay: true, media: true }, (M.plan || {}).show);   // what the plan lets the page show
   const edgeKey = (lid, e) => lid + ":" + e.from + ">" + e.to + (levels[lid].edges.filter(x => x.from === e.from && x.to === e.to).length > 1 ? "#" + e.label : "");  // two edges one way: tell them apart
   const trigKey = (lid, t) => lid + ":@>" + t.to + "#" + t.label;   // a trigger comes from outside the level
-  const qtyText = q => ({ count: `n=${q.value}`, capacity: `≤ ${q.value}`, delay: `within ${q.value}` }[q.kind] || String(q.value)) + (q.unit ? ` ${q.unit}` : "");
+  const qtyText = q => { const u = q.unit ? ` ${q.unit}` : "", v = q.value + u;
+    return q.kind === "count" ? `n=${v}` : q.kind === "capacity" ? `≤ ${v}` : q.kind === "delay" ? tr("within {0}", v) : v; };
   const levelOf = x => nodeLevel[x] || String(x).split(":")[0];   // a node id, or an edge or trigger key
 
   /* A run is { key, kind, name, uses, length, items, calls }. Each item is a node or an edge key with the moments it
@@ -65,13 +84,14 @@ function mountZoomDiagram(root, M) {
 
   const st = { level: M.root, sel: null, full: false, sheet: false };   // sel: { node }, { edge, e } or { run, at, pick }
   root.classList.add("zd");
+  root.style.setProperty("--zd-vs", JSON.stringify(tr("vs") + "  "));   // a ::before in CSS cannot call tr()
   root.innerHTML = `
   <div class="zd-main">
     <div class="zd-board">
-      <div class="zd-top"><nav class="zd-crumbs" aria-label="Level path"></nav><button type="button" class="zd-fs" aria-label="Full screen"></button></div>
-      <nav class="zd-nav" aria-label="Levels and scenarios"></nav>
+      <div class="zd-top"><nav class="zd-crumbs" aria-label="${tr("Level path")}"></nav><button type="button" class="zd-fs" aria-label="${tr("Full screen")}"></button></div>
+      <nav class="zd-nav" aria-label="${tr("Levels and scenarios")}"></nav>
       <p class="zd-why"></p><p class="zd-legend"></p>
-      <div class="zd-time" hidden><code></code><button type="button" data-d="-1" aria-label="Earlier">‹</button><div class="zd-rail"><div class="zd-ticks" aria-hidden="true"></div><input type="range" min="1" step="1" aria-label="Step"></div><button type="button" data-d="1" aria-label="Later">›</button><output></output><button type="button" class="zd-end" aria-label="Close">✕</button></div>
+      <div class="zd-time" hidden><code></code><button type="button" data-d="-1" aria-label="${tr("Earlier")}">‹</button><div class="zd-rail"><div class="zd-ticks" aria-hidden="true"></div><input type="range" min="1" step="1" aria-label="${tr("Step")}"></div><button type="button" data-d="1" aria-label="${tr("Later")}">›</button><output></output><button type="button" class="zd-end" aria-label="${tr("Close")}">✕</button></div>
       <div class="zd-stage"><div class="zd-canvas"></div><aside class="zd-note" aria-live="polite"></aside></div>
     </div>
   </div><div class="zd-scrim" hidden></div>`;
@@ -85,7 +105,7 @@ function mountZoomDiagram(root, M) {
   const meas = (() => { const c = document.createElement("canvas").getContext("2d"); return (t, f) => { c.font = f; return c.measureText(t).width; }; })();
   const MARKS = { happy: "main path", failure: "failure path", optional: "optional", unsure: "unconfirmed" };
   const GLYPH = { happy: '<path d="M1 4H23" class="lg lg-happy"/>', failure: '<path d="M1 4H23" class="lg lg-failure"/>', optional: '<path d="M1 4H23" class="lg lg-optional"/>', unsure: '<text x="12" y="8" text-anchor="middle" class="lg-q">?</text>' };
-  const mk = m => `<span class="zd-mk"><svg viewBox="0 0 24 9" width="24" height="9" aria-hidden="true">${GLYPH[m]}</svg>${MARKS[m]}</span>`;
+  const mk = m => `<span class="zd-mk"><svg viewBox="0 0 24 9" width="24" height="9" aria-hidden="true">${GLYPH[m]}</svg>${tr(MARKS[m])}</span>`;
   const pname = (L, id) => ((L.partitions || []).find(p => p.id === id) || { label: id }).label;
   const marks = x => (x.mark || []).filter(m => MARKS[m]);
   const shown = x => (x.label || "") + (marks(x).includes("unsure") ? " ?" : "");
@@ -284,7 +304,7 @@ function mountZoomDiagram(root, M) {
   function draw(fromBox) {
     const L = levels[st.level], K = KIND[L.kind], g0 = G0 = geom(L);
     const host = $(".zd-canvas"); host.innerHTML = "";
-    const svg = el(host, "svg", { viewBox: `0 0 ${g0.W} ${g0.H}`, role: "img", "aria-label": `${L.title}, ${L.nodes.length} nodes` });
+    const svg = el(host, "svg", { viewBox: `0 0 ${g0.W} ${g0.H}`, role: "img", "aria-label": tr("{0}, {1} nodes", L.title, L.nodes.length) });
     const world = el(svg, "g", { class: "world" });
     const edgeFade = () => { const r = host.scrollWidth - host.clientWidth; host.classList.toggle("more-r", host.scrollLeft < r - 2); host.classList.toggle("more-l", host.scrollLeft > 2); };
     host.onscroll = edgeFade; requestAnimationFrame(edgeFade);
@@ -303,7 +323,7 @@ function mountZoomDiagram(root, M) {
     L.nodes.forEach(n => { if (n.partition) part[n.id] = n.partition; });
     L.edges.forEach(e => {
       const k = edgeKey(L.id, e), grp = groups[pairKey(e)], lane = grp.length > 1 ? (grp.indexOf(e) ? 1 : -1) : 0, seed = hash(k);
-      const g = el(world, "g", { class: "edge", tabindex: 0, role: "button", "data-key": k, "aria-label": `${nodes[e.from].label} to ${nodes[e.to].label}${e.label ? ", " + e.label : ""}` });
+      const g = el(world, "g", { class: "edge", tabindex: 0, role: "button", "data-key": k, "aria-label": tr("{0} to {1}", nodes[e.from].label, nodes[e.to].label) + (e.label ? ", " + e.label : "") });
       marks(e).forEach(m => g.classList.add("m-" + m));
       if (st.sel && st.sel.edge === k) g.classList.add("lit");
       cls(g, k);
@@ -331,7 +351,7 @@ function mountZoomDiagram(root, M) {
       const B = g0.box[n.id], out = kind === "out";
       const k = kind === "trig" ? trigKey(L.id, t) : L.id + (out ? ":" + n.id + ">^" : ":^>" + n.id) + "#" + t.edge, seed = hash(k);
       const g = el(world, "g", { class: "edge " + (kind === "trig" ? "trig" : "port"), tabindex: 0, role: "button", "data-key": k,
-        "aria-label": kind === "trig" ? `${t.every ? "every " + t.every : "from outside"} to ${n.label}, ${t.label}` : `${text}, ${out ? "leaves" : "enters"} ${levels[L.id].title}` });
+        "aria-label": kind === "trig" ? tr("{0} to {1}", t.every ? tr("every {0}", t.every) : tr("from outside"), n.label) + ", " + t.label : tr(out ? "{0}, leaves {1}" : "{0}, enters {1}", text, levels[L.id].title) });
       const twin = kind === "trig" ? t : levels[nodeLevel[L.parent]].edges.find(e => e.label === t.edge) || {};   // a port wears its artifact's marks
       marks(twin).forEach(m => g.classList.add("m-" + m));
       if (kind === "trig") { if (st.sel && st.sel.edge === k) g.classList.add("lit"); cls(g, k); }
@@ -356,7 +376,7 @@ function mountZoomDiagram(root, M) {
     });
     L.nodes.forEach(n => {
       const b = g0.box[n.id], open = childOf[n.id], rx = Math.min(K.r, b.h / 2), seed = hash(L.id + n.id);
-      const g = el(world, "g", { class: "node" + (open ? " opens" : "") + (n.abstract ? " abstract" : ""), tabindex: 0, role: "button", "data-id": n.id, "data-p": n.partition || "", "aria-label": n.label + (open ? ", opens a level" : "") });
+      const g = el(world, "g", { class: "node" + (open ? " opens" : "") + (n.abstract ? " abstract" : ""), tabindex: 0, role: "button", "data-id": n.id, "data-p": n.partition || "", "aria-label": n.label + (open ? tr(", opens a level") : "") });
       marks(n).forEach(m => g.classList.add("m-" + m));
       if (st.sel && st.sel.node === n.id) g.classList.add("lit");
       cls(g, n.id);
@@ -411,8 +431,8 @@ function mountZoomDiagram(root, M) {
     const n = $(".zd-nav"), scen = M.scenarios.filter(s => nodeLevel[((s.run || { items: [] }).items.find(it => nodes[it.x]) || {}).x] === st.level);
     // levels on the left; the Scenarios fill the rest, side by side, swiped through
     const sect = (cls, title, count, body) => `<section class="${cls}"><h5 class="zd-sect">${title}<span>${count}</span></h5>${body}</section>`;
-    n.innerHTML = `<div class="zd-navgrid">` + sect("zd-nl", "Levels", items.length, `<ul class="zd-levels">${items.map(([id, d]) => `<li><button type="button" data-l="${id}" ${id === st.level ? 'aria-current="true"' : ""} style="--d:${d}">${d ? '<i class="tk" aria-hidden="true">└</i>' : ""}<span>${esc(levels[id].title)}</span></button></li>`).join("")}</ul>`)
-      + (scen.length ? sect("zd-ns", "Scenarios", scen.length, `<ul class="zd-scen">${scen.map(s => `<li><button type="button" data-s="${s.slug}" aria-pressed="${!!st.sel && st.sel.run === "scenario:" + s.slug}"><code>${s.slug}</code><span>${esc(s.text)}</span></button></li>`).join("")}</ul>`) : "") + `</div>`;
+    n.innerHTML = `<div class="zd-navgrid">` + sect("zd-nl", tr("Levels"), items.length, `<ul class="zd-levels">${items.map(([id, d]) => `<li><button type="button" data-l="${id}" ${id === st.level ? 'aria-current="true"' : ""} style="--d:${d}">${d ? '<i class="tk" aria-hidden="true">└</i>' : ""}<span>${esc(levels[id].title)}</span></button></li>`).join("")}</ul>`)
+      + (scen.length ? sect("zd-ns", tr("Scenarios"), scen.length, `<ul class="zd-scen">${scen.map(s => `<li><button type="button" data-s="${s.slug}" aria-pressed="${!!st.sel && st.sel.run === "scenario:" + s.slug}"><code>${s.slug}</code><span>${esc(s.text)}</span></button></li>`).join("")}</ul>`) : "") + `</div>`;
     n.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { sheet(false); if (b.dataset.l !== st.level) goto(b.dataset.l); });
     n.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { if (!show.replay) return; sheet(false); const key = "scenario:" + b.dataset.s; st.sel && st.sel.run === key ? end() : play(key, 0); });
   }
@@ -429,10 +449,10 @@ function mountZoomDiagram(root, M) {
     const ex = (svg, w) => `<span class="zd-mk"><svg viewBox="0 0 24 12" width="24" height="12" aria-hidden="true">${svg}</svg>${w}</span>`;
     const T_ = L.triggers || [];
     $(".zd-legend").innerHTML = used.map(mk).join("")
-      + (L.nodes.some(n => n.abstract) ? ex('<rect x="1.5" y="1.5" width="21" height="9" rx="2.5" class="lg lg-abs"/>', "abstract") : "")
-      + (T_.some(t => !t.every) ? ex('<circle cx="6" cy="6" r="4.5" class="lg"/><path d="M11 6H23" class="lg"/>', "from outside") : "")
-      + (T_.some(t => t.every) ? ex('<circle cx="6" cy="6" r="4.5" class="lg"/><path d="M6 3V6L8 7M11 6H23" class="lg"/>', "on a schedule") : "");
-    const fb = $(".zd-fs"); fb.textContent = st.full ? "✕" : "⤢"; fb.setAttribute("aria-label", st.full ? "Close full screen" : "Full screen");
+      + (L.nodes.some(n => n.abstract) ? ex('<rect x="1.5" y="1.5" width="21" height="9" rx="2.5" class="lg lg-abs"/>', tr("abstract")) : "")
+      + (T_.some(t => !t.every) ? ex('<circle cx="6" cy="6" r="4.5" class="lg"/><path d="M11 6H23" class="lg"/>', tr("from outside")) : "")
+      + (T_.some(t => t.every) ? ex('<circle cx="6" cy="6" r="4.5" class="lg"/><path d="M6 3V6L8 7M11 6H23" class="lg"/>', tr("on a schedule")) : "");
+    const fb = $(".zd-fs"); fb.textContent = st.full ? "✕" : "⤢"; fb.setAttribute("aria-label", tr(st.full ? "Close full screen" : "Full screen"));
   }
 
   const refs = list => (list && list.length) ? `<p class="zd-refs">${list.map(r => { const m = /^\[(.+?)\]\((https?:[^)\s]+)\)$/.exec(r.trim()); return m ? `<a href="${esc(m[2])}" target="_blank" rel="noopener">${esc(m[1])}</a>` : esc(r); }).join("")}</p>` : "";
@@ -442,16 +462,16 @@ function mountZoomDiagram(root, M) {
   const KW = new Set("all some no lone one set disj let not and or implies iff else in always eventually after before historically once until releases since triggered none univ iden Int sum".split(" "));
   const fx = t => esc(t).replace(/[A-Za-z][A-Za-z0-9_]*/g, w => KW.has(w) ? `<i class="k">${w}</i>` : w);
   const opRow = s => { const o = ops[s];
-    const cond = [["pre", o.preLayout || o.pre], ["post", o.postLayout || o.post]].filter(c => c[1]).map(([k, t]) => `<div class="fx"><span class="fk">${k}</span>${fx(t)}</div>`).join("")
-      + (o.modifies && o.modifies.length ? `<div class="fx"><span class="fk">modifies</span>${esc(o.modifies.join(", "))}</div>` : "");
+    const cond = [["pre", o.preLayout || o.pre], ["post", o.postLayout || o.post]].filter(c => c[1]).map(([k, t]) => `<div class="fx"><span class="fk">${tr(k)}</span>${fx(t)}</div>`).join("")
+      + (o.modifies && o.modifies.length ? `<div class="fx"><span class="fk">${tr("modifies")}</span>${esc(o.modifies.join(", "))}</div>` : "");
     return `<li><details><summary class="sig"><span><b>${esc(o.slug)}</b>${esc(o.sig)}</span></summary>${show.formulas ? cond : ""}<p>${esc(o.text)}</p>${refs(o.refs)}</details></li>`; };
   // what Alloy found: a rule that can break shows the run that breaks it
   const broken = i => !!i.breaks;
-  const breakRun = i => broken(i) ? `<div class="zd-run"><span class="fk">run that breaks it</span><ol>${(i.breaks).map((calls, k) => `<li>${show.replay ? `<button type="button" data-run="rule:${esc(i.slug)}" data-at="${k}">${calls.map(esc).join(" + ")}</button>` : calls.map(esc).join(" + ")}</li>`).join("")}</ol></div>` : "";
+  const breakRun = i => broken(i) ? `<div class="zd-run"><span class="fk">${tr("run that breaks it")}</span><ol>${(i.breaks).map((calls, k) => `<li>${show.replay ? `<button type="button" data-run="rule:${esc(i.slug)}" data-at="${k}">${calls.map(esc).join(" + ")}</button>` : calls.map(esc).join(" + ")}</li>`).join("")}</ol></div>` : "";
   // a rule's chips: must or should, then how it stands: a guard of the behaviour, assumed, ideal, or what Alloy found
   const standing = i => broken(i) ? "can break" : i.role || "";
   const ruleRow = s => { const i = rules[s], how = standing(i);
-    return `<li><details><summary class="sig"><span><b>${i.slug}</b><em>${i.kind === "should" ? "should" : "must"}</em>${how ? `<em class="${broken(i) ? "brk" : ""}">${how}</em>` : ""}</span></summary><p>${esc(i.text)}</p>${show.formulas ? `<div class="fx">${fx(i.layout || i.formula)}</div>` : ""}${breakRun(i)}${refs(i.refs)}</details></li>`; };
+    return `<li><details><summary class="sig"><span><b>${i.slug}</b><em>${tr(i.kind === "should" ? "should" : "must")}</em>${how ? `<em class="${broken(i) ? "brk" : ""}">${tr(how)}</em>` : ""}</span></summary><p>${esc(i.text)}</p>${show.formulas ? `<div class="fx">${fx(i.layout || i.formula)}</div>` : ""}${breakRun(i)}${refs(i.refs)}</details></li>`; };
 
   function treeLines(items) {
     const rows = items.map(t => { const d = (t.match(/^ */)[0].length) >> 1; return { d, name: t.trim() }; });
@@ -480,7 +500,7 @@ function mountZoomDiagram(root, M) {
   }
   function media(list, seed) {
     return (list || []).filter(m => show.media || m.type === "screen").map((m, i) => {
-      const head = `<h5>${m.type === "example" && m.invented ? "" : `<b>${m.type}</b>`}${m.invented ? "<i>e.g.</i>" : ""}${m.title ? `<span>${esc(m.title)}</span>` : ""}</h5>`;
+      const head = `<h5>${m.type === "example" && m.invented ? "" : `<b>${tr(m.type)}</b>`}${m.invented ? `<i>${tr("e.g.")}</i>` : ""}${m.title ? `<span>${esc(m.title)}</span>` : ""}</h5>`;
       let body = "";
       if (m.type === "screen") body = mock(m);
       else if (m.type === "tree") body = `<div class="zd-tree">${treeLines(m.items)}</div>`;
@@ -506,20 +526,20 @@ function mountZoomDiagram(root, M) {
     else if (st.sel.run) p.innerHTML = runNote(runOf(st.sel.run), st.sel.at);
     else if (st.sel.node) {
       const n = nodes[st.sel.node], T = KIND[L.kind], closed = ((M.plan || {}).shallow || []).includes(n.id);
-      p.innerHTML = `<header class="zd-nh"><p class="zd-meta"><span class="zd-type">${([].concat(L.initial || []).includes(n.id) ? "initial " : "") + (n.abstract ? "abstract " : "") + T.node}</span>${marks(n).map(mk).join("")}${n.partition ? pchip(L, n.partition) : ""}${closed ? `<span class="zd-pc">not opened</span>` : ""}</p><h4>${esc(n.label)}</h4></header>${closed && (M.plan.why || {}).shallow ? `<p class="what">${esc(M.plan.why.shallow)}</p>` : ""}<p class="what">${esc(n.what)}</p>${refs(n.refs)}${media(mediaOf(n), hash(n.id))}
-        ${grp("Attributes", (n.attrs || []).map(a => { const i = a.indexOf(":"); return `<li class="at"><b>${esc(a.slice(0, i))}</b>${esc(a.slice(i))}</li>`; }))}
-        ${grp("Operations", (n.ops || []).map(opRow))}
-        ${grp("Rules", (n.rules || []).map(ruleRow))}`;
+      p.innerHTML = `<header class="zd-nh"><p class="zd-meta"><span class="zd-type">${([].concat(L.initial || []).includes(n.id) ? tr("initial") + " " : "") + (n.abstract ? tr("abstract") + " " : "") + tr(T.node)}</span>${marks(n).map(mk).join("")}${n.partition ? pchip(L, n.partition) : ""}${closed ? `<span class="zd-pc">${tr("not opened")}</span>` : ""}</p><h4>${esc(n.label)}</h4></header>${closed && (M.plan.why || {}).shallow ? `<p class="what">${esc(M.plan.why.shallow)}</p>` : ""}<p class="what">${esc(n.what)}</p>${refs(n.refs)}${media(mediaOf(n), hash(n.id))}
+        ${grp(tr("Attributes"), (n.attrs || []).map(a => { const i = a.indexOf(":"); return `<li class="at"><b>${esc(a.slice(0, i))}</b>${esc(a.slice(i))}</li>`; }))}
+        ${grp(tr("Operations"), (n.ops || []).map(opRow))}
+        ${grp(tr("Rules"), (n.rules || []).map(ruleRow))}`;
     } else {
       const e = st.sel.e, T = KIND[L.kind];
       const a = e.from ? nodes[e.from] : null, b = nodes[e.to], x = a && a.partition && b.partition && a.partition !== b.partition;
-      p.innerHTML = `<header class="zd-nh"><p class="zd-meta"><span class="zd-type">${T.edge}</span>${marks(e).map(mk).join("")}${e.is && nodes[e.is] ? `<button type="button" class="zd-is" data-is="${e.is}">${esc(levels[nodeLevel[e.is]].title)} ↗</button>` : ""}</p><h4>${esc(e.label || "")}</h4><p class="zd-route">${a ? esc(a.label) : e.every ? "every " + esc(e.every) : "from outside"}${x ? pchip(L, a.partition) : ""}<i>→</i>${esc(b.label)}${x ? pchip(L, b.partition) : ""}</p></header>
+      p.innerHTML = `<header class="zd-nh"><p class="zd-meta"><span class="zd-type">${tr(T.edge)}</span>${marks(e).map(mk).join("")}${e.is && nodes[e.is] ? `<button type="button" class="zd-is" data-is="${e.is}">${esc(levels[nodeLevel[e.is]].title)} ↗</button>` : ""}</p><h4>${esc(e.label || "")}</h4><p class="zd-route">${a ? esc(a.label) : e.every ? esc(tr("every {0}", e.every)) : tr("from outside")}${x ? pchip(L, a.partition) : ""}<i>→</i>${esc(b.label)}${x ? pchip(L, b.partition) : ""}</p></header>
         ${e.what ? `<p class="what">${esc(e.what)}</p>` : ""}${refs(e.refs)}${media(e.media, hash(st.sel.edge))}
-        ${grp("Operations", (e.ops || []).map(opRow))}${grp("Guard", (e.rules || []).map(ruleRow))}
-        ${grp("Syncs", syncsOf(L, e).map(y => `<li class="sy"><b>${esc(y.when === e.label ? "sets off " + y.then : "set off by " + y.when)}</b>${y.where && nodes[y.where] ? ` only while ${esc(nodes[y.where].label)}` : ""}${y.what ? `<span>${esc(y.what)}</span>` : ""}</li>`))}`;
+        ${grp(tr("Operations"), (e.ops || []).map(opRow))}${grp(tr("Guard"), (e.rules || []).map(ruleRow))}
+        ${grp(tr("Syncs"), syncsOf(L, e).map(y => `<li class="sy"><b>${esc(y.when === e.label ? tr("sets off {0}", y.then) : tr("set off by {0}", y.when))}</b>${y.where && nodes[y.where] ? ` ${esc(tr("only while {0}", nodes[y.where].label))}` : ""}${y.what ? `<span>${esc(y.what)}</span>` : ""}</li>`))}`;
     }
     if (p.innerHTML.trim()) p.innerHTML = `<div class="zd-body">${p.innerHTML}</div>`;   // the body scrolls; the pointer and close stay put
-    if (st.sel) { p.insertAdjacentHTML("afterbegin", `<button type="button" class="zd-x" aria-label="Close">✕</button>`); p.querySelector(".zd-x").onclick = () => { st.sel = null; render(); }; }
+    if (st.sel) { p.insertAdjacentHTML("afterbegin", `<button type="button" class="zd-x" aria-label="${tr("Close")}">✕</button>`); p.querySelector(".zd-x").onclick = () => { st.sel = null; render(); }; }
     const isb = p.querySelector("[data-is]"); if (isb) isb.onclick = () => { const id = isb.dataset.is; goto(nodeLevel[id], null, { node: id }); };
     p.querySelectorAll("[data-run]").forEach(b => b.onclick = () => play(b.dataset.run, +b.dataset.at));
     p.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => act(b.dataset.pick, () => {}));
@@ -532,9 +552,9 @@ function mountZoomDiagram(root, M) {
   function runNote(r, at) {
     const use = (...xs) => [...new Set(xs.flat().filter(x => x && r.uses.has(x)))];
     const rows = (n, via) => { const guard = use(...via.map(e => e.rules || []));
-      return grp("Operations", use(...via.map(e => e.ops || []), n ? n.ops || [] : []).map(opRow)) + grp("Guard", guard.map(ruleRow))
-        + grp("Rules", use(n ? n.rules || [] : []).filter(x => !guard.includes(x)).map(ruleRow)); };
-    const from = e => e.from ? esc(nodes[e.from].label) : e.every ? "every " + esc(e.every) : "from outside";
+      return grp(tr("Operations"), use(...via.map(e => e.ops || []), n ? n.ops || [] : []).map(opRow)) + grp(tr("Guard"), guard.map(ruleRow))
+        + grp(tr("Rules"), use(n ? n.rules || [] : []).filter(x => !guard.includes(x)).map(ruleRow)); };
+    const from = e => e.from ? esc(nodes[e.from].label) : e.every ? esc(tr("every {0}", e.every)) : tr("from outside");
     const here = active(r, at), xs = [...new Set(here.map(it => it.x))], pick = st.sel.pick;
     const name = x => nodes[x] ? nodes[x].label : (edgeAt(x)[1] || {}).label || "";
     const mine = here.find(it => it.x === pick && it.to === at) || here.find(it => nodes[it.x] && it.from === at) || {};
@@ -543,15 +563,15 @@ function mountZoomDiagram(root, M) {
     let body = "";
     if (nodes[pick]) {
       const n = nodes[pick], L = levels[nodeLevel[pick]], via = here.filter(it => !nodes[it.x] && it.to === at && (edgeAt(it.x)[1] || {}).to === pick).map(it => edgeAt(it.x)[1]);
-      body = `<p class="zd-meta"><span class="zd-type">${KIND[L.kind].node}</span>${L.id !== st.level ? `<span class="zd-lvl">${esc(L.title)}</span>` : ""}</p><h4>${esc(n.label)}</h4>
+      body = `<p class="zd-meta"><span class="zd-type">${tr(KIND[L.kind].node)}</span>${L.id !== st.level ? `<span class="zd-lvl">${esc(L.title)}</span>` : ""}</p><h4>${esc(n.label)}</h4>
         ${via.map(e => `<p class="zd-route">${from(e)}<i>→</i>${esc(e.label || "")}</p>`).join("")}<p class="what">${esc(n.what || "")}</p>${rows(n, via)}`;
     } else if (pick) {
       const [L, e] = edgeAt(pick);
-      if (e) body = `<p class="zd-meta"><span class="zd-type">${KIND[L.kind].edge}</span></p><h4>${esc(e.label || "")}</h4><p class="zd-route">${from(e)}<i>→</i>${esc(nodes[e.to].label)}</p>${e.what ? `<p class="what">${esc(e.what)}</p>` : ""}${rows(null, [e])}`;
+      if (e) body = `<p class="zd-meta"><span class="zd-type">${tr(KIND[L.kind].edge)}</span></p><h4>${esc(e.label || "")}</h4><p class="zd-route">${from(e)}<i>→</i>${esc(nodes[e.to].label)}</p>${e.what ? `<p class="what">${esc(e.what)}</p>` : ""}${rows(null, [e])}`;
     }
     const calls = r.calls && r.calls[at] ? `<p class="zd-calls">${r.calls[at].map(c => `<code>${esc(c)}</code>`).join(" + ")}</p>` : "";
-    const stepBox = step ? `<div class="zd-step"><p>${esc(step.does || "")}</p><p class="zd-expect"><span class="fk">expects</span>${esc(step.expects || "")}</p></div>` : "";
-    return `<header class="zd-nh"><p class="zd-meta"><span class="zd-type">${r.kind === "rule" ? "run that breaks" : "scenario"}</span></p><h4 class="id">${esc(r.name)}</h4></header>
+    const stepBox = step ? `<div class="zd-step"><p>${esc(step.does || "")}</p><p class="zd-expect"><span class="fk">${tr("expects")}</span>${esc(step.expects || "")}</p></div>` : "";
+    return `<header class="zd-nh"><p class="zd-meta"><span class="zd-type">${tr(r.kind === "rule" ? "run that breaks" : "scenario")}</span></p><h4 class="id">${esc(r.name)}</h4></header>
       ${calls}${stepBox}${chips}${body ? `<div class="zd-at">${body}</div>` : ""}`;
   }
   // an edge or trigger by its key
@@ -625,8 +645,8 @@ function mountZoomDiagram(root, M) {
     const S = (M.screens || {})[ui.screen]; if (!S) return "";
     const sel = S.blocks.find(b => b.id === ui.block) || {};
     const box = b => `<div class="m${b.id === ui.block ? " sel" : ""}">${block(b)}${b.id === ui.block ? `<i class="h" style="left:-4px;top:-4px"></i><i class="h" style="right:-4px;top:-4px"></i><i class="h" style="left:-4px;bottom:-4px"></i><i class="h" style="right:-4px;bottom:-4px"></i><span class="tag">${esc(b.name)}</span>` : ""}</div>`;
-    return `<div class="zd-mock" role="img" aria-label="${esc(S.title)} with ${esc(sel.name || "")} selected">
-      <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span>${S.invented ? "e.g. " : ""}${esc(S.title)}</span><span>${esc(S.size || "")}</span></div>
+    return `<div class="zd-mock" role="img" aria-label="${esc(tr("{0}, with {1} selected", S.title, sel.name || ""))}">
+      <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span>${S.invented ? tr("e.g.") + " " : ""}${esc(S.title)}</span><span>${esc(S.size || "")}</span></div>
       <div class="fg"><ul class="layers">${S.blocks.map(b => `<li class="${b.id === ui.block ? "on" : ""}">${esc(b.name)}</li>`).join("")}</ul>
         <div class="board"><div class="device">${S.blocks.map(box).join("")}</div></div></div></div>`;
   }
@@ -665,7 +685,7 @@ function mountZoomDiagram(root, M) {
     time.hidden = !r; if (!r) return;
     const n = r.length, at = st.sel.at;
     time.querySelector("code").textContent = r.name;
-    slider.max = n; slider.value = at + 1; slider.setAttribute("aria-valuetext", `${at + 1} of ${n}`);
+    slider.max = n; slider.value = at + 1; slider.setAttribute("aria-valuetext", tr("{0} of {1}", at + 1, n));
     time.querySelector("output").textContent = `${at + 1} / ${n}`;
     // a tick per moment while they fit; on a narrow rail, a filled line with only the current moment's tick
     const rail = time.querySelector(".zd-rail"), dense = rail.clientWidth / Math.max(1, n - 1) < 12, pos = k => n > 1 ? k / (n - 1) * 100 : 50;

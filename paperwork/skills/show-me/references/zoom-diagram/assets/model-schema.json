@@ -18,6 +18,13 @@
    "type": "string",
    "description": "The reader's next action or choice, one sentence, shown under the diagram."
   },
+  "lang": {
+   "enum": [
+    "en",
+    "ko"
+   ],
+   "description": "The language of the engine's own words (main path, optional, Levels, INSIGHT...); en by default. The model's text is shown as written."
+  },
   "plan": {
    "type": "object",
    "additionalProperties": false,

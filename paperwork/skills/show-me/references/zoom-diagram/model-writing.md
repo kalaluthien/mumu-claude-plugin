@@ -3,6 +3,9 @@
 Brackets name the check that enforces a line. Every name below is also the
 name Alloy sees ([proof-commands.md](proof-commands.md)).
 
+Set the top-level `lang` to `ko` when the page is Korean: the engine's own
+words (main path, optional, Levels, Insight) then show in Korean; it is `en` by default.
+
 ## Plan
 
 A model changes the defaults only in its `plan` (`make-diagram.py rules` lists
