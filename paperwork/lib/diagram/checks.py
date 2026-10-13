@@ -267,8 +267,7 @@ def names(M):
     out |= {f'{where} gives no Alloy name ("{n}"); write it in ASCII letters' for n, where in found if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", str(n))}
     # terms are English whatever the reader's language; only descriptions follow it
     terms = [m.get("title", "")] + [t for L in m["levels"] for t in [L.get("title", "")]
-             + [x.get("label", "") for x in L["nodes"] + L["edges"] + L.get("triggers", []) + L.get("partitions", []) + L.get("regions", [])]
-             + [s.get("name", "") for s in L.get("syncs", [])]]
+             + [x.get("label", "") for x in L["nodes"] + L["edges"] + L.get("triggers", []) + L.get("partitions", []) + L.get("regions", [])]]
     out |= {f'"{t}" is a term: write it in English, and only descriptions in the reader\'s language' for t in terms if not str(t).isascii()}
     return sorted(out)
 
