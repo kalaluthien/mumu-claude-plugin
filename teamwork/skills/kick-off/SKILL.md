@@ -35,7 +35,7 @@ Open the playbook of the first row that fits with `Read` and follow it; the `rou
 
 ## Rules
 
-- **Talk**: whenever your step leaves a session waiting on you, or needs one to act, `tell` it, so any request, answer or handback reads the same and no step names its own channel; what must outlive a session goes on its issue first, as a record: a comment opening `BLOCKED:`, a worker's question, or `DECIDED:`, the manager's answer, route or order; prompt only `/teamwork:kick-off` through `start` and your own `/rename`.
+- **Talk**: whenever your step leaves someone waiting on you, or needs them to act, pick the channel by who reads it and how long it must last, so no step names its own: a session, `tell` it; the owner in your tab, `AskUserQuestion`; the owner away, `PushNotification` naming the issue and your tab; what must outlive a session, a record on its issue first: a comment opening `BLOCKED:`, a worker's question, or `DECIDED:`, the manager's answer, route or order; prompt only `/teamwork:kick-off` through `start` and your own `/rename`.
 - **Short writing**: bullets or a table, no narration; cite urls, `path:line`s and shas; a title verb-first.
 
 ## Verbs
