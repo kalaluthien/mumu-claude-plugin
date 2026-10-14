@@ -1,7 +1,8 @@
 """Drawing checks for a built zoom diagram, at 390 and 1200 px in light and dark (needs Playwright and the installed Chrome).
 
 fits: no sideways page scroll; each partition drawn as one block; drawn text at least 9 px on a phone (the board
-scrolls sideways inside its card rather than shrink further); on every level no node label wider than its node,
+scrolls sideways inside its card rather than shrink further), and the root no wider than its card there (deeper
+levels may scroll); on every level no node label wider than its node,
 no edge label on a node, another label or another edge, no edge through a node it does not join, no two edges from different sources
 sharing a stretch of line.
 """
@@ -11,7 +12,9 @@ import pathlib
 
 from playwright.async_api import async_playwright
 
-MIN_PX = 9.0
+from .model import LIMITS
+
+MIN_PX = float(LIMITS["minPx"])
 
 LAYOUT = """async () => {
   const z = window.zd, root = document.getElementById('zd'), bad = [];
@@ -57,6 +60,8 @@ LAYOUT = """async () => {
   return [...new Set(bad)];
 }"""
 
+ROOT = """() => { const h = document.querySelector('#zd .zd-canvas'); return [h.scrollWidth, h.clientWidth]; }"""
+
 TEXT = """() => { let m = 99; document.querySelectorAll('svg text').forEach(t => {
   const s = t.ownerSVGElement, k = s.getBoundingClientRect().width / s.viewBox.baseVal.width;
   if (t.getBBox().width) m = Math.min(m, parseFloat(getComputedStyle(t).fontSize) * k); }); return m; }"""
@@ -84,6 +89,9 @@ async def _check(path, shots=None, font_css=None):
                 if width < 900:
                     if (px := await page.evaluate(TEXT)) < MIN_PX:
                         problems.append(f"fits: {tag} text {px:.1f}px < {MIN_PX}")
+                    need, have = await page.evaluate(ROOT)
+                    if need > have:
+                        problems.append(f"fits: {tag} root needs {need} px in a {have} px card")
                 if shots:   # every level, for the critic's pass
                     pathlib.Path(shots).mkdir(parents=True, exist_ok=True)
                     for lid in await page.evaluate("[...document.querySelectorAll('#zd [data-l]')].map(b => b.dataset.l)"):
@@ -92,6 +100,12 @@ async def _check(path, shots=None, font_css=None):
                         await page.screenshot(path=f"{shots}/{lid}-{width}-{scheme}.png", full_page=True)
                     await page.evaluate("window.zd.goto(window.zd.state.level)")
                 problems += [f"fits: {tag} {x}" for x in await page.evaluate(LAYOUT)]
+                if width > 900 and scheme == "light":   # turned or resized to a phone, the root lays itself out again
+                    await page.set_viewport_size({"width": 390, "height": 900})
+                    await page.wait_for_timeout(600)
+                    need, have = await page.evaluate(ROOT)
+                    if need > have:
+                        problems.append(f"fits: {tag} resized to 390px root needs {need} px in a {have} px card")
                 problems += [f"error: {tag} {e}" for e in errors]
         await browser.close()
     return sorted(set(problems))

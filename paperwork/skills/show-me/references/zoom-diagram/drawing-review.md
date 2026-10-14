@@ -33,4 +33,4 @@ both themes (`render out.html --shots DIR` saves them). Check that arrow tips
 sit on borders, nothing is clipped, every opening node has a chevron, every
 node a screen shows (a part, a state, an activity) shows that screen, and the
 Principles hold. On a
-phone a wide level scrolls sideways in full screen; that is not clipping.
+phone the root fits its card; a wide level below it scrolls sideways in full screen, and that is not clipping.

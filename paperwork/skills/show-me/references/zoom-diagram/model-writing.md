@@ -295,6 +295,10 @@ must fit 390 px): a small grid where neighbours share a row or column, a busy
 node goes in the middle, and two or three columns is usual. An edge between diagonal cells needs one empty corner.
 A long edge down a column runs on its right; give it `via: "left"` when the
 right is busy.
+On a phone the engine lays the root out again in two columns or one, with
+long labels on two lines and text at 9 px (limits in `assets/phone-limits.json`);
+no two of the root's partitions join at more than 3 pairs of nodes [phone],
+and the root never needs more than its card [fits].
 
 ## Text and media
 
