@@ -42,6 +42,21 @@
     },
     "why": {
      "type": "object"
+    },
+    "sources": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "exclude": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "string"
+     }
+    },
+    "root": {
+     "type": "string"
     }
    }
   },
@@ -170,7 +185,7 @@
    "items": {
     "type": "string"
    },
-   "description": "[name](https://…)"
+   "description": "[name](https://…) or [name](path:line)"
   },
   "media": {
    "type": "array",

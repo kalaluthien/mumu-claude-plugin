@@ -4,6 +4,7 @@ import re
 from . import formula as F
 from . import plan as params
 from . import prover as A
+from . import sources as S
 from .model import places, plan, split_top, walk_steps
 
 NODE_MEDIA, EDGE_MEDIA = {"tree", "checklist"}, {"diff", "payload"}
@@ -415,6 +416,11 @@ def balanced(M):
     return out
 
 
+def sources(M):
+    out, M.sources_status = S.problems(M.m)
+    return out
+
+
 def alloy(M):
     """Ask Alloy whether each dynamic rule holds, only on request (`--prove`). It never fails a run: a must rule the
     behaviour can break is a finding about the system, and whatever keeps Alloy from answering (no Java, no jar, a
@@ -448,7 +454,7 @@ def alloy(M):
 LINT = {"basis", "explained", "mechanism", "paths", "naming", "media", "alloy"}
 
 RULES = [
-    ("form", "the file is well formed: one root, known kinds, initial states, named edges, refs as [name](url), a valid plan", form),
+    ("form", "the file is well formed: one root, known kinds, initial states, named edges, refs as [name](url) or [name](path:line), a valid plan", form),
     ("steps", "every Scenario step says what it does and expects, and follows an edge or opens or closes a level", steps),
     ("scoped", "the root and every level things enter from outside have Scenarios of their own (plan scenarios: every asks it of all); steps never climb above where they start", scoped),
     ("coverage", "every operation, rule, node, edge and trigger is used by some Scenario", coverage),
@@ -467,6 +473,7 @@ RULES = [
     ("typed", "types are names the module declares; signatures, attributes and relations agree with the drawing", typed),
     ("vocabulary", "every name is an ASCII Alloy name clear of Alloy's keywords and the translation's words; formulas are Alloy over the model's names, every variable bound and none hiding a name", vocabulary),
     ("balanced", "a workflow opened from a workflow shows its parent's artifacts entering and leaving", balanced),
+    ("sources", "with plan.sources: each listed file is cited by a ref, each cited file is listed, and (closure) every file inside the root a listed file links to, imports or names as ${CLAUDE_PLUGIN_ROOT}/<path> is listed or excluded with a one-line reason", sources),
     ("alloy", "with --prove, Alloy asks whether each dynamic rule holds; a must rule it can break is a finding, and no Alloy answer fails the run", alloy),
 ]
 CHECKS = {r[0] for r in RULES}
@@ -502,7 +509,7 @@ def report(rows, M=None):
     lines, failed = [], 0
     for name, problems, sev in rows:
         tag = "pass" if not problems else "FAIL" if sev == "error" else "warn"
-        status = getattr(M, "alloy_status", "") if name == "alloy" else ""
+        status = getattr(M, name + "_status", "")
         lines.append(f"{tag:4s}  {name}" + (f"  ({status})" if status else ""))
         lines += [f"      - {p}" for p in problems]
         failed += len(problems) if sev == "error" else 0

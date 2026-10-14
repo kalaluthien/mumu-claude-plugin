@@ -5,8 +5,7 @@ checked `system.json` and its defects.
 
 **Order.** The order of the work is the order of the system's own run: start
 where something enters it (a command, a request, a timer, a person's goal),
-follow it through what handles it to what it hands out, then take the next entry. Read each source once, when the run first reaches it (and what it imports
-or calls), writing every
+follow it through what handles it to what it hands out, then take the next entry. Read each source once, when the run first reaches it (and what it calls), writing every
 model part it supports, in the forms of [model-writing.md](model-writing.md):
 
 - entry point: a trigger and a Scenario starting there
@@ -19,20 +18,20 @@ model part it supports, in the forms of [model-writing.md](model-writing.md):
 - number, limit, timeout: a `qty`, or a `facts` item
 
 **Defects as you read.** Write each defect under `## Findings` once its source
-is open: a situation nothing handles (Missing), an impossible state or
-call that is reachable (Illegal), two states that react alike (Redundant), one
+is open: a situation nothing handles (Missing), a reachable impossible state or
+call (Illegal), two states that react alike (Redundant), one
 state meaning two things (Overloaded), a rule the system breaks. Model the
 system as it is, defects included.
 
 **Rebuild.** Someone given only `system.json` must rebuild the behaviour of
-the whole system the sources make up, not only the part the intent asks about;
+the whole system the sources make up, not only what the intent asks about;
 the intent picks what the views feature. While a source is open, write every
 path, branch, exit, failure, value, limit, name rule and check it shows into the
 model, on its own level when a level would pass 7 nodes, else as a `facts` item. Never omit a detail for depth.
 
 ## Steps
 
-1. `${CLAUDE_PLUGIN_ROOT}/skills/drill-it/scripts/check-system.py new system.json`; set the caller's plan.
+1. `${CLAUDE_PLUGIN_ROOT}/skills/drill-it/scripts/check-system.py new system.json`; list the system's files in `plan.sources`, then set the plan.
 2. Follow Order, one entry at a time; run `check-system.py check system.json` after each.
 3. Run `check-system.py check system.json --prove` once. Add each `finding` line to Findings; change the model
    only where it misstates the system.

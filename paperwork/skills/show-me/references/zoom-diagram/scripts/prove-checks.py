@@ -12,6 +12,7 @@ import copy
 import json
 import pathlib
 import sys
+import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[4] / "lib"))
@@ -84,7 +85,25 @@ MUTATIONS = {
     "vocabulary": [("pull-request", lambda m: m["rules"][0].update(formula=m["rules"][0]["formula"] + " and fresh[pr]")),
                    ("pull-request", lambda m: node(m, "push").update(label="Now"))],
     "balanced": ("self", lambda m: lv(m, "check").pop("out")),
+    "sources": ("self", lambda m: m["plan"].update(sources=["paperwork/lib/system/plan.py"], root=str(HERE.parents[5]))),   # real, uncited
 }
+
+# the sources check reads files, so its cases run in a scratch root: (name, plan, refs cited, text the problems must hold; None: pass)
+FILES = {"a.md": "[b](b.md)\n", "b.md": "", "c.py": "from d import x\n", "d.py": "x = 1\n",
+         "p/.claude-plugin/plugin.json": "{}", "p/skills/s.md": "run ${CLAUDE_PLUGIN_ROOT}/lib/t.py\n", "p/lib/t.py": ""}
+ALL = ["a.md", "b.md", "c.py", "d.py"]
+SOURCES = [
+    ("all cited", {"sources": ALL}, ALL, None),
+    ("uncited", {"sources": ALL}, ["a.md", "b.md", "c.py"], ["d.py: listed"]),
+    ("link unlisted", {"sources": ["a.md"]}, ["a.md"], ["a.md links to b.md", "closure"]),
+    ("import unlisted", {"sources": ["c.py"]}, ["c.py"], ["c.py imports d.py", "closure"]),
+    ("plugin root unlisted", {"sources": ["p/skills/s.md"]}, ["p/skills/s.md"], ["p/skills/s.md names p/lib/t.py", "closure"]),
+    ("plugin root listed", {"sources": ["p/skills/s.md", "p/lib/t.py"]}, ["p/skills/s.md", "p/lib/t.py"], None),
+    ("excluded with reason", {"sources": ["a.md"], "exclude": {"b.md": "generated, never read"}}, ["a.md"], None),
+    ("excluded, no reason", {"sources": ["a.md"], "exclude": {"b.md": ""}}, ["a.md"], ["b.md: give its exclusion a one-line reason"]),
+    ("cited, unlisted", {"sources": ["a.md"], "exclude": {"b.md": "x"}}, ["a.md", "c.py"], ["cites c.py, which plan.sources does not list"]),
+    ("design", {}, [], None),
+]
 
 # the one Alloy verdict that is kept, caught with --prove: a must rule the behaviour can break is a finding about
 # the system, never a problem of the model
@@ -114,6 +133,27 @@ def proved(m):
     return {"notes": M.alloy_notes, "findings": M.alloy_findings}
 
 
+def source_cases():
+    """What the sources check says for each case of SOURCES."""
+    bad = []
+    with tempfile.TemporaryDirectory() as root:
+        for f, text in FILES.items():
+            (pathlib.Path(root) / f).parent.mkdir(parents=True, exist_ok=True)
+            (pathlib.Path(root) / f).write_text(text, encoding="utf-8")
+        for name, plan, cited, expect in SOURCES:
+            m = copy.deepcopy(EX["self"])
+            m["plan"].update(plan, **({"root": root} if plan else {}))
+            node(m, "elicit")["refs"] = [f"[{c}]({c}:1)" for c in cited]
+            rows = {n: p for n, p, _ in checks.run(Model(view.split(m)[0]), only=["sources"])}
+            if "sources" not in rows:
+                bad.append(f"sources case {name}: no such check")
+            elif expect is None and rows["sources"]:
+                bad.append(f"sources case {name}: should pass, got {rows['sources']}")
+            elif expect and not all(any(w in p for p in rows["sources"]) for w in expect):
+                bad.append(f"sources case {name}: should report {expect}, got {rows['sources']}")
+    return bad
+
+
 def main(args):
     prove, bad = "--prove" in args, []
     if prove and not alloy.ready():
@@ -138,6 +178,8 @@ def main(args):
             mutate(m)
             if rule not in failing(m, prove):
                 bad.append(f"{rule}: not caught by its mutation {k + 1} of {ex}")
+    bad += [f"{r}: no such check" for r in MUTATIONS if r not in checks.CHECKS | view.CHECKS]   # a mutation of no check proves nothing
+    bad += source_cases()
     if prove:
         for ex, mutate, words, where in VERDICTS:
             m = copy.deepcopy(EX[ex])

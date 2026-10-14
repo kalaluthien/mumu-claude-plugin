@@ -117,7 +117,7 @@ def page_plan(m):
     """The plan the page reads, in the order it has always had: system and view defaults with the model's plan."""
     defaults = {k: d[0] for k, d in system_plan.DEFAULTS.items()} | {k: d[0] for k, d in DEFAULTS.items()}
     plan = {k: copy.deepcopy(defaults[k]) for k in PAGE_ORDER}
-    plan.update(m.get("plan") or {})
+    plan.update({k: x for k, x in (m.get("plan") or {}).items() if k not in system_plan.LOCAL})
     if isinstance(plan["show"], dict):
         plan["show"] = {**DEFAULTS["show"][0], **plan["show"]}
     return plan
