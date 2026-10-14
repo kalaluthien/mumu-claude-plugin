@@ -10,7 +10,7 @@
   make-diagram.py make system.json view.json out.html [--font-css FILE]   check, build, render; stop at the first failure
   make-diagram.py part system.json view.json part.html   the diagram as a part that show-me's assemble-page.py places
 
-drill-it writes the system model (skills/drill-it/scripts/check-system.py); this script draws it. A finding line is a
+drill-it writes the system model (drill-it's check-system.py); this script draws it. A finding line is a
 defect of the system the model describes, for the hand-over, never a failure. Exit status 0 means ok.
 """
 import html

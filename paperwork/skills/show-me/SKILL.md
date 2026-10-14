@@ -13,9 +13,9 @@ disable-model-invocation: true
 Each playbook answers one reader question; read each one you place before building.
 
 - **Where does it stand, what happened, what changed or is planned?** status, trend, incident, pull request, diff or draft under review, plan ahead: [references/sitrep/sitrep.md](references/sitrep/sitrep.md)
-- **How does it work, or how should it?** a system, process, protocol or concept, or two compared; a design for one not yet built; how to improve one: [references/zoom-diagram/zoom-diagram.md](references/zoom-diagram/zoom-diagram.md)
+- **How does it work, or how should it?** a system, process, protocol or concept, or two compared; a design for one not yet built: [references/zoom-diagram/zoom-diagram.md](references/zoom-diagram/zoom-diagram.md)
 - **What happens if I try?** a value judged by seeing it (colour, timing, prompt, config), a concept to play with, steps to follow: [references/interactive-demo/interactive-demo.md](references/interactive-demo/interactive-demo.md)
-- **Which one?** named alternatives (approaches, designs, layouts, tools), or a verdict: merge, approve, keep, revert: [references/option-cards/option-cards.md](references/option-cards/option-cards.md)
+- **Which one?** named alternatives (approaches, designs, layouts, tools), ways to improve a system, or a verdict: merge, approve, keep, revert: [references/option-cards/option-cards.md](references/option-cards/option-cards.md)
 
 An answer fitting one screen as a table or short fenced tree needs no page: give it in chat.
 
@@ -35,7 +35,7 @@ An answer fitting one screen as a table or short fenced tree needs no page: give
 - **Only what it needs**: no section, widget or control the answer does not use; cut facts that do not change the reader's view and repeated parts.
 - **Counted as shown**: a stated count counts what the page shows.
 - **One language**: the user's instructed language, else the ask's; a zoom diagram keeps terms in English per its `view-writing.md`.
-- **Asking**: the zoom diagram's Interview and drill-it's Undecided go as rounds of `${CLAUDE_PLUGIN_ROOT}/skills/grill-me/SKILL.md` (Asking a round, Settling); recommended options Settling takes stay off the page.
+- **Asking**: the zoom diagram's Interview and drill-it's Undecided go as rounds of the `grill-me` skill (its Asking a round and Settling); recommended options Settling takes stay off the page.
 
 ## Done when
 
