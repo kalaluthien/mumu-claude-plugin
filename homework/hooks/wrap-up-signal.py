@@ -4,8 +4,8 @@
   wrap-up-signal.py                        the Stop hook: its payload on stdin,
                                            the plugin's data folder in CLAUDE_PLUGIN_DATA
   wrap-up-signal.py <transcript|session>   print the sentence for a transcript's last stop
-  wrap-up-signal.py outcome <data> filed|empty
-                                           report what the last asked wrap-up did
+  wrap-up-signal.py outcome <data> <session> filed|empty
+                                           report what a session's last asked wrap-up did
 
 A tidy rides on a lesson or recipe ask, since a tidy alone rarely pays.
 Enabling the plugin for a project is the opt-in, so no arm step writes to the
@@ -76,16 +76,27 @@ def counts(entries, cwd):
             elif use.get("name") == "Bash" and RUNS.search(said):
                 ran_failed = True
     recipe = "failed" if recipe_failed else "missing" if ran_failed and not has_recipe(cwd) else "fine"
-    return {"failures": failures, "calls": calls, "memory": len(memory), "recipe": recipe,
+    return {"failures": failures, "calls": calls, "memory": memory, "recipe": recipe,
             "points": round(failures * FAILURE_POINTS + calls / CALLS_PER_POINT, 1)}
 
 
+def bounded(threshold):
+    return min(HIGHEST, max(LOWEST, threshold))
+
+
 def load(data):
+    """The saved state, each key that is missing or of the wrong type taken from the defaults."""
+    state = {"threshold": START, "memory": [], "asked": {}, "pending": {}}
     try:
         with open(os.path.join(data, "wrap-up.json"), encoding="utf-8") as handle:
-            return json.load(handle)
+            saved = json.load(handle)
     except (OSError, ValueError):
-        return {"threshold": START, "memory": 0, "asked": {}, "pending": False}
+        saved = {}
+    if isinstance(saved, dict):
+        state.update((key, saved[key]) for key in state
+                     if isinstance(saved.get(key), (int, float) if key == "threshold" else type(state[key])))
+    state["threshold"] = bounded(state["threshold"])
+    return state
 
 
 def save(data, state):
@@ -104,7 +115,7 @@ def fixed():
 
 def threshold_of(state):
     override = fixed()
-    return state["threshold"] if override is None else override
+    return state["threshold"] if override is None else bounded(override)
 
 
 def sentence(found, threshold):
@@ -125,27 +136,26 @@ def hook():
         return 0
     state = load(data)
     found = counts(entries, payload.get("cwd"))
-    state["memory"] += found["memory"]
+    state["memory"] = sorted(set(state["memory"]) | found["memory"])
     threshold = threshold_of(state)
     session, stops = payload.get("session_id", ""), sum(1 for e in entries if transcript.is_stop(e))
     # the stops right after an ask hold the wrap-up's own work and its fallout
     just_asked = stops - state["asked"].get(session, -ASK_GAP - 1) <= ASK_GAP
     if not just_asked and (found["points"] >= threshold or found["recipe"] != "fine") and toplevel(payload.get("cwd")):
-        reason = sentence(dict(found, memory=state["memory"]), threshold) + ASK
-        state["asked"][session], state["pending"] = stops, True
-        if state["memory"] >= MEMORY_LIMIT:
-            state["memory"] = 0
+        reason = sentence(dict(found, memory=len(state["memory"])), threshold) + ASK
+        state["asked"][session], state["pending"][session] = stops, True
+        if len(state["memory"]) >= MEMORY_LIMIT:
+            state["memory"] = []
         json.dump({"decision": "block", "reason": reason}, sys.stdout)
     save(data, state)
     return 0
 
 
-def outcome(data, result):
+def outcome(data, session, result):
     state = load(data)
-    if state["pending"]:
+    if state["pending"].pop(session, False):
         step = UP if result == "empty" else -DOWN
-        state["threshold"] = min(HIGHEST, max(LOWEST, state["threshold"] + step))
-        state["pending"] = False
+        state["threshold"] = bounded(state["threshold"] + step)
         save(data, state)
     print(f"wrap-up outcome {result}: lesson threshold now {state['threshold']:g}")
     return 0
@@ -155,8 +165,8 @@ if __name__ == "__main__":
     args = sys.argv[1:]
     if not args:
         sys.exit(hook())
-    if args[0] == "outcome" and len(args) == 3 and args[2] in ("filed", "empty"):
-        sys.exit(outcome(args[1], args[2]))
+    if args[0] == "outcome" and len(args) == 4 and args[3] in ("filed", "empty"):
+        sys.exit(outcome(args[1], args[2], args[3]))
     if len(args) == 1 and args[0] != "outcome":
         path = transcript.find(args[0])
         entries = transcript.entries_of(path or "")
@@ -165,8 +175,9 @@ if __name__ == "__main__":
             sys.exit(1)
         cwd = next((e["cwd"] for e in reversed(entries) if e.get("cwd")), None)
         data = os.environ.get("CLAUDE_PLUGIN_DATA")
-        state = load(data) if data else {"threshold": START}
-        print(sentence(counts(entries, cwd), threshold_of(state)))
+        state = load(data or os.devnull)
+        found = counts(entries, cwd)
+        print(sentence(dict(found, memory=len(found["memory"])), threshold_of(state)))
         sys.exit(0)
     print(__doc__.split("\n\n")[1], file=sys.stderr)
     sys.exit(2)

@@ -28,13 +28,12 @@ import tempfile
 from datetime import datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, "..", "lib"))
+import memory as memory_file  # noqa: E402
+import transcript  # noqa: E402
+
 SIGNAL = os.path.join(HERE, "wrap-up-signal.py")
-MEMORY = re.compile(r"/memory/(?!MEMORY\.md)([\w.-]+\.md)")
 CONSTANT = re.compile(r'^(\w+) = (?:int|float)\(os\.environ\.get\("\w+", "([\d.]+)"\)\)', re.M)
-
-
-def seconds(stamp):
-    return datetime.fromisoformat(str(stamp).replace("Z", "+00:00")).timestamp()
 
 
 def main_constants():
@@ -58,13 +57,16 @@ def stops_of(path):
                 continue
             last = entry.get("timestamp") or last
             if entry.get("subtype") == "stop_hook_summary":
-                stops.append({"offset": offset, "at": seconds(last), "calls": calls, "memory": memory})
+                at = transcript.seconds(last)
+                if at is None:
+                    sys.exit(f"no time at a stop of {path}: {last!r}")
+                stops.append({"offset": offset, "at": at, "calls": calls, "memory": memory})
                 calls, memory = 0, set()
             body = (entry.get("message") or {}).get("content")
             for block in body if isinstance(body, list) else []:
                 if block.get("type") == "tool_use":
                     calls += 1
-                    memory.update(MEMORY.findall(json.dumps(block.get("input") or {})))
+                    memory.update(memory_file.PATH.findall(json.dumps(block.get("input") or {})))
             offset += len(raw)
     return stops
 
@@ -131,7 +133,7 @@ def replay(stops, labels, scored, verbose):
             reason = head_ask(data, path, stop, session)
             if reason is not None:
                 outcome = "filed" if labels[key] else "empty"
-                subprocess.run([SIGNAL, "outcome", data, outcome], check=True, capture_output=True)
+                subprocess.run([SIGNAL, "outcome", data, session, outcome], check=True, capture_output=True)
                 if key in scored:
                     head.add(key)
                 if verbose:
