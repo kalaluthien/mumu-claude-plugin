@@ -8,7 +8,7 @@ and `expects`) are in the reader's language.
 ## Plan
 
 A model changes the defaults only in its `plan` (`check-system.py rules` lists
-them; `check-system.py plan system.json` prints the plan in effect). Say in `why` why each changed default was changed [form]. A drawing's own choices (views, depth, layout) live in its view file.
+them; `check-system.py plan system.json` prints the effective plan). Say in `why` why each default was changed [form]. A drawing's own choices (views, depth, layout) live in its view file.
 
 ## Scenarios
 
@@ -22,15 +22,15 @@ default says [scoped].
 **Steps.** A Scenario's `walk` lists its steps, each
 `{"place", "does", "expects"}` [steps]:
 - `place` is the node where the step happens, the first in the Scenario's own
-  level. Leaving or entering a level may go straight along an edge of the node that opened
-  it; if two edges fit, name one: `"edge": "label"`.
+  level. Leaving or entering a level may go along an edge of the node that opened
+  it; if two fit, name one: `"edge": "label"`.
 - On a component level a step may use several parts together:
   `"place": ["node", "argument", "value"]`, each next part along a relation.
 - `does` says what happens; `expects` says what is true afterwards, checkable.
 
 **Branches.** A choice between two ways, and a failure, is each its own
 Scenario. The usual way keeps the plain name; a branch adds what differs to
-that name: `ship-a-bet`, `ship-a-bet-replan`.
+it: `ship-a-bet`, `ship-a-bet-replan`.
 
 **Forks.** A list in the walk holds two or more side-by-side branches, each a
 step, a list of steps, or `[]` (an edge straight to the join); the next step
@@ -48,15 +48,15 @@ shown.
 
 Rules for a level:
 - The model's `level` is the root, the system's outermost repeating
-  structure. A node opens the level drawn inside it with `opens`.
+  structure. A node opens the level inside it with `opens`.
 - Show what it is made of (components) and how it works (activities, states);
   a body of knowledge has claims and what they rest on [mechanism].
 - A level has 2 to 7 nodes; group states that react alike and detail them below.
 - Every edge says something: a `what`, an operation or a guard [explained].
 - A condition such as "pass" is a guard, not an artifact: name what is handed on.
 - An artifact that is a component shown elsewhere gets `is: <component id>`.
-- A state level names its `subject`, the one thing whose states these are; each
-  state is a subset of it. It gives `initial` (one state per region) and may
+- A state level names its `subject`, the one thing whose states these are, each
+  a subset of it. It gives `initial` (one state per region) and may
   give `init`, a formula true at the start.
 - A component with exactly one instance (a harness, a policy) is `singleton`.
 
@@ -77,7 +77,7 @@ outside: a one-off arrival, or a repeating one with `every` (a clock). Requests
 at a rate are a one-off arrival, the rate in the `what`. A Scenario whose steps enter at the trigger's node uses it.
 
 **Ports.** A workflow opened from an activity lists the parent's artifacts as
-`in` (to a node) and `out` (from a node, or a list of nodes when several
+`in` (to a node) and `out` (from a node, or a list when several
 hand on the same thing). Triggers count as inputs, and a port wears its
 artifact's marks [balanced]. What a root workflow hands out goes to a node of
 its own, such as the activity of whoever receives it [form].
@@ -99,7 +99,7 @@ They meet only through `syncs`:
 `{ "name", "when": event, "where": state, "then": event }`: when `when`
 happens and `where` holds, `then` in another region follows [syncs].
 
-**Partitions.** Give `partitions` when there are two or more answers to who
+**Partitions.** Give `partitions` for two or more answers to who
 does each activity, where each thing lives or what it may access, one
 criterion per level. Each partition forms one block: no node of another
 partition sits inside the rectangle that spans its nodes. A crossing edge's
@@ -108,7 +108,7 @@ contract is a payload, a guard or an operation [partitions].
 ## Quantities
 
 When how much matters, give the element a `qty` `{"value", "unit", "kind"}`
-[quantities]; skip it where a number would only decorate. Kinds:
+[quantities]; skip decorative numbers. Kinds:
 - `stock` (node): what it holds; flows use its unit per time (`GtC`, `GtC/yr`).
 - `count` (node or edge): how many.
 - `capacity` (node): at most this many.
@@ -142,8 +142,8 @@ An operation is a method, `Receiver.verb(name: Type, …) → Result` [typed].
   what it `modifies` (`"Branch.tip"`), is a call at one moment; any other is a
   query, a function the model reads.
 - **Conditions.** `pre` holds when it is called and `post` after, over `self`,
-  its parameters and `result`; `modifies` lists every attribute the call may
-  change, and nothing else.
+  its parameters and `result`; `modifies` lists exactly the attributes the call may
+  change.
 - **One per verb.** Open, up and jump are all `Board.goto`. Write the signature
   before the sentence.
 
@@ -204,7 +204,7 @@ Add `media` when something concrete explains faster than a sentence. Types:
 
 Give edges media as readily as nodes. Mark made-up media `invented: true`
 (shown as "e.g."). Give a `title` only when it says more than the type. Never
-draw an order of activities in a note; such an order is a level.
+draw an order of activities in a note; it is a level.
 
 ## Insight
 

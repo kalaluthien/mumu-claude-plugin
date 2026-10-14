@@ -5,7 +5,8 @@ checked `system.json` and its defects.
 
 **Order.** The order of the work is the order of the system's own run: start
 where something enters it (a command, a request, a timer, a person's goal),
-follow it through what handles it to what it hands out, then take the next entry. Read each source once, when the run first reaches it, writing every
+follow it through what handles it to what it hands out, then take the next entry. Read each source once, when the run first reaches it (and what it imports
+or calls), writing every
 model part it supports, in the forms of [model-writing.md](model-writing.md):
 
 - entry point: a trigger and a Scenario starting there

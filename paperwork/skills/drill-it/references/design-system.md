@@ -11,9 +11,11 @@ thing once, when the run first needs it, writing it then in the forms of
 **Defects as you design.** Leave no Missing, Illegal, Redundant or Overloaded
 state in a state level, and give each rule a mechanism (a guard, `pre`, `post`).
 
-**Rebuild.** Someone given only `system.json` and the intent must build it without deciding: every path, branch, failure, value, limit and rule
+**Rebuild.** Someone given only `system.json` and the intent must rebuild it without deciding: every path, branch, failure, value, limit and rule
 goes in, on its own level past 7 nodes, and every thing the model keeps has
-its whole life: what creates it, each change, and what ends it.
+its whole life: what creates it, each change, and what ends it. Each operation
+names who it refuses, and when; say what history is kept and which of
+two simultaneous acts wins.
 
 ## Steps
 
