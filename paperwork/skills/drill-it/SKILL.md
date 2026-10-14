@@ -41,5 +41,5 @@ sections:
 
 - `## Facts`: one fact per line, then ` — ` and its file and line, command or url.
 - `## Not verified`: what the ask needs that no check confirmed, or `none`.
-- `## Undecided`: each point the facts leave to the user, with your proposed answer, or `none`.
-- a section named after the purpose, filling each part the caller passed; for a zoom diagram, the `model.json` path and its last `check` line; for a decision, none.
+- `## Undecided`: each point the facts leave to the user, with your recommended answer, or `none`.
+- a section named after the purpose, filling each part the caller passed; for a zoom diagram, the `model.json` path and its last `check` line; for a decision, the Question shape's parts per open decision.

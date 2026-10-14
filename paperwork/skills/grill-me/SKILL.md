@@ -16,8 +16,8 @@ question still open in this round belongs to a later round.
 
 ## Asking a round
 
-- Every round is one `AskUserQuestion` call of at most four questions, and
-  nothing else: no numbered text, no pasted-back block. Then wait.
+- Every round is one `AskUserQuestion` call of at most four questions, with
+  no numbered text and no pasted-back block beside it. Then wait.
 - Pick the four from the frontier by impact first - the answer that changes
   the most of the tree - then by conceptual order, a concept before the
   choices built on it. The rest of the frontier waits.
