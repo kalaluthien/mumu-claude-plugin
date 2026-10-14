@@ -41,7 +41,8 @@ def holds(issue, name):
     """Only a claim names a holder: a `DECIDED: <name> holds` comment or a `held by <name>` line, never a passing mention."""
     n = re.escape(name)
     texts = [issue["body"], *(c["body"] for c in issue["comments"])]
-    return any(re.match(rf"\s*DECIDED:\s*`?{n}`?\s+holds\b", c["body"]) for c in issue["comments"]) or any(
+    return any(c["body"].lstrip().startswith("DECIDED:") and re.search(rf"(?<![\w-])`?{n}`?\s+holds\b", c["body"])
+               for c in issue["comments"]) or any(
         re.search(rf"\bheld by `?{n}(?![\w-])", t) for t in texts)
 
 
@@ -103,8 +104,39 @@ def exit_action(me, listed):
 
 
 def worker_goal(me):
-    return [f"#{i['number']} {i['title']} ({i['url']}): " + ("waits on your manager" if asking(i) else "open")
-            for i in issues() or [] if holds(i, me["name"])]
+    """Each held issue's state from a fresh read, since `gh issue list` can lag a comment just posted."""
+    held = [i for i in issues() or [] if holds(i, me["name"])]
+    fresh = [run("gh", "issue", "view", i["url"], "--json", "number,title,url,body,comments") or i for i in held]
+    return [f"#{i['number']} {i['title']} ({i['url']}): " + ("waits on your manager" if asking(i) else "open") for i in fresh]
+
+
+# what a tool's result says when it starts background work, by tool
+STARTED = {"Agent": r"^agentId: (\w+)", "SendMessage": r"\"resumedAgentId\":\s*\"(\w+)\"", "Bash": r"\ACommand running in background with ID: (\w+)"}
+
+
+def text(content):
+    return content if isinstance(content, str) else " ".join(x.get("text", "") for x in content or [] if isinstance(x, dict))
+
+
+def running_work(transcript):
+    """Ids of the background agents and commands a transcript started that no task notification has ended yet."""
+    running, tools = set(), {}
+    try:
+        records = [json.loads(line) for line in open(transcript) if line.strip()]
+    except (OSError, ValueError):
+        return running
+    for r in records:
+        content = r.get("content") if r.get("type") == "queue-operation" else (r.get("message") or {}).get("content")
+        if isinstance(content, str):  # a notification arrives as plain text, never inside a tool result
+            running.difference_update(re.findall(r"<task-id>(\w+)</task-id>.*?<status>(?:completed|failed|killed|stopped)</status>", content, re.S))
+            continue
+        for b in (b for b in content or [] if isinstance(b, dict)):
+            if b.get("type") == "tool_use":
+                tools[b.get("id")] = STARTED.get(b.get("name"))
+                running.discard((b.get("input") or {}).get("task_id") if b.get("name") == "TaskStop" else None)
+            elif (pattern := tools.get(b.get("tool_use_id"))) and (found := re.search(pattern, text(b.get("content")), re.M)):
+                running.add(found.group(1))
+    return running
 
 
 def worker_actions(me, waiting):
