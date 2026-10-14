@@ -126,7 +126,7 @@ def sentence(found, threshold):
 def hook():
     payload = json.load(sys.stdin)
     data = os.environ.get("CLAUDE_PLUGIN_DATA")
-    if not data or payload.get("stop_hook_active"):
+    if not data:
         return 0
     entries = transcript.entries_of(payload.get("transcript_path") or "")
     if entries is None:
@@ -141,7 +141,8 @@ def hook():
     session, stops = payload.get("session_id", ""), sum(1 for e in entries if transcript.is_stop(e))
     # the stops right after an ask hold the wrap-up's own work and its fallout
     just_asked = stops - state["asked"].get(session, -ASK_GAP - 1) <= ASK_GAP
-    if not just_asked and (found["points"] >= threshold or found["recipe"] != "fine") and toplevel(payload.get("cwd")):
+    # a stop the hook already blocked still counts, since the wrap-up writes its lessons in that turn
+    if not payload.get("stop_hook_active") and not just_asked and (found["points"] >= threshold or found["recipe"] != "fine") and toplevel(payload.get("cwd")):
         reason = sentence(dict(found, memory=len(state["memory"])), threshold) + ASK
         state["asked"][session], state["pending"][session] = stops, True
         if len(state["memory"]) >= MEMORY_LIMIT:
