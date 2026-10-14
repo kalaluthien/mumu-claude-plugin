@@ -1,6 +1,6 @@
 ---
 name: show-me
-description: Use when the user wants to see something as a page instead of prose - a system, options, a change, where things stand, or a value to tune.
+description: Use when the user wants to see something as a page instead of prose - where things stand or what changed, how a system works, what happens when you try, or which option to take.
 disable-model-invocation: true
 ---
 
@@ -8,21 +8,25 @@ disable-model-invocation: true
 
 **Seen or not done**: describing a picture in prose, or naming a file path, is not showing it. Show the topic named, else the conversation's.
 
-## Routing
+## Playbooks
 
-Pick the row by what the reader wants done, never by the topic's look, and read its playbook before building. One page answers one intent; a second intent is a second page or a short part of the first.
+Each playbook answers one question the reader asks, and holds parts the page uses as needed. Read the playbook of each one you place before building.
 
-| the ask is to … | playbook |
+| the reader asks | playbook |
 | --- | --- |
-| analyse, design or learn a whole system, even one whose parts have choices: software, a process, a protocol, an organization, a body of knowledge | [references/zoom-diagram/zoom-diagram.md](references/zoom-diagram/zoom-diagram.md) |
-| choose among named alternatives: approaches, designs, layouts, tools | [references/option-cards.md](references/option-cards.md) |
-| review a change or a text: a pull request, a diff, a draft | [references/margin-notes.md](references/margin-notes.md) |
-| know where things stand or what happened: status, a trend, an incident | [references/chart-brief.md](references/chart-brief.md) |
-| set a value best judged by seeing it: a colour, a timing, a prompt, a config | [references/live-controls.md](references/live-controls.md) |
+| where does it stand, what happened, what changed or is planned? status, a trend, an incident, a pull request, a diff or a draft under review, a plan ahead | [references/sitrep/sitrep.md](references/sitrep/sitrep.md) |
+| how does it work? a system, a process, a protocol, a concept, or two of them compared to understand them | [references/zoom-diagram/zoom-diagram.md](references/zoom-diagram/zoom-diagram.md) |
+| what happens if I try? a value judged by seeing it (a colour, a timing, a prompt, a config), a concept to play with, steps to follow | [references/interactive-demo/interactive-demo.md](references/interactive-demo/interactive-demo.md) |
+| which one? named alternatives (approaches, designs, layouts, tools), or a verdict to give: merge, approve, keep, revert | [references/option-cards/option-cards.md](references/option-cards/option-cards.md) |
 
 An answer that fits on one screen as a table or a short fenced tree needs no page: give it in chat.
 
-**drill-it first**: before building, run the `drill-it` skill with the settled ask, the playbook's title as its purpose, and the playbook's Parts or, for a zoom diagram, the plan; build only from what it hands back.
+## Placing
+
+- **One per question**: split the ask into the questions the reader puts and place the playbook of each, no other: what happened or what changed is sitrep; why, or how it works, is zoom-diagram; what happens if I try is interactive-demo; what to do, which to pick, or whether it is ready is option-cards. Two kinds of ask always put two questions: a review of a change or a draft shows its notes (sitrep) and ends in the verdict (option-cards); a failure or an incident shows what happened (sitrep) before why (zoom-diagram).
+- **Order**: sitrep, zoom-diagram, interactive-demo, option-cards, as the reader goes from the situation to the mechanism, to trying, to the choice.
+- **drill-it first**: before building, run the `drill-it` skill once, with the settled ask, the placed playbooks' titles in order as its purposes, and each one's Parts or, for a zoom diagram, its plan; build only from what it hands back.
+- **Assembled**: each page playbook writes its part as a fragment; `"${CLAUDE_PLUGIN_ROOT}/skills/show-me/scripts/assemble-page.py" <plan.json> <out.html>` builds the page, its usage giving the plan's fields. A zoom diagram is built by its own playbook as a page of its own, linked from the assembled page.
 
 ## Delivery
 
@@ -30,7 +34,7 @@ An answer that fits on one screen as a table or a short fenced tree needs no pag
 
 ## Constraints
 
-- **Page parts**: a page playbook fills `${CLAUDE_PLUGIN_ROOT}/skills/show-me/assets/base-page.html`; its Parts says what each body part holds, its CSS goes after the base page's, and every table sits in a `.scroll` box. The base page closes with `.next`, the reader's next action, which the playbook's Next part names, else sending the Reply back; a Reply part is the `.reply` box the reader copies back to you, which a button's `data-reply` may fill.
+- **Page parts**: a page playbook's part is a fragment of the Parts its playbook names, with the playbook's CSS and script added by `assemble-page.py`; every table sits in a `.scroll` box. The page opens with the one-sentence answer and closes with the reader's next action; a `.reply` box, which a button's `data-reply` may fill, holds what the reader copies back to you.
 - **Only what it needs**: no section, widget or control the answer does not use; a fact that does not change the reader's view is cut, and so is a part that repeats another.
 - **Counted as shown**: a count the page states is the count of what it shows.
 - **One language**: the page is in the language the user's instructions name, else the ask's; a zoom diagram keeps its terms in English as its `model-writing.md` says.
