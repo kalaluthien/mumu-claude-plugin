@@ -30,7 +30,8 @@ PROBE = """() => {
   }
   for (const e of document.querySelectorAll('svg text')) {   // a drawing scaled down to the phone shrinks its text with it
     const h = e.getBoundingClientRect().height;
-    if (h && h < 10 && e.textContent.trim()) bad.push(`text in a drawing shows under 10 px tall: "${e.textContent.trim().slice(0, 20)}"`);
+    // a label scaled to exactly 10 px measures 9.99997
+    if (h && h < 9.95 && e.textContent.trim()) bad.push(`text in a drawing shows under 10 px tall: "${e.textContent.trim().slice(0, 20)}"`);
     const r = e.getBoundingClientRect(), s = e.ownerSVGElement.getBoundingClientRect();
     if (r.width && (r.right > s.right + 1 || r.left < s.left - 1)) bad.push(`text in a drawing is cut at its edge: "${e.textContent.trim().slice(0, 20)}"`);
   }

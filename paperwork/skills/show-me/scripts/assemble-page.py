@@ -10,7 +10,7 @@ The plan:
    "parts": [{"playbook": "<name>", "body": "<fragment.html>"}, ...]}   body paths relative to the plan
 
 Each part goes in a <section data-playbook="<name>">, in plan order. The base page's CSS and script come first;
-each placed playbook's own references/<name>/<name>.css and .js follow once, so a playbook the plan does not
+each placed playbook's own references/<name>/<name>.css and .js (or in its assets/) follow once, so a playbook the plan does not
 place adds nothing. Exit 0 and a line naming the parts, or exit 1 naming what is wrong.
 """
 import html
@@ -63,9 +63,10 @@ def main(args):
     own = []
     for name in names:
         for ext, tag, attr in (("css", "style", "data-playbook-css"), ("js", "script", "data-playbook-js")):
-            f = REFS / name / f"{name}.{ext}"
-            if f.exists():
-                own.append((tag, f'<{tag} {attr}="{name}">\n{f.read_text(encoding="utf-8").strip()}\n</{tag}>'))
+            # an engine in assets/, which a standalone page reads too, comes before what the placed part adds to it
+            for f in (REFS / name / "assets" / f"{name}.{ext}", REFS / name / f"{name}.{ext}"):
+                if f.exists():
+                    own.append((tag, f'<{tag} {attr}="{name}">\n{f.read_text(encoding="utf-8").strip()}\n</{tag}>'))
 
     lang = plan.get("lang", "en")
     labels = {**LABELS.get(lang, {}), **plan.get("labels", {})}
