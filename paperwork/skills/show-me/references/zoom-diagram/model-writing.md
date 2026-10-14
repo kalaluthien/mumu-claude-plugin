@@ -311,6 +311,11 @@ and the root never needs more than its card [fits].
 - Every `what`, `why` and `text` is plain, full sentences: first what it is
   for, then what follows from it.
 - Never terse fragments, and never a repeat of the drawing.
+- In a Korean model, `[prose]` (lint) reads every description and quotes the sentence at fault:
+  - the register: end a sentence in `-니다` or `-니까`, never `-요` or a plain `-다`; a quote is exempt;
+  - the particle after an English term follows its last sound (`Alloy가`, `run이`);
+  - the spacing: no space between a term and its particle (`Alloy가`), and `수 있`, `수 없` apart;
+  - the position word: no `위`, `아래`, `앞` or `다음` before `그림`, `표`, `식`, `그래프` or `칸`; name the figure (`그림의 위 칸` is fine).
 - Add `refs` as `[name](url)` wherever a source exists. Never invent a URL.
 
 ### Screens
