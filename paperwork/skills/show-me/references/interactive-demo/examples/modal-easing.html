@@ -1,0 +1,30 @@
+<p>Move the duration and the curve, then press Play: watch whether the modal arrives before the eye looks for it.</p>
+<div class="live">
+  <div class="controls">
+    <div class="presets">
+      <button data-preset='{"duration": 200, "easing": "ease-out"}'>Current</button>
+      <button data-preset='{"duration": 120, "easing": "linear"}'>Snappy</button>
+      <button data-preset='{"duration": 320, "easing": "cubic-bezier(.2,.8,.2,1)"}'>Soft</button>
+    </div>
+    <label>Duration <output data-show="duration"></output> ms <input type="range" min="80" max="600" step="10" value="200" data-param="duration" data-unit="ms"></label>
+    <label>Easing <output data-show="easing"></output>
+      <select data-param="easing"><option>ease-out</option><option>linear</option><option>ease-in-out</option><option>cubic-bezier(.2,.8,.2,1)</option></select></label>
+  </div>
+  <div class="preview">
+    <button class="play">Play</button>
+    <div class="modal-demo">Modal</div>
+  </div>
+  <pre data-template="transition: transform {duration}ms {easing}, opacity {duration}ms {easing};"></pre>
+</div>
+<style>
+.modal-demo { margin: 1rem auto 0; width: 60%; padding: 1.5rem; background: var(--fill); border: 1px solid var(--ink); text-align: center;
+  transition: transform var(--duration) var(--easing), opacity var(--duration) var(--easing); }
+.modal-demo.hide { transform: translateY(1rem) scale(.96); opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .modal-demo { transition: none; } }
+</style>
+<script>
+document.querySelector('.play').addEventListener('click', () => {
+  const m = document.querySelector('.modal-demo');
+  m.classList.add('hide'); requestAnimationFrame(() => requestAnimationFrame(() => m.classList.remove('hide')));
+});
+</script>
