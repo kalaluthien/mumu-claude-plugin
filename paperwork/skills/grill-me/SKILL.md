@@ -39,8 +39,7 @@ question still open in this round belongs to a later round.
   the `drill-it` skill with the purpose `decision`, the round's open decisions
   and Question shape below, and ask only from what it hands back: a fact under
   its Not verified is called unverified in the question that rests on it, and
-  a choice under its Choices is a question. The decisions are
-  the user's.
+  a choice under its Choices is a question.
 
 ## Question shape
 
@@ -51,8 +50,7 @@ Each question is answerable without opening a file. Its body carries:
   where one exists;
 - the recommended answer, as bullets.
 
-Each option's description names its cost as a number (files, lines, runs) and
-its downside. The recommended option is the first, labelled `(Recommended)`.
+Each option's description names its cost as a number and its downside. The recommended option is the first, labelled `(Recommended)`.
 
 ## Settling
 
