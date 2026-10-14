@@ -4,7 +4,9 @@ Brackets name the check that enforces a line. Every name below is also the
 name Alloy sees ([proof-commands.md](proof-commands.md)).
 
 Every term is English whatever the reader's language: the model's and each
-level's `title`, and each node, edge, trigger, partition and region `label`
+level's `title`, each node, edge, trigger, partition and region `label`, each
+medium's `title`, the term that opens each `facts` item, and each screen's
+`title` and block `name`
 (`Defining`, not `정하기` or `정하기 (Defining)`) [names], and so are the
 engine's own words (Facts, Insight, main path, optional). Only descriptions
 (`what`, `why`, `text`, `intent`, a step's `does` and `expects`, `next`) are

@@ -1,5 +1,6 @@
 """Model checks: each takes a Model and returns the problems it found, each a sentence that says what to fix."""
 import re
+import unicodedata
 
 from . import formula as F
 from . import plan as params
@@ -268,8 +269,19 @@ def names(M):
     # terms are English whatever the reader's language; only descriptions follow it
     terms = [m.get("title", "")] + [t for L in m["levels"] for t in [L.get("title", "")]
              + [x.get("label", "") for x in L["nodes"] + L["edges"] + L.get("triggers", []) + L.get("partitions", []) + L.get("regions", [])]]
-    out |= {f'"{t}" is a term: write it in English, and only descriptions in the reader\'s language' for t in terms if not str(t).isascii()}
+    for md in [md for L in m["levels"] for o in [L] + L["nodes"] + L["edges"] for md in o.get("media", [])]:
+        terms.append(md.get("title", ""))
+        if md.get("type") == "facts":
+            terms += [i[0] for i in md.get("items", []) if i]   # a fact's term, not its sentence
+    for sc in (m.get("screens") or {}).values():
+        terms += [sc.get("title", "")] + [b.get("name", "") for b in sc.get("blocks", [])]
+    out |= {f'"{t}" is a term: write it in English, and only descriptions in the reader\'s language' for t in terms if foreign(t)}
     return sorted(out)
+
+
+def foreign(text):
+    """A letter outside English's: Greek stays, since a term may carry a formula's symbol (λ)."""
+    return any(c.isalpha() and not c.isascii() and "GREEK" not in unicodedata.name(c, "") for c in str(text))
 
 
 def media(M):

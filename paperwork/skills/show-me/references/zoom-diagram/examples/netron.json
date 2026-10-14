@@ -1086,7 +1086,7 @@
        "media": [
         {
          "type": "code",
-         "title": "Python에서 열기",
+         "title": "Open from Python",
          "text": "import netron\nnetron.start('model.onnx')   # 로컬 서버를 띄우고 브라우저를 엽니다",
          "refs": ["[Netron README](https://github.com/lutzroeder/netron)"]
         }
@@ -1209,7 +1209,7 @@
        "media": [
         {
          "type": "facts",
-         "title": "ONNX 모듈이 차례로 시도하는 읽기 방식",
+         "title": "Readers the ONNX module tries in order",
          "items": [
           ["OrtReader", "ONNX Runtime의 flatbuffers 형식(.ort)"],
           ["ProtoReader", "protobuf 바이너리(.onnx)"],
@@ -1600,7 +1600,7 @@
        "media": [
         {
          "type": "payload",
-         "title": ".onnx 파일의 후보",
+         "title": ".onnx file candidates",
          "text": "['./onnx', './tflite', './tensorrt', './rknn', './om']",
          "refs": [
           "[view.js: register](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7247)"
@@ -1631,7 +1631,7 @@
        "media": [
         {
          "type": "payload",
-         "title": "압축 파일 하나",
+         "title": "One archive",
          "text": "resnet.zip\n  resnet/model.onnx      ← 후보\n  resnet/README.md",
          "invented": true
         }
@@ -1766,7 +1766,7 @@
        "media": [
         {
          "type": "payload",
-         "title": "워커로 가는 메시지",
+         "title": "Message to the worker",
          "text": "{ type: 'dagre.layout',\n  nodes: [{ v, width, height, parent }],\n  edges: [{ v, w, minlen, weight, width, height }],\n  layout: { nodesep: 20, ranksep: 20, rankdir: 'LR'? },\n  state: {} }",
          "refs": [
           "[grapher.js: layout](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/grapher.js#L224)"
@@ -1783,7 +1783,7 @@
        "media": [
         {
          "type": "payload",
-         "title": "돌아오는 좌표",
+         "title": "Returned coordinates",
          "text": "nodes: [{ v: 'node-12', x: 140, y: 380 }, …]\nedges: [{ v, w, points: [{x, y}, …] }, …]",
          "invented": true
         }
