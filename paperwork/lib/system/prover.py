@@ -444,11 +444,21 @@ def translate(M):
         L_.append(f"enum {name} {{ {', '.join(atoms)} }}")
     comps = [(n, s) for n, s in W.sigs.items() if s["kind"] == "component"]
     order = sorted(comps, key=lambda x: (len(x[1]["parents"]) > 0, x[0]))
+    # a query is a relation of one arity more than its parameters, and Kodkod refuses one over a few hundred atoms
+    # beyond arity 3 ("translation capacity exceeded"): declare a query only where a formula of the module names it
+    said = [i["formula"] for i in m["rules"]] + [L["init"] for L in M.levels.values() if L.get("init")]
+    said += [x for op in W.change.values() for x in (op.get("pre"), op.get("post")) if x]
+    named = set()
+    for text in said:
+        try:
+            named |= {name for _, name, _, _ in F.uses(text)}
+        except F.FormulaError:
+            pass
     for name, s in order:
         fields = []
         for fname, fs in W.fields.items():
             for f in fs:
-                if f["owner"] != name:
+                if f["owner"] != name or (f["mult"] == "query" and fname not in named):
                     continue
                 var = "var " if (name, fname) in W.var_fields else ""
                 mult = "" if f["mult"] == "query" else ("set " if f["mult"] == "set" and "->" in f["decl"] else f["mult"] + " ")
@@ -731,7 +741,7 @@ def run(text):
                     (CACHE / key(c)).write_text(json.dumps({"slow": SECONDS}))
                     continue
                 if not rec.exists():
-                    msg = [l for l in log.splitlines() if ("error" in l.lower() or "line" in l) and "JAVA_TOOL" not in l and not l.strip().startswith("at ")]
+                    msg = [l for l in log.splitlines() if ("error" in l.lower() or "line" in l or "capacity" in l or "cannot be" in l) and "JAVA_TOOL" not in l and not l.strip().startswith("at ")]
                     raise RuntimeError("\n".join(msg[:6]) or "no receipt from Alloy")
                 if c == todo[0]:   # type warnings belong to the module, so one command's log has them all
                     warn = warnings(log, module)
