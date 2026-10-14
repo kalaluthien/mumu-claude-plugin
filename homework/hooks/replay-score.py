@@ -11,8 +11,8 @@ after each ask reports the label back as that ask's outcome, `filed` when the
 stop is labelled worth a wrap-up, else `empty`, as the skill reports it live.
 `main` is main's rule rebuilt from the constants of main's takeaway.py: ask a
 harvest once WORK_THRESHOLD tool calls ran since the stop after its last ask
-and HARVEST_INTERVAL minutes passed since that ask, else a dream once
-DREAM_THRESHOLD memory files were written since its last dream ask.
+and HARVEST_INTERVAL minutes passed since that ask, else a tidy once
+DREAM_THRESHOLD (main's old name for it) memory files were written since its last tidy ask.
 
 Without --holdout every stop is scored and each head ask prints its sentence.
 With --holdout the sessions whose file name hashes odd are scored, after the
@@ -75,7 +75,7 @@ class Main:
     def __init__(self, constants):
         self.work = constants["WORK_THRESHOLD"]
         self.interval = constants["HARVEST_INTERVAL"] * 60
-        self.dream = constants["DREAM_THRESHOLD"]
+        self.tidy = constants["DREAM_THRESHOLD"]
         self.sessions, self.stamp, self.written = {}, None, {}
 
     def ask(self, session, stop):
@@ -92,7 +92,7 @@ class Main:
         if self.stamp is None:
             self.stamp = stop["at"]
             return False
-        if sum(1 for at in self.written.values() if at > self.stamp) >= self.dream:
+        if sum(1 for at in self.written.values() if at > self.stamp) >= self.tidy:
             self.stamp = stop["at"]
             return True
         return False
