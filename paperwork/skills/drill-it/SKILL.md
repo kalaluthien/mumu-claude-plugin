@@ -30,16 +30,16 @@ $ARGUMENTS
 
 ## Constraints
 
-- **Checked facts**: every name, number, status and path comes from a file read, a command run or a page opened in this run; one not checked is not verified: it goes under `## Not verified`, never under `## Facts`.
+- **Checked facts**: every name, number, status and path under `## Facts` comes from a file read, a command run or a page opened in this run.
 
 ## Hand-back
 
 The last message, in English, opens with this line, then holds only these
 sections:
 
-> Mark each Not verified item as not verified wherever you use it, and put each Choices item to the user.
+> Mark each Not verified item as not verified wherever you use it.
 
 - `## Facts`: one fact per line, then ` — ` and its file and line, command or url.
 - `## Not verified`: what the ask needs that no check confirmed, or `none`.
-- `## Choices`: each choice the facts leave to the user, with your proposed answer, or `none`.
+- `## Questions`: each question the facts leave to the user, with your proposed answer, or `none`.
 - a section named after the purpose, filling each part the caller passed; for a zoom diagram, the `model.json` path and its last `check` line; for a decision, none.
