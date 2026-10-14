@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""List a harvest's surprise candidates, one line each: time, kind, what.
+"""List a retro's surprise candidates, one line each: time, kind, what.
 
   list-candidates.py [<transcript|session>]   the session in CLAUDE_CODE_SESSION_ID by default
 
@@ -90,7 +90,7 @@ def comments(repo, number, start, end):
 
 
 def candidates(entries):
-    """One line per surprise since the last harvest: time, kind, what."""
+    """One line per surprise since the last retro: time, kind, what."""
     window = entries[since_last_ask(entries):]
     uses, lines = {}, []
     for entry in window:

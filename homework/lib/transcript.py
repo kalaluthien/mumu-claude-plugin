@@ -4,7 +4,7 @@ import json
 import os
 from datetime import datetime
 
-# one constant, so the hook's sentence and the harvest's search for it cannot drift apart
+# one constant, so the hook's sentence and the retro's search for it cannot drift apart
 SIGNAL = "Wrap-up signal:"
 
 
