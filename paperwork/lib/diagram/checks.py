@@ -268,6 +268,8 @@ def names(M):
     # terms are English whatever the reader's language; only descriptions follow it
     terms = [m.get("title", "")] + [t for L in m["levels"] for t in [L.get("title", "")]
              + [x.get("label", "") for x in L["nodes"] + L["edges"] + L.get("triggers", []) + L.get("partitions", []) + L.get("regions", [])]]
+    terms += [i[0] for L in m["levels"] for o in [L] + L["nodes"] + L["edges"] for md in o.get("media", [])
+              if md.get("type") == "facts" for i in md.get("items", []) if i]   # a fact's term, not its sentence
     out |= {f'"{t}" is a term: write it in English, and only descriptions in the reader\'s language' for t in terms if not str(t).isascii()}
     return sorted(out)
 
