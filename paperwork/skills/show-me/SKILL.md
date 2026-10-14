@@ -25,7 +25,7 @@ An answer that fits on one screen as a table or a short fenced tree needs no pag
 
 - **One per question**: split the ask into the questions the reader puts and place the playbook of each, no other: what happened or what changed is sitrep; why, or how it works, is zoom-diagram; what happens if I try is interactive-demo; what to do, which to pick, or whether it is ready is option-cards. Two kinds of ask always put two questions: a review of a change or a draft shows its notes (sitrep) and ends in the verdict (option-cards); a failure or an incident shows what happened (sitrep) before why (zoom-diagram).
 - **Order**: sitrep, zoom-diagram, interactive-demo, option-cards, as the reader goes from the situation to the mechanism, to trying, to the choice.
-- **drill-it first**: before building, run the `drill-it` skill once, with the settled ask, the placed playbooks' titles in order as its purposes, and each one's Parts or, for a zoom diagram, its plan; build only from what it hands back.
+- **drill-it first**: before building, run the `drill-it` skill once, with the settled ask, the placed playbooks' names in order (`sitrep`, `option-cards`, …) as its purposes, and each one's Parts or, for a zoom diagram, its plan; build only from what it hands back.
 - **Assembled**: each page playbook writes its part as a fragment; `"${CLAUDE_PLUGIN_ROOT}/skills/show-me/scripts/assemble-page.py" <plan.json> <out.html>` builds the page, its usage giving the plan's fields. A zoom diagram is built by its own playbook as a page of its own, linked from the assembled page.
 
 ## Delivery
