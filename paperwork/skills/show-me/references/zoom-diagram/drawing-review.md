@@ -3,8 +3,8 @@
 ## Principles
 
 - One thing to watch: only the selection is inverted.
-- Every mark has a job, one signal per meaning; nothing needs a title, figure number, hint or switch.
-- Calm: one eased movement per navigation, none if reduced motion.
+- Every mark has a job, one signal per meaning; no title, figure number, hint or switch.
+- Calm: one eased movement per navigation; none if reduced motion.
 - Type: names handwritten, identifiers and formulas mono, sentences sans,
   kinds and field labels small caps.
 
@@ -13,16 +13,14 @@
 - **Marks.** Each matches its model field
   ([model-writing.md](../../../drill-it/references/model-writing.md), Paths and partitions).
 - **Edges.** Orthogonal; no label touches a node, label or edge; edges from
-  different sources share no stretch. Quantities mono beside their element.
+  different sources share no stretch. Quantities mono beside the element.
 - **Syncs** are written on events (`push (→ receive)`), not drawn.
-- **Note.** A rule row shows its standing, opens to sentence, formula,
-  counterexample. No selection: level media.
+- **Note.** A rule row shows its standing, opens to sentence, formula, counterexample. No selection: level media.
 - **Walk.** A Scenario or counterexample shows one step at a time: its node
-  selected, earlier heavier, later plain, rest faded. One tick per
-  step; no autoplay; a tap outside ends it.
+  selected, earlier heavier, later plain, rest faded. One tick per step;
+  no autoplay; a tap outside ends it.
 
 ## Critic's pass
 
 After `make-diagram.py make` passes, view each level at both widths and themes (`render out.html --shots DIR`). Check arrow tips sit on borders, nothing is
-clipped, opening nodes have a chevron, nodes a screen shows show it, and the
-Principles hold. A wide non-root level scrolls sideways on a phone: not clipping.
+clipped, opening nodes have a chevron, shown nodes show it, and the Principles hold. A wide non-root level scrolling sideways on a phone is not clipping.

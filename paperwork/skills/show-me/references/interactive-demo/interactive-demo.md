@@ -4,7 +4,7 @@ The reader learns by trying: moves a value and sees the result at once, or follo
 
 ## Parts
 
-Write a fragment; `assemble-page.py` wraps it and adds this folder's CSS and script. Unmarked parts are optional; use at least one of Live block and Steps.
+Unmarked parts are optional; use at least one of Live block and Steps.
 
 - **Lead** (required): one `<p>`: what to try and watch for
 - **Live block**: `.live` with `.controls` and `.preview`: one control per parameter that changes the result, `data-param="<name>"`, with name, value in `<output data-show="<name>">` and unit; rare ones in a `<details>`. Controls redraw on `input`; no apply button.
