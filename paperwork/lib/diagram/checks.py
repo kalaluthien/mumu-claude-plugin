@@ -5,7 +5,7 @@ import unicodedata
 from . import formula as F
 from . import plan as params
 from . import prover as A
-from .model import places, plan, split_top, walk_steps
+from .model import LIMITS, places, plan, split_top, walk_steps
 
 NODE_MEDIA, EDGE_MEDIA = {"tree", "checklist"}, {"diff", "payload"}
 first_word = lambda t: t.strip().split()[0].lower() if t and t.strip() else ""
@@ -93,6 +93,29 @@ def size(M):
             out.append(f'{L["id"]}: opens with {n} node; merge it into {L["parent"]}')
     return out
 
+
+
+
+def phone(M):
+    """A phone's root is laid out again in two columns or one, so the author's columns never decide whether it fits.
+    Partitions then stack as bands of rows, and two rows of two cells join by at most three lines that do not cross
+    (two straight down, one across); more links between two partitions detour round the sides and meet. Limits in
+    assets/phone-limits.json, shared with the engine; render measures the fit itself."""
+    out = []
+    for L in M.m["levels"]:
+        if L.get("parent") or not L.get("partitions"):
+            continue
+        part = {n["id"]: n.get("partition") for n in L["nodes"]}
+        links = {}
+        for e in L["edges"]:
+            a, b = part.get(e["from"]), part.get(e["to"])
+            if a != b:
+                links.setdefault(tuple(sorted((a, b))), set()).add(frozenset((e["from"], e["to"])))
+        for (a, b), pairs in sorted(links.items()):
+            if len(pairs) > LIMITS["partitionLinks"]:
+                out.append(f'{L["id"]}: partitions {a} and {b} are joined at {len(pairs)} pairs of nodes, more than the '
+                           f'{LIMITS["partitionLinks"]} a phone can draw apart; route some through one node or open them in a level below')
+    return out
 
 def mechanism(M):
     out = []
@@ -468,7 +491,7 @@ def alloy(M):
     return probs
 
 
-LINT = {"basis", "explained", "size", "mechanism", "paths", "depth", "naming", "media"}
+LINT = {"basis", "explained", "size", "phone", "mechanism", "paths", "depth", "naming", "media"}
 
 RULES = [
     ("form", "the file is well formed: one root, known kinds, initial states, named edges, refs as [name](url), a valid plan", form),
@@ -480,6 +503,7 @@ RULES = [
     ("placement", "operations sit on nodes or events, rules on nodes or edges", placement),
     ("explained", "every edge and trigger says something: a sentence, an operation or a guard", explained),
     ("size", "a level has 2 to max_nodes (7) nodes", size),
+    ("phone", f"a phone can draw the root: no two of its partitions joined at more than {LIMITS['partitionLinks']} pairs of nodes", phone),
     ("mechanism", "where anything runs, root Scenarios walk an activity or state, and every component meets one of them", mechanism),
     ("partitions", "every node of a partitioned level is in one of two or more partitions, regions keep their events, crossings carry a contract (render checks the blocks)", partitions),
     ("quantities", "counts and pass-through nodes add up, flows match their stock's unit, every deadline shows what happens when it passes", quantities),

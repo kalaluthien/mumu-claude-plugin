@@ -350,7 +350,9 @@ def dump(data, pad=""):
     return o + "\n" + ",\n".join(inner + x for x in items) + "\n" + pad + c
 
 
-SCHEMA = json.loads((__import__("pathlib").Path(__file__).resolve().parents[2] / "skills/show-me/references/zoom-diagram/assets/model-schema.json").read_text(encoding="utf-8"))
+ASSETS = __import__("pathlib").Path(__file__).resolve().parents[2] / "skills/show-me/references/zoom-diagram/assets"
+SCHEMA = json.loads((ASSETS / "model-schema.json").read_text(encoding="utf-8"))
+LIMITS = json.loads((ASSETS / "phone-limits.json").read_text(encoding="utf-8"))   # a phone's limits, shared with the engine
 TYPES = {"string": str, "array": list, "object": dict, "integer": int, "number": (int, float), "boolean": bool, "null": type(None)}
 
 

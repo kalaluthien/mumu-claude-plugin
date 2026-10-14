@@ -1,4 +1,4 @@
-function mountZoomDiagram(root, M) {
+function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.json, which the checks read too
   const NS = "http://www.w3.org/2000/svg";
   const still = matchMedia("(prefers-reduced-motion: reduce)");
   const KIND = {
@@ -97,8 +97,8 @@ function mountZoomDiagram(root, M) {
   const pairKey = e => [e.from, e.to].sort().join("|");
   // nodes without x and y are placed by the engine, one at a time beside a placed neighbour (one of its own
   // partition first), in the free cell where its edges, drawn by route() itself, cross the fewest other nodes
-  function arrange(L) {
-    const todo = L.nodes.filter(n => n.x == null || n.y == null);
+  function arrange(L, cap) {
+    const todo = L.nodes.filter(n => cap || n.x == null || n.y == null);
     if (!todo.length) return;
     const box = (c, r) => ({ x: c * 200, y: r * 130, w: NW, h: NH, c, r, gx: GX });
     const at = {}, taken = new Set();
@@ -110,7 +110,9 @@ function mountZoomDiagram(root, M) {
       todo.splice(todo.indexOf(n), 1);
       const placed = near(n).filter(id => at[id]), mates = L.nodes.filter(o => at[o.id] && o.partition && o.partition === n.partition);
       const around = ids => ids.flatMap(id => [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([dc, dr]) => [at[id].c + dc, at[id].r + dr]));
-      let cells = around(placed.length ? placed : mates.map(o => o.id)).filter(([c, r]) => !taken.has(c + "," + r));
+      const ok = ([c, r]) => !taken.has(c + "," + r) && (!cap || Math.max(c, ...Object.values(at).map(b => b.c)) - Math.min(c, ...Object.values(at).map(b => b.c)) < cap);
+      let cells = around(placed.length ? placed : mates.map(o => o.id)).filter(ok);
+      if (!cells.length && cap) cells = around(Object.keys(at)).filter(ok);
       if (!cells.length) { const cmax = Math.max(-1, ...Object.values(at).map(b => b.c)); cells = [[cmax + 1, 0]]; }
       // what the drawing check would object to, counted on every edge placed so far: edges through nodes, and
       // stretches two edges from different sources share
@@ -140,11 +142,34 @@ function mountZoomDiagram(root, M) {
     const c0 = Math.min(...L.nodes.map(n => n.x)), r0 = Math.min(...L.nodes.map(n => n.y));
     L.nodes.forEach(n => { n.x -= c0; n.y -= r0; });
   }
-  function geom(L) {
+  // on a phone the root is laid out again on a copy, in two columns or one, its long labels on two lines, so it
+  // fits the card with its text at 9 px; the wide drawing keeps the author's grid
+  const phone = L => !L.parent && narrow(), chosen = {};
+  // a phone's root draws counts at 15 px, so they do not set its scale; an edge's in the label's narrower face
+  const FONT_Q = '15px "IBM Plex Mono", monospace';
+  const wide = ws => ws.reduce((k, [s, c]) => k + meas(s, c === "n" ? FONT_N : FONT_E), 0);
+  function wrap(L, parts, max) {   // parts [[text, class]] → one line, or two broken at the space that leaves the wider narrowest
+    const ws = parts.filter(p => p[0]).flatMap(([t, c]) => t.split(/(?<= )/).map(s => [s, c]));
+    const two = i => Math.max(wide(ws.slice(0, i)), wide(ws.slice(i)));
+    if (!phone(L) || wide(ws) <= max || ws.length < 2) return [ws];
+    const i = ws.slice(1).reduce((b, _, j) => two(j + 1) < two(b) ? j + 1 : b, 1);
+    return [ws.slice(0, i), ws.slice(i)];
+  }
+  const nodeLines = (L, n) => wrap(L, [[shown(n), "n"]], LIMITS.nodeLine);
+  const edgeLines = (L, e) => {   // a count that does not fit beside the label takes a line of its own
+    const ls = wrap(L, [[shown(e), ""], [syncTag(L, e) && ` (${syncTag(L, e)})`, "e-sync"]], LIMITS.edgeLine), q = e.qty && [" " + qtyText(e.qty), "e-qty"];
+    if (!q) return ls;
+    const last = ls[ls.length - 1].concat([q]);
+    return phone(L) && wide(last) > LIMITS.edgeLine ? ls.concat([[[qtyText(e.qty), "e-qty"]]]) : ls.slice(0, -1).concat([last]);
+  };
+  const lineW = ls => Math.max(...ls.map(wide));
+  const ink = (t, ls, x, lh) => ls.forEach((l, i) => { const s = el(t, "tspan", { x, dy: i ? lh : 0 }); l.forEach(([w, c]) => c === "e-sync" || c === "e-qty" ? el(s, "tspan", { class: c }, w) : s.append(w)); });
+  function geom(L, P) {
+    if (P) L = P;
     arrange(L);
-    const h = NH;
+    const h = NH + (L.nodes.some(n => nodeLines(L, n).length > 1) ? 20 : 0);
     const at = Object.fromEntries(L.nodes.map(n => [n.id, n]));
-    const nw = Math.max(NW, ...L.nodes.map(n => Math.ceil(meas(shown(n), FONT_N) + (childOf[n.id] ? 50 : 34))));
+    const nw = Math.max(NW, ...L.nodes.map(n => Math.ceil(lineW(nodeLines(L, n)) + (childOf[n.id] ? 50 : 34))));
     const cols = Math.max(...L.nodes.map(n => n.x)) + 1, rows = Math.max(...L.nodes.map(n => n.y)) + 1;
     const loop = L.edges.some(e => e.from === e.to) ? 46 : 0;
     const over = L.edges.some(e => e.from !== e.to && at[e.from].y === at[e.to].y && Math.abs(at[e.from].x - at[e.to].x) > 1) ? 44 : 0;
@@ -168,7 +193,8 @@ function mountZoomDiagram(root, M) {
       const n = at_(at), prefer = kind === "out" ? ["right", "bottom", "top", "left"] : ["top", "left", "bottom", "right"];
       const side = prefer.find(sd => free(n, sd)) || prefer[0]; (used[n.id] = used[n.id] || []).push(side);
       const flat = side === "left" || side === "right";
-      return { kind, t, n, side, text, len: flat ? Math.max(46, Math.ceil(meas(text, FONT_E) + 30)) : 36 };
+      const ls = wrap(L, [[text, ""]], LIMITS.edgeLine);
+      return { kind, t, n, side, text, ls, len: flat ? Math.max(46, Math.ceil(lineW(ls) + 30)) : 36 };
     };
     const at_ = id => at[id];
     const trig = (L.triggers || []).map(t => stub("trig", t, t.to, shown(t))).concat(flows.map(q => stub(q.kind, q.f, q.at, q.f.edge)));
@@ -177,7 +203,7 @@ function mountZoomDiagram(root, M) {
     const far = e => e.from !== e.to && at[e.from].x === at[e.to].x && Math.abs(at[e.from].y - at[e.to].y) > 1;
     const side = L.edges.some(e => far(e) && e.via !== "left") ? 36 : 0, viaLeft = L.edges.some(e => far(e) && e.via === "left" && at[e.from].x === 0) ? 40 : 0;
     const top = PAD + 6 + Math.max(loop, over, iniTop ? 32 : 0, tTop), left = PAD + Math.max(inis.some(n => !iniTopOf(n)) ? 26 : 0, tLeft, viaLeft);
-    const hl = L.edges.filter(e => e.from !== e.to && at[e.from].y === at[e.to].y).map(e => meas(tagged(L, e), FONT_E));
+    const hl = L.edges.filter(e => e.from !== e.to && at[e.from].y === at[e.to].y).map(e => phone(L) ? lineW(edgeLines(L, e)) : meas(tagged(L, e), FONT_E));
     const gx = Math.max(GX, Math.ceil(Math.max(0, ...hl) + 34));
     const W = left + cols * nw + (cols - 1) * gx + PAD + Math.max(side, tRight), H = top + rows * h + (rows - 1) * GY + PAD + tBot;
     const box = {}; L.nodes.forEach(n => box[n.id] = { x: left + n.x * (nw + gx), y: top + n.y * (h + GY), w: nw, h, c: n.x, r: n.y, gx });
@@ -266,26 +292,102 @@ function mountZoomDiagram(root, M) {
     const R = rng(seed), ang = Math.atan2(p.y - q.y, p.x - q.x), L = 9 + R() * 2, s = 0.42 + R() * 0.08;
     [-1, 1].forEach(k => el(g, "path", { d: `M${(p.x - L * Math.cos(ang + k * s)).toFixed(1)},${(p.y - L * Math.sin(ang + k * s)).toFixed(1)} Q${(p.x - L * 0.45 * Math.cos(ang + k * s * 0.8)).toFixed(1)},${(p.y - L * 0.45 * Math.sin(ang + k * s * 0.8)).toFixed(1)} ${p.x.toFixed(1)},${p.y.toFixed(1)}`, class: "e-head" }));
   }
-  function label(g, pts, text, lane, loop, tag, qty) {
+  function label(g, pts, text, lane, loop, tag, qty, ls) {
     let best = 0, bl = -1;
     for (let i = 1; i < pts.length; i++) { const l = dist(pts[i - 1], pts[i]); if (l > bl) { bl = l; best = i; } }
     if (loop) best = 2;
     const p = pts[best - 1], q = pts[best], m = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 }, horiz = Math.abs(p.y - q.y) < 0.5;
     const t = el(g, "text", horiz
       ? { x: m.x, y: lane > 0 ? m.y + 18 : m.y - 8, "text-anchor": "middle", class: "e-lab" }
-      : { x: lane < 0 ? m.x - 9 : m.x + 9, y: m.y + 5, "text-anchor": lane < 0 ? "end" : "start", class: "e-lab" }, text);
-    if (tag) el(t, "tspan", { class: "e-sync" }, ` (${tag})`);
-    if (qty) el(t, "tspan", { class: "e-qty" }, ` ${qtyText(qty)}`);
+      : { x: lane < 0 ? m.x - 9 : m.x + 9, y: m.y + 5, "text-anchor": lane < 0 ? "end" : "start", class: "e-lab" }, ls && ls.length > 1 ? null : text);
+    if (ls && ls.length > 1) { t.setAttribute("y", +t.getAttribute("y") - (!horiz ? 8.5 : lane > 0 ? 0 : 17) * (ls.length - 1)); ink(t, ls, t.getAttribute("x"), 17); }
+    else {
+      if (tag) el(t, "tspan", { class: "e-sync" }, ` (${tag})`);
+      if (qty) el(t, "tspan", { class: "e-qty" }, ` ${qtyText(qty)}`);
+    }
     const bb = t.getBBox(), plate = document.createElementNS(NS, "rect");
     Object.entries({ x: bb.x - 3, y: bb.y, width: bb.width + 6, height: bb.height, rx: 3, class: "e-plate" }).forEach(([k, v]) => plate.setAttribute(k, v));
     g.insertBefore(plate, t);
   }
 
   let G0 = null;
+  // each layout a phone's root may take: the author's grid, then two columns, then one, each started from every
+  // node in turn and then walked a hundred steps; the first that fits the card and that render's drawing check
+  // would pass is kept for this card's width. When none does, the root keeps the author's grid and scrolls sideways
   function draw(fromBox) {
-    const L = levels[st.level], K = KIND[L.kind], g0 = G0 = geom(L);
+    const L = levels[st.level], key = L.id + "@" + $(".zd-canvas").clientWidth + document.fonts.status;
+    if (phone(L) && !chosen[key]) {
+      const copy = (ns, f = () => ({}), es = L.edges) => Object.assign({}, L, { nodes: ns.map(n => Object.assign({}, n, f(n))), edges: es.map(e => Object.assign({}, e)) });
+      const tight = P => { const ys = [...new Set(P.nodes.map(n => n.y))].sort((a, b) => a - b); P.nodes.forEach(n => n.y = ys.indexOf(n.y)); return P; };
+      const try_ = P => ({ P, s: paint(null, P) });
+      const author = (P => (arrange(P), try_(P)))(copy(L.nodes));   // the author's grid first
+      let best = author;
+      for (const cap of [2, 1]) {
+        if (!best.s) break;
+        let b = null;   // the engine's own placement, begun at each node in turn
+        for (let i = 0; i < L.nodes.length && !(b && !b.s); i++) { const P = copy(L.nodes.slice(i).concat(L.nodes.slice(0, i))); arrange(P, cap); const t = try_(P); if (blocks(P) && (!b || t.s < b.s)) b = t; }
+        if ((!b || b.s) && L.partitions) {   // or each partition a band of rows, in the author's reading order
+          const order = L.nodes.slice().sort((a, b) => a.y - b.y || a.x - b.x), parts = [...new Set(order.map(n => n.partition))];
+          let row = 0; const at = {};
+          parts.forEach(p => { order.filter(n => n.partition === p).forEach((n, j) => at[n.id] = { x: j % cap, y: row + Math.floor(j / cap) }); row = Math.max(...Object.values(at).map(a => a.y)) + 1; });
+          const t = try_(copy(L.nodes, n => at[n.id])); if (!b || t.s < b.s) b = t;
+        }
+        // then walk: move a node to another cell, or swap two, keeping each step that does not raise the count
+        const R = rng(hash(L.id + cap));
+        for (let k = 0, cur = b; k < 100 && b.s; k++) {
+          let t;
+          if (R() < 0.25) { const P = copy(cur.P.nodes, undefined, cur.P.edges), e = P.edges[Math.floor(R() * P.edges.length)]; e.via = e.via === "left" ? undefined : "left"; t = try_(P); }
+          else {
+            const n = cur.P.nodes[Math.floor(R() * L.nodes.length)], c = Math.floor(R() * cap), r = Math.floor(R() * (Math.max(...cur.P.nodes.map(m => m.y)) + 2));
+            const o = cur.P.nodes.find(m => m.x === c && m.y === r), P = o === n ? null : tight(copy(cur.P.nodes, m => m === n ? { x: c, y: r } : m === o ? { x: n.x, y: n.y } : {}, cur.P.edges));
+            if (!P || !blocks(P)) continue;
+            t = try_(P);
+          }
+          if (t.s <= cur.s) cur = t;
+          if (t.s < b.s) b = t;
+        }
+        if (b.s < best.s) best = b;
+      }
+      chosen[key] = (best.s ? author : best).P;
+    }
+    paint(fromBox, phone(L) && chosen[key]);
+  }
+  // each partition's cells hold none of another's: the drawing check's one-block rule, read on the grid
+  const blocks = P => (P.partitions || []).every(Q => { const own = P.nodes.filter(n => n.partition === Q.id), xs = own.map(n => n.x), ys = own.map(n => n.y);
+    return !P.nodes.some(n => n.partition !== Q.id && n.x >= Math.min(...xs) && n.x <= Math.max(...xs) && n.y >= Math.min(...ys) && n.y <= Math.max(...ys)); });
+  // what render's drawing check (drawing.py) would object to on this drawing, counted
+  function clashes(world) {
+    const R = e => ({ x: +e.getAttribute("x"), y: +e.getAttribute("y"), w: +e.getAttribute("width"), h: +e.getAttribute("height") });
+    const hit = (a, b, m) => a.x < b.x + b.w + m && b.x < a.x + a.w + m && a.y < b.y + b.h + m && b.y < a.y + a.h + m;
+    const inside = (p, b, m) => p.x > b.x + m && p.x < b.x + b.w - m && p.y > b.y + m && p.y < b.y + b.h - m;
+    const ns = [...world.querySelectorAll(".node")].map(g => ({ id: g.dataset.id, p: g.dataset.p, b: R(g.querySelector(".n-fill")) }));
+    const es = [...world.querySelectorAll(".edge")].map(g => {
+      const [from, to] = g.dataset.key.split(":")[1].split(">"), raw = g._raw, pts = [], pl = g.querySelector(".e-plate");
+      for (let i = 1, a = 0, s = 8, n = raw.reduce((t, q, j) => t + (j ? dist(raw[j - 1], q) : 0), 0); i < raw.length && s < n - 8; i++) {   // every 4 along the line
+        const l = dist(raw[i - 1], raw[i]);
+        for (; s <= a + l && s < n - 8; s += 4) pts.push({ x: raw[i - 1].x + (raw[i].x - raw[i - 1].x) * (s - a) / l, y: raw[i - 1].y + (raw[i].y - raw[i - 1].y) * (s - a) / l });
+        a += l;
+      }
+      const cell = new Map(); pts.forEach(p => { const c = Math.round(p.x / 3) + "," + Math.round(p.y / 3); cell.set(c, (cell.get(c) || []).concat([p])); });
+      const near = p => { for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) if ((cell.get((Math.round(p.x / 3) + dx) + "," + (Math.round(p.y / 3) + dy)) || []).some(q => dist(p, q) < 3)) return true; return false; };
+      return { from, to, pts, near, plate: pl && R(pl) };
+    });
+    let k = 0;
+    world.querySelectorAll(".part").forEach(g => { const bb = g.querySelector(".p-ink").getBBox(), p = { x: bb.x, y: bb.y, w: bb.width, h: bb.height }; k += ns.filter(n => n.p !== g.dataset.p && hit(p, n.b, -4)).length; });
+    es.forEach((e, i) => {
+      k += ns.filter(n => e.plate && hit(e.plate, n.b, 1) || n.id !== e.from && n.id !== e.to && e.pts.some(p => inside(p, n.b, 3))).length;
+      es.forEach((f, j) => {
+        if (j > i && f.from !== e.from) { let run = 0, worst = 0; for (const p of e.pts) { run = f.near(p) && !ns.some(n => hit({ x: p.x, y: p.y, w: 0, h: 0 }, n.b, 12)) ? run + 1 : 0; worst = Math.max(worst, run); } k += worst >= 5; }
+        if (j !== i && e.plate) k += (j > i && f.plate && hit(e.plate, f.plate, 1)) + f.pts.some(p => inside(p, e.plate, 0.5));
+      });
+    });
+    return k;
+  }
+  function paint(fromBox, P) {
+    const L = P || levels[st.level], K = KIND[L.kind], g0 = G0 = geom(L);
     const host = $(".zd-canvas"); host.innerHTML = "";
     const svg = el(host, "svg", { viewBox: `0 0 ${g0.W} ${g0.H}`, role: "img", "aria-label": `${L.title}, ${L.nodes.length} nodes` });
+    if (P) svg.classList.add("phone");
     const world = el(svg, "g", { class: "world" });
     const edgeFade = () => { const r = host.scrollWidth - host.clientWidth; host.classList.toggle("more-r", host.scrollLeft < r - 2); host.classList.toggle("more-l", host.scrollLeft > 2); };
     host.onscroll = edgeFade; requestAnimationFrame(edgeFade);
@@ -309,10 +411,10 @@ function mountZoomDiagram(root, M) {
       if (st.sel && st.sel.edge === k) g.classList.add("lit");
       cls(g, k);
       const pts = route(g0.box, e, lane), raw = sample(pts, 10, 5), d = smooth(wobble(raw, seed, 0.9));
-      el(g, "path", { d: smooth(raw), class: "e-hit" });
+      el(g, "path", { d: smooth(raw), class: "e-hit" }); g._raw = raw;
       el(g, "path", { d, class: "e-line" });
       inkHead(g, pts[pts.length - 1], raw[raw.length - 3], seed + 7);
-      if (e.label) label(g, pts, shown(e), lane, e.from === e.to, syncTag(L, e), e.qty);
+      if (e.label) label(g, pts, shown(e), lane, e.from === e.to, syncTag(L, e), e.qty, edgeLines(L, e));
       const pa = part[e.from], pb = part[e.to], B = pa && pb && pa !== pb && pbox[pa];
       if (B) { const q = raw.find(t => t.x < B.x || t.x > B.x + B.w || t.y < B.y || t.y > B.y + B.h); if (q) el(g, "rect", { x: q.x - 4, y: q.y - 4, width: 8, height: 8, class: "x-port" }); }
       const pick = () => act(k, () => select({ edge: k, e }));
@@ -328,7 +430,7 @@ function mountZoomDiagram(root, M) {
     });
     // stubs: a trigger from outside (open circle, clock hands when it repeats), or the parent's artifact
     // entering or leaving this process at a square port; a port leads back up to that artifact
-    g0.trig.forEach(({ kind, t, n, side, len, text }) => {
+    g0.trig.forEach(({ kind, t, n, side, len, text, ls }) => {
       const B = g0.box[n.id], out = kind === "out";
       const k = kind === "trig" ? trigKey(L.id, t) : L.id + (out ? ":" + n.id + ">^" : ":^>" + n.id) + "#" + t.edge, seed = hash(k);
       const g = el(world, "g", { class: "edge " + (kind === "trig" ? "trig" : "port"), tabindex: 0, role: "button", "data-key": k,
@@ -339,14 +441,14 @@ function mountZoomDiagram(root, M) {
       const edgePt = { top: { x: B.x + B.w / 2, y: B.y }, bottom: { x: B.x + B.w / 2, y: B.y + B.h }, left: { x: B.x, y: B.y + B.h / 2 }, right: { x: B.x + B.w, y: B.y + B.h / 2 } }[side];
       const dir = { top: [0, -1], bottom: [0, 1], left: [-1, 0], right: [1, 0] }[side], far = { x: edgePt.x + dir[0] * len, y: edgePt.y + dir[1] * len };
       const [p, q] = out ? [edgePt, far] : [far, edgePt], raw = sample([p, q], 0, 4), c = { x: far.x + dir[0] * 8, y: far.y + dir[1] * 8 };
-      el(g, "path", { d: smooth(raw), class: "e-hit" });
+      el(g, "path", { d: smooth(raw), class: "e-hit" }); g._raw = raw;
       el(g, "path", { d: smooth(wobble(raw, seed, 0.6)), class: "e-line" });
       inkHead(g, q, raw[raw.length - 3], seed + 7);
       if (kind === "trig") {
         el(g, "circle", { cx: c.x, cy: c.y, r: 8, class: "t-src" });
         if (t.every) el(g, "path", { d: `M${c.x},${c.y - 5} L${c.x},${c.y} L${c.x + 4},${c.y + 2}`, class: "t-hand" });
       } else el(g, "rect", { x: c.x - 6, y: c.y - 6, width: 12, height: 12, class: "x-port" });
-      label(g, [p, q], text, 0, false);
+      label(g, [p, q], text, 0, false, null, null, ls);
       const pick = kind === "trig" ? () => act(k, () => select({ edge: k, e: t })) : () => {
         const pl = nodeLevel[L.parent], pe = levels[pl].edges.find(e => e.label === t.edge && (out ? e.from === L.parent : e.to === L.parent));
         const ptr = (levels[pl].triggers || []).find(x => x.label === t.edge && x.to === L.parent);
@@ -363,9 +465,10 @@ function mountZoomDiagram(root, M) {
       cls(g, n.id);
       el(g, "rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx, class: "n-fill" });
       el(g, "path", { d: inkRect(b.x, b.y, b.w, b.h, rx, seed), class: "n-ink" });
-      el(g, "text", { x: b.x + b.w / 2 - (open ? 8 : 0), y: b.y + b.h / 2 + 5.5, "text-anchor": "middle", class: "n-lab" }, shown(n));
+      const nl = nodeLines(L, n), tx = b.x + b.w / 2 - (open ? 8 : 0), t = el(g, "text", { x: tx, y: b.y + b.h / 2 + 5.5 - (nl.length - 1) * 9.5, "text-anchor": "middle", class: "n-lab" }, nl.length > 1 ? null : shown(n));
+      if (nl.length > 1) ink(t, nl, tx, 19);
       if (n.qty) {   // how much it holds, on its bottom left corner
-        const txt = qtyText(n.qty), w = meas(txt, '13px "IBM Plex Mono", monospace') + 12, bq = el(g, "g", { class: "n-qty" });
+        const txt = qtyText(n.qty), w = meas(txt, P ? FONT_Q : '13px "IBM Plex Mono", monospace') + 12, bq = el(g, "g", { class: "n-qty" });
         el(bq, "rect", { x: b.x - 6, y: b.y + b.h - 9, width: w, height: 18, rx: 4 });
         el(bq, "text", { x: b.x - 6 + w / 2, y: b.y + b.h + 4, "text-anchor": "middle" }, txt);
       }
@@ -389,9 +492,10 @@ function mountZoomDiagram(root, M) {
     // shrinks until its smallest text is 9 px and scrolls sideways past that, on a wide screen it stops at 0.72
     const bb = world.getBBox(), x0 = Math.min(0, Math.floor(bb.x - 6)), y0 = Math.min(0, Math.floor(bb.y - 6));
     const x1 = Math.max(g0.W, Math.ceil(bb.x + bb.width + 6)), y1 = Math.max(g0.H, Math.ceil(bb.y + bb.height + 6)), w = x1 - x0;
-    const fonts = [...world.querySelectorAll("text")].map(t => parseFloat(getComputedStyle(t).fontSize)), k = narrow() ? 9 / Math.min(...fonts) : 0.72;
+    const fonts = [...world.querySelectorAll("text")].map(t => parseFloat(getComputedStyle(t).fontSize)), k = narrow() ? LIMITS.minPx / Math.min(...fonts) : 0.72;
     svg.setAttribute("viewBox", `${x0} ${y0} ${w} ${y1 - y0}`);
     svg.setAttribute("style", `min-width:${Math.ceil(w * k)}px;max-width:${Math.round(w * 1.15)}px`);
+    if (P && !fromBox) return Math.max(0, Math.ceil(w * k) - host.clientWidth) * 100 + clashes(world);
     if (!still.matches && fromBox) {
       const t0 = performance.now(), D = 340;
       const mid = fromBox.up || fromBox.fade, s0 = fromBox.up ? 1.4 : fromBox.fade ? 0.9 : 0.2, cx = mid ? g0.W / 2 : fromBox.x + fromBox.w / 2, cy = mid ? g0.H / 2 : fromBox.y + fromBox.h / 2;

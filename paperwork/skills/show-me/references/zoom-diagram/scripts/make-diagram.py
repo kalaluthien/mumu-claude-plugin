@@ -95,7 +95,8 @@ def build(path, out):
                        ("/*CSS*/", (ASSETS / "zoom-diagram.css").read_text(encoding="utf-8")),
                        ("/*JS*/", (ASSETS / "zoom-diagram.js").read_text(encoding="utf-8")),
                        ("/*NEXT*/", html.escape(model.get("next", ""))),
-                       ("/*MODEL*/", json.dumps(model, ensure_ascii=False))):
+                       ("/*MODEL*/", json.dumps(model, ensure_ascii=False)),
+                       ("/*LIMITS*/", (ASSETS / "phone-limits.json").read_text(encoding="utf-8"))):
         page = page.replace(slot, text)
     pathlib.Path(out).write_text(page, encoding="utf-8")
     print("wrote", out)

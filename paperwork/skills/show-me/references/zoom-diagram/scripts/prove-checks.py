@@ -48,6 +48,7 @@ MUTATIONS = {
     "placement": ("pull-request", lambda m: lv(m, "open-s")["edges"][0].update(ops=["PullRequest.comment"])),
     "explained": ("self", lambda m: [e.pop("what", None) for e in lv(m, "root")["edges"] if not e.get("rules")]),
     "size": ("pull-request", lambda m: lv(m, "root")["nodes"].extend({"id": f"x{i}", "label": f"Extra{i}", "x": 5, "y": i} for i in range(4))),
+    "phone": ("ai-native-company", lambda m: lv(m, "root")["edges"].extend({"from": "lead", "to": t, "label": "steer", "what": "x"} for t in ("brain", "factory", "platform"))),
     "mechanism": ("ai-native-company", lambda m: sc(m, "solve-customer-problem").update(walk=[step("customers"), step("brain")])),
     "partitions": ("ai-native-company", lambda m: node(m, "judge").pop("partition")),
     "quantities": [("recovery-trial", lambda m: next(e for e in lv(m, "root")["edges"] if e["from"] == "dex" and e["to"] == "died")["qty"].update(value=480)),

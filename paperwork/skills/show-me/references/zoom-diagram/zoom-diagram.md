@@ -73,4 +73,5 @@ reference misses a case, the engine draws badly):
 | every field of the model file | `assets/model-schema.json` |
 | each check and parameter | `scripts/make-diagram.py rules`, `../../../../lib/diagram/checks.py`, `../../../../lib/diagram/plan.py` |
 | the drawing engine | `assets/zoom-diagram.js`, `.css`, `.html` |
+| a phone's limits, shared by the engine and the checks | `assets/phone-limits.json` |
 | worked models | `examples/*.json` |
