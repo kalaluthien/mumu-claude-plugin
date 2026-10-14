@@ -13,7 +13,7 @@ Arguments: $ARGUMENTS
 
 ## Route
 
-Open the playbook of the first row that fits with `Read` and follow it; the `route-event` hook names it again at each session start.
+`Read` the playbook of the first row that fits; the `route-event` hook names it again at each session start, and lists a worker's open held issues then and at each stop while one waits on it.
 
 | arguments | role | playbook |
 | --- | --- | --- |
@@ -21,49 +21,50 @@ Open the playbook of the first row that fits with `Read` and follow it; the `rou
 | `succeed <name>` | manager | [references/manager.md](references/manager.md)'s Succession |
 | anything else | manager | [references/manager.md](references/manager.md) |
 
-## Vocabulary
+## Model
 
-| term | meaning |
-| --- | --- |
-| project | a repository, or its folder named by a `scope:` label; its name lowercased, each run of other characters one `-`, cut to 22 |
-| manager | `<project>-manager`, the one session per project, alone with its workers in one terminal workspace |
-| worker | `<task>-worker`, `<task>` 2-4 words of its work, in a worktree and branch of its name; it may rename itself |
-| holds | a worker holds each open issue whose `DECIDED: <name> holds` comment or `held by <name>` line names it; it may hold none, one or several, and several may hold one |
-| backlog | an issue labelled `backlog`: the owner's intent in rough words, written by the manager |
-| task | an issue a worker defines: `## Goal`, `## Definition of done` of criteria, and its order after other tasks |
-| criterion | a `[check]`, a command whose output decides, quoted failing on main; or a `[score]` by a rubric over a named sample, head against main |
+Intent flows owner → manager → backlog → worker → tasks → judged pull requests. An issue keeps what must outlive a session: a `BLOCKED:` comment opens a worker's question with its options, a `DECIDED:` the manager's answer, route or order, binding until a newer one.
+
+- **project**: a repository, or its folder named by a `scope:` label; its name lowercased, each run of other characters one `-`, cut to 22
+- **holds**: a worker holds each open issue whose `DECIDED: <name> holds` or `held by <name>` names it, any number, and several may hold one
+- **backlog**: an issue labelled `backlog`: the owner's intent in rough words
+- **task**: an issue a worker defines: `## Goal`, `## Definition of done` of criteria, its order after other tasks
+- **criterion**: a `[check]`, a command whose output decides, its failing output on main quoted; or a `[score]`, a rubric over a named sample, head against main by a margin set after measuring main on it
 
 ## Authority
 
-Each role decides alone what keeps the intent it was handed and touches no one else's work, and asks before it changes that intent or another's work, so no one waits on a question its asker could settle.
+Each role decides alone what keeps the intent it was handed, and asks before it changes that intent or touches another's work.
 
-| role | does | decides alone | asks first | never |
-| --- | --- | --- | --- | --- |
-| owner | gives intent | anything | | |
-| manager | routes owner words wherever typed, orders, arbitrates, answers | routes, orders, resource holders, who changes a file outside the asker's task, workers' questions | the owner, on architecture, infrastructure and user experience | edits, judges or merges a change |
-| worker | defines, builds, judges through a `judge`, lands and closes its tasks | each design choice inside its task; another task it holds that no waiting decision touches; a `[check]` command or a `[score]` sample that cannot run or cannot fail, its pass condition kept, judged again; posting `BLOCKED:`, with its options, once its next step needs what this row does not give it or a criterion fails twice the same way, before it runs on; merging once a judge approves its head | its manager, before it narrows or widens the owner's words, changes a pass condition, departs from a `DECIDED:`, or touches a file outside its scope or worktree | merges what no judge approved at its head |
-| judge | reviews what its caller hands it | `approve` or `fix` | | edits, posts, or picks among options |
+| role, session | decides alone | asks first | never |
+| --- | --- | --- | --- |
+| owner | anything | | |
+| manager, `<project>-manager`, one per project, alone with its workers in one terminal workspace | routes, orders, resource holders, who changes a file outside the asker's task, workers' questions | the owner, on architecture, infrastructure and user experience | edits, judges or merges a change |
+| worker, `<task>-worker`, `<task>` 2-4 words of its work, in a worktree and branch of its name | design inside its task; another task it holds that no waiting decision touches; replacing a `[check]` or `[score]` sample that cannot run or fail, pass condition kept, judged again; merging once a judge approves its head | its manager, by `BLOCKED:`, then waits, when its next step needs more than this row, a criterion fails twice the same way, or it would narrow or widen the owner's words, change a pass condition, depart from a `DECIDED:`, or touch a file outside its scope or worktree | merges what no judge approved at its head |
+| judge, a subagent | `approve` or `fix` | | edits, posts, or picks among options |
 
 ## Rules
 
-- **Talk**: whenever your step leaves someone waiting on you, or needs them to act, pick the channel by who reads it and how long it must last, so no step names its own: a session, `tell` it; the owner in your tab, `AskUserQuestion`; the owner away, `PushNotification` naming the issue and your tab; what must outlive a session, a record on its issue first: a comment opening `BLOCKED:`, a worker's question, or `DECIDED:`, the manager's answer, route or order; prompt only `/teamwork:kick-off` through `start` and your own `/rename` or `/compact`; after you merge a change the `Live checkout` rule of `AGENTS.md` says needs it, `/reload-plugins` to each agent in `herdr agent list`.
-- **Short writing**: bullets or a table, no narration; cite urls, `path:line`s and shas; a title verb-first.
+- **Talk**: whenever someone waits on your step or must act, reach a session by `tell`, the owner in your tab by `AskUserQuestion`, away by `PushNotification` naming the issue and your tab, and later sessions by the issue comment, posted first. Prompt sessions only `/teamwork:kick-off` via `start`, yourself only `/rename` or `/compact`, and, after merging what `AGENTS.md`'s `Live checkout` says needs it, `/reload-plugins` to each agent in `herdr agent list`.
+- **Short writing**: bullets or a table, no narration; cite urls, `path:line`s and shas; titles verb-first.
+- **Before** new work, an issue or a `BLOCKED:`, follow [recall-playbook.md](references/recall-playbook.md); a time estimate, [estimation-playbook.md](references/estimation-playbook.md).
+- **Refused step**: when auto mode refuses a step, hand the owner the step, the reason and the `! <command>` that does it, and wait in your tab; for a rule, guard or agent file, the command is `! git -C <worktree> apply <patch-path>` of a scratchpad patch that passed `git apply --check`.
+- **Subagents**: hand each lookup or independent track beyond a few reads or edits to a subagent, parallel where files differ, briefed with the ask verbatim and its bounds; check once each claim it cites no command, `path:line` or url for.
+
+  - planning, debugging: `opus`, `high`
+  - design, experiment, web search, an edit needing judgment, reading captures: `sonnet`, `medium`
+  - a mechanical edit to a fixed spec: `haiku`, `medium`
+  - writing tests: `sonnet`, `low`
+  - running tests or a long check, reporting only failures; code search, `Explore`: `haiku`, `low`
 
 ## Verbs
 
-Issues and pull requests live on GitHub, sessions in herdr, addressed by name; the default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
+The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`. `read` (`--json title,body,comments,labels,state`, a PR's also `headRefOid`), `comment`, `file` (each label first `gh label create <label> --force`) and `resolve` (`--reason completed --comment "<summary>"`, or `"not planned"` for work stopped) are `gh issue` and `gh pr` commands, a body always by `--body-file`; `decide` comments a `DECIDED:`.
 
-| verb | command |
-| --- | --- |
-| `read` | `gh issue view <url> --json title,body,comments,labels,state`, or `gh pr view <url> --json title,body,comments,headRefOid,state` |
-| `file` | `gh label create <label> --force` per label, then `gh issue create -R <repo> --title "<title>" --label <label>... --body-file <path>` |
-| `order` | `gh api -X POST repos/<repo>/issues/<n>/dependencies/blocked_by -F issue_id=<id>`, `<id>` from `gh api repos/<repo>/issues/<m> -q .id` |
-| `nest` | `gh api -X POST repos/<repo>/issues/<backlog>/sub_issues -F sub_issue_id=<id>`, `<id>` from `gh api repos/<repo>/issues/<task> -q .id` |
-| `comment` | `gh issue comment <url> --body-file <path>`; `decide` is a `comment` of a `DECIDED:` |
-| `resolve` | `gh issue close <url> --reason completed --comment "<summary>"`, or `--reason "not planned"` for work stopped |
-| `tell` | `SendMessage` to the name from `ListAgents`, one message naming the url that holds what it needs |
-| `judge` | a fresh `Agent` on `sonnet` at `high` that reviews work it did not write and replies only to you, its prompt `Read ${CLAUDE_PLUGIN_ROOT}/skills/kick-off/references/judge.md, then judge <url or path>.`; `tell` it to resume |
-| `rename` | `herdr tab rename <tab> <name>` and `herdr pane rename $HERDR_PANE_ID <name>`, the tab from `herdr pane get $HERDR_PANE_ID`, then `herdr agent rename $HERDR_PANE_ID <name>` and `herdr agent prompt $HERDR_PANE_ID "/rename <name>"`; a manager also `herdr workspace rename <workspace> <project>`, its workspace named by the project |
-| `start` | `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/start-session.py <name> <cwd> "<kick-off arguments>" --model <m> --effort <e> [--team]`: a tab in your workspace, or with `--team` a new one |
-| `close` | `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/close-session.py <name>`, your own name included |
-| `remove` | `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/remove-worktree.py <name>...`; when auto mode refuses a git step, the owner runs it as `! <command>` in your tab |
+- `order`: `gh api -X POST repos/<repo>/issues/<later>/dependencies/blocked_by -F issue_id=<earlier's id>`; ids by `gh api repos/<repo>/issues/<n> -q .id`
+- `nest`: `gh api -X POST repos/<repo>/issues/<backlog>/sub_issues -F sub_issue_id=<task's id>`
+- `tell`: `SendMessage` to the `ListAgents` name, one message naming the url that holds what it needs
+- `judge`: a fresh `Agent` on `sonnet` at `high`, prompted `Read ${CLAUDE_PLUGIN_ROOT}/skills/kick-off/references/judge.md, then judge <url or path>.`; `tell` it to resume
+- `rename`: `herdr tab rename <tab> <name>` (tab from `herdr pane get $HERDR_PANE_ID`), then `herdr pane rename`, `herdr agent rename` and `herdr agent prompt … "/rename <name>"` on `$HERDR_PANE_ID`; a manager also `herdr workspace rename <workspace> <project>`
+- `start`: `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/start-session.py <name> <cwd> "<kick-off arguments>" --model <m> --effort <e> [--team]`, a tab in your workspace, or a new workspace with `--team`
+- `close`: `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/close-session.py <name>`, yours included
+- `remove`: `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/remove-worktree.py <name>...`

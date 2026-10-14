@@ -1,6 +1,6 @@
 # Research
 
-1. Read the issue and the prior issues, `gh search issues "<words>"`.
-2. Fan out at once one subagent per independent source set (transcripts, issues, official docs, the web), on `sonnet` at `medium`, each brief the question verbatim, its bounds and its output form.
-3. Write the report to a file: its findings, each citing its source, then each criterion, its command, its result and its output on main; `comment` it on the issue.
-4. A `judge` reviews the comment's url; answer its gaps in a new comment and judge that, until it approves; then `resolve` the issue.
+1. Read prior issues by `gh search issues "<words>"`.
+2. Fan out at once one `sonnet` `medium` subagent per independent source set (transcripts, issues, official docs, the web), each brief naming its output form.
+3. Write the report to a file: findings, each citing its source, then each criterion with its command, result and output on main; `comment` it on the issue.
+4. A `judge` reviews the comment's url; answer its gaps in a new comment, judged again, until it approves.
