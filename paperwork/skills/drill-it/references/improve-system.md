@@ -5,7 +5,7 @@ Turn the original checked `system.json` into 2 or 3 improved models; build them 
 **Kept behaviour.** Every original Scenario and rule stays, by slug and meaning. Adding behaviour is free; a removal fails the comparison until the user approves.
 
 **Counts.** `${CLAUDE_PLUGIN_ROOT}/skills/drill-it/scripts/compare-models.py original.json improved.json` prints
-`kept` or `dropped` per slug, each count below on both models, and the improved check; exit 0 means nothing dropped, check passes.
+`kept` or `dropped` per slug, `changed` where a kept slug's text differs, each count below on both models, and the improved check; exit 0 means nothing dropped, check passes.
 
 - economy: nodes+edges+rules+operations; fewer
 - duplication: texts and formulas stated twice; fewer, or name a kept copy

@@ -5,7 +5,7 @@
   make-diagram.py rules                          list the system and drawing checks and the plan's parameters
   make-diagram.py plan system.json view.json     print the plan in effect, marking what differs from the defaults
   make-diagram.py check system.json view.json [--prove] [--only a,b]   run the checks; --prove adds Alloy
-  make-diagram.py build system.json view.json out.html   inline the joined model into the engine
+  make-diagram.py build system.json view.json out.html   run the checks, then inline the joined model into the engine
   make-diagram.py render out.html [--shots DIR] [--font-css FILE]
   make-diagram.py make system.json view.json out.html [--font-css FILE]   check, build, render; stop at the first failure
   make-diagram.py part system.json view.json part.html   the diagram as a part that show-me's assemble-page.py places
