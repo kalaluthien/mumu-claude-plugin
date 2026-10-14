@@ -34,7 +34,7 @@ An answer that fits on one screen as a table or a short fenced tree needs no pag
 - **Only what it needs**: no section, widget or control the answer does not use; a fact that does not change the reader's view is cut, and so is a part that repeats another.
 - **Counted as shown**: a count the page states is the count of what it shows.
 - **One language**: the page is in the language the user's instructions name, else the ask's; a zoom diagram keeps its terms in English as its `model-writing.md` says.
-- **Asking**: the zoom diagram's Interview and drill-it's Undecided go as rounds of `${CLAUDE_PLUGIN_ROOT}/skills/grill-me/SKILL.md` (Asking a round, Settling); recommended answers Settling takes stay off the page.
+- **Asking**: the zoom diagram's Interview and drill-it's Undecided go as rounds of `${CLAUDE_PLUGIN_ROOT}/skills/grill-me/SKILL.md` (Asking a round, Settling); recommended options Settling takes stay off the page.
 
 ## Done when
 
