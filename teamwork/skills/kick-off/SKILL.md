@@ -38,23 +38,23 @@ Each role decides alone what keeps the intent it was handed, and asks before it 
 | role, session | decides alone | asks first | never |
 | --- | --- | --- | --- |
 | owner | anything | | |
-| manager, `<project>-manager`, one per project, alone with its workers in one terminal workspace | routes, orders, resource holders, who changes a file outside the asker's task, workers' questions | the owner, on architecture, infrastructure and user experience | edits, judges or merges a change |
+| manager, `<project>-manager`, one per project, alone with its workers in one terminal workspace | routes, orders, resource holders, who changes a file outside the asker's task, by a `DECIDED:` the one changer of a file outside every worktree, workers' questions | the owner, on architecture, infrastructure and user experience, and on a change that widens a permission or a guard or touches machine settings | edits, judges or merges a change |
 | worker, `<task>-worker`, `<task>` 2-4 words of its work, in a worktree and branch of its name | design inside its task; another task it holds that no waiting decision touches; replacing a `[check]` or `[score]` sample that cannot run or fail, pass condition kept, judged again; merging once a judge approves its head | its manager, by `BLOCKED:`, then waits, when its next step needs more than this row, a criterion fails twice the same way, or it would narrow or widen the owner's words, change a pass condition, depart from a `DECIDED:`, or touch a file outside its scope or worktree | merges what no judge approved at its head |
 | judge, a subagent | `approve` or `fix` | | edits, posts, or picks among options |
 
 ## Rules
 
-- **Talk**: whenever someone waits on your step or must act, reach a session by `tell`, the owner in your tab by `AskUserQuestion`, away by `PushNotification` naming the issue and your tab, and later sessions by the issue comment, posted first. Prompt sessions only `/teamwork:kick-off` via `start`, yourself only `/rename` or `/compact`, and, after merging what `AGENTS.md`'s `Live checkout` says needs it, `/reload-plugins` to each agent in `herdr agent list`.
+- **Talk**: whenever someone waits on your step or must act, reach a session by `tell`, the owner in your tab by `AskUserQuestion`, away by `PushNotification` naming the issue and your tab, and later sessions by the issue comment, posted first. Prompt sessions only `/teamwork:kick-off` via `start`, yourself only `/rename` or `/compact`, and, after merging what `AGENTS.md`'s `Live checkout` says needs it, `git -C <live checkout> pull --ff-only`, then `/reload-plugins` to each agent in `herdr agent list`.
 - **Short writing**: bullets or a table, no narration; cite urls, `path:line`s and shas; titles verb-first.
 - **Before** new work, an issue or a `BLOCKED:`, follow [recall-playbook.md](references/recall-playbook.md); a time estimate, [estimation-playbook.md](references/estimation-playbook.md).
-- **Refused step**: when auto mode refuses a step, hand the owner the step, the reason and the `! <command>` that does it, and wait in your tab; for a rule, guard or agent file, the command is `! git -C <worktree> apply <patch-path>` of a scratchpad patch that passed `git apply --check`.
-- **Subagents**: hand each lookup or independent track beyond a few reads or edits to a subagent, parallel where files differ, briefed with the ask verbatim and its bounds; check once each claim it cites no command, `path:line` or url for.
+- **Refused step**: when auto mode refuses a step, hand the owner the step, the reason and the `! <command>` that does it, by `PushNotification` when the owner is away, and wait in your tab, never retrying it in another form; for a rule, guard or agent file, the command is `! git -C <worktree> apply <patch-path>` of a scratchpad patch that passed `git apply --check`.
+- **Subagents**: hand each lookup or independent track beyond a few reads or edits to a subagent, parallel where files differ, briefed with the ask verbatim and its bounds; check once each claim it cites no command, `path:line` or url for. Every `Agent` call names its `model`, since one without runs on yours.
 
   - planning, debugging: `opus`, `high`
   - design, experiment, web search, an edit needing judgment, reading captures: `sonnet`, `medium`
   - a mechanical edit to a fixed spec: `haiku`, `medium`
-  - writing tests: `sonnet`, `low`
-  - running tests or a long check, reporting only failures; code search, `Explore`: `haiku`, `low`
+  - writing tests; scoring or marking a sample by a rubric: `sonnet`, `low`
+  - running tests or a long check, reporting only failures; code search, reading named files with no judgment, `Explore`: `haiku`, `low`
 
 ## Verbs
 
@@ -62,7 +62,7 @@ The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef
 
 - `order`: `gh api -X POST repos/<repo>/issues/<later>/dependencies/blocked_by -F issue_id=<earlier's id>`; ids by `gh api repos/<repo>/issues/<n> -q .id`
 - `nest`: `gh api -X POST repos/<repo>/issues/<backlog>/sub_issues -F sub_issue_id=<task's id>`
-- `tell`: `SendMessage` to the `ListAgents` name, one message naming the url that holds what it needs
+- `tell`: `SendMessage` to the `ListAgents` name, one message naming the url that holds what it needs and stating a fact, never a step for the peer to run
 - `judge`: a fresh `Agent` on `sonnet` at `high`, prompted `Read ${CLAUDE_PLUGIN_ROOT}/skills/kick-off/references/judge.md, then judge <url or path>.`; `tell` it to resume
 - `rename`: `herdr tab rename <tab> <name>` (tab from `herdr pane get $HERDR_PANE_ID`), then `herdr pane rename`, `herdr agent rename` and `herdr agent prompt … "/rename <name>"` on `$HERDR_PANE_ID`; a manager also `herdr workspace rename <workspace> <project>`
 - `start`: `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/start-session.py <name> <cwd> "<kick-off arguments>" --model <m> --effort <e> [--team]`, a tab in your workspace, or a new workspace with `--team`
