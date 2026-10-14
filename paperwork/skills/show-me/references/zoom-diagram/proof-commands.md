@@ -42,15 +42,15 @@ it is refused: an event happens only in a state with that edge.
 | `scenario_<slug>` | its walk can happen: on each workflow and state level, each step's edge call strictly after the one before (component levels are walked on the drawing only) | the Scenario cannot happen under the rules |
 | `reach_<edge>` | a failure path can be taken | the failure can never happen |
 
-Rules split three ways:
-- A `must` on a workflow or state edge is a guard and part of the behaviour.
+Rules split three ways ([model-writing.md](model-writing.md), Rules, says where each sits):
+- A guard is part of the behaviour.
 - A rule over things that change (states, activities, calls, `modifies`
   attributes, time) is checked against the behaviour.
 - Any other `must` is assumed; any other `should` is only required of the
   ideal run in `consistent`.
 
-So a `must` that fails its `holds_` check needs a mechanism: a guard on the
-event, or an operation's `pre` or `post`.
+So a `must` that fails its `holds_` check needs a guard or an operation's
+`pre` or `post`.
 
 The page shows each rule's standing and its counterexample. The plan's `prove` narrows what is asked: `rules` leaves out the Scenarios and
 failure paths, `off` asks nothing.

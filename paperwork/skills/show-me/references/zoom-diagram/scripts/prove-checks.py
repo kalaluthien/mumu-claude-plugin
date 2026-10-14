@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Each check must be able to fail: one small mutation of a worked model per check, and the examples must pass.
 
+When the playbook is wrong (a check refuses something legitimate, a reference misses a case, the engine
+draws badly), change the one file that owns it, never a single model, then run this and `make` every example.
+
 usage: prove-checks.py [--prove]
   --prove   also run Alloy: the examples prove, and each kind of Alloy verdict is caught by its mutation (minutes)
 """

@@ -6,12 +6,9 @@ disable-model-invocation: true
 
 # grill-me
 
-Follows upstream `grill-me`, which calls `grilling`:
-https://github.com/mattpocock/skills/blob/95249b0b49782349740fd9b8c6ce32b4e59e497a/skills/productivity/grilling/SKILL.md
-
 Interview the user relentlessly until you reach a shared understanding. Map
 this as a **design tree**: every decision branches into the decisions that hang
-off it. A blank another skill hands you is one decision in it.
+off it.
 
 Work the tree in **rounds**. The **frontier** is every decision whose
 prerequisites are already settled. A question whose answer depends on another
@@ -19,8 +16,8 @@ question still open in this round belongs to a later round.
 
 ## Asking a round
 
-- Every round is one `AskUserQuestion` call of at most four questions, and
-  nothing else: no numbered text, no pasted-back block. Then wait.
+- Every round is one `AskUserQuestion` call of at most four questions, with
+  no numbered text and no pasted-back block beside it. Then wait.
 - Pick the four from the frontier by impact first - the answer that changes
   the most of the tree - then by conceptual order, a concept before the
   choices built on it. The rest of the frontier waits.
@@ -39,32 +36,34 @@ question still open in this round belongs to a later round.
   round, and never recorded as a decision.
 - Word each question so "yes" accepts the recommended option.
 - Facts come from `drill-it`, never from the user: before each round, run
-  the `drill-it` skill with the form `decision`, the round's open decisions
-  and the facts their questions need, and ask only from what it hands back.
-  The decisions are the user's.
+  the `drill-it` skill with the purpose `decision`, the round's open decisions
+  and Question shape below, and ask only from what it hands back; its
+  Undecided points join the frontier.
 
 ## Question shape
 
 Each question is answerable without opening a file. Its body carries:
 
-- the current state, quoting the rule and its `path:line`;
+- the current state, quoted with its `path:line`;
 - why it matters: the failure the choice causes or prevents, with a real case
-  where one exists;
-- the recommended model, as bullets.
+  where one exists.
 
-Each option's description names its cost as a number (files, lines, runs) and
-its downside. The recommended option is the first, labelled `(Recommended)`.
+Each option's description names its cost as a number and its downside. The
+recommended option comes first, its label ending in `(Recommended)` as
+`AskUserQuestion` asks; its description gives that answer as bullets.
 
 ## Settling
 
 Done when every branch of the tree is visited, nothing silently assumed, and
 the user confirms a summary of the settled answers. Act on nothing before that.
+When no one can answer (a non-interactive run), take each recommended option
+and say so in the summary.
 
 ## Output
 
 The settled answers only: each decision and its answer, no transcript of the
-rounds. Hand them back to the caller as they are.
+rounds.
 
-The answer goes to chat by default, and into a document as well when one is
+The summary goes to chat by default, and into a document as well when one is
 asked for. When the output is not a markdown document, end with one line
 asking the user to run `/paperwork:show-me` on the settled answers.

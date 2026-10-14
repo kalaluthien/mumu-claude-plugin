@@ -3,7 +3,7 @@
 Paths here are relative to this file.
 
 A **zoom diagram** is one checked `model.json` built into one html page, read
-level by level, with the model's `next` under it.
+level by level, with the reader's next action (`next`) under it.
 
 ## Setup
 
@@ -12,29 +12,20 @@ Once per machine: `scripts/make-diagram.py alloy --fetch` downloads Alloy 6
 
 ## Interview
 
-Before drill-it models, settle the plan with the user in one `AskUserQuestion`
-batch, `grill-me` style: propose a concrete answer for each and let them
-correct it.
+Before drill-it models, settle the plan with the user as show-me's Asking
+says.
 
-| Ask | Becomes |
-|---|---|
-| the question they want answered | `plan.intent` |
-| the diagrams they expect | `plan.views` |
-| what to open deeply, what to leave closed | `deep`, `shallow`, `depth` ([model-writing.md](model-writing.md), Depth) |
-| what Alloy should prove | `prove` |
-| anything not to show | `show` |
+Ask for the plan's intent, views, depth, prove and show, skipping only what
+the user has already said; `make-diagram.py rules` lists each with its default,
+and [model-writing.md](model-writing.md) (Plan) explains them.
 
-Skip only what the user has already said. [model-writing.md](model-writing.md)
-(Plan) has typical plans per intent.
-
-## Steps
+## Procedure
 
 1. Interview.
-2. Run `drill-it` with the plan and the form `zoom diagram`; it hands back a checked
+2. Run `drill-it` with the plan and the purpose `zoom diagram`; it hands back a checked
    `model.json`.
 3. `uv run --with playwright python3 scripts/make-diagram.py make model.json
-   out.html` checks, builds and checks the
-   zoom diagram.
+   out.html` builds the page.
 4. Look at every level as a critic ([drawing-review.md](drawing-review.md)),
    then hand over.
 
@@ -55,15 +46,6 @@ wrong.
 | a full check runs for minutes, or a command is unproved | [proof-commands.md](proof-commands.md) (top) |
 | `fits` fails | give that level's nodes `x` and `y` ([model-writing.md](model-writing.md), Layout), never shorter labels |
 | a name is refused as reserved | Alloy and the translation reserve words such as `steps`, `at`, `open`, `run`; rename the model's word |
-
-## How to fix
-
-When the playbook itself is wrong (a check refuses something legitimate, a
-reference misses a case, the engine draws badly):
-- change the one file that owns it (a reference Steps links, or a row below),
-  never a single model to get around it;
-- run `scripts/prove-checks.py` (`--prove` adds Alloy), which names a check
-  with no mutation that makes it fail, and `make` every example.
 
 ## Where things are
 
