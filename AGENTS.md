@@ -4,7 +4,7 @@ The working rules of this repository and of every plugin in it. Each rule carrie
 
 ## Repository
 
-- **Live checkout**: sessions load the plugins straight from this checkout, so a merge reaches them once the checkout pulls. Refresh by what changed: a script or a `references/` file works at once; a `SKILL.md` or a `hooks.json` at `/reload-plugins`, which the session that merges it prompts to each running session once the checkout has pulled, before any other step when a hook's script moved or was renamed, since that hook stays off until then; a monitor's code when the monitor starts again.
+- **Live checkout**: sessions load the plugins straight from this checkout, so a merge reaches them once the checkout pulls. Refresh by what changed: a script or a `references/` file works at once; a `SKILL.md` or a `hooks.json` at `/reload-plugins`, which the session that merges it prompts to each running session once it has pulled the checkout with `git pull --ff-only`, before any other step when a hook's script moved or was renamed, since that hook stays off until then; a monitor's code when the monitor starts again.
 - **No CLAUDE.md**: rules sit only in `AGENTS.md`, since Claude Code reads `AGENTS.md` when no `CLAUDE.md` exists, and a second file splits them.
 - **Landing**: a change lands by a pull request that cites its issue, merged once a fresh subagent that did not write it reviews the diff from the merge base and approves its head sha; its author merges it.
 - **Plugin manifests**: each plugin carries `.claude-plugin/plugin.json` and is listed in the root `.claude-plugin/marketplace.json`, which is how Claude Code finds it.

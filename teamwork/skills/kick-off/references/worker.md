@@ -22,5 +22,5 @@ Own your work from a backlog or the owner's words to its end.
 
 ## Rules
 
-- **Own worktree**: edit only in your worktree; change no memory entry and no file outside your work; when your work's topic changes, `rename` yourself and `comment` `held by <new name>` on each issue you hold.
+- **Own worktree**: edit only in your worktree; change no memory entry and no file outside your work unless a `DECIDED:`, your task or the wrap-up hook names it; when your work's topic changes, `rename` yourself and `comment` `held by <new name>` on each issue you hold.
 - **Fix the cause**: close a judge's gap by fixing it, never by rewording, loosening a check or changing a pass condition.
