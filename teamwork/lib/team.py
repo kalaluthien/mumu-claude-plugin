@@ -31,9 +31,9 @@ def screen(pane):
     return subprocess.run(["herdr", "agent", "read", pane, "--source", "visible"], capture_output=True, text=True).stdout
 
 
-def issues(project=None):
+def issues(project=None, state="open"):
     scoped = project and f"scope:{project}" in [x["name"] for x in run("gh", "label", "list", "--search", "scope:", "--json", "name") or []]
-    return run("gh", "issue", "list", "--state", "open", "--limit", str(ISSUE_LIMIT), "--json", "number,title,body,comments,url",
+    return run("gh", "issue", "list", "--state", state, "--limit", str(ISSUE_LIMIT), "--json", "number,title,body,comments,url",
                *(["--label", f"scope:{project}"] if scoped else []))
 
 
@@ -88,6 +88,12 @@ def manager_actions(me, listed):
     for p, n in ((p, n) for p in prs for n in team if p["headRefName"] == n or p["headRefName"].startswith(n + "-")):
         lines.append(f"merged #{p['number']} by {n}: once {n} holds nothing open, close it and clean its worktree")
     return lines
+
+
+def had_worker(me):
+    """Whether a manager of this project ever routed a worker, read from the `DECIDED: <name>-worker holds` comments of its closed issues, so a restarted monitor knows what its memory lost."""
+    found = issues(me["name"].removesuffix("-manager"), "closed")
+    return any(re.match(r"\s*DECIDED:\s*`?[\w-]+-worker`?\s+holds\b", c["body"]) for i in found or [] for c in i["comments"])
 
 
 def exit_action(me, listed):
