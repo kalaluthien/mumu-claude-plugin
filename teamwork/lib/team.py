@@ -40,9 +40,13 @@ def holds(issue, name):
     return re.search(rf"(?<![\w-]){re.escape(name)}(?![\w-])", text) is not None
 
 
+def records(issue):
+    """Its BLOCKED: and DECIDED: comments, oldest first, each as (kind, comment)."""
+    return [(r, c) for c in issue["comments"] if (r := c["body"].lstrip()[:8].upper()) in ("BLOCKED:", "DECIDED:")]
+
+
 def asking(issue):
-    records = [r for c in issue["comments"] if (r := c["body"].lstrip()[:8].upper()) in ("BLOCKED:", "DECIDED:")]
-    return records[-1:] == ["BLOCKED:"]
+    return [r for r, _ in records(issue)][-1:] == ["BLOCKED:"]
 
 
 def members(me, listed):
@@ -81,3 +85,23 @@ def exit_action(me, listed):
 def worker_goal(me):
     return [f"#{i['number']} {i['title']} ({i['url']}): " + ("waits on your manager" if asking(i) else "open")
             for i in issues() or [] if holds(i, me["name"])]
+
+
+def worker_actions(me):
+    """What ended a wait of this worker, as the act it needs; None when a read failed."""
+    name, found = me["name"], issues()
+    prs = run("gh", "pr", "list", "--state", "open", "--json", "number,headRefName,mergeable")
+    if found is None or prs is None:
+        return None
+    lines = []
+    for i in (i for i in found if holds(i, name)):
+        kinds = records(i)
+        if [r for r, _ in kinds[-2:]] == ["BLOCKED:", "DECIDED:"]:
+            lines.append(f"answered #{i['number']}: {kinds[-1][1]['url']} answers your BLOCKED:; act on it")
+        blockers = run("gh", "api", f"repos/{{owner}}/{{repo}}/issues/{i['number']}/dependencies/blocked_by", "--jq", "[.[].state]")
+        if blockers and set(blockers) == {"closed"}:
+            lines.append(f"start #{i['number']}: every issue it waits on is closed")
+    for p in prs:
+        if (p["headRefName"] == name or p["headRefName"].startswith(name + "-")) and p["mergeable"] == "CONFLICTING":
+            lines.append(f"rebase #{p['number']}: it conflicts with the default branch")
+    return lines

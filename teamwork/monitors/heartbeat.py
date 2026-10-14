@@ -13,7 +13,8 @@ shown, staffed = set(), False  # the exit waits until this manager has had a wor
 while True:
     listed, me = team.sessions()
     manager = me.get("name", "").endswith("-manager")
-    lines = team.manager_actions(me, listed) if manager else []
+    worker = me.get("name", "").endswith("-worker")
+    lines = team.manager_actions(me, listed) if manager else team.worker_actions(me) if worker else []
     if manager and lines is not None:
         crew = team.members(me, listed)
         staffed = staffed or bool(crew)
