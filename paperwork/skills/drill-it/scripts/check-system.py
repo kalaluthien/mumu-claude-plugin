@@ -57,6 +57,9 @@ def main(args):
                            "nodes": [{"id": "a", "label": "Part", "what": "One sentence."},
                                      {"id": "b", "label": "Other part", "what": "One sentence."}],
                            "edges": [{"from": "a", "to": "b", "label": "uses", "what": "One sentence."}]}}
+        if pathlib.Path(args[1]).exists():
+            print(f"{args[1]} exists; name a new file")
+            return 1
         pathlib.Path(args[1]).write_text(dump(start) + "\n", encoding="utf-8")
         print("wrote", args[1], "(fields: assets/system-schema.json)")
         return 0

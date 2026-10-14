@@ -177,7 +177,8 @@ def quantities(M):
             if q and q["kind"] == "stock":
                 out += [f'{L["id"]}: {e["label"]} moves {e["qty"]["unit"]}, not the {q["unit"]} that {n["label"]} holds'
                         for es in sides.values() for e in es
-                        if e.get("qty", {}).get("kind") == "flow" and e["qty"]["unit"].split("/")[0].strip() != q["unit"]]
+                        if e.get("qty", {}).get("kind") == "flow" and "unit" in e["qty"] and "unit" in q
+                        and e["qty"]["unit"].split("/")[0].strip() != q["unit"]]
                 continue
             told = {k: [e["qty"] for e in es if e.get("qty", {}).get("kind") in ("flow", "count")] for k, es in sides.items()}
             full = {k: v for k, v in told.items() if v and len(v) == len(sides[k]) and len({x.get("unit", "") for x in v}) == 1}
