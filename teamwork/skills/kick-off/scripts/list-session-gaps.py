@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """usage: list-session-gaps.py [--from-dir <projects folder>] [--json] <name>...
 
-Print per name its sessions, restarts (a further session of the same name), the hours each restart cost and, apart,
+Print per name and project folder its sessions, restarts (a further session of the same name in that folder), the hours
+each restart cost and, apart,
 its idle gaps over 30 minutes inside a session (a wait for the owner, not a restart). A name with no transcript
 prints "no session record". The default folder is ~/.claude/projects; `--json` prints the rows for the estimator."""
 import json
@@ -25,15 +26,16 @@ def main(argv):
         sys.exit(__doc__)
     rows = session_gaps.summaries(root, argv)
     if as_json:
-        print(json.dumps([r for r in rows.values() if r]))
+        print(json.dumps(rows))
         return
-    print("worker\tsessions\trestarts\trestart hours\tidle gaps")
-    for name, r in rows.items():
-        if r is None:
-            print(f"{name}\tno session record")
-        else:
-            hours = ",".join(f"{h:.1f}" for h in r["restart_hours"]) or "-"
-            print(f"{name}\t{r['sessions']}\t{r['restarts']}\t{hours}\t{r['idle_gaps']}")
+    print("worker\tproject\tsessions\trestarts\trestart hours\tidle gaps")
+    for name in argv:
+        for r in [r for r in rows if r["worker"] == name] or [None]:
+            if r is None:
+                print(f"{name}\tno session record")
+            else:
+                hours = ",".join(f"{h:.1f}" for h in r["restart_hours"]) or "-"
+                print(f"{name}\t{r['project']}\t{r['sessions']}\t{r['restarts']}\t{hours}\t{r['idle_gaps']}")
 
 
 if __name__ == "__main__":

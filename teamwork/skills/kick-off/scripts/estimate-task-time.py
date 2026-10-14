@@ -72,8 +72,8 @@ def main(argv):
     low, high = task_estimate.total_range(groups, int(opt["seed"]), total_levels)
     extra = 0.0
     if opt["expect-restarts"]:
-        gaps = json.load(open(opt["gaps-json"])) if "gaps-json" in opt else list(session_gaps.summaries(
-            pathlib.Path(os.path.expanduser("~/.claude/projects"))).values())
+        gaps = json.load(open(opt["gaps-json"])) if "gaps-json" in opt else session_gaps.summaries(
+            pathlib.Path(os.path.expanduser("~/.claude/projects")))
         each = task_estimate.restart_hours(gaps)
         if each is None:
             sys.exit("estimate-task-time.py: no restart is recorded, so its hours are unknown; pass --wait instead.")
