@@ -37,7 +37,7 @@ An answer that fits on one screen as a table or a short fenced tree needs no pag
 - **Page parts**: a page playbook's part is a fragment of the Parts its playbook names, with the playbook's CSS and script added by `assemble-page.py`; every table sits in a `.scroll` box. The page opens with the one-sentence answer and closes with the reader's next action; a `.reply` box, which a button's `data-reply` may fill, holds what the reader copies back to you.
 - **Only what it needs**: no section, widget or control the answer does not use; a fact that does not change the reader's view is cut, and so is a part that repeats another.
 - **Counted as shown**: a count the page states is the count of what it shows.
-- **One language**: the page is in the language the user's instructions name, else the ask's; a zoom diagram keeps its terms in English as its `model-writing.md` says.
+- **One language**: the page is in the language the user's instructions name, else the ask's; a zoom diagram keeps its terms in English as its `view-writing.md` says.
 - **Asking**: the zoom diagram's Interview and drill-it's Undecided go as rounds of `${CLAUDE_PLUGIN_ROOT}/skills/grill-me/SKILL.md` (Asking a round, Settling); recommended options Settling takes stay off the page.
 
 ## Done when

@@ -1,19 +1,6 @@
 {
  "title": "AI-native company (v2026-10)",
- "next": "Walk one bet from idea to launch and check where it can be replanned.",
- "plan": {
-  "intent": "AI 네이티브 회사에서 문제 하나가 사람과 에이전트를 거쳐 판으로 나가기까지 누가 무엇을 맡는가",
-  "views": [
-   {"name": "Org structure", "level": "root"},
-   {"name": "Role definitions", "level": "builders"},
-   {"name": "Delivery pipeline", "level": "factory"},
-   {"name": "Agent run states", "level": "impl"},
-   {"name": "Agent platform architecture", "level": "platform"},
-   {"name": "Shared knowledge base", "level": "brain"},
-   {"name": "Hiring bar", "level": "lead"},
-   {"name": "Metrics dashboard", "why": "공개 자료에 수치가 없어 그리지 않습니다."}
-  ]
- },
+ "plan": {"intent": "AI 네이티브 회사에서 문제 하나가 사람과 에이전트를 거쳐 판으로 나가기까지 누가 무엇을 맡는가"},
  "types": {
   "User": "회사의 사람 한 명입니다.",
   "Release": "고객에게 나가는 판 하나입니다.",
@@ -750,16 +737,12 @@
    {
     "id": "customers",
     "label": "Customers",
-    "x": 2,
-    "y": 2,
     "what": "회사에 문제를 가져오고 결과를 받는 사람들입니다. 이들의 실제 사용과 문의가 할 일의 출발점입니다.",
     "partition": "outside"
    },
    {
     "id": "brain",
     "label": "Company brain",
-    "x": 2,
-    "y": 1,
     "what": "사람과 에이전트가 함께 읽고 쓰는 회사의 기억입니다. 일의 기록, 고객 신호, 에이전트의 규칙이 서로 이어진 그래프로 쌓이고, 각 항목은 원래 자리의 접근 권한을 그대로 따릅니다.",
     "ops": ["CompanyBrain.record", "CompanyBrain.recall"],
     "rules": ["scoped-recall"],
@@ -792,8 +775,6 @@
       {
        "id": "rem",
        "label": "Remembered",
-       "x": 1,
-       "y": 1,
        "abstract": true,
        "attrs": ["source: Text", "scope: (User | AgentRun)[]", "why: Text?"],
        "rules": ["scoped-recall"],
@@ -806,8 +787,6 @@
       {
        "id": "work",
        "label": "Work record",
-       "x": 1,
-       "y": 0,
        "attrs": ["kind: WorkKind"],
        "rules": ["reasons-kept"],
        "what": "명세, 결정, 풀 리퀘스트, 문서처럼 일하며 남은 것입니다. 회의 대신 여기서 결정과 그 이유를 찾습니다.",
@@ -819,8 +798,6 @@
       {
        "id": "mem",
        "label": "Agent memory",
-       "x": 0,
-       "y": 1,
        "attrs": ["rules: Text[]"],
        "what": "에이전트가 다음 작업에서 다시 읽는 규칙과 메모입니다. 저장소의 CLAUDE.md처럼, 에이전트가 틀린 것을 볼 때마다 한 줄씩 늘어납니다.",
        "refs": [
@@ -839,8 +816,6 @@
       {
        "id": "signal",
        "label": "Customer signal",
-       "x": 2,
-       "y": 1,
        "attrs": ["kind: SignalKind"],
        "what": "고객의 문의, 사용 기록, 거래처럼 고객의 현실을 보여 주는 것입니다.",
        "refs": [
@@ -850,8 +825,6 @@
       {
        "id": "problem",
        "label": "Problem",
-       "x": 1,
-       "y": 2,
        "rules": ["backlog-from-customers"],
        "what": "신호에서 드러난 풀어야 할 문제입니다. 할 일 목록은 정해 둔 로드맵이 아니라 이것들로 채워집니다.",
        "refs": [
@@ -880,8 +853,6 @@
    {
     "id": "builders",
     "label": "Builders",
-    "x": 1,
-    "y": 0,
     "what": "회사의 모든 사람입니다. 역할은 셋뿐이고 모두 직접 만듭니다. 안을 열면 세 역할이 서로 어떻게 묶이는지 볼 수 있습니다.",
     "refs": [
      "[From Hierarchy to Intelligence (Block)](https://block.xyz/inside/from-hierarchy-to-intelligence)",
@@ -919,8 +890,6 @@
       {
        "id": "handson",
        "label": "Hands-on",
-       "x": 1,
-       "y": 0,
        "abstract": true,
        "attrs": ["ships: Bool"],
        "rules": ["everyone-ships"],
@@ -933,8 +902,6 @@
       {
        "id": "ic",
        "label": "Individual contributor",
-       "x": 1,
-       "y": 1,
        "what": "기능과 그 바탕을 만들고 운영합니다. 경력이 길어도 이 역할로 남아 직접 실행하는 경우가 많습니다.",
        "refs": [
         "[From Hierarchy to Intelligence (Block)](https://block.xyz/inside/from-hierarchy-to-intelligence)",
@@ -944,8 +911,6 @@
       {
        "id": "dri",
        "label": "DRI",
-       "x": 0,
-       "y": 1,
        "attrs": ["problem: Problem", "due: Date"],
        "rules": ["dri-owns"],
        "what": "여러 팀에 걸친 문제 하나와 그 고객 결과를 정해진 기간 동안 책임지는 사람입니다. 필요한 사람과 자원을 여러 팀에서 끌어옵니다.",
@@ -963,8 +928,6 @@
       {
        "id": "coach",
        "label": "Player-coach",
-       "x": 2,
-       "y": 1,
        "what": "직접 만들면서 사람을 키웁니다. 업무 흐름을 통제하기보다 맥락을 주고 기준을 높입니다.",
        "refs": [
         "[From Hierarchy to Intelligence (Block)](https://block.xyz/inside/from-hierarchy-to-intelligence)",
@@ -974,8 +937,6 @@
       {
        "id": "agent",
        "label": "Agent",
-       "x": 1,
-       "y": 2,
        "attrs": ["skills: Skill[]"],
        "rules": ["agent-parent"],
        "what": "마케팅, 분석, 코드베이스처럼 한 가지 일을 맡은 에이전트입니다.",
@@ -1001,8 +962,6 @@
    {
     "id": "factory",
     "label": "Software factory",
-    "x": 1,
-    "y": 1,
     "what": "명세와 시나리오를 받아 에이전트가 코드를 쓰고 검토하고 검증해 내보낼 판을 만드는 곳입니다. 사람은 의도와 안목을 맡고, 코드를 쓰고 읽는 일은 에이전트가 맡습니다.",
     "refs": [
      "[StrongDM software factory](https://factory.strongdm.ai/)",
@@ -1049,8 +1008,6 @@
       {
        "id": "spec",
        "label": "Specifying",
-       "x": 0,
-       "y": 0,
        "partition": "people",
        "ops": ["Problem.specify"],
        "what": "에이전트가 사람을 인터뷰해 명세를 쓰고, 사람은 그 결과가 무엇을 만족해야 하는지 시나리오로 적습니다.",
@@ -1062,8 +1019,6 @@
       {
        "id": "plan",
        "label": "Planning",
-       "x": 1,
-       "y": 0,
        "partition": "agents",
        "ops": ["Spec.plan"],
        "what": "에이전트가 코드를 읽고 계획부터 세웁니다. 바꾸기 전에 둘러보고 계획하는 순서가 Claude Code의 기본 흐름입니다.",
@@ -1072,8 +1027,6 @@
       {
        "id": "impl",
        "label": "Implementing",
-       "x": 2,
-       "y": 0,
        "partition": "agents",
        "ops": ["Plan.implement"],
        "what": "여러 에이전트가 각자의 작업 공간에서 동시에 구현합니다. 안을 열면 실행 하나가 거치는 상태를 볼 수 있습니다.",
@@ -1087,20 +1040,16 @@
         "title": "Agent run",
         "why": "에이전트에게 맡겨진 작업 하나가 거치는 상태입니다. 자료를 모으고, 도구로 일하고, 결과를 확인하는 것을 되풀이하다가, 스스로 정하면 안 되는 판단을 만나면 사람의 답을 기다립니다.",
         "nodes": [
-         {"id": "queued", "label": "Queued", "x": 0, "y": 0, "what": "작업이 맡겨졌지만 아직 시작하지 않은 상태입니다."},
+         {"id": "queued", "label": "Queued", "what": "작업이 맡겨졌지만 아직 시작하지 않은 상태입니다."},
          {
           "id": "gather",
           "label": "Gathering",
-          "x": 1,
-          "y": 0,
           "what": "작업에 필요한 파일, 문서, 이전 대화를 읽습니다. 스킬은 필요할 때만 꺼내 읽어 맥락을 아낍니다.",
           "refs": ["[Agent Skills](https://agentskills.io)"]
          },
          {
           "id": "act",
           "label": "Acting",
-          "x": 2,
-          "y": 0,
           "what": "도구를 불러 코드를 고치거나, 명령을 실행하거나, 메시지를 씁니다.",
           "ops": ["Harness.callTool"],
           "rules": ["least-privilege", "logged"],
@@ -1113,21 +1062,9 @@
           ],
           "refs": ["[MCP specification](https://modelcontextprotocol.io/specification/latest)"]
          },
-         {
-          "id": "verify",
-          "label": "Verifying",
-          "x": 2,
-          "y": 1,
-          "what": "테스트를 돌리거나 결과를 다시 읽어 작업이 맞는지 확인합니다."
-         },
-         {
-          "id": "waiting",
-          "label": "Waiting",
-          "x": 3,
-          "y": 0,
-          "what": "에이전트가 질문을 보내고 사람의 답을 기다리는 상태입니다."
-         },
-         {"id": "done", "label": "Done", "x": 3, "y": 1, "what": "결과를 담당자에게 넘긴 상태입니다."}
+         {"id": "verify", "label": "Verifying", "what": "테스트를 돌리거나 결과를 다시 읽어 작업이 맞는지 확인합니다."},
+         {"id": "waiting", "label": "Waiting", "what": "에이전트가 질문을 보내고 사람의 답을 기다리는 상태입니다."},
+         {"id": "done", "label": "Done", "what": "결과를 담당자에게 넘긴 상태입니다."}
         ],
         "edges": [
          {
@@ -1199,8 +1136,6 @@
       {
        "id": "review",
        "label": "Reviewing",
-       "x": 2,
-       "y": 1,
        "partition": "agents",
        "ops": ["Change.review", "AgentMemory.update"],
        "rules": ["mistakes-become-rules"],
@@ -1213,8 +1148,6 @@
       {
        "id": "validate",
        "label": "Validating",
-       "x": 1,
-       "y": 1,
        "partition": "agents",
        "ops": ["Change.validate"],
        "rules": ["holdout"],
@@ -1224,8 +1157,6 @@
       {
        "id": "judge",
        "label": "Judging",
-       "x": 0,
-       "y": 2,
        "partition": "people",
        "ops": ["Build.judge"],
        "rules": ["human-judged"],
@@ -1343,8 +1274,7 @@
          "text": "verdict: not yet lovable\nwhy: 재시도 후 확인 화면이 없어 결제가 됐는지 모름\nchange: 성공 화면과 영수증 링크",
          "invented": true
         }
-       ],
-       "via": "left"
+       ]
       }
      ]
     }
@@ -1352,8 +1282,6 @@
    {
     "id": "platform",
     "label": "Platform",
-    "x": 0,
-    "y": 1,
     "what": "에이전트가 일하는 바탕입니다. 실행 환경, 스킬, 도구 연결, 권한 규칙, 평가, 기록을 운영합니다.",
     "partition": "systems",
     "opens": {
@@ -1364,8 +1292,6 @@
       {
        "id": "skills",
        "label": "Skill",
-       "x": 0,
-       "y": 0,
        "what": "조직의 일하는 방법을 담은 폴더입니다. 이름과 설명만 늘 보이고, 본문은 필요할 때 읽힙니다.",
        "ops": ["Skill.revise"],
        "media": [
@@ -1397,8 +1323,6 @@
       {
        "id": "harness",
        "label": "Harness",
-       "x": 1,
-       "y": 0,
        "what": "에이전트를 실제로 돌리는 실행 환경입니다. 모델을 부르고, 스킬을 읽고, 도구 호출을 중개하며, 하위 에이전트를 띄웁니다.",
        "ops": ["Harness.callTool"],
        "refs": ["[Claude Code subagents](https://code.claude.com/docs/en/sub-agents)"],
@@ -1409,8 +1333,6 @@
       {
        "id": "tools",
        "label": "MCP tool",
-       "x": 3,
-       "y": 0,
        "what": "저장소, 문서, 티켓 같은 외부 시스템을 표준 방식으로 연결한 도구 서버입니다.",
        "media": [
         {
@@ -1427,8 +1349,6 @@
       {
        "id": "evals",
        "label": "Evals",
-       "x": 0,
-       "y": 1,
        "what": "실제 실패에서 모은 과제 묶음입니다. 스킬이나 지시문을 바꾸기 전에 이 묶음으로 성능이 떨어지지 않았는지 잽니다.",
        "ops": ["Evals.addCase", "Evals.score"],
        "refs": [
@@ -1441,8 +1361,6 @@
       {
        "id": "perm",
        "label": "Permissions",
-       "x": 1,
-       "y": 1,
        "what": "도구마다 허용, 확인, 금지를 적은 규칙입니다. 금지, 확인, 허용 순으로 적용됩니다.",
        "ops": ["Permissions.grant"],
        "rules": ["least-privilege"],
@@ -1466,8 +1384,6 @@
       {
        "id": "audit",
        "label": "Audit log",
-       "x": 2,
-       "y": 1,
        "what": "모든 도구 호출을 누가, 언제, 무엇으로 했는지 남기는 기록입니다.",
        "rules": ["logged"],
        "refs": ["[Claude Code hooks](https://code.claude.com/docs/en/hooks)"],
@@ -1508,8 +1424,6 @@
    {
     "id": "lead",
     "label": "Leadership",
-    "x": 0,
-    "y": 0,
     "what": "회사가 AI를 어떻게 쓸지 기대치를 정하고, 채용과 평가와 예산을 그 기대치에 묶습니다.",
     "ops": ["Leadership.setAIBar", "Leadership.approveHeadcount"],
     "rules": ["ai-first-hiring"],
@@ -1543,8 +1457,6 @@
       {
        "id": "opening",
        "label": "Requesting headcount",
-       "x": 0,
-       "y": 0,
        "what": "팀이 사람을 더 뽑으려고 자리를 요청하고, 경영진이 그 일을 에이전트에게 맡겨 본 증거를 보고 승인합니다.",
        "ops": ["Leadership.approveHeadcount"],
        "rules": ["ai-first-hiring"],
@@ -1555,16 +1467,12 @@
       {
        "id": "hiring",
        "label": "Hiring",
-       "x": 1,
-       "y": 0,
        "what": "후보자를 뽑을 때 AI를 다루는 역량을 함께 봅니다.",
        "refs": ["[Zapier](https://zapier.com/blog/zapier-ai-first-hiring-leaning/)"]
       },
       {
        "id": "onboarding",
        "label": "Onboarding",
-       "x": 1,
-       "y": 1,
        "what": "새로 온 사람이 첫 주 안에 AI 코딩 도구와 에이전트 환경을 쓸 수 있게 갖춥니다.",
        "refs": [
         "[Coinbase (Fortune)](https://fortune.com/2025/08/25/coinbase-ceo-brian-armstrong-ai-coding-assistants-mandate-tech)"
@@ -1573,8 +1481,6 @@
       {
        "id": "perf",
        "label": "Reviewing performance",
-       "x": 0,
-       "y": 1,
        "what": "평가에서 AI를 얼마나 잘 썼는지를 함께 봅니다.",
        "refs": [
         "[Shopify memo (TechCrunch)](https://techcrunch.com/2025/04/07/shopify-ceo-tells-teams-to-consider-using-ai-before-growing-headcount)"

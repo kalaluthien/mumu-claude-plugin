@@ -1,1 +1,1 @@
-"""Check a zoom-diagram model, prove it with Alloy, build its page and check the drawing."""
+"""Draw a system model as a zoom diagram: the view file, the drawing checks, the page and its render check."""

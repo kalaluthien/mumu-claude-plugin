@@ -1,27 +1,6 @@
 {
  "title": "RECOVERY dexamethasone trial",
- "next": "Open the participant flow and read where the trial can lose a participant.",
- "plan": {
-  "intent": "한 임상시험에서 참여자가 등록부터 분석까지 어떻게 흐르고, 무엇이 지켜져야 결과를 믿을 수 있는가",
-  "views": [
-   {"name": "CONSORT participant flow", "level": "root"},
-   {"name": "Eligibility and randomization procedure", "level": "rand"},
-   {"name": "Trial arms and intervention", "level": "dex"},
-   {"name": "Primary outcome analysis (intention to treat)", "level": "died"},
-   {
-    "name": "Kaplan-Meier survival curve",
-    "why": "28일 동안의 생존 곡선은 시간에 따른 비율이라 상태나 흐름으로 그릴 것이 없습니다. 그 곡선이 요약하는 사망 수와 비율비는 Died 노트에 둡니다."
-   },
-   {
-    "name": "Subgroup results by respiratory support",
-    "why": "하위군은 같은 흐름에서 경우만 다른 것이라, 따로 그리지 않고 Died 노트의 facts로 둡니다."
-   },
-   {
-    "name": "Baseline characteristics table",
-    "why": "기초 특성 표는 무작위 배정이 두 군을 비슷하게 만들었는지 보이는 숫자 표라 그림이 할 일이 없습니다. 무작위 배정이 어떻게 이루어지는지는 Randomization 레벨이 보입니다."
-   }
-  ]
- },
+ "plan": {"intent": "한 임상시험에서 참여자가 등록부터 분석까지 어떻게 흐르고, 무엇이 지켜져야 결과를 믿을 수 있는가"},
  "scenarios": [
   {
    "slug": "treat-with-dexamethasone",
@@ -371,8 +350,6 @@
    {
     "id": "inel",
     "label": "Ineligible",
-    "x": 0,
-    "y": 0,
     "qty": {"value": 1948, "unit": "patients", "kind": "count"},
     "what": "덱사메타손이 병원에 없거나, 담당 의사가 이 환자에게 꼭 써야 한다거나 쓰면 안 된다고 본 환자입니다. 덱사메타손 비교에 들지 않으며, 수는 무작위 배정된 11303명에서 덱사메타손에 적격한 9355명을 뺀 것입니다.",
     "refs": [
@@ -382,8 +359,6 @@
    {
     "id": "rand",
     "label": "Randomized",
-    "x": 1,
-    "y": 0,
     "qty": {"value": 11303, "unit": "patients", "kind": "count"},
     "what": "2020년 3월 19일부터 6월 8일까지 RECOVERY에 무작위 배정된 모든 환자입니다. 안을 열면 적격 판정과 무작위 배정이 어떤 순서로 일어나는지 볼 수 있습니다.",
     "refs": [
@@ -413,8 +388,6 @@
       {
        "id": "check",
        "label": "Checking eligibility",
-       "x": 0,
-       "y": 0,
        "partition": "hospital",
        "ops": ["Participant.assess"],
        "what": "담당 의사가 환자가 시험에 들 수 있는지와, 시험 약마다 이 환자에게 맞고 병원에 있는지를 판정합니다.",
@@ -440,8 +413,6 @@
       {
        "id": "enter",
        "label": "Entering baseline data",
-       "x": 0,
-       "y": 1,
        "partition": "hospital",
        "ops": ["Participant.enrol"],
        "what": "동의를 받고 웹 기반 등록 양식에 기초 자료와 적격 판정을 넣어 제출합니다. 제출은 되돌릴 수 없습니다.",
@@ -452,8 +423,6 @@
       {
        "id": "randomize",
        "label": "Randomizing",
-       "x": 1,
-       "y": 1,
        "partition": "web",
        "ops": ["Participant.allocate"],
        "what": "중앙 웹 시스템이 이 환자에게 맞고 병원에 있는 군 가운데 하나를, usual care 2 대 각 시험 약 1의 비율로 뽑습니다.",
@@ -464,8 +433,6 @@
       {
        "id": "prescribe",
        "label": "Prescribing treatment",
-       "x": 0,
-       "y": 2,
        "partition": "hospital",
        "what": "담당 의사가 배정된 치료를 처방합니다. 시험은 공개 라벨이라 환자와 병원 의료진은 군을 압니다.",
        "refs": [
@@ -536,8 +503,6 @@
    {
     "id": "elsewhere",
     "label": "Assigned elsewhere",
-    "x": 3,
-    "y": 0,
     "qty": {"value": 2930, "unit": "patients", "kind": "count"},
     "what": "덱사메타손에 적격했지만 같은 플랫폼의 다른 시험 약 군에 배정된 환자입니다. 수는 적격한 9355명에서 덱사메타손 비교에 든 6425명을 뺀 것입니다.",
     "refs": [
@@ -547,8 +512,6 @@
    {
     "id": "dex",
     "label": "Allocated dexamethasone",
-    "x": 0,
-    "y": 1,
     "qty": {"value": 2104, "unit": "patients", "kind": "count"},
     "what": "덱사메타손 군에 배정된 참여자입니다. 표준 치료에 더해 덱사메타손을 받습니다. 안을 열면 투여와 추적이 어떻게 이어지는지 볼 수 있습니다.",
     "rules": ["intention-to-treat"],
@@ -564,8 +527,6 @@
       {
        "id": "give",
        "label": "Giving dexamethasone",
-       "x": 0,
-       "y": 0,
        "partition": "ward",
        "ops": ["Participant.dose"],
        "what": "병동이 덱사메타손 6 mg을 하루 한 번, 경구나 정맥으로 최대 10일, 그 전에 퇴원하면 퇴원 때까지 줍니다.",
@@ -589,8 +550,6 @@
       {
        "id": "report",
        "label": "Completing the follow-up form",
-       "x": 1,
-       "y": 0,
        "partition": "ward",
        "ops": ["Participant.report"],
        "rules": ["complete-follow-up"],
@@ -602,8 +561,6 @@
       {
        "id": "collect",
        "label": "Collecting outcomes",
-       "x": 2,
-       "y": 0,
        "partition": "centre",
        "ops": ["Comparison.collect"],
        "what": "조정 센터가 추적 양식을 모으고, 생존 여부 같은 정보를 병원 기록과 등록 자료로도 보충합니다.",
@@ -659,8 +616,6 @@
    {
     "id": "usual",
     "label": "Allocated usual care",
-    "x": 2,
-    "y": 1,
     "qty": {"value": 4321, "unit": "patients", "kind": "count"},
     "what": "usual care 군에 배정된 참여자입니다. 시험 약 없이 병원의 표준 치료만 받고, 추적은 덱사메타손 군과 같습니다.",
     "rules": ["intention-to-treat"],
@@ -684,8 +639,6 @@
    {
     "id": "died",
     "label": "Died",
-    "x": 1,
-    "y": 2,
     "qty": {"value": 1592, "unit": "patients", "kind": "count"},
     "what": "배정 뒤 28일 안에 사망한 참여자입니다. 이 사망이 1차 결과이고, 안을 열면 사망을 배정 군대로 세어 비교하는 방법을 볼 수 있습니다.",
     "refs": [
@@ -728,8 +681,6 @@
       {
        "id": "comparison",
        "label": "Comparison",
-       "x": 0,
-       "y": 0,
        "singleton": true,
        "attrs": ["participants: Participant[]", "treatment: Arm", "control: Arm"],
        "ops": ["Comparison.estimate"],
@@ -743,8 +694,6 @@
       {
        "id": "participant",
        "label": "Participant",
-       "x": 1,
-       "y": 0,
        "attrs": ["eligible: Bool", "allocated: Arm?", "form: FollowUpForm?"],
        "what": "무작위 배정된 환자 한 명입니다. 배정 군은 한 번 정해지면 바뀌지 않고, 분석에서도 그 군으로 셉니다.",
        "refs": [
@@ -763,8 +712,6 @@
       {
        "id": "form",
        "label": "Follow-up form",
-       "x": 2,
-       "y": 0,
        "attrs": ["death: Bool", "doses: DoseRecord[]"],
        "rules": ["complete-follow-up"],
        "what": "참여자마다 한 장씩 남는 추적 양식입니다. 28일 안의 사망 여부와 받은 치료가 적힙니다.",
@@ -794,8 +741,6 @@
    {
     "id": "nodeath",
     "label": "No death reported",
-    "x": 1,
-    "y": 3,
     "qty": {"value": 4833, "unit": "patients", "kind": "count"},
     "what": "배정 뒤 28일까지 사망이 보고되지 않은 참여자입니다. 수는 각 군의 배정 수에서 사망 수를 뺀 것이고, 1차 결과 추적이 끝나지 않은 7명도 여기에 들어 있습니다.",
     "refs": [

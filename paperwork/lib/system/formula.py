@@ -378,7 +378,7 @@ def temporal(text):
     return any(v in UNARY_F - {"not"} or v in BIN_T for _, v, _ in tokens(text))
 
 
-WIDTH = 40   # a note is about 40 mono characters wide on a phone
+WIDTH = 40   # a formula line holds about 40 mono characters
 
 
 def show(node):

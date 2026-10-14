@@ -1,19 +1,6 @@
 {
  "title": "GitHub pull request",
- "next": "Walk the Scenario you care about, then read the rule that blocks a merge.",
- "plan": {
-  "intent": "풀 리퀘스트 하나가 열려서 머지되거나 닫히기까지, 무엇이 지켜져야 머지할 수 있는가",
-  "views": [
-   {"name": "Pull request state machine", "level": "root"},
-   {"name": "Review flow", "level": "open-s"},
-   {"name": "Local and remote branch sync", "level": "push"},
-   {"name": "Pull request data model", "level": "review"},
-   {
-    "name": "Merge sequence between Git and GitHub",
-    "why": "시퀀스 그림이 아직 없어, Branch sync 레벨의 두 영역과 동기화가 그 순서를 대신 보입니다."
-   }
-  ]
- },
+ "plan": {"intent": "풀 리퀘스트 하나가 열려서 머지되거나 닫히기까지, 무엇이 지켜져야 머지할 수 있는가"},
  "scenarios": [
   {
    "slug": "propose-change",
@@ -487,86 +474,6 @@
    "refs": ["[git push](https://git-scm.com/docs/git-push)"]
   }
  ],
- "screens": {
-  "conversation": {
-   "title": "Pull request / Conversation",
-   "size": "1280",
-   "blocks": [
-    {
-     "id": "head",
-     "name": "Header",
-     "type": "title",
-     "text": "Add retry to sync job #482",
-     "sub": "Open · mina wants to merge 3 commits into main from retry-sync"
-    },
-    {
-     "id": "tabs",
-     "name": "Tabs",
-     "type": "tabs",
-     "items": ["Conversation", "Commits 3", "Checks 2", "Files changed 4"],
-     "active": 0
-    },
-    {
-     "id": "timeline",
-     "name": "Timeline",
-     "type": "list",
-     "items": [
-      "mina opened this pull request",
-      "jun requested changes",
-      "mina pushed 1 commit",
-      "jun approved these changes"
-     ]
-    },
-    {
-     "id": "checks",
-     "name": "Checks",
-     "type": "list",
-     "items": ["✓ ci / build — passed", "✓ ci / test — passed"]
-    },
-    {"id": "merge", "name": "Merge box", "type": "button", "text": "Merge pull request"}
-   ]
-  },
-  "files": {
-   "title": "Pull request / Files changed",
-   "size": "1280",
-   "blocks": [
-    {
-     "id": "head",
-     "name": "Header",
-     "type": "title",
-     "text": "Add retry to sync job #482",
-     "sub": "4 files changed · +38 −6"
-    },
-    {
-     "id": "tabs",
-     "name": "Tabs",
-     "type": "tabs",
-     "items": ["Conversation", "Commits 3", "Checks 2", "Files changed 4"],
-     "active": 3
-    },
-    {
-     "id": "diff",
-     "name": "Diff",
-     "type": "code",
-     "items": ["  def sync(job):", "-     run(job)", "+     retry(run, job, times=3)"]
-    },
-    {
-     "id": "comment",
-     "name": "Line comment",
-     "type": "text",
-     "text": "jun · 세 번이면 충분할까요? 백오프도 넣어 주세요."
-    },
-    {
-     "id": "submit",
-     "name": "Review",
-     "type": "choices",
-     "items": ["Comment", "Approve", "Request changes"],
-     "active": 2,
-     "text": "Submit review"
-    }
-   ]
-  }
- },
  "level": {
   "kind": "state",
   "initial": "open-s",
@@ -576,8 +483,6 @@
    {
     "id": "draft-s",
     "label": "Draft",
-    "x": 0,
-    "y": 0,
     "what": "아직 리뷰를 청하지 않은 상태입니다. 누구나 볼 수 있지만 머지할 수 없습니다.",
     "refs": [
      "[Changing the stage of a pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request)"
@@ -586,8 +491,6 @@
    {
     "id": "open-s",
     "label": "Open",
-    "x": 1,
-    "y": 0,
     "what": "리뷰와 체크가 오가는 상태입니다. 안을 열면 리뷰가 한 바퀴 도는 과정을 볼 수 있습니다.",
     "refs": ["[Pull requests](https://docs.github.com/en/pull-requests/reference/pull-requests)"],
     "opens": {
@@ -598,8 +501,6 @@
       {
        "id": "push",
        "label": "Pushing",
-       "x": 0,
-       "y": 0,
        "what": "작성자가 자기 컴퓨터에서 커밋을 만들고 작업 브랜치로 올립니다. 풀 리퀘스트는 언제나 그 브랜치의 가장 최근 커밋을 가리킵니다.",
        "ops": ["Branch.push", "Branch.update"],
        "partition": "local",
@@ -613,35 +514,22 @@
          "[Meng & Jackson 2025, What You See Is What It Does](https://arxiv.org/abs/2508.14511)"
         ],
         "nodes": [
-         {
-          "id": "clean",
-          "label": "Clean",
-          "x": 0,
-          "y": 0,
-          "what": "내 브랜치에 아직 올리지 않은 커밋이 없습니다.",
-          "region": "local"
-         },
+         {"id": "clean", "label": "Clean", "what": "내 브랜치에 아직 올리지 않은 커밋이 없습니다.", "region": "local"},
          {
           "id": "unpushed",
           "label": "Unpushed",
-          "x": 1,
-          "y": 0,
           "what": "내 브랜치에 GitHub에 아직 올리지 않은 커밋이 있습니다.",
           "region": "local"
          },
          {
           "id": "matching",
           "label": "Matching",
-          "x": 0,
-          "y": 1,
           "what": "GitHub의 브랜치에 내가 아직 받지 않은 커밋이 없습니다.",
           "region": "github"
          },
          {
           "id": "ahead",
           "label": "Ahead",
-          "x": 1,
-          "y": 1,
           "what": "GitHub의 브랜치에 내가 아직 받지 않은 커밋이 있습니다. 다른 사람이 올렸거나, GitHub에서 Update branch를 눌렀을 때입니다.",
           "region": "github"
          }
@@ -729,8 +617,6 @@
       {
        "id": "checks",
        "label": "Running checks",
-       "x": 1,
-       "y": 0,
        "what": "새 커밋에 대해 빌드와 테스트가 돌고, 결과가 풀 리퀘스트 화면에 붙습니다.",
        "ops": ["Commit.runChecks"],
        "refs": ["[Status checks](https://docs.github.com/en/pull-requests/reference/status-checks)"],
@@ -741,14 +627,11 @@
          "text": "on: pull_request\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npm ci && npm test"
         }
        ],
-       "partition": "github",
-       "ui": {"screen": "conversation", "block": "checks"}
+       "partition": "github"
       },
       {
        "id": "review",
        "label": "Reviewing code",
-       "x": 2,
-       "y": 0,
        "what": "리뷰어가 바뀐 파일을 읽고 의견을 남긴 뒤 판정을 골라 제출합니다. 안을 열면 리뷰가 무엇으로 이루어졌는지 볼 수 있습니다.",
        "ops": ["PullRequest.comment", "PullRequest.submitReview"],
        "refs": [
@@ -763,8 +646,6 @@
          {
           "id": "pr",
           "label": "Pull request",
-          "x": 0,
-          "y": 0,
           "what": "작업 브랜치(head)를 기준 브랜치(base)에 합치자는 제안입니다. 바뀐 줄과 체크 결과, 그동안 쌓인 리뷰를 한곳에 모읍니다.",
           "ops": ["PullRequest.comment", "PullRequest.submitReview"],
           "attrs": ["base: Branch", "head: Branch", "author: User", "reviews: Review[]", "checks: Text[]"],
@@ -773,8 +654,6 @@
          {
           "id": "branch",
           "label": "Branch",
-          "x": 1,
-          "y": 0,
           "what": "커밋이 이어진 한 줄의 역사입니다. 기준 브랜치에는 보호 규칙이 붙어, 머지에 필요한 승인 수와 통과해야 할 체크를 정합니다.",
           "attrs": [
            "tip: Commit",
@@ -791,8 +670,6 @@
          {
           "id": "commit",
           "label": "Commit",
-          "x": 1,
-          "y": 1,
           "what": "브랜치 역사의 한 시점입니다. 체크 결과는 커밋마다 따로 붙고, passed에는 이 커밋에서 통과한 체크 이름이 모입니다.",
           "attrs": ["sha: Text", "passed: Text[]"],
           "partition": "git"
@@ -800,8 +677,6 @@
          {
           "id": "review-x",
           "label": "Review",
-          "x": 0,
-          "y": 1,
           "what": "리뷰어 한 명이 한 번에 제출한 판정과 의견의 묶음입니다.",
           "rules": ["no-self-approval"],
           "refs": ["[REST API: Pull request reviews](https://docs.github.com/en/rest/pulls/reviews)"],
@@ -825,8 +700,6 @@
          {
           "id": "comment",
           "label": "Comment",
-          "x": 0,
-          "y": 2,
           "what": "바뀐 파일의 줄에 붙은 의견 하나입니다.",
           "refs": [
            "[Commenting on a pull request](https://docs.github.com/en/pull-requests/how-tos/review-pull-requests/commenting-on-a-pull-request)"
@@ -840,19 +713,15 @@
            }
           ],
           "attrs": ["line: DiffLine", "text: Text"],
-          "partition": "github",
-          "ui": {"screen": "files", "block": "comment"}
+          "partition": "github"
          },
          {
           "id": "line",
           "label": "Diff line",
-          "x": 1,
-          "y": 2,
           "what": "바뀐 파일의 한 줄입니다. 줄 의견은 이 줄에 붙습니다.",
           "refs": ["[Branches](https://docs.github.com/en/pull-requests/reference/branches)"],
           "attrs": ["commit: Commit", "text: Text"],
-          "partition": "git",
-          "ui": {"screen": "files", "block": "diff"}
+          "partition": "git"
          }
         ],
         "edges": [
@@ -908,14 +777,11 @@
          }
         ],
         "partitions": [{"id": "github", "label": "GitHub"}, {"id": "git", "label": "Git"}]
-       },
-       "ui": {"screen": "files", "block": "submit"}
+       }
       },
       {
        "id": "mergebox",
        "label": "Gating the merge",
-       "x": 2,
-       "y": 1,
        "what": "승인과 필수 체크가 모두 채워졌는지 보여 주고, 채워지면 머지 버튼이 열립니다.",
        "rules": ["mergeable"],
        "refs": [
@@ -947,8 +813,7 @@
          "items": ["초안이 아님", "정해진 수만큼 승인", "필수 체크가 가장 최근 커밋에서 모두 통과"]
         }
        ],
-       "partition": "github",
-       "ui": {"screen": "conversation", "block": "merge"}
+       "partition": "github"
       }
      ],
      "edges": [
@@ -1032,8 +897,6 @@
    {
     "id": "closed-s",
     "label": "Closed",
-    "x": 2,
-    "y": 0,
     "what": "머지하지 않고 닫은 상태입니다. 다시 열면 열린 상태로 돌아갑니다.",
     "refs": [
      "[Closing a pull request](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/closing-a-pull-request)"
@@ -1042,8 +905,6 @@
    {
     "id": "merged-s",
     "label": "Merged",
-    "x": 1,
-    "y": 1,
     "what": "변경이 기준 브랜치에 합쳐진 상태입니다. 풀 리퀘스트의 일은 여기서 끝납니다.",
     "refs": [
      "[About merge methods on GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-merge-methods-on-github)"

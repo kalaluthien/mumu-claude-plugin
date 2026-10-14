@@ -1,11 +1,12 @@
 # The model in Alloy
 
-`make-diagram.py alloy model.json out.als` writes the model as one Alloy 6 module,
-and the `alloy` check runs it; without Alloy, `check` exits 3. A command
-unproved after 120 s (`ZOOM_DIAGRAM_ALLOY_SECONDS`): shrink or split its rule;
+`check-system.py alloy system.json out.als` writes the model as one Alloy 6 module,
+and the `alloy` check runs it; without Alloy, `check` exits 3
+(`check-system.py alloy --fetch` downloads it). A command
+unproved after 120 s (`PAPERWORK_ALLOY_SECONDS`): shrink or split its rule;
 raise the limit only to confirm once.
 
-Passing means no counterexample within the Scopes below. The zoom levels are
+Passing means no counterexample within the Scopes below. The levels are
 not linked in the module: a level drawn inside a node is not tied to that
 node's moments.
 
@@ -37,7 +38,7 @@ it is refused: an event happens only in a state with that edge.
 |---|---|---|
 | `consistent` | some run keeps every rule and makes a call | rules and behaviour contradict each other |
 | `independent_<rule>` (not guards) | a run breaks only this rule | the rule follows from the others |
-| `holds_<rule>` (must) | no run breaks it | it can break, with the calls of its counterexample |
+| `holds_<rule>` (must) | no run breaks it | a finding, not a problem: the system can break it, with the calls of its counterexample |
 | `holds_<rule>` (should) | no run breaks it | a note only: its counterexample |
 | `scenario_<slug>` | its walk can happen: on each workflow and state level, each step's edge call strictly after the one before (component levels are walked on the drawing only) | the Scenario cannot happen under the rules |
 | `reach_<edge>` | a failure path can be taken | the failure can never happen |
@@ -49,8 +50,10 @@ Rules split three ways ([model-writing.md](model-writing.md), Rules, says where 
 - Any other `must` is assumed; any other `should` is only required of the
   ideal run in `consistent`.
 
-So a `must` that fails its `holds_` check needs a guard or an operation's
-`pre` or `post`.
+So a `must` that fails its `holds_` check is a finding about the system: `check`
+prints it on a `finding` line and still ends `ok`. Hand it back; change the model
+only when the counterexample shows your own mistake, a guard, `pre` or `post`
+the system has and the model left out.
 
 The page shows each rule's standing and its counterexample. The plan's `prove` narrows what is asked: `rules` leaves out the Scenarios and
 failure paths, `off` asks nothing.

@@ -1,11 +1,10 @@
-"""Model checks: each takes a Model and returns the problems it found, each a sentence that says what to fix."""
+"""System model checks: each takes a Model and returns the problems it found, each a sentence that says what to fix."""
 import re
-import unicodedata
 
 from . import formula as F
 from . import plan as params
 from . import prover as A
-from .model import LIMITS, places, plan, split_top, walk_steps
+from .model import places, plan, split_top, walk_steps
 
 NODE_MEDIA, EDGE_MEDIA = {"tree", "checklist"}, {"diff", "payload"}
 first_word = lambda t: t.strip().split()[0].lower() if t and t.strip() else ""
@@ -13,9 +12,8 @@ plain_verb = lambda w: not ((w.endswith("ed") and not w.endswith("eed")) or w.en
 
 
 def form(M):
-    """The file read as a model: every reference points at something (model.parse), the plan holds together, and `next` says what the reader does after."""
-    empty_next = [] if M.m.get("next", "").strip() else ["`next` is empty: write the reader's next action or choice in one sentence"]
-    return M.parse_problems + params.problems(M.m, M.child, [r[0] for r in RULES]) + empty_next
+    """The file read as a model: every reference points at something (model.parse), and the plan holds together."""
+    return M.parse_problems + params.problems(M.m, [r[0] for r in RULES])
 
 
 def steps(M):
@@ -80,39 +78,6 @@ def explained(M):
     for k, (L, t) in M.trigs.items():
         if not (t.get("what") or t.get("ops") or t.get("rules")):
             out.append(f'{L["id"]}: trigger {t["label"]} says nothing')
-    return out
-
-
-def size(M):
-    out = []
-    for L in M.m["levels"]:
-        n = len(L["nodes"])
-        if n > M.plan["max_nodes"]:
-            out.append(f'{L["id"]}: {n} nodes; group those that work alike and open them below')
-        if L.get("parent") and n < 2:
-            out.append(f'{L["id"]}: opens with {n} node; merge it into {L["parent"]}')
-    return out
-
-
-def phone(M):
-    """A phone's root is laid out again in two columns or one, so the author's columns never decide whether it fits.
-    Partitions then stack as bands of rows, and two rows of two cells join by at most three lines that do not cross
-    (two straight down, one across); more links between two partitions detour round the sides and meet. Limits in
-    assets/phone-limits.json, shared with the engine; render measures the fit itself."""
-    out = []
-    for L in M.m["levels"]:
-        if L.get("parent") or not L.get("partitions"):
-            continue
-        part = {n["id"]: n.get("partition") for n in L["nodes"]}
-        links = {}
-        for e in L["edges"]:
-            a, b = part.get(e["from"]), part.get(e["to"])
-            if a != b and a and b:   # a node outside every partition is the partitions check's to report
-                links.setdefault(tuple(sorted((a, b))), set()).add(frozenset((e["from"], e["to"])))
-        for (a, b), pairs in sorted(links.items()):
-            if len(pairs) > LIMITS["partitionLinks"]:
-                out.append(f'{L["id"]}: partitions {a} and {b} are joined at {len(pairs)} pairs of nodes, more than the '
-                           f'{LIMITS["partitionLinks"]} a phone can draw apart; route some through one node or open them in a level below')
     return out
 
 
@@ -260,14 +225,6 @@ def syncs(M):
     return out
 
 
-def depth(M):
-    if M.plan["depth"] == "overview":
-        deepest = max(M.depth(L["id"]) for L in M.m["levels"])
-        if deepest > 1:
-            return [f"overview stops one level below the root, found {deepest}"]
-    return []
-
-
 def naming(M):
     out = []
     for L in M.m["levels"]:
@@ -297,127 +254,6 @@ def naming(M):
     return out
 
 
-def names(M):
-    """Every name the module declares is an Alloy name (ASCII, starting with a letter) clear of Alloy's keywords
-    and the translation's own words; caught here, before the slow Alloy run."""
-    m, found = M.m, []
-    for L in m["levels"]:
-        found += [(A.ident(n["label"]), n["label"]) for n in L["nodes"]]
-        found += [(A.lower(x["label"]), x["label"]) for x in L["edges"] + L.get("triggers", []) if L["kind"] == "state" and x.get("label")]
-        found += [((A.ident if a.split(":", 1)[-1].strip() == "Bool" else str)(a.split(":")[0].strip()), a) for n in L["nodes"] for a in n.get("attrs", [])]
-        found += [(A.lower(e["label"]), e["label"]) for e in L["edges"] if L["kind"] in ("schema", "workflow") and e.get("label")]
-        if L["kind"] == "workflow":
-            found.append((A.ident(L["title"]), L["title"]))
-    for o in m["operations"]:
-        if o["slug"] in M.sigs:
-            found.append((M.sigs[o["slug"]][2], o["slug"]))
-            found += [(p, o["slug"]) for p in M.sigs[o["slug"]][1]]
-    found += [(A.lower(i["slug"]), i["slug"]) for i in m["rules"]]
-    found += [(t, t) for t in (m.get("types") or {})]
-    for t in [x for L in m["levels"] for n in L["nodes"] for x in n.get("attrs", [])] + [o.get("sig", "") for o in m["operations"]] + list((m.get("types") or {}).values()):
-        for lit in re.findall(r"\{([^}]*)\}", str(t)):
-            found += [(v.strip(), lit) for v in lit.split(",")]
-    out = {f'"{n}" in {where} is a word Alloy or the translation reserves; rename it' for n, where in found if n in F.RESERVED}
-    out |= {f'{where} gives no Alloy name ("{n}"); write it in ASCII letters' for n, where in found if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", str(n))}
-    # terms are English whatever the reader's language; only descriptions follow it
-    terms = [m.get("title", "")] + [t for L in m["levels"] for t in [L.get("title", "")]
-             + [x.get("label", "") for x in L["nodes"] + L["edges"] + L.get("triggers", []) + L.get("partitions", []) + L.get("regions", [])]]
-    for md in [md for L in m["levels"] for o in [L] + L["nodes"] + L["edges"] for md in o.get("media", [])]:
-        terms.append(md.get("title", ""))
-        if md.get("type") == "facts":
-            terms += [i[0] for i in md.get("items", []) if i]   # a fact's term, not its sentence
-    for sc in (m.get("screens") or {}).values():
-        terms += [sc.get("title", "")] + [b.get("name", "") for b in sc.get("blocks", [])]
-    out |= {f'"{t}" is a term: write it in English, and only descriptions in the reader\'s language' for t in terms if foreign(t)}
-    return sorted(out)
-
-
-def foreign(text):
-    """A letter outside English's: Greek stays, since a term may carry a formula's symbol (λ)."""
-    return any(c.isalpha() and not c.isascii() and "GREEK" not in unicodedata.name(c, "") for c in str(text))
-
-
-QUOTED = re.compile(r'"[^"]*"|“[^”]*”|‘[^’]*’|«[^»]*»')
-PARTICLES = "으로|로|은|는|이|가|을|를|과|와"
-# a term's last sound, judged only where its last letter decides it
-FINAL = [("ng", "c"), ("m", "c"), ("n", "c"), ("l", "l"), *((v, "v") for v in "aiouwy")]
-# wrong particle -> right one, by the term's last sound: vowel, consonant, ㄹ (which takes 로, not 으로)
-FIX = {"v": {"은": "는", "이": "가", "을": "를", "과": "와", "으로": "로"},
-       "c": {"는": "은", "가": "이", "를": "을", "와": "과", "로": "으로"},
-       "l": {"는": "은", "가": "이", "를": "을", "와": "과", "으로": "로"}}
-POSITION = re.compile(r"(?<![가-힣])(위|아래|앞|다음)\s+(그림|표|식|그래프|칸)(?:처럼|에서|으로|[은는이가을를의에도과와로만]|[^가-힣]|$)")
-
-
-def prose_fields(M):
-    """(where, text) for each description; code, quote, payload, diff, tree and screens are verbatim, so left out."""
-    m = M.m
-    yield "next", m.get("next", "")
-    yield "plan intent", m["plan"].get("intent", "")
-    for s in m["scenarios"]:
-        yield s["slug"], s.get("text", "")
-        for st in walk_steps(s["walk"]):
-            if isinstance(st, dict):
-                yield f'{s["slug"]} step', st.get("does", "")
-                yield f'{s["slug"]} step', st.get("expects", "")
-    for o in m["operations"] + m["rules"]:
-        yield o["slug"], o.get("text", "")
-    for L in m["levels"]:
-        for owner in [L] + L["nodes"] + L["edges"] + L.get("triggers", []):
-            where = owner.get("id", L["id"])
-            yield where, owner.get("what", "")
-            yield where, owner.get("why", "")
-            for md in owner.get("media", []):
-                t = md.get("type")
-                if t in ("example", "pitfall"):
-                    yield where, md.get("text", "")
-                elif t == "checklist":
-                    for item in md.get("items", []):
-                        yield where, str(item)
-                elif t == "facts":   # item[0] is the term, English
-                    for item in md.get("items", []):
-                        for x in item[1:]:
-                            yield where, str(x)
-                elif t == "insight":
-                    for f in ("move", "vs", "gain"):
-                        yield where, md.get(f, "")
-
-
-def sentences(text):
-    """(sentence, masked) pairs: a sentence ends at . ? or ! before a space or the end; a quote is masked, so it
-    never ends one and never fails."""
-    masked = QUOTED.sub(lambda q: "□" * len(q.group()), text)
-    out, start = [], 0
-    for e in [x.end() for x in re.finditer(r"[.?!](?=\s|$)", masked)] + [len(text)]:
-        if masked[start:e].strip():
-            out.append((text[start:e].strip(), masked[start:e].strip()))
-        start = e
-    return out
-
-
-def prose(M):
-    """A Korean model's descriptions read as Korean: formal endings, particles that agree with an English term and
-    sit against it, 수 있다 and 수 없다 apart, and no 위/아래/앞/다음 pointing at a figure."""
-    if M.m.get("lang") != "ko":
-        return []
-    out = []
-    for where, text in prose_fields(M):
-        for sent, mask in sentences(str(text)):
-            end = mask.rstrip(".?!)]} ")
-            found = []
-            if end.endswith("요") or (end.endswith("다") and not end.endswith("니다")):
-                found.append("register: end it with -니다 or -니까")
-            for term, par in re.findall(rf"([A-Za-z]+)({PARTICLES})(?![가-힣])", mask):
-                kind = next((k for suffix, k in FINAL if term.lower().endswith(suffix)), None)
-                if kind and par in FIX[kind]:
-                    found.append(f"particle: {term}{FIX[kind][par]}, not {term}{par}")
-            found += [f"spacing: write {t}{p} with no space" for t, p in re.findall(rf"([A-Za-z]+)\s+({PARTICLES})(?![가-힣])", mask)]
-            found += [f"spacing: write 수 {w} with a space" for w in re.findall(r"수(있|없)", mask)]
-            found += [f"position: name the figure instead of {m.group(1)} {m.group(2)}" for m in POSITION.finditer(mask)
-                      if not mask[:m.start()].rstrip().endswith("그림의")]
-            out += [f'{where}: {f} in "{sent}"' for f in found]
-    return out
-
-
 def media(M):
     out = []
     words = lambda z: set(re.findall(r"\w{2,}", z))
@@ -443,31 +279,6 @@ def media(M):
                     out.append(f'{L["id"]}: an insight names what is distinctive, not what the description says')
         if insights > 1:
             out.append(f'{L["id"]}: {insights} insights; keep the most distinctive one')
-    return out
-
-
-def pairs(text):
-    s = re.sub(r"\s+", "", text.casefold())
-    return {s[i:i + 2] for i in range(len(s) - 1)}
-
-
-def facts(M):
-    """Facts hold the system's own facts, never the diagram's plan: an item echoes the plan when it holds a third of
-    the intent's character pairs, in whatever language, or names two of the plan's views or the model's levels."""
-    m, out = M.m, []
-    intent = pairs(m["plan"].get("intent", ""))
-    names = {x.casefold() for x in [v.get("name", "") for v in m["plan"].get("views", [])] + [L["title"] for L in m["levels"]] if x}
-    for L in m["levels"]:
-        for owner in [L] + L["nodes"] + L["edges"]:
-            for md in owner.get("media", []):
-                if md.get("type") != "facts":
-                    continue
-                for item in md.get("items", []):
-                    text = " ".join(map(str, item))
-                    if (intent and len(pairs(text) & intent) * 3 >= len(intent)) or sum(n in text.casefold() for n in names) >= 2:
-                        where = owner.get("id", L["id"])
-                        out.append(f'{L["id"]}: the facts on {where} restate the plan ("{item[0]}"); keep the plan for the hand-over and state the system\'s facts')
-                        break
     return out
 
 
@@ -546,9 +357,35 @@ def typed(M):
     return out
 
 
+def alloy_names(M):
+    """Every name the module declares is an Alloy name (ASCII, starting with a letter) clear of Alloy's keywords
+    and the translation's own words; caught here, before the slow Alloy run."""
+    m, found = M.m, []
+    for L in m["levels"]:
+        found += [(A.ident(n["label"]), n["label"]) for n in L["nodes"]]
+        found += [(A.lower(x["label"]), x["label"]) for x in L["edges"] + L.get("triggers", []) if L["kind"] == "state" and x.get("label")]
+        found += [((A.ident if a.split(":", 1)[-1].strip() == "Bool" else str)(a.split(":")[0].strip()), a) for n in L["nodes"] for a in n.get("attrs", [])]
+        found += [(A.lower(e["label"]), e["label"]) for e in L["edges"] if L["kind"] in ("schema", "workflow") and e.get("label")]
+        if L["kind"] == "workflow":
+            found.append((A.ident(L["title"]), L["title"]))
+    for o in m["operations"]:
+        if o["slug"] in M.sigs:
+            found.append((M.sigs[o["slug"]][2], o["slug"]))
+            found += [(p, o["slug"]) for p in M.sigs[o["slug"]][1]]
+    found += [(A.lower(i["slug"]), i["slug"]) for i in m["rules"]]
+    found += [(t, t) for t in (m.get("types") or {})]
+    for t in [x for L in m["levels"] for n in L["nodes"] for x in n.get("attrs", [])] + [o.get("sig", "") for o in m["operations"]] + list((m.get("types") or {}).values()):
+        for lit in re.findall(r"\{([^}]*)\}", str(t)):
+            found += [(v.strip(), lit) for v in lit.split(",")]
+    out = {f'"{n}" in {where} is a word Alloy or the translation reserves; rename it' for n, where in found if n in F.RESERVED}
+    out |= {f'{where} gives no Alloy name ("{n}"); write it in ASCII letters' for n, where in found if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", str(n))}
+    return sorted(out)
+
+
 def vocabulary(M):
-    """Formulas are Alloy over the module's names, with every variable bound and no name hidden."""
-    W, out = A.World(M), []
+    """Formulas are Alloy over the module's names, with every variable bound and no name hidden; every name is an
+    Alloy name (alloy_names)."""
+    W, out = A.World(M), alloy_names(M)
     for i in M.m["rules"]:
         out += W.check_formula(i["formula"], i["slug"])
     for sl, op in list(W.change.items()) + list(W.query.items()):
@@ -579,59 +416,54 @@ def balanced(M):
 
 
 def alloy(M):
-    """Translate the model to Alloy 6 and let Alloy answer: the rules agree, each is independent, every must rule
-    holds under the behaviour, every Scenario and failure path can happen. Commands whose text is unchanged reuse
+    """Translate the model to Alloy 6 and let Alloy answer: the rules agree, each is independent, every Scenario
+    and failure path can happen; a must rule the behaviour can break is a finding about the system, not a problem. Commands whose text is unchanged reuse
     their last answer. Skipped, and said so, when Java or Alloy is missing."""
-    M.alloy_notes = []
+    M.alloy_notes, M.alloy_findings = [], []
     if M.plan["prove"] == "off":
         M.alloy_status = "skipped: the plan says prove: off"
         return []
     if not A.jar():
-        M.alloy_status = "skipped: no Alloy (set ALLOY_JAR or run `make-diagram.py alloy --fetch`)"
+        M.alloy_status = "skipped: no Alloy (set ALLOY_JAR or run `check-system.py alloy --fetch`)"
         return []
     try:
         W, C, res = A.solve(M)
     except RuntimeError as e:
         return [f"Alloy refused the translation: {e}"]
-    probs, notes = A.verdicts(M, W, C, res)
+    probs, notes, M.alloy_findings = A.verdicts(M, W, C, res)
     assumed = sorted(i["slug"] for i in M.m["rules"] if i["kind"] == "must" and A.classify(W)[i["slug"]] == "static")
     notes += [f"assumed, not checked (no state or call in them): {', '.join(assumed)}"] if assumed else []
     M.alloy_status = (f'checked: {len(C)} commands, {res["_ran"]} run now, the rest unchanged since they last ran' if not res["_slow"] else
-                      f'{len(res["_slow"])} of {len(C)} commands took over {A.SECONDS} s (ZOOM_DIAGRAM_ALLOY_SECONDS): {", ".join(res["_slow"])}')
+                      f'{len(res["_slow"])} of {len(C)} commands took over {A.SECONDS} s (PAPERWORK_ALLOY_SECONDS): {", ".join(res["_slow"])}')
     M.alloy_notes += notes
     return probs
 
 
-LINT = {"basis", "explained", "size", "phone", "mechanism", "paths", "depth", "naming", "media", "prose"}
+LINT = {"basis", "explained", "mechanism", "paths", "naming", "media"}
 
 RULES = [
     ("form", "the file is well formed: one root, known kinds, initial states, named edges, refs as [name](url), a valid plan", form),
-    ("names", "every name is an ASCII Alloy name, clear of Alloy's keywords and the translation's words; every term is English", names),
     ("steps", "every Scenario step says what it does and expects, and follows an edge or opens or closes a level", steps),
     ("scoped", "the root and every level things enter from outside have Scenarios of their own (plan scenarios: every asks it of all); steps never climb above where they start", scoped),
     ("coverage", "every operation, rule, node, edge and trigger is used by some Scenario", coverage),
     ("basis", "no Scenario is the union of other Scenarios on its level", basis),
     ("placement", "operations sit on nodes or events, rules on nodes or edges", placement),
     ("explained", "every edge and trigger says something: a sentence, an operation or a guard", explained),
-    ("size", "a level has 2 to max_nodes (7) nodes", size),
-    ("phone", f"a phone can draw the root: no two of its partitions joined at more than {LIMITS['partitionLinks']} pairs of nodes", phone),
     ("mechanism", "where anything runs, root Scenarios walk an activity or state, and every component meets one of them", mechanism),
     ("partitions", "every node of a partitioned level is in one of two or more partitions, crossings carry a contract (render checks the blocks)", partitions),
     ("quantities", "counts and pass-through nodes add up, flows match their stock's unit, every deadline shows what happens when it passes", quantities),
     ("paths", "a workflow or state level marks its main path, and every gate (checking, reviewing, …) shows how it fails", paths),
     ("four-states", "each region of a state level holds an instance in one state: one initial state, events kept in the region (not Missing or Overloaded), every state reached (not Illegal), no two states alike (not Redundant)", four_states),
     ("syncs", "regions of a state level meet only through syncs: when an event, where a state, then an event in another region", syncs),
-    ("depth", "an overview stops one level below the root", depth),
     ("naming", "labels follow their kind; abstract components depend only on abstract ones; marks are known", naming),
     ("media", "media sit where its type allows; an insight names a move, the usual design, the gain and a rule", media),
-    ("facts", "facts state the system's facts, never the plan: no item restates the intent or lists the views", facts),
-    ("prose", "a Korean model's descriptions end in -니다 or -니까, put particles by the English term's last sound with no space, write 수 있다 apart, and never point at 위/아래/앞/다음 그림", prose),
     ("unique-names", "no two things the reader sees share a name", unique_names),
     ("typed", "types are names the module declares; signatures, attributes and relations agree with the drawing", typed),
-    ("vocabulary", "formulas are Alloy over the model's names, every variable bound and none hiding a name", vocabulary),
+    ("vocabulary", "every name is an ASCII Alloy name clear of Alloy's keywords and the translation's words; formulas are Alloy over the model's names, every variable bound and none hiding a name", vocabulary),
     ("balanced", "a workflow opened from a workflow shows its parent's artifacts entering and leaving", balanced),
-    ("alloy", "Alloy finds the rules consistent and independent, every must rule kept, every Scenario and failure path possible", alloy),
+    ("alloy", "Alloy finds the rules consistent and independent and every Scenario and failure path possible; a must rule it can break is a finding", alloy),
 ]
+CHECKS = {r[0] for r in RULES}
 
 
 def severity(name, M):
@@ -640,10 +472,10 @@ def severity(name, M):
 
 def run(M, prove=True, only=None):
     """(name, problems, severity) per check, in order. Alloy runs only when no error was found."""
-    out = []
+    out, M.alloy_notes, M.alloy_findings = [], [], []
     M.alloy_status = "skipped: --quick" if not prove else ""
     if M.parse_problems:   # nothing else can be read until every reference resolves
-        M.alloy_notes, M.alloy_status = [], "not run: fix the errors above first"
+        M.alloy_status = "not run: fix the errors above first"
         return [("form", M.parse_problems, "error")]
     for name, _, fn in RULES:
         if only and name not in only:
@@ -651,9 +483,23 @@ def run(M, prove=True, only=None):
         sev = severity(name, M)
         if name == "alloy":
             if not prove or any(p and s == "error" for _, p, s in out):
-                M.alloy_notes = []
                 M.alloy_status = M.alloy_status or "not run: fix the errors above first"
                 out.append((name, [], sev))
                 continue
         out.append((name, fn(M), sev))
     return out
+
+
+def report(rows, M=None):
+    """The lines a check prints for its rows, and how many errors they hold: a tag and the check's name, each
+    problem under it, then Alloy's notes and findings."""
+    lines, failed = [], 0
+    for name, problems, sev in rows:
+        tag = "pass" if not problems else "FAIL" if sev == "error" else "warn"
+        status = getattr(M, "alloy_status", "") if name == "alloy" else ""
+        lines.append(f"{tag:4s}  {name}" + (f"  ({status})" if status else ""))
+        lines += [f"      - {p}" for p in problems]
+        failed += len(problems) if sev == "error" else 0
+    lines += [f"note  {n}" for n in getattr(M, "alloy_notes", [])]
+    lines += [f"finding  {f}" for f in getattr(M, "alloy_findings", [])]
+    return lines, failed

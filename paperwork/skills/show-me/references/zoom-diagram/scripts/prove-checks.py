@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Each check must be able to fail: one small mutation of a worked model per check, and the examples must pass.
 
+Both sides are proved: drill-it's system checks and the drawing's checks, each example its system and view joined.
 When the playbook is wrong (a check refuses something legitimate, a reference misses a case, the engine
 draws badly), change the one file that owns it, never a single model, then run this and `make` every example.
 
@@ -14,11 +15,13 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[4] / "lib"))
-from diagram import checks  # noqa: E402
-from diagram import prover as alloy  # noqa: E402
-from diagram.model import Model, levels_of, shape  # noqa: E402
+from diagram import view  # noqa: E402
+from system import checks  # noqa: E402
+from system import prover as alloy  # noqa: E402
+from system.model import Model, levels_of, shape  # noqa: E402
 
-EX = {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in (HERE.parent / "examples").glob("*.json")}
+EX = {p.name: view.merge(*(json.loads((p / f).read_text(encoding="utf-8")) for f in ("system.json", "view.json")))
+      for p in (HERE.parent / "examples").iterdir() if p.is_dir()}
 
 
 def step(at):
@@ -78,17 +81,19 @@ MUTATIONS = {
               ("pull-request", lambda m: m.update(lang="ko", next="위 그림을 봅니다."))],
     "unique-names": ("pull-request", lambda m: node(m, "push").update(label="Running checks")),
     "typed": ("pull-request", lambda m: next(o for o in m["operations"] if o["slug"] == "PullRequest.merge").update(sig="(method) → Commit")),
-    "vocabulary": ("pull-request", lambda m: m["rules"][0].update(formula=m["rules"][0]["formula"] + " and fresh[pr]")),
+    "vocabulary": [("pull-request", lambda m: m["rules"][0].update(formula=m["rules"][0]["formula"] + " and fresh[pr]")),
+                   ("pull-request", lambda m: node(m, "push").update(label="Now"))],
     "balanced": ("self", lambda m: lv(m, "check").pop("out")),
     "alloy": ("pull-request", lambda m: rule_of(m, "fast-forward-push").update(formula="all branch: Branch | not branch.push")),
 }
 
-# each kind of Alloy verdict, caught with --prove: (example, mutation, words the problem must contain)
+# each kind of Alloy verdict, caught with --prove: (example, mutation, words the problem must contain); a must
+# rule the behaviour can break is a finding about the system, never a problem of the model
 VERDICTS = [
-    ("pull-request", lambda m: rule_of(m, "fast-forward-push").update(formula="all branch: Branch | not branch.push"), "cannot happen"),
-    ("pull-request", lambda m: m["rules"].append(dict(rule_of(m, "three-dot"), slug="three-dot-again")) or node(m, "review-x").setdefault("rules", []).append("three-dot-again"), "follows from"),
-    ("explore-unknowns", lambda m: op(m, "Question.close").pop("post"), "can break"),
-    ("pull-request", lambda m: rule_of(m, "fast-forward-push").update(formula="no Branch and some Branch"), "contradict"),
+    ("pull-request", lambda m: rule_of(m, "fast-forward-push").update(formula="all branch: Branch | not branch.push"), "cannot happen", "problems"),
+    ("pull-request", lambda m: m["rules"].append(dict(rule_of(m, "three-dot"), slug="three-dot-again")) or node(m, "review-x").setdefault("rules", []).append("three-dot-again"), "follows from", "problems"),
+    ("explore-unknowns", lambda m: op(m, "Question.close").pop("post"), "can break", "findings"),
+    ("pull-request", lambda m: rule_of(m, "fast-forward-push").update(formula="no Branch and some Branch"), "contradict", "problems"),
 ]
 
 
@@ -101,22 +106,30 @@ def op(m, slug):
 
 
 def failing(m, prove=False):
-    return {name for name, problems, _ in checks.run(Model(m), prove) if problems}
+    s, v = view.split(m)
+    rows = checks.run(Model(s), prove) + view.run(s, v)
+    return {name for name, problems, _ in rows if problems}
+
+
+def proved(m):
+    """Alloy's problems and findings for a model's system side."""
+    M = Model(view.split(m)[0])
+    return {"problems": next(p for n, p, _ in checks.run(M, True) if n == "alloy"), "findings": M.alloy_findings}
 
 
 def main(args):
     prove, bad = "--prove" in args, []
     if prove and not alloy.jar():
-        print("--prove needs Alloy: run make-diagram.py alloy --fetch")
+        print("--prove needs Alloy: run skills/drill-it/scripts/check-system.py alloy --fetch")
         return 1
     for name, m in sorted(EX.items()):
         if f := failing(m, prove):
             bad.append(f"example {name} fails {sorted(f)}")
-    m = copy.deepcopy(EX["pull-request"])
-    del m["scenarios"][0]["walk"]
-    if shape(m) != ["model.scenarios[0]: missing walk"]:
-        bad.append(f"shape: a missing field is not reported by its path, got {shape(m)}")
-    for rule, _, _ in checks.RULES:
+    s = view.split(EX["pull-request"])[0]
+    del s["scenarios"][0]["walk"]
+    if shape(s) != ["system.scenarios[0]: missing walk"]:
+        bad.append(f"shape: a missing field is not reported by its path, got {shape(s)}")
+    for rule, _, _ in checks.RULES + view.RULES:
         if rule not in MUTATIONS:
             bad.append(f"{rule}: no mutation shows it can fail")
             continue
@@ -129,13 +142,13 @@ def main(args):
             if rule not in failing(m, prove):
                 bad.append(f"{rule}: not caught by its mutation {k + 1} of {ex}")
     if prove:
-        for ex, mutate, words in VERDICTS:
+        for ex, mutate, words, where in VERDICTS:
             m = copy.deepcopy(EX[ex])
             mutate(m)
-            got = next(p for n, p, _ in checks.run(Model(m), True) if n == "alloy")
-            if not any(words in p for p in got):
-                bad.append(f"alloy: a mutation of {ex} should report '{words}', got {got}")
-    n = len(checks.RULES) - (0 if prove else 1)
+            got = proved(m)
+            if not any(words in p for p in got[where]):
+                bad.append(f"alloy: a mutation of {ex} should report '{words}' among its {where}, got {got}")
+    n = len(checks.RULES) + len(view.RULES) - (0 if prove else 1)
     print("\n".join(bad) if bad else f"ok: {n} checks, each caught its mutation" + (f"; {len(VERDICTS)} Alloy verdicts caught" if prove else " (Alloy left out; use --prove)"))
     return 1 if bad else 0
 
