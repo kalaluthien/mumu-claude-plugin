@@ -50,7 +50,7 @@ Each question is answerable without opening a file. Its body carries:
 
 Each option's description names its cost as a number and its downside. The
 recommended option comes first, its label ending in `(Recommended)` as
-`AskUserQuestion` asks; its description gives the recommended answer as bullets.
+`AskUserQuestion` asks; its description gives that answer as bullets.
 
 ## Settling
 
