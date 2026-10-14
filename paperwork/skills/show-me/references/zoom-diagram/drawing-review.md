@@ -11,7 +11,7 @@
 ## What a right drawing shows
 
 - **Marks.** Each matches its model field
-  ([model-writing.md](../../../drill-it/references/model-writing.md), Paths and partitions).
+  (paths and partitions).
 - **Edges.** Orthogonal; no label touches a node, label or edge; edges from
   different sources share no stretch. Quantities mono beside the element.
 - **Syncs** are written on events (`push (→ receive)`), not drawn.

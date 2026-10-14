@@ -157,7 +157,7 @@ def source_cases():
 def main(args):
     prove, bad = "--prove" in args, []
     if prove and not alloy.ready():
-        print("--prove needs Alloy and Java: run skills/drill-it/scripts/check-system.py alloy --fetch")
+        print("--prove needs Alloy and Java: run drill-it's check-system.py alloy --fetch")
         return 1
     for name, m in sorted(EX.items()):
         if f := failing(m, prove):
