@@ -2,7 +2,7 @@
 DEFAULTS = {
     "intent": ("", None, "the user's question, in one sentence"),
     "scenarios": ("entry", ("entry", "every"), "entry: a level needs its own Scenario only where something arrives from outside; every: each level does"),
-    "prove": ("full", ("full", "rules", "off"), "full: rules, Scenarios and failure paths; rules: only the rules; off: no Alloy"),
+    "prove": ("rules", ("rules", "off"), "rules: --prove asks Alloy whether each dynamic rule holds; off: it asks nothing"),
     "strict": ([], "check names", "style checks that block instead of warning"),
     "why": ({}, "parameter: sentence", "why each changed default was changed"),
 }

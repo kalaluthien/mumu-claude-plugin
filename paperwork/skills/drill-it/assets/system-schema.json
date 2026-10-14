@@ -30,7 +30,6 @@
     },
     "prove": {
      "enum": [
-      "full",
       "rules",
       "off"
      ]

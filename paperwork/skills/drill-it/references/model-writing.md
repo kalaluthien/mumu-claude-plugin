@@ -174,8 +174,8 @@ An operation is a method, `Receiver.verb(name: Type, …) → Result` [typed].
 
 ## Rules
 
-A rule is a proposition that no other rule implies; Alloy looks for a
-run that breaks only it ([proof-commands.md](proof-commands.md)).
+A rule is a proposition no other rule implies; Alloy looks for a run that
+breaks it ([proof-commands.md](proof-commands.md)).
 
 - **Where it sits.** On a node it holds the whole time. On an edge or trigger
   of a workflow or state level, a `must` is the guard: the artifact is handed

@@ -9,15 +9,15 @@ drill-it writes the system model (`system.json`); this playbook writes the view
 
 ## Setup
 
-Once per machine: `../../../drill-it/scripts/check-system.py alloy --fetch`
-downloads Alloy 6 (needs Java).
+Optional, once per machine: `../../../drill-it/scripts/check-system.py alloy --fetch`
+downloads Alloy 6 (needs Java). `make` needs no Alloy.
 
 ## Interview
 
 Before drill-it models, settle the plan with the user as show-me's Asking
 says.
 
-Ask for the plan's intent, views, depth, prove and show, skipping only what
+Ask for the plan's intent, views, depth, prove (`rules` or `off`) and show, skipping only what
 the user has already said; depth is a choice of which levels the views feature,
 never of what the model holds; `scripts/make-diagram.py rules` lists each with its
 default. [view-writing.md](view-writing.md) explains views, depth and show;
@@ -41,7 +41,8 @@ intent and prove.
 
 ## Verification
 
-A diagram is done when `make` ends in `ok`. Tell the user, in the hand-over,
+A diagram is done when `make` ends in `ok`; `make` never starts Alloy and shows
+the last answers drill-it's `--prove` stored. Tell the user, in the hand-over,
 what that does and does not cover:
 - Name each finding: a `must` rule the system can break, with its
   counterexample, as a defect of the system and not of the drawing.
@@ -55,7 +56,7 @@ wrong.
 
 | Symptom | Fix |
 |---|---|
-| a full check runs for minutes, or a command is unproved | [proof-commands.md](../../../drill-it/references/proof-commands.md) (top) |
+| `check --prove` runs for minutes, or a command is unproved | [proof-commands.md](../../../drill-it/references/proof-commands.md) (top) |
 | `fits` fails | give that level's nodes `x` and `y` in `view.json` ([view-writing.md](view-writing.md), Layout), never shorter labels |
 | a name is refused as reserved | Alloy and the translation reserve words such as `steps`, `at`, `open`, `run`; drill-it renames the model's word |
 

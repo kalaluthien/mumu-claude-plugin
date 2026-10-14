@@ -33,6 +33,6 @@ item. Never omit a detail for depth.
 ## Steps
 
 1. `${CLAUDE_PLUGIN_ROOT}/skills/drill-it/scripts/check-system.py new system.json`; set the caller's plan.
-2. Follow Order, one entry at a time; run `check-system.py check system.json --quick` after each.
-3. Run the full check. Add each `finding` line to Findings; change the model
+2. Follow Order, one entry at a time; run `check-system.py check system.json` after each.
+3. Run `check-system.py check system.json --prove` once. Add each `finding` line to Findings; change the model
    only where it misstates the system.

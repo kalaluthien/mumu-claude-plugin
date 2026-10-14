@@ -4,7 +4,7 @@
   make-diagram.py new view.json                  write a minimal view of a system model
   make-diagram.py rules                          list the system and drawing checks and the plan's parameters
   make-diagram.py plan system.json view.json     print the plan in effect, marking what differs from the defaults
-  make-diagram.py check system.json view.json [--quick] [--only a,b]   run the checks; --quick leaves Alloy out
+  make-diagram.py check system.json view.json [--prove] [--only a,b]   run the checks; --prove adds Alloy
   make-diagram.py build system.json view.json out.html   inline the joined model into the engine
   make-diagram.py render out.html [--shots DIR] [--font-css FILE]
   make-diagram.py make system.json view.json out.html [--font-css FILE]   check, build, render; stop at the first failure
@@ -32,9 +32,9 @@ def read(path):
     return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
 
 
-def check(spath, vpath, prove=True, only=None):
+def check(spath, vpath, prove=False, only=None):
     """The system's checks, then the drawing's; errors fail, lint warns, findings are reported; the last line says
-    whether Alloy checked the model. Exit 0 ok, 1 errors, 3 no Alloy."""
+    whether Alloy checked the model (with --prove). Exit 0 ok, 1 errors; Alloy never fails a run."""
     s, v = read(spath), read(vpath)
     if wrong := shape(s):   # the files' shape comes first: nothing else can be read until it fits
         print("FAIL  form\n" + "\n".join(f"      - {p}" for p in wrong) + f"\n{len(wrong)} problem(s)")
@@ -52,13 +52,13 @@ def check(spath, vpath, prove=True, only=None):
         print(f"{failed} problem(s)")
         return 1
     status = getattr(M, "alloy_status", "")
-    print("ok" if status.startswith("checked") or only else f"ok (unproved: {status})")
-    return 3 if "no Alloy" in status else 0
+    print(f"ok ({status})" if status.startswith("unproved") else "ok")
+    return 0
 
 
 def prepare(s, v):
     """The joined model as the page reads it: the plan in effect, each Scenario's run, formulas laid out, and each
-    rule's standing from Alloy's stored answers."""
+    rule's standing from Alloy's stored answers (Alloy is never started here)."""
     from system import formula, prover
     from system.model import flat, walk_steps
     model = flat(view.merge(s, v))   # the page reads the levels as one list
@@ -75,7 +75,7 @@ def prepare(s, v):
         x["run"] = {"items": [dict(it, x=key(it["x"])) for it in items],
                     "steps": [{"does": st.get("does", ""), "expects": st.get("expects", "")} for st in walk_steps(x["walk"])],
                     "uses": sorted(u for k, u in M.footprint[x["slug"]] if k in ("op", "rule"))}
-    W, _, res = prover.solve(M) if M.plan["prove"] != "off" else (prover.World(M), None, None)
+    W, _, res = prover.stored(M) if M.plan["prove"] != "off" else (prover.World(M), None, None)
     found = prover.standing(M, W, res)
     for x in model["rules"]:
         x["layout"] = formula.layout(x["formula"])
@@ -152,7 +152,7 @@ def main(args):
         return 0
     if cmd == "check":
         only = option(args, "--only")
-        return check(args[1], args[2], "--quick" not in args, only and only.split(","))
+        return check(args[1], args[2], "--prove" in args, only and only.split(","))
     if cmd == "build":
         return build(args[1], args[2], args[3])
     if cmd == "part":

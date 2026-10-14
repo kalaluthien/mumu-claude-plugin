@@ -18,6 +18,6 @@ its whole life: what creates it, each change, and what ends it.
 ## Steps
 
 1. `${CLAUDE_PLUGIN_ROOT}/skills/drill-it/scripts/check-system.py new system.json`; set plan.
-2. Design per Order, one entry at a time, running `check-system.py check system.json --quick` after each.
-3. Run the full check. A `finding` line is a hole in the design: close it with
+2. Design per Order, one entry at a time, running `check-system.py check system.json` after each.
+3. Run `check-system.py check system.json --prove` once. A `finding` line is a hole in the design: close it with
    the rule's mechanism, or put it under Findings if it is the user's choice.

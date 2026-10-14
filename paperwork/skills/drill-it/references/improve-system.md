@@ -26,9 +26,9 @@ allows, holding or improving the rest.
 
 ## Steps
 
-1. Run `compare-models.py original.json original.json`; pick 2 or 3 pairs where it does worst.
+1. Run `compare-models.py original.json original.json` (it runs no Alloy); pick 2 or 3 pairs where it does worst.
 2. Per option, copy the original to `improved-<n>.json`, restructure for its
-   side, rerun `compare-models.py` until exit 0.
+   side, rerun `compare-models.py` until exit 0, then run `check-system.py check improved-<n>.json --prove` once.
 
 ## Hand-back
 

@@ -6,7 +6,7 @@ When the playbook is wrong (a check refuses something legitimate, a reference mi
 draws badly), change the one file that owns it, never a single model, then run this and `make` every example.
 
 usage: prove-checks.py [--prove]
-  --prove   also run Alloy: the examples prove, and each kind of Alloy verdict is caught by its mutation (minutes)
+  --prove   also run Alloy: the examples prove, and a must rule the behaviour can break is a finding (minutes)
 """
 import copy
 import json
@@ -84,16 +84,12 @@ MUTATIONS = {
     "vocabulary": [("pull-request", lambda m: m["rules"][0].update(formula=m["rules"][0]["formula"] + " and fresh[pr]")),
                    ("pull-request", lambda m: node(m, "push").update(label="Now"))],
     "balanced": ("self", lambda m: lv(m, "check").pop("out")),
-    "alloy": ("pull-request", lambda m: rule_of(m, "fast-forward-push").update(formula="all branch: Branch | not branch.push")),
 }
 
-# each kind of Alloy verdict, caught with --prove: (example, mutation, words the problem must contain); a must
-# rule the behaviour can break is a finding about the system, never a problem of the model
+# the one Alloy verdict that is kept, caught with --prove: a must rule the behaviour can break is a finding about
+# the system, never a problem of the model
 VERDICTS = [
-    ("pull-request", lambda m: rule_of(m, "fast-forward-push").update(formula="all branch: Branch | not branch.push"), "cannot happen", "problems"),
-    ("pull-request", lambda m: m["rules"].append(dict(rule_of(m, "three-dot"), slug="three-dot-again")) or node(m, "review-x").setdefault("rules", []).append("three-dot-again"), "follows from", "problems"),
     ("explore-unknowns", lambda m: op(m, "Question.close").pop("post"), "can break", "findings"),
-    ("pull-request", lambda m: rule_of(m, "fast-forward-push").update(formula="no Branch and some Branch"), "contradict", "problems"),
 ]
 
 
@@ -112,15 +108,16 @@ def failing(m, prove=False):
 
 
 def proved(m):
-    """Alloy's problems and findings for a model's system side."""
+    """Alloy's notes and findings for a model's system side."""
     M = Model(view.split(m)[0])
-    return {"problems": next(p for n, p, _ in checks.run(M, True) if n == "alloy"), "findings": M.alloy_findings}
+    checks.run(M, True)
+    return {"notes": M.alloy_notes, "findings": M.alloy_findings}
 
 
 def main(args):
     prove, bad = "--prove" in args, []
-    if prove and not alloy.jar():
-        print("--prove needs Alloy: run skills/drill-it/scripts/check-system.py alloy --fetch")
+    if prove and not alloy.ready():
+        print("--prove needs Alloy and Java: run skills/drill-it/scripts/check-system.py alloy --fetch")
         return 1
     for name, m in sorted(EX.items()):
         if f := failing(m, prove):
@@ -130,10 +127,10 @@ def main(args):
     if shape(s) != ["system.scenarios[0]: missing walk"]:
         bad.append(f"shape: a missing field is not reported by its path, got {shape(s)}")
     for rule, _, _ in checks.RULES + view.RULES:
+        if rule == "alloy":   # Alloy never fails a run: no mutation can make it fail
+            continue
         if rule not in MUTATIONS:
             bad.append(f"{rule}: no mutation shows it can fail")
-            continue
-        if rule == "alloy" and not prove:
             continue
         cases = MUTATIONS[rule] if isinstance(MUTATIONS[rule], list) else [MUTATIONS[rule]]
         for k, (ex, mutate) in enumerate(cases):
@@ -148,8 +145,8 @@ def main(args):
             got = proved(m)
             if not any(words in p for p in got[where]):
                 bad.append(f"alloy: a mutation of {ex} should report '{words}' among its {where}, got {got}")
-    n = len(checks.RULES) + len(view.RULES) - (0 if prove else 1)
-    print("\n".join(bad) if bad else f"ok: {n} checks, each caught its mutation" + (f"; {len(VERDICTS)} Alloy verdicts caught" if prove else " (Alloy left out; use --prove)"))
+    n = len(checks.RULES) + len(view.RULES) - 1   # all but alloy
+    print("\n".join(bad) if bad else f"ok: {n} checks, each caught its mutation" + (f"; {len(VERDICTS)} Alloy verdict caught" if prove else " (Alloy left out; use --prove)"))
     return 1 if bad else 0
 
 

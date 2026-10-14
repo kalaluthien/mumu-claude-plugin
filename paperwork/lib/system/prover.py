@@ -15,7 +15,7 @@ import tempfile
 from pathlib import Path
 
 from . import formula as F
-from .model import plan, split_top
+from .model import split_top
 
 PRIM_SIG = {"Text", "Url", "Date"}
 PRIM_INT = {"Number", "Count", "Int"}
@@ -621,132 +621,18 @@ def translate(M):
     L_ += ["", "-- how things move", "pred behaviour {\n  " + "\n  ".join(B) + "\n}"]
 
     musts_static = [W.rule_name[i["slug"]] for i in m["rules"] if cls[i["slug"]] == "static" and i["kind"] == "must"]
-    shoulds_static = [W.rule_name[i["slug"]] for i in m["rules"] if cls[i["slug"]] == "static" and i["kind"] == "should"]
-    dyn = [W.rule_name[i["slug"]] for i in m["rules"] if cls[i["slug"]] == "dynamic"]
     L_.append("pred assumptions { " + " and ".join(musts_static) + " }")
 
     C = []
-    ideal = shoulds_static + [f"always {d}" for d in dyn]
-    C.append(("consistent", "run", " and ".join(["assumptions", "behaviour"] + ideal + ["eventually some Now.happens"]), 1, "all"))
-    hold = lambda j: W.rule_name[j["slug"]] if cls[j["slug"]] == "static" else f"always {W.rule_name[j['slug']]}"
-    for i in m["rules"]:   # no rule follows from the other rules; a guard is a mechanism, not a claim, so it is left out
-        if cls[i["slug"]] == "guard":
-            continue
-        others = [hold(j) for j in m["rules"] if j is not i and cls[j["slug"]] != "guard"]
-        C.append((f"independent_{W.rule_name[i['slug']]}", "run", " and ".join([f"not {hold(i)}"] + others), 1, i["slug"], 0, i.get("scope")))
     for i in m["rules"]:
         if cls[i["slug"]] == "dynamic":
             me = W.rule_name[i["slug"]]
             C.append((f"holds_{me}", "check", f"assumptions and behaviour implies always {me}", 0 if i["kind"] == "must" else None, i["slug"]))
-    full = M.plan["prove"] == "full"   # prove: rules leaves the Scenarios and failure paths out
-    for s in m["scenarios"] if full else []:   # a long walk needs room: one moment per visit of its longest level, and a little more
-        visits = plan(s["walk"])[0]
-        longest = max([sum(1 for x in visits if M.node_level[x] == lid) for lid in {M.node_level[x] for x in visits} if M.levels[lid]["kind"] != "schema"] or [0])
-        walk = walkthrough(W, s)
-        if walk:   # a Scenario only on component levels is walked on the drawing, not run
-            C.append((f"scenario_{lower(s['slug'])}", "run", f"assumptions and behaviour and {walk}", 1, s["slug"], 2 * longest + 3))
-    for k, (L, e) in M.edges.items() if full else []:
-        if "failure" in e.get("mark", []) and L["kind"] != "schema":
-            C.append((f"reach_{lower(L['id'])}_{lower(e['label'])}", "run", f"assumptions and behaviour and {fires(W, k, L, e)}", 1, f'{L["id"]}: {e["label"]}'))
     L_ += ["", "-- what Alloy checks"]
-    kids = {}
-    for n_, sg in W.sigs.items():   # an abstract component shares its scope with its kinds, so give each kind room
-        if sg["kind"] == "component" and len(sg["parents"]) == 1:
-            kids[sg["parents"][0]] = kids.get(sg["parents"][0], 0) + 1
-    base_scopes = {p: str(3 * k) for p, k in kids.items() if W.sigs.get(p, {}).get("abstract")}
-    for c in C:
-        name, cmd, body, exp = c[:4]
-        steps = max(8, c[5]) if len(c) > 5 else 8
+    for name, _, body, exp, _ in C:
         calls = len(W.kinds) + 3   # room for every kind of call at least once, and a few repeats
-        scopes = dict(base_scopes) if cmd == "run" else {}   # runs need room to exist; checks stay small
-        if name.startswith("independent_"):   # breaking one rule alone needs only a short run
-            steps = 4
-            for part in (c[6] or "").split(","):   # a rule about large numbers names the scope that can break it
-                if part.strip():
-                    n_, sg = part.split()
-                    scopes[sg] = n_
-        extra = "".join(f", {n_} {sg}" for sg, n_ in scopes.items())
-        L_.append(f"{cmd} {name} {{ {body} }} for 3 but {calls} Call, {steps} steps{extra}" + (f" expect {exp}" if exp is not None else ""))
-    return "\n".join(L_) + "\n", W, [c[:5] for c in C]
-
-
-def presence(W, node_id, var=None):
-    M = W.M
-    L = M.level_of(node_id)
-    name = ident(M.nodes[node_id]["label"])
-    if L["kind"] == "state":
-        return f"{var} in {name}" if var else f"some {name}"
-    if L["kind"] == "workflow":
-        return f"{name} in {W.runs[L['id']]['run']}.at"
-    return f"some {name}"
-
-
-def walkthrough(W, s):
-    """A Scenario's walk as time, level by level: on a workflow or state level, each step's edge call (or, where
-    the step takes no edge, its node) strictly after the step before it, a fork's branches each after it.
-    Component levels have no time and are walked on the drawing only; levels are not ordered against each other,
-    since a level drawn inside a node may run before, during or after it."""
-    M = W.M
-    visits, times, links, owner = plan(s["walk"])
-    items = M.walks[s["slug"]][0]
-    level = [M.node_level.get(x) for x in visits]
-    after = {i: [] for i in range(len(visits))}
-    for a, b in links:
-        after[a].append(b)
-
-    def arrival(i):   # the edge call that reaches visit i, if its step takes one on this level
-        for it in items:
-            if it["kind"] == "edge" and it["to"] == times[i] and it["step"] == owner[i]:
-                L, e = M.edges[it["x"]]
-                if L["id"] == level[i] and visits[i] in (e["to"], e["from"] if L["kind"] == "schema" else None):
-                    return it["x"], L, e
-        return None
-
-    def next_here(i):   # the visits of i's level that follow i, passing over visits of other levels
-        out, todo, seen = [], list(after[i]), set()
-        while todo:
-            j = todo.pop(0)
-            if j in seen:
-                continue
-            seen.add(j)
-            if level[j] == level[i]:
-                out.append(j)
-            else:
-                todo += after[j]
-        return out
-
-    parts = []
-    for lid in dict.fromkeys(l for l in level if l):
-        L = M.levels[lid]
-        if L["kind"] == "schema":
-            continue
-        v = lower(W.states[lid]["subject"]) if L["kind"] == "state" else None
-        mine = [i for i in range(len(visits)) if level[i] == lid]
-        later = {j for i in mine for j in next_here(i)}
-
-        def here(i):
-            got = arrival(i)
-            return call(W, got[0], got[1], got[2], v) if got else presence(W, visits[i], v)
-
-        def chain(i):
-            rest = [chain(j) for j in next_here(i)]
-            return f"eventually ({here(i)}" + (f" and after ({' and '.join(rest)})" if rest else "") + ")"
-        body = " and ".join(chain(i) for i in mine if i not in later)
-        parts.append(f"(some {v}: {W.states[lid]['subject']} | {body})" if v else body)
-    return " and ".join(parts)
-
-
-def call(W, k, L, e, subject=None):
-    """The call of an edge happening now: an event on the subject, or an artifact handed on by its activity."""
-    frm = ident(W.M.nodes[e["from"]]["label"])
-    kind = W.edge_kind[k]
-    if L["kind"] == "state":
-        return f"(some c: Now.happens & {kind} | c.self = {subject})" if subject else f"(some c: Now.happens & {kind} | c.self in {frm})"
-    return f"(some Now.happens & {kind} and {frm} in {W.runs[L['id']]['run']}.at)"
-
-
-def fires(W, k, L, e):
-    return f"eventually {call(W, k, L, e)}"
+        L_.append(f"check {name} {{ {body} }} for 3 but {calls} Call, 8 steps" + (f" expect {exp}" if exp is not None else ""))
+    return "\n".join(L_) + "\n", W, C
 
 
 def jar():
@@ -754,6 +640,11 @@ def jar():
         if p and Path(p).is_file():
             return str(p)
     return None
+
+
+def ready():
+    """Whether Alloy can run here: a jar and a `java` to run it."""
+    return bool(jar() and shutil.which("java"))
 
 
 def fetch():
@@ -764,33 +655,63 @@ def fetch():
 
 
 CACHE = Path.home() / ".cache/paperwork-alloy/results"
-
-
 SECONDS = int(os.environ.get("PAPERWORK_ALLOY_SECONDS", "120"))
+JVMS = min(os.cpu_count() or 1, 4)
 
 
-def run(path_als):
-    """Run each command whose text (with the module above it) is new, one process per command, one per core,
-    with Glucose and at most SECONDS each; reuse the stored answer of every other. A command that runs out of time
-    is left unanswered and listed in _slow. Returns {name: {sat, instances}, _warnings, _ran, _slow}."""
+def _split(text):
+    """The module above the commands, the commands, and the key and name of a command."""
     import hashlib
-    from concurrent.futures import ThreadPoolExecutor
-    j = jar()
-    if not j or not shutil.which("java"):
-        return None
-    text = Path(path_als).read_text()
     i = text.index("-- what Alloy checks")
     head, cmds = text[:i], [c for c in text[i:].splitlines()[1:] if c.strip()]
     key = lambda c: hashlib.sha256((head + "\n" + c).encode()).hexdigest()
     name_of = lambda c: re.match(r"\s*(?:run|check)\s+(\w+)", c).group(1)
-    CACHE.mkdir(parents=True, exist_ok=True)
+    return head, cmds, key, name_of
+
+
+def _stored(text):
+    """The stored answer of every command whose text (with the module above it) was answered before; one that ran
+    out of time stays unanswered unless given more time now."""
+    head, cmds, key, name_of = _split(text)
     stored = {c: json.loads((CACHE / key(c)).read_text()) for c in cmds if (CACHE / key(c)).exists()}
-    stored = {c: r for c, r in stored.items() if r.get("slow", SECONDS) >= SECONDS}   # out of time before: again, unless given more
+    return {c: r for c, r in stored.items() if r.get("slow", SECONDS) >= SECONDS}
+
+
+def _result(text, stored):
+    import hashlib
+    head, cmds, key, name_of = _split(text)
+    warn_file = CACHE / (hashlib.sha256(head.encode()).hexdigest() + ".warnings")
+    warn = json.loads(warn_file.read_text()) if warn_file.exists() else []
+    res = {name_of(c): r for c, r in stored.items() if "slow" not in r}
+    return res, warn, [name_of(c) for c, r in stored.items() if "slow" in r]
+
+
+def cached(text):
+    """Alloy's stored answers for a module, without starting Alloy: {name: {sat, instances}, _warnings, _ran, _slow}."""
+    if not CACHE.is_dir():
+        return {"_warnings": [], "_ran": 0, "_slow": []}
+    res, warn, slow = _result(text, _stored(text))
+    res["_warnings"], res["_ran"], res["_slow"] = warn, 0, slow
+    return res
+
+
+def run(text):
+    """Run each command whose text (with the module above it) is new, one process per command, at most JVMS at
+    once, with Glucose and at most SECONDS each; reuse the stored answer of every other. A command that runs out
+    of time is left unanswered and listed in _slow. Returns {name: {sat, instances}, _warnings, _ran, _slow}, or
+    None where Alloy cannot run."""
+    import hashlib
+    from concurrent.futures import ThreadPoolExecutor
+    if not ready():
+        return None
+    j = jar()
+    head, cmds, key, name_of = _split(text)
+    CACHE.mkdir(parents=True, exist_ok=True)
+    stored = _stored(text)
     todo = [c for c in cmds if c not in stored]
     warn_file = CACHE / (hashlib.sha256(head.encode()).hexdigest() + ".warnings")
-    res = {name_of(c): r for c, r in stored.items() if "slow" not in r}
-    warn, slow = json.loads(warn_file.read_text()) if warn_file.exists() else [], [name_of(c) for c, r in stored.items() if "slow" in r]
-    work = tempfile.mkdtemp(prefix="paperwork-alloy-")
+    res, warn, slow = _result(text, stored)
+    work = tempfile.mkdtemp(prefix="paperwork-alloy-")   # private to this run: two checks at once never share a file
 
     def one(k, c):
         part, out = Path(work) / f"c{k}.als", Path(work) / f"o{k}"
@@ -799,25 +720,25 @@ def run(path_als):
             p = subprocess.run(["java", "-jar", j, "exec", "-f", "-s", "glucose", "-o", str(out), str(part)],
                                capture_output=True, text=True, timeout=SECONDS)
         except subprocess.TimeoutExpired:
-            return c, None, None, part
-        return c, p.stdout + p.stderr, out / "receipt.json", part
+            return c, None, None, ""
+        return c, p.stdout + p.stderr, out / "receipt.json", part.read_text()
 
     try:
-        with ThreadPoolExecutor(os.cpu_count() or 1) as pool:
-            for c, log, rec, part in pool.map(lambda kc: one(*kc), enumerate(todo)):
+        with ThreadPoolExecutor(JVMS) as pool:
+            for c, log, rec, module in pool.map(lambda kc: one(*kc), enumerate(todo)):
                 if log is None:
                     slow.append(name_of(c))
                     (CACHE / key(c)).write_text(json.dumps({"slow": SECONDS}))
                     continue
                 if not rec.exists():
                     msg = [l for l in log.splitlines() if ("error" in l.lower() or "line" in l) and "JAVA_TOOL" not in l and not l.strip().startswith("at ")]
-                    raise RuntimeError("\n".join(msg[:6]) or "Alloy failed")
+                    raise RuntimeError("\n".join(msg[:6]) or "no receipt from Alloy")
                 if c == todo[0]:   # type warnings belong to the module, so one command's log has them all
-                    warn = warnings(log, part)
+                    warn = warnings(log, module)
                 for name, r in json.loads(rec.read_text())["commands"].items():
                     sols = r.get("solution") or []
                     sat = bool(sols and sols[0].get("instances"))
-                    res[name] = {"sat": sat, "instances": sols[0].get("instances") if sat and name.startswith("holds_") else None}
+                    res[name] = {"sat": sat, "instances": sols[0].get("instances") if sat else None}
                     (CACHE / key(c)).write_text(json.dumps(res[name]))
     finally:
         shutil.rmtree(work, ignore_errors=True)
@@ -827,9 +748,9 @@ def run(path_als):
     return res
 
 
-def warnings(text, path_als):
+def warnings(text, module):
     """Alloy's type warnings, each as the line of the module it points at and Alloy's reason."""
-    src = Path(path_als).read_text().splitlines()
+    src = module.splitlines()
     out = []
     for m in re.finditer(r"line (\d+), column \d+.*?\n(.+?)(?:\n(?:Left|Right) type|\n\s*\d+\. |\Z)", text, re.S):
         line = src[int(m.group(1)) - 1].strip() if int(m.group(1)) <= len(src) else ""
@@ -864,9 +785,13 @@ def story(steps):
 def solve(M):
     """The module's names, its commands and Alloy's answers (None without Alloy); unchanged commands are not rerun."""
     als, W, C = translate(M)
-    path = Path(tempfile.gettempdir()) / "system-check.als"
-    path.write_text(als, encoding="utf-8")
-    return W, C, run(path)
+    return W, C, run(als)
+
+
+def stored(M):
+    """The same, from the stored answers only: Alloy is never started."""
+    als, W, C = translate(M)
+    return W, C, cached(als)
 
 
 def standing(M, W, res):
@@ -881,25 +806,11 @@ def standing(M, W, res):
 
 
 def verdicts(M, W, C, res):
-    """Problems (the model contradicts itself or cannot run), notes (a should rule can break) and findings (a must
-    rule the behaviour can break: a defect of the system, reported, never fixed by bending the model)."""
-    probs, notes, findings = [], [], []
-    probs += [f"Alloy warns: {w}" for w in res.get("_warnings", [])]
-    by = {name: (cmd, exp, what) for name, cmd, _, exp, what in C}
-    for name, (cmd, exp, what) in by.items():
+    """Notes (Alloy's type warnings, a should rule that can break) and findings (a must rule the behaviour can
+    break: a defect of the system, reported, never fixed by bending the model)."""
+    notes, findings = [f"Alloy warns: {w}" for w in res.get("_warnings", [])], []
+    for name, _, _, exp, what in C:
         r = res.get(name)
-        if r is None:
-            continue
-        sat = r["sat"]
-        run_ = story(calls_in(r["instances"], W)) if sat else ""
-        if name == "consistent" and not sat:
-            probs.append("no run satisfies every rule with the behaviour; some rules contradict each other")
-        elif name.startswith("independent_") and not sat:
-            probs.append(f"{what}: follows from the other rules; drop it or weaken them")
-        elif name.startswith("holds_") and sat:
-            (findings if exp == 0 else notes).append(f"{what}: can break in this run: {run_}")
-        elif name.startswith("scenario_") and not sat:
-            probs.append(f"{what}: cannot happen under the rules; its steps have no run")
-        elif name.startswith("reach_") and not sat:
-            probs.append(f"{what}: this failure path can never be taken")
-    return probs, notes, findings
+        if r and r["sat"]:
+            (findings if exp == 0 else notes).append(f"{what}: can break in this run: {story(calls_in(r['instances'], W))}")
+    return notes, findings

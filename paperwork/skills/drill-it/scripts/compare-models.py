@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """drill-it: compare an improved system model with its original.
 
-  compare-models.py original.json improved.json [--quick]
+  compare-models.py original.json improved.json
 
 Prints `kept` or `dropped` for each Scenario and rule slug of the original, then each count criterion of the
 improvement criteria (#511) on both models, then the improved model's check. An improvement keeps every slug and
-passes the full check (--quick leaves Alloy out); otherwise the exit status is 1.
+passes the checks (no Alloy runs here); otherwise the exit status is 1.
 """
 import json
 import pathlib
@@ -94,7 +94,6 @@ def main(args):
     if len(args) < 2:
         print(__doc__)
         return 2
-    prove = "--quick" not in args
     data = [json.loads(pathlib.Path(p).read_text(encoding="utf-8")) for p in args[:2]]
     if wrong := shape(data[1]):
         print("FAIL  form\n" + "\n".join(f"      - {p}" for p in wrong))
@@ -113,7 +112,7 @@ def main(args):
     print(f"\n{'count':72s} {'original':>9s} {'improved':>9s}")
     for k in a:
         print(f"{k:72s} {a[k]:>9} {b[k]:>9}")
-    lines, failed = checks.report(checks.run(new, prove), new)
+    lines, failed = checks.report(checks.run(new), new)
     print("\n" + "\n".join(line for line in lines if not line.startswith("pass")))
     if failed:
         print(f"improved model fails its check: {failed} problem(s)")

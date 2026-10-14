@@ -1,9 +1,10 @@
 # The model in Alloy
 
-`check-system.py alloy system.json out.als` writes one Alloy 6 module; the
-`alloy` check runs it. Without Alloy `check` exits 3 (`alloy --fetch` downloads
-it). A command unproved after 120 s (`PAPERWORK_ALLOY_SECONDS`): shrink or split its
-rule; raise the limit only once, to confirm.
+`check-system.py check system.json --prove` runs Alloy once, at the last step,
+and never fails the run. `alloy system.json out.als` writes the Alloy 6 module;
+`alloy --fetch` downloads Alloy (needs Java). No Alloy, no Java, a refused
+module or a command over 120 s (`PAPERWORK_ALLOY_SECONDS`) is a `note` and
+ends `ok (unproved: reason)`; to prove, shrink or split that rule.
 
 Passing means no counterexample within Scopes. Levels are not linked
 (a level inside a node has its own moments).
@@ -26,27 +27,20 @@ conditions on each region, run and `modifies` attribute: nothing changes without
 
 ## What Alloy is asked
 
-Each passes when the first clause holds; else it reports the second.
-
-- `consistent`: a run keeps every rule and makes a call; else rules contradict behaviour
-- `independent_<rule>` (not guards): a run breaks only this rule; else the rule follows from the others
-- `holds_<rule>` (must): no run breaks it; else a finding, not a problem (counterexample calls)
-- `holds_<rule>` (should): no run breaks it; else a note: its counterexample
-- `scenario_<slug>`: its walk can happen: on each workflow and state level, each step's edge call strictly after the previous (component levels: drawing only); else the Scenario cannot happen
-- `reach_<edge>`: a failure path can be taken; else the failure can never happen
+One question per dynamic rule, `holds_<rule>`: does any run break it?
+- `must`: a run that does is a `finding` (the counterexample's calls), not a problem.
+- `should`: a run that does is a `note`.
 
 Rules split three ways ([model-writing.md](model-writing.md), Rules, says where each sits):
 - A guard is behaviour.
-- A rule over what changes (states, activities, calls, `modifies` attributes, time) is checked against the behaviour.
-- Any other `must` is assumed; any other `should` is only required of the ideal run in `consistent`.
+- A rule over what changes (states, activities, calls, `modifies` attributes, time) is asked.
+- Any other rule is assumed, not asked.
 
-A failing `must` is a finding about the system: `check` prints a `finding` line, still ends `ok`. Hand it back; change the model only for your
+A finding is a defect of the system, not of the model: `check` prints a `finding` line and still ends `ok`. Hand it back; change the model only for your
 mistake: a guard, `pre` or `post` it omits.
 
-Plan `prove`: `rules` drops Scenarios and failure paths, `off` asks nothing.
+Plan `prove`: `rules` (default) asks the `holds_` commands, `off` nothing.
 
 ## Scopes
 
-Every command: `for 3`, 8 moments (`steps`). A Scenario: two moments per visit
-on its longest level, plus three; an independence run, four. An abstract
-component: three atoms per extending kind.
+Every command: `for 3`, 8 moments (`steps`).

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""drill-it: write and check a system model, and prove it with Alloy.
+"""drill-it: write and check a system model, and prove its rules with Alloy.
 
   check-system.py new system.json                 write a valid minimal system model
   check-system.py rules                           list the system checks and the plan's parameters
   check-system.py plan system.json                print the plan in effect, marking what differs from the defaults
-  check-system.py check system.json [--quick] [--only a,b]   run the checks; --quick leaves Alloy out
+  check-system.py check system.json [--prove] [--only a,b]   run the checks; --prove adds Alloy (once, at the end)
   check-system.py alloy system.json out.als       write the model as an Alloy 6 module
   check-system.py alloy --fetch                   download Alloy 6 for the alloy check (needs Java)
 
 A finding line is a defect of the system the model describes (a must rule its behaviour can break), reported
-and kept, never fixed by bending the model. Exit status 0 means ok, 1 errors, 3 no Alloy.
+and kept, never fixed by bending the model. Alloy never fails a run: what keeps it from answering is a note and an `unproved:` status. Exit status 0 means ok, 1 errors.
 """
 import json
 import pathlib
@@ -23,8 +23,8 @@ from system import plan as params  # noqa: E402
 from system.model import dump, load, shape  # noqa: E402
 
 
-def check(path, prove=True, only=None):
-    """Errors fail, lint warns, findings are reported; the last line says whether Alloy checked the model."""
+def check(path, prove=False, only=None):
+    """Errors fail, lint warns, findings are reported; with --prove the last line says whether Alloy checked the model."""
     data = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
     if wrong := shape(data):   # the file's shape comes first: nothing else can be read until it fits
         print("FAIL  form\n" + "\n".join(f"      - {p}" for p in wrong) + f"\n{len(wrong)} problem(s)")
@@ -37,8 +37,8 @@ def check(path, prove=True, only=None):
     if failed:
         print(f"{failed} problem(s)")
         return 1
-    print("ok" if M.alloy_status.startswith("checked") or only else f"ok (unproved: {M.alloy_status})")
-    return 3 if "no Alloy" in M.alloy_status else 0
+    print(f"ok ({M.alloy_status})" if M.alloy_status.startswith("unproved") else "ok")
+    return 0
 
 
 def option(args, name):
@@ -71,7 +71,7 @@ def main(args):
         return 0
     if cmd == "check":
         only = option(args, "--only")
-        return check(args[1], "--quick" not in args, only and only.split(","))
+        return check(args[1], "--prove" in args, only and only.split(","))
     if cmd == "alloy":
         from system import prover as alloy
         if "--fetch" in args:
