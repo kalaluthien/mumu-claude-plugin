@@ -11,9 +11,10 @@ Own your work from a backlog or the owner's words to its end: define its tasks, 
 
 | domain | open when your work | playbook |
 | --- | --- | --- |
-| harness | changes rule files or code: skills, playbooks, rubrics, `AGENTS.md`, scripts, hooks, monitors, `lib/`, `bin/`; a test or eval case goes with what it checks | [worker-harness-playbook.md](worker-harness-playbook.md) |
-| page | changes a page, a playbook's page form, the base page or a page check, such as `check-page.py` | [worker-page-playbook.md](worker-page-playbook.md) |
-| restructure | renames, moves, splits, merges or cuts files to a size or a convention, behaviour unchanged | [worker-restructure-playbook.md](worker-restructure-playbook.md) |
+| rules | changes rule files: skills, playbooks, rubrics, `AGENTS.md`, prompts | [worker-rules-playbook.md](worker-rules-playbook.md) |
+| code | changes code in any repository: scripts, hooks, monitors, `lib/`, `bin/`, an app or service; a test or eval case goes with what it checks | [worker-code-playbook.md](worker-code-playbook.md) |
+| ui | changes what a person sees rendered: a page, a diagram, an app screen, or the check that renders it, such as `check-page.py` | [worker-ui-playbook.md](worker-ui-playbook.md) |
+| migration | moves files, code, data or a dependency to a new form: a rename, move, split, merge, a cut to a size or a convention, a data layout or schema, a library or tool replaced; behaviour kept | [worker-migration-playbook.md](worker-migration-playbook.md) |
 | research | ends in a report comment, not a change | [worker-research-playbook.md](worker-research-playbook.md) |
 
 ## Subagents
