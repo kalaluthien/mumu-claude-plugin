@@ -60,6 +60,6 @@ the user confirms a summary of the settled answers. Act on nothing before that.
 The settled answers only: each decision and its answer, no transcript of the
 rounds.
 
-The answer goes to chat by default, and into a document as well when one is
+The summary goes to chat by default, and into a document as well when one is
 asked for. When the output is not a markdown document, end with one line
 asking the user to run `/paperwork:show-me` on the settled answers.

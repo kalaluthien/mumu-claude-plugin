@@ -30,7 +30,7 @@ An answer that fits on one screen as a table or a short fenced tree needs no pag
 
 ## Constraints
 
-- **Page parts**: a page playbook fills `${CLAUDE_PLUGIN_ROOT}/skills/show-me/assets/base-page.html`; its Parts says what each body part holds, its CSS goes after the base page's, and every table sits in a `.scroll` box.
+- **Page parts**: a page playbook fills `${CLAUDE_PLUGIN_ROOT}/skills/show-me/assets/base-page.html`; its Parts says what each body part holds, its CSS goes after the base page's, and every table sits in a `.scroll` box. A Reply part is text the reader copies back to you, in `.reply` or a button's `data-reply`.
 - **Only what it needs**: no section, widget or control the answer does not use; a fact that does not change the reader's view is cut, and so is a part that repeats another.
 - **Counted as shown**: a count the page states is the count of what it shows.
 - **One language**: the page is in the language the user's instructions name, else the ask's; a zoom diagram keeps its terms in English as its `model-writing.md` says.
@@ -38,5 +38,5 @@ An answer that fits on one screen as a table or a short fenced tree needs no pag
 
 ## Done when
 
-1. `"${CLAUDE_PLUGIN_ROOT}/skills/show-me/scripts/check-page.py" <page> --shots <dir>` prints `ok` last, and you looked at both captures: the first screen answers the ask, the central figure (chart, cards, rows or controls) reads at 1200 px, and the text agrees with it. A zoom diagram is done by its playbook's Procedure and Verification instead.
+1. `"${CLAUDE_PLUGIN_ROOT}/skills/show-me/scripts/check-page.py" <page> --shots <dir>` prints `ok` last, and you looked at both captures: the first screen answers the ask, the playbook's main part reads at 1200 px, and the text agrees with it. A zoom diagram is done by its playbook's Procedure and Verification instead.
 2. The page went out as Delivery says, and the chat message gives the one-sentence answer and the next action, nothing more.
