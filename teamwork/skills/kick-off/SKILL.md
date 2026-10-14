@@ -55,4 +55,4 @@ Issues and pull requests live on GitHub, sessions in herdr, addressed by name; t
 | `rename` | `herdr tab rename <tab> <name>` and `herdr pane rename $HERDR_PANE_ID <name>`, the tab from `herdr pane get $HERDR_PANE_ID`, then `herdr agent rename $HERDR_PANE_ID <name>` and `herdr agent prompt $HERDR_PANE_ID "/rename <name>"`; a manager also `herdr workspace rename <workspace> <project>`, its workspace named by the project |
 | `start` | `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/start-session.py <name> <cwd> "<kick-off arguments>" --model <m> --effort <e> [--team]`: a tab in your workspace, or with `--team` a new one |
 | `close` | `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/close-session.py <name>`, your own name included |
-| `remove` | the owner runs `! ${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/remove-worktree.py <name>...` in your tab, never you, since auto mode refuses its git steps |
+| `remove` | `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/remove-worktree.py <name>...`; when auto mode refuses a git step, the owner runs it as `! <command>` in your tab |
