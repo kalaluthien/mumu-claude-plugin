@@ -32,6 +32,6 @@ Hand each independent track of more than a few reads or edits to a subagent, in 
 ## Rules
 
 - **Estimate**: when you give or revise a time estimate, open [estimation-playbook.md](estimation-playbook.md) first.
-- **Own worktree**: edit only in your worktree; change no memory entry and no file outside your work; rename yourself when your work's topic changes, then `comment` your new name on each issue you hold.
+- **Own worktree**: edit only in your worktree; change no memory entry and no file outside your work; rename yourself when your work's topic changes, then `comment` `held by <new name>` on each issue you hold.
 - **Fix the cause**: close a gap the judge names by fixing it, never by rewording, loosening a check or changing a pass condition; a decision the Authority table of [SKILL.md](../SKILL.md) does not give you goes to your manager once the [recall playbook](recall-playbook.md) finds no decision that settles it; wait for its answer.
 - **Refused step**: when auto mode refuses a step, the owner needs the step, the reason and the `! <command>` that does it; wait in your tab; a refused edit to a rule, guard or agent file goes as a patch in your scratchpad, checked with `git apply --check`, the command `! git -C <worktree> apply <patch-path>`.

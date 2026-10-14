@@ -28,7 +28,7 @@ Open the playbook of the first row that fits with `Read` and follow it; the `rou
 | project | a repository, or its folder named by a `scope:` label; its name lowercased, each run of other characters one `-`, cut to 22 |
 | manager | `<project>-manager`, the one session per project, alone with its workers in one terminal workspace |
 | worker | `<task>-worker`, `<task>` 2-4 words of its work, in a worktree and branch of its name; it may rename itself |
-| holds | a worker holds each open issue that names it; it may hold none, one or several, and several may hold one |
+| holds | a worker holds each open issue whose `DECIDED: <name> holds` comment or `held by <name>` line names it; it may hold none, one or several, and several may hold one |
 | backlog | an issue labelled `backlog`: the owner's intent in rough words, written by the manager |
 | task | an issue a worker defines: `## Goal`, `## Definition of done` of criteria, and its order after other tasks |
 | criterion | a `[check]`, a command whose output decides, quoted failing on main; or a `[score]` by a rubric over a named sample, head against main |

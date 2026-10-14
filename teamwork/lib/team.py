@@ -3,6 +3,8 @@ import os
 import re
 import subprocess
 
+ISSUE_LIMIT, PR_LIMIT = 200, 50
+
 
 def run(*argv):
     """The command's parsed JSON output, or None when it fails or is missing, such as herdr outside a multiplexer."""
@@ -31,13 +33,21 @@ def screen(pane):
 
 def issues(project=None):
     scoped = project and f"scope:{project}" in [x["name"] for x in run("gh", "label", "list", "--search", "scope:", "--json", "name") or []]
-    return run("gh", "issue", "list", "--state", "open", "--limit", "200", "--json", "number,title,body,comments,url",
+    return run("gh", "issue", "list", "--state", "open", "--limit", str(ISSUE_LIMIT), "--json", "number,title,body,comments,url",
                *(["--label", f"scope:{project}"] if scoped else []))
 
 
 def holds(issue, name):
-    text = " ".join([issue["body"], *(c["body"] for c in issue["comments"])])
-    return re.search(rf"(?<![\w-]){re.escape(name)}(?![\w-])", text) is not None
+    """Only a claim names a holder: a `DECIDED: <name> holds` comment or a `held by <name>` line, never a passing mention."""
+    n = re.escape(name)
+    texts = [issue["body"], *(c["body"] for c in issue["comments"])]
+    return any(re.match(rf"\s*DECIDED:\s*`?{n}`?\s+holds\b", c["body"]) for c in issue["comments"]) or any(
+        re.search(rf"\bheld by `?{n}(?![\w-])", t) for t in texts)
+
+
+def limited(found, limit, what):
+    """A line when a list came back full, since gh then drops the rest without a word."""
+    return [f"limit: the {what} list returned its limit of {limit}, so some are not shown"] if len(found) >= limit else []
 
 
 def records(issue):
@@ -56,12 +66,16 @@ def members(me, listed):
 def manager_actions(me, listed):
     team = members(me, listed)
     status = {a.get("name"): a.get("agent_status") for a in listed}
-    found, lines = issues(me["name"].removesuffix("-manager")), []
-    prs = run("gh", "pr", "list", "--state", "merged", "--limit", "50", "--json", "number,headRefName")
+    found = issues(me["name"].removesuffix("-manager"))
+    prs = run("gh", "pr", "list", "--state", "merged", "--limit", str(PR_LIMIT), "--json", "number,headRefName")
     if found is None or prs is None:
         return None
+    lines = limited(found, ISSUE_LIMIT, "open-issue") + limited(prs, PR_LIMIT, "merged-PR")
+    # a started worker names its tab before its agent is live, so its tab counts it as routed
+    tabs = (run("herdr", "tab", "list", "--workspace", me.get("workspace_id", "")) or {}).get("result", {}).get("tabs", [])
+    present = set(team) | {t.get("label") for t in tabs}
     for i in found:
-        if not any(holds(i, n) for n in team):
+        if not any(holds(i, n) for n in present if n):
             lines.append(f"route #{i['number']} {i['title']}: no live worker holds it; route it, or leave it for later")
         if asking(i):
             lines.append(f"answer #{i['number']}: its worker asks; post your DECIDED: there; the worker waits on it")
@@ -94,7 +108,7 @@ def worker_actions(me, waiting):
     prs = run("gh", "pr", "list", "--state", "open", "--json", "number,headRefName,mergeable")
     if found is None or prs is None:
         return None
-    lines = []
+    lines = limited(found, ISSUE_LIMIT, "open-issue")
     for i in (i for i in found if holds(i, name)):
         kinds = records(i)
         if [r for r, _ in kinds[-2:]] == ["BLOCKED:", "DECIDED:"]:

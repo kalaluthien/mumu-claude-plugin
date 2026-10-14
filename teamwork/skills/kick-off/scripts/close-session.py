@@ -38,6 +38,8 @@ def close(name):
                 answered.add(text)
                 break
         time.sleep(POLL)
+    if team.agent(name):
+        sys.exit(f"close-session.py: {name} is still live after {TIMEOUT:g}s; its tab stays open.")
     last = len((team.run("herdr", "tab", "list", "--workspace", workspace) or {}).get("result", {}).get("tabs", [])) <= 1
     team.run("herdr", *(("workspace", "close", workspace) if last else ("tab", "close", tab)))
     print(f"{name} exited and its {'workspace' if last else 'tab'} closed.")
