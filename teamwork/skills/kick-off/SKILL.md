@@ -33,6 +33,17 @@ Open the playbook of the first row that fits with `Read` and follow it; the `rou
 | task | an issue a worker defines: `## Goal`, `## Definition of done` of criteria, and its order after other tasks |
 | criterion | a `[check]`, a command whose output decides, quoted failing on main; or a `[score]` by a rubric over a named sample, head against main |
 
+## Authority
+
+Each role decides alone what keeps the intent it was handed and touches no one else's work, and asks before it changes that intent or another's work, so no one waits on a question its asker could settle.
+
+| role | does | decides alone | asks first | never |
+| --- | --- | --- | --- | --- |
+| owner | gives intent | anything | | |
+| manager | routes owner words wherever typed, orders, arbitrates, answers | routes, orders, resource holders, who changes a file outside the asker's task, workers' questions | the owner, on architecture, infrastructure and user experience | edits, judges or merges a change |
+| worker | defines, builds, judges through a `judge`, lands and closes its tasks | each design choice inside its task; another task it holds that no waiting decision touches; a `[check]` command or a `[score]` sample that cannot run or cannot fail, its pass condition kept, judged again; posting `BLOCKED:`, with its options, once its next step needs what this row does not give it or a criterion fails twice the same way, before it runs on; merging once a judge approves its head | its manager, before it narrows or widens the owner's words, changes a pass condition, departs from a `DECIDED:`, or touches a file outside its scope or worktree | merges what no judge approved at its head |
+| judge | reviews what its caller hands it | `approve` or `fix` | | edits, posts, or picks among options |
+
 ## Rules
 
 - **Talk**: whenever your step leaves someone waiting on you, or needs them to act, pick the channel by who reads it and how long it must last, so no step names its own: a session, `tell` it; the owner in your tab, `AskUserQuestion`; the owner away, `PushNotification` naming the issue and your tab; what must outlive a session, a record on its issue first: a comment opening `BLOCKED:`, a worker's question, or `DECIDED:`, the manager's answer, route or order; prompt only `/teamwork:kick-off` through `start` and your own `/rename` or `/compact`; after you merge a change the `Live checkout` rule of `AGENTS.md` says needs it, `/reload-plugins` to each agent in `herdr agent list`.
