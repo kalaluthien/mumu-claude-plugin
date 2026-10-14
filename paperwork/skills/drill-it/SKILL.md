@@ -15,9 +15,9 @@ $ARGUMENTS
 
 ## Procedure
 
-1. Do each purpose's row below.
-2. Check each fact as Checked facts says, the cheapest check that can fail first.
-3. Hand back as Hand-back says.
+1. Do each purpose's row below, checking each fact when you take it, as
+   Checked facts says, the cheapest check that can fail first.
+2. Hand back as Hand-back says.
 
 | purpose | how |
 | --- | --- |
