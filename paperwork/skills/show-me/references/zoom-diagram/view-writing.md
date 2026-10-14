@@ -26,16 +26,18 @@ opened, or a reason to give.
 
 ## Depth
 
-`depth` is `overview` (root and one level), `working` (default) or
-`detailed` (also: every operation is one action someone can do or point to).
-At `working`, open a node when either holds:
+**Depth.** The page keeps every level the model holds; `depth` only picks
+which levels the views feature, and the reader stops where they like [depth].
+`overview` features the root and one level, `working` (default) the levels
+below, `detailed` also every operation as one action someone can do or point
+to. At `working`, feature a node's inside when either holds:
 - **A Scenario or a rule lives inside.** The reader needs its inside to follow
   a Scenario, or a `must` rule is kept there.
 - **A design decision lives inside.** It is hard or likely to change and sets
   what the system can do (Parnas), so an insight could be written about it.
   Machinery many cases share is drawn once.
 
-Stop when either holds:
+Feature no deeper when either holds:
 - **Only what the intent can ignore is left.** It would vanish with perfect
   technology (McMenamin and Palmer: infinite memory and speed, nothing
   fails), or it is a library used unchanged, and the intent is not about it.

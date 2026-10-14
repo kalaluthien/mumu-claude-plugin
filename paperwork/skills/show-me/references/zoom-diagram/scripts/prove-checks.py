@@ -67,7 +67,7 @@ MUTATIONS = {
                     ("pull-request", lambda m: lv(m, "push")["nodes"].append(dict(node(m, "ahead"), id="behind", label="Behind")) or lv(m, "push")["edges"].extend(  # Redundant
                         dict(e, **{k: "behind" for k in ("from", "to") if e[k] == "ahead"}) for e in list(lv(m, "push")["edges"]) if "ahead" in (e["from"], e["to"])))],
     "syncs": ("pull-request", lambda m: lv(m, "push")["syncs"][0].update(then="commit changes")),
-    "depth": ("self", lambda m: m.update(plan={"depth": "overview", "why": {"depth": "x"}})),
+    "depth": ("self", lambda m: m.update(plan={"depth": "overview", "views": [{"name": "levels", "level": "level"}], "why": {"depth": "x"}})),
     "naming": ("pull-request", lambda m: node(m, "push").update(label="Push")),
     "names": [("pull-request", lambda m: node(m, "push").update(label="밀어 넣기")),
               ("pull-request", lambda m: node(m, "push").setdefault("media", []).append({"type": "facts", "items": [["기준 커밋", "x"]]})),

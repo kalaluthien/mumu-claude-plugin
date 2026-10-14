@@ -19,7 +19,8 @@ Before drill-it models, settle the plan with the user as show-me's Asking
 says.
 
 Ask for the plan's intent, views, depth, prove and show, skipping only what
-the user has already said; `scripts/make-diagram.py rules` lists each with its
+the user has already said; depth is a choice of which levels the views feature,
+never of what the model holds; `scripts/make-diagram.py rules` lists each with its
 default. [view-writing.md](view-writing.md) explains views, depth and show;
 [model-writing.md](../../../drill-it/references/model-writing.md) (Plan) explains
 intent and prove.

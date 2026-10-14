@@ -15,7 +15,7 @@ LIMITS = json.loads((ASSETS / "phone-limits.json").read_text(encoding="utf-8")) 
 
 DEFAULTS = {
     "views": ([], "list", "the diagrams a practitioner of this domain expects, each drawn by a level or left out with why"),
-    "depth": ("working", ("overview", "working", "detailed"), "overview stops one level below the root; detailed makes every operation one action"),
+    "depth": ("working", ("overview", "working", "detailed"), "overview features the root and one level in its views; detailed makes every operation one action; the page keeps every level"),
     "deep": ([], "node ids", "nodes opened even where the depth rules would stop"),
     "shallow": ([], "node ids", "nodes left closed on purpose; the page marks them"),
     "strict": ([], "check names", "style checks of the drawing that block instead of warning"),
@@ -201,11 +201,11 @@ def phone(M):
 
 
 def depth(M):
-    if M.plan["depth"] == "overview":
-        deepest = max(M.depth(L["id"]) for L in M.m["levels"])
-        if deepest > 1:
-            return [f"overview stops one level below the root, found {deepest}"]
-    return []
+    """Depth picks which levels the views feature; the page keeps every level the model holds."""
+    if M.plan["depth"] != "overview":
+        return []
+    return [f'view {v.get("name")}: an overview features the root and one level, and {v["level"]} lies {M.depth(v["level"])} below'
+            for v in M.plan.get("views") or [] if v.get("level") in M.levels and M.depth(v["level"]) > 1]
 
 
 def names(M):
@@ -339,7 +339,7 @@ RULES = [
     ("names", "every term is English: titles, labels, media titles, fact terms, screen titles and block names", names),
     ("size", "a level has 2 to max_nodes (7) nodes", size),
     ("phone", f"a phone can draw the root: no two of its partitions joined at more than {LIMITS['partitionLinks']} pairs of nodes", phone),
-    ("depth", "an overview stops one level below the root", depth),
+    ("depth", "an overview's views feature the root and one level; no level is cut", depth),
     ("facts", "facts state the system's facts, never the plan: no item restates the intent or lists the views", facts),
     ("prose", "a Korean model's descriptions end in -니다 or -니까, put particles by the English term's last sound with no space, write 수 있다 apart, and never point at 위/아래/앞/다음 그림", prose),
 ]
