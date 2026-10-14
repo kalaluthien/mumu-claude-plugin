@@ -308,16 +308,12 @@ def prose(M):
     return out
 
 
-def pairs(text):
-    s = re.sub(r"\s+", "", text.casefold())
-    return {s[i:i + 2] for i in range(len(s) - 1)}
-
-
 def facts(M):
-    """Facts hold the system's own facts, never the diagram's plan: an item echoes the plan when it holds a third of
-    the intent's character pairs, in whatever language, or names two of the plan's views or the model's levels."""
+    """Facts hold the system's own facts, never the diagram's plan: an item echoes the plan when it holds the
+    whole intent text (ignoring case and spacing, in whatever language), or names two of the plan's views or the model's levels."""
     m, out = M.m, []
-    intent = pairs(m["plan"].get("intent", ""))
+    squash = lambda x: re.sub(r"\s+", "", x.casefold())
+    intent = squash(m["plan"].get("intent", ""))
     names = {x.casefold() for x in [v.get("name", "") for v in m["plan"].get("views", [])] + [L["title"] for L in m["levels"]] if x}
     for L in m["levels"]:
         for owner in [L] + L["nodes"] + L["edges"]:
@@ -326,7 +322,7 @@ def facts(M):
                     continue
                 for item in md.get("items", []):
                     text = " ".join(map(str, item))
-                    if (intent and len(pairs(text) & intent) * 3 >= len(intent)) or sum(n in text.casefold() for n in names) >= 2:
+                    if (intent and intent in squash(text)) or sum(n in text.casefold() for n in names) >= 2:
                         where = owner.get("id", L["id"])
                         out.append(f'{L["id"]}: the facts on {where} restate the plan ("{item[0]}"); keep the plan for the hand-over and state the system\'s facts')
                         break

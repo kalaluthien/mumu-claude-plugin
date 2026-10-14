@@ -166,6 +166,10 @@ def main(args):
     del s["scenarios"][0]["walk"]
     if shape(s) != ["system.scenarios[0]: missing walk"]:
         bad.append(f"shape: a missing field is not reported by its path, got {shape(s)}")
+    s = view.split(copy.deepcopy(EX["pull-request"]))[0]   # an arity-5 relation is past Kodkod's capacity
+    s["operations"].append({"slug": "PullRequest.find", "sig": "(head: Branch, base: Branch, text: Text) → PullRequest", "text": "x"})
+    if "find:" in alloy.translate(Model(s))[0]:
+        bad.append("translate: a query no formula names is declared as a relation")
     for rule, _, _ in checks.RULES + view.RULES:
         if rule == "alloy":   # Alloy never fails a run: no mutation can make it fail
             continue

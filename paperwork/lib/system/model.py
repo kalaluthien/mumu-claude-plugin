@@ -117,7 +117,7 @@ def flat(data):
     return dict({k: v for k, v in data.items() if k != "level"}, levels=levels, root="root")
 
 
-def parse(data, check_names=()):
+def parse(data):
     """Every reference resolved once, before any check reads the model: what each one fails to point at, and the
     few things the schema cannot say. Nothing after this needs to ask whether an id exists."""
     m, out = flat(data), []
@@ -192,8 +192,6 @@ def parse(data, check_names=()):
     for it in m["scenarios"] + m["operations"] + m["rules"] + list(nodes.values()):
         out += [f'{it.get("slug", it.get("id"))}: write refs as [name](url) or [name](path:line), not {r}' for r in it.get("refs", [])
                 if not REF.fullmatch(r.strip())]
-    plan = m.get("plan") or {}
-    out += [f"plan: strict {c} is no check" for c in plan.get("strict", []) if check_names and c not in check_names]
     return out
 
 

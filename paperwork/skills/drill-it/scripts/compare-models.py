@@ -85,7 +85,7 @@ def counts(M):
         "nesting depth": max(M.depth(L["id"]) for L in levels),
         "requisite variety (triggers and states nothing handles)": len(situations - handled),
         "essential state (elements no Scenario uses)": len(M.elements() - used),
-        "data/calculation/action (operations that return and change)": sum(1 for o in m["operations"] if returns(o) and (o.get("modifies") or o.get("post"))),
+        "data/calculation/action (operations that return and change)": sum(1 for o in m["operations"] if returns(o) and o.get("modifies")),
         "four states (Missing, Illegal, Redundant, Overloaded states found)": len(checks.four_states(M)),
     }
 
@@ -106,6 +106,9 @@ def main(args):
             state = "kept" if x["slug"] in have else "dropped"
             dropped += state == "dropped"
             print(f"{state:8s} {kind} {x['slug']}")
+            now = next((y for y in new.m[items] if y["slug"] == x["slug"]), None)
+            if now and any(now.get(k) != x.get(k) for k in ("formula", "walk", "text")):
+                print(f"changed  {kind} {x['slug']}")
     added = [x["slug"] for items in ("scenarios", "rules") for x in new.m[items] if x["slug"] not in {y["slug"] for y in old.m[items]}]
     print(f"added    {', '.join(added) or 'none'}")
     a, b = counts(old), counts(new)

@@ -20,6 +20,7 @@ from .model import split_top
 PRIM_SIG = {"Text", "Url", "Date"}
 PRIM_INT = {"Number", "Count", "Int"}
 JAR_URL = "https://github.com/AlloyTools/org.alloytools.alloy/releases/download/v6.2.0/org.alloytools.alloy.dist.jar"
+JAR_SHA256 = "6b8c1cb5bc93bedfc7c61435c4e1ab6e688a242dc702a394628d9a9801edb78d"   # of the v6.2.0 jar
 
 
 def ident(label):
@@ -444,11 +445,21 @@ def translate(M):
         L_.append(f"enum {name} {{ {', '.join(atoms)} }}")
     comps = [(n, s) for n, s in W.sigs.items() if s["kind"] == "component"]
     order = sorted(comps, key=lambda x: (len(x[1]["parents"]) > 0, x[0]))
+    # a query is a relation of one arity more than its parameters, and Kodkod refuses one over a few hundred atoms
+    # beyond arity 3 ("translation capacity exceeded"): declare a query only where a formula of the module names it
+    said = [i["formula"] for i in m["rules"]] + [L["init"] for L in M.levels.values() if L.get("init")]
+    said += [x for op in W.change.values() for x in (op.get("pre"), op.get("post")) if x]
+    named = set()
+    for text in said:
+        try:
+            named |= {name for _, name, _, _ in F.uses(text)}
+        except F.FormulaError:
+            pass
     for name, s in order:
         fields = []
         for fname, fs in W.fields.items():
             for f in fs:
-                if f["owner"] != name:
+                if f["owner"] != name or (f["mult"] == "query" and fname not in named):
                     continue
                 var = "var " if (name, fname) in W.var_fields else ""
                 mult = "" if f["mult"] == "query" else ("set " if f["mult"] == "set" and "->" in f["decl"] else f["mult"] + " ")
@@ -629,9 +640,11 @@ def translate(M):
             me = W.rule_name[i["slug"]]
             C.append((f"holds_{me}", "check", f"assumptions and behaviour implies always {me}", 0 if i["kind"] == "must" else None, i["slug"]))
     L_ += ["", "-- what Alloy checks"]
-    for name, _, body, exp, _ in C:
+    scopes = {i["slug"]: i["scope"] for i in m["rules"] if i.get("scope")}
+    for name, _, body, exp, slug in C:
         calls = len(W.kinds) + 3   # room for every kind of call at least once, and a few repeats
-        L_.append(f"check {name} {{ {body} }} for 3 but {calls} Call, 8 steps" + (f" expect {exp}" if exp is not None else ""))
+        more = f", {scopes[slug]}" if slug in scopes else ""
+        L_.append(f"check {name} {{ {body} }} for 3 but {calls} Call, 8 steps{more}" + (f" expect {exp}" if exp is not None else ""))
     return "\n".join(L_) + "\n", W, C
 
 
@@ -651,6 +664,10 @@ def fetch():
     dest = Path.home() / ".cache/paperwork-alloy/alloy.jar"
     dest.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(["curl", "-sSL", "-o", str(dest), JAR_URL], check=True)
+    import hashlib
+    if hashlib.sha256(dest.read_bytes()).hexdigest() != JAR_SHA256:
+        dest.unlink()
+        raise SystemExit(f"alloy.jar is not the pinned {JAR_URL}; deleted")
     return str(dest)
 
 
@@ -731,7 +748,7 @@ def run(text):
                     (CACHE / key(c)).write_text(json.dumps({"slow": SECONDS}))
                     continue
                 if not rec.exists():
-                    msg = [l for l in log.splitlines() if ("error" in l.lower() or "line" in l) and "JAVA_TOOL" not in l and not l.strip().startswith("at ")]
+                    msg = [l for l in log.splitlines() if ("error" in l.lower() or "line" in l or "capacity" in l or "cannot be" in l) and "JAVA_TOOL" not in l and not l.strip().startswith("at ")]
                     raise RuntimeError("\n".join(msg[:6]) or "no receipt from Alloy")
                 if c == todo[0]:   # type warnings belong to the module, so one command's log has them all
                     warn = warnings(log, module)

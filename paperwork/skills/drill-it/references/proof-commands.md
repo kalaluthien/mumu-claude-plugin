@@ -34,4 +34,4 @@ Plan `prove`: `rules` (default) asks them, `off` none.
 
 ## Scopes
 
-All commands: `for 3`, 8 moments (`steps`).
+All commands: `for 3`, 8 moments (`steps`), and as many `Call`s as the model has kinds of call plus 3; a rule's `scope` is added to its own check.

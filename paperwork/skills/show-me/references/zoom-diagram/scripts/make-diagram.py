@@ -5,7 +5,7 @@
   make-diagram.py rules                          list the system and drawing checks and the plan's parameters
   make-diagram.py plan system.json view.json     print the plan in effect, marking what differs from the defaults
   make-diagram.py check system.json view.json [--prove] [--only a,b]   run the checks; --prove adds Alloy
-  make-diagram.py build system.json view.json out.html   inline the joined model into the engine
+  make-diagram.py build system.json view.json out.html   run the checks, then inline the joined model into the engine
   make-diagram.py render out.html [--shots DIR] [--font-css FILE]
   make-diagram.py make system.json view.json out.html [--font-css FILE]   check, build, render; stop at the first failure
   make-diagram.py part system.json view.json part.html   the diagram as a part that show-me's assemble-page.py places
@@ -16,6 +16,7 @@ defect of the system the model describes, for the hand-over, never a failure. Ex
 import html
 import json
 import pathlib
+import re
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -35,6 +36,9 @@ def read(path):
 def check(spath, vpath, prove=False, only=None):
     """The system's checks, then the drawing's; errors fail, lint warns, findings are reported; the last line says
     whether Alloy checked the model (with --prove). Exit 0 ok, 1 errors; Alloy never fails a run."""
+    if refusal := checks.unknown(only, checks.CHECKS | view.CHECKS):
+        print(refusal)
+        return 2
     s, v = read(spath), read(vpath)
     if wrong := shape(s):   # the files' shape comes first: nothing else can be read until it fits
         print("FAIL  form\n" + "\n".join(f"      - {p}" for p in wrong) + f"\n{len(wrong)} problem(s)")
@@ -90,16 +94,18 @@ def prepare(s, v):
 
 
 def build(spath, vpath, out):
+    if check(spath, vpath):   # a model that fails its checks is not drawn
+        return 1
     model = prepare(read(spath), read(vpath))
     page = (ASSETS / "zoom-diagram.html").read_text(encoding="utf-8")
-    for slot, text in (("/*TITLE*/", model["title"]),
-                       ("/*LANG*/", html.escape(model.get("lang", "en"))),
-                       ("/*CSS*/", (ASSETS / "zoom-diagram.css").read_text(encoding="utf-8")),
-                       ("/*JS*/", (ASSETS / "zoom-diagram.js").read_text(encoding="utf-8")),
-                       ("/*NEXT*/", html.escape(model.get("next", ""))),
-                       ("/*MODEL*/", json.dumps(model, ensure_ascii=False)),
-                       ("/*LIMITS*/", (ASSETS / "phone-limits.json").read_text(encoding="utf-8"))):
-        page = page.replace(slot, text)
+    slots = {"TITLE": html.escape(model["title"]),
+             "LANG": html.escape(model.get("lang", "en")),
+             "CSS": (ASSETS / "zoom-diagram.css").read_text(encoding="utf-8"),
+             "JS": (ASSETS / "zoom-diagram.js").read_text(encoding="utf-8"),
+             "NEXT": html.escape(model.get("next", "")),
+             "MODEL": json.dumps(model, ensure_ascii=False).replace("</", "<\\/"),
+             "LIMITS": (ASSETS / "phone-limits.json").read_text(encoding="utf-8")}
+    page = re.sub(r"/\*(%s)\*/" % "|".join(slots), lambda m: slots[m.group(1)], page)   # one pass: a slot name inside a filled text stays
     pathlib.Path(out).write_text(page, encoding="utf-8")
     print("wrote", out)
     return 0
@@ -160,7 +166,7 @@ def main(args):
     if cmd == "render":
         return render(args[1], option(args, "--shots"), option(args, "--font-css"))
     if cmd == "make":
-        return check(args[1], args[2]) or build(args[1], args[2], args[3]) or render(args[3], None, option(args, "--font-css"))
+        return build(args[1], args[2], args[3]) or render(args[3], None, option(args, "--font-css"))
     print(__doc__)
     return 2
 

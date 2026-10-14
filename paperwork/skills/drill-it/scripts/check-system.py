@@ -25,6 +25,9 @@ from system.model import dump, load, shape  # noqa: E402
 
 def check(path, prove=False, only=None):
     """Errors fail, lint warns, findings are reported; with --prove the last line says whether Alloy checked the model."""
+    if refusal := checks.unknown(only, checks.CHECKS):
+        print(refusal)
+        return 2
     data = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
     if wrong := shape(data):   # the file's shape comes first: nothing else can be read until it fits
         print("FAIL  form\n" + "\n".join(f"      - {p}" for p in wrong) + f"\n{len(wrong)} problem(s)")
@@ -54,6 +57,9 @@ def main(args):
                            "nodes": [{"id": "a", "label": "Part", "what": "One sentence."},
                                      {"id": "b", "label": "Other part", "what": "One sentence."}],
                            "edges": [{"from": "a", "to": "b", "label": "uses", "what": "One sentence."}]}}
+        if pathlib.Path(args[1]).exists():
+            print(f"{args[1]} exists; name a new file")
+            return 1
         pathlib.Path(args[1]).write_text(dump(start) + "\n", encoding="utf-8")
         print("wrote", args[1], "(fields: assets/system-schema.json)")
         return 0
