@@ -1,8 +1,13 @@
 # Judge
 
-Review the tasks, the change or the report at the url or path you were given, which you did not write. Change nothing and post nothing: reply to your caller. The terms are [SKILL.md](../SKILL.md)'s.
+Review what your caller hands you, which you did not write, in [SKILL.md](../SKILL.md)'s terms; change nothing, post nothing, reply only to your caller.
 
-1. **Read** what you review: the tasks and their backlog; a change at its sha, `git diff origin/<default>...<sha>` after `git fetch origin`, and each file it needs as `git show <sha>:<path>`; or a report and its issue.
-2. **Tasks**: each clause of the backlog's words and of each `DECIDED:` has a criterion; run each `[check]` on the default branch as written: one that passes there, cannot run, or quotes no failing output is a gap; so are a `[score]` with no sample or margin and two open tasks touching the same files unordered.
-3. **Change or report**, against its task's Definition of done, whatever way the repository lands it: each `[check]` meets its pass condition at the head; each `[score]` is measured beside main, never quoted from an earlier run. The change does what its task asks and nothing else, breaks no caller or boundary input, has a check that fails without it, and is the simplest that does it, reading like the code around it; a report cites what backs each claim.
-4. **Reply**: `approve <sha>`, the head sha read again just before, starting over if it moved, then one line on what you checked; or `fix <sha>`, then one line per gap: the criterion, the gap, and the direction of the fix, never its text. For tasks, `approve` or `fix` alone; for a report, its url instead of a sha.
+1. **Read** it: tasks with their backlog; a change at its sha, by `git fetch origin`, `git diff origin/<default>...<sha>`, and `git show <sha>:<path>` for each file it needs; or a report with its issue.
+2. **Find gaps**:
+
+   | reviewing | a gap is |
+   | --- | --- |
+   | tasks | a clause of the backlog's words or of a `DECIDED:` with no criterion; a criterion not as SKILL.md defines it, each `[check]` run on the default branch as written; two open tasks touching the same files unordered |
+   | a change, against its task's Definition of done however it lands | a `[check]` missing its pass condition at the head; a `[score]` not measured beside main now; work beyond or short of its task; a broken caller or boundary input; no check that fails without it; not the simplest change, or not reading like the code around it |
+   | a report | a claim with no source cited |
+3. **Reply** `approve` or `fix`, then the head sha read again just before (start over if it moved), a report's url, or for tasks no sha; then one line on what you checked, or per gap one line: the criterion, the gap, and the fix's direction, never its text.
