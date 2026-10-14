@@ -3,7 +3,7 @@
 fits: no sideways page scroll; each partition drawn as one block; drawn text at least 9 px on a phone (the board
 scrolls sideways inside its card rather than shrink further), and the root no wider than its card there (deeper
 levels may scroll); on every level no node label wider than its node,
-no edge label on a node, another label or another edge, no edge through a node it does not join, no two edges from different sources
+no edge label on a node, another label or another edge, nor within 5 px of another edge, no edge through a node it does not join, no two edges from different sources
 sharing a stretch of line.
 """
 import asyncio
@@ -22,6 +22,7 @@ LAYOUT = """async () => {
   const R = e => ({x: +e.getAttribute('x'), y: +e.getAttribute('y'), w: +e.getAttribute('width'), h: +e.getAttribute('height')});
   const hit = (a, b, m) => a.x < b.x + b.w + m && b.x < a.x + a.w + m && a.y < b.y + b.h + m && b.y < a.y + a.h + m;
   const inside = (p, b, m) => p.x > b.x + m && p.x < b.x + b.w - m && p.y > b.y + m && p.y < b.y + b.h - m;
+  const gap = (p, b) => Math.hypot(Math.max(b.x - p.x, 0, p.x - b.x - b.w), Math.max(b.y - p.y, 0, p.y - b.y - b.h));
   for (const id of ids) {
     z.goto(id); await new Promise(r => setTimeout(r, 30));
     const nodes = [...root.querySelectorAll('.zd-canvas .node')].map(g => ({id: g.dataset.id, p: g.dataset.p || '', b: R(g.querySelector('.n-fill')), t: g.querySelector('.n-lab')}));
@@ -53,6 +54,7 @@ LAYOUT = """async () => {
       for (const f of edges) if (f !== e && e.plate) {
         if (f.plate && f.key > e.key && hit(e.plate, f.plate, 1)) bad.push(`${id}: labels of ${e.key} and ${f.key} overlap`);
         if (f.pts.some(p => inside(p, e.plate, 0.5))) bad.push(`${id}: label of ${e.key} sits on ${f.key}`);
+        else if (f.pts.some(p => gap(p, e.plate) < 5)) bad.push(`${id}: label of ${e.key} sits beside ${f.key}; keep 5 px from other lines`);
       }
     }
   }

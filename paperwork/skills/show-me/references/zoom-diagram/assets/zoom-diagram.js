@@ -292,15 +292,20 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
     const R = rng(seed), ang = Math.atan2(p.y - q.y, p.x - q.x), L = 9 + R() * 2, s = 0.42 + R() * 0.08;
     [-1, 1].forEach(k => el(g, "path", { d: `M${(p.x - L * Math.cos(ang + k * s)).toFixed(1)},${(p.y - L * Math.sin(ang + k * s)).toFixed(1)} Q${(p.x - L * 0.45 * Math.cos(ang + k * s * 0.8)).toFixed(1)},${(p.y - L * 0.45 * Math.sin(ang + k * s * 0.8)).toFixed(1)} ${p.x.toFixed(1)},${p.y.toFixed(1)}`, class: "e-head" }));
   }
-  function label(g, pts, text, lane, loop, tag, qty, ls) {
+  // a label sits beside one segment of its line: by default the middle of the longest, on its lane's side;
+  // at = { seg, side, f } names another place, side +1 below or right of the segment, f how far along it
+  function label(g, pts, text, lane, loop, tag, qty, ls, at) {
     let best = 0, bl = -1;
     for (let i = 1; i < pts.length; i++) { const l = dist(pts[i - 1], pts[i]); if (l > bl) { bl = l; best = i; } }
     if (loop) best = 2;
-    const p = pts[best - 1], q = pts[best], m = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 }, horiz = Math.abs(p.y - q.y) < 0.5;
+    if (at) best = at.seg;
+    const p = pts[best - 1], q = pts[best], f = at ? at.f : 0.5, m = { x: p.x + (q.x - p.x) * f, y: p.y + (q.y - p.y) * f }, horiz = Math.abs(p.y - q.y) < 0.5;
+    const side = at ? at.side : horiz ? (lane > 0 ? 1 : -1) : (lane < 0 ? -1 : 1);
+    g._lab = [pts, text, lane, loop, tag, qty, ls];
     const t = el(g, "text", horiz
-      ? { x: m.x, y: lane > 0 ? m.y + 18 : m.y - 8, "text-anchor": "middle", class: "e-lab" }
-      : { x: lane < 0 ? m.x - 9 : m.x + 9, y: m.y + 5, "text-anchor": lane < 0 ? "end" : "start", class: "e-lab" }, ls && ls.length > 1 ? null : text);
-    if (ls && ls.length > 1) { t.setAttribute("y", +t.getAttribute("y") - (!horiz ? 8.5 : lane > 0 ? 0 : 17) * (ls.length - 1)); ink(t, ls, t.getAttribute("x"), 17); }
+      ? { x: m.x, y: side > 0 ? m.y + 18 : m.y - 9, "text-anchor": "middle", class: "e-lab" }
+      : { x: side < 0 ? m.x - 9 : m.x + 9, y: m.y + 5, "text-anchor": side < 0 ? "end" : "start", class: "e-lab" }, ls && ls.length > 1 ? null : text);
+    if (ls && ls.length > 1) { t.setAttribute("y", +t.getAttribute("y") - (!horiz ? 8.5 : side > 0 ? 0 : 17) * (ls.length - 1)); ink(t, ls, t.getAttribute("x"), 17); }
     else {
       if (tag) el(t, "tspan", { class: "e-sync" }, ` (${tag})`);
       if (qty) el(t, "tspan", { class: "e-qty" }, ` ${qtyText(qty)}`);
@@ -308,6 +313,31 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
     const bb = t.getBBox(), plate = document.createElementNS(NS, "rect");
     Object.entries({ x: bb.x - 3, y: bb.y, width: bb.width + 6, height: bb.height, rx: 3, class: "e-plate" }).forEach(([k, v]) => plate.setAttribute(k, v));
     g.insertBefore(plate, t);
+  }
+  // a label closer than 5 px to another line reads as that line's: try its other places and keep the one that
+  // stays farthest from other lines, nodes and labels (render's drawing check holds the same 5 px)
+  function spaceLabels(world, box) {
+    const R = e => ({ x: +e.getAttribute("x"), y: +e.getAttribute("y"), w: +e.getAttribute("width"), h: +e.getAttribute("height") });
+    const gap = (p, b) => Math.hypot(Math.max(b.x - p.x, 0, p.x - b.x - b.w), Math.max(b.y - p.y, 0, p.y - b.y - b.h));
+    const apart = (a, b) => Math.hypot(Math.max(b.x - a.x - a.w, 0, a.x - b.x - b.w), Math.max(b.y - a.y - a.h, 0, a.y - b.y - b.h));
+    const es = [...world.querySelectorAll(".edge")].map(g => {
+      const raw = g._raw, pts = [];   // the line every 1 px, so no gap hides between samples
+      for (let i = 1; i < raw.length; i++) { const k = Math.max(1, Math.ceil(dist(raw[i - 1], raw[i]))); for (let j = 0; j < k; j++) pts.push({ x: raw[i - 1].x + (raw[i].x - raw[i - 1].x) * j / k, y: raw[i - 1].y + (raw[i].y - raw[i - 1].y) * j / k }); }
+      return { g, pts };
+    });
+    const nodes = Object.values(box);
+    const room = (e, b) => Math.min(...es.filter(f => f !== e).map(f => Math.min(...f.pts.map(p => gap(p, b))) - 5),
+      ...nodes.map(n => apart(b, n) - 1.5), ...es.filter(f => f !== e && f.g.querySelector(".e-plate")).map(f => apart(b, R(f.g.querySelector(".e-plate"))) - 1.5), 99);
+    es.forEach(e => {
+      const g = e.g, pl = g.querySelector(".e-plate");
+      if (!pl || room(e, R(pl)) >= 0) return;
+      const [pts, ...rest] = g._lab, put = at => { g.querySelector(".e-lab").remove(); g.querySelector(".e-plate").remove(); label(g, pts, ...rest, at); return room(e, R(g.querySelector(".e-plate"))); };
+      const ats = [];
+      for (let seg = 1; seg < pts.length; seg++) for (const side of [-1, 1]) for (const f of [0.5, 0.25, 0.75]) ats.push({ seg, side, f });
+      let best = null, top = room(e, R(pl));
+      ats.forEach(at => { const s = put(at); if (s > top + 0.01) { top = s; best = at; } });
+      if (best) put(best); else { put(null); }
+    });
   }
 
   let G0 = null;
@@ -378,7 +408,7 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
       k += ns.filter(n => e.plate && hit(e.plate, n.b, 1) || n.id !== e.from && n.id !== e.to && e.pts.some(p => inside(p, n.b, 3))).length;
       es.forEach((f, j) => {
         if (j > i && f.from !== e.from) { let run = 0, worst = 0; for (const p of e.pts) { run = f.near(p) && !ns.some(n => hit({ x: p.x, y: p.y, w: 0, h: 0 }, n.b, 12)) ? run + 1 : 0; worst = Math.max(worst, run); } k += worst >= 5; }
-        if (j !== i && e.plate) k += (j > i && f.plate && hit(e.plate, f.plate, 1)) + f.pts.some(p => inside(p, e.plate, 0.5));
+        if (j !== i && e.plate) k += (j > i && f.plate && hit(e.plate, f.plate, 1)) + f.pts.some(p => hit({ x: p.x, y: p.y, w: 0, h: 0 }, e.plate, 5));
       });
     });
     return k;
@@ -488,6 +518,7 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
         if (ev.key === " ") { ev.preventDefault(); select({ node: n.id }); }
       });
     });
+    spaceLabels(world, g0.box);
     // the bounds take in every label drawn past the grid, so none is cut at the board's edge; on a phone the board
     // shrinks until its smallest text is 9 px and scrolls sideways past that, on a wide screen it stops at 0.72
     const bb = world.getBBox(), x0 = Math.min(0, Math.floor(bb.x - 6)), y0 = Math.min(0, Math.floor(bb.y - 6));
