@@ -25,7 +25,7 @@ def route(kind, event, role, me, listed):
     command = re.split(r"&&|\|\||;|\|", command[GH_TEXT.search(command).start():])[0] if GH_TEXT.search(command) else ""
     title = re.search(r"(?<!\S)(--title|-t)[= ](\"[^\"]*\"|'[^']*')", command)
     reason = ("Write the text to a scratch file first, then pass it with --body-file." if re.search(r"(?<!\S)(--body|-b)[= ]", command)
-              else "Shorten the title to 40 characters, verb first." if title and len(title.group(2)) > 42 else None)
+              else f"Title is {len(title.group(2)) - 2} characters; shorten it to 40, verb first. Nothing in this command ran, so write any body file again." if title and len(title.group(2)) > 42 else None)
     return reason and {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny",
                                               "permissionDecisionReason": reason}}
 
