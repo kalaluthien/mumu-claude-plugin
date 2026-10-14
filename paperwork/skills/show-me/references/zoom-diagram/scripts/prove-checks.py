@@ -58,6 +58,7 @@ MUTATIONS = {
     "naming": ("pull-request", lambda m: node(m, "push").update(label="Push")),
     "names": ("pull-request", lambda m: node(m, "push").update(label="밀어 넣기")),
     "media": ("pull-request", lambda m: node(m, "push").setdefault("media", []).append({"type": "payload", "text": "x"})),
+    "facts": ("pull-request", lambda m: node(m, "push").setdefault("media", []).append({"type": "facts", "items": [["Question", m["plan"]["intent"]]]})),
     "unique-names": ("pull-request", lambda m: node(m, "push").update(label="Running checks")),
     "typed": ("pull-request", lambda m: next(o for o in m["operations"] if o["slug"] == "PullRequest.merge").update(sig="(method) → Commit")),
     "vocabulary": ("pull-request", lambda m: m["rules"][0].update(formula=m["rules"][0]["formula"] + " and fresh[pr]")),
