@@ -1,4 +1,4 @@
-# Dashboard
+# Sitrep
 
 The reader grasps where something stands or what changed: numbers, a trend, events in time, or the places of a change or a text worth a note. Placed first when the ask starts from a situation; a decision or a deeper look follows it.
 

@@ -1,4 +1,4 @@
-# Decision board
+# Option cards
 
 The reader chooses among named alternatives: approaches, designs, layouts, tools, or a verdict such as approve or ask for changes. Placed last when parts before it set out the situation.
 
