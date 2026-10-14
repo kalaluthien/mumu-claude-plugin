@@ -12,7 +12,7 @@
 ## What a right drawing shows
 
 - **Marks.** Each mark matches the model field that sets it: the main path
-  heavier, only a failure path in the warning ink, an optional element dashed,
+  heavier, only a failure path dash-dot in the warning ink, an optional element dashed,
   an `unsure` one with "?"; a wrong mark is a wrong field.
 - **Edges.** Orthogonal; no label touches a node, another label or another
   edge, and edges from different sources never share a stretch of line.

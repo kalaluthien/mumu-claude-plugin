@@ -163,7 +163,8 @@ out any that would be forced.
 | What repeats until something holds? | the edge back, as a loop |
 | What happens only sometimes, or may not exist? | mark it `optional` (dashed) |
 
-A `failure` path is drawn in the one warning ink and `happy` heavier; `unsure`
+A `failure` path is drawn dash-dot in the one warning ink and `happy`
+heavier; `unsure`
 marks what a source does not confirm ("?").
 
 **Regions and syncs.** A state level's `regions` (each state's `region`) are
