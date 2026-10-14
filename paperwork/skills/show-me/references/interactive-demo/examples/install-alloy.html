@@ -1,6 +1,6 @@
 <p>Follow each step and tick it when it is done: <span data-steps-count></span> done.</p>
 <ol class="steps">
   <li><label><input type="checkbox"> Check that Java runs.</label><pre>java -version</pre></li>
-  <li><label><input type="checkbox"> Fetch Alloy 6 once for this machine with drill-it's script.</label><pre>check-system.py alloy --fetch</pre></li>
+  <li><label><input type="checkbox"> Fetch Alloy 6 once for this machine with drill-it's script.</label><pre>python3 "$(find ~/.claude/plugins -name check-system.py 2&gt;/dev/null | head -1)" alloy --fetch</pre></li>
   <li><label><input type="checkbox"> Run the proof check on the zoom diagram examples; it ends in <code>ok</code>.</label><pre>skills/show-me/references/zoom-diagram/scripts/prove-checks.py --prove</pre></li>
 </ol>

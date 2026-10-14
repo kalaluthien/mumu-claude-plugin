@@ -479,6 +479,12 @@ RULES = [
 CHECKS = {r[0] for r in RULES}
 
 
+def unknown(only, known):
+    """The refusal for a check name nobody runs, naming the known ones; None when every name is known."""
+    bad = [x for x in only or [] if x not in known and x != "form"]
+    return f"unknown check {', '.join(bad)}; known: {', '.join(sorted(known | {'form'}))}" if bad else None
+
+
 def severity(name, M):
     return "lint" if name in LINT and name not in getattr(M, "strict", ()) else "error"
 

@@ -25,6 +25,9 @@ from system.model import dump, load, shape  # noqa: E402
 
 def check(path, prove=False, only=None):
     """Errors fail, lint warns, findings are reported; with --prove the last line says whether Alloy checked the model."""
+    if refusal := checks.unknown(only, checks.CHECKS):
+        print(refusal)
+        return 2
     data = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
     if wrong := shape(data):   # the file's shape comes first: nothing else can be read until it fits
         print("FAIL  form\n" + "\n".join(f"      - {p}" for p in wrong) + f"\n{len(wrong)} problem(s)")

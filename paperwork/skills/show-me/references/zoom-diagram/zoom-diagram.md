@@ -16,8 +16,8 @@ covers views, depth, show; `drill-it` covers intent, prove.
 
 1. Interview.
 2. Run `drill-it` with the plan's intent, prove and one purpose:
-   `analyse-system` (exists), `design-system` (not built), `improve-system`
-   with the original `system.json`. Draw each checked `system.json`.
+   `analyse-system` (exists) or `design-system` (not built).
+   Draw each checked `system.json`.
 3. Write `view.json` as [view-writing.md](view-writing.md) says, from
    `scripts/make-diagram.py new view.json`.
 4. `uv run --with playwright python3 scripts/make-diagram.py make system.json
