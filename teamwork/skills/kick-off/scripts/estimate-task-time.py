@@ -47,7 +47,10 @@ def load(opt, urls):
         sys.exit(__doc__)
     tasks, history = [], {}
     for url in urls:
-        repo, number = re.match(r"https://github.com/([^/]+/[^/]+)/issues/(\d+)", url).groups()
+        match = re.match(r"https://github.com/([^/]+/[^/]+)/issues/(\d+)", url)
+        if not match:
+            sys.exit(__doc__)
+        repo, number = match.groups()
         if repo not in history:
             history[repo] = task_history.rows(task_history.fetch(repo))
         issue = task_history._gh("issue", "view", url, "--json", "number,labels")
@@ -61,15 +64,22 @@ def main(argv):
     groups = []
     fitted = task_backtest.fit(sorted(history, key=lambda r: r["end"]), int(opt["seed"]))
     levels, total_levels = (fitted[0], fitted[2]) if fitted else ((0.1, 0.9), (0.1, 0.9))
+    short = [] if not fitted else [
+        *([f"per task below the {task_backtest.TARGET:.0%} target at every level, so the widest"] if fitted[1] < task_backtest.TARGET else []),
+        *([f"total: no run of {task_backtest.RUN} tasks to fit, so the widest"] if fitted[3] is None else [])]
     print(f"levels p{levels[0]*100:.0f}-p{levels[1]*100:.0f} per task, p{total_levels[0]*100:.0f}-p{total_levels[1]*100:.0f} total"
-          f" ({'fitted on the first 60% of the history, as backtest-estimate.py scores them' if fitted else 'default: too few past tasks to fit'})")
+          f" ({'fitted on the first 60% of the history, as backtest-estimate.py scores them' if fitted else 'default: too few past tasks to fit'}"
+          f"{''.join('; ' + s for s in short)})")
     print("task\tlow h\thigh h\tsamples\tnote")
     for t in tasks:
         hours, fallback = task_estimate.group(history, t["labels"])
+        if not hours:
+            print(f"#{t['number']}\t-\t-\t0\tno range: no past task exists")
+            continue
         groups.append(hours)
         low, high = task_estimate.quantile(hours, levels[0]), task_estimate.quantile(hours, levels[1])
         print(f"#{t['number']}\t{low:.1f}\t{high:.1f}\t{len(hours)}\t{'all past tasks used' if fallback else 'same first label'}")
-    low, high = task_estimate.total_range(groups, int(opt["seed"]), total_levels)
+    low, high = task_estimate.total_range(groups, int(opt["seed"]), total_levels) if groups else (None, None)
     extra = 0.0
     if opt["expect-restarts"]:
         gaps = json.load(open(opt["gaps-json"])) if "gaps-json" in opt else session_gaps.summaries(
@@ -82,6 +92,8 @@ def main(argv):
     for name, hours in waits:
         extra += hours
         print(f"wait {name}\t{hours:.1f}h")
+    if not groups:
+        return print(f"total\t-\t-\tno range: no past task exists{', so the rows above are not summed' if extra else ''}")
     print(f"total\t{low + extra:.1f}\t{high + extra:.1f}\t{task_estimate.DRAWS} bootstrap sums over {len(tasks)} tasks"
           f"{', plus the rows above' if extra else ''}")
 

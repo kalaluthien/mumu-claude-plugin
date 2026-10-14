@@ -89,7 +89,6 @@ def as_of(rows, cutoff, numbers):
     """(history size, [(number, low, high, actual hours)]): each task in NUMBERS estimated from the tasks closed before
     CUTOFF with the NUMBERS themselves left out, at the levels fitted on that history as the estimator fits them."""
     prior = sorted((r for r in rows if r["end"] < cutoff and r["number"] not in numbers), key=lambda r: r["end"])
-    assert not numbers & {r["number"] for r in prior}, "a scored task is in its own history"
     fitted = fit(prior)
     levels = fitted[0] if fitted else (0.1, 0.9)
     out = []
