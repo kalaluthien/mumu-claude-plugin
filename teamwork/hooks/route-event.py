@@ -20,7 +20,8 @@ def route(kind, event, role, me, listed):
         gaps = (team.manager_actions(me, listed) if role == "manager" else team.worker_goal(me)) or []
         text = "\n".join([f"You are {me['name']}, a teamwork {role}: follow {PLAYBOOKS / (role + '.md')}.", *gaps])
         return {"hookSpecificOutput": {"hookEventName": kind, "additionalContext": text}}
-    if kind == "Stop" and role == "worker" and not event.get("stop_hook_active"):  # once, so a real wait still stops
+    # once, so a real wait still stops; never while a subagent or a background command it waits on still runs
+    if kind == "Stop" and role == "worker" and not event.get("stop_hook_active") and not team.running_work(event.get("transcript_path") or ""):
         goal = [g for g in team.worker_goal(me) if g.endswith(": open")]
         return goal and {"decision": "block", "reason": "\n".join(["Your goal still waits on you:", *goal,
                          "Take its next step; stop again only while a subagent, a check or your manager has it."])}
