@@ -94,8 +94,6 @@ def size(M):
     return out
 
 
-
-
 def phone(M):
     """A phone's root is laid out again in two columns or one, so the author's columns never decide whether it fits.
     Partitions then stack as bands of rows, and two rows of two cells join by at most three lines that do not cross
@@ -109,13 +107,14 @@ def phone(M):
         links = {}
         for e in L["edges"]:
             a, b = part.get(e["from"]), part.get(e["to"])
-            if a != b:
+            if a != b and a and b:   # a node outside every partition is the partitions check's to report
                 links.setdefault(tuple(sorted((a, b))), set()).add(frozenset((e["from"], e["to"])))
         for (a, b), pairs in sorted(links.items()):
             if len(pairs) > LIMITS["partitionLinks"]:
                 out.append(f'{L["id"]}: partitions {a} and {b} are joined at {len(pairs)} pairs of nodes, more than the '
                            f'{LIMITS["partitionLinks"]} a phone can draw apart; route some through one node or open them in a level below')
     return out
+
 
 def mechanism(M):
     out = []

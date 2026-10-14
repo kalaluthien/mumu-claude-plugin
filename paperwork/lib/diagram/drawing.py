@@ -100,6 +100,12 @@ async def _check(path, shots=None, font_css=None):
                         await page.screenshot(path=f"{shots}/{lid}-{width}-{scheme}.png", full_page=True)
                     await page.evaluate("window.zd.goto(window.zd.state.level)")
                 problems += [f"fits: {tag} {x}" for x in await page.evaluate(LAYOUT)]
+                if width > 900 and scheme == "light":   # turned or resized to a phone, the root lays itself out again
+                    await page.set_viewport_size({"width": 390, "height": 900})
+                    await page.wait_for_timeout(600)
+                    need, have = await page.evaluate(ROOT)
+                    if need > have:
+                        problems.append(f"fits: {tag} resized to 390px root needs {need} px in a {have} px card")
                 problems += [f"error: {tag} {e}" for e in errors]
         await browser.close()
     return sorted(set(problems))

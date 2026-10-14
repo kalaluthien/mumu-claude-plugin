@@ -697,8 +697,15 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
     const by = r2.top + r2.height / 2 - (top + view) / 2;
     if (st.full) root.scrollTop += by; else window.scrollBy(0, by);
   }
-  let lastNarrow = null;
-  new ResizeObserver(() => { if (lastNarrow !== null && lastNarrow !== narrow()) render(); lastNarrow = narrow(); timebar(); place(); const h = $(".zd-canvas"); h && h.onscroll && h.onscroll(); }).observe(root);
+  // a phone's root is laid out for its card's width, so a card that turns narrow or changes width while narrow (a
+  // rotation, a resized window) draws again once the resizing settles and the card has its narrow width
+  let lastNarrow = null, lastW = 0, settle = 0;
+  new ResizeObserver(() => {
+    const n = narrow(), w = root.clientWidth;
+    if (lastNarrow !== null && n && (lastNarrow !== n || w !== lastW)) { clearTimeout(settle); settle = setTimeout(render, 150); }
+    else if (lastNarrow !== null && lastNarrow !== n) render();
+    lastNarrow = n; lastW = w; timebar(); place(); const h = $(".zd-canvas"); h && h.onscroll && h.onscroll();
+  }).observe(root);
   // the level menu: a bottom sheet on a phone; on a wide screen it opens in place, below the path, over the drawing
   function sheet(open) { st.sheet = open; root.classList.toggle("nav-open", st.sheet); $(".zd-scrim").hidden = !(st.sheet && narrow()); $(".zd-lv").setAttribute("aria-expanded", st.sheet); }
   function full(on) {
