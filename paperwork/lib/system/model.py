@@ -6,6 +6,15 @@ from . import plan as params
 
 
 
+# [name](url), or [name](path), [name](path:12), [name](path:12-30) for a file under plan.root
+REF = re.compile(r"\[[^\]]+\]\((?:https?://\S+|(?P<path>[^\s():/][^\s():]*)(?::\d+(?:-\d+)?)?)\)")
+
+
+def ref_path(r):
+    """The file a local ref cites, or None for a url."""
+    return REF.fullmatch(r.strip()).group("path")
+
+
 def split_top(text):
     """Split on commas that are not inside brackets."""
     out, depth, cur = [], 0, ""
@@ -181,8 +190,8 @@ def parse(data, check_names=()):
         if any(len(f) < 2 for f in forks(s["walk"])):
             out.append(f'{s["slug"]}: a fork lists two or more branches')
     for it in m["scenarios"] + m["operations"] + m["rules"] + list(nodes.values()):
-        out += [f'{it.get("slug", it.get("id"))}: write refs as [name](url), not {r}' for r in it.get("refs", [])
-                if not re.fullmatch(r"\[[^\]]+\]\(https?://\S+\)", r.strip())]
+        out += [f'{it.get("slug", it.get("id"))}: write refs as [name](url) or [name](path:line), not {r}' for r in it.get("refs", [])
+                if not REF.fullmatch(r.strip())]
     plan = m.get("plan") or {}
     out += [f"plan: strict {c} is no check" for c in plan.get("strict", []) if check_names and c not in check_names]
     return out

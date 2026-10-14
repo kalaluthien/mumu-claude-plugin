@@ -4,6 +4,7 @@ import re
 from . import formula as F
 from . import plan as params
 from . import prover as A
+from . import sources as S
 from .model import places, plan, split_top, walk_steps
 
 NODE_MEDIA, EDGE_MEDIA = {"tree", "checklist"}, {"diff", "payload"}
@@ -415,34 +416,45 @@ def balanced(M):
     return out
 
 
+def sources(M):
+    out, M.sources_status = S.problems(M.m)
+    return out
+
+
 def alloy(M):
-    """Translate the model to Alloy 6 and let Alloy answer: the rules agree, each is independent, every Scenario
-    and failure path can happen; a must rule the behaviour can break is a finding about the system, not a problem. Commands whose text is unchanged reuse
-    their last answer. Skipped, and said so, when Java or Alloy is missing."""
+    """Ask Alloy whether each dynamic rule holds, only on request (`--prove`). It never fails a run: a must rule the
+    behaviour can break is a finding about the system, and whatever keeps Alloy from answering (no Java, no jar, a
+    refused module, a slow command) is a note and an `unproved:` status. Commands whose text is unchanged reuse their
+    last answer."""
     M.alloy_notes, M.alloy_findings = [], []
     if M.plan["prove"] == "off":
-        M.alloy_status = "skipped: the plan says prove: off"
+        M.alloy_status = "unproved: the plan says prove: off"
         return []
-    if not A.jar():
-        M.alloy_status = "skipped: no Alloy (set ALLOY_JAR or run `check-system.py alloy --fetch`)"
+    if not A.ready():
+        M.alloy_status = "unproved: no Alloy (needs Java; set ALLOY_JAR or run `check-system.py alloy --fetch`)"
+        M.alloy_notes = [M.alloy_status]
         return []
     try:
         W, C, res = A.solve(M)
-    except RuntimeError as e:
-        return [f"Alloy refused the translation: {e}"]
-    probs, notes, M.alloy_findings = A.verdicts(M, W, C, res)
+    except (RuntimeError, OSError) as e:
+        M.alloy_status = "unproved: Alloy refused the module"
+        M.alloy_notes = [f"Alloy refused the module: {e}"]
+        return []
+    M.alloy_notes, M.alloy_findings = A.verdicts(M, W, C, res)
     assumed = sorted(i["slug"] for i in M.m["rules"] if i["kind"] == "must" and A.classify(W)[i["slug"]] == "static")
-    notes += [f"assumed, not checked (no state or call in them): {', '.join(assumed)}"] if assumed else []
-    M.alloy_status = (f'checked: {len(C)} commands, {res["_ran"]} run now, the rest unchanged since they last ran' if not res["_slow"] else
-                      f'{len(res["_slow"])} of {len(C)} commands took over {A.SECONDS} s (PAPERWORK_ALLOY_SECONDS): {", ".join(res["_slow"])}')
-    M.alloy_notes += notes
-    return probs
+    M.alloy_notes += [f"assumed, not checked (no state or call in them): {', '.join(assumed)}"] if assumed else []
+    if res["_slow"]:
+        M.alloy_status = f'unproved: {len(res["_slow"])} of {len(C)} commands took over {A.SECONDS} s (PAPERWORK_ALLOY_SECONDS): {", ".join(res["_slow"])}'
+        M.alloy_notes.append(M.alloy_status)
+    else:
+        M.alloy_status = f'checked: {len(C)} commands, {res["_ran"]} run now, the rest unchanged since they last ran'
+    return []
 
 
-LINT = {"basis", "explained", "mechanism", "paths", "naming", "media"}
+LINT = {"basis", "explained", "mechanism", "paths", "naming", "media", "alloy"}
 
 RULES = [
-    ("form", "the file is well formed: one root, known kinds, initial states, named edges, refs as [name](url), a valid plan", form),
+    ("form", "the file is well formed: one root, known kinds, initial states, named edges, refs as [name](url) or [name](path:line), a valid plan", form),
     ("steps", "every Scenario step says what it does and expects, and follows an edge or opens or closes a level", steps),
     ("scoped", "the root and every level things enter from outside have Scenarios of their own (plan scenarios: every asks it of all); steps never climb above where they start", scoped),
     ("coverage", "every operation, rule, node, edge and trigger is used by some Scenario", coverage),
@@ -461,7 +473,8 @@ RULES = [
     ("typed", "types are names the module declares; signatures, attributes and relations agree with the drawing", typed),
     ("vocabulary", "every name is an ASCII Alloy name clear of Alloy's keywords and the translation's words; formulas are Alloy over the model's names, every variable bound and none hiding a name", vocabulary),
     ("balanced", "a workflow opened from a workflow shows its parent's artifacts entering and leaving", balanced),
-    ("alloy", "Alloy finds the rules consistent and independent and every Scenario and failure path possible; a must rule it can break is a finding", alloy),
+    ("sources", "with plan.sources: each listed file is cited by a ref, each cited file is listed, and (closure) every file inside the root a listed file links to, imports or names as ${CLAUDE_PLUGIN_ROOT}/<path> is listed or excluded with a one-line reason", sources),
+    ("alloy", "with --prove, Alloy asks whether each dynamic rule holds; a must rule it can break is a finding, and no Alloy answer fails the run", alloy),
 ]
 CHECKS = {r[0] for r in RULES}
 
@@ -470,10 +483,10 @@ def severity(name, M):
     return "lint" if name in LINT and name not in getattr(M, "strict", ()) else "error"
 
 
-def run(M, prove=True, only=None):
+def run(M, prove=False, only=None):
     """(name, problems, severity) per check, in order. Alloy runs only when no error was found."""
     out, M.alloy_notes, M.alloy_findings = [], [], []
-    M.alloy_status = "skipped: --quick" if not prove else ""
+    M.alloy_status = "skipped: --prove not given" if not prove else ""
     if M.parse_problems:   # nothing else can be read until every reference resolves
         M.alloy_status = "not run: fix the errors above first"
         return [("form", M.parse_problems, "error")]
@@ -496,7 +509,7 @@ def report(rows, M=None):
     lines, failed = [], 0
     for name, problems, sev in rows:
         tag = "pass" if not problems else "FAIL" if sev == "error" else "warn"
-        status = getattr(M, "alloy_status", "") if name == "alloy" else ""
+        status = getattr(M, name + "_status", "")
         lines.append(f"{tag:4s}  {name}" + (f"  ({status})" if status else ""))
         lines += [f"      - {p}" for p in problems]
         failed += len(problems) if sev == "error" else 0

@@ -1,84 +1,55 @@
 # Zoom diagram
 
-Paths here are relative to this file.
-
-A **zoom diagram** is one checked system model drawn by one view, read level
-by level, as a part show-me places on its page or as a page of its own with the
-reader's next action (`next`) under it.
-drill-it writes the system model (`system.json`); this playbook writes the view
-(`view.json`) and draws.
+A **zoom diagram** is one checked system model drawn by one view into one html
+page, read level by level, with the reader's next action (`next`) under it.
+drill-it writes `system.json`; this playbook writes `view.json`, draws. Paths are relative.
 
 ## Setup
 
-Once per machine: `../../../drill-it/scripts/check-system.py alloy --fetch`
-downloads Alloy 6 (needs Java).
+Optional: `../../../drill-it/scripts/check-system.py alloy --fetch` (needs
+Java) downloads Alloy 6; `make` needs none.
 
 ## Interview
 
-Before drill-it models, settle the plan with the user as show-me's Asking
-says.
-
-Ask for the plan's intent, views, depth, prove and show, skipping only what
-the user has already said; `scripts/make-diagram.py rules` lists each with its
-default. [view-writing.md](view-writing.md) explains views, depth and show;
-[model-writing.md](../../../drill-it/references/model-writing.md) (Plan) explains
-intent and prove.
+Before drill-it models, settle the plan as show-me's Asking says: ask
+intent, views, depth, prove (`rules` or `off`) and show, skipping what
+is said. Depth picks which levels the views feature, not the model.
+`scripts/make-diagram.py rules` lists defaults. [view-writing.md](view-writing.md)
+covers views, depth, show; [model-writing.md](../../../drill-it/references/model-writing.md)
+(Plan) covers intent, prove.
 
 ## Procedure
 
 1. Interview.
-2. Run `drill-it` with the plan's intent and prove and the purpose `zoom-diagram`;
-   it hands back a checked `system.json` and its findings.
+2. Run `drill-it` with the plan's intent, prove and one purpose:
+   `analyse-system` (exists), `design-system` (not built), `improve-system`
+   with the original `system.json`. Draw each checked `system.json`.
 3. Write `view.json` as [view-writing.md](view-writing.md) says, from
    `scripts/make-diagram.py new view.json`.
 4. `uv run --with playwright python3 scripts/make-diagram.py make system.json
-   view.json out.html` checks both files and builds the page. A drawing problem
-   is fixed in `view.json`; a problem of the system goes back to drill-it.
-5. Placed on a show-me page: `scripts/make-diagram.py part system.json
-   view.json part.html` writes the part's body.
-6. Look at every level as a critic ([drawing-review.md](drawing-review.md)),
-   then hand over.
-
-## Parts
-
-The engine draws each from the two files; `show` turns off an optional one.
-
-| part | use | holds |
-| --- | --- | --- |
-| Levels | required | the root and each level a node opens, nodes placed by `view.json` |
-| Next | required | `next`, under a page of its own; a placed part leaves it to the page's Next |
-| Notes | optional | per node, its facts and the design decision inside it |
-| Scenarios | optional | each Scenario replayed step by step (`replay`) |
-| Rules | optional | each rule's formula and its standing from Alloy (`formulas`) |
-| Screens | optional | mock screens with the node's block picked out (`media`) |
+   view.json out.html` checks both files, builds the page. Fix drawing
+   problems in `view.json`; system problems go to drill-it.
+5. Review every level as a critic ([drawing-review.md](drawing-review.md)), then hand over.
 
 ## Verification
 
-A diagram is done when `make` ends in `ok`. Tell the user, in the hand-over,
-what that does and does not cover:
-- Name each finding: a `must` rule the system can break, with its
-  counterexample, as a defect of the system and not of the drawing.
-- Name what is unproved, and which rules are only assumed
-  ([proof-commands.md](../../../drill-it/references/proof-commands.md) says what each standing means).
-- Say what Alloy did not cover ([proof-commands.md](../../../drill-it/references/proof-commands.md), Scopes).
-Ask the user to try the Scenarios on the page and say where a step reads
-wrong.
+Done when `make` ends in `ok`; it never starts Alloy; it shows the answers
+drill-it's `--prove` last stored. Tell the user:
+- Each finding: a `must` rule the system can break, with its counterexample
+  (a system defect, not a drawing one).
+- What is unproved, only assumed, or not covered by Alloy ([proof-commands.md](../../../drill-it/references/proof-commands.md), Scopes).
+
+Ask the user to try the Scenarios and name any step that reads wrong.
 
 ## Gotchas
 
-| Symptom | Fix |
-|---|---|
-| a full check runs for minutes, or a command is unproved | [proof-commands.md](../../../drill-it/references/proof-commands.md) (top) |
-| `fits` fails | give that level's nodes `x` and `y` in `view.json` ([view-writing.md](view-writing.md), Layout), never shorter labels |
-| a name is refused as reserved | Alloy and the translation reserve words such as `steps`, `at`, `open`, `run`; drill-it renames the model's word |
+- `check --prove` runs minutes, or a command is unproved: [proof-commands.md](../../../drill-it/references/proof-commands.md) (top).
+- `fits` fails: give that level's nodes `x`, `y` in `view.json` ([view-writing.md](view-writing.md), Layout), not shorter labels.
+- Name refused as reserved (`steps`, `at`, `open`, `run`): drill-it renames.
 
 ## Where things are
 
-| For | Read or run |
-|---|---|
-| every field of the view file | `assets/view-schema.json` |
-| every field of the system file | `../../../drill-it/assets/system-schema.json` |
-| each check and parameter | `scripts/make-diagram.py rules`, `../../../../lib/diagram/view.py`, `../../../../lib/system/checks.py` |
-| the drawing engine | `assets/zoom-diagram.js`, `.css`, `.html` |
-| a phone's limits, shared by the engine and the checks | `assets/phone-limits.json` |
-| worked pairs | `examples/<name>/system.json` and `view.json` |
+- Schemas: view `assets/view-schema.json`, system `../../../drill-it/assets/system-schema.json`.
+- Checks: `scripts/make-diagram.py rules`, `../../../../lib/diagram/view.py`, `../../../../lib/system/checks.py`.
+- Engine: `assets/zoom-diagram.*`; phone limits: `assets/phone-limits.json`.
+- Worked pairs: `examples/<name>/system.json`, `view.json`.

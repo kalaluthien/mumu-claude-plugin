@@ -6,12 +6,13 @@ When the playbook is wrong (a check refuses something legitimate, a reference mi
 draws badly), change the one file that owns it, never a single model, then run this and `make` every example.
 
 usage: prove-checks.py [--prove]
-  --prove   also run Alloy: the examples prove, and each kind of Alloy verdict is caught by its mutation (minutes)
+  --prove   also run Alloy: the examples prove, and a must rule the behaviour can break is a finding (minutes)
 """
 import copy
 import json
 import pathlib
 import sys
+import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[4] / "lib"))
@@ -67,7 +68,7 @@ MUTATIONS = {
                     ("pull-request", lambda m: lv(m, "push")["nodes"].append(dict(node(m, "ahead"), id="behind", label="Behind")) or lv(m, "push")["edges"].extend(  # Redundant
                         dict(e, **{k: "behind" for k in ("from", "to") if e[k] == "ahead"}) for e in list(lv(m, "push")["edges"]) if "ahead" in (e["from"], e["to"])))],
     "syncs": ("pull-request", lambda m: lv(m, "push")["syncs"][0].update(then="commit changes")),
-    "depth": ("self", lambda m: m.update(plan={"depth": "overview", "why": {"depth": "x"}})),
+    "depth": ("self", lambda m: m.update(plan={"depth": "overview", "views": [{"name": "levels", "level": "level"}], "why": {"depth": "x"}})),
     "naming": ("pull-request", lambda m: node(m, "push").update(label="Push")),
     "names": [("pull-request", lambda m: node(m, "push").update(label="밀어 넣기")),
               ("pull-request", lambda m: node(m, "push").setdefault("media", []).append({"type": "facts", "items": [["기준 커밋", "x"]]})),
@@ -84,16 +85,30 @@ MUTATIONS = {
     "vocabulary": [("pull-request", lambda m: m["rules"][0].update(formula=m["rules"][0]["formula"] + " and fresh[pr]")),
                    ("pull-request", lambda m: node(m, "push").update(label="Now"))],
     "balanced": ("self", lambda m: lv(m, "check").pop("out")),
-    "alloy": ("pull-request", lambda m: rule_of(m, "fast-forward-push").update(formula="all branch: Branch | not branch.push")),
+    "sources": ("self", lambda m: m["plan"].update(sources=["paperwork/lib/system/plan.py"], root=str(HERE.parents[5]))),   # real, uncited
 }
 
-# each kind of Alloy verdict, caught with --prove: (example, mutation, words the problem must contain); a must
-# rule the behaviour can break is a finding about the system, never a problem of the model
+# the sources check reads files, so its cases run in a scratch root: (name, plan, refs cited, text the problems must hold; None: pass)
+FILES = {"a.md": "[b](b.md)\n", "b.md": "", "c.py": "from d import x\n", "d.py": "x = 1\n",
+         "p/.claude-plugin/plugin.json": "{}", "p/skills/s.md": "run ${CLAUDE_PLUGIN_ROOT}/lib/t.py\n", "p/lib/t.py": ""}
+ALL = ["a.md", "b.md", "c.py", "d.py"]
+SOURCES = [
+    ("all cited", {"sources": ALL}, ALL, None),
+    ("uncited", {"sources": ALL}, ["a.md", "b.md", "c.py"], ["d.py: listed"]),
+    ("link unlisted", {"sources": ["a.md"]}, ["a.md"], ["a.md links to b.md", "closure"]),
+    ("import unlisted", {"sources": ["c.py"]}, ["c.py"], ["c.py imports d.py", "closure"]),
+    ("plugin root unlisted", {"sources": ["p/skills/s.md"]}, ["p/skills/s.md"], ["p/skills/s.md names p/lib/t.py", "closure"]),
+    ("plugin root listed", {"sources": ["p/skills/s.md", "p/lib/t.py"]}, ["p/skills/s.md", "p/lib/t.py"], None),
+    ("excluded with reason", {"sources": ["a.md"], "exclude": {"b.md": "generated, never read"}}, ["a.md"], None),
+    ("excluded, no reason", {"sources": ["a.md"], "exclude": {"b.md": ""}}, ["a.md"], ["b.md: give its exclusion a one-line reason"]),
+    ("cited, unlisted", {"sources": ["a.md"], "exclude": {"b.md": "x"}}, ["a.md", "c.py"], ["cites c.py, which plan.sources does not list"]),
+    ("design", {}, [], None),
+]
+
+# the one Alloy verdict that is kept, caught with --prove: a must rule the behaviour can break is a finding about
+# the system, never a problem of the model
 VERDICTS = [
-    ("pull-request", lambda m: rule_of(m, "fast-forward-push").update(formula="all branch: Branch | not branch.push"), "cannot happen", "problems"),
-    ("pull-request", lambda m: m["rules"].append(dict(rule_of(m, "three-dot"), slug="three-dot-again")) or node(m, "review-x").setdefault("rules", []).append("three-dot-again"), "follows from", "problems"),
     ("explore-unknowns", lambda m: op(m, "Question.close").pop("post"), "can break", "findings"),
-    ("pull-request", lambda m: rule_of(m, "fast-forward-push").update(formula="no Branch and some Branch"), "contradict", "problems"),
 ]
 
 
@@ -112,15 +127,37 @@ def failing(m, prove=False):
 
 
 def proved(m):
-    """Alloy's problems and findings for a model's system side."""
+    """Alloy's notes and findings for a model's system side."""
     M = Model(view.split(m)[0])
-    return {"problems": next(p for n, p, _ in checks.run(M, True) if n == "alloy"), "findings": M.alloy_findings}
+    checks.run(M, True)
+    return {"notes": M.alloy_notes, "findings": M.alloy_findings}
+
+
+def source_cases():
+    """What the sources check says for each case of SOURCES."""
+    bad = []
+    with tempfile.TemporaryDirectory() as root:
+        for f, text in FILES.items():
+            (pathlib.Path(root) / f).parent.mkdir(parents=True, exist_ok=True)
+            (pathlib.Path(root) / f).write_text(text, encoding="utf-8")
+        for name, plan, cited, expect in SOURCES:
+            m = copy.deepcopy(EX["self"])
+            m["plan"].update(plan, **({"root": root} if plan else {}))
+            node(m, "elicit")["refs"] = [f"[{c}]({c}:1)" for c in cited]
+            rows = {n: p for n, p, _ in checks.run(Model(view.split(m)[0]), only=["sources"])}
+            if "sources" not in rows:
+                bad.append(f"sources case {name}: no such check")
+            elif expect is None and rows["sources"]:
+                bad.append(f"sources case {name}: should pass, got {rows['sources']}")
+            elif expect and not all(any(w in p for p in rows["sources"]) for w in expect):
+                bad.append(f"sources case {name}: should report {expect}, got {rows['sources']}")
+    return bad
 
 
 def main(args):
     prove, bad = "--prove" in args, []
-    if prove and not alloy.jar():
-        print("--prove needs Alloy: run skills/drill-it/scripts/check-system.py alloy --fetch")
+    if prove and not alloy.ready():
+        print("--prove needs Alloy and Java: run skills/drill-it/scripts/check-system.py alloy --fetch")
         return 1
     for name, m in sorted(EX.items()):
         if f := failing(m, prove):
@@ -130,10 +167,10 @@ def main(args):
     if shape(s) != ["system.scenarios[0]: missing walk"]:
         bad.append(f"shape: a missing field is not reported by its path, got {shape(s)}")
     for rule, _, _ in checks.RULES + view.RULES:
+        if rule == "alloy":   # Alloy never fails a run: no mutation can make it fail
+            continue
         if rule not in MUTATIONS:
             bad.append(f"{rule}: no mutation shows it can fail")
-            continue
-        if rule == "alloy" and not prove:
             continue
         cases = MUTATIONS[rule] if isinstance(MUTATIONS[rule], list) else [MUTATIONS[rule]]
         for k, (ex, mutate) in enumerate(cases):
@@ -141,6 +178,8 @@ def main(args):
             mutate(m)
             if rule not in failing(m, prove):
                 bad.append(f"{rule}: not caught by its mutation {k + 1} of {ex}")
+    bad += [f"{r}: no such check" for r in MUTATIONS if r not in checks.CHECKS | view.CHECKS]   # a mutation of no check proves nothing
+    bad += source_cases()
     if prove:
         for ex, mutate, words, where in VERDICTS:
             m = copy.deepcopy(EX[ex])
@@ -148,8 +187,8 @@ def main(args):
             got = proved(m)
             if not any(words in p for p in got[where]):
                 bad.append(f"alloy: a mutation of {ex} should report '{words}' among its {where}, got {got}")
-    n = len(checks.RULES) + len(view.RULES) - (0 if prove else 1)
-    print("\n".join(bad) if bad else f"ok: {n} checks, each caught its mutation" + (f"; {len(VERDICTS)} Alloy verdicts caught" if prove else " (Alloy left out; use --prove)"))
+    n = len(checks.RULES) + len(view.RULES) - 1   # all but alloy
+    print("\n".join(bad) if bad else f"ok: {n} checks, each caught its mutation" + (f"; {len(VERDICTS)} Alloy verdict caught" if prove else " (Alloy left out; use --prove)"))
     return 1 if bad else 0
 
 

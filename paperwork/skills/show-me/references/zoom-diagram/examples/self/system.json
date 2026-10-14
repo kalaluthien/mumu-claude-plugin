@@ -827,7 +827,7 @@
      {
       "type": "code",
       "title": "make-diagram.py check",
-      "text": "pass  form\npass  names\npass  steps\npass  coverage\nwarn  basis\n      - nest-a-level is the union of ['write-a-scenario']; drop it\nok (unproved: skipped: --quick)",
+      "text": "pass  form\npass  names\npass  steps\npass  coverage\nwarn  basis\n      - nest-a-level is the union of ['write-a-scenario']; drop it\nok",
       "invented": true
      }
     ],
@@ -861,7 +861,7 @@
       {
        "id": "prove",
        "label": "Proving with Alloy",
-       "what": "모델을 Alloy 6 모듈로 옮겨 Alloy가 직접 답하게 합니다. 규칙들이 서로 모순되지 않는지, 조건마다 그것만 어기는 모델이 있는지, must 조건이 움직임 속에서도 늘 지켜지는지, 모든 쓰임과 실패한 길이 실제로 일어날 수 있는지 봅니다.",
+       "what": "모델을 Alloy 6 모듈로 옮겨 Alloy가 직접 답하게 합니다. 마지막에 한 번, 움직임이 있는 규칙마다 그것을 어기는 실행이 있는지만 봅니다. 찾은 실행은 결함으로 알릴 뿐, 검사를 실패시키지 않습니다.",
        "refs": [
         "[Alloy](https://alloytools.org/)",
         "[Practical Alloy](https://practicalalloy.github.io/)",

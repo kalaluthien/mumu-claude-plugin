@@ -1,99 +1,47 @@
 # View writing
 
-A view file (`view.json`, fields in `assets/view-schema.json`) says how to draw
-a system model that drill-it wrote (`system.json`): which diagrams, how deep,
-in which language, where nodes sit and which screens they show. It never
-changes the system: a fix to what the system is goes to drill-it. Brackets name
-the drawing check that enforces a line (`make-diagram.py rules`).
-
-`make-diagram.py new view.json` starts one; `next` says in one sentence what the
-reader does after reading [form]. The view's `plan` holds the drawing's
-parameters; say in `why` why each changed default was changed [form].
+`view.json` (`assets/view-schema.json`) says how to draw a drill-it `system.json`, never changing it (fixes go to drill-it). Brackets name the enforcing check (`make-diagram.py rules`). `make-diagram.py new view.json` starts one; `next` is the reader's next step; `why` says why each changed `plan` default changed [form].
 
 ## Views
 
-Name the diagrams someone who works in this domain would look for
-first: an ER model and the API for a backend, page navigation for a front end,
-a CONSORT flow for a trial, the method and the claims for a paper. Each is
-drawn by a level, `{"name", "level"}`, or left out with a reason,
-`{"name", "why"}` [form]. A view no level can draw is a level you have not yet
-opened, or a reason to give.
+Name the diagrams this domain's practitioner expects first (ER model). Draw each by a level, `{"name", "level"}`, or omit it, `{"name", "why"}` [form]. A view no level draws needs a level opened, or a reason.
 
-| Intent | Typical plan |
-|---|---|
-| explain the system to a newcomer | `depth: overview` |
-| audit one part | `deep` that part, `shallow` the rest |
+- newcomer: `depth: overview`; audit one part: `deep` it, `shallow` the rest
 
 ## Depth
 
-`depth` is `overview` (root and one level), `working` (default) or
-`detailed` (also: every operation is one action someone can do or point to).
-At `working`, open a node when either holds:
-- **A Scenario or a rule lives inside.** The reader needs its inside to follow
-  a Scenario, or a `must` rule is kept there.
-- **A design decision lives inside.** It is hard or likely to change and sets
-  what the system can do (Parnas), so an insight could be written about it.
-  Machinery many cases share is drawn once.
+**Depth.** `depth` picks which levels the views feature; the page keeps all [depth]. `overview`: root and one level; `working` (default): the levels below; `detailed`: also every operation as one action. At `working`, feature a node's inside when either holds:
+- **A Scenario or a rule lives inside.** A Scenario needs it, or a `must` rule is kept there.
+- **A design decision lives inside.** It is hard or likely to change and sets what the system can do (Parnas).
 
-Stop when either holds:
-- **Only what the intent can ignore is left.** It would vanish with perfect
-  technology (McMenamin and Palmer: infinite memory and speed, nothing
-  fails), or it is a library used unchanged, and the intent is not about it.
-  Caching, failure, distribution and deployment are the system when the
-  intent asks about them.
-- **Only the cases differ.** Open the most distinctive case and list the rest
-  as `facts`.
+Feature no deeper when either holds:
+- **Only what the intent can ignore is left.** It would vanish with perfect technology (McMenamin and Palmer), or is an unchanged library. Caching, failure, distribution and deployment count if the intent asks.
+- **Only the cases differ.** Open the most distinctive; list the rest as `facts`.
 
-`deep` opens a node these rules would stop at, and `shallow` keeps a node closed.
+`deep` opens a node these rules stop at; `shallow` keeps one closed.
 
 ## Language
 
-The page's own words (Facts, Insight, main path, optional), the term that opens
-each `facts` item, each medium's `title` and each screen's `title` and block
-`name` are English as well (`Defining`, not `정하기`) [names].
-Set the top-level `lang` to the reader's language (`ko`); the page declares it
-for fonts and line breaks, and it is `en` by default.
+The page's own words (Facts, Insight, main path, optional), each `facts` item's opening term, each medium and screen `title` and each block `name` stay English (`Defining`, not `정하기`) [names]. Top-level `lang` is the reader's language (`ko`); default `en`.
 
-- In a Korean model, `[prose]` (lint) reads every description and quotes the sentence at fault:
-  - the register: end a sentence in `-니다` or `-니까`, never `-요` or a plain `-다`; a quote is exempt;
-  - the particle after an English term follows its last sound (`Alloy가`, `run이`);
-  - the spacing: no space between a term and its particle (`Alloy가`), and `수 있`, `수 없` apart;
-  - the position word: no `위`, `아래`, `앞` or `다음` before `그림`, `표`, `식`, `그래프` or `칸`; name the figure (`그림의 위 칸` is fine).
+In a Korean model, `[prose]` (lint) quotes the sentence at fault:
+- end in `-니다` or `-니까`, never `-요` or plain `-다`; quotes exempt;
+- the particle after an English term follows its last sound (`Alloy가`, `run이`), with no space; `수 있`, `수 없` apart;
+- no `위`, `아래`, `앞` or `다음` before `그림`, `표`, `식`, `그래프` or `칸`; name the figure (`그림의 위 칸` is fine).
 
 ## Layout
 
-Leave `x` and `y` out and the engine places each node beside a placed
-neighbour, where its edges cross the fewest nodes and partitions stay blocks.
-Set them when a place means something or when `fits` fails (the root first): a small grid where neighbours share a row or column, a busy
-node goes in the middle, and two or three columns is usual. An edge between diagonal cells needs one empty corner.
-A long edge down a column runs on its right; give it `via: "left"` when the
-right is busy.
-On a phone the engine lays the root out again in two columns or one, with
-long labels on two lines and text at 9 px (limits in `assets/phone-limits.json`);
-no two of the root's partitions join at more than 3 pairs of nodes [phone],
-and the root never needs more than its card [fits].
+Without `x` and `y` the engine places nodes itself. Set them when a place means something or `fits` fails (root first): neighbours share a row or column, a busy node is central. A diagonal edge needs one empty corner. A long edge down a column runs on its right; `via: "left"` when busy. On a phone the root has 1-2 columns, text at 9 px (`assets/phone-limits.json`); no two root partitions join at more than 3 pairs of nodes [phone], and the root fits its card [fits].
 
 ## Screens
 
-When people use the system through a screen, mock that screen in `screens`
-and give `ui: {screen, block}` to every node the screen shows: a part of it, a
-state it is in, or an activity whose result appears on it. Its
-note then shows the screen with that block picked out, on every level.
-
-A mock predicts what the real screen looks like, so build it from the source,
-not from memory of similar apps:
-- Read the code that draws the screen (templates, components, styles,
-  resource and string files) and take its regions, their order, and its
-  visible text verbatim: titles, button labels, menu items, empty states.
-- Keep the real layout: what sits beside what, what scrolls, which control is
-  primary. Pick the block type that the code renders (`tabs`, `list`,
-  `button`, `choices`, …).
-- With no code, use the product's screenshots or documentation; a screen you
-  had to guess is made up (Media).
+Mock each screen people use in `screens`; give `ui: {screen, block}` to every node it shows (part, state, or activity whose result appears on it); its note shows that block, on every level. Build the mock from source:
+- Read the code that draws the screen; take its regions, order and visible text verbatim.
+- Keep the real layout and block type (`tabs`, `list`, `button`, …).
+- With no code, use screenshots or documentation; a guess is `invented: true`.
 
 ## Show
 
-`show` turns off what the page draws: `formulas`, `replay` or `media`. `max_nodes` (7)
-is the most nodes one level may hold [size].
+`show` turns off `formulas`, `replay` or `media`. `max_nodes` (7): most nodes per level [size].
 
-`facts` hold the system's own facts (names, counts, paths, limits, sources) and never the plan: the question, the views, depth, proof scope and base commit go to the hand-over in chat, not the page [facts].
+`facts` hold the system's own facts (names, counts, paths, limits, sources), never the plan (question, views, depth, proof scope, base commit), which goes to the chat hand-over [facts].

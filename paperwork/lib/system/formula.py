@@ -14,7 +14,7 @@ KEYWORDS = {
     "releases", "since", "triggered",
 }
 # words the translation itself declares; a model may not use them as names
-OWN = {"Now", "Call", "happens", "at", "self", "result", "stutter", "behaviour", "assumptions", "consistent"}
+OWN = {"Now", "Call", "happens", "at", "self", "result", "stutter", "behaviour", "assumptions"}
 RESERVED = KEYWORDS | OWN
 
 QUANT = {"all", "some", "no", "lone", "one", "sum"}

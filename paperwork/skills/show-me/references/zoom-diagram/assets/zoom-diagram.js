@@ -571,7 +571,7 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
     const fb = $(".zd-fs"); fb.textContent = st.full ? "✕" : "⤢"; fb.setAttribute("aria-label", st.full ? "Close full screen" : "Full screen");
   }
 
-  const refs = list => (list && list.length) ? `<p class="zd-refs">${list.map(r => { const m = /^\[(.+?)\]\((https?:[^)\s]+)\)$/.exec(r.trim()); return m ? `<a href="${esc(m[2])}" target="_blank" rel="noopener">${esc(m[1])}</a>` : esc(r); }).join("")}</p>` : "";
+  const refs = list => (list && list.length) ? `<p class="zd-refs">${list.map(r => { const m = /^\[(.+?)\]\((https?:[^)\s]+)\)$/.exec(r.trim()); const l = /^\[(.+?)\]\(([^)\s]+)\)$/.exec(r.trim()); return m ? `<a href="${esc(m[2])}" target="_blank" rel="noopener">${esc(m[1])}</a>` : l ? `<span class="zd-src" title="${esc(l[2])}">${esc(l[1])}</span>` : esc(r); }).join("")}</p>` : "";
   const pchip = (L, id) => `<span class="zd-pc">${esc(pname(L, id))}</span>`;
   const grp = (h, rows) => rows.length ? `<div class="zd-grp"><h5>${h}</h5><ul class="zd-list">${rows.join("")}</ul></div>` : "";
   // Alloy formulas, laid out at build time; keywords in their own ink

@@ -1,67 +1,37 @@
 # The model in Alloy
 
-`check-system.py alloy system.json out.als` writes the model as one Alloy 6 module,
-and the `alloy` check runs it; without Alloy, `check` exits 3
-(`check-system.py alloy --fetch` downloads it). A command
-unproved after 120 s (`PAPERWORK_ALLOY_SECONDS`): shrink or split its rule;
-raise the limit only to confirm once.
+`check-system.py check system.json --prove` runs Alloy once, last; never fails. `alloy system.json out.als` writes the module; `alloy --fetch`
+downloads it (needs Java). No Alloy or Java, a refused module, or a command
+over 120 s (`PAPERWORK_ALLOY_SECONDS`) is a `note` and ends `ok (unproved:
+reason)`; shrink or split that rule.
 
-Passing means no counterexample within the Scopes below. The levels are
-not linked in the module: a level drawn inside a node is not tied to that
-node's moments.
+Passing means no counterexample within Scopes; levels are not linked.
 
 ## Translation
 
-The translation is deterministic, and formulas are copied as written.
-
-| Model | Alloy |
-|---|---|
-| component, artifact, outside type | `sig`; abstract is `abstract sig`; "is a" is `extends` (two parents: `in A + B`); `singleton` is `one sig` |
-| attribute `name: T`, `T?`, `T[]`, `T[1..]` | field with `one`, `lone`, `set`, `some`; `name: Bool` is a subset `sig Name in Owner` |
-| relation | the field it stands for, or a field named by its verb |
-| literal set | `enum` |
-| state level | each state a `var sig` subset of the subject; regions, each a partition of the subject |
-| workflow level | `one sig <Title> { var at: set <Title>Step }`: the activities active now |
-| change operation, event, trigger, artifact handed on | a kind of `Call` with the receiver as `self`, the parameters and `result` as fields |
-| `x.verb[args]` | a call of that kind is in `Now.happens` at this moment |
-| query operation | a field on the receiver: `Evals.score[skill]` |
-| rule | a `pred` named in lowerCamel |
-
-Every moment is the set of calls made in it (`Now.happens`), so a sync's two
-events can share a moment. Nothing changes without a call: each region, run and
-`modifies` attribute has a frame condition. A call made where nothing handles
-it is refused: an event happens only in a state with that edge.
+- component, artifact, outside type: `sig`; abstract: `abstract sig`; "is a": `extends` (two parents: `in A + B`); singleton: `one sig`
+- attribute `T`, `T?`, `T[]`, `T[1..]`: `one`, `lone`, `set`, `some`; `name: Bool`: `sig Name in Owner`
+- literal set: `enum`; rule: `pred`
+- state level: each state a `var sig` subset of the subject
+- workflow level: `one sig <Title> { var at: set <Title>Step }`
+- change operation, event, trigger, handed-on artifact: a `Call` kind; `x.verb[args]` is in `Now.happens`
+- query operation: a receiver field
 
 ## What Alloy is asked
 
-| Command | Passes when | Problem it reports |
-|---|---|---|
-| `consistent` | some run keeps every rule and makes a call | rules and behaviour contradict each other |
-| `independent_<rule>` (not guards) | a run breaks only this rule | the rule follows from the others |
-| `holds_<rule>` (must) | no run breaks it | a finding, not a problem: the system can break it, with the calls of its counterexample |
-| `holds_<rule>` (should) | no run breaks it | a note only: its counterexample |
-| `scenario_<slug>` | its walk can happen: on each workflow and state level, each step's edge call strictly after the one before (component levels are walked on the drawing only) | the Scenario cannot happen under the rules |
-| `reach_<edge>` | a failure path can be taken | the failure can never happen |
+Per dynamic rule, `holds_<rule>`: does any run break it? A `must` that does is a
+`finding` (the counterexample's calls); a `should`, a `note`.
 
-Rules split three ways ([model-writing.md](model-writing.md), Rules, says where each sits):
-- A guard is part of the behaviour.
-- A rule over things that change (states, activities, calls, `modifies`
-  attributes, time) is checked against the behaviour.
-- Any other `must` is assumed; any other `should` is only required of the
-  ideal run in `consistent`.
+Rules ([model-writing.md](model-writing.md), Rules): a guard is behaviour; a
+rule over what changes (states, activities, calls, `modifies`, time) is asked;
+any other is assumed. Nothing changes without a call, and an event happens
+only in a state with that edge.
 
-So a `must` that fails its `holds_` check is a finding about the system: `check`
-prints it on a `finding` line and still ends `ok`. Hand it back; change the model
-only when the counterexample shows your own mistake, a guard, `pre` or `post`
-the system has and the model left out.
+A finding is a system defect; `check` still ends `ok`. Hand it back;
+fix the model only for your mistake (an omitted guard, `pre`, `post`).
 
-The page shows each rule's standing and its counterexample. The plan's `prove` narrows what is asked: `rules` leaves out the Scenarios and
-failure paths, `off` asks nothing.
+Plan `prove`: `rules` (default) asks them, `off` none.
 
 ## Scopes
 
-Every command uses `for 3`, room
-for every kind of call, and 8 moments (Alloy's `steps`). A Scenario gets two
-moments per visit on its longest level, plus three; an independence run, four. In runs, an abstract
-component gets three atoms per kind that extends it. The calls of a
-counterexample are reported by the model's own names.
+All commands: `for 3`, 8 moments (`steps`).
