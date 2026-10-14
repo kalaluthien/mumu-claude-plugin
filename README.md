@@ -60,7 +60,7 @@ That session becomes the manager. It files the backlog, starts a worker in a new
 /paperwork:grill-me the new caching plan
 ```
 
-You get a page in the browser, or an Artifact if you ask for one.
+You get the page as a file sent to you, or as an Artifact if you ask for one.
 
 ## homework: lessons that stick
 
