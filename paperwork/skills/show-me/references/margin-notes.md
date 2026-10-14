@@ -8,7 +8,7 @@
 - **Places**: in `.notes`, one `.place` per place worth a note: its text in a `<pre>` (a diff keeps its `+` and `-` lines) or a `<p>`, cut to the lines the note needs with `⋯` for what was cut, and an `<aside>` beside it with the note, which says why the line matters or what breaks, never what it does. Severity is by effect: `class="high"` breaks behaviour or a rule, `"mid"` makes a later change harder, plain is taste.
 - **Files**: places sit under an `h3` per file, files in the order a reviewer reads them, the interface before its callers; a pull request's file heading links to the file at its `headRefOid`.
 - **Skipped**: files with nothing to note are one line each under the places; past 15 files, a table with one row per folder (files, lines added and removed, what changed there), and places only for Where to look.
-- **Reply**: for an open pull request or a draft, `.reply` holds the notes as plain text, one `path:line — note` per line; a merged or closed change has none.
+- **Reply**: `.reply` holds the notes as plain text, one `path:line — note` per line, unless the change is merged or closed.
 - **Next**: approve, ask for changes, or what to read first.
 
 ## CSS

@@ -15,8 +15,9 @@ Once per machine: `scripts/make-diagram.py alloy --fetch` downloads Alloy 6
 Before drill-it models, settle the plan with the user as show-me's Asking
 says.
 
-Ask what the plan in [model-writing.md](model-writing.md) (Plan) holds,
-skipping only what the user has already said.
+Ask for the plan's intent, views, depth, prove and show, skipping only what
+the user has already said; `make-diagram.py rules` lists each with its default,
+and [model-writing.md](model-writing.md) (Plan) explains them.
 
 ## Procedure
 

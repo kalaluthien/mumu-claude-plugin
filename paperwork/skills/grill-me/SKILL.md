@@ -47,8 +47,9 @@ Each question is answerable without opening a file. Its body carries:
 - why it matters: the failure the choice causes or prevents, with a real case
   where one exists.
 
-Each option's description names its cost as a number and its downside. The recommended option is the first, labelled `(Recommended)`; its description
-gives the recommended answer as bullets.
+Each option's description names its cost as a number and its downside. The
+recommended option comes first, its label ending in `(Recommended)` as
+`AskUserQuestion` asks; its description gives the recommended answer as bullets.
 
 ## Settling
 

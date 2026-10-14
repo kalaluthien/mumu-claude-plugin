@@ -9,7 +9,6 @@
 - **Presets**: 3 to 5 buttons named by their intent, from cases the reader knows, each setting every control; the first is the current value.
 - **Reply**: `.reply` shows the result in the form the reader pastes (CSS, JSON, a cron line, a prompt), rewritten on every change from the same parameter values that draw the preview.
 - **Motion**: the preview animates only when the reader has no reduced-motion preference.
-- **Next**: paste the result back.
 
 ## CSS
 

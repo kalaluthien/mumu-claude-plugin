@@ -30,7 +30,7 @@ An answer that fits on one screen as a table or a short fenced tree needs no pag
 
 ## Constraints
 
-- **Page parts**: a page playbook fills `${CLAUDE_PLUGIN_ROOT}/skills/show-me/assets/base-page.html`; its Parts says what each body part holds, its CSS goes after the base page's, and every table sits in a `.scroll` box. A Reply part is text the reader copies back to you, in `.reply` or a button's `data-reply`.
+- **Page parts**: a page playbook fills `${CLAUDE_PLUGIN_ROOT}/skills/show-me/assets/base-page.html`; its Parts says what each body part holds, its CSS goes after the base page's, and every table sits in a `.scroll` box. The base page closes with `.next`, the reader's next action, which the playbook's Next part names, else sending the Reply back; a Reply part is the `.reply` box the reader copies back to you, which a button's `data-reply` may fill.
 - **Only what it needs**: no section, widget or control the answer does not use; a fact that does not change the reader's view is cut, and so is a part that repeats another.
 - **Counted as shown**: a count the page states is the count of what it shows.
 - **One language**: the page is in the language the user's instructions name, else the ask's; a zoom diagram keeps its terms in English as its `model-writing.md` says.

@@ -8,8 +8,8 @@ context: fork
 # drill-it
 
 Find and check what an ask rests on, and hand it back; never ask the user and
-never draw. The caller passes the settled ask, its purpose (a show-me playbook's
-title, or `decision`) and what that purpose needs:
+never draw. The caller passes the settled ask, its purpose (a row of the
+table below) and what that purpose needs:
 
 $ARGUMENTS
 
