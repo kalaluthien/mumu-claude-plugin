@@ -10,11 +10,12 @@ import team  # noqa: E402
 POLL = float(os.environ.get("MONITOR_POLL", 60))  # GitHub reads each poll; a minute keeps them far under the rate limit
 
 shown, staffed = set(), False  # the exit waits until this manager has had a worker, so a fresh manager routes first
+waiting = set()  # a worker's issues with an open blocker, so a restart reports no blocker closed long ago
 while True:
     listed, me = team.sessions()
     manager = me.get("name", "").endswith("-manager")
     worker = me.get("name", "").endswith("-worker")
-    lines = team.manager_actions(me, listed) if manager else team.worker_actions(me) if worker else []
+    lines = team.manager_actions(me, listed) if manager else team.worker_actions(me, waiting) if worker else []
     if manager and lines is not None:
         crew = team.members(me, listed)
         staffed = staffed or bool(crew)

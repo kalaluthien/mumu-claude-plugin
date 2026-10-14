@@ -87,8 +87,9 @@ def worker_goal(me):
             for i in issues() or [] if holds(i, me["name"])]
 
 
-def worker_actions(me):
-    """What ended a wait of this worker, as the act it needs; None when a read failed."""
+def worker_actions(me, waiting):
+    """What ended a wait of this worker, as the act it needs; None when a read failed. WAITING, kept by the caller
+    across polls, holds the held issues last seen with an open blocker, so only the closing of the last one prints."""
     name, found = me["name"], issues()
     prs = run("gh", "pr", "list", "--state", "open", "--json", "number,headRefName,mergeable")
     if found is None or prs is None:
@@ -99,8 +100,13 @@ def worker_actions(me):
         if [r for r, _ in kinds[-2:]] == ["BLOCKED:", "DECIDED:"]:
             lines.append(f"answered #{i['number']}: {kinds[-1][1]['url']} answers your BLOCKED:; act on it")
         blockers = run("gh", "api", f"repos/{{owner}}/{{repo}}/issues/{i['number']}/dependencies/blocked_by", "--jq", "[.[].state]")
-        if blockers and set(blockers) == {"closed"}:
-            lines.append(f"start #{i['number']}: every issue it waits on is closed")
+        if blockers is None:
+            return None
+        if "open" in blockers:
+            waiting.add(i["number"])
+        elif i["number"] in waiting:
+            waiting.discard(i["number"])
+            lines.append(f"start #{i['number']}: every issue it waited on is closed")
     for p in prs:
         if (p["headRefName"] == name or p["headRefName"].startswith(name + "-")) and p["mergeable"] == "CONFLICTING":
             lines.append(f"rebase #{p['number']}: it conflicts with the default branch")
