@@ -5,11 +5,11 @@ name Alloy sees ([proof-commands.md](proof-commands.md)).
 
 Every term is English whatever the reader's language: the model's and each
 level's `title`, and each node, edge, trigger, partition and region `label`
-(`Defining`, not `정하기` or `정하기 (Defining)`) [names]. Only descriptions
+(`Defining`, not `정하기` or `정하기 (Defining)`) [names], and so are the
+engine's own words (Facts, Insight, main path, optional). Only descriptions
 (`what`, `why`, `text`, `intent`, a step's `does` and `expects`, `next`) are
-in the reader's language. Set the top-level `lang` to `ko` when they are
-Korean: the engine's own words (main path, optional, Levels, Insight) then
-show in Korean; it is `en` by default.
+in the reader's language; set the top-level `lang` to theirs (`ko`), which
+the page declares for fonts and line breaks; it is `en` by default.
 
 ## Plan
 

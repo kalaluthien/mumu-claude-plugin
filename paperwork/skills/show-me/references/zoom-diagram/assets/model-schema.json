@@ -23,7 +23,7 @@
     "en",
     "ko"
    ],
-   "description": "The language of the engine's own words (main path, optional, Levels, INSIGHT...); en by default. The model's text is shown as written."
+   "description": "The language of the descriptions, declared on the page; en by default. Terms and the engine's own words stay English."
   },
   "plan": {
    "type": "object",
