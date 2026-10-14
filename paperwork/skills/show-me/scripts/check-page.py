@@ -7,7 +7,7 @@
 usage: check-page.py <page.html> [--shots DIR]
 
 Exit 0 and a last line `ok` when, at both widths, the page does not scroll sideways, no element but one inside a
-scroll box (`.scroll`, `pre`) runs past the right edge, no drawing needs a sideways scroll to be seen whole, no text is under 12 px, no text
+scroll box (`.scroll`, `pre`) runs past the right edge, no drawing needs a sideways scroll to be seen whole, no text but a drawing's or a mock screen's is under 12 px, no text
 in a drawing shows under 10 px tall, is cut at the drawing's edge or overlaps other text, and no script throws.
 """
 import asyncio
@@ -26,11 +26,13 @@ PROBE = """() => {
     const r = e.getBoundingClientRect();
     if (r.width && r.right > W + 1) bad.push(`<${e.tagName.toLowerCase()}${e.className ? '.' + e.className : ''}> runs ${Math.round(r.right - W)} px past the edge`);
     const t = [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
-    if (t && parseFloat(getComputedStyle(e).fontSize) < 12) bad.push(`<${e.tagName.toLowerCase()}> text is under 12 px`);
+    // a mock screen is a drawing at scale, like an svg
+    if (t && !e.closest('.zd-mock') && parseFloat(getComputedStyle(e).fontSize) < 12) bad.push(`<${e.tagName.toLowerCase()}> text is under 12 px`);
   }
   for (const e of document.querySelectorAll('svg text')) {   // a drawing scaled down to the phone shrinks its text with it
     const h = e.getBoundingClientRect().height;
-    if (h && h < 10 && e.textContent.trim()) bad.push(`text in a drawing shows under 10 px tall: "${e.textContent.trim().slice(0, 20)}"`);
+    // a label scaled to exactly 10 px measures 9.99997
+    if (h && h < 9.95 && e.textContent.trim()) bad.push(`text in a drawing shows under 10 px tall: "${e.textContent.trim().slice(0, 20)}"`);
     const r = e.getBoundingClientRect(), s = e.ownerSVGElement.getBoundingClientRect();
     if (r.width && (r.right > s.right + 1 || r.left < s.left - 1)) bad.push(`text in a drawing is cut at its edge: "${e.textContent.trim().slice(0, 20)}"`);
   }

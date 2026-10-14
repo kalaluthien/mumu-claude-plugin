@@ -8,6 +8,7 @@
   make-diagram.py build system.json view.json out.html   inline the joined model into the engine
   make-diagram.py render out.html [--shots DIR] [--font-css FILE]
   make-diagram.py make system.json view.json out.html [--font-css FILE]   check, build, render; stop at the first failure
+  make-diagram.py part system.json view.json part.html   the diagram as a part that show-me's assemble-page.py places
 
 drill-it writes the system model (skills/drill-it/scripts/check-system.py); this script draws it. A finding line is a
 defect of the system the model describes, for the hand-over, never a failure. Exit status 0 means ok.
@@ -104,6 +105,18 @@ def build(spath, vpath, out):
     return 0
 
 
+def part(spath, vpath, out):
+    """The diagram as a page part: a mount point and the call that fills it once the page's scripts, the engine among
+    them, have run; the page carries the engine, its fonts and the reader's next step."""
+    model = json.dumps(prepare(read(spath), read(vpath)), ensure_ascii=False).replace("</", "<\\/")
+    limits = (ASSETS / "phone-limits.json").read_text(encoding="utf-8").strip()
+    pathlib.Path(out).write_text(
+        '<div class="zd-part"></div>\n<script>addEventListener("DOMContentLoaded", (s => () => mountZoomDiagram('
+        f"s.previousElementSibling, {model}, {limits}))(document.currentScript));</script>\n", encoding="utf-8")
+    print("wrote", out)
+    return 0
+
+
 def render(path, shots=None, font_css=None):
     from diagram import drawing as r
     problems = r.check(path, shots, font_css)
@@ -142,6 +155,8 @@ def main(args):
         return check(args[1], args[2], "--quick" not in args, only and only.split(","))
     if cmd == "build":
         return build(args[1], args[2], args[3])
+    if cmd == "part":
+        return part(args[1], args[2], args[3])
     if cmd == "render":
         return render(args[1], option(args, "--shots"), option(args, "--font-css"))
     if cmd == "make":
