@@ -483,6 +483,35 @@
    "refs": ["[Meng & Jackson 2025](https://arxiv.org/abs/2508.14511)"]
   }
  ],
+ "screens": {
+  "diagram": {
+   "title": "Zoom diagram / phone",
+   "size": "390",
+   "blocks": [
+    {
+     "id": "caption",
+     "name": "Header",
+     "type": "text",
+     "text": "줌 다이어그램 하나가 만들어져 독자에게 읽히기까지 거치는 다섯 단계입니다."
+    },
+    {"id": "time", "name": "Time bar", "type": "text", "text": "‹  ●──●──◉──○──○  ›   3 / 5"},
+    {
+     "id": "canvas",
+     "name": "Board",
+     "type": "nodes",
+     "items": ["Eliciting", "Modeling", "Checking", "Rendering", "Reading"],
+     "active": 2
+    },
+    {
+     "id": "note",
+     "name": "Note",
+     "type": "title",
+     "text": "Checking",
+     "sub": "만든 모델에 빠진 것이나 남는 것이 없는지 검사합니다."
+    }
+   ]
+  }
+ },
  "level": {
   "kind": "workflow",
   "title": "Lifecycle",
@@ -608,12 +637,12 @@
       {
        "id": "type",
        "label": "Type",
+       "x": 0,
+       "y": 0,
        "partition": "meaning",
        "attrs": ["name: Text", "sentence: Text?", "singleton: Bool"],
        "rules": ["typed-words"],
-       "what": "연산의 받는 쪽, 매개변수, 결과와 속성이 쓰는 이름입니다. 그림에 있는 컴포넌트와 결과물, 워크플로의 실행이거나, 한 문장으로 선언한 바깥 타입과 값의 목록입니다. Alloy 모듈에서는 각각 시그니처가 됩니다.",
-       "x": 0,
-       "y": 0
+       "what": "연산의 받는 쪽, 매개변수, 결과와 속성이 쓰는 이름입니다. 그림에 있는 컴포넌트와 결과물, 워크플로의 실행이거나, 한 문장으로 선언한 바깥 타입과 값의 목록입니다. Alloy 모듈에서는 각각 시그니처가 됩니다."
       },
       {
        "id": "operation",
@@ -704,9 +733,9 @@
          {
           "id": "drawn",
           "label": "Drawn",
-          "abstract": true,
           "x": 1,
           "y": 0,
+          "abstract": true,
           "attrs": ["label: Text?", "mark: Mark[]", "media: Text[]"],
           "what": "그림에 그려지는 것입니다. 이름과 표시(주 경로, 실패, 선택, 미확인), 노트에 붙는 자료를 가집니다."
          },
@@ -985,11 +1014,11 @@
        "x": 0,
        "y": 0,
        "what": "그림 위의 머리입니다. 지금 레벨까지 거쳐 온 레벨이 이어져 있어 누르면 바로 올라가고, 끝의 현재 레벨 이름을 누르면 레벨 목록과 이 레벨의 쓰임이 펼쳐집니다. 그 아래 한두 문장이 이 레벨이 무엇을 보여 주는지 말합니다.",
-       "ui": {"screen": "diagram", "block": "caption"},
        "attrs": ["path: Level[]", "text: Text"],
        "refs": [
         "[Shneiderman 1996](https://webspace.science.uu.nl/~telea001/uploads/VACourse/Shneiderman96.pdf)"
-       ]
+       ],
+       "ui": {"screen": "diagram", "block": "caption"}
       },
       {
        "id": "timebar",
@@ -997,9 +1026,9 @@
        "x": 2,
        "y": 0,
        "what": "쓰임 하나를 고르면 그림 위에 나타나는 막대입니다. 순간마다 눈금이 하나씩 있고, 나란히 갈라진 순간에는 점이 겹쳐 쌓입니다. 끌거나 누르거나 화살표로 어느 순간으로든 앞뒤로 가며, 저절로 흘러가지는 않습니다.",
-       "ui": {"screen": "diagram", "block": "time"},
        "attrs": ["moment: Count"],
-       "mark": ["optional"]
+       "mark": ["optional"],
+       "ui": {"screen": "diagram", "block": "time"}
       },
       {
        "id": "canvas",
@@ -1009,7 +1038,6 @@
        "what": "지금 레벨의 손그림이 그려지는 곳입니다. 노드를 누르면 고르고, 오른쪽에 꺾쇠가 있는 노드는 꺾쇠를 누르거나 고른 노드를 한 번 더 누르면 그 안으로 들어갑니다.",
        "ops": ["Board.goto", "Board.select", "Board.follow"],
        "rules": ["one-accent", "fits"],
-       "ui": {"screen": "diagram", "block": "canvas"},
        "refs": [
         "[Bederson & Hollan 1994](https://www.lri.fr/~mbl/Teach/SituatedComputing/2017/papers/ZUI/pad++-uis94-p17-bederson.pdf)"
        ],
@@ -1022,7 +1050,8 @@
         "smallText: Bool",
         "overlaps: Text[]"
        ],
-       "singleton": true
+       "singleton": true,
+       "ui": {"screen": "diagram", "block": "canvas"}
       },
       {
        "id": "note",
@@ -1031,12 +1060,12 @@
        "y": 1,
        "what": "고른 노드나 선 곁에 붙는 카드입니다. 설명과 근거, 이해를 돕는 자료, 관련 쓰임과 연산과 조건이 차례로 나옵니다. 고른 것이 화면의 한 부분이면 실제 화면 목업이 들어갑니다.",
        "rules": ["in-sync"],
-       "ui": {"screen": "diagram", "block": "note"},
        "refs": [
         "[Furnas 1986](https://www.ifs.tuwien.ac.at/~mlanzenberger/teaching/ps/ws06/stuff/p16-furnas.pdf)"
        ],
        "attrs": ["topic: (Node | Edge)?"],
-       "mark": ["optional"]
+       "mark": ["optional"],
+       "ui": {"screen": "diagram", "block": "note"}
       }
      ],
      "edges": [
@@ -1133,35 +1162,6 @@
     "what": "작성자가 이해하고 싶은 시스템(코드, 문서, 설정, 프로세스, 화면)을 건넵니다."
    }
   ]
- },
- "screens": {
-  "diagram": {
-   "title": "Zoom diagram / phone",
-   "size": "390",
-   "blocks": [
-    {
-     "id": "caption",
-     "name": "Header",
-     "type": "text",
-     "text": "줌 다이어그램 하나가 만들어져 독자에게 읽히기까지 거치는 다섯 단계입니다."
-    },
-    {"id": "time", "name": "Time bar", "type": "text", "text": "‹  ●──●──◉──○──○  ›   3 / 5"},
-    {
-     "id": "canvas",
-     "name": "Board",
-     "type": "nodes",
-     "items": ["Eliciting", "Modeling", "Checking", "Rendering", "Reading"],
-     "active": 2
-    },
-    {
-     "id": "note",
-     "name": "Note",
-     "type": "title",
-     "text": "Checking",
-     "sub": "만든 모델에 빠진 것이나 남는 것이 없는지 검사합니다."
-    }
-   ]
-  }
  },
  "types": {
   "System": "분석할 시스템입니다. 코드, 문서, 설정, 프로세스, 화면처럼 에이전트가 읽을 수 있는 것은 모두 여기에 듭니다.",

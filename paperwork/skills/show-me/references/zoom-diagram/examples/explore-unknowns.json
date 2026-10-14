@@ -981,10 +981,10 @@
        "label": "Rendering options",
        "what": "같은 실제 데이터를 네 가지 방식으로 그리거나, 클릭해 볼 수 있는 시안, 실제 모양의 샘플 파일을 만듭니다.",
        "ops": ["Territory.renderOptions"],
-       "ui": {"screen": "directions", "block": "opts"},
        "refs": [
         "[Stage 3](https://github.com/dzhng/skills/blob/main/skills/engineering/explore-unknowns/references/stage-3-unknown-knowns.md)"
-       ]
+       ],
+       "ui": {"screen": "directions", "block": "opts"}
       },
       {
        "id": "react",
@@ -1071,7 +1071,6 @@
     "refs": [
      "[Stage 5](https://github.com/dzhng/skills/blob/main/skills/engineering/explore-unknowns/references/stage-5-hand-over-the-map.md)"
     ],
-    "ui": {"screen": "map", "block": "ledger"},
     "media": [
      {
       "type": "checklist",
@@ -1115,7 +1114,6 @@
        "label": "Decision ledger",
        "what": "모든 질문과 답, 그리고 누가 닫았는지(사용자, 코드, 사용자 대신 에이전트, OPEN)를 적은 표입니다.",
        "rules": ["decision-form", "opt-in"],
-       "ui": {"screen": "map", "block": "ledger"},
        "refs": [
         "[Stage 5](https://github.com/dzhng/skills/blob/main/skills/engineering/explore-unknowns/references/stage-5-hand-over-the-map.md)"
        ],
@@ -1128,7 +1126,8 @@
          "gain": "구현하는 사람은 어떤 전제가 단단하고 어떤 것이 추론인지 알고, 대신 답한 것이 틀렸을 때 그 줄만 찾아 다시 열 수 있습니다.",
          "rule": "opt-in"
         }
-       ]
+       ],
+       "ui": {"screen": "map", "block": "ledger"}
       },
       {
        "id": "cards",
@@ -1152,11 +1151,11 @@
        "id": "prompt",
        "label": "Implementation prompt",
        "what": "구현을 시작할 다음 메시지를 미리 써 둔 것입니다. 붙여 넣기만 하면 됩니다.",
-       "ui": {"screen": "map", "block": "prompt"},
        "refs": [
         "[Stage 5](https://github.com/dzhng/skills/blob/main/skills/engineering/explore-unknowns/references/stage-5-hand-over-the-map.md)"
        ],
-       "attrs": ["text: Text"]
+       "attrs": ["text: Text"],
+       "ui": {"screen": "map", "block": "prompt"}
       }
      ],
      "edges": [
@@ -1178,7 +1177,8 @@
       {"from": "kkq", "to": "cited", "label": "is"},
       {"from": "cards", "to": "cited", "label": "is"}
      ]
-    }
+    },
+    "ui": {"screen": "map", "block": "ledger"}
    },
    {
     "id": "after",

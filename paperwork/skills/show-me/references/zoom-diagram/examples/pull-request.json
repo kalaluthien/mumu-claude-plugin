@@ -733,7 +733,6 @@
        "y": 0,
        "what": "새 커밋에 대해 빌드와 테스트가 돌고, 결과가 풀 리퀘스트 화면에 붙습니다.",
        "ops": ["Commit.runChecks"],
-       "ui": {"screen": "conversation", "block": "checks"},
        "refs": ["[Status checks](https://docs.github.com/en/pull-requests/reference/status-checks)"],
        "media": [
         {
@@ -742,7 +741,8 @@
          "text": "on: pull_request\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npm ci && npm test"
         }
        ],
-       "partition": "github"
+       "partition": "github",
+       "ui": {"screen": "conversation", "block": "checks"}
       },
       {
        "id": "review",
@@ -751,7 +751,6 @@
        "y": 0,
        "what": "리뷰어가 바뀐 파일을 읽고 의견을 남긴 뒤 판정을 골라 제출합니다. 안을 열면 리뷰가 무엇으로 이루어졌는지 볼 수 있습니다.",
        "ops": ["PullRequest.comment", "PullRequest.submitReview"],
-       "ui": {"screen": "files", "block": "submit"},
        "refs": [
         "[Pull request reviews](https://docs.github.com/en/pull-requests/reference/pull-request-reviews)"
        ],
@@ -829,7 +828,6 @@
           "x": 0,
           "y": 2,
           "what": "바뀐 파일의 줄에 붙은 의견 하나입니다.",
-          "ui": {"screen": "files", "block": "comment"},
           "refs": [
            "[Commenting on a pull request](https://docs.github.com/en/pull-requests/how-tos/review-pull-requests/commenting-on-a-pull-request)"
           ],
@@ -842,7 +840,8 @@
            }
           ],
           "attrs": ["line: DiffLine", "text: Text"],
-          "partition": "github"
+          "partition": "github",
+          "ui": {"screen": "files", "block": "comment"}
          },
          {
           "id": "line",
@@ -850,10 +849,10 @@
           "x": 1,
           "y": 2,
           "what": "바뀐 파일의 한 줄입니다. 줄 의견은 이 줄에 붙습니다.",
-          "ui": {"screen": "files", "block": "diff"},
           "refs": ["[Branches](https://docs.github.com/en/pull-requests/reference/branches)"],
           "attrs": ["commit: Commit", "text: Text"],
-          "partition": "git"
+          "partition": "git",
+          "ui": {"screen": "files", "block": "diff"}
          }
         ],
         "edges": [
@@ -909,7 +908,8 @@
          }
         ],
         "partitions": [{"id": "github", "label": "GitHub"}, {"id": "git", "label": "Git"}]
-       }
+       },
+       "ui": {"screen": "files", "block": "submit"}
       },
       {
        "id": "mergebox",
@@ -918,7 +918,6 @@
        "y": 1,
        "what": "승인과 필수 체크가 모두 채워졌는지 보여 주고, 채워지면 머지 버튼이 열립니다.",
        "rules": ["mergeable"],
-       "ui": {"screen": "conversation", "block": "merge"},
        "refs": [
         "[About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)"
        ],
@@ -948,7 +947,8 @@
          "items": ["초안이 아님", "정해진 수만큼 승인", "필수 체크가 가장 최근 커밋에서 모두 통과"]
         }
        ],
-       "partition": "github"
+       "partition": "github",
+       "ui": {"screen": "conversation", "block": "merge"}
       }
      ],
      "edges": [

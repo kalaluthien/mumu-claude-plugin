@@ -3,6 +3,7 @@
  "next": "Pick a lemma and follow what it rests on back to the axioms.",
  "plan": {
   "intent": "소수 정리의 짧은 증명은 어떤 명제들이 어떤 순서로 서로에 기대어 성립하는가",
+  "prove": "rules",
   "views": [
    {"name": "Lemma dependency graph", "level": "root"},
    {"name": "Role of the analytic theorem", "level": "tauber"},
@@ -14,10 +15,9 @@
    }
   ],
   "shallow": ["cheb", "zcont", "pnt", "asym"],
-  "prove": "rules",
   "why": {
-   "shallow": "(II), (III), (VI), 소수 정리의 증명은 몇 줄짜리 초등적 논증이라, 열지 않고 노드의 식으로 보입니다.",
-   "prove": "Alloy가 볼 수 있는 것은 해석 정리의 명제 골격뿐이고, 내용은 복소해석에 있습니다. 그래서 골격이 정하는 규칙만 묻습니다: 규칙이 골격에서 틀리면 그림이 거짓말을 합니다. Scenario와 실패 경로는 증명에 시간이 없으므로 묻지 않습니다."
+   "prove": "Alloy가 볼 수 있는 것은 해석 정리의 명제 골격뿐이고, 내용은 복소해석에 있습니다. 그래서 골격이 정하는 규칙만 묻습니다: 규칙이 골격에서 틀리면 그림이 거짓말을 합니다. Scenario와 실패 경로는 증명에 시간이 없으므로 묻지 않습니다.",
+   "shallow": "(II), (III), (VI), 소수 정리의 증명은 몇 줄짜리 초등적 논증이라, 열지 않고 노드의 식으로 보입니다."
   }
  },
  "scenarios": [

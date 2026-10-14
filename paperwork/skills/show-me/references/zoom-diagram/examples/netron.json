@@ -1018,6 +1018,110 @@
    ]
   }
  ],
+ "screens": {
+  "netron": {
+   "title": "Netron / resnet18.onnx (e.g.)",
+   "size": "1280",
+   "blocks": [
+    {
+     "id": "path",
+     "name": "Target path",
+     "type": "tabs",
+     "items": ["resnet18.onnx", "Loop_12", "body"],
+     "active": 2
+    },
+    {
+     "id": "find",
+     "name": "Find",
+     "type": "list",
+     "items": ["conv1", "  Conv  conv1", "  W  conv1.weight", "  Relu  relu1"]
+    },
+    {
+     "id": "graph",
+     "name": "Graph view",
+     "type": "nodes",
+     "items": ["input", "Conv", "Relu", "MaxPool", "Add"],
+     "active": 1
+    },
+    {
+     "id": "box",
+     "name": "Node box",
+     "type": "code",
+     "items": ["Conv", "  W ⟨64×3×7×7⟩", "  B ⟨64⟩"]
+    },
+    {"id": "edge", "name": "Connection", "type": "text", "text": "Conv → Relu   1×64×112×112"},
+    {
+     "id": "props",
+     "name": "Properties",
+     "type": "title",
+     "text": "Conv",
+     "sub": "category layer · kernel_shape [7, 7] · strides [2, 2]"
+    }
+   ]
+  },
+  "window": {
+   "title": "Netron / one window, state by state",
+   "size": "1280",
+   "blocks": [
+    {"id": "welcome", "name": "Welcome", "type": "button", "text": "Open Model…"},
+    {"id": "spinner", "name": "Spinner", "type": "text", "text": "◌  (모델을 읽는 동안 돌아가는 표시)"},
+    {
+     "id": "error",
+     "name": "Error message",
+     "type": "text",
+     "text": "Invalid file content. File contains Git LFS header.      [ OK ]"
+    },
+    {
+     "id": "notice",
+     "name": "Slow layout notice",
+     "type": "text",
+     "text": "This large graph layout might take a very long time to complete.      [ Cancel ]"
+    },
+    {
+     "id": "graph",
+     "name": "Graph",
+     "type": "nodes",
+     "items": ["input", "Conv", "Relu", "MaxPool", "Add"],
+     "active": 1
+    }
+   ]
+  },
+  "layout": {
+   "title": "Netron / laying out resnet18.onnx (e.g.)",
+   "size": "1280",
+   "blocks": [
+    {
+     "id": "built",
+     "name": "View graph",
+     "type": "nodes",
+     "items": ["Conv", "Relu", "MaxPool", "Add", "Gemm"]
+    },
+    {
+     "id": "sized",
+     "name": "Measured sizes",
+     "type": "code",
+     "items": ["Conv        w 120  h 58", "Relu        w  64  h 22", "1×64×112×112  w 96 (edge label)"]
+    },
+    {
+     "id": "worker",
+     "name": "Worker message",
+     "type": "code",
+     "items": [
+      "{ type: 'dagre.layout',",
+      "  nodes: 5, edges: 4,",
+      "  layout: { nodesep: 20, ranksep: 20 } }"
+     ]
+    },
+    {
+     "id": "placed",
+     "name": "Placed graph",
+     "type": "nodes",
+     "items": ["input", "Conv", "Relu", "MaxPool", "Add"],
+     "active": 1
+    }
+   ]
+  }
+ },
  "level": {
   "kind": "state",
   "subject": "Window",
@@ -1035,7 +1139,6 @@
      "[browser.js: drop](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/browser.js#L207)",
      "[Netron README](https://github.com/lutzroeder/netron)"
     ],
-    "ui": {"screen": "window", "block": "welcome"},
     "opens": {
      "kind": "schema",
      "title": "Where a file comes from",
@@ -1135,7 +1238,8 @@
        "what": "디스크의 파일을 읽고, 같은 폴더의 파일을 옆 파일로 가져올 수 있습니다."
       }
      ]
-    }
+    },
+    "ui": {"screen": "window", "block": "welcome"}
    },
    {
     "id": "opening",
@@ -1146,7 +1250,6 @@
     "refs": [
      "[view.js: View.open](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L726)"
     ],
-    "ui": {"screen": "window", "block": "spinner"},
     "opens": {
      "kind": "workflow",
      "title": "Format detection",
@@ -1653,7 +1756,8 @@
        "mark": ["failure"]
       }
      ]
-    }
+    },
+    "ui": {"screen": "window", "block": "spinner"}
    },
    {
     "id": "failed",
@@ -1675,7 +1779,6 @@
     "refs": [
      "[view.js: View.render](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L914)"
     ],
-    "ui": {"screen": "window", "block": "notice"},
     "opens": {
      "kind": "workflow",
      "title": "Layout",
@@ -1790,7 +1893,8 @@
        ]
       }
      ]
-    }
+    },
+    "ui": {"screen": "window", "block": "notice"}
    },
    {
     "id": "showing",
@@ -1802,7 +1906,6 @@
     "refs": [
      "[view.js: View.pushTarget](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L893)"
     ],
-    "ui": {"screen": "window", "block": "graph"},
     "opens": {
      "kind": "schema",
      "title": "What you inspect",
@@ -1931,7 +2034,8 @@
       },
       {"from": "find", "to": "box", "label": "finds", "what": "찾은 결과를 고르면 그 상자를 골라 화면 가운데로 옮깁니다."}
      ]
-    }
+    },
+    "ui": {"screen": "window", "block": "graph"}
    }
   ],
   "edges": [
@@ -1984,109 +2088,5 @@
     "mark": ["optional"]
    }
   ]
- },
- "screens": {
-  "netron": {
-   "title": "Netron / resnet18.onnx (e.g.)",
-   "size": "1280",
-   "blocks": [
-    {
-     "id": "path",
-     "name": "Target path",
-     "type": "tabs",
-     "items": ["resnet18.onnx", "Loop_12", "body"],
-     "active": 2
-    },
-    {
-     "id": "find",
-     "name": "Find",
-     "type": "list",
-     "items": ["conv1", "  Conv  conv1", "  W  conv1.weight", "  Relu  relu1"]
-    },
-    {
-     "id": "graph",
-     "name": "Graph view",
-     "type": "nodes",
-     "items": ["input", "Conv", "Relu", "MaxPool", "Add"],
-     "active": 1
-    },
-    {
-     "id": "box",
-     "name": "Node box",
-     "type": "code",
-     "items": ["Conv", "  W ⟨64×3×7×7⟩", "  B ⟨64⟩"]
-    },
-    {"id": "edge", "name": "Connection", "type": "text", "text": "Conv → Relu   1×64×112×112"},
-    {
-     "id": "props",
-     "name": "Properties",
-     "type": "title",
-     "text": "Conv",
-     "sub": "category layer · kernel_shape [7, 7] · strides [2, 2]"
-    }
-   ]
-  },
-  "window": {
-   "title": "Netron / one window, state by state",
-   "size": "1280",
-   "blocks": [
-    {"id": "welcome", "name": "Welcome", "type": "button", "text": "Open Model…"},
-    {"id": "spinner", "name": "Spinner", "type": "text", "text": "◌  (모델을 읽는 동안 돌아가는 표시)"},
-    {
-     "id": "error",
-     "name": "Error message",
-     "type": "text",
-     "text": "Invalid file content. File contains Git LFS header.      [ OK ]"
-    },
-    {
-     "id": "notice",
-     "name": "Slow layout notice",
-     "type": "text",
-     "text": "This large graph layout might take a very long time to complete.      [ Cancel ]"
-    },
-    {
-     "id": "graph",
-     "name": "Graph",
-     "type": "nodes",
-     "items": ["input", "Conv", "Relu", "MaxPool", "Add"],
-     "active": 1
-    }
-   ]
-  },
-  "layout": {
-   "title": "Netron / laying out resnet18.onnx (e.g.)",
-   "size": "1280",
-   "blocks": [
-    {
-     "id": "built",
-     "name": "View graph",
-     "type": "nodes",
-     "items": ["Conv", "Relu", "MaxPool", "Add", "Gemm"]
-    },
-    {
-     "id": "sized",
-     "name": "Measured sizes",
-     "type": "code",
-     "items": ["Conv        w 120  h 58", "Relu        w  64  h 22", "1×64×112×112  w 96 (edge label)"]
-    },
-    {
-     "id": "worker",
-     "name": "Worker message",
-     "type": "code",
-     "items": [
-      "{ type: 'dagre.layout',",
-      "  nodes: 5, edges: 4,",
-      "  layout: { nodesep: 20, ranksep: 20 } }"
-     ]
-    },
-    {
-     "id": "placed",
-     "name": "Placed graph",
-     "type": "nodes",
-     "items": ["input", "Conv", "Relu", "MaxPool", "Add"],
-     "active": 1
-    }
-   ]
-  }
  }
 }
