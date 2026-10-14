@@ -10,7 +10,8 @@ import team  # noqa: E402
 
 PLAYBOOKS = pathlib.Path(__file__).resolve().parents[1] / "skills" / "kick-off" / "references"
 # only where a command segment starts, so gh text quoted inside another command's argument is not read as a call
-GH_TEXT = re.compile(r"(?:^|&&|\|\||[;|\n])\s*(gh (issue|pr) (create|comment|edit)\b)")
+GH_TEXT = re.compile(r"(?:^|&&|\|\||[;|(`\n]|\b(?:then|do|else)\s)\s*(?:\w+=\S*\s+)*(gh (issue|pr) (create|comment|edit)\b)")
+SEGMENT_END = re.compile(r"&&|\|\||[;|)`]|(?<!\\)\n")  # a backslash-newline continues the command
 
 
 def route(kind, event, role, me, listed):
@@ -23,7 +24,7 @@ def route(kind, event, role, me, listed):
         goal = [g for g in team.worker_goal(me) if g.endswith(": open")]
         return goal and {"decision": "block", "reason": "\n".join(["Your goal still waits on you:", *goal,
                          "Take its next step; stop again only while a subagent, a check or your manager has it."])}
-    command = re.split(r"&&|\|\||[;|\n]", command[GH_TEXT.search(command).start(1):])[0] if GH_TEXT.search(command) else ""
+    command = SEGMENT_END.split(command[GH_TEXT.search(command).start(1):])[0] if GH_TEXT.search(command) else ""
     title = re.search(r"(?<!\S)(--title|-t)[= ](\"[^\"]*\"|'[^']*'|[^\s\"']\S*)", command)
     size = title and len(title.group(2)) - (2 if title.group(2)[0] in "\"'" else 0)
     reason = ("Write the text to a scratch file first, then pass it with --body-file." if re.search(r"(?<!\S)(--body|-b)[= ]", command)
