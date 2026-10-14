@@ -68,7 +68,7 @@ Build the mock from source, not memory:
   verbatim (labels, menu items, empty states).
 - Keep the real layout (order, scrolling, primary control) and the block type
   the code renders (`tabs`, `list`, `button`, `choices`, …).
-- With no code, use screenshots or documentation; a guess is made up (Media).
+- With no code, use screenshots or documentation; a guess is made up (`invented: true`).
 
 ## Show
 
