@@ -79,9 +79,7 @@ def main(argv):
         groups.append(hours)
         low, high = task_estimate.quantile(hours, levels[0]), task_estimate.quantile(hours, levels[1])
         print(f"#{t['number']}\t{low:.1f}\t{high:.1f}\t{len(hours)}\t{'all past tasks used' if fallback else 'same first label'}")
-    if not groups:
-        return print("total\t-\t-\tno range: no past task exists")
-    low, high = task_estimate.total_range(groups, int(opt["seed"]), total_levels)
+    low, high = task_estimate.total_range(groups, int(opt["seed"]), total_levels) if groups else (None, None)
     extra = 0.0
     if opt["expect-restarts"]:
         gaps = json.load(open(opt["gaps-json"])) if "gaps-json" in opt else session_gaps.summaries(
@@ -94,6 +92,8 @@ def main(argv):
     for name, hours in waits:
         extra += hours
         print(f"wait {name}\t{hours:.1f}h")
+    if not groups:
+        return print(f"total\t-\t-\tno range: no past task exists{', so the rows above are not summed' if extra else ''}")
     print(f"total\t{low + extra:.1f}\t{high + extra:.1f}\t{task_estimate.DRAWS} bootstrap sums over {len(tasks)} tasks"
           f"{', plus the rows above' if extra else ''}")
 
