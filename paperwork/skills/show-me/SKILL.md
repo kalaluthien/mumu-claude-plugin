@@ -1,6 +1,6 @@
 ---
 name: show-me
-description: Use to see something as a page instead of prose - a system, options, a change, where things stand, or a value to tune.
+description: Use when the user wants to see something as a page instead of prose - a system, options, a change, where things stand, or a value to tune.
 disable-model-invocation: true
 ---
 
