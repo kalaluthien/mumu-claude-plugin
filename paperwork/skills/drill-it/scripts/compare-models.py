@@ -86,6 +86,7 @@ def counts(M):
         "requisite variety (triggers and states nothing handles)": len(situations - handled),
         "essential state (elements no Scenario uses)": len(M.elements() - used),
         "data/calculation/action (operations that return and change)": sum(1 for o in m["operations"] if returns(o) and (o.get("modifies") or o.get("post"))),
+        "four states (Missing, Illegal, Redundant, Overloaded states found)": len(checks.four_states(M)),
     }
 
 

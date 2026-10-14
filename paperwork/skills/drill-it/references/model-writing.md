@@ -17,19 +17,10 @@ them; `check-system.py plan system.json` prints the plan in effect). Say in
 ## Scenarios
 
 A Scenario is one independent question the model answers, walked over the
-nodes that answer it: a use ("When <actor> does X, Y happens") or, for a body
-of knowledge (a paper, a theory, a field), a claim ("To see why <claim>, …").
-Find candidates in the passes below, then drop any that is a part of another
-or a union of others [basis]. Stop when a pass adds nothing.
-
-1. Actor goals (Cockburn): every actor, other systems included, and every
-   goal that ends in one result.
-2. Event sweep (McMenamin and Palmer): every outside, timed or state-change
-   event. An event that no candidate answers is a missing Scenario.
-3. Lifecycle gaps (CRUD): for each record, ask only about the empty create,
-   read, change or retire cells.
-4. Claims: every claim a reader comes to check, walked from the claim to
-   what it rests on.
+nodes that answer it: a use ("When <actor> does X, Y happens": an actor's
+goal, an outside, timed or state-change event) or, for a body of knowledge, a
+claim ("To see why <claim>, …"), walked from the claim to what it rests on.
+None is a part of another or a union of others [basis].
 
 Root Scenarios are the goals people bring to the whole system. A level that
 things enter from outside (a trigger) gets the Scenarios that start there; with
@@ -116,15 +107,12 @@ as the activity of whoever receives it [form].
 
 ## Paths and partitions
 
-Ask these of every level. Draw each answer that is true of the system; leave
-out any that would be forced.
-
-| Ask | Draw |
+| Mark | On |
 |---|---|
-| What is the usual way through? | mark it `happy` on every workflow and state level [paths] |
-| Where can an activity fail, and where does the failure go? | an edge or port marked `failure`. Every gate, a node whose label starts with checking, reviewing, validating, verifying, testing, judging, approving, gating or evaluating, shows one [paths] |
-| What repeats until something holds? | the edge back, as a loop |
-| What happens only sometimes, or may not exist? | mark it `optional` (dashed) |
+| `happy` | the usual way through, on every workflow and state level [paths] |
+| `failure` | an edge or port where an activity fails, to where the failure goes; every gate (a label starting with checking, reviewing, validating, verifying, testing, judging, approving, gating or evaluating) has one [paths] |
+| `optional` | what happens only sometimes, or may not exist (dashed) |
+| none | a loop: the edge back to what repeats until something holds |
 
 A `failure` path is drawn dash-dot in the one warning ink and `happy`
 heavier; `unsure`

@@ -21,7 +21,9 @@ $ARGUMENTS
 
 | purpose | how |
 | --- | --- |
-| zoom-diagram | Read the system: code, docs, configs, screens. `${CLAUDE_PLUGIN_ROOT}/skills/drill-it/scripts/check-system.py new system.json` starts a valid system model. Model in the order of [references/model-writing.md](references/model-writing.md), under the plan the caller passed; Alloy's questions are in [references/proof-commands.md](references/proof-commands.md). Run `check-system.py check system.json --quick` after each edit, and the full check once the quick one passes; its `four-states` rule finds each state level's Missing, Illegal, Redundant and Overloaded states. A `finding` line is a defect of the system: report it, and change the model only for your own mistake, where the model misstates what the system does. |
+| analyse-system | A system that exists, under the plan the caller passed: follow [references/analyse-system.md](references/analyse-system.md). |
+| design-system | A system not yet built, from the intent and plan the caller passed: follow [references/design-system.md](references/design-system.md). |
+| improve-system | The original `system.json` the caller names (analyse it first when there is none): follow [references/improve-system.md](references/improve-system.md). |
 | option-cards | Fix the criteria before naming any option. Count the options: the ones the ask names, and a third only where a real one exists; at least three for an open ask. Two options one sentence argues equally are one idea restyled: replace one. Settle each criterion's value per option, then each option's risk. |
 | sitrep | For a change or a text, read it itself: `gh pr view <n> --json title,body,files,headRefOid` and `gh pr diff <n>`, or the text and its history. For numbers or events, get the data with a command (`gh api`, `gh issue list --json`, `git log`, a log), and compute counts, sums and periods with a script. |
 | interactive-demo | Name the parameters with their current values and allowed ranges, the cases the reader knows, and the sample the Preview runs on; for steps to follow, each step's exact command, run where it is safe to run. |
@@ -41,5 +43,5 @@ sections:
 - `## Facts`: one fact per line, then ` — ` and its file and line, command or url.
 - `## Not verified`: what the ask needs that no check confirmed, or `none`.
 - `## Undecided`: each point the facts leave to the user, with the option you recommend, or `none`.
-- `## Findings`: each `finding` line of the last check, with the counterexample's calls, or `none`.
-- a section named after each purpose, filling each part the caller passed; for a zoom diagram, the `system.json` path and its last `check` line; for a decision, the Question shape's parts per open decision.
+- `## Findings`: each defect noted while reading and each `finding` line of the last check, with the counterexample's calls, or `none`; the model changes only for your own mistake.
+- a section named after each purpose, filling each part the caller passed; for a system playbook, each `system.json` path and its last `check` line (`scripts/check-system.py`, whose `rules` lists each check); for a decision, the Question shape's parts per open decision.

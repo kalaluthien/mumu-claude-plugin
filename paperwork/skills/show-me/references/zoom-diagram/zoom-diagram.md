@@ -2,9 +2,8 @@
 
 Paths here are relative to this file.
 
-A **zoom diagram** is one checked system model drawn by one view, read level
-by level, as a part show-me places on its page or as a page of its own with the
-reader's next action (`next`) under it.
+A **zoom diagram** is one checked system model drawn by one view into one html
+page, read level by level, with the reader's next action (`next`) under it.
 drill-it writes the system model (`system.json`); this playbook writes the view
 (`view.json`) and draws.
 
@@ -28,30 +27,17 @@ intent and prove.
 ## Procedure
 
 1. Interview.
-2. Run `drill-it` with the plan's intent and prove and the purpose `zoom-diagram`;
-   it hands back a checked `system.json` and its findings.
+2. Run `drill-it` with the plan's intent and prove and one purpose:
+   `analyse-system` for a system that exists, `design-system` for one not yet
+   built, `improve-system` with the original `system.json` to improve one. It
+   hands back each checked `system.json` and its findings; draw each.
 3. Write `view.json` as [view-writing.md](view-writing.md) says, from
    `scripts/make-diagram.py new view.json`.
 4. `uv run --with playwright python3 scripts/make-diagram.py make system.json
    view.json out.html` checks both files and builds the page. A drawing problem
    is fixed in `view.json`; a problem of the system goes back to drill-it.
-5. Placed on a show-me page: `scripts/make-diagram.py part system.json
-   view.json part.html` writes the part's body.
-6. Look at every level as a critic ([drawing-review.md](drawing-review.md)),
+5. Look at every level as a critic ([drawing-review.md](drawing-review.md)),
    then hand over.
-
-## Parts
-
-The engine draws each from the two files; `show` turns off an optional one.
-
-| part | use | holds |
-| --- | --- | --- |
-| Levels | required | the root and each level a node opens, nodes placed by `view.json` |
-| Next | required | `next`, under a page of its own; a placed part leaves it to the page's Next |
-| Notes | optional | per node, its facts and the design decision inside it |
-| Scenarios | optional | each Scenario replayed step by step (`replay`) |
-| Rules | optional | each rule's formula and its standing from Alloy (`formulas`) |
-| Screens | optional | mock screens with the node's block picked out (`media`) |
 
 ## Verification
 

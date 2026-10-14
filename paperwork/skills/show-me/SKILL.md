@@ -15,7 +15,7 @@ Each playbook answers one question the reader asks, and holds parts the page use
 | the reader asks | playbook |
 | --- | --- |
 | where does it stand, what happened, what changed or is planned? status, a trend, an incident, a pull request, a diff or a draft under review, a plan ahead | [references/sitrep/sitrep.md](references/sitrep/sitrep.md) |
-| how does it work? a system, a process, a protocol, a concept, or two of them compared to understand them | [references/zoom-diagram/zoom-diagram.md](references/zoom-diagram/zoom-diagram.md) |
+| how does it work, or how should it? a system, a process, a protocol, a concept, or two of them compared to understand them; a design for one not yet built; how to improve one | [references/zoom-diagram/zoom-diagram.md](references/zoom-diagram/zoom-diagram.md) |
 | what happens if I try? a value judged by seeing it (a colour, a timing, a prompt, a config), a concept to play with, steps to follow | [references/interactive-demo/interactive-demo.md](references/interactive-demo/interactive-demo.md) |
 | which one? named alternatives (approaches, designs, layouts, tools), or a verdict to give: merge, approve, keep, revert | [references/option-cards/option-cards.md](references/option-cards/option-cards.md) |
 
