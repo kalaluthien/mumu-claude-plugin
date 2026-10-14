@@ -306,6 +306,87 @@ def foreign(text):
     return any(c.isalpha() and not c.isascii() and "GREEK" not in unicodedata.name(c, "") for c in str(text))
 
 
+QUOTED = re.compile(r'"[^"]*"|“[^”]*”|‘[^’]*’|«[^»]*»')
+PARTICLES = "으로|로|은|는|이|가|을|를|과|와"
+# a term's last sound, judged only where its last letter decides it
+FINAL = [("ng", "c"), ("m", "c"), ("n", "c"), ("l", "l"), *((v, "v") for v in "aiouwy")]
+# wrong particle -> right one, by the term's last sound: vowel, consonant, ㄹ (which takes 로, not 으로)
+FIX = {"v": {"은": "는", "이": "가", "을": "를", "과": "와", "으로": "로"},
+       "c": {"는": "은", "가": "이", "를": "을", "와": "과", "로": "으로"},
+       "l": {"는": "은", "가": "이", "를": "을", "와": "과", "으로": "로"}}
+POSITION = re.compile(r"(?<![가-힣])(위|아래|앞|다음)\s+(그림|표|식|그래프|칸)(?:처럼|에서|으로|[은는이가을를의에도과와로만]|[^가-힣]|$)")
+
+
+def prose_fields(M):
+    """(where, text) for each description; code, quote, payload, diff, tree and screens are verbatim, so left out."""
+    m = M.m
+    yield "next", m.get("next", "")
+    yield "plan intent", m["plan"].get("intent", "")
+    for s in m["scenarios"]:
+        yield s["slug"], s.get("text", "")
+        for st in walk_steps(s["walk"]):
+            if isinstance(st, dict):
+                yield f'{s["slug"]} step', st.get("does", "")
+                yield f'{s["slug"]} step', st.get("expects", "")
+    for o in m["operations"] + m["rules"]:
+        yield o["slug"], o.get("text", "")
+    for L in m["levels"]:
+        for owner in [L] + L["nodes"] + L["edges"] + L.get("triggers", []):
+            where = owner.get("id", L["id"])
+            yield where, owner.get("what", "")
+            yield where, owner.get("why", "")
+            for md in owner.get("media", []):
+                t = md.get("type")
+                if t in ("example", "pitfall"):
+                    yield where, md.get("text", "")
+                elif t == "checklist":
+                    for item in md.get("items", []):
+                        yield where, str(item)
+                elif t == "facts":   # item[0] is the term, English
+                    for item in md.get("items", []):
+                        for x in item[1:]:
+                            yield where, str(x)
+                elif t == "insight":
+                    for f in ("move", "vs", "gain"):
+                        yield where, md.get(f, "")
+
+
+def sentences(text):
+    """(sentence, masked) pairs: a sentence ends at . ? or ! before a space or the end; a quote is masked, so it
+    never ends one and never fails."""
+    masked = QUOTED.sub(lambda q: "□" * len(q.group()), text)
+    out, start = [], 0
+    for e in [x.end() for x in re.finditer(r"[.?!](?=\s|$)", masked)] + [len(text)]:
+        if masked[start:e].strip():
+            out.append((text[start:e].strip(), masked[start:e].strip()))
+        start = e
+    return out
+
+
+def prose(M):
+    """A Korean model's descriptions read as Korean: formal endings, particles that agree with an English term and
+    sit against it, 수 있다 and 수 없다 apart, and no 위/아래/앞/다음 pointing at a figure."""
+    if M.m.get("lang") != "ko":
+        return []
+    out = []
+    for where, text in prose_fields(M):
+        for sent, mask in sentences(str(text)):
+            end = mask.rstrip(".?!)]} ")
+            found = []
+            if end.endswith("요") or (end.endswith("다") and not end.endswith("니다")):
+                found.append("register: end it with -니다 or -니까")
+            for term, par in re.findall(rf"([A-Za-z]+)({PARTICLES})(?![가-힣])", mask):
+                kind = next((k for suffix, k in FINAL if term.lower().endswith(suffix)), None)
+                if kind and par in FIX[kind]:
+                    found.append(f"particle: {term}{FIX[kind][par]}, not {term}{par}")
+            found += [f"spacing: write {t}{p} with no space" for t, p in re.findall(rf"([A-Za-z]+)\s+({PARTICLES})(?![가-힣])", mask)]
+            found += [f"spacing: write 수 {w} with a space" for w in re.findall(r"수(있|없)", mask)]
+            found += [f"position: name the figure instead of {m.group(1)} {m.group(2)}" for m in POSITION.finditer(mask)
+                      if not mask[:m.start()].rstrip().endswith("그림의")]
+            out += [f'{where}: {f} in "{sent}"' for f in found]
+    return out
+
+
 def media(M):
     out = []
     words = lambda z: set(re.findall(r"\w{2,}", z))
@@ -490,7 +571,7 @@ def alloy(M):
     return probs
 
 
-LINT = {"basis", "explained", "size", "phone", "mechanism", "paths", "depth", "naming", "media"}
+LINT = {"basis", "explained", "size", "phone", "mechanism", "paths", "depth", "naming", "media", "prose"}
 
 RULES = [
     ("form", "the file is well formed: one root, known kinds, initial states, named edges, refs as [name](url), a valid plan", form),
@@ -512,6 +593,7 @@ RULES = [
     ("naming", "labels follow their kind; abstract components depend only on abstract ones; marks are known", naming),
     ("media", "media sit where its type allows; an insight names a move, the usual design, the gain and a rule", media),
     ("facts", "facts state the system's facts, never the plan: no item restates the intent or lists the views", facts),
+    ("prose", "a Korean model's descriptions end in -니다 or -니까, put particles by the English term's last sound with no space, write 수 있다 apart, and never point at 위/아래/앞/다음 그림", prose),
     ("unique-names", "no two things the reader sees share a name", unique_names),
     ("typed", "types are names the module declares; signatures, attributes and relations agree with the drawing", typed),
     ("vocabulary", "formulas are Alloy over the model's names, every variable bound and none hiding a name", vocabulary),
