@@ -194,15 +194,16 @@ carbon in a reservoir, days to answer), give the element a `qty`
 `{"value", "unit", "kind"}`; it is drawn as a small figure beside it
 [quantities]. Leave it out wherever a number would only decorate.
 
-| Kind | On | Means |
-|---|---|---|
-| `stock` | node | what it holds |
-| `count` | node or edge | how many |
-| `capacity` | node | at most this many |
-| `flow` | edge | how much moves |
-| `delay` | edge | it happens within this time: a deadline |
+| Kind | On | Means | Must add up |
+|---|---|---|---|
+| `stock` | node | what it holds | flows in and out are in its unit per time (`GtC`, `GtC/yr`) |
+| `count` | node or edge | how many | a counted node: what enters and what leaves each sum to its count |
+| `capacity` | node | at most this many | |
+| `flow` | edge | how much moves | a node that holds nothing passes on all it receives |
+| `delay` | edge | it happens within this time: a deadline | the source has an edge marked `failure` for when it passes |
 
-Curves, rates over time and queues are `example` media.
+Sums are checked only where every edge on that side says how much, in one
+unit. Curves, rates over time and queues are `example` media.
 
 ## Operations
 
@@ -281,10 +282,11 @@ times [unique-names]. No name is an Alloy keyword (`open`, `run`, `in`, `until`,
 | level | noun phrase for the whole | `Pull request lifecycle` |
 | component | noun phrase; abstract may be an adjective or participle | `Commit`, `Hands-on` |
 | partition | noun phrase for who or where | `Squad` |
+| relation | present-tense verb, read from → to | `uses`, `points to` |
+| activity | verb in -ing | `Reviewing code` |
+| artifact, workflow trigger | noun phrase | `checked model` |
 | state | adjective or participle | `Merged` |
-
-The rest (relation, activity, artifact, event, trigger) is named after the
-Levels table, and the lint prints the form it wants.
+| event, state trigger | plain verb | `merge`, `mark ready` |
 
 ## Layout
 
@@ -360,4 +362,9 @@ what it does. It has four parts:
 
 Write none when nothing is distinctive. A restated description is not an
 insight.
+
+Example: a pull request shows lines against the merge base, not the base
+branch's tip (`move`). A two-dot diff against the tip shows other people's
+merges as changes (`vs`). So the review holds still while the base moves
+(`gain`). The rule is `three-dot`.
 

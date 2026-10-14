@@ -53,6 +53,8 @@ wrong.
 | Symptom | Fix |
 |---|---|
 | a full check runs for minutes, or a command is unproved | [proof-commands.md](proof-commands.md) (top) |
+| `fits` fails | give that level's nodes `x` and `y` ([model-writing.md](model-writing.md), Layout), never shorter labels |
+| a name is refused as reserved | Alloy and the translation reserve words such as `steps`, `at`, `open`, `run`; rename the model's word |
 
 ## How to fix
 
