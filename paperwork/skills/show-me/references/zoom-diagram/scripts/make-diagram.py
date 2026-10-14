@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
-"""zoom-diagram: check a model, build its zoom diagram, check the drawing.
+"""zoom-diagram: check a system model and its view, build the zoom diagram, check the drawing.
 
-  make-diagram.py new model.json                 write a valid minimal model
-  make-diagram.py rules                          list the model checks and the plan's parameters
-  make-diagram.py plan model.json                print the plan in effect, marking what differs from the defaults
-  make-diagram.py check model.json [--quick] [--only a,b]   run the model checks; --quick leaves Alloy out
-  make-diagram.py alloy model.json out.als       write the model as an Alloy 6 module
-  make-diagram.py alloy --fetch                  download Alloy 6 for the alloy check (needs Java)
-  make-diagram.py build model.json out.html      inline the model into the engine
+  make-diagram.py new view.json                  write a minimal view of a system model
+  make-diagram.py rules                          list the system and drawing checks and the plan's parameters
+  make-diagram.py plan system.json view.json     print the plan in effect, marking what differs from the defaults
+  make-diagram.py check system.json view.json [--quick] [--only a,b]   run the checks; --quick leaves Alloy out
+  make-diagram.py build system.json view.json out.html   inline the joined model into the engine
   make-diagram.py render out.html [--shots DIR] [--font-css FILE]
-  make-diagram.py make model.json out.html [--font-css FILE]   check, build, render; stop at the first failure
+  make-diagram.py make system.json view.json out.html [--font-css FILE]   check, build, render; stop at the first failure
 
-Exit status 0 means ok.
+drill-it writes the system model (skills/drill-it/scripts/check-system.py); this script draws it. A finding line is a
+defect of the system the model describes, for the hand-over, never a failure. Exit status 0 means ok.
 """
 import html
 import json
@@ -22,57 +21,59 @@ HERE = pathlib.Path(__file__).resolve().parent
 ASSETS = HERE.parent / "assets"
 sys.path.insert(0, str(HERE.parents[4] / "lib"))
 
-from diagram import checks  # noqa: E402
-from diagram.model import dump, load  # noqa: E402
+from diagram import view  # noqa: E402
+from system import checks  # noqa: E402
+from system import plan as params  # noqa: E402
+from system.model import Model, dump, shape  # noqa: E402
 
 
-def check(path, prove=True, only=None):
-    """Errors fail, lint warns; the last line says whether Alloy checked the model. Exit 0 ok, 1 errors, 3 no Alloy."""
-    from diagram.model import shape
-    data = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
-    if wrong := shape(data):   # the file's shape comes first: nothing else can be read until it fits
+def read(path):
+    return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+
+
+def check(spath, vpath, prove=True, only=None):
+    """The system's checks, then the drawing's; errors fail, lint warns, findings are reported; the last line says
+    whether Alloy checked the model. Exit 0 ok, 1 errors, 3 no Alloy."""
+    s, v = read(spath), read(vpath)
+    if wrong := shape(s):   # the files' shape comes first: nothing else can be read until it fits
         print("FAIL  form\n" + "\n".join(f"      - {p}" for p in wrong) + f"\n{len(wrong)} problem(s)")
         return 1
-    M = load(path)
-    failed = 0
-    for name, problems, sev in checks.run(M, prove, only):
-        tag = "pass" if not problems else "FAIL" if sev == "error" else "warn"
-        print(f"{tag:4s}  {name}" + (f"  ({M.alloy_status})" if name == "alloy" and M.alloy_status else ""))
-        for p in problems:
-            print(f"      - {p}")
-        failed += len(problems) if sev == "error" else 0
-    for n in getattr(M, "alloy_notes", []):
-        print(f"note  {n}")
+    M = Model(s)
+    mine = only and [x for x in only if x in checks.CHECKS]
+    rows = checks.run(M, prove, mine) if not only or mine else []
+    if not only or any(x in view.CHECKS or x == "form" for x in only):
+        rows += [(("view-form" if name == "form" else name), p, sev) for name, p, sev in view.run(s, v, only)]
+    lines, failed = checks.report(rows, M)
+    print("\n".join(lines))
     items = M.m["scenarios"] + M.m["operations"] + M.m["rules"] + list(M.nodes.values())
     print(f"info  {sum(1 for x in items if x.get('refs'))}/{len(items)} elements cite a source")
     if failed:
         print(f"{failed} problem(s)")
         return 1
-    print("ok" if M.alloy_status.startswith("checked") or only else f"ok (unproved: {M.alloy_status})")
-    return 3 if "no Alloy" in M.alloy_status else 0
+    status = getattr(M, "alloy_status", "")
+    print("ok" if status.startswith("checked") or only else f"ok (unproved: {status})")
+    return 3 if "no Alloy" in status else 0
 
 
-def prepare(model):
-    """The model as the page reads it: the plan in effect, each Scenario's run, formulas laid out, and each
+def prepare(s, v):
+    """The joined model as the page reads it: the plan in effect, each Scenario's run, formulas laid out, and each
     rule's standing from Alloy's stored answers."""
-    from diagram import formula, prover
-    from diagram import plan as params
-    from diagram.model import Model, flat, walk_steps
-    model = flat(model)   # the page reads the levels as one list
-    model["plan"] = params.effective(model)
+    from system import formula, prover
+    from system.model import flat, walk_steps
+    model = flat(view.merge(s, v))   # the page reads the levels as one list
+    model["plan"] = view.page_plan(model)
     M = Model(model)
+    M.plan = model["plan"]
+    by = {L["id"]: L for L in model["levels"]}
     # each Scenario's walk, resolved once here, so the page replays exactly what the checks and Alloy saw
     def key(k):
         L, e = M.edges.get(k, (None, None))
-        if not e:
-            return k   # a trigger's key is the same on both sides
-        twins = sum(1 for x in L["edges"] if (x["from"], x["to"]) == (e["from"], e["to"]))
-        return f'{L["id"]}:{e["from"]}>{e["to"]}' + (f'#{e["label"]}' if twins > 1 else "")
-    for s in model["scenarios"]:
-        items = M.walks[s["slug"]][0]
-        s["run"] = {"items": [dict(it, x=key(it["x"])) for it in items],
-                     "steps": [{"does": st.get("does", ""), "expects": st.get("expects", "")} for st in walk_steps(s["walk"])],
-                     "uses": sorted(x for k, x in M.footprint[s["slug"]] if k in ("op", "rule"))}
+        return f'{L["id"]}:{view.edge_key(by[L["id"]], e)}' if e else k   # a trigger's key is the same on both sides
+    for x in model["scenarios"]:
+        items = M.walks[x["slug"]][0]
+        x["run"] = {"items": [dict(it, x=key(it["x"])) for it in items],
+                    "steps": [{"does": st.get("does", ""), "expects": st.get("expects", "")} for st in walk_steps(x["walk"])],
+                    "uses": sorted(u for k, u in M.footprint[x["slug"]] if k in ("op", "rule"))}
     W, _, res = prover.solve(M) if M.plan["prove"] != "off" else (prover.World(M), None, None)
     found = prover.standing(M, W, res)
     for x in model["rules"]:
@@ -87,8 +88,8 @@ def prepare(model):
     return model
 
 
-def build(path, out):
-    model = prepare(json.loads(pathlib.Path(path).read_text(encoding="utf-8")))
+def build(spath, vpath, out):
+    model = prepare(read(spath), read(vpath))
     page = (ASSETS / "zoom-diagram.html").read_text(encoding="utf-8")
     for slot, text in (("/*TITLE*/", model["title"]),
                        ("/*LANG*/", html.escape(model.get("lang", "en"))),
@@ -116,50 +117,35 @@ def option(args, name):
 
 def main(args):
     cmd = args[0] if args else "help"
-    if cmd == "new":   # a valid start: one component level of two parts and one relation, and nothing else yet
-        start = {"title": "System", "plan": {"intent": "The user's question, in one sentence.",
-                                             "views": [{"name": "A diagram a practitioner expects", "level": "root"}]},
-                 "scenarios": [], "operations": [], "rules": [],
-                 "level": {"kind": "schema", "title": "System", "why": "What the system is made of.",
-                           "nodes": [{"id": "a", "label": "Part", "what": "One sentence."},
-                                     {"id": "b", "label": "Other part", "what": "One sentence."}],
-                           "edges": [{"from": "a", "to": "b", "label": "uses", "what": "One sentence."}]}}
+    if cmd == "new":   # a valid start: the reader's next step and one expected view drawn by the root
+        start = {"next": "The reader's next action or choice, in one sentence.",
+                 "plan": {"views": [{"name": "A diagram a practitioner expects", "level": "root"}]}}
         pathlib.Path(args[1]).write_text(dump(start) + "\n", encoding="utf-8")
-        print("wrote", args[1], "(fields: assets/model-schema.json)")
+        print("wrote", args[1], "(fields: assets/view-schema.json)")
         return 0
     if cmd == "rules":
-        for name, rule, _ in checks.RULES:
-            print(f"{name:13s} {'lint ' if name in checks.LINT else 'error'} {rule}")
-        from diagram import plan as params
+        for name, rule, _ in checks.RULES + view.RULES:
+            lint = name in (checks.LINT if name in checks.CHECKS else view.LINT)
+            print(f"{name:13s} {'lint ' if lint else 'error'} {rule}")
         print()
-        for name, (default, allowed, what) in params.DEFAULTS.items():
+        for name, (default, allowed, what) in (params.DEFAULTS | view.DEFAULTS).items():
             print(f"{name:13s} {json.dumps(default, ensure_ascii=False):30s} {what}")
         return 0
     if cmd == "plan":
-        from diagram import plan as params
-        plan = load(args[1]).plan
-        for name, value in plan.items():
-            mark = "*" if value != params.DEFAULTS[name][0] else " "
+        defaults = {k: d[0] for k, d in (params.DEFAULTS | view.DEFAULTS).items()}
+        for name, value in view.page_plan(view.merge(read(args[1]), read(args[2]))).items():
+            mark = "*" if value != defaults[name] else " "
             print(f"{mark} {name:11s} {json.dumps(value, ensure_ascii=False)}")
         return 0
     if cmd == "check":
         only = option(args, "--only")
-        return check(args[1], "--quick" not in args, only and only.split(","))
-    if cmd == "alloy":
-        from diagram import prover as alloy
-        if "--fetch" in args:
-            print("wrote", alloy.fetch())
-            return 0
-        als, W, _ = alloy.translate(load(args[1]))
-        pathlib.Path(args[2]).write_text(als, encoding="utf-8")
-        print("\n".join(W.problems) or f"wrote {args[2]}")
-        return 1 if W.problems else 0
+        return check(args[1], args[2], "--quick" not in args, only and only.split(","))
     if cmd == "build":
-        return build(args[1], args[2])
+        return build(args[1], args[2], args[3])
     if cmd == "render":
         return render(args[1], option(args, "--shots"), option(args, "--font-css"))
     if cmd == "make":
-        return check(args[1]) or build(args[1], args[2]) or render(args[2], None, option(args, "--font-css"))
+        return check(args[1], args[2]) or build(args[1], args[2], args[3]) or render(args[3], None, option(args, "--font-css"))
     print(__doc__)
     return 2
 

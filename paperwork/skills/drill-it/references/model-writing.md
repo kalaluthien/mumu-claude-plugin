@@ -3,53 +3,16 @@
 Brackets name the check that enforces a line. Every name below is also the
 name Alloy sees ([proof-commands.md](proof-commands.md)).
 
-Every term is English whatever the reader's language: the model's and each
-level's `title`, each node, edge, trigger, partition and region `label`, each
-medium's `title`, the term that opens each `facts` item, and each screen's
-`title` and block `name`
-(`Defining`, not `정하기` or `정하기 (Defining)`) [names], and so are the
-engine's own words (Facts, Insight, main path, optional). Only descriptions
-(`what`, `why`, `text`, `intent`, a step's `does` and `expects`, `next`) are
-in the reader's language; set the top-level `lang` to theirs (`ko`), which
-the page declares for fonts and line breaks; it is `en` by default.
+Every name is English whatever the reader's language, since each is also an
+Alloy name [vocabulary]: titles, labels and slugs (`Defining`, not `정하기`). Only descriptions (`what`, `why`,
+`text`, `intent`, a step's `does` and `expects`) are in the reader's language.
 
 ## Plan
 
-A model changes the defaults only in its `plan` (`make-diagram.py rules` lists
-them; `make-diagram.py plan model.json` prints the plan in effect). Say in `why`
-why each changed default was changed [form].
-
-**Views.** Name the diagrams someone who works in this domain would look for
-first: an ER model and the API for a backend, page navigation for a front end,
-a CONSORT flow for a trial, the method and the claims for a paper. Each is
-drawn by a level, `{"name", "level"}`, or left out with a reason,
-`{"name", "why"}` [form]. A view no level can draw is a level you have not yet
-opened, or a reason to give.
-
-| Intent | Typical plan |
-|---|---|
-| explain the system to a newcomer | `depth: overview`, `prove: off` |
-| audit one part | `deep` that part, `shallow` the rest, `prove: rules` |
-
-**Depth.** `depth` is `overview` (root and one level), `working` (default) or
-`detailed` (also: every operation is one action someone can do or point to).
-At `working`, open a node when either holds:
-- **A Scenario or a rule lives inside.** The reader needs its inside to follow
-  a Scenario, or a `must` rule is kept there.
-- **A design decision lives inside.** It is hard or likely to change and sets
-  what the system can do (Parnas), so an insight could be written about it.
-  Machinery many cases share is drawn once.
-
-Stop when either holds:
-- **Only what the intent can ignore is left.** It would vanish with perfect
-  technology (McMenamin and Palmer: infinite memory and speed, nothing
-  fails), or it is a library used unchanged, and the intent is not about it.
-  Caching, failure, distribution and deployment are the system when the
-  intent asks about them.
-- **Only the cases differ.** Open the most distinctive case and list the rest
-  as `facts`.
-
-`deep` and `shallow` overrule these rules node by node.
+A model changes the defaults only in its `plan` (`check-system.py rules` lists
+them; `check-system.py plan system.json` prints the plan in effect). Say in
+`why` why each changed default was changed [form]. A drawing's own choices
+(views, depth, layout) live in its view file, not here.
 
 ## Scenarios
 
@@ -112,7 +75,7 @@ life of one thing (state). A repository persists, but pushing it is a run.
   Every root Scenario walks an activity or state, and every component appears
   in one, unless nothing in the model runs: a body of knowledge is claims and
   what they rest on [mechanism].
-- A level has 2 to 7 nodes [size]. Too many states? Group those that react
+- A level has 2 to 7 nodes, which a drawing checks. Too many states? Group those that react
   alike and detail them below.
 - Every edge says something: a `what`, an operation or a guard [explained].
 - A condition such as "pass" is not an artifact. Name what is handed on and
@@ -289,19 +252,6 @@ times [unique-names]. No name is an Alloy keyword (`open`, `run`, `in`, `until`,
 | state | adjective or participle | `Merged` |
 | event, state trigger | plain verb | `merge`, `mark ready` |
 
-## Layout
-
-Leave `x` and `y` out and the engine places each node beside a placed
-neighbour, where its edges cross the fewest nodes and partitions stay blocks.
-Set them when a place means something or when `fits` fails (the root first): a small grid where neighbours share a row or column, a busy
-node goes in the middle, and two or three columns is usual. An edge between diagonal cells needs one empty corner.
-A long edge down a column runs on its right; give it `via: "left"` when the
-right is busy.
-On a phone the engine lays the root out again in two columns or one, with
-long labels on two lines and text at 9 px (limits in `assets/phone-limits.json`);
-no two of the root's partitions join at more than 3 pairs of nodes [phone],
-and the root never needs more than its card [fits].
-
 ## Text and media
 
 ### Sentences
@@ -310,30 +260,7 @@ and the root never needs more than its card [fits].
 - Every `what`, `why` and `text` is plain, full sentences: first what it is
   for, then what follows from it.
 - Never terse fragments, and never a repeat of the drawing.
-- In a Korean model, `[prose]` (lint) reads every description and quotes the sentence at fault:
-  - the register: end a sentence in `-니다` or `-니까`, never `-요` or a plain `-다`; a quote is exempt;
-  - the particle after an English term follows its last sound (`Alloy가`, `run이`);
-  - the spacing: no space between a term and its particle (`Alloy가`), and `수 있`, `수 없` apart;
-  - the position word: no `위`, `아래`, `앞` or `다음` before `그림`, `표`, `식`, `그래프` or `칸`; name the figure (`그림의 위 칸` is fine).
 - Add `refs` as `[name](url)` wherever a source exists. Never invent a URL.
-
-### Screens
-
-When people use the system through a screen, mock that screen in `screens`
-and give `ui: {screen, block}` to every node the screen shows: a part of it, a
-state it is in, or an activity whose result appears on it. Its
-note then shows the screen with that block picked out, on every level.
-
-A mock predicts what the real screen looks like, so build it from the source,
-not from memory of similar apps:
-- Read the code that draws the screen (templates, components, styles,
-  resource and string files) and take its regions, their order, and its
-  visible text verbatim: titles, button labels, menu items, empty states.
-- Keep the real layout: what sits beside what, what scrolls, which control is
-  primary. Pick the block type that the code renders (`tabs`, `list`,
-  `button`, `choices`, …).
-- With no code, use the product's screenshots or documentation; a screen you
-  had to guess is made up (Media).
 
 ### Media
 
@@ -346,14 +273,12 @@ Add `media` when something concrete explains faster than a sentence.
 | edges only | `payload` (what travels along it), `diff` (`before` and `after`, drawn as a line diff) |
 | anywhere, one per level | `insight` |
 
-`facts` hold the system's own facts (names, counts, paths, limits, sources) and never the plan: the question, the views, depth, proof scope and base commit go to the hand-over in chat, not the page [facts].
-
 - Give edges media as readily as nodes.
 - Mark made-up media `invented: true`; the reader sees "e.g.".
 - Give a `title` only when it says more than the type does.
 - Never draw an order of activities in a note; such an order is a level.
 
-### Insight
+## Insight
 
 An insight points out what is distinctive and clever about this system, not
 what it does. It has four parts:

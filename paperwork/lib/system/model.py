@@ -1,4 +1,4 @@
-"""Read a zoom-diagram model and index it: levels, nodes, edges, triggers, footprints, and the model's own words."""
+"""Read a system model and index it: levels, nodes, edges, triggers, footprints, and the model's own words."""
 import json
 import re
 
@@ -128,7 +128,6 @@ def parse(data, check_names=()):
     rules = {r["slug"] for r in m["rules"]}
     for what, names in (("operation", [o["slug"] for o in m["operations"]]), ("rule", [r["slug"] for r in m["rules"]])):
         out += [f"{what} {x} is defined twice" for x in sorted({x for x in names if names.count(x) > 1})]
-    screens = m.get("screens", {})
     by_id = {L["id"]: L for L in m["levels"]}
     for L in m["levels"]:
         lid, ids = L["id"], {n["id"] for n in L["nodes"]}
@@ -141,9 +140,6 @@ def parse(data, check_names=()):
         for n in L["nodes"]:
             if n.get("partition") and n["partition"] not in parts:
                 out.append(f'{lid}: {n["id"]} is in no partition {n["partition"]}')
-            ui = n.get("ui")
-            if ui and not (ui["screen"] in screens and ui["block"] in {b["id"] for b in screens[ui["screen"]]["blocks"]}):
-                out.append(f'{n["id"]}: ui points at no screen block')
         for x, where in [(n, n["id"]) for n in L["nodes"]] + [(e, e.get("label", "")) for e in L["edges"]] + [(t, t.get("label", "")) for t in L.get("triggers", [])]:
             out += [f"{lid}: {where} names no operation {o}" for o in x.get("ops", []) if o not in ops]
             out += [f"{lid}: {where} names no rule {r}" for r in x.get("rules", []) if r not in rules]
@@ -188,7 +184,6 @@ def parse(data, check_names=()):
         out += [f'{it.get("slug", it.get("id"))}: write refs as [name](url), not {r}' for r in it.get("refs", [])
                 if not re.fullmatch(r"\[[^\]]+\]\(https?://\S+\)", r.strip())]
     plan = m.get("plan") or {}
-    out += [f"plan: {x} is no node" for x in plan.get("deep", []) + plan.get("shallow", []) if x not in nodes]
     out += [f"plan: strict {c} is no check" for c in plan.get("strict", []) if check_names and c not in check_names]
     return out
 
@@ -350,17 +345,16 @@ def dump(data, pad=""):
     return o + "\n" + ",\n".join(inner + x for x in items) + "\n" + pad + c
 
 
-ASSETS = __import__("pathlib").Path(__file__).resolve().parents[2] / "skills/show-me/references/zoom-diagram/assets"
-SCHEMA = json.loads((ASSETS / "model-schema.json").read_text(encoding="utf-8"))
-LIMITS = json.loads((ASSETS / "phone-limits.json").read_text(encoding="utf-8"))   # a phone's limits, shared with the engine
+SCHEMA = json.loads((__import__("pathlib").Path(__file__).resolve().parents[2] / "skills/drill-it/assets/system-schema.json").read_text(encoding="utf-8"))
 TYPES = {"string": str, "array": list, "object": dict, "integer": int, "number": (int, float), "boolean": bool, "null": type(None)}
 
 
-def shape(data, schema=SCHEMA, path="model"):
-    """Where the file departs from assets/model-schema.json, each as path: what is wrong (a small subset of
-    JSON Schema: type, enum, required, properties, additionalProperties, items, $ref)."""
+def shape(data, schema=SCHEMA, path="system", root=None):
+    """Where the file departs from its schema (drill-it's system-schema.json by default), each as path: what is
+    wrong (a small subset of JSON Schema: type, enum, required, properties, additionalProperties, items, $ref)."""
+    root = root or schema
     if "$ref" in schema:
-        schema = SCHEMA["definitions"][schema["$ref"].rsplit("/", 1)[1]]
+        schema = root["definitions"][schema["$ref"].rsplit("/", 1)[1]]
     want = schema.get("type")
     if want and not any(isinstance(data, TYPES[t]) and not (t == "integer" and isinstance(data, bool)) for t in ([want] if isinstance(want, str) else want)):
         return [f"{path}: should be {want if isinstance(want, str) else ' or '.join(want)}"]
@@ -372,12 +366,14 @@ def shape(data, schema=SCHEMA, path="model"):
         props = schema.get("properties", {})
         for k, v in data.items():
             if k in props:
-                out += shape(v, props[k], f"{path}.{k}")
+                out += shape(v, props[k], f"{path}.{k}", root)
             elif schema.get("additionalProperties") is False:
                 out.append(f"{path}: unknown field {k}")
+            elif isinstance(schema.get("additionalProperties"), dict):
+                out += shape(v, schema["additionalProperties"], f"{path}.{k}", root)
     if isinstance(data, list) and "items" in schema:
         for i, v in enumerate(data):
-            out += shape(v, schema["items"], f"{path}[{i}]")
+            out += shape(v, schema["items"], f"{path}[{i}]", root)
     return out
 
 

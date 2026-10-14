@@ -12,7 +12,7 @@
 ## What a right drawing shows
 
 - **Marks.** Each mark matches the model field that sets it
-  ([model-writing.md](model-writing.md), Paths and partitions); a wrong mark
+  ([model-writing.md](../../../drill-it/references/model-writing.md), Paths and partitions); a wrong mark
   is a wrong field.
 - **Edges.** Orthogonal; no label touches a node, another label or another
   edge, and edges from different sources never share a stretch of line.

@@ -12,7 +12,7 @@ import pathlib
 
 from playwright.async_api import async_playwright
 
-from .model import LIMITS
+from .view import LIMITS
 
 MIN_PX = float(LIMITS["minPx"])
 

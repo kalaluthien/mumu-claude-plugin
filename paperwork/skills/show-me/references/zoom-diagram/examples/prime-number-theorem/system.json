@@ -1,23 +1,10 @@
 {
  "title": "Prime number theorem",
- "next": "Pick a lemma and follow what it rests on back to the axioms.",
  "plan": {
   "intent": "소수 정리의 짧은 증명은 어떤 명제들이 어떤 순서로 서로에 기대어 성립하는가",
   "prove": "rules",
-  "views": [
-   {"name": "Lemma dependency graph", "level": "root"},
-   {"name": "Role of the analytic theorem", "level": "tauber"},
-   {"name": "Definitions of Φ, θ, π", "level": "objects"},
-   {"name": "Statements on ζ, Φ, θ (I–IV)", "level": "inputs"},
-   {
-    "name": "Proof roadmap",
-    "why": "증명에는 시간 순서가 없고 기댐의 순서만 있습니다. 그 순서는 뿌리 레벨의 의존 그래프 자체이고, 주장마다의 길은 Scenario가 정리에서 바닥까지 걸어 보입니다."
-   }
-  ],
-  "shallow": ["cheb", "zcont", "pnt", "asym"],
   "why": {
-   "prove": "Alloy가 볼 수 있는 것은 해석 정리의 명제 골격뿐이고, 내용은 복소해석에 있습니다. 그래서 골격이 정하는 규칙만 묻습니다: 규칙이 골격에서 틀리면 그림이 거짓말을 합니다. Scenario와 실패 경로는 증명에 시간이 없으므로 묻지 않습니다.",
-   "shallow": "(II), (III), (VI), 소수 정리의 증명은 몇 줄짜리 초등적 논증이라, 열지 않고 노드의 식으로 보입니다."
+   "prove": "Alloy가 볼 수 있는 것은 해석 정리의 명제 골격뿐이고, 내용은 복소해석에 있습니다. 그래서 골격이 정하는 규칙만 묻습니다: 규칙이 골격에서 틀리면 그림이 거짓말을 합니다. Scenario와 실패 경로는 증명에 시간이 없으므로 묻지 않습니다."
   }
  },
  "scenarios": [
@@ -239,8 +226,6 @@
    {
     "id": "pnt",
     "label": "Prime number theorem",
-    "x": 0,
-    "y": 0,
     "what": "x 이하 소수의 개수 π(x)가 x/log x와 점근적으로 같다는 정리입니다. 증명의 마지막 줄이며, (VI)에서 몇 줄로 따라 나옵니다.",
     "refs": [
      "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -256,8 +241,6 @@
    {
     "id": "asym",
     "label": "Theta asymptotic (VI)",
-    "x": 1,
-    "y": 1,
     "what": "θ(x) ~ x라는 주장입니다. 소수 정리와 같은 내용을 log p의 무게로 센 꼴이라, 해석적으로 다루기 쉽습니다.",
     "refs": [
      "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -273,8 +256,6 @@
    {
     "id": "integral",
     "label": "Convergent integral (V)",
-    "x": 2,
-    "y": 1,
     "what": "∫_1^∞ (θ(x)−x)/x² dx가 수렴한다는 주장입니다. 수론의 사실 (III), (IV)와 해석 정리가 처음으로 만나는 자리입니다.",
     "refs": [
      "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -290,8 +271,6 @@
    {
     "id": "tauber",
     "label": "Analytic theorem",
-    "x": 3,
-    "y": 1,
     "what": "유계 함수의 라플라스 변환이 허축까지 정칙이면 그 함수의 적분이 수렴한다는 타우버형 정리입니다. 코시 정리 말고는 거의 아무것도 쓰지 않습니다.",
     "rules": ["holomorphic-transform-integrates"],
     "refs": [
@@ -320,8 +299,6 @@
       {
        "id": "function",
        "label": "Function f",
-       "x": 0,
-       "y": 0,
        "what": "t ≥ 0에서 유계이고 국소 적분 가능한 함수입니다. 소수 정리에서는 f(t) = θ(e^t)e^(−t) − 1이고, 상한 B가 모든 크기 추정의 바탕입니다.",
        "attrs": ["bounded: Bool", "integrable: Bool"],
        "refs": [
@@ -331,8 +308,6 @@
       {
        "id": "laplace",
        "label": "Laplace transform",
-       "x": 0,
-       "y": 1,
        "what": "g(z) = ∫_0^∞ f(t)e^(−zt) dt입니다. Re z > 0에서 정의되고, 가정에 따라 Re z ≥ 0을 덮는 열린 집합까지 정칙으로 늘어납니다.",
        "attrs": ["holomorphicOnAxis: Bool"],
        "refs": [
@@ -342,8 +317,6 @@
       {
        "id": "truncated",
        "label": "Truncated transform",
-       "x": 1,
-       "y": 2,
        "what": "g_T(z) = ∫_0^T f(t)e^(−zt) dt입니다. 유한 구간의 적분이라 모든 z에서 정칙이고, 그래서 왼쪽 경로를 마음대로 옮길 수 있습니다.",
        "refs": [
         "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -352,8 +325,6 @@
       {
        "id": "cauchy",
        "label": "Cauchy formula",
-       "x": 1,
-       "y": 1,
        "what": "g(0) − g_T(0)을 경로 C 위의 적분으로 쓴 식입니다. 증명은 이 적분이 T → ∞에서 2B/R 이하로 줄어듦을 보이는 일입니다.",
        "refs": [
         "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -368,8 +339,6 @@
       {
        "id": "kernel",
        "label": "Newman kernel",
-       "x": 2,
-       "y": 1,
        "what": "e^(zT)(1 + z²/R²)/z입니다. z = 0에서 유수 1을 가져 코시 공식이 g(0) − g_T(0)을 내놓게 하고, |z| = R 위에서는 크기가 단순해집니다.",
        "refs": [
         "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -384,8 +353,6 @@
       {
        "id": "semicircle",
        "label": "Semicircle bound",
-       "x": 1,
-       "y": 0,
        "what": "오른쪽 반원 위에서 피적분 함수가 2B/R² 아래에 있다는 추정입니다. 반원의 길이 πR을 곱하면 기여가 B/R 이하가 됩니다.",
        "refs": [
         "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -448,8 +415,6 @@
    {
     "id": "inputs",
     "label": "Number theory inputs",
-    "x": 2,
-    "y": 2,
     "what": "해석 정리의 두 가정을 채우는 수론 쪽 명제 (I)~(IV)의 묶음입니다. 바깥으로 내놓는 것은 θ의 한계 (III)과 Φ의 극에 대한 (IV) 둘뿐입니다.",
     "refs": [
      "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -462,8 +427,6 @@
       {
        "id": "riemann",
        "label": "Riemann zeta",
-       "x": 2,
-       "y": 2,
        "what": "ζ(s) = Σ_{n≥1} n^(−s)로, Re s > 1에서 정의됩니다. 소수는 정의에 나타나지 않고 오일러 곱 (I)에서 비로소 들어옵니다.",
        "refs": [
         "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -473,8 +436,6 @@
       {
        "id": "cheb",
        "label": "Chebyshev bound (III)",
-       "x": 0,
-       "y": 2,
        "what": "θ(x) = O(x)라는 체비쇼프형 위 한계입니다. 이항계수 하나로 끝나는 초등적 논증이라, ζ에 대한 어느 명제에도 기대지 않습니다.",
        "refs": [
         "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -490,8 +451,6 @@
       {
        "id": "euler",
        "label": "Euler product (I)",
-       "x": 2,
-       "y": 1,
        "what": "Re s > 1에서 ζ(s) = Π_p (1 − p^(−s))^(−1)입니다. 소인수분해의 유일성을 해석의 언어로 옮긴 것이며, 소수가 ζ에 들어오는 유일한 문입니다.",
        "refs": [
         "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -501,8 +460,6 @@
       {
        "id": "zcont",
        "label": "Zeta continuation (II)",
-       "x": 1,
-       "y": 2,
        "what": "ζ(s) − 1/(s−1)이 Re s > 0까지 정칙으로 늘어납니다. 합을 적분과 비교하는 한 줄짜리 논증이라 안을 열지 않았습니다.",
        "refs": [
         "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -517,8 +474,6 @@
       {
        "id": "phicont",
        "label": "Phi continuation",
-       "x": 1,
-       "y": 1,
        "what": "Φ가 Re s > 1/2까지 유리형으로 늘어나고, 극은 s = 1과 ζ의 영점에만 있다는 사실입니다. 원문에서는 (IV)의 증명 첫머리에 있는 단계입니다.",
        "refs": [
         "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -533,8 +488,6 @@
       {
        "id": "nonvanish",
        "label": "Nonvanishing (IV)",
-       "x": 1,
-       "y": 0,
        "what": "Re s ≥ 1에서 ζ(s) ≠ 0입니다. 직선 위의 경우는 Φ 자신을 써서, 영점의 차수에 대한 부등식 6 − 8μ − 2ν ≥ 0으로 보입니다.",
        "refs": [
         "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -550,8 +503,6 @@
       {
        "id": "phipole",
        "label": "Phi pole (IV)",
-       "x": 0,
-       "y": 0,
        "what": "Φ(s) − 1/(s−1)이 Re s ≥ 1에서 정칙입니다. 해석 정리의 둘째 가정을 채우는, 이 묶음이 바깥에 내놓는 유일한 명제입니다.",
        "refs": [
         "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -613,8 +564,6 @@
    {
     "id": "objects",
     "label": "Definitions",
-    "x": 1,
-    "y": 0,
     "what": "증명이 다루는 소수의 함수 Φ, θ, π입니다. 그 사이의 관계는 정의만으로 성립하므로, 명제가 아니라 이 안의 관계선으로 그렸습니다.",
     "refs": [
      "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -627,8 +576,6 @@
       {
        "id": "phi",
        "label": "Phi series",
-       "x": 0,
-       "y": 0,
        "what": "Φ(s) = Σ_p log p · p^(−s)로, Re s > 1에서 정의됩니다. ζ의 로그 미분과 거의 같아, ζ의 영점과 극이 Φ의 극으로 드러납니다.",
        "refs": [
         "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -638,8 +585,6 @@
       {
        "id": "theta",
        "label": "Chebyshev theta",
-       "x": 1,
-       "y": 0,
        "what": "θ(x) = Σ_{p≤x} log p입니다. 줄지 않는 계단 함수이며, 소수 정리는 θ(x) ~ x와 같은 내용입니다.",
        "refs": [
         "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"
@@ -649,8 +594,6 @@
       {
        "id": "pi",
        "label": "Prime counting",
-       "x": 2,
-       "y": 0,
        "what": "π(x)는 x 이하 소수의 개수입니다. 정리가 말하는 대상이지만, 증명 안에서는 θ를 거쳐서만 다룹니다.",
        "refs": [
         "[Zagier 1997, Newman's Short Proof of the Prime Number Theorem](https://people.mpim-bonn.mpg.de/zagier/files/doi/10.2307/2975232/fulltext.pdf)"

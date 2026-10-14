@@ -1,16 +1,6 @@
 {
  "title": "explore-unknowns",
- "next": "Follow one unknown through the loop and see what closes it.",
- "plan": {
-  "intent": "모호한 요청에서 모르는 것을 드러내고 닫아 가는 explore-unknowns 스킬이 어떤 순서로 일하는가",
-  "views": [
-   {"name": "Process flow", "level": "root"},
-   {"name": "Question lifecycle", "level": "ku"},
-   {"name": "Checkpoint flows", "level": "delegated"},
-   {"name": "Deliverable structure", "level": "map"},
-   {"name": "Quadrant decision tree", "why": "사분면은 걷는 순서이지 고르는 조건이 아니라 Quadrant walk가 그 자리를 맡습니다."}
-  ]
- },
+ "plan": {"intent": "모호한 요청에서 모르는 것을 드러내고 닫아 가는 explore-unknowns 스킬이 어떤 순서로 일하는가"},
  "scenarios": [
   {
    "slug": "map-a-fuzzy-request",
@@ -630,77 +620,6 @@
    ]
   }
  ],
- "screens": {
-  "directions": {
-   "title": "Design directions",
-   "size": "1280",
-   "blocks": [
-    {
-     "id": "head",
-     "name": "Header",
-     "type": "title",
-     "text": "Billing settings — 4 directions",
-     "sub": "Same real data, four layouts. Fake numbers are labeled."
-    },
-    {
-     "id": "opts",
-     "name": "Directions",
-     "type": "nodes",
-     "items": ["A Table", "B Cards", "C Timeline", "D Split"],
-     "active": 1
-    },
-    {
-     "id": "chips",
-     "name": "Steal / skip",
-     "type": "list",
-     "items": [
-      "A  steal: dense rows   skip: no grouping",
-      "B  steal: plan cards    skip: —",
-      "C  skip",
-      "D  steal: side preview"
-     ]
-    },
-    {"id": "reply", "name": "Your reply", "type": "button", "text": "Copy reply"}
-   ]
-  },
-  "map": {
-   "title": "Task map",
-   "size": "1280",
-   "blocks": [
-    {
-     "id": "head",
-     "name": "Header",
-     "type": "title",
-     "text": "Retry button for failed payment emails",
-     "sub": "Map · 4 quadrants · 2 OPEN"
-    },
-    {
-     "id": "tabs",
-     "name": "Quadrants",
-     "type": "tabs",
-     "items": ["Known knowns", "Decisions", "Extracted", "Landmines"],
-     "active": 1
-    },
-    {
-     "id": "ledger",
-     "name": "Decision ledger",
-     "type": "list",
-     "items": [
-      "Retry limit = 3 · user",
-      "Button copy reuses i18n key · territory",
-      "Log click event · agent for you",
-      "Email provider quota · OPEN"
-     ]
-    },
-    {
-     "id": "prompt",
-     "name": "Implementation prompt",
-     "type": "button",
-     "text": "Copy implementation prompt"
-    }
-   ]
-  }
- },
  "level": {
   "kind": "workflow",
   "title": "Quadrant walk",
@@ -983,15 +902,13 @@
        "ops": ["Territory.renderOptions"],
        "refs": [
         "[Stage 3](https://github.com/dzhng/skills/blob/main/skills/engineering/explore-unknowns/references/stage-3-unknown-knowns.md)"
-       ],
-       "ui": {"screen": "directions", "block": "opts"}
+       ]
       },
       {
        "id": "react",
        "label": "Reacting",
        "what": "사용자는 보기마다 가져갈 것과 버릴 것을 고릅니다. 고른 것이 그대로 다음 답장이 됩니다.",
-       "rules": ["reply-drafted"],
-       "ui": {"screen": "directions", "block": "chips"}
+       "rules": ["reply-drafted"]
       },
       {
        "id": "probe-n",
@@ -1126,8 +1043,7 @@
          "gain": "구현하는 사람은 어떤 전제가 단단하고 어떤 것이 추론인지 알고, 대신 답한 것이 틀렸을 때 그 줄만 찾아 다시 열 수 있습니다.",
          "rule": "opt-in"
         }
-       ],
-       "ui": {"screen": "map", "block": "ledger"}
+       ]
       },
       {
        "id": "cards",
@@ -1154,8 +1070,7 @@
        "refs": [
         "[Stage 5](https://github.com/dzhng/skills/blob/main/skills/engineering/explore-unknowns/references/stage-5-hand-over-the-map.md)"
        ],
-       "attrs": ["text: Text"],
-       "ui": {"screen": "map", "block": "prompt"}
+       "attrs": ["text: Text"]
       }
      ],
      "edges": [
@@ -1177,8 +1092,7 @@
       {"from": "kkq", "to": "cited", "label": "is"},
       {"from": "cards", "to": "cited", "label": "is"}
      ]
-    },
-    "ui": {"screen": "map", "block": "ledger"}
+    }
    },
    {
     "id": "after",
