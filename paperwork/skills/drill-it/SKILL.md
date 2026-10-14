@@ -21,7 +21,7 @@ $ARGUMENTS
 
 | purpose | how |
 | --- | --- |
-| zoom diagram | Read the system: code, docs, configs, screens. `${CLAUDE_PLUGIN_ROOT}/skills/show-me/references/zoom-diagram/scripts/make-diagram.py new model.json` starts a valid file. Model in the order of `${CLAUDE_PLUGIN_ROOT}/skills/show-me/references/zoom-diagram/model-writing.md`, under the plan the caller passed. Run `make-diagram.py check model.json --quick` after each edit, and the full check once the quick one passes. |
+| zoom diagram | Read the system: code, docs, configs, screens. `${CLAUDE_PLUGIN_ROOT}/skills/show-me/references/zoom-diagram/scripts/make-diagram.py new model.json` starts a valid file. Model in the order of `${CLAUDE_PLUGIN_ROOT}/skills/show-me/references/zoom-diagram/model-writing.md`, under the plan the caller passed. Run `make-diagram.py check model.json --quick` after each edit, and the full check once the quick one passes; its `four-states` rule finds each state level's Missing, Illegal, Redundant and Overloaded states. |
 | option cards | Fix the criteria before naming any option. Count the options: the ones the ask names, and a third only where a real one exists; at least three for an open ask. Two options one sentence argues equally are one idea restyled: replace one. Settle each criterion's value per option, then each option's risk. |
 | margin notes | Read the change itself: `gh pr view <n> --json title,body,files,headRefOid` and `gh pr diff <n>`, or the text and its history. |
 | chart brief | Get the data with a command (`gh api`, `gh issue list --json`, `git log`), and compute counts, sums and periods with a script. |
