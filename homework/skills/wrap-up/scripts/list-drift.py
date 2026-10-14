@@ -71,5 +71,9 @@ if __name__ == "__main__":
     if missing or not pools:
         print(f"could not look: no memory pool at {' '.join(missing) or args[0]}", file=sys.stderr)
         sys.exit(1)
-    lines = drift(pools, date.today())
+    try:
+        lines = drift(pools, date.today())
+    except OSError as error:
+        print(f"could not look: {error.filename}: {error.strerror}", file=sys.stderr)
+        sys.exit(1)
     print("\n".join(lines + [f"drift: {len(lines)} findings in {len(pools)} pools"]))

@@ -34,4 +34,4 @@ verbatim into the todo list, a step not done staying as `skip: <reason>`.
 
 - **No waiting**: ask the owner nothing; file, fix or leave each item for the owner, and report.
 - **Repository first**: file nothing the repository or its history already states, and change a repository's file only the way it takes changes, as its `AGENTS.md` says.
-- **Outcome**: when the hook asked, end with `"${CLAUDE_PLUGIN_ROOT}/hooks/wrap-up-signal.py" outcome "${CLAUDE_PLUGIN_DATA}" filed` if anything was filed, fixed or recorded, else the same with `empty`, so the hook asks less often after empty wrap-ups.
+- **Outcome**: when the hook asked, end with `"${CLAUDE_PLUGIN_ROOT}/hooks/wrap-up-signal.py" outcome "${CLAUDE_PLUGIN_DATA}" ${CLAUDE_SESSION_ID} filed` if anything was filed, fixed or recorded, else the same with `empty`, so the hook asks less often after empty wrap-ups.

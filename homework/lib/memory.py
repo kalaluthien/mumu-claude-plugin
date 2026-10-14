@@ -16,11 +16,11 @@ def split(text):
 
 
 def fields(path, text):
-    """(confirmed, last-confirmed) of a file's text: a missing count reads 1, a missing date the file's modification date."""
+    """(confirmed, last-confirmed) of a file's text: a missing count, or one below 1, reads 1, a missing date the file's modification date."""
     front, _ = split(text)
     values = {name: value for _, name, value in FIELD.findall(front or "")}
     try:
-        count = int(values.get("confirmed", "1"))
+        count = max(1, int(values.get("confirmed", "1")))
     except ValueError:
         count = 1
     try:
