@@ -32,6 +32,5 @@ After `make-diagram.py make` passes, look at every level at both widths and in
 both themes (`render out.html --shots DIR` saves them). Check that arrow tips
 sit on borders, nothing is clipped, every opening node has a chevron, every
 node a screen shows (a part, a state, an activity) shows that screen, and the
-Principles hold. On a phone the root fits its card
-([model-writing.md](model-writing.md), Layout); a wide level below it scrolls
-sideways in full screen, and that is not clipping.
+Principles hold. A wide level below the root scrolls sideways in full screen
+on a phone, and that is not clipping.

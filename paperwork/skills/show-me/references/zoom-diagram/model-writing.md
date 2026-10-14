@@ -293,8 +293,7 @@ times [unique-names]. No name is an Alloy keyword (`open`, `run`, `in`, `until`,
 
 Leave `x` and `y` out and the engine places each node beside a placed
 neighbour, where its edges cross the fewest nodes and partitions stay blocks.
-Set them when a place means something or when `fits` fails (the root first: it
-must fit 390 px): a small grid where neighbours share a row or column, a busy
+Set them when a place means something or when `fits` fails (the root first): a small grid where neighbours share a row or column, a busy
 node goes in the middle, and two or three columns is usual. An edge between diagonal cells needs one empty corner.
 A long edge down a column runs on its right; give it `via: "left"` when the
 right is busy.
