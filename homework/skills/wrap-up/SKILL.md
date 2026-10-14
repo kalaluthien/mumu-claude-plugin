@@ -1,12 +1,12 @@
 ---
 name: wrap-up
-description: Use when a wrap-up signal arrives, or to keep a lesson, tidy memory, or write a skill or hook.
+description: Use when a wrap-up signal arrives, or to keep a lesson (retro), tidy memory (dream), or write a skill or hook.
 ---
 
 # wrap-up
 
 Close a stretch of work so the next session starts ahead: keep what this
-session learned, tidy what earlier sessions kept, and record how to run and
+session learned (retro), tidy what earlier sessions kept (dream), and record how to run and
 verify the repository.
 
 ## Vocabulary
@@ -23,12 +23,12 @@ verbatim into the todo list, a step not done staying as `skip: <reason>`.
 
 | when | playbook |
 | --- | --- |
-| `<p>` reaches `<t>`, or a person asks to keep a lesson | [references/harvest.md](references/harvest.md) |
+| `<p>` reaches `<t>`, or a person asks to keep a lesson | [references/retro.md](references/retro.md) |
 | `<r>` is `missing` or `failed` | [references/run-recipe.md](references/run-recipe.md) |
-| `<m>` reaches `<l>`, or a person asks to tidy memory | [references/tidy-how.md](references/tidy-how.md), over the targets of [references/tidy-what.md](references/tidy-what.md) |
+| `<m>` reaches `<l>`, or a person asks to tidy memory | [references/dream-how.md](references/dream-how.md), over the targets of [references/dream-what.md](references/dream-what.md) |
 | writing or editing a skill or an agent file, with no lesson behind it | [references/skill-authoring.md](references/skill-authoring.md) |
 | writing or editing a hook or a script, with no lesson behind it | [references/hook-authoring.md](references/hook-authoring.md) |
-| typed with no signal and no row fits | [references/harvest.md](references/harvest.md) |
+| typed with no signal and no row fits | [references/retro.md](references/retro.md) |
 
 ## Rules
 

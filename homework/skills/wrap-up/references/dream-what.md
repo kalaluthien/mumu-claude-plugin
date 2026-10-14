@@ -1,6 +1,6 @@
-# Tidy targets
+# Dream targets
 
-What a tidy reads, found afresh in the project at hand: list what exists with
+What a dream reads, found afresh in the project at hand: list what exists with
 `git ls-files` and a glob, never assume a layout.
 
 | target | where it lives | drift to look for |

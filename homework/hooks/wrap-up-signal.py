@@ -7,7 +7,7 @@
   wrap-up-signal.py outcome <data> <session> filed|empty
                                            report what a session's last asked wrap-up did
 
-A tidy rides on a lesson or recipe ask, since a tidy alone rarely pays.
+A dream rides on a lesson or recipe ask, since a dream alone rarely pays.
 Enabling the plugin for a project is the opt-in, so no arm step writes to the
 data folder. Asks are scored by replay-score.py on fixtures/labels.json; the
 other fixtures are trimmed past stops to run the sentence on.
@@ -29,7 +29,7 @@ MEMORY_LIMIT = 8
 ASK_GAP = 3
 TEMPLATE = (transcript.SIGNAL + " {failures} failed tool calls and {calls} tool calls since the last stop "
             "make {points:g} lesson points of {threshold:g}; {memory} memory files changed since the last "
-            "tidy, of {memory_limit}; run recipe: {recipe}{generator}.")
+            "dream, of {memory_limit}; run recipe: {recipe}{generator}.")
 ASK = " Run the wrap-up skill with this sentence before you stop."
 RUNS = re.compile(r"\b(pytest|tox|nox|make|cmake|gradlew|mvn|cargo\s+(test|build|run)|go\s+(test|build|run)"
                   r"|swift\s+(test|build|run)|xcodebuild|(npm|pnpm|yarn|bun)\s+(run\s+)?(test|build|start|dev)"

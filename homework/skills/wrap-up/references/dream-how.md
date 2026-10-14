@@ -1,4 +1,4 @@
-# Tidy
+# Dream
 
 1. **Bound**: judge from this session's own instructions whether it may
    change memory and shared files. Bound to one task or scope, it may not:
@@ -7,7 +7,7 @@
    `<data>/backup/<today>/` before changing it, since a merge or a delete
    there cannot be undone.
 3. **Find**: run `<skill>/scripts/list-drift.py <config>`, then read every
-   target, routing each entry through [harvest.md](harvest.md)'s step 4 table.
+   target, routing each entry through [retro.md](retro.md)'s step 4 table.
 4. **Fix in order**, so each conflict is judged once:
    1. **Duplicates**: one lesson in several places is kept in one; two entries on one subject or mechanism become one, keeping the shared procedure and dropping one-off ids, dates and paths.
    2. **Contradictions**: of two entries that conflict, keep the one with newer evidence; with none either way, leave the conflict for the owner.

@@ -10,9 +10,9 @@ it. `head` runs wrap-up-signal.py beside this file as the Stop hook would, and
 after each ask reports the label back as that ask's outcome, `filed` when the
 stop is labelled worth a wrap-up, else `empty`, as the skill reports it live.
 `main` is main's rule rebuilt from the constants of main's takeaway.py: ask a
-harvest once WORK_THRESHOLD tool calls ran since the stop after its last ask
-and HARVEST_INTERVAL minutes passed since that ask, else a tidy once
-DREAM_THRESHOLD (main's old name for it) memory files were written since its last tidy ask.
+retro once WORK_THRESHOLD tool calls ran since the stop after its last ask
+and HARVEST_INTERVAL minutes passed since that ask, else a dream once
+DREAM_THRESHOLD memory files were written since its last dream ask.
 
 Without --holdout every stop is scored and each head ask prints its sentence.
 With --holdout the sessions whose file name hashes odd are scored, after the
@@ -75,24 +75,24 @@ class Main:
     def __init__(self, constants):
         self.work = constants["WORK_THRESHOLD"]
         self.interval = constants["HARVEST_INTERVAL"] * 60
-        self.tidy = constants["DREAM_THRESHOLD"]
+        self.dream = constants["DREAM_THRESHOLD"]
         self.sessions, self.stamp, self.written = {}, None, {}
 
     def ask(self, session, stop):
         for name in stop["memory"]:
             self.written[name] = stop["at"]
-        state = self.sessions.setdefault(session, {"calls": 0, "asked": None, "harvesting": False})
-        # main counts calls only from the stop that ended the harvest it asked for
-        state["calls"] = 0 if state["harvesting"] else state["calls"] + stop["calls"]
-        state["harvesting"] = False
+        state = self.sessions.setdefault(session, {"calls": 0, "asked": None, "in_retro": False})
+        # main counts calls only from the stop that ended the retro it asked for
+        state["calls"] = 0 if state["in_retro"] else state["calls"] + stop["calls"]
+        state["in_retro"] = False
         waited = state["asked"] is None or stop["at"] - state["asked"] >= self.interval
         if waited and state["calls"] >= self.work:
-            state.update(calls=0, asked=stop["at"], harvesting=True)
+            state.update(calls=0, asked=stop["at"], in_retro=True)
             return True
         if self.stamp is None:
             self.stamp = stop["at"]
             return False
-        if sum(1 for at in self.written.values() if at > self.stamp) >= self.tidy:
+        if sum(1 for at in self.written.values() if at > self.stamp) >= self.dream:
             self.stamp = stop["at"]
             return True
         return False
