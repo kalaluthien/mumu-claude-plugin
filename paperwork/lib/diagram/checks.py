@@ -141,13 +141,7 @@ def partitions(M):
             out.append(f'{L["id"]}: one partition says nothing; drop it')
         out += [f'{L["id"]}: put {n["id"]} in a partition' for n in L["nodes"] if n.get("partition") not in P]
         side = {n["id"]: n.get("partition") for n in L["nodes"]}
-        if L["kind"] == "state":   # partitions of a state level are orthogonal regions (Harel): each runs on its own
-            inits = [L["initial"]] if isinstance(L.get("initial"), str) else L.get("initial") or []
-            for p in P:
-                k = sum(1 for i in inits if side.get(i) == p)
-                if k != 1:
-                    out.append(f'{L["id"]}: region {p} needs exactly one initial state, has {k}')
-            out += [f'{L["id"]}: event {e["label"]} leaves its region; regions meet only through syncs' for e in L["edges"] if side.get(e["from"]) != side.get(e["to"])]
+        if L["kind"] == "state":   # its partitions are orthogonal regions (Harel), which four-states checks
             continue
         for e in L["edges"]:
             contract = e.get("rules") or e.get("ops") or any(x.get("type") == "payload" for x in e.get("media", []))
@@ -155,6 +149,43 @@ def partitions(M):
                 out.append(f'{L["id"]}: {e["from"]}>{e["to"]} crosses partitions; give it a payload, guard or operation')
     return out
 
+
+
+def four_states(M):
+    """Each region of a state level holds every subject instance in exactly one state (Koppel's four states:
+    https://note89.github.io/state-of-emergency/): one initial state, events that stay in the region, every state
+    reached, and no two states alike."""
+    out = []
+    for L in M.m["levels"]:
+        if L["kind"] != "state":
+            continue
+        lid, side = L["id"], {n["id"]: n.get("partition") or "the level" for n in L["nodes"]}
+        inits = [L["initial"]] if isinstance(L.get("initial"), str) else L.get("initial") or []
+        for r in sorted(set(side.values())):
+            k = sum(1 for i in inits if side.get(i) == r)
+            if k == 0:
+                out.append(f"{lid}: Missing: an instance starts in no state of {r}; name one initial state there")
+            elif k > 1:
+                out.append(f"{lid}: Overloaded: an instance starts in {k} states of {r} at once; keep one initial state")
+        out += [f'{lid}: Missing: event {e["label"]} leaves its region, so the instance is in no state of {side[e["from"]]}; regions meet only through syncs'
+                for e in L["edges"] if side.get(e["from"]) != side.get(e["to"])]
+        seen, todo = set(), list(inits) + [t["to"] for t in L.get("triggers", [])]
+        while todo:
+            x = todo.pop()
+            if x not in seen:
+                seen.add(x)
+                todo += [e["to"] for e in L["edges"] if e["from"] == x]
+        out += [f'{lid}: Illegal: no event reaches {n["id"]}; add the event that enters it, or drop it' for n in L["nodes"] if n["id"] not in seen]
+        def alike(n):
+            end = lambda x: "itself" if x == n["id"] else x
+            return (side[n["id"]], frozenset((e["label"], end(e["to"])) for e in L["edges"] if e["from"] == n["id"]),
+                    frozenset((e["label"], end(e["from"])) for e in L["edges"] if e["to"] == n["id"]),
+                    frozenset(n.get("ops") or []), frozenset(n.get("rules") or []), n["id"] in inits)
+        groups = {}
+        for n in L["nodes"]:
+            groups.setdefault(alike(n), []).append(n["id"])
+        out += [f'{lid}: Redundant: no event or rule tells {" and ".join(g)} apart; merge them or give each its own' for g in groups.values() if len(g) > 1]
+    return out
 
 GATES = {"checking", "reviewing", "validating", "verifying", "testing", "judging", "approving", "gating", "evaluating"}
 
@@ -585,9 +616,10 @@ RULES = [
     ("size", "a level has 2 to max_nodes (7) nodes", size),
     ("phone", f"a phone can draw the root: no two of its partitions joined at more than {LIMITS['partitionLinks']} pairs of nodes", phone),
     ("mechanism", "where anything runs, root Scenarios walk an activity or state, and every component meets one of them", mechanism),
-    ("partitions", "every node of a partitioned level is in one of two or more partitions, regions keep their events, crossings carry a contract (render checks the blocks)", partitions),
+    ("partitions", "every node of a partitioned level is in one of two or more partitions, crossings carry a contract (render checks the blocks)", partitions),
     ("quantities", "counts and pass-through nodes add up, flows match their stock's unit, every deadline shows what happens when it passes", quantities),
     ("paths", "a workflow or state level marks its main path, and every gate (checking, reviewing, …) shows how it fails", paths),
+    ("four-states", "each region of a state level holds an instance in one state: one initial state, events kept in the region (not Missing or Overloaded), every state reached (not Illegal), no two states alike (not Redundant)", four_states),
     ("syncs", "regions of a state level meet only through syncs: when an event, where a state, then an event in another region", syncs),
     ("depth", "an overview stops one level below the root", depth),
     ("naming", "labels follow their kind; abstract components depend only on abstract ones; marks are known", naming),
