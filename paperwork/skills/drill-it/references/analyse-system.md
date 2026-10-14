@@ -26,10 +26,9 @@ system as it is, defects included.
 
 **Rebuild.** Someone given only `system.json` must rebuild the behaviour of
 the whole system the sources make up, not only the part the intent asks about;
-the intent picks what the views feature. Before you leave a source, every
-path, branch, exit, failure, value, limit, name rule and check it shows is in
-the model, on its own level when a level would pass 7 nodes, else as a `facts`
-item. Never omit a detail for depth.
+the intent picks what the views feature. While a source is open, write every
+path, branch, exit, failure, value, limit, name rule and check it shows into the
+model, on its own level when a level would pass 7 nodes, else as a `facts` item. Never omit a detail for depth.
 
 ## Steps
 
