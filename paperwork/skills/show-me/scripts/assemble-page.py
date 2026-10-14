@@ -73,7 +73,7 @@ def main(args):
         return fail(f"no headings for lang {lang!r}: give the plan labels reply, copy and next")
     e = html.escape
     reply = (f'<section class="reply"><h2>{e(labels["reply"])}</h2><textarea readonly>{e(plan["reply"])}</textarea>'
-             f'<button>{e(labels["copy"])}</button></section>') if plan.get("reply") else ""
+             f'<button>{e(labels["copy"])}</button></section>') if "reply" in plan else ""
     page = "\n".join([
         "<!doctype html>",
         f'<html lang="{e(lang)}">',
@@ -81,7 +81,7 @@ def main(args):
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
         f"<title>{e(plan['title'])}</title>",
         f"<style>{style}</style>",
-        "<style>section[data-playbook] + section[data-playbook] { margin-top: 2.5rem; }</style>",
+        "<style>section[data-playbook] + section[data-playbook] { margin-top: 2.5rem; } .reply { margin-bottom: 2rem; }</style>",
         *[t for tag, t in own if tag == "style"],
         "<main>",
         f"<h1>{e(plan['title'])}</h1>",
