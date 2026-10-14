@@ -1,0 +1,9 @@
+<p>Example data: error rate peaked at 14 % for 20 minutes after the 21:40 deploy, and fell to 0.2 % after the rollback.</p>
+<figure><svg data-chart="line" data-unit=" %" data-values="21:30:0.2,21:40:0.3,21:50:9,22:00:14,22:10:11,22:20:0.4,22:30:0.2"></svg>
+  <figcaption>Error rate per 10 minutes: the rise starts with the deploy, the fall with the rollback.</figcaption></figure>
+<ol class="timeline">
+  <li><time>21:40</time>Deploy of build 812 starts.</li>
+  <li><time>21:52</time>Alert: error rate over 5 %.</li>
+  <li><time>22:14</time>Rollback to build 811.</li>
+</ol>
+<p class="muted">Source: example data, written for this fixture.</p>

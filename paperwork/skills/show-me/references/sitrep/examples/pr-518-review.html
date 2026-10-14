@@ -1,0 +1,13 @@
+<p>PR #518 dashes failure paths and raises low ink contrast: 3 files, +9 −7; ready, one note to weigh.</p>
+<div class="numbers"><div><b>3</b>files</div><div><b>+9 −7</b>lines</div><div><b>1 mid</b>note</div></div>
+<p>Where to look: <a href="#p1">the failure dash on edges and nodes</a>.</p>
+<div class="notes">
+  <h3><a href="https://github.com/kalaluthien/mumu-claude-plugin/blob/ca93a18/paperwork/skills/show-me/references/zoom-diagram/assets/zoom-diagram.css">zoom-diagram.css</a></h3>
+  <div class="place" id="p1"><pre>  .zd .edge.m-failure .e-line, … { stroke: var(--zd-fail) }
++ .zd .edge.m-failure .e-line,.zd .node.m-failure .n-ink{stroke-dasharray:8 3 1.5 3}</pre>
+    <aside class="mid">A failure edge that is also <code>optional</code> takes this dash over the optional one, so "optional" is no longer seen on it.</aside></div>
+  <div class="place"><pre>- --zd-lo:#8a929e;
++ --zd-lo:#626b78;</pre>
+    <aside>Low ink now meets 4.5:1 on white; dark mode moves the same way.</aside></div>
+</div>
+<p class="muted">drawing-review.md, model-writing.md: wording only. Source: <code>gh pr diff 518</code>, read 2026-10-14.</p>

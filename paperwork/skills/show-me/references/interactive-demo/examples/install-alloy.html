@@ -1,0 +1,6 @@
+<p>Follow each step and tick it when it is done: <span data-steps-count></span> done.</p>
+<ol class="steps">
+  <li><label><input type="checkbox"> Check that Java runs.</label><pre>java -version</pre></li>
+  <li><label><input type="checkbox"> Fetch Alloy 6 once for this machine.</label><pre>scripts/make-diagram.py alloy --fetch</pre></li>
+  <li><label><input type="checkbox"> Run the full check on one example; it ends in <code>ok</code>.</label><pre>scripts/make-diagram.py check examples/pull-request.json</pre></li>
+</ol>
