@@ -1,6 +1,6 @@
 # Chart brief
 
-## Form
+## Parts
 
 - **Answer**: `.answer` states the result with its number, unit and the period it covers, such as "Merged PRs per week rose from 3 to 11 over 12 weeks".
 - **Key numbers**: `.numbers`, each with what it counts.

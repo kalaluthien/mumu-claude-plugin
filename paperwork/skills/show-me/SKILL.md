@@ -1,6 +1,6 @@
 ---
 name: show-me
-description: Use when the user asks to see something rather than read about it - show, draw, map, walk through, explain, teach, compare, report or offer options - or when you are about to describe a system, a layout, a plan, a change or numbers in prose. Not when the answer is still the user's to make (grill-me).
+description: Use to see something as a page instead of prose - a system, options, a change, where things stand, or a value to tune.
 disable-model-invocation: true
 ---
 
@@ -22,21 +22,21 @@ Pick the row by what the reader wants done, never by the topic's look, and read 
 
 An answer that fits on one screen as a table or a short fenced tree needs no page: give it in chat.
 
-**Facts from drill-it**: after the playbook's asking and before building, run the `drill-it` skill with the settled ask and the playbook's form; build only from what it hands back.
+**drill-it first**: before building, run the `drill-it` skill with the settled ask, the playbook's name as its form and the playbook's Parts; build only from what it hands back.
 
-## Output
+## Delivery
 
-**Output follows the ask**: an Artifact when the ask names one or one is in progress, published with the `Artifact` tool; a page embedded in an existing html page when the ask names that page, written into it in its own style; with neither, a temporary HTML file in the scratchpad, sent with `SendUserFile`. Never open a local file in the user's browser.
+**Delivery follows the ask**: an Artifact when the ask names one or one is in progress, published with the `Artifact` tool; a page embedded in an existing html page when the ask names that page, written into it in its own style; with neither, a temporary HTML file in the scratchpad, sent with `SendUserFile`. Never open a local file in the user's browser.
 
-## Rules
+## Constraints
 
-- **Page parts**: a page playbook fills `${CLAUDE_PLUGIN_ROOT}/skills/show-me/assets/base-page.html`; its Form says what each body part holds, its CSS goes after the base page's, and every table sits in a `.scroll` box.
+- **Page parts**: a page playbook fills `${CLAUDE_PLUGIN_ROOT}/skills/show-me/assets/base-page.html`; its Parts says what each body part holds, its CSS goes after the base page's, and every table sits in a `.scroll` box.
 - **Only what it needs**: no section, widget or control the answer does not use; a fact that does not change the reader's view is cut, and so is a part that repeats another.
 - **Counted as shown**: a fact drill-it lists under Not verified says "not verified" on the page; a count the page states is the count of what it shows.
-- **One language**: the page, labels included, is in the language the user's instructions name, else the ask's; a zoom diagram's terms stay English (its `model-writing.md`).
-- **No one to ask**: when a playbook says to ask the user and no one can answer (a non-interactive run), take your proposed answers and state them in the hand-over, never on the page.
+- **One language**: the page, labels included, is in the language the user's instructions name, else the ask's.
+- **Asking**: the zoom diagram's Interview, and each choice drill-it lists under Open, go to the user in one `AskUserQuestion` call of at most four questions, each with a proposed answer; when no one can answer (a non-interactive run), take the proposed answers and state them in the hand-over, never on the page.
 
 ## Done when
 
-1. `"${CLAUDE_PLUGIN_ROOT}/skills/show-me/scripts/check-page.py" <page> --shots <dir>` prints `ok` last, and you looked at both captures: the first screen answers the ask, the main form reads at 1200 px, and the text agrees with the main form. A zoom diagram passes its own `make` instead, and you looked at its `render --shots` captures the same way.
-2. The page went out as Output says, and the chat reply gives the one-sentence answer and the next action, nothing more.
+1. `"${CLAUDE_PLUGIN_ROOT}/skills/show-me/scripts/check-page.py" <page> --shots <dir>` prints `ok` last, and you looked at both captures: the first screen answers the ask, the main form reads at 1200 px, and the text agrees with the main form. A zoom diagram is done by its playbook's Steps and Verification instead.
+2. The page went out as Delivery says, and the chat message gives the one-sentence answer and the next action, nothing more.

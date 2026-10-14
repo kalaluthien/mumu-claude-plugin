@@ -1,6 +1,6 @@
 # Live controls
 
-## Form
+## Parts
 
 - **Answer**: `.answer` names what to tune and its current value.
 - **Live block**: `.live` holds `.controls` and `.preview`; every control redraws the preview on `input`, with no apply button.
@@ -8,6 +8,7 @@
 - **Preview**: the actual component, text or output the parameters drive, never a placeholder; a parameter whose effect needs data (a query, a regex) runs on a small real sample.
 - **Presets**: 3 to 5 buttons named by their intent, from cases the reader knows, each setting every control; the first is the current value.
 - **Reply**: `.reply` shows the result in the form the reader pastes (CSS, JSON, a cron line, a prompt), rewritten on every change from the same parameter values that draw the preview.
+- **Motion**: the preview animates only when the reader has no reduced-motion preference.
 - **Next**: paste the result back.
 
 ## CSS
@@ -18,7 +19,3 @@
 .controls input, .controls select { width: 100%; }
 .preview { border: 1px solid var(--ink); padding: 1rem; min-height: 8rem; }
 ```
-
-## Steps
-
-1. Animate the preview only when the reader has no reduced-motion preference.

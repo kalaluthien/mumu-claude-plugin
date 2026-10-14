@@ -11,9 +11,9 @@
 
 ## What a right drawing shows
 
-- **Marks.** Each mark matches the model field that sets it: the main path
-  heavier, only a failure path dash-dot in the warning ink, an optional element dashed,
-  an `unsure` one with "?"; a wrong mark is a wrong field.
+- **Marks.** Each mark matches the model field that sets it
+  ([model-writing.md](model-writing.md), Paths and partitions); a wrong mark
+  is a wrong field.
 - **Edges.** Orthogonal; no label touches a node, another label or another
   edge, and edges from different sources never share a stretch of line.
   Quantities sit in mono beside their element.
@@ -32,5 +32,6 @@ After `make-diagram.py make` passes, look at every level at both widths and in
 both themes (`render out.html --shots DIR` saves them). Check that arrow tips
 sit on borders, nothing is clipped, every opening node has a chevron, every
 node a screen shows (a part, a state, an activity) shows that screen, and the
-Principles hold. On a
-phone the root fits its card; a wide level below it scrolls sideways in full screen, and that is not clipping.
+Principles hold. On a phone the root fits its card
+([model-writing.md](model-writing.md), Layout); a wide level below it scrolls
+sideways in full screen, and that is not clipping.

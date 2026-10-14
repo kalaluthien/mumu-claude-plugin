@@ -11,7 +11,7 @@ https://github.com/mattpocock/skills/blob/95249b0b49782349740fd9b8c6ce32b4e59e49
 
 Interview the user relentlessly until you reach a shared understanding. Map
 this as a **design tree**: every decision branches into the decisions that hang
-off it. A blank another skill hands you is one decision in it.
+off it.
 
 Work the tree in **rounds**. The **frontier** is every decision whose
 prerequisites are already settled. A question whose answer depends on another
@@ -40,8 +40,10 @@ question still open in this round belongs to a later round.
 - Word each question so "yes" accepts the recommended option.
 - Facts come from `drill-it`, never from the user: before each round, run
   the `drill-it` skill with the form `decision`, the round's open decisions
-  and the facts their questions need, and ask only from what it hands back.
-  The decisions are the user's.
+  and the facts their questions need, and ask only from what it hands back:
+  a fact under its Not verified is called unverified in the question that
+  rests on it, and a choice under its Open is a question. The decisions are
+  the user's.
 
 ## Question shape
 
@@ -50,7 +52,7 @@ Each question is answerable without opening a file. Its body carries:
 - the current state, quoting the rule and its `path:line`;
 - why it matters: the failure the choice causes or prevents, with a real case
   where one exists;
-- the recommended model, as bullets.
+- the recommended answer, as bullets.
 
 Each option's description names its cost as a number (files, lines, runs) and
 its downside. The recommended option is the first, labelled `(Recommended)`.
@@ -63,7 +65,7 @@ the user confirms a summary of the settled answers. Act on nothing before that.
 ## Output
 
 The settled answers only: each decision and its answer, no transcript of the
-rounds. Hand them back to the caller as they are.
+rounds.
 
 The answer goes to chat by default, and into a document as well when one is
 asked for. When the output is not a markdown document, end with one line

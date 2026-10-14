@@ -1,6 +1,6 @@
 # Margin notes
 
-## Form
+## Parts
 
 - **Answer**: `.answer` says what the change does and whether it is ready.
 - **Key numbers**: `.numbers` gives files, lines added and removed, and notes by severity.

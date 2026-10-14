@@ -12,17 +12,15 @@ Once per machine: `scripts/make-diagram.py alloy --fetch` downloads Alloy 6
 
 ## Interview
 
-Before drill-it models, settle the plan with the user in one `AskUserQuestion`
-batch, `grill-me` style: propose a concrete answer for each and let them
-correct it.
+Before drill-it models, settle the plan with the user as show-me's Asking
+says.
 
-| Ask | Becomes |
+| Question | Becomes |
 |---|---|
 | the question they want answered | `plan.intent` |
 | the diagrams they expect | `plan.views` |
 | what to open deeply, what to leave closed | `deep`, `shallow`, `depth` ([model-writing.md](model-writing.md), Depth) |
-| what Alloy should prove | `prove` |
-| anything not to show | `show` |
+| what Alloy should prove, and anything not to show | `prove`, `show` |
 
 Skip only what the user has already said. [model-writing.md](model-writing.md)
 (Plan) has typical plans per intent.

@@ -8,35 +8,36 @@ context: fork
 # drill-it
 
 Find and check what an ask rests on, and hand it back; never ask the user and
-never draw. The caller passes the settled ask and the form it needs:
+never draw. The caller passes the settled ask, the form it needs and the parts
+that form holds:
 
 $ARGUMENTS
 
 ## Steps
 
-1. Read the form's row below and do its steps.
+1. Do the form's row below.
 2. Check each fact as Checked facts says, the cheapest check that can fail first.
-3. Hand back as Output says.
+3. Hand back as Hand-back says.
 
 | form | steps |
 | --- | --- |
-| zoom diagram | Read the system: code, docs, configs, screens. `${CLAUDE_PLUGIN_ROOT}/skills/show-me/references/zoom-diagram/scripts/make-diagram.py new model.json` starts a valid file. Model in the order of `${CLAUDE_PLUGIN_ROOT}/skills/show-me/references/zoom-diagram/model-writing.md`, under the plan the caller passed. Run `make-diagram.py check model.json --quick` after each edit, and the full check (with Alloy; once per machine `make-diagram.py alloy --fetch`) once the quick one passes. |
-| option cards | Fix the criteria before writing any option. Count the options: the ones the ask names, and a third only where a real one exists; at least three for an open ask. Write each option's argument in one sentence; one sentence that fits two options is one idea restyled, so replace one. Settle each criterion's value per option, cost as a number. |
-| margin notes | Read the change itself: `gh pr view <n> --json title,body,files,headRefOid` and `gh pr diff <n>`, or the text and its history. Note each place worth a note with why it matters or what breaks, and its severity. |
-| chart brief | Get the data with a command (`gh api`, `gh issue list --json`, `git log`), and compute counts, sums and periods with a script; keep the command and when it ran. |
-| live controls | Name the parameters with their current values and allowed ranges. |
-| decision | For each open decision the caller names: its current state with the rule and its `path:line`, the failure each choice causes or prevents with a real case where one exists, and each option's cost as a number. |
+| zoom diagram | Read the system: code, docs, configs, screens. `${CLAUDE_PLUGIN_ROOT}/skills/show-me/references/zoom-diagram/scripts/make-diagram.py new model.json` starts a valid file. Model in the order of `${CLAUDE_PLUGIN_ROOT}/skills/show-me/references/zoom-diagram/model-writing.md`, under the plan the caller passed. Run `make-diagram.py check model.json --quick` after each edit, and the full check once the quick one passes. |
+| option cards | Fix the criteria before writing any option. Count the options: the ones the ask names, and a third only where a real one exists; at least three for an open ask. Write each option's argument in one sentence; one sentence that fits two options is one idea restyled, so replace one. Settle each criterion's value per option, then each option's risk. |
+| margin notes | Read the change itself: `gh pr view <n> --json title,body,files,headRefOid` and `gh pr diff <n>`, or the text and its history. |
+| chart brief | Get the data with a command (`gh api`, `gh issue list --json`, `git log`), and compute counts, sums and periods with a script. |
+| live controls | Name the parameters with their current values and allowed ranges, the cases the reader knows, and a small real sample for a parameter whose effect needs data. |
+| decision | Find, for each open decision the caller names, the facts its question shape asks for. |
 
-## Rules
+## Constraints
 
 - **Checked facts**: every name, number, status and path comes from a file read, a command run or a page opened in this run; one not checked is not verified: it goes under `## Not verified`, never under `## Facts`.
-- **No one to ask**: a choice the facts leave open goes under `## Open` with your proposed answer; the caller asks.
+- **Open choices**: a choice the facts leave open goes under `## Open` with your proposed answer; the caller asks.
 
-## Output
+## Hand-back
 
 The last message, in English, holds only these parts:
 
 - `## Facts`: one fact per line, then ` — ` and its file and line, command or url.
 - `## Not verified`: what the ask needs that no check confirmed, or `none`.
 - `## Open`: the choices left to the user, or `none`.
-- the form's part: the `model.json` path and its last `check` line (zoom diagram); a table of criteria by option (option cards); `path:line — note` rows with severity (margin notes); the data with its command (chart brief); the parameters with values, ranges and units (live controls); the facts per decision (decision).
+- a part named after the form, holding what the caller's parts need and nothing more; for a zoom diagram, the `model.json` path and its last `check` line.

@@ -1,6 +1,6 @@
 # Option cards
 
-## Form
+## Parts
 
 - **Criteria**: 3 to 5 criteria the choice turns on, as the rows of one table, a column per option, cost as a number (files, lines, ms, money) among them; numbers stay in the table, which follows the cards.
 - **Cards**: one `.cards` `<article>` per option, each with the same parts in the same order: a short label, its one-sentence argument and its risk.
