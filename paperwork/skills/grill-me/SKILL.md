@@ -1,6 +1,7 @@
 ---
 name: grill-me
 description: Use when the answer is still the user's to make - a decision, a proposal or a plan with open choices to settle by asking them; not when the facts settle it or code is under review.
+disable-model-invocation: true
 ---
 
 # grill-me
@@ -37,10 +38,10 @@ question still open in this round belongs to a later round.
 - An answer that is itself a question is answered with facts in the next
   round, and never recorded as a decision.
 - Word each question so "yes" accepts the recommended option.
-- Finding facts is your job, never the user's: check each fact a round needs
-  before asking that round, by a sub-agent when the search is wide. A running
-  search blocks only the questions downstream of it; ask the rest of the
-  frontier now. The decisions are the user's.
+- Facts come from `drill-it`, never from the user: before each round, run
+  the `drill-it` skill with the form `decision`, the round's open decisions
+  and the facts their questions need, and ask only from what it hands back.
+  The decisions are the user's.
 
 ## Question shape
 
@@ -65,5 +66,5 @@ The settled answers only: each decision and its answer, no transcript of the
 rounds. Hand them back to the caller as they are.
 
 The answer goes to chat by default, and into a document as well when one is
-asked for. When the output is not a markdown document, hand the settled system
-to `/show-me` of this plugin to draw it.
+asked for. When the output is not a markdown document, end with one line
+asking the user to run `/paperwork:show-me` on the settled answers.

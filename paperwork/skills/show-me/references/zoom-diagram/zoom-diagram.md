@@ -12,7 +12,7 @@ Once per machine: `scripts/make-diagram.py alloy --fetch` downloads Alloy 6
 
 ## Interview
 
-Before modelling, settle the plan with the user in one `AskUserQuestion`
+Before drill-it models, settle the plan with the user in one `AskUserQuestion`
 batch, `grill-me` style: propose a concrete answer for each and let them
 correct it.
 
@@ -29,16 +29,13 @@ Skip only what the user has already said. [model-writing.md](model-writing.md)
 
 ## Steps
 
-1. Read the system: code, docs, configs, screens. `scripts/make-diagram.py
-   new model.json` starts a valid file.
-2. Interview.
-3. Model in the order of [model-writing.md](model-writing.md).
-4. `scripts/make-diagram.py check model.json --quick` after each edit; the
-   full check (with Alloy) once the quick one passes.
-5. `uv run --with playwright python3 scripts/make-diagram.py make model.json
+1. Interview.
+2. Run `drill-it` with the plan and the form `zoom diagram`; it hands back a checked
+   `model.json`.
+3. `uv run --with playwright python3 scripts/make-diagram.py make model.json
    out.html` checks, builds and checks the
    zoom diagram.
-6. Look at every level as a critic ([drawing-review.md](drawing-review.md)),
+4. Look at every level as a critic ([drawing-review.md](drawing-review.md)),
    then hand over.
 
 ## Verification
