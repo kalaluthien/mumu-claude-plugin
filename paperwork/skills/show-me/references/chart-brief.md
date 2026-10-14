@@ -9,10 +9,6 @@
 - **Source**: one line under the chart or timeline naming the command that produced the data and when it ran.
 - **Next**: the first item of the attention list; with none, when to look again.
 
-## Steps
-
-1. Get the data with a command (`gh api`, `gh issue list --json`, `git log`), and compute counts, sums and periods with a script; keep the command for the source line.
-
 ## Gotchas
 
 | symptom | fix |

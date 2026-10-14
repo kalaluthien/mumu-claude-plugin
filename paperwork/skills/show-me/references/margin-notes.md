@@ -19,7 +19,3 @@
 .notes aside.high { border-color: var(--fail); } .notes aside.mid { border-color: var(--warn); }
 @media (min-width: 60rem) { .notes .row { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
 ```
-
-## Steps
-
-1. Read the change itself: `gh pr view <n> --json title,body,files,headRefOid` and `gh pr diff <n>`, or the text and its history.

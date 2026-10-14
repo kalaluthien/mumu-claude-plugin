@@ -21,5 +21,4 @@
 
 ## Steps
 
-1. Name the parameters with their current values and allowed ranges.
-2. Animate the preview only when the reader has no reduced-motion preference.
+1. Animate the preview only when the reader has no reduced-motion preference.

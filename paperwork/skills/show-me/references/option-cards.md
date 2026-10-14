@@ -18,13 +18,6 @@
 .cards h3 { margin: 0; }
 ```
 
-## Steps
-
-1. Fix the criteria before writing any option.
-2. Count the options: the ones the ask names, and a third only where a real one exists; at least three for an open "show me options".
-3. **One-sentence test**: write each option's argument in one sentence; one sentence that fits two options means one idea restyled, so replace one.
-4. Settle each criterion's value per option.
-
 ## Gotchas
 
 | symptom | fix |

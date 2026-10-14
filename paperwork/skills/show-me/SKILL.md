@@ -1,6 +1,7 @@
 ---
 name: show-me
 description: Use when the user asks to see something rather than read about it - show, draw, map, walk through, explain, teach, compare, report or offer options - or when you are about to describe a system, a layout, a plan, a change or numbers in prose. Not when the answer is still the user's to make (grill-me).
+disable-model-invocation: true
 ---
 
 # show-me
@@ -21,6 +22,8 @@ Pick the row by what the reader wants done, never by the topic's look, and read 
 
 An answer that fits on one screen as a table or a short fenced tree needs no page: give it in chat.
 
+**Facts from drill-it**: after the playbook's asking and before building, run the `drill-it` skill with the settled ask and the playbook's form; build only from what it hands back.
+
 ## Output
 
 **Output follows the ask**: an Artifact when the ask names one or one is in progress, published with the `Artifact` tool; a page embedded in an existing html page when the ask names that page, written into it in its own style; with neither, a temporary HTML file in the scratchpad, sent with `SendUserFile`. Never open a local file in the user's browser.
@@ -29,7 +32,7 @@ An answer that fits on one screen as a table or a short fenced tree needs no pag
 
 - **Page parts**: a page playbook fills `${CLAUDE_PLUGIN_ROOT}/skills/show-me/assets/base-page.html`; its Form says what each body part holds, its CSS goes after the base page's, and every table sits in a `.scroll` box.
 - **Only what it needs**: no section, widget or control the answer does not use; a fact that does not change the reader's view is cut, and so is a part that repeats another.
-- **Checked facts**: every name, number, status and path comes from a file read, a command run or a page opened in this session; one not checked says "not verified"; a count the page states is the count of what it shows.
+- **Counted as shown**: a fact drill-it lists under Not verified says "not verified" on the page; a count the page states is the count of what it shows.
 - **One language**: the page, labels included, is in the language the user's instructions name, else the ask's; a zoom diagram's terms stay English (its `model-writing.md`).
 - **No one to ask**: when a playbook says to ask the user and no one can answer (a non-interactive run), take your proposed answers and state them in the hand-over, never on the page.
 
