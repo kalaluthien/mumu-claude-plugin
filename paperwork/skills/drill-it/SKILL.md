@@ -8,8 +8,8 @@ context: fork
 # drill-it
 
 Find and check what an ask rests on, and hand it back; never ask the user and
-never draw. The caller passes the settled ask, its purpose (a row of the
-table below) and what that purpose needs:
+never draw. The arguments name the settled ask and its purpose, a row of the
+table below:
 
 $ARGUMENTS
 
@@ -41,5 +41,5 @@ sections:
 
 - `## Facts`: one fact per line, then ` — ` and its file and line, command or url.
 - `## Not verified`: what the ask needs that no check confirmed, or `none`.
-- `## Questions`: each question the facts leave to the user, with your proposed answer, or `none`.
+- `## Undecided`: each point the facts leave to the user, with your proposed answer, or `none`.
 - a section named after the purpose, filling each part the caller passed; for a zoom diagram, the `model.json` path and its last `check` line; for a decision, none.

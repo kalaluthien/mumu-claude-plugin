@@ -37,7 +37,8 @@ question still open in this round belongs to a later round.
 - Word each question so "yes" accepts the recommended option.
 - Facts come from `drill-it`, never from the user: before each round, run
   the `drill-it` skill with the purpose `decision`, the round's open decisions
-  and Question shape below, and ask only from what it hands back.
+  and Question shape below, and ask only from what it hands back; its
+  Undecided points join the frontier.
 
 ## Question shape
 
@@ -55,6 +56,8 @@ recommended option comes first, its label ending in `(Recommended)` as
 
 Done when every branch of the tree is visited, nothing silently assumed, and
 the user confirms a summary of the settled answers. Act on nothing before that.
+When no one can answer (a non-interactive run), take each recommended option
+and say so in the summary.
 
 ## Output
 
