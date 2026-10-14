@@ -4,19 +4,20 @@ The working rules of this repository and of every plugin in it. Each rule carrie
 
 ## Repository
 
-- **Live checkout**: sessions load the plugins straight from this checkout, so a merge reaches them once the checkout pulls. Refresh by what changed: a script or a `references/` file works at once; a `SKILL.md` or a `hooks.json` at `/reload-plugins`, which the session that merges it prompts to each agent in `herdr agent list` once the checkout has pulled, `herdr agent prompt <name> "/reload-plugins"`, before any other step when a hook's script moved or was renamed, since that hook stays off until then; a monitor's code when the monitor starts again.
+- **Live checkout**: sessions load the plugins straight from this checkout, so a merge reaches them once the checkout pulls. Refresh by what changed: a script or a `references/` file works at once; a `SKILL.md` or a `hooks.json` at `/reload-plugins`, which the session that merges it prompts to each running session once the checkout has pulled, before any other step when a hook's script moved or was renamed, since that hook stays off until then; a monitor's code when the monitor starts again.
 - **No CLAUDE.md**: rules sit only in `AGENTS.md`, since Claude Code reads `AGENTS.md` when no `CLAUDE.md` exists, and a second file splits them.
-- **Landing**: a change lands by a pull request that cites its issue, merged once a fresh subagent that did not write it reviews the diff from the merge base and approves its head sha.
+- **Landing**: a change lands by a pull request that cites its issue, merged once a fresh subagent that did not write it reviews the diff from the merge base and approves its head sha; its author merges it.
+- **Plugin manifests**: each plugin carries `.claude-plugin/plugin.json` and is listed in the root `.claude-plugin/marketplace.json`, which is how Claude Code finds it.
 - **Every line acts**: keep a line in a rule, skill or document only when it changes the reader's next action.
 
 ## Plugin layout
 
 - **Main parts**: build a plugin from `hooks/`, `monitors/` and `skills/`. Each is a module that works alone and reaches another only through a file or a command it names, never through its internals.
 - **No agents**: a plugin has no `agents/` folder; a role is a skill.
-- **Scripts beside their user**: a script sits in the folder of the hook, monitor or skill that runs it, such as `skills/<skill>/scripts/`, one script per use, never in a `scripts/` folder at the repository's or a plugin's root. Code two parts share is a module in the plugin's `lib/`, and a script imports no other script.
+- **Scripts beside their user**: a script sits in the folder of the hook, monitor, skill or playbook that runs it, such as `skills/<skill>/scripts/` or `skills/<skill>/references/<playbook>/scripts/`, one script per use, never in a `scripts/` folder at the repository's or a plugin's root. Code two parts share is a module in the plugin's `lib/`, which a script reaches by putting that `lib/` on `sys.path`, and a script imports no other script.
 - **bin for PATH only**: `bin/` holds only a command that must be found on `PATH`, such as one a document or a settings file names bare.
-- **No tests or evals**: no `tests/` or `evals/` folder; check a change by running it and by Evaluation below.
-- **Names**: a file name is lowercase words joined by `-`, saying what the file does or prints, never a verdict, state or measurement, with its language extension; a new file follows its siblings' pattern.
+- **No tests or evals**: no `tests/` or `evals/` folder; check a change by running it and by Evaluation below. A hook tuned on past inputs may keep them in `fixtures/` beside it, with the script that replays them.
+- **Names**: a file name is lowercase words joined by `-`, saying what the file does or prints, never a verdict, state or measurement, with its language extension, except a Python module imported by name, whose words join with `_`; a new file follows its siblings' pattern.
 - **Paths**: a `SKILL.md` names a command's path, or a file outside its skill, as `${CLAUDE_PLUGIN_ROOT}/<path>`, substituted when the skill loads; every other link is relative to the file that holds it, since a file opened with Read is read verbatim.
 
 ## Skills
@@ -24,6 +25,7 @@ The working rules of this repository and of every plugin in it. Each rule carrie
 - **Description**: `Use when …`, then optionally `Not for …`, as short as it can be.
 - **Body**: the task or use case the skill serves, its vocabulary (domain concepts and protocols), and only the sections the case needs, such as Gotchas, How to learn or Priorities.
 - **Routing table**: `SKILL.md` routes each case to a mode or playbook in `references/<case>.md`, named after the case it serves and shaped like a part of `SKILL.md`; it does not hold every case itself.
+- **Skill folders**: beside `references/` and `scripts/`, a skill or playbook may keep files a script or page loads unchanged, such as a schema or a template, in `assets/`, and finished samples to imitate in `examples/`.
 - **Named rules**: give each major instruction a short name.
 - **Code computes**: calculation, aggregation and control go to `scripts/<verb>-<noun>.py`; the script prints predefined prose that says what its result means, so prose carries only definitions and judgement.
 - **Comments say why**: a comment holds no knowledge the reader needs; it says only why the code is so, kept current, and names and design carry the rest.
