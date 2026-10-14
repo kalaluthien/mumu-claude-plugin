@@ -50,7 +50,7 @@ That session becomes the manager. It files the backlog, starts a worker in a new
 **The idea.** Each kind of question gets the simplest page that answers it, built from facts that were checked first.
 
 - [`/paperwork:show-me`](paperwork/skills/show-me/SKILL.md) turns a request into an HTML page. It splits the ask into the questions a reader puts and answers each with one of four playbooks: a **sitrep** (what happened, what changed), a **zoom diagram** (how it works, from the big picture down), an **interactive demo** (what happens if I try), and **option cards** (which one, or a verdict).
-- [`/paperwork:grill-me`](paperwork/skills/grill-me/SKILL.md) interviews you about a decision, a few questions per round, in the order the answers depend on each other, until nothing is left open. It adapts [Matt Pocock's skill of the same name](paperwork/skills/grill-me/upstream.txt).
+- [`/paperwork:grill-me`](paperwork/skills/grill-me/SKILL.md) interviews you about a decision, a few questions per round, the ones that settle the most first, never one whose answer waits on another still open, until nothing is left open. It adapts [Matt Pocock's skill of the same name](paperwork/skills/grill-me/upstream.txt).
 - [`drill-it`](paperwork/skills/drill-it/SKILL.md) runs underneath both: it gathers the facts, models a system as JSON and checks it, with Alloy proofs when Java is around, so the page draws only what holds. It never asks and never draws.
 
 **Using it.**
@@ -72,11 +72,6 @@ You get the page as a file sent to you, or as an Artifact if you ask for one.
 
 ## Working on this repository
 
-Read [AGENTS.md](AGENTS.md) first. It holds the rules every plugin follows: the folder layout, how skills are written, how a design is split, and how a change to an agent system is evaluated. In one breath:
-
-- A plugin is made of `hooks/`, `monitors/` and `skills/`, and nothing else is a main part.
-- A `SKILL.md` is a routing table; the detailed playbooks sit in `references/`.
-- Arithmetic and control live in scripts that print plain sentences; prose is left for definitions and judgement.
-- Every line has to change what the reader does next, or it goes.
+Read [AGENTS.md](AGENTS.md) first. It holds the rules every plugin follows: the folder layout, how skills are written, how a design is split, and how a change to an agent system is evaluated. Its spirit fits in one line: every line has to change what the reader does next, or it goes.
 
 Sessions load the plugins straight from a checkout, so a merged change reaches them after a pull and, for a `SKILL.md` or a hook, a `/reload-plugins`.
