@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import json
 import pathlib
 import subprocess
 import sys
@@ -6,6 +7,19 @@ import sys
 
 def git(*argv, cwd):
     return subprocess.run(["git", *argv], cwd=cwd, capture_output=True, text=True)
+
+
+def unmerged_tips(name, root):
+    """Short shas of NAME's local and remote tips that neither the default branch nor a merged pull request holds."""
+    git("fetch", "origin", cwd=root)
+    default = git("symbolic-ref", "--short", "refs/remotes/origin/HEAD", cwd=root).stdout.strip() or "origin/main"
+    tips = {git("rev-parse", "--verify", "--quiet", ref, cwd=root).stdout.strip()
+            for ref in (f"refs/heads/{name}", f"refs/remotes/origin/{name}")} - {""}
+    # a squash merge leaves the branch commits off the default branch, so a merged pull request's head counts as merged too
+    prs = subprocess.run(["gh", "pr", "list", "--head", name, "--state", "merged", "--json", "headRefOid"],
+                         cwd=root, capture_output=True, text=True)
+    merged = {pr["headRefOid"] for pr in json.loads(prs.stdout or "[]")}
+    return sorted(t[:9] for t in tips - merged if git("merge-base", "--is-ancestor", t, default, cwd=root).returncode)
 
 
 def remove(name, root):
@@ -18,6 +32,9 @@ def remove(name, root):
         if p.returncode:
             return f"{name}: worktree kept, {p.stderr.strip()}"
         done.append("worktree")
+    unmerged = unmerged_tips(name, root)
+    if unmerged:
+        return f"{name}: {', '.join(done) or 'nothing'} removed; branch kept, unmerged commits at {', '.join(unmerged)}"
     if not git("show-ref", "--verify", "--quiet", f"refs/heads/{name}", cwd=root).returncode:
         git("branch", "-D", name, cwd=root)
         done.append("branch")
