@@ -58,6 +58,11 @@ MUTATIONS = {
     "quantities": [("recovery-trial", lambda m: next(e for e in lv(m, "root")["edges"] if e["from"] == "dex" and e["to"] == "died")["qty"].update(value=480)),
                    ("recovery-trial", lambda m: next(e for e in lv(m, "root")["edges"] if e["from"] == "dex" and e["to"] == "died").update(qty={"value": 28, "unit": "d", "kind": "delay"}))],
     "paths": ("pull-request", lambda m: [e.pop("mark", None) for e in lv(m, "open-s")["edges"]]),
+    "four-states": [("pull-request", lambda m: lv(m, "push")["initial"].remove("matching")),   # Missing
+                    ("pull-request", lambda m: lv(m, "push")["initial"].append("ahead")),   # Overloaded
+                    ("pull-request", lambda m: lv(m, "push")["edges"].remove(next(e for e in lv(m, "push")["edges"] if e["to"] == "ahead"))),   # Illegal
+                    ("pull-request", lambda m: lv(m, "push")["nodes"].append(dict(node(m, "ahead"), id="behind", label="Behind")) or lv(m, "push")["edges"].extend(  # Redundant
+                        dict(e, **{k: "behind" for k in ("from", "to") if e[k] == "ahead"}) for e in list(lv(m, "push")["edges"]) if "ahead" in (e["from"], e["to"])))],
     "syncs": ("pull-request", lambda m: lv(m, "push")["syncs"][0].update(then="commit changes")),
     "depth": ("self", lambda m: m.update(plan={"depth": "overview", "why": {"depth": "x"}})),
     "naming": ("pull-request", lambda m: node(m, "push").update(label="Push")),
