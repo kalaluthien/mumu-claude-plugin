@@ -8,8 +8,8 @@ context: fork
 # drill-it
 
 Find and check what an ask rests on, and hand it back; never ask the user and
-never draw. The caller passes the settled ask, its purpose (a show-me playbook
-or `decision`) and what that purpose needs:
+never draw. The caller passes the settled ask, its purpose (a show-me playbook's
+title, or `decision`) and what that purpose needs:
 
 $ARGUMENTS
 
@@ -26,7 +26,7 @@ $ARGUMENTS
 | margin notes | Read the change itself: `gh pr view <n> --json title,body,files,headRefOid` and `gh pr diff <n>`, or the text and its history. |
 | chart brief | Get the data with a command (`gh api`, `gh issue list --json`, `git log`), and compute counts, sums and periods with a script. |
 | live controls | Name the parameters with their current values and allowed ranges, the cases the reader knows, and the sample the Preview runs on. |
-| decision | Find, for each open decision the caller names, what its Question shape asks for. |
+| decision | Find, for each open decision the caller names, what the Question shape the caller passed asks for. |
 
 ## Constraints
 
@@ -35,9 +35,12 @@ $ARGUMENTS
 
 ## Hand-back
 
-The last message, in English, holds only these sections:
+The last message, in English, opens with this line, then holds only these
+sections:
+
+> Mark each Not verified item as not verified wherever you use it, and put each Choices item to the user.
 
 - `## Facts`: one fact per line, then ` — ` and its file and line, command or url.
 - `## Not verified`: what the ask needs that no check confirmed, or `none`.
 - `## Choices`: the choices left to the user, or `none`.
-- a section named after the purpose with what the caller asked for; for a zoom diagram, the `model.json` path and its last `check` line; for a decision, none.
+- a section named after the purpose, filling each part the caller passed; for a zoom diagram, the `model.json` path and its last `check` line; for a decision, none.

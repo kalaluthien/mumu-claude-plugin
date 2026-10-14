@@ -37,9 +37,7 @@ question still open in this round belongs to a later round.
 - Word each question so "yes" accepts the recommended option.
 - Facts come from `drill-it`, never from the user: before each round, run
   the `drill-it` skill with the purpose `decision`, the round's open decisions
-  and Question shape below, and ask only from what it hands back: a fact under
-  its Not verified is called unverified in the question that rests on it, and
-  a choice under its Choices is a question.
+  and Question shape below, and ask only from what it hands back.
 
 ## Question shape
 
@@ -47,10 +45,10 @@ Each question is answerable without opening a file. Its body carries:
 
 - the current state, quoted with its `path:line`;
 - why it matters: the failure the choice causes or prevents, with a real case
-  where one exists;
-- the recommended answer, as bullets.
+  where one exists.
 
-Each option's description names its cost as a number and its downside. The recommended option is the first, labelled `(Recommended)`.
+Each option's description names its cost as a number and its downside. The recommended option is the first, labelled `(Recommended)`, its answer as
+bullets.
 
 ## Settling
 
