@@ -49,7 +49,7 @@ def start(a, pane):
     while True:
         p = subprocess.run(["herdr", "agent", "start", a.name, "--kind", "claude", "--pane", pane, "--", "--name", a.name,
                             "--plugin-dir", str(ROOT), "--model", a.model, "--effort", a.effort,
-                            "--settings", SETTINGS, "--disallowedTools", TOOLS_OFF[a.args.split()[0] if a.args.startswith("worker ") else "manager"]],
+                            "--settings", SETTINGS, "--disallowedTools", TOOLS_OFF["worker" if a.args.startswith("worker ") else "manager"]],
                            capture_output=True, text=True)
         out = p.stdout + p.stderr
         if not p.returncode or '"agent_not_ready"' in out:  # not ready: the trust dialog holds it
