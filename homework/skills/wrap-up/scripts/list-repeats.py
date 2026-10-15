@@ -60,11 +60,11 @@ def show(kind, key, sightings, filed):
     """Print one repeat; sightings are (time, session path, line, repo)."""
     sessions = {path for _, path, _, _ in sightings}
     repos = sorted({repo for _, _, _, repo in sightings})
-    last = max(t for t, _, _, _ in sightings)
+    last = int(max(t for t, _, _, _ in sightings))
     record = filed.get(key)
     mark = f", filed {record['url']}" + (", seen since" if last > record.get("last_seen", 0) else "") if record else ""
     print(f"{kind} {len(sessions)} sessions, {len(repos)} repos, last {day(last)}{mark}: {key}")
-    print(f"  first {day(min(t for t, _, _, _ in sightings))}, last seen {last:.0f}, repos {', '.join(repos)}")
+    print(f"  first {day(min(t for t, _, _, _ in sightings))}, last seen {last}, repos {', '.join(repos)}")
     seen = set()
     for _, path, line, _ in sorted(sightings, reverse=True):
         if path not in seen and len(seen) < EXAMPLES:
