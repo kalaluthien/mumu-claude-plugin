@@ -79,11 +79,11 @@ export const register: Register = on => {
     // every blocker, as links: an open one bold, a closed one dim, so what still holds a task stands out
     const after = (t: { url: string; blockers: BoardIssue['blockers'] }) => t.blockers.length > 0 && [<Text dimColor>{' ←'}</Text>, ...t.blockers.map((b, k) =>
       <Text dimColor={b.closed} weight={b.closed ? undefined : 'semibold'}>{k ? ',' : ''}<Link href={t.url.replace(/\d+$/, String(b.number))} label={`#${b.number}`} /></Text>)]
-    // a goal or a criterion: its name on one line, its details only once a press on that line unfolds them
+    // a goal or a criterion: its name on one line, its details only once a press on that line unfolds them; unfolded, the name goes gray so the white detail reads first
     const part = (key: string, name: string, detail: string[]) => (
       <Box flexDirection="column">
-        <Button key={`row-${key}`} plain onPress={toggle(key)}><Text wrap="wrap">{name}</Text></Button>
-        {unfolded.has(key) && detail.map(d => <Box paddingLeft={2}><Text wrap="wrap" dimColor>{d}</Text></Box>)}
+        <Button key={`row-${key}`} plain onPress={toggle(key)}><Text wrap="wrap" dimColor={unfolded.has(key)}>{name}</Text></Button>
+        {unfolded.has(key) && detail.map(d => <Box paddingLeft={2}><Text wrap="wrap">{d}</Text></Box>)}
       </Box>
     )
     const entry = (i: BoardIssue): JSX.Element => {
@@ -113,8 +113,7 @@ export const register: Register = on => {
             {open && !more && <Text dimColor>(empty)</Text>}
             {open && i.goal && <Text wrap="wrap">{i.goal}</Text>}
             {/* the title sums a task up, so its goal is detail, folded */}
-            {open && i.detail.length > 0 && part(`goal-${i.number}`, 'Goal', i.detail)}
-            {open && i.done.length > 0 && <Text>DoD:</Text>}
+            {open && i.detail.length > 0 && part(`goal-${i.number}`, 'see detail', i.detail)}
             {open && i.done.map((d, k) => part(`done-${i.number}-${k}`, [d.met === null ? '' : d.met ? '[x]' : '[ ]', d.kind && `(${d.kind})`, d.name].filter(Boolean).join(' '), d.detail ? [d.detail] : []))}
             {open && i.next && <Text wrap="wrap">{`next step: ${i.next}`}</Text>}
             {open && i.tasks.map(t => framed(t))}

@@ -113,9 +113,8 @@ def lines(issues, depth=0):
         status = " ".join(x for x in (i["progress"], i["holder"], i["wait"], after(i["blockers"])) if x)
         yield from ([f"{pad}{status}"] if status else [])
         yield from ([f"{pad}{i['goal']}"] if i["goal"] else [])
-        yield from ([f"{pad}Goal:"] if i["detail"] else [])
+        yield from ([f"{pad}see detail"] if i["detail"] else [])
         yield from (f"{pad}  {line.strip()}" for line in i["detail"])
-        yield from ([f"{pad}DoD:"] if i["done"] else [])
         for d in i["done"]:
             yield f"{pad}  {criterion(d)}"
             yield from ([f"{pad}    {d['detail']}"] if d["detail"] else [])
