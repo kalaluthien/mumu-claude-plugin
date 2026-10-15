@@ -10,15 +10,16 @@
    target, routing each entry through [retro.md](retro.md)'s step 4 table.
 4. **Fix in order**, so each conflict is judged once:
    1. **Duplicates**: one lesson in several places is kept in one; two entries on one subject or mechanism become one, keeping the shared procedure and dropping one-off ids, dates and paths.
-   2. **Contradictions**: of two entries that conflict, keep the one with newer evidence; with none either way, leave the conflict for the owner.
+   2. **Contradictions**: of two entries that conflict, keep the one with newer evidence; with none either way, keep the more specific one (the repository's own rule over a global one) and say so in the report.
    3. **Superseded**: an entry a later one restates, narrows or reverses is rewritten or deleted.
-   4. **Stale**: check each path, command, flag or package an entry names with a read-only probe (list, search, `--help`); fix it when the new target is plain, else leave it for the owner.
+   4. **Stale**: check each path, command, flag or package an entry names with a read-only probe (list, search, `--help`); fix it when the new target is plain, else delete the entry.
    5. **Placement**: a lesson a file should hold moves there and its entry is deleted; an instruction line that restates what the repository shows is cut, its non-standard rules kept; a document for people keeps its overview.
    6. **Size**: an index past its load limit is cut to one line per entry; a skill grown past a few focused parts is split, not extended.
-5. **Obvious only**: apply a fix at once when the steps above give it and it
-   is small; a change to a skill, hook or script counts only when its own
-   check still passes after it.
-6. **Leave the rest**: a fix that is not obvious or is large, or a lesson
+5. **Apply on your own**: apply each fix the steps above give at once, large
+   ones too, since the backup makes it undoable; a change to a skill, hook or
+   script counts only when its own check still passes after it.
+6. **Leave the rest**: a fix the steps do not give, one that widens a
+   permission or a guard, or a lesson
    `list-drift.py` lists as never found again, goes as one issue in the
    repository that owns the file, labelled `backlog`, its body naming each
    file, reason and cost, `<n> files, <m> lines`, never a memory file's body.
