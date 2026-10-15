@@ -15,17 +15,17 @@ def summary_of(body):
 
 def entry(node):
     """One issue as the board shows it; a backlog shows its progress and summary, a task its goal and criteria."""
-    state = issue_state.compose({"body": node["body"], "comments": node["comments"]["nodes"]},
-                                [b["number"] for b in node["blockedBy"]["nodes"] if b["state"] == "OPEN"])
+    blockers = [b["number"] for b in node["blockedBy"]["nodes"] if b["state"] == "OPEN"]
+    state = issue_state.compose({"body": node["body"], "comments": node["comments"]["nodes"]}, blockers)
     backlog = "backlog" in [x["name"] for x in node["labels"]["nodes"]]
     holders = state["holders"] or []
     summary = node.get("subIssuesSummary") or {}
     progress = (f"{summary['total'] - summary['completed']} open · {summary['completed']} landed" if summary.get("total")
                 else f"routed to {' '.join(holders)}" if holders else "" if state["waits"] == "deferred" else "not started") if backlog else ""
     return {"number": node["number"], "title": node["title"], "url": node["url"], "kind": "backlog" if backlog else "task",
-            "holder": " ".join(holders), "wait": "" if state["waits"] == "held" or backlog and state["waits"] == "no holder" else state["waits"],
+            "holder": " ".join(holders), "wait": "blocked by " + ", ".join(f"#{n}" for n in blockers) if blockers else "" if state["waits"] == "held" or backlog and state["waits"] == "no holder" else state["waits"],
             "progress": progress, "goal": summary_of(node["body"]) if backlog else state["goal"], "done": [] if backlog else state["done"],
-            "urgency": URGENCY.index(state["waits"].split(" by ")[0]), "tasks": [],
+            "urgency": URGENCY.index(state["waits"].split(" by ")[0]), "tasks": [], "blockers": blockers,
             # an open blocker already shows as the wait, so `after` names the ones that landed
             "after": [b["number"] for b in node["blockedBy"]["nodes"] if b["state"] != "OPEN"],
             "closed": [{"number": t["number"], "title": t["title"], "url": t["url"], "after": [b["number"] for b in (t.get("blockedBy") or {}).get("nodes", [])]}
@@ -63,8 +63,19 @@ def related(nodes, items):
     return {n: root(n) for n in group}
 
 
+def plan(tasks):
+    """The tasks in their given order, except that each comes after every open sibling blocking it; a cycle keeps the given order."""
+    left, placed = list(tasks), []
+    while left:
+        waiting = {t["number"] for t in left}
+        ready = next((t for t in left if not waiting & set(t["blockers"])), left[0])
+        left.remove(ready)
+        placed.append(ready)
+    return placed
+
+
 def board(nodes):
-    """The open issues as a tree, backlogs grouped with related ones by lowest number, tasks by urgency, then number."""
+    """The open issues as a tree, backlogs grouped with related ones by lowest number, tasks by urgency, then number, each after its open blockers."""
     items = {i["number"]: entry(i) for i in nodes}
     top = []
     for i in nodes:
@@ -73,11 +84,11 @@ def board(nodes):
     groups = related(nodes, items)
 
     def order(issues):
-        issues.sort(key=lambda i: (groups[i["number"]], i["number"]) if i["number"] in groups else (float("inf"), i["urgency"], i["number"]))
         for i in issues:
-            i["tasks"].sort(key=lambda t: (t["urgency"], t["number"]))
+            i["tasks"] = plan(sorted(i["tasks"], key=lambda t: (t["urgency"], t["number"])))
             order(i["tasks"])
             del i["urgency"]
+    top.sort(key=lambda i: (groups[i["number"]], i["number"]) if i["number"] in groups else (float("inf"), i["urgency"], i["number"]))
     order(top)
     return top
 
