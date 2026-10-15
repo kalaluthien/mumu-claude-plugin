@@ -1,0 +1,506 @@
+{
+ "method": "100 interactive sessions with stops, sampled (random.seed(679)) 20 per tool-call band 0-15/15-40/40-80/80-160/160+ from ~/.claude/projects on 2026-10-15; 4 sonnet subagents labelled each from a timeline of the user's words, tool calls, errors and replies, no counts shown, by the guide.",
+ "guide": "# Labelling guide: short simple session, or mid-length and longer?\n\nThe owner's words: \"짧은 단순 수정 세션은 넘어가고 중반 이상 되는 세션은 포함하도록\" — skip short, simple fix sessions; include sessions of mid length and longer. A hook will ask the agent to run a retro (a lesson review) at least once in each included session.\n\nEach digest is one Claude Code session's timeline, split at its stops (turns the agent ended): the user's words (USER), the agent's tool calls, failed calls (ERROR) and what it said (SAYS); long stops are cut in the middle.\n\nLabel a session:\n\n- `short`: a short, simple session: a quick question answered, a one-off small fix or tweak, a status check, a single short command run, a session that ended almost at once, or a few steps done with no struggle and nothing worth reviewing.\n- `mid`: mid-length or longer: multi-step work, several files or rounds, a debugging hunt, a design or planning discussion, a session that coordinates other sessions or waits on reviews over many turns, or any session long enough that a retro could find a lesson.\n\nRead every digest's timeline; judge the amount and kind of work done, not its length on the page: a session that mostly waits on monitors or sends status pings with little work is still short. When a digest is too cut to tell, open the transcript (JSONL) at its path and skim it.\n\nWrite one JSON object per session, one per line, to your output file, in digest order, the path copied from the digest header:\n\n`{\"transcript\": \"<path>\", \"label\": \"short\"|\"mid\", \"why\": \"<at most 12 words>\"}`\n\nLabel every digest; a count mismatch is a failure to report.\n",
+ "sessions": [
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-settings-redesign-110-2/b6c605dd-1750-447e-921a-c8aef5194d20.jsonl",
+   "label": "mid",
+   "why": "Multi-round spec work, PR, judge, retro"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-steady-judge-kinds-412-1/30eb5573-5563-41ae-babc-9499d32ce72a.jsonl",
+   "label": "mid",
+   "why": "Long eval-tuning loop, blocked, redo, merged"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/d155e7e6-abb7-4f24-85d8-81c5a5b375e6.jsonl",
+   "label": "mid",
+   "why": "Manager coordinating workers over several stops"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-reboot-cause-145-1/75920a6b-cb4b-41fa-bb24-2d8612488e1c.jsonl",
+   "label": "mid",
+   "why": "Many-step debugging task, report, retro"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-deferred-record-worker/b2a96832-a216-4bae-944b-ede84c266a7e.jsonl",
+   "label": "mid",
+   "why": "Bug diagnosis, tests, PR, review, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-worker-agreement-213-1/aef1a790-68af-47b7-a6a9-8b71129b1131.jsonl",
+   "label": "mid",
+   "why": "Kickoff work with retro, PR review, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/fbb3777a-91ba-4376-84bb-041917874f62.jsonl",
+   "label": "mid",
+   "why": "Very long manager session coordinating many workers"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera/5d3fbb23-57b3-45ac-814e-f32ef8b9854c.jsonl",
+   "label": "mid",
+   "why": "Long lead session: tasks, reviews, disk investigation"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/59bc67b7-32f9-490b-a93a-a7e153f2b200.jsonl",
+   "label": "mid",
+   "why": "Lead session managing workers, decisions, merges, succession"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-garden--claude-worktrees-hook-refs-4-1/de0868b4-ea1b-4247-b219-542872200427.jsonl",
+   "label": "short",
+   "why": "Small doc reference fix, quick PR merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-homeops--claude-worktrees-herdr-facts-37/c6184000-042f-476d-9f1b-69c1d85e2e38.jsonl",
+   "label": "short",
+   "why": "One-line version fact fix, quick review merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-release-app-38-1/3a119589-7f5b-4e8c-9803-b0e0dd17eeac.jsonl",
+   "label": "mid",
+   "why": "Release commit blocked by hook, PR, judge, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/6e700295-01ca-4565-bdcf-845020e6d28b.jsonl",
+   "label": "mid",
+   "why": "Long design discussion, issues, worker, handover"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/1bff57d0-8632-4afe-a962-549e42139bd6.jsonl",
+   "label": "mid",
+   "why": "Lead session over many tasks, workers, decisions"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/f9fe6c30-4b9e-4b50-8b22-a1be85f623d2.jsonl",
+   "label": "short",
+   "why": "Short skill test run, two notices sent"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-wrap-up-433-1/051a5ceb-0a75-4093-b2c6-bf6d521d402b.jsonl",
+   "label": "mid",
+   "why": "Long worker task with review rounds and scoring"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-homeops--claude-worktrees-manager-wake-worker/6b3c9426-5a9c-45a4-9789-bb899d08a98d.jsonl",
+   "label": "mid",
+   "why": "Task filing, judge rounds, build, PR, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-plain-jpeg-analysis-139-1/ef649e7f-4dab-49ca-bd34-524d65487acd.jsonl",
+   "label": "mid",
+   "why": "Spec check, hook errors, PR, judge, retro"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-screen-feature-cuts-46-1/12c86603-3a1a-4921-9176-0f89fc9396ae.jsonl",
+   "label": "mid",
+   "why": "Large cut task, PR, merge conflict, rejudge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/b5b5f7b1-96c8-4ef9-a44d-85bf062e8fb1.jsonl",
+   "label": "short",
+   "why": "Succession handover then close-down, little work"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-homeops--claude-worktrees-phone-adb-reboot-101-1/f4b6412d-ef1f-4bc3-915e-ae249403e8f0.jsonl",
+   "label": "mid",
+   "why": "Phone reboot research and live trial, report"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/9fb7137f-0578-468b-9b33-5b86ca86d87e.jsonl",
+   "label": "mid",
+   "why": "Very long lead session: backlog, plans, renames"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-homeops--claude-worktrees-phone-adb-restore-102-1/e3616b75-333e-42f2-8310-9223daed6c77.jsonl",
+   "label": "mid",
+   "why": "Worker task with PR, judge rounds, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/54f1e09a-1b85-4a31-a01c-e1258badc499.jsonl",
+   "label": "mid",
+   "why": "Plan, worker, review, deploy, several side requests"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-docs-into-spec-15-1/2fd53a08-f233-4f91-8a92-e8b5ad3317d6.jsonl",
+   "label": "mid",
+   "why": "Docs-into-spec migration, PR, checks, merge retry"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-kalaluthien-github-io/990ed0d0-85da-41f5-a4f7-23cba95f6569.jsonl",
+   "label": "short",
+   "why": "lead handover only, nothing in progress"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera/d5cd975b-e1b8-41d6-a51f-53fd350dc6d2.jsonl",
+   "label": "mid",
+   "why": "long process-mining analysis with subagents and rework"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-homeops/043caedc-ae74-416a-8745-42c57b47c40e.jsonl",
+   "label": "mid",
+   "why": "plan, judge, worker, merge, extra task"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/26c3969c-e40c-41ee-a563-08d8328aec9e.jsonl",
+   "label": "short",
+   "why": "aborted kickoff, monitors exited quietly"
+  },
+  {
+   "transcript": "~/.claude/projects/-private-tmp-claude-501--Users-hyungmokim-workspace-plugins--claude-worktrees-teamwork-kick-off-435-1-d5838639-2bba-48fb-9541-9da4977b7b2d-scratchpad-probe-checkout--claude-worktrees-probe-kick-off-43-lqr2pa/41d6127a-8cde-433e-b503-d8d9d9772bf1.jsonl",
+   "label": "short",
+   "why": "one probe PR and manager ping"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/c6589896-7624-4e4b-8d60-a170c3ed1a8c.jsonl",
+   "label": "mid",
+   "why": "backlog grilling, goals, workers, merges, handovers"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-perception-pipeline-96-1/79407f7c-d0fd-47c5-975c-d994bdff3d4c.jsonl",
+   "label": "mid",
+   "why": "long build, emulator debugging, memory review"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-worker-names-74/a6390042-fbb0-48cc-a738-c521d390728c.jsonl",
+   "label": "mid",
+   "why": "worker name check change, PR, review, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-idle-lead-exit-345-1/fc296615-4bc4-4bdb-864a-074482adcf75.jsonl",
+   "label": "short",
+   "why": "two scripted commands then stop"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-upper-records-19/06b1b6dc-2dc3-44f5-95d2-16c8795ddca6.jsonl",
+   "label": "mid",
+   "why": "uppercase change, PR, review, merge blocked"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/09a3c41d-d48a-4aab-b3a1-a0393658e781.jsonl",
+   "label": "mid",
+   "why": "manager session with many questions, issues, handover"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-dream-loop-186-4/5fc37030-ce52-4f1b-95e4-959658ba1de9.jsonl",
+   "label": "short",
+   "why": "one-line skill fix, PR, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-retro-filing-order-208-2/ceabe5a9-2f5e-4a78-8553-ff50f4148c18.jsonl",
+   "label": "mid",
+   "why": "eval grader change, retro edits, PR merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-show-me-playbook-worker/6723125a-33ad-443e-bce8-e8186ce7b901.jsonl",
+   "label": "mid",
+   "why": "playbook redesign, judged tasks, PRs, merges"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/0b9a8597-ef3c-4f28-aa70-1a078ffa71ad.jsonl",
+   "label": "short",
+   "why": "two identical skill-load probes"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-homeops--claude-worktrees-resources-section-43/ff0ebf5d-53de-4143-85ac-fea8f3cbcd87.jsonl",
+   "label": "mid",
+   "why": "issue work, PR, review wait"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/e3a231a2-c705-4c9c-a763-1bc15d6c2c06.jsonl",
+   "label": "short",
+   "why": "lead handover and rename only"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/13635311-e3fe-4cba-9eef-bab028386ba3.jsonl",
+   "label": "mid",
+   "why": "handover, backlog, planning, workers, many leads handed over"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-refine-retro-harvest-208-1/e891fefc-bbcb-4be4-90b9-abca8f1a78e5.jsonl",
+   "label": "mid",
+   "why": "retro harvest change, eval failures, blocked merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-private-tmp-claude-501--Users-hyungmokim-workspace-plugins--claude-worktrees-stop-remind-46-ba66f054-096a-4f56-a510-8f741838791d-scratchpad-wk--claude-worktrees-probe-46/f6ce59c1-b5ea-42d2-b186-8196f1a1e14e.jsonl",
+   "label": "short",
+   "why": "stop hook probe, repeated refusal"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-usecase-diagram-widget-344-1/38fc3d9e-87f9-4e33-9bae-0ecf5e371949.jsonl",
+   "label": "mid",
+   "why": "widget change, blocked lead, test suite, PR merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-thumb-and-panel-156-3/b89a180a-25d6-4bb0-9697-d2414a8f8d9e.jsonl",
+   "label": "mid",
+   "why": "spec, tests, verify runs, PR, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/1c9271f2-9324-458a-9f2e-46a6d91be1c5.jsonl",
+   "label": "mid",
+   "why": "lead planning, judges, workers, merges, handover"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/91fb2ce7-e47a-44da-9b02-79cc3787ce9a.jsonl",
+   "label": "short",
+   "why": "one AGENTS.md sentence merged, then self-close"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace--claude-worktrees-rename-plugins-67-1/b2e8ef43-5f5d-4eed-8c0a-6bb06c14ae09.jsonl",
+   "label": "mid",
+   "why": "rename across files, judge finding fixed, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera/be583f04-40c8-4026-89d3-7adf88d1976d.jsonl",
+   "label": "mid",
+   "why": "Long lead session coordinating many workers, many rounds"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-rebuild-roles-445-1/4e58146c-1bc3-4808-a761-7a2ada4c10a2.jsonl",
+   "label": "short",
+   "why": "4-minute monitor probe, no real work"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-mission-faults-64/626d6dab-e3fc-4424-979f-21d1e8460b8f.jsonl",
+   "label": "mid",
+   "why": "Worker: implement, PR, review, merge, retro"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-spec-test-redesign-219-1/ec30fe0e-8bc6-49d2-afd2-d992073488fe.jsonl",
+   "label": "mid",
+   "why": "Multi-round design competition with judges, ended BLOCKED"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/9f44ed63-6d99-467b-bedc-b19673d3af7d.jsonl",
+   "label": "mid",
+   "why": "Long lead session: plan judging, decisions, successor"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/09686537-ddd9-4344-aab7-e8e728b7c695.jsonl",
+   "label": "short",
+   "why": "Succession handoff only; few steps, no struggle"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-chrome-lens-e2e-76-2/75d82449-4fbc-4ad6-a3f5-735e11178ca8.jsonl",
+   "label": "mid",
+   "why": "Worker fixes e2e test, PR, review, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-allot-shared-resources-402-1/67562b49-19c3-46fb-a270-1a8f119d166b.jsonl",
+   "label": "mid",
+   "why": "Worker PR waiting on dependency, retro, dream, memory"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/f2aa03c0-3832-4679-904d-53060f00f174.jsonl",
+   "label": "mid",
+   "why": "Long lead session: blockers, permissions research, many workers"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/760f6e17-341a-4aa1-8205-ad9cf44224bf.jsonl",
+   "label": "mid",
+   "why": "Rename task: plan, worker, two stops, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/32487474-d087-4460-b053-7b6db786a9d4.jsonl",
+   "label": "mid",
+   "why": "Plan review, worker, merge, retro and dream"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-small-changes-24/89d3958e-878a-451e-a453-a20264916ae1.jsonl",
+   "label": "mid",
+   "why": "Worker rule edit, PR, review, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-approval-carry-282-1/d05e98f9-8e2d-4956-9c35-0ba1ab51b256.jsonl",
+   "label": "mid",
+   "why": "Worker task with tests, PR, review, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-one-reviewer-41/7d27516b-a0ce-444b-8946-2d6f952e1f71.jsonl",
+   "label": "mid",
+   "why": "PR, rebase conflicts, force-push refusal, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-lesson-lib-185-1/af72c3d9-9dcc-4078-a2d8-ef405cef2ee5.jsonl",
+   "label": "mid",
+   "why": "Worker ended BLOCKED after multi-step eval work"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-capture-values-30/e6e12726-33c8-4320-a9cb-b1195a891224.jsonl",
+   "label": "mid",
+   "why": "Worker implements constants, PR, review, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/adf981ee-3fbf-498a-b81b-23fe3f0f9429.jsonl",
+   "label": "mid",
+   "why": "Long lead session: plans, worker, backlog, compactions"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-confirm-kickoff-sent-312-1/2312a44f-7814-47ae-8d42-fe3873a3c4e1.jsonl",
+   "label": "mid",
+   "why": "Worker fix with tests, PR, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-widget-research-271-1/49dccab0-d6b2-43a0-9723-2e2bbe0bcbc3.jsonl",
+   "label": "mid",
+   "why": "Long worker session: research, charts, rebase, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-eval-compare-388-1/0a522380-5450-4bcd-a58f-af7e97a69a41.jsonl",
+   "label": "mid",
+   "why": "Worker PR, evals, judge findings, several rounds"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/9b26784f-b8c0-4fe3-9bfb-24069b2d9448.jsonl",
+   "label": "mid",
+   "why": "Long lead session: permissions task, review, PR merges"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-scene-stream-emulator-120-1/84e4599a-711c-4839-a574-a6dd8fe882aa.jsonl",
+   "label": "mid",
+   "why": "Debugging hunt with emulator runs, PR, judge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/83262fe2-651e-4931-bb29-211e6ca37372.jsonl",
+   "label": "mid",
+   "why": "Lead: plan, worker, merge, cleanup, close"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-wayfinder-check-447-1/d78851f4-d204-4b00-b4d4-96527bb40adf.jsonl",
+   "label": "mid",
+   "why": "Research comparing 35 items, judged report"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/46ad8d3e-da3d-49e2-9547-cafd7aa8197f.jsonl",
+   "label": "mid",
+   "why": "Manager session: several tasks, repo removal"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-share-rules-159-3/5c7b2dec-e0da-4538-80f0-71db203ce101.jsonl",
+   "label": "mid",
+   "why": "Rule edits, PR merge conflicts, repeated rounds with leader"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-homeops--claude-worktrees-past-causes-worker/fc92603a-ce5f-48cb-9c44-b908fc1efee2.jsonl",
+   "label": "mid",
+   "why": "Issue filed, repeated judge rounds, PR merged"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-page-math-font-298-1/01c05935-30b9-4495-8fb8-93e0260fea5f.jsonl",
+   "label": "mid",
+   "why": "Long fix, failing tests, usage limit, retro and dream"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-garden/cb4aad8a-bf4d-4dc2-b3be-32f1b6ea4987.jsonl",
+   "label": "short",
+   "why": "Succession handover only"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/cc16737e-9da9-457f-8a83-ac91a65c58e7.jsonl",
+   "label": "mid",
+   "why": "Long lead session coordinating plans, workers, judges"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude--claude-worktrees-split-machine-notes-worker/caa875b5-d3f5-4e46-8d43-bf2f458bdcdc.jsonl",
+   "label": "mid",
+   "why": "Multi-round issue, PR, trim, reviewer loops"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/f34305b9-77d8-4b01-b840-6e8c904f449c.jsonl",
+   "label": "mid",
+   "why": "Planning grill with research and form artifact"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-worker-close-79/25c9f631-d9d6-4452-a278-298bce049b21.jsonl",
+   "label": "mid",
+   "why": "Issue work with PR, review wait, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-quality-rubric-272-1/0610897c-e4c5-48ce-8cb1-0d72a1f9f88b.jsonl",
+   "label": "mid",
+   "why": "Long research task, rubric, PR merged"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/27fbeb76-c884-4ba3-878c-a4c1383e5975.jsonl",
+   "label": "mid",
+   "why": "Succession, retro, dream loop, many follow-ups"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude/c4d1682a-488c-4df7-ab39-ef7e8ff0468d.jsonl",
+   "label": "mid",
+   "why": "Lead coordinating several tasks and workers, many stops"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-manager-exit-heartbeat-worker/0f83548e-2040-46ed-968d-570edfd380af.jsonl",
+   "label": "mid",
+   "why": "Monitor change, probes, review fix, merge"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude--claude-worktrees-ste-reply-rules-120-1/dfde8b2c-8332-4dc7-bbee-716bf5f8ff12.jsonl",
+   "label": "short",
+   "why": "Small rules edit, PR merged, pull blocked"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins/64e7ad97-6e8a-44c8-a7b7-3c406b49bfcc.jsonl",
+   "label": "mid",
+   "why": "Manager session with many issues and workers"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-camera--claude-worktrees-photo-bench-97-1/13a485d5-4910-43f7-bf96-4857a7b4ca06.jsonl",
+   "label": "mid",
+   "why": "Bench build, gate struggles, PR opened"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/e78ca530-2f1b-42da-960a-5605f5442f04.jsonl",
+   "label": "short",
+   "why": "Blocked by hooks at once, nothing changed"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-page-check-hardening-253-2/14047117-0873-497a-992e-1fc74d7b3444.jsonl",
+   "label": "mid",
+   "why": "Long test hardening, usage limit, retro, flaky fix"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-worker-close-79/a282cb9e-0f08-4240-8f45-27520001d08e.jsonl",
+   "label": "short",
+   "why": "Probe feedback call, replied done"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace/5417d37c-226a-4a6e-a215-24e5624bac26.jsonl",
+   "label": "short",
+   "why": "Succession handover then successor start"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-dotclaude--claude-worktrees-claude-md-language-54/5ba5902a-1986-4036-ad14-e7331b6b6344.jsonl",
+   "label": "short",
+   "why": "Single doc rewording, PR opened, waiting review"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-ui-diff-widget-379-1/5e804a95-f121-4ae4-81f9-a48e96ec48d1.jsonl",
+   "label": "mid",
+   "why": "Long widget work, evals, fixes, PR merged"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-idle-lead-exit-345-1/ea3bfc87-da13-42df-b286-38875750122c.jsonl",
+   "label": "short",
+   "why": "Blocked sleep command, session ended"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-scoped-checks-337-1/e4375f04-80b8-4c0e-8299-3178bb1ab703.jsonl",
+   "label": "mid",
+   "why": "Feature PR, judge rounds, usage limit, retro"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-projects-homeops--claude-worktrees-agent-merge-worker/0be8c7e2-ccdc-45ac-9d86-3d79a8f06b20.jsonl",
+   "label": "mid",
+   "why": "Three tasks, several PRs, installs, judge rounds"
+  },
+  {
+   "transcript": "~/.claude/projects/-Users-hyungmokim-workspace-plugins--claude-worktrees-code-quote-skin-306-2/c5197138-6011-4559-89cc-699dccaaf4ee.jsonl",
+   "label": "mid",
+   "why": "Skin change, merge conflicts, PR merged"
+  }
+ ]
+}

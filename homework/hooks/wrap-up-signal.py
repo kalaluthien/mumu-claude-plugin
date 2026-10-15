@@ -26,9 +26,10 @@ FAILURE_POINTS = 4
 CALLS_PER_POINT = 30
 START, UP, DOWN, LOWEST, HIGHEST = 8.0, 1.0, 0.125, 6.0, 12.0
 MEMORY_LIMIT = 8
+FIRST_RETRO = 25
 ASK_GAP = 3
 TEMPLATE = (transcript.SIGNAL + " {failures} failed tool calls and {calls} tool calls since the last stop "
-            "make {points:g} lesson points of {threshold:g}; {memory} memory files changed since the last "
+            "make {points:g} lesson points of {threshold:g}; this session's first retro {first}; {memory} memory files changed since the last "
             "dream, of {memory_limit}; run recipe: {recipe}{generator}.")
 ASK = " Run the wrap-up skill with this sentence before you stop."
 RUNS = re.compile(r"\b(pytest|tox|nox|make|cmake|gradlew|mvn|cargo\s+(test|build|run)|go\s+(test|build|run)"
@@ -76,7 +77,8 @@ def counts(entries, cwd):
             elif use.get("name") == "Bash" and RUNS.search(said):
                 ran_failed = True
     recipe = "failed" if recipe_failed else "missing" if ran_failed and not has_recipe(cwd) else "fine"
-    return {"failures": failures, "calls": calls, "memory": memory, "recipe": recipe,
+    session = sum(len(transcript.blocks_of(entry, "tool_use")) for entry in entries)
+    return {"failures": failures, "calls": calls, "memory": memory, "recipe": recipe, "session": session,
             "points": round(failures * FAILURE_POINTS + calls / CALLS_PER_POINT, 1)}
 
 
@@ -118,6 +120,12 @@ def threshold_of(state):
     return state["threshold"] if override is None else bounded(override)
 
 
+def first_retro(found, asked):
+    if asked:
+        return "asked"
+    return "due" if found["session"] >= FIRST_RETRO else f"at {found['session']} of {FIRST_RETRO} tool calls"
+
+
 def sentence(found, threshold):
     generator = "" if found["recipe"] == "fine" else ", to record with /run-skill-generator"
     return TEMPLATE.format(threshold=threshold, memory_limit=MEMORY_LIMIT, generator=generator, **found)
@@ -142,9 +150,15 @@ def hook():
     # the stops right after an ask hold the wrap-up's own work and its fallout
     just_asked = stops - state["asked"].get(session, -ASK_GAP - 1) <= ASK_GAP
     # a stop the hook already blocked still counts, since the wrap-up writes its lessons in that turn
-    if not payload.get("stop_hook_active") and not just_asked and (found["points"] >= threshold or found["recipe"] != "fine") and toplevel(payload.get("cwd")):
-        reason = sentence(dict(found, memory=len(state["memory"])), threshold) + ASK
-        state["asked"][session], state["pending"][session] = stops, True
+    # a session past a short fix owes one retro, whatever the lesson threshold, which other sessions' outcomes move
+    first = first_retro(found, session in state["asked"]) == "due"
+    lesson = found["points"] >= threshold or found["recipe"] != "fine"
+    if not payload.get("stop_hook_active") and not just_asked and (lesson or first) and toplevel(payload.get("cwd")):
+        reason = sentence(dict(found, memory=len(state["memory"]), first=first_retro(found, False)), threshold) + ASK
+        state["asked"][session] = stops
+        # only a lesson ask's outcome tunes the lesson threshold
+        if lesson:
+            state["pending"][session] = True
         if len(state["memory"]) >= MEMORY_LIMIT:
             state["memory"] = []
         json.dump({"decision": "block", "reason": reason}, sys.stdout)
@@ -178,7 +192,8 @@ if __name__ == "__main__":
         data = os.environ.get("CLAUDE_PLUGIN_DATA")
         state = load(data or os.devnull)
         found = counts(entries, cwd)
-        print(sentence(dict(found, memory=len(found["memory"])), threshold_of(state)))
+        asked = any(transcript.asked_at(entry) for entry in entries)
+        print(sentence(dict(found, memory=len(found["memory"]), first=first_retro(found, asked)), threshold_of(state)))
         sys.exit(0)
     print(__doc__.split("\n\n")[1], file=sys.stderr)
     sys.exit(2)
