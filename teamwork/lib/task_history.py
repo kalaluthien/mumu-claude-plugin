@@ -6,18 +6,14 @@ from datetime import datetime
 CRITERION = ("[check]", "[score]")
 
 
-def _gh(*args):
+def gh_json(*args):
     return json.loads(subprocess.run(["gh", *args], capture_output=True, text=True, check=True).stdout)
-
-
-def _time(text):
-    return datetime.fromisoformat(text.replace("Z", "+00:00"))
 
 
 def fetch(repo):
     """Issues in the fixture shape: number, labels (names), body, createdAt, closedAt, prStart or None."""
-    issues = _gh("issue", "list", "-R", repo, "--state", "closed", "--limit", "1000",
-                 "--json", "number,labels,body,createdAt,closedAt")
+    issues = gh_json("issue", "list", "-R", repo, "--state", "closed", "--limit", "1000",
+                     "--json", "number,labels,body,createdAt,closedAt")
     owner, name = repo.split("/")
     query = """query($owner: String!, $name: String!, $endCursor: String) {
       repository(owner: $owner, name: $name) { pullRequests(states: MERGED, first: 100, after: $endCursor) {
@@ -44,7 +40,7 @@ def rows(issues):
         if "backlog" in i["labels"] or not i.get("closedAt"):
             continue
         source, start = ("pr", i["prStart"]) if i.get("prStart") else ("created", i["createdAt"])
-        hours = (_time(i["closedAt"]) - _time(start)).total_seconds() / 3600
+        hours = (datetime.fromisoformat(i["closedAt"]) - datetime.fromisoformat(start)).total_seconds() / 3600
         out.append({"number": i["number"], "labels": i["labels"], "criteria": sum(i["body"].count(c) for c in CRITERION),
                     "start": start, "end": i["closedAt"], "hours": hours, "source": source})
     return sorted(out, key=lambda r: r["end"])

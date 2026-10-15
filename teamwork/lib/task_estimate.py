@@ -15,6 +15,11 @@ def quantile(values, p):
     return xs[lo] + (xs[hi] - xs[lo]) * (k - lo)
 
 
+def bounds(values, levels):
+    """The (low, high) quantiles of VALUES at LEVELS."""
+    return quantile(values, levels[0]), quantile(values, levels[1])
+
+
 def group_key(labels):
     """The `scope:` label, else the first label in sorted order."""
     scopes = sorted(x for x in labels if x.startswith("scope:"))
@@ -32,7 +37,7 @@ def total_range(groups, seed=0, levels=(0.1, 0.9)):
     """The LEVELS quantiles (p10-p90 by default) of the sums of one random past duration per task: a bootstrap, never a sum of the bounds."""
     rng = random.Random(seed)
     sums = [sum(rng.choice(g) for g in groups) for _ in range(DRAWS)]
-    return quantile(sums, levels[0]), quantile(sums, levels[1])
+    return bounds(sums, levels)
 
 
 def restart_hours(summaries):

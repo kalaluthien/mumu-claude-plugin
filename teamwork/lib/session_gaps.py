@@ -12,10 +12,6 @@ from datetime import datetime
 IDLE_HOURS = 0.5
 
 
-def _time(text):
-    return datetime.fromisoformat(text.replace("Z", "+00:00"))
-
-
 def _scan(root):
     """(project folder, NAME) -> [(first, last, idle gap count)] of its transcripts, oldest first, one pass over the folder."""
     found = collections.defaultdict(list)
@@ -31,7 +27,7 @@ def _scan(root):
             if rec.get("type") == "agent-name":
                 names.add(rec.get("agentName"))
             elif rec.get("type") in ("user", "assistant") and rec.get("timestamp"):
-                stamps.append(_time(rec["timestamp"]))
+                stamps.append(datetime.fromisoformat(rec["timestamp"]))
         if stamps:
             stamps.sort()
             idle = sum((b - a).total_seconds() / 3600 > IDLE_HOURS for a, b in zip(stamps, stamps[1:]))

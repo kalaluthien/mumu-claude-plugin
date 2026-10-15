@@ -5,6 +5,7 @@ Print per name and project folder its sessions, restarts (a further session of t
 each restart cost and, apart,
 its idle gaps over 30 minutes inside a session (a wait for the owner, not a restart). A name with no transcript
 prints "no session record". The default folder is ~/.claude/projects; `--json` prints the rows for the estimator."""
+import argparse
 import json
 import pathlib
 import sys
@@ -14,22 +15,17 @@ import session_gaps  # noqa: E402
 
 
 def main(argv):
-    root, as_json = pathlib.Path.home() / ".claude" / "projects", False
-    while argv and argv[0].startswith("--"):
-        if argv[0] == "--from-dir" and len(argv) > 1:
-            root, argv = pathlib.Path(argv[1]), argv[2:]
-        elif argv[0] == "--json":
-            as_json, argv = True, argv[1:]
-        else:
-            sys.exit(__doc__)
-    if not argv:
-        sys.exit(__doc__)
-    rows = session_gaps.summaries(root, argv)
-    if as_json:
+    parser = argparse.ArgumentParser(usage=argparse.SUPPRESS, description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--from-dir", type=pathlib.Path, default=pathlib.Path.home() / ".claude" / "projects")
+    parser.add_argument("--json", action="store_true")
+    parser.add_argument("names", nargs="+")
+    opt = parser.parse_args(argv)
+    rows = session_gaps.summaries(opt.from_dir, opt.names)
+    if opt.json:
         print(json.dumps(rows))
         return
     print("worker\tproject\tsessions\trestarts\trestart hours\tidle gaps")
-    for name in argv:
+    for name in opt.names:
         for r in [r for r in rows if r["worker"] == name] or [None]:
             if r is None:
                 print(f"{name}\tno session record")
