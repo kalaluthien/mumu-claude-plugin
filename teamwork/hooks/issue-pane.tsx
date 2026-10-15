@@ -109,7 +109,7 @@ export const register: Register = on => {
             {/* the title sums a task up, so its goal is detail, folded */}
             {open && i.detail.length > 0 && part(`goal-${i.number}`, 'Goal', i.detail)}
             {open && i.done.length > 0 && <Text>DoD:</Text>}
-            {open && i.done.map((d, k) => part(`done-${i.number}-${k}`, [d.kind, d.name].filter(Boolean).join(' '), d.detail ? [d.detail] : []))}
+            {open && i.done.map((d, k) => part(`done-${i.number}-${k}`, [d.met === null ? '' : d.met ? '[x]' : '[ ]', d.kind && `(${d.kind})`, d.name].filter(Boolean).join(' '), d.detail ? [d.detail] : []))}
             {open && i.next && <Text wrap="wrap">{`next step: ${i.next}`}</Text>}
             {open && i.tasks.map(t => framed(t))}
             {/* closed tasks after the open ones, dim and newest first, so what landed last stays in view */}

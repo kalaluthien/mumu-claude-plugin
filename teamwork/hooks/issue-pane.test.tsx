@@ -4,7 +4,7 @@ const manager = JSON.stringify({ result: { agents: [{ pane_id: 'p1', name: 'team
 const worker = JSON.stringify({ result: { agents: [{ pane_id: 'p1', name: 'x-worker' }] } })
 const issue = (number: number, kind: 'backlog' | 'task', fields: object = {}) =>
   ({ number, title: `Issue ${number}`, url: `https://example.test/${number}`, kind, holder: '', wait: '', progress: '', goal: '', detail: [], done: [], next: '', tasks: [], blockers: [], closed: [], earlier: false, ...fields })
-const task = issue(2, 'task', { title: 'Second issue', holder: 'x-worker', wait: 'waits on the owner', detail: ['Do the thing'], done: [{ kind: '[check]', name: 'it prints', detail: '' }] })
+const task = issue(2, 'task', { title: 'Second issue', holder: 'x-worker', wait: 'waits on the owner', detail: ['Do the thing'], done: [{ met: null, kind: 'check', name: 'it prints', detail: '' }] })
 const board = JSON.stringify([issue(1, 'backlog', { title: 'First issue', progress: '1 open, 0 landed', tasks: [task] })])
 const long = (word: string) => `${word} `.repeat(60).slice(0, 300)
 const PANE = { title: 'Issues', isFocused: true, bodyColumns: 60, placement: 'dock', scroll: { offset: 0, bodyRows: 20 }, view: {} } as const
@@ -81,7 +81,7 @@ describe('issue pane', () => {
         expect(rest!.text).not.toContain('·')
         expect(kind!.children[0]).toMatchObject({ type: 'Link', props: { href: url, label } })
       }
-      for (const line of [/^Goal$/, /^DoD:$/, /^\[check\] it prints$/, /^x-worker$/, /^waits on the owner$/, /^1 open, 0 landed$/])
+      for (const line of [/^Goal$/, /^DoD:$/, /^\(check\) it prints$/, /^x-worker$/, /^waits on the owner$/, /^1 open, 0 landed$/])
         expect(await ui.find({ type: 'Text', text: line })).toBeDefined()
       await ui.unmount()
     }
@@ -150,7 +150,7 @@ describe('issue pane', () => {
 
   test('a long title, goal and criterion wrap whole, with no key labels', async ($, on) => {
     const [title, goal, done] = [long('title'), long('goal'), long('check')]
-    const ui = await mounted($, on, [issue(1, 'backlog', { tasks: [issue(2, 'task', { title, detail: [goal], done: [{ kind: '[check]', name: done, detail: '' }], holder: 'x-worker' })] })])
+    const ui = await mounted($, on, [issue(1, 'backlog', { tasks: [issue(2, 'task', { title, detail: [goal], done: [{ met: null, kind: 'check', name: done, detail: '' }], holder: 'x-worker' })] })])
     await unfold(ui, 1, 2)
     await ui.press({ key: 'row-goal-2' })
     for (const whole of [title, goal, done]) {
@@ -163,9 +163,9 @@ describe('issue pane', () => {
   })
 
   test('a goal and each criterion show one line, their details only once unfolded', async ($, on) => {
-    const ui = await mounted($, on, [issue(2, 'task', { detail: ['Why it matters'], done: [{ kind: '[check]', name: 'Board prints', detail: 'it runs the board' }] })])
+    const ui = await mounted($, on, [issue(2, 'task', { detail: ['Why it matters'], done: [{ met: null, kind: 'check', name: 'Board prints', detail: 'it runs the board' }] })])
     await unfold(ui, 2)
-    for (const line of [/^Goal$/, /^DoD:$/, /^\[check\] Board prints$/]) expect(await ui.find({ type: 'Text', text: line })).toBeDefined()
+    for (const line of [/^Goal$/, /^DoD:$/, /^\(check\) Board prints$/]) expect(await ui.find({ type: 'Text', text: line })).toBeDefined()
     for (const line of [/^Why it matters$/, /^it runs the board$/]) expect(await ui.find({ type: 'Text', text: line })).toBeUndefined()
     await ui.press({ key: 'row-done-2-0' })
     expect(await ui.find({ type: 'Text', text: /^it runs the board$/ })).toBeDefined()
@@ -182,6 +182,13 @@ describe('issue pane', () => {
     expect((await ui.findAll({ type: 'Box' })).filter(b => b.props.borderStyle === 'round')).toHaveLength(2)
     expect((await ui.findAll({ type: 'Button' })).map(b => b.props.key).filter(k => /^fold-/.test(k))).toEqual(['fold-1', 'fold-2'])
     expect((await ui.findAll({ type: 'Text' })).filter(t => /[▸▾]/.test(t.text))).toEqual([])
+  })
+
+  test('a criterion shows its box only when one marks it, its kind in parentheses', async ($, on) => {
+    const done = [{ met: true, kind: 'check', name: 'A', detail: '' }, { met: false, kind: 'score', name: 'B', detail: '' }, { met: null, kind: 'check', name: 'C', detail: '' }]
+    const ui = await mounted($, on, [issue(2, 'task', { done })])
+    await unfold(ui, 2)
+    for (const line of [/^\[x\] \(check\) A$/, /^\[ \] \(score\) B$/, /^\(check\) C$/]) expect(await ui.find({ type: 'Text', text: line })).toBeDefined()
   })
 
   test('kind, holder and a wait on someone each have a colour of their own', async ($, on) => {

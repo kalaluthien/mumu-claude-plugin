@@ -100,6 +100,11 @@ def after(blockers):
     return "←" + ",".join(f"#{b['number']}{' closed' * b['closed']}" for b in blockers) if blockers else ""
 
 
+def criterion(d):
+    """A criterion's line: `[x]` or `[ ]` when a box marks it, its kind in parentheses, its name."""
+    return " ".join(x for x in ("" if d["met"] is None else "[x]" if d["met"] else "[ ]", d["kind"] and f"({d['kind']})", d["name"]) if x)
+
+
 def lines(issues, depth=0):
     """The board as text: each entry's link line, then indented what the pane shows under it."""
     for i in issues:
@@ -112,7 +117,7 @@ def lines(issues, depth=0):
         yield from (f"{pad}  {line.strip()}" for line in i["detail"])
         yield from ([f"{pad}DoD:"] if i["done"] else [])
         for d in i["done"]:
-            yield f"{pad}  {' '.join(x for x in (d['kind'], d['name']) if x)}"
+            yield f"{pad}  {criterion(d)}"
             yield from ([f"{pad}    {d['detail']}"] if d["detail"] else [])
         yield from ([f"{pad}next step: {i['next']}"] if i["next"] else [])
         yield from lines(i["tasks"], depth + 1)
