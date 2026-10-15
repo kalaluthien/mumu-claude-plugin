@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-import json
 import pathlib
 import subprocess
 import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import github_rest  # noqa: E402
 
 
 def git(*argv, cwd):
@@ -16,9 +18,7 @@ def unmerged_tips(name, root):
     tips = {git("rev-parse", "--verify", "--quiet", ref, cwd=root).stdout.strip()
             for ref in (f"refs/heads/{name}", f"refs/remotes/origin/{name}")} - {""}
     # a squash merge leaves the branch commits off the default branch, so a merged pull request's head counts as merged too
-    prs = subprocess.run(["gh", "pr", "list", "--head", name, "--state", "merged", "--json", "headRefOid"],
-                         cwd=root, capture_output=True, text=True)
-    merged = {pr["headRefOid"] for pr in json.loads(prs.stdout or "[]")}
+    merged = {pr["headRefOid"] for pr in github_rest.pulls("closed", branch=name) or [] if pr["mergedAt"]}
     return sorted(t[:9] for t in tips - merged if git("merge-base", "--is-ancestor", t, default, cwd=root).returncode)
 
 

@@ -1,4 +1,5 @@
 """Each role's next actions: the gaps between GitHub's issues and the live team, as lines a monitor or hook prints."""
+import github_rest
 import issue_state
 from github_issues import ISSUE_LIMIT, PR_LIMIT, issues, limited
 from herdr_agents import members, owns, project, role, tabs
@@ -19,7 +20,9 @@ def manager_read(me, history=False):
     """What a manager's gaps need from GitHub, read once and kept by the caller until something changed; None when a read failed.
     HISTORY adds whether a worker ever held a closed issue, for a manager that has not yet seen one."""
     found = issues(project(me["name"]))
-    prs = run("gh", "pr", "list", "--state", "merged", "--limit", str(PR_LIMIT), "--json", "number,headRefName")
+    # one page of the latest updated closed pulls, whose merged ones are the newest merges
+    prs = github_rest.pulls("closed", limit=PR_LIMIT)
+    prs = prs and [p for p in prs if p["mergedAt"]]
     if found is None or prs is None:
         return None
     return {"found": found, "prs": prs, "had_worker": had_worker(me) if history else False}
@@ -67,16 +70,18 @@ def exit_action(me, listed):
 def worker_goal(me):
     """Each held issue's state from a fresh read, since `gh issue list` can lag a comment just posted."""
     held = [i for i in issues() or [] if holds(i, me["name"])]
-    fresh = [run("gh", "issue", "view", i["url"], "--json", "number,title,url,body,comments") or i for i in held]
+    fresh = [github_rest.fresh(i["number"]) or i for i in held]
     return [f"#{i['number']} {i['title']} ({i['url']}): " + ("waits on your manager" if asking(i) else "open") for i in fresh]
 
 
 def worker_read(me):
     """What a worker's wait needs from GitHub, read once and kept by the caller until something changed; None when a read failed."""
     found = issues()
-    prs = run("gh", "pr", "list", "--state", "open", "--json", "number,headRefName,mergeable")
+    prs = github_rest.pulls("open")
     if found is None or prs is None:
         return None
+    for p in (p for p in prs if owns(me["name"], p["headRefName"])):  # the list read lacks mergeability, which a pull read gives
+        p["mergeable"] = {True: "CONFLICTING", False: "MERGEABLE"}.get(github_rest.conflicts(p["number"]))
     blockers = {i["number"]: run("gh", "api", f"repos/{{owner}}/{{repo}}/issues/{i['number']}/dependencies/blocked_by", "--jq", "[.[].state]")
                 for i in found if holds(i, me["name"])}
     return None if None in blockers.values() else {"found": found, "prs": prs, "blockers": blockers}
@@ -107,6 +112,6 @@ def worker_actions(me, waiting, data=None):
             waiting.discard(i["number"])
             lines.append(f"start #{i['number']}: every issue it waited on is closed")
     for p in prs:
-        if owns(name, p["headRefName"]) and p["mergeable"] == "CONFLICTING":
+        if owns(name, p["headRefName"]) and p.get("mergeable") == "CONFLICTING":
             lines.append(f"rebase #{p['number']}: it conflicts with the default branch")
     return lines

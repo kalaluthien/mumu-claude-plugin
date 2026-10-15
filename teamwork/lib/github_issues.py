@@ -1,4 +1,5 @@
 """Reads a project's issues from GitHub."""
+import github_rest
 from json_command import run
 
 ISSUE_LIMIT, PR_LIMIT = 200, 50
@@ -12,8 +13,8 @@ def scope_label(project):
 
 def issues(project=None, state="open"):
     label = project and scope_label(project)
-    return run("gh", "issue", "list", "--state", state, "--limit", str(ISSUE_LIMIT), "--json", "number,title,body,comments,url",
-               *(["--label", label] if label else []))
+    found = github_rest.issues(state, label)
+    return found and found[:ISSUE_LIMIT]
 
 
 def limited(found, limit, what):

@@ -1,37 +1,36 @@
 """Past task durations: one row per closed non-backlog issue, read from GitHub or from a fixture file."""
-import json
-import subprocess
+from concurrent.futures import ThreadPoolExecutor
 
+import github_rest
 from session_gaps import stamp
 
 CRITERION = ("[check]", "[score]")
 
 
-def gh_json(*args):
-    return json.loads(subprocess.run(["gh", *args], capture_output=True, text=True, check=True).stdout)
+def first_commit(repo, number):
+    """When the pull request's first commit was authored, by the one commit its list starts with."""
+    commits = github_rest.get(f"repos/pulls/{number}/commits?per_page=1", repo, paginate=False)
+    if commits is None:
+        raise RuntimeError(f"task_history: the commits of #{number} could not be read")
+    return commits[0]["commit"]["author"]["date"] if commits else None
 
 
 def fetch(repo):
     """Issues in the fixture shape: number, labels (names), body, createdAt, closedAt, prStart or None."""
-    issues = gh_json("issue", "list", "-R", repo, "--state", "closed", "--limit", "1000",
-                     "--json", "number,labels,body,createdAt,closedAt")
-    owner, name = repo.split("/")
-    query = """query($owner: String!, $name: String!, $endCursor: String) {
-      repository(owner: $owner, name: $name) { pullRequests(states: MERGED, first: 100, after: $endCursor) {
-        pageInfo { hasNextPage endCursor }
-        nodes { commits(first: 1) { nodes { commit { authoredDate } } } closingIssuesReferences(first: 20) { nodes { number } } }
-      } } }"""
-    out = subprocess.run(["gh", "api", "graphql", "--paginate", "-F", f"owner={owner}", "-F", f"name={name}", "-f", f"query={query}",
-                          "--jq", ".data.repository.pullRequests.nodes[]"], capture_output=True, text=True, check=True).stdout
+    found = github_rest.issues("all", repo=repo, pulls=True, comments=False)
+    if found is None:
+        raise RuntimeError("task_history: the issues could not be read")
+    closed = {i["number"] for i in found if not i["isPullRequest"] and i["state"] == "CLOSED"}
+    # a pull request's closing keywords stand for GitHub's closing references; its first commit is one read each, so only for those that close a task
+    closing = {i["number"]: [n for n in map(int, github_rest.CLOSES.findall(i["body"])) if n in closed] for i in found if i["mergedAt"]}
+    with ThreadPoolExecutor(8) as pool:
+        starts = dict(zip(closing, pool.map(lambda n: first_commit(repo, n) if closing[n] else None, closing)))
     first = {}  # issue number -> earliest first-commit time of a merged pull request that closes it
-    for line in out.splitlines():
-        pr = json.loads(line)
-        if not pr["commits"]["nodes"]:
-            continue
-        start = pr["commits"]["nodes"][0]["commit"]["authoredDate"]
-        for ref in pr["closingIssuesReferences"]["nodes"]:
-            first[ref["number"]] = min(start, first.get(ref["number"], start))
-    return [{**i, "labels": [x["name"] for x in i["labels"]], "prStart": first.get(i["number"])} for i in issues]
+    for number, start in starts.items():
+        for ref in closing[number] if start else []:
+            first[ref] = min(start, first.get(ref, start))
+    return [{"number": i["number"], "labels": [x["name"] for x in i["labels"]], "body": i["body"], "createdAt": i["createdAt"],
+             "closedAt": i["closedAt"], "prStart": first.get(i["number"])} for i in found if i["number"] in closed]
 
 
 def rows(issues):

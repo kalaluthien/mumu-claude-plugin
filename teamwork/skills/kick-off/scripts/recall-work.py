@@ -13,6 +13,9 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import github_rest  # noqa: E402
+
 STOP = set("a an and as at be by for from in into is it its no not of on or the to with".split())
 # a file's newest commits say what it is now, its oldest why it exists, so both ends of its history weigh most
 PATH_WEIGHT = 3.0
@@ -37,17 +40,15 @@ def words(text):
 
 
 def load(before):
-    fields = "number,title,body,createdAt,state"
-    issues = json.loads(run("gh", "issue", "list", "--state", "all", "--limit", "2000", "--json",
-                            fields + ",comments,stateReason,labels"))
-    prs = json.loads(run("gh", "pr", "list", "--state", "all", "--limit", "2000", "--json",
-                         fields + ",comments,mergedAt,closingIssuesReferences"))
+    found = github_rest.issues("all", pulls=True)
+    if found is None:
+        sys.exit("recall-work.py: the REST read of the issues failed")
     items = {}
-    for item in issues + prs:
+    for item in found:
         if before and item["createdAt"] >= before:
             continue
         comments = [c["body"] for c in item["comments"] if not before or c["createdAt"] < before]
-        if "mergedAt" in item:
+        if item["isPullRequest"]:
             kind, state = "PR", "merged" if item["mergedAt"] else item["state"].lower()
         else:
             kind = "backlog" if any(label["name"] == "backlog" for label in item["labels"]) else "issue"
@@ -57,7 +58,7 @@ def load(before):
             "text": " ".join([item["title"]] * 3 + [item["body"], *comments]),
             # any capitalised word, since comments under words the grammar no longer lists stay on the record
             "records": [text.strip().splitlines()[0][:160] for text in comments if re.match(r"\s*[A-Z]+:", text)],
-            "closes": [c["number"] for c in item.get("closingIssuesReferences", [])],
+            "closes": [int(n) for n in github_rest.CLOSES.findall(item["body"])] if item["isPullRequest"] else [],
         }
     return items
 
