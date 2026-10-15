@@ -3,7 +3,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 const manager = JSON.stringify({ result: { agents: [{ pane_id: 'p1', name: 'teamwork-manager' }] } })
 const worker = JSON.stringify({ result: { agents: [{ pane_id: 'p1', name: 'x-worker' }] } })
 const issue = (number: number, kind: 'backlog' | 'task', fields: object = {}) =>
-  ({ number, title: `Issue ${number}`, url: `https://example.test/${number}`, kind, holder: '', wait: '', progress: '', goal: '', done: [], tasks: [], blockers: [], layer: 0, closed: [], ...fields })
+  ({ number, title: `Issue ${number}`, url: `https://example.test/${number}`, kind, holder: '', wait: '', progress: '', goal: '', done: [], next: '', tasks: [], blockers: [], layer: 0, closed: [], ...fields })
 const task = issue(2, 'task', { title: 'Second issue', holder: 'x-worker', wait: 'waits on the owner', goal: 'Do the thing', done: ['[check] it prints'] })
 const board = JSON.stringify([issue(1, 'backlog', { title: 'First issue', progress: '1 open, 0 landed', tasks: [task] })])
 const long = (word: string) => `${word} `.repeat(60).slice(0, 300)
@@ -215,6 +215,13 @@ describe('issue pane', () => {
     expect(await ui.find({ type: 'Text', text: /^\(empty\)$/ })).toBeUndefined()
     await unfold(ui, 20)
     expect(await ui.find({ type: 'Text', text: /^\(empty\)$/ })).toBeDefined()
+  })
+
+  test('a backlog shows who holds it and, unfolded, its next step', async ($, on) => {
+    const ui = await mounted($, on, [issue(20, 'backlog', { progress: '0 open, 7 landed', holder: 'x-worker', next: 'ask the owner' })])
+    expect(await ui.find({ type: 'Text', text: /^x-worker$/ })).toBeDefined()
+    await unfold(ui, 20)
+    expect(await ui.find({ type: 'Text', text: /^next step: ask the owner$/ })).toBeDefined()
   })
 
   test('backlogs show their progress, each set apart by a border', async ($, on) => {

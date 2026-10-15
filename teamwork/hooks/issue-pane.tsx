@@ -67,13 +67,13 @@ export const register: Register = on => {
     const toggle = (n: number) => () => void update($, expanded, old => old.includes(n) ? old.filter(x => x !== n) : [...old, n])
     const status = (i: BoardIssue) => [
       i.progress && <Text dimColor>{i.progress}</Text>,
-      i.kind === 'task' && i.holder && <Text color="suggestion">{i.holder}</Text>,
+      i.holder && <Text color="suggestion">{i.holder}</Text>,
       i.wait && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.wait}</Text>,
     ].filter(Boolean).flatMap((x, k) => (k ? [<Text> </Text>, x] : [x]))
     const entry = (i: BoardIssue): JSX.Element => {
       const open = unfolded.has(i.number)
       const line = status(i)
-      const more = Boolean(i.goal || i.done.length || i.tasks.length || i.closed.length)
+      const more = Boolean(i.goal || i.done.length || i.next || i.tasks.length || i.closed.length)
       return (
         <Box flexDirection="column">
           <Box flexDirection="row">
@@ -94,6 +94,7 @@ export const register: Register = on => {
             {open && !more && <Text dimColor>(empty)</Text>}
             {open && i.goal && <Text wrap="wrap">{i.goal}</Text>}
             {open && i.done.map(d => <Text wrap="wrap" dimColor>{`• ${d}`}</Text>)}
+            {open && i.next && <Text wrap="wrap">{`next step: ${i.next}`}</Text>}
             {/* two spaces per layer: tasks on one layer can run at once, each below what blocks it */}
             {open && i.tasks.map(t => <Box marginTop={1} paddingLeft={2 * t.layer}>{entry(t)}</Box>)}
             {/* closed tasks after the open ones, dim, so what landed stays in view */}
