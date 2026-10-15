@@ -19,17 +19,17 @@ SEGMENT_END = re.compile(r"&&|\|\||[;|)`]|(?<!\\)\n")  # a backslash-newline con
 # the rules are found in the playbooks at each call, never copied here, so a playbook edit cannot leave a stale reminder
 REMINDED = {"gh issue create": ("`file`",), "gh issue comment": ("**Comment**", "`comment`"), "gh pr comment": ("**Comment**",),
             "gh issue close": ("`resolve`",), "gh issue edit": ("edit-issue-body",)}
-REST_WRITE = re.compile(r"issues(?:/(\d+)(/comments)?)?(?=\s|$)")
+REST_WRITE = re.compile(r'issues(?:/(\d+)(/comments)?)?(?=[\s"\'?]|$)')
 FENCE = re.compile(r"^```teamwork\n.*?^```", re.S | re.M)
 STATE_LINE = re.compile(r"^\s*(holders|deferred):", re.M)
-BODY_FILE = re.compile(r"(?:--body-file[= ]|(?:-F|--field)[= ]body=@|--input[= ])[\"']?([^\s\"']+)")
+BODY_FILE = re.compile(r"(?:--body-file[= ]|(?:-F|--field)[= ]body=@)[\"']?([^\s\"']+)")
 
 
 def rest_call(command):
     """The gh issue command a REST write stands for, so one rule list covers both ways of writing."""
     if not command.startswith("gh api"):
         return command
-    method = re.search(r"(?:-X|--method)[= ]\s*(\w+)", command)
+    method = re.search(r"(?:-X|--method[= ])\s*(\w+)", command)
     method = method.group(1).upper() if method else "POST" if re.search(r"(?<!\S)(-f|-F|--field|--raw-field|--input)\b", command) else "GET"
     path = REST_WRITE.search(command)
     if not path or method not in ("POST", "PATCH"):
