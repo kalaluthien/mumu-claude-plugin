@@ -7,8 +7,8 @@ const PANE = 'issues'
 const board = atom({ plugin: 'teamwork', key: 'board' } as const, [] as BoardIssue[])
 // the entries the manager unfolded, kept across redraws; every other entry shows its one row
 const expanded = atom({ plugin: 'teamwork', key: 'expanded' } as const, [] as number[])
-// a wait that needs someone stands out; one blocked by an issue only waits
-const WAIT_COLOR: Record<string, string> = { 'waits on the owner': 'error', 'waits on the manager': 'warning', 'no holder': 'subtle', blocked: 'subtle', deferred: 'subtle' }
+// a wait that needs someone stands out; any other, such as `↑ #n` under a blocker, stays dim
+const WAIT_COLOR: Record<string, string> = { 'waits on the owner': 'error', 'waits on the manager': 'warning' }
 // a write to issues, sub-issues or their order, the changes the board shows; the body script's gh runs out of sight
 const TEAM_CHANGE = /\bedit-issue-body\.py\b|\bgh\s+(issue|pr)\s+(create|comment|edit|close|reopen|merge)\b|\bgh\s+api\b.*\b(issues|sub_issues|dependencies)\b/
 
@@ -65,12 +65,10 @@ export const register: Register = on => {
     const { Box, Text, Link, Button } = $.ui.resolve(e)
     const unfolded = new Set(await read($, expanded))
     const toggle = (n: number) => () => void update($, expanded, old => old.includes(n) ? old.filter(x => x !== n) : [...old, n])
-    // an issue's url ends in its number, so a sibling's url swaps that number
-    const links = (url: string, ns: number[]) => ns.flatMap((n, k) => [k ? ', ' : '', <Link href={url.replace(/\d+$/, String(n))} label={`#${n}`} />])
     const status = (i: BoardIssue) => [
       i.progress && <Text dimColor>{i.progress}</Text>,
       i.kind === 'task' && i.holder && <Text color="suggestion">{i.holder}</Text>,
-      i.wait && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.blockers.length ? ['blocked by ', ...links(i.url, i.blockers)] : i.wait}</Text>,
+      i.wait && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.wait}</Text>,
     ].filter(Boolean).flatMap((x, k) => (k ? [<Text dimColor> · </Text>, x] : [x]))
     const entry = (i: BoardIssue): JSX.Element => {
       const open = unfolded.has(i.number)
@@ -82,13 +80,14 @@ export const register: Register = on => {
             <Button key={`fold-${i.number}`} plain dimColor label={open ? '▾' : '▸'} onPress={toggle(i.number)} />
             <Text> </Text>
             {/* the link first, so a narrow pane wraps the title, never the link */}
-            <Text wrap="wrap">
-              <Text color={i.kind === 'backlog' ? 'merged' : 'claude'} weight="semibold"><Link href={i.url} label={`#${i.number}`} /></Text>
-              {' '}
+            <Text color={i.kind === 'backlog' ? 'merged' : 'claude'} weight="semibold"><Link href={i.url} label={`#${i.number}`} /></Text>
+            <Text> </Text>
+            {/* the whole rest of the row folds, a wider target than the arrow; a Button holds only Text, so no link sits in it */}
+            <Button key={`row-${i.number}`} plain onPress={toggle(i.number)}>
               <Text wrap="wrap" weight="semibold">{i.title}</Text>
               {line.length > 0 && <Text dimColor> · </Text>}
               {line}
-            </Text>
+            </Button>
           </Box>
           <Box paddingLeft={2} flexDirection="column">
             {/* every entry folds alike, so an empty one says so when unfolded */}

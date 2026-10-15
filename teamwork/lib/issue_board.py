@@ -23,7 +23,7 @@ def entry(node):
     progress = (f"{summary['total'] - summary['completed']} open · {summary['completed']} landed" if summary.get("total")
                 else f"routed to {' '.join(holders)}" if holders else "" if state["waits"] == "deferred" else "not started") if backlog else ""
     return {"number": node["number"], "title": node["title"], "url": node["url"], "kind": "backlog" if backlog else "task",
-            "holder": " ".join(holders), "wait": "blocked by " + ", ".join(f"#{n}" for n in blockers) if blockers else "" if state["waits"] == "held" or backlog and state["waits"] == "no holder" else state["waits"],
+            "holder": " ".join(holders), "wait": "↑ " + ", ".join(f"#{n}" for n in blockers) if blockers else "" if state["waits"] == "held" or backlog and state["waits"] == "no holder" else state["waits"],
             "progress": progress, "goal": summary_of(node["body"]) if backlog else state["goal"], "done": [] if backlog else state["done"],
             "urgency": URGENCY.index(state["waits"].split(" by ")[0]), "tasks": [], "blockers": blockers, "layer": 0,
             "closed": [{"number": t["number"], "title": t["title"], "url": t["url"]}
