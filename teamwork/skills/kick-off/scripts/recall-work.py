@@ -2,15 +2,19 @@
 """usage: recall-work.py [<words>...] [--path <file>]... [--before <date>] [--top <n>]
 
 Print the earlier issues and pull requests of this repository most related to WORDS and to the history of each PATH,
-best first: each line is `#<n> <kind> <state> <title>`, then the first line of each of its `DECIDED:` and `BLOCKED:`
-records. `--before` sees the repository as it stood at DATE, to replay a past kick-off."""
+best first: each line is `#<n> <kind> <state> <title>`, then the first line of each of its comments
+that opens with a keyword of issue-grammar.md. `--before` sees the repository as it stood at DATE, to replay a past kick-off."""
 import argparse
 import collections
 import json
 import math
+import pathlib
 import re
 import subprocess
 import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import issue_state  # noqa: E402
 
 STOP = set("a an and as at be by for from in into is it its no not of on or the to with".split())
 # a file's newest commits say what it is now, its oldest why it exists, so both ends of its history weigh most
@@ -54,8 +58,7 @@ def load(before):
         items[item["number"]] = {
             "head": f"#{item['number']} {kind} {state}: {item['title']}",
             "text": " ".join([item["title"]] * 3 + [item["body"], *comments]),
-            "records": [line.strip()[:160] for text in [item["body"], *comments] for line in text.splitlines()
-                        if re.match(r"\s*(DECIDED|BLOCKED):", line)],
+            "records": [text.strip().splitlines()[0][:160] for text in comments if issue_state.keyword(text)],
             "closes": [c["number"] for c in item.get("closingIssuesReferences", [])],
         }
     return items
