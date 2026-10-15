@@ -6,8 +6,8 @@ ISSUE_LIMIT, PR_LIMIT = 200, 50
 
 def scope_label(project):
     label = f"scope:{project}"
-    # gh prints nothing, not `[]`, when no label matches, so an empty read is a repository without that label
-    return label if label in [x["name"] for x in run("gh", "label", "list", "--search", label, "--json", "name") or []] else None
+    # a REST read, which costs no GraphQL point; a missing label answers 404, which `run` reads as None
+    return label if run("gh", "api", f"repos/{{owner}}/{{repo}}/labels/{label.replace(':', '%3A')}", "--jq", "{name}") else None
 
 
 def issues(project=None, state="open"):
