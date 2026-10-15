@@ -3,8 +3,8 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 const manager = JSON.stringify({ result: { agents: [{ pane_id: 'p1', name: 'teamwork-manager' }] } })
 const worker = JSON.stringify({ result: { agents: [{ pane_id: 'p1', name: 'x-worker' }] } })
 const issue = (number: number, kind: 'backlog' | 'task', fields: object = {}) =>
-  ({ number, title: `Issue ${number}`, url: `https://example.test/${number}`, kind, holder: '', wait: '', progress: '', goal: '', done: [], next: '', tasks: [], blockers: [], closed: [], earlier: false, ...fields })
-const task = issue(2, 'task', { title: 'Second issue', holder: 'x-worker', wait: 'waits on the owner', goal: 'Do the thing', done: ['[check] it prints'] })
+  ({ number, title: `Issue ${number}`, url: `https://example.test/${number}`, kind, holder: '', wait: '', progress: '', goal: '', detail: [], done: [], next: '', tasks: [], blockers: [], closed: [], earlier: false, ...fields })
+const task = issue(2, 'task', { title: 'Second issue', holder: 'x-worker', wait: 'waits on the owner', goal: 'Do the thing', done: [{ kind: '[check]', name: 'it prints', detail: '' }] })
 const board = JSON.stringify([issue(1, 'backlog', { title: 'First issue', progress: '1 open, 0 landed', tasks: [task] })])
 const long = (word: string) => `${word} `.repeat(60).slice(0, 300)
 const PANE = { title: 'Issues', isFocused: true, bodyColumns: 60, placement: 'dock', scroll: { offset: 0, bodyRows: 20 }, view: {} } as const
@@ -81,7 +81,7 @@ describe('issue pane', () => {
         expect(rest!.text).not.toContain('·')
         expect(kind!.children[0]).toMatchObject({ type: 'Link', props: { href: url, label } })
       }
-      for (const line of [/^Do the thing$/, /^• \[check\] it prints$/, /^x-worker$/, /^waits on the owner$/, /^1 open, 0 landed$/])
+      for (const line of [/^Goal: Do the thing$/, /^DoD:$/, /^\[check\] it prints$/, /^x-worker$/, /^waits on the owner$/, /^1 open, 0 landed$/])
         expect(await ui.find({ type: 'Text', text: line })).toBeDefined()
       await ui.unmount()
     }
@@ -150,7 +150,7 @@ describe('issue pane', () => {
 
   test('a long title, goal and criterion wrap whole, with no key labels', async ($, on) => {
     const [title, goal, done] = [long('title'), long('goal'), long('check')]
-    const ui = await mounted($, on, [issue(1, 'backlog', { tasks: [issue(2, 'task', { title, goal, done: [done], holder: 'x-worker' })] })])
+    const ui = await mounted($, on, [issue(1, 'backlog', { tasks: [issue(2, 'task', { title, goal, done: [{ kind: '[check]', name: done, detail: '' }], holder: 'x-worker' })] })])
     await unfold(ui, 1, 2)
     for (const whole of [title, goal, done]) {
       const found = (await ui.findAll({ type: 'Text', text: whole })).at(-1)
@@ -159,6 +159,17 @@ describe('issue pane', () => {
     }
     const texts = await ui.findAll({ type: 'Text' })
     expect(texts.filter(t => /^(goal|definition-of-done|holder): /.test(t.text) || t.text === 'none')).toEqual([])
+  })
+
+  test('a goal and each criterion show a name, their details only once unfolded', async ($, on) => {
+    const ui = await mounted($, on, [issue(2, 'task', { goal: 'Name it', detail: ['Why it matters'], done: [{ kind: '[check]', name: 'Board prints', detail: 'it runs the board' }] })])
+    await unfold(ui, 2)
+    for (const line of [/^Goal: Name it$/, /^DoD:$/, /^\[check\] Board prints$/]) expect(await ui.find({ type: 'Text', text: line })).toBeDefined()
+    for (const line of [/^Why it matters$/, /^it runs the board$/]) expect(await ui.find({ type: 'Text', text: line })).toBeUndefined()
+    await ui.press({ key: 'row-done-2-0' })
+    expect(await ui.find({ type: 'Text', text: /^it runs the board$/ })).toBeDefined()
+    await ui.press({ key: 'row-goal-2' })
+    expect(await ui.find({ type: 'Text', text: /^Why it matters$/ })).toBeDefined()
   })
 
   test('kind, holder and a wait on someone each have a colour of their own', async ($, on) => {
@@ -175,7 +186,7 @@ describe('issue pane', () => {
 
   test('entries start folded to one row; a press unfolds one, a second folds it', async ($, on) => {
     const ui = await mounted($, on, JSON.parse(board))
-    const shown = async () => [await ui.find({ type: 'Text', text: /^Do the thing$/ }), await ui.find({ type: 'Text', text: /it prints$/ })]
+    const shown = async () => [await ui.find({ type: 'Text', text: /^Goal: Do the thing$/ }), await ui.find({ type: 'Text', text: /it prints$/ })]
     expect(await ui.find({ type: 'Text', text: /^Second issue$/ })).toBeUndefined()
     expect(await ui.find({ type: 'Text', text: /^1 open, 0 landed$/ })).toBeDefined()
     await ui.press({ key: 'fold-1' })
