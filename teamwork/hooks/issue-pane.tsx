@@ -5,8 +5,8 @@ import type { BoardIssue } from '../types'
 
 const PANE = 'issues'
 const board = atom({ plugin: 'teamwork', key: 'board' } as const, [] as BoardIssue[])
-// the entries the manager folded to their link line, kept across redraws
-const collapsed = atom({ plugin: 'teamwork', key: 'collapsed' } as const, [] as number[])
+// the entries the manager unfolded, kept across redraws; every other entry shows its one row
+const expanded = atom({ plugin: 'teamwork', key: 'expanded' } as const, [] as number[])
 // a wait that needs someone stands out; one blocked by an issue only waits
 const WAIT_COLOR: Record<string, string> = { 'waits on the owner': 'error', 'waits on the manager': 'warning', 'no holder': 'subtle', blocked: 'subtle' }
 // a write to issues, sub-issues or their order, the changes the board shows; the body script's gh runs out of sight
@@ -63,30 +63,33 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Link, Button } = $.ui.resolve(e)
-    const folded = new Set(await read($, collapsed))
-    const toggle = (n: number) => () => void update($, collapsed, old => old.includes(n) ? old.filter(x => x !== n) : [...old, n])
+    const unfolded = new Set(await read($, expanded))
+    const toggle = (n: number) => () => void update($, expanded, old => old.includes(n) ? old.filter(x => x !== n) : [...old, n])
     const status = (i: BoardIssue) => [
       i.progress && <Text dimColor>{i.progress}</Text>,
       i.kind === 'task' && i.holder && <Text color="suggestion">{i.holder}</Text>,
       i.wait && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.wait}</Text>,
     ].filter(Boolean).flatMap((x, k) => (k ? [<Text dimColor> · </Text>, x] : [x]))
     const entry = (i: BoardIssue): JSX.Element => {
-      const open = !folded.has(i.number)
+      const open = unfolded.has(i.number)
       const line = status(i)
+      const more = Boolean(i.goal || i.done.length || i.tasks.length)
       return (
         <Box flexDirection="column">
           <Box flexDirection="row">
-            <Button key={`fold-${i.number}`} plain dimColor label={open ? '▾' : '▸'} onPress={toggle(i.number)} />
+            {/* a fold only where unfolding shows more */}
+            {more ? <Button key={`fold-${i.number}`} plain dimColor label={open ? '▾' : '▸'} onPress={toggle(i.number)} /> : <Text> </Text>}
             <Text> </Text>
             {/* the link first, so a narrow pane wraps the title, never the link */}
             <Text wrap="wrap">
               <Text color={i.kind === 'backlog' ? 'merged' : 'claude'} weight="semibold"><Link href={i.url} label={`${i.kind}#${i.number}`} /></Text>
               {' '}
               <Text wrap="wrap" weight="semibold">{i.title}</Text>
+              {line.length > 0 && <Text dimColor> · </Text>}
+              {line}
             </Text>
           </Box>
           <Box paddingLeft={2} flexDirection="column">
-            {line.length > 0 && <Text wrap="wrap">{line}</Text>}
             {open && i.goal && <Text wrap="wrap">{i.goal}</Text>}
             {open && i.done.map(d => <Text wrap="wrap" dimColor>{`• ${d}`}</Text>)}
             {open && i.tasks.map(t => <Box marginTop={1}>{entry(t)}</Box>)}
