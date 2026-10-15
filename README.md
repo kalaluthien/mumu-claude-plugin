@@ -66,9 +66,9 @@ You get the page as a file sent to you, or as an Artifact if you ask for one.
 
 **The problem.** A session learns something the hard way, then ends, and the next session learns it again.
 
-**The idea.** Keep what was learned, once, where the next reader will look. A Stop hook ([`wrap-up-signal.py`](homework/hooks/wrap-up-signal.py)) counts mechanically: new lessons in the transcript, memory files changed, whether the repository has a known way to run and verify itself. When a count crosses its line, it sends a one-line wrap-up signal, and [`/homework:wrap-up`](homework/skills/wrap-up/SKILL.md) acts on it: it writes the lesson down, tidies memory that has grown messy, or records how to run the project. Every memory file says when it applies and when it would be wrong, so a stale lesson can be spotted.
+**The idea.** Keep what was learned, once, where the next reader will look. A Stop hook ([`wrap-up-signal.py`](homework/hooks/wrap-up-signal.py)) counts mechanically: new lessons in the transcript, memory files changed, whether the repository has a known way to run and verify itself. When a count crosses its line, it sends a one-line wrap-up signal, and the [`wrap-up`](homework/skills/wrap-up/SKILL.md) skill acts on it: it writes the lesson down, tidies memory that has grown messy, or records how to run the project. Every memory file says when it applies and when it would be wrong, so a stale lesson can be spotted.
 
-**Using it.** Mostly you do not: the signal arrives on its own. Type `/homework:wrap-up` to keep a lesson by hand (retro) or to tidy memory (dream). It asks you nothing; it reports what it did.
+**Using it.** You do not call it: the signal arrives on its own, and the skill is not in the slash menu. Ask Claude in words to keep a lesson (retro) or tidy memory (dream). It asks you nothing; it reports what it did.
 
 ## Working on this repository
 

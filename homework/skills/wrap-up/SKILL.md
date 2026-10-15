@@ -1,6 +1,7 @@
 ---
 name: wrap-up
 description: Use when a wrap-up signal arrives, or to keep a lesson (retro), tidy memory (dream), or write a skill or hook.
+user-invocable: false
 ---
 
 # wrap-up
