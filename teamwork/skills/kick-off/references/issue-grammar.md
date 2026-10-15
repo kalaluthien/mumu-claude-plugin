@@ -33,6 +33,7 @@ holders: issue-pane-worker
 | key | value | role |
 | --- | --- | --- |
 | `holders` | session names, space-separated, replacing every earlier value; empty when no one holds it | holders |
+| `deferred` | why someone chose to leave it for later; a later holders value with names ends it | deferral |
 | `asks` | `owner` on an ask the owner answers, not the manager | audience |
 
 ## Sections
@@ -50,6 +51,6 @@ What an open issue waits on, first match:
 
 1. an open issue GitHub lists as blocking it: `blocked by #<n>`;
 2. its latest ask or answer is an ask: `waits on the owner` with audience `owner`, else `waits on the manager`;
-3. a holders record with no names, left for later: `deferred`;
-4. no holders record: `no holder`;
-5. else `held`.
+3. holders with names: `held`;
+4. a deferred reason that no later holders with names ended: `deferred`;
+5. else `no holder`.
