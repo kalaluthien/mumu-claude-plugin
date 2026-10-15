@@ -82,7 +82,7 @@ def lines(issues, depth=0):
     """The board as text: each entry's link line, then indented what the pane shows under it."""
     for i in issues:
         pad = "  " * (depth + 1)
-        yield f"{'  ' * depth}{i['kind']}#{i['number']} {i['title']}"
+        yield f"{'  ' * depth}#{i['number']} {i['title']}"
         status = " · ".join(x for x in (i["progress"], i["holder"] if i["kind"] == "task" else "", i["wait"]) if x)
         yield from ([f"{pad}{status}"] if status else [])
         yield from ([f"{pad}{i['goal']}"] if i["goal"] else [])
