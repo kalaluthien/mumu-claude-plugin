@@ -103,6 +103,26 @@ describe('issue pane', () => {
     expect(inits).toEqual(['/w'])
   })
 
+  test('an attach while the pane is open notes the surface', async ($, on) => {
+    mock.env(on, { HERDR_PANE_ID: 'p1', HOME: '/h' })
+    on('session.start', async (_$, e) => ({ cwd: e.cwd }))
+    on('process.run', async () => ok(manager))
+    on('process.spawn', async function* () { return { value: { code: 0, signal: null } } })
+    on('ui.open', async () => ({ value: { isPlaced: false as const, reason: 'no surface places panes' } }))
+    on('ui.panes', async () => ({ value: [{ id: 'issues', title: 'Issues', isPlaced: false }] } as never))
+    const written: Record<string, string> = {}
+    on('fs.read', async (_$, e) => { if (!(e.path in written)) throw new Error('ENOENT'); return { value: written[e.path] } as never })
+    on('fs.write', async (_$, e) => { written[e.path] = e.text; return { value: undefined } as never })
+    on('session.attach', async (_$, e) => ({ clientId: e.clientId }))
+    on('session.surfaces', async () => ({ value: ['terminal', 'desktop'] } as never))
+    await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
+    await $.session.attach({ surface: 'desktop', clientId: 'desktop:default' })
+    for (let i = 0; i < 200 && !/"open"[^]*"attach"|"attach"[^]*"open"/.test(written['/h/.claude/teamwork/pane-surfaces.log'] ?? ''); i++) await Promise.resolve()
+    const log = written['/h/.claude/teamwork/pane-surfaces.log'] ?? ''
+    expect(log).toMatch(/"event":"open".*no surface places panes/)
+    expect(log).toMatch(/"event":"attach","surface":"desktop","clientId":"desktop:default"/)
+  })
+
   const bash = async ($: any, on: any, command: string) => {
     mock.env(on, { HOME: '/h' })
     const ran: string[][] = []
