@@ -6,6 +6,6 @@ export type BoardIssue = {
 
 declare module 'claude-code' {
   interface PluginState {
-    teamwork: { board: BoardIssue[]; expanded: number[] }
+    teamwork: { board: BoardIssue[]; expanded: number[]; failure: string }
   }
 }

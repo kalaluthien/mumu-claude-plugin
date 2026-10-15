@@ -4,7 +4,10 @@ import type { Register } from 'claude-code'
 import type { BoardIssue } from '../types'
 
 const PANE = 'issues'
+const RETRY_MS = 120000
 const board = atom({ plugin: 'teamwork', key: 'board' } as const, [] as BoardIssue[])
+// why the last read failed, empty when it worked; shown so a failed read never looks like an empty board
+const failure = atom({ plugin: 'teamwork', key: 'failure' } as const, '')
 // the entries, goals and criteria the manager unfolded, kept across redraws; every other shows its one line
 const expanded = atom({ plugin: 'teamwork', key: 'expanded' } as const, [] as (number | string)[])
 // a wait that needs someone stands out; any other, such as `← #n` beside a blocked task, stays dim
@@ -21,14 +24,25 @@ function watch($: any, name: string) {
   watching = true
   const project = name.slice(0, -'-manager'.length)
   void openPane($).catch(() => undefined)
+  // a failed read is tried again after a pause, since the next team change may be far off
+  let retry: { cancel: () => void } | undefined
+  const refresh = async () => {
+    retry?.cancel()
+    try {
+      const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json'], { cwd: startDir, timeoutMs: 60000 })
+      if (run.exitCode === 0) await update($, board, () => JSON.parse(run.stdout) as BoardIssue[])
+      await update($, failure, () => run.exitCode === 0 ? '' : (run.stderr ?? '').trim() || `the board read exited ${run.exitCode}`)
+      if (run.exitCode !== 0) retry = $.clock.after(RETRY_MS, () => void refresh())
+    } catch (err) {  // a failed read must not end the loop, whose end kills the waiter
+      await update($, failure, () => `the board read failed: ${err}`).catch(() => undefined)
+      retry = $.clock.after(RETRY_MS, () => void refresh())
+    }
+  }
   void (async () => {
     const waiter = $.process.spawn({ argv: [`${$.plugin.root}/hooks/wait-team-change.py`] })
     for await (const piece of waiter) {
       if (!('text' in piece)) break
-      try {
-        const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json'], { cwd: startDir, timeoutMs: 60000 })
-        if (run.exitCode === 0) await update($, board, () => JSON.parse(run.stdout) as BoardIssue[])
-      } catch {}  // a failed read must not end the loop, whose end kills the waiter
+      await refresh()
     }
   })()
 }
@@ -128,9 +142,11 @@ export const register: Register = on => {
     // a border sets each backlog and each task apart from the next
     const framed = (i: BoardIssue) => <Box borderStyle="round" borderDimColor paddingX={1}>{entry(i)}</Box>
     const list = await read($, board)
+    const error = await read($, failure)
     return (
       <Box flexDirection="column">
-        {list.length === 0 ? <Text dimColor>No open issues read yet.</Text> : list.map(framed)}
+        {error && <Text wrap="wrap" color="error" weight="semibold">{`Board read failed${list.length > 0 ? ' (showing the last good board)' : ''}: ${error}`}</Text>}
+        {list.length === 0 && error ? null : list.length === 0 ? <Text dimColor>No open issues read yet.</Text> : list.map(framed)}
       </Box>
     )
   })
