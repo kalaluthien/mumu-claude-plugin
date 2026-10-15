@@ -14,11 +14,12 @@ def rows(text, heading):
 
 def load(path=GRAMMAR):
     text = path.read_text()
-    return rows(text, "Keywords"), rows(text, "Data")
+    return rows(text, "Keywords"), rows(text, "Data"), rows(text, "Sections")
 
 
-KEYWORDS, KEYS = load()
+KEYWORDS, KEYS, SECTIONS = load()
 WORD = {role: word for table in (KEYWORDS, KEYS) for word, role in table.items() if role}
+ITEM = re.compile(r"^(?:\d+\.|[-*])\s+(.*)$", re.M)
 
 
 def keyword(text):
@@ -31,6 +32,12 @@ def data(text):
     """The `key: value` lines of its reserved blocks, keys the grammar names only."""
     pairs = (line.partition(":") for block in DATA.findall(text or "") for line in block.splitlines())
     return {k.strip(): v.strip() for k, sep, v in pairs if sep and k.strip() in KEYS}
+
+
+def sections(text):
+    """{role: text} of the sections it carries, by the heading the grammar names."""
+    found = re.findall(r"^## ([^\n]+)\n(.*?)(?=^## |\Z)", text or "", re.M | re.S)
+    return {SECTIONS[h.strip()]: body for h, body in found if h.strip() in SECTIONS}
 
 
 def records(issue):
@@ -49,7 +56,8 @@ def holder_values(issue):
 
 
 def compose(issue, blockers=()):
-    """{'holders': the latest names, or None when no record ever set them; 'waits': its wait line, in the grammar's order}."""
+    """{'holders': the latest names, or None when no record ever set them; 'waits': its wait line, in the grammar's order;
+    'goal': the latest goal's first line, or 'none'; 'done': the latest criteria; 'holder': the names, or 'none', then a wait not about holding}."""
     holders = (holder_values(issue) or [None])[-1]
     asked = exchange(issue)[-1:]
     if blockers:
@@ -58,4 +66,9 @@ def compose(issue, blockers=()):
         waits = "waits on the owner" if asked[0][1].get(WORD["audience"]) == "owner" else "waits on the manager"
     else:
         waits = "held" if holders else "no holder"
-    return {"holders": holders, "waits": waits}
+    latest = {}
+    for text in [issue.get("body")] + [c["body"] for c in issue.get("comments", [])]:
+        latest.update(sections(text))
+    goal = next((line.strip() for line in latest.get("goal", "").splitlines() if line.strip()), "none")
+    holder = ", ".join([" ".join(holders or []) or "none"] + ([] if waits in ("held", "no holder") else [waits]))
+    return {"holders": holders, "waits": waits, "goal": goal, "done": ITEM.findall(latest.get("done", "")), "holder": holder}
