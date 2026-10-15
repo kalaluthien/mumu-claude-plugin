@@ -25,7 +25,8 @@ def entry(node):
     return {"number": node["number"], "title": node["title"], "url": node["url"], "kind": "backlog" if backlog else "task",
             "holder": " ".join(holders), "wait": "" if state["waits"] == "held" or backlog and state["waits"] == "no holder" else state["waits"],
             "progress": progress, "goal": summary_of(node["body"]) if backlog else state["goal"], "done": [] if backlog else state["done"],
-            "urgency": URGENCY.index(state["waits"].split(" by ")[0]), "tasks": []}
+            "urgency": URGENCY.index(state["waits"].split(" by ")[0]), "tasks": [],
+            "closed": [{k: t[k] for k in ("number", "title", "url")} for t in (node.get("subIssues") or {}).get("nodes", []) if t["state"] == "CLOSED"]}
 
 
 def related(nodes, items):
@@ -88,3 +89,4 @@ def lines(issues, depth=0):
         yield from ([f"{pad}{i['goal']}"] if i["goal"] else [])
         yield from (f"{pad}- {d}" for d in i["done"])
         yield from lines(i["tasks"], depth + 1)
+        yield from (f"{pad}#{t['number']} {t['title']} · closed" for t in i["closed"])

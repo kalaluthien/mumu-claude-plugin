@@ -2,7 +2,7 @@
 """usage: list-issue-board.py <project> [--json] | --nodes <file> [--json]
 
 Print the project's open issues as the issue pane draws them: backlogs grouped with related ones, each task under its
-backlog by urgency, an entry's link line then its holder and wait, a task's goal and criteria, a backlog's progress.
+backlog by urgency, an entry's link line then its holder and wait, a task's goal and criteria, a backlog's progress and its closed tasks.
 `--json` prints the same tree for the pane; `--nodes` reads GitHub's issue nodes from a file instead of GitHub."""
 import json
 import pathlib
@@ -16,6 +16,7 @@ QUERY = """query($owner: String!, $name: String!, $labels: [String!]) {
   repository(owner: $owner, name: $name) {
     issues(states: OPEN, first: 100, labels: $labels, orderBy: {field: CREATED_AT, direction: ASC}) {
       nodes { number title url body parent { number } labels(first: 20) { nodes { name } } subIssuesSummary { total completed }
+              subIssues(first: 50) { nodes { number title url state } }
               blockedBy(first: 20) { nodes { number state } } comments(last: 100) { nodes { body url } } } } } }"""
 
 
