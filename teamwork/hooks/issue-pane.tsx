@@ -18,6 +18,8 @@ const TEAM_CHANGE = /\bedit-issue-body\.py\b|\bgh\s+(issue|pr)\s+(create|comment
 // a manager's pane and its waiter, once per session; the start directory, since the current one may be a worktree removed since
 let startDir: string | undefined
 let watching = false
+// the manager's board read, set once it watches, so the issues command reads the board again
+let refresh: (() => Promise<void>) | undefined
 const openPane = ($: any) => $.ui.open({ id: PANE, title: 'Issues' })
 function watch($: any, name: string) {
   if (watching || !name.endsWith('-manager')) return
@@ -26,23 +28,24 @@ function watch($: any, name: string) {
   void openPane($).catch(() => undefined)
   // a failed read is tried again after a pause, since the next team change may be far off
   let retry: { cancel: () => void } | undefined
-  const refresh = async () => {
+  const load = async () => {
     retry?.cancel()
     try {
       const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json'], { cwd: startDir, timeoutMs: 60000 })
       if (run.exitCode === 0) await update($, board, () => JSON.parse(run.stdout) as BoardIssue[])
       await update($, failure, () => run.exitCode === 0 ? '' : (run.stderr ?? '').trim() || `the board read exited ${run.exitCode}`)
-      if (run.exitCode !== 0) retry = $.clock.after(RETRY_MS, () => void refresh())
+      if (run.exitCode !== 0) retry = $.clock.after(RETRY_MS, () => void load())
     } catch (err) {  // a failed read must not end the loop, whose end kills the waiter
       await update($, failure, () => `the board read failed: ${err}`).catch(() => undefined)
-      retry = $.clock.after(RETRY_MS, () => void refresh())
+      retry = $.clock.after(RETRY_MS, () => void load())
     }
   }
+  refresh = load
   void (async () => {
     const waiter = $.process.spawn({ argv: [`${$.plugin.root}/hooks/wait-team-change.py`] })
     for await (const piece of waiter) {
       if (!('text' in piece)) break
-      await refresh()
+      await load()
     }
   })()
 }
@@ -76,9 +79,10 @@ export const register: Register = on => {
     return ran
   }).catch(($, e, next) => next(e))  // a failed open must never fail the rename
 
-  // the owner closes the pane by its frame's x; this skill shows it again, with no model turn
+  // the owner closes the pane by its frame's x; this skill shows it again and reads the board anew, with no model turn
   on('command.run', { command: 'teamwork:issues' }, async ($) => {
     await openPane($)
+    await refresh?.()
     return { text: 'Issues pane shown' }
   }).catch(($, e, next) => next(e))  // a failed open falls back to the skill's body
 
