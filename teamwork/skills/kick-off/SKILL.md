@@ -13,7 +13,7 @@ Arguments: $ARGUMENTS
 
 ## Route
 
-`Read` the playbook of the first row that fits; the `route-event` hook names it again at each session start, and lists a worker's open held issues then and at each stop while one waits on it.
+`Read` the playbook of the first row that fits.
 
 | arguments | role | playbook |
 | --- | --- | --- |
