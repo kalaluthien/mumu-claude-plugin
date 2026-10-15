@@ -39,3 +39,5 @@ rule, skill or script gets fixed instead of the same mistake recurring. Haiku ag
 - **Every repeat**: file every repeat the steps reach; no cap per run.
 - **Issues only**: dejavu's output is issues and the files in `<d>`, nothing else, since lessons kept as notes did
   not stop these repeats.
+- **Check a change**: after editing `list-sessions.py` or `list-repeats.py`, run `python3 ${CLAUDE_SKILL_DIR}/scripts/probe-dejavu.py`; it must print `17 of 17 cases pass`.
+- **Measure repeats**: before tuning a signature, run `python3 ${CLAUDE_SKILL_DIR}/scripts/measure-repeats.py [days]` to count how many failures repeat across sessions.
