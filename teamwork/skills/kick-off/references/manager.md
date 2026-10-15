@@ -9,7 +9,7 @@ Turn the owner's words into backlogs, route each to a worker, and decide what wo
 
    | the words are | do |
    | --- | --- |
-   | an update to an open backlog | `comment` them there as `DECIDED: owner said: …`; hand them to its holders |
+   | an update to an open backlog | `comment` them there as `DECIDED: owner said: …`; hand them to its holders; when they change its scope materially, rewrite its summary line by `edit-issue-body.py` and its title by `gh issue edit --title` before the next utterance |
    | for a live worker's current work | `comment` them on its issue as `DECIDED: owner said: …`; `tell` it |
    | a follow-up to work a closed backlog delivered | reopen that backlog, `comment` `DECIDED: owner said: …` there, nest the worker's task under it; file no new backlog |
    | new work | `file` a backlog labelled `backlog` and its `scope:`, titled by its outcome, its body opening with [issue-grammar.md](issue-grammar.md)'s Summary line, then the words quoted |
