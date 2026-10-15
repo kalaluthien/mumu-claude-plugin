@@ -20,8 +20,8 @@ def load(path=GRAMMAR):
 KEYWORDS, KEYS, SECTIONS = load()
 WORD = {role: word for table in (KEYWORDS, KEYS) for word, role in table.items() if role}
 ITEM = re.compile(r"^(?:\d+\.|[-*])\s+(.*)$", re.M)
-# a criterion `[check] **<name>**: <details>`; one filed before names were asked for is its own name
-CRITERION = re.compile(r"^(?:(\[\w+\])\s+)?(?:\*\*(.+?)\*\*:?\s*)?(.*)$")
+# a criterion `[check] **<name>**: <details>`, after a task-list box when one marks it met; one filed before names were asked for is its own name
+CRITERION = re.compile(r"^(?:\[([ xX])\]\s+)?(?:\[(\w+)\]\s+)?(?:\*\*(.+?)\*\*:?\s*)?(.*)$")
 
 
 def keyword(text):
@@ -60,7 +60,7 @@ def holder_values(issue):
 def compose(issue, blockers=()):
     """{'holders': the latest names, or None when no record ever set them; 'waits': its wait line, in the grammar's order;
     'goal': the lines of the body's goal, its data blocks left out;
-    'done': the body's criteria, each {'kind', 'name', 'detail'}}."""
+    'done': the body's criteria, each {'met': True, False or None when it has no box, 'kind', 'name', 'detail'}}."""
     holders = (holder_values(issue) or [None])[-1]
     asked = exchange(issue)[-1:]
     if blockers:
@@ -71,6 +71,7 @@ def compose(issue, blockers=()):
         waits = "held" if holders else "deferred" if holders == [] else "no holder"
     # the body alone, since a section is edited there with its diff posted as a comment
     current = sections(issue.get("body"))
-    done = [dict(zip(("kind", "name", "detail"), CRITERION.match(c).groups())) for c in ITEM.findall(current.get("done", ""))]
-    done = [{"kind": d["kind"] or "", "name": d["name"] or d["detail"], "detail": d["detail"] if d["name"] else ""} for d in done]
+    done = [dict(zip(("box", "kind", "name", "detail"), CRITERION.match(c).groups())) for c in ITEM.findall(current.get("done", ""))]
+    done = [{"met": d["box"] and d["box"] != " ", "kind": d["kind"] or "", "name": d["name"] or d["detail"], "detail": d["detail"] if d["name"] else ""}
+            for d in done]
     return {"holders": holders, "waits": waits, "goal": [line for line in DATA.sub("", current.get("goal", "")).splitlines() if line.strip()], "done": done}
