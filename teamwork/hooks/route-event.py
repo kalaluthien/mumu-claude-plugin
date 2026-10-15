@@ -14,8 +14,19 @@ PLAYBOOKS = pathlib.Path(__file__).resolve().parents[1] / "skills" / "kick-off" 
 GRAMMAR = PLAYBOOKS / "issue-grammar.md"
 EDIT_BODY = PLAYBOOKS.parent / "scripts" / "edit-issue-body.py"
 # only where a command segment starts, so gh text quoted inside another command's argument is not read as a call
-GH_TEXT = re.compile(r"(?:^|&&|\|\||[;|(`\n]|\b(?:then|do|else)\s)\s*(?:\w+=\S*\s+)*(gh (issue|pr) (create|comment|edit)\b)")
+GH_TEXT = re.compile(r"(?:^|&&|\|\||[;|(`\n]|\b(?:then|do|else)\s)\s*(?:\w+=\S*\s+)*(gh (issue|pr) (create|comment|edit|close)\b)")
 SEGMENT_END = re.compile(r"&&|\|\||[;|)`]|(?<!\\)\n")  # a backslash-newline continues the command
+# the rules are found in the playbooks at each call, never copied here, so a playbook edit cannot leave a stale reminder
+REMINDED = {"gh issue create": ("`file`",), "gh issue comment": ("**Comment**", "`comment`"), "gh pr comment": ("**Comment**",),
+            "gh issue close": ("`resolve`",)}
+
+
+def reminder(command, role):
+    called, needles = next(((c, n) for c, n in REMINDED.items() if command.startswith(c)), (None, ()))
+    found = [f"- {path.relative_to(PLAYBOOKS.parents[1])}:{number}: {line.strip()}"
+             for path in (PLAYBOOKS.parent / "SKILL.md", PLAYBOOKS / f"{role}.md", GRAMMAR)
+             for number, line in enumerate(path.read_text().splitlines(), 1) if any(n in line for n in needles)]
+    return found and "\n".join([f"Reminder: the playbook rules this `{called}` must keep:", *found])
 
 
 def route(kind, event, role, me, listed):
@@ -36,8 +47,10 @@ def route(kind, event, role, me, listed):
               and re.search(r"(?<!\S)(--body-file|-F|--body|-b)[= ]", command)
               else "Write the text to a scratch file first, then pass it with --body-file." if re.search(r"(?<!\S)(--body|-b)[= ]", command)
               else f"Title is {size} characters; shorten it to 40, verb first. Nothing in this command ran, so write any body file again." if size and size > 40 else None)
-    return reason and {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny",
-                                              "permissionDecisionReason": reason}}
+    if not reason:  # remind, never block: the command still runs
+        text = command and reminder(command, role)
+        return text and {"hookSpecificOutput": {"hookEventName": kind, "additionalContext": text}}
+    return {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason": reason}}
 
 
 event = json.load(sys.stdin)
