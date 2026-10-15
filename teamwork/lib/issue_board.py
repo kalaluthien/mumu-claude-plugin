@@ -4,7 +4,7 @@ import re
 import issue_state
 
 # a task under its backlog: what needs someone first, what is held last
-URGENCY = ["waits on the owner", "waits on the manager", "no holder", "blocked", "held"]
+URGENCY = ["waits on the owner", "waits on the manager", "no holder", "blocked", "held", "deferred"]
 
 
 def summary_of(body):
@@ -21,7 +21,7 @@ def entry(node):
     holders = state["holders"] or []
     summary = node.get("subIssuesSummary") or {}
     progress = (f"{summary['total'] - summary['completed']} open · {summary['completed']} landed" if summary.get("total")
-                else f"routed to {' '.join(holders)}" if holders else "not started") if backlog else ""
+                else f"routed to {' '.join(holders)}" if holders else "" if state["waits"] == "deferred" else "not started") if backlog else ""
     return {"number": node["number"], "title": node["title"], "url": node["url"], "kind": "backlog" if backlog else "task",
             "holder": " ".join(holders), "wait": "" if state["waits"] == "held" or backlog and state["waits"] == "no holder" else state["waits"],
             "progress": progress, "goal": summary_of(node["body"]) if backlog else state["goal"], "done": [] if backlog else state["done"],

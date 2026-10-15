@@ -49,5 +49,6 @@ What an open issue waits on, first match:
 
 1. an open issue GitHub lists as blocking it: `blocked by #<n>`;
 2. its latest ask or answer is an ask: `waits on the owner` with audience `owner`, else `waits on the manager`;
-3. no names in its latest holders: `no holder`;
-4. else `held`.
+3. a holders record with no names, left for later: `deferred`;
+4. no holders record: `no holder`;
+5. else `held`.

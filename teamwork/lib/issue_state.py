@@ -65,7 +65,7 @@ def compose(issue, blockers=()):
     elif asked and asked[0][0] == "ask":
         waits = "waits on the owner" if asked[0][1].get(WORD["audience"]) == "owner" else "waits on the manager"
     else:
-        waits = "held" if holders else "no holder"
+        waits = "held" if holders else "deferred" if holders == [] else "no holder"
     # the body alone, since a section is edited there with its diff posted as a comment
     current = sections(issue.get("body"))
     goal = " ".join(line.strip() for line in current.get("goal", "").strip().split("\n\n")[0].splitlines() if line.strip())
