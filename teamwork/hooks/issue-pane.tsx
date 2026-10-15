@@ -33,8 +33,10 @@ export const register: Register = on => {
     } catch {
       return started  // outside herdr no session is a manager
     }
-    if (!name.endsWith('-manager')) return started
-    const project = name.slice(0, -'-manager'.length)
+    // a successor starts as `<manager>-next` and takes the name only later, when this hook has long run
+    const manager = name.replace(/-next$/, '')
+    if (!manager.endsWith('-manager')) return started
+    const project = manager.slice(0, -'-manager'.length)
     void $.ui.open({ id: PANE, title: 'Issues' }).catch(() => undefined)
     void (async () => {
       const waiter = $.process.spawn({ argv: [`${$.plugin.root}/hooks/wait-team-change.py`] })
