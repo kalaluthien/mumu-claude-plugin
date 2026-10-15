@@ -41,6 +41,15 @@ describe('issue pane', () => {
     expect(opened).toEqual(['issues'])
   })
 
+  test('the issues command shows the pane again, with no model turn', async ($, on) => {
+    const opened: string[] = []
+    on('ui.open', async (_$, e) => { opened.push(e.id); return { value: { isPlaced: true as const } } })
+    on('command.run', async () => { throw new Error('reached the skill body') })
+    const ran = await $.command.run({ command: 'teamwork:issues', args: '' } as never)
+    expect(opened).toEqual(['issues'])
+    expect(ran).toEqual({ text: 'Issues pane shown' })
+  })
+
   test('a worker session opens no pane', async ($, on) => {
     mock.env(on, { HERDR_PANE_ID: 'p1', HOME: '/h' })
     on('session.start', async (_$, e) => ({ cwd: e.cwd }))

@@ -61,6 +61,12 @@ export const register: Register = on => {
     return ran
   }).catch(($, e, next) => next(e))  // a failed open must never fail the rename
 
+  // the owner closes the pane by its frame's x; this skill shows it again, with no model turn
+  on('command.run', { command: 'teamwork:issues' }, async ($) => {
+    await $.ui.open({ id: PANE, title: 'Issues' })
+    return { text: 'Issues pane shown' }
+  }).catch(($, e, next) => next(e))  // a failed open falls back to the skill's body
+
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Link, Button } = $.ui.resolve(e)
     const unfolded = new Set(await read($, expanded))
