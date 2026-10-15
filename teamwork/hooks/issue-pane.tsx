@@ -73,14 +73,10 @@ export const register: Register = on => {
     // every blocker, as links: an open one bold, a closed one dim, so what still holds a task stands out
     const after = (t: { url: string; blockers: BoardIssue['blockers'] }) => t.blockers.length > 0 && [<Text dimColor>{' ←'}</Text>, ...t.blockers.map((b, k) =>
       <Text dimColor={b.closed} weight={b.closed ? undefined : 'semibold'}>{k ? ',' : ''}<Link href={t.url.replace(/\d+$/, String(b.number))} label={`#${b.number}`} /></Text>)]
-    // a goal or a criterion: its name on one line, its details only once that line is unfolded
+    // a goal or a criterion: its name on one line, its details only once a press on that line unfolds them
     const part = (key: string, name: string, detail: string[]) => (
       <Box flexDirection="column">
-        <Box flexDirection="row">
-          <Button key={`fold-${key}`} plain dimColor label={!detail.length ? ' ' : unfolded.has(key) ? '▾' : '▸'} onPress={toggle(key)} />
-          <Text> </Text>
-          <Button key={`row-${key}`} plain onPress={toggle(key)}><Text wrap="wrap">{name}</Text></Button>
-        </Box>
+        <Button key={`row-${key}`} plain onPress={toggle(key)}><Text wrap="wrap">{name}</Text></Button>
         {unfolded.has(key) && detail.map(d => <Box paddingLeft={2}><Text wrap="wrap" dimColor>{d}</Text></Box>)}
       </Box>
     )
@@ -91,12 +87,10 @@ export const register: Register = on => {
       return (
         <Box flexDirection="column">
           <Box flexDirection="row">
-            <Button key={`fold-${i.number}`} plain dimColor label={open ? '▾' : '▸'} onPress={toggle(i.number)} />
-            <Text> </Text>
             {/* the link first, so a narrow pane wraps the title, never the link */}
             <Text color={i.kind === 'backlog' ? 'merged' : 'claude'} weight="semibold"><Link href={i.url} label={`#${i.number}`} /></Text>
             <Text> </Text>
-            {/* the whole rest of the row folds, a wider target than the arrow; a Button holds only Text, so no link sits in it */}
+            {/* the whole rest of the row folds; a Button holds only Text, so no link sits in it */}
             <Button key={`row-${i.number}`} plain onPress={toggle(i.number)}>
               <Text wrap="wrap" weight="semibold">{i.title}</Text>
               {line.length > 0 && <Text> </Text>}
@@ -104,6 +98,9 @@ export const register: Register = on => {
             </Button>
             {/* a blocker is a link, so it sits outside the Button, last in the row as the wait was */}
             {after(i)}
+            {/* only a box folds by a mark, a + or - at its top-right */}
+            <Box flexGrow={1} />
+            <Button key={`fold-${i.number}`} plain dimColor label={open ? ' -' : ' +'} onPress={toggle(i.number)} />
           </Box>
           <Box paddingLeft={2} flexDirection="column">
             {/* every entry folds alike, so an empty one says so when unfolded */}
@@ -112,22 +109,21 @@ export const register: Register = on => {
             {/* the title sums a task up, so its goal is detail, folded */}
             {open && i.detail.length > 0 && part(`goal-${i.number}`, 'Goal', i.detail)}
             {open && i.done.length > 0 && <Text>DoD:</Text>}
-            {open && i.done.map((d, k) => <Box paddingLeft={2}>{part(`done-${i.number}-${k}`, [d.kind, d.name].filter(Boolean).join(' '), d.detail ? [d.detail] : [])}</Box>)}
+            {open && i.done.map((d, k) => part(`done-${i.number}-${k}`, [d.kind, d.name].filter(Boolean).join(' '), d.detail ? [d.detail] : []))}
             {open && i.next && <Text wrap="wrap">{`next step: ${i.next}`}</Text>}
-            {open && i.tasks.map(t => <Box marginTop={1}>{entry(t)}</Box>)}
+            {open && i.tasks.map(t => framed(t))}
             {/* closed tasks after the open ones, dim and newest first, so what landed last stays in view */}
             {open && i.closed.length > 0 && <Box marginTop={1} flexDirection="column">{i.closed.map(t => <Text wrap="wrap" dimColor><Link href={t.url} label={`#${t.number}`} />{` ${t.title}`}{after(t)}</Text>)}{i.earlier && <Text dimColor>…</Text>}</Box>}
           </Box>
         </Box>
       )
     }
+    // a border sets each backlog and each task apart from the next
+    const framed = (i: BoardIssue) => <Box borderStyle="round" borderDimColor paddingX={1}>{entry(i)}</Box>
     const list = await read($, board)
     return (
       <Box flexDirection="column">
-        {list.length === 0 ? <Text dimColor>No open issues read yet.</Text> : list.map(i => (
-          // a border sets each backlog with its tasks apart from the next
-          <Box borderStyle="round" borderDimColor paddingX={1}>{entry(i)}</Box>
-        ))}
+        {list.length === 0 ? <Text dimColor>No open issues read yet.</Text> : list.map(framed)}
       </Box>
     )
   })
