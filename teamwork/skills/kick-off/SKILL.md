@@ -65,6 +65,6 @@ The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef
 - `tell`: `SendMessage` to the `ListAgents` name, one message naming the url that holds what it needs and stating a fact, never a step for the peer to run
 - `judge`: a fresh `Agent` on `sonnet` at `high`, prompted `Read ${CLAUDE_PLUGIN_ROOT}/skills/kick-off/references/judge.md, then judge <url or path>.`; `tell` it to resume
 - `rename`: `herdr tab rename <tab> <name>` (tab from `herdr pane get $HERDR_PANE_ID`), then `herdr pane rename`, `herdr agent rename` and `herdr agent prompt … "/rename <name>"` on `$HERDR_PANE_ID`; a manager also `herdr workspace rename <workspace> <project>`
-- `start`: `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/start-session.py <name> <cwd> "<kick-off arguments>" --model <m> --effort <e> [--team]`, a tab in your workspace, or a new workspace with `--team`
+- `start`: `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/start-session.py <name> <cwd> "<kick-off arguments>" --model <m> --effort <e> [--team | --beside <agent>]`, a tab in your workspace, a new workspace with `--team`, or a tab in `<agent>`'s workspace with `--beside`
 - `close`: `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/close-session.py <name>`, yours included
 - `remove`: `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/remove-worktree.py <name>...`
