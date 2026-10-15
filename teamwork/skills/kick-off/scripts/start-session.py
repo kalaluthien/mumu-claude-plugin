@@ -15,6 +15,8 @@ from json_command import run  # noqa: E402
 TIMEOUT, POLL = float(os.environ.get("START_SESSION_TIMEOUT", 120)), 1.0
 # claude.ai connectors (Gmail, Drive, Notion...) serve no teamwork role, and their tool list costs ~5k tokens every turn
 SETTINGS = json.dumps({"disableClaudeAiConnectors": True})
+# no role publishes pages, a worker asks the owner through its manager, a manager orchestrates by hand: each tool's description costs ~2-11k tokens
+TOOLS_OFF = {"worker": "Artifact,AskUserQuestion", "manager": "Artifact,Workflow"}
 
 
 def herdr(*argv):
@@ -47,7 +49,8 @@ def start(a, pane):
     while True:
         p = subprocess.run(["herdr", "agent", "start", a.name, "--kind", "claude", "--pane", pane, "--", "--name", a.name,
                             "--plugin-dir", str(ROOT), "--model", a.model, "--effort", a.effort,
-                            "--settings", SETTINGS], capture_output=True, text=True)
+                            "--settings", SETTINGS, "--disallowedTools", TOOLS_OFF[a.args.split()[0] if a.args.startswith("worker ") else "manager"]],
+                           capture_output=True, text=True)
         out = p.stdout + p.stderr
         if not p.returncode or '"agent_not_ready"' in out:  # not ready: the trust dialog holds it
             return
