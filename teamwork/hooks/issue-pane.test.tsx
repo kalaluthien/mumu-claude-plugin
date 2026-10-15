@@ -25,6 +25,17 @@ describe('issue pane', () => {
     expect(opened).toEqual(['issues'])
   })
 
+  test('a successor manager opens the issues pane under its starting name', async ($, on) => {
+    mock.env(on, { HERDR_PANE_ID: 'p1', HOME: '/h' })
+    on('session.start', async (_$, e) => ({ cwd: e.cwd }))
+    const opened: string[] = []
+    on('process.run', async () => ok(JSON.stringify({ result: { agents: [{ pane_id: 'p1', name: 'teamwork-manager-next' }] } })))
+    on('process.spawn', async function* () { return { value: { code: 0, signal: null } } })
+    on('ui.open', async (_$, e) => { opened.push(e.id); return { value: { isPlaced: true as const } } })
+    await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
+    expect(opened).toEqual(['issues'])
+  })
+
   test('a worker session opens no pane', async ($, on) => {
     mock.env(on, { HERDR_PANE_ID: 'p1', HOME: '/h' })
     on('session.start', async (_$, e) => ({ cwd: e.cwd }))
