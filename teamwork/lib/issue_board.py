@@ -97,7 +97,7 @@ def board(nodes):
 
 def after(blockers):
     """What a task follows, every blocker, a landed one marked closed."""
-    return "←" + ",".join(f"#{b['number']}{' closed' * b['closed']}" for b in blockers) if blockers else ""
+    return "← " + ",".join(f"#{b['number']}{' closed' * b['closed']}" for b in blockers) if blockers else ""
 
 
 def criterion(d):

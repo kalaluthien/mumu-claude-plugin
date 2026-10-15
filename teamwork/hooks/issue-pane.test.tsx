@@ -250,8 +250,8 @@ describe('issue pane', () => {
     const ui = await mounted($, on, [issue(1, 'backlog', { earlier: true, closed: [{ number: 3, title: 'Landed issue', url: 'https://example.test/3', blockers: [{ number: 2, closed: true }] }] })])
     await unfold(ui, 1)
     const texts = (await ui.findAll({ type: 'Text' })).map(t => t.text)
-    expect(texts.indexOf('…')).toBeGreaterThan(texts.indexOf('#3 Landed issue ←#2'))
-    expect(texts.indexOf('#3 Landed issue ←#2')).toBeGreaterThan(-1)
+    expect(texts.indexOf('…')).toBeGreaterThan(texts.indexOf('#3 Landed issue ← #2'))
+    expect(texts.indexOf('#3 Landed issue ← #2')).toBeGreaterThan(-1)
   })
 
   test('every blocker beside a task is a link, a closed one dim, an open one bold', async ($, on) => {

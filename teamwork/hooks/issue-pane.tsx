@@ -7,7 +7,7 @@ const PANE = 'issues'
 const board = atom({ plugin: 'teamwork', key: 'board' } as const, [] as BoardIssue[])
 // the entries, goals and criteria the manager unfolded, kept across redraws; every other shows its one line
 const expanded = atom({ plugin: 'teamwork', key: 'expanded' } as const, [] as (number | string)[])
-// a wait that needs someone stands out; any other, such as `←#n` beside a blocked task, stays dim
+// a wait that needs someone stands out; any other, such as `← #n` beside a blocked task, stays dim
 const WAIT_COLOR: Record<string, string> = { 'waits on the owner': 'error', 'waits on the manager': 'warning' }
 // a write to issues, sub-issues or their order, the changes the board shows; the body script's gh runs out of sight
 const TEAM_CHANGE = /\bedit-issue-body\.py\b|\bgh\s+(issue|pr)\s+(create|comment|edit|close|reopen|merge)\b|\bgh\s+api\b.*\b(issues|sub_issues|dependencies)\b/
@@ -77,7 +77,7 @@ export const register: Register = on => {
       i.wait && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.wait}</Text>,
     ].filter(Boolean).flatMap((x, k) => (k ? [<Text> </Text>, x] : [x]))
     // every blocker, as links: an open one bold, a closed one dim, so what still holds a task stands out
-    const after = (t: { url: string; blockers: BoardIssue['blockers'] }) => t.blockers.length > 0 && [<Text dimColor>{' ←'}</Text>, ...t.blockers.map((b, k) =>
+    const after = (t: { url: string; blockers: BoardIssue['blockers'] }) => t.blockers.length > 0 && [<Text dimColor>{' ← '}</Text>, ...t.blockers.map((b, k) =>
       <Text dimColor={b.closed} weight={b.closed ? undefined : 'semibold'}>{k ? ',' : ''}<Link href={t.url.replace(/\d+$/, String(b.number))} label={`#${b.number}`} /></Text>)]
     // a goal or a criterion: its name on one line, its details only once a press on that line unfolds them; unfolded, the name goes gray so the white detail reads first
     const part = (key: string, name: string, detail: string[]) => (
