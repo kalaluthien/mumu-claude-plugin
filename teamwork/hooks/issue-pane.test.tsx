@@ -3,7 +3,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 const manager = JSON.stringify({ result: { agents: [{ pane_id: 'p1', name: 'teamwork-manager' }] } })
 const worker = JSON.stringify({ result: { agents: [{ pane_id: 'p1', name: 'x-worker' }] } })
 const issue = (number: number, kind: 'backlog' | 'task', fields: object = {}) =>
-  ({ number, title: `Issue ${number}`, url: `https://example.test/${number}`, kind, holder: '', wait: '', progress: '', goal: '', done: [], next: '', tasks: [], blockers: [], layer: 0, closed: [], ...fields })
+  ({ number, title: `Issue ${number}`, url: `https://example.test/${number}`, kind, holder: '', wait: '', progress: '', goal: '', done: [], next: '', tasks: [], blockers: [], layer: 0, closed: [], earlier: false, ...fields })
 const task = issue(2, 'task', { title: 'Second issue', holder: 'x-worker', wait: 'waits on the owner', goal: 'Do the thing', done: ['[check] it prints'] })
 const board = JSON.stringify([issue(1, 'backlog', { title: 'First issue', progress: '1 open, 0 landed', tasks: [task] })])
 const long = (word: string) => `${word} `.repeat(60).slice(0, 300)
@@ -193,6 +193,14 @@ describe('issue pane', () => {
     const row = await ui.find({ type: 'Text', text: /^#3 Landed issue$/ })
     expect(row?.props.dimColor).toBe(true)
     expect(row!.children[0]).toMatchObject({ type: 'Link', props: { href: 'https://example.test/3', label: '#3' } })
+  })
+
+  test('an ellipsis sits above the closed tasks when earlier ones are cut', async ($, on) => {
+    const ui = await mounted($, on, [issue(1, 'backlog', { earlier: true, closed: [{ number: 3, title: 'Landed issue', url: 'https://example.test/3' }] })])
+    await unfold(ui, 1)
+    const texts = (await ui.findAll({ type: 'Text' })).map(t => t.text)
+    expect(texts.indexOf('…')).toBeLessThan(texts.indexOf('#3 Landed issue'))
+    expect(texts.indexOf('…')).toBeGreaterThan(-1)
   })
 
   test('a press on the title or status folds the entry, as the arrow does', async ($, on) => {

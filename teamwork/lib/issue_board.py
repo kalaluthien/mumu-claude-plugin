@@ -4,6 +4,8 @@ import re
 import issue_state
 
 # a task under its backlog: what needs someone first, what is held last
+# the latest closed tasks a backlog lists, an ellipsis above them when more landed before
+SHOWN_CLOSED = 20
 URGENCY = ["waits on the owner", "waits on the manager", "no holder", "blocked", "held", "deferred"]
 
 
@@ -26,6 +28,7 @@ def entry(node):
     backlog = "backlog" in [x["name"] for x in node["labels"]["nodes"]]
     holders = state["holders"] or []
     summary = node.get("subIssuesSummary") or {}
+    closed = [{"number": t["number"], "title": t["title"], "url": t["url"]} for t in (node.get("subIssues") or {}).get("nodes", []) if t["state"] == "CLOSED"]
     progress = (f"{summary['total'] - summary['completed']} open, {summary['completed']} landed" if summary.get("total")
                 else "" if holders or state["waits"] == "deferred" else "not started") if backlog else ""
     return {"number": node["number"], "title": node["title"], "url": node["url"], "kind": "backlog" if backlog else "task",
@@ -33,8 +36,7 @@ def entry(node):
             "progress": progress, "goal": summary_of(node["body"]) if backlog else state["goal"], "done": [] if backlog else state["done"],
             "next": next_step_of(node["comments"]["nodes"]) if backlog and summary.get("total", 0) == summary.get("completed", 0) else "",
             "urgency": URGENCY.index(state["waits"].split(" by ")[0]), "tasks": [], "blockers": blockers, "layer": 0,
-            "closed": [{"number": t["number"], "title": t["title"], "url": t["url"]}
-                       for t in (node.get("subIssues") or {}).get("nodes", []) if t["state"] == "CLOSED"]}
+            "closed": closed[-SHOWN_CLOSED:], "earlier": summary.get("completed", 0) > min(len(closed), SHOWN_CLOSED)}
 
 
 def related(nodes, items):
@@ -111,4 +113,5 @@ def lines(issues, depth=0):
         yield from (f"{pad}- {d}" for d in i["done"])
         yield from ([f"{pad}next step: {i['next']}"] if i["next"] else [])
         yield from lines(i["tasks"], depth_here + 1)
+        yield from ([f"{pad}…"] if i["earlier"] else [])
         yield from (f"{pad}#{t['number']} {t['title']} closed" for t in i["closed"])
