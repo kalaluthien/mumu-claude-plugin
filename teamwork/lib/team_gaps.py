@@ -22,13 +22,14 @@ def manager_actions(me, listed):
     prs = run("gh", "pr", "list", "--state", "merged", "--limit", str(PR_LIMIT), "--json", "number,headRefName")
     if found is None or prs is None:
         return None
-    lines = limited(found, ISSUE_LIMIT, "open-issue") + limited(prs, PR_LIMIT, "merged-PR")
+    lines = limited(found, ISSUE_LIMIT, "open-issue")  # merged PRs past the newest are always many and no live worker's
     # a started worker names its tab before its agent is live, so its tab counts it as routed
     tabs = (run("herdr", "tab", "list", "--workspace", me.get("workspace_id", "")) or {}).get("result", {}).get("tabs", [])
     present = set(team) | {t.get("label") for t in tabs}
     for i in found:
-        if not any(holds(i, n) for n in present if n):
-            lines.append(f"route #{i['number']} {i['title']}: no live worker holds it; route it, or leave it for later")
+        deferred = issue_state.compose(i)["holders"] == []  # holders set empty records a decision to leave it for later
+        if not deferred and not any(holds(i, n) for n in present if n):
+            lines.append(f"route #{i['number']} {i['title']}: no live worker holds it; route it, or leave it for later by a {ANSWER}: with an empty holders")
         if asking(i):
             lines.append(f"answer #{i['number']}: its worker asks; post your {ANSWER}: there; the worker waits on it")
     for n in team:
