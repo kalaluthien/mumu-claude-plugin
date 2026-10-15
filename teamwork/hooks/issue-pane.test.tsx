@@ -203,6 +203,12 @@ describe('issue pane', () => {
     expect(texts.indexOf('…')).toBeGreaterThan(-1)
   })
 
+  test('each blocker beside a task is a link to it', async ($, on) => {
+    const ui = await mounted($, on, [issue(4, 'task', { blockers: [21, 22], wait: '←#21,#22' })])
+    const links = (await ui.findAll({ type: 'Link' })).map(l => [l.props.label, l.props.href])
+    expect(links).toEqual([['#4', 'https://example.test/4'], ['#21', 'https://example.test/21'], ['#22', 'https://example.test/22']])
+  })
+
   test('a press on the title or status folds the entry, as the arrow does', async ($, on) => {
     const ui = await mounted($, on, [issue(1, 'backlog', { goal: 'The summary' })])
     await ui.press({ key: 'row-1' })
