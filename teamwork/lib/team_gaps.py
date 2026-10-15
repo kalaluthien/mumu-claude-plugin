@@ -26,9 +26,8 @@ def manager_actions(me, listed):
     # a started worker names its tab before its agent is live, so its tab counts it as routed
     present = set(team) | {t.get("label") for t in tabs(me.get("workspace_id", ""))}
     for i in found:
-        deferred = issue_state.compose(i)["holders"] == []  # holders set empty records a decision to leave it for later
-        if not deferred and not any(holds(i, n) for n in present if n):
-            lines.append(f"route #{i['number']} {i['title']}: no live worker holds it; route it, or leave it for later by a {ANSWER}: with an empty holders")
+        if not issue_state.deferral(i) and not any(holds(i, n) for n in present if n):
+            lines.append(f"route #{i['number']} {i['title']}: no live worker holds it; route it, or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
         if asking(i):
             lines.append(f"answer #{i['number']}: its worker asks; post your {ANSWER}: there; the worker waits on it")
     for n in team:

@@ -57,21 +57,33 @@ def holder_values(issue):
     return [d[WORD["holders"]].split() for _, d, _ in records(issue) if WORD["holders"] in d]
 
 
+def deferral(issue):
+    """Why it is left for later: the latest deferral's reason, or None when none was set or holders with names came after it."""
+    reason = None
+    for _, d, _ in records(issue):
+        if d.get(WORD["holders"]):
+            reason = None
+        if WORD["deferral"] in d:
+            reason = d[WORD["deferral"]] or None
+    return reason
+
+
 def compose(issue, blockers=()):
-    """{'holders': the latest names, or None when no record ever set them; 'waits': its wait line, in the grammar's order;
+    """{'holders': the latest names, or None when no record ever set them; 'deferred': its deferral's reason or None; 'waits': its wait line, in the grammar's order;
     'goal': the lines of the body's goal, its data blocks left out;
     'done': the body's criteria, each {'met': True, False or None when it has no box, 'kind', 'name', 'detail'}}."""
     holders = (holder_values(issue) or [None])[-1]
+    deferred = deferral(issue)
     asked = exchange(issue)[-1:]
     if blockers:
         waits = " ".join(f"blocked by #{n}" for n in blockers)
     elif asked and asked[0][0] == "ask":
         waits = "waits on the owner" if asked[0][1].get(WORD["audience"]) == "owner" else "waits on the manager"
     else:
-        waits = "held" if holders else "deferred" if holders == [] else "no holder"
+        waits = "held" if holders else "deferred" if deferred else "no holder"
     # the body alone, since a section is edited there with its diff posted as a comment
     current = sections(issue.get("body"))
     done = [dict(zip(("box", "kind", "name", "detail"), CRITERION.match(c).groups())) for c in ITEM.findall(current.get("done", ""))]
     done = [{"met": d["box"] and d["box"] != " ", "kind": d["kind"] or "", "name": d["name"] or d["detail"], "detail": d["detail"] if d["name"] else ""}
             for d in done]
-    return {"holders": holders, "waits": waits, "goal": [line for line in DATA.sub("", current.get("goal", "")).splitlines() if line.strip()], "done": done}
+    return {"holders": holders, "deferred": deferred, "waits": waits, "goal": [line for line in DATA.sub("", current.get("goal", "")).splitlines() if line.strip()], "done": done}
