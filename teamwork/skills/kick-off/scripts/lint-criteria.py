@@ -13,7 +13,7 @@ import issue_state  # noqa: E402
 
 # a run of n backticks closes only on a run of exactly n, so a ``…`` span may hold single backticks
 SPAN = re.compile(r"(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)")
-WORD = r"[\s`]+([A-Za-z0-9-]+)"
+WORD = r"[^A-Za-z0-9-]+([A-Za-z0-9-]+)"
 
 
 def defects(kind, name, detail):
