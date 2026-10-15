@@ -5,18 +5,12 @@ import type { BoardIssue } from '../types'
 
 const PANE = 'issues'
 const board = atom({ plugin: 'teamwork', key: 'board' } as const, [] as BoardIssue[])
-// a write to issues, sub-issues or their order, the changes the board shows
-const TEAM_CHANGE = /\bgh\s+(issue|pr)\s+(create|comment|edit|close|reopen|merge)\b|\bgh\s+api\b.*\b(issues|sub_issues|dependencies)\b/
-
-// where the pane was drawn or not, kept so the app's attach can be told apart from its absence (#598)
-let noted = Promise.resolve()
-// one note at a time, since each rewrites the whole file and two at once would drop one
-const note = ($: any, record: object) => (noted = noted.then(async () => {
-  const path = `${await $.env.get('HOME')}/.claude/teamwork/pane-surfaces.log`
-  const old = await $.fs.read(path).catch(() => '')
-  const line = JSON.stringify({ at: new Date().toISOString(), ...record, surfaces: await $.session.surfaces(), panes: await $.ui.panes() })
-  await $.fs.write(path, `${old}${line}\n`)
-}).catch(() => undefined))
+// the entries the manager folded to their link line, kept across redraws
+const collapsed = atom({ plugin: 'teamwork', key: 'collapsed' } as const, [] as number[])
+// a wait that needs someone stands out; one blocked by an issue only waits
+const WAIT_COLOR: Record<string, string> = { 'waits on the owner': 'error', 'waits on the manager': 'warning', 'no holder': 'subtle', blocked: 'subtle' }
+// a write to issues, sub-issues or their order, the changes the board shows; the body script's gh runs out of sight
+const TEAM_CHANGE = /\bedit-issue-body\.py\b|\bgh\s+(issue|pr)\s+(create|comment|edit|close|reopen|merge)\b|\bgh\s+api\b.*\b(issues|sub_issues|dependencies)\b/
 
 export const register: Register = on => {
   // every team session marks its change, so the manager's waiter wakes without reading GitHub
@@ -41,7 +35,7 @@ export const register: Register = on => {
     }
     if (!name.endsWith('-manager')) return started
     const project = name.slice(0, -'-manager'.length)
-    void $.ui.open({ id: PANE, title: 'Issues' }).then(opened => note($, { event: 'open', opened })).catch(() => undefined)
+    void $.ui.open({ id: PANE, title: 'Issues' }).catch(() => undefined)
     void (async () => {
       const waiter = $.process.spawn({ argv: [`${$.plugin.root}/hooks/wait-team-change.py`] })
       for await (const piece of waiter) {
@@ -56,39 +50,46 @@ export const register: Register = on => {
     return started
   })
 
-  on('session.attach', async ($, e, next) => {
-    const attached = await next(e)
-    if ((await $.ui.panes()).some((p: { id: string }) => p.id === PANE))
-      await note($, { event: 'attach', surface: e.surface, clientId: e.clientId, viewport: e.viewport })
-    return attached
-  }).catch(($, e, next) => next(e))  // a failed note must never fail the attach
-
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Text, Link } = $.ui.resolve(e)
-    const rows = (issues: BoardIssue[], depth: number): JSX.Element[] =>
-      issues.flatMap(i => [
-        <Box paddingLeft={depth * 2} flexDirection="column">
-          {/* the link first, so cutting the row at the pane's width cuts the title, never the link */}
-          <Text wrap="truncate-end">
-            <Link href={i.url} label={`${i.kind}#${i.number}`} /> {i.title}
-          </Text>
-          <Box paddingLeft={2} flexDirection="column">
-            <Text dimColor wrap="truncate-end">goal: {i.goal}</Text>
-            <Text dimColor>{i.done.length ? 'definition-of-done:' : 'definition-of-done: none'}</Text>
-            {i.done.map(d => (
-              <Box paddingLeft={2}>
-                <Text dimColor wrap="truncate-end">- {d}</Text>
-              </Box>
-            ))}
-            <Text dimColor wrap="truncate-end">holder: {i.holder}</Text>
+    const { Box, Text, Link, Button } = $.ui.resolve(e)
+    const folded = new Set(await read($, collapsed))
+    const toggle = (n: number) => () => void update($, collapsed, old => old.includes(n) ? old.filter(x => x !== n) : [...old, n])
+    const status = (i: BoardIssue) => [
+      i.progress && <Text dimColor>{i.progress}</Text>,
+      i.kind === 'task' && i.holder && <Text color="suggestion">{i.holder}</Text>,
+      i.wait && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.wait}</Text>,
+    ].filter(Boolean).flatMap((x, k) => (k ? [<Text dimColor> · </Text>, x] : [x]))
+    const entry = (i: BoardIssue): JSX.Element => {
+      const open = !folded.has(i.number)
+      const line = status(i)
+      return (
+        <Box flexDirection="column">
+          <Box flexDirection="row">
+            <Button key={`fold-${i.number}`} plain dimColor label={open ? '▾' : '▸'} onPress={toggle(i.number)} />
+            <Text> </Text>
+            {/* the link first, so a narrow pane wraps the title, never the link */}
+            <Text wrap="wrap">
+              <Text color={i.kind === 'backlog' ? 'merged' : 'claude'} weight="semibold"><Link href={i.url} label={`${i.kind}#${i.number}`} /></Text>
+              {' '}
+              <Text wrap="wrap" weight="semibold">{i.title}</Text>
+            </Text>
           </Box>
-        </Box>,
-        ...rows(i.tasks, depth + 1),
-      ])
+          <Box paddingLeft={2} flexDirection="column">
+            {line.length > 0 && <Text wrap="wrap">{line}</Text>}
+            {open && i.goal && <Text wrap="wrap">{i.goal}</Text>}
+            {open && i.done.map(d => <Text wrap="wrap" dimColor>{`• ${d}`}</Text>)}
+            {open && i.tasks.map(t => <Box marginTop={1}>{entry(t)}</Box>)}
+          </Box>
+        </Box>
+      )
+    }
     const list = await read($, board)
     return (
       <Box flexDirection="column">
-        {list.length === 0 ? <Text dimColor>No open issues read yet.</Text> : rows(list, 0)}
+        {list.length === 0 ? <Text dimColor>No open issues read yet.</Text> : list.map(i => (
+          // a border sets each backlog with its tasks apart from the next
+          <Box borderStyle="round" borderDimColor paddingX={1}>{entry(i)}</Box>
+        ))}
       </Box>
     )
   })

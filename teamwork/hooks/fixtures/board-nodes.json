@@ -1,0 +1,296 @@
+[
+ {
+  "number": 10,
+  "title": "Show live issues",
+  "url": "https://github.com/o/r/issues/10",
+  "body": "Owner's words.",
+  "parent": null,
+  "labels": {
+   "nodes": [
+    {
+     "name": "backlog"
+    }
+   ]
+  },
+  "subIssuesSummary": {
+   "total": 5,
+   "completed": 0
+  },
+  "blockedBy": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  }
+ },
+ {
+  "number": 11,
+  "title": "Held task",
+  "url": "https://github.com/o/r/issues/11",
+  "body": "Part of #10.\n\n## Goal\n\nShip held task.\n\nMore context.\n\n## Definition of done\n\n1. [check] Held task prints ok.\n\n```teamwork\nholders: a-worker\n```\n",
+  "parent": {
+   "number": 10
+  },
+  "labels": {
+   "nodes": []
+  },
+  "subIssuesSummary": {
+   "total": 0,
+   "completed": 0
+  },
+  "blockedBy": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  }
+ },
+ {
+  "number": 12,
+  "title": "Blocked task",
+  "url": "https://github.com/o/r/issues/12",
+  "body": "Part of #10.\n\n## Goal\n\nShip blocked task.\n\nMore context.\n\n## Definition of done\n\n1. [check] Blocked task prints ok.\n\n```teamwork\nholders: b-worker\n```\n",
+  "parent": {
+   "number": 10
+  },
+  "labels": {
+   "nodes": []
+  },
+  "subIssuesSummary": {
+   "total": 0,
+   "completed": 0
+  },
+  "blockedBy": {
+   "nodes": [
+    {
+     "number": 11,
+     "state": "OPEN"
+    }
+   ]
+  },
+  "comments": {
+   "nodes": []
+  }
+ },
+ {
+  "number": 13,
+  "title": "Unheld task",
+  "url": "https://github.com/o/r/issues/13",
+  "body": "Part of #10.\n\n## Goal\n\nShip unheld task.\n\nMore context.\n\n## Definition of done\n\n1. [check] Unheld task prints ok.\n",
+  "parent": {
+   "number": 10
+  },
+  "labels": {
+   "nodes": []
+  },
+  "subIssuesSummary": {
+   "total": 0,
+   "completed": 0
+  },
+  "blockedBy": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  }
+ },
+ {
+  "number": 14,
+  "title": "Manager wait",
+  "url": "https://github.com/o/r/issues/14",
+  "body": "Part of #10.\n\n## Goal\n\nShip manager wait.\n\nMore context.\n\n## Definition of done\n\n1. [check] Manager wait prints ok.\n\n```teamwork\nholders: c-worker\n```\n",
+  "parent": {
+   "number": 10
+  },
+  "labels": {
+   "nodes": []
+  },
+  "subIssuesSummary": {
+   "total": 0,
+   "completed": 0
+  },
+  "blockedBy": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": [
+    {
+     "body": "BLOCKED: which route?\n\nOptions: a or b.",
+     "url": "https://github.com/o/r/issues/14#c0"
+    }
+   ]
+  }
+ },
+ {
+  "number": 15,
+  "title": "Owner wait",
+  "url": "https://github.com/o/r/issues/15",
+  "body": "Part of #10.\n\n## Goal\n\nShip owner wait.\n\nMore context.\n\n## Definition of done\n\n1. [check] Owner wait prints ok.\n\n```teamwork\nholders: d-worker\n```\n",
+  "parent": {
+   "number": 10
+  },
+  "labels": {
+   "nodes": []
+  },
+  "subIssuesSummary": {
+   "total": 0,
+   "completed": 0
+  },
+  "blockedBy": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": [
+    {
+     "body": "BLOCKED: which look?\n\n```teamwork\nasks: owner\n```\n",
+     "url": "https://github.com/o/r/issues/15#c0"
+    }
+   ]
+  }
+ },
+ {
+  "number": 20,
+  "title": "Plan intent",
+  "url": "https://github.com/o/r/issues/20",
+  "body": "Rough words.",
+  "parent": null,
+  "labels": {
+   "nodes": [
+    {
+     "name": "backlog"
+    }
+   ]
+  },
+  "subIssuesSummary": {
+   "total": 0,
+   "completed": 0
+  },
+  "blockedBy": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  }
+ },
+ {
+  "number": 30,
+  "title": "Follow up the pane",
+  "url": "https://github.com/o/r/issues/30",
+  "body": "Builds on #10.\n```teamwork\nholders: w\n```\n",
+  "parent": null,
+  "labels": {
+   "nodes": [
+    {
+     "name": "backlog"
+    }
+   ]
+  },
+  "subIssuesSummary": {
+   "total": 0,
+   "completed": 0
+  },
+  "blockedBy": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  }
+ },
+ {
+  "number": 40,
+  "title": "Collect comparisons",
+  "url": "https://github.com/o/r/issues/40",
+  "body": "Rough words.",
+  "parent": null,
+  "labels": {
+   "nodes": [
+    {
+     "name": "backlog"
+    }
+   ]
+  },
+  "subIssuesSummary": {
+   "total": 1,
+   "completed": 0
+  },
+  "blockedBy": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  }
+ },
+ {
+  "number": 41,
+  "title": "Compare tools",
+  "url": "https://github.com/o/r/issues/41",
+  "body": "Part of #40.\n\n## Goal\n\nShip compare tools.\n\nMore context.\n\n## Definition of done\n\n1. [check] Compare tools prints ok.\n\n```teamwork\nholders: e-worker\n```\n",
+  "parent": {
+   "number": 40
+  },
+  "labels": {
+   "nodes": []
+  },
+  "subIssuesSummary": {
+   "total": 0,
+   "completed": 0
+  },
+  "blockedBy": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  }
+ },
+ {
+  "number": 50,
+  "title": "Move lessons",
+  "url": "https://github.com/o/r/issues/50",
+  "body": "Rough words.",
+  "parent": null,
+  "labels": {
+   "nodes": [
+    {
+     "name": "backlog"
+    }
+   ]
+  },
+  "subIssuesSummary": {
+   "total": 1,
+   "completed": 0
+  },
+  "blockedBy": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  }
+ },
+ {
+  "number": 51,
+  "title": "Move one lesson",
+  "url": "https://github.com/o/r/issues/51",
+  "body": "Part of #50.\n\n## Goal\n\nShip move one lesson.\n\nMore context.\n\n## Definition of done\n\n1. [check] Move one lesson prints ok.\n\n```teamwork\nholders: f-worker\n```\n",
+  "parent": {
+   "number": 50
+  },
+  "labels": {
+   "nodes": []
+  },
+  "subIssuesSummary": {
+   "total": 0,
+   "completed": 0
+  },
+  "blockedBy": {
+   "nodes": [
+    {
+     "number": 41,
+     "state": "OPEN"
+    }
+   ]
+  },
+  "comments": {
+   "nodes": []
+  }
+ }
+]
