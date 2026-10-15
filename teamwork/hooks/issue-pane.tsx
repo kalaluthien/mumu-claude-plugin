@@ -66,12 +66,12 @@ export const register: Register = on => {
     const unfolded = new Set(await read($, expanded))
     const toggle = (n: number) => () => void update($, expanded, old => old.includes(n) ? old.filter(x => x !== n) : [...old, n])
     // an issue's url ends in its number, so a sibling's url swaps that number
-    const after = (i: { url: string; after: number[] }) => i.after.length > 0 &&
-      <Text dimColor>after {i.after.flatMap((n, k) => [k ? ', ' : '', <Link href={i.url.replace(/\d+$/, String(n))} label={`#${n}`} />])}</Text>
+    const links = (url: string, ns: number[]) => ns.flatMap((n, k) => [k ? ', ' : '', <Link href={url.replace(/\d+$/, String(n))} label={`#${n}`} />])
+    const after = (i: { url: string; after: number[] }) => i.after.length > 0 && <Text dimColor>after {links(i.url, i.after)}</Text>
     const status = (i: BoardIssue) => [
       i.progress && <Text dimColor>{i.progress}</Text>,
       i.kind === 'task' && i.holder && <Text color="suggestion">{i.holder}</Text>,
-      i.wait && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.wait}</Text>,
+      i.wait && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.blockers.length ? ['blocked by ', ...links(i.url, i.blockers)] : i.wait}</Text>,
       after(i),
     ].filter(Boolean).flatMap((x, k) => (k ? [<Text dimColor> · </Text>, x] : [x]))
     const entry = (i: BoardIssue): JSX.Element => {

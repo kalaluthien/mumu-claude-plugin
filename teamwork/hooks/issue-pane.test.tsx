@@ -3,7 +3,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 const manager = JSON.stringify({ result: { agents: [{ pane_id: 'p1', name: 'teamwork-manager' }] } })
 const worker = JSON.stringify({ result: { agents: [{ pane_id: 'p1', name: 'x-worker' }] } })
 const issue = (number: number, kind: 'backlog' | 'task', fields: object = {}) =>
-  ({ number, title: `Issue ${number}`, url: `https://example.test/${number}`, kind, holder: '', wait: '', progress: '', goal: '', done: [], tasks: [], after: [], closed: [], ...fields })
+  ({ number, title: `Issue ${number}`, url: `https://example.test/${number}`, kind, holder: '', wait: '', progress: '', goal: '', done: [], tasks: [], blockers: [], after: [], closed: [], ...fields })
 const task = issue(2, 'task', { title: 'Second issue', holder: 'x-worker', wait: 'waits on the owner', goal: 'Do the thing', done: ['[check] it prints'] })
 const board = JSON.stringify([issue(1, 'backlog', { title: 'First issue', progress: '1 open · 0 landed', tasks: [task] })])
 const long = (word: string) => `${word} `.repeat(60).slice(0, 300)
@@ -201,6 +201,12 @@ describe('issue pane', () => {
       expect(row?.props.dimColor).toBe(true)
       expect(row!.children.filter((c: any) => c.type === 'Link').map((l: any) => [l.props.label, l.props.href])).toEqual(links.map(l => [l, `https://example.test/${l.slice(1)}`]))
     }
+  })
+
+  test('a blocked entry links each issue blocking it', async ($, on) => {
+    const ui = await mounted($, on, [issue(1, 'backlog', { wait: 'blocked by #5, #6', blockers: [5, 6] })])
+    const wait = await ui.find({ type: 'Text', text: /^blocked by #5, #6$/ })
+    expect(wait!.children.filter((c: any) => c.type === 'Link').map((l: any) => l.props.href)).toEqual(['https://example.test/5', 'https://example.test/6'])
   })
 
   test('an entry with nothing under it unfolds to (empty)', async ($, on) => {
