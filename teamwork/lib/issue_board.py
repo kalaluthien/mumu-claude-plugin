@@ -3,7 +3,7 @@ import re
 
 import issue_state
 
-# a task under its backlog: what needs someone first, what is held last
+# an issue with no backlog group: what needs someone first, what is held last
 # the latest closed tasks a backlog lists, newest first, an ellipsis below them when more landed before
 SHOWN_CLOSED = 10
 URGENCY = ["waits on the owner", "waits on the manager", "no holder", "blocked", "held", "deferred"]
