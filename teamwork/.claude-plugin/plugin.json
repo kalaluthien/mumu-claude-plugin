@@ -2,5 +2,6 @@
   "name": "teamwork",
   "version": "0.1.0",
   "description": "A manager routes the owner's intent to workers that define, do and close it.",
-  "author": { "name": "kalaluthien" }
+  "author": { "name": "kalaluthien" },
+  "types": "./types/index.d.ts"
 }
