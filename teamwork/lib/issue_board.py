@@ -7,8 +7,14 @@ import issue_state
 URGENCY = ["waits on the owner", "waits on the manager", "no holder", "blocked", "held"]
 
 
+def summary_of(body):
+    """A backlog's summary: its body's first paragraph, its lines joined, unless it is a heading."""
+    first = (body or "").replace("\r\n", "\n").strip().split("\n\n")[0]
+    return "" if first.startswith("#") else " ".join(line.strip() for line in first.splitlines() if line.strip())
+
+
 def entry(node):
-    """One issue as the board shows it; a backlog shows its progress, a task its goal and criteria."""
+    """One issue as the board shows it; a backlog shows its progress and summary, a task its goal and criteria."""
     state = issue_state.compose({"body": node["body"], "comments": node["comments"]["nodes"]},
                                 [b["number"] for b in node["blockedBy"]["nodes"] if b["state"] == "OPEN"])
     backlog = "backlog" in [x["name"] for x in node["labels"]["nodes"]]
@@ -18,7 +24,7 @@ def entry(node):
                 else f"routed to {' '.join(holders)}" if holders else "not started") if backlog else ""
     return {"number": node["number"], "title": node["title"], "url": node["url"], "kind": "backlog" if backlog else "task",
             "holder": " ".join(holders), "wait": "" if state["waits"] == "held" or backlog and state["waits"] == "no holder" else state["waits"],
-            "progress": progress, "goal": "" if backlog else state["goal"], "done": [] if backlog else state["done"],
+            "progress": progress, "goal": summary_of(node["body"]) if backlog else state["goal"], "done": [] if backlog else state["done"],
             "urgency": URGENCY.index(state["waits"].split(" by ")[0]), "tasks": []}
 
 
