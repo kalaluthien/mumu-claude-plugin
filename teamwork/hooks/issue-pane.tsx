@@ -36,8 +36,11 @@ export const register: Register = on => {
       const waiter = $.process.spawn({ argv: [`${$.plugin.root}/hooks/wait-team-change.py`] })
       for await (const piece of waiter) {
         if (!('text' in piece)) break
-        const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json'], { timeoutMs: 60000 })
-        if (run.exitCode === 0) await update($, board, () => JSON.parse(run.stdout) as BoardIssue[])
+        // the start directory, since the session's current one may be a worktree removed since
+        try {
+          const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json'], { cwd: e.cwd, timeoutMs: 60000 })
+          if (run.exitCode === 0) await update($, board, () => JSON.parse(run.stdout) as BoardIssue[])
+        } catch {}  // a failed read must not end the loop, whose end kills the waiter
       }
     })()
     return started
@@ -48,12 +51,19 @@ export const register: Register = on => {
     const rows = (issues: BoardIssue[], depth: number): JSX.Element[] =>
       issues.flatMap(i => [
         <Box paddingLeft={depth * 2} flexDirection="column">
-          {/* the link last, since a terminal without hyperlinks draws its URL in full */}
+          {/* the link first, so cutting the row at the pane's width cuts the title, never the link */}
           <Text wrap="truncate-end">
-            #{i.number} {i.title} <Link href={i.url} label="↗" />
+            <Link href={i.url} label={`${i.kind}#${i.number}`} /> {i.title}
           </Text>
-          <Box paddingLeft={2}>
-            <Text dimColor wrap="truncate-end">{i.wait}</Text>
+          <Box paddingLeft={2} flexDirection="column">
+            <Text dimColor wrap="truncate-end">goal: {i.goal}</Text>
+            <Text dimColor>{i.done.length ? 'definition-of-done:' : 'definition-of-done: none'}</Text>
+            {i.done.map(d => (
+              <Box paddingLeft={2}>
+                <Text dimColor wrap="truncate-end">- {d}</Text>
+              </Box>
+            ))}
+            <Text dimColor wrap="truncate-end">holder: {i.holder}</Text>
           </Box>
         </Box>,
         ...rows(i.tasks, depth + 1),

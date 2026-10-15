@@ -34,6 +34,15 @@ holders: issue-pane-worker
 | `holders` | session names, space-separated, replacing every earlier value; empty when no one holds it | holders |
 | `asks` | `owner` on an ask the owner answers, not the manager | audience |
 
+## Sections
+
+A task's sections, each a `## <section>` heading; one under a later comment, a `DECIDED:`, replaces the earlier one whole.
+
+| section | holds | role |
+| --- | --- | --- |
+| `Goal` | the owner's intent; its first line sums it up | goal |
+| `Definition of done` | criteria, one per numbered or bulleted line | done |
+
 ## Waits
 
 What an open issue waits on, first match:

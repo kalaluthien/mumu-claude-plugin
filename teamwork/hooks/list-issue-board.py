@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """usage: list-issue-board.py <project> [--json]
 
-Print the project's open issues, each task under its backlog: `#<n> <title>`, then its wait line indented, as
-issue-grammar.md's Waits section composes it. `--json` prints the same tree for the issue pane to draw."""
+Print the project's open issues, each task under its backlog: `<kind>#<n> <title>`, then indented its goal, its definition
+of done as a list and its holder with any wait not about holding, as issue-grammar.md composes them. `--json` prints the
+same tree for the issue pane to draw."""
 import json
 import pathlib
 import sys
@@ -14,12 +15,12 @@ from json_command import run  # noqa: E402
 QUERY = """query($owner: String!, $name: String!, $labels: [String!]) {
   repository(owner: $owner, name: $name) {
     issues(states: OPEN, first: 100, labels: $labels, orderBy: {field: CREATED_AT, direction: ASC}) {
-      nodes { number title url body parent { number }
+      nodes { number title url body parent { number } labels(first: 20) { nodes { name } }
               blockedBy(first: 20) { nodes { number state } } comments(last: 100) { nodes { body url } } } } } }"""
 
 
 def board(project):
-    """The open issues as a tree: each {'number', 'title', 'url', 'wait', 'tasks'}; None when a read failed."""
+    """The open issues as a tree: each {'number', 'title', 'url', 'kind', 'goal', 'done', 'holder', 'tasks'}; None when a read failed."""
     repo = run("gh", "repo", "view", "--json", "owner,name")
     scoped = run("gh", "label", "list", "--search", f"scope:{project}", "--json", "name")
     if repo is None or scoped is None:
@@ -34,9 +35,9 @@ def board(project):
     for i in nodes:
         state = issue_state.compose({"body": i["body"], "comments": i["comments"]["nodes"]},
                                     [b["number"] for b in i["blockedBy"]["nodes"] if b["state"] == "OPEN"])
-        holders = state["holders"] or []
-        wait = f"{' '.join(holders)} hold{'s' if len(holders) == 1 else ''} it" if state["waits"] == "held" else state["waits"]
-        items[i["number"]] = {"number": i["number"], "title": i["title"], "url": i["url"], "wait": wait, "tasks": []}
+        kind = "backlog" if "backlog" in [x["name"] for x in i["labels"]["nodes"]] else "task"
+        items[i["number"]] = {"number": i["number"], "title": i["title"], "url": i["url"], "kind": kind,
+                              "goal": state["goal"], "done": state["done"], "holder": state["holder"], "tasks": []}
     top = []
     for i in nodes:
         parent = (i["parent"] or {}).get("number")
@@ -46,8 +47,12 @@ def board(project):
 
 def lines(issues, depth=0):
     for i in issues:
-        yield f"{'  ' * depth}#{i['number']} {i['title']}"
-        yield f"{'  ' * (depth + 1)}{i['wait']}"
+        pad = "  " * (depth + 1)
+        yield f"{'  ' * depth}{i['kind']}#{i['number']} {i['title']}"
+        yield f"{pad}goal: {i['goal']}"
+        yield f"{pad}definition-of-done:" if i["done"] else f"{pad}definition-of-done: none"
+        yield from (f"{pad}  - {d}" for d in i["done"])
+        yield f"{pad}holder: {i['holder']}"
         yield from lines(i["tasks"], depth + 1)
 
 
