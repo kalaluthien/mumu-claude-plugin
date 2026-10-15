@@ -185,9 +185,11 @@ describe('issue pane', () => {
     expect((await shown()).some(Boolean)).toBe(false)
   })
 
-  test('an entry with nothing to unfold has no fold', async ($, on) => {
+  test('an entry with nothing under it unfolds to (empty)', async ($, on) => {
     const ui = await mounted($, on, [issue(20, 'backlog', { progress: 'not started' })])
-    expect(await ui.findAll({ type: 'Button' })).toEqual([])
+    expect(await ui.find({ type: 'Text', text: /^\(empty\)$/ })).toBeUndefined()
+    await unfold(ui, 20)
+    expect(await ui.find({ type: 'Text', text: /^\(empty\)$/ })).toBeDefined()
   })
 
   test('backlogs show their progress, each set apart by a border', async ($, on) => {

@@ -77,8 +77,7 @@ export const register: Register = on => {
       return (
         <Box flexDirection="column">
           <Box flexDirection="row">
-            {/* a fold only where unfolding shows more */}
-            {more ? <Button key={`fold-${i.number}`} plain dimColor label={open ? '▾' : '▸'} onPress={toggle(i.number)} /> : <Text> </Text>}
+            <Button key={`fold-${i.number}`} plain dimColor label={open ? '▾' : '▸'} onPress={toggle(i.number)} />
             <Text> </Text>
             {/* the link first, so a narrow pane wraps the title, never the link */}
             <Text wrap="wrap">
@@ -90,6 +89,8 @@ export const register: Register = on => {
             </Text>
           </Box>
           <Box paddingLeft={2} flexDirection="column">
+            {/* every entry folds alike, so an empty one says so when unfolded */}
+            {open && !more && <Text dimColor>(empty)</Text>}
             {open && i.goal && <Text wrap="wrap">{i.goal}</Text>}
             {open && i.done.map(d => <Text wrap="wrap" dimColor>{`• ${d}`}</Text>)}
             {open && i.tasks.map(t => <Box marginTop={1}>{entry(t)}</Box>)}
