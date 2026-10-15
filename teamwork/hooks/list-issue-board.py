@@ -16,7 +16,7 @@ QUERY = """query($owner: String!, $name: String!, $labels: [String!]) {
   repository(owner: $owner, name: $name) {
     issues(states: OPEN, first: 100, labels: $labels, orderBy: {field: CREATED_AT, direction: ASC}) {
       nodes { number title url body parent { number } labels(first: 20) { nodes { name } } subIssuesSummary { total completed }
-              subIssues(first: 50) { nodes { number title url state } }
+              subIssues(first: 50) { nodes { number title url state blockedBy(first: 20) { nodes { number } } } }
               blockedBy(first: 20) { nodes { number state } } comments(last: 100) { nodes { body url } } } } } }"""
 
 
