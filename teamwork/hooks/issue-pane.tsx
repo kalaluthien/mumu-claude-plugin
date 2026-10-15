@@ -67,12 +67,10 @@ export const register: Register = on => {
     const toggle = (n: number) => () => void update($, expanded, old => old.includes(n) ? old.filter(x => x !== n) : [...old, n])
     // an issue's url ends in its number, so a sibling's url swaps that number
     const links = (url: string, ns: number[]) => ns.flatMap((n, k) => [k ? ', ' : '', <Link href={url.replace(/\d+$/, String(n))} label={`#${n}`} />])
-    const after = (i: { url: string; after: number[] }) => i.after.length > 0 && <Text dimColor>after {links(i.url, i.after)}</Text>
     const status = (i: BoardIssue) => [
       i.progress && <Text dimColor>{i.progress}</Text>,
       i.kind === 'task' && i.holder && <Text color="suggestion">{i.holder}</Text>,
       i.wait && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.blockers.length ? ['blocked by ', ...links(i.url, i.blockers)] : i.wait}</Text>,
-      after(i),
     ].filter(Boolean).flatMap((x, k) => (k ? [<Text dimColor> · </Text>, x] : [x]))
     const entry = (i: BoardIssue): JSX.Element => {
       const open = unfolded.has(i.number)
@@ -100,7 +98,7 @@ export const register: Register = on => {
             {/* two spaces per layer: tasks on one layer can run at once, each below what blocks it */}
             {open && i.tasks.map(t => <Box marginTop={1} paddingLeft={2 * t.layer}>{entry(t)}</Box>)}
             {/* closed tasks after the open ones, dim, so what landed stays in view */}
-            {open && i.closed.length > 0 && <Box marginTop={1} flexDirection="column">{i.closed.map(t => <Text wrap="wrap" dimColor><Link href={t.url} label={`#${t.number}`} />{` ${t.title}`}{t.after.length > 0 && ' · '}{after(t)}</Text>)}</Box>}
+            {open && i.closed.length > 0 && <Box marginTop={1} flexDirection="column">{i.closed.map(t => <Text wrap="wrap" dimColor><Link href={t.url} label={`#${t.number}`} />{` ${t.title}`}</Text>)}</Box>}
           </Box>
         </Box>
       )
