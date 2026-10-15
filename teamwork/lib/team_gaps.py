@@ -62,9 +62,9 @@ def had_worker(me):
 
 
 def exit_action(me, listed):
+    """The exit line, or None for the only live manager, who stays since no other can answer its proposal."""
     others = [a["name"] for a in listed if a is not me and role(a.get("name")) == "manager"]
-    return ("exit: no worker is live and nothing waits; " + (f"propose your exit to {', '.join(others)} as step 5 says" if others
-            else "you are the only live manager, so stay and /compact as step 5 says"))
+    return f"exit: no worker is live and nothing waits; propose your exit to {', '.join(others)} as step 5 says" if others else None
 
 
 def worker_goal(me):
