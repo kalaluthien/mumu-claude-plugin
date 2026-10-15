@@ -41,7 +41,7 @@ GitHub issues are the shared memory: a `BLOCKED:` comment is a question, a `DECI
 /teamwork:kick-off fix the login timeout
 ```
 
-That session becomes the manager. It files the backlog, starts a worker in a new tab, and from then on you mostly answer questions. Under the hood, one hook ([`route-event.py`](teamwork/hooks/route-event.py)) tells each session at start what is waiting on it, and stops a worker from going idle while an issue it holds is still open, and a monitor ([`heartbeat.py`](teamwork/monitors/heartbeat.py)) tells the manager where GitHub and the team disagree and wakes a worker when its wait ends.
+That session becomes the manager. It files the backlog, starts a worker in a new tab, and from then on you mostly answer questions. Under the hood, one hook ([`route-event.py`](teamwork/hooks/route-event.py)) tells each session at start what is waiting on it, and stops a worker from going idle while an issue it holds is still open, and a monitor ([`print-team-gaps.py`](teamwork/monitors/print-team-gaps.py)) tells the manager where GitHub and the team disagree and wakes a worker when its wait ends.
 
 ## paperwork: pages instead of paragraphs
 
