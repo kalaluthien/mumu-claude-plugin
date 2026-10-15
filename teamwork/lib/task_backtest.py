@@ -13,7 +13,7 @@ TARGET = 0.65  # the lower edge of the coverage the estimate must reach
 
 def _estimate(prior, labels, levels):
     hours, _ = task_estimate.group(prior, labels)
-    return task_estimate.quantile(hours, levels[0]), task_estimate.quantile(hours, levels[1]), statistics.median(hours)
+    return *task_estimate.bounds(hours, levels), statistics.median(hours)
 
 
 def _score(rows, start, levels):
@@ -23,8 +23,7 @@ def _score(rows, start, levels):
         prior = rows[:j]
         low, high, mid = _estimate(prior, rows[j]["labels"], levels)
         every = [r["hours"] for r in prior]
-        out.append((rows[j]["hours"], low, high, mid, task_estimate.quantile(every, 0.1), task_estimate.quantile(every, 0.9),
-                    statistics.median(every)))
+        out.append((rows[j]["hours"], low, high, mid, *task_estimate.bounds(every, (0.1, 0.9)), statistics.median(every)))
     return out
 
 
@@ -46,26 +45,32 @@ def _stats(scored, base):
             "error": statistics.median(abs(s[0] - s[cut + 2]) for s in scored)}
 
 
+def _narrowest(cover_at):
+    """The first of LEVELS whose coverage reaches TARGET, else the widest, with the coverage last measured."""
+    cover = None
+    for lv in LEVELS:
+        cover = cover_at(lv)
+        if cover is not None and cover >= TARGET:
+            return lv, cover
+    return LEVELS[-1], cover
+
+
+def _share(hit, runs):
+    return hit / runs if runs else None
+
+
+def _covered(scored):
+    return _share(sum(s[1] <= s[0] <= s[2] for s in scored), len(scored))
+
+
 def fit(rows, seed=0):
     """Calibrate on the first FIT of ROWS (oldest first): the narrowest per-task levels and total levels whose coverage
     over the later half of that part reaches TARGET, each with that coverage; None when too few tasks."""
     k = int(len(rows) * FIT)
     if k < task_estimate.MIN_GROUP:
         return None
-    levels, cover = LEVELS[-1], None
-    for lv in LEVELS:
-        part = _score(rows[:k], k // 2, lv)
-        cover = sum(s[1] <= s[0] <= s[2] for s in part) / len(part)
-        if cover >= TARGET:
-            levels = lv
-            break
-    total_levels, total_cover = LEVELS[-1], None
-    for lv in LEVELS:
-        hit, runs = _runs(rows, k // 2, k, lv, seed)
-        total_cover = hit / runs if runs else None
-        if runs and total_cover >= TARGET:
-            total_levels = lv
-            break
+    levels, cover = _narrowest(lambda lv: _covered(_score(rows[:k], k // 2, lv)))
+    total_levels, total_cover = _narrowest(lambda lv: _share(*_runs(rows, k // 2, k, lv, seed)))
     return levels, cover, total_levels, total_cover
 
 
@@ -95,5 +100,5 @@ def as_of(rows, cutoff, numbers):
     for r in rows:
         if r["number"] in numbers:
             hours, _ = task_estimate.group(prior, r["labels"])
-            out.append((r["number"], task_estimate.quantile(hours, levels[0]), task_estimate.quantile(hours, levels[1]), r["hours"]))
+            out.append((r["number"], *task_estimate.bounds(hours, levels), r["hours"]))
     return len(prior), out

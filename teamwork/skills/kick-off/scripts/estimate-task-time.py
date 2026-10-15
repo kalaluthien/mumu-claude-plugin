@@ -8,6 +8,7 @@ Past hours already hold the usual restarts and waits, so the script adds only wh
 <n>` adds n restarts at the median hours of a restart that cost time (from `--gaps-json`, the output of `list-session-gaps.py --json`,
 else the transcripts of every named session), and each `--wait` adds its hours once, as a row of its own.
 `--from-json` is a fixture {"history": [...], "tasks": [{"number": 1, "labels": [...]}]} in place of GitHub."""
+import argparse
 import json
 import os
 import pathlib
@@ -22,26 +23,19 @@ import task_history  # noqa: E402
 
 
 def options(argv):
-    opt, waits, urls = {"seed": 0, "expect-restarts": 0.0}, [], []
-    while argv:
-        a = argv.pop(0)
-        if a in ("--from-json", "--gaps-json", "--seed", "--expect-restarts", "--wait") and argv:
-            v = argv.pop(0)
-            if a == "--wait":
-                name, _, hours = v.partition("=")
-                waits.append((name, float(hours)))
-            else:
-                opt[a[2:]] = float(v) if a in ("--seed", "--expect-restarts") else v
-        elif a.startswith("--"):
-            sys.exit(__doc__)
-        else:
-            urls.append(a)
-    return opt, waits, urls
+    parser = argparse.ArgumentParser(usage=argparse.SUPPRESS, description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--from-json")
+    parser.add_argument("--gaps-json")
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--expect-restarts", type=float, default=0.0)
+    parser.add_argument("--wait", action="append", default=[], type=lambda v: (v.partition("=")[0], float(v.partition("=")[2])))
+    parser.add_argument("urls", nargs="*")
+    return parser.parse_args(argv)
 
 
 def load(opt, urls):
-    if "from-json" in opt:
-        fixture = json.load(open(opt["from-json"]))
+    if opt.from_json:
+        fixture = json.load(open(opt.from_json))
         return task_history.rows(fixture["history"]), fixture["tasks"]
     if not urls:
         sys.exit(__doc__)
@@ -53,16 +47,16 @@ def load(opt, urls):
         repo, number = match.groups()
         if repo not in history:
             history[repo] = task_history.rows(task_history.fetch(repo))
-        issue = task_history._gh("issue", "view", url, "--json", "number,labels")
+        issue = task_history.gh_json("issue", "view", url, "--json", "number,labels")
         tasks.append({"number": issue["number"], "labels": [x["name"] for x in issue["labels"]], "repo": repo})
     return [r for rows in history.values() for r in rows], tasks
 
 
 def main(argv):
-    opt, waits, urls = options(argv)
-    history, tasks = load(opt, urls)
+    opt = options(argv)
+    history, tasks = load(opt, opt.urls)
     groups = []
-    fitted = task_backtest.fit(sorted(history, key=lambda r: r["end"]), int(opt["seed"]))
+    fitted = task_backtest.fit(sorted(history, key=lambda r: r["end"]), opt.seed)
     levels, total_levels = (fitted[0], fitted[2]) if fitted else ((0.1, 0.9), (0.1, 0.9))
     short = [] if not fitted else [
         *([f"per task below the {task_backtest.TARGET:.0%} target at every level, so the widest"] if fitted[1] < task_backtest.TARGET else []),
@@ -77,19 +71,19 @@ def main(argv):
             print(f"#{t['number']}\t-\t-\t0\tno range: no past task exists")
             continue
         groups.append(hours)
-        low, high = task_estimate.quantile(hours, levels[0]), task_estimate.quantile(hours, levels[1])
+        low, high = task_estimate.bounds(hours, levels)
         print(f"#{t['number']}\t{low:.1f}\t{high:.1f}\t{len(hours)}\t{'all past tasks used' if fallback else 'same first label'}")
-    low, high = task_estimate.total_range(groups, int(opt["seed"]), total_levels) if groups else (None, None)
+    low, high = task_estimate.total_range(groups, opt.seed, total_levels) if groups else (None, None)
     extra = 0.0
-    if opt["expect-restarts"]:
-        gaps = json.load(open(opt["gaps-json"])) if "gaps-json" in opt else session_gaps.summaries(
+    if opt.expect_restarts:
+        gaps = json.load(open(opt.gaps_json)) if opt.gaps_json else session_gaps.summaries(
             pathlib.Path(os.path.expanduser("~/.claude/projects")))
         each = task_estimate.restart_hours(gaps)
         if each is None:
             sys.exit("estimate-task-time.py: no restart is recorded, so its hours are unknown; pass --wait instead.")
-        extra += opt["expect-restarts"] * each
-        print(f"restart\t{opt['expect-restarts'] * each:.1f}h\t({opt['expect-restarts']:g} restarts x {each:.1f}h median)")
-    for name, hours in waits:
+        extra += opt.expect_restarts * each
+        print(f"restart\t{opt.expect_restarts * each:.1f}h\t({opt.expect_restarts:g} restarts x {each:.1f}h median)")
+    for name, hours in opt.wait:
         extra += hours
         print(f"wait {name}\t{hours:.1f}h")
     if not groups:

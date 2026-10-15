@@ -6,6 +6,7 @@ levels, the last 40% only score: held-out coverage of the per-task range, its me
 the estimator and for the baseline (the p10-p90 of all earlier tasks), then how often the bootstrap total covers the
 actual sum over 5 consecutive tasks. `--as-of <time> --tasks ...` prints those tasks' ranges from the history before
 <time> beside their actual hours. `--from-json` is {"<owner/repo>": [issues]} in place of GitHub."""
+import argparse
 import json
 import pathlib
 import sys
@@ -16,20 +17,14 @@ import task_history  # noqa: E402
 
 
 def main(argv):
-    fixture, cutoff, numbers, repos = None, None, set(), []
-    while argv:
-        a = argv.pop(0)
-        if a == "--from-json" and argv:
-            fixture = json.load(open(argv.pop(0)))
-        elif a == "--as-of" and argv:
-            cutoff = argv.pop(0)
-        elif a == "--tasks" and argv:
-            numbers = {int(n) for n in argv.pop(0).split(",")}
-        elif a.startswith("--"):
-            sys.exit(__doc__)
-        else:
-            repos.append(a)
-    repos = repos or list(fixture or [])
+    parser = argparse.ArgumentParser(usage=argparse.SUPPRESS, description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--from-json", type=lambda path: json.load(open(path)))
+    parser.add_argument("--as-of")
+    parser.add_argument("--tasks", type=lambda v: {int(n) for n in v.split(",")}, default=set())
+    parser.add_argument("repos", nargs="*")
+    opt = parser.parse_args(argv)
+    fixture, cutoff, numbers = opt.from_json, opt.as_of, opt.tasks
+    repos = opt.repos or list(fixture or [])
     if not repos:
         sys.exit(__doc__)
     pooled = [0, 0]
