@@ -72,7 +72,7 @@ describe('issue pane', () => {
       const ui = await $.ui.mount({ plugin: 'teamwork', surface, component: 'Pane', props: PANE, requestId: 'issues' })
       // the unfolded entries are the plugin's state, so the desktop draws them as the terminal left them
       if (surface === 'terminal') await unfold(ui, 1, 2)
-      for (const [label, url, title] of [['backlog#1', 'https://example.test/1', 'First issue'], ['task#2', 'https://example.test/2', 'Second issue']]) {
+      for (const [label, url, title] of [['#1', 'https://example.test/1', 'First issue'], ['#2', 'https://example.test/2', 'Second issue']]) {
         // the link leads its row, so cutting the row at the pane's width cuts the title, never the link
         const row = await ui.find({ type: 'Text', text: new RegExp(`^${label} ${title}( · |$)`) })
         const kind = await ui.find({ type: 'Text', text: new RegExp(`^${label}$`) })
@@ -162,7 +162,7 @@ describe('issue pane', () => {
   test('kind, holder and a wait on someone each have a colour of their own', async ($, on) => {
     const ui = await mounted($, on, JSON.parse(board))
     await unfold(ui, 1)
-    const kind = await ui.find({ type: 'Text', text: /^task#2$/ })
+    const kind = await ui.find({ type: 'Text', text: /^#2$/ })
     const holder = await ui.find({ type: 'Text', text: /^x-worker$/ })
     const wait = await ui.find({ type: 'Text', text: /^waits on the owner$/ })
     expect(kind?.props.color).toBeDefined()

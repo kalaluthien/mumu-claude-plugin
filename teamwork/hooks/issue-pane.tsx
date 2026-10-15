@@ -82,7 +82,7 @@ export const register: Register = on => {
             <Text> </Text>
             {/* the link first, so a narrow pane wraps the title, never the link */}
             <Text wrap="wrap">
-              <Text color={i.kind === 'backlog' ? 'merged' : 'claude'} weight="semibold"><Link href={i.url} label={`${i.kind}#${i.number}`} /></Text>
+              <Text color={i.kind === 'backlog' ? 'merged' : 'claude'} weight="semibold"><Link href={i.url} label={`#${i.number}`} /></Text>
               {' '}
               <Text wrap="wrap" weight="semibold">{i.title}</Text>
               {line.length > 0 && <Text dimColor> · </Text>}
