@@ -28,10 +28,10 @@ while True:
     manager, worker = role == "manager", role == "worker"
     # GitHub is read when a team session signals a change or REFRESH has passed, and in full only when it first asks cheaply and something changed
     if (manager or worker) and (data is None or team_signal.stamp() != signal or time.time() - read_at >= REFRESH):
-        now = datetime.now(timezone.utc)
+        now, seen = datetime.now(timezone.utc), team_signal.stamp()  # both taken before the read, so a touch during it still differs
         if data is None or team_gaps.changed_since((datetime.fromtimestamp(read_at, timezone.utc) - SKEW).strftime("%Y-%m-%dT%H:%M:%SZ")):
             data = read(manager, me, staffed)
-        read_at, signal = now.timestamp(), team_signal.stamp()
+        read_at, signal = now.timestamp(), seen
     lines = [] if not (manager or worker) else None if data is None else team_gaps.manager_actions(me, listed, data) if manager else team_gaps.worker_actions(me, waiting, data)
     if manager and lines is not None:
         crew = herdr_agents.members(me, listed)
