@@ -11,6 +11,9 @@ import tempfile
 
 issue, diff_file, line = sys.argv[1:4]
 diff = pathlib.Path(diff_file).read_text()
+# patch accepts an empty diff, which would post a comment that changes nothing
+if not diff.strip():
+    sys.exit(f"edit-issue-body: {diff_file} is empty, so nothing was posted or changed")
 work = pathlib.Path(tempfile.mkdtemp())
 body = work / "body.md"
 # the web editor saves CRLF, which a diff written against the shown text never matches
