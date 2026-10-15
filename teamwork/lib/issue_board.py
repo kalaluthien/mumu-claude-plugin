@@ -21,6 +21,11 @@ def next_step_of(comments):
     return next((" ".join(f.rsplit("next step:", 1)[1].split()) for f in reversed(firsts) if f.startswith("REPORTED:") and "next step:" in f), "")
 
 
+def blockers_of(node):
+    """Every issue that blocks this one, a landed one marked closed."""
+    return [{"number": b["number"], "closed": b["state"] != "OPEN"} for b in (node.get("blockedBy") or {}).get("nodes", [])]
+
+
 def entry(node):
     """One issue as the board shows it; a backlog shows its progress and summary, a task its goal and criteria."""
     blockers = [b["number"] for b in node["blockedBy"]["nodes"] if b["state"] == "OPEN"]
@@ -28,14 +33,15 @@ def entry(node):
     backlog = "backlog" in [x["name"] for x in node["labels"]["nodes"]]
     holders = state["holders"] or []
     summary = node.get("subIssuesSummary") or {}
-    closed = [{"number": t["number"], "title": t["title"], "url": t["url"]} for t in (node.get("subIssues") or {}).get("nodes", []) if t["state"] == "CLOSED"]
+    closed = [{"number": t["number"], "title": t["title"], "url": t["url"], "blockers": blockers_of(t)} for t in (node.get("subIssues") or {}).get("nodes", []) if t["state"] == "CLOSED"]
     progress = (f"{summary['total'] - summary['completed']} open, {summary['completed']} landed" if summary.get("total")
                 else "" if holders or state["waits"] == "deferred" else "not started") if backlog else ""
     return {"number": node["number"], "title": node["title"], "url": node["url"], "kind": "backlog" if backlog else "task",
-            "holder": " ".join(holders), "wait": "←" + ",".join(f"#{n}" for n in blockers) if blockers else "" if state["waits"] == "held" or backlog and state["waits"] == "no holder" else state["waits"],
+            "holder": " ".join(holders), "wait": "" if blockers or state["waits"] == "held" or backlog and state["waits"] == "no holder" else state["waits"],
             "progress": progress, "goal": summary_of(node["body"]) if backlog else state["goal"], "done": [] if backlog else state["done"],
             "next": next_step_of(node["comments"]["nodes"]) if backlog and summary.get("total", 0) == summary.get("completed", 0) else "",
-            "urgency": URGENCY.index(state["waits"].split(" by ")[0]), "tasks": [], "blockers": blockers, "layer": 0,
+            "urgency": URGENCY.index(state["waits"].split(" by ")[0]), "tasks": [],
+            "blockers": blockers_of(node),
             "closed": closed[-SHOWN_CLOSED:], "earlier": summary.get("completed", 0) > min(len(closed), SHOWN_CLOSED)}
 
 
@@ -70,20 +76,8 @@ def related(nodes, items):
     return {n: root(n) for n in group}
 
 
-def plan(tasks):
-    """The tasks in layers: a task's layer is one below its deepest open sibling blocker, so one layer can run at once;
-    within a layer the given order. A cycle is cut where it is met."""
-    left, layer = list(tasks), {}
-    while left:
-        waiting = {t["number"] for t in left}
-        ready = next((t for t in left if not waiting & set(t["blockers"])), left[0])
-        left.remove(ready)
-        ready["layer"] = layer[ready["number"]] = 1 + max([layer[b] for b in ready["blockers"] if b in layer], default=-1)
-    return sorted(tasks, key=lambda t: t["layer"])
-
-
 def board(nodes):
-    """The open issues as a tree, backlogs grouped with related ones by lowest number, tasks by urgency, then number, each after its open blockers."""
+    """The open issues as a tree, backlogs grouped with related ones by lowest number, tasks by urgency, then number."""
     items = {i["number"]: entry(i) for i in nodes}
     top = []
     for i in nodes:
@@ -93,7 +87,7 @@ def board(nodes):
 
     def order(issues):
         for i in issues:
-            i["tasks"] = plan(sorted(i["tasks"], key=lambda t: (t["urgency"], t["number"])))
+            i["tasks"].sort(key=lambda t: (t["urgency"], t["number"]))
             order(i["tasks"])
             del i["urgency"]
     top.sort(key=lambda i: (groups[i["number"]], i["number"]) if i["number"] in groups else (float("inf"), i["urgency"], i["number"]))
@@ -101,17 +95,21 @@ def board(nodes):
     return top
 
 
+def after(blockers):
+    """What a task follows, every blocker, a landed one marked closed."""
+    return "←" + ",".join(f"#{b['number']}{' closed' * b['closed']}" for b in blockers) if blockers else ""
+
+
 def lines(issues, depth=0):
     """The board as text: each entry's link line, then indented what the pane shows under it."""
     for i in issues:
-        depth_here = depth + i["layer"]
-        pad = "  " * (depth_here + 1)
-        yield f"{'  ' * depth_here}#{i['number']} {i['title']}"
-        status = " ".join(x for x in (i["progress"], i["holder"], i["wait"]) if x)
+        pad = "  " * (depth + 1)
+        yield f"{'  ' * depth}#{i['number']} {i['title']}"
+        status = " ".join(x for x in (i["progress"], i["holder"], i["wait"], after(i["blockers"])) if x)
         yield from ([f"{pad}{status}"] if status else [])
         yield from ([f"{pad}{i['goal']}"] if i["goal"] else [])
         yield from (f"{pad}- {d}" for d in i["done"])
         yield from ([f"{pad}next step: {i['next']}"] if i["next"] else [])
-        yield from lines(i["tasks"], depth_here + 1)
+        yield from lines(i["tasks"], depth + 1)
         yield from ([f"{pad}…"] if i["earlier"] else [])
-        yield from (f"{pad}#{t['number']} {t['title']} closed" for t in i["closed"])
+        yield from (f"{pad}#{t['number']} {t['title']} closed{' ' * bool(t['blockers'])}{after(t['blockers'])}" for t in i["closed"])

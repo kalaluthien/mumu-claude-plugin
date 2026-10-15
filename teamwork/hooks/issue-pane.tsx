@@ -68,8 +68,11 @@ export const register: Register = on => {
     const status = (i: BoardIssue) => [
       i.progress && <Text dimColor>{i.progress}</Text>,
       i.holder && <Text color="suggestion">{i.holder}</Text>,
-      i.wait && !i.blockers.length && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.wait}</Text>,
+      i.wait && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.wait}</Text>,
     ].filter(Boolean).flatMap((x, k) => (k ? [<Text> </Text>, x] : [x]))
+    // every blocker, as links: an open one bold, a closed one dim, so what still holds a task stands out
+    const after = (t: { url: string; blockers: BoardIssue['blockers'] }) => t.blockers.length > 0 && [<Text dimColor>{' ←'}</Text>, ...t.blockers.map((b, k) =>
+      <Text dimColor={b.closed} weight={b.closed ? undefined : 'semibold'}>{k ? ',' : ''}<Link href={t.url.replace(/\d+$/, String(b.number))} label={`#${b.number}`} /></Text>)]
     const entry = (i: BoardIssue): JSX.Element => {
       const open = unfolded.has(i.number)
       const line = status(i)
@@ -89,8 +92,7 @@ export const register: Register = on => {
               {line}
             </Button>
             {/* a blocker is a link, so it sits outside the Button, last in the row as the wait was */}
-            {i.blockers.length > 0 && <Text dimColor>{' ←'}</Text>}
-            {i.blockers.map((n, k) => <Text dimColor>{k ? ',' : ''}<Link href={i.url.replace(/\d+$/, String(n))} label={`#${n}`} /></Text>)}
+            {after(i)}
           </Box>
           <Box paddingLeft={2} flexDirection="column">
             {/* every entry folds alike, so an empty one says so when unfolded */}
@@ -98,10 +100,9 @@ export const register: Register = on => {
             {open && i.goal && <Text wrap="wrap">{i.goal}</Text>}
             {open && i.done.map(d => <Text wrap="wrap" dimColor>{`• ${d}`}</Text>)}
             {open && i.next && <Text wrap="wrap">{`next step: ${i.next}`}</Text>}
-            {/* two spaces per layer: tasks on one layer can run at once, each below what blocks it */}
-            {open && i.tasks.map(t => <Box marginTop={1} paddingLeft={2 * t.layer}>{entry(t)}</Box>)}
+            {open && i.tasks.map(t => <Box marginTop={1}>{entry(t)}</Box>)}
             {/* closed tasks after the open ones, dim, so what landed stays in view */}
-            {open && i.closed.length > 0 && <Box marginTop={1} flexDirection="column">{i.earlier && <Text dimColor>…</Text>}{i.closed.map(t => <Text wrap="wrap" dimColor><Link href={t.url} label={`#${t.number}`} />{` ${t.title}`}</Text>)}</Box>}
+            {open && i.closed.length > 0 && <Box marginTop={1} flexDirection="column">{i.earlier && <Text dimColor>…</Text>}{i.closed.map(t => <Text wrap="wrap" dimColor><Link href={t.url} label={`#${t.number}`} />{` ${t.title}`}{after(t)}</Text>)}</Box>}
           </Box>
         </Box>
       )

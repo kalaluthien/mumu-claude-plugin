@@ -3,7 +3,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 const manager = JSON.stringify({ result: { agents: [{ pane_id: 'p1', name: 'teamwork-manager' }] } })
 const worker = JSON.stringify({ result: { agents: [{ pane_id: 'p1', name: 'x-worker' }] } })
 const issue = (number: number, kind: 'backlog' | 'task', fields: object = {}) =>
-  ({ number, title: `Issue ${number}`, url: `https://example.test/${number}`, kind, holder: '', wait: '', progress: '', goal: '', done: [], next: '', tasks: [], blockers: [], layer: 0, closed: [], earlier: false, ...fields })
+  ({ number, title: `Issue ${number}`, url: `https://example.test/${number}`, kind, holder: '', wait: '', progress: '', goal: '', done: [], next: '', tasks: [], blockers: [], closed: [], earlier: false, ...fields })
 const task = issue(2, 'task', { title: 'Second issue', holder: 'x-worker', wait: 'waits on the owner', goal: 'Do the thing', done: ['[check] it prints'] })
 const board = JSON.stringify([issue(1, 'backlog', { title: 'First issue', progress: '1 open, 0 landed', tasks: [task] })])
 const long = (word: string) => `${word} `.repeat(60).slice(0, 300)
@@ -188,7 +188,7 @@ describe('issue pane', () => {
   })
 
   test('a backlog unfolds to its closed tasks too, dim, after the open ones', async ($, on) => {
-    const ui = await mounted($, on, [issue(1, 'backlog', { tasks: [task], closed: [{ number: 3, title: 'Landed issue', url: 'https://example.test/3' }] })])
+    const ui = await mounted($, on, [issue(1, 'backlog', { tasks: [task], closed: [{ number: 3, title: 'Landed issue', url: 'https://example.test/3', blockers: [] }] })])
     await unfold(ui, 1)
     const row = await ui.find({ type: 'Text', text: /^#3 Landed issue$/ })
     expect(row?.props.dimColor).toBe(true)
@@ -196,17 +196,19 @@ describe('issue pane', () => {
   })
 
   test('an ellipsis sits above the closed tasks when earlier ones are cut', async ($, on) => {
-    const ui = await mounted($, on, [issue(1, 'backlog', { earlier: true, closed: [{ number: 3, title: 'Landed issue', url: 'https://example.test/3' }] })])
+    const ui = await mounted($, on, [issue(1, 'backlog', { earlier: true, closed: [{ number: 3, title: 'Landed issue', url: 'https://example.test/3', blockers: [{ number: 2, closed: true }] }] })])
     await unfold(ui, 1)
     const texts = (await ui.findAll({ type: 'Text' })).map(t => t.text)
-    expect(texts.indexOf('…')).toBeLessThan(texts.indexOf('#3 Landed issue'))
+    expect(texts.indexOf('…')).toBeLessThan(texts.indexOf('#3 Landed issue ←#2'))
     expect(texts.indexOf('…')).toBeGreaterThan(-1)
   })
 
-  test('each blocker beside a task is a link to it', async ($, on) => {
-    const ui = await mounted($, on, [issue(4, 'task', { blockers: [21, 22], wait: '←#21,#22' })])
+  test('every blocker beside a task is a link, a closed one dim, an open one bold', async ($, on) => {
+    const ui = await mounted($, on, [issue(4, 'task', { blockers: [{ number: 21, closed: true }, { number: 22, closed: false }] })])
     const links = (await ui.findAll({ type: 'Link' })).map(l => [l.props.label, l.props.href])
     expect(links).toEqual([['#4', 'https://example.test/4'], ['#21', 'https://example.test/21'], ['#22', 'https://example.test/22']])
+    const marks = (await ui.findAll({ type: 'Text' })).filter(t => /^,?#2[12]$/.test(t.text)).map(t => [t.props.dimColor, t.props.weight])
+    expect(marks).toEqual([[true, undefined], [false, 'semibold']])
   })
 
   test('a press on the title or status folds the entry, as the arrow does', async ($, on) => {
@@ -215,13 +217,6 @@ describe('issue pane', () => {
     expect(await ui.find({ type: 'Text', text: /^The summary$/ })).toBeDefined()
     await ui.press({ key: 'row-1' })
     expect(await ui.find({ type: 'Text', text: /^The summary$/ })).toBeUndefined()
-  })
-
-  test('a task sits two columns in per layer of what blocks it', async ($, on) => {
-    const ui = await mounted($, on, [issue(1, 'backlog', { tasks: [issue(2, 'task'), issue(3, 'task', { layer: 1 })] })])
-    await unfold(ui, 1)
-    const boxes = (await ui.findAll({ type: 'Box' })).filter((b: any) => b.props.marginTop === 1)
-    expect(boxes.map((b: any) => b.props.paddingLeft)).toEqual([0, 2])
   })
 
   test('an entry with nothing under it unfolds to (empty)', async ($, on) => {
