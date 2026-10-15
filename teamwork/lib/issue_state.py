@@ -59,7 +59,7 @@ def holder_values(issue):
 
 def compose(issue, blockers=()):
     """{'holders': the latest names, or None when no record ever set them; 'waits': its wait line, in the grammar's order;
-    'goal': the first paragraph of the body's goal, its lines joined, or ''; 'detail': the goal's other lines;
+    'goal': the lines of the body's goal, its data blocks left out;
     'done': the body's criteria, each {'kind', 'name', 'detail'}}."""
     holders = (holder_values(issue) or [None])[-1]
     asked = exchange(issue)[-1:]
@@ -71,8 +71,6 @@ def compose(issue, blockers=()):
         waits = "held" if holders else "deferred" if holders == [] else "no holder"
     # the body alone, since a section is edited there with its diff posted as a comment
     current = sections(issue.get("body"))
-    first, _, rest = current.get("goal", "").strip().partition("\n\n")
-    goal = " ".join(line.strip() for line in first.splitlines() if line.strip())
     done = [dict(zip(("kind", "name", "detail"), CRITERION.match(c).groups())) for c in ITEM.findall(current.get("done", ""))]
     done = [{"kind": d["kind"] or "", "name": d["name"] or d["detail"], "detail": d["detail"] if d["name"] else ""} for d in done]
-    return {"holders": holders, "waits": waits, "goal": goal, "detail": [line for line in DATA.sub("", rest).splitlines() if line.strip()], "done": done}
+    return {"holders": holders, "waits": waits, "goal": [line for line in DATA.sub("", current.get("goal", "")).splitlines() if line.strip()], "done": done}

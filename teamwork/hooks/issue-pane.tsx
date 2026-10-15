@@ -87,7 +87,7 @@ export const register: Register = on => {
     const entry = (i: BoardIssue): JSX.Element => {
       const open = unfolded.has(i.number)
       const line = status(i)
-      const more = Boolean(i.goal || i.done.length || i.next || i.tasks.length || i.closed.length)
+      const more = Boolean(i.goal || i.detail.length || i.done.length || i.next || i.tasks.length || i.closed.length)
       return (
         <Box flexDirection="column">
           <Box flexDirection="row">
@@ -108,7 +108,9 @@ export const register: Register = on => {
           <Box paddingLeft={2} flexDirection="column">
             {/* every entry folds alike, so an empty one says so when unfolded */}
             {open && !more && <Text dimColor>(empty)</Text>}
-            {open && i.goal && (i.kind === 'task' ? part(`goal-${i.number}`, `Goal: ${i.goal}`, i.detail) : <Text wrap="wrap">{i.goal}</Text>)}
+            {open && i.goal && <Text wrap="wrap">{i.goal}</Text>}
+            {/* the title sums a task up, so its goal is detail, folded */}
+            {open && i.detail.length > 0 && part(`goal-${i.number}`, 'Goal', i.detail)}
             {open && i.done.length > 0 && <Text>DoD:</Text>}
             {open && i.done.map((d, k) => <Box paddingLeft={2}>{part(`done-${i.number}-${k}`, [d.kind, d.name].filter(Boolean).join(' '), d.detail ? [d.detail] : [])}</Box>)}
             {open && i.next && <Text wrap="wrap">{`next step: ${i.next}`}</Text>}

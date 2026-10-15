@@ -38,7 +38,7 @@ def entry(node):
                 else "" if holders or state["waits"] == "deferred" else "not started") if backlog else ""
     return {"number": node["number"], "title": node["title"], "url": node["url"], "kind": "backlog" if backlog else "task",
             "holder": " ".join(holders), "wait": "" if blockers or state["waits"] == "held" or backlog and state["waits"] == "no holder" else state["waits"],
-            "progress": progress, "goal": summary_of(node["body"]) if backlog else state["goal"], "detail": [] if backlog else state["detail"], "done": [] if backlog else state["done"],
+            "progress": progress, "goal": summary_of(node["body"]) if backlog else "", "detail": [] if backlog else state["goal"], "done": [] if backlog else state["done"],
             "next": next_step_of(node["comments"]["nodes"]) if backlog and summary.get("total", 0) == summary.get("completed", 0) else "",
             "urgency": URGENCY.index(state["waits"].split(" by ")[0]), "tasks": [],
             "blockers": blockers_of(node),
@@ -107,7 +107,8 @@ def lines(issues, depth=0):
         yield f"{'  ' * depth}#{i['number']} {i['title']}"
         status = " ".join(x for x in (i["progress"], i["holder"], i["wait"], after(i["blockers"])) if x)
         yield from ([f"{pad}{status}"] if status else [])
-        yield from ([f"{pad}{'Goal: ' * (i['kind'] == 'task')}{i['goal']}"] if i["goal"] else [])
+        yield from ([f"{pad}{i['goal']}"] if i["goal"] else [])
+        yield from ([f"{pad}Goal:"] if i["detail"] else [])
         yield from (f"{pad}  {line.strip()}" for line in i["detail"])
         yield from ([f"{pad}DoD:"] if i["done"] else [])
         for d in i["done"]:
