@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""usage: probe-dejavu.py   (run from a checkout's root, as run-on-refs.py does)
+"""usage: probe-dejavu.py
 
 Build fixture transcripts and facets in a temporary config dir, run dejavu's two scripts on them, and print one line
 per case and `probe: <passed> of <cases> cases pass`; exit 0 only when all pass."""
@@ -13,7 +13,7 @@ import sys
 import tempfile
 import time
 
-ROOT = os.getcwd()
+ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../.."))
 SESSIONS = os.path.join(ROOT, "homework/skills/wrap-up/scripts/list-sessions.py")
 REPEATS = os.path.join(ROOT, "homework/skills/wrap-up/scripts/list-repeats.py")
 NOW = time.time()
