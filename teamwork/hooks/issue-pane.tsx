@@ -5,8 +5,8 @@ import type { BoardIssue } from '../types'
 
 const PANE = 'issues'
 const board = atom({ plugin: 'teamwork', key: 'board' } as const, [] as BoardIssue[])
-// the entries the manager unfolded, kept across redraws; every other entry shows its one row
-const expanded = atom({ plugin: 'teamwork', key: 'expanded' } as const, [] as number[])
+// the entries, goals and criteria the manager unfolded, kept across redraws; every other shows its one line
+const expanded = atom({ plugin: 'teamwork', key: 'expanded' } as const, [] as (number | string)[])
 // a wait that needs someone stands out; any other, such as `←#n` beside a blocked task, stays dim
 const WAIT_COLOR: Record<string, string> = { 'waits on the owner': 'error', 'waits on the manager': 'warning' }
 // a write to issues, sub-issues or their order, the changes the board shows; the body script's gh runs out of sight
@@ -64,7 +64,7 @@ export const register: Register = on => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Link, Button } = $.ui.resolve(e)
     const unfolded = new Set(await read($, expanded))
-    const toggle = (n: number) => () => void update($, expanded, old => old.includes(n) ? old.filter(x => x !== n) : [...old, n])
+    const toggle = (n: number | string) => () => void update($, expanded, old => old.includes(n) ? old.filter(x => x !== n) : [...old, n])
     const status = (i: BoardIssue) => [
       i.progress && <Text dimColor>{i.progress}</Text>,
       i.holder && <Text color="suggestion">{i.holder}</Text>,
@@ -73,10 +73,21 @@ export const register: Register = on => {
     // every blocker, as links: an open one bold, a closed one dim, so what still holds a task stands out
     const after = (t: { url: string; blockers: BoardIssue['blockers'] }) => t.blockers.length > 0 && [<Text dimColor>{' ←'}</Text>, ...t.blockers.map((b, k) =>
       <Text dimColor={b.closed} weight={b.closed ? undefined : 'semibold'}>{k ? ',' : ''}<Link href={t.url.replace(/\d+$/, String(b.number))} label={`#${b.number}`} /></Text>)]
+    // a goal or a criterion: its name on one line, its details only once that line is unfolded
+    const part = (key: string, name: string, detail: string[]) => (
+      <Box flexDirection="column">
+        <Box flexDirection="row">
+          <Button key={`fold-${key}`} plain dimColor label={!detail.length ? ' ' : unfolded.has(key) ? '▾' : '▸'} onPress={toggle(key)} />
+          <Text> </Text>
+          <Button key={`row-${key}`} plain onPress={toggle(key)}><Text wrap="wrap">{name}</Text></Button>
+        </Box>
+        {unfolded.has(key) && detail.map(d => <Box paddingLeft={2}><Text wrap="wrap" dimColor>{d}</Text></Box>)}
+      </Box>
+    )
     const entry = (i: BoardIssue): JSX.Element => {
       const open = unfolded.has(i.number)
       const line = status(i)
-      const more = Boolean(i.goal || i.done.length || i.next || i.tasks.length || i.closed.length)
+      const more = Boolean(i.goal || i.detail.length || i.done.length || i.next || i.tasks.length || i.closed.length)
       return (
         <Box flexDirection="column">
           <Box flexDirection="row">
@@ -98,7 +109,10 @@ export const register: Register = on => {
             {/* every entry folds alike, so an empty one says so when unfolded */}
             {open && !more && <Text dimColor>(empty)</Text>}
             {open && i.goal && <Text wrap="wrap">{i.goal}</Text>}
-            {open && i.done.map(d => <Text wrap="wrap" dimColor>{`• ${d}`}</Text>)}
+            {/* the title sums a task up, so its goal is detail, folded */}
+            {open && i.detail.length > 0 && part(`goal-${i.number}`, 'Goal', i.detail)}
+            {open && i.done.length > 0 && <Text>DoD:</Text>}
+            {open && i.done.map((d, k) => <Box paddingLeft={2}>{part(`done-${i.number}-${k}`, [d.kind, d.name].filter(Boolean).join(' '), d.detail ? [d.detail] : [])}</Box>)}
             {open && i.next && <Text wrap="wrap">{`next step: ${i.next}`}</Text>}
             {open && i.tasks.map(t => <Box marginTop={1}>{entry(t)}</Box>)}
             {/* closed tasks after the open ones, dim, so what landed stays in view */}
