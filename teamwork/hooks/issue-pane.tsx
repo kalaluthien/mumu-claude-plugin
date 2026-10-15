@@ -79,11 +79,12 @@ export const register: Register = on => {
     // every blocker, as links: an open one bold, a closed one dim, so what still holds a task stands out
     const after = (t: { url: string; blockers: BoardIssue['blockers'] }) => t.blockers.length > 0 && [<Text dimColor>{' ← '}</Text>, ...t.blockers.map((b, k) =>
       <Text dimColor={b.closed} weight={b.closed ? undefined : 'semibold'}>{k ? ',' : ''}<Link href={t.url.replace(/\d+$/, String(b.number))} label={`#${b.number}`} /></Text>)]
-    // a goal or a criterion: its name on one line, its details only once a press on that line unfolds them; unfolded, the name goes gray so the white detail reads first
+    // a goal or a criterion: its name on one line, its details only once a press on that line unfolds them; unfolded, the name goes gray so the white detail reads first,
+    // and a blank line ends the detail, so the next name does not read as part of it
     const part = (key: string, name: string, detail: string[]) => (
       <Box flexDirection="column">
         <Button key={`row-${key}`} plain onPress={toggle(key)}><Text wrap="wrap" dimColor={unfolded.has(key)}>{name}</Text></Button>
-        {unfolded.has(key) && detail.map(d => <Box paddingLeft={2}><Text wrap="wrap">{d}</Text></Box>)}
+        {unfolded.has(key) && detail.length > 0 && <Box paddingLeft={2} marginBottom={1} flexDirection="column">{detail.map(d => <Text wrap="wrap">{d}</Text>)}</Box>}
       </Box>
     )
     const entry = (i: BoardIssue): JSX.Element => {

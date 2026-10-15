@@ -224,6 +224,15 @@ describe('issue pane', () => {
     for (const body of [/^Why it matters$/, /^it runs the board$/]) expect(await label(body)).toBeFalsy()
   })
 
+  test('an unfolded body ends with one blank line, a folded or empty one with none', async ($, on) => {
+    const ui = await mounted($, on, [issue(2, 'task', { detail: ['Why it matters'], done: [{ met: null, kind: 'check', name: 'Board prints', detail: 'it runs the board' }, { met: null, kind: 'check', name: 'No body', detail: '' }] })])
+    await unfold(ui, 2)
+    const spaced = async () => (await ui.findAll({ type: 'Box' })).filter(b => b.props.marginBottom === 1).map(b => b.text)
+    expect(await spaced()).toEqual([])
+    for (const key of ['row-goal-2', 'row-done-2-0', 'row-done-2-1']) await ui.press({ key })
+    expect(await spaced()).toEqual(['Why it matters', 'it runs the board'])
+  })
+
   test('entries start folded to one row; a press unfolds one, a second folds it', async ($, on) => {
     const ui = await mounted($, on, JSON.parse(board))
     const shown = async () => [await ui.find({ type: 'Text', text: /^see detail$/ }), await ui.find({ type: 'Text', text: /it prints$/ })]
