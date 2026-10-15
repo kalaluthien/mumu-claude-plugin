@@ -12,7 +12,7 @@ Turn the owner's words into backlogs, route each to a worker, and decide what wo
    | an update to an open backlog | `comment` them there as `DECIDED: owner said: …`; hand them to its holders |
    | for a live worker's current work | `comment` them on its issue as `DECIDED: owner said: …`; `tell` it |
    | a follow-up to work a closed backlog delivered | reopen that backlog, `comment` `DECIDED: owner said: …` there, nest the worker's task under it; file no new backlog |
-   | new work | `file` a backlog labelled `backlog` and its `scope:`, titled by its outcome, its body a first paragraph of one or two sentences that sums up the whole, then the words quoted |
+   | new work | `file` a backlog labelled `backlog` and its `scope:`, titled by its outcome, its body's first line one plain sentence that sums up the whole, as [issue-grammar.md](issue-grammar.md)'s Summary line says, then the words quoted |
    | for another project | file them in its repository; by `ListAgents`, send them to its manager, else `start` `<project>-manager` `--team` at that project's checkout with the filed url, never stopping at a failed `tell` |
    | a start of a manager, no work named | file nothing; a live one, restart it by Succession; else `start` `<project>-manager` `--team` at its checkout with `<project>` as its arguments |
    | a stop to work | `resolve` it not planned; `close` its workers |
