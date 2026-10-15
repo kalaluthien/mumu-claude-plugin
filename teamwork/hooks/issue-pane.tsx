@@ -65,10 +65,14 @@ export const register: Register = on => {
     const { Box, Text, Link, Button } = $.ui.resolve(e)
     const unfolded = new Set(await read($, expanded))
     const toggle = (n: number) => () => void update($, expanded, old => old.includes(n) ? old.filter(x => x !== n) : [...old, n])
+    // an issue's url ends in its number, so a sibling's url swaps that number
+    const after = (i: { url: string; after: number[] }) => i.after.length > 0 &&
+      <Text dimColor>after {i.after.flatMap((n, k) => [k ? ', ' : '', <Link href={i.url.replace(/\d+$/, String(n))} label={`#${n}`} />])}</Text>
     const status = (i: BoardIssue) => [
       i.progress && <Text dimColor>{i.progress}</Text>,
       i.kind === 'task' && i.holder && <Text color="suggestion">{i.holder}</Text>,
       i.wait && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.wait}</Text>,
+      after(i),
     ].filter(Boolean).flatMap((x, k) => (k ? [<Text dimColor> · </Text>, x] : [x]))
     const entry = (i: BoardIssue): JSX.Element => {
       const open = unfolded.has(i.number)
@@ -95,7 +99,7 @@ export const register: Register = on => {
             {open && i.done.map(d => <Text wrap="wrap" dimColor>{`• ${d}`}</Text>)}
             {open && i.tasks.map(t => <Box marginTop={1}>{entry(t)}</Box>)}
             {/* closed tasks after the open ones, dim, so what landed stays in view */}
-            {open && i.closed.length > 0 && <Box marginTop={1} flexDirection="column">{i.closed.map(t => <Text wrap="wrap" dimColor><Link href={t.url} label={`#${t.number}`} />{` ${t.title}`}</Text>)}</Box>}
+            {open && i.closed.length > 0 && <Box marginTop={1} flexDirection="column">{i.closed.map(t => <Text wrap="wrap" dimColor><Link href={t.url} label={`#${t.number}`} />{` ${t.title}`}{t.after.length > 0 && ' · '}{after(t)}</Text>)}</Box>}
           </Box>
         </Box>
       )

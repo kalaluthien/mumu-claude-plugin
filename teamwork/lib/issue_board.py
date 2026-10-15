@@ -26,7 +26,10 @@ def entry(node):
             "holder": " ".join(holders), "wait": "" if state["waits"] == "held" or backlog and state["waits"] == "no holder" else state["waits"],
             "progress": progress, "goal": summary_of(node["body"]) if backlog else state["goal"], "done": [] if backlog else state["done"],
             "urgency": URGENCY.index(state["waits"].split(" by ")[0]), "tasks": [],
-            "closed": [{k: t[k] for k in ("number", "title", "url")} for t in (node.get("subIssues") or {}).get("nodes", []) if t["state"] == "CLOSED"]}
+            # an open blocker already shows as the wait, so `after` names the ones that landed
+            "after": [b["number"] for b in node["blockedBy"]["nodes"] if b["state"] != "OPEN"],
+            "closed": [{"number": t["number"], "title": t["title"], "url": t["url"], "after": [b["number"] for b in (t.get("blockedBy") or {}).get("nodes", [])]}
+                       for t in (node.get("subIssues") or {}).get("nodes", []) if t["state"] == "CLOSED"]}
 
 
 def related(nodes, items):
@@ -79,14 +82,19 @@ def board(nodes):
     return top
 
 
+def after(issue):
+    """The issues it was ordered after, as the board prints them, or ''."""
+    return "after " + ", ".join(f"#{n}" for n in issue["after"]) if issue["after"] else ""
+
+
 def lines(issues, depth=0):
     """The board as text: each entry's link line, then indented what the pane shows under it."""
     for i in issues:
         pad = "  " * (depth + 1)
         yield f"{'  ' * depth}#{i['number']} {i['title']}"
-        status = " · ".join(x for x in (i["progress"], i["holder"] if i["kind"] == "task" else "", i["wait"]) if x)
+        status = " · ".join(x for x in (i["progress"], i["holder"] if i["kind"] == "task" else "", i["wait"], after(i)) if x)
         yield from ([f"{pad}{status}"] if status else [])
         yield from ([f"{pad}{i['goal']}"] if i["goal"] else [])
         yield from (f"{pad}- {d}" for d in i["done"])
         yield from lines(i["tasks"], depth + 1)
-        yield from (f"{pad}#{t['number']} {t['title']} · closed" for t in i["closed"])
+        yield from (" · ".join(x for x in (f"{pad}#{t['number']} {t['title']}", "closed", after(t)) if x) for t in i["closed"])
