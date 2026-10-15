@@ -9,7 +9,8 @@ import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]  # this plugin, loaded into the new session too
 sys.path.insert(0, str(ROOT / "lib"))
-import team  # noqa: E402
+import herdr_agents  # noqa: E402
+from json_command import run  # noqa: E402
 
 TIMEOUT, POLL = float(os.environ.get("START_SESSION_TIMEOUT", 120)), 1.0
 # claude.ai connectors (Gmail, Drive, Notion...) serve no teamwork role, and their tool list costs ~5k tokens every turn
@@ -17,7 +18,7 @@ SETTINGS = json.dumps({"disableClaudeAiConnectors": True})
 
 
 def herdr(*argv):
-    out = team.run("herdr", *argv)
+    out = run("herdr", *argv)
     if out is None:
         raise RuntimeError(f"herdr {' '.join(argv[:2])} failed")
     return out["result"]
@@ -26,17 +27,17 @@ def herdr(*argv):
 def open_pane(name, cwd, own_workspace):
     into = [] if own_workspace else ["--workspace", herdr("pane", "get", os.environ["HERDR_PANE_ID"])["pane"]["workspace_id"]]
     pane = herdr("workspace" if own_workspace else "tab", "create", *into, "--cwd", cwd, "--label", name.removesuffix("-manager") if own_workspace else name, "--no-focus")["root_pane"]
-    team.run("herdr", "tab", "rename", pane["tab_id"], name)
-    team.run("herdr", "pane", "rename", pane["pane_id"], name)
+    run("herdr", "tab", "rename", pane["tab_id"], name)
+    run("herdr", "pane", "rename", pane["pane_id"], name)
     return pane["pane_id"]
 
 
 def wait(name, pane, ready, nudge, what):
     deadline = time.time() + TIMEOUT
     while time.time() < deadline:
-        if ready(team.agent(name) or {}):
+        if ready(herdr_agents.agent(name) or {}):
             return
-        nudge(team.screen(pane))
+        nudge(herdr_agents.screen(pane))
         time.sleep(POLL)
     raise RuntimeError(f"{name} {what} after {TIMEOUT:g}s")
 
@@ -62,18 +63,18 @@ parser.add_argument("--team", action="store_true")
 parser.add_argument("--model", required=True)  # no default: the caller picks per role
 parser.add_argument("--effort", required=True)
 a = parser.parse_args()
-if team.agent(a.name):
+if herdr_agents.agent(a.name):
     sys.exit(f"start-session.py: {a.name} is already live: hand it the work instead of starting another.")
 text = f"/teamwork:kick-off {a.args}"
 try:
     pane = open_pane(a.name, str(pathlib.Path(a.cwd).resolve()), a.team)
     start(a, pane)
     wait(a.name, pane, lambda s: s.get("interactive_ready") and s.get("agent_status") != "blocked",  # trust dialog
-         lambda screen: "Yes, I trust this folder" in screen and team.run("herdr", "agent", "send-keys", pane, "down", "enter"),
+         lambda screen: "Yes, I trust this folder" in screen and run("herdr", "agent", "send-keys", pane, "down", "enter"),
          "not ready")
-    team.run("herdr", "agent", "prompt", pane, text)  # the one prompt a session is sent: its kick-off
+    run("herdr", "agent", "prompt", pane, text)  # the one prompt a session is sent: its kick-off
     wait(a.name, pane, lambda s: s.get("agent_status") not in (None, "idle"),  # typed but unsent: press Enter
-         lambda screen: text[:40] in screen and team.run("herdr", "agent", "send-keys", pane, "enter"), "never took its kick-off")
+         lambda screen: text[:40] in screen and run("herdr", "agent", "send-keys", pane, "enter"), "never took its kick-off")
 except RuntimeError as e:
     sys.exit(f"start-session.py: {e}. Look at its pane with `herdr agent read {a.name}` before starting it again.")
 where = "a new workspace of its own" if a.team else "a new tab of your workspace"

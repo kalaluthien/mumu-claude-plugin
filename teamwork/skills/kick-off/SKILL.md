@@ -23,10 +23,10 @@ Arguments: $ARGUMENTS
 
 ## Model
 
-Intent flows owner → manager → backlog → worker → tasks → judged pull requests. An issue keeps what must outlive a session: a `BLOCKED:` comment opens a worker's question with its options, a `DECIDED:` the manager's answer, route or order, binding until a newer one.
+Intent flows owner → manager → backlog → worker → tasks → judged pull requests. An issue keeps what must outlive a session, written as [issue-grammar.md](references/issue-grammar.md) says: a `BLOCKED:` comment opens a worker's question with its options, a `DECIDED:` the manager's answer, route or order, binding until a newer one.
 
 - **project**: a repository, or its folder named by a `scope:` label; its name lowercased, each run of other characters one `-`, cut to 22
-- **holds**: a worker holds each open issue whose `DECIDED: <name> holds` or `held by <name>` names it, any number, and several may hold one
+- **holds**: a worker holds each open issue whose latest `holders` names it, any number, and several may hold one
 - **backlog**: an issue labelled `backlog`: the owner's intent in rough words
 - **task**: an issue a worker defines: `## Goal`, `## Definition of done` of criteria, its order after other tasks
 - **criterion**: a `[check]`, a command whose output decides, its failing output on main quoted; or a `[score]`, a rubric over a named sample, head against main by a margin set after measuring main on it
@@ -58,7 +58,7 @@ Each role decides alone what keeps the intent it was handed, and asks before it 
 
 ## Verbs
 
-The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`. `read` (`--json title,body,comments,labels,state`, a PR's also `headRefOid`), `comment`, `file` (each label first `gh label create <label> --force`) and `resolve` (`--reason completed --comment "<summary>"`, or `"not planned"` for work stopped) are `gh issue` and `gh pr` commands, a body always by `--body-file`; `decide` comments a `DECIDED:`.
+The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`. `read` (`--json title,body,comments,labels,state`, a PR's also `headRefOid`), `comment`, `file` (each label first `gh label create <label> --force`) and `resolve` (`--reason completed --comment "RESOLVED: <summary>"`, or `"not planned"` for work stopped) are `gh issue` and `gh pr` commands, a body always by `--body-file`; `decide` comments a `DECIDED:`.
 
 - `order`: `gh api -X POST repos/<repo>/issues/<later>/dependencies/blocked_by -F issue_id=<earlier's id>`; ids by `gh api repos/<repo>/issues/<n> -q .id`
 - `nest`: `gh api -X POST repos/<repo>/issues/<backlog>/sub_issues -F sub_issue_id=<task's id>`

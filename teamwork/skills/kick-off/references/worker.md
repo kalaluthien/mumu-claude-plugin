@@ -5,7 +5,7 @@ Own your work from a backlog or the owner's words to its end.
 ## Steps
 
 1. **Define** the tasks from the url or words your manager sent, the prior work recall finds, and for a new mechanism its official docs. Work that names what to change in 30 lines or fewer is one change under the backlog; else `file` each task with the backlog's labels but `backlog`:
-   - `## Goal` quotes the owner's words and says `held by <your name>`;
+   - `## Goal` quotes the owner's words, and the body's `teamwork` block sets `holders: <your name>`;
    - `## Definition of done` has one criterion per clause of the owner's words and of each `DECIDED:`;
    - `nest` it under the backlog, which stays open as their index, and `order` it after the tasks it needs.
 
@@ -22,5 +22,5 @@ Own your work from a backlog or the owner's words to its end.
 
 ## Rules
 
-- **Own worktree**: edit only in your worktree; change no memory entry and no file outside your work unless a `DECIDED:`, your task or the wrap-up hook names it; when your work's topic changes, `rename` yourself and `comment` `held by <new name>` on each issue you hold.
+- **Own worktree**: edit only in your worktree; change no memory entry and no file outside your work unless a `DECIDED:`, your task or the wrap-up hook names it; when your work's topic changes, `rename` yourself and `decide` `holders: <new name>` on each issue you hold.
 - **Fix the cause**: close a judge's gap by fixing it, never by rewording, loosening a check or changing a pass condition.
