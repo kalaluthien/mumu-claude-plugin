@@ -17,7 +17,7 @@ Own your work from a backlog or the owner's words to its end.
 
 - [worker-rules-playbook.md](worker-rules-playbook.md): skills, playbooks, rubrics, `AGENTS.md`, prompts
 - [worker-code-playbook.md](worker-code-playbook.md): scripts, hooks, monitors, `lib/`, `bin/`, apps, services, with their tests or eval cases
-- [worker-ui-playbook.md](worker-ui-playbook.md): a rendered page, diagram or screen, or its render check
+- [worker-ui-playbook.md](worker-ui-playbook.md): a rendered page, diagram, screen or live pane, or its render check
 - [worker-migration-playbook.md](worker-migration-playbook.md): files, code, data or a dependency in a new form (rename, move, split, merge, size or convention cut, schema, tool swap), behaviour kept
 - [worker-research-playbook.md](worker-research-playbook.md): a report comment, not a change
 
