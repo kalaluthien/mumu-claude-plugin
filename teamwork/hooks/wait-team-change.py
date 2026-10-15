@@ -5,8 +5,11 @@ Print `changed` once at start, then once each time a team session marks a change
 It blocks on the signal file through kqueue, so it reads GitHub never and wakes only when a session touches the file."""
 import pathlib
 import select
+import sys
 
-SIGNAL = pathlib.Path.home() / ".claude" / "teamwork" / "issues-changed"
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
+from team_signal import SIGNAL  # noqa: E402
+
 EVENTS = select.KQ_NOTE_WRITE | select.KQ_NOTE_ATTRIB | select.KQ_NOTE_DELETE | select.KQ_NOTE_RENAME
 
 
