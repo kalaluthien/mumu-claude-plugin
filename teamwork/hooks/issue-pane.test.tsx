@@ -74,9 +74,9 @@ describe('issue pane', () => {
       if (surface === 'terminal') await unfold(ui, 1, 2)
       for (const [label, url, title] of [['#1', 'https://example.test/1', 'First issue'], ['#2', 'https://example.test/2', 'Second issue']]) {
         // the link leads its row, so cutting the row at the pane's width cuts the title, never the link
-        const row = await ui.find({ type: 'Text', text: new RegExp(`^${label} ${title}( · |$)`) })
+        const rest = await ui.find({ type: 'Button', key: `row-${label.slice(1)}` })
         const kind = await ui.find({ type: 'Text', text: new RegExp(`^${label}$`) })
-        expect(row!.children[0]).toMatchObject({ type: 'Text', props: { color: kind!.props.color } })
+        expect(rest!.text).toMatch(new RegExp(`^${title}( · |$)`))
         expect(kind!.children[0]).toMatchObject({ type: 'Link', props: { href: url, label } })
       }
       for (const line of [/^Do the thing$/, /^• \[check\] it prints$/, /^x-worker$/, /^waits on the owner$/, /^1 open · 0 landed$/])
@@ -193,10 +193,12 @@ describe('issue pane', () => {
     expect(row!.children[0]).toMatchObject({ type: 'Link', props: { href: 'https://example.test/3', label: '#3' } })
   })
 
-  test('a blocked entry links each issue blocking it', async ($, on) => {
-    const ui = await mounted($, on, [issue(1, 'backlog', { wait: 'blocked by #5, #6', blockers: [5, 6] })])
-    const wait = await ui.find({ type: 'Text', text: /^blocked by #5, #6$/ })
-    expect(wait!.children.filter((c: any) => c.type === 'Link').map((l: any) => l.props.href)).toEqual(['https://example.test/5', 'https://example.test/6'])
+  test('a press on the title or status folds the entry, as the arrow does', async ($, on) => {
+    const ui = await mounted($, on, [issue(1, 'backlog', { goal: 'The summary' })])
+    await ui.press({ key: 'row-1' })
+    expect(await ui.find({ type: 'Text', text: /^The summary$/ })).toBeDefined()
+    await ui.press({ key: 'row-1' })
+    expect(await ui.find({ type: 'Text', text: /^The summary$/ })).toBeUndefined()
   })
 
   test('a task sits two columns in per layer of what blocks it', async ($, on) => {
