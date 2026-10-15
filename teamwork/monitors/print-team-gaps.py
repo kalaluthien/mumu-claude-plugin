@@ -14,8 +14,8 @@ shown, staffed = set(), False  # the exit waits until this manager has had a wor
 waiting = set()  # a worker's issues with an open blocker, so a restart reports no blocker closed long ago
 while True:
     listed, me = herdr_agents.sessions()
-    manager = me.get("name", "").endswith("-manager")
-    worker = me.get("name", "").endswith("-worker")
+    role = herdr_agents.role(me.get("name"))
+    manager, worker = role == "manager", role == "worker"
     lines = team_gaps.manager_actions(me, listed) if manager else team_gaps.worker_actions(me, waiting) if worker else []
     if manager and lines is not None:
         crew = herdr_agents.members(me, listed)

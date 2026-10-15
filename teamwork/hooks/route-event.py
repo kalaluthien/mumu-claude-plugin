@@ -44,8 +44,6 @@ event = json.load(sys.stdin)
 kind = event.get("hook_event_name")
 if kind != "PreToolUse" or GH_TEXT.search((event.get("tool_input") or {}).get("command", "")):  # skip other Bash fast
     listed, me = herdr_agents.sessions(event.get("session_id"))
-    name = me.get("name") or ""
-    # a name with neither suffix is a session outside any team, such as the owner's own, so it gets no teamwork steps
-    role = "manager" if name.endswith("-manager") else "worker" if name.endswith("-worker") else None
+    role = herdr_agents.role(me.get("name"))
     if out := role and route(kind, event, role, me, listed):
         print(json.dumps(out))
