@@ -28,7 +28,7 @@ VARIABLE = [(re.compile(p), r) for p, r in [
     (r"(['\"`]).*?\1", "<q>"), (r"\d+", "<n>"), (r"\s+", " ")]]
 NOISE = re.compile(r"^(Exit code <n>|<n>|-+|ok\b.*|This hook comes from .*)$")
 DENIED = re.compile(r"doesn't want to proceed|user denied|rejected by the user", re.I)
-REASON = re.compile(r"\[[A-Z][\w -]+\]")
+REASON = re.compile(r"\[[A-Z][A-Za-z /-]+\]")
 
 
 def root():
