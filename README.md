@@ -49,7 +49,7 @@ That session becomes the manager. It files the backlog, starts a worker in a new
 
 **The idea.** Each kind of question gets the simplest page that answers it, built from facts that were checked first.
 
-- [`/paperwork:show-me`](paperwork/skills/show-me/SKILL.md) turns a request into an HTML page. It splits the ask into the questions a reader puts and answers each with one of four playbooks: a **sitrep** (what happened, what changed), a **zoom diagram** (how it works, from the big picture down), an **interactive demo** (what happens if I try), and **option cards** (which one, or a verdict).
+- [`/paperwork:show-me`](paperwork/skills/show-me/SKILL.md) turns a request into an HTML page. It splits the ask into the questions a reader puts and answers each with one of four playbooks: a **sitrep** (what happened, what changed), a **zoom diagram** (how it works, from the big picture down), an **interactive demo** (what happens if I try), and **option cards** (which one, or a verdict). It takes its name from [humanlayer's skill of the same name](paperwork/skills/show-me/upstream.txt).
 - [`/paperwork:grill-me`](paperwork/skills/grill-me/SKILL.md) interviews you about a decision, a few questions per round, the ones that settle the most first, never one whose answer waits on another still open, until nothing is left open. It adapts [Matt Pocock's skill of the same name](paperwork/skills/grill-me/upstream.txt).
 - [`drill-it`](paperwork/skills/drill-it/SKILL.md) runs underneath both: it gathers the facts, models a system as JSON and checks it, with Alloy proofs when Java is around, so the page draws only what holds. It never asks and never draws.
 
