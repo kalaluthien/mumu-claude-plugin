@@ -15,11 +15,12 @@ const TEAM_CHANGE = /\bedit-issue-body\.py\b|\bgh\s+(issue|pr)\s+(create|comment
 // a manager's pane and its waiter, once per session; the start directory, since the current one may be a worktree removed since
 let startDir: string | undefined
 let watching = false
+const openPane = ($: any) => $.ui.open({ id: PANE, title: 'Issues' })
 function watch($: any, name: string) {
   if (watching || !name.endsWith('-manager')) return
   watching = true
   const project = name.slice(0, -'-manager'.length)
-  void $.ui.open({ id: PANE, title: 'Issues' }).catch(() => undefined)
+  void openPane($).catch(() => undefined)
   void (async () => {
     const waiter = $.process.spawn({ argv: [`${$.plugin.root}/hooks/wait-team-change.py`] })
     for await (const piece of waiter) {
@@ -63,7 +64,7 @@ export const register: Register = on => {
 
   // the owner closes the pane by its frame's x; this skill shows it again, with no model turn
   on('command.run', { command: 'teamwork:issues' }, async ($) => {
-    await $.ui.open({ id: PANE, title: 'Issues' })
+    await openPane($)
     return { text: 'Issues pane shown' }
   }).catch(($, e, next) => next(e))  // a failed open falls back to the skill's body
 

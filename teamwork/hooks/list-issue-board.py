@@ -10,6 +10,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import issue_board  # noqa: E402
+from github_issues import scope_label  # noqa: E402
 from json_command import run  # noqa: E402
 
 QUERY = """query($owner: String!, $name: String!, $labels: [String!]) {
@@ -25,10 +26,9 @@ def nodes(project):
     repo = run("gh", "repo", "view", "--json", "owner,name")
     if repo is None:
         return None
-    # gh prints nothing, not `[]`, when no label matches, so an empty read is a repository without that label
-    scoped = f"scope:{project}" in [x["name"] for x in run("gh", "label", "list", "--search", f"scope:{project}", "--json", "name") or []]
+    label = scope_label(project)
     found = run("gh", "api", "graphql", "-f", f"query={QUERY}", "-f", f"owner={repo['owner']['login']}", "-f", f"name={repo['name']}",
-                *(["-f", f"labels[]=scope:{project}"] if scoped else []))
+                *(["-f", f"labels[]={label}"] if label else []))
     return found and found["data"]["repository"]["issues"]["nodes"]
 
 

@@ -28,7 +28,8 @@ def blockers_of(node):
 
 def entry(node):
     """One issue as the board shows it; a backlog shows its progress and summary, a task its goal and criteria."""
-    blockers = [b["number"] for b in node["blockedBy"]["nodes"] if b["state"] == "OPEN"]
+    every = blockers_of(node)
+    blockers = [b["number"] for b in every if not b["closed"]]
     state = issue_state.compose({"body": node["body"], "comments": node["comments"]["nodes"]}, blockers)
     backlog = "backlog" in [x["name"] for x in node["labels"]["nodes"]]
     holders = state["holders"] or []
@@ -41,7 +42,7 @@ def entry(node):
             "progress": progress, "goal": summary_of(node["body"]) if backlog else "", "detail": [] if backlog else state["goal"], "done": [] if backlog else state["done"],
             "next": next_step_of(node["comments"]["nodes"]) if backlog and summary.get("total", 0) == summary.get("completed", 0) else "",
             "urgency": URGENCY.index(state["waits"].split(" by ")[0]), "tasks": [],
-            "blockers": blockers_of(node),
+            "blockers": every,
             "closed": closed[::-1][:SHOWN_CLOSED], "earlier": summary.get("completed", 0) > min(len(closed), SHOWN_CLOSED)}
 
 

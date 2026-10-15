@@ -28,7 +28,7 @@ def herdr(*argv):
 
 def open_pane(name, cwd, own_workspace, workspace):
     into = [] if own_workspace else ["--workspace", workspace or herdr("pane", "get", os.environ["HERDR_PANE_ID"])["pane"]["workspace_id"]]
-    pane = herdr("workspace" if own_workspace else "tab", "create", *into, "--cwd", cwd, "--label", name.removesuffix("-manager") if own_workspace else name, "--no-focus")["root_pane"]
+    pane = herdr("workspace" if own_workspace else "tab", "create", *into, "--cwd", cwd, "--label", herdr_agents.project(name) if own_workspace else name, "--no-focus")["root_pane"]
     run("herdr", "tab", "rename", pane["tab_id"], name)
     run("herdr", "pane", "rename", pane["pane_id"], name)
     return pane["pane_id"]

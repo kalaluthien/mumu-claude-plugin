@@ -1,7 +1,7 @@
 """Each role's next actions: the gaps between GitHub's issues and the live team, as lines a monitor or hook prints."""
 import issue_state
 from github_issues import ISSUE_LIMIT, PR_LIMIT, issues, limited
-from herdr_agents import members
+from herdr_agents import members, owns, project, role, tabs
 from json_command import run
 
 ASK, ANSWER = issue_state.WORD["ask"], issue_state.WORD["answer"]
@@ -18,14 +18,13 @@ def asking(issue):
 def manager_actions(me, listed):
     team = members(me, listed)
     status = {a.get("name"): a.get("agent_status") for a in listed}
-    found = issues(me["name"].removesuffix("-manager"))
+    found = issues(project(me["name"]))
     prs = run("gh", "pr", "list", "--state", "merged", "--limit", str(PR_LIMIT), "--json", "number,headRefName")
     if found is None or prs is None:
         return None
     lines = limited(found, ISSUE_LIMIT, "open-issue")  # merged PRs past the newest are always many and no live worker's
     # a started worker names its tab before its agent is live, so its tab counts it as routed
-    tabs = (run("herdr", "tab", "list", "--workspace", me.get("workspace_id", "")) or {}).get("result", {}).get("tabs", [])
-    present = set(team) | {t.get("label") for t in tabs}
+    present = set(team) | {t.get("label") for t in tabs(me.get("workspace_id", ""))}
     for i in found:
         deferred = issue_state.compose(i)["holders"] == []  # holders set empty records a decision to leave it for later
         if not deferred and not any(holds(i, n) for n in present if n):
@@ -38,19 +37,19 @@ def manager_actions(me, listed):
             lines.append(f"blocked {n}: it waits at a tool-use prompt; the owner needs its tab")
         elif status[n] in ("idle", "done"):
             lines.append(f"idle {n}: holds {held}; it needs what waits, or close it when it holds nothing open")
-    for p, n in ((p, n) for p in prs for n in team if p["headRefName"] == n or p["headRefName"].startswith(n + "-")):
+    for p, n in ((p, n) for p in prs for n in team if owns(n, p["headRefName"])):
         lines.append(f"merged #{p['number']} by {n}: once {n} holds nothing open, close it and clean its worktree")
     return lines
 
 
 def had_worker(me):
     """Whether a manager of this project ever routed a worker, read from the holders of its closed issues, so a restarted monitor knows what its memory lost."""
-    found = issues(me["name"].removesuffix("-manager"), "closed")
-    return any(n.endswith("-worker") for i in found or [] for names in issue_state.holder_values(i) for n in names)
+    found = issues(project(me["name"]), "closed")
+    return any(role(n) == "worker" for i in found or [] for names in issue_state.holder_values(i) for n in names)
 
 
 def exit_action(me, listed):
-    others = [a["name"] for a in listed if a is not me and a.get("name", "").endswith("-manager")]
+    others = [a["name"] for a in listed if a is not me and role(a.get("name")) == "manager"]
     return ("exit: no worker is live and nothing waits; " + (f"propose your exit to {', '.join(others)} as step 5 says" if others
             else "you are the only live manager, so stay and /compact as step 5 says"))
 
@@ -83,6 +82,6 @@ def worker_actions(me, waiting):
             waiting.discard(i["number"])
             lines.append(f"start #{i['number']}: every issue it waited on is closed")
     for p in prs:
-        if (p["headRefName"] == name or p["headRefName"].startswith(name + "-")) and p["mergeable"] == "CONFLICTING":
+        if owns(name, p["headRefName"]) and p["mergeable"] == "CONFLICTING":
             lines.append(f"rebase #{p['number']}: it conflicts with the default branch")
     return lines
