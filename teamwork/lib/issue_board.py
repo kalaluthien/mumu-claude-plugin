@@ -15,11 +15,8 @@ def summary_of(body):
 
 def next_step_of(comments):
     """A backlog's next step: the latest `REPORTED:` that names one, so a backlog with nothing open says why it stays open."""
-    for c in reversed(comments):
-        first = (c["body"] or "").replace("\r\n", "\n").split("\n\n")[0]
-        if first.startswith("REPORTED:") and "next step:" in first:
-            return " ".join(first.rsplit("next step:", 1)[1].split())
-    return ""
+    firsts = [(c["body"] or "").replace("\r\n", "\n").split("\n\n")[0] for c in comments]
+    return next((" ".join(f.rsplit("next step:", 1)[1].split()) for f in reversed(firsts) if f.startswith("REPORTED:") and "next step:" in f), "")
 
 
 def entry(node):
@@ -31,11 +28,10 @@ def entry(node):
     summary = node.get("subIssuesSummary") or {}
     progress = (f"{summary['total'] - summary['completed']} open, {summary['completed']} landed" if summary.get("total")
                 else "" if holders or state["waits"] == "deferred" else "not started") if backlog else ""
-    idle = backlog and summary.get("total", 0) == summary.get("completed", 0)
     return {"number": node["number"], "title": node["title"], "url": node["url"], "kind": "backlog" if backlog else "task",
             "holder": " ".join(holders), "wait": "←" + ",".join(f"#{n}" for n in blockers) if blockers else "" if state["waits"] == "held" or backlog and state["waits"] == "no holder" else state["waits"],
             "progress": progress, "goal": summary_of(node["body"]) if backlog else state["goal"], "done": [] if backlog else state["done"],
-            "next": next_step_of(node["comments"]["nodes"]) if idle else "",
+            "next": next_step_of(node["comments"]["nodes"]) if backlog and summary.get("total", 0) == summary.get("completed", 0) else "",
             "urgency": URGENCY.index(state["waits"].split(" by ")[0]), "tasks": [], "blockers": blockers, "layer": 0,
             "closed": [{"number": t["number"], "title": t["title"], "url": t["url"]}
                        for t in (node.get("subIssues") or {}).get("nodes", []) if t["state"] == "CLOSED"]}

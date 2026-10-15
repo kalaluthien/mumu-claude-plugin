@@ -94,7 +94,6 @@ export const register: Register = on => {
             {open && !more && <Text dimColor>(empty)</Text>}
             {open && i.goal && <Text wrap="wrap">{i.goal}</Text>}
             {open && i.done.map(d => <Text wrap="wrap" dimColor>{`• ${d}`}</Text>)}
-            {/* a backlog with nothing open says why it stays open */}
             {open && i.next && <Text wrap="wrap">{`next step: ${i.next}`}</Text>}
             {/* two spaces per layer: tasks on one layer can run at once, each below what blocks it */}
             {open && i.tasks.map(t => <Box marginTop={1} paddingLeft={2 * t.layer}>{entry(t)}</Box>)}
