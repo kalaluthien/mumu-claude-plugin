@@ -88,7 +88,6 @@ export const register: Register = on => {
     const toggle = (n: number | string) => () => void update($, expanded, old => old.includes(n) ? old.filter(x => x !== n) : [...old, n])
     const status = (i: BoardIssue) => [
       i.progress && <Text dimColor>{i.progress}</Text>,
-      i.holder && <Text color="suggestion">{i.holder}</Text>,
       i.wait && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.wait}</Text>,
     ].filter(Boolean).flatMap((x, k) => (k ? [<Text> </Text>, x] : [x]))
     // every blocker, as links: an open one bold, a closed one dim, so what still holds a task stands out
@@ -128,6 +127,8 @@ export const register: Register = on => {
               <Button key={`fold-${i.number}`} plain dimColor label={open ? ' -' : ' +'} onPress={toggle(i.number)} />
             </Box>
           </Box>
+          {/* the holder on a line of its own, so a long title never pushes it off the row */}
+          {i.holder && <Box paddingLeft={2}><Text color="suggestion">{i.holder}</Text></Box>}
           <Box paddingLeft={2} flexDirection="column">
             {/* every entry folds alike, so an empty one says so when unfolded */}
             {open && !more && <Text dimColor>(empty)</Text>}

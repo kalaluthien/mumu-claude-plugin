@@ -35,7 +35,7 @@ def entry(node):
     holders = state["holders"] or []
     summary = node.get("subIssuesSummary") or {}
     closed = [{"number": t["number"], "title": t["title"], "url": t["url"], "blockers": blockers_of(t)} for t in (node.get("subIssues") or {}).get("nodes", []) if t["state"] == "CLOSED"]
-    progress = (f"{summary['total'] - summary['completed']} open, {summary['completed']} landed" if summary.get("total")
+    progress = (f"task {summary['completed']}/{summary['total']}" if summary.get("total")
                 else "" if holders or state["waits"] == "deferred" else "not started") if backlog else ""
     return {"number": node["number"], "title": node["title"], "url": node["url"], "kind": "backlog" if backlog else "task",
             "holder": " ".join(holders), "wait": "" if blockers or state["waits"] == "held" or backlog and state["waits"] == "no holder" else state["waits"],
