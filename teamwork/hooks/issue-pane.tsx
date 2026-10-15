@@ -25,17 +25,17 @@ function watch($: any, name: string) {
   const project = name.slice(0, -'-manager'.length)
   void openPane($).catch(() => undefined)
   // a failed read is tried again after a pause, since the next team change may be far off
-  let retry: ReturnType<typeof setTimeout> | undefined
+  let retry: { cancel: () => void } | undefined
   const refresh = async () => {
-    clearTimeout(retry)
+    retry?.cancel()
     try {
       const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json'], { cwd: startDir, timeoutMs: 60000 })
       if (run.exitCode === 0) await update($, board, () => JSON.parse(run.stdout) as BoardIssue[])
       await update($, failure, () => run.exitCode === 0 ? '' : (run.stderr ?? '').trim() || `the board read exited ${run.exitCode}`)
-      if (run.exitCode !== 0) retry = setTimeout(() => void refresh(), RETRY_MS)
+      if (run.exitCode !== 0) retry = $.clock.after(RETRY_MS, () => void refresh())
     } catch (err) {  // a failed read must not end the loop, whose end kills the waiter
       await update($, failure, () => `the board read failed: ${err}`).catch(() => undefined)
-      retry = setTimeout(() => void refresh(), RETRY_MS)
+      retry = $.clock.after(RETRY_MS, () => void refresh())
     }
   }
   void (async () => {
