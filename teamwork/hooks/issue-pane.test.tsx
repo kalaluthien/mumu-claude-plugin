@@ -185,6 +185,11 @@ describe('issue pane', () => {
     expect(ran).toContainEqual(['touch', '/h/.claude/teamwork/issues-changed'])
   })
 
+  test('a body edit by its script marks the change', async ($, on) => {
+    const ran = await bash($, on, 'teamwork/skills/kick-off/scripts/edit-issue-body.py 5 x.diff "DECIDED: y"')
+    expect(ran).toContainEqual(['touch', '/h/.claude/teamwork/issues-changed'])
+  })
+
   test('ls marks nothing', async ($, on) => {
     expect(await bash($, on, 'ls')).toEqual([])
   })
