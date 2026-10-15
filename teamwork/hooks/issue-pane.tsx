@@ -98,7 +98,7 @@ export const register: Register = on => {
             {/* two spaces per layer: tasks on one layer can run at once, each below what blocks it */}
             {open && i.tasks.map(t => <Box marginTop={1} paddingLeft={2 * t.layer}>{entry(t)}</Box>)}
             {/* closed tasks after the open ones, dim, so what landed stays in view */}
-            {open && i.closed.length > 0 && <Box marginTop={1} flexDirection="column">{i.closed.map(t => <Text wrap="wrap" dimColor><Link href={t.url} label={`#${t.number}`} />{` ${t.title}`}</Text>)}</Box>}
+            {open && i.closed.length > 0 && <Box marginTop={1} flexDirection="column">{i.earlier && <Text dimColor>…</Text>}{i.closed.map(t => <Text wrap="wrap" dimColor><Link href={t.url} label={`#${t.number}`} />{` ${t.title}`}</Text>)}</Box>}
           </Box>
         </Box>
       )
