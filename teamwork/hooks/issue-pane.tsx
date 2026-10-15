@@ -8,7 +8,7 @@ const board = atom({ plugin: 'teamwork', key: 'board' } as const, [] as BoardIss
 // the entries the manager unfolded, kept across redraws; every other entry shows its one row
 const expanded = atom({ plugin: 'teamwork', key: 'expanded' } as const, [] as number[])
 // a wait that needs someone stands out; one blocked by an issue only waits
-const WAIT_COLOR: Record<string, string> = { 'waits on the owner': 'error', 'waits on the manager': 'warning', 'no holder': 'subtle', blocked: 'subtle' }
+const WAIT_COLOR: Record<string, string> = { 'waits on the owner': 'error', 'waits on the manager': 'warning', 'no holder': 'subtle', blocked: 'subtle', deferred: 'subtle' }
 // a write to issues, sub-issues or their order, the changes the board shows; the body script's gh runs out of sight
 const TEAM_CHANGE = /\bedit-issue-body\.py\b|\bgh\s+(issue|pr)\s+(create|comment|edit|close|reopen|merge)\b|\bgh\s+api\b.*\b(issues|sub_issues|dependencies)\b/
 
