@@ -5,12 +5,32 @@ import type { BoardIssue } from '../types'
 
 const PANE = 'issues'
 const board = atom({ plugin: 'teamwork', key: 'board' } as const, [] as BoardIssue[])
-// the entries the manager folded to their link line, kept across redraws
-const collapsed = atom({ plugin: 'teamwork', key: 'collapsed' } as const, [] as number[])
+// the entries the manager unfolded, kept across redraws; every other entry shows its one row
+const expanded = atom({ plugin: 'teamwork', key: 'expanded' } as const, [] as number[])
 // a wait that needs someone stands out; one blocked by an issue only waits
 const WAIT_COLOR: Record<string, string> = { 'waits on the owner': 'error', 'waits on the manager': 'warning', 'no holder': 'subtle', blocked: 'subtle' }
 // a write to issues, sub-issues or their order, the changes the board shows; the body script's gh runs out of sight
 const TEAM_CHANGE = /\bedit-issue-body\.py\b|\bgh\s+(issue|pr)\s+(create|comment|edit|close|reopen|merge)\b|\bgh\s+api\b.*\b(issues|sub_issues|dependencies)\b/
+
+// a manager's pane and its waiter, once per session; the start directory, since the current one may be a worktree removed since
+let startDir: string | undefined
+let watching = false
+function watch($: any, name: string) {
+  if (watching || !name.endsWith('-manager')) return
+  watching = true
+  const project = name.slice(0, -'-manager'.length)
+  void $.ui.open({ id: PANE, title: 'Issues' }).catch(() => undefined)
+  void (async () => {
+    const waiter = $.process.spawn({ argv: [`${$.plugin.root}/hooks/wait-team-change.py`] })
+    for await (const piece of waiter) {
+      if (!('text' in piece)) break
+      try {
+        const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json'], { cwd: startDir, timeoutMs: 60000 })
+        if (run.exitCode === 0) await update($, board, () => JSON.parse(run.stdout) as BoardIssue[])
+      } catch {}  // a failed read must not end the loop, whose end kills the waiter
+    }
+  })()
+}
 
 export const register: Register = on => {
   // every team session marks its change, so the manager's waiter wakes without reading GitHub
@@ -25,59 +45,51 @@ export const register: Register = on => {
 
   on('session.start', async ($, e, next) => {
     const started = await next(e)
+    startDir = e.cwd
     const pane = await $.env.get('HERDR_PANE_ID')
     const listed = await $.process.run(['herdr', 'agent', 'list']).catch(() => undefined)
-    let name = ''
     try {
-      name = JSON.parse(listed?.stdout ?? '').result.agents.find((a: { pane_id: string }) => a.pane_id === pane)?.name ?? ''
-    } catch {
-      return started  // outside herdr no session is a manager
-    }
-    // a successor starts as `<manager>-next` and takes the name only later, when this hook has long run
-    const manager = name.replace(/-next$/, '')
-    if (!manager.endsWith('-manager')) return started
-    const project = manager.slice(0, -'-manager'.length)
-    void $.ui.open({ id: PANE, title: 'Issues' }).catch(() => undefined)
-    void (async () => {
-      const waiter = $.process.spawn({ argv: [`${$.plugin.root}/hooks/wait-team-change.py`] })
-      for await (const piece of waiter) {
-        if (!('text' in piece)) break
-        // the start directory, since the session's current one may be a worktree removed since
-        try {
-          const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json'], { cwd: e.cwd, timeoutMs: 60000 })
-          if (run.exitCode === 0) await update($, board, () => JSON.parse(run.stdout) as BoardIssue[])
-        } catch {}  // a failed read must not end the loop, whose end kills the waiter
-      }
-    })()
+      watch($, JSON.parse(listed?.stdout ?? '').result.agents.find((a: { pane_id: string }) => a.pane_id === pane)?.name ?? '')
+    } catch {}  // outside herdr no session is a manager
     return started
   })
 
+  // a session may take its manager name after it started, as a successor does
+  on('command.run', { command: 'rename' }, async ($, e, next) => {
+    const ran = await next(e)
+    watch($, e.args.trim())
+    return ran
+  }).catch(($, e, next) => next(e))  // a failed open must never fail the rename
+
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Link, Button } = $.ui.resolve(e)
-    const folded = new Set(await read($, collapsed))
-    const toggle = (n: number) => () => void update($, collapsed, old => old.includes(n) ? old.filter(x => x !== n) : [...old, n])
+    const unfolded = new Set(await read($, expanded))
+    const toggle = (n: number) => () => void update($, expanded, old => old.includes(n) ? old.filter(x => x !== n) : [...old, n])
     const status = (i: BoardIssue) => [
       i.progress && <Text dimColor>{i.progress}</Text>,
       i.kind === 'task' && i.holder && <Text color="suggestion">{i.holder}</Text>,
       i.wait && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.wait}</Text>,
     ].filter(Boolean).flatMap((x, k) => (k ? [<Text dimColor> · </Text>, x] : [x]))
     const entry = (i: BoardIssue): JSX.Element => {
-      const open = !folded.has(i.number)
+      const open = unfolded.has(i.number)
       const line = status(i)
+      const more = Boolean(i.goal || i.done.length || i.tasks.length)
       return (
         <Box flexDirection="column">
           <Box flexDirection="row">
-            <Button key={`fold-${i.number}`} plain dimColor label={open ? '▾' : '▸'} onPress={toggle(i.number)} />
+            {/* a fold only where unfolding shows more */}
+            {more ? <Button key={`fold-${i.number}`} plain dimColor label={open ? '▾' : '▸'} onPress={toggle(i.number)} /> : <Text> </Text>}
             <Text> </Text>
             {/* the link first, so a narrow pane wraps the title, never the link */}
             <Text wrap="wrap">
               <Text color={i.kind === 'backlog' ? 'merged' : 'claude'} weight="semibold"><Link href={i.url} label={`${i.kind}#${i.number}`} /></Text>
               {' '}
               <Text wrap="wrap" weight="semibold">{i.title}</Text>
+              {line.length > 0 && <Text dimColor> · </Text>}
+              {line}
             </Text>
           </Box>
           <Box paddingLeft={2} flexDirection="column">
-            {line.length > 0 && <Text wrap="wrap">{line}</Text>}
             {open && i.goal && <Text wrap="wrap">{i.goal}</Text>}
             {open && i.done.map(d => <Text wrap="wrap" dimColor>{`• ${d}`}</Text>)}
             {open && i.tasks.map(t => <Box marginTop={1}>{entry(t)}</Box>)}
