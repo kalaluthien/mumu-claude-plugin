@@ -13,23 +13,43 @@ import issue_board  # noqa: E402
 from github_issues import scope_label  # noqa: E402
 from json_command import run  # noqa: E402
 
-QUERY = """query($owner: String!, $name: String!, $labels: [String!]) {
+# one point or two per read: GitHub charges each connection a node is asked for, so the sub-issues' blockers, the costliest part,
+# are read only for the closed ones the board shows, by the second query
+ISSUES = """query($owner: String!, $name: String!, $labels: [String!]) {
   repository(owner: $owner, name: $name) {
-    issues(states: OPEN, first: 100, labels: $labels, orderBy: {field: CREATED_AT, direction: ASC}) {
+    issues(states: OPEN, first: 30, labels: $labels, orderBy: {field: CREATED_AT, direction: ASC}) {
       nodes { number title url body parent { number } labels(first: 20) { nodes { name } } subIssuesSummary { total completed }
-              subIssues(last: 50) { nodes { number title url state blockedBy(first: 20) { nodes { number state } } } }
+              subIssues(last: 50) { nodes { number title url state } }
               blockedBy(first: 20) { nodes { number state } } comments(last: 100) { nodes { body url } } } } } }"""
+BLOCKERS = """query($owner: String!, $name: String!) {
+  repository(owner: $owner, name: $name) {
+    %s } }"""
+
+
+def graphql(query, owner, name, *labels):
+    found = run("gh", "api", "graphql", "-f", f"query={query}", "-f", f"owner={owner}", "-f", f"name={name}", *[arg for x in labels for arg in ("-f", f"labels[]={x}")])
+    return found and found["data"]["repository"]
 
 
 def nodes(project):
     """The open issues' nodes, those labelled `scope:<project>` when that label exists, else all; None when a read failed."""
-    repo = run("gh", "repo", "view", "--json", "owner,name")
+    repo = run("gh", "api", "repos/{owner}/{repo}", "--jq", "{owner: .owner.login, name: .name}")
     if repo is None:
         return None
     label = scope_label(project)
-    found = run("gh", "api", "graphql", "-f", f"query={QUERY}", "-f", f"owner={repo['owner']['login']}", "-f", f"name={repo['name']}",
-                *(["-f", f"labels[]={label}"] if label else []))
-    return found and found["data"]["repository"]["issues"]["nodes"]
+    found = graphql(ISSUES, repo["owner"], repo["name"], *([label] if label else []))
+    if found is None:
+        return None
+    issues = found["issues"]["nodes"]
+    shown = [t for n in issues for t in [t for t in n["subIssues"]["nodes"] if t["state"] == "CLOSED"][-issue_board.SHOWN_CLOSED:]]
+    if shown:
+        asked = graphql(BLOCKERS % " ".join(f"i{k}: issue(number: {k}) {{ blockedBy(first: 20) {{ nodes {{ number state }} }} }}" for k in {t["number"] for t in shown}),
+                        repo["owner"], repo["name"])
+        if asked is None:
+            return None
+        for t in shown:
+            t["blockedBy"] = asked[f"i{t['number']}"]["blockedBy"]
+    return issues
 
 
 read = json.loads(pathlib.Path(sys.argv[sys.argv.index("--nodes") + 1]).read_text()) if "--nodes" in sys.argv else nodes(sys.argv[1])
