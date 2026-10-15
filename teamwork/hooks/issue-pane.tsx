@@ -8,6 +8,16 @@ const board = atom({ plugin: 'teamwork', key: 'board' } as const, [] as BoardIss
 // a write to issues, sub-issues or their order, the changes the board shows
 const TEAM_CHANGE = /\bgh\s+(issue|pr)\s+(create|comment|edit|close|reopen|merge)\b|\bgh\s+api\b.*\b(issues|sub_issues|dependencies)\b/
 
+// where the pane was drawn or not, kept so the app's attach can be told apart from its absence (#598)
+let noted = Promise.resolve()
+// one note at a time, since each rewrites the whole file and two at once would drop one
+const note = ($: any, record: object) => (noted = noted.then(async () => {
+  const path = `${await $.env.get('HOME')}/.claude/teamwork/pane-surfaces.log`
+  const old = await $.fs.read(path).catch(() => '')
+  const line = JSON.stringify({ at: new Date().toISOString(), ...record, surfaces: await $.session.surfaces(), panes: await $.ui.panes() })
+  await $.fs.write(path, `${old}${line}\n`)
+}).catch(() => undefined))
+
 export const register: Register = on => {
   // every team session marks its change, so the manager's waiter wakes without reading GitHub
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
@@ -31,7 +41,7 @@ export const register: Register = on => {
     }
     if (!name.endsWith('-manager')) return started
     const project = name.slice(0, -'-manager'.length)
-    void $.ui.open({ id: PANE, title: 'Issues' })
+    void $.ui.open({ id: PANE, title: 'Issues' }).then(opened => note($, { event: 'open', opened })).catch(() => undefined)
     void (async () => {
       const waiter = $.process.spawn({ argv: [`${$.plugin.root}/hooks/wait-team-change.py`] })
       for await (const piece of waiter) {
@@ -45,6 +55,13 @@ export const register: Register = on => {
     })()
     return started
   })
+
+  on('session.attach', async ($, e, next) => {
+    const attached = await next(e)
+    if ((await $.ui.panes()).some((p: { id: string }) => p.id === PANE))
+      await note($, { event: 'attach', surface: e.surface, clientId: e.clientId, viewport: e.viewport })
+    return attached
+  }).catch(($, e, next) => next(e))  // a failed note must never fail the attach
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Link } = $.ui.resolve(e)
