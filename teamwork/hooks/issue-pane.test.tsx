@@ -25,14 +25,18 @@ describe('issue pane', () => {
     expect(opened).toEqual(['issues'])
   })
 
-  test('a successor manager opens the issues pane under its starting name', async ($, on) => {
+  test('a session renamed to a manager opens the issues pane', async ($, on) => {
     mock.env(on, { HERDR_PANE_ID: 'p1', HOME: '/h' })
     on('session.start', async (_$, e) => ({ cwd: e.cwd }))
     const opened: string[] = []
     on('process.run', async () => ok(JSON.stringify({ result: { agents: [{ pane_id: 'p1', name: 'teamwork-manager-next' }] } })))
     on('process.spawn', async function* () { return { value: { code: 0, signal: null } } })
     on('ui.open', async (_$, e) => { opened.push(e.id); return { value: { isPlaced: true as const } } })
+    on('command.run', async () => ({ text: '' } as never))
     await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
+    expect(opened).toEqual([])
+    await $.command.run({ command: 'rename', args: 'teamwork-manager' } as never)
+    await $.command.run({ command: 'rename', args: 'teamwork-manager' } as never)
     expect(opened).toEqual(['issues'])
   })
 

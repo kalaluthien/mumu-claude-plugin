@@ -12,6 +12,26 @@ const WAIT_COLOR: Record<string, string> = { 'waits on the owner': 'error', 'wai
 // a write to issues, sub-issues or their order, the changes the board shows; the body script's gh runs out of sight
 const TEAM_CHANGE = /\bedit-issue-body\.py\b|\bgh\s+(issue|pr)\s+(create|comment|edit|close|reopen|merge)\b|\bgh\s+api\b.*\b(issues|sub_issues|dependencies)\b/
 
+// a manager's pane and its waiter, once per session; the start directory, since the current one may be a worktree removed since
+let startDir: string | undefined
+let watching = false
+function watch($: any, name: string) {
+  if (watching || !name.endsWith('-manager')) return
+  watching = true
+  const project = name.slice(0, -'-manager'.length)
+  void $.ui.open({ id: PANE, title: 'Issues' }).catch(() => undefined)
+  void (async () => {
+    const waiter = $.process.spawn({ argv: [`${$.plugin.root}/hooks/wait-team-change.py`] })
+    for await (const piece of waiter) {
+      if (!('text' in piece)) break
+      try {
+        const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json'], { cwd: startDir, timeoutMs: 60000 })
+        if (run.exitCode === 0) await update($, board, () => JSON.parse(run.stdout) as BoardIssue[])
+      } catch {}  // a failed read must not end the loop, whose end kills the waiter
+    }
+  })()
+}
+
 export const register: Register = on => {
   // every team session marks its change, so the manager's waiter wakes without reading GitHub
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
@@ -25,32 +45,21 @@ export const register: Register = on => {
 
   on('session.start', async ($, e, next) => {
     const started = await next(e)
+    startDir = e.cwd
     const pane = await $.env.get('HERDR_PANE_ID')
     const listed = await $.process.run(['herdr', 'agent', 'list']).catch(() => undefined)
-    let name = ''
     try {
-      name = JSON.parse(listed?.stdout ?? '').result.agents.find((a: { pane_id: string }) => a.pane_id === pane)?.name ?? ''
-    } catch {
-      return started  // outside herdr no session is a manager
-    }
-    // a successor starts as `<manager>-next` and takes the name only later, when this hook has long run
-    const manager = name.replace(/-next$/, '')
-    if (!manager.endsWith('-manager')) return started
-    const project = manager.slice(0, -'-manager'.length)
-    void $.ui.open({ id: PANE, title: 'Issues' }).catch(() => undefined)
-    void (async () => {
-      const waiter = $.process.spawn({ argv: [`${$.plugin.root}/hooks/wait-team-change.py`] })
-      for await (const piece of waiter) {
-        if (!('text' in piece)) break
-        // the start directory, since the session's current one may be a worktree removed since
-        try {
-          const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json'], { cwd: e.cwd, timeoutMs: 60000 })
-          if (run.exitCode === 0) await update($, board, () => JSON.parse(run.stdout) as BoardIssue[])
-        } catch {}  // a failed read must not end the loop, whose end kills the waiter
-      }
-    })()
+      watch($, JSON.parse(listed?.stdout ?? '').result.agents.find((a: { pane_id: string }) => a.pane_id === pane)?.name ?? '')
+    } catch {}  // outside herdr no session is a manager
     return started
   })
+
+  // a session may take its manager name after it started, as a successor does
+  on('command.run', { command: 'rename' }, async ($, e, next) => {
+    const ran = await next(e)
+    watch($, e.args.trim())
+    return ran
+  }).catch(($, e, next) => next(e))  // a failed open must never fail the rename
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Link, Button } = $.ui.resolve(e)
