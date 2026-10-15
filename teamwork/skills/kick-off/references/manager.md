@@ -12,7 +12,7 @@ Turn the owner's words into backlogs, route each to a worker, and decide what wo
    | an update to an open backlog | `comment` them there; hand them to its holders |
    | for a live worker's current work | `tell` it; `comment` them on its issue when they change its goal |
    | new work | `file` a backlog labelled `backlog` and its `scope:`, titled by its outcome, its body the words quoted |
-   | for another project | file them in its repository; send them to its manager |
+   | for another project | file them in its repository; by `ListAgents`, send them to its manager, else `start` `<project>-manager` `--team` at that project's checkout with the filed url, never stopping at a failed `tell` |
    | a stop to work | `resolve` it not planned; `close` its workers |
    | a question, thanks, a remark | answer; file nothing |
 3. **Route** a backlog to start now: first `decide` `DECIDED: <name> holds this` on it; hand it, with the owner's added words, to a live worker of the same work, else `git worktree add -b <name> .claude/worktrees/<name> origin/<default>` in the checkout and `start` `<name>` there with `worker <name> manager <your name> <url>` on `sonnet` at `medium`, or `opus` at `medium` when it needs splitting into tasks or a design settled.
