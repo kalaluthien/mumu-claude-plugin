@@ -4,6 +4,7 @@ import type { Register } from 'claude-code'
 import type { BoardIssue } from '../types'
 
 const PANE = 'issues'
+const RETRY_MS = 120000
 const board = atom({ plugin: 'teamwork', key: 'board' } as const, [] as BoardIssue[])
 // why the last read failed, empty when it worked; shown so a failed read never looks like an empty board
 const failure = atom({ plugin: 'teamwork', key: 'failure' } as const, '')
@@ -23,17 +24,25 @@ function watch($: any, name: string) {
   watching = true
   const project = name.slice(0, -'-manager'.length)
   void openPane($).catch(() => undefined)
+  // a failed read is tried again after a pause, since the next team change may be far off
+  let retry: ReturnType<typeof setTimeout> | undefined
+  const refresh = async () => {
+    clearTimeout(retry)
+    try {
+      const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json'], { cwd: startDir, timeoutMs: 60000 })
+      if (run.exitCode === 0) await update($, board, () => JSON.parse(run.stdout) as BoardIssue[])
+      await update($, failure, () => run.exitCode === 0 ? '' : (run.stderr ?? '').trim() || `the board read exited ${run.exitCode}`)
+      if (run.exitCode !== 0) retry = setTimeout(() => void refresh(), RETRY_MS)
+    } catch (err) {  // a failed read must not end the loop, whose end kills the waiter
+      await update($, failure, () => `the board read failed: ${err}`).catch(() => undefined)
+      retry = setTimeout(() => void refresh(), RETRY_MS)
+    }
+  }
   void (async () => {
     const waiter = $.process.spawn({ argv: [`${$.plugin.root}/hooks/wait-team-change.py`] })
     for await (const piece of waiter) {
       if (!('text' in piece)) break
-      try {
-        const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json'], { cwd: startDir, timeoutMs: 60000 })
-        if (run.exitCode === 0) await update($, board, () => JSON.parse(run.stdout) as BoardIssue[])
-        await update($, failure, () => run.exitCode === 0 ? '' : (run.stderr ?? '').trim() || `the board read exited ${run.exitCode}`)
-      } catch (err) {  // a failed read must not end the loop, whose end kills the waiter
-        await update($, failure, () => `the board read failed: ${err}`).catch(() => undefined)
-      }
+      await refresh()
     }
   })()
 }
