@@ -14,19 +14,52 @@ PLAYBOOKS = pathlib.Path(__file__).resolve().parents[1] / "skills" / "kick-off" 
 GRAMMAR = PLAYBOOKS / "issue-grammar.md"
 EDIT_BODY = PLAYBOOKS.parent / "scripts" / "edit-issue-body.py"
 # only where a command segment starts, so gh text quoted inside another command's argument is not read as a call
-GH_TEXT = re.compile(r"(?:^|&&|\|\||[;|(`\n]|\b(?:then|do|else)\s)\s*(?:\w+=\S*\s+)*(gh (issue|pr) (create|comment|edit|close)\b)")
+GH_TEXT = re.compile(r"(?:^|&&|\|\||[;|(`\n]|\b(?:then|do|else)\s)\s*(?:\w+=\S*\s+)*(gh (?:(?:issue|pr) (?:create|comment|edit|close)|api)\b)")
 SEGMENT_END = re.compile(r"&&|\|\||[;|)`]|(?<!\\)\n")  # a backslash-newline continues the command
 # the rules are found in the playbooks at each call, never copied here, so a playbook edit cannot leave a stale reminder
 REMINDED = {"gh issue create": ("`file`",), "gh issue comment": ("**Comment**", "`comment`"), "gh pr comment": ("**Comment**",),
-            "gh issue close": ("`resolve`",)}
+            "gh issue close": ("`resolve`",), "gh issue edit": ("edit-issue-body",)}
+REST_WRITE = re.compile(r'issues(?:/(\d+)(/comments)?)?(?=[\s"\'?]|$)')
+FENCE = re.compile(r"^```teamwork\n.*?^```", re.S | re.M)
+STATE_LINE = re.compile(r"^\s*(holders|deferred):", re.M)
+BODY_FILE = re.compile(r"(?:--body-file[= ]|(?:-F|--field)[= ]body=@)[\"']?([^\s\"']+)")
 
 
-def reminder(command, role):
-    called, needles = next(((c, n) for c, n in REMINDED.items() if command.startswith(c)), (None, ()))
+def rest_call(command):
+    """The gh issue command a REST write stands for, so one rule list covers both ways of writing."""
+    if not command.startswith("gh api"):
+        return command
+    method = re.search(r"(?:-X|--method[= ])\s*(\w+)", command)
+    method = method.group(1).upper() if method else "POST" if re.search(r"(?<!\S)(-f|-F|--field|--raw-field|--input)\b", command) else "GET"
+    path = REST_WRITE.search(command)
+    if not path or method not in ("POST", "PATCH"):
+        return ""
+    if path.group(2):
+        return "gh issue comment" if method == "POST" else ""
+    if path.group(1):
+        return ("gh issue close" if "state=closed" in command else "gh issue edit") if method == "PATCH" else ""
+    return "gh issue create" if method == "POST" else ""
+
+
+def stray_state(command, cwd):
+    """A holders or deferred line in the posted file that no teamwork fence holds, which code never reads."""
+    posted = BODY_FILE.search(command)
+    path = posted and pathlib.Path(cwd or ".") / posted.group(1)
+    try:
+        return bool(path and STATE_LINE.search(FENCE.sub("", path.read_text())))
+    except OSError:
+        return False
+
+
+def reminder(command, role, cwd):
+    call = rest_call(command)
+    called, needles = next(((c, n) for c, n in REMINDED.items() if call.startswith(c)), (None, ()))
     found = [f"- {path.relative_to(PLAYBOOKS.parents[1])}:{number}: {line.strip()}"
              for path in (PLAYBOOKS.parent / "SKILL.md", PLAYBOOKS / f"{role}.md", GRAMMAR)
              for number, line in enumerate(path.read_text().splitlines(), 1) if any(n in line for n in needles)]
-    return found and "\n".join([f"Reminder: the playbook rules this `{called}` must keep:", *found])
+    stray = ["- A `holders:` or `deferred:` line sits outside a ```teamwork fence in the posted file, so code reads no holder: put it inside the fence, as "
+             f"{GRAMMAR.relative_to(PLAYBOOKS.parents[1])} says."] if called and stray_state(command, cwd) else []
+    return (found or stray) and "\n".join([f"Reminder: the playbook rules this `{called}` must keep:", *found, *stray])
 
 
 def route(kind, event, role, me, listed):
@@ -48,7 +81,7 @@ def route(kind, event, role, me, listed):
               else "Write the text to a scratch file first, then pass it with --body-file." if re.search(r"(?<!\S)(--body|-b)[= ]", command)
               else f"Title is {size} characters; shorten it to 40, verb first. Nothing in this command ran, so write any body file again." if size and size > 40 else None)
     if not reason:  # remind, never block: the command still runs
-        text = command and reminder(command, role)
+        text = command and reminder(command, role, event.get("cwd"))
         return text and {"hookSpecificOutput": {"hookEventName": kind, "additionalContext": text}}
     return {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason": reason}}
 
