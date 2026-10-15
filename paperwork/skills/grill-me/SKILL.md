@@ -35,7 +35,9 @@ question still open in this round belongs to a later round.
 - An answer that is itself a question is answered with facts in the next
   round, and never recorded as a decision.
 - Word each question so "yes" accepts the recommended option.
-- Facts come from `drill-it`, never from the user: before each round, run
+- Facts never come from the user. Read the few files, issue comments or code
+  lines a round needs directly. Before a round whose facts reach beyond
+  that, such as a system, a change, data or options to find and check, run
   the `drill-it` skill with the purpose `decision`, the round's open decisions
   and Question shape below, and ask only from what it hands back; its
   Undecided points join the frontier.
