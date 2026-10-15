@@ -68,7 +68,7 @@ export const register: Register = on => {
     const status = (i: BoardIssue) => [
       i.progress && <Text dimColor>{i.progress}</Text>,
       i.holder && <Text color="suggestion">{i.holder}</Text>,
-      i.wait && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.wait}</Text>,
+      i.wait && !i.blockers.length && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.wait}</Text>,
     ].filter(Boolean).flatMap((x, k) => (k ? [<Text> </Text>, x] : [x]))
     const entry = (i: BoardIssue): JSX.Element => {
       const open = unfolded.has(i.number)
@@ -88,6 +88,9 @@ export const register: Register = on => {
               {line.length > 0 && <Text> </Text>}
               {line}
             </Button>
+            {/* a blocker is a link, so it sits outside the Button, last in the row as the wait was */}
+            {i.blockers.length > 0 && <Text dimColor>{' ←'}</Text>}
+            {i.blockers.map((n, k) => <Text dimColor>{k ? ',' : ''}<Link href={i.url.replace(/\d+$/, String(n))} label={`#${n}`} /></Text>)}
           </Box>
           <Box paddingLeft={2} flexDirection="column">
             {/* every entry folds alike, so an empty one says so when unfolded */}
