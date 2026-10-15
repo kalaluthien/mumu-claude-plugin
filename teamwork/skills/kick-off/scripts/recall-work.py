@@ -13,9 +13,6 @@ import re
 import subprocess
 import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
-import issue_state  # noqa: E402
-
 STOP = set("a an and as at be by for from in into is it its no not of on or the to with".split())
 # a file's newest commits say what it is now, its oldest why it exists, so both ends of its history weigh most
 PATH_WEIGHT = 3.0
@@ -58,7 +55,8 @@ def load(before):
         items[item["number"]] = {
             "head": f"#{item['number']} {kind} {state}: {item['title']}",
             "text": " ".join([item["title"]] * 3 + [item["body"], *comments]),
-            "records": [text.strip().splitlines()[0][:160] for text in comments if issue_state.keyword(text)],
+            # any capitalised word, since comments under words the grammar no longer lists stay on the record
+            "records": [text.strip().splitlines()[0][:160] for text in comments if re.match(r"\s*[A-Z]+:", text)],
             "closes": [c["number"] for c in item.get("closingIssuesReferences", [])],
         }
     return items

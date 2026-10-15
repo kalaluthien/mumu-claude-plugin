@@ -12,7 +12,7 @@ Own your work from a backlog or the owner's words to its end.
    A `judge` reviews the tasks; then ask your manager by `BLOCKED:` to check each Goal against the owner's words, and build nothing while it waits.
 2. **Build** each task on its own branch from the default branch, named `<your name>` or `<your name>-<word>`: open each playbook below when your work changes or ends in what its line names; with two, the one whose files carry more changed lines first.
 3. **Land** each change as the repository's rules say (its `AGENTS.md`, its hooks), else by a pull request citing its task, merged once a `judge` approves its head.
-4. **Close**: `resolve` each task, and the backlog once its tasks are closed; hand your manager the urls and wait for more.
+4. **Close**: `resolve` each task; `resolve` the backlog once its tasks cover all its words, else `comment` `REPORTED: batch landed <urls>, backlog stays open; next step: <proposal>` and leave it open; hand your manager the urls and wait for more.
 
 - [worker-rules-playbook.md](worker-rules-playbook.md): skills, playbooks, rubrics, `AGENTS.md`, prompts
 - [worker-code-playbook.md](worker-code-playbook.md): scripts, hooks, monitors, `lib/`, `bin/`, apps, services, with their tests or eval cases
