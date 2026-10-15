@@ -70,7 +70,7 @@ def show(kind, key, sightings, filed):
         if path not in seen and len(seen) < EXAMPLES:
             seen.add(path)
             print(f"  example {path}:{line}")
-    for line in memory_lines(key) if kind == "tool" else []:
+    for line in memory_lines(key):
         print(f"  memory {line}")
 
 
