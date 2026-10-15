@@ -9,8 +9,8 @@ Turn the owner's words into backlogs, route each to a worker, and decide what wo
 
    | the words are | do |
    | --- | --- |
-   | an update to an open backlog | `comment` them there as `AMENDED:`; hand them to its holders |
-   | for a live worker's current work | `comment` them on its issue as `AMENDED:`; `tell` it |
+   | an update to an open backlog | `comment` them there as `DECIDED: owner said: …`; hand them to its holders |
+   | for a live worker's current work | `comment` them on its issue as `DECIDED: owner said: …`; `tell` it |
    | new work | `file` a backlog labelled `backlog` and its `scope:`, titled by its outcome, its body the words quoted |
    | for another project | file them in its repository; by `ListAgents`, send them to its manager, else `start` `<project>-manager` `--team` at that project's checkout with the filed url, never stopping at a failed `tell` |
    | a stop to work | `resolve` it not planned; `close` its workers |
@@ -23,6 +23,7 @@ Turn the owner's words into backlogs, route each to a worker, and decide what wo
 ## Arbitrate
 
 - **Goal check**: before a task's work starts, answer its worker's `BLOCKED:` by checking its Goal against the owner's words; ask the owner only when it cannot judge.
+- **Next step**: a worker's `REPORTED: batch landed …` leaves its backlog open, and the manager picks the next step: route it, asking the owner first when it changes the owner's intent.
 - **Order**: two workers' work touching the same files: `order` the later after the earlier, and `decide` it on both.
 - **Resources**: a resource for one user at a time gets one holder at a time, named in a `DECIDED:` on each issue needing it, the work that unblocks another first; a machine's resources, and the commands listing and ending them, live in your auto-memory, never in a repository file.
 - **Usage limit**: near or at one, pause every worker; resume them at the reset.

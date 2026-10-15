@@ -58,7 +58,7 @@ Each role decides alone what keeps the intent it was handed, and asks before it 
 
 ## Verbs
 
-The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`. `read` (`--json title,body,comments,labels,state`, a PR's also `headRefOid`), `comment`, `file` (each label first `gh label create <label> --force`) and `resolve` (`--reason completed --comment "RESOLVED: <summary>"`, or `"not planned"` for work stopped) are `gh issue` and `gh pr` commands, a body always by `--body-file`; `decide` comments a `DECIDED:`.
+The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`. `read` (`--json title,body,comments,labels,state`, a PR's also `headRefOid`), `comment`, `file` (each label first `gh label create <label> --force`) and `resolve` (`--reason completed --comment "REPORTED: <summary>"`, or `"not planned"` for work stopped) are `gh issue` and `gh pr` commands, a body always by `--body-file`; `decide` comments a `DECIDED:`.
 
 - `order`: `gh api -X POST repos/<repo>/issues/<later>/dependencies/blocked_by -F issue_id=<earlier's id>`; ids by `gh api repos/<repo>/issues/<n> -q .id`
 - `nest`: `gh api -X POST repos/<repo>/issues/<backlog>/sub_issues -F sub_issue_id=<task's id>`
