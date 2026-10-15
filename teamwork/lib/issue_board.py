@@ -25,7 +25,7 @@ def entry(node):
     return {"number": node["number"], "title": node["title"], "url": node["url"], "kind": "backlog" if backlog else "task",
             "holder": " ".join(holders), "wait": "blocked by " + ", ".join(f"#{n}" for n in blockers) if blockers else "" if state["waits"] == "held" or backlog and state["waits"] == "no holder" else state["waits"],
             "progress": progress, "goal": summary_of(node["body"]) if backlog else state["goal"], "done": [] if backlog else state["done"],
-            "urgency": URGENCY.index(state["waits"].split(" by ")[0]), "tasks": [], "blockers": blockers,
+            "urgency": URGENCY.index(state["waits"].split(" by ")[0]), "tasks": [], "blockers": blockers, "layer": 0,
             # an open blocker already shows as the wait, so `after` names the ones that landed
             "after": [b["number"] for b in node["blockedBy"]["nodes"] if b["state"] != "OPEN"],
             "closed": [{"number": t["number"], "title": t["title"], "url": t["url"], "after": [b["number"] for b in (t.get("blockedBy") or {}).get("nodes", [])]}
@@ -64,14 +64,15 @@ def related(nodes, items):
 
 
 def plan(tasks):
-    """The tasks in their given order, except that each comes after every open sibling blocking it; a cycle keeps the given order."""
-    left, placed = list(tasks), []
+    """The tasks in layers: a task's layer is one below its deepest open sibling blocker, so one layer can run at once;
+    within a layer the given order. A cycle is cut where it is met."""
+    left, layer = list(tasks), {}
     while left:
         waiting = {t["number"] for t in left}
         ready = next((t for t in left if not waiting & set(t["blockers"])), left[0])
         left.remove(ready)
-        placed.append(ready)
-    return placed
+        ready["layer"] = layer[ready["number"]] = 1 + max([layer[b] for b in ready["blockers"] if b in layer], default=-1)
+    return sorted(tasks, key=lambda t: t["layer"])
 
 
 def board(nodes):
@@ -101,11 +102,12 @@ def after(issue):
 def lines(issues, depth=0):
     """The board as text: each entry's link line, then indented what the pane shows under it."""
     for i in issues:
-        pad = "  " * (depth + 1)
-        yield f"{'  ' * depth}#{i['number']} {i['title']}"
+        depth_here = depth + i["layer"]
+        pad = "  " * (depth_here + 1)
+        yield f"{'  ' * depth_here}#{i['number']} {i['title']}"
         status = " · ".join(x for x in (i["progress"], i["holder"] if i["kind"] == "task" else "", i["wait"], after(i)) if x)
         yield from ([f"{pad}{status}"] if status else [])
         yield from ([f"{pad}{i['goal']}"] if i["goal"] else [])
         yield from (f"{pad}- {d}" for d in i["done"])
-        yield from lines(i["tasks"], depth + 1)
+        yield from lines(i["tasks"], depth_here + 1)
         yield from (" · ".join(x for x in (f"{pad}#{t['number']} {t['title']}", "closed", after(t)) if x) for t in i["closed"])
