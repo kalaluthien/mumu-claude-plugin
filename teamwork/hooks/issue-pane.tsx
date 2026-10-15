@@ -115,8 +115,8 @@ export const register: Register = on => {
             {open && i.done.map((d, k) => <Box paddingLeft={2}>{part(`done-${i.number}-${k}`, [d.kind, d.name].filter(Boolean).join(' '), d.detail ? [d.detail] : [])}</Box>)}
             {open && i.next && <Text wrap="wrap">{`next step: ${i.next}`}</Text>}
             {open && i.tasks.map(t => <Box marginTop={1}>{entry(t)}</Box>)}
-            {/* closed tasks after the open ones, dim, so what landed stays in view */}
-            {open && i.closed.length > 0 && <Box marginTop={1} flexDirection="column">{i.earlier && <Text dimColor>…</Text>}{i.closed.map(t => <Text wrap="wrap" dimColor><Link href={t.url} label={`#${t.number}`} />{` ${t.title}`}{after(t)}</Text>)}</Box>}
+            {/* closed tasks after the open ones, dim and newest first, so what landed last stays in view */}
+            {open && i.closed.length > 0 && <Box marginTop={1} flexDirection="column">{i.closed.map(t => <Text wrap="wrap" dimColor><Link href={t.url} label={`#${t.number}`} />{` ${t.title}`}{after(t)}</Text>)}{i.earlier && <Text dimColor>…</Text>}</Box>}
           </Box>
         </Box>
       )

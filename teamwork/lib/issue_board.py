@@ -3,9 +3,9 @@ import re
 
 import issue_state
 
-# a task under its backlog: what needs someone first, what is held last
-# the latest closed tasks a backlog lists, an ellipsis above them when more landed before
-SHOWN_CLOSED = 20
+# an issue with no backlog group: what needs someone first, what is held last
+# the latest closed tasks a backlog lists, newest first, an ellipsis below them when more landed before
+SHOWN_CLOSED = 10
 URGENCY = ["waits on the owner", "waits on the manager", "no holder", "blocked", "held", "deferred"]
 
 
@@ -42,7 +42,7 @@ def entry(node):
             "next": next_step_of(node["comments"]["nodes"]) if backlog and summary.get("total", 0) == summary.get("completed", 0) else "",
             "urgency": URGENCY.index(state["waits"].split(" by ")[0]), "tasks": [],
             "blockers": blockers_of(node),
-            "closed": closed[-SHOWN_CLOSED:], "earlier": summary.get("completed", 0) > min(len(closed), SHOWN_CLOSED)}
+            "closed": closed[::-1][:SHOWN_CLOSED], "earlier": summary.get("completed", 0) > min(len(closed), SHOWN_CLOSED)}
 
 
 def related(nodes, items):
@@ -77,7 +77,7 @@ def related(nodes, items):
 
 
 def board(nodes):
-    """The open issues as a tree, backlogs grouped with related ones by lowest number, tasks by urgency, then number."""
+    """The open issues as a tree, backlogs grouped with related ones by lowest number, tasks by number."""
     items = {i["number"]: entry(i) for i in nodes}
     top = []
     for i in nodes:
@@ -87,7 +87,7 @@ def board(nodes):
 
     def order(issues):
         for i in issues:
-            i["tasks"].sort(key=lambda t: (t["urgency"], t["number"]))
+            i["tasks"].sort(key=lambda t: t["number"])
             order(i["tasks"])
             del i["urgency"]
     top.sort(key=lambda i: (groups[i["number"]], i["number"]) if i["number"] in groups else (float("inf"), i["urgency"], i["number"]))
@@ -116,5 +116,5 @@ def lines(issues, depth=0):
             yield from ([f"{pad}    {d['detail']}"] if d["detail"] else [])
         yield from ([f"{pad}next step: {i['next']}"] if i["next"] else [])
         yield from lines(i["tasks"], depth + 1)
-        yield from ([f"{pad}…"] if i["earlier"] else [])
         yield from (f"{pad}#{t['number']} {t['title']} closed{' ' * bool(t['blockers'])}{after(t['blockers'])}" for t in i["closed"])
+        yield from ([f"{pad}…"] if i["earlier"] else [])
