@@ -5,11 +5,11 @@ Own your work from a backlog or the owner's words to its end.
 ## Steps
 
 1. **Define** the tasks from the url or words your manager sent, the prior work recall finds, and for a new mechanism its official docs. Work that names what to change in 30 lines or fewer is one change under the backlog; else `file` each task with the backlog's labels but `backlog`:
-   - `## Goal` quotes the owner's words, and the body's `teamwork` block sets `holders: <your name>`;
+   - `## Goal` states the owner's intent as objectives, scope, constraints and non-negotiables, citing their words by url; these name what to cover, not a body format; the body's `teamwork` block sets `holders: <your name>`;
    - `## Definition of done` has one criterion per clause of the owner's words and of each `DECIDED:`;
    - `nest` it under the backlog, which stays open as their index, and `order` it after the tasks it needs.
 
-   A `judge` reviews the tasks before you build.
+   A `judge` reviews the tasks; then ask your manager by `BLOCKED:` to check each Goal against the owner's words, and build nothing while it waits.
 2. **Build** each task on its own branch from the default branch, named `<your name>` or `<your name>-<word>`: open each playbook below when your work changes or ends in what its line names; with two, the one whose files carry more changed lines first.
 3. **Land** each change as the repository's rules say (its `AGENTS.md`, its hooks), else by a pull request citing its task, merged once a `judge` approves its head.
 4. **Close**: `resolve` each task, and the backlog once its tasks are closed; hand your manager the urls and wait for more.
