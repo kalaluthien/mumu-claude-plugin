@@ -148,6 +148,10 @@ def run(labels_path, holdout):
         rows = json.load(handle)["stops"]
     labels = {(row["transcript"], row["stop"]): bool(row["worth"]) for row in rows}
     paths = sorted({row["transcript"] for row in rows})
+    gone = [p for p in paths if not os.path.exists(os.path.expanduser(p))]
+    if gone:
+        print(f"skipped {len(gone)} labelled transcripts that no longer exist")
+    paths = [p for p in paths if p not in gone]
     odd = {p for p in paths if int(hashlib.sha256(os.path.basename(p).encode()).hexdigest(), 16) % 2}
     stops = []
     for path in paths:
