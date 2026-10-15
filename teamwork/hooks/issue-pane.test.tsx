@@ -3,7 +3,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 const manager = JSON.stringify({ result: { agents: [{ pane_id: 'p1', name: 'teamwork-manager' }] } })
 const worker = JSON.stringify({ result: { agents: [{ pane_id: 'p1', name: 'x-worker' }] } })
 const issue = (number: number, kind: 'backlog' | 'task', fields: object = {}) =>
-  ({ number, title: `Issue ${number}`, url: `https://example.test/${number}`, kind, holder: '', wait: '', progress: '', goal: '', done: [], tasks: [], ...fields })
+  ({ number, title: `Issue ${number}`, url: `https://example.test/${number}`, kind, holder: '', wait: '', progress: '', goal: '', done: [], tasks: [], closed: [], ...fields })
 const task = issue(2, 'task', { title: 'Second issue', holder: 'x-worker', wait: 'waits on the owner', goal: 'Do the thing', done: ['[check] it prints'] })
 const board = JSON.stringify([issue(1, 'backlog', { title: 'First issue', progress: '1 open · 0 landed', tasks: [task] })])
 const long = (word: string) => `${word} `.repeat(60).slice(0, 300)
@@ -183,6 +183,14 @@ describe('issue pane', () => {
     expect((await shown()).every(Boolean)).toBe(true)
     await ui.press({ key: 'fold-2' })
     expect((await shown()).some(Boolean)).toBe(false)
+  })
+
+  test('a backlog unfolds to its closed tasks too, dim, after the open ones', async ($, on) => {
+    const ui = await mounted($, on, [issue(1, 'backlog', { tasks: [task], closed: [{ number: 3, title: 'Landed issue', url: 'https://example.test/3' }] })])
+    await unfold(ui, 1)
+    const row = await ui.find({ type: 'Text', text: /^#3 Landed issue$/ })
+    expect(row?.props.dimColor).toBe(true)
+    expect(row!.children[0]).toMatchObject({ type: 'Link', props: { href: 'https://example.test/3', label: '#3' } })
   })
 
   test('an entry with nothing under it unfolds to (empty)', async ($, on) => {

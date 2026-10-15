@@ -1,6 +1,7 @@
 export type BoardIssue = {
   number: number; title: string; url: string; kind: 'backlog' | 'task'
   holder: string; wait: string; progress: string; goal: string; done: string[]; tasks: BoardIssue[]
+  closed: { number: number; title: string; url: string }[]
 }
 
 declare module 'claude-code' {

@@ -73,7 +73,7 @@ export const register: Register = on => {
     const entry = (i: BoardIssue): JSX.Element => {
       const open = unfolded.has(i.number)
       const line = status(i)
-      const more = Boolean(i.goal || i.done.length || i.tasks.length)
+      const more = Boolean(i.goal || i.done.length || i.tasks.length || i.closed.length)
       return (
         <Box flexDirection="column">
           <Box flexDirection="row">
@@ -94,6 +94,8 @@ export const register: Register = on => {
             {open && i.goal && <Text wrap="wrap">{i.goal}</Text>}
             {open && i.done.map(d => <Text wrap="wrap" dimColor>{`• ${d}`}</Text>)}
             {open && i.tasks.map(t => <Box marginTop={1}>{entry(t)}</Box>)}
+            {/* closed tasks after the open ones, dim, so what landed stays in view */}
+            {open && i.closed.length > 0 && <Box marginTop={1} flexDirection="column">{i.closed.map(t => <Text wrap="wrap" dimColor><Link href={t.url} label={`#${t.number}`} />{` ${t.title}`}</Text>)}</Box>}
           </Box>
         </Box>
       )
