@@ -90,7 +90,7 @@ describe('issue pane', () => {
         expect(rest!.text).not.toContain('·')
         expect(kind!.children[0]).toMatchObject({ type: 'Link', props: { href: url, label } })
       }
-      for (const line of [/^Goal$/, /^DoD:$/, /^\(check\) it prints$/, /^x-worker$/, /^waits on the owner$/, /^1 open, 0 landed$/])
+      for (const line of [/^see detail$/, /^\(check\) it prints$/, /^x-worker$/, /^waits on the owner$/, /^1 open, 0 landed$/])
         expect(await ui.find({ type: 'Text', text: line })).toBeDefined()
       await ui.unmount()
     }
@@ -174,7 +174,7 @@ describe('issue pane', () => {
   test('a goal and each criterion show one line, their details only once unfolded', async ($, on) => {
     const ui = await mounted($, on, [issue(2, 'task', { detail: ['Why it matters'], done: [{ met: null, kind: 'check', name: 'Board prints', detail: 'it runs the board' }] })])
     await unfold(ui, 2)
-    for (const line of [/^Goal$/, /^DoD:$/, /^\(check\) Board prints$/]) expect(await ui.find({ type: 'Text', text: line })).toBeDefined()
+    for (const line of [/^see detail$/, /^\(check\) Board prints$/]) expect(await ui.find({ type: 'Text', text: line })).toBeDefined()
     for (const line of [/^Why it matters$/, /^it runs the board$/]) expect(await ui.find({ type: 'Text', text: line })).toBeUndefined()
     await ui.press({ key: 'row-done-2-0' })
     expect(await ui.find({ type: 'Text', text: /^it runs the board$/ })).toBeDefined()
@@ -212,9 +212,21 @@ describe('issue pane', () => {
     expect(wait?.props.color).not.toBe(holder?.props.color)
   })
 
+  test('an unfolded goal or criterion has a gray label line and a white body', async ($, on) => {
+    const ui = await mounted($, on, [issue(2, 'task', { detail: ['Why it matters'], done: [{ met: null, kind: 'check', name: 'Board prints', detail: 'it runs the board' }] })])
+    await unfold(ui, 2)
+    const label = async (t: RegExp) => (await ui.find({ type: 'Text', text: t }))?.props.dimColor
+    expect(await label(/^see detail$/)).toBeFalsy()
+    await ui.press({ key: 'row-goal-2' })
+    await ui.press({ key: 'row-done-2-0' })
+    expect(await label(/^see detail$/)).toBe(true)
+    expect(await label(/^\(check\) Board prints$/)).toBe(true)
+    for (const body of [/^Why it matters$/, /^it runs the board$/]) expect(await label(body)).toBeFalsy()
+  })
+
   test('entries start folded to one row; a press unfolds one, a second folds it', async ($, on) => {
     const ui = await mounted($, on, JSON.parse(board))
-    const shown = async () => [await ui.find({ type: 'Text', text: /^Goal$/ }), await ui.find({ type: 'Text', text: /it prints$/ })]
+    const shown = async () => [await ui.find({ type: 'Text', text: /^see detail$/ }), await ui.find({ type: 'Text', text: /it prints$/ })]
     expect(await ui.find({ type: 'Text', text: /^Second issue$/ })).toBeUndefined()
     expect(await ui.find({ type: 'Text', text: /^1 open, 0 landed$/ })).toBeDefined()
     await ui.press({ key: 'fold-1' })
@@ -238,8 +250,8 @@ describe('issue pane', () => {
     const ui = await mounted($, on, [issue(1, 'backlog', { earlier: true, closed: [{ number: 3, title: 'Landed issue', url: 'https://example.test/3', blockers: [{ number: 2, closed: true }] }] })])
     await unfold(ui, 1)
     const texts = (await ui.findAll({ type: 'Text' })).map(t => t.text)
-    expect(texts.indexOf('…')).toBeGreaterThan(texts.indexOf('#3 Landed issue ←#2'))
-    expect(texts.indexOf('#3 Landed issue ←#2')).toBeGreaterThan(-1)
+    expect(texts.indexOf('…')).toBeGreaterThan(texts.indexOf('#3 Landed issue ← #2'))
+    expect(texts.indexOf('#3 Landed issue ← #2')).toBeGreaterThan(-1)
   })
 
   test('every blocker beside a task is a link, a closed one dim, an open one bold', async ($, on) => {
