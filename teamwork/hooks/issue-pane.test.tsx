@@ -5,7 +5,7 @@ const worker = JSON.stringify({ result: { agents: [{ pane_id: 'p1', name: 'x-wor
 const issue = (number: number, kind: 'backlog' | 'task', fields: object = {}) =>
   ({ number, title: `Issue ${number}`, url: `https://example.test/${number}`, kind, holder: '', wait: '', progress: '', goal: '', done: [], tasks: [], blockers: [], layer: 0, closed: [], ...fields })
 const task = issue(2, 'task', { title: 'Second issue', holder: 'x-worker', wait: 'waits on the owner', goal: 'Do the thing', done: ['[check] it prints'] })
-const board = JSON.stringify([issue(1, 'backlog', { title: 'First issue', progress: '1 open · 0 landed', tasks: [task] })])
+const board = JSON.stringify([issue(1, 'backlog', { title: 'First issue', progress: '1 open, 0 landed', tasks: [task] })])
 const long = (word: string) => `${word} `.repeat(60).slice(0, 300)
 const PANE = { title: 'Issues', isFocused: true, bodyColumns: 60, placement: 'dock', scroll: { offset: 0, bodyRows: 20 }, view: {} } as const
 
@@ -76,10 +76,12 @@ describe('issue pane', () => {
         // the link leads its row, so cutting the row at the pane's width cuts the title, never the link
         const rest = await ui.find({ type: 'Button', key: `row-${label.slice(1)}` })
         const kind = await ui.find({ type: 'Text', text: new RegExp(`^${label}$`) })
-        expect(rest!.text).toMatch(new RegExp(`^${title}( · |$)`))
+        expect(rest!.text).toMatch(new RegExp(`^${title}( |$)`))
+        // colour sets the parts apart, so no dot between them
+        expect(rest!.text).not.toContain('·')
         expect(kind!.children[0]).toMatchObject({ type: 'Link', props: { href: url, label } })
       }
-      for (const line of [/^Do the thing$/, /^• \[check\] it prints$/, /^x-worker$/, /^waits on the owner$/, /^1 open · 0 landed$/])
+      for (const line of [/^Do the thing$/, /^• \[check\] it prints$/, /^x-worker$/, /^waits on the owner$/, /^1 open, 0 landed$/])
         expect(await ui.find({ type: 'Text', text: line })).toBeDefined()
       await ui.unmount()
     }
@@ -175,7 +177,7 @@ describe('issue pane', () => {
     const ui = await mounted($, on, JSON.parse(board))
     const shown = async () => [await ui.find({ type: 'Text', text: /^Do the thing$/ }), await ui.find({ type: 'Text', text: /it prints$/ })]
     expect(await ui.find({ type: 'Text', text: /^Second issue$/ })).toBeUndefined()
-    expect(await ui.find({ type: 'Text', text: /^1 open · 0 landed$/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /^1 open, 0 landed$/ })).toBeDefined()
     await ui.press({ key: 'fold-1' })
     expect(await ui.find({ type: 'Text', text: /^waits on the owner$/ })).toBeDefined()
     expect((await shown()).some(Boolean)).toBe(false)
@@ -216,8 +218,8 @@ describe('issue pane', () => {
   })
 
   test('backlogs show their progress, each set apart by a border', async ($, on) => {
-    const ui = await mounted($, on, [issue(10, 'backlog', { progress: '5 open · 0 landed' }), issue(30, 'backlog', { progress: 'routed to w' }), issue(20, 'backlog', { progress: 'not started' })])
-    for (const progress of ['5 open · 0 landed', 'routed to w', 'not started'])
+    const ui = await mounted($, on, [issue(10, 'backlog', { progress: '5 open, 0 landed' }), issue(30, 'backlog', { progress: 'routed to w' }), issue(20, 'backlog', { progress: 'not started' })])
+    for (const progress of ['5 open, 0 landed', 'routed to w', 'not started'])
       expect(await ui.find({ type: 'Text', text: new RegExp(`^${progress}$`) })).toBeDefined()
     const bordered = (await ui.findAll({ type: 'Box' })).filter(b => b.props.borderStyle)
     expect(bordered).toHaveLength(3)

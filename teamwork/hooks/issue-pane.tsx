@@ -69,7 +69,7 @@ export const register: Register = on => {
       i.progress && <Text dimColor>{i.progress}</Text>,
       i.kind === 'task' && i.holder && <Text color="suggestion">{i.holder}</Text>,
       i.wait && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.wait}</Text>,
-    ].filter(Boolean).flatMap((x, k) => (k ? [<Text dimColor> · </Text>, x] : [x]))
+    ].filter(Boolean).flatMap((x, k) => (k ? [<Text> </Text>, x] : [x]))
     const entry = (i: BoardIssue): JSX.Element => {
       const open = unfolded.has(i.number)
       const line = status(i)
@@ -85,7 +85,7 @@ export const register: Register = on => {
             {/* the whole rest of the row folds, a wider target than the arrow; a Button holds only Text, so no link sits in it */}
             <Button key={`row-${i.number}`} plain onPress={toggle(i.number)}>
               <Text wrap="wrap" weight="semibold">{i.title}</Text>
-              {line.length > 0 && <Text dimColor> · </Text>}
+              {line.length > 0 && <Text> </Text>}
               {line}
             </Button>
           </Box>
