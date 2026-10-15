@@ -1,7 +1,8 @@
 """Past task durations: one row per closed non-backlog issue, read from GitHub or from a fixture file."""
 import json
 import subprocess
-from datetime import datetime
+
+from session_gaps import stamp
 
 CRITERION = ("[check]", "[score]")
 
@@ -40,7 +41,7 @@ def rows(issues):
         if "backlog" in i["labels"] or not i.get("closedAt"):
             continue
         source, start = ("pr", i["prStart"]) if i.get("prStart") else ("created", i["createdAt"])
-        hours = (datetime.fromisoformat(i["closedAt"]) - datetime.fromisoformat(start)).total_seconds() / 3600
+        hours = (stamp(i["closedAt"]) - stamp(start)).total_seconds() / 3600
         out.append({"number": i["number"], "labels": i["labels"], "criteria": sum(i["body"].count(c) for c in CRITERION),
                     "start": start, "end": i["closedAt"], "hours": hours, "source": source})
     return sorted(out, key=lambda r: r["end"])
