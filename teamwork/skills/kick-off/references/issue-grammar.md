@@ -4,10 +4,10 @@ How a teamwork issue is written, so a person reads it as prose and code composes
 
 ## Append-only
 
-- **Body**: written once, when the issue is filed, in free Markdown; never edited.
+- **Body**: written when the issue is filed, in free Markdown; afterwards only its sections change, and only by [edit-issue-body.py](../scripts/edit-issue-body.py), which first posts a comment holding the exact diff, then applies it.
 - **Comment**: every later fact. Its first line opens with a keyword and a colon, then the kind of work it records in plain words after the keyword, `REPORTED: batch landed …`; the rest is free Markdown. A keyword says what the comment does to the issue, never who spoke; name a source in the content, `owner said: …`.
 - **Fewest keywords**: a kind of work gets a keyword of its own only when code must tell it apart or its category differs wholly; comments posted under words no longer listed stay as written, read as prose.
-- **Latest wins**: a later record replaces an earlier one of the same role; nothing is edited or deleted.
+- **Latest wins**: a later record replaces an earlier one of the same role; no comment is edited or deleted.
 
 ## Keywords
 
@@ -36,11 +36,11 @@ holders: issue-pane-worker
 
 ## Sections
 
-A task's sections, each a `## <section>` heading; one under a later comment, a `DECIDED:`, replaces the earlier one whole.
+A task's sections, each a `## <section>` heading in the body, which holds their current text; a comment's heading is prose.
 
 | section | holds | role |
 | --- | --- | --- |
-| `Goal` | the owner's intent; its first line sums it up | goal |
+| `Goal` | the owner's intent; its first paragraph sums up the whole | goal |
 | `Definition of done` | criteria, one per numbered or bulleted line | done |
 
 ## Waits

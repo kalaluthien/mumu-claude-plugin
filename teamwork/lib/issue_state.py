@@ -57,7 +57,7 @@ def holder_values(issue):
 
 def compose(issue, blockers=()):
     """{'holders': the latest names, or None when no record ever set them; 'waits': its wait line, in the grammar's order;
-    'goal': the latest goal's first line, or 'none'; 'done': the latest criteria; 'holder': the names, or 'none', then a wait not about holding}."""
+    'goal': the first paragraph of the body's goal, its lines joined, or ''; 'done': the body's criteria}."""
     holders = (holder_values(issue) or [None])[-1]
     asked = exchange(issue)[-1:]
     if blockers:
@@ -66,9 +66,7 @@ def compose(issue, blockers=()):
         waits = "waits on the owner" if asked[0][1].get(WORD["audience"]) == "owner" else "waits on the manager"
     else:
         waits = "held" if holders else "no holder"
-    latest = {}
-    for text in [issue.get("body")] + [c["body"] for c in issue.get("comments", [])]:
-        latest.update(sections(text))
-    goal = next((line.strip() for line in latest.get("goal", "").splitlines() if line.strip()), "none")
-    holder = ", ".join([" ".join(holders or []) or "none"] + ([] if waits in ("held", "no holder") else [waits]))
-    return {"holders": holders, "waits": waits, "goal": goal, "done": ITEM.findall(latest.get("done", "")), "holder": holder}
+    # the body alone, since a section is edited there with its diff posted as a comment
+    current = sections(issue.get("body"))
+    goal = " ".join(line.strip() for line in current.get("goal", "").strip().split("\n\n")[0].splitlines() if line.strip())
+    return {"holders": holders, "waits": waits, "goal": goal, "done": ITEM.findall(current.get("done", ""))}

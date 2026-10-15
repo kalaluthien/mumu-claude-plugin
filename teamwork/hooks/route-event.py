@@ -12,6 +12,7 @@ import team_gaps  # noqa: E402
 
 PLAYBOOKS = pathlib.Path(__file__).resolve().parents[1] / "skills" / "kick-off" / "references"
 GRAMMAR = PLAYBOOKS / "issue-grammar.md"
+EDIT_BODY = PLAYBOOKS.parent / "scripts" / "edit-issue-body.py"
 # only where a command segment starts, so gh text quoted inside another command's argument is not read as a call
 GH_TEXT = re.compile(r"(?:^|&&|\|\||[;|(`\n]|\b(?:then|do|else)\s)\s*(?:\w+=\S*\s+)*(gh (issue|pr) (create|comment|edit)\b)")
 SEGMENT_END = re.compile(r"&&|\|\||[;|)`]|(?<!\\)\n")  # a backslash-newline continues the command
@@ -31,7 +32,7 @@ def route(kind, event, role, me, listed):
     command = SEGMENT_END.split(command[GH_TEXT.search(command).start(1):])[0] if GH_TEXT.search(command) else ""
     title = re.search(r"(?<!\S)(--title|-t)[= ](\"[^\"]*\"|'[^']*'|[^\s\"']\S*)", command)
     size = title and len(title.group(2)) - (2 if title.group(2)[0] in "\"'" else 0)
-    reason = (f"An issue body is append-only; post the change as a comment, as {GRAMMAR} says." if re.match(r"gh issue edit\b", command)
+    reason = (f"An issue body changes only by {EDIT_BODY} <issue> <diff-file> \"DECIDED: <why>\", which posts the diff as a comment first, as {GRAMMAR} says." if re.match(r"gh issue edit\b", command)
               and re.search(r"(?<!\S)(--body-file|-F|--body|-b)[= ]", command)
               else "Write the text to a scratch file first, then pass it with --body-file." if re.search(r"(?<!\S)(--body|-b)[= ]", command)
               else f"Title is {size} characters; shorten it to 40, verb first. Nothing in this command ran, so write any body file again." if size and size > 40 else None)
