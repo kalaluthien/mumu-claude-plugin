@@ -13,6 +13,7 @@ The working rules of this repository and of every plugin in it. Each rule carrie
 ## Plugin layout
 
 - **Main parts**: build a plugin from `hooks/`, `monitors/` and `skills/`. Each is a module that works alone and reaches another only through a file or a command it names, never through its internals.
+- **Plugins stand alone**: a plugin never depends on another plugin: it names none of their files, commands or skills, and works with every other plugin removed; shared code is copied or dropped, never imported across plugins.
 - **No agents**: a plugin has no `agents/` folder; a role is a skill.
 - **Scripts beside their user**: a script sits in the folder of the hook, monitor, skill or playbook that runs it, such as `skills/<skill>/scripts/` or `skills/<skill>/references/<playbook>/scripts/`, one script per use, never in a `scripts/` folder at the repository's or a plugin's root. Code two parts share is a module in the plugin's `lib/`, which a script reaches by putting that `lib/` on `sys.path`, and a script imports no other script.
 - **bin for PATH only**: `bin/` holds only a command that must be found on `PATH`, such as one a document or a settings file names bare.
