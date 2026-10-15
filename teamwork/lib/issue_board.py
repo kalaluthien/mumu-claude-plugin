@@ -13,6 +13,15 @@ def summary_of(body):
     return "" if first.startswith("#") else " ".join(line.strip() for line in first.splitlines() if line.strip())
 
 
+def next_step_of(comments):
+    """A backlog's next step: the latest `REPORTED:` that names one, so a backlog with nothing open says why it stays open."""
+    for c in reversed(comments):
+        first = (c["body"] or "").replace("\r\n", "\n").split("\n\n")[0]
+        if first.startswith("REPORTED:") and "next step:" in first:
+            return " ".join(first.rsplit("next step:", 1)[1].split())
+    return ""
+
+
 def entry(node):
     """One issue as the board shows it; a backlog shows its progress and summary, a task its goal and criteria."""
     blockers = [b["number"] for b in node["blockedBy"]["nodes"] if b["state"] == "OPEN"]
@@ -21,10 +30,12 @@ def entry(node):
     holders = state["holders"] or []
     summary = node.get("subIssuesSummary") or {}
     progress = (f"{summary['total'] - summary['completed']} open, {summary['completed']} landed" if summary.get("total")
-                else f"routed to {' '.join(holders)}" if holders else "" if state["waits"] == "deferred" else "not started") if backlog else ""
+                else "" if holders or state["waits"] == "deferred" else "not started") if backlog else ""
+    idle = backlog and summary.get("total", 0) == summary.get("completed", 0)
     return {"number": node["number"], "title": node["title"], "url": node["url"], "kind": "backlog" if backlog else "task",
             "holder": " ".join(holders), "wait": "←" + ",".join(f"#{n}" for n in blockers) if blockers else "" if state["waits"] == "held" or backlog and state["waits"] == "no holder" else state["waits"],
             "progress": progress, "goal": summary_of(node["body"]) if backlog else state["goal"], "done": [] if backlog else state["done"],
+            "next": next_step_of(node["comments"]["nodes"]) if idle else "",
             "urgency": URGENCY.index(state["waits"].split(" by ")[0]), "tasks": [], "blockers": blockers, "layer": 0,
             "closed": [{"number": t["number"], "title": t["title"], "url": t["url"]}
                        for t in (node.get("subIssues") or {}).get("nodes", []) if t["state"] == "CLOSED"]}
@@ -98,9 +109,10 @@ def lines(issues, depth=0):
         depth_here = depth + i["layer"]
         pad = "  " * (depth_here + 1)
         yield f"{'  ' * depth_here}#{i['number']} {i['title']}"
-        status = " ".join(x for x in (i["progress"], i["holder"] if i["kind"] == "task" else "", i["wait"]) if x)
+        status = " ".join(x for x in (i["progress"], i["holder"], i["wait"]) if x)
         yield from ([f"{pad}{status}"] if status else [])
         yield from ([f"{pad}{i['goal']}"] if i["goal"] else [])
         yield from (f"{pad}- {d}" for d in i["done"])
+        yield from ([f"{pad}next step: {i['next']}"] if i["next"] else [])
         yield from lines(i["tasks"], depth_here + 1)
         yield from (f"{pad}#{t['number']} {t['title']} closed" for t in i["closed"])
