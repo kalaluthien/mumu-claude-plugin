@@ -15,13 +15,24 @@ def asking(issue):
     return [r for r, _, _ in issue_state.exchange(issue)][-1:] == ["ask"]
 
 
-def manager_actions(me, listed):
-    team = members(me, listed)
-    status = {a.get("name"): a.get("agent_status") for a in listed}
+def manager_read(me, history=False):
+    """What a manager's gaps need from GitHub, read once and kept by the caller until something changed; None when a read failed.
+    HISTORY adds whether a worker ever held a closed issue, for a manager that has not yet seen one."""
     found = issues(project(me["name"]))
     prs = run("gh", "pr", "list", "--state", "merged", "--limit", str(PR_LIMIT), "--json", "number,headRefName")
     if found is None or prs is None:
         return None
+    return {"found": found, "prs": prs, "had_worker": had_worker(me) if history else False}
+
+
+def manager_actions(me, listed, data=None):
+    """A manager's gaps from DATA, a `manager_read` kept from an earlier poll, else from a read now."""
+    data = data or manager_read(me)
+    if data is None:
+        return None
+    team = members(me, listed)
+    status = {a.get("name"): a.get("agent_status") for a in listed}
+    found, prs = data["found"], data["prs"]
     lines = limited(found, ISSUE_LIMIT, "open-issue")  # merged PRs past the newest are always many and no live worker's
     # a started worker names its tab before its agent is live, so its tab counts it as routed
     present = set(team) | {t.get("label") for t in tabs(me.get("workspace_id", ""))}
@@ -60,22 +71,37 @@ def worker_goal(me):
     return [f"#{i['number']} {i['title']} ({i['url']}): " + ("waits on your manager" if asking(i) else "open") for i in fresh]
 
 
-def worker_actions(me, waiting):
-    """What ended a wait of this worker, as the act it needs; None when a read failed. WAITING, kept by the caller
-    across polls, holds the held issues last seen with an open blocker, so only the closing of the last one prints."""
-    name, found = me["name"], issues()
+def worker_read(me):
+    """What a worker's wait needs from GitHub, read once and kept by the caller until something changed; None when a read failed."""
+    found = issues()
     prs = run("gh", "pr", "list", "--state", "open", "--json", "number,headRefName,mergeable")
     if found is None or prs is None:
         return None
+    blockers = {i["number"]: run("gh", "api", f"repos/{{owner}}/{{repo}}/issues/{i['number']}/dependencies/blocked_by", "--jq", "[.[].state]")
+                for i in found if holds(i, me["name"])}
+    return None if None in blockers.values() else {"found": found, "prs": prs, "blockers": blockers}
+
+
+def changed_since(stamp):
+    """Whether any issue or pull request changed since STAMP (an ISO time), by one cheap REST read of the newest; True when it failed, so the caller reads in full."""
+    newest = run("gh", "api", f"repos/{{owner}}/{{repo}}/issues?state=all&per_page=1&since={stamp}")
+    return newest is None or bool(newest)
+
+
+def worker_actions(me, waiting, data=None):
+    """What ended a wait of this worker, as the act it needs; None when a read failed. WAITING, kept by the caller
+    across polls, holds the held issues last seen with an open blocker, so only the closing of the last one prints.
+    DATA is a `worker_read` kept from an earlier poll, else a read now."""
+    data = data or worker_read(me)
+    if data is None:
+        return None
+    name, found, prs = me["name"], data["found"], data["prs"]
     lines = limited(found, ISSUE_LIMIT, "open-issue")
     for i in (i for i in found if holds(i, name)):
         turns = issue_state.exchange(i)
         if [r for r, _, _ in turns[-2:]] == ["ask", "answer"]:
             lines.append(f"answered #{i['number']}: {turns[-1][2]['url']} answers your {ASK}:; act on it")
-        blockers = run("gh", "api", f"repos/{{owner}}/{{repo}}/issues/{i['number']}/dependencies/blocked_by", "--jq", "[.[].state]")
-        if blockers is None:
-            return None
-        if "open" in blockers:
+        if "open" in data["blockers"][i["number"]]:
             waiting.add(i["number"])
         elif i["number"] in waiting:
             waiting.discard(i["number"])
