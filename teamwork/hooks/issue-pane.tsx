@@ -109,9 +109,11 @@ export const register: Register = on => {
       return (
         <Box flexDirection="column">
           <Box flexDirection="row">
-            {/* the link first, so a narrow pane wraps the title, never the link */}
-            <Text color={i.kind === 'backlog' ? 'merged' : 'claude'} weight="semibold"><Link href={i.url} label={`#${i.number}`} /></Text>
-            <Text> </Text>
+            {/* the link first, and the fold mark, kept at full width (flexShrink 0), so a narrow pane wraps the title, never the link */}
+            <Box flexShrink={0}>
+              <Text color={i.kind === 'backlog' ? 'merged' : 'claude'} weight="semibold"><Link href={i.url} label={`#${i.number}`} /></Text>
+              <Text> </Text>
+            </Box>
             {/* the whole rest of the row folds; a Button holds only Text, so no link sits in it */}
             <Button key={`row-${i.number}`} plain onPress={toggle(i.number)}>
               <Text wrap="wrap" weight="semibold">{i.title}</Text>
@@ -122,7 +124,9 @@ export const register: Register = on => {
             {after(i)}
             {/* only a box folds by a mark, a + or - at its top-right */}
             <Box flexGrow={1} />
-            <Button key={`fold-${i.number}`} plain dimColor label={open ? ' -' : ' +'} onPress={toggle(i.number)} />
+            <Box flexShrink={0}>
+              <Button key={`fold-${i.number}`} plain dimColor label={open ? ' -' : ' +'} onPress={toggle(i.number)} />
+            </Box>
           </Box>
           <Box paddingLeft={2} flexDirection="column">
             {/* every entry folds alike, so an empty one says so when unfolded */}
