@@ -173,6 +173,17 @@ describe('issue pane', () => {
     expect(await ui.find({ type: 'Text', text: /^Why it matters$/ })).toBeDefined()
   })
 
+  test('each backlog and task is a box that folds by a plus or minus, its goal and criteria by no mark', async ($, on) => {
+    const ui = await mounted($, on, JSON.parse(board))
+    const sign = async () => (await ui.find({ type: 'Button', key: 'fold-1' }))!.props.label
+    expect(await sign()).toBe(' +')
+    await unfold(ui, 1, 2)
+    expect(await sign()).toBe(' -')
+    expect((await ui.findAll({ type: 'Box' })).filter(b => b.props.borderStyle === 'round')).toHaveLength(2)
+    expect((await ui.findAll({ type: 'Button' })).map(b => b.props.key).filter(k => /^fold-/.test(k))).toEqual(['fold-1', 'fold-2'])
+    expect((await ui.findAll({ type: 'Text' })).filter(t => /[▸▾]/.test(t.text))).toEqual([])
+  })
+
   test('kind, holder and a wait on someone each have a colour of their own', async ($, on) => {
     const ui = await mounted($, on, JSON.parse(board))
     await unfold(ui, 1)
