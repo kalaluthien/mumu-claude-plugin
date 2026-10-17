@@ -3,7 +3,7 @@ import type { Register } from 'claude-code'
 
 import type { BoardIssue } from '../types'
 
-const PANE = 'issues'
+const PANE = 'teamwork-issues'
 const RETRY_MS = 120000
 const board = atom({ plugin: 'teamwork', key: 'board' } as const, [] as BoardIssue[])
 // why the last read failed, empty when it worked; shown so a failed read never looks like an empty board
@@ -20,7 +20,8 @@ let startDir: string | undefined
 let watching = false
 // the manager's board read, set once it watches, so the issues command reads the board again
 let refresh: (() => Promise<void>) | undefined
-const openPane = ($: any) => $.ui.open({ id: PANE, title: 'Issues' })
+// asked, it takes focus, since a plain open of an open id leaves it behind another plugin's pane
+const openPane = ($: any, asked = false) => $.ui.open({ id: PANE, title: 'Issues', ...(asked ? { focus: true as const } : {}) })
 function watch($: any, name: string) {
   if (watching || !name.endsWith('-manager')) return
   watching = true
@@ -81,7 +82,7 @@ export const register: Register = on => {
 
   // the owner closes the pane by its frame's x; this skill shows it again and reads the board anew, with no model turn
   on('command.run', { command: 'teamwork:issues' }, async ($) => {
-    await openPane($)
+    await openPane($, true)
     await refresh?.()
     return { text: 'Issues pane shown' }
   }).catch(($, e, next) => next(e))  // a failed open falls back to the skill's body
