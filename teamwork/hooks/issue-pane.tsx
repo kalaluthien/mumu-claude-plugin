@@ -20,8 +20,12 @@ let startDir: string | undefined
 let watching = false
 // the manager's board read, set once it watches, so the issues command reads the board again
 let refresh: (() => Promise<void>) | undefined
-// asked, it takes focus, since a plain open of an open id leaves it behind another plugin's pane
-const openPane = ($: any, asked = false) => $.ui.open({ id: PANE, title: 'Issues', ...(asked ? { focus: true as const } : {}) })
+const openPane = ($: any) => $.ui.open({ id: PANE, title: 'Issues' })
+// a plain open of an open id leaves it behind another plugin's tab, and focus may take the prompt's keys, so a hidden pane closes and opens again
+async function showPane($: any) {
+  if ((await $.ui.panes()).some((p: { id: string; isShown: boolean }) => p.id === PANE && !p.isShown)) await $.ui.close({ id: PANE })
+  return openPane($)
+}
 function watch($: any, name: string) {
   if (watching || !name.endsWith('-manager')) return
   watching = true
@@ -82,7 +86,7 @@ export const register: Register = on => {
 
   // the owner closes the pane by its frame's x; this skill shows it again and reads the board anew, with no model turn
   on('command.run', { command: 'teamwork:issues' }, async ($) => {
-    await openPane($, true)
+    await showPane($)
     await refresh?.()
     return { text: 'Issues pane shown' }
   }).catch(($, e, next) => next(e))  // a failed open falls back to the skill's body

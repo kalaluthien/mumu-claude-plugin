@@ -26,8 +26,8 @@ The working rules of this repository and of every plugin in it. Each rule carrie
 Every plugin's panes share one frame as tabs, the latest opened one shown, and every plugin's hook receives every pane's events ([#730](https://github.com/kalaluthien/mumu-claude-plugin/issues/730#issuecomment-6234659930)).
 
 - **Prefixed names**: name each pane id and each `$.command.register` command `<plugin>-<noun>`, since both are shared: a second plugin's open of a taken id retitles the first's pane, and its register of a taken command throws.
-- **Own panes only**: match each pane hook on its own id (`requestId` for `ui.render` and `ui.focus`, `id` for `ui.close`), or hand any other pane on by `next(e)`.
-- **Raise when asked**: open a pane unasked only once per session, since each new open takes the shown tab from the pane the person reads; bring it forward on the person's ask by opening it with `focus: true`, since a plain open of an open id leaves it behind.
+- **Own panes only**: match each pane hook on its own id (`requestId` for `ui.render`, `id` for `ui.close`), or hand any other pane on by `next(e)`.
+- **Raise when asked**: open a pane unasked only once per session, since each new open takes the shown tab from the pane the person reads; bring it forward on the person's ask by closing and opening it again, since a plain open of an open id leaves it behind and `focus: true`, which raises it too, may take the prompt's keys.
 
 ## Skills
 
