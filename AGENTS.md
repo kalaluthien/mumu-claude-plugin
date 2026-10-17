@@ -21,6 +21,14 @@ The working rules of this repository and of every plugin in it. Each rule carrie
 - **Names**: a file name is lowercase words joined by `-`, saying what the file does or prints, never a verdict, state or measurement, with its language extension, except a Python module imported by name, whose words join with `_`; a new file follows its siblings' pattern.
 - **Paths**: a `SKILL.md` names a command's path, or a file outside its skill, as `${CLAUDE_PLUGIN_ROOT}/<path>`, substituted when the skill loads; every other link is relative to the file that holds it, since a file opened with Read is read verbatim.
 
+## Mods
+
+Every plugin's panes share one frame as tabs, the latest opened one shown, and every plugin's hook receives every pane's events ([#730](https://github.com/kalaluthien/mumu-claude-plugin/issues/730#issuecomment-6234659930)).
+
+- **Prefixed names**: name each pane id and each `$.command.register` command `<plugin>-<noun>`, since both are shared: a second plugin's open of a taken id retitles the first's pane, and its register of a taken command throws.
+- **Own panes only**: match each pane hook on its own id (`requestId` for `ui.render`, `id` for `ui.close`), or hand any other pane on by `next(e)`.
+- **Raise when asked**: open a pane unasked only once per session, since each new open takes the shown tab from the pane the person reads; bring it forward on the person's ask by closing and opening it again, since a plain open of an open id leaves it behind and `focus: true`, which raises it too, may take the prompt's keys.
+
 ## Skills
 
 - **Description**: `Use when …`, then optionally `Not for …`, as short as it can be.
