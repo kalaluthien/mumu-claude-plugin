@@ -36,7 +36,7 @@ while True:
     if manager and lines is not None:
         crew = herdr_agents.members(me, listed)
         staffed = staffed or bool(crew)
-        idle = not crew and not data["found"]  # any open issue, deferred ones included, is work not yet done
+        idle = not crew and not data["found"] and not data["outside"]  # any open issue, deferred ones included, is work not yet done
         staffed = staffed or idle and data["had_worker"]  # a restart lost the memory of a worker, so GitHub gives it back
         if staffed and idle:
             lines += filter(None, [team_gaps.exit_action(me, listed)])
