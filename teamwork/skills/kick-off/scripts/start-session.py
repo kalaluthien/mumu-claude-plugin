@@ -73,7 +73,7 @@ if herdr_agents.agent(a.name):
 peer = herdr_agents.agent(a.beside) if a.beside else {}  # a peer manager's successor sits in its workspace, alone with its workers
 if peer is None:
     sys.exit(f"start-session.py: {a.beside} is not live: start {a.name} without --beside.")
-text = f"/teamwork:kick-off {a.args}"
+text = f"Run the teamwork:kick-off skill with these arguments: {a.args}"  # model-only: a typed /teamwork:kick-off is refused
 try:
     pane = open_pane(a.name, str(pathlib.Path(a.cwd).resolve()), a.team, peer.get("workspace_id"))
     start(a, pane)
