@@ -2,7 +2,7 @@
 
 Review what your caller hands you, which you did not write, in [SKILL.md](../SKILL.md)'s terms; change nothing in the repository, post nothing, reply only to your caller.
 
-1. **Read** it: tasks with their backlog; a change at its sha, by `git fetch origin`, `git diff origin/<default>...<sha>`, and `git show <sha>:<path>` for each file it needs; or a report with its issue.
+1. **Read** it: tasks with their backlog; a change at its sha, by `git fetch origin` (and `git fetch origin refs/pull/<n>/head` for one from a fork), `git diff origin/<default>...<sha>`, and `git show <sha>:<path>` for each file it needs; or a report with its issue.
 2. **Find gaps**:
 
    | reviewing | a gap is |

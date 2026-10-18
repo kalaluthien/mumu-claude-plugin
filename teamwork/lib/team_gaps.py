@@ -23,9 +23,12 @@ def manager_read(me, history=False):
     # one page of the latest updated closed pulls, whose merged ones are the newest merges
     prs = github_rest.pulls("closed", limit=PR_LIMIT)
     prs = prs and [p for p in prs if p["mergedAt"]]
-    if found is None or prs is None:
+    # an outside contributor's issue or pull request carries no scope label, so it is read across the repository
+    outside = github_rest.issues(pulls=True, comments=False)
+    outside = outside and [github_rest.fresh(i["number"]) for i in outside if not issue_state.trusted(i)]
+    if found is None or prs is None or outside is None or None in outside:
         return None
-    return {"found": found, "prs": prs, "had_worker": had_worker(me) if history else False}
+    return {"found": found, "prs": prs, "outside": outside, "had_worker": had_worker(me) if history else False}
 
 
 def manager_actions(me, listed, data=None):
@@ -40,10 +43,13 @@ def manager_actions(me, listed, data=None):
     # a started worker names its tab before its agent is live, so its tab counts it as routed
     present = set(team) | {t.get("label") for t in tabs(me.get("workspace_id", ""))}
     for i in found:
-        if not issue_state.deferral(i) and not any(holds(i, n) for n in present if n):
+        if issue_state.trusted(i) and not issue_state.deferral(i) and not any(holds(i, n) for n in present if n):
             lines.append(f"route #{i['number']} {i['title']}: no live worker holds it; route it, or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
         if asking(i):
             lines.append(f"answer #{i['number']}: its worker asks; post your {ANSWER}: there; the worker waits on it")
+    for i in data["outside"]:
+        if not issue_state.deferral(i) and not issue_state.holder_values(i):
+            lines.append(f"outside #{i['number']} {i['title']}: an outside contributor opened it; ask the owner, then route it or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
     for n in team:
         held = " ".join(f"#{i['number']}" for i in found if holds(i, n)) or "nothing open"
         if status[n] == "blocked":

@@ -18,9 +18,9 @@ from json_command import run  # noqa: E402
 ISSUES = """query($owner: String!, $name: String!, $labels: [String!], $after: String) {
   repository(owner: $owner, name: $name) {
     issues(states: OPEN, first: 30, after: $after, labels: $labels, orderBy: {field: CREATED_AT, direction: ASC}) {
-      nodes { number title url body parent { number } labels(first: 20) { nodes { name } } subIssuesSummary { total completed }
+      nodes { number title url body authorAssociation parent { number } labels(first: 20) { nodes { name } } subIssuesSummary { total completed }
               subIssues(last: 50) { nodes { number title url state } }
-              blockedBy(first: 20) { nodes { number state } } comments(last: 100) { nodes { body url } } }
+              blockedBy(first: 20) { nodes { number state } } comments(last: 100) { nodes { body url authorAssociation } } }
       pageInfo { hasNextPage endCursor } } } }"""
 BLOCKERS = """query($owner: String!, $name: String!) {
   repository(owner: $owner, name: $name) {
