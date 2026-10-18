@@ -16,6 +16,11 @@ def asking(issue):
     return [r for r, _, _ in issue_state.exchange(issue)][-1:] == ["ask"]
 
 
+def unanswered(issue):
+    """An outside contributor's issue or pull request that no trusted record has routed or left for later yet."""
+    return not issue_state.trusted(issue) and not issue_state.deferral(issue) and not issue_state.holder_values(issue)
+
+
 def manager_read(me, history=False):
     """What a manager's gaps need from GitHub, read once and kept by the caller until something changed; None when a read failed.
     HISTORY adds whether a worker ever held a closed issue, for a manager that has not yet seen one."""
@@ -23,9 +28,12 @@ def manager_read(me, history=False):
     # one page of the latest updated closed pulls, whose merged ones are the newest merges
     prs = github_rest.pulls("closed", limit=PR_LIMIT)
     prs = prs and [p for p in prs if p["mergedAt"]]
-    if found is None or prs is None:
+    # an outside contributor's issue or pull request carries no scope label, so it is read across the repository
+    outside = github_rest.issues(pulls=True, comments=False)
+    outside = outside and [github_rest.fresh(i["number"]) for i in outside if not issue_state.trusted(i)]
+    if found is None or prs is None or outside is None or None in outside:
         return None
-    return {"found": found, "prs": prs, "had_worker": had_worker(me) if history else False}
+    return {"found": found, "prs": prs, "outside": [i for i in outside if unanswered(i)], "had_worker": had_worker(me) if history else False}
 
 
 def manager_actions(me, listed, data=None):
@@ -40,10 +48,12 @@ def manager_actions(me, listed, data=None):
     # a started worker names its tab before its agent is live, so its tab counts it as routed
     present = set(team) | {t.get("label") for t in tabs(me.get("workspace_id", ""))}
     for i in found:
-        if not issue_state.deferral(i) and not any(holds(i, n) for n in present if n):
+        if not unanswered(i) and not issue_state.deferral(i) and not any(holds(i, n) for n in present if n):
             lines.append(f"route #{i['number']} {i['title']}: no live worker holds it; route it, or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
         if asking(i):
             lines.append(f"answer #{i['number']}: its worker asks; post your {ANSWER}: there; the worker waits on it")
+    for i in data["outside"]:
+        lines.append(f"outside #{i['number']} {i['title']}: an outside contributor opened it; ask the owner, then route it or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
     for n in team:
         held = " ".join(f"#{i['number']}" for i in found if holds(i, n)) or "nothing open"
         if status[n] == "blocked":

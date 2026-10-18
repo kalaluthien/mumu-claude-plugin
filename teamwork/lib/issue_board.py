@@ -30,7 +30,7 @@ def entry(node):
     """One issue as the board shows it; a backlog shows its progress and summary, a task its goal and criteria."""
     every = blockers_of(node)
     blockers = [b["number"] for b in every if not b["closed"]]
-    state = issue_state.compose({"body": node["body"], "comments": node["comments"]["nodes"]}, blockers)
+    state = issue_state.compose({"body": node["body"], "authorAssociation": node["authorAssociation"], "comments": node["comments"]["nodes"]}, blockers)
     backlog = "backlog" in [x["name"] for x in node["labels"]["nodes"]]
     holders = state["holders"] or []
     summary = node.get("subIssuesSummary") or {}

@@ -24,12 +24,12 @@ def issue(raw):
     merged = (raw.get("pull_request") or {}).get("merged_at")
     return {"number": raw["number"], "title": raw["title"], "body": raw["body"] or "", "url": raw["html_url"],
             "state": raw["state"].upper(), "stateReason": (raw.get("state_reason") or "").upper(), "createdAt": raw["created_at"],
-            "closedAt": raw["closed_at"], "labels": [{"name": x["name"]} for x in raw["labels"]],
+            "closedAt": raw["closed_at"], "authorAssociation": raw["author_association"], "labels": [{"name": x["name"]} for x in raw["labels"]],
             "isPullRequest": "pull_request" in raw, "mergedAt": merged, "comments": []}
 
 
 def comment(raw):
-    return {"body": raw["body"], "url": raw["html_url"], "createdAt": raw["created_at"]}
+    return {"body": raw["body"], "url": raw["html_url"], "createdAt": raw["created_at"], "authorAssociation": raw["author_association"]}
 
 
 def with_comments(found, repo=None):

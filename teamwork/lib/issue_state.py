@@ -22,6 +22,7 @@ WORD = {role: word for table in (KEYWORDS, KEYS) for word, role in table.items()
 ITEM = re.compile(r"^(?:\d+\.|[-*])\s+(.*)$", re.M)
 # a criterion `[check] **<name>**: <details>`, after a task-list box when one marks it met; one filed before names were asked for is its own name
 CRITERION = re.compile(r"^(?:\[([ xX])\]\s+)?(?:\[(\w+)\]\s+)?(?:\*\*(.+?)\*\*:?\s*)?(.*)$")
+TRUSTED = {"OWNER", "MEMBER", "COLLABORATOR"}
 
 
 def keyword(text):
@@ -42,9 +43,14 @@ def sections(text):
     return {SECTIONS[h.strip()]: body for h, body in found if h.strip() in SECTIONS}
 
 
+def trusted(item):
+    """Whether an issue's or comment's author may write records, since anyone may comment on a public repository."""
+    return item.get("authorAssociation") in TRUSTED
+
+
 def records(issue):
-    """The body, then each comment, as (keyword, data, comment), oldest first; the body has no keyword."""
-    return [(None, data(issue.get("body")), None)] + [(keyword(c["body"]), data(c["body"]), c) for c in issue.get("comments", [])]
+    """The body, then each comment, as (keyword, data, comment), oldest first; the body has no keyword, and an untrusted author's text records nothing."""
+    return [(None, data(issue.get("body")) if trusted(issue) else {}, None)] + [(keyword(c["body"]), data(c["body"]), c) for c in issue.get("comments", []) if trusted(c)]
 
 
 def exchange(issue):
