@@ -35,10 +35,10 @@ What each one expects on your machine:
 
 GitHub issues are the shared memory: a `BLOCKED:` comment is a question, a `DECIDED:` comment is the answer, and both outlive any session. Pull request policy belongs to each repository, not to the plugin.
 
-**Using it.** In a herdr workspace, start a session and type:
+**Using it.** In a herdr workspace, start a session and ask it to manage:
 
 ```
-/teamwork:kick-off fix the login timeout
+Be this project's teamwork manager: fix the login timeout
 ```
 
 That session becomes the manager. It files the backlog, starts a worker in a new tab, and from then on you mostly answer questions. Under the hood, one hook ([`route-event.py`](teamwork/hooks/route-event.py)) tells each session at start what is waiting on it, and stops a worker from going idle while an issue it holds is still open, and a monitor ([`print-team-gaps.py`](teamwork/monitors/print-team-gaps.py)) tells the manager where GitHub and the team disagree and wakes a worker when its wait ends.

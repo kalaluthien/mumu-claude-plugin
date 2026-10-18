@@ -1,8 +1,7 @@
 ---
 name: kick-off
 description: Use when a session is made its project's manager, by the owner or by another session, or is started as a worker by its manager. Not for the judge or another subagent, whose brief names the files it reads.
-disable-model-invocation: true
-argument-hint: 로그인 타임아웃 고쳐 줘
+user-invocable: false
 ---
 
 # Kick-off
@@ -44,7 +43,7 @@ Each role decides alone what keeps the intent it was handed, and asks before it 
 
 ## Rules
 
-- **Talk**: whenever someone waits on your step or must act, reach a session by `tell`, the owner in your tab by `AskUserQuestion`, which a worker lacks, so it asks through its manager by `BLOCKED:` and `tell`, away by `PushNotification` naming the issue and your tab, and later sessions by the issue comment, posted first. Prompt sessions only `/teamwork:kick-off` via `start`, yourself only `/rename` or `/compact`, and, after merging what `AGENTS.md`'s `Live checkout` says needs it, `git -C <live checkout> pull --ff-only`, then `/reload-plugins` to each name `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/list-agents.py` prints, since a hand-written parse of `herdr agent list` raises `KeyError: 'name'` on an unnamed session.
+- **Talk**: whenever someone waits on your step or must act, reach a session by `tell`, the owner in your tab by `AskUserQuestion`, which a worker lacks, so it asks through its manager by `BLOCKED:` and `tell`, away by `PushNotification` naming the issue and your tab, and later sessions by the issue comment, posted first. Prompt sessions only their kick-off via `start`, yourself only `/rename` or `/compact`, and, after merging what `AGENTS.md`'s `Live checkout` says needs it, `git -C <live checkout> pull --ff-only`, then `/reload-plugins` to each name `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/list-agents.py` prints, since a hand-written parse of `herdr agent list` raises `KeyError: 'name'` on an unnamed session.
 - **Short writing**: bullets or a table, no narration; cite urls, `path:line`s and shas; titles verb-first and at most 40 characters, since a hook refuses a longer one.
 - **Before** new work, an issue or a `BLOCKED:`, follow [recall-playbook.md](references/recall-playbook.md); a time estimate, [estimation-playbook.md](references/estimation-playbook.md).
 - **Do it now**: when a step is yours by the Authority table and its inputs exist, do it in this turn, such as starting a session that is missing or filing an issue; never defer it to a later event, ask leave to do it, or list it as waiting. Wait only for an input not yet there, a decision the table reserves to another role, or a refusal.
