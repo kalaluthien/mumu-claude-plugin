@@ -1,0 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Poor+Story&display=swap");
+/* Placed on another page as a part, the engine's small text rises to the page's 12 px floor; its mock screens keep their scale; the fonts are the standalone page's (assets/zoom.html). */
+.zd.zd-part :is(.zd-type, .zd-grp h5, .zd-sect, .zd-media h5 b, .zd-lv i, .zd-mk, .lg-q, .zd-refs a, .zd-list .sig em,
+  .zd-list .fx .fk, .zd-code, .zd-tree, .zd-diff, .zd-ins .vs::before, .zd-ins code, .zd-run .fk, .zd-expect .fk) { font-size: 12px; }

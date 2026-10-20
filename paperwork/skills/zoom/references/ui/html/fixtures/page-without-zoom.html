@@ -1,0 +1,1194 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Shop</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Poor+Story&display=swap">
+<style>
+:root{color-scheme:light}
+body{margin:0;background:#f3f4f6;padding:16px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark}:root:not([data-theme="light"]) body{background:#0f1115}}
+:root[data-theme="dark"]{color-scheme:dark}:root[data-theme="dark"] body{background:#0f1115}
+.zd{
+  --zd-fail:#b42318;
+  --zd-hand:"Poor Story",var(--zd-sans);
+  --zd-paper:#ffffff; --zd-board:#fcfcfc; --zd-sunk:#eef0f3; --zd-hi:#14181f; --zd-mid:#4b5462; --zd-lo:#626b78;
+  --zd-line:#c9ced6; --zd-faint:#e4e7ec;
+  --zd-sans:"IBM Plex Sans KR","IBM Plex Sans","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --zd-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  font-family:var(--zd-sans); color:var(--zd-hi); background:var(--zd-paper); font-size:14px; line-height:1.55;
+  border:1px solid var(--zd-faint); border-radius:16px; overflow:hidden; min-width:0;
+  container-type:inline-size; container-name:zd; position:relative;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .zd{--zd-fail:#f97066;--zd-paper:#1a1d23;--zd-board:#131519;--zd-sunk:#20242b;--zd-hi:#eef1f5;--zd-mid:#aab2be;--zd-lo:#868f9c;--zd-line:#3a414c;--zd-faint:#272b33;color-scheme:dark}}
+:root[data-theme="dark"] .zd{--zd-fail:#f97066;--zd-paper:#1a1d23;--zd-board:#131519;--zd-sunk:#20242b;--zd-hi:#eef1f5;--zd-mid:#aab2be;--zd-lo:#868f9c;--zd-line:#3a414c;--zd-faint:#272b33;color-scheme:dark}
+.zd *{box-sizing:border-box}
+.zd button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.zd :focus-visible:not(.node):not(.edge){outline:1px solid var(--zd-mid);outline-offset:3px;border-radius:6px}
+.zd code{font-family:var(--zd-mono);background:none;padding:0;border-radius:0;font-size:inherit}
+.zd svg text{font-family:var(--zd-hand)}
+.zd .n-fill{fill:var(--zd-paper);stroke:none}
+.zd .n-ink{fill:none;stroke:var(--zd-hi);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.zd .n-lab{fill:var(--zd-hi);font-size:17px}
+.zd .n-chev{fill:none;stroke:var(--zd-hi);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.zd .node{cursor:pointer}
+.zd .node:hover .n-ink{stroke-width:2.2}
+.zd .node.lit .n-fill{fill:var(--zd-hi)}
+.zd .node.lit .n-lab{fill:var(--zd-paper)}
+.zd .node.lit .n-chev{stroke:var(--zd-paper)}
+.zd .dim{opacity:.2}
+.zd .node.done .n-ink{stroke-width:2.4}
+.zd .n-step rect{fill:var(--zd-paper);stroke:var(--zd-hi);stroke-width:1.2}
+.zd .n-step text{font-family:var(--zd-mono);font-size:12px;fill:var(--zd-hi)}
+.zd .n-step.reached rect{fill:var(--zd-hi)}.zd .n-step.reached text{fill:var(--zd-paper)}
+.zd .node.lit .n-step rect{stroke:var(--zd-paper)}
+.zd .n-qty rect{fill:var(--zd-paper);stroke:var(--zd-mid);stroke-width:1;stroke-dasharray:2 2}
+.zd .n-qty text,.zd .e-qty{font-family:var(--zd-mono);font-size:13px;fill:var(--zd-mid)}
+.zd svg.phone .n-qty text,.zd svg.phone .e-qty{font-size:15px}
+.zd svg.phone .e-qty{font-family:inherit}
+.zd .e-line{fill:none;stroke:var(--zd-hi);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.zd .e-head{fill:none;stroke:var(--zd-hi);stroke-width:1.4;stroke-linecap:round}
+.zd .e-hit{fill:none;stroke:transparent;stroke-width:14;cursor:pointer}
+.zd .edge:hover .e-line,.zd .edge.done .e-line{stroke-width:2.2}
+.zd .edge.hl .e-line,.zd .edge.hl .e-head{stroke-width:3.2}
+.zd .node.hl .n-ink{stroke-width:3.2}
+
+.zd .edge.lit .e-line,.zd .edge.lit .e-head{stroke-width:2.6}
+.zd .edge.lit .e-plate{fill:var(--zd-hi)}.zd .edge.lit .e-lab{fill:var(--zd-paper)}
+.zd .e-plate{fill:var(--zd-board)}
+.zd .e-lab{fill:var(--zd-hi);font-size:15px}
+.zd .init{fill:var(--zd-hi)}
+.zd-mock{background:var(--zd-sunk);border:1px solid var(--zd-faint);border-radius:8px;overflow:hidden;font-family:var(--zd-sans)}
+.zd-mock .bar{display:flex;align-items:center;gap:10px;padding:6px 10px;border-bottom:1px solid var(--zd-faint);background:var(--zd-paper);font-size:11.5px;color:var(--zd-mid)}
+.zd-mock .dots{display:inline-flex;gap:4px}.zd-mock .dots i{width:7px;height:7px;border-radius:50%;background:var(--zd-faint)}
+.zd-mock .bar span:last-child{margin-left:auto;font-family:var(--zd-mono);color:var(--zd-lo)}
+.zd-mock .fg{display:grid;grid-template-columns:72px minmax(0,1fr)}
+.zd-mock .layers{list-style:none;margin:0;padding:6px 0;background:var(--zd-paper);border-right:1px solid var(--zd-faint);font-size:10.5px;color:var(--zd-mid)}
+.zd-mock .layers li{display:block;padding:3px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zd-mock .layers li.on{background:var(--zd-hi);color:var(--zd-paper)}.zd-mock .layers li.on i{border-color:var(--zd-paper)}
+.zd-mock .board{position:relative;max-height:250px;overflow:auto;padding:12px 8px 26px;display:flex;justify-content:center;background-image:radial-gradient(var(--zd-faint) 1px,transparent 1.2px);background-size:10px 10px;min-width:0}
+.zd-mock .device{width:min(180px,100%);background:var(--zd-paper);border:1px solid var(--zd-faint);border-radius:9px;padding:7px;box-shadow:0 10px 22px -16px rgba(0,0,0,.45)}
+.zd-mock .m{position:relative;border-bottom:1px solid var(--zd-faint);padding:6px 3px}
+.zd-mock .m:last-child{border-bottom:0}
+.zd-mock .mn{font-size:10.5px;font-weight:600;color:var(--zd-hi)}
+.zd-mock .mp{font-size:9px;color:var(--zd-mid);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.zd-mock .mr{display:flex;justify-content:flex-start;font-size:9.5px;color:var(--zd-mid);padding:1px 0}
+.zd-mock .tiny{display:grid;grid-template-columns:repeat(2,1fr);gap:4px;background-image:radial-gradient(var(--zd-faint) 1px,transparent 1.2px);background-size:8px 8px;padding:4px 0}
+.zd-mock .tiny span{font-size:9px;text-align:center;border:1px solid var(--zd-mid);border-radius:4px;padding:2px 0;background:var(--zd-paper);color:var(--zd-hi);white-space:nowrap;overflow:hidden}
+.zd-mock .tiny span.k{background:var(--zd-hi);border-color:var(--zd-hi);color:var(--zd-paper)}
+.zd-mock .sel{outline:1.5px solid var(--zd-hi);outline-offset:1px;z-index:1}
+.zd-mock .h{position:absolute;width:6px;height:6px;background:var(--zd-paper);border:1.5px solid var(--zd-hi)}
+.zd-mock .tag{position:absolute;left:50%;transform:translateX(-50%);bottom:-17px;background:var(--zd-hi);color:var(--zd-paper);font-family:var(--zd-mono);font-size:9px;padding:1px 5px;border-radius:3px;white-space:nowrap;z-index:2}
+@media (prefers-reduced-motion:reduce){.zd *{transition:none!important;animation:none!important}}
+.zd .node,.zd .edge{-webkit-tap-highlight-color:transparent;outline:none}
+.zd .node:focus,.zd .edge:focus,.zd .node:focus-visible,.zd .edge:focus-visible{outline:none}
+.zd .node:focus-visible:not(.lit) .n-ink{stroke-width:2.4}
+.zd .edge:focus-visible .e-line{stroke:var(--zd-hi)}
+.zd-mock .mtabs{display:flex;gap:8px;font-size:9px;color:var(--zd-lo);border-bottom:1px solid var(--zd-faint);padding-bottom:3px;white-space:nowrap;overflow:hidden}
+.zd-mock .mtabs .on{color:var(--zd-hi);font-weight:600;box-shadow:0 4px 0 -2.5px var(--zd-hi)}
+.zd-mock .mbtn{display:inline-block;margin-top:4px;font-size:9.5px;font-weight:600;background:var(--zd-hi);color:var(--zd-paper);border-radius:5px;padding:3px 8px}
+.zd-mock .rad{display:inline-block;width:7px;height:7px;border:1px solid var(--zd-mid);border-radius:50%;margin-right:5px;vertical-align:-1px}
+.zd-mock .rad.on{background:var(--zd-hi);border-color:var(--zd-hi)}
+.zd-mock .mcode{font-family:var(--zd-mono);font-size:9px;line-height:1.5;color:var(--zd-mid)}
+.zd-mock .mcode .add{background:var(--zd-sunk);color:var(--zd-hi)}
+.zd-mock .mcode .del{color:var(--zd-lo);text-decoration:line-through}
+.zd{--zd-ink-r:14px 20px 15px 18px / 18px 14px 20px 15px}
+.zd .zd-type,.zd .zd-grp h5,.zd-sect,.zd-media h5 b{font-family:var(--zd-sans);font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--zd-lo)}
+.zd-main{display:grid;grid-template-columns:minmax(0,1fr)}
+.zd-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 10px 0 16px}
+.zd-crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:0 6px;min-width:0}
+.zd .zd-up,.zd .zd-lv{font-family:var(--zd-hand);font-size:19px;line-height:1.2;padding:2px;text-align:left;min-width:0}
+.zd .zd-up{color:var(--zd-mid)}
+.zd .zd-lv{display:inline-flex;align-items:center;gap:6px;color:var(--zd-hi)}
+.zd .zd-lv i{font-style:normal;font-size:11px;color:var(--zd-mid)}
+.zd .zd-up:hover,.zd .zd-lv:hover,.zd .zd-is:hover{text-decoration:underline wavy var(--zd-line);text-underline-offset:5px}
+.zd-sep{font-family:var(--zd-hand);font-size:18px;color:var(--zd-line)}
+.zd .zd-fs,.zd .zd-x{flex:none;width:30px;height:30px;border-radius:999px;color:var(--zd-mid);font-size:14px;line-height:30px;text-align:center}
+.zd .zd-fs:hover,.zd .zd-x:hover{background:var(--zd-sunk);color:var(--zd-hi)}
+.zd .zd-x{display:none}
+.zd.narrow .zd-x{display:block;float:right;margin:-6px -8px 0 8px}
+.zd:focus{outline:none}
+.zd-board{background:var(--zd-board);min-width:0;display:flex;flex-direction:column}
+.zd-why{margin:0;padding:2px 18px 0;font-size:12.5px;color:var(--zd-mid);line-height:1.6;max-width:72ch}
+.zd-legend{display:flex;flex-wrap:wrap;gap:2px 14px;margin:0;padding:4px 18px 0}
+.zd-legend:empty{display:none}
+.zd-mk{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--zd-lo);white-space:nowrap}
+.zd .lg{fill:none;stroke:var(--zd-hi);stroke-width:1.4;stroke-linecap:round}
+.zd .lg-happy{stroke-width:2.6}.zd .lg-optional{stroke-dasharray:4 3}.zd .lg-failure{stroke:var(--zd-fail);stroke-dasharray:6 2 1.5 2}
+.zd .lg-q{font-family:var(--zd-hand);font-size:11px;fill:var(--zd-hi)}
+.zd-stage{display:block;padding:4px 12px;min-width:0;flex:1}
+.zd-stage.side{display:grid;grid-template-columns:var(--cw,minmax(0,1fr)) 320px;justify-content:center;gap:18px;align-items:start}
+/* a wide note never runs far below the drawing: it scrolls inside, at most a screen tall */
+.zd-stage.side .zd-note.is-sel .zd-body{max-height:calc(100vh - 80px);overflow:auto;overscroll-behavior:contain;margin-right:-8px;padding-right:8px}
+.zd-canvas{overflow-x:auto;min-width:0;padding:6px 0 10px;touch-action:pan-x pan-y;border-radius:10px}
+.zd-canvas svg{display:block;width:100%;height:auto;margin:0 auto;overflow:visible}
+.zd-canvas.more-r{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 44px),transparent)}
+.zd-canvas.more-l{-webkit-mask-image:linear-gradient(90deg,transparent,#000 44px);mask-image:linear-gradient(90deg,transparent,#000 44px)}
+.zd-canvas.more-l.more-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 44px,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(90deg,transparent,#000 44px,#000 calc(100% - 44px),transparent)}
+.zd.nav-open .zd-nav,.zd-note.is-sel{background:var(--zd-paper);border:1.5px solid var(--zd-hi);border-radius:var(--zd-ink-r);box-shadow:4px 5px 0 var(--zd-faint)}
+.zd .zd-nav{display:none;min-width:0}
+.zd.nav-open .zd-nav{display:block;padding:14px 16px 16px}
+.zd.narrow.nav-open .zd-nav{position:fixed;left:50%;transform:translateX(-50%);width:min(560px,100%);bottom:0;max-height:75vh;overflow:auto;z-index:61;padding:18px 16px 22px}
+.zd.nav-open:not(.narrow) .zd-nav{margin:8px 12px 14px}
+.zd.nav-open:not(.narrow) .zd-why,.zd.nav-open:not(.narrow) .zd-legend,.zd.nav-open:not(.narrow) .zd-time,.zd.nav-open:not(.narrow) .zd-stage{display:none}
+.zd.narrow .zd-note.is-sel,.zd.narrow.nav-open .zd-nav{border-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0;box-shadow:0 -10px 30px rgba(10,12,16,.22)}
+.zd-scrim{position:fixed;inset:0;background:rgba(10,12,16,.38);z-index:60}
+.zd-sect{margin:6px 6px}
+.zd-levels,.zd-scen{list-style:none;margin:0;padding:0}
+.zd-navgrid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 18px;align-items:start}
+.zd.narrow .zd-navgrid{grid-template-columns:minmax(0,1fr)}
+.zd-ns{min-width:0;border-left:1px dashed var(--zd-line);padding-left:16px}
+.zd.narrow .zd-ns{border-left:0;padding-left:0;border-top:1px dashed var(--zd-line);margin-top:8px;padding-top:6px}
+.zd .zd-sect span{margin-left:8px;font-family:var(--zd-mono);letter-spacing:0}
+.zd-scen{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;padding:2px 2px 8px}
+.zd-scen li{flex:0 0 min(230px,82%);scroll-snap-align:start;display:flex}
+.zd-scen button{display:flex;flex-direction:column;justify-content:flex-start;width:100%;text-align:left;padding:8px 10px;border:1px solid var(--zd-line);border-radius:var(--zd-ink-r)}
+.zd-scen button[aria-pressed="true"]{background:var(--zd-board);border-color:var(--zd-hi)}
+.zd-scen span{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;color:var(--zd-lo);line-height:1.45;margin-top:3px}
+.zd .zd-levels button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:4px 6px 4px calc(6px + var(--d,0) * 16px);font-family:var(--zd-hand);font-size:18px;line-height:1.25;color:var(--zd-mid)}
+.zd .zd-levels button[aria-current="true"]{color:var(--zd-hi);text-decoration:underline wavy var(--zd-line);text-underline-offset:5px}
+.zd-scen button:hover{background:var(--zd-board)}
+.zd-scen code{display:block;font-size:12px;color:var(--zd-hi);font-weight:600}
+.zd-note{position:relative;min-width:0;font-size:13px;color:var(--zd-mid);margin:8px 0 6px}
+.zd-note[hidden]{display:none}
+.zd-note.is-sel{padding:14px 16px 12px}
+.zd-note.is-sel::before{content:"";position:absolute;width:10px;height:10px;background:var(--zd-paper);border:1.5px solid var(--zd-hi);border-right:0;border-bottom:0;left:var(--nx,28px);top:-7px;transform:rotate(45deg)}
+.zd-stage.side .zd-note.is-sel::before{left:-7px;top:calc(var(--ny,32px) - 5px);transform:rotate(-45deg)}
+.zd-stage:not(.side) .zd-note{margin-top:10px}
+.zd.narrow .zd-note.is-sel{position:fixed;left:0;right:0;bottom:0;margin:0;max-height:62vh;overflow:auto;z-index:55;padding:16px 18px 22px}
+.zd.narrow .zd-note.is-sel::before{display:none}
+.zd-nh{margin:0 0 8px}
+.zd-meta{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;margin:0 0 2px;min-height:18px}
+.zd-note h4{font-family:var(--zd-hand);font-size:25px;font-weight:400;line-height:1.1;margin:0;color:var(--zd-hi)}
+.zd-note h4.id{font-family:var(--zd-mono);font-size:15px;font-weight:600}
+.zd-pc{display:inline-block;font-family:var(--zd-hand);font-size:15px;line-height:1.2;color:var(--zd-mid);border:1.3px dotted var(--zd-mid);border-radius:var(--zd-ink-r);padding:0 7px;margin:0 2px;vertical-align:1px}
+.zd-route{margin:2px 0 0;font-family:var(--zd-hand);font-size:17px;line-height:1.35;color:var(--zd-mid)}
+.zd-route i{font-style:normal;margin:0 6px;color:var(--zd-lo)}
+.zd .zd-is{font-family:var(--zd-hand);font-size:16px;line-height:1.2;color:var(--zd-hi);text-decoration:underline wavy var(--zd-line);text-underline-offset:4px}
+.zd-note .what{margin:0 0 8px;color:var(--zd-mid);font-size:13.5px;line-height:1.6}
+.zd-refs{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 0;line-height:1.4}
+.zd-refs a{font-size:11.5px;padding:1px 8px;border:1px solid var(--zd-faint);border-radius:999px;color:var(--zd-mid);text-decoration:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zd-refs a:hover{color:var(--zd-hi);border-color:var(--zd-line)}
+.zd-at{margin-top:12px;padding-top:10px;border-top:1px dashed var(--zd-line)}
+.zd-at h4{font-size:22px}
+.zd-lvl{font-family:var(--zd-hand);font-size:14px;color:var(--zd-lo)}
+.zd-calls{margin:4px 0 0;font-size:12px;color:var(--zd-mid)}
+.zd-time{display:flex;align-items:center;gap:6px;margin:6px 12px 0;padding:6px 10px;background:var(--zd-paper);border:1.5px solid var(--zd-hi);border-radius:var(--zd-ink-r)}
+.zd-time[hidden]{display:none}
+.zd-time code{font-size:12px;font-weight:600;max-width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zd .zd-time button{flex:none;width:28px;height:28px;border-radius:999px;font-size:16px;line-height:28px;text-align:center;color:var(--zd-mid)}
+.zd .zd-time button:hover{background:var(--zd-sunk);color:var(--zd-hi)}
+.zd-time output{font-family:var(--zd-mono);font-size:12px;color:var(--zd-mid);min-width:44px;text-align:right}
+.zd-rail{position:relative;flex:1;min-width:80px;height:32px;margin:0 8px}
+.zd-ticks{position:absolute;inset:0;pointer-events:none}
+.zd-ticks i{position:absolute;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;gap:2px}
+.zd-ticks b{display:block;width:7px;height:7px;border-radius:50%;border:1.3px solid var(--zd-mid);background:var(--zd-paper)}
+.zd-ticks .done b{background:var(--zd-mid)}.zd-ticks .now b{background:var(--zd-hi);border-color:var(--zd-hi);transform:scale(1.35)}
+.zd-rail input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.zd-rail::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:1.3px solid var(--zd-line)}
+.zd-rail:focus-within{outline:1px solid var(--zd-mid);outline-offset:2px;border-radius:6px}
+.zd-grp{margin-top:14px}
+.zd .zd-grp h5{margin:0 0 6px;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px}
+.zd-list{list-style:none;margin:0;padding:0}
+.zd-list li{padding:6px 0;border-top:1px solid var(--zd-faint)}
+.zd-list li:first-child{border-top:0;padding-top:2px}
+.zd-list .sig{font-family:var(--zd-mono);font-size:12px;color:var(--zd-mid);overflow-wrap:anywhere}
+.zd-list .sig>span{display:flex;flex-wrap:wrap;gap:0 6px;align-items:baseline;min-width:0}
+.zd-list .sig b{color:var(--zd-hi);font-weight:600}
+.zd-list .sig em{font-style:normal;font-size:10.5px;color:var(--zd-lo);border:1px solid var(--zd-faint);border-radius:999px;padding:0 6px}
+.zd-list .fx{font-family:var(--zd-mono);font-size:12px;line-height:1.5;color:var(--zd-hi);white-space:pre-wrap;overflow-wrap:anywhere;tab-size:2}
+.zd-list .fx .k{font-style:normal;color:var(--zd-mid)}
+.zd-list .fx .fk{display:block;font-family:var(--zd-sans,inherit);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--zd-mid)}
+.zd-list p{margin:2px 0 0;font-size:12.5px;color:var(--zd-mid);line-height:1.5}
+.zd-list summary{cursor:pointer;list-style:none}
+.zd-list summary::-webkit-details-marker{display:none}
+.zd-list summary::after{content:"+";margin-left:auto;padding-left:8px;color:var(--zd-lo);font-family:var(--zd-mono)}
+.zd-list details[open] summary::after{content:"−"}
+.zd-list details>.fx,.zd-list details>p{margin-top:4px}
+.zd .zd-media h5 span{font-family:var(--zd-sans);font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--zd-hi)}
+.zd .zd-media h5 i{font-family:var(--zd-hand);font-size:16px;font-style:normal;letter-spacing:0;text-transform:none;color:var(--zd-mid);margin-right:-4px}
+.zd-code,.zd-tree,.zd-diff{font-family:var(--zd-mono);font-size:11.5px;line-height:1.6;color:var(--zd-hi);background:var(--zd-board);border:1px solid var(--zd-line);border-radius:var(--zd-ink-r);padding:8px 10px;margin:0;overflow-x:auto;white-space:pre}
+.zd-pay{white-space:pre-wrap;overflow-wrap:anywhere}
+.zd-tree .tp{color:var(--zd-lo)}
+.zd-diff{padding:6px 0;white-space:normal;overflow-wrap:anywhere}
+.zd-diff>div{display:flex;gap:8px;padding:0 10px;color:var(--zd-mid);white-space:pre-wrap}
+.zd-diff i{flex:none;width:10px;font-style:normal;text-align:center}
+.zd-diff .del{color:var(--zd-lo);text-decoration:line-through;text-decoration-thickness:1px}
+.zd-diff .ins{color:var(--zd-hi);font-weight:600;background:var(--zd-sunk)}
+.zd-mock{border-radius:var(--zd-ink-r)}
+.zd-ex,.zd-quote,.zd-pit,.zd-ins,.zd-check,.zd-facts{margin:0;font-size:13px;line-height:1.5;color:var(--zd-hi);border-left:2px solid var(--zd-line);padding:1px 0 1px 10px}
+.zd-quote{font-style:italic}
+.zd-pit{border-left-color:var(--zd-fail)}
+.zd-ex{border-left-color:var(--zd-hi)}
+.zd-facts{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px}
+.zd-facts dt{font-weight:600}
+.zd-facts dd{margin:0;color:var(--zd-mid)}
+.zd-check{list-style:none;border-left:0;padding-left:0}
+.zd-check li{position:relative;padding:2px 0 2px 22px}
+.zd-check li::before{content:"";position:absolute;left:1px;top:6px;width:12px;height:12px;border:1.4px solid var(--zd-hi);border-radius:3px 5px 3px 4px}
+.zd-ins{border-left:2.5px solid var(--zd-hi)}
+.zd-ins p{margin:0}
+.zd-ins .vs{margin-top:3px;font-size:12.5px;color:var(--zd-mid)}
+.zd-ins .vs::before{content:"vs  ";font-family:var(--zd-sans);font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--zd-lo)}
+.zd-ins .so{margin-top:3px}
+.zd-ins .so::before{content:"→ ";font-family:var(--zd-hand);color:var(--zd-mid)}
+.zd-ins code{font-family:var(--zd-mono);font-size:11.5px;color:var(--zd-mid);border:1px solid var(--zd-line);border-radius:999px;padding:0 6px;white-space:nowrap}
+.zd-list li.at{font-family:var(--zd-mono);font-size:12px;color:var(--zd-mid);padding:2px 0;border:0}
+.zd-list li.at b{color:var(--zd-hi);font-weight:600}
+.zd.full{position:fixed;inset:0;z-index:50;border:0;border-radius:0;overflow:auto;margin:0;max-width:none}
+.zd.full .zd-main{min-height:100%}
+.zd .edge.m-happy .e-line,.zd .edge.m-happy .e-head,.zd .node.m-happy .n-ink{stroke-width:2.3}
+.zd .edge.m-optional .e-line,.zd .node.m-optional .n-ink{stroke-dasharray:6 5}
+.zd .edge.m-failure .e-line,.zd .edge.m-failure .e-head,.zd .node.m-failure .n-ink{stroke:var(--zd-fail)}
+.zd .edge.m-failure .e-line,.zd .node.m-failure .n-ink{stroke-dasharray:8 3 1.5 3}
+.zd .edge.m-failure .e-lab,.zd .node.m-failure .n-lab{fill:var(--zd-fail)}
+.zd .edge.lit.m-failure .e-lab{fill:var(--zd-paper)}
+.zd .p-ink{fill:none;stroke:var(--zd-mid);stroke-width:1.3;stroke-dasharray:1.5 5;stroke-linecap:round}
+.zd .p-lab{font-family:var(--zd-hand);font-size:15px;fill:var(--zd-mid)}
+.zd .x-port{fill:var(--zd-paper);stroke:var(--zd-hi);stroke-width:1.3}
+.zd .n-go{fill:transparent;cursor:zoom-in}
+.zd .node.abstract .n-ink{stroke-dasharray:1.5 4.5}
+.zd .lg-abs{stroke-dasharray:1.5 3}
+.zd .t-src{fill:var(--zd-paper);stroke:var(--zd-hi);stroke-width:1.4}
+.zd .t-hand{fill:none;stroke:var(--zd-hi);stroke-width:1.3;stroke-linecap:round}
+.zd .edge.trig.lit .t-src{stroke-width:2.4}
+/* host pages may style details and summary; keep the rows plain, the sign on the right of the first line */
+.zd :where(details,summary){border:0;background:none;box-shadow:none;padding:0;margin:0;border-radius:0;outline:none}
+.zd-list summary{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;column-gap:8px}
+.zd-list summary::after{margin-left:0;padding-left:0}
+.zd .e-lab .e-sync{fill:var(--zd-mid);font-size:13px}
+.zd .edge.lit .e-lab .e-sync{fill:var(--zd-paper)}
+.zd-list li.sy{font-size:13px;color:var(--zd-mid);padding:4px 0}
+.zd-list li.sy b{font-family:var(--zd-mono);font-size:12px;color:var(--zd-hi);font-weight:600}
+.zd-list li.sy span{display:block;margin-top:2px}
+.zd-mk b{font-family:var(--zd-hand);font-weight:400;font-size:14px;color:var(--zd-hi)}
+
+.zd-list summary em.brk{border-style:dashed}
+.zd-run{margin-top:6px;font-family:var(--zd-mono);font-size:12px;color:var(--zd-hi)}
+.zd-run .fk{display:block;font-family:var(--zd-sans);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--zd-mid)}
+.zd-run ol{margin:2px 0 0;padding-left:1.6em}
+.zd-run li{padding:1px 0;border:0}
+
+.zd .zd-run li button{font:inherit;text-align:left;text-decoration:underline dotted var(--zd-line);text-underline-offset:3px}
+.zd .zd-run li button:hover{text-decoration-color:var(--zd-hi)}
+
+/* while a run plays, only the run sets line weight: the main path's weight would read as progress */
+.zd .edge.later .e-line,.zd .edge.later .e-head,.zd .edge.dim .e-line,.zd .edge.dim .e-head{stroke-width:1.4}
+.zd .node.later .n-ink,.zd .node.dim .n-ink{stroke-width:1.6}
+.zd-rail.dense::after{content:"";position:absolute;left:0;width:var(--p,0);top:50%;margin-top:-1px;border-top:2.6px solid var(--zd-mid)}
+@container zd (max-width:520px){
+  .zd-time code{display:none}
+  .zd-time{gap:2px;margin:6px 10px 0;padding:2px 6px;border-width:1.2px}
+  .zd .zd-time button{width:26px;height:26px;line-height:26px}
+  .zd-rail{height:28px;margin:0 6px}
+  .zd-time output{min-width:0}
+}
+
+/* a phone's sheet never hides the drawing for good: the card grows by the sheet's height so the drawing scrolls above it */
+.zd.narrow.has-sheet .zd-main{padding-bottom:var(--sheet,0)}
+.zd.narrow .zd-note.is-sel.is-run{max-height:46vh}
+.zd-step{margin:6px 0 0;padding:8px 10px;background:var(--zd-sunk);border-radius:var(--zd-ink-r);font-size:13.5px;line-height:1.6;color:var(--zd-hi)}
+.zd-step p{margin:0}
+.zd-expect{margin-top:6px!important;color:var(--zd-mid)}
+.zd-expect .fk{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--zd-lo)}
+.zd-picks{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.zd .zd-picks button{font-family:var(--zd-hand);font-size:15px;line-height:1.2;padding:2px 9px;border:1.3px solid var(--zd-mid);border-radius:var(--zd-ink-r);color:var(--zd-hi)}
+.zd .zd-picks button.e{border-style:dashed}
+.zd .zd-picks button[aria-pressed="true"]{background:var(--zd-hi);border-color:var(--zd-hi);color:var(--zd-paper)}
+.zd .node.d-added .n-fill{fill:#dcfce7}.zd .node.d-removed .n-fill{fill:#fee2e2}.zd .node.d-changed .n-fill{fill:#fef3c7}
+.zd .edge.d-added .e-line{stroke:#16a34a}.zd .edge.d-removed .e-line{stroke:#dc2626}.zd .edge.d-changed .e-line{stroke:#d97706}
+.zd-list .mt{font-size:12.5px;color:var(--zd-mid)}.zd-list .mt b{color:var(--zd-hi);font-weight:600}
+.zd-cp{margin:8px 0 0}.zd-copy{font:inherit;font-size:12px;padding:3px 8px;border:1px solid var(--zd-faint);border-radius:6px;background:none;color:var(--zd-mid);cursor:pointer}
+
+</style></head><body>
+<div id="zd" style="max-width:1180px;margin:0 auto"></div>
+<p id="zd-next" style="max-width:1180px;margin:16px auto 0;font:600 16px/1.5 'IBM Plex Sans KR',system-ui,sans-serif">The reader&#x27;s next action or choice, in one sentence.</p>
+<script>
+function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.json, which the checks read too
+  const NS = "http://www.w3.org/2000/svg";
+  const still = matchMedia("(prefers-reduced-motion: reduce)");
+  const KIND = {
+    topology: { name: "topology", node: "component", edge: "relation", r: 4 },
+    workflow: { name: "workflow", node: "activity", edge: "artifact", r: 11 },
+    state: { name: "state machine", node: "state", edge: "event", r: 22 }
+  };
+  const levels = Object.fromEntries(M.levels.map(L => [L.id, L]));
+  const nodeLevel = {}, nodes = {};
+  M.levels.forEach(L => L.nodes.forEach(n => { nodes[n.id] = n; nodeLevel[n.id] = L.id; }));
+  const childOf = Object.fromEntries(M.levels.filter(L => L.parent).map(L => [L.parent, L.id]));
+  const ops = Object.fromEntries(M.operations.map(o => [o.slug, o]));
+  const rules = Object.fromEntries(M.rules.map(i => [i.slug, i]));
+  const show = Object.assign({ formulas: true, replay: true, media: true }, (M.plan || {}).show);   // what the plan lets the page show
+  const edgeKey = (lid, e) => lid + ":" + e.from + ">" + e.to + (levels[lid].edges.filter(x => x.from === e.from && x.to === e.to).length > 1 ? "#" + e.label : "");  // two edges one way: tell them apart
+  const trigKey = (lid, t) => lid + ":@>" + t.to + "#" + t.label;   // a trigger comes from outside the level
+  const qtyText = q => ({ count: `n=${q.value}`, capacity: `≤ ${q.value}`, delay: `within ${q.value}` }[q.kind] || String(q.value)) + (q.unit ? ` ${q.unit}` : "");
+  const levelOf = x => nodeLevel[x] || String(x).split(":")[0];   // a node id, or an edge or trigger key
+
+  /* A run is { key, kind, name, uses, length, items, calls }. Each item is a node or an edge key with the moments it
+     lasts, { x, from, to, step }: a node lasts the moment of its step; an edge from the moment after its source to
+     the moment it arrives, so a branch that skips ahead stays in flight until its join; `step` is the Scenario step
+     it belongs to ({ at, does, expects }). A new kind of run needs only its own builder in RUNS. */
+  // a Scenario's run is its walk, resolved once by the build: items { x, from, to, step } and the step sentences
+  function scenarioRun(s) {
+    const w = s.run || { items: [], steps: [], uses: [] };
+    const items = w.items.map(it => Object.assign({}, it, { step: w.steps[it.step] }));
+    return { kind: "scenario", name: s.slug, uses: new Set(w.uses), length: Math.max(0, ...items.map(it => it.to)) + 1, items };
+  }
+  // where each call of a run is drawn: an operation where it sits, an event, artifact or trigger by its label
+  const drawnAt = {};
+  const put = (c, x) => (drawnAt[c] = drawnAt[c] || []).push(x);
+  M.levels.forEach(L => {
+    L.nodes.forEach(n => (n.ops || []).forEach(o => put(o, n.id)));
+    L.edges.forEach(e => (e.ops || []).concat(L.kind !== "topology" && e.label ? [e.label] : []).forEach(o => put(o, edgeKey(L.id, e))));
+    (L.triggers || []).forEach(t => (t.ops || []).concat([t.label]).forEach(o => put(o, trigKey(L.id, t))));
+  });
+  function ruleRun(i) {
+    const calls = i.breaks || [];
+    const items = calls.flatMap((cs, k) => [...new Set(cs.flatMap(c => drawnAt[c] || []))].map(x => ({ x, from: k, to: k })));
+    return { kind: "rule", name: i.slug, uses: new Set([i.slug].concat(calls.flat())), length: calls.length, items, calls };
+  }
+  const RUNS = { scenario: slug => scenarioRun(M.scenarios.find(s => s.slug === slug)), rule: slug => ruleRun(rules[slug]) }, runCache = {};
+  const runOf = key => runCache[key] || (runCache[key] = Object.assign(RUNS[key.split(":")[0]](key.slice(key.indexOf(":") + 1)), { key }));
+  const active = (r, k) => r.items.filter(it => it.from <= k && k <= it.to);
+  // where a moment is drawn: the levels of the nodes reached in it, else of anything active in it
+  const momentLevels = (r, k) => { const act = active(r, k), ns = act.filter(it => nodes[it.x] && it.from === k);
+    return [...new Set((ns.length ? ns : act).map(it => levelOf(it.x)))]; };
+  // what is picked by default: the first node reached in the moment, else the first thing active
+  const firstPick = (r, k) => { const act = active(r, k); return ((act.find(it => nodes[it.x] && it.from === k) || act[0]) || {}).x || null; };
+  // side by side at a moment: the steps that reach a node of a workflow or state level in it, and the edges still in flight
+  const branches = (r, k) => new Set(r.items.filter(it => nodes[it.x] ? it.from === k && levels[nodeLevel[it.x]].kind !== "topology" : it.from <= k && k < it.to).map(it => nodes[it.x] ? it.step || it.x : it.x)).size;
+  // what the drawing shows: the pick (selected), the rest of the moment (highlighted), what came before, what is to come
+  function runView() {
+    const r = st.sel && st.sel.run && runOf(st.sel.run); if (!r) return null;
+    const at = st.sel.at, v = { state: {}, steps: {} }, rank = { later: 0, done: 1, now: 2 };
+    r.items.forEach(it => {
+      const s = it.from <= at && at <= it.to ? "now" : it.to < at ? "done" : "later";
+      if (!v.state[it.x] || rank[s] > rank[v.state[it.x]]) v.state[it.x] = s;
+      if (nodes[it.x] && !(v.steps[it.x] || []).includes(it.from)) (v.steps[it.x] = v.steps[it.x] || []).push(it.from);
+    });
+    return v;
+  }
+
+  const st = { level: M.root, sel: null, full: false, sheet: false };   // sel: { node }, { edge, e } or { run, at, pick }
+  root.classList.add("zd");
+  root.innerHTML = `
+  <div class="zd-main">
+    <div class="zd-board">
+      <div class="zd-top"><nav class="zd-crumbs" aria-label="Level path"></nav><button type="button" class="zd-fs" aria-label="Full screen"></button></div>
+      <nav class="zd-nav" aria-label="Levels and scenarios"></nav>
+      <p class="zd-why"></p><p class="zd-legend"></p>
+      <div class="zd-time" hidden><code></code><button type="button" data-d="-1" aria-label="Earlier">‹</button><div class="zd-rail"><div class="zd-ticks" aria-hidden="true"></div><input type="range" min="1" step="1" aria-label="Step"></div><button type="button" data-d="1" aria-label="Later">›</button><output></output><button type="button" class="zd-end" aria-label="Close">✕</button></div>
+      <div class="zd-stage"><div class="zd-canvas"></div><aside class="zd-note" aria-live="polite"></aside></div>
+    </div>
+  </div><div class="zd-scrim" hidden></div>`;
+  const $ = s => root.querySelector(s);
+  const narrow = () => root.clientWidth < 900;
+  const el = (p, tag, a = {}, t) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); if (t != null) e.textContent = t; p.appendChild(e); return e; };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  const GX = 92, GY = 82, NW = 124, NH = 46, PAD = 30;
+  const HAND = '"Poor Story", "IBM Plex Sans KR", "IBM Plex Sans", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif';
+  const FONT_N = "17px " + HAND, FONT_E = "15px " + HAND;
+  const meas = (() => { const c = document.createElement("canvas").getContext("2d"); return (t, f) => { c.font = f; return c.measureText(t).width; }; })();
+  const MARKS = { happy: "main path", failure: "failure path", optional: "optional", unsure: "unconfirmed" };
+  const GLYPH = { happy: '<path d="M1 4H23" class="lg lg-happy"/>', failure: '<path d="M1 4H23" class="lg lg-failure"/>', optional: '<path d="M1 4H23" class="lg lg-optional"/>', unsure: '<text x="12" y="8" text-anchor="middle" class="lg-q">?</text>' };
+  const mk = m => `<span class="zd-mk"><svg viewBox="0 0 24 9" width="24" height="9" aria-hidden="true">${GLYPH[m]}</svg>${MARKS[m]}</span>`;
+  const pname = (L, id) => ((L.partitions || []).find(p => p.id === id) || { label: id }).label;
+  const marks = x => (x.mark || []).filter(m => MARKS[m]);
+  // metadata, each entry as `<name>: <display>` the way ui/formats.md shows it, so a value reads the same as in chat
+  const DIFF = { added: "+", removed: "−", changed: "~" };
+  const ptr = p => /^https?:/.test(p) ? `<a href="${esc(p)}" target="_blank" rel="noopener">${esc(p)}</a>` : `<code>${esc(p)}</code>`;
+  const RESERVED = { note: v => `<em>${esc(v)}</em>`, diff: v => `${DIFF[v] || "?"} ${esc(v)}`,
+    evidence: v => v.map(ptr).join(", "), constraint: v => v.map(p => `<code>${esc(p)}</code>`).join(", ") };
+  const FORMAT = { text: (n, v) => esc(v), number: (n, v) => esc(String(v)), url: (n, v) => `<a href="${esc(v)}" target="_blank" rel="noopener">${esc(n)}</a>`,
+    ms: (n, v) => `${esc(String(v))} ms`, percent: (n, v) => `${esc(String(v))}%`, date: (n, v) => esc(v), bool: (n, v) => v ? "yes" : "no" };
+  const metaRows = m => Object.entries(m || {}).map(([k, v]) => {
+    const i = k.lastIndexOf("-"), name = RESERVED[k] || i < 0 ? k : k.slice(0, i), f = FORMAT[k.slice(i + 1)];
+    return `<li class="mt" data-k="${esc(k)}"><b>${esc(name)}</b>: ${RESERVED[k] ? RESERVED[k](v) : f ? f(name, v) : esc(JSON.stringify(v))}</li>`; });
+  const metaGrp = (m, h = "Metadata") => grp(h, metaRows(m));
+  const tint = (g, x) => { const d = (x.meta || {}).diff; if (DIFF[d]) g.classList.add("d-" + d); };
+  const shown = x => (x.label || "") + (marks(x).includes("unsure") ? " ?" : "");
+  // syncs (Meng and Jackson) read on the events themselves: "push (→ receive)" and "receive (← push)"
+  const syncsOf = (L, e) => (L.syncs || []).filter(y => e.label && (y.when === e.label || y.then === e.label));
+  const syncTag = (L, e) => syncsOf(L, e).map(y => y.when === e.label ? "→ " + y.then : "← " + y.when).join(", ");
+  const tagged = (L, e) => { const t = syncTag(L, e); return shown(e) + (t ? ` (${t})` : "") + (e.qty ? ` ${qtyText(e.qty)}` : ""); };
+  const pairKey = e => [e.from, e.to].sort().join("|");
+  // nodes without x and y are placed by the engine, one at a time beside a placed neighbour (one of its own
+  // partition first), in the free cell where its edges, drawn by route() itself, cross the fewest other nodes
+  function arrange(L, cap) {
+    const todo = L.nodes.filter(n => cap || n.x == null || n.y == null);
+    if (!todo.length) return;
+    const box = (c, r) => ({ x: c * 200, y: r * 130, w: NW, h: NH, c, r, gx: GX });
+    const at = {}, taken = new Set();
+    const put = (n, c, r) => { n.x = c; n.y = r; at[n.id] = box(c, r); taken.add(c + "," + r); };
+    L.nodes.filter(n => !todo.includes(n)).forEach(n => put(n, n.x, n.y));
+    const near = n => L.edges.filter(e => e.from !== e.to && (e.from === n.id || e.to === n.id)).map(e => e.from === n.id ? e.to : e.from);
+    while (todo.length) {
+      const n = todo.find(n => near(n).some(id => at[id])) || todo[0];
+      todo.splice(todo.indexOf(n), 1);
+      const placed = near(n).filter(id => at[id]), mates = L.nodes.filter(o => at[o.id] && o.partition && o.partition === n.partition);
+      const around = ids => ids.flatMap(id => [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([dc, dr]) => [at[id].c + dc, at[id].r + dr]));
+      const ok = ([c, r]) => !taken.has(c + "," + r) && (!cap || Math.max(c, ...Object.values(at).map(b => b.c)) - Math.min(c, ...Object.values(at).map(b => b.c)) < cap);
+      let cells = around(placed.length ? placed : mates.map(o => o.id)).filter(ok);
+      if (!cells.length && cap) cells = around(Object.keys(at)).filter(ok);
+      if (!cells.length) { const cmax = Math.max(-1, ...Object.values(at).map(b => b.c)); cells = [[cmax + 1, 0]]; }
+      // what the drawing check would object to, counted on every edge placed so far: edges through nodes, and
+      // stretches two edges from different sources share
+      const cost = ([c, r]) => {
+        const all = Object.assign({}, at, { [n.id]: box(c, r) });
+        const routes = L.edges.filter(e => e.from !== e.to && all[e.from] && all[e.to]).map(e => [e, route(all, e, 0)]);
+        const through = routes.reduce((k, [e, pts]) => k + Object.entries(all).filter(([id, b]) => id !== e.from && id !== e.to && pts.slice(1).some((p, i) => segHits(pts[i], p, b))).length, 0);
+        const segs = pts => pts.slice(1).map((p, i) => [pts[i], p]);
+        const along = ([a, b], [p, q]) => (a.x === b.x && p.x === q.x && Math.abs(a.x - p.x) < 4 && Math.min(Math.max(a.y, b.y), Math.max(p.y, q.y)) - Math.max(Math.min(a.y, b.y), Math.min(p.y, q.y)) > 12)
+          || (a.y === b.y && p.y === q.y && Math.abs(a.y - p.y) < 4 && Math.min(Math.max(a.x, b.x), Math.max(p.x, q.x)) - Math.max(Math.min(a.x, b.x), Math.min(p.x, q.x)) > 12);
+        const shared = routes.reduce((k, [e, pts], i) => k + routes.slice(i + 1).filter(([f, qs]) => f.from !== e.from && segs(pts).some(s1 => segs(qs).some(s2 => along(s1, s2)))).length, 0);
+        const loops = L.edges.some(e => e.from === e.to && (e.from === n.id || all[e.from] && all[e.from].c === c && Math.abs(all[e.from].r - r) === 1)) && L.nodes.some(o => o !== n && at[o.id] && at[o.id].r === r) ? 1 : 0;
+        const apart = mates.length && !mates.some(o => Math.abs(at[o.id].c - c) + Math.abs(at[o.id].r - r) === 1);
+        // and partitions stay blocks: no node inside the cells another partition spans
+        const placedNow = L.nodes.filter(o => all[o.id]), blocks = (L.partitions || []).reduce((k, P) => {
+          const own = placedNow.filter(o => o.partition === P.id).map(o => all[o.id]); if (!own.length) return k;
+          const [c0, c1, r0, r1] = [Math.min(...own.map(b => b.c)), Math.max(...own.map(b => b.c)), Math.min(...own.map(b => b.r)), Math.max(...own.map(b => b.r))];
+          return k + placedNow.filter(o => o.partition !== P.id && all[o.id].c >= c0 && all[o.id].c <= c1 && all[o.id].r >= r0 && all[o.id].r <= r1).length; }, 0);
+        // then keep it compact, reading left to right and wrapping down after three columns
+        const cs = Object.values(at).map(b => b.c), rs = Object.values(at).map(b => b.r);
+        const grow = (c < Math.min(...cs) || r < Math.min(...rs) ? 4 : 0) + (c > Math.max(...cs) && Math.max(...cs) - Math.min(...cs) >= 2 ? 6 : 0);
+        return (through + shared + blocks) * 100 + loops * 30 + (apart ? 50 : 0) + grow * 3 + r * 2 + c;
+      };
+      const best = cells.reduce((a, b) => cost(b) < cost(a) ? b : a);
+      put(n, best[0], best[1]);
+    }
+    const c0 = Math.min(...L.nodes.map(n => n.x)), r0 = Math.min(...L.nodes.map(n => n.y));
+    L.nodes.forEach(n => { n.x -= c0; n.y -= r0; });
+  }
+  // on a phone the root is laid out again on a copy, in two columns or one, its long labels on two lines, so it
+  // fits the card with its text at 9 px; the wide drawing keeps the author's grid
+  const phone = L => !L.parent && narrow(), chosen = {};
+  // a phone's root draws counts at 15 px, so they do not set its scale; an edge's in the label's narrower face
+  const FONT_Q = '15px "IBM Plex Mono", monospace';
+  const wide = ws => ws.reduce((k, [s, c]) => k + meas(s, c === "n" ? FONT_N : FONT_E), 0);
+  function wrap(L, parts, max) {   // parts [[text, class]] → one line, or two broken at the space that leaves the wider narrowest
+    const ws = parts.filter(p => p[0]).flatMap(([t, c]) => t.split(/(?<= )/).map(s => [s, c]));
+    const two = i => Math.max(wide(ws.slice(0, i)), wide(ws.slice(i)));
+    if (!phone(L) || wide(ws) <= max || ws.length < 2) return [ws];
+    const i = ws.slice(1).reduce((b, _, j) => two(j + 1) < two(b) ? j + 1 : b, 1);
+    return [ws.slice(0, i), ws.slice(i)];
+  }
+  const nodeLines = (L, n) => wrap(L, [[shown(n), "n"]], LIMITS.nodeLine);
+  const edgeLines = (L, e) => {   // a count that does not fit beside the label takes a line of its own
+    const ls = wrap(L, [[shown(e), ""], [syncTag(L, e) && ` (${syncTag(L, e)})`, "e-sync"]], LIMITS.edgeLine), q = e.qty && [" " + qtyText(e.qty), "e-qty"];
+    if (!q) return ls;
+    const last = ls[ls.length - 1].concat([q]);
+    return phone(L) && wide(last) > LIMITS.edgeLine ? ls.concat([[[qtyText(e.qty), "e-qty"]]]) : ls.slice(0, -1).concat([last]);
+  };
+  const lineW = ls => Math.max(...ls.map(wide));
+  const ink = (t, ls, x, lh) => ls.forEach((l, i) => { const s = el(t, "tspan", { x, dy: i ? lh : 0 }); l.forEach(([w, c]) => c === "e-sync" || c === "e-qty" ? el(s, "tspan", { class: c }, w) : s.append(w)); });
+  function geom(L, P) {
+    if (P) L = P;
+    arrange(L);
+    const h = NH + (L.nodes.some(n => nodeLines(L, n).length > 1) ? 20 : 0);
+    const at = Object.fromEntries(L.nodes.map(n => [n.id, n]));
+    const nw = Math.max(NW, ...L.nodes.map(n => Math.ceil(lineW(nodeLines(L, n)) + (childOf[n.id] ? 50 : 34))));
+    const cols = Math.max(...L.nodes.map(n => n.x)) + 1, rows = Math.max(...L.nodes.map(n => n.y)) + 1;
+    const loop = L.edges.some(e => e.from === e.to) ? 46 : 0;
+    const over = L.edges.some(e => e.from !== e.to && at[e.from].y === at[e.to].y && Math.abs(at[e.from].x - at[e.to].x) > 1) ? 44 : 0;
+    // a state level has one initial state, or one per region when its partitions are orthogonal regions
+    const inis = L.kind === "state" ? [].concat(L.initial || []).map(id => at[id]).filter(Boolean) : [];
+    const iniTopOf = n => L.nodes.some(o => o.y === n.y && o.x === n.x - 1), iniTop = inis.some(iniTopOf);
+    const parent = L.parent && levels[nodeLevel[L.parent]];
+    const flows = parent && parent.kind === "workflow" && L.kind === "workflow" ? (L.in || []).map(f => ({ f, kind: "in", at: f.to })).concat((L.out || []).flatMap(f => [].concat(f.from).map(at => ({ f, kind: "out", at })))) : [];
+    const used = {}, maxC = Math.max(...L.nodes.map(n => n.x)), maxR = Math.max(...L.nodes.map(n => n.y));
+    const long = (n, side) => L.edges.some(e => (e.from === n.id || e.to === n.id) && e.from !== e.to && (() => { const a = at[e.from], b = at[e.to];
+      if (a.y === b.y && Math.abs(a.x - b.x) > 1) return side === "top";
+      if (a.x === b.x && Math.abs(a.y - b.y) > 1) return side === (e.via === "left" ? "left" : "right");
+      if (a.x !== b.x && a.y !== b.y) {   // a diagonal edge leaves its source vertically and enters its target from the side
+        const dc = b.x - a.x, dr = b.y - a.y;
+        return e.from === n.id ? side === (dr > 0 ? "bottom" : "top") : side === (dc > 0 ? "left" : "right");
+      }
+      return false; })());
+    const free = (n, side) => !(used[n.id] || []).includes(side) && !long(n, side) && !(inis.includes(n) && side === (iniTopOf(n) ? "top" : "left"))
+      && !L.nodes.some(o => side === "top" ? o.x === n.x && o.y === n.y - 1 : side === "bottom" ? o.x === n.x && o.y === n.y + 1 : side === "left" ? o.y === n.y && o.x === n.x - 1 : o.y === n.y && o.x === n.x + 1);
+    const stub = (kind, t, at, text) => {
+      const n = at_(at), prefer = kind === "out" ? ["right", "bottom", "top", "left"] : ["top", "left", "bottom", "right"];
+      const side = prefer.find(sd => free(n, sd)) || prefer[0]; (used[n.id] = used[n.id] || []).push(side);
+      const flat = side === "left" || side === "right";
+      const ls = wrap(L, [[text, ""]], LIMITS.edgeLine);
+      return { kind, t, n, side, text, ls, len: flat ? Math.max(46, Math.ceil(lineW(ls) + 30)) : 36 };
+    };
+    const at_ = id => at[id];
+    const trig = (L.triggers || []).map(t => stub("trig", t, t.to, shown(t))).concat(flows.map(q => stub(q.kind, q.f, q.at, q.f.edge)));
+    const tTop = trig.some(q => q.side === "top" && q.n.y === 0) ? 54 : 0, tBot = trig.some(q => q.side === "bottom" && q.n.y === maxR) ? 54 : 0;
+    const tLeft = Math.max(0, ...trig.filter(q => q.side === "left" && q.n.x === 0).map(q => q.len + 18)), tRight = Math.max(0, ...trig.filter(q => q.side === "right" && q.n.x === maxC).map(q => q.len + 18));
+    const far = e => e.from !== e.to && at[e.from].x === at[e.to].x && Math.abs(at[e.from].y - at[e.to].y) > 1;
+    const side = L.edges.some(e => far(e) && e.via !== "left") ? 36 : 0, viaLeft = L.edges.some(e => far(e) && e.via === "left" && at[e.from].x === 0) ? 40 : 0;
+    const top = PAD + 6 + Math.max(loop, over, iniTop ? 32 : 0, tTop), left = PAD + Math.max(inis.some(n => !iniTopOf(n)) ? 26 : 0, tLeft, viaLeft);
+    const hl = L.edges.filter(e => e.from !== e.to && at[e.from].y === at[e.to].y).map(e => phone(L) ? lineW(edgeLines(L, e)) : meas(tagged(L, e), FONT_E));
+    const gx = Math.max(GX, Math.ceil(Math.max(0, ...hl) + 34));
+    const W = left + cols * nw + (cols - 1) * gx + PAD + Math.max(side, tRight), H = top + rows * h + (rows - 1) * GY + PAD + tBot;
+    const box = {}; L.nodes.forEach(n => box[n.id] = { x: left + n.x * (nw + gx), y: top + n.y * (h + GY), w: nw, h, c: n.x, r: n.y, gx });
+    return { W, H, box, inis: inis.map(n => ({ id: n.id, top: iniTopOf(n) })), trig };
+  }
+  const segHits = (p, q, b) => {
+    const x0 = Math.min(p.x, q.x), x1 = Math.max(p.x, q.x), y0 = Math.min(p.y, q.y), y1 = Math.max(p.y, q.y);
+    return x1 > b.x - 6 && x0 < b.x + b.w + 6 && y1 > b.y - 6 && y0 < b.y + b.h + 6;
+  };
+  function route(box, e, lane) {
+    const A = box[e.from], B = box[e.to], off = lane * 10;
+    const ca = { x: A.x + A.w / 2, y: A.y + A.h / 2 }, cb = { x: B.x + B.w / 2, y: B.y + B.h / 2 };
+    const dc = B.c - A.c, dr = B.r - A.r;
+    if (e.from === e.to) { const x1 = A.x + 30, x2 = A.x + A.w - 30, y = A.y - 30; return [{ x: x1, y: A.y }, { x: x1, y }, { x: x2, y }, { x: x2, y: A.y }]; }
+    if (dr === 0 && Math.abs(dc) === 1) { const s = Math.sign(dc); return [{ x: s > 0 ? A.x + A.w : A.x, y: ca.y + off }, { x: s > 0 ? B.x : B.x + B.w, y: cb.y + off }]; }
+    if (dc === 0 && Math.abs(dr) === 1) { const s = Math.sign(dr); return [{ x: ca.x + off, y: s > 0 ? A.y + A.h : A.y }, { x: cb.x + off, y: s > 0 ? B.y : B.y + B.h }]; }
+    if (dr === 0) { const y = Math.min(A.y, B.y) - 32 + off; return [{ x: ca.x, y: A.y }, { x: ca.x, y }, { x: cb.x, y }, { x: cb.x, y: B.y }]; }
+    if (dc === 0 && e.via === "left") { const x = A.x - 32 + off; return [{ x: A.x, y: ca.y }, { x, y: ca.y }, { x, y: cb.y }, { x: B.x, y: cb.y }]; }
+    if (dc === 0) { const x = A.x + A.w + 32 + off; return [{ x: A.x + A.w, y: ca.y }, { x, y: ca.y }, { x, y: cb.y }, { x: B.x + B.w, y: cb.y }]; }
+    const vh = [{ x: ca.x, y: dr > 0 ? A.y + A.h : A.y }, { x: ca.x, y: cb.y }, { x: dc > 0 ? B.x : B.x + B.w, y: cb.y }];
+    const hv = [{ x: dc > 0 ? A.x + A.w : A.x, y: ca.y }, { x: cb.x, y: ca.y }, { x: cb.x, y: dr > 0 ? B.y : B.y + B.h }];
+    const others = Object.values(box).filter(b => b !== A && b !== B);
+    const clear = pts => !others.some(b => pts.slice(1).some((p, i) => segHits(pts[i], p, b)));
+    for (const r of (lane > 0 ? [hv, vh] : [vh, hv])) if (clear(r)) return r;
+    const gx = (dc > 0 ? A.x + A.w : A.x) + Math.sign(dc) * A.gx / 2 + off;
+    return [{ x: dc > 0 ? A.x + A.w : A.x, y: ca.y }, { x: gx, y: ca.y }, { x: gx, y: cb.y }, { x: dc > 0 ? B.x : B.x + B.w, y: cb.y }];
+  }
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+  const hash = s => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) || 1; };
+  const rng = seed => { let x = seed; return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return ((x >>> 0) % 100000) / 100000; }; };
+  function smooth(pts) { // Catmull-Rom through the points
+    let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+      const c1 = { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 }, c2 = { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 };
+      d += ` C${c1.x.toFixed(1)},${c1.y.toFixed(1)} ${c2.x.toFixed(1)},${c2.y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+    }
+    return d;
+  }
+  function wobble(pts, seed, amp) { // displace along the normal with a slow, seeded wave
+    const R = rng(seed), f1 = 1.5 + R() * 1.5, f2 = 4 + R() * 3, a = R() * 6.28, b = R() * 6.28, n = pts.length;
+    return pts.map((p, i) => {
+      const q = pts[Math.min(n - 1, i + 1)], o = pts[Math.max(0, i - 1)], dx = q.x - o.x, dy = q.y - o.y, l = Math.hypot(dx, dy) || 1;
+      const t = i / Math.max(1, n - 1), w = amp * (0.7 * Math.sin(f1 * 6.28 * t + a) + 0.3 * Math.sin(f2 * 6.28 * t + b));
+      const taper = Math.min(1, i / 3, (n - 1 - i) / 3);
+      return { x: p.x - dy / l * w * taper, y: p.y + dx / l * w * taper };
+    });
+  }
+  function sample(pts, r, step) { // polyline with rounded corners, sampled evenly
+    const out = [pts[0]];
+    const push = p => { const z = out[out.length - 1], l = dist(z, p), k = Math.max(1, Math.round(l / step)); for (let j = 1; j <= k; j++) out.push({ x: z.x + (p.x - z.x) * j / k, y: z.y + (p.y - z.y) * j / k }); };
+    for (let i = 1; i < pts.length - 1; i++) {
+      const p = pts[i - 1], c = pts[i], n = pts[i + 1], r1 = Math.min(r, dist(p, c) / 2, dist(c, n) / 2);
+      const a = { x: c.x + (p.x - c.x) / dist(p, c) * r1, y: c.y + (p.y - c.y) / dist(p, c) * r1 };
+      const b = { x: c.x + (n.x - c.x) / dist(c, n) * r1, y: c.y + (n.y - c.y) / dist(c, n) * r1 };
+      push(a);
+      for (let j = 1; j <= 5; j++) { const t = j / 5; out.push({ x: (1 - t) * (1 - t) * a.x + 2 * (1 - t) * t * c.x + t * t * b.x, y: (1 - t) * (1 - t) * a.y + 2 * (1 - t) * t * c.y + t * t * b.y }); }
+    }
+    push(pts[pts.length - 1]);
+    return out;
+  }
+  function inkRect(x, y, w, h, r, seed) { // one hand stroke round a rounded box, overshooting where it starts
+    r = Math.min(r, h / 2, w / 2);
+    const R = rng(seed), per = 2 * (w + h) - 8 * r + 2 * Math.PI * r, segs = [w - 2 * r, Math.PI * r / 2, h - 2 * r, Math.PI * r / 2, w - 2 * r, Math.PI * r / 2, h - 2 * r, Math.PI * r / 2];
+    const at = t => {
+      t = ((t % per) + per) % per; let i = 0; while (t > segs[i] && i < 7) { t -= segs[i]; i++; }
+      const k = segs[i] ? t / segs[i] : 0, a = k * Math.PI / 2;
+      switch (i) {
+        case 0: return { x: x + r + t, y };
+        case 1: return { x: x + w - r + r * Math.sin(a), y: y + r - r * Math.cos(a) };
+        case 2: return { x: x + w, y: y + r + t };
+        case 3: return { x: x + w - r + r * Math.cos(a), y: y + h - r + r * Math.sin(a) };
+        case 4: return { x: x + w - r - t, y: y + h };
+        case 5: return { x: x + r - r * Math.sin(a), y: y + h - r + r * Math.cos(a) };
+        case 6: return { x, y: y + h - r - t };
+        default: return { x: x + r - r * Math.cos(a), y: y + r - r * Math.sin(a) };
+      }
+    };
+    const s0 = R() * per, total = per * (1.05 + R() * 0.04), N = Math.max(36, Math.round(per / 7)), pts = [];
+    for (let i = 0; i <= N; i++) pts.push(at(s0 + total * i / N));
+    const f1 = 2 + R() * 2, a1 = R() * 6.28, cx = x + w / 2, cy = y + h / 2;
+    return smooth(pts.map((p, i) => { const d = 1.1 * Math.sin(f1 * 6.28 * i / N + a1) + (i / N) * 1.4, l = Math.hypot(p.x - cx, p.y - cy) || 1; return { x: p.x + (p.x - cx) / l * d, y: p.y + (p.y - cy) / l * d }; }));
+  }
+  function inkHead(g, p, q, seed) { // two quick strokes for an arrowhead
+    const R = rng(seed), ang = Math.atan2(p.y - q.y, p.x - q.x), L = 9 + R() * 2, s = 0.42 + R() * 0.08;
+    [-1, 1].forEach(k => el(g, "path", { d: `M${(p.x - L * Math.cos(ang + k * s)).toFixed(1)},${(p.y - L * Math.sin(ang + k * s)).toFixed(1)} Q${(p.x - L * 0.45 * Math.cos(ang + k * s * 0.8)).toFixed(1)},${(p.y - L * 0.45 * Math.sin(ang + k * s * 0.8)).toFixed(1)} ${p.x.toFixed(1)},${p.y.toFixed(1)}`, class: "e-head" }));
+  }
+  // a label sits beside one segment of its line: by default the middle of the longest, on its lane's side;
+  // at = { seg, side, f } names another place, side +1 below or right of the segment, f how far along it
+  function label(g, pts, text, lane, loop, tag, qty, ls, at) {
+    let best = 0, bl = -1;
+    for (let i = 1; i < pts.length; i++) { const l = dist(pts[i - 1], pts[i]); if (l > bl) { bl = l; best = i; } }
+    if (loop) best = 2;
+    if (at) best = at.seg;
+    const p = pts[best - 1], q = pts[best], f = at ? at.f : 0.5, m = { x: p.x + (q.x - p.x) * f, y: p.y + (q.y - p.y) * f }, horiz = Math.abs(p.y - q.y) < 0.5;
+    const side = at ? at.side : horiz ? (lane > 0 ? 1 : -1) : (lane < 0 ? -1 : 1);
+    g._lab = [pts, text, lane, loop, tag, qty, ls];
+    const t = el(g, "text", horiz
+      ? { x: m.x, y: side > 0 ? m.y + 18 : m.y - 9, "text-anchor": "middle", class: "e-lab" }
+      : { x: side < 0 ? m.x - 9 : m.x + 9, y: m.y + 5, "text-anchor": side < 0 ? "end" : "start", class: "e-lab" }, ls && ls.length > 1 ? null : text);
+    if (ls && ls.length > 1) { t.setAttribute("y", +t.getAttribute("y") - (!horiz ? 8.5 : side > 0 ? 0 : 17) * (ls.length - 1)); ink(t, ls, t.getAttribute("x"), 17); }
+    else {
+      if (tag) el(t, "tspan", { class: "e-sync" }, ` (${tag})`);
+      if (qty) el(t, "tspan", { class: "e-qty" }, ` ${qtyText(qty)}`);
+    }
+    const bb = t.getBBox(), plate = document.createElementNS(NS, "rect");
+    Object.entries({ x: bb.x - 3, y: bb.y, width: bb.width + 6, height: bb.height, rx: 3, class: "e-plate" }).forEach(([k, v]) => plate.setAttribute(k, v));
+    g.insertBefore(plate, t);
+  }
+  // a label closer than 5 px to another line reads as that line's: try its other places and keep the one that
+  // stays farthest from other lines, nodes and labels (render's drawing check holds the same 5 px)
+  function spaceLabels(world, box) {
+    const R = e => ({ x: +e.getAttribute("x"), y: +e.getAttribute("y"), w: +e.getAttribute("width"), h: +e.getAttribute("height") });
+    const gap = (p, b) => Math.hypot(Math.max(b.x - p.x, 0, p.x - b.x - b.w), Math.max(b.y - p.y, 0, p.y - b.y - b.h));
+    const apart = (a, b) => Math.hypot(Math.max(b.x - a.x - a.w, 0, a.x - b.x - b.w), Math.max(b.y - a.y - a.h, 0, a.y - b.y - b.h));
+    const es = [...world.querySelectorAll(".edge")].map(g => {
+      const raw = g._raw, pts = [];   // the line every 1 px, so no gap hides between samples
+      for (let i = 1; i < raw.length; i++) { const k = Math.max(1, Math.ceil(dist(raw[i - 1], raw[i]))); for (let j = 0; j < k; j++) pts.push({ x: raw[i - 1].x + (raw[i].x - raw[i - 1].x) * j / k, y: raw[i - 1].y + (raw[i].y - raw[i - 1].y) * j / k }); }
+      return { g, pts };
+    });
+    const nodes = Object.values(box);
+    const room = (e, b) => Math.min(...es.filter(f => f !== e).map(f => Math.min(...f.pts.map(p => gap(p, b))) - 5),
+      ...nodes.map(n => apart(b, n) - 1.5), ...es.filter(f => f !== e && f.g.querySelector(".e-plate")).map(f => apart(b, R(f.g.querySelector(".e-plate"))) - 1.5), 99);
+    es.forEach(e => {
+      const g = e.g, pl = g.querySelector(".e-plate");
+      if (!pl || room(e, R(pl)) >= 0) return;
+      const [pts, ...rest] = g._lab, put = at => { g.querySelector(".e-lab").remove(); g.querySelector(".e-plate").remove(); label(g, pts, ...rest, at); return room(e, R(g.querySelector(".e-plate"))); };
+      const ats = [];
+      for (let seg = 1; seg < pts.length; seg++) for (const side of [-1, 1]) for (const f of [0.5, 0.25, 0.75]) ats.push({ seg, side, f });
+      let best = null, top = room(e, R(pl));
+      ats.forEach(at => { const s = put(at); if (s > top + 0.01) { top = s; best = at; } });
+      if (best) put(best); else { put(null); }
+    });
+  }
+
+  let G0 = null;
+  // each layout a phone's root may take: the author's grid, then two columns, then one, each started from every
+  // node in turn and then walked a hundred steps; the first that fits the card and that render's drawing check
+  // would pass is kept for this card's width. When none does, the root keeps the author's grid and scrolls sideways
+  function draw(fromBox) {
+    const L = levels[st.level], key = L.id + "@" + $(".zd-canvas").clientWidth + document.fonts.status;
+    if (phone(L) && !chosen[key]) {
+      const copy = (ns, f = () => ({}), es = L.edges) => Object.assign({}, L, { nodes: ns.map(n => Object.assign({}, n, f(n))), edges: es.map(e => Object.assign({}, e)) });
+      const tight = P => { const ys = [...new Set(P.nodes.map(n => n.y))].sort((a, b) => a - b); P.nodes.forEach(n => n.y = ys.indexOf(n.y)); return P; };
+      const try_ = P => ({ P, s: paint(null, P) });
+      const author = (P => (arrange(P), try_(P)))(copy(L.nodes));   // the author's grid first
+      let best = author;
+      for (const cap of [2, 1]) {
+        if (!best.s) break;
+        let b = null;   // the engine's own placement, begun at each node in turn
+        for (let i = 0; i < L.nodes.length && !(b && !b.s); i++) { const P = copy(L.nodes.slice(i).concat(L.nodes.slice(0, i))); arrange(P, cap); const t = try_(P); if (blocks(P) && (!b || t.s < b.s)) b = t; }
+        if ((!b || b.s) && L.partitions) {   // or each partition a band of rows, in the author's reading order
+          const order = L.nodes.slice().sort((a, b) => a.y - b.y || a.x - b.x), parts = [...new Set(order.map(n => n.partition))];
+          let row = 0; const at = {};
+          parts.forEach(p => { order.filter(n => n.partition === p).forEach((n, j) => at[n.id] = { x: j % cap, y: row + Math.floor(j / cap) }); row = Math.max(...Object.values(at).map(a => a.y)) + 1; });
+          const t = try_(copy(L.nodes, n => at[n.id])); if (!b || t.s < b.s) b = t;
+        }
+        // then walk: move a node to another cell, or swap two, keeping each step that does not raise the count
+        const R = rng(hash(L.id + cap));
+        for (let k = 0, cur = b; k < 100 && b.s; k++) {
+          let t;
+          if (R() < 0.25) { const P = copy(cur.P.nodes, undefined, cur.P.edges), e = P.edges[Math.floor(R() * P.edges.length)]; e.via = e.via === "left" ? undefined : "left"; t = try_(P); }
+          else {
+            const n = cur.P.nodes[Math.floor(R() * L.nodes.length)], c = Math.floor(R() * cap), r = Math.floor(R() * (Math.max(...cur.P.nodes.map(m => m.y)) + 2));
+            const o = cur.P.nodes.find(m => m.x === c && m.y === r), P = o === n ? null : tight(copy(cur.P.nodes, m => m === n ? { x: c, y: r } : m === o ? { x: n.x, y: n.y } : {}, cur.P.edges));
+            if (!P || !blocks(P)) continue;
+            t = try_(P);
+          }
+          if (t.s <= cur.s) cur = t;
+          if (t.s < b.s) b = t;
+        }
+        if (b.s < best.s) best = b;
+      }
+      chosen[key] = (best.s ? author : best).P;
+    }
+    paint(fromBox, phone(L) && chosen[key]);
+  }
+  // each partition's cells hold none of another's: the drawing check's one-block rule, read on the grid
+  const blocks = P => (P.partitions || []).every(Q => { const own = P.nodes.filter(n => n.partition === Q.id), xs = own.map(n => n.x), ys = own.map(n => n.y);
+    return !P.nodes.some(n => n.partition !== Q.id && n.x >= Math.min(...xs) && n.x <= Math.max(...xs) && n.y >= Math.min(...ys) && n.y <= Math.max(...ys)); });
+  // what render's drawing check (drawing.py) would object to on this drawing, counted
+  function clashes(world) {
+    const R = e => ({ x: +e.getAttribute("x"), y: +e.getAttribute("y"), w: +e.getAttribute("width"), h: +e.getAttribute("height") });
+    const hit = (a, b, m) => a.x < b.x + b.w + m && b.x < a.x + a.w + m && a.y < b.y + b.h + m && b.y < a.y + a.h + m;
+    const inside = (p, b, m) => p.x > b.x + m && p.x < b.x + b.w - m && p.y > b.y + m && p.y < b.y + b.h - m;
+    const ns = [...world.querySelectorAll(".node")].map(g => ({ id: g.dataset.id, p: g.dataset.p, b: R(g.querySelector(".n-fill")) }));
+    const es = [...world.querySelectorAll(".edge")].map(g => {
+      const [from, to] = g.dataset.key.split(":")[1].split(">"), raw = g._raw, pts = [], pl = g.querySelector(".e-plate");
+      for (let i = 1, a = 0, s = 8, n = raw.reduce((t, q, j) => t + (j ? dist(raw[j - 1], q) : 0), 0); i < raw.length && s < n - 8; i++) {   // every 4 along the line
+        const l = dist(raw[i - 1], raw[i]);
+        for (; s <= a + l && s < n - 8; s += 4) pts.push({ x: raw[i - 1].x + (raw[i].x - raw[i - 1].x) * (s - a) / l, y: raw[i - 1].y + (raw[i].y - raw[i - 1].y) * (s - a) / l });
+        a += l;
+      }
+      const cell = new Map(); pts.forEach(p => { const c = Math.round(p.x / 3) + "," + Math.round(p.y / 3); cell.set(c, (cell.get(c) || []).concat([p])); });
+      const near = p => { for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) if ((cell.get((Math.round(p.x / 3) + dx) + "," + (Math.round(p.y / 3) + dy)) || []).some(q => dist(p, q) < 3)) return true; return false; };
+      return { from, to, pts, near, plate: pl && R(pl) };
+    });
+    let k = 0;
+    world.querySelectorAll(".part").forEach(g => { const bb = g.querySelector(".p-ink").getBBox(), p = { x: bb.x, y: bb.y, w: bb.width, h: bb.height }; k += ns.filter(n => n.p !== g.dataset.p && hit(p, n.b, -4)).length; });
+    es.forEach((e, i) => {
+      k += ns.filter(n => e.plate && hit(e.plate, n.b, 1) || n.id !== e.from && n.id !== e.to && e.pts.some(p => inside(p, n.b, 3))).length;
+      es.forEach((f, j) => {
+        if (j > i && f.from !== e.from) { let run = 0, worst = 0; for (const p of e.pts) { run = f.near(p) && !ns.some(n => hit({ x: p.x, y: p.y, w: 0, h: 0 }, n.b, 12)) ? run + 1 : 0; worst = Math.max(worst, run); } k += worst >= 5; }
+        if (j !== i && e.plate) k += (j > i && f.plate && hit(e.plate, f.plate, 1)) + f.pts.some(p => hit({ x: p.x, y: p.y, w: 0, h: 0 }, e.plate, 5));
+      });
+    });
+    return k;
+  }
+  function paint(fromBox, P) {
+    const L = P || levels[st.level], K = KIND[L.kind], g0 = G0 = geom(L);
+    const host = $(".zd-canvas"); host.innerHTML = "";
+    const svg = el(host, "svg", { viewBox: `0 0 ${g0.W} ${g0.H}`, role: "img", "aria-label": `${L.title}, ${L.nodes.length} nodes` });
+    if (P) svg.classList.add("phone");
+    const world = el(svg, "g", { class: "world" });
+    const edgeFade = () => { const r = host.scrollWidth - host.clientWidth; host.classList.toggle("more-r", host.scrollLeft < r - 2); host.classList.toggle("more-l", host.scrollLeft > 2); };
+    host.onscroll = edgeFade; requestAnimationFrame(edgeFade);
+    const rv = runView();
+    const cls = (g, x) => { if (!rv) return; const s = rv.state[x]; g.classList.add(!s ? "dim" : s === "now" ? (x === st.sel.pick ? "lit" : "hl") : s); };
+    const groups = {}; L.edges.forEach(e => (groups[pairKey(e)] = groups[pairKey(e)] || []).push(e));
+    const part = {}, pbox = {};
+    (L.partitions || []).forEach((P, i) => {
+      const bs = L.nodes.filter(n => n.partition === P.id).map(n => g0.box[n.id]); if (!bs.length) return;
+      const x0 = Math.min(...bs.map(b => b.x)) - 16, y0 = Math.min(...bs.map(b => b.y)) - 28, x1 = Math.max(...bs.map(b => b.x + b.w)) + 16, y1 = Math.max(...bs.map(b => b.y + b.h)) + 12;
+      pbox[P.id] = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+      const g = el(world, "g", { class: "part", "data-p": P.id });
+      el(g, "path", { d: inkRect(x0, y0, x1 - x0, y1 - y0, 14, hash(L.id + P.id)), class: "p-ink" });
+      el(g, "text", { x: x0 + 12, y: y0 + 18, class: "p-lab" }, P.label);
+    });
+    L.nodes.forEach(n => { if (n.partition) part[n.id] = n.partition; });
+    L.edges.forEach(e => {
+      const k = edgeKey(L.id, e), grp = groups[pairKey(e)], lane = grp.length > 1 ? (grp.indexOf(e) ? 1 : -1) : 0, seed = hash(k);
+      const g = el(world, "g", { class: "edge", tabindex: 0, role: "button", "data-key": k, "aria-label": `${nodes[e.from].label} to ${nodes[e.to].label}${e.label ? ", " + e.label : ""}` });
+      marks(e).forEach(m => g.classList.add("m-" + m)); tint(g, e);
+      if (st.sel && st.sel.edge === k) g.classList.add("lit");
+      cls(g, k);
+      const pts = route(g0.box, e, lane), raw = sample(pts, 10, 5), d = smooth(wobble(raw, seed, 0.9));
+      el(g, "path", { d: smooth(raw), class: "e-hit" }); g._raw = raw;
+      el(g, "path", { d, class: "e-line" });
+      inkHead(g, pts[pts.length - 1], raw[raw.length - 3], seed + 7);
+      if (e.label) label(g, pts, shown(e), lane, e.from === e.to, syncTag(L, e), e.qty, edgeLines(L, e));
+      const pa = part[e.from], pb = part[e.to], B = pa && pb && pa !== pb && pbox[pa];
+      if (B) { const q = raw.find(t => t.x < B.x || t.x > B.x + B.w || t.y < B.y || t.y > B.y + B.h); if (q) el(g, "rect", { x: q.x - 4, y: q.y - 4, width: 8, height: 8, class: "x-port" }); }
+      const pick = () => act(k, () => select({ edge: k, e }));
+      g.addEventListener("click", pick);
+      g.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); pick(); } });
+    });
+    g0.inis.forEach(({ id, top }) => {
+      const B = g0.box[id], seed = hash(L.id + "init" + id);
+      const [p, q] = top ? [{ x: B.x + B.w / 2, y: B.y - 22 }, { x: B.x + B.w / 2, y: B.y }] : [{ x: B.x - 24, y: B.y + B.h / 2 }, { x: B.x, y: B.y + B.h / 2 }];
+      el(world, "circle", { cx: p.x, cy: p.y, r: 4.5, class: "init" });
+      el(world, "path", { d: smooth(wobble(sample([p, q], 0, 4), seed, 0.6)), class: "e-line" });
+      inkHead(world, q, p, seed);
+    });
+    // stubs: a trigger from outside (open circle, clock hands when it repeats), or the parent's artifact
+    // entering or leaving this process at a square port; a port leads back up to that artifact
+    g0.trig.forEach(({ kind, t, n, side, len, text, ls }) => {
+      const B = g0.box[n.id], out = kind === "out";
+      const k = kind === "trig" ? trigKey(L.id, t) : L.id + (out ? ":" + n.id + ">^" : ":^>" + n.id) + "#" + t.edge, seed = hash(k);
+      const g = el(world, "g", { class: "edge " + (kind === "trig" ? "trig" : "port"), tabindex: 0, role: "button", "data-key": k,
+        "aria-label": kind === "trig" ? `${t.every ? "every " + t.every : "from outside"} to ${n.label}, ${t.label}` : `${text}, ${out ? "leaves" : "enters"} ${levels[L.id].title}` });
+      const twin = kind === "trig" ? t : levels[nodeLevel[L.parent]].edges.find(e => e.label === t.edge) || {};   // a port wears its artifact's marks
+      marks(twin).forEach(m => g.classList.add("m-" + m));
+      if (kind === "trig") { if (st.sel && st.sel.edge === k) g.classList.add("lit"); cls(g, k); }
+      const edgePt = { top: { x: B.x + B.w / 2, y: B.y }, bottom: { x: B.x + B.w / 2, y: B.y + B.h }, left: { x: B.x, y: B.y + B.h / 2 }, right: { x: B.x + B.w, y: B.y + B.h / 2 } }[side];
+      const dir = { top: [0, -1], bottom: [0, 1], left: [-1, 0], right: [1, 0] }[side], far = { x: edgePt.x + dir[0] * len, y: edgePt.y + dir[1] * len };
+      const [p, q] = out ? [edgePt, far] : [far, edgePt], raw = sample([p, q], 0, 4), c = { x: far.x + dir[0] * 8, y: far.y + dir[1] * 8 };
+      el(g, "path", { d: smooth(raw), class: "e-hit" }); g._raw = raw;
+      el(g, "path", { d: smooth(wobble(raw, seed, 0.6)), class: "e-line" });
+      inkHead(g, q, raw[raw.length - 3], seed + 7);
+      if (kind === "trig") {
+        el(g, "circle", { cx: c.x, cy: c.y, r: 8, class: "t-src" });
+        if (t.every) el(g, "path", { d: `M${c.x},${c.y - 5} L${c.x},${c.y} L${c.x + 4},${c.y + 2}`, class: "t-hand" });
+      } else el(g, "rect", { x: c.x - 6, y: c.y - 6, width: 12, height: 12, class: "x-port" });
+      label(g, [p, q], text, 0, false, null, null, ls);
+      const pick = kind === "trig" ? () => act(k, () => select({ edge: k, e: t })) : () => {
+        const pl = nodeLevel[L.parent], pe = levels[pl].edges.find(e => e.label === t.edge && (out ? e.from === L.parent : e.to === L.parent));
+        const ptr = (levels[pl].triggers || []).find(x => x.label === t.edge && x.to === L.parent);
+        goto(pl, { up: true }, pe ? { edge: edgeKey(pl, pe), e: pe } : ptr ? { edge: trigKey(pl, ptr), e: ptr } : null);
+      };
+      g.addEventListener("click", pick);
+      g.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); pick(); } });
+    });
+    L.nodes.forEach(n => {
+      const b = g0.box[n.id], open = childOf[n.id], rx = Math.min(K.r, b.h / 2), seed = hash(L.id + n.id);
+      const g = el(world, "g", { class: "node" + (open ? " opens" : "") + (n.abstract ? " abstract" : ""), tabindex: 0, role: "button", "data-id": n.id, "data-p": n.partition || "", "aria-label": n.label + (open ? ", opens a level" : "") });
+      marks(n).forEach(m => g.classList.add("m-" + m)); tint(g, n);
+      if (st.sel && st.sel.node === n.id) g.classList.add("lit");
+      cls(g, n.id);
+      el(g, "rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx, class: "n-fill" });
+      el(g, "path", { d: inkRect(b.x, b.y, b.w, b.h, rx, seed), class: "n-ink" });
+      const nl = nodeLines(L, n), tx = b.x + b.w / 2 - (open ? 8 : 0), t = el(g, "text", { x: tx, y: b.y + b.h / 2 + 5.5 - (nl.length - 1) * 9.5, "text-anchor": "middle", class: "n-lab" }, nl.length > 1 ? null : shown(n));
+      if (nl.length > 1) ink(t, nl, tx, 19);
+      if (n.qty) {   // how much it holds, on its bottom left corner
+        const txt = qtyText(n.qty), w = meas(txt, P ? FONT_Q : '13px "IBM Plex Mono", monospace') + 12, bq = el(g, "g", { class: "n-qty" });
+        el(bq, "rect", { x: b.x - 6, y: b.y + b.h - 9, width: w, height: 18, rx: 4 });
+        el(bq, "text", { x: b.x - 6 + w / 2, y: b.y + b.h + 4, "text-anchor": "middle" }, txt);
+      }
+      if (rv && rv.steps[n.id]) {   // the moments this node is reached in, on its top right corner
+        const ks = rv.steps[n.id], txt = ks.map(k => k + 1).join(" · "), w = Math.max(18, meas(txt, '12px "IBM Plex Mono", monospace') + 10);
+        const bg = el(g, "g", { class: "n-step" + (ks[0] <= st.sel.at ? " reached" : "") });
+        el(bg, "rect", { x: b.x + b.w - w + 6, y: b.y - 9, width: w, height: 18, rx: 9 });
+        el(bg, "text", { x: b.x + b.w - w / 2 + 6, y: b.y + 4, "text-anchor": "middle" }, txt);
+      }
+      if (open) {
+        el(g, "path", { d: `M${b.x + b.w - 19},${b.y + b.h / 2 - 5} q4,3 5,5 q-2,3 -5,5`, class: "n-chev" });
+        el(g, "rect", { x: b.x + b.w - 34, y: b.y, width: 34, height: b.h, class: "n-go" });
+      }
+      
+      g.addEventListener("keydown", ev => {
+        if (ev.key === "Enter") { ev.preventDefault(); act(n.id, () => open ? goto(open, b) : select({ node: n.id })); }
+        if (ev.key === " ") { ev.preventDefault(); select({ node: n.id }); }
+      });
+    });
+    spaceLabels(world, g0.box);
+    // the bounds take in every label drawn past the grid, so none is cut at the board's edge; on a phone the board
+    // shrinks until its smallest text is 9 px and scrolls sideways past that, on a wide screen it stops at 0.72
+    const bb = world.getBBox(), x0 = Math.min(0, Math.floor(bb.x - 6)), y0 = Math.min(0, Math.floor(bb.y - 6));
+    const x1 = Math.max(g0.W, Math.ceil(bb.x + bb.width + 6)), y1 = Math.max(g0.H, Math.ceil(bb.y + bb.height + 6)), w = x1 - x0;
+    const fonts = [...world.querySelectorAll("text")].map(t => parseFloat(getComputedStyle(t).fontSize)), k = narrow() ? LIMITS.minPx / Math.min(...fonts) : 0.72;
+    svg.setAttribute("viewBox", `${x0} ${y0} ${w} ${y1 - y0}`);
+    svg.setAttribute("style", `min-width:${Math.ceil(w * k)}px;max-width:${Math.round(w * 1.15)}px`);
+    if (P && !fromBox) return Math.max(0, Math.ceil(w * k) - host.clientWidth) * 100 + clashes(world);
+    if (!still.matches && fromBox) {
+      const t0 = performance.now(), D = 340;
+      const mid = fromBox.up || fromBox.fade, s0 = fromBox.up ? 1.4 : fromBox.fade ? 0.9 : 0.2, cx = mid ? g0.W / 2 : fromBox.x + fromBox.w / 2, cy = mid ? g0.H / 2 : fromBox.y + fromBox.h / 2;
+      const step = now => {
+        const t = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - t, 3), s = s0 + (1 - s0) * e;
+        world.setAttribute("transform", `translate(${(cx * (1 - s)).toFixed(2)},${(cy * (1 - s)).toFixed(2)}) scale(${s.toFixed(4)})`);
+        world.setAttribute("opacity", (0.1 + 0.9 * e).toFixed(3));
+        if (t < 1) requestAnimationFrame(step); else { world.removeAttribute("transform"); world.removeAttribute("opacity"); }
+      };
+      requestAnimationFrame(step);
+    }
+  }
+
+  function nav() {
+    const items = [];
+    const visit = (id, d) => { items.push([id, d]); levels[id].nodes.forEach(n => childOf[n.id] && visit(childOf[n.id], d + 1)); };
+    visit(M.root, 0);
+    const n = $(".zd-nav"), scen = M.scenarios.filter(s => nodeLevel[((s.run || { items: [] }).items.find(it => nodes[it.x]) || {}).x] === st.level);
+    // levels on the left; the Scenarios fill the rest, side by side, swiped through
+    const sect = (cls, title, count, body) => `<section class="${cls}"><h5 class="zd-sect">${title}<span>${count}</span></h5>${body}</section>`;
+    n.innerHTML = `<div class="zd-navgrid">` + sect("zd-nl", "Levels", items.length, `<ul class="zd-levels">${items.map(([id, d]) => `<li><button type="button" data-l="${id}" ${id === st.level ? 'aria-current="true"' : ""} style="--d:${d}">${d ? '<i class="tk" aria-hidden="true">└</i>' : ""}<span>${esc(levels[id].title)}</span></button></li>`).join("")}</ul>`)
+      + (scen.length ? sect("zd-ns", "Scenarios", scen.length, `<ul class="zd-scen">${scen.map(s => `<li><button type="button" data-s="${s.slug}" aria-pressed="${!!st.sel && st.sel.run === "scenario:" + s.slug}"><code>${s.slug}</code><span>${esc(s.text)}</span></button></li>`).join("")}</ul>`) : "") + `</div>`;
+    n.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { sheet(false); if (b.dataset.l !== st.level) goto(b.dataset.l); });
+    n.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { if (!show.replay) return; sheet(false); const key = "scenario:" + b.dataset.s; st.sel && st.sel.run === key ? end() : play(key, 0); });
+  }
+  function bar() {
+    const L = levels[st.level];
+    const ids = []; for (let id = st.level; id; id = levels[id].parent ? nodeLevel[levels[id].parent] : null) ids.unshift(id);
+    $(".zd-crumbs").innerHTML = ids.map((id, i) => i < ids.length - 1
+      ? `<button type="button" class="zd-up" data-up="${id}">${esc(levels[id].title)}</button><span class="zd-sep" aria-hidden="true">›</span>`
+      : `<button type="button" class="zd-lv" aria-expanded="${st.sheet}">${esc(levels[id].title)}<i aria-hidden="true">${st.sheet ? "▴" : "▾"}</i></button>`).join("");
+    root.querySelectorAll("[data-up]").forEach(b => b.onclick = () => goto(b.dataset.up, { up: true }));
+    $(".zd-lv").onclick = () => sheet(!st.sheet);
+    $(".zd-why").textContent = L.why;
+    const used = Object.keys(MARKS).filter(m => L.nodes.concat(L.edges).some(x => marks(x).includes(m)));
+    const ex = (svg, w) => `<span class="zd-mk"><svg viewBox="0 0 24 12" width="24" height="12" aria-hidden="true">${svg}</svg>${w}</span>`;
+    const T_ = L.triggers || [];
+    $(".zd-legend").innerHTML = used.map(mk).join("")
+      + (L.nodes.some(n => n.abstract) ? ex('<rect x="1.5" y="1.5" width="21" height="9" rx="2.5" class="lg lg-abs"/>', "abstract") : "")
+      + (T_.some(t => !t.every) ? ex('<circle cx="6" cy="6" r="4.5" class="lg"/><path d="M11 6H23" class="lg"/>', "from outside") : "")
+      + (T_.some(t => t.every) ? ex('<circle cx="6" cy="6" r="4.5" class="lg"/><path d="M6 3V6L8 7M11 6H23" class="lg"/>', "on a schedule") : "");
+    const fb = $(".zd-fs"); fb.textContent = st.full ? "✕" : "⤢"; fb.setAttribute("aria-label", st.full ? "Close full screen" : "Full screen");
+  }
+
+  const refs = list => (list && list.length) ? `<p class="zd-refs">${list.map(r => { const m = /^\[(.+?)\]\((https?:[^)\s]+)\)$/.exec(r.trim()); const l = /^\[(.+?)\]\(([^)\s]+)\)$/.exec(r.trim()); return m ? `<a href="${esc(m[2])}" target="_blank" rel="noopener">${esc(m[1])}</a>` : l ? `<span class="zd-src" title="${esc(l[2])}">${esc(l[1])}</span>` : esc(r); }).join("")}</p>` : "";
+  // copy for an agent: the element's level path, label and id, so an agent finds it in the document
+  const path = L => { const ts = []; for (let id = L.id; id; id = levels[id].parent ? nodeLevel[levels[id].parent] : null) ts.unshift(levels[id].title); return ts.join(" › "); };
+  const copyFor = (L, id, label) => `<p class="zd-cp"><button type="button" class="zd-copy" data-text="${esc(`${path(L)} › ${label} (${id})`)}">Copy for agent</button></p>`;
+  function copy(b) {
+    const text = b.dataset.text, done = () => { b.textContent = "Copied"; };
+    // a page opened from a file may have no clipboard API: fall back to a selected textarea
+    const old = () => { const a = document.createElement("textarea"); a.value = text; document.body.appendChild(a); a.select(); document.execCommand("copy"); a.remove(); done(); };
+    navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text).then(done, old) : old();
+  }
+  const pchip = (L, id) => `<span class="zd-pc">${esc(pname(L, id))}</span>`;
+  const grp = (h, rows) => rows.length ? `<div class="zd-grp"><h5>${h}</h5><ul class="zd-list">${rows.join("")}</ul></div>` : "";
+  // Alloy formulas, laid out at build time; keywords in their own ink
+  const KW = new Set("all some no lone one set disj let not and or implies iff else in always eventually after before historically once until releases since triggered none univ iden Int sum".split(" "));
+  const fx = t => esc(t).replace(/[A-Za-z][A-Za-z0-9_]*/g, w => KW.has(w) ? `<i class="k">${w}</i>` : w);
+  const opRow = s => { const o = ops[s];
+    const cond = [["pre", o.preLayout || o.pre], ["post", o.postLayout || o.post]].filter(c => c[1]).map(([k, t]) => `<div class="fx"><span class="fk">${k}</span>${fx(t)}</div>`).join("")
+      + (o.modifies && o.modifies.length ? `<div class="fx"><span class="fk">modifies</span>${esc(o.modifies.join(", "))}</div>` : "");
+    return `<li><details><summary class="sig"><span><b>${esc(o.slug)}</b>${esc(o.sig)}</span></summary>${show.formulas ? cond : ""}<p>${esc(o.text)}</p>${refs(o.refs)}</details></li>`; };
+  // what Alloy found: a rule that can break shows the run that breaks it
+  const broken = i => !!i.breaks;
+  const breakRun = i => broken(i) ? `<div class="zd-run"><span class="fk">run that breaks it</span><ol>${(i.breaks).map((calls, k) => `<li>${show.replay ? `<button type="button" data-run="rule:${esc(i.slug)}" data-at="${k}">${calls.map(esc).join(" + ")}</button>` : calls.map(esc).join(" + ")}</li>`).join("")}</ol></div>` : "";
+  // a rule's chips: must or should, then how it stands: a guard of the behaviour, assumed, ideal, or what Alloy found
+  const standing = i => broken(i) ? "can break" : i.role || "";
+  const ruleRow = s => { const i = rules[s], how = standing(i);
+    return `<li><details><summary class="sig"><span><b>${i.slug}</b><em>${i.kind === "should" ? "should" : "must"}</em>${how ? `<em class="${broken(i) ? "brk" : ""}">${how}</em>` : ""}</span></summary><p>${esc(i.text)}</p>${show.formulas ? `<div class="fx">${fx(i.layout || i.formula)}</div>` : ""}${breakRun(i)}${refs(i.refs)}</details></li>`; };
+
+  function treeLines(items) {
+    const rows = items.map(t => { const d = (t.match(/^ */)[0].length) >> 1; return { d, name: t.trim() }; });
+    return rows.map((r, i) => {
+      let pre = "";
+      for (let k = 1; k <= r.d; k++) {
+        const later = rows.slice(i + 1).find(x => x.d <= k);
+        if (k < r.d) pre += later && later.d === k ? "│  " : "   ";
+        else pre += later && later.d === k ? "├─ " : "└─ ";
+      }
+      return `<div><span class="tp">${pre}</span>${esc(r.name)}</div>`;
+    }).join("");
+  }
+  // line diff by longest common subsequence: kept lines plain, removed lines struck, added lines marked
+  function diffLines(a, b) {
+    const A = String(a).split("\n"), B = String(b).split("\n"), T = A.map(() => Array(B.length + 1).fill(0));
+    T.push(Array(B.length + 1).fill(0));
+    for (let i = A.length - 1; i >= 0; i--) for (let j = B.length - 1; j >= 0; j--) T[i][j] = A[i] === B[j] ? T[i + 1][j + 1] + 1 : Math.max(T[i + 1][j], T[i][j + 1]);
+    const out = []; let i = 0, j = 0;
+    while (i < A.length || j < B.length) {
+      if (i < A.length && j < B.length && A[i] === B[j]) { out.push(["eq", A[i]]); i++; j++; }
+      else if (i < A.length && (j >= B.length || T[i + 1][j] >= T[i][j + 1])) out.push(["del", A[i++]]);
+      else out.push(["ins", B[j++]]);
+    }
+    return out;
+  }
+  function media(list, seed) {
+    return (list || []).filter(m => show.media || m.type === "screen").map((m, i) => {
+      const head = `<h5>${m.type === "example" && m.invented ? "" : `<b>${m.type}</b>`}${m.invented ? "<i>e.g.</i>" : ""}${m.title ? `<span>${esc(m.title)}</span>` : ""}</h5>`;
+      let body = "";
+      if (m.type === "screen") body = mock(m);
+      else if (m.type === "tree") body = `<div class="zd-tree">${treeLines(m.items)}</div>`;
+      else if (m.type === "code") body = `<pre class="zd-code">${esc(m.text)}</pre>`;
+      else if (m.type === "example") body = `<div class="zd-ex">${esc(m.text).split("\n").join("<br>")}</div>`;
+      else if (m.type === "quote") body = `<blockquote class="zd-quote">${esc(m.text).split("\n").join("<br>")}</blockquote>`;
+      else if (m.type === "pitfall") body = `<div class="zd-pit">${esc(m.text).split("\n").join("<br>")}</div>`;
+      else if (m.type === "payload") body = `<pre class="zd-code zd-pay">${esc(m.text)}</pre>`;
+      else if (m.type === "checklist") body = `<ul class="zd-check">${m.items.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
+      else if (m.type === "diff") body = `<div class="zd-diff">${diffLines(m.before, m.after).map(([k, t]) => `<div class="${k}"><i>${k === "del" ? "−" : k === "ins" ? "+" : ""}</i>${esc(t)}</div>`).join("")}</div>`;
+      else if (m.type === "insight") body = `<div class="zd-ins"><p>${esc(m.move)}</p><p class="vs">${esc(m.vs)}</p><p class="so">${esc(m.gain)} <code>${esc(m.rule)}</code></p></div>`;
+      else if (m.type === "facts") body = `<dl class="zd-facts">${m.items.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`;
+      return body ? `<div class="zd-grp zd-media">${head}${body}${refs(m.refs)}</div>` : "";
+    }).join("");
+  }
+  const mediaOf = x => (x.media || []).concat(x.ui ? [{ type: "screen", screen: x.ui.screen, block: x.ui.block }] : []);
+
+  function note() {
+    const p = $(".zd-note"), L = levels[st.level];
+    root.dataset.level = st.level; root.dataset.sel = st.sel ? (st.sel.node || st.sel.edge || st.sel.run) : "";
+    p.classList.toggle("is-sel", !!st.sel); p.classList.toggle("is-run", !!(st.sel && st.sel.run));
+    if (!st.sel) p.innerHTML = media(L.media, hash(L.id)) + metaGrp(L.meta, "This level") + (st.level === M.root ? metaGrp(M.meta, "This document") : "");
+    else if (st.sel.run) p.innerHTML = runNote(runOf(st.sel.run), st.sel.at);
+    else if (st.sel.node) {
+      const n = nodes[st.sel.node], T = KIND[L.kind], closed = ((M.plan || {}).shallow || []).includes(n.id);
+      p.innerHTML = `<header class="zd-nh"><p class="zd-meta"><span class="zd-type">${([].concat(L.initial || []).includes(n.id) ? "initial " : "") + (n.abstract ? "abstract " : "") + T.node}</span>${marks(n).map(mk).join("")}${n.partition ? pchip(L, n.partition) : ""}${closed ? `<span class="zd-pc">not opened</span>` : ""}</p><h4>${esc(n.label)}</h4></header>${closed && (M.plan.why || {}).shallow ? `<p class="what">${esc(M.plan.why.shallow)}</p>` : ""}<p class="what">${esc(n.what)}</p>${refs(n.refs)}${media(mediaOf(n), hash(n.id))}
+        ${grp("Attributes", (n.attrs || []).map(a => { const i = a.indexOf(":"); return `<li class="at"><b>${esc(a.slice(0, i))}</b>${esc(a.slice(i))}</li>`; }))}
+        ${grp("Operations", (n.ops || []).map(opRow))}
+        ${grp("Rules", (n.rules || []).map(ruleRow))}${metaGrp(n.meta)}${copyFor(L, n.id, n.label)}`;
+    } else {
+      const e = st.sel.e, T = KIND[L.kind];
+      const a = e.from ? nodes[e.from] : null, b = nodes[e.to], x = a && a.partition && b.partition && a.partition !== b.partition;
+      p.innerHTML = `<header class="zd-nh"><p class="zd-meta"><span class="zd-type">${T.edge}</span>${marks(e).map(mk).join("")}${e.is && nodes[e.is] ? `<button type="button" class="zd-is" data-is="${e.is}">${esc(levels[nodeLevel[e.is]].title)} ↗</button>` : ""}</p><h4>${esc(e.label || "")}</h4><p class="zd-route">${a ? esc(a.label) : e.every ? "every " + esc(e.every) : "from outside"}${x ? pchip(L, a.partition) : ""}<i>→</i>${esc(b.label)}${x ? pchip(L, b.partition) : ""}</p></header>
+        ${e.what ? `<p class="what">${esc(e.what)}</p>` : ""}${refs(e.refs)}${media(e.media, hash(st.sel.edge))}
+        ${grp("Operations", (e.ops || []).map(opRow))}${grp("Guard", (e.rules || []).map(ruleRow))}
+        ${metaGrp(e.meta)}${copyFor(L, st.sel.edge, e.label || "")}${grp("Syncs", syncsOf(L, e).map(y => `<li class="sy"><b>${esc(y.when === e.label ? "sets off " + y.then : "set off by " + y.when)}</b>${y.where && nodes[y.where] ? ` only while ${esc(nodes[y.where].label)}` : ""}${y.what ? `<span>${esc(y.what)}</span>` : ""}</li>`))}`;
+    }
+    if (p.innerHTML.trim()) p.innerHTML = `<div class="zd-body">${p.innerHTML}</div>`;   // the body scrolls; the pointer and close stay put
+    if (st.sel) { p.insertAdjacentHTML("afterbegin", `<button type="button" class="zd-x" aria-label="Close">✕</button>`); p.querySelector(".zd-x").onclick = () => { st.sel = null; render(); }; }
+    const isb = p.querySelector("[data-is]"); if (isb) isb.onclick = () => { const id = isb.dataset.is; goto(nodeLevel[id], null, { node: id }); };
+    const cb = p.querySelector(".zd-copy"); if (cb) cb.onclick = () => copy(cb);
+    p.querySelectorAll("[data-run]").forEach(b => b.onclick = () => play(b.dataset.run, +b.dataset.at));
+    p.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => act(b.dataset.pick, () => {}));
+    p.hidden = !p.innerHTML.trim();
+    p.querySelectorAll(".zd-mock .board").forEach(b => { const s = b.querySelector(".sel"); if (s) b.scrollTop = Math.max(0, s.offsetTop - 40); });   // a tall screen shows its picked part
+    place();
+  }
+  // the note of a run: its name; the step the pick belongs to, what it does and what it expects; the rest of the
+  // moment as chips to pick from; then the pick itself, how it was reached, and what the run uses there
+  function runNote(r, at) {
+    const use = (...xs) => [...new Set(xs.flat().filter(x => x && r.uses.has(x)))];
+    const rows = (n, via) => { const guard = use(...via.map(e => e.rules || []));
+      return grp("Operations", use(...via.map(e => e.ops || []), n ? n.ops || [] : []).map(opRow)) + grp("Guard", guard.map(ruleRow))
+        + grp("Rules", use(n ? n.rules || [] : []).filter(x => !guard.includes(x)).map(ruleRow)); };
+    const from = e => e.from ? esc(nodes[e.from].label) : e.every ? "every " + esc(e.every) : "from outside";
+    const here = active(r, at), xs = [...new Set(here.map(it => it.x))], pick = st.sel.pick;
+    const name = x => nodes[x] ? nodes[x].label : (edgeAt(x)[1] || {}).label || "";
+    const mine = here.find(it => it.x === pick && it.to === at) || here.find(it => nodes[it.x] && it.from === at) || {};
+    const step = mine.step;
+    const chips = xs.length > 1 ? `<p class="zd-picks">${xs.map(x => `<button type="button" data-pick="${esc(x)}" class="${nodes[x] ? "n" : "e"}" aria-pressed="${x === pick}">${esc(name(x))}</button>`).join("")}</p>` : "";
+    let body = "";
+    if (nodes[pick]) {
+      const n = nodes[pick], L = levels[nodeLevel[pick]], via = here.filter(it => !nodes[it.x] && it.to === at && (edgeAt(it.x)[1] || {}).to === pick).map(it => edgeAt(it.x)[1]);
+      body = `<p class="zd-meta"><span class="zd-type">${KIND[L.kind].node}</span>${L.id !== st.level ? `<span class="zd-lvl">${esc(L.title)}</span>` : ""}</p><h4>${esc(n.label)}</h4>
+        ${via.map(e => `<p class="zd-route">${from(e)}<i>→</i>${esc(e.label || "")}</p>`).join("")}<p class="what">${esc(n.what || "")}</p>${rows(n, via)}`;
+    } else if (pick) {
+      const [L, e] = edgeAt(pick);
+      if (e) body = `<p class="zd-meta"><span class="zd-type">${KIND[L.kind].edge}</span></p><h4>${esc(e.label || "")}</h4><p class="zd-route">${from(e)}<i>→</i>${esc(nodes[e.to].label)}</p>${e.what ? `<p class="what">${esc(e.what)}</p>` : ""}${rows(null, [e])}`;
+    }
+    const calls = r.calls && r.calls[at] ? `<p class="zd-calls">${r.calls[at].map(c => `<code>${esc(c)}</code>`).join(" + ")}</p>` : "";
+    const stepBox = step ? `<div class="zd-step"><p>${esc(step.does || "")}</p><p class="zd-expect"><span class="fk">expects</span>${esc(step.expects || "")}</p></div>` : "";
+    return `<header class="zd-nh"><p class="zd-meta"><span class="zd-type">${r.kind === "rule" ? "run that breaks" : "scenario"}</span></p><h4 class="id">${esc(r.name)}</h4></header>
+      ${calls}${stepBox}${chips}${body ? `<div class="zd-at">${body}</div>` : ""}`;
+  }
+  // an edge or trigger by its key
+  function edgeAt(k) {
+    const L = levels[levelOf(k)]; if (!L) return [];
+    const e = L.edges.find(e => edgeKey(L.id, e) === k) || (L.triggers || []).find(t => trigKey(L.id, t) === k);
+    return [L, e];
+  }
+  // pin the note beside the selection (wide) or under the board pointing at it (narrow)
+  function place(reveal) {
+    const p = $(".zd-note"), stage = $(".zd-stage"), side = !p.hidden && !narrow() && stage.clientWidth >= 720 && stage.clientWidth - 318 >= (G0 ? G0.W * 0.9 : 0);
+    root.classList.toggle("narrow", narrow());
+    stage.classList.toggle("side", side);
+    // beside the drawing, not across the room from it: the drawing's column is only as wide as the drawing
+    stage.style.setProperty("--cw", side && G0 ? Math.max(260, Math.min(stage.clientWidth - 360, Math.round(G0.W * 1.15))) + "px" : "");
+    p.style.marginTop = ""; p.style.removeProperty("--ny"); p.style.removeProperty("--nx");
+    // a phone's bottom sheet covers the lower screen: leave room to scroll the drawing above it
+    const sheetH = narrow() && st.sel && !p.hidden ? p.offsetHeight : 0;
+    root.style.setProperty("--sheet", sheetH + "px"); root.classList.toggle("has-sheet", !!sheetH);
+    const g = st.sel && $(".zd-canvas .lit");
+    if (!g) return;
+    if (reveal && narrow()) reveal_(g, sheetH);
+    const sr = stage.getBoundingClientRect(), gr = g.getBoundingClientRect();
+    if (side) {
+      const cy = gr.top + gr.height / 2 - sr.top, top = Math.max(0, cy - 44);
+      p.style.marginTop = top + "px"; p.style.setProperty("--ny", (cy - top) + "px");
+    } else {
+      const pr = p.getBoundingClientRect();
+      p.style.setProperty("--nx", Math.max(18, Math.min(pr.width - 18, gr.left + gr.width / 2 - pr.left)) + "px");
+    }
+  }
+  // bring what was just chosen into view: across the drawing, and above the sheet
+  function reveal_(g, sheetH) {
+    const host = $(".zd-canvas"), hr = host.getBoundingClientRect(), r = g.getBoundingClientRect();
+    if (r.left < hr.left || r.right > hr.right) host.scrollLeft += r.left + r.width / 2 - (hr.left + hr.width / 2);
+    const r2 = g.getBoundingClientRect(), view = window.innerHeight - sheetH, top = 12;
+    if (r2.top >= top && r2.bottom <= view - 12) return;
+    const by = r2.top + r2.height / 2 - (top + view) / 2;
+    if (st.full) root.scrollTop += by; else window.scrollBy(0, by);
+  }
+  // a phone's root is laid out for its card's width, so a card that turns narrow or changes width while narrow (a
+  // rotation, a resized window) draws again once the resizing settles and the card has its narrow width
+  let lastNarrow = null, lastW = 0, settle = 0;
+  new ResizeObserver(() => {
+    const n = narrow(), w = root.clientWidth;
+    if (lastNarrow !== null && n && (lastNarrow !== n || w !== lastW)) { clearTimeout(settle); settle = setTimeout(render, 150); }
+    else if (lastNarrow !== null && lastNarrow !== n) render();
+    lastNarrow = n; lastW = w; timebar(); place(); const h = $(".zd-canvas"); h && h.onscroll && h.onscroll();
+  }).observe(root);
+  // the level menu: a bottom sheet on a phone; on a wide screen it opens in place, below the path, over the drawing
+  function sheet(open) { st.sheet = open; root.classList.toggle("nav-open", st.sheet); $(".zd-scrim").hidden = !(st.sheet && narrow()); $(".zd-lv").setAttribute("aria-expanded", st.sheet); }
+  function full(on) {
+    st.full = on; root.classList.toggle("full", on);
+    document.documentElement.style.overflow = on ? "hidden" : "";
+    render();
+  }
+  $(".zd-fs").onclick = () => full(!st.full);
+  $(".zd-scrim").onclick = () => sheet(false);
+  // a sheet belongs to its card: when the card leaves the screen, close what floats over the page
+  if ("IntersectionObserver" in window) new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting || st.full) return;
+    if (st.sheet) sheet(false);
+    if (st.sel && narrow()) { st.sel = null; render(); }
+  })).observe(root);
+
+  function block(b) {
+    const t = b.type;
+    if (t === "title") return `<div class="mn">${esc(b.text)}</div>${b.sub ? `<div class="mp">${esc(b.sub)}</div>` : ""}`;
+    if (t === "tabs") return `<div class="mtabs">${b.items.map((x, i) => `<span${i === (b.active || 0) ? ' class="on"' : ""}>${esc(x)}</span>`).join("")}</div>`;
+    if (t === "list") return b.items.map(x => `<div class="mr">${esc(x)}</div>`).join("");
+    if (t === "nodes") return `<div class="tiny">${b.items.map((x, i) => `<span${i === b.active ? ' class="k"' : ""}>${esc(x)}</span>`).join("")}</div>`;
+    if (t === "button") return `<div class="mbtn">${esc(b.text)}</div>`;
+    if (t === "choices") return b.items.map((x, i) => `<div class="mr"><i class="rad${i === (b.active || 0) ? " on" : ""}"></i>${esc(x)}</div>`).join("") + (b.text ? `<div class="mbtn">${esc(b.text)}</div>` : "");
+    if (t === "code") return `<div class="mcode">${b.items.map(x => `<div class="${x[0] === "+" ? "add" : x[0] === "-" ? "del" : ""}">${esc(x)}</div>`).join("")}</div>`;
+    return `<div class="mp">${esc(b.text || "")}</div>`;
+  }
+  function mock(ui) {
+    const S = (M.screens || {})[ui.screen]; if (!S) return "";
+    const sel = S.blocks.find(b => b.id === ui.block) || {};
+    const box = b => `<div class="m${b.id === ui.block ? " sel" : ""}">${block(b)}${b.id === ui.block ? `<i class="h" style="left:-4px;top:-4px"></i><i class="h" style="right:-4px;top:-4px"></i><i class="h" style="left:-4px;bottom:-4px"></i><i class="h" style="right:-4px;bottom:-4px"></i><span class="tag">${esc(b.name)}</span>` : ""}</div>`;
+    return `<div class="zd-mock" role="img" aria-label="${esc(S.title)} with ${esc(sel.name || "")} selected">
+      <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span>${S.invented ? "e.g. " : ""}${esc(S.title)}</span><span>${esc(S.size || "")}</span></div>
+      <div class="fg"><ul class="layers">${S.blocks.map(b => `<li class="${b.id === ui.block ? "on" : ""}">${esc(b.name)}</li>`).join("")}</ul>
+        <div class="board"><div class="device">${S.blocks.map(box).join("")}</div></div></div></div>`;
+  }
+
+  // redrawing the same level (a selection) keeps where the reader had dragged or scrolled to
+  function render(fromBox) {
+    const host = $(".zd-canvas"), same = !fromBox && host.dataset.level === st.level;
+    const keep = same && { l: host.scrollLeft, t: host.scrollTop, r: root.scrollTop };
+    draw(fromBox); bar(); timebar(); nav(); note();
+    host.dataset.level = st.level;
+    if (keep) { host.scrollLeft = keep.l; host.scrollTop = keep.t; root.scrollTop = keep.r; }
+    if (st.sel && narrow()) requestAnimationFrame(() => place(true));
+  }
+  // start a run at a moment, or move through the current one; going to another level follows the moment there
+  function play(key, at, pick) {
+    const r = runOf(key); at = Math.max(0, Math.min(r.length - 1, at));
+    const sel = { run: key, at, pick: pick && active(r, at).some(it => it.x === pick) ? pick : firstPick(r, at) }, lv = momentLevels(r, at);
+    if (!lv.length || lv.includes(st.level)) { st.sel = sel; render(); } else goto(lv[0], null, sel);
+  }
+  const seek = d => st.sel && st.sel.run && play(st.sel.run, st.sel.at + d);
+  function end() { st.sel = null; render(); }
+  // a tap on the drawing while a run plays: what the step highlights is picked; another node of the run takes the
+  // run to that node's next step; an edge never moves the run; anything outside the run ends it and is selected
+  function act(x, otherwise) {
+    const r = st.sel && st.sel.run && runOf(st.sel.run); if (!r) return otherwise();
+    const mine = r.items.filter(it => it.x === x);
+    if (!mine.length) return otherwise();
+    if (active(r, st.sel.at).some(it => it.x === x)) { st.sel = Object.assign({}, st.sel, { pick: x }); render(); return; }
+    if (!nodes[x]) return;
+    const ks = mine.map(it => it.from), k = ks.find(k => k > st.sel.at);
+    play(st.sel.run, k != null ? k : ks[0], x);
+  }
+  const time = $(".zd-time"), slider = time.querySelector("input");
+  function timebar() {
+    const r = st.sel && st.sel.run && runOf(st.sel.run);
+    time.hidden = !r; if (!r) return;
+    const n = r.length, at = st.sel.at;
+    time.querySelector("code").textContent = r.name;
+    slider.max = n; slider.value = at + 1; slider.setAttribute("aria-valuetext", `${at + 1} of ${n}`);
+    time.querySelector("output").textContent = `${at + 1} / ${n}`;
+    // a tick per moment while they fit; on a narrow rail, a filled line with only the current moment's tick
+    const rail = time.querySelector(".zd-rail"), dense = rail.clientWidth / Math.max(1, n - 1) < 12, pos = k => n > 1 ? k / (n - 1) * 100 : 50;
+    rail.classList.toggle("dense", dense); rail.style.setProperty("--p", pos(at) + "%");
+    time.querySelector(".zd-ticks").innerHTML = Array.from({ length: n }, (_, k) => k).filter(k => !dense || k === at)
+      .map(k => `<i class="${k < at ? "done" : k === at ? "now" : ""}" style="left:${pos(k)}%">${"<b></b>".repeat(Math.max(1, branches(r, k)))}</i>`).join("");
+  }
+  slider.addEventListener("input", () => play(st.sel.run, slider.value - 1));
+  time.querySelectorAll("[data-d]").forEach(b => b.onclick = () => seek(+b.dataset.d));
+  time.querySelector(".zd-end").onclick = end;
+  function select(s) {
+    const same = st.sel && ((s.node && st.sel.node === s.node) || (s.edge && st.sel.edge === s.edge));
+    st.sel = same ? null : s; render();
+    const g = st.sel && (st.sel.node ? $(`.zd-canvas .node[data-id="${st.sel.node}"]`) : $(".zd-canvas .edge.lit"));
+    (g || root).focus({ preventScroll: true });
+  }
+  // how the new level arrives: out of the node that (eventually) opens it, back up, or a short fade for a jump sideways
+  function motion(to) {
+    if (to === st.level) return null;
+    for (let id = st.level; id; id = levels[id].parent ? nodeLevel[levels[id].parent] : null) if (id === to) return { up: true };
+    for (let id = to; levels[id].parent; id = nodeLevel[levels[id].parent]) if (nodeLevel[levels[id].parent] === st.level && G0) return G0.box[levels[id].parent];
+    return { fade: true };
+  }
+  // going to a level keeps a playing run when the run goes there (to its next moment there), and leaves it otherwise
+  function goto(id, from, sel) {
+    if (!sel && st.sel && st.sel.run) {
+      const r = runOf(st.sel.run), here = Array.from({ length: r.length }, (_, k) => k).filter(k => momentLevels(r, k).includes(id));
+      if (here.length) { const at = here.find(k => k >= st.sel.at) ?? here[0]; sel = { run: st.sel.run, at, pick: firstPick(r, at) }; }
+    }
+    from = from || motion(id); st.level = id; st.sel = sel || null;
+    if (!root.contains(document.activeElement)) root.focus({ preventScroll: true });
+    render(from);
+  }
+  root.tabIndex = -1;
+  document.addEventListener("keydown", ev => {
+    if (!(st.full || st.sheet || root.contains(document.activeElement))) return;
+    if ((ev.key === "ArrowLeft" || ev.key === "ArrowRight") && st.sel && st.sel.run && ev.target !== slider) { ev.preventDefault(); seek(ev.key === "ArrowLeft" ? -1 : 1); return; }
+    if (ev.key !== "Escape") return;
+    if (st.sheet) sheet(false);
+    else if (st.sel) { st.sel = null; render(); }
+    else if (st.full) full(false);
+    else if (levels[st.level].parent) goto(nodeLevel[levels[st.level].parent], { up: true });
+  });
+  render();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => render());
+  return { goto, select: s => select(s), play, full, state: st, model: M };
+}
+
+window.zd = mountZoomDiagram(document.getElementById("zd"), {"version": "1", "title": "Shop", "next": "The reader's next action or choice, in one sentence.", "meta": {"note": "A remark on the whole document."}, "plan": {"intent": "How does an order reach the store?", "views": [{"name": "A diagram a practitioner expects", "level": "root"}], "depth": "working", "deep": [], "shallow": [], "scenarios": "entry", "prove": "rules", "strict": [], "max_nodes": 7, "show": {"formulas": true, "replay": true, "media": true}, "why": {}}, "scenarios": [{"slug": "place-order", "text": "When a customer orders, the web app takes and charges it, then saves it in the store.", "walk": [{"place": "web", "does": "The customer opens the web app.", "expects": "The web app shows the cart."}, {"place": "take", "does": "The web app takes the order.", "expects": "An order exists."}, {"place": "charge", "does": "The web app charges the card.", "expects": "The order is paid."}, {"place": "store", "does": "The web app saves the order.", "expects": "The store holds the order."}], "run": {"items": [{"x": "web", "kind": "node", "from": 0, "to": 0, "step": 0}, {"x": "take", "kind": "node", "from": 1, "to": 1, "step": 1}, {"x": "charge", "kind": "node", "from": 2, "to": 2, "step": 2}, {"x": "store", "kind": "node", "from": 3, "to": 3, "step": 3}, {"x": "web:take>charge", "kind": "edge", "from": 2, "to": 2, "step": 2}, {"x": "root:web>store", "kind": "edge", "from": 3, "to": 3, "step": 3}], "steps": [{"does": "The customer opens the web app.", "expects": "The web app shows the cart."}, {"does": "The web app takes the order.", "expects": "An order exists."}, {"does": "The web app charges the card.", "expects": "The order is paid."}, {"does": "The web app saves the order.", "expects": "The store holds the order."}], "uses": ["orders-kept"]}}], "operations": [], "rules": [{"slug": "orders-kept", "kind": "must", "formula": "all w: WebApp | some w.savesOrders", "text": "The web app saves orders in the store.", "layout": "all w: WebApp | some w.savesOrders", "role": "assumed"}], "levels": [{"kind": "topology", "title": "Shop", "why": "What the shop is made of.", "nodes": [{"id": "web", "label": "Web app", "what": "Takes orders.", "mark": ["happy"], "rules": ["orders-kept"], "link": "view", "meta": {"note": "A remark.", "diff": "added", "evidence": ["paperwork/AGENTS.md:1"], "constraint": ["spec.md#orders-kept"], "owner-text": "shop team", "cost-number": 3, "page-url": "https://example.com/shop", "wait-ms": 250, "share-percent": 40, "due-date": "2026-10-20", "done-bool": true}}, {"id": "store", "label": "Store", "what": "Keeps orders.", "mark": ["failure", "unsure"]}], "edges": [{"from": "web", "to": "store", "label": "saves orders", "what": "The web app writes each order.", "meta": {"note": "A remark.", "diff": "added", "evidence": ["paperwork/AGENTS.md:1"], "constraint": ["spec.md#orders-kept"], "owner-text": "shop team", "cost-number": 3, "page-url": "https://example.com/shop", "wait-ms": 250, "share-percent": 40, "due-date": "2026-10-20", "done-bool": true}}], "meta": {"note": "A remark.", "diff": "added", "evidence": ["paperwork/AGENTS.md:1"], "constraint": ["spec.md#orders-kept"], "owner-text": "shop team", "cost-number": 3, "page-url": "https://example.com/shop", "wait-ms": 250, "share-percent": 40, "due-date": "2026-10-20", "done-bool": true}, "id": "root", "parent": null}, {"kind": "workflow", "title": "Checkout", "why": "How the web app handles one order.", "nodes": [{"id": "take", "label": "Taking order", "what": "Read the cart."}, {"id": "charge", "label": "Charging card", "what": "Take the payment."}], "edges": [{"from": "take", "to": "charge", "label": "order", "what": "The order to pay.", "mark": ["happy"]}], "id": "web", "parent": "web"}], "root": "root"}, {
+  "minPx": 9,
+  "nodeLine": 100,
+  "edgeLine": 90,
+  "partitionLinks": 3
+}
+);
+</script>
+</body></html>
