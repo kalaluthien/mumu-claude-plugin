@@ -67,7 +67,11 @@ def alpha(spec, runs):
     names = sorted({a for run in runs for a in run["answers"]})
     for c in criteria(spec):
         units = [[run["answers"][a][c["id"]] for run in runs if c["id"] in run["answers"].get(a, {})] for a in names]
-        x = nominal_alpha([u for u in units if len(u) > 1])
+        paired = [u for u in units if len(u) > 1]
+        if not paired:
+            print(f"{c['id']}: alpha undefined, no answer graded by two runs")
+            continue
+        x = nominal_alpha(paired)
         if x is None:
             print(f"{c['id']}: alpha undefined, every verdict the same")
             continue

@@ -22,7 +22,6 @@ def no_signal(pass_rate, group_size=GROUP_SIZE):
     return pass_rate ** group_size + (1 - pass_rate) ** group_size
 
 
-
 def group_of(verdicts, answer):
     """The answers graded beside this one: its group, else every answer in the file."""
     return next((g for g in verdicts.get("groups", []) if answer in g), list(verdicts["answers"]))

@@ -27,8 +27,13 @@ def problems(spec, verdicts, complete=True, groups=False):
         if "beats" in given and not pairwise:
             out.append(f"verdicts.answers.{a}.beats: the spec has no pairwise tier")
         out += [f"verdicts.answers.{a}.beats: {b} is no answer" for b in given.get("beats", []) if b not in answers]
+    seen = set()
     for g, group in enumerate(verdicts.get("groups", [])):
         out += [f"verdicts.groups[{g}]: {a} is no answer" for a in group if a not in answers]
+        out += [f"verdicts.groups[{g}]: {a} is in an earlier group too" for a in group if a in seen]
+        seen.update(group)
+        if not group:
+            out.append(f"verdicts.groups[{g}]: holds no answer")
     if groups and "groups" not in verdicts:
         out.append("verdicts: no groups, which scoring for training needs")
     return out
