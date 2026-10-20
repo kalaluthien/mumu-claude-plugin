@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "task": {
+    "instruction": "Write the release note for the 2.4 upgrade.",
+    "world": {
+      "as_of": "2026-10-20",
+      "scope": "the 2.4 changelog and its migration guide",
+      "deliverable": "a release note an operator reads before upgrading"
+    },
+    "evidence_goal": "the note lets an operator upgrade without reading the changelog",
+    "use": [
+      "eval"
+    ]
+  },
+  "group_size": 8,
+  "tiers": [],
+  "exchange": [],
+  "judge": {
+    "mode": "full_rubric",
+    "model": "claude-sonnet-5-5",
+    "calibration": {
+      "human_labels": 0,
+      "macro_f1": null,
+      "met_rate_gap": null,
+      "estimated": true
+    }
+  },
+  "monitor": [
+    "reward rises while held-out expert wins stay flat"
+  ]
+}

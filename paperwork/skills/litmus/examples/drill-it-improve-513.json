@@ -1,0 +1,637 @@
+{
+ "version": 1,
+ "task": {
+  "instruction": "Score the improvement of one system model, from the original model, the improved model(s) and the hand-back text only; recount every number from the models.",
+  "world": {
+   "as_of": "2026-10-20",
+   "scope": "the original model, each improved model and the hand-back of the improve playbook; criterion 5 of https://github.com/kalaluthien/mumu-claude-plugin/issues/513",
+   "deliverable": "a score per question, summed over the 15 questions, that says whether the improve playbook improves a model without losing behaviour"
+  },
+  "evidence_goal": "the grade shows whether the improved model keeps every behaviour, improves or holds each count, and the hand-back states the values and the options a reader needs",
+  "use": [
+   "eval"
+  ],
+  "source": "~/.cache/system-model-worker/c5score/rubric.md"
+ },
+ "group_size": 8,
+ "tiers": [
+  {
+   "id": "all",
+   "name": "every question of the source rubric",
+   "criteria": [
+    {
+     "id": "kept-full",
+     "text": "Every original Scenario and rule has a counterpart with the same slug, same behaviour, in each improved model.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Each of the 12 original Scenarios and 9 rules appears in the improved model with its slug and behaviour."
+     ],
+     "near_miss": [
+      "One original rule is gone from the improved model, and the hand-back states that it is gone."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 1"
+     }
+    },
+    {
+     "id": "kept-partly",
+     "text": "No original Scenario or rule lacks a counterpart in an improved model unless the hand-back states it missing.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Each of the 12 original Scenarios and 9 rules appears in the improved model with its slug and behaviour.",
+      "One original rule is gone from the improved model, and the hand-back states that it is gone."
+     ],
+     "near_miss": [
+      "One original Scenario is gone from the improved model, and the hand-back does not mention it."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 1"
+     }
+    },
+    {
+     "id": "changes-stated-full",
+     "text": "The hand-back lists every new Scenario, rule or behaviour as an addition, and every removed one as a removal awaiting approval; the lists match the models exactly.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Additions: 2 Scenarios, listed by slug; removals: none, written as \"none\"; both lists match a diff of the models."
+     ],
+     "near_miss": [
+      "The hand-back lists the 2 added Scenarios but leaves out one added rule; no change is hidden."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 2"
+     }
+    },
+    {
+     "id": "changes-stated-partly",
+     "text": "The hand-back lists some of the additions or removals; no change is hidden.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Additions: 2 Scenarios, listed by slug; removals: none, written as \"none\"; both lists match a diff of the models.",
+      "The hand-back lists the 2 added Scenarios but leaves out one added rule; no change is hidden."
+     ],
+     "near_miss": [
+      "The hand-back has no list of additions or removals, or a removed rule appears in no list."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 2"
+     }
+    },
+    {
+     "id": "economy-full",
+     "text": "The hand-back shows nodes + edges + rules + operations for the original and each improved model; each improved total is at most the original's.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Hand-back table: original 61, improved 54 for nodes + edges + rules + operations; the recount agrees."
+     ],
+     "near_miss": [
+      "The hand-back shows no totals, and the recount gives a lower total for the improved model."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 3"
+     }
+    },
+    {
+     "id": "economy-partly",
+     "text": "Recounted from the models, nodes + edges + rules + operations does not rise in an improved model, or the hand-back names a conflicting criterion for the rise.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Hand-back table: original 61, improved 54 for nodes + edges + rules + operations; the recount agrees.",
+      "The hand-back shows no totals, and the recount gives a lower total for the improved model."
+     ],
+     "near_miss": [
+      "The improved total is 70 against 61, and the hand-back gives no reason."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 3"
+     }
+    },
+    {
+     "id": "no-duplication-full",
+     "text": "The hand-back shows the count of repeated label/what texts, rule formulas included, for both models; the improved count is at most the original's.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Hand-back: repeated texts 7 in the original, 3 in the improved model; the recount agrees."
+     ],
+     "near_miss": [
+      "The hand-back shows no count; the recount gives 3 repeats against 7."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 4"
+     }
+    },
+    {
+     "id": "no-duplication-partly",
+     "text": "The count of repeated label/what texts and rule formulas does not rise in an improved model, or the hand-back names the kept copy as kept on purpose.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Hand-back: repeated texts 7 in the original, 3 in the improved model; the recount agrees.",
+      "The hand-back shows no count; the recount gives 3 repeats against 7."
+     ],
+     "near_miss": [
+      "The improved model has 9 repeats against 7, and no copy is named as kept on purpose."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 4"
+     }
+    },
+    {
+     "id": "one-term-full",
+     "text": "Both models show no thing with two names, no two things with one name; the hand-back shows a count that improves or holds.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The hand-back shows 4 naming clashes in the original and 1 in the improved model; the recount agrees."
+     ],
+     "near_miss": [
+      "The clash count holds at 3 in both models, and the hand-back does not show it."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 5"
+     }
+    },
+    {
+     "id": "one-term-partly",
+     "text": "The count of things with two names plus names shared by two things holds or improves, whether or not the hand-back shows it.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The hand-back shows 4 naming clashes in the original and 1 in the improved model; the recount agrees.",
+      "The clash count holds at 3 in both models, and the hand-back does not show it."
+     ],
+     "near_miss": [
+      "The improved model has 5 clashes against 3 in the original."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 5"
+     }
+    },
+    {
+     "id": "deep-modules-full",
+     "text": "The hand-back shows inner nodes / (1 + crossing edges) per opened node or as a mean for both models, and the improved value is at least the original's.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Hand-back mean ratio: original 1.8, improved 2.3; the recount agrees."
+     ],
+     "near_miss": [
+      "The hand-back shows no ratio; the recount gives 2.3 against 1.8."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 6"
+     }
+    },
+    {
+     "id": "deep-modules-partly",
+     "text": "The ratio of inner nodes to (1 + crossing edges) does not fall in an improved model, or the hand-back names a conflicting criterion for the fall.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Hand-back mean ratio: original 1.8, improved 2.3; the recount agrees.",
+      "The hand-back shows no ratio; the recount gives 2.3 against 1.8."
+     ],
+     "near_miss": [
+      "The recount gives 1.2 against 1.8, and the hand-back gives no reason."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 6"
+     }
+    },
+    {
+     "id": "low-coupling-full",
+     "text": "The hand-back shows crossing edges / all edges, plus a cycle count, for both models; both values are at most the original's.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Hand-back: crossing share 0.31 to 0.24, cycles 2 to 1; the recount agrees."
+     ],
+     "near_miss": [
+      "The hand-back shows neither value; the recount gives lower values for the improved model."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 7"
+     }
+    },
+    {
+     "id": "low-coupling-partly",
+     "text": "Crossing edges / all edges and the cycle count do not rise in an improved model, or the hand-back names a conflicting criterion for the rise.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Hand-back: crossing share 0.31 to 0.24, cycles 2 to 1; the recount agrees.",
+      "The hand-back shows neither value; the recount gives lower values for the improved model."
+     ],
+     "near_miss": [
+      "The recount gives 3 cycles against 1, and the hand-back gives no reason."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 7"
+     }
+    },
+    {
+     "id": "near-decomposable-full",
+     "text": "The hand-back shows nodes per level, plus nesting depth, for both models; every level holds 7 nodes or fewer; the depth is at most the original's.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Hand-back: levels of 5, 6 and 4 nodes, depth 3 against 3 in the original."
+     ],
+     "near_miss": [
+      "The hand-back shows no levels; the recount gives levels of 6 and 4 nodes and depth 3 against 3."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 8"
+     }
+    },
+    {
+     "id": "near-decomposable-partly",
+     "text": "Each level of the improved model holds 7 nodes or fewer and its depth is at most the original's, or the hand-back gives a reason for the exception.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Hand-back: levels of 5, 6 and 4 nodes, depth 3 against 3 in the original.",
+      "The hand-back shows no levels; the recount gives levels of 6 and 4 nodes and depth 3 against 3."
+     ],
+     "near_miss": [
+      "One level holds 9 nodes, and the hand-back gives no reason."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 8"
+     }
+    },
+    {
+     "id": "variety-full",
+     "text": "The hand-back shows the count of triggers, states included, that no Scenario or rule handles for both models; the improved count is at most the original's.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Hand-back: unhandled triggers and states 5 in the original, 2 in the improved model; the recount agrees."
+     ],
+     "near_miss": [
+      "The hand-back shows no count; the recount gives 2 against 5."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 9"
+     }
+    },
+    {
+     "id": "variety-partly",
+     "text": "The count of triggers and states that no Scenario or rule handles does not rise in an improved model.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Hand-back: unhandled triggers and states 5 in the original, 2 in the improved model; the recount agrees.",
+      "The hand-back shows no count; the recount gives 2 against 5."
+     ],
+     "near_miss": [
+      "The recount gives 6 unhandled against 5 in the original."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 9"
+     }
+    },
+    {
+     "id": "essential-state-full",
+     "text": "The hand-back shows the count of elements that no Scenario uses for both models, and the improved count is at most the original's.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Hand-back: unused elements 8 in the original, 3 in the improved model; the recount agrees."
+     ],
+     "near_miss": [
+      "The hand-back shows no count; the recount gives 3 against 8."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 10"
+     }
+    },
+    {
+     "id": "essential-state-partly",
+     "text": "The count of elements that no Scenario uses does not rise in an improved model, or the hand-back names the Requisite variety criterion as the reason.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Hand-back: unused elements 8 in the original, 3 in the improved model; the recount agrees.",
+      "The hand-back shows no count; the recount gives 3 against 8."
+     ],
+     "near_miss": [
+      "The recount gives 10 unused against 8, and the hand-back gives no reason."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 10"
+     }
+    },
+    {
+     "id": "data-calculation-action-full",
+     "text": "For a software or process model, the hand-back shows the count of elements that mix data, calculation, action for both models; the improved count is at most the original's; for another domain, it skips the criterion with a reason.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "A software model: mixed elements 6 in the original, 2 in the improved model, shown in the hand-back."
+     ],
+     "near_miss": [
+      "A software model: the hand-back shows no count; the recount gives 2 against 6."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 11"
+     }
+    },
+    {
+     "id": "data-calculation-action-partly",
+     "text": "For a software or process model the improved count of mixed elements does not exceed the original's; for another domain the criterion is skipped.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "A software model: mixed elements 6 in the original, 2 in the improved model, shown in the hand-back.",
+      "A software model: the hand-back shows no count; the recount gives 2 against 6."
+     ],
+     "near_miss": [
+      "A software model: the recount gives 8 mixed against 6; or a lending-process model is scored on it with no note."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 11"
+     }
+    },
+    {
+     "id": "four-states-full",
+     "text": "For the original and each improved model, the hand-back states whether a Missing, Illegal, Redundant or Overloaded state exists; the improved model has fewer such states or none.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Hand-back: original has 3 such states; the improved model has none."
+     ],
+     "near_miss": [
+      "The hand-back states the improved model still has 2 such states, as many as the original; or it does not state them at all."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 12"
+     }
+    },
+    {
+     "id": "four-states-partly",
+     "text": "The hand-back states, for the original and each improved model, the Missing, Illegal, Redundant or Overloaded states, or the improved model has no more of them than the original.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Hand-back: original has 3 such states; the improved model has none.",
+      "The hand-back states the improved model still has 2 such states, as many as the original; or it does not state them at all."
+     ],
+     "near_miss": [
+      "The improved model has 4 such states against 2 in the original."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 12"
+     }
+    },
+    {
+     "id": "options-for-conflict-full",
+     "text": "For each extra option the hand-back names a pair of criteria from the report's Conflicts that move in opposite directions; or it gives one answer and says that one model wins or ties every count.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Option B names Economy against Low coupling as a pair that moves in opposite directions."
+     ],
+     "near_miss": [
+      "Option B is offered and the pair of criteria is only implied by a sentence about trade-offs."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 13"
+     }
+    },
+    {
+     "id": "options-for-conflict-partly",
+     "text": "The hand-back names a conflicting pair for each extra option, or implies it, or it gives one answer while no real trade-off exists.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Option B names Economy against Low coupling as a pair that moves in opposite directions.",
+      "Option B is offered and the pair of criteria is only implied by a sentence about trade-offs."
+     ],
+     "near_miss": [
+      "Option B is offered with no conflicting pair, or one answer is given while two counts move in opposite directions."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 13"
+     }
+    },
+    {
+     "id": "recommended-first-full",
+     "text": "Exactly one option is recommended and listed first; a single answer counts as the recommended one.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Option A is marked recommended and sits first in the list."
+     ],
+     "near_miss": [
+      "Option B is recommended but listed second."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 14"
+     }
+    },
+    {
+     "id": "recommended-first-partly",
+     "text": "The hand-back recommends an option, though it is not listed first or is stated vaguely, and recommends no second option.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Option A is marked recommended and sits first in the list.",
+      "Option B is recommended but listed second."
+     ],
+     "near_miss": [
+      "No option is recommended, or two options are recommended."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 14"
+     }
+    },
+    {
+     "id": "values-stated-full",
+     "text": "For every option and the original, the hand-back gives a comparable value for each count criterion (questions 3 to 11) plus Four states.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "A table gives all ten values for the original and for each of the two options."
+     ],
+     "near_miss": [
+      "The table gives values for six of the ten criteria and leaves the rest blank."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 15"
+     }
+    },
+    {
+     "id": "values-stated-partly",
+     "text": "For every option and the original, the hand-back gives a value for some of the count criteria (questions 3 to 11) plus Four states.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "A table gives all ten values for the original and for each of the two options.",
+      "The table gives values for six of the ten criteria and leaves the rest blank."
+     ],
+     "near_miss": [
+      "The hand-back describes the counts in prose and gives no values."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/.cache/system-model-worker/c5score/rubric.md question 15"
+     }
+    }
+   ]
+  }
+ ],
+ "exchange": [
+  {
+   "a": "kept-full",
+   "b": "kept-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "changes-stated-full",
+   "b": "changes-stated-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "economy-full",
+   "b": "economy-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "no-duplication-full",
+   "b": "no-duplication-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "one-term-full",
+   "b": "one-term-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "deep-modules-full",
+   "b": "deep-modules-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "low-coupling-full",
+   "b": "low-coupling-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "near-decomposable-full",
+   "b": "near-decomposable-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "variety-full",
+   "b": "variety-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "essential-state-full",
+   "b": "essential-state-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "data-calculation-action-full",
+   "b": "data-calculation-action-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "four-states-full",
+   "b": "four-states-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "options-for-conflict-full",
+   "b": "options-for-conflict-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "recommended-first-full",
+   "b": "recommended-first-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "values-stated-full",
+   "b": "values-stated-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  }
+ ],
+ "judge": {
+  "mode": "full_rubric",
+  "model": "claude-sonnet-5-5",
+  "calibration": {
+   "human_labels": 0,
+   "macro_f1": null,
+   "met_rate_gap": null,
+   "estimated": true
+  }
+ }
+}
