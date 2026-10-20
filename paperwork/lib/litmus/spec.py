@@ -76,10 +76,13 @@ def without_forbidden(spec):
 
 def violations(spec):
     """Every violation as (rule, path, message, severity): the grammar's first, then the rules that need a valid shape."""
+    if not isinstance(spec, dict):
+        return [(r, *t.split(": ", 1), "error") for r, t in shape(spec, SCHEMA, "spec")]
     rows = [(r, w, m, "error") for r, w, m in forbidden(spec)]
-    clean = without_forbidden(spec) if isinstance(spec, dict) else spec
-    wrong = shape(clean, SCHEMA, "spec")
+    wrong = shape(without_forbidden(spec), SCHEMA, "spec")
     rows += [(r, *t.split(": ", 1), "error") for r, t in wrong]
+    if isinstance(spec.get("tiers"), list) and not spec["tiers"]:   # shape() reads no minItems
+        rows.append(("form", "spec.tiers", "holds no tier", "error"))
     if rows:   # nothing else reads true until the spec fits the grammar
         return rows
     return [(r, w, m, RULES[r][0]) for r, w, m in narrow(spec)]

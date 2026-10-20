@@ -8,7 +8,7 @@
  "x-required-rule": {"version": "version-missing"},
  "additionalProperties": false,
  "properties": {
-  "version": {"const": 1, "description": "The grammar version this spec is written in; changelog.md lists each."},
+  "version": {"type": "integer", "const": 1, "description": "The grammar version this spec is written in; changelog.md lists each."},
   "task": {
    "type": "object",
    "required": ["instruction", "world", "evidence_goal", "use"],
@@ -31,7 +31,7 @@
    }
   },
   "group_size": {"type": "integer", "minimum": 2, "description": "Answers graded together per prompt in training; 8 when absent."},
-  "tiers": {"type": "array", "items": {"$ref": "#/$defs/tier"}, "description": "Highest first; a lower tier never buys back a higher one."},
+  "tiers": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/tier"}, "description": "Highest first; a lower tier never buys back a higher one."},
   "exchange": {"type": "array", "items": {"$ref": "#/$defs/exchange"}, "description": "The exchange tests that placed each criterion."},
   "judge": {
    "type": "object",
