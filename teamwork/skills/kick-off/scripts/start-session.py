@@ -15,7 +15,10 @@ from json_command import run  # noqa: E402
 TIMEOUT, POLL = float(os.environ.get("START_SESSION_TIMEOUT", 120)), 1.0
 # claude.ai connectors (Gmail, Drive, Notion...) serve no teamwork role, and their tool list costs ~5k tokens every turn
 SETTINGS = json.dumps({"disableClaudeAiConnectors": True})
-# no role publishes pages, a worker asks the owner through its manager, a manager orchestrates by hand: each tool's description costs ~2-11k tokens
+# Each tool off is a choice, since each description costs ~2-11k tokens every turn; subagents get only their session's tools (code.claude.com/docs/en/sub-agents):
+# - manager: Artifact off, it publishes nothing; Workflow off, it orchestrates by hand
+# - worker: AskUserQuestion off, it asks the owner through its manager; Artifact off, unless its manager passes --allow Artifact for a backlog that publishes a page
+# - judge, a general-purpose subagent of a worker: the worker's tools; judge.md's steps use Read, Bash, and Write for scratchpad tests, and the plugin may ship no agent to narrow it
 TOOLS_OFF = {"worker": "Artifact,AskUserQuestion", "manager": "Artifact,Workflow"}
 
 
@@ -44,12 +47,17 @@ def wait(name, pane, ready, nudge, what):
     raise RuntimeError(f"{name} {what} after {TIMEOUT:g}s")
 
 
+def tools_off(a):
+    off = TOOLS_OFF["worker" if a.args.startswith("worker ") else "manager"].split(",")
+    return ",".join(t for t in off if t not in a.allow)
+
+
 def start(a, pane):
     deadline = time.time() + TIMEOUT
     while True:
         p = subprocess.run(["herdr", "agent", "start", a.name, "--kind", "claude", "--pane", pane, "--", "--name", a.name,
                             "--plugin-dir", str(ROOT), "--model", a.model, "--effort", a.effort,
-                            "--settings", SETTINGS, "--disallowedTools", TOOLS_OFF["worker" if a.args.startswith("worker ") else "manager"]],
+                            "--settings", SETTINGS, *(["--disallowedTools", off] if (off := tools_off(a)) else [])],
                            capture_output=True, text=True)
         out = p.stdout + p.stderr
         if not p.returncode or '"agent_not_ready"' in out:  # not ready: the trust dialog holds it
@@ -67,6 +75,7 @@ where_to.add_argument("--team", action="store_true")
 where_to.add_argument("--beside", metavar="AGENT")
 parser.add_argument("--model", required=True)  # no default: the caller picks per role
 parser.add_argument("--effort", required=True)
+parser.add_argument("--allow", action="append", default=[], metavar="TOOL")  # its subagents lack a tool their session lacks: grant it per backlog
 a = parser.parse_args()
 if herdr_agents.agent(a.name):
     sys.exit(f"start-session.py: {a.name} is already live: hand it the work instead of starting another.")
