@@ -15,7 +15,7 @@ import tempfile
 from pathlib import Path
 
 from . import formula as F
-from .model import split_top
+from .model import MEMBER, TYPE, split_top
 
 PRIM_SIG = {"Text", "Url", "Date"}
 PRIM_INT = {"Number", "Count", "Int"}
@@ -125,7 +125,7 @@ class World:
                 self.problems.append(f"{where}: two literal sets are both called {name}; name them in types")
             return name
         for a in atoms:
-            if not re.fullmatch(r"[a-z][A-Za-z0-9]*", a):
+            if not re.fullmatch(MEMBER, a):
                 self.problems.append(f"{where}: value {a} is a lowerCamel name")
             if a in self.atoms and self.atoms[a] != name:
                 self.problems.append(f"{where}: value {a} is already in {self.atoms[a]}; share one type in types")
@@ -175,7 +175,7 @@ class World:
         for L in self.M.m["levels"]:
             for n in L["nodes"]:
                 for a in n.get("attrs", []):
-                    ma = re.fullmatch(r"([a-z][A-Za-z0-9]*)\s*:\s*(.+)", a)
+                    ma = re.fullmatch(rf"({MEMBER})\s*:\s*(.+)", a)
                     if not ma:
                         continue
                     yield L, n, ma.group(1), Type(ma.group(2))
@@ -273,7 +273,7 @@ class World:
                 arrow = " -> ".join([d for _, _, d in params] + [f"{self._mult(res)} {rdecl or 'univ'}"]) if params else f"{self._mult(res)} {rdecl or 'univ'}"
                 self.fields.setdefault(verb, []).append({"owner": rcv, "mult": "query", "decl": arrow, "op": sl})
             for x in o.get("modifies", []):
-                mm = re.fullmatch(r"([A-Z][A-Za-z0-9]*)\.([a-z][A-Za-z0-9]*)", x)
+                mm = re.fullmatch(rf"({TYPE})\.({MEMBER})", x)
                 ok = mm and (any(f["owner"] == mm.group(1) and f["mult"] != "query" for f in self.fields.get(mm.group(2), []))
                              or self.sigs.get(ident(mm.group(2)), {}).get("of") == mm.group(1))
                 if not ok:

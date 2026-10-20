@@ -332,7 +332,7 @@ class Model:
         """slug -> (receiver, parameter names, verb) for well-formed signatures."""
         out = {}
         for o in self.m["operations"]:
-            mm = re.fullmatch(r"([A-Z][A-Za-z0-9]*)\.([a-z][A-Za-z0-9]*)", o["slug"])
+            mm = re.fullmatch(rf"({TYPE})\.({MEMBER})", o["slug"])
             ms = re.fullmatch(r"\s*\((.*)\)\s*→\s*(.+)", o.get("sig", ""))
             if not (mm and ms):
                 continue
@@ -355,6 +355,8 @@ def dump(data, pad=""):
 
 GRAMMAR = __import__("pathlib").Path(__file__).resolve().parents[2] / "skills/zoom/references/schema/assets/schema.json"
 SCHEMA = json.loads(GRAMMAR.read_text(encoding="utf-8"))
+# the grammar owns each naming pattern; code builds larger expressions from them unanchored instead of copying them
+TYPE, MEMBER = (SCHEMA["$defs"][k]["pattern"].strip("^$") for k in ("type-name", "member"))
 TYPES = {"string": str, "array": list, "object": dict, "integer": int, "number": (int, float), "boolean": bool, "null": type(None)}
 
 
@@ -377,7 +379,7 @@ def shape(data, schema=SCHEMA, path="schema", root=None):
         return shape(data, root["$defs"][schema["$ref"].rsplit("/", 1)[1]], path, root)
     want = schema.get("type")
     if want and not any(isinstance(data, TYPES[t]) and not (t in ("integer", "number") and isinstance(data, bool)) for t in ([want] if isinstance(want, str) else want)):
-        return [(rule, f"{path}: should be {want if isinstance(want, str) else ' or '.join(want)}")]
+        return [(rule, f"{path}: {json.dumps(data, ensure_ascii=False)[:40]} should be {want if isinstance(want, str) else ' or '.join(want)}")]
     if "const" in schema and data != schema["const"]:
         return [(rule, f"{path}: should be {json.dumps(schema['const'])}")]
     if "enum" in schema and data not in schema["enum"]:

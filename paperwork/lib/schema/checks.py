@@ -6,7 +6,7 @@ from . import formula as F
 from . import plan as params
 from . import prover as A
 from . import sources as S
-from .model import places, plan, split_top, walk_steps
+from .model import MEMBER, places, plan, split_top, walk_steps
 
 NODE_MEDIA, EDGE_MEDIA = {"tree", "checklist"}, {"diff", "payload"}
 first_word = lambda t: t.strip().split()[0].lower() if t and t.strip() else ""
@@ -325,7 +325,7 @@ def typed(M):
             out.append(f'{sl}{o.get("sig", "")}: write Receiver.verb and (name: Type, …) → Result')
             continue
         params = split_top(re.match(r"\s*\((.*)\)", o["sig"]).group(1))
-        out += [f"{sl}: parameter {p} needs name: Type" for p in params if not re.fullmatch(r"[a-z][A-Za-z0-9]*\s*:\s*.+", p)]
+        out += [f"{sl}: parameter {p} needs name: Type" for p in params if not re.fullmatch(rf"{MEMBER}\s*:\s*.+", p)]
     for L in M.m["levels"]:
         for n in L["nodes"]:
             ops = [x for x in n.get("ops", []) if x in M.sigs]
@@ -337,7 +337,7 @@ def typed(M):
                 if outs and not any(made & A.artifact_types(l) for l in outs):
                     out.append(f'{L["id"]}: {n["label"]} hands on {", ".join(outs)}, but none of its operations returns it')
             for a in n.get("attrs", []):
-                ma = re.fullmatch(r"([a-z][A-Za-z0-9]*)\s*:\s*(.+)", a)
+                ma = re.fullmatch(rf"({MEMBER})\s*:\s*(.+)", a)
                 if not ma or L["kind"] != "topology":
                     out.append(f'{n["label"]}: attribute "{a}" is name: Type on a component')
         if L["kind"] != "topology":
@@ -423,8 +423,9 @@ def opens(M):
             out.append(("nest-unrefined", f'{n["id"]}: nests a {L["kind"]} level with no interface claim; map its edges onto ports to refine it'))
         elif L["kind"] != "state":
             ids = {x["id"] for x in L["nodes"]}
-            need_in = sorted({e["label"] for e in P["edges"] if e["to"] == n["id"]} | {t["label"] for t in P.get("triggers", []) if t["to"] == n["id"]})
-            need_out = sorted({e["label"] for e in P["edges"] if e["from"] == n["id"]})
+            # lists, not sets: two parent edges may share a label, and each needs its own port
+            need_in = sorted([e["label"] for e in P["edges"] if e["to"] == n["id"]] + [t["label"] for t in P.get("triggers", []) if t["to"] == n["id"]])
+            need_out = sorted([e["label"] for e in P["edges"] if e["from"] == n["id"]])
             got_in = sorted(f.get("edge") for f in L.get("in", []) if f.get("to") in ids)
             got_out = sorted(f.get("edge") for f in L.get("out", []) if f.get("from") and set([f["from"]] if isinstance(f["from"], str) else f["from"]) <= ids)
             if (got_in, got_out) != (need_in, need_out):
@@ -447,13 +448,16 @@ def gates(M):
             if g == "fork" and len(outs) < 2:
                 out.append(("gates", f'{n["id"]}: a fork has two or more edges out'))
             if g == "join":
-                seen, todo = set(), list(ins)
-                while todo:
-                    x = todo.pop()
-                    if x not in seen:
-                        seen.add(x)
-                        todo += [e["from"] for e in L["edges"] if e["to"] == x]
-                if len(ins) < 2 or not any(M.nodes[x].get("gate") == "fork" for x in seen):
+                def above(x):
+                    seen, todo = set(), [x]
+                    while todo:
+                        y = todo.pop()
+                        if y not in seen:
+                            seen.add(y)
+                            todo += [e["from"] for e in L["edges"] if e["to"] == y]
+                    return {y for y in seen if M.nodes[y].get("gate") == "fork"}
+                # one fork must lie above every edge in, so each comes from one of its branches
+                if len(ins) < 2 or not set.intersection(*map(above, ins)):
                     out.append(("join-without-fork", f'{n["id"]}: a join has two or more edges in, from branches of a fork before it'))
     return out
 

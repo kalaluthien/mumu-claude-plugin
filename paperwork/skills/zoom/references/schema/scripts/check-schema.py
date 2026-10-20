@@ -118,7 +118,11 @@ def prose(files):
             for v in node:
                 collect(v)
     collect(SCHEMA)
-    for doc in [pathlib.Path(f) for f in files] or sorted(HERE.parent.glob("*.md")):
+    docs = [pathlib.Path(f) for f in files] or sorted(HERE.parent.glob("*.md"))
+    if missing := [str(d) for d in docs if not d.is_file()]:
+        print(f"prose: no such file: {', '.join(missing)}", file=sys.stderr)
+        return 2
+    for doc in docs:
         text = doc.read_text(encoding="utf-8")
         if "assets/schema.json" not in text:
             out.append(f"{doc.name}: links no assets/schema.json")
@@ -142,6 +146,9 @@ def main(args):
         except (OSError, ValueError) as e:
             print(f"{args[1]}: not a JSON document: {e}", file=sys.stderr)
             return 2
+    if cmd == "ids" and len(args) == 2 and shape(json.loads(pathlib.Path(args[1]).read_text(encoding="utf-8"))):
+        print(f"{args[1]}: breaks the grammar, so it has no ids yet; run check", file=sys.stderr)
+        return 2
     if cmd == "check" and len(args) == 2:
         return check(args[1])
     if cmd == "fixtures":

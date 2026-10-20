@@ -67,8 +67,7 @@
    "type": "object",
    "description": "Outside types, \"Name\": \"One sentence.\", or shared values, \"Name\": \"{a, b} One sentence.\"",
    "propertyNames": {
-    "pattern": "^[A-Z][A-Za-z0-9]*$",
-    "x-rule": "name-pattern"
+    "$ref": "#/$defs/type-name"
    }
   },
   "scenarios": {
@@ -654,6 +653,18 @@
    "bool": {
     "type": "boolean"
    }
+  },
+  "type-name": {
+   "type": "string",
+   "pattern": "^[A-Z][A-Za-z0-9]*$",
+   "x-rule": "name-pattern",
+   "description": "A type, a component's identifier or an operation's receiver, in PascalCase."
+  },
+  "member": {
+   "type": "string",
+   "pattern": "^[a-z][A-Za-z0-9]*$",
+   "x-rule": "name-pattern",
+   "description": "A parameter, attribute, verb or value inside a signature or formula, in lowerCamel."
   }
  }
 }

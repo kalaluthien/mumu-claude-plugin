@@ -8,29 +8,33 @@ time means something different in each.
 
 ## Topology
 
-Time does not matter: nodes are components that exist together, and an edge is a relation that holds between them,
-read from source to target. A rule on a node or edge holds at every moment. A topology level is what a system is made
-of; it answers "what is there, and what depends on what".
+A topology level is a typed graph: each node is a component, an instance of the type its label names, and each edge
+a relation, a field from the source's type to the target's, read from source to target. Time plays no part, so a
+rule on a node or edge is an invariant that holds in every instance of the graph. It answers "what is there, and what
+depends on what".
 
 ## Workflow
 
-A run goes from its first activity to its last: nodes are activities, and an edge hands an artifact from one to the
-next once the first is done, its `must` rules acting as guards. State lives only while a run goes. A fork starts
-branches that run side by side, and a join waits until every branch has arrived; partitions say who does each
+A workflow level is a Petri-net-like flow: each activity is a transition that fires once the artifacts on its edges in
+are present, and each edge is a place that holds the artifact handed on, its `must` rules acting as guards. A fork
+puts a token on every branch and a join fires only when all have arrived; a trigger puts a token in from outside, and
+a port is a place shared with the parent level. State lives only while a run goes; partitions say who does each
 activity.
 
 ## State
 
-One subject persists and moves between states: nodes are states, each the set of subject instances in it, and an edge
-is an event that moves an instance from one state to the next. Each region holds every instance in exactly one of its
-states, from its initial state on; regions change on their own and meet only through syncs, where an event in one
-region, while a state holds, causes an event in another.
+A state level is a Harel statechart over one subject: each node is a state, the set of subject instances in it, and
+each edge an event that moves an instance from one state to the next. Each region is orthogonal and holds every
+instance in exactly one of its states, from its `initial` state on; regions change on their own and meet only
+through syncs, where an event in one region, while a state holds, causes an event in another.
 
 ## Opening a level
 
 A node that opens a level of another kind shows a different view of the same thing (`link: view`): a component's
 workflow, an activity's states. A node that opens a level of its own kind refines it: the child's ports carry exactly
-the parent node's edges, so what holds of the parent holds of the child; `link: nest` drops that claim.
+the parent node's edges, so what holds of the parent holds of the child; `link: nest` drops that claim. A state level
+opened from a state needs no ports: an event into the parent enters the child at its initial state, and an event out
+of the parent leaves whichever child state holds, as in a Harel superstate.
 
 ## Metadata
 
