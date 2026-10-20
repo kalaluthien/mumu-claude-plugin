@@ -1,0 +1,670 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://github.com/kalaluthien/mumu-claude-plugin/paperwork/skills/zoom/references/schema/assets/schema.json",
+ "title": "Schema",
+ "description": "A system as levels of a topology, a workflow or a statechart; a node opens the level inside it.",
+ "type": "object",
+ "required": [
+  "version",
+  "title",
+  "level",
+  "scenarios",
+  "operations",
+  "rules"
+ ],
+ "properties": {
+  "title": {
+   "type": "string",
+   "description": "The page's and the file's name."
+  },
+  "plan": {
+   "type": "object",
+   "additionalProperties": false,
+   "description": "What this model changes from the defaults.",
+   "properties": {
+    "intent": {
+     "type": "string"
+    },
+    "scenarios": {
+     "enum": [
+      "entry",
+      "every"
+     ]
+    },
+    "prove": {
+     "enum": [
+      "rules",
+      "off"
+     ]
+    },
+    "strict": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "why": {
+     "type": "object"
+    },
+    "sources": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "exclude": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "string"
+     }
+    },
+    "root": {
+     "type": "string"
+    }
+   }
+  },
+  "types": {
+   "type": "object",
+   "description": "Outside types, \"Name\": \"One sentence.\", or shared values, \"Name\": \"{a, b} One sentence.\"",
+   "propertyNames": {
+    "$ref": "#/$defs/type-name"
+   }
+  },
+  "scenarios": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "slug",
+     "text",
+     "walk"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "slug": {
+      "$ref": "#/$defs/id"
+     },
+     "text": {
+      "type": "string",
+      "description": "A use, When <actor> does X, Y happens; or a claim, To see why <claim>, …"
+     },
+     "walk": {
+      "type": "array",
+      "description": "Steps in order: {place, does, expects, edge?}; a list among them is a fork of branches (a step, a list of steps, or [])."
+     },
+     "refs": {
+      "$ref": "#/$defs/refs"
+     }
+    }
+   }
+  },
+  "operations": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "slug",
+     "sig",
+     "text"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "slug": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Za-z0-9]*\\.[a-z][A-Za-z0-9]*$",
+      "x-rule": "name-pattern",
+      "description": "Receiver.verb"
+     },
+     "sig": {
+      "type": "string",
+      "description": "(name: Type, other: {a, b}, many: Type[]) → Result"
+     },
+     "text": {
+      "type": "string"
+     },
+     "pre": {
+      "type": "string",
+      "description": "Alloy over self and the parameters."
+     },
+     "post": {
+      "type": "string",
+      "description": "Alloy over self, the parameters and result; the next state with after."
+     },
+     "modifies": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Receiver.attribute it may change."
+     },
+     "refs": {
+      "$ref": "#/$defs/refs"
+     }
+    }
+   }
+  },
+  "rules": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "slug",
+     "kind",
+     "formula",
+     "text"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "slug": {
+      "$ref": "#/$defs/id"
+     },
+     "kind": {
+      "enum": [
+       "must",
+       "should"
+      ]
+     },
+     "formula": {
+      "type": "string",
+      "description": "Alloy 6 over the module's names."
+     },
+     "text": {
+      "type": "string"
+     },
+     "scope": {
+      "type": "string",
+      "description": "Only for large numbers: 12 Type, 5 Int."
+     },
+     "refs": {
+      "$ref": "#/$defs/refs"
+     }
+    }
+   }
+  },
+  "level": {
+   "$ref": "#/$defs/level"
+  },
+  "version": {
+   "const": "1",
+   "description": "The grammar version this document is written in; changelog.md lists each."
+  },
+  "meta": {
+   "$ref": "#/$defs/meta"
+  }
+ },
+ "additionalProperties": false,
+ "x-required-rule": {
+  "version": "version-missing"
+ },
+ "$defs": {
+  "refs": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "description": "[name](https://…) or [name](path:line)"
+  },
+  "media": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "type"
+    ],
+    "description": "example|code|quote|pitfall {title?, text, invented?, refs?}; facts {items: [[term, sentence]]}; tree {items}; checklist {items}; payload {text}; diff {before, after}; insight {move, vs, gain, rule}",
+    "properties": {
+     "type": {
+      "enum": [
+       "example",
+       "code",
+       "quote",
+       "pitfall",
+       "facts",
+       "tree",
+       "checklist",
+       "payload",
+       "diff",
+       "insight"
+      ]
+     }
+    }
+   }
+  },
+  "level": {
+   "type": "object",
+   "required": [
+    "kind",
+    "title",
+    "why",
+    "nodes",
+    "edges"
+   ],
+   "properties": {
+    "kind": {
+     "enum": [
+      "topology",
+      "workflow",
+      "state"
+     ],
+     "x-rule": "kind-unknown",
+     "description": "topology: a typed graph of components and relations; workflow: a flow of steps with fork, join, triggers and ports; state: a statechart with regions, initial states and syncs. Readings in semantics.md."
+    },
+    "title": {
+     "type": "string",
+     "description": "A noun phrase for the whole."
+    },
+    "why": {
+     "type": "string",
+     "description": "What this level shows."
+    },
+    "subject": {
+     "type": "string",
+     "description": "State levels: the type whose states these are."
+    },
+    "initial": {
+     "type": [
+      "string",
+      "array"
+     ],
+     "description": "State levels: the initial state, one per region."
+    },
+    "init": {
+     "type": "string",
+     "description": "Alloy true at the start."
+    },
+    "partitions": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "id",
+       "label"
+      ],
+      "properties": {
+       "id": {
+        "$ref": "#/$defs/id"
+       },
+       "label": {
+        "type": "string"
+       }
+      }
+     },
+     "description": "Workflow lanes (who or where) or schema groups: one criterion per level."
+    },
+    "triggers": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "to",
+       "label"
+      ],
+      "description": "{to, label, every?, what, ops, rules}"
+     }
+    },
+    "syncs": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "name",
+       "when",
+       "then",
+       "what"
+      ],
+      "description": "{name, when: event, where?: state, then: event in another region, what}",
+      "properties": {
+       "name": {
+        "$ref": "#/$defs/id"
+       },
+       "when": {
+        "type": "string"
+       },
+       "where": {
+        "type": "string"
+       },
+       "then": {
+        "type": "string"
+       },
+       "what": {
+        "type": "string"
+       }
+      }
+     }
+    },
+    "in": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "edge",
+       "to"
+      ]
+     }
+    },
+    "out": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "edge",
+       "from"
+      ]
+     }
+    },
+    "media": {
+     "$ref": "#/$defs/media"
+    },
+    "nodes": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "id",
+       "label"
+      ],
+      "properties": {
+       "id": {
+        "$ref": "#/$defs/id"
+       },
+       "label": {
+        "type": "string"
+       },
+       "what": {
+        "type": "string"
+       },
+       "partition": {
+        "type": "string"
+       },
+       "abstract": {
+        "type": "boolean"
+       },
+       "singleton": {
+        "type": "boolean"
+       },
+       "attrs": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "name: T, T?, T[], T[1..], A | B, (A, B)[], Bool"
+       },
+       "ops": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "rules": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "mark": {
+        "type": "array",
+        "items": {
+         "enum": [
+          "happy",
+          "failure",
+          "optional",
+          "unsure"
+         ]
+        }
+       },
+       "refs": {
+        "$ref": "#/$defs/refs"
+       },
+       "media": {
+        "$ref": "#/$defs/media"
+       },
+       "opens": {
+        "$ref": "#/$defs/level",
+        "description": "The level drawn inside this node."
+       },
+       "region": {
+        "type": "string"
+       },
+       "qty": {
+        "$ref": "#/$defs/qty"
+       },
+       "meta": {
+        "$ref": "#/$defs/meta"
+       },
+       "link": {
+        "enum": [
+         "view",
+         "nest"
+        ],
+        "description": "How the level this node opens relates to it: unmarked, a same-kind refinement whose ports or entry carry every edge of the node; view, a level of another kind; nest, a same-kind level with no interface claim (warned)."
+       },
+       "gate": {
+        "enum": [
+         "fork",
+         "join"
+        ],
+        "description": "Workflow steps only: a fork starts branches that run side by side; a join waits for all of them."
+       }
+      },
+      "additionalProperties": false
+     }
+    },
+    "edges": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "from",
+       "to",
+       "label"
+      ],
+      "properties": {
+       "from": {
+        "type": "string"
+       },
+       "to": {
+        "type": "string"
+       },
+       "label": {
+        "type": "string"
+       },
+       "what": {
+        "type": "string"
+       },
+       "ops": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Events only."
+       },
+       "rules": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "On a workflow or state edge, a must is a guard."
+       },
+       "is": {
+        "type": "string",
+        "description": "An artifact that is a component: its id."
+       },
+       "attr": {
+        "type": "string",
+        "description": "A relation: the attribute it stands for."
+       },
+       "mark": {
+        "type": "array",
+        "items": {
+         "enum": [
+          "happy",
+          "failure",
+          "optional",
+          "unsure"
+         ]
+        }
+       },
+       "refs": {
+        "$ref": "#/$defs/refs"
+       },
+       "media": {
+        "$ref": "#/$defs/media"
+       },
+       "qty": {
+        "$ref": "#/$defs/qty"
+       },
+       "meta": {
+        "$ref": "#/$defs/meta"
+       }
+      },
+      "additionalProperties": false
+     }
+    },
+    "regions": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "id",
+       "label"
+      ],
+      "properties": {
+       "id": {
+        "$ref": "#/$defs/id"
+       },
+       "label": {
+        "type": "string"
+       }
+      }
+     },
+     "description": "State levels: orthogonal regions, parts of the subject that change state on their own."
+    },
+    "refs": {
+     "$ref": "#/$defs/refs"
+    },
+    "meta": {
+     "$ref": "#/$defs/meta"
+    }
+   },
+   "description": "A level: the root is the model's level, and a node's opens is the level inside it.",
+   "additionalProperties": false
+  },
+  "qty": {
+   "type": "object",
+   "required": [
+    "value",
+    "kind"
+   ],
+   "additionalProperties": false,
+   "description": "How much: a stock, count or capacity on a node; a flow, count or delay (a deadline) on an edge.",
+   "properties": {
+    "value": {
+     "type": "number"
+    },
+    "unit": {
+     "type": "string",
+     "description": "GtC, USD, d, beds; a flow is in its stock's unit per time: GtC/yr."
+    },
+    "kind": {
+     "enum": [
+      "stock",
+      "count",
+      "capacity",
+      "flow",
+      "delay"
+     ]
+    }
+   }
+  },
+  "id": {
+   "type": "string",
+   "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+   "x-rule": "name-pattern",
+   "description": "Lowercase words joined by -."
+  },
+  "meta": {
+   "type": "object",
+   "description": "Metadata: the reserved keys below, or <name>-<format> with <format> a key of $defs.format.",
+   "properties": {
+    "note": {
+     "type": "string",
+     "description": "A remark for the reader."
+    },
+    "diff": {
+     "enum": [
+      "added",
+      "removed",
+      "changed"
+     ],
+     "description": "What a change does to this element."
+    },
+    "evidence": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "pattern": "^([^\\s:#]+:[0-9]+(-[0-9]+)?|https?://\\S+|[0-9a-f]{7,40})$",
+      "x-rule": "evidence-pointer"
+     },
+     "description": "Where it comes from: path:line, a url or a commit sha."
+    },
+    "constraint": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "pattern": "^[^\\s#]+#[^#]+$",
+      "x-rule": "constraint-id"
+     },
+     "description": "The requirements it serves: <path or url>#<requirement>."
+    }
+   },
+   "propertyNames": {
+    "pattern": "^(note|diff|evidence|constraint|[a-z][a-z0-9]*(-[a-z0-9]+)*-[a-z]+)$",
+    "x-rule": "meta-key"
+   },
+   "additionalProperties": {
+    "x-format-of-key": true
+   }
+  },
+  "format": {
+   "text": {
+    "type": "string"
+   },
+   "number": {
+    "type": "number"
+   },
+   "url": {
+    "type": "string",
+    "pattern": "^https?://\\S+$"
+   },
+   "ms": {
+    "type": "number",
+    "minimum": 0
+   },
+   "percent": {
+    "type": "number",
+    "minimum": 0,
+    "maximum": 100
+   },
+   "date": {
+    "type": "string",
+    "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+    "format": "date"
+   },
+   "bool": {
+    "type": "boolean"
+   }
+  },
+  "type-name": {
+   "type": "string",
+   "pattern": "^[A-Z][A-Za-z0-9]*$",
+   "x-rule": "name-pattern",
+   "description": "A type, a component's identifier or an operation's receiver, in PascalCase."
+  },
+  "member": {
+   "type": "string",
+   "pattern": "^[a-z][A-Za-z0-9]*$",
+   "x-rule": "name-pattern",
+   "description": "A parameter, attribute, verb or value inside a signature or formula, in lowerCamel."
+  }
+ }
+}

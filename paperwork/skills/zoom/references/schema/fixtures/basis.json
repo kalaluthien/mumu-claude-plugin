@@ -1,0 +1,127 @@
+{
+ "version": "1",
+ "title": "Shop",
+ "plan": {
+  "intent": "How does an order reach the store?"
+ },
+ "scenarios": [
+  {
+   "slug": "place-order",
+   "text": "When a customer orders, the web app takes and charges it, then saves it in the store.",
+   "walk": [
+    {
+     "place": "web",
+     "does": "The customer opens the web app.",
+     "expects": "The web app shows the cart."
+    },
+    {
+     "place": "take",
+     "does": "The web app takes the order.",
+     "expects": "An order exists."
+    },
+    {
+     "place": "charge",
+     "does": "The web app charges the card.",
+     "expects": "The order is paid."
+    },
+    {
+     "place": "store",
+     "does": "The web app saves the order.",
+     "expects": "The store holds the order."
+    }
+   ]
+  },
+  {
+   "slug": "place-order-again",
+   "text": "When a customer orders, the web app takes and charges it, then saves it in the store.",
+   "walk": [
+    {
+     "place": "web",
+     "does": "The customer opens the web app.",
+     "expects": "The web app shows the cart."
+    },
+    {
+     "place": "take",
+     "does": "The web app takes the order.",
+     "expects": "An order exists."
+    },
+    {
+     "place": "charge",
+     "does": "The web app charges the card.",
+     "expects": "The order is paid."
+    },
+    {
+     "place": "store",
+     "does": "The web app saves the order.",
+     "expects": "The store holds the order."
+    }
+   ]
+  }
+ ],
+ "operations": [],
+ "rules": [
+  {
+   "slug": "orders-kept",
+   "kind": "must",
+   "formula": "all w: WebApp | some w.savesOrders",
+   "text": "The web app saves orders in the store."
+  }
+ ],
+ "level": {
+  "kind": "topology",
+  "title": "Shop",
+  "why": "What the shop is made of.",
+  "nodes": [
+   {
+    "id": "web",
+    "label": "Web app",
+    "what": "Takes orders.",
+    "rules": [
+     "orders-kept"
+    ],
+    "link": "view",
+    "opens": {
+     "kind": "workflow",
+     "title": "Checkout",
+     "why": "How the web app handles one order.",
+     "nodes": [
+      {
+       "id": "take",
+       "label": "Taking order",
+       "what": "Read the cart."
+      },
+      {
+       "id": "charge",
+       "label": "Charging card",
+       "what": "Take the payment."
+      }
+     ],
+     "edges": [
+      {
+       "from": "take",
+       "to": "charge",
+       "label": "order",
+       "what": "The order to pay.",
+       "mark": [
+        "happy"
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "id": "store",
+    "label": "Store",
+    "what": "Keeps orders."
+   }
+  ],
+  "edges": [
+   {
+    "from": "web",
+    "to": "store",
+    "label": "saves orders",
+    "what": "The web app writes each order."
+   }
+  ]
+ }
+}

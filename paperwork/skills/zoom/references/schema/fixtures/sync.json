@@ -1,0 +1,145 @@
+{
+ "version": "1",
+ "title": "Fulfilment",
+ "plan": {
+  "intent": "How are payment and shipping of one order tracked?"
+ },
+ "types": {
+  "Order": "One customer's request to buy."
+ },
+ "scenarios": [
+  {
+   "slug": "pay-order",
+   "text": "When a customer pays, the order's payment goes from unpaid to paid.",
+   "walk": [
+    {
+     "place": "orders",
+     "does": "The desk looks up the order.",
+     "expects": "The order is found."
+    },
+    {
+     "place": "unpaid",
+     "does": "The order waits for payment.",
+     "expects": "The order is unpaid."
+    },
+    {
+     "place": "paid",
+     "does": "The customer pays.",
+     "expects": "The order is paid."
+    }
+   ]
+  },
+  {
+   "slug": "ship-order",
+   "text": "When the parcel leaves, the order's shipping goes from packing to shipped.",
+   "walk": [
+    {
+     "place": "orders",
+     "does": "The desk looks up the order.",
+     "expects": "The order is found."
+    },
+    {
+     "place": "packing",
+     "does": "The warehouse packs the order.",
+     "expects": "The parcel is packed."
+    },
+    {
+     "place": "shipped",
+     "does": "The carrier takes the parcel.",
+     "expects": "The order is shipped."
+    }
+   ]
+  }
+ ],
+ "operations": [],
+ "rules": [],
+ "level": {
+  "kind": "topology",
+  "title": "Desk",
+  "why": "Where orders are tracked.",
+  "nodes": [
+   {
+    "id": "orders",
+    "label": "Orders",
+    "what": "Tracks each order.",
+    "link": "view",
+    "opens": {
+     "kind": "state",
+     "title": "Order progress",
+     "why": "Payment and shipping move apart.",
+     "subject": "Order",
+     "initial": [
+      "unpaid",
+      "packing"
+     ],
+     "regions": [
+      {
+       "id": "payment",
+       "label": "Payment"
+      },
+      {
+       "id": "shipping",
+       "label": "Shipping"
+      }
+     ],
+     "nodes": [
+      {
+       "id": "unpaid",
+       "label": "Unpaid",
+       "what": "No money yet.",
+       "region": "payment"
+      },
+      {
+       "id": "paid",
+       "label": "Paid",
+       "what": "Money received.",
+       "region": "payment"
+      },
+      {
+       "id": "packing",
+       "label": "Packing",
+       "what": "Being packed.",
+       "region": "shipping"
+      },
+      {
+       "id": "shipped",
+       "label": "Shipped",
+       "what": "With the carrier.",
+       "region": "shipping"
+      }
+     ],
+     "edges": [
+      {
+       "from": "unpaid",
+       "to": "paid",
+       "label": "pay",
+       "what": "The customer pays.",
+       "mark": [
+        "happy"
+       ]
+      },
+      {
+       "from": "packing",
+       "to": "shipped",
+       "label": "ship",
+       "what": "The carrier takes it.",
+       "mark": [
+        "happy"
+       ]
+      }
+     ],
+     "syncs": [
+      {
+       "name": "ship-when-paid",
+       "when": "pay",
+       "where": "packing",
+       "then": "ship",
+       "what": "A paid order ships."
+      }
+     ]
+    }
+   }
+  ],
+  "edges": []
+ }
+}
