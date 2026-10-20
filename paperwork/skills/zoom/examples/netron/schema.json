@@ -1,0 +1,2223 @@
+{
+ "version": "1",
+ "title": "Netron",
+ "plan": {
+  "intent": "Netron이 모델 파일 하나를 받아 형식을 알아보고, 읽고, 그래프로 배치해 보여 주기까지 무엇이 어떻게 맞물리는가"
+ },
+ "types": {
+  "Window": "Netron 창 하나, 또는 Netron을 띄운 브라우저 탭 하나입니다. 한 번에 모델 하나를 보여 줍니다.",
+  "FormatModule": "ONNX, PyTorch, TensorFlow Lite처럼 형식 하나를 읽는 자바스크립트 모듈입니다. 모두 match와 open을 가진 ModelFactory를 내보냅니다.",
+  "Context": "형식 모듈이 파일을 들여다보는 창구입니다. 앞부분 바이트를 엿보고, JSON이나 protobuf로 읽어 보고, 옆 파일을 가져옵니다.",
+  "Worker": "그래프 배치를 맡는 Web Worker입니다. 데스크톱 앱에서는 Node의 worker_threads로 돕니다.",
+  "Category": "{layer, activation, pool, normalization, dropout, shape, tensor, transform, data, quantization, attention} 연산 종류의 분류입니다. 노드 머리의 색을 정합니다.",
+  "Reader": "형식 모듈 안의 읽기 방식 하나입니다. ONNX라면 protobuf, 텍스트, JSON, ORT 같은 방식이 따로 있습니다.",
+  "PythonExecution": "자바스크립트로 만든 Python 실행기입니다. pickle을 풀고 TorchScript 소스를 해석하며, torch 같은 모듈의 타입과 함수를 흉내 낸 레지스트리를 가집니다."
+ },
+ "scenarios": [
+  {
+   "slug": "open-a-model",
+   "text": "사용자가 모델 파일을 열면, Netron이 형식을 알아내 읽고 그래프를 배치해 보여 줍니다.",
+   "walk": [
+    {
+     "place": "waiting",
+     "does": "Netron 창이 아무 모델도 열지 않은 시작 화면에서 사용자를 기다립니다.",
+     "expects": "화면에는 그래프가 없고, 파일을 끌어다 놓거나 열기 메뉴로 열 수 있습니다."
+    },
+    {
+     "place": [
+      "browser",
+      "file"
+     ],
+     "does": "Waiting 안을 들여다보면, 사용자가 Browser page에 모델 파일을 끌어다 놓거나 골라 넘깁니다.",
+     "expects": "Browser page가 열 Model file 하나를 받았고, 함께 고른 옆 파일도 같이 넘어왔습니다."
+    },
+    {
+     "place": "waiting",
+     "does": "파일이 오는 길을 보았으니 다시 Netron 창의 Waiting 상태로 나옵니다.",
+     "expects": "창은 아직 시작 화면이고, 받은 파일을 열 준비가 되어 있습니다."
+    },
+    {
+     "place": "opening",
+     "does": "사용자가 파일을 열자 Netron이 load로 그 파일을 읽기 시작합니다.",
+     "expects": "창이 Opening으로 바뀌고, 화면에는 돌아가는 표시만 보입니다."
+    },
+    {
+     "place": "screening",
+     "does": "Opening 안을 들여다보면, Netron이 먼저 파일이 비었거나 모델이 아닌 모양인지 살핍니다.",
+     "expects": "파일이 모델 파일로 보이므로 다음으로 넘어가며, 비모델 파일이었다면 어떤 형식 모듈에도 넘어가지 않습니다."
+    },
+    {
+     "place": "shortlisting",
+     "does": "검사를 통과한 파일의 확장자와 앞 4KB 바이트 무늬로 후보 형식 모듈을 고릅니다.",
+     "expects": "확장자나 바이트 무늬가 맞는 모듈만 후보 목록에 남습니다."
+    },
+    {
+     "place": "matching",
+     "does": "후보 모듈들의 match가 차례로 파일을 들여다봅니다.",
+     "expects": "처음 알아본 모듈이 형식 이름을 붙인 맥락을 내놓고, 파일의 읽은 위치는 처음으로 돌아가 있습니다."
+    },
+    {
+     "place": "reading",
+     "does": "알아본 모듈이 matched context를 받아 파일을 끝까지 읽기 시작합니다.",
+     "expects": "읽기가 끝나면 형식 이름을 가진 모델이 나와야 하며, 이름이 없으면 실패로 칩니다."
+    },
+    {
+     "place": "decoding",
+     "does": "Reading the model 안을 들여다보면, match가 고른 읽기 방식이 파일을 풉니다.",
+     "expects": "그래프, 노드, 텐서의 원래 기록이 decoded records로 나옵니다."
+    },
+    {
+     "place": "assembling",
+     "does": "decoded records를 받아 Model, Graph, Node 객체를 짓습니다.",
+     "expects": "형식 이름을 가진 모델 객체가 생기고, 다른 파일에 있는 텐서가 있으면 그 위치가 알려집니다."
+    },
+    {
+     "place": [
+      "model",
+      "graph",
+      "node",
+      "optype",
+      "node",
+      "argument",
+      "value",
+      "tensor"
+     ],
+     "does": "Building the model 안을 들여다보면, 지은 모델이 Model에서 Graph, Node, Op type으로, Node에서 Argument, Value, Tensor로 이어집니다.",
+     "expects": "모델은 형식 이름과 그래프 목록을 갖고, 노드는 연산 종류와 인자를 거쳐 값과 가중치 텐서에 닿습니다."
+    },
+    {
+     "place": "assembling",
+     "does": "모델의 짜임을 보았으니 다시 Building the model로 나옵니다.",
+     "expects": "모델 객체가 다 지어져 형식 모듈 밖으로 돌려줄 준비가 됩니다."
+    },
+    {
+     "place": "reading",
+     "does": "읽기 방식 안에서 나와 Reading the model로 돌아옵니다.",
+     "expects": "형식 모듈이 형식 이름을 가진 모델을 돌려주어 읽기가 성공으로 끝납니다."
+    },
+    {
+     "place": "opening",
+     "does": "형식 알아내기를 마치고 Netron 창의 Opening 상태로 돌아옵니다.",
+     "expects": "창은 읽은 모델을 쥐고 있고, 화면에는 아직 돌아가는 표시만 있습니다."
+    },
+    {
+     "place": "laying",
+     "does": "Netron이 모델에서 노드가 있는 첫 그래프를 골라 배치를 시작합니다.",
+     "expects": "창이 Laying out으로 바뀌고, 그래프는 배치가 끝나기 전이라 아직 보이지 않습니다."
+    },
+    {
+     "place": "building",
+     "does": "Laying out 안을 들여다보면, 먼저 노드마다 상자를, 이름이 같은 값마다 선을 만듭니다.",
+     "expects": "이름이 같은 값은 선 하나로 합쳐지고, 가중치는 상자 안의 줄이 된 view graph가 생깁니다."
+    },
+    {
+     "place": "measuring",
+     "does": "view graph의 상자와 선 이름을 실제로 그려 크기를 잽니다.",
+     "expects": "크기만 담은 measured view graph가 워커에 보낼 메시지로 준비됩니다."
+    },
+    {
+     "place": "ranking",
+     "does": "워커가 dagre로 층을 나누고 노드와 선의 좌표를 계산합니다.",
+     "expects": "노드마다 중심 좌표, 선마다 꺾이는 점 목록이 node positions로 돌아옵니다."
+    },
+    {
+     "place": "placing",
+     "does": "받은 좌표대로 상자와 선을 옮기고, 이전에 보던 배율과 스크롤을 되살립니다.",
+     "expects": "모든 상자와 선이 계산된 자리에 놓여 그릴 준비가 끝납니다."
+    },
+    {
+     "place": "laying",
+     "does": "배치 과정 안에서 나와 Laying out 상태로 돌아옵니다.",
+     "expects": "배치가 끝났으므로 이제 그래프를 보여 줄 수 있습니다."
+    },
+    {
+     "place": "showing",
+     "does": "배치가 끝나자 Netron이 그래프를 그리고 이전에 보던 배율과 위치를 되살립니다.",
+     "expects": "창이 Showing으로 바뀌고, 그래프는 배치를 마친 모습으로만 화면에 나타납니다."
+    },
+    {
+     "place": [
+      "view",
+      "box"
+     ],
+     "does": "Showing 안을 들여다보면, Graph view가 그래프의 노드마다 Node box를 그려 놓았습니다.",
+     "expects": "노드마다 상자가 보이고, 머리에는 연산 이름이, 가중치 표시가 켜져 있으면 몸통에 가중치가 한 줄씩 보입니다."
+    },
+    {
+     "place": "showing",
+     "does": "화면의 짜임을 보았으니 다시 Showing 상태로 나옵니다.",
+     "expects": "모델 파일이 열려 첫 그래프가 배치된 그림으로 보이고, 사용자는 노드를 골라 살펴볼 수 있습니다."
+    }
+   ],
+   "refs": [
+    "[Netron README](https://github.com/lutzroeder/netron)"
+   ]
+  },
+  {
+   "slug": "open-a-model-rejected",
+   "text": "사용자가 모델이 아닌 파일을 열면, Netron이 그것이 무엇인지 알려 주고 시작 화면으로 돌아갑니다.",
+   "walk": [
+    {
+     "place": "waiting",
+     "does": "Netron 창이 시작 화면에서 파일을 기다립니다.",
+     "expects": "아직 아무 모델도 열려 있지 않습니다."
+    },
+    {
+     "place": "opening",
+     "does": "사용자가 모델이 아닌 파일을 열자 Netron이 load로 읽기 시작합니다.",
+     "expects": "창이 Opening으로 바뀌고, 화면에는 돌아가는 표시만 보입니다."
+    },
+    {
+     "place": "screening",
+     "does": "Opening 안을 들여다보면, Netron이 파일의 앞부분 바이트를 알려진 비모델 모양과 견줍니다.",
+     "expects": "파일이 알려진 비모델 모양으로 판정되어, 어떤 형식 모듈에도 넘어가지 않습니다."
+    },
+    {
+     "place": "explaining",
+     "does": "비모델 파일의 이름을 들고 와서, 읽지 못한 이유를 사람이 알아볼 말로 바꿉니다.",
+     "expects": "오류 설명이 그 파일이 무엇인지, 예를 들어 HTML이나 Jupyter 노트북인지 이름을 댑니다."
+    },
+    {
+     "place": "opening",
+     "does": "형식 알아내기에서 나와 Opening 상태로 돌아옵니다.",
+     "expects": "창은 모델 없이 오류 설명만 쥐고 있습니다."
+    },
+    {
+     "place": "failed",
+     "does": "모델이 아닌 파일임을 알았으므로 Netron이 열기를 멈춥니다.",
+     "expects": "창이 Failed로 바뀌고, 열지 못한 이유와 그 파일이 무엇인지 보여 줍니다."
+    },
+    {
+     "place": "waiting",
+     "does": "사용자가 오류 메시지를 닫습니다.",
+     "expects": "창이 시작 화면으로 돌아가고, 아무 그래프도 열리지 않은 채 다음 파일을 기다립니다."
+    }
+   ],
+   "refs": [
+    "[view.js: _openSignature](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7854)"
+   ]
+  },
+  {
+   "slug": "cancel-a-slow-layout",
+   "text": "아주 큰 그래프의 배치가 오래 걸리면, 사용자가 기다리지 않고 그만둘 수 있습니다.",
+   "walk": [
+    {
+     "place": "opening",
+     "does": "Netron이 아주 큰 모델 파일을 읽고 있는 Opening 상태에서 시작합니다.",
+     "expects": "화면에는 돌아가는 표시만 보입니다."
+    },
+    {
+     "place": "laying",
+     "does": "읽기를 마친 Netron이 노드가 있는 첫 그래프를 골라 배치를 시작합니다.",
+     "expects": "창이 Laying out으로 바뀌고, 그래프는 아직 보이지 않습니다."
+    },
+    {
+     "place": "ranking",
+     "does": "Laying out 안을 들여다보면, 워커가 dagre로 큰 그래프의 좌표를 계산하고 있습니다.",
+     "expects": "계산이 2.5초를 넘기자 오래 걸릴 수 있다는 알림과 함께 취소할지 묻습니다."
+    },
+    {
+     "place": "laying",
+     "does": "좌표 계산이 끝나지 않은 채 Laying out 상태로 나와 사용자의 답을 기다립니다.",
+     "expects": "그래프는 여전히 보이지 않고, 취소할지 묻는 알림이 떠 있습니다."
+    },
+    {
+     "place": "waiting",
+     "does": "사용자가 기다리지 않고 취소를 누르자 Netron이 모델을 내려놓습니다.",
+     "expects": "그리다 만 그림 없이 시작 화면으로 돌아가고, 열려 있는 모델은 없습니다."
+    }
+   ],
+   "refs": [
+    "[grapher.js: layout timeout](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/grapher.js#L262)"
+   ]
+  },
+  {
+   "slug": "open-from-python",
+   "text": "Python에서 netron.start를 부르면, 로컬 서버가 브라우저 페이지를 띄워 같은 화면으로 모델을 엽니다.",
+   "walk": [
+    {
+     "place": "waiting",
+     "does": "Netron 창은 아직 아무 모델도 열지 않은 Waiting 상태에서 시작합니다.",
+     "expects": "화면에는 그래프가 없습니다."
+    },
+    {
+     "place": [
+      "python",
+      "browser",
+      "host",
+      "browser",
+      "file"
+     ],
+     "does": "Waiting 안을 들여다보면, Python server가 Browser page를 띄우고, 그 페이지가 Host 노릇을 하며 Model file을 읽습니다.",
+     "expects": "Browser page가 화면 코드의 Host가 되어, 서버가 내준 모델 파일을 받아 둡니다."
+    },
+    {
+     "place": "waiting",
+     "does": "파일이 오는 길을 보았으니 다시 Waiting 상태로 나옵니다.",
+     "expects": "창은 서버가 내준 파일을 열 준비가 되어 있습니다."
+    },
+    {
+     "place": "opening",
+     "does": "페이지가 서버가 내준 파일을 load로 읽기 시작합니다.",
+     "expects": "창이 Opening으로 바뀌어, 브라우저에서 직접 열 때와 같은 화면이 그 모델을 엽니다."
+    }
+   ],
+   "refs": [
+    "[Netron README](https://github.com/lutzroeder/netron)",
+    "[server.py: serve](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/server.py#L262)"
+   ]
+  },
+  {
+   "slug": "open-in-desktop",
+   "text": "데스크톱 앱에서 최근 파일을 고르면, 같은 화면 코드가 그 파일을 엽니다.",
+   "walk": [
+    {
+     "place": "waiting",
+     "does": "데스크톱 앱의 Netron 창이 Waiting 상태에서 시작합니다.",
+     "expects": "아무 모델도 열려 있지 않고, 최근에 연 파일 목록에서 고를 수 있습니다."
+    },
+    {
+     "place": [
+      "desktop",
+      "host",
+      "desktop",
+      "file"
+     ],
+     "does": "Waiting 안을 들여다보면, Desktop app이 Host 노릇을 하며 사용자가 고른 최근 파일을 디스크에서 읽습니다.",
+     "expects": "Desktop app이 Model file을 읽어 화면 코드에 넘기고, 같은 폴더의 파일도 옆 파일로 가져올 수 있습니다."
+    },
+    {
+     "place": "waiting",
+     "does": "파일이 오는 길을 보았으니 다시 Waiting 상태로 나옵니다.",
+     "expects": "창은 고른 최근 파일을 열 준비가 되어 있습니다."
+    },
+    {
+     "place": "opening",
+     "does": "같은 화면 코드가 load로 그 파일을 읽기 시작합니다.",
+     "expects": "창이 Opening으로 바뀌어, 브라우저에서와 같은 과정으로 파일을 엽니다."
+    }
+   ],
+   "refs": [
+    "[app.js: recents](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/app.js#L329)"
+   ]
+  },
+  {
+   "slug": "step-into-a-subgraph",
+   "text": "그래프를 보다가 하위 그래프로 들어가면, 경로가 하나 늘고 그 그래프를 새로 배치해 보여 줍니다.",
+   "walk": [
+    {
+     "place": "showing",
+     "does": "Netron 창이 그래프 하나를 보여 주는 Showing 상태에서 시작합니다.",
+     "expects": "배치가 끝난 그래프가 화면에 있고, 하위 그래프로 들어갈 수 있습니다."
+    },
+    {
+     "place": [
+      "path",
+      "view",
+      "connection"
+     ],
+     "does": "Showing 안을 들여다보면, Graph view는 Target path의 맨 앞 그래프를 그리고 그 안의 값마다 Connection을 긋습니다.",
+     "expects": "지금 화면의 그래프는 경로 맨 앞의 그래프이고, 선은 노드가 만든 값만 나릅니다."
+    },
+    {
+     "place": "showing",
+     "does": "화면의 짜임을 보았으니 다시 Showing 상태로 나옵니다.",
+     "expects": "아직 바깥 그래프가 보이고, 경로에는 아무것도 더해지지 않았습니다."
+    },
+    {
+     "place": "laying",
+     "does": "사용자가 하위 그래프로 들어가자, Netron이 지금 배율과 펼친 묶음을 경로에 적어 두고 그 그래프를 배치합니다.",
+     "expects": "경로가 하나 늘고, 창이 Laying out으로 바뀌어 새 그래프는 아직 보이지 않습니다."
+    },
+    {
+     "place": "showing",
+     "does": "배치가 끝나자 Netron이 하위 그래프를 그립니다.",
+     "expects": "창이 다시 Showing이 되어 하위 그래프가 보이고, 경로 막대에 그 이름이 하나 더 이어집니다."
+    }
+   ],
+   "refs": [
+    "[view.js: pushTarget](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L893)"
+   ]
+  },
+  {
+   "slug": "find-and-inspect",
+   "text": "그래프에서 이름으로 노드를 찾아 고르면, 그 노드의 속성이 옆에 열립니다.",
+   "walk": [
+    {
+     "place": "showing",
+     "does": "Netron 창이 그래프를 보여 주는 Showing 상태에서 시작합니다.",
+     "expects": "배치가 끝난 그래프의 상자들이 화면에 있습니다."
+    },
+    {
+     "place": [
+      "find",
+      "box",
+      "view",
+      "props"
+     ],
+     "does": "Showing 안을 들여다보면, 사용자가 Find로 Node box를 찾고, Graph view가 그 상자를 골라 Properties를 엽니다.",
+     "expects": "찾은 상자가 강조되어 화면 가운데로 오고, 옆 패널에 그 노드의 속성이 열립니다."
+    },
+    {
+     "place": "showing",
+     "does": "고른 상자를 둔 채 다시 Showing 상태로 나옵니다.",
+     "expects": "그래프는 그대로 보이고, 고른 노드는 지금 그래프 안에 있으며 그 속성이 옆에 열려 있습니다."
+    }
+   ],
+   "refs": [
+    "[view.js: FindSidebar](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L4851)"
+   ]
+  },
+  {
+   "slug": "serve-from-python",
+   "text": "Python 서버가 브라우저 페이지를 띄우고, 페이지는 서버가 내준 모델 파일을 읽습니다.",
+   "walk": [
+    {
+     "place": [
+      "python",
+      "browser",
+      "file"
+     ],
+     "does": "pip로 설치한 netron이 HTTP 서버를 띄워 Browser page를 열고, 페이지는 그 서버에서 Model file을 받습니다.",
+     "expects": "브라우저에 Netron 화면이 뜨고, 서버가 내준 모델 파일이 그 페이지로 넘어와 있습니다."
+    }
+   ],
+   "refs": [
+    "[server.py: serve](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/server.py#L262)"
+   ]
+  },
+  {
+   "slug": "open-with-siblings",
+   "text": "데스크톱 앱이 파일을 열 때, 같은 폴더의 옆 파일도 필요한 형식 모듈이 가져갈 수 있습니다.",
+   "walk": [
+    {
+     "place": [
+      "desktop",
+      "host",
+      "desktop",
+      "file"
+     ],
+     "does": "Desktop app이 화면 코드의 Host 노릇을 하며 디스크에서 Model file을 읽고, 같은 폴더의 파일도 가져다줍니다.",
+     "expects": "형식 모듈이 모델 파일과 함께 같은 폴더의 옆 파일을 받아 쓸 수 있습니다."
+    }
+   ],
+   "refs": [
+    "[desktop.mjs: Context](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/desktop.mjs#L646)"
+   ]
+  },
+  {
+   "slug": "read-an-archive",
+   "text": "압축 파일을 열면 안에서 모델 파일 하나를 찾아 그것을 읽습니다.",
+   "walk": [
+    {
+     "place": "screening",
+     "does": "사용자가 연 압축 파일을 Netron이 먼저 모델이 아닌 모양인지 살핍니다.",
+     "expects": "알려진 비모델 모양이 아니므로 다음 단계로 넘어갑니다."
+    },
+    {
+     "place": "shortlisting",
+     "does": "확장자와 앞 4KB 바이트 무늬로 후보 형식 모듈을 고릅니다.",
+     "expects": "후보 모듈 목록이 만들어집니다."
+    },
+    {
+     "place": "matching",
+     "does": "후보 모듈들이 차례로 압축 파일을 들여다보지만, 어느 모듈도 알아보지 못합니다.",
+     "expects": "형식 이름이 붙지 않은 파일이 압축인지 확인하러 넘어갑니다."
+    },
+    {
+     "place": "unpacking",
+     "does": "zip, tar, gzip으로 열어 보고, 안의 파일마다 형식을 알아봅니다.",
+     "expects": "모델로 알아본 파일이 꼭 하나뿐이어서, 공통 상위 폴더를 벗긴 그 파일이 꺼내집니다."
+    },
+    {
+     "place": "shortlisting",
+     "does": "꺼낸 안쪽 파일을 처음부터 다시 거쳐, 그 파일의 후보 형식 모듈을 고릅니다.",
+     "expects": "안쪽 모델 파일에 맞는 후보 목록이 새로 만들어집니다."
+    },
+    {
+     "place": "matching",
+     "does": "후보 모듈들이 이번에는 안쪽 파일을 들여다봅니다.",
+     "expects": "처음 알아본 모듈이 형식 이름을 붙인 맥락을 내놓습니다."
+    },
+    {
+     "place": "reading",
+     "does": "알아본 모듈이 안쪽 파일을 끝까지 읽습니다.",
+     "expects": "압축 안의 모델 하나가 형식 이름을 가진 모델로 읽혀 나옵니다."
+    }
+   ],
+   "refs": [
+    "[view.js: _openEntries](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7753)"
+   ]
+  },
+  {
+   "slug": "try-the-next-format",
+   "text": "확장자가 여러 형식에 걸리면, 처음 알아본 모듈이 읽다 실패해도 다음 후보가 다시 들여다봅니다.",
+   "walk": [
+    {
+     "place": "matching",
+     "does": "확장자가 여러 형식에 걸리는 파일을 후보 모듈들이 차례로 들여다봅니다.",
+     "expects": "처음으로 알아본 모듈이 형식 이름을 붙인 맥락을 내놓습니다."
+    },
+    {
+     "place": "reading",
+     "does": "처음 알아본 모듈이 파일을 끝까지 읽으려 하지만 도중에 실패합니다.",
+     "expects": "모델은 나오지 않고, 그 오류가 모아진 채 다음 후보로 넘어갑니다."
+    },
+    {
+     "place": "matching",
+     "does": "Netron이 남은 후보로 돌아가, 다음 모듈이 같은 파일을 다시 들여다봅니다.",
+     "expects": "다음으로 알아본 모듈이 새 맥락을 내놓고, 파일의 읽은 위치는 처음으로 돌아가 있습니다."
+    },
+    {
+     "place": "reading",
+     "does": "새로 알아본 모듈이 파일을 처음부터 끝까지 다시 읽습니다.",
+     "expects": "형식 이름을 가진 모델이 나오면 읽기가 성공하고, 이 모듈도 실패하면 오류가 하나 더 모입니다."
+    }
+   ],
+   "refs": [
+    "[view.js: _openContext](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7710)"
+   ]
+  },
+  {
+   "slug": "explain-a-non-model",
+   "text": "모델이 아닌 파일은 형식 모듈에 넘기기 전에 알아보고 그 이름을 댑니다.",
+   "walk": [
+    {
+     "place": "screening",
+     "does": "Netron이 형식 모듈에 넘기기 전에, 파일이 비었거나 모델이 아닌 모양인지 살핍니다.",
+     "expects": "알려진 비모델 모양으로 판정된 파일은 어떤 형식 모듈에도 넘어가지 않습니다."
+    },
+    {
+     "place": "explaining",
+     "does": "비모델 파일의 이름을 들고 와서, JSON이면 안의 키까지 보며 사람이 알아볼 말로 바꿉니다.",
+     "expects": "오류 설명이 NPM 패키지나 Jupyter 노트북처럼 그 파일이 무엇인지 이름을 댑니다."
+    }
+   ],
+   "refs": [
+    "[view.js: _unsupported](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7401)"
+   ]
+  },
+  {
+   "slug": "refuse-an-ambiguous-archive",
+   "text": "압축 안에 모델로 보이는 파일이 둘 이상이면 어느 것도 열지 않고 이유를 알립니다.",
+   "walk": [
+    {
+     "place": "matching",
+     "does": "후보 모듈들이 압축 파일을 들여다보지만, 어느 모듈도 알아보지 못합니다.",
+     "expects": "형식 이름이 붙지 않은 파일이 압축인지 확인하러 넘어갑니다."
+    },
+    {
+     "place": "unpacking",
+     "does": "zip, tar, gzip으로 압축을 열어 안의 파일마다 형식을 알아봅니다.",
+     "expects": "모델로 보이는 파일이 둘 이상 나와, 어느 것도 고르지 않고 멈춥니다."
+    },
+    {
+     "place": "explaining",
+     "does": "압축 안에 모델 후보가 여럿이라는 사정을 사람이 알아볼 말로 바꿉니다.",
+     "expects": "어떤 파일도 열리지 않고, 압축 안의 모델이 하나가 아니라는 이유가 전해집니다."
+    }
+   ],
+   "refs": [
+    "[view.js: multiple model files](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7796)"
+   ]
+  },
+  {
+   "slug": "follow-a-value",
+   "text": "노드의 입력을 따라가면 인자, 값, 그리고 가중치라면 텐서에 닿습니다.",
+   "walk": [
+    {
+     "place": [
+      "node",
+      "argument",
+      "value",
+      "tensor"
+     ],
+     "does": "Node에서 시작해 입력 Argument, 그 인자가 나르는 Value, 그 값이 붙잡은 Tensor 순으로 따라갑니다.",
+     "expects": "가중치 값은 텐서를 붙잡고 있어 선이 아닌 상자 안의 한 줄로 그려지며, 큰 텐서는 다른 파일에 있을 수 있습니다."
+    }
+   ],
+   "refs": [
+    "[onnx.js: Value](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/onnx.js#L253)"
+   ]
+  },
+  {
+   "slug": "hold-a-subgraph",
+   "text": "If나 Loop 같은 노드는 속성 인자 안에 그래프를 품고, 그 그래프도 입력·출력 인자를 가집니다.",
+   "walk": [
+    {
+     "place": [
+      "graph",
+      "argument",
+      "graph"
+     ],
+     "does": "If나 Loop 노드의 속성 Argument를 따라가 그 값인 안쪽 Graph에 닿고, 그 Graph가 드러낸 Argument도 살핍니다.",
+     "expects": "안쪽 Graph도 맨 위와 맨 아래에 입력·출력 상자를 가지며, 노드 안에서 펼치거나 그 그래프로 들어가 볼 수 있습니다."
+    }
+   ],
+   "refs": [
+    "[view.js: Show Graph](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L2852)"
+   ]
+  },
+  {
+   "slug": "look-up-an-op",
+   "text": "모델의 그래프에서 노드를 고르면, 그 노드의 연산 종류가 설명과 분류를 줍니다.",
+   "walk": [
+    {
+     "place": [
+      "model",
+      "graph",
+      "node",
+      "optype"
+     ],
+     "does": "Model의 그래프 목록에서 Graph로, 그 안의 Node로, 다시 그 노드가 속한 Op type으로 따라갑니다.",
+     "expects": "Op type이 메타데이터에서 가져온 설명과 분류를 주고, 분류가 노드 머리의 색을 정합니다."
+    }
+   ],
+   "refs": [
+    "[view.js: Metadata](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7943)"
+   ]
+  },
+  {
+   "slug": "lay-out-a-graph",
+   "text": "그림 그래프를 만들고, 글자 크기를 재고, 워커가 좌표를 계산하면, 그 자리에 놓습니다.",
+   "walk": [
+    {
+     "place": "building",
+     "does": "Netron이 모델 그래프로 노드마다 상자를, 이름이 같은 값마다 선을 만듭니다.",
+     "expects": "이름이 같은 값은 선 하나로 합쳐지고, 가중치는 상자 안의 줄이 된 view graph가 생깁니다."
+    },
+    {
+     "place": "measuring",
+     "does": "view graph의 상자와 선 이름을 실제로 그려 글자 크기를 잽니다.",
+     "expects": "크기만 담은 measured view graph가 워커에 보낼 메시지가 됩니다."
+    },
+    {
+     "place": "ranking",
+     "does": "워커가 받은 크기로 dagre를 돌려 층과 층 안의 순서, 좌표를 정합니다.",
+     "expects": "노드마다 중심 좌표, 선마다 꺾이는 점 목록이 node positions로 돌아옵니다."
+    },
+    {
+     "place": "placing",
+     "does": "받은 좌표대로 상자와 선을 옮기고, 이전에 보던 배율과 스크롤을 되살립니다.",
+     "expects": "그래프가 계산된 자리에 놓여, 보던 배율과 위치 그대로 보일 준비가 끝납니다."
+    }
+   ],
+   "refs": [
+    "[view.js: View.render](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L914)"
+   ]
+  },
+  {
+   "slug": "select-a-node",
+   "text": "상자를 고르면 강조되고, 옆 패널에 그 노드의 속성과 가중치가 열립니다.",
+   "walk": [
+    {
+     "place": [
+      "view",
+      "box",
+      "view",
+      "props"
+     ],
+     "does": "사용자가 Graph view에 그려진 Node box 하나를 고르면, Graph view가 그 노드의 속성을 Properties에 엽니다.",
+     "expects": "고른 상자가 강조되고 지금 그래프 안에 있으며, 옆 패널에 속성과 가중치가 열립니다."
+    }
+   ],
+   "refs": [
+    "[view.js: showNodeProperties](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L1141)"
+   ]
+  },
+  {
+   "slug": "find-a-connection",
+   "text": "값 이름으로 찾으면, 그 값을 나르는 선과 양 끝 상자를 짚어 줍니다.",
+   "walk": [
+    {
+     "place": [
+      "find",
+      "box",
+      "connection"
+     ],
+     "does": "Find에서 값 이름으로 찾은 결과를 따라 Node box로 가고, 그 상자에 이어진 Connection을 짚습니다.",
+     "expects": "그 값을 나르는 선과 양 끝 상자가 드러나며, 가중치처럼 텐서를 붙잡은 값은 선으로 나오지 않습니다."
+    }
+   ],
+   "refs": [
+    "[view.js: FindSidebar](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L4851)"
+   ]
+  },
+  {
+   "slug": "walk-the-path",
+   "text": "경로 막대에서 위 그래프를 누르면, 화면이 그 그래프로 돌아가 선을 다시 긋습니다.",
+   "walk": [
+    {
+     "place": [
+      "path",
+      "view",
+      "connection"
+     ],
+     "does": "사용자가 Target path 막대에서 위 그래프를 누르자, Graph view가 경로 맨 앞이 된 그 그래프를 다시 그립니다.",
+     "expects": "화면이 위 그래프로 돌아오고, 생산자가 있는 값마다 Connection이 새로 그어집니다."
+    }
+   ],
+   "refs": [
+    "[view.js: _updatePath](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L816)"
+   ]
+  },
+  {
+   "slug": "open-a-model-pytorch",
+   "text": "PyTorch 파일을 열면 Netron이 브라우저 안에서 pickle을 풀고 TorchScript를 해석해 그래프를 보여 줍니다.",
+   "walk": [
+    {
+     "place": "waiting",
+     "does": "Netron 창이 시작 화면에서 파일을 기다립니다.",
+     "expects": "아직 아무 모델도 열려 있지 않습니다."
+    },
+    {
+     "place": "opening",
+     "does": "사용자가 PyTorch 파일을 열자 Netron이 load로 읽기 시작합니다.",
+     "expects": "창이 Opening으로 바뀌고, 화면에는 돌아가는 표시만 보입니다."
+    },
+    {
+     "place": "shortlisting",
+     "does": "Opening 안을 들여다보면, 확장자와 앞 4KB 바이트 무늬로 후보 형식 모듈을 고릅니다.",
+     "expects": "PyTorch 모듈을 포함한 후보 목록이 만들어집니다."
+    },
+    {
+     "place": "matching",
+     "does": "후보 모듈들의 match가 차례로 파일을 들여다보고, PyTorch 모듈이 파일을 알아봅니다.",
+     "expects": "PyTorch 모듈이 형식 이름을 붙인 맥락을 내놓습니다."
+    },
+    {
+     "place": "reading",
+     "does": "PyTorch 모듈이 matched context를 받아 파일을 끝까지 읽기 시작합니다.",
+     "expects": "읽기가 끝나면 형식 이름을 가진 모델이 나와야 합니다."
+    },
+    {
+     "place": "decoding",
+     "does": "Reading the model 안을 들여다보면, 읽기 방식이 스키마 해석기 대신 Python 실행으로 파일을 풉니다.",
+     "expects": "pickle과 TorchScript를 실행해 기록을 얻는 과정으로 넘어갑니다."
+    },
+    {
+     "place": "loading",
+     "does": "Decoding the records 안을 들여다보면, PyTorch zip에서 data.pkl, code/ 아래 소스, data/ 아래 텐서 저장소를 찾습니다.",
+     "expects": "pickle 기록과 텐서 저장소 기록이 pickle records로 넘어갑니다."
+    },
+    {
+     "place": "unpickling",
+     "does": "pickle 명령을 하나씩 실행해 Python 객체를 되살리고, 텐서는 data/ 기록에서 읽습니다.",
+     "expects": "모르는 클래스를 만나도 빈 클래스로 대신해 끝까지 풀고, 스크립트 모듈이 나옵니다."
+    },
+    {
+     "place": "compiling",
+     "does": "code/ 아래의 소스를 해석해 메서드를 만들고, forward를 펼쳐 그래프로 만듭니다.",
+     "expects": "노드 하나하나가 보이는 그래프가 만들어집니다."
+    },
+    {
+     "place": "decoding",
+     "does": "Python 실행 과정에서 나와 Decoding the records로 돌아옵니다.",
+     "expects": "그래프, 노드, 텐서의 기록이 decoded records로 준비됩니다."
+    },
+    {
+     "place": "assembling",
+     "does": "decoded records로 Model, Graph, Node 객체를 짓습니다.",
+     "expects": "형식 이름을 가진 모델 객체가 만들어집니다."
+    },
+    {
+     "place": "reading",
+     "does": "읽기 방식 안에서 나와 Reading the model로 돌아옵니다.",
+     "expects": "PyTorch 모듈이 형식 이름을 가진 모델을 돌려주어 읽기가 성공합니다."
+    },
+    {
+     "place": "opening",
+     "does": "형식 알아내기를 마치고 Netron 창의 Opening 상태로 돌아옵니다.",
+     "expects": "창은 읽은 모델을 쥐고 있고, 화면에는 아직 돌아가는 표시만 있습니다."
+    },
+    {
+     "place": "laying",
+     "does": "Netron이 모델에서 노드가 있는 첫 그래프를 골라 배치를 시작합니다.",
+     "expects": "창이 Laying out으로 바뀌고, 배치가 끝나면 PyTorch 모델의 그래프가 화면에 나타납니다."
+    }
+   ],
+   "refs": [
+    "[pytorch.js: Reader.Zip](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/pytorch.js#L1330)"
+   ]
+  },
+  {
+   "slug": "read-external-weights",
+   "text": "가중치가 다른 파일에 있는 모델을 열면, 형식 모듈이 함께 받은 옆 파일에서 그 가중치를 가져옵니다.",
+   "walk": [
+    {
+     "place": "decoding",
+     "does": "형식 모듈의 읽기 방식이 가중치가 따로 있는 모델 파일을 풉니다.",
+     "expects": "그래프, 노드, 텐서의 기록이 decoded records로 나옵니다."
+    },
+    {
+     "place": "assembling",
+     "does": "기록으로 모델 객체를 짓다가, 큰 텐서가 다른 파일에 있다는 기록을 만납니다.",
+     "expects": "그 텐서들의 위치가 external references로 넘어갑니다."
+    },
+    {
+     "place": "fetching",
+     "does": "적힌 이름으로, 모델과 함께 받은 옆 파일이나 같은 압축 안의 파일을 가져옵니다.",
+     "expects": "가져온 파일은 처음에 함께 받은 파일 가운데 하나이며, 디스크의 다른 경로는 열지 않습니다."
+    },
+    {
+     "place": "assembling",
+     "does": "가져온 옆 파일을 들고 Building the model로 돌아와 그 텐서에 내용을 채웁니다.",
+     "expects": "가중치가 채워진 모델이 만들어지고, 옆 파일이 없던 텐서는 내용 없이 모양만 보입니다."
+    }
+   ],
+   "refs": [
+    "[onnx.js: fetch](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/onnx.js#L2836)"
+   ]
+  },
+  {
+   "slug": "describe-ops",
+   "text": "풀어 낸 기록은 곧바로 모델을 짓는 단계로 가고, 그와 나란히 연산 이름마다 메타데이터에서 설명과 분류를 찾아 붙인 뒤, 둘이 모델을 짓는 단계에서 합쳐집니다.",
+   "walk": [
+    {
+     "place": "decoding",
+     "does": "읽기 방식이 파일을 풀어 그래프와 노드의 기록을 얻습니다.",
+     "expects": "decoded records와 함께 노드의 연산 이름 목록이 나옵니다."
+    },
+    [
+     {
+      "place": "describing",
+      "does": "decoded records가 모델을 짓는 쪽으로 가는 것과 나란히, 연산 이름마다 메타데이터에서 설명과 분류를 찾습니다.",
+      "expects": "메타데이터는 형식마다 한 번만 불러 쓰고, 없는 이름은 이름만 가진 빈 종류가 됩니다."
+     },
+     []
+    ],
+    {
+     "place": "assembling",
+     "does": "decoded records와 op types가 함께 도착해, 둘을 합쳐 Model, Graph, Node 객체를 짓습니다.",
+     "expects": "노드마다 연산 종류의 설명과 분류가 붙은, 형식 이름을 가진 모델이 만들어집니다."
+    }
+   ],
+   "refs": [
+    "[view.js: Metadata](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7943)"
+   ]
+  },
+  {
+   "slug": "load-a-torchscript-file",
+   "text": "TorchScript 파일이면 pickle을 푼 뒤 소스를 해석해 노드가 보이는 그래프를 만듭니다.",
+   "walk": [
+    {
+     "place": "loading",
+     "does": "PyTorch zip에서 data.pkl, code/ 아래 소스, data/ 아래 텐서 저장소를 찾습니다.",
+     "expects": "pickle 기록과 텐서 저장소 기록이 pickle records로 넘어갑니다."
+    },
+    {
+     "place": "unpickling",
+     "does": "pickle 명령을 하나씩 실행해 Python 객체를 되살립니다.",
+     "expects": "TorchScript 파일이므로 소스와 상수를 가진 스크립트 모듈이 나옵니다."
+    },
+    {
+     "place": "compiling",
+     "does": "code/ 아래 소스를 해석해 메서드를 만들고, forward를 펼칩니다.",
+     "expects": "노드 하나하나가 보이는 그래프가 만들어집니다."
+    }
+   ],
+   "refs": [
+    "[pytorch.js: jit.load](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/pytorch.js#L1365)"
+   ]
+  },
+  {
+   "slug": "skip-an-unknown-class",
+   "text": "사용자 정의 클래스가 섞여 있어도 빈 클래스로 대신하고 끝까지 풉니다.",
+   "walk": [
+    {
+     "place": "unpickling",
+     "does": "pickle 명령을 하나씩 실행하다가, 클래스를 부르는 명령에서 그 이름을 레지스트리에서 찾습니다.",
+     "expects": "레지스트리에 없는 사용자 정의 클래스 이름을 만나도 읽기는 멈추지 않습니다."
+    },
+    {
+     "place": "unpickling",
+     "does": "없는 이름 자리에 빈 클래스를 만들어 두고, 같은 단계에서 나머지 명령을 이어 실행합니다.",
+     "expects": "pickle이 끝까지 풀리고, 알려진 모듈의 이름이었다면 경고가 남습니다."
+    }
+   ],
+   "refs": [
+    "[python.js: unresolved names](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/python.js#L21970)"
+   ]
+  }
+ ],
+ "operations": [
+  {
+   "slug": "Window.load",
+   "sig": "(file: ModelFile) → Model",
+   "text": "파일 하나를 열어 모델을 만듭니다. 성공하면 노드가 있는 첫 그래프를 고릅니다.",
+   "refs": [
+    "[view.js: View.open](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L726)"
+   ]
+  },
+  {
+   "slug": "Window.navigate",
+   "sig": "(target: Graph) → Window",
+   "text": "하위 그래프나 함수 정의로 들어가거나 경로에서 바깥으로 나옵니다. 지금 배율과 펼친 묶음을 경로에 적어 두었다가 돌아올 때 되살립니다.",
+   "refs": [
+    "[view.js: pushTarget](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L893)"
+   ]
+  },
+  {
+   "slug": "ModelFile.screen",
+   "sig": "() → ModelFile | NonModelContent",
+   "text": "비어 있는지, 앞부분이 알려진 비모델 파일의 모양인지 봅니다.",
+   "refs": [
+    "[view.js: _openSignature](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7854)"
+   ]
+  },
+  {
+   "slug": "ModelFile.shortlist",
+   "sig": "() → FormatModule[]",
+   "text": "확장자와 앞 4KB의 바이트 무늬로 후보 형식 모듈을 고릅니다.",
+   "refs": [
+    "[view.js: _filter](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7839)"
+   ]
+  },
+  {
+   "slug": "FormatModule.match",
+   "sig": "(file: ModelFile) → Context | ModelFile",
+   "text": "모듈이 파일을 들여다보고 알아보면 형식 이름을 붙인 맥락을, 아니면 파일을 그대로 돌려줍니다.",
+   "refs": [
+    "[onnx.js: match](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/onnx.js#L8)"
+   ]
+  },
+  {
+   "slug": "FormatModule.read",
+   "sig": "(context: Context) → Model | OpenError",
+   "text": "알아본 파일을 끝까지 읽어 모델을 만듭니다. 코드에서는 ModelFactory.open입니다.",
+   "refs": [
+    "[onnx.js: open](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/onnx.js#L31)"
+   ]
+  },
+  {
+   "slug": "ModelFile.unpack",
+   "sig": "() → ModelFile | AmbiguousArchive",
+   "text": "압축을 풀어 안의 파일마다 형식을 알아보고, 모델이 꼭 하나일 때 그 파일을 돌려줍니다.",
+   "refs": [
+    "[view.js: _openEntries](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7753)"
+   ]
+  },
+  {
+   "slug": "Graph.build",
+   "sig": "() → ViewGraph",
+   "text": "모델 그래프로 그림 그래프를 만듭니다. 이름이 같은 값은 선 하나로 합칩니다.",
+   "refs": [
+    "[view.js: createValue](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L1923)"
+   ]
+  },
+  {
+   "slug": "ViewGraph.measure",
+   "sig": "() → ViewGraph",
+   "text": "글자를 그려 상자와 선 이름의 크기를 잽니다.",
+   "refs": [
+    "[view.js: measure](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L2343)"
+   ]
+  },
+  {
+   "slug": "Worker.layout",
+   "sig": "(graph: ViewGraph) → NodePosition[]",
+   "text": "dagre로 노드와 선의 좌표를 계산합니다. 2.5초가 넘으면 취소할지 묻습니다.",
+   "refs": [
+    "[grapher.js: layout](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/grapher.js#L224)"
+   ]
+  },
+  {
+   "slug": "ViewGraph.place",
+   "sig": "(positions: NodePosition[]) → GraphView",
+   "text": "좌표대로 그림을 옮기고 이전 보기 상태를 되살립니다.",
+   "refs": [
+    "[view.js: restore](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L2431)"
+   ]
+  },
+  {
+   "slug": "GraphView.select",
+   "sig": "(item: NodeBox) → Properties",
+   "text": "상자를 골라 강조하고, 옆 패널에 그 노드의 속성을 엽니다.",
+   "refs": [
+    "[view.js: select](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L2381)"
+   ],
+   "pre": "item in self.boxes",
+   "post": "after self.selection = item",
+   "modifies": [
+    "GraphView.selection"
+   ]
+  },
+  {
+   "slug": "Find.search",
+   "sig": "(query: Text) → NodeBox[]",
+   "text": "이름과 값으로 상자를 찾습니다.",
+   "refs": [
+    "[view.js: FindSidebar](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L4851)"
+   ]
+  },
+  {
+   "slug": "Reader.decode",
+   "sig": "() → DecodedRecord[] | OpName[]",
+   "text": "고른 읽기 방식으로 파일을 풀어 그래프와 노드의 기록을 얻습니다. 코드에서는 각 읽기 방식의 read입니다.",
+   "refs": [
+    "[pytorch.js: Reader.Zip.read](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/pytorch.js#L1352)"
+   ]
+  },
+  {
+   "slug": "FormatModule.describe",
+   "sig": "(name: Text) → OpType",
+   "text": "연산 이름에 맞는 메타데이터를 찾습니다. 없으면 이름만 가진 종류를 만듭니다.",
+   "refs": [
+    "[view.js: Metadata.type](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7978)"
+   ]
+  },
+  {
+   "slug": "FormatModule.build",
+   "sig": "(records: DecodedRecord[]) → Model | ExternalReference[]",
+   "text": "기록으로 모델 객체를 만들고, 다른 파일에 있는 텐서의 위치를 알립니다.",
+   "refs": [
+    "[onnx.js: Model](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/onnx.js#L47)"
+   ]
+  },
+  {
+   "slug": "ModelFile.fetch",
+   "sig": "(name: Text) → ModelFile",
+   "text": "옆 파일이나 압축 안의 파일을 이름으로 가져옵니다.",
+   "post": "result in self.siblings + self.entries",
+   "refs": [
+    "[view.js: Container.fetch](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7202)"
+   ]
+  },
+  {
+   "slug": "PythonExecution.load",
+   "sig": "(file: ModelFile) → PickleRecord[]",
+   "text": "PyTorch zip에서 pickle과 소스와 텐서 저장소 기록을 찾습니다.",
+   "refs": [
+    "[pytorch.js: Reader.Zip.read](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/pytorch.js#L1352)"
+   ]
+  },
+  {
+   "slug": "PythonExecution.unpickle",
+   "sig": "(record: PickleRecord) → DecodedRecord[] | ScriptModule | UnknownGlobal",
+   "text": "pickle 명령을 실행해 Python 객체를 되살립니다.",
+   "refs": [
+    "[python.js: pickle.Unpickler](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/python.js#L3895)"
+   ]
+  },
+  {
+   "slug": "PythonExecution.compile",
+   "sig": "(script: ScriptModule) → DecodedRecord[] | OpName[]",
+   "text": "TorchScript 소스를 해석하고 forward를 펼쳐 그래프를 만듭니다.",
+   "refs": [
+    "[pytorch.js: jit.load](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/pytorch.js#L1365)"
+   ]
+  }
+ ],
+ "rules": [
+  {
+   "slug": "screened",
+   "kind": "must",
+   "formula": "all file: ModelFile | file.screen and modelFile implies file not in NonModel",
+   "text": "모델이 아닌 것으로 알려진 파일은 어떤 형식 모듈에도 넘어가지 않습니다.",
+   "refs": [
+    "[view.js: _openSignature](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7854)"
+   ]
+  },
+  {
+   "slug": "one-model-per-archive",
+   "kind": "must",
+   "formula": "all archive: ModelFile | archive.unpack and innerModelFile implies one archive.entries & Matchable",
+   "text": "압축 파일 안에서 모델로 알아본 파일이 꼭 하나일 때만 그 파일을 엽니다. 둘 이상이면 어느 것을 열지 추측하지 않고 멈춥니다.",
+   "refs": [
+    "[view.js: multiple model files](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7796)"
+   ]
+  },
+  {
+   "slug": "named-format",
+   "kind": "must",
+   "formula": "all model: Model | some model.format",
+   "text": "읽은 모델에는 반드시 형식 이름이 있습니다. 이름이 없거나 규칙에 어긋나면 읽기 실패로 칩니다.",
+   "refs": [
+    "[view.js: format name check](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7366)"
+   ]
+  },
+  {
+   "slug": "no-tensor-lines",
+   "kind": "must",
+   "formula": "all line: Connection | no line.value.initializer",
+   "text": "가중치처럼 텐서를 붙잡은 값은 선으로 그리지 않습니다. 선은 노드가 만든 값만 나릅니다.",
+   "refs": [
+    "[view.js: createArgument](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L1938)"
+   ]
+  },
+  {
+   "slug": "weights-in-box",
+   "kind": "should",
+   "formula": "all box: NodeBox, input: box.node.inputs | one input.values and some input.values.initializer implies input.values.initializer in box.weights",
+   "text": "가중치 하나를 받는 입력은 노드 상자 안에 그 모양과 함께 한 줄로 보입니다. 가중치 표시를 끄면 보이지 않습니다.",
+   "refs": [
+    "[view.js: weights in node](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L2932)"
+   ]
+  },
+  {
+   "slug": "selection-in-view",
+   "kind": "must",
+   "formula": "all view: GraphView | view.selection in view.boxes",
+   "text": "고른 것은 언제나 지금 그린 그래프 안에 있습니다. 다른 그래프로 옮기면 화면을 새로 만들므로 이전 선택은 남지 않습니다.",
+   "refs": [
+    "[view.js: select](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L2381)"
+   ]
+  },
+  {
+   "slug": "shown-after-layout",
+   "kind": "must",
+   "formula": "all window: Window | window in Showing implies once window.show",
+   "text": "그래프는 배치가 끝난 뒤에만 보입니다. 배치를 취소하면 그리다 만 그림 대신 시작 화면으로 돌아갑니다.",
+   "refs": [
+    "[view.js: _updatePath](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L816)"
+   ]
+  },
+  {
+   "slug": "siblings-only",
+   "kind": "must",
+   "formula": "all file, found: ModelFile, called: Text | file.fetch[called, found] implies found in file.siblings + file.entries",
+   "text": "형식 모듈은 모델과 함께 받은 옆 파일이나 같은 압축 안의 파일만 가져옵니다. 디스크의 아무 경로나 열 수 없습니다.",
+   "refs": [
+    "[view.js: Container.fetch](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7202)"
+   ]
+  },
+  {
+   "slug": "keep-reading",
+   "kind": "must",
+   "formula": "unknownGlobal implies after some (Unpickling + CompilingTorchScript) & RunningPickledPython.at",
+   "text": "모르는 클래스 이름을 만나도 읽기가 멈추지 않고 풀기나 해석으로 이어집니다. 빈 클래스를 대신 두고 나머지를 계속 풀므로, 사용자 정의 모듈이 섞인 파일도 그래프는 보입니다.",
+   "refs": [
+    "[python.js: unresolved names](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/python.js#L21970)"
+   ]
+  }
+ ],
+ "level": {
+  "kind": "state",
+  "subject": "Window",
+  "initial": "waiting",
+  "title": "A Netron window",
+  "why": "Netron 창 하나가 모델 파일을 받아 그래프로 보여 주기까지 거치는 상태입니다. 열기에 실패하면 오류를 보이고, 배치가 너무 오래 걸리면 사용자가 그만둘 수 있습니다. 그래프를 보는 동안 하위 그래프로 들어가면 다시 배치합니다.",
+  "nodes": [
+   {
+    "id": "waiting",
+    "label": "Waiting",
+    "what": "아무 모델도 열지 않은 시작 화면입니다. 파일을 끌어다 놓거나, 열기 메뉴를 쓰거나, 주소에 모델 URL을 붙여 기다립니다.",
+    "refs": [
+     "[browser.js: drop](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/browser.js#L207)",
+     "[Netron README](https://github.com/lutzroeder/netron)"
+    ],
+    "opens": {
+     "kind": "topology",
+     "title": "Where a file comes from",
+     "why": "같은 화면 코드가 세 곳에서 돕니다. 브라우저 페이지와 데스크톱 앱은 같은 Host 약속을 구현하고, Python 서버는 브라우저 페이지를 로컬에서 띄워 줍니다.",
+     "nodes": [
+      {
+       "id": "host",
+       "label": "Host",
+       "what": "화면 코드가 바깥 세상에 기대는 약속입니다. 파일 열기, 모듈 불러오기, 워커 만들기, 설정 저장, 오류 알리기를 맡습니다.",
+       "abstract": true,
+       "refs": [
+        "[browser.js: Host](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/browser.js#L6)",
+        "[desktop.mjs: Host](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/desktop.mjs#L16)"
+       ]
+      },
+      {
+       "id": "browser",
+       "label": "Browser page",
+       "what": "netron.app이나 로컬 서버가 주는 웹 페이지입니다. 파일을 끌어다 놓거나 고르면, 함께 고른 파일들도 옆 파일로 넘깁니다. 주소의 url 매개변수로 원격 모델도 엽니다.",
+       "attrs": [
+        "url: Url?"
+       ],
+       "refs": [
+        "[browser.js: url](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/browser.js#L164)",
+        "[netron.app](https://netron.app)"
+       ]
+      },
+      {
+       "id": "desktop",
+       "label": "Desktop app",
+       "what": "Electron 앱입니다. 창마다 화면을 하나씩 띄우고, 최근에 연 파일 목록을 기억합니다.",
+       "attrs": [
+        "recents: ModelFile[]"
+       ],
+       "refs": [
+        "[app.js: recents](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/app.js#L329)"
+       ]
+      },
+      {
+       "id": "python",
+       "label": "Python server",
+       "what": "pip로 설치하는 netron 패키지입니다. 파일을 내주는 작은 HTTP 서버를 띄우고 브라우저로 그 주소를 엽니다.",
+       "attrs": [
+        "address: Text"
+       ],
+       "media": [
+        {
+         "type": "code",
+         "title": "Open from Python",
+         "text": "import netron\nnetron.start('model.onnx')   # 로컬 서버를 띄우고 브라우저를 엽니다",
+         "refs": [
+          "[Netron README](https://github.com/lutzroeder/netron)"
+         ]
+        }
+       ],
+       "refs": [
+        "[server.py: serve](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/server.py#L262)"
+       ]
+      },
+      {
+       "id": "file",
+       "label": "Model file",
+       "what": "열려는 파일 하나입니다. 압축 파일이면 안에 든 파일들이, 가중치가 따로 있는 형식이면 같은 폴더의 옆 파일들이 함께 따라옵니다.",
+       "attrs": [
+        "identifier: Text",
+        "nonModel: Bool",
+        "matchable: Bool",
+        "entries: ModelFile[]",
+        "siblings: ModelFile[]"
+       ],
+       "refs": [
+        "[view.js: Container](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7186)"
+       ]
+      }
+     ],
+     "edges": [
+      {
+       "from": "browser",
+       "to": "host",
+       "label": "is",
+       "what": ""
+      },
+      {
+       "from": "desktop",
+       "to": "host",
+       "label": "is",
+       "what": ""
+      },
+      {
+       "from": "python",
+       "to": "browser",
+       "label": "launches",
+       "what": "서버를 띄운 뒤 그 주소로 브라우저 페이지를 엽니다. 모델은 이 서버가 페이지에 내줍니다."
+      },
+      {
+       "from": "browser",
+       "to": "file",
+       "label": "loads",
+       "what": "끌어다 놓거나 고른 파일, 또는 URL에서 받은 파일을 읽습니다."
+      },
+      {
+       "from": "desktop",
+       "to": "file",
+       "label": "reads",
+       "what": "디스크의 파일을 읽고, 같은 폴더의 파일을 옆 파일로 가져올 수 있습니다."
+      }
+     ]
+    },
+    "link": "view"
+   },
+   {
+    "id": "opening",
+    "label": "Opening",
+    "what": "파일이 무슨 형식인지 알아내고 그 형식 모듈로 읽는 중입니다. 화면에는 돌아가는 표시만 보입니다.",
+    "refs": [
+     "[view.js: View.open](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L726)"
+    ],
+    "opens": {
+     "kind": "workflow",
+     "title": "Format detection",
+     "why": "파일 하나가 어느 형식인지 알아내는 과정입니다. 모델이 아닌 파일을 먼저 걸러 내고, 확장자와 앞부분 바이트로 후보 모듈을 고른 뒤, 모듈마다 직접 들여다보게 합니다. 아무도 읽지 못하면 압축 파일 안을 뒤집니다.",
+     "partitions": [
+      {
+       "id": "service",
+       "label": "Model factory service"
+      },
+      {
+       "id": "formats",
+       "label": "Format modules"
+      }
+     ],
+     "nodes": [
+      {
+       "id": "screening",
+       "label": "Screening the content",
+       "what": "파일이 비어 있거나, 앞부분 바이트가 HTML, Git LFS 포인터, 실행 파일, 암호화된 파일처럼 모델이 아닌 것으로 알려진 모양이면 여기서 멈춥니다.",
+       "partition": "service",
+       "ops": [
+        "ModelFile.screen"
+       ],
+       "rules": [
+        "screened"
+       ],
+       "media": [
+        {
+         "type": "insight",
+         "move": "형식 모듈에 맡기기 전에, 모델이 아닌 파일 수십 가지의 앞부분 모양을 먼저 맞춰 봅니다.",
+         "vs": "모든 형식 모듈에 차례로 맡겨 보고, 아무도 못 읽으면 지원하지 않는 형식이라고만 알리는 방식",
+         "gain": "잘못 고른 파일이 실제로 무엇인지(Git LFS 포인터, HTML 페이지, 토크나이저 데이터) 이름을 대 주므로, 사용자가 무엇을 잘못 받았는지 바로 압니다.",
+         "rule": "screened",
+         "refs": [
+          "[view.js: _openSignature](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7854)"
+         ]
+        }
+       ],
+       "refs": [
+        "[view.js: _openSignature](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7854)"
+       ]
+      },
+      {
+       "id": "shortlisting",
+       "label": "Shortlisting formats",
+       "what": "등록된 형식 모듈 가운데 확장자가 맞거나 앞 4KB가 모듈의 바이트 무늬와 맞는 것만 후보로 남깁니다.",
+       "partition": "service",
+       "ops": [
+        "ModelFile.shortlist"
+       ],
+       "refs": [
+        "[view.js: _filter](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7839)",
+        "[view.js: register](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7241)"
+       ]
+      },
+      {
+       "id": "matching",
+       "label": "Matching the format",
+       "what": "후보 모듈의 match가 차례로 파일을 들여다봅니다. 처음으로 알아본 모듈이 형식 이름을 붙이고, 들여다본 뒤에는 읽은 위치를 처음으로 되돌려야 합니다.",
+       "partition": "formats",
+       "ops": [
+        "FormatModule.match"
+       ],
+       "refs": [
+        "[view.js: _openContext](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7710)",
+        "[onnx.js: ModelFactory](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/onnx.js#L6)"
+       ],
+       "media": [
+        {
+         "type": "facts",
+         "title": "Readers the ONNX module tries in order",
+         "items": [
+          [
+           "OrtReader",
+           "ONNX Runtime의 flatbuffers 형식(.ort)"
+          ],
+          [
+           "ProtoReader",
+           "protobuf 바이너리(.onnx)"
+          ],
+          [
+           "TextReader",
+           "protobuf 텍스트"
+          ],
+          [
+           "JsonReader",
+           "JSON으로 내보낸 모델"
+          ],
+          [
+           "PickleReader",
+           "pickle에 담긴 모델"
+          ],
+          [
+           "DataReader",
+           "외부 데이터 파일(.onnx.data)"
+          ],
+          [
+           "MetaReader",
+           "메타데이터 파일(.onnx.meta)"
+          ]
+         ],
+         "refs": [
+          "[onnx.js: match](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/onnx.js#L8)"
+         ]
+        }
+       ]
+      },
+      {
+       "id": "reading",
+       "label": "Reading the model",
+       "what": "알아본 모듈의 open이 파일을 끝까지 읽어 모델 객체를 만듭니다. 형식 이름이 없거나 이상하면 실패로 칩니다.",
+       "partition": "formats",
+       "ops": [
+        "FormatModule.read"
+       ],
+       "rules": [
+        "named-format"
+       ],
+       "refs": [
+        "[view.js: format name check](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7366)"
+       ],
+       "opens": {
+        "kind": "workflow",
+        "title": "Reading a format",
+        "why": "형식 모듈이 고른 읽기 방식으로 파일을 풀어 모델 객체를 만드는 과정입니다. 형식마다 푸는 방법은 다르지만, 연산 설명을 붙이고 옆 파일에서 가중치를 가져오는 장치는 모든 형식이 함께 씁니다.",
+        "in": [
+         {
+          "edge": "matched context",
+          "to": "decoding"
+         }
+        ],
+        "out": [
+         {
+          "edge": "open error",
+          "from": [
+           "decoding",
+           "assembling"
+          ]
+         }
+        ],
+        "nodes": [
+         {
+          "id": "describing",
+          "label": "Resolving op types",
+          "what": "연산 이름마다 형식별 메타데이터 JSON에서 설명, 입력과 속성의 이름, 분류를 찾습니다. 메타데이터는 형식마다 처음 한 번만 불러 두고 함께 씁니다.",
+          "ops": [
+           "FormatModule.describe"
+          ],
+          "refs": [
+           "[onnx.js: Metadata.open](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/onnx.js#L1343)"
+          ]
+         },
+         {
+          "id": "decoding",
+          "label": "Decoding the records",
+          "what": "match가 고른 읽기 방식이 파일을 풉니다. 대부분은 형식의 스키마에서 생성한 protobuf나 flatbuffers 해석기로 읽고, PyTorch는 pickle과 TorchScript를 실행해서 읽습니다.",
+          "ops": [
+           "Reader.decode"
+          ],
+          "refs": [
+           "[onnx-proto.js](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/onnx-proto.js)",
+           "[tflite-schema.js](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/tflite-schema.js)"
+          ],
+          "opens": {
+           "kind": "workflow",
+           "title": "Running pickled Python",
+           "why": "PyTorch 파일은 Python 객체를 pickle로 저장한 것이라, 스키마로는 읽을 수 없습니다. Netron은 자바스크립트로 만든 Python 실행기로 pickle을 풀고, TorchScript라면 들어 있는 Python 소스를 해석해 그래프를 얻습니다. 형식 69개 가운데 가장 독특한 읽기 방식이라 이 하나만 엽니다.",
+           "out": [
+            {
+             "edge": "decoded records",
+             "from": [
+              "unpickling",
+              "compiling"
+             ]
+            },
+            {
+             "edge": "op names",
+             "from": "compiling"
+            }
+           ],
+           "nodes": [
+            {
+             "id": "loading",
+             "label": "Loading the archive",
+             "what": "zip 안에서 data.pkl, constants.pkl, code/ 아래의 소스 파일과 data/ 아래의 텐서 저장소를 찾습니다.",
+             "ops": [
+              "PythonExecution.load"
+             ],
+             "refs": [
+              "[pytorch.js: Reader.Zip](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/pytorch.js#L1330)"
+             ]
+            },
+            {
+             "id": "unpickling",
+             "label": "Unpickling",
+             "what": "pickle 명령을 하나씩 실행합니다. 클래스를 부르는 명령은 실행기의 레지스트리에서 그 이름을 찾고, 텐서 저장소는 data/ 기록에서 읽습니다.",
+             "ops": [
+              "PythonExecution.unpickle"
+             ],
+             "rules": [
+              "keep-reading"
+             ],
+             "media": [
+              {
+               "type": "insight",
+               "move": "pickle의 클래스 이름을 진짜 Python 대신 자바스크립트로 흉내 낸 torch 레지스트리에서 찾습니다.",
+               "vs": "Python과 PyTorch를 설치해 torch.load로 여는 방식, 또는 pickle 안의 구조를 문자열로만 훑는 방식",
+               "gain": "브라우저만으로 PyTorch 파일의 그래프와 가중치를 보고, 파일 안의 코드는 실제로 실행되지 않습니다.",
+               "rule": "keep-reading",
+               "refs": [
+                "[python.js: pickle.Unpickler](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/python.js#L3895)"
+               ]
+              }
+             ],
+             "refs": [
+              "[python.js: pickle.Unpickler](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/python.js#L3895)"
+             ]
+            },
+            {
+             "id": "compiling",
+             "label": "Compiling TorchScript",
+             "what": "code/ 아래의 Python 소스를 자바스크립트로 만든 파서로 읽어 메서드를 만들고, forward를 펼쳐(inline) 노드 하나하나가 보이는 그래프로 만듭니다.",
+             "ops": [
+              "PythonExecution.compile"
+             ],
+             "refs": [
+              "[pytorch.js: jit.load](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/pytorch.js#L1365)",
+              "[python.js: ast.parse](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/python.js#L644)"
+             ]
+            }
+           ],
+           "edges": [
+            {
+             "from": "loading",
+             "to": "unpickling",
+             "label": "pickle records",
+             "what": "pickle 기록과, 텐서가 들어 있는 저장소 기록입니다.",
+             "mark": [
+              "happy"
+             ]
+            },
+            {
+             "from": "unpickling",
+             "to": "compiling",
+             "label": "script module",
+             "what": "TorchScript 파일이면 소스와 상수를 가진 스크립트 모듈이 나옵니다. 가중치만 저장한 파일이면 여기서 끝납니다.",
+             "mark": [
+              "happy",
+              "optional"
+             ]
+            },
+            {
+             "from": "unpickling",
+             "to": "unpickling",
+             "label": "unknown global",
+             "what": "레지스트리에 없는 이름이면 빈 클래스를 만들어 그 자리에 두고 계속 읽습니다. 알려진 모듈의 이름이면 경고를 남깁니다.",
+             "mark": [
+              "failure",
+              "optional"
+             ],
+             "refs": [
+              "[python.js: unresolved names](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/python.js#L21970)"
+             ]
+            }
+           ]
+          }
+         },
+         {
+          "id": "assembling",
+          "label": "Building the model",
+          "what": "풀어 낸 기록으로 Model, Graph, Node 객체를 만듭니다. 큰 텐서가 다른 파일에 있다고 적혀 있으면 그 파일을 달라고 합니다.",
+          "ops": [
+           "FormatModule.build"
+          ],
+          "rules": [
+           "named-format"
+          ],
+          "refs": [
+           "[onnx.js: Model](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/onnx.js#L47)"
+          ],
+          "opens": {
+           "kind": "topology",
+           "title": "What a format module builds",
+           "why": "예순아홉 개 형식 모듈이 모두 같은 객체 모양으로 모델을 읽습니다. 그래서 화면 코드는 형식을 몰라도 그래프를 그립니다. 노드는 인자를 받고, 인자는 값을 나르며, 이름이 같은 값은 하나의 선이 됩니다.",
+           "nodes": [
+            {
+             "id": "model",
+             "label": "Model",
+             "what": "형식 모듈이 돌려주는 맨 바깥 객체입니다. 형식 이름과 만든 도구, 그래프 목록을 가집니다.",
+             "attrs": [
+              "format: Text?",
+              "producer: Text?",
+              "graphs: Graph[]"
+             ],
+             "rules": [
+              "named-format"
+             ],
+             "refs": [
+              "[onnx.js: Model](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/onnx.js#L47)"
+             ]
+            },
+            {
+             "id": "graph",
+             "label": "Graph",
+             "what": "노드와 그래프의 입력·출력 인자로 이루어진 그림 한 장입니다. 모듈(modules)과 함수(functions)가 모두 그래프입니다.",
+             "attrs": [
+              "nodes: Node[]",
+              "inputs: Argument[]",
+              "outputs: Argument[]",
+              "grouped: Bool"
+             ],
+             "refs": [
+              "[onnx.js: Graph](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/onnx.js#L161)"
+             ]
+            },
+            {
+             "id": "argument",
+             "label": "Argument",
+             "what": "노드나 그래프의 입력, 출력, 속성 하나입니다. 이름과 값들을 가지며, 속성의 값이 그래프 하나일 수도 있습니다(If, Loop의 몸통).",
+             "attrs": [
+              "name: Text",
+              "values: Value[]",
+              "graph: Graph?"
+             ],
+             "refs": [
+              "[onnx.js: Argument](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/onnx.js#L242)"
+             ]
+            },
+            {
+             "id": "value",
+             "label": "Value",
+             "what": "선이 나르는 값입니다. 이름과 타입을 가지며, 가중치처럼 내용이 정해진 값이면 텐서를 붙잡고 있습니다.",
+             "attrs": [
+              "name: Text",
+              "shape: Text?",
+              "initializer: Tensor?"
+             ],
+             "refs": [
+              "[onnx.js: Value](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/onnx.js#L253)"
+             ]
+            },
+            {
+             "id": "optype",
+             "label": "Op type",
+             "what": "노드가 무슨 연산인지입니다. 형식마다 있는 메타데이터 JSON에서 설명, 입력·속성 이름, 분류를 가져옵니다.",
+             "attrs": [
+              "name: Text",
+              "category: Category?"
+             ],
+             "refs": [
+              "[view.js: Metadata](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7943)"
+             ]
+            },
+            {
+             "id": "node",
+             "label": "Node",
+             "what": "연산 하나입니다. 연산 종류와 입력·출력·속성 인자를 가집니다.",
+             "attrs": [
+              "type: OpType",
+              "inputs: Argument[]",
+              "outputs: Argument[]",
+              "attributes: Argument[]"
+             ],
+             "refs": [
+              "[onnx.js: Node](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/onnx.js#L287)"
+             ]
+            },
+            {
+             "id": "tensor",
+             "label": "Tensor",
+             "what": "가중치 같은 실제 숫자 덩어리입니다. 크면 다른 파일에 따로 있을 수 있습니다(외부 데이터).",
+             "attrs": [
+              "type: Text",
+              "location: Text?"
+             ],
+             "refs": [
+              "[base.js: Tensor](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/base.js#L729)"
+             ]
+            }
+           ],
+           "edges": [
+            {
+             "from": "model",
+             "to": "graph",
+             "label": "lists",
+             "what": "모델은 그래프 목록을 가집니다. 화면은 그 가운데 노드가 있는 첫 그래프부터 엽니다."
+            },
+            {
+             "from": "graph",
+             "to": "node",
+             "label": "contains",
+             "what": "그래프는 노드 목록을 가집니다."
+            },
+            {
+             "from": "graph",
+             "to": "argument",
+             "label": "exposes",
+             "what": "그래프의 입력과 출력도 인자입니다. 그림에서는 맨 위와 맨 아래의 입력·출력 상자가 됩니다.",
+             "attr": "inputs"
+            },
+            {
+             "from": "argument",
+             "to": "graph",
+             "label": "nests",
+             "what": "속성 값이 그래프인 인자는 하위 그래프를 품습니다. 노드 안에서 펼치거나, 그 그래프로 들어가 볼 수 있습니다.",
+             "mark": [
+              "optional"
+             ]
+            },
+            {
+             "from": "node",
+             "to": "optype",
+             "label": "instantiates",
+             "what": "노드는 연산 종류의 사례 하나입니다. 분류가 노드 머리의 색을 정합니다."
+            },
+            {
+             "from": "node",
+             "to": "argument",
+             "label": "takes",
+             "what": "노드는 입력 인자로 값을 받습니다.",
+             "attr": "inputs"
+            },
+            {
+             "from": "argument",
+             "to": "value",
+             "label": "carries",
+             "what": "인자 하나가 값 여럿을 나를 수 있습니다."
+            },
+            {
+             "from": "value",
+             "to": "tensor",
+             "label": "keeps",
+             "what": "가중치 같은 값은 텐서를 붙잡고 있습니다. 이런 값은 선이 아니라 노드 상자 안의 한 줄로 그립니다.",
+             "mark": [
+              "optional"
+             ]
+            }
+           ]
+          },
+          "link": "view"
+         },
+         {
+          "id": "fetching",
+          "label": "Fetching siblings",
+          "what": "모델 파일 옆의 파일이나 같은 압축 안의 파일을 이름으로 가져옵니다. 처음에 함께 받은 파일 말고는 가져올 수 없습니다.",
+          "ops": [
+           "ModelFile.fetch"
+          ],
+          "rules": [
+           "siblings-only"
+          ],
+          "refs": [
+           "[view.js: Container.fetch](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7202)",
+           "[onnx.js: fetch](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/onnx.js#L2836)"
+          ]
+         }
+        ],
+        "edges": [
+         {
+          "from": "decoding",
+          "to": "describing",
+          "label": "op names",
+          "what": "풀어 낸 노드의 연산 이름들입니다.",
+          "mark": [
+           "happy"
+          ]
+         },
+         {
+          "from": "describing",
+          "to": "assembling",
+          "label": "op types",
+          "what": "연산 이름마다 찾은 설명과 분류입니다. 메타데이터에 없는 이름은 이름만 가진 빈 종류가 됩니다.",
+          "mark": [
+           "happy"
+          ]
+         },
+         {
+          "from": "decoding",
+          "to": "assembling",
+          "label": "decoded records",
+          "what": "그래프, 노드, 텐서의 원래 기록입니다.",
+          "mark": [
+           "happy"
+          ]
+         },
+         {
+          "from": "assembling",
+          "to": "fetching",
+          "label": "external references",
+          "what": "다른 파일에 있다고 적힌 텐서의 위치입니다(ONNX 외부 데이터, 나뉜 체크포인트 조각).",
+          "mark": [
+           "optional"
+          ]
+         },
+         {
+          "from": "fetching",
+          "to": "assembling",
+          "label": "fetched model file",
+          "what": "가져온 옆 파일입니다. 없으면 그 텐서는 내용 없이 모양만 보입니다.",
+          "mark": [
+           "optional"
+          ]
+         }
+        ]
+       }
+      },
+      {
+       "id": "unpacking",
+       "label": "Unpacking the archive",
+       "what": "아무 모듈도 알아보지 못하면 zip, tar, gzip으로 열어 보고, 안의 파일마다 같은 과정을 거칩니다. 공통 상위 폴더는 벗겨 냅니다.",
+       "partition": "service",
+       "ops": [
+        "ModelFile.unpack"
+       ],
+       "refs": [
+        "[view.js: _openEntries](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7753)"
+       ]
+      },
+      {
+       "id": "explaining",
+       "label": "Explaining the failure",
+       "what": "읽지 못한 이유를 사람이 알아볼 말로 바꿉니다. JSON이나 protobuf 텍스트라면 안의 키를 보고 NPM 패키지, Jupyter 노트북, Kaggle 인증 정보처럼 무엇인지 말합니다.",
+       "partition": "service",
+       "refs": [
+        "[view.js: _unsupported](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7401)"
+       ]
+      }
+     ],
+     "edges": [
+      {
+       "from": "screening",
+       "to": "shortlisting",
+       "label": "model file",
+       "what": "모델이 아닌 모양이 아닌 파일만 다음으로 넘깁니다.",
+       "rules": [
+        "screened"
+       ],
+       "mark": [
+        "happy"
+       ],
+       "is": "file"
+      },
+      {
+       "from": "screening",
+       "to": "explaining",
+       "label": "non-model content",
+       "what": "알려진 비모델 파일이면 그 이름을 들고 설명 단계로 갑니다.",
+       "mark": [
+        "failure"
+       ]
+      },
+      {
+       "from": "shortlisting",
+       "to": "matching",
+       "label": "candidate format modules",
+       "what": "후보 모듈의 이름 목록입니다. 확장자 하나에 여러 모듈이 걸리는 일이 흔합니다.",
+       "mark": [
+        "happy"
+       ],
+       "media": [
+        {
+         "type": "payload",
+         "title": ".onnx file candidates",
+         "text": "['./onnx', './tflite', './tensorrt', './rknn', './om']",
+         "refs": [
+          "[view.js: register](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L7247)"
+         ]
+        }
+       ]
+      },
+      {
+       "from": "matching",
+       "to": "reading",
+       "label": "matched context",
+       "what": "알아본 모듈과, 그 모듈이 붙인 형식 이름과 미리 읽은 값을 함께 넘깁니다.",
+       "mark": [
+        "happy"
+       ]
+      },
+      {
+       "from": "reading",
+       "to": "matching",
+       "label": "open error",
+       "what": "알아본 모듈이 읽다가 실패하면 오류를 모아 두고 다음 후보로 넘어갑니다.",
+       "mark": [
+        "failure"
+       ]
+      },
+      {
+       "from": "matching",
+       "to": "unpacking",
+       "label": "unmatched model file",
+       "what": "어떤 후보도 알아보지 못한 파일은 압축 파일인지 확인합니다.",
+       "mark": [
+        "optional"
+       ],
+       "media": [
+        {
+         "type": "payload",
+         "title": "One archive",
+         "text": "resnet.zip\n  resnet/model.onnx      ← 후보\n  resnet/README.md",
+         "invented": true
+        }
+       ]
+      },
+      {
+       "from": "unpacking",
+       "to": "shortlisting",
+       "label": "inner model file",
+       "what": "압축 안에서 모델로 알아본 파일 하나를 꺼내 처음부터 다시 거칩니다.",
+       "rules": [
+        "one-model-per-archive"
+       ],
+       "mark": [
+        "optional"
+       ]
+      },
+      {
+       "from": "unpacking",
+       "to": "explaining",
+       "label": "ambiguous archive",
+       "what": "압축 안에 모델로 보이는 파일이 둘 이상이거나 하나도 없으면 멈춥니다.",
+       "mark": [
+        "failure"
+       ]
+      }
+     ]
+    },
+    "link": "view"
+   },
+   {
+    "id": "failed",
+    "label": "Failed",
+    "what": "파일을 열지 못해 이유를 보여 주는 상태입니다. 모델이 아닌 파일이면 그것이 무엇인지까지 말해 줍니다.",
+    "refs": [
+     "[view.js: View.error](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L686)"
+    ]
+   },
+   {
+    "id": "laying",
+    "label": "Laying out",
+    "what": "읽은 그래프를 그림으로 옮기고 노드 자리를 계산하는 중입니다.",
+    "refs": [
+     "[view.js: View.render](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L914)"
+    ],
+    "opens": {
+     "kind": "workflow",
+     "title": "Layout",
+     "why": "모델 그래프를 그림의 상자와 선으로 옮기고 자리를 계산합니다. 글자 크기는 페이지에서 재고, 자리 계산은 Web Worker에서 dagre로 합니다.",
+     "partitions": [
+      {
+       "id": "page",
+       "label": "Page"
+      },
+      {
+       "id": "worker",
+       "label": "Web Worker"
+      }
+     ],
+     "nodes": [
+      {
+       "id": "building",
+       "label": "Building the view graph",
+       "what": "노드마다 상자를, 이름이 같은 값마다 선을 만듭니다. 가중치는 상자 안의 줄이 되고, 그룹이 있으면 묶음 상자도 만듭니다. 펼친 하위 그래프가 바깥 값을 쓰면 그 사이를 잇는 터널을 놓습니다.",
+       "partition": "page",
+       "ops": [
+        "Graph.build"
+       ],
+       "refs": [
+        "[view.js: Graph.add](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L1968)",
+        "[view.js: addTunnels](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L2074)"
+       ]
+      },
+      {
+       "id": "measuring",
+       "label": "Measuring labels",
+       "what": "상자와 선 이름을 실제로 그려 크기를 잽니다. 자리 계산에는 크기만 넘깁니다.",
+       "partition": "page",
+       "ops": [
+        "ViewGraph.measure"
+       ],
+       "refs": [
+        "[view.js: measure](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L2343)"
+       ]
+      },
+      {
+       "id": "ranking",
+       "label": "Ranking in a worker",
+       "what": "dagre로 층을 나누고 층 안의 순서와 좌표를 정합니다. 노드가 3000개를 넘으면 더 빠른 층 나누기를 씁니다.",
+       "partition": "worker",
+       "ops": [
+        "Worker.layout"
+       ],
+       "media": [
+        {
+         "type": "insight",
+         "move": "자리 계산을 Web Worker로 보내고, 2.5초 안에 끝나지 않으면 기다릴지 사용자에게 묻습니다.",
+         "vs": "페이지 안에서 바로 계산해, 큰 그래프에서는 끝날 때까지 화면이 멈추는 방식",
+         "gain": "노드 수천 개짜리 그래프에서도 화면이 살아 있고, 사용자가 언제든 그만둘 수 있습니다.",
+         "rule": "Worker.layout",
+         "refs": [
+          "[grapher.js: layout](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/grapher.js#L224)",
+          "[worker.js](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/worker.js)"
+         ]
+        }
+       ],
+       "refs": [
+        "[dagre.js](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/dagre.js)"
+       ]
+      },
+      {
+       "id": "placing",
+       "label": "Placing",
+       "what": "받은 좌표로 상자와 선을 옮기고, 이전에 보던 배율과 스크롤을 되살립니다.",
+       "partition": "page",
+       "ops": [
+        "ViewGraph.place"
+       ],
+       "refs": [
+        "[view.js: restore](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L2431)"
+       ]
+      }
+     ],
+     "edges": [
+      {
+       "from": "building",
+       "to": "measuring",
+       "label": "view graph",
+       "what": "상자와 선, 묶음으로 이루어진 그림 그래프입니다.",
+       "mark": [
+        "happy"
+       ]
+      },
+      {
+       "from": "measuring",
+       "to": "ranking",
+       "label": "measured view graph",
+       "what": "크기만 담은 노드와 선 목록을 메시지로 보냅니다.",
+       "mark": [
+        "happy"
+       ],
+       "media": [
+        {
+         "type": "payload",
+         "title": "Message to the worker",
+         "text": "{ type: 'dagre.layout',\n  nodes: [{ v, width, height, parent }],\n  edges: [{ v, w, minlen, weight, width, height }],\n  layout: { nodesep: 20, ranksep: 20, rankdir: 'LR'? },\n  state: {} }",
+         "refs": [
+          "[grapher.js: layout](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/grapher.js#L224)"
+         ]
+        }
+       ]
+      },
+      {
+       "from": "ranking",
+       "to": "placing",
+       "label": "node positions",
+       "what": "노드마다 중심 좌표, 선마다 꺾이는 점 목록이 돌아옵니다.",
+       "mark": [
+        "happy"
+       ],
+       "media": [
+        {
+         "type": "payload",
+         "title": "Returned coordinates",
+         "text": "nodes: [{ v: 'node-12', x: 140, y: 380 }, …]\nedges: [{ v, w, points: [{x, y}, …] }, …]",
+         "invented": true
+        }
+       ]
+      }
+     ]
+    },
+    "link": "view"
+   },
+   {
+    "id": "showing",
+    "label": "Showing",
+    "what": "그래프를 보여 주는 상태입니다. 노드를 고르면 옆에 속성이 열리고, 하위 그래프나 함수로 들어갈 수 있습니다.",
+    "rules": [
+     "shown-after-layout"
+    ],
+    "refs": [
+     "[view.js: View.pushTarget](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L893)"
+    ],
+    "opens": {
+     "kind": "topology",
+     "title": "What you inspect",
+     "why": "그래프를 보는 동안 만지는 것들입니다. 그림 위의 상자와 선, 고른 것의 속성을 보이는 옆 패널, 이름과 값으로 찾는 찾기, 하위 그래프를 오간 경로가 있습니다.",
+     "init": "no GraphView.selection",
+     "nodes": [
+      {
+       "id": "props",
+       "label": "Properties",
+       "what": "고른 노드, 선, 텐서의 속성을 보이는 옆 패널입니다. 노드라면 연산 설명서까지, 텐서라면 실제 숫자까지 펼쳐 봅니다.",
+       "attrs": [
+        "title: Text"
+       ],
+       "refs": [
+        "[view.js: NodeSidebar](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L3668)",
+        "[view.js: TensorView](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L4217)"
+       ]
+      },
+      {
+       "id": "view",
+       "label": "Graph view",
+       "what": "지금 그래프를 그린 화면입니다. 끌어서 움직이고, 휠이나 손가락으로 확대합니다.",
+       "attrs": [
+        "boxes: NodeBox[]",
+        "connections: Connection[]",
+        "selection: NodeBox?",
+        "sidebar: Properties?",
+        "path: TargetPath"
+       ],
+       "ops": [
+        "GraphView.select"
+       ],
+       "rules": [
+        "selection-in-view"
+       ],
+       "refs": [
+        "[view.js: Graph](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L1840)"
+       ]
+      },
+      {
+       "id": "path",
+       "label": "Target path",
+       "what": "하위 그래프와 함수로 들어간 길입니다. 위쪽 막대에 이름이 이어지고, 눌러서 바깥으로 나옵니다.",
+       "attrs": [
+        "targets: Graph[]"
+       ],
+       "refs": [
+        "[view.js: _updatePath](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L816)"
+       ]
+      },
+      {
+       "id": "find",
+       "label": "Find",
+       "what": "노드 이름, 연산 이름, 값 이름, 가중치 이름으로 찾고, 고르면 그 자리로 옮겨 갑니다.",
+       "attrs": [
+        "query: Text"
+       ],
+       "ops": [
+        "Find.search"
+       ],
+       "refs": [
+        "[view.js: FindSidebar](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L4851)"
+       ]
+      },
+      {
+       "id": "box",
+       "label": "Node box",
+       "what": "노드 하나를 그린 상자입니다. 머리에 연산 이름이, 몸통에 가중치와 (켜면) 속성이 한 줄씩 들어갑니다.",
+       "attrs": [
+        "node: Node",
+        "weights: Tensor[]"
+       ],
+       "rules": [
+        "weights-in-box"
+       ],
+       "refs": [
+        "[view.js: weights in node](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L2932)"
+       ]
+      },
+      {
+       "id": "connection",
+       "label": "Connection",
+       "what": "값 하나를 나르는 선입니다. 위에 텐서 모양(예: 1×64×56×56)이나, 켜면 값 이름이 붙습니다.",
+       "attrs": [
+        "value: Value",
+        "label: Text?"
+       ],
+       "rules": [
+        "no-tensor-lines"
+       ],
+       "refs": [
+        "[view.js: Value](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/view.js#L3184)"
+       ]
+      }
+     ],
+     "edges": [
+      {
+       "from": "view",
+       "to": "props",
+       "label": "shows",
+       "what": "고른 것의 속성을 옆 패널에 엽니다.",
+       "attr": "sidebar"
+      },
+      {
+       "from": "view",
+       "to": "path",
+       "label": "follows",
+       "what": "화면은 경로의 맨 앞 그래프를 그립니다.",
+       "attr": "path"
+      },
+      {
+       "from": "view",
+       "to": "box",
+       "label": "draws",
+       "what": "그래프의 노드마다 상자를 그립니다.",
+       "attr": "boxes"
+      },
+      {
+       "from": "view",
+       "to": "connection",
+       "label": "links",
+       "what": "생산자가 있는 값마다 선을 긋습니다.",
+       "attr": "connections"
+      },
+      {
+       "from": "connection",
+       "to": "box",
+       "label": "joins",
+       "what": "선은 값을 만든 상자에서 그 값을 받는 상자들로 이어집니다."
+      },
+      {
+       "from": "find",
+       "to": "box",
+       "label": "finds",
+       "what": "찾은 결과를 고르면 그 상자를 골라 화면 가운데로 옮깁니다."
+      }
+     ]
+    },
+    "link": "view"
+   }
+  ],
+  "edges": [
+   {
+    "from": "waiting",
+    "to": "opening",
+    "label": "load",
+    "what": "사용자가 파일을 열면 그 파일을 읽기 시작합니다.",
+    "ops": [
+     "Window.load"
+    ],
+    "mark": [
+     "happy"
+    ]
+   },
+   {
+    "from": "opening",
+    "to": "failed",
+    "label": "reject",
+    "what": "어떤 형식 모듈도 읽지 못했거나, 모델이 아닌 파일임을 알아보면 열기를 멈춥니다.",
+    "mark": [
+     "failure"
+    ]
+   },
+   {
+    "from": "failed",
+    "to": "waiting",
+    "label": "dismiss",
+    "what": "오류 메시지를 닫으면 시작 화면으로 돌아갑니다."
+   },
+   {
+    "from": "opening",
+    "to": "laying",
+    "label": "lay out",
+    "what": "모델을 읽고 나면 그 안에서 노드가 있는 첫 그래프를 골라 배치를 시작합니다.",
+    "mark": [
+     "happy"
+    ]
+   },
+   {
+    "from": "laying",
+    "to": "showing",
+    "label": "show",
+    "what": "배치가 끝나면 그래프를 그리고, 이전에 보던 확대 배율과 위치를 되살립니다.",
+    "mark": [
+     "happy"
+    ]
+   },
+   {
+    "from": "laying",
+    "to": "waiting",
+    "label": "cancel",
+    "what": "배치가 2.5초를 넘으면 오래 걸릴 수 있다고 알리고, 사용자가 취소하면 모델을 내려놓고 시작 화면으로 돌아갑니다.",
+    "mark": [
+     "failure",
+     "optional"
+    ],
+    "refs": [
+     "[grapher.js: layout timeout](https://github.com/lutzroeder/netron/blob/255360ae212846245c71f673066dc0900efa7e17/source/grapher.js#L262)"
+    ]
+   },
+   {
+    "from": "showing",
+    "to": "laying",
+    "label": "navigate",
+    "what": "하위 그래프나 함수 정의로 들어가거나, 경로 막대에서 위로 나오거나, 이름·속성·가중치 표시를 바꾸면 다시 배치합니다.",
+    "ops": [
+     "Window.navigate"
+    ],
+    "mark": [
+     "optional"
+    ]
+   }
+  ]
+ }
+}

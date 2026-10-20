@@ -1,0 +1,1213 @@
+{
+ "version": "1",
+ "title": "GitHub pull request",
+ "plan": {
+  "intent": "풀 리퀘스트 하나가 열려서 머지되거나 닫히기까지, 무엇이 지켜져야 머지할 수 있는가"
+ },
+ "scenarios": [
+  {
+   "slug": "propose-change",
+   "text": "작성자가 브랜치에 커밋을 올리고 풀 리퀘스트를 열면, 무엇을 왜 바꾸는지와 바뀐 파일이 한곳에 모여 리뷰를 기다립니다.",
+   "walk": [
+    {
+     "place": "open-s",
+     "does": "작성자가 작업 브랜치를 head로, 합칠 브랜치를 base로 골라 설명과 함께 풀 리퀘스트를 엽니다.",
+     "expects": "풀 리퀘스트가 Open 상태로 생기고, 고른 두 브랜치가 각각 head와 base로 정해져 있습니다."
+    },
+    {
+     "place": "push",
+     "does": "Open 안으로 들어가 리뷰 한 바퀴를 봅니다. 작성자는 먼저 작업 브랜치에 커밋을 push합니다.",
+     "expects": "작업 브랜치 끝이 방금 올린 마지막 커밋으로 옮겨 가고, 풀 리퀘스트도 그 커밋을 봅니다."
+    },
+    {
+     "place": "checks",
+     "does": "GitHub이 head commit, 곧 작업 브랜치 끝 커밋에 대해 빌드와 테스트를 돌립니다.",
+     "expects": "체크 결과가 그 커밋에 붙고, 풀 리퀘스트 화면에는 가장 최근 커밋의 결과만 보입니다."
+    },
+    {
+     "place": "review",
+     "does": "체크 결과가 붙은 풀 리퀘스트가 Reviewing code로 넘어가 리뷰어를 기다립니다.",
+     "expects": "리뷰어가 바뀐 파일과 체크 결과를 한 화면에서 볼 수 있습니다."
+    },
+    {
+     "place": [
+      "pr",
+      "branch",
+      "commit"
+     ],
+     "does": "리뷰 단계 안을 열어, 리뷰어가 보게 될 Pull request와 Branch, Commit이 어떻게 이어지는지 봅니다.",
+     "expects": "풀 리퀘스트는 base로 합치고 head 끝 커밋을 따라가므로, 무엇을 왜 바꾸는지와 바뀐 파일이 한곳에서 리뷰를 기다립니다."
+    }
+   ],
+   "refs": [
+    "[Pull requests](https://docs.github.com/en/pull-requests/reference/pull-requests)",
+    "[Branches](https://docs.github.com/en/pull-requests/reference/branches)"
+   ]
+  },
+  {
+   "slug": "keep-as-draft",
+   "text": "아직 덜 된 변경은 초안으로 열어 두고, 준비가 되면 리뷰를 받을 수 있는 상태로 바꿉니다.",
+   "walk": [
+    {
+     "place": "open-s",
+     "does": "작성자가 풀 리퀘스트를 열었지만, 아직 변경이 덜 되었다는 것을 깨닫습니다.",
+     "expects": "풀 리퀘스트는 Open 상태이고, 리뷰 요청 알림이 나갈 수 있는 상태입니다."
+    },
+    {
+     "place": "draft-s",
+     "does": "작성자가 convert to draft로 풀 리퀘스트를 초안으로 돌려 둡니다.",
+     "expects": "풀 리퀘스트가 Draft 상태가 되어 리뷰 요청 알림이 가지 않고, 머지 버튼도 쓸 수 없습니다."
+    },
+    {
+     "place": "open-s",
+     "does": "작업을 마친 작성자가 mark ready로 초안을 리뷰 받을 준비가 된 상태로 바꿉니다.",
+     "expects": "풀 리퀘스트가 다시 Open 상태가 되고, 이때부터 리뷰어에게 리뷰 요청 알림이 갑니다."
+    }
+   ],
+   "refs": [
+    "[Changing the stage of a pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request)"
+   ]
+  },
+  {
+   "slug": "review-change",
+   "text": "리뷰어가 바뀐 파일을 읽으며 줄마다 의견을 남긴 뒤, 의견들을 한 번에 묶어 승인, 변경 요청, 의견 가운데 하나로 제출합니다.",
+   "walk": [
+    {
+     "place": "open-s",
+     "does": "작성자가 연 풀 리퀘스트가 Open 상태로 리뷰어의 차례를 기다립니다.",
+     "expects": "풀 리퀘스트가 Open 상태이고, 리뷰어가 바뀐 파일을 열어 볼 수 있습니다."
+    },
+    {
+     "place": "checks",
+     "does": "Open 안으로 들어가 봅니다. 리뷰어가 읽기 전에 최근 커밋에 대한 체크가 먼저 돕니다.",
+     "expects": "빌드와 테스트 결과가 가장 최근 커밋에 붙어 풀 리퀘스트 화면에 보입니다."
+    },
+    {
+     "place": "review",
+     "does": "리뷰어가 체크 결과를 확인하고 바뀐 파일을 읽기 시작합니다.",
+     "expects": "리뷰어 앞에 바뀐 파일과 체크 결과가 함께 놓여 있습니다."
+    },
+    {
+     "place": [
+      "pr",
+      "review-x",
+      "commit",
+      "review-x",
+      "comment",
+      "line"
+     ],
+     "does": "리뷰 안을 열어 봅니다. 리뷰어는 읽은 Commit의 Diff line마다 Comment를 달고, 이를 Review 하나로 묶습니다.",
+     "expects": "줄 의견은 리뷰를 제출하기 전까지 다른 사람에게 보이지 않고, 리뷰는 읽은 커밋에 묶일 준비가 되어 있습니다."
+    },
+    {
+     "place": "review",
+     "does": "리뷰 단계로 돌아와, 리뷰어가 의견을 묶어 승인, 변경 요청, 의견 가운데 하나로 제출합니다.",
+     "expects": "제출한 리뷰에는 읽은 커밋, 남긴 의견들, 고른 판정이 그대로 담기고 풀 리퀘스트에 쌓입니다."
+    },
+    {
+     "place": "mergebox",
+     "does": "판정이 승인이면 approved review가 Gating the merge로 넘어가 머지 조건에 더해집니다.",
+     "expects": "작성자 본인의 승인은 세지 않으며, 다른 사람이 최근 커밋을 읽고 한 승인만 머지 조건에 들어갑니다."
+    }
+   ],
+   "refs": [
+    "[Pull request reviews](https://docs.github.com/en/pull-requests/reference/pull-request-reviews)",
+    "[Commenting on a pull request](https://docs.github.com/en/pull-requests/how-tos/review-pull-requests/commenting-on-a-pull-request)"
+   ]
+  },
+  {
+   "slug": "address-feedback",
+   "text": "리뷰에서 변경을 요청받은 작성자가 새 커밋을 올리면, 체크가 새 커밋에 대해 다시 돌고 앞선 리뷰는 옛 커밋에 대한 것으로 남습니다.",
+   "walk": [
+    {
+     "place": "review",
+     "does": "리뷰어가 바뀐 파일을 읽고 변경 요청(Request changes) 판정으로 리뷰를 제출합니다.",
+     "expects": "변경 요청 리뷰가 리뷰어가 읽은 커밋에 묶여 풀 리퀘스트에 남습니다."
+    },
+    {
+     "place": "push",
+     "does": "change requests를 받은 작성자가 고친 내용을 새 커밋으로 만들어 작업 브랜치에 push합니다.",
+     "expects": "작업 브랜치 끝이 새 커밋으로 옮겨 가고, 앞선 리뷰의 의견은 옛 코드에 대한 것으로 표시됩니다."
+    },
+    {
+     "place": "checks",
+     "does": "GitHub이 새 head commit에 대해 체크를 처음부터 다시 돌립니다.",
+     "expects": "옛 커밋의 체크 결과는 화면에서 새 커밋의 결과로 바뀝니다."
+    },
+    {
+     "place": "review",
+     "does": "새 체크 결과와 함께 풀 리퀘스트가 다시 리뷰어에게 돌아옵니다.",
+     "expects": "리뷰어는 새 커밋과 그 체크 결과를 보고, 앞선 리뷰는 옛 커밋에 대한 것으로 남아 있습니다."
+    }
+   ],
+   "refs": [
+    "[Using the REST API to interact with checks](https://docs.github.com/en/rest/guides/using-the-rest-api-to-interact-with-checks)"
+   ]
+  },
+  {
+   "slug": "land-change",
+   "text": "필요한 승인과 필수 체크가 모두 채워지면, 머지 버튼으로 변경을 기준 브랜치에 합칩니다. 합치는 방식은 머지 커밋, 스쿼시, 리베이스 가운데 고릅니다.",
+   "walk": [
+    {
+     "place": "open-s",
+     "does": "리뷰와 체크를 거친 풀 리퀘스트가 Open 상태로 머지를 기다립니다.",
+     "expects": "풀 리퀘스트는 초안이 아니라 Open 상태이며, 기준 브랜치에 합칠 후보입니다."
+    },
+    {
+     "place": "mergebox",
+     "does": "Open 안의 Gating the merge를 봅니다. GitHub이 승인 수와 필수 체크가 채워졌는지 확인합니다.",
+     "expects": "정해진 수만큼 승인이 있고 필수 체크가 가장 최근 커밋에서 모두 통과하면 머지 버튼이 열립니다."
+    },
+    {
+     "place": "open-s",
+     "does": "안을 닫고 상태 단계로 돌아옵니다. 작성자는 머지 커밋, 스쿼시, 리베이스 가운데 방식을 고릅니다.",
+     "expects": "풀 리퀘스트는 아직 Open이며, 머지 버튼이 열려 있고 저장소가 허용하는 방식만 고를 수 있습니다."
+    },
+    {
+     "place": "merged-s",
+     "does": "작성자가 merge를 눌러 변경을 이 풀 리퀘스트의 기준 브랜치에 합칩니다.",
+     "expects": "기준 브랜치 끝에 새 커밋이 생기고 풀 리퀘스트는 Merged 상태가 되어 일이 끝납니다."
+    }
+   ],
+   "refs": [
+    "[About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)",
+    "[About merge methods on GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-merge-methods-on-github)"
+   ]
+  },
+  {
+   "slug": "withdraw-change",
+   "text": "작성자나 관리자가 풀 리퀘스트를 머지하지 않고 닫습니다. 닫힌 풀 리퀘스트는 필요하면 다시 열 수 있습니다.",
+   "walk": [
+    {
+     "place": "open-s",
+     "does": "풀 리퀘스트가 Open 상태에 있지만, 작성자나 관리자는 이 변경을 더 진행하지 않기로 합니다.",
+     "expects": "풀 리퀘스트는 아직 Open 상태이고 머지되지 않았습니다."
+    },
+    {
+     "place": "closed-s",
+     "does": "작성자나 관리자가 close로 풀 리퀘스트를 머지하지 않은 채 닫습니다.",
+     "expects": "풀 리퀘스트가 Closed 상태가 되고, 브랜치와 대화 기록은 그대로 남습니다."
+    },
+    {
+     "place": "open-s",
+     "does": "다시 필요해지자 reopen으로 닫았던 풀 리퀘스트를 엽니다.",
+     "expects": "풀 리퀘스트가 Open 상태로 돌아오고, 남아 있던 브랜치와 대화 기록을 이어서 씁니다."
+    }
+   ],
+   "refs": [
+    "[Closing a pull request](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/closing-a-pull-request)"
+   ]
+  },
+  {
+   "slug": "sync-with-base",
+   "text": "기준 브랜치가 앞서 나가 충돌이 생기거나 뒤처지면, 작성자가 브랜치를 갱신하거나 충돌을 풀어 새 커밋을 만들고, 체크가 다시 돈 뒤 머지할 수 있는 상태로 돌아옵니다.",
+   "walk": [
+    {
+     "place": "push",
+     "does": "기준 브랜치가 앞서 나가 충돌이 생기거나 뒤처지자, 작성자가 Pushing 단계에서 브랜치를 맞추려 합니다.",
+     "expects": "작업 브랜치에 기준 브랜치의 새 커밋이 아직 들어오지 않았습니다."
+    },
+    {
+     "place": "matching",
+     "does": "Pushing 안의 Branch sync로 들어갑니다. GitHub 쪽 작업 브랜치는 처음에 Matching입니다.",
+     "expects": "GitHub의 작업 브랜치에 작성자가 아직 받지 않은 커밋이 없습니다."
+    },
+    {
+     "place": "ahead",
+     "does": "작성자가 GitHub에서 Update branch를 눌러 기준 브랜치의 새 커밋을 병합이나 리베이스로 가져옵니다.",
+     "expects": "충돌이 있었다면 먼저 풀렸고, GitHub 쪽 브랜치가 작성자가 모르는 커밋을 가진 Ahead가 됩니다."
+    },
+    {
+     "place": "matching",
+     "does": "작성자가 GitHub의 새 커밋을 받아 가서 GitHub 쪽이 다시 Matching으로 돌아옵니다.",
+     "expects": "GitHub의 작업 브랜치에 작성자가 아직 받지 않은 커밋이 더는 없습니다."
+    },
+    {
+     "place": "push",
+     "does": "Branch sync를 나와 Pushing으로 돌아옵니다. 이번에는 작성자의 컴퓨터 쪽을 봅니다.",
+     "expects": "GitHub 쪽 작업 브랜치에는 기준 브랜치를 반영한 새 커밋이 끝에 있습니다."
+    },
+    {
+     "place": "clean",
+     "does": "다시 Branch sync로 들어가, 이번에는 작성자 컴퓨터 쪽 브랜치를 봅니다. 상태는 Clean입니다.",
+     "expects": "작성자의 브랜치에 GitHub에 아직 올리지 않은 커밋이 없습니다."
+    },
+    {
+     "place": "clean",
+     "does": "작성자가 pull로 GitHub의 새 커밋을 받아 자기 브랜치에 합칩니다.",
+     "expects": "작성자의 브랜치는 Clean 그대로이고, GitHub 쪽과 같은 커밋을 끝에 두게 됩니다."
+    },
+    {
+     "place": "push",
+     "does": "Branch sync를 나와 Pushing으로 돌아옵니다. 작업 브랜치는 기준 브랜치를 반영한 새 커밋을 가리킵니다.",
+     "expects": "풀 리퀘스트는 저절로 작업 브랜치 끝의 새 커밋을 봅니다."
+    },
+    {
+     "place": "checks",
+     "does": "GitHub이 새 head commit에 대해 체크를 다시 돌립니다.",
+     "expects": "화면의 체크 결과가 옛 커밋의 것에서 새 커밋의 것으로 바뀝니다."
+    },
+    {
+     "place": "review",
+     "does": "새 체크 결과와 함께 풀 리퀘스트가 리뷰어에게 돌아가고, 리뷰어가 새 커밋을 읽고 승인합니다.",
+     "expects": "승인은 지금 작업 브랜치 끝 커밋을 읽고 한 것이어야 머지에 셀 수 있습니다."
+    },
+    {
+     "place": "mergebox",
+     "does": "approved review가 Gating the merge로 넘어가, GitHub이 머지 조건을 다시 확인합니다.",
+     "expects": "승인 수와 새 커밋의 필수 체크가 모두 채워지면 머지 버튼이 다시 열립니다."
+    },
+    {
+     "place": "push",
+     "does": "그사이 승인이 모자라거나 체크가 실패하거나 기준 브랜치가 또 앞서면 merge blockers를 들고 작성자에게 돌아갑니다.",
+     "expects": "막는 이유가 없으면 머지할 수 있는 상태가 유지되고, 있으면 작성자가 같은 갱신을 되풀이해 그 상태로 돌아옵니다."
+    }
+   ],
+   "refs": [
+    "[Keeping your pull request in sync with the base branch](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/keeping-your-pull-request-in-sync-with-the-base-branch)"
+   ]
+  },
+  {
+   "slug": "comment-on-lines",
+   "text": "리뷰어가 읽고 있는 커밋의 바뀐 줄마다 의견을 달고, 그 의견들을 리뷰 하나로 묶어 제출하면, 그 리뷰는 읽은 커밋에 묶여 남습니다.",
+   "walk": [
+    {
+     "place": [
+      "comment",
+      "line",
+      "commit",
+      "review-x",
+      "comment",
+      "review-x",
+      "pr"
+     ],
+     "does": "리뷰어가 읽는 Commit에서 나온 Diff line마다 Comment를 달고, 그 의견들을 Review 하나로 묶어 Pull request에 제출합니다.",
+     "expects": "리뷰에는 읽은 커밋과 의견들, 판정이 그대로 담기고, 의견은 기준 브랜치에서 갈라진 뒤 작업 브랜치에 생긴 줄에만 붙습니다."
+    }
+   ]
+  },
+  {
+   "slug": "push-after-pull",
+   "text": "내가 커밋한 사이 GitHub 쪽이 앞서 있으면 push가 거절되고, 받아서 합친 뒤에야 올라갑니다.",
+   "walk": [
+    {
+     "place": "clean",
+     "does": "작성자의 컴퓨터 쪽 브랜치는 Clean 상태에서 시작합니다.",
+     "expects": "작성자의 브랜치에 GitHub에 아직 올리지 않은 커밋이 없습니다."
+    },
+    {
+     "place": "unpushed",
+     "does": "작성자가 자기 컴퓨터에서 변경을 커밋합니다. 그사이 다른 사람이 GitHub 쪽 브랜치에 커밋을 올렸습니다.",
+     "expects": "작성자의 브랜치가 Unpushed가 되어, GitHub에 아직 올리지 않은 커밋을 갖습니다."
+    },
+    {
+     "place": "unpushed",
+     "does": "작성자가 push하지만, GitHub 쪽에 작성자가 모르는 커밋이 있어 거절됩니다.",
+     "expects": "남의 커밋은 덮어쓰이지 않고, 작성자의 브랜치는 Unpushed 그대로 남습니다."
+    },
+    {
+     "place": "clean",
+     "does": "작성자가 GitHub의 새 커밋을 받아서 합친 뒤 다시 push하고, 이번에는 받아들여집니다.",
+     "expects": "작성자의 브랜치가 Clean으로 돌아오고, GitHub이 작성자의 커밋을 받아 두 브랜치가 같아집니다."
+    },
+    {
+     "place": "clean",
+     "does": "Clean에서 pull을 다시 짚어 봅니다. push가 받아들여진 것은 이 pull로 GitHub의 새 커밋을 먼저 합쳤기 때문입니다.",
+     "expects": "pull 뒤에는 GitHub 쪽에 작성자가 모르는 커밋이 없으므로 push가 올라가고, 브랜치는 Clean으로 남습니다."
+    }
+   ]
+  },
+  {
+   "slug": "catch-up-with-github",
+   "text": "다른 사람이 같은 브랜치에 커밋을 올리면 GitHub 쪽이 앞서고, pull로 받으면 다시 같아집니다.",
+   "walk": [
+    {
+     "place": "matching",
+     "does": "GitHub 쪽 작업 브랜치가 Matching 상태에서 시작합니다.",
+     "expects": "GitHub의 브랜치에 작성자가 아직 받지 않은 커밋이 없습니다."
+    },
+    {
+     "place": "ahead",
+     "does": "다른 사람이 같은 브랜치에 커밋을 올려 update branch가 일어납니다.",
+     "expects": "GitHub 쪽 브랜치가 Ahead가 되어, 작성자가 아직 받지 않은 커밋을 갖습니다."
+    },
+    {
+     "place": "matching",
+     "does": "작성자가 pull로 GitHub의 새 커밋을 받아 가서 catch up이 일어납니다.",
+     "expects": "GitHub 쪽이 다시 Matching이 되어, 작성자가 모르는 커밋이 더는 없습니다."
+    },
+    {
+     "place": "matching",
+     "does": "작성자가 자기 커밋을 push하자 GitHub이 그 커밋을 받습니다.",
+     "expects": "GitHub 쪽은 Matching 그대로이고, 두 브랜치가 다시 같은 커밋을 끝에 둡니다."
+    }
+   ]
+  }
+ ],
+ "operations": [
+  {
+   "slug": "PullRequest.create",
+   "sig": "(head: Branch, base: Branch, text: Text) → PullRequest",
+   "text": "작업 브랜치와 합칠 대상 브랜치를 고르고 설명을 붙여 풀 리퀘스트를 만듭니다.",
+   "refs": [
+    "[Pull requests](https://docs.github.com/en/pull-requests/reference/pull-requests)"
+   ],
+   "post": "self.head = head and self.base = base"
+  },
+  {
+   "slug": "PullRequest.markReady",
+   "sig": "() → PullRequest",
+   "text": "초안을 리뷰 받을 준비가 된 상태로 바꿉니다. 이때부터 리뷰 요청 알림이 갑니다.",
+   "refs": [
+    "[Changing the stage of a pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request)"
+   ]
+  },
+  {
+   "slug": "PullRequest.convertToDraft",
+   "sig": "() → PullRequest",
+   "text": "리뷰를 기다리던 풀 리퀘스트를 다시 초안으로 돌립니다. 초안에는 리뷰 요청 알림이 가지 않고, 머지할 수 없습니다.",
+   "refs": [
+    "[Changing the stage of a pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request)"
+   ]
+  },
+  {
+   "slug": "Branch.push",
+   "sig": "(commits: Commit[]) → Commit",
+   "text": "브랜치에 커밋을 더하고, 브랜치 끝(tip)을 마지막 커밋으로 옮깁니다. 이 브랜치를 작업 브랜치(head)로 쓰는 풀 리퀘스트는 저절로 새 커밋을 보게 됩니다."
+  },
+  {
+   "slug": "Branch.update",
+   "sig": "(base: Branch, method: MergeMethod) → Commit",
+   "text": "기준 브랜치의 새 커밋을 이 브랜치로 가져오고, 그 결과 생긴 커밋을 돌려줍니다. 병합으로 가져오거나 리베이스로 다시 얹을 수 있고, 충돌이 있으면 먼저 풀어야 합니다.",
+   "refs": [
+    "[Keeping your pull request in sync with the base branch](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/keeping-your-pull-request-in-sync-with-the-base-branch)"
+   ],
+   "pre": "method in merge + rebase"
+  },
+  {
+   "slug": "Commit.runChecks",
+   "sig": "() → CheckResult[]",
+   "text": "커밋 하나에 대해 빌드와 테스트 같은 체크를 돌리고, 체크마다 결과를 그 커밋에 붙입니다.",
+   "refs": [
+    "[Status checks](https://docs.github.com/en/pull-requests/reference/status-checks)"
+   ]
+  },
+  {
+   "slug": "PullRequest.comment",
+   "sig": "(line: DiffLine, text: Text) → Comment",
+   "text": "바뀐 파일의 한 줄이나 여러 줄에 의견을 남깁니다. 리뷰 안에서 남긴 의견은 리뷰를 제출할 때까지 다른 사람에게 보이지 않습니다.",
+   "refs": [
+    "[Commenting on a pull request](https://docs.github.com/en/pull-requests/how-tos/review-pull-requests/commenting-on-a-pull-request)"
+   ]
+  },
+  {
+   "slug": "PullRequest.submitReview",
+   "sig": "(commit: Commit, comments: Comment[], verdict: Verdict) → Review",
+   "text": "읽은 커밋을 밝히고, 남긴 의견들을 하나의 리뷰로 묶어 승인(Approve), 변경 요청(Request changes), 의견(Comment) 가운데 하나로 제출합니다.",
+   "refs": [
+    "[Pull request reviews](https://docs.github.com/en/pull-requests/reference/pull-request-reviews)"
+   ],
+   "post": "result.commit = commit and result.verdict = verdict and result.comments = comments"
+  },
+  {
+   "slug": "PullRequest.merge",
+   "sig": "(base: Branch, method: MergeMethod) → Commit",
+   "text": "풀 리퀘스트의 변경을 기준 브랜치(base)에 합치고, 기준 브랜치 끝에 새 커밋을 만듭니다. 합치는 곳이 결과를 정하므로 기준 브랜치를 입력으로 받습니다. 머지 커밋, 스쿼시, 리베이스 가운데 저장소가 허용하는 방식을 고릅니다.",
+   "refs": [
+    "[About merge methods on GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-merge-methods-on-github)"
+   ],
+   "pre": "base = self.base"
+  },
+  {
+   "slug": "PullRequest.close",
+   "sig": "() → PullRequest",
+   "text": "풀 리퀘스트를 머지하지 않고 닫습니다. 브랜치와 대화 기록은 그대로 남습니다.",
+   "refs": [
+    "[Closing a pull request](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/closing-a-pull-request)"
+   ]
+  },
+  {
+   "slug": "PullRequest.reopen",
+   "sig": "() → PullRequest",
+   "text": "닫았던 풀 리퀘스트를 다시 엽니다.",
+   "refs": [
+    "[Pull requests GraphQL reference](https://docs.github.com/en/graphql/reference/pulls)"
+   ]
+  },
+  {
+   "slug": "Branch.commit",
+   "sig": "(changes: Text) → Commit",
+   "text": "내 컴퓨터의 브랜치에 변경을 커밋으로 더합니다."
+  },
+  {
+   "slug": "Branch.pull",
+   "sig": "(remote: Branch) → Commit",
+   "text": "원격 브랜치의 새 커밋을 가져와 내 브랜치에 합칩니다.",
+   "refs": [
+    "[git pull](https://git-scm.com/docs/git-pull)"
+   ]
+  }
+ ],
+ "rules": [
+  {
+   "slug": "mergeable",
+   "kind": "must",
+   "formula": "all pr: PullRequest, target: Branch, how: MergeMethod, landed: Commit | pr.merge[target, how, landed] implies target = pr.base and pr not in Draft and #{review: pr.reviews | review.verdict = approve} >= target.requiredApprovals and target.requiredChecks in pr.head.tip.passed",
+   "text": "보호된 브랜치에 합치려면 초안이 아니어야 하고, 정해진 수만큼 승인을 받아야 하며, 필수 체크가 가장 최근 커밋에서 모두 통과해야 합니다. 저장소 관리자는 이 조건을 건너뛸 수 있습니다.",
+   "refs": [
+    "[About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)",
+    "[Troubleshooting required status checks](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks)"
+   ]
+  },
+  {
+   "slug": "no-self-approval",
+   "kind": "must",
+   "formula": "all pr: PullRequest, review: pr.reviews | review.verdict = approve implies review.author != pr.author",
+   "text": "작성자는 자기 풀 리퀘스트를 승인할 수 없습니다. 승인은 언제나 다른 사람의 눈을 한 번 거쳤다는 뜻이 됩니다.",
+   "refs": [
+    "[Approving a pull request with required reviews](https://docs.github.com/en/pull-requests/how-tos/review-pull-requests/approving-a-pull-request-with-required-reviews)"
+   ]
+  },
+  {
+   "slug": "checks-on-head",
+   "kind": "must",
+   "formula": "all pr: PullRequest | pr.checks = pr.head.tip.passed",
+   "text": "풀 리퀘스트에 보이는 체크 결과는 언제나 가장 최근 커밋에 대한 것입니다. 새 커밋이 올라오면 옛 결과는 새 결과로 바뀝니다.",
+   "refs": [
+    "[Using the REST API to interact with checks](https://docs.github.com/en/rest/guides/using-the-rest-api-to-interact-with-checks)"
+   ]
+  },
+  {
+   "slug": "three-dot",
+   "kind": "must",
+   "formula": "all pr: PullRequest, review: pr.reviews, remark: review.comments | remark.line.commit in pr.head.history - pr.base.history",
+   "text": "바뀐 파일 화면은 두 브랜치가 갈라진 지점과 작업 브랜치의 가장 최근 커밋을 비교합니다. 그래서 기준 브랜치에 나중에 들어온 변경은 섞이지 않습니다.",
+   "refs": [
+    "[Branches](https://docs.github.com/en/pull-requests/reference/branches)"
+   ]
+  },
+  {
+   "slug": "review-on-commit",
+   "kind": "should",
+   "formula": "all pr: PullRequest, review: pr.reviews | review.commit in pr.head.history",
+   "text": "리뷰는 리뷰어가 읽은 커밋에 묶입니다. 그 뒤에 커밋이 더 올라오면 앞선 리뷰의 의견은 옛 코드에 대한 것으로 표시됩니다.",
+   "refs": [
+    "[REST API: Pull request reviews](https://docs.github.com/en/rest/pulls/reviews)"
+   ]
+  },
+  {
+   "slug": "fresh-approval",
+   "kind": "should",
+   "formula": "all pr: PullRequest | pr.merge implies (all review: pr.reviews | review.verdict = approve implies review.commit = pr.head.tip)",
+   "text": "머지에 세는 승인은 지금 작업 브랜치 끝 커밋을 읽고 한 것이어야 합니다. 승인 뒤에 올라온 커밋은 아무도 읽지 않은 채 들어갈 수 있기 때문입니다.",
+   "refs": [
+    "[About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)"
+   ]
+  },
+  {
+   "slug": "fast-forward-push",
+   "kind": "must",
+   "formula": "all branch: Branch | branch.push implies branch in Matching",
+   "text": "push는 원격 브랜치에 내가 모르는 커밋이 없을 때만 받아들여집니다. 그래야 남이 올린 커밋을 덮어쓰지 않습니다.",
+   "refs": [
+    "[git push](https://git-scm.com/docs/git-push)"
+   ]
+  }
+ ],
+ "level": {
+  "kind": "state",
+  "initial": "open-s",
+  "title": "Pull request lifecycle",
+  "why": "풀 리퀘스트 하나가 열려서 머지되거나 닫힐 때까지 거치는 상태입니다. 대부분의 일은 열린 동안 일어나고, 머지된 뒤에는 끝납니다.",
+  "nodes": [
+   {
+    "id": "draft-s",
+    "label": "Draft",
+    "what": "아직 리뷰를 청하지 않은 상태입니다. 누구나 볼 수 있지만 머지할 수 없습니다.",
+    "refs": [
+     "[Changing the stage of a pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request)"
+    ]
+   },
+   {
+    "id": "open-s",
+    "label": "Open",
+    "what": "리뷰와 체크가 오가는 상태입니다. 안을 열면 리뷰가 한 바퀴 도는 과정을 볼 수 있습니다.",
+    "refs": [
+     "[Pull requests](https://docs.github.com/en/pull-requests/reference/pull-requests)"
+    ],
+    "opens": {
+     "kind": "workflow",
+     "title": "Review round",
+     "why": "열린 풀 리퀘스트 안에서 한 바퀴 도는 일입니다. 커밋이 올라오면 체크가 돌고, 리뷰어가 읽고, 변경을 요청하면 처음으로 돌아가며, 승인되면 머지 상자로 넘어갑니다.",
+     "nodes": [
+      {
+       "id": "push",
+       "label": "Pushing",
+       "what": "작성자가 자기 컴퓨터에서 커밋을 만들고 작업 브랜치로 올립니다. 풀 리퀘스트는 언제나 그 브랜치의 가장 최근 커밋을 가리킵니다.",
+       "ops": [
+        "Branch.push",
+        "Branch.update"
+       ],
+       "partition": "local",
+       "opens": {
+        "kind": "state",
+        "title": "Branch sync",
+        "initial": [
+         "clean",
+         "matching"
+        ],
+        "why": "작업 브랜치 하나는 두 곳에 동시에 있습니다. 위는 내 컴퓨터의 브랜치, 아래는 GitHub의 브랜치이고, 둘은 서로를 가리키지 않은 채 각자 상태가 바뀝니다. 둘을 잇는 것은 동기화뿐이며, push (→ receive)처럼 사건 이름 옆에 무엇을 일으키는지 적습니다. 내가 push하면 GitHub이 받고, 내가 pull하면 GitHub 쪽을 따라잡습니다.",
+        "refs": [
+         "[Harel 1987, Statecharts](https://www.inf.ed.ac.uk/teaching/courses/seoc/2006_2007/resources/statecharts.pdf)",
+         "[Meng & Jackson 2025, What You See Is What It Does](https://arxiv.org/abs/2508.14511)"
+        ],
+        "nodes": [
+         {
+          "id": "clean",
+          "label": "Clean",
+          "what": "내 브랜치에 아직 올리지 않은 커밋이 없습니다.",
+          "region": "local"
+         },
+         {
+          "id": "unpushed",
+          "label": "Unpushed",
+          "what": "내 브랜치에 GitHub에 아직 올리지 않은 커밋이 있습니다.",
+          "region": "local"
+         },
+         {
+          "id": "matching",
+          "label": "Matching",
+          "what": "GitHub의 브랜치에 내가 아직 받지 않은 커밋이 없습니다.",
+          "region": "github"
+         },
+         {
+          "id": "ahead",
+          "label": "Ahead",
+          "what": "GitHub의 브랜치에 내가 아직 받지 않은 커밋이 있습니다. 다른 사람이 올렸거나, GitHub에서 Update branch를 눌렀을 때입니다.",
+          "region": "github"
+         }
+        ],
+        "edges": [
+         {
+          "from": "clean",
+          "to": "unpushed",
+          "label": "commit changes",
+          "ops": [
+           "Branch.commit"
+          ],
+          "mark": [
+           "happy"
+          ],
+          "what": "내 컴퓨터에서 커밋하면 GitHub보다 앞서게 됩니다."
+         },
+         {
+          "from": "unpushed",
+          "to": "clean",
+          "label": "push",
+          "ops": [
+           "Branch.push"
+          ],
+          "rules": [
+           "fast-forward-push"
+          ],
+          "mark": [
+           "happy"
+          ],
+          "what": "커밋을 올리면 두 브랜치가 다시 같아집니다. GitHub 쪽이 앞서 있으면 거절됩니다.",
+          "refs": [
+           "[git push](https://git-scm.com/docs/git-push)"
+          ]
+         },
+         {
+          "from": "unpushed",
+          "to": "unpushed",
+          "label": "reject",
+          "mark": [
+           "failure"
+          ],
+          "what": "GitHub 쪽에 내가 모르는 커밋이 있으면 push가 거절되고, 내 브랜치는 그대로 앞서 있습니다. 먼저 받아서 합쳐야 합니다.",
+          "refs": [
+           "[git push](https://git-scm.com/docs/git-push)"
+          ],
+          "media": [
+           {
+            "type": "code",
+            "text": " ! [rejected]  feature -> feature (fetch first)\nerror: failed to push some refs\nhint: Updates were rejected because the remote contains work that you do not have locally."
+           }
+          ]
+         },
+         {
+          "from": "clean",
+          "to": "clean",
+          "label": "pull",
+          "ops": [
+           "Branch.pull"
+          ],
+          "what": "GitHub의 새 커밋을 받아 내 브랜치에 합칩니다.",
+          "refs": [
+           "[git pull](https://git-scm.com/docs/git-pull)"
+          ]
+         },
+         {
+          "from": "matching",
+          "to": "ahead",
+          "label": "update branch",
+          "ops": [
+           "Branch.update"
+          ],
+          "what": "다른 사람이 커밋을 올리거나 GitHub에서 기준 브랜치를 끌어오면 GitHub 쪽이 앞서게 됩니다."
+         },
+         {
+          "from": "matching",
+          "to": "matching",
+          "label": "receive",
+          "what": "내가 올린 커밋을 받습니다. 받은 뒤에도 GitHub 쪽에 내가 모르는 커밋은 없습니다."
+         },
+         {
+          "from": "ahead",
+          "to": "matching",
+          "label": "catch up",
+          "what": "내가 GitHub의 새 커밋을 받아 가면, GitHub 쪽은 더 이상 앞서 있지 않습니다."
+         }
+        ],
+        "syncs": [
+         {
+          "name": "push-lands",
+          "when": "push",
+          "where": "matching",
+          "then": "receive",
+          "what": "내가 push하고 GitHub 쪽이 Matching이면, GitHub이 그 커밋을 받습니다. GitHub 쪽이 Ahead이면 이 동기화는 일어나지 않고 push는 거절됩니다."
+         },
+         {
+          "name": "pull-catches-up",
+          "when": "pull",
+          "then": "catch up",
+          "what": "내가 pull하면, GitHub 쪽은 내가 모르는 커밋이 없는 상태로 돌아갑니다."
+         }
+        ],
+        "subject": "Branch",
+        "regions": [
+         {
+          "id": "local",
+          "label": "Local"
+         },
+         {
+          "id": "github",
+          "label": "GitHub"
+         }
+        ]
+       },
+       "link": "view"
+      },
+      {
+       "id": "checks",
+       "label": "Running checks",
+       "what": "새 커밋에 대해 빌드와 테스트가 돌고, 결과가 풀 리퀘스트 화면에 붙습니다.",
+       "ops": [
+        "Commit.runChecks"
+       ],
+       "refs": [
+        "[Status checks](https://docs.github.com/en/pull-requests/reference/status-checks)"
+       ],
+       "media": [
+        {
+         "type": "code",
+         "title": ".github/workflows/test.yml",
+         "text": "on: pull_request\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: npm ci && npm test"
+        }
+       ],
+       "partition": "github"
+      },
+      {
+       "id": "review",
+       "label": "Reviewing code",
+       "what": "리뷰어가 바뀐 파일을 읽고 의견을 남긴 뒤 판정을 골라 제출합니다. 안을 열면 리뷰가 무엇으로 이루어졌는지 볼 수 있습니다.",
+       "ops": [
+        "PullRequest.comment",
+        "PullRequest.submitReview"
+       ],
+       "refs": [
+        "[Pull request reviews](https://docs.github.com/en/pull-requests/reference/pull-request-reviews)"
+       ],
+       "partition": "github",
+       "opens": {
+        "kind": "topology",
+        "title": "Pull request parts",
+        "why": "풀 리퀘스트 하나를 이루는 것들입니다. 왼쪽은 GitHub에만 있는 기록이고, 오른쪽은 어느 저장소에나 있는 Git의 것입니다. 풀 리퀘스트는 두 브랜치를 잇고, 리뷰는 특정 커밋을 읽고 쓴 것이며, 의견은 바뀐 줄에 붙습니다.",
+        "nodes": [
+         {
+          "id": "pr",
+          "label": "Pull request",
+          "what": "작업 브랜치(head)를 기준 브랜치(base)에 합치자는 제안입니다. 바뀐 줄과 체크 결과, 그동안 쌓인 리뷰를 한곳에 모읍니다.",
+          "ops": [
+           "PullRequest.comment",
+           "PullRequest.submitReview"
+          ],
+          "attrs": [
+           "base: Branch",
+           "head: Branch",
+           "author: User",
+           "reviews: Review[]",
+           "checks: Text[]"
+          ],
+          "partition": "github"
+         },
+         {
+          "id": "branch",
+          "label": "Branch",
+          "what": "커밋이 이어진 한 줄의 역사입니다. 기준 브랜치에는 보호 규칙이 붙어, 머지에 필요한 승인 수와 통과해야 할 체크를 정합니다.",
+          "attrs": [
+           "tip: Commit",
+           "history: Commit[]",
+           "requiredApprovals: Number",
+           "requiredChecks: Text[]"
+          ],
+          "ops": [
+           "Branch.push",
+           "Branch.update"
+          ],
+          "refs": [
+           "[About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)"
+          ],
+          "partition": "git"
+         },
+         {
+          "id": "commit",
+          "label": "Commit",
+          "what": "브랜치 역사의 한 시점입니다. 체크 결과는 커밋마다 따로 붙고, passed에는 이 커밋에서 통과한 체크 이름이 모입니다.",
+          "attrs": [
+           "sha: Text",
+           "passed: Text[]"
+          ],
+          "partition": "git"
+         },
+         {
+          "id": "review-x",
+          "label": "Review",
+          "what": "리뷰어 한 명이 한 번에 제출한 판정과 의견의 묶음입니다.",
+          "rules": [
+           "no-self-approval"
+          ],
+          "refs": [
+           "[REST API: Pull request reviews](https://docs.github.com/en/rest/pulls/reviews)"
+          ],
+          "media": [
+           {
+            "type": "facts",
+            "title": "Review outcomes",
+            "items": [
+             [
+              "Comment",
+              "승인하지 않고 의견만 남김"
+             ],
+             [
+              "Approve",
+              "변경을 승인하고 병합에 동의"
+             ],
+             [
+              "Request changes",
+              "병합 전에 고쳐야 할 점을 지적"
+             ]
+            ],
+            "refs": [
+             "[About pull request reviews](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/about-pull-request-reviews)"
+            ]
+           }
+          ],
+          "attrs": [
+           "author: User",
+           "commit: Commit",
+           "verdict: Verdict",
+           "comments: Comment[]"
+          ],
+          "partition": "github"
+         },
+         {
+          "id": "comment",
+          "label": "Comment",
+          "what": "바뀐 파일의 줄에 붙은 의견 하나입니다.",
+          "refs": [
+           "[Commenting on a pull request](https://docs.github.com/en/pull-requests/how-tos/review-pull-requests/commenting-on-a-pull-request)"
+          ],
+          "media": [
+           {
+            "type": "example",
+            "title": "A review comment",
+            "text": "src/retry.ts, 42번째 줄\n“여기서 재시도 횟수가 무한이 될 수 있어요. 최대 3번으로 막아 주세요.”",
+            "invented": true
+           }
+          ],
+          "attrs": [
+           "line: DiffLine",
+           "text: Text"
+          ],
+          "partition": "github"
+         },
+         {
+          "id": "line",
+          "label": "Diff line",
+          "what": "바뀐 파일의 한 줄입니다. 줄 의견은 이 줄에 붙습니다.",
+          "refs": [
+           "[Branches](https://docs.github.com/en/pull-requests/reference/branches)"
+          ],
+          "attrs": [
+           "commit: Commit",
+           "text: Text"
+          ],
+          "partition": "git"
+         }
+        ],
+        "edges": [
+         {
+          "from": "pr",
+          "to": "branch",
+          "label": "merges into",
+          "what": "기준 브랜치(base)입니다. 머지하면 변경이 이 브랜치에 들어갑니다.",
+          "attr": "base"
+         },
+         {
+          "from": "pr",
+          "to": "branch",
+          "label": "merges from",
+          "what": "작업 브랜치(head)입니다. 풀 리퀘스트는 이 브랜치 끝의 커밋을 따라갑니다.",
+          "attr": "head"
+         },
+         {
+          "from": "branch",
+          "to": "commit",
+          "label": "points to",
+          "what": "브랜치 끝(tip)은 가장 최근 커밋을 가리킵니다. 풀 리퀘스트 화면의 체크는 작업 브랜치 끝 커밋의 것입니다.",
+          "rules": [
+           "checks-on-head"
+          ],
+          "attr": "tip"
+         },
+         {
+          "from": "pr",
+          "to": "review-x",
+          "label": "has",
+          "what": "풀 리퀘스트는 그동안 제출된 리뷰를 모두 갖습니다."
+         },
+         {
+          "from": "review-x",
+          "to": "commit",
+          "label": "reads",
+          "rules": [
+           "review-on-commit"
+          ]
+         },
+         {
+          "from": "review-x",
+          "to": "comment",
+          "label": "groups",
+          "what": "리뷰 하나는 그 안에서 남긴 줄 의견들을 한 번에 묶어 제출합니다."
+         },
+         {
+          "from": "comment",
+          "to": "line",
+          "label": "attaches to",
+          "what": "의견은 바뀐 파일의 특정 줄에 붙습니다."
+         },
+         {
+          "from": "line",
+          "to": "commit",
+          "label": "comes from",
+          "what": "바뀐 줄마다 그 줄을 만든 커밋이 있습니다.",
+          "rules": [
+           "three-dot"
+          ],
+          "media": [
+           {
+            "type": "insight",
+            "move": "풀 리퀘스트는 바뀐 줄을 기준 브랜치의 지금 끝이 아니라, 두 브랜치가 갈라진 커밋(merge base)과 비교해 보여 줍니다.",
+            "vs": "기준 브랜치의 지금 끝과 바로 비교하면(two-dot), 다른 사람이 기준 브랜치에 머지할 때마다 이 브랜치가 건드리지 않은 줄까지 바뀐 것처럼 나옵니다.",
+            "gain": "기준 브랜치가 아무리 움직여도 리뷰어는 이 브랜치가 더한 줄만 읽고, 의견이 붙은 줄도 흔들리지 않습니다.",
+            "rule": "three-dot",
+            "refs": [
+             "[About comparing branches in pull requests](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-comparing-branches-in-pull-requests)"
+            ]
+           }
+          ]
+         }
+        ],
+        "partitions": [
+         {
+          "id": "github",
+          "label": "GitHub"
+         },
+         {
+          "id": "git",
+          "label": "Git"
+         }
+        ]
+       },
+       "link": "view"
+      },
+      {
+       "id": "mergebox",
+       "label": "Gating the merge",
+       "what": "승인과 필수 체크가 모두 채워졌는지 보여 주고, 채워지면 머지 버튼이 열립니다.",
+       "rules": [
+        "mergeable"
+       ],
+       "refs": [
+        "[About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)"
+       ],
+       "media": [
+        {
+         "type": "facts",
+         "title": "Merge methods",
+         "items": [
+          [
+           "Merge commit",
+           "브랜치의 커밋을 모두 남기고 병합 커밋 하나를 더함"
+          ],
+          [
+           "Squash",
+           "모든 커밋을 하나로 합쳐서 넣음"
+          ],
+          [
+           "Rebase",
+           "커밋을 하나씩 기본 브랜치 위에 다시 얹음"
+          ]
+         ],
+         "refs": [
+          "[About merge methods on GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-merge-methods-on-github)"
+         ]
+        },
+        {
+         "type": "pitfall",
+         "text": "저장소 관리자는 보호 규칙을 건너뛰고 머지할 수 있습니다. 그래서 mergeable은 관리자가 아닌 사람에게만 늘 참입니다.",
+         "refs": [
+          "[About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)"
+         ]
+        },
+        {
+         "type": "checklist",
+         "title": "Merge box turns green when",
+         "items": [
+          "초안이 아님",
+          "정해진 수만큼 승인",
+          "필수 체크가 가장 최근 커밋에서 모두 통과"
+         ]
+        }
+       ],
+       "partition": "github"
+      }
+     ],
+     "edges": [
+      {
+       "from": "push",
+       "to": "checks",
+       "label": "head commit",
+       "rules": [
+        "checks-on-head"
+       ],
+       "mark": [
+        "happy"
+       ],
+       "media": [
+        {
+         "type": "payload",
+         "title": "What the checks receive",
+         "text": "head: 3f9c2e1  retry-sync\nbase: main\nevent: pull_request.synchronize",
+         "invented": true
+        }
+       ]
+      },
+      {
+       "from": "checks",
+       "to": "review",
+       "label": "check results",
+       "what": "체크 결과가 풀 리퀘스트 화면에 붙어 리뷰어에게 보입니다.",
+       "mark": [
+        "happy"
+       ]
+      },
+      {
+       "from": "review",
+       "to": "push",
+       "label": "change requests",
+       "what": "리뷰어가 변경을 요청하면 작성자가 새 커밋을 올리는 단계로 돌아갑니다.",
+       "mark": [
+        "failure"
+       ],
+       "media": [
+        {
+         "type": "payload",
+         "text": "state: CHANGES_REQUESTED\ncommit: 4f2a91c\ncomments: 2 on src/retry.ts",
+         "invented": true
+        }
+       ]
+      },
+      {
+       "from": "review",
+       "to": "mergebox",
+       "label": "approved review",
+       "rules": [
+        "no-self-approval",
+        "fresh-approval"
+       ],
+       "mark": [
+        "happy"
+       ],
+       "media": [
+        {
+         "type": "pitfall",
+         "text": "승인을 받은 뒤 커밋을 더 올려도, 보호 규칙에서 오래된 승인 무효화(dismiss stale approvals)를 켜 두지 않았다면 그 승인이 남아 필요한 승인 수를 채웁니다. 이 규칙은 따로 골라야 켜지는 선택 사항입니다.",
+         "refs": [
+          "[About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)"
+         ]
+        }
+       ]
+      },
+      {
+       "from": "mergebox",
+       "to": "push",
+       "label": "merge blockers",
+       "mark": [
+        "failure"
+       ],
+       "what": "승인이 모자라거나 필수 체크가 실패했거나 기준 브랜치와 충돌하면 머지 버튼이 닫힌 채, 무엇이 막고 있는지를 들고 작성자에게 돌아갑니다.",
+       "media": [
+        {
+         "type": "payload",
+         "text": "mergeable: false\nreasons:\n  - 1 approval required\n  - ci / test failing on 9c1e0d2",
+         "invented": true
+        }
+       ]
+      }
+     ],
+     "triggers": [
+      {
+       "to": "push",
+       "label": "new base commit",
+       "what": "다른 사람이 기준 브랜치에 머지하면, 작업 브랜치를 갱신해야 할 수 있습니다. 이 라운드 밖에서 언제든 일어납니다."
+      }
+     ],
+     "partitions": [
+      {
+       "id": "local",
+       "label": "Local"
+      },
+      {
+       "id": "github",
+       "label": "GitHub"
+      }
+     ]
+    },
+    "link": "view"
+   },
+   {
+    "id": "closed-s",
+    "label": "Closed",
+    "what": "머지하지 않고 닫은 상태입니다. 다시 열면 열린 상태로 돌아갑니다.",
+    "refs": [
+     "[Closing a pull request](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/closing-a-pull-request)"
+    ]
+   },
+   {
+    "id": "merged-s",
+    "label": "Merged",
+    "what": "변경이 기준 브랜치에 합쳐진 상태입니다. 풀 리퀘스트의 일은 여기서 끝납니다.",
+    "refs": [
+     "[About merge methods on GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-merge-methods-on-github)"
+    ]
+   }
+  ],
+  "edges": [
+   {
+    "from": "draft-s",
+    "to": "open-s",
+    "label": "mark ready",
+    "ops": [
+     "PullRequest.markReady"
+    ],
+    "mark": [
+     "optional"
+    ],
+    "media": [
+     {
+      "type": "diff",
+      "title": "Mark ready",
+      "before": "state: draft\nreview requests: none",
+      "after": "state: open\nreview requests: @jun",
+      "invented": true
+     }
+    ]
+   },
+   {
+    "from": "open-s",
+    "to": "draft-s",
+    "label": "convert to draft",
+    "ops": [
+     "PullRequest.convertToDraft"
+    ],
+    "mark": [
+     "optional"
+    ]
+   },
+   {
+    "from": "open-s",
+    "to": "closed-s",
+    "label": "close",
+    "ops": [
+     "PullRequest.close"
+    ],
+    "mark": [
+     "optional"
+    ]
+   },
+   {
+    "from": "closed-s",
+    "to": "open-s",
+    "label": "reopen",
+    "ops": [
+     "PullRequest.reopen"
+    ],
+    "mark": [
+     "optional"
+    ]
+   },
+   {
+    "from": "open-s",
+    "to": "merged-s",
+    "label": "merge",
+    "ops": [
+     "PullRequest.merge"
+    ],
+    "rules": [
+     "mergeable"
+    ],
+    "media": [
+     {
+      "type": "diff",
+      "title": "Squash merge",
+      "before": "state: open\nmain: a1b2c3\nretry-sync: 3 commits",
+      "after": "state: merged\nmain: d4e5f6 (3 commits squashed)\nretry-sync: 3 commits",
+      "invented": true
+     }
+    ],
+    "mark": [
+     "happy"
+    ]
+   }
+  ],
+  "subject": "PullRequest",
+  "triggers": [
+   {
+    "to": "open-s",
+    "label": "create",
+    "ops": [
+     "PullRequest.create"
+    ],
+    "what": "작성자가 작업 브랜치와 기준 브랜치를 골라 풀 리퀘스트를 만들면, 열린 상태로 시작합니다."
+   }
+  ]
+ },
+ "types": {
+  "User": "GitHub 계정 한 명입니다. 풀 리퀘스트를 연 사람과 리뷰를 쓴 사람이 모두 계정으로 기록됩니다.",
+  "MergeMethod": "{merge, squash, rebase} 변경을 기준 브랜치에 합치는 방식입니다. 병합 커밋을 만들거나(merge), 하나로 뭉치거나(squash), 커밋을 다시 얹습니다(rebase).",
+  "Verdict": "{approve, requestChanges, comment} 리뷰의 결론입니다. GitHub의 Approve, Request changes, Comment에 해당합니다."
+ }
+}

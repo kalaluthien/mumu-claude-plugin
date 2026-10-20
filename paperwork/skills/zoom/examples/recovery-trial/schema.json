@@ -1,0 +1,1059 @@
+{
+ "version": "1",
+ "title": "RECOVERY dexamethasone trial",
+ "plan": {
+  "intent": "한 임상시험에서 참여자가 등록부터 분석까지 어떻게 흐르고, 무엇이 지켜져야 결과를 믿을 수 있는가"
+ },
+ "scenarios": [
+  {
+   "slug": "treat-with-dexamethasone",
+   "text": "적격한 환자가 덱사메타손에 배정되면 하루 한 번 6 mg을 최대 10일 받고, 28일 결과가 추적 양식으로 모여 덱사메타손 군에서 셉니다.",
+   "walk": [
+    {
+     "place": "rand",
+     "does": "병원이 적격 판정과 기초 자료를 웹 시스템에 넣어 환자를 등록하고, 환자가 Randomized 상태가 됩니다.",
+     "expects": "환자는 아직 어느 군에도 배정되지 않았고, 덱사메타손에 적합하며 그 병원에서 쓸 수 있는 환자입니다."
+    },
+    {
+     "place": "dex",
+     "does": "웹 시스템이 덱사메타손을 배정합니다(allocate dexamethasone).",
+     "expects": "환자의 배정 군이 dexamethasone으로 정해지고, 이 배정은 이후 어떤 일이 있어도 바뀌지 않습니다."
+    },
+    {
+     "place": "give",
+     "does": "Allocated dexamethasone 안으로 들어갑니다. 병동이 덱사메타손 6 mg을 경구나 정맥으로 첫 투여합니다.",
+     "expects": "첫 투여가 투여 기록에 남습니다."
+    },
+    {
+     "place": "give",
+     "does": "다음 날 같은 용량을 다시 줍니다. 10일이 되거나 그 전에 퇴원하면 멈춥니다.",
+     "expects": "투여한 날이 투여 기록에 하루씩 쌓입니다."
+    },
+    {
+     "place": "report",
+     "does": "환자가 퇴원하거나, 사망하거나, 배정 뒤 28일이 되면, 먼저 오는 때에 병원이 추적 양식을 한 번 작성합니다.",
+     "expects": "양식에 생존 여부와 실제로 받은 치료 날수가 담깁니다."
+    },
+    {
+     "place": "collect",
+     "does": "작성된 추적 양식이 온라인으로 조정 센터에 모입니다.",
+     "expects": "조정 센터는 이 환자의 결과를 배정된 군과 함께 갖습니다."
+    },
+    {
+     "place": "nodeath",
+     "does": "안을 나와 상태 단계로 돌아옵니다. 28일까지 사망이 보고되지 않아 환자가 No death reported로 갑니다.",
+     "expects": "환자는 사망 없이 28일을 넘겼고, 여전히 덱사메타손 군으로 분석됩니다."
+    }
+   ],
+   "refs": [
+    "[RECOVERY Collaborative Group 2021, Dexamethasone in Hospitalized Patients with Covid-19](https://www.nejm.org/doi/full/10.1056/NEJMoa2021436)"
+   ]
+  },
+  {
+   "slug": "give-usual-care",
+   "text": "적격한 환자가 usual care에 배정되면 병원의 표준 치료만 받고, 28일 결과가 usual care 군에서 셉니다. 진료 중에 덱사메타손을 받더라도 군은 바뀌지 않습니다.",
+   "walk": [
+    {
+     "place": "rand",
+     "does": "등록을 마친 환자가 Randomized 상태에서 배정을 기다립니다.",
+     "expects": "환자는 아직 어느 군에도 배정되지 않았습니다."
+    },
+    {
+     "place": "usual",
+     "does": "웹 시스템이 usual care를 배정합니다(allocate usual care).",
+     "expects": "환자의 배정 군이 usualCare로 정해지고, 병원은 시험 약 없이 표준 치료를 이어 갑니다."
+    },
+    {
+     "place": "nodeath",
+     "does": "28일까지 사망이 보고되지 않아 환자가 No death reported로 갑니다.",
+     "expects": "진료 중에 덱사메타손을 받았더라도 환자는 usual care 군으로 분석됩니다."
+    }
+   ],
+   "refs": [
+    "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+   ]
+  },
+  {
+   "slug": "give-usual-care-death",
+   "text": "usual care에 배정된 환자가 28일 안에 사망하면, 그 사망은 usual care 군의 사망으로 셉니다.",
+   "walk": [
+    {
+     "place": "rand",
+     "does": "등록을 마친 환자가 Randomized 상태에서 배정을 기다립니다.",
+     "expects": "환자는 아직 어느 군에도 배정되지 않았습니다."
+    },
+    {
+     "place": "usual",
+     "does": "웹 시스템이 usual care를 배정합니다.",
+     "expects": "환자의 배정 군이 usualCare로 정해집니다."
+    },
+    {
+     "place": "died",
+     "does": "환자가 배정 뒤 28일 안에 사망하고, 병원이 추적 양식에 사망을 적습니다.",
+     "expects": "이 사망은 usual care 군의 사망 1110건 가운데 하나로 셉니다."
+    }
+   ]
+  },
+  {
+   "slug": "compare-deaths-by-allocation",
+   "text": "덱사메타손이 28일 사망을 줄였다는 결론(22.9% 대 25.7%, 비율비 0.83)을 믿을 수 있는 까닭을 보려면, 배정에서 사망까지 따라간 뒤 배정대로 세는 비교를 봅니다.",
+   "walk": [
+    {
+     "place": "rand",
+     "does": "등록을 마친 환자가 Randomized 상태에서 배정을 기다립니다.",
+     "expects": "배정은 아직 정해지지 않았고, 누구도 다음 배정을 미리 알 수 없습니다."
+    },
+    {
+     "place": "dex",
+     "does": "웹 시스템이 덱사메타손을 배정합니다.",
+     "expects": "배정 군이 dexamethasone으로 고정됩니다."
+    },
+    {
+     "place": "died",
+     "does": "환자가 배정 뒤 28일 안에 사망하고, 병원이 추적 양식에 사망을 적습니다.",
+     "expects": "이 사망은 덱사메타손 군의 사망 482건 가운데 하나로 셉니다."
+    },
+    {
+     "place": [
+      "comparison",
+      "participant",
+      "form"
+     ],
+     "does": "Died 안을 열어 비교를 봅니다. Comparison은 무작위 배정된 Participant를 모두 배정 군으로 나누고, 각자의 Follow-up form에서 사망을 읽습니다.",
+     "expects": "두 군의 사망 비율이 배정대로 계산되어, 덱사메타손 군 482/2104와 usual care 군 1110/4321에서 나이 보정 비율비 0.83(95% CI 0.75–0.93)이 나옵니다."
+    }
+   ],
+   "refs": [
+    "[RECOVERY Collaborative Group 2021, Dexamethasone in Hospitalized Patients with Covid-19](https://www.nejm.org/doi/full/10.1056/NEJMoa2021436)"
+   ]
+  },
+  {
+   "slug": "exclude-unsuitable-patient",
+   "text": "덱사메타손을 쓸 수 없거나 담당 의사가 꼭 써야 한다거나 쓰면 안 된다고 본 환자는 배정 전에 덱사메타손 비교에서 빠집니다.",
+   "walk": [
+    {
+     "place": "rand",
+     "does": "등록 양식에 덱사메타손이 이 환자에게 맞지 않거나 병원에 없다고 적힌 환자가 Randomized 상태에 있습니다.",
+     "expects": "환자는 아직 덱사메타손 비교에서 배정받지 않았습니다."
+    },
+    {
+     "place": "inel",
+     "does": "웹 시스템이 이 환자를 덱사메타손 비교에서 뺍니다(exclude).",
+     "expects": "환자는 덱사메타손 군에도 usual care 군에도 들지 않으며, 배정 전에 빠졌으므로 비교를 치우치게 하지 않습니다."
+    }
+   ],
+   "refs": [
+    "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+   ]
+  },
+  {
+   "slug": "assign-other-treatment",
+   "text": "덱사메타손에 적합한 환자라도 같은 플랫폼의 다른 시험 약 군에 배정되면 이 비교 밖으로 나갑니다.",
+   "walk": [
+    {
+     "place": "rand",
+     "does": "덱사메타손에 적합한 환자가 Randomized 상태에서 배정을 기다립니다.",
+     "expects": "환자는 아직 어느 군에도 배정되지 않았습니다."
+    },
+    {
+     "place": "elsewhere",
+     "does": "웹 시스템이 환자에게 맞고 병원에 있는 다른 시험 약 가운데 하나를 배정합니다.",
+     "expects": "배정 군이 otherTreatment로 고정되고, 이 환자는 덱사메타손 비교의 분모에 들지 않습니다."
+    }
+   ],
+   "refs": [
+    "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+   ]
+  },
+  {
+   "slug": "randomize-a-patient",
+   "text": "코로나19로 입원한 환자가 들어오면, 병원이 적격성을 판정하고 기초 자료를 넣은 뒤에야 웹 시스템이 군을 알려 줍니다.",
+   "walk": [
+    {
+     "place": "check",
+     "does": "입원한 환자를 담당 의사가 봅니다. 감염이 의심되거나 확인되었는지, 시험에 들면 크게 위험할 병력이 없는지, 시험 약마다 맞는지와 병원에 있는지를 판정합니다.",
+     "expects": "덱사메타손이 맞고 병원에 있다는 적격 기록이 남습니다."
+    },
+    {
+     "place": "enter",
+     "edge": "eligibility record",
+     "does": "동의를 받고 웹 기반 등록 양식에 인구학 자료, 호흡 보조 수준, 동반 질환, 적격 기록을 넣습니다.",
+     "expects": "기초 자료가 시스템에 제출되어 되돌릴 수 없게 등록됩니다. 이때까지 아무도 이 환자의 군을 모릅니다."
+    },
+    {
+     "place": "randomize",
+     "does": "웹 시스템이 맞는 군들 가운데 usual care에 2, 각 시험 약에 1의 비율로 군을 뽑습니다.",
+     "expects": "배정은 등록 뒤에 처음 정해지고, 사이트는 다음 배정을 미리 볼 수 없습니다."
+    },
+    {
+     "place": "prescribe",
+     "does": "시스템이 배정을 사이트에 알리고, 담당 의사가 배정된 치료를 처방합니다.",
+     "expects": "환자와 병원 의료진은 군을 알고(공개 라벨), 배정은 기록에 고정됩니다."
+    }
+   ],
+   "refs": [
+    "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+   ]
+  },
+  {
+   "slug": "randomize-a-patient-unsuitable",
+   "text": "담당 의사가 덱사메타손이 이 환자에게 맞지 않거나 병원에 없다고 적으면, 웹 시스템은 덱사메타손을 뽑을 군에서 뺍니다.",
+   "walk": [
+    {
+     "place": "check",
+     "does": "담당 의사가 덱사메타손이 이 환자에게 꼭 필요하거나 쓰면 안 된다고 보거나, 병원에 덱사메타손이 없음을 확인합니다.",
+     "expects": "적격 판정에 덱사메타손이 맞지 않는 군으로 적힙니다."
+    },
+    {
+     "place": "enter",
+     "edge": "arm exclusions",
+     "does": "맞지 않는 군의 목록이 기초 자료와 함께 등록 양식에 들어갑니다.",
+     "expects": "등록 양식에 덱사메타손이 이 환자에게 맞지 않는다고 적혀 있습니다."
+    },
+    {
+     "place": "randomize",
+     "does": "웹 시스템이 덱사메타손을 빼고 남은 군 가운데서만 뽑습니다.",
+     "expects": "이 환자는 덱사메타손 비교에 들지 않고, 그 결정은 배정 전에 내려졌습니다."
+    }
+   ],
+   "refs": [
+    "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+   ]
+  }
+ ],
+ "operations": [
+  {
+   "slug": "Participant.assess",
+   "sig": "(available: Arm[]) → EligibilityRecord",
+   "text": "담당 의사가 환자의 적격성을 판정합니다. 시험 전체에 들 수 있는지와 함께, 병원에 있는 시험 약마다 이 환자에게 맞는지를 기록합니다.",
+   "refs": [
+    "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+   ]
+  },
+  {
+   "slug": "Participant.enrol",
+   "sig": "(eligibility: EligibilityRecord) → BaselineForm",
+   "text": "동의를 받은 환자의 기초 자료와 적격 기록을 웹 등록 양식으로 제출해 시험에 등록합니다. 제출한 뒤에는 되돌릴 수 없습니다.",
+   "pre": "no self.allocated",
+   "refs": [
+    "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+   ]
+  },
+  {
+   "slug": "Participant.allocate",
+   "sig": "(arm: Arm) → Allocation",
+   "text": "웹 시스템이 환자에게 맞는 군들 가운데 하나를 뽑아 배정을 돌려줍니다. 배정은 한 번만 일어나고, 그 결과가 환자가 분석될 군이 됩니다.",
+   "pre": "no self.allocated",
+   "post": "after (self.allocated = arm and (self in AllocatedDexamethasone iff arm = dexamethasone) and (self in AllocatedUsualCare iff arm = usualCare))",
+   "modifies": [
+    "Participant.allocated"
+   ],
+   "refs": [
+    "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+   ]
+  },
+  {
+   "slug": "Participant.dose",
+   "sig": "(mg: Number, route: Route) → DoseRecord",
+   "text": "덱사메타손 한 번 분량을 경구나 정맥으로 주고 투여 기록을 남깁니다. 시험에서는 하루 한 번 6 mg입니다.",
+   "refs": [
+    "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+   ]
+  },
+  {
+   "slug": "Participant.report",
+   "sig": "(doses: DoseRecord[]) → FollowUpForm",
+   "text": "퇴원, 사망, 배정 뒤 28일 가운데 먼저 오는 때에 추적 양식을 한 번 작성합니다. 양식에는 생존 여부와 실제로 받은 치료가 담깁니다.",
+   "refs": [
+    "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+   ]
+  },
+  {
+   "slug": "Comparison.collect",
+   "sig": "(form: FollowUpForm) → Comparison",
+   "text": "사이트가 제출한 추적 양식을 조정 센터의 자료에 더합니다.",
+   "refs": [
+    "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+   ]
+  },
+  {
+   "slug": "Comparison.estimate",
+   "sig": "(participants: Participant[]) → RateRatio",
+   "text": "무작위 배정된 참여자를 배정 군대로 나누어 28일 사망을 세고, 나이를 보정한 사망 비율비와 신뢰구간을 냅니다.",
+   "refs": [
+    "[RECOVERY Collaborative Group 2021, Dexamethasone in Hospitalized Patients with Covid-19](https://www.nejm.org/doi/full/10.1056/NEJMoa2021436)"
+   ]
+  }
+ ],
+ "rules": [
+  {
+   "slug": "concealed-allocation",
+   "kind": "must",
+   "formula": "all patient: Participant | patient.allocate implies once patient.enrol",
+   "text": "군은 환자가 되돌릴 수 없게 등록된 뒤에야 중앙 웹 시스템에서 정해지고 알려집니다. 그래야 등록하는 사람이 다음 배정을 보고 환자를 고르거나 빼서 두 군을 치우치게 할 수 없습니다.",
+   "refs": [
+    "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)",
+    "[CONSORT 2010](https://www.consort-statement.org/consort-2010)"
+   ]
+  },
+  {
+   "slug": "eligibility",
+   "kind": "must",
+   "formula": "all patient: Participant | (patient.allocate implies patient in Eligible) and (patient.exclude implies patient not in Eligible)",
+   "text": "덱사메타손 비교의 배정은 덱사메타손이 맞고 병원에 있는 환자에게만 일어나고, 그렇지 않은 환자는 배정 전에 이 비교에서 빠집니다. 빠지는 결정이 배정보다 먼저이므로 두 군의 비교 가능성이 지켜집니다.",
+   "refs": [
+    "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+   ]
+  },
+  {
+   "slug": "intention-to-treat",
+   "kind": "must",
+   "formula": "all patient: Participant, group: Arm | always (patient.allocated = group implies always (patient.allocated = group and (group in dexamethasone + usualCare implies patient in AllocatedDexamethasone + AllocatedUsualCare + Died + NoDeathReported)))",
+   "text": "덱사메타손이나 usual care에 배정된 참여자는 실제로 무엇을 받았든 끝까지 배정된 군으로 분석에 남습니다. 배정 뒤에 군을 바꾸거나 분석에서 빼는 길이 없어야 무작위 배정이 만든 비교 가능성이 결과까지 이어집니다.",
+   "refs": [
+    "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)",
+    "[CONSORT 2010](https://www.consort-statement.org/consort-2010)"
+   ]
+  },
+  {
+   "slug": "death-reported",
+   "kind": "must",
+   "formula": "all patient: Participant | patient.die implies some patient.form & Death",
+   "text": "사망은 추적 양식에 사망이 적힌 참여자에게만 셉니다. 1차 결과는 배정 뒤 28일 안의 모든 원인 사망입니다.",
+   "refs": [
+    "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+   ]
+  },
+  {
+   "slug": "concurrent-control",
+   "kind": "must",
+   "formula": "Comparison.treatment = dexamethasone and Comparison.control = usualCare and Comparison.treatment != Comparison.control",
+   "text": "덱사메타손 군은 같은 기간에 같은 방식으로 무작위 배정된 usual care 군과만 비교합니다. 다른 시험 약 군이나 과거 환자와 비교하면 배정이 만든 비교 가능성이 사라집니다.",
+   "refs": [
+    "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+   ]
+  },
+  {
+   "slug": "complete-follow-up",
+   "kind": "should",
+   "formula": "all patient: Participant | some patient.allocated implies some patient.form",
+   "text": "배정된 참여자는 모두 추적 양식을 남겨야 합니다. 빠진 양식은 그 참여자의 결과를 모르게 만들어 결과를 흐립니다. 이 시험에서는 6425명 가운데 6418명(99.9%)의 1차 결과 추적이 완료되었습니다.",
+   "refs": [
+    "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+   ]
+  }
+ ],
+ "types": {
+  "Arm": "{dexamethasone, usualCare, otherTreatment} 무작위 배정이 정하는 군입니다. otherTreatment는 같은 플랫폼에서 덱사메타손 비교 밖의 다른 시험 약 군입니다.",
+  "Route": "{oral, intravenous} 덱사메타손을 주는 길입니다.",
+  "RateRatio": "두 군의 28일 사망률 비율과 그 95% 신뢰구간입니다."
+ },
+ "level": {
+  "kind": "state",
+  "title": "Participant flow",
+  "subject": "Participant",
+  "initial": "rand",
+  "init": "no Participant.allocated",
+  "why": "CONSORT 흐름도의 상자를 참여자 한 명의 상태로 그린 것입니다. 상자 옆 숫자는 그 상태에 이른 환자 수이고, 들어오고 나가는 수가 맞아떨어집니다. 무작위 배정된 11303명 가운데 덱사메타손 비교에 든 6425명이 덱사메타손 2104명과 usual care 4321명으로 나뉘고, 각 군의 28일 사망이 셉니다.",
+  "refs": [
+   "[CONSORT 2010](https://www.consort-statement.org/consort-2010)",
+   "[RECOVERY Collaborative Group 2021, Dexamethasone in Hospitalized Patients with Covid-19](https://www.nejm.org/doi/full/10.1056/NEJMoa2021436)"
+  ],
+  "nodes": [
+   {
+    "id": "inel",
+    "label": "Ineligible",
+    "qty": {
+     "value": 1948,
+     "unit": "patients",
+     "kind": "count"
+    },
+    "what": "덱사메타손이 병원에 없거나, 담당 의사가 이 환자에게 꼭 써야 한다거나 쓰면 안 된다고 본 환자입니다. 덱사메타손 비교에 들지 않으며, 수는 무작위 배정된 11303명에서 덱사메타손에 적격한 9355명을 뺀 것입니다.",
+    "refs": [
+     "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+    ]
+   },
+   {
+    "id": "rand",
+    "label": "Randomized",
+    "qty": {
+     "value": 11303,
+     "unit": "patients",
+     "kind": "count"
+    },
+    "what": "2020년 3월 19일부터 6월 8일까지 RECOVERY에 무작위 배정된 모든 환자입니다. 안을 열면 적격 판정과 무작위 배정이 어떤 순서로 일어나는지 볼 수 있습니다.",
+    "refs": [
+     "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+    ],
+    "media": [
+     {
+      "type": "facts",
+      "title": "Trial at a glance",
+      "items": [
+       [
+        "Setting",
+        "영국 176개 NHS 기관의 입원 환자"
+       ],
+       [
+        "Design",
+        "공개 라벨, 무작위 배정, 여러 약을 함께 비교하는 플랫폼 시험"
+       ],
+       [
+        "Ratio",
+        "usual care 2 대 덱사메타손 1"
+       ],
+       [
+        "Primary outcome",
+        "배정 뒤 28일 안의 모든 원인 사망"
+       ]
+      ],
+      "refs": [
+       "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+      ]
+     }
+    ],
+    "opens": {
+     "kind": "workflow",
+     "title": "Randomization",
+     "why": "입원한 환자 한 명이 무작위 배정될 때까지의 순서입니다. 왼쪽은 병원에서, 오른쪽은 중앙 웹 시스템에서 일어나며, 군은 병원이 등록을 마친 뒤에야 시스템에서 처음 정해집니다.",
+     "partitions": [
+      {
+       "id": "hospital",
+       "label": "Hospital"
+      },
+      {
+       "id": "web",
+       "label": "Web system"
+      }
+     ],
+     "nodes": [
+      {
+       "id": "check",
+       "label": "Checking eligibility",
+       "partition": "hospital",
+       "ops": [
+        "Participant.assess"
+       ],
+       "what": "담당 의사가 환자가 시험에 들 수 있는지와, 시험 약마다 이 환자에게 맞고 병원에 있는지를 판정합니다.",
+       "refs": [
+        "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+       ],
+       "media": [
+        {
+         "type": "checklist",
+         "title": "Eligible when",
+         "items": [
+          "입원 중",
+          "SARS-CoV-2 감염이 의심되거나 확인됨",
+          "담당 의사가 보기에 시험에 들면 크게 위험할 병력이 없음",
+          "덱사메타손 비교에는: 덱사메타손이 병원에 있고, 꼭 써야 하거나 쓰면 안 되는 환자가 아님"
+         ],
+         "refs": [
+          "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+         ]
+        }
+       ]
+      },
+      {
+       "id": "enter",
+       "label": "Entering baseline data",
+       "partition": "hospital",
+       "ops": [
+        "Participant.enrol"
+       ],
+       "what": "동의를 받고 웹 기반 등록 양식에 기초 자료와 적격 판정을 넣어 제출합니다. 제출은 되돌릴 수 없습니다.",
+       "refs": [
+        "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+       ]
+      },
+      {
+       "id": "randomize",
+       "label": "Randomizing",
+       "partition": "web",
+       "ops": [
+        "Participant.allocate"
+       ],
+       "what": "중앙 웹 시스템이 이 환자에게 맞고 병원에 있는 군 가운데 하나를, usual care 2 대 각 시험 약 1의 비율로 뽑습니다.",
+       "refs": [
+        "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+       ]
+      },
+      {
+       "id": "prescribe",
+       "label": "Prescribing treatment",
+       "partition": "hospital",
+       "what": "담당 의사가 배정된 치료를 처방합니다. 시험은 공개 라벨이라 환자와 병원 의료진은 군을 압니다.",
+       "refs": [
+        "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+       ]
+      }
+     ],
+     "edges": [
+      {
+       "from": "check",
+       "to": "enter",
+       "label": "eligibility record",
+       "mark": [
+        "happy"
+       ],
+       "what": "환자가 시험에 들 수 있고 덱사메타손이 맞으며 병원에 있다는 판정입니다."
+      },
+      {
+       "from": "check",
+       "to": "enter",
+       "label": "arm exclusions",
+       "mark": [
+        "failure"
+       ],
+       "what": "덱사메타손이 이 환자에게 맞지 않거나 병원에 없다는 판정입니다. 환자를 통째로 빼지 않고, 그 군만 뽑을 후보에서 뺍니다."
+      },
+      {
+       "from": "enter",
+       "to": "randomize",
+       "label": "baseline form",
+       "mark": [
+        "happy"
+       ],
+       "what": "제출된 등록 양식입니다. 시스템은 이것을 받은 뒤에야 군을 뽑습니다.",
+       "media": [
+        {
+         "type": "payload",
+         "text": "age: 67\nrespiratory support: oxygen only\ncoexisting illness: diabetes\ndexamethasone: suitable, available\nconsent: given",
+         "invented": true
+        }
+       ]
+      },
+      {
+       "from": "randomize",
+       "to": "prescribe",
+       "label": "allocation",
+       "mark": [
+        "happy"
+       ],
+       "rules": [
+        "concealed-allocation"
+       ],
+       "what": "뽑힌 군입니다. 등록이 끝난 뒤에 처음 정해지고 사이트에 알려집니다.",
+       "media": [
+        {
+         "type": "payload",
+         "text": "study number: 4815\nallocated: dexamethasone 6 mg once daily for up to 10 days",
+         "invented": true
+        }
+       ]
+      }
+     ],
+     "triggers": [
+      {
+       "to": "check",
+       "label": "admitted patient",
+       "what": "코로나19가 의심되거나 확인되어 입원한 환자가 들어옵니다."
+      }
+     ],
+     "media": [
+      {
+       "type": "insight",
+       "move": "적격성을 시험 전체가 아니라 시험 약마다 판정해, 덱사메타손이 맞지 않는 환자는 덱사메타손만 뽑기 후보에서 빼고 배정 전에 그 비교에서 빠지게 합니다.",
+       "vs": "두 군만 비교하는 보통의 시험은 하나의 적격 기준을 두고, 맞지 않는 환자는 시험 전체에서 제외합니다.",
+       "gain": "한 플랫폼이 여러 약을 동시에 시험하면서도, 각 비교는 배정 전에 정해진 환자만으로 무작위 비교를 지킵니다.",
+       "rule": "eligibility",
+       "refs": [
+        "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+       ]
+      }
+     ]
+    },
+    "link": "view"
+   },
+   {
+    "id": "elsewhere",
+    "label": "Assigned elsewhere",
+    "qty": {
+     "value": 2930,
+     "unit": "patients",
+     "kind": "count"
+    },
+    "what": "덱사메타손에 적격했지만 같은 플랫폼의 다른 시험 약 군에 배정된 환자입니다. 수는 적격한 9355명에서 덱사메타손 비교에 든 6425명을 뺀 것입니다.",
+    "refs": [
+     "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+    ]
+   },
+   {
+    "id": "dex",
+    "label": "Allocated dexamethasone",
+    "qty": {
+     "value": 2104,
+     "unit": "patients",
+     "kind": "count"
+    },
+    "what": "덱사메타손 군에 배정된 참여자입니다. 표준 치료에 더해 덱사메타손을 받습니다. 안을 열면 투여와 추적이 어떻게 이어지는지 볼 수 있습니다.",
+    "rules": [
+     "intention-to-treat"
+    ],
+    "refs": [
+     "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+    ],
+    "opens": {
+     "kind": "workflow",
+     "title": "Dexamethasone course",
+     "why": "덱사메타손 군 참여자 한 명이 받는 치료와 추적입니다. usual care 군은 투여 없이 같은 추적 양식만 남기므로 따로 열지 않습니다.",
+     "partitions": [
+      {
+       "id": "ward",
+       "label": "Hospital team"
+      },
+      {
+       "id": "centre",
+       "label": "Coordinating centre"
+      }
+     ],
+     "nodes": [
+      {
+       "id": "give",
+       "label": "Giving dexamethasone",
+       "partition": "ward",
+       "ops": [
+        "Participant.dose"
+       ],
+       "what": "병동이 덱사메타손 6 mg을 하루 한 번, 경구나 정맥으로 최대 10일, 그 전에 퇴원하면 퇴원 때까지 줍니다.",
+       "refs": [
+        "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+       ],
+       "media": [
+        {
+         "type": "facts",
+         "items": [
+          [
+           "Dose",
+           "6 mg 하루 한 번, 경구 또는 정맥"
+          ],
+          [
+           "Duration",
+           "최대 10일 또는 퇴원까지"
+          ],
+          [
+           "Received",
+           "덱사메타손 군의 95%가 받았고, 투여 기간 중앙값은 7일(IQR 3–10)"
+          ]
+         ],
+         "refs": [
+          "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+         ]
+        }
+       ]
+      },
+      {
+       "id": "report",
+       "label": "Completing the follow-up form",
+       "partition": "ward",
+       "ops": [
+        "Participant.report"
+       ],
+       "rules": [
+        "complete-follow-up"
+       ],
+       "what": "퇴원, 사망, 배정 뒤 28일 가운데 먼저 오는 때에 온라인 추적 양식 한 장을 작성합니다.",
+       "refs": [
+        "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+       ]
+      },
+      {
+       "id": "collect",
+       "label": "Collecting outcomes",
+       "partition": "centre",
+       "ops": [
+        "Comparison.collect"
+       ],
+       "what": "조정 센터가 추적 양식을 모으고, 생존 여부 같은 정보를 병원 기록과 등록 자료로도 보충합니다.",
+       "refs": [
+        "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+       ]
+      }
+     ],
+     "edges": [
+      {
+       "from": "give",
+       "to": "give",
+       "label": "daily dose",
+       "what": "다음 날 같은 용량을 다시 줍니다. 10일이 되거나 퇴원하면 멈춥니다."
+      },
+      {
+       "from": "give",
+       "to": "report",
+       "label": "dose record",
+       "mark": [
+        "happy"
+       ],
+       "what": "실제로 투여한 날들입니다. 추적 양식에 받은 치료로 적힙니다."
+      },
+      {
+       "from": "report",
+       "to": "collect",
+       "label": "follow-up form",
+       "is": "form",
+       "mark": [
+        "happy"
+       ],
+       "what": "작성된 추적 양식입니다. 생존 여부와 받은 치료를 조정 센터로 보냅니다.",
+       "media": [
+        {
+         "type": "payload",
+         "text": "status: discharged alive (day 9)\ndexamethasone: 7 days\nother trial treatments: none",
+         "invented": true
+        }
+       ]
+      }
+     ],
+     "media": [
+      {
+       "type": "insight",
+       "move": "추적을 정해진 방문마다 받는 대신, 퇴원·사망·28일 가운데 먼저 오는 때에 짧은 온라인 양식 한 장으로 받고 병원 기록과 등록 자료로 보충합니다.",
+       "vs": "보통의 약물 시험은 정해진 방문마다 긴 증례 기록서를 채우게 해 사이트마다 연구 인력이 많이 듭니다.",
+       "gain": "바쁜 병원도 환자를 많이 넣을 수 있어 몇 달 만에 수천 명이 모였고, 1차 결과 추적도 99.9% 완료되었습니다.",
+       "rule": "complete-follow-up",
+       "refs": [
+        "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+       ]
+      }
+     ]
+    },
+    "link": "view"
+   },
+   {
+    "id": "usual",
+    "label": "Allocated usual care",
+    "qty": {
+     "value": 4321,
+     "unit": "patients",
+     "kind": "count"
+    },
+    "what": "usual care 군에 배정된 참여자입니다. 시험 약 없이 병원의 표준 치료만 받고, 추적은 덱사메타손 군과 같습니다.",
+    "rules": [
+     "intention-to-treat"
+    ],
+    "refs": [
+     "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+    ],
+    "media": [
+     {
+      "type": "facts",
+      "items": [
+       [
+        "Treatment",
+        "병원의 표준 치료. 시험 약은 주지 않음"
+       ],
+       [
+        "Follow-up",
+        "덱사메타손 군과 같은 추적 양식 한 장"
+       ],
+       [
+        "Crossover",
+        "진료 중에 8%가 덱사메타손을 받았지만 usual care 군으로 분석됨"
+       ]
+      ],
+      "refs": [
+       "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+      ]
+     }
+    ]
+   },
+   {
+    "id": "died",
+    "label": "Died",
+    "qty": {
+     "value": 1592,
+     "unit": "patients",
+     "kind": "count"
+    },
+    "what": "배정 뒤 28일 안에 사망한 참여자입니다. 이 사망이 1차 결과이고, 안을 열면 사망을 배정 군대로 세어 비교하는 방법을 볼 수 있습니다.",
+    "refs": [
+     "[RECOVERY Collaborative Group 2021, Dexamethasone in Hospitalized Patients with Covid-19](https://www.nejm.org/doi/full/10.1056/NEJMoa2021436)"
+    ],
+    "media": [
+     {
+      "type": "facts",
+      "title": "Primary outcome, 28-day mortality",
+      "items": [
+       [
+        "Dexamethasone",
+        "2104명 가운데 482명 사망 (22.9%)"
+       ],
+       [
+        "Usual care",
+        "4321명 가운데 1110명 사망 (25.7%)"
+       ],
+       [
+        "Rate ratio",
+        "나이 보정 0.83 (95% CI 0.75–0.93), P<0.001"
+       ]
+      ],
+      "refs": [
+       "[RECOVERY Collaborative Group 2021, Dexamethasone in Hospitalized Patients with Covid-19](https://www.nejm.org/doi/full/10.1056/NEJMoa2021436)"
+      ]
+     },
+     {
+      "type": "facts",
+      "title": "By respiratory support at randomization",
+      "items": [
+       [
+        "Invasive mechanical ventilation",
+        "324명 대 683명, 사망 29.3% 대 41.4%, 비율비 0.64 (95% CI 0.51–0.81)"
+       ],
+       [
+        "Oxygen only",
+        "1279명 대 2604명, 사망 23.3% 대 26.2%, 비율비 0.82 (95% CI 0.72–0.94)"
+       ],
+       [
+        "No oxygen",
+        "501명 대 1034명, 사망 17.8% 대 14.0%, 비율비 1.19로 이득의 근거가 없음"
+       ]
+      ],
+      "refs": [
+       "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+      ]
+     }
+    ],
+    "opens": {
+     "kind": "topology",
+     "title": "Primary outcome analysis",
+     "why": "28일 사망을 어떻게 세고 비교하는지입니다. 비교는 무작위 배정된 참여자를 실제로 받은 치료가 아니라 배정된 군으로 나누고, 각자의 추적 양식에서 사망을 읽습니다.",
+     "nodes": [
+      {
+       "id": "comparison",
+       "label": "Comparison",
+       "singleton": true,
+       "attrs": [
+        "participants: Participant[]",
+        "treatment: Arm",
+        "control: Arm"
+       ],
+       "ops": [
+        "Comparison.estimate"
+       ],
+       "rules": [
+        "intention-to-treat",
+        "concurrent-control"
+       ],
+       "what": "덱사메타손 군과 usual care 군의 28일 사망을 비교하는 분석입니다. 모든 분석은 intention-to-treat 원칙을 따랐습니다.",
+       "refs": [
+        "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)",
+        "[RECOVERY Collaborative Group 2021, Dexamethasone in Hospitalized Patients with Covid-19](https://www.nejm.org/doi/full/10.1056/NEJMoa2021436)"
+       ]
+      },
+      {
+       "id": "participant",
+       "label": "Participant",
+       "attrs": [
+        "eligible: Bool",
+        "allocated: Arm?",
+        "form: FollowUpForm?"
+       ],
+       "what": "무작위 배정된 환자 한 명입니다. 배정 군은 한 번 정해지면 바뀌지 않고, 분석에서도 그 군으로 셉니다.",
+       "refs": [
+        "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+       ],
+       "media": [
+        {
+         "type": "pitfall",
+         "text": "usual care 군의 8%가 진료 중에 덱사메타손을 받았지만 usual care 군으로 셉니다. 실제 받은 치료대로 나누면 두 군이 더는 무작위로 나뉜 집단이 아니게 되므로, 배정대로 세는 쪽이 효과를 조금 작게 보더라도 치우치지 않습니다.",
+         "refs": [
+          "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+         ]
+        }
+       ]
+      },
+      {
+       "id": "form",
+       "label": "Follow-up form",
+       "attrs": [
+        "death: Bool",
+        "doses: DoseRecord[]"
+       ],
+       "rules": [
+        "complete-follow-up"
+       ],
+       "what": "참여자마다 한 장씩 남는 추적 양식입니다. 28일 안의 사망 여부와 받은 치료가 적힙니다.",
+       "refs": [
+        "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+       ]
+      }
+     ],
+     "edges": [
+      {
+       "from": "comparison",
+       "to": "participant",
+       "label": "groups",
+       "attr": "participants",
+       "what": "비교는 무작위 배정된 참여자를 모두 배정 군으로 나눕니다."
+      },
+      {
+       "from": "participant",
+       "to": "form",
+       "label": "reports",
+       "attr": "form",
+       "what": "참여자의 1차 결과는 그 사람의 추적 양식에서 읽습니다."
+      }
+     ]
+    },
+    "link": "view"
+   },
+   {
+    "id": "nodeath",
+    "label": "No death reported",
+    "qty": {
+     "value": 4833,
+     "unit": "patients",
+     "kind": "count"
+    },
+    "what": "배정 뒤 28일까지 사망이 보고되지 않은 참여자입니다. 수는 각 군의 배정 수에서 사망 수를 뺀 것이고, 1차 결과 추적이 끝나지 않은 7명도 여기에 들어 있습니다.",
+    "refs": [
+     "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+    ],
+    "media": [
+     {
+      "type": "pitfall",
+      "text": "이 상자를 모두 살아 있다고 읽으면 안 됩니다. 1차 결과 추적은 6425명 가운데 6418명에서 완료되었고, 나머지 7명은 사망이 보고되지 않았을 뿐입니다. 이 7명이 두 군에 어떻게 나뉘는지는 논문 본문에 없습니다.",
+      "refs": [
+       "[Preliminary report, full text (PMC7383595)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7383595/)"
+      ]
+     }
+    ]
+   }
+  ],
+  "edges": [
+   {
+    "from": "rand",
+    "to": "inel",
+    "label": "exclude",
+    "rules": [
+     "eligibility"
+    ],
+    "qty": {
+     "value": 1948,
+     "unit": "patients",
+     "kind": "count"
+    },
+    "what": "덱사메타손이 맞지 않거나 병원에 없는 환자를 배정 전에 덱사메타손 비교에서 뺍니다."
+   },
+   {
+    "from": "rand",
+    "to": "elsewhere",
+    "label": "allocate other treatment",
+    "ops": [
+     "Participant.allocate"
+    ],
+    "rules": [
+     "eligibility"
+    ],
+    "qty": {
+     "value": 2930,
+     "unit": "patients",
+     "kind": "count"
+    },
+    "what": "적격한 환자에게 같은 플랫폼의 다른 시험 약을 배정합니다."
+   },
+   {
+    "from": "rand",
+    "to": "dex",
+    "label": "allocate dexamethasone",
+    "ops": [
+     "Participant.allocate"
+    ],
+    "rules": [
+     "concealed-allocation",
+     "eligibility"
+    ],
+    "qty": {
+     "value": 2104,
+     "unit": "patients",
+     "kind": "count"
+    },
+    "mark": [
+     "happy"
+    ],
+    "what": "웹 시스템이 덱사메타손을 배정합니다. 배정은 등록이 끝난 뒤에야 정해집니다."
+   },
+   {
+    "from": "rand",
+    "to": "usual",
+    "label": "allocate usual care",
+    "ops": [
+     "Participant.allocate"
+    ],
+    "rules": [
+     "concealed-allocation",
+     "eligibility"
+    ],
+    "qty": {
+     "value": 4321,
+     "unit": "patients",
+     "kind": "count"
+    },
+    "what": "웹 시스템이 usual care를 배정합니다. 덱사메타손 한 명마다 usual care 두 명꼴입니다."
+   },
+   {
+    "from": "dex",
+    "to": "died",
+    "label": "die",
+    "rules": [
+     "death-reported"
+    ],
+    "qty": {
+     "value": 482,
+     "unit": "patients",
+     "kind": "count"
+    },
+    "what": "덱사메타손 군 참여자가 배정 뒤 28일 안에 사망합니다."
+   },
+   {
+    "from": "dex",
+    "to": "nodeath",
+    "label": "reach day 28",
+    "qty": {
+     "value": 1622,
+     "unit": "patients",
+     "kind": "count"
+    },
+    "mark": [
+     "happy"
+    ],
+    "what": "덱사메타손 군 참여자가 사망 보고 없이 배정 뒤 28일을 넘깁니다."
+   },
+   {
+    "from": "usual",
+    "to": "died",
+    "label": "die",
+    "rules": [
+     "death-reported"
+    ],
+    "qty": {
+     "value": 1110,
+     "unit": "patients",
+     "kind": "count"
+    },
+    "what": "usual care 군 참여자가 배정 뒤 28일 안에 사망합니다."
+   },
+   {
+    "from": "usual",
+    "to": "nodeath",
+    "label": "reach day 28",
+    "qty": {
+     "value": 3211,
+     "unit": "patients",
+     "kind": "count"
+    },
+    "what": "usual care 군 참여자가 사망 보고 없이 배정 뒤 28일을 넘깁니다."
+   }
+  ],
+  "triggers": [
+   {
+    "to": "rand",
+    "label": "enrol",
+    "ops": [
+     "Participant.enrol"
+    ],
+    "what": "병원이 기초 자료를 제출해 환자를 등록하면 무작위 배정 대상이 됩니다."
+   }
+  ]
+ }
+}
