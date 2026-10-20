@@ -183,7 +183,8 @@ def meta(pg):
                       "L.nodes.find(n => n.id === e.from).label + ' to ' + L.nodes.find(n => n.id === e.to).label)).dataset.key;"
                       " window.zd.select({ edge: k, e }); }", [L["id"], i])
                 look(f"{L['id']}: {e['from']}>{e['to']}", e["meta"])
-    print("\n".join(f"missing {m}" for m in missing))
+    for m in missing:
+        print(f"missing {m}")
     print(f"meta: {seen} shown, {len(missing)} missing")
     return 1 if missing else 0
 
