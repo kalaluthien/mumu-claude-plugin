@@ -1,7 +1,7 @@
 {
   "name": "paperwork",
   "version": "0.0.0",
-  "description": "Pages a person sees instead of reads, and the questions that settle what they show.",
+  "description": "Model a system as a checked Schema document, prove its rules with Alloy and show it as a diagram; grade tasks with litmus specs.",
   "author": {
     "name": "kalaluthien"
   }
