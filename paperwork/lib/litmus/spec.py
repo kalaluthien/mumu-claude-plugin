@@ -31,7 +31,7 @@ RULES = {
     "threshold-missing": ("error", "every tier above the last names its delta and its judge_error"),
     "judge-error-range": ("error", "a judge_error is at least 0 and below 0.5, since at 0.5 a verdict carries no order"),
     "delta-range": ("error", "a delta is above 0 and at most 1"),
-    "exchange-unknown": ("error", "an exchange names two criteria of the spec"),
+    "exchange-unknown": ("error", "an exchange names two different criteria of the spec"),
     "exchange-contradicts": ("error", "an exchange's result matches where its two criteria sit"),
     "exchange-peer-missing": ("error", "each criterion with a tier peer has an exchange with one"),
     "exchange-below-missing": ("error", "each criterion has an exchange with one of the next tier's criteria"),
@@ -136,6 +136,9 @@ def exchanges(spec, where):
         at = f"spec.exchange[{x}]"
         if ex["a"] not in where or ex["b"] not in where:
             out.append(("exchange-unknown", at, f"{ex['a']}/{ex['b']} names a criterion the spec does not have"))
+            continue
+        if ex["a"] == ex["b"]:
+            out.append(("exchange-unknown", at, f"{ex['a']} is set against itself, which tests nothing"))
             continue
         seen.add(frozenset((ex["a"], ex["b"])))
         ta, tb = where[ex["a"]][0], where[ex["b"]][0]

@@ -23,6 +23,8 @@ from litmus.model import weights  # noqa: E402
 from litmus.spec import GRAMMAR, RULES, SCHEMA, line, violations  # noqa: E402
 
 FIXTURES = HERE.parent / "fixtures"
+# read() returns it for a file it cannot parse, since a parsed spec may be null
+UNREAD = object()
 
 
 def read(path):
@@ -30,11 +32,11 @@ def read(path):
         return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
     except (OSError, ValueError) as e:
         print(f"{path}: not a JSON document: {e}", file=sys.stderr)
-        return None
+        return UNREAD
 
 
 def check(path):
-    if (spec := read(path)) is None:
+    if (spec := read(path)) is UNREAD:
         return 2
     rows = violations(spec)
     for rule, where, message, sev in rows:
@@ -46,7 +48,7 @@ def check(path):
 
 
 def show_weights(path):
-    if (spec := read(path)) is None:
+    if (spec := read(path)) is UNREAD:
         return 2
     if errors := [r for r in violations(spec) if r[3] == "error"]:
         for rule, where, message, _ in errors:
@@ -132,7 +134,7 @@ def prose(files):
     for doc in docs:
         text = doc.read_text(encoding="utf-8")
         links = re.findall(r"\]\(([^)\s#]+)", text)
-        if not any((doc.resolve().parent / link).resolve() == GRAMMAR for link in links):
+        if not any(not link.startswith("/") and (doc.resolve().parent / link).resolve() == GRAMMAR for link in links):
             out.append(f"{doc}: links no assets/rubric.schema.json by a path relative to it")
         for block in blocks(text):
             if len(hit := {w for w in re.findall(r"`([a-z_]+)`", block) if w in names}) >= 3:
