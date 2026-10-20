@@ -22,7 +22,7 @@ FIX = {
     "no name": "put a bold name after the kind: `[check] **<name>**: <details>`",
     "no command": "write the command that decides in a code span; a `[check]` is a command whose output decides",
     "no main output": "quote, after `on main`, the failing output of the same command on the default branch, as in "
-                      "`prints ok; on main it prints nothing`",
+                      "`prints ok; on main nothing`",
     "passes on main": "the word after `prints` equals the word after `on main`, so the check passes on the default branch; "
                       "quote the output it gives there, which must differ",
     "elided command": "write the whole command; `...` or `…` in the code span cannot be run",
