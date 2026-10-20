@@ -50,4 +50,5 @@ Command paths are relative to this file.
 2. Run `../schema/scripts/check-schema.py check doc.json` after each entry, until it prints `ok`.
 3. Run `scripts/resolve-pointers.py evidence doc.json --root <repo> --sha <commit>`; fix each
    unresolved pointer.
+   `fixtures/pointers-to-nothing.json` makes `evidence`, `constraints` and `faults` each report one unresolved pointer; run it after changing the script.
 4. Hand over the document's path, the commit, the last two outputs and the defects.

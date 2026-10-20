@@ -10,6 +10,8 @@ Run `scripts/emit-mermaid.py doc.json`, the path relative to this file. Print it
 
 Run `emit-mermaid.py --check doc.json` when a block looks short: it names each level, node or edge the output lacks.
 
+Each file in [fixtures/](fixtures/) breaks one check and exits 1: `self-missing-node.md` for `--check ../../examples/self/schema.json --output`, `mermaid-missing-row.md` and `mermaid-false-kept.md` for `losses --doc`, `formats-missing-row.md` for `formats --doc`. Run them after changing the checker.
+
 ## Drawing by kind
 
 Each kind is drawn as its reading in [semantics.md](../schema/semantics.md) says:

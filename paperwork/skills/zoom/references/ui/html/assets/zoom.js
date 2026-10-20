@@ -1,4 +1,4 @@
-function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.json, which the checks read too
+function mountZoom(root, M, LIMITS) {   // LIMITS: assets/phone-limits.json, which the checks read too
   const NS = "http://www.w3.org/2000/svg";
   const still = matchMedia("(prefers-reduced-motion: reduce)");
   const KIND = {
@@ -64,17 +64,17 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
   }
 
   const st = { level: M.root, sel: null, full: false, sheet: false };   // sel: { node }, { edge, e } or { run, at, pick }
-  root.classList.add("zd");
+  root.classList.add("zoom");
   root.innerHTML = `
-  <div class="zd-main">
-    <div class="zd-board">
-      <div class="zd-top"><nav class="zd-crumbs" aria-label="Level path"></nav><button type="button" class="zd-fs" aria-label="Full screen"></button></div>
-      <nav class="zd-nav" aria-label="Levels and scenarios"></nav>
-      <p class="zd-why"></p><p class="zd-legend"></p>
-      <div class="zd-time" hidden><code></code><button type="button" data-d="-1" aria-label="Earlier">‹</button><div class="zd-rail"><div class="zd-ticks" aria-hidden="true"></div><input type="range" min="1" step="1" aria-label="Step"></div><button type="button" data-d="1" aria-label="Later">›</button><output></output><button type="button" class="zd-end" aria-label="Close">✕</button></div>
-      <div class="zd-stage"><div class="zd-canvas"></div><aside class="zd-note" aria-live="polite"></aside></div>
+  <div class="zoom-main">
+    <div class="zoom-board">
+      <div class="zoom-top"><nav class="zoom-crumbs" aria-label="Level path"></nav><button type="button" class="zoom-fs" aria-label="Full screen"></button></div>
+      <nav class="zoom-nav" aria-label="Levels and scenarios"></nav>
+      <p class="zoom-why"></p><p class="zoom-legend"></p>
+      <div class="zoom-time" hidden><code></code><button type="button" data-d="-1" aria-label="Earlier">‹</button><div class="zoom-rail"><div class="zoom-ticks" aria-hidden="true"></div><input type="range" min="1" step="1" aria-label="Step"></div><button type="button" data-d="1" aria-label="Later">›</button><output></output><button type="button" class="zoom-end" aria-label="Close">✕</button></div>
+      <div class="zoom-stage"><div class="zoom-canvas"></div><aside class="zoom-note" aria-live="polite"></aside></div>
     </div>
-  </div><div class="zd-scrim" hidden></div>`;
+  </div><div class="zoom-scrim" hidden></div>`;
   const $ = s => root.querySelector(s);
   const narrow = () => root.clientWidth < 900;
   const el = (p, tag, a = {}, t) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); if (t != null) e.textContent = t; p.appendChild(e); return e; };
@@ -86,7 +86,7 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
   const meas = (() => { const c = document.createElement("canvas").getContext("2d"); return (t, f) => { c.font = f; return c.measureText(t).width; }; })();
   const MARKS = { happy: "main path", failure: "failure path", optional: "optional", unsure: "unconfirmed" };
   const GLYPH = { happy: '<path d="M1 4H23" class="lg lg-happy"/>', failure: '<path d="M1 4H23" class="lg lg-failure"/>', optional: '<path d="M1 4H23" class="lg lg-optional"/>', unsure: '<text x="12" y="8" text-anchor="middle" class="lg-q">?</text>' };
-  const mk = m => `<span class="zd-mk"><svg viewBox="0 0 24 9" width="24" height="9" aria-hidden="true">${GLYPH[m]}</svg>${MARKS[m]}</span>`;
+  const mk = m => `<span class="zoom-mk"><svg viewBox="0 0 24 9" width="24" height="9" aria-hidden="true">${GLYPH[m]}</svg>${MARKS[m]}</span>`;
   const pname = (L, id) => ((L.partitions || []).find(p => p.id === id) || { label: id }).label;
   const marks = x => (x.mark || []).filter(m => MARKS[m]);
   // metadata, each entry as `<name>: <display>` the way ui/formats.md shows it, so a value reads the same as in chat
@@ -357,7 +357,7 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
   // node in turn and then walked a hundred steps; the first that fits the card and that render's drawing check
   // would pass is kept for this card's width. When none does, the root keeps the author's grid and scrolls sideways
   function draw(fromBox) {
-    const L = levels[st.level], key = L.id + "@" + $(".zd-canvas").clientWidth + document.fonts.status;
+    const L = levels[st.level], key = L.id + "@" + $(".zoom-canvas").clientWidth + document.fonts.status;
     if (phone(L) && !chosen[key]) {
       const copy = (ns, f = () => ({}), es = L.edges) => Object.assign({}, L, { nodes: ns.map(n => Object.assign({}, n, f(n))), edges: es.map(e => Object.assign({}, e)) });
       const tight = P => { const ys = [...new Set(P.nodes.map(n => n.y))].sort((a, b) => a - b); P.nodes.forEach(n => n.y = ys.indexOf(n.y)); return P; };
@@ -427,7 +427,7 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
   }
   function paint(fromBox, P) {
     const L = P || levels[st.level], K = KIND[L.kind], g0 = G0 = geom(L);
-    const host = $(".zd-canvas"); host.innerHTML = "";
+    const host = $(".zoom-canvas"); host.innerHTML = "";
     const svg = el(host, "svg", { viewBox: `0 0 ${g0.W} ${g0.H}`, role: "img", "aria-label": `${L.title}, ${L.nodes.length} nodes` });
     if (P) svg.classList.add("phone");
     const world = el(svg, "g", { class: "world" });
@@ -556,45 +556,45 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
     const items = [];
     const visit = (id, d) => { items.push([id, d]); levels[id].nodes.forEach(n => childOf[n.id] && visit(childOf[n.id], d + 1)); };
     visit(M.root, 0);
-    const n = $(".zd-nav"), scen = M.scenarios.filter(s => nodeLevel[((s.run || { items: [] }).items.find(it => nodes[it.x]) || {}).x] === st.level);
+    const n = $(".zoom-nav"), scen = M.scenarios.filter(s => nodeLevel[((s.run || { items: [] }).items.find(it => nodes[it.x]) || {}).x] === st.level);
     // levels on the left; the Scenarios fill the rest, side by side, swiped through
-    const sect = (cls, title, count, body) => `<section class="${cls}"><h5 class="zd-sect">${title}<span>${count}</span></h5>${body}</section>`;
-    n.innerHTML = `<div class="zd-navgrid">` + sect("zd-nl", "Levels", items.length, `<ul class="zd-levels">${items.map(([id, d]) => `<li><button type="button" data-l="${id}" ${id === st.level ? 'aria-current="true"' : ""} style="--d:${d}">${d ? '<i class="tk" aria-hidden="true">└</i>' : ""}<span>${esc(levels[id].title)}</span></button></li>`).join("")}</ul>`)
-      + (scen.length ? sect("zd-ns", "Scenarios", scen.length, `<ul class="zd-scen">${scen.map(s => `<li><button type="button" data-s="${s.slug}" aria-pressed="${!!st.sel && st.sel.run === "scenario:" + s.slug}"><code>${s.slug}</code><span>${esc(s.text)}</span></button></li>`).join("")}</ul>`) : "") + `</div>`;
+    const sect = (cls, title, count, body) => `<section class="${cls}"><h5 class="zoom-sect">${title}<span>${count}</span></h5>${body}</section>`;
+    n.innerHTML = `<div class="zoom-navgrid">` + sect("zoom-nl", "Levels", items.length, `<ul class="zoom-levels">${items.map(([id, d]) => `<li><button type="button" data-l="${id}" ${id === st.level ? 'aria-current="true"' : ""} style="--d:${d}">${d ? '<i class="tk" aria-hidden="true">└</i>' : ""}<span>${esc(levels[id].title)}</span></button></li>`).join("")}</ul>`)
+      + (scen.length ? sect("zoom-ns", "Scenarios", scen.length, `<ul class="zoom-scen">${scen.map(s => `<li><button type="button" data-s="${s.slug}" aria-pressed="${!!st.sel && st.sel.run === "scenario:" + s.slug}"><code>${s.slug}</code><span>${esc(s.text)}</span></button></li>`).join("")}</ul>`) : "") + `</div>`;
     n.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { sheet(false); if (b.dataset.l !== st.level) goto(b.dataset.l); });
     n.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { if (!show.replay) return; sheet(false); const key = "scenario:" + b.dataset.s; st.sel && st.sel.run === key ? end() : play(key, 0); });
   }
   function bar() {
     const L = levels[st.level];
     const ids = []; for (let id = st.level; id; id = levels[id].parent ? nodeLevel[levels[id].parent] : null) ids.unshift(id);
-    $(".zd-crumbs").innerHTML = ids.map((id, i) => i < ids.length - 1
-      ? `<button type="button" class="zd-up" data-up="${id}">${esc(levels[id].title)}</button><span class="zd-sep" aria-hidden="true">›</span>`
-      : `<button type="button" class="zd-lv" aria-expanded="${st.sheet}">${esc(levels[id].title)}<i aria-hidden="true">${st.sheet ? "▴" : "▾"}</i></button>`).join("");
+    $(".zoom-crumbs").innerHTML = ids.map((id, i) => i < ids.length - 1
+      ? `<button type="button" class="zoom-up" data-up="${id}">${esc(levels[id].title)}</button><span class="zoom-sep" aria-hidden="true">›</span>`
+      : `<button type="button" class="zoom-lv" aria-expanded="${st.sheet}">${esc(levels[id].title)}<i aria-hidden="true">${st.sheet ? "▴" : "▾"}</i></button>`).join("");
     root.querySelectorAll("[data-up]").forEach(b => b.onclick = () => goto(b.dataset.up, { up: true }));
-    $(".zd-lv").onclick = () => sheet(!st.sheet);
-    $(".zd-why").textContent = L.why;
+    $(".zoom-lv").onclick = () => sheet(!st.sheet);
+    $(".zoom-why").textContent = L.why;
     const used = Object.keys(MARKS).filter(m => L.nodes.concat(L.edges).some(x => marks(x).includes(m)));
-    const ex = (svg, w) => `<span class="zd-mk"><svg viewBox="0 0 24 12" width="24" height="12" aria-hidden="true">${svg}</svg>${w}</span>`;
+    const ex = (svg, w) => `<span class="zoom-mk"><svg viewBox="0 0 24 12" width="24" height="12" aria-hidden="true">${svg}</svg>${w}</span>`;
     const T_ = L.triggers || [];
-    $(".zd-legend").innerHTML = used.map(mk).join("")
+    $(".zoom-legend").innerHTML = used.map(mk).join("")
       + (L.nodes.some(n => n.abstract) ? ex('<rect x="1.5" y="1.5" width="21" height="9" rx="2.5" class="lg lg-abs"/>', "abstract") : "")
       + (T_.some(t => !t.every) ? ex('<circle cx="6" cy="6" r="4.5" class="lg"/><path d="M11 6H23" class="lg"/>', "from outside") : "")
       + (T_.some(t => t.every) ? ex('<circle cx="6" cy="6" r="4.5" class="lg"/><path d="M6 3V6L8 7M11 6H23" class="lg"/>', "on a schedule") : "");
-    const fb = $(".zd-fs"); fb.textContent = st.full ? "✕" : "⤢"; fb.setAttribute("aria-label", st.full ? "Close full screen" : "Full screen");
+    const fb = $(".zoom-fs"); fb.textContent = st.full ? "✕" : "⤢"; fb.setAttribute("aria-label", st.full ? "Close full screen" : "Full screen");
   }
 
-  const refs = list => (list && list.length) ? `<p class="zd-refs">${list.map(r => { const m = /^\[(.+?)\]\((https?:[^)\s]+)\)$/.exec(r.trim()); const l = /^\[(.+?)\]\(([^)\s]+)\)$/.exec(r.trim()); return m ? `<a href="${esc(m[2])}" target="_blank" rel="noopener">${esc(m[1])}</a>` : l ? `<span class="zd-src" title="${esc(l[2])}">${esc(l[1])}</span>` : esc(r); }).join("")}</p>` : "";
+  const refs = list => (list && list.length) ? `<p class="zoom-refs">${list.map(r => { const m = /^\[(.+?)\]\((https?:[^)\s]+)\)$/.exec(r.trim()); const l = /^\[(.+?)\]\(([^)\s]+)\)$/.exec(r.trim()); return m ? `<a href="${esc(m[2])}" target="_blank" rel="noopener">${esc(m[1])}</a>` : l ? `<span class="zoom-src" title="${esc(l[2])}">${esc(l[1])}</span>` : esc(r); }).join("")}</p>` : "";
   // copy for an agent: the element's level path, label and id, so an agent finds it in the document
   const path = L => { const ts = []; for (let id = L.id; id; id = levels[id].parent ? nodeLevel[levels[id].parent] : null) ts.unshift(levels[id].title); return ts.join(" › "); };
-  const copyFor = (L, id, label) => `<p class="zd-cp"><button type="button" class="zd-copy" data-text="${esc(`${path(L)} › ${label} (${id})`)}">Copy for agent</button></p>`;
+  const copyFor = (L, id, label) => `<p class="zoom-cp"><button type="button" class="zoom-copy" data-text="${esc(`${path(L)} › ${label} (${id})`)}">Copy for agent</button></p>`;
   function copy(b) {
     const text = b.dataset.text, done = () => { b.textContent = "Copied"; };
     // a page opened from a file may have no clipboard API: fall back to a selected textarea
     const old = () => { const a = document.createElement("textarea"); a.value = text; document.body.appendChild(a); a.select(); document.execCommand("copy"); a.remove(); done(); };
     navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text).then(done, old) : old();
   }
-  const pchip = (L, id) => `<span class="zd-pc">${esc(pname(L, id))}</span>`;
-  const grp = (h, rows) => rows.length ? `<div class="zd-grp"><h5>${h}</h5><ul class="zd-list">${rows.join("")}</ul></div>` : "";
+  const pchip = (L, id) => `<span class="zoom-pc">${esc(pname(L, id))}</span>`;
+  const grp = (h, rows) => rows.length ? `<div class="zoom-grp"><h5>${h}</h5><ul class="zoom-list">${rows.join("")}</ul></div>` : "";
   // Alloy formulas, laid out at build time; keywords in their own ink
   const KW = new Set("all some no lone one set disj let not and or implies iff else in always eventually after before historically once until releases since triggered none univ iden Int sum".split(" "));
   const fx = t => esc(t).replace(/[A-Za-z][A-Za-z0-9_]*/g, w => KW.has(w) ? `<i class="k">${w}</i>` : w);
@@ -604,7 +604,7 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
     return `<li><details><summary class="sig"><span><b>${esc(o.slug)}</b>${esc(o.sig)}</span></summary>${show.formulas ? cond : ""}<p>${esc(o.text)}</p>${refs(o.refs)}</details></li>`; };
   // what Alloy found: a rule that can break shows the run that breaks it
   const broken = i => !!i.breaks;
-  const breakRun = i => broken(i) ? `<div class="zd-run"><span class="fk">run that breaks it</span><ol>${(i.breaks).map((calls, k) => `<li>${show.replay ? `<button type="button" data-run="rule:${esc(i.slug)}" data-at="${k}">${calls.map(esc).join(" + ")}</button>` : calls.map(esc).join(" + ")}</li>`).join("")}</ol></div>` : "";
+  const breakRun = i => broken(i) ? `<div class="zoom-run"><span class="fk">run that breaks it</span><ol>${(i.breaks).map((calls, k) => `<li>${show.replay ? `<button type="button" data-run="rule:${esc(i.slug)}" data-at="${k}">${calls.map(esc).join(" + ")}</button>` : calls.map(esc).join(" + ")}</li>`).join("")}</ol></div>` : "";
   // a rule's chips: must or should, then how it stands: a guard of the behaviour, assumed, ideal, or what Alloy found
   const standing = i => broken(i) ? "can break" : i.role || "";
   const ruleRow = s => { const i = rules[s], how = standing(i);
@@ -640,49 +640,49 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
       const head = `<h5>${m.type === "example" && m.invented ? "" : `<b>${m.type}</b>`}${m.invented ? "<i>e.g.</i>" : ""}${m.title ? `<span>${esc(m.title)}</span>` : ""}</h5>`;
       let body = "";
       if (m.type === "screen") body = mock(m);
-      else if (m.type === "tree") body = `<div class="zd-tree">${treeLines(m.items)}</div>`;
-      else if (m.type === "code") body = `<pre class="zd-code">${esc(m.text)}</pre>`;
-      else if (m.type === "example") body = `<div class="zd-ex">${esc(m.text).split("\n").join("<br>")}</div>`;
-      else if (m.type === "quote") body = `<blockquote class="zd-quote">${esc(m.text).split("\n").join("<br>")}</blockquote>`;
-      else if (m.type === "pitfall") body = `<div class="zd-pit">${esc(m.text).split("\n").join("<br>")}</div>`;
-      else if (m.type === "payload") body = `<pre class="zd-code zd-pay">${esc(m.text)}</pre>`;
-      else if (m.type === "checklist") body = `<ul class="zd-check">${m.items.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
-      else if (m.type === "diff") body = `<div class="zd-diff">${diffLines(m.before, m.after).map(([k, t]) => `<div class="${k}"><i>${k === "del" ? "−" : k === "ins" ? "+" : ""}</i>${esc(t)}</div>`).join("")}</div>`;
-      else if (m.type === "insight") body = `<div class="zd-ins"><p>${esc(m.move)}</p><p class="vs">${esc(m.vs)}</p><p class="so">${esc(m.gain)} <code>${esc(m.rule)}</code></p></div>`;
-      else if (m.type === "facts") body = `<dl class="zd-facts">${m.items.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`;
-      return body ? `<div class="zd-grp zd-media">${head}${body}${refs(m.refs)}</div>` : "";
+      else if (m.type === "tree") body = `<div class="zoom-tree">${treeLines(m.items)}</div>`;
+      else if (m.type === "code") body = `<pre class="zoom-code">${esc(m.text)}</pre>`;
+      else if (m.type === "example") body = `<div class="zoom-ex">${esc(m.text).split("\n").join("<br>")}</div>`;
+      else if (m.type === "quote") body = `<blockquote class="zoom-quote">${esc(m.text).split("\n").join("<br>")}</blockquote>`;
+      else if (m.type === "pitfall") body = `<div class="zoom-pit">${esc(m.text).split("\n").join("<br>")}</div>`;
+      else if (m.type === "payload") body = `<pre class="zoom-code zoom-pay">${esc(m.text)}</pre>`;
+      else if (m.type === "checklist") body = `<ul class="zoom-check">${m.items.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
+      else if (m.type === "diff") body = `<div class="zoom-diff">${diffLines(m.before, m.after).map(([k, t]) => `<div class="${k}"><i>${k === "del" ? "−" : k === "ins" ? "+" : ""}</i>${esc(t)}</div>`).join("")}</div>`;
+      else if (m.type === "insight") body = `<div class="zoom-ins"><p>${esc(m.move)}</p><p class="vs">${esc(m.vs)}</p><p class="so">${esc(m.gain)} <code>${esc(m.rule)}</code></p></div>`;
+      else if (m.type === "facts") body = `<dl class="zoom-facts">${m.items.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`;
+      return body ? `<div class="zoom-grp zoom-media">${head}${body}${refs(m.refs)}</div>` : "";
     }).join("");
   }
   const mediaOf = x => (x.media || []).concat(x.ui ? [{ type: "screen", screen: x.ui.screen, block: x.ui.block }] : []);
 
   function note() {
-    const p = $(".zd-note"), L = levels[st.level];
+    const p = $(".zoom-note"), L = levels[st.level];
     root.dataset.level = st.level; root.dataset.sel = st.sel ? (st.sel.node || st.sel.edge || st.sel.run) : "";
     p.classList.toggle("is-sel", !!st.sel); p.classList.toggle("is-run", !!(st.sel && st.sel.run));
     if (!st.sel) p.innerHTML = media(L.media, hash(L.id)) + metaGrp(L.meta, "This level") + (st.level === M.root ? metaGrp(M.meta, "This document") : "");
     else if (st.sel.run) p.innerHTML = runNote(runOf(st.sel.run), st.sel.at);
     else if (st.sel.node) {
       const n = nodes[st.sel.node], T = KIND[L.kind], closed = ((M.plan || {}).shallow || []).includes(n.id);
-      p.innerHTML = `<header class="zd-nh"><p class="zd-meta"><span class="zd-type">${([].concat(L.initial || []).includes(n.id) ? "initial " : "") + (n.abstract ? "abstract " : "") + T.node}</span>${marks(n).map(mk).join("")}${n.partition ? pchip(L, n.partition) : ""}${closed ? `<span class="zd-pc">not opened</span>` : ""}</p><h4>${esc(n.label)}</h4></header>${closed && (M.plan.why || {}).shallow ? `<p class="what">${esc(M.plan.why.shallow)}</p>` : ""}<p class="what">${esc(n.what)}</p>${refs(n.refs)}${media(mediaOf(n), hash(n.id))}
+      p.innerHTML = `<header class="zoom-nh"><p class="zoom-meta"><span class="zoom-type">${([].concat(L.initial || []).includes(n.id) ? "initial " : "") + (n.abstract ? "abstract " : "") + T.node}</span>${marks(n).map(mk).join("")}${n.partition ? pchip(L, n.partition) : ""}${closed ? `<span class="zoom-pc">not opened</span>` : ""}</p><h4>${esc(n.label)}</h4></header>${closed && (M.plan.why || {}).shallow ? `<p class="what">${esc(M.plan.why.shallow)}</p>` : ""}<p class="what">${esc(n.what)}</p>${refs(n.refs)}${media(mediaOf(n), hash(n.id))}
         ${grp("Attributes", (n.attrs || []).map(a => { const i = a.indexOf(":"); return `<li class="at"><b>${esc(a.slice(0, i))}</b>${esc(a.slice(i))}</li>`; }))}
         ${grp("Operations", (n.ops || []).map(opRow))}
         ${grp("Rules", (n.rules || []).map(ruleRow))}${metaGrp(n.meta)}${copyFor(L, n.id, n.label)}`;
     } else {
       const e = st.sel.e, T = KIND[L.kind];
       const a = e.from ? nodes[e.from] : null, b = nodes[e.to], x = a && a.partition && b.partition && a.partition !== b.partition;
-      p.innerHTML = `<header class="zd-nh"><p class="zd-meta"><span class="zd-type">${T.edge}</span>${marks(e).map(mk).join("")}${e.is && nodes[e.is] ? `<button type="button" class="zd-is" data-is="${e.is}">${esc(levels[nodeLevel[e.is]].title)} ↗</button>` : ""}</p><h4>${esc(e.label || "")}</h4><p class="zd-route">${a ? esc(a.label) : e.every ? "every " + esc(e.every) : "from outside"}${x ? pchip(L, a.partition) : ""}<i>→</i>${esc(b.label)}${x ? pchip(L, b.partition) : ""}</p></header>
+      p.innerHTML = `<header class="zoom-nh"><p class="zoom-meta"><span class="zoom-type">${T.edge}</span>${marks(e).map(mk).join("")}${e.is && nodes[e.is] ? `<button type="button" class="zoom-is" data-is="${e.is}">${esc(levels[nodeLevel[e.is]].title)} ↗</button>` : ""}</p><h4>${esc(e.label || "")}</h4><p class="zoom-route">${a ? esc(a.label) : e.every ? "every " + esc(e.every) : "from outside"}${x ? pchip(L, a.partition) : ""}<i>→</i>${esc(b.label)}${x ? pchip(L, b.partition) : ""}</p></header>
         ${e.what ? `<p class="what">${esc(e.what)}</p>` : ""}${refs(e.refs)}${media(e.media, hash(st.sel.edge))}
         ${grp("Operations", (e.ops || []).map(opRow))}${grp("Guard", (e.rules || []).map(ruleRow))}
         ${metaGrp(e.meta)}${copyFor(L, st.sel.edge, e.label || "")}${grp("Syncs", syncsOf(L, e).map(y => `<li class="sy"><b>${esc(y.when === e.label ? "sets off " + y.then : "set off by " + y.when)}</b>${y.where && nodes[y.where] ? ` only while ${esc(nodes[y.where].label)}` : ""}${y.what ? `<span>${esc(y.what)}</span>` : ""}</li>`))}`;
     }
-    if (p.innerHTML.trim()) p.innerHTML = `<div class="zd-body">${p.innerHTML}</div>`;   // the body scrolls; the pointer and close stay put
-    if (st.sel) { p.insertAdjacentHTML("afterbegin", `<button type="button" class="zd-x" aria-label="Close">✕</button>`); p.querySelector(".zd-x").onclick = () => { st.sel = null; render(); }; }
+    if (p.innerHTML.trim()) p.innerHTML = `<div class="zoom-body">${p.innerHTML}</div>`;   // the body scrolls; the pointer and close stay put
+    if (st.sel) { p.insertAdjacentHTML("afterbegin", `<button type="button" class="zoom-x" aria-label="Close">✕</button>`); p.querySelector(".zoom-x").onclick = () => { st.sel = null; render(); }; }
     const isb = p.querySelector("[data-is]"); if (isb) isb.onclick = () => { const id = isb.dataset.is; goto(nodeLevel[id], null, { node: id }); };
-    const cb = p.querySelector(".zd-copy"); if (cb) cb.onclick = () => copy(cb);
+    const cb = p.querySelector(".zoom-copy"); if (cb) cb.onclick = () => copy(cb);
     p.querySelectorAll("[data-run]").forEach(b => b.onclick = () => play(b.dataset.run, +b.dataset.at));
     p.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => act(b.dataset.pick, () => {}));
     p.hidden = !p.innerHTML.trim();
-    p.querySelectorAll(".zd-mock .board").forEach(b => { const s = b.querySelector(".sel"); if (s) b.scrollTop = Math.max(0, s.offsetTop - 40); });   // a tall screen shows its picked part
+    p.querySelectorAll(".zoom-mock .board").forEach(b => { const s = b.querySelector(".sel"); if (s) b.scrollTop = Math.max(0, s.offsetTop - 40); });   // a tall screen shows its picked part
     place();
   }
   // the note of a run: its name; the step the pick belongs to, what it does and what it expects; the rest of the
@@ -697,20 +697,20 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
     const name = x => nodes[x] ? nodes[x].label : (edgeAt(x)[1] || {}).label || "";
     const mine = here.find(it => it.x === pick && it.to === at) || here.find(it => nodes[it.x] && it.from === at) || {};
     const step = mine.step;
-    const chips = xs.length > 1 ? `<p class="zd-picks">${xs.map(x => `<button type="button" data-pick="${esc(x)}" class="${nodes[x] ? "n" : "e"}" aria-pressed="${x === pick}">${esc(name(x))}</button>`).join("")}</p>` : "";
+    const chips = xs.length > 1 ? `<p class="zoom-picks">${xs.map(x => `<button type="button" data-pick="${esc(x)}" class="${nodes[x] ? "n" : "e"}" aria-pressed="${x === pick}">${esc(name(x))}</button>`).join("")}</p>` : "";
     let body = "";
     if (nodes[pick]) {
       const n = nodes[pick], L = levels[nodeLevel[pick]], via = here.filter(it => !nodes[it.x] && it.to === at && (edgeAt(it.x)[1] || {}).to === pick).map(it => edgeAt(it.x)[1]);
-      body = `<p class="zd-meta"><span class="zd-type">${KIND[L.kind].node}</span>${L.id !== st.level ? `<span class="zd-lvl">${esc(L.title)}</span>` : ""}</p><h4>${esc(n.label)}</h4>
-        ${via.map(e => `<p class="zd-route">${from(e)}<i>→</i>${esc(e.label || "")}</p>`).join("")}<p class="what">${esc(n.what || "")}</p>${rows(n, via)}`;
+      body = `<p class="zoom-meta"><span class="zoom-type">${KIND[L.kind].node}</span>${L.id !== st.level ? `<span class="zoom-lvl">${esc(L.title)}</span>` : ""}</p><h4>${esc(n.label)}</h4>
+        ${via.map(e => `<p class="zoom-route">${from(e)}<i>→</i>${esc(e.label || "")}</p>`).join("")}<p class="what">${esc(n.what || "")}</p>${rows(n, via)}`;
     } else if (pick) {
       const [L, e] = edgeAt(pick);
-      if (e) body = `<p class="zd-meta"><span class="zd-type">${KIND[L.kind].edge}</span></p><h4>${esc(e.label || "")}</h4><p class="zd-route">${from(e)}<i>→</i>${esc(nodes[e.to].label)}</p>${e.what ? `<p class="what">${esc(e.what)}</p>` : ""}${rows(null, [e])}`;
+      if (e) body = `<p class="zoom-meta"><span class="zoom-type">${KIND[L.kind].edge}</span></p><h4>${esc(e.label || "")}</h4><p class="zoom-route">${from(e)}<i>→</i>${esc(nodes[e.to].label)}</p>${e.what ? `<p class="what">${esc(e.what)}</p>` : ""}${rows(null, [e])}`;
     }
-    const calls = r.calls && r.calls[at] ? `<p class="zd-calls">${r.calls[at].map(c => `<code>${esc(c)}</code>`).join(" + ")}</p>` : "";
-    const stepBox = step ? `<div class="zd-step"><p>${esc(step.does || "")}</p><p class="zd-expect"><span class="fk">expects</span>${esc(step.expects || "")}</p></div>` : "";
-    return `<header class="zd-nh"><p class="zd-meta"><span class="zd-type">${r.kind === "rule" ? "run that breaks" : "scenario"}</span></p><h4 class="id">${esc(r.name)}</h4></header>
-      ${calls}${stepBox}${chips}${body ? `<div class="zd-at">${body}</div>` : ""}`;
+    const calls = r.calls && r.calls[at] ? `<p class="zoom-calls">${r.calls[at].map(c => `<code>${esc(c)}</code>`).join(" + ")}</p>` : "";
+    const stepBox = step ? `<div class="zoom-step"><p>${esc(step.does || "")}</p><p class="zoom-expect"><span class="fk">expects</span>${esc(step.expects || "")}</p></div>` : "";
+    return `<header class="zoom-nh"><p class="zoom-meta"><span class="zoom-type">${r.kind === "rule" ? "run that breaks" : "scenario"}</span></p><h4 class="id">${esc(r.name)}</h4></header>
+      ${calls}${stepBox}${chips}${body ? `<div class="zoom-at">${body}</div>` : ""}`;
   }
   // an edge or trigger by its key
   function edgeAt(k) {
@@ -720,7 +720,7 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
   }
   // pin the note beside the selection (wide) or under the board pointing at it (narrow)
   function place(reveal) {
-    const p = $(".zd-note"), stage = $(".zd-stage"), side = !p.hidden && !narrow() && stage.clientWidth >= 720 && stage.clientWidth - 318 >= (G0 ? G0.W * 0.9 : 0);
+    const p = $(".zoom-note"), stage = $(".zoom-stage"), side = !p.hidden && !narrow() && stage.clientWidth >= 720 && stage.clientWidth - 318 >= (G0 ? G0.W * 0.9 : 0);
     root.classList.toggle("narrow", narrow());
     stage.classList.toggle("side", side);
     // beside the drawing, not across the room from it: the drawing's column is only as wide as the drawing
@@ -729,7 +729,7 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
     // a phone's bottom sheet covers the lower screen: leave room to scroll the drawing above it
     const sheetH = narrow() && st.sel && !p.hidden ? p.offsetHeight : 0;
     root.style.setProperty("--sheet", sheetH + "px"); root.classList.toggle("has-sheet", !!sheetH);
-    const g = st.sel && $(".zd-canvas .lit");
+    const g = st.sel && $(".zoom-canvas .lit");
     if (!g) return;
     if (reveal && narrow()) reveal_(g, sheetH);
     const sr = stage.getBoundingClientRect(), gr = g.getBoundingClientRect();
@@ -743,7 +743,7 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
   }
   // bring what was just chosen into view: across the drawing, and above the sheet
   function reveal_(g, sheetH) {
-    const host = $(".zd-canvas"), hr = host.getBoundingClientRect(), r = g.getBoundingClientRect();
+    const host = $(".zoom-canvas"), hr = host.getBoundingClientRect(), r = g.getBoundingClientRect();
     if (r.left < hr.left || r.right > hr.right) host.scrollLeft += r.left + r.width / 2 - (hr.left + hr.width / 2);
     const r2 = g.getBoundingClientRect(), view = window.innerHeight - sheetH, top = 12;
     if (r2.top >= top && r2.bottom <= view - 12) return;
@@ -757,17 +757,17 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
     const n = narrow(), w = root.clientWidth;
     if (lastNarrow !== null && n && (lastNarrow !== n || w !== lastW)) { clearTimeout(settle); settle = setTimeout(render, 150); }
     else if (lastNarrow !== null && lastNarrow !== n) render();
-    lastNarrow = n; lastW = w; timebar(); place(); const h = $(".zd-canvas"); h && h.onscroll && h.onscroll();
+    lastNarrow = n; lastW = w; timebar(); place(); const h = $(".zoom-canvas"); h && h.onscroll && h.onscroll();
   }).observe(root);
   // the level menu: a bottom sheet on a phone; on a wide screen it opens in place, below the path, over the drawing
-  function sheet(open) { st.sheet = open; root.classList.toggle("nav-open", st.sheet); $(".zd-scrim").hidden = !(st.sheet && narrow()); $(".zd-lv").setAttribute("aria-expanded", st.sheet); }
+  function sheet(open) { st.sheet = open; root.classList.toggle("nav-open", st.sheet); $(".zoom-scrim").hidden = !(st.sheet && narrow()); $(".zoom-lv").setAttribute("aria-expanded", st.sheet); }
   function full(on) {
     st.full = on; root.classList.toggle("full", on);
     document.documentElement.style.overflow = on ? "hidden" : "";
     render();
   }
-  $(".zd-fs").onclick = () => full(!st.full);
-  $(".zd-scrim").onclick = () => sheet(false);
+  $(".zoom-fs").onclick = () => full(!st.full);
+  $(".zoom-scrim").onclick = () => sheet(false);
   // a sheet belongs to its card: when the card leaves the screen, close what floats over the page
   if ("IntersectionObserver" in window) new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting || st.full) return;
@@ -790,7 +790,7 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
     const S = (M.screens || {})[ui.screen]; if (!S) return "";
     const sel = S.blocks.find(b => b.id === ui.block) || {};
     const box = b => `<div class="m${b.id === ui.block ? " sel" : ""}">${block(b)}${b.id === ui.block ? `<i class="h" style="left:-4px;top:-4px"></i><i class="h" style="right:-4px;top:-4px"></i><i class="h" style="left:-4px;bottom:-4px"></i><i class="h" style="right:-4px;bottom:-4px"></i><span class="tag">${esc(b.name)}</span>` : ""}</div>`;
-    return `<div class="zd-mock" role="img" aria-label="${esc(S.title)} with ${esc(sel.name || "")} selected">
+    return `<div class="zoom-mock" role="img" aria-label="${esc(S.title)} with ${esc(sel.name || "")} selected">
       <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span>${S.invented ? "e.g. " : ""}${esc(S.title)}</span><span>${esc(S.size || "")}</span></div>
       <div class="fg"><ul class="layers">${S.blocks.map(b => `<li class="${b.id === ui.block ? "on" : ""}">${esc(b.name)}</li>`).join("")}</ul>
         <div class="board"><div class="device">${S.blocks.map(box).join("")}</div></div></div></div>`;
@@ -798,7 +798,7 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
 
   // redrawing the same level (a selection) keeps where the reader had dragged or scrolled to
   function render(fromBox) {
-    const host = $(".zd-canvas"), same = !fromBox && host.dataset.level === st.level;
+    const host = $(".zoom-canvas"), same = !fromBox && host.dataset.level === st.level;
     const keep = same && { l: host.scrollLeft, t: host.scrollTop, r: root.scrollTop };
     draw(fromBox); bar(); timebar(); nav(); note();
     host.dataset.level = st.level;
@@ -824,7 +824,7 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
     const ks = mine.map(it => it.from), k = ks.find(k => k > st.sel.at);
     play(st.sel.run, k != null ? k : ks[0], x);
   }
-  const time = $(".zd-time"), slider = time.querySelector("input");
+  const time = $(".zoom-time"), slider = time.querySelector("input");
   function timebar() {
     const r = st.sel && st.sel.run && runOf(st.sel.run);
     time.hidden = !r; if (!r) return;
@@ -833,18 +833,18 @@ function mountZoomDiagram(root, M, LIMITS) {   // LIMITS: assets/phone-limits.js
     slider.max = n; slider.value = at + 1; slider.setAttribute("aria-valuetext", `${at + 1} of ${n}`);
     time.querySelector("output").textContent = `${at + 1} / ${n}`;
     // a tick per moment while they fit; on a narrow rail, a filled line with only the current moment's tick
-    const rail = time.querySelector(".zd-rail"), dense = rail.clientWidth / Math.max(1, n - 1) < 12, pos = k => n > 1 ? k / (n - 1) * 100 : 50;
+    const rail = time.querySelector(".zoom-rail"), dense = rail.clientWidth / Math.max(1, n - 1) < 12, pos = k => n > 1 ? k / (n - 1) * 100 : 50;
     rail.classList.toggle("dense", dense); rail.style.setProperty("--p", pos(at) + "%");
-    time.querySelector(".zd-ticks").innerHTML = Array.from({ length: n }, (_, k) => k).filter(k => !dense || k === at)
+    time.querySelector(".zoom-ticks").innerHTML = Array.from({ length: n }, (_, k) => k).filter(k => !dense || k === at)
       .map(k => `<i class="${k < at ? "done" : k === at ? "now" : ""}" style="left:${pos(k)}%">${"<b></b>".repeat(Math.max(1, branches(r, k)))}</i>`).join("");
   }
   slider.addEventListener("input", () => play(st.sel.run, slider.value - 1));
   time.querySelectorAll("[data-d]").forEach(b => b.onclick = () => seek(+b.dataset.d));
-  time.querySelector(".zd-end").onclick = end;
+  time.querySelector(".zoom-end").onclick = end;
   function select(s) {
     const same = st.sel && ((s.node && st.sel.node === s.node) || (s.edge && st.sel.edge === s.edge));
     st.sel = same ? null : s; render();
-    const g = st.sel && (st.sel.node ? $(`.zd-canvas .node[data-id="${st.sel.node}"]`) : $(".zd-canvas .edge.lit"));
+    const g = st.sel && (st.sel.node ? $(`.zoom-canvas .node[data-id="${st.sel.node}"]`) : $(".zoom-canvas .edge.lit"));
     (g || root).focus({ preventScroll: true });
   }
   // how the new level arrives: out of the node that (eventually) opens it, back up, or a short fade for a jump sideways

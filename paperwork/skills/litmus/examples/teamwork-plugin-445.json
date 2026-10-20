@@ -341,14 +341,14 @@
     },
     {
      "id": "zoom-analysis-full",
-     "text": "The system was analysed with the zoom-diagram method of paperwork:show-me, and the pull request body cites the analysis.",
+     "text": "The system was analysed with the zoom method of paperwork:zoom, and the pull request body cites the analysis.",
      "polarity": "+",
      "check": "judge",
      "variants_ok": [
-      "The pull request body links the zoom-diagram analysis of teamwork."
+      "The pull request body links the zoom analysis of teamwork."
      ],
      "near_miss": [
-      "The pull request body mentions an analysis of teamwork but links no zoom-diagram analysis."
+      "The pull request body mentions an analysis of teamwork but links no zoom analysis."
      ],
      "provenance": {
       "kind": "source-rubric",
@@ -361,7 +361,7 @@
      "polarity": "+",
      "check": "judge",
      "variants_ok": [
-      "The pull request body mentions an analysis of teamwork but links no zoom-diagram analysis."
+      "The pull request body mentions an analysis of teamwork but links no zoom analysis."
      ],
      "near_miss": [
       "The pull request body mentions no analysis."

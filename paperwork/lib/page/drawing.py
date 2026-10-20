@@ -17,7 +17,7 @@ from .view import LIMITS
 MIN_PX = float(LIMITS["minPx"])
 
 LAYOUT = """async () => {
-  const z = window.zd, root = document.getElementById('zd'), bad = [];
+  const z = window.zoom, root = document.getElementById('zoom'), bad = [];
   const ids = [...root.querySelectorAll('[data-l]')].map(b => b.dataset.l);
   const R = e => ({x: +e.getAttribute('x'), y: +e.getAttribute('y'), w: +e.getAttribute('width'), h: +e.getAttribute('height')});
   const hit = (a, b, m) => a.x < b.x + b.w + m && b.x < a.x + a.w + m && a.y < b.y + b.h + m && b.y < a.y + a.h + m;
@@ -25,15 +25,15 @@ LAYOUT = """async () => {
   const gap = (p, b) => Math.hypot(Math.max(b.x - p.x, 0, p.x - b.x - b.w), Math.max(b.y - p.y, 0, p.y - b.y - b.h));
   for (const id of ids) {
     z.goto(id); await new Promise(r => setTimeout(r, 30));
-    const nodes = [...root.querySelectorAll('.zd-canvas .node')].map(g => ({id: g.dataset.id, p: g.dataset.p || '', b: R(g.querySelector('.n-fill')), t: g.querySelector('.n-lab')}));
-    const edges = [...root.querySelectorAll('.zd-canvas .edge')].map(g => {
+    const nodes = [...root.querySelectorAll('.zoom-canvas .node')].map(g => ({id: g.dataset.id, p: g.dataset.p || '', b: R(g.querySelector('.n-fill')), t: g.querySelector('.n-lab')}));
+    const edges = [...root.querySelectorAll('.zoom-canvas .edge')].map(g => {
       const [from, to] = g.dataset.key.split(':')[1].split('>'), path = g.querySelector('.e-hit'), L = path.getTotalLength(), pts = [];
       for (let s = 8; s < L - 8; s += 4) pts.push(path.getPointAtLength(s));
       const pl = g.querySelector('.e-plate');
       return {key: g.dataset.key, from, to, pts, plate: pl ? R(pl) : null};
     });
     for (const n of nodes) if (n.t.getBBox().width > n.b.w - 10) bad.push(`${id}: label of ${n.id} overflows its node`);
-    for (const g of root.querySelectorAll('.zd-canvas .part')) {   // a partition draws as one block: no other partition's node inside it
+    for (const g of root.querySelectorAll('.zoom-canvas .part')) {   // a partition draws as one block: no other partition's node inside it
       const bb = g.querySelector('.p-ink').getBBox(), p = {x: bb.x, y: bb.y, w: bb.width, h: bb.height};
       for (const n of nodes) if (n.p !== g.dataset.p && hit(p, n.b, -4)) bad.push(`${id}: ${n.id} sits inside partition ${g.dataset.p}; make each partition one block`);
     }
@@ -62,7 +62,7 @@ LAYOUT = """async () => {
   return [...new Set(bad)];
 }"""
 
-ROOT = """() => { const h = document.querySelector('#zd .zd-canvas'); return [h.scrollWidth, h.clientWidth]; }"""
+ROOT = """() => { const h = document.querySelector('#zoom .zoom-canvas'); return [h.scrollWidth, h.clientWidth]; }"""
 
 TEXT = """() => { let m = 99; document.querySelectorAll('svg text').forEach(t => {
   const s = t.ownerSVGElement, k = s.getBoundingClientRect().width / s.viewBox.baseVal.width;
@@ -96,11 +96,11 @@ async def _check(path, shots=None, font_css=None):
                         problems.append(f"fits: {tag} root needs {need} px in a {have} px card")
                 if shots:   # every level, for the critic's pass
                     pathlib.Path(shots).mkdir(parents=True, exist_ok=True)
-                    for lid in await page.evaluate("[...document.querySelectorAll('#zd [data-l]')].map(b => b.dataset.l)"):
-                        await page.evaluate(f"window.zd.goto({json.dumps(lid)})")
+                    for lid in await page.evaluate("[...document.querySelectorAll('#zoom [data-l]')].map(b => b.dataset.l)"):
+                        await page.evaluate(f"window.zoom.goto({json.dumps(lid)})")
                         await page.wait_for_timeout(450)
                         await page.screenshot(path=f"{shots}/{lid}-{width}-{scheme}.png", full_page=True)
-                    await page.evaluate("window.zd.goto(window.zd.state.level)")
+                    await page.evaluate("window.zoom.goto(window.zoom.state.level)")
                 problems += [f"fits: {tag} {x}" for x in await page.evaluate(LAYOUT)]
                 if width > 900 and scheme == "light":   # turned or resized to a phone, the root lays itself out again
                     await page.set_viewport_size({"width": 390, "height": 900})

@@ -25,7 +25,7 @@ CUTS = {
     "page-missing-meta.html": [("${metaGrp(e.meta)}", '${metaGrp(Object.fromEntries(Object.entries(e.meta || {}).filter(([k]) => k !== "due-date")))}')],
     "page-without-behaviours.html": [(CLICK, ""), (GO, ";"),
                                      ('time.querySelectorAll("[data-d]").forEach(b => b.onclick = () => seek(+b.dataset.d));', ""),
-                                     ('const cb = p.querySelector(".zd-copy"); if (cb) cb.onclick = () => copy(cb);', ""),
+                                     ('const cb = p.querySelector(".zoom-copy"); if (cb) cb.onclick = () => copy(cb);', ""),
                                      ("${copyFor(L, n.id, n.label)}", ""), ('${copyFor(L, st.sel.edge, e.label || "")}', "")],
 }
 

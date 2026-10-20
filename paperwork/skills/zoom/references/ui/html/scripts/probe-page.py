@@ -43,33 +43,33 @@ class Page:
         # record what the page copies, since a file page's clipboard cannot be read back
         self.p.add_init_script("window.__copied = []; if (navigator.clipboard) navigator.clipboard.writeText = t => (window.__copied.push(t), Promise.resolve());")
         self.p.goto(pathlib.Path(path).resolve().as_uri())
-        self.p.wait_for_function("window.zd && document.querySelector('.zd-canvas svg')")
+        self.p.wait_for_function("window.zoom && document.querySelector('.zoom-canvas svg')")
 
     def js(self, code, arg=None):
         return self.p.evaluate(code, arg)
 
     def level(self):
-        return self.js("document.getElementById('zd').dataset.level")
+        return self.js("document.getElementById('zoom').dataset.level")
 
     def go(self, lid):
-        self.js("id => window.zd.goto(id)", lid)
-        self.p.wait_for_function("id => document.getElementById('zd').dataset.level === id", arg=lid)
+        self.js("id => window.zoom.goto(id)", lid)
+        self.p.wait_for_function("id => document.getElementById('zoom').dataset.level === id", arg=lid)
 
     def note(self):
-        return self.js("(() => { const n = document.querySelector('.zd-note'); return [n.innerText, n.innerHTML]; })()")
+        return self.js("(() => { const n = document.querySelector('.zoom-note'); return [n.innerText, n.innerHTML]; })()")
 
 
 def model(pg):
-    return pg.js("window.zd.model")
+    return pg.js("window.zoom.model")
 
 
 def labels(pg):
     out = []
     # the level menu lists every level, on a page of any engine build, which may not hand its model out
-    for lid in pg.js("[...document.querySelectorAll('.zd-nav [data-l]')].map(b => b.dataset.l)"):
+    for lid in pg.js("[...document.querySelectorAll('.zoom-nav [data-l]')].map(b => b.dataset.l)"):
         pg.go(lid)
-        got = pg.js("""[...document.querySelectorAll('.zd-canvas .node .n-lab')].map(t => 'node ' + t.textContent)
-            .concat([...document.querySelectorAll('.zd-canvas .edge .e-lab')].map(t => 'edge ' + t.textContent))""")
+        got = pg.js("""[...document.querySelectorAll('.zoom-canvas .node .n-lab')].map(t => 'node ' + t.textContent)
+            .concat([...document.querySelectorAll('.zoom-canvas .edge .e-lab')].map(t => 'edge ' + t.textContent))""")
         out += [f"{lid}: {x}" for x in sorted(got)]
     print("\n".join(out))
     return 0
@@ -87,7 +87,7 @@ def open_level(pg):
     for _ in range(2):
         if pg.level() == child[n]:
             break
-        pg.p.click(f'.zd-canvas .node[data-id="{n}"] .n-lab', force=True)
+        pg.p.click(f'.zoom-canvas .node[data-id="{n}"] .n-lab', force=True)
         pg.p.wait_for_timeout(150)
     return None if pg.level() == child[n] else f"clicking {n} left the page at {pg.level()}, not {child[n]}"
 
@@ -102,20 +102,20 @@ def scenario_steps(pg):
     lid = next((L["id"] for L in M["levels"] for n in L["nodes"] if n["id"] == first), M["root"])
     pg.go(lid)
     pg.js("slug => document.querySelector(`[data-s=\"${slug}\"]`).click()", s["slug"])
-    count = lambda: pg.js("document.querySelector('.zd-time output').textContent")
+    count = lambda: pg.js("document.querySelector('.zoom-time output').textContent")
     try:
-        pg.p.wait_for_function("() => !document.querySelector('.zd-time').hidden", timeout=2000)
+        pg.p.wait_for_function("() => !document.querySelector('.zoom-time').hidden", timeout=2000)
     except Exception:
         return f"playing {s['slug']} showed no step counter"
     at, n = map(int, count().split(" / "))
     if at != 1:
         return f"{s['slug']} started at step {at}"
     for k in range(2, n + 1):
-        pg.js("document.querySelector('.zd-time [data-d=\"1\"]').click()")
+        pg.js("document.querySelector('.zoom-time [data-d=\"1\"]').click()")
         if count() != f"{k} / {n}":
             return f"next on {s['slug']} showed {count()}, not {k} / {n}"
     if n > 1:
-        pg.js("document.querySelector('.zd-time [data-d=\"-1\"]').click()")
+        pg.js("document.querySelector('.zoom-time [data-d=\"-1\"]').click()")
         if count() != f"{n - 1} / {n}":
             return f"back on {s['slug']} showed {count()}, not {n - 1} / {n}"
     return None
@@ -127,10 +127,10 @@ def copy_for_agent(pg):
     pg.go(M["root"])
     L = next(L for L in M["levels"] if L["id"] == M["root"])
     n = L["nodes"][0]
-    pg.js("id => window.zd.select({ node: id })", n["id"])
-    if not pg.js("!!document.querySelector('.zd-note .zd-copy')"):
+    pg.js("id => window.zoom.select({ node: id })", n["id"])
+    if not pg.js("!!document.querySelector('.zoom-note .zoom-copy')"):
         return "the note has no copy button"
-    pg.p.click(".zd-note .zd-copy")
+    pg.p.click(".zoom-note .zoom-copy")
     pg.p.wait_for_timeout(100)
     got = pg.js("window.__copied")
     want = f"{L['title']} › {n['label']} ({n['id']})"
@@ -174,14 +174,14 @@ def meta(pg):
             look("document", M.get("meta"))
         for n in L["nodes"]:
             if n.get("meta"):
-                pg.js("id => window.zd.select({ node: id })", n["id"])
+                pg.js("id => window.zoom.select({ node: id })", n["id"])
                 look(f"{L['id']}: {n['id']}", n["meta"])
         for i, e in enumerate(L["edges"]):
             if e.get("meta"):
-                pg.js("([lid, i]) => { const L = window.zd.model.levels.find(L => L.id === lid), e = L.edges[i];"
-                      " const k = [...document.querySelectorAll('.zd-canvas .edge')].find(g => g.getAttribute('aria-label').startsWith("
+                pg.js("([lid, i]) => { const L = window.zoom.model.levels.find(L => L.id === lid), e = L.edges[i];"
+                      " const k = [...document.querySelectorAll('.zoom-canvas .edge')].find(g => g.getAttribute('aria-label').startsWith("
                       "L.nodes.find(n => n.id === e.from).label + ' to ' + L.nodes.find(n => n.id === e.to).label)).dataset.key;"
-                      " window.zd.select({ edge: k, e }); }", [L["id"], i])
+                      " window.zoom.select({ edge: k, e }); }", [L["id"], i])
                 look(f"{L['id']}: {e['from']}>{e['to']}", e["meta"])
     for m in missing:
         print(f"missing {m}")
