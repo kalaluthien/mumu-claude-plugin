@@ -13,7 +13,7 @@ const expanded = atom({ plugin: 'teamwork', key: 'expanded' } as const, [] as (n
 // a wait that needs someone stands out; any other, such as `← #n` beside a blocked task, stays dim
 const WAIT_COLOR: Record<string, string> = { 'waits on the owner': 'error', 'waits on the manager': 'warning' }
 // a write to issues, pull requests, sub-issues or their order, the changes the board shows, so a `gh api` read marks nothing, even one with `-f` and `-X GET`; a global flag may stand before the subcommand (`gh -R o/r issue …`); the body script's gh runs out of sight
-const TEAM_CHANGE = /\bedit-issue-body\.py\b|\bgh\s+(?:-{1,2}[\w-]+(?:[\s=][^\s-]\S*)?\s+)*(?:(issue|pr)\s+(create|comment|edit|close|reopen|merge|review|ready)\b|api\s+(?!graphql)(?!(?:.*\s)?(-X|--method)[\s=]*GET\b)(?=.*(\s(-X|--method)[\s=]*(POST|PATCH|PUT|DELETE)\b|\s-[fF]\b|\s--(raw-)?field\b|\s--input\b)).*\b(issues|sub_issues|dependencies|pulls)\b)/
+const TEAM_CHANGE = /\bedit-issue-body\.py\b|\bgh\s+(?:-{1,2}\w[\w-]*(?:[\s=][^\s-]\S*)?\s+)*(?:(issue|pr)\s+(create|comment|edit|close|reopen|merge|review|ready)\b|api\s+(?!graphql)(?!(?:[^;&|\n]*\s)?(-X|--method)[\s=]*GET\b)(?=[^;&|\n]*(\s(-X|--method)[\s=]*(POST|PATCH|PUT|DELETE)\b|\s-[fF]\b|\s--(raw-)?field\b|\s--input\b))[^;&|\n]*\b(issues|sub_issues|dependencies|pulls)\b)/
 
 // a manager's pane and its waiter, once per session; the start directory, since the current one may be a worktree removed since
 let startDir: string | undefined
