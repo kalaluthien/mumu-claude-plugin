@@ -12,8 +12,6 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import issue_state  # noqa: E402
 
-# a run of n backticks closes only on a run of exactly n, so a ``…`` span may hold single backticks
-SPAN = re.compile(r"(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)")
 WORD = r"[^A-Za-z0-9-]+([A-Za-z0-9-]+)"
 
 
@@ -36,7 +34,7 @@ def defects(kind, name, detail):
     """The defects of one criterion, in the order the task lists them."""
     found = [] if kind in ("check", "score") else ["no kind"]
     found += [] if name else ["no name"]
-    span = SPAN.search(detail)
+    span = issue_state.SPAN.search(detail)
     rest = detail[:span.start()] + detail[span.end():] if span else detail
     if kind == "check":
         passes, main = re.search(r"\bprints" + WORD, rest), re.search(r"\bon main" + WORD, rest)

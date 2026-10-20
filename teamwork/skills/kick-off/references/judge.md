@@ -8,7 +8,7 @@ Review what your caller hands you, which you did not write, in [SKILL.md](../SKI
    | reviewing | a gap is |
    | --- | --- |
    | tasks | a clause of the backlog's words or of a `DECIDED:` with no criterion; a criterion not as SKILL.md defines it, each `[check]` run on the default branch as written; two open tasks touching the same files unordered |
-   | a change, against its task's Definition of done however it lands | a `[check]` missing its pass condition at the head; a `[score]` not measured beside main now; work beyond or short of its task; with no task, a diff over 30 lines; a broken caller or boundary input; no check that fails without it; a test the worker handed you that passes whatever the code does; a test you wrote that fails at the head; not the simplest change, or not reading like the code around it |
+   | a change, against its task's Definition of done however it lands | a `[check]` missing its pass condition at the head, read from the task's `run-criteria.py` table, a row you run again only when it is `unclear` or its output looks wrong; that table missing, or at another sha, is a gap itself; a `[score]` not measured beside main now; work beyond or short of its task; with no task, a diff over 30 lines; a broken caller or boundary input; no check that fails without it; a test the worker handed you that passes whatever the code does; a test you wrote that fails at the head; not the simplest change, or not reading like the code around it |
    | a report | a claim with no source cited |
 
    For a change to code, write in your scratchpad tests of complex scenarios its callers meet, such as inputs combined, boundaries, order and failures, never committed, and run them at the head.
