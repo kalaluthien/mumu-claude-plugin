@@ -78,6 +78,24 @@
   },
   {
    "id": "t3",
+   "name": "easy to act on",
+   "delta": 0.5,
+   "judge_error": 0.05,
+   "criteria": [
+    {
+     "id": "links-guide",
+     "text": "The note links the 2.4 migration guide.",
+     "polarity": "+",
+     "check": "program",
+     "provenance": {
+      "kind": "expert-failure",
+      "source": "an operator could not find the migration guide from the 2.3 note"
+     }
+    }
+   ]
+  },
+  {
+   "id": "t4",
    "name": "unwritten quality",
    "pairwise": true
   }
@@ -107,6 +125,18 @@
    "result": "a_over_b",
    "by": "user",
    "note": "a short note that drops a flag breaks upgrades"
+  },
+  {
+   "a": "under-300-words",
+   "b": "links-guide",
+   "result": "a_over_b",
+   "by": "claude"
+  },
+  {
+   "a": "jargon",
+   "b": "links-guide",
+   "result": "a_over_b",
+   "by": "claude"
   }
  ],
  "judge": {
