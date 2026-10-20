@@ -21,8 +21,7 @@ ask needs, in order; each playbook reads `references/schema/` once, in its `## L
 | show one level as a restylable SVG or PNG | [references/ui/pele.md](references/ui/pele.md) |
 | show a document on a tldraw canvas | [references/ui/tldraw.md](references/ui/tldraw.md) |
 
-An ask that names a document to show or prove reads that document and no playbook that writes one; with no document yet, it first writes one by the interpret or requirements row. Worked documents
-are in `examples/<name>/schema.json`, with `view.json` for the HTML page.
+An ask that names a document to show or prove reads that document and no playbook that writes one. Worked documents are in `examples/<name>/schema.json`, with `view.json` for the HTML page.
 
 ## Rules
 
