@@ -43,24 +43,21 @@ Be this project's teamwork manager: fix the login timeout
 
 That session becomes the manager. It files the backlog, starts a worker in a new tab, and from then on you mostly answer questions. Under the hood, one hook ([`route-event.py`](teamwork/hooks/route-event.py)) tells each session at start what is waiting on it, and stops a worker from going idle while an issue it holds is still open, and a monitor ([`print-team-gaps.py`](teamwork/monitors/print-team-gaps.py)) tells the manager where GitHub and the team disagree and wakes a worker when its wait ends.
 
-## paperwork: pages instead of paragraphs
+## paperwork: one checked model of a system
 
-**The problem.** A long chat reply is a poor way to see where things stand, how a system works, or which option to take. And a plan with open choices drifts when nobody asks the person who has to choose.
+**The problem.** A system described in prose drifts: the words, the diagram and the rules each say something slightly different, and nobody checks that the rules hold.
 
-**The idea.** Each kind of question gets the simplest page that answers it, built from facts that were checked first.
+**The idea.** One Schema document holds what a system is, or must be, and every view is drawn from it after a checker passes it.
 
-- [`/paperwork:show-me`](paperwork/skills/show-me/SKILL.md) turns a request into an HTML page. It splits the ask into the questions a reader puts and answers each with one of four playbooks: a **sitrep** (what happened, what changed), a **zoom diagram** (how it works, from the big picture down), an **interactive demo** (what happens if I try), and **option cards** (which one, or a verdict). It takes its name from [humanlayer's skill of the same name](paperwork/skills/show-me/upstream.txt).
-- [`/paperwork:grill-me`](paperwork/skills/grill-me/SKILL.md) interviews you about a decision, a few questions per round, the ones that settle the most first, never one whose answer waits on another still open, until nothing is left open. It adapts [Matt Pocock's skill of the same name](paperwork/skills/grill-me/upstream.txt).
-- [`drill-it`](paperwork/skills/drill-it/SKILL.md) runs underneath both: it gathers the facts, models a system as JSON and checks it, with Alloy proofs when Java is around, so the page draws only what holds. It never asks and never draws.
+- [`/paperwork:zoom`](paperwork/skills/zoom/SKILL.md) models a system as a checked Schema document: from its code (interpret), from requirements, or by improving an existing one. It proves the document's rules with Alloy when Java is around, and shows it as Mermaid in chat or as a clickable HTML page that zooms level by level and plays scenarios.
+- [`/paperwork:litmus`](paperwork/skills/litmus/SKILL.md) turns a task into a grading spec for a judge, a benchmark or a human grading sheet, and measures, applies or repairs one.
 
 **Using it.**
 
 ```
-/paperwork:show-me how does the release pipeline work?
-/paperwork:grill-me the new caching plan
+/paperwork:zoom map how the release pipeline works
+/paperwork:zoom prove that two workers never hold the same worktree
 ```
-
-You get the page as a file sent to you, or as an Artifact if you ask for one.
 
 ## homework: lessons that stick
 

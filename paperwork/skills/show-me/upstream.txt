@@ -1,2 +1,0 @@
-show-me takes its name from upstream `show-me` by humanlayer:
-https://github.com/humanlayer/skills/tree/bba9d13ab34f0a87f1cc33df4dd196372393ddfc/plugins/show-me

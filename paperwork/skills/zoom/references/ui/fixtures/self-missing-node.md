@@ -1,4 +1,4 @@
-## zoom-diagram
+## zoom
 
 ```text
 root: Lifecycle (workflow)
@@ -28,7 +28,7 @@ flowchart LR
   n_model ==>|"model.json"| n_check
   n_check -.->|"✗ failure report"| n_model
   n_check ==>|"checked model"| n_render
-  n_render ==>|"zoom-diagram.html"| n_read
+  n_render ==>|"zoom.html"| n_read
   linkStyle 3 stroke:#c33
 ```
 
