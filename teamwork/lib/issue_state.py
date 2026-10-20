@@ -22,6 +22,8 @@ WORD = {role: word for table in (KEYWORDS, KEYS) for word, role in table.items()
 ITEM = re.compile(r"^(?:\d+\.|[-*])\s+(.*)$", re.M)
 # a criterion `[check] **<name>**: <details>`, after a task-list box when one marks it met; one filed before names were asked for is its own name
 CRITERION = re.compile(r"^(?:\[([ xX])\]\s+)?(?:\[(\w+)\]\s+)?(?:\*\*(.+?)\*\*:?\s*)?(.*)$")
+# a run of n backticks closes only on a run of exactly n, so a ``…`` span may hold single backticks
+SPAN = re.compile(r"(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)")
 TRUSTED = {"OWNER", "MEMBER", "COLLABORATOR"}
 
 

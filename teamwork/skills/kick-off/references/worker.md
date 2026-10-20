@@ -13,7 +13,7 @@ Own your work from a backlog or the owner's words to its end.
 
    Fix each line `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/lint-criteria.py <body-file>` prints for each task. A `judge` reviews the tasks; then ask your manager by `BLOCKED:` to check each Goal against the owner's words, and build nothing while it waits.
 2. **Build** each task on its own branch from the default branch, named `<your name>` or `<your name>-<word>`: open each playbook below when your work changes or ends in what its line names; with two, the one whose files carry more changed lines first.
-3. **Land** each change as the repository's rules say (its `AGENTS.md`, its hooks), else by a pull request citing its task, merged once a `judge` approves its head.
+3. **Land** each change as the repository's rules say (its `AGENTS.md`, its hooks), else by a pull request citing its task, merged once a `judge` approves its head. Before each `judge`, run `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/run-criteria.py <task>` in your worktree at the head, fix each `fail` row, and `comment` its table on the task; a `BLOCKED due` line it prints is your ask to your manager.
 4. **Close**: `resolve` each task; `resolve` the backlog once its tasks cover all its words, else `comment` `REPORTED: batch landed <urls>, backlog stays open; next step: <proposal>` and leave it open; hand your manager the urls and wait for more.
 
 - [worker-rules-playbook.md](worker-rules-playbook.md): skills, playbooks, rubrics, `AGENTS.md`, prompts
