@@ -1,0 +1,520 @@
+"""Schema checks: each takes a Model and returns the problems it found, each a sentence that says what to fix, or a
+(rule, sentence) pair when it states a narrower rule than the check's own."""
+import re
+
+from . import formula as F
+from . import plan as params
+from . import prover as A
+from . import sources as S
+from .model import places, plan, split_top, walk_steps
+
+NODE_MEDIA, EDGE_MEDIA = {"tree", "checklist"}, {"diff", "payload"}
+first_word = lambda t: t.strip().split()[0].lower() if t and t.strip() else ""
+plain_verb = lambda w: not ((w.endswith("ed") and not w.endswith("eed")) or w.endswith("ing") or (w.endswith("s") and not w.endswith("ss")))
+
+
+def form(M):
+    """The file read as a model: every reference points at something (model.parse), and the plan holds together."""
+    return M.parse_problems + params.problems(M.m, [r[0] for r in RULES])
+
+
+def steps(M):
+    out = []
+    for s in M.m["scenarios"]:
+        for k, st in enumerate(walk_steps(s["walk"])):
+            if not (isinstance(st, dict) and str(st.get("does", "")).strip() and str(st.get("expects", "")).strip()):
+                out.append(f'{s["slug"]}: step {k + 1} says what it does and what it expects ({{"place", "does", "expects"}})')
+            elif len(places(st)) > 1 and not all(M.kind_of.get(x) == "topology" and M.node_level.get(x) == M.node_level.get(places(st)[0]) for x in places(st)):
+                out.append(f'{s["slug"]}: step {k + 1} is at several nodes, so they are parts of one component level')
+        out += M.walks[s["slug"]][1]
+    return out
+
+
+def scoped(M):
+    out = []
+    for slug, h in M.home.items():
+        sc = next(s for s in M.m["scenarios"] if s["slug"] == slug)
+        climb = [x for x in plan(sc["walk"])[0] if x in M.nodes and h not in M.ancestors(M.node_level[x])]
+        if climb:
+            out.append(f'{slug}: starts in {h} but climbs above it at {climb[0]}')
+    # every level needs Scenarios of its own, or (plan scenarios: entry) only the root and levels things enter from outside
+    own = [L for L in M.m["levels"] if M.plan["scenarios"] == "every" or not L.get("parent") or L.get("triggers")]
+    out += [f'{L["id"]}: give this level a Scenario of its own' for L in own if L["id"] not in M.home.values()]
+    return out
+
+
+def coverage(M):
+    used = set().union(*M.footprint.values()) if M.footprint else set()
+    orphans = sorted(M.elements() - used)
+    return [f"no Scenario uses {k} {x}; drop it or name the use it serves" for k, x in orphans]
+
+
+def basis(M):
+    out = []
+    for s, f in M.footprint.items():
+        subs = [t for t, g in M.footprint.items() if t != s and g <= f and M.home.get(t) == M.home.get(s)]
+        if subs and set().union(*(M.footprint[t] for t in subs)) == f:
+            out.append(f"{s} is the union of {subs}; drop it")
+    return out
+
+
+def placement(M):
+    out = []
+    event_ops = {x for L in M.m["levels"] if L["kind"] == "state" for e in L["edges"] + L.get("triggers", []) for x in e.get("ops", [])}
+    edge_ops = {x for _, e in list(M.edges.values()) + list(M.trigs.values()) for x in e.get("ops", [])}
+    sits = M.sits()
+    for o in M.ops:
+        if o not in sits:
+            out.append(f"{o}: place it on a node or an event")
+        elif o in edge_ops - event_ops:
+            out.append(f"{o}: only an event edge carries an operation")
+    out += [f"{i}: place it on a node or an edge" for i in M.rules if i not in sits]
+    return out
+
+
+def explained(M):
+    out = []
+    for k, (L, e) in M.edges.items():
+        if not (e.get("what") or e.get("ops") or e.get("rules") or M.is_abstract(L, e["to"])):
+            out.append(f'{L["id"]}: {e["from"]}>{e["to"]} says nothing; give it a sentence, an operation or a guard')
+    for k, (L, t) in M.trigs.items():
+        if not (t.get("what") or t.get("ops") or t.get("rules")):
+            out.append(f'{L["id"]}: trigger {t["label"]} says nothing')
+    return out
+
+
+def mechanism(M):
+    out = []
+    walks = lambda tr: any(M.kind_of.get(x) in ("workflow", "state") for x in tr)
+    if not any(L["kind"] in ("workflow", "state") for L in M.m["levels"]):
+        return out   # nothing runs: a body of knowledge is claims and what they rest on
+    rooted = [s for s in M.m["scenarios"] if M.home.get(s["slug"]) == M.root]
+    out += [f'{s["slug"]}: a root Scenario walks no activity or state' for s in rooted if not walks(plan(s["walk"])[0])]
+    parts = [x for x, k in M.kind_of.items() if k == "topology"]
+    if not parts:
+        out.append("no component level: show what the system is made of")
+    out += [f"{x}: in no root Scenario that also walks an activity or state" for x in parts
+            if not any(x in plan(s["walk"])[0] and walks(plan(s["walk"])[0]) for s in rooted)]
+    return out
+
+
+def partitions(M):
+    out = []
+    for L in M.m["levels"]:
+        P = {p["id"] for p in L.get("partitions", [])}
+        if not P:
+            continue
+        if len(P) < 2:
+            out.append(f'{L["id"]}: one partition says nothing; drop it')
+        out += [f'{L["id"]}: put {n["id"]} in a partition' for n in L["nodes"] if n.get("partition") not in P]
+        side = {n["id"]: n.get("partition") for n in L["nodes"]}
+        if L["kind"] == "state":   # its partitions are orthogonal regions (Harel), which four-states checks
+            continue
+        for e in L["edges"]:
+            contract = e.get("rules") or e.get("ops") or any(x.get("type") == "payload" for x in e.get("media", []))
+            if L["kind"] != "topology" and side.get(e["from"]) != side.get(e["to"]) and not contract:
+                out.append(f'{L["id"]}: {e["from"]}>{e["to"]} crosses partitions; give it a payload, guard or operation')
+    return out
+
+
+
+def four_states(M):
+    """Each region of a state level holds every subject instance in exactly one state (Koppel's four states:
+    https://note89.github.io/state-of-emergency/): one initial state, events that stay in the region, every state
+    reached, and no two states alike."""
+    out = []
+    for L in M.m["levels"]:
+        if L["kind"] != "state":
+            continue
+        lid, side = L["id"], {n["id"]: n.get("partition") or "the level" for n in L["nodes"]}
+        inits = [L["initial"]] if isinstance(L.get("initial"), str) else L.get("initial") or []
+        for r in sorted(set(side.values())):
+            k = sum(1 for i in inits if side.get(i) == r)
+            if k == 0:
+                out.append(("region-without-initial", f"{lid}: Missing: an instance starts in no state of {r}; name one initial state there"))
+            elif k > 1:
+                out.append(f"{lid}: Overloaded: an instance starts in {k} states of {r} at once; keep one initial state")
+        out += [f'{lid}: Missing: event {e["label"]} leaves its region, so the instance is in no state of {side[e["from"]]}; regions meet only through syncs'
+                for e in L["edges"] if side.get(e["from"]) != side.get(e["to"])]
+        seen, todo = set(), list(inits) + [t["to"] for t in L.get("triggers", [])]
+        while todo:
+            x = todo.pop()
+            if x not in seen:
+                seen.add(x)
+                todo += [e["to"] for e in L["edges"] if e["from"] == x]
+        # a region with no initial state is one fault, already reported, not one per state it leaves unreached
+        started = {side.get(i) for i in inits}
+        out += [f'{lid}: Illegal: no event reaches {n["id"]}; add the event that enters it, or drop it' for n in L["nodes"]
+                if n["id"] not in seen and side[n["id"]] in started]
+        def alike(n):
+            end = lambda x: "itself" if x == n["id"] else x
+            return (side[n["id"]], frozenset((e["label"], end(e["to"])) for e in L["edges"] if e["from"] == n["id"]),
+                    frozenset((e["label"], end(e["from"])) for e in L["edges"] if e["to"] == n["id"]),
+                    frozenset(n.get("ops") or []), frozenset(n.get("rules") or []), n["id"] in inits)
+        groups = {}
+        for n in L["nodes"]:
+            groups.setdefault(alike(n), []).append(n["id"])
+        out += [f'{lid}: Redundant: no event or rule tells {" and ".join(g)} apart; merge them or give each its own' for g in groups.values() if len(g) > 1]
+    return out
+
+GATES = {"checking", "reviewing", "validating", "verifying", "testing", "judging", "approving", "gating", "evaluating"}
+
+
+def quantities(M):
+    """Quantities add up: a count is what enters and what leaves it, a node that holds nothing passes on what it
+    receives, a flow into or out of a stock is in the stock's unit, and a deadline says what happens when it passes."""
+    out, same = [], lambda a, b: abs(a - b) <= 1e-9 * max(1, abs(a), abs(b))
+    for L in M.m["levels"]:
+        for e in L["edges"]:
+            q = e.get("qty")
+            if q and q["kind"] not in ("flow", "count", "delay"):
+                out.append(f'{L["id"]}: {e["label"]} carries a flow, a count or a delay, not a {q["kind"]}')
+            if q and q["kind"] == "delay" and not any(x is not e and x["from"] == e["from"] and "failure" in x.get("mark", []) for x in L["edges"]):
+                out.append(f'{L["id"]}: {e["label"]} has a deadline; draw what happens when it passes, an edge from {e["from"]} marked failure')
+        for n in L["nodes"]:
+            q = n.get("qty")
+            if q and q["kind"] not in ("stock", "count", "capacity"):
+                out.append(f'{L["id"]}: {n["label"]} holds a stock, a count or a capacity, not a {q["kind"]}')
+                continue
+            sides = {"in": [e for e in L["edges"] if e["to"] == n["id"] != e["from"]],
+                     "out": [e for e in L["edges"] if e["from"] == n["id"] != e["to"]]}
+            if q and q["kind"] == "stock":
+                out += [f'{L["id"]}: {e["label"]} moves {e["qty"]["unit"]}, not the {q["unit"]} that {n["label"]} holds'
+                        for es in sides.values() for e in es
+                        if e.get("qty", {}).get("kind") == "flow" and "unit" in e["qty"] and "unit" in q
+                        and e["qty"]["unit"].split("/")[0].strip() != q["unit"]]
+                continue
+            told = {k: [e["qty"] for e in es if e.get("qty", {}).get("kind") in ("flow", "count")] for k, es in sides.items()}
+            full = {k: v for k, v in told.items() if v and len(v) == len(sides[k]) and len({x.get("unit", "") for x in v}) == 1}
+            total = {k: sum(x["value"] for x in v) for k, v in full.items()}
+            if q and q["kind"] == "count":
+                out += [f'{L["id"]}: {n["label"]} counts {q["value"]}, but {total[k]} {"enter" if k == "in" else "leave"}'
+                        for k in total if not same(total[k], q["value"])]
+            elif len(total) == 2 and full["in"][0].get("unit", "") == full["out"][0].get("unit", "") and not same(total["in"], total["out"]):
+                out.append(f'{L["id"]}: {n["label"]} holds nothing, yet {total["in"]} enter and {total["out"]} leave')
+    return out
+
+
+def paths(M):
+    """A workflow or state level shows its main path, and every gate shows how it fails."""
+    out = []
+    for L in M.m["levels"]:
+        if L["kind"] == "topology":
+            continue
+        if not any("happy" in e.get("mark", []) for e in L["edges"]):
+            out.append(f'{L["id"]}: mark the main path happy')
+        parent = L.get("parent") and M.level_of(L["parent"])
+        port_fail = {fr for f in L.get("out", []) for fr in ([f["from"]] if isinstance(f.get("from"), str) else f.get("from", []))
+                     if parent and any(e["label"] == f.get("edge") and "failure" in e.get("mark", []) for e in parent["edges"])}
+        for n in L["nodes"]:
+            if first_word(n["label"]) in GATES:
+                fails = any(e["from"] == n["id"] and "failure" in e.get("mark", []) for e in L["edges"]) or n["id"] in port_fail
+                if not fails:
+                    out.append(f'{L["id"]}: {n["label"]} is a gate; draw how it fails (a failure edge or port)')
+    return out
+
+
+def syncs(M):
+    """Regions meet only through syncs (Meng and Jackson): when an event in one region, where a state holds, then an event in another."""
+    out = []
+    for L in M.m["levels"]:
+        region = {n["id"]: n.get("partition") for n in L["nodes"]}
+        events = {e["label"]: region.get(e["from"]) for e in L["edges"]}
+        for y in L.get("syncs", []):
+            name = y.get("name", "?")
+            if L["kind"] != "state" or not L.get("partitions"):
+                out.append(f'{L["id"]}: sync {name} joins regions, so it sits on a state level with partitions')
+            elif events[y["when"]] == events[y["then"]]:
+                out.append(f'{L["id"]}: sync {name} joins two events of one region; join regions')
+            if not y.get("what"):
+                out.append(f'{L["id"]}: sync {name} says nothing; give it a sentence')
+    return out
+
+
+def naming(M):
+    out = []
+    for L in M.m["levels"]:
+        k = L["kind"]
+        for n in L["nodes"]:
+            if k == "workflow" and not first_word(n["label"]).endswith("ing"):
+                out.append(f'{L["id"]}: activity "{n["label"]}" starts with a verb in -ing')
+            if n.get("abstract") and k != "topology":
+                out.append(f'{L["id"]}: only a component can be abstract')
+        for e in L["edges"]:
+            w = first_word(e.get("label", ""))
+            if k == "topology" and not w.endswith("s"):
+                out.append(f'{L["id"]}: relation "{e["label"]}" starts with a present-tense verb (uses, opens)')
+            if k == "state" and not plain_verb(w):
+                out.append(f'{L["id"]}: event "{e["label"]}" starts with a plain verb (merge, mark ready)')
+            if k == "workflow" and w.endswith("ing") and not e.get("is"):
+                out.append(f'{L["id"]}: artifact "{e["label"]}" is a noun phrase')
+            if M.is_abstract(L, e["from"]) and not M.is_abstract(L, e["to"]):
+                out.append(f'{L["id"]}: abstract {e["from"]} cannot depend on concrete {e["to"]}')
+        for t in L.get("triggers", []):
+            w = first_word(t.get("label", ""))
+            if (k == "state" and not plain_verb(w)) or (k == "workflow" and w.endswith("ing")):
+                out.append(f'{L["id"]}: trigger "{t["label"]}" is named like the level\'s edges')
+        for x in L["nodes"] + L["edges"] + L.get("triggers", []):
+            if {"happy", "failure"} <= set(x.get("mark", [])):
+                out.append(f'{L["id"]}: {x.get("label")} is marked both happy and failure')
+    return out
+
+
+def media(M):
+    out = []
+    words = lambda z: set(re.findall(r"\w{2,}", z))
+    for L in M.m["levels"]:
+        hosts = [(n, "node") for n in L["nodes"]] + [(e, "edge") for e in L["edges"]] + [(L, "level")]
+        insights = 0
+        for x, where in hosts:
+            for md in x.get("media", []):
+                t = md.get("type")
+                if (t in NODE_MEDIA and where == "edge") or (t in EDGE_MEDIA and where == "node"):
+                    out.append(f'{L["id"]}: {t} does not sit on a {where}')
+                if t != "insight":
+                    continue
+                insights += 1
+                here = set(M.ops) | set(M.rules) if where == "level" else set(x.get("ops", [])) | set(x.get("rules", []))
+                miss = [f for f in ("move", "vs", "gain", "rule") if not str(md.get(f, "")).strip()]
+                mv, desc = words(md.get("move", "")), words(x.get("what", x.get("why", "")))
+                if miss:
+                    out.append(f'{L["id"]}: an insight needs move, vs, gain and rule (missing {miss})')
+                elif md["rule"] not in here:
+                    out.append(f'{L["id"]}: the insight\'s rule {md["rule"]} must sit on the same node or edge')
+                elif mv and len(mv & desc) / len(mv) > 0.5:
+                    out.append(f'{L["id"]}: an insight names what is distinctive, not what the description says')
+        if insights > 1:
+            out.append(f'{L["id"]}: {insights} insights; keep the most distinctive one')
+    return out
+
+
+def unique_names(M):
+    m = M.m
+    norm = lambda t: re.sub(r"[\s_-]+", " ", t.strip().lower())
+    linked = {(L["id"], e["label"]) for L in m["levels"] for e in L["edges"] if e.get("is")}
+    names = ([("scenario", s["slug"]) for s in m["scenarios"]] + [("operation", o["slug"]) for o in m["operations"]]
+             + [("rule", i["slug"]) for i in m["rules"]] + [("level", L["title"]) for L in m["levels"]]
+             + [("node", n["label"]) for n in M.nodes.values()]
+             + [("partition", lab) for lab in {p["label"] for L in m["levels"] for p in L.get("partitions", [])}]   # one owner may recur across levels
+             + [("edge", lab) for lab in {e["label"] for L in m["levels"] for e in L["edges"]   # a verb may recur
+                                          if e.get("label") and not M.is_abstract(L, e["to"]) and (L["id"], e["label"]) not in linked}]
+             + [("trigger", t["label"]) for L in m["levels"] for t in L.get("triggers", [])]
+             + [("sync", y["name"]) for L in m["levels"] for y in L.get("syncs", []) if y.get("name")])
+    seen, out = {}, []
+    for kind, name in names:
+        seen.setdefault(norm(name), []).append(f"{kind} '{name}'")
+    out += [" = ".join(v) + "; rename one" for v in seen.values() if len(v) > 1]
+    for L in m["levels"]:
+        for e in L["edges"]:
+            tgt = M.nodes.get(e.get("is"))
+            if e.get("is") and not (L["kind"] == "workflow" and tgt and M.kind_of[e["is"]] == "topology" and A.singular(A.ident(tgt["label"])) == A.singular(A.ident(e["label"]))):
+                out.append(f'{L["id"]}: {e["from"]}>{e["to"]} "is" names a component with the same label')
+    return out
+
+
+def typed(M):
+    """Types are exact names the module declares; signatures, attributes and relations agree with the drawing."""
+    W = A.World(M)
+    out = list(W.problems)
+    for t, txt in (M.m.get("types") or {}).items():
+        if not re.sub(r"^\s*\{[^}]*\}", "", str(txt)).strip():
+            out.append(f"type {t}: say in a sentence what it is")
+    for o in M.m["operations"]:
+        sl = o["slug"]
+        if sl not in M.sigs:
+            out.append(f'{sl}{o.get("sig", "")}: write Receiver.verb and (name: Type, …) → Result')
+            continue
+        params = split_top(re.match(r"\s*\((.*)\)", o["sig"]).group(1))
+        out += [f"{sl}: parameter {p} needs name: Type" for p in params if not re.fullmatch(r"[a-z][A-Za-z0-9]*\s*:\s*.+", p)]
+    for L in M.m["levels"]:
+        for n in L["nodes"]:
+            ops = [x for x in n.get("ops", []) if x in M.sigs]
+            if L["kind"] == "topology":
+                out += [f'{L["id"]}: {x} sits on {n["label"]}, so its receiver is {A.ident(n["label"])}' for x in ops if M.sigs[x][0] != A.ident(n["label"])]
+            if L["kind"] == "workflow" and ops:
+                outs = [e["label"] for e in L["edges"] if e["from"] == n["id"]]
+                made = {r for x in ops for r in A.Type(re.search(r"→\s*(.+)$", M.ops[x]["sig"]).group(1)).refs()}
+                if outs and not any(made & A.artifact_types(l) for l in outs):
+                    out.append(f'{L["id"]}: {n["label"]} hands on {", ".join(outs)}, but none of its operations returns it')
+            for a in n.get("attrs", []):
+                ma = re.fullmatch(r"([a-z][A-Za-z0-9]*)\s*:\s*(.+)", a)
+                if not ma or L["kind"] != "topology":
+                    out.append(f'{n["label"]}: attribute "{a}" is name: Type on a component')
+        if L["kind"] != "topology":
+            continue
+        comp = {A.ident(n["label"]): n for n in L["nodes"]}
+        attrs = {n["id"]: [(nm, t) for _, nn, nm, t in W._attrs() if nn is n] for n in L["nodes"]}
+        for n in L["nodes"]:
+            for nm, t in attrs[n["id"]]:
+                peers = [comp[r] for r in t.names if len(t.names) == 1 and not t.tuple and r in comp and comp[r] is not n and not comp[r].get("abstract")]
+                for p in peers:
+                    if not any(e["from"] == n["id"] and e["to"] == p["id"] for e in L["edges"]):
+                        out.append(f'{n["label"]}.{nm} points at {p["label"]}; draw the relation')
+        for e in L["edges"]:
+            if M.is_abstract(L, e["to"]):
+                continue
+            to = A.ident(M.nodes[e["to"]]["label"])
+            cands = [nm for nm, t in attrs[e["from"]] if to in t.refs()]
+            if e.get("attr"):
+                if e["attr"] not in cands:
+                    out.append(f'{L["id"]}: relation {e["label"]} names attribute {e["attr"]}, which does not point at {M.nodes[e["to"]]["label"]}')
+            elif len(cands) > 1:
+                out.append(f'{L["id"]}: relation {e["label"]} could be {cands}; name one with attr')
+    return out
+
+
+def alloy_names(M):
+    """Every name the module declares is an Alloy name (ASCII, starting with a letter) clear of Alloy's keywords
+    and the translation's own words; caught here, before the slow Alloy run."""
+    m, found = M.m, []
+    for L in m["levels"]:
+        found += [(A.ident(n["label"]), n["label"]) for n in L["nodes"]]
+        found += [(A.lower(x["label"]), x["label"]) for x in L["edges"] + L.get("triggers", []) if L["kind"] == "state" and x.get("label")]
+        found += [((A.ident if a.split(":", 1)[-1].strip() == "Bool" else str)(a.split(":")[0].strip()), a) for n in L["nodes"] for a in n.get("attrs", [])]
+        found += [(A.lower(e["label"]), e["label"]) for e in L["edges"] if L["kind"] in ("topology", "workflow") and e.get("label")]
+        if L["kind"] == "workflow":
+            found.append((A.ident(L["title"]), L["title"]))
+    for o in m["operations"]:
+        if o["slug"] in M.sigs:
+            found.append((M.sigs[o["slug"]][2], o["slug"]))
+            found += [(p, o["slug"]) for p in M.sigs[o["slug"]][1]]
+    found += [(A.lower(i["slug"]), i["slug"]) for i in m["rules"]]
+    found += [(t, t) for t in (m.get("types") or {})]
+    for t in [x for L in m["levels"] for n in L["nodes"] for x in n.get("attrs", [])] + [o.get("sig", "") for o in m["operations"]] + list((m.get("types") or {}).values()):
+        for lit in re.findall(r"\{([^}]*)\}", str(t)):
+            found += [(v.strip(), lit) for v in lit.split(",")]
+    out = {f'"{n}" in {where} is a word Alloy or the translation reserves; rename it' for n, where in found if n in F.RESERVED}
+    out |= {f'{where} gives no Alloy name ("{n}"); write it in ASCII letters' for n, where in found if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", str(n))}
+    return sorted(out)
+
+
+def vocabulary(M):
+    """Formulas are Alloy over the module's names, with every variable bound and no name hidden; every name is an
+    Alloy name (alloy_names)."""
+    W, out = A.World(M), alloy_names(M)
+    for i in M.m["rules"]:
+        out += W.check_formula(i["formula"], i["slug"])
+    for sl, op in list(W.change.items()) + list(W.query.items()):
+        extra = ["self"] + [p for p, _, _ in op["params"]] + (["result"] if op["rdecl"] else [])
+        for part in ("pre", "post"):
+            if op.get(part):
+                out += W.check_formula(op[part], f"{sl} {part}", extra)
+    for L in M.m["levels"]:
+        if L.get("init"):
+            out += W.check_formula(L["init"], f'{L["id"]} init')
+    return out
+
+
+def opens(M):
+    """Zoom as refinement: an unmarked same-kind open keeps its node's interface, every edge into or out of the node
+    a port of the child (a state child takes them at its initial state); a kind change is a view link, marked view;
+    a same-kind open with no interface claim is marked nest, and warned."""
+    out = []
+    for L in M.m["levels"]:
+        n = L.get("parent") and M.nodes[L["parent"]]
+        if not n:
+            continue
+        P, link = M.level_of(n["id"]), n.get("link")
+        if P["kind"] != L["kind"]:
+            out += [] if link == "view" else [("view-link-unmarked", f'{n["id"]}: opens a {L["kind"]} level from a {P["kind"]} level; mark it link: view')]
+        elif link == "view":
+            out.append(("form", f'{n["id"]}: a view link changes kind; a same-kind open is unmarked or nest'))
+        elif link == "nest":
+            out.append(("nest-unrefined", f'{n["id"]}: nests a {L["kind"]} level with no interface claim; map its edges onto ports to refine it'))
+        elif L["kind"] != "state":
+            ids = {x["id"] for x in L["nodes"]}
+            need_in = sorted({e["label"] for e in P["edges"] if e["to"] == n["id"]} | {t["label"] for t in P.get("triggers", []) if t["to"] == n["id"]})
+            need_out = sorted({e["label"] for e in P["edges"] if e["from"] == n["id"]})
+            got_in = sorted(f.get("edge") for f in L.get("in", []) if f.get("to") in ids)
+            got_out = sorted(f.get("edge") for f in L.get("out", []) if f.get("from") and set([f["from"]] if isinstance(f["from"], str) else f["from"]) <= ids)
+            if (got_in, got_out) != (need_in, need_out):
+                out.append(("opens-interface", f'{L["id"]}: in {got_in} should be {need_in}; out {got_out} should be {need_out}'))
+    return out
+
+
+def gates(M):
+    """A workflow forks into branches that run side by side and joins them again: a fork has two or more edges out, a
+    join two or more in, and every join has a fork before it on its level."""
+    out = []
+    for L in M.m["levels"]:
+        for n in L["nodes"]:
+            g = n.get("gate")
+            if g and L["kind"] != "workflow":
+                out.append(("form", f'{n["id"]}: only a workflow step is a {g}'))
+                continue
+            ins = [e["from"] for e in L["edges"] if e["to"] == n["id"]]
+            outs = [e["to"] for e in L["edges"] if e["from"] == n["id"]]
+            if g == "fork" and len(outs) < 2:
+                out.append(("gates", f'{n["id"]}: a fork has two or more edges out'))
+            if g == "join":
+                seen, todo = set(), list(ins)
+                while todo:
+                    x = todo.pop()
+                    if x not in seen:
+                        seen.add(x)
+                        todo += [e["from"] for e in L["edges"] if e["to"] == x]
+                if len(ins) < 2 or not any(M.nodes[x].get("gate") == "fork" for x in seen):
+                    out.append(("join-without-fork", f'{n["id"]}: a join has two or more edges in, from branches of a fork before it'))
+    return out
+
+
+def sources(M):
+    out, M.sources_status = S.problems(M.m)
+    return out
+
+
+LINT = {"basis", "explained", "mechanism", "paths", "naming", "media", "nest-unrefined"}
+
+RULES = [
+    ("form", "the file is well formed: one root, known kinds, initial states, named edges, refs as [name](url) or [name](path:line), a valid plan", form),
+    ("steps", "every Scenario step says what it does and expects, and follows an edge or opens or closes a level", steps),
+    ("scoped", "the root and every level things enter from outside have Scenarios of their own (plan scenarios: every asks it of all); steps never climb above where they start", scoped),
+    ("coverage", "every operation, rule, node, edge and trigger is used by some Scenario", coverage),
+    ("basis", "no Scenario is the union of other Scenarios on its level", basis),
+    ("placement", "operations sit on nodes or events, rules on nodes or edges", placement),
+    ("explained", "every edge and trigger says something: a sentence, an operation or a guard", explained),
+    ("mechanism", "where anything runs, root Scenarios walk an activity or state, and every component meets one of them", mechanism),
+    ("partitions", "every node of a partitioned level is in one of two or more partitions, crossings carry a contract (render checks the blocks)", partitions),
+    ("quantities", "counts and pass-through nodes add up, flows match their stock's unit, every deadline shows what happens when it passes", quantities),
+    ("paths", "a workflow or state level marks its main path, and every gate (checking, reviewing, …) shows how it fails", paths),
+    ("four-states", "each region of a state level holds an instance in one state: one initial state, events kept in the region (not Missing or Overloaded), every state reached (not Illegal), no two states alike (not Redundant)", four_states),
+    ("syncs", "regions of a state level meet only through syncs: when an event, where a state, then an event in another region", syncs),
+    ("naming", "labels follow their kind; abstract components depend only on abstract ones; marks are known", naming),
+    ("media", "media sit where its type allows; an insight names a move, the usual design, the gain and a rule", media),
+    ("unique-names", "no two things the reader sees share a name", unique_names),
+    ("typed", "types are names the module declares; signatures, attributes and relations agree with the drawing", typed),
+    ("vocabulary", "every name is an ASCII Alloy name clear of Alloy's keywords and the translation's words; formulas are Alloy over the model's names, every variable bound and none hiding a name", vocabulary),
+    ("opens", "an unmarked same-kind open carries every edge of its node on ports or at the initial state; a kind change is marked view; a nest is warned", opens),
+    ("gates", "a fork has two or more edges out, a join two or more in from branches of a fork before it", gates),
+    ("sources", "with plan.sources: each listed file is cited by a ref, each cited file is listed, and (closure) every file inside the root a listed file links to, imports or names as ${CLAUDE_PLUGIN_ROOT}/<path> is listed or excluded with a one-line reason", sources),
+]
+CHECKS = {r[0] for r in RULES}
+
+
+def unknown(only, known):
+    """The refusal for a check name nobody runs, naming the known ones; None when every name is known."""
+    bad = [x for x in only or [] if x not in known and x != "form"]
+    return f"unknown check {', '.join(bad)}; known: {', '.join(sorted(known | {'form'}))}" if bad else None
+
+
+def severity(rule, M):
+    return "warning" if rule in LINT and rule not in getattr(M, "strict", ()) else "error"
+
+
+def violations(M, only=None):
+    """Every problem as (rule, "path: message", severity), checks in order; the checks run only once every reference
+    resolves, since they read the model through them."""
+    rows = M.parse_problems or [x for name, _, fn in RULES if not only or name in only for x in tagged(name, fn(M))]
+    rows = tagged("form", rows)
+    return [(rule, text, severity(rule, M)) for rule, text in rows]
+
+
+def tagged(name, problems):
+    return [p if isinstance(p, tuple) else (name, p) for p in problems]
+
+
+def line(rule, text):
+    """`path: rule: message`, the path being what the problem's sentence opens with."""
+    where, _, message = text.partition(": ")
+    # a sentence that opens with no path, or with words before its first colon, is about the whole document
+    return f"{where}: {rule}: {message}" if message and not re.search(r"\s", where) else f"schema: {rule}: {text}"
