@@ -1,0 +1,361 @@
+{
+ "version": 1,
+ "task": {
+  "instruction": "Score a proposal for a teamwork-plugin upgrade on the eight questions of the round rubric; a round judge scores two proposals this way and the higher total wins.",
+  "world": {
+   "as_of": "2026-10-20",
+   "scope": "one proposal, the teamwork/ files and survey files it cites, the backlog, and AGENTS.md",
+   "deliverable": "a score per question that a tournament round adds up to pick one of two proposals"
+  },
+  "evidence_goal": "the grade shows whether the proposal names a real shortfall, borrows a mechanism that exists, cuts the owner's load, keeps the rules, stays small, can be checked, adds no new failure and removes something",
+  "use": [
+   "eval"
+  ],
+  "source": "~/workspace/scratch/teamwork-tournament/rubric.md"
+ },
+ "group_size": 8,
+ "tiers": [
+  {
+   "id": "all",
+   "name": "every question of the source rubric",
+   "criteria": [
+    {
+     "id": "real-gap-full",
+     "text": "The Problem names a shortfall that the cited teamwork lines show today.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Problem: the manager re-reads every issue each turn; the cited teamwork/skills/kick-off/references/manager.md line 40 does say so when opened."
+     ],
+     "near_miss": [
+      "Problem names a shortfall, but only one of three cited lines shows it today; the other two lines say something else."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/workspace/scratch/teamwork-tournament/rubric.md question 1"
+     }
+    },
+    {
+     "id": "real-gap-partly",
+     "text": "The Problem names a shortfall that at least one cited teamwork line shows today.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Problem: the manager re-reads every issue each turn; the cited teamwork/skills/kick-off/references/manager.md line 40 does say so when opened.",
+      "Problem names a shortfall, but only one of three cited lines shows it today; the other two lines say something else."
+     ],
+     "near_miss": [
+      "Problem names a shortfall; no cited line, once opened, shows it, or the cited path does not exist."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/workspace/scratch/teamwork-tournament/rubric.md question 1"
+     }
+    },
+    {
+     "id": "evidence-holds-full",
+     "text": "At least one cited survey file describes the mechanism the proposal borrows.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The proposal borrows a reconciliation loop; the cited survey file, once opened, describes that loop."
+     ],
+     "near_miss": [
+      "The cited survey file names the same idea in one sentence but does not describe how it works."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/workspace/scratch/teamwork-tournament/rubric.md question 2"
+     }
+    },
+    {
+     "id": "evidence-holds-partly",
+     "text": "A cited survey file describes the mechanism the proposal borrows, at least in outline.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The proposal borrows a reconciliation loop; the cited survey file, once opened, describes that loop.",
+      "The cited survey file names the same idea in one sentence but does not describe how it works."
+     ],
+     "near_miss": [
+      "No cited survey file mentions the borrowed mechanism, or the proposal cites no survey file."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/workspace/scratch/teamwork-tournament/rubric.md question 2"
+     }
+    },
+    {
+     "id": "owner-load-full",
+     "text": "The change cuts the owner's or the manager's waiting, reading or routing per backlog.",
+     "polarity": "+",
+     "check": "judge",
+     "anchors": "Plausible route: the proposal names the step of waiting, reading or routing that the change would cut.",
+     "variants_ok": [
+      "The change removes the manager's per-backlog routing step, so the manager reads one fewer comment per backlog."
+     ],
+     "near_miss": [
+      "The change shortens a file the manager reads but names no waiting, reading or routing it removes."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/workspace/scratch/teamwork-tournament/rubric.md question 3"
+     }
+    },
+    {
+     "id": "owner-load-partly",
+     "text": "The change cuts some of the owner's or the manager's waiting, reading or routing per backlog, or says it does with a plausible route.",
+     "polarity": "+",
+     "check": "judge",
+     "anchors": "Plausible route: the proposal names the step of waiting, reading or routing that the change would cut.",
+     "variants_ok": [
+      "The change removes the manager's per-backlog routing step, so the manager reads one fewer comment per backlog.",
+      "The change shortens a file the manager reads but names no waiting, reading or routing it removes."
+     ],
+     "near_miss": [
+      "The change adds a step the owner or the manager must read or route per backlog."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/workspace/scratch/teamwork-tournament/rubric.md question 3"
+     }
+    },
+    {
+     "id": "fits-rules-full",
+     "text": "The change keeps AGENTS.md's rules (plugins stand alone, no agents folder, scripts beside their user, every line acts) with no exception.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "All new scripts sit under skills/<skill>/scripts/, no agents/ folder appears, and no file names another plugin."
+     ],
+     "near_miss": [
+      "A new script sits in a root scripts/ folder, and the Risks section names this one exception."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/workspace/scratch/teamwork-tournament/rubric.md question 4"
+     }
+    },
+    {
+     "id": "fits-rules-partly",
+     "text": "The change breaks at most one of AGENTS.md's rules (plugins stand alone, no agents folder, scripts beside their user, every line acts), and the proposal says which.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "All new scripts sit under skills/<skill>/scripts/, no agents/ folder appears, and no file names another plugin.",
+      "A new script sits in a root scripts/ folder, and the Risks section names this one exception."
+     ],
+     "near_miss": [
+      "The change adds an agents/ folder and a script at the plugin root, with no mention of either."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/workspace/scratch/teamwork-tournament/rubric.md question 4"
+     }
+    },
+    {
+     "id": "small-full",
+     "text": "The change touches 6 or fewer teamwork files and about 300 or fewer lines.",
+     "polarity": "+",
+     "check": "judge",
+     "anchors": "About 300: up to 330 changed lines counts as about 300.",
+     "variants_ok": [
+      "The diff estimate lists 4 teamwork files and about 180 changed lines."
+     ],
+     "near_miss": [
+      "The diff estimate lists 5 teamwork files but about 700 changed lines."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/workspace/scratch/teamwork-tournament/rubric.md question 5"
+     }
+    },
+    {
+     "id": "small-partly",
+     "text": "The change touches 6 or fewer teamwork files, or about 300 or fewer lines.",
+     "polarity": "+",
+     "check": "judge",
+     "anchors": "About 300: up to 330 changed lines counts as about 300.",
+     "variants_ok": [
+      "The diff estimate lists 4 teamwork files and about 180 changed lines.",
+      "The diff estimate lists 5 teamwork files but about 700 changed lines."
+     ],
+     "near_miss": [
+      "The diff estimate lists 11 teamwork files and about 900 changed lines."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/workspace/scratch/teamwork-tournament/rubric.md question 5"
+     }
+    },
+    {
+     "id": "checkable-full",
+     "text": "A worker could write a [check] that fails on main today and passes once the change lands.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The change adds a script whose output a grep can compare: it prints 0 matches on main and 1 once the change lands."
+     ],
+     "near_miss": [
+      "Half of the change is a rule that a grep can test; the other half is a tone change no command can test."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/workspace/scratch/teamwork-tournament/rubric.md question 6"
+     }
+    },
+    {
+     "id": "checkable-partly",
+     "text": "A worker could write a [check] for most of the change that fails on main today and passes once it lands.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The change adds a script whose output a grep can compare: it prints 0 matches on main and 1 once the change lands.",
+      "Half of the change is a rule that a grep can test; the other half is a tone change no command can test."
+     ],
+     "near_miss": [
+      "Every effect of the change is a matter of style that no command could pass or fail."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/workspace/scratch/teamwork-tournament/rubric.md question 6"
+     }
+    },
+    {
+     "id": "no-new-failure-full",
+     "text": "Every risk the change adds is named in Risks with a guard, and none is a loss of work, a merge without a judge or a bypassed guard.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Risks lists three risks, each with a guard, and none is a loss of work, a merge without a judge or a bypassed guard."
+     ],
+     "near_miss": [
+      "Risks lists two risks with guards and leaves a third risk, a slower start, named but unguarded."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/workspace/scratch/teamwork-tournament/rubric.md question 7"
+     }
+    },
+    {
+     "id": "no-new-failure-partly",
+     "text": "Each risk the change adds is named in Risks with a guard, except at most one; none is a loss of work, a merge without a judge or a bypassed guard.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Risks lists three risks, each with a guard, and none is a loss of work, a merge without a judge or a bypassed guard.",
+      "Risks lists two risks with guards and leaves a third risk, a slower start, named but unguarded."
+     ],
+     "near_miss": [
+      "A risk is a merge without a judge, or Risks is empty although the change adds a hook."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/workspace/scratch/teamwork-tournament/rubric.md question 7"
+     }
+    },
+    {
+     "id": "removes-or-merges-full",
+     "text": "The change removes, merges or narrows an existing step or file instead of only adding one.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The change merges two playbooks into one and deletes the older file."
+     ],
+     "near_miss": [
+      "The change adds a new file and shortens one sentence of an existing file."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/workspace/scratch/teamwork-tournament/rubric.md question 8"
+     }
+    },
+    {
+     "id": "removes-or-merges-partly",
+     "text": "The change removes, merges or narrows an existing step or file in part, besides what it adds.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The change merges two playbooks into one and deletes the older file.",
+      "The change adds a new file and shortens one sentence of an existing file."
+     ],
+     "near_miss": [
+      "The change only adds files and steps; no existing step or file shrinks."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "~/workspace/scratch/teamwork-tournament/rubric.md question 8"
+     }
+    }
+   ]
+  }
+ ],
+ "exchange": [
+  {
+   "a": "real-gap-full",
+   "b": "real-gap-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "evidence-holds-full",
+   "b": "evidence-holds-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "owner-load-full",
+   "b": "owner-load-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "fits-rules-full",
+   "b": "fits-rules-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "small-full",
+   "b": "small-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "checkable-full",
+   "b": "checkable-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "no-new-failure-full",
+   "b": "no-new-failure-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "removes-or-merges-full",
+   "b": "removes-or-merges-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  }
+ ],
+ "judge": {
+  "mode": "full_rubric",
+  "model": "claude-sonnet-5-5",
+  "calibration": {
+   "human_labels": 0,
+   "macro_f1": null,
+   "met_rate_gap": null,
+   "estimated": true
+  }
+ }
+}

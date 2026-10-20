@@ -1,0 +1,856 @@
+{
+ "version": 1,
+ "task": {
+  "instruction": "Score the teamwork plugin folder by the 21-line binary list fixed in the DECIDED: comment of the task; read only that folder and that comment; yes 2, ambiguous 1, no 0, with one path:line or reason for each.",
+  "world": {
+   "as_of": "2026-10-13",
+   "scope": "the teamwork/ folder at one commit, with the pull request body given for line 11",
+   "deliverable": "a score out of 42 per judge run, compared between head and main"
+  },
+  "evidence_goal": "the grade shows whether the teamwork plugin implements the manager, worker, hook and monitor design the owner set",
+  "use": [
+   "eval"
+  ],
+  "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445"
+ },
+ "group_size": 8,
+ "tiers": [
+  {
+   "id": "all",
+   "name": "every question of the source rubric",
+   "criteria": [
+    {
+     "id": "manager-routes-full",
+     "text": "The manager playbook says the manager writes rough backlogs, picks or starts a worker, routes it, arbitrates order; it does no task's research or planning.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "manager.md says: write rough backlogs from the user's intent, pick or start a worker, route it, arbitrate resources and order; do no task's research or planning."
+     ],
+     "near_miss": [
+      "manager.md has the manager route workers but also plan each task."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 1"
+     }
+    },
+    {
+     "id": "manager-routes-partly",
+     "text": "manager.md has the manager route workers.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "manager.md has the manager route workers but also plan each task."
+     ],
+     "near_miss": [
+      "manager.md has the manager research and plan every task and names no routing."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 1"
+     }
+    },
+    {
+     "id": "manager-subagent-full",
+     "text": "The manager uses a subagent for a quick lookup unrelated to an issue that would cost context.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "manager.md sends a context-heavy lookup that belongs to no issue to a subagent."
+     ],
+     "near_miss": [
+      "manager.md allows a subagent for lookups without limiting it to ones unrelated to an issue."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 2"
+     }
+    },
+    {
+     "id": "manager-subagent-partly",
+     "text": "manager.md allows the manager a subagent for lookups.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "manager.md allows a subagent for lookups without limiting it to ones unrelated to an issue."
+     ],
+     "near_miss": [
+      "manager.md has no subagent use for lookups."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 2"
+     }
+    },
+    {
+     "id": "manager-escalation-full",
+     "text": "The manager still answers a worker's escalation, itself or by asking the user.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "manager.md says: answer a worker's escalation yourself, or ask the user."
+     ],
+     "near_miss": [
+      "manager.md mentions escalations and does not say who answers."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 3"
+     }
+    },
+    {
+     "id": "manager-escalation-partly",
+     "text": "manager.md mentions a worker's escalation.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "manager.md mentions escalations and does not say who answers."
+     ],
+     "near_miss": [
+      "manager.md does not mention escalations."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 3"
+     }
+    },
+    {
+     "id": "worker-tasks-full",
+     "text": "A worker takes a backlog url or relayed words, defines N tasks (Goal, Definition of done, arrangement), does them, closes them.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "worker.md says: take a backlog url or the user's added words; define N tasks (Goal, Definition of done, arrangement); do and close them."
+     ],
+     "near_miss": [
+      "worker.md has the worker define one task and does not say it closes it."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 4"
+     }
+    },
+    {
+     "id": "worker-tasks-partly",
+     "text": "worker.md has the worker define a task.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "worker.md has the worker define one task and does not say it closes it."
+     ],
+     "near_miss": [
+      "worker.md has the manager define every task."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 4"
+     }
+    },
+    {
+     "id": "worker-subagents-full",
+     "text": "A worker uses subagents heavily, picking opus, sonnet or haiku per kind of work, in parallel where it may.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "worker.md says: use subagents heavily; pick opus, sonnet or haiku per kind of work; run them in parallel where allowed."
+     ],
+     "near_miss": [
+      "worker.md allows subagents and names one model for all of them."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 5"
+     }
+    },
+    {
+     "id": "worker-subagents-partly",
+     "text": "worker.md allows the worker to use subagents.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "worker.md allows subagents and names one model for all of them."
+     ],
+     "near_miss": [
+      "worker.md tells the worker to do all work itself."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 5"
+     }
+    },
+    {
+     "id": "model-by-size-full",
+     "text": "The manager picks the worker's model, opus or sonnet, by the backlog's size.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "manager.md says: pick the worker's opus or sonnet by the backlog's size."
+     ],
+     "near_miss": [
+      "manager.md says to pick a model for the worker without tying it to size."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 6"
+     }
+    },
+    {
+     "id": "model-by-size-partly",
+     "text": "manager.md says the manager picks the worker's model.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "manager.md says to pick a model for the worker without tying it to size."
+     ],
+     "near_miss": [
+      "manager.md gives the worker one fixed model."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 6"
+     }
+    },
+    {
+     "id": "domain-workflows-full",
+     "text": "Each domain has a dynamic workflow written into the plugin.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Each domain, such as research or design, has a workflow file in the plugin."
+     ],
+     "near_miss": [
+      "Workflow files exist for some domains and the rest share one generic file."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 7"
+     }
+    },
+    {
+     "id": "domain-workflows-partly",
+     "text": "Some domain has a workflow file in the plugin.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Workflow files exist for some domains and the rest share one generic file."
+     ],
+     "near_miss": [
+      "No domain has a workflow file."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 7"
+     }
+    },
+    {
+     "id": "judge-no-gh-full",
+     "text": "The judge approves nothing through gh.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "judge.md says: report the verdict as text; never run gh to approve."
+     ],
+     "near_miss": [
+      "judge.md says the judge may run gh to approve only when the worker asks."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 8"
+     }
+    },
+    {
+     "id": "judge-no-gh-partly",
+     "text": "judge.md restricts the judge's use of gh.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "judge.md says the judge may run gh to approve only when the worker asks."
+     ],
+     "near_miss": [
+      "judge.md tells the judge to approve through gh pr review."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 8"
+     }
+    },
+    {
+     "id": "session-names-full",
+     "text": "Session names are <project>-manager and <task>-worker, with no issue or attempt number.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Names are <project>-manager and <task>-worker; one worker may hold several issues, none at first, or rename itself."
+     ],
+     "near_miss": [
+      "Names are <project>-manager and <task>-worker-2, with an attempt number."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 9"
+     }
+    },
+    {
+     "id": "session-names-partly",
+     "text": "Session names are <project>-manager and <task>-worker.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Names are <project>-manager and <task>-worker-2, with an attempt number."
+     ],
+     "near_miss": [
+      "Names are lead-<issue>-<attempt>."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 9"
+     }
+    },
+    {
+     "id": "playbooks-by-domain-full",
+     "text": "Worker playbooks are split by atomic domain as worker-<domain>-playbook.md, each read only when its trigger fires.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "references/ holds worker-research-playbook.md and worker-design-playbook.md, each with a trigger line."
+     ],
+     "near_miss": [
+      "Worker playbooks are split by domain, and each is read at start, not on a trigger."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 10"
+     }
+    },
+    {
+     "id": "playbooks-by-domain-partly",
+     "text": "Worker playbooks are split by domain.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Worker playbooks are split by domain, and each is read at start, not on a trigger."
+     ],
+     "near_miss": [
+      "One worker.md holds every domain."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 10"
+     }
+    },
+    {
+     "id": "zoom-analysis-full",
+     "text": "The system was analysed with the zoom-diagram method of paperwork:show-me, and the pull request body cites the analysis.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The pull request body links the zoom-diagram analysis of teamwork."
+     ],
+     "near_miss": [
+      "The pull request body mentions an analysis of teamwork but links no zoom-diagram analysis."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 11"
+     }
+    },
+    {
+     "id": "zoom-analysis-partly",
+     "text": "The pull request body mentions an analysis of teamwork.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The pull request body mentions an analysis of teamwork but links no zoom-diagram analysis."
+     ],
+     "near_miss": [
+      "The pull request body mentions no analysis."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 11"
+     }
+    },
+    {
+     "id": "few-issue-keywords-full",
+     "text": "GitHub issue rules carry as few elements and keywords as they can.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The issue rules name 2 keywords (BLOCKED:, DECIDED:) and no other element."
+     ],
+     "near_miss": [
+      "The issue rules name 5 keywords."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 12"
+     }
+    },
+    {
+     "id": "few-issue-keywords-partly",
+     "text": "The issue rules name 5 keywords or fewer.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The issue rules name 5 keywords."
+     ],
+     "near_miss": [
+      "The issue rules name 11 keywords."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 12"
+     }
+    },
+    {
+     "id": "fewer-concepts-full",
+     "text": "Named communication rules are grouped into fewer concepts; sessions talk through ListAgents plus SendMessage; no directing-agreeing split remains.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "One communication rule covers sessions talking through ListAgents and SendMessage; no directing/agreeing split."
+     ],
+     "near_miss": [
+      "Communication rules are grouped into 4 concepts and the directing/agreeing split remains."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 13"
+     }
+    },
+    {
+     "id": "fewer-concepts-partly",
+     "text": "Communication rules are grouped into fewer concepts than before.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Communication rules are grouped into 4 concepts and the directing/agreeing split remains."
+     ],
+     "near_miss": [
+      "Communication rules stay as many named concepts as before."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 13"
+     }
+    },
+    {
+     "id": "general-patterns-full",
+     "text": "Communication patterns are generalized, their uses are encapsulated, and the agent picks one itself.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The rules state a pattern once, and the agent chooses among its uses."
+     ],
+     "near_miss": [
+      "The rules state patterns once but name which pattern each situation must use."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 14"
+     }
+    },
+    {
+     "id": "general-patterns-partly",
+     "text": "The rules state a communication pattern once.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The rules state patterns once but name which pattern each situation must use."
+     ],
+     "near_miss": [
+      "The rules give a fixed pattern for each situation."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 14"
+     }
+    },
+    {
+     "id": "script-names-full",
+     "text": "Script names show their hierarchy and use.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Scripts are named like skills/kick-off/scripts/estimate-task-time.py, a verb-noun name inside the skill that uses them."
+     ],
+     "near_miss": [
+      "Scripts sit in their skill folders but are named run.py and util.py."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 15"
+     }
+    },
+    {
+     "id": "script-names-partly",
+     "text": "Scripts sit in their skill folders.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Scripts sit in their skill folders but are named run.py and util.py."
+     ],
+     "near_miss": [
+      "Scripts have unrelated names in one flat folder."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 15"
+     }
+    },
+    {
+     "id": "reconcile-monitor-full",
+     "text": "The monitor lets the manager work by reconciliation, from observed state to the next action.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The monitor prints, from GitHub state and live workers, the manager's next action."
+     ],
+     "near_miss": [
+      "The monitor prints the observed state and names no next action."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 16"
+     }
+    },
+    {
+     "id": "reconcile-monitor-partly",
+     "text": "The monitor prints the observed state.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The monitor prints the observed state and names no next action."
+     ],
+     "near_miss": [
+      "The monitor prints only an idle line."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 16"
+     }
+    },
+    {
+     "id": "stop-hook-drives-full",
+     "text": "The Stop hook's text drives the session toward its goal.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The Stop hook's text names the session's open task and its next step."
+     ],
+     "near_miss": [
+      "The Stop hook's text names the open task and no next step."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 17"
+     }
+    },
+    {
+     "id": "stop-hook-drives-partly",
+     "text": "The plugin has a Stop hook.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The Stop hook's text names the open task and no next step."
+     ],
+     "near_miss": [
+      "The plugin has no Stop hook."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 17"
+     }
+    },
+    {
+     "id": "no-rigid-pr-step-full",
+     "text": "No rigid pull-request verification step remains in the plugin.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "No script or playbook step runs a fixed verification of a pull request."
+     ],
+     "near_miss": [
+      "A playbook keeps one fixed verification step, marked optional."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 18"
+     }
+    },
+    {
+     "id": "no-rigid-pr-step-partly",
+     "text": "At most one fixed pull-request verification step remains.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "A playbook keeps one fixed verification step, marked optional."
+     ],
+     "near_miss": [
+      "Several scripts and playbook steps verify a pull request in fixed steps."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 18"
+     }
+    },
+    {
+     "id": "hooks-general-full",
+     "text": "Mechanical, timing-bound instructions became hooks that inject or run them, built as one general structure rather than one hook per sentence.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "hooks.json lists a few hooks, each general, such as one Stop and one UserPromptSubmit script."
+     ],
+     "near_miss": [
+      "hooks.json lists one general hook and a hook for each of three single sentences."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 19"
+     }
+    },
+    {
+     "id": "hooks-general-partly",
+     "text": "At least one instruction became a general hook.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "hooks.json lists one general hook and a hook for each of three single sentences."
+     ],
+     "near_miss": [
+      "No instruction became a hook."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 19"
+     }
+    },
+    {
+     "id": "hooks-gather-full",
+     "text": "Hooks also gather information and route on it; the agent reads their output.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "A SessionStart or UserPromptSubmit hook prints the open tasks and live workers it routed on."
+     ],
+     "near_miss": [
+      "A hook gathers state but prints nothing the agent reads."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 20"
+     }
+    },
+    {
+     "id": "hooks-gather-partly",
+     "text": "A hook gathers state.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "A hook gathers state but prints nothing the agent reads."
+     ],
+     "near_miss": [
+      "No hook gathers state."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 20"
+     }
+    },
+    {
+     "id": "fewer-things-full",
+     "text": "The files, lines and concepts of teamwork are fewer than at #435's merge.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The head has fewer files, fewer lines and fewer concepts than #435's merge."
+     ],
+     "near_miss": [
+      "The head has fewer files and lines and more concepts."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 21"
+     }
+    },
+    {
+     "id": "fewer-things-partly",
+     "text": "The head has fewer files than #435's merge.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "The head has fewer files and lines and more concepts."
+     ],
+     "near_miss": [
+      "The head has more files, more lines and more concepts."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/445#issuecomment-6143778216 binary list line 21"
+     }
+    }
+   ]
+  }
+ ],
+ "exchange": [
+  {
+   "a": "manager-routes-full",
+   "b": "manager-routes-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "manager-subagent-full",
+   "b": "manager-subagent-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "manager-escalation-full",
+   "b": "manager-escalation-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "worker-tasks-full",
+   "b": "worker-tasks-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "worker-subagents-full",
+   "b": "worker-subagents-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "model-by-size-full",
+   "b": "model-by-size-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "domain-workflows-full",
+   "b": "domain-workflows-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "judge-no-gh-full",
+   "b": "judge-no-gh-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "session-names-full",
+   "b": "session-names-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "playbooks-by-domain-full",
+   "b": "playbooks-by-domain-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "zoom-analysis-full",
+   "b": "zoom-analysis-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "few-issue-keywords-full",
+   "b": "few-issue-keywords-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "fewer-concepts-full",
+   "b": "fewer-concepts-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "general-patterns-full",
+   "b": "general-patterns-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "script-names-full",
+   "b": "script-names-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "reconcile-monitor-full",
+   "b": "reconcile-monitor-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "stop-hook-drives-full",
+   "b": "stop-hook-drives-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "no-rigid-pr-step-full",
+   "b": "no-rigid-pr-step-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "hooks-general-full",
+   "b": "hooks-general-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "hooks-gather-full",
+   "b": "hooks-gather-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "fewer-things-full",
+   "b": "fewer-things-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  }
+ ],
+ "judge": {
+  "mode": "full_rubric",
+  "model": "claude-sonnet-5-5",
+  "calibration": {
+   "human_labels": 0,
+   "macro_f1": null,
+   "met_rate_gap": null,
+   "estimated": true
+  }
+ }
+}

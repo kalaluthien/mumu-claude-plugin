@@ -1,0 +1,934 @@
+{
+ "version": 1,
+ "task": {
+  "instruction": "Score AGENTS.md at the head of the pull request, and at main, by the 23-line binary list fixed in the first DECIDED: comment of the task; yes 2, ambiguous 1, no 0.",
+  "world": {
+   "as_of": "2026-10-13",
+   "scope": "AGENTS.md at one commit, read alone",
+   "deliverable": "a score out of 46 per judge run, compared between head and main"
+  },
+  "evidence_goal": "the grade shows whether AGENTS.md states each general working rule of the repository and of its plugins",
+  "use": [
+   "eval"
+  ],
+  "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428"
+ },
+ "group_size": 8,
+ "tiers": [
+  {
+   "id": "all",
+   "name": "every question of the source rubric",
+   "criteria": [
+    {
+     "id": "main-components-full",
+     "text": "AGENTS.md names hooks/, monitors/ and skills/ as a plugin's main components.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md says: build a plugin from hooks/, monitors/ and skills/."
+     ],
+     "near_miss": [
+      "AGENTS.md names only hooks/ and skills/ as components."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 1"
+     }
+    },
+    {
+     "id": "main-components-partly",
+     "text": "AGENTS.md names hooks/ as a main component of a plugin.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md names only hooks/ and skills/ as components."
+     ],
+     "near_miss": [
+      "AGENTS.md says nothing about a plugin's components."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 1"
+     }
+    },
+    {
+     "id": "no-agents-folder-full",
+     "text": "AGENTS.md says a plugin has no agents/ folder.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md says: no agents/ folder; a role is a skill."
+     ],
+     "near_miss": [
+      "AGENTS.md says to prefer skills over agents but allows agents/ for some roles."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 2"
+     }
+    },
+    {
+     "id": "no-agents-folder-partly",
+     "text": "AGENTS.md says to prefer a skill over an agents/ folder for a role.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md says to prefer skills over agents but allows agents/ for some roles."
+     ],
+     "near_miss": [
+      "AGENTS.md lets a plugin ship an agents/ folder."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 2"
+     }
+    },
+    {
+     "id": "scripts-beside-user-full",
+     "text": "AGENTS.md says a script sits beside its user, one per use, never in a root scripts/ folder.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md says: a script sits in the folder of the hook, monitor or skill that runs it, one per use, never in a root scripts/ folder."
+     ],
+     "near_miss": [
+      "AGENTS.md says scripts sit beside their user but does not forbid a root scripts/ folder."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 3"
+     }
+    },
+    {
+     "id": "scripts-beside-user-partly",
+     "text": "AGENTS.md says a script sits beside its user.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md says scripts sit beside their user but does not forbid a root scripts/ folder."
+     ],
+     "near_miss": [
+      "AGENTS.md keeps scripts in a root scripts/ folder."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 3"
+     }
+    },
+    {
+     "id": "bin-for-path-full",
+     "text": "AGENTS.md says bin/ holds only a command that must be found on PATH.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md says: bin/ holds only a command that must be found on PATH."
+     ],
+     "near_miss": [
+      "AGENTS.md mentions bin/ as a place for scripts, with a note to keep it small."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 4"
+     }
+    },
+    {
+     "id": "bin-for-path-partly",
+     "text": "AGENTS.md states a rule on what bin/ holds.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md mentions bin/ as a place for scripts, with a note to keep it small."
+     ],
+     "near_miss": [
+      "AGENTS.md does not mention bin/."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 4"
+     }
+    },
+    {
+     "id": "no-tests-evals-full",
+     "text": "AGENTS.md says a plugin has no tests/ or evals/ folder.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md says: no tests/ or evals/ folder; a hook tuned on past inputs may keep fixtures/."
+     ],
+     "near_miss": [
+      "AGENTS.md says there is no tests/ folder and does not mention evals/."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 5"
+     }
+    },
+    {
+     "id": "no-tests-evals-partly",
+     "text": "AGENTS.md says a plugin has no tests/ folder.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md says there is no tests/ folder and does not mention evals/."
+     ],
+     "near_miss": [
+      "AGENTS.md describes a tests/ folder for each plugin."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 5"
+     }
+    },
+    {
+     "id": "agents-md-scope-full",
+     "text": "AGENTS.md holds the working principles and naming rules of the whole repository, plus those of each plugin.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md has one section of repository rules, one of plugin rules, one of naming rules."
+     ],
+     "near_miss": [
+      "AGENTS.md covers the repository's principles but gives no plugin rules."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 6"
+     }
+    },
+    {
+     "id": "agents-md-scope-partly",
+     "text": "AGENTS.md holds the working principles of the repository.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md covers the repository's principles but gives no plugin rules."
+     ],
+     "near_miss": [
+      "AGENTS.md is a list of file locations with no principles or naming rules."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 6"
+     }
+    },
+    {
+     "id": "stands-alone-full",
+     "text": "AGENTS.md says a plugin depends on no other plugin's content.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md says: a plugin never names another plugin's files, commands or skills, and works with every other plugin removed."
+     ],
+     "near_miss": [
+      "AGENTS.md says plugins should depend on each other as little as they can."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 7"
+     }
+    },
+    {
+     "id": "stands-alone-partly",
+     "text": "AGENTS.md asks a plugin to limit its dependence on other plugins.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md says plugins should depend on each other as little as they can."
+     ],
+     "near_miss": [
+      "AGENTS.md names one plugin's folders as the pattern for all."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 7"
+     }
+    },
+    {
+     "id": "no-claude-md-full",
+     "text": "AGENTS.md says there is no CLAUDE.md, with the reason.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md says: no CLAUDE.md, since Claude Code reads AGENTS.md when none exists."
+     ],
+     "near_miss": [
+      "AGENTS.md says there is no CLAUDE.md and gives no reason."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 8"
+     }
+    },
+    {
+     "id": "no-claude-md-partly",
+     "text": "AGENTS.md says there is no CLAUDE.md.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md says there is no CLAUDE.md and gives no reason."
+     ],
+     "near_miss": [
+      "AGENTS.md tells the reader to keep a CLAUDE.md."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 8"
+     }
+    },
+    {
+     "id": "evaluation-section-full",
+     "text": "AGENTS.md has an Evaluation section for judging a change to an agent system, such as option A against option B.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "A section titled Evaluation says: use it to judge a change to an agent system, such as option A against option B."
+     ],
+     "near_miss": [
+      "A review section says to compare changes but names no agent system."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 9"
+     }
+    },
+    {
+     "id": "evaluation-section-partly",
+     "text": "AGENTS.md has a section on judging changes.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "A review section says to compare changes but names no agent system."
+     ],
+     "near_miss": [
+      "AGENTS.md has no section on judging changes."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 9"
+     }
+    },
+    {
+     "id": "fresh-evaluator-full",
+     "text": "AGENTS.md says the evaluator is a subagent with a fresh context, given every input as links, never opinions.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Evaluation says: a subagent with a fresh context; every input as links, never your opinion."
+     ],
+     "near_miss": [
+      "Evaluation says a subagent evaluates but allows the writer's summary as input."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 10"
+     }
+    },
+    {
+     "id": "fresh-evaluator-partly",
+     "text": "AGENTS.md says the evaluator is a subagent.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Evaluation says a subagent evaluates but allows the writer's summary as input."
+     ],
+     "near_miss": [
+      "Evaluation lets the author grade the change in the same session."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 10"
+     }
+    },
+    {
+     "id": "scores-not-fixes-full",
+     "text": "AGENTS.md says the evaluator returns scores with reasons and suggests no fix.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Evaluation says: it returns a score and a reason per criterion, and suggests no fix."
+     ],
+     "near_miss": [
+      "Evaluation says the evaluator returns scores but is silent on fixes."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 11"
+     }
+    },
+    {
+     "id": "scores-not-fixes-partly",
+     "text": "Evaluation says the evaluator returns scores.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Evaluation says the evaluator returns scores but is silent on fixes."
+     ],
+     "near_miss": [
+      "Evaluation does not describe what the evaluator returns."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 11"
+     }
+    },
+    {
+     "id": "pass-mark-full",
+     "text": "AGENTS.md says the current system scores about 50 and the ideal about 100, with a pass mark from 70 (very hard) to 90 (very easy) revised until it passes.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Evaluation says: scale so the current system scores about 50 and the ideal about 100; set the pass mark from 70 to 90 by difficulty; revise until it passes."
+     ],
+     "near_miss": [
+      "Evaluation names a pass mark of 80 for every change."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 12"
+     }
+    },
+    {
+     "id": "pass-mark-partly",
+     "text": "Evaluation names a pass mark.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Evaluation names a pass mark of 80 for every change."
+     ],
+     "near_miss": [
+      "Evaluation names no pass mark."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 12"
+     }
+    },
+    {
+     "id": "binary-criteria-full",
+     "text": "AGENTS.md says criteria are binary yes-or-no decisions scored yes 2, ambiguous 1, no 0, split mutually exclusive and together exhaustive.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Evaluation says: yes-or-no questions, yes 2, ambiguous 1, no 0, mutually exclusive and together exhaustive within the change's intent."
+     ],
+     "near_miss": [
+      "Evaluation says criteria are yes-or-no questions and gives neither scores nor a split rule."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 13"
+     }
+    },
+    {
+     "id": "binary-criteria-partly",
+     "text": "Evaluation says criteria are yes-or-no questions.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Evaluation says criteria are yes-or-no questions and gives neither scores nor a split rule."
+     ],
+     "near_miss": [
+      "Evaluation uses a 1 to 5 scale."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 13"
+     }
+    },
+    {
+     "id": "skill-description-full",
+     "text": "AGENTS.md says a skill description reads Use when, then optionally Not for, as short as it can be.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Skills says: Use when ..., then optionally Not for ..., as short as it can be."
+     ],
+     "near_miss": [
+      "Skills says a description should be short and names no form."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 14"
+     }
+    },
+    {
+     "id": "skill-description-partly",
+     "text": "AGENTS.md says a skill description should be short.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Skills says a description should be short and names no form."
+     ],
+     "near_miss": [
+      "AGENTS.md gives no rule for a skill description."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 14"
+     }
+    },
+    {
+     "id": "skill-body-full",
+     "text": "AGENTS.md says a skill body holds the task or use case, its vocabulary, plus only the sections the case needs.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Skills says: the task or use case, the vocabulary, plus only the sections the case needs, such as Gotchas or Priorities."
+     ],
+     "near_miss": [
+      "Skills says a body holds the task definition and says nothing of vocabulary or sections."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 15"
+     }
+    },
+    {
+     "id": "skill-body-partly",
+     "text": "AGENTS.md says a skill body holds the task or use case.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Skills says a body holds the task definition and says nothing of vocabulary or sections."
+     ],
+     "near_miss": [
+      "AGENTS.md says nothing about a skill body."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 15"
+     }
+    },
+    {
+     "id": "routing-table-full",
+     "text": "AGENTS.md says SKILL.md is a routing table, with modes or playbooks in references/ named after the case.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Skills says: SKILL.md routes each case to a mode or playbook in references/<case>.md, shaped like a part of SKILL.md."
+     ],
+     "near_miss": [
+      "Skills says SKILL.md may link references/ files and gives no naming or shape rule."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 16"
+     }
+    },
+    {
+     "id": "routing-table-partly",
+     "text": "AGENTS.md says SKILL.md links files in references/.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Skills says SKILL.md may link references/ files and gives no naming or shape rule."
+     ],
+     "near_miss": [
+      "AGENTS.md says SKILL.md holds every case itself."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 16"
+     }
+    },
+    {
+     "id": "named-rules-full",
+     "text": "AGENTS.md says each major instruction carries a short name.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Skills says: give each major instruction a short name."
+     ],
+     "near_miss": [
+      "AGENTS.md names its own rules but asks no one else to."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 17"
+     }
+    },
+    {
+     "id": "named-rules-partly",
+     "text": "AGENTS.md gives its own major instructions short names.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md names its own rules but asks no one else to."
+     ],
+     "near_miss": [
+      "AGENTS.md says nothing about naming instructions."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 17"
+     }
+    },
+    {
+     "id": "code-computes-full",
+     "text": "AGENTS.md says calculation, aggregation and control go to scripts/ under a naming rule; scripts print predefined prose.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Skills says: calculation, aggregation and control go to scripts/<verb>-<noun>.py; the script prints predefined prose; prose carries only definitions and judgement."
+     ],
+     "near_miss": [
+      "Skills says calculation goes to scripts and gives no naming rule or output rule."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 18"
+     }
+    },
+    {
+     "id": "code-computes-partly",
+     "text": "AGENTS.md says calculation goes to scripts.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Skills says calculation goes to scripts and gives no naming rule or output rule."
+     ],
+     "near_miss": [
+      "AGENTS.md lets prose do the calculation."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 18"
+     }
+    },
+    {
+     "id": "comments-why-full",
+     "text": "AGENTS.md says a comment says only why the code is so, and is kept current.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Skills says: a comment holds no knowledge the reader needs; it says only why the code is so, kept current."
+     ],
+     "near_miss": [
+      "AGENTS.md says to comment tricky code, without saying to give the reason."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 19"
+     }
+    },
+    {
+     "id": "comments-why-partly",
+     "text": "AGENTS.md asks for comments on some code.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md says to comment tricky code, without saying to give the reason."
+     ],
+     "near_miss": [
+      "AGENTS.md says nothing about comments."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 19"
+     }
+    },
+    {
+     "id": "three-layers-full",
+     "text": "AGENTS.md says a design splits control structure, abstract domain, rules, with the layer names kept out of code and folders.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Design says: split into control structure, abstract domain and rules; layer names stay out of code and folders."
+     ],
+     "near_miss": [
+      "Design names the three layers but lets the layer names appear in folder names."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 20"
+     }
+    },
+    {
+     "id": "three-layers-partly",
+     "text": "AGENTS.md splits a design into control structure, abstract domain and rules.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Design names the three layers but lets the layer names appear in folder names."
+     ],
+     "near_miss": [
+      "AGENTS.md has no design rule on layers."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 20"
+     }
+    },
+    {
+     "id": "concept-check-full",
+     "text": "AGENTS.md says each invented concept is checked as a concept before it is built.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Design says: check each concept you invent as a concept, its meaning, its boundary and what it replaces, before you build it."
+     ],
+     "near_miss": [
+      "Design asks for a check of some invented concepts, not each one."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 21"
+     }
+    },
+    {
+     "id": "concept-check-partly",
+     "text": "AGENTS.md asks for a check of an invented concept.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Design asks for a check of some invented concepts, not each one."
+     ],
+     "near_miss": [
+      "AGENTS.md has no concept check."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 21"
+     }
+    },
+    {
+     "id": "modular-parts-full",
+     "text": "AGENTS.md says hooks/, monitors/ and skills/ are modular, never tightly coupled.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Plugin layout says: each is a module that works alone and reaches another only through a file or command it names."
+     ],
+     "near_miss": [
+      "Plugin layout says the parts should stay loosely tied but allows importing across them."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 22"
+     }
+    },
+    {
+     "id": "modular-parts-partly",
+     "text": "AGENTS.md says the main parts should stay loosely coupled.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Plugin layout says the parts should stay loosely tied but allows importing across them."
+     ],
+     "near_miss": [
+      "AGENTS.md lets a hook import a skill's internals."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 22"
+     }
+    },
+    {
+     "id": "every-line-acts-full",
+     "text": "AGENTS.md says each line changes the reader's next action.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "Repository says: keep a line in a rule, skill or document only when it changes the reader's next action."
+     ],
+     "near_miss": [
+      "AGENTS.md asks that text be short and does not tie it to the next action."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 23"
+     }
+    },
+    {
+     "id": "every-line-acts-partly",
+     "text": "AGENTS.md asks that its text be short.",
+     "polarity": "+",
+     "check": "judge",
+     "variants_ok": [
+      "AGENTS.md asks that text be short and does not tie it to the next action."
+     ],
+     "near_miss": [
+      "AGENTS.md has no rule on what a line must do."
+     ],
+     "provenance": {
+      "kind": "source-rubric",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/428#issuecomment-6142075484 binary list line 23"
+     }
+    }
+   ]
+  }
+ ],
+ "exchange": [
+  {
+   "a": "main-components-full",
+   "b": "main-components-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "no-agents-folder-full",
+   "b": "no-agents-folder-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "scripts-beside-user-full",
+   "b": "scripts-beside-user-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "bin-for-path-full",
+   "b": "bin-for-path-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "no-tests-evals-full",
+   "b": "no-tests-evals-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "agents-md-scope-full",
+   "b": "agents-md-scope-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "stands-alone-full",
+   "b": "stands-alone-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "no-claude-md-full",
+   "b": "no-claude-md-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "evaluation-section-full",
+   "b": "evaluation-section-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "fresh-evaluator-full",
+   "b": "fresh-evaluator-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "scores-not-fixes-full",
+   "b": "scores-not-fixes-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "pass-mark-full",
+   "b": "pass-mark-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "binary-criteria-full",
+   "b": "binary-criteria-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "skill-description-full",
+   "b": "skill-description-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "skill-body-full",
+   "b": "skill-body-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "routing-table-full",
+   "b": "routing-table-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "named-rules-full",
+   "b": "named-rules-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "code-computes-full",
+   "b": "code-computes-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "comments-why-full",
+   "b": "comments-why-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "three-layers-full",
+   "b": "three-layers-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "concept-check-full",
+   "b": "concept-check-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "modular-parts-full",
+   "b": "modular-parts-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  },
+  {
+   "a": "every-line-acts-full",
+   "b": "every-line-acts-partly",
+   "result": "same",
+   "by": "claude",
+   "note": "one question of the source, scored 2 for the full criterion plus 1 for the partly one when only the partial case holds"
+  }
+ ],
+ "judge": {
+  "mode": "full_rubric",
+  "model": "claude-sonnet-5-5",
+  "calibration": {
+   "human_labels": 0,
+   "macro_f1": null,
+   "met_rate_gap": null,
+   "estimated": true
+  }
+ }
+}
