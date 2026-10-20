@@ -20,6 +20,10 @@ follows each kind's reading, so an edge means one thing in the drawing and in th
 
 ## Run
 
+With no document yet, write the smallest one the ask's rule talks about: the level it names and the rule as a
+`must`, in the grammar above, checked `ok` by
+`${CLAUDE_PLUGIN_ROOT}/skills/zoom/references/schema/scripts/check-schema.py check <doc.json>`.
+
 `${CLAUDE_PLUGIN_ROOT}/skills/zoom/references/playbook/scripts/prove-schema.py <doc.json>`
 ([prove-schema.py](scripts/prove-schema.py)) writes the module (its path on stderr; `--als <path>` to keep it) and
 prints one line per rule. Alloy runs from `~/.cache/paperwork-alloy/alloy.jar` or `$ALLOY_JAR` with `java`; answers

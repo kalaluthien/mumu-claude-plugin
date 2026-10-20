@@ -6,7 +6,7 @@ reader's next action (`next`) under the page. Paths are relative to this file.
 
 ## Procedure
 
-1. Write `view.json` as [view-writing.md](html/view-writing.md) says, from `html/scripts/make-diagram.py new view.json`.
+1. Unless the document has a `view.json` beside it, write one as [view-writing.md](html/view-writing.md) says, from `html/scripts/make-diagram.py new view.json`.
 2. Run `uv run --with playwright python3 html/scripts/make-diagram.py make doc.json view.json out.html`. It runs
    [check-schema.py](../schema/scripts/check-schema.py) on the document, then the drawing checks on the view, builds
    the page and checks the drawing in Chrome. Fix drawing problems in `view.json`, Schema problems in the document.
