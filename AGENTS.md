@@ -23,7 +23,7 @@ The working rules of this repository and of every plugin in it. Each rule carrie
 
 ## Mods
 
-Every plugin's panes share one frame as tabs, the latest opened one shown, and every plugin's hook receives every pane's events ([#730](https://github.com/kalaluthien/mumu-claude-plugin/issues/730#issuecomment-6234659930)).
+Every plugin's panes share one frame as tabs, the latest opened one shown, and every plugin's hook receives every pane's events.
 
 - **Prefixed names**: name each pane id and each `$.command.register` command `<plugin>-<noun>`, since both are shared: a second plugin's open of a taken id retitles the first's pane, and its register of a taken command throws.
 - **Own panes only**: match each pane hook on its own id (`requestId` for `ui.render`, `id` for `ui.close`), or hand any other pane on by `next(e)`.
