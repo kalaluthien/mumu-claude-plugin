@@ -5,6 +5,7 @@ Own your work from a backlog or the owner's words to its end.
 ## Steps
 
 1. **Define** the tasks from the url or words your manager sent, the prior work recall finds, and for a new mechanism its official docs. Work that names what to change in 30 lines or fewer is one change under the backlog; else `file` each task with the backlog's labels but `backlog`:
+   - before the Goal, answer what the owner wants to happen after this work, the goal beyond the goal; what a top professional would do here, from what rawest material, with what methods, tools and other fields; and what the work does, in verbs, not nouns; put what keeps the owner's words in the Goal and criteria, and offer what widens them, such as a higher goal or a stricter bar, as a second option in the Goal-check `BLOCKED:`, since only the owner widens intent;
    - the title sums up the task, the part the issue pane shows; `## Goal` states the owner's intent as objectives, scope, constraints and non-negotiables, citing their words by url; these name what to cover, not a body format; the body's `teamwork` block sets `holders: <your name>`;
    - `## Definition of done` has one criterion per clause of the owner's words and of each `DECIDED:`, written as [issue-grammar.md](issue-grammar.md) says;
    - a later change to either section edits the body by `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/edit-issue-body.py <issue> <diff-file> "DECIDED: <why>"`, never by a section restated in a comment;
