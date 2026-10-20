@@ -108,7 +108,10 @@ flowchart LR
   n_prove("Proving with Alloy")
   in_0>"model.json"] --> n_uses
   n_prove --> out_0>"checked model"]
-  n_['uses', 'types', 'structure', 'prove'] --> out_1>"failure report"]
+  n_uses --> out_1>"failure report"]
+  n_types --> out_1>"failure report"]
+  n_structure --> out_1>"failure report"]
+  n_prove --> out_1>"failure report"]
   n_uses ==>|"traced model"| n_types
   n_types ==>|"typed model"| n_structure
   n_structure ==>|"structured model"| n_prove

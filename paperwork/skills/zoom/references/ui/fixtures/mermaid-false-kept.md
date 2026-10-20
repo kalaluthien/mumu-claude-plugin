@@ -23,11 +23,15 @@ On every kind:
 - A node that opens a level ends with `▸`.
 - A `qty` follows the label as `<value> <unit> (<kind>)`.
 - On an arrow, `happy` is thick, `failure` dotted red with `✗`, `optional` dotted, and `unsure` dotted with `?`.
-- On a node, a mark is a coloured or dashed outline, and a `diff` tints the node.
+- On a node, a mark is a coloured or dashed outline, and a `diff` tints the node; on a flowchart's arrow, a `diff` tints the arrow. A state diagram cannot style one arrow, so there the table alone shows it.
 
 ## Losses
 
 What survives the projection into Mermaid. A construct is `kept` when changing it changes the output, and `emit-mermaid.py losses` checks every row of this table that way. A lost construct is still in the document, for the HTML renderer or a reader of the JSON.
+
+Two limits come from Mermaid itself, not from the emitter:
+- [State diagrams](https://mermaid.js.org/syntax/stateDiagram.html) style a state only by `classDef`, which "cannot be applied to or within composite states". So a `mark` or `diff` on a state inside a region shows only in the table.
+- State diagrams have no way to style one transition, so an arrow's style there is lost. [Flowcharts](https://mermaid.js.org/syntax/flowchart.html) style each arrow by `linkStyle`.
 
 | construct | survives | how |
 | --- | --- | --- |

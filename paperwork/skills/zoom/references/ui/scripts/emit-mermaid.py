@@ -28,6 +28,7 @@ FORMATS = list(GRAMMAR["$defs"]["format"])
 RESERVED = list(GRAMMAR["$defs"]["meta"]["properties"])
 KINDS = LEVEL["properties"]["kind"]["enum"]
 DIFF_SIGN = {"added": "+", "removed": "−", "changed": "~"}
+DIFF_TINT = {"added": "#2a7", "removed": "#c33", "changed": "#c90"}
 
 
 def num(v):
@@ -83,6 +84,11 @@ def levels(doc):
 
 def mid(x):
     return "n_" + str(x).replace("-", "_")
+
+
+def ends(x):
+    # a port may join several nodes: one line per node
+    return x if isinstance(x, list) else [x]
 
 
 def quote(text):
@@ -162,17 +168,22 @@ def flowchart(L):
         lines.append(f"  t_{i}((\" \")) -->|{quote(t.get('label', '') + every)}| {mid(t.get('to'))}")
         links += 1
     for i, p in enumerate(L.get("in", [])):
-        lines.append(f"  in_{i}>{quote(p.get('edge'))}] --> {mid(p.get('to'))}")
-        links += 1
+        for to in ends(p.get("to")):
+            lines.append(f"  in_{i}>{quote(p.get('edge'))}] --> {mid(to)}")
+            links += 1
     for i, p in enumerate(L.get("out", [])):
-        lines.append(f"  {mid(p.get('from'))} --> out_{i}>{quote(p.get('edge'))}]")
-        links += 1
+        for frm in ends(p.get("from")):
+            lines.append(f"  {mid(frm)} --> out_{i}>{quote(p.get('edge'))}]")
+            links += 1
     for e in L.get("edges", []):
         marks = e.get("mark", [])
         arrow = "==>" if "happy" in marks else "-.->" if set(marks) & {"failure", "optional", "unsure"} else "-->"
         label = edge_text(e)
         lines.append(f"  {mid(e.get('from'))} {arrow}{('|' + quote(label) + '|') if label else ''} {mid(e.get('to'))}")
-        if "failure" in marks:
+        diff = e.get("meta", {}).get("diff") if isinstance(e.get("meta"), dict) else None
+        if diff in DIFF_TINT:
+            styles.append(f"  linkStyle {links} stroke:{DIFF_TINT[diff]},stroke-width:3px")
+        elif "failure" in marks:
             styles.append(f"  linkStyle {links} stroke:#c33")
         links += 1
     return lines + styles
@@ -213,10 +224,10 @@ def state_diagram(L):
         a, b = e.get("from"), e.get("to")
         if a not in group or b not in group or group[a] != group[b]:
             lines.append(f"  {mid(e.get('from'))} --> {mid(e.get('to'))}" + (f" : {plain(edge_text(e))}" if edge_text(e) else ""))
-    for i, p in enumerate(L.get("in", [])):
-        lines.append(f"  [*] --> {mid(p.get('to'))} : {plain(p.get('edge'))}")
-    for i, p in enumerate(L.get("out", [])):
-        lines.append(f"  {mid(p.get('from'))} --> [*] : {plain(p.get('edge'))}")
+    for p in L.get("in", []):
+        lines += [f"  [*] --> {mid(to)} : {plain(p.get('edge'))}" for to in ends(p.get("to"))]
+    for p in L.get("out", []):
+        lines += [f"  {mid(frm)} --> [*] : {plain(p.get('edge'))}" for frm in ends(p.get("from"))]
     return lines
 
 
@@ -420,6 +431,8 @@ def losses(doc_path):
         print(f"missing: {c} has no row in the loss table")
     for c, why in unshown:
         print(f"not shown: {c} is marked kept, but {why}")
+    print("constructs: each property of the document, a level, a node and an edge, each reserved meta key and format, "
+          "and each value of kind, mark, link and gate")
     print(f"losses: {len(names)} constructs, {len(missing)} missing from {pathlib.Path(doc_path).name}, "
           f"{len(unshown)} kept but not shown")
     return 1 if missing or unshown else 0

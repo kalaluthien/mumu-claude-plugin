@@ -15,6 +15,6 @@ A renderer shows each entry as `<name>: <display>` beside the element it annotat
 | `date` | the date as written, `YYYY-MM-DD` |
 | `bool` | `yes` or `no` |
 | `note` | the remark in italics |
-| `diff` | the change after its sign, `+ added`, `− removed` or `~ changed`, and the element tinted green, red or amber |
+| `diff` | the change after its sign, `+ added`, `− removed` or `~ changed`, and a node, or a flowchart's arrow, tinted green, red or amber |
 | `evidence` | each pointer as code, or as a link when it is a url, joined by commas |
 | `constraint` | each requirement as code, joined by commas |
