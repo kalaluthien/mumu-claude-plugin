@@ -1,0 +1,391 @@
+{
+ "version": 1,
+ "task": {
+  "instruction": "Grade one hand-back of an 'improve this system model' run: a Markdown hand-back (facts, not verified, undecided, findings, and one or more options with count tables) plus the model files it names, the original and each improved model, as JSON system models with levels, nodes, edges, scenarios, rules and operations.",
+  "world": {
+   "as_of": "2026-10-21",
+   "scope": "The hand-back text, the original model and each improved model. A complete answer states what was kept, added and removed, gives counts for the original and every option, names why each extra option exists and recommends one.",
+   "deliverable": "The hand-back; its reader is the system's owner, who picks one option from it and must trust every number without recounting."
+  },
+  "evidence_goal": "The grade shows whether the owner can trust the hand-back's numbers and lists against the model files, compare the options by counts, and see why each option exists.",
+  "use": [
+   "eval"
+  ],
+  "source": ".claude/dogfood/litmus-513/source-rubric.md"
+ },
+ "group_size": 8,
+ "tiers": [
+  {
+   "id": "matches-models",
+   "name": "Every claim matches the model files, and no behaviour drops unsaid",
+   "delta": 0.1,
+   "judge_error": 0.03,
+   "mask_below": true,
+   "pass": 1,
+   "pass_rate": 0.7,
+   "criteria": [
+    {
+     "id": "no-silent-drop",
+     "text": "Every original Scenario and rule has a counterpart with the same slug and behaviour in each improved model, or the hand-back names it as removed and awaiting approval.",
+     "polarity": "+",
+     "check": "judge",
+     "provenance": {
+      "kind": "source-rubric",
+      "source": ".claude/dogfood/litmus-513/source-rubric.md question 1 and 2"
+     },
+     "anchors": "Counterpart means the same slug and the same behaviour; a Scenario merged into another counts only when the hand-back says so. Recount from the model files, with a short Python script when a count is large; the hand-back's own numbers are the claim, never the evidence.",
+     "variants_ok": [
+      "Option B keeps all Scenarios and rules.",
+      "Option B drops order-returned and the hand-back lists it under 'removed, awaiting approval'."
+     ],
+     "near_miss": [
+      "Option B lacks rule no-bill-twice and the hand-back says 'all behaviour kept'.",
+      "A Scenario is renamed and its behaviour changed with no mention."
+     ]
+    },
+    {
+     "id": "change-lists-match",
+     "text": "The hand-back's lists of added and of removed Scenarios, rules and behaviours equal the differences between the original and each improved model, with 'none' written for an empty list.",
+     "polarity": "+",
+     "check": "judge",
+     "provenance": {
+      "kind": "source-rubric",
+      "source": ".claude/dogfood/litmus-513/source-rubric.md question 2"
+     },
+     "anchors": "Equal means the same set of slugs, no more and no fewer; wording of the entries is free. Recount from the model files, with a short Python script when a count is large; the hand-back's own numbers are the claim, never the evidence.",
+     "variants_ok": [
+      "Additions: none. Removals: none, as a table.",
+      "The same two removals listed in prose in another order."
+     ],
+     "near_miss": [
+      "Lists one addition the model lacks.",
+      "Omits one removed rule from the list.",
+      "No list at all."
+     ]
+    },
+    {
+     "id": "size-counts-match",
+     "text": "Every nodes, edges, rules and operations count, and every sum of them, that the hand-back states for the original or an improved model equals the recount from that model file.",
+     "polarity": "+",
+     "check": "program",
+     "provenance": {
+      "kind": "source-rubric",
+      "source": ".claude/dogfood/litmus-513/source-rubric.md question 3"
+     },
+     "anchors": "Equal means exactly; no tolerance. Only stated numbers are checked, a count never stated passes.",
+     "variants_ok": [
+      "States 8+6+2+4=20 for the original, which the file gives.",
+      "States only the sum, and the sum is right."
+     ],
+     "near_miss": [
+      "States 19 where the file gives 20.",
+      "Gives the improved model's sum under the original's label."
+     ]
+    },
+    {
+     "id": "metric-counts-match",
+     "text": "Every other count or ratio the hand-back states (repeated texts, two-name things, inner nodes over crossing edges, crossing share, cycles, nodes per level, depth, unhandled triggers, unused elements, mixed elements) equals the recount from the model files.",
+     "polarity": "+",
+     "check": "judge",
+     "provenance": {
+      "kind": "source-rubric",
+      "source": ".claude/dogfood/litmus-513/source-rubric.md question 4 to 11"
+     },
+     "anchors": "Equal means the same number after the formula in the hand-back is applied to the file; rounding to two decimals is allowed. A count never stated passes. Recount from the model files, with a short Python script when a count is large; the hand-back's own numbers are the claim, never the evidence.",
+     "variants_ok": [
+      "Repeated labels 1 for the original and 0 for the improved model, as the files give.",
+      "Ratio 0.60 where the file gives 0.5999."
+     ],
+     "near_miss": [
+      "States 0 repeated labels for the original where one label appears twice.",
+      "States nodes per level 3 and 4 where the file gives 3 and 5."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "owner-can-compare",
+   "name": "The owner can compare the original and each option by counts",
+   "delta": 0.1,
+   "judge_error": 0.03,
+   "criteria": [
+    {
+     "id": "counts-any-per-option",
+     "text": "The hand-back shows at least one count, in a table or a list, for the original and for every option.",
+     "polarity": "+",
+     "check": "judge",
+     "provenance": {
+      "kind": "source-rubric",
+      "source": ".claude/dogfood/litmus-513/source-rubric.md question 15"
+     },
+     "anchors": "A count is a number the owner can compare between the original and an option; the option count includes a single answer stated as the answer.",
+     "variants_ok": [
+      "A table with one row per option and one column, size.",
+      "Counts in a bullet list under each option."
+     ],
+     "near_miss": [
+      "An option described only in words such as 'smaller'.",
+      "Counts for the original and one option, none for a second option."
+     ]
+    },
+    {
+     "id": "counts-all-per-option",
+     "text": "For the original and every option, the hand-back gives a value for each count criterion (size, repeated texts, one term per entity, deep modules, coupling, near-decomposability, unhandled triggers, unused elements, mixed elements, four states).",
+     "polarity": "+",
+     "check": "judge",
+     "provenance": {
+      "kind": "source-rubric",
+      "source": ".claude/dogfood/litmus-513/source-rubric.md question 15 and 3 to 12"
+     },
+     "anchors": "Mixed elements may be replaced by a stated skip with the reason when the model is not a software or process model. Four states means a stated yes or no for Missing, Illegal, Redundant and Overloaded.",
+     "variants_ok": [
+      "Every row of the criteria table filled for all columns.",
+      "Mixed elements skipped with 'a trading model, not software', every other cell filled."
+     ],
+     "near_miss": [
+      "Coupling and cycles missing for one option.",
+      "Only a prose paragraph about the criteria."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "options-earn-place",
+   "name": "Each option exists for a stated conflict",
+   "delta": 0.1,
+   "judge_error": 0.1,
+   "criteria": [
+    {
+     "id": "option-has-conflict",
+     "text": "Each extra option names a pair of criteria from the report's Conflicts that move in opposite directions, or the hand-back gives one answer and says that one model wins or ties every count.",
+     "polarity": "+",
+     "check": "judge",
+     "provenance": {
+      "kind": "source-rubric",
+      "source": ".claude/dogfood/litmus-513/source-rubric.md question 13"
+     },
+     "anchors": "Opposite directions means one count improves while the other worsens between two options or against the original.",
+     "variants_ok": [
+      "Option B trades size (better) against kept behaviour (worse).",
+      "One answer, with 'wins or ties every count'."
+     ],
+     "near_miss": [
+      "Offers three options with no pair named.",
+      "One answer while the counts show size improves and coupling worsens."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recommended-improves",
+   "name": "The recommended model improves, and the hand-back leads with it",
+   "criteria": [
+    {
+     "id": "counts-hold",
+     "text": "In the recommended model every recounted count of size, repeated texts, one term per entity, deep modules, coupling, near-decomposability, unhandled triggers, unused elements and mixed elements is better than or equal to the original's, or the hand-back states the conflicting criterion that excuses it.",
+     "polarity": "+",
+     "check": "judge",
+     "provenance": {
+      "kind": "source-rubric",
+      "source": ".claude/dogfood/litmus-513/source-rubric.md question 3 to 11"
+     },
+     "anchors": "Better or equal follows each criterion's own direction (lower size is better). Recount from the model files, with a short Python script when a count is large; the hand-back's own numbers are the claim, never the evidence.",
+     "variants_ok": [
+      "Every count falls or holds.",
+      "Coupling rises and the hand-back names the size criterion it trades against."
+     ],
+     "near_miss": [
+      "Repeated labels rise from 1 to 2 with no reason."
+     ]
+    },
+    {
+     "id": "levels-within-seven",
+     "text": "Every level of the recommended model holds 7 nodes or fewer and its nesting depth is not deeper than the original's, or the hand-back states the reason.",
+     "polarity": "+",
+     "check": "program",
+     "provenance": {
+      "kind": "source-rubric",
+      "source": ".claude/dogfood/litmus-513/source-rubric.md question 8"
+     },
+     "anchors": "Count nodes per level from the levels in the file.",
+     "variants_ok": [
+      "Levels of 3 and 4 nodes, depth held."
+     ],
+     "near_miss": [
+      "A level of 8 nodes with no reason.",
+      "Depth rises from 2 to 3 with no reason."
+     ]
+    },
+    {
+     "id": "fewer-bad-states",
+     "text": "The hand-back states that the recommended model has no more Missing, Illegal, Redundant or Overloaded states than the original, and fewer or none.",
+     "polarity": "+",
+     "check": "judge",
+     "provenance": {
+      "kind": "source-rubric",
+      "source": ".claude/dogfood/litmus-513/source-rubric.md question 12"
+     },
+     "anchors": "Stated means for the original and the recommended model; equal with some left does not meet it.",
+     "variants_ok": [
+      "Original: 1 Redundant; improved: none."
+     ],
+     "near_miss": [
+      "Not stated.",
+      "Improved has the same Redundant state as the original."
+     ]
+    },
+    {
+     "id": "recommended-first",
+     "text": "Exactly one option is recommended and it is listed first; a single answer stated as the answer meets it.",
+     "polarity": "+",
+     "check": "judge",
+     "provenance": {
+      "kind": "source-rubric",
+      "source": ".claude/dogfood/litmus-513/source-rubric.md question 14"
+     },
+     "variants_ok": [
+      "Option A, recommended, listed first.",
+      "One answer, stated as the answer."
+     ],
+     "near_miss": [
+      "Recommended option listed second.",
+      "Two options both marked recommended.",
+      "No recommendation."
+     ]
+    }
+   ]
+  }
+ ],
+ "exchange": [
+  {
+   "a": "no-silent-drop",
+   "b": "counts-any-per-option",
+   "result": "a_over_b",
+   "by": "user",
+   "note": "interview answer of the person, 2026-10-21: matching the model files beats everything else"
+  },
+  {
+   "a": "change-lists-match",
+   "b": "counts-any-per-option",
+   "result": "a_over_b",
+   "by": "user",
+   "note": "interview answer of the person, 2026-10-21: matching the model files beats everything else"
+  },
+  {
+   "a": "size-counts-match",
+   "b": "counts-any-per-option",
+   "result": "a_over_b",
+   "by": "user",
+   "note": "interview answer of the person, 2026-10-21: matching the model files beats everything else"
+  },
+  {
+   "a": "metric-counts-match",
+   "b": "counts-any-per-option",
+   "result": "a_over_b",
+   "by": "user",
+   "note": "interview answer of the person, 2026-10-21: matching the model files beats everything else"
+  },
+  {
+   "a": "no-silent-drop",
+   "b": "change-lists-match",
+   "result": "same",
+   "by": "claude",
+   "note": "both are the worst failure named: a Scenario or rule dropped without saying so; one hides the drop, the other a false list"
+  },
+  {
+   "a": "size-counts-match",
+   "b": "metric-counts-match",
+   "result": "same",
+   "by": "claude",
+   "note": "both are the worst failure named: a stated number that is wrong"
+  },
+  {
+   "a": "change-lists-match",
+   "b": "size-counts-match",
+   "result": "same",
+   "by": "claude",
+   "note": "settled by claude: a wrong list and a wrong number each make the hand-back untrustworthy to the owner"
+  },
+  {
+   "a": "counts-any-per-option",
+   "b": "counts-all-per-option",
+   "result": "same",
+   "by": "claude",
+   "note": "settled by claude: a table with one count and one with every count both let the owner compare; the full set refines the any-count case"
+  },
+  {
+   "a": "counts-any-per-option",
+   "b": "option-has-conflict",
+   "result": "a_over_b",
+   "by": "user",
+   "note": "interview answer of the person, 2026-10-21: any count shown for every option beats a single answer stated in prose"
+  },
+  {
+   "a": "counts-all-per-option",
+   "b": "option-has-conflict",
+   "result": "a_over_b",
+   "by": "claude",
+   "note": "settled by claude: the same ground as counts-any-per-option, a hand-back with the full set but no conflict named still serves the owner"
+  },
+  {
+   "a": "option-has-conflict",
+   "b": "recommended-first",
+   "result": "a_over_b",
+   "by": "user",
+   "note": "interview answer of the person, 2026-10-21: whether the recommended option is first or the counts improve is lowest"
+  },
+  {
+   "a": "option-has-conflict",
+   "b": "counts-hold",
+   "result": "a_over_b",
+   "by": "user",
+   "note": "interview answer of the person, 2026-10-21: whether the recommended option is first or the counts improve is lowest"
+  },
+  {
+   "a": "counts-hold",
+   "b": "levels-within-seven",
+   "result": "same",
+   "by": "claude",
+   "note": "settled by claude: both are a recounted count of the recommended model that holds or improves"
+  },
+  {
+   "a": "counts-hold",
+   "b": "fewer-bad-states",
+   "result": "same",
+   "by": "claude",
+   "note": "settled by claude: both state that the recommended model is not worse than the original"
+  },
+  {
+   "a": "levels-within-seven",
+   "b": "recommended-first",
+   "result": "same",
+   "by": "user",
+   "note": "interview answer of the person, 2026-10-21: whether the recommended option is first or the counts improve is lowest, the two are tied at the bottom"
+  },
+  {
+   "a": "fewer-bad-states",
+   "b": "recommended-first",
+   "result": "same",
+   "by": "user",
+   "note": "interview answer of the person, 2026-10-21: whether the recommended option is first or the counts improve is lowest, the two are tied at the bottom"
+  }
+ ],
+ "judge": {
+  "mode": "full_rubric",
+  "model": "claude-sonnet-5-5",
+  "prompt": "Read the hand-back and the model files it names. Recount from the files, with a short Python script when a count is large. Grade each criterion 0 or 1; a stated number is the claim, the files are the evidence.",
+  "calibration": {
+   "human_labels": 0,
+   "macro_f1": null,
+   "met_rate_gap": null,
+   "estimated": true
+  }
+ },
+ "monitor": [
+  "met rate per criterion, since a criterion always met or never met orders nothing",
+  "judge agreement across the three runs per criterion, against alpha 0.667",
+  "share of answers failing the masked tier",
+  "tier-mean gaps under 0.1 are ties",
+  "weight-tiny note: the bottom tier weighs 5e-4 of the top because the exchange records fix four tiers (matching, comparing, option conflict, improving, lowest last); the person put the bottom pair lowest, so read the bottom tier as a tiebreak only and normalise advantages per group when training"
+ ]
+}
