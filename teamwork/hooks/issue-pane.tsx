@@ -92,7 +92,7 @@ export const register: Register = on => {
   }).catch(($, e, next) => next(e))  // a failed open falls back to the skill's body
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Text, Link, Button } = $.ui.resolve(e)
+    const { Box, Text, Link, Button, Markdown } = $.ui.resolve(e)
     const unfolded = new Set(await read($, expanded))
     const toggle = (n: number | string) => () => void update($, expanded, old => old.includes(n) ? old.filter(x => x !== n) : [...old, n])
     const status = (i: BoardIssue) => [
@@ -107,7 +107,7 @@ export const register: Register = on => {
     const part = (key: string, name: string, detail: string[]) => (
       <Box flexDirection="column">
         <Button key={`row-${key}`} plain onPress={toggle(key)}><Text wrap="wrap" dimColor={unfolded.has(key)}>{name}</Text></Button>
-        {unfolded.has(key) && detail.length > 0 && <Box paddingLeft={2} marginBottom={1} flexDirection="column">{detail.map(d => <Text wrap="wrap">{d}</Text>)}</Box>}
+        {unfolded.has(key) && detail.length > 0 && <Box paddingLeft={2} marginBottom={1} flexDirection="column"><Markdown text={detail.join('\n')} /></Box>}
       </Box>
     )
     const entry = (i: BoardIssue): JSX.Element => {
@@ -141,7 +141,7 @@ export const register: Register = on => {
           <Box paddingLeft={2} flexDirection="column">
             {/* every entry folds alike, so an empty one says so when unfolded */}
             {open && !more && <Text dimColor>(empty)</Text>}
-            {open && i.goal && <Text wrap="wrap">{i.goal}</Text>}
+            {open && i.goal && <Markdown text={i.goal} />}
             {/* the title sums a task up, so its goal is detail, folded */}
             {open && i.detail.length > 0 && part(`goal-${i.number}`, 'see detail', i.detail)}
             {open && i.done.map((d, k) => part(`done-${i.number}-${k}`, [d.met === null ? '' : d.met ? '[x]' : '[ ]', d.kind && `(${d.kind})`, d.name].filter(Boolean).join(' '), d.detail ? [d.detail] : []))}
