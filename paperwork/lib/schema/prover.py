@@ -632,13 +632,12 @@ def translate(M):
     L_ += ["", "-- how things move", "pred behaviour {\n  " + "\n  ".join(B) + "\n}"]
 
     musts_static = [W.rule_name[i["slug"]] for i in m["rules"] if cls[i["slug"]] == "static" and i["kind"] == "must"]
-    L_.append("pred assumptions { " + " and ".join(musts_static) + " }")
 
     C = []
-    for i in m["rules"]:
-        if cls[i["slug"]] == "dynamic":
-            me = W.rule_name[i["slug"]]
-            C.append((f"holds_{me}", "check", f"assumptions and behaviour implies always {me}", 0 if i["kind"] == "must" else None, i["slug"]))
+    for i in m["rules"]:   # every rule is asked, a static one under the others, so none is assumed to prove itself
+        me = W.rule_name[i["slug"]]
+        given = " and ".join([x for x in musts_static if x != me] + ["behaviour"])
+        C.append((f"holds_{me}", "check", f"{given} implies always {me}", 0 if i["kind"] == "must" else None, i["slug"]))
     L_ += ["", "-- what Alloy checks"]
     scopes = {i["slug"]: i["scope"] for i in m["rules"] if i.get("scope")}
     for name, _, body, exp, slug in C:
@@ -792,6 +791,58 @@ def calls_in(instances, W=None):
         now = next((v for k, v in inst["values"].items() if k.startswith("Now$")), {})
         steps.append(sorted({names.get(re.sub(r"\$\d+$", "", c[0]), re.sub(r"\$\d+$", "", c[0])) for c in now.get("happens", [])}))
     return steps
+
+
+def sit_ids(M, slug):
+    """The ids of the nodes and edges an operation or rule sits on, a trigger standing for the node it enters."""
+    return {M.trigs[x][1]["to"] if k == "trig" else x for k, x in M.sits().get(slug, ())}
+
+
+def element_ids(W):
+    """Each call kind and each signature, as the ids of the Schema nodes and edges they stand for."""
+    M, kinds = W.M, {}
+    for k, kind in W.edge_kind.items():
+        if isinstance(k, str):
+            ids = {k}
+        else:
+            L = M.levels[k[1]]
+            ids = ({t["to"] for t in L.get("triggers", []) if t["label"] == k[2]} if k[0] == "trig"
+                   else {f["to"] for f in L.get("in", []) if f["edge"] == k[2]} if k[0] == "in" else {k[3]})
+        kinds.setdefault(kind, set()).update(ids)
+    for op in W.change.values():   # a call drawn as an edge is that edge; another is where its operation sits
+        if op["kind"] not in kinds:
+            kinds[op["kind"]] = sit_ids(M, op["slug"])
+    sigs = {}
+    for n in M.nodes.values():
+        sigs.setdefault(ident(n["label"]), n["id"])
+    return kinds, sigs
+
+
+def trace(W, instances, slug):
+    """A counterexample as Schema ids: the nodes whose things witness it, in brackets, then the elements called at
+    each step, ` + ` within a step and `|` between elements one call may stand for; where it names neither, the
+    nodes and edges the rule sits on."""
+    kinds, sigs = element_ids(W)
+    atom = lambda a: re.sub(r"\$\d+$", "", a)
+
+    def node_of(sig, seen=()):
+        if sig in sigs:
+            return sigs[sig]
+        for p in W.sigs.get(sig, {}).get("parents", []):
+            if p not in seen and (n := node_of(p, seen + (sig,))):
+                return n
+        return None
+
+    witness = sorted({n for sk in (instances[0].get("skolems") or {}).values() for row in sk.get("data", [])
+                      for a in row if (n := node_of(atom(a)))}) if instances else []
+    steps = []
+    for inst in instances or []:
+        now = next((v for k, v in inst["values"].items() if k.startswith("Now$")), {})
+        step = sorted({"|".join(sorted(kinds.get(atom(c[0]), ()))) for c in now.get("happens", [])} - {""})
+        if step:
+            steps.append(" + ".join(step))
+    parts = ([f"[{', '.join(witness)}]"] if witness else []) + ([" → ".join(steps)] if steps else [])
+    return " ".join(parts) or ", ".join(sorted(sit_ids(W.M, slug)))
 
 
 def story(steps):
