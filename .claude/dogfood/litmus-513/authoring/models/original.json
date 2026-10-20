@@ -1,0 +1,7 @@
+{"levels":[{"id":"L0","nodes":["shop","stock","pay"]},{"id":"L1","nodes":["pick","pack","ship","bill","refund"]}],
+ "nodes":[{"id":"shop","label":"Shop"},{"id":"stock","label":"Stock"},{"id":"pay","label":"Payment"},
+  {"id":"pick","label":"Pick item"},{"id":"pack","label":"Pack item"},{"id":"ship","label":"Ship order"},{"id":"bill","label":"Bill customer"},{"id":"refund","label":"Bill customer"}],
+ "edges":[["shop","stock"],["shop","pay"],["pick","pack"],["pack","ship"],["bill","refund"],["stock","pick"]],
+ "scenarios":[{"slug":"order-placed","what":"Customer orders"},{"slug":"order-returned","what":"Customer returns"}],
+ "rules":[{"slug":"no-ship-unpaid","formula":"ship requires paid"},{"slug":"no-bill-twice","formula":"bill once"}],
+ "operations":["pick","pack","ship","bill"]}
