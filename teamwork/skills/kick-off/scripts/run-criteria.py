@@ -52,9 +52,6 @@ def expectation(detail):
     if PLACEHOLDER.search(command) or "..." in command or "…" in command:
         return command, (None, "placeholder in the command")
     rest = after[verb.end():]
-    if verb.group(1) == "exits":
-        code = re.match(r"\s*`?(\d+)`?", rest)
-        return command, ("exits", int(code.group(1))) if code else (None, "no exit status")
     # the expected text runs to the clause's end, so a second value such as `a` then `b` or `a`, `b` reads as undecidable
     clause, *_ = parts = re.split(r"([;.](?:\s|$)|,\s+(?!`)|\bwhen\b|\bon main\b)", rest)
     clause = clause.strip()
@@ -63,6 +60,9 @@ def expectation(detail):
     tail = re.sub(r"\bwhen\b.*?(?:[;.](?:\s|$)|$)", "", tail, flags=re.S)
     if re.match(r"[,;]\s*and\b", tail) or any(re.search(r"\s", m.group(2)) for m in issue_state.SPAN.finditer(tail)):
         return command, (None, "more than one condition")
+    if verb.group(1) == "exits":
+        code = re.fullmatch(r"`?(\d+)`?", clause)
+        return command, ("exits", int(code.group(1))) if code else (None, "expected status not one value")
     found = list(issue_state.SPAN.finditer(clause))
     span = found[0] if len(found) == 1 and found[0].span() == (0, len(clause)) else None
     more = re.fullmatch(r"`?(\d+)`? or more", clause)
@@ -100,8 +100,9 @@ def verdict(test, status, out):
     if kind == "more":
         first = out.split(maxsplit=1)[:1]
         return "pass" if first and first[0].isdigit() and int(first[0]) >= want else "fail"
-    if out == want or want and want in (line.strip() for line in out.splitlines()):
+    if out == want:
         return "pass"
+    # the text among other lines may sit beside a failure, so the judge reads it
     return "unclear" if want and re.search(rf"(?<!\w){re.escape(want)}(?!\w)", out) else "fail"
 
 
@@ -111,8 +112,10 @@ def cell(text):
 
 
 def row(label, kind, name, detail, cwd, timeout):
-    if kind != "check":
+    if kind == "score":
         return label, name, "judged", "not run: a score is judged"
+    if kind != "check":
+        return label, name, "unclear", "not run: no kind"
     command, test = expectation(detail)
     if test[0] is None:
         return label, name, "unclear", f"not run: {test[1]}"
