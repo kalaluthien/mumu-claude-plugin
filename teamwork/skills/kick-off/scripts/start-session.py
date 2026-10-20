@@ -47,17 +47,12 @@ def wait(name, pane, ready, nudge, what):
     raise RuntimeError(f"{name} {what} after {TIMEOUT:g}s")
 
 
-def tools_off(a):
-    off = TOOLS_OFF["worker" if a.args.startswith("worker ") else "manager"].split(",")
-    return ",".join(t for t in off if t not in a.allow)
-
-
 def start(a, pane):
     deadline = time.time() + TIMEOUT
     while True:
         p = subprocess.run(["herdr", "agent", "start", a.name, "--kind", "claude", "--pane", pane, "--", "--name", a.name,
                             "--plugin-dir", str(ROOT), "--model", a.model, "--effort", a.effort,
-                            "--settings", SETTINGS, *(["--disallowedTools", off] if (off := tools_off(a)) else [])],
+                            "--settings", SETTINGS, *(["--disallowedTools", ",".join(off)] if off else [])],
                            capture_output=True, text=True)
         out = p.stdout + p.stderr
         if not p.returncode or '"agent_not_ready"' in out:  # not ready: the trust dialog holds it
@@ -77,6 +72,10 @@ parser.add_argument("--model", required=True)  # no default: the caller picks pe
 parser.add_argument("--effort", required=True)
 parser.add_argument("--allow", action="append", default=[], metavar="TOOL")  # its subagents lack a tool their session lacks: grant it per backlog
 a = parser.parse_args()
+role_off = TOOLS_OFF["worker" if a.args.startswith("worker ") else "manager"].split(",")
+if stray := sorted(set(a.allow) - set(role_off)):
+    parser.error(f"--allow {', '.join(stray)}: not a tool this role has off, which is {', '.join(role_off)}")
+off = [t for t in role_off if t not in a.allow]
 if herdr_agents.agent(a.name):
     sys.exit(f"start-session.py: {a.name} is already live: hand it the work instead of starting another.")
 peer = herdr_agents.agent(a.beside) if a.beside else {}  # a peer manager's successor sits in its workspace, alone with its workers
