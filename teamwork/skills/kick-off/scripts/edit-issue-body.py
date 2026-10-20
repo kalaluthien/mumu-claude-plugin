@@ -23,7 +23,7 @@ if read.returncode:
     # gh fills {owner}/{repo} from the working folder, or from GH_REPO
     # gh's own line keeps a missing issue or an auth failure from reading as a folder fault
     cause = (read.stderr.strip().splitlines() or ["no message"])[0]
-    print(f"edit-issue-body: cannot read #{issue} ({cause}); outside the repository's checkout, set GH_REPO=<owner>/<repo>", file=sys.stderr)
+    print(f"edit-issue-body: cannot read #{issue} ({cause}); if you are not in the repository's checkout, set GH_REPO=<owner>/<repo>", file=sys.stderr)
     sys.exit(2)
 body.write_text(read.stdout.replace("\r\n", "\n"))
 # --forward: an applied diff reads as reversed, which a bare dry run would accept
