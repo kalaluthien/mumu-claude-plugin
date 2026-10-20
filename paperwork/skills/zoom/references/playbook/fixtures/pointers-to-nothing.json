@@ -1,0 +1,13 @@
+{
+ "title": "Pointers to nothing",
+ "level": {
+  "kind": "topology",
+  "title": "Pointers",
+  "nodes": [
+   {"id": "past", "label": "Past", "meta": {"evidence": ["AGENTS.md:99999"]}},
+   {"id": "unnamed", "label": "Unnamed", "meta": {"constraint": ["AGENTS.md#No such rule"]}},
+   {"id": "broken", "label": "Broken", "meta": {"note": "Broken: a fault named by none of the four words."}}
+  ],
+  "edges": []
+ }
+}
