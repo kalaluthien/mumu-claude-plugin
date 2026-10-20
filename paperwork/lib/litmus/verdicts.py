@@ -30,8 +30,10 @@ def problems(spec, verdicts, complete=True, groups=False):
     seen = set()
     for g, group in enumerate(verdicts.get("groups", [])):
         out += [f"verdicts.groups[{g}]: {a} is no answer" for a in group if a not in answers]
-        out += [f"verdicts.groups[{g}]: {a} is in an earlier group too" for a in group if a in seen]
-        seen.update(group)
+        for a in group:
+            if a in seen:
+                out.append(f"verdicts.groups[{g}]: {a} is listed twice, in this group or an earlier one")
+            seen.add(a)
         if not group:
             out.append(f"verdicts.groups[{g}]: holds no answer")
     if groups and "groups" not in verdicts:
