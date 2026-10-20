@@ -1,6 +1,9 @@
 {
  "version": "1",
  "title": "Shop",
+ "meta": {
+  "note": "A remark on the whole document."
+ },
  "plan": {
   "intent": "How does an order reach the store?"
  },
@@ -50,6 +53,9 @@
     "id": "web",
     "label": "Web app",
     "what": "Takes orders.",
+    "mark": [
+     "happy"
+    ],
     "rules": [
      "orders-kept"
     ],
@@ -103,7 +109,11 @@
    {
     "id": "store",
     "label": "Store",
-    "what": "Keeps orders."
+    "what": "Keeps orders.",
+    "mark": [
+     "failure",
+     "unsure"
+    ]
    }
   ],
   "edges": [
