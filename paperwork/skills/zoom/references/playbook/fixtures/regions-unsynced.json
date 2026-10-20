@@ -1,0 +1,172 @@
+{
+ "version": "1",
+ "title": "Crossing",
+ "plan": {
+  "intent": "Can cars flow while people walk across?"
+ },
+ "types": {
+  "Junction": "One street crossing with cars and people."
+ },
+ "scenarios": [
+  {
+   "slug": "pause-traffic",
+   "text": "When the cars stop for a while, they flow again afterwards.",
+   "walk": [
+    {
+     "place": "flowing",
+     "does": "Cars pass.",
+     "expects": "The cars flow."
+    },
+    {
+     "place": "stopped",
+     "does": "The cars stop.",
+     "expects": "No car moves."
+    },
+    {
+     "place": "flowing",
+     "does": "The cars start.",
+     "expects": "The cars flow again."
+    }
+   ]
+  },
+  {
+   "slug": "cross-street",
+   "text": "When a person crosses, they step out and reach the far side.",
+   "walk": [
+    {
+     "place": "waiting",
+     "does": "A person waits at the kerb.",
+     "expects": "Nobody is on the street."
+    },
+    {
+     "place": "walking",
+     "does": "The person steps out.",
+     "expects": "The person is on the street."
+    },
+    {
+     "place": "waiting",
+     "does": "The person reaches the far side.",
+     "expects": "Nobody is on the street."
+    }
+   ]
+  },
+  {
+   "slug": "keep-waiting",
+   "text": "When the cars start, people at the kerb keep waiting.",
+   "walk": [
+    {
+     "place": "waiting",
+     "does": "A person waits at the kerb.",
+     "expects": "Nobody is on the street."
+    },
+    {
+     "place": "waiting",
+     "does": "The person keeps waiting.",
+     "expects": "Nobody is on the street."
+    }
+   ]
+  }
+ ],
+ "operations": [],
+ "rules": [
+  {
+   "slug": "no-forbidden-pair",
+   "kind": "must",
+   "formula": "no Flowing & Walking",
+   "text": "Cars never flow while a person walks across."
+  }
+ ],
+ "level": {
+  "kind": "state",
+  "title": "Junction signals",
+  "why": "Cars and people take turns at one crossing.",
+  "subject": "Junction",
+  "initial": [
+   "flowing",
+   "waiting"
+  ],
+  "regions": [
+   {
+    "id": "cars",
+    "label": "Cars"
+   },
+   {
+    "id": "walkers",
+    "label": "Walkers"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "flowing",
+    "label": "Flowing",
+    "what": "Cars may pass.",
+    "region": "cars"
+   },
+   {
+    "id": "stopped",
+    "label": "Stopped",
+    "what": "Cars wait at the line.",
+    "region": "cars"
+   },
+   {
+    "id": "waiting",
+    "label": "Waiting",
+    "what": "Nobody is on the street.",
+    "region": "walkers"
+   },
+   {
+    "id": "walking",
+    "label": "Walking",
+    "what": "A person is on the street.",
+    "region": "walkers",
+    "rules": [
+     "no-forbidden-pair"
+    ]
+   }
+  ],
+  "edges": [
+   {
+    "from": "flowing",
+    "to": "stopped",
+    "label": "stop",
+    "what": "The cars stop at the line.",
+    "mark": [
+     "happy"
+    ]
+   },
+   {
+    "from": "stopped",
+    "to": "flowing",
+    "label": "go",
+    "what": "The cars move again.",
+    "mark": [
+     "happy"
+    ]
+   },
+   {
+    "from": "waiting",
+    "to": "walking",
+    "label": "walk",
+    "what": "A person steps onto the street.",
+    "mark": [
+     "happy"
+    ]
+   },
+   {
+    "from": "walking",
+    "to": "waiting",
+    "label": "clear",
+    "what": "The person reaches the far side.",
+    "mark": [
+     "happy"
+    ]
+   },
+   {
+    "from": "waiting",
+    "to": "waiting",
+    "label": "hold",
+    "what": "People keep waiting."
+   }
+  ]
+ }
+}
