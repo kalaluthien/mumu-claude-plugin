@@ -17,8 +17,8 @@ EDIT_BODY = PLAYBOOKS.parent / "scripts" / "edit-issue-body.py"
 GH_TEXT = re.compile(r"(?:^|&&|\|\||[;|(`\n]|\b(?:then|do|else)\s)\s*(?:\w+=\S*\s+)*(gh (?:(?:issue|pr) (?:create|comment|edit|close)|api)\b)")
 SEGMENT_END = re.compile(r"&&|\|\||[;|)`]|(?<!\\)\n")  # a backslash-newline continues the command
 # the rules are found in the playbooks at each call, never copied here, so a playbook edit cannot leave a stale reminder
-REMINDED = {"gh issue create": ("`file`",), "gh issue comment": ("**Comment**", "`comment`"), "gh pr comment": ("**Comment**",),
-            "gh issue close": ("`resolve`",), "gh issue edit": ("edit-issue-body",)}
+REMINDED = {"gh issue create": ("`file`", "40 characters"), "gh pr create": ("40 characters",), "gh issue comment": ("**Comment**", "`comment`"), "gh pr comment": ("**Comment**",),
+            "gh issue close": ("`resolve`",), "gh issue edit": ("edit-issue-body", "40 characters"), "gh pr edit": ("40 characters",)}
 REST_WRITE = re.compile(r'issues(?:/(\d+)(/comments)?)?(?=[\s"\'?]|$)')
 FENCE = re.compile(r"^```teamwork\n.*?^```", re.S | re.M)
 STATE_LINE = re.compile(r"^\s*(holders|deferred):", re.M)
