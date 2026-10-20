@@ -6,7 +6,7 @@
                                       rejected by it, one named after a warning rule accepted with that warning,
                                       any other accepted with no warning
   check-schema.py rules               list each rule, error or warning, and what it asks
-  check-schema.py ids doc.json        print every node id and edge key, one per line
+  check-schema.py ids doc.json        print every node id and edge key (level:from>to#n), one per line
   check-schema.py prose [file.md]     check that schema/'s prose, or the files given, cite the grammar and never restate it
 
 Exit status 0 means ok, 1 a violation, 2 a usage error.
@@ -97,13 +97,16 @@ def fixtures():
 
 def ids(path):
     M = Model(json.loads(pathlib.Path(path).read_text(encoding="utf-8")))
-    print("\n".join(list(M.nodes) + [f'{L["id"]}:{e["label"]}' for L in M.m["levels"] for e in L["edges"]]))
+    print("\n".join(list(M.nodes) + list(M.edges)))
     return 0
 
 
+KINDS = ("Topology", "Workflow", "State")
+
+
 def prose(files):
-    """Each schema/ document links the grammar, and none lists three or more of its property names in a row, which
-    would restate it."""
+    """Each schema/ document links the grammar, and no line names three or more of its property names, which would
+    restate it; semantics.md reads each kind in one paragraph under its own heading."""
     names, out = set(), []
 
     def collect(node):
@@ -120,15 +123,25 @@ def prose(files):
         if "assets/schema.json" not in text:
             out.append(f"{doc.name}: links no assets/schema.json")
         for line in text.splitlines():
-            run = [w for w in re.findall(r"`([a-z-]+)`", line) if w in names]
-            if line.lstrip().startswith(("|", "-")) and len(run) >= 3:
+            if len({w for w in re.findall(r"`([a-z-]+)`", line) if w in names}) >= 3:
                 out.append(f"{doc.name}: restates the grammar: {line.strip()[:80]}")
+        if doc.name == "semantics.md":
+            for kind in KINDS:
+                body = re.search(rf"^## {kind}\n\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+                if not body or len(body.group(1).strip().split("\n\n")) != 1:
+                    out.append(f"{doc.name}: give {kind} one paragraph under ## {kind}")
     print("\n".join(out) or "prose: ok")
     return 1 if out else 0
 
 
 def main(args):
     cmd = args[0] if args else "help"
+    if cmd in ("check", "ids") and len(args) == 2:
+        try:
+            json.loads(pathlib.Path(args[1]).read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            print(f"{args[1]}: not a JSON document: {e}", file=sys.stderr)
+            return 2
     if cmd == "check" and len(args) == 2:
         return check(args[1])
     if cmd == "fixtures":

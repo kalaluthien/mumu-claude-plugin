@@ -3,8 +3,8 @@
 How to write a Schema document well. The grammar is [assets/schema.json](assets/schema.json), what each kind means is
 [semantics.md](semantics.md), and brackets name the rule that enforces a line (`scripts/check-schema.py rules`).
 Every name is English [vocabulary]: titles, labels, slugs (`Defining`, not
-`정하기`). Only descriptions (`what`, `why`, `text`, `intent`, a step's `does`
-and `expects`) are in the reader's language.
+`정하기`). Only descriptions, the sentences a person reads, are in the reader's
+language.
 
 ## Intent
 
@@ -219,7 +219,7 @@ Write none when nothing is distinctive.
 
 ## Metadata
 
-`meta` on a document, level, node or edge holds what the drawing does not: `note`, `diff`, `evidence` (each a
-`path:line`, a url or a sha) and `constraint` (each `<path or url>#<requirement>`), and any other key named
-`<name>-<format>`, its value fitting that format [meta-key, meta-format, evidence-pointer, constraint-id]. The
+`meta` on a document, level, node or edge holds what the drawing does not: under the grammar's reserved keys a
+remark, a change, the evidence it rests on (each a `path:line`, a url or a sha) and the requirement it serves (each
+`<path or url>#<requirement>`); under any other key named `<name>-<format>`, a value fitting that format [meta-key, meta-format, evidence-pointer, constraint-id]. The
 formats are the keys of the grammar's `$defs.format`.

@@ -1,4 +1,5 @@
 """Read a Schema document and index it: levels, nodes, edges, triggers, footprints, and the model's own words."""
+import datetime
 import json
 import re
 
@@ -357,9 +358,17 @@ SCHEMA = json.loads(GRAMMAR.read_text(encoding="utf-8"))
 TYPES = {"string": str, "array": list, "object": dict, "integer": int, "number": (int, float), "boolean": bool, "null": type(None)}
 
 
+def real_date(text):
+    try:
+        datetime.date.fromisoformat(text)
+        return True
+    except ValueError:
+        return False
+
+
 def shape(data, schema=SCHEMA, path="schema", root=None):
     """Where the document departs from the grammar, each as (rule, "path: what is wrong"): the subset of JSON Schema
-    the grammar uses ($ref, type, const, enum, pattern, minimum, maximum, required, properties, propertyNames,
+    the grammar uses ($ref, type, const, enum, pattern, format date, minimum, maximum, required, properties, propertyNames,
     additionalProperties, items). A subschema's `x-rule` names the rule it states; `x-format-of-key` checks a meta
     value against the format its key ends in."""
     root = root or schema
@@ -375,6 +384,8 @@ def shape(data, schema=SCHEMA, path="schema", root=None):
         return [(rule, f"{path}: is one of {', '.join(map(str, schema['enum']))}")]
     if "pattern" in schema and isinstance(data, str) and not re.search(schema["pattern"], data):
         return [(rule, f"{path}: {data!r} does not match {schema['pattern']}")]
+    if schema.get("format") == "date" and isinstance(data, str) and not real_date(data):
+        return [(rule, f"{path}: {data!r} is no calendar date")]
     if isinstance(data, (int, float)) and not isinstance(data, bool):
         if data < schema.get("minimum", data) or data > schema.get("maximum", data):
             return [(rule, f"{path}: {data} is out of range")]
