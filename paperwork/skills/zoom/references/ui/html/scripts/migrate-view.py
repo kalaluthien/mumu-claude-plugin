@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""zoom: carry a view.json written for show-me's zoom-diagram engine over to the zoom engine.
+"""zoom: carry a view.json written for the engine before the Schema over to the zoom engine.
 
   migrate-view.py old-view.json|-     print the view for the zoom engine
 

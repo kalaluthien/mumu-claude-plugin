@@ -1,8 +1,8 @@
 {
  "version": "1",
- "title": "zoom-diagram",
+ "title": "zoom",
  "plan": {
-  "intent": "zoom-diagram 플레이북이 시스템 하나를 받아 검사된 줌 다이어그램으로 돌려주기까지 무엇이 어떻게 맞물리는가"
+  "intent": "zoom 플레이북이 시스템 하나를 받아 검사된 줌 다이어그램으로 돌려주기까지 무엇이 어떻게 맞물리는가"
  },
  "scenarios": [
   {
@@ -113,7 +113,7 @@
     },
     {
      "place": "read",
-     "does": "zoom-diagram.html이 독자에게 건네지고, 독자는 Reading에서 레벨을 오가며 시스템을 읽습니다.",
+     "does": "zoom.html이 독자에게 건네지고, 독자는 Reading에서 레벨을 오가며 시스템을 읽습니다.",
      "expects": "작성자는 모든 레벨을 오갈 수 있는 줌 다이어그램 하나를 돌려받아, 시스템을 직접 탐색할 수 있습니다."
     }
    ],
@@ -382,7 +382,7 @@
   },
   {
    "slug": "Model.render",
-   "sig": "() → ZoomDiagram",
+   "sig": "() → Zoom",
    "text": "모델 파일 하나를 줌 다이어그램 하나로 그립니다. 줌 다이어그램에 보이는 이름과 숫자, 문장은 모두 모델에서 가져오고, 그리는 쪽에서 새로 지어내지 않습니다.",
    "refs": [
     "[anatomy](https://github.com/wheresryan22/anatomy)"
@@ -390,7 +390,7 @@
   },
   {
    "slug": "Page.mount",
-   "sig": "(diagram: ZoomDiagram, model: Model) → Board",
+   "sig": "(diagram: Zoom, model: Model) → Board",
    "text": "다른 웹 페이지의 한 자리에 줌 다이어그램 엔진을 붙이고 모델 파일을 넘겨, 그 자리에 같은 보드를 그립니다."
   },
   {
@@ -1358,7 +1358,7 @@
    {
     "from": "render",
     "to": "read",
-    "label": "zoom-diagram.html",
+    "label": "zoom.html",
     "what": "그린 줌 다이어그램을 HTML 파일 하나로 독자에게 건넵니다.",
     "mark": [
      "happy"
@@ -1366,7 +1366,7 @@
     "media": [
      {
       "type": "payload",
-      "text": "zoom-diagram.html\n  engine (css, js) + model.json, one file"
+      "text": "zoom.html\n  engine (css, js) + model.json, one file"
      }
     ]
    }

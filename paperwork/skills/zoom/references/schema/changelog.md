@@ -2,6 +2,7 @@
 
 Each version of the grammar, [assets/schema.json](assets/schema.json), newest first. A document names the version it is
 written in; a script that reads an older one migrates it.
+[migrate-schema.py](scripts/migrate-schema.py) carries a document in the old `system.json` shape to version 1.
 
 ## 1
 
