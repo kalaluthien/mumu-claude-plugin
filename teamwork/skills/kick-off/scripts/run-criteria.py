@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""usage: run-criteria.py [--timeout <s>] <task | ->
+"""usage: run-criteria.py [--timeout <s>] [--main] <task | body-file | ->
 
 Run each `[check]` of a task's Definition of done at the head, in the worktree's root, then each `[check]` of an
 optional `.teamwork/default-criteria.md` there as `standing`, and print a table to comment on the task, which the
@@ -9,7 +9,11 @@ A row is `pass` or `fail` by the output the criterion says it `prints`, or the s
 script cannot decide it, such as a `<placeholder>`, two commands or an expected text found inside other output, which the
 judge runs; `judged` for a `[score]`. A timeout is a `fail`. Exit 1 on any `fail`. A `BLOCKED due: <name>` line follows
 when a criterion fails with the output it had in an earlier table on the task: ask your manager by `BLOCKED:`, since
-it has failed twice the same way."""
+it has failed twice the same way.
+
+`--main` runs each `[check]` in an export of the default branch instead and prints `main ok` when its output equals the
+text quoted after `on main`, `wrong main` when it differs, `unclear` when the quote is not one value; exit 1 on any
+`wrong main`. A body file reads criteria before the task exists, so run it before the first judge."""
 import argparse
 import json
 import os
@@ -18,6 +22,7 @@ import re
 import signal
 import subprocess
 import sys
+import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import github_rest  # noqa: E402
@@ -75,6 +80,37 @@ def expectation(detail):
     if re.fullmatch(r"[\w-]+", clause):
         return command, ("prints", clause)
     return command, (None, "expected output not one value")
+
+
+def main_quote(detail):
+    """The one value quoted after `on main` in a `[check]`'s details, or None when it is not one value."""
+    _, found, rest = detail.partition("on main")
+    clause = re.split(r"[;.](?:\s|$)|,\s+(?!`)|\bwhen\b", rest)[0].strip()
+    span = issue_state.SPAN.fullmatch(clause)
+    return span.group(2) if span else "" if clause == "nothing" else clause if found and re.fullmatch(r"[\w-]+", clause) else None
+
+
+def main_row(label, kind, name, detail, archive, timeout):
+    command, _ = expectation(detail)
+    quoted = main_quote(detail)
+    if kind != "check" or command is None or quoted is None:
+        return label, name, "unclear", "not run: no command or no single value after `on main`"
+    status, out = run(command, archive, timeout)
+    return label, name, "main ok" if status is not None and out == quoted else "wrong main", cell(out)
+
+
+def default_ref():
+    ref = subprocess.run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"], capture_output=True, text=True)
+    return ref.stdout.strip() or "origin/main"
+
+
+def run_on_main(root, rows, timeout):
+    """Rows of every criterion run in a `git archive` copy of the default branch, so the head's files never answer."""
+    with tempfile.TemporaryDirectory(prefix="run-criteria-main-") as copy:
+        tar = subprocess.Popen(["git", "archive", default_ref()], cwd=root, stdout=subprocess.PIPE)
+        subprocess.run(["tar", "-x", "-C", copy], stdin=tar.stdout, check=True)
+        tar.wait()
+        return [main_row(str(n), *c, copy, timeout) for n, c in enumerate(rows, 1)]
 
 
 def run(command, cwd, timeout):
@@ -144,12 +180,20 @@ def earlier_fails(task):
 def main():
     args = argparse.ArgumentParser()
     args.add_argument("--timeout", type=int, default=300)
+    args.add_argument("--main", action="store_true")
     args.add_argument("task")
     a = args.parse_args()
-    task = read_task(a.task)
+    file = pathlib.Path(a.task)
+    task = {"body": file.read_text(), "comments": []} if file.is_file() else read_task(a.task)
     root = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip() or "."
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
     dirty = subprocess.run(["git", "status", "--porcelain"], cwd=root, capture_output=True, text=True).stdout.strip()
+    if a.main:
+        rows = run_on_main(root, list(criteria(issue_state.sections(task.get("body")).get("done", ""))), a.timeout)
+        print(f"REPORTED: main outputs at {default_ref()}\n\n| # | criterion | result | output on main |\n| --- | --- | --- | --- |")
+        for r in rows:
+            print("| " + " | ".join([r[0], r[1].replace("|", "\\|"), r[2], r[3]]) + " |")
+        sys.exit(1 if any(r[2] == "wrong main" for r in rows) else 0)
     standing = pathlib.Path(root, ".teamwork", "default-criteria.md")
     rows = [row(str(n), *c, root, a.timeout) for n, c in enumerate(criteria(issue_state.sections(task.get("body")).get("done", "")), 1)]
     rows += [row("standing", *c, root, a.timeout) for c in criteria(standing.read_text())] if standing.exists() else []
