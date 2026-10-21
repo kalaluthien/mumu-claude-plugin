@@ -19,7 +19,8 @@ Give each rule one:
 - **defect**: the document describes the code, and the code breaks the rule; a finding about the code, not drift;
 - **blocked**: the document could not be brought back in line, or the rule could not be proved; say why.
 
-A rule can be both updated and defect. Edit only the document, never the system's code, and never weaken a rule to
+A rule the update brought back in line that then fails is a defect; its hand-over names the update too. Edit only
+the document, never the system's code, and never weaken a rule to
 pass, as [prove.md](prove.md)'s Findings stay findings says.
 
 ## Steps
@@ -40,14 +41,14 @@ Command paths are relative to this file.
 3. Update the document from the code, not from what makes a rule pass: each changed element again cites the line it
    rests on. Change a rule only for a promise changed on purpose, writing its old text, new text and evidence. Run
    `../schema/scripts/check-schema.py check doc.json` until it prints `ok`.
-4. Run `scripts/prove-schema.py --mutate doc.json` and judge each line:
-   - **pass**: `--mutate` reruns each passing rule without each restriction, and its line must end `fails
+4. Run `scripts/prove-schema.py doc.json` again and judge each line:
+   - **pass**: confirm it with `scripts/prove-schema.py --mutate doc.json`, whose line for that rule must end `fails
      without`, so the updated document can still fail;
    - **counterexample**: replay the trace on the code step by step. A step the code cannot take is drift: fix the
      document and say what was wrong. Every step possible is a defect: name the commit that brought it, retell the
      trace in the code's words and the harm in one sentence.
    A rule that passed in step 1 and fails now passed on a stale description; say so.
-5. The document has one commit, so move it to the one you checked only once every rule was checked and none is
-   blocked; else keep it and say which rule holds it back.
+5. The document has one commit, so move it forward to the one you checked only once every rule was checked and none
+   is blocked; while any rule is blocked, keep the old commit and say which rule holds it back.
 6. Hand over each rule's outcome, the commits read, each document change with its reason, each defect, and what the
    document still does not cover. Put the document's update in a change of its own, apart from any fix to the code.
