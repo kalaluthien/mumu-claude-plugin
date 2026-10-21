@@ -87,9 +87,9 @@ def main_quote(detail):
     """The one value quoted after `on main` in a `[check]`'s details, or None when it is not one value."""
     _, found, rest = detail.partition("on main")
     clause = re.split(r"[;.](?:\s|$)|,\s+(?!`)|\bwhen\b", rest)[0].strip()
-    span = issue_state.SPAN.fullmatch(clause)
-    if span:
-        return span.group(2)
+    spans = list(issue_state.SPAN.finditer(clause))
+    if len(spans) == 1 and spans[0].span() == (0, len(clause)):
+        return spans[0].group(2)
     if clause == "nothing":
         return ""
     return clause if found and re.fullmatch(r"[\w-]+", clause) else None
