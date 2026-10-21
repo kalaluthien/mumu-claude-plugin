@@ -71,8 +71,8 @@ flowchart TB
   n_issues["issues skill"]
   n_lib[["Shared lib"]]
   n_hook -->|"points to"| n_kick
-  n_monitor -->|"wakes"| n_kick
-  n_issues -->|"opens"| n_pane
+  n_monitor -->|"tells a session of"| n_kick
+  n_pane -->|"answers /teamwork:issues of"| n_issues
   n_hook -->|"reads"| n_lib
   n_monitor -->|"reads"| n_lib
   n_pane -->|"runs scripts that read"| n_lib
