@@ -19,9 +19,9 @@ What each one needs on your machine:
 
 | plugin | needs |
 | --- | --- |
-| teamwork | [`gh`](https://cli.github.com/), signed in; [herdr](https://herdr.dev), the terminal workspace where sessions live and talk by name |
-| paperwork | Python 3 with [`uv`](https://docs.astral.sh/uv/); Google Chrome for checking pages and diagrams; Java, only for the optional Alloy proofs |
-| homework | nothing beyond Claude Code |
+| teamwork | Python 3; `git`; [`gh`](https://cli.github.com/), signed in; [herdr](https://herdr.dev), the terminal workspace where sessions live and talk by name |
+| paperwork | Python 3 with [`uv`](https://docs.astral.sh/uv/); Google Chrome for checking pages and diagrams; Node and `npm` for the optional [pele](https://www.npmjs.com/package/pele) diagrams (fetched on first use); Java for the optional Alloy proofs (`prove-schema.py --fetch` downloads the Alloy jar) |
+| homework | Python 3; `git`; `gh`, signed in, to read the issue comments a session wrote |
 
 ### Local clone install
 
