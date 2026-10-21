@@ -15,6 +15,40 @@ Add this repository as a marketplace, then install the plugins you want:
 /plugin install homework@mumu-claude-plugin
 ```
 
+### Installation from a local clone
+
+A clone makes a merged change reach your sessions after a `git pull`, with no reinstall.
+
+1. Clone the repository:
+
+   ```
+   git clone https://github.com/kalaluthien/mumu-claude-plugin ~/workspace/plugins
+   ```
+
+2. Add the clone as a marketplace, in `~/.claude/settings.json`:
+
+   ```json
+   {
+     "extraKnownMarketplaces": {
+       "mumu-claude-plugin": {
+         "source": { "source": "directory", "path": "/Users/<you>/workspace/plugins" }
+       }
+     }
+   }
+   ```
+
+3. Enable the plugins per project, in the project's git-ignored `.claude/settings.local.json`:
+
+   ```json
+   {
+     "enabledPlugins": {
+       "teamwork@mumu-claude-plugin": true,
+       "homework@mumu-claude-plugin": true,
+       "paperwork@mumu-claude-plugin": true
+     }
+   }
+   ```
+
 What each one needs on your machine:
 
 | plugin | needs |
