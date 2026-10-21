@@ -27,6 +27,10 @@ first reaches it, and write every part it supports:
 - function, call: an operation; check, guard, invariant: a rule there;
 - number, limit, timeout: a quantity.
 
+One edge or event is one indivisible step in the source, since a proof treats it as one: split a step the source
+takes in parts (a read then a write, a check then an act) into one edge each, and write a sync only where the source
+makes both events happen in one atomic action, such as a lock, a transaction or one call.
+
 ## Metadata as evidence
 
 - **Evidence**: give each node and edge you read from a source `meta.evidence` as `path:line` or `path:line-line`

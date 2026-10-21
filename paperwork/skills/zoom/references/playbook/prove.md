@@ -20,7 +20,8 @@ follows each kind's reading, so an edge means one thing in the drawing and in th
 
 ## Run
 
-With no document yet, write the smallest one the ask's rule talks about: the level it names and the rule as a
+With no rule named, pick the promise whose break harms users most and that tests reach least, not the one easiest to
+prove; read it from the code and docs, and ask only what they cannot show. With no document yet, write the smallest one the ask's rule talks about: the level it names and the rule as a
 `must`, in the grammar above, checked `ok` by
 `${CLAUDE_PLUGIN_ROOT}/skills/zoom/references/schema/scripts/check-schema.py check <doc.json>`.
 
@@ -32,7 +33,7 @@ are cached, so an unchanged rule is not run again.
 | line | means | next |
 | --- | --- | --- |
 | `<rule>: pass` | no run in the scope breaks it | done; a pass proves nothing past the scope |
-| `<rule>: counterexample <trace>` | a run breaks it | read the trace on the Schema; a `must` broken is a system defect: hand it back, and change the Schema only for a guard, pre or post you left out |
+| `<rule>: counterexample <trace>` | a run breaks it | read the trace on the Schema; a `must` broken is a system defect: hand it back, as Findings stay findings says |
 | `<rule>: unproved: <reason>` | no answer | run `prove-schema.py --fetch`, which downloads the pinned Alloy 6.2.0 jar, or split a rule past the time limit (`PAPERWORK_ALLOY_SECONDS`, 120 by default) |
 
 A trace names Schema ids, as `check-schema.py ids` prints them: `[a, b]` are the nodes whose things witness the
@@ -46,7 +47,12 @@ either.
   operation's pre or post, a `must`) and ends its line `, fails without <id>, ...`, the restrictions that hold it, or
   `, unfalsified`, a rule that holds by the structure alone or says nothing: hand that one back as such. A guard's own
   slug in the list means only the guard holds the rule.
-
+- **Findings stay findings**: a broken `must` stays a `must`; never turn it into a `should`, narrow its formula, drop
+  it or cut the scope until it passes. Change the Schema only for a guard, pre or post the source has and you left out.
+- **Hand-over**: state each rule and the harm its break does, one plain sentence each. Retell each counterexample as
+  numbered steps in the nodes' and edges' labels, each with its `meta.evidence` line where it has one. Name the scope
+  (`for 3`, 8 steps), the assumptions each check is given (the other `must`s, guards, pres, posts and syncs) and what
+  the document leaves out; a pass covers that scope, not the system.
 - **Every rule asked**: a guard on an edge holds by construction and passes; a rule over what never changes is asked
   under every other such `must`, so a counterexample says the structure alone does not force it.
 - **Scope**: every check runs `for 3`, 8 steps and room for each kind of call; a rule's own scope is added to its
