@@ -69,7 +69,7 @@ Keeps what a session learned, once, where the next reader will look.
 
 **Use it.** The signal arrives on its own, and the skill is not in the slash menu. To ask for it yourself, tell Claude to keep a lesson (retro) or tidy memory (dream). It asks you nothing and reports what it did.
 
-## Work on this repository
+## Contribution to this repository
 
 - [AGENTS.md](AGENTS.md) holds the rules every plugin follows: folder layout, how skills are written, how a design is split, how a change is evaluated.
 - [CONTRIBUTING.md](CONTRIBUTING.md) says how to propose a change from a fork.
