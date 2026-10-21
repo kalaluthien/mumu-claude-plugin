@@ -33,7 +33,7 @@ are cached, so an unchanged rule is not run again.
 | --- | --- | --- |
 | `<rule>: pass` | no run in the scope breaks it | done; a pass proves nothing past the scope |
 | `<rule>: counterexample <trace>` | a run breaks it | read the trace on the Schema; a `must` broken is a system defect: hand it back, and change the Schema only for a guard, pre or post you left out |
-| `<rule>: unproved: <reason>` | no answer | install Alloy, or split a rule past the time limit (`PAPERWORK_ALLOY_SECONDS`, 120 by default) |
+| `<rule>: unproved: <reason>` | no answer | run `prove-schema.py --fetch`, which downloads the pinned Alloy 6.2.0 jar, or split a rule past the time limit (`PAPERWORK_ALLOY_SECONDS`, 120 by default) |
 
 A trace names Schema ids, as `check-schema.py ids` prints them: `[a, b]` are the nodes whose things witness the
 break, then the elements called at each step, `→` between steps, ` + ` within one, and `x|y` where one call may be
@@ -41,10 +41,17 @@ either.
 
 ## Rules
 
+- **Able to fail**: a pass you never saw fail proves nothing, so run `prove-schema.py --mutate <doc.json>` before
+  handing over a pass. It checks each passing `must` again on copies that each drop one restriction (a sync, an
+  operation's pre or post, a `must`) and ends its line `, fails without <id>, ...`, the restrictions that hold it, or
+  `, unfalsified`, a rule that holds by the structure alone or says nothing: hand that one back as such. A guard's own
+  slug in the list means only the guard holds the rule.
+
 - **Every rule asked**: a guard on an edge holds by construction and passes; a rule over what never changes is asked
   under every other such `must`, so a counterexample says the structure alone does not force it.
 - **Scope**: every check runs `for 3`, 8 steps and room for each kind of call; a rule's own scope is added to its
   check. Raise it only for a rule about large numbers.
 - **Fixtures**: [regions-unsynced.json](fixtures/regions-unsynced.json) breaks `no-forbidden-pair`, and
-  [regions-synced.json](fixtures/regions-synced.json), the same regions held apart by syncs, passes; run both after
-  changing the module.
+  [regions-synced.json](fixtures/regions-synced.json), the same regions held apart by syncs, passes, and with
+  `--mutate` fails without each sync; [pass-unforced.json](fixtures/pass-unforced.json) adds `one-car-state`, which
+  one region forces, so `--mutate` prints it `unfalsified`. Run all three after changing the module.
