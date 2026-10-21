@@ -24,7 +24,7 @@ Turn the owner's words into backlogs, route each to a worker, and decide what wo
 
 ## Arbitrate
 
-- **Goal check**: before a task's work starts, answer its worker's `BLOCKED:` by checking its Goal against the owner's words; ask the owner only when it cannot judge. A wider option the worker offers changes the owner's intent: let the plain option start, and hand the wider one to the owner as a follow-up.
+- **Task review**: when a worker tells you a task's url, review it at once while the worker builds: its Goal reads the backlog's words ambitiously, never narrowed; its Definition of done has no criterion that proves what another already proves, and none a change could pass while it bends the intent, which is reward hacking. `decide` each gap on the task and `tell` the worker; ask the owner only when you cannot judge. A wider option the worker offers changes the owner's intent: hand it to the owner as a follow-up.
 - **Next step**: a worker's `REPORTED: batch landed …` leaves its backlog open, and the manager picks the next step: route it, asking the owner first when it changes the owner's intent.
 - **Order**: two workers' work touching the same files: `order` the later after the earlier, and `decide` it on both.
 - **Shared failure**: two tasks failing one check: `decide` on both which owns the fix; the other reverts its patch and takes it from main.
