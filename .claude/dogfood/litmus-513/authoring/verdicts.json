@@ -1,7 +1,0 @@
-{"answers": {
- "genuine":   {"no-silent-drop":1,"change-lists-match":1,"size-counts-match":1,"metric-counts-match":1,"counts-any-per-option":1,"counts-all-per-option":0,"option-has-conflict":1,"counts-hold":1,"levels-within-seven":1,"fewer-bad-states":1,"recommended-first":1},
- "probe":     {"no-silent-drop":0,"change-lists-match":0,"size-counts-match":0,"metric-counts-match":0,"counts-any-per-option":1,"counts-all-per-option":0,"option-has-conflict":1,"counts-hold":1,"levels-within-seven":1,"fewer-bad-states":1,"recommended-first":1},
- "middling":  {"no-silent-drop":1,"change-lists-match":1,"size-counts-match":1,"metric-counts-match":1,"counts-any-per-option":1,"counts-all-per-option":0,"option-has-conflict":1,"counts-hold":1,"levels-within-seven":0,"fewer-bad-states":0,"recommended-first":1},
- "near-miss-wrong-sum": {"no-silent-drop":1,"change-lists-match":1,"size-counts-match":0,"metric-counts-match":1,"counts-any-per-option":1,"counts-all-per-option":0,"option-has-conflict":1,"counts-hold":1,"levels-within-seven":1,"fewer-bad-states":1,"recommended-first":1},
- "near-miss-hidden-drop": {"no-silent-drop":0,"change-lists-match":0,"size-counts-match":1,"metric-counts-match":1,"counts-any-per-option":1,"counts-all-per-option":0,"option-has-conflict":1,"counts-hold":1,"levels-within-seven":1,"fewer-bad-states":1,"recommended-first":1}
-}}
