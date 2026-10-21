@@ -1,10 +1,10 @@
-# mumu-claude-plugin
+# mumu-claude-plugin: three Claude Code plugins
 
 Three Claude Code plugins that let one person run a small team of Claude sessions without losing the plot: **teamwork** turns what you ask for into reviewed, merged work; **paperwork** shows you things as pages and settles open questions; **homework** makes sure each session leaves behind what it learned.
 
 Each plugin works alone.
 
-## Install
+## Installation
 
 Add this repository as a marketplace, then install the plugins you want:
 
@@ -23,7 +23,7 @@ What each one needs on your machine:
 | paperwork | Python 3 with [`uv`](https://docs.astral.sh/uv/); Google Chrome for checking pages and diagrams; Java, only for the optional Alloy proofs |
 | homework | nothing beyond Claude Code |
 
-## teamwork: from a request to a merged change
+## teamwork: the path from a request to a merged change
 
 Three roles, each with a narrow job ([the authority table](teamwork/skills/kick-off/SKILL.md)):
 
@@ -59,7 +59,7 @@ One Schema document holds what a system is, or must be, and every view is drawn 
 /paperwork:zoom prove that two workers never hold the same worktree
 ```
 
-## homework: lessons that stick
+## homework: lessons kept across sessions
 
 Keeps what a session learned, once, where the next reader will look.
 
@@ -69,7 +69,7 @@ Keeps what a session learned, once, where the next reader will look.
 
 **Use it.** The signal arrives on its own, and the skill is not in the slash menu. To ask for it yourself, tell Claude to keep a lesson (retro) or tidy memory (dream). It asks you nothing and reports what it did.
 
-## Working on this repository
+## Work on this repository
 
 - [AGENTS.md](AGENTS.md) holds the rules every plugin follows: folder layout, how skills are written, how a design is split, how a change is evaluated.
 - [CONTRIBUTING.md](CONTRIBUTING.md) says how to propose a change from a fork.
