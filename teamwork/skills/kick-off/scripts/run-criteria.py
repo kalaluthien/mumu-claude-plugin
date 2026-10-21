@@ -13,7 +13,8 @@ it has failed twice the same way.
 
 `--main` runs each `[check]` in an export of the default branch instead and prints `main ok` when its output equals the
 text quoted after `on main`, `wrong main` when it differs, `unclear` when the quote is not one value; exit 1 on any
-`wrong main`. A body file reads criteria before the task exists, so run it before the first judge."""
+`wrong main`. The export has no `.git` and the output is compared whole, so a check that uses git, or an `exits` one,
+reads `wrong main`: quote main's real text. It never fetches: run `git fetch` first. A body file reads criteria before the task exists, so run it before the first judge."""
 import argparse
 import json
 import os
@@ -109,7 +110,8 @@ def run_on_main(root, rows, timeout):
     with tempfile.TemporaryDirectory(prefix="run-criteria-main-") as copy:
         tar = subprocess.Popen(["git", "archive", default_ref()], cwd=root, stdout=subprocess.PIPE)
         subprocess.run(["tar", "-x", "-C", copy], stdin=tar.stdout, check=True)
-        tar.wait()
+        if tar.wait():
+            sys.exit(f"run-criteria: could not export {default_ref()}; fetch it first")
         return [main_row(str(n), *c, copy, timeout) for n, c in enumerate(rows, 1)]
 
 
@@ -184,13 +186,14 @@ def main():
     args.add_argument("task")
     a = args.parse_args()
     file = pathlib.Path(a.task)
-    task = {"body": file.read_text(), "comments": []} if file.is_file() else read_task(a.task)
+    task = {"body": file.read_text(), "comments": []} if a.main and file.is_file() else read_task(a.task)
     root = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip() or "."
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
     dirty = subprocess.run(["git", "status", "--porcelain"], cwd=root, capture_output=True, text=True).stdout.strip()
     if a.main:
+        sha = subprocess.run(["git", "rev-parse", "--short", default_ref()], cwd=root, capture_output=True, text=True).stdout.strip()
         rows = run_on_main(root, list(criteria(issue_state.sections(task.get("body")).get("done", ""))), a.timeout)
-        print(f"REPORTED: main outputs at {default_ref()}\n\n| # | criterion | result | output on main |\n| --- | --- | --- | --- |")
+        print(f"REPORTED: main outputs at {default_ref()} {sha}\n\n| # | criterion | result | output on main |\n| --- | --- | --- | --- |")
         for r in rows:
             print("| " + " | ".join([r[0], r[1].replace("|", "\\|"), r[2], r[3]]) + " |")
         sys.exit(1 if any(r[2] == "wrong main" for r in rows) else 0)
