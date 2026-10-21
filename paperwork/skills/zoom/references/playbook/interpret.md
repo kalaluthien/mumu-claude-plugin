@@ -38,7 +38,8 @@ makes both events happen in one atomic action, such as a lock, a transaction or 
   no line exists.
 - **Explanation**: where the source's reason is not obvious from the label, add `meta.note` saying why, in plain
   words, never opening with `<Word>:`, which marks a fault.
-- **Commit**: write the commit you read in the hand-over, so every pointer resolves later.
+- **Commit**: write the commit you read as the document's own top-level `meta.evidence`, `["<sha>"]`, and in the
+  hand-over, so every pointer resolves later and [recheck.md](recheck.md) finds what changed since.
 
 ## Defects
 

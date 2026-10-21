@@ -10,6 +10,10 @@
   resolve-pointers.py faults doc.json --root DIR --sha SHA
       each `meta.note` written `<Word>: <text>` is a fault; it is named when <Word> is Missing, Illegal, Redundant or
       Overloaded and its element's evidence all resolves. Prints `faults: <n> named, <k> unresolved`.
+  resolve-pointers.py drift doc.json --root DIR --sha SHA [--to NEW]
+      each `meta.evidence` `path:line` pointer read at SHA is `changed` when a commit up to NEW (HEAD by default)
+      touched one of its lines, or `gone` when its file is not at NEW; a line that only moved stays unchanged. Prints
+      `drift: <n> unchanged, <k> changed`, `gone` counted as changed; a url or a sha is skipped.
 
 Each failing pointer is printed above the count. Exit status 0 when the count is 1 or more and nothing failed, 1
 otherwise, 2 on a usage error.
@@ -61,8 +65,10 @@ def slug(s):
 
 
 def evidence(doc, repo):
-    bad = [f"unresolved {p}: {why}" for _, m in metas(doc) for p in m.get("evidence", []) if (why := repo.line(p))]
-    good = sum(len(m.get("evidence", [])) for _, m in metas(doc)) - len(bad)
+    # the document's own evidence is the commit it was read at, not a pointer
+    ms = [m for where, m in metas(doc) if where != "$"]
+    bad = [f"unresolved {p}: {why}" for m in ms for p in m.get("evidence", []) if (why := repo.line(p))]
+    good = sum(len(m.get("evidence", [])) for m in ms) - len(bad)
     return bad, f"evidence: {good} resolved, {len(bad)} unresolved", good
 
 
@@ -97,8 +103,44 @@ def faults(doc, repo):
     return bad, f"faults: {good} named, {len(bad)} unresolved", good
 
 
+def touched(root, sha, to, path):
+    """The lines of `path` at `sha` that the diff to `to` removes or replaces, or None when `path` is gone at `to`."""
+    if subprocess.run(["git", "-C", root, "cat-file", "-e", f"{to}:{path}"], capture_output=True).returncode:
+        return None
+    diff = subprocess.run(["git", "-C", root, "diff", "-U0", sha, to, "--", path], capture_output=True, text=True).stdout
+    lines = set()
+    for start, count in re.findall(r"^@@ -([0-9]+)(?:,([0-9]+))? ", diff, re.M):
+        n = 1 if count == "" else int(count)
+        # a pure insertion (count 0) lands between two lines, so it touches the one above it
+        lines |= set(range(int(start), int(start) + n)) if n else {int(start)}
+    return lines
+
+
+def drift(doc, repo, to):
+    bad, good = [], 0
+    for _, m in metas(doc):
+        for p in m.get("evidence", []):
+            if repo.line(p):
+                continue   # a url, a sha, or a line not at SHA: `evidence` reports it
+            path, a, b = re.fullmatch(r"([^\s:#]+):([0-9]+)(?:-([0-9]+))?", p).groups()
+            hit = touched(repo.root, repo.sha, to, path)
+            if hit is None:
+                bad.append(f"{p}: gone at {to}")
+            elif hit & set(range(int(a), int(b or a) + 1)):
+                bad.append(f"{p}: changed by {to}")
+            else:
+                good += 1
+    return bad, f"drift: {good} unchanged, {len(bad)} changed", good
+
+
 def main(args):
     modes = {"evidence": evidence, "constraints": constraints, "faults": faults}
+    if len(args) == 8 and args[0] == "drift" and args[6] == "--to":
+        to, args = args[7], args[:6]
+    elif len(args) == 6 and args[0] == "drift":
+        to = "HEAD"
+    if args[:1] == ["drift"]:
+        modes["drift"] = lambda doc, repo: drift(doc, repo, to)
     if len(args) != 6 or args[0] not in modes or args[2] != "--root" or args[4] != "--sha":
         print(__doc__)
         return 2
