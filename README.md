@@ -77,7 +77,7 @@ The [`kick-off`](teamwork/skills/kick-off/SKILL.md) skill routes a session to th
 | [migration](teamwork/skills/kick-off/references/worker-migration-playbook.md) | moves files, code or data to a new form with behaviour kept |
 | [research](teamwork/skills/kick-off/references/worker-research-playbook.md) | ends in a report comment, not a change |
 
-**Use it.** In a herdr workspace, start a session and ask it to manage:
+**Usage.** In a herdr workspace, start a session and ask it to manage:
 
 ```
 Be this project's teamwork manager: fix the login timeout
@@ -115,7 +115,7 @@ One Schema document holds what a system is, or must be, and every view is drawn 
   | [grade](paperwork/skills/litmus/references/playbook/grade.md) | apply a spec to verdicts: rewards, a comparison of systems, a sheet people fill in |
   | [repair](paperwork/skills/litmus/references/playbook/repair.md) | fix a spec that ranked answers wrongly |
 
-**Use it.**
+**Usage.**
 
 ```
 /paperwork:zoom map how the release pipeline works
@@ -135,12 +135,12 @@ Keeps what a session learned, once, where the next reader will look.
   | [run-recipe](homework/skills/wrap-up/references/run-recipe.md) | the repository has no known way to run and verify itself, or the known way fails |
   | [dream](homework/skills/wrap-up/references/dream-how.md) | enough memory files changed, or you ask to tidy memory |
   | [dejavu](homework/skills/wrap-up/references/dejavu.md) | a recurring-pattern pass is due, or you ask for it |
-  | [skill-authoring](homework/skills/wrap-up/references/skill-authoring.md) | you write or edit a skill or an agent file |
-  | [hook-authoring](homework/skills/wrap-up/references/hook-authoring.md) | you write or edit a hook or a script |
+  | [skill-authoring](homework/skills/wrap-up/references/skill-authoring.md) | you write or edit a skill or an agent file, with no lesson behind it |
+  | [hook-authoring](homework/skills/wrap-up/references/hook-authoring.md) | you write or edit a hook or a script, with no lesson behind it |
 
 - Every memory file says when it applies and when it would be wrong, so a stale lesson can be spotted.
 
-**Use it.** The signal arrives on its own, and the skill is not in the slash menu. To ask for it yourself, tell Claude to keep a lesson (retro) or tidy memory (dream). It asks you nothing and reports what it did.
+**Usage.** The signal arrives on its own, and the skill is not in the slash menu. To ask for it yourself, tell Claude to keep a lesson (retro) or tidy memory (dream). It asks you nothing and reports what it did.
 
 ## Contribution to this repository
 
