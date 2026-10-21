@@ -41,11 +41,13 @@ Command paths are relative to this file.
    rests on. Change a rule only for a promise changed on purpose, writing its old text, new text and evidence. Run
    `../schema/scripts/check-schema.py check doc.json` until it prints `ok`.
 4. Run `scripts/prove-schema.py --mutate doc.json` and judge each line:
-   - **pass**: it must end `fails without`, so the updated document can still fail;
+   - **pass**: `--mutate` reruns each passing rule without each restriction, and its line must end `fails
+     without`, so the updated document can still fail;
    - **counterexample**: replay the trace on the code step by step. A step the code cannot take is drift: fix the
      document and say what was wrong. Every step possible is a defect: name the commit that brought it, retell the
      trace in the code's words and the harm in one sentence.
    A rule that passed in step 1 and fails now passed on a stale description; say so.
-5. Move the document's commit to the one you checked only when no rule is blocked; else keep it and say why.
+5. The document has one commit, so move it to the one you checked only once every rule was checked and none is
+   blocked; else keep it and say which rule holds it back.
 6. Hand over each rule's outcome, the commits read, each document change with its reason, each defect, and what the
    document still does not cover. Put the document's update in a change of its own, apart from any fix to the code.
