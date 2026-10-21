@@ -13,7 +13,9 @@
   resolve-pointers.py drift doc.json --root DIR --sha SHA [--to NEW]
       each `meta.evidence` `path:line` pointer read at SHA is `changed` when a commit up to NEW (HEAD by default)
       touched one of its lines, or `gone` when its file is not at NEW; a line that only moved stays unchanged. Prints
-      `drift: <n> unchanged, <k> changed`, `gone` counted as changed; a url or a sha is skipped.
+      `drift: <n> unchanged, <k> changed`, `gone` counted as changed; a url or a sha is skipped, and a `path:line`
+      that does not resolve at SHA is printed `unresolved` and fails the run, since a wrong SHA or root reads as no
+      drift.
 
 Each failing pointer is printed above the count. Exit status 0 when the count is 1 or more and nothing failed, 1
 otherwise, 2 on a usage error.
@@ -117,11 +119,13 @@ def touched(root, sha, to, path):
 
 
 def drift(doc, repo, to):
-    bad, good = [], 0
+    bad, unresolved, good = [], [], 0
     for _, m in metas(doc):
         for p in m.get("evidence", []):
-            if repo.line(p):
-                continue   # a url, a sha, or a line not at SHA: `evidence` reports it
+            if why := repo.line(p):
+                if why != "not a path:line":
+                    unresolved.append(f"unresolved {p}: {why}")
+                continue
             path, a, b = re.fullmatch(r"([^\s:#]+):([0-9]+)(?:-([0-9]+))?", p).groups()
             hit = touched(repo.root, repo.sha, to, path)
             if hit is None:
@@ -130,7 +134,7 @@ def drift(doc, repo, to):
                 bad.append(f"{p}: changed by {to}")
             else:
                 good += 1
-    return bad, f"drift: {good} unchanged, {len(bad)} changed", good
+    return unresolved + bad, f"drift: {good} unchanged, {len(bad)} changed", good
 
 
 def main(args):

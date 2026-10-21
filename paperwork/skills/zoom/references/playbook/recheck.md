@@ -29,7 +29,8 @@ Command paths are relative to this file.
 
 1. Run `scripts/prove-schema.py doc.json` before changing anything, and keep its lines: a pass here says only that
    the old description still holds.
-2. Run `scripts/resolve-pointers.py drift doc.json --root <repo> --sha <commit>`; read each `changed` or `gone`
+2. Run `scripts/resolve-pointers.py evidence doc.json --root <repo> --sha <commit>` and fix each unresolved pointer,
+   then `scripts/resolve-pointers.py drift doc.json --root <repo> --sha <commit>`; read each `changed` or `gone`
    pointer's diff and commit messages (`git log -L <a>,<b>:<path> <commit>..`), and look for moved or renamed code and
    for new code that writes what a rule guards. Call each change one of:
    - **no effect**: nothing the document states changed, checked against the document, not the commit message;
@@ -43,12 +44,14 @@ Command paths are relative to this file.
    `../schema/scripts/check-schema.py check doc.json` until it prints `ok`.
 4. Run `scripts/prove-schema.py doc.json` again and judge each line:
    - **pass**: confirm it with `scripts/prove-schema.py --mutate doc.json`, whose line for that rule must end `fails
-     without`, so the updated document can still fail;
+     without`, so the updated document can still fail; one ending `unfalsified` keeps its outcome, and the hand-over
+     names it never seen failing, as [prove.md](prove.md)'s Able to fail says;
    - **counterexample**: replay the trace on the code step by step. A step the code cannot take is drift: fix the
      document and say what was wrong. Every step possible is a defect: name the commit that brought it, retell the
      trace in the code's words and the harm in one sentence.
    A rule that passed in step 1 and fails now passed on a stale description; say so.
-5. The document has one commit, so move it forward to the one you checked only once every rule was checked and none
-   is blocked; while any rule is blocked, keep the old commit and say which rule holds it back.
+5. Run `scripts/resolve-pointers.py evidence doc.json --root <repo> --sha <new commit>` until nothing is
+   unresolved. The document has one commit, so move it forward to the one you checked only once every rule was
+   checked and none is blocked; while any rule is blocked, keep the old commit and say which rule holds it back.
 6. Hand over each rule's outcome, the commits read, each document change with its reason, each defect, and what the
    document still does not cover. Put the document's update in a change of its own, apart from any fix to the code.
