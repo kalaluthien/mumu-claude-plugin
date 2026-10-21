@@ -1,6 +1,6 @@
 ---
 name: zoom
-description: Use when a system, a change or requirements must be modelled as a checked Schema document, improved, proved with Alloy, or shown as a diagram (Mermaid in chat, or a clickable HTML page).
+description: Use when a system, a change or requirements must be modelled as a checked Schema document, improved, proved with Alloy ("prove this invariant", "can this race happen"), or shown as a diagram (Mermaid in chat, or a clickable HTML page).
 ---
 
 # zoom
