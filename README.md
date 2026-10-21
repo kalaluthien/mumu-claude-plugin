@@ -1,6 +1,6 @@
 # mumu-claude-plugin: three Claude Code plugins
 
-Three Claude Code plugins that let one person run a small team of Claude sessions without losing the plot: **teamwork** turns what you ask for into reviewed, merged work; **paperwork** shows you things as pages and settles open questions; **homework** makes sure each session leaves behind what it learned.
+Three Claude Code plugins that let one person run a small team of Claude sessions without losing the plot: **teamwork** turns what you ask for into reviewed, merged work; **paperwork** models a system as a checked document you can prove and draw, and turns a task into a grading spec; **homework** makes sure each session leaves behind what it learned.
 
 Each plugin works alone.
 
@@ -111,7 +111,7 @@ One Schema document holds what a system is, or must be, and every view is drawn 
   | playbook | runs when you ask to |
   | --- | --- |
   | [author](paperwork/skills/litmus/references/playbook/author.md) | write a rubric, reward spec or grading spec from a task |
-  | [calibrate](paperwork/skills/litmus/references/playbook/calibrate.md) | measure how far the judge agrees with itself or with people |
+  | [calibrate](paperwork/skills/litmus/references/playbook/calibrate.md) | measure how far the judge agrees with itself or with people, or how it reacts to length, padding or wording |
   | [grade](paperwork/skills/litmus/references/playbook/grade.md) | apply a spec to verdicts: rewards, a comparison of systems, a sheet people fill in |
   | [repair](paperwork/skills/litmus/references/playbook/repair.md) | fix a spec that ranked answers wrongly |
 
@@ -131,7 +131,7 @@ Keeps what a session learned, once, where the next reader will look.
 
   | playbook | runs when |
   | --- | --- |
-  | [retro](homework/skills/wrap-up/references/retro.md) | enough lessons piled up, the session's first retro is due, you ask to keep a lesson, or nothing else fits |
+  | [retro](homework/skills/wrap-up/references/retro.md) | enough lessons piled up, the session's first retro is due, you ask to keep a lesson, or you ask with no wrap-up signal and no other playbook fits |
   | [run-recipe](homework/skills/wrap-up/references/run-recipe.md) | the repository has no known way to run and verify itself, or the known way fails |
   | [dream](homework/skills/wrap-up/references/dream-how.md) | enough memory files changed, or you ask to tidy memory |
   | [dejavu](homework/skills/wrap-up/references/dejavu.md) | a recurring-pattern pass is due, or you ask for it |
