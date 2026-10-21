@@ -41,7 +41,8 @@ flowchart TB
   n_issues -->|"opens"| n_pane
   n_hook -->|"reads"| n_lib
   n_monitor -->|"reads"| n_lib
-  n_pane -->|"reads"| n_lib
+  n_pane -->|"runs scripts that read"| n_lib
+  n_kick -->|"runs scripts that read"| n_lib
 ```
 
 </details>
@@ -111,7 +112,7 @@ flowchart TB
 flowchart TB
   n_hook["Wrap-up hook"]
   n_skill["wrap-up skill"]
-  n_lib[["Memory lib"]]
+  n_lib[["Homework lib"]]
   n_hook -->|"reads"| n_lib
   n_hook -->|"signals"| n_skill
   n_skill -->|"reads"| n_lib
