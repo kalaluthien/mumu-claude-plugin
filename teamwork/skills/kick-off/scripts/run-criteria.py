@@ -13,8 +13,8 @@ it has failed twice the same way.
 
 `--main` runs each `[check]` in an export of the default branch instead and prints `main ok` when its output equals the
 text quoted after `on main`, `wrong main` when it differs, `unclear` when the quote is not one value; exit 1 on any
-`wrong main`. The export has no `.git` and the output is compared whole, so a check that uses git, or an `exits` one,
-reads `wrong main`: quote main's real text. It never fetches: run `git fetch` first. A body file reads criteria before the task exists, so run it before the first judge."""
+`wrong main`; an `exits` or `more` check, a git check (the export has no `.git`) and a check with a placeholder are
+`unclear`. The output is compared whole. It never fetches: run `git fetch` first. A body file reads criteria before the task exists, so run it before the first judge."""
 import argparse
 import json
 import os
@@ -88,15 +88,22 @@ def main_quote(detail):
     _, found, rest = detail.partition("on main")
     clause = re.split(r"[;.](?:\s|$)|,\s+(?!`)|\bwhen\b", rest)[0].strip()
     span = issue_state.SPAN.fullmatch(clause)
-    return span.group(2) if span else "" if clause == "nothing" else clause if found and re.fullmatch(r"[\w-]+", clause) else None
+    if span:
+        return span.group(2)
+    if clause == "nothing":
+        return ""
+    return clause if found and re.fullmatch(r"[\w-]+", clause) else None
 
 
 def main_row(label, kind, name, detail, archive, timeout):
-    command, _ = expectation(detail)
+    command, test = expectation(detail)
     quoted = main_quote(detail)
-    if kind != "check" or command is None or quoted is None:
-        return label, name, "unclear", "not run: no command or no single value after `on main`"
+    # an `exits` or `more` check is decided by status or count, which the quoted text is not
+    if kind != "check" or test[0] != "prints" or quoted is None:
+        return label, name, "unclear", "not run: not a `prints` check with one value after `on main`"
     status, out = run(command, archive, timeout)
+    if "not a git repository" in out:
+        return label, name, "unclear", "git needs a checkout, which the export lacks"
     return label, name, "main ok" if status is not None and out == quoted else "wrong main", cell(out)
 
 
