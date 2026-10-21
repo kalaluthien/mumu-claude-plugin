@@ -59,6 +59,28 @@ A clone makes a merged change reach your sessions after a `git pull`, with no re
 
 ## teamwork: the path from a request to a merged change
 
+<details>
+<summary>Structure: The hook, monitor and pane read one shared lib; the skills hold the instructions.</summary>
+
+```mermaid
+flowchart TB
+  n_hook["Route hook"]
+  n_monitor["Team monitor"]
+  n_pane["Issues pane"]
+  n_kick["kick-off skill"]
+  n_issues["issues skill"]
+  n_lib[["Shared lib"]]
+  n_hook -->|"points to"| n_kick
+  n_monitor -->|"wakes"| n_kick
+  n_issues -->|"opens"| n_pane
+  n_hook -->|"reads"| n_lib
+  n_monitor -->|"reads"| n_lib
+  n_pane -->|"runs scripts that read"| n_lib
+  n_kick -->|"runs scripts that read"| n_lib
+```
+
+</details>
+
 Three roles, each with a narrow job ([the authority table](teamwork/skills/kick-off/SKILL.md)):
 
 - The **manager**, one per project, reads what you ask for, writes it down as a rough `backlog` issue and hands it to a worker. It decides who does what and in which order, and answers workers' questions. It never plans tasks or edits code.
@@ -90,6 +112,24 @@ That session becomes the manager. It files the backlog, starts a worker in a new
 - `/teamwork:issues` shows the Issues pane, a board of the open issues, again after you close it.
 
 ## paperwork: one checked model of a system
+
+<details>
+<summary>Structure: Each skill calls the library of its own job; the Litmus lib reuses the Schema lib's document shape.</summary>
+
+```mermaid
+flowchart TB
+  n_zoom["zoom skill"]
+  n_litmus["litmus skill"]
+  n_schema[["Schema lib"]]
+  n_page[["Page lib"]]
+  n_spec[["Litmus lib"]]
+  n_zoom -->|"checks with"| n_schema
+  n_zoom -->|"draws with"| n_page
+  n_litmus -->|"grades with"| n_spec
+  n_spec -->|"reuses"| n_schema
+```
+
+</details>
 
 One Schema document holds what a system is, or must be, and every view is drawn from it after a checker passes it.
 
@@ -123,6 +163,21 @@ One Schema document holds what a system is, or must be, and every view is drawn 
 ```
 
 ## homework: lessons kept across sessions
+
+<details>
+<summary>Structure: The hook only counts and signals; the skill does the writing.</summary>
+
+```mermaid
+flowchart TB
+  n_hook["Wrap-up hook"]
+  n_skill["wrap-up skill"]
+  n_lib[["Homework lib"]]
+  n_hook -->|"reads"| n_lib
+  n_hook -->|"signals"| n_skill
+  n_skill -->|"reads"| n_lib
+```
+
+</details>
 
 Keeps what a session learned, once, where the next reader will look.
 
