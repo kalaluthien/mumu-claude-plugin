@@ -15,6 +15,14 @@ Add this repository as a marketplace, then install the plugins you want:
 /plugin install homework@mumu-claude-plugin
 ```
 
+What each one needs on your machine:
+
+| plugin | needs |
+| --- | --- |
+| teamwork | [`gh`](https://cli.github.com/), signed in; [herdr](https://herdr.dev), the terminal workspace where sessions live and talk by name |
+| paperwork | Python 3 with [`uv`](https://docs.astral.sh/uv/); Google Chrome for checking pages and diagrams; Java, only for the optional Alloy proofs |
+| homework | nothing beyond Claude Code |
+
 ### Installation from a local clone
 
 A clone makes a merged change reach your sessions after a `git pull`, with no reinstall.
@@ -48,14 +56,6 @@ A clone makes a merged change reach your sessions after a `git pull`, with no re
      }
    }
    ```
-
-What each one needs on your machine:
-
-| plugin | needs |
-| --- | --- |
-| teamwork | [`gh`](https://cli.github.com/), signed in; [herdr](https://herdr.dev), the terminal workspace where sessions live and talk by name |
-| paperwork | Python 3 with [`uv`](https://docs.astral.sh/uv/); Google Chrome for checking pages and diagrams; Java, only for the optional Alloy proofs |
-| homework | nothing beyond Claude Code |
 
 ## teamwork: the path from a request to a merged change
 
