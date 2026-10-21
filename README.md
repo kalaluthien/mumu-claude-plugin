@@ -25,7 +25,8 @@ What each one needs on your machine:
 
 ## teamwork: from a request to a merged change
 
-**Structure.** The hook, monitor and pane read one shared lib; the skills hold the instructions.
+<details>
+<summary>Structure: The hook, monitor and pane read one shared lib; the skills hold the instructions.</summary>
 
 ```mermaid
 flowchart TB
@@ -42,6 +43,8 @@ flowchart TB
   n_monitor -->|"reads"| n_lib
   n_pane -->|"reads"| n_lib
 ```
+
+</details>
 
 **The problem.** One session doing everything forgets, wanders and grades its own work. Many sessions with no structure step on each other.
 
@@ -67,7 +70,8 @@ That session becomes the manager. It files the backlog, starts a worker in a new
 
 ## paperwork: one checked model of a system
 
-**Structure.** Each skill calls the library of its own job; the Litmus lib reuses the Schema lib's document shape.
+<details>
+<summary>Structure: Each skill calls the library of its own job; the Litmus lib reuses the Schema lib's document shape.</summary>
 
 ```mermaid
 flowchart TB
@@ -81,6 +85,8 @@ flowchart TB
   n_litmus -->|"grades with"| n_spec
   n_spec -->|"reuses"| n_schema
 ```
+
+</details>
 
 **The problem.** A system described in prose drifts: the words, the diagram and the rules each say something slightly different, and nobody checks that the rules hold.
 
@@ -98,7 +104,8 @@ flowchart TB
 
 ## homework: lessons that stick
 
-**Structure.** The hook only counts and signals; the skill does the writing.
+<details>
+<summary>Structure: The hook only counts and signals; the skill does the writing.</summary>
 
 ```mermaid
 flowchart TB
@@ -109,6 +116,8 @@ flowchart TB
   n_hook -->|"signals"| n_skill
   n_skill -->|"reads"| n_lib
 ```
+
+</details>
 
 **The problem.** A session learns something the hard way, then ends, and the next session learns it again.
 
