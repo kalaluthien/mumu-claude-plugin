@@ -2,7 +2,7 @@
 
 Three Claude Code plugins that let one person run a small team of Claude sessions without losing the plot: **teamwork** turns what you ask for into reviewed, merged work; **paperwork** shows you things as pages and settles open questions; **homework** makes sure each session leaves behind what it learned.
 
-Each plugin works alone. A plugin is built from hooks that act at fixed moments, monitors that watch in the background, and skills that hold the instructions; it uses only the parts it needs.
+Each plugin works alone.
 
 ## Install
 
