@@ -36,7 +36,7 @@ CELL = 160
 # an empty one only where the clause goes on to its end, so a padded `` echo `x` `` stays one span
 SPANS = re.compile(r"(?<!`)``(?=\s*(?:$|[;.,)]|\bon\b|\bwhen\b))|" + issue_state.SPAN.pattern)
 # a remark in parentheses is hidden too, since it may hold a `,` or `;`
-HIDDEN = re.compile(SPANS.pattern + r"|\s*\([^()]*\)")
+HIDDEN = re.compile(SPANS.pattern + r"|\([^()]*\)")
 NOTE = re.compile(r"\s*\0(\d+)\0$")
 
 

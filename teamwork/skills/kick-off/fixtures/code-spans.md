@@ -5,3 +5,4 @@
 4. [check] **semicolon in value**: `echo a` prints `a; b`; on base prints `a`.
 5. [check] **backtick in command**: `` echo `echo x` `` prints `x`; on base prints `y`.
 6. [check] **remark with a break**: `echo end` prints `end`; on base prints `end` (no file, so it fails).
+7. [check] **note after separator**: `echo a` prints `a`; (a note) on base prints `b`.
