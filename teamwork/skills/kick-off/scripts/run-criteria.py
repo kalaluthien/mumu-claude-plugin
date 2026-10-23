@@ -33,8 +33,11 @@ HEADER = "REPORTED: criteria at "
 PLACEHOLDER = re.compile(r"<[A-Za-z][\w .-]*>")
 CELL = 160
 # a code span, or an empty one, which SPAN skips
-SPANS = re.compile(r"(?<!`)``(?![`\w])|" + issue_state.SPAN.pattern)
-NOTE = re.compile(r"\s*\([^()]*\)$")
+# an empty one only where the clause goes on to its end, so a padded `` echo `x` `` stays one span
+SPANS = re.compile(r"(?<!`)``(?=\s*(?:$|[;.,)]|\bon\b|\bwhen\b))|" + issue_state.SPAN.pattern)
+# a remark in parentheses is hidden too, since it may hold a `,` or `;`
+HIDDEN = re.compile(SPANS.pattern + r"|\s*\([^()]*\)")
+NOTE = re.compile(r"\s*\0(\d+)\0$")
 
 
 def hide(text):
@@ -44,7 +47,7 @@ def hide(text):
     def stash(m):
         kept.append(m.group())
         return f"\0{len(kept) - 1}\0"
-    return SPANS.sub(stash, text), kept
+    return HIDDEN.sub(stash, text), kept
 
 
 def show(text, kept):
@@ -55,7 +58,9 @@ def clause_of(rest):
     """(first clause of text after `prints` or `on base` with a remark in parentheses cut, the hidden text after it, the hidden spans)."""
     hidden, kept = hide(rest)
     clause, *parts = re.split(r"([;.](?:\s|$)|,\s+(?!\0)|\bwhen\b|\bon (?:base|main)\b)", hidden)
-    clause = NOTE.sub("", clause.strip())
+    clause = clause.strip()
+    while (m := NOTE.search(clause)) and kept[int(m.group(1))].lstrip().startswith("("):
+        clause = clause[:m.start()]
     return show(clause, kept).strip(), "".join(parts), kept
 
 
