@@ -1,7 +1,7 @@
 """Each role's next actions: the gaps between GitHub's issues and the live team, as lines a monitor or hook prints."""
 import github_rest
 import issue_state
-from github_issues import ISSUE_LIMIT, PR_LIMIT, issues, limited
+from github_issues import ISSUE_LIMIT, PR_LIMIT, issues, limited, scope_label
 from herdr_agents import members, owns, project, role, tabs
 from json_command import run
 
@@ -25,15 +25,17 @@ def manager_read(me, history=False):
     """What a manager's gaps need from GitHub, read once and kept by the caller until something changed; None when a read failed.
     HISTORY adds whether a worker ever held a closed issue, for a manager that has not yet seen one."""
     found = issues(project(me["name"]))
+    # a worker may hold an open issue the scope label misses, which the idle line must still count
+    everything = issues() if found is not None and scope_label(project(me["name"])) else found
     # one page of the latest updated closed pulls, whose merged ones are the newest merges
     prs = github_rest.pulls("closed", limit=PR_LIMIT)
     prs = prs and [p for p in prs if p["mergedAt"]]
     # an outside contributor's issue or pull request carries no scope label, so it is read across the repository
     outside = github_rest.issues(pulls=True, comments=False)
     outside = outside and [github_rest.fresh(i["number"]) for i in outside if not issue_state.trusted(i)]
-    if found is None or prs is None or outside is None or None in outside:
+    if found is None or everything is None or prs is None or outside is None or None in outside:
         return None
-    return {"found": found, "prs": prs, "outside": [i for i in outside if unanswered(i)], "had_worker": had_worker(me) if history else False}
+    return {"found": found, "everything": everything, "prs": prs, "outside": [i for i in outside if unanswered(i)], "had_worker": had_worker(me) if history else False}
 
 
 def manager_actions(me, listed, data=None):
@@ -55,7 +57,7 @@ def manager_actions(me, listed, data=None):
     for i in data["outside"]:
         lines.append(f"outside #{i['number']} {i['title']}: an outside contributor opened it; ask the owner, then route it or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
     for n in team:
-        held = " ".join(f"#{i['number']}" for i in found if holds(i, n)) or "nothing open"
+        held = " ".join(f"#{i['number']}" for i in data["everything"] if holds(i, n)) or "nothing open"
         if status[n] == "blocked":
             lines.append(f"blocked {n}: it waits at a tool-use prompt; the owner needs its tab")
         elif status[n] in ("idle", "done"):
