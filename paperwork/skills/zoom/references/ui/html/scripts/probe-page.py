@@ -4,7 +4,8 @@
 # ///
 """zoom: open a built page in installed Chrome and check what a reader sees.
 
-  probe-page.py labels <page>       print each level's node and edge labels, the same on any engine build
+  probe-page.py labels <page>       print each level's node and edge labels, the same on any engine build, and its
+                                    history mark (H or H*) where it has one
   probe-page.py zoom <page>         `zoom: ok` when clicking a node that opens a level shows that level and the first
                                     scenario steps through its walk, with no page error; else `zoom: fail` and why
   probe-page.py meta <page>         `meta: <n> shown, <k> missing`: every `meta` value of the page's document,
@@ -69,7 +70,8 @@ def labels(pg):
     for lid in pg.js("[...document.querySelectorAll('.zoom-nav [data-l]')].map(b => b.dataset.l)"):
         pg.go(lid)
         got = pg.js("""[...document.querySelectorAll('.zoom-canvas .node .n-lab')].map(t => 'node ' + t.textContent)
-            .concat([...document.querySelectorAll('.zoom-canvas .edge .e-lab')].map(t => 'edge ' + t.textContent))""")
+            .concat([...document.querySelectorAll('.zoom-canvas .edge .e-lab')].map(t => 'edge ' + t.textContent))
+            .concat([...new Set([...document.querySelectorAll('.zoom-canvas .h-lab')].map(t => 'history ' + t.textContent))])""")
         out += [f"{lid}: {x}" for x in sorted(got)]
     print("\n".join(out))
     return 0

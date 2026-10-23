@@ -12,3 +12,5 @@ written in; a script that reads an older one migrates it.
 - `gate` marks a workflow fork or join.
 - `meta` on a document, level, node or edge, its formats in `$defs.format`.
 - Ids, slugs, operations and type names have patterns.
+- `history` on a state level opened from a state, added within version 1, since a document without it means the
+  same as before.

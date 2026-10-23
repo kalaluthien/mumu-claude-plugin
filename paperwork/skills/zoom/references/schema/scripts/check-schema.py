@@ -38,6 +38,7 @@ NARROW_RULES = {
     "reference": "every id, operation, rule, port and ref a document names points at something",
     "region-without-initial": "each region of a state level names one initial state",
     "sync-unknown-transition": "a sync's when and then name events of its level, and where a state of it",
+    "history-outside-superstate": "only a state level opened from a state has history",
     "view-link-unmarked": "a node that opens a level of another kind is marked link: view",
     "opens-interface": "an unmarked same-kind open maps every edge of its node onto the child's ports",
     "nest-unrefined": "a same-kind open marked nest makes no interface claim",

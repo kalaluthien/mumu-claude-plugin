@@ -530,6 +530,23 @@ def translate(M):
         L_.append(f"-- {i['slug']} ({i['kind']}, {cls[i['slug']]})")
         L_.append(f"pred {W.rule_name[i['slug']]} {{\n  " + F.layout(i["formula"]).replace("\n", "\n  ") + "\n}")
 
+    def superstate(lid):
+        """The state a state level is opened from, whose instances its states partition, or None."""
+        p = M.levels[lid].get("parent")
+        return ident(M.nodes[p]["label"]) if p and M.node_level[p] in W.states else None
+
+    def resumed(lid):
+        """When entering its superstate resumes a level, as a conjunct to add: always ("") by its own history, else
+        when a deep history above it is entered in the same step; None when never."""
+        if M.levels[lid].get("history"):
+            return ""
+        conds, a = [], M.node_level[M.levels[lid]["parent"]]
+        while superstate(a):
+            if M.levels[a].get("history") == "deep":
+                conds.append(f"(s not in {superstate(a)} and s in {superstate(a)}')")
+            a = M.node_level[M.levels[a]["parent"]]
+        return f" and ({' or '.join(conds)})" if conds else None
+
     B = []
     for lid, info in W.states.items():
         L, subj = M.levels[lid], info["subject"]
@@ -537,17 +554,26 @@ def translate(M):
         for n in L["nodes"]:
             regions.setdefault(info["region"][n["id"]], []).append(n)
         inits = [L["initial"]] if isinstance(L.get("initial"), str) else L.get("initial") or []
-        B.append(f"-- {L['title']}")
-        B.append(f"all s: {subj} | " + " and ".join(f"s in {ident(M.nodes[i]['label'])}" for i in inits))
+        up = superstate(lid)
+        again = resumed(lid) if up else None
+        B.append(f"-- {L['title']}" + (f", inside {up}" if up else ""))
+        B.append(f"all s: {up or subj} | " + " and ".join(f"s in {ident(M.nodes[i]['label'])}" for i in inits))
         for r, ns in regions.items():
             sts = [ident(n["label"]) for n in ns]
-            B.append(f"always ({subj} = {' + '.join(sts)}" + "".join(f" and no {a} & {b}" for x, a in enumerate(sts) for b in sts[x + 1:]) + ")")
+            B.append(f"always ({up or subj} = {' + '.join(sts)}" + "".join(f" and no {a} & {b}" for x, a in enumerate(sts) for b in sts[x + 1:]) + ")")
+            if up:   # entering the superstate enters each region at its initial state, or where history left it
+                init = next(ident(M.nodes[i]["label"]) for i in inits if info["region"][i] == r)
+                enter = f"s not in {up} and s in {up}'"
+                held = f" and not (once (s in {' + '.join(sts)}){again})" if again is not None else ""
+                B.append(f"always (all s: {subj} | ({enter}{held}) implies s in {init}')")
+                if again is not None:
+                    B += [f"always (all s: {subj} | ({enter}{again} and ((s not in {up}) since (s in {x}))) implies s in {x}')" for x in sts]
             pairs = {}
             for k, (LL, e) in M.edges.items():
                 if LL["id"] == lid and e["from"] in {n["id"] for n in ns}:
                     pairs.setdefault((W.edge_kind[k], ident(M.nodes[e["from"]]["label"])), set()).add(ident(M.nodes[e["to"]]["label"]))
-            for (kind, frm), tos in pairs.items():
-                B.append(f"always (all c: Now.happens & {kind} | c.self in {frm} implies after c.self in {' + '.join(sorted(tos))})")
+            for (kind, frm), tos in pairs.items():   # leaving the superstate in the same step cuts the event short
+                B.append(f"always (all c: Now.happens & {kind} | c.self in {frm}{f' and after c.self in {up}' if up else ''} implies after c.self in {' + '.join(sorted(tos))})")
             enable = {}
             for (kind, frm) in pairs:
                 enable.setdefault(kind, []).append(frm)
@@ -557,6 +583,7 @@ def translate(M):
             for kind, to in trig:
                 B.append(f"always (all c: Now.happens & {kind} | after c.self in {to})")
             moves = [f"(s in {frm} and some c: Now.happens & {kind} | c.self = s)" for (kind, frm) in pairs] + [f"(some c: Now.happens & {kind} | c.self = s)" for kind, _ in trig]
+            moves += [f"(s not in {up} and s in {up}')", f"(s in {up} and s not in {up}')"] if up else []
             same = " and ".join(f"(s in {x} iff s in {x}')" for x in sts)
             B.append(f"always (all s: {subj} | ({same})" + "".join(f"\n    or {mv}" for mv in moves) + ")")
         for y in L.get("syncs", []):

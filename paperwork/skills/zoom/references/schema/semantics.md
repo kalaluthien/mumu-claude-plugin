@@ -34,7 +34,11 @@ A node that opens a level of another kind shows a different view of the same thi
 workflow, an activity's states. A node that opens a level of its own kind refines it: the child's ports carry exactly
 the parent node's edges, so what holds of the parent holds of the child; `link: nest` drops that claim. A state level
 opened from a state needs no ports: an event into the parent enters the child at its initial state, and an event out
-of the parent leaves whichever child state holds, as in a Harel superstate.
+of the parent leaves whichever child state holds, as in a Harel superstate: an instance is in a child state exactly
+while it is in the parent, and the child's events happen only there. A child level with `history` is entered instead
+where it was last left, as SCXML's [history](https://www.w3.org/TR/scxml/#history) state: shallow history resumes the
+child state each region last held, its own inside entered afresh; deep history resumes every level below as well. The
+first entry, with nothing to resume, takes the initial state.
 
 ## Metadata
 

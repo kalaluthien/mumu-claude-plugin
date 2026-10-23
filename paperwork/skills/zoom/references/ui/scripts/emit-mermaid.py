@@ -189,8 +189,17 @@ def flowchart(L):
     return lines + styles
 
 
-def state_diagram(L):
-    lines = ["stateDiagram-v2", "  direction LR"]
+HISTORY = {"shallow": "H", "deep": "H*"}   # Harel's marks
+
+
+def superstate(n):
+    """The state level a state opens, drawn inside it as a Harel superstate, or None."""
+    o = n.get("opens")
+    return o if isinstance(o, dict) and o.get("kind") == "state" else None
+
+
+def state_inside(L, pad):
+    """A state level's states, regions, history and events, each superstate holding its own level."""
     nodes = L.get("nodes", [])
     regions = [r for r in L.get("regions", []) if isinstance(r, dict)]
     initial = L.get("initial", [])
@@ -199,10 +208,17 @@ def state_diagram(L):
     # an edge is drawn inside its region's block when both ends sit in it, else at the top
     group = {n.get("id"): (n.get("region") if regions else None) for n in nodes}
 
-    def body(members, pad):
+    def state(n, pad):
+        inner = superstate(n)
+        if not inner:
+            return [f"{pad}state \"{plain(node_text(n) + (' · ' + qty(n['qty']) if n.get('qty') else ''))}\" as {mid(n.get('id'))}"]
+        return [f"{pad}state \"{plain(n.get('label', n.get('id', '?')))}\" as {mid(n.get('id'))} {{"] + state_inside(inner, pad + "  ") + [f"{pad}}}"]
+
+    def body(members, pad, history):
         ids = {n.get("id") for n in members}
-        out = [f"{pad}state \"{plain(node_text(n) + (' · ' + qty(n['qty']) if n.get('qty') else ''))}\" as {mid(n.get('id'))}"
-               for n in members]
+        out = [x for n in members for x in state(n, pad)]
+        if history in HISTORY:   # entering the superstate again resumes where it was left
+            out.append(f"{pad}state \"{HISTORY[history]}\" as h_{mid(nodes[0].get('id'))[2:]}")
         out += [f"{pad}[*] --> {mid(s)}" for s in initial if s in ids and s not in triggered]
         out += [f"{pad}[*] --> {mid(t.get('to'))} : {plain(t.get('label', ''))}"
                 for t in L.get("triggers", []) if t.get("to") in ids]
@@ -210,20 +226,26 @@ def state_diagram(L):
                 for e in L.get("edges", []) if e.get("from") in ids and e.get("to") in ids]
         return out
 
+    history, lines = L.get("history"), []
     if regions:
-        lines.append(f"  state \"{plain(L.get('subject') or L.get('title', 'regions'))}\" as regions {{")
+        lines.append(f"{pad}state \"{plain(L.get('subject') or L.get('title', 'regions'))}\" as regions_{mid(nodes[0].get('id') if nodes else 'x')[2:]} {{")
         for i, r in enumerate(regions):
             if i:
-                lines.append("    --")
-            lines.append(f"    state \"{plain(r.get('label', r.get('id')))}\" as r_{mid(r.get('id'))[2:]} {{")
-            lines += body([n for n in nodes if n.get("region") == r.get("id")], "      ")
-            lines.append("    }")
-        lines.append("  }")
-    lines += body([n for n in nodes if group.get(n.get("id")) is None], "  ")
+                lines.append(f"{pad}  --")
+            lines.append(f"{pad}  state \"{plain(r.get('label', r.get('id')))}\" as r_{mid(r.get('id'))[2:]} {{")
+            lines += body([n for n in nodes if n.get("region") == r.get("id")], pad + "    ", None)
+            lines.append(f"{pad}  }}")
+        lines.append(f"{pad}}}")
+    lines += body([n for n in nodes if group.get(n.get("id")) is None], pad, history if nodes else None)
     for e in L.get("edges", []):
         a, b = e.get("from"), e.get("to")
         if a not in group or b not in group or group[a] != group[b]:
-            lines.append(f"  {mid(e.get('from'))} --> {mid(e.get('to'))}" + (f" : {plain(edge_text(e))}" if edge_text(e) else ""))
+            lines.append(f"{pad}{mid(e.get('from'))} --> {mid(e.get('to'))}" + (f" : {plain(edge_text(e))}" if edge_text(e) else ""))
+    return lines
+
+
+def state_diagram(L):
+    lines = ["stateDiagram-v2", "  direction LR"] + state_inside(L, "  ")
     for p in L.get("in", []):
         lines += [f"  [*] --> {mid(to)} : {plain(p.get('edge'))}" for to in ends(p.get("to"))]
     for p in L.get("out", []):
@@ -233,10 +255,12 @@ def state_diagram(L):
 
 def mermaid(L):
     lines = state_diagram(L) if L.get("kind") == "state" else flowchart(L)
-    used = sorted({c for n in L.get("nodes", []) for c in classes(n)})
+    # Mermaid styles no composite state, so a superstate keeps its marks only in the table
+    styled = [n for n in L.get("nodes", []) if not (L.get("kind") == "state" and superstate(n))]
+    used = sorted({c for n in styled for c in classes(n)})
     lines += [f"  {c}" for c in CLASSES if c.split()[1] in used]
     for c in used:
-        members = [mid(n.get("id")) for n in L.get("nodes", []) if c in classes(n)]
+        members = [mid(n.get("id")) for n in styled if c in classes(n)]
         lines.append(f"  class {','.join(members)} {c}")
     return "\n".join(lines)
 
@@ -313,7 +337,7 @@ def check(doc, text):
     for (L, lid, _, _), src in zip(lvls, blocks):
         for n in L.get("nodes", []):
             m = mid(n.get("id"))
-            if not re.search(rf"(^\s*{m}[\[\(\{{>]|\bas {m}$)", src, re.M):
+            if not re.search(rf"(^\s*{m}[\[\(\{{>]|\bas {m}( \{{)?$)", src, re.M):
                 problems.append(f"missing node {n.get('id')} in level {lid}")
         pairs = {}
         for e in L.get("edges", []):

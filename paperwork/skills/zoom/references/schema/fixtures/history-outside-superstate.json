@@ -1,0 +1,115 @@
+{
+ "version": "1",
+ "title": "Order with history",
+ "plan": {
+  "intent": "Which states does an order pass through?"
+ },
+ "types": {
+  "Order": "One customer's request to buy."
+ },
+ "scenarios": [
+  {
+   "slug": "pay-order",
+   "text": "When a customer pays, the order goes from open to paid and the ledger records it.",
+   "walk": [
+    {
+     "place": "open",
+     "does": "The order waits for payment.",
+     "expects": "The order is open."
+    },
+    {
+     "place": "paid",
+     "does": "The customer pays.",
+     "expects": "The order is paid."
+    },
+    {
+     "place": "books",
+     "does": "The books record the payment.",
+     "expects": "The books hold it."
+    },
+    {
+     "place": "bank",
+     "does": "The books ask the bank for the money.",
+     "expects": "The bank moves it."
+    }
+   ]
+  }
+ ],
+ "operations": [
+  {
+   "slug": "Order.pay",
+   "sig": "() \u2192 Order",
+   "text": "The customer pays the order."
+  }
+ ],
+ "rules": [
+  {
+   "slug": "paid-stays",
+   "kind": "must",
+   "formula": "all o: Order | o in Paid implies after o in Paid",
+   "text": "A paid order stays paid."
+  }
+ ],
+ "level": {
+  "kind": "state",
+  "title": "Order lifecycle",
+  "why": "The states of one order.",
+  "subject": "Order",
+  "initial": "open",
+  "nodes": [
+   {
+    "id": "open",
+    "label": "Open",
+    "what": "Waiting for payment."
+   },
+   {
+    "id": "paid",
+    "label": "Paid",
+    "what": "Payment received.",
+    "rules": [
+     "paid-stays"
+    ],
+    "link": "view",
+    "opens": {
+     "kind": "topology",
+     "title": "Accounts",
+     "why": "Where a payment is recorded.",
+     "nodes": [
+      {
+       "id": "books",
+       "label": "Books",
+       "what": "Record payments."
+      },
+      {
+       "id": "bank",
+       "label": "Bank",
+       "what": "Moves money."
+      }
+     ],
+     "edges": [
+      {
+       "from": "books",
+       "to": "bank",
+       "label": "asks",
+       "what": "The books ask the bank for the money."
+      }
+     ]
+    }
+   }
+  ],
+  "edges": [
+   {
+    "from": "open",
+    "to": "paid",
+    "label": "pay",
+    "ops": [
+     "Order.pay"
+    ],
+    "mark": [
+     "happy"
+    ]
+   }
+  ],
+  "history": "shallow"
+ }
+}

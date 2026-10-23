@@ -100,6 +100,11 @@ They meet only through `syncs`:
 `{ "name", "when": event, "where": state, "then": event }`: when `when`
 happens and `where` holds, `then` in another region follows [syncs, sync-unknown-transition].
 
+**Superstates and history.** A state that opens a state level is a superstate: draw its states there, each event
+in or out on the superstate itself. Give that level `history` when entering again resumes where it was left,
+`shallow` for its own states, `deep` for every level below too; only a level opened from a state has it
+[history-outside-superstate].
+
 **Partitions.** Give `partitions` for two or more answers to who
 does each activity, where each thing lives or what it may access, one
 criterion per level. Each partition forms one block: no node of another
