@@ -171,8 +171,8 @@ def parse(data):
             if y.get("where") and y["where"] not in ids:
                 out.append(("sync-unknown-transition", f'{lid}: sync {y["name"]}: where names a state of this level'))
         P = by_id.get(kind[L["parent"]]["id"]) if L.get("parent") else None
-        if L.get("history") and not (L["kind"] == "state" and P and P["kind"] == "state"):
-            out.append(("history-outside-superstate", f"{lid}: only a state level opened from a state resumes by history"))
+        if L.get("history") and not (L["kind"] == "state" and P and P["kind"] == "state" and P.get("subject") == L.get("subject")):
+            out.append(("history-outside-superstate", f"{lid}: only a state level opened from a state of its subject resumes by history"))
         if L.get("in") or L.get("out"):
             if not (L["kind"] in ("workflow", "topology") and P and P["kind"] == L["kind"]):
                 out.append(("form", f"{lid}: only a workflow or topology opened from one of its kind has ports; bring outside things in as triggers"))

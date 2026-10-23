@@ -533,7 +533,9 @@ def translate(M):
     def superstate(lid):
         """The state a state level is opened from, whose instances its states partition, or None."""
         p = M.levels[lid].get("parent")
-        return ident(M.nodes[p]["label"]) if p and M.node_level[p] in W.states else None
+        # a level of another subject only zooms in, since its instances are not the superstate's
+        same = p and M.node_level[p] in W.states and W.states[M.node_level[p]]["subject"] == W.states[lid]["subject"]
+        return ident(M.nodes[p]["label"]) if same else None
 
     def resumed(lid):
         """When entering its superstate resumes a level, as a conjunct to add: always ("") by its own history, else

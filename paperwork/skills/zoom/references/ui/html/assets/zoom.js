@@ -215,7 +215,7 @@ function mountZoom(root, M, LIMITS) {   // LIMITS: assets/phone-limits.json, whi
     const tLeft = Math.max(0, ...trig.filter(q => q.side === "left" && q.n.x === 0).map(q => q.len + 18)), tRight = Math.max(0, ...trig.filter(q => q.side === "right" && q.n.x === maxC).map(q => q.len + 18));
     const far = e => e.from !== e.to && at[e.from].x === at[e.to].x && Math.abs(at[e.from].y - at[e.to].y) > 1;
     const side = L.edges.some(e => far(e) && e.via !== "left") ? 36 : 0, viaLeft = L.edges.some(e => far(e) && e.via === "left" && at[e.from].x === 0) ? 40 : 0;
-    const hist = HISTORY[L.history] ? 8 : 0;   // a history mark is wider than the initial dot it replaces
+    const hist = HISTORY[L.history] ? 12 : 0;   // a history mark is wider than the initial dot it replaces
     const top = PAD + 6 + Math.max(loop, over, iniTop ? 32 + hist : 0, tTop), left = PAD + Math.max(inis.some(n => !iniTopOf(n)) ? 26 + hist : 0, tLeft, viaLeft);
     const hl = L.edges.filter(e => e.from !== e.to && at[e.from].y === at[e.to].y).map(e => phone(L) ? lineW(edgeLines(L, e)) : meas(tagged(L, e), FONT_E));
     const gx = Math.max(GX, Math.ceil(Math.max(0, ...hl) + 34));
@@ -467,15 +467,18 @@ function mountZoom(root, M, LIMITS) {   // LIMITS: assets/phone-limits.json, whi
     });
     g0.inis.forEach(({ id, top }) => {
       const B = g0.box[id], seed = hash(L.id + "init" + id);
-      const mark = HISTORY[L.history], d = mark ? 30 : 0;
+      const mark = HISTORY[L.history], d = mark ? 34 : 0;
       const [p, q] = top ? [{ x: B.x + B.w / 2, y: B.y - (d || 22) }, { x: B.x + B.w / 2, y: B.y }] : [{ x: B.x - (d || 24), y: B.y + B.h / 2 }, { x: B.x, y: B.y + B.h / 2 }];
       // Harel's history: entering again resumes the state last held, the initial one on the first entry
-      const s = mark ? (top ? { x: p.x, y: p.y + 10 } : { x: p.x + 10, y: p.y }) : p;
+      const s = mark ? (top ? { x: p.x, y: p.y + 12 } : { x: p.x + 12, y: p.y }) : p;
       el(world, "path", { d: smooth(wobble(sample([s, q], 0, 4), seed, 0.6)), class: "e-line" });
       inkHead(world, q, s, seed);
       if (mark) {
-        el(world, "circle", { cx: p.x, cy: p.y, r: 10, class: "hist" });
-        el(world, "text", { x: p.x, y: p.y + 4, "text-anchor": "middle", class: "h-lab" }, mark);
+        el(world, "circle", { cx: p.x, cy: p.y, r: 12, class: "hist" });
+        // the star rides raised and small, since at full size it crowds the H against the circle
+        const t = el(world, "text", { x: p.x, y: p.y + 4, "text-anchor": "middle", class: "h-lab" });
+        el(t, "tspan", {}, "H");
+        if (mark.length > 1) el(t, "tspan", { dy: -4, "font-size": 9 }, mark.slice(1));
       } else el(world, "circle", { cx: p.x, cy: p.y, r: 4.5, class: "init" });
     });
     // stubs: a trigger from outside (open circle, clock hands when it repeats), or the parent's artifact
