@@ -198,7 +198,21 @@ def superstate(n):
     return o if isinstance(o, dict) and o.get("kind") == "state" else None
 
 
-def state_inside(L, pad):
+def history_states(n, L):
+    """{mode: id} of the history states inside superstate n of level L: its level's own `history`, and each other
+    mode an edge into it `enters` by, so that edge can point at it."""
+    inner = superstate(n)
+    if not inner or not inner.get("nodes"):
+        return {}
+    own = inner.get("history")
+    modes = [own] + [e.get("enters") for e in L.get("edges", []) if e.get("to") == n.get("id") and e.get("from") != n.get("id")]
+    modes = list(dict.fromkeys(m for m in modes if m in HISTORY))
+    first = mid(inner["nodes"][0].get("id"))[2:]
+    # the first mode keeps the plain id, so a level with one history mark draws it as before
+    return {m: f"h_{first}" + ("" if i == 0 else f"_{m}") for i, m in enumerate(modes)}
+
+
+def state_inside(L, pad, marks=None):
     """A state level's states, regions, history and events, each superstate holding its own level."""
     nodes = L.get("nodes", [])
     regions = [r for r in L.get("regions", []) if isinstance(r, dict)]
@@ -207,40 +221,50 @@ def state_inside(L, pad):
     triggered = {t.get("to") for t in L.get("triggers", [])}
     # an edge is drawn inside its region's block when both ends sit in it, else at the top
     group = {n.get("id"): (n.get("region") if regions else None) for n in nodes}
+    marks = {L["history"]: f"h_{mid(nodes[0].get('id'))[2:]}"} if marks is None and L.get("history") in HISTORY and nodes else marks or {}
+    into = {n.get("id"): history_states(n, L) for n in nodes}
 
     def state(n, pad):
         inner = superstate(n)
         if not inner:
             return [f"{pad}state \"{plain(node_text(n) + (' · ' + qty(n['qty']) if n.get('qty') else ''))}\" as {mid(n.get('id'))}"]
-        return [f"{pad}state \"{plain(n.get('label', n.get('id', '?')))}\" as {mid(n.get('id'))} {{"] + state_inside(inner, pad + "  ") + [f"{pad}}}"]
+        return [f"{pad}state \"{plain(n.get('label', n.get('id', '?')))}\" as {mid(n.get('id'))} {{"] + state_inside(inner, pad + "  ", into[n.get("id")]) + [f"{pad}}}"]
 
-    def body(members, pad, history):
+    def arrow(e, pad):
+        # an edge entering by history points at that history state, else at the superstate itself
+        sup = next((x for x in nodes if x.get("id") == e.get("to")), {})
+        inner = superstate(sup) or {}
+        mode = e.get("enters") or inner.get("history")
+        to = into.get(e.get("to"), {}).get(mode) if e.get("from") != e.get("to") else None
+        return f"{pad}{mid(e.get('from'))} --> {to or mid(e.get('to'))}" + (f" : {plain(edge_text(e))}" if edge_text(e) else "")
+
+    def body(members, pad, top):
         ids = {n.get("id") for n in members}
         out = [x for n in members for x in state(n, pad)]
-        if history in HISTORY:   # entering the superstate again resumes where it was left
-            out.append(f"{pad}state \"{HISTORY[history]}\" as h_{mid(nodes[0].get('id'))[2:]}")
+        for mode, hid in (marks.items() if top else ()):   # entering the superstate again resumes where it was left
+            out.append(f"{pad}state \"{HISTORY[mode]}\" as {hid}")
         out += [f"{pad}[*] --> {mid(s)}" for s in initial if s in ids and s not in triggered]
         out += [f"{pad}[*] --> {mid(t.get('to'))} : {plain(t.get('label', ''))}"
                 for t in L.get("triggers", []) if t.get("to") in ids]
-        out += [f"{pad}{mid(e.get('from'))} --> {mid(e.get('to'))}" + (f" : {plain(edge_text(e))}" if edge_text(e) else "")
-                for e in L.get("edges", []) if e.get("from") in ids and e.get("to") in ids]
+        out += [arrow(e, pad) for e in L.get("edges", []) if e.get("from") in ids and e.get("to") in ids]
+        out += [f"{pad}{mid(n.get('id'))} --> [*]" for n in members if n.get("final")]
         return out
 
-    history, lines = L.get("history"), []
+    lines = []
     if regions:
         lines.append(f"{pad}state \"{plain(L.get('subject') or L.get('title', 'regions'))}\" as regions_{mid(nodes[0].get('id') if nodes else 'x')[2:]} {{")
         for i, r in enumerate(regions):
             if i:
                 lines.append(f"{pad}  --")
             lines.append(f"{pad}  state \"{plain(r.get('label', r.get('id')))}\" as r_{mid(r.get('id'))[2:]} {{")
-            lines += body([n for n in nodes if n.get("region") == r.get("id")], pad + "    ", None)
+            lines += body([n for n in nodes if n.get("region") == r.get("id")], pad + "    ", False)
             lines.append(f"{pad}  }}")
         lines.append(f"{pad}}}")
-    lines += body([n for n in nodes if group.get(n.get("id")) is None], pad, history if nodes else None)
+    lines += body([n for n in nodes if group.get(n.get("id")) is None], pad, True)
     for e in L.get("edges", []):
         a, b = e.get("from"), e.get("to")
         if a not in group or b not in group or group[a] != group[b]:
-            lines.append(f"{pad}{mid(e.get('from'))} --> {mid(e.get('to'))}" + (f" : {plain(edge_text(e))}" if edge_text(e) else ""))
+            lines.append(arrow(e, pad))
     return lines
 
 
@@ -343,7 +367,10 @@ def check(doc, text):
         for e in L.get("edges", []):
             pairs[(e.get("from"), e.get("to"))] = pairs.get((e.get("from"), e.get("to")), 0) + 1
         for (a, b), count in pairs.items():
-            found = len(re.findall(rf"^\s*{mid(a)} (-->|==>|-\.->)(\|.*\|)? {mid(b)}( : .*)?$", src, re.M))
+            # an edge entering by history ends at a history state inside its target
+            node = next((n for n in L.get("nodes", []) if n.get("id") == b), {})
+            ends_ = "|".join(map(re.escape, [mid(b)] + list(history_states(node, L).values())))
+            found = len(re.findall(rf"^\s*{mid(a)} (-->|==>|-\.->)(\|.*\|)? ({ends_})( : .*)?$", src, re.M))
             if found < count:
                 problems.append(f"missing edge {lid}:{a}>{b}, {found} of {count} drawn")
     return problems

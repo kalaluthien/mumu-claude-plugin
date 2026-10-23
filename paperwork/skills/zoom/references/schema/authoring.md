@@ -104,7 +104,10 @@ happens and `where` holds, `then` in another region follows [syncs, sync-unknown
 in or out on the superstate itself. Give that level `history` when entering again resumes where it was left,
 `shallow` for its own states, `deep` for every level below too; only a level opened from a state of its subject has
 it [history-outside-superstate]. Point a trigger from outside at the superstate, not at a child state other than the
-initial one, since the child's trigger fires only inside the superstate.
+initial one, since the child's trigger fires only inside the superstate. Give an edge into a superstate `enters`
+when that edge alone starts afresh or resumes [enters-without-superstate]. Mark a state where a superstate's work ends
+`final`, with no edge out of it [final-with-exit], and give the edge that leaves once it ends `completion`
+[completion-without-final]; leave `completion` off when an outside event, not the ending, leaves the superstate.
 
 **Partitions.** Give `partitions` for two or more answers to who
 does each activity, where each thing lives or what it may access, one

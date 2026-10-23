@@ -14,3 +14,5 @@ written in; a script that reads an older one migrates it.
 - Ids, slugs, operations and type names have patterns.
 - `history` on a state level opened from a state, added within version 1, since a document without it means the
   same as before.
+- Per-edge entry into a superstate (`enters`), final states and completion edges, added within version 1 for the same
+  reason.

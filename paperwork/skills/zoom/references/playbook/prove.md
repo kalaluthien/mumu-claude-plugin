@@ -16,8 +16,9 @@ follows each kind's reading, so an edge means one thing in the drawing and in th
   an event moves an instance only from a state that has that edge, and a sync makes its second event happen in the
   same step as its first.
 - [Opening a level](../schema/semantics.md#opening-a-level): a state level opened from a state is linked to it, its
-  states partitioning that state's instances, entered at the initial state or by history, left whenever the parent
-  is; every other level stands alone in the module, so a rule is proved over all levels at once, never across a
+  states partitioning that state's instances, entered at the initial state or by history, as the level's `history`
+  or the entering edge's `enters` says, left whenever the parent is, and left by the parent's `completion` edge in the
+  step after every region holds a `final` state; every other level stands alone in the module, so a rule is proved over all levels at once, never across a
   refinement.
 
 ## Run
