@@ -54,12 +54,17 @@ def show(text, kept):
     return re.sub(r"\0(\d+)\0", lambda m: kept[int(m.group(1))], text)
 
 
+def is_remark(text):
+    """A parenthesis that only explains; one with a code span or an `or` may add a second accepted value, so it stays."""
+    return text.lstrip().startswith("(") and "`" not in text and not re.search(r"\bor\b", text)
+
+
 def clause_of(rest):
     """(first clause of text after `prints` or `on base` with a remark in parentheses cut, the hidden text after it, the hidden spans)."""
     hidden, kept = hide(rest)
     clause, *parts = re.split(r"([;.](?:\s|$)|,\s+(?!\0)|\bwhen\b|\bon (?:base|main)\b)", hidden)
     clause = clause.strip()
-    while (m := NOTE.search(clause)) and kept[int(m.group(1))].lstrip().startswith("("):
+    while (m := NOTE.search(clause)) and is_remark(kept[int(m.group(1))]):
         clause = clause[:m.start()]
     return show(clause, kept).strip(), "".join(parts), kept
 
