@@ -123,5 +123,5 @@ def worker_actions(me, waiting, data=None):
             lines.append(f"start #{i['number']}: every issue it waited on is closed")
     for p in prs:
         if owns(name, p["headRefName"]) and p.get("mergeable") == "CONFLICTING":
-            lines.append(f"rebase #{p['number']}: it conflicts with the default branch")
+            lines.append(f"rebase #{p['number']}: it conflicts with its base")
     return lines

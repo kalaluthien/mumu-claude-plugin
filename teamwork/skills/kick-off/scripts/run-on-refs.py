@@ -2,7 +2,7 @@
 """usage: run-on-refs.py <command> <base ref> <ref>...
 
 Run one shell command in an exported copy (`git archive`) of each ref, so a test kept in the scratchpad runs on the
-default branch and on the head without entering either checkout. Prints the command's output and its exit code per
+base and on the head without entering either checkout. Prints the command's output and its exit code per
 ref, then whether it fails on the base ref and passes on every other ref, which is what a throwaway test must show."""
 import shutil
 import subprocess
