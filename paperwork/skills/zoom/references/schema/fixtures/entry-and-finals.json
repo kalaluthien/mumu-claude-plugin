@@ -1,0 +1,273 @@
+{
+  "version": "1",
+  "plan": {
+    "intent": "Does a lamp that burns out end its light, and start afresh once repaired?"
+  },
+  "types": {
+    "Lamp": "One lamp with a power switch and a dimmer."
+  },
+  "scenarios": [
+    {
+      "slug": "resume-lamp",
+      "text": "When a bright lamp is switched off and on, it comes back bright.",
+      "walk": [
+        {
+          "place": "off",
+          "does": "The lamp is off.",
+          "expects": "No light."
+        },
+        {
+          "place": "switch",
+          "does": "The switch is open.",
+          "expects": "No current flows."
+        },
+        {
+          "place": "bulb",
+          "does": "The bulb waits.",
+          "expects": "The bulb is dark."
+        },
+        {
+          "place": "off",
+          "does": "The lamp stays off.",
+          "expects": "No light."
+        },
+        {
+          "place": "on",
+          "does": "Someone switches it on.",
+          "expects": "The lamp gives light."
+        },
+        {
+          "place": "low",
+          "does": "The lamp starts low.",
+          "expects": "It glows dimly."
+        },
+        {
+          "place": "high",
+          "does": "Someone brightens it.",
+          "expects": "It glows brightly."
+        },
+        {
+          "place": "low",
+          "does": "Someone dims it.",
+          "expects": "It glows dimly."
+        },
+        {
+          "place": "on",
+          "does": "The lamp stays lit.",
+          "expects": "It gives light."
+        },
+        {
+          "place": "off",
+          "does": "Someone switches it off.",
+          "expects": "No light."
+        }
+      ]
+    },
+    {
+      "slug": "lamp-dies",
+      "text": "When a bright lamp burns out, it goes dark, and once repaired starts low.",
+      "walk": [
+        {
+          "place": "on",
+          "does": "The lamp is lit.",
+          "expects": "It gives light."
+        },
+        {
+          "place": "high",
+          "does": "Someone brightens it.",
+          "expects": "It glows brightly."
+        },
+        {
+          "place": "burnt",
+          "does": "The bulb burns out.",
+          "expects": "No light."
+        },
+        {
+          "place": "on",
+          "does": "The lamp has nothing left to do.",
+          "expects": "It completes."
+        },
+        {
+          "place": "dead",
+          "does": "The lamp goes dark.",
+          "expects": "No light."
+        },
+        {
+          "place": "on",
+          "does": "Someone repairs it.",
+          "expects": "The lamp gives light."
+        },
+        {
+          "place": "low",
+          "does": "The lamp starts afresh.",
+          "expects": "It glows dimly."
+        }
+      ]
+    }
+  ],
+  "operations": [],
+  "title": "Lamp that burns out",
+  "level": {
+    "kind": "state",
+    "title": "Lamp power",
+    "why": "A lamp is off or lit.",
+    "subject": "Lamp",
+    "initial": "off",
+    "nodes": [
+      {
+        "id": "off",
+        "label": "Off",
+        "what": "No light.",
+        "link": "view",
+        "opens": {
+          "kind": "topology",
+          "title": "Wiring",
+          "why": "What a lamp is made of.",
+          "nodes": [
+            {
+              "id": "switch",
+              "label": "Switch",
+              "what": "Opens and closes the circuit."
+            },
+            {
+              "id": "bulb",
+              "label": "Bulb",
+              "what": "Gives the light."
+            }
+          ],
+          "edges": [
+            {
+              "from": "switch",
+              "to": "bulb",
+              "label": "feeds",
+              "what": "The switch feeds the bulb."
+            }
+          ]
+        }
+      },
+      {
+        "id": "on",
+        "label": "On",
+        "what": "The lamp gives light.",
+        "opens": {
+          "kind": "state",
+          "title": "Lit lamp",
+          "why": "A lit lamp is low or high.",
+          "subject": "Lamp",
+          "initial": "low",
+          "nodes": [
+            {
+              "id": "low",
+              "label": "Low",
+              "what": "The lamp glows dimly."
+            },
+            {
+              "id": "high",
+              "label": "High",
+              "what": "The lamp glows brightly."
+            },
+            {
+              "id": "burnt",
+              "label": "Burnt",
+              "what": "The bulb has burnt out.",
+              "final": true
+            }
+          ],
+          "edges": [
+            {
+              "from": "low",
+              "to": "high",
+              "label": "brighten",
+              "what": "The dimmer goes up.",
+              "mark": [
+                "happy"
+              ]
+            },
+            {
+              "from": "high",
+              "to": "low",
+              "label": "dim",
+              "what": "The dimmer goes down.",
+              "mark": [
+                "happy"
+              ]
+            },
+            {
+              "from": "high",
+              "to": "burnt",
+              "label": "burn out",
+              "what": "The bulb burns out.",
+              "mark": [
+                "failure"
+              ]
+            }
+          ]
+        },
+        "rules": [
+          "first-entry-low",
+          "resume-brightness"
+        ]
+      },
+      {
+        "id": "dead",
+        "label": "Dead",
+        "what": "The lamp gives no light until repaired."
+      }
+    ],
+    "edges": [
+      {
+        "from": "off",
+        "to": "on",
+        "label": "switch on",
+        "what": "The switch turns the lamp on.",
+        "mark": [
+          "happy"
+        ],
+        "enters": "shallow"
+      },
+      {
+        "from": "on",
+        "to": "off",
+        "label": "switch off",
+        "what": "The switch turns the lamp off.",
+        "mark": [
+          "happy"
+        ]
+      },
+      {
+        "from": "on",
+        "to": "dead",
+        "label": "expire",
+        "what": "A burnt-out lamp goes dark.",
+        "completion": true,
+        "mark": [
+          "failure"
+        ]
+      },
+      {
+        "from": "dead",
+        "to": "on",
+        "label": "repair",
+        "what": "A repaired lamp starts afresh.",
+        "enters": "initial",
+        "mark": [
+          "failure"
+        ]
+      }
+    ]
+  },
+  "rules": [
+    {
+      "slug": "first-entry-low",
+      "kind": "must",
+      "formula": "always (all s: Lamp | (s in Off and not once s in On and after s in On) implies after s in Low)",
+      "text": "A lamp switched on for the first time starts low."
+    },
+    {
+      "slug": "resume-brightness",
+      "kind": "must",
+      "formula": "always (all s: Lamp | (s in High and after (s in Off and after s in On)) implies after after s in High)",
+      "text": "A lamp switched off while high comes back high."
+    }
+  ]
+}

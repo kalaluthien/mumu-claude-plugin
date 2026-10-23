@@ -438,6 +438,10 @@
        "meta": {
         "$ref": "#/$defs/meta"
        },
+       "final": {
+        "type": "boolean",
+        "description": "State levels: a state no edge leaves; once every region of a superstate holds one, its completion edge fires."
+       },
        "link": {
         "enum": [
          "view",
@@ -522,6 +526,18 @@
        },
        "meta": {
         "$ref": "#/$defs/meta"
+       },
+       "enters": {
+        "enum": [
+         "initial",
+         "shallow",
+         "deep"
+        ],
+        "description": "An edge into a superstate: how this edge alone enters it, at the initial states, by shallow history or by deep history, over the level's own history."
+       },
+       "completion": {
+        "type": "boolean",
+        "description": "An edge out of a superstate: its completion event, which fires once every region inside holds a final state, and never before."
        }
       },
       "additionalProperties": false

@@ -40,7 +40,12 @@ where it was last left, as SCXML's [history](https://www.w3.org/TR/scxml/#histor
 child state each region last held, its own inside entered afresh; deep history resumes every level below as well. The
 first entry, with nothing to resume, takes the initial state. A child level of another subject only zooms in: its
 states are not linked to the parent's. A trigger into a child state fires only inside the parent, since entering the
-parent takes the initial state.
+parent takes the initial state. An edge into the parent with `enters` picks its own entry, `initial`, `shallow` or
+`deep`, over the child's `history`, as an SCXML transition may target the compound state or one of its history states.
+A `final` child state is one the child cannot leave by its own events; an edge out of the parent with `completion` is
+the parent's completion event, SCXML's [done.state](https://www.w3.org/TR/scxml/#final): it fires as soon as every
+region of the child holds a final state, and never before. With no `completion` edge, the parent stays in its final
+states until an event of its own leaves it.
 
 ## Metadata
 

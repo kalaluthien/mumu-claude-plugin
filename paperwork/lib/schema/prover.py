@@ -537,17 +537,31 @@ def translate(M):
         same = p and M.node_level[p] in W.states and W.states[M.node_level[p]]["subject"] == W.states[lid]["subject"]
         return ident(M.nodes[p]["label"]) if same else None
 
+    def entered_by(lid, *modes):
+        """Each edge into a state level's superstate whose `enters` is one of modes, as a condition on s."""
+        p = M.levels[lid]["parent"]
+        return [f"(s in {ident(M.nodes[e['from']]['label'])} and some c: Now.happens & {W.edge_kind[k]} | c.self = s)"
+                for k, (LL, e) in M.edges.items() if e["to"] == p and e["from"] != p and e.get("enters") in modes]
+
+    def unless(terms):
+        return f"not ({' or '.join(terms)})" if terms else ""
+
     def resumed(lid):
         """When entering its superstate resumes a level, as a conjunct to add: always ("") by its own history, else
-        when a deep history above it is entered in the same step; None when never."""
-        if M.levels[lid].get("history"):
-            return ""
-        conds, a = [], M.node_level[M.levels[lid]["parent"]]
+        by an edge that enters by history, or when a deep history above it is entered in the same step; None when never."""
+        L = M.levels[lid]
+        terms = ([unless(entered_by(lid, "initial"))] if L.get("history") else []) + entered_by(lid, "shallow", "deep")
+        a = M.node_level[L["parent"]]
         while superstate(a):
-            if M.levels[a].get("history") == "deep":
-                conds.append(f"(s not in {superstate(a)} and s in {superstate(a)}')")
+            # an edge's own `enters` wins over the level's history for that entry
+            deep = ([unless(entered_by(a, "initial", "shallow"))] if M.levels[a].get("history") == "deep" else []) + entered_by(a, "deep")
+            if deep:
+                up = superstate(a)
+                terms.append(f"(s not in {up} and s in {up}'" + ("" if "" in deep else f" and ({' or '.join(deep)})") + ")")
             a = M.node_level[M.levels[a]["parent"]]
-        return f" and ({' or '.join(conds)})" if conds else None
+        if "" in terms:
+            return ""
+        return f" and ({' or '.join(terms)})" if terms else None
 
     B = []
     for lid, info in W.states.items():
@@ -588,6 +602,14 @@ def translate(M):
             moves += [f"(s not in {up} and s in {up}')", f"(s in {up} and s not in {up}')"] if up else []
             same = " and ".join(f"(s in {x} iff s in {x}')" for x in sts)
             B.append(f"always (all s: {subj} | ({same})" + "".join(f"\n    or {mv}" for mv in moves) + ")")
+        completes = sorted({W.edge_kind[k] for k, (LL, e) in M.edges.items() if up and e["from"] == L["parent"] and e.get("completion")})
+        if completes:   # the completion event fires as soon as every region holds a final state, and never before
+            finals = [" + ".join(ident(n["label"]) for n in ns if n.get("final")) for ns in regions.values()]
+            if all(finals):
+                every = " and ".join(f"s in ({f})" for f in finals)
+                # one clause per call kind, since each declares its own self and Alloy types no join over their union
+                B += [f"always (all c: Now.happens & {k} | let s = c.self | {every})" for k in completes]
+                B.append(f"always (all s: {up} | {every} implies " + " or ".join(f"(some c: Now.happens & {k} | c.self = s)" for k in completes) + ")")
         for y in L.get("syncs", []):
             when, then = W.event_pred[(lid, y["when"])], W.event_pred[(lid, y["then"])]
             where = f" and s in {ident(M.nodes[y['where']]['label'])}" if y.get("where") else ""

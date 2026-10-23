@@ -518,6 +518,10 @@ function mountZoom(root, M, LIMITS) {   // LIMITS: assets/phone-limits.json, whi
       cls(g, n.id);
       el(g, "rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx, class: "n-fill" });
       el(g, "path", { d: inkRect(b.x, b.y, b.w, b.h, rx, seed), class: "n-ink" });
+      if (L.kind === "state" && n.final) {   // UML's final state is a ringed one: a second outline inside the first
+        g.classList.add("final");
+        el(g, "path", { d: inkRect(b.x + 4, b.y + 4, b.w - 8, b.h - 8, Math.max(rx - 4, 0), seed + 1), class: "n-ink" });
+      }
       const nl = nodeLines(L, n), tx = b.x + b.w / 2 - (open ? 8 : 0), t = el(g, "text", { x: tx, y: b.y + b.h / 2 + 5.5 - (nl.length - 1) * 9.5, "text-anchor": "middle", class: "n-lab" }, nl.length > 1 ? null : shown(n));
       if (nl.length > 1) ink(t, nl, tx, 19);
       if (n.qty) {   // how much it holds, on its bottom left corner

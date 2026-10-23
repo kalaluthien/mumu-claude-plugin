@@ -173,6 +173,18 @@ def parse(data):
         P = by_id.get(kind[L["parent"]]["id"]) if L.get("parent") else None
         if L.get("history") and not (L["kind"] == "state" and P and P["kind"] == "state" and P.get("subject") == L.get("subject")):
             out.append(("history-outside-superstate", f"{lid}: only a state level opened from a state of its subject resumes by history"))
+        # a level's id is the node that opens it, so by_id of a node is the level inside it
+        inside = lambda n: by_id.get(n) if L["kind"] == "state" and by_id.get(n, {}).get("kind") == "state" and by_id[n].get("subject") == L.get("subject") else None
+        finals = {n["id"] for n in L["nodes"] if n.get("final")}
+        for e in L["edges"]:
+            if e.get("enters") and (e["from"] == e["to"] or not inside(e["to"])):
+                why = "a self-loop never enters it" if e["from"] == e["to"] else "it opens no state level of its subject"
+                out.append(("enters-without-superstate", f'{lid}: {e["label"]} picks how it enters {e["to"]}, but {why}'))
+            if e["from"] in finals:
+                out.append(("final-with-exit", f'{lid}: {e["label"]} leaves {e["from"]}, a final state'))
+            C = inside(e["from"]) if e.get("completion") else None
+            if e.get("completion") and not (C and {n.get("partition") or "_" for n in C["nodes"]} == {n.get("partition") or "_" for n in C["nodes"] if n.get("final")}):
+                out.append(("completion-without-final", f'{lid}: {e["label"]} completes {e["from"]}, but a region inside it has no final state'))
         if L.get("in") or L.get("out"):
             if not (L["kind"] in ("workflow", "topology") and P and P["kind"] == L["kind"]):
                 out.append(("form", f"{lid}: only a workflow or topology opened from one of its kind has ports; bring outside things in as triggers"))
