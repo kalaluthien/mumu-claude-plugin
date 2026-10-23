@@ -33,8 +33,14 @@ through syncs, where an event in one region, while a state holds, causes an even
 A node that opens a level of another kind shows a different view of the same thing (`link: view`): a component's
 workflow, an activity's states. A node that opens a level of its own kind refines it: the child's ports carry exactly
 the parent node's edges, so what holds of the parent holds of the child; `link: nest` drops that claim. A state level
-opened from a state needs no ports: an event into the parent enters the child at its initial state, and an event out
-of the parent leaves whichever child state holds, as in a Harel superstate.
+opened from a state of its own subject needs no ports: an event into the parent enters the child at its initial state, and an event out
+of the parent leaves whichever child state holds, as in a Harel superstate: an instance is in a child state exactly
+while it is in the parent, and the child's events happen only there. A child level with `history` is entered instead
+where it was last left, as SCXML's [history](https://www.w3.org/TR/scxml/#history) state: shallow history resumes the
+child state each region last held, its own inside entered afresh; deep history resumes every level below as well. The
+first entry, with nothing to resume, takes the initial state. A child level of another subject only zooms in: its
+states are not linked to the parent's. A trigger into a child state fires only inside the parent, since entering the
+parent takes the initial state.
 
 ## Metadata
 

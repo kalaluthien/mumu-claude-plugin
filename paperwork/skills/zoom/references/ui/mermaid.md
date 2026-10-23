@@ -18,11 +18,11 @@ Each kind is drawn as its reading in [semantics.md](../schema/semantics.md) says
 
 - [Topology](../schema/semantics.md#topology): a top-down `flowchart`. A component is a box, an abstract type a parallelogram, a singleton a double box, and a relation an arrow labelled with its field.
 - [Workflow](../schema/semantics.md#workflow): a left-to-right `flowchart`. An activity is a rounded box, a fork or join a hexagon labelled `(fork)` or `(join)`, and a partition a subgraph. A trigger is a circle and a port a flag, each with an arrow into or out of the flow.
-- [State](../schema/semantics.md#state): a `stateDiagram-v2` titled by its subject. The initial state takes `[*] -->`, and a trigger takes `[*] -->` with its label. Orthogonal regions are compartments split by `--`, each named after its region. A sync is listed under the block, since Mermaid draws no arrow between regions' events.
+- [State](../schema/semantics.md#state): a `stateDiagram-v2` titled by its subject. The initial state takes `[*] -->`, and a trigger takes `[*] -->` with its label. Orthogonal regions are compartments split by `--`, each named after its region. A sync is listed under the block, since Mermaid draws no arrow between regions' events. A state that opens a state level is a composite `state … { }` holding that level, as a [superstate](../schema/semantics.md#opening-a-level), and a level with `history` holds an `H` state, or `H*` for deep history; Mermaid has no history pseudo-state, so it is a plain state.
 
 On every kind:
 
-- A node that opens a level ends with `▸`.
+- A node that opens a level ends with `▸`, except a superstate, drawn with its level inside.
 - A `qty` follows the label as `<value> <unit> (<kind>)`.
 - On an arrow, `happy` is thick, `failure` dotted red with `✗`, `optional` dotted, and `unsure` dotted with `?`.
 - On a node, a mark is a coloured or dashed outline, and a `diff` tints the node; on a flowchart's arrow, a `diff` tints the arrow. A state diagram cannot style one arrow, so there the table alone shows it.
@@ -32,7 +32,7 @@ On every kind:
 What survives the projection into Mermaid. A construct is `kept` when changing it changes the output, and `emit-mermaid.py losses` checks every row of this table that way. A lost construct is still in the document, for the HTML renderer or a reader of the JSON.
 
 Two limits come from Mermaid itself, not from the emitter:
-- [State diagrams](https://mermaid.js.org/syntax/stateDiagram.html) style a state only by `classDef`, which "cannot be applied to or within composite states". So a `mark` or `diff` on a state inside a region shows only in the table.
+- [State diagrams](https://mermaid.js.org/syntax/stateDiagram.html) style a state only by `classDef`, which "cannot be applied to or within composite states". So a `mark` or `diff` on a state inside a region, or on a superstate, shows only in the table.
 - State diagrams have no way to style one transition, so an arrow's style there is lost. [Flowcharts](https://mermaid.js.org/syntax/flowchart.html) style each arrow by `linkStyle`.
 
 | construct | survives | how |
@@ -51,6 +51,7 @@ Two limits come from Mermaid itself, not from the emitter:
 | `level.why` | kept | an italic line under the heading |
 | `level.subject` | kept | the heading of a state level, `(state of <subject>)` |
 | `level.initial` | kept | `[*] -->` |
+| `level.history` | kept | an `H` or `H*` state in the level and in its superstate |
 | `level.init` | lost | an Alloy predicate |
 | `level.partitions` | kept | subgraphs |
 | `level.triggers` | kept | a circle, or `[*] -->`, with its label |
@@ -75,7 +76,7 @@ Two limits come from Mermaid itself, not from the emitter:
 | `node.mark` | kept | an outline style |
 | `node.refs` | lost | sources, not a drawing |
 | `node.media` | lost | too long for a diagram |
-| `node.opens` | kept | `▸` and the child level |
+| `node.opens` | kept | `▸` and the child level, or the composite of a superstate |
 | `node.region` | kept | the compartment that holds it |
 | `node.qty` | kept | a line under the label |
 | `node.meta` | kept | a row of the table |

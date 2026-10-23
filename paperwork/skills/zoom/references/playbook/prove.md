@@ -15,8 +15,10 @@ follows each kind's reading, so an edge means one thing in the drawing and in th
 - [State](../schema/semantics.md#state): each state is a changing subset of the subject, one per region at a time;
   an event moves an instance only from a state that has that edge, and a sync makes its second event happen in the
   same step as its first.
-- [Opening a level](../schema/semantics.md#opening-a-level): levels are not linked in the module, so a rule is proved
-  over all levels at once, never across a refinement.
+- [Opening a level](../schema/semantics.md#opening-a-level): a state level opened from a state is linked to it, its
+  states partitioning that state's instances, entered at the initial state or by history, left whenever the parent
+  is; every other level stands alone in the module, so a rule is proved over all levels at once, never across a
+  refinement.
 
 ## Run
 

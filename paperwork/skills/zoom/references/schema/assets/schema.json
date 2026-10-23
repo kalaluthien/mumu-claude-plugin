@@ -268,6 +268,13 @@
      ],
      "description": "State levels: the initial state, one per region."
     },
+    "history": {
+     "enum": [
+      "shallow",
+      "deep"
+     ],
+     "description": "State levels opened from a state: entering that state again resumes the state last held in each region, shallow at this level, deep at every level below too."
+    },
     "init": {
      "type": "string",
      "description": "Alloy true at the start."
