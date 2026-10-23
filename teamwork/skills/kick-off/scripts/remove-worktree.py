@@ -12,14 +12,15 @@ def git(*argv, cwd):
 
 
 def unmerged_tips(name, root):
-    """Short shas of NAME's local and remote tips that neither the default branch nor a merged pull request holds."""
+    """Short shas of NAME's local and remote tips that neither `origin/HEAD` nor a merged pull request holds."""
     git("fetch", "origin", cwd=root)
-    default = git("symbolic-ref", "--short", "refs/remotes/origin/HEAD", cwd=root).stdout.strip() or "origin/main"
+    default = git("symbolic-ref", "--short", "refs/remotes/origin/HEAD", cwd=root).stdout.strip()
     tips = {git("rev-parse", "--verify", "--quiet", ref, cwd=root).stdout.strip()
             for ref in (f"refs/heads/{name}", f"refs/remotes/origin/{name}")} - {""}
-    # a squash merge leaves the branch commits off the default branch, so a merged pull request's head counts as merged too
+    # a squash merge leaves the branch commits off the base, so a merged pull request's head counts as merged too
     merged = {pr["headRefOid"] for pr in github_rest.pulls("closed", branch=name) or [] if pr["mergedAt"]}
-    return sorted(t[:9] for t in tips - merged if git("merge-base", "--is-ancestor", t, default, cwd=root).returncode)
+    # with no `origin/HEAD` only a merged pull request counts, so the branch is kept rather than guessed merged
+    return sorted(t[:9] for t in tips - merged if not default or git("merge-base", "--is-ancestor", t, default, cwd=root).returncode)
 
 
 def remove(name, root):

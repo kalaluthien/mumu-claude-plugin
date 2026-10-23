@@ -31,7 +31,9 @@ def project(manager):
 
 
 def owns(name, branch):
-    return branch == name or branch.startswith(name + "-")
+    # a repository's rules may put a prefix such as `feature/` before the worker's name
+    last = branch.rsplit("/", 1)[-1]
+    return last == name or last.startswith(name + "-")
 
 
 def tabs(workspace):

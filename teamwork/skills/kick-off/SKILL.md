@@ -28,7 +28,8 @@ Intent flows owner → manager → backlog → worker → tasks → judged pull 
 - **holds**: a worker holds each open issue whose latest `holders` names it, any number, and several may hold one
 - **backlog**: an issue labelled `backlog`: the owner's intent in rough words
 - **task**: an issue a worker defines: `## Goal`, `## Definition of done` of criteria, its order after other tasks
-- **criterion**: a `[check]`, a command whose output decides, its failing output on main quoted; or a `[score]`, a rubric over a named sample, head against main by a margin set after measuring main on it
+- **base**: the branch a change starts from and merges into, as the repository's rules say (its `AGENTS.md`, `CONTRIBUTING`, hooks, branch protection), else the default branch, `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`
+- **criterion**: a `[check]`, a command whose output decides, its failing output on base quoted; or a `[score]`, a rubric over a named sample, head against the base by a margin set after measuring the base on it
 - **precheck**: the table [run-criteria.py](scripts/run-criteria.py) prints of each `[check]` run at the head, which the worker comments on the task before each judge, and the judge reads instead of running each again
 
 ## Authority
@@ -59,7 +60,7 @@ Each role decides alone what keeps the intent it was handed, and asks before it 
 
 ## Verbs
 
-The default branch is `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`. `read` (`--json title,body,comments,labels,state`, a PR's also `headRefOid`), `comment`, `file` (each label first `gh label create <label> --force`) and `resolve` (`--reason completed --comment "REPORTED: <summary>"`, or `"not planned"` for work stopped) are `gh issue` and `gh pr` commands, a body always by `--body-file`, its file written before the command, since a hook refuses `--body` and `-b`; `decide` comments a `DECIDED:`.
+`read` (`--json title,body,comments,labels,state`, a PR's also `headRefOid`), `comment`, `file` (each label first `gh label create <label> --force`) and `resolve` (`--reason completed --comment "REPORTED: <summary>"`, or `"not planned"` for work stopped) are `gh issue` and `gh pr` commands, a body always by `--body-file`, its file written before the command, since a hook refuses `--body` and `-b`; `decide` comments a `DECIDED:`.
 
 - `order`: `gh api -X POST repos/<repo>/issues/<later>/dependencies/blocked_by -F issue_id=<earlier's id>`; ids by `gh api repos/<repo>/issues/<n> -q .id`
 - `nest`: `gh api -X POST repos/<repo>/issues/<backlog>/sub_issues -F sub_issue_id=<task's id>`

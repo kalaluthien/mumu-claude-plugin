@@ -3,7 +3,7 @@
 
 Print each criterion of a task body's Definition of done whose form a judge would send back, one line per criterion,
 `<position>: <defects>`, and exit 1; a body with none prints nothing and exits 0. It reads the form only, never running
-a command, since whether a check passes on the default branch stays the judge's to find. After the lines it prints, once
+a command, since whether a check passes on the base stays the judge's to find. After the lines it prints, once
 per defect named, what the defect means and how to fix it."""
 import pathlib
 import re
@@ -19,14 +19,14 @@ FIX = {
     "no kind": "open the criterion with `[check]` or `[score]` before its name",
     "no name": "put a bold name after the kind: `[check] **<name>**: <details>`",
     "no command": "write the command that decides in a code span; a `[check]` is a command whose output decides",
-    "no main output": "quote, after `on main`, the failing output of the same command on the default branch, as in "
-                      "`prints ok; on main nothing`",
-    "passes on main": "the word after `prints` equals the word after `on main`, so the check passes on the default branch; "
+    "no base output": "quote, after `on base`, the failing output of the same command on the base, as in "
+                      "`prints ok; on base nothing`",
+    "passes on base": "the word after `prints` equals the word after `on base`, so the check passes on the base; "
                       "quote the output it gives there, which must differ",
     "elided command": "write the whole command; `...` or `…` in the code span cannot be run",
     "no sample": "name the sample with `sample:`",
     "no rubric": "name the rubric with `rubric:`",
-    "no main measure": "state main's measure on the sample, with the word `main`",
+    "no base measure": "state the base's measure on the sample, with the word `base`",
 }
 
 
@@ -37,14 +37,15 @@ def defects(kind, name, detail):
     span = issue_state.SPAN.search(detail)
     rest = detail[:span.start()] + detail[span.end():] if span else detail
     if kind == "check":
-        passes, main = re.search(r"\bprints" + WORD, rest), re.search(r"\bon main" + WORD, rest)
+        # tasks filed before the base was named quote `on main`
+        passes, base = re.search(r"\bprints" + WORD, rest), re.search(r"\bon (?:base|main)" + WORD, rest)
         found += [] if span else ["no command"]
-        found += ["no main output"] if not main else ["passes on main"] if passes and passes.group(1) == main.group(1) else []
+        found += ["no base output"] if not base else ["passes on base"] if passes and passes.group(1) == base.group(1) else []
     if span and ("..." in span.group(2) or "…" in span.group(2)):
         found.append("elided command")
     if kind == "score":
         found += [f"no {word}" for word in ("sample", "rubric") if f"{word}:" not in rest]
-        found += [] if re.search(r"\bmain\b", rest) else ["no main measure"]
+        found += [] if re.search(r"\b(?:base|main)\b", rest) else ["no base measure"]
     return found
 
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""usage: run-criteria.py [--timeout <s>] [--main] <task | body-file | ->
+"""usage: run-criteria.py [--timeout <s>] [--base [--ref <ref>]] <task | body-file | ->
 
 Run each `[check]` of a task's Definition of done at the head, in the worktree's root, then each `[check]` of an
 optional `.teamwork/default-criteria.md` there as `standing`, and print a table to comment on the task, which the
@@ -11,10 +11,10 @@ judge runs; `judged` for a `[score]`. A timeout is a `fail`. Exit 1 on any `fail
 when a criterion fails with the output it had in an earlier table on the task: ask your manager by `BLOCKED:`, since
 it has failed twice the same way.
 
-`--main` runs each `[check]` in an export of the default branch instead and prints `main ok` when its output equals the
-text quoted after `on main`, `wrong main` when it differs, `unclear` when the quote is not one value; exit 1 on any
-`wrong main`; an `exits` or `more` check, a git check (the export has no `.git`) and a check with a placeholder are
-`unclear`. The output is compared whole. It never fetches: run `git fetch` first. A body file reads criteria before the task exists, so run it before the first judge."""
+`--base` runs each `[check]` in an export of the base instead, `--ref` or else `origin/HEAD`, and prints `base ok` when
+its output equals the text quoted after `on base` (or `on main`, in tasks filed before), `wrong base` when it differs,
+`unclear` when the quote is not one value; exit 1 on any `wrong base`; an `exits` or `more` check, a git check (the
+export has no `.git`) and a check with a placeholder are `unclear`. The output is compared whole. It never fetches: run `git fetch` first. A body file reads criteria before the task exists, so run it before the first judge."""
 import argparse
 import json
 import os
@@ -59,10 +59,10 @@ def expectation(detail):
         return command, (None, "placeholder in the command")
     rest = after[verb.end():]
     # the expected text runs to the clause's end, so a second value such as `a` then `b` or `a`, `b` reads as undecidable
-    clause, *_ = parts = re.split(r"([;.](?:\s|$)|,\s+(?!`)|\bwhen\b|\bon main\b)", rest)
+    clause, *_ = parts = re.split(r"([;.](?:\s|$)|,\s+(?!`)|\bwhen\b|\bon (?:base|main)\b)", rest)
     clause = clause.strip()
-    # a further command before main's output is a second condition, which this value alone would pass; a `when` explains
-    tail = "".join(parts[1:]).split("on main")[0]
+    # a further command before the base's output is a second condition, which this value alone would pass; a `when` explains
+    tail = re.split(r"\bon (?:base|main)\b", "".join(parts[1:]))[0]
     tail = re.sub(r"\bwhen\b.*?(?:[;.](?:\s|$)|$)", "", tail, flags=re.S)
     if re.match(r"[,;]\s*and\b", tail) or any(re.search(r"\s", m.group(2)) for m in issue_state.SPAN.finditer(tail)):
         return command, (None, "more than one condition")
@@ -83,9 +83,10 @@ def expectation(detail):
     return command, (None, "expected output not one value")
 
 
-def main_quote(detail):
-    """The one value quoted after `on main` in a `[check]`'s details, or None when it is not one value."""
-    _, found, rest = detail.partition("on main")
+def base_quote(detail):
+    """The one value quoted after `on base` in a `[check]`'s details, or None when it is not one value."""
+    # tasks filed before the base was named quote `on main`
+    _, found, rest = (re.split(r"\b(on (?:base|main))\b", detail, maxsplit=1) + ["", ""])[:3]
     clause = re.split(r"[;.](?:\s|$)|,\s+(?!`)|\bwhen\b", rest)[0].strip()
     clause = re.sub(r"^(?:it\s+)?prints\s+", "", clause)
     spans = list(issue_state.SPAN.finditer(clause))
@@ -96,31 +97,32 @@ def main_quote(detail):
     return clause if found and re.fullmatch(r"[\w-]+", clause) else None
 
 
-def main_row(label, kind, name, detail, archive, timeout):
+def base_row(label, kind, name, detail, archive, timeout):
     command, test = expectation(detail)
-    quoted = main_quote(detail)
+    quoted = base_quote(detail)
     # an `exits` or `more` check is decided by status or count, which the quoted text is not
     if kind != "check" or test[0] != "prints" or quoted is None:
-        return label, name, "unclear", "not run: not a `prints` check with one value after `on main`"
+        return label, name, "unclear", "not run: not a `prints` check with one value after `on base`"
     status, out = run(command, archive, timeout)
     if "not a git repository" in out:
         return label, name, "unclear", "git needs a checkout, which the export lacks"
-    return label, name, "main ok" if status is not None and out == quoted else "wrong main", cell(out)
+    return label, name, "base ok" if status is not None and out == quoted else "wrong base", cell(out)
 
 
-def default_ref():
-    ref = subprocess.run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"], capture_output=True, text=True)
-    return ref.stdout.strip() or "origin/main"
+def base_ref(ref):
+    found = ref or subprocess.run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"], capture_output=True,
+                                  text=True).stdout.strip()
+    return found or sys.exit("run-criteria: origin/HEAD is not set; name the base with --ref")
 
 
-def run_on_main(root, rows, timeout):
-    """Rows of every criterion run in a `git archive` copy of the default branch, so the head's files never answer."""
-    with tempfile.TemporaryDirectory(prefix="run-criteria-main-") as copy:
-        tar = subprocess.Popen(["git", "archive", default_ref()], cwd=root, stdout=subprocess.PIPE)
+def run_on_base(root, ref, rows, timeout):
+    """Rows of every criterion run in a `git archive` copy of the base, so the head's files never answer."""
+    with tempfile.TemporaryDirectory(prefix="run-criteria-base-") as copy:
+        tar = subprocess.Popen(["git", "archive", ref], cwd=root, stdout=subprocess.PIPE)
         subprocess.run(["tar", "-x", "-C", copy], stdin=tar.stdout, check=True)
         if tar.wait():
-            sys.exit(f"run-criteria: could not export {default_ref()}; fetch it first")
-        return [main_row(str(n), *c, copy, timeout) for n, c in enumerate(rows, 1)]
+            sys.exit(f"run-criteria: could not export {ref}; fetch it first")
+        return [base_row(str(n), *c, copy, timeout) for n, c in enumerate(rows, 1)]
 
 
 def run(command, cwd, timeout):
@@ -190,21 +192,23 @@ def earlier_fails(task):
 def main():
     args = argparse.ArgumentParser()
     args.add_argument("--timeout", type=int, default=300)
-    args.add_argument("--main", action="store_true")
+    args.add_argument("--base", "--main", action="store_true")
+    args.add_argument("--ref")
     args.add_argument("task")
     a = args.parse_args()
     file = pathlib.Path(a.task)
-    task = {"body": file.read_text(), "comments": []} if a.main and file.is_file() else read_task(a.task)
+    task = {"body": file.read_text(), "comments": []} if a.base and file.is_file() else read_task(a.task)
     root = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip() or "."
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
     dirty = subprocess.run(["git", "status", "--porcelain"], cwd=root, capture_output=True, text=True).stdout.strip()
-    if a.main:
-        sha = subprocess.run(["git", "rev-parse", "--short", default_ref()], cwd=root, capture_output=True, text=True).stdout.strip()
-        rows = run_on_main(root, list(criteria(issue_state.sections(task.get("body")).get("done", ""))), a.timeout)
-        print(f"REPORTED: main outputs at {default_ref()} {sha}\n\n| # | criterion | result | output on main |\n| --- | --- | --- | --- |")
+    if a.base:
+        ref = base_ref(a.ref)
+        sha = subprocess.run(["git", "rev-parse", "--short", ref], cwd=root, capture_output=True, text=True).stdout.strip()
+        rows = run_on_base(root, ref, list(criteria(issue_state.sections(task.get("body")).get("done", ""))), a.timeout)
+        print(f"REPORTED: base outputs at {ref} {sha}\n\n| # | criterion | result | output on base |\n| --- | --- | --- | --- |")
         for r in rows:
             print("| " + " | ".join([r[0], r[1].replace("|", "\\|"), r[2], r[3]]) + " |")
-        sys.exit(1 if any(r[2] == "wrong main" for r in rows) else 0)
+        sys.exit(1 if any(r[2] == "wrong base" for r in rows) else 0)
     standing = pathlib.Path(root, ".teamwork", "default-criteria.md")
     rows = [row(str(n), *c, root, a.timeout) for n, c in enumerate(criteria(issue_state.sections(task.get("body")).get("done", "")), 1)]
     rows += [row("standing", *c, root, a.timeout) for c in criteria(standing.read_text())] if standing.exists() else []
