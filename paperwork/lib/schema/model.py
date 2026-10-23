@@ -177,8 +177,9 @@ def parse(data):
         inside = lambda n: by_id.get(n) if L["kind"] == "state" and by_id.get(n, {}).get("kind") == "state" and by_id[n].get("subject") == L.get("subject") else None
         finals = {n["id"] for n in L["nodes"] if n.get("final")}
         for e in L["edges"]:
-            if e.get("enters") and not inside(e["to"]):
-                out.append(("enters-without-superstate", f'{lid}: {e["label"]} picks how it enters, but {e["to"]} opens no state level of its subject'))
+            if e.get("enters") and (e["from"] == e["to"] or not inside(e["to"])):
+                why = "a self-loop never enters it" if e["from"] == e["to"] else "it opens no state level of its subject"
+                out.append(("enters-without-superstate", f'{lid}: {e["label"]} picks how it enters {e["to"]}, but {why}'))
             if e["from"] in finals:
                 out.append(("final-with-exit", f'{lid}: {e["label"]} leaves {e["from"]}, a final state'))
             C = inside(e["from"]) if e.get("completion") else None

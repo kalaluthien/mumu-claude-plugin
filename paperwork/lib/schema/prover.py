@@ -607,8 +607,9 @@ def translate(M):
             finals = [" + ".join(ident(n["label"]) for n in ns if n.get("final")) for ns in regions.values()]
             if all(finals):
                 every = " and ".join(f"s in ({f})" for f in finals)
-                B.append(f"always (all c: Now.happens & ({' + '.join(completes)}) | let s = c.self | {every})")
-                B.append(f"always (all s: {up} | {every} implies some c: Now.happens & ({' + '.join(completes)}) | c.self = s)")
+                # one clause per call kind, since each declares its own self and Alloy types no join over their union
+                B += [f"always (all c: Now.happens & {k} | let s = c.self | {every})" for k in completes]
+                B.append(f"always (all s: {up} | {every} implies " + " or ".join(f"(some c: Now.happens & {k} | c.self = s)" for k in completes) + ")")
         for y in L.get("syncs", []):
             when, then = W.event_pred[(lid, y["when"])], W.event_pred[(lid, y["then"])]
             where = f" and s in {ident(M.nodes[y['where']]['label'])}" if y.get("where") else ""
