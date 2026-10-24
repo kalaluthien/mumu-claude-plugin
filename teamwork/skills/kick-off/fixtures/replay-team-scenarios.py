@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Replay the team in varied scenarios on the sandbox board kalaluthien/teamwork-board-sandbox, a temporary files board and
-the fake herdr beside this file, and print `<scenario> pass`, or `<scenario> fail` with the output that failed.
+"""Replay the team in varied scenarios on the sandbox board kalaluthien/teamwork-board-sandbox as the tape of recorded-gh/gh beside
+this file holds it, a temporary files board and the fake herdr beside this file, and print `<scenario> pass`, or `<scenario> fail` with the output that failed.
 
 usage: replay-team-scenarios.py [--only <scenario>,...] [-v]
 `-v` also prints each run's output. FAKE_HERDR_BREAK=accept makes the fake herdr take every prompt and wait, so the scenarios that
@@ -18,6 +18,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 SCRIPTS = HERE.parent / "scripts"
 SANDBOX = "kalaluthien/teamwork-board-sandbox"
+GH_STATE = pathlib.Path(tempfile.mkstemp(prefix="recorded-gh-", suffix=".json")[1])  # the run's turns on the tape
 
 
 def agent(name, pane, status, workspace="w1"):
@@ -34,7 +35,8 @@ def herdr(*agents):
 
 
 def run(argv, state, pane=None, event=None, seconds=120, **env):
-    env = {**os.environ, "GH_REPO": SANDBOX, "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state),
+    env = {**os.environ, "GH_REPO": SANDBOX, "PATH": f"{HERE / 'recorded-gh'}:{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state),
+           "GH_TAPE": "replay-team-scenarios", "GH_TAPE_STATE": str(GH_STATE),
            "MONITOR_POLL": "1000", **({"HERDR_PANE_ID": pane} if pane else {}), **env}
     try:
         p = subprocess.run([str(a) for a in argv], env=env, input=event and json.dumps(event), capture_output=True, text=True, timeout=seconds)

@@ -2,8 +2,8 @@
 """File a backlog and a task, nest and order them, set holders, ask by BLOCKED, answer by DECIDED, edit the body and resolve both, writing only through
 use-board.py, and print after each step a `step <name>` line, the composed state of each issue it filed and the board lines, numbers and urls replaced
 by names, so two boards that print the same text keep the same protocol. The files board runs in a temporary folder. The github board runs on the
-repository `GH_REPO` names, never this one, since its issues would reach the team's board: with `GH_REPO` unset or naming it, the run calls no gh,
-prints `not a sandbox` and exits 1.
+repository `GH_REPO` names, as the tape of recorded-gh/gh beside this file holds it, never this one, since its issues would reach the team's board:
+with `GH_REPO` unset or naming it, the run calls no gh, prints `not a sandbox` and exits 1.
 
 usage: replay-board-scenario.py --board <github|files>"""
 import argparse
@@ -81,6 +81,8 @@ def main(args):
         sys.exit("replay-board-scenario: not a sandbox: set GH_REPO to a repository whose issues the team's board never reads")
     if board_name == "files":
         os.environ["TEAMWORK_BOARD_DIR"], os.environ["HOME"] = str(work / "board"), str(work)  # so the signal file is the scenario's own too
+    else:  # each run filing issues on GitHub grew the sandbox and spent its rate limit
+        os.environ.update({"PATH": f"{HERE / 'recorded-gh'}:{os.environ['PATH']}", "GH_TAPE": "replay-board-scenario", "GH_TAPE_STATE": str(work / "gh-turns.json")})
     # imported here, since they read the board and folder set above when they load
     import board
     import issue_board

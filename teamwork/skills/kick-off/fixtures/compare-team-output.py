@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """Run teamwork's entry points (hooks, board, heartbeat, scripts) in this checkout and in an export of REF (default
-origin/main) at the same time, against GitHub and a fake herdr (fake-herdr/herdr beside this file) that lists the two sessions
-below, and print the entries, those with no output, then
-`same` when every output matches, else one unified diff per entry that differs and `differ: <entries>`.
+origin/main) at the same time, against the board kalaluthien/teamwork-board-sandbox as the tape of recorded-gh/gh beside this file
+holds it, and a fake herdr (fake-herdr/herdr beside this file) that lists the two sessions below, and print the entries,
+those with no output, then `same` when every output matches, else one unified diff per entry that differs and `differ: <entries>`.
 
-usage: compare-team-output.py [--ref <ref>] [--only <entry>,...] [--skip <entry>,...] [--sandbox]
-The manager is
-teamwork-manager, the worker protocol-split-worker. `--sandbox` reads kalaluthien/teamwork-board-sandbox instead, whose
-fixture issues and one merged change give every entry output, and adds `edit-write`, which edits its issue #6 (base) or #7 (head) forward and
-back. `--only` keeps the entries whose names start with one of its words, `--skip` drops them."""
+usage: compare-team-output.py [--ref <ref>] [--only <entry>,...] [--skip <entry>,...]
+The manager is teamwork-manager, the worker protocol-split-worker. The sandbox's fixture issues and one merged change give every
+entry output; `edit-write` edits its issue #6 (base) or #7 (head) forward and back.
+`--only` keeps the entries whose names start with one of its words, `--skip` drops them."""
 import argparse
 import concurrent.futures as cf
 import difflib
@@ -57,9 +56,14 @@ def fake_herdr(tree):
     return state
 
 
+def gh_env(tree):
+    """What sends a tree's gh calls to the tape, each tree counting its own turns."""
+    return {"PATH": f"{HERE / 'recorded-gh'}:{HERE / 'fake-herdr'}:{os.environ['PATH']}", "GH_TAPE": "compare-team-output", "GH_TAPE_STATE": str(STATES[tree]) + ".gh"}
+
+
 def run(tree, argv, pane=None, stdin=None, seconds=120, cwd=None, board=True):
-    env = {**os.environ, **({"HERDR_PANE_ID": pane} if pane else {}), **({"GH_REPO": SANDBOX} if SAND and board else {}), "MONITOR_POLL": "1000",
-           "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(STATES[tree])}
+    env = {**os.environ, **({"HERDR_PANE_ID": pane} if pane else {}), **({"GH_REPO": SANDBOX} if board else {}), "MONITOR_POLL": "1000",
+           **gh_env(tree), "FAKE_HERDR_STATE": str(STATES[tree])}
     argv = [str(tree / a) if a.startswith("teamwork/") else a for a in argv]
     p = subprocess.Popen(argv, cwd=cwd or ROOT, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     try:
@@ -79,7 +83,7 @@ def edit_write(tree, side):
         diffs[name].write_text(f"--- a\n+++ b\n@@ -3 +3 @@\n-probe: {a}\n+probe: {b}\n")
     out = "".join(run(tree, [SCRIPTS + "edit-issue-body.py", EDIT_ISSUE[side], str(diffs[d]), f"DECIDED: probe {d}"]) for d in ("forward", "back"))
     for comment in set(re.findall(rf"(?:repos/{SANDBOX}/issues/comments/|{SANDBOX}/issues/\d+#issuecomment-)(\d+)", out)):  # so the issue does not grow a comment pair per run
-        subprocess.run(["gh", "api", "-X", "DELETE", f"repos/{SANDBOX}/issues/comments/{comment}"], capture_output=True)
+        subprocess.run(["gh", "api", "-X", "DELETE", f"repos/{SANDBOX}/issues/comments/{comment}"], capture_output=True, env={**os.environ, **gh_env(tree)})
     return "\n".join(re.findall(r"edit-issue-body: .*", out)).replace(f"#{EDIT_ISSUE[side]}", "#<issue>")
 
 
@@ -104,30 +108,29 @@ def outputs(tree, side, ids):
     jobs["heartbeat"] = (["teamwork/monitors/print-team-gaps.py"], ids.get("teamwork-manager"), None, 45)
     jobs["worker-heartbeat"] = (["teamwork/monitors/print-team-gaps.py"], ids.get("protocol-split-worker"), None, 45)
     jobs["recall"] = ([SCRIPTS + "recall-work.py", "protocol adapter", "--path", "./teamwork/lib/team_gaps.py"], None, None, 120)
-    jobs["criteria"] = ([SCRIPTS + "run-criteria.py", "3" if SAND else "855"], None, None, 120)
-    repo = SANDBOX if SAND else "kalaluthien/mumu-claude-plugin"  # the sandbox's one merged change closes its #5
-    jobs["estimate"] = ([SCRIPTS + "estimate-task-time.py", "--seed", "1", f"https://github.com/{repo}/issues/{3 if SAND else 852}"], None, None, 180, None, False)
-    jobs["durations"] = ([SCRIPTS + "list-task-durations.py", repo], None, None, 300, None, False)
+    jobs["criteria"] = ([SCRIPTS + "run-criteria.py", "3"], None, None, 120)
+    # the sandbox's one merged change closes its #5
+    jobs["estimate"] = ([SCRIPTS + "estimate-task-time.py", "--seed", "1", f"https://github.com/{SANDBOX}/issues/3"], None, None, 180, None, False)
+    jobs["durations"] = ([SCRIPTS + "list-task-durations.py", SANDBOX], None, None, 300, None, False)
     jobs["edit-missing"] = ([SCRIPTS + "edit-issue-body.py", "999999", str(HERE / "edit-probe.diff"), "DECIDED: probe"], None, None, 60)
     keep = lambda k: (not ONLY or k.startswith(tuple(ONLY))) and not k.startswith(tuple(SKIP))
     with cf.ThreadPoolExecutor(8) as pool:
         futures = {k: pool.submit(run, tree, *v) for k, v in jobs.items() if keep(k)}
         if keep("remove"):
             futures["remove"] = pool.submit(remove, tree)
-        if SAND and keep("edit-write"):
+        if keep("edit-write"):
             futures["edit-write"] = pool.submit(edit_write, tree, side)
         return {k: f.result() for k, f in futures.items()}
 
 
 def main(args):
-    global ONLY, SKIP, SAND, ROOT, STATES
+    global ONLY, SKIP, ROOT, STATES
     parser = argparse.ArgumentParser()
     parser.add_argument("--ref", default="origin/main")
     parser.add_argument("--only", default="")
     parser.add_argument("--skip", default="")
-    parser.add_argument("--sandbox", action="store_true")
     a = parser.parse_args(args)
-    ONLY, SKIP, SAND = [w for w in a.only.split(",") if w], [w for w in a.skip.split(",") if w], a.sandbox
+    ONLY, SKIP = [w for w in a.only.split(",") if w], [w for w in a.skip.split(",") if w]
     ROOT = pathlib.Path(subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip() or ".")
     base = pathlib.Path(tempfile.mkdtemp(prefix="compare-team-")).resolve()
     archive = subprocess.Popen(["git", "archive", a.ref, "teamwork"], cwd=ROOT, stdout=subprocess.PIPE)
