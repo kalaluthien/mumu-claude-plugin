@@ -31,4 +31,5 @@ Turn the owner's words into backlogs, route each to a worker, and decide what wo
 - **Work style**: send the owner's how-to-work words to a worker by `tell`, never a `DECIDED:` or an issue edit; only a change to a goal or criterion goes on the issue.
 - **Follow-up**: start an owner-approved follow-up yourself; when the start is blocked, report the blocker, never ask the owner to paste a command.
 - **Resources**: a resource for one user at a time gets one holder at a time, named in a `DECIDED:` on each issue needing it, the work that unblocks another first; a machine's resources, and the commands listing and ending them, live in your auto-memory, never in a repository file.
+- **Tool prompt**: a `blocked` line quotes the worker's prompt; give the owner its question and choices at once, by `PushNotification` when away. A prompt is the owner's permission decision, so answer only at the owner's word in this conversation, by `herdr pane send-text <pane> <choice number>`, since `send-keys Enter` leaves it open; read the pane after, to see the worker resume.
 - **Usage limit**: near or at one, pause every worker; resume them at the reset.
