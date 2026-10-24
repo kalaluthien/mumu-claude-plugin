@@ -23,7 +23,7 @@ The weights come from two numbers per tier: $e_d$, the chance the judge flips on
 
 $$\sum_{j>d}\varepsilon_j<\varepsilon_d\,(1-2e_d)\,\delta_d .$$
 
-5. With the last tier's $\varepsilon$ set to 1, the least weight that meets it is $\sum_{j>d}\varepsilon_j/((1-2e_d)\delta_d)$; the inequality is strict, so the script scales it by a 5% margin. `check-spec.py weights` prints each $\varepsilon_d$ beside the $e_d$ and $\delta_d$ it came from; a spec never writes one.
+5. With the last tier's $\varepsilon$ set to 1, the least weight that meets it is $\sum_{j>d}\varepsilon_j/((1-2e_d)\delta_d)$. The inequality is strict, so the script scales it by a 5% margin. `check-spec.py weights` prints each $\varepsilon_d$ beside the $e_d$ and $\delta_d$ it came from; a spec never writes one.
 
 At $e_d=\tfrac12$ the factor $1-2e_d$ is 0: a verdict that is a coin flip carries no order, so no weight can rescue it. A high $e_d$ on a top tier makes the lower weights tiny; rewrite its criteria to be more concrete or program-checked rather than move the tier down.
 
@@ -37,4 +37,4 @@ An optional last tier scores quality no criterion captures: an answer's share of
 
 ## Judge and reliability
 
-The judge grades the whole rubric in one call. A judge's verdicts are trusted only as far as they agree, with each other across runs and with people. Krippendorff's alpha measures that agreement per criterion; his bar for drawing conclusions is 0.800, 0.667 for tentative ones (*Content Analysis*, 2nd ed., 2004, p. 241). A criterion below the bar is rewritten, never reweighted. LLM judges favour a position, a longer answer and their own style (Zheng et al., "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena", NeurIPS 2023, arXiv:2306.05685); biases within one tier add up, and the tier condition does not remove them, so calibration measures them by perturbation. Checklist rubrics as rewards beat Likert-scale judges in training and narrow the gap between judge sizes (Gunjal et al., "Rubrics as Rewards", arXiv:2507.17746, 2025), which is why each criterion is one binary check.
+The judge grades the whole rubric in one call. A judge's verdicts are trusted only as far as they agree, with each other across runs and with people. Krippendorff's alpha measures that agreement per criterion; his bar for drawing conclusions is 0.800, 0.667 for tentative ones (*Content Analysis*, 2nd ed., 2004, p. 241). A criterion below the bar is rewritten, never reweighted. LLM judges favour a position, a longer answer and their own style (Zheng et al., "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena", NeurIPS 2023, arXiv:2306.05685). Biases within one tier add up, and the tier condition does not remove them, so calibration measures them by perturbation. Checklist rubrics as rewards beat Likert-scale judges in training and narrow the gap between judge sizes (Gunjal et al., "Rubrics as Rewards", arXiv:2507.17746, 2025), which is why each criterion is one binary check.
