@@ -1,5 +1,4 @@
 """The board on GitHub: issues and comments read by REST, which spends no GraphQL point, the issue pane's tree by GraphQL, and writes by `gh api`."""
-import functools
 import hashlib
 import itertools
 import json
@@ -131,14 +130,21 @@ def with_comments(found, repo=None):
     return found
 
 
-@functools.cache  # a label almost never changes, and one read of the board asks for it more than once
+SCOPED = {}  # a found label almost never goes, and one read of the board asks for it more than once
+
+
 def scoped(project):
     if not project:  # the issue pane's tree of every issue asks with none
         return None
+    if project in SCOPED:
+        return SCOPED[project]
     label = team_settings.load(os.getcwd())["scope_prefix"] + project
     # the list, not the label: a missing label answers 404, which carries no ETag, while the list's ETag changes once a label is made
     found = get("repos/labels?per_page=100")
-    return label if found and label in {x["name"] for x in found} else None
+    if not found or label not in {x["name"] for x in found}:
+        return None  # never kept, so a monitor that started before the label sees it once it is made
+    SCOPED[project] = label
+    return label
 
 
 def issues(state="open", project=None, pulls=False, comments=True, since=None, repo=None):
