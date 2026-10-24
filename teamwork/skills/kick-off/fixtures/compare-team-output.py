@@ -141,6 +141,8 @@ def main(args):
         here, there = pool.submit(outputs, ROOT, "head", ids), pool.submit(outputs, base, "base", ids)
         here, there = here.result(), there.result()
     shutil.rmtree(base, ignore_errors=True)
+    for state in STATES.values():
+        pathlib.Path(f"{state}.gh").unlink(missing_ok=True)
     differ = [k for k in here if here[k] != there[k]]
     for k in differ:
         sys.stdout.writelines(difflib.unified_diff(there[k].splitlines(True), here[k].splitlines(True), f"{a.ref}:{k}", f"head:{k}"))

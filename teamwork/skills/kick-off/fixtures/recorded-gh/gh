@@ -30,9 +30,9 @@ def key(args, text):
     return json.dumps([os.environ.get("GH_REPO", ""), *without_etag(args), hashlib.sha1(text.encode()).hexdigest()[:12] if text else ""])
 
 
-def locked(path):
-    """An exclusive hold on PATH, by a lock file in the temporary folder, so none lands beside the tape."""
-    handle = open(pathlib.Path(tempfile.gettempdir()) / f"recorded-gh-{hashlib.sha1(str(path).encode()).hexdigest()[:12]}.lock", "w")
+def locked():
+    """An exclusive hold on every tape and turn file, by one lock file in the temporary folder, so none lands beside the tape."""
+    handle = open(pathlib.Path(tempfile.gettempdir()) / "recorded-gh.lock", "w")
     fcntl.flock(handle, fcntl.LOCK_EX)
     return handle
 
@@ -52,10 +52,10 @@ def save(path, data):
 
 def live(args, text):
     """The answer of the next gh on PATH, its kept ETag dropped so the tape holds a full answer."""
-    rest = os.pathsep.join(p for p in os.environ["PATH"].split(os.pathsep) if pathlib.Path(p).resolve() != HERE)
+    rest = os.pathsep.join(folder for folder in os.environ["PATH"].split(os.pathsep) if pathlib.Path(folder).resolve() != HERE)
     gh = shutil.which("gh", path=rest) or sys.exit("recorded-gh: no gh on PATH to record from")
-    p = subprocess.run([gh, *without_etag(args)], input=text, capture_output=True, text=True)
-    return {"stdout": p.stdout, "stderr": p.stderr, "code": p.returncode}
+    process = subprocess.run([gh, *without_etag(args)], input=text, capture_output=True, text=True)
+    return {"stdout": process.stdout, "stderr": process.stderr, "code": process.returncode}
 
 
 def main(args):
@@ -64,11 +64,11 @@ def main(args):
     tape.parent.mkdir(parents=True, exist_ok=True)
     text = sys.stdin.read() if any(a.endswith("@-") for a in args) else ""
     call = key(args, text)
-    with locked(tape):
+    with locked():
         answers = load(tape).get(call, [])
     state = os.environ.get("GH_TAPE_STATE")
     if state:
-        with locked(state):
+        with locked():
             counts = load(state)
             turn = counts.get(call, 0)
             counts[call] = turn + 1
@@ -79,7 +79,7 @@ def main(args):
         answer = answers[turn]
     else:
         answer = live(args, text)
-        with locked(tape):
+        with locked():
             data = load(tape)
             data.setdefault(call, []).append(answer)
             save(tape, data)

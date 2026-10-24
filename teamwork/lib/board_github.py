@@ -45,10 +45,17 @@ def trusted(record):
     return record.get("authorAssociation") in TRUSTED
 
 
+REMOTES = {}  # one git call per folder, since every read of a board asks
+
+
 def cache_file(path, repo):
     """The file keeping PATH's last answer and ETag. Its key drops the `since` value, so a moving stamp reuses one file: an ETag names the content,
-    so a key two reads share costs a full read at worst, never a wrong answer."""
-    key = SINCE.sub("", f"{repo or os.environ.get('GH_REPO', '')} {path}")
+    so a key two reads share costs a full read at worst, never a wrong answer. With no repository named, the key is the working folder's
+    remotes, the source gh fills `{owner}/{repo}` from, so the worktrees of one repository share a file and two repositories never do."""
+    folder = os.getcwd()
+    if not (repo or os.environ.get("GH_REPO")) and folder not in REMOTES:
+        REMOTES[folder] = subprocess.run(["git", "-C", folder, "remote", "-v"], capture_output=True, text=True).stdout
+    key = SINCE.sub("", f"{repo or os.environ.get('GH_REPO') or REMOTES[folder]} {path}")
     return CACHE / f"{hashlib.sha1(key.encode()).hexdigest()}.json"
 
 
@@ -61,12 +68,12 @@ def fetch(path, repo, tries):
     except (OSError, ValueError):
         kept = None
     for _ in range(tries):  # gh's calls fail now and then, then pass on retry
-        p = subprocess.run(["gh", "api", "-i", *(["-H", f"If-None-Match: {kept['etag']}"] if kept else []), path], capture_output=True, text=True)
-        head, _, body = p.stdout.replace("\r\n", "\n").partition("\n\n")
+        process = subprocess.run(["gh", "api", "-i", *(["-H", f"If-None-Match: {kept['etag']}"] if kept else []), path], capture_output=True, text=True)
+        head, _, body = process.stdout.replace("\r\n", "\n").partition("\n\n")
         status = head.split(" ", 2)[1] if head.startswith("HTTP/") else ""
         if status == "304" and kept:
             return json.loads(kept["body"])
-        if p.returncode == 0:
+        if process.returncode == 0:
             etag = next((v for k, _, v in (line.partition(": ") for line in head.splitlines()[1:]) if k.lower() == "etag"), None)
             if etag:
                 file.parent.mkdir(parents=True, exist_ok=True)
@@ -141,7 +148,7 @@ def scoped(project):
     label = team_settings.load(os.getcwd())["scope_prefix"] + project
     # the list, not the label: a missing label answers 404, which carries no ETag, while the list's ETag changes once a label is made
     found = get("repos/labels?per_page=100")
-    if not found or label not in {x["name"] for x in found}:
+    if not found or label not in {entry["name"] for entry in found}:
         return None  # never kept, so a monitor that started before the label sees it once it is made
     SCOPED[project] = label
     return label

@@ -10,6 +10,7 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -18,7 +19,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 SCRIPTS = HERE.parent / "scripts"
 SANDBOX = "kalaluthien/teamwork-board-sandbox"
-GH_STATE = pathlib.Path(tempfile.mkstemp(prefix="recorded-gh-", suffix=".json")[1])  # the run's turns on the tape
+TURNS = pathlib.Path(tempfile.mkdtemp(prefix="recorded-gh-"))  # each scenario's turns on its tape, so `--only` replays as the full run does
 
 
 def agent(name, pane, status, workspace="w1"):
@@ -36,7 +37,7 @@ def herdr(*agents):
 
 def run(argv, state, pane=None, event=None, seconds=120, **env):
     env = {**os.environ, "GH_REPO": SANDBOX, "PATH": f"{HERE / 'recorded-gh'}:{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state),
-           "GH_TAPE": "replay-team-scenarios", "GH_TAPE_STATE": str(GH_STATE),
+           "GH_TAPE": f"replay-team-scenarios-{SCENARIO}", "GH_TAPE_STATE": str(TURNS / f"{SCENARIO}.json"),
            "MONITOR_POLL": "1000", **({"HERDR_PANE_ID": pane} if pane else {}), **env}
     try:
         p = subprocess.run([str(a) for a in argv], env=env, input=event and json.dumps(event), capture_output=True, text=True, timeout=seconds)
@@ -155,7 +156,7 @@ SCENARIOS = {
     "two-managers": two_managers,
 }
 def main(args):
-    global VERBOSE
+    global VERBOSE, SCENARIO
     parser = argparse.ArgumentParser()
     parser.add_argument("--only", default="")
     parser.add_argument("-v", action="store_true")
@@ -164,8 +165,10 @@ def main(args):
     for name, scenario in SCENARIOS.items():
         if a.only and name not in a.only.split(","):
             continue
+        SCENARIO = name
         ok, out = scenario()
         print(f"{name} pass" if ok else f"{out.strip()}\n{name} fail", flush=True)
+    shutil.rmtree(TURNS)
     return 0
 
 
