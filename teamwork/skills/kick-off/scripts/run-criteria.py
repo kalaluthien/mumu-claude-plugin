@@ -19,7 +19,7 @@ export has no `.git`) and a check with a placeholder are `unclear`. The output i
 `--pass <n>=<sample-file>` (once per criterion, with a body file) runs criterion `n` at the head with its first pipe stage
 replaced by `cat <sample-file>`, so the stages after it meet the input the pass would give. It prints `pass ok` when the
 output equals the text after `prints`, `wrong pass` when it differs, `unclear` for a criterion with no sample or whose first
-stage it cannot split surely (a `\\`, `||`, `&`, `;`, newline, `#`, parenthesis or a substitution in double quotes before the first pipe); exit 1 on any
+stage it cannot split surely (a `\\`, `||`, `&`, `;`, newline, `#`, brace, parenthesis or a substitution in double quotes before the first pipe); exit 1 on any
 `wrong pass`. It finds a check that can never pass, such as `check-schema.py check /dev/stdin`, which reads its input twice."""
 import argparse
 import json
@@ -153,25 +153,33 @@ def base_row(label, kind, name, detail, archive, timeout):
     return label, name, "base ok" if status is not None and out == quoted else "wrong base", cell(out)
 
 
+# outside quotes only these may precede the first pipe; anything else (`;`, `&`, `{`, `(`, `#`, a backslash, ...) might hide a pipe or a stage
+SAFE = re.compile(r"[\w \t./=:,+@%~<>-]|\$\w|\$(?=[\"'])")
+
+
 def after_first_pipe(command):
     """The command without its first pipe stage, split at the first `|` outside quotes, or None when the split is not certain:
-    no pipe, or before it a `\\` anywhere, `||`, `&`, `;`, a newline, `#`, `(`, `)` or a backtick outside quotes, which would
-    drop or break part of the first stage."""
-    quote = None
-    for i, c in enumerate(command):
+    no pipe, or before it a character outside SAFE, or in double quotes a `$(`, `${`, backtick or backslash, which
+    could hide a pipe or drop part of the first stage."""
+    quote, i = None, 0
+    while i < len(command):
+        c = command[i]
         if c == "\\":
             return None
         if quote:
             # a substitution inside double quotes can hold quotes of its own, which end this quote early
-            if quote == '"' and (c == "`" or command[i:i + 2] == "$("):
+            if quote == '"' and (c == "`" or command[i:i + 2] in ("$(", "${")):
                 return None
             quote = None if c == quote else quote
         elif c in "'\"":
             quote = c
-        elif c in ";&\n#()`" or command[i:i + 2] == "||":
-            return None
-        elif c == "|":
+        elif c == "|" and command[i:i + 2] != "||":
             return command[i + 1:]
+        elif not (m := SAFE.match(command, i)):
+            return None
+        else:
+            i = m.end() - 1
+        i += 1
     return None
 
 
