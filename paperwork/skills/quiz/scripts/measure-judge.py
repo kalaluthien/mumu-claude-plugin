@@ -14,7 +14,7 @@ import statistics
 import sys
 from collections import Counter
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 
 from quiz.spec import line, violations  # noqa: E402
 from quiz.verdicts import criteria, problems  # noqa: E402

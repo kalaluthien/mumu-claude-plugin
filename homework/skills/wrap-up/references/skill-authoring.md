@@ -1,4 +1,4 @@
-# Skills and agents
+# Skill authoring
 
 **Underivable only**: write only what the reader cannot derive: house conventions, defaults that surprise, values that must match another file. An `agents/*.md` file takes a skill's frontmatter rules; its body is the delegate's system prompt.
 

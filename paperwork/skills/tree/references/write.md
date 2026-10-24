@@ -1,4 +1,4 @@
-# Write a plan
+# Write
 
 Turn a task into one plan JSON the owner can answer in a minute.
 

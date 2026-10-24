@@ -24,7 +24,7 @@ import re
 import sys
 import tempfile
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 
 from schema import prover  # noqa: E402
 from schema.model import Model, shape  # noqa: E402

@@ -1,6 +1,6 @@
-# Repair a spec
+# Repair
 
-A graded answer landed in the wrong order. Find the step of [author.md](author.md) that let it, fix the spec there, and rerun `check-spec.py check` and the dry run. The spec's grammar is [../spec/assets/rubric.schema.json](../spec/assets/rubric.schema.json).
+A graded answer landed in the wrong order. Find the step of [author.md](author.md) that let it, fix the spec there, and rerun `check-spec.py check` and the dry run. The spec's grammar is [spec/assets/rubric.schema.json](spec/assets/rubric.schema.json).
 
 | cause | sign | fix |
 | --- | --- | --- |

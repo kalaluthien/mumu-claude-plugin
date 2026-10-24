@@ -1,4 +1,4 @@
-# Scripts and hooks
+# Hook authoring
 
 A script is a mechanism a caller trusts without reading, and a mechanised rule fails silently where a written one fails loudly. A lesson filed here becomes a script or hook with its failing case, and nothing is filed in memory.
 

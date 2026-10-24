@@ -4,11 +4,7 @@ Turn a checked Schema document into an improved one by stated criteria, keeping 
 
 ## Domain
 
-The original and the improvement are both written in the grammar, [../schema/assets/schema.json](../schema/assets/schema.json), as [../schema/authoring.md](../schema/authoring.md) says. A state level's faults are read by [its semantics](../schema/semantics.md#state), and a workflow's by [its semantics](../schema/semantics.md#workflow).
-
-## Rules
-
-- **Kept behaviour**: every original Scenario and rule stays, by slug and meaning. Adding behaviour is free; a removal fails the comparison until the user approves. `scripts/compare-models.py original.json improved.json` prints `kept` or `dropped` per slug, `changed` where a kept slug's text differs, each count below on both documents, then the improved document's check; exit 0 means nothing dropped and the check passes.
+The original and the improvement are both written in the grammar, [schema/assets/schema.json](schema/assets/schema.json), as [schema/authoring.md](schema/authoring.md) says. A state level's faults are read by [its semantics](schema/semantics.md#state), and a workflow's by [its semantics](schema/semantics.md#workflow).
 
 ## Faults
 
@@ -35,7 +31,11 @@ Unless the ask states its own, compare by these counts, which `compare-models.py
 
 Command paths are relative to this file.
 
-1. Run `scripts/compare-models.py original.json original.json`; pick the counts or faults where it does worst, or the ask's own criteria.
+1. Run `../scripts/compare-models.py original.json original.json`; pick the counts or faults where it does worst, or the ask's own criteria.
 2. Copy the original to the improved document, restructure for those criteria, and write each fault as Faults says.
-3. Rerun `compare-models.py original.json improved.json` until it exits 0; run `scripts/resolve-pointers.py faults improved.json --root <repo> --sha <commit>` when the evidence lives in a repository.
+3. Rerun `compare-models.py original.json improved.json` until it exits 0; run `../scripts/resolve-pointers.py faults improved.json --root <repo> --sha <commit>` when the evidence lives in a repository.
 4. Hand over the improved document, the counts table beside the original, and each fault with its evidence.
+
+## Rules
+
+- **Kept behaviour**: every original Scenario and rule stays, by slug and meaning. Adding behaviour is free; a removal fails the comparison until the user approves. `../scripts/compare-models.py original.json improved.json` prints `kept` or `dropped` per slug, `changed` where a kept slug's text differs, each count below on both documents, then the improved document's check; exit 0 means nothing dropped and the check passes.
