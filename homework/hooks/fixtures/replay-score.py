@@ -6,7 +6,7 @@
 A stop is a `stop_hook_summary` entry of a labelled transcript; the hook at
 stop k sees the transcript up to that entry. Stops of every labelled session
 replay in time order through one plugin data folder, as live sessions share
-it. `head` runs wrap-up-signal.py beside this file as the Stop hook would, and
+it. `head` runs signal-wrap-up.py in the folder above as the Stop hook would, and
 after each ask reports the label back as that ask's outcome, `filed` when the
 stop is labelled worth a wrap-up, else `empty`, as the skill reports it live.
 `main` is main's rule rebuilt from the constants of the removed takeaway.py: ask a
@@ -27,11 +27,11 @@ import tempfile
 from datetime import datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "lib"))
+sys.path.insert(0, os.path.join(HERE, "..", "..", "lib"))
 import memory as memory_file  # noqa: E402
 import transcript  # noqa: E402
 
-SIGNAL = os.path.join(HERE, "wrap-up-signal.py")
+SIGNAL = os.path.join(HERE, "..", "signal-wrap-up.py")
 
 
 def main_constants():
@@ -103,7 +103,7 @@ def head_ask(data, path, stop, session):
                          env={**os.environ, "CLAUDE_PLUGIN_DATA": data})
     os.unlink(cut.name)
     if run.returncode != 0:
-        sys.exit(f"wrap-up-signal.py failed at {session} stop: {run.stderr.strip()}")
+        sys.exit(f"signal-wrap-up.py failed at {session} stop: {run.stderr.strip()}")
     out = json.loads(run.stdout) if run.stdout.strip() else {}
     return out.get("reason") if out.get("decision") == "block" else None
 

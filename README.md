@@ -181,7 +181,7 @@ flowchart TB
 
 Keeps what a session learned, once, where the next reader will look.
 
-- A Stop hook ([`wrap-up-signal.py`](homework/hooks/wrap-up-signal.py)) counts new lessons in the transcript, changed memory files, and whether the repository has a known way to run and verify itself. When a count crosses its line, it sends a one-line wrap-up signal.
+- A Stop hook ([`signal-wrap-up.py`](homework/hooks/signal-wrap-up.py)) counts new lessons in the transcript, changed memory files, and whether the repository has a known way to run and verify itself. When a count crosses its line, it sends a one-line wrap-up signal.
 - The [`wrap-up`](homework/skills/wrap-up/SKILL.md) skill acts on the signal, or on your ask. It keeps a lesson (retro), tidies memory (dream), writes a run recipe for a repository with none, and finds recurring patterns (dejavu). Its playbooks are in [`references/`](homework/skills/wrap-up/references).
 - Every memory file says when it applies and when it would be wrong, so a stale lesson can be spotted.
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Replay labelled past sessions through the Stop hook and count which got a wrap-up ask.
 
-  replay-sessions.py <sessions.json> [--holdout] [<wrap-up-signal.py>]
+  replay-sessions.py <sessions.json> [--holdout] [<signal-wrap-up.py>]
 
 Each session replays alone, stop by stop, in a fresh plugin data folder, the
 hook at stop k seeing the transcript up to that stop, at the highest lesson
@@ -19,7 +19,7 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "lib"))
+sys.path.insert(0, os.path.join(HERE, "..", "..", "lib"))
 import transcript  # noqa: E402
 
 HIGHEST = "12"
@@ -91,4 +91,4 @@ if __name__ == "__main__":
     if len(args) not in (1, 2):
         print(__doc__.split("\n\n")[1], file=sys.stderr)
         sys.exit(2)
-    sys.exit(main(args[0], os.path.abspath(args[1]) if len(args) == 2 else os.path.join(HERE, "wrap-up-signal.py"), holdout))
+    sys.exit(main(args[0], os.path.abspath(args[1]) if len(args) == 2 else os.path.join(HERE, "..", "signal-wrap-up.py"), holdout))
