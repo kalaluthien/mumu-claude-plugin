@@ -3,8 +3,8 @@
 
 Land two workers' changes in a temporary repository with no remote, through use-landing.py, a files board and the fake herdr beside this file, and
 print `ok <step>` or `fail <step>: <what differed>` for each step; exit 1 on any fail. `-v` also prints each command's output.
-- change: two branches filed as changes 1 and 2, listed open at their tips
-- refuse-moved-head: change 1 merged at a sha other than its tip exits 1 and leaves the base as it was
+- change: two branches filed as changes 1 and 2, listed open at their tips; change-race, at the end: six filed at once get six numbers
+- refuse-moved-head: change 1 merged at a sha other than its tip, or at its branch name, exits 1 and leaves the base as it was
 - refuse-dirty-checkout: change 1 merged over an uncommitted file in the base's checkout exits 1 and leaves the file and the base as they were
 - merge: change 1 merged at its tip after the base moved: one commit whose one parent is the old base, the merged tree, a message citing its task,
   and the base's checkout showing it
@@ -106,7 +106,8 @@ step("change", [u.rsplit("/", 1)[-1] for u in filed] == ["1.json", "2.json"] and
 
 base = git("rev-parse", "main")
 code, out = run([K / "use-landing.py", "merge", "1", base])
-step("refuse-moved-head", code == 1 and git("rev-parse", "main") == base and landing_git.record(1)["state"] == "OPEN", f"exit {code}: {out}")
+named, _ = run([K / "use-landing.py", "merge", "1", "landing-probe-worker"])  # a branch name follows the tip, so it never stands for an approved head
+step("refuse-moved-head", code == named == 1 and git("rev-parse", "main") == base and landing_git.record(1)["state"] == "OPEN", f"exit {code}: {out}")
 
 (repo / "a.txt").write_text("dirty\n")
 code, out = run([K / "use-landing.py", "merge", "1", probe])
@@ -138,4 +139,8 @@ step("heartbeat-rebase", "rebase #2: it conflicts with its base" in beat, beat)
 code, out = run([K / "remove-worktree.py", "landing-probe-worker"])
 step("remove", "landing-probe-worker: worktree, branch removed" in out and "fast-forward" not in out
      and not git("branch", "--list", "landing-probe-worker"), out)
+racers = [subprocess.Popen([str(K / "use-landing.py"), "change", "clash-probe-worker", "Race", str(work / "body.md")], stdout=subprocess.PIPE, text=True)
+          for _ in range(6)]
+urls = sorted(r.communicate()[0].strip() for r in racers)
+step("change-race", len(set(urls)) == 6 and len(landing_git.records()) == 8, f"{urls}")
 sys.exit(1 if failed else 0)

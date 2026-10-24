@@ -13,6 +13,8 @@ import landing_git  # noqa: E402
 verb, *a = sys.argv[1:] or [""]
 try:
     if verb == "change" and len(a) in (3, 4):
+        if landing_git.folder() is None:
+            sys.exit("use-landing: run it inside the repository")
         main = landing_git.git("symbolic-ref", "--short", "HEAD", cwd=landing_git.folder().parents[2]).stdout.strip()
         print(landing_git.change(a[0], a[1], pathlib.Path(a[2]).read_text(), a[3] if a[3:] else main))
     elif verb == "merge" and len(a) == 2:

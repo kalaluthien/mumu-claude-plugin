@@ -1,6 +1,7 @@
 """Changes in local git: each is a record `<n>.json` in the git common folder's `teamwork/changes`, the same for every worktree and never committed,
 holding its title, body, branch and base, and once merged the head it took. A merge squashes that head onto the base as one commit, as GitHub's does."""
 import json
+import os
 import pathlib
 import re
 import subprocess
@@ -37,9 +38,17 @@ def record(number):
         raise LookupError(f"no change {number} in this repository") from e
 
 
-def save(r):
-    """Writes R, then touches the signal file, which the issue pane and the heartbeat wait on."""
-    (folder() / f"{r['number']}.json").write_text(json.dumps({**r, "updatedAt": stamp()}))
+def save(r, new=False):
+    """Writes R whole, then touches the signal file, which the issue pane and the heartbeat wait on; NEW claims its number, raising FileExistsError
+    when another session took it first."""
+    path = folder() / f"{r['number']}.json"
+    # written aside, then put in place in one step, so a reader never meets half a record
+    draft = path.with_name(f".{r['number']}.{os.getpid()}.draft")
+    draft.write_text(json.dumps({**r, "updatedAt": stamp()}))
+    try:
+        os.link(draft, path) if new else os.replace(draft, path)
+    finally:
+        draft.unlink(missing_ok=True)
     team_signal.SIGNAL.parent.mkdir(parents=True, exist_ok=True)
     team_signal.SIGNAL.touch()
 
@@ -102,8 +111,12 @@ def change(branch, title, body, base):
     d = folder()
     d.mkdir(parents=True, exist_ok=True)
     number = max((r["number"] for r in records()), default=0) + 1
-    save({"number": number, "title": title, "body": body, "headRefName": branch, "base": base, "state": "OPEN", "createdAt": stamp()})
-    return f"file://{d}/{number}.json"
+    while True:  # two workers filing at once take the next free number each, never one record
+        try:
+            save({"number": number, "title": title, "body": body, "headRefName": branch, "base": base, "state": "OPEN", "createdAt": stamp()}, new=True)
+            return f"file://{d}/{number}.json"
+        except FileExistsError:
+            number += 1
 
 
 def merge(number, sha):
@@ -113,7 +126,8 @@ def merge(number, sha):
     if r["state"] != "OPEN":
         raise LookupError(f"change {number} is closed")
     head, base = tip(f"refs/heads/{r['headRefName']}"), tip(f"refs/heads/{r['base']}")
-    if not head or tip(sha) != head:
+    # only a sha names what the judge approved; a branch name would follow the tip wherever it moved
+    if not head or not re.fullmatch(r"[0-9a-f]{7,40}", sha) or tip(sha) != head:
         raise LookupError(f"change {number}: {sha} is not the tip of {r['headRefName']} ({head and head[:9]}); judge the tip again")
     tree = git("merge-tree", "--write-tree", base, head)
     if tree.returncode:
