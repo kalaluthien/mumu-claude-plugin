@@ -34,6 +34,7 @@ verbatim into the todo list, a step not done staying as `skip: <reason>`.
 
 ## Rules
 
-- **No waiting**: ask the owner nothing; file, fix or leave each item for the owner, and report.
+- **No waiting**: ask the owner only whether to file an issue, since filing one asks first; fix or leave each other item for the owner, and report.
+- **This project only**: write only this project's auto-memory; a change to `<config>/CLAUDE.md`, another project's memory, a hook, a script or a skill goes as a patch file the person applies, the report naming its `!` command, as [references/retro.md](references/retro.md) step 4 says.
 - **Repository first**: file nothing the repository or its history already states, and change a repository's file only the way it takes changes, as its `AGENTS.md` says.
 - **Outcome**: when the hook asked, end with `"${CLAUDE_PLUGIN_ROOT}/hooks/wrap-up-signal.py" outcome "${CLAUDE_PLUGIN_DATA}" ${CLAUDE_SESSION_ID} filed` if anything was filed, fixed or recorded, else the same with `empty`, so the hook asks less often after empty wrap-ups.

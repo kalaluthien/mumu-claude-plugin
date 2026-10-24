@@ -2,7 +2,8 @@
 """Ask for a wrap-up at a stop, with a sentence of counts the wrap-up skill routes on.
 
   wrap-up-signal.py                        the Stop hook: its payload on stdin,
-                                           the plugin's data folder in CLAUDE_PLUGIN_DATA
+                                           the plugin's data folder in CLAUDE_PLUGIN_DATA;
+                                           WRAP_UP=off silences it and writes nothing
   wrap-up-signal.py <transcript|session>   print the sentence for a transcript's last stop
   wrap-up-signal.py outcome <data> <session> filed|empty
                                            report what a session's last asked wrap-up did
@@ -132,10 +133,10 @@ def sentence(found, threshold):
 
 
 def hook():
-    payload = json.load(sys.stdin)
     data = os.environ.get("CLAUDE_PLUGIN_DATA")
-    if not data:
+    if not data or os.environ.get("WRAP_UP") == "off":
         return 0
+    payload = json.load(sys.stdin)
     entries = transcript.entries_of(payload.get("transcript_path") or "")
     if entries is None:
         return 0

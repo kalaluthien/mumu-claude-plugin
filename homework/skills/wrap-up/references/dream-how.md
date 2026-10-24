@@ -15,14 +15,17 @@
    4. **Stale**: check each path, command, flag or package an entry names with a read-only probe (list, search, `--help`); fix it when the new target is plain, else delete the entry.
    5. **Placement**: a lesson a file should hold moves there and its entry is deleted; an instruction line that restates what the repository shows is cut, its non-standard rules kept; a document for people keeps its overview.
    6. **Size**: an index past its load limit is cut to one line per entry; a skill grown past a few focused parts is split, not extended.
-5. **Apply on your own**: apply each fix the steps above give at once, large
-   ones too, since the backup makes it undoable; a change to a skill, hook or
-   script counts only when its own check still passes after it.
+5. **Apply on your own**: apply each fix to this project's memory the steps
+   above give at once, large ones too, since the backup makes it undoable; a
+   fix to `<config>/CLAUDE.md`, another project's memory, a skill, a hook or a
+   script goes as a patch, as [retro.md](retro.md) step 4 says; a patch to a
+   skill, hook or script names the check that must still pass once applied.
 6. **Leave the rest**: a fix the steps do not give, one that widens a
    permission or a guard, or a lesson
    `list-drift.py` lists as never found again, goes as one issue in the
    repository that owns the file, labelled `backlog`, its body naming each
-   file, reason and cost, `<n> files, <m> lines`, never a memory file's body.
+   file, reason and cost, `<n> files, <m> lines`, never a memory file's body;
+   the filing asks first, filing only on the person's yes.
    A pool with no repository: list the fix and its cost in the final message.
-7. **Report** each fix applied, each issue's url and each fix left; with none
-   found, say so.
+7. **Report** each fix applied, each patch with its `! git -C <root> apply <patch file>`
+   line, each issue's url and each fix left; with none found, say so.
