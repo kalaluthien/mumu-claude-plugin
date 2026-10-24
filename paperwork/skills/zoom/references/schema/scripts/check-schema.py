@@ -109,7 +109,7 @@ KINDS = ("Topology", "Workflow", "State")
 
 
 def prose(files):
-    """Each schema/ document links the grammar, and no line names three or more of its property names, which would
+    """Each schema/ document links the grammar, and no sentence names three or more of its property names, which would
     restate it; semantics.md reads each kind in one paragraph under its own heading."""
     names, out = set(), []
 
