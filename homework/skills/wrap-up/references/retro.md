@@ -29,10 +29,16 @@ handed over by a person skips to step 4.
 
    | the lesson | destination |
    | --- | --- |
-   | something a check could decide | a hook, script, lint rule or CI step, by [hook-authoring.md](hook-authoring.md) |
-   | a procedure that worked again, or how a delegate should work | the skill that owns the work, by [skill-authoring.md](skill-authoring.md) |
-   | true for every project: another project's memory holds it, or the user said it for all work | `<config>/CLAUDE.md`: an instruction and a clause of reason in its work's section; then delete this project's copy |
+   | something a check could decide | a hook, script, lint rule or CI step, by [hook-authoring.md](hook-authoring.md), as a patch |
+   | a procedure that worked again, or how a delegate should work | the skill that owns the work, by [skill-authoring.md](skill-authoring.md), as a patch |
+   | true for every project: another project's memory holds it, or the user said it for all work | `<config>/CLAUDE.md`: an instruction and a clause of reason in its work's section, as a patch rooted at `<config>` that also deletes this project's copy |
    | true for this project: a fact, a trap, a preference, a procedure that worked once | auto-memory, one memory file each |
+
+   **Patch**: a destination marked patch is never written in place, since only
+   this project's memory is retro's to change: write the change as a unified
+   diff to `<data>/patches/<today>-<topic>.patch`, its paths relative to
+   `<root>`, the repository that holds the file, else the file's folder, and
+   check it with `git -C <root> apply --check <patch file>`.
 
 5. **Operation**: read every memory pool afresh, `<config>/projects/*/memory/`; a pool's key
    is its project's absolute path with each non-alphanumeric character as `-`,
@@ -41,6 +47,8 @@ handed over by a person skips to step 4.
    - **Extend**: an entry on the same subject or mechanism: add to it.
    - **Add**: a new memory file with `confirmed: 1` and `last-confirmed: <today>` in its frontmatter, justified in one line: the nearest entry and why it could not be extended, or that none exists.
 
+   An extend or add to a pool of another project is a patch, as step 4 says; skip a confirm there.
+
    An extend or add cites evidence: a
    candidate's time, a url or a `path:line`.
 6. **Edit**: edit only the lines that change, `MEMORY.md` over a fresh read, since other
@@ -48,7 +56,9 @@ handed over by a person skips to step 4.
 7. **Repeat**: a repeat an entry should have prevented: confirm it, and file a task in
    its project's issue tracker to make it a check or a skill step, naming
    which, the lesson and the repeat's evidence; with no tracker, tell the
-   owner in one line.
+   owner in one line. The filing asks first: show the person the task's
+   title and file it only on their yes.
 
 8. **Report**: tell the owner each lesson filed: its operation, text and file,
-   and an add's one line; with none, say nothing.
+   and an add's one line, and for a patch the line `! git -C <root> apply <patch file>`
+   that applies it; with none, say nothing.

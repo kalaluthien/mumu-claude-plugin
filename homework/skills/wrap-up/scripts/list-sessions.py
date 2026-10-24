@@ -30,6 +30,9 @@ VARIABLE = [(re.compile(p), r) for p, r in [
 NOISE = re.compile(r"^(Exit code <n>|<n>|-+|ok\b.*|This hook comes from .*)$")
 DENIED = re.compile(r"doesn't want to proceed|user denied|rejected by the user", re.I)
 REASON = re.compile(r"\[[A-Z][A-Za-z /-]+\]")
+# a token starts at a word boundary, so a word like task-manager keeps its "sk-"
+TOKEN = re.compile(r"\b(?:ghp_[A-Za-z0-9]{30,}|github_pat_\w{22,}|sk-ant-[\w-]{20,}|sk-[\w-]{20,}"
+                   r"|xox[abposr]-[\w-]{10,}|AKIA[A-Z0-9]{16})")
 
 
 def repo_of(path):
@@ -110,12 +113,22 @@ def digest(path, lines):
     return head + ("[oldest middle cut]\n" + body[-room:] if len(body) > room else body)
 
 
+def private(target):
+    """Open target for writing as 0600; chmod too, since an existing file keeps its old mode."""
+    handle = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    os.fchmod(handle, 0o600)
+    return open(handle, "w", encoding="utf-8")
+
+
 def write(data, path, kind, value):
+    # digests hold the owner's words; makedirs(exist_ok=True) keeps an old folder's mode, so chmod each
     folder = os.path.join(data, kind)
-    os.makedirs(folder, exist_ok=True)
+    os.makedirs(folder, mode=0o700, exist_ok=True)
+    os.chmod(data, 0o700)
+    os.chmod(folder, 0o700)
     target = os.path.join(folder, os.path.basename(path)[:-6] + (".txt" if kind == "digests" else ".json"))
-    with open(target, "w", encoding="utf-8") as out:
-        out.write(value if isinstance(value, str) else json.dumps(value, ensure_ascii=False))
+    with private(target) as out:
+        out.write(TOKEN.sub("<token>", value) if isinstance(value, str) else json.dumps(value, ensure_ascii=False))
     return target
 
 
@@ -148,8 +161,8 @@ def main():
         else:
             waiting += 1
     if verb == "map":
-        os.makedirs(data, exist_ok=True)
-        open(stamp, "w").close()
+        os.makedirs(data, mode=0o700, exist_ok=True)
+        private(stamp).close()
         print(f"{len(digests)} sessions to facet; {waiting} wait for later runs")
     batches(digests)
 
