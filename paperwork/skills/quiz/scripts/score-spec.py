@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""litmus: apply a grading spec to a verdict file, whose format the grammar holds as $defs/verdicts.
+"""quiz: apply a grading spec to a verdict file, whose format the grammar holds as $defs/verdicts.
 
   score-spec.py order spec.json verdicts.json                 answers best first, one per line, with tier scores
   score-spec.py score spec.json verdicts.json                 per group, each answer's tier scores, reward and advantage
@@ -17,9 +17,9 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[2] / "lib"))
 
-from litmus.model import group_of, reward, tier_scores  # noqa: E402
-from litmus.spec import line, violations  # noqa: E402
-from litmus.verdicts import problems  # noqa: E402
+from quiz.model import group_of, reward, tier_scores  # noqa: E402
+from quiz.spec import line, violations  # noqa: E402
+from quiz.verdicts import problems  # noqa: E402
 
 RESAMPLES = 2000
 

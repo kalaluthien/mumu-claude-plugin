@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""litmus: check a grading spec against the grammar (assets/rubric.schema.json) and the rules it cannot state.
+"""quiz: check a grading spec against the grammar (assets/rubric.schema.json) and the rules it cannot state.
 
   check-spec.py check spec.json      print each violation as `path: rule: message`, then `ok`, or the error count on stderr
   check-spec.py weights spec.json    print each tier's derived epsilon beside the delta and judge_error it comes from
@@ -19,8 +19,8 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[4] / "lib"))
 
-from litmus.model import weights  # noqa: E402
-from litmus.spec import GRAMMAR, RULES, SCHEMA, line, violations  # noqa: E402
+from quiz.model import weights  # noqa: E402
+from quiz.spec import GRAMMAR, RULES, SCHEMA, line, violations  # noqa: E402
 
 FIXTURES = HERE.parent / "fixtures"
 # read() returns it for a file it cannot parse, since a parsed spec may be null

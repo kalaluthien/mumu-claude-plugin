@@ -25,7 +25,7 @@ Before Frame, ask one `AskUserQuestion` batch: the deliverable and its reader, t
 
 ## Reward-hacking probe
 
-The reward-hacking probe is one answer built to pass the criteria while failing the intent, such as the right keywords with no substance, padding, or a format with nothing in it. Write it, grade it and a genuine answer as the judge would into one verdict file, and run `${CLAUDE_PLUGIN_ROOT}/skills/litmus/scripts/score-spec.py order <spec> <verdicts>`. The probe must rank below the genuine answer; when it does not, the criterion it fooled is missing or too vague: go back to step 2 or 3.
+The reward-hacking probe is one answer built to pass the criteria while failing the intent, such as the right keywords with no substance, padding, or a format with nothing in it. Write it, grade it and a genuine answer as the judge would into one verdict file, and run `${CLAUDE_PLUGIN_ROOT}/skills/quiz/scripts/score-spec.py order <spec> <verdicts>`. The probe must rank below the genuine answer; when it does not, the criterion it fooled is missing or too vague: go back to step 2 or 3.
 
 ## Dry run
 

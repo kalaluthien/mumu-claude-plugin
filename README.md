@@ -106,20 +106,20 @@ That session becomes the manager. It files the backlog, starts a worker in a new
 ## Paperwork: system models and grading specs
 
 <details>
-<summary>Structure: Each skill calls the library of its own job; the Litmus lib reuses the Schema lib's document shape.</summary>
+<summary>Structure: Each skill calls the library of its own job; the Quiz lib reuses the Schema lib's document shape.</summary>
 
 ```mermaid
 flowchart TB
   n_zoom["zoom skill"]
-  n_litmus["litmus skill"]
+  n_quiz["quiz skill"]
   n_schema[["Schema lib"]]
   n_page[["Page lib"]]
-  n_spec[["Litmus lib"]]
+  n_spec[["Quiz lib"]]
   n_tree["tree skill"]
   n_plan[["Tree lib"]]
   n_zoom -->|"checks with"| n_schema
   n_zoom -->|"draws with"| n_page
-  n_litmus -->|"grades with"| n_spec
+  n_quiz -->|"grades with"| n_spec
   n_spec -->|"reuses"| n_schema
   n_tree -->|"checks and reads answers with"| n_plan
 ```
@@ -129,7 +129,7 @@ flowchart TB
 One Schema document holds what a system is, or must be, and every view is drawn from it after a checker passes it.
 
 - [`/paperwork:zoom`](paperwork/skills/zoom/SKILL.md) models a system, from code, docs or requirements, as a checked Schema document, then proves it with Alloy (needs Java) or shows it as a Mermaid diagram in chat, a clickable HTML page, an SVG or a tldraw canvas.
-- [`/paperwork:litmus`](paperwork/skills/litmus/SKILL.md) turns a task into a grading spec for a judge, a benchmark or a human grading sheet, and measures or repairs it.
+- [`/paperwork:quiz`](paperwork/skills/quiz/SKILL.md) turns a task into a grading spec for a judge, a benchmark or a human grading sheet, and measures or repairs it.
 - [`/paperwork:tree`](paperwork/skills/tree/SKILL.md) writes a plan as one checked JSON document, shows it as a page where the owner picks, strikes, comments and edits, and reads the copied Answer back into the plan's next version.
 
 **Usage.**
