@@ -69,11 +69,8 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const started = await next(e)
     startDir = e.cwd
-    const pane = await $.env.get('HERDR_PANE_ID')
-    const listed = await $.process.run(['herdr', 'agent', 'list']).catch(() => undefined)
-    try {
-      watch($, JSON.parse(listed?.stdout ?? '').result.agents.find((a: { pane_id: string }) => a.pane_id === pane)?.name ?? '')
-    } catch {}  // outside herdr no session is a manager
+    const me = await $.process.run([`${$.plugin.root}/skills/kick-off/scripts/list-agents.py`, '--me']).catch(() => undefined)
+    watch($, me?.stdout.trim() ?? '')  // outside a team's host no session is a manager
     return started
   })
 

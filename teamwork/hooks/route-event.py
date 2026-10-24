@@ -8,8 +8,9 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import background_work  # noqa: E402
 import board  # noqa: E402
-import herdr_agents  # noqa: E402
+import session  # noqa: E402
 import team_gaps  # noqa: E402
+import team_names  # noqa: E402
 
 PLAYBOOKS = pathlib.Path(__file__).resolve().parents[1] / "skills" / "kick-off" / "references"
 GRAMMAR = PLAYBOOKS / "issue-grammar.md"
@@ -74,7 +75,7 @@ def route(kind, event, role, me, listed):
 event = json.load(sys.stdin)
 kind = event.get("hook_event_name")
 if kind not in ("PreToolUse", "PostToolUse") or board.command((event.get("tool_input") or {}).get("command", "")):  # skip other Bash fast
-    listed, me = herdr_agents.sessions(event.get("session_id"))
-    role = herdr_agents.role(me.get("name"))
+    listed, me = session.sessions(event.get("session_id"))
+    role = team_names.role(me.get("name"))
     if out := role and route(kind, event, role, me, listed):
         print(json.dumps(out))

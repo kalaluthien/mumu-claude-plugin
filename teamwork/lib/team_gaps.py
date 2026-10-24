@@ -2,7 +2,8 @@
 import board
 import issue_state
 import landing
-from herdr_agents import members, owns, project, role, screen, tabs
+from session import screen, tabs
+from team_names import members, owns, project, role
 
 ISSUE_LIMIT, PR_LIMIT = 200, 50
 
