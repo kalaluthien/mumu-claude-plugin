@@ -67,9 +67,15 @@ def live():
         session.prompt(pane, f"Run the Bash command `touch {folder}/blocked`.")
         until(lambda: (session.agent(NAME) or {}).get("agent_status") == "blocked", 60, "never stopped at the tool prompt")
         case("blocked not delivered", tell(NAME, "Reply with the single word FOUR.", timeout=8), 1, "blocked at a tool prompt")
-        session.send_keys(pane, "esc")
     finally:
-        subprocess.run([str(CLOSE), NAME], env={**os.environ, "CLOSE_SESSION_TIMEOUT": "120"}, capture_output=True)
+        # close-session.py sends no exit to a blocked session, so the tool prompt is dismissed first
+        deadline = time.time() + 30
+        while (session.agent(NAME) or {}).get("agent_status") == "blocked" and time.time() < deadline:
+            session.send_keys(pane, "esc")
+            time.sleep(2)
+        p = subprocess.run([str(CLOSE), NAME], env={**os.environ, "CLOSE_SESSION_TIMEOUT": "120"}, capture_output=True, text=True)
+        if p.returncode:
+            sys.exit(f"failed: close {NAME}: {(p.stdout + p.stderr).strip()}")
 
 
 def fake():
