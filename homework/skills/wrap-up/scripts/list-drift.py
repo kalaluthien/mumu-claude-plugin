@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """List the drift of auto-memory pools that a shell can find, one line per finding.
 
-  list-drift.py <config> [<pool>...]   the pools of <config>/projects/*/memory,
-                                       or only those named
+usage: list-drift.py <config> [<pool>...]   the pools of <config>/projects/*/memory,
+                                            or only those named
 
 A finding is a `MEMORY.md` link to a missing file, a memory file no index
 links, a file name two pools share, an index past the load limit (only its
@@ -13,12 +13,13 @@ output is never mistaken for no drift.
 """
 import glob
 import os
+import pathlib
 import re
 import sys
 from collections import defaultdict
 from datetime import date, timedelta
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import memory  # noqa: E402
 
 STALE_DAYS = 60
@@ -61,19 +62,23 @@ def drift(pools, today):
     return found
 
 
-if __name__ == "__main__":
-    args = sys.argv[1:]
-    if not args:
-        print(__doc__.split("\n\n")[1], file=sys.stderr)
-        sys.exit(2)
+def main(args):
+    if not args or any(arg.startswith("-") for arg in args):
+        print(__doc__, file=sys.stderr)
+        return 2
     pools = args[1:] or sorted(glob.glob(os.path.join(glob.escape(args[0]), "projects", "*", "memory")))
     missing = [p for p in pools if not os.path.isdir(p)]
     if missing or not pools:
         print(f"could not look: no memory pool at {' '.join(missing) or args[0]}", file=sys.stderr)
-        sys.exit(1)
+        return 1
     try:
         lines = drift(pools, date.today())
     except OSError as error:
         print(f"could not look: {error.filename}: {error.strerror}", file=sys.stderr)
-        sys.exit(1)
+        return 1
     print("\n".join(lines + [f"drift: {len(lines)} findings in {len(pools)} pools"]))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

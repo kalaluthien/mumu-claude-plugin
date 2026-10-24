@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""usage: list-session-gaps.py [--from-dir <projects folder>] [--json] <name>...
-
-Print per name and project folder its sessions, restarts (a further session of the same name in that folder), the hours
+"""Print per name and project folder its sessions, restarts (a further session of the same name in that folder), the hours
 each restart cost and, apart,
-its idle gaps over 30 minutes inside a session (a wait for the owner, not a restart). A name with no transcript
+its idle gaps over 30 minutes inside a session (a wait for the owner, not a restart).
+
+usage: list-session-gaps.py [--from-dir <projects folder>] [--json] <name>...
+
+A name with no transcript
 prints "no session record". The default folder is the Claude config folder's projects; `--json` prints the rows for the estimator."""
 import argparse
 import json
@@ -15,12 +17,12 @@ import claude_config  # noqa: E402
 import session_gaps  # noqa: E402
 
 
-def main(argv):
-    parser = argparse.ArgumentParser(usage=argparse.SUPPRESS, description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+def main(args):
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--from-dir", type=pathlib.Path, default=claude_config.folder() / "projects")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("names", nargs="+")
-    opt = parser.parse_args(argv)
+    opt = parser.parse_args(args)
     rows = session_gaps.summaries(opt.from_dir, opt.names)
     if opt.json:
         print(json.dumps(rows))
@@ -36,4 +38,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    sys.exit(main(sys.argv[1:]))

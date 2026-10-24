@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""usage: replay-board-scenario.py --board <github|files>
-
-File a backlog and a task, nest and order them, set holders, ask by BLOCKED, answer by DECIDED, edit the body and resolve both, writing only through
+"""File a backlog and a task, nest and order them, set holders, ask by BLOCKED, answer by DECIDED, edit the body and resolve both, writing only through
 use-board.py, and print after each step a `step <name>` line, the composed state of each issue it filed and the board lines, numbers and urls replaced
 by names, so two boards that print the same text keep the same protocol. The files board runs in a temporary folder. The github board runs on the
 repository `GH_REPO` names, never this one, since its issues would reach the team's board: with `GH_REPO` unset or naming it, the run calls no gh,
-prints `not a sandbox` and exits 1."""
+prints `not a sandbox` and exits 1.
+
+usage: replay-board-scenario.py --board <github|files>"""
 import argparse
 import difflib
 import os
@@ -19,19 +19,7 @@ import time
 HERE = pathlib.Path(__file__).resolve().parent
 USE = HERE.parent / "scripts" / "use-board.py"
 THIS_REPO = "kalaluthien/mumu-claude-plugin"
-parser = argparse.ArgumentParser()
-parser.add_argument("--board", choices=("github", "files"), required=True)
-board_name = parser.parse_args().board
-work = pathlib.Path(tempfile.mkdtemp(prefix="board-scenario-"))
-os.environ["TEAMWORK_BOARD"] = board_name
-if board_name == "github" and (os.environ.get("GH_REPO") or THIS_REPO) == THIS_REPO:
-    sys.exit("replay-board-scenario: not a sandbox: set GH_REPO to a repository whose issues the team's board never reads")
-if board_name == "files":
-    os.environ["TEAMWORK_BOARD_DIR"], os.environ["HOME"] = str(work / "board"), str(work)  # so the signal file is the scenario's own too
-sys.path.insert(0, str(HERE.parents[2] / "lib"))
-import board  # noqa: E402
-import issue_board  # noqa: E402
-import issue_state  # noqa: E402
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 
 names = {}  # the number each issue got, by the name the output uses
 
@@ -80,28 +68,51 @@ def show(step):
 
 
 TASK = "## Goal\n\nProbe the board.\n\n## Definition of done\n\n1. [check] **probe passes**: `echo ok` prints `ok`; on base nothing.\n"
-filed("backlog", "Probe the board backlog", "Probe the board by a backlog.\n", ["backlog"])
-filed("task", "Probe the board task", TASK)
-show("file")
-use("nest", number("backlog"), number("task"))
-show("nest")
-use("order", number("backlog"), number("task"))
-show("order")
-use("decide", number("task"), text("hold.md", "DECIDED: probe-worker holds this.\n\n```teamwork\nholders: probe-worker\n```\n"))
-show("hold")
-use("label", number("task"), "probe")
-show("label-add")
-use("label", number("task"), "probe", "--remove")
-show("label-remove")
-use("comment", number("task"), text("ask.md", "BLOCKED: which sample proves the probe\n\nOptions:\n1. **ok**: the first\n2. **no**: the second\n\n```teamwork\nasks: owner\n```\n"))
-show("ask")
-use("decide", number("task"), text("answer.md", "DECIDED: owner said: use the first\n\n- Answers the ask above: option 1.\n"))
-show("answer")
-old = board.fresh(number("task"))["body"]
-diff = "".join(difflib.unified_diff(old.splitlines(True), old.replace("Probe the board.", "Probe the board twice.").splitlines(True), "a", "b"))
-use("edit", number("task"), text("edit.diff", diff), "DECIDED: probe the body edit")
-show("edit")
-use("resolve", number("task"), text("task-done.md", "REPORTED: probe landed\n"))
-show("resolve-task")
-use("resolve", number("backlog"), text("backlog-done.md", "REPORTED: probe landed\n"))
-show("resolve-backlog")
+
+
+def main(args):
+    global work, board, issue_board, issue_state
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--board", choices=("github", "files"), required=True)
+    board_name = parser.parse_args(args).board
+    work = pathlib.Path(tempfile.mkdtemp(prefix="board-scenario-"))
+    os.environ["TEAMWORK_BOARD"] = board_name
+    if board_name == "github" and (os.environ.get("GH_REPO") or THIS_REPO) == THIS_REPO:
+        sys.exit("replay-board-scenario: not a sandbox: set GH_REPO to a repository whose issues the team's board never reads")
+    if board_name == "files":
+        os.environ["TEAMWORK_BOARD_DIR"], os.environ["HOME"] = str(work / "board"), str(work)  # so the signal file is the scenario's own too
+    # imported here, since they read the board and folder set above when they load
+    import board
+    import issue_board
+    import issue_state
+
+    filed("backlog", "Probe the board backlog", "Probe the board by a backlog.\n", ["backlog"])
+    filed("task", "Probe the board task", TASK)
+    show("file")
+    use("nest", number("backlog"), number("task"))
+    show("nest")
+    use("order", number("backlog"), number("task"))
+    show("order")
+    use("decide", number("task"), text("hold.md", "DECIDED: probe-worker holds this.\n\n```teamwork\nholders: probe-worker\n```\n"))
+    show("hold")
+    use("label", number("task"), "probe")
+    show("label-add")
+    use("label", number("task"), "probe", "--remove")
+    show("label-remove")
+    use("comment", number("task"), text("ask.md", "BLOCKED: which sample proves the probe\n\nOptions:\n1. **ok**: the first\n2. **no**: the second\n\n```teamwork\nasks: owner\n```\n"))
+    show("ask")
+    use("decide", number("task"), text("answer.md", "DECIDED: owner said: use the first\n\n- Answers the ask above: option 1.\n"))
+    show("answer")
+    old = board.fresh(number("task"))["body"]
+    diff = "".join(difflib.unified_diff(old.splitlines(True), old.replace("Probe the board.", "Probe the board twice.").splitlines(True), "a", "b"))
+    use("edit", number("task"), text("edit.diff", diff), "DECIDED: probe the body edit")
+    show("edit")
+    use("resolve", number("task"), text("task-done.md", "REPORTED: probe landed\n"))
+    show("resolve-task")
+    use("resolve", number("backlog"), text("backlog-done.md", "REPORTED: probe landed\n"))
+    show("resolve-backlog")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

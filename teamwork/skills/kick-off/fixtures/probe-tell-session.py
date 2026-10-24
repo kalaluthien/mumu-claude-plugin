@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""usage: probe-tell-session.py
+"""Tell sessions by tell-session.py and print each case's outcome, comma-joined, or `failed: <case>` with what it printed.
 
-Tell sessions by tell-session.py and print each case's outcome, comma-joined, or `failed: <case>` with what it printed.
+usage: probe-tell-session.py
 Three cases tell a throwaway Claude Code session in a new tab of this workspace: idle, busy in a turn, and blocked at a
 tool prompt; three run on the fake herdr beside this file: a receiver `done`, one that refuses its first prompt, and one
 that never shows what herdr took. Each case asserts the exit status, 0 when delivered and 1 with a reason when not."""
@@ -14,9 +14,8 @@ import tempfile
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parents[2]
 TELL, CLOSE = HERE.parent / "scripts" / "tell-session.py", HERE.parent / "scripts" / "close-session.py"
-sys.path.insert(0, str(ROOT / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import agent  # noqa: E402
 import session  # noqa: E402
 
@@ -91,9 +90,15 @@ def fake():
     results.pop()  # a guard, not one of the receivers the printed line names
 
 
-try:
-    live()
-except RuntimeError as e:
-    sys.exit(f"failed: {e}")
-fake()
-print(", ".join(results))
+def main(args):
+    try:
+        live()
+    except RuntimeError as e:
+        sys.exit(f"failed: {e}")
+    fake()
+    print(", ".join(results))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

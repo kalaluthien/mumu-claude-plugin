@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """Raise a memory file's confirmation count when its lesson is found again.
 
-  count-confirmations.py <memory file>   raise `confirmed` by one and set
-                                         `last-confirmed` to today
+usage: count-confirmations.py <memory file>   raise `confirmed` by one and set
+                                              `last-confirmed` to today
 
 Both fields sit in the file's frontmatter. It changes those two lines
 only, in place at any indent (Claude Code nests them under `metadata:`),
 adding them, or a frontmatter, when missing.
 """
-import os
+import pathlib
 import sys
 from datetime import date
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import memory  # noqa: E402
 
 
@@ -36,9 +36,12 @@ def confirm(path, today):
     return 0
 
 
+def main(args):
+    if len(args) == 1 and not args[0].startswith("-"):
+        return confirm(args[0], date.today())
+    print(__doc__, file=sys.stderr)
+    return 2
+
+
 if __name__ == "__main__":
-    args = sys.argv[1:]
-    if len(args) == 1:
-        sys.exit(confirm(args[0], date.today()))
-    print(__doc__.split("\n\n")[1], file=sys.stderr)
-    sys.exit(2)
+    sys.exit(main(sys.argv[1:]))

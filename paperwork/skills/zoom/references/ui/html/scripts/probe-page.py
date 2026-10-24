@@ -2,23 +2,21 @@
 # /// script
 # dependencies = ["playwright"]
 # ///
-"""zoom: open a built page in installed Chrome and check what a reader sees.
+"""Open a built page in installed Chrome and check what a reader sees.
 
-  probe-page.py labels <page>       print each level's node and edge labels, the same on any engine build, and its
-                                    history mark (H or H*) where it has one, and each final state as `final <label>`
-  probe-page.py zoom <page>         `zoom: ok` when clicking a node that opens a level shows that level and the first
-                                    scenario steps through its walk, with no page error; else `zoom: fail` and why
-  probe-page.py meta <page>         `meta: <n> shown, <k> missing`: every `meta` value of the page's document,
-                                    looked for in its note as ../../formats.md displays it
-  probe-page.py behaviours <page>   `<role> <behaviour>: ok` or `: fail` per behaviour ../../html.md adopts
+usage: probe-page.py labels <page>       print each level's node and edge labels, the same on any engine build, and its
+                                         history mark (H or H*) where it has one, and each final state as `final <label>`
+       probe-page.py zoom <page>         `zoom: ok` when clicking a node that opens a level shows that level and the first
+                                         scenario steps through its walk, with no page error; else `zoom: fail` and why
+       probe-page.py meta <page>         `meta: <n> shown, <k> missing`: every `meta` value of the page's document,
+                                         looked for in its note as ../../formats.md displays it
+       probe-page.py behaviours <page>   `<role> <behaviour>: ok` or `: fail` per behaviour ../../html.md adopts
 
 Exit status 0 when nothing fails or is missing, 1 otherwise, 2 on a usage error.
 """
 import json
 import pathlib
 import sys
-
-from playwright.sync_api import sync_playwright
 
 DIFF = {"added": "+", "removed": "−", "changed": "~"}
 FORMAT = {"text": str, "number": lambda v: str(int(v)) if float(v).is_integer() else str(v), "url": None,
@@ -195,8 +193,9 @@ def meta(pg):
 def main(args):
     modes = {"labels": labels, "zoom": zoom, "meta": meta, "behaviours": behaviours}
     if len(args) != 2 or args[0] not in modes:
-        print(__doc__)
+        print(__doc__, file=sys.stderr)
         return 2
+    from playwright.sync_api import sync_playwright   # after the call is read, so a bad call answers without playwright
     with sync_playwright() as pw:
         browser = pw.chromium.launch(channel="chrome")
         try:

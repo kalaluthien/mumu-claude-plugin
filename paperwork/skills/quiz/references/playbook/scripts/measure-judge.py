@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""quiz: measure how far a judge's verdicts can be trusted, per criterion.
+"""Measure how far a judge's verdicts can be trusted, per criterion.
 
-  measure-judge.py alpha spec.json runs/                  Krippendorff's alpha across the verdict files in runs/
-  measure-judge.py human spec.json judge.json human.json  Cohen's kappa, macro F1 and MET-rate gap against people
-  measure-judge.py bias spec.json verdicts.json           per perturbation kind and tier, the share of verdicts that
-                                                          change; an answer <a>~<kind> perturbs answer <a>
+usage: measure-judge.py alpha spec.json runs/                  Krippendorff's alpha across the verdict files in runs/
+       measure-judge.py human spec.json judge.json human.json  Cohen's kappa, macro F1 and MET-rate gap against people
+       measure-judge.py bias spec.json verdicts.json           per perturbation kind and tier, the share of verdicts that
+                                                               change; an answer <a>~<kind> perturbs answer <a>
 
 Exit status 0 means done, 1 an invalid spec or verdict file, 2 a usage error.
 """
@@ -14,8 +14,7 @@ import statistics
 import sys
 from collections import Counter
 
-HERE = pathlib.Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parents[4] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 
 from quiz.spec import line, violations  # noqa: E402
 from quiz.verdicts import criteria, problems  # noqa: E402
@@ -153,7 +152,7 @@ def main(args):
         spec, (verdicts,) = load(args[1], args[2:], complete=True)
         bias(spec, verdicts)
         return 0
-    print(__doc__)
+    print(__doc__, file=sys.stderr)
     return 2
 
 

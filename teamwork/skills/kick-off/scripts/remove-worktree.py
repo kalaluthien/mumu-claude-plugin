@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""Remove the worktree and the branches of each merged worker, then fast-forward the main checkout. An unclean worktree is
+kept, never forced; a branch with unmerged commits is kept; the remote branch is deleted only under a worker branch name.
+
+usage: remove-worktree.py <name>..."""
 import pathlib
 import re
 import subprocess
@@ -54,14 +58,20 @@ def remove(name, root):
     return f"{name}: {', '.join(done) + ' removed' if done else 'nothing left to remove'}"
 
 
-if not sys.argv[1:]:
-    sys.exit("usage: remove-worktree.py <name>...")
-common = git("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=".").stdout.strip()
-if not common:
-    sys.exit("remove-worktree.py: run it inside the checkout.")
-root = pathlib.Path(common).parent  # the main checkout, wherever in it this runs
-for name in sys.argv[1:]:
-    print(remove(name, root))
-if not git("remote", "get-url", "origin", cwd=root).returncode:  # with no remote, a local merge already moved the checkout
-    p = git("pull", "--ff-only", cwd=root)
-    print("checkout fast-forwarded" if not p.returncode else f"checkout not fast-forwarded: {p.stderr.strip()}")
+def main(args):
+    if not args or any(a.startswith("-") for a in args):
+        print(__doc__, file=sys.stderr)
+        return 2
+    common = git("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=".").stdout.strip()
+    if not common:
+        sys.exit("remove-worktree.py: run it inside the checkout.")
+    root = pathlib.Path(common).parent  # the main checkout, wherever in it this runs
+    for name in args:
+        print(remove(name, root))
+    if not git("remote", "get-url", "origin", cwd=root).returncode:  # with no remote, a local merge already moved the checkout
+        p = git("pull", "--ff-only", cwd=root)
+        print("checkout fast-forwarded" if not p.returncode else f"checkout not fast-forwarded: {p.stderr.strip()}")
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

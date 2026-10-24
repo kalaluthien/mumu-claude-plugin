@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""quiz: check a grading spec against the grammar (assets/rubric.schema.json) and the rules it cannot state.
+"""Check a grading spec against the grammar (assets/rubric.schema.json) and the rules it cannot state.
 
-  check-spec.py check spec.json      print each violation as `path: rule: message`, then `ok`, or the error count on stderr
-  check-spec.py weights spec.json    print each tier's derived epsilon beside the delta and judge_error it comes from
-  check-spec.py fixtures             check every spec in fixtures/: one named after an error rule (or a rule and more
-                                     words) must be rejected by it alone, one named after a warning rule accepted with
-                                     that warning, any other accepted with no warning
-  check-spec.py rules                list each rule, error or warning, and what it asks
-  check-spec.py prose [file.md]      check that spec/'s prose, or the files given, link the grammar and never restate it
+usage: check-spec.py check spec.json      print each violation as `path: rule: message`, then `ok`, or the error count on stderr
+       check-spec.py weights spec.json    print each tier's derived epsilon beside the delta and judge_error it comes from
+       check-spec.py fixtures             check every spec in fixtures/: one named after an error rule (or a rule and more
+                                          words) must be rejected by it alone, one named after a warning rule accepted with
+                                          that warning, any other accepted with no warning
+       check-spec.py rules                list each rule, error or warning, and what it asks
+       check-spec.py prose [file.md]      check that spec/'s prose, or the files given, link the grammar and never restate it
 
 Exit status 0 means ok, 1 a violation, 2 a usage error.
 """
@@ -17,7 +17,7 @@ import re
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parents[4] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 
 from quiz.model import weights  # noqa: E402
 from quiz.spec import GRAMMAR, RULES, SCHEMA, line, violations  # noqa: E402
@@ -157,7 +157,7 @@ def main(args):
         return 0
     if cmd == "prose":
         return prose(args[1:])
-    print(__doc__)
+    print(__doc__, file=sys.stderr)
     return 2
 
 

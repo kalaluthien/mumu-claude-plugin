@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""usage: compare-session-calls.py [--ref <ref>]
-
-Run start-session.py and close-session.py over one scenario against a fake herdr (fake-herdr/herdr beside this file),
+"""Run start-session.py and close-session.py over one scenario against a fake herdr (fake-herdr/herdr beside this file),
 in the current checkout and in an export of REF (default origin/main), and print `same` when the herdr calls and the
-printed lines match, else a unified diff and `differ`."""
+printed lines match, else a unified diff and `differ`.
+
+usage: compare-session-calls.py [--ref <ref>]"""
 import argparse, difflib, json, os, pathlib, subprocess, sys, tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -49,15 +49,21 @@ def scenario(tree):
     return log.read_text().replace(str(tree), "<root>").replace(str(work), "<work>")
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--ref", default="origin/main")
-a = parser.parse_args()
-root = pathlib.Path(subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip())
-base = pathlib.Path(tempfile.mkdtemp(prefix="session-base-")).resolve()
-archive = subprocess.Popen(["git", "archive", a.ref, "teamwork"], cwd=root, stdout=subprocess.PIPE)
-subprocess.run(["tar", "-x", "-C", str(base)], stdin=archive.stdout, check=True)
-there, here = scenario(base), scenario(root)
-if "-v" in sys.argv[1:] or os.environ.get("SHOW"):
-    print(here)
-sys.stdout.writelines(difflib.unified_diff(there.splitlines(True), here.splitlines(True), a.ref, "head"))
-print("same" if here == there else "differ")
+def main(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ref", default="origin/main")
+    a = parser.parse_args(args)
+    root = pathlib.Path(subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip())
+    base = pathlib.Path(tempfile.mkdtemp(prefix="session-base-")).resolve()
+    archive = subprocess.Popen(["git", "archive", a.ref, "teamwork"], cwd=root, stdout=subprocess.PIPE)
+    subprocess.run(["tar", "-x", "-C", str(base)], stdin=archive.stdout, check=True)
+    there, here = scenario(base), scenario(root)
+    if "-v" in args or os.environ.get("SHOW"):
+        print(here)
+    sys.stdout.writelines(difflib.unified_diff(there.splitlines(True), here.splitlines(True), a.ref, "head"))
+    print("same" if here == there else "differ")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

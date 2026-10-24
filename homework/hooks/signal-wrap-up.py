@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Ask for a wrap-up at a stop, with a sentence of counts the wrap-up skill routes on.
 
-  signal-wrap-up.py                        the Stop hook: its payload on stdin,
-                                           the plugin's data folder in CLAUDE_PLUGIN_DATA;
-                                           WRAP_UP=off silences it and writes nothing
-  signal-wrap-up.py <transcript|session>   print the sentence for a transcript's last stop
-  signal-wrap-up.py outcome <data> <session> filed|empty
-                                           report what a session's last asked wrap-up did
+usage: signal-wrap-up.py                        the Stop hook: its payload on stdin,
+                                                the plugin's data folder in CLAUDE_PLUGIN_DATA;
+                                                WRAP_UP=off silences it and writes nothing
+       signal-wrap-up.py <transcript|session>   print the sentence for a transcript's last stop
+       signal-wrap-up.py outcome <data> <session> filed|empty
+                                                report what a session's last asked wrap-up did
 
 A dream rides on a lesson or recipe ask, since a dream alone rarely pays.
 Enabling the plugin for a project is the opt-in, so no arm step writes to the
@@ -16,11 +16,12 @@ trimmed past stops to run the sentence on.
 """
 import json
 import os
+import pathlib
 import re
 import subprocess
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import memory as memory_file  # noqa: E402
 import transcript  # noqa: E402
 
@@ -178,24 +179,27 @@ def outcome(data, session, result):
     return 0
 
 
-if __name__ == "__main__":
-    args = sys.argv[1:]
+def main(args):
     if not args:
-        sys.exit(hook())
+        return hook()
     if args[0] == "outcome" and len(args) == 4 and args[3] in ("filed", "empty"):
-        sys.exit(outcome(args[1], args[2], args[3]))
+        return outcome(args[1], args[2], args[3])
     if len(args) == 1 and args[0] != "outcome":
         path = transcript.find(args[0])
         entries = transcript.entries_of(path or "")
         if entries is None:
             print(f"no transcript: {args[0]}", file=sys.stderr)
-            sys.exit(1)
+            return 1
         cwd = next((e["cwd"] for e in reversed(entries) if e.get("cwd")), None)
         data = os.environ.get("CLAUDE_PLUGIN_DATA")
         state = load(data or os.devnull)
         found = counts(entries, cwd)
         asked = any(transcript.asked_at(entry) for entry in entries)
         print(sentence(dict(found, memory=len(found["memory"]), first=first_retro(found, asked)), threshold_of(state)))
-        sys.exit(0)
-    print(__doc__.split("\n\n")[1], file=sys.stderr)
-    sys.exit(2)
+        return 0
+    print(__doc__, file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

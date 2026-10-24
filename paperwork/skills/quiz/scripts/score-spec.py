@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""quiz: apply a grading spec to a verdict file, whose format the grammar holds as $defs/verdicts.
+"""Apply a grading spec to a verdict file, whose format the grammar holds as $defs/verdicts.
 
-  score-spec.py order spec.json verdicts.json                 answers best first, one per line, with tier scores
-  score-spec.py score spec.json verdicts.json                 per group, each answer's tier scores, reward and advantage
-  score-spec.py compare spec.json a.json b.json [--seed n]    per tier each system's mean with a 95% bootstrap interval,
-                                                              then which system is ahead, each delta the indifference band
+usage: score-spec.py order spec.json verdicts.json                 answers best first, one per line, with tier scores
+       score-spec.py score spec.json verdicts.json                 per group, each answer's tier scores, reward and advantage
+       score-spec.py compare spec.json a.json b.json [--seed n]    per tier each system's mean with a 95% bootstrap interval,
+                                                                   then which system is ahead, each delta the indifference band
 
 Exit status 0 means done, 1 an invalid spec or verdict file, 2 a usage error.
 """
@@ -14,8 +14,7 @@ import random
 import statistics
 import sys
 
-HERE = pathlib.Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parents[2] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 
 from quiz.model import group_of, reward, tier_scores  # noqa: E402
 from quiz.spec import line, violations  # noqa: E402
@@ -104,7 +103,7 @@ def main(args):
     if "--seed" in args:
         i = args.index("--seed")
         if i + 1 >= len(args) or not args[i + 1].lstrip("-").isdigit():
-            print(__doc__)
+            print(__doc__, file=sys.stderr)
             return 2
         seed, args = int(args[i + 1]), args[:i] + args[i + 2:]
     cmd = args[0] if args else "help"
@@ -116,7 +115,7 @@ def main(args):
         spec, (a, b) = load(args[1], args[2:])
         compare(spec, a, b, seed)
         return 0
-    print(__doc__)
+    print(__doc__, file=sys.stderr)
     return 2
 
 

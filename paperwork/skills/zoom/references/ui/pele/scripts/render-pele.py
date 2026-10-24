@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """Draw the root level of a Schema document with pele: schema.json -> Mermaid -> SVG -> PNG.
 
-Usage: render-pele.py <schema.json> <out.png>
+usage: render-pele.py <schema.json> <out.png>
 """
 import json
+import pathlib
 import re
 import subprocess
 import sys
-from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
+HERE = pathlib.Path(__file__).resolve().parent
 # Outside the repository so the install never lands in a commit.
-CACHE = Path.home() / ".cache" / "zoom-render-pele"
+CACHE = pathlib.Path.home() / ".cache" / "zoom-render-pele"
 
 
 def mermaid_id(raw):
@@ -44,13 +44,16 @@ def install():
 
 
 def find_chromium():
-    found = sorted((Path.home() / "Library/Caches/ms-playwright").glob(
+    found = sorted((pathlib.Path.home() / "Library/Caches/ms-playwright").glob(
         "chromium_headless_shell-*/chrome-headless-shell-mac-*/chrome-headless-shell"))
     return str(found[-1]) if found else ""
 
 
-def main():
-    schema, out = Path(sys.argv[1]), Path(sys.argv[2]).resolve()
+def main(args):
+    if len(args) < 2:
+        print(__doc__, file=sys.stderr)
+        return 2
+    schema, out = pathlib.Path(args[0]), pathlib.Path(args[1]).resolve()
     install()
     mmd = out.with_suffix(".mmd")
     mmd.write_text(to_mermaid(json.loads(schema.read_text())["level"]))
@@ -59,6 +62,8 @@ def main():
     runner.write_text((HERE / "render-pele.mjs").read_text())
     subprocess.run(["node", str(runner), str(mmd), str(out), find_chromium()], check=True)
     print(out)
+    return 0
 
 
-main()
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

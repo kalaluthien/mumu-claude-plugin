@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""usage: wait-team-change.py
+"""Print `changed` once at start, then once per burst of marks by team sessions to the issues, after the file has been quiet for QUIET seconds, until killed.
 
-Print `changed` once at start, then once per burst of marks by team sessions to the issues, after the file has been quiet for QUIET seconds, until killed.
+usage: wait-team-change.py
 It blocks on the signal file through kqueue, so it reads GitHub never and wakes only when a session touches the file."""
 import pathlib
 import select
@@ -23,15 +23,20 @@ def watch(queue):
     return handle
 
 
-queue = select.kqueue()
-handle = watch(queue)
-print("changed", flush=True)
-while True:
-    # one `changed` per burst: a session often marks several writes in a row, and each would otherwise read the board
-    event = queue.control(None, 1)
-    while event:
-        if event[0].fflags & (select.KQ_NOTE_DELETE | select.KQ_NOTE_RENAME):
-            handle.close()
-            handle = watch(queue)
-        event = queue.control(None, 1, QUIET)
+def main(args):
+    queue = select.kqueue()
+    handle = watch(queue)
     print("changed", flush=True)
+    while True:
+        # one `changed` per burst: a session often marks several writes in a row, and each would otherwise read the board
+        event = queue.control(None, 1)
+        while event:
+            if event[0].fflags & (select.KQ_NOTE_DELETE | select.KQ_NOTE_RENAME):
+                handle.close()
+                handle = watch(queue)
+            event = queue.control(None, 1, QUIET)
+        print("changed", flush=True)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

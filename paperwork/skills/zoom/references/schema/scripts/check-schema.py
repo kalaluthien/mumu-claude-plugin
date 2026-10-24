@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""zoom: check a Schema document against the grammar (assets/schema.json) and the rules the grammar cannot state.
+"""Check a Schema document against the grammar (assets/schema.json) and the rules the grammar cannot state.
 
-  check-schema.py check doc.json      print each violation as `path: rule: message`, then `ok`, or the error count on stderr
-  check-schema.py fixtures            check every document in fixtures/: one named after an error rule must be
-                                      rejected by it, one named after a warning rule accepted with that warning,
-                                      any other accepted with no warning
-  check-schema.py rules               list each rule, error or warning, and what it asks
-  check-schema.py ids doc.json        print every node id and edge key (level:from>to#n), one per line
-  check-schema.py prose [file.md]     check that schema/'s prose, or the files given, cite the grammar and never restate it
+usage: check-schema.py check doc.json      print each violation as `path: rule: message`, then `ok`, or the error count on stderr
+       check-schema.py fixtures            check every document in fixtures/: one named after an error rule must be
+                                           rejected by it, one named after a warning rule accepted with that warning,
+                                           any other accepted with no warning
+       check-schema.py rules               list each rule, error or warning, and what it asks
+       check-schema.py ids doc.json        print every node id and edge key (level:from>to#n), one per line
+       check-schema.py prose [file.md]     check that schema/'s prose, or the files given, cite the grammar and never restate it
 
 Exit status 0 means ok, 1 a violation, 2 a usage error.
 """
@@ -17,7 +17,7 @@ import re
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parents[4] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 
 from schema import checks  # noqa: E402
 from schema.model import Model, SCHEMA, shape  # noqa: E402
@@ -165,7 +165,7 @@ def main(args):
         return ids(args[1])
     if cmd == "prose":
         return prose(args[1:])
-    print(__doc__)
+    print(__doc__, file=sys.stderr)
     return 2
 
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """List what repeats across dejavu's mapped sessions, one line per repeat, details indented below it.
 
-  list-repeats.py <data> [--mistakes <file>]
-  list-repeats.py <data> --record <url> <last seen> <key>   record the issue filed for a repeat in <data>/filed.json
+usage: list-repeats.py <data> [--mistakes <file>]
+       list-repeats.py <data> --record <url> <last seen> <key>   record the issue filed for a repeat in <data>/filed.json
 
 Reads <data>/stats/ and <data>/facets/ for the sessions of the last 14 days and writes <data>/friction.jsonl, every
 friction item with an id, for the agent that groups them. A repeat line reads
@@ -19,11 +19,12 @@ import collections
 import glob
 import json
 import os
+import pathlib
 import re
 import sys
 import time
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import claude_config  # noqa: E402
 import transcript  # noqa: E402
 
@@ -74,18 +75,19 @@ def show(kind, key, sightings, filed):
         print(f"  memory {line}")
 
 
-def main():
-    if len(sys.argv) == 6 and sys.argv[2] == "--record":
-        data, url, last, key = sys.argv[1], sys.argv[3], float(sys.argv[4]), sys.argv[5]
+def main(args):
+    if len(args) == 5 and args[1] == "--record":
+        data, url, last, key = args[0], args[2], float(args[3]), args[4]
         filed = load(os.path.join(data, "filed.json"), {})
         filed[key] = {"url": url, "last_seen": last}
         with open(os.path.join(data, "filed.json"), "w", encoding="utf-8") as out:
             json.dump(filed, out, ensure_ascii=False, indent=1)
         print(f"recorded {url} for: {key}")
-        return
-    if len(sys.argv) not in (2, 4) or (len(sys.argv) == 4 and sys.argv[2] != "--mistakes"):
-        sys.exit(__doc__)
-    data, now = sys.argv[1], time.time()
+        return 0
+    if len(args) not in (1, 3) or args[0].startswith("-") or (len(args) == 3 and args[1] != "--mistakes"):
+        print(__doc__, file=sys.stderr)
+        return 2
+    data, now = args[0], time.time()
     filed = load(os.path.join(data, "filed.json"), {})
     stats = {}
     for path in glob.glob(os.path.join(glob.escape(data), "stats", "*.json")):
@@ -120,12 +122,13 @@ def main():
         out.writelines(json.dumps(item, ensure_ascii=False) + "\n" for item in items)
 
     by_id = {item["id"]: item for item in items}
-    for group in load(sys.argv[3], []) if len(sys.argv) == 4 else []:
+    for group in load(args[2], []) if len(args) == 3 else []:
         found = [by_id[i] for i in group.get("ids") or [] if i in by_id]
         sightings = [(i["time"], i["path"], i.get("line") or 0, i["repo"]) for i in found]
         if len({s[1] for s in sightings}) >= 3 and max(s[0] for s in sightings) >= alive:
             show("mistake", group["name"], sightings, filed)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main(sys.argv[1:]))

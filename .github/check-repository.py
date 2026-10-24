@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check every tracked file: Python compiles, manifests parse, Markdown links resolve.
 
-Usage: check-repository.py [root]
+usage: check-repository.py [root]
 
 Prints one failure per line as `<kind> <path>: <detail>`, then a summary line,
 and exits 0 only when nothing failed. Standard library only, Python 3.9.
@@ -9,10 +9,13 @@ and exits 0 only when nothing failed. Standard library only, Python 3.9.
 
 import json
 import os
+import pathlib
 import re
 import subprocess
 import sys
 from urllib.parse import unquote
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 # Copies of docs kept with dangling links on purpose, as page-check fixtures.
 BROKEN_ON_PURPOSE = {
@@ -118,9 +121,11 @@ def check_markdown(root, path, text, failures):
     return checked
 
 
-def main():
-    default = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    root = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else default)
+def main(args):
+    if len(args) > 1 or (args and args[0].startswith("-")):
+        print(__doc__, file=sys.stderr)
+        return 2
+    root = os.path.abspath(args[0] if args else ROOT)
     failures = []
     compiled = manifests = links = docs = 0
     for path in list_files(root):
@@ -154,4 +159,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

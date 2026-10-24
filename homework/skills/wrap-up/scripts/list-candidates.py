@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """List a retro's surprise candidates, one line each: time, kind, what.
 
-  list-candidates.py [<transcript|session>]   the session in CLAUDE_CODE_SESSION_ID by default
+usage: list-candidates.py [<transcript|session>]   the session in CLAUDE_CODE_SESSION_ID by default
 
 The candidates are the work since the stop that ended the last wrap-up the hook
 asked for: a failed tool result, a permission refusal, an AskUserQuestion
@@ -12,11 +12,12 @@ command named.
 """
 import json
 import os
+import pathlib
 import re
 import subprocess
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import transcript  # noqa: E402
 from install_line import need  # noqa: E402
 
@@ -117,12 +118,20 @@ def candidates(entries):
     return sorted(lines)
 
 
-if __name__ == "__main__":
-    session = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("CLAUDE_CODE_SESSION_ID", "")
+def main(args):
+    if len(args) > 1 or (args and args[0].startswith("-")):
+        print(__doc__, file=sys.stderr)
+        return 2
+    session = args[0] if args else os.environ.get("CLAUDE_CODE_SESSION_ID", "")
     path = transcript.find(session) if session else None
     entries = transcript.entries_of(path or "")
     if entries is None:
         print(f"no transcript: {session or 'CLAUDE_CODE_SESSION_ID names none'}", file=sys.stderr)
-        sys.exit(1)
+        return 1
     found = candidates(entries)
     print("\n".join(found + [f"candidates: {len(found)}"]))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
