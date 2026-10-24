@@ -66,7 +66,7 @@ def reminder(command, role, cwd):
     call = rest_call(command)
     called, needles = next(((c, n) for c, n in REMINDED.items() if call.startswith(c)), (None, ()))
     found = [f"- {path.relative_to(PLAYBOOKS.parents[1])}:{number}: {line.strip()}"
-             for path in (PLAYBOOKS / "protocol.md", PLAYBOOKS / f"{role}.md", GRAMMAR, *sorted((PLAYBOOKS / "adapters").glob("*.md")))
+             for path in (PLAYBOOKS / "protocol.md", PLAYBOOKS / f"{role}.md", GRAMMAR, *sorted((PLAYBOOKS / "adapters").glob("*-github.md")))  # a gh command keeps GitHub's adapter rules, never another board's
              for number, line in enumerate(path.read_text().splitlines(), 1) if any(n in line for n in needles)]
     stray = ["- A `holders:` or `deferred:` line sits outside a ```teamwork fence in the posted file, so code reads no holder: put it inside the fence, as "
              f"{GRAMMAR.relative_to(PLAYBOOKS.parents[1])} says."] if called and stray_state(command, cwd) else []

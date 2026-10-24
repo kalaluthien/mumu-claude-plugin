@@ -12,6 +12,7 @@ The board is the repository's GitHub issues, through `gh`, a body always by `--b
 | `decide` | `comment` a `DECIDED:` |
 | `order` | `gh api -X POST repos/<repo>/issues/<later>/dependencies/blocked_by -F issue_id=<earlier's id>`; ids by `gh api repos/<repo>/issues/<n> -q .id` |
 | `nest` | `gh api -X POST repos/<repo>/issues/<backlog>/sub_issues -F sub_issue_id=<task's id>` |
+| `label` | `gh issue edit <n> --add-label <label>` or `--remove-label <label>`, the label first `gh label create <label> --force` |
 
 - **Trusted**: an author whose association is `OWNER`, `MEMBER` or `COLLABORATOR`.
 - **Scope labels**: `gh label list --search scope:`.

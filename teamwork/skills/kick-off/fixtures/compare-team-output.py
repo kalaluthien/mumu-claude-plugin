@@ -2,7 +2,8 @@
 """usage: compare-team-output.py [--ref <ref>] [--only <entry>,...] [--skip <entry>,...] [--sandbox]
 
 Run teamwork's entry points (hooks, board, heartbeat, scripts) in this checkout and in an export of REF (default
-origin/main) at the same time, against the live herdr and GitHub, and print the entries, those with no output, then
+origin/main) at the same time, against GitHub and a fake herdr (fake-herdr/herdr beside this file) that lists the two sessions
+below, and print the entries, those with no output, then
 `same` when every output matches, else one unified diff per entry that differs and `differ: <entries>`. The manager is
 teamwork-manager, the worker protocol-split-worker. `--sandbox` reads kalaluthien/teamwork-board-sandbox instead, whose
 fixture issues and one merged change give every entry output, and adds `edit-write`, which edits its issue #6 (base) or #7 (head) forward and
@@ -43,13 +44,21 @@ EVENTS["stray-post"] = ("protocol-split-worker", {"hook_event_name": "PostToolUs
 K = "teamwork/skills/kick-off/scripts/"
 
 
-def panes():
-    listed = json.loads(subprocess.run(["herdr", "agent", "list"], capture_output=True, text=True).stdout)["result"]["agents"]
-    return {a.get("name"): a["pane_id"] for a in listed if a.get("name")}
+SESSIONS = {"teamwork-manager": ("w1:p1", "idle"), "protocol-split-worker": ("w1:p2", "working")}
+
+
+def fake_herdr(tree):
+    """A state file of its own per tree, so the two trees' calls never meet."""
+    state = pathlib.Path(tempfile.mkstemp(prefix="fake-herdr-", suffix=".json")[1])
+    state.write_text(json.dumps({"n": 10, "tabs": [{"tab_id": f"w1:t{i}", "workspace_id": "w1", "label": name} for i, name in enumerate(SESSIONS, 1)],
+                                 "agents": [{"name": name, "pane_id": pane, "tab_id": pane.replace(":p", ":t"), "workspace_id": "w1", "agent": "claude",
+                                             "agent_status": status, "interactive_ready": True} for name, (pane, status) in SESSIONS.items()]}))
+    return state
 
 
 def run(tree, argv, pane=None, stdin=None, seconds=120, cwd=None, board=True):
-    env = {**os.environ, **({"HERDR_PANE_ID": pane} if pane else {}), **({"GH_REPO": SANDBOX} if SAND and board else {}), "MONITOR_POLL": "1000"}
+    env = {**os.environ, **({"HERDR_PANE_ID": pane} if pane else {}), **({"GH_REPO": SANDBOX} if SAND and board else {}), "MONITOR_POLL": "1000",
+           "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(STATES[tree])}
     argv = [str(tree / a) if a.startswith("teamwork/") else a for a in argv]
     p = subprocess.Popen(argv, cwd=cwd or ROOT, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     try:
@@ -118,7 +127,8 @@ ROOT = pathlib.Path(subprocess.run(["git", "rev-parse", "--show-toplevel"], capt
 base = pathlib.Path(tempfile.mkdtemp(prefix="compare-team-")).resolve()
 archive = subprocess.Popen(["git", "archive", a.ref, "teamwork"], cwd=ROOT, stdout=subprocess.PIPE)
 subprocess.run(["tar", "-x", "-C", str(base)], stdin=archive.stdout, check=True)
-ids = panes()
+ids = {name: pane for name, (pane, _) in SESSIONS.items()}
+STATES = {ROOT: fake_herdr(ROOT), base: fake_herdr(base)}
 with cf.ThreadPoolExecutor(2) as pool:
     here, there = pool.submit(outputs, ROOT, "head", ids), pool.submit(outputs, base, "base", ids)
     here, there = here.result(), there.result()

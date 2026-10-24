@@ -55,6 +55,7 @@ Each port is a set of operations the playbooks name; an adapter does each, and [
 | board | `decide` | comments a `DECIDED:` |
 | board | `order` | records that a later issue waits on an earlier one |
 | board | `nest` | puts a task under its backlog |
+| board | `label` | adds a label to an issue or removes one |
 | message | `tell` | one message to a session, naming the url that holds what it needs and stating a fact, never a step for the peer to run |
 | message | `ask` | asks the owner in your tab, with choices |
 | message | `notify` | reaches the owner away, naming the issue and your tab |

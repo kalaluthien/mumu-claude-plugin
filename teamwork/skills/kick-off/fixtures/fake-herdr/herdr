@@ -8,7 +8,7 @@ import json, os, pathlib, sys
 state_path = pathlib.Path(os.environ["FAKE_HERDR_STATE"])
 s = json.loads(state_path.read_text())
 argv = sys.argv[1:]
-with open(os.environ["FAKE_HERDR_LOG"], "a") as log:
+with open(os.environ.get("FAKE_HERDR_LOG", os.devnull), "a") as log:
     log.write(json.dumps(argv) + "\n")
 ok = lambda r=None: print(json.dumps({"result": r or {}}))
 
@@ -76,4 +76,6 @@ elif head == ["tab", "list"]:
     ok({"tabs": [t for t in s["tabs"] if t["workspace_id"] == opt("--workspace")]})
 else:  # renames, keys, closes
     ok()
-state_path.write_text(json.dumps(s))
+tmp = state_path.with_suffix(f".{os.getpid()}")  # replaced whole, since callers run at once
+tmp.write_text(json.dumps(s))
+os.replace(tmp, state_path)
