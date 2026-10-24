@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the answer page of a pitch plan.
+"""Build the answer page of a tree plan.
 
   make-page.py PLAN.json OUT.html   one self-contained page; refused when the plan fails the checker
   make-page.py --check DIR          drive every DIR/X.json in headless Chromium and print "ok N"
@@ -13,29 +13,29 @@ from pathlib import Path
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "lib"))
-import pitch_plan  # noqa: E402
+import tree_plan  # noqa: E402
 
 TEMPLATE = Path(__file__).resolve().parents[1] / "assets" / "page.html"
 
 
 def build(plan_path):
-    plan = pitch_plan.load_file(plan_path)
-    errs = pitch_plan.check(plan)
+    plan = tree_plan.load_file(plan_path)
+    errs = tree_plan.check(plan)
     if errs:
-        raise pitch_plan.PlanError(*errs[0])
+        raise tree_plan.PlanError(*errs[0])
     # "</" would end the script element early inside the embedded JSON.
     data = json.dumps(plan, ensure_ascii=False).replace("</", "<\\/")
     page = TEMPLATE.read_text(encoding="utf-8")
-    return (page.replace("__TITLE__", html.escape(plan["title"])).replace("__STAMP__", pitch_plan.stamp(plan))
+    return (page.replace("__TITLE__", html.escape(plan["title"])).replace("__STAMP__", tree_plan.stamp(plan))
             .replace("__PLAN__", data))
 
 
 def strikeable(plan):
     """First non-Decision Part with no Decision inside it, so the pick still counts."""
-    ids = pitch_plan.index(plan)
+    ids = tree_plan.index(plan)
     for pid, p in ids.items():
         inside = [q for i, q in ids.items() if i.startswith(pid + ".")]
-        if not pitch_plan.is_decision(p) and not any(pitch_plan.is_decision(q) for q in inside):
+        if not tree_plan.is_decision(p) and not any(tree_plan.is_decision(q) for q in inside):
             return pid
     return None
 
@@ -54,7 +54,7 @@ def faded(page):
 
 
 def drive(browser_ctx, plan_path, out_dir):
-    plan = pitch_plan.load_file(plan_path)
+    plan = tree_plan.load_file(plan_path)
     page_file = Path(out_dir) / (Path(plan_path).stem + ".html")
     page_file.write_text(build(plan_path), encoding="utf-8")
     page = browser_ctx.new_page()
@@ -62,24 +62,24 @@ def drive(browser_ctx, plan_path, out_dir):
     page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.goto(page_file.as_uri())
-    ids = pitch_plan.index(plan)
-    decisions = [i for i, p in ids.items() if pitch_plan.is_decision(p)]
+    ids = tree_plan.index(plan)
+    decisions = [i for i, p in ids.items() if tree_plan.is_decision(p)]
     if faded(page) != later_ids(ids, decisions, set()):
         raise AssertionError(f"faded on load {sorted(faded(page))}, expected {sorted(later_ids(ids, decisions, set()))}")
     if decisions:
         first = ids[decisions[0]]
-        opts = pitch_plan.options(first)
+        opts = tree_plan.options(first)
         k = 2 if len(opts) >= 2 else 1
         page.keyboard.press(str(k))
         q = opts[k - 1].get("then")
         if q:
-            page.keyboard.press("2" if len(pitch_plan.options(q)) >= 2 else "1")
+            page.keyboard.press("2" if len(tree_plan.options(q)) >= 2 else "1")
     if decisions and faded(page) != later_ids(ids, decisions, {decisions[0]}):
         raise AssertionError(f"faded after the first pick {sorted(faded(page))}, expected {sorted(later_ids(ids, decisions, {decisions[0]}))}")
     target = strikeable(plan)
     # Outside the struck subtree, since a struck Part's descendants add no lines.
     commented = next((i for i in ids if not (target and (i == target or i.startswith(target + ".")))
-                      and not pitch_plan.is_decision(ids[i])), None) or decisions[0]
+                      and not tree_plan.is_decision(ids[i])), None) or decisions[0]
     if target:
         page.click(f'[data-id="{target}"] > .row .actions button:text-is("Strike")')
         page.fill(".ed-strike", "not needed")
@@ -98,16 +98,16 @@ def drive(browser_ctx, plan_path, out_dir):
     page.close()
     if errors:
         raise AssertionError(f"console errors: {errors}")
-    pitch_plan.check_head(plan, text)
-    entries = pitch_plan.parse_answer(text)
+    tree_plan.check_head(plan, text)
+    entries = tree_plan.parse_answer(text)
     verbs = {e[2] for e in entries}
     need = {"comment"} | ({"struck"} if target else set())
     if not need <= verbs:
         raise AssertionError(f"answer lacks {sorted(need - verbs)}: {text!r}")
     if decisions and not ({"pick", "other"} & verbs):
         raise AssertionError(f"answer has no pick: {text!r}")
-    nxt = pitch_plan.apply_answer(plan, entries)
-    errs = pitch_plan.check(nxt)
+    nxt = tree_plan.apply_answer(plan, entries)
+    errs = tree_plan.check(nxt)
     if errs:
         raise AssertionError(f"next plan refused: {errs[0]}")
     return how
@@ -144,7 +144,7 @@ def main(argv):
         return 2
     try:
         Path(argv[1]).write_text(build(argv[0]), encoding="utf-8")
-    except (pitch_plan.PlanError, OSError) as e:
+    except (tree_plan.PlanError, OSError) as e:
         print(f"refused: {e}")
         return 1
     print(f"wrote {argv[1]}: one page, answer lines appear in its Answer box; open it, answer, press Copy Answer")

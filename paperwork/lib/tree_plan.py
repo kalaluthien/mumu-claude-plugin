@@ -1,6 +1,6 @@
-"""Pitch plan: load, check, ids, answer parse, apply and render.
+"""Tree plan: load, check, ids, answer parse, apply and render.
 
-A plan is {"title", "parts": [Part]}; the grammar is in the pitch skill's
+A plan is {"title", "parts": [Part]}; the grammar is in the tree skill's
 references/grammar.md. Every function here is a calculation: no file or
 network access besides load_file.
 """
