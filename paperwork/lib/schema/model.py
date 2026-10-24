@@ -107,14 +107,14 @@ def flat(data):
         return data
     levels = []
     for level, opener in levels_of(data):
-        L2 = dict(level, id=opener or "root", parent=opener)
-        L2["nodes"] = [{k: v for k, v in n.items() if k != "opens"} for n in level.get("nodes", [])]
-        if "regions" in L2:   # a state level's regions are its partitions everywhere after this
-            L2["partitions"] = L2.pop("regions")
-            for n in L2["nodes"]:
+        flat_level = dict(level, id=opener or "root", parent=opener)
+        flat_level["nodes"] = [{k: v for k, v in n.items() if k != "opens"} for n in level.get("nodes", [])]
+        if "regions" in flat_level:   # a state level's regions are its partitions everywhere after this
+            flat_level["partitions"] = flat_level.pop("regions")
+            for n in flat_level["nodes"]:
                 if "region" in n:
                     n["partition"] = n.pop("region")
-        levels.append(L2)
+        levels.append(flat_level)
     return dict({k: v for k, v in data.items() if k != "level"}, levels=levels, root="root")
 
 
@@ -292,13 +292,13 @@ class Model:
                     out.append(f'{s["slug"]}: {from_visit} → {to_visit} is neither an edge nor a step into or out of a level')
             for f, t in pairs:
                 level = self.levels[self.node_level[f]]
-                fits = [k for k, (LL, e) in self.edges.items() if LL is level and ((e["from"], e["to"]) == (f, t) or (level["kind"] == "topology" and (e["from"], e["to"]) == (t, f)))]
+                fits = [k for k, (edge_level, e) in self.edges.items() if edge_level is level and ((e["from"], e["to"]) == (f, t) or (level["kind"] == "topology" and (e["from"], e["to"]) == (t, f)))]
                 fits = [k for k in fits if not want or self.edges[k][1].get("label") == want] if len(fits) > 1 or want else fits
                 if len(fits) == 1 or (fits and level["kind"] == "topology"):   # parts used together use every relation between them
                     items += [{"x": k, "kind": "edge", "from": times[a] + (owner[a] != owner[b]), "to": times[b], "step": owner[b]} for k in fits]
                 elif fits:
                     out.append(f'{s["slug"]}: {f} → {t} could take {", ".join(self.edges[k][1]["label"] for k in fits)}; name one with "edge"')
-                elif any((e["from"], e["to"]) == (t, f) for LL, e in self.edges.values() if LL is level):
+                elif any((e["from"], e["to"]) == (t, f) for edge_level, e in self.edges.values() if edge_level is level):
                     out.append(f'{s["slug"]}: {f} → {t} walks an edge backwards; a step follows edges in their direction')
                 else:
                     out.append(f'{s["slug"]}: {f} → {t} is neither an edge nor a step into or out of a level')

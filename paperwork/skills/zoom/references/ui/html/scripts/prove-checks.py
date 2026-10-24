@@ -18,7 +18,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[6] / "lib"))
 from page import view  # noqa: E402
 from schema.model import levels_of  # noqa: E402
 
-EX = {p.name: view.merge(*(json.loads((p / f).read_text(encoding="utf-8")) for f in ("schema.json", "view.json")))
+EXAMPLE_DOCS = {p.name: view.merge(*(json.loads((p / f).read_text(encoding="utf-8")) for f in ("schema.json", "view.json")))
       for p in EXAMPLES.iterdir() if p.is_dir()}
 
 
@@ -57,14 +57,14 @@ def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    bad = [f"example {name} fails {sorted(f)}" for name, m in sorted(EX.items()) if (f := failing(m))]
+    bad = [f"example {name} fails {sorted(f)}" for name, m in sorted(EXAMPLE_DOCS.items()) if (f := failing(m))]
     for rule in ["form"] + [name for name, _, _ in view.RULES]:
         if rule not in MUTATIONS:
             bad.append(f"{rule}: no mutation shows it can fail")
             continue
         cases = MUTATIONS[rule] if isinstance(MUTATIONS[rule], list) else [MUTATIONS[rule]]
         for k, (ex, mutate) in enumerate(cases):
-            m = copy.deepcopy(EX[ex])
+            m = copy.deepcopy(EXAMPLE_DOCS[ex])
             mutate(m)
             if rule not in failing(m):
                 bad.append(f"{rule}: not caught by its mutation {k + 1} of {ex}")
