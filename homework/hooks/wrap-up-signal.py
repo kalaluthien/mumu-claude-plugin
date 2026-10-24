@@ -10,8 +10,9 @@
 
 A dream rides on a lesson or recipe ask, since a dream alone rarely pays.
 Enabling the plugin for a project is the opt-in, so no arm step writes to the
-data folder. Asks are scored by replay-score.py on fixtures/labels.json; the
-other fixtures are trimmed past stops to run the sentence on.
+data folder. Asks are scored by replay-score.py on fixtures/labels.json, and
+replay-sessions.py replays fixtures/sessions.json; the other fixtures are
+trimmed past stops to run the sentence on.
 """
 import json
 import os
