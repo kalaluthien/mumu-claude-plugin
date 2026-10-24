@@ -1,8 +1,8 @@
-# Calibrate the judge
+# Calibrate
 
-Measure how far a judge's verdicts on a spec can be trusted, and set each tier's judge error from what you measure. The spec is in the grammar of [../spec/assets/rubric.schema.json](../spec/assets/rubric.schema.json); [../spec/model.md](../spec/model.md) says why agreement bounds the weights.
+Measure how far a judge's verdicts on a spec can be trusted, and set each tier's judge error from what you measure. The spec is in the grammar of [spec/assets/rubric.schema.json](spec/assets/rubric.schema.json); [spec/model.md](spec/model.md) says why agreement bounds the weights.
 
-The commands are `${CLAUDE_PLUGIN_ROOT}/skills/quiz/references/playbook/scripts/measure-judge.py <mode> <spec> …`; each prints what its numbers mean.
+The commands are `${CLAUDE_PLUGIN_ROOT}/skills/quiz/scripts/measure-judge.py <mode> <spec> …`; each prints what its numbers mean.
 
 ## Steps
 

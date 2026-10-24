@@ -1,5 +1,7 @@
 # Estimation
 
+Estimate how long a task or a backlog will take, from the hours closed tasks took.
+
 Every number comes from a script's output, never from your head.
 
 1. `scripts/estimate-task-time.py <issue url>...` prints per task a range and its sample count, and a total range, from the closed tasks' hours `scripts/list-task-durations.py <owner/repo>` lists. Add what its history lacks, as its `--help` says: `--expect-restarts <n>` for a power cut or machine gate announced now (restart hours from `scripts/list-session-gaps.py`), `--wait <name>=<hours>` per wait on a shared resource. Hand the owner the total range with each wait named, never a single number.

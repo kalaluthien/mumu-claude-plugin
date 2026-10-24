@@ -1,4 +1,6 @@
-# Scripts and hooks
+# Hook authoring
+
+Write or edit a hook or a script so it fails where a rule breaks, with the case it must fail on.
 
 A script is a mechanism a caller trusts without reading, and a mechanised rule fails silently where a written one fails loudly. A lesson filed here becomes a script or hook with its failing case, and nothing is filed in memory.
 

@@ -23,7 +23,7 @@ Take every row whose condition holds, in order, and copy its playbook's steps ve
 | --- | --- |
 | `<p>` reaches `<t>`, this session's first retro `<f>` is `due`, or a person asks to keep a lesson | [references/retro.md](references/retro.md) |
 | `<r>` is `missing` or `failed` | [references/run-recipe.md](references/run-recipe.md) |
-| `<m>` reaches `<l>`, or a person asks to tidy memory | [references/dream-how.md](references/dream-how.md), over the targets of [references/dream-what.md](references/dream-what.md) |
+| `<m>` reaches `<l>`, or a person asks to tidy memory | [references/dream.md](references/dream.md) |
 | `python3 ${CLAUDE_SKILL_DIR}/scripts/list-sessions.py due <data>/dejavu` prints `due`, or a person asks for `dejavu` | [references/dejavu.md](references/dejavu.md) |
 | writing or editing a skill or an agent file, with no lesson behind it | [references/skill-authoring.md](references/skill-authoring.md) |
 | writing or editing a hook or a script, with no lesson behind it | [references/hook-authoring.md](references/hook-authoring.md) |

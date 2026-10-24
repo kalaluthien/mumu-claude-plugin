@@ -16,8 +16,8 @@ import sys
 from collections import Counter
 
 HERE = pathlib.Path(__file__).resolve().parent
-CHECKER = HERE.parents[1] / "schema" / "scripts" / "check-schema.py"
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
+CHECKER = HERE.parent / "references" / "schema" / "scripts" / "check-schema.py"
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 
 from schema import checks  # noqa: E402
 from schema.model import Model, shape  # noqa: E402

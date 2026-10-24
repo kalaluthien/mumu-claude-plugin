@@ -11,11 +11,11 @@ Turn what a system is, or must be, into one checked Schema document, then prove 
 
 | ask | read |
 | --- | --- |
-| model an existing system from its code, docs, configs or process | [references/playbook/interpret.md](references/playbook/interpret.md) |
-| model a system not yet built from requirements, a PRD or an intent | [references/playbook/requirements.md](references/playbook/requirements.md) |
-| improve or simplify an existing Schema document by stated criteria | [references/playbook/improve.md](references/playbook/improve.md) |
-| prove a document's rules, or ask whether a run can break one (Alloy) | [references/playbook/prove.md](references/playbook/prove.md) |
-| recheck a document read from code after the code changed | [references/playbook/recheck.md](references/playbook/recheck.md) |
+| model an existing system from its code, docs, configs or process | [references/interpret.md](references/interpret.md) |
+| model a system not yet built from requirements, a PRD or an intent | [references/requirements.md](references/requirements.md) |
+| improve or simplify an existing Schema document by stated criteria | [references/improve.md](references/improve.md) |
+| prove a document's rules, or ask whether a run can break one (Alloy) | [references/prove.md](references/prove.md) |
+| recheck a document read from code after the code changed | [references/recheck.md](references/recheck.md) |
 | show a document in chat: the default renderer | [references/ui/mermaid.md](references/ui/mermaid.md), then [references/ui/formats.md](references/ui/formats.md) |
 | show a document as a clickable HTML page that zooms and plays scenarios | [references/ui/html.md](references/ui/html.md), then [references/ui/formats.md](references/ui/formats.md) |
 | show one level as a restylable SVG or PNG | [references/ui/pele.md](references/ui/pele.md) |
