@@ -2,7 +2,7 @@
 import github_rest
 import issue_state
 from github_issues import ISSUE_LIMIT, PR_LIMIT, issues, limited, scope_label
-from herdr_agents import members, owns, project, role, tabs
+from herdr_agents import members, owns, project, role, screen, tabs
 from json_command import run
 
 ASK, ANSWER = issue_state.WORD["ask"], issue_state.WORD["answer"]
@@ -45,6 +45,7 @@ def manager_actions(me, listed, data=None):
         return None
     team = members(me, listed)
     status = {a.get("name"): a.get("agent_status") for a in listed}
+    panes = {a.get("name"): a.get("pane_id") for a in listed}
     found, prs = data["found"], data["prs"]
     lines = limited(found, ISSUE_LIMIT, "open-issue")  # merged PRs past the newest are always many and no live worker's
     # a started worker names its tab before its agent is live, so its tab counts it as routed
@@ -59,12 +60,18 @@ def manager_actions(me, listed, data=None):
     for n in team:
         held = " ".join(f"#{i['number']}" for i in data["everything"] if holds(i, n)) or "nothing open"
         if status[n] == "blocked":
-            lines.append(f"blocked {n}: it waits at a tool-use prompt; the owner needs its tab")
+            lines.append(f"blocked {n} (pane {panes[n]}): it waits at a tool-use prompt; tell the owner this screen, then answer by the Tool prompt rule once the owner says so: {prompt_text(panes[n])}")
         elif status[n] in ("idle", "done"):
             lines.append(f"idle {n}: holds {held}; it needs what waits, or close it when it holds nothing open")
     for p, n in ((p, n) for p in prs for n in team if owns(n, p["headRefName"])):
         lines.append(f"merged #{p['number']} by {n}: once {n} holds nothing open, close it and clean its worktree")
     return lines
+
+
+def prompt_text(pane):
+    """The last lines of a blocked pane's screen, which hold the prompt's question and numbered choices, on one line."""
+    lines = [l.strip() for l in screen(pane).splitlines() if l.strip()]
+    return " | ".join(lines[-8:])
 
 
 def had_worker(me):
