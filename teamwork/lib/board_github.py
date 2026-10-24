@@ -1,4 +1,5 @@
 """The board on GitHub: issues and comments read by REST, which spends no GraphQL point, the issue pane's tree by GraphQL, and writes by `gh api`."""
+import hashlib
 import itertools
 import json
 import os
@@ -6,11 +7,14 @@ import re
 import subprocess
 from urllib.parse import quote
 
+import claude_config
 from issue_board import SHOWN_CLOSED
 from json_command import need, run
 import team_settings
 
 TRUSTED = {"OWNER", "MEMBER", "COLLABORATOR"}
+CACHE = claude_config.folder() / "teamwork" / "github-cache"
+SINCE = re.compile(r"(?<=since=)[^&]*")
 # one point or two per read: GitHub charges each connection a node is asked for, so the sub-issues' blockers, the costliest part,
 # are read only for the closed ones the board shows, by the second query
 ISSUES = """query($owner: String!, $name: String!, $labels: [String!], $after: String) {
@@ -41,30 +45,63 @@ def trusted(record):
     return record.get("authorAssociation") in TRUSTED
 
 
+REMOTES = {}  # one git call per folder, since every read of a board asks
+
+
+def cache_file(path, repo):
+    """The file keeping PATH's last answer and ETag. Its key drops the `since` value, so a moving stamp reuses one file: an ETag names the content,
+    so a key two reads share costs a full read at worst, never a wrong answer. With no repository named, the key is the working folder's
+    remotes, the source gh fills `{owner}/{repo}` from, so the worktrees of one repository share a file and two repositories never do."""
+    folder = os.getcwd()
+    if not (repo or os.environ.get("GH_REPO")) and folder not in REMOTES:
+        REMOTES[folder] = subprocess.run(["git", "-C", folder, "remote", "-v"], capture_output=True, text=True).stdout
+    key = SINCE.sub("", f"{repo or os.environ.get('GH_REPO') or REMOTES[folder]} {path}")
+    return CACHE / f"{hashlib.sha1(key.encode()).hexdigest()}.json"
+
+
+def fetch(path, repo, tries):
+    """The parsed JSON of one GET; None when it failed. It sends the kept ETag, since GitHub charges no rate limit for the 304
+    that says the kept answer still holds, and every session's monitor and hooks read the same board."""
+    file = cache_file(path, repo)
+    try:
+        kept = json.loads(file.read_text())
+    except (OSError, ValueError):
+        kept = None
+    for _ in range(tries):  # gh's calls fail now and then, then pass on retry
+        process = subprocess.run(["gh", "api", "-i", *(["-H", f"If-None-Match: {kept['etag']}"] if kept else []), path], capture_output=True, text=True)
+        head, _, body = process.stdout.replace("\r\n", "\n").partition("\n\n")
+        status = head.split(" ", 2)[1] if head.startswith("HTTP/") else ""
+        if status == "304" and kept:
+            return json.loads(kept["body"])
+        if process.returncode == 0:
+            etag = next((v for k, _, v in (line.partition(": ") for line in head.splitlines()[1:]) if k.lower() == "etag"), None)
+            if etag:
+                file.parent.mkdir(parents=True, exist_ok=True)
+                spare = file.with_suffix(f".{os.getpid()}.tmp")  # renamed into place, so a reader in another session never meets half a file
+                spare.write_text(json.dumps({"etag": etag, "body": body}))
+                os.replace(spare, file)
+            return json.loads(body)
+        if status.startswith("4"):  # a missing label or issue stays missing on retry
+            return None
+    return None
+
+
 def get(path, repo=None, paginate=True, tries=3):
     """The parsed JSON of a GET, every page joined when PAGINATE; None when it failed. REPO is `owner/name`, else the checkout's."""
     need("gh")
-    path = path.replace("repos/", f"repos/{repo}/", 1) if repo else path.replace("repos/", "repos/{owner}/{repo}/", 1)
+    path = re.sub(r"^repos\b", f"repos/{repo or '{owner}/{repo}'}", path)
     if not paginate:
-        return fetch(path, tries)
+        return fetch(path, repo, tries)
     # pages by `page=`, never gh's own paging, whose `Link` paths name `repositories/<id>/`, which a cloud session's proxy refuses
     size = int(m.group(1)) if (m := re.search(r"[?&]per_page=(\d+)", path)) else 30
     found = []
     for n in itertools.count(1):
-        page = fetch(f"{path}{'&' if '?' in path else '?'}page={n}", tries)
+        page = fetch(f"{path}{'&' if '?' in path else '?'}page={n}", repo, tries)
         if page is None:
             return None
         found += page
         if len(page) < size:
             return found
-
-
-def fetch(path, tries):
-    for _ in range(tries):  # gh's calls fail now and then, then pass on retry
-        p = subprocess.run(["gh", "api", path], capture_output=True, text=True)
-        if p.returncode == 0:
-            return json.loads(p.stdout)
-    return None
 
 
 def issue(raw):
@@ -100,10 +137,21 @@ def with_comments(found, repo=None):
     return found
 
 
+SCOPED = {}  # a found label almost never goes, and one read of the board asks for it more than once
+
+
 def scoped(project):
+    if not project:  # the issue pane's tree of every issue asks with none
+        return None
+    if project in SCOPED:
+        return SCOPED[project]
     label = team_settings.load(os.getcwd())["scope_prefix"] + project
-    # a REST read, which costs no GraphQL point; a missing label answers 404, which `run` reads as None
-    return label if run("gh", "api", f"repos/{{owner}}/{{repo}}/labels/{quote(label, safe='')}", "--jq", "{name}") else None
+    # the list, not the label: a missing label answers 404, which carries no ETag, while the list's ETag changes once a label is made
+    found = get("repos/labels?per_page=100")
+    if not found or label not in {entry["name"] for entry in found}:
+        return None  # never kept, so a monitor that started before the label sees it once it is made
+    SCOPED[project] = label
+    return label
 
 
 def issues(state="open", project=None, pulls=False, comments=True, since=None, repo=None):
@@ -133,13 +181,13 @@ def comments_since(since):
 
 def changed_since(stamp):
     """Whether any issue or pull request changed since STAMP (an ISO time), by one cheap REST read of the newest; True when it failed, so the caller reads in full."""
-    newest = run("gh", "api", f"repos/{{owner}}/{{repo}}/issues?state=all&per_page=1&since={stamp}")
+    newest = get(f"repos/issues?state=all&per_page=1&since={stamp}", paginate=False)
     return newest is None or bool(newest)
 
 
 def blockers(number):
     """The numbers of the open issues NUMBER waits on; None when the read failed."""
-    found = run("gh", "api", f"repos/{{owner}}/{{repo}}/issues/{number}/dependencies/blocked_by")
+    found = get(f"repos/issues/{number}/dependencies/blocked_by")
     return None if found is None else [b["number"] for b in found if b["state"] == "open"]
 
 
@@ -161,9 +209,10 @@ def tree(project, nodes=None):
 
 def read_tree(project):
     need("gh")  # `run` reads a missing gh as a failed read, which hides the fix
-    repo = run("gh", "api", "repos/{owner}/{repo}", "--jq", "{owner: .owner.login, name: .name}")
+    repo = get("repos", paginate=False)
     if repo is None:
         return None
+    repo = {"owner": repo["owner"]["login"], "name": repo["name"]}
     label = scoped(project)
     scope = ["-f", f"labels[]={label}"] if label else []
     found_issues, after = [], []
