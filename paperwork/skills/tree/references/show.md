@@ -23,7 +23,7 @@
 
 ## Check the page
 
-`uv run --with playwright python3 ${CLAUDE_PLUGIN_ROOT}/skills/tree/scripts/make-page.py --check ${CLAUDE_PLUGIN_ROOT}/skills/tree/examples` builds each example, checks which Parts are faded before and after the first pick, answers it in headless Chromium, copies, applies the text and prints `ok 12`.
+`uv run --with playwright==1.64.1 python3 ${CLAUDE_PLUGIN_ROOT}/skills/tree/scripts/make-page.py --check ${CLAUDE_PLUGIN_ROOT}/skills/tree/examples` builds each example, checks which Parts are faded before and after the first pick, answers it in headless Chromium, copies, applies the text and prints `ok 12`.
 
 ## What the page draws
 

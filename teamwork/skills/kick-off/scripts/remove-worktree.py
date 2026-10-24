@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 import pathlib
+import re
 import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import landing  # noqa: E402
+
+
+# Only a branch a worker made is deleted on the remote; any other name may be somebody's live branch.
+WORKER_BRANCH = re.compile(r"-worker(-[A-Za-z0-9]+)?$")
 
 
 def git(*argv, cwd):
@@ -40,6 +45,8 @@ def remove(name, root):
         git("branch", "-D", name, cwd=root)
         done.append("branch")
     if not git("ls-remote", "--exit-code", "origin", f"refs/heads/{name}", cwd=root).returncode:
+        if not WORKER_BRANCH.search(name):
+            return f"{name}: {', '.join(done) or 'nothing'} removed; origin branch kept, not a worker branch name"
         p = git("push", "origin", "--delete", name, cwd=root)
         if p.returncode:
             return f"{name}: {', '.join(done) or 'nothing'} removed; origin branch kept, {p.stderr.strip()}"

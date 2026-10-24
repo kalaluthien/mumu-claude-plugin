@@ -3,7 +3,7 @@
 
   make-page.py PLAN.json OUT.html   one self-contained page; refused when the plan fails the checker
   make-page.py --check DIR          drive every DIR/X.json in headless Chromium and print "ok N"
-                                    (needs playwright: uv run --with playwright python3 make-page.py --check DIR)
+                                    (needs playwright: uv run --with playwright==1.64.1 python3 make-page.py --check DIR)
 """
 import html
 import json
