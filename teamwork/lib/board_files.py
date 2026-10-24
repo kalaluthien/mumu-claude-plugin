@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 import team_signal
 
 DIR = pathlib.Path(os.environ.get("TEAMWORK_BOARD_DIR") or pathlib.Path.home() / ".claude" / "teamwork" / "board")
-USE = re.compile(r"use-board\.py\s+(file|comment|edit|resolve|order|nest|label)\b([^;&|\n]*)")
+USE = re.compile(r"use-board\.py\s+(file|comment|decide|edit|resolve|order|nest|label)\b([^;&|\n]*)")
 POSTED = re.compile(r"file://\S*?/(\d+)(?:#comment-(\d+))?(?=[\s\"\\]|$)")
 trusted = lambda record: True
 
@@ -25,8 +25,7 @@ def meta(number):
 
 def save(number, **change):
     """Writes NUMBER's changed fields, then touches the signal file, which a GitHub write gets from the issue pane."""
-    (DIR / str(number)).mkdir(parents=True, exist_ok=True)
-    old = meta(number) if (DIR / str(number) / "issue.json").exists() else {}
+    old = meta(number) if change.get("createdAt") is None else {}  # a change to a missing issue raises, never makes the folder
     (DIR / str(number) / "issue.json").write_text(json.dumps({**old, **change, "updatedAt": stamp()}))
     team_signal.SIGNAL.parent.mkdir(parents=True, exist_ok=True)
     team_signal.SIGNAL.touch()
@@ -93,6 +92,7 @@ def comment(number, text):
 
 def file(title, body, labels) -> int:
     number = max(numbers(), default=0) + 1
+    (DIR / str(number)).mkdir(parents=True)
     save(number, title=title, labels=list(labels), state="OPEN", reason="", parent=None, blockers=[], createdAt=stamp(), closedAt=None)
     (DIR / str(number) / "body.md").write_text(body)
     return number
@@ -113,9 +113,11 @@ def resolve(number, summary, completed=True):
     save(number, state="CLOSED", reason="COMPLETED" if completed else "NOT_PLANNED", closedAt=stamp())
 
 def order(later, earlier):
+    meta(earlier)  # raises when it does not exist, before anything is written
     save(later, blockers=sorted({*meta(later)["blockers"], int(earlier)}))
 
 def nest(backlog, task):
+    meta(backlog)
     save(task, parent=int(backlog))
 
 def label(number, name, remove=False):
@@ -132,9 +134,9 @@ def command(text):
         args = shlex.split(rest)
     except ValueError:
         args = []
-    return {"called": f"use-board.py {verb}", "write": verb if verb in ("file", "comment", "resolve", "edit") else None,
+    return {"called": f"use-board.py {verb}", "write": "comment" if verb == "decide" else verb if verb in ("file", "comment", "resolve", "edit") else None,
             "title": len(args[0]) if verb == "file" and args else None, "inline body": False, "body edit": False,
-            "body file": args[1] if verb in ("file", "comment") and len(args) > 1 else None}
+            "body file": args[1] if verb in ("file", "comment", "decide") and len(args) > 1 else None}
 
 def posted(output):
     """(url, body) of the first issue or comment url OUTPUT names, read back now; None when it names none."""

@@ -32,7 +32,7 @@ try:
         print(board.fresh(board.file(a[0], text(a[1]), a[2:]), comments=False)["url"])
     elif verb == "edit" and len(a) == 3:
         sys.exit(subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("edit-issue-body.py")), *a]).returncode)
-    elif verb == "resolve" and len(a) in (2, 3):
+    elif verb == "resolve" and len(a) in (2, 3) and text(a[1]).startswith("REPORTED:"):
         board.resolve(a[0], text(a[1]), "--not-planned" not in a[2:])
     elif verb == "decide" and len(a) == 2 and text(a[1]).startswith("DECIDED:"):
         print(board.comment(a[0], text(a[1])))
