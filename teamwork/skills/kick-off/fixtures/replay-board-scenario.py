@@ -14,6 +14,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 
 HERE = pathlib.Path(__file__).resolve().parent
 USE = HERE.parent / "scripts" / "use-board.py"
@@ -66,9 +67,15 @@ def show(step):
         parent = names.get(r["parent"])
         criteria = [(d["kind"], d["name"], bool(d["met"])) for d in s["done"]]
         print(plain(f"{name}: {r['state']} labels={sorted(r['labels'])} parent={parent} holders={s['holders']} waits={s['waits']} comments={len(r['comments'])} criteria={criteria}"))
-    nodes = board.tree(None)
-    if nodes is None:
-        sys.exit("replay-board-scenario: the board read failed")
+    closed = sum(board.fresh(n, comments=False)["state"] == "CLOSED" for n, v in names.items() if v == "task")
+    for _ in range(15):  # GitHub counts a parent's closed sub-issues a moment after the close, so read until the count agrees
+        nodes = board.tree(None)
+        if nodes is None:
+            sys.exit("replay-board-scenario: the board read failed")
+        counts = [n["subIssuesSummary"]["completed"] for n in nodes if n["number"] == number("backlog")]
+        if counts in ([], [closed]):
+            break
+        time.sleep(2)
     print(plain("\n".join(issue_board.lines(issue_board.board([n for n in nodes if n["number"] in names])))))
 
 
