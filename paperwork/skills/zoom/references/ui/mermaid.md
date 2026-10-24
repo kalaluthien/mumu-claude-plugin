@@ -2,11 +2,13 @@
 
 The default renderer: a Schema document shown in chat as Markdown, with no page to open.
 
-Run `scripts/emit-mermaid.py doc.json`, the path relative to this file. Print its output into the reply unchanged; it is deterministic, so the same document always reads the same. The output is:
+Run `scripts/emit-mermaid.py doc.json`, the path relative to this file. It is deterministic, so the same document always reads the same. The output is:
 
 1. a file tree of the levels, each named `<id>: <title> (<kind>[, view|nest])`, where the root's id is `root` and every other level takes the id of the node that opens it;
 2. one Mermaid block per level, in tree order, top level first;
 3. under each block, the level's syncs as a list and its metadata as a table, shown as [formats.md](formats.md) says.
+
+**Draw, never paste**: chat shows a Mermaid block as raw text, so never print one. Where `mmdc` is on `PATH`, or `npx -y @mermaid-js/mermaid-cli` runs, render each block with `mmdc -i <block>.mmd -o <block>.png` and send each PNG by `SendUserFile`; print the tree and the lists and tables under each block as they are. Where neither runs, print no block and draw each level as a table of its edges, a tree list or an ASCII drawing, and hand the owner `! npx -y @mermaid-js/mermaid-cli --version`, since its first run installs a package and auto mode refuses it.
 
 Run `emit-mermaid.py --check doc.json` when a block looks short: it names each level, node or edge the output lacks.
 

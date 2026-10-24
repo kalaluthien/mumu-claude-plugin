@@ -16,7 +16,7 @@ Turn what a system is, or must be, into one checked Schema document, then prove 
 | improve or simplify an existing Schema document by stated criteria | [references/playbook/improve.md](references/playbook/improve.md) |
 | prove a document's rules, or ask whether a run can break one (Alloy) | [references/playbook/prove.md](references/playbook/prove.md) |
 | recheck a document read from code after the code changed | [references/playbook/recheck.md](references/playbook/recheck.md) |
-| show a document in chat: the default renderer | [references/ui/mermaid.md](references/ui/mermaid.md), then [references/ui/formats.md](references/ui/formats.md) |
+| show a document in chat: the default renderer, drawn as images | [references/ui/mermaid.md](references/ui/mermaid.md), then [references/ui/formats.md](references/ui/formats.md) |
 | show a document as a clickable HTML page that zooms and plays scenarios | [references/ui/html.md](references/ui/html.md), then [references/ui/formats.md](references/ui/formats.md) |
 | show one level as a restylable SVG or PNG | [references/ui/pele.md](references/ui/pele.md) |
 
