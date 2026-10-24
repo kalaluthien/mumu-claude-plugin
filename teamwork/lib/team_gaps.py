@@ -88,7 +88,10 @@ def manager_actions(me, listed, data=None, fed=None):
         if asking(i):
             lines.append(f"answer #{i['number']}: its worker asks; post your {ANSWER}: there; the worker waits on it")
     for i in data["outside"]:
-        lines.append(f"outside #{i['number']} {i['title']}: an outside contributor opened it; ask the owner, then route it or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
+        if i.get("isPullRequest"):
+            lines.append(f"outside #{i['number']} {i['title']}: an outside contributor opened this pull request; close it unread with a comment that outside pull requests are not accepted and issues are welcome")
+        else:
+            lines.append(f"outside #{i['number']} {i['title']}: an outside contributor opened it; ask the owner, then route it or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
     for n in team:
         held = " ".join(f"#{i['number']}" for i in data["everything"] if holds(i, n)) or "nothing open"
         if status[n] == "blocked":

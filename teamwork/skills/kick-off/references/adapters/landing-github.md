@@ -7,7 +7,7 @@ A change is a git branch merged by a GitHub pull request.
 | `branch` | `git worktree add -b <name> .claude/worktrees/<name> origin/<base>` in the checkout |
 | `push` | `git push -u origin <branch>`, the branch named, never `HEAD:<branch>`, so a worker's branch has an upstream and one command form |
 | `change` | `gh pr create --base <base> --title <title> --body-file <file>`, the body citing its issue |
-| `judge` | the judge reads the change at its sha by `git fetch origin` (and `git fetch origin refs/pull/<n>/head` for one from a fork), `git diff origin/<base>...<sha>` and `git show <sha>:<path>` |
+| `judge` | the judge reads the change at its sha by `git fetch origin`, `git diff origin/<base>...<sha>` and `git show <sha>:<path>` |
 | `merge` | `gh pr merge <n> --squash` |
 | `remove` | [remove-worktree.py](../../scripts/remove-worktree.py) `<name>...` |
 
