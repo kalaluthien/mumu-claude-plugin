@@ -10,13 +10,13 @@ else the transcripts of every named session), and each `--wait` adds its hours o
 `--from-json` is a fixture {"history": [...], "tasks": [{"number": 1, "labels": [...]}]} in place of GitHub."""
 import argparse
 import json
-import os
 import pathlib
 import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
+import claude_config  # noqa: E402
 import session_gaps  # noqa: E402
 import task_backtest  # noqa: E402
 import task_estimate  # noqa: E402
@@ -79,8 +79,7 @@ def main(argv):
     low, high = task_estimate.total_range(groups, opt.seed, total_levels) if groups else (None, None)
     extra = 0.0
     if opt.expect_restarts:
-        gaps = json.load(open(opt.gaps_json)) if opt.gaps_json else session_gaps.summaries(
-            pathlib.Path(os.path.expanduser("~/.claude/projects")))
+        gaps = json.load(open(opt.gaps_json)) if opt.gaps_json else session_gaps.summaries(claude_config.folder() / "projects")
         each = task_estimate.restart_hours(gaps)
         if each is None:
             sys.exit("estimate-task-time.py: no restart is recorded, so its hours are unknown; pass --wait instead.")

@@ -4,6 +4,8 @@ import json
 import os
 from datetime import datetime
 
+import claude_config
+
 # one constant, so the hook's sentence and the retro's search for it cannot drift apart
 SIGNAL = "Wrap-up signal:"
 
@@ -54,6 +56,5 @@ def find(session):
     """The transcript of a session id, or the path itself when one is given."""
     if os.path.exists(session):
         return session
-    root = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
-    found = glob.glob(os.path.join(glob.escape(root), "projects", "*", f"{glob.escape(session)}.jsonl"))
+    found = glob.glob(os.path.join(glob.escape(str(claude_config.folder())), "projects", "*", f"{glob.escape(session)}.jsonl"))
     return found[0] if found else None

@@ -9,6 +9,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import background_work  # noqa: E402
 import board  # noqa: E402
+import json_command  # noqa: E402
 import session  # noqa: E402
 import team_gaps  # noqa: E402
 import team_names  # noqa: E402
@@ -92,7 +93,10 @@ def route(kind, event, role, me, listed):
 event = json.load(sys.stdin)
 kind = event.get("hook_event_name")
 command = (event.get("tool_input") or {}).get("command", "")
-if kind not in ("PreToolUse", "PostToolUse") or board.command(command) or kind == "PreToolUse" and live_cd(command, event.get("cwd")):  # skip other Bash fast
+# without herdr no session has a name, so no role matches and the role's SessionStart text never comes to say why
+if kind == "SessionStart" and (missing := json_command.missing("herdr")):
+    print(json.dumps({"systemMessage": missing}))
+elif kind not in ("PreToolUse", "PostToolUse") or board.command(command) or kind == "PreToolUse" and live_cd(command, event.get("cwd")):  # skip other Bash fast
     listed, me = session.sessions(event.get("session_id"))
     role = team_names.role(me.get("name"))
     if out := role and route(kind, event, role, me, listed):

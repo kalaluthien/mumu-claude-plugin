@@ -2,7 +2,7 @@
 """usage: measure-repeats.py [days]
 
 Group failed tool calls of interactive Claude Code sessions by signature and print how many repeat across sessions
-and repositories, how fast they spread, and how many are still alive. Read-only over ~/.claude/projects/*/*.jsonl."""
+and repositories, how fast they spread, and how many are still alive. Read-only over the Claude config folder's projects/*/*.jsonl."""
 import collections
 import glob
 import json
@@ -10,6 +10,9 @@ import os
 import re
 import sys
 import time
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "lib"))
+import claude_config  # noqa: E402
 
 DAYS = float(sys.argv[1]) if len(sys.argv) > 1 else 14
 NOW = time.time()
@@ -38,7 +41,7 @@ def repo(folder):
 
 seen = collections.defaultdict(list)  # signature -> [(time, session, repo)]
 sessions = 0
-for path in glob.glob(os.path.expanduser("~/.claude/projects/*/*.jsonl")):
+for path in glob.glob(os.path.join(glob.escape(str(claude_config.folder())), "projects", "*", "*.jsonl")):
     if os.path.getmtime(path) < NOW - DAYS * 86400:
         continue
     uses, interactive, found = {}, True, []

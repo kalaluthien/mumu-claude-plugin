@@ -17,6 +17,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "lib"))
+import claude_config  # noqa: E402
 import transcript  # noqa: E402
 
 WINDOW_DAYS, PER_RUN, PER_BATCH, DUE_HOURS = 14, 40, 10, 24
@@ -31,10 +32,6 @@ DENIED = re.compile(r"doesn't want to proceed|user denied|rejected by the user",
 REASON = re.compile(r"\[[A-Z][A-Za-z /-]+\]")
 
 
-def root():
-    return os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
-
-
 def repo_of(path):
     """The project folder's name, a worktree folded into its repository."""
     return re.sub(r"--claude-worktrees-.*$", "", os.path.basename(os.path.dirname(path)))
@@ -42,7 +39,7 @@ def repo_of(path):
 
 def window(now):
     """Top-level transcripts changed within the window, newest first."""
-    paths = glob.glob(os.path.join(glob.escape(root()), "projects", "*", "*.jsonl"))
+    paths = glob.glob(os.path.join(glob.escape(str(claude_config.folder())), "projects", "*", "*.jsonl"))
     recent = [p for p in paths if os.path.getmtime(p) >= now - WINDOW_DAYS * 86400]
     return sorted(recent, key=os.path.getmtime, reverse=True)
 

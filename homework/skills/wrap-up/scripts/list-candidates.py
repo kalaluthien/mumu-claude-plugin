@@ -18,6 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "lib"))
 import transcript  # noqa: E402
+from install_line import need  # noqa: E402
 
 REFUSAL = re.compile(r"Permission for this \w+ was denied|requires approval|doesn't want to proceed|hook error"
                      r"|<tool_use_error>Blocked|requested permissions|contains multiple operations")
@@ -76,6 +77,7 @@ def github_refs(window):
 
 def comments(repo, number, start, end):
     """FINDINGS: and BLOCKED: comments and reviews on one issue or pull request made in [start, end]."""
+    need("gh")
     for path, at in ((f"repos/{repo}/issues/{number}/comments", "created_at"),
                      (f"repos/{repo}/pulls/{number}/reviews", "submitted_at")):
         run = subprocess.run(["gh", "api", "--paginate", path, "--jq", ".[] | @json"], capture_output=True, text=True)

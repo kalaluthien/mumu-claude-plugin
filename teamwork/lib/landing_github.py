@@ -3,12 +3,15 @@ import json
 import re
 import subprocess
 
+from json_command import need
+
 # the keywords GitHub links a pull request to the issue it closes by
 CLOSES = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)", re.I)
 
 
 def get(path, repo=None, paginate=True, tries=3):
     """The parsed JSON of a GET, every page joined when PAGINATE; None when it failed. REPO is `owner/name`, else the checkout's."""
+    need("gh")
     path = path.replace("repos/", f"repos/{repo}/", 1) if repo else path.replace("repos/", "repos/{owner}/{repo}/", 1)
     for _ in range(tries):  # gh's calls fail now and then, then pass on retry
         p = subprocess.run(["gh", "api", *(["--paginate", "--slurp"] if paginate else []), path], capture_output=True, text=True)

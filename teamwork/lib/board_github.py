@@ -5,7 +5,7 @@ import subprocess
 from urllib.parse import quote
 
 from issue_board import SHOWN_CLOSED
-from json_command import run
+from json_command import need, run
 
 TRUSTED = {"OWNER", "MEMBER", "COLLABORATOR"}
 # one point or two per read: GitHub charges each connection a node is asked for, so the sub-issues' blockers, the costliest part,
@@ -39,6 +39,7 @@ def trusted(record):
 
 def get(path, repo=None, paginate=True, tries=3):
     """The parsed JSON of a GET, every page joined when PAGINATE; None when it failed. REPO is `owner/name`, else the checkout's."""
+    need("gh")
     path = path.replace("repos/", f"repos/{repo}/", 1) if repo else path.replace("repos/", "repos/{owner}/{repo}/", 1)
     for _ in range(tries):  # gh's calls fail now and then, then pass on retry
         p = subprocess.run(["gh", "api", *(["--paginate", "--slurp"] if paginate else []), path], capture_output=True, text=True)
@@ -141,6 +142,7 @@ def tree(project, nodes=None):
 
 
 def read_tree(project):
+    need("gh")  # `run` reads a missing gh as a failed read, which hides the fix
     repo = run("gh", "api", "repos/{owner}/{repo}", "--jq", "{owner: .owner.login, name: .name}")
     if repo is None:
         return None
@@ -168,6 +170,7 @@ def read_tree(project):
 
 def write(*argv, text=None):
     """The JSON a `gh api` write answers; it raises when the write failed, since a lost write must not pass for a done one."""
+    need("gh")
     p = subprocess.run(["gh", "api", *argv], input=text, capture_output=True, text=True, check=True)
     return json.loads(p.stdout) if p.stdout.strip() else None
 
@@ -180,6 +183,7 @@ def node_id(number):
 
 
 def make_label(name):
+    need("gh")
     subprocess.run(["gh", "label", "create", name, "--force"], capture_output=True, check=True)
 
 
@@ -198,6 +202,7 @@ def file(title, body, labels) -> int:
 
 def body(number):
     """NUMBER's body as GitHub keeps it; raises LookupError naming the cause when the read failed."""
+    need("gh")
     # REST, not `gh issue`: GraphQL hits its rate limit while REST still works
     read = subprocess.run(["gh", "api", f"repos/{{owner}}/{{repo}}/issues/{number}", "-q", ".body"], capture_output=True, text=True)
     if read.returncode:
