@@ -1,0 +1,3 @@
+#!/bin/bash
+# records each call and does nothing else, so a run that must not reach GitHub shows any call it makes
+echo "$*" >> "${FAKE_GH_LOG:?set FAKE_GH_LOG}"
