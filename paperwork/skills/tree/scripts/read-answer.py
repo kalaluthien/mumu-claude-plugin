@@ -11,18 +11,18 @@ from pathlib import Path
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "lib"))
-import pitch_plan  # noqa: E402
+import tree_plan  # noqa: E402
 
 
 def next_plan(plan_path, answer_path):
-    plan = pitch_plan.load_file(plan_path)
+    plan = tree_plan.load_file(plan_path)
     md = Path(answer_path).read_text(encoding="utf-8")
-    pitch_plan.check_head(plan, md)
-    entries = pitch_plan.parse_answer(md)
-    new = pitch_plan.apply_answer(plan, entries)
-    errs = pitch_plan.check(new)
+    tree_plan.check_head(plan, md)
+    entries = tree_plan.parse_answer(md)
+    new = tree_plan.apply_answer(plan, entries)
+    errs = tree_plan.check(new)
     if errs:
-        raise pitch_plan.AnswerError(0, f"the next plan fails the checker: {errs[0][0]}: {errs[0][1]}")
+        raise tree_plan.AnswerError(0, f"the next plan fails the checker: {errs[0][0]}: {errs[0][1]}")
     return new
 
 
@@ -33,7 +33,7 @@ def main(argv):
             plan = answer.with_name(answer.name[: -len(".answer.md")] + ".json")
             try:
                 next_plan(plan, answer)
-            except (pitch_plan.AnswerError, pitch_plan.PlanError, OSError) as e:
+            except (tree_plan.AnswerError, tree_plan.PlanError, OSError) as e:
                 print(f"refused: {answer.name}: {e}")
                 return 1
             n += 1
@@ -48,7 +48,7 @@ def main(argv):
         for answer in answers:
             try:
                 next_plan(plan, answer)
-            except (pitch_plan.AnswerError, pitch_plan.PlanError) as e:
+            except (tree_plan.AnswerError, tree_plan.PlanError) as e:
                 refused.append(f"{Path(answer).name}: {e}")
         for line in refused:
             print(line)
@@ -59,10 +59,10 @@ def main(argv):
         return 2
     try:
         new = next_plan(*argv)
-    except pitch_plan.AnswerError as e:
+    except tree_plan.AnswerError as e:
         print(f"refused: {e}")
         return 1
-    except (pitch_plan.PlanError, OSError) as e:
+    except (tree_plan.PlanError, OSError) as e:
         print(f"refused: {e}")
         return 1
     print(json.dumps(new, indent=2, ensure_ascii=False))

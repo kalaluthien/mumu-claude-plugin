@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check pitch plan files against the grammar.
+"""Check tree plan files against the grammar.
 
   check-plan.py FILE...                  prints "ok N", or one error per line and exits 1
   check-plan.py --expect-refused FILE... prints "<file>: <rule>" per refused file, then "refused K of N"
@@ -10,13 +10,13 @@ from pathlib import Path
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "lib"))
-import pitch_plan  # noqa: E402
+import tree_plan  # noqa: E402
 
 
 def errors_of(path):
     try:
-        return pitch_plan.check(pitch_plan.load_file(path))
-    except pitch_plan.PlanError as e:
+        return tree_plan.check(tree_plan.load_file(path))
+    except tree_plan.PlanError as e:
         return [(e.path, e.rule, e.detail)]
     except OSError as e:
         return [("$", "unreadable", str(e))]

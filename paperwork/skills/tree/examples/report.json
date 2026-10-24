@@ -21,7 +21,7 @@
     {
       "kind": "claim",
       "text": "A visual plan is a tree of four concepts: Part, Decision, Option and Answer.",
-      "source": "paperwork/skills/pitch/references/grammar.md",
+      "source": "paperwork/skills/tree/references/grammar.md",
       "parts": [
         {
           "kind": "claim",
@@ -66,7 +66,7 @@
     {
       "kind": "claim",
       "text": "One fixed page presents every plan; the interaction does not change per plan.",
-      "source": "paperwork/skills/pitch/references/show.md",
+      "source": "paperwork/skills/tree/references/show.md",
       "parts": [
         {
           "kind": "step",
@@ -156,7 +156,7 @@
     {
       "kind": "claim",
       "text": "The grammar wrote all eleven inputs as plans whose Answers read back into a valid next version.",
-      "source": "paperwork/skills/pitch/examples",
+      "source": "paperwork/skills/tree/examples",
       "parts": [
         {
           "kind": "evidence",
