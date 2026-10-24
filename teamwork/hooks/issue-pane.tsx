@@ -60,8 +60,8 @@ export const register: Register = on => {
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const ran = await next(e)
     if (ran.deny === undefined && !ran.isError && TEAM_CHANGE.test(e.command)) {
-      const home = await $.env.get('HOME')
-      await $.process.run(['touch', `${home}/.claude/teamwork/issues-changed`]).catch(() => undefined)
+      const config = (await $.env.get('CLAUDE_CONFIG_DIR')) || `${await $.env.get('HOME')}/.claude`
+      await $.process.run(['touch', `${config}/teamwork/issues-changed`]).catch(() => undefined)
     }
     return ran
   }).catch(($, e, next) => next(e))  // a failed mark must never fail the command it follows

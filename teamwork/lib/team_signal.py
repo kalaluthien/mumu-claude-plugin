@@ -1,7 +1,7 @@
 """The file a team session touches when it changes the issues, so a reader of GitHub knows when to read."""
-import pathlib
+import claude_config
 
-SIGNAL = pathlib.Path.home() / ".claude" / "teamwork" / "issues-changed"
+SIGNAL = claude_config.folder() / "teamwork" / "issues-changed"
 
 
 def stamp():

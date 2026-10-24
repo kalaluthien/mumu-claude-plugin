@@ -17,11 +17,17 @@ Add this repository as a marketplace, then install the plugins you want:
 
 What each one needs on your machine:
 
-| plugin | needs |
+| plugin or feature | needs |
 | --- | --- |
 | teamwork | Python 3; `git`; [`gh`](https://cli.github.com/), signed in; [herdr](https://herdr.dev), the terminal workspace where sessions live and talk by name |
 | paperwork | Python 3 and `git`, with [`uv`](https://docs.astral.sh/uv/); Google Chrome for checking pages and diagrams; Node, `npm` and a Playwright headless Chromium for the optional [pele](https://www.npmjs.com/package/pele) diagrams (`npm` fetches pele on first use, not the Chromium); Java for the optional Alloy proofs (`prove-schema.py --fetch` downloads the Alloy jar) |
 | homework | Python 3; `git`; `gh`, signed in, to read the issue comments a session wrote |
+| Claude Code | 2.1.299 or later, the highest release the [changelog](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md) names for a feature below |
+| mod `modules`, in teamwork's `hooks/hooks.json` | mods first appear in 2.1.287; the release that added `modules` is not recorded in the changelog |
+| `types`, in teamwork's `plugin.json` | first named in 2.1.299, by a validate fix; the release that added it is not recorded in the changelog |
+| `SendMessage`, in all three | first named in 2.1.77; the release that added it is not recorded in the changelog |
+| `PushNotification`, in teamwork | first named in 2.1.152; the release that added it is not recorded in the changelog |
+| `${CLAUDE_SKILL_DIR}`, in homework | added in 2.1.69 |
 
 ### Local clone install
 

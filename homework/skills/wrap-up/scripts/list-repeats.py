@@ -24,6 +24,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "lib"))
+import claude_config  # noqa: E402
 import transcript  # noqa: E402
 
 WINDOW_DAYS, ALIVE_DAYS, EXAMPLES = 14, 3, 3
@@ -47,9 +48,8 @@ def memory_lines(key):
     phrase = max(MASK.split(key.split(": ", 1)[-1]), key=len).strip()
     if len(phrase) < 6:
         return []
-    root = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
     found = []
-    for path in glob.glob(os.path.join(glob.escape(root), "projects", "*", "memory", "*.md")):
+    for path in glob.glob(os.path.join(glob.escape(str(claude_config.folder())), "projects", "*", "memory", "*.md")):
         for number, line in enumerate(open(path, encoding="utf-8", errors="ignore"), 1):
             if phrase.lower() in line.lower():
                 found.append(f"{path}:{number}: {line.strip()[:160]}")

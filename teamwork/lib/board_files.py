@@ -7,9 +7,10 @@ import re
 import shlex
 from datetime import datetime, timezone
 
+import claude_config
 import team_signal
 
-DIR = pathlib.Path(os.environ.get("TEAMWORK_BOARD_DIR") or pathlib.Path.home() / ".claude" / "teamwork" / "board")
+DIR = pathlib.Path(os.environ.get("TEAMWORK_BOARD_DIR") or claude_config.folder() / "teamwork" / "board")
 USE = re.compile(r"use-board\.py\s+(file|comment|decide|edit|resolve|order|nest|label)\b([^;&|\n]*)")
 POSTED = re.compile(r"file://\S*?/(\d+)(?:#comment-(\d+))?(?=[\s\"\\]|$)")
 trusted = lambda record: True
