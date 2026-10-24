@@ -1,7 +1,7 @@
 {
   "name": "paperwork",
   "version": "0.0.0",
-  "description": "Model a system as a checked Schema document, prove its rules with Alloy and show it as a diagram; grade tasks with litmus specs.",
+  "description": "Model a system as a checked Schema document, prove its rules with Alloy and show it as a diagram; grade tasks with litmus specs; pitch plans the owner answers on a page.",
   "author": {
     "name": "kalaluthien"
   }

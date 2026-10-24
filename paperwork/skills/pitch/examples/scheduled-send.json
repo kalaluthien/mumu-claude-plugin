@@ -1,0 +1,171 @@
+{
+  "title": "Scheduling Sent Messages in PostBox",
+  "parts": [
+    {
+      "text": "Add send later to the composer. The user must be able to cancel it, and it must never go out early.",
+      "kind": "goal",
+      "source": "the user's prompt"
+    },
+    {
+      "text": "People write replies at night and do not want them to arrive at night.",
+      "kind": "evidence",
+      "source": "support notes"
+    },
+    {
+      "text": "The user can pick a time in the composer.",
+      "kind": "claim",
+      "parts": [
+        {
+          "text": "Send later saves the message with a time. It does not send.",
+          "kind": "claim",
+          "source": "server/src/scheduled/routes.ts:18"
+        },
+        {
+          "text": "The server sets the owner and the status. The client cannot.",
+          "kind": "claim"
+        },
+        {
+          "text": "A user can hold 50 scheduled messages at most.",
+          "kind": "claim",
+          "parts": [
+            {
+              "text": "How many scheduled messages per user?",
+              "kind": "question",
+              "pick": {
+                "text": "50"
+              },
+              "else": [
+                {
+                  "text": "500"
+                },
+                {
+                  "text": "No limit"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "The user sees and changes scheduled messages in one list.",
+      "kind": "claim",
+      "parts": [
+        {
+          "text": "A new folder lists them, soonest first.",
+          "kind": "claim"
+        },
+        {
+          "text": "Three actions work on a message until it starts to send: Edit, Send now, Cancel.",
+          "kind": "claim"
+        },
+        {
+          "text": "A message is sent only at its time. A failed send is kept.",
+          "kind": "claim"
+        }
+      ]
+    },
+    {
+      "text": "A worker claims due messages once a minute.",
+      "kind": "claim",
+      "source": "server/src/scheduled/store.ts:58",
+      "parts": [
+        {
+          "text": "Cancel wins if it lands before the worker's claim.",
+          "kind": "claim"
+        },
+        {
+          "text": "A failed send is tried again, then left for the user.",
+          "kind": "claim",
+          "parts": [
+            {
+              "text": "Should a failed send retry on its own?",
+              "kind": "question",
+              "pick": {
+                "text": "Yes, 3 times, 5 minutes apart"
+              },
+              "else": [
+                {
+                  "text": "No",
+                  "parts": [
+                    {
+                      "text": "The user presses Try again.",
+                      "kind": "note"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "The user is told when a scheduled message fails.",
+      "kind": "claim",
+      "parts": [
+        {
+          "text": "The message shows Not sent, with a line such as: We tried 3 times. It is in Scheduled.",
+          "kind": "claim"
+        },
+        {
+          "text": "How is the user told?",
+          "kind": "question",
+          "pick": {
+            "text": "In the app only"
+          },
+          "else": [
+            {
+              "text": "In the app and by email",
+              "parts": [
+                {
+                  "text": "Adds one template.",
+                  "kind": "consequence"
+                }
+              ]
+            },
+            {
+              "text": "Not at all",
+              "parts": [
+                {
+                  "text": "This claim goes.",
+                  "kind": "consequence"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "text": "The last failed try adds one notification.",
+          "kind": "claim"
+        }
+      ]
+    },
+    {
+      "text": "Shared: one new table.",
+      "kind": "claim",
+      "parts": [
+        {
+          "text": "How long do sent and cancelled rows stay?",
+          "kind": "question",
+          "pick": {
+            "text": "30 days, then deleted"
+          },
+          "else": [
+            {
+              "text": "Forever"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "Not changing: normal send, drafts, the mail provider. sendMessage() is called as it is, and drafts keep their own table.",
+      "kind": "note"
+    },
+    {
+      "text": "No recurring sends. One message, one time.",
+      "kind": "note"
+    }
+  ]
+}

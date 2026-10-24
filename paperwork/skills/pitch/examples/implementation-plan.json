@@ -1,0 +1,162 @@
+{
+  "title": "Comment threads on task cards",
+  "parts": [
+    {
+      "text": "Add threaded comments to task cards, easy to skim on a phone and ready to pass to the implementer as-is.",
+      "kind": "goal",
+      "source": "https://thariqs.github.io/html-effectiveness/16-implementation-plan.html",
+      "parts": [
+        {
+          "text": "Effort: about 2 weeks.",
+          "kind": "note"
+        },
+        {
+          "text": "Surfaces touched: 3 packages.",
+          "kind": "note"
+        },
+        {
+          "text": "New tables: 2.",
+          "kind": "note"
+        },
+        {
+          "text": "Feature flag: task_comments_v1.",
+          "kind": "note"
+        }
+      ]
+    },
+    {
+      "text": "Ship in four slices, each independently reviewable and each behind the flag. Nothing is user-visible until slice 4.",
+      "kind": "note",
+      "parts": [
+        {
+          "text": "Week 1, Mon-Tue: schema and API contract. New comments and comment_reads tables, migrations and the tRPC router stubs. No UI. The contract is reviewed before anything else lands.",
+          "kind": "step",
+          "source": "packages/db, packages/api, migration 0042"
+        },
+        {
+          "text": "Week 1, Wed-Fri: thread component and composer. A static CommentThread rendered from fixtures. Optimistic insert on submit, rollback on failure, one level of nesting only.",
+          "kind": "step",
+          "source": "apps/web, storybook"
+        },
+        {
+          "text": "Week 2, Mon-Wed: realtime fan-out and unread state. Subscribe the open card to its comment channel. Track per-user read cursors so the sidebar shows an unread count without a second query.",
+          "kind": "step",
+          "source": "packages/realtime, apps/web"
+        },
+        {
+          "text": "Week 2, Thu-Fri: notifications, flag ramp, docs. Mention detection writes a notification row, with an email digest fallback. Ramp task_comments_v1 to internal, then 10% to 100% over three days.",
+          "kind": "step",
+          "source": "packages/notify, growthbook"
+        }
+      ]
+    },
+    {
+      "text": "Data flow: the optimistic write path runs client to persistence; realtime fan-out runs to other clients. The read cursor update is fire-and-forget, so the thread render never waits on it.",
+      "kind": "note"
+    },
+    {
+      "text": "Mockups, not pixel-final: A is a thread inside an open task card; B is a sidebar unread digest. They settle nesting depth, composer placement and the digest look.",
+      "kind": "note"
+    },
+    {
+      "text": "Key code: the migration (soft deletes, read cursors) and the optimistic mutation (temp-id reconciliation) are the two pieces most likely to be done wrong.",
+      "kind": "evidence",
+      "parts": [
+        {
+          "text": "comments has a parent_id for one level of nesting, enforced in the API, and a deleted_at column for soft delete; comment_reads is keyed by task and user.",
+          "kind": "evidence",
+          "source": "packages/db/migrations/0042_comments.sql"
+        },
+        {
+          "text": "useAddComment inserts a temp row on mutate, swaps it for the real row on success so the realtime append does not duplicate it, and removes it on error.",
+          "kind": "evidence",
+          "source": "apps/web/hooks/useAddComment.ts"
+        }
+      ]
+    },
+    {
+      "text": "Realtime duplicate: the socket append races with the HTTP response and the temp-id reconcile. Severity HIGH.",
+      "kind": "risk",
+      "parts": [
+        {
+          "text": "Mitigation: dedupe on the server-assigned id in the cache updater; the socket payload carries the real id and temp rows are filtered on reconcile.",
+          "kind": "note"
+        }
+      ]
+    },
+    {
+      "text": "Unread counts go stale when a user reads the thread on another device. Severity MED.",
+      "kind": "risk",
+      "parts": [
+        {
+          "text": "Mitigation: broadcast comment_reads upserts on the same channel; the client treats its own cursor as max(local, remote).",
+          "kind": "note"
+        }
+      ]
+    },
+    {
+      "text": "Mention detection false-positives on pasted markdown such as @media and @2x. Severity LOW.",
+      "kind": "risk",
+      "parts": [
+        {
+          "text": "Mitigation: resolve mentions against workspace members only, at write time, and store the resolved user ids; never re-parse on read.",
+          "kind": "note"
+        }
+      ]
+    },
+    {
+      "text": "Do we allow editing, or only delete-and-repost?",
+      "kind": "question",
+      "source": "Decide with design, before slice 2",
+      "pick": {
+        "text": "Delete-and-repost only for v1",
+        "parts": [
+          {
+            "text": "Simpler, but loses the reply anchor.",
+            "kind": "consequence"
+          },
+          {
+            "text": "Leaning toward delete-only for v1.",
+            "kind": "note"
+          }
+        ]
+      },
+      "else": [
+        {
+          "text": "Allow editing",
+          "parts": [
+            {
+              "text": "Needs an edited_at column and an edited affordance.",
+              "kind": "consequence"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "Email digest cadence when a user has the app closed",
+      "kind": "question",
+      "source": "Decide with platform, before slice 4",
+      "pick": {
+        "text": "Batch on a 15-minute window, one email per task, respecting quiet hours from the existing settings table",
+        "parts": [
+          {
+            "text": "Proposal from the plan.",
+            "kind": "note"
+          }
+        ]
+      },
+      "else": [
+        {
+          "text": "Immediate per mention",
+          "parts": [
+            {
+              "text": "Noisy.",
+              "kind": "risk"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

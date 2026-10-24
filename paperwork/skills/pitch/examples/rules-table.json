@@ -1,0 +1,75 @@
+{
+  "title": "Edit a plan's rules table in a throwaway editor",
+  "parts": [
+    {
+      "text": "Turn one awkward section of an HTML plan into a temporary editing app, then export the revised rules back into the plan.",
+      "kind": "goal",
+      "source": "https://www.lennysnewsletter.com/p/how-i-ai-html-is-the-new-markdown"
+    },
+    {
+      "text": "Steps",
+      "kind": "step",
+      "source": "https://www.chatprd.ai/how-i-ai/workflows/build-disposable-micro-apps-with-ai-to-edit-complex-plans",
+      "parts": [
+        {
+          "text": "Identify an editing challenge: choose one structured section that is painful to edit in raw HTML, such as a table of visualization rules.",
+          "kind": "step"
+        },
+        {
+          "text": "Prompt for a custom editing UI: ask for a small, disposable, self-contained HTML editor with an export in the same format as the source section.",
+          "kind": "step"
+        },
+        {
+          "text": "Use the throwaway micro-app: change the rules through its controls, and test adding, deleting and reordering an item.",
+          "kind": "step"
+        },
+        {
+          "text": "Integrate the refined output: copy the export, validate its structure, paste it into the plan and reopen the plan.",
+          "kind": "step"
+        }
+      ]
+    },
+    {
+      "text": "Done when",
+      "kind": "goal",
+      "source": "https://www.chatprd.ai/how-i-ai/workflows/build-disposable-micro-apps-with-ai-to-edit-complex-plans",
+      "parts": [
+        {
+          "text": "Every source rule appears in the editor without losing values.",
+          "kind": "evidence"
+        },
+        {
+          "text": "You can add, remove, and change entries without editing HTML by hand.",
+          "kind": "evidence"
+        },
+        {
+          "text": "The exported data matches the format expected by the main plan.",
+          "kind": "evidence"
+        }
+      ]
+    },
+    {
+      "text": "If it goes sideways",
+      "kind": "risk",
+      "source": "https://www.chatprd.ai/how-i-ai/workflows/build-disposable-micro-apps-with-ai-to-edit-complex-plans",
+      "parts": [
+        {
+          "text": "The editor changes or drops fields from the source data: give a representative input and the exact output schema.",
+          "kind": "risk"
+        },
+        {
+          "text": "Edits disappear when the page reloads: add import and export controls plus local browser storage.",
+          "kind": "risk"
+        },
+        {
+          "text": "Claude builds a full application instead of a focused editor: restate the single editing job.",
+          "kind": "risk"
+        },
+        {
+          "text": "The export cannot be pasted back into the plan: add a validator that shows errors next to the field.",
+          "kind": "risk"
+        }
+      ]
+    }
+  ]
+}

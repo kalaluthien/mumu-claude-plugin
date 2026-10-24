@@ -1,0 +1,279 @@
+{
+  "title": "Decisions waiting for you",
+  "parts": [
+    {
+      "text": "Checkout errors jumped to 18% after deploy #482 - what should I do?",
+      "parts": [
+        {
+          "text": "2,140 errors in 12 minutes. About $3.2k in orders an hour at risk.",
+          "kind": "context",
+          "source": "Incident agent - Opus 5.5"
+        },
+        {
+          "text": "Risk: high.",
+          "kind": "risk"
+        }
+      ],
+      "pick": {
+        "text": "Roll back to #481",
+        "then": {
+          "text": "Tell customers about it?",
+          "pick": {
+            "text": "Post on the status page",
+            "parts": [
+              {
+                "text": "Public. Updates every 15 min.",
+                "kind": "consequence"
+              }
+            ]
+          },
+          "else": [
+            {
+              "text": "Only tell the team",
+              "parts": [
+                {
+                  "text": "#incidents only. Nothing public.",
+                  "kind": "consequence"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "else": [
+        {
+          "text": "Ship a hotfix",
+          "then": {
+            "text": "Wait for the test run?",
+            "pick": {
+              "text": "Ship right away",
+              "parts": [
+                {
+                  "text": "Skips 1,284 tests.",
+                  "kind": "risk",
+                  "parts": [
+                    {
+                      "text": "The last hotfix that skipped the tests broke refunds for two hours.",
+                      "kind": "note",
+                      "source": "GitHub - PR #455"
+                    }
+                  ]
+                }
+              ]
+            },
+            "else": [
+              {
+                "text": "After the tests",
+                "parts": [
+                  {
+                    "text": "14 min. Errors keep coming.",
+                    "kind": "consequence"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "text": "Turn the flag off",
+          "parts": [
+            {
+              "text": "New checkout off for 30%.",
+              "kind": "consequence"
+            },
+            {
+              "text": "The old one takes over.",
+              "kind": "consequence"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "Acme wants 25% off their $84k renewal or they'll switch - how should I respond?",
+      "parts": [
+        {
+          "text": "Renewal in 9 days. 212 seats. They asked twice on yesterday's call.",
+          "kind": "context",
+          "source": "Sales agent - GPT-6 Sol"
+        },
+        {
+          "text": "Risk: medium.",
+          "kind": "risk"
+        }
+      ],
+      "pick": {
+        "text": "Offer 15% instead",
+        "then": {
+          "text": "Tie it to a longer contract?",
+          "pick": {
+            "text": "Only with 2 years",
+            "parts": [
+              {
+                "text": "$71.4k a year until 2028.",
+                "kind": "consequence"
+              }
+            ]
+          },
+          "else": [
+            {
+              "text": "For one year",
+              "parts": [
+                {
+                  "text": "$71.4k. Renews at full price.",
+                  "kind": "consequence"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "else": [
+        {
+          "text": "Ask the VP",
+          "then": {
+            "text": "What should I send along?",
+            "pick": {
+              "text": "The call notes",
+              "parts": [
+                {
+                  "text": "Summary of yesterday's call.",
+                  "kind": "consequence"
+                }
+              ]
+            },
+            "else": [
+              {
+                "text": "Usage and margin",
+                "parts": [
+                  {
+                    "text": "Margin drops to 41%.",
+                    "kind": "risk",
+                    "parts": [
+                      {
+                        "text": "Finance set a 45% floor for any discount above 20%.",
+                        "kind": "note",
+                        "source": "Finance - discount policy"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "text": "Accept 25%",
+          "parts": [
+            {
+              "text": "$63k a year. Needs sign-off.",
+              "kind": "risk",
+              "parts": [
+                {
+                  "text": "Anything above 20% off needs the CRO's approval before the quote goes out.",
+                  "kind": "note",
+                  "source": "Salesforce - approval rules"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "AWS spend jumped 340% overnight - a stuck export job costs $410 an hour. What should I do?",
+      "parts": [
+        {
+          "text": "The job export-nightly has retried 9,800 times since 2:14 AM.",
+          "kind": "context",
+          "source": "Infra agent - Gemini 3.8 Pro"
+        },
+        {
+          "text": "Risk: high.",
+          "kind": "risk"
+        }
+      ],
+      "pick": {
+        "text": "Stop the job",
+        "then": {
+          "text": "What about the half-done export?",
+          "pick": {
+            "text": "Restart from checkpoint",
+            "parts": [
+              {
+                "text": "Re-runs 3 of 8 hours. About $40.",
+                "kind": "consequence"
+              }
+            ]
+          },
+          "else": [
+            {
+              "text": "Write it off",
+              "parts": [
+                {
+                  "text": "Yesterday's report stays empty.",
+                  "kind": "risk",
+                  "parts": [
+                    {
+                      "text": "Finance pulls this report for Friday's board pack.",
+                      "kind": "note",
+                      "source": "Reporting calendar"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "else": [
+        {
+          "text": "Set a spend limit",
+          "then": {
+            "text": "How tight?",
+            "pick": {
+              "text": "$50 an hour",
+              "parts": [
+                {
+                  "text": "Throttles 4 other services.",
+                  "kind": "risk",
+                  "parts": [
+                    {
+                      "text": "The API and the search index share this account's limit.",
+                      "kind": "note",
+                      "source": "AWS - Budgets"
+                    }
+                  ]
+                }
+              ]
+            },
+            "else": [
+              {
+                "text": "$200 an hour",
+                "parts": [
+                  {
+                    "text": "Only the export slows down.",
+                    "kind": "consequence"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "text": "Page the on-call",
+          "parts": [
+            {
+              "text": "Wakes Maya, on call this week.",
+              "kind": "consequence"
+            },
+            {
+              "text": "Costs run until she's in.",
+              "kind": "consequence"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
