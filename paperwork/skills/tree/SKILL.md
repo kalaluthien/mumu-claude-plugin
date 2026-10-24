@@ -7,7 +7,7 @@ description: Use when a plan or a set of decisions must go to the owner as a pag
 
 Write a plan as one JSON document, show it as one fixed HTML page, and read the owner's copied Answer back into the plan's next version. The shape of the grammar makes the wrong plans unwritable; the checker refuses the rest.
 
-## Vocabulary
+## Domain
 
 - **Part**: one sentence in a tree, with an optional `kind`, `source` and child `parts`. Goal, step, evidence, risk, note and consequence are kinds of Part, not types.
 - **Decision**: a Part that carries a `pick`, the agent's default Option, and optional `else` Options.

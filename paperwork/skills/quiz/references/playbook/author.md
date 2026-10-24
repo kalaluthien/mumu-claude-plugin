@@ -23,13 +23,9 @@ Before Frame, ask one `AskUserQuestion` batch: the deliverable and its reader, t
 - **Mask question**: at each tier boundary ask "among answers that fail this tier, is a better lower-tier score still better?"; no means a mask, with a pass rate estimate.
 - **Few tiers**: prefer two to four criterion tiers, since each extra tier shrinks the lower weights geometrically.
 
-## Reward-hacking probe
+**Reward-hacking probe**: the probe is one answer built to pass the criteria while failing the intent, such as the right keywords with no substance, padding, or a format with nothing in it. Write it, grade it and a genuine answer as the judge would into one verdict file, and run `${CLAUDE_PLUGIN_ROOT}/skills/quiz/scripts/score-spec.py order <spec> <verdicts>`. The probe must rank below the genuine answer; when it does not, the criterion it fooled is missing or too vague: go back to step 2 or 3.
 
-The reward-hacking probe is one answer built to pass the criteria while failing the intent, such as the right keywords with no substance, padding, or a format with nothing in it. Write it, grade it and a genuine answer as the judge would into one verdict file, and run `${CLAUDE_PLUGIN_ROOT}/skills/quiz/scripts/score-spec.py order <spec> <verdicts>`. The probe must rank below the genuine answer; when it does not, the criterion it fooled is missing or too vague: go back to step 2 or 3.
-
-## Dry run
-
-Done when `check-spec.py check` prints `ok`, the probe ranks below, and a dry run agrees with the person: grade one strong, one middling and two near-miss answers, run `score-spec.py order`, and compare with the person's own order of the same four. Show them the tier table, the printed weights and that order; a disagreement goes back to step 4.
+**Dry run**: done when `check-spec.py check` prints `ok`, the probe ranks below, and a dry run agrees with the person: grade one strong, one middling and two near-miss answers, run `score-spec.py order`, and compare with the person's own order of the same four. Show them the tier table, the printed weights and that order; a disagreement goes back to step 4.
 
 ## Gotchas
 

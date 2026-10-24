@@ -20,7 +20,7 @@ Feature no deeper when either holds:
 
 `deep` opens a node these rules stop at; `shallow` keeps one closed.
 
-## Language
+## Rules
 
 The page's own words (Facts, Insight, main path, optional), each `facts` item's opening term, each medium and screen `title` and each block `name` stay English (`Defining`, not `정하기`) [names]. Top-level `lang` is the reader's language (`ko`); default `en`.
 

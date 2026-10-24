@@ -2,7 +2,7 @@
 
 How a teamwork issue is written, so a person reads it as prose and code composes its state from it. [issue_state.py](../../../lib/issue_state.py) loads the tables below; a keyword or key exists only here, and code names only a row's role.
 
-## Append-only
+## Rules
 
 - **Body**: written when the issue is filed, in free Markdown; afterwards only its sections and its summary line change, and only by [edit-issue-body.py](../scripts/edit-issue-body.py), which first posts a comment holding the exact diff, then applies it.
 - **Summary line**: a backlog body opens with one plain sentence that sums up the work, on one line, because the issue pane shows the body's first paragraph and nothing when it starts with `#`; the sentence carries no label (`**Summary:**`) and no quote header (`Owner said, verbatim:`), and the owner's words and the rest follow. The owner's words change a backlog's scope often, so the manager rewrites the line and the title at each material change. A task's title sums it up, so its `Goal` opens with no summary; each criterion opens with its name, `1. [check] **<name>**: <details>`, because the pane shows the title and the names and folds the rest.

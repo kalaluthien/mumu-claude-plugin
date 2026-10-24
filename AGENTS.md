@@ -35,7 +35,7 @@ Every plugin's panes share one frame as tabs, the latest opened one shown, and e
 ## Skills
 
 - **Description**: `Use when …`, then optionally `Not for …`, as short as it can be.
-- **Body**: the task or use case the skill serves, its vocabulary (domain concepts and protocols), in the body or in a reference its routing table sends the reader to first, and only the sections the case needs, such as Gotchas, How to learn or Priorities.
+- **Body**: the task or use case the skill serves, its vocabulary (domain concepts and protocols), in the body or in a reference its routing table sends the reader to first, and only the sections the case needs, such as Gotchas, How to learn or Rules.
 - **Routing table**: `SKILL.md` routes each case to a mode or playbook in `references/<case>.md`, named after the case it serves and shaped like a part of `SKILL.md`; it does not hold every case itself.
 - **Skill folders**: beside `references/` and `scripts/`, a skill or playbook may keep files a script or page loads unchanged, such as a schema or a template, in `assets/`, and finished samples to imitate in `examples/`.
 - **Named rules**: give each major instruction a short name.

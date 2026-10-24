@@ -4,7 +4,13 @@ One checked Schema document drawn by one view into one html page, read level by 
 level inside it, and play a scenario to watch it walk. The Schema says what is drawn; `view.json` says how, with the
 reader's next action (`next`) under the page. Paths are relative to this file.
 
-## Procedure
+## Domain
+
+- Engine: `html/assets/zoom.*`; view grammar: `html/assets/view-schema.json`; phone limits: `html/assets/phone-limits.json`.
+- Drawing checks: `../../../../lib/page/view.py`; drawing measure: `../../../../lib/page/drawing.py`.
+- Worked pairs: `../../examples/<name>/schema.json` and `view.json`.
+
+## Steps
 
 1. Unless the document has a `view.json` beside it, write one as [view-writing.md](html/view-writing.md) says, from `html/scripts/make-diagram.py new view.json`.
 2. Run `uv run --with playwright==1.64.1 python3 html/scripts/make-diagram.py make doc.json view.json out.html`. It runs
@@ -36,13 +42,10 @@ phone draws the top level in the columns that fit its width.
   as [formats.md](formats.md) says, and with nothing selected the note shows the level's, and on the top level the
   document's.
 - The level menu lists every level and the scenarios of the shown one.
-
-## Scenario animation
-
-A scenario from the menu plays its walk step by step: the step counter shows `<step> / <steps>`, `‹` and `›` or the
-arrow keys move one step, the rail jumps to any, and `✕` ends the run. Each step lights what it reaches, follows the
-walk into another level, and shows what the step does and expects. A rule that can break plays its breaking run the
-same way.
+- **Scenario animation**: a scenario from the menu plays its walk step by step: the step counter shows `<step> / <steps>`, `‹` and `›` or the
+  arrow keys move one step, the rail jumps to any, and `✕` ends the run. Each step lights what it reaches, follows the
+  walk into another level, and shows what the step does and expects. A rule that can break plays its breaking run the
+  same way.
 
 ## Behaviours
 
@@ -65,9 +68,3 @@ checks each.
 - `make` never starts Alloy; it shows the answers last stored in `~/.cache/paperwork-alloy/results`.
 - `fits` fails: give that level's nodes `x`, `y` in `view.json` ([view-writing.md](html/view-writing.md), Layout),
   not shorter labels.
-
-## Where things are
-
-- Engine: `html/assets/zoom.*`; view grammar: `html/assets/view-schema.json`; phone limits: `html/assets/phone-limits.json`.
-- Drawing checks: `../../../../lib/page/view.py`; drawing measure: `../../../../lib/page/drawing.py`.
-- Worked pairs: `../../examples/<name>/schema.json` and `view.json`.

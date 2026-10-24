@@ -12,7 +12,7 @@ Turn a task into one plan JSON the owner can answer in a minute.
 6. Put a `source` on a Part that rests on evidence: a url, a file and line, or a name.
 7. Save as `<name>.json` and run `check-plan.py <name>.json`. Fix each refusal by its rule id in [grammar.md](grammar.md).
 
-## Priorities
+## Rules
 
 - Ask only what changes the work; a Decision whose options lead to the same work is a note.
 - The default must be the option you would take without an answer, because a kept Part costs the owner nothing.

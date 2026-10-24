@@ -3,7 +3,7 @@
 Check that a system holds the rules its Schema states, with Alloy 6, and show each broken rule as a run over the
 Schema's own nodes and edges. Each rule is one property; Alloy asks whether any run within the scope breaks it.
 
-## Language
+## Domain
 
 The document is written in the grammar, [../schema/assets/schema.json](../schema/assets/schema.json), and the module
 follows each kind's reading, so an edge means one thing in the drawing and in the proof:
@@ -21,7 +21,7 @@ follows each kind's reading, so an edge means one thing in the drawing and in th
   step after every region holds a `final` state; every other level stands alone in the module, so a rule is proved over all levels at once, never across a
   refinement.
 
-## Run
+## Steps
 
 With no rule named, pick the promise whose break harms users most and that tests reach least, not the one easiest to
 prove; read it from the code and docs, and ask only what they cannot show. With no document yet, write the smallest one the ask's rule talks about: the level it names and the rule as a
