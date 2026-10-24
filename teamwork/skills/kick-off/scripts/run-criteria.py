@@ -19,7 +19,7 @@ export has no `.git`) and a check with a placeholder are `unclear`. The output i
 `--pass <n>=<sample-file>` (once per criterion, with a body file) runs criterion `n` at the head with its first pipe stage
 replaced by `cat <sample-file>`, so the stages after it meet the input the pass would give. It prints `pass ok` when the
 output equals the text after `prints`, `wrong pass` when it differs, `unclear` for a criterion with no sample or whose first
-stage it cannot split surely (a `\\`, `||`, `&`, `;`, newline, `#` or parenthesis before the first pipe); exit 1 on any
+stage it cannot split surely (a `\\`, `||`, `&`, `;`, newline, `#`, parenthesis or a substitution in double quotes before the first pipe); exit 1 on any
 `wrong pass`. It finds a check that can never pass, such as `check-schema.py check /dev/stdin`, which reads its input twice."""
 import argparse
 import json
@@ -162,6 +162,9 @@ def after_first_pipe(command):
         if c == "\\":
             return None
         if quote:
+            # a substitution inside double quotes can hold quotes of its own, which end this quote early
+            if quote == '"' and (c == "`" or command[i:i + 2] == "$("):
+                return None
             quote = None if c == quote else quote
         elif c in "'\"":
             quote = c
