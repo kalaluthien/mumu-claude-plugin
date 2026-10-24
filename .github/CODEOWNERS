@@ -1,0 +1,7 @@
+# Code that runs on the owner's checkout and on users' installs; the ruleset requires no review, so this only requests one.
+hooks/ @kalaluthien
+monitors/ @kalaluthien
+lib/ @kalaluthien
+bin/ @kalaluthien
+scripts/ @kalaluthien
+.github/ @kalaluthien

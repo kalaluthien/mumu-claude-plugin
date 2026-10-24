@@ -9,7 +9,7 @@ Each plugin works alone.
 Add this repository as a marketplace, then install the plugins you want:
 
 ```
-/plugin marketplace add kalaluthien/mumu-claude-plugin
+/plugin marketplace add kalaluthien/mumu-claude-plugin#v0.1.0
 /plugin install teamwork@mumu-claude-plugin
 /plugin install paperwork@mumu-claude-plugin
 /plugin install homework@mumu-claude-plugin
@@ -167,7 +167,7 @@ Keeps what a session learned, once, where the next reader will look.
 ## Contributing
 
 - [AGENTS.md](AGENTS.md) holds the rules every plugin follows: folder layout, how skills are written, how a design is split, how a change is evaluated.
-- [CONTRIBUTING.md](CONTRIBUTING.md) says how to propose a change from a fork.
+- [CONTRIBUTING.md](CONTRIBUTING.md) says how to report a problem or ask a question.
 - Sessions load the plugins straight from a checkout, so a merged change reaches them after a pull and, for a `SKILL.md` or a `hooks.json`, a `/reload-plugins`; [AGENTS.md](AGENTS.md) lists the rest.
 
 ## License
