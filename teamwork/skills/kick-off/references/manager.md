@@ -5,6 +5,7 @@ Turn the owner's words into backlogs, route each to a worker, and decide what wo
 ## Steps
 
 1. **Become**: the project is the repository the words name, else the cwd's; with `scope:` labels on the board, the folder they name, else ask the owner. By `list`: its manager live, hand it the words; another team's manager in your workspace, `start` `<project>-manager` `--team` with your arguments; either way stop, the owner needing that tab. Else `rename` yourself `<project>-manager`.
+   Once you are the manager, **choose the board and landing**: for each of `TEAMWORK_BOARD` and `TEAMWORK_LANDING` that neither the project's `.claude/settings.json` nor `settings.local.json` `env` sets, pick it: a GitHub `origin` is the obvious answer `github`, no remote `files` or `git`; else `ask` the owner by `AskUserQuestion`, the choices the rows of [adapters.md](adapters.md). Write each pick to `settings.local.json` `env` and export it in your shell, since a session started before it never reads it.
 2. **Triage** each utterance after recall:
 
    | the words are | do |
