@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Do one operation of the local git landing, which keeps each change in the git common folder's `teamwork/changes`.
+"""Do one operation of the local git landing, which keeps each change in the main checkout's `.teamwork/changes`.
 
 usage: use-landing.py <operation> <args>
 
@@ -9,6 +9,7 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import data_folder  # noqa: E402
 import landing_git  # noqa: E402
 
 
@@ -18,7 +19,7 @@ def main(args):
         if verb == "change" and len(a) in (3, 4):
             if landing_git.folder() is None:
                 sys.exit("use-landing: run it inside the repository")
-            base = landing_git.git("symbolic-ref", "--short", "HEAD", cwd=landing_git.folder().parents[2]).stdout.strip()
+            base = landing_git.git("symbolic-ref", "--short", "HEAD", cwd=data_folder.common_folder().parent).stdout.strip()
             print(landing_git.change(a[0], a[1], pathlib.Path(a[2]).read_text(), a[3] if a[3:] else base))
         elif verb == "merge" and len(a) == 2:
             print(landing_git.merge(*a))

@@ -1,6 +1,6 @@
 # Landing: local git
 
-A change is a branch of a repository with no remote, filed and merged by `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/use-landing.py`, picked by `TEAMWORK_LANDING=git`, set in the project's settings `env` beside `TEAMWORK_BOARD=files` so every session, hook and monitor reads it. Each change is a record in the git common folder's `teamwork/changes`, numbered apart from the board's issues.
+A change is a branch of a repository with no remote, filed and merged by `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/use-landing.py`, picked by `TEAMWORK_LANDING=git`, set in the project's settings `env` beside `TEAMWORK_BOARD=files` so every session, hook and monitor reads it. Each change is a record in the main checkout's `.teamwork/changes`, excluded from commits and moved from `.git/teamwork/changes` as the files board is, numbered apart from the board's issues.
 
 | operation | how |
 | --- | --- |
