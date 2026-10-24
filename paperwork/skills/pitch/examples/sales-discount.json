@@ -1,0 +1,41 @@
+{
+  "title": "Decisions: Acme renewal discount",
+  "parts": [
+    {
+      "text": "Acme wants 25% off their $84k renewal or they'll switch – how should I respond?",
+      "source": "Sales agent · GPT-6 Sol",
+      "parts": [
+        {"text": "Medium risk", "kind": "risk"},
+        {"text": "Renewal in 9 days · 212 seats · they asked twice on yesterday's call.", "kind": "context"}
+      ],
+      "pick": {
+        "text": "Offer 15% instead",
+        "parts": [{"text": "Runs in Salesforce.", "kind": "note", "source": "Salesforce"}],
+        "then": {
+          "text": "Tie it to a longer contract?",
+          "pick": {"text": "Only with 2 years", "parts": [{"text": "$71.4k a year until 2028", "kind": "consequence", "source": "Salesforce · Stripe"}]},
+          "else": [{"text": "For one year", "parts": [{"text": "$71.4k · renews at full price", "kind": "consequence", "source": "Salesforce"}]}]
+        }
+      },
+      "else": [
+        {
+          "text": "Ask the VP",
+          "parts": [{"text": "Sent in Slack.", "kind": "note", "source": "Slack"}],
+          "then": {
+            "text": "What should I send along?",
+            "pick": {"text": "The call notes", "parts": [{"text": "Summary of yesterday's call", "kind": "consequence", "source": "Slack · Salesforce"}]},
+            "else": [{"text": "Usage and margin", "parts": [
+              {"text": "Margin drops to 41%", "kind": "risk", "source": "Slack · Stripe"},
+              {"text": "Agent's note: Finance set a 45% floor for any discount above 20%.", "kind": "note", "source": "Finance · discount policy"}
+            ]}]
+          }
+        },
+        {
+          "text": "Accept 25%",
+          "parts": [{"text": "$63k a year · needs sign-off", "kind": "risk", "source": "Salesforce · Stripe"}]
+        }
+      ]
+    },
+    {"text": "A second decision waits in the queue (1 of 2); the screenshots do not show it.", "kind": "note"}
+  ]
+}
