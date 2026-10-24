@@ -36,9 +36,11 @@ def to_mermaid(level):
 
 def install():
     CACHE.mkdir(parents=True, exist_ok=True)
-    (CACHE / "package.json").write_text((HERE.parent / "assets" / "package.json").read_text())
+    for name in ("package.json", "package-lock.json"):
+        (CACHE / name).write_text((HERE.parent / "assets" / name).read_text())
     if not (CACHE / "node_modules" / "pele").exists():
-        subprocess.run(["npm", "install", "--silent"], cwd=CACHE, check=True)
+        # The lock file pins every dependency by hash, and no install script of a package runs.
+        subprocess.run(["npm", "ci", "--ignore-scripts", "--silent"], cwd=CACHE, check=True)
 
 
 def find_chromium():

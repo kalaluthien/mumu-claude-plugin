@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Shop</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Poor+Story&display=swap">
 <style>
+@font-face{font-family:"Poor Story";src:url(../assets/fonts/poorstory.woff2) format("woff2");font-display:swap}
 :root{color-scheme:light}
 body{margin:0;background:#f3f4f6;padding:16px}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark}:root:not([data-theme="light"]) body{background:#0f1115}}
@@ -56,6 +56,8 @@ body{margin:0;background:#f3f4f6;padding:16px}
 .zoom .e-plate{fill:var(--zoom-board)}
 .zoom .e-lab{fill:var(--zoom-hi);font-size:15px}
 .zoom .init{fill:var(--zoom-hi)}
+.zoom .hist{fill:var(--zoom-paper);stroke:var(--zoom-hi);stroke-width:1.5}
+.zoom .h-lab{fill:var(--zoom-hi);font-size:12px;font-weight:600}
 .zoom-mock{background:var(--zoom-sunk);border:1px solid var(--zoom-faint);border-radius:8px;overflow:hidden;font-family:var(--zoom-sans)}
 .zoom-mock .bar{display:flex;align-items:center;gap:10px;padding:6px 10px;border-bottom:1px solid var(--zoom-faint);background:var(--zoom-paper);font-size:11.5px;color:var(--zoom-mid)}
 .zoom-mock .dots{display:inline-flex;gap:4px}.zoom-mock .dots i{width:7px;height:7px;border-radius:50%;background:var(--zoom-faint)}
@@ -308,7 +310,7 @@ function mountZoom(root, M, LIMITS) {   // LIMITS: assets/phone-limits.json, whi
   const KIND = {
     topology: { name: "topology", node: "component", edge: "relation", r: 4 },
     workflow: { name: "workflow", node: "activity", edge: "artifact", r: 11 },
-    state: { name: "state machine", node: "state", edge: "event", r: 22 }
+    state: { name: "statechart", node: "state", edge: "event", r: 22 }
   };
   const levels = Object.fromEntries(M.levels.map(L => [L.id, L]));
   const nodeLevel = {}, nodes = {};
@@ -381,6 +383,7 @@ function mountZoom(root, M, LIMITS) {   // LIMITS: assets/phone-limits.json, whi
   </div><div class="zoom-scrim" hidden></div>`;
   const $ = s => root.querySelector(s);
   const narrow = () => root.clientWidth < 900;
+  const HISTORY = { shallow: "H", deep: "H*" };
   const el = (p, tag, a = {}, t) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); if (t != null) e.textContent = t; p.appendChild(e); return e; };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
@@ -518,7 +521,8 @@ function mountZoom(root, M, LIMITS) {   // LIMITS: assets/phone-limits.json, whi
     const tLeft = Math.max(0, ...trig.filter(q => q.side === "left" && q.n.x === 0).map(q => q.len + 18)), tRight = Math.max(0, ...trig.filter(q => q.side === "right" && q.n.x === maxC).map(q => q.len + 18));
     const far = e => e.from !== e.to && at[e.from].x === at[e.to].x && Math.abs(at[e.from].y - at[e.to].y) > 1;
     const side = L.edges.some(e => far(e) && e.via !== "left") ? 36 : 0, viaLeft = L.edges.some(e => far(e) && e.via === "left" && at[e.from].x === 0) ? 40 : 0;
-    const top = PAD + 6 + Math.max(loop, over, iniTop ? 32 : 0, tTop), left = PAD + Math.max(inis.some(n => !iniTopOf(n)) ? 26 : 0, tLeft, viaLeft);
+    const hist = HISTORY[L.history] ? 12 : 0;   // a history mark is wider than the initial dot it replaces
+    const top = PAD + 6 + Math.max(loop, over, iniTop ? 32 + hist : 0, tTop), left = PAD + Math.max(inis.some(n => !iniTopOf(n)) ? 26 + hist : 0, tLeft, viaLeft);
     const hl = L.edges.filter(e => e.from !== e.to && at[e.from].y === at[e.to].y).map(e => phone(L) ? lineW(edgeLines(L, e)) : meas(tagged(L, e), FONT_E));
     const gx = Math.max(GX, Math.ceil(Math.max(0, ...hl) + 34));
     const W = left + cols * nw + (cols - 1) * gx + PAD + Math.max(side, tRight), H = top + rows * h + (rows - 1) * GY + PAD + tBot;
@@ -769,10 +773,19 @@ function mountZoom(root, M, LIMITS) {   // LIMITS: assets/phone-limits.json, whi
     });
     g0.inis.forEach(({ id, top }) => {
       const B = g0.box[id], seed = hash(L.id + "init" + id);
-      const [p, q] = top ? [{ x: B.x + B.w / 2, y: B.y - 22 }, { x: B.x + B.w / 2, y: B.y }] : [{ x: B.x - 24, y: B.y + B.h / 2 }, { x: B.x, y: B.y + B.h / 2 }];
-      el(world, "circle", { cx: p.x, cy: p.y, r: 4.5, class: "init" });
-      el(world, "path", { d: smooth(wobble(sample([p, q], 0, 4), seed, 0.6)), class: "e-line" });
-      inkHead(world, q, p, seed);
+      const mark = HISTORY[L.history], d = mark ? 34 : 0;
+      const [p, q] = top ? [{ x: B.x + B.w / 2, y: B.y - (d || 22) }, { x: B.x + B.w / 2, y: B.y }] : [{ x: B.x - (d || 24), y: B.y + B.h / 2 }, { x: B.x, y: B.y + B.h / 2 }];
+      // Harel's history: entering again resumes the state last held, the initial one on the first entry
+      const s = mark ? (top ? { x: p.x, y: p.y + 12 } : { x: p.x + 12, y: p.y }) : p;
+      el(world, "path", { d: smooth(wobble(sample([s, q], 0, 4), seed, 0.6)), class: "e-line" });
+      inkHead(world, q, s, seed);
+      if (mark) {
+        el(world, "circle", { cx: p.x, cy: p.y, r: 12, class: "hist" });
+        // the star rides raised and small, since at full size it crowds the H against the circle
+        const t = el(world, "text", { x: p.x, y: p.y + 4, "text-anchor": "middle", class: "h-lab" });
+        el(t, "tspan", {}, "H");
+        if (mark.length > 1) el(t, "tspan", { dy: -4, "font-size": 9 }, mark.slice(1));
+      } else el(world, "circle", { cx: p.x, cy: p.y, r: 4.5, class: "init" });
     });
     // stubs: a trigger from outside (open circle, clock hands when it repeats), or the parent's artifact
     // entering or leaving this process at a square port; a port leads back up to that artifact
@@ -811,6 +824,10 @@ function mountZoom(root, M, LIMITS) {   // LIMITS: assets/phone-limits.json, whi
       cls(g, n.id);
       el(g, "rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx, class: "n-fill" });
       el(g, "path", { d: inkRect(b.x, b.y, b.w, b.h, rx, seed), class: "n-ink" });
+      if (L.kind === "state" && n.final) {   // UML's final state is a ringed one: a second outline inside the first
+        g.classList.add("final");
+        el(g, "path", { d: inkRect(b.x + 4, b.y + 4, b.w - 8, b.h - 8, Math.max(rx - 4, 0), seed + 1), class: "n-ink" });
+      }
       const nl = nodeLines(L, n), tx = b.x + b.w / 2 - (open ? 8 : 0), t = el(g, "text", { x: tx, y: b.y + b.h / 2 + 5.5 - (nl.length - 1) * 9.5, "text-anchor": "middle", class: "n-lab" }, nl.length > 1 ? null : shown(n));
       if (nl.length > 1) ink(t, nl, tx, 19);
       if (n.qty) {   // how much it holds, on its bottom left corner

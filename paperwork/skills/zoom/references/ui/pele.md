@@ -20,7 +20,7 @@ are left out.
 
 ## Gotchas
 
-- First run installs `pele` and `playwright-core` (`assets/package.json`) into `~/.cache/zoom-render-pele`, so it needs
+- First run installs `pele` and `playwright-core` (`assets/package.json`, locked by `assets/package-lock.json`) with `npm ci --ignore-scripts` into `~/.cache/zoom-render-pele`, so it needs
   `npm` and network once.
 - The PNG comes from the Playwright headless Chromium in `~/Library/Caches/ms-playwright`; with none there, the script
   fails at the screenshot, not at pele.

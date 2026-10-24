@@ -11,6 +11,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -698,11 +699,30 @@ def translate(M):
     return "\n".join(L_) + "\n", W, C
 
 
+def _pinned(path):
+    import hashlib
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest() == JAR_SHA256
+
+
+_checked = {}   # (path, size, mtime) -> whether it matched the pin, so a jar is hashed once per change
+
+
 def jar():
-    for p in (os.environ.get("ALLOY_JAR"), Path.home() / ".cache/paperwork-alloy/alloy.jar"):
-        if p and Path(p).is_file():
-            return str(p)
-    return None
+    """The jar to run: the one ALLOY_JAR names, since the owner chose that file, or the cached one when it matches
+    the pin. A cached file that does not match is refused (None), as a download would be."""
+    env = os.environ.get("ALLOY_JAR")
+    if env and Path(env).is_file():
+        return env
+    cached = Path.home() / ".cache/paperwork-alloy/alloy.jar"
+    if not cached.is_file():
+        return None
+    st = cached.stat()
+    key = (str(cached), st.st_size, st.st_mtime_ns)
+    if key not in _checked:
+        _checked[key] = _pinned(cached)
+        if not _checked[key]:
+            print(f"{cached} is not the pinned {JAR_URL} (sha256 {JAR_SHA256}); refused", file=sys.stderr)
+    return str(cached) if _checked[key] else None
 
 
 def ready():
@@ -714,8 +734,7 @@ def fetch():
     dest = Path.home() / ".cache/paperwork-alloy/alloy.jar"
     dest.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(["curl", "-sSL", "-o", str(dest), JAR_URL], check=True)
-    import hashlib
-    if hashlib.sha256(dest.read_bytes()).hexdigest() != JAR_SHA256:
+    if not _pinned(dest):
         dest.unlink()
         raise SystemExit(f"alloy.jar is not the pinned {JAR_URL}; deleted")
     return str(dest)

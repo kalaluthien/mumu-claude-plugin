@@ -10,6 +10,7 @@ Run it after a change to the engine, so the fixtures break today's engine. Exit 
 longer matches the engine.
 """
 import pathlib
+import re
 import subprocess
 import sys
 import tempfile
@@ -36,6 +37,8 @@ def main():
         for args in (["new", view], ["build", DOC, view, page]):
             subprocess.run([sys.executable, HERE / "make-diagram.py", *map(str, args)], check=True, capture_output=True)
         built = page.read_text(encoding="utf-8")
+    # The fixtures sit beside the vendored font, so they point at it instead of each carrying a copy.
+    built = re.sub(r"url\(data:font/woff2;base64,[^)]*\)", "url(../assets/fonts/poorstory.woff2)", built)
     OUT.mkdir(exist_ok=True)
     for name, cuts in CUTS.items():
         text = built

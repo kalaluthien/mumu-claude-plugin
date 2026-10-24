@@ -12,6 +12,7 @@
 ../../../schema/scripts/check-schema.py checks the document; this script draws it. A finding line is a defect of
 the system the document describes, for the hand-over, never a failure. Exit status 0 means ok.
 """
+import base64
 import html
 import json
 import pathlib
@@ -98,6 +99,7 @@ def build(spath, vpath, out):
              "JS": (ASSETS / "zoom.js").read_text(encoding="utf-8"),
              "NEXT": html.escape(model.get("next", "")),
              "MODEL": json.dumps(model, ensure_ascii=False).replace("</", "<\\/"),
+             "FONT": "data:font/woff2;base64," + base64.b64encode((ASSETS / "fonts" / "poorstory.woff2").read_bytes()).decode(),
              "LIMITS": (ASSETS / "phone-limits.json").read_text(encoding="utf-8")}
     page = re.sub(r"/\*(%s)\*/" % "|".join(slots), lambda m: slots[m.group(1)], page)   # one pass: a slot name inside a filled text stays
     pathlib.Path(out).write_text(page, encoding="utf-8")
