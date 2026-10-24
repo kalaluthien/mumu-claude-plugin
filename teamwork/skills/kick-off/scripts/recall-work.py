@@ -15,6 +15,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
+import issue_state  # noqa: E402
 import landing  # noqa: E402
 
 STOP = set("a an and as at be by for from in into is it its no not of on or the to with".split())
@@ -55,7 +56,7 @@ def load(before):
             kind = "backlog" if "backlog" in item["labels"] else "issue"
             state = "open" if item["state"] == "OPEN" else (item["stateReason"] or "closed").lower().replace("_", " ")
         items[item["number"]] = {
-            "head": f"#{item['number']} {kind} {state}: {item['title']}",
+            "head": f"#{item['number']} {kind} {state}: {issue_state.title(item)}",
             "text": " ".join([item["title"]] * 3 + [item["body"], *comments]),
             # any capitalised word, since comments under words the grammar no longer lists stay on the record
             "records": [text.strip().splitlines()[0][:160] for text in comments if re.match(r"\s*[A-Z]+:", text)],

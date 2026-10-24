@@ -14,7 +14,7 @@ ISSUES = """query($owner: String!, $name: String!, $labels: [String!], $after: S
   repository(owner: $owner, name: $name) {
     issues(states: OPEN, first: 30, after: $after, labels: $labels, orderBy: {field: CREATED_AT, direction: ASC}) {
       nodes { number title url body authorAssociation parent { number } labels(first: 20) { nodes { name } } subIssuesSummary { total completed }
-              subIssues(last: 50) { nodes { number title url state stateReason } }
+              subIssues(last: 50) { nodes { number title url state stateReason authorAssociation } }
               blockedBy(first: 20) { nodes { number state } } comments(last: 100) { nodes { body url authorAssociation } } }
       pageInfo { hasNextPage endCursor } } } }"""
 BLOCKERS = """query($owner: String!, $name: String!) {
@@ -136,7 +136,7 @@ def tree(project, nodes=None):
     nodes = nodes if nodes is not None else read_tree(project)
     for n in nodes or []:
         n["trusted"] = trusted(n)
-        for c in n["comments"]["nodes"]:
+        for c in n["comments"]["nodes"] + (n.get("subIssues") or {}).get("nodes", []):
             c["trusted"] = trusted(c)
     return nodes
 

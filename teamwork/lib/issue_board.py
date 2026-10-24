@@ -36,11 +36,11 @@ def entry(node):
     backlog = "backlog" in [x["name"] for x in node["labels"]["nodes"]]
     holders = state["holders"] or []
     summary = node.get("subIssuesSummary") or {}
-    closed = [{"number": t["number"], "title": t["title"], "url": t["url"], "blockers": blockers_of(t),
+    closed = [{"number": t["number"], "title": issue_state.title(t), "url": t["url"], "blockers": blockers_of(t),
                "stopped": t.get("stateReason") in STOPPED} for t in (node.get("subIssues") or {}).get("nodes", []) if t["state"] == "CLOSED"]
     progress = (f"task {summary['completed']}/{summary['total']}" if summary.get("total")
                 else "" if holders or state["waits"] == "deferred" else "not started") if backlog else ""
-    return {"number": node["number"], "title": node["title"], "url": node["url"], "kind": "backlog" if backlog else "task",
+    return {"number": node["number"], "title": issue_state.title(node), "url": node["url"], "kind": "backlog" if backlog else "task",
             "holder": " ".join(holders), "wait": "" if blockers or state["waits"] == "held" or backlog and state["waits"] == "no holder" else state["waits"],
             "progress": progress, "goal": summary_of(node["body"]) if backlog else "", "detail": [] if backlog else state["goal"], "done": [] if backlog else state["done"],
             "next": next_step_of(node["comments"]["nodes"]) if backlog and summary.get("total", 0) == summary.get("completed", 0) else "",

@@ -84,14 +84,14 @@ def manager_actions(me, listed, data=None, fed=None):
     present = set(team) | {t.get("label") for t in tabs(me.get("workspace_id", ""))}
     for i in found:
         if not unanswered(i) and not issue_state.deferral(i) and not any(holds(i, n) for n in present if n):
-            lines.append(f"route #{i['number']} {i['title']}: no live worker holds it; route it, or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
+            lines.append(f"route #{i['number']} {issue_state.title(i)}: no live worker holds it; route it, or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
         if asking(i):
             lines.append(f"answer #{i['number']}: its worker asks; post your {ANSWER}: there; the worker waits on it")
     for i in data["outside"]:
         if i.get("isPullRequest"):
-            lines.append(f"outside #{i['number']} {i['title']}: an outside contributor opened this pull request; close it unread with a comment that outside pull requests are not accepted and issues are welcome")
+            lines.append(f"outside #{i['number']} {issue_state.title(i)}: an outside contributor opened this pull request; close it unread with a comment that outside pull requests are not accepted and issues are welcome")
         else:
-            lines.append(f"outside #{i['number']} {i['title']}: an outside contributor opened it; ask the owner, then route it or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
+            lines.append(f"outside #{i['number']} {issue_state.title(i)}: an outside contributor opened it; ask the owner, then route it or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
     for n in team:
         held = " ".join(f"#{i['number']}" for i in data["everything"] if holds(i, n)) or "nothing open"
         if status[n] == "blocked":
@@ -107,7 +107,7 @@ def manager_actions(me, listed, data=None, fed=None):
             news.setdefault(i["number"], (i, []))[1].append(c)
     for i, posted in news.values():
         said = " | ".join(c["body"].strip().splitlines()[0] for c in posted)
-        lines.append(f"feed #{i['number']} {i['title']}: {said} ({posted[-1]['url']}); push it to the owner by PushNotification")
+        lines.append(f"feed #{i['number']} {issue_state.title(i)}: {said} ({posted[-1]['url']}); push it to the owner by PushNotification")
     return lines
 
 
@@ -133,7 +133,7 @@ def worker_goal(me):
     """Each held issue's state from a fresh read, since a list read can lag a comment just posted."""
     held = [i for i in issues() or [] if holds(i, me["name"])]
     fresh = [board.fresh(i["number"]) or i for i in held]
-    return [f"#{i['number']} {i['title']} ({i['url']}): " + ("waits on your manager" if asking(i) else "open") for i in fresh]
+    return [f"#{i['number']} {issue_state.title(i)} ({i['url']}): " + ("waits on your manager" if asking(i) else "open") for i in fresh]
 
 
 def worker_read(me):
