@@ -145,7 +145,7 @@ export const register: Register = on => {
             {open && i.next && <Text wrap="wrap">{`next step: ${i.next}`}</Text>}
             {open && i.tasks.map(t => framed(t))}
             {/* closed tasks after the open ones, dim and newest first, so what landed last stays in view */}
-            {open && i.closed.length > 0 && <Box marginTop={1} flexDirection="column">{i.closed.map(t => <Text wrap="wrap" dimColor><Link href={t.url} label={`#${t.number}`} />{` ${t.title}`}{after(t)}</Text>)}{i.earlier && <Text dimColor>…</Text>}</Box>}
+            {open && i.closed.length > 0 && <Box marginTop={1} flexDirection="column">{i.closed.map(t => <Text wrap="wrap" dimColor><Link href={t.url} label={`#${t.number}`} />{' '}<Text strikethrough={t.stopped}>{t.title}</Text>{after(t)}</Text>)}{i.earlier && <Text dimColor>…</Text>}</Box>}
           </Box>
         </Box>
       )
