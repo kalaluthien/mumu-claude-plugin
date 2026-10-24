@@ -101,7 +101,7 @@ var decisions = order.filter(function (id) { return "pick" in byId[id]; });
 
 var S = { pick: {}, strike: {}, edit: {}, comment: {} };
 var history = [];
-var ui = { cur: null, awaiting: null, open: null, copied: false };
+var ui = { cur: decisions[0] || null, awaiting: null, open: null, copied: false };
 
 function options(d) { return [d.pick].concat(d.else || []); }
 function h(tag, cls, text) {

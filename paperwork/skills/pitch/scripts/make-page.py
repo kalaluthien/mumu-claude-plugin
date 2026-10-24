@@ -52,7 +52,6 @@ def drive(browser_ctx, plan_path, out_dir):
     decisions = [i for i, p in ids.items() if pitch_plan.is_decision(p)]
     if decisions:
         first = ids[decisions[0]]
-        page.keyboard.press("j")
         opts = pitch_plan.options(first)
         k = 2 if len(opts) >= 2 else 1
         page.keyboard.press(str(k))

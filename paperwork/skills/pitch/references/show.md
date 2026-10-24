@@ -15,7 +15,7 @@
 
 ## What the owner can do on the page
 
-- Press a number to pick an Option; when it has a follow-up, a hint `Then 1 – K` shows and the next number picks there. The last number opens Other.
+- The first Decision is selected on load, so a number works at once. Press a number to pick an Option; when it has a follow-up, a hint `Then 1 – K` shows and the next number picks there. The last number opens Other.
 - Press `j` or `k` to move between Decisions, `Esc` to close Other or a note.
 - Strike a Part with a reason, comment on it, or edit its text; each can be undone before copying.
 - Copy Answer writes the Markdown form of [grammar.md](grammar.md) to the clipboard.
