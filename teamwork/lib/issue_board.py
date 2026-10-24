@@ -6,6 +6,8 @@ import issue_state
 # an issue with no backlog group: what needs someone first, what is held last
 # the latest closed tasks a backlog lists, newest first, an ellipsis below them when more landed before
 SHOWN_CLOSED = 10
+# close reasons of work stopped, not done; GitHub's duplicate close counts with them
+STOPPED = ("NOT_PLANNED", "DUPLICATE")
 URGENCY = ["waits on the owner", "waits on the manager", "no holder", "blocked", "held", "deferred"]
 
 
@@ -34,7 +36,8 @@ def entry(node):
     backlog = "backlog" in [x["name"] for x in node["labels"]["nodes"]]
     holders = state["holders"] or []
     summary = node.get("subIssuesSummary") or {}
-    closed = [{"number": t["number"], "title": t["title"], "url": t["url"], "blockers": blockers_of(t)} for t in (node.get("subIssues") or {}).get("nodes", []) if t["state"] == "CLOSED"]
+    closed = [{"number": t["number"], "title": t["title"], "url": t["url"], "blockers": blockers_of(t),
+               "stopped": t.get("stateReason") in STOPPED} for t in (node.get("subIssues") or {}).get("nodes", []) if t["state"] == "CLOSED"]
     progress = (f"task {summary['completed']}/{summary['total']}" if summary.get("total")
                 else "" if holders or state["waits"] == "deferred" else "not started") if backlog else ""
     return {"number": node["number"], "title": node["title"], "url": node["url"], "kind": "backlog" if backlog else "task",
@@ -121,5 +124,5 @@ def lines(issues, depth=0):
             yield from ([f"{pad}    {d['detail']}"] if d["detail"] else [])
         yield from ([f"{pad}next step: {i['next']}"] if i["next"] else [])
         yield from lines(i["tasks"], depth + 1)
-        yield from (f"{pad}#{t['number']} {t['title']} closed{' ' * bool(t['blockers'])}{after(t['blockers'])}" for t in i["closed"])
+        yield from (f"{pad}#{t['number']} {t['title']} closed{' stopped' * t['stopped']}{' ' * bool(t['blockers'])}{after(t['blockers'])}" for t in i["closed"])
         yield from ([f"{pad}…"] if i["earlier"] else [])
