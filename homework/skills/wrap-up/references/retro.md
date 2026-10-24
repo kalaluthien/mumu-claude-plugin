@@ -15,6 +15,7 @@ Keep what this session learned where the next agent will meet it. A lesson hande
    - improve: "when <situation>, do <action>, because <the broken assumption>";
    - sustain, an owner-accepted choice or a detour that worked: "when <situation>, keep <action>, because <what it saved>";
    - a procedure worked out: its steps as run.
+
    Keep the most severe, the costliest to repeat first, telling the owner how many were dropped:
 
    | drafts | 1–3 | 4 | 5–6 | 7–8 | 9–11 | 12–14 | 15+ |
