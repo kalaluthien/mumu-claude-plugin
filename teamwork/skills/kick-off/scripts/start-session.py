@@ -63,7 +63,7 @@ if stray := sorted(set(a.allow) - set(role_off)):
     print(team_settings.warning(rule + "; it is ignored."), file=sys.stderr)
 off = [t for t in role_off if t not in a.allow]
 # a successor, named as Succession says, sits in its predecessor's workspace
-if not a.team and not a.args.startswith("worker ") and (a.args != f"succeed {a.name.removesuffix('-next')}" or a.name.removesuffix("-next") not in (a.beside, session.sessions()[1].get("name"))):
+if not a.team and not a.args.startswith("worker ") and (a.args != f"succeed {a.name.removesuffix('-next')}" or a.name.removesuffix("-next") != (a.beside or session.sessions()[1].get("name"))):
     sys.exit(f"start-session.py: {a.name} is a manager: start it with --team, since each manager is alone with its workers in its workspace.")
 if session.agent(a.name):
     sys.exit(f"start-session.py: {a.name} is already live: hand it the work instead of starting another.")
