@@ -4,6 +4,14 @@ Three Claude Code plugins that let one person run a small team of Claude session
 
 Each plugin works alone.
 
+## Audience
+
+These plugins are for a person who uses Claude Code on macOS.
+
+- **teamwork** is for running several Claude sessions on one project kept on GitHub. It needs [herdr](https://herdr.dev), the terminal workspace the sessions run in, and the GitHub command line tool [`gh`](https://cli.github.com/), signed in.
+- **paperwork** is for modelling a system or a plan as a checked document, and for writing a grading spec for a task.
+- **homework** is for keeping what each session learned, for the next session to read.
+
 ## Installation
 
 Add this repository as a marketplace, then install the plugins you want:
@@ -29,9 +37,9 @@ What each one needs on your machine; every Python 3 below means Python 3.9 or la
 | `PushNotification`, in teamwork | first named in 2.1.152; the release that added it is not recorded in the changelog |
 | `${CLAUDE_SKILL_DIR}`, in homework | added in 2.1.69 |
 
-### Local clone install
+## Local clone install
 
-A clone makes a merged change reach your sessions after a `git pull`, with no reinstall.
+This is the way the owner of this repository runs the plugins; the marketplace install above is the way for everyone else. A clone makes a merged change reach your sessions after a `git pull`, with no reinstall.
 
 1. Clone the repository:
 
@@ -63,6 +71,19 @@ A clone makes a merged change reach your sessions after a `git pull`, with no re
    }
    ```
 
+## Versions
+
+Release tags and each plugin's `version` follow the Releases rule under [Repository in AGENTS.md](AGENTS.md#repository).
+
+## Glossary
+
+- **owner**: the person who asks the sessions for work and answers their questions; when you use teamwork, that is you.
+- **manager**: the one Claude session per project that writes down what the owner asks for as a GitHub issue, hands it to a worker, and answers the worker's questions.
+- **worker**: a Claude session that takes one issue from the manager, splits it into tasks, and builds and merges them in its own copy of the repository.
+- **judge**: a new Claude helper that did not write the work and only reviews it, replying `approve` with the exact commit or `fix`, and nothing merges without that approval.
+- `BLOCKED:` starts a GitHub issue comment in which a worker asks a question it may not settle alone, and then waits for the answer.
+- `DECIDED:` starts a GitHub issue comment that gives the answer, so any later session can read and follow it.
+
 ## Teamwork: agent orchestration
 
 <details>
@@ -87,13 +108,9 @@ flowchart TB
 
 </details>
 
-Three roles, each with a narrow job ([the authority table](teamwork/skills/kick-off/SKILL.md)):
+Teamwork splits work between a manager, workers and judges, as the [Glossary](#glossary) defines them; [the authority table](teamwork/skills/kick-off/SKILL.md) says what each may decide. The manager never plans tasks or edits code. Each task a worker writes has a goal and checks that fail today, and the worker builds it in its own git worktree.
 
-- The **manager**, one per project, reads what you ask for, writes it down as a rough `backlog` issue and hands it to a worker. It decides who does what and in which order, and answers workers' questions. It never plans tasks or edits code.
-- A **worker** owns a piece of work from start to finish. It splits the backlog into tasks, each with a goal and checks that fail today, builds them in its own git worktree, and spreads the effort over subagents.
-- A **judge** is a fresh subagent that did not write the change. It reads the tasks or the diff and replies `approve <sha>` or `fix`. Nothing merges without an approval of the exact commit.
-
-GitHub issues are the shared memory: a `BLOCKED:` comment is a question, a `DECIDED:` comment is the answer, and both outlive any session. Pull request policy belongs to each repository, not to the plugin.
+GitHub issues are the shared memory: the questions and answers on them outlive any session. Pull request policy belongs to each repository, not to the plugin.
 
 The [`kick-off`](teamwork/skills/kick-off/SKILL.md) skill sends a session to its role: [manager](teamwork/skills/kick-off/references/manager.md) or [worker](teamwork/skills/kick-off/references/worker.md). A worker also opens a playbook for the kind of work, such as code, UI or research.
 
@@ -170,11 +187,11 @@ Keeps what a session learned, once, where the next reader will look.
 
 **Usage.** The signal arrives on its own, and the skill is not in the slash menu. To ask for it yourself, tell Claude to keep a lesson (retro) or tidy memory (dream). It asks you nothing and reports what it did.
 
-## Contributing
+## Contributions
 
-- [AGENTS.md](AGENTS.md) holds the rules every plugin follows: folder layout, how skills are written, how a design is split, how a change is evaluated.
+- The rules every plugin follows are in [AGENTS.md](AGENTS.md), from [Plugin layout](AGENTS.md#plugin-layout) on.
 - [CONTRIBUTING.md](CONTRIBUTING.md) says how to report a problem or ask a question.
-- Sessions load the plugins straight from a checkout, so a merged change reaches them after a pull and, for a `SKILL.md` or a `hooks.json`, a `/reload-plugins`; [AGENTS.md](AGENTS.md) lists the rest.
+- With a local clone, [Repository in AGENTS.md](AGENTS.md#repository) says when a merged change reaches a running session.
 
 ## License
 
