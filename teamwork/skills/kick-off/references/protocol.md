@@ -67,7 +67,7 @@ Each port is a set of operations the playbooks name; an adapter does each, and [
 | session | `rename` | renames your session, tab and pane; a manager also its workspace, to `<project>` |
 | session | `list` | the live sessions by name, with pane, workspace and status |
 | session | `screen` | the text a session's pane shows |
-| session | `answer` | picks a choice of a tool prompt a session waits at |
+| session | `answer` | picks a choice of a tool prompt a session waits at, by [answer-prompt.py](../scripts/answer-prompt.py), which answers only a listed kind with a choice that allows no more than that one action |
 | session | `reload` | makes a session load the plugins again |
 | session | `compact` | shrinks your context to what you name |
 | landing | `branch` | a worktree and branch `<name>` from the base |
