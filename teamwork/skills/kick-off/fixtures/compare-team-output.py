@@ -34,6 +34,12 @@ COMMANDS = ['gh issue create --title "x" --body-file f.md', "gh issue comment 1 
             "gh issue close 1 --reason completed", 'gh pr edit 1 --title "y"', "ls"]
 for n, c in enumerate(COMMANDS):
     EVENTS[f"pre-{n}"] = ("protocol-split-worker", {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": c}, "cwd": "."})
+# a holders line outside its fence, in a body file before the write and read back from the sandbox's #9 after it
+EVENTS["stray-pre"] = ("protocol-split-worker", {"hook_event_name": "PreToolUse", "tool_name": "Bash", "cwd": str(HERE),
+                                                 "tool_input": {"command": "gh issue comment 1 --body-file stray-holders.md"}})
+EVENTS["stray-post"] = ("protocol-split-worker", {"hook_event_name": "PostToolUse", "tool_name": "Bash", "cwd": ".",
+                                                  "tool_input": {"command": "gh issue create --title x --body-file f.md"},
+                                                  "tool_response": {"stdout": f"https://github.com/{SANDBOX}/issues/9\n"}})
 K = "teamwork/skills/kick-off/scripts/"
 
 
