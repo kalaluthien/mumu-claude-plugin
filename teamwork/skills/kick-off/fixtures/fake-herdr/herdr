@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+"""A stand-in for herdr that logs each call and keeps agents, tabs and workspaces in a JSON state file."""
+import json, os, pathlib, sys
+
+state_path = pathlib.Path(os.environ["FAKE_HERDR_STATE"])
+s = json.loads(state_path.read_text())
+argv = sys.argv[1:]
+with open(os.environ["FAKE_HERDR_LOG"], "a") as log:
+    log.write(json.dumps(argv) + "\n")
+ok = lambda r=None: print(json.dumps({"result": r or {}}))
+
+
+def new_pane(workspace):
+    s["n"] += 1
+    s["tabs"].append({"tab_id": f"{workspace}:t{s['n']}", "workspace_id": workspace, "label": ""})
+    return {"pane_id": f"{workspace}:p{s['n']}", "tab_id": f"{workspace}:t{s['n']}"}
+
+
+def opt(name):
+    return argv[argv.index(name) + 1] if name in argv else None
+
+
+head = argv[:2]
+if head == ["agent", "list"]:
+    ok({"agents": [{k: v for k, v in a.items() if k != "ticks"} for a in s["agents"]]})
+    for a in s["agents"]:  # a prompted agent works for two reads, then waits
+        if a.get("ticks"):
+            a["ticks"] -= 1
+            a["agent_status"] = "working" if a["ticks"] else "idle"
+elif head == ["pane", "get"]:
+    ok({"pane": {"pane_id": argv[2], "workspace_id": argv[2].split(":")[0]}})
+elif head == ["tab", "create"]:
+    ok({"root_pane": new_pane(opt("--workspace"))})
+elif head == ["workspace", "create"]:
+    s["n"] += 1
+    ok({"root_pane": new_pane(f"w{s['n']}")})
+elif head == ["tab", "rename"]:
+    for t in s["tabs"]:
+        if t["tab_id"] == argv[2]:
+            t["label"] = argv[3]
+    ok()
+elif head == ["agent", "start"]:
+    pane = opt("--pane")
+    s["agents"].append({"name": argv[2], "pane_id": pane, "tab_id": pane.replace(":p", ":t"), "workspace_id": pane.split(":")[0],
+                        "agent": "claude", "agent_status": "idle", "interactive_ready": True})
+    ok()
+elif head == ["agent", "read"]:
+    print("")
+elif head == ["agent", "prompt"]:
+    for a in list(s["agents"]):
+        if argv[2] in (a["pane_id"], a["name"]):
+            if argv[3] == "/exit":
+                s["agents"].remove(a)
+            else:
+                a["agent_status"], a["ticks"] = "working", 2
+    ok()
+elif head == ["tab", "list"]:
+    ok({"tabs": [t for t in s["tabs"] if t["workspace_id"] == opt("--workspace")]})
+else:  # renames, keys, closes
+    ok()
+state_path.write_text(json.dumps(s))
