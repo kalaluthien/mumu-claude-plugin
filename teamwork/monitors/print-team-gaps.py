@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
+import board  # noqa: E402
 import herdr_agents  # noqa: E402
 import team_gaps  # noqa: E402
 import team_signal  # noqa: E402
@@ -31,7 +32,7 @@ while True:
     if (manager or worker) and (data is None or team_signal.stamp() != signal or time.time() - read_at >= REFRESH):
         now, seen = datetime.now(timezone.utc), team_signal.stamp()  # both taken before the read, so a touch during it still differs
         since = (datetime.fromtimestamp(read_at, timezone.utc) - SKEW).strftime("%Y-%m-%dT%H:%M:%SZ")
-        if data is None or team_gaps.changed_since(since):
+        if data is None or board.changed_since(since):
             data = read(manager, me, staffed, since if read_at else None)
         if data is not None:  # a failed read keeps the last good time, so the next read still feeds what came after it
             read_at, signal = now.timestamp(), seen

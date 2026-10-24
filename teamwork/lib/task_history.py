@@ -1,7 +1,8 @@
-"""Past task durations: one row per closed non-backlog issue, read from GitHub or from a fixture file."""
+"""Past task durations: one row per closed non-backlog issue, read from the board or from a fixture file."""
 from concurrent.futures import ThreadPoolExecutor
 
-import github_rest
+import board
+import landing
 from session_gaps import stamp
 
 CRITERION = ("[check]", "[score]")
@@ -9,20 +10,20 @@ CRITERION = ("[check]", "[score]")
 
 def first_commit(repo, number):
     """When the pull request's first commit was authored, by the one commit its list starts with."""
-    commits = github_rest.get(f"repos/pulls/{number}/commits?per_page=1", repo, paginate=False)
-    if commits is None:
-        raise RuntimeError(f"task_history: the commits of #{number} could not be read")
-    return commits[0]["commit"]["author"]["date"] if commits else None
+    try:
+        return landing.first_commit(number, repo)
+    except LookupError as e:
+        raise RuntimeError(f"task_history: {e}") from None
 
 
 def fetch(repo):
     """Issues in the fixture shape: number, labels (names), body, createdAt, closedAt, prStart or None."""
-    found = github_rest.issues("all", repo=repo, pulls=True, comments=False)
+    found = board.issues("all", repo=repo, pulls=True, comments=False)
     if found is None:
         raise RuntimeError("task_history: the issues could not be read")
     closed = {i["number"] for i in found if not i["isPullRequest"] and i["state"] == "CLOSED"}
     # a pull request's closing keywords stand for GitHub's closing references; its first commit is one read each, so only for those that close a task
-    closing = {i["number"]: [n for n in map(int, github_rest.CLOSES.findall(i["body"])) if n in closed] for i in found if i["mergedAt"]}
+    closing = {i["number"]: [n for n in map(int, landing.CLOSES.findall(i["body"])) if n in closed] for i in found if i["mergedAt"]}
     with ThreadPoolExecutor(8) as pool:
         starts = dict(zip(closing, pool.map(lambda n: first_commit(repo, n) if closing[n] else None, closing)))
     first = {}  # issue number -> earliest first-commit time of a merged pull request that closes it

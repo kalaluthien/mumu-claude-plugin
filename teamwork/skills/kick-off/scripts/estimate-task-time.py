@@ -16,7 +16,7 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
-import github_rest  # noqa: E402
+import board  # noqa: E402
 import session_gaps  # noqa: E402
 import task_backtest  # noqa: E402
 import task_estimate  # noqa: E402
@@ -48,7 +48,7 @@ def load(opt, urls):
         repo, number = match.groups()
         if repo not in history:
             history[repo] = task_history.rows(task_history.fetch(repo))
-        issue = github_rest.get(f"repos/issues/{number}", repo, paginate=False)
+        issue = board.fresh(number, repo, comments=False)
         if issue is None:
             sys.exit(f"estimate-task-time.py: the REST read of {url} failed")
         tasks.append({"number": issue["number"], "labels": [x["name"] for x in issue["labels"]], "repo": repo})

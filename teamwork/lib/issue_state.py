@@ -24,7 +24,6 @@ ITEM = re.compile(r"^(?:\d+\.|[-*])\s+(.*)$", re.M)
 CRITERION = re.compile(r"^(?:\[([ xX])\]\s+)?(?:\[(\w+)\]\s+)?(?:\*\*(.+?)\*\*:?\s*)?(.*)$")
 # a run of n backticks closes only on a run of exactly n, so a ``…`` span may hold single backticks
 SPAN = re.compile(r"(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)")
-TRUSTED = {"OWNER", "MEMBER", "COLLABORATOR"}
 
 
 def keyword(text):
@@ -46,8 +45,8 @@ def sections(text):
 
 
 def trusted(item):
-    """Whether an issue's or comment's author may write records, since anyone may comment on a public repository."""
-    return item.get("authorAssociation") in TRUSTED
+    """Whether an issue's or comment's author may write records, as the board adapter marked it, since each board says who may."""
+    return item.get("trusted") is True
 
 
 def records(issue):

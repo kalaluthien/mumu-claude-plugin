@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
-import github_rest  # noqa: E402
+import landing  # noqa: E402
 
 
 def git(*argv, cwd):
@@ -18,7 +18,7 @@ def unmerged_tips(name, root):
     tips = {git("rev-parse", "--verify", "--quiet", ref, cwd=root).stdout.strip()
             for ref in (f"refs/heads/{name}", f"refs/remotes/origin/{name}")} - {""}
     # a squash merge leaves the branch commits off the base, so a merged pull request's head counts as merged too
-    merged = {pr["headRefOid"] for pr in github_rest.pulls("closed", branch=name) or [] if pr["mergedAt"]}
+    merged = {pr["headRefOid"] for pr in landing.pulls("closed", branch=name) or [] if pr["mergedAt"]}
     # with no `origin/HEAD` only a merged pull request counts, so the branch is kept rather than guessed merged
     return sorted(t[:9] for t in tips - merged if not default or git("merge-base", "--is-ancestor", t, default, cwd=root).returncode)
 

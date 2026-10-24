@@ -14,7 +14,8 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
-import github_rest  # noqa: E402
+import board  # noqa: E402
+import landing  # noqa: E402
 
 STOP = set("a an and as at be by for from in into is it its no not of on or the to with".split())
 # a file's newest commits say what it is now, its oldest why it exists, so both ends of its history weigh most
@@ -40,7 +41,7 @@ def words(text):
 
 
 def load(before):
-    found = github_rest.issues("all", pulls=True)
+    found = board.issues("all", pulls=True)
     if found is None:
         sys.exit("recall-work.py: the REST read of the issues failed")
     items = {}
@@ -58,7 +59,7 @@ def load(before):
             "text": " ".join([item["title"]] * 3 + [item["body"], *comments]),
             # any capitalised word, since comments under words the grammar no longer lists stay on the record
             "records": [text.strip().splitlines()[0][:160] for text in comments if re.match(r"\s*[A-Z]+:", text)],
-            "closes": [int(n) for n in github_rest.CLOSES.findall(item["body"])] if item["isPullRequest"] else [],
+            "closes": [int(n) for n in landing.CLOSES.findall(item["body"])] if item["isPullRequest"] else [],
         }
     return items
 

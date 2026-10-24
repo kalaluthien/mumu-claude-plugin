@@ -1,12 +1,23 @@
-"""Each role's next actions: the gaps between GitHub's issues and the live team, as lines a monitor or hook prints."""
-import github_rest
+"""Each role's next actions: the gaps between the board's issues and the live team, as lines a monitor or hook prints."""
+import board
 import issue_state
-from github_issues import ISSUE_LIMIT, PR_LIMIT, issues, limited, scope_label
+import landing
 from herdr_agents import members, owns, project, role, screen, tabs
-from json_command import run
+
+ISSUE_LIMIT, PR_LIMIT = 200, 50
 
 ASK, ANSWER = issue_state.WORD["ask"], issue_state.WORD["answer"]
 FEED = next(w for w, r in issue_state.KEYWORDS.items() if not r)  # the keyword that only informs, which the owner reads as what happened
+
+
+def issues(project=None, state="open"):
+    found = board.issues(state, project)
+    return found and found[:ISSUE_LIMIT]
+
+
+def limited(found, limit, what):
+    """A line when a list came back full, since the read then drops the rest without a word."""
+    return [f"limit: the {what} list returned its limit of {limit}, so some are not shown"] if len(found) >= limit else []
 
 
 def holds(issue, name):
@@ -25,14 +36,13 @@ def unanswered(issue):
 def feed_read(name, since):
     """The trusted reports posted since SINCE (an ISO time) on this manager's project's backlogs and on its issues closed now, as (issue, comment);
     None when a read failed. A task's other reports, such as each precheck table, are steps the owner need not follow."""
-    label = scope_label(project(name))
-    touched = github_rest.issues("all", label, comments=False, since=since)
-    posted = github_rest.get(f"repos/issues/comments?per_page=100&since={since}")
+    touched = board.issues("all", project(name), comments=False, since=since)
+    posted = board.comments_since(since)
     if touched is None or posted is None:
         return None
     by = {i["number"]: i for i in touched if i["state"] == "CLOSED" or "backlog" in [x["name"] for x in i["labels"]]}
     # `since` matches an edit too, so an old comment edited now is left out by its creation time
-    found = [(by[n], c) for n, c in ((int(r["issue_url"].rsplit("/", 1)[1]), github_rest.comment(r)) for r in posted)
+    found = [(by[n], c) for n, c in posted
              if n in by and c["createdAt"] >= since and issue_state.trusted(c) and issue_state.keyword(c["body"]) == FEED]
     # a closed task's last report is its close summary
     last = {i["number"]: c["url"] for i, c in found}
@@ -40,17 +50,17 @@ def feed_read(name, since):
 
 
 def manager_read(me, history=False, since=None):
-    """What a manager's gaps need from GitHub, read once and kept by the caller until something changed; None when a read failed.
+    """What a manager's gaps need from the board, read once and kept by the caller until something changed; None when a read failed.
     HISTORY adds whether a worker ever held a closed issue, for a manager that has not yet seen one; SINCE adds the reports posted since then."""
     found = issues(project(me["name"]))
     # a worker may hold an open issue the scope label misses, which the idle line must still count
-    everything = issues() if found is not None and scope_label(project(me["name"])) else found
+    everything = issues() if found is not None and board.scoped(project(me["name"])) else found
     # one page of the latest updated closed pulls, whose merged ones are the newest merges
-    prs = github_rest.pulls("closed", limit=PR_LIMIT)
+    prs = landing.pulls("closed", limit=PR_LIMIT)
     prs = prs and [p for p in prs if p["mergedAt"]]
     # an outside contributor's issue or pull request carries no scope label, so it is read across the repository
-    outside = github_rest.issues(pulls=True, comments=False)
-    outside = outside and [github_rest.fresh(i["number"]) for i in outside if not issue_state.trusted(i)]
+    outside = board.issues(pulls=True, comments=False)
+    outside = outside and [board.fresh(i["number"]) for i in outside if not issue_state.trusted(i)]
     feed = feed_read(me["name"], since) if since else []  # a first read has no earlier one, so a restart pushes nothing old
     if found is None or everything is None or prs is None or outside is None or None in outside or feed is None:
         return None
@@ -116,29 +126,22 @@ def exit_action(me, listed):
 
 
 def worker_goal(me):
-    """Each held issue's state from a fresh read, since `gh issue list` can lag a comment just posted."""
+    """Each held issue's state from a fresh read, since a list read can lag a comment just posted."""
     held = [i for i in issues() or [] if holds(i, me["name"])]
-    fresh = [github_rest.fresh(i["number"]) or i for i in held]
+    fresh = [board.fresh(i["number"]) or i for i in held]
     return [f"#{i['number']} {i['title']} ({i['url']}): " + ("waits on your manager" if asking(i) else "open") for i in fresh]
 
 
 def worker_read(me):
-    """What a worker's wait needs from GitHub, read once and kept by the caller until something changed; None when a read failed."""
+    """What a worker's wait needs from the board, read once and kept by the caller until something changed; None when a read failed."""
     found = issues()
-    prs = github_rest.pulls("open")
+    prs = landing.pulls("open")
     if found is None or prs is None:
         return None
     for p in (p for p in prs if owns(me["name"], p["headRefName"])):  # the list read lacks mergeability, which a pull read gives
-        p["mergeable"] = {True: "CONFLICTING", False: "MERGEABLE"}.get(github_rest.conflicts(p["number"]))
-    blockers = {i["number"]: run("gh", "api", f"repos/{{owner}}/{{repo}}/issues/{i['number']}/dependencies/blocked_by", "--jq", "[.[].state]")
-                for i in found if holds(i, me["name"])}
+        p["mergeable"] = {True: "CONFLICTING", False: "MERGEABLE"}.get(landing.conflicts(p["number"]))
+    blockers = {i["number"]: board.blockers(i["number"]) for i in found if holds(i, me["name"])}
     return None if None in blockers.values() else {"found": found, "prs": prs, "blockers": blockers}
-
-
-def changed_since(stamp):
-    """Whether any issue or pull request changed since STAMP (an ISO time), by one cheap REST read of the newest; True when it failed, so the caller reads in full."""
-    newest = run("gh", "api", f"repos/{{owner}}/{{repo}}/issues?state=all&per_page=1&since={stamp}")
-    return newest is None or bool(newest)
 
 
 def worker_actions(me, waiting, data=None):
@@ -154,7 +157,7 @@ def worker_actions(me, waiting, data=None):
         turns = issue_state.exchange(i)
         if [r for r, _, _ in turns[-2:]] == ["ask", "answer"]:
             lines.append(f"answered #{i['number']}: {turns[-1][2]['url']} answers your {ASK}:; act on it")
-        if "open" in data["blockers"][i["number"]]:
+        if data["blockers"][i["number"]]:
             waiting.add(i["number"])
         elif i["number"] in waiting:
             waiting.discard(i["number"])
