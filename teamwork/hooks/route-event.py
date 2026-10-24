@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Timing-bound steps live in this hook, routed per event and role, instead of in the playbooks."""
 import json
+import os
 import pathlib
 import re
 import sys
@@ -20,6 +21,19 @@ REMINDED = {"file": ("`file`", "40 characters"), "change": ("40 characters",), "
             "resolve": ("`resolve`",), "edit": ("edit-issue-body", "40 characters"), "change edit": ("40 characters",)}
 FENCE = re.compile(r"^```teamwork\n.*?^```", re.S | re.M)
 STATE_LINE = re.compile(r"^\s*(holders|deferred):", re.M)
+WORKTREES = "/.claude/worktrees/"
+CD = re.compile(r"(?:^|[;&|({]|\bthen|\bdo)[ \t]*(?:cd|pushd)[ \t]+(?:--[ \t]+)?(\"[^\"]*\"|'[^']*'|[^\s;&|)}]+)", re.M)
+
+
+def live_cd(command, cwd):
+    """(folder, worktree): the folder of the live checkout a `cd` in COMMAND enters from the worktree CWD, None for any other;
+    a cd, never a write, is matched, since a script run after it may write anywhere."""
+    root, inside, rest = (cwd or "").partition(WORKTREES)
+    for target in CD.findall(command) if inside else ():
+        path = os.path.normpath(os.path.join(cwd, os.path.expanduser(target.strip("\"'"))))
+        if (path + "/").startswith(root + "/") and WORKTREES not in path + "/":
+            return path, root + WORKTREES + rest.split("/")[0]
+    return None
 
 
 def stray_state(call, cwd):
@@ -63,7 +77,10 @@ def route(kind, event, role, me, listed):
         return goal and {"decision": "block", "reason": "\n".join(["Your goal still waits on you:", *goal,
                          "Take its next step; stop again only while a subagent, a check or your manager has it."])}
     size = call and call["title"]
-    reason = (f"An issue body changes only by {EDIT_BODY} <issue> <diff-file> \"DECIDED: <why>\", which posts the diff as a comment first, as {GRAMMAR} says." if call and call["body edit"]
+    entered = role == "worker" and live_cd((event.get("tool_input") or {}).get("command", ""), event.get("cwd"))
+    reason = (f"This cd enters {entered[0]} in the live checkout, which every session loads, so an edit there lands outside your worktree; "
+              f"start it with cd {entered[1]}, since the shell may start in the live checkout, and read the live checkout by path or git -C." if entered
+              else f"An issue body changes only by {EDIT_BODY} <issue> <diff-file> \"DECIDED: <why>\", which posts the diff as a comment first, as {GRAMMAR} says." if call and call["body edit"]
               else "Write the text to a scratch file first, then pass it with --body-file." if call and call["inline body"]
               else f"Title is {size} characters; shorten it to 40, verb first. Nothing in this command ran, so write any body file again." if size and size > 40 else None)
     if not reason:  # remind, never block: the command still runs
@@ -74,7 +91,8 @@ def route(kind, event, role, me, listed):
 
 event = json.load(sys.stdin)
 kind = event.get("hook_event_name")
-if kind not in ("PreToolUse", "PostToolUse") or board.command((event.get("tool_input") or {}).get("command", "")):  # skip other Bash fast
+command = (event.get("tool_input") or {}).get("command", "")
+if kind not in ("PreToolUse", "PostToolUse") or board.command(command) or kind == "PreToolUse" and live_cd(command, event.get("cwd")):  # skip other Bash fast
     listed, me = session.sessions(event.get("session_id"))
     role = team_names.role(me.get("name"))
     if out := role and route(kind, event, role, me, listed):
