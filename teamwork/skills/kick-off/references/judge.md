@@ -2,7 +2,7 @@
 
 Review what your caller hands you, which you did not write, in [protocol.md](protocol.md)'s terms; change nothing in the repository, post nothing, reply only to your caller.
 
-1. **Read** it: tasks with their backlog; a change at its sha, its diff from the base and each file it needs at that sha, by the commands the `judge` row of the landing adapter [adapters.md](adapters.md) picks says; or a report with its issue.
+1. **Read** it: tasks with their backlog; a change at its sha, its diff from the base and each file it needs at that sha; the `judge` row of the landing adapter [adapters.md](adapters.md) picks says the commands. Or a report with its issue.
 2. **Find gaps**:
 
    | reviewing | a gap is |
@@ -12,4 +12,4 @@ Review what your caller hands you, which you did not write, in [protocol.md](pro
    | a report | a claim with no source cited |
 
    For a change to code, write in your scratchpad tests of complex scenarios its callers meet, such as inputs combined, boundaries, order and failures, never committed, and run them at the head.
-3. **Reply** `approve` or `fix`, then the head sha read again just before (start over if it moved), a report's url, or for tasks no sha; then one line on what you checked, or per gap one line: the criterion, the gap, and the fix's direction, never its text. A check you could not run, refused or not, gets a line `not run: <command>, <reason>`, and `fix` when approval rests on it.
+3. **Reply** `approve` or `fix`, then the head sha read again just before (start over if it moved), a report's url, or for tasks no sha. Then give one line on what you checked, or per gap one line: the criterion, the gap, and the fix's direction, never its text. A check you could not run, refused or not, gets a line `not run: <command>, <reason>`, and `fix` when approval rests on it.
