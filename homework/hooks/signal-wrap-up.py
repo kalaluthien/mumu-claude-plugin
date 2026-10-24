@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """Ask for a wrap-up at a stop, with a sentence of counts the wrap-up skill routes on.
 
-  wrap-up-signal.py                        the Stop hook: its payload on stdin,
+  signal-wrap-up.py                        the Stop hook: its payload on stdin,
                                            the plugin's data folder in CLAUDE_PLUGIN_DATA;
                                            WRAP_UP=off silences it and writes nothing
-  wrap-up-signal.py <transcript|session>   print the sentence for a transcript's last stop
-  wrap-up-signal.py outcome <data> <session> filed|empty
+  signal-wrap-up.py <transcript|session>   print the sentence for a transcript's last stop
+  signal-wrap-up.py outcome <data> <session> filed|empty
                                            report what a session's last asked wrap-up did
 
 A dream rides on a lesson or recipe ask, since a dream alone rarely pays.
 Enabling the plugin for a project is the opt-in, so no arm step writes to the
-data folder. Asks are scored by replay-score.py on fixtures/labels.json, and
-replay-sessions.py replays fixtures/sessions.json; the other fixtures are
+data folder. Asks are scored by fixtures/replay-score.py on fixtures/labels.json, and
+fixtures/replay-sessions.py replays fixtures/sessions.json; the other fixtures are
 trimmed past stops to run the sentence on.
 """
 import json

@@ -10,7 +10,7 @@ Close a stretch of work so the next session starts ahead: keep what this session
 
 ## Domain
 
-- **Signal**: the Stop hook's sentence opening `Wrap-up signal:`, carrying lesson points `<p>` of threshold `<t>`, this session's first retro `<f>`: `due`, `asked` or `at <n> of <limit> tool calls`, memory files changed `<m>` of limit `<l>`, and run recipe `<r>`: `fine`, `missing` or `failed`. With none in sight, print this session's: `"${CLAUDE_PLUGIN_ROOT}/hooks/wrap-up-signal.py" ${CLAUDE_SESSION_ID}`.
+- **Signal**: the Stop hook's sentence opening `Wrap-up signal:`, carrying lesson points `<p>` of threshold `<t>`, this session's first retro `<f>`: `due`, `asked` or `at <n> of <limit> tool calls`, memory files changed `<m>` of limit `<l>`, and run recipe `<r>`: `fine`, `missing` or `failed`. With none in sight, print this session's: `"${CLAUDE_PLUGIN_ROOT}/hooks/signal-wrap-up.py" ${CLAUDE_SESSION_ID}`.
 - **Memory**: what loads into an agent before it acts: instruction files (`AGENTS.md`, `CLAUDE.md`), auto-memory, whose `MEMORY.md` index loads at start and each file only when read, and project skills, whose descriptions load at start.
 - **Memory file**: one lesson, then a `When it applies:` line, the situation that should recall it, and a `When it is wrong:` line, the condition that would make it false. Its index line is `- [<title>](<file>.md) — <when it applies>`, since only the index is read before the situation arises.
 - `<skill>` is `${CLAUDE_SKILL_DIR}`, `<data>` is `${CLAUDE_PLUGIN_DATA}`, and `<config>` is the folder the owner names, else `${CLAUDE_CONFIG_DIR:-$HOME/.claude}`.
@@ -34,4 +34,4 @@ Take every row whose condition holds, in order, and copy its playbook's steps ve
 - **No waiting**: ask the owner only whether to file an issue, since filing one asks first; fix or leave each other item for the owner, and report.
 - **This project only**: write only this project's auto-memory. A change to `<config>/CLAUDE.md`, another project's memory, a hook, a script or a skill goes as a patch file the person applies, the report naming its `!` command, as [references/retro.md](references/retro.md) step 4 says.
 - **Repository first**: file nothing the repository or its history already states, and change a repository's file only the way it takes changes, as its `AGENTS.md` says.
-- **Outcome**: when the hook asked, end with `"${CLAUDE_PLUGIN_ROOT}/hooks/wrap-up-signal.py" outcome "${CLAUDE_PLUGIN_DATA}" ${CLAUDE_SESSION_ID} filed` if anything was filed, fixed or recorded, else the same with `empty`, so the hook asks less often after empty wrap-ups.
+- **Outcome**: when the hook asked, end with `"${CLAUDE_PLUGIN_ROOT}/hooks/signal-wrap-up.py" outcome "${CLAUDE_PLUGIN_DATA}" ${CLAUDE_SESSION_ID} filed` if anything was filed, fixed or recorded, else the same with `empty`, so the hook asks less often after empty wrap-ups.
