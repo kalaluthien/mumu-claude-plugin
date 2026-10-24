@@ -18,7 +18,7 @@ export has no `.git`) and a check with a placeholder are `unclear`. The output i
 
 `--pass <n>=<sample-file>` (once per criterion, with a body file) runs criterion `n` at the head with its first pipe stage
 replaced by `cat <sample-file>`, so the stages after it meet the input the pass would give. It prints `pass ok` when the
-output equals the text after `prints`, `wrong pass` when it differs, `unclear` for a criterion with no sample or whose first
+output equals the text after `prints` (or meets `exits` or `more`), `wrong pass` when it differs, `unclear` for a criterion with no sample or whose first
 stage it cannot split surely: before its first pipe, outside quotes, only words, blanks and `. / = : , + @ % ~ < -`
 may stand, and the first word is no `if`, `while`, `for` or other compound keyword; inside double quotes no `$(`, `${`, backtick
 or backslash; exit 1 on any
@@ -193,13 +193,13 @@ def after_first_pipe(command):
 
 def pass_row(label, kind, name, detail, sample, cwd, timeout):
     command, test = expectation(detail)
-    if kind != "check" or test[0] != "prints":
-        return label, name, "unclear", "not run: not a `prints` check"
+    if kind != "check" or test[0] is None:
+        return label, name, "unclear", "not run: not a `[check]` with a decidable pass"
     rest = after_first_pipe(command)
     if sample is None or rest is None:
         return label, name, "unclear", "not run: no sample, or no pipe to put it before"
     status, out = run(f"cat {shlex.quote(sample)} |{rest}", cwd, timeout)
-    return label, name, "pass ok" if status is not None and out == test[1] else "wrong pass", cell(out)
+    return label, name, {"pass": "pass ok", "fail": "wrong pass", "unclear": "unclear"}[verdict(test, status, out)], cell(out)
 
 
 def base_ref(ref):
