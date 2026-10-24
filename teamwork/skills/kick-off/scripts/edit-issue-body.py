@@ -9,6 +9,9 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import board  # noqa: E402
+
 issue, diff_file, line = sys.argv[1:4]
 diff = pathlib.Path(diff_file).read_text()
 # patch accepts an empty diff, which would post a comment that changes nothing
@@ -17,15 +20,11 @@ if not diff.strip():
 work = pathlib.Path(tempfile.mkdtemp())
 body = work / "body.md"
 # the web editor saves CRLF, which a diff written against the shown text never matches
-# REST, not `gh issue`: GraphQL hits its rate limit while REST still works
-read = subprocess.run(["gh", "api", f"repos/{{owner}}/{{repo}}/issues/{issue}", "-q", ".body"], capture_output=True, text=True)
-if read.returncode:
-    # gh fills {owner}/{repo} from the working folder, or from GH_REPO
-    # gh's own line keeps a missing issue or an auth failure from reading as a folder fault
-    cause = (read.stderr.strip().splitlines() or ["no message"])[0]
-    print(f"edit-issue-body: cannot read #{issue} ({cause}); if you are not in the repository's checkout, set GH_REPO=<owner>/<repo>", file=sys.stderr)
+try:
+    body.write_text(board.body(issue).replace("\r\n", "\n"))
+except LookupError as e:
+    print(f"edit-issue-body: {e}", file=sys.stderr)
     sys.exit(2)
-body.write_text(read.stdout.replace("\r\n", "\n"))
 # --forward: an applied diff reads as reversed, which a bare dry run would accept
 check = subprocess.run(["patch", "--forward", "--batch", "--dry-run", "-s", str(body), diff_file], capture_output=True, text=True)
 if check.returncode:
@@ -33,7 +32,7 @@ if check.returncode:
 fence = "`" * max([3] + [len(run) + 1 for run in re.findall(r"`+", diff)])
 comment = work / "comment.md"
 comment.write_text(f"{line}\n\n{fence}diff\n{diff}{'' if diff.endswith(chr(10)) else chr(10)}{fence}\n")
-subprocess.run(["gh", "api", "-X", "POST", f"repos/{{owner}}/{{repo}}/issues/{issue}/comments", "-F", f"body=@{comment}"], check=True)
+print(board.comment(issue, comment.read_text()))
 subprocess.run(["patch", "--forward", "--batch", "-s", str(body), diff_file], check=True)
-subprocess.run(["gh", "api", "-X", "PATCH", f"repos/{{owner}}/{{repo}}/issues/{issue}", "-F", f"body=@{body}"], check=True)
+board.edit(issue, body.read_text())
 print(f"edit-issue-body: #{issue}'s body now carries the diff its new comment holds")

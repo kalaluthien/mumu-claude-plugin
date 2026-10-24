@@ -3,7 +3,7 @@
 
 Run each `[check]` of a task's Definition of done at the head, in the worktree's root, then each `[check]` of an
 optional `.teamwork/default-criteria.md` there as `standing`, and print a table to comment on the task, which the
-judge reads instead of running each check again. `-` reads `gh issue view <task> --json body,comments` output.
+judge reads instead of running each check again. `-` reads the task as JSON, its `body` and `comments`.
 
 A row is `pass` or `fail` by the output the criterion says it `prints`, or the status it `exits`; `unclear` when the
 script cannot decide it, such as a `<placeholder>`, two commands or an expected text found inside other output, which the
@@ -35,7 +35,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
-import github_rest  # noqa: E402
+import board  # noqa: E402
 import issue_state  # noqa: E402
 
 HEADER = "REPORTED: criteria at "
@@ -80,12 +80,12 @@ def clause_of(rest):
 
 def read_task(source):
     if source == "-":
-        return json.load(sys.stdin)
-    raw = github_rest.get(f"repos/issues/{source}", paginate=False)
-    found = github_rest.get(f"repos/issues/{source}/comments?per_page=100")
-    if raw is None or found is None:
+        task = json.load(sys.stdin)  # a comment the board adapter has not marked, as a board's own listing prints it, gets its mark here
+        return {**task, "comments": [{**c, "trusted": c.get("trusted", board.trusted(c))} for c in task.get("comments", [])]}
+    found = board.fresh(source)
+    if found is None:
         sys.exit(f"run-criteria: could not read task {source} from GitHub")
-    return {"body": raw["body"] or "", "comments": [github_rest.comment(c) for c in found]}
+    return found
 
 
 def expectation(detail):
