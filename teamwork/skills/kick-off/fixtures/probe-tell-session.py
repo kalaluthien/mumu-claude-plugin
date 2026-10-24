@@ -81,6 +81,8 @@ def fake():
     case("done delivered", tell("done-codex", "hi", env, 5), 0, "delivered to done-codex")
     case("unblocked delivered after a retry", tell("unblock-codex", "hi", env, 5), 0, "after 1 retry")
     case("unseen not delivered", tell("unseen-codex", "hi", env, 5), 1, "never showed it")
+    case("empty not delivered", tell("done-codex", " \n", env, 5), 1, "the text is empty")
+    results.pop()  # a guard, not one of the receivers the printed line names
 
 
 try:

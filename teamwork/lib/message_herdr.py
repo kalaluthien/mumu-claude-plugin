@@ -8,6 +8,8 @@ POLL, SEEN = 1.0, 10.0  # how long a taken prompt may take to show, as work or a
 
 def tell(name, text, timeout):
     """(delivered, what happened): `after its turn`, `after <n> retries`, or why it was not delivered."""
+    if not text.strip():  # an empty text shows on every screen, so the confirm would pass with nothing sent
+        return False, "the text is empty"
     deadline, retries, waited = time.time() + timeout, 0, False
     while True:
         a = session.agent(name)
