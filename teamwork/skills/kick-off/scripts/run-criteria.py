@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""usage: run-criteria.py [--timeout <s>] [--base [--ref <ref>]] <task | body-file | ->
+"""usage: run-criteria.py [--timeout <s>] [--base [--ref <ref>] | --pass <n>=<sample-file>...] <task | body-file | ->
 
 Run each `[check]` of a task's Definition of done at the head, in the worktree's root, then each `[check]` of an
 optional `.teamwork/default-criteria.md` there as `standing`, and print a table to comment on the task, which the
@@ -20,6 +20,7 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import signal
 import subprocess
 import sys
@@ -146,6 +147,30 @@ def base_row(label, kind, name, detail, archive, timeout):
     return label, name, "base ok" if status is not None and out == quoted else "wrong base", cell(out)
 
 
+def after_first_pipe(command):
+    """The command without its first pipe stage, split at the first `|` outside quotes, or None when it has no pipe."""
+    quote = None
+    for i, c in enumerate(command):
+        if quote:
+            quote = None if c == quote else quote
+        elif c in "'\"":
+            quote = c
+        elif c == "|" and command[i + 1:i + 2] != "|" and command[i - 1:i] != "|":
+            return command[i + 1:]
+    return None
+
+
+def pass_row(label, kind, name, detail, sample, cwd, timeout):
+    command, test = expectation(detail)
+    if kind != "check" or test[0] != "prints":
+        return label, name, "unclear", "not run: not a `prints` check"
+    rest = after_first_pipe(command)
+    if sample is None or rest is None:
+        return label, name, "unclear", "not run: no sample, or no pipe to put it before"
+    status, out = run(f"cat {shlex.quote(sample)} |{rest}", cwd, timeout)
+    return label, name, "pass ok" if status is not None and out == test[1] else "wrong pass", cell(out)
+
+
 def base_ref(ref):
     found = ref or subprocess.run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"], capture_output=True,
                                   text=True).stdout.strip()
@@ -231,13 +256,22 @@ def main():
     args.add_argument("--timeout", type=int, default=300)
     args.add_argument("--base", "--main", action="store_true")
     args.add_argument("--ref")
+    args.add_argument("--pass", dest="samples", action="append", default=[], metavar="N=FILE")
     args.add_argument("task")
     a = args.parse_args()
     file = pathlib.Path(a.task)
-    task = {"body": file.read_text(), "comments": []} if a.base and file.is_file() else read_task(a.task)
+    task = {"body": file.read_text(), "comments": []} if (a.base or a.samples) and file.is_file() else read_task(a.task)
     root = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip() or "."
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
     dirty = subprocess.run(["git", "status", "--porcelain"], cwd=root, capture_output=True, text=True).stdout.strip()
+    if a.samples:
+        given = {int(n): f for n, _, f in (x.partition("=") for x in a.samples)}
+        found = list(criteria(issue_state.sections(task.get("body")).get("done", "")))
+        rows = [pass_row(str(n), *c, given.get(n), root, a.timeout) for n, c in enumerate(found, 1)]
+        print("REPORTED: pass outputs at " + head + "\n\n| # | criterion | result | output on sample |\n| --- | --- | --- | --- |")
+        for r in rows:
+            print("| " + " | ".join([r[0], r[1].replace("|", "\\|"), r[2], r[3]]) + " |")
+        sys.exit(1 if any(r[2] == "wrong pass" for r in rows) else 0)
     if a.base:
         ref = base_ref(a.ref)
         sha = subprocess.run(["git", "rev-parse", "--short", ref], cwd=root, capture_output=True, text=True).stdout.strip()
