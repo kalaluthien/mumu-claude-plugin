@@ -1,6 +1,6 @@
 # Session: herdr
 
-Each session is a herdr agent in a tab; `$HERDR_PANE_ID` is your pane.
+Each session is a herdr agent in a herdr pane, shown by a herdr tab, and a team's tabs share one herdr workspace; `$HERDR_PANE_ID` is your pane.
 
 | operation | how |
 | --- | --- |
