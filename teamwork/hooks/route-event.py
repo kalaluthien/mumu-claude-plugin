@@ -22,7 +22,7 @@ REMINDED = {"file": ("`file`", "40 characters"), "change": ("40 characters",), "
 FENCE = re.compile(r"^```teamwork\n.*?^```", re.S | re.M)
 STATE_LINE = re.compile(r"^\s*(holders|deferred):", re.M)
 WORKTREES = "/.claude/worktrees/"
-CD = re.compile(r"(?:^|[;&|(]|\bthen|\bdo)\s*(?:cd|pushd)\s+(\"[^\"]*\"|'[^']*'|[^\s;&|)]+)")
+CD = re.compile(r"(?:^|[;&|({]|\bthen|\bdo)[ \t]*(?:cd|pushd)[ \t]+(?:--[ \t]+)?(\"[^\"]*\"|'[^']*'|[^\s;&|)}]+)", re.M)
 
 
 def live_cd(command, cwd):
