@@ -79,7 +79,7 @@ def route(kind, event, role, me, listed):
     size = call and call["title"]
     entered = role == "worker" and live_cd((event.get("tool_input") or {}).get("command", ""), event.get("cwd"))
     reason = (f"This cd enters {entered[0]} in the live checkout, which every session loads, so an edit there lands outside your worktree; "
-              f"run it in {entered[1]}, where the shell starts, and read the live checkout by path or git -C." if entered
+              f"start it with cd {entered[1]}, since the shell may start in the live checkout, and read the live checkout by path or git -C." if entered
               else f"An issue body changes only by {EDIT_BODY} <issue> <diff-file> \"DECIDED: <why>\", which posts the diff as a comment first, as {GRAMMAR} says." if call and call["body edit"]
               else "Write the text to a scratch file first, then pass it with --body-file." if call and call["inline body"]
               else f"Title is {size} characters; shorten it to 40, verb first. Nothing in this command ran, so write any body file again." if size and size > 40 else None)
