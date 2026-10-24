@@ -169,3 +169,7 @@ Keeps what a session learned, once, where the next reader will look.
 - [AGENTS.md](AGENTS.md) holds the rules every plugin follows: folder layout, how skills are written, how a design is split, how a change is evaluated.
 - [CONTRIBUTING.md](CONTRIBUTING.md) says how to propose a change from a fork.
 - Sessions load the plugins straight from a checkout, so a merged change reaches them after a pull and, for a `SKILL.md` or a `hooks.json`, a `/reload-plugins`; [AGENTS.md](AGENTS.md) lists the rest.
+
+## License
+
+[Apache-2.0](LICENSE); third-party works it uses are named in [NOTICE](NOTICE). This project is not affiliated with Anthropic.
