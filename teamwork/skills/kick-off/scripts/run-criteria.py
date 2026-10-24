@@ -14,7 +14,13 @@ it has failed twice the same way.
 `--base` runs each `[check]` in an export of the base instead, `--ref` or else `origin/HEAD`, and prints `base ok` when
 its output equals the text quoted after `on base` (or `on main`, in tasks filed before), `wrong base` when it differs,
 `unclear` when the quote is not one value; exit 1 on any `wrong base`; an `exits` or `more` check, a git check (the
-export has no `.git`) and a check with a placeholder are `unclear`. The output is compared whole. It never fetches: run `git fetch` first. A body file reads criteria before the task exists, so run it before the first judge."""
+export has no `.git`) and a check with a placeholder are `unclear`. The output is compared whole. It never fetches: run `git fetch` first. A body file reads criteria before the task exists, so run it before the first judge.
+
+`--pass <n>=<sample-file>` (once per criterion, with a body file) runs criterion `n` at the head with its first pipe stage
+replaced by `cat <sample-file>`, so the stages after it meet the input the pass would give. It prints `pass ok` when the
+output equals the text after `prints`, `wrong pass` when it differs, `unclear` for a criterion with no sample or whose first
+stage it cannot split surely (a `\\`, `||`, `&`, `;`, newline, `#` or parenthesis before the first pipe); exit 1 on any
+`wrong pass`. It finds a check that can never pass, such as `check-schema.py check /dev/stdin`, which reads its input twice."""
 import argparse
 import json
 import os
@@ -149,16 +155,19 @@ def base_row(label, kind, name, detail, archive, timeout):
 
 def after_first_pipe(command):
     """The command without its first pipe stage, split at the first `|` outside quotes, or None when the split is not certain:
-    no pipe, or before it a `\\`, `&&`, `;`, `(`, `)` or backtick, which would drop or break part of the first stage."""
+    no pipe, or before it a `\\` anywhere, `||`, `&`, `;`, a newline, `#`, `(`, `)` or a backtick outside quotes, which would
+    drop or break part of the first stage."""
     quote = None
     for i, c in enumerate(command):
+        if c == "\\":
+            return None
         if quote:
             quote = None if c == quote else quote
         elif c in "'\"":
             quote = c
-        elif c in "\\;()`" or command[i:i + 2] == "&&":
+        elif c in ";&\n#()`" or command[i:i + 2] == "||":
             return None
-        elif c == "|" and command[i + 1:i + 2] != "|" and command[i - 1:i] != "|":
+        elif c == "|":
             return command[i + 1:]
     return None
 
