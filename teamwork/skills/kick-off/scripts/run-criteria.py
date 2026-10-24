@@ -19,7 +19,7 @@ export has no `.git`) and a check with a placeholder are `unclear`. The output i
 `--pass <n>=<sample-file>` (once per criterion, with a body file) runs criterion `n` at the head with its first pipe stage
 replaced by `cat <sample-file>`, so the stages after it meet the input the pass would give. It prints `pass ok` when the
 output equals the text after `prints`, `wrong pass` when it differs, `unclear` for a criterion with no sample or whose first
-stage it cannot split surely: before its first pipe, outside quotes, only words, blanks and `. / = : , + @ % ~ < > -`
+stage it cannot split surely: before its first pipe, outside quotes, only words, blanks and `. / = : , + @ % ~ < -`
 may stand, and the first word is no `if`, `while`, `for` or other compound keyword; inside double quotes no `$(`, `${`, backtick
 or backslash; exit 1 on any
 `wrong pass`. It finds a check that can never pass, such as `check-schema.py check /dev/stdin`, which reads its input twice."""
@@ -156,11 +156,11 @@ def base_row(label, kind, name, detail, archive, timeout):
 
 
 # outside quotes only these may precede the first pipe; anything else (`;`, `&`, `{`, `(`, `#`, a backslash, ...) might hide a pipe or a stage
-SAFE = re.compile(r"[\w \t./=:,+@%~<>-]|\$\w|\$(?=[\"'])")
+SAFE = re.compile(r"[\w \t./=:,+@%~<-]|\$\w|\$(?=[\"'])")
 
 
 # a compound command owns the pipe that follows its first word, so the pipe is not a stage boundary
-KEYWORDS = {"if", "while", "until", "for", "case", "select", "time", "function"}
+KEYWORDS = {"if", "while", "until", "for", "case", "select", "time", "function", "coproc"}
 
 
 def after_first_pipe(command):
