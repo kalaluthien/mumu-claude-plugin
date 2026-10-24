@@ -6,6 +6,7 @@ from herdr_agents import members, owns, project, role, screen, tabs
 from json_command import run
 
 ASK, ANSWER = issue_state.WORD["ask"], issue_state.WORD["answer"]
+FEED = next(w for w, r in issue_state.KEYWORDS.items() if not r)  # the keyword that only informs, which the owner reads as what happened
 
 
 def holds(issue, name):
@@ -21,9 +22,26 @@ def unanswered(issue):
     return not issue_state.trusted(issue) and not issue_state.deferral(issue) and not issue_state.holder_values(issue)
 
 
-def manager_read(me, history=False):
+def feed_read(name, since):
+    """The trusted reports posted since SINCE (an ISO time) on this manager's project's backlogs and on its issues closed now, as (issue, comment);
+    None when a read failed. A task's other reports, such as each precheck table, are steps the owner need not follow."""
+    label = scope_label(project(name))
+    touched = github_rest.issues("all", label, comments=False, since=since)
+    posted = github_rest.get(f"repos/issues/comments?per_page=100&since={since}")
+    if touched is None or posted is None:
+        return None
+    by = {i["number"]: i for i in touched if i["state"] == "CLOSED" or "backlog" in [x["name"] for x in i["labels"]]}
+    # `since` matches an edit too, so an old comment edited now is left out by its creation time
+    found = [(by[n], c) for n, c in ((int(r["issue_url"].rsplit("/", 1)[1]), github_rest.comment(r)) for r in posted)
+             if n in by and c["createdAt"] >= since and issue_state.trusted(c) and issue_state.keyword(c["body"]) == FEED]
+    # a closed task's last report is its close summary
+    last = {i["number"]: c["url"] for i, c in found}
+    return [(i, c) for i, c in found if i["state"] == "OPEN" or last[i["number"]] == c["url"]]
+
+
+def manager_read(me, history=False, since=None):
     """What a manager's gaps need from GitHub, read once and kept by the caller until something changed; None when a read failed.
-    HISTORY adds whether a worker ever held a closed issue, for a manager that has not yet seen one."""
+    HISTORY adds whether a worker ever held a closed issue, for a manager that has not yet seen one; SINCE adds the reports posted since then."""
     found = issues(project(me["name"]))
     # a worker may hold an open issue the scope label misses, which the idle line must still count
     everything = issues() if found is not None and scope_label(project(me["name"])) else found
@@ -33,13 +51,16 @@ def manager_read(me, history=False):
     # an outside contributor's issue or pull request carries no scope label, so it is read across the repository
     outside = github_rest.issues(pulls=True, comments=False)
     outside = outside and [github_rest.fresh(i["number"]) for i in outside if not issue_state.trusted(i)]
-    if found is None or everything is None or prs is None or outside is None or None in outside:
+    feed = feed_read(me["name"], since) if since else []  # a first read has no earlier one, so a restart pushes nothing old
+    if found is None or everything is None or prs is None or outside is None or None in outside or feed is None:
         return None
-    return {"found": found, "everything": everything, "prs": prs, "outside": [i for i in outside if unanswered(i)], "had_worker": had_worker(me) if history else False}
+    return {"found": found, "everything": everything, "prs": prs, "outside": [i for i in outside if unanswered(i)],
+            "had_worker": had_worker(me) if history else False, "feed": feed}
 
 
-def manager_actions(me, listed, data=None):
-    """A manager's gaps from DATA, a `manager_read` kept from an earlier poll, else from a read now."""
+def manager_actions(me, listed, data=None, fed=None):
+    """A manager's gaps from DATA, a `manager_read` kept from an earlier poll, else from a read now. FED, kept by the caller
+    across polls, holds the urls of the reports already fed, since two reads overlap by the clock skew."""
     data = data or manager_read(me)
     if data is None:
         return None
@@ -65,6 +86,14 @@ def manager_actions(me, listed, data=None):
             lines.append(f"idle {n}: holds {held}; it needs what waits, or close it when it holds nothing open")
     for p, n in ((p, n) for p in prs for n in team if owns(n, p["headRefName"])):
         lines.append(f"merged #{p['number']} by {n}: once {n} holds nothing open, close it and clean its worktree")
+    news = {}
+    for i, c in data.get("feed", []):
+        if fed is not None and c["url"] not in fed:
+            fed.add(c["url"])
+            news.setdefault(i["number"], (i, []))[1].append(c)
+    for i, posted in news.values():
+        said = " | ".join(c["body"].strip().splitlines()[0] for c in posted)
+        lines.append(f"feed #{i['number']} {i['title']}: {said} ({posted[-1]['url']}); push it to the owner by PushNotification")
     return lines
 
 

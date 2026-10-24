@@ -1,5 +1,5 @@
 [
   { "name": "heartbeat", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/monitors/print-team-gaps.py",
-    "description": "Once per change: to a manager, each gap between GitHub and its team with the action that closes it, and the exit once its workers are gone; to a worker, what ended its wait with the act it needs",
+    "description": "Once per change: to a manager, each gap between GitHub and its team with the action that closes it, each new report on a backlog or close summary to pass to the owner, and the exit once its workers are gone; to a worker, what ended its wait with the act it needs",
     "when": "always" }
 ]

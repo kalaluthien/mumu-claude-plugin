@@ -50,9 +50,9 @@ def with_comments(found, repo=None):
     return found
 
 
-def issues(state="open", label=None, repo=None, pulls=False, comments=True):
-    """The repository's issues, and its pull requests too when PULLS, newest first; None when a read failed."""
-    path = f"repos/issues?state={state}&per_page=100" + (f"&labels={quote(label)}" if label else "")
+def issues(state="open", label=None, repo=None, pulls=False, comments=True, since=None):
+    """The repository's issues, and its pull requests too when PULLS, newest first, only those updated since SINCE (an ISO time) when given; None when a read failed."""
+    path = f"repos/issues?state={state}&per_page=100" + (f"&labels={quote(label)}" if label else "") + (f"&since={since}" if since else "")
     raw = get(path, repo)
     if raw is None:
         return None
