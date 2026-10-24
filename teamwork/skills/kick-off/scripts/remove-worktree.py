@@ -62,5 +62,6 @@ if not common:
 root = pathlib.Path(common).parent  # the main checkout, wherever in it this runs
 for name in sys.argv[1:]:
     print(remove(name, root))
-p = git("pull", "--ff-only", cwd=root)
-print("checkout fast-forwarded" if not p.returncode else f"checkout not fast-forwarded: {p.stderr.strip()}")
+if not git("remote", "get-url", "origin", cwd=root).returncode:  # with no remote, a local merge already moved the checkout
+    p = git("pull", "--ff-only", cwd=root)
+    print("checkout fast-forwarded" if not p.returncode else f"checkout not fast-forwarded: {p.stderr.strip()}")

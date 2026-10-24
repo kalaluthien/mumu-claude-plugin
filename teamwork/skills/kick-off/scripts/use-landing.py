@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+"""usage: use-landing.py <operation> <args>
+
+Do one operation of the local git landing, which keeps each change in the git common folder's `teamwork/changes`:
+  change <branch> <title> <body-file> [base]   file BRANCH as a change into BASE, by default the main checkout's branch; print its url
+  merge <change> <sha>                         squash SHA, the branch tip a judge approved, onto the base; print the new commit"""
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import landing_git  # noqa: E402
+
+verb, *a = sys.argv[1:] or [""]
+try:
+    if verb == "change" and len(a) in (3, 4):
+        main = landing_git.git("symbolic-ref", "--short", "HEAD", cwd=landing_git.folder().parents[2]).stdout.strip()
+        print(landing_git.change(a[0], a[1], pathlib.Path(a[2]).read_text(), a[3] if a[3:] else main))
+    elif verb == "merge" and len(a) == 2:
+        print(landing_git.merge(*a))
+    else:
+        sys.exit(__doc__)
+except (OSError, LookupError) as e:
+    sys.exit(f"use-landing: {e}")

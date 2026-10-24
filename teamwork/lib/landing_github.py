@@ -1,7 +1,7 @@
 """Changes on GitHub: pull requests read by REST, which spends no GraphQL point."""
 import re
 
-from board_github import get  # one GitHub REST reader for both ports
+from board_github import changed_since, get  # one GitHub REST reader for both ports, whose issues read counts pull requests too
 
 # the keywords GitHub links a pull request to the issue it closes by
 CLOSES = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)", re.I)
