@@ -12,9 +12,7 @@ says. A state level's faults are read by [its semantics](../schema/semantics.md#
 
 ## Rules
 
-- **Kept behaviour**:
-
-every original Scenario and rule stays, by slug and meaning. Adding behaviour is free; a removal fails the comparison
+- **Kept behaviour**: every original Scenario and rule stays, by slug and meaning. Adding behaviour is free; a removal fails the comparison
   until the user approves. `scripts/compare-models.py original.json improved.json` prints `kept` or `dropped` per slug,
   `changed` where a kept slug's text differs, each count below on both documents, then the improved document's check;
   exit 0 means nothing dropped and the check passes.
