@@ -1,12 +1,12 @@
-"""Changes in local git: each is a record `<n>.json` in the git common folder's `teamwork/changes`, the same for every worktree and never committed,
+"""Changes in local git: each is a record `<n>.json` in the main checkout's `.teamwork/changes`, the same for every worktree and never committed,
 holding its title, body, branch and base, and once merged the head it took. A merge squashes that head onto the base as one commit, as GitHub's does."""
 import json
 import os
-import pathlib
 import re
 import subprocess
 from datetime import datetime, timezone
 
+import data_folder
 import team_signal
 
 CLOSES = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)", re.I)
@@ -18,8 +18,7 @@ def git(*argv, cwd=None, stdin=None):
 
 def folder():
     """The changes folder of the repository holding the current folder; None outside one."""
-    common = git("rev-parse", "--path-format=absolute", "--git-common-dir").stdout.strip()
-    return common and pathlib.Path(common) / "teamwork" / "changes" or None
+    return data_folder.folder("changes")
 
 
 def stamp(seconds=None):

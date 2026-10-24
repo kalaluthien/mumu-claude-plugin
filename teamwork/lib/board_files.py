@@ -5,22 +5,17 @@ import os
 import pathlib
 import re
 import shlex
-import subprocess
 from datetime import datetime, timezone
 
 import claude_config
+import data_folder
 import team_settings
 import team_signal
 
 
 def default_folder():
-    """The git common folder's `teamwork/board`, the same for every worktree of a project and never committed; outside a repository, or with no git, the Claude config folder's."""
-    try:
-        run = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], capture_output=True, text=True)
-    except OSError:
-        run = None
-    base = pathlib.Path(run.stdout.strip()) if run and run.returncode == 0 and run.stdout.strip() else claude_config.folder()
-    return base / "teamwork" / "board"
+    """The main checkout's `.teamwork/board`, the same for every worktree of a project and never committed; outside a repository, or with no git, the Claude config folder's."""
+    return data_folder.folder("board") or claude_config.folder() / "teamwork" / "board"
 
 DIR = pathlib.Path(os.environ.get("TEAMWORK_BOARD_DIR") or default_folder())
 USE = re.compile(r"use-board\.py\s+(file|comment|decide|edit|resolve|order|nest|label)\b([^;&|\n]*)")
@@ -85,7 +80,7 @@ def tree(project, nodes=None):
         {**{k: r[k] for k in ("number", "title", "url", "body")}, "parent": r["parent"] and {"number": r["parent"]}, "blockedBy": waits(r["number"]),
          "labels": {"nodes": [{"name": x} for x in r["labels"]]}, "comments": {"nodes": [{"body": c["body"], "url": c["url"]} for c in r["comments"]]},
          "subIssuesSummary": {"total": len(kids(r["number"])), "completed": sum(every[c]["state"] == "CLOSED" for c in kids(r["number"]))},
-         "subIssues": {"nodes": [{"number": c, "title": every[c]["title"], "url": f"file://{DIR}/{c}", "state": every[c]["state"], "blockedBy": waits(c)}
+         "subIssues": {"nodes": [{"number": c, "title": every[c]["title"], "url": f"file://{DIR}/{c}", "state": every[c]["state"], "stateReason": every[c]["reason"] or None, "blockedBy": waits(c)}
                                  for c in kids(r["number"])][-50:]}} for r in reversed(issues("open", project))]
     for n in nodes:
         n["trusted"] = True
