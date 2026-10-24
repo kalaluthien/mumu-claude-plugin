@@ -1,8 +1,10 @@
 """Past task durations: one row per closed non-backlog issue, read from the board or from a fixture file."""
+import os
 from concurrent.futures import ThreadPoolExecutor
 
 import board
 import landing
+import team_settings
 from session_gaps import stamp
 
 CRITERION = ("[check]", "[score]")
@@ -36,9 +38,9 @@ def fetch(repo):
 
 def rows(issues):
     """A task starts at its pull request's first commit, else at its creation; each row names which."""
-    out = []
+    out, backlog = [], team_settings.load(os.getcwd())["backlog_label"]
     for i in issues:
-        if "backlog" in i["labels"] or not i.get("closedAt"):
+        if backlog in i["labels"] or not i.get("closedAt"):
             continue
         source, start = ("pr", i["prStart"]) if i.get("prStart") else ("created", i["createdAt"])
         hours = (stamp(i["closedAt"]) - stamp(start)).total_seconds() / 3600

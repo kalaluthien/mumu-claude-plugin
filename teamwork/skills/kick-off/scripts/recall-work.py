@@ -8,6 +8,7 @@ import argparse
 import collections
 import json
 import math
+import os
 import pathlib
 import re
 import subprocess
@@ -17,6 +18,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
 import issue_state  # noqa: E402
 import landing  # noqa: E402
+import team_settings  # noqa: E402
 
 STOP = set("a an and as at be by for from in into is it its no not of on or the to with".split())
 # a file's newest commits say what it is now, its oldest why it exists, so both ends of its history weigh most
@@ -45,7 +47,7 @@ def load(before):
     found = board.issues("all", pulls=True)
     if found is None:
         sys.exit("recall-work.py: the REST read of the issues failed")
-    items = {}
+    items, backlog = {}, team_settings.load(os.getcwd())["backlog_label"]
     for item in found:
         if before and item["createdAt"] >= before:
             continue
@@ -53,7 +55,7 @@ def load(before):
         if item["isPullRequest"]:
             kind, state = "PR", "merged" if item["mergedAt"] else item["state"].lower()
         else:
-            kind = "backlog" if "backlog" in item["labels"] else "issue"
+            kind = "backlog" if backlog in item["labels"] else "issue"
             state = "open" if item["state"] == "OPEN" else (item["stateReason"] or "closed").lower().replace("_", " ")
         items[item["number"]] = {
             "head": f"#{item['number']} {kind} {state}: {issue_state.title(item)}",

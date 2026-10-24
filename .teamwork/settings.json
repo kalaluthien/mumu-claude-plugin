@@ -1,0 +1,7 @@
+{
+  "refuse": true,
+  "title_max": 40,
+  "backlog_label": "backlog",
+  "scope_prefix": "scope:",
+  "tools_off": {"worker": ["Artifact", "AskUserQuestion"], "manager": ["Artifact", "Workflow"]}
+}
