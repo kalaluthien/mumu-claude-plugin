@@ -60,6 +60,7 @@ Each port is a set of operations the playbooks name; an adapter does each, and [
 | message | `tell` | one message to a session, naming the url that holds what it needs and stating a fact, never a step for the peer to run |
 | message | `ask` | asks the owner in your tab, with choices |
 | message | `notify` | reaches the owner away, naming the issue and your tab |
+| message | `watch` | waits until a session is idle, and says so |
 | session | `start` | opens a session `<name>` at a folder with its kick-off arguments, tier and effort: a tab in your workspace, a workspace of its own (`--team`), or a tab in a peer's (`--beside <agent>`); `--allow <tool>` keeps on a tool its role has off |
 | session | `close` | ends a session, yours included |
 | session | `rename` | renames your session, tab and pane; a manager also its workspace, to `<project>` |
