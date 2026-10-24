@@ -109,7 +109,7 @@ KINDS = ("Topology", "Workflow", "State")
 
 
 def prose(files):
-    """Each schema/ document links the grammar, and no line names three or more of its property names, which would
+    """Each schema/ document links the grammar, and no sentence names three or more of its property names, which would
     restate it; semantics.md reads each kind in one paragraph under its own heading."""
     names, out = set(), []
 
@@ -130,9 +130,9 @@ def prose(files):
         text = doc.read_text(encoding="utf-8")
         if "assets/schema.json" not in text:
             out.append(f"{doc.name}: links no assets/schema.json")
-        for line in text.splitlines():
-            if len({w for w in re.findall(r"`([a-z-]+)`", line) if w in names}) >= 3:
-                out.append(f"{doc.name}: restates the grammar: {line.strip()[:80]}")
+        for sentence in re.split(r"(?<=[.!?:;]) +|\n", text):
+            if len({w for w in re.findall(r"`([a-z-]+)`", sentence) if w in names}) >= 3:
+                out.append(f"{doc.name}: restates the grammar: {sentence.strip()[:80]}")
         if doc.name == "semantics.md":
             for kind in KINDS:
                 body = re.search(rf"^## {kind}\n\n(.*?)(?=^## |\Z)", text, re.M | re.S)

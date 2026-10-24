@@ -5,8 +5,7 @@ description: Use when a system, a change or requirements must be modelled as a c
 
 # zoom
 
-Turn what a system is, or must be, into one checked Schema document, then prove or show it. Read only the rows the
-ask needs, in order; each playbook reads `references/schema/` once, in its `## Domain` section.
+Turn what a system is, or must be, into one checked Schema document, then prove or show it. Read only the rows the ask needs, in order; each playbook reads `references/schema/` once, in its `## Domain` section.
 
 ## Route
 
@@ -25,6 +24,5 @@ An ask that names a document to show or prove reads that document and no playboo
 
 ## Rules
 
-- **Checked document**: run `${CLAUDE_PLUGIN_ROOT}/skills/zoom/references/schema/scripts/check-schema.py check doc.json`
-  after each change; a document is handed over only when it prints `ok`.
+- **Checked document**: run `${CLAUDE_PLUGIN_ROOT}/skills/zoom/references/schema/scripts/check-schema.py check doc.json` after each change; a document is handed over only when it prints `ok`.
 - **One document**: the document is the one source; a renderer or a prover reads it and never changes it.
