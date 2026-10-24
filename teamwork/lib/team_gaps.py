@@ -89,8 +89,10 @@ def manager_actions(me, listed, data=None, fed=None):
                      f"`start` `{me['name']}-next` `--team` with `succeed {me['name']}`, as Succession says")
     # a started worker names its tab before its agent is live, so its tab counts it as routed
     present = set(team) | {t.get("label") for t in tabs(me.get("workspace_id", ""))}
+    # a cloud name holds on every open issue, so a task its worker filed itself counts as held though only the backlog names it cloud
+    present |= {n for i in data["everything"] for n in issue_state.cloud(i)}
     for i in found:
-        if not unanswered(i) and not issue_state.deferral(i) and not any(holds(i, n) for n in present | set(issue_state.cloud(i)) if n):
+        if not unanswered(i) and not issue_state.deferral(i) and not any(holds(i, n) for n in present if n):
             lines.append(f"route #{i['number']} {issue_state.title(i)}: no live worker holds it; route it, or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
         if asking(i):
             lines.append(f"answer #{i['number']}: its worker asks; post your {ANSWER}: there; the worker waits on it")

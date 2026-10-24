@@ -35,7 +35,7 @@ holders: issue-pane-worker
 | --- | --- | --- |
 | `holders` | session names, space-separated, replacing every earlier value; empty when no one holds it | holders |
 | `deferred` | why someone chose to leave it for later; a later holders value with names ends it | deferral |
-| `cloud` | the holders that run as cloud sessions, space-separated, replacing every earlier value, since no local listing shows them; experimental | cloud |
+| `cloud` | the holders that run as cloud sessions, space-separated, replacing every earlier value, since no local listing shows them; a name counts as live on every open issue; experimental | cloud |
 | `asks` | `owner` on an ask the owner answers, not the manager | audience |
 
 ## Sections
