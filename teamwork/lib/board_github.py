@@ -30,8 +30,9 @@ SEGMENT_END = re.compile(r"&&|\|\||[;|)`]|(?<!\\)\n")  # a backslash-newline con
 WRITES = {"gh issue create": "file", "gh pr create": "change", "gh issue comment": "comment", "gh pr comment": "change comment",
           "gh issue close": "resolve", "gh issue edit": "edit", "gh pr edit": "change edit"}
 REST_WRITE = re.compile(r'issues(?:/(\d+)(/comments)?)?(?=[\s"\'?]|$)')
+REST_PULLS = re.compile(r'/pulls(?=[\s"\'?]|$)')
 BODY_FILE = re.compile(r"(?:--body-file[= ]|(?:-F|--field)[= ]body=@)[\"']?([^\s\"']+)")
-TITLE = re.compile(r"(?<!\S)(--title|-t)[= ](\"[^\"]*\"|'[^']*'|[^\s\"']\S*)")
+TITLE = re.compile(r"(?<!\S)(--title|-t|(?:-f|-F|--field|--raw-field)[= ]title)[= ](\"[^\"]*\"|'[^']*'|[^\s\"']\S*)")
 POSTED = re.compile(r"https://github\.com/([^/\s\"]+/[^/\s\"]+)/issues/(\d+)(?:#issuecomment-(\d+))?")
 
 
@@ -263,6 +264,8 @@ def rest_call(command):
         return command
     method = re.search(r"(?:-X|--method[= ])\s*(\w+)", command)
     method = method.group(1).upper() if method else "POST" if re.search(r"(?<!\S)(-f|-F|--field|--raw-field|--input)\b", command) else "GET"
+    if method == "POST" and REST_PULLS.search(command):
+        return "gh pr create"
     path = REST_WRITE.search(command)
     if not path or method not in ("POST", "PATCH"):
         return ""
