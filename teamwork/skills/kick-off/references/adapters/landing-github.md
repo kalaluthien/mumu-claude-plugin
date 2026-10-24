@@ -11,4 +11,5 @@ A change is a git branch merged by a GitHub pull request.
 | `merge` | `gh pr merge <n> --squash` |
 | `remove` | [remove-worktree.py](../../scripts/remove-worktree.py) `<name>...` |
 
+- **Cloud, experimental, not for real work**: a remote worker works in its session's own checkout, so `branch` is its `claude/<slug>` branch or one it names, with no worktree; `change` is `gh api -X POST repos/<repo>/pulls -f head=<branch> -f base=<base> -f title=<title> -F body=@<file>` and `merge` is `gh api -X PUT repos/<repo>/pulls/<n>/merge -f merge_method=squash -f sha=<head sha>`, since GraphQL is refused there; `remove` is not needed, since the checkout ends with the session.
 - **Live checkout**: after a merge `AGENTS.md`'s `Live checkout` names, `git -C <live checkout> pull --ff-only` before `reload`.

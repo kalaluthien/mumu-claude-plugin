@@ -1,4 +1,5 @@
 """The board on GitHub: issues and comments read by REST, which spends no GraphQL point, the issue pane's tree by GraphQL, and writes by `gh api`."""
+import itertools
 import json
 import os
 import re
@@ -29,8 +30,9 @@ SEGMENT_END = re.compile(r"&&|\|\||[;|)`]|(?<!\\)\n")  # a backslash-newline con
 WRITES = {"gh issue create": "file", "gh pr create": "change", "gh issue comment": "comment", "gh pr comment": "change comment",
           "gh issue close": "resolve", "gh issue edit": "edit", "gh pr edit": "change edit"}
 REST_WRITE = re.compile(r'issues(?:/(\d+)(/comments)?)?(?=[\s"\'?]|$)')
+REST_PULLS = re.compile(r'/pulls(?=[\s"\'?]|$)')
 BODY_FILE = re.compile(r"(?:--body-file[= ]|(?:-F|--field)[= ]body=@)[\"']?([^\s\"']+)")
-TITLE = re.compile(r"(?<!\S)(--title|-t)[= ](\"[^\"]*\"|'[^']*'|[^\s\"']\S*)")
+TITLE = re.compile(r"(?<!\S)(--title|-t|(?:-f|-F|--field|--raw-field)[= ]title)[= ](\"[^\"]*\"|'[^']*'|[^\s\"']\S*)")
 POSTED = re.compile(r"https://github\.com/([^/\s\"]+/[^/\s\"]+)/issues/(\d+)(?:#issuecomment-(\d+))?")
 
 
@@ -43,11 +45,25 @@ def get(path, repo=None, paginate=True, tries=3):
     """The parsed JSON of a GET, every page joined when PAGINATE; None when it failed. REPO is `owner/name`, else the checkout's."""
     need("gh")
     path = path.replace("repos/", f"repos/{repo}/", 1) if repo else path.replace("repos/", "repos/{owner}/{repo}/", 1)
+    if not paginate:
+        return fetch(path, tries)
+    # pages by `page=`, never gh's own paging, whose `Link` paths name `repositories/<id>/`, which a cloud session's proxy refuses
+    size = int(m.group(1)) if (m := re.search(r"[?&]per_page=(\d+)", path)) else 30
+    found = []
+    for n in itertools.count(1):
+        page = fetch(f"{path}{'&' if '?' in path else '?'}page={n}", tries)
+        if page is None:
+            return None
+        found += page
+        if len(page) < size:
+            return found
+
+
+def fetch(path, tries):
     for _ in range(tries):  # gh's calls fail now and then, then pass on retry
-        p = subprocess.run(["gh", "api", *(["--paginate", "--slurp"] if paginate else []), path], capture_output=True, text=True)
+        p = subprocess.run(["gh", "api", path], capture_output=True, text=True)
         if p.returncode == 0:
-            out = json.loads(p.stdout)
-            return [x for page in out for x in page] if paginate else out
+            return json.loads(p.stdout)
     return None
 
 
@@ -248,6 +264,8 @@ def rest_call(command):
         return command
     method = re.search(r"(?:-X|--method[= ])\s*(\w+)", command)
     method = method.group(1).upper() if method else "POST" if re.search(r"(?<!\S)(-f|-F|--field|--raw-field|--input)\b", command) else "GET"
+    if method == "POST" and REST_PULLS.search(command):
+        return "gh pr create"
     path = REST_WRITE.search(command)
     if not path or method not in ("POST", "PATCH"):
         return ""

@@ -114,8 +114,8 @@ def main(args):
     event = json.load(sys.stdin)
     kind = event.get("hook_event_name")
     command = (event.get("tool_input") or {}).get("command", "")
-    # without herdr no session has a name, so no role matches and the role's SessionStart text never comes to say why
-    if kind == "SessionStart" and (missing := json_command.missing("herdr")):
+    # without its host's command no session has a name, so no role matches and the role's SessionStart text never comes to say why
+    if kind == "SessionStart" and (missing := next(filter(None, map(json_command.missing, session.NEEDS)), None)):
         print(json.dumps({"systemMessage": missing}))
     elif kind not in ("PreToolUse", "PostToolUse") or board.command(command) or kind == "PreToolUse" and live_cd(command, event.get("cwd")):  # skip other Bash fast
         listed, me = session.sessions(event.get("session_id"))

@@ -78,6 +78,11 @@ def holder_values(issue):
     return [d[WORD["holders"]].split() for _, d, _ in records(issue) if WORD["holders"] in d]
 
 
+def cloud(issue):
+    """The names its latest cloud value set, which run where no local listing shows them."""
+    return ([d[WORD["cloud"]].split() for _, d, _ in records(issue) if WORD["cloud"] in d] or [[]])[-1]
+
+
 def deferral(issue):
     """Why it is left for later: the latest deferral's reason, or None when none was set or holders with names came after it."""
     reason = None

@@ -24,6 +24,7 @@ Own your work from a backlog or the owner's words to its end.
 
 ## Rules
 
-- **Own worktree**: edit only in your worktree; change no memory entry and no file outside your work unless a `DECIDED:`, your task or a hook names it. When your work's topic changes, `rename` yourself and `decide` `holders: <new name>` on each issue you hold.
+- **Your set**: do each operation by the adapters of the set your kick-off arguments name after `set`, from [adapters.md](adapters.md)'s Adapter sets, else `local`, never by the conditions of its first table alone.
+- **Own worktree**: edit only in your worktree; change no memory entry and no file outside your work unless a `DECIDED:`, your task or a hook names it. When your work's topic changes, `rename` yourself and `decide` `holders: <new name>` on each issue you hold, with `cloud: <new name>` too in the `remote` set.
 - **Disjoint start**: a `DECIDED:` that holds your work on another task: `BLOCKED:` at once to start the part whose files that task never touches.
 - **Fix the cause**: close a judge's gap by fixing it, never by rewording, loosening a check or changing a pass condition.
