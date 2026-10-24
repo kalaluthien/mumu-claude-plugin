@@ -7,4 +7,4 @@
 | `notify` | `PushNotification` |
 | `watch` | the heartbeat's idle line, which names each worker of your team once it waits; a cloud worker, by its `ListAgents` row, `idle`, and by its issue's comments |
 
-- **Cloud, experimental, not for real work**: a cloud worker that ended its turn wakes on a `tell`, never on a comment.
+- **Cloud**: a cloud worker that ended its turn wakes on a `tell`, never on a comment.

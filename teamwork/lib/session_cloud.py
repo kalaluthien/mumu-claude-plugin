@@ -1,4 +1,4 @@
-"""A Claude Code cloud session as the session port's adapter, experimental: the session sees only itself, its name read from
+"""A Claude Code cloud session as the session port's adapter: the session sees only itself, its name read from
 ~/.teamwork-name, which the worker writes when it names itself, since a cloud container has no herdr and lists no other session."""
 import pathlib
 
