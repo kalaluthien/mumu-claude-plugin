@@ -4,7 +4,8 @@
 An agent's name picks the dialog it shows: `trust` the folder trust dialog at start, `slow` its prompt typed but unsent,
 and a `blocked` agent with a `screen` the exit dialog of background work; each clears on the key that answers it.
 A prompt to a `blocked` agent is refused `agent_blocked`, an `unblock` agent refuses its first prompt so, and an `unseen` agent
-takes a prompt but never shows it; `agent wait` ends a working agent's turn at once and times out on a blocked one."""
+takes a prompt but never shows it, and a `refuse` agent refuses every prompt `agent_pane_closed`; `agent wait` ends a working
+agent's turn at once and times out on a blocked one. FAKE_HERDR_BREAK=accept takes every prompt and every wait instead."""
 import json, os, pathlib, sys
 
 state_path = pathlib.Path(os.environ["FAKE_HERDR_STATE"])
@@ -13,6 +14,7 @@ argv = sys.argv[1:]
 with open(os.environ.get("FAKE_HERDR_LOG", os.devnull), "a") as log:
     log.write(json.dumps(argv) + "\n")
 code = 0
+BREAK = os.environ.get("FAKE_HERDR_BREAK") == "accept"
 ok = lambda r=None: print(json.dumps({"result": r or {}}))
 
 
@@ -59,7 +61,13 @@ elif head == ["agent", "read"]:
     print(by_pane(argv[2]).get("screen", ""))
 elif head == ["agent", "prompt"]:
     a = by_pane(argv[2])
-    if a.get("agent_status") == "blocked" or "unblock" in a.get("name", "") and not a.get("refused"):
+    if BREAK:
+        a["agent_status"], a["ticks"] = "working", 2
+        ok()
+    elif "refuse" in a.get("name", ""):
+        print(json.dumps({"error": {"code": "agent_pane_closed", "message": "pane closed"}}))
+        code = 1
+    elif a.get("agent_status") == "blocked" or "unblock" in a.get("name", "") and not a.get("refused"):
         a["refused"] = True
         print(json.dumps({"error": {"code": "agent_blocked", "message": "agent is blocked"}}))
         code = 1
@@ -84,7 +92,7 @@ elif head == ["agent", "wait"]:
     a, until = by_pane(argv[2]), [argv[i + 1] for i, w in enumerate(argv) if w == "--until"]
     if a.get("agent_status") == "working":  # its turn ends
         a["agent_status"], a["ticks"] = "idle", 0
-    if a.get("agent_status") in until:
+    if a.get("agent_status") in until or BREAK:
         ok({"agent": a})
     else:
         print(json.dumps({"error": {"code": "timeout", "message": "wait timed out"}}))

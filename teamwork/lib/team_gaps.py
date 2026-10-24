@@ -6,7 +6,7 @@ import issue_state
 import landing
 import team_settings
 from session import screen, tabs
-from team_names import members, owns, project, role
+from team_names import crowding, members, owns, project, role
 
 ISSUE_LIMIT, PR_LIMIT = 200, 50
 
@@ -84,6 +84,9 @@ def manager_actions(me, listed, data=None, fed=None):
     panes = {a.get("name"): a.get("pane_id") for a in listed}
     found, prs = data["found"], data["prs"]
     lines = limited(found, ISSUE_LIMIT, "open-issue")  # merged PRs past the newest are always many and no live worker's
+    if crowd := crowding(me, listed):
+        lines.append(f"shared workspace: {', '.join(crowd)} manage another project in your workspace; move to a workspace of your own: "
+                     f"`start` `{me['name']}-next` `--team` with `succeed {me['name']}`, as Succession says")
     # a started worker names its tab before its agent is live, so its tab counts it as routed
     present = set(team) | {t.get("label") for t in tabs(me.get("workspace_id", ""))}
     for i in found:

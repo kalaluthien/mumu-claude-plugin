@@ -75,5 +75,5 @@ Each port is a set of operations the playbooks name; an adapter does each, and [
 | landing | `change` | proposes a branch for merging into the base, citing its task |
 | landing | `judge` | a fresh subagent by `delegate` at `mid`, `high`, prompted `Read <this folder>/judge.md, then judge <url or path>.`; `tell` it to resume |
 | landing | `merge` | merges a change a judge approved at its head |
-| landing | `remove` | removes a closed worker's worktree and merged branches, by [remove-worktree.py](../scripts/remove-worktree.py) `<name>...` |
+| landing | `remove` | removes a closed worker's worktree and merged branches |
 | agent | `delegate` | starts a subagent at a tier and effort, with a brief |

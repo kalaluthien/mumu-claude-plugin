@@ -17,4 +17,11 @@ def owns(name, branch):
 
 
 def members(me, listed):
-    return [a["name"] for a in listed if a.get("workspace_id") == me.get("workspace_id") and a is not me and a.get("name")]
+    """The workers and other sessions in your workspace; never a manager, since each manager is alone with its workers there."""
+    return [a["name"] for a in listed if a.get("workspace_id") == me.get("workspace_id") and a is not me and a.get("name") and role(a["name"]) != "manager"]
+
+
+def crowding(me, listed):
+    """The managers of another project in your workspace."""
+    return [a["name"] for a in listed if a.get("workspace_id") == me.get("workspace_id") and role(a.get("name")) == "manager"
+            and project(a["name"]) != project(me.get("name", ""))]
