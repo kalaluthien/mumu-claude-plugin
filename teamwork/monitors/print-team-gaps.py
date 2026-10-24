@@ -7,11 +7,12 @@ from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import board  # noqa: E402
-import herdr_agents  # noqa: E402
+import session  # noqa: E402
 import team_gaps  # noqa: E402
+import team_names  # noqa: E402
 import team_signal  # noqa: E402
 
-POLL = float(os.environ.get("MONITOR_POLL", 60))  # herdr is read each poll, which costs no GitHub points
+POLL = float(os.environ.get("MONITOR_POLL", 60))  # the sessions are read each poll, which costs no GitHub points
 REFRESH = float(os.environ.get("MONITOR_REFRESH", 900))  # a change made outside the team, such as the owner's comment on the web, sends no signal
 SKEW = timedelta(seconds=5)  # GitHub's clock against ours
 
@@ -25,8 +26,8 @@ waiting = set()  # a worker's issues with an open blocker, so a restart reports 
 fed = set()  # the reports a manager was already fed
 data, read_at, signal = None, 0.0, team_signal.stamp()  # what GitHub last gave, when, and the signal file's change then
 while True:
-    listed, me = herdr_agents.sessions()
-    role = herdr_agents.role(me.get("name"))
+    listed, me = session.sessions()
+    role = team_names.role(me.get("name"))
     manager, worker = role == "manager", role == "worker"
     # GitHub is read when a team session signals a change or REFRESH has passed, and in full only when it first asks cheaply and something changed
     if (manager or worker) and (data is None or team_signal.stamp() != signal or time.time() - read_at >= REFRESH):
@@ -38,7 +39,7 @@ while True:
             read_at, signal = now.timestamp(), seen
     lines = [] if not (manager or worker) else None if data is None else team_gaps.manager_actions(me, listed, data, fed) if manager else team_gaps.worker_actions(me, waiting, data)
     if manager and lines is not None:
-        crew = herdr_agents.members(me, listed)
+        crew = team_names.members(me, listed)
         staffed = staffed or bool(crew)
         idle = not crew and not data["found"] and not data["outside"]  # any open issue, deferred ones included, is work not yet done
         staffed = staffed or idle and data["had_worker"]  # a restart lost the memory of a worker, so GitHub gives it back

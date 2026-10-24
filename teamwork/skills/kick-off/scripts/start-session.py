@@ -1,65 +1,27 @@
 #!/usr/bin/env python3
 import argparse
-import json
 import os
 import pathlib
-import subprocess
 import sys
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]  # this plugin, loaded into the new session too
 sys.path.insert(0, str(ROOT / "lib"))
-import herdr_agents  # noqa: E402
-from json_command import run  # noqa: E402
+import agent  # noqa: E402
+import session  # noqa: E402
+import team_names  # noqa: E402
 
 TIMEOUT, POLL = float(os.environ.get("START_SESSION_TIMEOUT", 120)), 1.0
-# claude.ai connectors (Gmail, Drive, Notion...) serve no teamwork role, and their tool list costs ~5k tokens every turn
-SETTINGS = json.dumps({"disableClaudeAiConnectors": True})
-# Each tool off is a choice, since each description costs ~2-11k tokens every turn; subagents get only their session's tools (code.claude.com/docs/en/sub-agents):
-# - manager: Artifact off, it publishes nothing; Workflow off, it orchestrates by hand
-# - worker: AskUserQuestion off, it asks the owner through its manager; Artifact off, unless its manager passes --allow Artifact for a backlog that publishes a page
-# - judge, a general-purpose subagent of a worker: the worker's tools; judge.md's steps use Read, Bash, and Write for scratchpad tests, and the plugin may ship no agent to narrow it
-TOOLS_OFF = {"worker": "Artifact,AskUserQuestion", "manager": "Artifact,Workflow"}
-
-
-def herdr(*argv):
-    out = run("herdr", *argv)
-    if out is None:
-        raise RuntimeError(f"herdr {' '.join(argv[:2])} failed")
-    return out["result"]
-
-
-def open_pane(name, cwd, own_workspace, workspace):
-    into = [] if own_workspace else ["--workspace", workspace or herdr("pane", "get", os.environ["HERDR_PANE_ID"])["pane"]["workspace_id"]]
-    pane = herdr("workspace" if own_workspace else "tab", "create", *into, "--cwd", cwd, "--label", herdr_agents.project(name) if own_workspace else name, "--no-focus")["root_pane"]
-    run("herdr", "tab", "rename", pane["tab_id"], name)
-    run("herdr", "pane", "rename", pane["pane_id"], name)
-    return pane["pane_id"]
 
 
 def wait(name, pane, ready, nudge, what):
     deadline = time.time() + TIMEOUT
     while time.time() < deadline:
-        if ready(herdr_agents.agent(name) or {}):
+        if ready(session.agent(name) or {}):
             return
-        nudge(herdr_agents.screen(pane))
+        nudge(session.screen(pane))
         time.sleep(POLL)
     raise RuntimeError(f"{name} {what} after {TIMEOUT:g}s")
-
-
-def start(a, pane):
-    deadline = time.time() + TIMEOUT
-    while True:
-        p = subprocess.run(["herdr", "agent", "start", a.name, "--kind", "claude", "--pane", pane, "--", "--name", a.name,
-                            "--plugin-dir", str(ROOT), "--model", a.model, "--effort", a.effort,
-                            "--settings", SETTINGS, *(["--disallowedTools", ",".join(off)] if off else [])],
-                           capture_output=True, text=True)
-        out = p.stdout + p.stderr
-        if not p.returncode or '"agent_not_ready"' in out:  # not ready: the trust dialog holds it
-            return
-        if '"agent_pane_busy"' not in out or time.time() >= deadline:  # busy: the shell is still starting
-            raise RuntimeError(f"herdr agent start: {(p.stderr or p.stdout).strip()}")
-        time.sleep(POLL)
 
 
 parser = argparse.ArgumentParser(prog="start-session.py", allow_abbrev=False)
@@ -72,26 +34,29 @@ parser.add_argument("--model", required=True)  # no default: the caller picks pe
 parser.add_argument("--effort", required=True)
 parser.add_argument("--allow", action="append", default=[], metavar="TOOL")  # its subagents lack a tool their session lacks: grant it per backlog
 a = parser.parse_args()
-role_off = TOOLS_OFF["worker" if a.args.startswith("worker ") else "manager"].split(",")
+role_off = agent.TOOLS_OFF["worker" if a.args.startswith("worker ") else "manager"].split(",")
 if stray := sorted(set(a.allow) - set(role_off)):
     parser.error(f"--allow {', '.join(stray)}: not a tool this role has off, which is {', '.join(role_off)}")
 off = [t for t in role_off if t not in a.allow]
-if herdr_agents.agent(a.name):
+if session.agent(a.name):
     sys.exit(f"start-session.py: {a.name} is already live: hand it the work instead of starting another.")
-peer = herdr_agents.agent(a.beside) if a.beside else {}  # a peer manager's successor sits in its workspace, alone with its workers
+peer = session.agent(a.beside) if a.beside else {}  # a peer manager's successor sits in its workspace, alone with its workers
 if peer is None:
     sys.exit(f"start-session.py: {a.beside} is not live: start {a.name} without --beside.")
-text = f"Run the teamwork:kick-off skill with these arguments: {a.args}"  # model-only: a typed /teamwork:kick-off is refused
+text = agent.kickoff(a.args)
+trust, accept = agent.TRUST
 try:
-    pane = open_pane(a.name, str(pathlib.Path(a.cwd).resolve()), a.team, peer.get("workspace_id"))
-    start(a, pane)
+    cwd = str(pathlib.Path(a.cwd).resolve())
+    place = session.open_workspace(cwd, team_names.project(a.name)) if a.team else session.open_tab(peer.get("workspace_id"), cwd, a.name)
+    session.rename(place, a.name)
+    pane = place["pane_id"]
+    session.start(a.name, pane, agent.KIND, agent.command(a.name, str(ROOT), a.model, a.effort, off), TIMEOUT)
     wait(a.name, pane, lambda s: s.get("interactive_ready") and s.get("agent_status") != "blocked",  # trust dialog
-         lambda screen: "Yes, I trust this folder" in screen and run("herdr", "agent", "send-keys", pane, "down", "enter"),
-         "not ready")
-    run("herdr", "agent", "prompt", pane, text)  # the one prompt a session is sent: its kick-off
+         lambda screen: trust in screen and session.send_keys(pane, *accept), "not ready")
+    session.prompt(pane, text)  # the one prompt a session is sent: its kick-off
     wait(a.name, pane, lambda s: s.get("agent_status") not in (None, "idle"),  # typed but unsent: press Enter
-         lambda screen: text[:40] in screen and run("herdr", "agent", "send-keys", pane, "enter"), "never took its kick-off")
+         lambda screen: text[:40] in screen and session.send_keys(pane, "enter"), "never took its kick-off")
 except RuntimeError as e:
-    sys.exit(f"start-session.py: {e}. Look at its pane with `herdr agent read {a.name}` before starting it again.")
+    sys.exit(f"start-session.py: {e}. Look at its pane with `{session.LOOK.format(a.name)}` before starting it again.")
 where = "a new workspace of its own" if a.team else f"a new tab of {a.beside}'s workspace" if a.beside else "a new tab of your workspace"
 print(f"{a.name} started in {where} (pane {pane}) and took its kick-off.")
