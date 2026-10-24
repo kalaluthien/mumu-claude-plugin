@@ -40,7 +40,7 @@ def feed_read(name, since):
     posted = board.comments_since(since)
     if touched is None or posted is None:
         return None
-    by = {i["number"]: i for i in touched if i["state"] == "CLOSED" or "backlog" in [x["name"] for x in i["labels"]]}
+    by = {i["number"]: i for i in touched if i["state"] == "CLOSED" or "backlog" in i["labels"]}
     # `since` matches an edit too, so an old comment edited now is left out by its creation time
     found = [(by[n], c) for n, c in posted
              if n in by and c["createdAt"] >= since and issue_state.trusted(c) and issue_state.keyword(c["body"]) == FEED]

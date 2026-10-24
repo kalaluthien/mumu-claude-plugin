@@ -51,7 +51,7 @@ def load(opt, urls):
         issue = board.fresh(number, repo, comments=False)
         if issue is None:
             sys.exit(f"estimate-task-time.py: the REST read of {url} failed")
-        tasks.append({"number": issue["number"], "labels": [x["name"] for x in issue["labels"]], "repo": repo})
+        tasks.append({"number": issue["number"], "labels": issue["labels"], "repo": repo})
     return [r for rows in history.values() for r in rows], tasks
 
 

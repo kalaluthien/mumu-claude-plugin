@@ -54,7 +54,7 @@ def issue(raw):
     parent = raw.get("parent_issue_url")
     return {"number": raw["number"], "title": raw["title"], "body": raw["body"] or "", "url": raw["html_url"],
             "state": raw["state"].upper(), "stateReason": (raw.get("state_reason") or "").upper(), "createdAt": raw["created_at"],
-            "closedAt": raw["closed_at"], "trusted": trusted({"authorAssociation": raw["author_association"]}), "labels": [{"name": x["name"]} for x in raw["labels"]],
+            "closedAt": raw["closed_at"], "trusted": trusted({"authorAssociation": raw["author_association"]}), "labels": [x["name"] for x in raw["labels"]],
             "parent": parent and int(parent.rsplit("/", 1)[1]), "isPullRequest": "pull_request" in raw, "mergedAt": merged, "comments": []}
 
 

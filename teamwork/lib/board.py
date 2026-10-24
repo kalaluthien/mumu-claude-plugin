@@ -7,7 +7,7 @@ Every adapter has these functions, by the same names:
 - writes: `comment(number, text)`, `file(title, body, labels) -> int`, `body(number)` and `edit(number, body)`, `resolve(number, summary, completed)`,
   `order(later, earlier)`, `nest(backlog, task)`, `label(number, name, remove)`
 - `trusted(record)`, whether a record's author may write records; `command(text)` and `posted(output)`, the board write a shell command runs and what it posted
-A record has `number`, `title`, `body`, `labels`, `state` (`OPEN` or `CLOSED`), `parent` (a number or None), `trusted` and `comments`,
+A record has `number`, `title`, `body`, `labels` (names), `state` (`OPEN` or `CLOSED`), `parent` (a number or None), `trusted` and `comments`,
 each comment with `body` and `trusted`."""
 import importlib
 import os

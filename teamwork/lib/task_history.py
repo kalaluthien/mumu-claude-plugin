@@ -30,7 +30,7 @@ def fetch(repo):
     for number, start in starts.items():
         for ref in closing[number] if start else []:
             first[ref] = min(start, first.get(ref, start))
-    return [{"number": i["number"], "labels": [x["name"] for x in i["labels"]], "body": i["body"], "createdAt": i["createdAt"],
+    return [{"number": i["number"], "labels": i["labels"], "body": i["body"], "createdAt": i["createdAt"],
              "closedAt": i["closedAt"], "prStart": first.get(i["number"])} for i in found if i["number"] in closed]
 
 

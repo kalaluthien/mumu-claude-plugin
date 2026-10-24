@@ -52,7 +52,7 @@ def load(before):
         if item["isPullRequest"]:
             kind, state = "PR", "merged" if item["mergedAt"] else item["state"].lower()
         else:
-            kind = "backlog" if any(label["name"] == "backlog" for label in item["labels"]) else "issue"
+            kind = "backlog" if "backlog" in item["labels"] else "issue"
             state = "open" if item["state"] == "OPEN" else (item["stateReason"] or "closed").lower().replace("_", " ")
         items[item["number"]] = {
             "head": f"#{item['number']} {kind} {state}: {item['title']}",
