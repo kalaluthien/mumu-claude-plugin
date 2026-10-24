@@ -11,12 +11,12 @@ Name the diagrams this domain's practitioner expects first (ER model). Draw each
 ## Depth
 
 **Depth.** `depth` picks which levels the views feature; the page keeps all [depth]. `overview`: root and one level; `working` (default): the levels below; `detailed`: also every operation as one action. At `working`, feature a node's inside when either holds:
-- **A Scenario or a rule lives inside.** A Scenario needs it, or a `must` rule is kept there.
-- **A design decision lives inside.** It is hard or likely to change and sets what the system can do (Parnas).
+- **A Scenario or a rule lives inside**: A Scenario needs it, or a `must` rule is kept there.
+- **A design decision lives inside**: It is hard or likely to change and sets what the system can do (Parnas).
 
 Feature no deeper when either holds:
-- **Only what the intent can ignore is left.** It would vanish with perfect technology (McMenamin and Palmer), or is an unchanged library. Caching, failure, distribution and deployment count if the intent asks.
-- **Only the cases differ.** Open the most distinctive; list the rest as `facts`.
+- **Only what the intent can ignore is left**: It would vanish with perfect technology (McMenamin and Palmer), or is an unchanged library. Caching, failure, distribution and deployment count if the intent asks.
+- **Only the cases differ**: Open the most distinctive; list the rest as `facts`.
 
 `deep` opens a node these rules stop at; `shallow` keeps one closed.
 

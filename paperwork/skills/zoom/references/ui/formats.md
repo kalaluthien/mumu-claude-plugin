@@ -1,8 +1,6 @@
 # Formats
 
-How every renderer shows a `meta` entry, so a value reads the same in chat and on a page. The grammar,
-[../schema/assets/schema.json](../schema/assets/schema.json), lists the formats and reserved keys; this file gives each
-one display.
+How every renderer shows a `meta` entry, so a value reads the same in chat and on a page. The grammar, [../schema/assets/schema.json](../schema/assets/schema.json), lists the formats and reserved keys; this file gives each one display.
 
 A renderer shows each entry as `<name>: <display>` beside the element it annotates. For a reserved key, `<name>` is the key itself. For any other key, it is the key without its `-<format>` ending, so `wait-ms` reads `wait`.
 
