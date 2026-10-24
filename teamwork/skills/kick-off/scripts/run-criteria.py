@@ -148,13 +148,16 @@ def base_row(label, kind, name, detail, archive, timeout):
 
 
 def after_first_pipe(command):
-    """The command without its first pipe stage, split at the first `|` outside quotes, or None when it has no pipe."""
+    """The command without its first pipe stage, split at the first `|` outside quotes, or None when the split is not certain:
+    no pipe, or before it a `\\`, `&&`, `;`, `(`, `)` or backtick, which would drop or break part of the first stage."""
     quote = None
     for i, c in enumerate(command):
         if quote:
             quote = None if c == quote else quote
         elif c in "'\"":
             quote = c
+        elif c in "\\;()`" or command[i:i + 2] == "&&":
+            return None
         elif c == "|" and command[i + 1:i + 2] != "|" and command[i - 1:i] != "|":
             return command[i + 1:]
     return None
@@ -265,8 +268,17 @@ def main():
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
     dirty = subprocess.run(["git", "status", "--porcelain"], cwd=root, capture_output=True, text=True).stdout.strip()
     if a.samples:
-        given = {int(n): f for n, _, f in (x.partition("=") for x in a.samples)}
+        if a.base:
+            sys.exit("run-criteria: --pass and --base cannot run together")
+        given = {}
+        for x in a.samples:
+            n, _, f = x.partition("=")
+            if not n.isdigit() or not f:
+                sys.exit(f"run-criteria: --pass wants <n>=<sample-file>, got {x}")
+            given[int(n)] = os.path.abspath(f)
         found = list(criteria(issue_state.sections(task.get("body")).get("done", "")))
+        if set(given) - set(range(1, len(found) + 1)):
+            sys.exit(f"run-criteria: --pass names a criterion the task lacks; it has {len(found)}")
         rows = [pass_row(str(n), *c, given.get(n), root, a.timeout) for n, c in enumerate(found, 1)]
         print("REPORTED: pass outputs at " + head + "\n\n| # | criterion | result | output on sample |\n| --- | --- | --- | --- |")
         for r in rows:
