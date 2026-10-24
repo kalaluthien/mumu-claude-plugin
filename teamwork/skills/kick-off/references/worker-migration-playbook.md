@@ -1,6 +1,6 @@
 # Migration
 
-1. Count every reference or user of the old form, `git grep -nw <old>`; past 50 files, one `Explore` subagent per folder.
+1. Count every reference or user of the old form, `git grep -nw <old>`; past 50 files, one `light`, `low` subagent per folder.
 2. For data, a schema or a live service, dry-run the change on a copy first.
 3. A test that forbids the old name builds it from joined pieces (`a + "-" + b`), or its own literal matches the grep.
 4. `git mv`, then replace by script, never file by file.
