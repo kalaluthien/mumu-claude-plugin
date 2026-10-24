@@ -69,6 +69,7 @@ Each port is a set of operations the playbooks name; an adapter does each, and [
 | session | `reload` | makes a session load the plugins again |
 | session | `compact` | shrinks your context to what you name |
 | landing | `branch` | a worktree and branch `<name>` from the base |
+| landing | `push` | publishes a branch to the remote, the branch named |
 | landing | `change` | proposes a branch for merging into the base, citing its task |
 | landing | `judge` | a fresh subagent by `delegate` at `mid`, `high`, prompted `Read <this folder>/judge.md, then judge <url or path>.`; `tell` it to resume |
 | landing | `merge` | merges a change a judge approved at its head |
