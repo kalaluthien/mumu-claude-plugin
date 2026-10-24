@@ -13,6 +13,7 @@ Intent flows owner → manager → backlog → worker → tasks → judged chang
 - **base**: the branch a change starts from and merges into, as the repository's rules say (its `AGENTS.md`, `CONTRIBUTING`, hooks, branch protection), else the default branch
 - **criterion**: a `[check]`, a command whose output decides, its failing output on base quoted; or a `[score]`, a rubric over a named sample, head against the base by a margin set after measuring the base on it
 - **precheck**: the table [run-criteria.py](../scripts/run-criteria.py) prints of each `[check]` run at the head, which the worker comments on the task before each judge, and the judge reads instead of running each again
+- **pane, tab, workspace**: where a session runs: its pane, the tab that shows it, and the workspace that groups a team's tabs; the session adapter maps them onto its host
 - **tier**: how much a model must reason: `deep`, `mid` or `light`, each with an effort `high`, `medium` or `low`; the agent adapter names the model of each
 
 ## Authority

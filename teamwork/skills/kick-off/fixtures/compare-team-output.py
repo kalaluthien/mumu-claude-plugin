@@ -77,6 +77,8 @@ def edit_write(tree, side):
         diffs[name] = pathlib.Path(tempfile.mkstemp(suffix=".diff")[1])
         diffs[name].write_text(f"--- a\n+++ b\n@@ -3 +3 @@\n-probe: {a}\n+probe: {b}\n")
     out = "".join(run(tree, [K + "edit-issue-body.py", EDIT_ISSUE[side], str(diffs[d]), f"DECIDED: probe {d}"]) for d in ("forward", "back"))
+    for comment in set(re.findall(rf"repos/{SANDBOX}/issues/comments/(\d+)", out)):  # so the issue does not grow a comment pair per run
+        subprocess.run(["gh", "api", "-X", "DELETE", f"repos/{SANDBOX}/issues/comments/{comment}"], capture_output=True)
     return "\n".join(re.findall(r"edit-issue-body: .*", out)).replace(f"#{EDIT_ISSUE[side]}", "#<issue>")
 
 
