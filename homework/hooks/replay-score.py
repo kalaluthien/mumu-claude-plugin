@@ -9,7 +9,7 @@ replay in time order through one plugin data folder, as live sessions share
 it. `head` runs wrap-up-signal.py beside this file as the Stop hook would, and
 after each ask reports the label back as that ask's outcome, `filed` when the
 stop is labelled worth a wrap-up, else `empty`, as the skill reports it live.
-`main` is main's rule rebuilt from the constants of main's takeaway.py: ask a
+`main` is main's rule rebuilt from the constants of the removed takeaway.py: ask a
 retro once WORK_THRESHOLD tool calls ran since the stop after its last ask
 and HARVEST_INTERVAL minutes passed since that ask, else a dream once
 DREAM_THRESHOLD memory files were written since its last dream ask.
@@ -21,7 +21,6 @@ even half replays first to train head's thresholds.
 import hashlib
 import json
 import os
-import re
 import subprocess
 import sys
 import tempfile
@@ -33,16 +32,11 @@ import memory as memory_file  # noqa: E402
 import transcript  # noqa: E402
 
 SIGNAL = os.path.join(HERE, "wrap-up-signal.py")
-CONSTANT = re.compile(r'^(\w+) = (?:int|float)\(os\.environ\.get\("\w+", "([\d.]+)"\)\)', re.M)
 
 
 def main_constants():
-    for ref in ("origin/main", "563b66a"):
-        run = subprocess.run(["git", "-C", HERE, "show", f"{ref}:homework/scripts/takeaway.py"],
-                             capture_output=True, text=True)
-        if run.returncode == 0:
-            return {name: float(value) for name, value in CONSTANT.findall(run.stdout)}
-    sys.exit("could not read main's takeaway.py")
+    # the thresholds of homework/scripts/takeaway.py, which held main's rule and is removed
+    return {"WORK_THRESHOLD": 40.0, "HARVEST_INTERVAL": 120.0, "DREAM_THRESHOLD": 5.0}
 
 
 def stops_of(path):
@@ -168,6 +162,8 @@ def run(labels_path, holdout):
     subset = {key: labels[key] for key in scored}
     worth = sum(subset.values())
     print(f"scored {len(subset)} stops of {len({p for p, _ in subset})} sessions, {worth} worth a wrap-up")
+    if not subset:
+        return 0
     for name, asked in (("head", head), ("main", rebuilt)):
         precision, recall, rate = score(asked, subset)
         print(f"{name}: precision {precision:.3f}, recall {recall:.3f}, asks per 100 stops {rate:.1f}")
