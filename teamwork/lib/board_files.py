@@ -77,7 +77,7 @@ def tree(project, nodes=None):
                                  for c in kids(r["number"])][-50:]}} for r in reversed(issues("open", project))]
     for n in nodes:
         n["trusted"] = True
-        for c in n["comments"]["nodes"]:
+        for c in n["comments"]["nodes"] + (n.get("subIssues") or {}).get("nodes", []):
             c["trusted"] = True
     return nodes
 

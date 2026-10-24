@@ -3,7 +3,9 @@
 
 Run each `[check]` of a task's Definition of done at the head, in the worktree's root, then each `[check]` of an
 optional `.teamwork/default-criteria.md` there as `standing`, and print a table to comment on the task, which the
-judge reads instead of running each check again. `-` reads the task as JSON, its `body` and `comments`.
+judge reads instead of running each check again. `-` reads the task as JSON, its `body`, `trusted` and `comments`.
+A task, by number or JSON, whose author is not `trusted` is refused, exit 1, since its checks would run as commands; a body
+file is the worker's own draft, so it runs.
 
 A row is `pass` or `fail` by the output the criterion says it `prints`, or the status it `exits`; `unclear` when the
 script cannot decide it, such as a `<placeholder>`, two commands or an expected text found inside other output, which the
@@ -51,6 +53,13 @@ def read_task(source):
     if found is None:
         sys.exit(f"run-criteria: could not read task {source} from GitHub")
     return found
+
+
+def runnable(task):
+    """TASK when its author may write records; else exit, since an untrusted author's `[check]` would run as a command."""
+    if not issue_state.trusted(task):
+        sys.exit("run-criteria: the task's author is not trusted, so its checks are not run; a trusted author must file the criteria")
+    return task
 
 
 def base_row(label, kind, name, detail, archive, timeout):
@@ -207,7 +216,7 @@ def main():
     args.add_argument("task")
     a = args.parse_args()
     file = pathlib.Path(a.task)
-    task = {"body": file.read_text(), "comments": []} if (a.base or a.samples) and file.is_file() else read_task(a.task)
+    task = {"body": file.read_text(), "comments": []} if (a.base or a.samples) and file.is_file() else runnable(read_task(a.task))
     root = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip() or "."
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
     dirty = subprocess.run(["git", "status", "--porcelain"], cwd=root, capture_output=True, text=True).stdout.strip()

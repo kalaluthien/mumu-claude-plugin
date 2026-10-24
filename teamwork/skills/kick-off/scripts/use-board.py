@@ -17,13 +17,14 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
+import issue_state  # noqa: E402
 
 verb, *a = sys.argv[1:] or [""]
 text = lambda path: pathlib.Path(path).read_text()
 try:
     if verb == "read" and len(a) == 1:
         i = board.fresh(a[0]) or sys.exit(f"use-board: cannot read #{a[0]}")
-        print(f"#{i['number']} {i['title']}\nstate: {i['state']}\nlabels: {', '.join(i['labels'])}\nparent: {i['parent']}\n\n{i['body']}")
+        print(f"#{i['number']} {issue_state.title(i)}\nstate: {i['state']}\nlabels: {', '.join(i['labels'])}\nparent: {i['parent']}\n\n{i['body']}")
         for c in i["comments"]:
             print(f"\n--- {c['url']}\n{c['body']}")
     elif verb == "comment" and len(a) == 2:
