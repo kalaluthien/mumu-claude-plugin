@@ -19,7 +19,9 @@ export has no `.git`) and a check with a placeholder are `unclear`. The output i
 `--pass <n>=<sample-file>` (once per criterion, with a body file) runs criterion `n` at the head with its first pipe stage
 replaced by `cat <sample-file>`, so the stages after it meet the input the pass would give. It prints `pass ok` when the
 output equals the text after `prints`, `wrong pass` when it differs, `unclear` for a criterion with no sample or whose first
-stage it cannot split surely (a `\\`, `||`, `&`, `;`, newline, `#`, brace, parenthesis or a substitution in double quotes before the first pipe); exit 1 on any
+stage it cannot split surely: before its first pipe, outside quotes, only words, blanks and `. / = : , + @ % ~ < > -`
+may stand, and the first word is no `if`, `while`, `for` or other compound keyword; inside double quotes no `$(`, `${`, backtick
+or backslash; exit 1 on any
 `wrong pass`. It finds a check that can never pass, such as `check-schema.py check /dev/stdin`, which reads its input twice."""
 import argparse
 import json
@@ -157,10 +159,16 @@ def base_row(label, kind, name, detail, archive, timeout):
 SAFE = re.compile(r"[\w \t./=:,+@%~<>-]|\$\w|\$(?=[\"'])")
 
 
+# a compound command owns the pipe that follows its first word, so the pipe is not a stage boundary
+KEYWORDS = {"if", "while", "until", "for", "case", "select", "time", "function"}
+
+
 def after_first_pipe(command):
     """The command without its first pipe stage, split at the first `|` outside quotes, or None when the split is not certain:
     no pipe, or before it a character outside SAFE, or in double quotes a `$(`, `${`, backtick or backslash, which
     could hide a pipe or drop part of the first stage."""
+    if command.split(None, 1)[:1] and command.split(None, 1)[0] in KEYWORDS:
+        return None
     quote, i = None, 0
     while i < len(command):
         c = command[i]

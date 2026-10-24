@@ -6,3 +6,4 @@
 5. [check] **quoted backslash**: `echo "a\"|b" | cat` prints `a"|b`; on base prints `no`.
 6. [check] **quoted substitution**: `echo "$(echo "a|b")" | tr a-z A-Z` prints `A|B`; on base prints `no`.
 7. [check] **brace default**: `echo ${x:-a|b} | tr a-z A-Z` prints `A|B`; on base prints `no`.
+8. [check] **compound keyword**: `if echo x | grep -q x; then echo yes; fi` prints `yes`; on base prints `no`.
