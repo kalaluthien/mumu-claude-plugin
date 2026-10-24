@@ -1,0 +1,53 @@
+{
+  "title": "Copilot Workspace: specification and plan",
+  "parts": [
+    {
+      "text": "Describe what you want in natural language. The plan agent captures your intent, proposes a plan of action, and uses that plan to implement the changes.",
+      "kind": "goal",
+      "source": "https://githubnext.com/projects/copilot-workspace"
+    },
+    {
+      "text": "Specification: two bullet-point lists. You can edit both, to correct the system's understanding or to refine the requirements.",
+      "kind": "step",
+      "source": "https://githubnext.com/projects/copilot-workspace",
+      "parts": [
+        {"text": "Current state of the codebase.", "kind": "note"},
+        {"text": "Desired state of the codebase.", "kind": "note"}
+      ]
+    },
+    {
+      "text": "Plan: every file it intends to create, modify, or delete, with a bullet-point list of the actions to be taken in each file. You can alter the instructions, or change the list of files.",
+      "kind": "step",
+      "source": "https://githubnext.com/projects/copilot-workspace",
+      "parts": [
+        {"text": "A file to create, modify, or delete.", "kind": "note"},
+        {"text": "The actions to be taken in that file.", "kind": "note"}
+      ]
+    },
+    {
+      "text": "Edit the spec or plan at any point and Copilot Workspace regenerates all the downstream steps with your new input.",
+      "kind": "risk",
+      "source": "https://githubnext.com/projects/copilot-workspace"
+    },
+    {
+      "text": "Are you happy with the spec and the plan?",
+      "kind": "question",
+      "source": "https://githubnext.com/projects/copilot-workspace",
+      "pick": {
+        "text": "Approve and generate the changes",
+        "parts": [{"text": "The generated diff is itself directly editable before a pull request or a push to a branch.", "kind": "consequence"}]
+      },
+      "else": [
+        {
+          "text": "Edit again and regenerate",
+          "parts": [{"text": "All downstream steps are regenerated.", "kind": "consequence"}]
+        }
+      ]
+    },
+    {
+      "text": "The Copilot Workspace technical preview was sunset on May 30th, 2025.",
+      "kind": "note",
+      "source": "https://githubnext.com/projects/copilot-workspace"
+    }
+  ]
+}

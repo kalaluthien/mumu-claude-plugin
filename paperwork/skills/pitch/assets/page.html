@@ -11,11 +11,16 @@
   --ok: #1a7f37; --bar: #ffffff; --shadow: 0 1px 3px rgba(0,0,0,.12);
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #15171a; --surface: #1d2025; --ink: #e6e8eb; --muted: #9aa3ad; --line: #3a3f46;
     --accent: #7aa7ff; --accent-bg: #22314d; --amber: #f2c46d; --amber-bg: #3a2c0c; --amber-line: #8a6a1d;
     --ok: #56d364; --bar: #1d2025; --shadow: 0 1px 3px rgba(0,0,0,.6);
   }
+}
+:root[data-theme="dark"] {
+    --bg: #15171a; --surface: #1d2025; --ink: #e6e8eb; --muted: #9aa3ad; --line: #3a3f46;
+    --accent: #7aa7ff; --accent-bg: #22314d; --amber: #f2c46d; --amber-bg: #3a2c0c; --amber-line: #8a6a1d;
+    --ok: #56d364; --bar: #1d2025; --shadow: 0 1px 3px rgba(0,0,0,.6);
 }
 * { box-sizing: border-box; }
 html { scroll-padding-bottom: 280px; }
@@ -88,6 +93,7 @@ ol.opts, ol.leaves { list-style: none; margin: 0; padding: 0; }
 (function () {
 "use strict";
 var plan = JSON.parse(document.getElementById("plan").textContent);
+var STAMP = "__STAMP__";
 // One id rule, the same as the lib: depth-first over parts, 1-based, dot-joined.
 var order = [], byId = {}, parentOf = {};
 (function walk(parts, prefix, parent) {
@@ -137,7 +143,7 @@ function lines() {
   return out;
 }
 function oneLine(t) { return String(t).replace(/\s*\n\s*/g, " ").trim(); }
-function answerText() { return ["# Answer: " + plan.title].concat(lines()).join("\n") + "\n"; }
+function answerText() { return ["# Answer: " + plan.title + " · plan " + STAMP].concat(lines()).join("\n") + "\n"; }
 
 // -- render ---------------------------------------------------------------
 function meta(p, row) {

@@ -1,0 +1,54 @@
+{
+  "title": "Cursor Plan mode: review the plan, then Build",
+  "parts": [
+    {
+      "text": "Plan mode lets you generate and review a detailed plan before Agent writes any code.",
+      "kind": "goal",
+      "source": "https://cursor.com/help/ai-features/plan-mode"
+    },
+    {
+      "text": "Agent explores your codebase and may ask clarifying questions.",
+      "kind": "step",
+      "source": "https://cursor.com/help/ai-features/plan-mode"
+    },
+    {
+      "text": "Review the plan Agent creates. It opens as a virtual file you can read and edit.",
+      "kind": "step",
+      "source": "https://cursor.com/help/ai-features/plan-mode"
+    },
+    {
+      "text": "When you're happy with the plan, click Build to start coding.",
+      "kind": "question",
+      "source": "https://cursor.com/help/ai-features/plan-mode",
+      "pick": {
+        "text": "Build",
+        "parts": [{"text": "Agent starts coding from the plan.", "kind": "consequence"}]
+      },
+      "else": [
+        {"text": "Keep editing the plan"}
+      ]
+    },
+    {
+      "text": "Plans are saved by default in your home directory.",
+      "kind": "question",
+      "source": "https://cursor.com/help/ai-features/plan-mode",
+      "pick": {"text": "Keep it in the home directory"},
+      "else": [
+        {
+          "text": "Save to workspace",
+          "parts": [{"text": "For future reference, team sharing, and documentation.", "kind": "consequence"}]
+        }
+      ]
+    },
+    {
+      "text": "Plan mode works best for complex features with multiple valid approaches, tasks touching many files or systems, unclear requirements, and architectural decisions.",
+      "kind": "note",
+      "source": "https://cursor.com/help/ai-features/plan-mode"
+    },
+    {
+      "text": "If Agent builds something that does not match what you wanted, use Revert on a previous chat message, then Confirm, to roll back your files.",
+      "kind": "risk",
+      "source": "https://cursor.com/help/ai-features/plan-mode"
+    }
+  ]
+}

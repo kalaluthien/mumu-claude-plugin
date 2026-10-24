@@ -26,7 +26,8 @@ def build(plan_path):
     # "</" would end the script element early inside the embedded JSON.
     data = json.dumps(plan, ensure_ascii=False).replace("</", "<\\/")
     page = TEMPLATE.read_text(encoding="utf-8")
-    return page.replace("__TITLE__", html.escape(plan["title"])).replace("__PLAN__", data)
+    return (page.replace("__TITLE__", html.escape(plan["title"])).replace("__STAMP__", pitch_plan.stamp(plan))
+            .replace("__PLAN__", data))
 
 
 def strikeable(plan):
@@ -80,6 +81,7 @@ def drive(browser_ctx, plan_path, out_dir):
     page.close()
     if errors:
         raise AssertionError(f"console errors: {errors}")
+    pitch_plan.check_head(plan, text)
     entries = pitch_plan.parse_answer(text)
     verbs = {e[2] for e in entries}
     need = {"comment"} | ({"struck"} if target else set())

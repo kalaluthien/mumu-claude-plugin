@@ -1,0 +1,48 @@
+{
+  "title": "Jules: review the plan before any code",
+  "parts": [
+    {
+      "text": "A natural language description of what Jules intends to do.",
+      "kind": "goal",
+      "source": "https://jules.google/docs/review-plan/"
+    },
+    {
+      "text": "Step-by-step breakdowns.",
+      "kind": "step",
+      "source": "https://jules.google/docs/review-plan/",
+      "parts": [
+        {"text": "Open each step by expanding it to read through it.", "kind": "note"}
+      ]
+    },
+    {
+      "text": "Any assumptions or setup steps.",
+      "kind": "note",
+      "source": "https://jules.google/docs/review-plan/"
+    },
+    {
+      "text": "If you navigate away, Jules will eventually auto-approve the plan, on a timer.",
+      "kind": "risk",
+      "source": "https://jules.google/docs/review-plan/"
+    },
+    {
+      "text": "Jules has presented its plan after setup (cloning your repo, initializing the VM, and installing dependencies). Approve it, or give feedback?",
+      "kind": "question",
+      "source": "https://jules.google/docs/review-plan/",
+      "pick": {
+        "text": "Approve plan",
+        "parts": [{"text": "Jules begins executing and writing code.", "kind": "consequence"}]
+      },
+      "else": [
+        {
+          "text": "Give feedback in the chat input",
+          "parts": [
+            {"text": "Ask it to revise a step.", "kind": "note"},
+            {"text": "Point out something it missed.", "kind": "note"},
+            {"text": "Clarify your original request.", "kind": "note"},
+            {"text": "Jules will respond and update its plan if needed.", "kind": "consequence"}
+          ]
+        }
+      ]
+    }
+  ]
+}

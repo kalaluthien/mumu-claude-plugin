@@ -1,0 +1,66 @@
+{
+  "title": "LangGraph interrupts: resume values",
+  "parts": [
+    {
+      "text": "Interrupts pause graph execution at a point and wait for external input. The resume value becomes the return value of interrupt() inside the node.",
+      "kind": "goal",
+      "source": "https://docs.langchain.com/oss/python/langgraph/interrupts"
+    },
+    {
+      "text": "Do you approve this action?",
+      "kind": "question",
+      "source": "https://docs.langchain.com/oss/python/langgraph/interrupts",
+      "pick": {
+        "text": "Approve: resume with True",
+        "parts": [{"text": "The node routes to proceed.", "kind": "consequence"}]
+      },
+      "else": [
+        {
+          "text": "Reject: resume with False",
+          "parts": [{"text": "The node routes to cancel.", "kind": "consequence"}]
+        }
+      ]
+    },
+    {
+      "text": "Review and edit this content.",
+      "kind": "step",
+      "source": "https://docs.langchain.com/oss/python/langgraph/interrupts",
+      "parts": [
+        {"text": "The edited text is the resume value and becomes generated_text in the state.", "kind": "note"}
+      ]
+    },
+    {
+      "text": "Two parallel nodes each pause. Each interrupt id gets its own resume value, sent together in one resume map.",
+      "kind": "note",
+      "source": "https://docs.langchain.com/oss/python/langgraph/interrupts",
+      "parts": [
+        {
+          "text": "question_a",
+          "kind": "question",
+          "pick": {"text": "answer for question_a"}
+        },
+        {
+          "text": "question_b",
+          "kind": "question",
+          "pick": {"text": "answer for question_b"}
+        }
+      ]
+    },
+    {
+      "text": "Approve sending this email?",
+      "kind": "question",
+      "source": "https://docs.langchain.com/oss/python/langgraph/interrupts",
+      "parts": [
+        {"text": "The tool call carries to, subject and body. The resume value can override each of them before the tool runs.", "kind": "note"},
+        {"text": "Subject of the email.", "kind": "step"}
+      ],
+      "pick": {"text": "Approve: resume with action approve"},
+      "else": [
+        {
+          "text": "Cancel",
+          "parts": [{"text": "Email cancelled by user.", "kind": "consequence"}]
+        }
+      ]
+    }
+  ]
+}

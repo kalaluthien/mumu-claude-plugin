@@ -1,0 +1,71 @@
+{
+  "title": "Kiro spec: requirements, design, tasks",
+  "parts": [
+    {
+      "text": "Specs are structured artifacts that turn high-level ideas into detailed implementation plans with clear tracking and accountability.",
+      "kind": "goal",
+      "source": "https://kiro.dev/docs/specs/"
+    },
+    {
+      "text": "Kiro asks if you are developing a Feature or fixing a Bug.",
+      "kind": "question",
+      "source": "https://kiro.dev/docs/specs/",
+      "pick": {
+        "text": "Feature spec",
+        "then": {
+          "text": "Which workflow?",
+          "pick": {"text": "Requirements-First"},
+          "else": [{"text": "Design-First"}]
+        }
+      },
+      "else": [
+        {
+          "text": "Bugfix spec",
+          "parts": [{"text": "Bug analysis with current, expected and unchanged behavior in bugfix.md.", "kind": "note"}]
+        },
+        {
+          "text": "Quick Spec",
+          "parts": [{"text": "Auto-generates all three artifacts without approval gates.", "kind": "consequence"}]
+        }
+      ]
+    },
+    {
+      "text": "requirements.md captures user stories, acceptance criteria, or bug analysis in structured notation.",
+      "kind": "step",
+      "source": "https://kiro.dev/docs/specs/",
+      "parts": [
+        {"text": "Break down requirements into user stories with acceptance criteria.", "kind": "step"}
+      ]
+    },
+    {
+      "text": "design.md documents technical architecture, sequence diagrams, and implementation considerations.",
+      "kind": "step",
+      "source": "https://kiro.dev/docs/specs/",
+      "parts": [
+        {"text": "System architecture and component design.", "kind": "step"},
+        {"text": "Sequence diagrams and data flow.", "kind": "step"},
+        {"text": "Error handling and testing strategy.", "kind": "step"}
+      ]
+    },
+    {
+      "text": "tasks.md provides a detailed implementation plan with discrete, trackable tasks.",
+      "kind": "step",
+      "source": "https://kiro.dev/docs/specs/",
+      "parts": [
+        {"text": "Trackable tasks with clear outcomes.", "kind": "step"},
+        {"text": "Real-time status updates as you implement.", "kind": "note"},
+        {
+          "text": "Run tasks individually or all at once.",
+          "kind": "question",
+          "pick": {
+            "text": "Run all tasks",
+            "parts": [
+              {"text": "Kiro builds a dependency graph and groups independent tasks into waves. Waves run in order; tasks within a wave run together.", "kind": "consequence"}
+            ]
+          },
+          "else": [{"text": "Run tasks individually"}]
+        }
+      ]
+    }
+  ]
+}

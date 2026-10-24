@@ -36,14 +36,14 @@ A refusal prints `path: rule: detail`.
 | `missing-key` | a plan with no `parts` |
 | `bad-json` | text that is not JSON |
 
-The refused fixtures in [../fixtures/refused/](../fixtures/refused/) show each of the four shape refusals. `answer-plan.json` is a valid plan, and `unknown-id.answer.md` names a Part it lacks; the reader refuses that, not the checker.
+The refused fixtures in [../fixtures/refused/](../fixtures/refused/) show each of the four shape refusals. `answer-plan.json` is a valid plan, and `unknown-id.answer.md` names a Part it lacks; the reader refuses that, not the checker. `read-answer.py --expect-refused fixtures/refused/answer-plan.json fixtures/refused/*.answer.md` prints `refused 2 of 2`.
 
 ## Answer
 
 One Markdown form, one line per Part touched, nothing for a Part kept:
 
 ```
-# Answer: <title>
+# Answer: <title> · plan <stamp>
 - 2 pick 2
 - 2 pick 1 then 2
 - 2 other: <text>
@@ -51,6 +51,8 @@ One Markdown form, one line per Part touched, nothing for a Part kept:
 - 4 comment: <text>
 - 5 edited: <new text>
 ```
+
+The stamp is the first eight hex digits of the SHA-256 of the plan's JSON with sorted keys and no spaces; `make-page.py` writes it into the page. An Answer whose title or stamp differs from the plan it is read against is refused, since ids are positions and an older version's ids name other Parts; `stale.answer.md` shows it.
 
 A Part may have several lines, such as a pick and a comment, but one pick or other at most. The reader refuses with the line number: an unknown id, a `pick` out of range, `then` on an Option with no follow-up, `pick` on a Part with no options, or a line it cannot parse.
 
