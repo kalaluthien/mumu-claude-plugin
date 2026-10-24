@@ -103,13 +103,13 @@ def main(args):
     parser.add_argument("--path", action="append", default=[])
     parser.add_argument("--before")
     parser.add_argument("--top", type=int, default=10)
-    args = parser.parse_args(args)
-    items = load(args.before)
+    options = parser.parse_args(args)
+    items = load(options.before)
     newest = max(items, default=1)
-    scores = text_scores(items, words(" ".join(args.words))) + path_scores(items, args.path, args.before)
+    scores = text_scores(items, words(" ".join(options.words))) + path_scores(items, options.path, options.before)
     for n in scores:
         scores[n] *= 1 + RECENT_GAIN * .5 ** ((newest - n) / RECENT_HALF_LIFE)
-    ranked = [n for n, _ in scores.most_common() if n in items][:args.top]
+    ranked = [n for n, _ in scores.most_common() if n in items][:options.top]
     if not ranked:
         print("No earlier issue or pull request matches; widen the words or name a path.")
     for n in ranked:

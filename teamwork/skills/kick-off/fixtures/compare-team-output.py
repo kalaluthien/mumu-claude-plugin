@@ -42,7 +42,7 @@ EVENTS["stray-pre"] = ("protocol-split-worker", {"hook_event_name": "PreToolUse"
 EVENTS["stray-post"] = ("protocol-split-worker", {"hook_event_name": "PostToolUse", "tool_name": "Bash", "cwd": ".",
                                                   "tool_input": {"command": "gh issue create --title x --body-file f.md"},
                                                   "tool_response": {"stdout": f"https://github.com/{SANDBOX}/issues/9\n"}})
-K = "teamwork/skills/kick-off/scripts/"
+SCRIPTS = "teamwork/skills/kick-off/scripts/"
 
 
 SESSIONS = {"teamwork-manager": ("w1:p1", "idle"), "protocol-split-worker": ("w1:p2", "working")}
@@ -77,7 +77,7 @@ def edit_write(tree, side):
     for name, a, b in (("forward", "before", "after"), ("back", "after", "before")):
         diffs[name] = pathlib.Path(tempfile.mkstemp(suffix=".diff")[1])
         diffs[name].write_text(f"--- a\n+++ b\n@@ -3 +3 @@\n-probe: {a}\n+probe: {b}\n")
-    out = "".join(run(tree, [K + "edit-issue-body.py", EDIT_ISSUE[side], str(diffs[d]), f"DECIDED: probe {d}"]) for d in ("forward", "back"))
+    out = "".join(run(tree, [SCRIPTS + "edit-issue-body.py", EDIT_ISSUE[side], str(diffs[d]), f"DECIDED: probe {d}"]) for d in ("forward", "back"))
     for comment in set(re.findall(rf"(?:repos/{SANDBOX}/issues/comments/|{SANDBOX}/issues/\d+#issuecomment-)(\d+)", out)):  # so the issue does not grow a comment pair per run
         subprocess.run(["gh", "api", "-X", "DELETE", f"repos/{SANDBOX}/issues/comments/{comment}"], capture_output=True)
     return "\n".join(re.findall(r"edit-issue-body: .*", out)).replace(f"#{EDIT_ISSUE[side]}", "#<issue>")
@@ -92,7 +92,7 @@ def remove(tree):
         subprocess.run(["git", "remote", "set-url", "origin", url], cwd=clone, check=True)
         subprocess.run(["git", "fetch", "-q", "origin"], cwd=clone)
         subprocess.run(["git", "remote", "set-head", "origin", "--auto"], cwd=clone, capture_output=True)
-        return run(tree, [K + "remove-worktree.py", "nobody-probe-worker"], cwd=clone)
+        return run(tree, [SCRIPTS + "remove-worktree.py", "nobody-probe-worker"], cwd=clone)
     finally:
         shutil.rmtree(clone, ignore_errors=True)
 
@@ -103,12 +103,12 @@ def outputs(tree, side, ids):
     jobs["board-json"] = (["teamwork/hooks/list-issue-board.py", "teamwork", "--json"], None, None, 120)
     jobs["heartbeat"] = (["teamwork/monitors/print-team-gaps.py"], ids.get("teamwork-manager"), None, 45)
     jobs["worker-heartbeat"] = (["teamwork/monitors/print-team-gaps.py"], ids.get("protocol-split-worker"), None, 45)
-    jobs["recall"] = ([K + "recall-work.py", "protocol adapter", "--path", "./teamwork/lib/team_gaps.py"], None, None, 120)
-    jobs["criteria"] = ([K + "run-criteria.py", "3" if SAND else "855"], None, None, 120)
+    jobs["recall"] = ([SCRIPTS + "recall-work.py", "protocol adapter", "--path", "./teamwork/lib/team_gaps.py"], None, None, 120)
+    jobs["criteria"] = ([SCRIPTS + "run-criteria.py", "3" if SAND else "855"], None, None, 120)
     repo = SANDBOX if SAND else "kalaluthien/mumu-claude-plugin"  # the sandbox's one merged change closes its #5
-    jobs["estimate"] = ([K + "estimate-task-time.py", "--seed", "1", f"https://github.com/{repo}/issues/{3 if SAND else 852}"], None, None, 180, None, False)
-    jobs["durations"] = ([K + "list-task-durations.py", repo], None, None, 300, None, False)
-    jobs["edit-missing"] = ([K + "edit-issue-body.py", "999999", str(HERE / "edit-probe.diff"), "DECIDED: probe"], None, None, 60)
+    jobs["estimate"] = ([SCRIPTS + "estimate-task-time.py", "--seed", "1", f"https://github.com/{repo}/issues/{3 if SAND else 852}"], None, None, 180, None, False)
+    jobs["durations"] = ([SCRIPTS + "list-task-durations.py", repo], None, None, 300, None, False)
+    jobs["edit-missing"] = ([SCRIPTS + "edit-issue-body.py", "999999", str(HERE / "edit-probe.diff"), "DECIDED: probe"], None, None, 60)
     keep = lambda k: (not ONLY or k.startswith(tuple(ONLY))) and not k.startswith(tuple(SKIP))
     with cf.ThreadPoolExecutor(8) as pool:
         futures = {k: pool.submit(run, tree, *v) for k, v in jobs.items() if keep(k)}

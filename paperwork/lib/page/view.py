@@ -27,15 +27,15 @@ PAGE_ORDER = ("intent", "views", "depth", "deep", "shallow", "scenarios", "prove
 TOP, PLAN_KEYS, NODE_KEYS, EDGE_KEYS = ("lang", "next", "screens"), ("views", "depth", "deep", "shallow", "show", "max_nodes"), ("x", "y", "ui"), ("via",)
 
 
-def edge_key(L, e):
+def edge_key(level, e):
     """An edge's key within its level: from>to, and #label when two edges join the same pair."""
-    twins = sum(1 for x in L["edges"] if (x["from"], x["to"]) == (e["from"], e["to"]))
+    twins = sum(1 for x in level["edges"] if (x["from"], x["to"]) == (e["from"], e["to"]))
     return f'{e["from"]}>{e["to"]}' + (f'#{e["label"]}' if twins > 1 else "")
 
 
 def levels(data):
     """(level id, level) for every level: root, or the id of the node that opens it."""
-    return [(opener or "root", L) for L, opener in levels_of(data)]
+    return [(opener or "root", level) for level, opener in levels_of(data)]
 
 
 def split(m):
@@ -62,13 +62,13 @@ def split(m):
     if vp:
         v["plan"] = vp
     out = {}
-    for lid, L in levels(s):
-        nodes = {n["id"]: {k: n.pop(k) for k in NODE_KEYS if k in n} for n in L.get("nodes", [])}
+    for lid, level in levels(s):
+        nodes = {n["id"]: {k: n.pop(k) for k in NODE_KEYS if k in n} for n in level.get("nodes", [])}
         edges = {}
-        for e in L.get("edges", []):
+        for e in level.get("edges", []):
             d = {k: e.pop(k) for k in EDGE_KEYS if k in e}
             if d:
-                edges[edge_key(L, e)] = d
+                edges[edge_key(level, e)] = d
         entry = ({"nodes": {i: d for i, d in nodes.items() if d}} if any(nodes.values()) else {}) | ({"edges": edges} if edges else {})
         if entry:
             out[lid] = entry
@@ -97,19 +97,19 @@ def merge(s, v):
             p.pop("why", None)
             p["why"] = why
     given = v.get("levels", {})
-    for lid, L in levels(out):
+    for lid, level in levels(out):
         entry = given.get(lid, {})
-        if "nodes" in L:
+        if "nodes" in level:
             nodes = []
-            for n in L["nodes"]:
+            for n in level["nodes"]:
                 d, keys = entry.get("nodes", {}).get(n["id"], {}), list(n)
                 head = keys[:keys.index("label") + 1] if "label" in keys else keys[:1]
                 new = {k: n[k] for k in head} | {k: d[k] for k in ("x", "y") if k in d}
                 new |= {k: n[k] for k in keys if k not in new}
                 nodes.append(new | ({"ui": d["ui"]} if "ui" in d else {}))
-            L["nodes"] = nodes
-        for e in L.get("edges", []):
-            e.update(entry.get("edges", {}).get(edge_key(L, e), {}))
+            level["nodes"] = nodes
+        for e in level.get("edges", []):
+            e.update(entry.get("edges", {}).get(edge_key(level, e), {}))
     return out
 
 
@@ -128,11 +128,11 @@ def attach(s, v):
     out, by = [], dict(levels(s))
     screens = v.get("screens") or {}
     for lid, entry in (v.get("levels") or {}).items():
-        L = by.get(lid)
-        if L is None:
+        level = by.get(lid)
+        if level is None:
             out.append(f"view: levels.{lid} is no level (root, or a node that opens one)")
             continue
-        ids, keys = {n["id"] for n in L.get("nodes", [])}, {edge_key(L, e) for e in L.get("edges", [])}
+        ids, keys = {n["id"] for n in level.get("nodes", [])}, {edge_key(level, e) for e in level.get("edges", [])}
         out += [f"view: levels.{lid}.nodes.{n} is no node of that level" for n in entry.get("nodes", {}) if n not in ids]
         out += [f"view: levels.{lid}.edges.{k} is no edge of that level (from>to, #label for twins)" for k in entry.get("edges", {}) if k not in keys]
         for n, d in entry.get("nodes", {}).items():
@@ -148,7 +148,7 @@ def plan_problems(s, v):
     the reader does after."""
     out, given = [], v.get("plan") or {}
     opens = {lid for lid, _ in levels(s)} - {"root"}
-    nodes = {n["id"] for _, L in levels(s) for n in L.get("nodes", [])}
+    nodes = {n["id"] for _, level in levels(s) for n in level.get("nodes", [])}
     if not given.get("views"):
         out.append("plan: list the views a practitioner of this domain expects (views)")
     for x in given.get("views") or []:
@@ -167,53 +167,53 @@ def plan_problems(s, v):
     return out
 
 
-def size(M):
+def size(system_model):
     out = []
-    for L in M.m["levels"]:
-        n = len(L["nodes"])
-        if n > M.plan["max_nodes"]:
-            out.append(f'{L["id"]}: {n} nodes; group those that work alike and open them below')
-        if L.get("parent") and n < 2:
-            out.append(f'{L["id"]}: opens with {n} node; merge it into {L["parent"]}')
+    for level in system_model.m["levels"]:
+        n = len(level["nodes"])
+        if n > system_model.plan["max_nodes"]:
+            out.append(f'{level["id"]}: {n} nodes; group those that work alike and open them below')
+        if level.get("parent") and n < 2:
+            out.append(f'{level["id"]}: opens with {n} node; merge it into {level["parent"]}')
     return out
 
 
-def phone(M):
+def phone(system_model):
     """A phone's root is laid out again in two columns or one, so the author's columns never decide whether it fits.
     Partitions then stack as bands of rows, and two rows of two cells join by at most three lines that do not cross
     (two straight down, one across); more links between two partitions detour round the sides and meet. Limits in
     assets/phone-limits.json, shared with the engine; render measures the fit itself."""
     out = []
-    for L in M.m["levels"]:
-        if L.get("parent") or not L.get("partitions"):
+    for level in system_model.m["levels"]:
+        if level.get("parent") or not level.get("partitions"):
             continue
-        part = {n["id"]: n.get("partition") for n in L["nodes"]}
+        part = {n["id"]: n.get("partition") for n in level["nodes"]}
         links = {}
-        for e in L["edges"]:
+        for e in level["edges"]:
             a, b = part.get(e["from"]), part.get(e["to"])
             if a != b and a and b:   # a node outside every partition is the partitions check's to report
                 links.setdefault(tuple(sorted((a, b))), set()).add(frozenset((e["from"], e["to"])))
         for (a, b), pairs in sorted(links.items()):
             if len(pairs) > LIMITS["partitionLinks"]:
-                out.append(f'{L["id"]}: partitions {a} and {b} are joined at {len(pairs)} pairs of nodes, more than the '
+                out.append(f'{level["id"]}: partitions {a} and {b} are joined at {len(pairs)} pairs of nodes, more than the '
                            f'{LIMITS["partitionLinks"]} a phone can draw apart; route some through one node or open them in a level below')
     return out
 
 
-def depth(M):
+def depth(system_model):
     """Depth picks which levels the views feature; the page keeps every level the model holds."""
-    if M.plan["depth"] != "overview":
+    if system_model.plan["depth"] != "overview":
         return []
-    return [f'view {v.get("name")}: an overview features the root and one level, and {v["level"]} lies {M.depth(v["level"])} below'
-            for v in M.plan.get("views") or [] if v.get("level") in M.levels and M.depth(v["level"]) > 1]
+    return [f'view {v.get("name")}: an overview features the root and one level, and {v["level"]} lies {system_model.depth(v["level"])} below'
+            for v in system_model.plan.get("views") or [] if v.get("level") in system_model.levels and system_model.depth(v["level"]) > 1]
 
 
-def names(M):
+def names(system_model):
     """Every term is English whatever the reader's language; only descriptions follow it."""
-    m = M.m
-    terms = [m.get("title", "")] + [t for L in m["levels"] for t in [L.get("title", "")]
-             + [x.get("label", "") for x in L["nodes"] + L["edges"] + L.get("triggers", []) + L.get("partitions", []) + L.get("regions", [])]]
-    for md in [md for L in m["levels"] for o in [L] + L["nodes"] + L["edges"] for md in o.get("media", [])]:
+    m = system_model.m
+    terms = [m.get("title", "")] + [t for level in m["levels"] for t in [level.get("title", "")]
+             + [x.get("label", "") for x in level["nodes"] + level["edges"] + level.get("triggers", []) + level.get("partitions", []) + level.get("regions", [])]]
+    for md in [md for level in m["levels"] for o in [level] + level["nodes"] + level["edges"] for md in o.get("media", [])]:
         terms.append(md.get("title", ""))
         if md.get("type") == "facts":
             terms += [i[0] for i in md.get("items", []) if i]   # a fact's term, not its sentence
@@ -238,9 +238,9 @@ FIX = {"v": {"은": "는", "이": "가", "을": "를", "과": "와", "으로": "
 POSITION = re.compile(r"(?<![가-힣])(위|아래|앞|다음)\s+(그림|표|식|그래프|칸)(?:처럼|에서|으로|[은는이가을를의에도과와로만]|[^가-힣]|$)")
 
 
-def prose_fields(M):
+def prose_fields(system_model):
     """(where, text) for each description; code, quote, payload, diff, tree and screens are verbatim, so left out."""
-    m = M.m
+    m = system_model.m
     yield "next", m.get("next", "")
     yield "plan intent", m["plan"].get("intent", "")
     for s in m["scenarios"]:
@@ -251,9 +251,9 @@ def prose_fields(M):
                 yield f'{s["slug"]} step', st.get("expects", "")
     for o in m["operations"] + m["rules"]:
         yield o["slug"], o.get("text", "")
-    for L in m["levels"]:
-        for owner in [L] + L["nodes"] + L["edges"] + L.get("triggers", []):
-            where = owner.get("id", L["id"])
+    for level in m["levels"]:
+        for owner in [level] + level["nodes"] + level["edges"] + level.get("triggers", []):
+            where = owner.get("id", level["id"])
             yield where, owner.get("what", "")
             yield where, owner.get("why", "")
             for md in owner.get("media", []):
@@ -284,13 +284,13 @@ def sentences(text):
     return out
 
 
-def prose(M):
+def prose(system_model):
     """A Korean model's descriptions read as Korean: formal endings, particles that agree with an English term and
     sit against it, 수 있다 and 수 없다 apart, and no 위/아래/앞/다음 pointing at a figure."""
-    if M.m.get("lang") != "ko":
+    if system_model.m.get("lang") != "ko":
         return []
     out = []
-    for where, text in prose_fields(M):
+    for where, text in prose_fields(system_model):
         for sent, mask in sentences(str(text)):
             end = mask.rstrip(".?!)]} ")
             found = []
@@ -308,23 +308,23 @@ def prose(M):
     return out
 
 
-def facts(M):
+def facts(system_model):
     """Facts hold the system's own facts, never the diagram's plan: an item echoes the plan when it holds the
     whole intent text (ignoring case and spacing, in whatever language), or names two of the plan's views or the model's levels."""
-    m, out = M.m, []
+    m, out = system_model.m, []
     squash = lambda x: re.sub(r"\s+", "", x.casefold())
     intent = squash(m["plan"].get("intent", ""))
-    names = {x.casefold() for x in [v.get("name", "") for v in m["plan"].get("views", [])] + [L["title"] for L in m["levels"]] if x}
-    for L in m["levels"]:
-        for owner in [L] + L["nodes"] + L["edges"]:
+    names = {x.casefold() for x in [v.get("name", "") for v in m["plan"].get("views", [])] + [level["title"] for level in m["levels"]] if x}
+    for level in m["levels"]:
+        for owner in [level] + level["nodes"] + level["edges"]:
             for md in owner.get("media", []):
                 if md.get("type") != "facts":
                     continue
                 for item in md.get("items", []):
                     text = " ".join(map(str, item))
                     if (intent and intent in squash(text)) or sum(n in text.casefold() for n in names) >= 2:
-                        where = owner.get("id", L["id"])
-                        out.append(f'{L["id"]}: the facts on {where} restate the plan ("{item[0]}"); keep the plan for the hand-over and state the system\'s facts')
+                        where = owner.get("id", level["id"])
+                        out.append(f'{level["id"]}: the facts on {where} restate the plan ("{item[0]}"); keep the plan for the hand-over and state the system\'s facts')
                         break
     return out
 
@@ -346,9 +346,9 @@ def model(s, v):
     """The joined model as the drawing checks read it, its plan the page's."""
     m = merge(s, v)
     m["plan"] = page_plan(m)
-    M = Model(m)
-    M.plan, M.strict = m["plan"], set(m["plan"]["strict"])
-    return M
+    system_model = Model(m)
+    system_model.plan, system_model.strict = m["plan"], set(m["plan"]["strict"])
+    return system_model
 
 
 def run(s, v, only=None):
@@ -358,8 +358,8 @@ def run(s, v, only=None):
     if wrong:
         return [("form", wrong, "error")]
     out = [("form", plan_problems(s, v), "error")] if not only or "form" in only else []
-    M = model(s, v)
+    system_model = model(s, v)
     for name, _, fn in RULES:
         if not only or name in only:
-            out.append((name, fn(M), "lint" if name in LINT and name not in M.strict else "error"))
+            out.append((name, fn(system_model), "lint" if name in LINT and name not in system_model.strict else "error"))
     return out

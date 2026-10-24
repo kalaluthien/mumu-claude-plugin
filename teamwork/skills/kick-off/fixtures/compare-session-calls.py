@@ -7,20 +7,20 @@ usage: compare-session-calls.py [--ref <ref>]"""
 import argparse, difflib, json, os, pathlib, subprocess, sys, tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
-K = "teamwork/skills/kick-off/scripts/"
+SCRIPTS = "teamwork/skills/kick-off/scripts/"
 STEPS = [
-    [K + "start-session.py", "alpha-worker", "/tmp", "worker alpha-worker manager teamwork-manager https://example.com/1", "--model", "haiku", "--effort", "medium"],
-    [K + "start-session.py", "beta-worker", "/tmp", "worker beta-worker manager teamwork-manager https://example.com/2", "--model", "sonnet", "--effort", "medium", "--allow", "Artifact"],
-    [K + "start-session.py", "other-manager", "/tmp", "other", "--model", "opus", "--effort", "low", "--team"],
-    [K + "start-session.py", "teamwork-manager-next", "/tmp", "succeed teamwork-manager", "--model", "opus", "--effort", "low", "--beside", "teamwork-manager"],
-    [K + "start-session.py", "alpha-worker", "/tmp", "worker alpha-worker manager teamwork-manager x", "--model", "haiku", "--effort", "medium"],
-    [K + "start-session.py", "gamma-worker", "/tmp", "worker gamma-worker manager m x", "--model", "haiku", "--effort", "medium", "--allow", "Bash"],
-    [K + "close-session.py", "beta-worker"],
-    [K + "start-session.py", "trust-worker", ".", "worker trust-worker manager teamwork-manager x", "--model", "haiku", "--effort", "medium"],
-    [K + "start-session.py", "slow-worker", "/tmp", "worker slow-worker manager teamwork-manager x", "--model", "haiku", "--effort", "medium"],
-    [K + "close-session.py", "nobody-worker"],
-    [K + "close-session.py", "stuck-worker"],
-    [K + "list-agents.py"],
+    [SCRIPTS + "start-session.py", "alpha-worker", "/tmp", "worker alpha-worker manager teamwork-manager https://example.com/1", "--model", "haiku", "--effort", "medium"],
+    [SCRIPTS + "start-session.py", "beta-worker", "/tmp", "worker beta-worker manager teamwork-manager https://example.com/2", "--model", "sonnet", "--effort", "medium", "--allow", "Artifact"],
+    [SCRIPTS + "start-session.py", "other-manager", "/tmp", "other", "--model", "opus", "--effort", "low", "--team"],
+    [SCRIPTS + "start-session.py", "teamwork-manager-next", "/tmp", "succeed teamwork-manager", "--model", "opus", "--effort", "low", "--beside", "teamwork-manager"],
+    [SCRIPTS + "start-session.py", "alpha-worker", "/tmp", "worker alpha-worker manager teamwork-manager x", "--model", "haiku", "--effort", "medium"],
+    [SCRIPTS + "start-session.py", "gamma-worker", "/tmp", "worker gamma-worker manager m x", "--model", "haiku", "--effort", "medium", "--allow", "Bash"],
+    [SCRIPTS + "close-session.py", "beta-worker"],
+    [SCRIPTS + "start-session.py", "trust-worker", ".", "worker trust-worker manager teamwork-manager x", "--model", "haiku", "--effort", "medium"],
+    [SCRIPTS + "start-session.py", "slow-worker", "/tmp", "worker slow-worker manager teamwork-manager x", "--model", "haiku", "--effort", "medium"],
+    [SCRIPTS + "close-session.py", "nobody-worker"],
+    [SCRIPTS + "close-session.py", "stuck-worker"],
+    [SCRIPTS + "list-agents.py"],
     ["teamwork/hooks/route-event.py", "gh issue comment 1 --body hi"],
     ["teamwork/hooks/route-event.py", "ls"],
 ]

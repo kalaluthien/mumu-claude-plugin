@@ -100,8 +100,8 @@ def fixtures():
 
 
 def ids(path):
-    M = Model(json.loads(pathlib.Path(path).read_text(encoding="utf-8")))
-    print("\n".join(list(M.nodes) + list(M.edges)))
+    model = Model(json.loads(pathlib.Path(path).read_text(encoding="utf-8")))
+    print("\n".join(list(model.nodes) + list(model.edges)))
     return 0
 
 

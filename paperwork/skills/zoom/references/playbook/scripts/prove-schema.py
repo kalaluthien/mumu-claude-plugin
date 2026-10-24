@@ -26,29 +26,29 @@ import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 
-from schema import prover as A  # noqa: E402
+from schema import prover  # noqa: E402
 from schema.model import Model, shape  # noqa: E402
 
 
-def lines(M, als_path):
-    als, W, C = A.translate(M)
+def lines(model, als_path):
+    als, world, checks = prover.translate(model)
     als_path.write_text(als, encoding="utf-8")
     print(f"wrote {als_path}", file=sys.stderr)
     try:
-        res = A.run(als)
+        res = prover.run(als)
     except RuntimeError as e:
         res = {"_refused": str(e).splitlines()[0]}
     out = []
-    for name, _, _, _, slug in C:
+    for name, _, _, _, slug in checks:
         if res is None:
             why = "no Alloy (java and alloy.jar); run prove-schema.py --fetch"
         elif "_refused" in res:
             why = f"Alloy refused the module: {res['_refused']}"
         elif name in res.get("_slow", []) or name not in res:
-            why = f"past {A.SECONDS} s"
+            why = f"past {prover.SECONDS} s"
         else:
             r = res[name]
-            out.append(f"{slug}: counterexample {A.trace(W, r['instances'], slug)}" if r["sat"] else f"{slug}: pass")
+            out.append(f"{slug}: counterexample {prover.trace(world, r['instances'], slug)}" if r["sat"] else f"{slug}: pass")
             continue
         out.append(f"{slug}: unproved: {why}")
     return out
@@ -95,12 +95,12 @@ def broken_by(data, slugs):
     out = {s: ([], []) for s in slugs}
     for s in slugs:
         for rid, d in restrictions(data):
-            als, _, C = A.translate(Model(d))
-            name = next(n for n, _, _, _, slug in C if slug == s)
-            head, cmds, _, name_of = A._split(als)
+            als, _, checks = prover.translate(Model(d))
+            name = next(n for n, _, _, _, slug in checks if slug == s)
+            head, cmds, _, name_of = prover._split(als)
             # only the rule under test runs, so each copy costs one Alloy call
             try:
-                res = A.run(head + "-- what Alloy checks\n" + next(c for c in cmds if name_of(c) == name) + "\n")
+                res = prover.run(head + "-- what Alloy checks\n" + next(c for c in cmds if name_of(c) == name) + "\n")
             except RuntimeError:
                 res = None
             if not res or name not in res:
@@ -117,7 +117,7 @@ def verdict(broken, unanswered):
 
 def main(args):
     if args == ["--fetch"]:
-        print(f"fetched {A.fetch()}")
+        print(f"fetched {prover.fetch()}")
         return 0
     mutate = "--mutate" in args
     args = [a for a in args if a != "--mutate"]

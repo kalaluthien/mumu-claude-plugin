@@ -15,7 +15,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from . import formula as F
+from . import formula
 from .model import MEMBER, TYPE, split_top
 
 PRIM_SIG = {"Text", "Url", "Date"}
@@ -90,8 +90,8 @@ class Type:
 class World:
     """Everything the module will declare, with the name each element of the model gets in it."""
 
-    def __init__(self, M):
-        self.M, m = M, M.m
+    def __init__(self, model):
+        self.model, m = model, model.m
         self.problems = []
         self.sigs, self.fields, self.preds, self.atoms = {}, {}, {}, {}
         self.enums, self.kinds = {}, {}          # enum name -> atoms; call kind -> {field: decl}
@@ -111,7 +111,7 @@ class World:
         self.sigs.setdefault(name, info)
 
     def _types(self):
-        for name, txt in (self.M.m.get("types") or {}).items():
+        for name, txt in (self.model.m.get("types") or {}).items():
             mt = re.match(r"\s*(\{[^}]*\})", str(txt))
             if mt:
                 self._enum(name, Type(mt.group(1)).atoms, f"type {name}")
@@ -146,17 +146,17 @@ class World:
         return f"({u})" if len(t.names) > 1 else u
 
     def _components(self):
-        m = self.M.m
-        for L in m["levels"]:
-            if L["kind"] != "topology":
+        m = self.model.m
+        for level in m["levels"]:
+            if level["kind"] != "topology":
                 continue
-            for n in L["nodes"]:
-                parents = [ident(self.M.nodes[e["to"]]["label"]) for e in L["edges"]
-                           if e["from"] == n["id"] and self.M.is_abstract(L, e["to"])]
+            for n in level["nodes"]:
+                parents = [ident(self.model.nodes[e["to"]]["label"]) for e in level["edges"]
+                           if e["from"] == n["id"] and self.model.is_abstract(level, e["to"])]
                 self._sig(ident(n["label"]), kind="component", node=n["id"], abstract=bool(n.get("abstract")),
                           singleton=bool(n.get("singleton")), parents=parents)
-        labels = [e.get("label", "") for L in m["levels"] if L["kind"] == "workflow" for e in L["edges"] if not e.get("is")]
-        labels += [f.get("edge", "") for L in m["levels"] for f in L.get("in", []) + L.get("out", [])]
+        labels = [e.get("label", "") for level in m["levels"] if level["kind"] == "workflow" for e in level["edges"] if not e.get("is")]
+        labels += [f.get("edge", "") for level in m["levels"] for f in level.get("in", []) + level.get("out", [])]
         self.artifact_words = set().union(*map(artifact_types, labels))
 
     def use_type(self, name, where):
@@ -173,17 +173,17 @@ class World:
             self.problems.append(f"{where}: {name} is no component, artifact, enum or declared type")
 
     def _attrs(self):
-        for L in self.M.m["levels"]:
-            for n in L["nodes"]:
+        for level in self.model.m["levels"]:
+            for n in level["nodes"]:
                 for a in n.get("attrs", []):
                     ma = re.fullmatch(rf"({MEMBER})\s*:\s*(.+)", a)
                     if not ma:
                         continue
-                    yield L, n, ma.group(1), Type(ma.group(2))
+                    yield level, n, ma.group(1), Type(ma.group(2))
 
     def _levels(self):
-        m = self.M.m
-        for L, n, name, t in self._attrs():
+        m = self.model.m
+        for level, n, name, t in self._attrs():
             owner = ident(n["label"])
             if t.names == ["Bool"]:
                 self._sig(ident(name), kind="subset", of=owner)
@@ -192,13 +192,13 @@ class World:
                 self.use_type(r, f"{n['label']}.{name}")
             decl = self.type_decl(t, f"{n['label']}.{name}", name)
             self.fields.setdefault(name, []).append({"owner": owner, "mult": t.mult if not t.tuple else "set", "decl": decl, "type": t})
-        for L in m["levels"]:   # a relation no attribute stands for is a field named by its verb
-            if L["kind"] != "topology":
+        for level in m["levels"]:   # a relation no attribute stands for is a field named by its verb
+            if level["kind"] != "topology":
                 continue
-            for e in L["edges"]:
-                if self.M.is_abstract(L, e["to"]) or e.get("attr"):
+            for e in level["edges"]:
+                if self.model.is_abstract(level, e["to"]) or e.get("attr"):
                     continue
-                owner, to = ident(self.M.nodes[e["from"]]["label"]), ident(self.M.nodes[e["to"]]["label"])
+                owner, to = ident(self.model.nodes[e["from"]]["label"]), ident(self.model.nodes[e["to"]]["label"])
                 if any(f["owner"] == owner and to in (f["type"].refs() if f.get("type") else []) for fs in self.fields.values() for f in fs):
                     continue
                 fs = self.fields.setdefault(lower(e["label"]), [])
@@ -208,34 +208,34 @@ class World:
                     same["type"] = Type(" | ".join(t + "[]" for t in same["decl"].split(" + ")))
                 else:
                     fs.append({"owner": owner, "mult": "set", "decl": to, "type": Type(to + "[]"), "relation": e["label"]})
-        for L in m["levels"]:
-            if L["kind"] == "state":
-                subj = L.get("subject")
+        for level in m["levels"]:
+            if level["kind"] == "state":
+                subj = level.get("subject")
                 if not subj:
-                    self.problems.append(f'{L["id"]}: name the subject, the thing whose states these are')
+                    self.problems.append(f'{level["id"]}: name the subject, the thing whose states these are')
                     continue
-                self.use_type(subj, f'{L["id"]} subject')
-                region = {n["id"]: n.get("partition") or "_" for n in L["nodes"]}
-                for n in L["nodes"]:
-                    self._sig(ident(n["label"]), kind="state", of=subj, level=L["id"])
+                self.use_type(subj, f'{level["id"]} subject')
+                region = {n["id"]: n.get("partition") or "_" for n in level["nodes"]}
+                for n in level["nodes"]:
+                    self._sig(ident(n["label"]), kind="state", of=subj, level=level["id"])
                     self.var_sigs.add(ident(n["label"]))
-                self.states[L["id"]] = {"subject": subj, "region": region}
-            elif L["kind"] == "workflow":
-                run_sig = ident(L["title"])
-                self._sig(run_sig, kind="run", level=L["id"], used=True)
-                steps = [ident(n["label"]) for n in L["nodes"]]
+                self.states[level["id"]] = {"subject": subj, "region": region}
+            elif level["kind"] == "workflow":
+                run_sig = ident(level["title"])
+                self._sig(run_sig, kind="run", level=level["id"], used=True)
+                steps = [ident(n["label"]) for n in level["nodes"]]
                 for s_ in steps:
                     self.atoms[s_] = run_sig + "Step"
                 self.enums[run_sig + "Step"] = steps
                 self._sig(run_sig + "Step", kind="enum")
-                self.runs[L["id"]] = {"run": run_sig, "steps": steps}
+                self.runs[level["id"]] = {"run": run_sig, "steps": steps}
 
     def _ops(self):
-        sits = self.M.sits()
+        sits = self.model.sits()
         moving = {lid for lid in self.states} | {lid for lid in self.runs}
-        for o in self.M.m["operations"]:
+        for o in self.model.m["operations"]:
             sl = o["slug"]
-            if sl not in self.M.sigs:
+            if sl not in self.model.sigs:
                 continue
             rcv, verb = sl.split(".")
             ms = re.fullmatch(r"\s*\((.*)\)\s*→\s*(.+)", o["sig"])
@@ -254,7 +254,7 @@ class World:
             self.use_type(rcv, sl)
             rdecl = None if res.names == ["None"] else self.type_decl(res, sl, verb + "Result")
             on = sits.get(sl, set())
-            placed_moving = any((k == "node" and self.M.node_level[x] in moving) or k in ("edge", "trig") for k, x in on)
+            placed_moving = any((k == "node" and self.model.node_level[x] in moving) or k in ("edge", "trig") for k, x in on)
             info = {"slug": sl, "receiver": rcv, "verb": verb, "params": params, "result": res, "rdecl": rdecl,
                     "pre": o.get("pre"), "post": o.get("post"), "modifies": o.get("modifies", [])}
             if o.get("modifies") or placed_moving:
@@ -299,11 +299,11 @@ class World:
     def _events(self):
         self.edge_kind = {}       # edge key -> call kind
         self.event_pred = {}      # (level id, label) -> pred name
-        m = self.M
+        m = self.model
         for lid, info in self.states.items():
-            L, subj = m.levels[lid], info["subject"]
-            for k, (LL, e) in m.edges.items():
-                if LL["id"] != lid:
+            level, subj = m.levels[lid], info["subject"]
+            for k, (edge_level, e) in m.edges.items():
+                if edge_level["id"] != lid:
                     continue
                 ops = [x for x in e.get("ops", []) if x in self.change]
                 if len(e.get("ops", [])) > 1:
@@ -320,7 +320,7 @@ class World:
                 self.event_pred[(lid, e["label"])] = name
                 if not ops or name != self.change[ops[0]]["verb"]:
                     self._pred(name, [subj], f'{lid}: {e["label"]}')
-            for t in L.get("triggers", []):
+            for t in level.get("triggers", []):
                 ops = [x for x in t.get("ops", []) if x in self.change]
                 if ops:
                     op = self.change[ops[0]]
@@ -333,8 +333,8 @@ class World:
                 if not ops or name != self.change[ops[0]]["verb"]:
                     self._pred(name, [subj], f'{lid}: {t["label"]}')
         for lid, info in self.runs.items():
-            L, run_sig = m.levels[lid], info["run"]
-            node_ops = {n["id"]: [x for x in n.get("ops", []) if x in self.change] for n in L["nodes"]}
+            level, run_sig = m.levels[lid], info["run"]
+            node_ops = {n["id"]: [x for x in n.get("ops", []) if x in self.change] for n in level["nodes"]}
 
             def producer(node_id, label):
                 for x in node_ops.get(node_id, []):
@@ -342,8 +342,8 @@ class World:
                         return self.change[x]["kind"]
                 return None
 
-            for k, (LL, e) in m.edges.items():
-                if LL["id"] != lid:
+            for k, (edge_level, e) in m.edges.items():
+                if edge_level["id"] != lid:
                     continue
                 kind = producer(e["from"], e["label"]) or run_sig + ident(e["label"])
                 self.kinds.setdefault(kind, {})
@@ -351,17 +351,17 @@ class World:
                 self.event_pred[(lid, e["label"])] = lower(e["label"])
                 if lower(e["label"]) not in self.preds:
                     self._pred(lower(e["label"]), [], f'{lid}: {e["label"]}')
-            for t in L.get("triggers", []):
+            for t in level.get("triggers", []):
                 kind = run_sig + ident(t["label"])
                 self.kinds.setdefault(kind, {})
                 self.edge_kind[("trig", lid, t["label"])] = kind
                 self.event_pred[(lid, t["label"])] = lower(t["label"])
                 self._pred(lower(t["label"]), [], f'{lid}: {t["label"]}')
-            for f in L.get("in", []):
+            for f in level.get("in", []):
                 kind = run_sig + "In" + ident(f["edge"])
                 self.kinds.setdefault(kind, {})
                 self.edge_kind[("in", lid, f["edge"])] = kind
-            for f in L.get("out", []):
+            for f in level.get("out", []):
                 for fr in [f["from"]] if isinstance(f.get("from"), str) else f.get("from", []):
                     kind = producer(fr, f["edge"]) or run_sig + "Out" + ident(f["edge"])
                     self.kinds.setdefault(kind, {})
@@ -377,16 +377,16 @@ class World:
     def check_formula(self, text, where, extra=()):
         """Problems with one formula: it parses, and every name is bound or a word of the module."""
         try:
-            us = F.uses(text)
-        except F.FormulaError as e:
+            us = formula.uses(text)
+        except formula.FormulaError as e:
             return [f"{where}: {e}"]
         free, member = self.scope()
         free |= set(extra)
         out = set()
         try:
             out |= {f"variable {v} hides the {'attribute' if v in self.fields else 'name'} {v}; rename the variable"
-                    for v in F.binders(text) if v in self.fields or v in self.sigs or v in self.preds or v in self.atoms}
-        except F.FormulaError:
+                    for v in formula.binders(text) if v in self.fields or v in self.sigs or v in self.preds or v in self.atoms}
+        except formula.FormulaError:
             pass
         for kind, name, _, bound in us:
             if name in bound:
@@ -401,10 +401,10 @@ class World:
     def dynamic(self, text, seen=()):
         """Whether a formula speaks of something that changes: a state, a var field, a call, a step, or time."""
         try:
-            us = F.uses(text)
-            if F.temporal(text):
+            us = formula.uses(text)
+            if formula.temporal(text):
                 return True
-        except F.FormulaError:
+        except formula.FormulaError:
             return False
         varf = {f for _, f in self.var_fields}
         calls = {n for n, hs in self.preds.items() if any(h["where"] not in [f"rule {i}" for i in self.rule_name] for h in hs)}
@@ -416,53 +416,53 @@ class World:
             as_call = kind == "call" or (name in calls and not (kind == "member" and name in fields))
             if name in self.var_sigs or name in varf or name == "at" or as_call:
                 return True
-            if name in rule_by and name not in seen and self.dynamic(self.M.rules[rule_by[name]]["formula"], seen + (name,)):
+            if name in rule_by and name not in seen and self.dynamic(self.model.rules[rule_by[name]]["formula"], seen + (name,)):
                 return True
         return False
 
 
-def classify(W):
+def classify(world):
     """rule slug -> 'guard' (behaviour, always), 'dynamic' (checked) or 'static' (assumed or ideal)."""
-    M, out = W.M, {}
-    sits = M.sits()
-    for i in M.m["rules"]:
+    model, out = world.model, {}
+    sits = model.sits()
+    for i in model.m["rules"]:
         on = sits.get(i["slug"], set())
-        guard = i["kind"] == "must" and any((k == "edge" and M.edges[x][0]["kind"] != "topology") or k == "trig" for k, x in on)
-        out[i["slug"]] = "guard" if guard else ("dynamic" if W.dynamic(i["formula"]) else "static")
+        guard = i["kind"] == "must" and any((k == "edge" and model.edges[x][0]["kind"] != "topology") or k == "trig" for k, x in on)
+        out[i["slug"]] = "guard" if guard else ("dynamic" if world.dynamic(i["formula"]) else "static")
     return out
 
 
-def translate(M):
-    W = World(M)
-    m, cls = M.m, classify(W)
+def translate(model):
+    world = World(model)
+    m, cls = model.m, classify(world)
     slug = re.sub(r"[^A-Za-z0-9]", "_", m.get("title", "model"))
-    L_ = [f"module {slug}", f"-- {m.get('title', '')}: generated by zoom from the Schema; edit the model, not this file.", ""]
+    lines = [f"module {slug}", f"-- {m.get('title', '')}: generated by zoom from the Schema; edit the model, not this file.", ""]
 
-    L_.append("-- things")
-    for name, s in W.sigs.items():
+    lines.append("-- things")
+    for name, s in world.sigs.items():
         if s["kind"] in ("primitive", "artifact", "outside") and s.get("used", True):
-            L_.append(f"sig {name} {{}}")
-    for name, atoms in W.enums.items():
-        L_.append(f"enum {name} {{ {', '.join(atoms)} }}")
-    comps = [(n, s) for n, s in W.sigs.items() if s["kind"] == "component"]
+            lines.append(f"sig {name} {{}}")
+    for name, atoms in world.enums.items():
+        lines.append(f"enum {name} {{ {', '.join(atoms)} }}")
+    comps = [(n, s) for n, s in world.sigs.items() if s["kind"] == "component"]
     order = sorted(comps, key=lambda x: (len(x[1]["parents"]) > 0, x[0]))
     # a query is a relation of one arity more than its parameters, and Kodkod refuses one over a few hundred atoms
     # beyond arity 3 ("translation capacity exceeded"): declare a query only where a formula of the module names it
-    said = [i["formula"] for i in m["rules"]] + [L["init"] for L in M.levels.values() if L.get("init")]
-    said += [x for op in W.change.values() for x in (op.get("pre"), op.get("post")) if x]
+    said = [i["formula"] for i in m["rules"]] + [level["init"] for level in model.levels.values() if level.get("init")]
+    said += [x for op in world.change.values() for x in (op.get("pre"), op.get("post")) if x]
     named = set()
     for text in said:
         try:
-            named |= {name for _, name, _, _ in F.uses(text)}
-        except F.FormulaError:
+            named |= {name for _, name, _, _ in formula.uses(text)}
+        except formula.FormulaError:
             pass
     for name, s in order:
         fields = []
-        for fname, fs in W.fields.items():
+        for fname, fs in world.fields.items():
             for f in fs:
                 if f["owner"] != name or (f["mult"] == "query" and fname not in named):
                     continue
-                var = "var " if (name, fname) in W.var_fields else ""
+                var = "var " if (name, fname) in world.var_fields else ""
                 mult = "" if f["mult"] == "query" else ("set " if f["mult"] == "set" and "->" in f["decl"] else f["mult"] + " ")
                 fields.append(f"{var}{fname}: {mult}{f['decl']}")
         head = ("abstract " if s["abstract"] else "") + ("one " if s["singleton"] else "") + f"sig {name}"
@@ -471,78 +471,78 @@ def translate(M):
             head += f" extends {ps[0]}"
         elif len(ps) > 1:
             head += " in " + " + ".join(ps)
-        L_.append(head + (" {\n  " + ",\n  ".join(fields) + "\n}" if fields else " {}"))
-    for name, s in W.sigs.items():
+        lines.append(head + (" {\n  " + ",\n  ".join(fields) + "\n}" if fields else " {}"))
+    for name, s in world.sigs.items():
         if s["kind"] == "subset":
-            L_.append(f"{'var ' if name in W.var_sigs else ''}sig {name} in {s['of']} {{}}")
-    for lid, info in W.states.items():
+            lines.append(f"{'var ' if name in world.var_sigs else ''}sig {name} in {s['of']} {{}}")
+    for lid, info in world.states.items():
         regions = {}
-        for n in M.levels[lid]["nodes"]:
+        for n in model.levels[lid]["nodes"]:
             regions.setdefault(info["region"][n["id"]], []).append(ident(n["label"]))
         for r, sts in regions.items():
-            L_.append(f"var sig {', '.join(sts)} in {info['subject']} {{}}")
-    for lid, info in W.runs.items():
-        L_.append(f"one sig {info['run']} {{ var at: set {info['run']}Step }}")
+            lines.append(f"var sig {', '.join(sts)} in {info['subject']} {{}}")
+    for lid, info in world.runs.items():
+        lines.append(f"one sig {info['run']} {{ var at: set {info['run']}Step }}")
 
-    L_ += ["", "-- calls: each step of a run is the set of calls made in it", "abstract sig Call {}", "one sig Now { var happens: set Call }"]
-    for kind, fields in W.kinds.items():   # a call with no arguments is one atom; others get one per argument list
+    lines += ["", "-- calls: each step of a run is the set of calls made in it", "abstract sig Call {}", "one sig Now { var happens: set Call }"]
+    for kind, fields in world.kinds.items():   # a call with no arguments is one atom; others get one per argument list
         body = ", ".join(f"{k}: {v}" for k, v in fields.items())
-        L_.append(f"{'' if body else 'one '}sig {kind} extends Call {{{' ' + body + ' ' if body else ''}}}")
-    L_.append("pred stutter { no Now.happens }")
+        lines.append(f"{'' if body else 'one '}sig {kind} extends Call {{{' ' + body + ' ' if body else ''}}}")
+    lines.append("pred stutter { no Now.happens }")
 
-    L_ += ["", "-- what happened in this step"]
-    for sl, op in W.change.items():
-        ps = [("s", op["receiver"])] + [(pn + "_", f"{W._mult(t)} {d}") for pn, t, d in op["params"]] + ([("result_", f"{W._mult(op['result'])} {op['rdecl']}")] if op["rdecl"] else [])
+    lines += ["", "-- what happened in this step"]
+    for sl, op in world.change.items():
+        ps = [("s", op["receiver"])] + [(pn + "_", f"{world._mult(t)} {d}") for pn, t, d in op["params"]] + ([("result_", f"{world._mult(op['result'])} {op['rdecl']}")] if op["rdecl"] else [])
         eq = " and ".join(["c.self = s"] + [f"c.{pn} = {pn}_" for pn, _, _ in op["params"]] + (["c.result = result_"] if op["rdecl"] else []))
         decl = ", ".join(f"{a}: {b}" for a, b in ps)
-        L_.append(f"pred {op['verb']}[{decl}] {{ some c: Now.happens & {op['kind']} | {eq} }}")
-        L_.append(f"pred {op['verb']}[s: {op['receiver']}] {{ some c: Now.happens & {op['kind']} | c.self = s }}")
-    done = {(op["verb"], op["receiver"]) for op in W.change.values()}
-    for lid, info in W.states.items():
+        lines.append(f"pred {op['verb']}[{decl}] {{ some c: Now.happens & {op['kind']} | {eq} }}")
+        lines.append(f"pred {op['verb']}[s: {op['receiver']}] {{ some c: Now.happens & {op['kind']} | c.self = s }}")
+    done = {(op["verb"], op["receiver"]) for op in world.change.values()}
+    for lid, info in world.states.items():
         subj, labels = info["subject"], {}
-        for k, (LL, e) in M.edges.items():
-            if LL["id"] == lid:
+        for k, (edge_level, e) in model.edges.items():
+            if edge_level["id"] == lid:
                 labels.setdefault(e["label"], []).append((k, e))
         for lab, es in labels.items():
-            name = W.event_pred[(lid, lab)]
+            name = world.event_pred[(lid, lab)]
             if (name, subj) in done:
                 continue
             done.add((name, subj))
-            kind = W.edge_kind[es[0][0]]
-            froms = " + ".join(sorted({ident(M.nodes[e["from"]]["label"]) for _, e in es}))
-            L_.append(f"pred {name}[s: {subj}] {{ some c: Now.happens & {kind} | c.self = s and s in {froms} }}")
-        for t in M.levels[lid].get("triggers", []):
-            name = W.event_pred[(lid, t["label"])]
+            kind = world.edge_kind[es[0][0]]
+            froms = " + ".join(sorted({ident(model.nodes[e["from"]]["label"]) for _, e in es}))
+            lines.append(f"pred {name}[s: {subj}] {{ some c: Now.happens & {kind} | c.self = s and s in {froms} }}")
+        for t in model.levels[lid].get("triggers", []):
+            name = world.event_pred[(lid, t["label"])]
             if (name, subj) not in done:
                 done.add((name, subj))
-                L_.append(f"pred {name}[s: {subj}] {{ some c: Now.happens & {W.edge_kind[('trig', lid, t['label'])]} | c.self = s }}")
-    for lid, info in W.runs.items():
-        for t in M.levels[lid].get("triggers", []):
-            L_.append(f"pred {lower(t['label'])} {{ some Now.happens & {W.edge_kind[('trig', lid, t['label'])]} }}")
+                lines.append(f"pred {name}[s: {subj}] {{ some c: Now.happens & {world.edge_kind[('trig', lid, t['label'])]} | c.self = s }}")
+    for lid, info in world.runs.items():
+        for t in model.levels[lid].get("triggers", []):
+            lines.append(f"pred {lower(t['label'])} {{ some Now.happens & {world.edge_kind[('trig', lid, t['label'])]} }}")
         handed = {}
-        for k, (LL, e) in M.edges.items():   # an artifact is handed on when its producer runs in the active step
-            if LL["id"] == lid:
-                handed.setdefault(lower(e["label"]), []).append(f"(some Now.happens & {W.edge_kind[k]} and {ident(M.nodes[e['from']]['label'])} in {info['run']}.at)")
+        for k, (edge_level, e) in model.edges.items():   # an artifact is handed on when its producer runs in the active step
+            if edge_level["id"] == lid:
+                handed.setdefault(lower(e["label"]), []).append(f"(some Now.happens & {world.edge_kind[k]} and {ident(model.nodes[e['from']]['label'])} in {info['run']}.at)")
         for name, ways in handed.items():
-            L_.append(f"pred {name} {{ {' or '.join(ways)} }}")
+            lines.append(f"pred {name} {{ {' or '.join(ways)} }}")
 
-    L_ += ["", "-- rules"]
+    lines += ["", "-- rules"]
     for i in m["rules"]:
-        L_.append(f"-- {i['slug']} ({i['kind']}, {cls[i['slug']]})")
-        L_.append(f"pred {W.rule_name[i['slug']]} {{\n  " + F.layout(i["formula"]).replace("\n", "\n  ") + "\n}")
+        lines.append(f"-- {i['slug']} ({i['kind']}, {cls[i['slug']]})")
+        lines.append(f"pred {world.rule_name[i['slug']]} {{\n  " + formula.layout(i["formula"]).replace("\n", "\n  ") + "\n}")
 
     def superstate(lid):
         """The state a state level is opened from, whose instances its states partition, or None."""
-        p = M.levels[lid].get("parent")
+        p = model.levels[lid].get("parent")
         # a level of another subject only zooms in, since its instances are not the superstate's
-        same = p and M.node_level[p] in W.states and W.states[M.node_level[p]]["subject"] == W.states[lid]["subject"]
-        return ident(M.nodes[p]["label"]) if same else None
+        same = p and model.node_level[p] in world.states and world.states[model.node_level[p]]["subject"] == world.states[lid]["subject"]
+        return ident(model.nodes[p]["label"]) if same else None
 
     def entered_by(lid, *modes):
         """Each edge into a state level's superstate whose `enters` is one of modes, as a condition on s."""
-        p = M.levels[lid]["parent"]
-        return [f"(s in {ident(M.nodes[e['from']]['label'])} and some c: Now.happens & {W.edge_kind[k]} | c.self = s)"
-                for k, (LL, e) in M.edges.items() if e["to"] == p and e["from"] != p and e.get("enters") in modes]
+        p = model.levels[lid]["parent"]
+        return [f"(s in {ident(model.nodes[e['from']]['label'])} and some c: Now.happens & {world.edge_kind[k]} | c.self = s)"
+                for k, (edge_level, e) in model.edges.items() if e["to"] == p and e["from"] != p and e.get("enters") in modes]
 
     def unless(terms):
         return f"not ({' or '.join(terms)})" if terms else ""
@@ -550,153 +550,153 @@ def translate(M):
     def resumed(lid):
         """When entering its superstate resumes a level, as a conjunct to add: always ("") by its own history, else
         by an edge that enters by history, or when a deep history above it is entered in the same step; None when never."""
-        L = M.levels[lid]
-        terms = ([unless(entered_by(lid, "initial"))] if L.get("history") else []) + entered_by(lid, "shallow", "deep")
-        a = M.node_level[L["parent"]]
+        level = model.levels[lid]
+        terms = ([unless(entered_by(lid, "initial"))] if level.get("history") else []) + entered_by(lid, "shallow", "deep")
+        a = model.node_level[level["parent"]]
         while superstate(a):
             # an edge's own `enters` wins over the level's history for that entry
-            deep = ([unless(entered_by(a, "initial", "shallow"))] if M.levels[a].get("history") == "deep" else []) + entered_by(a, "deep")
+            deep = ([unless(entered_by(a, "initial", "shallow"))] if model.levels[a].get("history") == "deep" else []) + entered_by(a, "deep")
             if deep:
                 up = superstate(a)
                 terms.append(f"(s not in {up} and s in {up}'" + ("" if "" in deep else f" and ({' or '.join(deep)})") + ")")
-            a = M.node_level[M.levels[a]["parent"]]
+            a = model.node_level[model.levels[a]["parent"]]
         if "" in terms:
             return ""
         return f" and ({' or '.join(terms)})" if terms else None
 
-    B = []
-    for lid, info in W.states.items():
-        L, subj = M.levels[lid], info["subject"]
+    behaviour_lines = []
+    for lid, info in world.states.items():
+        level, subj = model.levels[lid], info["subject"]
         regions = {}
-        for n in L["nodes"]:
+        for n in level["nodes"]:
             regions.setdefault(info["region"][n["id"]], []).append(n)
-        inits = [L["initial"]] if isinstance(L.get("initial"), str) else L.get("initial") or []
+        inits = [level["initial"]] if isinstance(level.get("initial"), str) else level.get("initial") or []
         up = superstate(lid)
         again = resumed(lid) if up else None
-        B.append(f"-- {L['title']}" + (f", inside {up}" if up else ""))
-        B.append(f"all s: {up or subj} | " + " and ".join(f"s in {ident(M.nodes[i]['label'])}" for i in inits))
+        behaviour_lines.append(f"-- {level['title']}" + (f", inside {up}" if up else ""))
+        behaviour_lines.append(f"all s: {up or subj} | " + " and ".join(f"s in {ident(model.nodes[i]['label'])}" for i in inits))
         for r, ns in regions.items():
             sts = [ident(n["label"]) for n in ns]
-            B.append(f"always ({up or subj} = {' + '.join(sts)}" + "".join(f" and no {a} & {b}" for x, a in enumerate(sts) for b in sts[x + 1:]) + ")")
+            behaviour_lines.append(f"always ({up or subj} = {' + '.join(sts)}" + "".join(f" and no {a} & {b}" for x, a in enumerate(sts) for b in sts[x + 1:]) + ")")
             if up:   # entering the superstate enters each region at its initial state, or where history left it
-                init = next(ident(M.nodes[i]["label"]) for i in inits if info["region"][i] == r)
+                init = next(ident(model.nodes[i]["label"]) for i in inits if info["region"][i] == r)
                 enter = f"s not in {up} and s in {up}'"
                 held = f" and not (once (s in {' + '.join(sts)}){again})" if again is not None else ""
-                B.append(f"always (all s: {subj} | ({enter}{held}) implies s in {init}')")
+                behaviour_lines.append(f"always (all s: {subj} | ({enter}{held}) implies s in {init}')")
                 if again is not None:
-                    B += [f"always (all s: {subj} | ({enter}{again} and ((s not in {up}) since (s in {x}))) implies s in {x}')" for x in sts]
+                    behaviour_lines += [f"always (all s: {subj} | ({enter}{again} and ((s not in {up}) since (s in {x}))) implies s in {x}')" for x in sts]
             pairs = {}
-            for k, (LL, e) in M.edges.items():
-                if LL["id"] == lid and e["from"] in {n["id"] for n in ns}:
-                    pairs.setdefault((W.edge_kind[k], ident(M.nodes[e["from"]]["label"])), set()).add(ident(M.nodes[e["to"]]["label"]))
+            for k, (edge_level, e) in model.edges.items():
+                if edge_level["id"] == lid and e["from"] in {n["id"] for n in ns}:
+                    pairs.setdefault((world.edge_kind[k], ident(model.nodes[e["from"]]["label"])), set()).add(ident(model.nodes[e["to"]]["label"]))
             for (kind, frm), tos in pairs.items():   # leaving the superstate in the same step cuts the event short
-                B.append(f"always (all c: Now.happens & {kind} | c.self in {frm}{f' and after c.self in {up}' if up else ''} implies after c.self in {' + '.join(sorted(tos))})")
+                behaviour_lines.append(f"always (all c: Now.happens & {kind} | c.self in {frm}{f' and after c.self in {up}' if up else ''} implies after c.self in {' + '.join(sorted(tos))})")
             enable = {}
             for (kind, frm) in pairs:
                 enable.setdefault(kind, []).append(frm)
             for kind, frms in enable.items():   # an event happens only in a state that handles it
-                B.append(f"always (all c: Now.happens & {kind} | c.self in {' + '.join(sorted(frms))})")
-            trig = [(W.edge_kind[("trig", lid, t["label"])], ident(M.nodes[t["to"]]["label"])) for t in L.get("triggers", []) if info["region"][t["to"]] == r]
+                behaviour_lines.append(f"always (all c: Now.happens & {kind} | c.self in {' + '.join(sorted(frms))})")
+            trig = [(world.edge_kind[("trig", lid, t["label"])], ident(model.nodes[t["to"]]["label"])) for t in level.get("triggers", []) if info["region"][t["to"]] == r]
             for kind, to in trig:
-                B.append(f"always (all c: Now.happens & {kind} | after c.self in {to})")
+                behaviour_lines.append(f"always (all c: Now.happens & {kind} | after c.self in {to})")
             moves = [f"(s in {frm} and some c: Now.happens & {kind} | c.self = s)" for (kind, frm) in pairs] + [f"(some c: Now.happens & {kind} | c.self = s)" for kind, _ in trig]
             moves += [f"(s not in {up} and s in {up}')", f"(s in {up} and s not in {up}')"] if up else []
             same = " and ".join(f"(s in {x} iff s in {x}')" for x in sts)
-            B.append(f"always (all s: {subj} | ({same})" + "".join(f"\n    or {mv}" for mv in moves) + ")")
-        completes = sorted({W.edge_kind[k] for k, (LL, e) in M.edges.items() if up and e["from"] == L["parent"] and e.get("completion")})
+            behaviour_lines.append(f"always (all s: {subj} | ({same})" + "".join(f"\n    or {mv}" for mv in moves) + ")")
+        completes = sorted({world.edge_kind[k] for k, (edge_level, e) in model.edges.items() if up and e["from"] == level["parent"] and e.get("completion")})
         if completes:   # the completion event fires as soon as every region holds a final state, and never before
             finals = [" + ".join(ident(n["label"]) for n in ns if n.get("final")) for ns in regions.values()]
             if all(finals):
                 every = " and ".join(f"s in ({f})" for f in finals)
                 # one clause per call kind, since each declares its own self and Alloy types no join over their union
-                B += [f"always (all c: Now.happens & {k} | let s = c.self | {every})" for k in completes]
-                B.append(f"always (all s: {up} | {every} implies " + " or ".join(f"(some c: Now.happens & {k} | c.self = s)" for k in completes) + ")")
-        for y in L.get("syncs", []):
-            when, then = W.event_pred[(lid, y["when"])], W.event_pred[(lid, y["then"])]
-            where = f" and s in {ident(M.nodes[y['where']]['label'])}" if y.get("where") else ""
-            B.append(f"always (all s: {subj} | (s.{when}{where}) implies s.{then})   -- sync {y['name']}")
-    for lid, info in W.runs.items():
-        L, run_sig = M.levels[lid], info["run"]
-        B.append(f"-- {L['title']}")
-        opened = L.get("triggers") or L.get("in")   # a run opened from outside starts empty; otherwise at its first steps
-        firsts = [ident(n["label"]) for n in L["nodes"] if not any(e["to"] == n["id"] and e["from"] != n["id"] for e in L["edges"])]
-        B.append(f"no {run_sig}.at" if opened or not firsts else f"{run_sig}.at = {' + '.join(firsts)}")
+                behaviour_lines += [f"always (all c: Now.happens & {k} | let s = c.self | {every})" for k in completes]
+                behaviour_lines.append(f"always (all s: {up} | {every} implies " + " or ".join(f"(some c: Now.happens & {k} | c.self = s)" for k in completes) + ")")
+        for y in level.get("syncs", []):
+            when, then = world.event_pred[(lid, y["when"])], world.event_pred[(lid, y["then"])]
+            where = f" and s in {ident(model.nodes[y['where']]['label'])}" if y.get("where") else ""
+            behaviour_lines.append(f"always (all s: {subj} | (s.{when}{where}) implies s.{then})   -- sync {y['name']}")
+    for lid, info in world.runs.items():
+        level, run_sig = model.levels[lid], info["run"]
+        behaviour_lines.append(f"-- {level['title']}")
+        opened = level.get("triggers") or level.get("in")   # a run opened from outside starts empty; otherwise at its first steps
+        firsts = [ident(n["label"]) for n in level["nodes"] if not any(e["to"] == n["id"] and e["from"] != n["id"] for e in level["edges"])]
+        behaviour_lines.append(f"no {run_sig}.at" if opened or not firsts else f"{run_sig}.at = {' + '.join(firsts)}")
         ent, lea = {}, {}
         pairs = {}
-        for k, (LL, e) in M.edges.items():
-            if LL["id"] != lid:
+        for k, (edge_level, e) in model.edges.items():
+            if edge_level["id"] != lid:
                 continue
-            frm, to = ident(M.nodes[e["from"]]["label"]), ident(M.nodes[e["to"]]["label"])
-            pairs.setdefault((W.edge_kind[k], frm), set()).add(to)
-        for f in L.get("out", []):
+            frm, to = ident(model.nodes[e["from"]]["label"]), ident(model.nodes[e["to"]]["label"])
+            pairs.setdefault((world.edge_kind[k], frm), set()).add(to)
+        for f in level.get("out", []):
             for fr in [f["from"]] if isinstance(f.get("from"), str) else f.get("from", []):
-                pairs.setdefault((W.edge_kind[("out", lid, f["edge"], fr)], ident(M.nodes[fr]["label"])), set())
-        starts = [(W.edge_kind[("trig", lid, t["label"])], ident(M.nodes[t["to"]]["label"])) for t in L.get("triggers", [])]
-        starts += [(W.edge_kind[("in", lid, f["edge"])], ident(M.nodes[f["to"]]["label"])) for f in L.get("in", [])]
+                pairs.setdefault((world.edge_kind[("out", lid, f["edge"], fr)], ident(model.nodes[fr]["label"])), set())
+        starts = [(world.edge_kind[("trig", lid, t["label"])], ident(model.nodes[t["to"]]["label"])) for t in level.get("triggers", [])]
+        starts += [(world.edge_kind[("in", lid, f["edge"])], ident(model.nodes[f["to"]]["label"])) for f in level.get("in", [])]
         for (kind, frm), tos in pairs.items():
             stay = frm in tos
             eff = (f"some ({' + '.join(sorted(tos))}) & {run_sig}.at'" if tos else "") + ("" if stay else (" and " if tos else "") + f"{frm} not in {run_sig}.at'")
-            B.append(f"always ((some Now.happens & {kind} and {frm} in {run_sig}.at) implies {eff})")
+            behaviour_lines.append(f"always ((some Now.happens & {kind} and {frm} in {run_sig}.at) implies {eff})")
             for t in tos:
                 ent.setdefault(t, []).append(f"(some Now.happens & {kind} and {frm} in {run_sig}.at)")
             lea.setdefault(frm, []).append(f"(some Now.happens & {kind} and {frm} in {run_sig}.at)")
         for kind, to in starts:
-            B.append(f"always (some Now.happens & {kind} implies {to} in {run_sig}.at')")
+            behaviour_lines.append(f"always (some Now.happens & {kind} implies {to} in {run_sig}.at')")
             ent.setdefault(to, []).append(f"some Now.happens & {kind}")
         for st in info["steps"]:
             e_ = " or ".join(ent.get(st, [])) or "some none"
             l_ = " or ".join(lea.get(st, [])) or "some none"
-            B.append(f"always ({st} not in {run_sig}.at and {st} in {run_sig}.at' implies ({e_}))")
-            B.append(f"always ({st} in {run_sig}.at and {st} not in {run_sig}.at' implies ({l_}))")
-    B.append("-- operations")
-    for lid, info in W.states.items():   # an operation drawn on a state runs only while its subject is there
-        for n in M.levels[lid]["nodes"]:
+            behaviour_lines.append(f"always ({st} not in {run_sig}.at and {st} in {run_sig}.at' implies ({e_}))")
+            behaviour_lines.append(f"always ({st} in {run_sig}.at and {st} not in {run_sig}.at' implies ({l_}))")
+    behaviour_lines.append("-- operations")
+    for lid, info in world.states.items():   # an operation drawn on a state runs only while its subject is there
+        for n in model.levels[lid]["nodes"]:
             for x in n.get("ops", []):
-                op = W.change.get(x)
+                op = world.change.get(x)
                 if not op:
                     continue
                 arg = "self" if op["receiver"] == info["subject"] else next((pn for pn, t, _ in op["params"] if t.names == [info["subject"]]), None)
                 if arg:
-                    B.append(f"always (all c: Now.happens & {op['kind']} | c.{arg} in {ident(n['label'])})")
-    for sl, op in W.change.items():
+                    behaviour_lines.append(f"always (all c: Now.happens & {op['kind']} | c.{arg} in {ident(n['label'])})")
+    for sl, op in world.change.items():
         mp = {"self": "c.self", "result": "c.result"} | {pn: "c." + pn for pn, _, _ in op["params"]}
-        conds = [F.rename(x, mp) for x in (op.get("pre"), op.get("post")) if x]
+        conds = [formula.rename(x, mp) for x in (op.get("pre"), op.get("post")) if x]
         if conds:
-            B.append(f"always (all c: Now.happens & {op['kind']} | " + " and ".join(f"({x})" for x in conds) + ")")
-    for owner, field in sorted(W.var_fields):
-        kinds = sorted({op["kind"] for op in W.change.values() if f"{owner}.{field}" in op["modifies"]})
+            behaviour_lines.append(f"always (all c: Now.happens & {op['kind']} | " + " and ".join(f"({x})" for x in conds) + ")")
+    for owner, field in sorted(world.var_fields):
+        kinds = sorted({op["kind"] for op in world.change.values() if f"{owner}.{field}" in op["modifies"]})
         if not kinds:
             continue
-        mods = [op for op in W.change.values() if f"{owner}.{field}" in op["modifies"]]
+        mods = [op for op in world.change.values() if f"{owner}.{field}" in op["modifies"]]
         by = " or ".join(f"(some c: Now.happens & {op['kind']} | c.self = x)" if op["receiver"] == owner else f"some Now.happens & {op['kind']}"
                          for op in sorted(mods, key=lambda o: o["kind"]))
-        S = ident(field)
-        if W.sigs.get(S, {}).get("kind") == "subset" and W.sigs[S]["of"] == owner:
-            B.append(f"always (all x: {owner} | (x in {S} iff x in {S}') or {by})")
+        subset_name = ident(field)
+        if world.sigs.get(subset_name, {}).get("kind") == "subset" and world.sigs[subset_name]["of"] == owner:
+            behaviour_lines.append(f"always (all x: {owner} | (x in {subset_name} iff x in {subset_name}') or {by})")
         else:
-            B.append(f"always (all x: {owner} | x.{field}' = x.{field} or {by})")
+            behaviour_lines.append(f"always (all x: {owner} | x.{field}' = x.{field} or {by})")
     for i in m["rules"]:
         if cls[i["slug"]] == "guard":
-            B.append(f"always {W.rule_name[i['slug']]}   -- guard")
-    for lid in M.levels:
-        if M.levels[lid].get("init"):
-            B.append(f"{M.levels[lid]['init']}   -- init of {lid}")
-    L_ += ["", "-- how things move", "pred behaviour {\n  " + "\n  ".join(B) + "\n}"]
+            behaviour_lines.append(f"always {world.rule_name[i['slug']]}   -- guard")
+    for lid in model.levels:
+        if model.levels[lid].get("init"):
+            behaviour_lines.append(f"{model.levels[lid]['init']}   -- init of {lid}")
+    lines += ["", "-- how things move", "pred behaviour {\n  " + "\n  ".join(behaviour_lines) + "\n}"]
 
-    musts_static = [W.rule_name[i["slug"]] for i in m["rules"] if cls[i["slug"]] == "static" and i["kind"] == "must"]
+    musts_static = [world.rule_name[i["slug"]] for i in m["rules"] if cls[i["slug"]] == "static" and i["kind"] == "must"]
 
-    C = []
+    checks = []
     for i in m["rules"]:   # every rule is asked, a static one under the others, so none is assumed to prove itself
-        me = W.rule_name[i["slug"]]
+        me = world.rule_name[i["slug"]]
         given = " and ".join([x for x in musts_static if x != me] + ["behaviour"])
-        C.append((f"holds_{me}", "check", f"{given} implies always {me}", 0 if i["kind"] == "must" else None, i["slug"]))
-    L_ += ["", "-- what Alloy checks"]
+        checks.append((f"holds_{me}", "check", f"{given} implies always {me}", 0 if i["kind"] == "must" else None, i["slug"]))
+    lines += ["", "-- what Alloy checks"]
     scopes = {i["slug"]: i["scope"] for i in m["rules"] if i.get("scope")}
-    for name, _, body, exp, slug in C:
-        calls = len(W.kinds) + 3   # room for every kind of call at least once, and a few repeats
+    for name, _, body, exp, slug in checks:
+        calls = len(world.kinds) + 3   # room for every kind of call at least once, and a few repeats
         more = f", {scopes[slug]}" if slug in scopes else ""
-        L_.append(f"check {name} {{ {body} }} for 3 but {calls} Call, 8 steps{more}" + (f" expect {exp}" if exp is not None else ""))
-    return "\n".join(L_) + "\n", W, C
+        lines.append(f"check {name} {{ {body} }} for 3 but {calls} Call, 8 steps{more}" + (f" expect {exp}" if exp is not None else ""))
+    return "\n".join(lines) + "\n", world, checks
 
 
 def _pinned(path):
@@ -847,15 +847,15 @@ def warnings(text, module):
     return out
 
 
-def calls_in(instances, W=None):
+def calls_in(instances, world=None):
     """The calls made at each step of a run, named as the model names them (an operation, event or trigger)."""
     names = {}
-    if W:
-        for op in W.change.values():
+    if world:
+        for op in world.change.values():
             names[op["kind"]] = op["slug"]
-        for k, kind in W.edge_kind.items():
+        for k, kind in world.edge_kind.items():
             if kind not in names:
-                names[kind] = W.M.edges[k][1]["label"] if k in W.M.edges else k[2] if isinstance(k, tuple) else kind
+                names[kind] = world.model.edges[k][1]["label"] if k in world.model.edges else k[2] if isinstance(k, tuple) else kind
     steps = []
     for inst in instances or []:
         now = next((v for k, v in inst["values"].items() if k.startswith("Now$")), {})
@@ -863,42 +863,42 @@ def calls_in(instances, W=None):
     return steps
 
 
-def sit_ids(M, slug):
+def sit_ids(model, slug):
     """The ids of the nodes and edges an operation or rule sits on, a trigger standing for the node it enters."""
-    return {M.trigs[x][1]["to"] if k == "trig" else x for k, x in M.sits().get(slug, ())}
+    return {model.trigs[x][1]["to"] if k == "trig" else x for k, x in model.sits().get(slug, ())}
 
 
-def element_ids(W):
+def element_ids(world):
     """Each call kind and each signature, as the ids of the Schema nodes and edges they stand for."""
-    M, kinds = W.M, {}
-    for k, kind in W.edge_kind.items():
+    model, kinds = world.model, {}
+    for k, kind in world.edge_kind.items():
         if isinstance(k, str):
             ids = {k}
         else:
-            L = M.levels[k[1]]
-            ids = ({t["to"] for t in L.get("triggers", []) if t["label"] == k[2]} if k[0] == "trig"
-                   else {f["to"] for f in L.get("in", []) if f["edge"] == k[2]} if k[0] == "in" else {k[3]})
+            level = model.levels[k[1]]
+            ids = ({t["to"] for t in level.get("triggers", []) if t["label"] == k[2]} if k[0] == "trig"
+                   else {f["to"] for f in level.get("in", []) if f["edge"] == k[2]} if k[0] == "in" else {k[3]})
         kinds.setdefault(kind, set()).update(ids)
-    for op in W.change.values():   # a call drawn as an edge is that edge; another is where its operation sits
+    for op in world.change.values():   # a call drawn as an edge is that edge; another is where its operation sits
         if op["kind"] not in kinds:
-            kinds[op["kind"]] = sit_ids(M, op["slug"])
+            kinds[op["kind"]] = sit_ids(model, op["slug"])
     sigs = {}
-    for n in M.nodes.values():
+    for n in model.nodes.values():
         sigs.setdefault(ident(n["label"]), n["id"])
     return kinds, sigs
 
 
-def trace(W, instances, slug):
+def trace(world, instances, slug):
     """A counterexample as Schema ids: the nodes whose things witness it, in brackets, then the elements called at
     each step, ` + ` within a step and `|` between elements one call may stand for; where it names neither, the
     nodes and edges the rule sits on."""
-    kinds, sigs = element_ids(W)
+    kinds, sigs = element_ids(world)
     atom = lambda a: re.sub(r"\$\d+$", "", a)
 
     def node_of(sig, seen=()):
         if sig in sigs:
             return sigs[sig]
-        for p in W.sigs.get(sig, {}).get("parents", []):
+        for p in world.sigs.get(sig, {}).get("parents", []):
             if p not in seen and (n := node_of(p, seen + (sig,))):
                 return n
         return None
@@ -912,7 +912,7 @@ def trace(W, instances, slug):
         if step:
             steps.append(" + ".join(step))
     parts = ([f"[{', '.join(witness)}]"] if witness else []) + ([" → ".join(steps)] if steps else [])
-    return " ".join(parts) or ", ".join(sorted(sit_ids(W.M, slug)))
+    return " ".join(parts) or ", ".join(sorted(sit_ids(world.model, slug)))
 
 
 def story(steps):
@@ -920,35 +920,35 @@ def story(steps):
     return " → ".join(" + ".join(s) for s in steps if s) or "no call at all"
 
 
-def solve(M):
+def solve(model):
     """The module's names, its commands and Alloy's answers (None without Alloy); unchanged commands are not rerun."""
-    als, W, C = translate(M)
-    return W, C, run(als)
+    als, world, checks = translate(model)
+    return world, checks, run(als)
 
 
-def stored(M):
+def stored(model):
     """The same, from the stored answers only: Alloy is never started."""
-    als, W, C = translate(M)
-    return W, C, cached(als)
+    als, world, checks = translate(model)
+    return world, checks, cached(als)
 
 
-def standing(M, W, res):
+def standing(model, world, res):
     """Each rule's standing for the page: guard, assumed, ideal, holds or not checked, and the run that breaks it."""
-    cls, out = classify(W), {}
-    for i in M.m["rules"]:
+    cls, out = classify(world), {}
+    for i in model.m["rules"]:
         c = cls[i["slug"]]
-        r = (res or {}).get(f"holds_{W.rule_name[i['slug']]}")
+        r = (res or {}).get(f"holds_{world.rule_name[i['slug']]}")
         role = {"guard": "guard", "static": "assumed" if i["kind"] == "must" else "ideal"}.get(c) or ("holds" if r else "not checked")
-        out[i["slug"]] = (role, [s for s in calls_in(r["instances"], W) if s] if r and r["sat"] else None)
+        out[i["slug"]] = (role, [s for s in calls_in(r["instances"], world) if s] if r and r["sat"] else None)
     return out
 
 
-def verdicts(M, W, C, res):
+def verdicts(model, world, checks, res):
     """Notes (Alloy's type warnings, a should rule that can break) and findings (a must rule the behaviour can
     break: a defect of the system, reported, never fixed by bending the model)."""
     notes, findings = [f"Alloy warns: {w}" for w in res.get("_warnings", [])], []
-    for name, _, _, exp, what in C:
+    for name, _, _, exp, what in checks:
         r = res.get(name)
         if r and r["sat"]:
-            (findings if exp == 0 else notes).append(f"{what}: can break in this run: {story(calls_in(r['instances'], W))}")
+            (findings if exp == 0 else notes).append(f"{what}: can break in this run: {story(calls_in(r['instances'], world))}")
     return notes, findings

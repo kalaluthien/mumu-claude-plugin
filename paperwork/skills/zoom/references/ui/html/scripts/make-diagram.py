@@ -62,20 +62,20 @@ def prepare(s, v):
     from schema.model import flat, walk_steps
     model = flat(view.merge(s, v))   # the page reads the levels as one list
     model["plan"] = view.page_plan(model)
-    M = Model(model)
-    M.plan = model["plan"]
-    by = {L["id"]: L for L in model["levels"]}
+    schema_model = Model(model)
+    schema_model.plan = model["plan"]
+    by = {level["id"]: level for level in model["levels"]}
     # each Scenario's walk, resolved once here, so the page replays exactly what the checks and Alloy saw
     def key(k):
-        L, e = M.edges.get(k, (None, None))
-        return f'{L["id"]}:{view.edge_key(by[L["id"]], e)}' if e else k   # a trigger's key is the same on both sides
+        level, e = schema_model.edges.get(k, (None, None))
+        return f'{level["id"]}:{view.edge_key(by[level["id"]], e)}' if e else k   # a trigger's key is the same on both sides
     for x in model["scenarios"]:
-        items = M.walks[x["slug"]][0]
+        items = schema_model.walks[x["slug"]][0]
         x["run"] = {"items": [dict(it, x=key(it["x"])) for it in items],
                     "steps": [{"does": st.get("does", ""), "expects": st.get("expects", "")} for st in walk_steps(x["walk"])],
-                    "uses": sorted(u for k, u in M.footprint[x["slug"]] if k in ("op", "rule"))}
-    W, _, res = prover.stored(M) if M.plan["prove"] != "off" else (prover.World(M), None, None)
-    found = prover.standing(M, W, res)
+                    "uses": sorted(u for k, u in schema_model.footprint[x["slug"]] if k in ("op", "rule"))}
+    world, _, res = prover.stored(schema_model) if schema_model.plan["prove"] != "off" else (prover.World(schema_model), None, None)
+    found = prover.standing(schema_model, world, res)
     for x in model["rules"]:
         x["layout"] = formula.layout(x["formula"])
         x["role"], breaks = found[x["slug"]]

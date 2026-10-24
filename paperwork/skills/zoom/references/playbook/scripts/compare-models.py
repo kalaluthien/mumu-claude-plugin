@@ -27,10 +27,10 @@ def norm(text):
     return re.sub(r"[\s_-]+", "", text).lower()
 
 
-def cycles(L):
+def cycles(level):
     """How many groups of a component level's nodes reach each other along its relations (Tarjan)."""
-    succ = {n["id"]: [] for n in L["nodes"]}
-    for e in L["edges"]:
+    succ = {n["id"]: [] for n in level["nodes"]}
+    for e in level["edges"]:
         succ.setdefault(e["from"], []).append(e["to"])
     index, low, stack, on, found, k = {}, {}, [], set(), 0, [0]
 
@@ -61,21 +61,21 @@ def cycles(L):
     return found
 
 
-def counts(M):
+def counts(model):
     """Each count criterion of #511's table, as found on the model; lower is better unless the name says more."""
-    m, levels = M.m, M.m["levels"]
-    nodes = list(M.nodes.values())
-    edges = [e for L in levels for e in L["edges"]]
+    m, levels = model.m, model.m["levels"]
+    nodes = list(model.nodes.values())
+    edges = [e for level in levels for e in level["edges"]]
     texts = [x.get("label", "") for x in nodes] + [x.get("what", "") for x in nodes + edges if x.get("what")]
     texts += [r["formula"] for r in m["rules"]]
     names = Counter(norm(x.get("label", "")) for x in nodes)
-    crossing = {n: sum(1 for L in levels for e in L["edges"] if n in (e["from"], e["to"])) for n in M.child}
-    deep = [len(M.levels[M.child[n]]["nodes"]) / (1 + crossing[n]) for n in M.child]
+    crossing = {n: sum(1 for level in levels for e in level["edges"] if n in (e["from"], e["to"])) for n in model.child}
+    deep = [len(model.levels[model.child[n]]["nodes"]) / (1 + crossing[n]) for n in model.child]
     part = {n["id"]: n.get("partition") for n in nodes}
     across = sum(1 for e in edges if part.get(e["from"]) and part.get(e["to"]) and part[e["from"]] != part[e["to"]])
-    used = set().union(*M.footprint.values()) if M.footprint else set()
+    used = set().union(*model.footprint.values()) if model.footprint else set()
     handled = used | {("node", n) for r in m["rules"] for n in re.findall(r"\w+", r["formula"])}
-    situations = {("trig", k) for k in M.trigs} | {("node", n["id"]) for L in levels if L["kind"] == "state" for n in L["nodes"]}
+    situations = {("trig", k) for k in model.trigs} | {("node", n["id"]) for level in levels if level["kind"] == "state" for n in level["nodes"]}
     returns = lambda o: "→" in o["sig"] and not re.search(r"→\s*(Nothing|Unit|None)?\s*$", o["sig"])
     return {
         "economy (nodes + edges + rules + operations)": len(nodes) + len(edges) + len(m["rules"]) + len(m["operations"]),
@@ -83,13 +83,13 @@ def counts(M):
         "one term per entity (nodes sharing a name)": sum(c - 1 for c in names.values() if c > 1),
         "deep modules (mean inner nodes / (1 + crossing edges), more is better)": round(sum(deep) / len(deep), 2) if deep else 0,
         "low coupling (edges across partitions / all edges)": round(across / len(edges), 2) if edges else 0,
-        "cycles (component levels)": sum(cycles(L) for L in levels if L["kind"] == "topology"),
-        "near-decomposability (most nodes on a level)": max(len(L["nodes"]) for L in levels),
-        "nesting depth": max(M.depth(L["id"]) for L in levels),
+        "cycles (component levels)": sum(cycles(level) for level in levels if level["kind"] == "topology"),
+        "near-decomposability (most nodes on a level)": max(len(level["nodes"]) for level in levels),
+        "nesting depth": max(model.depth(level["id"]) for level in levels),
         "requisite variety (triggers and states nothing handles)": len(situations - handled),
-        "essential state (elements no Scenario uses)": len(M.elements() - used),
+        "essential state (elements no Scenario uses)": len(model.elements() - used),
         "data/calculation/action (operations that return and change)": sum(1 for o in m["operations"] if returns(o) and o.get("modifies")),
-        "four states (Missing, Illegal, Redundant, Overloaded states found)": len(checks.four_states(M)),
+        "four states (Missing, Illegal, Redundant, Overloaded states found)": len(checks.four_states(model)),
     }
 
 
