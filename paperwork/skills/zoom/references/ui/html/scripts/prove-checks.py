@@ -23,11 +23,11 @@ EX = {p.name: view.merge(*(json.loads((p / f).read_text(encoding="utf-8")) for f
 
 
 def lv(m, lid):
-    return next(L for L, opener in levels_of(m) if (opener or "root") == lid)
+    return next(level for level, opener in levels_of(m) if (opener or "root") == lid)
 
 
 def node(m, nid):
-    return next(n for L, _ in levels_of(m) for n in L["nodes"] if n["id"] == nid)
+    return next(n for level, _ in levels_of(m) for n in level["nodes"] if n["id"] == nid)
 
 
 MUTATIONS = {

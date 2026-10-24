@@ -32,16 +32,16 @@ def levels(level):
 
 def migrate(old):
     new = {"version": VERSION, **json.loads(json.dumps(old))}
-    for L in levels(new["level"]):
-        L["kind"] = RENAMED.get(L.get("kind"), L.get("kind"))
-    for L in levels(new["level"]):
-        for n in L.get("nodes", []):
-            if isinstance(n.get("opens"), dict) and n["opens"].get("kind") != L["kind"]:
+    for level in levels(new["level"]):
+        level["kind"] = RENAMED.get(level.get("kind"), level.get("kind"))
+    for level in levels(new["level"]):
+        for n in level.get("nodes", []):
+            if isinstance(n.get("opens"), dict) and n["opens"].get("kind") != level["kind"]:
                 n["link"] = "view"
     # the checker already decides which same-kind open fails to carry its node's edges; mark exactly those nest
     unrefined = {text.split(":")[0] for rule, text in checks.opens(Model(new)) if rule == "opens-interface"}
-    for L in levels(new["level"]):
-        for n in L.get("nodes", []):
+    for level in levels(new["level"]):
+        for n in level.get("nodes", []):
             if n["id"] in unrefined:
                 n["link"] = "nest"
     return new

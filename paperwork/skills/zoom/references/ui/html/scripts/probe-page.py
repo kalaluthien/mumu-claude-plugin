@@ -78,10 +78,10 @@ def labels(pg):
 
 def open_level(pg):
     """Click a node of the first level that opens another, twice, as a reader does: select, then open."""
-    M = model(pg)
-    pg.go(M["root"])
-    child = {L["parent"]: L["id"] for L in M["levels"] if L.get("parent")}
-    root = next(L for L in M["levels"] if L["id"] == M["root"])
+    zoom_model = model(pg)
+    pg.go(zoom_model["root"])
+    child = {level_entry["parent"]: level_entry["id"] for level_entry in zoom_model["levels"] if level_entry.get("parent")}
+    root = next(level_entry for level_entry in zoom_model["levels"] if level_entry["id"] == zoom_model["root"])
     n = next((n["id"] for n in root["nodes"] if n["id"] in child), None)
     if not n:
         return "the top level has no node that opens a level"
@@ -95,12 +95,12 @@ def open_level(pg):
 
 def scenario_steps(pg):
     """Play the first scenario from its button, then step forward to its end and one step back."""
-    M = model(pg)
-    if not M["scenarios"]:
+    zoom_model = model(pg)
+    if not zoom_model["scenarios"]:
         return "the document has no scenario"
-    s = M["scenarios"][0]
+    s = zoom_model["scenarios"][0]
     first = next((it["x"] for it in s["run"]["items"] if ":" not in it["x"]), None)   # an edge's key holds its level
-    lid = next((L["id"] for L in M["levels"] for n in L["nodes"] if n["id"] == first), M["root"])
+    lid = next((level["id"] for level in zoom_model["levels"] for n in level["nodes"] if n["id"] == first), zoom_model["root"])
     pg.go(lid)
     pg.js("slug => document.querySelector(`[data-s=\"${slug}\"]`).click()", s["slug"])
     count = lambda: pg.js("document.querySelector('.zoom-time output').textContent")
@@ -124,17 +124,17 @@ def scenario_steps(pg):
 
 def copy_for_agent(pg):
     """Select a node and copy it: the copied text names its level path, label and id."""
-    M = model(pg)
-    pg.go(M["root"])
-    L = next(L for L in M["levels"] if L["id"] == M["root"])
-    n = L["nodes"][0]
+    zoom_model = model(pg)
+    pg.go(zoom_model["root"])
+    level = next(level for level in zoom_model["levels"] if level["id"] == zoom_model["root"])
+    n = level["nodes"][0]
     pg.js("id => window.zoom.select({ node: id })", n["id"])
     if not pg.js("!!document.querySelector('.zoom-note .zoom-copy')"):
         return "the note has no copy button"
     pg.p.click(".zoom-note .zoom-copy")
     pg.p.wait_for_timeout(100)
     got = pg.js("window.__copied")
-    want = f"{L['title']} › {n['label']} ({n['id']})"
+    want = f"{level['title']} › {n['label']} ({n['id']})"
     return None if want in got else f"copied {got}, not {want!r}"
 
 
@@ -157,7 +157,7 @@ def behaviours(pg):
 
 
 def meta(pg):
-    M = model(pg)
+    zoom_model = model(pg)
     seen, missing = 0, []
     def look(where, m):
         nonlocal seen
@@ -168,22 +168,22 @@ def meta(pg):
                 seen += 1
             else:
                 missing.append(f"{where}: {k}: {want}")
-    for L in M["levels"]:
-        pg.go(L["id"])
-        look(L["id"], L.get("meta"))
-        if L["id"] == M["root"]:
-            look("document", M.get("meta"))
-        for n in L["nodes"]:
+    for level in zoom_model["levels"]:
+        pg.go(level["id"])
+        look(level["id"], level.get("meta"))
+        if level["id"] == zoom_model["root"]:
+            look("document", zoom_model.get("meta"))
+        for n in level["nodes"]:
             if n.get("meta"):
                 pg.js("id => window.zoom.select({ node: id })", n["id"])
-                look(f"{L['id']}: {n['id']}", n["meta"])
-        for i, e in enumerate(L["edges"]):
+                look(f"{level['id']}: {n['id']}", n["meta"])
+        for i, e in enumerate(level["edges"]):
             if e.get("meta"):
                 pg.js("([lid, i]) => { const L = window.zoom.model.levels.find(L => L.id === lid), e = L.edges[i];"
                       " const k = [...document.querySelectorAll('.zoom-canvas .edge')].find(g => g.getAttribute('aria-label').startsWith("
                       "L.nodes.find(n => n.id === e.from).label + ' to ' + L.nodes.find(n => n.id === e.to).label)).dataset.key;"
-                      " window.zoom.select({ edge: k, e }); }", [L["id"], i])
-                look(f"{L['id']}: {e['from']}>{e['to']}", e["meta"])
+                      " window.zoom.select({ edge: k, e }); }", [level["id"], i])
+                look(f"{level['id']}: {e['from']}>{e['to']}", e["meta"])
     for m in missing:
         print(f"missing {m}")
     print(f"meta: {seen} shown, {len(missing)} missing")

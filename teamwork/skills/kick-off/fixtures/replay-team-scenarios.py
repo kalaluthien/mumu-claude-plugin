@@ -16,7 +16,7 @@ import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = pathlib.Path(__file__).resolve().parents[3]
-K = HERE.parent / "scripts"
+SCRIPTS = HERE.parent / "scripts"
 SANDBOX = "kalaluthien/teamwork-board-sandbox"
 
 
@@ -63,7 +63,7 @@ def heartbeat(state, pane, seconds=40):
 def tell(state, name, text="hi"):
     note = pathlib.Path(tempfile.mkstemp(suffix=".md")[1])
     note.write_text(text)
-    return run([K / "tell-session.py", name, note], state, TELL_SESSION_TIMEOUT="5")
+    return run([SCRIPTS / "tell-session.py", name, note], state, TELL_SESSION_TIMEOUT="5")
 
 
 def status(state, name):
@@ -136,7 +136,7 @@ def two_managers():
     outs = {pane: hook(state, pane, {"hook_event_name": "SessionStart", "session_id": ""}) for pane in ("w1:p1", "w1:p4")}
     ok = all([l.split(":")[0] for l in lines_about(o, other)] == ["shared workspace"] and f"`start` `{me}-next` `--team`" in o for o, me, other in
              ((outs["w1:p1"], "teamwork-manager", "other-manager"), (outs["w1:p4"], "other-manager", "teamwork-manager")))
-    refusals = [run([K / "start-session.py", "third-manager", "/tmp", args, "--model", "haiku", "--effort", "low"], state, "w1:p1")
+    refusals = [run([SCRIPTS / "start-session.py", "third-manager", "/tmp", args, "--model", "haiku", "--effort", "low"], state, "w1:p1")
                 for args in ("third", "succeed teamwork-manager")]
     return ok and all(code == 1 and "start it with --team" in out for code, out in refusals), "\n".join([*outs.values(), *(out for _, out in refusals)])
 

@@ -34,8 +34,8 @@ CUTS = {
 def main(args):
     with tempfile.TemporaryDirectory() as d:
         view, page = pathlib.Path(d) / "view.json", pathlib.Path(d) / "page.html"
-        for args in (["new", view], ["build", DOC, view, page]):
-            subprocess.run([sys.executable, HERE / "make-diagram.py", *map(str, args)], check=True, capture_output=True)
+        for call in (["new", view], ["build", DOC, view, page]):
+            subprocess.run([sys.executable, HERE / "make-diagram.py", *map(str, call)], check=True, capture_output=True)
         built = page.read_text(encoding="utf-8")
     # The fixtures sit beside the vendored font, so they point at it instead of each carrying a copy.
     built = re.sub(r"url\(data:font/woff2;base64,[^)]*\)", "url(../assets/fonts/poorstory.woff2)", built)

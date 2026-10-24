@@ -72,9 +72,9 @@ def levels(doc):
     """Every level root first, as (level, id, depth, opener node): a level's id is its opener's id, or root."""
     out = []
 
-    def visit(L, lid, depth, opener):
-        out.append((L, lid, depth, opener))
-        for n in L.get("nodes", []):
+    def visit(level, lid, depth, opener):
+        out.append((level, lid, depth, opener))
+        for n in level.get("nodes", []):
             if isinstance(n.get("opens"), dict):
                 visit(n["opens"], n.get("id", "?"), depth + 1, n)
     if isinstance(doc.get("level"), dict):
@@ -135,8 +135,8 @@ def classes(n):
     return out
 
 
-def flowchart(L):
-    kind = L.get("kind")
+def flowchart(level):
+    kind = level.get("kind")
     lines = ["flowchart " + ("TB" if kind == "topology" else "LR")]
     links = 0
     styles = []
@@ -153,8 +153,8 @@ def flowchart(L):
             return f"[[{t}]]"
         return f"[{t}]"
 
-    nodes = L.get("nodes", [])
-    parts = [p for p in L.get("partitions", []) if isinstance(p, dict)]
+    nodes = level.get("nodes", [])
+    parts = [p for p in level.get("partitions", []) if isinstance(p, dict)]
     placed = set()
     for p in parts:
         inside = [n for n in nodes if n.get("partition") == p.get("id")]
@@ -163,19 +163,19 @@ def flowchart(L):
         lines.append("  end")
         placed |= {id(n) for n in inside}
     lines += [f"  {mid(n.get('id'))}{shape(n)}" for n in nodes if id(n) not in placed]
-    for i, t in enumerate(L.get("triggers", [])):
+    for i, t in enumerate(level.get("triggers", [])):
         every = f" every {t['every']}" if t.get("every") else ""
         lines.append(f"  t_{i}((\" \")) -->|{quote(t.get('label', '') + every)}| {mid(t.get('to'))}")
         links += 1
-    for i, p in enumerate(L.get("in", [])):
+    for i, p in enumerate(level.get("in", [])):
         for to in ends(p.get("to")):
             lines.append(f"  in_{i}>{quote(p.get('edge'))}] --> {mid(to)}")
             links += 1
-    for i, p in enumerate(L.get("out", [])):
+    for i, p in enumerate(level.get("out", [])):
         for frm in ends(p.get("from")):
             lines.append(f"  {mid(frm)} --> out_{i}>{quote(p.get('edge'))}]")
             links += 1
-    for e in L.get("edges", []):
+    for e in level.get("edges", []):
         marks = e.get("mark", [])
         arrow = "==>" if "happy" in marks else "-.->" if set(marks) & {"failure", "optional", "unsure"} else "-->"
         label = edge_text(e)
@@ -198,31 +198,31 @@ def superstate(n):
     return o if isinstance(o, dict) and o.get("kind") == "state" else None
 
 
-def history_states(n, L):
-    """{mode: id} of the history states inside superstate n of level L: its level's own `history`, and each other
+def history_states(n, level):
+    """{mode: id} of the history states inside superstate n of level `level`: its level's own `history`, and each other
     mode an edge into it `enters` by, so that edge can point at it."""
     inner = superstate(n)
     if not inner or not inner.get("nodes"):
         return {}
     own = inner.get("history")
-    modes = [own] + [e.get("enters") for e in L.get("edges", []) if e.get("to") == n.get("id") and e.get("from") != n.get("id")]
+    modes = [own] + [e.get("enters") for e in level.get("edges", []) if e.get("to") == n.get("id") and e.get("from") != n.get("id")]
     modes = list(dict.fromkeys(m for m in modes if m in HISTORY))
     first = mid(inner["nodes"][0].get("id"))[2:]
     # the first mode keeps the plain id, so a level with one history mark draws it as before
     return {m: f"h_{first}" + ("" if i == 0 else f"_{m}") for i, m in enumerate(modes)}
 
 
-def state_inside(L, pad, marks=None):
+def state_inside(level, pad, marks=None):
     """A state level's states, regions, history and events, each superstate holding its own level."""
-    nodes = L.get("nodes", [])
-    regions = [r for r in L.get("regions", []) if isinstance(r, dict)]
-    initial = L.get("initial", [])
+    nodes = level.get("nodes", [])
+    regions = [r for r in level.get("regions", []) if isinstance(r, dict)]
+    initial = level.get("initial", [])
     initial = [initial] if isinstance(initial, str) else list(initial)
-    triggered = {t.get("to") for t in L.get("triggers", [])}
+    triggered = {t.get("to") for t in level.get("triggers", [])}
     # an edge is drawn inside its region's block when both ends sit in it, else at the top
     group = {n.get("id"): (n.get("region") if regions else None) for n in nodes}
-    marks = {L["history"]: f"h_{mid(nodes[0].get('id'))[2:]}"} if marks is None and L.get("history") in HISTORY and nodes else marks or {}
-    into = {n.get("id"): history_states(n, L) for n in nodes}
+    marks = {level["history"]: f"h_{mid(nodes[0].get('id'))[2:]}"} if marks is None and level.get("history") in HISTORY and nodes else marks or {}
+    into = {n.get("id"): history_states(n, level) for n in nodes}
 
     def state(n, pad):
         inner = superstate(n)
@@ -245,14 +245,14 @@ def state_inside(L, pad, marks=None):
             out.append(f"{pad}state \"{HISTORY[mode]}\" as {hid}")
         out += [f"{pad}[*] --> {mid(s)}" for s in initial if s in ids and s not in triggered]
         out += [f"{pad}[*] --> {mid(t.get('to'))} : {plain(t.get('label', ''))}"
-                for t in L.get("triggers", []) if t.get("to") in ids]
-        out += [arrow(e, pad) for e in L.get("edges", []) if e.get("from") in ids and e.get("to") in ids]
+                for t in level.get("triggers", []) if t.get("to") in ids]
+        out += [arrow(e, pad) for e in level.get("edges", []) if e.get("from") in ids and e.get("to") in ids]
         out += [f"{pad}{mid(n.get('id'))} --> [*]" for n in members if n.get("final")]
         return out
 
     lines = []
     if regions:
-        lines.append(f"{pad}state \"{plain(L.get('subject') or L.get('title', 'regions'))}\" as regions_{mid(nodes[0].get('id') if nodes else 'x')[2:]} {{")
+        lines.append(f"{pad}state \"{plain(level.get('subject') or level.get('title', 'regions'))}\" as regions_{mid(nodes[0].get('id') if nodes else 'x')[2:]} {{")
         for i, r in enumerate(regions):
             if i:
                 lines.append(f"{pad}  --")
@@ -261,26 +261,26 @@ def state_inside(L, pad, marks=None):
             lines.append(f"{pad}  }}")
         lines.append(f"{pad}}}")
     lines += body([n for n in nodes if group.get(n.get("id")) is None], pad, True)
-    for e in L.get("edges", []):
+    for e in level.get("edges", []):
         a, b = e.get("from"), e.get("to")
         if a not in group or b not in group or group[a] != group[b]:
             lines.append(arrow(e, pad))
     return lines
 
 
-def state_diagram(L):
-    lines = ["stateDiagram-v2", "  direction LR"] + state_inside(L, "  ")
-    for p in L.get("in", []):
+def state_diagram(level):
+    lines = ["stateDiagram-v2", "  direction LR"] + state_inside(level, "  ")
+    for p in level.get("in", []):
         lines += [f"  [*] --> {mid(to)} : {plain(p.get('edge'))}" for to in ends(p.get("to"))]
-    for p in L.get("out", []):
+    for p in level.get("out", []):
         lines += [f"  {mid(frm)} --> [*] : {plain(p.get('edge'))}" for frm in ends(p.get("from"))]
     return lines
 
 
-def mermaid(L):
-    lines = state_diagram(L) if L.get("kind") == "state" else flowchart(L)
+def mermaid(level):
+    lines = state_diagram(level) if level.get("kind") == "state" else flowchart(level)
     # Mermaid styles no composite state, so a superstate keeps its marks only in the table
-    styled = [n for n in L.get("nodes", []) if not (L.get("kind") == "state" and superstate(n))]
+    styled = [n for n in level.get("nodes", []) if not (level.get("kind") == "state" and superstate(n))]
     used = sorted({c for n in styled for c in classes(n)})
     lines += [f"  {c}" for c in CLASSES if c.split()[1] in used]
     for c in used:
@@ -292,10 +292,10 @@ def mermaid(L):
 def tree(doc):
     out = []
 
-    def visit(L, lid, opener, lead, last, top):
+    def visit(level, lid, opener, lead, last, top):
         link = f", {opener['link']}" if opener and opener.get("link") else ""
-        out.append(("" if top else lead + ("└── " if last else "├── ")) + f"{lid}: {L.get('title', '')} ({L.get('kind')}{link})")
-        kids = [n for n in L.get("nodes", []) if isinstance(n.get("opens"), dict)]
+        out.append(("" if top else lead + ("└── " if last else "├── ")) + f"{lid}: {level.get('title', '')} ({level.get('kind')}{link})")
+        kids = [n for n in level.get("nodes", []) if isinstance(n.get("opens"), dict)]
         for i, n in enumerate(kids):
             visit(n["opens"], n.get("id", "?"), n, "" if top else lead + ("    " if last else "│   "), i == len(kids) - 1, False)
     if isinstance(doc.get("level"), dict):
@@ -307,21 +307,21 @@ def cell(text):
     return str(text).replace("|", "\\|").replace("\n", " ")
 
 
-def meta_table(L):
+def meta_table(level):
     rows = []
-    if isinstance(L.get("meta"), dict):
-        rows.append(("this level", L["meta"]))
-    rows += [(f"`{n.get('id')}` {n.get('label', '')}", n["meta"]) for n in L.get("nodes", []) if isinstance(n.get("meta"), dict)]
+    if isinstance(level.get("meta"), dict):
+        rows.append(("this level", level["meta"]))
+    rows += [(f"`{n.get('id')}` {n.get('label', '')}", n["meta"]) for n in level.get("nodes", []) if isinstance(n.get("meta"), dict)]
     rows += [(f"`{e.get('from')}` → `{e.get('to')}` {e.get('label', '')}", e["meta"])
-             for e in L.get("edges", []) if isinstance(e.get("meta"), dict)]
+             for e in level.get("edges", []) if isinstance(e.get("meta"), dict)]
     if not rows:
         return []
     return ["", "| element | metadata |", "| --- | --- |"] + [f"| {cell(a)} | {cell(show_meta(m))} |" for a, m in rows]
 
 
-def syncs(L):
+def syncs(level):
     return [""] + [f"- sync `{s.get('name')}`: on `{s.get('when')}`" + (f" while `{s['where']}`" if s.get("where") else "")
-                   + f", then `{s.get('then')}`" for s in L.get("syncs", [])] if L.get("syncs") else []
+                   + f", then `{s.get('then')}`" for s in level.get("syncs", [])] if level.get("syncs") else []
 
 
 def emit(doc):
@@ -331,14 +331,14 @@ def emit(doc):
         out += ["", show_meta(doc["meta"])]
     out += ["", "```text", *tree(doc), "```"]
     blocks = []
-    for L, lid, depth, opener in levels(doc):
-        src = mermaid(L)
+    for level, lid, depth, opener in levels(doc):
+        src = mermaid(level)
         blocks.append((lid, src))
-        of = f" of {L['subject']}" if L.get("kind") == "state" and L.get("subject") else ""
-        out += ["", f"### `{lid}` {L.get('title', '')} ({L.get('kind')}{of})"]
-        if L.get("why"):
-            out += ["", f"_{L['why']}_"]
-        out += ["", "```mermaid", src, "```"] + syncs(L) + meta_table(L)
+        of = f" of {level['subject']}" if level.get("kind") == "state" and level.get("subject") else ""
+        out += ["", f"### `{lid}` {level.get('title', '')} ({level.get('kind')}{of})"]
+        if level.get("why"):
+            out += ["", f"_{level['why']}_"]
+        out += ["", "```mermaid", src, "```"] + syncs(level) + meta_table(level)
     return "\n".join(out) + "\n", blocks
 
 
@@ -358,18 +358,18 @@ def check(doc, text):
     blocks = [body for lang, body in fences[1:] if lang == "mermaid"]
     if len(blocks) != len(want):
         problems.append(f"{len(blocks)} Mermaid blocks for {len(want)} levels")
-    for (L, lid, _, _), src in zip(lvls, blocks):
-        for n in L.get("nodes", []):
+    for (level, lid, _, _), src in zip(lvls, blocks):
+        for n in level.get("nodes", []):
             m = mid(n.get("id"))
             if not re.search(rf"(^\s*{m}[\[\(\{{>]|\bas {m}( \{{)?$)", src, re.M):
                 problems.append(f"missing node {n.get('id')} in level {lid}")
         pairs = {}
-        for e in L.get("edges", []):
+        for e in level.get("edges", []):
             pairs[(e.get("from"), e.get("to"))] = pairs.get((e.get("from"), e.get("to")), 0) + 1
         for (a, b), count in pairs.items():
             # an edge entering by history ends at a history state inside its target
-            node = next((n for n in L.get("nodes", []) if n.get("id") == b), {})
-            ends_ = "|".join(map(re.escape, [mid(b)] + list(history_states(node, L).values())))
+            node = next((n for n in level.get("nodes", []) if n.get("id") == b), {})
+            ends_ = "|".join(map(re.escape, [mid(b)] + list(history_states(node, level).values())))
             found = len(re.findall(rf"^\s*{mid(a)} (-->|==>|-\.->)(\|.*\|)? ({ends_})( : .*)?$", src, re.M))
             if found < count:
                 problems.append(f"missing edge {lid}:{a}>{b}, {found} of {count} drawn")
@@ -393,12 +393,12 @@ def constructs():
 def owners(doc, where):
     if where == "document":
         return [doc]
-    lv = [L for L, _, _, _ in levels(doc)]
+    lv = [level for level, _, _, _ in levels(doc)]
     if where == "level":
         return lv
     if where in ("node", "edge"):
-        return [x for L in lv for x in L.get(where + "s", []) if isinstance(x, dict)]
-    return [m for x in [doc] + lv + [y for L in lv for y in L.get("nodes", []) + L.get("edges", [])]
+        return [x for level in lv for x in level.get(where + "s", []) if isinstance(x, dict)]
+    return [m for x in [doc] + lv + [y for level in lv for y in level.get("nodes", []) + level.get("edges", [])]
             for m in [x.get("meta")] if isinstance(m, dict)]
 
 

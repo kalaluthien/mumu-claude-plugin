@@ -90,9 +90,9 @@ def levels_of(data):
     a node's `opens` is the level drawn inside it. A level's id is its opener's id, or root."""
     out = []
 
-    def visit(L, opener):
-        out.append((L, opener))
-        for n in L.get("nodes", []):
+    def visit(level, opener):
+        out.append((level, opener))
+        for n in level.get("nodes", []):
             if isinstance(n, dict) and isinstance(n.get("opens"), dict):
                 visit(n["opens"], n.get("id"))
     if isinstance(data.get("level"), dict):
@@ -106,9 +106,9 @@ def flat(data):
     if "levels" in data and "level" not in data:   # already flat
         return data
     levels = []
-    for L, opener in levels_of(data):
-        L2 = dict(L, id=opener or "root", parent=opener)
-        L2["nodes"] = [{k: v for k, v in n.items() if k != "opens"} for n in L.get("nodes", [])]
+    for level, opener in levels_of(data):
+        L2 = dict(level, id=opener or "root", parent=opener)
+        L2["nodes"] = [{k: v for k, v in n.items() if k != "opens"} for n in level.get("nodes", [])]
         if "regions" in L2:   # a state level's regions are its partitions everywhere after this
             L2["partitions"] = L2.pop("regions")
             for n in L2["nodes"]:
@@ -122,75 +122,75 @@ def parse(data):
     """Every reference resolved once, before any check reads the model: what each one fails to point at, and the
     few things the schema cannot say. Nothing after this needs to ask whether an id exists."""
     m, out = flat(data), []
-    for L, opener in levels_of(data):
+    for level, opener in levels_of(data):
         lid = opener or "root"
-        if L.get("kind") == "state" and (L.get("partitions") or any("partition" in n for n in L.get("nodes", []))):
+        if level.get("kind") == "state" and (level.get("partitions") or any("partition" in n for n in level.get("nodes", []))):
             out.append(("form", f"{lid}: a state level's parts are regions (regions, region), not partitions"))
-        if L.get("kind") != "state" and (L.get("regions") or any("region" in n for n in L.get("nodes", []))):
+        if level.get("kind") != "state" and (level.get("regions") or any("region" in n for n in level.get("nodes", []))):
             out.append(("form", f"{lid}: only a state level has regions; use partitions"))
     nodes, kind = {}, {}
-    for L in m["levels"]:
-        for n in L["nodes"]:
+    for level in m["levels"]:
+        for n in level["nodes"]:
             if n["id"] in nodes:
                 out.append(("unique-names", f'{n["id"]}: node id used twice'))
-            nodes[n["id"]], kind[n["id"]] = n, L
+            nodes[n["id"]], kind[n["id"]] = n, level
     ops = {o["slug"] for o in m["operations"]}
     rules = {r["slug"] for r in m["rules"]}
     for what, names in (("operation", [o["slug"] for o in m["operations"]]), ("rule", [r["slug"] for r in m["rules"]])):
         out += [("unique-names", f"{x}: {what} defined twice") for x in sorted({x for x in names if names.count(x) > 1})]
-    by_id = {L["id"]: L for L in m["levels"]}
-    for L in m["levels"]:
-        lid, ids = L["id"], {n["id"] for n in L["nodes"]}
-        events = {e["label"] for e in L["edges"]}
-        if L["kind"] == "state":
-            inits = [L["initial"]] if isinstance(L.get("initial"), str) else L.get("initial") or []
+    by_id = {level["id"]: level for level in m["levels"]}
+    for level in m["levels"]:
+        lid, ids = level["id"], {n["id"] for n in level["nodes"]}
+        events = {e["label"] for e in level["edges"]}
+        if level["kind"] == "state":
+            inits = [level["initial"]] if isinstance(level.get("initial"), str) else level.get("initial") or []
             if not inits or set(inits) - ids:
                 out.append(("region-without-initial", f"{lid}: name its initial state (one per region)"))
-        parts = {p["id"] for p in L.get("partitions", [])}
-        for n in L["nodes"]:
+        parts = {p["id"] for p in level.get("partitions", [])}
+        for n in level["nodes"]:
             if n.get("partition") and n["partition"] not in parts:
                 out.append(("reference", f'{n["id"]}: is in no partition {n["partition"]}'))
-        for x, where in [(n, n["id"]) for n in L["nodes"]] + [(e, e.get("label", "")) for e in L["edges"]] + [(t, t.get("label", "")) for t in L.get("triggers", [])]:
+        for x, where in [(n, n["id"]) for n in level["nodes"]] + [(e, e.get("label", "")) for e in level["edges"]] + [(t, t.get("label", "")) for t in level.get("triggers", [])]:
             out += [("reference", f"{lid}: {where} names no operation {o}") for o in x.get("ops", []) if o not in ops]
             out += [("reference", f"{lid}: {where} names no rule {r}") for r in x.get("rules", []) if r not in rules]
 
-        for x in [L] + L["nodes"] + L["edges"]:
+        for x in [level] + level["nodes"] + level["edges"]:
             out += [("reference", f"{lid}: the insight's rule {md.get('rule')} is no operation or rule") for md in x.get("media", [])
                     if md.get("type") == "insight" and md.get("rule") not in ops | rules]
-        for e in L["edges"]:
+        for e in level["edges"]:
             if e["from"] not in ids or e["to"] not in ids:
                 out.append(("reference", f'{lid}: edge {e["label"]} joins nodes of another level'))
             if e.get("is") and e["is"] not in nodes:
                 out.append(("reference", f'{lid}: {e["label"]} is no component {e["is"]}'))
-        out += [("reference", f'{lid}: trigger {t["label"]} enters no node of this level') for t in L.get("triggers", []) if t["to"] not in ids]
-        if L.get("triggers") and L["kind"] == "topology":
+        out += [("reference", f'{lid}: trigger {t["label"]} enters no node of this level') for t in level.get("triggers", []) if t["to"] not in ids]
+        if level.get("triggers") and level["kind"] == "topology":
             out.append(("form", f"{lid}: triggers enter workflow or state levels"))
-        for y in L.get("syncs", []):
+        for y in level.get("syncs", []):
             if y["when"] not in events or y["then"] not in events:
                 out.append(("sync-unknown-transition", f'{lid}: sync {y["name"]}: when and then name events of this level'))
             if y.get("where") and y["where"] not in ids:
                 out.append(("sync-unknown-transition", f'{lid}: sync {y["name"]}: where names a state of this level'))
-        P = by_id.get(kind[L["parent"]]["id"]) if L.get("parent") else None
-        if L.get("history") and not (L["kind"] == "state" and P and P["kind"] == "state" and P.get("subject") == L.get("subject")):
+        parent_level = by_id.get(kind[level["parent"]]["id"]) if level.get("parent") else None
+        if level.get("history") and not (level["kind"] == "state" and parent_level and parent_level["kind"] == "state" and parent_level.get("subject") == level.get("subject")):
             out.append(("history-outside-superstate", f"{lid}: only a state level opened from a state of its subject resumes by history"))
         # a level's id is the node that opens it, so by_id of a node is the level inside it
-        inside = lambda n: by_id.get(n) if L["kind"] == "state" and by_id.get(n, {}).get("kind") == "state" and by_id[n].get("subject") == L.get("subject") else None
-        finals = {n["id"] for n in L["nodes"] if n.get("final")}
-        for e in L["edges"]:
+        inside = lambda n: by_id.get(n) if level["kind"] == "state" and by_id.get(n, {}).get("kind") == "state" and by_id[n].get("subject") == level.get("subject") else None
+        finals = {n["id"] for n in level["nodes"] if n.get("final")}
+        for e in level["edges"]:
             if e.get("enters") and (e["from"] == e["to"] or not inside(e["to"])):
                 why = "a self-loop never enters it" if e["from"] == e["to"] else "it opens no state level of its subject"
                 out.append(("enters-without-superstate", f'{lid}: {e["label"]} picks how it enters {e["to"]}, but {why}'))
             if e["from"] in finals:
                 out.append(("final-with-exit", f'{lid}: {e["label"]} leaves {e["from"]}, a final state'))
-            C = inside(e["from"]) if e.get("completion") else None
-            if e.get("completion") and not (C and {n.get("partition") or "_" for n in C["nodes"]} == {n.get("partition") or "_" for n in C["nodes"] if n.get("final")}):
+            inner_level = inside(e["from"]) if e.get("completion") else None
+            if e.get("completion") and not (inner_level and {n.get("partition") or "_" for n in inner_level["nodes"]} == {n.get("partition") or "_" for n in inner_level["nodes"] if n.get("final")}):
                 out.append(("completion-without-final", f'{lid}: {e["label"]} completes {e["from"]}, but a region inside it has no final state'))
-        if L.get("in") or L.get("out"):
-            if not (L["kind"] in ("workflow", "topology") and P and P["kind"] == L["kind"]):
+        if level.get("in") or level.get("out"):
+            if not (level["kind"] in ("workflow", "topology") and parent_level and parent_level["kind"] == level["kind"]):
                 out.append(("form", f"{lid}: only a workflow or topology opened from one of its kind has ports; bring outside things in as triggers"))
             else:
-                handed = {e["label"] for e in P["edges"]} | {t["label"] for t in P.get("triggers", [])}
-                for f in L.get("in", []) + L.get("out", []):
+                handed = {e["label"] for e in parent_level["edges"]} | {t["label"] for t in parent_level.get("triggers", [])}
+                for f in level.get("in", []) + level.get("out", []):
                     ends = [f["to"]] if "to" in f else [f["from"]] if isinstance(f["from"], str) else f["from"]
                     if f["edge"] not in handed or set(ends) - ids:
                         out.append(("reference", f'{lid}: port {f["edge"]} names no edge of the parent or no node here'))
@@ -200,7 +200,7 @@ def parse(data):
                 out.append(("steps", f'{s["slug"]}: step {k + 1} is an object {{"place", "does", "expects"}}'))
                 continue
             out += [("reference", f'{s["slug"]}: step {k + 1} is at no node {x}') for x in places(st) if x not in nodes]
-            if st.get("edge") and not any(e["label"] == st["edge"] for L in m["levels"] for e in L["edges"]):
+            if st.get("edge") and not any(e["label"] == st["edge"] for level in m["levels"] for e in level["edges"]):
                 out.append(("reference", f'{s["slug"]}: step {k + 1} takes no edge {st["edge"]}'))
         if any(len(f) < 2 for f in forks(s["walk"])):
             out.append(("steps", f'{s["slug"]}: a fork lists two or more branches'))
@@ -225,19 +225,19 @@ class Model:
         self.parse_problems = parse(data) if "level" in data else []
         data = flat(data)
         self.m = data
-        self.levels = {L["id"]: L for L in data["levels"]}
+        self.levels = {level["id"]: level for level in data["levels"]}
         self.nodes, self.node_level = {}, {}
-        for L in data["levels"]:
-            for n in L["nodes"]:
+        for level in data["levels"]:
+            for n in level["nodes"]:
                 self.nodes[n["id"]] = n
-                self.node_level[n["id"]] = L["id"]
-        self.child = {L["parent"]: L["id"] for L in data["levels"] if L.get("parent")}
-        self.edges = {f'{L["id"]}:{e["from"]}>{e["to"]}#{i}': (L, e) for L in data["levels"] for i, e in enumerate(L["edges"])}
-        self.trigs = {trig_key(L["id"], t): (L, t) for L in data["levels"] for t in L.get("triggers", [])}
+                self.node_level[n["id"]] = level["id"]
+        self.child = {level["parent"]: level["id"] for level in data["levels"] if level.get("parent")}
+        self.edges = {f'{level["id"]}:{e["from"]}>{e["to"]}#{i}': (level, e) for level in data["levels"] for i, e in enumerate(level["edges"])}
+        self.trigs = {trig_key(level["id"], t): (level, t) for level in data["levels"] for t in level.get("triggers", [])}
         self.ops = {o["slug"]: o for o in data["operations"]}
         self.rules = {i["slug"]: i for i in data["rules"]}
         self.kind_of = {n: self.levels[lid]["kind"] for n, lid in self.node_level.items()}
-        self.root = next((L["id"] for L in data["levels"] if not L.get("parent")), None)
+        self.root = next((level["id"] for level in data["levels"] if not level.get("parent")), None)
         self.sigs = self._signatures()
         self.footprint, self.home = self._footprints()
         self.plan = params.effective(data)
@@ -257,8 +257,8 @@ class Model:
     def depth(self, lid):
         return len(self.ancestors(lid)) - 1
 
-    def is_abstract(self, L, node_id):
-        return any(n["id"] == node_id and n.get("abstract") for n in L["nodes"])
+    def is_abstract(self, level, node_id):
+        return any(n["id"] == node_id and n.get("abstract") for n in level["nodes"])
 
     def is_level_step(self, a, b):
         return self.child.get(a) == self.node_level.get(b) or self.child.get(b) == self.node_level.get(a)
@@ -281,24 +281,24 @@ class Model:
         for a, b in links:
             if not (ok(a) and ok(b)):
                 continue
-            A, B = visits[a], visits[b]
+            from_visit, to_visit = visits[a], visits[b]
             want = flat[owner[b]].get("edge") if isinstance(flat[owner[b]], dict) else None
-            la, lb = self.node_level[A], self.node_level[B]
-            pairs = [(A, B)] if la == lb else []
-            if la != lb and not self.is_level_step(A, B):   # leave along the opener's edge, or enter along an edge into it
-                P, Q = self.opener(la), self.opener(lb)
-                pairs = [(P, B)] if P and self.node_level.get(P) == lb else [(A, Q)] if Q and self.node_level.get(Q) == la else []
+            la, lb = self.node_level[from_visit], self.node_level[to_visit]
+            pairs = [(from_visit, to_visit)] if la == lb else []
+            if la != lb and not self.is_level_step(from_visit, to_visit):   # leave along the opener's edge, or enter along an edge into it
+                from_opener, to_opener = self.opener(la), self.opener(lb)
+                pairs = [(from_opener, to_visit)] if from_opener and self.node_level.get(from_opener) == lb else [(from_visit, to_opener)] if to_opener and self.node_level.get(to_opener) == la else []
                 if not pairs:
-                    out.append(f'{s["slug"]}: {A} → {B} is neither an edge nor a step into or out of a level')
+                    out.append(f'{s["slug"]}: {from_visit} → {to_visit} is neither an edge nor a step into or out of a level')
             for f, t in pairs:
-                L = self.levels[self.node_level[f]]
-                fits = [k for k, (LL, e) in self.edges.items() if LL is L and ((e["from"], e["to"]) == (f, t) or (L["kind"] == "topology" and (e["from"], e["to"]) == (t, f)))]
+                level = self.levels[self.node_level[f]]
+                fits = [k for k, (LL, e) in self.edges.items() if LL is level and ((e["from"], e["to"]) == (f, t) or (level["kind"] == "topology" and (e["from"], e["to"]) == (t, f)))]
                 fits = [k for k in fits if not want or self.edges[k][1].get("label") == want] if len(fits) > 1 or want else fits
-                if len(fits) == 1 or (fits and L["kind"] == "topology"):   # parts used together use every relation between them
+                if len(fits) == 1 or (fits and level["kind"] == "topology"):   # parts used together use every relation between them
                     items += [{"x": k, "kind": "edge", "from": times[a] + (owner[a] != owner[b]), "to": times[b], "step": owner[b]} for k in fits]
                 elif fits:
                     out.append(f'{s["slug"]}: {f} → {t} could take {", ".join(self.edges[k][1]["label"] for k in fits)}; name one with "edge"')
-                elif any((e["from"], e["to"]) == (t, f) for LL, e in self.edges.values() if LL is L):
+                elif any((e["from"], e["to"]) == (t, f) for LL, e in self.edges.values() if LL is level):
                     out.append(f'{s["slug"]}: {f} → {t} walks an edge backwards; a step follows edges in their direction')
                 else:
                     out.append(f'{s["slug"]}: {f} → {t} is neither an edge nor a step into or out of a level')
@@ -334,10 +334,10 @@ class Model:
         for n in self.nodes.values():
             for x in n.get("ops", []) + n.get("rules", []):
                 out.setdefault(x, set()).add(("node", n["id"]))
-        for k, (L, e) in self.edges.items():
+        for k, (level, e) in self.edges.items():
             for x in e.get("ops", []) + e.get("rules", []):
                 out.setdefault(x, set()).add(("edge", k))
-        for k, (L, t) in self.trigs.items():
+        for k, (level, t) in self.trigs.items():
             for x in t.get("ops", []) + t.get("rules", []):
                 out.setdefault(x, set()).add(("trig", k))
         return out
