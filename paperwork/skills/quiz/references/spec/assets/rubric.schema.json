@@ -1,7 +1,7 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
- "$id": "https://github.com/kalaluthien/mumu-claude-plugin/paperwork/skills/litmus/references/spec/assets/rubric.schema.json",
- "title": "litmus grading spec",
+ "$id": "https://github.com/kalaluthien/mumu-claude-plugin/paperwork/skills/quiz/references/spec/assets/rubric.schema.json",
+ "title": "quiz grading spec",
  "description": "Binary criteria over an answer space, grouped in tiers that never trade off, and the records that placed them.",
  "type": "object",
  "required": ["version", "task", "tiers", "exchange", "judge"],

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""litmus: measure how far a judge's verdicts can be trusted, per criterion.
+"""quiz: measure how far a judge's verdicts can be trusted, per criterion.
 
   measure-judge.py alpha spec.json runs/                  Krippendorff's alpha across the verdict files in runs/
   measure-judge.py human spec.json judge.json human.json  Cohen's kappa, macro F1 and MET-rate gap against people
@@ -17,8 +17,8 @@ from collections import Counter
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[4] / "lib"))
 
-from litmus.spec import line, violations  # noqa: E402
-from litmus.verdicts import criteria, problems  # noqa: E402
+from quiz.spec import line, violations  # noqa: E402
+from quiz.verdicts import criteria, problems  # noqa: E402
 
 # Krippendorff, Content Analysis, 2nd ed., 2004, p. 241: the agreement needed to draw conclusions from the data
 BAR = 0.800
