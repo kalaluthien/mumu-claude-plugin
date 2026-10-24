@@ -15,7 +15,9 @@ import pitch_plan  # noqa: E402
 
 def next_plan(plan_path, answer_path):
     plan = pitch_plan.load_file(plan_path)
-    entries = pitch_plan.parse_answer(Path(answer_path).read_text(encoding="utf-8"))
+    md = Path(answer_path).read_text(encoding="utf-8")
+    pitch_plan.check_head(plan, md)
+    entries = pitch_plan.parse_answer(md)
     new = pitch_plan.apply_answer(plan, entries)
     errs = pitch_plan.check(new)
     if errs:

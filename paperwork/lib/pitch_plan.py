@@ -4,6 +4,7 @@ A plan is {"title", "parts": [Part]}; the grammar is in the pitch skill's
 references/grammar.md. Every function here is a calculation: no file or
 network access besides load_file.
 """
+import hashlib
 import json
 import re
 
@@ -283,6 +284,26 @@ def apply_answer(plan, entries):
     return new
 
 
-def render_answer(title, entries):
-    """Entries are (id, text) lines already formatted; the form is fixed."""
-    return "\n".join([f"# Answer: {title}"] + [f"- {pid} {rest}" for pid, rest in entries]) + "\n"
+_HEAD = re.compile(r"^# Answer: (.+) · plan ([0-9a-f]{8})$")
+
+
+def stamp(plan):
+    """Eight hex digits naming this exact plan version."""
+    raw = json.dumps(plan, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:8]
+
+
+def check_head(plan, md):
+    """Refuse an Answer made from another plan or version, since its ids would land on other Parts."""
+    for n, raw in enumerate(md.splitlines(), 1):
+        if not raw.strip():
+            continue
+        m = _HEAD.match(raw.rstrip())
+        if not m:
+            raise AnswerError(n, "the first line must be '# Answer: <title> · plan <stamp>'")
+        if m.group(1) != plan["title"]:
+            raise AnswerError(n, f"this Answer is for '{m.group(1)}', not '{plan['title']}'")
+        if m.group(2) != stamp(plan):
+            raise AnswerError(n, f"this Answer is for plan {m.group(2)}, but this version is {stamp(plan)}; build its page again")
+        return
+    raise AnswerError(1, "the Answer is empty")
