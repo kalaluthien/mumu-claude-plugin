@@ -1,4 +1,5 @@
 """herdr as the session port's adapter: each session is a herdr agent in a pane, shown by a tab, and a team's tabs share one workspace."""
+import json
 import os
 import subprocess
 import time
@@ -64,7 +65,14 @@ def start(name, pane, kind, argv, timeout):
 
 
 def prompt(pane, text):
-    run("herdr", "agent", "prompt", pane, text)
+    """None once herdr took the text, else its error code, such as `agent_blocked` for a session at a tool prompt."""
+    p = subprocess.run(["herdr", "agent", "prompt", pane, text], capture_output=True, text=True)
+    if not p.returncode:
+        return None
+    try:
+        return json.loads(p.stdout)["error"]["code"]
+    except (ValueError, KeyError, TypeError):
+        return (p.stderr or p.stdout).strip() or f"exit {p.returncode}"
 
 
 def send_keys(pane, *keys):

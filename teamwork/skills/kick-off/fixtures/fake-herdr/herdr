@@ -2,7 +2,9 @@
 """A stand-in for herdr that logs each call and keeps agents, tabs and workspaces in a JSON state file.
 
 An agent's name picks the dialog it shows: `trust` the folder trust dialog at start, `slow` its prompt typed but unsent,
-and a `blocked` agent with a `screen` the exit dialog of background work; each clears on the key that answers it."""
+and a `blocked` agent with a `screen` the exit dialog of background work; each clears on the key that answers it.
+A prompt to a `blocked` agent is refused `agent_blocked`, an `unblock` agent refuses its first prompt so, and an `unseen` agent
+takes a prompt but never shows it; `agent wait` ends a working agent's turn at once and times out on a blocked one."""
 import json, os, pathlib, sys
 
 state_path = pathlib.Path(os.environ["FAKE_HERDR_STATE"])
@@ -10,6 +12,7 @@ s = json.loads(state_path.read_text())
 argv = sys.argv[1:]
 with open(os.environ.get("FAKE_HERDR_LOG", os.devnull), "a") as log:
     log.write(json.dumps(argv) + "\n")
+code = 0
 ok = lambda r=None: print(json.dumps({"result": r or {}}))
 
 
@@ -56,13 +59,18 @@ elif head == ["agent", "read"]:
     print(by_pane(argv[2]).get("screen", ""))
 elif head == ["agent", "prompt"]:
     a = by_pane(argv[2])
-    if argv[3] == "/exit":
-        s["agents"].remove(a)
-    elif "slow" in a["name"]:
-        a["screen"] = argv[3]
+    if a.get("agent_status") == "blocked" or "unblock" in a.get("name", "") and not a.get("refused"):
+        a["refused"] = True
+        print(json.dumps({"error": {"code": "agent_blocked", "message": "agent is blocked"}}))
+        code = 1
     else:
-        a["agent_status"], a["ticks"] = "working", 2
-    ok()
+        if argv[3] == "/exit":
+            s["agents"].remove(a)
+        elif "slow" in a["name"]:
+            a["screen"] = argv[3]
+        elif "unseen" not in a["name"]:
+            a["agent_status"], a["ticks"] = "working", 2
+        ok()
 elif head == ["agent", "send-keys"]:
     a, keys = by_pane(argv[2]), argv[3:]
     if "trust" in a.get("screen", "") and keys == ["down", "enter"]:
@@ -72,6 +80,15 @@ elif head == ["agent", "send-keys"]:
     elif a.get("screen") and keys == ["enter"]:
         a["agent_status"], a["ticks"], a["screen"] = "working", 2, ""
     ok()
+elif head == ["agent", "wait"]:
+    a, until = by_pane(argv[2]), [argv[i + 1] for i, w in enumerate(argv) if w == "--until"]
+    if a.get("agent_status") == "working":  # its turn ends
+        a["agent_status"], a["ticks"] = "idle", 0
+    if a.get("agent_status") in until:
+        ok({"agent": a})
+    else:
+        print(json.dumps({"error": {"code": "timeout", "message": "wait timed out"}}))
+        code = 1
 elif head == ["tab", "list"]:
     ok({"tabs": [t for t in s["tabs"] if t["workspace_id"] == opt("--workspace")]})
 else:  # renames, keys, closes
@@ -79,3 +96,4 @@ else:  # renames, keys, closes
 tmp = state_path.with_suffix(f".{os.getpid()}")  # replaced whole, since callers run at once
 tmp.write_text(json.dumps(s))
 os.replace(tmp, state_path)
+sys.exit(code)
