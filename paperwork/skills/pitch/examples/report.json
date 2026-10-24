@@ -182,7 +182,7 @@
       "parts": [
         {
           "kind": "note",
-          "text": "View choices: expand and collapse of steps (Jules), one question at a time (Spec Kit), letters instead of numbers (Spec Kit)."
+          "text": "View choices: expand and collapse of steps (Jules), one question at a time (Spec Kit), letters instead of numbers (Spec Kit), and fading the Parts after the first open Decision, which stands in for a phase gate (Kiro, Copilot Workspace)."
         },
         {
           "kind": "note",
@@ -247,34 +247,17 @@
       ]
     },
     {
-      "text": "Change the grammar for a gap the products show?",
-      "pick": {
-        "text": "Not now: keep four concepts until a real plan needs one",
-        "parts": [
-          {
-            "kind": "consequence",
-            "text": "Each gap stays a named host concern or view choice, as the owner asked for a simpler system."
-          }
-        ]
-      },
-      "else": [
+      "kind": "claim",
+      "text": "Decided by the owner: no grammar change for the products' gaps; the page fades the Parts after the first unanswered Decision instead.",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/838#issuecomment-6380305866",
+      "parts": [
         {
-          "text": "Add a deadline that applies the default",
-          "parts": [
-            {
-              "kind": "consequence",
-              "text": "One optional field on a Decision; the host, not the page, enforces the time."
-            }
-          ]
+          "kind": "evidence",
+          "text": "The fade keeps the owner's eye on the current Decision, as a gate between phases would, but nothing is hidden or locked, so the plan stays one page and Copy Answer is unchanged."
         },
         {
-          "text": "Add a gate between top-level Parts",
-          "parts": [
-            {
-              "kind": "consequence",
-              "text": "One optional field; the page would hide a gated Part until the one before it is answered."
-            }
-          ]
+          "kind": "note",
+          "text": "Rejected: a deadline field that applies the default, and a gate field between top-level Parts; each gap stays a named host concern or view choice."
         }
       ]
     }

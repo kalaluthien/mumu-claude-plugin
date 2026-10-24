@@ -18,11 +18,12 @@
 - The first Decision is selected on load, so a number works at once. Press a number to pick an Option; when it has a follow-up, a hint `Then 1 – K` shows and the next number picks there. The last number opens Other.
 - Press `j` or `k` to move between Decisions, `Esc` to close Other or a note.
 - Strike a Part with a reason, comment on it, or edit its text; each can be undone before copying.
+- The Parts after the first Decision not yet answered are faded, never hidden; hover or focus brings one back, and they stay answerable. The fade moves on as each Decision is answered or struck. This is the page's only gate, a view choice; the grammar has none.
 - Copy Answer writes the Markdown form of [grammar.md](grammar.md) to the clipboard.
 
 ## Check the page
 
-`uv run --with playwright python3 ${CLAUDE_PLUGIN_ROOT}/skills/pitch/scripts/make-page.py --check ${CLAUDE_PLUGIN_ROOT}/skills/pitch/examples` builds each example, answers it in headless Chromium, copies, applies the text and prints `ok 12`.
+`uv run --with playwright python3 ${CLAUDE_PLUGIN_ROOT}/skills/pitch/scripts/make-page.py --check ${CLAUDE_PLUGIN_ROOT}/skills/pitch/examples` builds each example, checks which Parts are faded before and after the first pick, answers it in headless Chromium, copies, applies the text and prints `ok 12`.
 
 ## What the page draws
 

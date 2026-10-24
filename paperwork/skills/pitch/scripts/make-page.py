@@ -40,6 +40,19 @@ def strikeable(plan):
     return None
 
 
+def later_ids(ids, decisions, answered):
+    """The Parts the page must fade: after the first open Decision, outside its subtree."""
+    open_ = next((d for d in decisions if d not in answered), None)
+    if open_ is None:
+        return set()
+    order = list(ids)
+    return {i for i in order[order.index(open_) + 1:] if not i.startswith(open_ + ".")}
+
+
+def faded(page):
+    return set(page.eval_on_selector_all(".part.later", "els => els.map(e => e.dataset.id)"))
+
+
 def drive(browser_ctx, plan_path, out_dir):
     plan = pitch_plan.load_file(plan_path)
     page_file = Path(out_dir) / (Path(plan_path).stem + ".html")
@@ -51,6 +64,8 @@ def drive(browser_ctx, plan_path, out_dir):
     page.goto(page_file.as_uri())
     ids = pitch_plan.index(plan)
     decisions = [i for i, p in ids.items() if pitch_plan.is_decision(p)]
+    if faded(page) != later_ids(ids, decisions, set()):
+        raise AssertionError(f"faded on load {sorted(faded(page))}, expected {sorted(later_ids(ids, decisions, set()))}")
     if decisions:
         first = ids[decisions[0]]
         opts = pitch_plan.options(first)
@@ -59,6 +74,8 @@ def drive(browser_ctx, plan_path, out_dir):
         q = opts[k - 1].get("then")
         if q:
             page.keyboard.press("2" if len(pitch_plan.options(q)) >= 2 else "1")
+    if decisions and faded(page) != later_ids(ids, decisions, {decisions[0]}):
+        raise AssertionError(f"faded after the first pick {sorted(faded(page))}, expected {sorted(later_ids(ids, decisions, {decisions[0]}))}")
     target = strikeable(plan)
     # Outside the struck subtree, since a struck Part's descendants add no lines.
     commented = next((i for i in ids if not (target and (i == target or i.startswith(target + ".")))
@@ -112,7 +129,7 @@ def check_dir(d):
             except Exception as e:  # report every failing example by name
                 print(f"refused: {f.name}: {e}")
                 return 1
-            print(f"{f.name}: page built, answer read from the {how}, next plan passes the checker")
+            print(f"{f.name}: page built, later Parts faded, answer read from the {how}, next plan passes the checker")
             n += 1
         browser.close()
     print(f"ok {n}")

@@ -47,6 +47,8 @@ textarea, input[type=text] { width: 100%; background: var(--surface); border: 1p
 .actions button { font-size: .75rem; padding: 0 7px; }
 .struck > .row .text { text-decoration: line-through; color: var(--muted); }
 .struck > .children, .struck > .card, .struck > .comments { opacity: .45; }
+.later > .row, .later > .card, .later > .comments { opacity: .35; transition: opacity .15s; }
+.later > .row:hover, .later > .card:hover, .later > .card:focus-within { opacity: 1; }
 .reason { font-size: .8rem; color: var(--muted); }
 .edited-mark { font-size: .7rem; color: var(--accent); }
 .inline { margin: 4px 0 4px 2.4em; display: flex; flex-direction: column; gap: 4px; }
@@ -107,7 +109,7 @@ var decisions = order.filter(function (id) { return "pick" in byId[id]; });
 
 var S = { pick: {}, strike: {}, edit: {}, comment: {} };
 var history = [];
-var ui = { cur: decisions[0] || null, awaiting: null, open: null, copied: false };
+var ui = { cur: decisions[0] || null, awaiting: null, open: null, copied: false, later: {} };
 
 function options(d) { return [d.pick].concat(d.else || []); }
 function h(tag, cls, text) {
@@ -208,10 +210,21 @@ function editor(id, kind) {
   return box;
 }
 
+// The view's one gate: Parts after the first Decision still open are faded, never hidden.
+function laterIds() {
+  var open = decisions.filter(function (id) { return !(id in S.pick) && S.strike[id] == null; })[0];
+  var out = {};
+  if (!open) return out;
+  order.slice(order.indexOf(open) + 1).forEach(function (id) {
+    if (id.indexOf(open + ".") !== 0) out[id] = true;
+  });
+  return out;
+}
+
 function partView(id) {
   var p = byId[id];
   var isDec = "pick" in p;
-  var wrap = h("div", "part" + (p.kind === "risk" ? " risk" : "") + (S.strike[id] != null ? " struck" : "") + (isDec ? " decision" : ""));
+  var wrap = h("div", "part" + (p.kind === "risk" ? " risk" : "") + (S.strike[id] != null ? " struck" : "") + (isDec ? " decision" : "") + (ui.later[id] ? " later" : ""));
   wrap.setAttribute("data-id", id);
   var row = h("div", "row");
   row.appendChild(h("span", "id", id));
@@ -337,6 +350,7 @@ function focusCard(id) {
 function render() {
   var tree = document.getElementById("tree");
   tree.textContent = "";
+  ui.later = laterIds();
   var wraps = plan.parts.map(function (_, i) { return partView(String(i + 1)); });
   wraps.forEach(function (w) { tree.appendChild(w); });
   var n = lines().length;
