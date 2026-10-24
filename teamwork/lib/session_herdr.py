@@ -8,6 +8,7 @@ from json_command import run
 
 LOOK = "herdr agent read {}"
 EMPTY = "herdr lists no agent; run it inside herdr."
+NEEDS = ("herdr",)
 POLL = 1.0
 
 

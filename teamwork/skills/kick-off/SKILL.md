@@ -16,7 +16,7 @@ Arguments: $ARGUMENTS
 
 | arguments | role | playbook |
 | --- | --- | --- |
-| `worker <name> manager <manager>`, then a url or the owner's words | worker | [references/worker.md](references/worker.md) |
+| `worker <name> manager <manager>`, then `set <set>` when one is named, and a url or the owner's words | worker | [references/worker.md](references/worker.md) |
 | `succeed <name>` | manager | [references/manager.md](references/manager.md)'s Succession |
 | anything else | manager | [references/manager.md](references/manager.md) |
 

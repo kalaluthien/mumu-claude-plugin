@@ -1,0 +1,48 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ \"$CLAUDE_CODE_REMOTE\" = true ] || exit 0; TEAMWORK_SESSIONS=cloud \"$CLAUDE_PROJECT_DIR\"/teamwork/hooks/route-event.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ \"$CLAUDE_CODE_REMOTE\" = true ] || exit 0; TEAMWORK_SESSIONS=cloud \"$CLAUDE_PROJECT_DIR\"/teamwork/hooks/route-event.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ \"$CLAUDE_CODE_REMOTE\" = true ] || exit 0; TEAMWORK_SESSIONS=cloud \"$CLAUDE_PROJECT_DIR\"/teamwork/hooks/route-event.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ \"$CLAUDE_CODE_REMOTE\" = true ] || exit 0; TEAMWORK_SESSIONS=cloud \"$CLAUDE_PROJECT_DIR\"/teamwork/hooks/route-event.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

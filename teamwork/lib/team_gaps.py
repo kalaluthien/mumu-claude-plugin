@@ -90,7 +90,7 @@ def manager_actions(me, listed, data=None, fed=None):
     # a started worker names its tab before its agent is live, so its tab counts it as routed
     present = set(team) | {t.get("label") for t in tabs(me.get("workspace_id", ""))}
     for i in found:
-        if not unanswered(i) and not issue_state.deferral(i) and not any(holds(i, n) for n in present if n):
+        if not unanswered(i) and not issue_state.deferral(i) and not any(holds(i, n) for n in present | set(issue_state.cloud(i)) if n):
             lines.append(f"route #{i['number']} {issue_state.title(i)}: no live worker holds it; route it, or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
         if asking(i):
             lines.append(f"answer #{i['number']}: its worker asks; post your {ANSWER}: there; the worker waits on it")
