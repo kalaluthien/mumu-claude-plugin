@@ -22,7 +22,7 @@
 
 ## Check the page
 
-`uv run --with playwright python3 ${CLAUDE_PLUGIN_ROOT}/skills/pitch/scripts/make-page.py --check ${CLAUDE_PLUGIN_ROOT}/skills/pitch/examples` builds each example, answers it in headless Chromium, copies, applies the text and prints `ok 5`.
+`uv run --with playwright python3 ${CLAUDE_PLUGIN_ROOT}/skills/pitch/scripts/make-page.py --check ${CLAUDE_PLUGIN_ROOT}/skills/pitch/examples` builds each example, answers it in headless Chromium, copies, applies the text and prints `ok 12`.
 
 ## What the page draws
 

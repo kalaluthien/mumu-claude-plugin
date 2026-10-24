@@ -6,8 +6,16 @@
       "text": "Formalise a plan in knowledge work, assuming it is visualised, and name the interaction patterns that present it to its owner.",
       "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/838",
       "parts": [
-        {"kind": "note", "text": "Built on a survey of 31 Thariq pages, the affectUI demo, the owner's screenshots and example Artifact, Lenny's episode, eight plan products and seven fields.", "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/859#issuecomment-6379354960"},
-        {"kind": "note", "text": "This report is itself a plan in the grammar it states, drawn by the same page as every other example.", "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/867"}
+        {
+          "kind": "note",
+          "text": "Built on a survey of 31 Thariq pages, the affectUI demo, the owner's screenshots and example Artifact, Lenny's episode, eight plan products and seven fields.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/859#issuecomment-6379354960"
+        },
+        {
+          "kind": "note",
+          "text": "This report is itself a plan in the grammar it states, drawn by the same page as every other example.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/867"
+        }
       ]
     },
     {
@@ -15,20 +23,44 @@
       "text": "A visual plan is a tree of four concepts: Part, Decision, Option and Answer.",
       "source": "paperwork/skills/pitch/references/grammar.md",
       "parts": [
-        {"kind": "claim", "text": "Part: one sentence of the plan, with an optional kind, source and child Parts. Goal, step, evidence, risk, consequence and note are kinds, not types, since the survey found they differ only in label and colour."},
-        {"kind": "claim", "text": "Decision: a Part the owner settles. It holds exactly one pick and any number of other Options, and the pick is one field, so two picks cannot be written."},
-        {"kind": "claim", "text": "Option: one answer, with its consequences as child Parts and at most one follow-up Question. A follow-up holds only leaf Options, so a follow-up of a follow-up cannot be written."},
-        {"kind": "claim", "text": "Answer: one Markdown line per Part the owner touched: pick N [then M], other, struck, comment or edited. An untouched Part writes nothing and is kept."}
+        {
+          "kind": "claim",
+          "text": "Part: one sentence of the plan, with an optional kind, source and child Parts. Goal, step, evidence, risk, consequence and note are kinds, not types, since the survey found they differ only in label and colour."
+        },
+        {
+          "kind": "claim",
+          "text": "Decision: a Part the owner settles. It holds exactly one pick and any number of other Options, and the pick is one field, so two picks cannot be written."
+        },
+        {
+          "kind": "claim",
+          "text": "Option: one answer, with its consequences as child Parts and at most one follow-up Question. A follow-up holds only leaf Options, so a follow-up of a follow-up cannot be written."
+        },
+        {
+          "kind": "claim",
+          "text": "Answer: one Markdown line per Part the owner touched: pick N [then M], other, struck, comment or edited. An untouched Part writes nothing and is kept."
+        }
       ]
     },
     {
       "kind": "claim",
       "text": "Wrong plans are unwritable by shape where they can be, and refused by a named checker rule where they cannot.",
       "parts": [
-        {"kind": "evidence", "text": "Ids are tree positions computed by the page and the reader alike, never written, so a repeated id cannot exist; a written id key is refused as unknown-key."},
-        {"kind": "evidence", "text": "A duplicate JSON key is refused at load, so a second pick cannot hide behind the first."},
-        {"kind": "evidence", "text": "The free-text Other is always the last number and never written, so it cannot collide with a real Option."},
-        {"kind": "evidence", "text": "The Answer's first line carries the plan's title and an eight-digit stamp of its exact JSON, so an Answer made from an older version is refused instead of landing on shifted ids."}
+        {
+          "kind": "evidence",
+          "text": "Ids are tree positions computed by the page and the reader alike, never written, so a repeated id cannot exist; a written id key is refused as unknown-key."
+        },
+        {
+          "kind": "evidence",
+          "text": "A duplicate JSON key is refused at load, so a second pick cannot hide behind the first."
+        },
+        {
+          "kind": "evidence",
+          "text": "The free-text Other is always the last number and never written, so it cannot collide with a real Option."
+        },
+        {
+          "kind": "evidence",
+          "text": "The Answer's first line carries the plan's title and an eight-digit stamp of its exact JSON, so an Answer made from an older version is refused instead of landing on shifted ids."
+        }
       ]
     },
     {
@@ -36,10 +68,22 @@
       "text": "One fixed page presents every plan; the interaction does not change per plan.",
       "source": "paperwork/skills/pitch/references/show.md",
       "parts": [
-        {"kind": "step", "text": "The first Decision is selected on load. A number picks an Option, a hint shows the follow-up's numbers, the last number opens Other, and j and k move between Decisions."},
-        {"kind": "step", "text": "Each Option's consequences, risks in amber and notes with their source show before the choice, and every follow-up shows under its Option from the start."},
-        {"kind": "step", "text": "Every Part offers Strike with a reason, Comment and Edit, and every change can be undone before copying."},
-        {"kind": "step", "text": "Copy Answer puts the Answer on the clipboard; the agent pastes it to the reader, which writes the plan's next version."}
+        {
+          "kind": "step",
+          "text": "The first Decision is selected on load. A number picks an Option, a hint shows the follow-up's numbers, the last number opens Other, and j and k move between Decisions."
+        },
+        {
+          "kind": "step",
+          "text": "Each Option's consequences, risks in amber and notes with their source show before the choice, and every follow-up shows under its Option from the start."
+        },
+        {
+          "kind": "step",
+          "text": "Every Part offers Strike with a reason, Comment and Edit, and every change can be undone before copying."
+        },
+        {
+          "kind": "step",
+          "text": "Copy Answer puts the Answer on the clipboard; the agent pastes it to the reader, which writes the plan's next version."
+        }
       ]
     },
     {
@@ -47,21 +91,66 @@
       "text": "Each surveyed interaction pattern is held by the grammar, drawn by the page, or named as a view choice or a host concern.",
       "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/859#issuecomment-6379354960",
       "parts": [
-        {"kind": "evidence", "text": "Default pick, one-press accept: the grammar's pick, drawn as Agent's pick on 1."},
-        {"kind": "evidence", "text": "Chips build a reply sentence: replaced by the Answer, one line per pick, which a script reads instead of a sentence."},
-        {"kind": "evidence", "text": "One-line directive per decision: the Answer's line per Part."},
-        {"kind": "evidence", "text": "Confirm or correct with a template: the edited and comment lines."},
-        {"kind": "evidence", "text": "Whole tree up front, follow-up under its option: the grammar's then, drawn under its Option."},
-        {"kind": "evidence", "text": "Consequences and flags before the choice, note with source: Option child Parts, the risk kind and the source chip; shown always, not on hover, a view choice."},
-        {"kind": "evidence", "text": "Numbered keys with a hint that changes with state: the page's keys and hint line."},
-        {"kind": "evidence", "text": "Free-text escape Other: the page's last number, read back as other."},
-        {"kind": "evidence", "text": "One question at a time, capped: a view choice, since the page shows the whole tree; the cap is a host concern."},
-        {"kind": "evidence", "text": "Commit is final, decided items leave: a view choice the page declines, since undo before copying is cheaper than a wrong answer."},
-        {"kind": "evidence", "text": "Edit a part in a throwaway editor: the edited line, per Part rather than per file."},
-        {"kind": "evidence", "text": "Strike and comment on parts: the struck and comment lines."},
-        {"kind": "evidence", "text": "Whole-document response: the Answer as a whole, headed by the plan's title and stamp."},
-        {"kind": "evidence", "text": "Read-only plan handed to a new session: a plan with no Decision; the page draws it and the Answer may stay empty."},
-        {"kind": "evidence", "text": "Approval picks how the work runs: a host concern, out of scope, as in the revised plan."}
+        {
+          "kind": "evidence",
+          "text": "Default pick, one-press accept: the grammar's pick, drawn as Agent's pick on 1."
+        },
+        {
+          "kind": "evidence",
+          "text": "Chips build a reply sentence: replaced by the Answer, one line per pick, which a script reads instead of a sentence."
+        },
+        {
+          "kind": "evidence",
+          "text": "One-line directive per decision: the Answer's line per Part."
+        },
+        {
+          "kind": "evidence",
+          "text": "Confirm or correct with a template: the edited and comment lines."
+        },
+        {
+          "kind": "evidence",
+          "text": "Whole tree up front, follow-up under its option: the grammar's then, drawn under its Option."
+        },
+        {
+          "kind": "evidence",
+          "text": "Consequences and flags before the choice, note with source: Option child Parts, the risk kind and the source chip; shown always, not on hover, a view choice."
+        },
+        {
+          "kind": "evidence",
+          "text": "Numbered keys with a hint that changes with state: the page's keys and hint line."
+        },
+        {
+          "kind": "evidence",
+          "text": "Free-text escape Other: the page's last number, read back as other."
+        },
+        {
+          "kind": "evidence",
+          "text": "One question at a time, capped: a view choice, since the page shows the whole tree; the cap is a host concern."
+        },
+        {
+          "kind": "evidence",
+          "text": "Commit is final, decided items leave: a view choice the page declines, since undo before copying is cheaper than a wrong answer."
+        },
+        {
+          "kind": "evidence",
+          "text": "Edit a part in a throwaway editor: the edited line, per Part rather than per file."
+        },
+        {
+          "kind": "evidence",
+          "text": "Strike and comment on parts: the struck and comment lines."
+        },
+        {
+          "kind": "evidence",
+          "text": "Whole-document response: the Answer as a whole, headed by the plan's title and stamp."
+        },
+        {
+          "kind": "evidence",
+          "text": "Read-only plan handed to a new session: a plan with no Decision; the page draws it, and its Answer is the head line alone."
+        },
+        {
+          "kind": "evidence",
+          "text": "Approval picks how the work runs: a host concern, out of scope, as in the revised plan."
+        }
       ]
     },
     {
@@ -69,49 +158,91 @@
       "text": "The grammar wrote all eleven inputs as plans whose Answers read back into a valid next version.",
       "source": "paperwork/skills/pitch/examples",
       "parts": [
-        {"kind": "evidence", "text": "Five surveyed inputs: Thariq's implementation plan, the affectUI queue, the owner's screenshots, the owner's example Artifact and Lenny's rules table."},
-        {"kind": "evidence", "text": "Six plan products: Google Jules, Cursor plan mode, Kiro specs, Spec Kit clarify, LangGraph interrupts and Copilot Workspace, each from its own documentation."},
-        {"kind": "risk", "text": "Spec Kit's clarify command gives a format but no sample questions, so its three questions are written from the command's own rules."},
-        {"kind": "risk", "text": "Copilot Workspace's page renders in the browser; its text was read from the page's own script bundle."}
+        {
+          "kind": "evidence",
+          "text": "Five surveyed inputs: Thariq's implementation plan, the affectUI queue, the owner's screenshots, the owner's example Artifact and Lenny's rules table."
+        },
+        {
+          "kind": "evidence",
+          "text": "Six plan products: Google Jules, Cursor plan mode, Kiro specs, Spec Kit clarify, LangGraph interrupts and Copilot Workspace, each from its own documentation."
+        },
+        {
+          "kind": "risk",
+          "text": "Spec Kit's clarify command gives a format but no sample questions, so its three questions are written from the command's own rules."
+        },
+        {
+          "kind": "risk",
+          "text": "Copilot Workspace's page renders in the browser; its text was read from the page's own script bundle."
+        }
       ]
     },
     {
       "kind": "claim",
       "text": "What the grammar cannot hold is named, and none of it needs a fifth concept today.",
       "parts": [
-        {"kind": "note", "text": "View choices: expand and collapse of steps (Jules), one question at a time (Spec Kit), letters instead of numbers (Spec Kit)."},
-        {"kind": "note", "text": "Host concerns: a Build or approve gate that ends review (Cursor, Jules), interrupt ids and resume in one call (LangGraph), writing answers into a spec file (Spec Kit), live task status (Kiro), regenerating downstream steps (Copilot Workspace)."},
-        {"kind": "note", "text": "Grammar changes the products would need: a deadline that applies the default (Jules' timer), a comment anchored to a span of text (Kiro), a length limit on a short answer (Spec Kit), a typed resume payload (LangGraph), and a gate or dependency between layers (Kiro, Copilot Workspace)."}
+        {
+          "kind": "note",
+          "text": "View choices: expand and collapse of steps (Jules), one question at a time (Spec Kit), letters instead of numbers (Spec Kit)."
+        },
+        {
+          "kind": "note",
+          "text": "Host concerns: a Build or approve gate that ends review (Cursor, Jules), interrupt ids and resume in one call (LangGraph), writing answers into a spec file (Spec Kit), live task status (Kiro), regenerating downstream steps (Copilot Workspace)."
+        },
+        {
+          "kind": "note",
+          "text": "Grammar changes the products would need: a deadline that applies the default (Jules' timer), a comment anchored to a span of text (Kiro), a length limit on a short answer (Spec Kit), a typed resume payload (LangGraph), and a gate or dependency between layers (Kiro, Copilot Workspace)."
+        }
       ]
     },
     {
       "kind": "claim",
       "text": "Red-team: each attack, by lens, with its result.",
       "parts": [
-        {"kind": "evidence", "text": "Correctness of the round trip: an Answer applied to the version it produced landed on shifted ids with no error. Fixed: the stamp now refuses it, and stale.answer.md shows the refusal."},
-        {"kind": "evidence", "text": "Correctness of the round trip: an Answer whose title names another plan was accepted. Fixed by the same first-line check."},
-        {"kind": "evidence", "text": "Hostile paste: chat prose around the Answer is refused with its line number, so a paste with extra words fails loudly instead of being guessed."},
-        {"kind": "evidence", "text": "Hostile paste: a newline typed into a comment collapses to one line on the page, so it cannot forge a second Answer line."},
-        {"kind": "evidence", "text": "Ambiguous intent: a Part both struck and edited is removed, since strikes apply last. Kept: the strike is the stronger act."},
-        {"kind": "evidence", "text": "Load on the owner: the page shows every Part and follow-up at once, which a long plan makes tall. Kept as a view choice; a host that needs paging can page Decisions without changing the grammar."},
-        {"kind": "evidence", "text": "Faithfulness: the products' answer channels are richer than one Markdown line (timers, typed payloads, anchored spans). Kept: each is named above as a view choice, a host concern or a grammar change."}
+        {
+          "kind": "evidence",
+          "text": "Correctness of the round trip: an Answer applied to the version it produced landed on shifted ids with no error. Fixed: the stamp now refuses it, and stale.answer.md shows the refusal."
+        },
+        {
+          "kind": "evidence",
+          "text": "Correctness of the round trip: an Answer whose title names another plan was accepted. Fixed by the same first-line check."
+        },
+        {
+          "kind": "evidence",
+          "text": "Hostile paste: chat prose around the Answer is refused with its line number, so a paste with extra words fails loudly instead of being guessed."
+        },
+        {
+          "kind": "evidence",
+          "text": "Hostile paste: a newline typed into a comment collapses to one line on the page, so it cannot forge a second Answer line."
+        },
+        {
+          "kind": "evidence",
+          "text": "Ambiguous intent: a Part both struck and edited is removed, since strikes apply last. Kept: the strike is the stronger act."
+        },
+        {
+          "kind": "evidence",
+          "text": "Load on the owner: the page shows every Part and follow-up at once, which a long plan makes tall. Kept as a view choice; a host that needs paging can page Decisions without changing the grammar."
+        },
+        {
+          "kind": "evidence",
+          "text": "Faithfulness: the products' answer channels are richer than one Markdown line (timers, typed payloads, anchored spans). Kept: each is named above as a view choice, a host concern or a grammar change."
+        }
       ]
     },
     {
-      "text": "Does an untouched default count as answered?",
-      "pick": {
-        "text": "Yes: copying the Answer accepts every untouched pick",
-        "parts": [
-          {"kind": "consequence", "text": "The owner's example Artifact already reports such a decision as kept as proposed, and the Answer stays one line per change."},
-          {"kind": "risk", "text": "An owner who copies without reading accepts the agent's picks."}
-        ]
-      },
-      "else": [
+      "kind": "claim",
+      "text": "Decided: an untouched default counts as answered, since copying the Answer accepts every untouched pick.",
+      "parts": [
         {
-          "text": "No: the owner must press a number on every Decision",
-          "parts": [
-            {"kind": "consequence", "text": "Every Decision writes a line, and Copy Answer waits until each is pressed."}
-          ]
+          "kind": "evidence",
+          "text": "The owner's example Artifact already reports such a decision as kept as proposed, and the Answer stays one line per change."
+        },
+        {
+          "kind": "risk",
+          "text": "An owner who copies without reading accepts the agent's picks; the page's change count shows how few Parts were touched."
+        },
+        {
+          "kind": "note",
+          "text": "Rejected: a line for every Decision, which would make the Answer long and Copy Answer wait until each Decision is pressed."
         }
       ]
     },
@@ -120,20 +251,29 @@
       "pick": {
         "text": "Not now: keep four concepts until a real plan needs one",
         "parts": [
-          {"kind": "consequence", "text": "Each gap stays a named host concern or view choice, as the owner asked for a simpler system."}
+          {
+            "kind": "consequence",
+            "text": "Each gap stays a named host concern or view choice, as the owner asked for a simpler system."
+          }
         ]
       },
       "else": [
         {
           "text": "Add a deadline that applies the default",
           "parts": [
-            {"kind": "consequence", "text": "One optional field on a Decision; the host, not the page, enforces the time."}
+            {
+              "kind": "consequence",
+              "text": "One optional field on a Decision; the host, not the page, enforces the time."
+            }
           ]
         },
         {
           "text": "Add a gate between top-level Parts",
           "parts": [
-            {"kind": "consequence", "text": "One optional field; the page would hide a gated Part until the one before it is answered."}
+            {
+              "kind": "consequence",
+              "text": "One optional field; the page would hide a gated Part until the one before it is answered."
+            }
           ]
         }
       ]

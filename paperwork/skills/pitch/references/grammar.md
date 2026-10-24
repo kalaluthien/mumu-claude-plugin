@@ -36,7 +36,7 @@ A refusal prints `path: rule: detail`.
 | `missing-key` | a plan with no `parts` |
 | `bad-json` | text that is not JSON |
 
-The refused fixtures in [../fixtures/refused/](../fixtures/refused/) show each of the four shape refusals. `answer-plan.json` is a valid plan, and `unknown-id.answer.md` names a Part it lacks; the reader refuses that, not the checker.
+The refused fixtures in [../fixtures/refused/](../fixtures/refused/) show each of the four shape refusals. `answer-plan.json` is a valid plan, and `unknown-id.answer.md` names a Part it lacks; the reader refuses that, not the checker. `read-answer.py --expect-refused fixtures/refused/answer-plan.json fixtures/refused/*.answer.md` prints `refused 2 of 2`.
 
 ## Answer
 

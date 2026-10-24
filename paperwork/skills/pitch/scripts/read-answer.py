@@ -2,6 +2,7 @@
 """Apply an owner's Answer to a plan and print the next plan.
 
   read-answer.py PLAN.json ANSWER.md   next plan JSON on stdout; "refused: line N: ..." and exit 1 when the Answer does not apply
+  read-answer.py --expect-refused PLAN ANSWER...   "refused K of N": each Answer must be refused against PLAN
   read-answer.py --check DIR           "ok N": each X.json with an X.answer.md applies and the result passes the checker
 """
 import json
@@ -41,8 +42,20 @@ def main(argv):
             return 1
         print(f"ok {n}")
         return 0
+    if len(argv) >= 3 and argv[0] == "--expect-refused":
+        plan, answers = argv[1], argv[2:]
+        refused = []
+        for answer in answers:
+            try:
+                next_plan(plan, answer)
+            except (pitch_plan.AnswerError, pitch_plan.PlanError) as e:
+                refused.append(f"{Path(answer).name}: {e}")
+        for line in refused:
+            print(line)
+        print(f"refused {len(refused)} of {len(answers)}")
+        return 0 if len(refused) == len(answers) else 1
     if len(argv) != 2:
-        print("usage: read-answer.py PLAN.json ANSWER.md | read-answer.py --check DIR")
+        print("usage: read-answer.py PLAN.json ANSWER.md | read-answer.py --check DIR | read-answer.py --expect-refused PLAN ANSWER...")
         return 2
     try:
         new = next_plan(*argv)
