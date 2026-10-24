@@ -48,7 +48,8 @@ textarea, input[type=text] { width: 100%; background: var(--surface); border: 1p
 .struck > .row .text { text-decoration: line-through; color: var(--muted); }
 .struck > .children, .struck > .card, .struck > .comments { opacity: .45; }
 .later > .row, .later > .card, .later > .comments { opacity: .35; transition: opacity .15s; }
-.later > .row:hover, .later > .card:hover, .later > .card:focus-within { opacity: 1; }
+.later > .row:hover, .later > .row:focus-within, .later > .card:hover, .later > .card:focus-within,
+.later > .comments:hover, .later > .comments:focus-within { opacity: 1; }
 .reason { font-size: .8rem; color: var(--muted); }
 .edited-mark { font-size: .7rem; color: var(--accent); }
 .inline { margin: 4px 0 4px 2.4em; display: flex; flex-direction: column; gap: 4px; }
