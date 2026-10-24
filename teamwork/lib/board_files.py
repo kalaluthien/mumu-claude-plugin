@@ -14,9 +14,12 @@ import team_signal
 
 
 def default_folder():
-    """The git common folder's `teamwork/board`, the same for every worktree of a project and never committed; outside a repository, the Claude config folder's."""
-    run = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], capture_output=True, text=True)
-    base = pathlib.Path(run.stdout.strip()) if run.returncode == 0 and run.stdout.strip() else claude_config.folder()
+    """The git common folder's `teamwork/board`, the same for every worktree of a project and never committed; outside a repository, or with no git, the Claude config folder's."""
+    try:
+        run = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], capture_output=True, text=True)
+    except OSError:
+        run = None
+    base = pathlib.Path(run.stdout.strip()) if run and run.returncode == 0 and run.stdout.strip() else claude_config.folder()
     return base / "teamwork" / "board"
 
 DIR = pathlib.Path(os.environ.get("TEAMWORK_BOARD_DIR") or default_folder())
