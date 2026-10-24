@@ -1,11 +1,13 @@
 """The board on GitHub: issues and comments read by REST, which spends no GraphQL point, the issue pane's tree by GraphQL, and writes by `gh api`."""
 import json
+import os
 import re
 import subprocess
 from urllib.parse import quote
 
 from issue_board import SHOWN_CLOSED
 from json_command import need, run
+import team_settings
 
 TRUSTED = {"OWNER", "MEMBER", "COLLABORATOR"}
 # one point or two per read: GitHub charges each connection a node is asked for, so the sub-issues' blockers, the costliest part,
@@ -83,9 +85,9 @@ def with_comments(found, repo=None):
 
 
 def scoped(project):
-    label = f"scope:{project}"
+    label = team_settings.load(os.getcwd())["scope_prefix"] + project
     # a REST read, which costs no GraphQL point; a missing label answers 404, which `run` reads as None
-    return label if run("gh", "api", f"repos/{{owner}}/{{repo}}/labels/{label.replace(':', '%3A')}", "--jq", "{name}") else None
+    return label if run("gh", "api", f"repos/{{owner}}/{{repo}}/labels/{quote(label, safe='')}", "--jq", "{name}") else None
 
 
 def issues(state="open", project=None, pulls=False, comments=True, since=None, repo=None):

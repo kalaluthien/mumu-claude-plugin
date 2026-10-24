@@ -8,6 +8,7 @@ import shlex
 from datetime import datetime, timezone
 
 import claude_config
+import team_settings
 import team_signal
 
 DIR = pathlib.Path(os.environ.get("TEAMWORK_BOARD_DIR") or claude_config.folder() / "teamwork" / "board")
@@ -40,7 +41,7 @@ def record(number, comments=True):
             "mergedAt": None, "comments": notes}
 
 def scoped(project):
-    label = f"scope:{project}"
+    label = team_settings.load(os.getcwd())["scope_prefix"] + project
     return label if any(label in meta(n)["labels"] for n in numbers()) else None
 
 def issues(state="open", project=None, pulls=False, comments=True, since=None, repo=None):

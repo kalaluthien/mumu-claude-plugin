@@ -1,7 +1,9 @@
 """The issue board: the board's issue nodes as a tree in the owner's reading order, and its text lines."""
+import os
 import re
 
 import issue_state
+import team_settings
 
 # an issue with no backlog group: what needs someone first, what is held last
 # the latest closed tasks a backlog lists, newest first, an ellipsis below them when more landed before
@@ -33,7 +35,7 @@ def entry(node):
     every = blockers_of(node)
     blockers = [b["number"] for b in every if not b["closed"]]
     state = issue_state.compose({"body": node["body"], "trusted": node["trusted"], "comments": node["comments"]["nodes"]}, blockers)
-    backlog = "backlog" in [x["name"] for x in node["labels"]["nodes"]]
+    backlog = team_settings.load(os.getcwd())["backlog_label"] in [x["name"] for x in node["labels"]["nodes"]]
     holders = state["holders"] or []
     summary = node.get("subIssuesSummary") or {}
     closed = [{"number": t["number"], "title": issue_state.title(t), "url": t["url"], "blockers": blockers_of(t),

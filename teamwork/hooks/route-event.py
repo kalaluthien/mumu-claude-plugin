@@ -13,6 +13,7 @@ import json_command  # noqa: E402
 import session  # noqa: E402
 import team_gaps  # noqa: E402
 import team_names  # noqa: E402
+import team_settings  # noqa: E402
 
 PLAYBOOKS = pathlib.Path(__file__).resolve().parents[1] / "skills" / "kick-off" / "references"
 GRAMMAR = PLAYBOOKS / "issue-grammar.md"
@@ -62,12 +63,24 @@ def reminder(call, role, cwd):
     return (found or stray) and "\n".join([f"Reminder: the playbook rules this `{called}` must keep:", *found, *stray])
 
 
+def verdict(kind, rule, settings, text=None):
+    """The hook's answer to a call that breaks RULE: a refusal when the repository's settings set `refuse`, else a `Warning:` beside TEXT, the reminder."""
+    warnings = settings["warnings"]
+    if rule and settings["refuse"]:
+        reason = "\n".join([rule, *warnings])
+        return ({"decision": "block", "reason": reason} if kind == "PostToolUse"
+                else {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason": reason}})
+    lines = [team_settings.warning(rule)] if rule else []
+    context = "\n".join([*lines, *([text] if text else []), *warnings])
+    return context and {"hookSpecificOutput": {"hookEventName": kind, "additionalContext": context}}
+
+
 def route(kind, event, role, me, listed):
     call = board.command((event.get("tool_input") or {}).get("command", ""))
     if kind == "PostToolUse":
         stray = call and call["write"] in ("file", "comment", "edit") and stray_posted(json.dumps(event.get("tool_response")))
-        return stray and {"decision": "block", "reason": f"A `holders:` or `deferred:` line sits outside a ```teamwork fence in {stray}, so code reads no holder; "
-                          f"post the record again with the line inside the fence, as {GRAMMAR} says."}
+        return stray and verdict(kind, f"A `holders:` or `deferred:` line sits outside a ```teamwork fence in {stray}, so code reads no holder; "
+                                 f"post the record again with the line inside the fence, as {GRAMMAR} says.", team_settings.load(event.get("cwd") or "."))
     if kind == "SessionStart":
         gaps = (team_gaps.manager_actions(me, listed) if role == "manager" else team_gaps.worker_goal(me)) or []
         text = "\n".join([f"You are {me['name']}, a teamwork {role}: follow {PLAYBOOKS / (role + '.md')}.", *gaps])
@@ -77,17 +90,20 @@ def route(kind, event, role, me, listed):
         goal = [g for g in team_gaps.worker_goal(me) if g.endswith(": open")]
         return goal and {"decision": "block", "reason": "\n".join(["Your goal still waits on you:", *goal,
                          "Take its next step; stop again only while a subagent, a check or your manager has it."])}
-    size = call and call["title"]
     entered = role == "worker" and live_cd((event.get("tool_input") or {}).get("command", ""), event.get("cwd"))
-    reason = (f"This cd enters {entered[0]} in the live checkout, which every session loads, so an edit there lands outside your worktree; "
-              f"start it with cd {entered[1]}, since the shell may start in the live checkout, and read the live checkout by path or git -C." if entered
-              else f"An issue body changes only by {EDIT_BODY} <issue> <diff-file> \"DECIDED: <why>\", which posts the diff as a comment first, as {GRAMMAR} says." if call and call["body edit"]
-              else "Write the text to a scratch file first, then pass it with --body-file." if call and call["inline body"]
-              else f"Title is {size} characters; shorten it to 40, verb first. Nothing in this command ran, so write any body file again." if size and size > 40 else None)
-    if not reason:  # remind, never block: the command still runs
-        text = call and reminder(call, role, event.get("cwd"))
-        return text and {"hookSpecificOutput": {"hookEventName": kind, "additionalContext": text}}
-    return {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason": reason}}
+    if entered:  # guards the checkout every session loads, no issue rule, so no setting makes it a warning
+        return {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason":
+                f"This cd enters {entered[0]} in the live checkout, which every session loads, so an edit there lands outside your worktree; "
+                f"start it with cd {entered[1]}, since the shell may start in the live checkout, and read the live checkout by path or git -C."}}
+    if not call:
+        return None
+    settings = team_settings.load(event.get("cwd") or ".")
+    size, limit = call["title"], settings["title_max"]
+    rule = (f"An issue body changes only by {EDIT_BODY} <issue> <diff-file> \"DECIDED: <why>\", which posts the diff as a comment first, as {GRAMMAR} says." if call["body edit"]
+            else "Write the text to a scratch file first, then pass it with --body-file." if call["inline body"]
+            else f"Title is {size} characters; shorten it to {limit:g}, verb first." + (" Nothing in this command ran, so write any body file again." if settings["refuse"] else "")
+            if size and size > limit else None)
+    return verdict(kind, rule, settings, None if rule and settings["refuse"] else reminder(call, role, event.get("cwd")))
 
 
 event = json.load(sys.stdin)

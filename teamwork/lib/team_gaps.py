@@ -1,7 +1,10 @@
 """Each role's next actions: the gaps between the board's issues and the live team, as lines a monitor or hook prints."""
+import os
+
 import board
 import issue_state
 import landing
+import team_settings
 from session import screen, tabs
 from team_names import members, owns, project, role
 
@@ -41,7 +44,8 @@ def feed_read(name, since):
     posted = board.comments_since(since)
     if touched is None or posted is None:
         return None
-    by = {i["number"]: i for i in touched if i["state"] == "CLOSED" or "backlog" in i["labels"]}
+    backlog = team_settings.load(os.getcwd())["backlog_label"]
+    by = {i["number"]: i for i in touched if i["state"] == "CLOSED" or backlog in i["labels"]}
     # `since` matches an edit too, so an old comment edited now is left out by its creation time
     found = [(by[n], c) for n, c in posted
              if n in by and c["createdAt"] >= since and issue_state.trusted(c) and issue_state.keyword(c["body"]) == FEED]

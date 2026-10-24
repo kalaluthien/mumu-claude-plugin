@@ -1,6 +1,6 @@
 # Board: GitHub
 
-The board is the repository's GitHub issues, through `gh`, a body always by `--body-file`, its file written before the command, since a hook refuses `--body` and `-b`.
+The board is the repository's GitHub issues, through `gh`, a body always by `--body-file`, its file written before the command, since a hook refuses `--body` and `-b` when the repository's `.teamwork/settings.json` sets `"refuse": true`, and else warns.
 
 | operation | how |
 | --- | --- |

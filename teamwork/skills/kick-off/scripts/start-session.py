@@ -10,6 +10,7 @@ sys.path.insert(0, str(ROOT / "lib"))
 import agent  # noqa: E402
 import session  # noqa: E402
 import team_names  # noqa: E402
+import team_settings  # noqa: E402
 
 TIMEOUT, POLL = float(os.environ.get("START_SESSION_TIMEOUT", 120)), 1.0
 
@@ -34,9 +35,15 @@ parser.add_argument("--model", required=True)  # no default: the caller picks pe
 parser.add_argument("--effort", required=True)
 parser.add_argument("--allow", action="append", default=[], metavar="TOOL")  # its subagents lack a tool their session lacks: grant it per backlog
 a = parser.parse_args()
-role_off = agent.TOOLS_OFF["worker" if a.args.startswith("worker ") else "manager"].split(",")
+settings = team_settings.load(a.cwd)  # the session's repository, not this process's working folder
+for line in settings["warnings"]:
+    print(line, file=sys.stderr)
+role_off = settings["tools_off"].get("worker" if a.args.startswith("worker ") else "manager", [])
 if stray := sorted(set(a.allow) - set(role_off)):
-    parser.error(f"--allow {', '.join(stray)}: not a tool this role has off, which is {', '.join(role_off)}")
+    rule = f"--allow {', '.join(stray)}: not a tool this role has off, which is {', '.join(role_off) or 'none'}"
+    if settings["refuse"]:
+        parser.error(rule)
+    print(team_settings.warning(rule + "; it is ignored."), file=sys.stderr)
 off = [t for t in role_off if t not in a.allow]
 if session.agent(a.name):
     sys.exit(f"start-session.py: {a.name} is already live: hand it the work instead of starting another.")

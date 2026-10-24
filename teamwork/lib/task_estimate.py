@@ -1,6 +1,9 @@
 """Time range of open tasks from the hours of past ones: calculations only, so no session adds durations in its head."""
+import os
 import random
 import statistics
+
+import team_settings
 
 MIN_GROUP = 5
 DRAWS = 1000
@@ -21,8 +24,9 @@ def bounds(values, levels):
 
 
 def group_key(labels):
-    """The `scope:` label, else the first label in sorted order."""
-    scopes = sorted(x for x in labels if x.startswith("scope:"))
+    """The scope label, the one that starts with the setting `scope_prefix`, else the first label in sorted order."""
+    prefix = team_settings.load(os.getcwd())["scope_prefix"]
+    scopes = sorted(x for x in labels if x.startswith(prefix))
     return scopes[0] if scopes else (sorted(labels)[0] if labels else "")
 
 
