@@ -15,7 +15,7 @@ Add this repository as a marketplace, then install the plugins you want:
 /plugin install homework@mumu-claude-plugin
 ```
 
-What each one needs on your machine:
+What each one needs on your machine; every Python 3 below means Python 3.9 or later, the version macOS ships:
 
 | plugin or feature | needs |
 | --- | --- |
