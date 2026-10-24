@@ -5,10 +5,11 @@ Land two workers' changes in a temporary repository with no remote, through use-
 print `ok <step>` or `fail <step>: <what differed>` for each step; exit 1 on any fail. `-v` also prints each command's output.
 - change: two branches filed as changes 1 and 2, listed open at their tips
 - refuse-moved-head: change 1 merged at a sha other than its tip exits 1 and leaves the base as it was
+- refuse-dirty-checkout: change 1 merged over an uncommitted file in the base's checkout exits 1 and leaves the file and the base as they were
 - merge: change 1 merged at its tip after the base moved: one commit whose one parent is the old base, the merged tree, a message citing its task,
   and the base's checkout showing it
 - signal: the merge touched the signal file, and the landing's change check is true since before it
-- heartbeat-merged, heartbeat-rebase: the manager's heartbeat names change 1 merged by its worker; the worker of change 2, which conflicts, is told to rebase
+- heartbeat-merged, heartbeat-rebase: the manager's heartbeat, running before the merge, names change 1 merged by its worker; the worker of change 2, which conflicts, is told to rebase
 - remove: remove-worktree.py removes the merged worker's worktree and branch, and says nothing of a pull it cannot make"""
 import json
 import os
@@ -73,12 +74,23 @@ def agent(name, pane, status):
             "interactive_ready": True}
 
 
-def heartbeat(pane):
-    team = [agent("teamwork-manager", 1, "working"), agent("landing-probe-worker", 2, "working"), agent("clash-probe-worker", 3, "working")]
+def heartbeat_env(pane, poll):
+    team = [agent("teamwork-manager", 1, "working"), agent("landing-probe-worker", 2, "idle"), agent("clash-probe-worker", 3, "working")]
     state = work / "herdr.json"
     state.write_text(json.dumps({"n": 10, "agents": team, "tabs": [{"tab_id": a["tab_id"], "workspace_id": "w1", "label": a["name"]} for a in team]}))
-    return run([ROOT / "monitors" / "print-team-gaps.py"], seconds=15, PATH=f"{HERE / 'fake-herdr'}:{os.environ['PATH']}",
-               FAKE_HERDR_STATE=str(state), HERDR_PANE_ID=pane, MONITOR_POLL="1000")[1]
+    return {"PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state), "HERDR_PANE_ID": pane, "MONITOR_POLL": poll}
+
+
+def heartbeat(pane):
+    return run([ROOT / "monitors" / "print-team-gaps.py"], seconds=15, **heartbeat_env(pane, "1000"))[1]
+
+
+def printed(log, text, seconds=20):
+    """Whether the running heartbeat's LOG shows TEXT within SECONDS."""
+    end = time.time() + seconds
+    while time.time() < end and text not in log.read_text():
+        time.sleep(0.2)
+    return text in log.read_text()
 
 
 repo.mkdir()
@@ -96,6 +108,17 @@ base = git("rev-parse", "main")
 code, out = run([K / "use-landing.py", "merge", "1", base])
 step("refuse-moved-head", code == 1 and git("rev-parse", "main") == base and landing_git.record(1)["state"] == "OPEN", f"exit {code}: {out}")
 
+(repo / "a.txt").write_text("dirty\n")
+code, out = run([K / "use-landing.py", "merge", "1", probe])
+step("refuse-dirty-checkout", code == 1 and (repo / "a.txt").read_text() == "dirty\n" and git("rev-parse", "main") == base
+     and landing_git.record(1)["state"] == "OPEN", f"exit {code}: {out}")
+git("checkout", "--", "a.txt")
+
+# the manager's heartbeat runs before the merge, so only its change check, not its first read, can bring the merged line
+log = work / "heartbeat.log"
+live = subprocess.Popen([str(ROOT / "monitors" / "print-team-gaps.py")], cwd=repo, env={**os.environ, **heartbeat_env("w1:p1", "1")},
+                        stdout=log.open("w"), stderr=subprocess.STDOUT)
+first = printed(log, "idle landing-probe-worker")
 time.sleep(1.1)  # the records filed above carry this second, which must not count as the merge
 before, signal = landing_git.stamp(), team_signal.stamp()
 code, out = run([K / "use-landing.py", "merge", "1", probe])
@@ -107,8 +130,8 @@ step("merge", code == 0 and git("rev-parse", "main") == merged and git("rev-list
      f"exit {code}: {out}")
 step("signal", team_signal.stamp() != signal and landing_git.changed_since(before), f"stamp {signal} -> {team_signal.stamp()}")
 
-beat = heartbeat("w1:p1")
-step("heartbeat-merged", "merged #1 by landing-probe-worker:" in beat, beat)
+step("heartbeat-merged", first and printed(log, "merged #1 by landing-probe-worker:"), log.read_text())
+live.kill()
 beat = heartbeat("w1:p3")
 step("heartbeat-rebase", "rebase #2: it conflicts with its base" in beat, beat)
 

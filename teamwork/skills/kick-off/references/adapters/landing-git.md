@@ -12,4 +12,4 @@ A change is a branch of a repository with no remote, filed and merged by `${CLAU
 | `remove` | [remove-worktree.py](../../scripts/remove-worktree.py) `<name>...` |
 
 - **Base refs**: where a playbook writes `origin/<base>`, write `<base>`, and pass `run-criteria.py --base --ref <base>`, since there is no `origin`.
-- **Refused merge**: a merge that conflicts, or that the base's worktree cannot take over its uncommitted files, changes nothing; rebase the branch and judge the new tip, or ask your manager by `BLOCKED:` when uncommitted files in the base's worktree stand in the way.
+- **Refused merge**: a merge that conflicts, or that would overwrite uncommitted files in the base's worktree, changes nothing. Rebase and judge the new tip; for those files, ask your manager by `BLOCKED:`.

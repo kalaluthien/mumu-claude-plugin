@@ -100,6 +100,12 @@ def files_board():
     return ok, out
 
 
+def git_landing():
+    """Two workers' changes landed in a repository with no remote: every step of replay-landing-scenario.py is ok."""
+    code, out = run([HERE / "replay-landing-scenario.py"], herdr(*TEAM))
+    return code == 0 and "fail" not in out, out
+
+
 def herdr_receiver(status_now, expect_code, expect):
     """A non-Claude receiver in STATUS_NOW told by tell-session.py."""
     state = herdr(agent("protocol-split-worker", 1, "working"), agent("receiver-codex", 2, status_now))
@@ -138,6 +144,7 @@ def two_managers():
 SCENARIOS = {
     "github-team": github_team,
     "files-board": files_board,
+    "git-landing": git_landing,
     "herdr-idle": lambda: herdr_receiver("idle", 0, r"^delivered to receiver-codex$"),
     "herdr-busy": lambda: herdr_receiver("working", 0, r"^delivered to receiver-codex after its turn$"),
     "herdr-prompt": lambda: herdr_receiver("blocked", 1, r"^not delivered to receiver-codex: blocked at a tool prompt"),
