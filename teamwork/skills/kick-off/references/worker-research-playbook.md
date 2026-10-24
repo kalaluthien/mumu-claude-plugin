@@ -1,6 +1,6 @@
 # Research
 
-1. Fan out at once one `mid`, `medium` subagent per independent source set (transcripts, issues, official docs, the web), and one per field the question draws on. Brief each to do what that field does, never to write in its voice. Each brief names its output form.
+1. Fan out at once one `mid`, `medium` subagent per independent source set (transcripts, issues, official docs, the web), and one per field the question draws on, briefed to do what that field does, never to write in its voice. Each brief names its output form.
 2. Start from the rawest material (logs, transcripts, API data), not a summary of it. Test against it each belief the backlog takes as given before building on it. Compute each number by a kept script or query, never a table read by eye.
 3. Test a finding that claims to predict on data held out from the data that found it.
 4. Hand the draft to a red-team subagent briefed to do what a sceptic of that field does to break a claim; fix each break or state it as a limit.

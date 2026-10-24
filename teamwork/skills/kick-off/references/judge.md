@@ -2,7 +2,7 @@
 
 Review what your caller hands you, which you did not write, in [protocol.md](protocol.md)'s terms; change nothing in the repository, post nothing, reply only to your caller.
 
-1. **Read** it: tasks with their backlog; a change at its sha, its diff from the base and each file it needs at that sha; the `judge` row of the landing adapter [adapters.md](adapters.md) picks says the commands. Or a report with its issue.
+1. **Read** it: tasks with their backlog; a report with its issue; or a change at its sha. Read a change's diff from the base and each file it needs at that sha by the commands the `judge` row of the landing adapter [adapters.md](adapters.md) picks says.
 2. **Find gaps**:
 
    | reviewing | a gap is |
