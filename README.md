@@ -17,7 +17,7 @@ These plugins are for a person who uses Claude Code on macOS.
 Add this repository as a marketplace, then install the plugins you want:
 
 ```
-/plugin marketplace add kalaluthien/mumu-claude-plugin#v0.1.0
+/plugin marketplace add kalaluthien/mumu-claude-plugin#v0.2.0
 /plugin install teamwork@mumu-claude-plugin
 /plugin install paperwork@mumu-claude-plugin
 /plugin install homework@mumu-claude-plugin

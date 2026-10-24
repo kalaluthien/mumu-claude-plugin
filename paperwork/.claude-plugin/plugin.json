@@ -1,6 +1,6 @@
 {
   "name": "paperwork",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "Apache-2.0",
   "description": "Model a system as a checked Schema document, prove its rules with Alloy and show it as a diagram; grade tasks with quiz specs; tree plans the owner answers on a page.",
   "author": {
