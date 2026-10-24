@@ -16,7 +16,7 @@ STEPS = [
     [K + "start-session.py", "alpha-worker", "/tmp", "worker alpha-worker manager teamwork-manager x", "--model", "haiku", "--effort", "medium"],
     [K + "start-session.py", "gamma-worker", "/tmp", "worker gamma-worker manager m x", "--model", "haiku", "--effort", "medium", "--allow", "Bash"],
     [K + "close-session.py", "beta-worker"],
-    [K + "start-session.py", "trust-worker", "/tmp", "worker trust-worker manager teamwork-manager x", "--model", "haiku", "--effort", "medium"],
+    [K + "start-session.py", "trust-worker", ".", "worker trust-worker manager teamwork-manager x", "--model", "haiku", "--effort", "medium"],
     [K + "start-session.py", "slow-worker", "/tmp", "worker slow-worker manager teamwork-manager x", "--model", "haiku", "--effort", "medium"],
     [K + "close-session.py", "nobody-worker"],
     [K + "close-session.py", "stuck-worker"],
@@ -28,6 +28,7 @@ STEPS = [
 
 def scenario(tree):
     work = pathlib.Path(tempfile.mkdtemp(prefix="session-calls-")).resolve()
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)  # the trust dialog is accepted only inside the repository the steps run in
     state, log = work / "state.json", work / "log"
     state.write_text(json.dumps({"n": 10, "tabs": [{"tab_id": "w1:t1", "workspace_id": "w1", "label": "protocol-split-worker"}],
                                  "agents": [{"name": "protocol-split-worker", "pane_id": "w1:p1", "tab_id": "w1:t1", "workspace_id": "w1", "agent": "claude",

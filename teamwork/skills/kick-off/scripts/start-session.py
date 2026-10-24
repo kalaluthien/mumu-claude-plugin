@@ -2,6 +2,7 @@
 import argparse
 import os
 import pathlib
+import subprocess
 import sys
 import time
 
@@ -23,6 +24,22 @@ def wait(name, pane, ready, nudge, what):
         nudge(session.screen(pane))
         time.sleep(POLL)
     raise RuntimeError(f"{name} {what} after {TIMEOUT:g}s")
+
+
+def trusted(folder):
+    """True when FOLDER is the repository root or under its worktrees; the root is the main checkout's, also from a worktree."""
+    git = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], capture_output=True, text=True)
+    if git.returncode:  # no repository here: no folder is inside it
+        return False
+    root = pathlib.Path(git.stdout.strip()).resolve().parent
+    return folder == root or root / ".claude" / "worktrees" in folder.parents
+
+
+def accept_trust(name, pane, cwd, kickoff):
+    if not trusted(pathlib.Path(cwd)):  # a trust the owner never gave stays theirs to give
+        sys.exit(f"start-session.py: {name} waits at the folder trust dialog for {cwd}, outside this repository and its worktrees; "
+                 f"the owner must accept it in its pane (`{session.LOOK.format(name)}`), then send it its kick-off: {kickoff}")
+    session.send_keys(pane, *accept)
 
 
 parser = argparse.ArgumentParser(prog="start-session.py", allow_abbrev=False)
@@ -59,7 +76,7 @@ try:
     pane = place["pane_id"]
     session.start(a.name, pane, agent.KIND, agent.command(a.name, str(ROOT), a.model, a.effort, off), TIMEOUT)
     wait(a.name, pane, lambda s: s.get("interactive_ready") and s.get("agent_status") != "blocked",  # trust dialog
-         lambda screen: trust in screen and session.send_keys(pane, *accept), "not ready")
+         lambda screen: trust in screen and accept_trust(a.name, pane, cwd, text), "not ready")
     session.prompt(pane, text)  # the one prompt a session is sent: its kick-off
     wait(a.name, pane, lambda s: s.get("agent_status") not in (None, "idle"),  # typed but unsent: press Enter
          lambda screen: text[:40] in screen and session.send_keys(pane, "enter"), "never took its kick-off")

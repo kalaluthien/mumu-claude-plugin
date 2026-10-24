@@ -79,6 +79,10 @@ def send_keys(pane, *keys):
     run("herdr", "agent", "send-keys", pane, *keys)
 
 
+def answer(pane, choice):
+    herdr("pane", "send-text", pane, choice)  # send-keys Enter leaves the prompt open
+
+
 def wait_idle(name, timeout):
     # a session that finished a turn is `done`, for which `--until idle` alone never returns
     argv = ["herdr", "agent", "wait", name, "--until", "idle", "--until", "done", "--timeout", str(int(timeout * 1000))]
