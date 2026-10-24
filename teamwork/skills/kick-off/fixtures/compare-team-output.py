@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""usage: compare-team-output.py [--ref <ref>] [--only <entry>,...] [--skip <entry>,...] [--sandbox]
-
-Run teamwork's entry points (hooks, board, heartbeat, scripts) in this checkout and in an export of REF (default
+"""Run teamwork's entry points (hooks, board, heartbeat, scripts) in this checkout and in an export of REF (default
 origin/main) at the same time, against GitHub and a fake herdr (fake-herdr/herdr beside this file) that lists the two sessions
 below, and print the entries, those with no output, then
-`same` when every output matches, else one unified diff per entry that differs and `differ: <entries>`. The manager is
+`same` when every output matches, else one unified diff per entry that differs and `differ: <entries>`.
+
+usage: compare-team-output.py [--ref <ref>] [--only <entry>,...] [--skip <entry>,...] [--sandbox]
+The manager is
 teamwork-manager, the worker protocol-split-worker. `--sandbox` reads kalaluthien/teamwork-board-sandbox instead, whose
 fixture issues and one merged change give every entry output, and adds `edit-write`, which edits its issue #6 (base) or #7 (head) forward and
 back. `--only` keeps the entries whose names start with one of its words, `--skip` drops them."""
@@ -118,25 +119,32 @@ def outputs(tree, side, ids):
         return {k: f.result() for k, f in futures.items()}
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--ref", default="origin/main")
-parser.add_argument("--only", default="")
-parser.add_argument("--skip", default="")
-parser.add_argument("--sandbox", action="store_true")
-a = parser.parse_args()
-ONLY, SKIP, SAND = [w for w in a.only.split(",") if w], [w for w in a.skip.split(",") if w], a.sandbox
-ROOT = pathlib.Path(subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip() or ".")
-base = pathlib.Path(tempfile.mkdtemp(prefix="compare-team-")).resolve()
-archive = subprocess.Popen(["git", "archive", a.ref, "teamwork"], cwd=ROOT, stdout=subprocess.PIPE)
-subprocess.run(["tar", "-x", "-C", str(base)], stdin=archive.stdout, check=True)
-ids = {name: pane for name, (pane, _) in SESSIONS.items()}
-STATES = {ROOT: fake_herdr(ROOT), base: fake_herdr(base)}
-with cf.ThreadPoolExecutor(2) as pool:
-    here, there = pool.submit(outputs, ROOT, "head", ids), pool.submit(outputs, base, "base", ids)
-    here, there = here.result(), there.result()
-shutil.rmtree(base, ignore_errors=True)
-differ = [k for k in here if here[k] != there[k]]
-for k in differ:
-    sys.stdout.writelines(difflib.unified_diff(there[k].splitlines(True), here[k].splitlines(True), f"{a.ref}:{k}", f"head:{k}"))
-print(f"{len(here)} entries, empty: {' '.join(k for k in here if not here[k].strip()) or 'none'}")
-print("same" if not differ else f"differ: {' '.join(differ)}")
+def main(args):
+    global ONLY, SKIP, SAND, ROOT, STATES
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ref", default="origin/main")
+    parser.add_argument("--only", default="")
+    parser.add_argument("--skip", default="")
+    parser.add_argument("--sandbox", action="store_true")
+    a = parser.parse_args(args)
+    ONLY, SKIP, SAND = [w for w in a.only.split(",") if w], [w for w in a.skip.split(",") if w], a.sandbox
+    ROOT = pathlib.Path(subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip() or ".")
+    base = pathlib.Path(tempfile.mkdtemp(prefix="compare-team-")).resolve()
+    archive = subprocess.Popen(["git", "archive", a.ref, "teamwork"], cwd=ROOT, stdout=subprocess.PIPE)
+    subprocess.run(["tar", "-x", "-C", str(base)], stdin=archive.stdout, check=True)
+    ids = {name: pane for name, (pane, _) in SESSIONS.items()}
+    STATES = {ROOT: fake_herdr(ROOT), base: fake_herdr(base)}
+    with cf.ThreadPoolExecutor(2) as pool:
+        here, there = pool.submit(outputs, ROOT, "head", ids), pool.submit(outputs, base, "base", ids)
+        here, there = here.result(), there.result()
+    shutil.rmtree(base, ignore_errors=True)
+    differ = [k for k in here if here[k] != there[k]]
+    for k in differ:
+        sys.stdout.writelines(difflib.unified_diff(there[k].splitlines(True), here[k].splitlines(True), f"{a.ref}:{k}", f"head:{k}"))
+    print(f"{len(here)} entries, empty: {' '.join(k for k in here if not here[k].strip()) or 'none'}")
+    print("same" if not differ else f"differ: {' '.join(differ)}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

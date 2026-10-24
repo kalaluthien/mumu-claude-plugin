@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""zoom: check a Schema document and its view, build the zoom page, check the drawing.
+"""Check a Schema document and its view, build the zoom page, check the drawing.
 
-  make-diagram.py new view.json                  write a minimal view of a Schema document
-  make-diagram.py rules                          list the Schema's and the drawing's checks and the plan's parameters
-  make-diagram.py plan doc.json view.json        print the plan in effect, marking what differs from the defaults
-  make-diagram.py check doc.json view.json [--only a,b]   run the Schema's checks, then the drawing's
-  make-diagram.py build doc.json view.json out.html   run the checks, then inline the joined model into the engine
-  make-diagram.py render out.html [--shots DIR] [--font-css FILE]
-  make-diagram.py make doc.json view.json out.html [--font-css FILE]   check, build, render; stop at the first failure
+usage: make-diagram.py new view.json                  write a minimal view of a Schema document
+       make-diagram.py rules                          list the Schema's and the drawing's checks and the plan's parameters
+       make-diagram.py plan doc.json view.json        print the plan in effect, marking what differs from the defaults
+       make-diagram.py check doc.json view.json [--only a,b]   run the Schema's checks, then the drawing's
+       make-diagram.py build doc.json view.json out.html   run the checks, then inline the joined model into the engine
+       make-diagram.py render out.html [--shots DIR] [--font-css FILE]
+       make-diagram.py make doc.json view.json out.html [--font-css FILE]   check, build, render; stop at the first failure
 
 ../../../schema/scripts/check-schema.py checks the document; this script draws it. A finding line is a defect of
 the system the document describes, for the hand-over, never a failure. Exit status 0 means ok.
@@ -23,7 +23,7 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 ASSETS = HERE.parent / "assets"
 CHECKER = HERE.parents[2] / "schema" / "scripts" / "check-schema.py"
-sys.path.insert(0, str(HERE.parents[5] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[6] / "lib"))
 
 from page import view  # noqa: E402
 from schema import checks  # noqa: E402
@@ -120,7 +120,7 @@ def option(args, name):
 
 def main(args):
     cmd = args[0] if args else "help"
-    if cmd == "new":   # a valid start: the reader's next step and one expected view drawn by the root
+    if cmd == "new" and len(args) >= 2:   # a valid start: the reader's next step and one expected view drawn by the root
         start = {"next": "The reader's next action or choice, in one sentence.",
                  "plan": {"views": [{"name": "A diagram a practitioner expects", "level": "root"}]}}
         pathlib.Path(args[1]).write_text(dump(start) + "\n", encoding="utf-8")
@@ -134,22 +134,22 @@ def main(args):
         for name, (default, allowed, what) in (params.DEFAULTS | view.DEFAULTS).items():
             print(f"{name:13s} {json.dumps(default, ensure_ascii=False):30s} {what}")
         return 0
-    if cmd == "plan":
+    if cmd == "plan" and len(args) >= 3:
         defaults = {k: d[0] for k, d in (params.DEFAULTS | view.DEFAULTS).items()}
         for name, value in view.page_plan(view.merge(read(args[1]), read(args[2]))).items():
             mark = "*" if value != defaults[name] else " "
             print(f"{mark} {name:11s} {json.dumps(value, ensure_ascii=False)}")
         return 0
-    if cmd == "check":
+    if cmd == "check" and len(args) >= 3:
         only = option(args, "--only")
         return check(args[1], args[2], only and only.split(","))
-    if cmd == "build":
+    if cmd == "build" and len(args) >= 4:
         return build(args[1], args[2], args[3])
-    if cmd == "render":
+    if cmd == "render" and len(args) >= 2:
         return render(args[1], option(args, "--shots"), option(args, "--font-css"))
-    if cmd == "make":
+    if cmd == "make" and len(args) >= 4:
         return build(args[1], args[2], args[3]) or render(args[3], None, option(args, "--font-css"))
-    print(__doc__)
+    print(__doc__, file=sys.stderr)
     return 2
 
 

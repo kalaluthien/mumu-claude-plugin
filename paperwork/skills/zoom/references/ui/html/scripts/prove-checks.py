@@ -14,7 +14,7 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 EXAMPLES = HERE.parents[3] / "examples"
-sys.path.insert(0, str(HERE.parents[5] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[6] / "lib"))
 from page import view  # noqa: E402
 from schema.model import levels_of  # noqa: E402
 
@@ -55,7 +55,7 @@ def failing(m):
 
 def main(args):
     if args:
-        print(__doc__)
+        print(__doc__, file=sys.stderr)
         return 2
     bad = [f"example {name} fails {sorted(f)}" for name, m in sorted(EX.items()) if (f := failing(m))]
     for rule in ["form"] + [name for name, _, _ in view.RULES]:

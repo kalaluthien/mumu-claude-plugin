@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
 """Build the answer page of a tree plan.
 
-  make-page.py PLAN.json OUT.html   one self-contained page; refused when the plan fails the checker
-  make-page.py --check DIR          drive every DIR/X.json in headless Chromium and print "ok N"
-                                    (needs playwright: uv run --with playwright==1.64.1 python3 make-page.py --check DIR)
+usage: make-page.py PLAN.json OUT.html   one self-contained page; refused when the plan fails the checker
+       make-page.py --check DIR          drive every DIR/X.json in headless Chromium and print "ok N"
+                                         (needs playwright: uv run --with playwright==1.64.1 python3 make-page.py --check DIR)
 """
 import html
 import json
+import pathlib
 import sys
 import tempfile
-from pathlib import Path
 
 sys.dont_write_bytecode = True
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import tree_plan  # noqa: E402
 
-TEMPLATE = Path(__file__).resolve().parents[1] / "assets" / "page.html"
+HERE = pathlib.Path(__file__).resolve().parent
+TEMPLATE = HERE.parent / "assets" / "page.html"
 
 
 def build(plan_path):
@@ -55,7 +56,7 @@ def faded(page):
 
 def drive(browser_ctx, plan_path, out_dir):
     plan = tree_plan.load_file(plan_path)
-    page_file = Path(out_dir) / (Path(plan_path).stem + ".html")
+    page_file = pathlib.Path(out_dir) / (pathlib.Path(plan_path).stem + ".html")
     page_file.write_text(build(plan_path), encoding="utf-8")
     page = browser_ctx.new_page()
     errors = []
@@ -115,7 +116,7 @@ def drive(browser_ctx, plan_path, out_dir):
 
 def check_dir(d):
     from playwright.sync_api import sync_playwright
-    files = sorted(Path(d).glob("*.json"))
+    files = sorted(pathlib.Path(d).glob("*.json"))
     if not files:
         print("refused: no plan files in " + d)
         return 1
@@ -136,18 +137,18 @@ def check_dir(d):
     return 0
 
 
-def main(argv):
-    if len(argv) == 2 and argv[0] == "--check":
-        return check_dir(argv[1])
-    if len(argv) != 2:
-        print("usage: make-page.py PLAN.json OUT.html | make-page.py --check DIR")
+def main(args):
+    if len(args) == 2 and args[0] == "--check":
+        return check_dir(args[1])
+    if len(args) != 2:
+        print(__doc__, file=sys.stderr)
         return 2
     try:
-        Path(argv[1]).write_text(build(argv[0]), encoding="utf-8")
+        pathlib.Path(args[1]).write_text(build(args[0]), encoding="utf-8")
     except (tree_plan.PlanError, OSError) as e:
         print(f"refused: {e}")
         return 1
-    print(f"wrote {argv[1]}: one page, answer lines appear in its Answer box; open it, answer, press Copy Answer")
+    print(f"wrote {args[1]}: one page, answer lines appear in its Answer box; open it, answer, press Copy Answer")
     return 0
 
 

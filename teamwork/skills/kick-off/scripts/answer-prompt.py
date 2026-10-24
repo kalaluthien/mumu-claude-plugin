@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""usage: answer-prompt.py <name> <choice>
+"""Answer the tool prompt a session waits at with the choice of that number, only for a listed kind of prompt and never with
+a choice that allows more than the one action asked; else print why and exit 1, leaving the prompt to the owner.
 
-Answer the tool prompt a session waits at with the choice of that number, only for a listed kind of prompt and never with
-a choice that allows more than the one action asked; else print why and exit 1, leaving the prompt to the owner."""
+usage: answer-prompt.py <name> <choice>"""
 import pathlib
 import re
 import sys
@@ -34,27 +34,33 @@ def prompt_on(screen):
     return question, choices
 
 
-if len(sys.argv) != 3:
-    sys.exit(__doc__.splitlines()[0])
-name, choice = sys.argv[1], sys.argv[2].strip()
-live = session.agent(name)
-if not live:
-    sys.exit(f"answer-prompt.py: {name} is not live; nothing answered.")
-if live.get("agent_status") != "blocked":
-    sys.exit(f"answer-prompt.py: {name} waits at no prompt (it is {live.get('agent_status')}); nothing answered.")
-found = prompt_on(session.screen(live["pane_id"]))
-if not found:
-    sys.exit(f"answer-prompt.py: {name}'s screen shows no numbered choices; nothing answered.")
-question, choices = found
-if not question.startswith(LISTED):
-    sys.exit(f"answer-prompt.py: \"{question}\" is not on the list of prompts a manager answers; `ask` the owner.")
-if choice not in choices:
-    sys.exit(f"answer-prompt.py: {name}'s prompt has no choice {choice} (it has {', '.join(choices)}); nothing answered.")
-label = choices[choice]
-if any(w in label.lower().replace("’", "'") for w in WIDER):
-    sys.exit(f"answer-prompt.py: choice {choice} \"{label}\" allows more than this one action, so it is never sent; `ask` the owner.")
-try:
-    session.answer(live["pane_id"], choice)
-except RuntimeError as e:
-    sys.exit(f"answer-prompt.py: {e}; nothing answered.")
-print(f"{name} answered \"{question}\" with {choice}. {label}")
+def main(args):
+    if len(args) != 2:
+        print(__doc__, file=sys.stderr)
+        return 2
+    name, choice = args[0], args[1].strip()
+    live = session.agent(name)
+    if not live:
+        sys.exit(f"answer-prompt.py: {name} is not live; nothing answered.")
+    if live.get("agent_status") != "blocked":
+        sys.exit(f"answer-prompt.py: {name} waits at no prompt (it is {live.get('agent_status')}); nothing answered.")
+    found = prompt_on(session.screen(live["pane_id"]))
+    if not found:
+        sys.exit(f"answer-prompt.py: {name}'s screen shows no numbered choices; nothing answered.")
+    question, choices = found
+    if not question.startswith(LISTED):
+        sys.exit(f"answer-prompt.py: \"{question}\" is not on the list of prompts a manager answers; `ask` the owner.")
+    if choice not in choices:
+        sys.exit(f"answer-prompt.py: {name}'s prompt has no choice {choice} (it has {', '.join(choices)}); nothing answered.")
+    label = choices[choice]
+    if any(w in label.lower().replace("’", "'") for w in WIDER):
+        sys.exit(f"answer-prompt.py: choice {choice} \"{label}\" allows more than this one action, so it is never sent; `ask` the owner.")
+    try:
+        session.answer(live["pane_id"], choice)
+    except RuntimeError as e:
+        sys.exit(f"answer-prompt.py: {e}; nothing answered.")
+    print(f"{name} answered \"{question}\" with {choice}. {label}")
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

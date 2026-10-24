@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""zoom: compare an improved Schema document with its original.
+"""Compare an improved Schema document with its original.
 
-  compare-models.py original.json improved.json
+usage: compare-models.py original.json improved.json
 
 Prints `kept` or `dropped` for each Scenario and rule slug of the original, then each count criterion of the
 improvement criteria (#511) on both documents, then the improved document's check (../../schema/scripts/
@@ -17,7 +17,7 @@ from collections import Counter
 
 HERE = pathlib.Path(__file__).resolve().parent
 CHECKER = HERE.parents[1] / "schema" / "scripts" / "check-schema.py"
-sys.path.insert(0, str(HERE.parents[4] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 
 from schema import checks  # noqa: E402
 from schema.model import Model, shape  # noqa: E402
@@ -95,7 +95,7 @@ def counts(M):
 
 def main(args):
     if len(args) < 2:
-        print(__doc__)
+        print(__doc__, file=sys.stderr)
         return 2
     data = [json.loads(pathlib.Path(p).read_text(encoding="utf-8")) for p in args[:2]]
     if wrong := shape(data[1]):

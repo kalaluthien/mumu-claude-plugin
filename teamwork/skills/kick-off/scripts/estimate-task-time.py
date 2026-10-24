@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""usage: estimate-task-time.py [--from-json <file>] [--gaps-json <file>] [--expect-restarts <n>] [--wait <name>=<hours>]...
-                               [--seed <n>] [<issue url>...]
+"""Print a time range per open task, its sample count and a total range at levels fitted on the history, from the hours past tasks of the same first label
+took (all past tasks when fewer than 5 share it).
 
-Print a time range per open task, its sample count and a total range at levels fitted on the history, from the hours past tasks of the same first label
-took (all past tasks when fewer than 5 share it). The total is a bootstrap over those hours, repeatable by `--seed`.
+usage: estimate-task-time.py [--from-json <file>] [--gaps-json <file>] [--expect-restarts <n>] [--wait <name>=<hours>]...
+                             [--seed <n>] [<issue url>...]
+
+The total is a bootstrap over those hours, repeatable by `--seed`.
 Past hours already hold the usual restarts and waits, so the script adds only what the history lacks: `--expect-restarts
 <n>` adds n restarts at the median hours of a restart that cost time (from `--gaps-json`, the output of `list-session-gaps.py --json`,
 else the transcripts of every named session), and each `--wait` adds its hours once, as a row of its own.
@@ -24,7 +26,7 @@ import task_history  # noqa: E402
 
 
 def options(argv):
-    parser = argparse.ArgumentParser(usage=argparse.SUPPRESS, description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--from-json")
     parser.add_argument("--gaps-json")
     parser.add_argument("--seed", type=int, default=0)
@@ -39,12 +41,14 @@ def load(opt, urls):
         fixture = json.load(open(opt.from_json))
         return task_history.rows(fixture["history"]), fixture["tasks"]
     if not urls:
-        sys.exit(__doc__)
+        print(__doc__, file=sys.stderr)
+        sys.exit(2)
     tasks, history = [], {}
     for url in urls:
         match = re.match(r"https://github.com/([^/]+/[^/]+)/issues/(\d+)", url)
         if not match:
-            sys.exit(__doc__)
+            print(__doc__, file=sys.stderr)
+            sys.exit(2)
         repo, number = match.groups()
         if repo not in history:
             history[repo] = task_history.rows(task_history.fetch(repo))
@@ -55,8 +59,8 @@ def load(opt, urls):
     return [r for rows in history.values() for r in rows], tasks
 
 
-def main(argv):
-    opt = options(argv)
+def main(args):
+    opt = options(args)
     history, tasks = load(opt, opt.urls)
     groups = []
     fitted = task_backtest.fit(sorted(history, key=lambda r: r["end"]), opt.seed)
@@ -95,4 +99,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    sys.exit(main(sys.argv[1:]))

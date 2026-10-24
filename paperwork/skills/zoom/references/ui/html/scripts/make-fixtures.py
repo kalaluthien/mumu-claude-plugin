@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""zoom: write the pages in ../fixtures/, each a built page broken so one probe of probe-page.py fails.
+"""Write the pages in ../fixtures/, each a built page broken so one probe of probe-page.py fails.
 
-  make-fixtures.py      build the meta-every-format page, then write from it
-                        page-without-zoom.html          the node click handlers removed
-                        page-missing-meta.html          one edge's `due-date` left out of its note
-                        page-without-behaviours.html    node clicks, step buttons and the copy button removed
+usage: make-fixtures.py      build the meta-every-format page, then write from it
+                             page-without-zoom.html          the node click handlers removed
+                             page-missing-meta.html          one edge's `due-date` left out of its note
+                             page-without-behaviours.html    node clicks, step buttons and the copy button removed
 
 Run it after a change to the engine, so the fixtures break today's engine. Exit status 0, or 1 when a cut no
 longer matches the engine.
@@ -31,7 +31,7 @@ CUTS = {
 }
 
 
-def main():
+def main(args):
     with tempfile.TemporaryDirectory() as d:
         view, page = pathlib.Path(d) / "view.json", pathlib.Path(d) / "page.html"
         for args in (["new", view], ["build", DOC, view, page]):
@@ -53,4 +53,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

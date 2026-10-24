@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """Check tree plan files against the grammar.
 
-  check-plan.py FILE...                  prints "ok N", or one error per line and exits 1
-  check-plan.py --expect-refused FILE... prints "<file>: <rule>" per refused file, then "refused K of N"
+usage: check-plan.py FILE...                   prints "ok N", or one error per line and exits 1
+       check-plan.py --expect-refused FILE...  prints "<file>: <rule>" per refused file, then "refused K of N"
 """
 import os
+import pathlib
 import sys
-from pathlib import Path
 
 sys.dont_write_bytecode = True
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import tree_plan  # noqa: E402
 
 
@@ -22,11 +22,11 @@ def errors_of(path):
         return [("$", "unreadable", str(e))]
 
 
-def main(argv):
-    expect = "--expect-refused" in argv
-    files = [a for a in argv if a != "--expect-refused"]
-    if not files:
-        print("usage: check-plan.py [--expect-refused] FILE...")
+def main(args):
+    expect = "--expect-refused" in args
+    files = [a for a in args if a != "--expect-refused"]
+    if not files or any(a.startswith("--") for a in files):
+        print(__doc__, file=sys.stderr)
         return 2
     if not expect:
         bad = 0

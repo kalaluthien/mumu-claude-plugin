@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""zoom: draw a Schema document (../../schema/assets/schema.json) as Markdown with Mermaid, for chat.
+"""Draw a Schema document (../../schema/assets/schema.json) as Markdown with Mermaid, for chat.
 
-  emit-mermaid.py doc.json                        print the levels as a file tree, then one Mermaid block per level,
-                                                  top level first, each followed by its metadata as formats.md says
-  emit-mermaid.py --split DIR doc.json            also write each level's Mermaid block to DIR/<n>-<level>.mmd
-  emit-mermaid.py --check doc.json [--output F]   check the output, or the file F, opens with a tree of every level,
-                                                  then one block per level in tree order holding its nodes and edges
-  emit-mermaid.py losses [--doc F]                check every grammar construct has a row in mermaid.md's loss table
-                                                  (or F's), and each row marked kept changes the output when changed
-  emit-mermaid.py formats [--doc F]               check formats.md (or F) has one display row per format and reserved key
+usage: emit-mermaid.py doc.json                        print the levels as a file tree, then one Mermaid block per level,
+                                                       top level first, each followed by its metadata as formats.md says
+       emit-mermaid.py --split DIR doc.json            also write each level's Mermaid block to DIR/<n>-<level>.mmd
+       emit-mermaid.py --check doc.json [--output F]   check the output, or the file F, opens with a tree of every level,
+                                                       then one block per level in tree order holding its nodes and edges
+       emit-mermaid.py losses [--doc F]                check every grammar construct has a row in mermaid.md's loss table
+                                                       (or F's), and each row marked kept changes the output when changed
+       emit-mermaid.py formats [--doc F]               check formats.md (or F) has one display row per format and reserved key
 
 Exit status 0 means ok, 1 a problem found, 2 a usage error.
 """
@@ -521,8 +521,8 @@ def main(args):
         return losses(opt.get("doc", UI / "mermaid.md"))
     if args == ["formats"]:
         return formats(opt.get("doc", UI / "formats.md"))
-    if len(args) != 1:
-        print(__doc__)
+    if len(args) != 1 or args[0].startswith("--"):
+        print(__doc__, file=sys.stderr)
         return 2
     doc = read(args[0])
     text, blocks = emit(doc)

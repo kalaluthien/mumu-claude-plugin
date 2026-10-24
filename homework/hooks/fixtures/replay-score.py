@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Score the wrap-up trigger against main's rule on labelled past stops.
 
-  replay-score.py <labels.json> [--holdout]
+usage: replay-score.py <labels.json> [--holdout]
 
 A stop is a `stop_hook_summary` entry of a labelled transcript; the hook at
 stop k sees the transcript up to that entry. Stops of every labelled session
@@ -21,17 +21,18 @@ even half replays first to train head's thresholds.
 import hashlib
 import json
 import os
+import pathlib
 import subprocess
 import sys
 import tempfile
 from datetime import datetime
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "..", "lib"))
+HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "lib"))
 import memory as memory_file  # noqa: E402
 import transcript  # noqa: E402
 
-SIGNAL = os.path.join(HERE, "..", "signal-wrap-up.py")
+SIGNAL = str(HERE.parent / "signal-wrap-up.py")
 
 
 def main_constants():
@@ -97,7 +98,7 @@ def head_ask(data, path, stop, session):
         prefix = handle.read(stop["offset"])
     with tempfile.NamedTemporaryFile("wb", suffix=".jsonl", dir=data, delete=False) as cut:
         cut.write(prefix)
-    payload = {"session_id": session, "transcript_path": cut.name, "cwd": HERE,
+    payload = {"session_id": session, "transcript_path": cut.name, "cwd": str(HERE),
                "hook_event_name": "Stop", "stop_hook_active": False}
     run = subprocess.run([SIGNAL], input=json.dumps(payload), capture_output=True, text=True,
                          env={**os.environ, "CLAUDE_PLUGIN_DATA": data})
@@ -170,9 +171,12 @@ def run(labels_path, holdout):
     return 0
 
 
+def main(args):
+    if len(args) not in (1, 2) or args[0].startswith("-") or (len(args) == 2 and args[1] != "--holdout"):
+        print(__doc__, file=sys.stderr)
+        return 2
+    return run(args[0], len(args) == 2)
+
+
 if __name__ == "__main__":
-    args = sys.argv[1:]
-    if len(args) not in (1, 2) or (len(args) == 2 and args[1] != "--holdout"):
-        print(__doc__.split("\n\n")[1], file=sys.stderr)
-        sys.exit(2)
-    sys.exit(run(args[0], len(args) == 2))
+    sys.exit(main(sys.argv[1:]))

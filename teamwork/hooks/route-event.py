@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""Timing-bound steps live in this hook, routed per event and role, instead of in the playbooks."""
+"""Timing-bound steps live in this hook, routed per event and role, instead of in the playbooks.
+
+usage: route-event.py
+It reads one hook event as JSON on stdin and prints the hook's answer, if any, as JSON on stdout."""
 import json
 import os
 import pathlib
 import re
 import sys
 
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import background_work  # noqa: E402
 import board  # noqa: E402
@@ -15,7 +19,7 @@ import team_gaps  # noqa: E402
 import team_names  # noqa: E402
 import team_settings  # noqa: E402
 
-PLAYBOOKS = pathlib.Path(__file__).resolve().parents[1] / "skills" / "kick-off" / "references"
+PLAYBOOKS = ROOT / "skills" / "kick-off" / "references"
 GRAMMAR = PLAYBOOKS / "issue-grammar.md"
 EDIT_BODY = PLAYBOOKS.parent / "scripts" / "edit-issue-body.py"
 # the rules are found in the playbooks at each call, never copied here, so a playbook edit cannot leave a stale reminder
@@ -106,14 +110,20 @@ def route(kind, event, role, me, listed):
     return verdict(kind, rule, settings, None if rule and settings["refuse"] else reminder(call, role, event.get("cwd")))
 
 
-event = json.load(sys.stdin)
-kind = event.get("hook_event_name")
-command = (event.get("tool_input") or {}).get("command", "")
-# without herdr no session has a name, so no role matches and the role's SessionStart text never comes to say why
-if kind == "SessionStart" and (missing := json_command.missing("herdr")):
-    print(json.dumps({"systemMessage": missing}))
-elif kind not in ("PreToolUse", "PostToolUse") or board.command(command) or kind == "PreToolUse" and live_cd(command, event.get("cwd")):  # skip other Bash fast
-    listed, me = session.sessions(event.get("session_id"))
-    role = team_names.role(me.get("name"))
-    if out := role and route(kind, event, role, me, listed):
-        print(json.dumps(out))
+def main(args):
+    event = json.load(sys.stdin)
+    kind = event.get("hook_event_name")
+    command = (event.get("tool_input") or {}).get("command", "")
+    # without herdr no session has a name, so no role matches and the role's SessionStart text never comes to say why
+    if kind == "SessionStart" and (missing := json_command.missing("herdr")):
+        print(json.dumps({"systemMessage": missing}))
+    elif kind not in ("PreToolUse", "PostToolUse") or board.command(command) or kind == "PreToolUse" and live_cd(command, event.get("cwd")):  # skip other Bash fast
+        listed, me = session.sessions(event.get("session_id"))
+        role = team_names.role(me.get("name"))
+        if out := role and route(kind, event, role, me, listed):
+            print(json.dumps(out))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

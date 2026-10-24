@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""usage: run-criteria.py [--timeout <s>] [--base [--ref <ref>] | --pass <n>=<sample-file>...] <task | body-file | ->
-
-Run each `[check]` of a task's Definition of done at the head, in the worktree's root, then each `[check]` of an
+"""Run each `[check]` of a task's Definition of done at the head, in the worktree's root, then each `[check]` of an
 optional `.teamwork/default-criteria.md` there as `standing`, and print a table to comment on the task, which the
-judge reads instead of running each check again. `-` reads the task as JSON, its `body`, `trusted` and `comments`.
+judge reads instead of running each check again.
+
+usage: run-criteria.py [--timeout <s>] [--base [--ref <ref>] | --pass <n>=<sample-file>...] <task | body-file | ->
+
+`-` reads the task as JSON, its `body`, `trusted` and `comments`.
 A task, by number or JSON, whose author is not `trusted` is refused, exit 1, since its checks would run as commands; a body
 file is the worker's own draft, so it runs.
 
@@ -207,14 +209,14 @@ def earlier_fails(task):
     return found
 
 
-def main():
-    args = argparse.ArgumentParser()
-    args.add_argument("--timeout", type=int, default=300)
-    args.add_argument("--base", "--main", action="store_true")
-    args.add_argument("--ref")
-    args.add_argument("--pass", dest="samples", action="append", default=[], metavar="N=FILE")
-    args.add_argument("task")
-    a = args.parse_args()
+def main(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--timeout", type=int, default=300)
+    parser.add_argument("--base", "--main", action="store_true")
+    parser.add_argument("--ref")
+    parser.add_argument("--pass", dest="samples", action="append", default=[], metavar="N=FILE")
+    parser.add_argument("task")
+    a = parser.parse_args(args)
     file = pathlib.Path(a.task)
     task = {"body": file.read_text(), "comments": []} if (a.base or a.samples) and file.is_file() else runnable(read_task(a.task))
     root = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip() or "."
@@ -236,7 +238,7 @@ def main():
         print("REPORTED: pass outputs at " + head + "\n\n| # | criterion | result | output on sample |\n| --- | --- | --- | --- |")
         for r in rows:
             print("| " + " | ".join([r[0], r[1].replace("|", "\\|"), r[2], r[3]]) + " |")
-        sys.exit(1 if any(r[2] == "wrong pass" for r in rows) else 0)
+        return 1 if any(r[2] == "wrong pass" for r in rows) else 0
     if a.base:
         ref = base_ref(a.ref)
         sha = subprocess.run(["git", "rev-parse", "--short", ref], cwd=root, capture_output=True, text=True).stdout.strip()
@@ -244,7 +246,7 @@ def main():
         print(f"REPORTED: base outputs at {ref} {sha}\n\n| # | criterion | result | output on base |\n| --- | --- | --- | --- |")
         for r in rows:
             print("| " + " | ".join([r[0], r[1].replace("|", "\\|"), r[2], r[3]]) + " |")
-        sys.exit(1 if any(r[2] == "wrong base" for r in rows) else 0)
+        return 1 if any(r[2] == "wrong base" for r in rows) else 0
     standing = pathlib.Path(root, ".teamwork", "default-criteria.md")
     rows = [row(str(n), *c, root, a.timeout) for n, c in enumerate(criteria(issue_state.sections(task.get("body")).get("done", "")), 1)]
     rows += [row("standing", *c, root, a.timeout) for c in criteria(standing.read_text())] if standing.exists() else []
@@ -256,7 +258,8 @@ def main():
     for _, name, result, out in rows:
         if result == "fail" and out in before.get(name.replace("|", "\\|"), ()):
             print(f"\nBLOCKED due: {name} failed with the same output as in an earlier table; ask your manager by `BLOCKED:`.")
-    sys.exit(1 if any(r[2] == "fail" for r in rows) else 0)
+    return 1 if any(r[2] == "fail" for r in rows) else 0
 
 
-main()
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

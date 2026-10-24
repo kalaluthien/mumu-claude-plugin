@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""zoom: migrate a document in paperwork's old system.json shape to the Schema (assets/schema.json, version 1).
+"""Migrate a document in paperwork's old system.json shape to the Schema (assets/schema.json, version 1).
 
-  migrate-schema.py old.json|-                     print the Schema document
-  migrate-schema.py --audit old.json|- new.json    compare a migrated document with its source, leaf by leaf:
-                                                   print each rename and addition, any other difference as
-                                                   `changed:`, then `facts: <n> old leaf values, <k> lost`
+usage: migrate-schema.py old.json|-                     print the Schema document
+       migrate-schema.py --audit old.json|- new.json    compare a migrated document with its source, leaf by leaf:
+                                                        print each rename and addition, any other difference as
+                                                        `changed:`, then `facts: <n> old leaf values, <k> lost`
 
 The migration renames the kind `schema` to `topology`, adds `version`, marks each node that opens a level of another
 kind `link: view`, and marks `link: nest` on each same-kind open whose ports do not carry every edge of its node.
@@ -14,8 +14,7 @@ import json
 import pathlib
 import sys
 
-HERE = pathlib.Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parents[4] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 
 from schema import checks  # noqa: E402
 from schema.model import Model, SCHEMA  # noqa: E402
@@ -85,12 +84,12 @@ def read(arg):
 
 
 def main(args):
-    if len(args) == 1 and args[0] != "--audit":
+    if len(args) == 1 and not args[0].startswith("--"):
         print(json.dumps(migrate(read(args[0])), ensure_ascii=False, indent=1))
         return 0
     if len(args) == 3 and args[0] == "--audit":
         return audit(read(args[1]), read(args[2]))
-    print(__doc__)
+    print(__doc__, file=sys.stderr)
     return 2
 
 

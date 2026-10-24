@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Map dejavu's window of sessions: write digests for the haiku facet agents, and tool-failure signatures.
 
-  list-sessions.py due <data>                  `due` when <data>/last-map is 24 hours old or missing, else `not due`
-  list-sessions.py map <data>                  every in-window session: signatures to <data>/stats/; the newest 40
-                                               without a facet: digests to <data>/digests/; touches <data>/last-map
-  list-sessions.py digest <data> <path>...     digests and signatures of the named transcripts, window aside
+usage: list-sessions.py due <data>                  `due` when <data>/last-map is 24 hours old or missing, else `not due`
+       list-sessions.py map <data>                  every in-window session: signatures to <data>/stats/; the newest 40
+                                                    without a facet: digests to <data>/digests/; touches <data>/last-map
+       list-sessions.py digest <data> <path>...     digests and signatures of the named transcripts, window aside
 
 Digests print as `batch <k>: <digest> ...` lines of at most 10, one haiku agent each. The window is the interactive
 top-level transcripts under ${CLAUDE_CONFIG_DIR:-~/.claude}/projects changed in the last 14 days.
@@ -12,11 +12,12 @@ top-level transcripts under ${CLAUDE_CONFIG_DIR:-~/.claude}/projects changed in 
 import glob
 import json
 import os
+import pathlib
 import re
 import sys
 import time
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import claude_config  # noqa: E402
 import transcript  # noqa: E402
 
@@ -137,16 +138,17 @@ def batches(digests):
         print(f"batch {k // PER_BATCH + 1}: {' '.join(digests[k:k + PER_BATCH])}")
 
 
-def main():
-    if len(sys.argv) < 3 or sys.argv[1] not in ("due", "map", "digest"):
-        sys.exit(__doc__)
-    verb, data, now = sys.argv[1], sys.argv[2], time.time()
+def main(args):
+    if len(args) < 2 or args[0] not in ("due", "map", "digest"):
+        print(__doc__, file=sys.stderr)
+        return 2
+    verb, data, now = args[0], args[1], time.time()
     stamp = os.path.join(data, "last-map")
     if verb == "due":
         old = not os.path.exists(stamp) or os.path.getmtime(stamp) <= now - DUE_HOURS * 3600
         print("due" if old else "not due")
-        return
-    paths = sys.argv[3:] if verb == "digest" else window(now)
+        return 0
+    paths = args[2:] if verb == "digest" else window(now)
     faceted = {os.path.basename(p)[:-5] for p in glob.glob(os.path.join(glob.escape(data), "facets", "*.json"))}
     digests, waiting = [], 0
     for path in paths:
@@ -165,7 +167,8 @@ def main():
         private(stamp).close()
         print(f"{len(digests)} sessions to facet; {waiting} wait for later runs")
     batches(digests)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main(sys.argv[1:]))

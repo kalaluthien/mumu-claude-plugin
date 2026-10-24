@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""usage: replay-team-scenarios.py [--only <scenario>,...] [-v]
+"""Replay the team in varied scenarios on the sandbox board kalaluthien/teamwork-board-sandbox, a temporary files board and
+the fake herdr beside this file, and print `<scenario> pass`, or `<scenario> fail` with the output that failed.
 
-Replay the team in varied scenarios on the sandbox board kalaluthien/teamwork-board-sandbox, a temporary files board and
-the fake herdr beside this file, and print `<scenario> pass`, or `<scenario> fail` with the output that failed; `-v` also
-prints each run's output. FAKE_HERDR_BREAK=accept makes the fake herdr take every prompt and wait, so the scenarios that
+usage: replay-team-scenarios.py [--only <scenario>,...] [-v]
+`-v` also prints each run's output. FAKE_HERDR_BREAK=accept makes the fake herdr take every prompt and wait, so the scenarios that
 prove a send can fail must then fail."""
 import argparse
 import json
@@ -15,7 +15,7 @@ import sys
 import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parents[2]
+ROOT = pathlib.Path(__file__).resolve().parents[3]
 K = HERE.parent / "scripts"
 SANDBOX = "kalaluthien/teamwork-board-sandbox"
 
@@ -152,13 +152,20 @@ SCENARIOS = {
     "monitor-restart": monitor_restart,
     "two-managers": two_managers,
 }
-parser = argparse.ArgumentParser()
-parser.add_argument("--only", default="")
-parser.add_argument("-v", action="store_true")
-a = parser.parse_args()
-VERBOSE = a.v
-for name, scenario in SCENARIOS.items():
-    if a.only and name not in a.only.split(","):
-        continue
-    ok, out = scenario()
-    print(f"{name} pass" if ok else f"{out.strip()}\n{name} fail", flush=True)
+def main(args):
+    global VERBOSE
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--only", default="")
+    parser.add_argument("-v", action="store_true")
+    a = parser.parse_args(args)
+    VERBOSE = a.v
+    for name, scenario in SCENARIOS.items():
+        if a.only and name not in a.only.split(","):
+            continue
+        ok, out = scenario()
+        print(f"{name} pass" if ok else f"{out.strip()}\n{name} fail", flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""usage: lint-criteria.py <body-file | ->
+"""Print each criterion of a task body's Definition of done whose form a judge would send back, or run-criteria.py cannot read, one line per criterion,
+`<position>: <defects>`, and exit 1; a body with none prints nothing and exits 0.
 
-Print each criterion of a task body's Definition of done whose form a judge would send back, or run-criteria.py cannot read, one line per criterion,
-`<position>: <defects>`, and exit 1; a body with none prints nothing and exits 0. It reads the form only, never running
-a command, since whether a check passes on the base stays the judge's to find. After the lines it prints, once
-per defect named, what the defect means and how to fix it."""
+usage: lint-criteria.py <body-file | ->
+
+It reads the form only, never running a command, since whether a check passes on the base stays the judge's to find.
+After the lines it prints, once per defect named, what the defect means and how to fix it."""
 import pathlib
 import re
 import sys
@@ -63,13 +64,21 @@ def defects(kind, name, detail):
     return found
 
 
-source = sys.argv[1]
-body = sys.stdin.read() if source == "-" else pathlib.Path(source).read_text()
-lines = issue_state.ITEM.findall(issue_state.sections(body).get("done", ""))
-flagged = [(n, found) for n, line in enumerate(lines, 1)
-           for found in [defects(*issue_state.CRITERION.match(line).groups()[1:])] if found]
-for n, found in flagged:
-    print(f"{n}: {', '.join(found)}")
-for name in dict.fromkeys(d for _, found in flagged for d in found):
-    print(f"- {name}: {FIX[name]}")
-sys.exit(1 if flagged else 0)
+def main(args):
+    if len(args) != 1 or args[0].startswith("-") and args[0] != "-":
+        print(__doc__, file=sys.stderr)
+        return 2
+    source = args[0]
+    body = sys.stdin.read() if source == "-" else pathlib.Path(source).read_text()
+    lines = issue_state.ITEM.findall(issue_state.sections(body).get("done", ""))
+    flagged = [(n, found) for n, line in enumerate(lines, 1)
+               for found in [defects(*issue_state.CRITERION.match(line).groups()[1:])] if found]
+    for n, found in flagged:
+        print(f"{n}: {', '.join(found)}")
+    for name in dict.fromkeys(d for _, found in flagged for d in found):
+        print(f"- {name}: {FIX[name]}")
+    return 1 if flagged else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

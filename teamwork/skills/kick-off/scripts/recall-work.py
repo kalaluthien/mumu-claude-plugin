@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""usage: recall-work.py [<words>...] [--path <file>]... [--before <date>] [--top <n>]
-
-Print the earlier issues and pull requests of this repository most related to WORDS and to the history of each PATH,
+"""Print the earlier issues and pull requests of this repository most related to WORDS and to the history of each PATH,
 best first: each line is `#<n> <kind> <state> <title>`, then the first line of each of its comments
-that opens with a keyword of issue-grammar.md. `--before` sees the repository as it stood at DATE, to replay a past kick-off."""
+that opens with a keyword of issue-grammar.md.
+
+usage: recall-work.py [<words>...] [--path <file>]... [--before <date>] [--top <n>]
+
+`--before` sees the repository as it stood at DATE, to replay a past kick-off."""
 import argparse
 import collections
 import json
@@ -95,13 +97,13 @@ def path_scores(items, paths, before):
     return scores
 
 
-def main():
+def main(args):
     parser = argparse.ArgumentParser()
     parser.add_argument("words", nargs="*")
     parser.add_argument("--path", action="append", default=[])
     parser.add_argument("--before")
     parser.add_argument("--top", type=int, default=10)
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     items = load(args.before)
     newest = max(items, default=1)
     scores = text_scores(items, words(" ".join(args.words))) + path_scores(items, args.path, args.before)
@@ -116,4 +118,5 @@ def main():
             print(f"  {record}")
 
 
-main()
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

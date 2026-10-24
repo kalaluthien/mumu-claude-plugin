@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""zoom: prove a Schema document's rules with Alloy 6.
+"""Prove a Schema document's rules with Alloy 6.
 
-  prove-schema.py doc.json [--als out.als] [--mutate]
+usage: prove-schema.py doc.json [--als out.als] [--mutate]
       write the document as an Alloy module (by default in the system's temp folder, its path on stderr), check each
       rule there, and print one line per rule, in the document's order:
       <rule>: pass                     no run within the scope breaks it
@@ -13,7 +13,7 @@
       <rule>: pass, fails without <id>, ...   the restrictions whose loss breaks it: the pass can fail
       <rule>: pass, unfalsified                no single loss breaks it: it holds by the structure alone, or is vacuous
       a copy Alloy gives no answer for is named after either, as `(no answer without <id>, ...)`.
-  prove-schema.py --fetch   download the pinned Alloy 6.2.0 jar to ~/.cache/paperwork-alloy/alloy.jar
+usage: prove-schema.py --fetch   download the pinned Alloy 6.2.0 jar to ~/.cache/paperwork-alloy/alloy.jar
 
 Exit status 0 once every rule has a line, 2 when the document cannot be read.
 """
@@ -24,8 +24,7 @@ import re
 import sys
 import tempfile
 
-HERE = pathlib.Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parents[4] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 
 from schema import prover as A  # noqa: E402
 from schema.model import Model, shape  # noqa: E402
@@ -122,7 +121,7 @@ def main(args):
         return 0
     mutate = "--mutate" in args
     args = [a for a in args if a != "--mutate"]
-    if len(args) not in (1, 3) or (len(args) == 3 and args[1] != "--als"):
+    if len(args) not in (1, 3) or args[0].startswith("--") or (len(args) == 3 and args[1] != "--als"):
         print(__doc__, file=sys.stderr)
         return 2
     doc = pathlib.Path(args[0])

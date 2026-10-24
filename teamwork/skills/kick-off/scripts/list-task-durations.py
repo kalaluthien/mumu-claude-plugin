@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""usage: list-task-durations.py <owner/repo> | --from-json <file>
-
-Print one row per closed non-backlog issue: number, labels, criteria count, start, end, hours and where the start came
+"""Print one row per closed non-backlog issue: number, labels, criteria count, start, end, hours and where the start came
 from (`pr`: first commit of the pull request that closed it; `created`: no such pull request, so its creation), then
-the count of rows per start source. `--from-json` reads a fixture list of issues instead of GitHub."""
+the count of rows per start source.
+
+usage: list-task-durations.py <owner/repo>
+       list-task-durations.py --from-json <file>
+
+`--from-json` reads a fixture list of issues instead of GitHub."""
 import collections
 import json
 import pathlib
@@ -13,13 +16,14 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import task_history  # noqa: E402
 
 
-def main(argv):
-    if len(argv) == 2 and argv[0] == "--from-json":
-        issues = json.load(open(argv[1]))
-    elif len(argv) == 1 and "/" in argv[0]:
-        issues = task_history.fetch(argv[0])
+def main(args):
+    if len(args) == 2 and args[0] == "--from-json":
+        issues = json.load(open(args[1]))
+    elif len(args) == 1 and "/" in args[0]:
+        issues = task_history.fetch(args[0])
     else:
-        sys.exit(__doc__)
+        print(__doc__, file=sys.stderr)
+        return 2
     table = task_history.rows(issues)
     print("number\tlabels\tcriteria\tstart\tend\thours\tsource")
     for r in table:
@@ -29,4 +33,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    sys.exit(main(sys.argv[1:]))

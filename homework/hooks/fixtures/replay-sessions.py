@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Replay labelled past sessions through the Stop hook and count which got a wrap-up ask.
 
-  replay-sessions.py <sessions.json> [--holdout] [<signal-wrap-up.py>]
+usage: replay-sessions.py <sessions.json> [--holdout] [<signal-wrap-up.py>]
 
 Each session replays alone, stop by stop, in a fresh plugin data folder, the
 hook at stop k seeing the transcript up to that stop, at the highest lesson
@@ -14,12 +14,13 @@ half left out when the trigger was tuned, as replay-score.py splits stops.
 import hashlib
 import json
 import os
+import pathlib
 import subprocess
 import sys
 import tempfile
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "..", "lib"))
+HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "lib"))
 import transcript  # noqa: E402
 
 HIGHEST = "12"
@@ -49,7 +50,7 @@ def asks(signal, path):
         for offset in stop_offsets(path):
             with open(cut, "wb") as handle:
                 handle.write(whole[:offset])
-            payload = {"session_id": "replayed", "transcript_path": cut, "cwd": HERE,
+            payload = {"session_id": "replayed", "transcript_path": cut, "cwd": str(HERE),
                        "hook_event_name": "Stop", "stop_hook_active": False}
             run = subprocess.run([signal], input=json.dumps(payload), capture_output=True, text=True,
                                  env={**os.environ, "CLAUDE_PLUGIN_DATA": data, "WRAP_UP_THRESHOLD": HIGHEST})
@@ -63,7 +64,14 @@ def odd(path):
     return int(hashlib.sha256(os.path.basename(path).encode()).hexdigest(), 16) % 2
 
 
-def main(labels_path, signal, holdout):
+def main(args):
+    holdout = "--holdout" in args
+    args = [arg for arg in args if arg != "--holdout"]
+    if len(args) not in (1, 2) or any(arg.startswith("-") for arg in args):
+        print(__doc__, file=sys.stderr)
+        return 2
+    labels_path = args[0]
+    signal = os.path.abspath(args[1]) if len(args) == 2 else str(HERE.parent / "signal-wrap-up.py")
     with open(labels_path, encoding="utf-8") as handle:
         rows = [row for row in json.load(handle)["sessions"] if not holdout or odd(row["transcript"])]
     tally = {"short": [0, 0], "mid": [0, 0]}
@@ -85,10 +93,4 @@ def main(labels_path, signal, holdout):
 
 
 if __name__ == "__main__":
-    args = sys.argv[1:]
-    holdout = "--holdout" in args
-    args = [arg for arg in args if arg != "--holdout"]
-    if len(args) not in (1, 2):
-        print(__doc__.split("\n\n")[1], file=sys.stderr)
-        sys.exit(2)
-    sys.exit(main(args[0], os.path.abspath(args[1]) if len(args) == 2 else os.path.join(HERE, "..", "signal-wrap-up.py"), holdout))
+    sys.exit(main(sys.argv[1:]))

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""zoom: resolve a Schema document's metadata pointers against a repository at one commit.
+"""Resolve a Schema document's metadata pointers against a repository at one commit.
 
-  resolve-pointers.py evidence doc.json --root DIR --sha SHA
+usage: resolve-pointers.py evidence doc.json --root DIR --sha SHA
       each `meta.evidence` pointer must be `path:line` or `path:line-line` inside that file at SHA; a url or a sha
       counts as unresolved, since only a line can be read back. Prints `evidence: <n> resolved, <k> unresolved`.
-  resolve-pointers.py constraints doc.json --root DIR --sha SHA
+usage: resolve-pointers.py constraints doc.json --root DIR --sha SHA
       each `meta.constraint` `<path>#<rule>` must name a bold rule (`**Rule name**`, matched as `rule-name` too) in
       that file at SHA. Prints `constraints: <n> traced, <k> untraced`.
-  resolve-pointers.py faults doc.json --root DIR --sha SHA
+usage: resolve-pointers.py faults doc.json --root DIR --sha SHA
       each `meta.note` written `<Word>: <text>` is a fault; it is named when <Word> is Missing, Illegal, Redundant or
       Overloaded and its element's evidence all resolves. Prints `faults: <n> named, <k> unresolved`.
-  resolve-pointers.py drift doc.json --root DIR --sha SHA [--to NEW]
+usage: resolve-pointers.py drift doc.json --root DIR --sha SHA [--to NEW]
       each `meta.evidence` `path:line` pointer read at SHA is `changed` when a commit up to NEW (HEAD by default)
       touched one of its lines, or `gone` when its file is not at NEW; a line that only moved stays unchanged. Prints
       `drift: <n> unchanged, <k> changed`, `gone` counted as changed; a url or a sha is skipped, and a `path:line`
@@ -146,7 +146,7 @@ def main(args):
     if args[:1] == ["drift"]:
         modes["drift"] = lambda doc, repo: drift(doc, repo, to)
     if len(args) != 6 or args[0] not in modes or args[2] != "--root" or args[4] != "--sha":
-        print(__doc__)
+        print(__doc__, file=sys.stderr)
         return 2
     try:
         doc = json.load(open(args[1], encoding="utf-8"))

@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""Close a named session once it stops working: send it its exit, answer the dialogs it shows, then close its tab.
+
+usage: close-session.py <name>
+
+A session closing itself runs detached, so it closes once the turn ends. CLOSE_SESSION_TIMEOUT (default 3600) bounds the
+wait in seconds."""
 import os
 import pathlib
 import subprocess
@@ -37,13 +43,19 @@ def close(name):
     print(f"{name} exited and its {session.close(a)} closed.")
 
 
-if len(sys.argv) != 2:
-    sys.exit("usage: close-session.py <name>")
-name = sys.argv[1]
-own = session.sessions()[1].get("name") == name
-if own and not os.environ.get("CLOSE_SESSION_DETACHED"):  # detached, so it outlives the Bash call that asked for it
-    subprocess.Popen([sys.executable, __file__, name], env={**os.environ, "CLOSE_SESSION_DETACHED": "1"},
-                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-    print(f"{name} closes once this turn ends.")
-else:
-    close(name)
+def main(args):
+    if len(args) != 1 or args[0].startswith("-"):
+        print(__doc__, file=sys.stderr)
+        return 2
+    name = args[0]
+    own = session.sessions()[1].get("name") == name
+    if own and not os.environ.get("CLOSE_SESSION_DETACHED"):  # detached, so it outlives the Bash call that asked for it
+        subprocess.Popen([sys.executable, __file__, name], env={**os.environ, "CLOSE_SESSION_DETACHED": "1"},
+                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        print(f"{name} closes once this turn ends.")
+    else:
+        close(name)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
