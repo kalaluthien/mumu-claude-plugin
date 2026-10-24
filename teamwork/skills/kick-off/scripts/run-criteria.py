@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""usage: run-criteria.py [--timeout <s>] [--base [--ref <ref>]] <task | body-file | ->
+"""usage: run-criteria.py [--timeout <s>] [--base [--ref <ref>] | --pass <n>=<sample-file>...] <task | body-file | ->
 
 Run each `[check]` of a task's Definition of done at the head, in the worktree's root, then each `[check]` of an
 optional `.teamwork/default-criteria.md` there as `standing`, and print a table to comment on the task, which the
@@ -14,12 +14,21 @@ it has failed twice the same way.
 `--base` runs each `[check]` in an export of the base instead, `--ref` or else `origin/HEAD`, and prints `base ok` when
 its output equals the text quoted after `on base` (or `on main`, in tasks filed before), `wrong base` when it differs,
 `unclear` when the quote is not one value; exit 1 on any `wrong base`; an `exits` or `more` check, a git check (the
-export has no `.git`) and a check with a placeholder are `unclear`. The output is compared whole. It never fetches: run `git fetch` first. A body file reads criteria before the task exists, so run it before the first judge."""
+export has no `.git`) and a check with a placeholder are `unclear`. The output is compared whole. It never fetches: run `git fetch` first. A body file reads criteria before the task exists, so run it before the first judge.
+
+`--pass <n>=<sample-file>` (once per criterion, with a body file) runs criterion `n` at the head with its first pipe stage
+replaced by `cat <sample-file>`, so the stages after it meet the input the pass would give. It prints `pass ok` when the
+output equals the text after `prints` (or meets `exits` or `more`), `wrong pass` when it differs, `unclear` for a criterion with no sample or whose first
+stage it cannot split surely: before its first pipe, outside quotes, only words, blanks and `. / = : , + @ % ~ < -`
+may stand, and the first word is no `if`, `while`, `for` or other compound keyword; inside double quotes no `$(`, `${`, backtick
+or backslash; exit 1 on any
+`wrong pass`. It finds a check that can never pass, such as `check-schema.py check /dev/stdin`, which reads its input twice."""
 import argparse
 import json
 import os
 import pathlib
 import re
+import shlex
 import signal
 import subprocess
 import sys
@@ -146,6 +155,53 @@ def base_row(label, kind, name, detail, archive, timeout):
     return label, name, "base ok" if status is not None and out == quoted else "wrong base", cell(out)
 
 
+# outside quotes only these may precede the first pipe; anything else (`;`, `&`, `{`, `(`, `#`, a backslash, ...) might hide a pipe or a stage
+SAFE = re.compile(r"[\w \t./=:,+@%~<-]|\$\w|\$(?=[\"'])")
+
+
+# a compound command owns the pipe that follows its first word, so the pipe is not a stage boundary
+KEYWORDS = {"if", "while", "until", "for", "case", "select", "time", "function", "coproc"}
+
+
+def after_first_pipe(command):
+    """The command without its first pipe stage, split at the first `|` outside quotes, or None when the split is not certain:
+    no pipe, or before it a character outside SAFE, or in double quotes a `$(`, `${`, backtick or backslash, which
+    could hide a pipe or drop part of the first stage."""
+    if command.split(None, 1)[:1] and command.split(None, 1)[0] in KEYWORDS:
+        return None
+    quote, i = None, 0
+    while i < len(command):
+        c = command[i]
+        if c == "\\":
+            return None
+        if quote:
+            # a substitution inside double quotes can hold quotes of its own, which end this quote early
+            if quote == '"' and (c == "`" or command[i:i + 2] in ("$(", "${")):
+                return None
+            quote = None if c == quote else quote
+        elif c in "'\"":
+            quote = c
+        elif c == "|" and command[i:i + 2] != "||":
+            return command[i + 1:]
+        elif not (m := SAFE.match(command, i)):
+            return None
+        else:
+            i = m.end() - 1
+        i += 1
+    return None
+
+
+def pass_row(label, kind, name, detail, sample, cwd, timeout):
+    command, test = expectation(detail)
+    if kind != "check" or test[0] is None:
+        return label, name, "unclear", "not run: not a `[check]` with a decidable pass"
+    rest = after_first_pipe(command)
+    if sample is None or rest is None:
+        return label, name, "unclear", "not run: no sample, or no pipe to put it before"
+    status, out = run(f"cat {shlex.quote(sample)} |{rest}", cwd, timeout)
+    return label, name, {"pass": "pass ok", "fail": "wrong pass", "unclear": "unclear"}[verdict(test, status, out)], cell(out)
+
+
 def base_ref(ref):
     found = ref or subprocess.run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"], capture_output=True,
                                   text=True).stdout.strip()
@@ -231,13 +287,31 @@ def main():
     args.add_argument("--timeout", type=int, default=300)
     args.add_argument("--base", "--main", action="store_true")
     args.add_argument("--ref")
+    args.add_argument("--pass", dest="samples", action="append", default=[], metavar="N=FILE")
     args.add_argument("task")
     a = args.parse_args()
     file = pathlib.Path(a.task)
-    task = {"body": file.read_text(), "comments": []} if a.base and file.is_file() else read_task(a.task)
+    task = {"body": file.read_text(), "comments": []} if (a.base or a.samples) and file.is_file() else read_task(a.task)
     root = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip() or "."
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
     dirty = subprocess.run(["git", "status", "--porcelain"], cwd=root, capture_output=True, text=True).stdout.strip()
+    if a.samples:
+        if a.base:
+            sys.exit("run-criteria: --pass and --base cannot run together")
+        given = {}
+        for x in a.samples:
+            n, _, f = x.partition("=")
+            if not n.isdigit() or not f:
+                sys.exit(f"run-criteria: --pass wants <n>=<sample-file>, got {x}")
+            given[int(n)] = os.path.abspath(f)
+        found = list(criteria(issue_state.sections(task.get("body")).get("done", "")))
+        if set(given) - set(range(1, len(found) + 1)):
+            sys.exit(f"run-criteria: --pass names a criterion the task lacks; it has {len(found)}")
+        rows = [pass_row(str(n), *c, given.get(n), root, a.timeout) for n, c in enumerate(found, 1)]
+        print("REPORTED: pass outputs at " + head + "\n\n| # | criterion | result | output on sample |\n| --- | --- | --- | --- |")
+        for r in rows:
+            print("| " + " | ".join([r[0], r[1].replace("|", "\\|"), r[2], r[3]]) + " |")
+        sys.exit(1 if any(r[2] == "wrong pass" for r in rows) else 0)
     if a.base:
         ref = base_ref(a.ref)
         sha = subprocess.run(["git", "rev-parse", "--short", ref], cwd=root, capture_output=True, text=True).stdout.strip()
