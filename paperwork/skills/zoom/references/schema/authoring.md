@@ -6,11 +6,29 @@ Every name is English [vocabulary]: titles, labels, slugs (`Defining`, not
 `정하기`). Only descriptions, the sentences a person reads, are in the reader's
 language.
 
-## Intent
+## Domain
 
 Start from the question the document answers, in the plan's `intent`. A document changes the defaults only in its
 `plan`; say in `why` why each default was changed [form]. A drawing's own choices (views, depth, layout) live in its
 view file, never here.
+
+### Vocabulary
+
+Ids, slugs, operations and type names follow the grammar's patterns [name-pattern]. Names are unique across the model, ignoring case, spaces, `-` and `_`; only
+an edge's label may recur [unique-names]. No name is an Alloy keyword (`open`,
+`run`, `in`, `until`, `check`, …) or a translation word (`Now`, `Call`,
+`happens`, `at`, `self`, `result`) [vocabulary]. Forms by kind [naming]:
+- Scenario: verb phrase with object (`land-change`); a branch: see Branches.
+- Operation: method on what it changes (`PullRequest.merge`).
+- Rule: a property (`least-privilege`).
+- level: noun phrase for the whole (`Pull request lifecycle`).
+- component: noun phrase; abstract may be an adjective or participle (`Hands-on`).
+- partition: noun phrase for who or where (`Squad`).
+- relation: present-tense verb, read from → to (`points to`).
+- activity: verb in -ing (`Reviewing code`).
+- artifact, workflow trigger: noun phrase (`checked model`).
+- state: adjective or participle (`Merged`).
+- event, state trigger: plain verb (`mark ready`).
 
 ## Scenarios
 
@@ -180,24 +198,6 @@ A rule is a proposition no other rule implies; Alloy checks once that it holds.
 - **Scenarios.** A Scenario does not list the operations and rules on what
   its steps walk [coverage].
 
-## Naming
-
-Ids, slugs, operations and type names follow the grammar's patterns [name-pattern]. Names are unique across the model, ignoring case, spaces, `-` and `_`; only
-an edge's label may recur [unique-names]. No name is an Alloy keyword (`open`,
-`run`, `in`, `until`, `check`, …) or a translation word (`Now`, `Call`,
-`happens`, `at`, `self`, `result`) [vocabulary]. Forms by kind [naming]:
-- Scenario: verb phrase with object (`land-change`); a branch: see Branches.
-- Operation: method on what it changes (`PullRequest.merge`).
-- Rule: a property (`least-privilege`).
-- level: noun phrase for the whole (`Pull request lifecycle`).
-- component: noun phrase; abstract may be an adjective or participle (`Hands-on`).
-- partition: noun phrase for who or where (`Squad`).
-- relation: present-tense verb, read from → to (`points to`).
-- activity: verb in -ing (`Reviewing code`).
-- artifact, workflow trigger: noun phrase (`checked model`).
-- state: adjective or participle (`Merged`).
-- event, state trigger: plain verb (`mark ready`).
-
 ## Text and media
 
 - A level's `why` says what it shows.
@@ -211,13 +211,7 @@ Add `media` when something concrete explains faster than a sentence. Types:
 - edges only: `payload` (what travels along it), `diff` (`before` and `after`, drawn as a line diff).
 - anywhere, one per level: `insight`.
 
-Give edges media as readily as nodes. Mark made-up media `invented: true`
-(shown as "e.g."). Give a `title` only when it says more than the type. Never
-draw an order of activities in a note; it is a level.
-
-## Insight
-
-An insight points out what is distinctive about this system, not what it does:
+An `insight` points out what is distinctive about this system, not what it does:
 - `move`: the design choice;
 - `vs`: the usual design it departs from, a real practice, not a strawman;
 - `gain`: what the move buys;
@@ -225,6 +219,10 @@ An insight points out what is distinctive about this system, not what it does:
   or edge (on a level, any rule).
 
 Write none when nothing is distinctive.
+
+Give edges media as readily as nodes. Mark made-up media `invented: true`
+(shown as "e.g."). Give a `title` only when it says more than the type. Never
+draw an order of activities in a note; it is a level.
 
 ## Metadata
 

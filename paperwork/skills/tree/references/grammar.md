@@ -19,7 +19,7 @@ Four concepts: Part, Decision, Option, Answer. A plan is `{"title": str, "parts"
 
 An id is a position over `parts` only: depth-first, 1-based, dot-joined (`1`, `1.2`, `1.2.1`). Never write one; an `id` key is an unknown key. Options are numbered as pressed: `pick` is 1, then `else` in order. The free-text Other is the last number and is not written.
 
-## Checker rules
+## Rules
 
 A refusal prints `path: rule: detail`.
 

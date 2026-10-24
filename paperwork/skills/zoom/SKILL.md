@@ -6,7 +6,7 @@ description: Use when a system, a change or requirements must be modelled as a c
 # zoom
 
 Turn what a system is, or must be, into one checked Schema document, then prove or show it. Read only the rows the
-ask needs, in order; each playbook reads `references/schema/` once, in its `## Language` section.
+ask needs, in order; each playbook reads `references/schema/` once, in its `## Domain` section.
 
 ## Route
 

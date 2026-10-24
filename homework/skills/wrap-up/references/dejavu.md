@@ -4,7 +4,7 @@ Find what keeps going wrong across recent sessions, in every project, and file e
 rule, skill or script gets fixed instead of the same mistake recurring. Haiku agents read the sessions in parallel
 (map); scripts and one haiku agent find what repeats (reduce); this session files.
 
-## Vocabulary
+## Domain
 
 - `<d>` is `${CLAUDE_PLUGIN_DATA}/dejavu`, where every file dejavu keeps lives.
 - **Facet**: one session's friction items (the owner objecting to what the agent did) and standing instructions,

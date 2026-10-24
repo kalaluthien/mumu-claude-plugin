@@ -11,7 +11,7 @@ $U/pele/scripts/render-pele.py paperwork/skills/zoom/examples/pull-request/schem
 It writes `out.png`, `out.svg` and `out.mmd` (the Mermaid it drew) and prints the PNG path. Shown on this machine for
 the pull-request example: [pull-request.png](pele/examples/pull-request.png).
 
-## What it draws
+## Domain
 
 The script draws only the root `level`, as a left-to-right flowchart: each node is a box with its `label`, each edge an
 arrow with its `label`. It reads the kinds as [semantics.md](../schema/semantics.md#opening-a-level) says but draws

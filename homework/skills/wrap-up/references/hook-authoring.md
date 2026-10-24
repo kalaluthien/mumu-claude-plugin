@@ -4,7 +4,7 @@ A script is a mechanism a caller trusts without reading, and a mechanised rule
 fails silently where a written one fails loudly. A lesson filed here becomes a
 script or hook with its failing case, and nothing is filed in memory.
 
-## Contract
+## Domain
 
 - **Placement**: where it sits and how it is named: the repository's `AGENTS.md`.
 - **Purpose line**: the line under the shebang states its purpose. It handles its own errors
@@ -56,7 +56,7 @@ A guard patched one exhibit at a time keeps the route nobody showed.
 - **Every worktree**: a git hook reaches every worktree of the clone: run every suite, then read
   CI for the sha.
 
-## Verifying one
+## Steps
 
 **Watch it refuse**: a guard you did not watch refuse is not verified. Break each branch
 separately, watch its named check fail, restore by undoing that one edit, and

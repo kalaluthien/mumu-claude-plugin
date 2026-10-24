@@ -7,7 +7,7 @@ description: Use when turning a task into a grading spec for a judge reward, a b
 
 Turn a task into a grading spec: binary criteria in tiers that never trade off, with weights derived from how often the judge errs, then measure the judge, grade by the spec and repair it. The spec is one JSON file in the grammar of [references/spec/assets/rubric.schema.json](references/spec/assets/rubric.schema.json); [references/spec/model.md](references/spec/model.md) says what it means and [references/spec/criteria.md](references/spec/criteria.md) how to write a criterion.
 
-## Vocabulary
+## Domain
 
 - **criterion**: one observable proposition about an answer, met or not; a `-` criterion names an error.
 - **tier**: criteria that may trade off; a higher tier always outranks every lower one together.

@@ -10,7 +10,7 @@ Close a stretch of work so the next session starts ahead: keep what this
 session learned (retro), tidy what earlier sessions kept (dream), and record how to run and
 verify the repository.
 
-## Vocabulary
+## Domain
 
 - **Signal**: the Stop hook's sentence opening `Wrap-up signal:`, carrying lesson points `<p>` of threshold `<t>`, this session's first retro `<f>`: `due`, `asked` or `at <n> of <limit> tool calls`, memory files changed `<m>` of limit `<l>`, and run recipe `<r>`: `fine`, `missing` or `failed`. With none in sight, print this session's: `"${CLAUDE_PLUGIN_ROOT}/hooks/wrap-up-signal.py" ${CLAUDE_SESSION_ID}`.
 - **Memory**: what loads into an agent before it acts: instruction files (`AGENTS.md`, `CLAUDE.md`), auto-memory, whose `MEMORY.md` index loads at start and each file only when read, and project skills, whose descriptions load at start.

@@ -4,24 +4,20 @@ Bring a Schema document read from code back in line once the code has moved on, 
 failure is drift in the document or a defect in the code. A document that no longer describes the code can keep
 passing; that pass is the dangerous case, because it looks like a proof.
 
-## Language
+## Domain
 
 The document is written in the grammar, [../schema/assets/schema.json](../schema/assets/schema.json), as
 [../schema/authoring.md](../schema/authoring.md) says; its commit is the sha in its own top-level `meta.evidence`,
 which [interpret.md](interpret.md) writes, and each element's `meta.evidence` names the lines it was read from.
 
-## Outcomes
+### Vocabulary
 
-Give each rule one:
+Give each rule one outcome:
 
 - **in sync**: no change since the commit touches what the rule rests on, and it passes;
 - **updated**: the code changed, the document now describes it again, and the rule passes;
 - **defect**: the document describes the code, and the code breaks the rule; a finding about the code, not drift;
 - **blocked**: the document could not be brought back in line, or the rule could not be proved; say why.
-
-A rule the update brought back in line that then fails is a defect; its hand-over names the update too. Edit only
-the document, never the system's code, and never weaken a rule to
-pass, as [prove.md](prove.md)'s Findings stay findings says.
 
 ## Steps
 
@@ -55,3 +51,8 @@ Command paths are relative to this file.
    checked and none is blocked; while any rule is blocked, keep the old commit and say which rule holds it back.
 6. Hand over each rule's outcome, the commits read, each document change with its reason, each defect, and what the
    document still does not cover. Put the document's update in a change of its own, apart from any fix to the code.
+
+## Rules
+
+- **Update defect**: a rule the update brought back in line that then fails is a defect; its hand-over names the update too.
+- **Edit only the document**: never change the system's code, and never weaken a rule to pass, as [prove.md](prove.md)'s Findings stay findings says.

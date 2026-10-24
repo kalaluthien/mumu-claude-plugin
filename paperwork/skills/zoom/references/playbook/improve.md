@@ -3,19 +3,21 @@
 Turn a checked Schema document into an improved one by stated criteria, keeping every behaviour it states, and name
 each fault it fixes.
 
-## Language
+## Domain
 
 The original and the improvement are both written in the grammar,
 [../schema/assets/schema.json](../schema/assets/schema.json), as [../schema/authoring.md](../schema/authoring.md)
 says. A state level's faults are read by [its semantics](../schema/semantics.md#state), and a workflow's by
 [its semantics](../schema/semantics.md#workflow).
 
-## Kept behaviour
+## Rules
 
-Every original Scenario and rule stays, by slug and meaning. Adding behaviour is free; a removal fails the comparison
-until the user approves. `scripts/compare-models.py original.json improved.json` prints `kept` or `dropped` per slug,
-`changed` where a kept slug's text differs, each count below on both documents, then the improved document's check;
-exit 0 means nothing dropped and the check passes.
+- **Kept behaviour**:
+
+every original Scenario and rule stays, by slug and meaning. Adding behaviour is free; a removal fails the comparison
+  until the user approves. `scripts/compare-models.py original.json improved.json` prints `kept` or `dropped` per slug,
+  `changed` where a kept slug's text differs, each count below on both documents, then the improved document's check;
+  exit 0 means nothing dropped and the check passes.
 
 ## Faults
 
