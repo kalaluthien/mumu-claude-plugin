@@ -6,10 +6,8 @@ Show a plan to the owner as a page, then read their Answer back into the next pl
 
 ### Operations
 
-- The first Decision is selected on load, so a number works at once. Press a number to pick an Option; when it has a follow-up, a hint `Then 1 – K` shows and the next number picks there. The last number opens Other.
-- Press `j` or `k` to move between Decisions, `Esc` to close Other or a note.
-- Strike a Part with a reason, comment on it, or edit its text; each can be undone before copying.
-- The Parts after the first Decision not yet answered are faded, never hidden; hover or focus brings one back, and they stay answerable. The fade moves on as each Decision is answered or struck. This is the page's only gate, a view choice; the grammar has none.
+- The owner picks an Option, strikes a Part with a reason, comments on it or edits its text; each can be undone before copying.
+- The Parts after the first Decision not yet answered are faded, never hidden, and stay answerable. This is the page's only gate, a view choice; the grammar has none.
 - Copy Answer writes the Markdown form of [grammar.md](grammar.md) to the clipboard.
 
 ### Vocabulary
@@ -17,7 +15,6 @@ Show a plan to the owner as a page, then read their Answer back into the next pl
 | plan element | on the page |
 | --- | --- |
 | Part text, `kind` | tree line with its id and a small kind label |
-| `kind: risk` | amber label and text |
 | `source` | small chip; a link when it is a url |
 | Decision `pick`, `else` | numbered card, "Agent's pick" on 1, Other as the last number |
 | Option `parts` | consequences and notes under the Option, before the choice |
@@ -29,9 +26,8 @@ Show a plan to the owner as a page, then read their Answer back into the next pl
 
 **Show**
 
-1. Run `check-plan.py <plan>`; stop unless it prints `ok 1`.
-2. Run `make-page.py <plan> <out>.html`. The page is one file with no network.
-3. Publish the page as an Artifact, or open the file. Tell the owner to press Copy Answer and paste the text back.
+1. Run `make-page.py <plan> <out>.html`. The page is one file with no network.
+2. Publish the page as an Artifact, or open the file. Tell the owner to press Copy Answer and paste the text back.
 
 **Read the Answer back**
 
