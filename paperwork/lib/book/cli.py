@@ -94,19 +94,19 @@ def main(argv=None):
             if j.pop('gates', None) is not None or j.pop('rounds', None) is not None:  # a new book starts unapproved, with its own interview
                 j.pop('rounds', None)
                 json.dump(j, open(os.path.join(a.dir, 'book.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
-            if a.lang != 'en':  # content language; lang/<code>.json supplies its strings and rules
+            if a.lang != 'en':  # content language; assets/lang/<code>.json supplies its strings and rules
                 j = json.load(open(os.path.join(a.dir, 'book.json'), encoding='utf-8'))
                 j['book']['lang'] = a.lang
                 for k in (_load(a.lang) or {}).get('strings', {}):  # the sample's English labels give way to the pack's
                     j['book'].get('strings', {}).pop(k, None)
                 json.dump(j, open(os.path.join(a.dir, 'book.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
                 if not pack(a.lang)['has_pack']:
-                    print(f'warning: no lang/{a.lang}.json; English rules apply until one is added (copy lang/en.json)', file=sys.stderr)
+                    print(f'warning: no assets/lang/{a.lang}.json; English rules apply until one is added (copy assets/lang/en.json)', file=sys.stderr)
             print(f'sample copied to {a.dir}; edit book.json first, then the units')
             return 0
         if a.cmd == 'check':
-            P = Plan(os.path.join(a.dir, 'book.json'))
-            return report(settle(P, check_plan(P)))
+            plan = Plan(os.path.join(a.dir, 'book.json'))
+            return report(settle(plan, check_plan(plan)))
         if a.cmd == 'build':
             print(build(a.dir))
             return 0

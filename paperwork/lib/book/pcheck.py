@@ -154,7 +154,7 @@ def no_leak(spec, i, ctx):
         rx = ctx['pack'].get('judge') or JUDGE
         for _, o in els(spec, *OPTS):
             alt = str((o.get('exhibit') or {}).get('alt') or '')
-            m = re.search(rx, alt, re.I)
+            m = re.search(rx, alt, re.IGNORECASE)
             if m:
                 out.append(('warn', f'option exhibit alt judges its option ("{m.group(0)}"); describe what it shows'))
     return out
@@ -380,11 +380,11 @@ def load_book_checks(book):
         BOOK_CHECKS.add(cid)
 
 
-def run(spec, E, pack, known=''):
+def run(spec, element_specs, pack, known=''):
     """[(check id, level, element index, msg)] for every element of a card or figure spec that the catalog knows."""
     ctx, out, seen = {'pack': pack or {}, 'known': known}, [], set()
     for i, e in enumerate(spec.get('elements') or []):
-        el = E.get(e.get('el')) if isinstance(e, dict) else None
+        el = element_specs.get(e.get('el')) if isinstance(e, dict) else None
         for c in (el or {}).get('checks') or []:
             fn = CHECKS.get(c['id'])
             if fn is None or (c['id'], i) in seen:

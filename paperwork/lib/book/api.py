@@ -1,4 +1,4 @@
-"""The names agents.py reads from the core."""
+"""The names agents reads from the core."""
 from .const import WRITE_SECTIONS
 from .dom import parse
 from .plan import GATES, TOPICS, Plan, PlanError, fact_text, plan_hash, round_gaps, settle

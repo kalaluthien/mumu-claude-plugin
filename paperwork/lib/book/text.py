@@ -126,9 +126,9 @@ def claim_sents(t, b, lang):
     """Sentences of a leaf that state checkable things: a number, a citation, a linked source, a fact value, a badge or an absolute; questions are skipped."""
     facts = [vis(v) for v in b.find(lambda x: x.has('data-v'))]
     src = bool(b.find(lambda x: x.tag == 'a' and (x.get('href') or '').startswith('http'))) or bool(b.find(lambda x: x.get('data-c') == 'badge'))
-    L = pack(lang)
-    cue = re.compile(L['claim_cue'])
-    cite = re.compile(r'\([^()]*\b(1[5-9]|20)\d\d[a-z]?\)|\b(' + '|'.join({L['cite'], 'et al'}) + r')\b')
+    lang_pack = pack(lang)
+    cue = re.compile(lang_pack['claim_cue'])
+    cite = re.compile(r'\([^()]*\b(1[5-9]|20)\d\d[a-z]?\)|\b(' + '|'.join({lang_pack['cite'], 'et al'}) + r')\b')
     badges = {vis(x).strip() for x in b.find(lambda x: x.get('data-c') == 'badge')}
     for s_ in sentences(t) or ([t] if t else []):
         if s_.rstrip().endswith('?') or s_.strip() in badges:

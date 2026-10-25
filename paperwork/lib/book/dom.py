@@ -133,10 +133,10 @@ def oklch_to_lum(s):
     m = re.match(r'oklch\(\s*([\d.]+)(%?)\s+([\d.]+)\s+([\d.]+)', s or '')
     if not m:
         return None
-    L = float(m.group(1)) / (100 if m.group(2) else 1)
-    C, h = float(m.group(3)), math.radians(float(m.group(4)))
-    a, b = C * math.cos(h), C * math.sin(h)
-    l_, m_, s_ = L + 0.3963377774 * a + 0.2158037573 * b, L - 0.1055613458 * a - 0.0638541728 * b, L - 0.0894841775 * a - 1.2914855480 * b
+    lightness = float(m.group(1)) / (100 if m.group(2) else 1)
+    chroma, h = float(m.group(3)), math.radians(float(m.group(4)))
+    a, b = chroma * math.cos(h), chroma * math.sin(h)
+    l_, m_, s_ = lightness + 0.3963377774 * a + 0.2158037573 * b, lightness - 0.1055613458 * a - 0.0638541728 * b, lightness - 0.0894841775 * a - 1.2914855480 * b
     l, mm, ss = l_ ** 3, m_ ** 3, s_ ** 3
     rgb = (4.0767416621 * l - 3.3077115913 * mm + 0.2309699292 * ss, -1.2684380046 * l + 2.6097574011 * mm - 0.3413193965 * ss, -0.0041960863 * l - 0.7034186147 * mm + 1.7076147010 * ss)
     r, g, bl = (min(1.0, max(0.0, x)) for x in rgb)

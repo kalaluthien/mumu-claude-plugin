@@ -95,7 +95,7 @@ RULES = {
     'V1': ('warn', 'A paragraph defines three or more named parts inline (a symbol or term followed by is or means; the pack\'s `inline_def`); put the vocabulary in a terms box (div[data-c=terms] with one dt and dd per name)', 'A sentence that only names parts without defining them: allow in decisions'),
     'S3': ('warn', 'Translationese: the language pack\'s `translationese` forms', 'Keep a form chosen on purpose; allow in decisions'),
     'P1': ('error', 'Slots (slots/U.json): every <!--card ID--> or <!--fig ID--> has an entry and every entry a placeholder; known kind and elements the kind can hold; required slots present, typed, not TODO; element counts per kind. Build refuses on any', '-'),
-    'P2': ('error|warn', 'Element checks on slot entries (catalog/elements/*.json checks): stem-self-contained, facts-shown, why-grounded, no-leak, rival-real, near-miss-names, differs-one, parts-match, one-change, items-fit, given-shown, axes, direct-labels, alt-complete and the rest', 'why-grounded counts prior prose, terms and canon as known'),
+    'P2': ('error|warn', 'Element checks on slot entries (assets/catalog/elements/*.json checks): stem-self-contained, facts-shown, why-grounded, no-leak, rival-real, near-miss-names, differs-one, parts-match, one-change, items-fit, given-shown, axes, direct-labels, alt-complete and the rest', 'why-grounded counts prior prose, terms and canon as known'),
     'G3': ('warn', 'A concept with no aliases: search and the glossary find it only by its exact term', 'A term with no other form in use: allow in decisions'),
     'S1': ('per entry', 'book.json forbid entries over prose, TeX or figure labels, with `unless` exemptions', 'Exempt matches with `unless`'),
     'T1': ('error', 'Korean particle after a concept term or alias (final derived from a Hangul or digit ending, else `final`), or after any filled reference or fact ending in Hangul, a digit or %, disagrees with its final sound (lang ko)', 'Text ending in Latin letters or TeX is checked only through `final`'),
@@ -113,11 +113,11 @@ RULES = {
     'L3': ('warn', 'Summary repeats a warn box; one sentence repeated across units', 'Skipped by --quick'),
 }
 
-WRITE_SECTIONS = ('shape', 'sentences', 'cards', 'figures', 'evidence')  # the sections of reference/write.md that the writer brief names
-REF_OF = {'R': 'reference/write.md#sentences', 'T': 'reference/write.md#sentences', 'S': 'reference/write.md#sentences', 'L': 'reference/write.md#sentences', 'M': 'reference/write.md#sentences',
-          'U': 'reference/write.md#shape', 'H': 'reference/write.md#shape', 'G': 'reference/write.md#shape', 'V': 'reference/write.md#shape',
-          'K': 'reference/write.md#cards', 'P': 'reference/write.md#cards', 'G3': 'reference/plan.md', 'F': 'reference/write.md#figures', 'O': 'reference/write.md#evidence', 'C': 'reference/review.md#lens: coherence', 'E': 'reference/write.md#evidence', 'O4': 'reference/write.md#cards',
-          'B': 'reference/plan.md', 'B5': 'reference/plan.md#new-patterns', 'G4': 'reference/write.md#shape', 'O1': 'reference/write.md#shape', 'O3': 'reference/write.md#shape', 'U4': 'reference/write.md#cards', 'K9': 'reference/review.md#lens: items', 'L3': 'reference/review.md#lens: editor'}
+WRITE_SECTIONS = ('shape', 'sentences', 'cards', 'figures', 'evidence')  # the sections of references/write.md that the writer brief names
+REF_OF = {'R': 'references/write.md#sentences', 'T': 'references/write.md#sentences', 'S': 'references/write.md#sentences', 'L': 'references/write.md#sentences', 'M': 'references/write.md#sentences',
+          'U': 'references/write.md#shape', 'H': 'references/write.md#shape', 'G': 'references/write.md#shape', 'V': 'references/write.md#shape',
+          'K': 'references/write.md#cards', 'P': 'references/write.md#cards', 'G3': 'references/plan.md', 'F': 'references/write.md#figures', 'O': 'references/write.md#evidence', 'C': 'references/review.md#lens: coherence', 'E': 'references/write.md#evidence', 'O4': 'references/write.md#cards',
+          'B': 'references/plan.md', 'B5': 'references/plan.md#new-patterns', 'G4': 'references/write.md#shape', 'O1': 'references/write.md#shape', 'O3': 'references/write.md#shape', 'U4': 'references/write.md#cards', 'K9': 'references/review.md#lens: items', 'L3': 'references/review.md#lens: editor'}
 MOVES = ('predict', 'intervene', 'explain', 'decide', 'diagnose', 'compute')
 LEVELS = ('remember', 'understand', 'apply', 'analyze', 'evaluate', 'create')
 TASK_KINDS = ('order', 'select', 'sort', 'estimate', 'custom')  # every gating card is machine-checkable; free text (compose) cannot gate

@@ -42,14 +42,14 @@ def _approve(base):
     json.dump(j, open(p, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 
 
-def _lang_case(base, hp, plant, P, cu, code, m):
+def _lang_case(base, hp, plant, plan, cu, code, m):
     def ed(j):
         j['book']['lang'] = code
         j['concepts'][0].update(m.get('concept', {}))
         j['book'].setdefault('strings', {}).update(m.get('strings', {}))
     _plan_edit(base, ed)
     if 'plant' in m:
-        plant(m['plant'].replace('{term}', P.d['concepts'][0]['term']).replace('{cu}', cu))
+        plant(m['plant'].replace('{term}', plan.d['concepts'][0]['term']).replace('{cu}', cu))
     if 'option' in m:
         _sub(hp, 'Because 8 is a power of two<p', m['option'] + '<p')
 
@@ -72,14 +72,14 @@ def mutate(d=None):
     if errs:
         report(errs)
         return 1
-    P = Plan(os.path.join(base, 'book.json'))
+    plan = Plan(os.path.join(base, 'book.json'))
     hp = os.path.join(base, 'book.html')
-    cu = next(u['id'] for u in P.live if u['role'] == 'core')
-    cui = [u['id'] for u in P.d['units']].index(cu)
-    later = next((c for c in P.C.values() if P.idx.get(c['unit'], 0) > P.idx[cu]), None)
-    sec = re.search(r'<section id="u-' + re.escape(cu) + r'".*?</section>', open(hp, encoding='utf-8').read(), re.S).group(0)
+    cu = next(u['id'] for u in plan.live if u['role'] == 'core')
+    cui = [u['id'] for u in plan.d['units']].index(cu)
+    later = next((c for c in plan.concept_by_id.values() if plan.idx.get(c['unit'], 0) > plan.idx[cu]), None)
+    sec = re.search(r'<section id="u-' + re.escape(cu) + r'".*?</section>', open(hp, encoding='utf-8').read(), re.DOTALL).group(0)
     nsent = len(sentences(parse(sec).text(NO_MATH)))
-    anchor = '<div data-c="step"><p class="blab">' + P.st('lab_step') + '</p><p>'
+    anchor = '<div data-c="step"><p class="blab">' + plan.st('lab_step') + '</p><p>'
     plant = lambda txt: _sub(hp, anchor, anchor + txt)
     cases = [
         ('G1', lambda: _sub(hp, '<h2>', '<h2>X')),
@@ -93,7 +93,7 @@ def mutate(d=None):
         ('U4', lambda: _sub(hp, '<li data-ok>', '<li>')),
         ('U4', lambda: plant('<span title="hover only">x</span> ')),
         ('F1', lambda: _sub(hp, '<svg viewBox', '<svg fill="#ff0000" viewBox')),
-        ('F5', lambda: _sub(hp, '<div data-c="warn"><p class="blab">' + P.st('lab_warn') + '</p><p>', '<div data-c="warn"><figure data-c="fig" data-tactic="geom" data-kind="conceptual"><svg viewBox="0 0 10 10"></svg></figure><p>')),
+        ('F5', lambda: _sub(hp, '<div data-c="warn"><p class="blab">' + plan.st('lab_warn') + '</p><p>', '<div data-c="warn"><figure data-c="fig" data-tactic="geom" data-kind="conceptual"><svg viewBox="0 0 10 10"></svg></figure><p>')),
         ('F2', lambda: _sub(hp, 'data-tactic="', 'data-tactic="x')),
         ('F4', lambda: _sub(hp, '</svg>', '<g data-node="n1"><circle cx="1" cy="1" r="1"/></g></svg>')),
         ('S1', lambda: (_plan_edit(base, lambda j: j['forbid'].append({'id': 'probe', 're': 'Zqxw', 'in': 'prose', 'level': 'error', 'fix': 'probe', 'example': 'Zqxw'})), plant('Zqxw '))),
@@ -150,7 +150,7 @@ def mutate(d=None):
     cases += [
         ('F8', lambda: _sub(hp, 'aria-label="One tally row: dish B, 40 of 80 orders"', 'aria-label="f-tally"')),
         ('B3', lambda: lex({'id': 'hot', 'meaning': 'zq hot', 'mark': 'fill', 'kind': 'semantic', 'light': 'oklch(0.55 0.15 25)'}, {'id': 'ok', 'meaning': 'zq ok', 'mark': 'fill', 'kind': 'semantic', 'light': 'oklch(0.55 0.15 145)'})),
-        ('B3', lambda: lex(*({'id': f'r{i}', 'meaning': f'zq level {i}', 'mark': 'dot', 'kind': 'sequential', 'ramp': 'lvl', 'light': f'oklch({L} 0.1 250)'} for i, L in enumerate((0.4, 0.75, 0.55))))),
+        ('B3', lambda: lex(*({'id': f'r{i}', 'meaning': f'zq level {i}', 'mark': 'dot', 'kind': 'sequential', 'ramp': 'lvl', 'light': f'oklch({lightness} 0.1 250)'} for i, lightness in enumerate((0.4, 0.75, 0.55))))),
         ('O4', lambda: _sub(hp, 'Why can no single yes or no question remove', 'In sentence 3, why can no single yes or no question remove')),
         ('K10', lambda: _sub(hp, 'The worse answer keeps the larger group<p', 'The worse answer keeps the larger group, as Shannon showed in 1948 for 8 dishes<p')),
         ('K12', lambda: _sub(hp, 'A is first on the menu, but it holds only', 'A is first on the menu, as Knuth found, but it holds only')),
@@ -166,11 +166,11 @@ def mutate(d=None):
         ('E3', lambda: before_close('<details data-c="note" data-grade="strong"><summary>Menu study</summary><p data-p="design">A lab study of menus.</p><p data-p="source">Smith, Menus</p></details>')),
     ]
     # --- end rules (B2)
-    for p in P.d['forbid']:
+    for p in plan.d['forbid']:
         cases.append(('S1', lambda p=p: plant(p['example'] + ' ')))
     for code in sorted(f[:-5] for f in os.listdir(LANG_DIR) if f.endswith('.json')):  # each pack plants the defects only its rules see
         for m in pack(code).get('mutate', []):
-            cases.append((m['rule'], lambda code=code, m=m: _lang_case(base, hp, plant, P, cu, code, m)))
+            cases.append((m['rule'], lambda code=code, m=m: _lang_case(base, hp, plant, plan, cu, code, m)))
     fail = 0
     pristine = {f: open(os.path.join(base, f), encoding='utf-8').read() for f in ('book.json', 'book.html')}
     for rule, fn in cases:
@@ -435,7 +435,7 @@ def coverage(base):
 
 
 def cmd_gaps(cmds):
-    """Printed `python3 .../book.py ...` lines that would not run: a missing script or arguments the parser rejects."""
+    """Printed `python3 .../make-book.py ...` lines that would not run: a missing script or arguments the parser rejects."""
     import contextlib, io, shlex
     from .cli import parser, resolve_dir
     out = []
@@ -471,14 +471,14 @@ def catalog_cases(base, hp, pristine, before_close):
         n += 1
         fail += not ok
         print(f"{tag} {'caught' if ok else 'MISSED'} ({name})")
-    E = catalog.elements()
-    for eid, chk, msg, ok in catalog.element_cases(E, pack('en')):
+    element_specs = catalog.elements()
+    for eid, chk, msg, ok in catalog.element_cases(element_specs, pack('en')):
         say('EL ', ok, f'{eid} {chk}' + ('' if ok else f': {msg}'))
     restore = lambda: [open(os.path.join(base, f), 'w', encoding='utf-8').write(s) for f, s in pristine.items()]
     up = os.path.join(base, 'units.html')
     src = open(up, encoding='utf-8').read()
     uid = re.search(r'<section data-u="([^"]+)"', src.split('</section>', 2)[1]).group(1)  # the first core unit after the map
-    good = json.loads(json.dumps(E["rival"]["example"]))
+    good = json.loads(json.dumps(element_specs["rival"]["example"]))
 
     def slots(entries, ph):
         open(up, 'w', encoding='utf-8').write(src.replace('<div data-c="close">', ph + '<div data-c="close">', 1) if ph else src)
@@ -487,8 +487,8 @@ def catalog_cases(base, hp, pristine, before_close):
     slots({'ask-zq': good}, '<!--card ask-zq-->')
     try:
         build(base)
-        F = lint(base)
-        ok = not any(f['rule'] in ('P1', 'P2') and f['level'] == 'error' for f in F) and 'id="ask-zq"' in open(hp, encoding='utf-8').read()
+        findings = lint(base)
+        ok = not any(f['rule'] in ('P1', 'P2') and f['level'] == 'error' for f in findings) and 'id="ask-zq"' in open(hp, encoding='utf-8').read()
     except PlanError as e:
         ok = False
         print(f'P1  slots entry did not build: {e}')
@@ -582,8 +582,8 @@ def f2_cases(base, hp, pristine, before_close):
         except (AssertionError, PlanError) as e:
             say(rule, False, f'FAILED to plant {e}')
     restore()
-    P = Plan(os.path.join(base, 'book.json'))
-    uid = next((u['id'] for u in P.live if 'The worse answer keeps the larger group<p' in (lambda r: r[1][r[2][0]:r[2][1]])(unit_src(base, u['id']))), None)
+    plan = Plan(os.path.join(base, 'book.json'))
+    uid = next((u['id'] for u in plan.live if 'The worse answer keeps the larger group<p' in (lambda r: r[1][r[2][0]:r[2][1]])(unit_src(base, u['id']))), None)
     tmp = os.path.join(base, '.work')
     os.makedirs(tmp, exist_ok=True)
     pj = os.path.join(tmp, 'f2.json')
@@ -706,8 +706,8 @@ def f3_cases(base, hp, pristine, before_close):
         fail += not ok
         print(f"{name:3} {'caught' if ok else 'MISSED'} ({what})")
     restore()
-    P = Plan(os.path.join(base, 'book.json'))
-    uid = next(u['id'] for u in P.live if u['role'] == 'core')
+    plan = Plan(os.path.join(base, 'book.json'))
+    uid = next(u['id'] for u in plan.live if u['role'] == 'core')
     fx = lambda *a, **k: [t.split('\t') for t in agents.tasks(base, 'fix', *a, **k)]
     base_n = len(fx())
     os.makedirs(os.path.join(base, '.work', 'r-zq-1'))
@@ -724,7 +724,7 @@ def f3_cases(base, hp, pristine, before_close):
     say('F3b', any('render:overflow-x' in t[4] and '--render' in t[4] for t in ts) and br.count('- render:overflow-x ') == 1 and any(t[1] == 'main' and 'render:page-error' in t[0] for t in ts)
         and not cmd_gaps([t[4] for t in ts if t[1] != 'main']), 'render findings route to a fixer (deduplicated across widths); a page-level failure goes to the lead')
     restore()
-    say('F3c', all('40 tool calls' in agents.lens_brief(base, n_, [uid], P=P) for n_ in agents.lenses()) and '40 tool calls' in agents.role_brief(base, 'test', 'x', P=P, uid=uid), 'the tool-call budget is in every brief')
+    say('F3c', all('40 tool calls' in agents.lens_brief(base, n_, [uid], plan=plan) for n_ in agents.lenses()) and '40 tool calls' in agents.role_brief(base, 'test', 'x', plan=plan, uid=uid), 'the tool-call budget is in every brief')
     j = json.load(open(os.path.join(base, 'book.json'), encoding='utf-8'))
     j['book'].setdefault('policies', {})['new_patterns'] = 1
     json.dump(j, open(os.path.join(base, 'book.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
@@ -737,10 +737,10 @@ def f3_cases(base, hp, pristine, before_close):
     restore()
     x = agents.lenses()
     co = next(v for v in x.values() if v['role'] == 'review-coherence')
-    pool = [u['id'] for u in P.live]
-    sizes = agents._sizes(base, P, pool, {None})
-    parts = {P.U[u].get('part') for u in pool}
-    gs = agents.review_groups(base, P, dict(co, inputs=['text --unit U']), pool, {None: sizes[None]} if False else sizes)
+    pool = [u['id'] for u in plan.live]
+    sizes = agents._sizes(base, plan, pool, {None})
+    parts = {plan.unit_by_id[u].get('part') for u in pool}
+    gs = agents.review_groups(base, plan, dict(co, inputs=['text --unit U']), pool, {None: sizes[None]} if False else sizes)
     say('F3e', len(gs) == len(parts) and all(':' not in t for g in gs for t in g), 'coherence: one task per part, whole units')
     big = [('a', [(0, 24000)]), ('b', [(0, 24000)]), ('c', [(0, 2000)])]
     g2 = agents._pack(big)

@@ -11,10 +11,10 @@ from .lint import lint, tag_balance
 
 
 def snippet(kind=None, src=None):
-    """Print one markup snippet from templates/units.html (<!--snip:KIND--> ... <!--/snip-->), or list the kinds."""
+    """Print one markup snippet from assets/templates/units.html (<!--snip:KIND--> ... <!--/snip-->), or list the kinds."""
     path = src or os.path.join(TEMPLATES, 'units.html')
     s = open(path, encoding='utf-8').read() if os.path.exists(path) else ''
-    snips = {m.group(1): m.group(2).strip('\n') for m in re.finditer(r'<!--\s*snip:([\w-]+)\s*-->(.*?)<!--\s*/snip\s*-->', s, re.S)}
+    snips = {m.group(1): m.group(2).strip('\n') for m in re.finditer(r'<!--\s*snip:([\w-]+)\s*-->(.*?)<!--\s*/snip\s*-->', s, re.DOTALL)}
     if not snips:
         print(f'no <!--snip:KIND--> markers in {path}')
         return 1
@@ -83,7 +83,7 @@ def unit_src(d, uid):
         if not os.path.exists(f):
             continue
         t = open(f, encoding='utf-8').read()
-        m = re.search(r'<section\s+data-u="' + re.escape(uid) + r'"[^>]*>(.*?)</section>', t, re.S)
+        m = re.search(r'<section\s+data-u="' + re.escape(uid) + r'"[^>]*>(.*?)</section>', t, re.DOTALL)
         if m:
             return f, t, (m.start(1), m.end(1))
     raise PlanError(f'unit {uid} has no <section data-u="{uid}"> in units/*.html or units.html')
@@ -124,16 +124,16 @@ def _blocks(sp, top):
     return out
 
 
-def _blk_text(t, r, P=None):
+def _blk_text(t, r, plan=None):
     frag = t[r['start']:r['end']]
-    return vis(parse(fill_refs(P, frag) if P else frag))
+    return vis(parse(fill_refs(plan, frag) if plan else frag))
 
 
 def outline(d, uid):
     f, t, sp, top = _unit_spans(d, uid)
-    P = Plan(os.path.join(d, 'book.json'))
+    plan = Plan(os.path.join(d, 'book.json'))
     print(f'{os.path.relpath(f, d)} {uid}')
-    a, b = re.search(r'<section\s+data-u="' + re.escape(uid) + r'"[^>]*>(.*?)</section>', t, re.S).span(1)
+    a, b = re.search(r'<section\s+data-u="' + re.escape(uid) + r'"[^>]*>(.*?)</section>', t, re.DOTALL).span(1)
     ph = [(t.count('\n', 0, m.start()) + 1, m) for m in re.finditer(r'<!--(card|fig) ([\w.-]+)-->', t[a:b])]
     ph = [(t.count('\n', 0, a + m.start()) + 1, m) for _, m in ph]
     for depth, r, wrap in _blocks(sp, top):
@@ -143,7 +143,7 @@ def outline(d, uid):
         a = r['attrs']
         kind = a.get('data-c') or r['tag']
         meta = '/'.join(x for x in (a.get('data-move'), a.get('data-level'), a.get('data-diff')) if x) or a.get('data-kind') or (('demo ' + a['data-demo']) if a.get('data-demo') else '')
-        tx = _blk_text(t, r, P)
+        tx = _blk_text(t, r, plan)
         first = '' if wrap else tx[:50].replace('"', "'")
         print(f'{"  " * depth}L{r["line"]} #{r["id"] or "-"} {kind}{" " + meta if meta else ""} "{first}" {len(tx)}')
     for ln, m in ph:
@@ -171,17 +171,17 @@ def show(d, uid, sel, as_html=False):
     f, t, sp, top = _unit_spans(d, uid)
     hits = select(sp, top, sel)
     if not hits:
-        print(f'nothing matches {sel} in {uid}; run `book.py outline {uid}`')
+        print(f'nothing matches {sel} in {uid}; run `make-book.py outline {uid}`')
         return 1
-    P = Plan(os.path.join(d, 'book.json'))
-    lang = str(P.book.get('lang', 'en'))
+    plan = Plan(os.path.join(d, 'book.json'))
+    lang = str(plan.book.get('lang', 'en'))
     for r in hits:
         frag = t[r['start']:r['end']]
         print(f'--- L{r["line"]} #{r["id"] or "-"} {r["attrs"].get("data-c") or r["tag"]}')
         if as_html:
             print(frag)
         else:
-            emit_text(parse(fill_refs(P, frag)), None, lang)
+            emit_text(parse(fill_refs(plan, frag)), None, lang)
     return 0
 
 
@@ -260,7 +260,7 @@ def edit(d, uid, patch):
         new = {'replace': lambda: new[:st] + h + new[en:], 'before': lambda: new[:st] + h + '\n' + new[st:],
                'after': lambda: new[:en] + '\n' + h + new[en:], 'remove': lambda: new[:st] + new[en:].lstrip('\n')}[kind]()
     for k, op in subs:
-        a, b = re.search(r'<section\s+data-u="' + re.escape(uid) + r'"[^>]*>(.*?)</section>', new, re.S).span(1)
+        a, b = re.search(r'<section\s+data-u="' + re.escape(uid) + r'"[^>]*>(.*?)</section>', new, re.DOTALL).span(1)
         n, want = new[a:b].count(op['old']), op.get('count', 1)
         if n != want:
             print(f'op {k} sub: "{op["old"][:50]}" occurs {n} times in {uid}, patch says {want}; nothing written')
@@ -277,8 +277,8 @@ def edit(d, uid, patch):
     if new == t:
         print('patch changes nothing; nothing written')
         return 1
-    a1, b1 = re.search(r'<section\s+data-u="' + re.escape(uid) + r'"[^>]*>(.*?)</section>', t, re.S).span(1)
-    a2, b2 = re.search(r'<section\s+data-u="' + re.escape(uid) + r'"[^>]*>(.*?)</section>', new, re.S).span(1)
+    a1, b1 = re.search(r'<section\s+data-u="' + re.escape(uid) + r'"[^>]*>(.*?)</section>', t, re.DOTALL).span(1)
+    a2, b2 = re.search(r'<section\s+data-u="' + re.escape(uid) + r'"[^>]*>(.*?)</section>', new, re.DOTALL).span(1)
     n0, n1 = tag_balance(t[a1:b1])[0], tag_balance(new[a2:b2])[0]
     if n0 != n1 and not n0:
         print(f'the result changes the tag balance of unit {uid} ({_diff(n0, n1)}); nothing written')
@@ -299,6 +299,6 @@ def edit(d, uid, patch):
     for sign, s_ in (('+', after - before), ('-', before - after)):
         for lv, rule, msg, ev in sorted(s_, key=lambda x: (x[1], x[2])):
             print(f'{sign} {lv:5} {rule:3} {msg}' + (f'  [{ev}]' if ev else ''))
-    c = lambda S, lv: sum(1 for x in S if x[0] == lv)
+    c = lambda rows, lv: sum(1 for x in rows if x[0] == lv)
     print(f'-- lint {uid}: {c(after, "error")} errors, {c(after, "warn")} warns ({len(after - before)} new, {len(before - after)} gone)')
     return 1 if c(after, 'error') else 0

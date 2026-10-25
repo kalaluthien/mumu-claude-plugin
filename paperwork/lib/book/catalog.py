@@ -1,7 +1,7 @@
 """Element and pattern catalog: slots/U.json entries render into cards and figures at build; patterns are reference reading, never filled in.
 
 A placeholder <!--card ID--> or <!--fig ID--> in a unit names an entry of BOOK/slots/U.json: {ID: {kind, label?, move, level, diff, elements: [{el, ...slots}]}}.
-Elements live in catalog/elements/<id>.json (BOOK/catalog/ first), patterns in catalog/patterns/<id>.md.
+Elements live in assets/catalog/elements/<id>.json (BOOK/catalog/ first), patterns in assets/catalog/patterns/<id>.md.
 """
 import collections, copy, datetime, functools, html, json, os, re, shutil
 from .const import ASSETS, LIB
@@ -48,9 +48,9 @@ def elements(book=None):
 def read_pattern(path):
     t = open(path, encoding='utf-8').read()
     m = re.match(r'#\s*([\w-]+):\s*(.*)', t)
-    fam = re.search(r'^family:\s*(\w+)', t, re.M)
-    els = re.search(r'^elements:\s*(.*)$', t, re.M)
-    secs = dict((h.strip().lower(), b) for h, b in re.findall(r'^## ([^\n]+)\n(.*?)(?=^## |\Z)', t, re.M | re.S))
+    fam = re.search(r'^family:\s*(\w+)', t, re.MULTILINE)
+    els = re.search(r'^elements:\s*(.*)$', t, re.MULTILINE)
+    secs = dict((h.strip().lower(), b) for h, b in re.findall(r'^## ([^\n]+)\n(.*?)(?=^## |\Z)', t, re.MULTILINE | re.DOTALL))
     return dict(id=m.group(1) if m else os.path.basename(path)[:-3], why=m.group(2).strip() if m else '', family=fam.group(1) if fam else '',
                 elements=[x.strip() for x in els.group(1).split(',') if x.strip()] if els else [], path=path, text=t, sections=secs)
 
@@ -98,7 +98,7 @@ def _get(ctx, path):
     return v
 
 
-def fill(tpl, ctx, E, kind):
+def fill(tpl, ctx, element_specs, kind):
     """Template: {slot}, {slot!a} (attribute-escaped), {a.b}, {slot@element} (sub-element), [slot: text] (if set), {#list}...{/list} (items merged into ctx)."""
     keep = []
 
@@ -108,14 +108,14 @@ def fill(tpl, ctx, E, kind):
 
     def loop(m):
         items = _get(ctx, m.group(1)) or []
-        return stash(''.join(fill(m.group(2), dict(ctx, **it) if isinstance(it, dict) else dict(ctx, **{'.': it}), E, kind) for it in items))
-    t = re.sub(r'\{#([\w.]+)\}(.*?)\{/\1\}', loop, tpl, flags=re.S)
+        return stash(''.join(fill(m.group(2), dict(ctx, **it) if isinstance(it, dict) else dict(ctx, **{'.': it}), element_specs, kind) for it in items))
+    t = re.sub(r'\{#([\w.]+)\}(.*?)\{/\1\}', loop, tpl, flags=re.DOTALL)
     t = re.sub(r'\[([\w.]+): ([^\[\]]*)\]', lambda m: m.group(2) if _get(ctx, m.group(1)) not in (None, '', [], {}, False) else '', t)
 
     def val(m):
         v = _get(ctx, m.group(1))
         if m.group(2):
-            return stash(render_el(m.group(2), v, E, kind, sub=True) if v else '')
+            return stash(render_el(m.group(2), v, element_specs, kind, sub=True) if v else '')
         if v is None or isinstance(v, bool):
             return ''
         s = ','.join(map(str, v)) if isinstance(v, list) else f'{v:g}' if isinstance(v, float) else str(v)
@@ -134,14 +134,14 @@ def kit_html(n):
     return f'<div class="{html.escape(cls)}"{a}>{html.escape(str(n.get("t", "")))}' + ''.join(kit_html(k) for k in n.get('kids') or []) + '</div>'
 
 
-def render_el(eid, ctx, E, kind, sub=False):
-    e = E.get(eid) or {}
+def render_el(eid, ctx, element_specs, kind, sub=False):
+    e = element_specs.get(eid) or {}
     tpl = e.get('render', '')
     if isinstance(tpl, dict):
         tpl = tpl.get(kind, tpl.get('*', ''))
     if tpl == '@kit':
         return kit_html(ctx) if sub else f'<div class="mk">{kit_html(ctx)}</div>'
-    return fill(tpl, ctx if isinstance(ctx, dict) else {}, E, kind)
+    return fill(tpl, ctx if isinstance(ctx, dict) else {}, element_specs, kind)
 
 
 def alt_of(spec):
@@ -149,14 +149,14 @@ def alt_of(spec):
     return f'{a.get("kind", "")}: {a.get("encodes", "")}; {a.get("point", "")}' if a else ''
 
 
-def render(cid, spec, E):
+def render(cid, spec, element_specs):
     """The existing card or figure markup for one entry; build dresses it like a hand card."""
     k = spec.get('kind')
     zones = collections.defaultdict(list)
     for e in spec.get('elements') or []:
-        el = E.get(e.get('el')) or {}
+        el = element_specs.get(e.get('el')) or {}
         if el.get('zone', 'body') != 'none':
-            zones[el.get('zone', 'body')].append(render_el(e['el'], e, E, k))
+            zones[el.get('zone', 'body')].append(render_el(e['el'], e, element_specs, k))
     z = lambda n: ''.join(zones[n])
     a = lambda name, v: f' {name}="{html.escape(str(v), quote=True)}"' if v not in (None, '') else ''
     if k in FIG_KINDS:
@@ -188,7 +188,7 @@ def _todo(x, path, out):
             _todo(v, f'{path}.{i}', out)
 
 
-def check_slots(schema, x, path, E, out):
+def check_slots(schema, x, path, element_specs, out):
     if not isinstance(x, dict):
         out.append(f'{path} must be an object')
         return
@@ -205,7 +205,7 @@ def check_slots(schema, x, path, E, out):
             continue
         t = sl.get('type', 'str')
         if t.startswith('el:'):
-            check_slots((E.get(t[3:]) or {}).get('slots') or {}, v, f'{path}.{k}', E, out)
+            check_slots((element_specs.get(t[3:]) or {}).get('slots') or {}, v, f'{path}.{k}', element_specs, out)
             continue
         want = TYPES.get(t, str)
         if not isinstance(v, want) or (t in ('int', 'num') and isinstance(v, bool)):
@@ -217,7 +217,7 @@ def check_slots(schema, x, path, E, out):
         elif t == 'list' and sl.get('of'):
             for i, it in enumerate(v):
                 if it != TODO:
-                    check_slots(sl['of'], it, f'{path}.{k}.{i}', E, out)
+                    check_slots(sl['of'], it, f'{path}.{k}.{i}', element_specs, out)
 
 
 COUNTS = {'ask': {'stem': (1, 1), 'answer': (1, 1)}, 'probe': {'stem': (1, 1), 'answer': (1, 1)}, 'task-sort': {'stem': (1, 1), 'items': (1, 1)},
@@ -225,7 +225,7 @@ COUNTS = {'ask': {'stem': (1, 1), 'answer': (1, 1)}, 'probe': {'stem': (1, 1), '
           'task-custom': {'stem': (1, 1), 'model': (1, 1)}, 'fig': {'alt': (1, 1)}, 'frames': {'alt': (1, 1), 'steps': (1, 1)}}
 
 
-def validate_spec(cid, spec, E):
+def validate_spec(cid, spec, element_specs):
     """P1 messages for one entry: kind, card keys, elements the kind can hold, slots present, typed and not TODO, element counts."""
     out = []
     if not isinstance(spec, dict):
@@ -243,7 +243,7 @@ def validate_spec(cid, spec, E):
     n = collections.Counter()
     for i, e in enumerate(els):
         p = f'{cid}.elements.{i}'
-        el = E.get(e.get('el')) if isinstance(e, dict) else None
+        el = element_specs.get(e.get('el')) if isinstance(e, dict) else None
         if el is None:
             out.append(f'{p} names no known element ({e.get("el") if isinstance(e, dict) else e}); see `pattern list` and `element show`')
             continue
@@ -251,7 +251,7 @@ def validate_spec(cid, spec, E):
         if k not in el.get('kinds', []):
             out.append(f'{p}: a {k} cannot hold {e["el"]} (it goes in {", ".join(el.get("kinds", []))})')
         _todo(e, f'{p} {e["el"]}', out)
-        check_slots(el.get('slots') or {}, e, f'{p} {e["el"]}', E, out)
+        check_slots(el.get('slots') or {}, e, f'{p} {e["el"]}', element_specs, out)
     for el, (lo, hi) in COUNTS[k].items():
         if not lo <= n[el] <= hi:
             out.append(f'{cid}: a {k} holds {lo if lo == hi else f"{lo}-{hi}"} {el}, found {n[el]}')
@@ -265,18 +265,18 @@ def _units(d):
     return read_units(d)
 
 
-def validate(d, E=None, only=None):
+def validate(d, element_specs=None, only=None):
     """[(unit, msg)] P1 over the book: placeholders without entries, orphan entries, entries of units that do not exist, and each entry's spec."""
-    E = E or elements(d)
-    S, U, out = load_slots(d), _units(d), []
-    for uid in sorted(set(S) | {u for u, t in U.items() if PH.search(t)}):
+    element_specs = element_specs or elements(d)
+    slots, unit_texts, out = load_slots(d), _units(d), []
+    for uid in sorted(set(slots) | {u for u, t in unit_texts.items() if PH.search(t)}):
         if only and uid != only:
             continue
-        if uid not in U:
+        if uid not in unit_texts:
             out.append((uid, f'slots/{uid}.json names a unit with no section'))
             continue
-        ent, placed = S.get(uid) or {}, collections.Counter()
-        for typ, cid in PH.findall(U[uid]):
+        ent, placed = slots.get(uid) or {}, collections.Counter()
+        for typ, cid in PH.findall(unit_texts[uid]):
             placed[cid] += 1
             if cid not in ent:
                 out.append((uid, f'<!--{typ} {cid}--> has no entry in slots/{uid}.json'))
@@ -285,7 +285,7 @@ def validate(d, E=None, only=None):
         out += [(uid, f'{cid} is placed {c} times') for cid, c in placed.items() if c > 1]
         out += [(uid, f'slots/{uid}.json entry {cid} is placed nowhere; add <!--card {cid}--> or remove it') for cid in ent if cid not in placed]
         for cid, spec in ent.items():
-            out += [(uid, m) for m in validate_spec(cid, spec, E)]
+            out += [(uid, m) for m in validate_spec(cid, spec, element_specs)]
     return out
 
 
@@ -293,38 +293,38 @@ def expand(d, uid, inner):
     """Build hook: render the unit's placeholders; any P1 message refuses the build."""
     if not PH.search(inner) and not os.path.exists(os.path.join(d, 'slots', uid + '.json')):
         return inner
-    E = elements(d)
-    bad = validate(d, E, uid)
+    element_specs = elements(d)
+    bad = validate(d, element_specs, uid)
     if bad:
         raise PlanError('P1 slots refuse the build:\n' + '\n'.join(f'  {u}: {m}' for u, m in bad[:20]) + (f'\n  … {len(bad) - 20} more' if len(bad) > 20 else ''))
     ent = load_slots(d).get(uid) or {}
-    return PH.sub(lambda m: render(m.group(2), ent[m.group(2)], E), inner)
+    return PH.sub(lambda m: render(m.group(2), ent[m.group(2)], element_specs), inner)
 
 # ---------------------------------------------------------------- lint (P1, P2)
 
 
-def known_text(P, src, pos):
+def known_text(plan, src, pos):
     """What the reader has met before a placeholder: the unit prose before it, terms, canon and concept forms."""
     before = pcheck.txt(src[:pos])
-    extra = [c.get('term', '') for c in P.C.values()] + [str(v) for v in ((P.d.get('canon') or {}).get('values') or {}).values()]
-    extra += [' '.join(map(str, t.values())) for t in P.d.get('terms') or [] if isinstance(t, dict)]
+    extra = [c.get('term', '') for c in plan.concept_by_id.values()] + [str(v) for v in ((plan.d.get('canon') or {}).get('values') or {}).values()]
+    extra += [' '.join(map(str, t.values())) for t in plan.d.get('terms') or [] if isinstance(t, dict)]
     return before + ' ' + ' '.join(extra)
 
 
-def lint_findings(d, P, F, unit=None):
-    E = elements(d)
-    for uid, m in validate(d, E, unit):
-        F.add('P1', 'error', uid, m)
-    S, U = load_slots(d), _units(d)
-    for uid, ent in S.items():
-        if (unit and uid != unit) or uid not in U:
+def lint_findings(d, plan, findings, unit=None):
+    element_specs = elements(d)
+    for uid, m in validate(d, element_specs, unit):
+        findings.add('P1', 'error', uid, m)
+    slots, unit_texts = load_slots(d), _units(d)
+    for uid, ent in slots.items():
+        if (unit and uid != unit) or uid not in unit_texts:
             continue
-        for m in PH.finditer(U[uid]):
+        for m in PH.finditer(unit_texts[uid]):
             spec = ent.get(m.group(2))
             if not isinstance(spec, dict):
                 continue
-            for cid, lv, i, msg in pcheck.run(spec, E, P.pack, known_text(P, U[uid], m.start())):
-                F.add('P2', lv, uid, f'{m.group(2)} {cid}: {msg}')
+            for cid, lv, i, msg in pcheck.run(spec, element_specs, plan.pack, known_text(plan, unit_texts[uid], m.start())):
+                findings.add('P2', lv, uid, f'{m.group(2)} {cid}: {msg}')
 
 # ---------------------------------------------------------------- mutate: every element check against its example
 
@@ -346,26 +346,26 @@ def _apply(spec, ops):
     return s
 
 
-def element_cases(E, pack, only=None):
+def element_cases(element_specs, pack, only=None):
     """[(element, check, label, ok)]: the example is clean (P1 and its own checks), and each check's breaks is caught by that check."""
     out = []
-    for eid, el in sorted(E.items()):
+    for eid, el in sorted(element_specs.items()):
         if only and eid not in only:
             continue
         ex = el.get('example')
         if not ex:
             out.append((eid, '-', 'example missing', False))
             continue
-        p1 = validate_spec(eid, ex, E)
+        p1 = validate_spec(eid, ex, element_specs)
         mine = {c['id'] for c in el.get('checks') or []}
-        fired = [(c, m) for c, lv, i, m in pcheck.run(ex, E, pack) if c in mine and ex['elements'][i].get('el') == eid or lv == 'error']
+        fired = [(c, m) for c, lv, i, m in pcheck.run(ex, element_specs, pack) if c in mine and ex['elements'][i].get('el') == eid or lv == 'error']
         out.append((eid, 'clean', '; '.join(p1 + [f'{c}: {m}' for c, m in fired])[:160], not p1 and not fired))
         for c in el.get('checks') or []:
             if c['id'] not in pcheck.CHECKS:
                 out.append((eid, c['id'], 'no such check in pcheck', False))
                 continue
             try:
-                hit = any(cc == c['id'] for cc, lv, i, m in pcheck.run(_apply(ex, c.get('breaks') or []), E, pack))
+                hit = any(cc == c['id'] for cc, lv, i, m in pcheck.run(_apply(ex, c.get('breaks') or []), element_specs, pack))
             except (KeyError, IndexError, TypeError, ValueError) as x:
                 out.append((eid, c['id'], f'breaks does not apply ({x})', False))
                 continue
@@ -392,11 +392,11 @@ DEFAULT_ELEMENTS = {'ask': 'stem,answer,rival,rival', 'probe': 'stem,answer,riva
 def _insert(d, uid, after, text):
     from .edit import _unit_spans, select
     f, t, sp, top = _unit_spans(d, uid)
-    a, b = re.search(r'<section\s+data-u="' + re.escape(uid) + r'"[^>]*>(.*?)</section>', t, re.S).span(1)
+    a, b = re.search(r'<section\s+data-u="' + re.escape(uid) + r'"[^>]*>(.*?)</section>', t, re.DOTALL).span(1)
     ph = [m for m in PH.finditer(t, a, b) if '#' + m.group(2) == after]
     hits = ph or select(sp, top, after)
     if len(hits) != 1:
-        raise PlanError(f'--after {after} matches {len(hits)} blocks in {uid}; run `book.py outline {uid}`')
+        raise PlanError(f'--after {after} matches {len(hits)} blocks in {uid}; run `make-book.py outline {uid}`')
     e = hits[0].end() if ph else hits[0]['end']
     _backup(d, f)
     open(f, 'w', encoding='utf-8').write(t[:e] + '\n' + text + t[e:])
@@ -410,18 +410,18 @@ def _backup(d, f):
 
 def new_entry(d, uid, after, kind, els, cid=None, label=None, tactic=None):
     """Insert a placeholder after block SEL and write a TODO stub; the writer fills slots, build refuses until no TODO is left."""
-    E = elements(d)
+    element_specs = elements(d)
     if kind not in CARD_KINDS + FIG_KINDS:
         raise PlanError(f'--kind must be one of {", ".join(CARD_KINDS + FIG_KINDS)}')
     names = [x.strip() for x in (els or DEFAULT_ELEMENTS[kind]).split(',') if x.strip()]
-    bad = [x for x in names if x not in E]
+    bad = [x for x in names if x not in element_specs]
     if bad:
-        raise PlanError(f'unknown elements {", ".join(bad)}; see `book.py element show E` and `pattern list`')
-    bad = [x for x in names if kind not in E[x].get('kinds', [])]
+        raise PlanError(f'unknown elements {", ".join(bad)}; see `make-book.py element show E` and `pattern list`')
+    bad = [x for x in names if kind not in element_specs[x].get('kinds', [])]
     if bad:
-        raise PlanError(f'a {kind} cannot hold {", ".join(bad)}; `book.py element show E` names the kinds each element goes in')
-    S = load_slots(d)
-    ent = S.get(uid) or {}
+        raise PlanError(f'a {kind} cannot hold {", ".join(bad)}; `make-book.py element show E` names the kinds each element goes in')
+    slots = load_slots(d)
+    ent = slots.get(uid) or {}
     fig = kind in FIG_KINDS
     if not cid:
         base = ('fig' if fig else kind.split('-')[0]) + '-' + re.sub(r'^u-', '', uid)
@@ -432,12 +432,12 @@ def new_entry(d, uid, after, kind, els, cid=None, label=None, tactic=None):
     if label:
         spec['label'] = label
     spec.update({'tactic': tactic or (kind if kind == 'frames' else TODO), 'fkind': TODO, 'caption': TODO} if fig else {'move': TODO, 'level': TODO, 'diff': TODO})
-    spec['elements'] = [_stub(E[x]) for x in names]
+    spec['elements'] = [_stub(element_specs[x]) for x in names]
     _insert(d, uid, after, f'<!--{"fig" if fig else "card"} {cid}-->')
     ent[cid] = spec
     save_slots(d, uid, ent)
     print(f'<!--{"fig" if fig else "card"} {cid}--> after {after} in {uid}; stub in slots/{uid}.json: fill every TODO, then build')
-    print('slots per element: `book.py element show E`; why and how to vary: `book.py pattern show P`')
+    print('slots per element: `make-book.py element show E`; why and how to vary: `make-book.py pattern show P`')
     return 0
 
 
@@ -547,12 +547,12 @@ def lift(d, uid, cid):
     if node.get('data-c') not in ('ask', 'probe', 'task'):
         raise PlanError(f'#{cid} is a {node.get("data-c") or node.tag}, not a card')
     spec = lift_spec(node, uid)
-    E = elements(d)
-    back = render(cid, spec, E)
+    element_specs = elements(d)
+    back = render(cid, spec, element_specs)
     if canon(back) != canon(frag if node.get('id') else frag.replace(f'data-c="{node.get("data-c")}"', f'data-c="{node.get("data-c")}" id="{cid}"', 1)):
         raise PlanError(f'#{cid}: the lifted entry does not render back to the same card; lift by hand or mark the odd part raw')
-    S = load_slots(d)
-    ent = S.get(uid) or {}
+    slots = load_slots(d)
+    ent = slots.get(uid) or {}
     if cid in ent:
         raise PlanError(f'{cid} already has an entry in slots/{uid}.json')
     ent[cid] = spec
@@ -586,7 +586,7 @@ def pattern_list(family=None, book=None):
 def pattern_show(pid, book=None):
     p = patterns(book).get(pid)
     if not p:
-        raise PlanError(f'no pattern {pid}; `book.py pattern list`')
+        raise PlanError(f'no pattern {pid}; `make-book.py pattern list`')
     print(p['text'].rstrip())
     return 0
 
@@ -617,15 +617,15 @@ def _new_patterns(book):
     return [p for p in j.get('new_patterns') or [] if isinstance(p, dict)]
 
 
-def plan_gaps(P):
+def plan_gaps(plan):
     """Why the skeleton gate refuses the plan's new_patterns (list of messages): too few per family, an id the catalog has, empty nearest or differs, unknown elements."""
-    want = P.book.get('policies', {}).get('new_patterns', 1) if isinstance(P.book.get('policies'), dict) else 1
+    want = plan.book.get('policies', {}).get('new_patterns', 1) if isinstance(plan.book.get('policies'), dict) else 1
     want = want if isinstance(want, int) and not isinstance(want, bool) and want >= 0 else 1
-    nps, out = P.d.get('new_patterns') or [], []
-    if want == 0 and not any(isinstance(x, dict) and x.get('node') == 'policies.new_patterns' and x.get('how') == 'user' for x in P.d.get('decisions') or []):
+    nps, out = plan.d.get('new_patterns') or [], []
+    if want == 0 and not any(isinstance(x, dict) and x.get('node') == 'policies.new_patterns' and x.get('how') == 'user' for x in plan.d.get('decisions') or []):
         out.append('policies.new_patterns is 0 but no decisions entry records that the user chose it; add {"node": "policies.new_patterns", "chosen": 0, "how": "user"} after asking, or remove the policy (default 1 per family)')
         want = 1  # without the user's word the default holds
-    cat, E = patterns(), elements(P.dir)
+    cat, element_specs = patterns(), elements(plan.dir)
     for fam in ('problem', 'visual'):
         n = sum(1 for p in nps if isinstance(p, dict) and p.get('family') == fam)
         if n < want:
@@ -642,7 +642,7 @@ def plan_gaps(P):
         if p.get('nearest') and p['nearest'] not in cat:
             out.append(f'new pattern {p["id"]}: nearest {p["nearest"]} is no catalog pattern')
         newe = set(p.get('new_elements') or [])
-        unk = [e for e in p.get('elements') or [] if e not in E and e not in newe]
+        unk = [e for e in p.get('elements') or [] if e not in element_specs and e not in newe]
         if not p.get('elements') or unk:
             out.append(f'new pattern {p["id"]} elements unknown or missing: {", ".join(unk) or "none listed"}')
     return out
@@ -684,7 +684,7 @@ def uses(d):
 def review_gaps(d):
     """Why the review gate refuses: a new pattern used fewer than twice, without its .md (why, examples, composition), or a new element failing schema or mutate."""
     out, u = [], uses(d)
-    E = elements(d)
+    element_specs = elements(d)
     from .lang import pack
     j = json.load(open(os.path.join(d, 'book.json'), encoding='utf-8'))
     for p in _new_patterns(d):
@@ -700,11 +700,11 @@ def review_gaps(d):
             if miss:
                 out.append(f'catalog/patterns/{pid}.md lacks {", ".join(miss)}')
         for eid in p.get('new_elements') or []:
-            if eid not in E or E[eid]['src'] != 'book':
+            if eid not in element_specs or element_specs[eid]['src'] != 'book':
                 out.append(f'new element {eid} has no catalog/elements/{eid}.json')
                 continue
-            out += [f'new element {eid} {c}: {m}' for _, c, m, ok in element_cases(E, pack(j.get('book', {}).get('lang')), {eid}) if not ok]
-            if not E[eid].get('checks'):
+            out += [f'new element {eid} {c}: {m}' for _, c, m, ok in element_cases(element_specs, pack(j.get('book', {}).get('lang')), {eid}) if not ok]
+            if not element_specs[eid].get('checks'):
                 out.append(f'new element {eid} has no check with breaks')
     return out
 
@@ -804,11 +804,11 @@ def carry_check(d, cid):
     """Append the book's check code to pcheck.py (before run) and register it; names the function _chk_<id>."""
     src = open(os.path.join(d, 'catalog', 'checks', f'{cid}.py'), encoding='utf-8').read()
     ident = '_chk_' + re.sub(r'\W', '_', cid)
-    code = re.sub(r'^def check\(', f'def {ident}(', src, count=1, flags=re.M)
+    code = re.sub(r'^def check\(', f'def {ident}(', src, count=1, flags=re.MULTILINE)
     path = os.path.join(LIB, 'pcheck.py')
     t = open(path, encoding='utf-8').read()
     block = f"# --- promoted check {cid}\n{code.rstrip()}\nCHECKS['{cid}'] = {ident}\n# --- end promoted check {cid}\n\n\n"
-    t = t.replace('\ndef run(spec, E, pack', '\n' + block + 'def run(spec, E, pack', 1)
+    t = t.replace('\ndef run(spec, element_specs, pack', '\n' + block + 'def run(spec, element_specs, pack', 1)
     open(path, 'w', encoding='utf-8').write(t)
 
 
@@ -820,30 +820,30 @@ def promote(d, pid, variant_of=None):
         raise PlanError(f'{src} not found; write the pattern file first')
     p = read_pattern(src)
     entry = next((x for x in _new_patterns(d) if x.get('id') == pid), {})
-    E, skillE = elements(d), elements()
+    element_specs, skillE = elements(d), elements()
     newe = [e for e in p['elements'] if e not in skillE]
     errs = []
     for eid in newe:
-        if eid not in E:
+        if eid not in element_specs:
             errs.append(f'element {eid} is in neither catalog')
             continue
-        shape = element_shape(eid, E[eid])
+        shape = element_shape(eid, element_specs[eid])
         if shape:
             errs += shape
             continue
-        errs += book_check_gaps(d, eid, E[eid])
-        if not E[eid].get('checks'):
+        errs += book_check_gaps(d, eid, element_specs[eid])
+        if not element_specs[eid].get('checks'):
             errs.append(f'new element {eid} needs a check with breaks')
         if not any(m.startswith(f'new element {eid}: check') for m in errs):
-            errs += [f'new element {eid} {c}: {m}' for _, c, m, ok in element_cases(E, pack('en'), {eid}) if not ok]  # examples use the skill's generic English case
+            errs += [f'new element {eid} {c}: {m}' for _, c, m, ok in element_cases(element_specs, pack('en'), {eid}) if not ok]  # examples use the skill's generic English case
     same = [q['id'] for q in patterns().values() if set(q['elements']) == set(p['elements']) and q['id'] != pid]
     if same and not variant_of:
         errs.append(f'element set equals {", ".join(same)}; fold it in with --as-variant-of {same[0]}')
     dom = domain_words(d)
-    body = re.sub(r'^## Examples\n.*?(?=^## |\Z)', '', p['text'], flags=re.M | re.S)
+    body = re.sub(r'^## Examples\n.*?(?=^## |\Z)', '', p['text'], flags=re.MULTILINE | re.DOTALL)
     hit = sorted(w for w in dom if w in body)
-    for eid in [e for e in newe if e in E and isinstance(E[e], dict)]:
-        hit += sorted(w for w in dom if eid in E and w in json.dumps({k: v for k, v in E[eid].items() if k != 'example'}, ensure_ascii=False))
+    for eid in [e for e in newe if e in element_specs and isinstance(element_specs[e], dict)]:
+        hit += sorted(w for w in dom if eid in element_specs and w in json.dumps({k: v for k, v in element_specs[eid].items() if k != 'example'}, ensure_ascii=False))
     if hit:
         errs.append(f'domain words outside Examples: {", ".join(sorted(set(hit))[:8])}; keep hints, checks and seed generic')
     seed = (p['sections'].get('seed') or '').strip().splitlines()
@@ -857,30 +857,30 @@ def promote(d, pid, variant_of=None):
             raise PlanError(f'--as-variant-of {variant_of}: no such catalog pattern')
         t = open(dst, encoding='utf-8').read()
         note = f'- Variant {pid}: {p["why"]}' + (f' ({entry.get("differs")})' if entry.get('differs') else '')
-        t = re.sub(r'(^## Compose and vary\n(?:.*?\n)*?)(?=^## |\Z)', lambda m: m.group(1) + note + '\n', t, count=1, flags=re.M)
+        t = re.sub(r'(^## Compose and vary\n(?:.*?\n)*?)(?=^## |\Z)', lambda m: m.group(1) + note + '\n', t, count=1, flags=re.MULTILINE)
         open(dst, 'w', encoding='utf-8').write(t)
         print(f'{pid} folded into {variant_of} as a composition note')
     else:
         os.makedirs(os.path.join(SKILL_CAT, 'patterns'), exist_ok=True)
         shutil.copy(src, os.path.join(SKILL_CAT, 'patterns', f'{pid}.md'))
-        print(f'{pid} copied to catalog/patterns')
+        print(f'{pid} copied to assets/catalog/patterns')
     for eid in newe:
-        for c in E[eid].get('checks') or []:
+        for c in element_specs[eid].get('checks') or []:
             if c['id'] not in pcheck.CHECKS or c['id'] in pcheck.BOOK_CHECKS:
                 carry_check(d, c['id'])
                 print(f'check {c["id"]} copied into pcheck')
         os.makedirs(os.path.join(SKILL_CAT, 'elements'), exist_ok=True)
         shutil.copy(os.path.join(d, 'catalog', 'elements', f'{eid}.json'), os.path.join(SKILL_CAT, 'elements', f'{eid}.json'))
-        print(f'element {eid} copied to catalog/elements')
+        print(f'element {eid} copied to assets/catalog/elements')
     sp = os.path.join(ASSETS, 'seeds.md')
     row = f'| card-pattern | {seed[0].strip()} |'
     parent = next(iter((patterns()[variant_of]['sections'].get('seed') or '').strip().splitlines()), '').strip() if variant_of and variant_of in patterns() else None
     if row in open(sp, encoding='utf-8').read().splitlines() or parent == seed[0].strip():
-        print('seed not appended: the same line is already in tests/seeds.md or is the parent pattern\'s')
+        print('seed not appended: the same line is already in assets/seeds.md or is the parent pattern\'s')
     else:
         with open(sp, 'a', encoding='utf-8') as fh:
             fh.write(row + '\n')
-        print('seed appended to tests/seeds.md (row card-pattern)')
+        print('seed appended to assets/seeds.md (row card-pattern)')
     return 0
 
 # ---------------------------------------------------------------- brief and reviewer text
@@ -938,13 +938,13 @@ def writer_meta(d):
             if not isinstance(spec, dict):
                 continue
             fs = pcheck.facts(spec)
-            L = [f'    label: {spec["label"]}'] if spec.get('label') else []
+            lines = [f'    label: {spec["label"]}'] if spec.get('label') else []
             for e in spec.get('elements') or []:
                 if e.get('el') in ('rival', 'near-miss'):
                     rob = '; '.join(fs[k] for k in e.get('ruled_out_by') or [] if isinstance(k, int) and 0 <= k < len(fs))
-                    L.append(f'    rival "{pcheck.txt(e.get("text"))[:40]}": belief {e.get("belief", "-")}; right when {e.get("right_when", "-")}; ruled out by {rob or "-"}'
+                    lines.append(f'    rival "{pcheck.txt(e.get("text"))[:40]}": belief {e.get("belief", "-")}; right when {e.get("right_when", "-")}; ruled out by {rob or "-"}'
                              + (f'; missing {e["missing"]}' if e.get('missing') else ''))
-            out[cid] = L
+            out[cid] = lines
     return out
 
 # ---------------------------------------------------------------- command line

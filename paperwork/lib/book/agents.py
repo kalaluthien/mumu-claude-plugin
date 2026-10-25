@@ -56,8 +56,8 @@ def _plan(d):
     return _book().Plan(os.path.join(d, 'book.json'))
 
 
-def plan_hash(P):
-    return _book().plan_hash(P)
+def plan_hash(plan):
+    return _book().plan_hash(plan)
 
 
 def _raw(d):
@@ -76,8 +76,8 @@ def _now():
     return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
 
 
-def routes(P):
-    over = (P.d.get('policies') or {}).get('models') or (P.book.get('policies') or {}).get('models') or {}
+def routes(plan):
+    over = (plan.d.get('policies') or {}).get('models') or (plan.book.get('policies') or {}).get('models') or {}
     out = {}
     for role, r in ROUTES.items():
         o = over.get(role) or {}
@@ -92,16 +92,16 @@ def run_line(d, rest):
 
 
 def scratch(d, aid):
-    """Scratch path as book.py reads it: a `.work/` path resolves inside the book directory."""
+    """Scratch path as make-book.py reads it: a `.work/` path resolves inside the book directory."""
     return f'.work/{aid}/'
 
 
 # ---------------------------------------------------------------- criteria rows
 def rows(name, ref=None):
-    """{heading: [(id, text)]} from `| id | ... |` tables under ## headings of reference/NAME; ids are lowercase kebab."""
+    """{heading: [(id, text)]} from `| id | ... |` tables under ## headings of references/NAME; ids are lowercase kebab."""
     p = os.path.join(ref or REF, name)
     if not os.path.exists(p):
-        raise AgentsError(f'reference/{name} not found; the brief needs its rows')
+        raise AgentsError(f'references/{name} not found; the brief needs its rows')
     out, head = collections.OrderedDict(), None
     for line in open(p, encoding='utf-8'):
         m = re.match(r'##\s+(.+?)\s*$', line)
@@ -118,23 +118,23 @@ def rows(name, ref=None):
 
 
 def lenses(ref=None):
-    """{lens: {role, inputs, gate, rows, protocol}} from `## lens: NAME` sections of reference/review.md."""
+    """{lens: {role, inputs, gate, rows, protocol}} from `## lens: NAME` sections of references/review.md."""
     p = os.path.join(ref or REF, 'review.md')
     if not os.path.exists(p):
-        raise AgentsError('reference/review.md not found; reviewer briefs need its lens sections')
+        raise AgentsError('references/review.md not found; reviewer briefs need its lens sections')
     src = open(p, encoding='utf-8').read()
     out, rs = collections.OrderedDict(), rows('review.md', ref)
-    pm = re.search(r'^##\s+protocol\s*\n(.*?)(?=^##\s|\Z)', src, re.S | re.M)
-    for m in re.finditer(r'^##\s+(lens:\s*(\S+))[^\n]*\n(.*?)(?=^##\s|\Z)', src, re.S | re.M):
+    pm = re.search(r'^##\s+protocol\s*\n(.*?)(?=^##\s|\Z)', src, re.DOTALL | re.MULTILINE)
+    for m in re.finditer(r'^##\s+(lens:\s*(\S+))[^\n]*\n(.*?)(?=^##\s|\Z)', src, re.DOTALL | re.MULTILINE):
         name, body = m.group(2).strip(), m.group(3)
         head = body.split('\n|', 1)[0]
         role = next((r for r in ROUTES if r.startswith('review-') and re.search(r'`' + re.escape(r) + r'`', head)), 'review-conformance')
         im = re.search(r'Inputs?:([^\n]*)', head)
         g = re.search(r'\bat the `?([\w-]+)`? gate', head)
         out[name] = dict(role=role, inputs=re.findall(r'`([^`]+)`', im.group(1)) if im else [], gate=g.group(1) if g else 'review',
-                         rows=rs.get(m.group(1).strip(), []), protocol=pm.group(1).strip() if pm else '', note=re.sub(r'^Role [^\n]*$', '', head, flags=re.M).strip())
+                         rows=rs.get(m.group(1).strip(), []), protocol=pm.group(1).strip() if pm else '', note=re.sub(r'^Role [^\n]*$', '', head, flags=re.MULTILINE).strip())
     if not out:
-        raise AgentsError('reference/review.md has no `## lens: NAME` sections')
+        raise AgentsError('references/review.md has no `## lens: NAME` sections')
     return out
 
 
@@ -159,7 +159,7 @@ def kit(d):
     if not os.path.exists(jp):
         return []
     out = []
-    for blk in re.findall(r'/\*\s*kit:(.*?)\*/', open(jp, encoding='utf-8').read(), re.S):
+    for blk in re.findall(r'/\*\s*kit:(.*?)\*/', open(jp, encoding='utf-8').read(), re.DOTALL):
         for ln in blk.split('\n'):
             m = re.match(r'\s*\*?\s*(\.[\w-]+(?:[ ,]+\.[\w-]+)*)\s+(.*\S)', ln)
             if m:
@@ -228,100 +228,100 @@ def _code(lines):
 def write_pointer():
     heads = _book().WRITE_SECTIONS
     if not os.path.exists(os.path.join(REF, 'write.md')):
-        raise AgentsError('reference/write.md not found; the writer brief points to it')
+        raise AgentsError('references/write.md not found; the writer brief points to it')
     return f'Read `{os.path.abspath(os.path.join(REF, "write.md"))}` sections {", ".join(heads)} once before the first draft; every row applies to this unit.'
 
 
-def writer_brief(d, uid, aid=None, P=None, j=None, level=0, revise=False):
-    P = P or _plan(d)
+def writer_brief(d, uid, aid=None, plan=None, j=None, level=0, revise=False):
+    plan = plan or _plan(d)
     j = j or _raw(d)
-    if uid not in P.U:
+    if uid not in plan.unit_by_id:
         raise AgentsError(f'unit {uid} is not in book.json')
-    u, aid, h = P.U[uid], aid or f'w-{uid}', plan_hash(P)
+    u, aid, h = plan.unit_by_id[uid], aid or f'w-{uid}', plan_hash(plan)
     b = _book()
     src = _units_src(d).get(uid, '')
     gl = (90, 60, 40)[level]
     s = scratch(d, aid)
-    L = [f'# Writer brief: {uid} {u["title"]}' + (' (revise)' if revise else ''), f'Agent `{aid}`, role writer, plan hash `{h}`, scratch `{s}` in `{os.path.abspath(d)}`.', '', '## Unit']
-    part = P.P.get(u.get('part'), {}).get('name')
-    L.append(f'- role {u["role"]}' + (f', part {part}' if part else '') + f', status {u.get("status", "written" if src else "new")}, book {P.book.get("lang", "en")} / {P.book.get("register", "-")}')
-    L.append(f'- band: {_band(P.bands.get(u["role"], {})) or "none"}')
-    qs = P.serves.get(uid, [])
-    here = [q for q in qs if P.arrival.get(q) == uid] or qs[:1]
+    brief_lines = [f'# Writer brief: {uid} {u["title"]}' + (' (revise)' if revise else ''), f'Agent `{aid}`, role writer, plan hash `{h}`, scratch `{s}` in `{os.path.abspath(d)}`.', '', '## Unit']
+    part = plan.part_by_id.get(u.get('part'), {}).get('name')
+    brief_lines.append(f'- role {u["role"]}' + (f', part {part}' if part else '') + f', status {u.get("status", "written" if src else "new")}, book {plan.book.get("lang", "en")} / {plan.book.get("register", "-")}')
+    brief_lines.append(f'- band: {_band(plan.bands.get(u["role"], {})) or "none"}')
+    qs = plan.serves.get(uid, [])
+    here = [q for q in qs if plan.arrival.get(q) == uid] or qs[:1]
     for q in here:
-        L.append(f'- answers {q}: {_cut(P.Q[q]["text"], gl + 40)}')
+        brief_lines.append(f'- answers {q}: {_cut(plan.question_by_id[q]["text"], gl + 40)}')
     if len(qs) > len(here):
-        L.append('- also feeds: ' + ', '.join(q for q in qs if q not in here))
-    i = P.idx[uid]
-    prev = P.units[i - 1]['id'] if i else '-'
-    nxt = P.units[i + 1]['id'] if i + 1 < len(P.units) else '-'
-    L.append(f'- place: after {prev}, before {nxt}; takes {", ".join(u.get("takes", [])) or "-"}; makes {", ".join(u.get("makes", [])) or "-"}')
-    L += ['', '## Concepts', '| id | term | en | gloss | needs | avoid |', '|---|---|---|---|---|---|']
+        brief_lines.append('- also feeds: ' + ', '.join(q for q in qs if q not in here))
+    i = plan.idx[uid]
+    prev = plan.units[i - 1]['id'] if i else '-'
+    nxt = plan.units[i + 1]['id'] if i + 1 < len(plan.units) else '-'
+    brief_lines.append(f'- place: after {prev}, before {nxt}; takes {", ".join(u.get("takes", [])) or "-"}; makes {", ".join(u.get("makes", [])) or "-"}')
+    brief_lines += ['', '## Concepts', '| id | term | en | gloss | needs | avoid |', '|---|---|---|---|---|---|']
     links = []
-    for c in P.defines.get(uid, []):
-        L.append(f'| {c["id"]} | {c["term"]} | {c.get("en", "")} | {_cut(c.get("gloss", ""), gl)} | {", ".join(c.get("needs", []))} | {", ".join(c.get("avoid", []))} |')
-        links += [n for n in c.get('needs', []) if n in P.C and P.C[n]['unit'] != uid and n not in links]
+    for c in plan.defines.get(uid, []):
+        brief_lines.append(f'| {c["id"]} | {c["term"]} | {c.get("en", "")} | {_cut(c.get("gloss", ""), gl)} | {", ".join(c.get("needs", []))} | {", ".join(c.get("avoid", []))} |')
+        links += [n for n in c.get('needs', []) if n in plan.concept_by_id and plan.concept_by_id[n]['unit'] != uid and n not in links]
     if links:
-        L.append('- link with data-ref: ' + ', '.join(f'{n} {P.C[n]["term"]} ({P.C[n]["unit"]})' for n in links))
+        brief_lines.append('- link with data-ref: ' + ', '.join(f'{n} {plan.concept_by_id[n]["term"]} ({plan.concept_by_id[n]["unit"]})' for n in links))
     facts = list(u.get('takes', [])) + list(u.get('makes', []))
     if facts:
-        L += ['', '## Facts']
+        brief_lines += ['', '## Facts']
         for f in facts:
-            v = b.fact_text(P, f)
-            L.append(f'- {"takes" if f in u.get("takes", []) else "makes"} `{f}`: {P.facts_decl.get(f, "")} = {_cut(v, gl) if v is not None else "(not set)"}')
+            v = b.fact_text(plan, f)
+            brief_lines.append(f'- {"takes" if f in u.get("takes", []) else "makes"} `{f}`: {plan.facts_decl.get(f, "")} = {_cut(v, gl) if v is not None else "(not set)"}')
     canon = (j.get('canon') or {}).get('values') or {}
     used = {k: v for k, v in canon.items() if str(v) in src} or canon
     if used:
-        L.append(f'- canon {"used" if src and used is not canon else "values"}: ' + ', '.join(f'{k}={v}' for k, v in list(used.items())[:12]))
-    if P.H:
-        L.append('- homes: ' + '; '.join(f'{k}: {_cut(x["meaning"], 40)} [{", ".join(x["regions"])}]' for k, x in P.H.items()))
+        brief_lines.append(f'- canon {"used" if src and used is not canon else "values"}: ' + ', '.join(f'{k}={v}' for k, v in list(used.items())[:12]))
+    if plan.home_by_id:
+        brief_lines.append('- homes: ' + '; '.join(f'{k}: {_cut(x["meaning"], 40)} [{", ".join(x["regions"])}]' for k, x in plan.home_by_id.items()))
     terms = [t for t in j.get('terms') or [] if t.get('avoid')]
     if terms:
-        L.append('- terms: ' + '; '.join(f'{t["use"]} not {"/".join(t["avoid"])}' for t in terms[:12]))
+        brief_lines.append('- terms: ' + '; '.join(f'{t["use"]} not {"/".join(t["avoid"])}' for t in terms[:12]))
     cards = _cards(src)
     kinds = collections.Counter(re.findall(r'data-c="([\w-]+)"', src))
     srcs = _units_src(d)
-    pool = [cid for e in [x['id'] for x in P.units[:i]] for k, cid, _ in _cards(srcs.get(e, '')) if cid and k in ('ask', 'task')]
-    L += ['', '## Cards']
-    qs_band = P.bands.get(u['role'], {}).get('qs')
+    pool = [cid for e in [x['id'] for x in plan.units[:i]] for k, cid, _ in _cards(srcs.get(e, '')) if cid and k in ('ask', 'task')]
+    brief_lines += ['', '## Cards']
+    qs_band = plan.bands.get(u['role'], {}).get('qs')
     n_q = sum(1 for k, _, _ in cards if k in ('ask', 'task'))
-    L.append(f'- ask+task now {n_q}' + (f' (band {qs_band[0]}-{qs_band[1]})' if qs_band else '') + '; kinds present: ' + (', '.join(f'{k} {n}' for k, n in kinds.most_common() if k in BAND_KINDS) or 'none'))
+    brief_lines.append(f'- ask+task now {n_q}' + (f' (band {qs_band[0]}-{qs_band[1]})' if qs_band else '') + '; kinds present: ' + (', '.join(f'{k} {n}' for k, n in kinds.most_common() if k in BAND_KINDS) or 'none'))
     var = [v for _, _, v in cards if v]
-    L.append(f'- review variants: {", ".join(var) or "none yet"}; earlier sources: {", ".join(pool[-6:]) or "none"}')
+    brief_lines.append(f'- review variants: {", ".join(var) or "none yet"}; earlier sources: {", ".join(pool[-6:]) or "none"}')
     from . import catalog
     sp, share, top = catalog.spread(d, uid, src)
-    L.append(f'- patterns: {sp}' + (f'; {top} is {share:.0%} of the cards: vary the move (`pattern list`)' if share > 0.5 and top not in ('hand', 'unlabelled') else ''))
+    brief_lines.append(f'- patterns: {sp}' + (f'; {top} is {share:.0%} of the cards: vary the move (`pattern list`)' if share > 0.5 and top not in ('hand', 'unlabelled') else ''))
     newp = [p['id'] for p in j.get('new_patterns') or [] if isinstance(p, dict) and uid in (p.get('units') or [])]
     if newp:
-        L.append(f'- this unit uses the book\'s new patterns: {", ".join(newp)} (catalog/patterns/ID.md in the book; label the entries)')
+        brief_lines.append(f'- this unit uses the book\'s new patterns: {", ".join(newp)} (catalog/patterns/ID.md in the book; label the entries)')
     ds = demos(d)
     if ds:
         mine = [x for x in ds if uid in x[2]]
-        L += ['', '## Demos']
-        L += [f'- {n}: {_cut(doc, gl)}' for n, doc, _ in mine]
-        L.append(f'- {len(ds) - len(mine)} others; list: `{run_line(d, "demos")}`')
+        brief_lines += ['', '## Demos']
+        brief_lines += [f'- {n}: {_cut(doc, gl)}' for n, doc, _ in mine]
+        brief_lines.append(f'- {len(ds) - len(mine)} others; list: `{run_line(d, "demos")}`')
     use, dirs = _directives(j, uid)
-    L += ['', '## Directives' + (f' (round {use[-1].get("n")}' + (', open)' if use[-1].get('status') != 'closed' else ')') if use else '')]
-    L += [f'- r{n} [{_topic(x) or "-"}]{" (this unit)" if x.get("units") else ""} {x["text"]}' for n, x in dirs if _topic(x) != 'demo'] or ['- none']
+    brief_lines += ['', '## Directives' + (f' (round {use[-1].get("n")}' + (', open)' if use[-1].get('status') != 'closed' else ')') if use else '')]
+    brief_lines += [f'- r{n} [{_topic(x) or "-"}]{" (this unit)" if x.get("units") else ""} {x["text"]}' for n, x in dirs if _topic(x) != 'demo'] or ['- none']
     if revise:
-        L += ['', '## Lint todos']
-        F = [f for f in b.settle(P, b.lint(d, uid, quick=True), uid) if f['level'] in ('error', 'warn')]
-        L += [f'- {f["level"]} {f["rule"]} {_cut(f["msg"], 110)}' for f in F[:14]] or ['- none']
-        if len(F) > 14:
-            L.append(f'- {len(F) - 14} more: `{run_line(d, "lint --unit " + uid)}`')
+        brief_lines += ['', '## Lint todos']
+        findings = [f for f in b.settle(plan, b.lint(d, uid, quick=True), uid) if f['level'] in ('error', 'warn')]
+        brief_lines += [f'- {f["level"]} {f["rule"]} {_cut(f["msg"], 110)}' for f in findings[:14]] or ['- none']
+        if len(findings) > 14:
+            brief_lines.append(f'- {len(findings) - 14} more: `{run_line(d, "lint --unit " + uid)}`')
         ks = kit(d)
         if ks:
-            L += ['', '## Kit (book.js; reuse before adding parts)'] + [f'- `{c}` {_cut(t, 70)}' for c, t in ks[:20]]
-    L += ['', '## Criteria', f'- {write_pointer()}']
-    L += ['', '## Commands', 'Never read a whole unit or book.html; open only flagged shots.'] + _code([
+            brief_lines += ['', '## Kit (book.js; reuse before adding parts)'] + [f'- `{c}` {_cut(t, 70)}' for c, t in ks[:20]]
+    brief_lines += ['', '## Criteria', f'- {write_pointer()}']
+    brief_lines += ['', '## Commands', 'Never read a whole unit or book.html; open only flagged shots.'] + _code([
         run_line(d, f'outline {uid}'), run_line(d, f"show {uid} '#ID'"), run_line(None, 'snippet --list'),
         run_line(None, 'pattern list --dir ' + shlex.quote(os.path.abspath(d))), run_line(None, 'pattern show P --dir ' + shlex.quote(os.path.abspath(d))), run_line(None, 'element show E'),
         run_line(d, f'card new --unit {uid} --after SEL --elements stem,exhibit,answer,rival,rival --label P'),
         run_line(d, f'text --unit {uid} --section N --only prose'), run_line(d, f'edit {uid} --patch {s}patch.json'),
         run_line(d, f'lint --unit {uid}'), run_line(d, f"shot {uid} --sel '#ID' --quick --out {s}shots")]) + ['']
-    out = '\n'.join(L + _common(d, aid, h, 'writer'))
+    out = '\n'.join(brief_lines + _common(d, aid, h, 'writer'))
     if len(out) > WRITER_MAX and level < 2:
-        return writer_brief(d, uid, aid, P, j, level + 1, revise)
+        return writer_brief(d, uid, aid, plan, j, level + 1, revise)
     return out
 
 
@@ -358,26 +358,26 @@ def _inputs(d, x, sl, s):
     return out
 
 
-def lens_brief(d, lens, units, aid=None, P=None):
-    P = P or _plan(d)
+def lens_brief(d, lens, units, aid=None, plan=None):
+    plan = plan or _plan(d)
     ls = lenses()
     if lens not in ls:
-        raise AgentsError(f'lens {lens} not in reference/review.md; lenses: {", ".join(ls)}')
+        raise AgentsError(f'lens {lens} not in references/review.md; lenses: {", ".join(ls)}')
     sl = _slices(units)
-    bad = [x for x in sl if x not in P.U]
+    bad = [x for x in sl if x not in plan.unit_by_id]
     if bad:
         raise AgentsError(f'units not in book.json: {", ".join(bad)}')
-    x, h = ls[lens], plan_hash(P)
+    x, h = ls[lens], plan_hash(plan)
     aid = aid or f'r-{lens}'
     s = scratch(d, aid)
     wr = {k: t for v in rows('write.md').values() for k, t in v}
-    L = [f'# Review brief: lens {lens}', f'Agent `{aid}`, role {x["role"]}, plan hash `{h}`, scratch `{s}` in `{os.path.abspath(d)}`.', '', '## Units']
-    L += [f'- {u} {P.U[u]["title"]} ({P.U[u]["role"]})' + (f', sections {", ".join(map(str, secs))}' if secs else '') for u, secs in sl.items()]
-    L += ['', '## Inputs'] + _code(_inputs(d, x, sl, s))
-    L += ['', '## Protocol', x['protocol']] + ([x['note']] if x['note'] else [])
-    L += ['', '## Rows', '| id | yes when |', '|---|---|'] + [f'| {r} | {_resolve(t, wr)} |' for r, t in x['rows']]
-    L += [''] + _common(d, aid, h, 'review')
-    return '\n'.join(L)
+    brief_lines = [f'# Review brief: lens {lens}', f'Agent `{aid}`, role {x["role"]}, plan hash `{h}`, scratch `{s}` in `{os.path.abspath(d)}`.', '', '## Units']
+    brief_lines += [f'- {u} {plan.unit_by_id[u]["title"]} ({plan.unit_by_id[u]["role"]})' + (f', sections {", ".join(map(str, secs))}' if secs else '') for u, secs in sl.items()]
+    brief_lines += ['', '## Inputs'] + _code(_inputs(d, x, sl, s))
+    brief_lines += ['', '## Protocol', x['protocol']] + ([x['note']] if x['note'] else [])
+    brief_lines += ['', '## Rows', '| id | yes when |', '|---|---|'] + [f'| {r} | {_resolve(t, wr)} |' for r, t in x['rows']]
+    brief_lines += [''] + _common(d, aid, h, 'review')
+    return '\n'.join(brief_lines)
 
 
 def _lead(rule):
@@ -427,60 +427,60 @@ def _auto_render(d):
     return next((p for p in (os.path.join(d, '.work', 'render.json'), os.path.join(d, '.work', 'render.txt')) if os.path.isfile(p)), None)
 
 
-def fix_findings(d, P=None, units=None, render=None):
+def fix_findings(d, plan=None, units=None, render=None):
     """Lint findings (error, warn; decisions applied), the reviewers' no rows and render findings, grouped by unit; lead-level ones (B*, G1, no unit) under '-'."""
-    P = P or _plan(d)
+    plan = plan or _plan(d)
     b = _book()
     out = collections.defaultdict(list)
     extra = no_rows(d)
     rp = render or _auto_render(d)
     if rp:
         extra += render_rows(rp)
-    for f in b.settle(P, b.lint(d)) + extra:
+    for f in b.settle(plan, b.lint(d)) + extra:
         if f['level'] not in ('error', 'warn'):
             continue
-        u = '-' if _lead(f['rule']) or f['unit'] not in P.U else f['unit']
+        u = '-' if _lead(f['rule']) or f['unit'] not in plan.unit_by_id else f['unit']
         if units and u != '-' and u not in units:
             continue
         out[u].append(f)
     return out
 
 
-def fix_brief(d, rules, units, aid=None, P=None, render=None):
-    P = P or _plan(d)
-    h = plan_hash(P)
+def fix_brief(d, rules, units, aid=None, plan=None, render=None):
+    plan = plan or _plan(d)
+    h = plan_hash(plan)
     rules = set(rules)
     for uid in units:
-        if uid not in P.U:
+        if uid not in plan.unit_by_id:
             raise AgentsError(f'unit {uid} is not in book.json')
     role = 'sources' if all(r[0] == 'E' for r in rules) else 'fixer'
     aid = aid or ('sr-' if role == 'sources' else 'fx-') + '-'.join(units)[:24]
     s = scratch(d, aid)
-    F = [f for u, fs in fix_findings(d, P, units, render).items() if u != '-' for f in fs if f['rule'] in rules]
-    F.sort(key=lambda f: (P.idx.get(f['unit'], 0), f['rule']))
-    L = [f'# Fix brief: {",".join(sorted(rules))} in {",".join(units)}', f'Agent `{aid}`, role {role}, plan hash `{h}`, scratch `{s}` in `{os.path.abspath(d)}`.', '', '## Task']
-    L.append('- Complete each flagged study note: source link (URL or DOI), locator, depth read (abstract, section, full text, summary-read; summary-read = only a fetch-tool summary was seen), sample size. Open the source; a field you cannot verify goes in `open:`, not into a guess.' if role == 'sources'
-             else '- Fix each finding below with the smallest edit that clears it; rule text: `' + run_line(d, 'rules') + '`. `no:ROW` is a reviewer\'s judgment on that block (the repair is suggested; row text in reference/review.md); `render:CHECK` is a rendered-page failure.')
-    L += ['', f'## Findings ({len(F)})']
-    base = len('\n'.join(L))
-    for k, f in enumerate(F):
+    findings = [f for u, fs in fix_findings(d, plan, units, render).items() if u != '-' for f in fs if f['rule'] in rules]
+    findings.sort(key=lambda f: (plan.idx.get(f['unit'], 0), f['rule']))
+    brief_lines = [f'# Fix brief: {",".join(sorted(rules))} in {",".join(units)}', f'Agent `{aid}`, role {role}, plan hash `{h}`, scratch `{s}` in `{os.path.abspath(d)}`.', '', '## Task']
+    brief_lines.append('- Complete each flagged study note: source link (URL or DOI), locator, depth read (abstract, section, full text, summary-read; summary-read = only a fetch-tool summary was seen), sample size. Open the source; a field you cannot verify goes in `open:`, not into a guess.' if role == 'sources'
+             else '- Fix each finding below with the smallest edit that clears it; rule text: `' + run_line(d, 'rules') + '`. `no:ROW` is a reviewer\'s judgment on that block (the repair is suggested; row text in references/review.md); `render:CHECK` is a rendered-page failure.')
+    brief_lines += ['', f'## Findings ({len(findings)})']
+    base = len('\n'.join(brief_lines))
+    for k, f in enumerate(findings):
         ln = f'- {f["rule"]} {f["unit"]} {_cut(f["msg"], 130)}' + (f' | {_cut(f["ev"], 50)}' if f['ev'] else '')
         if base + len(ln) > WRITER_MAX - 2200:
-            L.append(f'- {len(F) - k} more: `{run_line(d, "lint --unit " + units[0])}`')
+            brief_lines.append(f'- {len(findings) - k} more: `{run_line(d, "lint --unit " + units[0])}`')
             break
-        L.append(ln)
+        brief_lines.append(ln)
         base += len(ln) + 1
     u0 = units[0]
-    L += ['', '## Commands'] + _code([run_line(d, f"show {u0} '#ID'"), run_line(d, f'text --unit {u0} --section N --only prose'),
+    brief_lines += ['', '## Commands'] + _code([run_line(d, f"show {u0} '#ID'"), run_line(d, f'text --unit {u0} --section N --only prose'),
                                       run_line(d, f'edit {u0} --patch {s}patch.json'), run_line(d, f'lint --unit {u0}')])
     rl = ['- ' + r.format(scratch=s) for r in RULES['all'] + RULES['writer'] + RULES['fix']]
-    return '\n'.join(L + [''] + ['## Rules'] + rl + ['', '## Hand-back', _handback('writer', aid, h, d)])
+    return '\n'.join(brief_lines + [''] + ['## Rules'] + rl + ['', '## Hand-back', _handback('writer', aid, h, d)])
 
 
-def fix_batches(P, by_unit, cap, ucap):
+def fix_batches(plan, by_unit, cap, ucap):
     """[(units, rules)]: units in plan order (a part together), each batch within cap findings and ucap units; a unit over cap splits by rule."""
-    parts = list(P.P)
-    us = sorted((u for u in by_unit if by_unit[u]), key=lambda u: (parts.index(P.U[u]['part']) if P.U[u].get('part') in parts else -1, P.idx[u]))
+    parts = list(plan.part_by_id)
+    us = sorted((u for u in by_unit if by_unit[u]), key=lambda u: (parts.index(plan.unit_by_id[u]['part']) if plan.unit_by_id[u].get('part') in parts else -1, plan.idx[u]))
     out, cur, n = [], [], 0
     for u in us:
         c = collections.Counter(f['rule'] for f in by_unit[u])
@@ -508,49 +508,49 @@ def fix_batches(P, by_unit, cap, ucap):
     return [x if isinstance(x, tuple) else (x, sorted({f['rule'] for u in x for f in by_unit[u]})) for x in out]
 
 
-def role_brief(d, kind, what, aid=None, bulk=False, P=None, uid=None):
+def role_brief(d, kind, what, aid=None, bulk=False, plan=None, uid=None):
     """test, debug, demo and research briefs."""
-    P = P or _plan(d)
-    h = plan_hash(P)
+    plan = plan or _plan(d)
+    h = plan_hash(plan)
     role = {'test': 'test', 'debug': 'debug', 'demo': 'demo'}.get(kind) or ('research-bulk' if bulk else 'research-explore')
-    if uid and uid not in P.U:
+    if uid and uid not in plan.unit_by_id:
         raise AgentsError(f'unit {uid} is not in book.json')
     aid = aid or {'test': 't-', 'debug': 'd-', 'demo': 'm-'}.get(kind, 'q-') + (uid + '-' if uid else '') + re.sub(r'[^\w]+', '-', (what or 'all').lower()).strip('-')[:20]
     s = scratch(d, aid)
-    L = [f'# {kind.capitalize()} brief', f'Agent `{aid}`, role {role}, plan hash `{h}`, scratch `{s}` in `{os.path.abspath(d)}`.', '', '## Task', f'- {what}' + (f' (unit {uid})' if uid else '')]
+    brief_lines = [f'# {kind.capitalize()} brief', f'Agent `{aid}`, role {role}, plan hash `{h}`, scratch `{s}` in `{os.path.abspath(d)}`.', '', '## Task', f'- {what}' + (f' (unit {uid})' if uid else '')]
     u = uid
     steps = f'{s}steps.json'
     shots = f'{s}shots'
     if kind == 'test':
-        L += ['- Drive states as a reader would; open only images a check flags.', '', '## Checks'] + _code([run_line(d, 'render --quick')] + ([
+        brief_lines += ['- Drive states as a reader would; open only images a check flags.', '', '## Checks'] + _code([run_line(d, 'render --quick')] + ([
             run_line(d, f'lint --unit {u}'), run_line(d, f'shot {u} --solve --sheet --quick --out {shots}'),
             run_line(d, f"shot {u} --sel '[data-demo]' --steps {steps} --out {shots}")] if uid else [run_line(d, 'lint')]))
-        L.append(f'- `{steps}`: `[{{"op": "tap|drag|type|key|wait", "sel": "CSS", "to": "CSS or [dx, dy]", "text": "", "key": "", "ms": 300}}]`.')
+        brief_lines.append(f'- `{steps}`: `[{{"op": "tap|drag|type|key|wait", "sel": "CSS", "to": "CSS or [dx, dy]", "text": "", "key": "", "ms": 300}}]`.')
     elif kind == 'debug':
-        L += ['- Reproduce first, then fix in the owned file, then rerun the repro.', '', '## Repro'] + _code([run_line(d, 'render --quick')] + ([
+        brief_lines += ['- Reproduce first, then fix in the owned file, then rerun the repro.', '', '## Repro'] + _code([run_line(d, 'render --quick')] + ([
             run_line(d, f'outline {u}'), run_line(d, f"show {u} '#ID'"),
             run_line(d, f"shot {u} --sel '#ID' --steps {steps} --quick --out {shots}"), run_line(d, f'lint --unit {u}')] if uid else [run_line(d, 'lint')]))
-        L.append(f'- Owned: `{os.path.join(os.path.abspath(d), "book.js")}`, figure scripts, and the unit only through `edit --patch`.')
+        brief_lines.append(f'- Owned: `{os.path.join(os.path.abspath(d), "book.js")}`, figure scripts, and the unit only through `edit --patch`.')
     elif kind == 'demo':
         _, reqs = _directives(j := _raw(d), topic='demo')
         reqs += [(r.get('n'), x) for r in (j.get('rounds') or []) if r.get('status') != 'closed' for x in r.get('directives', []) if _topic(x) == 'demo' and (r.get('n'), x) not in reqs]
         reqs = [(n, x) for n, x in reqs if not what or what in x['text'] or what in (x.get('units') or [])]
-        L += ['', '## Requests'] + ([f'- r{n}{" " + ",".join(x["units"]) if x.get("units") else ""}: {x["text"]}' for n, x in reqs] or ['- none recorded; `note TEXT --topic demo` records one'])
-        L += ['', '## Constraints', '- Colours from CSS variables; no `</` inside script strings; targets at least 24px; no layout shift on interaction.']
+        brief_lines += ['', '## Requests'] + ([f'- r{n}{" " + ",".join(x["units"]) if x.get("units") else ""}: {x["text"]}' for n, x in reqs] or ['- none recorded; `note TEXT --topic demo` records one'])
+        brief_lines += ['', '## Constraints', '- Colours from CSS variables; no `</` inside script strings; targets at least 24px; no layout shift on interaction.']
         names = [what] if what else [n for n, _, _ in demos(d)][:1]
         where = [uid] if uid else next((us for n, _, us in demos(d) if n in names), [])[:2]
-        L += ['', '## Commands'] + _code([run_line(d, f'demos --name {n}') for n in names] + [run_line(d, f"shot {w} --sel '[data-demo={n}]' --steps {steps} --out {shots}") for n in names for w in where] + [run_line(d, 'render --quick')])
-        L.append(f'- Owned: `{os.path.join(os.path.abspath(d), "book.js")}`.')
+        brief_lines += ['', '## Commands'] + _code([run_line(d, f'demos --name {n}') for n in names] + [run_line(d, f"shot {w} --sel '[data-demo={n}]' --steps {steps} --out {shots}") for n in names for w in where] + [run_line(d, 'render --quick')])
+        brief_lines.append(f'- Owned: `{os.path.join(os.path.abspath(d), "book.js")}`.')
     elif what.startswith('Pattern scout'):
-        L += [f'- Book language {P.book.get("lang", "en")}; reader: {_cut(P.book.get("reader", "-"), 120)}.', '', '## Catalog'] + _code([
+        brief_lines += [f'- Book language {plan.book.get("lang", "en")}; reader: {_cut(plan.book.get("reader", "-"), 120)}.', '', '## Catalog'] + _code([
             run_line(None, 'pattern list --dir ' + shlex.quote(os.path.abspath(d))), run_line(None, 'pattern show P --dir ' + shlex.quote(os.path.abspath(d)))])
-        L.append('- Return one line per candidate: `id | problem or visual | nearest | differs | a real example (source URL)`. A candidate whose differs a nearest pattern could also say is dropped.')
+        brief_lines.append('- Return one line per candidate: `id | problem or visual | nearest | differs | a real example (source URL)`. A candidate whose differs a nearest pattern could also say is dropped.')
     else:
-        L += [f'- Book language {P.book.get("lang", "en")}; reader: {_cut(P.book.get("reader", "-"), 120)}.',
+        brief_lines += [f'- Book language {plan.book.get("lang", "en")}; reader: {_cut(plan.book.get("reader", "-"), 120)}.',
               '- Return one line per claim: `claim | source URL | grade (proved, strong, weak, contested) | depth read (abstract, section, full text, summary-read; summary-read = only a fetch-tool summary was seen)`.',
               '- Primary sources first; give the current status of each (retracted, superseded, version).']
-    L += [''] + _common(d, aid, h, 'other')
-    return '\n'.join(L)
+    brief_lines += [''] + _common(d, aid, h, 'other')
+    return '\n'.join(brief_lines)
 
 
 def coverage(d, ref=None):
@@ -558,14 +558,14 @@ def coverage(d, ref=None):
     global REF
     old, REF = REF, ref or REF
     try:
-        P = _plan(d)
-        uid = next((u['id'] for u in P.units if u['role'] == 'core'), P.units[0]['id'])
-        wb = writer_brief(d, uid, P=P)
+        plan = _plan(d)
+        uid = next((u['id'] for u in plan.units if u['role'] == 'core'), plan.units[0]['id'])
+        wb = writer_brief(d, uid, plan=plan)
         ptr = next((ln for ln in wb.split('\n') if 'write.md' in ln and 'sections' in ln), '')
         named = set(re.findall(r'[\w-]+', ptr.split('sections', 1)[-1].split('once', 1)[0]))
         miss = [r for head, rs in rows('write.md').items() for r, _ in rs if head not in named]
         ls = lenses()
-        txt = '\n'.join(lens_brief(d, n, [uid], P=P) for n in ls)
+        txt = '\n'.join(lens_brief(d, n, [uid], plan=plan) for n in ls)
         allr = [r for rs in rows('review.md').values() for r, _ in rs]
         return miss + [r for r in allr if not re.search(r'\|\s*' + re.escape(r) + r'\s*\|', txt)]
     finally:
@@ -573,19 +573,19 @@ def coverage(d, ref=None):
 
 
 def commands(d):
-    """Every `python3 .../book.py ...` line the generated briefs and task lists print, for a parse check."""
-    P = _plan(d)
-    uid = next((u['id'] for u in P.units if u['role'] == 'core'), P.units[0]['id'])
-    txt = [writer_brief(d, uid, P=P, revise=True)] + [lens_brief(d, n, [uid], P=P) for n in lenses()]
-    txt += [role_brief(d, k, 'x', P=P, uid=uid) for k in ('test', 'debug', 'demo', 'research')]
+    """Every `python3 .../make-book.py ...` line the generated briefs and task lists print, for a parse check."""
+    plan = _plan(d)
+    uid = next((u['id'] for u in plan.units if u['role'] == 'core'), plan.units[0]['id'])
+    txt = [writer_brief(d, uid, plan=plan, revise=True)] + [lens_brief(d, n, [uid], plan=plan) for n in lenses()]
+    txt += [role_brief(d, k, 'x', plan=plan, uid=uid) for k in ('test', 'debug', 'demo', 'research')]
     txt += ['\n'.join(t.split('\t')[4] for t in tasks(d, st)) for st in ('plan', 'write', 'review', 'test', 'demo')]
     txt += [tasks(d, 'debug', symptom='x')[0].split('\t')[4]]
-    txt += [fix_brief(d, ['E3', 'K10'], [uid], P=P)] + ['\n'.join(t.split('\t')[4] for t in tasks(d, 'fix') if t.split('\t')[1] != 'main')]
+    txt += [fix_brief(d, ['E3', 'K10'], [uid], plan=plan)] + ['\n'.join(t.split('\t')[4] for t in tasks(d, 'fix') if t.split('\t')[1] != 'main')]
     return [ln.strip().strip('`') for t in txt for ln in t.split('\n') if ln.strip().strip('`').startswith('python3 ')]
 
 
 # ---------------------------------------------------------------- task lists
-def _sizes(d, P, pool, views):
+def _sizes(d, plan, pool, views):
     b = _book()
     root = b.parse(open(os.path.join(d, 'book.html'), encoding='utf-8').read())
     return {v: b.text_slices(d, v, set(pool), root) for v in views}
@@ -646,7 +646,7 @@ def _compress(g):
     return out
 
 
-def review_groups(d, P, x, pool, sizes):
+def review_groups(d, plan, x, pool, sizes):
     """Unit or unit:section tokens per task for one lens, sized by the lens's own text views."""
     views = [v for v in map(_view, x['inputs']) if v] or ['all']
     units = []
@@ -660,62 +660,62 @@ def review_groups(d, P, x, pool, sizes):
     if x['role'] == 'review-coherence':  # one task per part, whole units, never sliced
         parts = collections.OrderedDict()
         for u, secs in units:
-            parts.setdefault(P.U[u].get('part'), []).append(u)
+            parts.setdefault(plan.unit_by_id[u].get('part'), []).append(u)
         return list(parts.values())
     return _pack(units, whole)
 
 
 def tasks(d, stage, units=None, symptom=None, render=None):
-    P = _plan(d)
-    R = routes(P)
+    plan = _plan(d)
+    role_routes = routes(plan)
     srcs = _units_src(d)
     ids = units or None
     j = _raw(d)
 
     def line(aid, role, cmd):
-        r = R[role]
+        r = role_routes[role]
         return f'{aid}\t{role}\t{r["model"] or "main"}\t{r["effort"] or "-"}\t{run_line(d, cmd + " --as " + aid)}\t{scratch(d, aid)}'
 
     q = lambda t: shlex.quote(t)
     out = []
     if stage == 'plan':
-        for qq in P.Q.values():
+        for qq in plan.question_by_id.values():
             out.append(line('q-' + re.sub(r'^q-', '', qq['id']), 'research-explore', f'brief --research {q(qq["text"])}'))
         for sx in j.get('sources') or []:
             out.append(line(f'b-src-{sx.get("id")}', 'research-bulk', f'brief --bulk --research {q("Verify source " + str(sx.get("name", sx.get("id"))) + ": where it lives, how to open it, one real entry per form")}'))
-        cs = [c for c in P.C.values()]
+        cs = [c for c in plan.concept_by_id.values()]
         for k in range(0, len(cs), 12):
             grp = ', '.join(f'{c["term"]} ({c.get("en", "")})' for c in cs[k:k + 12])
             out.append(line(f'b-terms-{k // 12 + 1}', 'research-bulk', f'brief --bulk --research {q("Check each term against localized official docs and practitioner usage; give the used form and rivals: " + grp)}'))
-        want = (P.book.get('policies') or {}).get('new_patterns', 1)
+        want = (plan.book.get('policies') or {}).get('new_patterns', 1)
         if want != 0:
-            name = (j.get('project') or {}).get('name') or P.book.get('title') or 'this book'
+            name = (j.get('project') or {}).get('name') or plan.book.get('title') or 'this book'
             out.append(line('b-pattern-scout', 'research-bulk', 'brief --bulk --research ' + q(
                 f'Pattern scout for {name}: read the catalog (`pattern list`, `pattern show P` for the nearest ones), compare it with what practitioners of this book\'s field do or see at work, '
                 'and propose at least 2 new problem patterns and at least 1 new visual pattern: id, family, nearest catalog pattern, differs (the move this one forces that the nearest cannot), one real example from the field')))
         try:
             for n, x in lenses().items():
                 if x['gate'] in ('plan-check', 'skeleton'):
-                    out.append(line(f'r-{n}', x['role'], f'brief --lens {n} --units {",".join(u["id"] for u in P.units)}'))
+                    out.append(line(f'r-{n}', x['role'], f'brief --lens {n} --units {",".join(u["id"] for u in plan.units)}'))
         except AgentsError:
             pass
     elif stage == 'write':
-        for u in ids or [x['id'] for x in P.units if x.get('status') == 'planned' or x['id'] not in srcs]:
+        for u in ids or [x['id'] for x in plan.units if x.get('status') == 'planned' or x['id'] not in srcs]:
             out.append(line(f'w-{u}', 'writer', f'brief {u}'))
     elif stage == 'review':
-        pool = ids or [x['id'] for x in P.units if x['id'] in srcs]
-        if not ids and P.pol.get('review') == 'sample':  # the map, the capstone and one core unit per part
+        pool = ids or [x['id'] for x in plan.units if x['id'] in srcs]
+        if not ids and plan.pol.get('review') == 'sample':  # the map, the capstone and one core unit per part
             seen = set()
-            pool = [u for u in pool if P.U[u]['role'] in ('map', 'capstone')
-                    or (P.U[u]['role'] == 'core' and P.U[u].get('part') not in seen and not seen.add(P.U[u].get('part')))]
+            pool = [u for u in pool if plan.unit_by_id[u]['role'] in ('map', 'capstone')
+                    or (plan.unit_by_id[u]['role'] == 'core' and plan.unit_by_id[u].get('part') not in seen and not seen.add(plan.unit_by_id[u].get('part')))]
         ls = {n: x for n, x in lenses().items() if x['gate'] == 'review'}
         views = {({'all': None}.get(v, v)) for x in ls.values() for v in (list(map(_view, x['inputs'])) or ['all']) if v} or {None}
-        sizes = _sizes(d, P, pool, views)
+        sizes = _sizes(d, plan, pool, views)
         for n, x in ls.items():
-            for k, g in enumerate(review_groups(d, P, x, pool, sizes), 1):
+            for k, g in enumerate(review_groups(d, plan, x, pool, sizes), 1):
                 out.append(line(f'r-{n}-{k}', x['role'], f'brief --lens {n} --units {",".join(g)}'))
     elif stage == 'test':
-        for u in ids or [x['id'] for x in P.units if x['id'] in srcs]:
+        for u in ids or [x['id'] for x in plan.units if x['id'] in srcs]:
             out.append(line(f't-{u}', 'test', f'brief {u} --test {q("render, lint, shots and interactive states")}'))
     elif stage == 'demo':
         _, reqs = _directives(j, topic='demo')
@@ -729,14 +729,14 @@ def tasks(d, stage, units=None, symptom=None, render=None):
         u = (ids or [None])[0]
         out.append(line('d-' + re.sub(r'[^\w]+', '-', symptom.lower()).strip('-')[:20], 'debug', (f'brief {u} ' if u else 'brief ') + f'--debug {q(symptom)}'))
     elif stage == 'fix':
-        by = fix_findings(d, P, ids, render)
+        by = fix_findings(d, plan, ids, render)
         lead = by.pop('-', [])
         if lead:
             rl = sorted({f['rule'] for f in lead})
             out.append(f'lead-{"-".join(rl)}\tmain\tmain\t-\t{run_line(d, "lint")}\t{len(lead)} book-level findings ({",".join(rl)}): plan, build or chrome; the lead fixes them')
         for role, pick in (('sources', lambda r: r[0] == 'E'), ('fixer', lambda r: r[0] != 'E')):
             sub = {u: [f for f in fs if pick(f['rule'])] for u, fs in by.items()}
-            for k, (us_, rs_) in enumerate(fix_batches(P, sub, *FIX_CAPS[role]), 1):
+            for k, (us_, rs_) in enumerate(fix_batches(plan, sub, *FIX_CAPS[role]), 1):
                 out.append(line(('sr-' if role == 'sources' else 'fx-') + str(k), role, f'brief --fix {",".join(rs_)} --units {",".join(us_)}' + (f' --render {q(render)}' if render else '')))
     return out
 
@@ -770,7 +770,7 @@ def round_cmd(d, action):
 
 
 def approve(d, gate, by):
-    P = _plan(d)
+    plan = _plan(d)
     j = _raw(d)
     if gate == 'skeleton':
         missing = _book().round_gaps(j)
@@ -778,10 +778,10 @@ def approve(d, gate, by):
             raise AgentsError('skeleton refused: round 1 has no directive on ' + ', '.join(TOPIC_TEXT.get(t, t) for t in missing)
                               + '; record each with `note "..." --topic ' + missing[0] + '`')
     from . import catalog
-    gaps = catalog.plan_gaps(P) if gate == 'skeleton' else catalog.review_gaps(d) if gate == 'review' else []
+    gaps = catalog.plan_gaps(plan) if gate == 'skeleton' else catalog.review_gaps(d) if gate == 'review' else []
     if gaps:
         raise AgentsError(f'{gate} refused: ' + '; '.join(gaps))
-    h = plan_hash(P)
+    h = plan_hash(plan)
     rec = {'approved_by': by, 'at': _now(), 'plan_hash': h}
     if gate == 'skeleton':
         rec['new_patterns'] = len(j.get('new_patterns') or [])
@@ -789,7 +789,7 @@ def approve(d, gate, by):
         rv = (j.get('gates') or {}).get('review')
         if not rv or rv.get('plan_hash') != h:
             raise AgentsError('publish refused: no approved review gate at the current plan hash' + ('' if not rv else f' (approved at {rv.get("plan_hash")})') + '; review, then `approve review`')
-        errs = [f for f in _book().settle(P, _book().lint(d)) if f['level'] == 'error']
+        errs = [f for f in _book().settle(plan, _book().lint(d)) if f['level'] == 'error']
         if errs:
             raise AgentsError(f'publish refused: lint has {len(errs)} error(s), first {errs[0]["rule"]} {errs[0]["unit"]}: {_cut(errs[0]["msg"], 80)}')
         from . import publish
@@ -798,7 +798,7 @@ def approve(d, gate, by):
         except publish.PublishError as e:
             raise AgentsError(f'publish refused: {e}')
         if not ok:
-            raise AgentsError('publish refused: no record in publish.json matches the current build; publish it (scripts/publish.py) first')
+            raise AgentsError('publish refused: no record in publish.json matches the current build; publish it (publish-book.py) first')
         rec.update(targets=ok, sha=publish.sha(os.path.join(d, 'book.html')))
         left = catalog.unpromoted(d)
         if left:
@@ -848,7 +848,7 @@ def _free_pos(a):
         raise AgentsError(f'{a.cmd} takes at most [DIR] and one more positional')
     if len(rest) == 2:
         d2, rest = rest[0], rest[1:]
-    elif rest and rest[0] not in words and os.path.isfile(os.path.join(rest[0], 'book.json')) and not (os.path.isfile(os.path.join(d or '.', 'book.json')) and rest[0] in _plan(d or '.').U):
+    elif rest and rest[0] not in words and os.path.isfile(os.path.join(rest[0], 'book.json')) and not (os.path.isfile(os.path.join(d or '.', 'book.json')) and rest[0] in _plan(d or '.').unit_by_id):
         d2, rest = rest[0], []
     else:
         d2 = None

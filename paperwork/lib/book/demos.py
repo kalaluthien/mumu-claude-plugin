@@ -16,7 +16,7 @@ def _demo_scan(d):
             e[0].add(uid)
             e[1].update(set(re.findall(r'\s(data-[\w-]+)=', m.group(0))) - {'data-demo', 'data-c'})
     out = []
-    for m in re.finditer(r"""^[ \t]*D\[\s*['"]([\w-]+)['"]\s*\]\s*=""", js, re.M):
+    for m in re.finditer(r"""^[ \t]*D\[\s*['"]([\w-]+)['"]\s*\]\s*=""", js, re.MULTILINE):
         lines = js[:m.start()].rstrip().split('\n')
         dm = re.fullmatch(r'/\*\s*-*\s*(?:\d+\.\s*)?(.*?)\s*-*\s*\*/', lines[-1].strip() if lines else '')
         units, prm = use.get(m.group(1), [set(), set()])

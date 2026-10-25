@@ -19,7 +19,7 @@ def sha(path):
 def build_path(d):
     p = os.path.join(d, 'book.html')
     if not os.path.exists(p):
-        raise PublishError('book.html not found; run `book.py build` and pass the review gate first')
+        raise PublishError('book.html not found; run `make-book.py build` and pass the review gate first')
     return p
 
 
@@ -87,11 +87,11 @@ def pub_artifact(d, dry):
     src = build_path(d)
     page = open(src, encoding='utf-8').read()
     for pat in HEAD_TAGS:  # the Artifact host wraps the page in its own document skeleton
-        page = re.sub(pat, '', page, count=1, flags=re.I)
+        page = re.sub(pat, '', page, count=1, flags=re.IGNORECASE)
     if len(page.encode('utf-8')) > ARTIFACT_MAX:
         raise PublishError(f'page is {len(page.encode("utf-8")) >> 20} MB, over the 16 MB Artifact limit; move large figures out or split the book')
-    P = Plan(os.path.join(d, 'book.json'))
-    slug = re.sub(r'[^\w-]+', '-', str(P.book.get('doc_title') or P.book.get('title') or 'book')).strip('-')[:40] or 'book'
+    plan = Plan(os.path.join(d, 'book.json'))
+    slug = re.sub(r'[^\w-]+', '-', str(plan.book.get('doc_title') or plan.book.get('title') or 'book')).strip('-')[:40] or 'book'
     out = os.path.join(os.path.abspath(d), '.publish', 'claude-artifact', slug + '.html')
     if not dry:
         os.makedirs(os.path.dirname(out), exist_ok=True)
@@ -105,8 +105,8 @@ def pub_artifact(d, dry):
     caps = capabilities(d)
     if caps:
         call['capabilities'] = caps
-    if P.book.get('goal'):
-        call['description'] = str(P.book['goal'])[:200]
+    if plan.book.get('goal'):
+        call['description'] = str(plan.book['goal'])[:200]
     lines = [('(dry run: the page file is not written) ' if dry else '') + 'Call the Artifact tool with:', json.dumps(call, ensure_ascii=False),
              f'then: {sys.executable} {PUBLISH_BOOK} record claude-artifact {os.path.abspath(d)} --url URL_FROM_THE_RESULT']
     return '\n'.join(lines)

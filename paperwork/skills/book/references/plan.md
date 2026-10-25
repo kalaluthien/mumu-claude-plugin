@@ -28,7 +28,7 @@ The one place for a book pattern's life; SKILL.md and the other references point
 | Use | A card labels its pattern in `slots/`; a figure carries `data-pattern` on the figure or its svg, or `Fig(..., pattern='id')` in its script. Cards and figures count alike, in the brief's spread and the review gate's 2-use rule |
 | Document | `BOOK/catalog/patterns/ID.md` with Why it works, Parts, Examples, Compose and vary, Seed, as in the skill's catalog; a new element is `BOOK/catalog/elements/ID.json`, and a new check on it is code in `BOOK/catalog/checks/ID.py` defining `check(spec, i, ctx)`, with its `breaks` in the element JSON |
 | Review gate | Refuses a new pattern with fewer than 2 labelled uses (cards and figures), without its `.md`, or with a new element whose checks fail |
-| Promote | `pattern promote ID --dir BOOK [--as-variant-of P]` validates the element JSON (clean errors), copies a new check into the skill's pcheck, and refuses with the reason when the check misses its `breaks`, the element set equals a catalog pattern's, or book nouns appear outside Examples. The pattern's Seed lands in its `.md` and in `tests/seeds.md` as a `card-pattern` row, except a variant's seed identical to its parent's |
+| Promote | `pattern promote ID --dir BOOK [--as-variant-of P]` validates the element JSON (clean errors), copies a new check into the skill's pcheck, and refuses with the reason when the check misses its `breaks`, the element set equals a catalog pattern's, or book nouns appear outside Examples. The pattern's Seed lands in its `.md` and in `assets/seeds.md` as a `card-pattern` row, except a variant's seed identical to its parent's |
 | Publish | `approve publish` warns while a book pattern is neither promoted nor `local` |
 
 ## config boundary

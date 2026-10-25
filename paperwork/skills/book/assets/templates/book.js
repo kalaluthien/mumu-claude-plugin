@@ -1,5 +1,5 @@
 /* Custom tasks of this book. Each one reads its own markup, calls bookSolve(card) when the reader gets it right,
-   and sets card.__solve so `book.py render` can drive it. */
+   and sets card.__solve so `make-book.py render` can drive it. */
 /* kit:
   .tree-pick  buttons the reader taps in order; data-want lists the right order
 */

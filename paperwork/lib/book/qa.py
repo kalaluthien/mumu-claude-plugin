@@ -131,11 +131,11 @@ def shot(d, uid, sel=None, widths=(390, 1200), schemes=('light', 'dark'), solve=
     except ImportError:
         print('playwright not installed (pip install playwright; playwright install chromium)')
         return 2
-    P = Plan(os.path.join(d, 'book.json'))
-    if uid not in P.U:
+    plan = Plan(os.path.join(d, 'book.json'))
+    if uid not in plan.unit_by_id:
         raise PlanError(f'unit {uid} is not in book.json')
     if not os.path.exists(os.path.join(d, 'book.html')):
-        raise PlanError('book.html not found; run `book.py build` first')
+        raise PlanError('book.html not found; run `make-book.py build` first')
     out = out or os.path.join(d, '.work', 'shots')
     # --out x.png names the file for a single shot; several shots go to the directory x/ instead
     out_file = out if out.lower().endswith('.png') and not os.path.isdir(out) else None

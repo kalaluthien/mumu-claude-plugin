@@ -10,7 +10,7 @@ usage: make-book.py stats FILE.html [--sel .CLASS|TAG]   per-unit size distribut
 usage: make-book.py rules                    rule and policy tables
 usage: make-book.py render [DIR] [--out DIR] [--quick]   book-wide #check plus element checks; prints failures only (needs playwright)
 usage: make-book.py text [DIR] [--unit ID [--section N-M | --concept ID]] [--only prose|stems|cards|claims|figs]   flat reviewer text
-usage: make-book.py snippet KIND | --list    markup snippet from templates/units.html
+usage: make-book.py snippet KIND | --list    markup snippet from assets/templates/units.html
 usage: make-book.py outline [DIR] UNIT       one line per block: L<line> #<id> <kind> <meta> "<first 50>" <chars>
 usage: make-book.py show [DIR] UNIT SEL [--html]   blocks by #id, data-c kind, L120 or L120-L180
 usage: make-book.py edit [DIR] UNIT --patch F.json   all-or-none ops on the unit source; backup in .work/, rebuild, lint delta

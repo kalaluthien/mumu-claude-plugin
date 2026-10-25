@@ -1,7 +1,7 @@
 # Seeds
 
 ## use
-A row stays only if a fresh reviewer given just its seed and the row marks no. A promoted pattern's Seed (its `.md` keeps it) is also appended here as a `card-pattern` row. Each id is a row of `reference/review.md` or `reference/write.md`; a lens row that points to a write.md row covers it.
+A row stays only if a fresh reviewer given just its seed and the row marks no. A promoted pattern's Seed (its `.md` keeps it) is also appended here as a `card-pattern` row. Each id is a row of `references/review.md` or `references/write.md`; a lens row that points to a write.md row covers it.
 
 ## seeds
 | id | seed |
