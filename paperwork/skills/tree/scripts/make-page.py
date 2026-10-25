@@ -354,6 +354,25 @@ def views(browser, plan_path, out_dir):
     reasons = page.eval_on_selector_all(".most-why", "els => els.map(e => e.textContent)")
     if decisions and not all(r.removeprefix("Why it matters most").startswith(most_reason(ids, decisions)) for r in reasons):
         return f"the matters-most reason does not open with {most_reason(ids, decisions)!r}"
+    for d in decisions:
+        kids = ids[d].get("parts", [])
+        opened = next((p for p in kids if p.get("parts")), None)
+        if opened is None:
+            continue
+        page.click(f'[data-goto="{d}"]')
+        toggle = page.locator(f"{shown} .ctx-toggle[aria-expanded]").nth(0)
+        if toggle.text_content() != "\u25b8" or page.locator(f"{shown} .ctx-kids").count():
+            return f"page {d}: a context line with Parts starts open"
+        toggle.click()
+        toggle = page.locator(f"{shown} .ctx-toggle[aria-expanded]").nth(0)
+        sourced = sum(1 for k in opened["parts"] if k.get("source"))
+        if toggle.text_content() != "\u25be" or page.locator(f"{shown} .ctx-kids > .ctx").count() != len(opened["parts"]):
+            return f"page {d}: a click on a context line did not open its {len(opened['parts'])} Parts"
+        if page.locator(f"{shown} .ctx-kids .chip").count() != sourced:
+            return f"page {d}: the opened Parts show {page.locator(f'{shown} .ctx-kids .chip').count()} source chips, expected {sourced}"
+        toggle.click()
+        if page.locator(f"{shown} .ctx-kids").count():
+            return f"page {d}: a second click did not close the context line"
     if decisions:
         page.click('[data-goto="plan"]')
         rows = page.eval_on_selector_all(f"{shown} .crow", "els => els.map(e => [e.dataset.row, e.textContent])")
@@ -418,10 +437,13 @@ def strategies_dir(d):
             if fact:
                 print(f"refused: {f.name}: {fact}")
                 return 1
-            print(f"{f.name}: Your choices follows the pick, one stub restores the Options, focus and Esc, fold and unfold, mockups fit, one Decision matters most, no image")
+            print(f"{f.name}: Your choices follows the pick, one stub restores the Options, focus and Esc, fold and unfold, mockups fit, one Decision matters most, no image, a context line opens on a click")
         browser.close()
     if not mockups:
         print("refused: the examples hold no mockup")
+        return 1
+    if not any(p.get("parts") for f in files for d in items(tree_plan.load_file(f)) if tree_plan.is_decision(d) for p in d.get("parts", [])):
+        print("refused: the examples hold no context line with Parts of its own")
         return 1
     print(f"strategies ok {len(files)}")
     return 0

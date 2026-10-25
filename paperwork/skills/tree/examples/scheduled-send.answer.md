@@ -1,4 +1,4 @@
-# Answer: Scheduling Sent Messages in PostBox · plan 2f453d98
+# Answer: Scheduling Sent Messages in PostBox · plan 94c5af28
 - 5.2.1 pick 2
 - 6.2 pick 2
 - 6.3 struck: Email already covers the failure; one notification is enough.

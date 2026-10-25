@@ -9,6 +9,9 @@ import json
 import re
 
 KIND_RE = re.compile(r"^[a-z][a-z-]*$")
+# A source a reader can open: a link off the writer's machine, or a person and the day they said it, dot-free since the page draws it.
+SOURCE_URL_RE = re.compile(r"^https?://(?!localhost\b|127\.0\.0\.1\b|\[::1\])[^\s/]+\.[^\s/]+(/\S*)?$")
+SOURCE_PERSON_RE = re.compile(r"^[^/\\:,]+, \d{4}-\d{2}-\d{2}$")
 PART_KEYS = {"text", "kind", "source", "parts", "pick", "else"}
 OPTION_KEYS = {"text", "parts", "then"}
 QUESTION_KEYS = {"text", "pick", "else"}
@@ -142,6 +145,10 @@ def _part(p, path, errors, in_option=False):
         errors.append((f"{path}.kind", "bad-kind", "kind is a lowercase word, letters and '-' only"))
     if "source" in p and not isinstance(p["source"], str):
         errors.append((f"{path}.source", "wrong-type", "source must be a string"))
+    elif isinstance(p.get("source"), str) and not (SOURCE_URL_RE.match(p["source"]) or SOURCE_PERSON_RE.match(p["source"])):
+        errors.append((f"{path}.source", "unreadable-source", "a source is a link a person can open, or '<person>, YYYY-MM-DD'"))
+    if p.get("kind") == "evidence" and not p.get("source"):
+        errors.append((path, "evidence-needs-source", "evidence needs a source a person can open"))
     if "parts" in p:
         _parts(p["parts"], f"{path}.parts", errors, in_option)
     if not in_option and ("pick" in p or "else" in p):

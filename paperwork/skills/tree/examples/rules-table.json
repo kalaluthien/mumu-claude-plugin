@@ -36,15 +36,18 @@
       "parts": [
         {
           "text": "Every source rule appears in the editor without losing values.",
-          "kind": "evidence"
+          "kind": "evidence",
+          "source": "https://www.chatprd.ai/how-i-ai/workflows/build-disposable-micro-apps-with-ai-to-edit-complex-plans"
         },
         {
           "text": "You can add, remove, and change entries without editing HTML by hand.",
-          "kind": "evidence"
+          "kind": "evidence",
+          "source": "https://www.chatprd.ai/how-i-ai/workflows/build-disposable-micro-apps-with-ai-to-edit-complex-plans"
         },
         {
           "text": "The exported data matches the format expected by the main plan.",
-          "kind": "evidence"
+          "kind": "evidence",
+          "source": "https://www.chatprd.ai/how-i-ai/workflows/build-disposable-micro-apps-with-ai-to-edit-complex-plans"
         }
       ]
     },

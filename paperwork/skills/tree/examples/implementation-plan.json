@@ -31,22 +31,22 @@
         {
           "text": "Week 1, Mon-Tue: schema and API contract. New comments and comment_reads tables, migrations and the tRPC router stubs. No UI. The contract is reviewed before anything else lands.",
           "kind": "step",
-          "source": "packages/db, packages/api, migration 0042"
+          "source": "https://github.com/example-co/app/blob/main/packages/db/migrations/0042_comments.sql#L1"
         },
         {
           "text": "Week 1, Wed-Fri: thread component and composer. A static CommentThread rendered from fixtures. Optimistic insert on submit, rollback on failure, one level of nesting only.",
           "kind": "step",
-          "source": "apps/web, storybook"
+          "source": "https://github.com/example-co/app/blob/main/apps/web/components/CommentThread.tsx#L1"
         },
         {
           "text": "Week 2, Mon-Wed: realtime fan-out and unread state. Subscribe the open card to its comment channel. Track per-user read cursors so the sidebar shows an unread count without a second query.",
           "kind": "step",
-          "source": "packages/realtime, apps/web"
+          "source": "https://github.com/example-co/app/blob/main/packages/realtime/channels.ts#L1"
         },
         {
           "text": "Week 2, Thu-Fri: notifications, flag ramp, docs. Mention detection writes a notification row, with an email digest fallback. Ramp task_comments_v1 to internal, then 10% to 100% over three days.",
           "kind": "step",
-          "source": "packages/notify, growthbook"
+          "source": "https://github.com/example-co/app/blob/main/packages/notify/mentions.ts#L1"
         }
       ]
     },
@@ -61,16 +61,17 @@
     {
       "text": "Key code: the migration (soft deletes, read cursors) and the optimistic mutation (temp-id reconciliation) are the two pieces most likely to be done wrong.",
       "kind": "evidence",
+      "source": "https://github.com/example-co/app/blob/main/packages/db/migrations/0042_comments.sql#L1",
       "parts": [
         {
           "text": "comments has a parent_id for one level of nesting, enforced in the API, and a deleted_at column for soft delete; comment_reads is keyed by task and user.",
           "kind": "evidence",
-          "source": "packages/db/migrations/0042_comments.sql"
+          "source": "https://github.com/example-co/app/blob/main/packages/db/migrations/0042_comments.sql#L1"
         },
         {
           "text": "useAddComment inserts a temp row on mutate, swaps it for the real row on success so the realtime append does not duplicate it, and removes it on error.",
           "kind": "evidence",
-          "source": "apps/web/hooks/useAddComment.ts"
+          "source": "https://github.com/example-co/app/blob/main/apps/web/hooks/useAddComment.ts#L1"
         }
       ]
     },
@@ -107,7 +108,7 @@
     {
       "text": "Do we allow editing, or only delete-and-repost?",
       "kind": "question",
-      "source": "Decide with design, before slice 2",
+      "source": "Dana Kim, 2026-10-22",
       "pick": {
         "text": "Delete-and-repost only for v1",
         "parts": [
@@ -136,7 +137,7 @@
     {
       "text": "Email digest cadence when a user has the app closed",
       "kind": "question",
-      "source": "Decide with platform, before slice 4",
+      "source": "Dana Kim, 2026-10-22",
       "pick": {
         "text": "Batch on a 15-minute window, one email per task, respecting quiet hours from the existing settings table",
         "parts": [

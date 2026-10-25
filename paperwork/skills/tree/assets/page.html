@@ -109,16 +109,16 @@ a.chip:hover { color: var(--accent); }
 .dtree, .trow { display: flex; align-items: center; }
 .qcol { flex: 0 1 360px; min-width: 260px; }
 .badges { margin-bottom: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
-.badge-risk { background: var(--amber-bg); color: var(--amber); border-radius: 8px; padding: 3px 10px; font-weight: 550; }
-.badge-risk .sev { background: var(--surface); }
 .qcard { padding: 22px 24px; border-radius: 14px; }
-.who { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-.avatar { flex: none; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--card-line); display: grid; place-items: center; font-weight: 700; color: var(--muted); }
-.who-name { font-weight: 550; }
 .who-sub { color: var(--muted); font-size: .9rem; }
 .qcard > .who-sub { margin-bottom: 12px; }
 .qtext { font: 500 1.3rem/1.35 var(--serif); margin: 0; }
 .context { color: var(--muted); margin-top: 10px; }
+.ctx { margin-top: 4px; }
+.ctx-row { display: flex; gap: 4px; align-items: baseline; }
+.ctx-toggle { flex: none; width: 1.3em; font-size: 1rem; border: 0; background: none; padding: 0; color: var(--accent); text-align: center; }
+.ctx-text { min-width: 0; }
+.ctx-kids { margin: 4px 0 4px 1.3em; padding-left: 8px; border-left: 2px solid var(--line); }
 .dtree > .branches { flex: 1 1 auto; min-width: 0; }
 .branch { display: flex; align-items: center; }
 .branch > .onode-wrap { flex: 0 1 300px; min-width: 200px; }
@@ -226,7 +226,7 @@ var pages = decisions.concat(["plan"]);
 
 var S = { pick: {}, strike: {}, edit: {}, comment: {} };
 var history = [];
-var ui = { page: 0, awaiting: null, open: null, showAll: {}, copied: false, focus: null, fold: {} };
+var ui = { ctx: {}, page: 0, awaiting: null, open: null, showAll: {}, copied: false, focus: null, fold: {} };
 
 function options(d) { return [d.pick].concat(d.else || []); }
 function h(tag, cls, text) {
@@ -321,7 +321,7 @@ var most = (function () {
   var all = decisions.map(function (id) {
     var d = byId[id], found = items(d).filter(function (p) { return p.kind === "risk"; });
     var parts = options(d).reduce(function (a, o) { return a.concat(items(o)); }, []);
-    return { id: id, risks: found.length, effects: parts.length, found: found, parts: parts };
+    return { id: id, risks: found.length, effects: parts.length };
   });
   var best = null;
   all.forEach(function (x) { if (!best || x.risks > best.risks || (x.risks === best.risks && x.effects > best.effects)) best = x; });
@@ -340,18 +340,39 @@ function mostMark(id, el) {
   m.title = "The Decision with the most risks under it, then the most Parts under its Options, then the first";
   return m;
 }
-function textList(parts) { return parts.map(function (p) { return p.kind === "mockup" ? "a mockup of the screen" : p.text.replace(/\.$/, ""); }).join("; "); }
-// The reason in words on the Decision's own card, since a count alone leaves the reader guessing which Parts it counts.
+// The reason on the Decision's own card as counts, since the risks and Parts themselves stand beside it.
 function mostWhy(id) {
   if (!most || most.id !== id) return null;
   var why = h("div", "most-why"), risks = most.risks + (most.risks === 1 ? " risk" : " risks");
   why.appendChild(h("span", "note-head", "Why it matters most"));
   why.appendChild(h("span", null, most.by === "risks"
-    ? "More risks than any other Decision: " + textList(most.found) + "."
+    ? "More risks than any other Decision: " + risks + "."
     : most.by === "parts"
-    ? (most.risks ? "As many risks as the most (" + risks + ": " + textList(most.found) + "), and more" : "No Decision has more risks, and it has more") + " Parts under its Options than any other: " + textList(most.parts) + "."
-    : "It ties with another Decision on risks and Parts and comes first" + (most.risks ? "; its risks: " + textList(most.found) : "") + "."));
+    ? (most.risks ? "As many risks as the most (" + risks + "), and more" : "No Decision has more risks, and it has more") + " Parts under its Options than any other: " + most.effects + "."
+    : "It ties with another Decision on risks and Parts and comes first" + (most.risks ? "; it has " + risks : "") + "."));
   return why;
+}
+// A context line of a Decision: its text and source chip; a line with Parts of its own opens them on a click, to any depth. A risk keeps its Risk mark and amber text.
+function contextItem(cid, p) {
+  var box = h("div", "ctx");
+  if (p.kind === "mockup") { box.appendChild(mock(shownText(cid))); return box; }
+  var kids = p.parts || [], open = !!ui.ctx[cid], row = h("div", "ctx-row"), text = h("span", "ctx-text");
+  if (kids.length) {
+    var toggle = btn(open ? "\u25be" : "\u25b8", function () { ui.ctx[cid] = !open; render(); }, "ctx-toggle");
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.setAttribute("aria-label", (open ? "Hide " : "Show ") + kids.length + (kids.length === 1 ? " part" : " parts"));
+    row.appendChild(toggle);
+  } else row.appendChild(h("span", "ctx-toggle"));
+  if (p.kind === "risk") { text.appendChild(h("span", "sev", "Risk")); text.appendChild(h("span", "risk-text", shownText(cid))); }
+  else text.appendChild(document.createTextNode(shownText(cid)));
+  if (p.source) text.appendChild(chip(p.source, true));
+  row.appendChild(text); box.appendChild(row);
+  if (kids.length && open) {
+    var sub = h("div", "ctx-kids");
+    kids.forEach(function (k, i) { sub.appendChild(contextItem(cid + "." + (i + 1), k)); });
+    box.appendChild(sub);
+  }
+  return box;
 }
 function acts(id) {
   var a = h("span", "acts");
@@ -421,27 +442,14 @@ function decisionPage(id) {
 
   var col = h("div", "qcol");
   var badges = h("div", "badges"), context = h("div", "context");
-  (d.parts || []).forEach(function (p, i) {
-    var cid = id + "." + (i + 1);
-    if (p.kind === "risk") { var b = h("span", "badge-risk"); b.appendChild(h("span", "sev", "Risk")); b.appendChild(document.createTextNode(shownText(cid))); badges.appendChild(b); }
-    else if (p.kind === "mockup") context.appendChild(mock(shownText(cid)));
-    else context.appendChild(h("div", null, shownText(cid)));
-  });
+  (d.parts || []).forEach(function (p, i) { context.appendChild(contextItem(id + "." + (i + 1), p)); });
   var card = h("div", "node qcard" + (struck ? " struck" : ""));
   var mm = mostMark(id, card);
   if (mm) badges.insertBefore(mm, badges.firstChild);
   if (badges.childNodes.length) col.appendChild(badges);
   card.setAttribute("data-card", id);
-  // Both forms say "Source", since a reader takes a bare name for the author, not the source.
-  if (d.source && /^https?:\/\//.test(d.source)) { var src = h("div", "who-sub"); src.appendChild(h("span", "note-head", "Source")); src.appendChild(chip(d.source, true)); card.appendChild(src); }
-  else if (d.source) {
-    var who = h("div", "who"), names = d.source.split(" · ");
-    who.appendChild(h("span", "avatar", names[0].charAt(0)));
-    var nm = h("div"); nm.appendChild(h("div", "note-head", "Source"));
-    nm.appendChild(h("div", "who-name", names[0]));
-    if (names.length > 1) nm.appendChild(h("div", "who-sub", names.slice(1).join(", ")));
-    who.appendChild(nm); card.appendChild(who);
-  }
+  // A link is a chip that opens; a person and day is a chip that reads, since the checker allows only these two.
+  if (d.source) { var src = h("div", "who-sub"); src.appendChild(h("span", "note-head", "Source")); src.appendChild(chip(d.source, true)); card.appendChild(src); }
   var q = h("p", "qtext", shownText(id));
   if (S.edit[id] != null) q.appendChild(h("span", "edited", "edited"));
   card.appendChild(q);
@@ -574,7 +582,8 @@ function partNode(id, later, keep) {
     ch.appendChild(btn("open →", function () { goTo(pages.indexOf(id)); }));
     card.appendChild(ch);
   }
-    if (kids.length) card.appendChild(btn((ui.fold[id] ? "▸ " : "▾ ") + kids.length + (kids.length === 1 ? " part" : " parts"), function () { ui.fold[id] = !ui.fold[id]; render(); }, "fold"));
+  // Below the text, with the card's other controls.
+  if (kids.length) card.appendChild(btn((ui.fold[id] ? "▸ " : "▾ ") + kids.length + (kids.length === 1 ? " part" : " parts"), function () { ui.fold[id] = !ui.fold[id]; render(); }, "fold"));
   tail(id, card);
   row.appendChild(card);
   if (kids.length && !ui.fold[id]) {

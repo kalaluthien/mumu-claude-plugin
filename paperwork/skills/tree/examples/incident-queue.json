@@ -7,7 +7,13 @@
         {
           "text": "2,140 errors in 12 minutes. About $3.2k in orders an hour at risk.",
           "kind": "context",
-          "source": "Incident agent - Opus 5.5"
+          "parts": [
+            {
+              "text": "The errors are all HTTP 500 from the payment call.",
+              "kind": "evidence",
+              "source": "https://example-co.slack.com/archives/C0INCIDENT/p1790042799606439"
+            }
+          ]
         },
         {
           "text": "Risk: high.",
@@ -55,7 +61,7 @@
                     {
                       "text": "The last hotfix that skipped the tests broke refunds for two hours.",
                       "kind": "note",
-                      "source": "GitHub - PR #455"
+                      "source": "https://github.com/example-co/app/pull/455"
                     }
                   ]
                 }
@@ -94,8 +100,7 @@
       "parts": [
         {
           "text": "Renewal in 9 days. 212 seats. They asked twice on yesterday's call.",
-          "kind": "context",
-          "source": "Sales agent - GPT-6 Sol"
+          "kind": "context"
         },
         {
           "text": "Risk: medium.",
@@ -153,7 +158,7 @@
                       {
                         "text": "Finance set a 45% floor for any discount above 20%.",
                         "kind": "note",
-                        "source": "Finance - discount policy"
+                        "source": "https://example-co.atlassian.net/wiki/spaces/FIN/pages/discount-policy"
                       }
                     ]
                   }
@@ -172,7 +177,7 @@
                 {
                   "text": "Anything above 20% off needs the CRO's approval before the quote goes out.",
                   "kind": "note",
-                  "source": "Salesforce - approval rules"
+                  "source": "https://example-co.atlassian.net/wiki/spaces/SALES/pages/approval-rules"
                 }
               ]
             }
@@ -185,8 +190,7 @@
       "parts": [
         {
           "text": "The job export-nightly has retried 9,800 times since 2:14 AM.",
-          "kind": "context",
-          "source": "Infra agent - Gemini 3.8 Pro"
+          "kind": "context"
         },
         {
           "text": "Risk: high.",
@@ -217,7 +221,7 @@
                     {
                       "text": "Finance pulls this report for Friday's board pack.",
                       "kind": "note",
-                      "source": "Reporting calendar"
+                      "source": "https://example-co.atlassian.net/wiki/spaces/FIN/pages/reporting-calendar"
                     }
                   ]
                 }
@@ -241,7 +245,7 @@
                     {
                       "text": "The API and the search index share this account's limit.",
                       "kind": "note",
-                      "source": "AWS - Budgets"
+                      "source": "https://example-co.atlassian.net/wiki/spaces/INFRA/pages/aws-budgets"
                     }
                   ]
                 }
