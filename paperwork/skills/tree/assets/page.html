@@ -85,9 +85,11 @@ a.chip:hover { color: var(--accent); }
 .mock { margin: 6px 0; max-width: 100%; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
 .mock-bar { display: flex; gap: 5px; padding: 6px 9px; background: var(--panel); border-bottom: 1px solid var(--line); }
 .mock-bar i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.mock-bar .note-head { margin-left: auto; margin-right: 0; line-height: 8px; }
 .mock-screen { margin: 0; padding: 10px 12px; font: .8rem/1.55 var(--mono); color: var(--ink); white-space: pre; overflow-x: auto; }
 .mk-btn { border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
-.mk-primary { background: var(--accent); color: #fff; border-radius: 5px; padding: 0 6px; }
+/* drawn, not live: an outline on a tint, so a mockup's button never passes for the page's own */
+.mk-primary { border: 1px solid var(--accent); background: var(--halo); color: var(--accent); border-radius: 5px; padding: 0 6px; }
 
 /* tree lines, one rule for every branching list: a stub from the parent, a trunk, an elbow to each child */
 .branches, .kids, .leaves { list-style: none; margin: 0; padding: 0 0 0 var(--gap); position: relative; }
@@ -272,6 +274,7 @@ function chip(source, asLink) {
 function mock(text) {
   var box = h("div", "mock"), bar = h("div", "mock-bar"), pre = h("pre", "mock-screen");
   for (var i = 0; i < 3; i++) bar.appendChild(h("i"));
+  bar.appendChild(h("span", "note-head", "Mockup"));
   String(text).split(/(\[\[[^\]\n]+\]\]|\[[^\]\n]+\])/).forEach(function (bit) {
     if (/^\[\[/.test(bit)) pre.appendChild(h("span", "mk-primary", bit.slice(2, -2).trim()));
     else if (/^\[/.test(bit)) pre.appendChild(h("span", "mk-btn", bit.slice(1, -1).trim()));
@@ -444,8 +447,9 @@ function decisionPage(id) {
   opts.forEach(function (o, i) {
     var k = i + 1;
     if (collapsed && k !== chosen) return;
-    var li = h("li", "branch" + ((chosen == null ? k !== 1 : k !== chosen) ? " dim" : ""));
-    var wrap = h("div", "onode-wrap");
+    // Only the Option fades, never its facts, since what an unchosen Option sets off is still read to judge it.
+    var li = h("li", "branch");
+    var wrap = h("div", "onode-wrap" + ((chosen == null ? k !== 1 : k !== chosen) ? " dim" : ""));
     var ob = btn("", function () { if (collapsed && k === chosen) { ui.showAll[id] = true; render(); } else pickOption(id, k); }, "node onode" + (k === (chosen == null ? 1 : chosen) ? " picked" : ""));
     ob.setAttribute("data-option", String(k));
     ob.appendChild(h("span", "num", String(k)));
@@ -453,6 +457,7 @@ function decisionPage(id) {
     if (k === 1) ob.appendChild(h("span", "mark", "Agent's pick"));
     wrap.appendChild(ob); li.appendChild(wrap);
     var factsBox = h("div", "node facts");
+    if ((o.parts || []).length) factsBox.appendChild(h("div", "note-head", "Parts under option " + k));
     facts(o.parts, factsBox);
     if (factsBox.childNodes.length || o.then) {
       var det = h("div", "detail");

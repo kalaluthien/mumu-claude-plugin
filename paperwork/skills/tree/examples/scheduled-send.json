@@ -128,7 +128,7 @@
               "text": "Not at all",
               "parts": [
                 {
-                  "text": "This claim goes.",
+                  "text": "The claim \"The user is told when a scheduled message fails\" goes.",
                   "kind": "consequence"
                 }
               ]
