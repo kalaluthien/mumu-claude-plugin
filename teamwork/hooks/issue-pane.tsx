@@ -77,7 +77,10 @@ export const register: Register = on => {
   // a session may take its manager name after it started, as a successor does
   on('command.run', { command: 'rename' }, async ($, e, next) => {
     const ran = await next(e)
-    watch($, e.args.trim())
+    // a typed argument may land garbled, so a herdr name stands in unless the argument is already a manager name
+    const typed = e.args.trim()
+    const me = typed.endsWith('-manager') ? undefined : await $.process.run([`${$.plugin.root}/skills/kick-off/scripts/list-agents.py`, '--me']).catch(() => undefined)
+    watch($, me?.stdout.trim() || typed)
     return ran
   }).catch(($, e, next) => next(e))  // a failed open must never fail the rename
 
