@@ -1,9 +1,9 @@
 """Language packs: lang/<code>.json, chosen by book.lang. A pack overlays lang/en.json key by key; strings merge, and scripts, stop and catch_all add to English (books mix scripts)."""
 import functools, json, os, re
 
-from .const import HERE
+from .const import ASSETS
 
-LANG_DIR = os.path.join(HERE, '..', 'lang')
+LANG_DIR = os.path.join(ASSETS, 'lang')
 UNION = ('scripts', 'stop', 'catch_all')
 
 

@@ -1,26 +1,10 @@
-"""agents.py: generated briefs, task lists, round directives and gate approvals for book.py.
-
-  book.py brief [DIR] UNIT [--revise] [--as ID]           writer brief (<= 6k chars); --revise adds unit directives, lint todos, the kit
-  book.py brief [DIR] --lens NAME --units U[:N],... [--as ID]   reviewer brief for one lens over units or unit sections
-  book.py brief [DIR] [UNIT] --test WHAT | --debug SYMPTOM | --demo [NAME] | --research Q [--bulk] [--as ID]
-  book.py brief [DIR] --fix RULES --units U[,U] [--render FILE] [--as ID]   fix brief (sources for E rules, fixer otherwise): the lint findings of those rules in those units
-  book.py agents [DIR] STAGE [--units IDS] [--render FILE]   one line per task; STAGE = plan|write|review|test|demo|debug|fix (DIR before or after STAGE, or --dir);
-      `--symptom S` belongs to debug only; `python3 scripts/agents.py STAGE DIR` runs the same command
-      fix: lints, groups findings by unit; E rules -> `sources` (haiku; <= 12 notes or 3 units each), other unit rules -> `fixer` (sonnet; <= 25 findings, a part's
-      units together), B* and G1 -> one `main` line for the lead. It also reads the reviewers' `.work/r-*/no.tsv` (unit TAB block id TAB row id TAB fix; rule `no:ROW`)
-      and render findings (`--render FILE`, else `.work/render.json` or `.work/render.txt` if present; JSON rows or the printed `fail ...` lines; rule `render:CHECK`).
-      The lead renames a processed no.tsv to no.done.tsv. Fix rounds go through this stage, with no hand-written briefs.
-  book.py note [DIR] TEXT [--units IDS] [--topic T]        directive for the open round (opens the next one if the last is closed)
-  book.py round [DIR] [show|close]                        list rounds or freeze the open one
-  book.py approve [DIR] GATE --by user|self               record a gate approval with the current plan hash
-
-DIR may also be given as --dir (default .). Only book.json and stdout are written.
+"""Generated briefs, task lists, round directives and gate approvals for make-book.py (brief, agents, note, round, approve).
 """
 import collections, datetime, glob, json, os, re, shlex, sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-REF = os.path.join(HERE, '..', 'reference')
-BOOK_PY = os.path.join(HERE, 'book.py')
+from .const import MAKE_BOOK, REFERENCES
+
+REF = REFERENCES
 
 ROUTES = {  # role -> stage, model, effort; book.json book.policies.models {role: {model, effort}} overrides
     'research-bulk': dict(stage='plan', model='haiku', effort='medium'),
@@ -60,9 +44,7 @@ class AgentsError(Exception):
 
 # ---------------------------------------------------------------- model access
 def _book():
-    if HERE not in sys.path:
-        sys.path.insert(0, HERE)
-    from bk import api
+    from . import api
     return api
 
 
@@ -106,7 +88,7 @@ def routes(P):
 def run_line(d, rest):
     """A command line that runs as printed from any directory."""
     q = shlex.quote
-    return f'python3 {q(BOOK_PY)} {rest}' + (f' --dir {q(os.path.abspath(d))}' if d else '')
+    return f'python3 {q(MAKE_BOOK)} {rest}' + (f' --dir {q(os.path.abspath(d))}' if d else '')
 
 
 def scratch(d, aid):
@@ -306,7 +288,7 @@ def writer_brief(d, uid, aid=None, P=None, j=None, level=0, revise=False):
     L.append(f'- ask+task now {n_q}' + (f' (band {qs_band[0]}-{qs_band[1]})' if qs_band else '') + '; kinds present: ' + (', '.join(f'{k} {n}' for k, n in kinds.most_common() if k in BAND_KINDS) or 'none'))
     var = [v for _, _, v in cards if v]
     L.append(f'- review variants: {", ".join(var) or "none yet"}; earlier sources: {", ".join(pool[-6:]) or "none"}')
-    from bk import catalog
+    from . import catalog
     sp, share, top = catalog.spread(d, uid, src)
     L.append(f'- patterns: {sp}' + (f'; {top} is {share:.0%} of the cards: vary the move (`pattern list`)' if share > 0.5 and top not in ('hand', 'unlabelled') else ''))
     newp = [p['id'] for p in j.get('new_patterns') or [] if isinstance(p, dict) and uid in (p.get('units') or [])]
@@ -795,7 +777,7 @@ def approve(d, gate, by):
         if missing:
             raise AgentsError('skeleton refused: round 1 has no directive on ' + ', '.join(TOPIC_TEXT.get(t, t) for t in missing)
                               + '; record each with `note "..." --topic ' + missing[0] + '`')
-    from bk import catalog
+    from . import catalog
     gaps = catalog.plan_gaps(P) if gate == 'skeleton' else catalog.review_gaps(d) if gate == 'review' else []
     if gaps:
         raise AgentsError(f'{gate} refused: ' + '; '.join(gaps))
@@ -810,7 +792,7 @@ def approve(d, gate, by):
         errs = [f for f in _book().settle(P, _book().lint(d)) if f['level'] == 'error']
         if errs:
             raise AgentsError(f'publish refused: lint has {len(errs)} error(s), first {errs[0]["rule"]} {errs[0]["unit"]}: {_cut(errs[0]["msg"], 80)}')
-        import publish
+        from . import publish
         try:
             ok = publish.current(d)
         except publish.PublishError as e:
@@ -926,9 +908,3 @@ def run(a):
         print(f'error: {e}', file=sys.stderr)
         return 2
 
-
-if __name__ == '__main__':  # python3 scripts/agents.py [agents] STAGE [DIR] | brief ... | note ... | round ... | approve ...: the book.py entry
-    sys.path.insert(0, HERE)
-    from bk.cli import main
-    argv = sys.argv[1:]
-    sys.exit(main((['agents'] if argv and argv[0] in STAGES else []) + argv) or 0)

@@ -1,34 +1,7 @@
-"""book.py: plan checks, build, lint, mutation tests and figure helpers for book-authoring.
-
-Python standard library, plus node and KaTeX for math (fetched once into ~/.cache/book-authoring). A book directory holds book.json (the model), units.html or units/*.html
-(one <section data-u="ID"> per unit), optional figs/*.svg and facts.json, and receives book.html.
-
-  book.py init DIR [--lang L]      copy the sample model and units into DIR
-  book.py check [DIR]              plan rules (B) on book.json
-  book.py build [DIR]              assemble book.html: chrome, references, facts, figures, review clones, math
-  book.py lint [DIR] [--unit ID] [--quick]
-  book.py mutate [DIR]             plant one defect per rule and pattern; fail if any is missed
-  book.py stats FILE.html [--sel .CLASS|TAG]   per-unit size distribution, for bands and baselines
-  book.py rules                    rule and policy tables
-  book.py render [DIR] [--out DIR] [--quick]   book-wide #check plus element checks; prints failures only (needs playwright)
-  book.py text [DIR] [--unit ID [--section N-M | --concept ID]] [--only prose|stems|cards|claims|figs]   flat reviewer text
-  book.py snippet KIND | --list    markup snippet from templates/units.html
-  book.py outline [DIR] UNIT       one line per block: L<line> #<id> <kind> <meta> "<first 50>" <chars>
-  book.py show [DIR] UNIT SEL [--html]   blocks by #id, data-c kind, L120 or L120-L180
-  book.py edit [DIR] UNIT --patch F.json   all-or-none ops on the unit source; backup in .work/, rebuild, lint delta
-  book.py shot [DIR] UNIT [--sel CSS] [--section N-M] [--solve] [--steps F.json] [--sheet] [--quick] [--out DIR]
-  book.py demos [DIR] [--name N]   D['name'] demos in book.js: doc line, units, params; --name prints the source
-  book.py pattern list [--family problem|visual] [--dir BOOK] | pattern show P | pattern promote P --dir BOOK [--as-variant-of Q]
-  book.py element show E           an element's slots, checks and example
-  book.py card new [DIR] --unit U --after SEL [--kind K] [--elements a,b] [--id ID] [--label P]   placeholder + slots/U.json stub (fig new: --kind fig|frames)
-  book.py card lift [DIR] U ID     a hand card into slots/U.json, rendering back identical
-  brief, agents, note, round, approve: see scripts/agents.py
-  Every command that takes DIR also takes --dir DIR (default .); a .work/ path in --patch, --out, --steps or --score resolves inside DIR.
-
-Figure scripts: sys.path.insert(0, SKILL/scripts); from book import glob, Fig, fact
+"""Command-line parser and dispatch for make-book.py: plan checks, build, lint, mutation tests and figure helpers for the book skill.
 """
 import argparse, json, os, shutil, sys
-from .const import HERE, POLICIES, RULES, TEMPLATES
+from .const import POLICIES, RULES, TEMPLATES
 from .lang import _load, pack
 from .text import ONLY, cards, sections, stats, text
 from .plan import Plan, PlanError, check_plan, settle
@@ -86,13 +59,8 @@ def parser():
     s.add_argument('--solve', action='store_true'); s.add_argument('--steps'); s.add_argument('--sheet', action='store_true'); s.add_argument('--quick', action='store_true'); s.add_argument('--out')
     s = dir_args(sub.add_parser('demos')); s.add_argument('--name')
     catalog.register(sub)
-    try:  # brief, agents, note, round, approve live in agents.py; book.py works without it
-        sys.path.insert(0, HERE)
-        import agents
-        agents.register(sub)
-    except Exception as e:
-        if not isinstance(e, ImportError):
-            print(f'warning: scripts/agents.py not loaded ({e.__class__.__name__}: {e})', file=sys.stderr)
+    from . import agents  # brief, agents, note, round, approve; imported here since agents reads the parser through api
+    agents.register(sub)
     return ap
 
 

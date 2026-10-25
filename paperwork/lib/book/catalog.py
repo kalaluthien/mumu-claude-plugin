@@ -4,11 +4,11 @@ A placeholder <!--card ID--> or <!--fig ID--> in a unit names an entry of BOOK/s
 Elements live in catalog/elements/<id>.json (BOOK/catalog/ first), patterns in catalog/patterns/<id>.md.
 """
 import collections, copy, datetime, functools, html, json, os, re, shutil
-from .const import HERE
+from .const import ASSETS, LIB
 from .plan import PlanError
 from . import pcheck
 
-SKILL_CAT = os.path.normpath(os.path.join(HERE, '..', 'catalog'))
+SKILL_CAT = os.path.join(ASSETS, 'catalog')
 CARD_KINDS = ('ask', 'probe', 'task-sort', 'task-order', 'task-select', 'task-estimate', 'task-custom')
 FIG_KINDS = ('fig', 'frames')
 CARD_KEYS = {'kind', 'label', 'move', 'level', 'diff', 'variant_of', 'order', 'elements'}
@@ -805,7 +805,7 @@ def carry_check(d, cid):
     src = open(os.path.join(d, 'catalog', 'checks', f'{cid}.py'), encoding='utf-8').read()
     ident = '_chk_' + re.sub(r'\W', '_', cid)
     code = re.sub(r'^def check\(', f'def {ident}(', src, count=1, flags=re.M)
-    path = os.path.join(HERE, 'bk', 'pcheck.py')
+    path = os.path.join(LIB, 'pcheck.py')
     t = open(path, encoding='utf-8').read()
     block = f"# --- promoted check {cid}\n{code.rstrip()}\nCHECKS['{cid}'] = {ident}\n# --- end promoted check {cid}\n\n\n"
     t = t.replace('\ndef run(spec, E, pack', '\n' + block + 'def run(spec, E, pack', 1)
@@ -872,7 +872,7 @@ def promote(d, pid, variant_of=None):
         os.makedirs(os.path.join(SKILL_CAT, 'elements'), exist_ok=True)
         shutil.copy(os.path.join(d, 'catalog', 'elements', f'{eid}.json'), os.path.join(SKILL_CAT, 'elements', f'{eid}.json'))
         print(f'element {eid} copied to catalog/elements')
-    sp = os.path.join(HERE, '..', 'tests', 'seeds.md')
+    sp = os.path.join(ASSETS, 'seeds.md')
     row = f'| card-pattern | {seed[0].strip()} |'
     parent = next(iter((patterns()[variant_of]['sections'].get('seed') or '').strip().splitlines()), '').strip() if variant_of and variant_of in patterns() else None
     if row in open(sp, encoding='utf-8').read().splitlines() or parent == seed[0].strip():

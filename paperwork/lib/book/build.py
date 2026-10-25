@@ -277,11 +277,11 @@ MATH_RE = re.compile(r'<(span|div)((?:\s+[\w-]+(?:="[^"]*")?)*?\s+data-m(?:="dis
 
 
 def katex_module():
-    """Path of a KaTeX node module: $KATEX_NODE, else ~/.cache/book-authoring, installed there once with npm."""
+    """Path of a KaTeX node module: $KATEX_NODE, else ~/.cache/paperwork-book, installed there once with npm."""
     env = os.environ.get('KATEX_NODE')
     if env and os.path.exists(os.path.join(env, 'package.json')):
         return env
-    cache = os.path.join(os.path.expanduser('~'), '.cache', 'book-authoring')
+    cache = os.path.join(os.path.expanduser('~'), '.cache', 'paperwork-book')
     mod = os.path.join(cache, 'node_modules', 'katex')
     if not os.path.exists(os.path.join(mod, 'package.json')):
         os.makedirs(cache, exist_ok=True)

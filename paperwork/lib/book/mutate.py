@@ -1,5 +1,5 @@
 import collections, json, os, re, shlex, shutil, sys, tempfile
-from .const import HERE, TEMPLATES
+from .const import ASSETS, MAKE_BOOK, REFERENCES, TEMPLATES
 from .lang import LANG_DIR, pack
 from .dom import NO_MATH, parse, sentences
 from .plan import Plan, PlanError, plan_hash, round_gaps
@@ -190,7 +190,7 @@ def mutate(d=None):
         shutil.copy(os.path.join(src, 'facts.json'), base)
     elif os.path.exists(os.path.join(base, 'facts.json')):
         os.remove(os.path.join(base, 'facts.json'))
-    import agents, publish  # the publish gate: a record of the current build passes; a build changed after the record is refused
+    from . import agents, publish  # the publish gate: a record of the current build passes; a build changed after the record is refused
     publish.record(base, 'file', os.path.join(base, 'out.html'))
     _jr = json.load(open(os.path.join(base, 'book.json'), encoding='utf-8'))  # publish also needs the review gate at this plan hash
     _jr.setdefault('gates', {})['review'] = {'approved_by': 'self', 'at': '2026-01-01T00:00:00+00:00', 'plan_hash': plan_hash(Plan(os.path.join(base, 'book.json')))}
@@ -255,7 +255,7 @@ def mutate(d=None):
     ref = os.path.join(base, 'ref')
     for name, f, add in (('write.md row in an unnamed section', 'write.md', '\n## extra\n| id | criterion |\n|---|---|\n| zz-extra-row | x |\n'),
                          ('review.md row outside a lens', 'review.md', '\n## notes\n| id | yes when |\n|---|---|\n| zz-hidden-row | x |\n')):
-        shutil.copytree(os.path.join(HERE, '..', 'reference'), ref, dirs_exist_ok=True)
+        shutil.copytree(REFERENCES, ref, dirs_exist_ok=True)
         src_ = open(os.path.join(ref, f), encoding='utf-8').read()
         src_ += add
         open(os.path.join(ref, f), 'w', encoding='utf-8').write(src_)
@@ -266,7 +266,7 @@ def mutate(d=None):
     bad = cmd_gaps(cmds)
     print(f'CMD {len(cmds)} brief commands: ' + ('all parse' if not bad else 'BAD: ' + '; '.join(bad[:4])))
     fail += bool(bad)
-    hit = len(cmd_gaps(cmds + [shlex.quote(sys.executable) + ' ' + shlex.quote(os.path.join(HERE, 'book.py')) + ' outline --nosuch'])) > len(bad)
+    hit = len(cmd_gaps(cmds + [shlex.quote(sys.executable) + ' ' + shlex.quote(MAKE_BOOK) + ' outline --nosuch'])) > len(bad)
     print(f"CMD {'caught' if hit else 'MISSED'} (a command that does not parse)")
     fail += not hit
     cases = cases + [('COV', None)] * 7
@@ -277,7 +277,7 @@ def mutate(d=None):
 # --- fix stage
 def fix_cases(base, hp, pristine, before_close):
     """An E3 and a K10 finding give one sources task (haiku) and one fixer task (sonnet) beside the lead line the sample's G1 warn makes; briefs parse and fit."""
-    import agents
+    from . import agents
     for f, t in pristine.items():
         open(os.path.join(base, f), 'w', encoding='utf-8').write(t)
     kinds = lambda: collections.Counter((t.split('\t')[1], t.split('\t')[2]) for t in agents.tasks(base, 'fix'))
@@ -428,10 +428,10 @@ def table_ids(path):
 
 def coverage(base):
     """(criteria row ids of write.md and review.md, seed ids, rows no generated brief reaches)."""
-    import agents
-    ref = os.path.join(HERE, '..', 'reference')
+    from . import agents
+    ref = REFERENCES
     rows = (table_ids(os.path.join(ref, 'write.md')) or []) + (table_ids(os.path.join(ref, 'review.md')) or [])
-    return rows, table_ids(os.path.join(HERE, '..', 'tests', 'seeds.md')) or [], list(agents.coverage(base) or [])
+    return rows, table_ids(os.path.join(ASSETS, 'seeds.md')) or [], list(agents.coverage(base) or [])
 
 
 def cmd_gaps(cmds):
@@ -462,7 +462,7 @@ def cov_gaps(rows, seeds, unreachable):
 # --- catalog (C1)
 def catalog_cases(base, hp, pristine, before_close):
     """Each element's example is clean and each check catches its breaks; P1 refuses malformed slots; gates refuse new_patterns gaps; forbid migrates; G3; L4 skips note fields."""
-    import agents
+    from . import agents
     from . import catalog
     fail = n = 0
 
@@ -609,7 +609,7 @@ def f2_cases(base, hp, pristine, before_close):
 
 # --- fix round (F4)
 def f4_cases(base, hp, pristine, before_close):
-    import agents, publish
+    from . import agents, publish
     from . import catalog, pcheck
     fail = n = 0
 
@@ -691,7 +691,8 @@ def f4_cases(base, hp, pristine, before_close):
 # --- fix round (F3)
 def f3_cases(base, hp, pristine, before_close):
     """agents: reviewers' no rows and render findings reach fixer tasks, the scout task, coherence once per part, the publish gate, DIR/STAGE order."""
-    import agents, contextlib, io
+    import contextlib, io
+    from . import agents
     fail = n = 0
 
     def restore():

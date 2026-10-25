@@ -1,7 +1,12 @@
 import os
 
-HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # scripts/
-TEMPLATES = os.path.join(HERE, '..', 'templates')
+LIB = os.path.dirname(os.path.abspath(__file__))
+SKILL = os.path.normpath(os.path.join(LIB, '..', '..', 'skills', 'book'))
+ASSETS = os.path.join(SKILL, 'assets')
+REFERENCES = os.path.join(SKILL, 'references')
+MAKE_BOOK = os.path.join(SKILL, 'scripts', 'make-book.py')
+PUBLISH_BOOK = os.path.join(SKILL, 'scripts', 'publish-book.py')
+TEMPLATES = os.path.join(ASSETS, 'templates')
 
 # ---------------------------------------------------------------- policies, bands, defaults
 POLICIES = {

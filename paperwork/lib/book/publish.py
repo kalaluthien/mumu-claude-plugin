@@ -1,18 +1,8 @@
-#!/usr/bin/env python3
-"""publish.py: put a reviewed book.html on a host and record what went there.
-
-  publish.py file DIR --to PATH [--dry-run]                copy book.html to PATH, verify the copy
-  publish.py static DIR --to OUTDIR [--url URL] [--dry-run]  OUTDIR/index.html for any static host; URL is where the host serves it
-  publish.py claude-artifact DIR [--dry-run]               write the page fragment, print the Artifact tool call to make
-  publish.py record TARGET DIR --url URL [--sha SHA]       record a publish a host tool made (default SHA: the current build)
-  publish.py status DIR                                    each record, and whether it matches the current build
-
-Every publish writes DIR/publish.json: {TARGET: {target, url, sha, at}}. `book.py approve publish` refuses unless a record's sha equals the current build's.
+"""Put a reviewed book.html on a host and record what went there; publish-book.py is its command line.
 """
 import argparse, datetime, hashlib, json, os, re, shutil, sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
+from .const import PUBLISH_BOOK
 TARGETS = ('file', 'static', 'claude-artifact')
 ARTIFACT_MAX = 16 * 1024 * 1024  # the Artifact page limit
 HEAD_TAGS = (r'<!doctype html>\s*', r'<html[^>]*>\s*', r'</html>\s*', r'<head>\s*', r'</head>\s*', r'<body[^>]*>\s*', r'</body>\s*', r'<meta charset="utf-8">\s*', r'<meta name="viewport"[^>]*>\s*')
@@ -88,12 +78,12 @@ def pub_static(d, to, url, dry):
 
 def capabilities(d):
     """Artifact runtime capabilities the book's scripts use: any receiver's .use("NAME") or .use('NAME') -> {NAME: {}}."""
-    from bk.dom import read_js
+    from .dom import read_js
     return {m[1]: {} for m in sorted(set(re.findall(r"""\.\s*use\(\s*(['"])(\w+)\1""", read_js(d))))}
 
 
 def pub_artifact(d, dry):
-    from bk.plan import Plan
+    from .plan import Plan
     src = build_path(d)
     page = open(src, encoding='utf-8').read()
     for pat in HEAD_TAGS:  # the Artifact host wraps the page in its own document skeleton
@@ -118,7 +108,7 @@ def pub_artifact(d, dry):
     if P.book.get('goal'):
         call['description'] = str(P.book['goal'])[:200]
     lines = [('(dry run: the page file is not written) ' if dry else '') + 'Call the Artifact tool with:', json.dumps(call, ensure_ascii=False),
-             f'then: {sys.executable} {os.path.join(HERE, "publish.py")} record claude-artifact {os.path.abspath(d)} --url URL_FROM_THE_RESULT']
+             f'then: {sys.executable} {PUBLISH_BOOK} record claude-artifact {os.path.abspath(d)} --url URL_FROM_THE_RESULT']
     return '\n'.join(lines)
 
 
@@ -155,6 +145,3 @@ def main(argv=None):
         print(f'error: {e}', file=sys.stderr)
         return 2
 
-
-if __name__ == '__main__':
-    sys.exit(main())
