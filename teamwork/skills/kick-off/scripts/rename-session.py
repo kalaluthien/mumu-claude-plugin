@@ -18,13 +18,13 @@ SETTLE = 8  # seconds Claude Code takes to record a name, measured at 1-6
 
 
 def recorded(session_id):
-    """The last name Claude Code wrote for this session, or None."""
-    name = None
+    """Every name Claude Code wrote for this session, oldest first."""
+    names = []
     for path in (pathlib.Path.home() / ".claude" / "projects").glob(f"*/{session_id}.jsonl"):
         for line in path.read_text(errors="replace").splitlines():
             if line.startswith('{"type":"custom-title"'):
-                name = json.loads(line).get("customTitle")
-    return name
+                names.append(json.loads(line).get("customTitle"))
+    return names
 
 
 def main(args):
@@ -36,19 +36,28 @@ def main(args):
     if not me:
         print(f"not renamed to {name}: no herdr session owns this pane")
         return 1
+    session_id = (me.get("agent_session") or {}).get("value")
+    if not session_id:
+        print(f"not renamed to {name}: herdr gives this session no id, so its transcript cannot be read")
+        return 1
     session.rename(me, name)
     session.herdr("agent", "rename", me["pane_id"], name)
-    session_id = (me.get("agent_session") or {}).get("value")
+    refused = None
     for _ in range(TRIES):
-        if session.prompt(me["pane_id"], f"/rename {name}"):
+        before = len(recorded(session_id))
+        refused = session.prompt(me["pane_id"], f"/rename {name}")
+        if refused:
+            time.sleep(SETTLE)
             continue
         deadline = time.time() + SETTLE
-        while time.time() < deadline and recorded(session_id) != name:
+        while time.time() < deadline:
+            names = recorded(session_id)
+            if len(names) > before and names[-1] == name:  # a new record, not an old one that happens to match
+                print(f"renamed to {name}")
+                return 0
             time.sleep(1)
-        if recorded(session_id) == name:
-            print(f"renamed to {name}")
-            return 0
-    print(f"not renamed to {name}: Claude Code recorded {recorded(session_id)!r}")
+    reason = f"herdr refused the prompt: {refused}" if refused else f"Claude Code recorded {recorded(session_id)[-1:]}"
+    print(f"not renamed to {name}: {reason}")
     return 1
 
 
