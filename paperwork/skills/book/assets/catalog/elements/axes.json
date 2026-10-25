@@ -1,0 +1,87 @@
+{
+ "id": "axes",
+ "family": "visual",
+ "why": "a plot with labelled axes and units",
+ "zone": "body",
+ "kinds": [
+  "fig"
+ ],
+ "slots": {
+  "svg": {
+   "type": "html",
+   "req": true,
+   "doc": "the plot, from a figure script"
+  },
+  "x": {
+   "type": "obj",
+   "req": true,
+   "doc": "{label, unit, scale}"
+  },
+  "y": {
+   "type": "obj",
+   "req": true,
+   "doc": "{label, unit, scale}"
+  },
+  "uncertainty": {
+   "type": "str",
+   "doc": "the interval shown (CI, SE) or \"none: counted dots\""
+  }
+ },
+ "render": "{svg}",
+ "checks": [
+  {
+   "id": "axes",
+   "breaks": [
+    {
+     "set": "elements.0.x.unit",
+     "to": ""
+    }
+   ]
+  },
+  {
+   "id": "axes",
+   "breaks": [
+    {
+     "set": "elements.0.y.label",
+     "to": "Cost"
+    }
+   ]
+  }
+ ],
+ "example": {
+  "kind": "fig",
+  "tactic": "plot",
+  "fkind": "computed",
+  "caption": "The worst case grows by one question each time the menu doubles.",
+  "elements": [
+   {
+    "el": "axes",
+    "svg": "<svg viewBox=\"0 0 220 120\"><polyline points=\"20,100 60,80 100,60 140,40\"/><text x=\"100\" y=\"116\">Dishes</text><text x=\"2\" y=\"10\">Questions</text><text x=\"144\" y=\"40\">worst case</text></svg>",
+    "x": {
+     "label": "Dishes",
+     "unit": "count",
+     "scale": "log"
+    },
+    "y": {
+     "label": "Questions",
+     "unit": "count"
+    }
+   },
+   {
+    "el": "series",
+    "list": [
+     {
+      "name": "worst case"
+     }
+    ],
+    "legend": false
+   },
+   {
+    "el": "alt",
+    "kind": "Line chart",
+    "encodes": "questions needed against menu size on a log axis",
+    "point": "each doubling adds one question"
+   }
+  ]
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "id": "model",
+ "family": "problem",
+ "why": "a small artefact the reader builds, checked by a widget",
+ "zone": "items",
+ "kinds": [
+  "task-custom"
+ ],
+ "slots": {
+  "widget": {
+   "type": "str",
+   "req": true,
+   "doc": "the book.js widget class"
+  },
+  "model": {
+   "type": "str",
+   "req": true,
+   "doc": "what the widget accepts (data-want)"
+  },
+  "html": {
+   "type": "html",
+   "req": true,
+   "doc": "the widget parts"
+  },
+  "checks": {
+   "type": "list",
+   "req": true,
+   "writer": true,
+   "doc": "properties a correct build has; more than one build passes"
+  }
+ },
+ "render": "<div class=\"{widget!a}\" data-want=\"{model!a}\">{html}</div>",
+ "checks": [
+  {
+   "id": "model-checks",
+   "breaks": [
+    {
+     "set": "elements.1.checks",
+     "to": []
+    }
+   ]
+  }
+ ],
+ "example": {
+  "kind": "task-custom",
+  "move": "decide",
+  "level": "create",
+  "diff": "3",
+  "elements": [
+   {
+    "el": "stem",
+    "text": "Tap the dishes in the order the bot should ask about them, most popular first.",
+    "asks": "order"
+   },
+   {
+    "el": "model",
+    "widget": "tree-pick",
+    "model": "B C A",
+    "html": "<button type=\"button\">A (1/8)</button><button type=\"button\">B (1/2)</button><button type=\"button\">C (1/4)</button>",
+    "checks": [
+     "the most popular dish comes first",
+     "every dish appears once"
+    ]
+   }
+  ]
+ }
+}

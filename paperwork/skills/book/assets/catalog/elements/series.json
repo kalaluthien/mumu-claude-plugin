@@ -1,0 +1,81 @@
+{
+ "id": "series",
+ "family": "visual",
+ "why": "plotted series, labelled where they are drawn",
+ "zone": "none",
+ "kinds": [
+  "fig"
+ ],
+ "slots": {
+  "list": {
+   "type": "list",
+   "req": true,
+   "of": {
+    "name": {
+     "type": "str",
+     "req": true
+    }
+   }
+  },
+  "legend": {
+   "type": "bool"
+  }
+ },
+ "render": "",
+ "checks": [
+  {
+   "id": "direct-labels",
+   "breaks": [
+    {
+     "set": "elements.1.legend",
+     "to": true
+    }
+   ]
+  },
+  {
+   "id": "direct-labels",
+   "breaks": [
+    {
+     "set": "elements.1.list.0.name",
+     "to": "average case"
+    }
+   ]
+  }
+ ],
+ "example": {
+  "kind": "fig",
+  "tactic": "plot",
+  "fkind": "computed",
+  "caption": "The worst case grows by one question each time the menu doubles.",
+  "elements": [
+   {
+    "el": "axes",
+    "svg": "<svg viewBox=\"0 0 220 120\"><polyline points=\"20,100 60,80 100,60 140,40\"/><text x=\"100\" y=\"116\">Dishes</text><text x=\"2\" y=\"10\">Questions</text><text x=\"144\" y=\"40\">worst case</text></svg>",
+    "x": {
+     "label": "Dishes",
+     "unit": "count",
+     "scale": "log"
+    },
+    "y": {
+     "label": "Questions",
+     "unit": "count"
+    }
+   },
+   {
+    "el": "series",
+    "list": [
+     {
+      "name": "worst case"
+     }
+    ],
+    "legend": false
+   },
+   {
+    "el": "alt",
+    "kind": "Line chart",
+    "encodes": "questions needed against menu size on a log axis",
+    "point": "each doubling adds one question"
+   }
+  ]
+ }
+}

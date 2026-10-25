@@ -1,0 +1,104 @@
+{
+ "id": "exhibit",
+ "family": "problem",
+ "why": "the material the reader would see, shown in the card",
+ "zone": "body",
+ "kinds": [
+  "ask",
+  "probe",
+  "task-sort",
+  "task-order",
+  "task-select",
+  "task-estimate",
+  "task-custom"
+ ],
+ "slots": {
+  "alt": {
+   "type": "str",
+   "req": true,
+   "doc": "kind, what it shows, and its point"
+  },
+  "html": {
+   "type": "html",
+   "doc": "the exhibit markup (table, mock screen, svg, pre)"
+  },
+  "kit": {
+   "type": "obj",
+   "doc": "a kit tree (see kit-tree) instead of html"
+  },
+  "cls": {
+   "type": "str",
+   "doc": "class of the exhibit box, such as mk"
+  },
+  "facts": {
+   "type": "list",
+   "req": true,
+   "doc": "what the exhibit shows, each as it appears in it; rivals cite them by index"
+  },
+  "props": {
+   "type": "obj",
+   "doc": "option exhibits: property -> value, so differs-one can compare options"
+  }
+ },
+ "render": "<div data-c=\"exhibit\"[cls:  class=\"{cls!a}\"] role=\"img\" aria-label=\"{alt!a}\">{html}{kit@kit-tree}</div>",
+ "checks": [
+  {
+   "id": "facts-shown",
+   "breaks": [
+    {
+     "set": "elements.1.facts.1",
+     "to": "E 30"
+    }
+   ]
+  }
+ ],
+ "example": {
+  "kind": "ask",
+  "move": "decide",
+  "level": "apply",
+  "diff": "2",
+  "elements": [
+   {
+    "el": "stem",
+    "text": "Which dish should the bot's first question name, given the tally shown?",
+    "asks": "choice"
+   },
+   {
+    "el": "exhibit",
+    "alt": "Table of the week's tally: A 10, B 40, C 20, D 10 of 80 orders",
+    "html": "<table><tr><th>Dish</th><th>Orders</th></tr><tr><td>A</td><td>10</td></tr><tr><td>B</td><td>40</td></tr><tr><td>C</td><td>20</td></tr><tr><td>D</td><td>10</td></tr></table>",
+    "facts": [
+     "B 40",
+     "A 10",
+     "C 20"
+    ]
+   },
+   {
+    "el": "answer",
+    "text": "Dish B",
+    "why": "B holds 40 of the 80 orders, so one question ends half of the games."
+   },
+   {
+    "el": "rival",
+    "text": "Dish A",
+    "why": "A is first on the menu, but it holds only 10 of the 80 orders.",
+    "belief": "prior-intuition",
+    "right_when": "every dish is ordered equally often",
+    "ruled_out_by": [
+     1
+    ]
+   },
+   {
+    "el": "rival",
+    "text": "Dish C",
+    "why": "C holds 20 of the orders, so asking it first lengthens the common path.",
+    "belief": "first-order",
+    "right_when": "C were the most ordered dish",
+    "ruled_out_by": [
+     0,
+     2
+    ]
+   }
+  ]
+ }
+}
