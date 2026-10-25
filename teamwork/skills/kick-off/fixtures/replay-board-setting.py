@@ -4,8 +4,9 @@
 
 usage: replay-board-setting.py [-v]
 `-v` also prints the heartbeat's output.
-- late-setting: the heartbeat, started with no board setting, routes the files board's backlog once `.claude/settings.local.json` names that board
-- signal: that change touched the signal file, which wakes the issue pane to read the board again
+- signal: the heartbeat, started with no setting, touches the signal file, which wakes the issue pane, once `.claude/settings.local.json` names the files board
+- late-landing: with the board set, the heartbeat routes nothing while its landing reads the failing GitHub, and a later `TEAMWORK_LANDING=git` alone touches the signal file again
+- late-setting: the heartbeat then routes the files board's backlog, which it never did before the settings
 - worktree: a script run in a worktree of the repository reads the board and landing the main checkout's settings name
 - environment-wins: `TEAMWORK_BOARD` in the environment wins over the settings
 - failure-names-board: the pane's board read names the board whose read failed"""
@@ -41,12 +42,17 @@ def step(name, ok, detail=""):
         failed.append(name)
 
 
+def holds_within(holds, seconds):
+    """Whether HOLDS() comes true within SECONDS."""
+    end = time.time() + seconds
+    while time.time() < end and not holds():
+        time.sleep(0.2)
+    return holds()
+
+
 def printed(log, text, seconds):
     """Whether the running heartbeat's LOG shows TEXT within SECONDS."""
-    end = time.time() + seconds
-    while time.time() < end and text not in log.read_text():
-        time.sleep(0.2)
-    return text in log.read_text()
+    return holds_within(lambda: text in log.read_text(), seconds)
 
 
 def kinds(cwd, **more):
@@ -75,12 +81,19 @@ def main(args):
     try:
         time.sleep(3)  # a few polls on the default board, which fails, before the setting exists
         early = "route #1" in log.read_text()
-        signal = (work / "claude" / "teamwork" / "issues-changed").stat().st_mtime_ns if (work / "claude" / "teamwork" / "issues-changed").exists() else 0
-        (repo / ".claude").mkdir()
-        (repo / ".claude" / "settings.local.json").write_text(json.dumps({"env": {"TEAMWORK_BOARD": "files", "TEAMWORK_LANDING": "git"}}))
-        step("late-setting", not early and printed(log, "route #1 Probe the late setting", 20), log.read_text())
         mark = work / "claude" / "teamwork" / "issues-changed"
-        step("signal", mark.exists() and mark.stat().st_mtime_ns != signal, f"stamp {signal}")
+        stamp = lambda: mark.stat().st_mtime_ns if mark.exists() else 0
+        changed = lambda before: holds_within(lambda: stamp() != before, 10)
+        (repo / ".claude").mkdir()
+        before = stamp()
+        (repo / ".claude" / "settings.local.json").write_text(json.dumps({"env": {"TEAMWORK_BOARD": "files"}}))
+        step("signal", changed(before), f"stamp {before}")
+        time.sleep(3)  # a few polls on the files board, whose read still fails while the landing reads GitHub
+        board_only = "route #1" in log.read_text()
+        before = stamp()
+        (repo / ".claude" / "settings.local.json").write_text(json.dumps({"env": {"TEAMWORK_BOARD": "files", "TEAMWORK_LANDING": "git"}}))
+        step("late-landing", not board_only and changed(before), f"route before the landing setting: {board_only}, stamp {before}")
+        step("late-setting", not early and printed(log, "route #1 Probe the late setting", 20), log.read_text())
     finally:
         live.kill()
     if "-v" in args:
