@@ -6,91 +6,165 @@
 <title>__TITLE__</title>
 <style>
 :root {
-  --bg: #fbfaf7; --surface: #ffffff; --ink: #1f2328; --muted: #656d76; --line: #d8d4cb;
-  --accent: #2f6fdb; --accent-bg: #e6eefb; --amber: #8a5a00; --amber-bg: #fff1d0; --amber-line: #e3b341;
-  --ok: #1a7f37; --bar: #ffffff; --shadow: 0 1px 3px rgba(0,0,0,.12);
+  --bg: #f7f7f5; --surface: #ffffff; --ink: #1f2328; --muted: #6e7681; --faint: #a3a9b1; --line: #d9dbde; --card-line: #e6e7ea;
+  --accent: #2f6fdb; --accent-bg: #eaf1fc; --amber: #b2560b; --amber-bg: #fdebd3; --amber-line: #f0c48f;
+  --shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 14px rgba(0,0,0,.06); --lift: 0 2px 4px rgba(0,0,0,.06), 0 10px 28px rgba(0,0,0,.12);
+  --gap: 28px; --elbow: 50%; --elbow-first: 50%;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #15171a; --surface: #1d2025; --ink: #e6e8eb; --muted: #9aa3ad; --line: #3a3f46;
-    --accent: #7aa7ff; --accent-bg: #22314d; --amber: #f2c46d; --amber-bg: #3a2c0c; --amber-line: #8a6a1d;
-    --ok: #56d364; --bar: #1d2025; --shadow: 0 1px 3px rgba(0,0,0,.6);
+  :root {
+    --bg: #15171a; --surface: #1d2025; --ink: #e6e8eb; --muted: #9aa3ad; --faint: #6b737d; --line: #3a3f46; --card-line: #2c3138;
+    --accent: #7aa7ff; --accent-bg: #22314d; --amber: #f2b36d; --amber-bg: #3d2a12; --amber-line: #7a5320;
+    --shadow: 0 1px 2px rgba(0,0,0,.4); --lift: 0 6px 20px rgba(0,0,0,.6);
   }
 }
-:root[data-theme="dark"] {
-    --bg: #15171a; --surface: #1d2025; --ink: #e6e8eb; --muted: #9aa3ad; --line: #3a3f46;
-    --accent: #7aa7ff; --accent-bg: #22314d; --amber: #f2c46d; --amber-bg: #3a2c0c; --amber-line: #8a6a1d;
-    --ok: #56d364; --bar: #1d2025; --shadow: 0 1px 3px rgba(0,0,0,.6);
-}
 * { box-sizing: border-box; }
-html { scroll-padding-bottom: 280px; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; padding-bottom: 260px; }
-main { max-width: 820px; margin: 0 auto; padding: 16px; }
-h1 { font-size: 1.5rem; line-height: 1.25; margin: 8px 0 16px; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; padding-bottom: 72px; }
 button, textarea, input { font: inherit; color: inherit; }
-button { cursor: pointer; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; }
-button:hover { border-color: var(--accent); }
+button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-textarea, input[type=text] { width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
-.part { margin: 6px 0; }
-.children { margin-left: 14px; padding-left: 12px; border-left: 2px solid var(--line); }
-.row { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
-.id { font-size: .72rem; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 2.2em; }
-.kind { font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
-.chip { font-size: .72rem; background: var(--accent-bg); color: var(--accent); border-radius: 10px; padding: 1px 8px; text-decoration: none; overflow-wrap: anywhere; }
-.text { flex: 1 1 14em; overflow-wrap: anywhere; }
-.risk > .row .kind, .risk-line .kind { color: var(--amber); border-color: var(--amber-line); background: var(--amber-bg); }
-.risk > .row .text, .risk-line .text { color: var(--amber); }
-.actions { display: inline-flex; gap: 4px; opacity: 0; transition: opacity .1s; }
-.part:hover > .row .actions, .part:focus-within > .row .actions, .actions:focus-within { opacity: 1; }
-@media (hover: none) { .actions { opacity: 1; } }
-.actions button { font-size: .75rem; padding: 0 7px; }
-.struck > .row .text { text-decoration: line-through; color: var(--muted); }
-.struck > .children, .struck > .card, .struck > .comments { opacity: .45; }
-.later > .row, .later > .card, .later > .comments { opacity: .35; transition: opacity .15s; }
-.later > .row:hover, .later > .row:focus-within, .later > .card:hover, .later > .card:focus-within,
-.later > .comments:hover, .later > .comments:focus-within { opacity: 1; }
-.reason { font-size: .8rem; color: var(--muted); }
-.edited-mark { font-size: .7rem; color: var(--accent); }
-.inline { margin: 4px 0 4px 2.4em; display: flex; flex-direction: column; gap: 4px; }
-.inline .btns { display: flex; gap: 6px; }
-.comments { margin: 2px 0 2px 2.4em; font-size: .9rem; }
-.comment { display: flex; gap: 6px; border-left: 3px solid var(--accent); padding-left: 8px; margin: 2px 0; }
-.card { margin: 6px 0 6px 2.4em; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; box-shadow: var(--shadow); }
-.card:focus, .card.cur { outline: 2px solid var(--accent); outline-offset: 1px; }
-ol.opts, ol.leaves { list-style: none; margin: 0; padding: 0; }
-.opt { border: 1px solid var(--line); border-radius: 8px; margin: 6px 0; padding: 6px 8px; }
-.opt.chosen { border-color: var(--accent); background: var(--accent-bg); }
-.optbtn { display: flex; gap: 8px; align-items: baseline; width: 100%; text-align: left; border: 0; background: none; padding: 2px 0; }
-.num { font-weight: 600; min-width: 1.4em; height: 1.4em; text-align: center; border: 1px solid var(--line); border-radius: 4px; font-size: .8rem; background: var(--surface); }
-.badge { font-size: .7rem; color: var(--ok); border: 1px solid var(--ok); border-radius: 10px; padding: 0 7px; white-space: nowrap; }
-.optparts { margin: 2px 0 2px 2em; font-size: .9rem; }
-.risk-line { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
-.note-line { color: var(--muted); }
-.fu { margin: 6px 0 2px 2em; padding: 6px 8px; border-left: 3px solid var(--line); opacity: .75; }
-.fu.active { opacity: 1; border-left-color: var(--accent); }
-.fuq { font-size: .85rem; font-weight: 600; }
-.leaf { display: flex; gap: 8px; align-items: baseline; padding: 2px 4px; border-radius: 6px; width: 100%; text-align: left; border: 0; background: none; }
-.leaf.chosen { background: var(--accent-bg); }
-.hint { margin: 8px 0 0; font-size: .8rem; color: var(--muted); }
-.other textarea { margin-top: 6px; }
-#bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--bar); border-top: 1px solid var(--line); box-shadow: 0 -2px 8px rgba(0,0,0,.12); padding: 8px 16px; z-index: 5; }
-#bar .in { max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px; }
-#bar .top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-#count { flex: 1; font-size: .9rem; color: var(--muted); }
-#answer { height: 110px; font: .8rem/1.4 ui-monospace, Menlo, monospace; resize: vertical; }
-#copy { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+kbd { display: inline-block; min-width: 1.6em; padding: 0 5px; border-radius: 5px; background: var(--card-line); color: var(--ink); font: 600 .8rem/1.6 system-ui, sans-serif; text-align: center; }
+
+/* header */
+header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 22px 40px 8px; }
+header svg { flex: none; color: var(--accent); }
+h1 { font-size: 1.15rem; margin: 0; font-weight: 650; }
+#waiting { color: var(--muted); }
+#pager { margin-left: auto; display: flex; align-items: center; gap: 6px; color: var(--muted); }
+#pager .dot { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 3px; background: var(--line); }
+#pager .dot.on { background: var(--ink); }
+#pager .of { margin-left: 8px; font-variant-numeric: tabular-nums; }
+
+/* cards */
+.node { position: relative; background: var(--surface); border: 1px solid var(--card-line); border-radius: 12px; box-shadow: var(--shadow); padding: 12px 16px; text-align: left; overflow-wrap: anywhere; transition: opacity .15s, box-shadow .15s; }
+button.node { display: block; width: 100%; }
+button.node:hover, .node:focus-within { box-shadow: var(--lift); }
+.num { display: inline-block; min-width: 1.6em; margin-right: 10px; border-radius: 5px; background: var(--card-line); color: var(--muted); font-size: .8rem; text-align: center; font-variant-numeric: tabular-nums; }
+.mark { margin-left: 8px; font-size: .82rem; color: var(--accent); white-space: nowrap; }
+.mark.yours { color: var(--surface); background: var(--accent); border-radius: 9px; padding: 0 7px; }
+.chip { margin-left: 6px; font-size: .75rem; color: var(--muted); background: var(--bg); border: 1px solid var(--card-line); border-radius: 9px; padding: 0 7px; text-decoration: none; display: inline-block; max-width: 100%; overflow-wrap: anywhere; line-height: 1.5; }
+a.chip:hover { color: var(--accent); }
+.kind { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.risk-text { background: var(--amber-bg); color: var(--amber); border-radius: 4px; padding: 0 4px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.dim { opacity: .42; }
+.dim:hover, .dim:focus-within { opacity: 1; }
+.struck .ptext, .struck .qtext { text-decoration: line-through; color: var(--muted); }
+.reason { font-size: .82rem; color: var(--muted); margin-top: 4px; }
+.edited { font-size: .72rem; color: var(--accent); margin-left: 6px; }
+.comment { margin-top: 6px; padding-left: 8px; border-left: 3px solid var(--accent); font-size: .88rem; display: flex; gap: 8px; align-items: baseline; }
+.comment button { border: 0; background: none; color: var(--muted); font-size: .78rem; padding: 0; }
+
+/* the card's own tools, top right, shown on hover or focus */
+.acts { position: absolute; top: 6px; right: 6px; display: flex; gap: 2px; background: var(--surface); border-radius: 7px; opacity: 0; transition: opacity .1s; }
+.node:hover > .acts, .node:focus-within > .acts { opacity: 1; }
+@media (hover: none) { .acts { position: static; opacity: 1; margin-top: 8px; } }
+.acts button { border: 1px solid var(--card-line); background: var(--surface); border-radius: 6px; font-size: .75rem; padding: 1px 8px; color: var(--muted); }
+.acts button:hover { color: var(--accent); border-color: var(--accent); }
+.editor { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.editor textarea, .editor input { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.editor .btns { display: flex; gap: 6px; }
+.editor .btns button { border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 2px 10px; font-size: .85rem; }
+.editor .btns button:first-child { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* the note that pops up over what it explains */
+.has-note { position: relative; cursor: help; }
+.note-pop { display: none; position: absolute; z-index: 20; right: -8px; top: calc(100% + 8px); width: min(380px, 80vw); padding: 14px 16px; background: var(--surface); border: 1px solid var(--card-line); border-radius: 12px; box-shadow: var(--lift); color: var(--ink); font-size: .95rem; cursor: auto; text-align: left; }
+.has-note:hover > .note-pop, .has-note:focus > .note-pop, .has-note:focus-within > .note-pop { display: block; }
+.note-pop > span { display: block; }
+.note-pop > .chip { display: inline-block; }
+.note-head { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--amber); margin-bottom: 4px; }
+.note-pop .chip { display: inline-block; margin: 8px 0 0; }
+
+/* tree lines, one rule for every branching list: a stub from the parent, a trunk, an elbow to each child */
+.branches, .kids, .leaves { list-style: none; margin: 0; padding: 0 0 0 var(--gap); position: relative; }
+.branches::before, .kids::before { content: ""; position: absolute; left: 0; top: 50%; width: var(--gap); border-top: 1.5px solid var(--line); }
+.branches > li, .kids > li, .leaves > li { position: relative; padding: 7px 0 7px var(--gap); }
+.branches > li::before, .kids > li::before, .leaves > li::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; border-left: 1.5px solid var(--line); }
+.branches > li:first-child::before, .kids > li:first-child::before, .leaves > li:first-child::before { top: var(--elbow-first); }
+.branches > li:last-child::before, .kids > li:last-child::before, .leaves > li:last-child::before { bottom: calc(100% - var(--elbow)); }
+.branches > li:only-child::before, .kids > li:only-child::before { display: none; }
+.branches > li::after, .kids > li::after, .leaves > li::after { content: ""; position: absolute; left: 0; top: var(--elbow); width: var(--gap); border-top: 1.5px solid var(--line); }
+.leaves { --elbow: 26px; --elbow-first: 0; margin-left: 18px; padding-left: 0; }
+.leaves > li { padding-left: 22px; }
+.leaves > li::after { width: 22px; }
+
+/* a Decision page */
+.stage { padding: 24px 40px; }
+.dtree, .trow { display: flex; align-items: center; }
+.qcol { flex: 0 1 360px; min-width: 260px; }
+.badges { margin-bottom: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+.badge-risk { background: var(--amber-bg); color: var(--amber); border-radius: 8px; padding: 3px 10px; font-weight: 550; }
+.qcard { padding: 22px 24px; border-radius: 14px; }
+.who { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.avatar { flex: none; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--card-line); display: grid; place-items: center; font-weight: 700; color: var(--muted); }
+.who-name { font-weight: 550; }
+.who-sub { color: var(--muted); font-size: .9rem; }
+.qtext { font-size: 1.2rem; font-weight: 650; line-height: 1.35; margin: 0; }
+.context { color: var(--muted); margin-top: 10px; }
+.dtree > .branches { flex: 1 1 auto; min-width: 0; }
+.branch { display: flex; align-items: center; }
+.branch > .onode-wrap { flex: 0 1 300px; min-width: 200px; }
+.onode { font-size: 1.05rem; padding: 14px 16px; }
+.detail { position: relative; flex: 0 1 380px; min-width: 200px; margin-left: var(--gap); display: flex; flex-direction: column; gap: 8px; }
+.detail::before { content: ""; position: absolute; left: calc(-1 * var(--gap)); top: 50%; width: var(--gap); border-top: 1.5px solid var(--line); }
+.facts { padding: 8px 14px; box-shadow: none; border-radius: 10px; }
+.fact { color: var(--muted); }
+.fq { display: inline-block; align-self: flex-start; border-radius: 10px; padding: 8px 14px; font-weight: 550; }
+.leaf { padding: 10px 14px; }
+.leaf .fact { margin-top: 2px; font-size: .92rem; }
+.other-text { color: var(--muted); }
+.gone { display: none; }
+
+/* the whole plan page */
+.ptree { display: flex; flex-direction: column; gap: 14px; }
+.part { flex: 0 1 340px; min-width: 200px; }
+.trow > .kids { flex: 1 1 auto; min-width: 0; }
+.pid { font-size: .72rem; color: var(--faint); margin-right: 6px; font-variant-numeric: tabular-nums; }
+.part.risk-part .ptext { color: var(--amber); }
+.part.decision { border-color: var(--accent); }
+.choice { margin-top: 6px; font-size: .88rem; color: var(--muted); }
+.choice button { border: 0; background: none; color: var(--accent); padding: 0; }
+.later { opacity: .38; }
+.later:hover, .later:focus-within { opacity: 1; }
+.empty { color: var(--muted); }
+
+/* bottom bar: the keys of the step shown, then undo and copy */
+#bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 12px; padding: 12px 40px; background: var(--bg); box-shadow: 0 -1px 0 var(--card-line); z-index: 10; }
+#hint { flex: 1; color: var(--muted); }
+#hint kbd { margin: 0 2px; }
+#undo { border: 0; background: none; color: var(--muted); padding: 4px 8px; }
+#undo:disabled { visibility: hidden; }
+#copy { border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 9px; padding: 6px 14px; font-weight: 600; white-space: nowrap; }
+
+@media (max-width: 760px) {
+  :root { --gap: 18px; --elbow: 24px; --elbow-first: 0; }
+  header, .stage { padding-left: 16px; padding-right: 16px; }
+  #bar { padding: 10px 16px; gap: 8px; }
+  #hint { font-size: .85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #undo { padding: 4px; }
+  .dtree, .trow, .branch { flex-direction: column; align-items: stretch; }
+  .qcol, .part, .branch > .onode-wrap, .detail { flex: none; min-width: 0; }
+  .branches, .kids { margin-left: 14px; padding-left: 0; margin-top: 8px; }
+  .branches::before, .kids::before, .detail::before { display: none; }
+  .detail { margin: 8px 0 0 16px; }
+  .note-pop { left: 0; right: auto; }
+}
 </style>
 </head>
 <body>
-<main>
-<h1 id="title"></h1>
-<div id="tree"></div>
-</main>
-<div id="bar"><div class="in">
-  <div class="top"><span id="count"></span><button id="undo" type="button">Undo</button><button id="copy" type="button">Copy Answer</button></div>
-  <textarea id="answer" readonly aria-label="Answer to copy"></textarea>
-</div></div>
+<header>
+  <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="5" cy="13" r="3"/><circle cx="20" cy="5" r="3"/><circle cx="20" cy="21" r="3"/><path d="M8 13h3c3 0 3-8 6-8M11 13c3 0 3 8 6 8"/></svg>
+  <h1 id="title"></h1>
+  <span id="waiting"></span>
+  <nav id="pager" aria-label="Pages"></nav>
+</header>
+<main class="stage" id="stage"></main>
+<div id="bar">
+  <span id="hint"></span>
+  <button id="undo" type="button">Undo</button>
+  <button id="copy" type="button">Copy answer</button>
+</div>
+<textarea id="answer" hidden readonly aria-hidden="true" tabindex="-1"></textarea>
 <script type="application/json" id="plan">__PLAN__</script>
 <script>
 (function () {
@@ -107,10 +181,12 @@ var order = [], byId = {}, parentOf = {};
   });
 })(plan.parts, "", "");
 var decisions = order.filter(function (id) { return "pick" in byId[id]; });
+// One page per Decision, then the whole plan, where every Part takes strike, comment and edit.
+var pages = decisions.concat(["plan"]);
 
 var S = { pick: {}, strike: {}, edit: {}, comment: {} };
 var history = [];
-var ui = { cur: decisions[0] || null, awaiting: null, open: null, copied: false, later: {} };
+var ui = { page: 0, awaiting: null, open: null, showAll: {}, copied: false };
 
 function options(d) { return [d.pick].concat(d.else || []); }
 function h(tag, cls, text) {
@@ -120,14 +196,18 @@ function h(tag, cls, text) {
   return e;
 }
 function btn(label, fn, cls) {
-  var b = h("button", cls, label); b.type = "button"; b.addEventListener("click", fn); return b;
+  var b = h("button", cls, label); b.type = "button";
+  b.addEventListener("click", function (e) { e.stopPropagation(); fn(e); });
+  return b;
 }
+function kbd(t) { return h("kbd", null, t); }
 function snapshot() { history.push(JSON.stringify(S)); ui.copied = false; }
 function change(fn) { snapshot(); fn(); render(); }
 function isStruckBelow(id) {
   for (var x = id; x; x = parentOf[x]) if (S.strike[x] != null) return true;
   return false;
 }
+function shownText(id) { return S.edit[id] != null ? S.edit[id] : byId[id].text; }
 
 // -- answer ---------------------------------------------------------------
 function lines() {
@@ -148,47 +228,56 @@ function lines() {
 function oneLine(t) { return String(t).replace(/\s*\n\s*/g, " ").trim(); }
 function answerText() { return ["# Answer: " + plan.title + " · plan " + STAMP].concat(lines()).join("\n") + "\n"; }
 
-// -- render ---------------------------------------------------------------
-function meta(p, row) {
-  if (p.kind) row.appendChild(h("span", "kind", p.kind));
-}
-function chip(source) {
+// -- small views ----------------------------------------------------------
+function chip(source, asLink) {
   var e;
-  if (/^https?:\/\//.test(source)) { e = h("a", "chip", source); e.href = source; e.target = "_blank"; e.rel = "noopener noreferrer"; }
+  if (asLink && /^https?:\/\//.test(source)) { e = h("a", "chip", source.replace(/^https?:\/\/(www\.)?/, "")); e.href = source; e.target = "_blank"; e.rel = "noopener noreferrer"; e.title = source; }
   else e = h("span", "chip", source);
   return e;
 }
-function readonlyParts(parts, into) {
-  parts.forEach(function (p) {
-    var line = h("div", p.kind === "risk" ? "risk-line" : "note-line");
-    if (p.kind) line.appendChild(h("span", "kind", p.kind));
-    line.appendChild(h("span", "text", p.text));
+function notePop(p, into) {
+  var pop = h("span", "note-pop");
+  pop.appendChild(h("span", "note-head", p.kind === "note" ? "Agent's note" : p.kind));
+  pop.appendChild(h("span", null, p.text));
+  if (p.source) pop.appendChild(chip(p.source));
+  into.classList.add("has-note");
+  if (into.tagName !== "BUTTON") into.tabIndex = 0;
+  into.appendChild(pop);
+}
+// An Option's facts: a note pops up over the fact before it, or over the card when none comes before.
+function facts(parts, into, card) {
+  var last = null;
+  (parts || []).forEach(function (p) {
+    if (p.kind === "note") { notePop(p, last || card); return; }
+    var line = h("div", "fact");
+    var t = h("span", p.kind === "risk" ? "risk-text" : "ftext", p.text);
+    line.appendChild(t);
     if (p.source) line.appendChild(chip(p.source));
     into.appendChild(line);
-    if (p.parts) { var sub = h("div", "optparts"); readonlyParts(p.parts, sub); into.appendChild(sub); }
+    last = t;
+    if (p.parts) facts(p.parts, into, t);
   });
 }
-function shownText(id) { return S.edit[id] != null ? S.edit[id] : byId[id].text; }
-
-function actions(id) {
-  var a = h("span", "actions");
+function acts(id) {
+  var a = h("span", "acts");
   if (S.strike[id] != null) a.appendChild(btn("Unstrike", function () { change(function () { delete S.strike[id]; }); }));
-  else a.appendChild(btn("Strike", function () { ui.open = { kind: "strike", pid: id }; render(); }));
-  a.appendChild(btn("Comment", function () { ui.open = { kind: "comment", pid: id }; render(); }));
-  a.appendChild(btn("Edit", function () { ui.open = { kind: "edit", pid: id }; render(); }));
+  else a.appendChild(btn("Strike", function () { openEditor("strike", id); }));
+  a.appendChild(btn("Comment", function () { openEditor("comment", id); }));
   if (S.edit[id] != null) a.appendChild(btn("Revert", function () { change(function () { delete S.edit[id]; }); }));
+  else a.appendChild(btn("Edit", function () { openEditor("edit", id); }));
   return a;
 }
-
+function openEditor(kind, id) { ui.open = { kind: kind, pid: id }; render(); }
 function editor(id, kind) {
-  var box = h("div", "inline");
-  var field = kind === "edit" ? h("textarea") : h("input"); 
-  if (kind !== "edit") field.type = "text";
-  field.rows = 2;
-  field.setAttribute("aria-label", kind === "strike" ? "Reason for striking" : kind === "edit" ? "New text" : "Comment");
-  field.placeholder = kind === "strike" ? "Why strike this?" : kind === "edit" ? "" : "Your comment";
-  if (kind === "edit") field.value = shownText(id);
+  var box = h("div", "editor");
+  var field = kind === "edit" || kind === "other" ? h("textarea") : h("input");
+  if (field.tagName === "INPUT") field.type = "text"; else field.rows = 2;
   field.className = "ed-" + kind;
+  field.setAttribute("aria-label", { strike: "Reason for striking", edit: "New text", comment: "Comment", other: "Other answer" }[kind]);
+  field.placeholder = { strike: "Why strike this?", edit: "", comment: "Your comment", other: "Your answer" }[kind];
+  if (kind === "edit") field.value = shownText(id);
+  var c = S.pick[id];
+  if (kind === "other" && c && c.other != null) field.value = c.other;
   var done = function () {
     var v = field.value.trim();
     if (!v) return;
@@ -196,21 +285,139 @@ function editor(id, kind) {
     change(function () {
       if (kind === "strike") S.strike[id] = v;
       else if (kind === "edit") { if (v === byId[id].text) delete S.edit[id]; else S.edit[id] = v; }
+      else if (kind === "other") { S.pick[id] = { k: 0, other: v }; ui.awaiting = null; ui.showAll[id] = false; }
       else (S.comment[id] = S.comment[id] || []).push(v);
     });
   };
   field.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") { ui.open = null; render(); focusCard(id); e.stopPropagation(); }
+    e.stopPropagation();
+    if (e.key === "Escape") { ui.open = null; render(); }
     else if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); done(); }
   });
+  field.addEventListener("click", function (e) { e.stopPropagation(); });
   var b = h("div", "btns");
-  b.appendChild(btn(kind === "strike" ? "Strike" : kind === "edit" ? "Save" : "Add", done));
+  b.appendChild(btn({ strike: "Strike", edit: "Save", comment: "Add", other: "Use this" }[kind], done));
   b.appendChild(btn("Cancel", function () { ui.open = null; render(); }));
   box.appendChild(field); box.appendChild(b);
-  box._field = field;
   return box;
 }
+// What a Part card carries below its text: edited mark, struck reason, comments, its open editor.
+function tail(id, card) {
+  if (S.strike[id] != null) card.appendChild(h("div", "reason", "Struck: " + S.strike[id]));
+  (S.comment[id] || []).forEach(function (t, i) {
+    var c = h("div", "comment"); c.appendChild(h("span", null, t));
+    c.appendChild(btn("remove", function () { change(function () { S.comment[id].splice(i, 1); if (!S.comment[id].length) delete S.comment[id]; }); }));
+    card.appendChild(c);
+  });
+  if (ui.open && ui.open.pid === id && ui.open.kind !== "other") card.appendChild(editor(id, ui.open.kind));
+  card.appendChild(acts(id));
+}
 
+// -- a Decision page ------------------------------------------------------
+function chosenOf(id) {
+  var c = S.pick[id];
+  if (!c) return null;
+  return c.other != null ? options(byId[id]).length + 1 : c.k;
+}
+function decisionPage(id) {
+  var d = byId[id], opts = options(d), K = opts.length, c = S.pick[id];
+  var struck = S.strike[id] != null, chosen = chosenOf(id), collapsed = chosen != null && !ui.showAll[id];
+  var tree = h("div", "dtree");
+
+  var col = h("div", "qcol");
+  var badges = h("div", "badges"), context = h("div", "context");
+  (d.parts || []).forEach(function (p, i) {
+    var cid = id + "." + (i + 1);
+    if (p.kind === "risk") badges.appendChild(h("span", "badge-risk", shownText(cid)));
+    else context.appendChild(h("div", null, shownText(cid)));
+  });
+  if (badges.childNodes.length) col.appendChild(badges);
+  var card = h("div", "node qcard" + (struck ? " struck" : ""));
+  card.setAttribute("data-card", id);
+  if (d.source) {
+    var who = h("div", "who"), names = d.source.split(" · ");
+    who.appendChild(h("span", "avatar", names[0].charAt(0).toUpperCase()));
+    var nm = h("div"); nm.appendChild(h("div", "who-name", names[0]));
+    if (names.length > 1) nm.appendChild(h("div", "who-sub", names.slice(1).join(" · ")));
+    who.appendChild(nm); card.appendChild(who);
+  }
+  var q = h("p", "qtext", shownText(id));
+  if (S.edit[id] != null) q.appendChild(h("span", "edited", "edited"));
+  card.appendChild(q);
+  if (context.childNodes.length) card.appendChild(context);
+  tail(id, card);
+  col.appendChild(card);
+  tree.appendChild(col);
+  if (struck) return tree;
+
+  var ul = h("ul", "branches");
+  opts.forEach(function (o, i) {
+    var k = i + 1;
+    if (collapsed && k !== chosen) return;
+    var li = h("li", "branch" + ((chosen == null ? k !== 1 : k !== chosen) ? " dim" : ""));
+    var wrap = h("div", "onode-wrap");
+    var ob = btn("", function () { if (collapsed && k === chosen) { ui.showAll[id] = true; render(); } else pickOption(id, k); }, "node onode");
+    ob.setAttribute("data-option", String(k));
+    ob.appendChild(h("span", "num", String(k)));
+    ob.appendChild(h("span", null, o.text));
+    if (k === 1) ob.appendChild(h("span", "mark", "Agent's pick"));
+    if (chosen === k) ob.appendChild(h("span", "mark yours", "Your pick"));
+    wrap.appendChild(ob); li.appendChild(wrap);
+    var factsBox = h("div", "node facts");
+    facts(o.parts, factsBox, ob);
+    if (factsBox.childNodes.length || o.then) {
+      var det = h("div", "detail");
+      if (factsBox.childNodes.length) det.appendChild(factsBox);
+      if (o.then) det.appendChild(followUp(id, k, o.then, chosen === k));
+      li.appendChild(det);
+    }
+    ul.appendChild(li);
+  });
+  if (!collapsed || chosen === K + 1) {
+    var oli = h("li", "branch" + (chosen === K + 1 ? "" : " dim"));
+    var owrap = h("div", "onode-wrap");
+    var other = h("div", "node onode");
+    var obtn = btn("", function () { ui.awaiting = null; openEditor("other", id); }, "");
+    obtn.style.cssText = "border:0;background:none;padding:0;text-align:left;width:100%";
+    obtn.appendChild(h("span", "num", String(K + 1)));
+    obtn.appendChild(h("span", "other-text", c && c.other != null ? "Other: " + c.other : "Other…"));
+    if (chosen === K + 1) obtn.appendChild(h("span", "mark yours", "Your pick"));
+    other.appendChild(obtn);
+    if (ui.open && ui.open.pid === id && ui.open.kind === "other") other.appendChild(editor(id, "other"));
+    owrap.appendChild(other); oli.appendChild(owrap); ul.appendChild(oli);
+  }
+  tree.appendChild(ul);
+  return tree;
+}
+function followUp(id, k, q, live) {
+  var c = S.pick[id], fu = h("div", "fu");
+  fu.appendChild(h("div", "node fq", q.text));
+  var leaves = h("ul", "leaves");
+  options(q).forEach(function (leaf, j) {
+    var m = j + 1, picked = live && c && c.then != null ? c.then : 1;
+    var li = h("li", m === picked ? "" : "dim");
+    var lb = btn("", function () { pickLeaf(id, k, m); }, "node leaf");
+    if (live) lb.appendChild(h("span", "num", String(m)));
+    lb.appendChild(h("span", null, leaf.text));
+    if (m === 1) lb.appendChild(h("span", "mark", "Agent's pick"));
+    if (live && c && c.then === m) lb.appendChild(h("span", "mark yours", "Your pick"));
+    facts(leaf.parts, lb, lb);
+    li.appendChild(lb); leaves.appendChild(li);
+  });
+  fu.appendChild(leaves);
+  return fu;
+}
+function pickOption(id, k) {
+  ui.open = null; ui.showAll[id] = false;
+  ui.awaiting = options(byId[id])[k - 1].then ? id : null;
+  change(function () { S.pick[id] = { k: k, then: null }; });
+}
+function pickLeaf(id, k, m) {
+  ui.open = null; ui.awaiting = null; ui.showAll[id] = false;
+  change(function () { S.pick[id] = { k: k, then: m }; });
+}
+
+// -- the whole plan page --------------------------------------------------
 // The view's one gate: Parts after the first Decision still open are faded, never hidden.
 function laterIds() {
   var open = decisions.filter(function (id) { return !(id in S.pick) && S.strike[id] == null; })[0];
@@ -221,173 +428,111 @@ function laterIds() {
   });
   return out;
 }
-
-function partView(id) {
-  var p = byId[id];
-  var isDec = "pick" in p;
-  var wrap = h("div", "part" + (p.kind === "risk" ? " risk" : "") + (S.strike[id] != null ? " struck" : "") + (isDec ? " decision" : "") + (ui.later[id] ? " later" : ""));
-  wrap.setAttribute("data-id", id);
-  var row = h("div", "row");
-  row.appendChild(h("span", "id", id));
-  meta(p, row);
-  row.appendChild(h("span", "text", shownText(id)));
-  if (S.edit[id] != null) row.appendChild(h("span", "edited-mark", "edited"));
-  if (p.source) row.appendChild(chip(p.source));
-  if (S.strike[id] != null) row.appendChild(h("span", "reason", "struck: " + S.strike[id]));
-  row.appendChild(actions(id));
-  wrap.appendChild(row);
-  if (ui.open && ui.open.pid === id) {
-    var ed = editor(id, ui.open.kind); wrap.appendChild(ed); wrap._ed = ed;
+function partNode(id, later) {
+  var p = byId[id], isDec = "pick" in p;
+  var row = h("div", "trow");
+  var card = h("div", "node part" + (p.kind === "risk" ? " risk-part" : "") + (isDec ? " decision" : "") + (S.strike[id] != null ? " struck" : "") + (later[id] ? " later" : ""));
+  card.setAttribute("data-id", id);
+  var top = h("div");
+  top.appendChild(h("span", "pid", id));
+  if (p.kind) top.appendChild(h("span", "kind", p.kind));
+  card.appendChild(top);
+  var t = h("div", "ptext", shownText(id));
+  if (S.edit[id] != null) t.appendChild(h("span", "edited", "edited"));
+  if (p.source) t.appendChild(chip(p.source, true));
+  card.appendChild(t);
+  if (isDec) {
+    var ch = h("div", "choice"), c = S.pick[id];
+    ch.appendChild(document.createTextNode(c ? "Your pick: " + (c.other != null ? c.other : options(p)[c.k - 1].text) + " " : "Agent's pick: " + p.pick.text + " "));
+    ch.appendChild(btn("open →", function () { goTo(pages.indexOf(id)); }));
+    card.appendChild(ch);
   }
-  if (isDec) wrap.appendChild(card(id));
-  var cs = S.comment[id] || [];
-  if (cs.length) {
-    var cbox = h("div", "comments");
-    cs.forEach(function (t, i) {
-      var c = h("div", "comment"); c.appendChild(h("span", null, t));
-      c.appendChild(btn("Remove", function () { change(function () { S.comment[id].splice(i, 1); if (!S.comment[id].length) delete S.comment[id]; }); }));
-      cbox.appendChild(c);
-    });
-    wrap.appendChild(cbox);
-  }
+  tail(id, card);
+  row.appendChild(card);
   if (p.parts && p.parts.length) {
-    var kids = h("div", "children");
-    p.parts.forEach(function (_, i) { kids.appendChild(partView(id + (id ? "." : "") + (i + 1))); });
-    wrap.appendChild(kids);
+    var kids = h("ul", "kids");
+    p.parts.forEach(function (_, i) { var li = h("li"); li.appendChild(partNode(id + "." + (i + 1), later)); kids.appendChild(li); });
+    row.appendChild(kids);
   }
-  return wrap;
+  return row;
 }
-
-function hint(id) {
-  var d = byId[id], K = options(d).length, c = S.pick[id];
-  if (ui.open && ui.open.pid === id && ui.open.kind === "other") return "Type your answer, Enter to use it, Esc to close.";
-  if (ui.awaiting === id) {
-    var q = options(d)[c.k - 1].then;
-    return "Then 1 – " + options(q).length + ". Esc to pick again.";
-  }
-  return "Pick 1 – " + K + ", or " + (K + 1) + " for Other. j / k: next Decision.";
-}
-
-function card(id) {
-  var d = byId[id], opts = options(d), K = opts.length, c = S.pick[id];
-  var chosenK = c ? (c.other != null ? 0 : c.k) : 1;
-  var box = h("div", "card" + (ui.cur === id ? " cur" : ""));
-  box.tabIndex = 0; box.setAttribute("data-card", id);
-  box.addEventListener("focus", function () { ui.cur = id; });
-  box.addEventListener("click", function () { ui.cur = id; });
-  var ol = h("ol", "opts");
-  opts.forEach(function (o, i) {
-    var k = i + 1;
-    var li = h("li", "opt" + (chosenK === k ? " chosen" : ""));
-    var b = btn("", function () { pickOption(id, k); }, "optbtn");
-    b.appendChild(h("span", "num", String(k)));
-    b.appendChild(h("span", "text", o.text));
-    if (k === 1) b.appendChild(h("span", "badge", "Agent's pick"));
-    li.appendChild(b);
-    if (o.parts) { var op = h("div", "optparts"); readonlyParts(o.parts, op); li.appendChild(op); }
-    if (o.then) {
-      var fu = h("div", "fu" + (chosenK === k && ui.awaiting === id ? " active" : ""));
-      fu.appendChild(h("div", "fuq", o.then.text));
-      var lo = h("ol", "leaves");
-      options(o.then).forEach(function (leaf, j) {
-        var m = j + 1;
-        var on = chosenK === k && c && c.then === m;
-        var lb = btn("", function () { pickLeaf(id, k, m); }, "leaf" + (on ? " chosen" : ""));
-        lb.appendChild(h("span", "num", String(m)));
-        lb.appendChild(h("span", "text", leaf.text));
-        if (m === 1) lb.appendChild(h("span", "badge", "Agent's pick"));
-        var li2 = h("li"); li2.appendChild(lb);
-        if (leaf.parts) { var lp = h("div", "optparts"); readonlyParts(leaf.parts, lp); li2.appendChild(lp); }
-        lo.appendChild(li2);
-      });
-      fu.appendChild(lo);
-      li.appendChild(fu);
-    }
-    ol.appendChild(li);
-  });
-  var oli = h("li", "opt other" + (c && c.other != null ? " chosen" : ""));
-  var ob = btn("", function () { openOther(id); }, "optbtn");
-  ob.appendChild(h("span", "num", String(K + 1)));
-  ob.appendChild(h("span", "text", c && c.other != null ? "Other: " + c.other : "Other…"));
-  oli.appendChild(ob);
-  if (ui.open && ui.open.pid === id && ui.open.kind === "other") {
-    var ta = h("textarea"); ta.rows = 2; ta.setAttribute("aria-label", "Other answer"); ta.className = "ed-other";
-    ta.value = c && c.other != null ? c.other : "";
-    var use = function () {
-      var v = ta.value.trim(); if (!v) return;
-      ui.open = null; ui.awaiting = null;
-      change(function () { S.pick[id] = { k: 0, other: v }; });
-    };
-    ta.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") { ui.open = null; render(); focusCard(id); e.stopPropagation(); }
-      else if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); use(); }
-    });
-    oli.appendChild(ta); oli._ta = ta;
-    var ub = h("div", "btns"); ub.appendChild(btn("Use this", use));
-    oli.appendChild(ub);
-  }
-  ol.appendChild(oli);
-  box.appendChild(ol);
-  box.appendChild(h("p", "hint", hint(id)));
+function planPage() {
+  var later = laterIds(), box = h("div", "ptree");
+  plan.parts.forEach(function (_, i) { box.appendChild(partNode(String(i + 1), later)); });
+  if (!plan.parts.length) box.appendChild(h("p", "empty", "This plan has no parts."));
   return box;
 }
 
-function pickOption(id, k) {
-  ui.cur = id; ui.open = null;
-  var o = options(byId[id])[k - 1];
-  ui.awaiting = o.then ? id : null;
-  change(function () { S.pick[id] = { k: k, then: null }; });
+// -- frame ----------------------------------------------------------------
+function waiting() { return decisions.filter(function (id) { return !(id in S.pick) && S.strike[id] == null; }).length; }
+function goTo(i) {
+  ui.page = Math.max(0, Math.min(pages.length - 1, i)); ui.awaiting = null; ui.open = null; render();
+  window.scrollTo(0, 0);
 }
-function pickLeaf(id, k, m) {
-  ui.cur = id; ui.open = null; ui.awaiting = null;
-  change(function () { S.pick[id] = { k: k, then: m }; });
+function hint() {
+  var el = document.getElementById("hint"), id = pages[ui.page];
+  el.textContent = "";
+  var say = function () { for (var i = 0; i < arguments.length; i++) el.appendChild(typeof arguments[i] === "string" ? document.createTextNode(arguments[i]) : arguments[i]); };
+  var nextKey = ui.page < pages.length - 1 ? [" · next ", kbd("→")] : [" · back ", kbd("←")];
+  if (ui.open) return say("Type, then ", kbd("Enter"), " · close ", kbd("Esc"));
+  if (id === "plan") return say("Hover a part to strike, comment or edit", ui.page ? " · back " : "", ui.page ? kbd("←") : "");
+  if (S.strike[id] != null) return say.apply(null, ["Struck"].concat(nextKey));
+  if (ui.awaiting === id) {
+    var q = options(byId[id])[S.pick[id].k - 1].then;
+    return say("Then ", kbd("1"), " – ", kbd(String(options(q).length)), " · all options ", kbd("Esc"));
+  }
+  var K = options(byId[id]).length;
+  say.apply(null, ["Pick a branch ", kbd("1"), " – ", kbd(String(K + 1))].concat(nextKey));
 }
-function openOther(id) { ui.cur = id; ui.awaiting = null; ui.open = { kind: "other", pid: id }; render(); }
-function focusCard(id) {
-  var c = document.querySelector('[data-card="' + id + '"]');
-  if (c) c.focus();
-}
-
 function render() {
-  var tree = document.getElementById("tree");
-  tree.textContent = "";
-  ui.later = laterIds();
-  var wraps = plan.parts.map(function (_, i) { return partView(String(i + 1)); });
-  wraps.forEach(function (w) { tree.appendChild(w); });
-  var n = lines().length;
-  document.getElementById("count").textContent = n === 0 ? "No changes yet. Everything is kept." : n + (n === 1 ? " change" : " changes");
+  var stage = document.getElementById("stage");
+  stage.textContent = "";
+  // Every page stays in the document, the ones not shown hidden, so the plan's fade is always measurable.
+  pages.forEach(function (id, i) {
+    var sec = h("section", "page");
+    sec.setAttribute("data-page", id);
+    sec.hidden = i !== ui.page;
+    sec.appendChild(id === "plan" ? planPage() : decisionPage(id));
+    stage.appendChild(sec);
+  });
+  var n = waiting();
+  document.getElementById("waiting").textContent = decisions.length ? (n ? n + " waiting for you" : "all answered") : "nothing to decide";
+  var pager = document.getElementById("pager");
+  pager.textContent = "";
+  pages.forEach(function (id, i) {
+    var dot = btn("", function () { goTo(i); }, "dot" + (i === ui.page ? " on" : ""));
+    dot.setAttribute("aria-label", id === "plan" ? "Whole plan" : "Decision " + (i + 1));
+    dot.setAttribute("data-goto", id);
+    pager.appendChild(dot);
+  });
+  pager.appendChild(h("span", "of", (pages[ui.page] === "plan" ? "Whole plan · " : "") + (ui.page + 1) + " of " + pages.length));
+  hint();
+  var count = lines().length;
   document.getElementById("answer").value = answerText();
   document.getElementById("undo").disabled = history.length === 0;
-  var copy = document.getElementById("copy");
-  copy.textContent = ui.copied ? "Copied – paste it back to the agent" : "Copy Answer";
-  var f = tree.querySelector(".ed-other, .ed-strike, .ed-comment, .ed-edit");
+  document.getElementById("copy").textContent = ui.copied ? "Copied – paste it back to the agent" : "Copy answer" + (count ? " · " + count : "");
+  var f = stage.querySelector("section:not([hidden]) .editor textarea, section:not([hidden]) .editor input");
   if (f) f.focus();
-  else if (ui.cur && ui.focusCard) { focusCard(ui.cur); }
-  ui.focusCard = false;
 }
 
 // -- keys -----------------------------------------------------------------
 document.addEventListener("keydown", function (e) {
-  var t = e.target, typing = t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT");
-  if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
-  var id = ui.cur;
-  if (e.key === "j" || e.key === "k") {
-    if (!decisions.length) return;
-    var i = decisions.indexOf(id);
-    i = e.key === "j" ? Math.min(i + 1, decisions.length - 1) : Math.max(i - 1, 0);
-    ui.cur = decisions[i]; ui.awaiting = null; ui.focusCard = true; render();
-    var c = document.querySelector('[data-card="' + ui.cur + '"]');
-    if (c) c.scrollIntoView({ block: "center" });
-    e.preventDefault();
-  } else if (e.key === "Escape") {
-    if (ui.awaiting || ui.open) { ui.awaiting = null; ui.open = null; ui.focusCard = true; render(); }
-  } else if (/^[1-9]$/.test(e.key) && id && "pick" in byId[id] && S.strike[id] == null) {
-    var n = +e.key, d = byId[id], K = options(d).length, c2 = S.pick[id];
+  var t = e.target;
+  if ((t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT")) || e.ctrlKey || e.metaKey || e.altKey) return;
+  var id = pages[ui.page];
+  if (e.key === "ArrowRight" || e.key === "j") { goTo(ui.page + 1); e.preventDefault(); }
+  else if (e.key === "ArrowLeft" || e.key === "k") { goTo(ui.page - 1); e.preventDefault(); }
+  else if (e.key === "Escape") {
+    if (ui.open || ui.awaiting) { ui.open = null; ui.awaiting = null; }
+    if (id !== "plan") ui.showAll[id] = true;
+    render();
+  } else if (/^[1-9]$/.test(e.key) && id !== "plan" && S.strike[id] == null) {
+    var n = +e.key, d = byId[id], K = options(d).length, c = S.pick[id];
     if (ui.awaiting === id) {
-      var q = options(d)[c2.k - 1].then;
-      if (n <= options(q).length) { pickLeaf(id, c2.k, n); ui.focusCard = true; render(); }
-    } else if (n <= K) { ui.focusCard = true; pickOption(id, n); }
-    else if (n === K + 1) { e.preventDefault(); openOther(id); }
+      var q = options(d)[c.k - 1].then;
+      if (n <= options(q).length) pickLeaf(id, c.k, n);
+    } else if (n <= K) pickOption(id, n);
+    else if (n === K + 1) { e.preventDefault(); openEditor("other", id); }
   }
 });
 
@@ -396,9 +541,14 @@ document.getElementById("undo").addEventListener("click", function () {
   S = JSON.parse(history.pop()); ui.awaiting = null; ui.open = null; ui.copied = false; render();
 });
 document.getElementById("copy").addEventListener("click", function () {
-  var ta = document.getElementById("answer"), text = answerText();
+  var text = answerText();
   var done = function () { ui.copied = true; render(); };
-  var fallback = function () { ta.focus(); ta.select(); try { document.execCommand("copy"); } catch (e) {} done(); };
+  var fallback = function () {
+    var ta = h("textarea"); ta.value = text; ta.style.cssText = "position:fixed;left:-9999px;top:0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    ta.remove(); done();
+  };
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
   else fallback();
 });

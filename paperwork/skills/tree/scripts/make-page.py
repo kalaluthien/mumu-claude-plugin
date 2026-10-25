@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Build the answer page of a tree plan.
 
-usage: make-page.py PLAN.json OUT.html   one self-contained page; refused when the plan fails the checker
-       make-page.py --check DIR          drive every DIR/X.json in headless Chromium and print "ok N"
-                                         (needs playwright: uv run --with playwright==1.64.1 python3 make-page.py --check DIR)
+usage: make-page.py PLAN.json OUT.html     one self-contained page; refused when the plan fails the checker
+       make-page.py --check DIR            drive every DIR/X.json in headless Chromium and print "ok N"
+       make-page.py --layout DIR           measure every DIR/X.json's page as a tree and print "layout ok N"
+       make-page.py --capture PAGE.html DIR  write the four review PNGs of a built page into DIR
+                                           (the last three need playwright: uv run --with playwright==1.64.1 python3 make-page.py ...)
 """
 import html
 import json
@@ -54,6 +56,11 @@ def faded(page):
     return set(page.eval_on_selector_all(".part.later", "els => els.map(e => e.dataset.id)"))
 
 
+def card_action(page, pid, label):
+    page.hover(f'[data-id="{pid}"]')
+    page.click(f'[data-id="{pid}"] > .acts button:text-is("{label}")')
+
+
 def drive(browser_ctx, plan_path, out_dir):
     plan = tree_plan.load_file(plan_path)
     page_file = pathlib.Path(out_dir) / (pathlib.Path(plan_path).stem + ".html")
@@ -81,12 +88,13 @@ def drive(browser_ctx, plan_path, out_dir):
     # Outside the struck subtree, since a struck Part's descendants add no lines.
     commented = next((i for i in ids if not (target and (i == target or i.startswith(target + ".")))
                       and not tree_plan.is_decision(ids[i])), None) or decisions[0]
+    page.click('[data-goto="plan"]')
     if target:
-        page.click(f'[data-id="{target}"] > .row .actions button:text-is("Strike")')
-        page.fill(".ed-strike", "not needed")
+        card_action(page, target, "Strike")
+        page.fill("section:not([hidden]) .ed-strike", "not needed")
         page.keyboard.press("Enter")
-    page.click(f'[data-id="{commented}"] > .row .actions button:text-is("Comment")')
-    page.fill(".ed-comment", "checked by the page probe")
+    card_action(page, commented, "Comment")
+    page.fill("section:not([hidden]) .ed-comment", "checked by the page probe")
     page.keyboard.press("Enter")
     page.click("#copy")
     page.wait_for_function("document.getElementById('copy').textContent.startsWith('Copied')")
@@ -112,6 +120,109 @@ def drive(browser_ctx, plan_path, out_dir):
     if errs:
         raise AssertionError(f"next plan refused: {errs[0]}")
     return how
+
+
+ANSWER_BOX_JS = """() => { let m = 0;
+  for (const e of document.querySelectorAll('body *')) {
+    const own = typeof e.value === 'string' ? e.value
+      : [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('');
+    if (own.includes('# Answer:') && e.getClientRects().length) m = Math.max(m, e.getBoundingClientRect().height);
+  } return Math.round(m); }"""
+STRAY_BUTTONS_JS = """() => [...document.querySelectorAll('button')]
+  .filter(b => b.getClientRects().length && !b.closest('.node, header, #bar')).length"""
+OPTIONS_LEFT_JS = """() => { const s = document.querySelector('section:not([hidden])');
+  const q = s.querySelector('.qcard').getBoundingClientRect().right;
+  return [...s.querySelectorAll('.onode')].filter(o => o.getBoundingClientRect().left < q).length; }"""
+
+
+def page_ids(page):
+    return page.eval_on_selector_all("#pager [data-goto]", "els => els.map(e => e.dataset.goto)")
+
+
+def measure(browser, plan_path, out_dir):
+    """The facts that make the page a tree; returns the first that fails, or None."""
+    page_file = pathlib.Path(out_dir) / (pathlib.Path(plan_path).stem + ".html")
+    page_file.write_text(build(plan_path), encoding="utf-8")
+    sent = []
+    wide = browser.new_page(viewport={"width": 1200, "height": 900})
+    wide.on("request", lambda r: sent.append(r.url) if not r.url.startswith(("file:", "data:")) else None)
+    wide.goto(page_file.as_uri())
+    box = wide.evaluate(ANSWER_BOX_JS)
+    if box:
+        return f"the Answer text shows in a box {box} px tall"
+    for pid in page_ids(wide):
+        wide.click(f'[data-goto="{pid}"]')
+        stray = wide.evaluate(STRAY_BUTTONS_JS)
+        if stray:
+            return f"page {pid}: {stray} buttons outside a node card, the header and the bottom bar"
+        if pid != "plan" and wide.evaluate(OPTIONS_LEFT_JS):
+            return f"page {pid}: an Option card starts left of the question card's right edge at 1200 px"
+    wide.click('[data-goto="plan"]')
+    card_action(wide, "1", "Edit")
+    wide.fill("section:not([hidden]) .ed-edit", "edited by the layout probe")
+    wide.keyboard.press("Enter")
+    if "- 1 edited: edited by the layout probe" not in wide.input_value("#answer"):
+        return "an Edit of Part 1 is missing from the Answer"
+    wide.click("#undo")
+    if "edited:" in wide.input_value("#answer"):
+        return "Undo left the Edit in the Answer"
+    wide.close()
+    narrow = browser.new_page(viewport={"width": 390, "height": 844})
+    narrow.on("request", lambda r: sent.append(r.url) if not r.url.startswith(("file:", "data:")) else None)
+    narrow.goto(page_file.as_uri())
+    for pid in page_ids(narrow):
+        narrow.click(f'[data-goto="{pid}"]')
+        width = narrow.evaluate("document.documentElement.scrollWidth")
+        if width > 390:
+            return f"page {pid}: {width} px wide at 390 px"
+        stray = narrow.evaluate(STRAY_BUTTONS_JS)
+        if stray:
+            return f"page {pid}: {stray} buttons outside a node card, the header and the bottom bar at 390 px"
+    narrow.close()
+    if sent:
+        return f"requests left the file: {sent[:3]}"
+    return None
+
+
+def layout_dir(d):
+    from playwright.sync_api import sync_playwright
+    files = sorted(pathlib.Path(d).glob("*.json"))
+    if not files:
+        print("refused: no plan files in " + d)
+        return 1
+    with tempfile.TemporaryDirectory() as tmp, sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        for f in files:
+            fact = measure(browser, f, tmp)
+            if fact:
+                print(f"refused: {f.name}: {fact}")
+                return 1
+            print(f"{f.name}: no Answer box, Options right of the question, fits 390 px, buttons on cards or bars, edit and undo, no network")
+        browser.close()
+    print(f"layout ok {len(files)}")
+    return 0
+
+
+def capture(page_html, out):
+    from playwright.sync_api import sync_playwright
+    out = pathlib.Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    uri = pathlib.Path(page_html).resolve().as_uri()
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page(viewport={"width": 1200, "height": 900})
+        page.goto(uri)
+        page.screenshot(path=str(out / "1200-load.png"), full_page=True)
+        page.keyboard.press("2")
+        page.screenshot(path=str(out / "1200-pick-2.png"), full_page=True)
+        page.hover("text=Margin drops to 41%")
+        page.screenshot(path=str(out / "1200-hover-risk.png"), full_page=True)
+        page = browser.new_page(viewport={"width": 390, "height": 844})
+        page.goto(uri)
+        page.screenshot(path=str(out / "390-load.png"), full_page=True)
+        browser.close()
+    print(f"wrote 1200-load.png, 1200-pick-2.png, 1200-hover-risk.png and 390-load.png into {out}")
+    return 0
 
 
 def check_dir(d):
@@ -140,6 +251,10 @@ def check_dir(d):
 def main(args):
     if len(args) == 2 and args[0] == "--check":
         return check_dir(args[1])
+    if len(args) == 2 and args[0] == "--layout":
+        return layout_dir(args[1])
+    if len(args) == 3 and args[0] == "--capture":
+        return capture(args[1], args[2])
     if len(args) != 2:
         print(__doc__, file=sys.stderr)
         return 2
@@ -148,7 +263,7 @@ def main(args):
     except (tree_plan.PlanError, OSError) as e:
         print(f"refused: {e}")
         return 1
-    print(f"wrote {args[1]}: one page, answer lines appear in its Answer box; open it, answer, press Copy Answer")
+    print(f"wrote {args[1]}: one page, open it, answer each Decision, press Copy answer and paste the text back")
     return 0
 
 
