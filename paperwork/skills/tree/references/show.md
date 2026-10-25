@@ -7,7 +7,7 @@ Show a plan to the owner as a page, then read their Answer back into the next pl
 ### Operations
 
 - The owner picks an Option, strikes a Part with a reason, comments on it or edits its text; each can be undone before copying.
-- The Parts after the first Decision not yet answered are faded, never hidden, and stay answerable. This is the page's only gate, a view choice; the grammar has none.
+- The Parts after the first Decision not yet answered are faded, never hidden; hover or focus brings one back, and they stay answerable. The fade moves on as each Decision is answered or struck. This is the page's only gate, a view choice; the grammar has none.
 - Copy Answer writes the Markdown form of [grammar.md](grammar.md) to the clipboard.
 
 ### Vocabulary

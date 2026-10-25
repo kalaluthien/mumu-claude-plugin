@@ -1,6 +1,6 @@
 # Author
 
-Turn a task into a spec that checks.
+Turn a task into a spec that checks. Write criteria as [spec/criteria.md](spec/criteria.md) says; [spec/model.md](spec/model.md) says what the tiers and weights mean.
 
 ## Steps
 
