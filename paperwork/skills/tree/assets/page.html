@@ -405,12 +405,13 @@ function decisionPage(id) {
   if (mm) badges.insertBefore(mm, badges.firstChild);
   if (badges.childNodes.length) col.appendChild(badges);
   card.setAttribute("data-card", id);
-  // A link is the evidence the question rests on, not its author.
-  if (d.source && /^https?:\/\//.test(d.source)) { var src = h("div", "who-sub"); src.appendChild(document.createTextNode("Source ")); src.appendChild(chip(d.source, true)); card.appendChild(src); }
+  // Both forms say "Source", since a reader takes a bare name for the author, not the source.
+  if (d.source && /^https?:\/\//.test(d.source)) { var src = h("div", "who-sub"); src.appendChild(h("span", "note-head", "Source")); src.appendChild(chip(d.source, true)); card.appendChild(src); }
   else if (d.source) {
     var who = h("div", "who"), names = d.source.split(" · ");
     who.appendChild(h("span", "avatar", names[0].charAt(0).toUpperCase()));
-    var nm = h("div"); nm.appendChild(h("div", "who-name", names[0]));
+    var nm = h("div"); nm.appendChild(h("div", "note-head", "Source"));
+    nm.appendChild(h("div", "who-name", names[0]));
     if (names.length > 1) nm.appendChild(h("div", "who-sub", names.slice(1).join(" · ")));
     who.appendChild(nm); card.appendChild(who);
   }
