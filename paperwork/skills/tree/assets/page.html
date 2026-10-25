@@ -152,6 +152,7 @@ a.chip:hover { color: var(--accent); }
 .crow .cpick { color: var(--ink); }
 .crow .who-picked { font: .66rem var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); display: block; }
 .crow .fact { font-size: .9rem; }
+.choices .cnext { margin: 10px 0 0; padding-top: 9px; border-top: 1px solid var(--card-line); color: var(--muted); font-size: .9rem; }
 .later { opacity: .5; }
 .later:hover, .later:focus-within { opacity: 1; }
 .empty { color: var(--muted); }
@@ -573,13 +574,16 @@ function choicesView() {
     if (o && !struck) {
       (o.parts || []).forEach(function (f) { if (f.kind !== "mockup" && f.kind !== "note") right.appendChild(factLine(f)); });
       if (o.then) {
-        var leaf = c && c.then != null ? options(o.then)[c.then - 1] : null;
-        right.appendChild(factLine({ text: o.then.text + " " + (leaf ? leaf.text : "– waiting") }));
+        // Until the follow-up is answered, its Agent's pick stands, so the row still shows where the plan ends.
+        var answered = c && c.then != null, leaf = answered ? options(o.then)[c.then - 1] : o.then.pick;
+        right.appendChild(factLine({ text: o.then.text + " " + (leaf ? leaf.text + (answered ? "" : " · Agent's pick") : "– waiting") }));
+        if (leaf) (leaf.parts || []).forEach(function (f) { if (f.kind !== "mockup" && f.kind !== "note") right.appendChild(factLine(f)); });
       }
     }
     row.appendChild(right);
     box.appendChild(row);
   });
+  box.appendChild(h("p", "cnext", "Once every Decision is answered, press Copy answer and paste it back: the agent goes on with these picks."));
   return box;
 }
 function planPage() {
