@@ -313,34 +313,39 @@ function items(x) {
   return out;
 }
 var most = (function () {
-  var best = null;
-  decisions.forEach(function (id) {
-    var d = byId[id];
-    var found = items(d).filter(function (p) { return p.kind === "risk"; }), risks = found.length;
-    var effects = options(d).reduce(function (n, o) { return n + items(o).length; }, 0);
-    if (!best || risks > best.risks || (risks === best.risks && effects > best.effects)) best = { id: id, risks: risks, effects: effects, found: found };
+  var all = decisions.map(function (id) {
+    var d = byId[id], found = items(d).filter(function (p) { return p.kind === "risk"; });
+    var parts = options(d).reduce(function (a, o) { return a.concat(items(o)); }, []);
+    return { id: id, risks: found.length, effects: parts.length, found: found, parts: parts };
   });
+  var best = null;
+  all.forEach(function (x) { if (!best || x.risks > best.risks || (x.risks === best.risks && x.effects > best.effects)) best = x; });
   if (!best) return null;
+  // The reason names the rule that decided, so a tie never reads as "more than any other".
+  var same = all.filter(function (x) { return x !== best && x.risks === best.risks; });
+  best.by = !same.length ? "risks" : same.every(function (x) { return x.effects < best.effects; }) ? "parts" : "order";
   best.why = best.risks ? best.risks + (best.risks === 1 ? " risk" : " risks")
-    : best.effects ? best.effects + " effects" : "first to answer";
+    : best.effects ? best.effects + (best.effects === 1 ? " part" : " parts") : "first to answer";
   return best;
 })();
 function mostMark(id, el) {
   if (!most || most.id !== id) return;
   el.setAttribute("data-most", id);
   var m = h("span", "most", "Matters most · " + most.why);
-  m.title = "The Decision with the most risks under it, then the most effects under its Options";
+  m.title = "The Decision with the most risks under it, then the most Parts under its Options, then the first";
   return m;
 }
+function textList(parts) { return parts.map(function (p) { return p.kind === "mockup" ? "a mockup of the screen" : p.text.replace(/\.$/, ""); }).join("; "); }
 // The reason in words on the Decision's own card, since a count alone leaves the reader guessing which Parts it counts.
 function mostWhy(id) {
   if (!most || most.id !== id) return null;
-  var why = h("div", "most-why");
+  var why = h("div", "most-why"), risks = most.risks + (most.risks === 1 ? " risk" : " risks");
   why.appendChild(h("span", "note-head", "Why it matters most"));
-  why.appendChild(h("span", null, most.risks
-    ? "More risks than any other Decision: " + most.found.map(function (p) { return p.text.replace(/\.$/, ""); }).join("; ") + "."
-    : most.effects ? "More effects under its Options than any other Decision: " + options(byId[id]).reduce(function (a, o) { return a.concat(items(o)); }, []).filter(function (p) { return p.kind !== "mockup"; }).map(function (p) { return p.text.replace(/\.$/, ""); }).join("; ") + "."
-    : "It comes first; no Decision has risks or effects under it."));
+  why.appendChild(h("span", null, most.by === "risks"
+    ? "More risks than any other Decision: " + textList(most.found) + "."
+    : most.by === "parts"
+    ? (most.risks ? "As many risks as the most (" + risks + ": " + textList(most.found) + "), and more" : "No Decision has more risks, and it has more") + " Parts under its Options than any other: " + textList(most.parts) + "."
+    : "It ties with another Decision on risks and Parts and comes first" + (most.risks ? "; its risks: " + textList(most.found) : "") + "."));
   return why;
 }
 function acts(id) {

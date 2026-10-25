@@ -9,7 +9,7 @@ usage: make-page.py PLAN.json OUT.html     one self-contained page; refused when
        make-page.py --capture PAGE.html DIR  write the four review PNGs of a built page into DIR
        make-page.py --capture-all PAGE.html DIR  write every page of a built page, untouched, at 1200 px into DIR
        make-page.py --capture-picked PAGE.html DIR  write each Decision page after its first Option is picked
-                                           (the last three need playwright: uv run --with playwright==1.64.1 python3 make-page.py ...)
+                                           (every call but the first needs playwright: uv run --with playwright==1.64.1 python3 make-page.py ...)
 """
 import html
 import json
@@ -220,12 +220,27 @@ def items(x):
     return out
 
 
+def most_key(ids, d):
+    """A Decision's risks under it, then the Parts under its Options."""
+    risks = sum(1 for p in items(ids[d]) if p.get("kind") == "risk")
+    return (risks, sum(len(items(o)) for o in tree_plan.options(ids[d])))
+
+
 def matters_most(ids, decisions):
     """The most risks under it, then the most Parts under its Options, then the first."""
-    def key(d):
-        risks = sum(1 for p in items(ids[d]) if p.get("kind") == "risk")
-        return (risks, sum(len(items(o)) for o in tree_plan.options(ids[d])))
-    return max(decisions, key=key) if decisions else None  # max keeps the first of equals
+    return max(decisions, key=lambda d: most_key(ids, d)) if decisions else None  # max keeps the first of equals
+
+
+def most_reason(ids, decisions):
+    """The opening words of the matters-most reason, by the rule that decided it."""
+    best = most_key(ids, matters_most(ids, decisions))
+    others = [most_key(ids, d) for d in decisions if d != matters_most(ids, decisions)]
+    same = [k for k in others if k[0] == best[0]]
+    if not same:
+        return "More risks than any other Decision"
+    if all(k[1] < best[1] for k in same):
+        return "As many risks as the most" if best[0] else "No Decision has more risks"
+    return "It ties with another Decision"
 
 
 def views(browser, plan_path, out_dir):
@@ -252,6 +267,9 @@ def views(browser, plan_path, out_dir):
         return f"matters most marks {sorted(marked)}, expected {matters_most(ids, decisions)}"
     if any(not t.split("·", 1)[-1].strip() for t in page.eval_on_selector_all(".most", "els => els.map(e => e.textContent)")):
         return "a matters-most mark names no reason"
+    reasons = page.eval_on_selector_all(".most-why", "els => els.map(e => e.textContent)")
+    if decisions and not all(r.removeprefix("Why it matters most").startswith(most_reason(ids, decisions)) for r in reasons):
+        return f"the matters-most reason does not open with {most_reason(ids, decisions)!r}"
     if decisions:
         page.click('[data-goto="plan"]')
         rows = page.eval_on_selector_all(f"{shown} .crow", "els => els.map(e => [e.dataset.row, e.textContent])")
