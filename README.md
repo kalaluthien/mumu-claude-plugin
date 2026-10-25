@@ -4,14 +4,6 @@ Three Claude Code plugins that let one person run a small team of Claude session
 
 Each plugin works alone.
 
-## Audience
-
-These plugins are for a person who uses Claude Code on macOS.
-
-- **teamwork** is for running several Claude sessions on one project kept on GitHub. It needs [herdr](https://herdr.dev), the terminal workspace the sessions run in, and the GitHub command line tool [`gh`](https://cli.github.com/), signed in.
-- **paperwork** is for modelling a system or a plan as a checked document, and for writing a grading spec for a task.
-- **homework** is for keeping what each session learned, for the next session to read.
-
 ## Installation
 
 Add this repository as a marketplace, then install the plugins you want:
@@ -30,59 +22,7 @@ What each one needs on your machine; every Python 3 below means Python 3.9 or la
 | teamwork | Python 3; `git`; [`gh`](https://cli.github.com/), signed in; [herdr](https://herdr.dev), the terminal workspace where sessions live and talk by name |
 | paperwork | Python 3 and `git`, with [`uv`](https://docs.astral.sh/uv/); Google Chrome for checking pages and diagrams; Node, `npm` and a Playwright headless Chromium for the optional [pele](https://www.npmjs.com/package/pele) diagrams (`npm` fetches pele on first use, not the Chromium); Java for the optional Alloy proofs (`prove-schema.py --fetch` downloads the Alloy jar) |
 | homework | Python 3; `git`; `gh`, signed in, to read the issue comments a session wrote |
-| Claude Code | 2.1.299 or later, the highest release the [changelog](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md) names for a feature below |
-| mod `modules`, in teamwork's `hooks/hooks.json` | mods first appear in 2.1.287; the release that added `modules` is not recorded in the changelog |
-| `types`, in teamwork's `plugin.json` | first named in 2.1.299, by a validate fix; the release that added it is not recorded in the changelog |
-| `SendMessage`, in all three | first named in 2.1.77; the release that added it is not recorded in the changelog |
-| `PushNotification`, in teamwork | first named in 2.1.152; the release that added it is not recorded in the changelog |
-| `${CLAUDE_SKILL_DIR}`, in homework | added in 2.1.69 |
-
-## Local clone install
-
-This is the way the owner of this repository runs the plugins; the marketplace install above is the way for everyone else. A clone makes a merged change reach your sessions after a `git pull`, with no reinstall.
-
-1. Clone the repository:
-
-   ```
-   git clone https://github.com/kalaluthien/mumu-claude-plugin ~/workspace/plugins
-   ```
-
-2. Add the clone as a marketplace, in `~/.claude/settings.json`:
-
-   ```json
-   {
-     "extraKnownMarketplaces": {
-       "mumu-claude-plugin": {
-         "source": { "source": "directory", "path": "/Users/<you>/workspace/plugins" }
-       }
-     }
-   }
-   ```
-
-3. Enable the plugins per project, in the project's git-ignored `.claude/settings.local.json`:
-
-   ```json
-   {
-     "enabledPlugins": {
-       "teamwork@mumu-claude-plugin": true,
-       "homework@mumu-claude-plugin": true,
-       "paperwork@mumu-claude-plugin": true
-     }
-   }
-   ```
-
-## Versions
-
-Release tags and each plugin's `version` follow the Releases rule under [Repository in AGENTS.md](AGENTS.md#repository).
-
-## Glossary
-
-- **owner**: the person who asks the sessions for work and answers their questions; when you use teamwork, that is you.
-- **manager**: the one Claude session per project that writes down what the owner asks for as a GitHub issue, hands it to a worker, and answers the worker's questions.
-- **worker**: a Claude session that takes one issue from the manager, splits it into tasks, and builds and merges them in its own copy of the repository.
-- **judge**: a new Claude helper that did not write the work and only reviews it, replying `approve` with the exact commit or `fix`, and nothing merges without that approval.
-- `BLOCKED:` starts a GitHub issue comment in which a worker asks a question it may not settle alone, and then waits for the answer.
-- `DECIDED:` starts a GitHub issue comment that gives the answer, so any later session can read and follow it.
+| Claude Code | 2.1.299 or later |
 
 ## Teamwork: agent orchestration
 
@@ -103,16 +43,20 @@ flowchart TB
   n_hook -->|"reads"| n_lib
   n_monitor -->|"reads"| n_lib
   n_pane -->|"runs scripts that read"| n_lib
+  n_pane -->|"names the session with"| n_kick
   n_kick -->|"runs scripts that read"| n_lib
 ```
 
 </details>
 
-Teamwork splits work between a manager, workers and judges, as the [Glossary](#glossary) defines them; [the authority table](teamwork/skills/kick-off/SKILL.md) says what each may decide. The manager never plans tasks or edits code. Each task a worker writes has a goal and checks that fail today, and the worker builds it in its own git worktree.
+Teamwork splits work between a manager, workers and judges; [the authority table](teamwork/skills/kick-off/references/protocol.md) says what each may decide. GitHub issues are the shared memory: the questions and answers on them outlive any session.
 
-GitHub issues are the shared memory: the questions and answers on them outlive any session. Pull request policy belongs to each repository, not to the plugin.
-
-The [`kick-off`](teamwork/skills/kick-off/SKILL.md) skill sends a session to its role: [manager](teamwork/skills/kick-off/references/manager.md) or [worker](teamwork/skills/kick-off/references/worker.md). A worker also opens a playbook for the kind of work, such as code, UI or research.
+- **owner**: the person who asks the sessions for work and answers their questions; when you use teamwork, that is you.
+- **manager**: the one Claude session per project that writes down what the owner asks for as a GitHub issue, hands it to a worker, and answers the worker's questions.
+- **worker**: a Claude session that takes one issue from the manager, splits it into tasks, and builds and merges them in its own copy of the repository.
+- **judge**: a new Claude helper that did not write the work and only reviews it, replying `approve` with the exact commit or `fix`, and nothing merges without that approval.
+- `BLOCKED:` starts a GitHub issue comment in which a worker asks a question it may not settle alone, and then waits for the answer.
+- `DECIDED:` starts a GitHub issue comment that gives the answer, so any later session can read and follow it.
 
 **Usage.** In a herdr workspace, start a session and ask it to manage:
 
@@ -183,15 +127,13 @@ Keeps what a session learned, once, where the next reader will look.
 
 - A Stop hook ([`signal-wrap-up.py`](homework/hooks/signal-wrap-up.py)) counts new lessons in the transcript, changed memory files, and whether the repository has a known way to run and verify itself. When a count crosses its line, it sends a one-line wrap-up signal.
 - The [`wrap-up`](homework/skills/wrap-up/SKILL.md) skill acts on the signal, or on your ask. It keeps a lesson (retro), tidies memory (dream), writes a run recipe for a repository with none, and finds recurring patterns (dejavu). Its playbooks are in [`references/`](homework/skills/wrap-up/references).
-- Every memory file says when it applies and when it would be wrong, so a stale lesson can be spotted.
 
 **Usage.** The signal arrives on its own, and the skill is not in the slash menu. To ask for it yourself, tell Claude to keep a lesson (retro) or tidy memory (dream). It asks you nothing and reports what it did.
 
 ## Contributions
 
 - The rules every plugin follows are in [AGENTS.md](AGENTS.md), from [Plugin layout](AGENTS.md#plugin-layout) on.
-- [CONTRIBUTING.md](CONTRIBUTING.md) says how to report a problem or ask a question.
-- With a local clone, [Repository in AGENTS.md](AGENTS.md#repository) says when a merged change reaches a running session.
+- [CONTRIBUTING.md](CONTRIBUTING.md) says how to report a problem or ask a question, and how to run a local clone.
 
 ## License
 
