@@ -79,20 +79,8 @@ def verdict(kind, rule, settings, text=None):
     return context and {"hookSpecificOutput": {"hookEventName": kind, "additionalContext": context}}
 
 
-def json_key_reminder(event):
-    """The Read JSON by key rule, found in protocol.md at the call, when a failed Bash call raised a KeyError."""
-    if "KeyError" not in str(event.get("error") or ""):
-        return None
-    path = PLAYBOOKS / "protocol.md"
-    found = [f"- {path.relative_to(PLAYBOOKS.parents[1])}:{number}: {line.strip()}" for number, line in enumerate(path.read_text().splitlines(), 1) if "**Read JSON by key**" in line]
-    return found and {"hookSpecificOutput": {"hookEventName": "PostToolUseFailure",
-                      "additionalContext": "\n".join(["Reminder: this KeyError came from reading a tool's JSON by a key it lacked; the playbook rule:", *found])}}
-
-
 def route(kind, event, role, me, listed):
-    if kind == "PostToolUseFailure":
-        return json_key_reminder(event)
-    call = board.command((event.get("tool_input") or {}).get("command", ""))
+    call =board.command((event.get("tool_input") or {}).get("command", ""))
     if kind == "PostToolUse":
         stray = call and call["write"] in ("file", "comment", "edit") and stray_posted(json.dumps(event.get("tool_response")))
         return stray and verdict(kind, f"A `holders:` or `deferred:` line sits outside a ```teamwork fence in {stray}, so code reads no holder; "
@@ -129,8 +117,6 @@ def main(args):
     # without its host's command no session has a name, so no role matches and the role's SessionStart text never comes to say why
     if kind == "SessionStart" and (missing := next(filter(None, map(json_command.missing, session.NEEDS)), None)):
         print(json.dumps({"systemMessage": missing}))
-    elif kind == "PostToolUseFailure" and "KeyError" not in str(event.get("error") or ""):  # most failures are no KeyError, so skip the session lookup
-        pass
     elif kind not in ("PreToolUse", "PostToolUse") or board.command(command) or kind == "PreToolUse" and live_cd(command, event.get("cwd")):  # skip other Bash fast
         listed, me = session.sessions(event.get("session_id"))
         role = team_names.role(me.get("name"))
