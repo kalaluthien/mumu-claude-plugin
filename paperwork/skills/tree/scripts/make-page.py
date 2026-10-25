@@ -138,6 +138,73 @@ OPTIONS_LEFT_JS = """() => { const s = document.querySelector('section:not([hidd
   const q = s.querySelector('.qcard').getBoundingClientRect().right;
   return [...s.querySelectorAll('.onode')].filter(o => o.getBoundingClientRect().left < q).length; }"""
 
+# A long Korean sentence in every card's text, since a short one hides a tool row that covers the second line.
+LONG_KOREAN = "이 항목은 카드 안에서 여러 줄로 이어지도록 일부러 길게 쓴 한국어 문장이며 도구 버튼이 글자 위에 겹치지 않는지 확인하는 데 쓰입니다 " * 2
+STRETCH_JS = """(text) => { for (const e of document.querySelectorAll('.ptext, .qtext')) {
+  const n = [...e.childNodes].find(c => c.nodeType === 3); if (n) n.textContent = text; } }"""
+# The tools of a card (.acts) against every text run of that card.
+OVERLAP_JS = """() => { const bad = [];
+  for (const card of document.querySelectorAll('section:not([hidden]) .node')) {
+    const acts = card.querySelector(':scope > .acts'); if (!acts) continue;
+    const a = acts.getBoundingClientRect();
+    const walk = document.createTreeWalker(card, NodeFilter.SHOW_TEXT); let n;
+    while ((n = walk.nextNode())) {
+      if (acts.contains(n) || !n.textContent.trim()) continue;
+      const range = document.createRange(); range.selectNodeContents(n);
+      for (const q of range.getClientRects())
+        if (q.width && q.height && q.left < a.right - .5 && q.right > a.left + .5 && q.top < a.bottom - .5 && q.bottom > a.top + .5)
+          bad.push(card.dataset.id || card.dataset.card || card.className);
+    } }
+  return [...new Set(bad)]; }"""
+# The page's own labels, with the plan's words cut out, hold no middle dot, no all-caps and no uppercase transform.
+LABELS_JS = """(words) => { const bad = [];
+  words.sort((x, y) => y.length - x.length);
+  for (const e of document.body.querySelectorAll('*')) {
+    if (['SCRIPT', 'STYLE', 'TEXTAREA'].includes(e.tagName)) continue;
+    if (getComputedStyle(e).textTransform === 'uppercase') bad.push('uppercase transform on .' + e.className);
+    let own = [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join(' ');
+    for (const w of words) own = own.split(w).join(' ');
+    if (own.includes('\u00b7')) bad.push('middle dot in ' + JSON.stringify(own.trim()));
+    if (/[A-Z]{3,}/.test(own) && own === own.toUpperCase()) bad.push('all caps ' + JSON.stringify(own.trim()));
+  }
+  return bad; }"""
+PICK_STYLE_JS = """() => { const o = document.querySelector('section:not([hidden]) [data-option="1"]'), s = getComputedStyle(o);
+  return { weight: +s.fontWeight, shadow: s.boxShadow, border: s.borderStyle + ' ' + s.borderTopColor + ' ' + s.borderTopWidth, mark: (o.querySelector('.mark') || {}).textContent || '' }; }"""
+
+
+def plan_words(node, out=None):
+    """Every string of the plan, and the names of each source, for the labels probe to cut out."""
+    out = set() if out is None else out
+    if isinstance(node, str):
+        if len(node) > 1:
+            out.add(node)
+            out.update(n for n in node.split(" \u00b7 ") if len(n) > 1)
+    elif isinstance(node, dict):
+        for v in node.values():
+            plan_words(v, out)
+    elif isinstance(node, list):
+        for v in node:
+            plan_words(v, out)
+    return out
+
+
+def check_pick_look(browser, page_file, first):
+    """The Agent's pick is faint until the owner answers; the owner's pick is heavier."""
+    page = browser.new_page(viewport={"width": 1200, "height": 900})
+    page.goto(page_file.as_uri())
+    page.click(f'[data-goto="{first}"]')
+    before = page.evaluate(PICK_STYLE_JS)
+    page.keyboard.press("1")
+    after = page.evaluate(PICK_STYLE_JS)
+    page.close()
+    if before["shadow"] != "none" or after["shadow"] == "none":
+        return f"page {first}: the suggested and the picked Option show the same ring ({before['shadow']!r}, {after['shadow']!r})"
+    if before["border"] == after["border"] or before["weight"] >= after["weight"]:
+        return f"page {first}: the picked Option is not bolder or bordered apart from the suggested one ({before}, {after})"
+    if before["mark"] != "Agent's pick" or after["mark"] != "Your pick":
+        return f"page {first}: the marks read {before['mark']!r} then {after['mark']!r}"
+    return None
+
 
 def page_ids(page):
     return page.eval_on_selector_all("#pager [data-goto]", "els => els.map(e => e.dataset.goto)")
@@ -151,11 +218,19 @@ def measure(browser, plan_path, out_dir):
     wide = browser.new_page(viewport={"width": 1200, "height": 900})
     wide.on("request", lambda r: sent.append(r.url) if not r.url.startswith(("file:", "data:")) else None)
     wide.goto(page_file.as_uri())
+    words = sorted(plan_words(tree_plan.load_file(plan_path)))
     box = wide.evaluate(ANSWER_BOX_JS)
     if box:
         return f"the Answer text shows in a box {box} px tall"
     for pid in page_ids(wide):
         wide.click(f'[data-goto="{pid}"]')
+        labels = wide.evaluate(LABELS_JS, words)
+        if labels:
+            return f"page {pid}: {labels[0]}"
+        wide.evaluate(STRETCH_JS, LONG_KOREAN)
+        covered = wide.evaluate(OVERLAP_JS)
+        if covered:
+            return f"page {pid}: the tools of card {covered[0]} cover its text at 1200 px"
         stray = wide.evaluate(STRAY_BUTTONS_JS)
         if stray:
             return f"page {pid}: {stray} buttons outside a node card, the header and the bottom bar"
@@ -171,11 +246,20 @@ def measure(browser, plan_path, out_dir):
     if "edited:" in wide.input_value("#answer"):
         return "Undo left the Edit in the Answer"
     wide.close()
+    decisions = [i for i, p in tree_plan.index(tree_plan.load_file(plan_path)).items() if tree_plan.is_decision(p)]
+    if decisions:
+        fact = check_pick_look(browser, page_file, decisions[0])
+        if fact:
+            return fact
     narrow = browser.new_page(viewport={"width": 390, "height": 844})
     narrow.on("request", lambda r: sent.append(r.url) if not r.url.startswith(("file:", "data:")) else None)
     narrow.goto(page_file.as_uri())
     for pid in page_ids(narrow):
         narrow.click(f'[data-goto="{pid}"]')
+        narrow.evaluate(STRETCH_JS, LONG_KOREAN)
+        covered = narrow.evaluate(OVERLAP_JS)
+        if covered:
+            return f"page {pid}: the tools of card {covered[0]} cover its text at 390 px"
         width = narrow.evaluate("document.documentElement.scrollWidth")
         if width > 390:
             return f"page {pid}: {width} px wide at 390 px"
@@ -201,7 +285,7 @@ def layout_dir(d):
             if fact:
                 print(f"refused: {f.name}: {fact}")
                 return 1
-            print(f"{f.name}: no Answer box, Options right of the question, fits 390 px, buttons on cards or bars, edit and undo, no network")
+            print(f"{f.name}: no Answer box, Options right of the question, tools clear of the text, plain labels, pick looks apart, fits 390 px, buttons on cards or bars, edit and undo, no network")
         browser.close()
     print(f"layout ok {len(files)}")
     return 0
@@ -265,7 +349,7 @@ def views(browser, plan_path, out_dir):
     marked = set(page.eval_on_selector_all("[data-most]", "els => els.map(e => e.dataset.most)"))
     if decisions and marked != {matters_most(ids, decisions)}:
         return f"matters most marks {sorted(marked)}, expected {matters_most(ids, decisions)}"
-    if any(not t.split("·", 1)[-1].strip() for t in page.eval_on_selector_all(".most", "els => els.map(e => e.textContent)")):
+    if any(not t.split(":", 1)[-1].strip() for t in page.eval_on_selector_all(".most", "els => els.map(e => e.textContent)")):
         return "a matters-most mark names no reason"
     reasons = page.eval_on_selector_all(".most-why", "els => els.map(e => e.textContent)")
     if decisions and not all(r.removeprefix("Why it matters most").startswith(most_reason(ids, decisions)) for r in reasons):

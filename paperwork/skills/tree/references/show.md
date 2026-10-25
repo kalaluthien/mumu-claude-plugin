@@ -19,7 +19,7 @@ Show a plan to the owner as a page, then read their Answer back into the next pl
 | plan element | on the page |
 | --- | --- |
 | Decision text, `source`, child Parts | question card on the left: the source as its author, `risk` children as badges above, the rest as context; Matters most above the one that does |
-| Decision `pick`, `else` | numbered cards joined to the question by tree lines, "Agent's pick" on 1, Other as the last number; the unchosen ones faded, the chosen one ringed |
+| Decision `pick`, `else` | numbered cards joined to the question by tree lines, "Agent's pick" on 1, drawn faint and dashed until the owner answers, Other as the last number; the unchosen ones faded, the owner's pick bold with a heavy ring and "Your pick" |
 | Option `parts` | facts branching right of the Option: an outcome after an olive dot, a `risk` after a Risk pill, a `note` in full under the fact before it, a `mockup` as a framed screen |
 | Option `then` | follow-up question branching right, its options numbered once the Option is picked |
 | Part text, `kind`, `source` | a card on the Whole plan with its id and kind, children branching right; `source` a chip, a link when it is a url |
@@ -45,4 +45,4 @@ Show a plan to the owner as a page, then read their Answer back into the next pl
 
 `uv run --with playwright==1.64.1 python3 ${CLAUDE_PLUGIN_ROOT}/skills/tree/scripts/make-page.py --check ${CLAUDE_PLUGIN_ROOT}/skills/tree/examples` builds each example, checks which Parts are faded before and after the first pick, answers it in headless Chromium, copies, applies the text and prints `ok 13`.
 
-The same call with `--layout` measures each page as a tree at 1200 px and 390 px and prints `layout ok 13`; `--strategies` drives Your choices, the stub, focus, fold, the mockup frames and the Matters most mark and prints `strategies ok 13`. `--capture <page.html> <dir>` writes four PNGs of a built page to look at, `--capture-all <page.html> <dir>` every page as a reader first meets it, in screens 700 px apart, and `--capture-picked <page.html> <dir>` each Decision page after its first Option is picked.
+The same call with `--layout` measures each page as a tree at 1200 px and 390 px and checks that a card's tools never cover its text, that labels hold no middle dot or all-caps, and that a pick looks apart from the suggestion, and prints `layout ok 13`; `--strategies` drives Your choices, the stub, focus, fold, the mockup frames and the Matters most mark and prints `strategies ok 13`. `--capture <page.html> <dir>` writes four PNGs of a built page to look at, `--capture-all <page.html> <dir>` every page as a reader first meets it, in screens 700 px apart, and `--capture-picked <page.html> <dir>` each Decision page after its first Option is picked.
