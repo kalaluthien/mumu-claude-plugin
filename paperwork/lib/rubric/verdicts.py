@@ -1,5 +1,5 @@
 """A verdict file against its grammar ($defs/verdicts in rubric.schema.json) and the spec it grades by."""
-from quiz.spec import SCHEMA
+from rubric.spec import SCHEMA
 from schema.model import shape
 
 VERDICTS = {**SCHEMA["$defs"]["verdicts"], "$defs": SCHEMA["$defs"]}

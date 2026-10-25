@@ -1,6 +1,6 @@
 # Grade
 
-Apply a spec to verdicts for one use. Check it first with `check-spec.py check`. The command is `${CLAUDE_PLUGIN_ROOT}/skills/quiz/scripts/score-spec.py`; each mode prints what its result means.
+Apply a spec to verdicts for one use. Check it first with `check-spec.py check`. The command is `${CLAUDE_PLUGIN_ROOT}/skills/rubric/scripts/score-spec.py`; each mode prints what its result means.
 
 ## Steps
 

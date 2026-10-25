@@ -16,8 +16,8 @@ from collections import Counter
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 
-from quiz.spec import line, violations  # noqa: E402
-from quiz.verdicts import criteria, problems  # noqa: E402
+from rubric.spec import line, violations  # noqa: E402
+from rubric.verdicts import criteria, problems  # noqa: E402
 
 # Krippendorff, Content Analysis, 2nd ed., 2004, p. 241: the agreement needed to draw conclusions from the data
 BAR = 0.800

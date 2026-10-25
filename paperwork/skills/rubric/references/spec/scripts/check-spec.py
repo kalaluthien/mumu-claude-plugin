@@ -19,8 +19,8 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 
-from quiz.model import weights  # noqa: E402
-from quiz.spec import GRAMMAR, RULES, SCHEMA, line, violations  # noqa: E402
+from rubric.model import weights  # noqa: E402
+from rubric.spec import GRAMMAR, RULES, SCHEMA, line, violations  # noqa: E402
 
 FIXTURES = HERE.parent / "fixtures"
 # read() returns it for a file it cannot parse, since a parsed spec may be null
