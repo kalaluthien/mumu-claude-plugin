@@ -1,11 +1,21 @@
 # Review
 
-## protocol
+Check a written book by lint, render and one reviewer per lens, then fix rounds, up to the `review` gate.
+
+## Domain
+
+A lens is one reviewer's question: its role, gate and inputs, then rows answered yes or no per unit. `agents review` sends one task per lens and slice batch, built from the `### lens:` sections under Rules and the `### protocol` under Steps.
+
+## Steps
+
+### protocol
 Answer each row yes or no per unit from the inputs only; a no quotes its place and gives a repair in the book's language. A row that points to `write.md#id` tests that row. Hand back in the brief's form, and write each `no` as a line of `.work/AGENT_ID/no.tsv`: unit, block id, row id, repair (tab-separated).
 
 Fix rounds go through `agents fix [--render FILE]`, which reads lint findings, render findings (`.work/render.json` or `.txt`) and reviewers' `.work/r-*/no.tsv` rows (rule `no:ROW`) and renames a processed file to `no.done.tsv`; not hand-written briefs; `agents fix` prints each task's role, model and batch. B* and G1 findings go to the lead.
 
-## lens: outline-review
+## Rules
+
+### lens: outline-review
 Role `review-coherence`, at the `skeleton` gate. Inputs: `book.json`, `check`.
 
 | id | yes when |
@@ -16,7 +26,7 @@ Role `review-coherence`, at the `skeleton` gate. Inputs: `book.json`, `check`.
 | lens-outline-scent | Each unit title predicts its content to a reader scanning the contents; no: "Basics", "More on X" |
 | lens-outline-type | What the reader looks up again (tables, parameters, procedures) has a reference home: terms box, appendix or home figure; no: parameters only mid-paragraph |
 
-## lens: editor
+### lens: editor
 Role `review-conformance`. Inputs: `text --unit U --only prose`.
 
 | id | yes when |
@@ -24,7 +34,7 @@ Role `review-conformance`. Inputs: `text --unit U --only prose`.
 | lens-editor-native | write.md#sent-native holds, spliced facts included; no: "it is by this book called x" |
 | lens-editor-terms | One field word per concept, no forced coinage; a found pair goes into `terms[].avoid` so lint enforces it; no: "rate" and "speed" for one quantity |
 
-## lens: shape
+### lens: shape
 Role `review-intent`. Inputs: `text --unit U --only stems`.
 
 | id | yes when |
@@ -33,7 +43,7 @@ Role `review-intent`. Inputs: `text --unit U --only stems`.
 | lens-shape-terms-box | write.md#shape-terms-box holds, before first use; no: three chord names defined inline |
 | lens-shape-practice | An example models one step, then hands over; each gist says where the unit sits; no: no worked step |
 
-## lens: items
+### lens: items
 Role `review-conformance`. Inputs: `cards --units IDS --out S/cards.json`, `cards --units IDS --out S/cards.json --score S/picks.json`, `text --unit U --only cards`.
 Solve `cards.json` blind first, writing `picks.json` as `{id: {"pick": letter, "cue": "knowledge|cue|guess"}}`; then score; then read the cards text.
 
@@ -44,7 +54,7 @@ Solve `cards.json` blind first, writing `picks.json` as `{id: {"pick": letter, "
 | lens-items-pattern | write.md#card-pattern holds for each labelled card (`pattern show P`, then its label and rival lines in the cards text); no: rivals whose right_when all say "in another situation" |
 | lens-items-level | write.md#card-level holds; no: an apply card echoing the line above |
 
-## lens: reader
+### lens: reader
 Role `review-intent`. Inputs: `text --unit U --only stems`, `text --unit U --only figs`, `shot U --solve --sheet --quick --out S/shots`.
 Open flagged shots, the sheet and `plot`/`multiples` shots.
 
@@ -57,7 +67,7 @@ Open flagged shots, the sheet and `plot`/`multiples` shots.
 | lens-reader-alt | write.md#fig-alt holds for each figure in the figs text; no: alt "A chart" or "Diagram of the process" |
 | lens-reader-flow | On a phone the next action is clear and nothing needed is folded; no: a continuous value set by taps |
 
-## lens: facts
+### lens: facts
 Role `review-facts`. Inputs: `text --unit U --only claims`.
 Redo each worked example before judging it.
 
@@ -69,7 +79,7 @@ Redo each worked example before judging it.
 | lens-facts-strength | Claims at their grade from primary sources, numbers with sample size; no: 8 people called proof |
 | lens-facts-model | Each model states what it assumes and ignores, in the field's term; no: "weight" for mass |
 
-## lens: coherence
+### lens: coherence
 Role `review-coherence`, one task per part (not sliced). Inputs: `text --unit U --only claims`.
 
 | id | yes when |

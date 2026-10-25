@@ -1,7 +1,15 @@
 # Plan
 
-## interview
-Use `AskUserQuestion`, at most three rounds before the skeleton, recommended option first, naming its weakest point and a counterproposal. Never ask what can be looked up; `agents plan` sends lookups to research agents. When two answers conflict, ask the conflict as one question.
+Scope and plan a book: interview the owner, record the model in `book.json`, and pass the `plan-check` and `skeleton` gates.
+
+## Domain
+
+### config boundary
+Owner values (register, banned forms, naming, what a named style means) enter as config: `book`, `terms`, `forbid` (lint regexes), `decisions`. A named style sets the Minimum node, the explanation shape, the interaction policy and `length`. `init --lang L` sets `book.lang`, which picks `assets/lang/L.json`: the strings inside the prose, the fonts, the language rules lint applies, and the `register.forms` that `book.register` names. Controls stay English unless the owner names them in `book.strings`.
+
+## Steps
+
+### interview
 
 | Node | Records | Grill |
 |---|---|---|
@@ -18,7 +26,7 @@ Use `AskUserQuestion`, at most three rounds before the skeleton, recommended opt
 | Requirements | round 1 directives, one per `note --topic` | How many figures, exhibits and cards per unit? Which models need the full shape? Where do terms boxes go? |
 | Acceptance | policies, `lexicon`, `homes`, `title`, `doc_title` | How will the user judge it done? |
 
-## new-patterns
+### new-patterns
 The one place for a book pattern's life; SKILL.md and the other references point here.
 
 | Step | Rule |
@@ -31,5 +39,6 @@ The one place for a book pattern's life; SKILL.md and the other references point
 | Promote | `pattern promote ID --dir BOOK [--as-variant-of P]` validates the element JSON (clean errors), copies a new check into the skill's pcheck, and refuses with the reason when the check misses its `breaks`, the element set equals a catalog pattern's, or book nouns appear outside Examples. The pattern's Seed lands in its `.md` and in `assets/seeds.md` as a `card-pattern` row, except a variant's seed identical to its parent's |
 | Publish | `approve publish` warns while a book pattern is neither promoted nor `local` |
 
-## config boundary
-Owner values (register, banned forms, naming, what a named style means) enter as config: `book`, `terms`, `forbid` (lint regexes), `decisions`. A named style sets the Minimum node, the explanation shape, the interaction policy and `length`. `init --lang L` sets `book.lang`, which picks `lang/L.json`: the strings inside the prose, the fonts, the language rules lint applies, and the `register.forms` that `book.register` names. Controls stay English unless the owner names them in `book.strings`.
+## Rules
+
+- **Interview**: Use `AskUserQuestion`, at most three rounds before the skeleton, recommended option first, naming its weakest point and a counterproposal. Never ask what can be looked up; `agents plan` sends lookups to research agents. When two answers conflict, ask the conflict as one question.

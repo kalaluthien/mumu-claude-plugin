@@ -1,6 +1,20 @@
 # Write
 
-## shape
+Draft each unit with its cards and figures until `lint --unit` comes back clean.
+
+## Domain
+
+Each row under Rules is a criterion: the writer brief names its sections, a reviewer row tests one as `write.md#id`, and a lint line names the section to read after "read".
+
+## Steps
+
+1. `agents write` lists one task per unit; each writer runs `brief UNIT`, then what it lists.
+2. Write the figure scripts first, then the unit.
+3. Run `lint --unit UNIT` until it is clean.
+
+## Rules
+
+### shape
 | id | criterion |
 |---|---|
 | shape-question | A concept opens on a problem the reader already feels, in words the reader already uses, before any name |
@@ -19,7 +33,7 @@
 | shape-source | The block marked for a source says where the material lives, how to open it, and annotates one real entry |
 | shape-fold | Nothing the path needs is folded |
 
-## sentences
+### sentences
 | id | criterion |
 |---|---|
 | sent-plain | One idea per sentence, an actor as subject, an active verb, concrete words |
@@ -29,7 +43,7 @@
 | sent-numbers | At most two numbers per sentence, rounded and compared |
 | sent-analogy | An analogy maps the mechanism and says where it stops |
 
-## cards
+### cards
 A card is hand markup or `<!--card ID-->` with an entry in `slots/UNIT.json` (`card new`; `card lift U ID` turns a hand card into one); build renders the entry and refuses a missing, mistyped or TODO slot (P1); element checks run in lint (P2). `pattern show P` gives a pattern's move, examples and how to vary it; pick and combine elements for the idea at hand (`element show E`), any order and repeats allowed, and name what you combined in `label`. A part no element covers goes in a `raw` element.
 
 `card new [DIR] --unit U --after SEL [--kind K] [--elements E,E] [--id ID] [--label L]` places a stub (kinds: ask, probe, task-sort, task-order, task-select, task-estimate, task-custom); `fig new` takes the same plus `--kind fig|frames` and `--tactic T`. `SEL` is `#id` of the block to follow, as in `show UNIT '#id'` and `shot --sel '#id'`.
@@ -50,7 +64,7 @@ A card is hand markup or `<!--card ID-->` with an entry in `slots/UNIT.json` (`c
 | card-pattern | A card or figure built from catalog elements does the move its pattern's Why names; each rival's `belief`, `right_when` and `ruled_out_by` are specific to it, not boilerplate |
 | card-exhibit | What the reader would see (a chart, page, draft or log) is a static exhibit in the card, in each option when options are alternatives; the stem never points at unshown material |
 
-## figures
+### figures
 A figure is a script using `book.Fig` (`help(book.Fig)`) that saves `figs/ID.svg`, placed as `<!--svg ID-->`, or `<!--fig ID-->` from `fig new` with visual elements (steps, axes, panels, kit-tree, pair, graph, demo) and an `alt` element that composes the alt; it gets a stable id. A figure that uses a catalog pattern names it with `data-pattern` on the figure or its svg, or `Fig(..., pattern='id')` in its script; it counts as a use like a labelled card. Reusable exhibit parts are classes listed in a `/* kit: */` block of `book.js`. Shot checks skip text inside `data-expect="clipped"` and contrast on `[disabled]`, `[aria-disabled=true]` or `[data-inactive]` parts.
 
 | id | criterion |
@@ -71,7 +85,7 @@ A figure is a script using `book.Fig` (`help(book.Fig)`) that saves `figs/ID.svg
 | fig-home | An object drawn in several units is a home figure |
 | fig-selectable | An unselected selectable diagram already shows the point |
 
-## evidence
+### evidence
 | id | criterion |
 |---|---|
 | ev-claim | A general or causal claim rests on a study at its grade, cited by `data-cite="note-id"` on its sentence, or on a demo (fig-data); an invented scene only illustrates |

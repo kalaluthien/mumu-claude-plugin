@@ -1,9 +1,15 @@
 # Publish
 
-## contract
+Put a book that passed the `review` gate on a host, and record what went there.
+
+## Domain
+
+### contract
 Publishing starts after the `review` gate and reads only `book.html`. `scripts/publish-book.py TARGET DIR` puts the build on a host and writes `publish.json` beside `book.json`: `{TARGET: {target, url, sha, at}}`. `make-book.py approve publish` refuses unless a record's `sha` equals the current build's, so a page edited or rebuilt after publishing cannot pass. `publish-book.py status DIR` lists each record as current or STALE. Every adapter takes `--dry-run`, which prints what it would do and records nothing.
 
-## adapters
+## Steps
+
+### adapters
 | Target | Command | Does | Verifies |
 |---|---|---|---|
 | `file` | `publish-book.py file DIR --to PATH` | copies `book.html`; warns when the book's js calls a host capability (`.use("NAME")`), since those features break off-host | the copy's sha equals the build's |
@@ -12,10 +18,12 @@ Publishing starts after the `review` gate and reads only `book.html`. `scripts/p
 
 A page published before its record existed gets `record TARGET DIR --url URL --sha old`, so the gate refuses until the next publish.
 
-## finish
+### finish
 Before `approve publish`, `make-book.py pattern list --dir DIR` marks each book pattern `[book, unpromoted]` or `[book, local]`. Route each unpromoted one through SKILL.md How to Fix (`pattern promote`), or set `local: REASON` on its `new_patterns` entry; `approve publish` warns while any is left and does not block (lifecycle: `references/plan.md#new-patterns`). It does refuse without an approved `review` gate at the current plan hash and lint with 0 errors.
 
-## gotchas
+## Rules
+
+### gotchas
 | Trigger | Breaks | Do |
 |---|---|---|
 | Artifact tool refuses a republish because the live page changed elsewhere | the other edit is lost if overwritten | merge the change into the units, rebuild, review, publish again; never `force` without the user |

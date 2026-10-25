@@ -98,13 +98,13 @@ def scratch(d, aid):
 
 # ---------------------------------------------------------------- criteria rows
 def rows(name, ref=None):
-    """{heading: [(id, text)]} from `| id | ... |` tables under ## headings of references/NAME; ids are lowercase kebab."""
+    """{heading: [(id, text)]} from `| id | ... |` tables under the ## or ### headings of references/NAME; ids are lowercase kebab."""
     p = os.path.join(ref or REF, name)
     if not os.path.exists(p):
         raise AgentsError(f'references/{name} not found; the brief needs its rows')
     out, head = collections.OrderedDict(), None
     for line in open(p, encoding='utf-8'):
-        m = re.match(r'##\s+(.+?)\s*$', line)
+        m = re.match(r'#{2,3}\s+(.+?)\s*$', line)
         if m:
             head = m.group(1)
             out.setdefault(head, [])
@@ -118,14 +118,14 @@ def rows(name, ref=None):
 
 
 def lenses(ref=None):
-    """{lens: {role, inputs, gate, rows, protocol}} from `## lens: NAME` sections of references/review.md."""
+    """{lens: {role, inputs, gate, rows, protocol}} from `### lens: NAME` sections of references/review.md."""
     p = os.path.join(ref or REF, 'review.md')
     if not os.path.exists(p):
         raise AgentsError('references/review.md not found; reviewer briefs need its lens sections')
     src = open(p, encoding='utf-8').read()
     out, rs = collections.OrderedDict(), rows('review.md', ref)
-    pm = re.search(r'^##\s+protocol\s*\n(.*?)(?=^##\s|\Z)', src, re.DOTALL | re.MULTILINE)
-    for m in re.finditer(r'^##\s+(lens:\s*(\S+))[^\n]*\n(.*?)(?=^##\s|\Z)', src, re.DOTALL | re.MULTILINE):
+    pm = re.search(r'^#{2,3}\s+protocol\s*\n(.*?)(?=^#{2,3}\s|\Z)', src, re.DOTALL | re.MULTILINE)
+    for m in re.finditer(r'^#{2,3}\s+(lens:\s*(\S+))[^\n]*\n(.*?)(?=^#{2,3}\s|\Z)', src, re.DOTALL | re.MULTILINE):
         name, body = m.group(2).strip(), m.group(3)
         head = body.split('\n|', 1)[0]
         role = next((r for r in ROUTES if r.startswith('review-') and re.search(r'`' + re.escape(r) + r'`', head)), 'review-conformance')
@@ -134,7 +134,7 @@ def lenses(ref=None):
         out[name] = dict(role=role, inputs=re.findall(r'`([^`]+)`', im.group(1)) if im else [], gate=g.group(1) if g else 'review',
                          rows=rs.get(m.group(1).strip(), []), protocol=pm.group(1).strip() if pm else '', note=re.sub(r'^Role [^\n]*$', '', head, flags=re.MULTILINE).strip())
     if not out:
-        raise AgentsError('references/review.md has no `## lens: NAME` sections')
+        raise AgentsError('references/review.md has no `### lens: NAME` sections')
     return out
 
 
