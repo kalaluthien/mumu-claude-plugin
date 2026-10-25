@@ -26,8 +26,8 @@ Keep what this session learned where the next agent will meet it. A lesson hande
 
    | the lesson | destination |
    | --- | --- |
-   | something a check could decide | a hook, script, lint rule or CI step, by [hook-authoring.md](hook-authoring.md), as a patch |
-   | a procedure that worked again, or how a delegate should work | the skill that owns the work, by [skill-authoring.md](skill-authoring.md), as a patch |
+   | something a check could decide | a hook, script, lint rule or CI step, by [harness-authoring.md](harness-authoring.md), as a patch |
+   | a procedure that worked again, or how a delegate should work | the skill that owns the work, by [harness-authoring.md](harness-authoring.md), as a patch |
    | true for every project: another project's memory holds it, or the user said it for all work | `<config>/CLAUDE.md`: an instruction and a clause of reason in its work's section, as a patch rooted at `<config>` that also deletes this project's copy |
    | true for this project: a fact, a trap, a preference, a procedure that worked once | auto-memory, one memory file each |
 

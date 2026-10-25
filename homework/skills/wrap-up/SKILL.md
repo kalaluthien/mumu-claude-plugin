@@ -1,16 +1,16 @@
 ---
 name: wrap-up
-description: Use when a wrap-up signal arrives, or to keep a lesson (retro), tidy memory (dream), or write a skill or hook.
+description: Use when a wrap-up signal arrives, or to keep a lesson (retro), tidy memory (dream), or write a skill, agent file, hook or script.
 user-invocable: false
 ---
 
 # wrap-up
 
-Close a stretch of work so the next session starts ahead: keep what this session learned (retro), tidy what earlier sessions kept (dream), and record how to run and verify the repository.
+Close a stretch of work so the next session starts ahead: keep what this session learned (retro), and tidy what earlier sessions kept (dream).
 
 ## Domain
 
-- **Signal**: the Stop hook's sentence opening `Wrap-up signal:`, carrying lesson points `<p>` of threshold `<t>`, this session's first retro `<f>`: `due`, `asked` or `at <n> of <limit> tool calls`, memory files changed `<m>` of limit `<l>`, and run recipe `<r>`: `fine`, `missing` or `failed`. With none in sight, print this session's: `"${CLAUDE_PLUGIN_ROOT}/hooks/signal-wrap-up.py" ${CLAUDE_SESSION_ID}`.
+- **Signal**: the Stop hook's sentence opening `Wrap-up signal:`, carrying lesson points `<p>` of threshold `<t>`, this session's first retro `<f>`: `due`, `asked` or `at <n> of <limit> tool calls`, and memory files changed `<m>` of limit `<l>`. With none in sight, print this session's: `"${CLAUDE_PLUGIN_ROOT}/hooks/signal-wrap-up.py" ${CLAUDE_SESSION_ID}`.
 - **Memory**: what loads into an agent before it acts: instruction files (`AGENTS.md`, `CLAUDE.md`), auto-memory, whose `MEMORY.md` index loads at start and each file only when read, and project skills, whose descriptions load at start.
 - **Memory file**: one lesson, then a `When it applies:` line, the situation that should recall it, and a `When it is wrong:` line, the condition that would make it false. Its index line is `- [<title>](<file>.md) — <when it applies>`, since only the index is read before the situation arises.
 - `<skill>` is `${CLAUDE_SKILL_DIR}`, `<data>` is `${CLAUDE_PLUGIN_DATA}`, and `<config>` is the folder the owner names, else `${CLAUDE_CONFIG_DIR:-$HOME/.claude}`.
@@ -22,11 +22,9 @@ Take every row whose condition holds, in order, and copy its playbook's steps ve
 | when | playbook |
 | --- | --- |
 | `<p>` reaches `<t>`, this session's first retro `<f>` is `due`, or a person asks to keep a lesson | [references/retro.md](references/retro.md) |
-| `<r>` is `missing` or `failed` | [references/run-recipe.md](references/run-recipe.md) |
 | `<m>` reaches `<l>`, or a person asks to tidy memory | [references/dream.md](references/dream.md) |
 | `python3 ${CLAUDE_SKILL_DIR}/scripts/list-sessions.py due <data>/dejavu` prints `due`, or a person asks for `dejavu` | [references/dejavu.md](references/dejavu.md) |
-| writing or editing a skill or an agent file, with no lesson behind it | [references/skill-authoring.md](references/skill-authoring.md) |
-| writing or editing a hook or a script, with no lesson behind it | [references/hook-authoring.md](references/hook-authoring.md) |
+| writing or editing a skill, an agent file, a hook or a script, with no lesson behind it | [references/harness-authoring.md](references/harness-authoring.md) |
 | typed with no signal and no row fits | [references/retro.md](references/retro.md) |
 
 ## Rules
