@@ -49,7 +49,9 @@ button.node:hover, .node:focus-within { box-shadow: var(--lift); }
 a.chip:hover { color: var(--accent); }
 .kind { font: .66rem var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .risk-text { background: var(--amber-bg); color: var(--amber); border-radius: 4px; padding: 0 4px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
-.dim { opacity: .6; }
+.dim { opacity: .7; }
+/* a leaf under an unchosen Option fades once, not twice, so its facts and sources stay readable */
+.dim .dim { opacity: 1; }
 .dim:hover, .dim:focus-within { opacity: 1; }
 .struck .ptext, .struck .qtext { text-decoration: line-through; color: var(--muted); }
 .reason { font-size: .82rem; color: var(--muted); margin-top: 4px; }
