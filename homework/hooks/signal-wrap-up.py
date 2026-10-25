@@ -8,7 +8,7 @@ usage: signal-wrap-up.py                        the Stop hook: its payload on st
        signal-wrap-up.py outcome <data> <session> filed|empty
                                                 report what a session's last asked wrap-up did
 
-A dream rides on a lesson or recipe ask, since a dream alone rarely pays.
+A dream rides on a lesson ask, since a dream alone rarely pays.
 Enabling the plugin for a project is the opt-in, so no arm step writes to the
 data folder. Asks are scored by fixtures/replay-score.py on fixtures/labels.json, and
 fixtures/replay-sessions.py replays fixtures/sessions.json; the other fixtures are
@@ -17,7 +17,6 @@ trimmed past stops to run the sentence on.
 import json
 import os
 import pathlib
-import re
 import subprocess
 import sys
 
@@ -33,12 +32,8 @@ FIRST_RETRO = 25
 ASK_GAP = 3
 TEMPLATE = (transcript.SIGNAL + " {failures} failed tool calls and {calls} tool calls since the last stop "
             "make {points:g} lesson points of {threshold:g}; this session's first retro {first}; {memory} memory files changed since the last "
-            "dream, of {memory_limit}; run recipe: {recipe}{generator}.")
+            "dream, of {memory_limit}.")
 ASK = " Run the wrap-up skill with this sentence before you stop."
-RUNS = re.compile(r"\b(pytest|tox|nox|make|cmake|gradlew|mvn|cargo\s+(test|build|run)|go\s+(test|build|run)"
-                  r"|swift\s+(test|build|run)|xcodebuild|(npm|pnpm|yarn|bun)\s+(run\s+)?(test|build|start|dev)"
-                  r"|uvx?\s+run|docker\s+(compose|build|run))\b")
-RECIPE = re.compile(r"(^|[:/])run-[\w-]+")
 
 
 def segment(entries):
@@ -55,33 +50,18 @@ def toplevel(cwd):
     return run.stdout.strip() if run.returncode == 0 else None
 
 
-def has_recipe(cwd):
-    root = toplevel(cwd)
-    folder = os.path.join(root, ".claude", "skills") if root else None
-    return bool(folder and os.path.isdir(folder) and any(n.startswith("run-") for n in os.listdir(folder)))
-
-
-def counts(entries, cwd):
-    uses, failures, calls, memory, ran_failed, recipe_failed = {}, 0, 0, set(), False, False
+def counts(entries):
+    failures, calls, memory = 0, 0, set()
     for entry in segment(entries):
         for use in transcript.blocks_of(entry, "tool_use"):
             calls += 1
-            uses[use.get("id")] = use
             memory.update(memory_file.PATH.findall(json.dumps(use.get("input") or {})))
         for result in transcript.blocks_of(entry, "tool_result"):
             if not result.get("is_error"):
                 continue
             failures += 1
-            use = uses.get(result.get("tool_use_id")) or {}
-            given = use.get("input") or {}
-            said = given.get("skill") or given.get("command") or ""
-            if (use.get("name") == "Skill" and RECIPE.search(said)) or ".claude/skills/run-" in said:
-                recipe_failed = True
-            elif use.get("name") == "Bash" and RUNS.search(said):
-                ran_failed = True
-    recipe = "failed" if recipe_failed else "missing" if ran_failed and not has_recipe(cwd) else "fine"
     session = sum(len(transcript.blocks_of(entry, "tool_use")) for entry in entries)
-    return {"failures": failures, "calls": calls, "memory": memory, "recipe": recipe, "session": session,
+    return {"failures": failures, "calls": calls, "memory": memory, "session": session,
             "points": round(failures * FAILURE_POINTS + calls / CALLS_PER_POINT, 1)}
 
 
@@ -130,8 +110,7 @@ def first_retro(found, asked):
 
 
 def sentence(found, threshold):
-    generator = "" if found["recipe"] == "fine" else ", to record with /run-skill-generator"
-    return TEMPLATE.format(threshold=threshold, memory_limit=MEMORY_LIMIT, generator=generator, **found)
+    return TEMPLATE.format(threshold=threshold, memory_limit=MEMORY_LIMIT, **found)
 
 
 def hook():
@@ -146,7 +125,7 @@ def hook():
     if fixed() is None and entrypoint.startswith("sdk"):
         return 0
     state = load(data)
-    found = counts(entries, payload.get("cwd"))
+    found = counts(entries)
     state["memory"] = sorted(set(state["memory"]) | found["memory"])
     threshold = threshold_of(state)
     session, stops = payload.get("session_id", ""), sum(1 for e in entries if transcript.is_stop(e))
@@ -155,7 +134,7 @@ def hook():
     # a stop the hook already blocked still counts, since the wrap-up writes its lessons in that turn
     # a session past a short fix owes one retro, whatever the lesson threshold, which other sessions' outcomes move
     first = first_retro(found, session in state["asked"]) == "due"
-    lesson = found["points"] >= threshold or found["recipe"] != "fine"
+    lesson = found["points"] >= threshold
     if not payload.get("stop_hook_active") and not just_asked and (lesson or first) and toplevel(payload.get("cwd")):
         reason = sentence(dict(found, memory=len(state["memory"]), first=first_retro(found, False)), threshold) + ASK
         state["asked"][session] = stops
@@ -190,10 +169,9 @@ def main(args):
         if entries is None:
             print(f"no transcript: {args[0]}", file=sys.stderr)
             return 1
-        cwd = next((e["cwd"] for e in reversed(entries) if e.get("cwd")), None)
         data = os.environ.get("CLAUDE_PLUGIN_DATA")
         state = load(data or os.devnull)
-        found = counts(entries, cwd)
+        found = counts(entries)
         asked = any(transcript.asked_at(entry) for entry in entries)
         print(sentence(dict(found, memory=len(found["memory"]), first=first_retro(found, asked)), threshold_of(state)))
         return 0
