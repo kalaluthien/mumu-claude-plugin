@@ -1,4 +1,4 @@
-"""The board port: where a team keeps its issues and records, done by the adapter `board_<TEAMWORK_BOARD>` (default `github`).
+"""The board port: where a team keeps its issues and records, done by the adapter `board_<TEAMWORK_BOARD>`, read from the environment, else from the project's Claude settings `env` (default `github`).
 
 Every adapter has these functions, by the same names:
 - reads: `issues(state, project, pulls, comments, since, repo)`, `fresh(number, repo, comments)`, `comments_since(since)` as (issue number, comment),
@@ -10,10 +10,13 @@ Every adapter has these functions, by the same names:
 A record has `number`, `title`, `body`, `labels` (names), `state` (`OPEN` or `CLOSED`), `parent` (a number or None), `trusted` and `comments`,
 each comment with `body` and `trusted`."""
 import importlib
-import os
+import port_setting
 
-adapter = importlib.import_module(f"board_{os.environ.get('TEAMWORK_BOARD', 'github')}")
+
+def kind():
+    """The adapter's name, read at each call, so a long-running process follows a setting written after it started."""
+    return port_setting.value("TEAMWORK_BOARD", "github")
 
 
 def __getattr__(name):
-    return getattr(adapter, name)
+    return getattr(importlib.import_module(f"board_{kind()}"), name)

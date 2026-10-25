@@ -2,7 +2,7 @@
 """Print one line per action the team session's board and sessions call for, each once, polling until killed.
 
 usage: print-team-gaps.py
-It takes the session's role from herdr, reads GitHub when a team session signals a change or MONITOR_REFRESH seconds pass, and polls every MONITOR_POLL seconds."""
+It takes the session's role from herdr, reads the board when a team session signals a change or MONITOR_REFRESH seconds pass, and polls every MONITOR_POLL seconds."""
 import os
 import pathlib
 import sys
@@ -31,7 +31,15 @@ def main(args):
     waiting = set()  # a worker's issues with an open blocker, so a restart reports no blocker closed long ago
     fed = set()  # the reports a manager was already fed
     data, read_at, signal = None, 0.0, team_signal.stamp()  # what GitHub last gave, when, and the signal file's change then
+    ports = None  # the board and landing the last read used
     while True:
+        if ports != (board.kind(), landing.kind()):
+            # a setting written after the start names another board, which the last read never saw; the signal wakes the issue pane to read it too
+            if ports is not None:
+                data, read_at = None, 0.0
+                team_signal.SIGNAL.parent.mkdir(parents=True, exist_ok=True)
+                team_signal.SIGNAL.touch()
+            ports = (board.kind(), landing.kind())
         listed, me = session.sessions()
         role = team_names.role(me.get("name"))
         manager, worker = role == "manager", role == "worker"

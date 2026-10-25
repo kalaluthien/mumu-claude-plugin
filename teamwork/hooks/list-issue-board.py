@@ -17,7 +17,7 @@ import issue_board  # noqa: E402
 def main(args):
     read = board.tree(None, json.loads(pathlib.Path(args[args.index("--nodes") + 1]).read_text())) if "--nodes" in args else board.tree(args[0])
     if read is None:
-        sys.exit("list-issue-board: a GitHub read failed, so no board is shown")
+        sys.exit(f"list-issue-board: the {board.kind()} board read failed, so no board is shown")
     tree = issue_board.board(read)
     print(json.dumps(tree) if "--json" in args else "\n".join(issue_board.lines(tree)))
     return 0
