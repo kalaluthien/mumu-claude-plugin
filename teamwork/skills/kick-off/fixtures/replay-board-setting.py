@@ -70,7 +70,8 @@ def main(args):
     for argv in (["init", "-q", "-b", "main"], ["commit", "-q", "--allow-empty", "-m", "start"]):
         run(["git", *argv], GIT_AUTHOR_NAME="probe", GIT_AUTHOR_EMAIL="probe@example.com", GIT_COMMITTER_NAME="probe", GIT_COMMITTER_EMAIL="probe@example.com")
     (work / "body.md").write_text("Probe the late board setting.\n")
-    run([sys.executable, USE, "file", "Probe the late setting", work / "body.md", "backlog"], TEAMWORK_BOARD="files")
+    # filed with a config folder of its own, so the heartbeat's has no signal folder until the heartbeat makes one
+    run([sys.executable, USE, "file", "Probe the late setting", work / "body.md", "backlog"], TEAMWORK_BOARD="files", CLAUDE_CONFIG_DIR=str(work / "filer"))
 
     team = [{"name": "probe-manager", "pane_id": "w1:p1", "tab_id": "w1:t1", "workspace_id": "w1", "agent": "claude", "agent_status": "working",
              "interactive_ready": True}]

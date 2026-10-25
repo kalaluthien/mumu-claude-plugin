@@ -37,6 +37,7 @@ def main(args):
             # a setting written after the start names another board, which the last read never saw; the signal wakes the issue pane to read it too
             if ports is not None:
                 data, read_at = None, 0.0
+                team_signal.SIGNAL.parent.mkdir(parents=True, exist_ok=True)
                 team_signal.SIGNAL.touch()
             ports = (board.kind(), landing.kind())
         listed, me = session.sessions()
