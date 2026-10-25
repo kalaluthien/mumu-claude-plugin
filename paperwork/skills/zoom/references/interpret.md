@@ -13,15 +13,13 @@ Write the document in the grammar, [schema/assets/schema.json](schema/assets/sch
 
 ## Defects
 
-Model the system as it is, defects included. Name each one in the hand-over: a situation nothing handles (Missing), a reachable impossible state or call (Illegal), two states that react alike (Redundant), one state meaning two things (Overloaded), or a rule the system breaks.
+Model the system as it is, defects included. Name each one in the hand-over: a fault of [improve.md](improve.md#faults), or a rule the system breaks.
 
 ## Steps
 
-Command paths are relative to this file.
-
 1. Write the document from the root level down, one entry at a time, as the Order rule says.
 2. Run `schema/scripts/check-schema.py check doc.json` after each entry, until it prints `ok`.
-3. Run `../scripts/resolve-pointers.py evidence doc.json --root <repo> --sha <commit>`; fix each unresolved pointer. `../fixtures/pointers-to-nothing.json` makes `evidence`, `constraints` and `faults` each report one unresolved pointer; run it after changing the script.
+3. Run `../scripts/resolve-pointers.py evidence doc.json --root <repo> --sha <commit>`; fix each unresolved pointer.
 4. Hand over the document's path, the commit, the last two outputs and the defects.
 
 ## Rules

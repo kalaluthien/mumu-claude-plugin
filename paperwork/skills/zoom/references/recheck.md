@@ -17,14 +17,12 @@ Give each rule one outcome:
 
 ## Steps
 
-Command paths are relative to this file.
-
 1. Run `../scripts/prove-schema.py doc.json` before changing anything, and keep its lines: a pass here says only that the old description still holds.
 2. Run `../scripts/resolve-pointers.py evidence doc.json --root <repo> --sha <commit>` and fix each unresolved pointer, then `../scripts/resolve-pointers.py drift doc.json --root <repo> --sha <commit>`; read each `changed` or `gone` pointer's diff and commit messages (`git log -L <a>,<b>:<path> <commit>..`), and look for moved or renamed code and for new code that writes what a rule guards. Call each change one of:
    - **no effect**: nothing the document states changed, checked against the document, not the commit message;
    - **no longer describes**: a step split, a branch added or removed, a check moved, a new path, a new range;
    - **promise changed on purpose**: a doc comment, test, changelog or commit message says so; cite it;
-   - **promise may be broken**: the code changed and nothing says the promise did. `../fixtures/pointers-drifted.json`, read at 85fcfa8, prints 3 changed and 2 unchanged up to d4a0802; run it after changing the script.
+   - **promise may be broken**: the code changed and nothing says the promise did.
 3. Update the document from the code, not from what makes a rule pass: each changed element again cites the line it rests on. Change a rule only for a promise changed on purpose, writing its old text, new text and evidence. Run `schema/scripts/check-schema.py check doc.json` until it prints `ok`.
 4. Run `../scripts/prove-schema.py doc.json` again and judge each line:
    - **pass**: confirm it with `../scripts/prove-schema.py --mutate doc.json`, whose line for that rule must end `fails without`, so the updated document can still fail. One ending `unfalsified` keeps its outcome, and the hand-over names it never seen failing, as [prove.md](prove.md)'s Able to fail says;

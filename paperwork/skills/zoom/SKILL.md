@@ -25,4 +25,5 @@ An ask that names a document to show or prove reads that document and no playboo
 ## Rules
 
 - **Checked document**: run `${CLAUDE_PLUGIN_ROOT}/skills/zoom/references/schema/scripts/check-schema.py check doc.json` after each change; a document is handed over only when it prints `ok`.
+- **Command paths**: a playbook's command paths are relative to its file.
 - **One document**: the document is the one source; a renderer or a prover reads it and never changes it.

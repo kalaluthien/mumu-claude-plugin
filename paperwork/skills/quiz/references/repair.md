@@ -1,6 +1,8 @@
 # Repair
 
-A graded answer landed in the wrong order. Find the step of [author.md](author.md) that let it, fix the spec there, and rerun `check-spec.py check` and the dry run. The spec's grammar is [spec/assets/rubric.schema.json](spec/assets/rubric.schema.json).
+A graded answer landed in the wrong order. Find the step of [author.md](author.md) that let it, and fix the spec there.
+
+## Domain
 
 | cause | sign | fix |
 | --- | --- | --- |
@@ -10,4 +12,12 @@ A graded answer landed in the wrong order. Find the step of [author.md](author.m
 | judge error (step 5) | the verdicts themselves were wrong, or flip between runs | measure it ([calibrate.md](calibrate.md)); rewrite the criterion more concretely or as a program check |
 | mask (step 5) | a failing answer outranked a passing one through lower tiers, or failing answers were ordered when that has no value | set or clear the mask, and its pass rate |
 
-When a failure generalises, add a rule for it to `check-spec.py` with a fixture it rejects, and its lesson to the Gotchas of the playbook it governs.
+## Steps
+
+1. Match the answer's sign to a cause above.
+2. Apply that cause's fix to the spec.
+3. Rerun `check-spec.py check` and the dry run.
+
+## Rules
+
+- **Generalise**: when a failure generalises, add a rule for it to `check-spec.py` with a fixture it rejects, and its lesson to the Rules of the playbook it governs.

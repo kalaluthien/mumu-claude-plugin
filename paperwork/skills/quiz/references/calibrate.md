@@ -1,8 +1,8 @@
 # Calibrate
 
-Measure how far a judge's verdicts on a spec can be trusted, and set each tier's judge error from what you measure. The spec is in the grammar of [spec/assets/rubric.schema.json](spec/assets/rubric.schema.json); [spec/model.md](spec/model.md) says why agreement bounds the weights.
+Measure how far a judge's verdicts on a spec can be trusted, and set each tier's judge error from what you measure.
 
-The commands are `${CLAUDE_PLUGIN_ROOT}/skills/quiz/scripts/measure-judge.py <mode> <spec> …`; each prints what its numbers mean.
+The commands are `${CLAUDE_PLUGIN_ROOT}/skills/quiz/scripts/measure-judge.py <mode> <spec> …`; each prints what its numbers mean. [spec/model.md](spec/model.md) says why agreement bounds the weights.
 
 ## Steps
 
@@ -18,7 +18,7 @@ The commands are `${CLAUDE_PLUGIN_ROOT}/skills/quiz/scripts/measure-judge.py <mo
    A kind flagged above a tier's judge error is a bias of that tier; rewrite the criteria it moves, or raise the tier's judge error to what you measured and rerun `check-spec.py weights`.
 5. **Judge error**: set each tier's judge error from the flips you measured, and mark the calibration no longer estimated.
 
-## Monitor
+**Monitor**
 
 During training, watch the signals the spec's monitor lists, and at least these:
 - reward rising while held-out expert pairwise wins stay flat: the policy found a gap in the criteria;
@@ -27,7 +27,7 @@ During training, watch the signals the spec's monitor lists, and at least these:
 
 Each one sends the spec to [repair.md](repair.md).
 
-## Gotchas
+## Rules
 
 - **Biases add up**: judge biases within one tier, such as length or wording, add up, and the tier condition does not remove them; the perturbation suite measures them.
 - **Hidden mask**: top-down routing, where the judge picks a branch and then grades its children, is a hidden mask with compounding judge error; grade every criterion with the full rubric instead.

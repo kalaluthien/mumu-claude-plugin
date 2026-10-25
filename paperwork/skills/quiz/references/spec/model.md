@@ -16,16 +16,13 @@ A rubric of 2/1/0 questions is binary too: each question becomes two criteria, m
 
 The weights come from two numbers per tier: $e_d$, the chance the judge flips one verdict of tier $d$, and $\delta_d$, the smallest expected tier-score difference no lower tier may overturn.
 
-1. A judge that flips each verdict with chance $e_d$ reports $\hat c = c$ with chance $1-e_d$ and $1-c$ with chance $e_d$, so $E[\hat c]=e_d+(1-2e_d)\,c$.
-2. Tier scores are means of verdicts, so a true difference $\Delta u_d$ between two answers is seen as $(1-2e_d)\,\Delta u_d$; at the band, $(1-2e_d)\,\delta_d$.
-3. Each lower tier's score lies in $[0,1]$, so together they can move the reward by at most $\sum_{j>d}\varepsilon_j$.
-4. The tier-$d$ difference outweighs every lower tier at once exactly when
+A judge that flips each verdict with chance $e_d$ shrinks a true tier-score difference $\Delta u_d$ to $(1-2e_d)\,\Delta u_d$. Each lower tier's score lies in $[0,1]$, so together they move the reward by at most $\sum_{j>d}\varepsilon_j$. Tier $d$ outweighs every lower tier at once exactly when
 
 $$\sum_{j>d}\varepsilon_j<\varepsilon_d\,(1-2e_d)\,\delta_d .$$
 
-5. With the last tier's $\varepsilon$ set to 1, the least weight that meets it is $\sum_{j>d}\varepsilon_j/((1-2e_d)\delta_d)$. The inequality is strict, so the script scales it by a 5% margin. `check-spec.py weights` prints each $\varepsilon_d$ beside the $e_d$ and $\delta_d$ it came from; a spec never writes one.
+`check-spec.py weights` prints the least $\varepsilon_d$ that meets this, with a 5% margin, beside the $e_d$ and $\delta_d$ it came from; a spec never writes one.
 
-At $e_d=\tfrac12$ the factor $1-2e_d$ is 0: a verdict that is a coin flip carries no order, so no weight can rescue it. A high $e_d$ on a top tier makes the lower weights tiny; rewrite its criteria to be more concrete or program-checked rather than move the tier down.
+At $e_d=\tfrac12$ the factor $1-2e_d$ is 0: a verdict that is a coin flip carries no order, so no weight can rescue it. A high $e_d$ on a top tier makes the lower weights tiny.
 
 ## Mask
 
