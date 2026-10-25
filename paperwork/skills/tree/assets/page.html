@@ -41,7 +41,6 @@ button.node { display: block; width: 100%; }
 button.node:hover, .node:focus-within { box-shadow: var(--lift); }
 .num { display: inline-block; min-width: 1.6em; margin-right: 10px; border-radius: 5px; background: var(--card-line); color: var(--muted); font-size: .8rem; text-align: center; font-variant-numeric: tabular-nums; }
 .mark { margin-left: 8px; font-size: .82rem; color: var(--accent); white-space: nowrap; }
-.mark.yours { color: var(--surface); background: var(--accent); border-radius: 9px; padding: 0 7px; }
 .chip { margin-left: 6px; font-size: .75rem; color: var(--muted); background: var(--bg); border: 1px solid var(--card-line); border-radius: 9px; padding: 0 7px; text-decoration: none; display: inline-block; max-width: 100%; overflow-wrap: anywhere; line-height: 1.5; }
 a.chip:hover { color: var(--accent); }
 .kind { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
@@ -139,9 +138,10 @@ a.chip:hover { color: var(--accent); }
 @media (max-width: 760px) {
   :root { --gap: 18px; --elbow: 24px; --elbow-first: 0; }
   header, .stage { padding-left: 16px; padding-right: 16px; }
-  #bar { padding: 10px 16px; gap: 8px; }
-  #hint { font-size: .85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #undo { padding: 4px; }
+  body { padding-bottom: 110px; }
+  #bar { padding: 10px 16px; gap: 6px 8px; flex-wrap: wrap; }
+  #hint { flex: 1 1 100%; font-size: .88rem; }
+  #undo { margin-left: auto; }
   .dtree, .trow, .branch { flex-direction: column; align-items: stretch; }
   .qcol, .part, .branch > .onode-wrap, .detail { flex: none; min-width: 0; }
   .branches, .kids { margin-left: 14px; padding-left: 0; margin-top: 8px; }
@@ -237,8 +237,9 @@ function chip(source, asLink) {
 }
 function notePop(p, into) {
   var pop = h("span", "note-pop");
-  pop.appendChild(h("span", "note-head", p.kind === "note" ? "Agent's note" : p.kind));
-  pop.appendChild(h("span", null, p.text));
+  var label = p.kind === "note" ? "Agent's note" : p.kind;
+  pop.appendChild(h("span", "note-head", label));
+  pop.appendChild(h("span", null, p.text.replace(new RegExp("^" + label + ":\\s*", "i"), "")));
   if (p.source) pop.appendChild(chip(p.source));
   into.classList.add("has-note");
   if (into.tagName !== "BUTTON") into.tabIndex = 0;
@@ -361,7 +362,6 @@ function decisionPage(id) {
     ob.appendChild(h("span", "num", String(k)));
     ob.appendChild(h("span", null, o.text));
     if (k === 1) ob.appendChild(h("span", "mark", "Agent's pick"));
-    if (chosen === k) ob.appendChild(h("span", "mark yours", "Your pick"));
     wrap.appendChild(ob); li.appendChild(wrap);
     var factsBox = h("div", "node facts");
     facts(o.parts, factsBox, ob);
@@ -381,7 +381,6 @@ function decisionPage(id) {
     obtn.style.cssText = "border:0;background:none;padding:0;text-align:left;width:100%";
     obtn.appendChild(h("span", "num", String(K + 1)));
     obtn.appendChild(h("span", "other-text", c && c.other != null ? "Other: " + c.other : "Other…"));
-    if (chosen === K + 1) obtn.appendChild(h("span", "mark yours", "Your pick"));
     other.appendChild(obtn);
     if (ui.open && ui.open.pid === id && ui.open.kind === "other") other.appendChild(editor(id, "other"));
     owrap.appendChild(other); oli.appendChild(owrap); ul.appendChild(oli);
@@ -394,13 +393,12 @@ function followUp(id, k, q, live) {
   fu.appendChild(h("div", "node fq", q.text));
   var leaves = h("ul", "leaves");
   options(q).forEach(function (leaf, j) {
-    var m = j + 1, picked = live && c && c.then != null ? c.then : 1;
-    var li = h("li", m === picked ? "" : "dim");
+    var m = j + 1, choosing = live && c && c.then == null, picked = live && c && c.then != null ? c.then : 1;
+    var li = h("li", choosing || m === picked ? "" : "dim");
     var lb = btn("", function () { pickLeaf(id, k, m); }, "node leaf");
     if (live) lb.appendChild(h("span", "num", String(m)));
     lb.appendChild(h("span", null, leaf.text));
     if (m === 1) lb.appendChild(h("span", "mark", "Agent's pick"));
-    if (live && c && c.then === m) lb.appendChild(h("span", "mark yours", "Your pick"));
     facts(leaf.parts, lb, lb);
     li.appendChild(lb); leaves.appendChild(li);
   });
@@ -464,7 +462,14 @@ function planPage() {
 }
 
 // -- frame ----------------------------------------------------------------
-function waiting() { return decisions.filter(function (id) { return !(id in S.pick) && S.strike[id] == null; }).length; }
+function waiting() {
+  return decisions.filter(function (id) {
+    var c = S.pick[id];
+    if (S.strike[id] != null) return false;
+    if (!c) return true;
+    return c.other == null && c.then == null && !!options(byId[id])[c.k - 1].then;
+  }).length;
+}
 function goTo(i) {
   ui.page = Math.max(0, Math.min(pages.length - 1, i)); ui.awaiting = null; ui.open = null; render();
   window.scrollTo(0, 0);
@@ -496,7 +501,7 @@ function render() {
     stage.appendChild(sec);
   });
   var n = waiting();
-  document.getElementById("waiting").textContent = decisions.length ? (n ? n + " waiting for you" : "all answered") : "nothing to decide";
+  document.getElementById("waiting").textContent = decisions.length ? n + " waiting for you" : "nothing to decide";
   var pager = document.getElementById("pager");
   pager.textContent = "";
   pages.forEach(function (id, i) {
