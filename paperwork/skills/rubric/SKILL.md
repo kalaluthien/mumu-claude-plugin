@@ -1,9 +1,9 @@
 ---
-name: quiz
+name: rubric
 description: Use when turning a task into a grading spec for a judge reward, a benchmark or a human grading sheet, or when measuring, applying or repairing one. Not for a quick A-against-B check of a change.
 ---
 
-# quiz
+# rubric
 
 Turn a task into a grading spec: binary criteria in tiers that never trade off, with weights derived from how often the judge errs, then measure the judge, grade by the spec and repair it. The spec is one JSON file in the grammar of [references/spec/assets/rubric.schema.json](references/spec/assets/rubric.schema.json); [references/spec/model.md](references/spec/model.md) says what it means and [references/spec/criteria.md](references/spec/criteria.md) how to write a criterion.
 
@@ -28,6 +28,6 @@ Turn a task into a grading spec: binary criteria in tiers that never trade off, 
 
 ## Rules
 
-- **Checked spec**: run `${CLAUDE_PLUGIN_ROOT}/skills/quiz/references/spec/scripts/check-spec.py check <spec>` after every edit; a spec that does not print `ok` grades nothing.
-- **Scripts compute**: weights, scores, orders and agreement come from `check-spec.py`, `${CLAUDE_PLUGIN_ROOT}/skills/quiz/scripts/score-spec.py` and `${CLAUDE_PLUGIN_ROOT}/skills/quiz/scripts/measure-judge.py`, never from your own arithmetic.
+- **Checked spec**: run `${CLAUDE_PLUGIN_ROOT}/skills/rubric/references/spec/scripts/check-spec.py check <spec>` after every edit; a spec that does not print `ok` grades nothing.
+- **Scripts compute**: weights, scores, orders and agreement come from `check-spec.py`, `${CLAUDE_PLUGIN_ROOT}/skills/rubric/scripts/score-spec.py` and `${CLAUDE_PLUGIN_ROOT}/skills/rubric/scripts/measure-judge.py`, never from your own arithmetic.
 - **Samples**: [examples/](examples/) holds finished specs migrated from real rubrics.

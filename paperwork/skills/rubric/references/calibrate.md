@@ -2,7 +2,7 @@
 
 Measure how far a judge's verdicts on a spec can be trusted, and set each tier's judge error from what you measure.
 
-The commands are `${CLAUDE_PLUGIN_ROOT}/skills/quiz/scripts/measure-judge.py <mode> <spec> …`; each prints what its numbers mean. [spec/model.md](spec/model.md) says why agreement bounds the weights.
+The commands are `${CLAUDE_PLUGIN_ROOT}/skills/rubric/scripts/measure-judge.py <mode> <spec> …`; each prints what its numbers mean. [spec/model.md](spec/model.md) says why agreement bounds the weights.
 
 ## Steps
 
