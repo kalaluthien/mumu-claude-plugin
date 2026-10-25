@@ -9,7 +9,7 @@ Write a plan as one JSON document, show it as one fixed HTML page, and read the 
 
 ## Domain
 
-- **Part**: one sentence in a tree, with an optional `kind`, `source` and child `parts`. Goal, step, evidence, risk, note and consequence are kinds of Part, not types.
+- **Part**: one sentence in a tree, with an optional `kind`, `source` and child `parts`. Goal, step, evidence, risk, note, consequence and mockup are kinds of Part, not types.
 - **Decision**: a Part that carries a `pick`, the agent's default Option, and optional `else` Options.
 - **Option**: one choice with its consequences in `parts`; it may hold one follow-up Question, one level deep.
 - **Answer**: the owner's reply as one Markdown line per Part touched; a Part with no line is kept.

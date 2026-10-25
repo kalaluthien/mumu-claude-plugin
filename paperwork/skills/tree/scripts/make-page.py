@@ -4,8 +4,12 @@
 usage: make-page.py PLAN.json OUT.html     one self-contained page; refused when the plan fails the checker
        make-page.py --check DIR            drive every DIR/X.json in headless Chromium and print "ok N"
        make-page.py --layout DIR           measure every DIR/X.json's page as a tree and print "layout ok N"
+       make-page.py --strategies DIR       drive every DIR/X.json's views (choices, stub, focus, fold, mockup, matters most)
+                                           and print "strategies ok N"
        make-page.py --capture PAGE.html DIR  write the four review PNGs of a built page into DIR
-                                           (the last three need playwright: uv run --with playwright==1.64.1 python3 make-page.py ...)
+       make-page.py --capture-all PAGE.html DIR  write every page of a built page, untouched, at 1200 px into DIR
+       make-page.py --capture-picked PAGE.html DIR  write each Decision page after its first Option is picked
+                                           (every call but the first needs playwright: uv run --with playwright==1.64.1 python3 make-page.py ...)
 """
 import html
 import json
@@ -203,6 +207,142 @@ def layout_dir(d):
     return 0
 
 
+def items(x):
+    """Every Part under X, through its Options and follow-up, the same walk as the page's."""
+    out = []
+    for p in x.get("parts", []):
+        out += [p] + items(p)
+    if tree_plan.is_decision(x):
+        for o in tree_plan.options(x):
+            out += items(o)
+    if x.get("then"):
+        out += items(x["then"])
+    return out
+
+
+def most_key(ids, d):
+    """A Decision's risks under it, then the Parts under its Options."""
+    risks = sum(1 for p in items(ids[d]) if p.get("kind") == "risk")
+    return (risks, sum(len(items(o)) for o in tree_plan.options(ids[d])))
+
+
+def matters_most(ids, decisions):
+    """The most risks under it, then the most Parts under its Options, then the first."""
+    return max(decisions, key=lambda d: most_key(ids, d)) if decisions else None  # max keeps the first of equals
+
+
+def most_reason(ids, decisions):
+    """The opening words of the matters-most reason, by the rule that decided it."""
+    best = most_key(ids, matters_most(ids, decisions))
+    others = [most_key(ids, d) for d in decisions if d != matters_most(ids, decisions)]
+    same = [k for k in others if k[0] == best[0]]
+    if not same:
+        return "More risks than any other Decision"
+    if all(k[1] < best[1] for k in same):
+        return "As many risks as the most" if best[0] else "No Decision has more risks"
+    return "It ties with another Decision"
+
+
+def views(browser, plan_path, out_dir):
+    """The strategies of #1015 on one example; returns the first fact that fails, or None."""
+    plan = tree_plan.load_file(plan_path)
+    text = build(plan_path)
+    if "<img" in text or any(not text[i + 4:].startswith("data:") for i in range(len(text)) if text.startswith("url(", i)):
+        return "the page holds an image"
+    page_file = pathlib.Path(out_dir) / (pathlib.Path(plan_path).stem + ".html")
+    page_file.write_text(text, encoding="utf-8")
+    ids = tree_plan.index(plan)
+    decisions = [i for i, p in ids.items() if tree_plan.is_decision(p)]
+    page = browser.new_page(viewport={"width": 1200, "height": 900})
+    page.goto(page_file.as_uri())
+    shown = "section:not([hidden])"
+    for pid in page_ids(page):
+        page.click(f'[data-goto="{pid}"]')
+        wide = page.evaluate(f"""() => [...document.querySelectorAll('{shown} .mock')]
+          .filter(m => m.getBoundingClientRect().width > m.closest('.node').getBoundingClientRect().width + 0.5).length""")
+        if wide:
+            return f"page {pid}: {wide} mockup frames wider than their card"
+    marked = set(page.eval_on_selector_all("[data-most]", "els => els.map(e => e.dataset.most)"))
+    if decisions and marked != {matters_most(ids, decisions)}:
+        return f"matters most marks {sorted(marked)}, expected {matters_most(ids, decisions)}"
+    if any(not t.split("·", 1)[-1].strip() for t in page.eval_on_selector_all(".most", "els => els.map(e => e.textContent)")):
+        return "a matters-most mark names no reason"
+    reasons = page.eval_on_selector_all(".most-why", "els => els.map(e => e.textContent)")
+    if decisions and not all(r.removeprefix("Why it matters most").startswith(most_reason(ids, decisions)) for r in reasons):
+        return f"the matters-most reason does not open with {most_reason(ids, decisions)!r}"
+    if decisions:
+        page.click('[data-goto="plan"]')
+        rows = page.eval_on_selector_all(f"{shown} .crow", "els => els.map(e => [e.dataset.row, e.textContent])")
+        if [r[0] for r in rows] != decisions:
+            return f"Your choices rows {[r[0] for r in rows]}, expected {decisions}"
+        for (rid, t) in rows:
+            if ids[rid]["pick"]["text"] not in t:
+                return f"Your choices row {rid} lacks the Agent's pick"
+        first = decisions[0]
+        opts = tree_plan.options(ids[first])
+        k = 2 if len(opts) >= 2 else 1
+        page.click(f'[data-goto="{first}"]')
+        page.keyboard.press(str(k))
+        if opts[k - 1].get("then"):
+            page.keyboard.press("1")
+        stubs = page.locator(f"{shown} .stub")
+        if stubs.count() != 1:
+            return f"a pick left {stubs.count()} stubs, not one"
+        stubs.click()
+        if page.locator(f"{shown} .onode").count() != len(opts) + 1:
+            return "the stub did not bring back every Option"
+        page.click('[data-goto="plan"]')
+        row = page.text_content(f'{shown} .crow[data-row="{first}"]')
+        if opts[k - 1]["text"] not in row:
+            return f"Your choices row {first} did not follow the pick"
+    else:
+        page.click('[data-goto="plan"]')
+    target = next((i for i in ids if ids[i].get("parts") or ids[i].get("source")), "1")
+    keep = {target, target.rsplit(".", 1)[0] if "." in target else None}
+    keep |= {f"{target}.{n}" for n in range(1, len(ids[target].get("parts", [])) + 1)}
+    keep |= {i for i in ids if ids[target].get("source") and ids[i].get("source") == ids[target]["source"]}
+    page.click(f'{shown} [data-id="{target}"] > div > .pid')
+    faded_now = set(page.eval_on_selector_all(f"{shown} .part.unfocus", "els => els.map(e => e.dataset.id)"))
+    if faded_now != set(ids) - keep:
+        return f"focus on {target} faded {sorted(faded_now)}, expected {sorted(set(ids) - keep)}"
+    page.keyboard.press("Escape")
+    if page.locator(f"{shown} .part.unfocus").count():
+        return "Esc left cards faded"
+    parent = next((i for i in ids if ids[i].get("parts")), None)
+    if parent:
+        page.click(f'{shown} [data-id="{parent}"] .fold')
+        if page.locator(f'{shown} [data-id^="{parent}."]').count():
+            return f"a fold of {parent} left its children shown"
+        page.click(f'{shown} [data-id="{parent}"] .fold')
+        if not page.locator(f'{shown} [data-id^="{parent}."]').count():
+            return f"an unfold of {parent} left its children hidden"
+    page.close()
+    return None
+
+
+def strategies_dir(d):
+    from playwright.sync_api import sync_playwright
+    files = sorted(pathlib.Path(d).glob("*.json"))
+    if not files:
+        print("refused: no plan files in " + d)
+        return 1
+    mockups = sum(1 for f in files for p in items(tree_plan.load_file(f)) if p.get("kind") == "mockup")
+    with tempfile.TemporaryDirectory() as tmp, sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        for f in files:
+            fact = views(browser, f, tmp)
+            if fact:
+                print(f"refused: {f.name}: {fact}")
+                return 1
+            print(f"{f.name}: Your choices follows the pick, one stub restores the Options, focus and Esc, fold and unfold, mockups fit, one Decision matters most, no image")
+        browser.close()
+    if not mockups:
+        print("refused: the examples hold no mockup")
+        return 1
+    print(f"strategies ok {len(files)}")
+    return 0
+
+
 def capture(page_html, out):
     from playwright.sync_api import sync_playwright
     out = pathlib.Path(out)
@@ -222,6 +362,47 @@ def capture(page_html, out):
         page.screenshot(path=str(out / "390-load.png"), full_page=True)
         browser.close()
     print(f"wrote 1200-load.png, 1200-pick-2.png, 1200-hover-risk.png and 390-load.png into {out}")
+    return 0
+
+
+def screens(page, out, stem):
+    """The page as a reader scrolls it, in overlapping screens, since a full-page shot draws the fixed bar over the middle."""
+    names = []
+    height = page.evaluate("document.documentElement.scrollHeight")
+    tops = list(range(0, max(height - 900, 0) + 1, 700))
+    if height > 900 and (height - 900) % 700:
+        tops.append(height - 900)
+    for k, top in enumerate(tops, 1):
+        page.evaluate(f"window.scrollTo(0, {top})")
+        names.append(f"{stem}-{k}.png")
+        page.screenshot(path=str(out / names[-1]))
+    page.evaluate("window.scrollTo(0, 0)")
+    return names
+
+
+def capture_all(page_html, out, picked=False):
+    """Each page as a reader first meets it, no key pressed and no hover; with PICKED, each Decision after its first Option."""
+    from playwright.sync_api import sync_playwright
+    out = pathlib.Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    uri = pathlib.Path(page_html).resolve().as_uri()
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page(viewport={"width": 1200, "height": 900})
+        page.goto(uri)
+        names = []
+        for i, pid in enumerate(page_ids(page), 1):
+            if picked and pid == "plan":
+                continue
+            page.click(f'[data-goto="{pid}"]')
+            if picked:
+                page.keyboard.press("1")
+                page.keyboard.press("1")
+            page.mouse.move(0, 0)
+            kind = "plan" if pid == "plan" else "decision"
+            names += screens(page, out, f"page-{i}-{kind}" + ("-picked" if picked else ""))
+        browser.close()
+    print(f"wrote {len(names)} pages into {out}: {' '.join(names)}")
     return 0
 
 
@@ -253,6 +434,12 @@ def main(args):
         return check_dir(args[1])
     if len(args) == 2 and args[0] == "--layout":
         return layout_dir(args[1])
+    if len(args) == 2 and args[0] == "--strategies":
+        return strategies_dir(args[1])
+    if len(args) == 3 and args[0] == "--capture-all":
+        return capture_all(args[1], args[2])
+    if len(args) == 3 and args[0] == "--capture-picked":
+        return capture_all(args[1], args[2], picked=True)
     if len(args) == 3 and args[0] == "--capture":
         return capture(args[1], args[2])
     if len(args) != 2:

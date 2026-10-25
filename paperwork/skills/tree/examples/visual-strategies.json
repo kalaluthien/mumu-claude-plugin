@@ -1,0 +1,155 @@
+{
+  "title": "Apply four visual strategies to the tree page",
+  "parts": [
+    {
+      "text": "Apply the decision tree, mockup, network graph and choice-driven views to the tree page, under one design.",
+      "kind": "goal",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/1009#issuecomment-6397199977"
+    },
+    {
+      "text": "Four haiku subagents surveyed the strategies in parallel.",
+      "kind": "evidence",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/1013#issuecomment-6397221163",
+      "parts": [
+        {
+          "text": "A decision tree shows one question at a time; a pick folds its siblings, and a click restores them.",
+          "kind": "evidence",
+          "source": "https://gojs.net/latest/samples/decisionTree"
+        },
+        {
+          "text": "A running view of the answers so far is redrawn on every pick.",
+          "kind": "evidence",
+          "source": "https://ncase.me/polygons/"
+        },
+        {
+          "text": "A click on a node keeps its neighbours and fades the rest; Esc restores the whole graph.",
+          "kind": "evidence",
+          "source": "https://docs.kumu.io/guides/focus"
+        },
+        {
+          "text": "A fixed-width text wireframe stands in for a screen with no image.",
+          "kind": "evidence",
+          "source": "https://github.com/yoursharif/ascii-wireframe-layout"
+        }
+      ]
+    },
+    {
+      "text": "What should a pick do to the other Options?",
+      "kind": "question",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/1013#issuecomment-6397221163",
+      "parts": [
+        {
+          "text": "Owner's complaint: buttons in odd places.",
+          "kind": "risk"
+        }
+      ],
+      "pick": {
+        "text": "Fold them into one stub line",
+        "parts": [
+          {
+            "text": "One click on the stub brings them back.",
+            "kind": "consequence"
+          },
+          {
+            "text": "What should I do about Acme?\n\n [1] Offer 15% instead   <- your pick\n     + 3 other options\n\n Tie it to a longer contract?\n [1] Only with 2 years   [2] For one year",
+            "kind": "mockup"
+          }
+        ]
+      },
+      "else": [
+        {
+          "text": "Hide them; Esc brings them back",
+          "parts": [
+            {
+              "text": "A mouse user cannot find the way back.",
+              "kind": "risk"
+            }
+          ]
+        },
+        {
+          "text": "Keep them faded in place",
+          "parts": [
+            {
+              "text": "The page stays as long as before the pick.",
+              "kind": "consequence"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "What opens the Whole plan?",
+      "kind": "question",
+      "source": "https://ncase.me/polygons/",
+      "pick": {
+        "text": "Your choices: one row per Decision",
+        "parts": [
+          {
+            "text": "Each row shows the pick and its facts; a click reopens the Decision.",
+            "kind": "consequence"
+          },
+          {
+            "text": "Your choices\n 1  Other Options  Fold into a stub\n 2  Whole plan     Your choices\n 3  Card click     Focus it\n\n               [[ Copy answer ]]",
+            "kind": "mockup"
+          }
+        ]
+      },
+      "else": [
+        {
+          "text": "The card tree alone",
+          "parts": [
+            {
+              "text": "The answers so far are read card by card.",
+              "kind": "consequence"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "What does a click on a Whole plan card do?",
+      "kind": "question",
+      "source": "https://docs.kumu.io/guides/focus",
+      "pick": {
+        "text": "Focus it",
+        "parts": [
+          {
+            "text": "Its parent, its children and every Part with the same source stay; the rest fade.",
+            "kind": "consequence"
+          },
+          {
+            "text": "Esc or a second click shows the whole plan again.",
+            "kind": "note",
+            "source": "https://obsidian.md/help/Plugins/Graph+view"
+          }
+        ]
+      },
+      "else": [
+        {
+          "text": "Nothing beyond hover",
+          "parts": [
+            {
+              "text": "Parts that share a source stay apart on the page.",
+              "kind": "consequence"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "A card with children folds them to a count and unfolds on a second click.",
+      "kind": "step",
+      "source": "https://cran.case.edu/web/packages/collapsibleTree/refman/collapsibleTree.html"
+    },
+    {
+      "text": "A text wireframe cannot show colour or images.",
+      "kind": "risk",
+      "source": "https://github.com/yoursharif/ascii-wireframe-layout"
+    },
+    {
+      "text": "The shared design system of #1011 stays deferred; this page keeps one design of its own.",
+      "kind": "note",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/1009#issuecomment-6397199977"
+    }
+  ]
+}

@@ -5,21 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__TITLE__</title>
 <style>
+/* The palette and type of the html-plan pages (thariqs/html-effectiveness), so the tree reads as one family with them. */
 :root {
-  --bg: #f7f7f5; --surface: #ffffff; --ink: #1f2328; --muted: #6e7681; --faint: #a3a9b1; --line: #d9dbde; --card-line: #e6e7ea;
-  --accent: #2f6fdb; --accent-bg: #eaf1fc; --amber: #b2560b; --amber-bg: #fdebd3; --amber-line: #f0c48f;
-  --shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 14px rgba(0,0,0,.06); --lift: 0 2px 4px rgba(0,0,0,.06), 0 10px 28px rgba(0,0,0,.12);
+  --bg: #FAF9F5; --surface: #ffffff; --panel: #F0EEE6; --ink: #141413; --body: #3D3D3A; --muted: #87867F; --faint: #a9a79f; --line: #D1CFC5; --card-line: #E3DACC;
+  --accent: #D97757; --halo: rgba(217,119,87,.15); --olive: #788C5D;
+  --amber: #8A3B1E; --amber-bg: #F3D9CC;
+  --serif: ui-serif, Georgia, "Times New Roman", serif; --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+  --shadow: 0 1px 2px rgba(20,20,19,.05), 0 4px 14px rgba(20,20,19,.05); --lift: 0 2px 4px rgba(20,20,19,.06), 0 10px 28px rgba(20,20,19,.10);
   --gap: 28px; --elbow: 50%; --elbow-first: 50%;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #15171a; --surface: #1d2025; --ink: #e6e8eb; --muted: #9aa3ad; --faint: #6b737d; --line: #3a3f46; --card-line: #2c3138;
-    --accent: #7aa7ff; --accent-bg: #22314d; --amber: #f2b36d; --amber-bg: #3d2a12; --amber-line: #7a5320;
+    --bg: #1f1e1b; --surface: #2a2925; --panel: #34322d; --ink: #FAF9F5; --body: #e3e1d9; --muted: #a8a69e; --faint: #77756e; --line: #4a4842; --card-line: #3d3b36;
+    --accent: #e08a6d; --halo: rgba(224,138,109,.22); --olive: #9bb07e;
+    --amber: #f0b8a0; --amber-bg: #4a2a1e;
     --shadow: 0 1px 2px rgba(0,0,0,.4); --lift: 0 6px 20px rgba(0,0,0,.6);
   }
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; padding-bottom: 72px; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 var(--sans); padding-bottom: 72px; }
 button, textarea, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -28,7 +32,7 @@ kbd { display: inline-block; min-width: 1.6em; padding: 0 5px; border-radius: 5p
 /* header */
 header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 22px 40px 8px; }
 header svg { flex: none; color: var(--accent); }
-h1 { font-size: 1.15rem; margin: 0; font-weight: 650; }
+h1 { font: 500 1.35rem/1.25 var(--serif); margin: 0; }
 #waiting { color: var(--muted); }
 #pager { margin-left: auto; display: flex; align-items: center; gap: 6px; color: var(--muted); }
 #pager .dot { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 3px; background: var(--line); }
@@ -39,18 +43,20 @@ h1 { font-size: 1.15rem; margin: 0; font-weight: 650; }
 .node { position: relative; background: var(--surface); border: 1px solid var(--card-line); border-radius: 12px; box-shadow: var(--shadow); padding: 12px 16px; text-align: left; overflow-wrap: anywhere; transition: opacity .15s, box-shadow .15s; }
 button.node { display: block; width: 100%; }
 button.node:hover, .node:focus-within { box-shadow: var(--lift); }
-.num { display: inline-block; min-width: 1.6em; margin-right: 10px; border-radius: 5px; background: var(--card-line); color: var(--muted); font-size: .8rem; text-align: center; font-variant-numeric: tabular-nums; }
+.num { display: inline-block; min-width: 1.6em; margin-right: 10px; border-radius: 5px; background: var(--card-line); color: var(--body); font: .78rem/1.6 var(--mono); text-align: center; font-variant-numeric: tabular-nums; }
 .mark { margin-left: 8px; font-size: .82rem; color: var(--accent); white-space: nowrap; }
-.chip { margin-left: 6px; font-size: .75rem; color: var(--muted); background: var(--bg); border: 1px solid var(--card-line); border-radius: 9px; padding: 0 7px; text-decoration: none; display: inline-block; max-width: 100%; overflow-wrap: anywhere; line-height: 1.5; }
+.chip { margin-left: 6px; font: .72rem/1.5 var(--mono); color: var(--muted); background: var(--bg); border: 1px solid var(--card-line); border-radius: 9px; padding: 0 7px; text-decoration: none; display: inline-block; max-width: 100%; overflow-wrap: anywhere; line-height: 1.5; }
 a.chip:hover { color: var(--accent); }
-.kind { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.kind { font: .66rem var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .risk-text { background: var(--amber-bg); color: var(--amber); border-radius: 4px; padding: 0 4px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
-.dim { opacity: .42; }
+.dim { opacity: .7; }
+/* a leaf under an unchosen Option fades once, not twice, so its facts and sources stay readable */
+.dim .dim { opacity: 1; }
 .dim:hover, .dim:focus-within { opacity: 1; }
 .struck .ptext, .struck .qtext { text-decoration: line-through; color: var(--muted); }
 .reason { font-size: .82rem; color: var(--muted); margin-top: 4px; }
 .edited { font-size: .72rem; color: var(--accent); margin-left: 6px; }
-.comment { margin-top: 6px; padding-left: 8px; border-left: 3px solid var(--accent); font-size: .88rem; display: flex; gap: 8px; align-items: baseline; }
+.comment { margin-top: 6px; padding-left: 8px; border-left: 3px solid var(--olive); font-size: .88rem; display: flex; gap: 8px; align-items: baseline; }
 .comment button { border: 0; background: none; color: var(--muted); font-size: .78rem; padding: 0; }
 
 /* the card's own tools, top right, shown on hover or focus */
@@ -65,14 +71,25 @@ a.chip:hover { color: var(--accent); }
 .editor .btns button { border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 2px 10px; font-size: .85rem; }
 .editor .btns button:first-child { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-/* the note that pops up over what it explains */
-.has-note { position: relative; cursor: help; }
-.note-pop { display: none; position: absolute; z-index: 20; right: -8px; top: calc(100% + 8px); width: min(380px, 80vw); padding: 14px 16px; background: var(--surface); border: 1px solid var(--card-line); border-radius: 12px; box-shadow: var(--lift); color: var(--ink); font-size: .95rem; cursor: auto; text-align: left; }
-.has-note:hover > .note-pop, .has-note:focus > .note-pop, .has-note:focus-within > .note-pop { display: block; }
-.note-pop > span { display: block; }
-.note-pop > .chip { display: inline-block; }
-.note-head { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--amber); margin-bottom: 4px; }
-.note-pop .chip { display: inline-block; margin: 8px 0 0; }
+/* an Agent's note, inline under what it explains, so the page alone carries the reason */
+.note-line { margin: 4px 0 2px 14px; padding: 2px 0 2px 10px; border-left: 3px solid var(--line); color: var(--body); font-size: .9rem; }
+.note-head { font: 600 .66rem var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-right: 6px; }
+/* a fact: an olive dot leads an outcome, a Risk pill leads a risk */
+.fact { color: var(--body); position: relative; padding-left: 14px; }
+.fact::before { content: ""; position: absolute; left: 0; top: .55em; width: 7px; height: 7px; border-radius: 50%; background: var(--olive); }
+.fact.risk::before { background: var(--accent); }
+.sev { display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 5px; background: var(--amber-bg); color: var(--amber); font: 600 .66rem/1.7 var(--mono); letter-spacing: .06em; text-transform: uppercase; vertical-align: 1px; }
+.most-why { margin-top: 10px; padding-left: 10px; border-left: 2px solid var(--accent); color: var(--body); font-size: .9rem; }
+.most { display: inline-block; padding: 0 8px; border-radius: 999px; background: var(--accent); color: #fff; font: 600 .66rem/1.8 var(--mono); letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+/* a mockup: its text as a screen, [[x]] a primary button and [x] a button */
+.mock { margin: 6px 0; max-width: 100%; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.mock-bar { display: flex; gap: 5px; padding: 6px 9px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.mock-bar i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.mock-bar .note-head { margin-left: auto; margin-right: 0; line-height: 8px; }
+.mock-screen { margin: 0; padding: 10px 12px; font: .8rem/1.55 var(--mono); color: var(--ink); white-space: pre; overflow-x: auto; }
+.mk-btn { border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
+/* drawn, not live: an outline on a tint, so a mockup's button never passes for the page's own */
+.mk-primary { border: 1px solid var(--accent); background: var(--halo); color: var(--accent); border-radius: 5px; padding: 0 6px; }
 
 /* tree lines, one rule for every branching list: a stub from the parent, a trunk, an elbow to each child */
 .branches, .kids, .leaves { list-style: none; margin: 0; padding: 0 0 0 var(--gap); position: relative; }
@@ -93,21 +110,24 @@ a.chip:hover { color: var(--accent); }
 .qcol { flex: 0 1 360px; min-width: 260px; }
 .badges { margin-bottom: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
 .badge-risk { background: var(--amber-bg); color: var(--amber); border-radius: 8px; padding: 3px 10px; font-weight: 550; }
+.badge-risk .sev { background: var(--surface); }
 .qcard { padding: 22px 24px; border-radius: 14px; }
 .who { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .avatar { flex: none; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--card-line); display: grid; place-items: center; font-weight: 700; color: var(--muted); }
 .who-name { font-weight: 550; }
 .who-sub { color: var(--muted); font-size: .9rem; }
-.qtext { font-size: 1.2rem; font-weight: 650; line-height: 1.35; margin: 0; }
+.qcard > .who-sub { margin-bottom: 12px; }
+.qtext { font: 500 1.3rem/1.35 var(--serif); margin: 0; }
 .context { color: var(--muted); margin-top: 10px; }
 .dtree > .branches { flex: 1 1 auto; min-width: 0; }
 .branch { display: flex; align-items: center; }
 .branch > .onode-wrap { flex: 0 1 300px; min-width: 200px; }
 .onode { font-size: 1.05rem; padding: 14px 16px; }
+.onode.picked { border-color: var(--accent); box-shadow: 0 0 0 3px var(--halo); }
+.stub { padding: 8px 14px; color: var(--muted); font-size: .92rem; border-style: dashed; box-shadow: none; }
 .detail { position: relative; flex: 0 1 380px; min-width: 200px; margin-left: var(--gap); display: flex; flex-direction: column; gap: 8px; }
 .detail::before { content: ""; position: absolute; left: calc(-1 * var(--gap)); top: 50%; width: var(--gap); border-top: 1.5px solid var(--line); }
 .facts { padding: 8px 14px; box-shadow: none; border-radius: 10px; }
-.fact { color: var(--muted); }
 .fq { display: inline-block; align-self: flex-start; border-radius: 10px; padding: 8px 14px; font-weight: 550; }
 .leaf { padding: 10px 14px; }
 .leaf .fact { margin-top: 2px; font-size: .92rem; }
@@ -120,10 +140,24 @@ a.chip:hover { color: var(--accent); }
 .trow > .kids { flex: 1 1 auto; min-width: 0; }
 .pid { font-size: .72rem; color: var(--faint); margin-right: 6px; font-variant-numeric: tabular-nums; }
 .part.risk-part .ptext { color: var(--amber); }
-.part.decision { border-color: var(--accent); }
+.part.decision { border-left: 4px solid var(--accent); }
+.part.unfocus { opacity: .22; }
+.part.focused { border-color: var(--accent); box-shadow: 0 0 0 3px var(--halo); }
+.fold { display: block; margin-top: 6px; border: 1px solid var(--card-line); background: var(--panel); border-radius: 6px; font: .7rem/1.5 var(--mono); color: var(--body); padding: 0 6px; }
 .choice { margin-top: 6px; font-size: .88rem; color: var(--muted); }
 .choice button { border: 0; background: none; color: var(--accent); padding: 0; }
-.later { opacity: .38; }
+/* Your choices: one row per Decision, its pick and what that pick sets off */
+.choices { margin-bottom: 8px; padding: 16px 18px; }
+.choices h2 { font: 500 1.1rem var(--serif); margin: 0 0 8px; }
+.crow { display: grid; grid-template-columns: 2em minmax(0, 1fr) minmax(0, 1.3fr); gap: 4px 14px; width: 100%; text-align: left; border: 0; border-left: 4px solid transparent; border-top: 1px solid var(--card-line); background: none; padding: 9px 8px; }
+.crow:hover { background: var(--panel); }
+.crow.waiting { border-left-color: var(--accent); }
+.crow .cq { font-weight: 550; }
+.crow .cpick { color: var(--ink); }
+.crow .who-picked { font: .66rem var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); display: block; }
+.crow .fact { font-size: .9rem; }
+.choices .cnext { margin: 10px 0 0; padding-top: 9px; border-top: 1px solid var(--card-line); color: var(--muted); font-size: .9rem; }
+.later { opacity: .5; }
 .later:hover, .later:focus-within { opacity: 1; }
 .empty { color: var(--muted); }
 
@@ -133,7 +167,7 @@ a.chip:hover { color: var(--accent); }
 #hint kbd { margin: 0 2px; }
 #undo { border: 0; background: none; color: var(--muted); padding: 4px 8px; }
 #undo:disabled { visibility: hidden; }
-#copy { border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 9px; padding: 6px 14px; font-weight: 600; white-space: nowrap; }
+#copy { border: 1px solid var(--accent); background: var(--accent); font-family: var(--sans); color: #fff; border-radius: 9px; padding: 6px 14px; font-weight: 600; white-space: nowrap; }
 
 @media (max-width: 760px) {
   :root { --gap: 18px; --elbow: 24px; --elbow-first: 0; }
@@ -147,7 +181,8 @@ a.chip:hover { color: var(--accent); }
   .branches, .kids { margin-left: 14px; padding-left: 0; margin-top: 8px; }
   .branches::before, .kids::before, .detail::before { display: none; }
   .detail { margin: 8px 0 0 16px; }
-  .note-pop { left: 0; right: auto; }
+  .crow { grid-template-columns: 2em minmax(0, 1fr); }
+  .crow .cfacts { grid-column: 2; }
 }
 </style>
 </head>
@@ -186,7 +221,7 @@ var pages = decisions.concat(["plan"]);
 
 var S = { pick: {}, strike: {}, edit: {}, comment: {} };
 var history = [];
-var ui = { page: 0, awaiting: null, open: null, showAll: {}, copied: false };
+var ui = { page: 0, awaiting: null, open: null, showAll: {}, copied: false, focus: null, fold: {} };
 
 function options(d) { return [d.pick].concat(d.else || []); }
 function h(tag, cls, text) {
@@ -235,29 +270,83 @@ function chip(source, asLink) {
   else e = h("span", "chip", source);
   return e;
 }
-function notePop(p, into) {
-  var pop = h("span", "note-pop");
-  var label = p.kind === "note" ? "Agent's note" : p.kind;
-  pop.appendChild(h("span", "note-head", label));
-  pop.appendChild(h("span", null, p.text.replace(new RegExp("^" + label + ":\\s*", "i"), "")));
-  if (p.source) pop.appendChild(chip(p.source));
-  into.classList.add("has-note");
-  if (into.tagName !== "BUTTON") into.tabIndex = 0;
-  into.appendChild(pop);
-}
-// An Option's facts: a note pops up over the fact before it, or over the card when none comes before.
-function facts(parts, into, card) {
-  var last = null;
-  (parts || []).forEach(function (p) {
-    if (p.kind === "note") { notePop(p, last || card); return; }
-    var line = h("div", "fact");
-    var t = h("span", p.kind === "risk" ? "risk-text" : "ftext", p.text);
-    line.appendChild(t);
-    if (p.source) line.appendChild(chip(p.source));
-    into.appendChild(line);
-    last = t;
-    if (p.parts) facts(p.parts, into, t);
+// A mockup's text drawn as a framed screen; [[x]] reads as the primary button, [x] as a button.
+function mock(text) {
+  var box = h("div", "mock"), bar = h("div", "mock-bar"), pre = h("pre", "mock-screen");
+  for (var i = 0; i < 3; i++) bar.appendChild(h("i"));
+  bar.appendChild(h("span", "note-head", "Mockup"));
+  String(text).split(/(\[\[[^\]\n]+\]\]|\[[^\]\n]+\])/).forEach(function (bit) {
+    if (/^\[\[/.test(bit)) pre.appendChild(h("span", "mk-primary", bit.slice(2, -2).trim()));
+    else if (/^\[/.test(bit)) pre.appendChild(h("span", "mk-btn", bit.slice(1, -1).trim()));
+    else if (bit) pre.appendChild(document.createTextNode(bit));
   });
+  box.appendChild(bar); box.appendChild(pre);
+  return box;
+}
+function factLine(p) {
+  var line = h("div", "fact" + (p.kind === "risk" ? " risk" : ""));
+  if (p.kind === "risk") line.appendChild(h("span", "sev", "Risk"));
+  line.appendChild(h("span", "ftext", p.text));
+  if (p.source) line.appendChild(chip(p.source));
+  return line;
+}
+// An Option's facts, every one in view: outcomes, risks, notes inline under what they explain, mockups as screens.
+function facts(parts, into) {
+  (parts || []).forEach(function (p) {
+    if (p.kind === "mockup") into.appendChild(mock(p.text));
+    else if (p.kind === "note") {
+      var n = h("div", "note-line");
+      n.appendChild(h("span", "note-head", "Agent's note"));
+      n.appendChild(h("span", null, p.text.replace(/^Agent's note:\s*/i, "")));
+      if (p.source) n.appendChild(chip(p.source));
+      into.appendChild(n);
+    } else into.appendChild(factLine(p));
+    if (p.parts) facts(p.parts, into);
+  });
+}
+// The Decision that matters most: the most risks under it, then the most Parts under its Options, then the first.
+function items(x) {
+  var out = [];
+  (x.parts || []).forEach(function (p) { out.push(p); out = out.concat(items(p)); });
+  if ("pick" in x) options(x).forEach(function (o) { out = out.concat(items(o)); });
+  if (x.then) out = out.concat(items(x.then));
+  return out;
+}
+var most = (function () {
+  var all = decisions.map(function (id) {
+    var d = byId[id], found = items(d).filter(function (p) { return p.kind === "risk"; });
+    var parts = options(d).reduce(function (a, o) { return a.concat(items(o)); }, []);
+    return { id: id, risks: found.length, effects: parts.length, found: found, parts: parts };
+  });
+  var best = null;
+  all.forEach(function (x) { if (!best || x.risks > best.risks || (x.risks === best.risks && x.effects > best.effects)) best = x; });
+  if (!best) return null;
+  // The reason names the rule that decided, so a tie never reads as "more than any other".
+  var same = all.filter(function (x) { return x !== best && x.risks === best.risks; });
+  best.by = !same.length ? "risks" : same.every(function (x) { return x.effects < best.effects; }) ? "parts" : "order";
+  best.why = best.risks ? best.risks + (best.risks === 1 ? " risk" : " risks")
+    : best.effects ? best.effects + (best.effects === 1 ? " part" : " parts") : "first to answer";
+  return best;
+})();
+function mostMark(id, el) {
+  if (!most || most.id !== id) return;
+  el.setAttribute("data-most", id);
+  var m = h("span", "most", "Matters most · " + most.why);
+  m.title = "The Decision with the most risks under it, then the most Parts under its Options, then the first";
+  return m;
+}
+function textList(parts) { return parts.map(function (p) { return p.kind === "mockup" ? "a mockup of the screen" : p.text.replace(/\.$/, ""); }).join("; "); }
+// The reason in words on the Decision's own card, since a count alone leaves the reader guessing which Parts it counts.
+function mostWhy(id) {
+  if (!most || most.id !== id) return null;
+  var why = h("div", "most-why"), risks = most.risks + (most.risks === 1 ? " risk" : " risks");
+  why.appendChild(h("span", "note-head", "Why it matters most"));
+  why.appendChild(h("span", null, most.by === "risks"
+    ? "More risks than any other Decision: " + textList(most.found) + "."
+    : most.by === "parts"
+    ? (most.risks ? "As many risks as the most (" + risks + ": " + textList(most.found) + "), and more" : "No Decision has more risks, and it has more") + " Parts under its Options than any other: " + textList(most.parts) + "."
+    : "It ties with another Decision on risks and Parts and comes first" + (most.risks ? "; its risks: " + textList(most.found) : "") + "."));
+  return why;
 }
 function acts(id) {
   var a = h("span", "acts");
@@ -329,16 +418,22 @@ function decisionPage(id) {
   var badges = h("div", "badges"), context = h("div", "context");
   (d.parts || []).forEach(function (p, i) {
     var cid = id + "." + (i + 1);
-    if (p.kind === "risk") badges.appendChild(h("span", "badge-risk", shownText(cid)));
+    if (p.kind === "risk") { var b = h("span", "badge-risk"); b.appendChild(h("span", "sev", "Risk")); b.appendChild(document.createTextNode(shownText(cid))); badges.appendChild(b); }
+    else if (p.kind === "mockup") context.appendChild(mock(shownText(cid)));
     else context.appendChild(h("div", null, shownText(cid)));
   });
-  if (badges.childNodes.length) col.appendChild(badges);
   var card = h("div", "node qcard" + (struck ? " struck" : ""));
+  var mm = mostMark(id, card);
+  if (mm) badges.insertBefore(mm, badges.firstChild);
+  if (badges.childNodes.length) col.appendChild(badges);
   card.setAttribute("data-card", id);
-  if (d.source) {
+  // Both forms say "Source", since a reader takes a bare name for the author, not the source.
+  if (d.source && /^https?:\/\//.test(d.source)) { var src = h("div", "who-sub"); src.appendChild(h("span", "note-head", "Source")); src.appendChild(chip(d.source, true)); card.appendChild(src); }
+  else if (d.source) {
     var who = h("div", "who"), names = d.source.split(" · ");
     who.appendChild(h("span", "avatar", names[0].charAt(0).toUpperCase()));
-    var nm = h("div"); nm.appendChild(h("div", "who-name", names[0]));
+    var nm = h("div"); nm.appendChild(h("div", "note-head", "Source"));
+    nm.appendChild(h("div", "who-name", names[0]));
     if (names.length > 1) nm.appendChild(h("div", "who-sub", names.slice(1).join(" · ")));
     who.appendChild(nm); card.appendChild(who);
   }
@@ -346,6 +441,8 @@ function decisionPage(id) {
   if (S.edit[id] != null) q.appendChild(h("span", "edited", "edited"));
   card.appendChild(q);
   if (context.childNodes.length) card.appendChild(context);
+  var why = mostWhy(id);
+  if (why) card.appendChild(why);
   tail(id, card);
   col.appendChild(card);
   tree.appendChild(col);
@@ -355,16 +452,18 @@ function decisionPage(id) {
   opts.forEach(function (o, i) {
     var k = i + 1;
     if (collapsed && k !== chosen) return;
-    var li = h("li", "branch" + ((chosen == null ? k !== 1 : k !== chosen) ? " dim" : ""));
-    var wrap = h("div", "onode-wrap");
-    var ob = btn("", function () { if (collapsed && k === chosen) { ui.showAll[id] = true; render(); } else pickOption(id, k); }, "node onode");
+    // Only the Option fades, never its facts, since what an unchosen Option sets off is still read to judge it.
+    var li = h("li", "branch");
+    var wrap = h("div", "onode-wrap" + ((chosen == null ? k !== 1 : k !== chosen) ? " dim" : ""));
+    var ob = btn("", function () { if (collapsed && k === chosen) { ui.showAll[id] = true; render(); } else pickOption(id, k); }, "node onode" + (k === (chosen == null ? 1 : chosen) ? " picked" : ""));
     ob.setAttribute("data-option", String(k));
     ob.appendChild(h("span", "num", String(k)));
     ob.appendChild(h("span", null, o.text));
     if (k === 1) ob.appendChild(h("span", "mark", "Agent's pick"));
     wrap.appendChild(ob); li.appendChild(wrap);
     var factsBox = h("div", "node facts");
-    facts(o.parts, factsBox, ob);
+    if ((o.parts || []).length) factsBox.appendChild(h("div", "note-head", "Parts under option " + k));
+    facts(o.parts, factsBox);
     if (factsBox.childNodes.length || o.then) {
       var det = h("div", "detail");
       if (factsBox.childNodes.length) det.appendChild(factsBox);
@@ -385,6 +484,12 @@ function decisionPage(id) {
     if (ui.open && ui.open.pid === id && ui.open.kind === "other") other.appendChild(editor(id, "other"));
     owrap.appendChild(other); oli.appendChild(owrap); ul.appendChild(oli);
   }
+  if (collapsed) {
+    // One stub stands for the folded Options, so the way back is on the page, not only on Esc.
+    var sli = h("li", "branch"), swrap = h("div", "onode-wrap");
+    swrap.appendChild(btn("+ " + K + " other options", function () { ui.showAll[id] = true; render(); }, "node stub"));
+    sli.appendChild(swrap); ul.appendChild(sli);
+  }
   tree.appendChild(ul);
   return tree;
 }
@@ -399,7 +504,7 @@ function followUp(id, k, q, live) {
     if (live) lb.appendChild(h("span", "num", String(m)));
     lb.appendChild(h("span", null, leaf.text));
     if (m === 1) lb.appendChild(h("span", "mark", "Agent's pick"));
-    facts(leaf.parts, lb, lb);
+    facts(leaf.parts, lb);
     li.appendChild(lb); leaves.appendChild(li);
   });
   fu.appendChild(leaves);
@@ -426,16 +531,33 @@ function laterIds() {
   });
   return out;
 }
-function partNode(id, later) {
-  var p = byId[id], isDec = "pick" in p;
+// Focus keeps a card, its parent, its children and every Part with its source; the rest fade.
+function focusSet() {
+  if (!ui.focus) return null;
+  var f = ui.focus, src = byId[f].source, keep = {};
+  keep[f] = true;
+  if (parentOf[f]) keep[parentOf[f]] = true;
+  (byId[f].parts || []).forEach(function (_, i) { keep[f + "." + (i + 1)] = true; });
+  if (src) order.forEach(function (id) { if (byId[id].source === src) keep[id] = true; });
+  return keep;
+}
+function partNode(id, later, keep) {
+  var p = byId[id], isDec = "pick" in p, kids = p.parts || [];
   var row = h("div", "trow");
-  var card = h("div", "node part" + (p.kind === "risk" ? " risk-part" : "") + (isDec ? " decision" : "") + (S.strike[id] != null ? " struck" : "") + (later[id] ? " later" : ""));
+  var card = h("div", "node part" + (p.kind === "risk" ? " risk-part" : "") + (isDec ? " decision" : "") + (S.strike[id] != null ? " struck" : "") + (later[id] ? " later" : "")
+    + (keep ? (keep[id] ? (ui.focus === id ? " focused" : "") : " unfocus") : ""));
   card.setAttribute("data-id", id);
+  card.addEventListener("click", function (e) { if (e.target.closest("a")) return; ui.focus = ui.focus === id ? null : id; ui.open = null; render(); });
   var top = h("div");
   top.appendChild(h("span", "pid", id));
-  if (p.kind) top.appendChild(h("span", "kind", p.kind));
+  if (p.kind && p.kind !== "risk") top.appendChild(h("span", "kind", p.kind));
+  if (p.kind === "risk") top.appendChild(h("span", "sev", "Risk"));
+  var mm = isDec && mostMark(id, card);
+  if (mm) { top.appendChild(document.createTextNode(" ")); top.appendChild(mm); }
   card.appendChild(top);
-  var t = h("div", "ptext", shownText(id));
+  var t = h("div", "ptext");
+  if (p.kind === "mockup") t.appendChild(mock(shownText(id)));
+  else t.appendChild(document.createTextNode(shownText(id)));
   if (S.edit[id] != null) t.appendChild(h("span", "edited", "edited"));
   if (p.source) t.appendChild(chip(p.source, true));
   card.appendChild(t);
@@ -445,31 +567,66 @@ function partNode(id, later) {
     ch.appendChild(btn("open →", function () { goTo(pages.indexOf(id)); }));
     card.appendChild(ch);
   }
+  // Below the text, since the card's tools cover its top right on hover.
+  if (kids.length) card.appendChild(btn((ui.fold[id] ? "▸ " : "▾ ") + kids.length + (kids.length === 1 ? " part" : " parts"), function () { ui.fold[id] = !ui.fold[id]; render(); }, "fold"));
   tail(id, card);
   row.appendChild(card);
-  if (p.parts && p.parts.length) {
-    var kids = h("ul", "kids");
-    p.parts.forEach(function (_, i) { var li = h("li"); li.appendChild(partNode(id + "." + (i + 1), later)); kids.appendChild(li); });
-    row.appendChild(kids);
+  if (kids.length && !ui.fold[id]) {
+    var ul = h("ul", "kids");
+    kids.forEach(function (_, i) { var li = h("li"); li.appendChild(partNode(id + "." + (i + 1), later, keep)); ul.appendChild(li); });
+    row.appendChild(ul);
   }
   return row;
 }
+// Your choices: each Decision's pick as it stands and what that pick sets off; a click opens the Decision.
+function choicesView() {
+  var box = h("div", "node choices");
+  box.appendChild(h("h2", null, "Your choices"));
+  decisions.forEach(function (id) {
+    var d = byId[id], c = S.pick[id], struck = S.strike[id] != null;
+    var row = btn("", function () { goTo(pages.indexOf(id)); }, "crow" + (waitingFor(id) ? " waiting" : ""));
+    row.setAttribute("data-row", id);
+    row.appendChild(h("span", "pid", id));
+    var q = h("span", "cq", shownText(id) + " ");
+    var mm = mostMark(id, row);
+    if (mm) q.appendChild(mm);
+    row.appendChild(q);
+    var right = h("span", "cfacts"), pick = h("span", "cpick");
+    var o = c && c.other == null ? options(d)[c.k - 1] : (c ? null : d.pick);
+    pick.appendChild(h("span", "who-picked", struck ? "Struck" : c ? "Your pick" : "Agent's pick · waiting"));
+    pick.appendChild(document.createTextNode(struck ? S.strike[id] : c && c.other != null ? c.other : o.text));
+    right.appendChild(pick);
+    if (o && !struck) {
+      (o.parts || []).forEach(function (f) { if (f.kind !== "mockup" && f.kind !== "note") right.appendChild(factLine(f)); });
+      if (o.then) {
+        // Until the follow-up is answered, its Agent's pick stands, so the row still shows where the plan ends.
+        var answered = c && c.then != null, leaf = answered ? options(o.then)[c.then - 1] : o.then.pick;
+        right.appendChild(factLine({ text: o.then.text + " " + (leaf ? leaf.text + (answered ? "" : " · Agent's pick") : "– waiting") }));
+        if (leaf) (leaf.parts || []).forEach(function (f) { if (f.kind !== "mockup" && f.kind !== "note") right.appendChild(factLine(f)); });
+      }
+    }
+    row.appendChild(right);
+    box.appendChild(row);
+  });
+  box.appendChild(h("p", "cnext", "Once every Decision is answered, press Copy answer and paste it back: the agent goes on with these picks."));
+  return box;
+}
 function planPage() {
-  var later = laterIds(), box = h("div", "ptree");
-  plan.parts.forEach(function (_, i) { box.appendChild(partNode(String(i + 1), later)); });
+  var later = laterIds(), keep = focusSet(), box = h("div", "ptree");
+  if (decisions.length) box.appendChild(choicesView());
+  plan.parts.forEach(function (_, i) { box.appendChild(partNode(String(i + 1), later, keep)); });
   if (!plan.parts.length) box.appendChild(h("p", "empty", "This plan has no parts."));
   return box;
 }
 
 // -- frame ----------------------------------------------------------------
-function waiting() {
-  return decisions.filter(function (id) {
-    var c = S.pick[id];
-    if (S.strike[id] != null) return false;
-    if (!c) return true;
-    return c.other == null && c.then == null && !!options(byId[id])[c.k - 1].then;
-  }).length;
+function waitingFor(id) {
+  var c = S.pick[id];
+  if (S.strike[id] != null) return false;
+  if (!c) return true;
+  return c.other == null && c.then == null && !!options(byId[id])[c.k - 1].then;
 }
+function waiting() { return decisions.filter(waitingFor).length; }
 function goTo(i) {
   ui.page = Math.max(0, Math.min(pages.length - 1, i)); ui.awaiting = null; ui.open = null; render();
   window.scrollTo(0, 0);
@@ -480,7 +637,8 @@ function hint() {
   var say = function () { for (var i = 0; i < arguments.length; i++) el.appendChild(typeof arguments[i] === "string" ? document.createTextNode(arguments[i]) : arguments[i]); };
   var nextKey = ui.page < pages.length - 1 ? [" · next ", kbd("→")] : [" · back ", kbd("←")];
   if (ui.open) return say("Type, then ", kbd("Enter"), " · close ", kbd("Esc"));
-  if (id === "plan") return say("Hover a part to strike, comment or edit", ui.page ? " · back " : "", ui.page ? kbd("←") : "");
+  if (id === "plan" && ui.focus) return say("Focused on " + ui.focus + " · show all ", kbd("Esc"));
+  if (id === "plan") return say("Click a part to focus it · hover to strike, comment or edit", ui.page ? " · back " : "", ui.page ? kbd("←") : "");
   if (S.strike[id] != null) return say.apply(null, ["Struck"].concat(nextKey));
   if (ui.awaiting === id) {
     var q = options(byId[id])[S.pick[id].k - 1].then;
@@ -530,6 +688,7 @@ document.addEventListener("keydown", function (e) {
   else if (e.key === "Escape") {
     if (ui.open || ui.awaiting) { ui.open = null; ui.awaiting = null; }
     if (id !== "plan") ui.showAll[id] = true;
+    else ui.focus = null;
     render();
   } else if (/^[1-9]$/.test(e.key) && id !== "plan" && S.strike[id] == null) {
     var n = +e.key, d = byId[id], K = options(d).length, c = S.pick[id];
