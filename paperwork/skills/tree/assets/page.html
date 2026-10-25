@@ -80,6 +80,7 @@ a.chip:hover { color: var(--accent); }
 .fact.risk { padding-left: 0; }
 .fact.risk::before { display: none; }
 .sev { display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 5px; background: var(--amber-bg); color: var(--amber); font: 600 .66rem/1.7 var(--mono); letter-spacing: .06em; text-transform: uppercase; vertical-align: 1px; }
+.most-why { margin-top: 10px; padding-left: 10px; border-left: 2px solid var(--accent); color: var(--body); font-size: .9rem; }
 .most { display: inline-block; padding: 0 8px; border-radius: 999px; background: var(--accent); color: #fff; font: 600 .66rem/1.8 var(--mono); letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
 /* a mockup: its text as a screen, [[x]] a primary button and [x] a button */
 .mock { margin: 6px 0; max-width: 100%; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
@@ -313,9 +314,9 @@ var most = (function () {
   var best = null;
   decisions.forEach(function (id) {
     var d = byId[id];
-    var risks = items(d).filter(function (p) { return p.kind === "risk"; }).length;
+    var found = items(d).filter(function (p) { return p.kind === "risk"; }), risks = found.length;
     var effects = options(d).reduce(function (n, o) { return n + items(o).length; }, 0);
-    if (!best || risks > best.risks || (risks === best.risks && effects > best.effects)) best = { id: id, risks: risks, effects: effects };
+    if (!best || risks > best.risks || (risks === best.risks && effects > best.effects)) best = { id: id, risks: risks, effects: effects, found: found };
   });
   if (!best) return null;
   best.why = best.risks ? best.risks + (best.risks === 1 ? " risk" : " risks")
@@ -328,6 +329,17 @@ function mostMark(id, el) {
   var m = h("span", "most", "Matters most · " + most.why);
   m.title = "The Decision with the most risks under it, then the most effects under its Options";
   return m;
+}
+// The reason in words on the Decision's own card, since a count alone leaves the reader guessing which Parts it counts.
+function mostWhy(id) {
+  if (!most || most.id !== id) return null;
+  var why = h("div", "most-why");
+  why.appendChild(h("span", "note-head", "Why it matters most"));
+  why.appendChild(h("span", null, most.risks
+    ? "More risks than any other Decision: " + most.found.map(function (p) { return p.text.replace(/\.$/, ""); }).join("; ") + "."
+    : most.effects ? "More effects under its Options than any other Decision: " + options(byId[id]).reduce(function (a, o) { return a.concat(items(o)); }, []).filter(function (p) { return p.kind !== "mockup"; }).map(function (p) { return p.text.replace(/\.$/, ""); }).join("; ") + "."
+    : "It comes first; no Decision has risks or effects under it."));
+  return why;
 }
 function acts(id) {
   var a = h("span", "acts");
@@ -422,6 +434,8 @@ function decisionPage(id) {
   if (S.edit[id] != null) q.appendChild(h("span", "edited", "edited"));
   card.appendChild(q);
   if (context.childNodes.length) card.appendChild(context);
+  var why = mostWhy(id);
+  if (why) card.appendChild(why);
   tail(id, card);
   col.appendChild(card);
   tree.appendChild(col);
