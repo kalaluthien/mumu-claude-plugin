@@ -8,6 +8,7 @@ usage: make-page.py PLAN.json OUT.html     one self-contained page; refused when
                                            and print "strategies ok N"
        make-page.py --capture PAGE.html DIR  write the four review PNGs of a built page into DIR
        make-page.py --capture-all PAGE.html DIR  write every page of a built page, untouched, at 1200 px into DIR
+       make-page.py --capture-picked PAGE.html DIR  write each Decision page after its first Option is picked
                                            (the last three need playwright: uv run --with playwright==1.64.1 python3 make-page.py ...)
 """
 import html
@@ -346,8 +347,23 @@ def capture(page_html, out):
     return 0
 
 
-def capture_all(page_html, out):
-    """Each page as a reader first meets it: no key pressed, no hover."""
+def screens(page, out, stem):
+    """The page as a reader scrolls it, in overlapping screens, since a full-page shot draws the fixed bar over the middle."""
+    names = []
+    height = page.evaluate("document.documentElement.scrollHeight")
+    tops = list(range(0, max(height - 900, 0) + 1, 700))
+    if height > 900 and (height - 900) % 700:
+        tops.append(height - 900)
+    for k, top in enumerate(tops, 1):
+        page.evaluate(f"window.scrollTo(0, {top})")
+        names.append(f"{stem}-{k}.png")
+        page.screenshot(path=str(out / names[-1]))
+    page.evaluate("window.scrollTo(0, 0)")
+    return names
+
+
+def capture_all(page_html, out, picked=False):
+    """Each page as a reader first meets it, no key pressed and no hover; with PICKED, each Decision after its first Option."""
     from playwright.sync_api import sync_playwright
     out = pathlib.Path(out)
     out.mkdir(parents=True, exist_ok=True)
@@ -358,22 +374,15 @@ def capture_all(page_html, out):
         page.goto(uri)
         names = []
         for i, pid in enumerate(page_ids(page), 1):
+            if picked and pid == "plan":
+                continue
             page.click(f'[data-goto="{pid}"]')
+            if picked:
+                page.keyboard.press("1")
+                page.keyboard.press("1")
             page.mouse.move(0, 0)
             kind = "plan" if pid == "plan" else "decision"
-            # Screens as a reader scrolls them, overlapping, since a full-page shot draws the fixed bar over the middle.
-            height = page.evaluate("document.documentElement.scrollHeight")
-            for k, top in enumerate(range(0, max(height - 900, 0) + 1, 700), 1):
-                page.evaluate(f"window.scrollTo(0, {top})")
-                name = f"page-{i}-{kind}-{k}.png"
-                page.screenshot(path=str(out / name))
-                names.append(name)
-            if (height - 900) % 700 and height > 900:
-                page.evaluate(f"window.scrollTo(0, {height})")
-                name = f"page-{i}-{kind}-{k + 1}.png"
-                page.screenshot(path=str(out / name))
-                names.append(name)
-            page.evaluate("window.scrollTo(0, 0)")
+            names += screens(page, out, f"page-{i}-{kind}" + ("-picked" if picked else ""))
         browser.close()
     print(f"wrote {len(names)} pages into {out}: {' '.join(names)}")
     return 0
@@ -411,6 +420,8 @@ def main(args):
         return strategies_dir(args[1])
     if len(args) == 3 and args[0] == "--capture-all":
         return capture_all(args[1], args[2])
+    if len(args) == 3 and args[0] == "--capture-picked":
+        return capture_all(args[1], args[2], picked=True)
     if len(args) == 3 and args[0] == "--capture":
         return capture(args[1], args[2])
     if len(args) != 2:

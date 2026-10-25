@@ -11,10 +11,26 @@
       "kind": "evidence",
       "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/1013#issuecomment-6397221163",
       "parts": [
-        {"text": "A decision tree shows one question at a time; a pick folds its siblings, and a click restores them.", "kind": "evidence", "source": "https://gojs.net/latest/samples/decisionTree"},
-        {"text": "A running view of the answers so far is redrawn on every pick.", "kind": "evidence", "source": "https://ncase.me/polygons/"},
-        {"text": "A click on a node keeps its neighbours and fades the rest; Esc restores the whole graph.", "kind": "evidence", "source": "https://docs.kumu.io/guides/focus"},
-        {"text": "A fixed-width text wireframe stands in for a screen with no image.", "kind": "evidence", "source": "https://github.com/yoursharif/ascii-wireframe-layout"}
+        {
+          "text": "A decision tree shows one question at a time; a pick folds its siblings, and a click restores them.",
+          "kind": "evidence",
+          "source": "https://gojs.net/latest/samples/decisionTree"
+        },
+        {
+          "text": "A running view of the answers so far is redrawn on every pick.",
+          "kind": "evidence",
+          "source": "https://ncase.me/polygons/"
+        },
+        {
+          "text": "A click on a node keeps its neighbours and fades the rest; Esc restores the whole graph.",
+          "kind": "evidence",
+          "source": "https://docs.kumu.io/guides/focus"
+        },
+        {
+          "text": "A fixed-width text wireframe stands in for a screen with no image.",
+          "kind": "evidence",
+          "source": "https://github.com/yoursharif/ascii-wireframe-layout"
+        }
       ]
     },
     {
@@ -22,18 +38,43 @@
       "kind": "question",
       "source": "https://github.com/kalaluthien/mumu-claude-plugin/issues/1013#issuecomment-6397221163",
       "parts": [
-        {"text": "Owner's complaint: buttons in odd places.", "kind": "risk"}
+        {
+          "text": "Owner's complaint: buttons in odd places.",
+          "kind": "risk"
+        }
       ],
       "pick": {
         "text": "Fold them into one stub line",
         "parts": [
-          {"text": "One click on the stub brings them back.", "kind": "consequence"},
-          {"text": "[1] Ask the VP\n    + 2 other options", "kind": "mockup"}
+          {
+            "text": "One click on the stub brings them back.",
+            "kind": "consequence"
+          },
+          {
+            "text": "What should I do about Acme?\n\n [1] Offer 15% instead   <- your pick\n     + 3 other options\n\n Tie it to a longer contract?\n [1] Only with 2 years   [2] For one year",
+            "kind": "mockup"
+          }
         ]
       },
       "else": [
-        {"text": "Hide them; Esc brings them back", "parts": [{"text": "A mouse user cannot find the way back.", "kind": "risk"}]},
-        {"text": "Keep them faded in place", "parts": [{"text": "The page stays as long as before the pick.", "kind": "consequence"}]}
+        {
+          "text": "Hide them; Esc brings them back",
+          "parts": [
+            {
+              "text": "A mouse user cannot find the way back.",
+              "kind": "risk"
+            }
+          ]
+        },
+        {
+          "text": "Keep them faded in place",
+          "parts": [
+            {
+              "text": "The page stays as long as before the pick.",
+              "kind": "consequence"
+            }
+          ]
+        }
       ]
     },
     {
@@ -43,12 +84,26 @@
       "pick": {
         "text": "Your choices: one row per Decision",
         "parts": [
-          {"text": "Each row shows the pick and its facts; a click reopens the Decision.", "kind": "consequence"},
-          {"text": "Your choices\n 1  Other Options  ->  Fold them into one stub line\n 2  Whole plan     ->  Your choices: one row per Decision\n 3  Card click     ->  Focus its neighbours\n\n                          [[ Copy answer ]]", "kind": "mockup"}
+          {
+            "text": "Each row shows the pick and its facts; a click reopens the Decision.",
+            "kind": "consequence"
+          },
+          {
+            "text": "Your choices\n 1  Other Options  Fold into a stub\n 2  Whole plan     Your choices\n 3  Card click     Focus it\n\n               [[ Copy answer ]]",
+            "kind": "mockup"
+          }
         ]
       },
       "else": [
-        {"text": "The card tree alone", "parts": [{"text": "The answers so far are read card by card.", "kind": "consequence"}]}
+        {
+          "text": "The card tree alone",
+          "parts": [
+            {
+              "text": "The answers so far are read card by card.",
+              "kind": "consequence"
+            }
+          ]
+        }
       ]
     },
     {
@@ -58,12 +113,27 @@
       "pick": {
         "text": "Focus it",
         "parts": [
-          {"text": "Its parent, its children and every Part with the same source stay; the rest fade.", "kind": "consequence"},
-          {"text": "Esc or a second click shows the whole plan again.", "kind": "note", "source": "https://obsidian.md/help/Plugins/Graph+view"}
+          {
+            "text": "Its parent, its children and every Part with the same source stay; the rest fade.",
+            "kind": "consequence"
+          },
+          {
+            "text": "Esc or a second click shows the whole plan again.",
+            "kind": "note",
+            "source": "https://obsidian.md/help/Plugins/Graph+view"
+          }
         ]
       },
       "else": [
-        {"text": "Nothing beyond hover", "parts": [{"text": "Parts that share a source stay apart on the page.", "kind": "consequence"}]}
+        {
+          "text": "Nothing beyond hover",
+          "parts": [
+            {
+              "text": "Parts that share a source stay apart on the page.",
+              "kind": "consequence"
+            }
+          ]
+        }
       ]
     },
     {

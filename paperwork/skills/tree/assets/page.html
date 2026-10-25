@@ -83,7 +83,7 @@ a.chip:hover { color: var(--accent); }
 .mock { margin: 6px 0; max-width: 100%; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
 .mock-bar { display: flex; gap: 5px; padding: 6px 9px; background: var(--panel); border-bottom: 1px solid var(--line); }
 .mock-bar i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-.mock-screen { margin: 0; padding: 10px 12px; font: .8rem/1.55 var(--mono); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.mock-screen { margin: 0; padding: 10px 12px; font: .8rem/1.55 var(--mono); color: var(--ink); white-space: pre; overflow-x: auto; }
 .mk-btn { border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
 .mk-primary { background: var(--accent); color: #fff; border-radius: 5px; padding: 0 6px; }
 
@@ -112,6 +112,7 @@ a.chip:hover { color: var(--accent); }
 .avatar { flex: none; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--card-line); display: grid; place-items: center; font-weight: 700; color: var(--muted); }
 .who-name { font-weight: 550; }
 .who-sub { color: var(--muted); font-size: .9rem; }
+.qcard > .who-sub { margin-bottom: 12px; }
 .qtext { font: 500 1.3rem/1.35 var(--serif); margin: 0; }
 .context { color: var(--muted); margin-top: 10px; }
 .dtree > .branches { flex: 1 1 auto; min-width: 0; }
@@ -404,7 +405,9 @@ function decisionPage(id) {
   if (mm) badges.insertBefore(mm, badges.firstChild);
   if (badges.childNodes.length) col.appendChild(badges);
   card.setAttribute("data-card", id);
-  if (d.source) {
+  // A link is the evidence the question rests on, not its author.
+  if (d.source && /^https?:\/\//.test(d.source)) { var src = h("div", "who-sub"); src.appendChild(document.createTextNode("Source ")); src.appendChild(chip(d.source, true)); card.appendChild(src); }
+  else if (d.source) {
     var who = h("div", "who"), names = d.source.split(" · ");
     who.appendChild(h("span", "avatar", names[0].charAt(0).toUpperCase()));
     var nm = h("div"); nm.appendChild(h("div", "who-name", names[0]));
@@ -426,7 +429,7 @@ function decisionPage(id) {
     if (collapsed && k !== chosen) return;
     var li = h("li", "branch" + ((chosen == null ? k !== 1 : k !== chosen) ? " dim" : ""));
     var wrap = h("div", "onode-wrap");
-    var ob = btn("", function () { if (collapsed && k === chosen) { ui.showAll[id] = true; render(); } else pickOption(id, k); }, "node onode" + (k === chosen ? " picked" : ""));
+    var ob = btn("", function () { if (collapsed && k === chosen) { ui.showAll[id] = true; render(); } else pickOption(id, k); }, "node onode" + (k === (chosen == null ? 1 : chosen) ? " picked" : ""));
     ob.setAttribute("data-option", String(k));
     ob.appendChild(h("span", "num", String(k)));
     ob.appendChild(h("span", null, o.text));
