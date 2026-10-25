@@ -133,9 +133,11 @@ def had_worker(me):
 
 
 def exit_action(me, listed):
-    """The exit line, or None for the only live manager, who stays since no other can answer its proposal."""
-    others = [a["name"] for a in listed if a is not me and role(a.get("name")) == "manager"]
-    return f"exit: no worker is live and nothing waits; propose your exit to {', '.join(others)} as step 5 says" if others else None
+    """The exit line, or None for the keeper, the live manager first by name, who stays so one manager is always live:
+    two managers that each answer the other's proposal would otherwise both close."""
+    managers = sorted({a["name"] for a in listed if role(a.get("name")) == "manager"} | {me["name"]})
+    others = [n for n in managers if n != me["name"]]
+    return f"exit: no worker is live and nothing waits; propose your exit to {', '.join(others)} as step 5 says" if managers[0] != me["name"] else None
 
 
 def worker_goal(me):
