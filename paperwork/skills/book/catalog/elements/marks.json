@@ -1,0 +1,124 @@
+{
+ "id": "marks",
+ "family": "problem",
+ "why": "numbered parts on an exhibit that options name",
+ "zone": "none",
+ "kinds": [
+  "ask",
+  "probe",
+  "task-sort",
+  "task-order",
+  "task-select",
+  "task-estimate",
+  "task-custom"
+ ],
+ "slots": {
+  "marks": {
+   "type": "list",
+   "req": true,
+   "of": {
+    "n": {
+     "type": "int",
+     "req": true
+    },
+    "target": {
+     "type": "str",
+     "req": true
+    },
+    "note": {
+     "type": "str"
+    }
+   },
+   "doc": "one per data-n in the exhibit"
+  }
+ },
+ "render": "",
+ "checks": [
+  {
+   "id": "parts-match",
+   "breaks": [
+    {
+     "set": "elements.3.mark",
+     "to": 9
+    }
+   ]
+  },
+  {
+   "id": "parts-match",
+   "breaks": [
+    {
+     "del": "elements.2.marks.2"
+    }
+   ]
+  }
+ ],
+ "example": {
+  "kind": "ask",
+  "move": "diagnose",
+  "level": "apply",
+  "diff": "2",
+  "order": "numeric",
+  "elements": [
+   {
+    "el": "stem",
+    "text": "The bot's plan for 8 equally likely dishes is shown with numbered questions. Which numbered question halves the candidates?",
+    "asks": "part"
+   },
+   {
+    "el": "exhibit",
+    "alt": "A plan of three numbered questions for 8 dishes",
+    "html": "<p><span class=\"mk-hl\" data-n=\"1\">Is it dish 1?</span> <span class=\"mk-hl\" data-n=\"2\">Is it among dishes 1 to 4?</span> <span class=\"mk-hl\" data-n=\"3\">Is it dish 2?</span></p>",
+    "facts": [
+     "dish 1",
+     "dishes 1 to 4",
+     "dish 2"
+    ]
+   },
+   {
+    "el": "marks",
+    "marks": [
+     {
+      "n": 1,
+      "target": "Is it dish 1?"
+     },
+     {
+      "n": 2,
+      "target": "Is it among dishes 1 to 4?"
+     },
+     {
+      "n": 3,
+      "target": "Is it dish 2?"
+     }
+    ]
+   },
+   {
+    "el": "rival",
+    "text": "Question 1",
+    "why": "A no to dish 1 leaves 7 of the 8.",
+    "belief": "first-order",
+    "right_when": "dish 1 held most of the orders",
+    "ruled_out_by": [
+     1
+    ],
+    "mark": 1
+   },
+   {
+    "el": "answer",
+    "text": "Question 2",
+    "why": "Dishes 1 to 4 are half of the 8, so either answer leaves 4.",
+    "mark": 2
+   },
+   {
+    "el": "rival",
+    "text": "Question 3",
+    "why": "A no to dish 2 leaves 7 of the 8.",
+    "belief": "prior-intuition",
+    "right_when": "dish 2 held most of the orders",
+    "ruled_out_by": [
+     2
+    ],
+    "mark": 3
+   }
+  ]
+ }
+}

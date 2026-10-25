@@ -1,0 +1,98 @@
+{
+ "id": "change",
+ "family": "problem",
+ "why": "one change to a known base; options state its effects by layer",
+ "zone": "none",
+ "kinds": [
+  "ask",
+  "probe"
+ ],
+ "slots": {
+  "base": {
+   "type": "str",
+   "req": true,
+   "writer": true,
+   "doc": "what holds before"
+  },
+  "change": {
+   "type": "str",
+   "req": true,
+   "writer": true,
+   "doc": "the one change"
+  }
+ },
+ "render": "",
+ "checks": [
+  {
+   "id": "one-change",
+   "breaks": [
+    {
+     "del": "elements.3.layer"
+    }
+   ]
+  },
+  {
+   "id": "one-change",
+   "breaks": [
+    {
+     "set": "elements.2.change",
+     "to": "the two rare dishes merge; the popular dish doubles"
+    }
+   ]
+  }
+ ],
+ "example": {
+  "kind": "ask",
+  "move": "intervene",
+  "level": "analyze",
+  "diff": "2",
+  "elements": [
+   {
+    "el": "stem",
+    "text": "Odds are 1/2, 1/4, 1/8, 1/8 and the bot averages 1.75 questions. The two rare dishes merge into one dish with odds 1/4. What happens to the average?",
+    "asks": "outcome"
+   },
+   {
+    "el": "setup",
+    "facts": [
+     "1/2, 1/4, 1/8, 1/8",
+     "1.75",
+     "odds 1/4"
+    ]
+   },
+   {
+    "el": "change",
+    "base": "odds 1/2, 1/4, 1/8, 1/8",
+    "change": "the two rare dishes merge into one"
+   },
+   {
+    "el": "answer",
+    "text": "It falls to 1.5",
+    "why": "Costs 1, 2, 2 at odds 1/2, 1/4, 1/4 give 0.5 + 0.5 + 0.5.",
+    "layer": "first-order"
+   },
+   {
+    "el": "rival",
+    "text": "It stays at 1.75",
+    "why": "The merged dish costs 2 questions, not 3, so the total shrinks.",
+    "belief": "prior-intuition",
+    "right_when": "the merged dish still needed 3 questions",
+    "ruled_out_by": [
+     2
+    ],
+    "layer": "flip"
+   },
+   {
+    "el": "rival",
+    "text": "It rises to 2",
+    "why": "Fewer dishes never raise the average here; the tall bars disappear.",
+    "belief": "first-order",
+    "right_when": "merging made a common dish rarer",
+    "ruled_out_by": [
+     0
+    ],
+    "layer": "second-order"
+   }
+  ]
+ }
+}

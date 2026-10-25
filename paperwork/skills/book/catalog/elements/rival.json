@@ -1,0 +1,140 @@
+{
+ "id": "rival",
+ "family": "problem",
+ "why": "a wrong option a competent person without the idea would choose",
+ "zone": "opts",
+ "kinds": [
+  "ask",
+  "probe"
+ ],
+ "slots": {
+  "text": {
+   "type": "html",
+   "req": true,
+   "doc": "the move, ending in the move, not a label for its type"
+  },
+  "why": {
+   "type": "html",
+   "req": true,
+   "doc": "opens on the fact that breaks the belief"
+  },
+  "belief": {
+   "type": "enum",
+   "req": true,
+   "writer": true,
+   "values": [
+    "prior-intuition",
+    "first-order",
+    "right-fact-wrong-reason",
+    "works-elsewhere"
+   ],
+   "doc": "where the rival comes from"
+  },
+  "right_when": {
+   "type": "str",
+   "req": true,
+   "writer": true,
+   "doc": "when this option would be right"
+  },
+  "ruled_out_by": {
+   "type": "list",
+   "req": true,
+   "writer": true,
+   "doc": "indexes into the card facts (setup then exhibits, in order) that rule it out"
+  },
+  "exhibit": {
+   "type": "el:exhibit",
+   "doc": "an exhibit inside the option (compare-designs)"
+  },
+  "mark": {
+   "type": "int",
+   "doc": "the exhibit mark this option names"
+  },
+  "layer": {
+   "type": "enum",
+   "values": [
+    "first-order",
+    "second-order",
+    "flip"
+   ],
+   "doc": "with change: which effect this option states"
+  }
+ },
+ "render": "<li>{exhibit@exhibit}{text}<p data-p=\"why\">{why}</p></li>",
+ "checks": [
+  {
+   "id": "rival-real",
+   "breaks": [
+    {
+     "set": "elements.4.right_when",
+     "to": "one dish holds most of the orders"
+    }
+   ]
+  },
+  {
+   "id": "rival-real",
+   "breaks": [
+    {
+     "set": "elements.3.ruled_out_by",
+     "to": [
+      7
+     ]
+    }
+   ]
+  },
+  {
+   "id": "why-grounded",
+   "breaks": [
+    {
+     "set": "elements.3.why",
+     "to": "A no still leaves 7 of the 8 dishes, as Shannon found."
+    }
+   ]
+  }
+ ],
+ "example": {
+  "kind": "ask",
+  "move": "decide",
+  "level": "apply",
+  "diff": "2",
+  "elements": [
+   {
+    "el": "stem",
+    "text": "A menu has 8 dishes, each ordered equally often. Which first question keeps the worst case smallest?",
+    "asks": "move"
+   },
+   {
+    "el": "setup",
+    "facts": [
+     "8 dishes",
+     "each ordered equally often"
+    ]
+   },
+   {
+    "el": "answer",
+    "text": "Is it among dishes 1 to 4?",
+    "why": "Either answer leaves 4 of the 8 dishes."
+   },
+   {
+    "el": "rival",
+    "text": "Is it dish 1?",
+    "why": "A no still leaves 7 of the 8 dishes.",
+    "belief": "first-order",
+    "right_when": "one dish holds most of the orders",
+    "ruled_out_by": [
+     1
+    ]
+   },
+   {
+    "el": "rival",
+    "text": "Is it dish 1, 2 or 3?",
+    "why": "A no leaves 5 of the 8 dishes, one more than an even split.",
+    "belief": "prior-intuition",
+    "right_when": "dishes 1 to 3 hold half of the orders",
+    "ruled_out_by": [
+     1
+    ]
+   }
+  ]
+ }
+}

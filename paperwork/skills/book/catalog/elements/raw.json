@@ -1,0 +1,84 @@
+{
+ "id": "raw",
+ "family": "problem",
+ "why": "hand markup for a part no element covers; keeps markup lint, gets no element checks",
+ "zone": "body",
+ "kinds": [
+  "ask",
+  "probe",
+  "task-sort",
+  "task-order",
+  "task-select",
+  "task-estimate",
+  "task-custom",
+  "fig",
+  "frames"
+ ],
+ "slots": {
+  "html": {
+   "type": "html",
+   "req": true
+  }
+ },
+ "render": "{html}",
+ "checks": [
+  {
+   "id": "raw-use-element",
+   "breaks": [
+    {
+     "set": "elements.2.html",
+     "to": "<p><span data-n=\"1\">Dish 1</span></p>"
+    }
+   ]
+  }
+ ],
+ "example": {
+  "kind": "ask",
+  "move": "decide",
+  "level": "apply",
+  "diff": "2",
+  "elements": [
+   {
+    "el": "stem",
+    "text": "A menu has 8 dishes, each ordered equally often. Which first question keeps the worst case smallest?",
+    "asks": "move"
+   },
+   {
+    "el": "setup",
+    "facts": [
+     "8 dishes",
+     "each ordered equally often"
+    ]
+   },
+   {
+    "el": "raw",
+    "html": "<p>Dishes are numbered 1 to 8 on the menu.</p>"
+   },
+   {
+    "el": "answer",
+    "text": "Is it among dishes 1 to 4?",
+    "why": "Either answer leaves 4 of the 8 dishes."
+   },
+   {
+    "el": "rival",
+    "text": "Is it dish 1?",
+    "why": "A no still leaves 7 of the 8 dishes.",
+    "belief": "first-order",
+    "right_when": "one dish holds most of the orders",
+    "ruled_out_by": [
+     1
+    ]
+   },
+   {
+    "el": "rival",
+    "text": "Is it dish 1, 2 or 3?",
+    "why": "A no leaves 5 of the 8 dishes, one more than an even split.",
+    "belief": "prior-intuition",
+    "right_when": "dishes 1 to 3 hold half of the orders",
+    "ruled_out_by": [
+     1
+    ]
+   }
+  ]
+ }
+}

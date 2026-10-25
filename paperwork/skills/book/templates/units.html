@@ -1,0 +1,115 @@
+<section data-u="map">
+<!--snip:gist--><div data-c="gist"><p>How many yes or no questions does it take to find one thing? Two questions carry this book: how many for equally likely items, and how few on average when the odds are skewed. One running example, a guessing bot for a menu of 8 dishes, grows a little in every chapter.</p></div><!--/snip-->
+<p>Two ideas are the minimum: one answer can at best halve the candidates, and a rare outcome costs more halvings than a common one. The first chapter builds the halving idea with counts. The second carries it over to probabilities and finds the floor no guesser can beat.</p>
+<!--snip:aside--><details data-c="aside"><summary>Where the floor comes from in coding theory</summary><p>The same floor bounds the average length of a prefix code, which is why compression formats are measured against it.</p></details><!--/snip-->
+</section>
+
+<section data-u="u-bits">
+<div data-c="gist"><p>How many yes or no questions does it take to find one dish among 8? This chapter finds the smallest number that always works. It is the yardstick the next chapter measures against.</p></div>
+<!--snip:probe--><div data-c="probe" data-move="predict" data-level="understand" data-diff="1"><p data-p="q">A friend secretly picked one of 8 dishes, and you may ask only yes or no questions. What is the smallest number of questions that always finds it?</p>
+<ol data-p="opts" data-order="numeric">
+<li>Two well-worded ones<p data-p="why">Two answers have only four outcomes, so they can tell apart at most 4 dishes.</p></li>
+<li data-ok>Three, always enough<p data-p="why">Each answer can at best halve the candidates: 8, 4, 2, 1.</p></li>
+<li>Seven, one per dish<p data-p="why">That always works, but each answer then rules out a single dish, not half of them.</p></li>
+</ol></div><!--/snip-->
+<!--snip:defn--><div data-c="defn" data-concept="c-bit"><p data-c="key">A bit is what one yes or no answer tells you when both answers are equally likely.</p>
+<p>Think of a coin hidden in one of two cups. One question, "left cup?", settles it, and no answer could settle more, because the answer itself has only two values. That is one bit. With four cups, the first answer leaves two cups and the second leaves one, so four equally likely cups cost two bits. The count grows by one each time the number of cups doubles, which is why bits are counted in powers of two.</p>
+<p>People often equate bits with the digits on a screen. The digits are one way to store answers; the bit is the answer itself, and it exists before anything is written down.</p>
+<details data-c="formal"><summary>Formal</summary><p>For N equally likely items, the information needed is <span data-m>\log_2 N</span> bits.</p></details></div><!--/snip-->
+<div data-c="defn" data-concept="c-halving"><p data-c="key">Halving search splits the remaining candidates into two equal groups.</p>
+<p>With 8 dishes, "first half of the menu?" leaves 4 whatever the answer. The next question leaves 2, and the third leaves 1. An uneven split, say 1 dish against 7, is a gamble: a lucky yes ends the game, but the usual no leaves 7, and the worst case now needs more questions than before. Even splits make the worst case as small as it can be.</p>
+<p>In the search drawn next, each answer keeps one half of the bar, and nothing else changes.</p>
+<details data-c="formal"><summary>Formal</summary><p>After k answers at most <span data-m>N/2^k</span> candidates remain.</p></details></div>
+<!--snip:frames--><figure data-c="frames" data-concept="c-bit c-halving" data-enc="p" data-tactic="frames" data-kind="conceptual">
+<ol>
+<li><svg viewBox="0 0 160 40" role="img" aria-label="8 left"><rect class="lx-p fill" x="0" y="10" width="160" height="20"/><text x="4" y="25">8 left</text></svg><p>Before any answer, all 8 dishes are possible.</p></li>
+<li><svg viewBox="0 0 160 40" role="img" aria-label="4 left"><rect class="lx-p fill" x="0" y="10" width="80" height="20"/><text x="4" y="25">4 left</text></svg><p>One answer keeps one half.</p></li>
+<li><svg viewBox="0 0 160 40" role="img" aria-label="2 left"><rect class="lx-p fill" x="0" y="10" width="40" height="20"/><text x="4" y="25">2</text></svg><p>The second answer halves again.</p></li>
+<li><svg viewBox="0 0 160 40" role="img" aria-label="1 left"><rect class="lx-p fill" x="0" y="10" width="20" height="20"/><text x="4" y="25">1</text></svg><p>The third answer leaves one dish.</p></li>
+</ol>
+<p data-c="read">Each frame is one answer; the bar halves until one dish is left after three answers.</p>
+<figcaption>Halving 8 candidates takes three answers.</figcaption>
+</figure><!--/snip-->
+<p>The frames show that three is enough. Why can no question do better? An answer has two values, so it splits the candidates into two groups, and in the worst case you land in the larger one, which holds at least half.</p>
+<!--snip:ask--><div data-c="ask" id="ask-bits-1" data-move="explain" data-level="understand" data-diff="2"><p data-p="q">Why can no single yes or no question remove more than half of the candidates in the worst case?</p>
+<ol data-p="opts">
+<li>Because 8 is a power of two<p data-p="why">The limit holds for any number of candidates; powers of two only make the count come out even.</p></li>
+<li data-ok>The worse answer keeps the larger group<p data-p="why">Two answers make two groups, and the larger group holds at least half.</p></li>
+<li>Wording limits what one question can ask<p data-p="why">Wording changes which dishes fall in each group, not the fact that there are only two groups.</p></li>
+</ol></div><!--/snip-->
+<!--snip:ex--><div data-c="ex" id="ex-bits-1" data-tier="toy"><p>A bot faces a menu of 16 dishes.</p>
+<p data-c="worked">First question: "Is it among dishes 1 to 8?" Either answer leaves 8 dishes, so the worst case drops by half. Before the next step, ask yourself why "Is it dish 1?" would be worse.</p>
+<div data-c="ask" data-move="decide" data-level="apply" data-diff="1"><p data-p="q">The answer was yes. Which second question keeps the worst case smallest?</p>
+<ol data-p="opts"><li data-ok>Is it in 1 to 4?<p data-p="why">Either answer leaves 4 of the 8.</p></li><li>Is it 1, 2 or 3?<p data-p="why">A no leaves 5 dishes, one more than an even split.</p></li><li>Is it dish 1?<p data-p="why">A lucky yes ends it, but the usual no leaves 7.</p></li></ol></div>
+<p>Say the answer is no, so dishes 5 to 8 remain.</p>
+<div data-c="ask" data-move="decide" data-level="apply" data-diff="2"><p data-p="q">How many more questions does the bot need in the worst case?</p>
+<ol data-p="opts" data-order="numeric"><li>One more<p data-p="why">One answer splits 4 dishes into groups of 2.</p></li><li data-ok>Two more<p data-p="why">4 dishes halve to 2 and then to 1.</p></li><li>Three more<p data-p="why">That would be the count for 8 dishes, not the 4 left.</p></li></ol></div>
+<p>Four questions in all, which is <span data-m>\log_2 16 = 4</span>.</p></div><!--/snip-->
+<!--snip:task-order--><div data-c="task" id="task-bits-order" data-kind="order" data-move="decide" data-level="apply" data-diff="2"><p data-p="q">Put the bot's states in the order a halving search passes through them.</p>
+<ol data-p="items"><li data-why="Before any answer every dish is possible.">8 dishes possible</li><li data-why="One answer keeps half of 8.">4 dishes possible</li><li data-why="Two answers keep a quarter of 8.">2 dishes possible</li><li data-why="Three answers leave one.">The dish is found</li></ol></div><!--/snip-->
+<!--snip:task-sort--><div data-c="task" id="task-bits-sort" data-kind="sort" data-move="decide" data-level="apply" data-diff="2"><p data-p="q">Sort each first question for a menu of 16 dishes by what its worst answer leaves.</p>
+<ul data-p="items" data-cats="8 left,More than 8"><li data-cat="8 left" data-why="Either answer keeps 8 of the 16.">Is it among the first eight?</li><li data-cat="More than 8" data-why="A no keeps 15 dishes.">Is it the soup?</li><li data-cat="8 left" data-why="Odd and even numbers split 16 evenly.">Is its number odd?</li><li data-cat="More than 8" data-why="A no keeps the 12 others.">Is it one of the four desserts?</li></ul></div><!--/snip-->
+<!--snip:eqp--><div data-c="eqp"><div data-m="display">Q = \log_2 N</div></div><!--/snip-->
+<!--snip:step--><div data-c="step"><p>The bot now asks three fixed questions for the 8-dish menu and hands that count to the next chapter.</p></div><!--/snip-->
+<!--snip:warn--><div data-c="warn"><p>Three is the worst case for equally likely dishes; it is not yet the average when some dishes are ordered more often.</p></div><!--/snip-->
+<div data-c="close"><p>One yes or no answer can at best halve the candidates, so N equally likely items take log2 N questions, and doubling the menu adds one question.</p></div>
+</section>
+
+<section data-u="u-entropy">
+<div data-c="gist"><p>When some dishes are ordered far more often than others, can the bot use fewer than three questions on average? This chapter finds the floor for that average. It carries the halving idea from counts to probabilities.</p></div>
+<div data-c="probe" data-move="predict" data-level="understand" data-diff="1"><p data-p="q">Half of all orders are for one dish and the rest spread over three others. If the bot may change its questions, what happens to the average count?</p>
+<ol data-p="opts"><li>It stays at three<p data-p="why">Asking about the popular dish first ends half the games after one question.</p></li><li data-ok>It drops below three<p data-p="why">Frequent orders get short paths, so the average falls.</p></li><li>It rises above three<p data-p="why">Reordering questions never lengthens the worst path here; it only moves short paths to common dishes.</p></li></ol></div>
+<!--snip:insight--><p>Halving candidates and halving probability are the same move: an outcome with probability one half needs one question and one with one eighth needs three, <span data-c="cond">as long as each question splits the remaining probability evenly</span>. Probability now plays the part that counts played in <a data-ref="c-halving"></a>.</p><!--/snip-->
+<!--snip:see--><div data-see="tally"><p>The bot keeps an order tally: one row per dish, with how many of the week's orders named it. A dish's odds are its count divided by the week's total.</p>
+<figure data-c="fig" data-enc="p" data-tactic="table" data-kind="conceptual">
+<svg viewBox="0 0 200 50" role="img" aria-label="One tally row: dish B, 40 of 80 orders"><rect class="lx-p fill" x="0" y="10" width="100" height="24"/><text x="4" y="27">B</text><text x="110" y="27">40 of 80</text></svg>
+<figcaption>One tally row: the dish, then its orders out of the week's total.</figcaption>
+</figure>
+</div><!--/snip-->
+<!--snip:terms--><div data-c="terms"><p data-p="t">Symbols of this chapter</p>
+<dl><dt>p(x)</dt><dd>The probability of outcome x, read from the tally as its share of orders; between 0 and 1.</dd>
+<dt>I(x)</dt><dd>The surprisal of x in bits; 1 for p = 1/2, 3 for p = 1/8.</dd>
+<dt>H</dt><dd>The entropy of the whole menu in bits; 1.75 for odds 1/2, 1/4, 1/8, 1/8.</dd></dl></div><!--/snip-->
+<div data-c="defn" data-concept="c-surprisal"><p data-c="key">Surprisal is the number of bits an outcome of probability p costs: minus log2 p.</p>
+<p>An outcome with probability one half is isolated by one even split, so it costs one bit. One with probability one eighth needs three splits of the probability, so it costs three. Rare outcomes cost more because more halvings stand between them and the rest. A common confusion is to think the cost depends on what the outcome is called rather than how likely it is.</p>
+<details data-c="formal"><summary>Formal</summary><p><span data-m>I(x) = -\log_2 p(x)</span></p></details></div>
+<figure data-c="frames" data-concept="c-surprisal c-entropy" data-enc="p" data-tactic="frames" data-kind="computed">
+<ol>
+<li><svg viewBox="0 0 340 120" role="img" aria-label="Popular dish"><rect class="lx-p fill" x="0" y="80" width="160" height="30"/><text x="4" y="72">p = 1/2, cost 1</text></svg><p>The popular dish: half the width, one question tall.</p></li>
+<li><svg viewBox="0 0 340 120" role="img" aria-label="Second dish"><rect class="lx-p fill" x="0" y="80" width="160" height="30"/><rect class="lx-p fill" x="160" y="50" width="80" height="60"/><text x="164" y="42">p = 1/4, cost 2</text></svg><p>The second dish: a quarter wide, two questions tall.</p></li>
+<li><svg viewBox="0 0 340 120" role="img" aria-label="Rare dishes"><rect class="lx-p fill" x="0" y="80" width="160" height="30"/><rect class="lx-p fill" x="160" y="50" width="80" height="60"/><rect class="lx-p fill" x="240" y="20" width="40" height="90"/><rect class="lx-p fill" x="280" y="20" width="40" height="90"/><text x="176" y="14">1/8 each, cost 3</text></svg><p>The two rare dishes: narrow and tall.</p></li>
+<li><svg viewBox="0 0 340 120" role="img" aria-label="Area 1.75"><rect class="lx-p fill" x="0" y="80" width="160" height="30"/><rect class="lx-p fill" x="160" y="50" width="80" height="60"/><rect class="lx-p fill" x="240" y="20" width="40" height="90"/><rect class="lx-p fill" x="280" y="20" width="40" height="90"/><text x="4" y="40">area = 1.75 bits</text></svg><p>The total area is the average cost.</p></li>
+</ol>
+<p data-c="read">Width is probability and height is cost; each frame adds one dish, and the area grows to the average.</p>
+<figcaption>Average cost as area: 1.75 bits for odds one half, one quarter, one eighth, one eighth.</figcaption>
+</figure>
+<div data-c="defn" data-concept="c-entropy"><p data-c="key">Entropy is the average surprisal, and no guesser can beat it on average.</p>
+<p>The area reading explains the average. Each bar contributes its probability times its cost, and the bars together cover the whole width of one. For odds one half, one quarter, one eighth and one eighth, the bars give 0.5 + 0.5 + 0.375 + 0.375 = 1.75. No question order can push the area lower, because every outcome already pays exactly its surprisal; any other order makes some common outcome taller.</p>
+<details data-c="formal"><summary>Formal</summary><p><span data-m>H = -\sum_x p(x)\log_2 p(x)</span></p></details></div>
+<!--snip:note--><details data-c="note" id="n-shannon" data-grade="proved"><summary>Shannon's source coding theorem</summary><p data-p="design">A mathematical proof (theory), so no sample.</p><p data-p="found">No uniquely decodable code has a shorter expected length than the entropy, and codes come within one bit of it.</p><p data-p="limits">It bounds the average over many orders, not the questions for one order.</p><p data-p="source"><a href="https://doi.org/10.1002/j.1538-7305.1948.tb01338.x">Shannon (1948)</a>, Theorem 9; read in full.</p></details><!--/snip-->
+<div data-c="ask" id="ask-ent-1" data-move="intervene" data-level="analyze" data-diff="3"><p data-p="q">The two rare dishes merge into one dish with probability one quarter. What happens to the average?</p>
+<ol data-p="opts"><li>It stays at 1.75<p data-p="why">The merged dish now costs two questions, not three, so the area shrinks.</p></li><li data-ok>It falls to 1.5<p data-p="why">Costs 1, 2, 2 at odds 1/2, 1/4, 1/4 give 0.5 + 0.5 + 0.5.</p></li><li>It rises to 2<p data-p="why">Fewer outcomes never raise the average cost here; the tall bars disappear.</p></li></ol></div>
+<!--snip:exhibit--><div data-c="ask" id="ask-ent-tally" data-move="decide" data-level="apply" data-diff="2"><p data-p="q">Which dish should the bot's first question name, given this week's tally?</p>
+<div data-c="exhibit" role="img" aria-label="Tally: A 10, B 40, C 20, D 10 of 80 orders"><table><tr><th>Dish</th><th>Orders</th></tr><tr><td>A</td><td>10</td></tr><tr><td>B</td><td>40</td></tr><tr><td>C</td><td>20</td></tr><tr><td>D</td><td>10</td></tr></table></div>
+<ol data-p="opts"><li data-ok>Dish B<p data-p="why">B holds half of the orders, so one question ends half of the games.</p></li><li>Dish A<p data-p="why">A is first on the menu, but it holds only an eighth of the orders.</p></li><li>Dish C<p data-p="why">C holds a quarter of the orders, so asking it first lengthens the common path.</p></li></ol></div><!--/snip-->
+<!--snip:task-estimate--><div data-c="task" id="task-ent-est" data-kind="estimate" data-move="compute" data-level="apply" data-diff="2"><p data-p="q">Odds are one half, one quarter and one quarter. Estimate the average number of questions.</p>
+<div data-p="input" data-ans="1.5" data-tol="0.05"><span>questions</span></div>
+<p data-p="lo">Too low: even the popular dish costs a whole question.</p><p data-p="hi">Too high: the popular dish costs only one question, half of the time.</p>
+<p data-p="why">0.5 × 1 + 0.25 × 2 + 0.25 × 2 = 1.5.</p></div><!--/snip-->
+<!--snip:task-custom--><div data-c="task" id="task-ent-tree" data-kind="custom" data-widget="tree-pick" data-move="decide" data-level="create" data-diff="3"><p data-p="q">Tap the dishes in the order the bot should ask about them, most popular first.</p>
+<div class="tree-pick" data-want="B C A"><button type="button">A (1/8)</button><button type="button">B (1/2)</button><button type="button">C (1/4)</button></div></div><!--/snip-->
+<!--snip:task-select--><div data-c="task" id="task-ent-select" data-kind="select" data-move="diagnose" data-level="analyze" data-diff="2"><p data-p="q">Odds are 1/2, 1/4, 1/8, 1/8. Pick every question order that reaches the 1.75 average.</p>
+<ul data-p="items"><li data-ok data-why="Popular dish first, then the second, then the rare pair.">A, then B, then C or D</li><li data-ok data-why="Swapping the two rare dishes changes nothing.">A, then B, then D or C</li><li data-why="Asking about a rare dish first lengthens the common path.">C, then A, then B</li></ul></div><!--/snip-->
+<!--snip:badge--><p>Shorter paths for common dishes are the whole trick, and the same idea compresses text. <b data-c="badge" data-b="synthesis">synthesis</b></p><!--/snip-->
+<div data-c="step"><p>The bot asks about the popular dish first and now needs 1.75 questions per order on average, the final number of the project.</p></div>
+<div data-c="warn"><p>Entropy bounds the average, not each order: the rarest dishes still take three questions.</p></div>
+<!--snip:close--><div data-c="close"><p>An outcome with probability p costs minus log2 p questions, and the average of those costs, the entropy, is the floor for any guesser. Skewed odds lower the average because common outcomes get short paths.</p>
+<div data-c="ask" id="ask-ent-r1" data-variant-of="ask-bits-1" data-move="explain" data-level="understand" data-diff="2"><p data-p="q">A guesser may ask "is it A, B or C?" with three possible answers. In the worst case, what share of 12 candidates can one answer remove?</p>
+<ol data-p="opts" data-order="numeric"><li>Half of them<p data-p="why">That is the limit for two answers; three answers make three groups.</p></li><li data-ok>Two thirds<p data-p="why">Three groups of 4; the worst answer keeps 4 of 12.</p></li><li>All but one<p data-p="why">Only a lucky answer does that; the worst case keeps the largest group.</p></li></ol></div></div><!--/snip-->
+</section>
+
+<section data-u="appendix">
+<!--@legend-->
+<!--@notation-->
+<!--@glossary-->
+</section>
