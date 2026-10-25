@@ -80,7 +80,7 @@ def verdict(kind, rule, settings, text=None):
 
 
 def route(kind, event, role, me, listed):
-    call =board.command((event.get("tool_input") or {}).get("command", ""))
+    call = board.command((event.get("tool_input") or {}).get("command", ""))
     if kind == "PostToolUse":
         stray = call and call["write"] in ("file", "comment", "edit") and stray_posted(json.dumps(event.get("tool_response")))
         return stray and verdict(kind, f"A `holders:` or `deferred:` line sits outside a ```teamwork fence in {stray}, so code reads no holder; "
