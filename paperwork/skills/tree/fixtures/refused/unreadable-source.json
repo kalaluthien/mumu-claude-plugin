@@ -1,0 +1,1 @@
+{"title": "Unreadable source", "parts": [{"text": "The limit is 20 a minute.", "kind": "claim", "source": "server/src/scheduled/routes.ts:18"}, {"text": "The owner asked for it.", "source": "slack:message:C0BLF5EJBHC/1790042799.606439"}]}

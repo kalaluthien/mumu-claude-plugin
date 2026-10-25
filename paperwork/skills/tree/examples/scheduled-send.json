@@ -4,12 +4,12 @@
     {
       "text": "Add send later to the composer. The user must be able to cancel it, and it must never go out early.",
       "kind": "goal",
-      "source": "the user's prompt"
+      "source": "Dana Kim, 2026-10-22"
     },
     {
       "text": "People write replies at night and do not want them to arrive at night.",
       "kind": "evidence",
-      "source": "support notes"
+      "source": "https://example-co.atlassian.net/wiki/spaces/SUP/pages/support-notes"
     },
     {
       "text": "The user can pick a time in the composer.",
@@ -18,7 +18,7 @@
         {
           "text": "Send later saves the message with a time. It does not send.",
           "kind": "claim",
-          "source": "server/src/scheduled/routes.ts:18"
+          "source": "https://github.com/example-co/app/blob/main/server/src/scheduled/routes.ts#L18"
         },
         {
           "text": "The server sets the owner and the status. The client cannot.",
@@ -68,7 +68,7 @@
     {
       "text": "A worker claims due messages once a minute.",
       "kind": "claim",
-      "source": "server/src/scheduled/store.ts:58",
+      "source": "https://github.com/example-co/app/blob/main/server/src/scheduled/store.ts#L58",
       "parts": [
         {
           "text": "Cancel wins if it lands before the worker's claim.",

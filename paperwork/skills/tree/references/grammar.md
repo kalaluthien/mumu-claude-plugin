@@ -11,6 +11,7 @@ Four concepts: Part, Decision, Option, Answer. A plan is `{"title": str, "parts"
 | follow-up Question | `text`, `pick`, `else`; its options are Leaves: `text`, `parts` |
 
 - `kind` is a lowercase word: `goal`, `step`, `evidence`, `risk`, `note`, `consequence`, `question`, `mockup`. `risk` is drawn with a Risk pill; `mockup` draws its text as a screen in a frame, monospace, `[[x]]` a primary button and `[x]` a button. Kinds are free; only these two have a look.
+- `source` is a link a person can open (`https://` or `http://`, not `localhost`), or `<person>, YYYY-MM-DD`: who said it and the day. A path, an internal id, a tool or an agent name is not a source. `evidence` always has one; a claim with none is dropped or written as `guess`, its text starting `Guess:`. The person form has no middle dot, since the page draws the source as written.
 - `pick` is one object, so a Decision holds exactly one pick. A repeated key is refused when the file loads.
 - A Leaf has no `then`, so a follow-up inside a follow-up cannot be written.
 - An Option's `parts` are shown before the choice. They have no ids and take no strike, comment or edit.
@@ -31,12 +32,14 @@ A refusal prints `path: rule: detail`.
 | `pick-missing` | a follow-up Question with no `pick` |
 | `decision-in-option` | `pick` or `else` inside an Option's `parts` |
 | `empty-text` | an empty or missing `text` or `title` |
+| `unreadable-source` | a `source` that is neither a link a person can open nor `<person>, YYYY-MM-DD` |
+| `evidence-needs-source` | a Part of kind `evidence` with no `source` |
 | `bad-kind` | a `kind` that is not lowercase letters and `-` |
 | `wrong-type` | a value of the wrong JSON type |
 | `missing-key` | a plan with no `parts` |
 | `bad-json` | text that is not JSON |
 
-The refused fixtures in [../fixtures/refused/](../fixtures/refused/) show each of the four shape refusals. `answer-plan.json` is a valid plan, and `unknown-id.answer.md` names a Part it lacks; the reader refuses that, not the checker. `read-answer.py --expect-refused fixtures/refused/answer-plan.json fixtures/refused/*.answer.md` prints `refused 2 of 2`.
+The refused fixtures in [../fixtures/refused/](../fixtures/refused/) show each of the four shape refusals and the two source refusals. `answer-plan.json` is a valid plan, and `unknown-id.answer.md` names a Part it lacks; the reader refuses that, not the checker. `read-answer.py --expect-refused fixtures/refused/answer-plan.json fixtures/refused/*.answer.md` prints `refused 2 of 2`.
 
 ## Answer
 

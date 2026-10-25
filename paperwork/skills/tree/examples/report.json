@@ -21,7 +21,7 @@
     {
       "kind": "claim",
       "text": "A visual plan is a tree of four concepts: Part, Decision, Option and Answer.",
-      "source": "paperwork/skills/tree/references/grammar.md",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/grammar.md",
       "parts": [
         {
           "kind": "claim",
@@ -47,26 +47,30 @@
       "parts": [
         {
           "kind": "evidence",
-          "text": "Ids are tree positions computed by the page and the reader alike, never written, so a repeated id cannot exist; a written id key is refused as unknown-key."
+          "text": "Ids are tree positions computed by the page and the reader alike, never written, so a repeated id cannot exist; a written id key is refused as unknown-key.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/lib/tree_plan.py"
         },
         {
           "kind": "evidence",
-          "text": "A duplicate JSON key is refused at load, so a second pick cannot hide behind the first."
+          "text": "A duplicate JSON key is refused at load, so a second pick cannot hide behind the first.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/lib/tree_plan.py"
         },
         {
           "kind": "evidence",
-          "text": "The free-text Other is always the last number and never written, so it cannot collide with a real Option."
+          "text": "The free-text Other is always the last number and never written, so it cannot collide with a real Option.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/lib/tree_plan.py"
         },
         {
           "kind": "evidence",
-          "text": "The Answer's first line carries the plan's title and an eight-digit stamp of its exact JSON, so an Answer made from an older version is refused instead of landing on shifted ids."
+          "text": "The Answer's first line carries the plan's title and an eight-digit stamp of its exact JSON, so an Answer made from an older version is refused instead of landing on shifted ids.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/lib/tree_plan.py"
         }
       ]
     },
     {
       "kind": "claim",
       "text": "One fixed page presents every plan; the interaction does not change per plan.",
-      "source": "paperwork/skills/tree/references/show.md",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/show.md",
       "parts": [
         {
           "kind": "step",
@@ -93,78 +97,95 @@
       "parts": [
         {
           "kind": "evidence",
-          "text": "Default pick, one-press accept: the grammar's pick, drawn as Agent's pick on 1."
+          "text": "Default pick, one-press accept: the grammar's pick, drawn as Agent's pick on 1.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/grammar.md"
         },
         {
           "kind": "evidence",
-          "text": "Chips build a reply sentence: replaced by the Answer, one line per pick, which a script reads instead of a sentence."
+          "text": "Chips build a reply sentence: replaced by the Answer, one line per pick, which a script reads instead of a sentence.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/grammar.md"
         },
         {
           "kind": "evidence",
-          "text": "One-line directive per decision: the Answer's line per Part."
+          "text": "One-line directive per decision: the Answer's line per Part.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/grammar.md"
         },
         {
           "kind": "evidence",
-          "text": "Confirm or correct with a template: the edited and comment lines."
+          "text": "Confirm or correct with a template: the edited and comment lines.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/grammar.md"
         },
         {
           "kind": "evidence",
-          "text": "Whole tree up front, follow-up under its option: the grammar's then, drawn under its Option."
+          "text": "Whole tree up front, follow-up under its option: the grammar's then, drawn under its Option.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/grammar.md"
         },
         {
           "kind": "evidence",
-          "text": "Consequences and flags before the choice, note with source: Option child Parts, the risk kind and the source chip; shown always, not on hover, a view choice."
+          "text": "Consequences and flags before the choice, note with source: Option child Parts, the risk kind and the source chip; shown always, not on hover, a view choice.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/show.md"
         },
         {
           "kind": "evidence",
-          "text": "Numbered keys with a hint that changes with state: the page's keys and hint line."
+          "text": "Numbered keys with a hint that changes with state: the page's keys and hint line.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/show.md"
         },
         {
           "kind": "evidence",
-          "text": "Free-text escape Other: the page's last number, read back as other."
+          "text": "Free-text escape Other: the page's last number, read back as other.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/grammar.md"
         },
         {
           "kind": "evidence",
-          "text": "One question at a time, capped: a view choice, since the page shows the whole tree; the cap is a host concern."
+          "text": "One question at a time, capped: a view choice, since the page shows the whole tree; the cap is a host concern.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/show.md"
         },
         {
           "kind": "evidence",
-          "text": "Commit is final, decided items leave: a view choice the page declines, since undo before copying is cheaper than a wrong answer."
+          "text": "Commit is final, decided items leave: a view choice the page declines, since undo before copying is cheaper than a wrong answer.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/show.md"
         },
         {
           "kind": "evidence",
-          "text": "Edit a part in a throwaway editor: the edited line, per Part rather than per file."
+          "text": "Edit a part in a throwaway editor: the edited line, per Part rather than per file.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/grammar.md"
         },
         {
           "kind": "evidence",
-          "text": "Strike and comment on parts: the struck and comment lines."
+          "text": "Strike and comment on parts: the struck and comment lines.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/grammar.md"
         },
         {
           "kind": "evidence",
-          "text": "Whole-document response: the Answer as a whole, headed by the plan's title and stamp."
+          "text": "Whole-document response: the Answer as a whole, headed by the plan's title and stamp.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/grammar.md"
         },
         {
           "kind": "evidence",
-          "text": "Read-only plan handed to a new session: a plan with no Decision; the page draws it, and its Answer is the head line alone."
+          "text": "Read-only plan handed to a new session: a plan with no Decision; the page draws it, and its Answer is the head line alone.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/grammar.md"
         },
         {
           "kind": "evidence",
-          "text": "Approval picks how the work runs: a host concern, out of scope, as in the revised plan."
+          "text": "Approval picks how the work runs: a host concern, out of scope, as in the revised plan.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/show.md"
         }
       ]
     },
     {
       "kind": "claim",
       "text": "The grammar wrote all eleven inputs as plans whose Answers read back into a valid next version.",
-      "source": "paperwork/skills/tree/examples",
+      "source": "https://github.com/kalaluthien/mumu-claude-plugin/tree/main/paperwork/skills/tree/examples",
       "parts": [
         {
           "kind": "evidence",
-          "text": "Five surveyed inputs: Thariq's implementation plan, the affectUI queue, the owner's screenshots, the owner's example Artifact and Lenny's rules table."
+          "text": "Five surveyed inputs: Thariq's implementation plan, the affectUI queue, the owner's screenshots, the owner's example Artifact and Lenny's rules table.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/tree/main/paperwork/skills/tree/examples"
         },
         {
           "kind": "evidence",
-          "text": "Six plan products: Google Jules, Cursor plan mode, Kiro specs, Spec Kit clarify, LangGraph interrupts and Copilot Workspace, each from its own documentation."
+          "text": "Six plan products: Google Jules, Cursor plan mode, Kiro specs, Spec Kit clarify, LangGraph interrupts and Copilot Workspace, each from its own documentation.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/tree/main/paperwork/skills/tree/examples"
         },
         {
           "kind": "risk",
@@ -200,31 +221,38 @@
       "parts": [
         {
           "kind": "evidence",
-          "text": "Correctness of the round trip: an Answer applied to the version it produced landed on shifted ids with no error. Fixed: the stamp now refuses it, and stale.answer.md shows the refusal."
+          "text": "Correctness of the round trip: an Answer applied to the version it produced landed on shifted ids with no error. Fixed: the stamp now refuses it, and stale.answer.md shows the refusal.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/lib/tree_plan.py"
         },
         {
           "kind": "evidence",
-          "text": "Correctness of the round trip: an Answer whose title names another plan was accepted. Fixed by the same first-line check."
+          "text": "Correctness of the round trip: an Answer whose title names another plan was accepted. Fixed by the same first-line check.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/lib/tree_plan.py"
         },
         {
           "kind": "evidence",
-          "text": "Hostile paste: chat prose around the Answer is refused with its line number, so a paste with extra words fails loudly instead of being guessed."
+          "text": "Hostile paste: chat prose around the Answer is refused with its line number, so a paste with extra words fails loudly instead of being guessed.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/lib/tree_plan.py"
         },
         {
           "kind": "evidence",
-          "text": "Hostile paste: a newline typed into a comment collapses to one line on the page, so it cannot forge a second Answer line."
+          "text": "Hostile paste: a newline typed into a comment collapses to one line on the page, so it cannot forge a second Answer line.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/lib/tree_plan.py"
         },
         {
           "kind": "evidence",
-          "text": "Ambiguous intent: a Part both struck and edited is removed, since strikes apply last. Kept: the strike is the stronger act."
+          "text": "Ambiguous intent: a Part both struck and edited is removed, since strikes apply last. Kept: the strike is the stronger act.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/lib/tree_plan.py"
         },
         {
           "kind": "evidence",
-          "text": "Load on the owner: the page shows every Part and follow-up at once, which a long plan makes tall. Kept as a view choice; a host that needs paging can page Decisions without changing the grammar."
+          "text": "Load on the owner: the page shows every Part and follow-up at once, which a long plan makes tall. Kept as a view choice; a host that needs paging can page Decisions without changing the grammar.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/show.md"
         },
         {
           "kind": "evidence",
-          "text": "Faithfulness: the products' answer channels are richer than one Markdown line (timers, typed payloads, anchored spans). Kept: each is named above as a view choice, a host concern or a grammar change."
+          "text": "Faithfulness: the products' answer channels are richer than one Markdown line (timers, typed payloads, anchored spans). Kept: each is named above as a view choice, a host concern or a grammar change.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/grammar.md"
         }
       ]
     },
@@ -234,7 +262,8 @@
       "parts": [
         {
           "kind": "evidence",
-          "text": "The owner's example Artifact already reports such a decision as kept as proposed, and the Answer stays one line per change."
+          "text": "The owner's example Artifact already reports such a decision as kept as proposed, and the Answer stays one line per change.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/tree/main/paperwork/skills/tree/examples"
         },
         {
           "kind": "risk",
@@ -253,7 +282,8 @@
       "parts": [
         {
           "kind": "evidence",
-          "text": "The fade keeps the owner's eye on the current Decision, as a gate between phases would, but nothing is hidden or locked, so the plan stays one page and Copy Answer is unchanged."
+          "text": "The fade keeps the owner's eye on the current Decision, as a gate between phases would, but nothing is hidden or locked, so the plan stays one page and Copy Answer is unchanged.",
+          "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/show.md"
         },
         {
           "kind": "note",
