@@ -10,7 +10,7 @@ Four concepts: Part, Decision, Option, Answer. A plan is `{"title": str, "parts"
 | Option | `text` (required), `parts` (Parts with no `pick` or `else`), `then` |
 | follow-up Question | `text`, `pick`, `else`; its options are Leaves: `text`, `parts` |
 
-- `kind` is a lowercase word: `goal`, `step`, `evidence`, `risk`, `note`, `consequence`, `question`. `risk` is drawn amber. Kinds are free; only `risk` has a look.
+- `kind` is a lowercase word: `goal`, `step`, `evidence`, `risk`, `note`, `consequence`, `question`, `mockup`. `risk` is drawn with a Risk pill; `mockup` draws its text as a screen in a frame, monospace, `[[x]]` a primary button and `[x]` a button. Kinds are free; only these two have a look.
 - `pick` is one object, so a Decision holds exactly one pick. A repeated key is refused when the file loads.
 - A Leaf has no `then`, so a follow-up inside a follow-up cannot be written.
 - An Option's `parts` are shown before the choice. They have no ids and take no strike, comment or edit.
