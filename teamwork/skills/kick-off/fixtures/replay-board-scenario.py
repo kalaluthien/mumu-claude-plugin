@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""File a backlog and a task, nest and order them, set holders, ask by BLOCKED, answer by DECIDED, edit the body and resolve both, writing only through
-use-board.py, and print after each step a `step <name>` line, the composed state of each issue it filed and the board lines, numbers and urls replaced
+"""File a backlog and a task, nest and order them, set holders, ask by BLOCKED, answer by DECIDED, edit the body and resolve both, then retitle and
+reopen the backlog, nest a follow-up task under it and resolve both again, writing only through use-board.py, and print after each step a `step <name>` line, the composed state of each issue it filed and the board lines, numbers and urls replaced
 by names, so two boards that print the same text keep the same protocol. The files board runs in a temporary folder. The github board runs on the
 repository `GH_REPO` names, as the tape of recorded-gh/gh beside this file holds it, never this one, since its issues would reach the team's board:
 with `GH_REPO` unset or naming it, the run calls no gh, prints `not a sandbox` and exits 1.
@@ -55,7 +55,7 @@ def show(step):
         parent = names.get(r["parent"])
         criteria = [(d["kind"], d["name"], bool(d["met"])) for d in s["done"]]
         print(plain(f"{name}: {r['state']} labels={sorted(r['labels'])} parent={parent} holders={s['holders']} waits={s['waits']} comments={len(r['comments'])} criteria={criteria}"))
-    closed = sum(board.fresh(n, comments=False)["state"] == "CLOSED" for n, v in names.items() if v == "task")
+    closed = sum(board.fresh(n, comments=False)["state"] == "CLOSED" for n, v in names.items() if v != "backlog")
     for _ in range(15):  # GitHub counts a parent's closed sub-issues a moment after the close, so read until the count agrees
         nodes = board.tree(None)
         if nodes is None:
@@ -113,6 +113,16 @@ def main(args):
     show("resolve-task")
     use("resolve", number("backlog"), text("backlog-done.md", "REPORTED: probe landed\n"))
     show("resolve-backlog")
+    use("title", number("backlog"), "Probe the board again")
+    show("retitle")
+    use("reopen", number("backlog"))
+    show("reopen")
+    filed("follow-up", "Probe the board follow-up", TASK)
+    use("nest", number("backlog"), number("follow-up"))
+    show("nest-again")
+    use("resolve", number("follow-up"), text("follow-up-done.md", "REPORTED: follow-up landed\n"))
+    use("resolve", number("backlog"), text("backlog-again.md", "REPORTED: follow-up landed\n"))
+    show("resolve-again")
     return 0
 
 

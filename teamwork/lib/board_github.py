@@ -290,6 +290,14 @@ def resolve(number, summary, completed=True):
     write("-X", "PATCH", f"repos/{{owner}}/{{repo}}/issues/{number}", "-f", "state=closed", "-f", f"state_reason={'completed' if completed else 'not_planned'}")
 
 
+def reopen(number):
+    write("-X", "PATCH", f"repos/{{owner}}/{{repo}}/issues/{number}", "-f", "state=open")
+
+
+def retitle(number, title):
+    write("-X", "PATCH", f"repos/{{owner}}/{{repo}}/issues/{number}", "-f", f"title={title}")
+
+
 def order(later, earlier):
     """Records that LATER waits on EARLIER."""
     write("-X", "POST", f"repos/{{owner}}/{{repo}}/issues/{later}/dependencies/blocked_by", "-F", f"issue_id={node_id(earlier)}")

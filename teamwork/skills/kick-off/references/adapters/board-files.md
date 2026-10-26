@@ -7,8 +7,9 @@ The board is a folder of plain files, `TEAMWORK_BOARD_DIR`, else `.teamwork/boar
 | `read` | `use-board.py read <n>` |
 | `comment` | `use-board.py comment <n> <body-file>` |
 | `file` | `use-board.py file <title> <body-file> [label...]` |
-| `edit` | `use-board.py edit <n> <diff-file> "DECIDED: <why>"`, which runs [edit-issue-body.py](../../scripts/edit-issue-body.py) |
+| `edit` | `use-board.py edit <n> <diff-file> "DECIDED: <why>"`, which runs [edit-issue-body.py](../../scripts/edit-issue-body.py); the title by `use-board.py title <n> <title>` |
 | `resolve` | `use-board.py resolve <n> <summary-file> [--not-planned]`, the file's text opening with `REPORTED:` |
+| `reopen` | `use-board.py reopen <n>` |
 | `decide` | `use-board.py decide <n> <body-file>`, the file's text opening with `DECIDED:` |
 | `order` | `use-board.py order <later> <earlier>` |
 | `nest` | `use-board.py nest <backlog> <task>` |

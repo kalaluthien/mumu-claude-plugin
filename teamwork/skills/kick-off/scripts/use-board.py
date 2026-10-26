@@ -7,7 +7,9 @@ usage: use-board.py <operation> <args>
   comment <issue> <body-file>           append the file's text as a comment
   file <title> <body-file> [label...]   open an issue; print its url
   edit <issue> <diff-file> <line>       change the body by a diff, with the keyword line [edit-issue-body.py](edit-issue-body.py) posts first
+  title <issue> <title>                 change the title
   resolve <issue> <summary-file> [--not-planned]
+  reopen <issue>                        open a closed issue again
   decide <issue> <body-file>            comment a text that opens with `DECIDED:`
   order <later> <earlier>               record that LATER waits on EARLIER
   nest <backlog> <task>                 put TASK under BACKLOG
@@ -39,6 +41,10 @@ def main(args):
             return subprocess.run([sys.executable, str(HERE / "edit-issue-body.py"), *a]).returncode
         elif verb == "resolve" and len(a) in (2, 3) and text(a[1]).startswith("REPORTED:"):
             board.resolve(a[0], text(a[1]), "--not-planned" not in a[2:])
+        elif verb == "title" and len(a) == 2:
+            board.retitle(*a)
+        elif verb == "reopen" and len(a) == 1:
+            board.reopen(a[0])
         elif verb == "decide" and len(a) == 2 and text(a[1]).startswith("DECIDED:"):
             print(board.comment(a[0], text(a[1])))
         elif verb == "order" and len(a) == 2:
