@@ -5,8 +5,10 @@ An agent's name picks the dialog it shows: `trust` the folder trust dialog at st
 and a `blocked` agent with a `screen` the exit dialog of background work; each clears on the key that answers it.
 A prompt to a `blocked` agent is refused `agent_blocked`, an `unblock` agent refuses its first prompt so, and an `unseen` agent
 takes a prompt but never shows it, and a `refuse` agent refuses every prompt `agent_pane_closed`; `agent wait` ends a working
-agent's turn at once and times out on a blocked one, and an agent with `move` moves to that pane after the `move_after`th list
-that shows it (default the first). FAKE_HERDR_BREAK=accept takes every prompt and every wait instead."""
+agent's turn at once and times out on a blocked one, and an agent with `move`, or one started with `moving` in its
+name, moves to that pane after the `move_after`th list that shows it (default the first). A target no agent has is refused
+`agent_not_found`; with FAKE_HERDR_HOME set, a `/rename <name>` prompt is recorded in that home's transcript, as
+Claude Code does. FAKE_HERDR_BREAK=accept takes every prompt and every wait instead."""
 import json, os, pathlib, sys
 
 state_path = pathlib.Path(os.environ["FAKE_HERDR_STATE"])
@@ -61,12 +63,28 @@ elif head == ["agent", "start"]:
     pane = opt("--pane")
     s["agents"].append({"name": argv[2], "pane_id": pane, "tab_id": pane.replace(":p", ":t"), "workspace_id": pane.split(":")[0],
                         "agent": "claude", "agent_status": "idle", "interactive_ready": "trust" not in argv[2],
-                        "screen": "Yes, I trust this folder" if "trust" in argv[2] else ""})
+                        "screen": "Yes, I trust this folder" if "trust" in argv[2] else "", **({"move": "w99:p99"} if "moving" in argv[2] else {})})
     ok()
 elif head == ["agent", "read"]:
     print(by_pane(argv[2]).get("screen", ""))
+elif head[0] in ("agent", "pane") and head[1] in ("prompt", "send-keys", "read", "rename", "send-text") and not by_pane(argv[2]):
+    print(json.dumps({"error": {"code": "agent_not_found", "message": f"no agent {argv[2]}"}}))
+    code = 1
+elif head == ["agent", "rename"]:
+    by_pane(argv[2])["name"] = argv[3]
+    ok()
+elif head == ["pane", "send-text"]:
+    a = by_pane(argv[2])
+    if a.get("agent_status") == "blocked":
+        a["agent_status"], a["screen"], a["answered"] = "working", "", argv[3]
+    ok()
 elif head == ["agent", "prompt"]:
     a = by_pane(argv[2])
+    if argv[3].startswith("/rename ") and os.environ.get("FAKE_HERDR_HOME") and a.get("agent_session"):
+        transcript = pathlib.Path(os.environ["FAKE_HERDR_HOME"]) / ".claude" / "projects" / "fake" / f"{a['agent_session']['value']}.jsonl"
+        transcript.parent.mkdir(parents=True, exist_ok=True)
+        with transcript.open("a") as f:
+            f.write(json.dumps({"type": "custom-title", "customTitle": argv[3].split(" ", 1)[1]}, separators=(",", ":")) + "\n")
     if BREAK:
         a["agent_status"], a["ticks"] = "working", 2
         ok()

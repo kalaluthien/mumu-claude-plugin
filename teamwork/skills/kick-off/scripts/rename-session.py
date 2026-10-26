@@ -41,7 +41,7 @@ def main(args):
         print(f"not renamed to {name}: herdr gives this session no id, so its transcript cannot be read")
         return 1
     session.rename(me, name)
-    session.herdr("agent", "rename", me["pane_id"], name)
+    session.herdr("agent", "rename", me.get("name") or me["pane_id"], name)  # its name, resolved on each call, since herdr may move the pane
     refused = None
     for _ in range(TRIES):
         before = len(recorded(session_id))

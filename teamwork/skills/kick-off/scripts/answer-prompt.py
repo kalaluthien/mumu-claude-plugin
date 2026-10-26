@@ -56,7 +56,7 @@ def main(args):
     if any(w in label.lower().replace("’", "'") for w in WIDER):
         sys.exit(f"answer-prompt.py: choice {choice} \"{label}\" allows more than this one action, so it is never sent; `ask` the owner.")
     try:
-        session.answer(live["pane_id"], choice)
+        session.answer((session.agent(name) or live)["pane_id"], choice)  # read again, since herdr may move the pane and send-text takes only a pane
     except RuntimeError as e:
         sys.exit(f"answer-prompt.py: {e}; nothing answered.")
     print(f"{name} answered \"{question}\" with {choice}. {label}")
