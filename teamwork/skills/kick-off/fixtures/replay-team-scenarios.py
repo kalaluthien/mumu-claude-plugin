@@ -135,14 +135,56 @@ def monitor_restart():
 
 def two_managers():
     """Two managers of two projects in one workspace: neither is told to close the other, each is told to move to a workspace of its own,
-    and a third is refused a tab there."""
+    and a successor misnamed is refused."""
     state = herdr(*TEAM, agent("other-manager", 4, "idle"), agent("other-task-worker", 5, "idle"))
     outs = {pane: hook(state, pane, {"hook_event_name": "SessionStart", "session_id": ""}) for pane in ("w1:p1", "w1:p4")}
-    ok = all([l.split(":")[0] for l in lines_about(o, other)] == ["shared workspace"] and f"`start` `{me}-next` `--team`" in o for o, me, other in
+    ok = all([l.split(":")[0] for l in lines_about(o, other)] == ["shared workspace"] and f"`start` `{me}-next` with `succeed {me}`" in o for o, me, other in
              ((outs["w1:p1"], "teamwork-manager", "other-manager"), (outs["w1:p4"], "other-manager", "teamwork-manager")))
-    refusals = [run([SCRIPTS / "start-session.py", "third-manager", "/tmp", args, "--model", "haiku", "--effort", "low"], state, "w1:p1")
-                for args in ("third", "succeed teamwork-manager")]
-    return ok and all(code == 1 and "start it with --team" in out for code, out in refusals), "\n".join([*outs.values(), *(out for _, out in refusals)])
+    code, out = start(state, "w1:p1", "third-manager", "succeed teamwork-manager")
+    return ok and code == 1 and "not named teamwork-manager-next" in out, "\n".join([*outs.values(), out])
+
+
+def start(state, pane, name, args, *flags):
+    return run([SCRIPTS / "start-session.py", name, "/tmp", args, "--model", "haiku", "--effort", "low", *flags], state, pane, seconds=30)
+
+
+def workspace_of(state, name):
+    return next((a["workspace_id"] for a in json.loads(pathlib.Path(state).read_text())["agents"] if a["name"] == name), None)
+
+
+def workspaces(state):
+    return {t["workspace_id"] for t in json.loads(pathlib.Path(state).read_text())["tabs"]}
+
+
+def worker_placement():
+    """A worker and a sentinel started from a pane in another workspace land in their manager's; one naming a manager not live
+    is refused with nothing opened, and no placement flag is taken."""
+    state = herdr(*TEAM, agent("other-task-worker", 1, "idle", "w2"))
+    before = workspaces(state)
+    outs = [start(state, "w2:p1", "place-task-worker", "worker place-task-worker manager teamwork-manager x"),
+            start(state, "w2:p1", "place-duty-sentinel", "sentinel place-duty-sentinel manager teamwork-manager x")]
+    tabs_before = len(json.loads(state.read_text())["tabs"])
+    refused = [start(state, "w1:p1", "lost-task-worker", "worker lost-task-worker manager gone-manager x"),
+               *(start(state, "w1:p1", "flag-task-worker", "worker flag-task-worker manager teamwork-manager x", *flags)
+                 for flags in (["--team"], ["--beside", "teamwork-manager"]))]
+    ok = all(code == 0 for code, _ in outs) and workspace_of(state, "place-task-worker") == workspace_of(state, "place-duty-sentinel") == "w1" \
+        and workspaces(state) == before and len(json.loads(state.read_text())["tabs"]) == tabs_before \
+        and refused[0][0] == 1 and "gone-manager is not live" in refused[0][1] and all(code == 2 for code, _ in refused[1:])
+    return ok, "\n".join(out for _, out in outs + refused)
+
+
+def manager_placement():
+    """A manager opens a workspace of its own; a successor joins its predecessor's workspace, or opens its own when another project's
+    manager shares that workspace."""
+    state = herdr(*TEAM, agent("crowded-manager", 1, "idle", "w3"), agent("other-manager", 2, "idle", "w3"))
+    outs = [start(state, "w1:p2", "fresh-manager", "fresh"),
+            start(state, "w1:p2", "teamwork-manager-next", "succeed teamwork-manager"),
+            start(state, "w1:p2", "crowded-manager-next", "succeed crowded-manager")]
+    placed = [workspace_of(state, n) for n in ("fresh-manager", "teamwork-manager-next", "crowded-manager-next")]
+    labels = {t["workspace_id"]: t["label"] for t in json.loads(state.read_text())["tabs"]}
+    ok = all(code == 0 for code, _ in outs) and placed[0] not in ("w1", "w3", None) and placed[1] == "w1" \
+        and placed[2] not in ("w1", "w3", None, placed[0]) and labels.get(placed[0]) == "fresh-manager"
+    return ok, "\n".join(out for _, out in outs) + f"\nplaced {placed}"
 
 
 SCENARIOS = {
@@ -155,6 +197,8 @@ SCENARIOS = {
     "send-failed": send_failed,
     "monitor-restart": monitor_restart,
     "two-managers": two_managers,
+    "worker-placement": worker_placement,
+    "manager-placement": manager_placement,
 }
 def main(args):
     global VERBOSE, SCENARIO

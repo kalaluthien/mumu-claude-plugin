@@ -86,7 +86,7 @@ def manager_actions(me, listed, data=None, fed=None):
     lines = limited(found, ISSUE_LIMIT, "open-issue")  # merged PRs past the newest are always many and no live worker's
     if crowd := crowding(me, listed):
         lines.append(f"shared workspace: {', '.join(crowd)} manage another project in your workspace; move to a workspace of your own: "
-                     f"`start` `{me['name']}-next` `--team` with `succeed {me['name']}`, as Succession says")
+                     f"`start` `{me['name']}-next` with `succeed {me['name']}`, as Succession says, which opens one")
     # a started worker names its tab before its agent is live, so its tab counts it as routed
     present = set(team) | {t.get("label") for t in tabs(me.get("workspace_id", ""))}
     # a cloud name holds on every open issue, so a task its worker filed itself counts as held though only the backlog names it cloud
