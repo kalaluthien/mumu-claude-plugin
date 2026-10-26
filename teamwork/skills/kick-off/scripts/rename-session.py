@@ -45,7 +45,7 @@ def main(args):
     refused = None
     for _ in range(TRIES):
         before = len(recorded(session_id))
-        refused = session.prompt(me["pane_id"], f"/rename {name}")
+        refused = session.prompt(name, f"/rename {name}")  # herdr's new name, resolved on each call, since it may move the pane
         if refused:
             time.sleep(SETTLE)
             continue

@@ -187,6 +187,21 @@ def manager_placement():
     return ok, "\n".join(out for _, out in outs) + f"\nplaced {placed}"
 
 
+def moved_me():
+    """A session whose pane moved, its shell's HERDR_PANE_ID left naming another session's pane, still finds itself by its session id."""
+    state = herdr(dict(agent("teamwork-manager", 15, "idle", "w4"), agent_session={"value": "moved-id"}), agent("other-manager", 1, "idle", "w9"))
+    code, out = run([SCRIPTS / "print-scope-label.py", "--me"], state, "w9:p1", CLAUDE_CODE_SESSION_ID="moved-id")
+    return code == 0 and out.strip() == "scope:teamwork", out
+
+
+def moved_close():
+    """A session whose pane moves while it is closed still gets its dialog answered at its new pane, and closes."""
+    stuck = dict(agent("moving-worker", 1, "blocked", "w9"), screen="Background work is running", move="w4:p15", move_after=2)  # after the own check and the first read
+    state = herdr(*TEAM, stuck)
+    code, out = run([SCRIPTS / "close-session.py", "moving-worker"], state, "w1:p1", seconds=30, CLOSE_SESSION_TIMEOUT="5")
+    return code == 0 and "moving-worker exited" in out, out
+
+
 SCENARIOS = {
     "github-team": github_team,
     "files-board": files_board,
@@ -199,6 +214,8 @@ SCENARIOS = {
     "two-managers": two_managers,
     "worker-placement": worker_placement,
     "manager-placement": manager_placement,
+    "moved-me": moved_me,
+    "moved-close": moved_close,
 }
 def main(args):
     global VERBOSE, SCENARIO

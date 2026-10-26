@@ -13,8 +13,13 @@ POLL = 1.0
 
 
 def sessions(session_id=None):
-    """Every live agent, and this session's own: its pane's, unless the pane runs another session, as a worker's child does."""
+    """Every live agent, and this session's own: the one herdr lists with its session id, since herdr may move a pane and the shell's
+    HERDR_PANE_ID stays as it started; else its pane's, unless the pane runs another session, as a worker's child does."""
     listed = (run("herdr", "agent", "list") or {}).get("result", {}).get("agents", [])
+    session_id = session_id or os.environ.get("CLAUDE_CODE_SESSION_ID")
+    by_id = next((a for a in listed if session_id and (a.get("agent_session") or {}).get("value") == session_id), None)
+    if by_id:
+        return listed, by_id
     me = next((a for a in listed if a.get("pane_id") == os.environ.get("HERDR_PANE_ID")), {})
     own = not session_id or (me.get("agent_session") or {}).get("value") in (None, "", session_id)
     return listed, me if own else {}
@@ -40,7 +45,6 @@ def herdr(*argv):
 
 
 def open_tab(workspace, cwd, label):
-    workspace = workspace or herdr("pane", "get", os.environ["HERDR_PANE_ID"])["pane"]["workspace_id"]
     return herdr("tab", "create", "--workspace", workspace, "--cwd", cwd, "--label", label, "--no-focus")["root_pane"]
 
 

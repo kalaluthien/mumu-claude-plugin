@@ -5,7 +5,8 @@ An agent's name picks the dialog it shows: `trust` the folder trust dialog at st
 and a `blocked` agent with a `screen` the exit dialog of background work; each clears on the key that answers it.
 A prompt to a `blocked` agent is refused `agent_blocked`, an `unblock` agent refuses its first prompt so, and an `unseen` agent
 takes a prompt but never shows it, and a `refuse` agent refuses every prompt `agent_pane_closed`; `agent wait` ends a working
-agent's turn at once and times out on a blocked one. FAKE_HERDR_BREAK=accept takes every prompt and every wait instead."""
+agent's turn at once and times out on a blocked one, and an agent with `move` moves to that pane after the `move_after`th list
+that shows it (default the first). FAKE_HERDR_BREAK=accept takes every prompt and every wait instead."""
 import json, os, pathlib, sys
 
 state_path = pathlib.Path(os.environ["FAKE_HERDR_STATE"])
@@ -34,7 +35,12 @@ def opt(name):
 
 head = argv[:2]
 if head == ["agent", "list"]:
-    ok({"agents": [{k: v for k, v in a.items() if k not in ("ticks", "screen")} for a in s["agents"]]})
+    ok({"agents": [{k: v for k, v in a.items() if k not in ("ticks", "screen", "move", "move_after", "lists")} for a in s["agents"]]})
+    for a in s["agents"]:  # a pane herdr moved, as from w9:p1 to w4:pF
+        a["lists"] = a.get("lists", 0) + 1
+        if a.get("move") and a["lists"] >= a.get("move_after", 1):
+            a["pane_id"], a["tab_id"], a["workspace_id"] = a["move"], a["move"].replace(":p", ":t"), a["move"].split(":")[0]
+            del a["move"]
     for a in s["agents"]:  # a prompted agent works for two reads, then waits
         if a.get("ticks"):
             a["ticks"] -= 1

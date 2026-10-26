@@ -26,15 +26,14 @@ def close(name):
         time.sleep(POLL)
     if not a:
         return print(f"{name} is not live; nothing to close.")
-    pane = a["pane_id"]
     if a.get("agent_status") != "blocked":  # a blocked session already shows a dialog and refuses a prompt
-        session.prompt(pane, agent.EXIT)
+        session.prompt(name, agent.EXIT)  # the name, which herdr resolves on each call, since it may move the pane
     answered = set()
-    while session.agent(name) and time.time() < deadline:
-        screen = session.screen(pane)
+    while (now := session.agent(name)) and time.time() < deadline:
+        a, screen = now, session.screen(name)  # the latest read, whose tab close shuts
         for text, key in agent.DIALOGS:
             if text in screen and text not in answered:
-                session.send_keys(pane, key)
+                session.send_keys(name, key)
                 answered.add(text)
                 break
         time.sleep(POLL)

@@ -1,6 +1,6 @@
 # Session: herdr
 
-Each session is a herdr agent in a herdr pane, shown by a herdr tab, and a team's tabs share one herdr workspace; `$HERDR_PANE_ID` is your pane.
+Each session is a herdr agent in a herdr pane, shown by a herdr tab, and a team's tabs share one herdr workspace. herdr may move a pane, as from `w9:p1` to `w4:pF`, and a shell's `$HERDR_PANE_ID` keeps the pane it started in, so name a session, never a pane id kept from an earlier read: herdr resolves the name on each call, and the scripts find your own session by its session id.
 
 | operation | how |
 | --- | --- |
