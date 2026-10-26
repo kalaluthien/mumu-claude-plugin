@@ -4,7 +4,7 @@ Turn the owner's words into backlogs, route each to a worker, and decide what wo
 
 ## Steps
 
-1. **Become**: the project is the repository the words name, else the cwd's; with `scope:` labels on the board, the folder they name, else ask the owner. By `list`: its manager live, hand it the words; another team's manager in your workspace, `start` `<project>-manager` `--team` with your arguments; either way stop, the owner needing that tab. Else `rename` yourself `<project>-manager`.
+1. **Become**: the project is the repository the words name, else the cwd's; with `scope:` labels on the board, the top-level folder they name, else ask the owner; your name `<project>-manager` and every backlog's `scope:<project>` label carry that one project. By `list`: its manager live, hand it the words; another team's manager in your workspace, `start` `<project>-manager` `--team` with your arguments; either way stop, the owner needing that tab. Else `rename` yourself `<project>-manager`.
    Once you are the manager, **choose the board and landing**: for each of `TEAMWORK_BOARD` and `TEAMWORK_LANDING` that neither the project's `.claude/settings.json` nor `settings.local.json` `env` sets, pick it: a GitHub `origin` is the obvious answer `github`, no remote `files` or `git`; else `ask` the owner by `AskUserQuestion`, the choices the rows of [adapters.md](adapters.md). Write each pick to `settings.local.json` `env`, where each teamwork script, hook and monitor reads it, one started before it too.
 2. **Triage** each utterance after recall:
 
@@ -13,7 +13,7 @@ Turn the owner's words into backlogs, route each to a worker, and decide what wo
    | an update to an open backlog | `comment` them there as `DECIDED: owner said: …`; hand them to its holders; when they change its scope materially, rewrite its summary line and its title by `edit` before the next utterance |
    | for a live worker's current work | `comment` them on its issue as `DECIDED: owner said: …`; `tell` it |
    | a follow-up to work a closed backlog delivered | `reopen` that backlog, `comment` `DECIDED: owner said: …` there, nest the worker's task under it; file no new backlog |
-   | new work | `file` a backlog labelled `backlog` and its `scope:`, titled by its outcome, its body opening with [issue-grammar.md](issue-grammar.md)'s Summary line, then the words quoted |
+   | new work | `file` a backlog labelled `backlog` and the label [print-scope-label.py](../scripts/print-scope-label.py) `--me` prints, never a `scope:` label typed by hand, titled by its outcome, its body opening with [issue-grammar.md](issue-grammar.md)'s Summary line, then the words quoted |
    | for another project | file them in its repository; by `list`, send them to its manager, else `start` `<project>-manager` `--team` at that project's checkout with the filed url, never stopping at a failed `tell` |
    | a start of a manager, no work named | file nothing; a live one, restart it by Succession; else `start` `<project>-manager` `--team` at its checkout with `<project>` as its arguments |
    | an endless duty, such as monitoring | file nothing; `start` `<duty>-sentinel` with `sentinel <name> manager <your name> <the words>`, tier `light`, effort `low`; `close` it when the duty ends |
