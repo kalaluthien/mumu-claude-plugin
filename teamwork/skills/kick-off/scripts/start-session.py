@@ -61,7 +61,8 @@ def main(args):
     settings = team_settings.load(a.cwd)  # the session's repository, not this process's working folder
     for line in settings["warnings"]:
         print(line, file=sys.stderr)
-    role_off = settings["tools_off"].get("worker" if a.args.startswith("worker ") else "manager", [])
+    role = next((r for r in ("worker", "sentinel") if a.args.startswith(r + " ")), "manager")
+    role_off = settings["tools_off"].get(role, [])
     if stray := sorted(set(a.allow) - set(role_off)):
         rule = f"--allow {', '.join(stray)}: not a tool this role has off, which is {', '.join(role_off) or 'none'}"
         if settings["refuse"]:
@@ -69,7 +70,7 @@ def main(args):
         print(team_settings.warning(rule + "; it is ignored."), file=sys.stderr)
     off = [t for t in role_off if t not in a.allow]
     # a successor, named as Succession says, sits in its predecessor's workspace
-    if not a.team and not a.args.startswith("worker ") and (a.args != f"succeed {a.name.removesuffix('-next')}" or a.name.removesuffix("-next") != (a.beside or session.sessions()[1].get("name"))):
+    if not a.team and role == "manager" and (a.args != f"succeed {a.name.removesuffix('-next')}" or a.name.removesuffix("-next") != (a.beside or session.sessions()[1].get("name"))):
         sys.exit(f"start-session.py: {a.name} is a manager: start it with --team, since each manager is alone with its workers in its workspace.")
     if session.agent(a.name):
         sys.exit(f"start-session.py: {a.name} is already live: hand it the work instead of starting another.")

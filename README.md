@@ -49,11 +49,12 @@ flowchart TB
 
 </details>
 
-Teamwork splits work between a manager, workers and judges; [the authority table](teamwork/skills/kick-off/references/protocol.md) says what each may decide. GitHub issues are the shared memory: the questions and answers on them outlive any session.
+Teamwork splits work between a manager, workers, sentinels and judges; [the authority table](teamwork/skills/kick-off/references/protocol.md) says what each may decide. GitHub issues are the shared memory: the questions and answers on them outlive any session.
 
 - **owner**: the person who asks the sessions for work and answers their questions; when you use teamwork, that is you.
 - **manager**: the one Claude session per project that writes down what the owner asks for as a GitHub issue, hands it to a worker, and answers the worker's questions.
 - **worker**: a Claude session that takes one issue from the manager, splits it into tasks, and builds and merges them in its own copy of the repository.
+- **sentinel**: a light Claude session that the manager starts for one endless duty, such as watching a log or a service, and that only reports what it sees.
 - **judge**: a new Claude helper that did not write the work and only reviews it, replying `approve` with the exact commit or `fix`, and nothing merges without that approval.
 - `BLOCKED:` starts a GitHub issue comment in which a worker asks a question it may not settle alone, and then waits for the answer.
 - `DECIDED:` starts a GitHub issue comment that gives the answer, so any later session can read and follow it.

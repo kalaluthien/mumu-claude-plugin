@@ -61,6 +61,7 @@ Each role decides alone what keeps the intent it was handed, and asks before it 
 | owner | anything | | |
 | manager, `<project>-manager`, one per project, alone with its workers in one terminal workspace | routes, orders, resource holders, who changes a file outside the asker's task, by a `DECIDED:` the one changer of a file outside every worktree, workers' questions | the owner, on architecture, infrastructure and user experience, and on a change that widens a permission or a guard or touches machine settings | edits, judges or merges a change |
 | worker, `<task>-worker`, `<task>` 2-4 words of its work, in a worktree and branch of its name | design inside its task; another task it holds that no waiting decision touches; replacing a `[check]` or `[score]` sample that cannot run or fail, pass condition kept, judged again; merging once a judge approves its head | its manager, by `BLOCKED:`, then waits, when its next step needs more than this row, a criterion fails twice the same way, as `run-criteria.py` counts, or it would narrow or widen the owner's words, change a pass condition, depart from a `DECIDED:`, or touch a file outside its scope or worktree | merges what no judge approved at its head |
+| sentinel, `<duty>-sentinel`, at the checkout's root | how to run its one endless duty; whether to stop once its manager ends | its manager, by `tell`, on any change to its duty | edits, files, judges or merges anything |
 | judge, a subagent | `approve` or `fix` | | edits, posts, or picks among options |
 
 ## Rules
