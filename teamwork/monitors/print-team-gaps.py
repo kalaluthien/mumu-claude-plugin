@@ -54,7 +54,7 @@ def main(args):
                 read_at, signal = now.timestamp(), seen
         lines = [] if not (manager or worker) else None if data is None else team_gaps.manager_actions(me, listed, data, fed) if manager else team_gaps.worker_actions(me, waiting, data)
         if manager and lines is not None:
-            crew = team_names.members(me, listed)
+            crew = team_names.workers(me, listed)
             staffed = staffed or bool(crew)
             idle = not crew and not data["found"] and not data["outside"]  # any open issue, deferred ones included, is work not yet done
             staffed = staffed or idle and data["had_worker"]  # a restart lost the memory of a worker, so GitHub gives it back

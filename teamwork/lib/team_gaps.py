@@ -105,7 +105,7 @@ def manager_actions(me, listed, data=None, fed=None):
         held = " ".join(f"#{i['number']}" for i in data["everything"] if holds(i, n)) or "nothing open"
         if status[n] == "blocked":
             lines.append(f"blocked {n} (pane {panes[n]}): it waits at a tool-use prompt; tell the owner this screen, then answer by the Tool prompt rule once the owner says so: {prompt_text(panes[n])}")
-        elif status[n] in ("idle", "done"):
+        elif status[n] in ("idle", "done") and role(n) != "sentinel":  # a sentinel waits idle between the rounds of its duty
             lines.append(f"idle {n}: holds {held}; it needs what waits, or close it when it holds nothing open")
     for p, n in ((p, n) for p in prs for n in team if owns(n, p["headRefName"])):
         lines.append(f"merged #{p['number']} by {n}: once {n} holds nothing open, close it and clean its worktree")

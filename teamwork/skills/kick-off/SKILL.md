@@ -1,6 +1,6 @@
 ---
 name: kick-off
-description: Use when a session is made its project's manager, by the owner or by another session, or is started as a worker by its manager. Not for the judge or another subagent, whose brief names the files it reads.
+description: Use when a session is made its project's manager, by the owner or by another session, or is started as a worker or sentinel by its manager. Not for the judge or another subagent, whose brief names the files it reads.
 user-invocable: false
 ---
 
@@ -17,6 +17,7 @@ Arguments: $ARGUMENTS
 | arguments | role | playbook |
 | --- | --- | --- |
 | `worker <name> manager <manager>`, then `set <set>` when one is named, and a url or the owner's words | worker | [references/worker.md](references/worker.md) |
+| `sentinel <name> manager <manager>`, then a duty's words or url | sentinel | [references/sentinel.md](references/sentinel.md) |
 | `succeed <name>` | manager | [references/manager.md](references/manager.md)'s Succession |
 | anything else | manager | [references/manager.md](references/manager.md) |
 
