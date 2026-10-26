@@ -18,7 +18,7 @@ def default_folder():
     return data_folder.folder("board") or claude_config.folder() / "teamwork" / "board"
 
 DIR = pathlib.Path(os.environ.get("TEAMWORK_BOARD_DIR") or default_folder())
-USE = re.compile(r"use-board\.py\s+(file|comment|decide|edit|resolve|order|nest|label)\b([^;&|\n]*)")
+USE = re.compile(r"use-board\.py\s+(file|comment|decide|edit|title|resolve|reopen|order|nest|label)\b([^;&|\n]*)")
 POSTED = re.compile(r"file://\S*?/(\d+)(?:#comment-(\d+))?(?=[\s\"\\]|$)")
 trusted = lambda record: True
 
@@ -120,16 +120,31 @@ def resolve(number, summary, completed=True):
     comment(number, summary)
     save(number, state="CLOSED", reason="COMPLETED" if completed else "NOT_PLANNED", closedAt=stamp())
 
+def reopen(number):
+    """Opens NUMBER again; an open one stays as it is, as GitHub leaves it."""
+    if meta(number)["state"] == "CLOSED":
+        save(number, state="OPEN", reason="REOPENED", closedAt=None)
+
+def retitle(number, title):
+    save(number, title=title)
+
+# each refusal below is one GitHub answers with 422 or 404, so a files board accepts only what GitHub accepts
 def order(later, earlier):
     meta(earlier)  # raises when it does not exist, before anything is written
-    save(later, blockers=sorted({*meta(later)["blockers"], int(earlier)}))
+    if int(later) == int(earlier) or int(earlier) in meta(later)["blockers"]:
+        raise LookupError(f"#{later} already waits on #{earlier}, or is #{earlier}")
+    save(later, blockers=sorted([*meta(later)["blockers"], int(earlier)]))
 
 def nest(backlog, task):
     meta(backlog)
+    if int(backlog) == int(task) or meta(task)["parent"]:
+        raise LookupError(f"#{task} already has a parent, or is #{backlog}")
     save(task, parent=int(backlog))
 
 def label(number, name, remove=False):
     labels = [x for x in meta(number)["labels"] if x != name]
+    if remove and len(labels) == len(meta(number)["labels"]):
+        raise LookupError(f"#{number} has no label {name}")
     save(number, labels=labels if remove else [*labels, name])
 
 def command(text):
@@ -142,8 +157,8 @@ def command(text):
         args = shlex.split(rest)
     except ValueError:
         args = []
-    return {"called": f"use-board.py {verb}", "write": "comment" if verb == "decide" else verb if verb in ("file", "comment", "resolve", "edit") else None,
-            "title": len(args[0]) if verb == "file" and args else None, "inline body": False, "body edit": False,
+    return {"called": f"use-board.py {verb}", "write": {"decide": "comment", "title": "edit"}.get(verb, verb if verb in ("file", "comment", "resolve", "edit") else None),
+            "title": len(args[0]) if verb == "file" and args else len(args[1]) if verb == "title" and len(args) > 1 else None, "inline body": False, "body edit": False,
             "body file": args[1] if verb in ("file", "comment", "decide") and len(args) > 1 else None}
 
 def posted(output):
