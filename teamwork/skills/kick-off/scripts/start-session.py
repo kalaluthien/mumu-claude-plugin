@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Start a named agent session in herdr and send it its kick-off: in a new workspace of its own with `--team`, in a new tab
-of AGENT's workspace with `--beside`, else in a new tab of the caller's workspace. `--allow` turns a tool on that its role has off.
+"""Start a named agent session in herdr and send it its kick-off, placed by its role, which its kick-off arguments name:
+a worker or sentinel in a new tab of its manager's workspace, a successor `<p>-next` of `succeed <p>` in a new tab of p's,
+any other manager in a new workspace of its own. `--allow` turns a tool on that its role has off.
 
-usage: start-session.py <name> <cwd> <kick-off arguments> --model <model> --effort <effort> [--team | --beside <agent>]
-                        [--allow <tool>]..."""
+usage: start-session.py <name> <cwd> <kick-off arguments> --model <model> --effort <effort> [--allow <tool>]..."""
 import argparse
 import os
 import pathlib
@@ -47,13 +47,30 @@ def accept_trust(name, pane, cwd, kickoff):
     session.send_keys(pane, *agent.TRUST[1])
 
 
+def placement(name, args, role, listed):
+    """The workspace NAME joins, or None for a new one of its own, or the reason it cannot start; no caller picks, so none picks wrong."""
+    words = args.split()
+    live = {a.get("name"): a for a in listed}
+    if role != "manager":
+        manager = words[3] if len(words) > 3 and words[2] == "manager" else None
+        if manager not in live:
+            return None, f"{manager} is not live: its {role} {name} sits in its manager's workspace, so start that manager first."
+        return live[manager]["workspace_id"], None
+    if words[:1] != ["succeed"]:
+        return None, None
+    peer = words[1] if len(words) == 2 else ""
+    if name != f"{peer}-next":
+        return None, f"{name} is not named {peer}-next, as the successor of {peer} is."
+    if peer not in live:
+        return None, f"{peer} is not live: start {name} only while the manager it succeeds runs."
+    # a predecessor crowded by another project's manager hands over into a workspace of its own
+    return (None if team_names.crowding(live[peer], listed) else live[peer]["workspace_id"]), None
+
+
 def main(args):
     parser = argparse.ArgumentParser(prog="start-session.py", allow_abbrev=False)
     for arg in ("name", "cwd", "args"):
         parser.add_argument(arg)
-    where_to = parser.add_mutually_exclusive_group()
-    where_to.add_argument("--team", action="store_true")
-    where_to.add_argument("--beside", metavar="AGENT")
     parser.add_argument("--model", required=True)  # no default: the caller picks per role
     parser.add_argument("--effort", required=True)
     parser.add_argument("--allow", action="append", default=[], metavar="TOOL")  # its subagents lack a tool their session lacks: grant it per backlog
@@ -69,19 +86,17 @@ def main(args):
             parser.error(rule)
         print(team_settings.warning(rule + "; it is ignored."), file=sys.stderr)
     off = [t for t in role_off if t not in a.allow]
-    # a successor, named as Succession says, sits in its predecessor's workspace
-    if not a.team and role == "manager" and (a.args != f"succeed {a.name.removesuffix('-next')}" or a.name.removesuffix("-next") != (a.beside or session.sessions()[1].get("name"))):
-        sys.exit(f"start-session.py: {a.name} is a manager: start it with --team, since each manager is alone with its workers in its workspace.")
-    if session.agent(a.name):
+    listed = session.sessions()[0]
+    if any(s.get("name") == a.name for s in listed):
         sys.exit(f"start-session.py: {a.name} is already live: hand it the work instead of starting another.")
-    peer = session.agent(a.beside) if a.beside else {}  # a peer manager's successor sits in its workspace, alone with its workers
-    if peer is None:
-        sys.exit(f"start-session.py: {a.beside} is not live: start {a.name} without --beside.")
+    workspace, refusal = placement(a.name, a.args, role, listed)
+    if refusal:
+        sys.exit(f"start-session.py: {refusal}")
     text = agent.kickoff(a.args)
     trust = agent.TRUST[0]
     try:
         cwd = str(pathlib.Path(a.cwd).resolve())
-        place = session.open_workspace(cwd, team_names.project(a.name)) if a.team else session.open_tab(peer.get("workspace_id"), cwd, a.name)
+        place = session.open_tab(workspace, cwd, a.name) if workspace else session.open_workspace(cwd, team_names.project(a.name))
         session.rename(place, a.name)
         pane = place["pane_id"]
         session.start(a.name, pane, agent.KIND, agent.command(a.name, str(ROOT), a.model, a.effort, off), TIMEOUT)
@@ -92,7 +107,7 @@ def main(args):
              lambda screen: text[:40] in screen and session.send_keys(pane, "enter"), "never took its kick-off")
     except RuntimeError as e:
         sys.exit(f"start-session.py: {e}. Look at its pane with `{session.LOOK.format(a.name)}` before starting it again.")
-    where = "a new workspace of its own" if a.team else f"a new tab of {a.beside}'s workspace" if a.beside else "a new tab of your workspace"
+    where = f"a new tab of workspace {workspace}" if workspace else "a new workspace of its own"
     print(f"{a.name} started in {where} (pane {pane}) and took its kick-off.")
 
 

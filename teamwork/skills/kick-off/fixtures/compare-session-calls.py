@@ -11,8 +11,8 @@ SCRIPTS = "teamwork/skills/kick-off/scripts/"
 STEPS = [
     [SCRIPTS + "start-session.py", "alpha-worker", "/tmp", "worker alpha-worker manager teamwork-manager https://example.com/1", "--model", "haiku", "--effort", "medium"],
     [SCRIPTS + "start-session.py", "beta-worker", "/tmp", "worker beta-worker manager teamwork-manager https://example.com/2", "--model", "sonnet", "--effort", "medium", "--allow", "Artifact"],
-    [SCRIPTS + "start-session.py", "other-manager", "/tmp", "other", "--model", "opus", "--effort", "low", "--team"],
-    [SCRIPTS + "start-session.py", "teamwork-manager-next", "/tmp", "succeed teamwork-manager", "--model", "opus", "--effort", "low", "--beside", "teamwork-manager"],
+    [SCRIPTS + "start-session.py", "other-manager", "/tmp", "other", "--model", "opus", "--effort", "low"],
+    [SCRIPTS + "start-session.py", "teamwork-manager-next", "/tmp", "succeed teamwork-manager", "--model", "opus", "--effort", "low"],
     [SCRIPTS + "start-session.py", "alpha-worker", "/tmp", "worker alpha-worker manager teamwork-manager x", "--model", "haiku", "--effort", "medium"],
     [SCRIPTS + "start-session.py", "gamma-worker", "/tmp", "worker gamma-worker manager m x", "--model", "haiku", "--effort", "medium", "--allow", "Bash"],
     [SCRIPTS + "close-session.py", "beta-worker"],
