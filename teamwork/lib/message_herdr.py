@@ -21,23 +21,23 @@ def tell(name, text, timeout):
                 status = (session.agent(name) or {}).get("agent_status")
                 return False, f"{'blocked at a tool prompt' if status == 'blocked' else f'still {status}'} after {timeout:g}s"
             continue
-        error = session.prompt(a["pane_id"], text)
+        error = session.prompt(name, text)  # the name, which herdr resolves on each call, since it may move the pane
         if error == "agent_blocked" and time.time() < deadline:  # it reached a tool prompt between the read and the send
             retries += 1
             time.sleep(POLL)
             continue
         if error:
             return False, error
-        if not seen(name, a["pane_id"], text):
+        if not seen(name, text):
             return False, "sent, but the session never showed it"
         return True, f"after {retries} {'retry' if retries == 1 else 'retries'}" if retries else "after its turn" if waited else ""
 
 
-def seen(name, pane, text):
+def seen(name, text):
     """Whether the session turned to work or shows the text, so a prompt herdr took also reached it."""
     deadline = time.time() + SEEN
     while time.time() < deadline:
-        if (session.agent(name) or {}).get("agent_status") == "working" or text[:40] in session.screen(pane):
+        if (session.agent(name) or {}).get("agent_status") == "working" or text[:40] in session.screen(name):
             return True
         time.sleep(POLL)
     return False

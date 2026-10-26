@@ -187,6 +187,57 @@ def manager_placement():
     return ok, "\n".join(out for _, out in outs) + f"\nplaced {placed}"
 
 
+def moved_me():
+    """A session whose pane moved, its shell's HERDR_PANE_ID left naming another session's pane, still finds itself by its session id."""
+    state = herdr(dict(agent("teamwork-manager", 15, "idle", "w4"), agent_session={"value": "moved-id"}), agent("other-manager", 1, "idle", "w9"))
+    code, out = run([SCRIPTS / "print-scope-label.py", "--me"], state, "w9:p1", CLAUDE_CODE_SESSION_ID="moved-id")
+    # with no session id listed, as for an agent herdr gives none, the pane it started in still finds it
+    unlisted = herdr(agent("teamwork-manager", 15, "idle", "w4"), agent("other-manager", 1, "idle", "w9"))
+    code_pane, out_pane = run([SCRIPTS / "print-scope-label.py", "--me"], unlisted, "w4:p15", CLAUDE_CODE_SESSION_ID="moved-id")
+    return code == code_pane == 0 and out.strip() == out_pane.strip() == "scope:teamwork", out + out_pane
+
+
+def moved_close():
+    """A session whose pane moves while it is closed still gets its dialog answered at its new pane, and closes."""
+    stuck = dict(agent("moving-worker", 1, "blocked", "w9"), screen="Background work is running", move="w4:p15", move_after=2)  # after the own check and the first read
+    state = herdr(*TEAM, stuck)
+    code, out = run([SCRIPTS / "close-session.py", "moving-worker"], state, "w1:p1", seconds=30, CLOSE_SESSION_TIMEOUT="5")
+    return code == 0 and "moving-worker exited" in out, out
+
+
+def moved_tell():
+    """A receiver whose pane moved after the read that found it still gets the text."""
+    state = herdr(*TEAM, dict(agent("moving-receiver-codex", 1, "idle", "w9"), move="w4:p15"))
+    code, out = tell(state, "moving-receiver-codex")
+    return code == 0 and out.strip() == "delivered to moving-receiver-codex", out
+
+
+def moved_answer():
+    """A tool prompt whose pane moved after the read that found it is still read and answered."""
+    screen = "Bash command\n\nDo you want to proceed?\n❯ 1. Yes\n  2. No"
+    state = herdr(*TEAM, dict(agent("moving-asker-worker", 1, "blocked", "w9"), screen=screen, move="w4:p15"))
+    code, out = run([SCRIPTS / "answer-prompt.py", "moving-asker-worker", "1"], state, "w1:p1")
+    answered = next(a.get("answered") for a in json.loads(state.read_text())["agents"] if a["name"] == "moving-asker-worker")
+    return code == 0 and answered == "1", out
+
+
+def moved_rename():
+    """A session whose pane moved after the read that found it is still renamed in herdr and in Claude Code."""
+    home = tempfile.mkdtemp(prefix="fake-home-")
+    state = herdr(dict(agent("teamwork-manager", 1, "idle", "w9"), agent_session={"value": "moved-id"}, move="w4:p15"))
+    code, out = run([SCRIPTS / "rename-session.py", "renamed-manager"], state, "w9:p1", seconds=60,
+                    CLAUDE_CODE_SESSION_ID="moved-id", FAKE_HERDR_HOME=home, HOME=home)
+    return code == 0 and out.strip() == "renamed to renamed-manager" and workspace_of(state, "renamed-manager") == "w4", out
+
+
+def moved_start():
+    """A started session whose pane moves before its kick-off is typed still takes its kick-off."""
+    state = herdr(*TEAM)
+    code, out = run([SCRIPTS / "start-session.py", "moving-slow-worker", "/tmp", "worker moving-slow-worker manager teamwork-manager x",
+                     "--model", "haiku", "--effort", "low"], state, "w1:p1", seconds=60, START_SESSION_TIMEOUT="10")
+    return code == 0 and "took its kick-off" in out and status(state, "moving-slow-worker") == "working", out
+
+
 SCENARIOS = {
     "github-team": github_team,
     "files-board": files_board,
@@ -199,6 +250,12 @@ SCENARIOS = {
     "two-managers": two_managers,
     "worker-placement": worker_placement,
     "manager-placement": manager_placement,
+    "moved-me": moved_me,
+    "moved-close": moved_close,
+    "moved-tell": moved_tell,
+    "moved-answer": moved_answer,
+    "moved-rename": moved_rename,
+    "moved-start": moved_start,
 }
 def main(args):
     global VERBOSE, SCENARIO

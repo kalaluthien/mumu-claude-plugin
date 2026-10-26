@@ -49,7 +49,7 @@ def until(test, seconds, what):
 
 def live():
     folder = tempfile.mkdtemp(prefix="probe-tell-")
-    place = session.open_tab(None, folder, NAME)
+    place = session.open_tab(session.sessions()[1]["workspace_id"], folder, NAME)
     session.rename(place, NAME)
     pane = place["pane_id"]
     try:

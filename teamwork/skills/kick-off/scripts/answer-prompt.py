@@ -44,7 +44,7 @@ def main(args):
         sys.exit(f"answer-prompt.py: {name} is not live; nothing answered.")
     if live.get("agent_status") != "blocked":
         sys.exit(f"answer-prompt.py: {name} waits at no prompt (it is {live.get('agent_status')}); nothing answered.")
-    found = prompt_on(session.screen(live["pane_id"]))
+    found = prompt_on(session.screen(name))
     if not found:
         sys.exit(f"answer-prompt.py: {name}'s screen shows no numbered choices; nothing answered.")
     question, choices = found
@@ -56,7 +56,7 @@ def main(args):
     if any(w in label.lower().replace("’", "'") for w in WIDER):
         sys.exit(f"answer-prompt.py: choice {choice} \"{label}\" allows more than this one action, so it is never sent; `ask` the owner.")
     try:
-        session.answer(live["pane_id"], choice)
+        session.answer((session.agent(name) or live)["pane_id"], choice)  # read again, since herdr may move the pane and send-text takes only a pane
     except RuntimeError as e:
         sys.exit(f"answer-prompt.py: {e}; nothing answered.")
     print(f"{name} answered \"{question}\" with {choice}. {label}")

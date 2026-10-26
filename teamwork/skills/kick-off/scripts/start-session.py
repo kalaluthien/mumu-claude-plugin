@@ -21,12 +21,12 @@ import team_settings  # noqa: E402
 TIMEOUT, POLL = float(os.environ.get("START_SESSION_TIMEOUT", 120)), 1.0
 
 
-def wait(name, pane, ready, nudge, what):
+def wait(name, ready, nudge, what):
     deadline = time.time() + TIMEOUT
     while time.time() < deadline:
         if ready(session.agent(name) or {}):
             return
-        nudge(session.screen(pane))
+        nudge(session.screen(name))
         time.sleep(POLL)
     raise RuntimeError(f"{name} {what} after {TIMEOUT:g}s")
 
@@ -40,11 +40,11 @@ def trusted(folder):
     return folder == root or root / ".claude" / "worktrees" in folder.parents
 
 
-def accept_trust(name, pane, cwd, kickoff):
+def accept_trust(name, cwd, kickoff):
     if not trusted(pathlib.Path(cwd)):  # a trust the owner never gave stays theirs to give
         sys.exit(f"start-session.py: {name} waits at the folder trust dialog for {cwd}, outside this repository and its worktrees; "
                  f"the owner must accept it in its pane (`{session.LOOK.format(name)}`), then send it its kick-off: {kickoff}")
-    session.send_keys(pane, *agent.TRUST[1])
+    session.send_keys(name, *agent.TRUST[1])
 
 
 def placement(name, args, role, listed):
@@ -100,11 +100,12 @@ def main(args):
         session.rename(place, a.name)
         pane = place["pane_id"]
         session.start(a.name, pane, agent.KIND, agent.command(a.name, str(ROOT), a.model, a.effort, off), TIMEOUT)
-        wait(a.name, pane, lambda s: s.get("interactive_ready") and s.get("agent_status") != "blocked",  # trust dialog
-             lambda screen: trust in screen and accept_trust(a.name, pane, cwd, text), "not ready")
-        session.prompt(pane, text)  # the one prompt a session is sent: its kick-off
-        wait(a.name, pane, lambda s: s.get("agent_status") not in (None, "idle"),  # typed but unsent: press Enter
-             lambda screen: text[:40] in screen and session.send_keys(pane, "enter"), "never took its kick-off")
+        # from here the name is the target, which herdr resolves on each call, since it may move the pane
+        wait(a.name, lambda s: s.get("interactive_ready") and s.get("agent_status") != "blocked",  # trust dialog
+             lambda screen: trust in screen and accept_trust(a.name, cwd, text), "not ready")
+        session.prompt(a.name, text)  # the one prompt a session is sent: its kick-off
+        wait(a.name, lambda s: s.get("agent_status") not in (None, "idle"),  # typed but unsent: press Enter
+             lambda screen: text[:40] in screen and session.send_keys(a.name, "enter"), "never took its kick-off")
     except RuntimeError as e:
         sys.exit(f"start-session.py: {e}. Look at its pane with `{session.LOOK.format(a.name)}` before starting it again.")
     where = f"a new tab of workspace {workspace}" if workspace else "a new workspace of its own"
