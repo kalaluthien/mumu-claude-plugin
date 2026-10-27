@@ -2,7 +2,7 @@
  "target": {
   "name": "card skill",
   "where": "https://github.com/kalaluthien/mumu-claude-plugin/tree/main/paperwork/skills/card",
-  "version": "fa0f55d"
+  "version": "e6e94d8"
  },
  "subject": {
   "kind": "a Claude Code skill: SKILL.md, playbooks, scripts and a page template",
@@ -23,9 +23,9 @@
  "grades": {
   "folder-named-card": {
    "met": 1,
-   "evidence": "Command: grep -m1 '^name:' card/SKILL.md -> 'name: card'; ls -d skills/*/ -> 'card/' only, no rubric folder.",
-   "where": "SKILL.md:2",
-   "why": "Name is card and no rubric sibling exists.",
+   "evidence": "Command: ls skills -> card tree zoom; SKILL.md:2 'name: card'; no rubric folder",
+   "where": "skills/card/SKILL.md:2",
+   "why": "Name matches and no rubric folder exists.",
    "runs": [
     1,
     1
@@ -33,9 +33,9 @@
   },
   "step-profile-subject": {
    "met": 1,
-   "evidence": "\"**Subject**: read the target and write its kind, purpose and reader, each with a quote or path that shows it\"",
+   "evidence": "'1. **Subject**: read the target and write its kind, purpose and reader, each with a quote or path'",
    "where": "references/report.md:23",
-   "why": "Step 1 names all three facts and precedes the Rubric step.",
+   "why": "Step writes kind, purpose and reader.",
    "runs": [
     1,
     1
@@ -43,9 +43,9 @@
   },
   "step-derive-rubric": {
    "met": 1,
-   "evidence": "\"**Rubric**: write the spec as author.md says, drawing criteria from the frameworks and the target's own stated purpose... The subject fills task.world and evidence_goal.\"",
+   "evidence": "'2. **Rubric**: ... drawing criteria from the frameworks and the target's own stated purpose... The subject fills task.world and evidence_goal'",
    "where": "references/report.md:24",
-   "why": "Derive step takes the subject as input and picks frameworks by kind.",
+   "why": "Rubric derived from the subject.",
    "runs": [
     1,
     1
@@ -53,9 +53,9 @@
   },
   "step-grade-target": {
    "met": 1,
-   "evidence": "\"**Grade**: delegate the grading to fresh subagents... Each quotes the evidence first, then gives the verdict\"",
+   "evidence": "'4. **Grade**: delegate the grading to fresh subagents... Each quotes the evidence first, then gives the verdict'",
    "where": "references/report.md:26",
-   "why": "Skill's own step produces a verdict per criterion on the target.",
+   "why": "A Grade step gives a verdict per criterion.",
    "runs": [
     1,
     1
@@ -63,9 +63,9 @@
   },
   "output-html-report": {
    "met": 1,
-   "evidence": "\"**Report**: run make-report.py <spec> <grades> <out>.html, then open it or publish it as an Artifact.\"",
+   "evidence": "'5. **Report**: run make-report.py <spec> <grades> <out>.html, then open it or publish it'",
    "where": "references/report.md:27",
-   "why": "A named step writes the HTML report from graded verdicts.",
+   "why": "Final step names the HTML file.",
    "runs": [
     1,
     1
@@ -73,9 +73,9 @@
   },
   "report-built-like-peers": {
    "met": 1,
-   "evidence": "scripts/make-report.py, assets/report.html and examples/card-skill/report.html all exist in the folder.",
-   "where": "scripts/make-report.py",
-   "why": "Script plus template plus finished sample report present.",
+   "evidence": "scripts/make-report.py, assets/report.html template, examples/*/report.html found by find",
+   "where": "skills/card/scripts/make-report.py; skills/card/assets/report.html; skills/card/examples/card-skill/report.html",
+   "why": "Script, template and finished samples are all in the folder.",
    "runs": [
     1,
     1
@@ -83,8 +83,7 @@
   },
   "stops-at-rubric": {
    "met": 0,
-   "evidence": "Searched for a rubric-only ending; found Grade (report.md:26) and Report (report.md:27) steps after the Rubric step.",
-   "where": "references/report.md:26",
+   "evidence": "Searched for a skill that ends at the rubric; report.md has steps 4 Grade and 5 Report after Rubric.",
    "why": "Grade and Report steps exist, so the error is not committed.",
    "runs": [
     0,
@@ -93,9 +92,9 @@
   },
   "verdict-fix-first": {
    "met": 1,
-   "evidence": "make-report.py body() order: verdict section, then '<h2>Fix first</h2>', then '<h2>Criteria</h2>'; also \"the page leads with the verdict and the fix list, highest tier first\"",
+   "evidence": "'**Verdict first, fixes next**: the page leads with the verdict and the fix list, highest tier first'",
    "where": "references/report.md:41",
-   "why": "Fix list precedes the per-criterion cards.",
+   "why": "Spec puts verdict and fixes first.",
    "runs": [
     1,
     1
@@ -103,9 +102,8 @@
   },
   "blended-number-first": {
    "met": 0,
-   "evidence": "\"the page leads with the verdict and the fix list... and never with one blended number\"; headline is per-tier counts ('N of M judged met').",
-   "where": "references/report.md:41",
-   "why": "The layout forbids a blended headline number, so the error is not committed.",
+   "evidence": "report.md:41 'never with one blended number'; make-report.py headline is verdict_sentence naming the failing tier.",
+   "why": "Layout does not lead with a blended score.",
    "runs": [
     0,
     0
@@ -113,9 +111,9 @@
   },
   "evidence-before-verdict": {
    "met": 1,
-   "evidence": "\"Each quotes the evidence first, then gives the verdict; a verdict with no quote is not met.\"",
+   "evidence": "'Each quotes the evidence first, then gives the verdict; a verdict with no quote is not met.'",
    "where": "references/report.md:26",
-   "why": "Instruction order puts the quote before the verdict.",
+   "why": "Evidence precedes verdict.",
    "runs": [
     1,
     1
@@ -123,9 +121,9 @@
   },
   "no-quote-not-met": {
    "met": 1,
-   "evidence": "Command: grep -n empty lib/rubric/grades.py -> line 42: out += [f\"grades.grades.{k}.{f}: empty\" for f in (\"evidence\", \"why\") if not g[f].strip()]; make-report.py:55-56 raises Refused on any problem.",
-   "where": "lib/rubric/grades.py:42",
-   "why": "A script rejects grades whose evidence is empty.",
+   "evidence": "Command: grep -n 'empty\\|where' lib/rubric/grades.py -> line 42 rejects empty evidence; line 44 'met with no where... a verdict with no quote is not met'",
+   "where": "lib/rubric/grades.py:42-44",
+   "why": "make-report.py refuses such grades, so a quoteless met verdict is not accepted.",
    "runs": [
     1,
     1
@@ -133,9 +131,9 @@
   },
   "judge-is-fresh": {
    "met": 1,
-   "evidence": "\"delegate the grading to fresh subagents, never the context that wrote or revised the target, giving each only the target, the spec and the grades grammar.\"",
+   "evidence": "'delegate the grading to fresh subagents, never the context that wrote or revised the target, giving each only the target, the spec and the grades grammar'",
    "where": "references/report.md:26",
-   "why": "Fresh subagents get only target, spec and grammar.",
+   "why": "Judge is fresh and gets only target and spec.",
    "runs": [
     1,
     1
@@ -143,9 +141,9 @@
   },
   "rubric-frozen": {
    "met": 1,
-   "evidence": "\"take the spec's sha... before any grading; it goes in the grades file, and make-report.py refuses grades whose sha differs... A change after grading makes a new version: save it under a new name\"",
+   "evidence": "'Freeze: take the spec's sha... before any grading... A change after grading makes a new version: save it under a new name'",
    "where": "references/report.md:25",
-   "why": "Spec saved with a hash before grading; later change is a new version.",
+   "why": "Spec frozen by sha before grading; changes make new version.",
    "runs": [
     1,
     1
@@ -153,9 +151,9 @@
   },
   "failed-card-fields": {
    "met": 1,
-   "evidence": "card() in make-report.py renders criterion text, <summary>Evidence</summary> blockquote, <p class=\"why\"> and <p class=\"fix\"><b>Fix:</b>; Rules: \"each failure carries its evidence, its reason and a fix\"",
-   "where": "scripts/make-report.py:117-136",
-   "why": "All four fields shown on a failed card.",
+   "evidence": "card() in make-report.py prints criterion text, Evidence blockquote, why, and 'Fix:'; report.md:42 'each failure carries its evidence, its reason and a fix'",
+   "where": "scripts/make-report.py:117-131",
+   "why": "All four fields required.",
    "runs": [
     1,
     1
@@ -163,9 +161,9 @@
   },
   "status-not-colour-alone": {
    "met": 1,
-   "evidence": "Command: grep -n '✓\\|✗' scripts/make-report.py -> status_word returns \"✓ Met\", \"✗ Not met\", \"✓ No error\", \"✗ Error found\", \"? Not judged\"",
+   "evidence": "status_word returns '✓ Met', '✗ Not met', '? Not judged'",
    "where": "scripts/make-report.py:74-79",
-   "why": "Every status carries an icon and a word.",
+   "why": "Each status has icon and word.",
    "runs": [
     1,
     1
@@ -173,9 +171,9 @@
   },
   "not-judged-section": {
    "met": 1,
-   "evidence": "out.append('<h2>Not judged</h2><p class=\"none\">These could not be checked, each for the reason on its card. They are left out of the counts above...'",
-   "where": "scripts/make-report.py:160-164",
-   "why": "Separate section with reason per card, excluded from counts shown (count text: 'N of M judged met, K not judged').",
+   "evidence": "body(): out.append('<h2>Not judged</h2>... These could not be checked, each for the reason on its card. They are left out of the counts above'",
+   "where": "scripts/make-report.py:160-163",
+   "why": "Separate section with reason, excluded from displayed counts.",
    "runs": [
     1,
     1
@@ -183,9 +181,9 @@
   },
   "description-use-when": {
    "met": 1,
-   "evidence": "Command: sed -n 3p SKILL.md | grep -c '^description: Use when' -> 1; description length wc -c -> 269 (<=300).",
+   "evidence": "Command: description length 269, begins 'Use when'",
    "where": "SKILL.md:3",
-   "why": "Starts with Use when and is 269 characters.",
+   "why": "Starts with Use when and under 300 chars.",
    "runs": [
     1,
     1
@@ -193,9 +191,9 @@
   },
   "routes-to-references": {
    "met": 1,
-   "evidence": "Route table rows: '| grade a target and show the result... | references/report.md |', author.md, calibrate.md, grade.md, repair.md",
+   "evidence": "Route table rows: ask | playbook, e.g. '| grade a target and show the result... | references/report.md |'",
    "where": "SKILL.md:23-29",
-   "why": "Each case maps to one file under references/.",
+   "why": "Table sends each case to a references file.",
    "runs": [
     1,
     1
@@ -203,9 +201,9 @@
   },
   "code-computes-in-scripts": {
    "met": 1,
-   "evidence": "\"weights, scores, orders and agreement come from check-spec.py, score-spec.py and measure-judge.py, never from your own arithmetic; report cards come from make-report.py\"",
+   "evidence": "scripts/make-report.py, score-spec.py, measure-judge.py; SKILL.md:34 'Scripts compute... never from your own arithmetic'",
    "where": "SKILL.md:34",
-   "why": "Counting, scoring and page building are scripts in scripts/ with verb-noun names.",
+   "why": "Counting, scoring and page building are in verb-noun scripts.",
    "runs": [
     1,
     1
@@ -214,8 +212,8 @@
   "no-agents-or-tests-dirs": {
    "met": 1,
    "evidence": "Command: find card -type d ( -name agents -o -name tests -o -name evals ) | wc -l -> 0",
-   "where": "SKILL.md",
-   "why": "No such folder exists.",
+   "where": "skills/card",
+   "why": "No such folders.",
    "runs": [
     1,
     1
@@ -223,9 +221,9 @@
   },
   "body-short-flat": {
    "met": 1,
-   "evidence": "Command: wc -l SKILL.md -> 37; grep -c for each of 8 references/**/*.md in SKILL.md -> 1 each.",
+   "evidence": "Command: wc -l SKILL.md -> 37; grep count of each references/*.md path in SKILL.md -> 1 for all 8",
    "where": "SKILL.md",
-   "why": "Under 500 lines and every reference markdown file is linked directly from SKILL.md.",
+   "why": "Short and all references linked from SKILL.md.",
    "runs": [
     1,
     1
