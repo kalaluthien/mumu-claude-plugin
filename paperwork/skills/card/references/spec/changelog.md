@@ -9,3 +9,4 @@ Each version of the grammar, [assets/rubric.schema.json](assets/rubric.schema.js
 - Each criterion cites its provenance.
 - No tier or criterion carries a weight; `check-spec.py weights` derives each tier's.
 - The verdict file a scoring script reads is `$defs/verdicts`.
+- The grades file `make-report.py` reads is `$defs/grades`: one target's verdicts with their evidence, reasons and fixes, or `null` for a criterion not judged (added 2026-10-28; a spec needs no change).

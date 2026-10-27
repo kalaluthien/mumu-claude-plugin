@@ -1,8 +1,8 @@
 {
   "name": "paperwork",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "license": "Apache-2.0",
-  "description": "Model a system as a checked Schema document, prove its rules with Alloy and show it as a diagram; grade tasks with rubric specs; tree plans the owner answers on a page.",
+  "description": "Model a system as a checked Schema document, prove its rules with Alloy and show it as a diagram; grade a target into an HTML report card by a rubric spec; tree plans the owner answers on a page.",
   "author": {
     "name": "kalaluthien"
   }

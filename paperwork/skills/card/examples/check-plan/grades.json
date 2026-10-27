@@ -1,0 +1,154 @@
+{
+ "target": {
+  "name": "check-plan.py and tree_plan.py (tree plan checker)",
+  "where": "https://github.com/kalaluthien/mumu-claude-plugin/blob/74b7410/paperwork/skills/tree/scripts/check-plan.py",
+  "version": "74b7410"
+ },
+ "subject": {
+  "kind": "a command-line Python script with its library (software, ISO/IEC 25010)",
+  "purpose": "Checks tree plan JSON files against the grammar: docstring 'Check tree plan files against the grammar', prints 'ok N' or one error per line, exit 1; --expect-refused replays refused fixtures.",
+  "reader": "The tree skill's author and the fixture replay that run it; a wrong accept ships a broken plan page to the owner, a wrong refusal blocks a valid plan.",
+  "frameworks": [
+   "ISO/IEC 25010 functional correctness and reliability (https://iso25000.com/index.php/en/iso-25000-standards/iso-25010)",
+   "The repository's AGENTS.md Script form and Comments say why rules"
+  ]
+ },
+ "spec_sha": "37963afce3c7",
+ "judge": {
+  "model": "sonnet",
+  "runs": 2
+ },
+ "grades": {
+  "accepts-valid": {
+   "met": 1,
+   "evidence": "python3 -I check-plan.py ok.json -> 'ok 1', rc=0",
+   "where": "paperwork/skills/tree/scripts/check-plan.py:40",
+   "why": "prints ok 1 and exits 0",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "refuses-unknown-key": {
+   "met": 1,
+   "evidence": "unk.json: $.parts[1].zzz: unknown-key: ... rc=1",
+   "where": "paperwork/skills/tree/scripts/check-plan.py:36",
+   "why": "rule named, exit 1",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "refuses-duplicate-key": {
+   "met": 1,
+   "evidence": "dup.json: $: duplicate-key: key 'title' is written twice ... rc=1",
+   "where": "paperwork/lib/tree_plan.py:42",
+   "why": "rule named, exit 1",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "refuses-missing-source": {
+   "met": 1,
+   "evidence": "ev.json: $.parts[1]: evidence-needs-source ... rc=1",
+   "where": "paperwork/lib/tree_plan.py:151",
+   "why": "rule named, exit 1",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "usage-exit-2": {
+   "met": 1,
+   "evidence": "no args: rc=2, stdout 0 bytes, stderr starts 'Check tree plan files against the grammar.'",
+   "where": "paperwork/skills/tree/scripts/check-plan.py:29",
+   "why": "matches",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "unreadable-reported": {
+   "met": 1,
+   "evidence": "nope.json: $: unreadable: [Errno 2] ... rc=1, Traceback count 0",
+   "where": "paperwork/skills/tree/scripts/check-plan.py:22",
+   "why": "matches",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "bad-encoding-reported": {
+   "met": 0,
+   "evidence": "invalid UTF-8 file: rc=1 but stderr has Traceback ... UnicodeDecodeError",
+   "where": "paperwork/skills/tree/scripts/check-plan.py:21",
+   "why": "only OSError and PlanError are caught; UnicodeDecodeError escapes",
+   "fix": "Catch UnicodeDecodeError (or ValueError) in errors_of and return an 'unreadable' error",
+   "runs": [
+    0,
+    0
+   ]
+  },
+  "expect-refused-summary": {
+   "met": 1,
+   "evidence": "--expect-refused unk.json -> 'unk.json: unknown-key' then 'refused 1 of 1', rc=0",
+   "where": "paperwork/skills/tree/scripts/check-plan.py:59",
+   "why": "matches",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "docstring-form": {
+   "met": 1,
+   "evidence": "line 2 'Check tree plan files against the grammar.' then two 'usage:' lines",
+   "where": "paperwork/skills/tree/scripts/check-plan.py:2",
+   "why": "purpose sentence plus one usage per call form",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "main-form": {
+   "met": 1,
+   "evidence": "'def main(args):' and 'sys.exit(main(sys.argv[1:]))'",
+   "where": "paperwork/skills/tree/scripts/check-plan.py:25",
+   "why": "both present",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "rule-names-documented": {
+   "met": 1,
+   "evidence": "grep of all 12 emitted rules in references/grammar.md: each count 1",
+   "where": "paperwork/skills/tree/references/grammar.md",
+   "why": "all present",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "lib-no-io": {
+   "met": 1,
+   "evidence": "only open( at line 56 in load_file; imports hashlib, json, re",
+   "where": "paperwork/lib/tree_plan.py:56",
+   "why": "matches",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "comment-restates-code": {
+   "met": 0,
+   "evidence": "Comments seen: tree_plan.py:12 (why source shape), check-plan.py:46-47 (variant_ok text), section dividers; none paraphrases the next line",
+   "where": "paperwork/skills/tree/scripts/check-plan.py:46",
+   "why": "no restating comment found",
+   "runs": [
+    0,
+    0
+   ]
+  }
+ }
+}

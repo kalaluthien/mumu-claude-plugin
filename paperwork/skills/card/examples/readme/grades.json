@@ -1,0 +1,153 @@
+{
+ "target": {
+  "name": "mumu-claude-plugin README",
+  "where": "https://github.com/kalaluthien/mumu-claude-plugin/blob/74b7410/README.md",
+  "version": "74b7410"
+ },
+ "subject": {
+  "kind": "documentation: a repository README that is a landing page, with a how-to for install and start and a reference for requirements (Diataxis: mixes how-to and reference)",
+  "purpose": "Tells a visitor what three Claude Code plugins do and how to install and start them: 'Three Claude Code plugins that let one person run a small team of Claude sessions without losing the plot' (README.md:3).",
+  "reader": "A developer who found the marketplace and decides which plugin to install. A failure costs a failed install, a wrong plugin chosen, or a plugin installed and never started.",
+  "frameworks": [
+   "Diataxis https://diataxis.fr/compass/"
+  ]
+ },
+ "spec_sha": "4026dea31220",
+ "judge": {
+  "model": "sonnet",
+  "runs": 2
+ },
+ "grades": {
+  "purpose-each-plugin": {
+   "met": 1,
+   "evidence": "**teamwork** turns what you ask for into reviewed, merged work; **paperwork** models a system...; **homework** makes sure each session leaves behind what it learned.",
+   "where": "README.md:3",
+   "why": "One clause per plugin in the opening paragraph.",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "install-commands": {
+   "met": 1,
+   "evidence": "`/plugin marketplace add kalaluthien/mumu-claude-plugin#v0.2.0` plus three `/plugin install <x>@mumu-claude-plugin` lines",
+   "where": "README.md:12-15",
+   "why": "One add and three installs present.",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "needs-listed": {
+   "met": 1,
+   "evidence": "table row per plugin: teamwork needs Python 3, git, gh, herdr; paperwork uv, Chrome...; homework gh",
+   "where": "README.md:20-25",
+   "why": "Per-plugin needs table.",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "works-alone": {
+   "met": 1,
+   "evidence": "Each plugin works alone.",
+   "where": "README.md:5",
+   "why": "Stated directly.",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "usage-each-plugin": {
+   "met": 1,
+   "evidence": "teamwork: 'Be this project's teamwork manager: ...' and /teamwork:issues; paperwork: /paperwork:zoom examples; homework: 'tell Claude to keep a lesson (retro) or tidy memory (dream)'",
+   "where": "README.md:62-72,103-108,132",
+   "why": "Each section gives a way to start.",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "relative-links-resolve": {
+   "met": 1,
+   "evidence": "git ls-tree 74b7410 contains protocol.md, route-event.py, print-team-gaps.py, three paperwork SKILL.md, signal-wrap-up.py, wrap-up SKILL.md and references, AGENTS.md, CONTRIBUTING.md, LICENSE, NOTICE",
+   "where": "README.md:52,70,71,99-101,129,130,136,137,141",
+   "why": "All relative targets exist.",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "backtick-paths-exist": {
+   "met": 0,
+   "evidence": "Backticked prefixed paths checked in ls-tree: all exist; none missing",
+   "where": "README.md",
+   "why": "No missing path, so the error is not committed.",
+   "runs": [
+    0,
+    0
+   ]
+  },
+  "terms-defined": {
+   "met": 1,
+   "evidence": "bullets define owner, manager, worker, sentinel, judge before **Usage.**",
+   "where": "README.md:54-58",
+   "why": "All five roles defined above usage.",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "install-pins-tag": {
+   "met": 1,
+   "evidence": "#v0.2.0; `git tag -l v0.2.0` prints v0.2.0",
+   "where": "README.md:12",
+   "why": "Tag exists.",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "tool-unexplained": {
+   "met": 1,
+   "evidence": "'Java for the optional Alloy proofs' - Alloy has no link and no clause saying what it is at first mention",
+   "where": "README.md:23",
+   "why": "Alloy is first named without link or gloss (line 99 glosses only later).",
+   "fix": "Link Alloy or say it is a model checker at first mention.",
+   "runs": [
+    1,
+    0
+   ]
+  },
+  "long-line": {
+   "met": 0,
+   "evidence": "awk 'length>400' prints nothing; longest line is 379 (line 23)",
+   "where": "README.md:23",
+   "why": "No line over 400.",
+   "runs": [
+    0,
+    0
+   ]
+  },
+  "states-license": {
+   "met": 1,
+   "evidence": "[Apache-2.0](LICENSE)",
+   "where": "README.md:141",
+   "why": "License named and file linked; LICENSE exists.",
+   "runs": [
+    1,
+    1
+   ]
+  },
+  "diagram-has-caption": {
+   "met": 1,
+   "evidence": "each <summary>Structure: ...</summary> sentence sits above its mermaid block",
+   "where": "README.md:30,77,113",
+   "why": "All three diagrams have a summary sentence.",
+   "runs": [
+    1,
+    1
+   ]
+  }
+ }
+}
