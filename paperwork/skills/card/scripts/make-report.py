@@ -90,8 +90,8 @@ def verdict_sentence(spec, grades, scores):
         if u < 1:
             missed = sum(failed(c, grades["grades"][c["id"]]) for c in tier["criteria"])
             unknown = sum(not judged(grades["grades"][c["id"]]) for c in tier["criteria"])
-            return (f"Falls short at “{tier['name']}”: {missed} of {len(tier['criteria'])} "
-                    f"{'criterion fails' if missed == 1 else 'criteria fail'} there"
+            return (f"Falls short at “{tier['name']}”: {missed} of {len(tier['criteria'])} criteria "
+                    f"{'fails' if missed == 1 else 'fail'} there"
                     + (f", and {unknown} could not be judged." if unknown else "."))
     return "Meets every criterion of the rubric."
 
@@ -194,7 +194,7 @@ def score_spec_scores(spec_path, verdicts_file):
     """Each tier's score as score-spec.py order prints it, so the page is checked against the scoring script."""
     out = subprocess.run([sys.executable, str(SCORE_SPEC), "order", str(spec_path), str(verdicts_file)],
                          capture_output=True, text=True, check=True).stdout.splitlines()[0]
-    return dict(pair.split(" ") for pair in re.search(r"\((.*)\)$", out).group(1).split(", "))
+    return dict(pair.split(" ") for pair in re.search(r"\(([^()]*)\)$", out).group(1).split(", "))
 
 
 def check_one(page, folder, tmp):

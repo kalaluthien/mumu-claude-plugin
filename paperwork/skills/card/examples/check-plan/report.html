@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Report card: check-plan.py and tree_plan.py (tree plan checker)</title>
+<style>
+/* The tree page's palette, so paperwork's pages read as one family. */
+:root {
+  --bg: #FAF9F5; --surface: #ffffff; --panel: #F0EEE6; --ink: #141413; --body: #3D3D3A; --muted: #6f6e68; --line: #D1CFC5; --card-line: #E3DACC;
+  --accent: #D97757; --pass: #4f6a35; --pass-bg: #e3ead9; --fail: #8A3B1E; --fail-bg: #F3D9CC; --bar: #c9c6ba;
+  --serif: ui-serif, Georgia, "Times New Roman", serif; --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+  --shadow: 0 1px 2px rgba(20,20,19,.05), 0 4px 14px rgba(20,20,19,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1f1e1b; --surface: #2a2925; --panel: #34322d; --ink: #FAF9F5; --body: #e3e1d9; --muted: #b2b0a8; --line: #4a4842; --card-line: #3d3b36;
+    --accent: #e08a6d; --pass: #b5cf95; --pass-bg: #33402a; --fail: #f4bea6; --fail-bg: #4a2a1e; --bar: #5a5850;
+    --shadow: 0 1px 2px rgba(0,0,0,.4);
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans); }
+main { max-width: 860px; margin: 0 auto; padding: 28px 20px 56px; }
+a { color: inherit; text-decoration-color: var(--line); text-underline-offset: 3px; }
+a:hover { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1 { font: 500 1.7rem/1.2 var(--serif); margin: 4px 0 6px; overflow-wrap: anywhere; }
+h2 { font: 500 1.2rem/1.3 var(--serif); margin: 36px 0 12px; }
+h3 { font: 600 .95rem/1.3 var(--sans); margin: 22px 0 10px; color: var(--body); }
+.eyebrow { font: .78rem var(--mono); color: var(--muted); letter-spacing: .02em; }
+.lede { color: var(--body); margin: 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font: .78rem var(--mono); color: var(--muted); }
+.meta span { overflow-wrap: anywhere; }
+
+/* the verdict comes first, as a sentence, then one bullet bar per tier */
+.verdict { margin-top: 22px; background: var(--surface); border: 1px solid var(--card-line); border-radius: 12px; box-shadow: var(--shadow); padding: 18px 20px; }
+.verdict p { font: 500 1.2rem/1.4 var(--serif); margin: 0 0 14px; }
+.tiers { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: 10px 14px; align-items: center; }
+.tier-name { font-size: .9rem; color: var(--body); overflow-wrap: anywhere; }
+.bullet { position: relative; height: 12px; background: var(--panel); border-radius: 3px; }
+.bullet .fill { position: absolute; inset: 0 auto 0 0; background: var(--ink); border-radius: 3px; }
+.bullet .target { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--accent); }
+.tier-count { font: .82rem var(--mono); color: var(--body); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.verdict .legend { margin: 12px 0 0; font: .8rem/1.45 var(--sans); color: var(--muted); }
+
+/* fix first: what to change, highest tier first */
+ol.fixes { margin: 0; padding-left: 1.4em; }
+ol.fixes li { margin: 0 0 10px; padding-left: 4px; }
+.fix-tier { font: .72rem var(--mono); color: var(--fail); background: var(--fail-bg); border-radius: 4px; padding: 1px 6px; margin-right: 6px; white-space: nowrap; }
+.copy { margin-top: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 3px 12px; font: inherit; font-size: .85rem; color: var(--body); cursor: pointer; }
+.copy:hover { border-color: var(--accent); color: var(--accent); }
+.none { color: var(--muted); }
+
+/* one card per criterion: a status word with its icon, never colour alone */
+.crit { background: var(--surface); border: 1px solid var(--card-line); border-left-width: 4px; border-radius: 10px; padding: 12px 16px; margin: 0 0 10px; overflow-wrap: anywhere; scroll-margin-top: 12px; }
+.crit.failed { border-left-color: var(--fail); }
+.crit.passed { border-left-color: var(--pass); }
+.crit.unjudged { border-left-color: var(--line); border-left-style: dashed; }
+.crit:target { box-shadow: 0 0 0 2px var(--accent); }
+.crit-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.status { font: 600 .78rem var(--sans); border-radius: 5px; padding: 1px 8px; white-space: nowrap; }
+.failed .status { color: var(--fail); background: var(--fail-bg); }
+.passed .status { color: var(--pass); background: var(--pass-bg); }
+.unjudged .status { color: var(--body); background: var(--panel); }
+.crit-text { flex: 1 1 18em; min-width: 0; }
+.split { font: .75rem var(--sans); color: var(--muted); border: 1px dashed var(--line); border-radius: 5px; padding: 0 6px; }
+.crit-id { font: .72rem var(--mono); color: var(--muted); }
+details { margin-top: 8px; }
+summary { cursor: pointer; font-size: .85rem; color: var(--muted); }
+blockquote.evidence { margin: 8px 0; padding: 6px 12px; border-left: 3px solid var(--line); background: var(--panel); border-radius: 0 6px 6px 0; white-space: pre-wrap; font-size: .9rem; color: var(--body); }
+.where { font: .78rem var(--mono); color: var(--muted); }
+.why { margin: 6px 0 0; color: var(--body); font-size: .92rem; }
+.fix { margin: 8px 0 0; font-size: .92rem; }
+.fix b { color: var(--fail); }
+
+dl.subject { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 0; }
+dl.subject dt { color: var(--muted); font-size: .88rem; }
+dl.subject dd { margin: 0; overflow-wrap: anywhere; }
+dl.subject ul { margin: 0; padding-left: 1.1em; }
+footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: .85rem; color: var(--muted); }
+footer p { margin: 0 0 8px; }
+
+@media (max-width: 560px) {
+  main { padding: 20px 14px 40px; }
+  .tiers { grid-template-columns: minmax(0, 1fr) auto; }
+  .tiers .tier-name { grid-column: 1 / -1; margin-bottom: -4px; }
+  dl.subject { grid-template-columns: minmax(0, 1fr); }
+}
+@media print {
+  body { background: #fff; }
+  .copy { display: none; }
+  .status, .bullet .fill, .fix-tier { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .crit { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">Report card</div><h1>check-plan.py and tree_plan.py (tree plan checker)</h1>
+<p class="lede">a command-line Python script with its library (software, ISO/IEC 25010)</p>
+<div class="meta"><span><a href="https://github.com/kalaluthien/mumu-claude-plugin/blob/74b7410/paperwork/skills/tree/scripts/check-plan.py">https://github.com/kalaluthien/mumu-claude-plugin/blob/74b7410/paperwork/skills/tree/scripts/check-plan.py</a></span><span>version 74b7410</span><span>judge sonnet, 2 runs</span><span>spec 37963afce3c7</span></div>
+<section class="verdict" id="verdict"><p>Falls short at “fails safe and in form for the caller”: 1 of 4 criteria fails there.</p><div class="tiers"><div class="tier-name">gives the right verdict</div><div class="bullet" role="img" aria-label="4 of 4 judged met"><div class="fill" style="width:100.0%"></div><div class="target" style="left:calc(100.0% - 1px)"></div></div><div class="tier-count" data-tier="verdict" data-score="1">4 of 4 judged met</div><div class="tier-name">fails safe and in form for the caller</div><div class="bullet" role="img" aria-label="3 of 4 judged met"><div class="fill" style="width:75.0%"></div><div class="target" style="left:calc(100.0% - 1px)"></div></div><div class="tier-count" data-tier="robust" data-score="0.75">3 of 4 judged met</div><div class="tier-name">easy to keep</div><div class="bullet" role="img" aria-label="5 of 5 judged met"><div class="fill" style="width:100.0%"></div><div class="target" style="left:calc(100.0% - 1px)"></div></div><div class="tier-count" data-tier="upkeep" data-score="1">5 of 5 judged met</div></div><p class="legend">Tiers run highest first and never trade off: a lower tier only orders what the higher ones tie. Each bar is the share of its tier met; the mark is the share the tier asks for.</p></section>
+<h2>Fix first</h2>
+<ol class="fixes"><li data-fix="Catch UnicodeDecodeError (or ValueError) in errors_of and return an &#x27;unreadable&#x27; error"><span class="fix-tier">fails safe and in form for the caller</span><a href="#c-bad-encoding-reported">Catch UnicodeDecodeError (or ValueError) in errors_of and return an &#x27;unreadable&#x27; error</a></li></ol><button class="copy" id="copy-fixes" type="button">Copy the fix list</button>
+<h2>Criteria</h2>
+<h3>gives the right verdict</h3><article class="crit passed" id="c-accepts-valid" data-criterion="accepts-valid"><div class="crit-head"><span class="status">✓ Met</span><span class="crit-text">Run on a valid plan file, the script prints `ok 1` and exits 0.</span><span class="crit-id">accepts-valid</span></div><details><summary>Evidence</summary><blockquote class="evidence">python3 -I check-plan.py ok.json -&gt; &#x27;ok 1&#x27;, rc=0</blockquote><div class="where">paperwork/skills/tree/scripts/check-plan.py:40</div><p class="why">prints ok 1 and exits 0</p></details></article><article class="crit passed" id="c-refuses-unknown-key" data-criterion="refuses-unknown-key"><div class="crit-head"><span class="status">✓ Met</span><span class="crit-text">Run on a plan with an unknown key, the script exits 1 with the rule name `unknown-key` in its output.</span><span class="crit-id">refuses-unknown-key</span></div><details><summary>Evidence</summary><blockquote class="evidence">unk.json: $.parts[1].zzz: unknown-key: ... rc=1</blockquote><div class="where">paperwork/skills/tree/scripts/check-plan.py:36</div><p class="why">rule named, exit 1</p></details></article><article class="crit passed" id="c-refuses-duplicate-key" data-criterion="refuses-duplicate-key"><div class="crit-head"><span class="status">✓ Met</span><span class="crit-text">Run on a plan file that writes one key twice in an object, the script exits 1 and prints the rule name `duplicate-key`.</span><span class="crit-id">refuses-duplicate-key</span></div><details><summary>Evidence</summary><blockquote class="evidence">dup.json: $: duplicate-key: key &#x27;title&#x27; is written twice ... rc=1</blockquote><div class="where">paperwork/lib/tree_plan.py:42</div><p class="why">rule named, exit 1</p></details></article><article class="crit passed" id="c-refuses-missing-source" data-criterion="refuses-missing-source"><div class="crit-head"><span class="status">✓ Met</span><span class="crit-text">Run on a plan holding an `evidence` part without a source, the script exits 1 with the rule name `evidence-needs-source` in its output.</span><span class="crit-id">refuses-missing-source</span></div><details><summary>Evidence</summary><blockquote class="evidence">ev.json: $.parts[1]: evidence-needs-source ... rc=1</blockquote><div class="where">paperwork/lib/tree_plan.py:151</div><p class="why">rule named, exit 1</p></details></article>
+<h3>fails safe and in form for the caller</h3><article class="crit failed" id="c-bad-encoding-reported" data-criterion="bad-encoding-reported"><div class="crit-head"><span class="status">✗ Not met</span><span class="crit-text">Run on a file of invalid UTF-8 bytes, the script exits 1 with an error line and no `Traceback` on stderr.</span><span class="crit-id">bad-encoding-reported</span></div><details open><summary>Evidence</summary><blockquote class="evidence">invalid UTF-8 file: rc=1 but stderr has Traceback ... UnicodeDecodeError</blockquote><div class="where">paperwork/skills/tree/scripts/check-plan.py:21</div><p class="why">only OSError and PlanError are caught; UnicodeDecodeError escapes</p></details><p class="fix"><b>Fix:</b> Catch UnicodeDecodeError (or ValueError) in errors_of and return an &#x27;unreadable&#x27; error</p></article><article class="crit passed" id="c-usage-exit-2" data-criterion="usage-exit-2"><div class="crit-head"><span class="status">✓ Met</span><span class="crit-text">Run with no argument, the script exits 2, prints nothing on stdout and prints its docstring on stderr.</span><span class="crit-id">usage-exit-2</span></div><details><summary>Evidence</summary><blockquote class="evidence">no args: rc=2, stdout 0 bytes, stderr starts &#x27;Check tree plan files against the grammar.&#x27;</blockquote><div class="where">paperwork/skills/tree/scripts/check-plan.py:29</div><p class="why">matches</p></details></article><article class="crit passed" id="c-unreadable-reported" data-criterion="unreadable-reported"><div class="crit-head"><span class="status">✓ Met</span><span class="crit-text">Run on a path that does not exist, the script exits 1 and prints a line holding `unreadable`, with no `Traceback` on stderr.</span><span class="crit-id">unreadable-reported</span></div><details><summary>Evidence</summary><blockquote class="evidence">nope.json: $: unreadable: [Errno 2] ... rc=1, Traceback count 0</blockquote><div class="where">paperwork/skills/tree/scripts/check-plan.py:22</div><p class="why">matches</p></details></article><article class="crit passed" id="c-expect-refused-summary" data-criterion="expect-refused-summary"><div class="crit-head"><span class="status">✓ Met</span><span class="crit-text">Run with `--expect-refused` on one refused plan file, the script prints a last line `refused 1 of 1` and exits 0.</span><span class="crit-id">expect-refused-summary</span></div><details><summary>Evidence</summary><blockquote class="evidence">--expect-refused unk.json -&gt; &#x27;unk.json: unknown-key&#x27; then &#x27;refused 1 of 1&#x27;, rc=0</blockquote><div class="where">paperwork/skills/tree/scripts/check-plan.py:59</div><p class="why">matches</p></details></article>
+<h3>easy to keep</h3><article class="crit passed" id="c-docstring-form" data-criterion="docstring-form"><div class="crit-head"><span class="status">✓ Met</span><span class="crit-text">The script&#x27;s docstring opens with a purpose sentence and holds one `usage:` line per call form.</span><span class="crit-id">docstring-form</span></div><details><summary>Evidence</summary><blockquote class="evidence">line 2 &#x27;Check tree plan files against the grammar.&#x27; then two &#x27;usage:&#x27; lines</blockquote><div class="where">paperwork/skills/tree/scripts/check-plan.py:2</div><p class="why">purpose sentence plus one usage per call form</p></details></article><article class="crit passed" id="c-main-form" data-criterion="main-form"><div class="crit-head"><span class="status">✓ Met</span><span class="crit-text">The script defines `def main(args)` and ends with `sys.exit(main(sys.argv[1:]))`.</span><span class="crit-id">main-form</span></div><details><summary>Evidence</summary><blockquote class="evidence">&#x27;def main(args):&#x27; and &#x27;sys.exit(main(sys.argv[1:]))&#x27;</blockquote><div class="where">paperwork/skills/tree/scripts/check-plan.py:25</div><p class="why">both present</p></details></article><article class="crit passed" id="c-rule-names-documented" data-criterion="rule-names-documented"><div class="crit-head"><span class="status">✓ Met</span><span class="crit-text">Every rule name that `tree_plan.check` can emit appears in the tree skill&#x27;s `references/grammar.md`.</span><span class="crit-id">rule-names-documented</span></div><details><summary>Evidence</summary><blockquote class="evidence">grep of all 12 emitted rules in references/grammar.md: each count 1</blockquote><div class="where">paperwork/skills/tree/references/grammar.md</div><p class="why">all present</p></details></article><article class="crit passed" id="c-lib-no-io" data-criterion="lib-no-io"><div class="crit-head"><span class="status">✓ Met</span><span class="crit-text">`tree_plan.py` opens a file only in `load_file` and imports no network module.</span><span class="crit-id">lib-no-io</span></div><details><summary>Evidence</summary><blockquote class="evidence">only open( at line 56 in load_file; imports hashlib, json, re</blockquote><div class="where">paperwork/lib/tree_plan.py:56</div><p class="why">matches</p></details></article><article class="crit passed" id="c-comment-restates-code" data-criterion="comment-restates-code"><div class="crit-head"><span class="status">✓ No error</span><span class="crit-text">A comment in either file restates what the next line does instead of why.</span><span class="crit-id">comment-restates-code</span></div><details><summary>Evidence</summary><blockquote class="evidence">Comments seen: tree_plan.py:12 (why source shape), check-plan.py:46-47 (variant_ok text), section dividers; none paraphrases the next line</blockquote><div class="where">paperwork/skills/tree/scripts/check-plan.py:46</div><p class="why">no restating comment found</p></details></article>
+<h2>What was graded</h2><dl class="subject"><dt>Kind</dt><dd>a command-line Python script with its library (software, ISO/IEC 25010)</dd><dt>Purpose</dt><dd>Checks tree plan JSON files against the grammar: docstring &#x27;Check tree plan files against the grammar&#x27;, prints &#x27;ok N&#x27; or one error per line, exit 1; --expect-refused replays refused fixtures.</dd><dt>Reader</dt><dd>The tree skill&#x27;s author and the fixture replay that run it; a wrong accept ships a broken plan page to the owner, a wrong refusal blocks a valid plan.</dd><dt>Criteria drawn from</dt><dd><ul><li>ISO/IEC 25010 functional correctness and reliability (<a href="https://iso25000.com/index.php/en/iso-25000-standards/iso-25010">https://iso25000.com/index.php/en/iso-25000-standards/iso-25010</a>)</li><li>The repository&#x27;s AGENTS.md Script form and Comments say why rules</li></ul></dd><dt>Rubric</dt><dd>Grade check-plan.py and tree_plan.py as the checker of tree plan files.</dd></dl>
+<footer><p>Each criterion is one yes-or-no check. sonnet graded every criterion in 2 fresh runs that saw only the target and the rubric, quoting its evidence before each verdict; when runs split, the stricter verdict counts.</p><p>The judge’s error rate per tier is estimated, not measured on human labels. Read the tier counts as an order between versions of a target, not as a percentage of quality.</p></footer>
+</main>
+<script>
+// Opens every card's evidence before printing, since a closed <details> prints closed.
+addEventListener("beforeprint", () => document.querySelectorAll("details").forEach(d => d.open = true));
+const copy = document.getElementById("copy-fixes");
+if (copy) copy.addEventListener("click", async () => {
+  const text = [...document.querySelectorAll("ol.fixes li")].map((li, i) => `${i + 1}. ${li.dataset.fix}`).join("\n");
+  try { await navigator.clipboard.writeText(text); copy.textContent = "Copied"; }
+  catch { copy.textContent = "Copy failed: select the list instead"; }
+});
+</script>
+</body>
+</html>

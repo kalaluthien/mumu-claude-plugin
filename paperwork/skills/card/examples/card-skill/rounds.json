@@ -18,6 +18,17 @@
     "body-short-flat"
    ],
    "note": "first draft: rename, report flow, page"
+  },
+  {
+   "round": 1,
+   "version": "fa0f55d",
+   "scores": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "failed": [],
+   "note": "Round 1 at fa0f55d: sample report.html with a freshness check, Freeze says a later change is a new version, met null shown as Not judged, a + verdict needs a where, changelog linked, playbook takes the example writers' feedback."
   }
  ]
 }

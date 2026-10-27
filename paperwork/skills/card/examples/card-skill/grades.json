@@ -2,7 +2,7 @@
  "target": {
   "name": "card skill",
   "where": "https://github.com/kalaluthien/mumu-claude-plugin/tree/main/paperwork/skills/card",
-  "version": "274152f"
+  "version": "fa0f55d"
  },
  "subject": {
   "kind": "a Claude Code skill: SKILL.md, playbooks, scripts and a page template",
@@ -23,9 +23,9 @@
  "grades": {
   "folder-named-card": {
    "met": 1,
-   "evidence": "Command: find TARGET -maxdepth 1; grep '^name:' SKILL.md -> 'name: card'; no rubric folder beside it in TARGET parent (only card/).",
+   "evidence": "Command: grep -m1 '^name:' card/SKILL.md -> 'name: card'; ls -d skills/*/ -> 'card/' only, no rubric folder.",
    "where": "SKILL.md:2",
-   "why": "Name is card and no rubric folder exists.",
+   "why": "Name is card and no rubric sibling exists.",
    "runs": [
     1,
     1
@@ -33,9 +33,9 @@
   },
   "step-profile-subject": {
    "met": 1,
-   "evidence": "Subject: read the target and write its kind, purpose and reader, each with a quote or path that shows it",
+   "evidence": "\"**Subject**: read the target and write its kind, purpose and reader, each with a quote or path that shows it\"",
    "where": "references/report.md:23",
-   "why": "Names all three facts and comes before the Rubric step.",
+   "why": "Step 1 names all three facts and precedes the Rubric step.",
    "runs": [
     1,
     1
@@ -43,9 +43,9 @@
   },
   "step-derive-rubric": {
    "met": 1,
-   "evidence": "Rubric: write the spec ... drawing criteria from the frameworks and the target's own stated purpose; subject 'picks the frameworks the criteria come from'",
+   "evidence": "\"**Rubric**: write the spec as author.md says, drawing criteria from the frameworks and the target's own stated purpose... The subject fills task.world and evidence_goal.\"",
    "where": "references/report.md:24",
-   "why": "Criteria derive from the subject step's frameworks and purpose.",
+   "why": "Derive step takes the subject as input and picks frameworks by kind.",
    "runs": [
     1,
     1
@@ -53,9 +53,9 @@
   },
   "step-grade-target": {
    "met": 1,
-   "evidence": "Grade: delegate the grading to fresh subagents ... Each quotes the evidence first, then gives the verdict",
+   "evidence": "\"**Grade**: delegate the grading to fresh subagents... Each quotes the evidence first, then gives the verdict\"",
    "where": "references/report.md:26",
-   "why": "The skill's own step produces a verdict per criterion on the target.",
+   "why": "Skill's own step produces a verdict per criterion on the target.",
    "runs": [
     1,
     1
@@ -63,29 +63,28 @@
   },
   "output-html-report": {
    "met": 1,
-   "evidence": "Report: run make-report.py <spec> <grades> <out>.html",
+   "evidence": "\"**Report**: run make-report.py <spec> <grades> <out>.html, then open it or publish it as an Artifact.\"",
    "where": "references/report.md:27",
-   "why": "A step names the graded HTML page built from the grades file.",
+   "why": "A named step writes the HTML report from graded verdicts.",
    "runs": [
     1,
     1
    ]
   },
   "report-built-like-peers": {
-   "met": 0,
-   "evidence": "scripts/make-report.py and assets/report.html exist, but examples/ holds only .json files (find -name '*.html' found only assets/report.html); no finished sample report.",
-   "where": "examples/",
-   "why": "Template and script exist but there is no sample HTML in examples/.",
-   "fix": "Add a built sample report .html to examples/.",
+   "met": 1,
+   "evidence": "scripts/make-report.py, assets/report.html and examples/card-skill/report.html all exist in the folder.",
+   "where": "scripts/make-report.py",
+   "why": "Script plus template plus finished sample report present.",
    "runs": [
-    0,
-    0
+    1,
+    1
    ]
   },
   "stops-at-rubric": {
    "met": 0,
-   "evidence": "Steps 4 Grade and 5 Report follow the Rubric step",
-   "where": "references/report.md:26-27",
+   "evidence": "Searched for a rubric-only ending; found Grade (report.md:26) and Report (report.md:27) steps after the Rubric step.",
+   "where": "references/report.md:26",
    "why": "Grade and Report steps exist, so the error is not committed.",
    "runs": [
     0,
@@ -94,9 +93,9 @@
   },
   "verdict-fix-first": {
    "met": 1,
-   "evidence": "page leads with the verdict and the fix list, highest tier first; make-report.py body(): verdict section, '<h2>Fix first</h2>', then '<h2>Criteria</h2>'",
+   "evidence": "make-report.py body() order: verdict section, then '<h2>Fix first</h2>', then '<h2>Criteria</h2>'; also \"the page leads with the verdict and the fix list, highest tier first\"",
    "where": "references/report.md:41",
-   "why": "Order is verdict, fix list, then cards.",
+   "why": "Fix list precedes the per-criterion cards.",
    "runs": [
     1,
     1
@@ -104,9 +103,9 @@
   },
   "blended-number-first": {
    "met": 0,
-   "evidence": "never with one blended number; headline is verdict_sentence plus a count per tier ('N of M met')",
+   "evidence": "\"the page leads with the verdict and the fix list... and never with one blended number\"; headline is per-tier counts ('N of M judged met').",
    "where": "references/report.md:41",
-   "why": "Headline is a tier statement, not a blended score.",
+   "why": "The layout forbids a blended headline number, so the error is not committed.",
    "runs": [
     0,
     0
@@ -114,51 +113,49 @@
   },
   "evidence-before-verdict": {
    "met": 1,
-   "evidence": "Each quotes the evidence first, then gives the verdict",
+   "evidence": "\"Each quotes the evidence first, then gives the verdict; a verdict with no quote is not met.\"",
    "where": "references/report.md:26",
-   "why": "Instruction order puts the quote first.",
+   "why": "Instruction order puts the quote before the verdict.",
    "runs": [
     1,
     1
    ]
   },
   "no-quote-not-met": {
-   "met": 0,
-   "evidence": "report.md says 'a verdict with no quote is not met', but schema grade evidence is a plain string with no minLength and make-report.py build() only refuses empty evidence in --check on examples (lines 203-204); no script zeroes an empty-evidence verdict. Command: grep -n 'bare' scripts/make-report.py",
-   "where": "scripts/make-report.py:203",
-   "why": "Only prose and an examples-only check; grading input is not rejected by a script.",
-   "fix": "Make grades validation (or make-report build) reject or zero a grade with empty evidence.",
+   "met": 1,
+   "evidence": "Command: grep -n empty lib/rubric/grades.py -> line 42: out += [f\"grades.grades.{k}.{f}: empty\" for f in (\"evidence\", \"why\") if not g[f].strip()]; make-report.py:55-56 raises Refused on any problem.",
+   "where": "lib/rubric/grades.py:42",
+   "why": "A script rejects grades whose evidence is empty.",
    "runs": [
-    0,
+    1,
     1
    ]
   },
   "judge-is-fresh": {
    "met": 1,
-   "evidence": "delegate the grading to fresh subagents, never the context that wrote or revised the target, giving each only the target, the spec and the grades grammar",
+   "evidence": "\"delegate the grading to fresh subagents, never the context that wrote or revised the target, giving each only the target, the spec and the grades grammar.\"",
    "where": "references/report.md:26",
-   "why": "Fresh context with only target and spec.",
+   "why": "Fresh subagents get only target, spec and grammar.",
    "runs": [
     1,
     1
    ]
   },
   "rubric-frozen": {
-   "met": 0,
-   "evidence": "Freeze: take the spec's sha ... before any grading ... a spec edited after grading is caught; no statement that a later change is logged as a new version (searched 'version' in references).",
+   "met": 1,
+   "evidence": "\"take the spec's sha... before any grading; it goes in the grades file, and make-report.py refuses grades whose sha differs... A change after grading makes a new version: save it under a new name\"",
    "where": "references/report.md:25",
-   "why": "Spec is saved and hashed, but a post-grading change is refused, not logged as a new version.",
-   "fix": "Say a rubric change after grading is saved and logged as a new version.",
+   "why": "Spec saved with a hash before grading; later change is a new version.",
    "runs": [
-    0,
-    0
+    1,
+    1
    ]
   },
   "failed-card-fields": {
    "met": 1,
-   "evidence": "Feed forward: each failure carries its evidence, its reason and a fix; card shows criterion text, Evidence, why, Fix",
-   "where": "references/report.md:42",
-   "why": "Criterion, evidence, reason and fix are all required on a failed card.",
+   "evidence": "card() in make-report.py renders criterion text, <summary>Evidence</summary> blockquote, <p class=\"why\"> and <p class=\"fix\"><b>Fix:</b>; Rules: \"each failure carries its evidence, its reason and a fix\"",
+   "where": "scripts/make-report.py:117-136",
+   "why": "All four fields shown on a failed card.",
    "runs": [
     1,
     1
@@ -166,30 +163,29 @@
   },
   "status-not-colour-alone": {
    "met": 1,
-   "evidence": "every verdict is a word and an icon as well as a colour; status_word returns '✓ Met' / '✗ Not met'",
-   "where": "references/report.md:43",
-   "why": "Status carries icon and word.",
+   "evidence": "Command: grep -n '✓\\|✗' scripts/make-report.py -> status_word returns \"✓ Met\", \"✗ Not met\", \"✓ No error\", \"✗ Error found\", \"? Not judged\"",
+   "where": "scripts/make-report.py:74-79",
+   "why": "Every status carries an icon and a word.",
    "runs": [
     1,
     1
    ]
   },
   "not-judged-section": {
-   "met": 0,
-   "evidence": "Searched 'judged|unjudged|could not be' in SKILL.md, references/*.md, make-report.py: none; grade schema only has met 0|1.",
-   "where": "(none)",
-   "why": "No Not judged section exists.",
-   "fix": "Add a Not judged section with a reason per criterion, kept out of counts.",
+   "met": 1,
+   "evidence": "out.append('<h2>Not judged</h2><p class=\"none\">These could not be checked, each for the reason on its card. They are left out of the counts above...'",
+   "where": "scripts/make-report.py:160-164",
+   "why": "Separate section with reason per card, excluded from counts shown (count text: 'N of M judged met, K not judged').",
    "runs": [
-    0,
-    0
+    1,
+    1
    ]
   },
   "description-use-when": {
    "met": 1,
-   "evidence": "description: Use when a target, such as a document, ... Not for a quick A-against-B check of a change. (command: wc -c on the description gave about 300)",
+   "evidence": "Command: sed -n 3p SKILL.md | grep -c '^description: Use when' -> 1; description length wc -c -> 269 (<=300).",
    "where": "SKILL.md:3",
-   "why": "Starts with Use when; length checked below.",
+   "why": "Starts with Use when and is 269 characters.",
    "runs": [
     1,
     1
@@ -197,9 +193,9 @@
   },
   "routes-to-references": {
    "met": 1,
-   "evidence": "Route table rows: ask -> references/report.md, author.md, calibrate.md, grade.md, repair.md",
+   "evidence": "Route table rows: '| grade a target and show the result... | references/report.md |', author.md, calibrate.md, grade.md, repair.md",
    "where": "SKILL.md:23-29",
-   "why": "Table sends each case to one reference file.",
+   "why": "Each case maps to one file under references/.",
    "runs": [
     1,
     1
@@ -207,9 +203,9 @@
   },
   "code-computes-in-scripts": {
    "met": 1,
-   "evidence": "Scripts compute: ... check-spec.py, score-spec.py, measure-judge.py ...; report cards come from make-report.py",
+   "evidence": "\"weights, scores, orders and agreement come from check-spec.py, score-spec.py and measure-judge.py, never from your own arithmetic; report cards come from make-report.py\"",
    "where": "SKILL.md:34",
-   "why": "Counting, scoring and page building are scripts named verb-noun.py.",
+   "why": "Counting, scoring and page building are scripts in scripts/ with verb-noun names.",
    "runs": [
     1,
     1
@@ -217,23 +213,22 @@
   },
   "no-agents-or-tests-dirs": {
    "met": 1,
-   "evidence": "Command: find . -type d \\( -name agents -o -name tests -o -name evals \\) printed nothing",
-   "where": ".",
-   "why": "No such folder.",
+   "evidence": "Command: find card -type d ( -name agents -o -name tests -o -name evals ) | wc -l -> 0",
+   "where": "SKILL.md",
+   "why": "No such folder exists.",
    "runs": [
     1,
     1
    ]
   },
   "body-short-flat": {
-   "met": 0,
-   "evidence": "wc -l SKILL.md = 37; but references/spec/changelog.md is referenced only from rubric.schema.json (grep -rln changelog.md), not from SKILL.md",
-   "where": "references/spec/changelog.md",
-   "why": "A reference file is not linked directly from SKILL.md.",
-   "fix": "Link references/spec/changelog.md from SKILL.md, or remove it.",
+   "met": 1,
+   "evidence": "Command: wc -l SKILL.md -> 37; grep -c for each of 8 references/**/*.md in SKILL.md -> 1 each.",
+   "where": "SKILL.md",
+   "why": "Under 500 lines and every reference markdown file is linked directly from SKILL.md.",
    "runs": [
     1,
-    0
+    1
    ]
   }
  }

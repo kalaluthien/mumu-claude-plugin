@@ -43,7 +43,7 @@ h3 { font: 600 .95rem/1.3 var(--sans); margin: 22px 0 10px; color: var(--body); 
 .bullet .fill { position: absolute; inset: 0 auto 0 0; background: var(--ink); border-radius: 3px; }
 .bullet .target { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--accent); }
 .tier-count { font: .82rem var(--mono); color: var(--body); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.legend { margin: 12px 0 0; font-size: .8rem; color: var(--muted); }
+.verdict .legend { margin: 12px 0 0; font: .8rem/1.45 var(--sans); color: var(--muted); }
 
 /* fix first: what to change, highest tier first */
 ol.fixes { margin: 0; padding-left: 1.4em; }
@@ -85,7 +85,7 @@ footer p { margin: 0 0 8px; }
 @media (max-width: 560px) {
   main { padding: 20px 14px 40px; }
   .tiers { grid-template-columns: minmax(0, 1fr) auto; }
-  .tiers .bullet { grid-column: 1 / -1; order: 0; }
+  .tiers .tier-name { grid-column: 1 / -1; margin-bottom: -4px; }
   dl.subject { grid-template-columns: minmax(0, 1fr); }
 }
 @media print {
