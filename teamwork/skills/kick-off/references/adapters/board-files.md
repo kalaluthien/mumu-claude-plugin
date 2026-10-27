@@ -12,7 +12,7 @@ The board is a folder of plain files, `TEAMWORK_BOARD_DIR`, else `.teamwork/boar
 | `reopen` | `use-board.py reopen <n>` |
 | `decide` | `use-board.py decide <n> <body-file>`, the file's text opening with `DECIDED:` |
 | `order` | `use-board.py order <later> <earlier>` |
-| `nest` | `use-board.py nest <backlog> <task>` |
+| `nest` | `use-board.py nest <issue> <task>` |
 | `label` | `use-board.py label <n> <name> [--remove]` |
 
 - **Scope labels**: an issue labelled `scope:<project>`.

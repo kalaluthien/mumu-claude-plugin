@@ -5,7 +5,7 @@ Every adapter has these functions, by the same names:
   `changed_since(stamp)`, `blockers(number)` the open issues' numbers it waits on, `scoped(project)` the label that scopes a project or None,
   `tree(project, nodes)` the open issues' nodes the issue pane draws; each None when a read failed
 - writes: `comment(number, text)`, `file(title, body, labels) -> int`, `body(number)` and `edit(number, body)`, `resolve(number, summary, completed)`, `reopen(number)`, `retitle(number, title)`,
-  `order(later, earlier)`, `nest(backlog, task)`, `label(number, name, remove)`
+  `order(later, earlier)`, `nest(backlog, task)`, `label(number, name, remove)`; this port's `nest(issue, task)` finds the backlog first
 - `trusted(record)`, whether a record's author may write records; `command(text)` and `posted(output)`, the board write a shell command runs and what it posted
 A record has `number`, `title`, `body`, `labels` (names), `state` (`OPEN` or `CLOSED`), `parent` (a number or None), `trusted` and `comments`,
 each comment with `body` and `trusted`."""
@@ -18,5 +18,21 @@ def kind():
     return port_setting.value("TEAMWORK_BOARD", "github")
 
 
+def adapter():
+    return importlib.import_module(f"board_{kind()}")
+
+
 def __getattr__(name):
-    return getattr(importlib.import_module(f"board_{kind()}"), name)
+    return getattr(adapter(), name)
+
+
+def nest(issue, task):
+    """Puts TASK under the nearest issue labelled `backlog` at or above ISSUE, in one place for every adapter, since the issue pane
+    shows a backlog's direct children only and a caller handed a task's url would nest under that task."""
+    seen, record = set(), adapter().fresh(issue, comments=False)
+    while record and "backlog" not in record["labels"] and record["parent"] and record["number"] not in seen:
+        seen.add(record["number"])
+        record = adapter().fresh(record["parent"], comments=False)
+    if not record or "backlog" not in record["labels"]:
+        raise LookupError(f"no backlog at or above #{issue}; #{task} stays where it is")
+    adapter().nest(record["number"], task)

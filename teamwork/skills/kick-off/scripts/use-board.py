@@ -12,7 +12,7 @@ usage: use-board.py <operation> <args>
   reopen <issue>                        open a closed issue again
   decide <issue> <body-file>            comment a text that opens with `DECIDED:`
   order <later> <earlier>               record that LATER waits on EARLIER
-  nest <backlog> <task>                 put TASK under BACKLOG
+  nest <issue> <task>                   put TASK under the nearest backlog at or above ISSUE
   label <issue> <name> [--remove]"""
 import pathlib
 import subprocess
