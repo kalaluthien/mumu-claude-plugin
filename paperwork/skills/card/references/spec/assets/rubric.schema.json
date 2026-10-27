@@ -174,9 +174,9 @@
    "required": ["met", "evidence", "why"],
    "additionalProperties": false,
    "properties": {
-    "met": {"enum": [0, 1], "description": "The criterion's verdict: 1 when its proposition holds, so an error committed for a - criterion; the stricter verdict when runs split."},
-    "runs": {"type": "array", "items": {"enum": [0, 1]}, "description": "Each judge run's verdict, when more than one ran."},
-    "evidence": {"type": "string", "description": "The words quoted from the target that decide the verdict, or what was searched for and not found."},
+    "met": {"enum": [0, 1, null], "description": "The criterion's verdict: 1 when its proposition holds, so an error committed for a - criterion; the stricter verdict when runs split; null when it could not be judged, its reason in why, and then it scores as failed."},
+    "runs": {"type": "array", "items": {"enum": [0, 1, null]}, "description": "Each judge run's verdict, when more than one ran."},
+    "evidence": {"type": "string", "description": "The words quoted from the target that decide the verdict, or what was searched for and not found; a + criterion with no quote is not met."},
     "where": {"type": "string", "description": "The path:line, url or section the evidence sits at."},
     "why": {"type": "string", "description": "How the evidence decides the verdict."},
     "fix": {"type": "string", "description": "What to change so the criterion is met; required when it fails."}

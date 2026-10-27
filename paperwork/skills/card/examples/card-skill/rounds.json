@@ -1,0 +1,23 @@
+{
+ "spec_sha": "a12c428eaab9",
+ "spec_by": "a fresh sonnet subagent that read only #1046's words, the research notes, AGENTS.md's skill rules and the spec grammar at origin/main, never the draft",
+ "rounds": [
+  {
+   "round": 0,
+   "version": "274152f",
+   "scores": [
+    0.857,
+    0.667,
+    0.8
+   ],
+   "failed": [
+    "report-built-like-peers",
+    "no-quote-not-met",
+    "rubric-frozen",
+    "not-judged-section",
+    "body-short-flat"
+   ],
+   "note": "first draft: rename, report flow, page"
+  }
+ ]
+}

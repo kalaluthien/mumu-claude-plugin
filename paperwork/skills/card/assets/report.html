@@ -57,11 +57,13 @@ ol.fixes li { margin: 0 0 10px; padding-left: 4px; }
 .crit { background: var(--surface); border: 1px solid var(--card-line); border-left-width: 4px; border-radius: 10px; padding: 12px 16px; margin: 0 0 10px; overflow-wrap: anywhere; scroll-margin-top: 12px; }
 .crit.failed { border-left-color: var(--fail); }
 .crit.passed { border-left-color: var(--pass); }
+.crit.unjudged { border-left-color: var(--line); border-left-style: dashed; }
 .crit:target { box-shadow: 0 0 0 2px var(--accent); }
 .crit-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
 .status { font: 600 .78rem var(--sans); border-radius: 5px; padding: 1px 8px; white-space: nowrap; }
 .failed .status { color: var(--fail); background: var(--fail-bg); }
 .passed .status { color: var(--pass); background: var(--pass-bg); }
+.unjudged .status { color: var(--body); background: var(--panel); }
 .crit-text { flex: 1 1 18em; min-width: 0; }
 .split { font: .75rem var(--sans); color: var(--muted); border: 1px dashed var(--line); border-radius: 5px; padding: 0 6px; }
 .crit-id { font: .72rem var(--mono); color: var(--muted); }

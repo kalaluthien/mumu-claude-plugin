@@ -5,7 +5,8 @@ usage: make-report.py SPEC.json GRADES.json OUT.html   one self-contained page; 
                                                        or the spec
        make-report.py verdicts SPEC.json GRADES.json   print the verdict file the grades make, for score-spec.py
        make-report.py --check DIR                      build every DIR/X/ that holds spec.json and grades.json, check the
-                                                       page in headless Chromium and print "ok N"
+                                                       page in headless Chromium and print "ok N"; a kept DIR/X/report.html
+                                                       must equal the page built
        make-report.py --layout DIR                     measure every DIR/X/'s page at 390 and 1200 px, light and dark,
                                                        and print "layout ok N"
        make-report.py --capture PAGE.html DIR          write four PNGs of a built page: 1200 and 390 px, light and dark
@@ -25,7 +26,7 @@ import tempfile
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 
-from rubric.grades import failed, problems, verdicts  # noqa: E402
+from rubric.grades import failed, judged, problems, verdicts  # noqa: E402
 from rubric.model import tier_scores  # noqa: E402
 from rubric.spec import violations  # noqa: E402
 
@@ -71,6 +72,8 @@ def linked(text):
 
 
 def status_word(criterion, grade):
+    if not judged(grade):
+        return "? Not judged"
     if criterion["polarity"] == "+":
         return ("✓ Met", "✗ Not met")[failed(criterion, grade)]
     return ("✓ No error", "✗ Error found")[failed(criterion, grade)]
@@ -86,8 +89,10 @@ def verdict_sentence(spec, grades, scores):
     for tier, u in zip(spec["tiers"], scores):
         if u < 1:
             missed = sum(failed(c, grades["grades"][c["id"]]) for c in tier["criteria"])
+            unknown = sum(not judged(grades["grades"][c["id"]]) for c in tier["criteria"])
             return (f"Falls short at “{tier['name']}”: {missed} of {len(tier['criteria'])} "
-                    f"{'criterion fails' if missed == 1 else 'criteria fail'} there.")
+                    f"{'criterion fails' if missed == 1 else 'criteria fail'} there"
+                    + (f", and {unknown} could not be judged." if unknown else "."))
     return "Meets every criterion of the rubric."
 
 
@@ -95,10 +100,13 @@ def tier_rows(spec, grades, scores):
     rows = []
     for tier, u in zip(spec["tiers"], scores):
         crit = tier["criteria"]
-        met = sum(not failed(c, grades["grades"][c["id"]]) for c in crit)
+        given = [grades["grades"][c["id"]] for c in crit]
+        met = sum(judged(g) and not failed(c, g) for c, g in zip(crit, given))
+        unknown = sum(not judged(g) for g in given)
         target = tier.get("pass", 1) if tier.get("mask_below") else 1
-        masked = met < len(crit) and u == 0 and met > 0
-        count = f"{met} of {len(crit)} met" + (" · zeroed by a higher tier's mask" if masked else "")
+        masked = u == 0 and met > 0
+        count = (f"{met} of {len(crit) - unknown} judged met" + (f", {unknown} not judged" if unknown else "")
+                 + (" · zeroed by a higher tier's mask" if masked else ""))
         rows.append(f'<div class="tier-name">{esc(tier["name"])}</div>'
                     f'<div class="bullet" role="img" aria-label="{esc(count)}"><div class="fill" style="width:{u * 100:.1f}%"></div>'
                     f'<div class="target" style="left:calc({target * 100:.1f}% - 1px)"></div></div>'
@@ -113,12 +121,13 @@ def card(tier, criterion, grade):
              if len(set(runs)) > 1 else "")
     where = f'<div class="where">{linked(grade["where"])}</div>' if grade.get("where") else ""
     fix = f'<p class="fix"><b>Fix:</b> {linked(grade["fix"])}</p>' if bad and grade.get("fix") else ""
-    return (f'<article class="crit {"failed" if bad else "passed"}" id="c-{esc(criterion["id"])}" '
+    state = "unjudged" if not judged(grade) else "failed" if bad else "passed"
+    return (f'<article class="crit {state}" id="c-{esc(criterion["id"])}" '
             f'data-criterion="{esc(criterion["id"])}">'
             f'<div class="crit-head"><span class="status">{status_word(criterion, grade)}</span>'
             f'<span class="crit-text">{linked(criterion["text"])}</span>{split}'
             f'<span class="crit-id">{esc(criterion["id"])}</span></div>'
-            f'<details{" open" if bad else ""}><summary>Evidence</summary>'
+            f'<details{" open" if bad or not judged(grade) else ""}><summary>Evidence</summary>'
             f'<blockquote class="evidence">{linked(grade["evidence"])}</blockquote>{where}'
             f'<p class="why">{linked(grade["why"])}</p></details>{fix}</article>')
 
@@ -144,9 +153,15 @@ def body(spec, grades):
     else:
         out.append('<p class="none">Nothing to fix: every criterion is met.</p>')
     out.append('<h2>Criteria</h2>')
-    for tier, u in zip(spec["tiers"], scores):
-        crit = sorted(tier["criteria"], key=lambda c: not failed(c, grades["grades"][c["id"]]))
+    for tier in spec["tiers"]:
+        crit = sorted((c for c in tier["criteria"] if judged(grades["grades"][c["id"]])),
+                      key=lambda c: not failed(c, grades["grades"][c["id"]]))
         out.append(f'<h3>{esc(tier["name"])}</h3>' + "".join(card(tier, c, grades["grades"][c["id"]]) for c in crit))
+    unjudged = [(t, c) for t in spec["tiers"] for c in t["criteria"] if not judged(grades["grades"][c["id"]])]
+    if unjudged:
+        out.append('<h2>Not judged</h2><p class="none">These could not be checked, each for the reason on its card. '
+                   'They are left out of the counts above, but the tier score treats each as failed, so the order never '
+                   'rewards what nobody checked.</p>' + "".join(card(t, c, grades["grades"][c["id"]]) for t, c in unjudged))
     frameworks = "".join(f"<li>{linked(f)}</li>" for f in subject["frameworks"])
     out.append('<h2>What was graded</h2><dl class="subject">'
                f'<dt>Kind</dt><dd>{esc(subject["kind"])}</dd><dt>Purpose</dt><dd>{linked(subject["purpose"])}</dd>'
@@ -186,6 +201,9 @@ def check_one(page, folder, tmp):
     spec, grades = load(folder / "spec.json", folder / "grades.json")
     out = pathlib.Path(tmp) / f"{folder.name}.html"
     out.write_text(build(folder / "spec.json", folder / "grades.json"), encoding="utf-8")
+    kept = folder / "report.html"
+    if kept.is_file() and kept.read_text(encoding="utf-8") != out.read_text(encoding="utf-8"):
+        raise Refused(f"{folder}: report.html differs from the page its spec and grades build; rebuild it")
     verdict_file = pathlib.Path(tmp) / f"{folder.name}.verdicts.json"
     verdict_file.write_text(json.dumps(verdicts(spec, grades)), encoding="utf-8")
     want = score_spec_scores(folder / "spec.json", verdict_file)
