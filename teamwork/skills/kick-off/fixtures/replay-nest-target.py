@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+"""Nest tasks through use-board.py on a temporary files board and print `<case> pass`, or `<case> fail` with what it read:
+`under-task`, a task nested under another task lands on their backlog; `no-backlog`, a task nested under an issue with no backlog
+at or above it is refused and keeps no parent.
+
+usage: replay-nest-target.py"""
+import os
+import pathlib
+import subprocess
+import sys
+import tempfile
+
+USE = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "use-board.py"
+
+
+def use(*argv):
+    return subprocess.run([sys.executable, str(USE), *map(str, argv)], capture_output=True, text=True)
+
+
+def filed(title, *labels):
+    body = pathlib.Path(tempfile.mkstemp(suffix=".md")[1])
+    body.write_text(f"{title}.\n")
+    return use("file", title, body, *labels).stdout.strip().rsplit("/", 1)[1]
+
+
+def parent(number):
+    return next(l.split(": ", 1)[1] for l in use("read", number).stdout.splitlines() if l.startswith("parent: "))
+
+
+def main(args):
+    if args:
+        print(__doc__, file=sys.stderr)
+        return 2
+    os.environ.update(TEAMWORK_BOARD="files", TEAMWORK_BOARD_DIR=tempfile.mkdtemp(prefix="nest-board-"))
+    backlog, task, follow_up = filed("Backlog", "backlog"), filed("Task"), filed("Follow-up")
+    use("nest", backlog, task)
+    nested = use("nest", task, follow_up)
+    read = parent(follow_up)
+    print(f"under-task {'pass' if nested.returncode == 0 and read == backlog else f'fail: parent {read}, {nested.stderr.strip()}'}")
+    loose, orphan = filed("Loose"), filed("Orphan")
+    refused = use("nest", loose, orphan)
+    read = parent(orphan)
+    print(f"no-backlog {'pass' if refused.returncode == 1 and read == 'None' else f'fail: exit {refused.returncode}, parent {read}'}")
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
