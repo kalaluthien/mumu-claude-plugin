@@ -79,7 +79,7 @@ That session becomes the manager. It files the backlog, starts a worker in a new
 ```mermaid
 flowchart TB
   n_zoom["zoom skill"]
-  n_rubric["rubric skill"]
+  n_card["card skill"]
   n_schema[["Schema lib"]]
   n_page[["Page lib"]]
   n_spec[["Rubric lib"]]
@@ -87,7 +87,7 @@ flowchart TB
   n_plan[["Tree lib"]]
   n_zoom -->|"checks with"| n_schema
   n_zoom -->|"draws with"| n_page
-  n_rubric -->|"grades with"| n_spec
+  n_card -->|"grades with"| n_spec
   n_spec -->|"reuses"| n_schema
   n_tree -->|"checks and reads answers with"| n_plan
 ```
@@ -97,7 +97,7 @@ flowchart TB
 One Schema document holds what a system is, or must be, and every view is drawn from it after a checker passes it.
 
 - [`/paperwork:zoom`](paperwork/skills/zoom/SKILL.md) models a system, from code, docs or requirements, as a checked Schema document, then proves it with Alloy (needs Java) or shows it as a Mermaid diagram in chat, a clickable HTML page or an SVG.
-- [`/paperwork:rubric`](paperwork/skills/rubric/SKILL.md) turns a task into a grading spec for a judge, a benchmark or a human grading sheet, and measures or repairs it.
+- [`/paperwork:card`](paperwork/skills/card/SKILL.md) grades a target, a document, skill, code, page or plan, into an HTML report card: it finds what the target is for, derives a rubric for it and grades it with quoted evidence; it also writes, measures and repairs grading specs for a judge, a benchmark or a human grading sheet.
 - [`/paperwork:tree`](paperwork/skills/tree/SKILL.md) writes a plan as one checked JSON document, shows it as a page where the owner picks, strikes, comments and edits, and reads the copied Answer back into the plan's next version.
 
 **Usage.**

@@ -1,6 +1,6 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
- "$id": "https://github.com/kalaluthien/mumu-claude-plugin/paperwork/skills/rubric/references/spec/assets/rubric.schema.json",
+ "$id": "https://github.com/kalaluthien/mumu-claude-plugin/paperwork/skills/card/references/spec/assets/rubric.schema.json",
  "title": "rubric grading spec",
  "description": "Binary criteria over an answer space, grouped in tiers that never trade off, and the records that placed them.",
  "type": "object",
@@ -127,6 +127,59 @@
      }
     },
     "groups": {"type": "array", "items": {"type": "array", "items": {"type": "string"}}}
+   }
+  },
+  "grades": {
+   "type": "object",
+   "description": "One target graded by a spec with evidence, the input of make-report.py; its met values are a verdict file's 0 or 1.",
+   "required": ["target", "subject", "spec_sha", "judge", "grades"],
+   "additionalProperties": false,
+   "properties": {
+    "target": {
+     "type": "object",
+     "required": ["name", "where", "version"],
+     "additionalProperties": false,
+     "properties": {
+      "name": {"type": "string", "description": "What the report calls the target."},
+      "where": {"type": "string", "description": "Its path or url."},
+      "version": {"type": "string", "description": "The commit, date or revision graded."}
+     }
+    },
+    "subject": {
+     "type": "object",
+     "required": ["kind", "purpose", "reader", "frameworks"],
+     "additionalProperties": false,
+     "properties": {
+      "kind": {"type": "string", "description": "What kind of thing the target is, such as a how-to guide or a command-line script."},
+      "purpose": {"type": "string", "description": "What the target is for, with the evidence for that reading."},
+      "reader": {"type": "string", "description": "Who uses it, and what a failure costs them."},
+      "frameworks": {"type": "array", "items": {"type": "string"}, "description": "The established quality frameworks the criteria were drawn from, each a name and a url."}
+     }
+    },
+    "spec_sha": {"type": "string", "pattern": "^[0-9a-f]{12}$", "description": "The first 12 hex digits of the spec file's sha256, taken before grading, so a spec edited after it is refused."},
+    "judge": {
+     "type": "object",
+     "required": ["model", "runs"],
+     "additionalProperties": false,
+     "properties": {
+      "model": {"type": "string"},
+      "runs": {"type": "integer", "minimum": 1, "description": "How many fresh judge runs graded every criterion."}
+     }
+    },
+    "grades": {"type": "object", "additionalProperties": {"$ref": "#/$defs/grade"}, "description": "One grade per criterion id of the spec."}
+   }
+  },
+  "grade": {
+   "type": "object",
+   "required": ["met", "evidence", "why"],
+   "additionalProperties": false,
+   "properties": {
+    "met": {"enum": [0, 1], "description": "The criterion's verdict: 1 when its proposition holds, so an error committed for a - criterion; the stricter verdict when runs split."},
+    "runs": {"type": "array", "items": {"enum": [0, 1]}, "description": "Each judge run's verdict, when more than one ran."},
+    "evidence": {"type": "string", "description": "The words quoted from the target that decide the verdict, or what was searched for and not found."},
+    "where": {"type": "string", "description": "The path:line, url or section the evidence sits at."},
+    "why": {"type": "string", "description": "How the evidence decides the verdict."},
+    "fix": {"type": "string", "description": "What to change so the criterion is met; required when it fails."}
    }
   }
  }

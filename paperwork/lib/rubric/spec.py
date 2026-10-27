@@ -6,7 +6,7 @@ import re
 from rubric.model import GROUP_SIZE, no_signal, weights
 from schema.model import shape
 
-GRAMMAR = pathlib.Path(__file__).resolve().parents[2] / "skills/rubric/references/spec/assets/rubric.schema.json"
+GRAMMAR = pathlib.Path(__file__).resolve().parents[2] / "skills/card/references/spec/assets/rubric.schema.json"
 SCHEMA = json.loads(GRAMMAR.read_text(encoding="utf-8"))
 
 # the source rubric-authoring skill's word lists, English and Korean
