@@ -74,7 +74,7 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const started = await next(e)
     startDir = e.cwd
-    const me = await $.process.run([`${$.plugin.root}/skills/kick-off/scripts/list-agents.py`, '--me']).catch(() => undefined)
+    const me = await $.process.run([`${$.plugin.root}/skills/kick-off/scripts/list-sessions.py`, '--me']).catch(() => undefined)
     watch($, me?.stdout.trim() ?? '')  // outside a team's host no session is a manager
     return started
   })
@@ -84,7 +84,7 @@ export const register: Register = on => {
     const ran = await next(e)
     // a typed argument may land garbled, so a herdr name stands in unless the argument is already a manager name
     const typed = e.args.trim()
-    const me = typed.endsWith('-manager') ? undefined : await $.process.run([`${$.plugin.root}/skills/kick-off/scripts/list-agents.py`, '--me']).catch(() => undefined)
+    const me = typed.endsWith('-manager') ? undefined : await $.process.run([`${$.plugin.root}/skills/kick-off/scripts/list-sessions.py`, '--me']).catch(() => undefined)
     watch($, me?.stdout.trim() || typed)
     return ran
   }).catch(($, e, next) => next(e))  // a failed open must never fail the rename

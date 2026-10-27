@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = pathlib.Path(__file__).resolve().parents[3]
@@ -115,6 +116,19 @@ def herdr_receiver(status_now, expect_code, expect):
     state = herdr(agent("protocol-split-worker", 1, "working"), agent("receiver-codex", 2, status_now))
     code, out = tell(state, "receiver-codex")
     return code == expect_code and re.search(expect, out) is not None, out
+
+
+def tell_claude():
+    """A Claude receiver, idle or working, told by tell-session.py: refused within 2 s, naming SendMessage, and never prompted."""
+    state = herdr(agent("protocol-split-worker", 1, "working"), agent("idle-worker", 2, "idle"), agent("busy-worker", 3, "working"))
+    outs = []
+    for name, before in (("idle-worker", "idle"), ("busy-worker", "working")):
+        started = time.time()
+        code, out = tell(state, name)
+        outs.append(out)
+        if code != 1 or time.time() - started > 2 or "SendMessage" not in out or status(state, name) != before:
+            return False, "\n".join(outs)
+    return True, "\n".join(outs)
 
 
 def send_failed():
@@ -245,6 +259,7 @@ SCENARIOS = {
     "herdr-idle": lambda: herdr_receiver("idle", 0, r"^delivered to receiver-codex$"),
     "herdr-busy": lambda: herdr_receiver("working", 0, r"^delivered to receiver-codex after its turn$"),
     "herdr-prompt": lambda: herdr_receiver("blocked", 1, r"^not delivered to receiver-codex: blocked at a tool prompt"),
+    "tell-claude": tell_claude,
     "send-failed": send_failed,
     "monitor-restart": monitor_restart,
     "two-managers": two_managers,

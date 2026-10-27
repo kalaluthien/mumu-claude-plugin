@@ -3,7 +3,7 @@
 Every adapter has these names:
 - `KIND` the agent's kind for the session port's `start`; `command(name, plugin_dir, model, effort, off)` its arguments after that
 - `TOOLS_OFF` the tools each role has off, comma-joined by role; `kickoff(args)` the prompt that starts a role
-- `TRUST` the folder trust dialog's text and the keys that accept it; `EXIT` the prompt that ends a session, and `DIALOGS`
+- `TRUST` the folder trust dialog's text and the keys that accept it; `TELL` how a session of this kind is told; `EXIT` the prompt that ends a session, and `DIALOGS`
   the text of each dialog it may show then, with the key that exits without saving anything"""
 import importlib
 import os
