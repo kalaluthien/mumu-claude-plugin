@@ -12,6 +12,7 @@ SETTINGS = json.dumps({"disableClaudeAiConnectors": True})
 TOOLS_OFF = {"worker": "Artifact,AskUserQuestion", "manager": "Artifact,Workflow", "sentinel": "Agent,Artifact,AskUserQuestion,Workflow"}
 TRUST = ("Yes, I trust this folder", ("down", "enter"))
 EXIT = "/exit"
+TELL = "SendMessage"  # how a session of this kind is told; herdr typing reaches it only once its turn ends, so a sender waits
 # Claude Code may ask these on /exit; each key is the answer that exits without saving anything
 DIALOGS = [
     ("Background work is running", "enter"),  # first option: Exit

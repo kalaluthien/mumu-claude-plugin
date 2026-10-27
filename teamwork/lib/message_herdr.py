@@ -1,6 +1,7 @@
 """The message port's adapter for herdr: `tell` types the text into the receiver's pane once it is ready, since herdr queues nothing."""
 import time
 
+import agent
 import session
 
 POLL, SEEN = 1.0, 10.0  # how long a taken prompt may take to show, as work or as text on the screen
@@ -15,6 +16,8 @@ def tell(name, text, timeout):
         a = session.agent(name)
         if not a:
             return False, "not live"
+        if a.get("agent") == agent.KIND:  # a session of the team's own kind has its own message adapter, which waits for no turn
+            return False, f"a {agent.KIND} session; tell it by {agent.TELL} to {name}"
         if a.get("agent_status") not in ("idle", "done"):
             waited = True
             if not session.wait_idle(name, max(deadline - time.time(), 0)):

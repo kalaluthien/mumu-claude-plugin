@@ -8,7 +8,7 @@ Every adapter has these functions, by the same names:
   `send_keys(pane, *keys)`, `answer(pane, choice)` a tool prompt's choice by its number, `wait_idle(name, timeout)` until a session is `idle` or `done`, True when it is,
   `close(session)` its tab, or its workspace when that tab is the last, returning which
 - `LOOK` the command that shows a session's pane, `EMPTY` what to say when no session is listed, and `NEEDS` the commands it runs
-A session has `name`, `pane_id`, `tab_id`, `workspace_id` and `agent_status` (`idle`, `working`, `blocked` or `done`), and `interactive_ready`;
+A session has `name`, `agent` (its kind, as the agent port's `KIND` names it), `pane_id`, `tab_id`, `workspace_id` and `agent_status` (`idle`, `working`, `blocked` or `done`), and `interactive_ready`;
 a place has `pane_id` and `tab_id`. A `pane` argument may be a session's name, which the host resolves on each call, since it may move the pane. Functions raise RuntimeError when the host refuses a write they cannot do without."""
 import importlib
 import os

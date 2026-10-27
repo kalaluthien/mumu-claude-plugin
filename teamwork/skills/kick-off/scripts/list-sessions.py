@@ -2,8 +2,8 @@
 """Prints one line per named live agent: name, pane id, workspace id, status; an unnamed session has no name key, so it is skipped.
 `--me` prints only this session's name, or nothing outside a named session.
 
-usage: list-agents.py
-       list-agents.py --me"""
+usage: list-sessions.py
+       list-sessions.py --me"""
 import pathlib
 import sys
 
@@ -22,7 +22,7 @@ def main(args):
         if a.get("name"):
             print(a["name"], a.get("pane_id", "-"), a.get("workspace_id", "-"), a.get("agent_status", "-"))
     if not listed:
-        print(f"list-agents.py: {session.EMPTY}")
+        print(f"list-sessions.py: {session.EMPTY}")
 
 
 if __name__ == "__main__":

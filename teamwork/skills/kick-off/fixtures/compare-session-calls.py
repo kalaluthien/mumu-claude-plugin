@@ -20,7 +20,7 @@ STEPS = [
     [SCRIPTS + "start-session.py", "slow-worker", "/tmp", "worker slow-worker manager teamwork-manager x", "--model", "haiku", "--effort", "medium"],
     [SCRIPTS + "close-session.py", "nobody-worker"],
     [SCRIPTS + "close-session.py", "stuck-worker"],
-    [SCRIPTS + "list-agents.py"],
+    [SCRIPTS + "list-sessions.py"],
     ["teamwork/hooks/route-event.py", "gh issue comment 1 --body hi"],
     ["teamwork/hooks/route-event.py", "ls"],
 ]
@@ -44,7 +44,10 @@ def scenario(tree):
         log.open("a").write(f"$ {' '.join(step[1:])}\n")
         hook = step[0].endswith("route-event.py")  # the hook reads its event, a Bash call of the command named
         event = json.dumps({"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": step[1]}, "cwd": "."}) if hook else None
-        p = subprocess.run([str(tree / step[0]), *([] if hook else step[1:])], cwd=work, env=env, input=event, capture_output=True, text=True)
+        script = tree / step[0]
+        if not script.exists():  # a ref older than the rename of the session list (#1039) keeps it under its old name
+            script = script.with_name(script.name.replace("sessions", "-".join(["", "agents"])[1:]))
+        p = subprocess.run([str(script), *([] if hook else step[1:])], cwd=work, env=env, input=event, capture_output=True, text=True)
         log.open("a").write(f"exit {p.returncode}: {(p.stdout + p.stderr).strip()}\n")
     return log.read_text().replace(str(tree), "<root>").replace(str(work), "<work>")
 

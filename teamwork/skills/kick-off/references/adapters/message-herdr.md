@@ -4,5 +4,5 @@ herdr types a message into the receiver's pane and keeps no reply path, so the r
 
 | operation | how |
 | --- | --- |
-| `tell` | [tell-session.py](../../scripts/tell-session.py) `<name> <text-file>`, which waits until the receiver is idle or done, sends, confirms it shows, and retries while it is blocked; `not delivered` and exit 1 say why |
+| `tell` | [tell-session.py](../../scripts/tell-session.py) `<name> <text-file>`, to a receiver that is not Claude Code, which waits until it is idle or done, sends, confirms it shows, and retries while it is blocked; `not delivered` and exit 1 say why, at once for a Claude Code receiver |
 | `watch` | `herdr agent wait <name> --until idle --until done`, since a session that finished a turn is `done` |
