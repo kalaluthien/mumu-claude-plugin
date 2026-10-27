@@ -1,6 +1,6 @@
 # mumu-claude-plugin: Claude Code plugins
 
-Three Claude Code plugins that let one person run a small team of Claude sessions without losing the plot: **teamwork** turns what you ask for into reviewed, merged work; **paperwork** models a system as a checked document you can prove and draw, turns a task into a grading spec, and writes explanatory HTML books; **homework** makes sure each session leaves behind what it learned.
+Three Claude Code plugins that let one person run a small team of Claude sessions without losing the plot: **teamwork** turns what you ask for into reviewed, merged work; **paperwork** models a system as a checked document you can prove and draw, and turns a task into a grading spec; **homework** makes sure each session leaves behind what it learned.
 
 Each plugin works alone.
 
@@ -85,14 +85,11 @@ flowchart TB
   n_spec[["Rubric lib"]]
   n_tree["tree skill"]
   n_plan[["Tree lib"]]
-  n_book["book skill"]
-  n_booklib[["Book lib"]]
   n_zoom -->|"checks with"| n_schema
   n_zoom -->|"draws with"| n_page
   n_rubric -->|"grades with"| n_spec
   n_spec -->|"reuses"| n_schema
   n_tree -->|"checks and reads answers with"| n_plan
-  n_book -->|"plans, builds and lints with"| n_booklib
 ```
 
 </details>
@@ -102,7 +99,6 @@ One Schema document holds what a system is, or must be, and every view is drawn 
 - [`/paperwork:zoom`](paperwork/skills/zoom/SKILL.md) models a system, from code, docs or requirements, as a checked Schema document, then proves it with Alloy (needs Java) or shows it as a Mermaid diagram in chat, a clickable HTML page or an SVG.
 - [`/paperwork:rubric`](paperwork/skills/rubric/SKILL.md) turns a task into a grading spec for a judge, a benchmark or a human grading sheet, and measures or repairs it.
 - [`/paperwork:tree`](paperwork/skills/tree/SKILL.md) writes a plan as one checked JSON document, shows it as a page where the owner picks, strikes, comments and edits, and reads the copied Answer back into the plan's next version.
-- [`/paperwork:book`](paperwork/skills/book/SKILL.md) plans, writes, reviews and publishes an explanatory HTML book or page from one `book.json` model, with a lint and a mutation self-test (render checks need Python Playwright; math needs Node and `npm`).
 
 **Usage.**
 
