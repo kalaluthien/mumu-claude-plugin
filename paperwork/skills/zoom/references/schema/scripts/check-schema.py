@@ -57,9 +57,9 @@ def violations(data):
 
 def check(path):
     rows = violations(json.loads(pathlib.Path(path).read_text(encoding="utf-8")))
-    for rule, text, sev in rows:
-        print(("" if sev == "error" else "warning ") + checks.line(rule, text))
-    errors = sum(1 for _, _, sev in rows if sev == "error")
+    for rule, text, severity in rows:
+        print(("" if severity == "error" else "warning ") + checks.line(rule, text))
+    errors = sum(1 for _, _, severity in rows if severity == "error")
     # the count goes to stderr, so stdout holds only violation lines, or ok
     print(f"{errors} error(s)", file=sys.stderr) if errors else print("ok")
     return 1 if errors else 0
@@ -67,19 +67,19 @@ def check(path):
 
 def rules():
     """Every rule by name: (severity, what it asks)."""
-    out = {name: what for name, what in GRAMMAR_RULES.items()}
-    out |= {name: what for name, what, _ in checks.RULES if name != "opens"}   # opens states only narrower rules
-    out |= NARROW_RULES
-    return {name: ("warning" if name in checks.LINT else "error", what) for name, what in out.items()}
+    descriptions = {name: what for name, what in GRAMMAR_RULES.items()}
+    descriptions |= {name: what for name, what, _ in checks.RULES if name != "opens"}   # opens states only narrower rules
+    descriptions |= NARROW_RULES
+    return {name: ("warning" if name in checks.LINT else "error", what) for name, what in descriptions.items()}
 
 
 def fixtures():
     known, failed, accepted, rejected = rules(), 0, 0, 0
-    for f in sorted(FIXTURES.glob("*.json")):
-        rows = violations(json.loads(f.read_text(encoding="utf-8")))
-        errors = {r for r, _, s in rows if s == "error"}
-        warnings = {r for r, _, s in rows if s == "warning"}
-        named = f.stem if f.stem in known else None
+    for fixture_path in sorted(FIXTURES.glob("*.json")):
+        rows = violations(json.loads(fixture_path.read_text(encoding="utf-8")))
+        errors = {rule for rule, _, severity in rows if severity == "error"}
+        warnings = {rule for rule, _, severity in rows if severity == "warning"}
+        named = fixture_path.stem if fixture_path.stem in known else None
         if named and known[named][0] == "error":
             good, want = errors == {named}, f"rejected by {named} alone"
         elif named:
@@ -90,8 +90,8 @@ def fixtures():
         accepted += not errors
         rejected += bool(errors)
         got = ", ".join(sorted(errors)) and "rejected by " + ", ".join(sorted(errors)) or "accepted" + (", warned by " + ", ".join(sorted(warnings)) if warnings else "")
-        print(f"{'ok  ' if good else 'FAIL'}  {f.name}: {got}" + ("" if good else f"; want {want}"))
-    unnamed = sorted(set(known) - {f.stem for f in FIXTURES.glob("*.json")})
+        print(f"{'ok  ' if good else 'FAIL'}  {fixture_path.name}: {got}" + ("" if good else f"; want {want}"))
+    unnamed = sorted(set(known) - {path.stem for path in FIXTURES.glob("*.json")})
     for name in unnamed:
         print(f"FAIL  no fixture names rule {name}")
     print(f"fixtures: {accepted} accepted, {rejected} rejected by their named rule" if not failed and not unnamed
@@ -111,59 +111,59 @@ KINDS = ("Topology", "Workflow", "State")
 def prose(files):
     """Each schema/ document links the grammar, and no sentence names three or more of its property names, which would
     restate it; semantics.md reads each kind in one paragraph under its own heading."""
-    names, out = set(), []
+    names, problems = set(), []
 
     def collect(node):
         if isinstance(node, dict):
             names.update(node.get("properties", {}))
-            for v in node.values():
-                collect(v)
+            for child in node.values():
+                collect(child)
         elif isinstance(node, list):
-            for v in node:
-                collect(v)
+            for child in node:
+                collect(child)
     collect(SCHEMA)
-    docs = [pathlib.Path(f) for f in files] or sorted(HERE.parent.glob("*.md"))
-    if missing := [str(d) for d in docs if not d.is_file()]:
+    documents = [pathlib.Path(file) for file in files] or sorted(HERE.parent.glob("*.md"))
+    if missing := [str(document) for document in documents if not document.is_file()]:
         print(f"prose: no such file: {', '.join(missing)}", file=sys.stderr)
         return 2
-    for doc in docs:
-        text = doc.read_text(encoding="utf-8")
+    for document in documents:
+        text = document.read_text(encoding="utf-8")
         if "assets/schema.json" not in text:
-            out.append(f"{doc.name}: links no assets/schema.json")
+            problems.append(f"{document.name}: links no assets/schema.json")
         for sentence in re.split(r"(?<=[.!?:;]) +|\n", text):
-            if len({w for w in re.findall(r"`([a-z-]+)`", sentence) if w in names}) >= 3:
-                out.append(f"{doc.name}: restates the grammar: {sentence.strip()[:80]}")
-        if doc.name == "semantics.md":
+            if len({word for word in re.findall(r"`([a-z-]+)`", sentence) if word in names}) >= 3:
+                problems.append(f"{document.name}: restates the grammar: {sentence.strip()[:80]}")
+        if document.name == "semantics.md":
             for kind in KINDS:
                 body = re.search(rf"^## {kind}\n\n(.*?)(?=^## |\Z)", text, re.M | re.S)
                 if not body or len(body.group(1).strip().split("\n\n")) != 1:
-                    out.append(f"{doc.name}: give {kind} one paragraph under ## {kind}")
-    print("\n".join(out) or "prose: ok")
-    return 1 if out else 0
+                    problems.append(f"{document.name}: give {kind} one paragraph under ## {kind}")
+    print("\n".join(problems) or "prose: ok")
+    return 1 if problems else 0
 
 
 def main(args):
-    cmd = args[0] if args else "help"
-    if cmd in ("check", "ids") and len(args) == 2:
+    command = args[0] if args else "help"
+    if command in ("check", "ids") and len(args) == 2:
         try:
             json.loads(pathlib.Path(args[1]).read_text(encoding="utf-8"))
         except (OSError, ValueError) as e:
             print(f"{args[1]}: not a JSON document: {e}", file=sys.stderr)
             return 2
-    if cmd == "ids" and len(args) == 2 and shape(json.loads(pathlib.Path(args[1]).read_text(encoding="utf-8"))):
+    if command == "ids" and len(args) == 2 and shape(json.loads(pathlib.Path(args[1]).read_text(encoding="utf-8"))):
         print(f"{args[1]}: breaks the grammar, so it has no ids yet; run check", file=sys.stderr)
         return 2
-    if cmd == "check" and len(args) == 2:
+    if command == "check" and len(args) == 2:
         return check(args[1])
-    if cmd == "fixtures":
+    if command == "fixtures":
         return fixtures()
-    if cmd == "rules":
-        for name, (sev, what) in rules().items():
-            print(f"{name:24s} {sev:7s} {what}")
+    if command == "rules":
+        for name, (severity, what) in rules().items():
+            print(f"{name:24s} {severity:7s} {what}")
         return 0
-    if cmd == "ids" and len(args) == 2:
+    if command == "ids" and len(args) == 2:
         return ids(args[1])
-    if cmd == "prose":
+    if command == "prose":
         return prose(args[1:])
     print(__doc__, file=sys.stderr)
     return 2

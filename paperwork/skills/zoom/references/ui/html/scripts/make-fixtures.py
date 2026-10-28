@@ -16,15 +16,15 @@ import sys
 import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
-OUT = HERE.parent / "fixtures"
-DOC = HERE.parents[2] / "schema" / "fixtures" / "meta-every-format.json"
+OUTPUT = HERE.parent / "fixtures"
+DOCUMENT = HERE.parents[2] / "schema" / "fixtures" / "meta-every-format.json"
 
 CLICK = 'g.addEventListener("click", () => act(n.id, () => open && st.sel && st.sel.node === n.id ? goto(open, b) : select({ node: n.id })));'
-GO = '.addEventListener("click", ev => { ev.stopPropagation(); goto(open, b); });'
+GOTO_BUTTON = '.addEventListener("click", ev => { ev.stopPropagation(); goto(open, b); });'
 CUTS = {
-    "page-without-zoom.html": [(CLICK, ""), (GO, ";")],
+    "page-without-zoom.html": [(CLICK, ""), (GOTO_BUTTON, ";")],
     "page-missing-meta.html": [("${metaGrp(e.meta)}", '${metaGrp(Object.fromEntries(Object.entries(e.meta || {}).filter(([k]) => k !== "due-date")))}')],
-    "page-without-behaviours.html": [(CLICK, ""), (GO, ";"),
+    "page-without-behaviours.html": [(CLICK, ""), (GOTO_BUTTON, ";"),
                                      ('time.querySelectorAll("[data-d]").forEach(b => b.onclick = () => seek(+b.dataset.d));', ""),
                                      ('const cb = p.querySelector(".zoom-copy"); if (cb) cb.onclick = () => copy(cb);', ""),
                                      ("${copyFor(L, n.id, n.label)}", ""), ('${copyFor(L, st.sel.edge, e.label || "")}', "")],
@@ -35,14 +35,14 @@ def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    with tempfile.TemporaryDirectory() as d:
-        view, page = pathlib.Path(d) / "view.json", pathlib.Path(d) / "page.html"
-        for call in (["new", view], ["build", DOC, view, page]):
+    with tempfile.TemporaryDirectory() as directory:
+        view, page = pathlib.Path(directory) / "view.json", pathlib.Path(directory) / "page.html"
+        for call in (["new", view], ["build", DOCUMENT, view, page]):
             subprocess.run([sys.executable, HERE / "make-diagram.py", *map(str, call)], check=True, capture_output=True)
         built = page.read_text(encoding="utf-8")
     # The fixtures sit beside the vendored font, so they point at it instead of each carrying a copy.
     built = re.sub(r"url\(data:font/woff2;base64,[^)]*\)", "url(../assets/fonts/poorstory.woff2)", built)
-    OUT.mkdir(exist_ok=True)
+    OUTPUT.mkdir(exist_ok=True)
     for name, cuts in CUTS.items():
         text = built
         for old, new in cuts:
@@ -50,8 +50,8 @@ def main(args):
                 print(f"{name}: the engine no longer holds {old[:60]}")
                 return 1
             text = text.replace(old, new)
-        (OUT / name).write_text(text, encoding="utf-8")
-        print("wrote", OUT / name)
+        (OUTPUT / name).write_text(text, encoding="utf-8")
+        print("wrote", OUTPUT / name)
     return 0
 
 

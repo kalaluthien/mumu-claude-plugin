@@ -53,15 +53,15 @@ def main(args):
     if len(args) < 2:
         print(__doc__, file=sys.stderr)
         return 2
-    schema, out = pathlib.Path(args[0]), pathlib.Path(args[1]).resolve()
+    schema, output_path = pathlib.Path(args[0]), pathlib.Path(args[1]).resolve()
     install()
-    mmd = out.with_suffix(".mmd")
-    mmd.write_text(to_mermaid(json.loads(schema.read_text())["level"]))
+    mermaid_file = output_path.with_suffix(".mmd")
+    mermaid_file.write_text(to_mermaid(json.loads(schema.read_text())["level"]))
     # The script sits in CACHE so node resolves pele and playwright-core from its node_modules.
     runner = CACHE / "render-pele.mjs"
     runner.write_text((HERE / "render-pele.mjs").read_text())
-    subprocess.run(["node", str(runner), str(mmd), str(out), find_chromium()], check=True)
-    print(out)
+    subprocess.run(["node", str(runner), str(mermaid_file), str(output_path), find_chromium()], check=True)
+    print(output_path)
     return 0
 
 

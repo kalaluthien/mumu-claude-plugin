@@ -30,84 +30,84 @@ from schema import prover  # noqa: E402
 from schema.model import Model, shape  # noqa: E402
 
 
-def lines(model, als_path):
-    als, world, checks = prover.translate(model)
-    als_path.write_text(als, encoding="utf-8")
-    print(f"wrote {als_path}", file=sys.stderr)
+def lines(model, alloy_path):
+    alloy_source, world, checks = prover.translate(model)
+    alloy_path.write_text(alloy_source, encoding="utf-8")
+    print(f"wrote {alloy_path}", file=sys.stderr)
     try:
-        res = prover.run(als)
+        results = prover.run(alloy_source)
     except RuntimeError as e:
-        res = {"_refused": str(e).splitlines()[0]}
-    out = []
+        results = {"_refused": str(e).splitlines()[0]}
+    report = []
     for name, _, _, _, slug in checks:
-        if res is None:
+        if results is None:
             why = "no Alloy (java and alloy.jar); run prove-schema.py --fetch"
-        elif "_refused" in res:
-            why = f"Alloy refused the module: {res['_refused']}"
-        elif name in res.get("_slow", []) or name not in res:
+        elif "_refused" in results:
+            why = f"Alloy refused the module: {results['_refused']}"
+        elif name in results.get("_slow", []) or name not in results:
             why = f"past {prover.SECONDS} s"
         else:
-            r = res[name]
-            out.append(f"{slug}: counterexample {prover.trace(world, r['instances'], slug)}" if r["sat"] else f"{slug}: pass")
+            result = results[name]
+            report.append(f"{slug}: counterexample {prover.trace(world, result['instances'], slug)}" if result["sat"] else f"{slug}: pass")
             continue
-        out.append(f"{slug}: unproved: {why}")
-    return out
+        report.append(f"{slug}: unproved: {why}")
+    return report
 
 
 def restrictions(data):
     """Each restriction the document places on its runs: (id, the document without it)."""
-    for i, r in enumerate(data["rules"]):
-        if r["kind"] == "must":   # a rule on an edge is a guard, so its own slug is among them
-            d = copy.deepcopy(data)
-            d["rules"][i]["kind"] = "should"   # still checked, no longer assumed or a guard
-            yield r["slug"], d
-    for i, op in enumerate(data.get("operations", [])):
+    for index, rule in enumerate(data["rules"]):
+        if rule["kind"] == "must":   # a rule on an edge is a guard, so its own slug is among them
+            variant = copy.deepcopy(data)
+            variant["rules"][index]["kind"] = "should"   # still checked, no longer assumed or a guard
+            yield rule["slug"], variant
+    for index, operation in enumerate(data.get("operations", [])):
         for part in ("pre", "post"):
-            if part in op:
-                d = copy.deepcopy(data)
-                del d["operations"][i][part]
-                yield f"{op['slug']}:{part}", d
+            if part in operation:
+                variant = copy.deepcopy(data)
+                del variant["operations"][index][part]
+                yield f"{operation['slug']}:{part}", variant
     for path, sync in syncs(data):
-        d = copy.deepcopy(data)
-        at = d
-        for k in path:
-            at = at[k]
+        variant = copy.deepcopy(data)
+        at = variant
+        for key in path:
+            at = at[key]
         at.remove(sync)
-        yield sync["name"], d
+        yield sync["name"], variant
 
 
-def syncs(x, path=()):
+def syncs(value, path=()):
     """Every sync of every level, with the path to its list."""
-    if isinstance(x, dict):
-        for k, v in x.items():
-            if k == "syncs" and isinstance(v, list):
-                yield from ((path + (k,), s) for s in v)
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key == "syncs" and isinstance(child, list):
+                yield from ((path + (key,), sync) for sync in child)
             else:
-                yield from syncs(v, path + (k,))
-    elif isinstance(x, list):
-        for i, v in enumerate(x):
-            yield from syncs(v, path + (i,))
+                yield from syncs(child, path + (key,))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            yield from syncs(child, path + (index,))
 
 
 def broken_by(data, slugs):
     """For each rule in `slugs`, the restrictions whose loss alone gives it a counterexample, and those whose copy
     Alloy gave no answer for."""
-    out = {s: ([], []) for s in slugs}
-    for s in slugs:
-        for rid, d in restrictions(data):
-            als, _, checks = prover.translate(Model(d))
-            name = next(n for n, _, _, _, slug in checks if slug == s)
-            head, cmds, _, name_of = prover._split(als)
+    outcome = {target_slug: ([], []) for target_slug in slugs}
+    for target_slug in slugs:
+        for restriction_id, variant in restrictions(data):
+            alloy_source, _, checks = prover.translate(Model(variant))
+            name = next(candidate_name for candidate_name, _, _, _, slug in checks if slug == target_slug)
+            head, commands, _, name_of = prover._split(alloy_source)
             # only the rule under test runs, so each copy costs one Alloy call
             try:
-                res = prover.run(head + "-- what Alloy checks\n" + next(c for c in cmds if name_of(c) == name) + "\n")
+                results = prover.run(head + "-- what Alloy checks\n" + next(command for command in commands if name_of(command) == name) + "\n")
             except RuntimeError:
-                res = None
-            if not res or name not in res:
-                out[s][1].append(rid)
-            elif res[name]["sat"]:
-                out[s][0].append(rid)
-    return out
+                results = None
+            if not results or name not in results:
+                outcome[target_slug][1].append(restriction_id)
+            elif results[name]["sat"]:
+                outcome[target_slug][0].append(restriction_id)
+    return outcome
 
 
 def verdict(broken, unanswered):
@@ -120,23 +120,23 @@ def main(args):
         print(f"fetched {prover.fetch()}")
         return 0
     mutate = "--mutate" in args
-    args = [a for a in args if a != "--mutate"]
+    args = [argument for argument in args if argument != "--mutate"]
     if len(args) not in (1, 3) or args[0].startswith("--") or (len(args) == 3 and args[1] != "--als"):
         print(__doc__, file=sys.stderr)
         return 2
-    doc = pathlib.Path(args[0])
-    data = json.loads(doc.read_text(encoding="utf-8"))
+    document = pathlib.Path(args[0])
+    data = json.loads(document.read_text(encoding="utf-8"))
     if wrong := shape(data):
         print("\n".join(f"{rule}: {text}" for rule, text in wrong), file=sys.stderr)
         return 2
-    als = pathlib.Path(args[2]) if len(args) == 3 else pathlib.Path(tempfile.gettempdir()) / f"{re.sub(r'[^A-Za-z0-9]+', '-', doc.resolve().parent.name + '-' + doc.stem)}.als"
-    out = lines(Model(data), als)
+    alloy_path = pathlib.Path(args[2]) if len(args) == 3 else pathlib.Path(tempfile.gettempdir()) / f"{re.sub(r'[^A-Za-z0-9]+', '-', document.resolve().parent.name + '-' + document.stem)}.als"
+    report = lines(Model(data), alloy_path)
     if mutate:
-        musts = {r["slug"] for r in data["rules"] if r["kind"] == "must"}
-        passed = [x.split(": ")[0] for x in out if x.endswith(": pass") and x.split(": ")[0] in musts]
+        musts = {rule["slug"] for rule in data["rules"] if rule["kind"] == "must"}
+        passed = [line.split(": ")[0] for line in report if line.endswith(": pass") and line.split(": ")[0] in musts]
         found = broken_by(data, passed)
-        out = [x + verdict(*found[x.split(": ")[0]]) if x.split(": ")[0] in found else x for x in out]
-    print("\n".join(out))
+        report = [line + verdict(*found[line.split(": ")[0]]) if line.split(": ")[0] in found else line for line in report]
+    print("\n".join(report))
     return 0
 
 

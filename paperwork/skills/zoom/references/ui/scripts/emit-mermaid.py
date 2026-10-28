@@ -20,9 +20,9 @@ import subprocess
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-UI = HERE.parent
-SCHEMA_DIR = UI.parent / "schema"
-GRAMMAR = json.loads((SCHEMA_DIR / "assets" / "schema.json").read_text())
+INTERFACE_FOLDER = HERE.parent
+SCHEMA_FOLDER = INTERFACE_FOLDER.parent / "schema"
+GRAMMAR = json.loads((SCHEMA_FOLDER / "assets" / "schema.json").read_text())
 LEVEL = GRAMMAR["$defs"]["level"]
 FORMATS = list(GRAMMAR["$defs"]["format"])
 RESERVED = list(GRAMMAR["$defs"]["meta"]["properties"])
@@ -31,64 +31,64 @@ DIFF_SIGN = {"added": "+", "removed": "−", "changed": "~"}
 DIFF_TINT = {"added": "#2a7", "removed": "#c33", "changed": "#c90"}
 
 
-def num(v):
-    return str(int(v)) if isinstance(v, float) and v.is_integer() else str(v)
+def format_number(value):
+    return str(int(value)) if isinstance(value, float) and value.is_integer() else str(value)
 
 
-def pointer(p):
-    return f"[{p}]({p})" if re.match(r"https?://", p) else f"`{p}`"
+def pointer(location):
+    return f"[{location}]({location})" if re.match(r"https?://", location) else f"`{location}`"
 
 
 # one display per format and reserved key; formats.md documents each, `formats` holds the two equal
 SHOW_FORMAT = {
-    "text": lambda name, v: v,
-    "number": lambda name, v: num(v),
-    "url": lambda name, v: f"[{name}]({v})",
-    "ms": lambda name, v: f"{num(v)} ms",
-    "percent": lambda name, v: f"{num(v)}%",
-    "date": lambda name, v: v,
-    "bool": lambda name, v: "yes" if v else "no",
+    "text": lambda name, value: value,
+    "number": lambda name, value: format_number(value),
+    "url": lambda name, value: f"[{name}]({value})",
+    "ms": lambda name, value: f"{format_number(value)} ms",
+    "percent": lambda name, value: f"{format_number(value)}%",
+    "date": lambda name, value: value,
+    "bool": lambda name, value: "yes" if value else "no",
 }
 SHOW_RESERVED = {
-    "note": lambda v: f"_{v}_",
-    "diff": lambda v: f"{DIFF_SIGN.get(v, '?')} {v}",
-    "evidence": lambda v: ", ".join(pointer(p) for p in v),
-    "constraint": lambda v: ", ".join(f"`{c}`" for c in v),
+    "note": lambda value: f"_{value}_",
+    "diff": lambda value: f"{DIFF_SIGN.get(value, '?')} {value}",
+    "evidence": lambda value: ", ".join(pointer(location) for location in value),
+    "constraint": lambda value: ", ".join(f"`{constraint}`" for constraint in value),
 }
 
 
-def show_meta(meta):
+def show_metadata(metadata):
     out = []
-    for k, v in meta.items():
+    for k, value in metadata.items():
         if k in SHOW_RESERVED:
-            out.append(f"{k}: {SHOW_RESERVED[k](v)}")
+            out.append(f"{k}: {SHOW_RESERVED[k](value)}")
             continue
-        name, _, fmt = k.rpartition("-")
-        out.append(f"{name}: {SHOW_FORMAT[fmt](name, v)}" if fmt in SHOW_FORMAT else f"{k}: {v}")
+        name, _, format_name = k.rpartition("-")
+        out.append(f"{name}: {SHOW_FORMAT[format_name](name, value)}" if format_name in SHOW_FORMAT else f"{k}: {value}")
     return "; ".join(out)
 
 
-def levels(doc):
+def levels(document):
     """Every level root first, as (level, id, depth, opener node): a level's id is its opener's id, or root."""
     out = []
 
-    def visit(level, lid, depth, opener):
-        out.append((level, lid, depth, opener))
-        for n in level.get("nodes", []):
-            if isinstance(n.get("opens"), dict):
-                visit(n["opens"], n.get("id", "?"), depth + 1, n)
-    if isinstance(doc.get("level"), dict):
-        visit(doc["level"], "root", 0, None)
+    def visit(level, level_id, depth, opener):
+        out.append((level, level_id, depth, opener))
+        for node in level.get("nodes", []):
+            if isinstance(node.get("opens"), dict):
+                visit(node["opens"], node.get("id", "?"), depth + 1, node)
+    if isinstance(document.get("level"), dict):
+        visit(document["level"], "root", 0, None)
     return out
 
 
-def mid(x):
-    return "n_" + str(x).replace("-", "_")
+def mermaid_id(identifier):
+    return "n_" + str(identifier).replace("-", "_")
 
 
-def ends(x):
+def ends(target):
     # a port may join several nodes: one line per node
-    return x if isinstance(x, list) else [x]
+    return target if isinstance(target, list) else [target]
 
 
 def quote(text):
@@ -100,21 +100,21 @@ def plain(text):
     return re.sub(r"[\"{}:;]", "'", str(text)).replace("\n", " ")
 
 
-def qty(q):
-    return f"{num(q['value'])}{(' ' + q['unit']) if q.get('unit') else ''} ({q['kind']})" if isinstance(q, dict) else ""
+def quantity_text(quantity):
+    return f"{format_number(quantity['value'])}{(' ' + quantity['unit']) if quantity.get('unit') else ''} ({quantity['kind']})" if isinstance(quantity, dict) else ""
 
 
-def node_text(n):
-    text = n.get("label", n.get("id", "?"))
-    if isinstance(n.get("opens"), dict):
+def node_text(node):
+    text = node.get("label", node.get("id", "?"))
+    if isinstance(node.get("opens"), dict):
         text += " ▸"
     return text
 
 
-def edge_text(e):
-    marks = e.get("mark", [])
-    text = ("✗ " if "failure" in marks else "") + ("? " if "unsure" in marks else "") + e.get("label", "")
-    return text + (f" · {qty(e['qty'])}" if e.get("qty") else "")
+def edge_text(edge):
+    marks = edge.get("mark", [])
+    text = ("✗ " if "failure" in marks else "") + ("? " if "unsure" in marks else "") + edge.get("label", "")
+    return text + (f" · {quantity_text(edge['qty'])}" if edge.get("qty") else "")
 
 
 CLASSES = [
@@ -128,10 +128,10 @@ CLASSES = [
 ]
 
 
-def classes(n):
-    out = list(n.get("mark", []))
-    if isinstance(n.get("meta"), dict) and n["meta"].get("diff") in DIFF_SIGN:
-        out.append("diff" + n["meta"]["diff"])
+def classes(node):
+    out = list(node.get("mark", []))
+    if isinstance(node.get("meta"), dict) and node["meta"].get("diff") in DIFF_SIGN:
+        out.append("diff" + node["meta"]["diff"])
     return out
 
 
@@ -141,46 +141,46 @@ def flowchart(level):
     links = 0
     styles = []
 
-    def shape(n):
-        t = quote(node_text(n) + (f"<br/>{qty(n['qty'])}" if n.get("qty") else ""))
-        if n.get("gate"):
-            return f"{{{{{quote(node_text(n) + ' (' + n['gate'] + ')')}}}}}"
+    def shape(node):
+        label_text = quote(node_text(node) + (f"<br/>{quantity_text(node['qty'])}" if node.get("qty") else ""))
+        if node.get("gate"):
+            return f"{{{{{quote(node_text(node) + ' (' + node['gate'] + ')')}}}}}"
         if kind == "workflow":
-            return f"({t})"
-        if n.get("abstract"):
-            return f"[/{t}/]"
-        if n.get("singleton"):
-            return f"[[{t}]]"
-        return f"[{t}]"
+            return f"({label_text})"
+        if node.get("abstract"):
+            return f"[/{label_text}/]"
+        if node.get("singleton"):
+            return f"[[{label_text}]]"
+        return f"[{label_text}]"
 
     nodes = level.get("nodes", [])
-    parts = [p for p in level.get("partitions", []) if isinstance(p, dict)]
+    partitions = [item for item in level.get("partitions", []) if isinstance(item, dict)]
     placed = set()
-    for p in parts:
-        inside = [n for n in nodes if n.get("partition") == p.get("id")]
-        lines.append(f"  subgraph p_{mid(p.get('id'))[2:]}[{quote(p.get('label', p.get('id')))}]")
-        lines += [f"    {mid(n.get('id'))}{shape(n)}" for n in inside]
+    for partition in partitions:
+        inside = [node for node in nodes if node.get("partition") == partition.get("id")]
+        lines.append(f"  subgraph p_{mermaid_id(partition.get('id'))[2:]}[{quote(partition.get('label', partition.get('id')))}]")
+        lines += [f"    {mermaid_id(node.get('id'))}{shape(node)}" for node in inside]
         lines.append("  end")
-        placed |= {id(n) for n in inside}
-    lines += [f"  {mid(n.get('id'))}{shape(n)}" for n in nodes if id(n) not in placed]
-    for i, t in enumerate(level.get("triggers", [])):
-        every = f" every {t['every']}" if t.get("every") else ""
-        lines.append(f"  t_{i}((\" \")) -->|{quote(t.get('label', '') + every)}| {mid(t.get('to'))}")
+        placed |= {id(node) for node in inside}
+    lines += [f"  {mermaid_id(node.get('id'))}{shape(node)}" for node in nodes if id(node) not in placed]
+    for i, trigger in enumerate(level.get("triggers", [])):
+        every = f" every {trigger['every']}" if trigger.get("every") else ""
+        lines.append(f"  t_{i}((\" \")) -->|{quote(trigger.get('label', '') + every)}| {mermaid_id(trigger.get('to'))}")
         links += 1
-    for i, p in enumerate(level.get("in", [])):
-        for to in ends(p.get("to")):
-            lines.append(f"  in_{i}>{quote(p.get('edge'))}] --> {mid(to)}")
+    for i, port in enumerate(level.get("in", [])):
+        for to in ends(port.get("to")):
+            lines.append(f"  in_{i}>{quote(port.get('edge'))}] --> {mermaid_id(to)}")
             links += 1
-    for i, p in enumerate(level.get("out", [])):
-        for frm in ends(p.get("from")):
-            lines.append(f"  {mid(frm)} --> out_{i}>{quote(p.get('edge'))}]")
+    for i, port in enumerate(level.get("out", [])):
+        for origin in ends(port.get("from")):
+            lines.append(f"  {mermaid_id(origin)} --> out_{i}>{quote(port.get('edge'))}]")
             links += 1
-    for e in level.get("edges", []):
-        marks = e.get("mark", [])
+    for edge in level.get("edges", []):
+        marks = edge.get("mark", [])
         arrow = "==>" if "happy" in marks else "-.->" if set(marks) & {"failure", "optional", "unsure"} else "-->"
-        label = edge_text(e)
-        lines.append(f"  {mid(e.get('from'))} {arrow}{('|' + quote(label) + '|') if label else ''} {mid(e.get('to'))}")
-        diff = e.get("meta", {}).get("diff") if isinstance(e.get("meta"), dict) else None
+        label = edge_text(edge)
+        lines.append(f"  {mermaid_id(edge.get('from'))} {arrow}{('|' + quote(label) + '|') if label else ''} {mermaid_id(edge.get('to'))}")
+        diff = edge.get("meta", {}).get("diff") if isinstance(edge.get("meta"), dict) else None
         if diff in DIFF_TINT:
             styles.append(f"  linkStyle {links} stroke:{DIFF_TINT[diff]},stroke-width:3px")
         elif "failure" in marks:
@@ -192,114 +192,114 @@ def flowchart(level):
 HISTORY = {"shallow": "H", "deep": "H*"}   # Harel's marks
 
 
-def superstate(n):
+def superstate(node):
     """The state level a state opens, drawn inside it as a Harel superstate, or None."""
-    o = n.get("opens")
-    return o if isinstance(o, dict) and o.get("kind") == "state" else None
+    opened_level = node.get("opens")
+    return opened_level if isinstance(opened_level, dict) and opened_level.get("kind") == "state" else None
 
 
-def history_states(n, level):
+def history_states(node, level):
     """{mode: id} of the history states inside superstate n of level `level`: its level's own `history`, and each other
     mode an edge into it `enters` by, so that edge can point at it."""
-    inner = superstate(n)
+    inner = superstate(node)
     if not inner or not inner.get("nodes"):
         return {}
     own = inner.get("history")
-    modes = [own] + [e.get("enters") for e in level.get("edges", []) if e.get("to") == n.get("id") and e.get("from") != n.get("id")]
-    modes = list(dict.fromkeys(m for m in modes if m in HISTORY))
-    first = mid(inner["nodes"][0].get("id"))[2:]
+    modes = [own] + [edge.get("enters") for edge in level.get("edges", []) if edge.get("to") == node.get("id") and edge.get("from") != node.get("id")]
+    modes = list(dict.fromkeys(mode for mode in modes if mode in HISTORY))
+    first = mermaid_id(inner["nodes"][0].get("id"))[2:]
     # the first mode keeps the plain id, so a level with one history mark draws it as before
-    return {m: f"h_{first}" + ("" if i == 0 else f"_{m}") for i, m in enumerate(modes)}
+    return {mode: f"h_{first}" + ("" if i == 0 else f"_{mode}") for i, mode in enumerate(modes)}
 
 
-def state_inside(level, pad, marks=None):
+def state_inside(level, indent, marks=None):
     """A state level's states, regions, history and events, each superstate holding its own level."""
     nodes = level.get("nodes", [])
-    regions = [r for r in level.get("regions", []) if isinstance(r, dict)]
+    regions = [region for region in level.get("regions", []) if isinstance(region, dict)]
     initial = level.get("initial", [])
     initial = [initial] if isinstance(initial, str) else list(initial)
-    triggered = {t.get("to") for t in level.get("triggers", [])}
+    triggered = {trigger.get("to") for trigger in level.get("triggers", [])}
     # an edge is drawn inside its region's block when both ends sit in it, else at the top
-    group = {n.get("id"): (n.get("region") if regions else None) for n in nodes}
-    marks = {level["history"]: f"h_{mid(nodes[0].get('id'))[2:]}"} if marks is None and level.get("history") in HISTORY and nodes else marks or {}
-    into = {n.get("id"): history_states(n, level) for n in nodes}
+    group = {node.get("id"): (node.get("region") if regions else None) for node in nodes}
+    marks = {level["history"]: f"h_{mermaid_id(nodes[0].get('id'))[2:]}"} if marks is None and level.get("history") in HISTORY and nodes else marks or {}
+    into = {node.get("id"): history_states(node, level) for node in nodes}
 
-    def state(n, pad):
-        inner = superstate(n)
+    def state(node, state_indent):
+        inner = superstate(node)
         if not inner:
-            return [f"{pad}state \"{plain(node_text(n) + (' · ' + qty(n['qty']) if n.get('qty') else ''))}\" as {mid(n.get('id'))}"]
-        return [f"{pad}state \"{plain(n.get('label', n.get('id', '?')))}\" as {mid(n.get('id'))} {{"] + state_inside(inner, pad + "  ", into[n.get("id")]) + [f"{pad}}}"]
+            return [f"{state_indent}state \"{plain(node_text(node) + (' · ' + quantity_text(node['qty']) if node.get('qty') else ''))}\" as {mermaid_id(node.get('id'))}"]
+        return [f"{state_indent}state \"{plain(node.get('label', node.get('id', '?')))}\" as {mermaid_id(node.get('id'))} {{"] + state_inside(inner, state_indent + "  ", into[node.get("id")]) + [f"{state_indent}}}"]
 
-    def arrow(e, pad):
+    def arrow(edge, arrow_indent):
         # an edge entering by history points at that history state, else at the superstate itself
-        sup = next((x for x in nodes if x.get("id") == e.get("to")), {})
-        inner = superstate(sup) or {}
-        mode = e.get("enters") or inner.get("history")
-        to = into.get(e.get("to"), {}).get(mode) if e.get("from") != e.get("to") else None
-        return f"{pad}{mid(e.get('from'))} --> {to or mid(e.get('to'))}" + (f" : {plain(edge_text(e))}" if edge_text(e) else "")
+        superstate_node = next((node for node in nodes if node.get("id") == edge.get("to")), {})
+        inner = superstate(superstate_node) or {}
+        mode = edge.get("enters") or inner.get("history")
+        to = into.get(edge.get("to"), {}).get(mode) if edge.get("from") != edge.get("to") else None
+        return f"{arrow_indent}{mermaid_id(edge.get('from'))} --> {to or mermaid_id(edge.get('to'))}" + (f" : {plain(edge_text(edge))}" if edge_text(edge) else "")
 
-    def body(members, pad, top):
-        ids = {n.get("id") for n in members}
-        out = [x for n in members for x in state(n, pad)]
-        for mode, hid in (marks.items() if top else ()):   # entering the superstate again resumes where it was left
-            out.append(f"{pad}state \"{HISTORY[mode]}\" as {hid}")
-        out += [f"{pad}[*] --> {mid(s)}" for s in initial if s in ids and s not in triggered]
-        out += [f"{pad}[*] --> {mid(t.get('to'))} : {plain(t.get('label', ''))}"
-                for t in level.get("triggers", []) if t.get("to") in ids]
-        out += [arrow(e, pad) for e in level.get("edges", []) if e.get("from") in ids and e.get("to") in ids]
-        out += [f"{pad}{mid(n.get('id'))} --> [*]" for n in members if n.get("final")]
+    def body(members, body_indent, top):
+        ids = {node.get("id") for node in members}
+        out = [line for node in members for line in state(node, body_indent)]
+        for mode, history_id in (marks.items() if top else ()):   # entering the superstate again resumes where it was left
+            out.append(f"{body_indent}state \"{HISTORY[mode]}\" as {history_id}")
+        out += [f"{body_indent}[*] --> {mermaid_id(state_id)}" for state_id in initial if state_id in ids and state_id not in triggered]
+        out += [f"{body_indent}[*] --> {mermaid_id(trigger.get('to'))} : {plain(trigger.get('label', ''))}"
+                for trigger in level.get("triggers", []) if trigger.get("to") in ids]
+        out += [arrow(edge, body_indent) for edge in level.get("edges", []) if edge.get("from") in ids and edge.get("to") in ids]
+        out += [f"{body_indent}{mermaid_id(node.get('id'))} --> [*]" for node in members if node.get("final")]
         return out
 
     lines = []
     if regions:
-        lines.append(f"{pad}state \"{plain(level.get('subject') or level.get('title', 'regions'))}\" as regions_{mid(nodes[0].get('id') if nodes else 'x')[2:]} {{")
-        for i, r in enumerate(regions):
+        lines.append(f"{indent}state \"{plain(level.get('subject') or level.get('title', 'regions'))}\" as regions_{mermaid_id(nodes[0].get('id') if nodes else 'x')[2:]} {{")
+        for i, region in enumerate(regions):
             if i:
-                lines.append(f"{pad}  --")
-            lines.append(f"{pad}  state \"{plain(r.get('label', r.get('id')))}\" as r_{mid(r.get('id'))[2:]} {{")
-            lines += body([n for n in nodes if n.get("region") == r.get("id")], pad + "    ", False)
-            lines.append(f"{pad}  }}")
-        lines.append(f"{pad}}}")
-    lines += body([n for n in nodes if group.get(n.get("id")) is None], pad, True)
-    for e in level.get("edges", []):
-        a, b = e.get("from"), e.get("to")
-        if a not in group or b not in group or group[a] != group[b]:
-            lines.append(arrow(e, pad))
+                lines.append(f"{indent}  --")
+            lines.append(f"{indent}  state \"{plain(region.get('label', region.get('id')))}\" as r_{mermaid_id(region.get('id'))[2:]} {{")
+            lines += body([node for node in nodes if node.get("region") == region.get("id")], indent + "    ", False)
+            lines.append(f"{indent}  }}")
+        lines.append(f"{indent}}}")
+    lines += body([node for node in nodes if group.get(node.get("id")) is None], indent, True)
+    for edge in level.get("edges", []):
+        from_id, to_id = edge.get("from"), edge.get("to")
+        if from_id not in group or to_id not in group or group[from_id] != group[to_id]:
+            lines.append(arrow(edge, indent))
     return lines
 
 
 def state_diagram(level):
     lines = ["stateDiagram-v2", "  direction LR"] + state_inside(level, "  ")
-    for p in level.get("in", []):
-        lines += [f"  [*] --> {mid(to)} : {plain(p.get('edge'))}" for to in ends(p.get("to"))]
-    for p in level.get("out", []):
-        lines += [f"  {mid(frm)} --> [*] : {plain(p.get('edge'))}" for frm in ends(p.get("from"))]
+    for port in level.get("in", []):
+        lines += [f"  [*] --> {mermaid_id(to)} : {plain(port.get('edge'))}" for to in ends(port.get("to"))]
+    for port in level.get("out", []):
+        lines += [f"  {mermaid_id(origin)} --> [*] : {plain(port.get('edge'))}" for origin in ends(port.get("from"))]
     return lines
 
 
 def mermaid(level):
     lines = state_diagram(level) if level.get("kind") == "state" else flowchart(level)
     # Mermaid styles no composite state, so a superstate keeps its marks only in the table
-    styled = [n for n in level.get("nodes", []) if not (level.get("kind") == "state" and superstate(n))]
-    used = sorted({c for n in styled for c in classes(n)})
-    lines += [f"  {c}" for c in CLASSES if c.split()[1] in used]
-    for c in used:
-        members = [mid(n.get("id")) for n in styled if c in classes(n)]
-        lines.append(f"  class {','.join(members)} {c}")
+    styled = [node for node in level.get("nodes", []) if not (level.get("kind") == "state" and superstate(node))]
+    used = sorted({class_name for node in styled for class_name in classes(node)})
+    lines += [f"  {definition}" for definition in CLASSES if definition.split()[1] in used]
+    for class_name in used:
+        members = [mermaid_id(node.get("id")) for node in styled if class_name in classes(node)]
+        lines.append(f"  class {','.join(members)} {class_name}")
     return "\n".join(lines)
 
 
-def tree(doc):
+def tree(document):
     out = []
 
-    def visit(level, lid, opener, lead, last, top):
+    def visit(level, level_id, opener, lead, last, top):
         link = f", {opener['link']}" if opener and opener.get("link") else ""
-        out.append(("" if top else lead + ("└── " if last else "├── ")) + f"{lid}: {level.get('title', '')} ({level.get('kind')}{link})")
-        kids = [n for n in level.get("nodes", []) if isinstance(n.get("opens"), dict)]
-        for i, n in enumerate(kids):
-            visit(n["opens"], n.get("id", "?"), n, "" if top else lead + ("    " if last else "│   "), i == len(kids) - 1, False)
-    if isinstance(doc.get("level"), dict):
-        visit(doc["level"], "root", None, "", True, True)
+        out.append(("" if top else lead + ("└── " if last else "├── ")) + f"{level_id}: {level.get('title', '')} ({level.get('kind')}{link})")
+        kids = [node for node in level.get("nodes", []) if isinstance(node.get("opens"), dict)]
+        for i, child in enumerate(kids):
+            visit(child["opens"], child.get("id", "?"), child, "" if top else lead + ("    " if last else "│   "), i == len(kids) - 1, False)
+    if isinstance(document.get("level"), dict):
+        visit(document["level"], "root", None, "", True, True)
     return out
 
 
@@ -307,72 +307,72 @@ def cell(text):
     return str(text).replace("|", "\\|").replace("\n", " ")
 
 
-def meta_table(level):
+def metadata_table(level):
     rows = []
     if isinstance(level.get("meta"), dict):
         rows.append(("this level", level["meta"]))
-    rows += [(f"`{n.get('id')}` {n.get('label', '')}", n["meta"]) for n in level.get("nodes", []) if isinstance(n.get("meta"), dict)]
-    rows += [(f"`{e.get('from')}` → `{e.get('to')}` {e.get('label', '')}", e["meta"])
-             for e in level.get("edges", []) if isinstance(e.get("meta"), dict)]
+    rows += [(f"`{node.get('id')}` {node.get('label', '')}", node["meta"]) for node in level.get("nodes", []) if isinstance(node.get("meta"), dict)]
+    rows += [(f"`{edge.get('from')}` → `{edge.get('to')}` {edge.get('label', '')}", edge["meta"])
+             for edge in level.get("edges", []) if isinstance(edge.get("meta"), dict)]
     if not rows:
         return []
-    return ["", "| element | metadata |", "| --- | --- |"] + [f"| {cell(a)} | {cell(show_meta(m))} |" for a, m in rows]
+    return ["", "| element | metadata |", "| --- | --- |"] + [f"| {cell(element)} | {cell(show_metadata(metadata))} |" for element, metadata in rows]
 
 
 def syncs(level):
-    return [""] + [f"- sync `{s.get('name')}`: on `{s.get('when')}`" + (f" while `{s['where']}`" if s.get("where") else "")
-                   + f", then `{s.get('then')}`" for s in level.get("syncs", [])] if level.get("syncs") else []
+    return [""] + [f"- sync `{sync.get('name')}`: on `{sync.get('when')}`" + (f" while `{sync['where']}`" if sync.get("where") else "")
+                   + f", then `{sync.get('then')}`" for sync in level.get("syncs", [])] if level.get("syncs") else []
 
 
-def emit(doc):
+def emit(document):
     """The Markdown for a document, and each level's (id, Mermaid source) in tree order."""
-    out = [f"## {doc.get('title', 'Schema')}"]
-    if isinstance(doc.get("meta"), dict):
-        out += ["", show_meta(doc["meta"])]
-    out += ["", "```text", *tree(doc), "```"]
+    out = [f"## {document.get('title', 'Schema')}"]
+    if isinstance(document.get("meta"), dict):
+        out += ["", show_metadata(document["meta"])]
+    out += ["", "```text", *tree(document), "```"]
     blocks = []
-    for level, lid, depth, opener in levels(doc):
-        src = mermaid(level)
-        blocks.append((lid, src))
+    for level, level_id, depth, opener in levels(document):
+        source = mermaid(level)
+        blocks.append((level_id, source))
         of = f" of {level['subject']}" if level.get("kind") == "state" and level.get("subject") else ""
-        out += ["", f"### `{lid}` {level.get('title', '')} ({level.get('kind')}{of})"]
+        out += ["", f"### `{level_id}` {level.get('title', '')} ({level.get('kind')}{of})"]
         if level.get("why"):
             out += ["", f"_{level['why']}_"]
-        out += ["", "```mermaid", src, "```"] + syncs(level) + meta_table(level)
+        out += ["", "```mermaid", source, "```"] + syncs(level) + metadata_table(level)
     return "\n".join(out) + "\n", blocks
 
 
-def check(doc, text):
+def check(document, text):
     problems = []
     fences = re.findall(r"^```(\w*)\n(.*?)^```$", text, re.S | re.M)
-    lvls = levels(doc)
+    level_list = levels(document)
     if not fences or fences[0][0] != "text":
         return ["the output does not open with a text block of the level tree"]
     tree_ids = [re.sub(r"^[\s│├└─]*", "", line).split(":")[0] for line in fences[0][1].splitlines()]
-    want = [lid for _, lid, _, _ in lvls]
+    want = [level_id for _, level_id, _, _ in level_list]
     if tree_ids != want:
         problems.append(f"tree lists {tree_ids}, the levels are {want}")
     heads = re.findall(r"^### `([^`]+)`", text, re.M)
     if heads != want:
         problems.append(f"blocks come in the order {heads}, the tree order is {want}")
-    blocks = [body for lang, body in fences[1:] if lang == "mermaid"]
+    blocks = [body for language, body in fences[1:] if language == "mermaid"]
     if len(blocks) != len(want):
         problems.append(f"{len(blocks)} Mermaid blocks for {len(want)} levels")
-    for (level, lid, _, _), src in zip(lvls, blocks):
-        for n in level.get("nodes", []):
-            m = mid(n.get("id"))
-            if not re.search(rf"(^\s*{m}[\[\(\{{>]|\bas {m}( \{{)?$)", src, re.M):
-                problems.append(f"missing node {n.get('id')} in level {lid}")
+    for (level, level_id, _, _), source in zip(level_list, blocks):
+        for node in level.get("nodes", []):
+            node_id = mermaid_id(node.get("id"))
+            if not re.search(rf"(^\s*{node_id}[\[\(\{{>]|\bas {node_id}( \{{)?$)", source, re.M):
+                problems.append(f"missing node {node.get('id')} in level {level_id}")
         pairs = {}
-        for e in level.get("edges", []):
-            pairs[(e.get("from"), e.get("to"))] = pairs.get((e.get("from"), e.get("to")), 0) + 1
-        for (a, b), count in pairs.items():
+        for edge in level.get("edges", []):
+            pairs[(edge.get("from"), edge.get("to"))] = pairs.get((edge.get("from"), edge.get("to")), 0) + 1
+        for (from_id, to_id), count in pairs.items():
             # an edge entering by history ends at a history state inside its target
-            node = next((n for n in level.get("nodes", []) if n.get("id") == b), {})
-            ends_ = "|".join(map(re.escape, [mid(b)] + list(history_states(node, level).values())))
-            found = len(re.findall(rf"^\s*{mid(a)} (-->|==>|-\.->)(\|.*\|)? ({ends_})( : .*)?$", src, re.M))
+            target_node = next((candidate for candidate in level.get("nodes", []) if candidate.get("id") == to_id), {})
+            target_pattern = "|".join(map(re.escape, [mermaid_id(to_id)] + list(history_states(target_node, level).values())))
+            found = len(re.findall(rf"^\s*{mermaid_id(from_id)} (-->|==>|-\.->)(\|.*\|)? ({target_pattern})( : .*)?$", source, re.M))
             if found < count:
-                problems.append(f"missing edge {lid}:{a}>{b}, {found} of {count} drawn")
+                problems.append(f"missing edge {level_id}:{from_id}>{to_id}, {found} of {count} drawn")
     return problems
 
 
@@ -381,116 +381,116 @@ def constructs():
     key and format, and each value of kind, mark, link and gate."""
     node = LEVEL["properties"]["nodes"]["items"]["properties"]
     edge = LEVEL["properties"]["edges"]["items"]["properties"]
-    out = [f"document.{p}" for p in GRAMMAR["properties"]] + [f"level.{p}" for p in LEVEL["properties"]]
-    out += [f"node.{p}" for p in node] + [f"edge.{p}" for p in edge]
-    out += [f"meta.{k}" for k in RESERVED] + [f"meta.<name>-{f}" for f in FORMATS]
-    out += [f"level.kind={v}" for v in KINDS]
-    out += [f"node.mark={v}" for v in node["mark"]["items"]["enum"]] + [f"edge.mark={v}" for v in edge["mark"]["items"]["enum"]]
-    out += [f"node.link={v}" for v in node["link"]["enum"]] + [f"node.gate={v}" for v in node["gate"]["enum"]]
+    out = [f"document.{property_name}" for property_name in GRAMMAR["properties"]] + [f"level.{property_name}" for property_name in LEVEL["properties"]]
+    out += [f"node.{property_name}" for property_name in node] + [f"edge.{property_name}" for property_name in edge]
+    out += [f"meta.{k}" for k in RESERVED] + [f"meta.<name>-{format_name}" for format_name in FORMATS]
+    out += [f"level.kind={kind}" for kind in KINDS]
+    out += [f"node.mark={mark}" for mark in node["mark"]["items"]["enum"]] + [f"edge.mark={mark}" for mark in edge["mark"]["items"]["enum"]]
+    out += [f"node.link={link}" for link in node["link"]["enum"]] + [f"node.gate={gate}" for gate in node["gate"]["enum"]]
     return out
 
 
-def owners(doc, where):
+def owners(document, where):
     if where == "document":
-        return [doc]
-    lv = [level for level, _, _, _ in levels(doc)]
+        return [document]
+    level_list = [level for level, _, _, _ in levels(document)]
     if where == "level":
-        return lv
+        return level_list
     if where in ("node", "edge"):
-        return [x for level in lv for x in level.get(where + "s", []) if isinstance(x, dict)]
-    return [m for x in [doc] + lv + [y for level in lv for y in level.get("nodes", []) + level.get("edges", [])]
-            for m in [x.get("meta")] if isinstance(m, dict)]
+        return [element for level in level_list for element in level.get(where + "s", []) if isinstance(element, dict)]
+    return [metadata for holder in [document] + level_list + [element for level in level_list for element in level.get("nodes", []) + level.get("edges", [])]
+            for metadata in [holder.get("meta")] if isinstance(metadata, dict)]
 
 
-def other(v):
-    if isinstance(v, bool):
-        return not v
-    if isinstance(v, (int, float)):
-        return v + 7
-    if isinstance(v, str):
-        return v + "zq"
-    if isinstance(v, list) and v and all(isinstance(x, str) for x in v):
-        return [x + "zq" for x in v]
-    if isinstance(v, list) and v:
-        return v[1:]
+def other(value):
+    if isinstance(value, bool):
+        return not value
+    if isinstance(value, (int, float)):
+        return value + 7
+    if isinstance(value, str):
+        return value + "zq"
+    if isinstance(value, list) and value and all(isinstance(item, str) for item in value):
+        return [item + "zq" for item in value]
+    if isinstance(value, list) and value:
+        return value[1:]
     return None
 
 
-def mutate(doc, construct):
+def mutate(document, construct):
     """A copy of doc with each occurrence of the construct changed, or None when doc holds none."""
-    doc = copy.deepcopy(doc)
+    document = copy.deepcopy(document)
     where, _, rest = construct.partition(".")
-    prop, _, value = rest.partition("=")
+    property_name, _, value = rest.partition("=")
     hit = False
-    for owner in owners(doc, where):
-        keys = [k for k in owner if k == prop or (prop.startswith("<name>-") and k.endswith(prop[6:]) and k not in RESERVED)]
+    for owner in owners(document, where):
+        keys = [k for k in owner if k == property_name or (property_name.startswith("<name>-") and k.endswith(property_name[6:]) and k not in RESERVED)]
         for k in keys:
-            v = owner[k]
+            current = owner[k]
             if value:
-                enum = KINDS if prop == "kind" else [x for x in (["happy", "failure", "optional", "unsure"] if prop == "mark"
-                                                                 else ["view", "nest"] if prop == "link" else ["fork", "join"])]
-                swap = enum[(enum.index(value) + 1) % len(enum)]
-                if v == value:
+                enumeration = KINDS if property_name == "kind" else [item for item in (["happy", "failure", "optional", "unsure"] if property_name == "mark"
+                                                                 else ["view", "nest"] if property_name == "link" else ["fork", "join"])]
+                swap = enumeration[(enumeration.index(value) + 1) % len(enumeration)]
+                if current == value:
                     owner[k], hit = swap, True
-                elif isinstance(v, list) and value in v:
-                    owner[k], hit = [swap if x == value else x for x in v], True
-            elif isinstance(v, dict):
+                elif isinstance(current, list) and value in current:
+                    owner[k], hit = [swap if item == value else item for item in current], True
+            elif isinstance(current, dict):
                 del owner[k]
                 hit = True
-            elif other(v) is not None:
-                owner[k], hit = other(v), True
-    return doc if hit else None
+            elif other(current) is not None:
+                owner[k], hit = other(current), True
+    return document if hit else None
 
 
 def samples():
     """Fixtures the schema checker accepts, then the examples: where a construct is first looked for."""
-    checker = SCHEMA_DIR / "scripts" / "check-schema.py"
+    checker = SCHEMA_FOLDER / "scripts" / "check-schema.py"
     out = []
-    for f in sorted((SCHEMA_DIR / "fixtures").glob("*.json")):
-        if subprocess.run([sys.executable, str(checker), "check", str(f)], capture_output=True).returncode == 0:
-            out.append(f)
-    return out + sorted((UI.parent.parent / "examples").glob("*/schema.json"))
+    for path in sorted((SCHEMA_FOLDER / "fixtures").glob("*.json")):
+        if subprocess.run([sys.executable, str(checker), "check", str(path)], capture_output=True).returncode == 0:
+            out.append(path)
+    return out + sorted((INTERFACE_FOLDER.parent.parent / "examples").glob("*/schema.json"))
 
 
 def table_rows(path, width):
     rows = {}
     for line in pathlib.Path(path).read_text().splitlines():
-        cells = [c.strip() for c in line.strip().strip("|").split("|")] if line.startswith("|") else []
+        cells = [field.strip() for field in line.strip().strip("|").split("|")] if line.startswith("|") else []
         if len(cells) >= width and re.fullmatch(r"`[^`]+`", cells[0]):
             rows.setdefault(cells[0].strip("`"), []).append(cells[1:])
     return rows
 
 
-def losses(doc_path):
-    rows = table_rows(doc_path, 3)
+def losses(document_path):
+    rows = table_rows(document_path, 3)
     names = constructs()
-    missing = [c for c in names if c not in rows]
-    docs = [(f, json.loads(f.read_text())) for f in samples()]
+    missing = [name for name in names if name not in rows]
+    documents = [(path, json.loads(path.read_text())) for path in samples()]
     unshown = []
-    for c in names:
-        if c not in rows or rows[c][0][0] != "kept":
+    for construct in names:
+        if construct not in rows or rows[construct][0][0] != "kept":
             continue
-        for f, d in docs:
-            changed = mutate(d, c)
+        for path, document in documents:
+            changed = mutate(document, construct)
             if changed is not None:
-                if emit(changed)[0] == emit(d)[0]:
-                    unshown.append((c, f"changing it in {f.parent.name}/{f.name} leaves the output the same"))
+                if emit(changed)[0] == emit(document)[0]:
+                    unshown.append((construct, f"changing it in {path.parent.name}/{path.name} leaves the output the same"))
                 break
         else:
-            unshown.append((c, "no fixture or example holds it to try"))
-    for c in missing:
-        print(f"missing: {c} has no row in the loss table")
-    for c, why in unshown:
-        print(f"not shown: {c} is marked kept, but {why}")
+            unshown.append((construct, "no fixture or example holds it to try"))
+    for construct in missing:
+        print(f"missing: {construct} has no row in the loss table")
+    for construct, why in unshown:
+        print(f"not shown: {construct} is marked kept, but {why}")
     print("constructs: each property of the document, a level, a node and an edge, each reserved meta key and format, "
           "and each value of kind, mark, link and gate")
-    print(f"losses: {len(names)} constructs, {len(missing)} missing from {pathlib.Path(doc_path).name}, "
+    print(f"losses: {len(names)} constructs, {len(missing)} missing from {pathlib.Path(document_path).name}, "
           f"{len(unshown)} kept but not shown")
     return 1 if missing or unshown else 0
 
 
-def formats(doc_path):
-    rows = table_rows(doc_path, 2)
+def formats(document_path):
+    rows = table_rows(document_path, 2)
     want = FORMATS + RESERVED
     problems = [f"missing {k}" for k in want if k not in rows]
     problems += [f"{len(rows[k])} rows for {k}" for k in want if len(rows.get(k, [])) > 1]
@@ -508,33 +508,33 @@ def read(path):
 
 
 def main(args):
-    opt, rest = {}, []
+    options, rest = {}, []
     while args:
         if args[0] == "--check":
-            opt["check"], args = True, args[1:]
+            options["check"], args = True, args[1:]
         elif args[0] in ("--split", "--output", "--doc") and len(args) > 1:
-            opt[args[0][2:]], args = args[1], args[2:]
+            options[args[0][2:]], args = args[1], args[2:]
         else:
             rest, args = rest + args[:1], args[1:]
     args = rest
     if args == ["losses"]:
-        return losses(opt.get("doc", UI / "mermaid.md"))
+        return losses(options.get("doc", INTERFACE_FOLDER / "mermaid.md"))
     if args == ["formats"]:
-        return formats(opt.get("doc", UI / "formats.md"))
+        return formats(options.get("doc", INTERFACE_FOLDER / "formats.md"))
     if len(args) != 1 or args[0].startswith("--"):
         print(__doc__, file=sys.stderr)
         return 2
-    doc = read(args[0])
-    text, blocks = emit(doc)
-    if opt.get("check"):
-        problems = check(doc, pathlib.Path(opt["output"]).read_text() if "output" in opt else text)
+    document = read(args[0])
+    text, blocks = emit(document)
+    if options.get("check"):
+        problems = check(document, pathlib.Path(options["output"]).read_text() if "output" in options else text)
         print("\n".join(problems + ["ok" if not problems else f"problems: {len(problems)}"]))
         return 1 if problems else 0
-    if "split" in opt:
-        folder = pathlib.Path(opt["split"])
+    if "split" in options:
+        folder = pathlib.Path(options["split"])
         folder.mkdir(parents=True, exist_ok=True)
-        for i, (lid, src) in enumerate(blocks):
-            (folder / f"{i:02d}-{lid}.mmd").write_text(src + "\n")
+        for i, (level_id, source) in enumerate(blocks):
+            (folder / f"{i:02d}-{level_id}.mmd").write_text(source + "\n")
     sys.stdout.write(text)
     return 0
 
