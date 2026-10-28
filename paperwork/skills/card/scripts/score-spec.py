@@ -16,7 +16,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 
-from rubric.model import group_of, reward, tier_scores  # noqa: E402
+from rubric.model import reward, tier_scores  # noqa: E402
 from rubric.spec import line, violations  # noqa: E402
 from rubric.verdicts import problems  # noqa: E402
 

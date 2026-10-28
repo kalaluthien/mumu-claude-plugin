@@ -920,12 +920,6 @@ def story(steps):
     return " → ".join(" + ".join(s) for s in steps if s) or "no call at all"
 
 
-def solve(model):
-    """The module's names, its commands and Alloy's answers (None without Alloy); unchanged commands are not rerun."""
-    als, world, checks = translate(model)
-    return world, checks, run(als)
-
-
 def stored(model):
     """The same, from the stored answers only: Alloy is never started."""
     als, world, checks = translate(model)

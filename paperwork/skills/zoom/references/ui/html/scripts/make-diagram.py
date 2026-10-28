@@ -28,7 +28,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[6] / "lib"))
 from page import view  # noqa: E402
 from schema import checks  # noqa: E402
 from schema import plan as params  # noqa: E402
-from schema.model import Model, dump, shape  # noqa: E402
+from schema.model import Model, dump  # noqa: E402
 
 
 def read(path):

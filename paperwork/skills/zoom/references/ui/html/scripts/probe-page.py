@@ -14,7 +14,6 @@ usage: probe-page.py labels <page>       print each level's node and edge labels
 
 Exit status 0 when nothing fails or is missing, 1 otherwise, 2 on a usage error.
 """
-import json
 import pathlib
 import sys
 
