@@ -139,7 +139,7 @@ def main(args):
     case("long digest keeps every owner line and the agent text before it, within 30k chars",
          text and all(f"OWNERLINE{k:03d}" in text and f"step {k} " in text for k in range(80)) and len(text) <= 30000
          and "z" * 301 not in text)
-    case("batches of at most 10 digests", batches and all(len(re.findall(r"\.txt\batch", batch)) <= 10 for batch in batches))
+    case("batches of at most 10 digests", batches and all(len(re.findall(r"\.txt\b", batch)) <= 10 for batch in batches))
 
     # 45 more fresh sessions: a map takes at most 40, newest first; a mapped session with a facet is not listed again
     for k in range(45):
