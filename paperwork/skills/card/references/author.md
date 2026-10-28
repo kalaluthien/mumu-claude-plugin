@@ -12,14 +12,14 @@ Before Frame, ask one `AskUserQuestion` batch: the deliverable and its reader, t
 | --- | --- | --- |
 | 1 Frame | the task's world (as of, scope, deliverable), its evidence goal and use | two experts would agree what a complete answer covers; no hidden assumption of one person, such as "top 10" by what |
 | 2 Answer space | three or more valid answers that differ in order and wording, three or more near-misses, a list of failures | each failure an expert names maps to a candidate criterion |
-| 3 Criteria | each criterion with its polarity, check, provenance, passing variants and near-misses | the boundary test: every variant passes, every near-miss fails |
+| 3 Criteria | each criterion with its polarity, check, provenance, passing variants and near-misses; for prose, discourse criteria (narrative, pyramid and MECE, coherence, emphasis) with an example per score level; for completeness, a fixed key from the sources, never the gaps a reader raises from the answer, which reward saying less, its size chosen with the bar it caps | the boundary test: every variant passes, every near-miss fails |
 | 4 Tiers | tiers and exchange records, by the exchange test | `check-spec.py check` prints `ok`; pairs you hesitate on settled by the person and recorded as theirs |
 | 5 Error and thresholds | each tier's judge error and delta; a mask and its pass rate where it applies | `check-spec.py weights` printed; every warning fixed or answered in a note |
 | 6 Process | the judge, group size and monitor signals | a calibration plan stated: [calibrate.md](calibrate.md) |
 
 **Reward-hacking probe**: the probe is one answer built to pass the criteria while failing the intent, such as the right keywords with no substance, padding, or a format with nothing in it. Write it, grade it and a genuine answer as the judge would into one verdict file, and run `${CLAUDE_PLUGIN_ROOT}/skills/card/scripts/score-spec.py order <spec> <verdicts>`. The probe must rank below the genuine answer; when it does not, the criterion it fooled is missing or too vague: go back to step 2 or 3.
 
-**Dry run**: done when `check-spec.py check` prints `ok`, the probe ranks below, and a dry run agrees with the person. Grade one strong, one middling and two near-miss answers. Run `score-spec.py order`, and compare with the person's own order of the same four. Show them the tier table, the printed weights and that order; a disagreement goes back to step 4.
+**Dry run**: done when `check-spec.py check` prints `ok`, the probe ranks below, and a dry run agrees with the person. Grade one strong, one middling and two near-miss answers, and keep their settled scores beside the spec, to regrade them after a change per criterion against their mean, since a raised top level rightly drops good answers. Run `score-spec.py order`, and compare with the person's own order of the same four. Show them the tier table, the printed weights and that order; a disagreement goes back to step 4.
 
 ## Rules
 

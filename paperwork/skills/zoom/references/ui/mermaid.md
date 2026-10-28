@@ -8,7 +8,7 @@ Run `scripts/emit-mermaid.py doc.json`, the path relative to this file. It is de
 2. one Mermaid block per level, in tree order, top level first;
 3. under each block, the level's syncs as a list and its metadata as a table, shown as [formats.md](formats.md) says.
 
-**Draw, never paste**: chat shows a Mermaid block as raw text, so never print one. Run the script with `--split DIR`, which writes each block to `DIR/<n>-<level>.mmd`. Where `mmdc` is on `PATH`, render each with `mmdc -i <file>.mmd -o <file>.png`; else, where `npx -y @mermaid-js/mermaid-cli -i <file>.mmd -o <file>.png` runs, use that. Print each PNG's full path in the reply, since a terminal tab shows no `SendUserFile` file, and never run `open`; send each by `SendUserFile` too for a remote viewer (phone, Remote Control, desktop app). Print the output with every fenced Mermaid block cut out. Where neither runs, cut the blocks too and draw each level as a table of its edges, a tree list or an ASCII drawing; hand the owner `! npx -y @mermaid-js/mermaid-cli --version`, since its first run installs a package and auto mode refuses it.
+**Draw, never paste**: chat shows a Mermaid block as raw text, and so does the GitHub mobile app though github.com draws it, so never print one; a README read on a phone also needs the image or a table of its edges. Run the script with `--split DIR`, which writes each block to `DIR/<n>-<level>.mmd`. Where `mmdc` is on `PATH`, render each with `mmdc -i <file>.mmd -o <file>.png`; else, where `npx -y @mermaid-js/mermaid-cli -i <file>.mmd -o <file>.png` runs, use that. Print each PNG's full path in the reply, since a terminal tab shows no `SendUserFile` file, and never run `open`; send each by `SendUserFile` too for a remote viewer (phone, Remote Control, desktop app). Print the output with every fenced Mermaid block cut out. Where neither runs, cut the blocks too and draw each level as a table of its edges, a tree list or an ASCII drawing; hand the owner `! npx -y @mermaid-js/mermaid-cli --version`, since its first run installs a package and auto mode refuses it.
 
 Run `emit-mermaid.py --check doc.json` when a block looks short: it names each level, node or edge the output lacks.
 
@@ -31,7 +31,7 @@ On every kind:
 
 ## Losses
 
-What survives the projection into Mermaid. A construct is `kept` when changing it changes the output, and `emit-mermaid.py losses` checks every row of this table that way. A lost construct is still in the document, for the HTML renderer or a reader of the JSON.
+What survives the projection into Mermaid. A construct is `kept` when changing it changes the output, and `emit-mermaid.py losses` checks every row of this table that way, on the `schema/fixtures/` documents the checker accepts and on `examples/`, never `playbook/fixtures/`, changing a value by appending `zq`: draw an enum field by a lookup that skips unknown values, or changing it leaves the output the same. A lost construct is still in the document, for the HTML renderer or a reader of the JSON.
 
 Two limits come from Mermaid itself, not from the emitter:
 - [State diagrams](https://mermaid.js.org/syntax/stateDiagram.html) style a state only by `classDef`, which "cannot be applied to or within composite states". So a `mark` or `diff` on a state inside a region, or on a superstate, shows only in the table.

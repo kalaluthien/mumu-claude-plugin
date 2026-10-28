@@ -44,6 +44,11 @@ A view written for the engine before the Schema carries over by `html/scripts/mi
 ## Rules
 
 - `html/scripts/make-diagram.py rules` lists the drawing checks and the plan's defaults; `html/scripts/prove-checks.py` shows each can fail.
-- `html/scripts/probe-page.py labels|zoom|meta|behaviours page.html` checks a built page in Chrome; the pages in `html/fixtures/` each make one probe fail.
+- `html/scripts/probe-page.py labels|zoom|meta|behaviours page.html` checks a built page in Chrome, as the reader meets it, and the pages in `html/fixtures/` each make one probe fail. To run it:
+  - run it under `uv run --with playwright==1.64.1 python3`, since it needs playwright, which `uv run --with` supplies;
+  - for a page published as an Artifact, probe the copy `Artifact` `action: read`, `path: "index.html"` returns, since headless Chrome cannot open the login-gated link;
+  - when no signed-in browser is connected to check it live, add to that copy a `<meta http-equiv>` Content-Security-Policy of the Artifact tool's CDN allowlist (scripts: cdnjs, jsdelivr/npm, unpkg; styles: fonts.googleapis; fonts: fonts.gstatic, `data:`), since the copy carries no CSP, and a control that must break (a jsdelivr stylesheet);
+  - on a page that keeps hidden views in the DOM, scope selectors to `section:not([hidden])`, or one matches the hidden copy first and times out;
+  - a focus-dimming probe multiplies opacity up the ancestors, since a dimmed parent can leave the child at `opacity: 1`.
 - `make` never starts Alloy; it shows the answers last stored in `~/.cache/paperwork-alloy/results`.
 - `fits` fails: give that level's nodes `x`, `y` in `view.json` ([view-writing.md](html/view-writing.md), Layout), not shorter labels.
