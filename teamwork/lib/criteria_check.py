@@ -1,5 +1,5 @@
 """How a `[check]` criterion reads: the command it runs, the output it expects, the one value it quotes for the base.
-run-criteria.py runs a check by it and lint-criteria.py refuses a check it cannot read, so both share this one parse."""
+run-criteria.py runs a check by it and check-criteria.py refuses a check it cannot read, so both share this one parse."""
 import re
 
 import issue_state

@@ -9,7 +9,8 @@ from urllib.parse import quote
 
 import claude_config
 from issue_board import SHOWN_CLOSED
-from json_command import need, run
+from install_line import need
+from json_command import run
 import team_settings
 
 TRUSTED = {"OWNER", "MEMBER", "COLLABORATOR"}

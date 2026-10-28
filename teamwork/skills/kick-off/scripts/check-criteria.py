@@ -2,7 +2,7 @@
 """Print each criterion of a task body's Definition of done whose form a judge would send back, or run-criteria.py cannot read, one line per criterion,
 `<position>: <defects>`, and exit 1; a body with none prints nothing and exits 0.
 
-usage: lint-criteria.py <body-file | ->
+usage: check-criteria.py <body-file | ->
 
 It reads the form only, never running a command, since whether a check passes on the base stays the judge's to find.
 After the lines it prints, once per defect named, what the defect means and how to fix it."""

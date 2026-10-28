@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 import board
 import landing
 import team_settings
-from session_gaps import stamp
+from session_gaps import parse_time
 
 CRITERION = ("[check]", "[score]")
 
@@ -43,7 +43,7 @@ def rows(issues):
         if backlog in i["labels"] or not i.get("closedAt"):
             continue
         source, start = ("pr", i["prStart"]) if i.get("prStart") else ("created", i["createdAt"])
-        hours = (stamp(i["closedAt"]) - stamp(start)).total_seconds() / 3600
+        hours = (parse_time(i["closedAt"]) - parse_time(start)).total_seconds() / 3600
         out.append({"number": i["number"], "labels": i["labels"], "criteria": sum(i["body"].count(c) for c in CRITERION),
                     "start": start, "end": i["closedAt"], "hours": hours, "source": source})
     return sorted(out, key=lambda r: r["end"])

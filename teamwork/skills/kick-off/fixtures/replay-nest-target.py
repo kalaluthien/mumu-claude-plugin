@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Nest tasks through use-board.py on a temporary files board and print `<case> pass`, or `<case> fail` with what it read:
+"""Nest tasks through use-board.py on a temporary files board and print `ok <case>`, or `fail <case>: <what it read>`:
 `under-task`, a task nested under another task lands on their backlog; `no-backlog`, a task nested under an issue with no backlog
 at or above it is refused and keeps no parent.
 
@@ -27,6 +27,10 @@ def parent(number):
     return next(l.split(": ", 1)[1] for l in use("read", number).stdout.splitlines() if l.startswith("parent: "))
 
 
+def step(name, ok, detail=""):
+    print(f"ok {name}" if ok else f"fail {name}: {detail.strip()}", flush=True)
+
+
 def main(args):
     if args:
         print(__doc__, file=sys.stderr)
@@ -36,11 +40,11 @@ def main(args):
     use("nest", backlog, task)
     nested = use("nest", task, follow_up)
     read = parent(follow_up)
-    print(f"under-task {'pass' if nested.returncode == 0 and read == backlog else f'fail: parent {read}, {nested.stderr.strip()}'}")
+    step("under-task", nested.returncode == 0 and read == backlog, f"parent {read}, {nested.stderr}")
     loose, orphan = filed("Loose"), filed("Orphan")
     refused = use("nest", loose, orphan)
     read = parent(orphan)
-    print(f"no-backlog {'pass' if refused.returncode == 1 and read == 'None' else f'fail: exit {refused.returncode}, parent {read}'}")
+    step("no-backlog", refused.returncode == 1 and read == "None", f"exit {refused.returncode}, parent {read}")
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import background_work  # noqa: E402
 import board  # noqa: E402
-import json_command  # noqa: E402
+import install_line  # noqa: E402
 import session  # noqa: E402
 import team_gaps  # noqa: E402
 import team_names  # noqa: E402
@@ -115,7 +115,7 @@ def main(args):
     kind = event.get("hook_event_name")
     command = (event.get("tool_input") or {}).get("command", "")
     # without its host's command no session has a name, so no role matches and the role's SessionStart text never comes to say why
-    if kind == "SessionStart" and (missing := next(filter(None, map(json_command.missing, session.NEEDS)), None)):
+    if kind == "SessionStart" and (missing := next(filter(None, map(install_line.missing, session.NEEDS)), None)):
         print(json.dumps({"systemMessage": missing}))
     elif kind not in ("PreToolUse", "PostToolUse") or board.command(command) or kind == "PreToolUse" and live_cd(command, event.get("cwd")):  # skip other Bash fast
         listed, me = session.sessions(event.get("session_id"))
