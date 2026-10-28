@@ -1,4 +1,4 @@
-# Landing: GitHub
+# Landing GitHub
 
 A change is a git branch merged by a GitHub pull request.
 

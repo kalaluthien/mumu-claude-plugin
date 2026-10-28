@@ -1,4 +1,6 @@
-# Message: Claude Code
+# Message Claude
+
+A message reaches a Claude Code session, or the owner, through Claude Code's own tools.
 
 | operation | how |
 | --- | --- |

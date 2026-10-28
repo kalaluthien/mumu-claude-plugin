@@ -4,7 +4,7 @@ description: Use when a session is made its project's manager, by the owner or b
 user-invocable: false
 ---
 
-# Kick-off
+# kick-off
 
 Turn the owner's intent into merged work: one manager per project routes it, workers define and do it.
 

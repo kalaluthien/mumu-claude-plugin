@@ -1,4 +1,6 @@
-# Agent: Claude Code
+# Agent Claude
+
+A subagent is an `Agent` call of a Claude Code session.
 
 | operation | how |
 | --- | --- |

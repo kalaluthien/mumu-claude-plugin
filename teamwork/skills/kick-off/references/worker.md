@@ -21,7 +21,7 @@ Own your work from a backlog or the owner's words to its end.
 3. **Land** each change as the repository's rules say (its `AGENTS.md`, its hooks), else by a `push` of the branch, then a `change` into the base citing its task, merged once a `judge` approves its head. Before each `judge`, run [run-criteria.py](../scripts/run-criteria.py) `<task>` in your worktree at the head, fix each `fail` row, and `comment` its table on the task; a `BLOCKED due` line it prints is your ask to your manager.
 4. **Close**: `resolve` each task, and before a report task that blocks another, `file` the follow-up it proposes, `order` the waiting task after it and name that task in the report's `DECIDED:`, since its close unblocks the waiting task at once; `resolve` the backlog once its tasks cover all its words, else `comment` `REPORTED: batch landed <urls>, backlog stays open; next step: <proposal>` and leave it open; hand your manager the urls and wait for more.
 
-- [Rules](build.md#rules): skills, playbooks, rubrics, `AGENTS.md`, prompts
+- [Instructions](build.md#instructions): skills, playbooks, rubrics, `AGENTS.md`, prompts
 - [Code](build.md#code): scripts, hooks, monitors, `lib/`, `bin/`, apps, services, with their tests or eval cases
 - [UI](build.md#ui): a rendered page, diagram, screen or live pane, or its render check
 - [Migration](build.md#migration): files, code, data or a dependency in a new form (rename, move, split, merge, size or convention cut, schema, tool swap), behaviour kept

@@ -1,4 +1,4 @@
-# Message: herdr
+# Message herdr
 
 herdr types a message into the receiver's pane and keeps no reply path, so the receiver replies by `comment` on the issue the message names.
 
