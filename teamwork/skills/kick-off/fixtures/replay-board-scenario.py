@@ -2,7 +2,7 @@
 """File a backlog and a task, nest and order them, set holders, ask by BLOCKED, answer by DECIDED, edit the body and resolve both, then retitle and
 reopen the backlog, nest a follow-up task under it and resolve both again, writing only through use-board.py, and print after each step a `step <name>` line, the composed state of each issue it filed and the board lines, numbers and urls replaced
 by names, so two boards that print the same text keep the same protocol. The files board runs in a temporary folder. The github board runs on the
-repository `GH_REPO` names, as the tape of recorded-gh/gh beside this file holds it, never this one, since its issues would reach the team's board:
+repository `GH_REPO` names, as the tape of recorded-gh/gh beside this file holds it, while no judge or worker writes it (else rerun a failure once alone), never this one, since its issues would reach the team's board:
 with `GH_REPO` unset or naming it, the run calls no gh, prints `not a sandbox` and exits 1.
 
 usage: replay-board-scenario.py --board <github|files>"""

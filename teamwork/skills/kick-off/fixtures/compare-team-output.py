@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """Run teamwork's entry points (hooks, board, heartbeat, scripts) in this checkout and in an export of REF (default
 origin/main) at the same time, against the board kalaluthien/teamwork-board-sandbox as the tape of recorded-gh/gh beside this file
-holds it, and a fake herdr (fake-herdr/herdr beside this file) that lists the two sessions below, and print the entries,
+holds it, while no judge or worker writes the same sandbox board (a failure then reads the other's writes as changes: rerun it once alone), and a fake herdr (fake-herdr/herdr beside this file) that lists the two sessions below, and print the entries,
 those with no output, then `same` when every output matches, else one unified diff per entry that differs and `differ: <entries>`.
 
 usage: compare-team-output.py [--ref <ref>] [--only <entry>,...] [--skip <entry>,...]
 The manager is teamwork-manager, the worker protocol-split-worker. The sandbox's fixture issues and one merged change give every
 entry output; `edit-write` edits its issue #6 (base) or #7 (head) forward and back.
 `--only` keeps the entries whose names start with one of its words, `--skip` drops them.
-On a branch, pass `--ref "$(git merge-base HEAD origin/main)"`, since origin/main moves when another change merges and its diffs then read as yours.
-A judge or worker writing the same sandbox board at that moment makes a pass read the other's writes as changes: rerun a failure once alone."""
+On a branch, pass `--ref "$(git merge-base HEAD origin/main)"`, since origin/main moves when another change merges and its diffs then read as yours."""
 import argparse
 import concurrent.futures as cf
 import difflib
