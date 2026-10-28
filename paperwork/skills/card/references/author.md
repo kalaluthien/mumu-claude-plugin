@@ -12,7 +12,7 @@ Before Frame, ask one `AskUserQuestion` batch: the deliverable and its reader, t
 | --- | --- | --- |
 | 1 Frame | the task's world (as of, scope, deliverable), its evidence goal and use | two experts would agree what a complete answer covers; no hidden assumption of one person, such as "top 10" by what |
 | 2 Answer space | three or more valid answers that differ in order and wording, three or more near-misses, a list of failures | each failure an expert names maps to a candidate criterion |
-| 3 Criteria | each criterion with its polarity, check, provenance, passing variants and near-misses; for prose, discourse criteria (narrative, pyramid and MECE, coherence, emphasis) with an example per score level; for completeness, a fixed key from the sources, its size chosen with the bar it caps | the boundary test: every variant passes, every near-miss fails |
+| 3 Criteria | each criterion with its polarity, check, provenance, passing variants and near-misses; for prose, discourse criteria (narrative, pyramid and MECE, coherence, emphasis) with an example per score level; for completeness, a fixed key from the sources, never the gaps a reader raises from the answer, which reward saying less, its size chosen with the bar it caps | the boundary test: every variant passes, every near-miss fails |
 | 4 Tiers | tiers and exchange records, by the exchange test | `check-spec.py check` prints `ok`; pairs you hesitate on settled by the person and recorded as theirs |
 | 5 Error and thresholds | each tier's judge error and delta; a mask and its pass rate where it applies | `check-spec.py weights` printed; every warning fixed or answered in a note |
 | 6 Process | the judge, group size and monitor signals | a calibration plan stated: [calibrate.md](calibrate.md) |
