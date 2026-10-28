@@ -66,7 +66,7 @@ A claim about the harness rests on a run that can fail, in a scratch git folder 
 - **Backtest**: replay a hook on past transcripts (`~/.claude/projects/*/*.jsonl`) by cutting at each event's byte offset. Skip missing files, sample per band of tool calls, tune on one hash half and score the other, give labellers a timeline without call counts, and read the boundary rows yourself. A first prompt says nothing, as every session opens with a start-up prompt.
 - **Changed files**: Edit and Write calls miss Bash edits; add the diff of each `pr-link` record's PR whose head branch is the session's `agent-name`.
 
-A guard patched one exhibit at a time keeps the route nobody showed.
+Probing one exhibit is not enough: a guard patched one exhibit at a time keeps the route nobody showed.
 
 - **Every route**: before the branch, state the bad state and list every route to it: each verb, the REST and GraphQL calls, a variable spelling.
 - **Withdraw**: when a finding's fix is a new branch in the code the last fix added, withdraw the mechanism: allow-list the forms it can read, over raw text.
