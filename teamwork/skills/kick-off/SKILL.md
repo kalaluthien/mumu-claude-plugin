@@ -23,7 +23,7 @@ Arguments: $ARGUMENTS
 
 Do each operation they name as [references/adapters.md](references/adapters.md) says for the adapter in use.
 
-**Write it right once**: a `gh` write passes its text by `--body-file <file>`, written first, never `--body` or `-b`, and carries a title of at most 40 characters, since a hook denies the call otherwise and nothing runs.
+**Write it right once**: a `gh` write passes its text by `--body-file <file>`, written first by the Write tool, never `--body` or `-b`, nor a bare `cat >` in a chained call, which waits on stdin until the call times out, and carries a title of at most 40 characters, since a hook denies the call otherwise and nothing runs.
 
 **Stay in your worktree**: a worker never starts a command with `cd` into the live checkout, since a hook denies it; read that checkout by path or `git -C`.
 

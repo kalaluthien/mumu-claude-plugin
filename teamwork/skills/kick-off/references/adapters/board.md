@@ -17,12 +17,17 @@ Each operation is one call of `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/use
 
 ## GitHub
 
-The board is the repository's GitHub issues, read and written by `gh api` REST calls, which also work in a cloud session, where GraphQL is refused (`HTTP 403`).
+The board is the repository's GitHub issues, read and written by `gh api` REST calls, whose quota runs out apart from GraphQL's:
+
+- **GraphQL refused**: REST still works in a cloud session, where GraphQL answers `HTTP 403`, and once GraphQL is spent; trust a call's `already exceeded` over `gh api rate_limit`.
+- **REST spent**: scripts fail with `could not read task`; wait for `gh api rate_limit -q .resources.core.reset`, or comment and edit by `gh issue comment` and `gh issue edit`, which use GraphQL.
+- **Read cost**: every read spends quota, a `404` included, but a `304` to `If-None-Match`, on which `gh api -i` exits 1; read a list, such as `search/issues`, rather than probe items.
+- **GraphQL cost**: a query costs per connection asked for; `rateLimit(dryRun: true) { cost }` prices it without its data, and a `gh` first on `PATH` that fails `api graphql`, `issue`, `pr`, `repo` and `label` proves a script asks none.
 
 - **Pull request**: its head by `gh pr view <n> --json headRefOid`.
 - **Cloud checks**: a `[check]` a remote worker runs reads by `gh api repos/<repo>/issues/<n>` and `…/comments` too, never `gh issue view` or `gh pr list`.
 - **Trusted**: an author whose association is `OWNER`, `MEMBER` or `COLLABORATOR`.
-- **Scope labels**: `gh label list --search scope:`.
+- **Scope labels**: `gh label list --search scope:`, rechecked before concluding none carries a label, since a search right after its rename can read empty for about 10 s, and outside a checkout given `-R <owner>/<repo>` read from `git remote`, never built from a folder name.
 - **Default branch**: `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
 
 ## Files

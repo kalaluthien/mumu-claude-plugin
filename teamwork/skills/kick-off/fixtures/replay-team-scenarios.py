@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Replay the team in varied scenarios on the sandbox board kalaluthien/teamwork-board-sandbox as the tape of recorded-gh/gh beside
-this file holds it, a temporary files board and the fake herdr beside this file, and print `<scenario> pass`, or `<scenario> fail` with the output that failed.
+this file holds it, while no judge or worker writes that board (else rerun a failure once alone), a temporary files board and the fake herdr beside this file, and print `<scenario> pass`, or `<scenario> fail` with the output that failed.
 
 usage: replay-team-scenarios.py [--only <scenario>,...] [-v]
 `-v` also prints each run's output. FAKE_HERDR_BREAK=accept makes the fake herdr take every prompt and wait, so the scenarios that

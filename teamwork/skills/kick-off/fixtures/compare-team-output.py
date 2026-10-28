@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run teamwork's entry points (hooks, board, heartbeat, scripts) in this checkout and in an export of REF (default
-origin/main) at the same time, against the board kalaluthien/teamwork-board-sandbox as the tape of recorded-gh/gh beside this file
-holds it, and a fake herdr (fake-herdr/herdr beside this file) that lists the two sessions below, and print the entries,
+origin/main; on a branch, `"$(git merge-base HEAD origin/main)"`, since origin/main moves when another change merges and its diffs then read as yours) at the same time, against the board kalaluthien/teamwork-board-sandbox as the tape of recorded-gh/gh beside this file
+holds it, while no judge or worker writes the same sandbox board (a failure then reads the other's writes as changes: rerun it once alone), and a fake herdr (fake-herdr/herdr beside this file) that lists the two sessions below, and print the entries,
 those with no output, then `same` when every output matches, else one unified diff per entry that differs and `differ: <entries>`.
 
 usage: compare-team-output.py [--ref <ref>] [--only <entry>,...] [--skip <entry>,...]

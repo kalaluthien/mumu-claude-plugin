@@ -3,7 +3,7 @@
 
 usage: gh <gh arguments>
 The tape is `<Claude config folder>/teamwork/recorded-gh/<GH_TAPE>.json`, kept on this machine, since a recorded answer holds the token's
-headers; delete it to read GitHub again. A call the tape lacks is answered by the next gh on PATH, and the answer joins the tape. A call made
+headers; delete it to read GitHub again. A stale tape answers a call the code added since live, on the recording's old, closed sandbox issues, so a GitHub-against-files diff that fails on the base too wants the tape moved aside and recorded again. A call the tape lacks is answered by the next gh on PATH, and the answer joins the tape. A call made
 again gets its answers in recorded order, counted in GH_TAPE_STATE when set, the last one repeated after them, since a body read before and
 after an edit answers differently."""
 import fcntl
