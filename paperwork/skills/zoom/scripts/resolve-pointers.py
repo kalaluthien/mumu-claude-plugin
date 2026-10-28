@@ -28,19 +28,19 @@ import sys
 FAULTS = ("Missing", "Illegal", "Redundant", "Overloaded")
 
 
-def metas(x, path="$"):
+def find_metadata(value, path="$"):
     """(path, meta) for every element of the document that carries metadata."""
-    if isinstance(x, dict):
-        if isinstance(x.get("meta"), dict):
-            yield path, x["meta"]
-        for k, v in x.items():
-            yield from metas(v, f"{path}.{k}")
-    elif isinstance(x, list):
-        for i, v in enumerate(x):
-            yield from metas(v, f"{path}[{i}]")
+    if isinstance(value, dict):
+        if isinstance(value.get("meta"), dict):
+            yield path, value["meta"]
+        for key, child in value.items():
+            yield from find_metadata(child, f"{path}.{key}")
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            yield from find_metadata(child, f"{path}[{index}]")
 
 
-class Repo:
+class Repository:
     def __init__(self, root, sha):
         self.root, self.sha, self.cache = root, sha, {}
 
@@ -52,53 +52,53 @@ class Repo:
 
     def line(self, pointer):
         """Why a `path:line` pointer does not resolve, or None when it does."""
-        m = re.fullmatch(r"([^\s:#]+):([0-9]+)(?:-([0-9]+))?", pointer)
-        if not m:
+        matched = re.fullmatch(r"([^\s:#]+):([0-9]+)(?:-([0-9]+))?", pointer)
+        if not matched:
             return "not a path:line"
-        text = self.text(m[1])
+        text = self.text(matched[1])
         if text is None:
-            return f"no {m[1]} at {self.sha}"
-        last, n = int(m[3] or m[2]), len(text.splitlines())
-        return None if 1 <= int(m[2]) <= last <= n else f"{m[1]} has {n} lines"
+            return f"no {matched[1]} at {self.sha}"
+        last, line_count = int(matched[3] or matched[2]), len(text.splitlines())
+        return None if 1 <= int(matched[2]) <= last <= line_count else f"{matched[1]} has {line_count} lines"
 
 
-def slug(s):
-    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
+def slug(text):
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
-def evidence(doc, repo):
+def evidence(document, repository):
     # the document's own evidence is the commit it was read at, not a pointer
-    ms = [m for where, m in metas(doc) if where != "$"]
-    bad = [f"unresolved {p}: {why}" for m in ms for p in m.get("evidence", []) if (why := repo.line(p))]
-    good = sum(len(m.get("evidence", [])) for m in ms) - len(bad)
+    metadata_items = [metadata for where, metadata in find_metadata(document) if where != "$"]
+    bad = [f"unresolved {pointer}: {why}" for metadata in metadata_items for pointer in metadata.get("evidence", []) if (why := repository.line(pointer))]
+    good = sum(len(metadata.get("evidence", [])) for metadata in metadata_items) - len(bad)
     return bad, f"evidence: {good} resolved, {len(bad)} unresolved", good
 
 
-def constraints(doc, repo):
+def constraints(document, repository):
     bad, good = [], 0
-    for _, m in metas(doc):
-        for c in m.get("constraint", []):
-            path, _, rule = c.partition("#")
-            text = repo.text(path)
-            names = {slug(b) for b in re.findall(r"\*\*([^*]+)\*\*", text or "")}
+    for _, metadata in find_metadata(document):
+        for constraint in metadata.get("constraint", []):
+            path, _, rule = constraint.partition("#")
+            text = repository.text(path)
+            names = {slug(bold) for bold in re.findall(r"\*\*([^*]+)\*\*", text or "")}
             if slug(rule) in names:
                 good += 1
             else:
-                bad.append(f"untraced {c}: " + (f"no {path} at {repo.sha}" if text is None else f"no bold rule {rule} in {path}"))
+                bad.append(f"untraced {constraint}: " + (f"no {path} at {repository.sha}" if text is None else f"no bold rule {rule} in {path}"))
     return bad, f"constraints: {good} traced, {len(bad)} untraced", good
 
 
-def faults(doc, repo):
+def faults(document, repository):
     bad, good = [], 0
-    for where, m in metas(doc):
-        word = re.match(r"([A-Z][a-z]+): ", m.get("note", ""))
+    for where, metadata in find_metadata(document):
+        word = re.match(r"([A-Z][a-z]+): ", metadata.get("note", ""))
         if not word:
             continue
         if word[1] not in FAULTS:
             bad.append(f"unresolved {where}: {word[1]} is none of {', '.join(FAULTS)}")
-        elif not m.get("evidence"):
+        elif not metadata.get("evidence"):
             bad.append(f"unresolved {where}: a {word[1]} fault with no evidence")
-        elif why := next((f"{p}: {w}" for p in m["evidence"] if (w := repo.line(p))), None):
+        elif why := next((f"{pointer}: {reason}" for pointer in metadata["evidence"] if (reason := repository.line(pointer))), None):
             bad.append(f"unresolved {where}: {why}")
         else:
             good += 1
@@ -112,26 +112,26 @@ def touched(root, sha, to, path):
     diff = subprocess.run(["git", "-C", root, "diff", "-U0", sha, to, "--", path], capture_output=True, text=True).stdout
     lines = set()
     for start, count in re.findall(r"^@@ -([0-9]+)(?:,([0-9]+))? ", diff, re.M):
-        n = 1 if count == "" else int(count)
+        length = 1 if count == "" else int(count)
         # a pure insertion (count 0) lands between two lines, so it touches the one above it
-        lines |= set(range(int(start), int(start) + n)) if n else {int(start)}
+        lines |= set(range(int(start), int(start) + length)) if length else {int(start)}
     return lines
 
 
-def drift(doc, repo, to):
+def drift(document, repository, to):
     bad, unresolved, good = [], [], 0
-    for _, m in metas(doc):
-        for p in m.get("evidence", []):
-            if why := repo.line(p):
+    for _, metadata in find_metadata(document):
+        for pointer in metadata.get("evidence", []):
+            if why := repository.line(pointer):
                 if why != "not a path:line":
-                    unresolved.append(f"unresolved {p}: {why}")
+                    unresolved.append(f"unresolved {pointer}: {why}")
                 continue
-            path, a, b = re.fullmatch(r"([^\s:#]+):([0-9]+)(?:-([0-9]+))?", p).groups()
-            hit = touched(repo.root, repo.sha, to, path)
+            path, first_line, last_line = re.fullmatch(r"([^\s:#]+):([0-9]+)(?:-([0-9]+))?", pointer).groups()
+            hit = touched(repository.root, repository.sha, to, path)
             if hit is None:
-                bad.append(f"{p}: gone at {to}")
-            elif hit & set(range(int(a), int(b or a) + 1)):
-                bad.append(f"{p}: changed by {to}")
+                bad.append(f"{pointer}: gone at {to}")
+            elif hit & set(range(int(first_line), int(last_line or first_line) + 1)):
+                bad.append(f"{pointer}: changed by {to}")
             else:
                 good += 1
     return unresolved + bad, f"drift: {good} unchanged, {len(bad)} changed", good
@@ -144,16 +144,16 @@ def main(args):
     elif len(args) == 6 and args[0] == "drift":
         to = "HEAD"
     if args[:1] == ["drift"]:
-        modes["drift"] = lambda doc, repo: drift(doc, repo, to)
+        modes["drift"] = lambda document, repository: drift(document, repository, to)
     if len(args) != 6 or args[0] not in modes or args[2] != "--root" or args[4] != "--sha":
         print(__doc__, file=sys.stderr)
         return 2
     try:
-        doc = json.load(open(args[1], encoding="utf-8"))
+        document = json.load(open(args[1], encoding="utf-8"))
     except (OSError, ValueError) as e:
         print(f"{args[1]}: {e}", file=sys.stderr)
         return 2
-    bad, count, good = modes[args[0]](doc, Repo(args[3], args[5]))
+    bad, count, good = modes[args[0]](document, Repository(args[3], args[5]))
     print("\n".join(bad + [count]))
     return 0 if good and not bad else 1
 

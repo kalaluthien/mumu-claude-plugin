@@ -25,9 +25,9 @@ RENAMED = {"schema": "topology"}   # old kind -> new kind; no key changed its na
 
 def levels(level):
     yield level
-    for n in level.get("nodes", []):
-        if isinstance(n.get("opens"), dict):
-            yield from levels(n["opens"])
+    for node in level.get("nodes", []):
+        if isinstance(node.get("opens"), dict):
+            yield from levels(node["opens"])
 
 
 def migrate(old):
@@ -35,52 +35,52 @@ def migrate(old):
     for level in levels(new["level"]):
         level["kind"] = RENAMED.get(level.get("kind"), level.get("kind"))
     for level in levels(new["level"]):
-        for n in level.get("nodes", []):
-            if isinstance(n.get("opens"), dict) and n["opens"].get("kind") != level["kind"]:
-                n["link"] = "view"
+        for node in level.get("nodes", []):
+            if isinstance(node.get("opens"), dict) and node["opens"].get("kind") != level["kind"]:
+                node["link"] = "view"
     # the checker already decides which same-kind open fails to carry its node's edges; mark exactly those nest
     unrefined = {text.split(":")[0] for rule, text in checks.opens(Model(new)) if rule == "opens-interface"}
     for level in levels(new["level"]):
-        for n in level.get("nodes", []):
-            if n["id"] in unrefined:
-                n["link"] = "nest"
+        for node in level.get("nodes", []):
+            if node["id"] in unrefined:
+                node["link"] = "nest"
     return new
 
 
-def leaves(x, path="$"):
-    if isinstance(x, dict) and x:
-        for k, v in x.items():
-            yield from leaves(v, f"{path}.{k}")
-    elif isinstance(x, list) and x:
-        for i, v in enumerate(x):
-            yield from leaves(v, f"{path}[{i}]")
+def leaves(value, path="$"):
+    if isinstance(value, dict) and value:
+        for key, child in value.items():
+            yield from leaves(child, f"{path}.{key}")
+    elif isinstance(value, list) and value:
+        for index, child in enumerate(value):
+            yield from leaves(child, f"{path}[{index}]")
     else:
-        yield path, x
+        yield path, value
 
 
 def audit(old, new):
     was, now = dict(leaves(old)), dict(leaves(new))
-    lost, out, renamed = 0, [], set()
-    for p, v in was.items():
-        if p in now and now[p] == v:
+    lost, report, renamed = 0, [], set()
+    for path, value in was.items():
+        if path in now and now[path] == value:
             continue
-        if p.endswith(".kind") and RENAMED.get(v) == now.get(p):
-            renamed.add((v, now[p]))
+        if path.endswith(".kind") and RENAMED.get(value) == now.get(path):
+            renamed.add((value, now[path]))
             continue
         lost += 1
-        out.append(f"changed: {p}")
-    out = [f"renamed: kind {a} -> {b}" for a, b in sorted(renamed)] + out
-    for p in now.keys() - was.keys():
-        added = (p == "$.version" and now[p] == VERSION) or (p.endswith(".link") and now[p] in ("view", "nest"))
-        out.append(f"added: {p} = {now[p]}" if added else f"changed: {p}")
+        report.append(f"changed: {path}")
+    report = [f"renamed: kind {old_kind} -> {new_kind}" for old_kind, new_kind in sorted(renamed)] + report
+    for path in now.keys() - was.keys():
+        added = (path == "$.version" and now[path] == VERSION) or (path.endswith(".link") and now[path] in ("view", "nest"))
+        report.append(f"added: {path} = {now[path]}" if added else f"changed: {path}")
         lost += not added
-    print("\n".join(sorted(out, key=lambda l: (not l.startswith("renamed"), l))))
+    print("\n".join(sorted(report, key=lambda line: (not line.startswith("renamed"), line))))
     print(f"facts: {len(was)} old leaf values, {lost} lost")
     return 1 if lost else 0
 
 
-def read(arg):
-    return json.load(sys.stdin if arg == "-" else open(arg, encoding="utf-8"))
+def read(source):
+    return json.load(sys.stdin if source == "-" else open(source, encoding="utf-8"))
 
 
 def main(args):

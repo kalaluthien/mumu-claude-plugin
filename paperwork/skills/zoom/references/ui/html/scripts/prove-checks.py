@@ -18,57 +18,57 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[6] / "lib"))
 from page import view  # noqa: E402
 from schema.model import levels_of  # noqa: E402
 
-EXAMPLE_DOCS = {p.name: view.merge(*(json.loads((p / f).read_text(encoding="utf-8")) for f in ("schema.json", "view.json")))
-      for p in EXAMPLES.iterdir() if p.is_dir()}
+EXAMPLE_DOCUMENTS = {directory.name: view.merge(*(json.loads((directory / file_name).read_text(encoding="utf-8")) for file_name in ("schema.json", "view.json")))
+      for directory in EXAMPLES.iterdir() if directory.is_dir()}
 
 
-def lv(m, lid):
-    return next(level for level, opener in levels_of(m) if (opener or "root") == lid)
+def find_level(document, level_id):
+    return next(level for level, opener in levels_of(document) if (opener or "root") == level_id)
 
 
-def node(m, nid):
-    return next(n for level, _ in levels_of(m) for n in level["nodes"] if n["id"] == nid)
+def find_node(document, node_id):
+    return next(node for level, _ in levels_of(document) for node in level["nodes"] if node["id"] == node_id)
 
 
 MUTATIONS = {
-    "form": [("pull-request", lambda m: m.update(next="")),
-             ("pull-request", lambda m: m["plan"].pop("views")),
-             ("pull-request", lambda m: m["plan"]["views"].append({"name": "x", "level": "nowhere"}))],
-    "size": ("pull-request", lambda m: lv(m, "root")["nodes"].extend({"id": f"x{i}", "label": f"Extra{i}", "x": 5, "y": i} for i in range(4))),
-    "phone": ("ai-native-company", lambda m: lv(m, "root")["edges"].extend({"from": "lead", "to": t, "label": "steer", "what": "x"} for t in ("brain", "factory", "platform"))),
-    "depth": ("self", lambda m: m.update(plan={"depth": "overview", "views": [{"name": "levels", "level": "level"}], "why": {"depth": "x"}})),
-    "names": [("pull-request", lambda m: node(m, "push").update(label="밀어 넣기")),
-              ("pull-request", lambda m: node(m, "push").setdefault("media", []).append({"type": "facts", "items": [["기준 커밋", "x"]]})),
-              ("pull-request", lambda m: node(m, "push").setdefault("media", []).append({"type": "code", "title": "명령", "text": "x"})),
-              ("pull-request", lambda m: m["screens"]["conversation"].update(title="대화"))],
-    "facts": ("pull-request", lambda m: node(m, "push").setdefault("media", []).append({"type": "facts", "items": [["Question", m["plan"]["intent"]]]})),
-    "prose": [("pull-request", lambda m: m.update(lang="ko", next="요청을 검사해요")),
-              ("pull-request", lambda m: m.update(lang="ko", next="Alloy이 규칙을 풉니다.")),
-              ("pull-request", lambda m: m.update(lang="ko", next="Alloy 가 규칙을 풉니다.")),
-              ("pull-request", lambda m: m.update(lang="ko", next="위 그림을 봅니다."))],
+    "form": [("pull-request", lambda document: document.update(next="")),
+             ("pull-request", lambda document: document["plan"].pop("views")),
+             ("pull-request", lambda document: document["plan"]["views"].append({"name": "x", "level": "nowhere"}))],
+    "size": ("pull-request", lambda document: find_level(document, "root")["nodes"].extend({"id": f"x{i}", "label": f"Extra{i}", "x": 5, "y": i} for i in range(4))),
+    "phone": ("ai-native-company", lambda document: find_level(document, "root")["edges"].extend({"from": "lead", "to": target, "label": "steer", "what": "x"} for target in ("brain", "factory", "platform"))),
+    "depth": ("self", lambda document: document.update(plan={"depth": "overview", "views": [{"name": "levels", "level": "level"}], "why": {"depth": "x"}})),
+    "names": [("pull-request", lambda document: find_node(document, "push").update(label="밀어 넣기")),
+              ("pull-request", lambda document: find_node(document, "push").setdefault("media", []).append({"type": "facts", "items": [["기준 커밋", "x"]]})),
+              ("pull-request", lambda document: find_node(document, "push").setdefault("media", []).append({"type": "code", "title": "명령", "text": "x"})),
+              ("pull-request", lambda document: document["screens"]["conversation"].update(title="대화"))],
+    "facts": ("pull-request", lambda document: find_node(document, "push").setdefault("media", []).append({"type": "facts", "items": [["Question", document["plan"]["intent"]]]})),
+    "prose": [("pull-request", lambda document: document.update(lang="ko", next="요청을 검사해요")),
+              ("pull-request", lambda document: document.update(lang="ko", next="Alloy이 규칙을 풉니다.")),
+              ("pull-request", lambda document: document.update(lang="ko", next="Alloy 가 규칙을 풉니다.")),
+              ("pull-request", lambda document: document.update(lang="ko", next="위 그림을 봅니다."))],
 }
 
 
-def failing(m):
-    return {name for name, problems, _ in view.run(*view.split(m)) if problems}
+def failing(document):
+    return {name for name, problems, _ in view.run(*view.split(document)) if problems}
 
 
 def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    bad = [f"example {name} fails {sorted(f)}" for name, m in sorted(EXAMPLE_DOCS.items()) if (f := failing(m))]
+    bad = [f"example {name} fails {sorted(failed_checks)}" for name, document in sorted(EXAMPLE_DOCUMENTS.items()) if (failed_checks := failing(document))]
     for rule in ["form"] + [name for name, _, _ in view.RULES]:
         if rule not in MUTATIONS:
             bad.append(f"{rule}: no mutation shows it can fail")
             continue
         cases = MUTATIONS[rule] if isinstance(MUTATIONS[rule], list) else [MUTATIONS[rule]]
-        for k, (ex, mutate) in enumerate(cases):
-            m = copy.deepcopy(EXAMPLE_DOCS[ex])
-            mutate(m)
-            if rule not in failing(m):
-                bad.append(f"{rule}: not caught by its mutation {k + 1} of {ex}")
-    bad += [f"{r}: no such check" for r in MUTATIONS if r not in view.CHECKS | {"form"}]   # a mutation of no check proves nothing
+        for k, (example, mutate) in enumerate(cases):
+            document = copy.deepcopy(EXAMPLE_DOCUMENTS[example])
+            mutate(document)
+            if rule not in failing(document):
+                bad.append(f"{rule}: not caught by its mutation {k + 1} of {example}")
+    bad += [f"{name}: no such check" for name in MUTATIONS if name not in view.CHECKS | {"form"}]   # a mutation of no check proves nothing
     print("\n".join(bad) if bad else f"ok: {len(view.RULES) + 1} drawing checks, each caught its mutation")
     return 1 if bad else 0
 
