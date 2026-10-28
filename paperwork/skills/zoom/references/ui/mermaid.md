@@ -126,11 +126,15 @@ Two limits come from Mermaid itself, not from the emitter:
 ## Steps
 
 1. Run `scripts/emit-mermaid.py doc.json`, the path relative to this file.
-2. Run the script with `--split DIR`, which writes each block to `DIR/<n>-<level>.mmd`, to draw each as an image.
-3. Run `emit-mermaid.py --check doc.json` when a block looks short: it names each level, node or edge the output lacks.
+2. Run the script with `--split DIR`, which writes each block to `DIR/<n>-<level>.mmd`.
+3. Where `mmdc` is on `PATH`, render each with `mmdc -i <file>.mmd -o <file>.png`; else, where `npx -y @mermaid-js/mermaid-cli -i <file>.mmd -o <file>.png` runs, use that.
+4. Print each PNG's full path in the reply, since a terminal tab shows no `SendUserFile` file, and send each by `SendUserFile` too for a remote viewer (phone, Remote Control, desktop app).
+5. Print the output with every fenced Mermaid block cut out.
+6. Where neither renderer runs, cut the blocks too and draw each level as a table of its edges, a tree list or an ASCII drawing, and hand the owner `! npx -y @mermaid-js/mermaid-cli --version`, since its first run installs a package and auto mode refuses it.
+7. Run `emit-mermaid.py --check doc.json` when a block looks short: it names each level, node or edge the output lacks.
 
 ## Rules
 
 - **Draw, never paste**: chat shows a Mermaid block as raw text, and so does the GitHub mobile app though github.com draws it, so never print one; a README read on a phone also needs the image or a table of its edges.
+- **Never open**: never run `open` on a PNG; print its path.
 - **Fixtures**: each file in [fixtures/](fixtures/) breaks one check and exits 1: `self-missing-node.md` for `--check ../../examples/self/schema.json --output`, `mermaid-missing-row.md` and `mermaid-false-kept.md` for `losses --doc`, `formats-missing-row.md` for `formats --doc`. Run them after changing the checker.
-
