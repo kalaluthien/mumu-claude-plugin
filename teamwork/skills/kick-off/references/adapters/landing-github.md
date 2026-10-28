@@ -5,8 +5,8 @@ A change is a git branch merged by a GitHub pull request.
 | operation | how |
 | --- | --- |
 | `branch` | `git worktree add -b <name> .claude/worktrees/<name> origin/<base>` in the checkout |
-| `push` | `git push -u origin <branch>`, the branch named, never `HEAD:<branch>`, so a worker's branch has an upstream and one command form; joined to its commit by `&&`, one message source (`-F <file>` alone), since a failed commit followed by `--amend` rewrites the base's tip; then read the pull request's files and head sha before the `judge` |
-| `change` | `gh pr create --base <base> --title <title> --body-file <file>`, the body citing its issue |
+| `push` | `git push -u origin <branch>`, the branch named, never `HEAD:<branch>`, so a worker's branch has an upstream and one command form; joined to its commit by `&&`, one message source (`-F <file>` alone), since a failed commit followed by `--amend` rewrites the base's tip, which `git reset --soft origin/<base>`, `git add -u` and a new commit undo; then read the pull request's files and head sha before the `judge` |
+| `change` | `gh pr create --base <base> --title <title> --body-file <file>`, the body citing its issue, or the Cloud form's `gh api -X POST …/pulls` wherever GraphQL is refused or spent |
 | `judge` | the judge reads the change at its sha by `git fetch origin`, `git diff origin/<base>...<sha>` and `git show <sha>:<path>` |
 | `merge` | `gh pr merge <n> --squash` |
 | `remove` | [remove-worktree.py](../../scripts/remove-worktree.py) `<name>...` |

@@ -17,7 +17,7 @@ Each operation is one call of `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/use
 
 ## GitHub
 
-The board is the repository's GitHub issues, read and written by `gh api` REST calls, which also work in a cloud session, where GraphQL is refused (`HTTP 403`), and when GraphQL, whose quota runs out apart from REST's, answers `already exceeded` while `gh api rate_limit` still shows some left; every read but a `304` to `If-None-Match` spends quota, a `404` included, so read a list rather than probe items, a GraphQL query is priced per connection by `rateLimit(dryRun: true) { cost }`, and a `gh` first on `PATH` that fails `api graphql`, `issue`, `pr`, `repo` and `label` proves a script reads no GraphQL.
+The board is the repository's GitHub issues, read and written by `gh api` REST calls, which also work in a cloud session, where GraphQL is refused (`HTTP 403`). GraphQL and REST core run out apart, and a call can answer `already exceeded` while `gh api rate_limit` shows quota left, so trust the call: with GraphQL spent, REST still works; with REST core at 0, scripts fail with `could not read task`, so wait for `gh api rate_limit -q .resources.core.reset`. Every read but a `304` to `If-None-Match` spends quota, a `404` included, so read a list rather than probe items. A GraphQL query is priced per connection; `rateLimit(dryRun: true) { cost }` prices it but returns no data. A `gh` first on `PATH` that fails `api graphql`, `issue`, `pr`, `repo` and `label` proves a script reads no GraphQL.
 
 - **Pull request**: its head by `gh pr view <n> --json headRefOid`.
 - **Cloud checks**: a `[check]` a remote worker runs reads by `gh api repos/<repo>/issues/<n>` and `…/comments` too, never `gh issue view` or `gh pr list`.
