@@ -30,6 +30,9 @@ def git(repo, *argv):
 
 
 def main(args):
+    if args:
+        print(__doc__, file=sys.stderr)
+        return 2
     global home
     work = pathlib.Path(tempfile.mkdtemp(prefix="data-folder-")).resolve()
     repo, tree, bare, home = work / "repo", work / "tree", work / "plain", work / "home"

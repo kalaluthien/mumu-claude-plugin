@@ -10,7 +10,8 @@ import subprocess
 import sys
 import tempfile
 
-USE = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "use-board.py"
+ROOT = pathlib.Path(__file__).resolve().parents[3]
+USE = ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"
 
 
 def use(*argv):

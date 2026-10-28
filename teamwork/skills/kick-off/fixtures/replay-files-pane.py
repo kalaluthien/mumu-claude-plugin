@@ -43,6 +43,9 @@ def step(name, ok, detail=""):
 
 
 def main(args):
+    if args:
+        print(__doc__, file=sys.stderr)
+        return 2
     work = pathlib.Path(tempfile.mkdtemp(prefix="files-pane-"))
     env = {**os.environ, "TEAMWORK_BOARD": "files", "TEAMWORK_BOARD_DIR": str(work / "board"), "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home")}
     use = lambda *argv: subprocess.run([sys.executable, str(USE), *map(str, argv)], env=env, capture_output=True, text=True, check=True).stdout

@@ -94,6 +94,9 @@ def fake():
 
 
 def main(args):
+    if args:
+        print(__doc__, file=sys.stderr)
+        return 2
     try:
         live()
     except RuntimeError as e:
