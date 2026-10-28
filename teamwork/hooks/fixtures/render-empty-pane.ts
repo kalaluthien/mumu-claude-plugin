@@ -11,9 +11,9 @@ plugin({
       loader: 'object',
       exports: {
         atom: (id: { key: string }, initial: unknown) => ({ key: id.key, initial }),
-        read: async (_: unknown, a: { key: string; initial: unknown }) => (store.has(a.key) ? store.get(a.key) : a.initial),
-        update: async (_: unknown, a: { key: string; initial: unknown }, change: (old: unknown) => unknown) =>
-          void store.set(a.key, change(store.has(a.key) ? store.get(a.key) : a.initial)),
+        read: async (_: unknown, entry: { key: string; initial: unknown }) => (store.has(entry.key) ? store.get(entry.key) : entry.initial),
+        update: async (_: unknown, entry: { key: string; initial: unknown }, change: (old: unknown) => unknown) =>
+          void store.set(entry.key, change(store.has(entry.key) ? store.get(entry.key) : entry.initial)),
       },
     }))
     const jsx = (type: unknown, props: Record<string, unknown>) => ({ type, props })
@@ -28,7 +28,7 @@ const text = (node: unknown): string =>
 
 const handlers: Record<string, (...args: any[]) => Promise<unknown>> = {}
 const on = (event: string, ...rest: any[]) => {
-  handlers[[event, ...rest.slice(0, -1).map(f => Object.values(f)[0])].join(' ')] = rest[rest.length - 1]
+  handlers[[event, ...rest.slice(0, -1).map(argument => Object.values(argument)[0])].join(' ')] = rest[rest.length - 1]
   return { catch: () => undefined }
 }
 let exitCode = 1

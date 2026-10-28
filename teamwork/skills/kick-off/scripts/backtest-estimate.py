@@ -16,17 +16,18 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import task_backtest  # noqa: E402
 import task_history  # noqa: E402
+import usage_parser  # noqa: E402
 
 
 def main(args):
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = usage_parser.parser(__doc__, description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--from-json", type=lambda path: json.load(open(path)))
     parser.add_argument("--as-of")
-    parser.add_argument("--tasks", type=lambda v: {int(n) for n in v.split(",")}, default=set())
+    parser.add_argument("--tasks", type=lambda value: {int(issue_number) for issue_number in value.split(",")}, default=set())
     parser.add_argument("repos", nargs="*")
-    opt = parser.parse_args(args)
-    fixture, cutoff, numbers = opt.from_json, opt.as_of, opt.tasks
-    repos = opt.repos or list(fixture or [])
+    options = parser.parse_args(args)
+    fixture, cutoff, numbers = options.from_json, options.as_of, options.tasks
+    repos = options.repos or list(fixture or [])
     if not repos:
         print(__doc__, file=sys.stderr)
         return 2
@@ -44,22 +45,22 @@ def main(args):
                 print(f"#{number}\t{low:.1f}\t{high:.1f}\t{actual:.1f}\t{'yes' if inside else 'no: add the waits it lacked with --wait <name>=<hours>'}")
             print(f"inside: {hit} of {len(numbers)} (a regression sample, not a pass line)")
             continue
-        r = task_backtest.backtest(rows)
-        if r is None:
+        result = task_backtest.backtest(rows)
+        if result is None:
             print(f"{repo}\ttoo few closed tasks ({len(rows)}) to fit and score")
             continue
-        e, b = r["estimator"], r["baseline"]
-        print(f"{repo}\t{r['tasks']} tasks, {r['scored']} scored; fitted levels p{r['levels'][0]*100:.0f}-p{r['levels'][1]*100:.0f} "
-              f"(fit coverage {r['fit_coverage']:.2f}); total levels p{r['total_levels'][0]*100:.0f}-p{r['total_levels'][1]*100:.0f} "
-              f"(fit coverage {r['total_fit_coverage'] if r['total_fit_coverage'] is None else format(r['total_fit_coverage'], '.2f')})")
+        estimator, baseline = result["estimator"], result["baseline"]
+        print(f"{repo}\t{result['tasks']} tasks, {result['scored']} scored; fitted levels p{result['levels'][0]*100:.0f}-p{result['levels'][1]*100:.0f} "
+              f"(fit coverage {result['fit_coverage']:.2f}); total levels p{result['total_levels'][0]*100:.0f}-p{result['total_levels'][1]*100:.0f} "
+              f"(fit coverage {result['total_fit_coverage'] if result['total_fit_coverage'] is None else format(result['total_fit_coverage'], '.2f')})")
         print("\tcoverage\tmedian width h\tmedian abs error h")
-        print(f"estimator\t{e['coverage']:.2f}\t{e['width']:.1f}\t{e['error']:.1f}")
-        print(f"baseline\t{b['coverage']:.2f}\t{b['width']:.1f}\t{b['error']:.1f}")
-        print(f"width estimator/baseline\t{e['width'] / b['width']:.2f}")
-        print(f"total of 5 tasks covered\t{r['covered'] / r['runs']:.2f} over {r['runs']} runs "
+        print(f"estimator\t{estimator['coverage']:.2f}\t{estimator['width']:.1f}\t{estimator['error']:.1f}")
+        print(f"baseline\t{baseline['coverage']:.2f}\t{baseline['width']:.1f}\t{baseline['error']:.1f}")
+        print(f"width estimator/baseline\t{estimator['width'] / baseline['width']:.2f}")
+        print(f"total of 5 tasks covered\t{result['covered'] / result['runs']:.2f} over {result['runs']} runs "
               )
-        pooled[0] += r["covered"]
-        pooled[1] += r["runs"]
+        pooled[0] += result["covered"]
+        pooled[1] += result["runs"]
     if pooled[1]:
         print(f"pooled total coverage\t{pooled[0] / pooled[1]:.2f} over {pooled[1]} runs")
 

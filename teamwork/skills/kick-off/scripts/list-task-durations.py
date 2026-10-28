@@ -26,9 +26,9 @@ def main(args):
         return 2
     table = task_history.rows(issues)
     print("number\tlabels\tcriteria\tstart\tend\thours\tsource")
-    for r in table:
-        print(f"{r['number']}\t{','.join(r['labels'])}\t{r['criteria']}\t{r['start']}\t{r['end']}\t{r['hours']:.1f}\t{r['source']}")
-    counts = collections.Counter(r["source"] for r in table)
+    for row in table:
+        print(f"{row['number']}\t{','.join(row['labels'])}\t{row['criteria']}\t{row['start']}\t{row['end']}\t{row['hours']:.1f}\t{row['source']}")
+    counts = collections.Counter(row["source"] for row in table)
     print(f"rows: {len(table)} (pr {counts['pr']}, created {counts['created']}); hours run from the start source to the close")
 
 

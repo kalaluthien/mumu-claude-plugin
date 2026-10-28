@@ -17,14 +17,14 @@ def hide(text):
     """(text with each code span a token no clause split matches inside, the spans), so a `when` or `;` in a quoted value never splits."""
     kept = []
 
-    def stash(m):
-        kept.append(m.group())
+    def stash(match):
+        kept.append(match.group())
         return f"\0{len(kept) - 1}\0"
     return HIDDEN.sub(stash, text), kept
 
 
 def show(text, kept):
-    return re.sub(r"\0(\d+)\0", lambda m: kept[int(m.group(1))], text)
+    return re.sub(r"\0(\d+)\0", lambda match: kept[int(match.group(1))], text)
 
 
 def is_remark(text):
@@ -37,8 +37,8 @@ def clause_of(rest):
     hidden, kept = hide(rest)
     clause, *parts = re.split(r"([;.](?:\s|$)|,\s+(?!\0)|\bwhen\b|\bon (?:base|main)\b)", hidden)
     clause = clause.strip()
-    while (m := NOTE.search(clause)) and is_remark(kept[int(m.group(1))]):
-        clause = clause[:m.start()]
+    while (note := NOTE.search(clause)) and is_remark(kept[int(note.group(1))]):
+        clause = clause[:note.start()]
     return show(clause, kept).strip(), "".join(parts), kept
 
 
@@ -51,7 +51,7 @@ def expectation(detail):
     if detail[:spans[0].start()].strip():
         return command, (None, "words before the command")
     verb = re.search(r"\b(prints|exits)\b", after)
-    if not verb or any(s.start() < spans[0].end() + verb.start() for s in spans[1:]):
+    if not verb or any(other.start() < spans[0].end() + verb.start() for other in spans[1:]):
         return command, (None, "two commands" if verb else "no prints or exits")
     if PLACEHOLDER.search(command) or "..." in command or "…" in command:
         return command, (None, "placeholder in the command")
@@ -61,7 +61,7 @@ def expectation(detail):
     # a further command before the base's output is a second condition, which this value alone would pass; a `when` explains
     tail = re.split(r"\bon (?:base|main)\b", after_clause)[0]
     tail = show(re.sub(r"\bwhen\b.*?(?:[;.](?:\s|$)|$)", "", tail, flags=re.S), kept)
-    if re.match(r"[,;]\s*and\b", tail) or any(re.search(r"\s", m.group(2)) for m in issue_state.SPAN.finditer(tail)):
+    if re.match(r"[,;]\s*and\b", tail) or any(re.search(r"\s", match.group(2)) for match in issue_state.SPAN.finditer(tail)):
         return command, (None, "more than one condition")
     if verb.group(1) == "exits":
         code = re.fullmatch(r"`?(\d+)`?", clause)

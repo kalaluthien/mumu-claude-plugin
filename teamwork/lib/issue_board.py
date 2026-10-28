@@ -21,25 +21,25 @@ def summary_of(body):
 
 def next_step_of(comments):
     """A backlog's next step: the latest `REPORTED:` that names one, so a backlog with nothing open says why it stays open."""
-    firsts = [(c["body"] or "").replace("\r\n", "\n").split("\n\n")[0] for c in comments]
-    return next((" ".join(f.rsplit("next step:", 1)[1].split()) for f in reversed(firsts) if f.startswith("REPORTED:") and "next step:" in f), "")
+    firsts = [(comment["body"] or "").replace("\r\n", "\n").split("\n\n")[0] for comment in comments]
+    return next((" ".join(first.rsplit("next step:", 1)[1].split()) for first in reversed(firsts) if first.startswith("REPORTED:") and "next step:" in first), "")
 
 
 def blockers_of(node):
     """Every issue that blocks this one, a landed one marked closed."""
-    return [{"number": b["number"], "closed": b["state"] != "OPEN"} for b in (node.get("blockedBy") or {}).get("nodes", [])]
+    return [{"number": blocker["number"], "closed": blocker["state"] != "OPEN"} for blocker in (node.get("blockedBy") or {}).get("nodes", [])]
 
 
 def entry(node):
     """One issue as the board shows it; a backlog shows its progress and summary, a task its goal and criteria."""
     every = blockers_of(node)
-    blockers = [b["number"] for b in every if not b["closed"]]
+    blockers = [blocker["number"] for blocker in every if not blocker["closed"]]
     state = issue_state.compose({"body": node["body"], "trusted": node["trusted"], "comments": node["comments"]["nodes"]}, blockers)
-    backlog = team_settings.load(os.getcwd())["backlog_label"] in [x["name"] for x in node["labels"]["nodes"]]
+    backlog = team_settings.load(os.getcwd())["backlog_label"] in [label["name"] for label in node["labels"]["nodes"]]
     holders = state["holders"] or []
     summary = node.get("subIssuesSummary") or {}
-    closed = [{"number": t["number"], "title": issue_state.title(t), "url": t["url"], "blockers": blockers_of(t),
-               "stopped": t.get("stateReason") in STOPPED} for t in (node.get("subIssues") or {}).get("nodes", []) if t["state"] == "CLOSED"]
+    closed = [{"number": task["number"], "title": issue_state.title(task), "url": task["url"], "blockers": blockers_of(task),
+               "stopped": task.get("stateReason") in STOPPED} for task in (node.get("subIssues") or {}).get("nodes", []) if task["state"] == "CLOSED"]
     progress = (f"task {summary['completed']}/{summary['total']}" if summary.get("total")
                 else "" if holders or state["waits"] == "deferred" else "not started") if backlog else ""
     return {"number": node["number"], "title": issue_state.title(node), "url": node["url"], "kind": "backlog" if backlog else "task",
@@ -53,78 +53,78 @@ def entry(node):
 
 def related(nodes, items):
     """{backlog: its group's lowest number}: backlogs whose issues name each other, or whose tasks block one another."""
-    group = {n: n for n, i in items.items() if i["kind"] == "backlog"}
+    group = {number: number for number, issue in items.items() if issue["kind"] == "backlog"}
 
-    def root(n):
-        while group[n] != n:
-            n = group[n]
-        return n
+    def root(number):
+        while group[number] != number:
+            number = group[number]
+        return number
 
-    def join(a, b):
-        if a in group and b in group:
-            a, b = root(a), root(b)
-            group[max(a, b)] = min(a, b)
+    def join(first, second):
+        if first in group and second in group:
+            first, second = root(first), root(second)
+            group[max(first, second)] = min(first, second)
 
-    def backlog(n):
-        node = by_number.get(n)
+    def backlog(number):
+        node = by_number.get(number)
         while node and items[node["number"]]["kind"] != "backlog":
             node = by_number.get((node["parent"] or {}).get("number"))
         return node and node["number"]
 
-    by_number = {i["number"]: i for i in nodes}
-    for i in nodes:
-        if i["number"] in group:
-            for text in [i["body"]] + [c["body"] for c in i["comments"]["nodes"]]:
+    by_number = {node["number"]: node for node in nodes}
+    for node in nodes:
+        if node["number"] in group:
+            for text in [node["body"]] + [comment["body"] for comment in node["comments"]["nodes"]]:
                 for named in re.findall(r"#(\d+)\b", text or ""):
-                    join(i["number"], int(named))
-        for b in i["blockedBy"]["nodes"]:
-            join(backlog(i["number"]), backlog(b["number"]))
-    return {n: root(n) for n in group}
+                    join(node["number"], int(named))
+        for blocker in node["blockedBy"]["nodes"]:
+            join(backlog(node["number"]), backlog(blocker["number"]))
+    return {number: root(number) for number in group}
 
 
 def board(nodes):
     """The open issues as a tree, backlogs grouped with related ones by lowest number, tasks by number."""
-    items = {i["number"]: entry(i) for i in nodes}
+    items = {node["number"]: entry(node) for node in nodes}
     top = []
-    for i in nodes:
-        parent = (i["parent"] or {}).get("number")
-        (items[parent]["tasks"] if parent in items else top).append(items[i["number"]])
+    for node in nodes:
+        parent = (node["parent"] or {}).get("number")
+        (items[parent]["tasks"] if parent in items else top).append(items[node["number"]])
     groups = related(nodes, items)
 
     def order(issues):
-        for i in issues:
-            i["tasks"].sort(key=lambda t: t["number"])
-            order(i["tasks"])
-            del i["urgency"]
-    top.sort(key=lambda i: (groups[i["number"]], i["number"]) if i["number"] in groups else (float("inf"), i["urgency"], i["number"]))
+        for issue in issues:
+            issue["tasks"].sort(key=lambda task: task["number"])
+            order(issue["tasks"])
+            del issue["urgency"]
+    top.sort(key=lambda issue: (groups[issue["number"]], issue["number"]) if issue["number"] in groups else (float("inf"), issue["urgency"], issue["number"]))
     order(top)
     return top
 
 
 def after(blockers):
     """What a task follows, every blocker, a landed one marked closed."""
-    return "← " + ",".join(f"#{b['number']}{' closed' * b['closed']}" for b in blockers) if blockers else ""
+    return "← " + ",".join(f"#{blocker['number']}{' closed' * blocker['closed']}" for blocker in blockers) if blockers else ""
 
 
-def criterion(d):
+def criterion(item):
     """A criterion's line: `[x]` or `[ ]` when a box marks it, its kind in parentheses, its name."""
-    return " ".join(x for x in ("" if d["met"] is None else "[x]" if d["met"] else "[ ]", d["kind"] and f"({d['kind']})", d["name"]) if x)
+    return " ".join(part for part in ("" if item["met"] is None else "[x]" if item["met"] else "[ ]", item["kind"] and f"({item['kind']})", item["name"]) if part)
 
 
 def lines(issues, depth=0):
     """The board as text: each entry's link line, then indented what the pane shows under it."""
-    for i in issues:
+    for issue in issues:
         pad = "  " * (depth + 1)
-        yield f"{'  ' * depth}#{i['number']} {i['title']}"
-        status = " ".join(x for x in (i["progress"], i["holder"], i["wait"], after(i["blockers"])) if x)
+        yield f"{'  ' * depth}#{issue['number']} {issue['title']}"
+        status = " ".join(part for part in (issue["progress"], issue["holder"], issue["wait"], after(issue["blockers"])) if part)
         yield from ([f"{pad}{status}"] if status else [])
-        yield from ([f"{pad}{i['goal']}"] if i["goal"] else [])
-        yield from ([f"{pad}see detail"] if i["detail"] else [])
-        yield from (f"{pad}  {line.strip()}" for line in i["detail"] if line.strip())
-        for d in i["done"]:
-            yield f"{pad}  {criterion(d)}"
-            yield from ([f"{pad}    {d['detail']}"] if d["detail"] else [])
-        yield from ([f"{pad}next step: {i['next']}"] if i["next"] else [])
-        yield from lines(i["tasks"], depth + 1)
-        yield from (f"{pad}#{t['number']} {t['title']} closed{' stopped' * t['stopped']}{' ' * bool(t['blockers'])}{after(t['blockers'])}" for t in i["closed"])
-        yield from ([f"{pad}…"] if i["earlier"] else [])
+        yield from ([f"{pad}{issue['goal']}"] if issue["goal"] else [])
+        yield from ([f"{pad}see detail"] if issue["detail"] else [])
+        yield from (f"{pad}  {line.strip()}" for line in issue["detail"] if line.strip())
+        for item in issue["done"]:
+            yield f"{pad}  {criterion(item)}"
+            yield from ([f"{pad}    {item['detail']}"] if item["detail"] else [])
+        yield from ([f"{pad}next step: {issue['next']}"] if issue["next"] else [])
+        yield from lines(issue["tasks"], depth + 1)
+        yield from (f"{pad}#{task['number']} {task['title']} closed{' stopped' * task['stopped']}{' ' * bool(task['blockers'])}{after(task['blockers'])}" for task in issue["closed"])
+        yield from ([f"{pad}…"] if issue["earlier"] else [])

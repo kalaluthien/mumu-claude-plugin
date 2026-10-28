@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""A stand-in for herdr that logs each call and keeps agents, tabs and workspaces in a JSON state file.
+"""Stand in for herdr: log each call and keep agents, tabs and workspaces in a JSON state file.
 
 An agent's name picks the dialog it shows: `trust` the folder trust dialog at start, `slow` its prompt typed but unsent,
 and a `blocked` agent with a `screen` the exit dialog of background work; each clears on the key that answers it.
@@ -12,56 +12,56 @@ Claude Code does. FAKE_HERDR_BREAK=accept takes every prompt and every wait inst
 import json, os, pathlib, sys
 
 state_path = pathlib.Path(os.environ["FAKE_HERDR_STATE"])
-s = json.loads(state_path.read_text())
+state = json.loads(state_path.read_text())
 argv = sys.argv[1:]
 with open(os.environ.get("FAKE_HERDR_LOG", os.devnull), "a") as log:
     log.write(json.dumps(argv) + "\n")
 code = 0
 BREAK = os.environ.get("FAKE_HERDR_BREAK") == "accept"
-ok = lambda r=None: print(json.dumps({"result": r or {}}))
+ok = lambda result=None: print(json.dumps({"result": result or {}}))
 
 
 def new_pane(workspace):
-    s["n"] += 1
-    s["tabs"].append({"tab_id": f"{workspace}:t{s['n']}", "workspace_id": workspace, "label": ""})
-    return {"pane_id": f"{workspace}:p{s['n']}", "tab_id": f"{workspace}:t{s['n']}"}
+    state["n"] += 1
+    state["tabs"].append({"tab_id": f"{workspace}:t{state['n']}", "workspace_id": workspace, "label": ""})
+    return {"pane_id": f"{workspace}:p{state['n']}", "tab_id": f"{workspace}:t{state['n']}"}
 
 
 def by_pane(pane):
-    return next((a for a in s["agents"] if pane in (a["pane_id"], a["name"])), {})
+    return next((agent for agent in state["agents"] if pane in (agent["pane_id"], agent["name"])), {})
 
 
-def opt(name):
+def option(name):
     return argv[argv.index(name) + 1] if name in argv else None
 
 
 head = argv[:2]
 if head == ["agent", "list"]:
-    ok({"agents": [{k: v for k, v in a.items() if k not in ("ticks", "screen", "move", "move_after", "lists")} for a in s["agents"]]})
-    for a in s["agents"]:  # a pane herdr moved, as from w9:p1 to w4:pF
-        a["lists"] = a.get("lists", 0) + 1
-        if a.get("move") and a["lists"] >= a.get("move_after", 1):
-            a["pane_id"], a["tab_id"], a["workspace_id"] = a["move"], a["move"].replace(":p", ":t"), a["move"].split(":")[0]
-            del a["move"]
-    for a in s["agents"]:  # a prompted agent works for two reads, then waits
-        if a.get("ticks"):
-            a["ticks"] -= 1
-            a["agent_status"] = "working" if a["ticks"] else "idle"
+    ok({"agents": [{k: value for k, value in agent.items() if k not in ("ticks", "screen", "move", "move_after", "lists")} for agent in state["agents"]]})
+    for agent in state["agents"]:  # a pane herdr moved, as from w9:p1 to w4:pF
+        agent["lists"] = agent.get("lists", 0) + 1
+        if agent.get("move") and agent["lists"] >= agent.get("move_after", 1):
+            agent["pane_id"], agent["tab_id"], agent["workspace_id"] = agent["move"], agent["move"].replace(":p", ":t"), agent["move"].split(":")[0]
+            del agent["move"]
+    for agent in state["agents"]:  # a prompted agent works for two reads, then waits
+        if agent.get("ticks"):
+            agent["ticks"] -= 1
+            agent["agent_status"] = "working" if agent["ticks"] else "idle"
 elif head == ["pane", "get"]:
     ok({"pane": {"pane_id": argv[2], "workspace_id": argv[2].split(":")[0]}})
 elif head == ["tab", "create"]:
-    ok({"root_pane": new_pane(opt("--workspace"))})
+    ok({"root_pane": new_pane(option("--workspace"))})
 elif head == ["workspace", "create"]:
-    s["n"] += 1
-    ok({"root_pane": new_pane(f"w{s['n']}")})
+    state["n"] += 1
+    ok({"root_pane": new_pane(f"w{state['n']}")})
 elif head == ["tab", "rename"]:
-    for t in s["tabs"]:
-        if t["tab_id"] == argv[2]:
-            t["label"] = argv[3]
+    for tab in state["tabs"]:
+        if tab["tab_id"] == argv[2]:
+            tab["label"] = argv[3]
     ok()
 elif head == ["agent", "start"]:
-    pane = opt("--pane")
-    s["agents"].append({"name": argv[2], "pane_id": pane, "tab_id": pane.replace(":p", ":t"), "workspace_id": pane.split(":")[0],
+    pane = option("--pane")
+    state["agents"].append({"name": argv[2], "pane_id": pane, "tab_id": pane.replace(":p", ":t"), "workspace_id": pane.split(":")[0],
                         "agent": "claude", "agent_status": "idle", "interactive_ready": "trust" not in argv[2],
                         "screen": "Yes, I trust this folder" if "trust" in argv[2] else "", **({"move": "w99:p99"} if "moving" in argv[2] else {})})
     ok()
@@ -74,58 +74,58 @@ elif head == ["agent", "rename"]:
     by_pane(argv[2])["name"] = argv[3]
     ok()
 elif head == ["pane", "send-text"]:
-    a = by_pane(argv[2])
-    if a.get("agent_status") == "blocked":
-        a["agent_status"], a["screen"], a["answered"] = "working", "", argv[3]
+    agent = by_pane(argv[2])
+    if agent.get("agent_status") == "blocked":
+        agent["agent_status"], agent["screen"], agent["answered"] = "working", "", argv[3]
     ok()
 elif head == ["agent", "prompt"]:
-    a = by_pane(argv[2])
-    if argv[3].startswith("/rename ") and os.environ.get("FAKE_HERDR_HOME") and a.get("agent_session"):
-        transcript = pathlib.Path(os.environ["FAKE_HERDR_HOME"]) / ".claude" / "projects" / "fake" / f"{a['agent_session']['value']}.jsonl"
+    agent = by_pane(argv[2])
+    if argv[3].startswith("/rename ") and os.environ.get("FAKE_HERDR_HOME") and agent.get("agent_session"):
+        transcript = pathlib.Path(os.environ["FAKE_HERDR_HOME"]) / ".claude" / "projects" / "fake" / f"{agent['agent_session']['value']}.jsonl"
         transcript.parent.mkdir(parents=True, exist_ok=True)
-        with transcript.open("a") as f:
-            f.write(json.dumps({"type": "custom-title", "customTitle": argv[3].split(" ", 1)[1]}, separators=(",", ":")) + "\n")
+        with transcript.open("a") as file:
+            file.write(json.dumps({"type": "custom-title", "customTitle": argv[3].split(" ", 1)[1]}, separators=(",", ":")) + "\n")
     if BREAK:
-        a["agent_status"], a["ticks"] = "working", 2
+        agent["agent_status"], agent["ticks"] = "working", 2
         ok()
-    elif "refuse" in a.get("name", ""):
+    elif "refuse" in agent.get("name", ""):
         print(json.dumps({"error": {"code": "agent_pane_closed", "message": "pane closed"}}))
         code = 1
-    elif a.get("agent_status") == "blocked" or "unblock" in a.get("name", "") and not a.get("refused"):
-        a["refused"] = True
+    elif agent.get("agent_status") == "blocked" or "unblock" in agent.get("name", "") and not agent.get("refused"):
+        agent["refused"] = True
         print(json.dumps({"error": {"code": "agent_blocked", "message": "agent is blocked"}}))
         code = 1
     else:
         if argv[3] == "/exit":
-            s["agents"].remove(a)
-        elif "slow" in a["name"]:
-            a["screen"] = argv[3]
-        elif "unseen" not in a["name"]:
-            a["agent_status"], a["ticks"] = "working", 2
+            state["agents"].remove(agent)
+        elif "slow" in agent["name"]:
+            agent["screen"] = argv[3]
+        elif "unseen" not in agent["name"]:
+            agent["agent_status"], agent["ticks"] = "working", 2
         ok()
 elif head == ["agent", "send-keys"]:
-    a, keys = by_pane(argv[2]), argv[3:]
-    if "trust" in a.get("screen", "") and keys == ["down", "enter"]:
-        a["interactive_ready"], a["screen"] = True, ""
-    elif "Background work" in a.get("screen", "") and keys == ["enter"]:
-        s["agents"].remove(a)
-    elif a.get("screen") and keys == ["enter"]:
-        a["agent_status"], a["ticks"], a["screen"] = "working", 2, ""
+    agent, keys = by_pane(argv[2]), argv[3:]
+    if "trust" in agent.get("screen", "") and keys == ["down", "enter"]:
+        agent["interactive_ready"], agent["screen"] = True, ""
+    elif "Background work" in agent.get("screen", "") and keys == ["enter"]:
+        state["agents"].remove(agent)
+    elif agent.get("screen") and keys == ["enter"]:
+        agent["agent_status"], agent["ticks"], agent["screen"] = "working", 2, ""
     ok()
 elif head == ["agent", "wait"]:
-    a, until = by_pane(argv[2]), [argv[i + 1] for i, w in enumerate(argv) if w == "--until"]
-    if a.get("agent_status") == "working":  # its turn ends
-        a["agent_status"], a["ticks"] = "idle", 0
-    if a.get("agent_status") in until or BREAK:
-        ok({"agent": a})
+    agent, until = by_pane(argv[2]), [argv[i + 1] for i, word in enumerate(argv) if word == "--until"]
+    if agent.get("agent_status") == "working":  # its turn ends
+        agent["agent_status"], agent["ticks"] = "idle", 0
+    if agent.get("agent_status") in until or BREAK:
+        ok({"agent": agent})
     else:
         print(json.dumps({"error": {"code": "timeout", "message": "wait timed out"}}))
         code = 1
 elif head == ["tab", "list"]:
-    ok({"tabs": [t for t in s["tabs"] if t["workspace_id"] == opt("--workspace")]})
+    ok({"tabs": [tab for tab in state["tabs"] if tab["workspace_id"] == option("--workspace")]})
 else:  # renames, keys, closes
     ok()
-tmp = state_path.with_suffix(f".{os.getpid()}")  # replaced whole, since callers run at once
-tmp.write_text(json.dumps(s))
-os.replace(tmp, state_path)
+temporary = state_path.with_suffix(f".{os.getpid()}")  # replaced whole, since callers run at once
+temporary.write_text(json.dumps(state))
+os.replace(temporary, state_path)
 sys.exit(code)

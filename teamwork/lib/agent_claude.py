@@ -22,8 +22,8 @@ DIALOGS = [
 ]
 
 
-def command(name, plugin_dir, model, effort, off):
-    return ["--name", name, "--plugin-dir", plugin_dir, "--model", model, "--effort", effort,
+def command(name, plugin_folder, model, effort, off):
+    return ["--name", name, "--plugin-dir", plugin_folder, "--model", model, "--effort", effort,
             "--settings", SETTINGS, *(["--disallowedTools", ",".join(off)] if off else [])]
 
 

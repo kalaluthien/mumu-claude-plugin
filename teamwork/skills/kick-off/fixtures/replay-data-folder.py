@@ -15,14 +15,14 @@ SCRIPTS = ROOT / "skills" / "kick-off" / "scripts"
 
 
 def run(argv, cwd, path=None, override=None):
-    env = {k: v for k, v in os.environ.items() if k != "TEAMWORK_BOARD_DIR"}
+    env = {k: value for k, value in os.environ.items() if k != "TEAMWORK_BOARD_DIR"}
     env.update(**({"TEAMWORK_BOARD_DIR": str(override)} if override else {}), CLAUDE_CONFIG_DIR=str(home), HOME=str(home), PYTHONPATH=str(LIB), TEAMWORK_BOARD="files", TEAMWORK_LANDING="git", **({"PATH": path} if path else {}))
     return subprocess.run(argv, cwd=cwd, env=env, capture_output=True, text=True)
 
 
 def where(cwd, module, name, path=None, override=None):
-    run_ = run([sys.executable, "-c", f"import {module}; print({module}.{name})"], cwd, path, override)
-    return run_.stdout.strip() or run_.stderr.strip()
+    process = run([sys.executable, "-c", f"import {module}; print({module}.{name})"], cwd, path, override)
+    return process.stdout.strip() or process.stderr.strip()
 
 
 def git(repo, *argv):
@@ -61,10 +61,10 @@ def main(args):
         return got == want, f"{got} != {want}"
 
     board, changes = repo / ".teamwork" / "board", repo / ".teamwork" / "changes"
-    step("board-folder", *matches([where(c, "board_files", "DIR") for c in (repo, tree)], [str(board)] * 2))
-    step("changes-folder", *matches([where(c, "landing_git", "folder()") for c in (repo, tree)], [str(changes)] * 2))
+    step("board-folder", *matches([where(folder, "board_files", "FOLDER") for folder in (repo, tree)], [str(board)] * 2))
+    step("changes-folder", *matches([where(folder, "landing_git", "folder()") for folder in (repo, tree)], [str(changes)] * 2))
     step("moved", *matches(((board / "7" / "body.md").exists(), (changes / "3.json").exists(), older.exists(), old.parent.exists()), (True, True, False, False)))
-    step("override", *matches(where(repo, "board_files", "DIR", override=work / "chosen"), str(work / "chosen")))
+    step("override", *matches(where(repo, "board_files", "FOLDER", override=work / "chosen"), str(work / "chosen")))
     text = work / "text.md"
     text.write_text("body\n")
     filed = run([sys.executable, str(SCRIPTS / "use-board.py"), "file", "a title", str(text)], tree)
@@ -77,7 +77,7 @@ def main(args):
     step("exclude-once", *matches((lines.count("/.teamwork/board/"), lines.count("/.teamwork/changes/")), (1, 1)))
     step("clean-status", *matches([line for line in git(repo, "status", "--porcelain").stdout.splitlines() if "board" in line or "changes" in line], []))
     step("no-git-data", *matches((repo / ".git" / "teamwork").exists(), False))
-    step("outside", *matches([where(bare, "board_files", "DIR"), where(repo, "board_files", "DIR", "/nonexistent")], [str(home / "teamwork" / "board")] * 2))
+    step("outside", *matches([where(bare, "board_files", "FOLDER"), where(repo, "board_files", "FOLDER", "/nonexistent")], [str(home / "teamwork" / "board")] * 2))
     return 1 if failed else 0
 
 

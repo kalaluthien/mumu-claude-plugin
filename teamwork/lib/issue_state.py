@@ -9,7 +9,7 @@ DATA = re.compile(r"^```teamwork\n(.*?)^```", re.M | re.S)
 def rows(text, heading):
     """{word: role} of the table under `## <heading>`, the word its first column's code span, the role its last cell."""
     section = re.search(rf"^## {heading}\n(.*?)(?=^## |\Z)", text, re.M | re.S).group(1)
-    return {w: r.strip() for w, r in re.findall(r"^\| `([^`]+)` \|.*\|([^|\n]*)\|$", section, re.M)}
+    return {word: role.strip() for word, role in re.findall(r"^\| `([^`]+)` \|.*\|([^|\n]*)\|$", section, re.M)}
 
 
 def load(path=GRAMMAR):
@@ -35,13 +35,13 @@ def keyword(text):
 def data(text):
     """The `key: value` lines of its reserved blocks, keys the grammar names only."""
     pairs = (line.partition(":") for block in DATA.findall(text or "") for line in block.splitlines())
-    return {k.strip(): v.strip() for k, sep, v in pairs if sep and k.strip() in KEYS}
+    return {k.strip(): value.strip() for k, separator, value in pairs if separator and k.strip() in KEYS}
 
 
 def sections(text):
     """{role: text} of the sections it carries, by the heading the grammar names."""
     found = re.findall(r"^## ([^\n]+)\n(.*?)(?=^## |\Z)", text or "", re.M | re.S)
-    return {SECTIONS[h.strip()]: body for h, body in found if h.strip() in SECTIONS}
+    return {SECTIONS[heading.strip()]: body for heading, body in found if heading.strip() in SECTIONS}
 
 
 def trusted(item):
@@ -65,32 +65,32 @@ def title(item):
 
 def records(issue):
     """The body, then each comment, as (keyword, data, comment), oldest first; the body has no keyword, and an untrusted author's text records nothing."""
-    return [(None, data(issue.get("body")) if trusted(issue) else {}, None)] + [(keyword(c["body"]), data(c["body"]), c) for c in issue.get("comments", []) if trusted(c)]
+    return [(None, data(issue.get("body")) if trusted(issue) else {}, None)] + [(keyword(comment["body"]), data(comment["body"]), comment) for comment in issue.get("comments", []) if trusted(comment)]
 
 
 def exchange(issue):
     """Its asks and answers, oldest first, each as (role, data, comment); the other keywords take no part in a wait."""
-    return [(KEYWORDS[w], d, c) for w, d, c in records(issue) if KEYWORDS.get(w) in ("ask", "answer")]
+    return [(KEYWORDS[word], fields, comment) for word, fields, comment in records(issue) if KEYWORDS.get(word) in ("ask", "answer")]
 
 
 def holder_values(issue):
     """Each holders value set, oldest first, as a list of names."""
-    return [d[WORD["holders"]].split() for _, d, _ in records(issue) if WORD["holders"] in d]
+    return [fields[WORD["holders"]].split() for _, fields, _ in records(issue) if WORD["holders"] in fields]
 
 
 def cloud(issue):
     """The names its latest cloud value set, which run where no local listing shows them."""
-    return ([d[WORD["cloud"]].split() for _, d, _ in records(issue) if WORD["cloud"] in d] or [[]])[-1]
+    return ([fields[WORD["cloud"]].split() for _, fields, _ in records(issue) if WORD["cloud"] in fields] or [[]])[-1]
 
 
 def deferral(issue):
     """Why it is left for later: the latest deferral's reason, or None when none was set or holders with names came after it."""
     reason = None
-    for _, d, _ in records(issue):
-        if d.get(WORD["holders"]):
+    for _, fields, _ in records(issue):
+        if fields.get(WORD["holders"]):
             reason = None
-        if WORD["deferral"] in d:
-            reason = d[WORD["deferral"]] or None
+        if WORD["deferral"] in fields:
+            reason = fields[WORD["deferral"]] or None
     return reason
 
 
@@ -102,14 +102,14 @@ def compose(issue, blockers=()):
     deferred = deferral(issue)
     asked = exchange(issue)[-1:]
     if blockers:
-        waits = " ".join(f"blocked by #{n}" for n in blockers)
+        waits = " ".join(f"blocked by #{number}" for number in blockers)
     elif asked and asked[0][0] == "ask":
         waits = "waits on the owner" if asked[0][1].get(WORD["audience"]) == "owner" else "waits on the manager"
     else:
         waits = "held" if holders else "deferred" if deferred else "no holder"
     # the body alone, since a section is edited there with its diff posted as a comment
     current = sections(issue.get("body"))
-    done = [dict(zip(("box", "kind", "name", "detail"), CRITERION.match(c).groups())) for c in ITEM.findall(current.get("done", ""))]
-    done = [{"met": d["box"] and d["box"] != " ", "kind": d["kind"] or "", "name": d["name"] or d["detail"], "detail": d["detail"] if d["name"] else ""}
-            for d in done]
+    done = [dict(zip(("box", "kind", "name", "detail"), CRITERION.match(item).groups())) for item in ITEM.findall(current.get("done", ""))]
+    done = [{"met": criterion["box"] and criterion["box"] != " ", "kind": criterion["kind"] or "", "name": criterion["name"] or criterion["detail"], "detail": criterion["detail"] if criterion["name"] else ""}
+            for criterion in done]
     return {"holders": holders, "deferred": deferred, "waits": waits, "goal": DATA.sub("", current.get("goal", "")).strip().splitlines(), "done": done}

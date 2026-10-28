@@ -71,11 +71,11 @@ def main(args):
     source = args[0]
     body = sys.stdin.read() if source == "-" else pathlib.Path(source).read_text()
     lines = issue_state.ITEM.findall(issue_state.sections(body).get("done", ""))
-    flagged = [(n, found) for n, line in enumerate(lines, 1)
+    flagged = [(line_number, found) for line_number, line in enumerate(lines, 1)
                for found in [defects(*issue_state.CRITERION.match(line).groups()[1:])] if found]
-    for n, found in flagged:
-        print(f"{n}: {', '.join(found)}")
-    for name in dict.fromkeys(d for _, found in flagged for d in found):
+    for line_number, found in flagged:
+        print(f"{line_number}: {', '.join(found)}")
+    for name in dict.fromkeys(defect for _, found in flagged for defect in found):
         print(f"- {name}: {FIX[name]}")
     return 1 if flagged else 0
 

@@ -29,7 +29,7 @@ BLOCKERS = """query($owner: String!, $name: String!) {
   repository(owner: $owner, name: $name) {
     %s } }"""
 # only where a command segment starts, so gh text quoted inside another command's argument is not read as a call
-GH_TEXT = re.compile(r"(?:^|&&|\|\||[;|(`\n]|\b(?:then|do|else)\s)\s*(?:\w+=\S*\s+)*(gh (?:(?:issue|pr) (?:create|comment|edit|close)|api)\b)")
+GH_CALL = re.compile(r"(?:^|&&|\|\||[;|(`\n]|\b(?:then|do|else)\s)\s*(?:\w+=\S*\s+)*(gh (?:(?:issue|pr) (?:create|comment|edit|close)|api)\b)")
 SEGMENT_END = re.compile(r"&&|\|\||[;|)`]|(?<!\\)\n")  # a backslash-newline continues the command
 # each gh command that writes a record or a change, by the write it does
 WRITES = {"gh issue create": "file", "gh pr create": "change", "gh issue comment": "comment", "gh pr comment": "change comment",
@@ -75,7 +75,7 @@ def fetch(path, repo, tries):
         if status == "304" and kept:
             return json.loads(kept["body"])
         if process.returncode == 0:
-            etag = next((v for k, _, v in (line.partition(": ") for line in head.splitlines()[1:]) if k.lower() == "etag"), None)
+            etag = next((value for k, _, value in (line.partition(": ") for line in head.splitlines()[1:]) if k.lower() == "etag"), None)
             if etag:
                 file.parent.mkdir(parents=True, exist_ok=True)
                 spare = file.with_suffix(f".{os.getpid()}.tmp")  # renamed into place, so a reader in another session never meets half a file
@@ -94,7 +94,7 @@ def get(path, repo=None, paginate=True, tries=3):
     if not paginate:
         return fetch(path, repo, tries)
     # pages by `page=`, never gh's own paging, whose `Link` paths name `repositories/<id>/`, which a cloud session's proxy refuses
-    size = int(m.group(1)) if (m := re.search(r"[?&]per_page=(\d+)", path)) else 30
+    size = int(match.group(1)) if (match := re.search(r"[?&]per_page=(\d+)", path)) else 30
     found = []
     for n in itertools.count(1):
         page = fetch(f"{path}{'&' if '?' in path else '?'}page={n}", repo, tries)
@@ -111,7 +111,7 @@ def issue(raw):
     parent = raw.get("parent_issue_url")
     return {"number": raw["number"], "title": raw["title"], "body": raw["body"] or "", "url": raw["html_url"],
             "state": raw["state"].upper(), "stateReason": (raw.get("state_reason") or "").upper(), "createdAt": raw["created_at"],
-            "closedAt": raw["closed_at"], "trusted": trusted({"authorAssociation": raw["author_association"]}), "labels": [x["name"] for x in raw["labels"]],
+            "closedAt": raw["closed_at"], "trusted": trusted({"authorAssociation": raw["author_association"]}), "labels": [raw_label["name"] for raw_label in raw["labels"]],
             "parent": parent and int(parent.rsplit("/", 1)[1]), "isPullRequest": "pull_request" in raw, "mergedAt": merged, "comments": []}
 
 
@@ -122,19 +122,19 @@ def note(raw):
 
 def with_comments(found, repo=None):
     """FOUND with each row's comments, from one paginated read of the repository's comments since the oldest row that has any; None when a read failed."""
-    pending = [i for i in found if i["_count"]]
+    pending = [row for row in found if row["_count"]]
     if pending:
         # a comment is updated no earlier than its issue was created, so this stamp leaves none out
-        every = get(f"repos/issues/comments?per_page=100&since={min(i['createdAt'] for i in pending)}", repo)
+        every = get(f"repos/issues/comments?per_page=100&since={min(row['createdAt'] for row in pending)}", repo)
         if every is None:
             return None
         by = {}
-        for c in every:
-            by.setdefault(int(c["issue_url"].rsplit("/", 1)[1]), []).append(note(c))
-        for i in pending:
-            i["comments"] = by.get(i["number"], [])
-    for i in found:
-        del i["_count"]
+        for raw_comment in every:
+            by.setdefault(int(raw_comment["issue_url"].rsplit("/", 1)[1]), []).append(note(raw_comment))
+        for row in pending:
+            row["comments"] = by.get(row["number"], [])
+    for row in found:
+        del row["_count"]
     return found
 
 
@@ -163,21 +163,21 @@ def issues(state="open", project=None, pulls=False, comments=True, since=None, r
     raw = get(path, repo)
     if raw is None:
         return None
-    found = [{**issue(r), "_count": r["comments"]} for r in raw if pulls or "pull_request" not in r]
-    return with_comments(found, repo) if comments else [{k: v for k, v in i.items() if k != "_count"} for i in found]
+    found = [{**issue(raw_issue), "_count": raw_issue["comments"]} for raw_issue in raw if pulls or "pull_request" not in raw_issue]
+    return with_comments(found, repo) if comments else [{k: value for k, value in row.items() if k != "_count"} for row in found]
 
 
 def fresh(number, repo=None, comments=True):
     """One issue, with its comments when COMMENTS, read now by its own reads; None when a read failed."""
     raw = get(f"repos/issues/{number}", repo, paginate=False)
     read = get(f"repos/issues/{number}/comments?per_page=100", repo) if comments else []
-    return raw and read is not None and {**issue(raw), "comments": [note(c) for c in read]} or None
+    return raw and read is not None and {**issue(raw), "comments": [note(raw_comment) for raw_comment in read]} or None
 
 
 def comments_since(since):
     """Every comment updated since SINCE (an ISO time), as (issue number, comment); None when a read failed."""
     found = get(f"repos/issues/comments?per_page=100&since={since}")
-    return None if found is None else [(int(r["issue_url"].rsplit("/", 1)[1]), note(r)) for r in found]
+    return None if found is None else [(int(raw_comment["issue_url"].rsplit("/", 1)[1]), note(raw_comment)) for raw_comment in found]
 
 
 def changed_since(stamp):
@@ -189,7 +189,7 @@ def changed_since(stamp):
 def blockers(number):
     """The numbers of the open issues NUMBER waits on; None when the read failed."""
     found = get(f"repos/issues/{number}/dependencies/blocked_by")
-    return None if found is None else [b["number"] for b in found if b["state"] == "open"]
+    return None if found is None else [blocker["number"] for blocker in found if blocker["state"] == "open"]
 
 
 def graphql(query, owner, name, *fields):
@@ -201,10 +201,10 @@ def tree(project, nodes=None):
     """The open issues' nodes, those labelled `scope:<project>` when that label exists, else all, or NODES when given, each issue and comment
     marked `trusted`; None when a read failed."""
     nodes = nodes if nodes is not None else read_tree(project)
-    for n in nodes or []:
-        n["trusted"] = trusted(n)
-        for c in n["comments"]["nodes"] + (n.get("subIssues") or {}).get("nodes", []):
-            c["trusted"] = trusted(c)
+    for node in nodes or []:
+        node["trusted"] = trusted(node)
+        for item in node["comments"]["nodes"] + (node.get("subIssues") or {}).get("nodes", []):
+            item["trusted"] = trusted(item)
     return nodes
 
 
@@ -225,22 +225,22 @@ def read_tree(project):
         if not found["issues"]["pageInfo"]["hasNextPage"]:
             break
         after = ["-f", f"after={found['issues']['pageInfo']['endCursor']}"]
-    shown = [t for n in found_issues for t in [t for t in n["subIssues"]["nodes"] if t["state"] == "CLOSED"][-SHOWN_CLOSED:]]
+    shown = [sub_issue for node in found_issues for sub_issue in [sub_issue for sub_issue in node["subIssues"]["nodes"] if sub_issue["state"] == "CLOSED"][-SHOWN_CLOSED:]]
     if shown:
-        asked = graphql(BLOCKERS % " ".join(f"i{k}: issue(number: {k}) {{ blockedBy(first: 20) {{ nodes {{ number state }} }} }}" for k in {t["number"] for t in shown}),
+        asked = graphql(BLOCKERS % " ".join(f"i{k}: issue(number: {k}) {{ blockedBy(first: 20) {{ nodes {{ number state }} }} }}" for k in {sub_issue["number"] for sub_issue in shown}),
                         repo["owner"], repo["name"])
         if asked is None:
             return None
-        for t in shown:
-            t["blockedBy"] = asked[f"i{t['number']}"]["blockedBy"]
+        for sub_issue in shown:
+            sub_issue["blockedBy"] = asked[f"i{sub_issue['number']}"]["blockedBy"]
     return found_issues
 
 
 def write(*argv, text=None):
     """The JSON a `gh api` write answers; it raises when the write failed, since a lost write must not pass for a done one."""
     need("gh")
-    p = subprocess.run(["gh", "api", *argv], input=text, capture_output=True, text=True, check=True)
-    return json.loads(p.stdout) if p.stdout.strip() else None
+    process = subprocess.run(["gh", "api", *argv], input=text, capture_output=True, text=True, check=True)
+    return json.loads(process.stdout) if process.stdout.strip() else None
 
 
 def node_id(number):
@@ -265,7 +265,7 @@ def file(title, body, labels) -> int:
     for name in labels:
         make_label(name)
     return write("-X", "POST", "repos/{owner}/{repo}/issues", "-f", f"title={title}", "-F", "body=@-",
-                 *[f for name in labels for f in ("-f", f"labels[]={name}")], text=body)["number"]
+                 *[argument for name in labels for argument in ("-f", f"labels[]={name}")], text=body)["number"]
 
 
 def body(number):
@@ -337,12 +337,12 @@ def rest_call(command):
 def command(text):
     """The first gh call TEXT runs: `called`, the gh write it stands for, and `write`, its WRITES entry, each None for another call;
     `title`, its title's length; `inline body` and `body edit`, a body passed inline or an issue body changed in place; `body file`. None when TEXT runs no gh call."""
-    found = GH_TEXT.search(text)
+    found = GH_CALL.search(text)
     if not found:
         return None
     segment = SEGMENT_END.split(text[found.start(1):])[0]
     call = rest_call(segment)
-    called = next((c for c in WRITES if call.startswith(c)), None)
+    called = next((prefix for prefix in WRITES if call.startswith(prefix)), None)
     title = TITLE.search(segment)
     posted = BODY_FILE.search(segment)
     return {"called": called, "write": WRITES.get(called), "title": title and len(title.group(2)) - (2 if title.group(2)[0] in "\"'" else 0),

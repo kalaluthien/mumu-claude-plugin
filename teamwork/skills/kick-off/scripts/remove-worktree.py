@@ -27,9 +27,9 @@ def unmerged_tips(name, root):
     tips = {git("rev-parse", "--verify", "--quiet", ref, cwd=root).stdout.strip()
             for ref in (f"refs/heads/{name}", f"refs/remotes/origin/{name}")} - {""}
     # a squash merge leaves the branch commits off the base, so a merged pull request's head counts as merged too
-    merged = {pr["headRefOid"] for pr in landing.pulls("closed", branch=name) or [] if pr["mergedAt"]}
+    merged = {pull["headRefOid"] for pull in landing.pulls("closed", branch=name) or [] if pull["mergedAt"]}
     # with no `origin/HEAD` only a merged pull request counts, so the branch is kept rather than guessed merged
-    return sorted(t[:9] for t in tips - merged if not default or git("merge-base", "--is-ancestor", t, default, cwd=root).returncode)
+    return sorted(tip[:9] for tip in tips - merged if not default or git("merge-base", "--is-ancestor", tip, default, cwd=root).returncode)
 
 
 def remove(name, root):
@@ -38,9 +38,9 @@ def remove(name, root):
     tree = root / ".claude" / "worktrees" / name
     git("worktree", "prune", cwd=root)  # a folder deleted by hand leaves its worktree registered
     if tree.exists():
-        p = git("worktree", "remove", str(tree), cwd=root)
-        if p.returncode:
-            return f"{name}: worktree kept, {p.stderr.strip()}"
+        result = git("worktree", "remove", str(tree), cwd=root)
+        if result.returncode:
+            return f"{name}: worktree kept, {result.stderr.strip()}"
         done.append("worktree")
     unmerged = unmerged_tips(name, root)
     if unmerged:
@@ -51,15 +51,15 @@ def remove(name, root):
     if not git("ls-remote", "--exit-code", "origin", f"refs/heads/{name}", cwd=root).returncode:
         if not WORKER_BRANCH.search(name):
             return f"{name}: {', '.join(done) or 'nothing'} removed; origin branch kept, not a worker branch name"
-        p = git("push", "origin", "--delete", name, cwd=root)
-        if p.returncode:
-            return f"{name}: {', '.join(done) or 'nothing'} removed; origin branch kept, {p.stderr.strip()}"
+        result = git("push", "origin", "--delete", name, cwd=root)
+        if result.returncode:
+            return f"{name}: {', '.join(done) or 'nothing'} removed; origin branch kept, {result.stderr.strip()}"
         done.append("origin branch")
     return f"{name}: {', '.join(done) + ' removed' if done else 'nothing left to remove'}"
 
 
 def main(args):
-    if not args or any(a.startswith("-") for a in args):
+    if not args or any(argument.startswith("-") for argument in args):
         print(__doc__, file=sys.stderr)
         return 2
     common = git("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=".").stdout.strip()
@@ -69,8 +69,8 @@ def main(args):
     for name in args:
         print(remove(name, root))
     if not git("remote", "get-url", "origin", cwd=root).returncode:  # with no remote, a local merge already moved the checkout
-        p = git("pull", "--ff-only", cwd=root)
-        print("checkout fast-forwarded" if not p.returncode else f"checkout not fast-forwarded: {p.stderr.strip()}")
+        result = git("pull", "--ff-only", cwd=root)
+        print("checkout fast-forwarded" if not result.returncode else f"checkout not fast-forwarded: {result.stderr.strip()}")
 
 
 if __name__ == "__main__":

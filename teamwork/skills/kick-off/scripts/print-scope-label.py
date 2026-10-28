@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prints the `scope:` label of a manager's backlogs: the setting `scope_prefix` and the project in the manager's name, the only label that fits.
+"""Print the `scope:` label of a manager's backlogs: the setting `scope_prefix` and the project in the manager's name, the only label that fits.
 A name that is no `<project>-manager` name, or whose project is not lowercase words joined by `-` and at most 22 characters, gets exit 2, so a wrong label is never printed.
 
 usage: print-scope-label.py <manager-name>

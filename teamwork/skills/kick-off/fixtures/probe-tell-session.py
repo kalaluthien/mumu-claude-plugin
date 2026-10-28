@@ -25,8 +25,8 @@ NAME = f"probe-tell-{os.getpid()}"
 def tell(name, text, env=None, timeout=60):
     note = pathlib.Path(tempfile.mkstemp(suffix=".md")[1])
     note.write_text(text)
-    p = subprocess.run([str(TELL), name, str(note)], env={**os.environ, "TELL_SESSION_TIMEOUT": str(timeout), **(env or {})}, capture_output=True, text=True)
-    return p.returncode, (p.stdout + p.stderr).strip()
+    process = subprocess.run([str(TELL), name, str(note)], env={**os.environ, "TELL_SESSION_TIMEOUT": str(timeout), **(env or {})}, capture_output=True, text=True)
+    return process.returncode, (process.stdout + process.stderr).strip()
 
 
 def step(name, ok, detail=""):
@@ -47,7 +47,7 @@ def until(test, seconds, what):
         if test():
             return
         time.sleep(1)
-    screen = [l for l in session.screen(session.agent(NAME)["pane_id"]).splitlines() if l.strip()][-8:] if session.agent(NAME) else []
+    screen = [line for line in session.screen(session.agent(NAME)["pane_id"]).splitlines() if line.strip()][-8:] if session.agent(NAME) else []
     raise RuntimeError(f"{NAME} {what} after {seconds}s; its screen ended: {' | '.join(screen)}")
 
 
@@ -76,15 +76,15 @@ def live():
         while (session.agent(NAME) or {}).get("agent_status") == "blocked" and time.time() < deadline:
             session.send_keys(pane, "esc")
             time.sleep(2)
-        p = subprocess.run([str(CLOSE), NAME], env={**os.environ, "CLOSE_SESSION_TIMEOUT": "120"}, capture_output=True, text=True)
-        if p.returncode:
-            step(f"close {NAME}", False, p.stdout + p.stderr)
+        process = subprocess.run([str(CLOSE), NAME], env={**os.environ, "CLOSE_SESSION_TIMEOUT": "120"}, capture_output=True, text=True)
+        if process.returncode:
+            step(f"close {NAME}", False, process.stdout + process.stderr)
 
 
 def fake():
     state = pathlib.Path(tempfile.mkstemp(prefix="fake-herdr-", suffix=".json")[1])
-    agents = [{"name": n, "pane_id": f"w1:p{i}", "tab_id": f"w1:t{i}", "workspace_id": "w1", "agent": "codex", "agent_status": s, "interactive_ready": True}
-              for i, (n, s) in enumerate((("done-codex", "done"), ("unblock-codex", "idle"), ("unseen-codex", "idle")), 1)]
+    agents = [{"name": n, "pane_id": f"w1:p{i}", "tab_id": f"w1:t{i}", "workspace_id": "w1", "agent": "codex", "agent_status": status, "interactive_ready": True}
+              for i, (n, status) in enumerate((("done-codex", "done"), ("unblock-codex", "idle"), ("unseen-codex", "idle")), 1)]
     state.write_text(json.dumps({"n": 10, "tabs": [], "agents": agents}))
     env = {"PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state)}
     step("done delivered", *told(tell("done-codex", "hi", env, 5), 0, "delivered to done-codex"))

@@ -23,27 +23,27 @@ def fetch(repo):
     found = board.issues("all", repo=repo, pulls=True, comments=False)
     if found is None:
         raise RuntimeError("task_history: the issues could not be read")
-    closed = {i["number"] for i in found if not i["isPullRequest"] and i["state"] == "CLOSED"}
+    closed = {issue["number"] for issue in found if not issue["isPullRequest"] and issue["state"] == "CLOSED"}
     # a pull request's closing keywords stand for GitHub's closing references; its first commit is one read each, so only for those that close a task
-    closing = {i["number"]: [n for n in map(int, landing.CLOSES.findall(i["body"])) if n in closed] for i in found if i["mergedAt"]}
+    closing = {pull["number"]: [number for number in map(int, landing.CLOSES.findall(pull["body"])) if number in closed] for pull in found if pull["mergedAt"]}
     with ThreadPoolExecutor(8) as pool:
-        starts = dict(zip(closing, pool.map(lambda n: first_commit(repo, n) if closing[n] else None, closing)))
+        starts = dict(zip(closing, pool.map(lambda number: first_commit(repo, number) if closing[number] else None, closing)))
     first = {}  # issue number -> earliest first-commit time of a merged pull request that closes it
     for number, start in starts.items():
         for ref in closing[number] if start else []:
             first[ref] = min(start, first.get(ref, start))
-    return [{"number": i["number"], "labels": i["labels"], "body": i["body"], "createdAt": i["createdAt"],
-             "closedAt": i["closedAt"], "prStart": first.get(i["number"])} for i in found if i["number"] in closed]
+    return [{"number": issue["number"], "labels": issue["labels"], "body": issue["body"], "createdAt": issue["createdAt"],
+             "closedAt": issue["closedAt"], "prStart": first.get(issue["number"])} for issue in found if issue["number"] in closed]
 
 
 def rows(issues):
     """A task starts at its pull request's first commit, else at its creation; each row names which."""
     out, backlog = [], team_settings.load(os.getcwd())["backlog_label"]
-    for i in issues:
-        if backlog in i["labels"] or not i.get("closedAt"):
+    for issue in issues:
+        if backlog in issue["labels"] or not issue.get("closedAt"):
             continue
-        source, start = ("pr", i["prStart"]) if i.get("prStart") else ("created", i["createdAt"])
-        hours = (parse_time(i["closedAt"]) - parse_time(start)).total_seconds() / 3600
-        out.append({"number": i["number"], "labels": i["labels"], "criteria": sum(i["body"].count(c) for c in CRITERION),
-                    "start": start, "end": i["closedAt"], "hours": hours, "source": source})
-    return sorted(out, key=lambda r: r["end"])
+        source, start = ("pr", issue["prStart"]) if issue.get("prStart") else ("created", issue["createdAt"])
+        hours = (parse_time(issue["closedAt"]) - parse_time(start)).total_seconds() / 3600
+        out.append({"number": issue["number"], "labels": issue["labels"], "criteria": sum(issue["body"].count(marker) for marker in CRITERION),
+                    "start": start, "end": issue["closedAt"], "hours": hours, "source": source})
+    return sorted(out, key=lambda row: row["end"])

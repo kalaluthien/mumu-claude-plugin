@@ -20,14 +20,14 @@ OPTION = re.compile(r"^\s*(?:[>❯›]\s*)?(\d+)\.\s+(.*\S)\s*$")
 def prompt_on(screen):
     """The question and the numbered choices of the last prompt on the screen, or None when it shows none."""
     lines = screen.splitlines()
-    starts = [i for i, line in enumerate(lines) if (m := OPTION.match(line)) and m.group(1) == "1"]
+    starts = [i for i, line in enumerate(lines) if (match := OPTION.match(line)) and match.group(1) == "1"]
     if not starts:
         return None
     first = starts[-1]
     choices = {}
     for line in lines[first:]:
-        if m := OPTION.match(line):
-            choices[m.group(1)] = m.group(2)
+        if match := OPTION.match(line):
+            choices[match.group(1)] = match.group(2)
         elif line.strip() and choices:
             break
     question = next((line.strip() for line in reversed(lines[:first]) if line.strip()), "")
@@ -53,7 +53,7 @@ def main(args):
     if choice not in choices:
         sys.exit(f"answer-prompt.py: {name}'s prompt has no choice {choice} (it has {', '.join(choices)}); nothing answered.")
     label = choices[choice]
-    if any(w in label.lower().replace("’", "'") for w in WIDER):
+    if any(word in label.lower().replace("’", "'") for word in WIDER):
         sys.exit(f"answer-prompt.py: choice {choice} \"{label}\" allows more than this one action, so it is never sent; `ask` the owner.")
     try:
         session.answer((session.agent(name) or live)["pane_id"], choice)  # read again, since herdr may move the pane and send-text takes only a pane

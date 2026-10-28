@@ -7,7 +7,7 @@ STARTED = {"Agent": r"^agentId: (\w+)", "SendMessage": r"\"resumedAgentId\":\s*\
 
 
 def text(content):
-    return content if isinstance(content, str) else " ".join(x.get("text", "") for x in content or [] if isinstance(x, dict))
+    return content if isinstance(content, str) else " ".join(item.get("text", "") for item in content or [] if isinstance(item, dict))
 
 
 def running_work(transcript):
@@ -17,15 +17,15 @@ def running_work(transcript):
         records = [json.loads(line) for line in open(transcript) if line.strip()]
     except (OSError, ValueError):
         return running
-    for r in records:
-        content = r.get("content") if r.get("type") == "queue-operation" else (r.get("message") or {}).get("content")
+    for record in records:
+        content = record.get("content") if record.get("type") == "queue-operation" else (record.get("message") or {}).get("content")
         if isinstance(content, str):  # a notification arrives as plain text, never inside a tool result
             running.difference_update(re.findall(r"<task-id>(\w+)</task-id>.*?<status>(?:completed|failed|killed|stopped)</status>", content, re.S))
             continue
-        for b in (b for b in content or [] if isinstance(b, dict)):
-            if b.get("type") == "tool_use":
-                tools[b.get("id")] = STARTED.get(b.get("name"))
-                running.discard((b.get("input") or {}).get("task_id") if b.get("name") == "TaskStop" else None)
-            elif (pattern := tools.get(b.get("tool_use_id"))) and (found := re.search(pattern, text(b.get("content")), re.M)):
+        for block in (block for block in content or [] if isinstance(block, dict)):
+            if block.get("type") == "tool_use":
+                tools[block.get("id")] = STARTED.get(block.get("name"))
+                running.discard((block.get("input") or {}).get("task_id") if block.get("name") == "TaskStop" else None)
+            elif (pattern := tools.get(block.get("tool_use_id"))) and (found := re.search(pattern, text(block.get("content")), re.M)):
                 running.add(found.group(1))
     return running

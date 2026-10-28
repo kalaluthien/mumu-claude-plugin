@@ -25,7 +25,7 @@ let refresh: (() => Promise<void>) | undefined
 const openPane = ($: any) => $.ui.open({ id: PANE, title: 'Issues' })
 // a plain open of an open id leaves it behind another plugin's tab, and focus may take the prompt's keys, so a hidden pane closes and opens again
 async function showPane($: any) {
-  if ((await $.ui.panes()).some((p: { id: string; isShown: boolean }) => p.id === PANE && !p.isShown)) await $.ui.close({ id: PANE })
+  if ((await $.ui.panes()).some((pane: { id: string; isShown: boolean }) => pane.id === PANE && !pane.isShown)) await $.ui.close({ id: PANE })
   return openPane($)
 }
 function watch($: any, name: string) {
@@ -99,14 +99,14 @@ export const register: Register = on => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Link, Button, Markdown } = $.ui.resolve(e)
     const unfolded = new Set(await read($, expanded))
-    const toggle = (n: number | string) => () => void update($, expanded, old => old.includes(n) ? old.filter(x => x !== n) : [...old, n])
+    const toggle = (n: number | string) => () => void update($, expanded, old => old.includes(n) ? old.filter(item => item !== n) : [...old, n])
     const status = (i: BoardIssue) => [
       i.progress && <Text dimColor>{i.progress}</Text>,
       i.wait && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.wait}</Text>,
-    ].filter(Boolean).flatMap((x, k) => (k ? [<Text> </Text>, x] : [x]))
+    ].filter(Boolean).flatMap((node, k) => (k ? [<Text> </Text>, node] : [node]))
     // every blocker, as links: an open one bold, a closed one dim, so what still holds a task stands out
-    const after = (t: { url: string; blockers: BoardIssue['blockers'] }) => t.blockers.length > 0 && [<Text dimColor>{' ← '}</Text>, ...t.blockers.map((b, k) =>
-      <Text dimColor={b.closed} weight={b.closed ? undefined : 'semibold'}>{k ? ' ' : ''}<Link href={t.url.replace(/\d+$/, String(b.number))} label={`#${b.number}`} /></Text>)]
+    const after = (task: { url: string; blockers: BoardIssue['blockers'] }) => task.blockers.length > 0 && [<Text dimColor>{' ← '}</Text>, ...task.blockers.map((blocker, k) =>
+      <Text dimColor={blocker.closed} weight={blocker.closed ? undefined : 'semibold'}>{k ? ' ' : ''}<Link href={task.url.replace(/\d+$/, String(blocker.number))} label={`#${blocker.number}`} /></Text>)]
     // a goal or a criterion: its name on one line, its details only once a press on that line unfolds them; unfolded, the name goes gray so the white detail reads first,
     // and a blank line ends the detail, so the next name does not read as part of it
     const part = (key: string, name: string, detail: string[]) => (
@@ -149,11 +149,11 @@ export const register: Register = on => {
             {open && i.goal && <Markdown text={i.goal} />}
             {/* the title sums a task up, so its goal is detail, folded */}
             {open && i.detail.length > 0 && part(`goal-${i.number}`, 'see detail', i.detail)}
-            {open && i.done.map((d, k) => part(`done-${i.number}-${k}`, [d.met === null ? '' : d.met ? '[x]' : '[ ]', d.kind && `(${d.kind})`, d.name].filter(Boolean).join(' '), d.detail ? [d.detail] : []))}
+            {open && i.done.map((criterion, k) => part(`done-${i.number}-${k}`, [criterion.met === null ? '' : criterion.met ? '[x]' : '[ ]', criterion.kind && `(${criterion.kind})`, criterion.name].filter(Boolean).join(' '), criterion.detail ? [criterion.detail] : []))}
             {open && i.next && <Text wrap="wrap">{`next step: ${i.next}`}</Text>}
-            {open && i.tasks.map(t => framed(t))}
+            {open && i.tasks.map(task => framed(task))}
             {/* closed tasks after the open ones, dim and newest first, so what landed last stays in view */}
-            {open && i.closed.length > 0 && <Box marginTop={1} flexDirection="column">{i.closed.map(t => <Text wrap="wrap" dimColor><Link href={t.url} label={`#${t.number}`} />{' '}<Text strikethrough={t.stopped}>{t.title}</Text>{after(t)}</Text>)}{i.earlier && <Text dimColor>…</Text>}</Box>}
+            {open && i.closed.length > 0 && <Box marginTop={1} flexDirection="column">{i.closed.map(task => <Text wrap="wrap" dimColor><Link href={task.url} label={`#${task.number}`} />{' '}<Text strikethrough={task.stopped}>{task.title}</Text>{after(task)}</Text>)}{i.earlier && <Text dimColor>…</Text>}</Box>}
           </Box>
         </Box>
       )

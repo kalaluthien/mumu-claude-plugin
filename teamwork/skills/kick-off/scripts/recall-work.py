@@ -6,7 +6,6 @@ that opens with a keyword of issue-grammar.md.
 usage: recall-work.py [<words>...] [--path <file>]... [--before <date>] [--top <n>]
 
 `--before` sees the repository as it stood at DATE, to replay a past kick-off."""
-import argparse
 import collections
 import json
 import math
@@ -21,6 +20,7 @@ import board  # noqa: E402
 import issue_state  # noqa: E402
 import landing  # noqa: E402
 import team_settings  # noqa: E402
+import usage_parser  # noqa: E402
 
 STOP = set("a an and as at be by for from in into is it its no not of on or the to with".split())
 # a file's newest commits say what it is now, its oldest why it exists, so both ends of its history weigh most
@@ -32,17 +32,17 @@ RECENT_GAIN, RECENT_HALF_LIFE = 8, 5
 
 def run(*argv, tries=3):
     for left in reversed(range(tries)):  # gh's list calls fail now and then, then pass on retry
-        p = subprocess.run(argv, capture_output=True, text=True)
-        if p.returncode == 0 or not left:
+        process = subprocess.run(argv, capture_output=True, text=True)
+        if process.returncode == 0 or not left:
             break
-    if p.returncode:
-        sys.exit(f"recall-work.py: `{' '.join(argv[:3])}` failed: {p.stderr.strip()}")
-    return p.stdout
+    if process.returncode:
+        sys.exit(f"recall-work.py: `{' '.join(argv[:3])}` failed: {process.stderr.strip()}")
+    return process.stdout
 
 
 def words(text):
-    return [re.sub(r"(ing|ed|es|s)$", "", w) if len(w) > 4 else w
-            for w in re.findall(r"[a-z0-9]+", text.lower()) if w not in STOP and len(w) > 1]
+    return [re.sub(r"(ing|ed|es|s)$", "", word) if len(word) > 4 else word
+            for word in re.findall(r"[a-z0-9]+", text.lower()) if word not in STOP and len(word) > 1]
 
 
 def load(before):
@@ -53,7 +53,7 @@ def load(before):
     for item in found:
         if before and item["createdAt"] >= before:
             continue
-        comments = [c["body"] for c in item["comments"] if not before or c["createdAt"] < before]
+        comments = [comment["body"] for comment in item["comments"] if not before or comment["createdAt"] < before]
         if item["isPullRequest"]:
             kind, state = "PR", "merged" if item["mergedAt"] else item["state"].lower()
         else:
@@ -64,23 +64,23 @@ def load(before):
             "text": " ".join([item["title"]] * 3 + [item["body"], *comments]),
             # any capitalised word, since comments under words the grammar no longer lists stay on the record
             "records": [text.strip().splitlines()[0][:160] for text in comments if re.match(r"\s*[A-Z]+:", text)],
-            "closes": [int(n) for n in landing.CLOSES.findall(item["body"])] if item["isPullRequest"] else [],
+            "closes": [int(number) for number in landing.CLOSES.findall(item["body"])] if item["isPullRequest"] else [],
         }
     return items
 
 
 def text_scores(items, query):
     """BM25 of the query words over each item's title, body and comments."""
-    docs = {n: collections.Counter(words(i["text"])) for n, i in items.items()}
-    size = {n: sum(d.values()) for n, d in docs.items()}
+    docs = {number: collections.Counter(words(item["text"])) for number, item in items.items()}
+    size = {number: sum(counts.values()) for number, counts in docs.items()}
     mean = sum(size.values()) / max(len(docs), 1)
-    df = collections.Counter(w for d in docs.values() for w in d)
+    document_frequency = collections.Counter(word for counts in docs.values() for word in counts)
     scores = collections.Counter()
-    for n, d in docs.items():
-        for w in set(query):
-            if d[w]:
-                idf = math.log(1 + (len(docs) - df[w] + .5) / (df[w] + .5))
-                scores[n] += idf * d[w] * 2.2 / (d[w] + 1.2 * (.25 + .75 * size[n] / mean))
+    for number, counts in docs.items():
+        for word in set(query):
+            if counts[word]:
+                inverse_frequency = math.log(1 + (len(docs) - document_frequency[word] + .5) / (document_frequency[word] + .5))
+                scores[number] += inverse_frequency * counts[word] * 2.2 / (counts[word] + 1.2 * (.25 + .75 * size[number] / mean))
     return scores
 
 
@@ -91,14 +91,14 @@ def path_scores(items, paths, before):
         log = run("git", "log", *(["--before", before] if before else []), "--follow", "--format=%s", "--", path)
         subjects = log.splitlines()
         for rank, subject in enumerate(subjects):
-            for pr in map(int, re.findall(r"\(#(\d+)\)", subject)):
-                for n in [pr, *items.get(pr, {}).get("closes", [])]:
-                    scores[n] += PATH_WEIGHT / (1 + min(rank, len(subjects) - 1 - rank))
+            for pull in map(int, re.findall(r"\(#(\d+)\)", subject)):
+                for number in [pull, *items.get(pull, {}).get("closes", [])]:
+                    scores[number] += PATH_WEIGHT / (1 + min(rank, len(subjects) - 1 - rank))
     return scores
 
 
 def main(args):
-    parser = argparse.ArgumentParser()
+    parser = usage_parser.parser(__doc__)
     parser.add_argument("words", nargs="*")
     parser.add_argument("--path", action="append", default=[])
     parser.add_argument("--before")
@@ -107,14 +107,14 @@ def main(args):
     items = load(options.before)
     newest = max(items, default=1)
     scores = text_scores(items, words(" ".join(options.words))) + path_scores(items, options.path, options.before)
-    for n in scores:
-        scores[n] *= 1 + RECENT_GAIN * .5 ** ((newest - n) / RECENT_HALF_LIFE)
-    ranked = [n for n, _ in scores.most_common() if n in items][:options.top]
+    for number in scores:
+        scores[number] *= 1 + RECENT_GAIN * .5 ** ((newest - number) / RECENT_HALF_LIFE)
+    ranked = [number for number, _ in scores.most_common() if number in items][:options.top]
     if not ranked:
         print("No earlier issue or pull request matches; widen the words or name a path.")
-    for n in ranked:
-        print(items[n]["head"])
-        for record in items[n]["records"][:3]:
+    for number in ranked:
+        print(items[number]["head"])
+        for record in items[number]["records"][:3]:
             print(f"  {record}")
 
 

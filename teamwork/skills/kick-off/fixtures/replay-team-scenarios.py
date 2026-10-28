@@ -5,7 +5,6 @@ this file holds it, while no judge or worker writes that board (else rerun a fai
 usage: replay-team-scenarios.py [--only <scenario>,...] [-v]
 `-v` also prints each run's output. FAKE_HERDR_BREAK=accept makes the fake herdr take every prompt and wait, so the scenarios that
 prove a send can fail must then fail."""
-import argparse
 import json
 import os
 import pathlib
@@ -15,6 +14,9 @@ import subprocess
 import sys
 import tempfile
 import time
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import usage_parser  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = pathlib.Path(__file__).resolve().parents[3]
@@ -32,7 +34,7 @@ def herdr(*agents):
     """A fake herdr state file holding AGENTS, each with its tab."""
     state = pathlib.Path(tempfile.mkstemp(prefix="fake-herdr-", suffix=".json")[1])
     state.write_text(json.dumps({"n": 10, "agents": list(agents),
-                                 "tabs": [{"tab_id": a["tab_id"], "workspace_id": a["workspace_id"], "label": a["name"]} for a in agents]}))
+                                 "tabs": [{"tab_id": listed["tab_id"], "workspace_id": listed["workspace_id"], "label": listed["name"]} for listed in agents]}))
     return state
 
 
@@ -41,8 +43,8 @@ def run(argv, state, pane=None, event=None, seconds=120, **env):
            "GH_TAPE": f"replay-team-scenarios-{SCENARIO}", "GH_TAPE_STATE": str(TURNS / f"{SCENARIO}.json"),
            "MONITOR_POLL": "1000", **({"HERDR_PANE_ID": pane} if pane else {}), **env}
     try:
-        p = subprocess.run([str(a) for a in argv], env=env, input=event and json.dumps(event), capture_output=True, text=True, timeout=seconds)
-        out, code = p.stdout + p.stderr, p.returncode
+        process = subprocess.run([str(argument) for argument in argv], env=env, input=event and json.dumps(event), capture_output=True, text=True, timeout=seconds)
+        out, code = process.stdout + process.stderr, process.returncode
     except subprocess.TimeoutExpired as e:  # the heartbeat runs until killed
         out, code = (e.stdout or b"").decode() + (e.stderr or b"").decode(), None
     if VERBOSE:
@@ -53,11 +55,11 @@ def run(argv, state, pane=None, event=None, seconds=120, **env):
 def hook(state, pane, event):
     code, out = run([ROOT / "hooks" / "route-event.py"], state, pane, event)
     try:
-        o = json.loads(out)
+        output = json.loads(out)
     except ValueError:
         return out
-    return (o.get("hookSpecificOutput") or {}).get("additionalContext") or (o.get("hookSpecificOutput") or {}).get("permissionDecisionReason") \
-        or o.get("reason") or out
+    return (output.get("hookSpecificOutput") or {}).get("additionalContext") or (output.get("hookSpecificOutput") or {}).get("permissionDecisionReason") \
+        or output.get("reason") or out
 
 
 def heartbeat(state, pane, seconds=40):
@@ -71,11 +73,11 @@ def tell(state, name, text="hi"):
 
 
 def status(state, name):
-    return next(a["agent_status"] for a in json.loads(pathlib.Path(state).read_text())["agents"] if a["name"] == name)
+    return next(listed["agent_status"] for listed in json.loads(pathlib.Path(state).read_text())["agents"] if listed["name"] == name)
 
 
 def lines_about(text, name):
-    return [l for l in text.splitlines() if re.search(rf"(^|\s){re.escape(name)}(:|\s)", l)]
+    return [line for line in text.splitlines() if re.search(rf"(^|\s){re.escape(name)}(:|\s)", line)]
 
 
 TEAM = (agent("teamwork-manager", 1, "idle"), agent("protocol-split-worker", 2, "idle"), agent("fixture-asking-worker", 3, "idle"))
@@ -88,8 +90,8 @@ def github_team():
     stop = hook(state, "w1:p2", {"hook_event_name": "Stop", "stop_hook_active": False, "transcript_path": ""})
     beat = heartbeat(state, "w1:p1")
     for out in (start, beat):
-        for n, held in (("protocol-split-worker", "#4 #3"), ("fixture-asking-worker", "#2")):
-            if [l.split(":")[0] for l in lines_about(out, n)] != [f"idle {n}"] or f"holds {held}" not in out:
+        for name, held in (("protocol-split-worker", "#4 #3"), ("fixture-asking-worker", "#2")):
+            if [line.split(":")[0] for line in lines_about(out, name)] != [f"idle {name}"] or f"holds {held}" not in out:
                 return False, out
     return "Your goal still waits on you" in stop and "#3" in stop, "\n".join([start, stop, beat])
 
@@ -152,7 +154,7 @@ def two_managers():
     and a successor misnamed is refused."""
     state = herdr(*TEAM, agent("other-manager", 4, "idle"), agent("other-task-worker", 5, "idle"))
     outs = {pane: hook(state, pane, {"hook_event_name": "SessionStart", "session_id": ""}) for pane in ("w1:p1", "w1:p4")}
-    ok = all([l.split(":")[0] for l in lines_about(o, other)] == ["shared workspace"] and f"`start` `{me}-next` with `succeed {me}`" in o for o, me, other in
+    ok = all([line.split(":")[0] for line in lines_about(output, other)] == ["shared workspace"] and f"`start` `{me}-next` with `succeed {me}`" in output for output, me, other in
              ((outs["w1:p1"], "teamwork-manager", "other-manager"), (outs["w1:p4"], "other-manager", "teamwork-manager")))
     code, out = start(state, "w1:p1", "third-manager", "succeed teamwork-manager")
     return ok and code == 1 and "not named teamwork-manager-next" in out, "\n".join([*outs.values(), out])
@@ -163,11 +165,11 @@ def start(state, pane, name, args, *flags):
 
 
 def workspace_of(state, name):
-    return next((a["workspace_id"] for a in json.loads(pathlib.Path(state).read_text())["agents"] if a["name"] == name), None)
+    return next((listed["workspace_id"] for listed in json.loads(pathlib.Path(state).read_text())["agents"] if listed["name"] == name), None)
 
 
 def workspaces(state):
-    return {t["workspace_id"] for t in json.loads(pathlib.Path(state).read_text())["tabs"]}
+    return {tab["workspace_id"] for tab in json.loads(pathlib.Path(state).read_text())["tabs"]}
 
 
 def worker_placement():
@@ -194,8 +196,8 @@ def manager_placement():
     outs = [start(state, "w1:p2", "fresh-manager", "fresh"),
             start(state, "w1:p2", "teamwork-manager-next", "succeed teamwork-manager"),
             start(state, "w1:p2", "crowded-manager-next", "succeed crowded-manager")]
-    placed = [workspace_of(state, n) for n in ("fresh-manager", "teamwork-manager-next", "crowded-manager-next")]
-    labels = {t["workspace_id"]: t["label"] for t in json.loads(state.read_text())["tabs"]}
+    placed = [workspace_of(state, name) for name in ("fresh-manager", "teamwork-manager-next", "crowded-manager-next")]
+    labels = {tab["workspace_id"]: tab["label"] for tab in json.loads(state.read_text())["tabs"]}
     ok = all(code == 0 for code, _ in outs) and placed[0] not in ("w1", "w3", None) and placed[1] == "w1" \
         and placed[2] not in ("w1", "w3", None, placed[0]) and labels.get(placed[0]) == "fresh-manager"
     return ok, "\n".join(out for _, out in outs) + f"\nplaced {placed}"
@@ -231,7 +233,7 @@ def moved_answer():
     screen = "Bash command\n\nDo you want to proceed?\n❯ 1. Yes\n  2. No"
     state = herdr(*TEAM, dict(agent("moving-asker-worker", 1, "blocked", "w9"), screen=screen, move="w4:p15"))
     code, out = run([SCRIPTS / "answer-prompt.py", "moving-asker-worker", "1"], state, "w1:p1")
-    answered = next(a.get("answered") for a in json.loads(state.read_text())["agents"] if a["name"] == "moving-asker-worker")
+    answered = next(listed.get("answered") for listed in json.loads(state.read_text())["agents"] if listed["name"] == "moving-asker-worker")
     return code == 0 and answered == "1", out
 
 
@@ -280,13 +282,13 @@ def step(name, ok, detail=""):
 
 def main(args):
     global VERBOSE, SCENARIO
-    parser = argparse.ArgumentParser()
+    parser = usage_parser.parser(__doc__)
     parser.add_argument("--only", default="")
     parser.add_argument("-v", action="store_true")
-    a = parser.parse_args(args)
-    VERBOSE = a.v
+    options = parser.parse_args(args)
+    VERBOSE = options.v
     for name, scenario in SCENARIOS.items():
-        if a.only and name not in a.only.split(","):
+        if options.only and name not in options.only.split(","):
             continue
         SCENARIO = name
         ok, out = scenario()

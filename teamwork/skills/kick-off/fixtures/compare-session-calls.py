@@ -4,7 +4,10 @@ in the current checkout and in an export of REF (default origin/main), and print
 printed lines match, else a unified diff and `differ`.
 
 usage: compare-session-calls.py [--ref <ref>]"""
-import argparse, difflib, json, os, pathlib, subprocess, sys, tempfile
+import difflib, json, os, pathlib, subprocess, sys, tempfile
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import usage_parser  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 SCRIPTS = "teamwork/skills/kick-off/scripts/"
@@ -47,23 +50,23 @@ def scenario(tree):
         script = tree / step[0]
         if not script.exists():  # a ref older than the rename of the session list (#1039) keeps it under its old name
             script = script.with_name(script.name.replace("sessions", "-".join(["", "agents"])[1:]))
-        p = subprocess.run([str(script), *([] if hook else step[1:])], cwd=work, env=env, input=event, capture_output=True, text=True)
-        log.open("a").write(f"exit {p.returncode}: {(p.stdout + p.stderr).strip()}\n")
+        process = subprocess.run([str(script), *([] if hook else step[1:])], cwd=work, env=env, input=event, capture_output=True, text=True)
+        log.open("a").write(f"exit {process.returncode}: {(process.stdout + process.stderr).strip()}\n")
     return log.read_text().replace(str(tree), "<root>").replace(str(work), "<work>")
 
 
 def main(args):
-    parser = argparse.ArgumentParser()
+    parser = usage_parser.parser(__doc__)
     parser.add_argument("--ref", default="origin/main")
-    a = parser.parse_args(args)
+    options = parser.parse_args(args)
     root = pathlib.Path(subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip())
     base = pathlib.Path(tempfile.mkdtemp(prefix="session-base-")).resolve()
-    archive = subprocess.Popen(["git", "archive", a.ref, "teamwork"], cwd=root, stdout=subprocess.PIPE)
+    archive = subprocess.Popen(["git", "archive", options.ref, "teamwork"], cwd=root, stdout=subprocess.PIPE)
     subprocess.run(["tar", "-x", "-C", str(base)], stdin=archive.stdout, check=True)
     there, here = scenario(base), scenario(root)
     if "-v" in args or os.environ.get("SHOW"):
         print(here)
-    sys.stdout.writelines(difflib.unified_diff(there.splitlines(True), here.splitlines(True), a.ref, "head"))
+    sys.stdout.writelines(difflib.unified_diff(there.splitlines(True), here.splitlines(True), options.ref, "head"))
     print("same" if here == there else "differ")
     return 0
 

@@ -24,7 +24,7 @@ def filed(title, *labels):
 
 
 def parent(number):
-    return next(l.split(": ", 1)[1] for l in use("read", number).stdout.splitlines() if l.startswith("parent: "))
+    return next(line.split(": ", 1)[1] for line in use("read", number).stdout.splitlines() if line.startswith("parent: "))
 
 
 def step(name, ok, detail=""):

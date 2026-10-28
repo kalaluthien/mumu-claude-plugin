@@ -27,13 +27,13 @@ failed = []
 
 
 def environment(**more):
-    base = {k: v for k, v in os.environ.items() if k not in ("TEAMWORK_BOARD", "TEAMWORK_LANDING")}
+    base = {k: value for k, value in os.environ.items() if k not in ("TEAMWORK_BOARD", "TEAMWORK_LANDING")}
     return {**base, "TEAMWORK_BOARD_DIR": str(work / "board"), "CLAUDE_CONFIG_DIR": str(work / "claude"), "GIT_CONFIG_GLOBAL": str(work / "gitconfig"),
             "PATH": f"{work / 'bin'}:{HERE / 'fake-herdr'}:{os.environ['PATH']}", "PYTHONPATH": str(ROOT / "lib"), **more}
 
 
 def run(argv, cwd=repo, **more):
-    return subprocess.run([str(a) for a in argv], cwd=cwd, env=environment(**more), capture_output=True, text=True, timeout=60)
+    return subprocess.run([str(argument) for argument in argv], cwd=cwd, env=environment(**more), capture_output=True, text=True, timeout=60)
 
 
 def step(name, ok, detail=""):
@@ -60,7 +60,7 @@ def kinds(cwd, **more):
 
 
 def main(args):
-    if any(a != "-v" for a in args):
+    if any(argument != "-v" for argument in args):
         print(__doc__, file=sys.stderr)
         return 2
     (work / "bin").mkdir()
