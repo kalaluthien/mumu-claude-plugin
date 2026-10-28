@@ -25,7 +25,7 @@ WINDOW_DAYS, PER_RUN, PER_BATCH, DUE_HOURS = 14, 40, 10, 24
 OWNER_CAP, AGENT_CAP, DIGEST_CAP = 500, 300, 30000
 TAGS = re.compile(r"<(system-reminder|task-notification)>.*?</\1>", re.S)
 # urls before paths, so a url is masked whole
-VARIABLE = [(re.compile(p), r) for p, r in [
+VARIABLE = [(re.compile(pattern), replacement) for pattern, replacement in [
     (r"https?://\S+", "<url>"), (r"/[\w.~@%+-]+(?:/[\w.~@%+-]+)+", "<path>"), (r"\b[0-9a-f]{7,40}\b", "<hash>"),
     (r"(['\"`]).*?\1", "<q>"), (r"\d+", "<n>"), (r"\s+", " ")]]
 NOISE = re.compile(r"^(Exit code <n>|<n>|-+|ok\b.*|This hook comes from .*)$")
@@ -44,7 +44,7 @@ def repo_of(path):
 def window(now):
     """Top-level transcripts changed within the window, newest first."""
     paths = glob.glob(os.path.join(glob.escape(str(claude_config.folder())), "projects", "*", "*.jsonl"))
-    recent = [p for p in paths if os.path.getmtime(p) >= now - WINDOW_DAYS * 86400]
+    recent = [path for path in paths if os.path.getmtime(path) >= now - WINDOW_DAYS * 86400]
     return sorted(recent, key=os.path.getmtime, reverse=True)
 
 
@@ -86,7 +86,7 @@ def read(path):
                     lines.append(f"[Agent L{number}]: {block['text'].strip()[:AGENT_CAP]}")
         elif entry.get("type") == "user" and (entry.get("origin") or {}).get("kind") == "human":
             body = (entry.get("message") or {}).get("content")
-            texts = [body] if isinstance(body, str) else [b.get("text", "") for b in transcript.blocks_of(entry, "text")]
+            texts = [body] if isinstance(body, str) else [block.get("text", "") for block in transcript.blocks_of(entry, "text")]
             for text in texts:
                 text = TAGS.sub("", text).strip()
                 if text and not text.startswith("[Request interrupted"):
@@ -105,7 +105,7 @@ def digest(path, lines):
     keep = []
     for k, line in enumerate(lines):
         if line.startswith("[OWNER"):
-            before = next((lines[j] for j in range(k - 1, -1, -1) if not lines[j].startswith("[Tool")), "")
+            before = next((lines[index] for index in range(k - 1, -1, -1) if not lines[index].startswith("[Tool")), "")
             if before.startswith("[Agent") and (not keep or keep[-1] != before):
                 keep.append(before)
             keep.append(line)
@@ -149,7 +149,7 @@ def main(args):
         print("due" if old else "not due")
         return 0
     paths = args[2:] if verb == "digest" else window(now)
-    faceted = {os.path.basename(p)[:-5] for p in glob.glob(os.path.join(glob.escape(data), "facets", "*.json"))}
+    faceted = {os.path.basename(path)[:-5] for path in glob.glob(os.path.join(glob.escape(data), "facets", "*.json"))}
     digests, waiting = [], 0
     for path in paths:
         stats, lines, owners = read(path)

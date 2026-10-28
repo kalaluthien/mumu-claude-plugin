@@ -11,8 +11,7 @@ usage: signal-wrap-up.py                        the Stop hook: its payload on st
 A dream rides on a lesson ask, since a dream alone rarely pays.
 Enabling the plugin for a project is the opt-in, so no arm step writes to the
 data folder. Asks are scored by fixtures/replay-score.py on fixtures/labels.json, and
-fixtures/replay-sessions.py replays fixtures/sessions.json; the other fixtures are
-trimmed past stops to run the sentence on.
+fixtures/replay-sessions.py replays fixtures/sessions.json.
 """
 import json
 import os
@@ -45,8 +44,8 @@ def segment(entries):
     return entries[start:end]
 
 
-def toplevel(cwd):
-    run = subprocess.run(["git", "-C", cwd or ".", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+def toplevel(folder):
+    run = subprocess.run(["git", "-C", folder or ".", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
     return run.stdout.strip() if run.returncode == 0 else None
 
 

@@ -52,7 +52,7 @@ def drift(pools, today):
             if name not in linked:
                 found.append(f"unindexed: {path}")
             body = read(path)
-            missing = [f for f in ("When it applies:", "When it is wrong:") if f not in body]
+            missing = [phrase for phrase in ("When it applies:", "When it is wrong:") if phrase not in body]
             if missing:
                 found.append(f"missing {' and '.join(missing)} {path}")
             count, last = memory.fields(path, body)
@@ -67,7 +67,7 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     pools = args[1:] or sorted(glob.glob(os.path.join(glob.escape(args[0]), "projects", "*", "memory")))
-    missing = [p for p in pools if not os.path.isdir(p)]
+    missing = [pool for pool in pools if not os.path.isdir(pool)]
     if missing or not pools:
         print(f"could not look: no memory pool at {' '.join(missing) or args[0]}", file=sys.stderr)
         return 1

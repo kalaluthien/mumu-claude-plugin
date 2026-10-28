@@ -28,7 +28,7 @@ def confirm(path, today):
     front = front or ""
     values = {"confirmed": str(count + 1), "last-confirmed": today.isoformat()}
     present = {name for _, name, _ in memory.FIELD.findall(front)}
-    front = memory.FIELD.sub(lambda m: f"{m.group(1)}{m.group(2)}: {values[m.group(2)]}", front)
+    front = memory.FIELD.sub(lambda match: f"{match.group(1)}{match.group(2)}: {values[match.group(2)]}", front)
     front += "".join(f"{name}: {value}\n" for name, value in values.items() if name not in present)
     with open(path, "w", encoding="utf-8") as handle:
         handle.write(f"---\n{front}---\n{body}")

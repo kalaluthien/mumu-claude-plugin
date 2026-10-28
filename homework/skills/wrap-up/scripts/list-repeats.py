@@ -61,11 +61,11 @@ def show(kind, key, sightings, filed):
     """Print one repeat; sightings are (time, session path, line, repo)."""
     sessions = {path for _, path, _, _ in sightings}
     repos = sorted({repo for _, _, _, repo in sightings})
-    last = int(max(t for t, _, _, _ in sightings))
+    last = int(max(moment for moment, _, _, _ in sightings))
     record = filed.get(key)
     mark = f", filed {record['url']}" + (", seen since" if last > record.get("last_seen", 0) else "") if record else ""
     print(f"{kind} {len(sessions)} sessions, {len(repos)} repos, last {day(last)}{mark}: {key}")
-    print(f"  first {day(min(t for t, _, _, _ in sightings))}, last seen {last}, repos {', '.join(repos)}")
+    print(f"  first {day(min(moment for moment, _, _, _ in sightings))}, last seen {last}, repos {', '.join(repos)}")
     seen = set()
     for _, path, line, _ in sorted(sightings, reverse=True):
         if path not in seen and len(seen) < EXAMPLES:
@@ -100,24 +100,24 @@ def main(args):
     for row in stats.values():
         for failure in row["failures"]:
             tools[failure["key"]].append((failure["time"] or row["end"], row["path"], failure["line"], row["repo"]))
-    for key, sightings in sorted(tools.items(), key=lambda kv: -len({s[1] for s in kv[1]})):
-        if len({s[1] for s in sightings}) >= 3 and max(s[0] for s in sightings) >= alive:
+    for key, sightings in sorted(tools.items(), key=lambda item: -len({sighting[1] for sighting in item[1]})):
+        if len({sighting[1] for sighting in sightings}) >= 3 and max(sighting[0] for sighting in sightings) >= alive:
             show("tool", key, sightings, filed)
 
     said, items = collections.defaultdict(list), []
-    for sid, row in stats.items():
-        facet = load(os.path.join(data, "facets", f"{sid}.json"), None)
+    for session, row in stats.items():
+        facet = load(os.path.join(data, "facets", f"{session}.json"), None)
         if not facet:
             continue
         for text in facet.get("instructions") or []:
-            norm = " ".join(re.sub(r"[^\w\s]", " ", str(text).lower()).split())
-            if norm:
-                said[norm].append((row["end"], row["path"], 0, row["repo"]))
+            normalized = " ".join(re.sub(r"[^\w\s]", " ", str(text).lower()).split())
+            if normalized:
+                said[normalized].append((row["end"], row["path"], 0, row["repo"]))
         for k, item in enumerate(facet.get("friction") or []):
-            items.append(dict(item, id=f"{sid[:8]}-{k}", session=sid, path=row["path"], time=row["end"], repo=row["repo"]))
-    for norm, sightings in said.items():
-        if len({s[1] for s in sightings}) >= 2:
-            show("instruction", norm, sightings, filed)
+            items.append(dict(item, id=f"{session[:8]}-{k}", session=session, path=row["path"], time=row["end"], repo=row["repo"]))
+    for normalized, sightings in said.items():
+        if len({sighting[1] for sighting in sightings}) >= 2:
+            show("instruction", normalized, sightings, filed)
     with open(os.path.join(data, "friction.jsonl"), "w", encoding="utf-8") as out:
         out.writelines(json.dumps(item, ensure_ascii=False) + "\n" for item in items)
 
@@ -125,7 +125,7 @@ def main(args):
     for group in load(args[2], []) if len(args) == 3 else []:
         found = [by_id[i] for i in group.get("ids") or [] if i in by_id]
         sightings = [(i["time"], i["path"], i.get("line") or 0, i["repo"]) for i in found]
-        if len({s[1] for s in sightings}) >= 3 and max(s[0] for s in sightings) >= alive:
+        if len({sighting[1] for sighting in sightings}) >= 3 and max(sighting[0] for sighting in sightings) >= alive:
             show("mistake", group["name"], sightings, filed)
     return 0
 

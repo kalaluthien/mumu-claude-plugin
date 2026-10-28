@@ -143,26 +143,26 @@ def run(labels_path, holdout):
         rows = json.load(handle)["stops"]
     labels = {(row["transcript"], row["stop"]): bool(row["worth"]) for row in rows}
     paths = sorted({row["transcript"] for row in rows})
-    gone = [p for p in paths if not os.path.exists(os.path.expanduser(p))]
+    gone = [path for path in paths if not os.path.exists(os.path.expanduser(path))]
     if gone:
         print(f"skipped {len(gone)} labelled transcripts that no longer exist")
-    paths = [p for p in paths if p not in gone]
-    odd = {p for p in paths if int(hashlib.sha256(os.path.basename(p).encode()).hexdigest(), 16) % 2}
+    paths = [path for path in paths if path not in gone]
+    odd = {path for path in paths if int(hashlib.sha256(os.path.basename(path).encode()).hexdigest(), 16) % 2}
     stops = []
     for path in paths:
         for k, stop in enumerate(stops_of(path), 1):
             if (path, k) in labels:
                 stops.append((stop["at"], path, k, stop))
-    stops.sort(key=lambda s: (s[0], s[1], s[2]))
+    stops.sort(key=lambda entry: (entry[0], entry[1], entry[2]))
     if holdout:
-        stops = [s for s in stops if s[1] not in odd] + [s for s in stops if s[1] in odd]
-        scored = {(p, k) for _, p, k, _ in stops if p in odd}
+        stops = [entry for entry in stops if entry[1] not in odd] + [entry for entry in stops if entry[1] in odd]
+        scored = {(path, k) for _, path, k, _ in stops if path in odd}
     else:
-        scored = {(p, k) for _, p, k, _ in stops}
+        scored = {(path, k) for _, path, k, _ in stops}
     head, rebuilt = replay(stops, labels, scored, not holdout)
     subset = {key: labels[key] for key in scored}
     worth = sum(subset.values())
-    print(f"scored {len(subset)} stops of {len({p for p, _ in subset})} sessions, {worth} worth a wrap-up")
+    print(f"scored {len(subset)} stops of {len({path for path, _ in subset})} sessions, {worth} worth a wrap-up")
     if not subset:
         return 0
     for name, asked in (("head", head), ("main", rebuilt)):

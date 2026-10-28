@@ -28,7 +28,7 @@ def entries_of(path):
 
 def blocks_of(entry, kind):
     body = (entry.get("message") or {}).get("content")
-    return [b for b in body if isinstance(b, dict) and b.get("type") == kind] if isinstance(body, list) else []
+    return [block for block in body if isinstance(block, dict) and block.get("type") == kind] if isinstance(body, list) else []
 
 
 def text_of(block):
