@@ -15,7 +15,7 @@ The document is written in the grammar, [schema/assets/schema.json](schema/asset
 
 With no rule named, pick the promise whose break harms users most and that tests reach least, not the one easiest to prove; read it from the code and docs, and ask only what they cannot show. With no document yet, write the smallest one the ask's rule talks about: the level it names and the rule as a `must`, in the grammar above, checked `ok` by `${CLAUDE_PLUGIN_ROOT}/skills/zoom/references/schema/scripts/check-schema.py check <doc.json>`.
 
-`${CLAUDE_PLUGIN_ROOT}/skills/zoom/scripts/prove-schema.py <doc.json>` ([prove-schema.py](../scripts/prove-schema.py)) writes the module (its path on stderr; `--als <path>` to keep it) and prints one line per rule. Alloy runs from `~/.cache/paperwork-alloy/alloy.jar` or `$ALLOY_JAR` with `java`; answers are cached, so an unchanged rule is not run again.
+`${CLAUDE_PLUGIN_ROOT}/skills/zoom/scripts/prove-schema.py <doc.json>` ([prove-schema.py](../scripts/prove-schema.py)) writes the module (its path on stderr; `--als <path>` to keep it) and prints one line per rule. Alloy runs from `~/.cache/paperwork-alloy/alloy.jar` or `$ALLOY_JAR` with `java`; answers are cached, so an unchanged rule is not run again. Each check starts up to 4 java processes (`JVMS` in `${CLAUDE_PLUGIN_ROOT}/lib/schema/prover.py`), so run at most 4 checks at once.
 
 | line | means | next |
 | --- | --- | --- |
@@ -31,5 +31,4 @@ A trace names Schema ids, as `check-schema.py ids` prints them: `[a, b]` are the
 - **Findings stay findings**: a broken `must` stays a `must`; never turn it into a `should`, narrow its formula, drop it or cut the scope until it passes. Change the Schema only for a guard, pre or post the source has and you left out.
 - **Hand-over**: state each rule and the harm its break does, one plain sentence each. Retell each counterexample as numbered steps in the nodes' and edges' labels, each with its `meta.evidence` line where it has one. Name the scope (`for 3`, 8 steps), the assumptions each check is given (the other `must`s, guards, pres, posts and syncs) and what the document leaves out; a pass covers that scope, not the system.
 - **Every rule asked**: a guard on an edge holds by construction and passes; a rule over what never changes is asked under every other such `must`, so a counterexample says the structure alone does not force it.
-- **Parallel runs**: run at most 4 subagents that start a full check at once; each starts up to 4 java processes (`JVMS` in `${CLAUDE_PLUGIN_ROOT}/lib/schema/prover.py`), and 16 at once overloaded the host.
 - **Scope**: every check runs `for 3`, 8 steps and room for each kind of call; a rule's own scope is added to its check. Raise it only for a rule about large numbers.

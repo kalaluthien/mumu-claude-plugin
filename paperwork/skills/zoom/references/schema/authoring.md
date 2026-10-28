@@ -25,14 +25,10 @@ Ids, slugs, operations and type names follow the grammar's patterns [name-patter
 
 A Scenario is one independent question the model answers, walked over the nodes that answer it. It is a use ("When <actor> does X, Y happens") or a claim ("To see why <claim>, …") walked from the claim to what it rests on. None is a part of another or a union of others [basis]. Root Scenarios are the goals people bring to the whole system; other levels get Scenarios as the `scenarios` plan default says [scoped].
 
-**Steps.** A Scenario's `walk` lists its steps, each `{"place", "does", "expects"}` [steps]:
-- `place` is the node where the step happens, the first in the Scenario's own level. Leaving or entering a level may go along an edge of the node that opened it; if two fit, name one: `"edge": "label"`.
-- On a component level a step may use several parts together: `"place": ["node", "argument", "value"]`, each next part along a relation.
+**Steps.** A Scenario's `walk` lists its steps, each `{"place", "does", "expects"}` [steps]; across its Scenarios the walks step through every node and edge, entering a child level from its opener to a child node [scoped, coverage]:
+- `place` is the node where the step happens, the first in the Scenario's own level. Leaving or entering a level may go along an edge of the node that opened it; if two fit, name one: `"edge": "label"`, which for a step with several hops names the label of every hop, its inner path included, so put it on a one-node step.
+- On a component level a step may use several parts together: `"place": ["node", "argument", "value"]`, each next part along a relation; list node ids only, never relation names. The next step starts at a node one edge from the previous step's last node, never the same one.
 - `does` says what happens; `expects` says what is true afterwards, checkable.
-
-**Hand-written fixture.** A fixture passes `check-schema.py check` only with a Scenario whose `walk` steps through every node and edge, entering a child level by stepping from its opener to a child node [scoped, coverage]; each rule named in some node's `rules` [placement]; the main edges marked `happy` [paths]; and, for no `mechanism` warning, a topology level, such as a `link: view` opened from a state and walked by the root Scenario. `playbook/fixtures/` may keep that warning, `schema/fixtures/` may not, since `check-schema.py fixtures` wants a plain name accepted with no warning.
-
-**Walk on a topology level.** A multi-part `place` lists node ids only, never relation names. The next step starts at a node one edge from the previous step's last node, never the same one. A step's `edge` names the label for every hop it takes, its inner path included, so put it on a one-node step; leaving to the opener and stepping in again is allowed. In `view.json` an edge `via` takes only `left`: two edges between the same pair overlap, so fold one into an attribute.
 
 **Branches.** A choice between two ways, and a failure, is each its own Scenario. The usual way keeps the plain name; a branch adds what differs to it: `ship-a-bet`, `ship-a-bet-replan`.
 
@@ -44,7 +40,7 @@ Pick the kind by what the reader follows ([semantics.md](semantics.md)): the par
 
 Rules for a level:
 - The model's `level` is the root, the system's outermost repeating structure. A node opens the level inside it with `opens`.
-- Show what it is made of (components) and how it works (activities, states); a body of knowledge has claims and what they rest on [mechanism].
+- Show what it is made of (components) and how it works (activities, states), such as a topology level opened from a state (`link: view`) and walked by the root Scenario; a body of knowledge has claims and what they rest on [mechanism]. A fixture under `schema/fixtures/` keeps no `mechanism` warning, since `check-schema.py fixtures` wants a plain name accepted with no warning; `playbook/fixtures/` may.
 - A level has 2 to 7 nodes; group states that react alike and detail them below.
 - Every edge says something: a `what`, an operation or a guard [explained].
 - A condition such as "pass" is a guard, not an artifact: name what is handed on.
@@ -65,7 +61,7 @@ Rules for a level:
 ## Paths and partitions
 
 Marks:
-- `happy`: the usual way through, on every workflow and state level [paths].
+- `happy`: the usual way through, on every workflow and state level, the main edges of a fixture too [paths].
 - `failure`: an edge or port where an activity fails, to where it goes; every gate (a label starting with checking, reviewing, validating, verifying, testing, judging, approving, gating or evaluating) has one [paths].
 - `optional`: what happens only sometimes, or may not exist (dashed).
 - none: a loop, the edge back to what repeats until something holds.

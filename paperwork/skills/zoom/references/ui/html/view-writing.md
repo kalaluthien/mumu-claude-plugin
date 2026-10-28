@@ -31,7 +31,7 @@ In a Korean model, `[prose]` (lint) quotes the sentence at fault:
 
 ## Layout
 
-Without `x` and `y` the engine places nodes itself. Set them when a place means something or `fits` fails (root first): neighbours share a row or column, a busy node is central. A diagonal edge needs one empty corner. A long edge down a column runs on its right; `via: "left"` when busy. On a phone the root has 1-2 columns, text at 9 px (`assets/phone-limits.json`); no two root partitions join at more than 3 pairs of nodes [phone], and the root fits its card [fits].
+Without `x` and `y` the engine places nodes itself. Set them when a place means something or `fits` fails (root first): neighbours share a row or column, a busy node is central. A diagonal edge needs one empty corner. A long edge down a column runs on its right; `via` takes only `"left"`, for a busy edge; two edges between one pair overlap, so fold one into an attribute. On a phone the root has 1-2 columns, text at 9 px (`assets/phone-limits.json`); no two root partitions join at more than 3 pairs of nodes [phone], and the root fits its card [fits].
 
 ## Screens
 
