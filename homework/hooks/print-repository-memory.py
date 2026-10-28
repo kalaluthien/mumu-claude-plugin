@@ -32,7 +32,7 @@ def main(args):
     print(SENTENCE.format(repository=repository, folder=folder, root=root))
     index = folder / "MEMORY.md"
     try:
-        print(index.read_text(encoding="utf-8").rstrip())
+        print(index.read_text(encoding="utf-8", errors="replace").rstrip())
     except OSError:
         print("It holds no lesson yet.")
     return 0

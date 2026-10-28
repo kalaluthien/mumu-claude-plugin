@@ -19,6 +19,9 @@ def main(args):
     if not source.is_file() or source.name == INDEX:
         print(f"not moved: {source} is no memory file", file=sys.stderr)
         return 1
+    if destination.exists() and not destination.is_dir():
+        print(f"not moved: {destination} is no folder", file=sys.stderr)
+        return 1
     target = destination / source.name
     if target.exists():
         print(f"not moved: {target} exists; merge the two by hand", file=sys.stderr)

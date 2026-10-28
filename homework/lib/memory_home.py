@@ -35,9 +35,10 @@ def setting(path):
     """The `autoMemoryDirectory` a settings file sets, None when it sets none or cannot be read."""
     try:
         value = json.loads(pathlib.Path(path).read_text()).get("autoMemoryDirectory")
-    except (OSError, ValueError, AttributeError):
+        # a `~user/` of no such user raises RuntimeError
+        return pathlib.Path(value).expanduser() if isinstance(value, str) and value else None
+    except (OSError, ValueError, AttributeError, RuntimeError):
         return None
-    return pathlib.Path(value).expanduser() if isinstance(value, str) and value else None
 
 
 def home(cwd=None, config=None):
