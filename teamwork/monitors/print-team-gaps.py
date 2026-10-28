@@ -27,6 +27,9 @@ def read(manager, me, had_worker, since):
 
 
 def main(args):
+    if args:
+        print(__doc__, file=sys.stderr)
+        return 2
     shown, had_worker = set(), False  # the exit waits until this manager has had a worker, so a fresh manager routes first
     waiting = set()  # a worker's issues with an open blocker, so a restart reports no blocker closed long ago
     reported = set()  # the reports a manager was already reported

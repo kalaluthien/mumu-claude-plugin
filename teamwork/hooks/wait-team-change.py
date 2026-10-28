@@ -24,6 +24,9 @@ def watch(queue):
 
 
 def main(args):
+    if args:
+        print(__doc__, file=sys.stderr)
+        return 2
     queue = select.kqueue()
     handle = watch(queue)
     print("changed", flush=True)

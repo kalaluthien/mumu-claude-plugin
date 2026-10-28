@@ -104,7 +104,7 @@ def remove(tree):
 
 
 def outputs(tree, side, ids):
-    jobs = {name: (["teamwork/hooks/route-event.py"], ids.get(who), json.dumps(e), 60) for name, (who, e) in EVENTS.items()}
+    jobs = {name: (["teamwork/hooks/route-event.py"], ids.get(who), json.dumps(event), 60) for name, (who, event) in EVENTS.items()}
     jobs["board"] = (["teamwork/hooks/list-issue-board.py", "teamwork"], None, None, 120)
     jobs["board-json"] = (["teamwork/hooks/list-issue-board.py", "teamwork", "--json"], None, None, 120)
     jobs["heartbeat"] = (["teamwork/monitors/print-team-gaps.py"], ids.get("teamwork-manager"), None, 45)

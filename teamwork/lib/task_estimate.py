@@ -12,10 +12,10 @@ MIN_COST = 0.05
 
 def quantile(values, level):
     ordered = sorted(values)
-    k = (len(ordered) - 1) * level
-    low = int(k)
+    position = (len(ordered) - 1) * level
+    low = int(position)
     high = min(low + 1, len(ordered) - 1)
-    return ordered[low] + (ordered[high] - ordered[low]) * (k - low)
+    return ordered[low] + (ordered[high] - ordered[low]) * (position - low)
 
 
 def bounds(values, levels):

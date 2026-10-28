@@ -93,10 +93,10 @@ def comment(number, text):
     meta(number)  # raises when NUMBER does not exist
     folder = FOLDER / str(number) / "comments"
     folder.mkdir(exist_ok=True)
-    k = len(list(folder.glob("*.md"))) + 1
-    (folder / f"{k:04d}.md").write_text(text)
+    position = len(list(folder.glob("*.md"))) + 1
+    (folder / f"{position:04d}.md").write_text(text)
     save(number)
-    return f"file://{FOLDER}/{number}#comment-{k}"
+    return f"file://{FOLDER}/{number}#comment-{position}"
 
 def file(title, body, labels) -> int:
     number = max(numbers(), default=0) + 1
@@ -166,6 +166,6 @@ def posted(output):
     found = POSTED.search(output)
     if not found:
         return None
-    number, k = found.groups()
-    path = FOLDER / number / "comments" / f"{int(k):04d}.md" if k else FOLDER / number / "body.md"
+    number, position = found.groups()
+    path = FOLDER / number / "comments" / f"{int(position):04d}.md" if position else FOLDER / number / "body.md"
     return found.group(0), path.read_text() if path.exists() else ""

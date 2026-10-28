@@ -227,10 +227,10 @@ def main(args):
             sys.exit("run-criteria: --pass and --base cannot run together")
         given = {}
         for sample in options.samples:
-            n, _, sample_file = sample.partition("=")
-            if not n.isdigit() or not sample_file:
+            position, _, sample_file = sample.partition("=")
+            if not position.isdigit() or not sample_file:
                 sys.exit(f"run-criteria: --pass wants <n>=<sample-file>, got {sample}")
-            given[int(n)] = os.path.abspath(sample_file)
+            given[int(position)] = os.path.abspath(sample_file)
         found = list(criteria(issue_state.sections(task.get("body")).get("done", "")))
         if set(given) - set(range(1, len(found) + 1)):
             sys.exit(f"run-criteria: --pass names a criterion the task lacks; it has {len(found)}")

@@ -18,7 +18,7 @@ const WAIT_COLOR: Record<string, string> = { 'waits on the owner': 'error', 'wai
 const TEAM_CHANGE = /\bedit-issue-body\.py\b|\bgh\s+(?:-{1,2}\w[\w-]*(?:[\s=][^\s-]\S*)?\s+)*(?:(issue|pr)\s+(create|comment|edit|close|reopen|merge|review|ready)\b|api\s+(?!graphql)(?!(?:[^;&|\n]*\s)?(-X|--method)[\s=]*GET\b)(?=[^;&|\n]*(\s(-X|--method)[\s=]*(POST|PATCH|PUT|DELETE)\b|\s-[fF]\b|\s--(raw-)?field\b|\s--input\b))[^;&|\n]*\b(issues|sub_issues|dependencies|pulls)\b)/
 
 // a manager's pane and its waiter, once per session; the start directory, since the current one may be a worktree removed since
-let startDir: string | undefined
+let startFolder: string | undefined
 let watching = false
 // the manager's board read, set once it watches, so the issues command reads the board again
 let refresh: (() => Promise<void>) | undefined
@@ -38,15 +38,15 @@ function watch($: any, name: string) {
   const load = async () => {
     retry?.cancel()
     try {
-      const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json'], { cwd: startDir, timeoutMs: 60000 })
+      const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json'], { cwd: startFolder, timeoutMs: 60000 })
       if (run.exitCode === 0) {
         await update($, board, () => JSON.parse(run.stdout) as BoardIssue[])
         await update($, loaded, () => true)
       }
       await update($, failure, () => run.exitCode === 0 ? '' : (run.stderr ?? '').trim() || `the board read exited ${run.exitCode}`)
       if (run.exitCode !== 0) retry = $.clock.after(RETRY_MS, () => void load())
-    } catch (err) {  // a failed read must not end the loop, whose end kills the waiter
-      await update($, failure, () => `the board read failed: ${err}`).catch(() => undefined)
+    } catch (error) {  // a failed read must not end the loop, whose end kills the waiter
+      await update($, failure, () => `the board read failed: ${error}`).catch(() => undefined)
       retry = $.clock.after(RETRY_MS, () => void load())
     }
   }
@@ -65,15 +65,15 @@ export const register: Register = on => {
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const ran = await next(e)
     if (ran.deny === undefined && !ran.isError && TEAM_CHANGE.test(e.command)) {
-      const config = (await $.env.get('CLAUDE_CONFIG_DIR')) || `${await $.env.get('HOME')}/.claude`
-      await $.process.run(['touch', `${config}/teamwork/issues-changed`]).catch(() => undefined)
+      const claudeFolder = (await $.env.get('CLAUDE_CONFIG_DIR')) || `${await $.env.get('HOME')}/.claude`
+      await $.process.run(['touch', `${claudeFolder}/teamwork/issues-changed`]).catch(() => undefined)
     }
     return ran
   }).catch(($, e, next) => next(e))  // a failed mark must never fail the command it follows
 
   on('session.start', async ($, e, next) => {
     const started = await next(e)
-    startDir = e.cwd
+    startFolder = e.cwd
     const me = await $.process.run([`${$.plugin.root}/skills/kick-off/scripts/list-sessions.py`, '--me']).catch(() => undefined)
     watch($, me?.stdout.trim() ?? '')  // outside a team's host no session is a manager
     return started

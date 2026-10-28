@@ -66,11 +66,11 @@ def _covered(scored):
 def fit(rows, seed=0):
     """Calibrate on the first FIT of ROWS (oldest first): the narrowest per-task levels and total levels whose coverage
     over the later half of that part reaches TARGET, each with that coverage; None when too few tasks."""
-    k = int(len(rows) * FIT)
-    if k < task_estimate.MIN_GROUP:
+    split = int(len(rows) * FIT)
+    if split < task_estimate.MIN_GROUP:
         return None
-    levels, cover = _narrowest(lambda candidate: _covered(_score(rows[:k], k // 2, candidate)))
-    total_levels, total_cover = _narrowest(lambda candidate: _share(*_runs(rows, k // 2, k, candidate, seed)))
+    levels, cover = _narrowest(lambda candidate: _covered(_score(rows[:split], split // 2, candidate)))
+    total_levels, total_cover = _narrowest(lambda candidate: _share(*_runs(rows, split // 2, split, candidate, seed)))
     return levels, cover, total_levels, total_cover
 
 
@@ -78,13 +78,13 @@ def backtest(rows, seed=0):
     """The fitted levels and fit coverages, the held-out stats of the estimator and the baseline, and the coverage of
     the bootstrap total over each run of RUN held-out tasks. None when too few tasks to fit and score."""
     rows = sorted(rows, key=lambda row: row["end"])
-    k = int(len(rows) * FIT)
+    split = int(len(rows) * FIT)
     fitted = fit(rows, seed)
-    if fitted is None or len(rows) - k < RUN:
+    if fitted is None or len(rows) - split < RUN:
         return None
     levels, cover, total_levels, total_cover = fitted
-    held = _score(rows, k, levels)
-    hit, runs = _runs(rows, k, len(rows), total_levels, seed)
+    held = _score(rows, split, levels)
+    hit, runs = _runs(rows, split, len(rows), total_levels, seed)
     return {"tasks": len(rows), "scored": len(held), "levels": levels, "fit_coverage": cover,
             "estimator": _spread(held, False), "baseline": _spread(held, True), "total_levels": total_levels,
             "total_fit_coverage": total_cover, "covered": hit, "runs": runs}

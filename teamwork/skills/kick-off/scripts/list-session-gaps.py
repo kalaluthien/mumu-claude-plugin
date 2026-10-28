@@ -3,7 +3,7 @@
 each restart cost and, apart,
 its idle gaps over 30 minutes inside a session (a wait for the owner, not a restart).
 
-usage: list-session-gaps.py [--from-dir <projects folder>] [--json] <name>...
+usage: list-session-gaps.py [--from-folder <projects folder>] [--json] <name>...
 
 A name with no transcript
 prints "no session record". The default folder is the Claude config folder's projects; `--json` prints the rows for the estimator."""
@@ -20,11 +20,11 @@ import usage_parser  # noqa: E402
 
 def main(args):
     parser = usage_parser.parser(__doc__, description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--from-dir", type=pathlib.Path, default=claude_config.folder() / "projects")
+    parser.add_argument("--from-folder", type=pathlib.Path, default=claude_config.folder() / "projects")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("names", nargs="+")
     options = parser.parse_args(args)
-    rows = session_gaps.summaries(options.from_dir, options.names)
+    rows = session_gaps.summaries(options.from_folder, options.names)
     if options.json:
         print(json.dumps(rows))
         return
