@@ -7,7 +7,7 @@ usage: make-fixtures.py      build the meta-every-format page, then write from i
                              page-without-behaviours.html    node clicks, step buttons and the copy button removed
 
 Run it after a change to the engine, so the fixtures break today's engine. Exit status 0, or 1 when a cut no
-longer matches the engine.
+longer matches the engine, 2 on an argument.
 """
 import pathlib
 import re
@@ -32,6 +32,9 @@ CUTS = {
 
 
 def main(args):
+    if args:
+        print(__doc__, file=sys.stderr)
+        return 2
     with tempfile.TemporaryDirectory() as d:
         view, page = pathlib.Path(d) / "view.json", pathlib.Path(d) / "page.html"
         for call in (["new", view], ["build", DOC, view, page]):
