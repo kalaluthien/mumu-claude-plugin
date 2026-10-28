@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """List the drift of auto-memory pools that a shell can find, one line per finding.
 
-usage: list-drift.py <config> [<pool>...]   the pools of <config>/projects/*/memory,
-                                            or only those named
+usage: list-drift.py <config> [<pool>...]   every memory folder: the auto-memory home its
+                                            settings name and each folder under it, then
+                                            <config>/projects/*/memory; or only those named
 
 A finding is a `MEMORY.md` link to a missing file, a memory file no index
 links, a file name two pools share, an index past the load limit (only its
@@ -21,6 +22,7 @@ from datetime import date, timedelta
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import memory  # noqa: E402
+import memory_home  # noqa: E402
 
 STALE_DAYS = 60
 INDEX_LINES, INDEX_BYTES = 200, 25_000
@@ -66,7 +68,7 @@ def main(args):
     if not args or any(arg.startswith("-") for arg in args):
         print(__doc__, file=sys.stderr)
         return 2
-    pools = args[1:] or sorted(glob.glob(os.path.join(glob.escape(args[0]), "projects", "*", "memory")))
+    pools = args[1:] or memory_home.pools(args[0])
     missing = [pool for pool in pools if not os.path.isdir(pool)]
     if missing or not pools:
         print(f"could not look: no memory pool at {' '.join(missing) or args[0]}", file=sys.stderr)

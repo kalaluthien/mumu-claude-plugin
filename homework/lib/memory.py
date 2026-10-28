@@ -3,8 +3,9 @@ import os
 import re
 from datetime import date
 
-# MEMORY.md is left out: it indexes lessons, so editing it is no new lesson
-PATH = re.compile(r"/memory/(?!MEMORY\.md)([\w.-]+\.md)")
+# MEMORY.md is left out: it indexes lessons, so editing it is no new lesson; a repository's folder under the memory
+# home is kept in the match, so one name in two folders counts twice
+PATH = re.compile(r"/memory/((?:[\w.-]+/)?(?!MEMORY\.md)[\w.-]+\.md)")
 # the indent is kept, so a field nested under `metadata:` is rewritten in place
 FIELD = re.compile(r"^([ \t]*)(confirmed|last-confirmed):[ \t]*(.*)$", re.M)
 

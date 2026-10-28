@@ -31,18 +31,18 @@ Keep what this session learned where the next agent will meet it. A lesson hande
    | the lesson | destination |
    | --- | --- |
    | something a check could decide | a hook, script, lint rule or CI step, by [harness-authoring.md](harness-authoring.md), as a patch |
-   | a procedure that worked again, or how a subagent should work | the skill that owns the work, by [harness-authoring.md](harness-authoring.md), as a patch |
-   | true for every project: another project's memory holds it, or the owner said it for all work | `<config>/CLAUDE.md`: an instruction and a clause of reason in its work's section, as a patch rooted at `<config>` that also deletes this project's copy |
-   | true for this project: a fact, a trap, a preference, a procedure that worked once | auto-memory, one memory file each |
+   | a procedure that worked again, or how a subagent should work | a memory file placed by the rows below, its frontmatter marked `skill: <plugin>:<skill>` for the skill that owns the work, or `skill: new <name>`; a dream asks the owner whether to write it into the skill |
+   | true for every project: another repository's memory holds it, or the owner said it for all work | `<home>/`, one memory file each; move this repository's copy there by `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/move-memory.py <file> <home>`, and delete another repository's copy as a patch. With no `<home>`: `<config>/CLAUDE.md`, an instruction and a clause of reason in its work's section, as a patch rooted at `<config>` that also deletes this project's copy |
+   | true for this repository: a fact, a trap, a preference, a procedure that worked once | `<home>/<repo>/`, else this project's pool, one memory file each |
 
    **Patch**: a destination marked patch is never written in place, since only this project's memory is retro's to change. Write the change as a unified diff to `<data>/patches/<today>-<topic>.patch`, its paths relative to `<root>`, the repository that holds the file, else the file's folder. Check it with `git -C <root> apply --check <patch file>`.
 
-5. **Operation**: read every memory pool afresh, `<config>/projects/*/memory/`; a pool's key is its project's absolute path with each non-alphanumeric character as `-`, derived from the path, never back. Take the first operation that fits:
+5. **Operation**: read every memory folder afresh, `<home>` with its folders and `<config>/projects/*/memory/`. Take the first operation that fits:
    - **Confirm**: an entry says it already: `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/count-confirmations.py <file>`.
    - **Extend**: an entry on the same subject or mechanism: add to it.
    - **Add**: a new memory file with `confirmed: 1` and `last-confirmed: <today>` in its frontmatter, justified in one line: the nearest entry and why it could not be extended, or that none exists.
 
-   An extend or add to a pool of another project is a patch, as step 4 says; skip a confirm there.
+   An extend or add to another repository's folder or pool is a patch, as step 4 says; skip a confirm there.
 
    An extend or add cites evidence: a candidate's time, a url or a `path:line`.
 6. **Edit**: edit only the lines that change, `MEMORY.md` over a fresh read, since other sessions write it. Delete or correct any entry this session showed wrong.
