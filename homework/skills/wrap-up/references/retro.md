@@ -13,8 +13,10 @@ Keep what this session learned where the next agent will meet it. A lesson hande
    - **No-ops**: an instruction that changed no behaviour: cut it.
    - **Tool economy**: an expensive call that a cheaper command would answer.
    - **Information access**: a fact the agent could not reach: give it read access.
-3. **Drafts**: draft each answer worth keeping, one per cause:
-   - improve: "when <situation>, do <action>, because <the broken assumption>";
+
+   **Dig**: take each finding through 5 whys, each answer the cause of the one before, so the fix lands at the cause, not the symptom. Stop when a why names a broken assumption or a missing check that an instruction, check or tool could change; a why that ends in "the guard worked" is no finding, so drop it. A why with two causes is a branch: dig each.
+3. **Drafts**: draft each answer worth keeping, one per root cause:
+   - improve: "when <situation>, do <action>, because <the broken assumption, the last why>"; a draft that rests on one why is still a symptom, so dig on;
    - sustain, an owner-accepted choice or a detour that worked: "when <situation>, keep <action>, because <what it saved>";
    - a procedure worked out: its steps as run.
 
