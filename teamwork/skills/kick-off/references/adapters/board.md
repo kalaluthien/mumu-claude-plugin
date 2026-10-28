@@ -17,15 +17,13 @@ Each operation is one call of `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/use
 
 ## GitHub
 
-The board is the repository's GitHub issues, read and written by `gh api` REST calls, which also work in a cloud session, where GraphQL is refused (`HTTP 403`).
+The board is the repository's GitHub issues, read and written by `gh api` REST calls, which also work in a cloud session, where GraphQL is refused (`HTTP 403`), and when GraphQL alone runs out: GraphQL and REST core run out apart, and `gh api rate_limit` can show GraphQL left while each GraphQL call answers `already exceeded`, so trust the call. Each read costs quota: a REST read sent with `If-None-Match` and answered `304` is free, a `404` is charged each time, so read a list rather than probe an item; a GraphQL query costs per connection asked for, the parent count times each child connection, priced without spending by `rateLimit(dryRun: true) { cost }`. To prove a script reads no GraphQL, put first on `PATH` a `gh` that fails `api graphql`, `issue`, `pr`, `repo` and `label` and passes the rest.
 
 - **Pull request**: its head by `gh pr view <n> --json headRefOid`.
 - **Cloud checks**: a `[check]` a remote worker runs reads by `gh api repos/<repo>/issues/<n>` and `…/comments` too, never `gh issue view` or `gh pr list`.
 - **Trusted**: an author whose association is `OWNER`, `MEMBER` or `COLLABORATOR`.
-- **Scope labels**: `gh label list --search scope:`.
+- **Scope labels**: `gh label list --search scope:`, with `-R <owner>/<repo>` outside a checkout; right after a label rename, a search by it can read empty for about 10 s, so recheck before concluding none carries it.
 - **Default branch**: `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
-- **Rate limits**: GraphQL and REST core run out apart, and `gh api rate_limit` can show GraphQL left while each GraphQL call answers `already exceeded`, so trust the call; outside a checkout, `gh issue` and `gh label` need `-R <owner>/<repo>`. Right after a label rename, a search by it can read empty for about 10 s: recheck before concluding none carries it.
-- **Read cost**: price a GraphQL query by `rateLimit(dryRun: true) { cost }`, which spends nothing and returns no data; GitHub charges per connection asked for, the parent count times each child connection, not per node returned. A REST read sent with `If-None-Match` and answered `304` is free, and a `404` is charged each time, so read a list rather than probe an item. To prove a script reads no GraphQL, put first on `PATH` a `gh` that fails `api graphql`, `issue`, `pr`, `repo` and `label` and passes the rest to the real one.
 
 ## Files
 
