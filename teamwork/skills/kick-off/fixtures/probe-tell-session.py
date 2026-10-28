@@ -83,8 +83,8 @@ def live():
 
 def fake():
     state = pathlib.Path(tempfile.mkstemp(prefix="fake-herdr-", suffix=".json")[1])
-    agents = [{"name": n, "pane_id": f"w1:p{i}", "tab_id": f"w1:t{i}", "workspace_id": "w1", "agent": "codex", "agent_status": status, "interactive_ready": True}
-              for i, (n, status) in enumerate((("done-codex", "done"), ("unblock-codex", "idle"), ("unseen-codex", "idle")), 1)]
+    agents = [{"name": name, "pane_id": f"w1:p{i}", "tab_id": f"w1:t{i}", "workspace_id": "w1", "agent": "codex", "agent_status": status, "interactive_ready": True}
+              for i, (name, status) in enumerate((("done-codex", "done"), ("unblock-codex", "idle"), ("unseen-codex", "idle")), 1)]
     state.write_text(json.dumps({"n": 10, "tabs": [], "agents": agents}))
     env = {"PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state)}
     step("done delivered", *told(tell("done-codex", "hi", env, 5), 0, "delivered to done-codex"))

@@ -74,7 +74,7 @@ def manager_read(me, history=False, since=None):
 
 
 def manager_actions(me, listed, data=None, fed_urls=None):
-    """A manager's gaps from DATA, a `manager_read` kept from an earlier poll, else from a read now. FED, kept by the caller
+    """A manager's gaps from DATA, a `manager_read` kept from an earlier poll, else from a read now. FED_URLS, kept by the caller
     across polls, holds the urls of the reports already fed, since two reads overlap by the clock skew."""
     data = data or manager_read(me)
     if data is None:

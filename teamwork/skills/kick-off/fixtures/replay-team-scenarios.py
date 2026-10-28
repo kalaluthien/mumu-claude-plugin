@@ -2,8 +2,8 @@
 """Replay the team in varied scenarios on the sandbox board kalaluthien/teamwork-board-sandbox as the tape of recorded-gh/gh beside
 this file holds it, while no judge or worker writes that board (else rerun a failure once alone), a temporary files board and the fake herdr beside this file, and print `ok <scenario>`, or `fail <scenario>: <the output that failed>`.
 
-usage: replay-team-scenarios.py [--only <scenario>,...] [-v]
-`-v` also prints each run's output. FAKE_HERDR_BREAK=accept makes the fake herdr take every prompt and wait, so the scenarios that
+usage: replay-team-scenarios.py [--only <scenario>,...] [--verbose]
+`--verbose` also prints each run's output. FAKE_HERDR_BREAK=accept makes the fake herdr take every prompt and wait, so the scenarios that
 prove a send can fail must then fail."""
 import json
 import os
@@ -284,9 +284,9 @@ def main(args):
     global VERBOSE, SCENARIO
     parser = usage_parser.parser(__doc__)
     parser.add_argument("--only", default="")
-    parser.add_argument("-v", action="store_true")
+    parser.add_argument("--verbose", action="store_true")
     options = parser.parse_args(args)
-    VERBOSE = options.v
+    VERBOSE = options.verbose
     for name, scenario in SCENARIOS.items():
         if options.only and name not in options.only.split(","):
             continue

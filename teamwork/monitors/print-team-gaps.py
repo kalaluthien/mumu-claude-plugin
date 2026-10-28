@@ -32,7 +32,7 @@ def main(args):
         return 2
     shown, had_worker = set(), False  # the exit waits until this manager has had a worker, so a fresh manager routes first
     waiting = set()  # a worker's issues with an open blocker, so a restart reports no blocker closed long ago
-    reported = set()  # the reports a manager was already reported
+    fed_urls = set()  # the urls of the reports a manager was already fed
     data, read_at, signal = None, 0.0, team_signal.stamp()  # what GitHub last gave, when, and the signal file's change then
     ports = None  # the board and landing the last read used
     while True:
@@ -55,7 +55,7 @@ def main(args):
                 data = read(manager, me, had_worker, since if read_at else None)
             if data is not None:  # a failed read keeps the last good time, so the next read still feeds what came after it
                 read_at, signal = now.timestamp(), seen
-        lines = [] if not (manager or worker) else None if data is None else team_gaps.manager_actions(me, listed, data, reported) if manager else team_gaps.worker_actions(me, waiting, data)
+        lines = [] if not (manager or worker) else None if data is None else team_gaps.manager_actions(me, listed, data, fed_urls) if manager else team_gaps.worker_actions(me, waiting, data)
         if manager and lines is not None:
             workers = team_names.workers(me, listed)
             had_worker = had_worker or bool(workers)

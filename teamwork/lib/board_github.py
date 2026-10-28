@@ -227,7 +227,7 @@ def read_tree(project):
         after = ["-f", f"after={found['issues']['pageInfo']['endCursor']}"]
     shown = [sub_issue for node in found_issues for sub_issue in [sub_issue for sub_issue in node["subIssues"]["nodes"] if sub_issue["state"] == "CLOSED"][-SHOWN_CLOSED:]]
     if shown:
-        asked = graphql(BLOCKERS % " ".join(f"i{k}: issue(number: {k}) {{ blockedBy(first: 20) {{ nodes {{ number state }} }} }}" for k in {sub_issue["number"] for sub_issue in shown}),
+        asked = graphql(BLOCKERS % " ".join(f"i{number}: issue(number: {number}) {{ blockedBy(first: 20) {{ nodes {{ number state }} }} }}" for number in {sub_issue["number"] for sub_issue in shown}),
                         repo["owner"], repo["name"])
         if asked is None:
             return None
