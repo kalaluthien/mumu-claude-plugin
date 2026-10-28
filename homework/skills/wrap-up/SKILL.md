@@ -29,7 +29,7 @@ Take every row whose condition holds, in order, and copy its playbook's steps ve
 
 ## Rules
 
-- **No waiting**: ask the owner only whether to file an issue, since filing one asks first; fix or leave each other item for the owner, and report.
+- **No waiting**: ask the owner only whether to file an issue, since filing one asks first; fix or leave each other item for the owner, and report. A step only a person can type, such as a slash command, still runs under herdr by `herdr agent prompt $HERDR_PANE_ID "/<command> <args>"` to the session's own pane; hand it over only when `HERDR_PANE_ID` is unset.
 - **This project only**: write only this project's auto-memory. A change to `<config>/CLAUDE.md`, another project's memory, a hook, a script or a skill goes as a patch file the person applies, the report naming its `!` command, as [references/retro.md](references/retro.md) step 4 says.
 - **Repository first**: file nothing the repository or its history already states, and change a repository's file only the way it takes changes, as its `AGENTS.md` says.
 - **Outcome**: when the hook asked, end with `"${CLAUDE_PLUGIN_ROOT}/hooks/signal-wrap-up.py" outcome "${CLAUDE_PLUGIN_DATA}" ${CLAUDE_SESSION_ID} filed` if anything was filed, fixed or recorded, else the same with `empty`, so the hook asks less often after empty wrap-ups.
