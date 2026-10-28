@@ -2,18 +2,18 @@
 """List what repeats across dejavu's mapped sessions, one line per repeat, details indented below it.
 
 usage: list-repeats.py <data> [--mistakes <file>]
-       list-repeats.py <data> --record <url> <last seen> <key>   record the issue filed for a repeat in <data>/filed.json
+       list-repeats.py <data> --record <where> <last seen> <key>   record where a repeat went (an issue url, a path or `owner`) in <data>/filed.json
 
 Reads <data>/stats/ and <data>/facets/ for the sessions of the last 14 days and writes <data>/friction.jsonl, every
 friction item with an id, for the agent that groups them. A repeat line reads
-`<kind> <n> sessions, <r> repos, last <date>[, filed <url>[, seen since]]: <key>`:
+`<kind> <n> sessions, <r> repos, last <date>[, filed <where>[, seen since]]: <key>`:
 
 - `tool`: a failure signature in 3+ sessions, seen in the last 3 days;
 - `instruction`: an owner instruction, case and punctuation aside, in 2+ sessions;
 - `mistake`: a group of friction items from --mistakes (`[{"name", "ids"}]`) in 3+ sessions, seen in the last 3 days.
 
-`filed <url>` names the issue <data>/filed.json records for the key; `seen since` means it was sighted after the
-record's last sighting, so a closed issue needs filing again and an open one does not.
+`filed <where>` names where <data>/filed.json records the repeat went; `seen since` means it was sighted after the
+record's last sighting, so a closed hand-over needs doing again and an open one does not.
 """
 import collections
 import glob
