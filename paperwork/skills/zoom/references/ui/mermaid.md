@@ -14,6 +14,8 @@ Run `emit-mermaid.py --check doc.json` when a block looks short: it names each l
 
 Each file in [fixtures/](fixtures/) breaks one check and exits 1: `self-missing-node.md` for `--check ../../examples/self/schema.json --output`, `mermaid-missing-row.md` and `mermaid-false-kept.md` for `losses --doc`, `formats-missing-row.md` for `formats --doc`. Run them after changing the checker.
 
+A README's Mermaid block shows as raw code in the GitHub mobile app, though github.com, also in a phone browser, draws it: the block is right, so for a reader on a phone also give the image or a table of the edges.
+
 ## Drawing by kind
 
 Each kind is drawn as its reading in [semantics.md](../schema/semantics.md) says:
@@ -31,7 +33,7 @@ On every kind:
 
 ## Losses
 
-What survives the projection into Mermaid. A construct is `kept` when changing it changes the output, and `emit-mermaid.py losses` checks every row of this table that way. A lost construct is still in the document, for the HTML renderer or a reader of the JSON.
+What survives the projection into Mermaid. A construct is `kept` when changing it changes the output, and `emit-mermaid.py losses` checks every row of this table that way. `losses` tries a new grammar field only on `schema/fixtures/` documents the checker accepts and on `examples/`, never `playbook/fixtures/`, and changes its value by appending `zq`: draw an enum field by a lookup that skips unknown values, or the check says changing it leaves the output the same. A lost construct is still in the document, for the HTML renderer or a reader of the JSON.
 
 Two limits come from Mermaid itself, not from the emitter:
 - [State diagrams](https://mermaid.js.org/syntax/stateDiagram.html) style a state only by `classDef`, which "cannot be applied to or within composite states". So a `mark` or `diff` on a state inside a region, or on a superstate, shows only in the table.

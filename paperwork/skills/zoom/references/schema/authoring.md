@@ -30,6 +30,10 @@ A Scenario is one independent question the model answers, walked over the nodes 
 - On a component level a step may use several parts together: `"place": ["node", "argument", "value"]`, each next part along a relation.
 - `does` says what happens; `expects` says what is true afterwards, checkable.
 
+**Hand-written fixture.** A fixture passes `check-schema.py check` only with a Scenario whose `walk` steps through every node and edge, entering a child level by stepping from its opener to a child node [scoped, coverage]; each rule named in some node's `rules` [placement]; the main edges marked `happy` [paths]; and, for no `mechanism` warning, a topology level, such as a `link: view` opened from a state and walked by the root Scenario. `playbook/fixtures/` may keep that warning, `schema/fixtures/` may not, since `check-schema.py fixtures` wants a plain name accepted with no warning.
+
+**Walk on a topology level.** A multi-part `place` lists node ids only, never relation names. The next step starts at a node one edge from the previous step's last node, never the same one. A step's `edge` names the label for every hop it takes, its inner path included, so put it on a one-node step; leaving to the opener and stepping in again is allowed. In `view.json` an edge `via` takes only `left`: two edges between the same pair overlap, so fold one into an attribute.
+
 **Branches.** A choice between two ways, and a failure, is each its own Scenario. The usual way keeps the plain name; a branch adds what differs to it: `ship-a-bet`, `ship-a-bet-replan`.
 
 **Forks.** A list in the walk holds two or more side-by-side branches, each a step, a list of steps, or `[]` (an edge straight to the join); the next step joins them: `[spec, [[plan, impl, review], []], validate]`.

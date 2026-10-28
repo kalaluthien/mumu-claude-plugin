@@ -45,5 +45,9 @@ A view written for the engine before the Schema carries over by `html/scripts/mi
 
 - `html/scripts/make-diagram.py rules` lists the drawing checks and the plan's defaults; `html/scripts/prove-checks.py` shows each can fail.
 - `html/scripts/probe-page.py labels|zoom|meta|behaviours page.html` checks a built page in Chrome; the pages in `html/fixtures/` each make one probe fail.
+- Run the probes under `uv run --with playwright==1.64.1 python3`; plain `python3` has no playwright.
+- On a page that keeps every view in the DOM with `hidden` on those not shown, a selector such as `page.fill(".ed-x")` matches the hidden copy first and times out: scope it to `section:not([hidden])`.
+- A page published as an Artifact: fetch it with `Artifact` `action: read`, `path: "index.html"` and probe that saved copy, since the claude.ai link needs a login and headless Chrome cannot open it; the copy is the wrapped page, larger than the local one. To test it under the Artifact CDN rules, inject a `<meta http-equiv="Content-Security-Policy">` built from the Artifact tool's allowlist (scripts: cdnjs, jsdelivr/npm, unpkg; styles: fonts.googleapis; fonts: fonts.gstatic and data:) into the copy, and run a control that must break (a jsdelivr stylesheet), since the copy carries no policy and only the control shows the emulation bites.
+- A focus-dimming probe multiplies opacity up the ancestors: a parent can be dimmed while the child reads `opacity: 1`.
 - `make` never starts Alloy; it shows the answers last stored in `~/.cache/paperwork-alloy/results`.
 - `fits` fails: give that level's nodes `x`, `y` in `view.json` ([view-writing.md](html/view-writing.md), Layout), not shorter labels.

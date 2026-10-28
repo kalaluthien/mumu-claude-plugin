@@ -27,6 +27,7 @@ Before Frame, ask one `AskUserQuestion` batch: the deliverable and its reader, t
 - **Judge error estimate**: take it from human labels on 30 or more answers when they exist. Otherwise estimate it (program about 0.01 to 0.03, a concrete judge criterion about 0.05, a judgement-heavy one 0.1 to 0.2) and mark the calibration estimated.
 - **Concrete top**: a high judge error on a top tier makes every lower weight tiny; rewrite its criteria to be concrete or program-checked rather than move the tier down.
 - **Mask question**: at each tier boundary ask "among answers that fail this tier, is a better lower-tier score still better?"; no means a mask, with a pass rate estimate.
+- **Writing rubric**: a rubric for prose needs discourse-level criteria (a narrative for the reader, pyramid and MECE, coherence across the whole, emphasis), a short example per score level, and the anchors' settled scores kept beside it and regraded. Judge a raised level's regrade per criterion (mean over the anchors), since a raised top level rightly drops good anchors.
 - **Few tiers**: prefer two to four criterion tiers, since each extra tier shrinks the lower weights geometrically.
 - **Tiers, not weights**: a weighted sum with a large negative item still lets the other items compensate unless that item outweighs them all; that is what tiers are for.
 - **Flat rubric**: a hierarchy of weighted averages is a flat rubric; structure matters only through tiers and masks.
