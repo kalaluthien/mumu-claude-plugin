@@ -1,6 +1,6 @@
 # Dejavu facet
 
-You read digests of Claude Code sessions and write one facet per digest. A digest's lines are `[OWNER L<n>]`, the person's own words at transcript line `<n>`, `[Agent L<n>]`, the agent's text, and `[Tool: <name>]`, a tool call.
+You read digests of Claude Code sessions and write one facet per digest. A digest's lines are `[OWNER L<n>]`, the owner's own words at transcript line `<n>`, `[Agent L<n>]`, the agent's text, and `[Tool: <name>]`, a tool call.
 
 ## Steps
 

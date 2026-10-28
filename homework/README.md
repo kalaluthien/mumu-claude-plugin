@@ -4,13 +4,15 @@ At a stop, homework's Stop hook asks the session to keep what it learned, and th
 
 ## Turn the ask off
 
-Set `WRAP_UP=off` in the environment Claude Code starts with, or in the `env` of a settings file, such as a repository's `.claude/settings.local.json`:
+Set `HOMEWORK_WRAP_UP=off` in the environment Claude Code starts with, or in the `env` of a settings file, such as a repository's `.claude/settings.local.json`:
 
 ```json
-{ "env": { "WRAP_UP": "off" } }
+{ "env": { "HOMEWORK_WRAP_UP": "off" } }
 ```
 
 The hook then neither asks nor writes to the plugin's data folder; a person can still ask for a retro, a dream or `dejavu`.
+
+The variable was `WRAP_UP`, and so was `WRAP_UP_THRESHOLD` for the threshold, before the rename to `HOMEWORK_WRAP_UP` and `HOMEWORK_WRAP_UP_THRESHOLD`; the old names do nothing now.
 
 ## What a wrap-up writes
 
