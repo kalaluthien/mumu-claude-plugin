@@ -11,8 +11,6 @@ Write the document in the grammar, [schema/assets/schema.json](schema/assets/sch
 - [State](schema/semantics.md#state) for the lifetime of one subject (status, mode, phase);
 - [Opening a level](schema/semantics.md#opening-a-level) for a node whose inside the reader needs.
 
-## Defects
-
 Model the system as it is, defects included. Name each one in the hand-over: a fault of [improve.md](improve.md#faults), or a rule the system breaks.
 
 ## Steps

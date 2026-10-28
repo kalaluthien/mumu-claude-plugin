@@ -5,7 +5,7 @@ description: Use when a target, such as a document, skill, code, page or plan, m
 
 # card
 
-Grade a target into a report card: find what it is and who it serves, derive a rubric of binary criteria for it, grade it with quoted evidence, and show the result as one HTML page. The rubric is a grading spec, one JSON file in the grammar of [references/spec/assets/rubric.schema.json](references/spec/assets/rubric.schema.json), with criteria in tiers that never trade off; [references/spec/model.md](references/spec/model.md) says what it means, [references/spec/criteria.md](references/spec/criteria.md) how to write a criterion, and [references/spec/changelog.md](references/spec/changelog.md) what each grammar version added.
+Grade a target into a report card: find what it is and who it serves, derive a rubric of binary criteria for it, grade it with quoted evidence, and show the result as one HTML page. The rubric is a grading spec, one JSON file in the grammar of [references/spec/assets/rubric-schema.json](references/spec/assets/rubric-schema.json), with criteria in tiers that never trade off; [references/spec/model.md](references/spec/model.md) says what it means, [references/spec/criteria.md](references/spec/criteria.md) how to write a criterion, and [references/spec/changelog.md](references/spec/changelog.md) what each grammar version added.
 
 ## Domain
 

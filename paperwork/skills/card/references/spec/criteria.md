@@ -1,6 +1,6 @@
 # Criteria
 
-How to write one criterion of a spec. The grammar, [assets/rubric.schema.json](assets/rubric.schema.json), holds its fields; `check-spec.py rules` lists what the checker enforces.
+How to write one criterion of a spec. The grammar, [assets/rubric-schema.json](assets/rubric-schema.json), holds its fields; `check-spec.py rules` lists what the checker enforces.
 
 ## Rules
 

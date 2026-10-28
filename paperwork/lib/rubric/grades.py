@@ -1,4 +1,4 @@
-"""A grades file against its grammar ($defs/grades in rubric.schema.json) and the spec it grades by."""
+"""A grades file against its grammar ($defs/grades in rubric-schema.json) and the spec it grades by."""
 import hashlib
 
 from rubric.spec import SCHEMA

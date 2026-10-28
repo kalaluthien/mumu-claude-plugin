@@ -1,6 +1,6 @@
 # Changelog
 
-Each version of the grammar, [assets/rubric.schema.json](assets/rubric.schema.json), newest first. A spec names the version it is written in.
+Each version of the grammar, [assets/rubric-schema.json](assets/rubric-schema.json), newest first. A spec names the version it is written in.
 
 ## 1
 

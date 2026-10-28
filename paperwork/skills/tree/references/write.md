@@ -15,6 +15,6 @@ Turn a task into one plan JSON the owner can answer in a minute.
 
 ## Rules
 
-- Ask only what changes the work; a Decision whose options lead to the same work is a note.
-- The default must be the option you would take without an answer, because a kept Part costs the owner nothing.
-- Read [../examples/implementation-plan.json](../examples/implementation-plan.json) for a plan with steps, risks and open questions, [../examples/incident-queue.json](../examples/incident-queue.json) for Decisions with follow-ups, and [../examples/visual-strategies.json](../examples/visual-strategies.json) for mockups.
+- **Ask less**: ask only what changes the work; a Decision whose options lead to the same work is a note.
+- **Default**: the default must be the option you would take without an answer, because a kept Part costs the owner nothing.
+- **Examples**: read [../examples/implementation-plan.json](../examples/implementation-plan.json) for a plan with steps, risks and open questions, [../examples/incident-queue.json](../examples/incident-queue.json) for Decisions with follow-ups, and [../examples/visual-strategies.json](../examples/visual-strategies.json) for mockups.

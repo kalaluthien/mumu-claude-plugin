@@ -1,4 +1,4 @@
-"""A verdict file against its grammar ($defs/verdicts in rubric.schema.json) and the spec it grades by."""
+"""A verdict file against its grammar ($defs/verdicts in rubric-schema.json) and the spec it grades by."""
 from rubric.spec import SCHEMA
 from schema.model import shape
 

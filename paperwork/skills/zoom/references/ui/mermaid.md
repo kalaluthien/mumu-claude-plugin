@@ -2,19 +2,15 @@
 
 The default renderer: a Schema document shown in chat as images and Markdown, with no page to open.
 
-Run `scripts/emit-mermaid.py doc.json`, the path relative to this file. It is deterministic, so the same document always reads the same. The output is:
+## Domain
+
+`emit-mermaid.py` is deterministic, so the same document always reads the same. Its output is:
 
 1. a file tree of the levels, each named `<id>: <title> (<kind>[, view|nest])`, where the root's id is `root` and every other level takes the id of the node that opens it;
 2. one Mermaid block per level, in tree order, top level first;
 3. under each block, the level's syncs as a list and its metadata as a table, shown as [formats.md](formats.md) says.
 
-**Draw, never paste**: chat shows a Mermaid block as raw text, and so does the GitHub mobile app though github.com draws it, so never print one; a README read on a phone also needs the image or a table of its edges. Run the script with `--split DIR`, which writes each block to `DIR/<n>-<level>.mmd`. Where `mmdc` is on `PATH`, render each with `mmdc -i <file>.mmd -o <file>.png`; else, where `npx -y @mermaid-js/mermaid-cli -i <file>.mmd -o <file>.png` runs, use that. Print each PNG's full path in the reply, since a terminal tab shows no `SendUserFile` file, and never run `open`; send each by `SendUserFile` too for a remote viewer (phone, Remote Control, desktop app). Print the output with every fenced Mermaid block cut out. Where neither runs, cut the blocks too and draw each level as a table of its edges, a tree list or an ASCII drawing; hand the owner `! npx -y @mermaid-js/mermaid-cli --version`, since its first run installs a package and auto mode refuses it.
-
-Run `emit-mermaid.py --check doc.json` when a block looks short: it names each level, node or edge the output lacks.
-
-Each file in [fixtures/](fixtures/) breaks one check and exits 1: `self-missing-node.md` for `--check ../../examples/self/schema.json --output`, `mermaid-missing-row.md` and `mermaid-false-kept.md` for `losses --doc`, `formats-missing-row.md` for `formats --doc`. Run them after changing the checker.
-
-## Drawing by kind
+### Drawing by kind
 
 Each kind is drawn as its reading in [semantics.md](../schema/semantics.md) says:
 
@@ -29,7 +25,7 @@ On every kind:
 - On an arrow, `happy` is thick, `failure` dotted red with `✗`, `optional` dotted, and `unsure` dotted with `?`.
 - On a node, a mark is a coloured or dashed outline, and a `diff` tints the node; on a flowchart's arrow, a `diff` tints the arrow. A state diagram cannot style one arrow, so there the table alone shows it.
 
-## Losses
+### Losses
 
 What survives the projection into Mermaid. A construct is `kept` when changing it changes the output, and `emit-mermaid.py losses` checks every row of this table that way, on the `schema/fixtures/` documents the checker accepts and on `examples/`, changing a value by appending `zq`: draw an enum field by a lookup that skips unknown values, or changing it leaves the output the same. A lost construct is still in the document, for the HTML renderer or a reader of the JSON.
 
@@ -126,3 +122,15 @@ Two limits come from Mermaid itself, not from the emitter:
 | `node.link=nest` | kept | `nest` in the tree |
 | `node.gate=fork` | kept | `(fork)` |
 | `node.gate=join` | kept | `(join)` |
+
+## Steps
+
+1. Run `scripts/emit-mermaid.py doc.json`, the path relative to this file.
+2. Run the script with `--split DIR`, which writes each block to `DIR/<n>-<level>.mmd`, to draw each as an image.
+3. Run `emit-mermaid.py --check doc.json` when a block looks short: it names each level, node or edge the output lacks.
+
+## Rules
+
+- **Draw, never paste**: chat shows a Mermaid block as raw text, and so does the GitHub mobile app though github.com draws it, so never print one; a README read on a phone also needs the image or a table of its edges.
+- **Fixtures**: each file in [fixtures/](fixtures/) breaks one check and exits 1: `self-missing-node.md` for `--check ../../examples/self/schema.json --output`, `mermaid-missing-row.md` and `mermaid-false-kept.md` for `losses --doc`, `formats-missing-row.md` for `formats --doc`. Run them after changing the checker.
+

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check a grading spec against the grammar (assets/rubric.schema.json) and the rules it cannot state.
+"""Check a grading spec against the grammar (assets/rubric-schema.json) and the rules it cannot state.
 
 usage: check-spec.py check spec.json      print each violation as `path: rule: message`, then `ok`, or the error count on stderr
        check-spec.py weights spec.json    print each tier's derived epsilon beside the delta and judge_error it comes from
@@ -135,7 +135,7 @@ def prose(files):
         text = doc.read_text(encoding="utf-8")
         links = re.findall(r"\]\(([^)\s#]+)", text)
         if not any(not link.startswith("/") and (doc.resolve().parent / link).resolve() == GRAMMAR for link in links):
-            out.append(f"{doc}: links no assets/rubric.schema.json by a path relative to it")
+            out.append(f"{doc}: links no assets/rubric-schema.json by a path relative to it")
         for block in blocks(text):
             if len(hit := {w for w in re.findall(r"`([a-z_]+)`", block) if w in names}) >= 3:
                 out.append(f"{doc}: restates the grammar ({', '.join(sorted(hit))}): {block.strip()[:80]}")

@@ -9,7 +9,7 @@ Turn what a system is, or must be, into one checked Schema document, then prove 
 
 ## Route
 
-| ask | read |
+| ask | playbook |
 | --- | --- |
 | model an existing system from its code, docs, configs or process | [references/interpret.md](references/interpret.md) |
 | model a system not yet built from requirements, a PRD or an intent | [references/requirements.md](references/requirements.md) |
