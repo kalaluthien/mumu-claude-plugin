@@ -32,11 +32,11 @@ def read(path):
 
 def load(spec_path, verdict_paths, groups=False):
     """The spec and each verdict file, or exit 1 naming each rule they break."""
-    spec, files = read(spec_path), [read(p) for p in verdict_paths]
-    out = [f"{spec_path}: {line(r, w, m)}" for r, w, m, sev in violations(spec) if sev == "error"]
+    spec, files = read(spec_path), [read(path) for path in verdict_paths]
+    out = [f"{spec_path}: {line(rule, where, message)}" for rule, where, message, severity in violations(spec) if severity == "error"]
     if not out:
-        for p, v in zip(verdict_paths, files):
-            out += [f"{p}: {line('verdicts-invalid', *t.split(': ', 1))}" for t in problems(spec, v, groups=groups)]
+        for path, verdict_file in zip(verdict_paths, files):
+            out += [f"{path}: {line('verdicts-invalid', *problem.split(': ', 1))}" for problem in problems(spec, verdict_file, groups=groups)]
     if out:
         print("\n".join(out))
         sys.exit(1)
@@ -44,52 +44,52 @@ def load(spec_path, verdict_paths, groups=False):
 
 
 def ranked(spec, verdicts):
-    rows = [(a, tier_scores(spec, verdicts, a)) for a in verdicts["answers"]]
+    rows = [(answer, tier_scores(spec, verdicts, answer)) for answer in verdicts["answers"]]
     return sorted(rows, key=lambda row: -reward(spec, row[1]))
 
 
 def scores_text(spec, scores):
-    return ", ".join(f"{t['id']} {u:.3g}" for t, u in zip(spec["tiers"], scores))
+    return ", ".join(f"{tier['id']} {tier_score:.3g}" for tier, tier_score in zip(spec["tiers"], scores))
 
 
 def order(spec, verdicts):
-    for a, scores in ranked(spec, verdicts):
-        print(f"{a}: reward {reward(spec, scores):.6g} ({scores_text(spec, scores)})")
+    for answer, scores in ranked(spec, verdicts):
+        print(f"{answer}: reward {reward(spec, scores):.6g} ({scores_text(spec, scores)})")
     print("Best first by reward, the sum of each tier's derived weight times its score: a higher tier decides unless "
           "two answers' scores there differ by less than its delta, and a lower tier orders what the higher ones tie.")
 
 
 def score(spec, verdicts):
-    for g, group in enumerate(verdicts["groups"], 1):
-        rewards = {a: reward(spec, tier_scores(spec, verdicts, a)) for a in group}
-        mean, sd = statistics.fmean(rewards.values()), statistics.pstdev(rewards.values())
-        for a in group:
-            adv = (rewards[a] - mean) / sd if sd > 1e-12 else 0.0
-            print(f"group {g} {a}: reward {rewards[a]:.6g} advantage {adv:.9f} "
-                  f"({scores_text(spec, tier_scores(spec, verdicts, a))})")
+    for group_number, group in enumerate(verdicts["groups"], 1):
+        rewards = {group_answer: reward(spec, tier_scores(spec, verdicts, group_answer)) for group_answer in group}
+        mean, standard_deviation = statistics.fmean(rewards.values()), statistics.pstdev(rewards.values())
+        for answer in group:
+            advantage = (rewards[answer] - mean) / standard_deviation if standard_deviation > 1e-12 else 0.0
+            print(f"group {group_number} {answer}: reward {rewards[answer]:.6g} advantage {advantage:.9f} "
+                  f"({scores_text(spec, tier_scores(spec, verdicts, answer))})")
     print("Each advantage is the answer's reward minus its group's mean, over the group's standard deviation, so a "
           "group's advantages sum to 0 and spread 1; a group whose rewards all tie gets 0 and teaches nothing.")
 
 
 def interval(rows, seed):
     """Per tier, the mean and its 95% percentile bootstrap interval over resampled answers."""
-    rng, n = random.Random(seed), len(rows)
-    means = [statistics.fmean(col) for col in zip(*rows)]
-    draws = [[statistics.fmean(col) for col in zip(*(rows[rng.randrange(n)] for _ in range(n)))] for _ in range(RESAMPLES)]
+    random_generator, n = random.Random(seed), len(rows)
+    means = [statistics.fmean(column) for column in zip(*rows)]
+    draws = [[statistics.fmean(column) for column in zip(*(rows[random_generator.randrange(n)] for _ in range(n)))] for _ in range(RESAMPLES)]
     out = []
-    for d, m in enumerate(means):
-        col = sorted(x[d] for x in draws)
-        out.append((m, col[int(0.025 * RESAMPLES)], col[int(0.975 * RESAMPLES) - 1]))
+    for tier_index, mean in enumerate(means):
+        sorted_draws = sorted(draw[tier_index] for draw in draws)
+        out.append((mean, sorted_draws[int(0.025 * RESAMPLES)], sorted_draws[int(0.975 * RESAMPLES) - 1]))
     return out
 
 
-def compare(spec, a, b, seed):
-    sides = [interval([tier_scores(spec, v, x) for x in v["answers"]], seed) for v in (a, b)]
-    for tier, (ma, la, ha), (mb, lb, hb) in zip(spec["tiers"], *sides):
-        print(f"{tier['id']}: A {ma:.3f} [{la:.3f}, {ha:.3f}] B {mb:.3f} [{lb:.3f}, {hb:.3f}]")
-    for tier, (ma, *_), (mb, *_) in zip(spec["tiers"], *sides):
-        if abs(ma - mb) > tier.get("delta", 0):
-            print(f"{'A over B' if ma > mb else 'B over A'} at {tier['id']}")
+def compare(spec, first_verdicts, second_verdicts, seed):
+    sides = [interval([tier_scores(spec, system_verdicts, answer) for answer in system_verdicts["answers"]], seed) for system_verdicts in (first_verdicts, second_verdicts)]
+    for tier, (first_mean, first_low, first_high), (second_mean, second_low, second_high) in zip(spec["tiers"], *sides):
+        print(f"{tier['id']}: A {first_mean:.3f} [{first_low:.3f}, {first_high:.3f}] B {second_mean:.3f} [{second_low:.3f}, {second_high:.3f}]")
+    for tier, (first_mean, *_), (second_mean, *_) in zip(spec["tiers"], *sides):
+        if abs(first_mean - second_mean) > tier.get("delta", 0):
+            print(f"{'A over B' if first_mean > second_mean else 'B over A'} at {tier['id']}")
             break
     else:
         print("indifferent")
@@ -106,14 +106,14 @@ def main(args):
             print(__doc__, file=sys.stderr)
             return 2
         seed, args = int(args[i + 1]), args[:i] + args[i + 2:]
-    cmd = args[0] if args else "help"
-    if cmd in ("order", "score") and len(args) == 3:
-        spec, (verdicts,) = load(args[1], args[2:], groups=cmd == "score")
-        (order if cmd == "order" else score)(spec, verdicts)
+    command = args[0] if args else "help"
+    if command in ("order", "score") and len(args) == 3:
+        spec, (verdicts,) = load(args[1], args[2:], groups=command == "score")
+        (order if command == "order" else score)(spec, verdicts)
         return 0
-    if cmd == "compare" and len(args) == 4:
-        spec, (a, b) = load(args[1], args[2:])
-        compare(spec, a, b, seed)
+    if command == "compare" and len(args) == 4:
+        spec, (first_verdicts, second_verdicts) = load(args[1], args[2:])
+        compare(spec, first_verdicts, second_verdicts, seed)
         return 0
     print(__doc__, file=sys.stderr)
     return 2

@@ -32,11 +32,11 @@ def read(path):
 
 
 def load(spec_path, verdict_paths, complete):
-    spec, files = read(spec_path), [read(p) for p in verdict_paths]
-    out = [f"{spec_path}: {line(r, w, m)}" for r, w, m, sev in violations(spec) if sev == "error"]
+    spec, files = read(spec_path), [read(path) for path in verdict_paths]
+    out = [f"{spec_path}: {line(rule, where, message)}" for rule, where, message, severity in violations(spec) if severity == "error"]
     if not out:
-        for p, v in zip(verdict_paths, files):
-            out += [f"{p}: {line('verdicts-invalid', *t.split(': ', 1))}" for t in problems(spec, v, complete=complete)]
+        for path, verdict_file in zip(verdict_paths, files):
+            out += [f"{path}: {line('verdicts-invalid', *problem.split(': ', 1))}" for problem in problems(spec, verdict_file, complete=complete)]
     if out:
         print("\n".join(out))
         sys.exit(1)
@@ -45,67 +45,67 @@ def load(spec_path, verdict_paths, complete):
 
 def nominal_alpha(units):
     """Krippendorff's alpha for nominal values, each unit the values its coders gave; None when every value is one."""
-    o = Counter()
+    coincidences = Counter()
     for values in units:
-        m = len(values)
-        for i, c in enumerate(values):
-            for j, k in enumerate(values):
-                if i != j:
-                    o[c, k] += 1 / (m - 1)
-    n_c = Counter()
-    for (c, _), w in o.items():
-        n_c[c] += w
-    n = sum(n_c.values())
-    expected = sum(n_c[c] * n_c[k] for c in n_c for k in n_c if c != k)
+        unit_size = len(values)
+        for index, value in enumerate(values):
+            for other_index, other_value in enumerate(values):
+                if index != other_index:
+                    coincidences[value, other_value] += 1 / (unit_size - 1)
+    value_totals = Counter()
+    for (value, _), weight in coincidences.items():
+        value_totals[value] += weight
+    n = sum(value_totals.values())
+    expected = sum(value_totals[first_value] * value_totals[second_value] for first_value in value_totals for second_value in value_totals if first_value != second_value)
     if not expected:
         return None
-    return 1 - (n - 1) * sum(w for (c, k), w in o.items() if c != k) / expected
+    return 1 - (n - 1) * sum(pair_weight for (first_value, second_value), pair_weight in coincidences.items() if first_value != second_value) / expected
 
 
 def alpha(spec, runs):
-    names = sorted({a for run in runs for a in run["answers"]})
-    for c in criteria(spec):
-        units = [[run["answers"][a][c["id"]] for run in runs if c["id"] in run["answers"].get(a, {})] for a in names]
-        paired = [u for u in units if len(u) > 1]
+    names = sorted({answer for run in runs for answer in run["answers"]})
+    for criterion in criteria(spec):
+        units = [[run["answers"][answer][criterion["id"]] for run in runs if criterion["id"] in run["answers"].get(answer, {})] for answer in names]
+        paired = [unit for unit in units if len(unit) > 1]
         if not paired:
-            print(f"{c['id']}: alpha undefined, no answer graded by two runs")
+            print(f"{criterion['id']}: alpha undefined, no answer graded by two runs")
             continue
-        x = nominal_alpha(paired)
-        if x is None:
-            print(f"{c['id']}: alpha undefined, every verdict the same")
+        agreement = nominal_alpha(paired)
+        if agreement is None:
+            print(f"{criterion['id']}: alpha undefined, every verdict the same")
             continue
-        print(f"{c['id']}: alpha {x:.3f}")
-        if x < BAR:
-            print(f"rewrite {c['id']}: alpha {x:.3f} < {BAR:.3f}")
+        print(f"{criterion['id']}: alpha {agreement:.3f}")
+        if agreement < BAR:
+            print(f"rewrite {criterion['id']}: alpha {agreement:.3f} < {BAR:.3f}")
     print(f"Alpha is how far the runs agree beyond chance, 1 full agreement and 0 chance. Below {BAR:.3f}, Krippendorff's "
           "bar for drawing conclusions, a criterion's verdicts are not trusted: rewrite it, never reweight it.")
 
 
 def kappa(truth, guess):
     n, labels = len(truth), set(truth) | set(guess)
-    seen = sum(t == g for t, g in zip(truth, guess)) / n
-    chance = sum(truth.count(x) * guess.count(x) for x in labels) / n ** 2
+    seen = sum(truth_label == guess_label for truth_label, guess_label in zip(truth, guess)) / n
+    chance = sum(truth.count(label) * guess.count(label) for label in labels) / n ** 2
     return (seen - chance) / (1 - chance) if chance < 1 else float("nan")
 
 
-def macro_f1(truth, guess):
-    def f1(x):
-        tp = sum(t == x and g == x for t, g in zip(truth, guess))
-        wrong = sum((t == x) != (g == x) for t, g in zip(truth, guess))
-        return 2 * tp / (2 * tp + wrong)
-    return statistics.fmean(f1(x) for x in sorted(set(truth) | set(guess)))
+def macro_harmonic_score(truth, guess):
+    def harmonic_score(label):
+        true_positives = sum(truth_label == label and guess_label == label for truth_label, guess_label in zip(truth, guess))
+        wrong = sum((truth_label == label) != (guess_label == label) for truth_label, guess_label in zip(truth, guess))
+        return 2 * true_positives / (2 * true_positives + wrong)
+    return statistics.fmean(harmonic_score(label) for label in sorted(set(truth) | set(guess)))
 
 
 def human(spec, judge, people):
-    for c in criteria(spec):
-        shared = [a for a in judge["answers"] if c["id"] in judge["answers"][a] and c["id"] in people["answers"].get(a, {})]
+    for criterion in criteria(spec):
+        shared = [answer for answer in judge["answers"] if criterion["id"] in judge["answers"][answer] and criterion["id"] in people["answers"].get(answer, {})]
         if not shared:
-            print(f"{c['id']}: no answer both graded")
+            print(f"{criterion['id']}: no answer both graded")
             continue
-        guess = [judge["answers"][a][c["id"]] for a in shared]
-        truth = [people["answers"][a][c["id"]] for a in shared]
+        guess = [judge["answers"][answer][criterion["id"]] for answer in shared]
+        truth = [people["answers"][answer][criterion["id"]] for answer in shared]
         gap = statistics.fmean(guess) - statistics.fmean(truth)
-        print(f"{c['id']}: kappa {kappa(truth, guess):.3f} f1 {macro_f1(truth, guess):.3f} met-gap {gap:+.3f}")
+        print(f"{criterion['id']}: kappa {kappa(truth, guess):.3f} f1 {macro_harmonic_score(truth, guess):.3f} met-gap {gap:+.3f}")
     print("Kappa is agreement with people beyond chance; macro F1 weighs met and unmet alike; met-gap is the judge's "
           "share of met verdicts minus the people's, positive when the judge is lenient. Record them in the spec's "
           "judge calibration.")
@@ -113,20 +113,20 @@ def human(spec, judge, people):
 
 def bias(spec, verdicts):
     answers = verdicts["answers"]
-    bad = [a for a in answers if "~" in a and (a.split("~", 1)[0] not in answers or a.split("~", 1)[1] not in KINDS)]
+    bad = [answer for answer in answers if "~" in answer and (answer.split("~", 1)[0] not in answers or answer.split("~", 1)[1] not in KINDS)]
     if bad:
-        print("\n".join(line("verdicts-invalid", f"verdicts.answers.{a}", f"perturbs no answer, or its kind is not one "
-                             f"of {', '.join(KINDS)}") for a in bad))
+        print("\n".join(line("verdicts-invalid", f"verdicts.answers.{answer}", f"perturbs no answer, or its kind is not one "
+                             f"of {', '.join(KINDS)}") for answer in bad))
         sys.exit(1)
     for kind in KINDS:
-        pairs = [(a.split("~", 1)[0], a) for a in answers if a.endswith("~" + kind)]
+        pairs = [(answer.split("~", 1)[0], answer) for answer in answers if answer.endswith("~" + kind)]
         if not pairs:
             continue
         for tier in spec["tiers"]:
             if tier.get("pairwise"):
                 continue
-            ids = [c["id"] for c in tier["criteria"]]
-            flip = statistics.fmean(answers[b][k] != answers[p][k] for b, p in pairs for k in ids)
+            ids = [criterion["id"] for criterion in tier["criteria"]]
+            flip = statistics.fmean(answers[base_answer][criterion_id] != answers[perturbed_answer][criterion_id] for base_answer, perturbed_answer in pairs for criterion_id in ids)
             limit = tier.get("judge_error")
             tail = f" > judge_error {limit:g}" if limit is not None and flip > limit else ""
             print(f"{kind} {tier['id']}: flip {flip:.2f}{tail}")
@@ -135,8 +135,8 @@ def bias(spec, verdicts):
 
 
 def main(args):
-    cmd = args[0] if args else "help"
-    if cmd == "alpha" and len(args) == 3:
+    command = args[0] if args else "help"
+    if command == "alpha" and len(args) == 3:
         runs = sorted(pathlib.Path(args[2]).glob("*.json"))
         if len(runs) < 2:
             print(f"{args[2]}: alpha needs two or more verdict files", file=sys.stderr)
@@ -144,11 +144,11 @@ def main(args):
         spec, files = load(args[1], runs, complete=False)
         alpha(spec, files)
         return 0
-    if cmd == "human" and len(args) == 4:
+    if command == "human" and len(args) == 4:
         spec, (judge, people) = load(args[1], args[2:], complete=False)
         human(spec, judge, people)
         return 0
-    if cmd == "bias" and len(args) == 3:
+    if command == "bias" and len(args) == 3:
         spec, (verdicts,) = load(args[1], args[2:], complete=True)
         bias(spec, verdicts)
         return 0
