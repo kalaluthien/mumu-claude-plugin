@@ -1,6 +1,6 @@
 # Retro
 
-Keep what this session learned where the next agent will meet it. A lesson handed over by a person skips to step 4.
+Keep what this session learned where the next agent will meet it. A lesson handed over by the owner skips to step 4.
 
 ## Steps
 
@@ -29,8 +29,8 @@ Keep what this session learned where the next agent will meet it. A lesson hande
    | the lesson | destination |
    | --- | --- |
    | something a check could decide | a hook, script, lint rule or CI step, by [harness-authoring.md](harness-authoring.md), as a patch |
-   | a procedure that worked again, or how a delegate should work | the skill that owns the work, by [harness-authoring.md](harness-authoring.md), as a patch |
-   | true for every project: another project's memory holds it, or the user said it for all work | `<config>/CLAUDE.md`: an instruction and a clause of reason in its work's section, as a patch rooted at `<config>` that also deletes this project's copy |
+   | a procedure that worked again, or how a subagent should work | the skill that owns the work, by [harness-authoring.md](harness-authoring.md), as a patch |
+   | true for every project: another project's memory holds it, or the owner said it for all work | `<config>/CLAUDE.md`: an instruction and a clause of reason in its work's section, as a patch rooted at `<config>` that also deletes this project's copy |
    | true for this project: a fact, a trap, a preference, a procedure that worked once | auto-memory, one memory file each |
 
    **Patch**: a destination marked patch is never written in place, since only this project's memory is retro's to change. Write the change as a unified diff to `<data>/patches/<today>-<topic>.patch`, its paths relative to `<root>`, the repository that holds the file, else the file's folder. Check it with `git -C <root> apply --check <patch file>`.
@@ -44,6 +44,6 @@ Keep what this session learned where the next agent will meet it. A lesson hande
 
    An extend or add cites evidence: a candidate's time, a url or a `path:line`.
 6. **Edit**: edit only the lines that change, `MEMORY.md` over a fresh read, since other sessions write it. Delete or correct any entry this session showed wrong.
-7. **Repeat**: a repeat an entry should have prevented: confirm it, and file a task in its project's issue tracker to make it a check or a skill step, naming which, the lesson and the repeat's evidence. With no tracker, tell the owner in one line. The filing asks first: show the person the task's title and file it only on their yes.
+7. **Repeat**: a repeat an entry should have prevented: confirm it, and file a task in its project's issue tracker to make it a check or a skill step, naming which, the lesson and the repeat's evidence. With no tracker, tell the owner in one line. The filing asks first: show the owner the task's title and file it only on their yes.
 
 8. **Report**: tell the owner each lesson filed: its operation, text and file, and an add's one line, and for a patch the line `! git -C <root> apply <patch file>` that applies it; with none, say nothing.

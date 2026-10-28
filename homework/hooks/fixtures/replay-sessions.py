@@ -53,7 +53,7 @@ def asks(signal, path):
             payload = {"session_id": "replayed", "transcript_path": cut, "cwd": str(HERE),
                        "hook_event_name": "Stop", "stop_hook_active": False}
             run = subprocess.run([signal], input=json.dumps(payload), capture_output=True, text=True,
-                                 env={**os.environ, "CLAUDE_PLUGIN_DATA": data, "WRAP_UP_THRESHOLD": HIGHEST})
+                                 env={**os.environ, "CLAUDE_PLUGIN_DATA": data, "HOMEWORK_WRAP_UP_THRESHOLD": HIGHEST})
             if run.returncode != 0:
                 sys.exit(f"{signal} failed on {path}: {run.stderr.strip()}")
             count += '"decision": "block"' in run.stdout

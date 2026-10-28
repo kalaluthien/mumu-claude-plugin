@@ -4,11 +4,11 @@ Write or edit a skill, an agent file, a hook or a script, so its reader follows 
 
 ## Domain
 
-- **Underivable only**: write only what the reader cannot derive: house conventions, defaults that surprise, values that must match another file. An `agents/*.md` file takes a skill's frontmatter rules; its body is the delegate's system prompt.
-- **Lesson filed**: a procedure belongs to the skill that owns the work, edited in its source, never in the plugin cache, else a new skill in `~/.claude/skills/`, as the steps as run with what varied as parameters; how a delegate should work, to its `agents/<name>.md`; a rule a check can decide, to a script or hook with its failing case, and nothing is filed in memory.
+- **Underivable only**: write only what the reader cannot derive: house conventions, defaults that surprise, values that must match another file. An `agents/*.md` file takes a skill's frontmatter rules; its body is the subagent's system prompt.
+- **Lesson filed**: a procedure belongs to the skill that owns the work, edited in its source, never in the plugin cache, else a new skill in `~/.claude/skills/`, as the steps as run with what varied as parameters; how a subagent should work, to its `agents/<name>.md`; a rule a check can decide, to a script or hook with its failing case, and nothing is filed in memory.
 - **Trusted mechanism**: a script is a mechanism a caller trusts without reading, and a mechanised rule fails silently where a written one fails loudly.
 - **Placement**: where each file sits, how it is named and how one links another: the repository's `AGENTS.md`.
-- **Delegates**: a delegate's report is its final message, never a file it writes: the brief asks for it so. A slash command in a delegate's prompt is plain text: the brief names the skill for it to call.
+- **Subagents**: a subagent's report is its final message, never a file it writes: the brief asks for it so. A slash command in a subagent's prompt is plain text: the brief names the skill for it to call.
 - **Purpose line**: the line under a script's shebang states its purpose. It handles its own errors and assumes no tool is installed.
 - **One question**: one script answers one question: a sequence with judgement is a skill, one without is a script. Never write a second reader of a rule another script owns.
 - **Exit codes**: a harness hook exits 0 to allow and 2 to refuse, the reason on stderr; for more, exit 0 with JSON under `hookSpecificOutput`, never both. A git hook blocks on any non-zero, so its docstring names its codes. A script that answers prints the answer as a word and exits 0; non-zero means *I could not look*.
@@ -35,7 +35,7 @@ Write or edit a skill, an agent file, a hook or a script, so its reader follows 
    - **Cutover**: mark a criterion on live state "at cutover" and post its output after the merge, since it cannot pass at head without breaking live sessions.
 5. **Sweep**: a sweep's zero counts only once its pattern has found one known hit. List the surfaces first: the tracked tree, untracked files, other checkouts, every memory pool, issue and pull request bodies. Sweep a hyphenated name with any separator and any case, and a moved rule by its vocabulary. Re-read each edited file top to bottom, since the survivor sits nearest the correction.
 6. **Watch it refuse**: a guard you did not watch refuse is not verified. Break each branch separately, watch its named check fail, restore by undoing that one edit, and assert on what the break changes, never on an exit status alone. Beside every refusal put named allow cases for its ordinary neighbours, because a suite of refusals stays green while the guard refuses too much. Drive a git hook with `git commit`, since a clean merge runs none. Drive a harness hook, skill or monitor in a real session, and measure on the record it leaves:
-   - **Hook in `claude -p`**: in a scratch git folder, with the plugin copied to the scratchpad; a mechanical hook needs no herdr tab.
+   - **Hook in `claude -p`**: in a git folder in the scratchpad, with the plugin copied there; a mechanical hook needs no herdr tab.
      - **Run**: `claude -p "<prompt>" --plugin-dir <copy> --model haiku --output-format json` with the herdr variables and `CLAUDECODE` unset; a same-named plugin replaces the installed one. A copied `CLAUDE_CONFIG_DIR` starts `Not logged in`.
      - **Count**: change state, `--resume <id>`, count the `hook_additional_context` attachments in the transcript; match paths resolved and as spelled (`/var` is `/private/var`).
      - **Skills**: under `-p` a refused typed command prints nothing: read the `Skill` `tool_result` from `--output-format stream-json --verbose --max-turns 2`, and the skill list from the `init` line (`.type=="system" and .subtype=="init"`; `.type=="system"` alone also matches hook messages). `--settings '{"skillOverrides":{"<skill>":"off"}}'` hides user skills for a listing probe; plugin skills and the login stay.
@@ -49,7 +49,7 @@ Write or edit a skill, an agent file, a hook or a script, so its reader follows 
      - **Slash command**: send `/reload-plugins` to the tab as wrap-up's **No waiting** rule sends a typed-only command.
      - **Quit**: `/exit`, one more `enter` for the stop-background-work dialog, then `herdr tab close`. Stage files by name, never `git add -A`, since a `--plugin-dir` tab writes an untracked file into the plugin.
      - **Refused**: auto mode refuses editing a probe's transcript, keys or reads sent to a probe, and a fan-out of `claude -p`: write a scratchpad script and hand the owner `! bash <path>`.
-   - **Baseline**: before blaming a change, run the same command on `git archive <sha> <plugin> | tar -x -C <scratch>` beside head, which compares head against the merge base (`git merge-base HEAD origin/main`), never the moving `origin/main`.
+   - **Baseline**: before blaming a change, run the same command on `git archive <sha> <plugin> | tar -x -C <scratchpad>` beside head, which compares head against the merge base (`git merge-base HEAD origin/main`), never the moving `origin/main`.
    - **Past transcripts**: to tune or measure a hook or trigger on `~/.claude/projects/*/*.jsonl`.
      - **Sessions**: count top-level interactive ones (`entrypoint` not `sdk*`, with a stop entry); subagents sit in subfolders; `agent-setting`, else `sdk-cli`, marks headless.
      - **Replay**: cut at each event's byte offset with a fresh `CLAUDE_PLUGIN_DATA`; skip and count missing files.

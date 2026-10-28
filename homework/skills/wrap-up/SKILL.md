@@ -21,15 +21,15 @@ Take every row whose condition holds, in order, and copy its playbook's steps ve
 
 | when | playbook |
 | --- | --- |
-| `<p>` reaches `<t>`, this session's first retro `<f>` is `due`, or a person asks to keep a lesson | [references/retro.md](references/retro.md) |
-| `<m>` reaches `<l>`, or a person asks to tidy memory | [references/dream.md](references/dream.md) |
-| `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-sessions.py due <data>/dejavu` prints `due`, or a person asks for `dejavu` | [references/dejavu.md](references/dejavu.md) |
+| `<p>` reaches `<t>`, this session's first retro `<f>` is `due`, or the owner asks to keep a lesson | [references/retro.md](references/retro.md) |
+| `<m>` reaches `<l>`, or the owner asks to tidy memory | [references/dream.md](references/dream.md) |
+| `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-sessions.py due <data>/dejavu` prints `due`, or the owner asks for `dejavu` | [references/dejavu.md](references/dejavu.md) |
 | writing or editing a skill, an agent file, a hook or a script, with no lesson behind it | [references/harness-authoring.md](references/harness-authoring.md) |
 | typed with no signal and no row fits | [references/retro.md](references/retro.md) |
 
 ## Rules
 
 - **No waiting**: ask the owner only whether to file an issue, since filing one asks first; do each other step yourself, a slash command only a person types too: with `HERDR_PANE_ID` set, send it by `herdr agent prompt $HERDR_PANE_ID "/<command> <args>"` to the session's own pane, and if it does not run, type it by `pane send-text` then `send-keys enter`; outside herdr, ask the owner. Leave the owner only what no tool can do, and report.
-- **This project only**: write only this project's auto-memory. A change to `<config>/CLAUDE.md`, another project's memory, a hook, a script or a skill goes as a patch file the person applies, the report naming its `!` command, as [references/retro.md](references/retro.md) step 4 says.
+- **This project only**: write only this project's auto-memory. A change to `<config>/CLAUDE.md`, another project's memory, a hook, a script or a skill goes as a patch file the owner applies, the report naming its `!` command, as [references/retro.md](references/retro.md) step 4 says.
 - **Repository first**: file nothing the repository or its history already states, and change a repository's file only the way it takes changes, as its `AGENTS.md` says.
 - **Outcome**: when the hook asked, end with `"${CLAUDE_PLUGIN_ROOT}/hooks/signal-wrap-up.py" outcome "${CLAUDE_PLUGIN_DATA}" ${CLAUDE_SESSION_ID} filed` if anything was filed, fixed or recorded, else the same with `empty`, so the hook asks less often after empty wrap-ups.

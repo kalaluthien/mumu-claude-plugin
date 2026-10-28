@@ -3,7 +3,7 @@
 
 usage: signal-wrap-up.py                        the Stop hook: its payload on stdin,
                                                 the plugin's data folder in CLAUDE_PLUGIN_DATA;
-                                                WRAP_UP=off silences it and writes nothing
+                                                HOMEWORK_WRAP_UP=off silences it and writes nothing
        signal-wrap-up.py <transcript|session>   print the sentence for a transcript's last stop
        signal-wrap-up.py outcome <data> <session> filed|empty
                                                 report what a session's last asked wrap-up did
@@ -90,7 +90,7 @@ def save(data, state):
 
 
 def fixed():
-    value = os.environ.get("WRAP_UP_THRESHOLD")
+    value = os.environ.get("HOMEWORK_WRAP_UP_THRESHOLD")
     try:
         return float(value) if value is not None else None
     except ValueError:
@@ -114,7 +114,7 @@ def sentence(found, threshold):
 
 def hook():
     data = os.environ.get("CLAUDE_PLUGIN_DATA")
-    if not data or os.environ.get("WRAP_UP") == "off":
+    if not data or os.environ.get("HOMEWORK_WRAP_UP") == "off":
         return 0
     payload = json.load(sys.stdin)
     entries = transcript.entries_of(payload.get("transcript_path") or "")

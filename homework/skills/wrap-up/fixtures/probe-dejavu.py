@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Build fixture transcripts and facets in a temporary config dir, run dejavu's two scripts on them, and print one line
-per case and `probe: <passed> of <cases> cases pass`; exit 0 only when all pass.
+"""Build fixture transcripts and facets in a temporary config folder, run dejavu's two scripts on them, and print one line
+per step and `probe: <passed> of <steps> steps pass`; exit 0 only when all pass.
 
 usage: probe-dejavu.py"""
 import glob
@@ -15,8 +15,9 @@ import tempfile
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent
-SESSIONS = str(HERE / "list-sessions.py")
-REPEATS = str(HERE / "list-repeats.py")
+SCRIPTS = HERE.parent / "scripts"
+SESSIONS = str(SCRIPTS / "list-sessions.py")
+REPEATS = str(SCRIPTS / "list-repeats.py")
 NOW = time.time()
 DAY = 86400
 TMP = tempfile.mkdtemp(prefix="probe-dejavu-")
@@ -26,9 +27,9 @@ ENV = dict(os.environ, CLAUDE_CONFIG_DIR=CONFIG)
 results = []
 
 
-def case(name, ok):
+def step(name, ok, detail=""):
     results.append(bool(ok))
-    print(f"{'pass' if ok else 'FAIL'}: {name}")
+    print(f"ok {name}" if ok else f"fail {name}: {detail.strip()}")
 
 
 def stamp(seconds):
@@ -71,7 +72,7 @@ def run(*args):
 
 
 def snapshot():
-    """Hash of every file under the config dir, the data dir excluded."""
+    """Hash of every file under the config folder, the data folder excluded."""
     found = {}
     for path in glob.glob(os.path.join(CONFIG, "**"), recursive=True):
         if os.path.isfile(path):
@@ -123,23 +124,23 @@ def main(args):
     session("-r-beta", "acac0000-0000-0000-0000-000000000000", NOW - 2 * DAY, long_turns)
 
     before = snapshot()
-    case("due on fresh data", run(SESSIONS, "due", DATA).strip() == "due")
+    step("due on fresh data", run(SESSIONS, "due", DATA).strip() == "due")
     first = run(SESSIONS, "map", DATA)
     digests = {os.path.basename(path)[:-4] for path in glob.glob(os.path.join(DATA, "digests", "*.txt"))}
     batches = [line for line in first.splitlines() if line.startswith("batch ")]
-    case("not due right after a map", run(SESSIONS, "due", DATA).strip() == "not due")
+    step("not due right after a map", run(SESSIONS, "due", DATA).strip() == "not due")
     untouched = snapshot() == before
-    case("sdk and out-of-window sessions not mapped",
+    step("sdk and out-of-window sessions not mapped",
          not {"ffff0000-0000-0000-0000-000000000000", "ffff0001-0000-0000-0000-000000000000"} & digests
          and "abab0000-0000-0000-0000-000000000000" in digests)
     text = open(os.path.join(DATA, "digests", "abab0000-0000-0000-0000-000000000000.txt")).read() if "abab0000-0000-0000-0000-000000000000" in digests else ""
-    case("short digest cuts owner at 500 and agent at 300 chars",
+    step("short digest cuts owner at 500 and agent at 300 chars",
          "O" * 500 in text and "O" * 501 not in text and "A" * 300 in text and "A" * 301 not in text)
     text = open(os.path.join(DATA, "digests", "acac0000-0000-0000-0000-000000000000.txt")).read() if "acac0000-0000-0000-0000-000000000000" in digests else ""
-    case("long digest keeps every owner line and the agent text before it, within 30k chars",
+    step("long digest keeps every owner line and the agent text before it, within 30k chars",
          text and all(f"OWNERLINE{k:03d}" in text and f"step {k} " in text for k in range(80)) and len(text) <= 30000
          and "z" * 301 not in text)
-    case("batches of at most 10 digests", batches and all(len(re.findall(r"\.txt\b", batch)) <= 10 for batch in batches))
+    step("batches of at most 10 digests", batches and all(len(re.findall(r"\.txt\b", batch)) <= 10 for batch in batches))
 
     # 45 more fresh sessions: a map takes at most 40, newest first; a mapped session with a facet is not listed again
     for k in range(45):
@@ -152,10 +153,10 @@ def main(args):
     os.utime(last, (NOW - 23 * 3600, NOW - 23 * 3600)) if os.path.exists(last) else None
     not_due = run(SESSIONS, "due", DATA).strip() == "not due"
     os.utime(last, (NOW - 25 * 3600, NOW - 25 * 3600)) if os.path.exists(last) else None
-    case("due flips at 24 hours after the last map, by last-map's time", not_due and run(SESSIONS, "due", DATA).strip() == "due")
+    step("due flips at 24 hours after the last map, by last-map's time", not_due and run(SESSIONS, "due", DATA).strip() == "due")
     second = run(SESSIONS, "map", DATA)
     listed = set(re.findall(r"([0-9a-f]{8}-0000-0000-0000-000000000000)\.txt", second))
-    case("at most 40 per map, newest first, mapped ones skipped",
+    step("at most 40 per map, newest first, mapped ones skipped",
          len(listed) == 40 and "99990000-0000-0000-0000-000000000000" in listed
          and "99990044-0000-0000-0000-000000000000" not in listed and not listed & digests)
 
@@ -169,18 +170,18 @@ def main(args):
                    "instructions": said[i]}, open(os.path.join(facets, f"{session_id}.json"), "w"))
     out = run(REPEATS, DATA)
     lines = out.splitlines()
-    case("tool repeat in 3 recent sessions listed, paths and numbers merged",
+    step("tool repeat in 3 recent sessions listed, paths and numbers merged",
          any(line.startswith("tool 3 sessions") and "boom at" in line for line in lines))
-    case("2-session and stale signatures not listed",
+    step("2-session and stale signatures not listed",
          not any("twice only" in line or "stale only" in line for line in lines if line.startswith("tool ")))
-    case("bare exit code, user denied and hook footer dropped; hashes, urls and quoted values masked; reason kept",
+    step("bare exit code, user denied and hook footer dropped; hashes, urls and quoted values masked; reason kept",
          not any(re.search(r"Exit code|doesn't want to proceed|hook comes from|abcdef1|1234567|e\.x|value\d", line)
                  for line in lines if line.startswith("tool "))
          and any(line.startswith("tool 3 sessions") and "[Create Unsafe Agents]" in line for line in lines))
-    case("instruction in 2 sessions listed, in 1 not",
+    step("instruction in 2 sessions listed, in 1 not",
          any(line.startswith("instruction 2 sessions") and "gate" in line.lower() for line in lines)
          and not any(line.startswith("instruction") and ("one-off" in line or "Desktop" in line) for line in lines))
-    case("memory line naming a repeat is shown, for tool and instruction repeats",
+    step("memory line naming a repeat is shown, for tool and instruction repeats",
          "trap.md" in memory_under(out, "tool 3 sessions", "boom at") and "gate.md" in memory_under(out, "instruction", "gate"))
 
     items = [json.loads(line) for line in open(os.path.join(DATA, "friction.jsonl"))] if os.path.exists(os.path.join(DATA, "friction.jsonl")) else []
@@ -189,8 +190,8 @@ def main(args):
     json.dump([{"name": "stops to ask when the rule says act", "ids": ids[:3]},
                {"name": "only two sessions", "ids": ids[:2]}], open(mistakes, "w"))
     out = run(REPEATS, DATA, "--mistakes", mistakes)
-    case("friction items written with ids", len(ids) == 3 and all(ids))
-    case("mistake counted by script: 3 sessions listed, 2 not",
+    step("friction items written with ids", len(ids) == 3 and all(ids))
+    step("mistake counted by script: 3 sessions listed, 2 not",
          any(line.startswith("mistake 3 sessions") and "stops to ask" in line for line in out.splitlines())
          and not any("only two sessions" in line for line in out.splitlines() if line.startswith("mistake")))
 
@@ -200,12 +201,12 @@ def main(args):
     fresh = [line for line in run(REPEATS, DATA).splitlines() if "boom at" in line and line.startswith("tool ")]
     json.dump({key: {"url": "https://github.com/o/r/issues/1", "last_seen": NOW - 10 * DAY}}, open(os.path.join(DATA, "filed.json"), "w"))
     stale = [line for line in run(REPEATS, DATA).splitlines() if "boom at" in line and line.startswith("tool ")]
-    case("a recorded repeat carries its url; `seen since` only when sighted after its recorded last sighting",
+    step("a recorded repeat carries its url; `seen since` only when sighted after its recorded last sighting",
          fresh and "filed https://github.com/o/r/issues/1" in fresh[0] and "seen since" not in fresh[0]
          and stale and "filed https://github.com/o/r/issues/1" in stale[0] and "seen since" in stale[0])
-    case("no file outside the data dir changed", untouched and snapshot() == before)
+    step("no file outside the data folder changed", untouched and snapshot() == before)
 
-    print(f"probe: {sum(results)} of {len(results)} cases pass")
+    print(f"probe: {sum(results)} of {len(results)} steps pass")
     return 0 if all(results) else 1
 
 
