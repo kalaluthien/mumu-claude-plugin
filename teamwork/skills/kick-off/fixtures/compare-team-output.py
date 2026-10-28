@@ -7,7 +7,9 @@ those with no output, then `same` when every output matches, else one unified di
 usage: compare-team-output.py [--ref <ref>] [--only <entry>,...] [--skip <entry>,...]
 The manager is teamwork-manager, the worker protocol-split-worker. The sandbox's fixture issues and one merged change give every
 entry output; `edit-write` edits its issue #6 (base) or #7 (head) forward and back.
-`--only` keeps the entries whose names start with one of its words, `--skip` drops them."""
+`--only` keeps the entries whose names start with one of its words, `--skip` drops them.
+On a branch, pass `--ref "$(git merge-base HEAD origin/main)"`, since origin/main moves when another change merges and its diffs then read as yours.
+A judge or worker writing the same sandbox board at that moment makes a pass read the other's writes as changes: rerun a failure once alone."""
 import argparse
 import concurrent.futures as cf
 import difflib

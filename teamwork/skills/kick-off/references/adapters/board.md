@@ -24,6 +24,8 @@ The board is the repository's GitHub issues, read and written by `gh api` REST c
 - **Trusted**: an author whose association is `OWNER`, `MEMBER` or `COLLABORATOR`.
 - **Scope labels**: `gh label list --search scope:`.
 - **Default branch**: `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
+- **Rate limits**: GraphQL and REST core run out apart, and `gh api rate_limit` can show GraphQL left while each GraphQL call answers `already exceeded`, so trust the call; outside a checkout, `gh issue` and `gh label` need `-R <owner>/<repo>`. Right after a label rename, a search by it can read empty for about 10 s: recheck before concluding none carries it.
+- **Read cost**: price a GraphQL query by `rateLimit(dryRun: true) { cost }`, which spends nothing and returns no data; GitHub charges per connection asked for, the parent count times each child connection, not per node returned. A REST read sent with `If-None-Match` and answered `304` is free, and a `404` is charged each time, so read a list rather than probe an item. To prove a script reads no GraphQL, put first on `PATH` a `gh` that fails `api graphql`, `issue`, `pr`, `repo` and `label` and passes the rest to the real one.
 
 ## Files
 

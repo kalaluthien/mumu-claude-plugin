@@ -13,3 +13,4 @@ A change is a git branch merged by a GitHub pull request.
 
 - **Cloud**: a remote worker works in its session's own checkout, so `branch` is its `claude/<slug>` branch or one it names, with no worktree; `change` is `gh api -X POST repos/<repo>/pulls -f head=<branch> -f base=<base> -f title=<title> -F body=@<file>` and `merge` is `gh api -X PUT repos/<repo>/pulls/<n>/merge -f merge_method=squash -f sha=<head sha>`, since GraphQL is refused there; `remove` is not needed, since the checkout ends with the session.
 - **Live checkout**: after a merge `AGENTS.md`'s `Live checkout` names, `git -C <live checkout> pull --ff-only` before `reload`.
+- **Commit**: join commit, amend and push by `&&`, one message source (`-F <file>` alone), since a failed commit followed by `--amend` rewrites the base's tip; after `push`, read the pull request's files and head sha before the `judge`.
