@@ -21,6 +21,7 @@ Find what keeps going wrong across recent sessions, in every project, and file e
 
 ## Rules
 
+- **Reproduce first**: before fixing a repeat that says a script fails yet works, open the example's command line and rerun the script alone with `echo $?`; the detector counts the whole Bash call's exit code, so a later command in the same line, such as `grep -c` on zero matches, can own the 1. At 0, close the issue with that evidence.
 - **Every repeat**: offer every repeat the steps reach; no cap per run.
 - **Issues only**: dejavu's output is issues and the files in `<d>`, nothing else, since lessons kept as notes did not stop these repeats.
 - **Check a change**: after editing `list-sessions.py` or `list-repeats.py`, run `python3 ${CLAUDE_SKILL_DIR}/scripts/probe-dejavu.py`; it must print `17 of 17 cases pass`.
