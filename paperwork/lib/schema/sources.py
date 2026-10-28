@@ -10,7 +10,7 @@ import pathlib
 import re
 import subprocess
 
-from .model import REF, ref_path
+from .model import REFERENCE, reference_path
 
 CLOSURE = ("every file inside the root that a listed file links to (markdown), imports (Python) or names as "
            "${CLAUDE_PLUGIN_ROOT}/<path> is listed, or excluded with a one-line reason")
@@ -30,93 +30,93 @@ def root_of(plan):
 def cited(node):
     """Every local ref anywhere in the model: (the ref, the file it cites)."""
     if isinstance(node, dict):
-        mine = [(r, ref_path(r)) for r in node.get("refs", []) if isinstance(r, str) and REF.fullmatch(r.strip())]
-        return [x for x in mine if x[1]] + [c for k, v in node.items() if k != "refs" for c in cited(v)]
-    return [c for v in node for c in cited(v)] if isinstance(node, list) else []
+        mine = [(reference, reference_path(reference)) for reference in node.get("refs", []) if isinstance(reference, str) and REFERENCE.fullmatch(reference.strip())]
+        return [citation for citation in mine if citation[1]] + [citation for k, child in node.items() if k != "refs" for citation in cited(child)]
+    return [citation for child in node for citation in cited(child)] if isinstance(node, list) else []
 
 
-def inside(root, p):
-    """The file at p under root, or None."""
-    q = p.resolve()
-    return q if q.is_file() and q.is_relative_to(root) else None
+def inside(root, path):
+    """The file at path under root, or None."""
+    resolved = path.resolve()
+    return resolved if resolved.is_file() and resolved.is_relative_to(root) else None
 
 
-def bases(root, f):
-    """Where an absolute import of f may start: its folder, every lib/ above it, the root."""
-    out, d = [f.parent], f.parent
-    while d.is_relative_to(root):
-        if (d / "lib").is_dir():
-            out.append(d / "lib")
-        d = d.parent
+def bases(root, file):
+    """Where an absolute import of file may start: its folder, every lib/ above it, the root."""
+    out, folder = [file.parent], file.parent
+    while folder.is_relative_to(root):
+        if (folder / "lib").is_dir():
+            out.append(folder / "lib")
+        folder = folder.parent
     return out + [root]
 
 
 def module_file(base, dotted):
-    p = base.joinpath(*dotted.split(".")) if dotted else base
-    return next((c for c in (p.with_suffix(".py"), p / "__init__.py") if c.is_file()), None)
+    path = base.joinpath(*dotted.split(".")) if dotted else base
+    return next((candidate for candidate in (path.with_suffix(".py"), path / "__init__.py") if candidate.is_file()), None)
 
 
-def imports(root, f):
+def imports(root, file):
     try:
-        tree = ast.parse(f.read_text(encoding="utf-8"))
+        tree = ast.parse(file.read_text(encoding="utf-8"))
     except (SyntaxError, UnicodeDecodeError):
         return []
     out = []
-    for n in ast.walk(tree):
-        if isinstance(n, ast.Import):
-            out += [next(filter(None, (module_file(b, a.name) for b in bases(root, f))), None) for a in n.names]
-        elif isinstance(n, ast.ImportFrom):
-            for b in [f.parent.parents[n.level - 2] if n.level > 1 else f.parent] if n.level else bases(root, f):
-                hit = [module_file(b, ".".join(filter(None, [n.module, a.name]))) for a in n.names]
-                if hit := [h for h in hit if h] or [module_file(b, n.module or "")]:
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            out += [next(filter(None, (module_file(start, alias.name) for start in bases(root, file))), None) for alias in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            for base in [file.parent.parents[node.level - 2] if node.level > 1 else file.parent] if node.level else bases(root, file):
+                hit = [module_file(base, ".".join(filter(None, [node.module, alias.name]))) for alias in node.names]
+                if hit := [module for module in hit if module] or [module_file(base, node.module or "")]:
                     out += hit
                     break
-    return [p for p in out if p and p.is_relative_to(root) and p != f]
+    return [path for path in out if path and path.is_relative_to(root) and path != file]
 
 
-def reached(root, f):
-    """(how, file) for each file inside the root that f points at."""
-    text = f.read_text(encoding="utf-8", errors="replace")
+def reached(root, file):
+    """(how, file) for each file inside the root that file points at."""
+    text = file.read_text(encoding="utf-8", errors="replace")
     out = []
-    if f.suffix == ".md":
-        for t in LINK.findall(text):
-            if not SCHEME.match(t) and not t.startswith("#"):
-                out.append(("links to", inside(root, f.parent / t.split("#")[0])))
-    if f.suffix == ".py":
-        out += [("imports", p) for p in imports(root, f)]
-    if f.suffix in (".md", ".py"):
-        plugin = next((d for d in f.parents if (d / ".claude-plugin").is_dir() and d.is_relative_to(root)), None)
-        out += [("names", inside(root, plugin / t.rstrip(".,:;"))) for t in MENTION.findall(text) if plugin]
-    return [(how, p) for how, p in out if p and p != f]
+    if file.suffix == ".md":
+        for target in LINK.findall(text):
+            if not SCHEME.match(target) and not target.startswith("#"):
+                out.append(("links to", inside(root, file.parent / target.split("#")[0])))
+    if file.suffix == ".py":
+        out += [("imports", path) for path in imports(root, file)]
+    if file.suffix in (".md", ".py"):
+        plugin = next((folder for folder in file.parents if (folder / ".claude-plugin").is_dir() and folder.is_relative_to(root)), None)
+        out += [("names", inside(root, plugin / mention.rstrip(".,:;"))) for mention in MENTION.findall(text) if plugin]
+    return [(how, path) for how, path in out if path and path != file]
 
 
-def problems(m):
+def problems(model):
     """(the problems, the status line the check's row prints): empty when the model lists and cites no file."""
-    plan = m.get("plan") or {}
-    refs = cited(m)
-    if not plan.get("sources") and not refs:
+    plan = model.get("plan") or {}
+    references = cited(model)
+    if not plan.get("sources") and not references:
         return [], ""
     root, out = root_of(plan), []
-    name = lambda f: f.relative_to(root).as_posix()
+    name = lambda file_path: file_path.relative_to(root).as_posix()
     listed = {}
-    for p in plan.get("sources", []):
-        if f := inside(root, root / p):
-            listed[f] = p
+    for source in plan.get("sources", []):
+        if file := inside(root, root / source):
+            listed[file] = source
         else:
-            out.append(f"{p}: listed, but no such file under the root (list files one by one, no globs)")
-    exclude = {f: why for p, why in (plan.get("exclude") or {}).items() if (f := (root / p).resolve())}
-    cites = {f for _, p in refs if (f := (root / p).resolve())}
-    out += [f"{p}: listed but cited by no element; cite it as [name]({p}:line) or drop it from plan.sources" for f, p in listed.items() if f not in cites]
-    out += [f"{r} cites {p}, which plan.sources does not list" for r, p in refs if (root / p).resolve() not in listed]
-    out += [f"{name(f)}: give its exclusion a one-line reason" for f, why in exclude.items() if not why.strip()]
+            out.append(f"{source}: listed, but no such file under the root (list files one by one, no globs)")
+    exclude = {file: why for path, why in (plan.get("exclude") or {}).items() if (file := (root / path).resolve())}
+    cites = {file for _, path in references if (file := (root / path).resolve())}
+    out += [f"{path}: listed but cited by no element; cite it as [name]({path}:line) or drop it from plan.sources" for source_file, path in listed.items() if source_file not in cites]
+    out += [f"{reference} cites {path}, which plan.sources does not list" for reference, path in references if (root / path).resolve() not in listed]
+    out += [f"{name(excluded_file)}: give its exclusion a one-line reason" for excluded_file, why in exclude.items() if not why.strip()]
     seen, todo = set(), list(listed)
     while todo:
-        f = todo.pop(0)
-        if f in seen or f in exclude:
+        file = todo.pop(0)
+        if file in seen or file in exclude:
             continue
-        seen.add(f)
-        for how, g in reached(root, f):
-            if g not in listed and g not in exclude and g not in seen and g not in todo:
-                out.append(f'{name(f)} {how} {name(g)}, which is neither listed nor excluded (closure): list it in plan.sources, or give plan.exclude "{name(g)}": a one-line reason')
-            todo.append(g)
+        seen.add(file)
+        for how, target in reached(root, file):
+            if target not in listed and target not in exclude and target not in seen and target not in todo:
+                out.append(f'{name(file)} {how} {name(target)}, which is neither listed nor excluded (closure): list it in plan.sources, or give plan.exclude "{name(target)}": a one-line reason')
+            todo.append(target)
     return out, f"cited {len(cites & set(listed))}/{len(listed)} listed, {len(exclude)} excluded; root {root}; closure: {CLOSURE}"

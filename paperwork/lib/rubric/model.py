@@ -10,11 +10,11 @@ GROUP_SIZE = 8
 def weights(spec):
     """epsilon per tier, the last 1: each the least that keeps eps_d (1 - 2 e_d) delta_d above all lower tiers' sum."""
     tiers = spec["tiers"]
-    eps = [1.0] * len(tiers)
-    for d in range(len(tiers) - 2, -1, -1):
-        seen = (1 - 2 * tiers[d]["judge_error"]) * tiers[d]["delta"]
-        eps[d] = MARGIN * sum(eps[d + 1:]) / seen
-    return eps
+    epsilons = [1.0] * len(tiers)
+    for tier_index in range(len(tiers) - 2, -1, -1):
+        seen = (1 - 2 * tiers[tier_index]["judge_error"]) * tiers[tier_index]["delta"]
+        epsilons[tier_index] = MARGIN * sum(epsilons[tier_index + 1:]) / seen
+    return epsilons
 
 
 def no_signal(pass_rate, group_size=GROUP_SIZE):
@@ -24,7 +24,7 @@ def no_signal(pass_rate, group_size=GROUP_SIZE):
 
 def group_of(verdicts, answer):
     """The answers graded beside this one: its group, else every answer in the file."""
-    return next((g for g in verdicts.get("groups", []) if answer in g), list(verdicts["answers"]))
+    return next((group for group in verdicts.get("groups", []) if answer in group), list(verdicts["answers"]))
 
 
 def tier_scores(spec, verdicts, answer):
@@ -36,15 +36,15 @@ def tier_scores(spec, verdicts, answer):
             out.append(0.0)
             continue
         if tier.get("pairwise"):
-            others = [a for a in group_of(verdicts, answer) if a != answer]
-            u = len(set(given.get("beats", [])) & set(others)) / len(others) if others else 0.0
+            others = [other for other in group_of(verdicts, answer) if other != answer]
+            score = len(set(given.get("beats", [])) & set(others)) / len(others) if others else 0.0
         else:
-            crit = tier["criteria"]
-            u = sum(given[c["id"]] if c["polarity"] == "+" else 1 - given[c["id"]] for c in crit) / len(crit)
-        out.append(u)
-        masked = tier.get("mask_below", False) and u < tier.get("pass", 1)
+            criteria = tier["criteria"]
+            score = sum(given[criterion["id"]] if criterion["polarity"] == "+" else 1 - given[criterion["id"]] for criterion in criteria) / len(criteria)
+        out.append(score)
+        masked = tier.get("mask_below", False) and score < tier.get("pass", 1)
     return out
 
 
 def reward(spec, scores):
-    return sum(e * u for e, u in zip(weights(spec), scores))
+    return sum(weight * score for weight, score in zip(weights(spec), scores))

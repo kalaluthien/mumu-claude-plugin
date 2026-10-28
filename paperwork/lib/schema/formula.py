@@ -17,15 +17,15 @@ KEYWORDS = {
 OWN = {"Now", "Call", "happens", "at", "self", "result", "stutter", "behaviour", "assumptions"}
 RESERVED = KEYWORDS | OWN
 
-QUANT = {"all", "some", "no", "lone", "one", "sum"}
-MULT = {"no", "some", "lone", "one", "set"}
-UNARY_F = {"not", "always", "eventually", "after", "before", "historically", "once"}
-BIN_T = {"until", "releases", "since", "triggered", ";"}
-CMP = {"in", "=", "!=", "<", ">", "=<", ">="}
-CONST = {"none", "univ", "iden", "Int"}
+QUANTIFIERS = {"all", "some", "no", "lone", "one", "sum"}
+MULTIPLICITIES = {"no", "some", "lone", "one", "set"}
+UNARY_OPERATORS = {"not", "always", "eventually", "after", "before", "historically", "once"}
+BINARY_TEMPORAL = {"until", "releases", "since", "triggered", ";"}
+COMPARISONS = {"in", "=", "!=", "<", ">", "=<", ">="}
+CONSTANTS = {"none", "univ", "iden", "Int"}
 REFUSE = {"&&": "and", "||": "or", "=>": "implies", "<=>": "iff", "!": "not", "!in": "not in"}
 
-TOK = re.compile(r"""
+TOKEN_PATTERN = re.compile(r"""
     (?P<ws>\s+) | (?P<num>\d+) | (?P<name>[A-Za-z][A-Za-z0-9_]*) |
     (?P<quote>"[^"]*"|'[^'\s]*') | (?P<prime>') |
     (?P<op><=>|=>|=<|>=|!=|!in|&&|\|\||->|<:|:>|\+\+|<<|>>>|>>|[-+&#.~^*;=<>!|,:\[\](){}@])
@@ -33,28 +33,28 @@ TOK = re.compile(r"""
 
 
 class FormulaError(Exception):
-    def __init__(self, msg, pos=None):
-        super().__init__(msg)
-        self.pos = pos
+    def __init__(self, message, position=None):
+        super().__init__(message)
+        self.position = position
 
 
 def tokens(text):
     out, i = [], 0
     while i < len(text):
-        m = TOK.match(text, i)
-        if not m:
+        match = TOKEN_PATTERN.match(text, i)
+        if not match:
             raise FormulaError(f"cannot read '{text[i]}'", i)
-        kind = m.lastgroup
-        val = m.group(kind)
+        kind = match.lastgroup
+        value = match.group(kind)
         if kind == "prime":
             raise FormulaError("write the next state with after, not a prime", i)
         if kind == "quote":
-            raise FormulaError(f"a value is a name, not a string: write {val.strip(chr(39) + chr(34)).replace(' ', '')}", i)
-        if kind == "op" and val in REFUSE:
-            raise FormulaError(f"write {REFUSE[val]}, not {val}", i)
+            raise FormulaError(f"a value is a name, not a string: write {value.strip(chr(39) + chr(34)).replace(' ', '')}", i)
+        if kind == "op" and value in REFUSE:
+            raise FormulaError(f"write {REFUSE[value]}, not {value}", i)
         if kind != "ws":
-            out.append((kind, val, i))
-        i = m.end()
+            out.append((kind, value, i))
+        i = match.end()
     out.append(("end", "", len(text)))
     return out
 
@@ -63,207 +63,207 @@ class Parser:
     """Pratt parser over Alloy 6 formulas and expressions. Nodes are tuples whose first item is the kind."""
 
     def __init__(self, text):
-        self.t = tokens(text)
+        self.token_list = tokens(text)
         self.i = 0
 
-    def peek(self, k=0):
-        return self.t[min(self.i + k, len(self.t) - 1)]
+    def peek(self, offset=0):
+        return self.token_list[min(self.i + offset, len(self.token_list) - 1)]
 
-    def val(self, k=0):
-        return self.peek(k)[1]
+    def value(self, offset=0):
+        return self.peek(offset)[1]
 
     def take(self, want=None):
-        tok = self.t[self.i]
-        if want is not None and tok[1] != want:
-            raise FormulaError(f"expected {want}, found {tok[1] or 'the end'}", tok[2])
+        token = self.token_list[self.i]
+        if want is not None and token[1] != want:
+            raise FormulaError(f"expected {want}, found {token[1] or 'the end'}", token[2])
         self.i += 1
-        return tok
+        return token
 
     def parse(self):
-        node = self.expr(0)
+        node = self.expression(0)
         if self.peek()[0] != "end":
-            raise FormulaError(f"unexpected {self.val()}", self.peek()[2])
+            raise FormulaError(f"unexpected {self.value()}", self.peek()[2])
         return node
 
     # binding powers, lowest first; quantifiers and let take the rest of the formula
-    BIN = [({"or"}, 10), ({"iff"}, 20), ({"implies"}, 30), ({"and"}, 40), (BIN_T, 50), (CMP | {"not"}, 70),
+    BINDING_POWERS = [({"or"}, 10), ({"iff"}, 20), ({"implies"}, 30), ({"and"}, 40), (BINARY_TEMPORAL, 50), (COMPARISONS | {"not"}, 70),
            ({"<<", ">>", ">>>"}, 85), ({"+", "-"}, 90), ({"++"}, 100), ({"&"}, 110), ({"->"}, 120), ({"<:", ":>"}, 130)]
 
-    def bp(self):
-        v, kind = self.val(), self.peek()[0]
+    def binding_power(self):
+        symbol, kind = self.value(), self.peek()[0]
         if kind not in ("op", "name"):
             return None
-        if v == "not" and self.val(1) == "in":
+        if symbol == "not" and self.value(1) == "in":
             return 70
-        if v == "not":
+        if symbol == "not":
             return None
-        for ops, p in self.BIN:
-            if v in ops:
-                return p
+        for operators, power in self.BINDING_POWERS:
+            if symbol in operators:
+                return power
         return None
 
-    def expr(self, min_bp, operand=False):
+    def expression(self, min_binding_power, operand=False):
         left = self.prefix(operand)
         while True:
-            v = self.val()
-            if v == "[":
+            symbol = self.value()
+            if symbol == "[":
                 left = self.box(left)
                 continue
-            if v == "." and min_bp <= 150:
-                pos = self.take()[2]
+            if symbol == "." and min_binding_power <= 150:
+                position = self.take()[2]
                 right = self.prefix(True, dot=True)
-                left = ("join", left, right, pos)
+                left = ("join", left, right, position)
                 continue
-            p = self.bp()
-            if p is None or p < min_bp or (p == min_bp and v != "implies"):
+            power = self.binding_power()
+            if power is None or power < min_binding_power or (power == min_binding_power and symbol != "implies"):
                 break
-            if v == "not":
+            if symbol == "not":
                 self.take()
                 self.take("in")
-                op = "not in"
+                operator = "not in"
             else:
-                op = self.take()[1]
-            if op == "implies":
-                right = self.expr(p, True)
-                if self.val() == "else":
+                operator = self.take()[1]
+            if operator == "implies":
+                right = self.expression(power, True)
+                if self.value() == "else":
                     self.take()
-                    other = self.expr(p, True)
+                    other = self.expression(power, True)
                     left = ("ite", left, right, other)
                     continue
-                left = ("bin", op, left, right)
+                left = ("bin", operator, left, right)
                 continue
-            right = self.expr(p + 1, True)
-            if op in CMP | {"not in"} and self.val() in CMP | {"not"} and self.bp() == 70:
+            right = self.expression(power + 1, True)
+            if operator in COMPARISONS | {"not in"} and self.value() in COMPARISONS | {"not"} and self.binding_power() == 70:
                 raise FormulaError("chain comparisons with and", self.peek()[2])
-            left = ("bin", op, left, right)
+            left = ("bin", operator, left, right)
         return left
 
     def box(self, target):
         self.take("[")
-        args = [] if self.val() == "]" else [self.expr(0)]
-        while self.val() == ",":
+        arguments = [] if self.value() == "]" else [self.expression(0)]
+        while self.value() == ",":
             self.take()
-            args.append(self.expr(0))
+            arguments.append(self.expression(0))
         self.take("]")
-        return ("box", target, args)
+        return ("box", target, arguments)
 
-    def decls(self):
+    def declarations(self):
         out = []
         while True:
-            disj = self.val() == "disj"
-            if disj:
+            is_disjoint = self.value() == "disj"
+            if is_disjoint:
                 self.take()
             names = [self.name()]
-            while self.val() == ",":
+            while self.value() == ",":
                 self.take()
                 names.append(self.name())
             self.take(":")
-            mult = self.take()[1] if self.val() in MULT else None
-            out.append((names, disj, mult, self.expr(60, True)))
-            if self.val() != ",":
+            multiplicity = self.take()[1] if self.value() in MULTIPLICITIES else None
+            out.append((names, is_disjoint, multiplicity, self.expression(60, True)))
+            if self.value() != ",":
                 return out
             self.take()
 
     def name(self):
-        tok = self.take()
-        if tok[0] != "name" or tok[1] in KEYWORDS:
-            raise FormulaError(f"expected a variable name, found {tok[1] or 'the end'}", tok[2])
-        return tok[1]
+        token = self.take()
+        if token[0] != "name" or token[1] in KEYWORDS:
+            raise FormulaError(f"expected a variable name, found {token[1] or 'the end'}", token[2])
+        return token[1]
 
-    def is_decl(self):
-        k = 0
-        if self.val(k) == "disj":
-            k += 1
-        while self.peek(k)[0] == "name" and self.val(k) not in KEYWORDS:
-            if self.val(k + 1) == ":":
+    def is_declaration(self):
+        offset = 0
+        if self.value(offset) == "disj":
+            offset += 1
+        while self.peek(offset)[0] == "name" and self.value(offset) not in KEYWORDS:
+            if self.value(offset + 1) == ":":
                 return True
-            if self.val(k + 1) != ",":
+            if self.value(offset + 1) != ",":
                 return False
-            k += 2
+            offset += 2
         return False
 
     def prefix(self, operand=False, dot=False):
-        kind, v, pos = self.peek()
+        kind, symbol, position = self.peek()
         if dot:   # after a dot: a field, an operation, or a parenthesised expression
-            if kind == "name" and v not in KEYWORDS - {"Int"}:
+            if kind == "name" and symbol not in KEYWORDS - {"Int"}:
                 self.take()
-                return ("name", v, pos)
-            if v == "(":
+                return ("name", symbol, position)
+            if symbol == "(":
                 return self.prefix()
-            if v in {"~", "^", "*"}:
+            if symbol in {"~", "^", "*"}:
                 self.take()
-                return ("un", v, self.prefix(True, dot=True))
-            raise FormulaError(f"expected a field or operation after the dot, found {v or 'the end'}", pos)
-        if v in QUANT and self.val(1) != "[" and (self.is_decl_at(1)):
+                return ("un", symbol, self.prefix(True, dot=True))
+            raise FormulaError(f"expected a field or operation after the dot, found {symbol or 'the end'}", position)
+        if symbol in QUANTIFIERS and self.value(1) != "[" and (self.is_declaration_at(1)):
             self.take()
-            ds = self.decls()
+            declared = self.declarations()
             self.take("|")
-            return ("quant", v, ds, self.expr(0), pos)
-        if v == "let":
+            return ("quant", symbol, declared, self.expression(0), position)
+        if symbol == "let":
             self.take()
             binds = []
             while True:
-                n = self.name()
+                variable = self.name()
                 self.take("=")
-                binds.append((n, self.expr(60, True)))
-                if self.val() != ",":
+                binds.append((variable, self.expression(60, True)))
+                if self.value() != ",":
                     break
                 self.take()
             self.take("|")
-            return ("let", binds, self.expr(0), pos)
-        if v in UNARY_F:
+            return ("let", binds, self.expression(0), position)
+        if symbol in UNARY_OPERATORS:
             self.take()
-            if operand and self.val() in QUANT | {"let"} and self.is_decl_at(1) | (self.val() == "let"):
-                raise FormulaError(f"put parentheses round the formula after {v}", pos)
-            return ("un", v, self.expr(60, operand))
-        if v in MULT and self.val(1) not in {"[", ".", ")", ",", "]", "|"}:
+            if operand and self.value() in QUANTIFIERS | {"let"} and self.is_declaration_at(1) | (self.value() == "let"):
+                raise FormulaError(f"put parentheses round the formula after {symbol}", position)
+            return ("un", symbol, self.expression(60, operand))
+        if symbol in MULTIPLICITIES and self.value(1) not in {"[", ".", ")", ",", "]", "|"}:
             self.take()
-            return ("mult", v, self.expr(80, True))
-        if v == "#":
+            return ("mult", symbol, self.expression(80, True))
+        if symbol == "#":
             self.take()
-            return ("un", "#", self.expr(100, True))
-        if v in {"~", "^", "*"}:
+            return ("un", "#", self.expression(100, True))
+        if symbol in {"~", "^", "*"}:
             self.take()
-            return ("un", v, self.expr(160, True))
-        if v == "-" and self.peek(1)[0] == "num":
+            return ("un", symbol, self.expression(160, True))
+        if symbol == "-" and self.peek(1)[0] == "num":
             self.take()
             return ("num", "-" + self.take()[1])
-        if v == "(":
+        if symbol == "(":
             self.take()
-            inner = self.expr(0)
+            inner = self.expression(0)
             self.take(")")
             return ("paren", inner)
-        if v == "{":
+        if symbol == "{":
             self.take()
-            if self.is_decl():
-                ds = self.decls()
+            if self.is_declaration():
+                declared = self.declarations()
                 self.take("|")
-                body = self.expr(0)
+                body = self.expression(0)
                 self.take("}")
-                return ("compr", ds, body, pos)
+                return ("compr", declared, body, position)
             items = []
-            while self.val() != "}":
-                items.append(self.expr(0))
+            while self.value() != "}":
+                items.append(self.expression(0))
             self.take("}")
             return ("block", items)
         if kind == "num":
             self.take()
-            return ("num", v)
+            return ("num", symbol)
         if kind == "name":
-            if v in CONST or v == "this":
+            if symbol in CONSTANTS or symbol == "this":
                 self.take()
-                return ("const", v)
-            if v in KEYWORDS:
-                raise FormulaError(f"{v} cannot start an expression here", pos)
+                return ("const", symbol)
+            if symbol in KEYWORDS:
+                raise FormulaError(f"{symbol} cannot start an expression here", position)
             self.take()
-            return ("name", v, pos)
-        raise FormulaError(f"unexpected {v or 'end of formula'}", pos)
+            return ("name", symbol, position)
+        raise FormulaError(f"unexpected {symbol or 'end of formula'}", position)
 
-    def is_decl_at(self, k):
+    def is_declaration_at(self, offset):
         save = self.i
-        self.i += k
+        self.i += offset
         try:
-            return self.is_decl()
+            return self.is_declaration()
         finally:
             self.i = save
 
@@ -273,64 +273,64 @@ def parse(text):
 
 
 def walk(node, bound, use):
-    """Call use(kind, name, pos, bound) for every name: 'free' (a bare name), 'member' (after a dot) or 'call'."""
-    k = node[0]
-    if k == "name":
+    """Call use(kind, name, position, bound) for every name: 'free' (a bare name), 'member' (after a dot) or 'call'."""
+    kind = node[0]
+    if kind == "name":
         use("free", node[1], node[2], bound)
-    elif k in ("num", "const"):
+    elif kind in ("num", "const"):
         return
-    elif k == "paren":
+    elif kind == "paren":
         walk(node[1], bound, use)
-    elif k == "block":
-        for x in node[1]:
-            walk(x, bound, use)
-    elif k == "un" or k == "mult":
+    elif kind == "block":
+        for child in node[1]:
+            walk(child, bound, use)
+    elif kind == "un" or kind == "mult":
         walk(node[2], bound, use)
-    elif k == "bin":
+    elif kind == "bin":
         walk(node[2], bound, use)
         walk(node[3], bound, use)
-    elif k == "ite":
-        for x in node[1:]:
-            walk(x, bound, use)
-    elif k == "join":
+    elif kind == "ite":
+        for child in node[1:]:
+            walk(child, bound, use)
+    elif kind == "join":
         walk(node[1], bound, use)
-        r = node[2]
-        while r[0] == "un" and r[1] in "~^*":
-            r = r[2]
-        if r[0] == "name":
-            use("member", r[1], r[2], bound)
+        right = node[2]
+        while right[0] == "un" and right[1] in "~^*":
+            right = right[2]
+        if right[0] == "name":
+            use("member", right[1], right[2], bound)
         else:
-            walk(r, bound, use)
-    elif k == "box":
-        t = node[1]
-        if t[0] == "name":
-            use("call", t[1], t[2], bound)
-        elif t[0] == "join" and t[2][0] == "name":
-            walk(t[1], bound, use)
-            use("member", t[2][1], t[2][2], bound)
+            walk(right, bound, use)
+    elif kind == "box":
+        target = node[1]
+        if target[0] == "name":
+            use("call", target[1], target[2], bound)
+        elif target[0] == "join" and target[2][0] == "name":
+            walk(target[1], bound, use)
+            use("member", target[2][1], target[2][2], bound)
         else:
-            walk(t, bound, use)
-        for a in node[2]:
-            walk(a, bound, use)
-    elif k in ("quant", "compr"):
-        ds = node[2] if k == "quant" else node[1]
+            walk(target, bound, use)
+        for argument in node[2]:
+            walk(argument, bound, use)
+    elif kind in ("quant", "compr"):
+        declarations = node[2] if kind == "quant" else node[1]
         inner = set(bound)
-        for names, _, _, e in ds:
-            walk(e, inner, use)
+        for names, _, _, expression in declarations:
+            walk(expression, inner, use)
             inner |= set(names)
-        walk(node[3] if k == "quant" else node[2], inner, use)
-    elif k == "let":
+        walk(node[3] if kind == "quant" else node[2], inner, use)
+    elif kind == "let":
         inner = set(bound)
-        for n, e in node[1]:
-            walk(e, inner, use)
-            inner.add(n)
+        for name, expression in node[1]:
+            walk(expression, inner, use)
+            inner.add(name)
         walk(node[2], inner, use)
 
 
 def uses(text):
-    """[(kind, name, pos, bound)] for a formula, or raises FormulaError."""
+    """[(kind, name, position, bound)] for a formula, or raises FormulaError."""
     out = []
-    walk(parse(text), set(), lambda *a: out.append(a))
+    walk(parse(text), set(), lambda *arguments: out.append(arguments))
     return out
 
 
@@ -345,16 +345,16 @@ def binders(text):
             for names, *_ in (node[2] if node[0] == "quant" else node[1]):
                 out.extend(names)
         if node[0] == "let":
-            out.extend(n for n, _ in node[1])
-        for x in node[1:]:
-            if isinstance(x, tuple):
-                grab(x)
-            elif isinstance(x, list):
-                for y in x:
-                    if isinstance(y, tuple):
-                        grab(y)
-                        for z in y:
-                            grab(z) if isinstance(z, tuple) else None
+            out.extend(name for name, _ in node[1])
+        for child in node[1:]:
+            if isinstance(child, tuple):
+                grab(child)
+            elif isinstance(child, list):
+                for entry in child:
+                    if isinstance(entry, tuple):
+                        grab(entry)
+                        for piece in entry:
+                            grab(piece) if isinstance(piece, tuple) else None
 
     grab(parse(text))
     return out
@@ -362,108 +362,108 @@ def binders(text):
 
 def free_spans(text, names):
     """Positions of bare, unbound occurrences of the given names, for renaming."""
-    return [(pos, n) for kind, n, pos, bound in uses(text) if kind in ("free", "call") and n in names and n not in bound]
+    return [(position, name) for kind, name, position, bound in uses(text) if kind in ("free", "call") and name in names and name not in bound]
 
 
 def rename(text, mapping):
     """Replace bare, unbound names (parameters, self, result) by expressions."""
     spans = sorted(free_spans(text, set(mapping)), reverse=True)
-    for pos, n in spans:
-        text = text[:pos] + mapping[n] + text[pos + len(n):]
+    for position, name in spans:
+        text = text[:position] + mapping[name] + text[position + len(name):]
     return text
 
 
 def temporal(text):
     """Whether a formula speaks about time: a temporal operator, or one that only time gives meaning to."""
-    return any(v in UNARY_F - {"not"} or v in BIN_T for _, v, _ in tokens(text))
+    return any(symbol in UNARY_OPERATORS - {"not"} or symbol in BINARY_TEMPORAL for _, symbol, _ in tokens(text))
 
 
 WIDTH = 40   # a formula line holds about 40 mono characters
 
 
 def show(node):
-    k = node[0]
-    if k in ("name",):
+    kind = node[0]
+    if kind in ("name",):
         return node[1]
-    if k in ("num", "const"):
+    if kind in ("num", "const"):
         return node[1]
-    if k == "paren":
+    if kind == "paren":
         return "(" + show(node[1]) + ")"
-    if k == "block":
-        return "{ " + " ".join(show(x) for x in node[1]) + " }"
-    if k == "un":
+    if kind == "block":
+        return "{ " + " ".join(show(item) for item in node[1]) + " }"
+    if kind == "un":
         return node[1] + ("" if node[1] in "#~^*" else " ") + show(node[2])
-    if k == "mult":
+    if kind == "mult":
         return node[1] + " " + show(node[2])
-    if k == "bin":
-        sep = "" if node[1] in ("->",) else " "
-        return show(node[2]) + sep + node[1] + sep + show(node[3])
-    if k == "ite":
+    if kind == "bin":
+        separator = "" if node[1] in ("->",) else " "
+        return show(node[2]) + separator + node[1] + separator + show(node[3])
+    if kind == "ite":
         return f"{show(node[1])} implies {show(node[2])} else {show(node[3])}"
-    if k == "join":
+    if kind == "join":
         return show(node[1]) + "." + show(node[2])
-    if k == "box":
-        return show(node[1]) + "[" + ", ".join(show(a) for a in node[2]) + "]"
-    if k in ("quant", "compr"):
-        ds = node[2] if k == "quant" else node[1]
-        d = ", ".join(("disj " if dj else "") + ", ".join(ns) + ": " + (m + " " if m else "") + show(e) for ns, dj, m, e in ds)
-        body = node[3] if k == "quant" else node[2]
-        return (f"{node[1]} {d} | {show(body)}" if k == "quant" else "{" + d + " | " + show(body) + "}")
-    if k == "let":
-        return "let " + ", ".join(f"{n} = {show(e)}" for n, e in node[1]) + " | " + show(node[2])
-    raise ValueError(k)
+    if kind == "box":
+        return show(node[1]) + "[" + ", ".join(show(argument) for argument in node[2]) + "]"
+    if kind in ("quant", "compr"):
+        declarations = node[2] if kind == "quant" else node[1]
+        declaration_text = ", ".join(("disj " if is_disjoint else "") + ", ".join(names) + ": " + (multiplicity + " " if multiplicity else "") + show(expression) for names, is_disjoint, multiplicity, expression in declarations)
+        body = node[3] if kind == "quant" else node[2]
+        return (f"{node[1]} {declaration_text} | {show(body)}" if kind == "quant" else "{" + declaration_text + " | " + show(body) + "}")
+    if kind == "let":
+        return "let " + ", ".join(f"{name} = {show(expression)}" for name, expression in node[1]) + " | " + show(node[2])
+    raise ValueError(kind)
 
 
-def chain(node, op):
-    if node[0] == "bin" and node[1] == op:
-        return chain(node[2], op) + chain(node[3], op)
+def chain(node, operator):
+    if node[0] == "bin" and node[1] == operator:
+        return chain(node[2], operator) + chain(node[3], operator)
     return [node]
 
 
-def lines(node, ind=0):
+def lines(node, indent=0):
     """Lay a formula out over lines no wider than WIDTH: a quantifier's body goes below it, long chains break before and, or."""
     flat = show(node)
-    pad = "  " * ind
+    pad = "  " * indent
     if len(flat) + len(pad) <= WIDTH:
         return [pad + flat]
-    k = node[0]
-    if k == "quant":
-        ds = [("disj " if dj else "") + ", ".join(ns) + ": " + (mm + " " if mm else "") + show(e) for ns, dj, mm, e in node[2]]
+    kind = node[0]
+    if kind == "quant":
+        declaration_texts = [("disj " if is_disjoint else "") + ", ".join(names) + ": " + (multiplicity + " " if multiplicity else "") + show(expression) for names, is_disjoint, multiplicity, expression in node[2]]
         head, rows = pad + node[1] + " ", []
-        for i, d in enumerate(ds):   # declarations wrap one per line when the header is too wide
-            piece = d + ("," if i < len(ds) - 1 else " |")
+        for i, declaration in enumerate(declaration_texts):   # declarations wrap one per line when the header is too wide
+            piece = declaration + ("," if i < len(declaration_texts) - 1 else " |")
             if rows and len(rows[-1]) + 1 + len(piece) > WIDTH:
                 rows.append(pad + "    " + piece)
             else:
                 rows = rows[:-1] + [(rows[-1] + " " if rows else head) + piece]
-        return rows + lines(node[3], ind + 1)
-    if k == "let":
-        head = "let " + ", ".join(f"{n} = {show(e)}" for n, e in node[1]) + " |"
-        return [pad + head] + lines(node[2], ind + 1)
-    if k == "paren":
-        inner = lines(node[1], ind + 1)
+        return rows + lines(node[3], indent + 1)
+    if kind == "let":
+        head = "let " + ", ".join(f"{name} = {show(expression)}" for name, expression in node[1]) + " |"
+        return [pad + head] + lines(node[2], indent + 1)
+    if kind == "paren":
+        inner = lines(node[1], indent + 1)
         return [pad + "(" + inner[0].lstrip()] + inner[1:-1] + [inner[-1] + ")"] if len(inner) > 1 else [pad + "(" + inner[0].lstrip() + ")"]
-    if k == "un" and node[1] not in "#~^*":
-        inner = lines(node[2], ind)
+    if kind == "un" and node[1] not in "#~^*":
+        inner = lines(node[2], indent)
         return [pad + node[1] + " " + inner[0].lstrip()] + inner[1:]
-    if k == "bin" and node[1] in ("and", "or"):
+    if kind == "bin" and node[1] in ("and", "or"):
         parts = chain(node, node[1])
-        out = lines(parts[0], ind)
-        for p in parts[1:]:
-            sub = lines(p, ind)
-            out += [pad + node[1] + " " + sub[0].lstrip()] + sub[1:]
+        out = lines(parts[0], indent)
+        for part in parts[1:]:
+            inner_lines = lines(part, indent)
+            out += [pad + node[1] + " " + inner_lines[0].lstrip()] + inner_lines[1:]
         return out
-    if k in ("bin", "ite") and (k == "ite" or node[1] in ("implies", "iff")):
-        a, b = (node[1], node[2]) if k == "ite" else (node[2], node[3])
-        word = "implies" if k == "ite" else node[1]
-        head = lines(a, ind)
+    if kind in ("bin", "ite") and (kind == "ite" or node[1] in ("implies", "iff")):
+        left, right = (node[1], node[2]) if kind == "ite" else (node[2], node[3])
+        word = "implies" if kind == "ite" else node[1]
+        head = lines(left, indent)
         head[-1] += " " + word
-        out = head + lines(b, ind + 1)
-        if k == "ite":
-            out += [pad + "else"] + lines(node[3], ind + 1)
+        out = head + lines(right, indent + 1)
+        if kind == "ite":
+            out += [pad + "else"] + lines(node[3], indent + 1)
         return out
-    if k == "bin" and node[1] in CMP | {"not in"}:   # a long comparison: its right side goes below
-        return lines(node[2], ind) + [pad + "  " + node[1] + " " + l.lstrip() for l in lines(node[3], ind + 1)[:1]] + lines(node[3], ind + 1)[1:]
+    if kind == "bin" and node[1] in COMPARISONS | {"not in"}:   # a long comparison: its right side goes below
+        return lines(node[2], indent) + [pad + "  " + node[1] + " " + line.lstrip() for line in lines(node[3], indent + 1)[:1]] + lines(node[3], indent + 1)[1:]
     return [pad + flat]
 
 
