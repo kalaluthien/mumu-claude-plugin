@@ -1,6 +1,6 @@
 # Model
 
-How a spec turns verdicts into an order. The grammar, [assets/rubric.schema.json](assets/rubric.schema.json), says what a spec may hold; this file says what it means, so every script scores it the same way.
+How a spec turns verdicts into an order. The grammar, [assets/rubric-schema.json](assets/rubric-schema.json), says what a spec may hold; this file says what it means, so every script scores it the same way.
 
 ## Tier score and reward
 

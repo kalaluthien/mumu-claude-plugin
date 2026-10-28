@@ -7,7 +7,7 @@ Grade one target, a document, skill, code, page or plan, into an HTML report car
 - **target**: the thing graded, at one version: a path, a url or a commit.
 - **subject**: what kind of thing the target is, what it is for and who reads it, each with the evidence for that reading; it picks the frameworks the criteria come from.
 - **framework**: an established quality standard for the subject's kind, the menu criteria are drawn from.
-- **grades file**: each criterion's verdict with the quoted evidence, its location, the reason and, for a failure, the fix, in the grammar of [spec/assets/rubric.schema.json](spec/assets/rubric.schema.json) `$defs/grades`; its `met` values are a verdict file's.
+- **grades file**: each criterion's verdict with the quoted evidence, its location, the reason and, for a failure, the fix, in the grammar of [spec/assets/rubric-schema.json](spec/assets/rubric-schema.json) `$defs/grades`; its `met` values are a verdict file's.
 - **report card**: the page `make-report.py` builds from a spec and a grades file: the verdict, the fix list, a bar per tier, then each criterion with its evidence.
 
 | subject's kind | frameworks to draw from |

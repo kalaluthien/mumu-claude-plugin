@@ -16,7 +16,7 @@ After `make-diagram.py make` passes, view each level at both widths and themes (
 
 ## Rules
 
-- One thing to watch: only the selection is inverted.
-- Every mark has a job, one signal per meaning; no title, figure number, hint or switch.
-- Calm: one eased movement per navigation; none if reduced motion.
-- Type: names handwritten, identifiers and formulas mono, sentences sans, kinds and field labels small caps.
+- **One thing to watch**: only the selection is inverted.
+- **Marks**: every mark has a job, one signal per meaning; no title, figure number, hint or switch.
+- **Calm**: one eased movement per navigation; none if reduced motion.
+- **Type**: names handwritten, identifiers and formulas mono, sentences sans, kinds and field labels small caps.

@@ -25,9 +25,9 @@ Feature no deeper when either holds:
 The page's own words (Facts, Insight, main path, optional), each `facts` item's opening term, each medium and screen `title` and each block `name` stay English (`Defining`, not `정하기`) [names]. Top-level `lang` is the reader's language (`ko`); default `en`.
 
 In a Korean model, `[prose]` (lint) quotes the sentence at fault:
-- end in `-니다` or `-니까`, never `-요` or plain `-다`; quotes exempt;
-- the particle after an English term follows its last sound (`Alloy가`, `run이`), with no space; `수 있`, `수 없` apart;
-- no `위`, `아래`, `앞` or `다음` before `그림`, `표`, `식`, `그래프` or `칸`; name the figure (`그림의 위 칸` is fine).
+- **Ending**: end in `-니다` or `-니까`, never `-요` or plain `-다`; quotes exempt;
+- **Particle**: the particle after an English term follows its last sound (`Alloy가`, `run이`), with no space; `수 있`, `수 없` apart;
+- **Figure words**: no `위`, `아래`, `앞` or `다음` before `그림`, `표`, `식`, `그래프` or `칸`; name the figure (`그림의 위 칸` is fine).
 
 ## Layout
 
