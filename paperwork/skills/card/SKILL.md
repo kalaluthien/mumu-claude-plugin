@@ -24,7 +24,7 @@ Grade a target into a report card: find what it is and who it serves, derive a r
 | --- | --- |
 | grade a target and show the result, or raise a target by its grade | [references/report.md](references/report.md) |
 | write a rubric, reward spec or grading spec from a task | [references/author.md](references/author.md) |
-| how far the judge agrees with itself or with people, or how it reacts to length, padding or wording | [references/calibrate.md](references/calibrate.md) |
+| how far the judge, or a model counting items in prose, agrees with itself or with people, or how it reacts to length, padding or wording | [references/calibrate.md](references/calibrate.md) |
 | apply a spec to verdicts: rewards for training, a comparison of systems, a sheet people fill in | [references/grade.md](references/grade.md) |
 | a spec ranked answers wrongly | [references/repair.md](references/repair.md) |
 

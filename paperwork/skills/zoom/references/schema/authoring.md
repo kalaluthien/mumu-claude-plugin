@@ -40,7 +40,8 @@ Pick the kind by what the reader follows ([semantics.md](semantics.md)): the par
 
 Rules for a level:
 - The model's `level` is the root, the system's outermost repeating structure. A node opens the level inside it with `opens`.
-- Show what it is made of (components) and how it works (activities, states), such as a topology level opened from a state (`link: view`) and walked by the root Scenario; a body of knowledge has claims and what they rest on [mechanism], a warning no fixture under `schema/fixtures/` may raise, since `check-schema.py fixtures` accepts a plain name only with no warning, though one under `playbook/fixtures/` may.
+- Show what it is made of (components) and how it works (activities, states); a body of knowledge has claims and what they rest on [mechanism]. A model with no topology level, such as one opened from a state (`link: view`) and walked by the root Scenario, gets the `mechanism` warning.
+- A fixture under `schema/fixtures/` raises no warning, since `check-schema.py fixtures` accepts a plain name only with none; one under `playbook/fixtures/` may.
 - A level has 2 to 7 nodes; group states that react alike and detail them below.
 - Every edge says something: a `what`, an operation or a guard [explained].
 - A condition such as "pass" is a guard, not an artifact: name what is handed on.
@@ -101,7 +102,7 @@ An operation is a method, `Receiver.verb(name: Type, …) → Result` [typed].
 
 A rule is a proposition no other rule implies; Alloy checks once that it holds.
 
-- **Where it sits**: On a node it holds the whole time. On an edge or trigger of a workflow or state level, a `must` is the guard: the artifact is handed on, or the event happens, only when it holds.
+- **Where it sits**: every rule is named in the `rules` of some node or edge [placement]. On a node it holds the whole time. On an edge or trigger of a workflow or state level, a `must` is the guard: the artifact is handed on, or the event happens, only when it holds.
 - **Kind**: `must` (breaking it breaks a result) or `should` (makes things worse).
 - **Formulas are Alloy 6** over the module's names [vocabulary]: predicate, relational, integer and temporal (`always`, `eventually`, `after`, `once`, `until`, `;`). Keywords are words: `not`, `and`, `or`, `implies`, `iff`, `else`.
   - `x.attr` for a member, `x.verb[args]` for "that call happened now", `x.verb` for any call of it; a state's name is the set of things in it; another rule is a predicate by its lowerCamel name.

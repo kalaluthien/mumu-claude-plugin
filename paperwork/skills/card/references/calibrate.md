@@ -7,7 +7,9 @@ The commands are `${CLAUDE_PLUGIN_ROOT}/skills/card/scripts/measure-judge.py <mo
 ## Steps
 
 1. **Full rubric**: the judge grades every criterion of the spec in one call, with the whole rubric in view.
-2. **Runs**: grade the same 30 or more answers three times into one fresh folder of verdict files (never one an older run still writes: its stale replies become cache; a seeded run reuses only its paired base run's replies to unchanged items, never batch-built ones such as pairs, whose batches shift) and run `alpha <spec> <folder>`. Rewrite each criterion it names below 0.800, or that the sample leaves no headroom (every answer meets it, or its anchors all sit at the top), by reading the sample for what it lacks, as "the opening says how the parts relate" leaves room where "the opening names the parts" does not; never reweight it.
+2. **Runs**: grade the same 30 or more answers three times into one fresh folder of verdict files and run `alpha <spec> <folder>`. Rewrite each criterion it names below 0.800, and each with no headroom; never reweight it:
+   - a folder an older run still writes turns its stale replies into cache; a run on a copy with a planted defect reuses only the clean run's replies to items it left unchanged, never replies built per batch, whose batches shift;
+   - a criterion has no headroom when every answer meets it or every dry-run answer scores top: read the sample for what it lacks, as "the opening says how the parts relate" leaves room where "the opening names the parts" does not.
 3. **People**: with human verdicts on the same answers, run `human <spec> <judge verdicts> <human verdicts>`. Record kappa, macro F1 and the MET-rate gap in the spec's judge calibration. A judge that says met more often than people is lenient, and lenience is what optimisation exploits.
 4. **Perturbations**: for each answer `a`, add answers named `a~<kind>` that change only one surface, and run `bias <spec> <verdicts>`:
    - paraphrase: the same content in other words;
@@ -31,8 +33,8 @@ Each one sends the spec to [repair.md](repair.md).
 
 - **Noise and bias**: a verdict carries both, so measure them before trusting a gap:
   - judge biases within one tier, such as length or wording, add up, and the tier condition does not remove them; the perturbation suite measures them;
-  - a model's count or score moves run to run: let code cut the text into numbered sentences, at `;` too, and pick each one's nearest pairs by word Jaccard; let the model score single items 0 or 1, 3 times, and keep the median or 2 of 3;
-  - ask in parts of at most 60 items, and group synonyms 40 terms at a time against the whole list;
+  - a model's count or score moves run to run: let code cut the text into numbered sentences, at `;` too, and, to find duplicates, pick each sentence's 3 nearest by word Jaccard; let the model score single items 0 or 1, 3 times, and keep the median or 2 of 3;
+  - ask in parts of at most 60 items, and when grouping synonyms, ask 40 terms at a time against the whole list;
   - bootstrap a gap's sd before setting a margin: a bar that holds is head at least base minus 2 sd on every criterion, and head's sum at least base's on the targeted criteria with room below the top; a fix the graders' reasons name moves a criterion, a gap they do not explain is noise;
-  - never ask a total to move by +1: pass on a seeded `path:line` listed in every run and absent from the base's runs.
+  - never ask a total to move by +1: for a defect planted at a `path:line`, pass when every run on the planted copy lists it and no run on the clean copy does.
 - **Hidden mask**: top-down routing, where the judge picks a branch and then grades its children, is a hidden mask with compounding judge error; grade every criterion with the full rubric instead.
