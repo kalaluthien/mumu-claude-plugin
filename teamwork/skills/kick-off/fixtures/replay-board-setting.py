@@ -2,8 +2,8 @@
 """Write the board setting into a temporary repository with no remote after the manager's heartbeat started, and print `ok <step>` or
 `fail <step>: <what differed>` for each step; exit 1 on any fail. No step reaches GitHub: a `gh` that always fails stands first on PATH.
 
-usage: replay-board-setting.py [-v]
-`-v` also prints the heartbeat's output.
+usage: replay-board-setting.py [--verbose]
+`--verbose` also prints the heartbeat's output.
 - signal: the heartbeat, started with no setting, touches the signal file, which wakes the issue pane, once `.claude/settings.local.json` names the files board
 - late-landing: with the board set, the heartbeat routes nothing while its landing reads the failing GitHub, and a later `TEAMWORK_LANDING=git` alone touches the signal file again
 - late-setting: the heartbeat then routes the files board's backlog, which it never did before the settings
@@ -60,7 +60,7 @@ def kinds(cwd, **more):
 
 
 def main(args):
-    if any(argument != "-v" for argument in args):
+    if any(argument != "--verbose" for argument in args):
         print(__doc__, file=sys.stderr)
         return 2
     (work / "bin").mkdir()
@@ -97,7 +97,7 @@ def main(args):
         step("late-setting", not early and printed(log, "route #1 Probe the late setting", 20), log.read_text())
     finally:
         live.kill()
-    if "-v" in args:
+    if "--verbose" in args:
         print(log.read_text(), file=sys.stderr)
 
     run(["git", "worktree", "add", "-q", "-b", "probe-worker", str(repo / ".claude" / "worktrees" / "probe-worker")])

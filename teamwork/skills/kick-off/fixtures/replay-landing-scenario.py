@@ -2,8 +2,8 @@
 """Land two workers' changes in a temporary repository with no remote, through use-landing.py, a files board and the fake herdr beside this file, and
 print `ok <step>` or `fail <step>: <what differed>` for each step; exit 1 on any fail.
 
-usage: replay-landing-scenario.py [-v]
-`-v` also prints each command's output.
+usage: replay-landing-scenario.py [--verbose]
+`--verbose` also prints each command's output.
 - change: two branches filed as changes 1 and 2, listed open at their tips; change-race, at the end: six filed at once get six numbers
 - refuse-moved-head: change 1 merged at a sha other than its tip, or at its branch name, exits 1 and leaves the base as it was
 - refuse-dirty-checkout: change 1 merged over an uncommitted file in the base's checkout exits 1 and leaves the file and the base as they were
@@ -96,10 +96,10 @@ def printed(log, text, seconds=20):
 
 def main(args):
     global VERBOSE
-    if any(argument != "-v" for argument in args):
+    if any(argument != "--verbose" for argument in args):
         print(__doc__, file=sys.stderr)
         return 2
-    VERBOSE = "-v" in args
+    VERBOSE = "--verbose" in args
     repo.mkdir()
     git("init", "-q", "-b", "main")
     commit(repo, "a.txt", "one\n")
