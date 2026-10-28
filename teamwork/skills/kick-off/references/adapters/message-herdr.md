@@ -1,6 +1,6 @@
 # Message: herdr
 
-herdr types a message into the receiver's pane and keeps no reply path, so the receiver replies by `comment` on the issue the message names; `herdr agent prompt` exits 0 once it is typed, not once read, since a busy Claude Code session runs it after its turn, one at a tool prompt herdr recognises refuses it (`agent_blocked`, exit 1), and an unrecognised dialog reads `idle` and takes the text, and `herdr agent read` of a blocked session fails `agent_not_idle` unless given `--source visible`.
+herdr types a message into the receiver's pane and keeps no reply path, so the receiver replies by `comment` on the issue the message names.
 
 | operation | how |
 | --- | --- |

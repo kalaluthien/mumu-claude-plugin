@@ -27,7 +27,7 @@ The board is the repository's GitHub issues, read and written by `gh api` REST c
 - **Pull request**: its head by `gh pr view <n> --json headRefOid`.
 - **Cloud checks**: a `[check]` a remote worker runs reads by `gh api repos/<repo>/issues/<n>` and `…/comments` too, never `gh issue view` or `gh pr list`.
 - **Trusted**: an author whose association is `OWNER`, `MEMBER` or `COLLABORATOR`.
-- **Scope labels**: `gh label list --search scope:`, with `-R <owner>/<repo>` read from `git remote` outside a checkout, never built from a folder name; right after a label rename, a search by it can read empty for about 10 s, so recheck before concluding none carries it.
+- **Scope labels**: `gh label list --search scope:`, rechecked before concluding none carries a label, since a search right after its rename can read empty for about 10 s, and outside a checkout given `-R <owner>/<repo>` read from `git remote`, never built from a folder name.
 - **Default branch**: `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
 
 ## Files

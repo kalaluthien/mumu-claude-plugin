@@ -21,7 +21,7 @@ How a teamwork issue is written, so a person reads it as prose and code composes
 
 ## Data
 
-Data a script reads sits only in a fenced block whose info string is `teamwork`, one `key: value` per line; explanation never uses that fence, so prose never parses as data. A body or any comment may carry one, and only its lines count, each value as written: a `holders:` line outside the fence, or a name in brackets (`[a-worker]`), holds nothing, so the heartbeat routes the issue again.
+Data a script reads sits only in a fenced block whose info string is `teamwork`, one `key: value` per line; explanation never uses that fence, so prose never parses as data. Only lines inside such a fence count, in a body or any comment, each value as written, so a `holders:` line outside it, or a name in brackets (`[a-worker]`), holds nothing and the heartbeat routes the issue again.
 
 ````markdown
 DECIDED: issue-pane-worker holds this.
