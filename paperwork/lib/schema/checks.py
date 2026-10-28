@@ -181,8 +181,8 @@ def quantities(model):
             if quantity and quantity["kind"] == "stock":
                 out += [f'{level["id"]}: {side_edge["label"]} moves {side_edge["qty"]["unit"]}, not the {quantity["unit"]} that {node["label"]} holds'
                         for edges in sides.values() for side_edge in edges
-                        if edge.get("qty", {}).get("kind") == "flow" and "unit" in edge["qty"] and "unit" in quantity
-                        and edge["qty"]["unit"].split("/")[0].strip() != quantity["unit"]]
+                        if side_edge.get("qty", {}).get("kind") == "flow" and "unit" in side_edge["qty"] and "unit" in quantity
+                        and side_edge["qty"]["unit"].split("/")[0].strip() != quantity["unit"]]
                 continue
             told = {k: [side_edge["qty"] for side_edge in edges if side_edge.get("qty", {}).get("kind") in ("flow", "count")] for k, edges in sides.items()}
             full = {k: flows for k, flows in told.items() if flows and len(flows) == len(sides[k]) and len({flow.get("unit", "") for flow in flows}) == 1}

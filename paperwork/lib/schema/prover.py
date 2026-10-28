@@ -154,7 +154,7 @@ class World:
                 parents = [identifier(self.model.nodes[edge["to"]]["label"]) for edge in level["edges"]
                            if edge["from"] == node["id"] and self.model.is_abstract(level, edge["to"])]
                 self._signature(identifier(node["label"]), kind="component", node=node["id"], abstract=bool(node.get("abstract")),
-                          singleton=bool(node.get("singleton")), parents=parents)
+                                singleton=bool(node.get("singleton")), parents=parents)
         labels = [edge.get("label", "") for level in document["levels"] if level["kind"] == "workflow" for edge in level["edges"] if not edge.get("is")]
         labels += [flow.get("edge", "") for level in document["levels"] for flow in level.get("in", []) + level.get("out", [])]
         self.artifact_words = set().union(*map(artifact_types, labels))

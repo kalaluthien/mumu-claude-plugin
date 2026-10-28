@@ -3,7 +3,7 @@ import datetime
 import json
 import re
 
-from . import plan as parameters
+from . import plan as plan_module
 
 
 
@@ -56,7 +56,7 @@ def plan(steps):
     count = iter(range(10 ** 6))
 
     def step(item, previous, moment):
-        if isinstance(item, list):   # a fork: every branch starts after prev; the next step joins their ends
+        if isinstance(item, list):   # a fork: every branch starts after previous; the next step joins their ends
             ends, end = [], moment
             for branch in item:
                 last, branch_end = step(branch, previous, moment) if not isinstance(branch, list) else sequence(branch, previous, moment)
@@ -240,7 +240,7 @@ class Model:
         self.root = next((level["id"] for level in data["levels"] if not level.get("parent")), None)
         self.signatures = self._signatures()
         self.footprint, self.home = self._footprints()
-        self.plan = parameters.effective(data)
+        self.plan = plan_module.effective(data)
         self.strict = set(self.plan["strict"])
 
     def level_of(self, node_id):
