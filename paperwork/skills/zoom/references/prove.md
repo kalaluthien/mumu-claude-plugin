@@ -15,7 +15,7 @@ The document is written in the grammar, [schema/assets/schema.json](schema/asset
 
 With no rule named, pick the promise whose break harms users most and that tests reach least, not the one easiest to prove; read it from the code and docs, and ask only what they cannot show. With no document yet, write the smallest one the ask's rule talks about: the level it names and the rule as a `must`, in the grammar above, checked `ok` by `${CLAUDE_PLUGIN_ROOT}/skills/zoom/references/schema/scripts/check-schema.py check <doc.json>`.
 
-`${CLAUDE_PLUGIN_ROOT}/skills/zoom/scripts/prove-schema.py <doc.json>` ([prove-schema.py](../scripts/prove-schema.py)) writes the module (its path on stderr; `--als <path>` to keep it) and prints one line per rule. Alloy runs from `~/.cache/paperwork-alloy/alloy.jar` or `$ALLOY_JAR` with `java`; answers are cached, so an unchanged rule is not run again. Each check starts up to 4 java processes (`JVMS` in `${CLAUDE_PLUGIN_ROOT}/lib/schema/prover.py`), so run at most 4 checks at once.
+`${CLAUDE_PLUGIN_ROOT}/skills/zoom/scripts/prove-schema.py <doc.json>` ([prove-schema.py](../scripts/prove-schema.py)) writes the module (its path on stderr; `--als <path>` to keep it) and prints one line per rule. Alloy runs from `~/.cache/paperwork-alloy/alloy.jar` or `$ALLOY_JAR` with `java`, up to 4 processes a check (`JVMS` in `${CLAUDE_PLUGIN_ROOT}/lib/schema/prover.py`), so run at most 4 checks at once; answers are cached, so an unchanged rule is not run again.
 
 | line | means | next |
 | --- | --- | --- |

@@ -31,7 +31,7 @@ On every kind:
 
 ## Losses
 
-What survives the projection into Mermaid. A construct is `kept` when changing it changes the output, and `emit-mermaid.py losses` checks every row of this table that way, on `schema/fixtures/` documents and `examples/`, never `playbook/fixtures/`, changing a value by appending `zq`: draw an enum field by a lookup that skips unknown values, or changing it leaves the output the same. A lost construct is still in the document, for the HTML renderer or a reader of the JSON.
+What survives the projection into Mermaid. A construct is `kept` when changing it changes the output, and `emit-mermaid.py losses` checks every row of this table that way, on the `schema/fixtures/` documents the checker accepts and on `examples/`, never `playbook/fixtures/`, changing a value by appending `zq`: draw an enum field by a lookup that skips unknown values, or changing it leaves the output the same. A lost construct is still in the document, for the HTML renderer or a reader of the JSON.
 
 Two limits come from Mermaid itself, not from the emitter:
 - [State diagrams](https://mermaid.js.org/syntax/stateDiagram.html) style a state only by `classDef`, which "cannot be applied to or within composite states". So a `mark` or `diff` on a state inside a region, or on a superstate, shows only in the table.

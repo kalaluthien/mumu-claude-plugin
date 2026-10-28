@@ -27,7 +27,7 @@ A Scenario is one independent question the model answers, walked over the nodes 
 
 **Steps.** A Scenario's `walk` lists its steps, each `{"place", "does", "expects"}` [steps]; across its Scenarios the walks step through every node and edge, entering a child level from its opener to a child node [scoped, coverage]:
 - `place` is the node where the step happens, the first in the Scenario's own level. Leaving or entering a level may go along an edge of the node that opened it; if two fit, name one: `"edge": "label"`, which for a step with several hops names the label of every hop, its inner path included, so put it on a one-node step.
-- On a component level a step may use several parts together: `"place": ["node", "argument", "value"]`, each next part along a relation; list node ids only, never relation names. The next step starts at a node one edge from the previous step's last node, never the same one.
+- On a component level a step may use several parts together: `"place": ["node", "argument", "value"]`, each next part along a relation; list node ids only, never relation names. The next step starts at a node one edge from the previous step's last node, never the same one, so a walk may leave to the opener and step in again.
 - `does` says what happens; `expects` says what is true afterwards, checkable.
 
 **Branches.** A choice between two ways, and a failure, is each its own Scenario. The usual way keeps the plain name; a branch adds what differs to it: `ship-a-bet`, `ship-a-bet-replan`.
@@ -40,7 +40,7 @@ Pick the kind by what the reader follows ([semantics.md](semantics.md)): the par
 
 Rules for a level:
 - The model's `level` is the root, the system's outermost repeating structure. A node opens the level inside it with `opens`.
-- Show what it is made of (components) and how it works (activities, states), such as a topology level opened from a state (`link: view`) and walked by the root Scenario; a body of knowledge has claims and what they rest on [mechanism]. A fixture under `schema/fixtures/` keeps no `mechanism` warning, since `check-schema.py fixtures` wants a plain name accepted with no warning; `playbook/fixtures/` may.
+- Show what it is made of (components) and how it works (activities, states), such as a topology level opened from a state (`link: view`) and walked by the root Scenario; a body of knowledge has claims and what they rest on [mechanism], a warning no fixture under `schema/fixtures/` may raise, since `check-schema.py fixtures` accepts a plain name only with no warning, though one under `playbook/fixtures/` may.
 - A level has 2 to 7 nodes; group states that react alike and detail them below.
 - Every edge says something: a `what`, an operation or a guard [explained].
 - A condition such as "pass" is a guard, not an artifact: name what is handed on.
