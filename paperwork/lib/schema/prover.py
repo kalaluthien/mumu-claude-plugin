@@ -921,7 +921,7 @@ def story(steps):
 
 
 def stored(model):
-    """The same, from the stored answers only: Alloy is never started."""
+    """The module's names, its commands and the answers stored for them: Alloy is never started."""
     als, world, checks = translate(model)
     return world, checks, cached(als)
 
