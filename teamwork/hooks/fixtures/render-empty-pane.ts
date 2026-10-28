@@ -51,7 +51,7 @@ const render = async () => text(await handlers['ui.render Pane']($, {}))
 // a read's atoms change just after its run returns, so the render waits a little past it
 const settle = async (count: number) => { while (reads < count) await new Promise(done => setTimeout(done, 5)); await new Promise(done => setTimeout(done, 50)) }
 
-const { register } = await import('../issue-pane.tsx')
+const { register } = await import('../draw-issue-pane.tsx')
 register(on as any)
 console.log(`unread: ${await render()}`)
 await handlers['session.start']($, { cwd: '/repo' }, async () => ({}))
