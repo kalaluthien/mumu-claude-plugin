@@ -39,9 +39,9 @@ def check(path):
     if (spec := read(path)) is UNREAD:
         return 2
     rows = violations(spec)
-    for rule, where, message, sev in rows:
-        print(("" if sev == "error" else "warning ") + line(rule, where, message))
-    errors = sum(1 for *_, sev in rows if sev == "error")
+    for rule, where, message, severity in rows:
+        print(("" if severity == "error" else "warning ") + line(rule, where, message))
+    errors = sum(1 for *_, row_severity in rows if row_severity == "error")
     # the count goes to stderr, so stdout holds only violation lines, or ok
     print(f"{errors} error(s)", file=sys.stderr) if errors else print("ok")
     return 1 if errors else 0
@@ -50,14 +50,14 @@ def check(path):
 def show_weights(path):
     if (spec := read(path)) is UNREAD:
         return 2
-    if errors := [r for r in violations(spec) if r[3] == "error"]:
+    if errors := [violation for violation in violations(spec) if violation[3] == "error"]:
         for rule, where, message, _ in errors:
             print(line(rule, where, message))
         print(f"{len(errors)} error(s); weights need a spec that checks", file=sys.stderr)
         return 1
-    tiers, eps = spec["tiers"], weights(spec)
-    for tier, e in zip(tiers[:-1], eps):
-        print(f"{tier['id']}: epsilon {e:.6g} delta {tier['delta']:g} judge_error {tier['judge_error']:g}")
+    tiers, epsilons = spec["tiers"], weights(spec)
+    for tier, epsilon in zip(tiers[:-1], epsilons):
+        print(f"{tier['id']}: epsilon {epsilon:.6g} delta {tier['delta']:g} judge_error {tier['judge_error']:g}")
     print(f"{tiers[-1]['id']}: epsilon 1")
     print("Each epsilon is the least weight, with a 5% margin, at which a tier-score difference of delta, seen through "
           "a judge that flips judge_error of its verdicts, outweighs every lower tier at once; the reward is the sum "
@@ -67,18 +67,18 @@ def show_weights(path):
 
 def named_rule(stem):
     """The rule a fixture is named after: the longest rule its name equals or opens with, then a dash."""
-    hits = [r for r in RULES if stem == r or stem.startswith(r + "-")]
+    hits = [rule for rule in RULES if stem == rule or stem.startswith(rule + "-")]
     return max(hits, key=len) if hits else None
 
 
 def fixtures():
     failed = accepted = rejected = 0
     files = sorted(FIXTURES.glob("*.json"))
-    for f in files:
-        rows = violations(json.loads(f.read_text(encoding="utf-8")))
-        errors = {r for r, *_, s in rows if s == "error"}
-        warnings = {r for r, *_, s in rows if s == "warning"}
-        named = named_rule(f.stem)
+    for fixture_file in files:
+        rows = violations(json.loads(fixture_file.read_text(encoding="utf-8")))
+        errors = {rule for rule, *_, severity in rows if severity == "error"}
+        warnings = {rule for rule, *_, severity in rows if severity == "warning"}
+        named = named_rule(fixture_file.stem)
         if named and RULES[named][0] == "error":
             good, want = errors == {named}, f"rejected by {named} alone"
         elif named:
@@ -89,8 +89,8 @@ def fixtures():
         accepted += not errors
         rejected += bool(errors)
         got = ("rejected by " + ", ".join(sorted(errors))) if errors else "accepted" + (", warned by " + ", ".join(sorted(warnings)) if warnings else "")
-        print(f"{'ok  ' if good else 'FAIL'}  {f.name}: {got}" + ("" if good else f"; want {want}"))
-    unnamed = sorted(set(RULES) - {named_rule(f.stem) for f in files})
+        print(f"{'ok  ' if good else 'FAIL'}  {fixture_file.name}: {got}" + ("" if good else f"; want {want}"))
+    unnamed = sorted(set(RULES) - {named_rule(fixture.stem) for fixture in files})
     for name in unnamed:
         print(f"FAIL  no fixture names rule {name}")
     print(f"fixtures: {accepted} accepted, {rejected} rejected by their named rule" if not failed and not unnamed
@@ -101,14 +101,14 @@ def fixtures():
 def blocks(text):
     """Paragraphs, each list item and each table row on its own, since each is one statement."""
     out = []
-    for para in re.split(r"\n\s*\n", text):
-        cur = []
-        for ln in para.splitlines():
-            if re.match(r"\s*([-*|]|\d+\.)\s", ln) and cur:
-                out.append(" ".join(cur))
-                cur = []
-            cur.append(ln)
-        out.append(" ".join(cur))
+    for paragraph in re.split(r"\n\s*\n", text):
+        current = []
+        for text_line in paragraph.splitlines():
+            if re.match(r"\s*([-*|]|\d+\.)\s", text_line) and current:
+                out.append(" ".join(current))
+                current = []
+            current.append(text_line)
+        out.append(" ".join(current))
     return out
 
 
@@ -120,42 +120,42 @@ def prose(files):
     def collect(node):
         if isinstance(node, dict):
             names.update(node.get("properties", {}))
-            for v in node.values():
-                collect(v)
+            for child in node.values():
+                collect(child)
         elif isinstance(node, list):
-            for v in node:
-                collect(v)
+            for child in node:
+                collect(child)
     collect(SCHEMA)
-    docs = [pathlib.Path(f) for f in files] or sorted(HERE.parent.glob("*.md"))
-    if missing := [str(d) for d in docs if not d.is_file()]:
+    documents = [pathlib.Path(file_path) for file_path in files] or sorted(HERE.parent.glob("*.md"))
+    if missing := [str(candidate) for candidate in documents if not candidate.is_file()]:
         print(f"prose: no such file: {', '.join(missing)}", file=sys.stderr)
         return 2
     out = []
-    for doc in docs:
-        text = doc.read_text(encoding="utf-8")
+    for document in documents:
+        text = document.read_text(encoding="utf-8")
         links = re.findall(r"\]\(([^)\s#]+)", text)
-        if not any(not link.startswith("/") and (doc.resolve().parent / link).resolve() == GRAMMAR for link in links):
-            out.append(f"{doc}: links no assets/rubric-schema.json by a path relative to it")
+        if not any(not link.startswith("/") and (document.resolve().parent / link).resolve() == GRAMMAR for link in links):
+            out.append(f"{document}: links no assets/rubric-schema.json by a path relative to it")
         for block in blocks(text):
-            if len(hit := {w for w in re.findall(r"`([a-z_]+)`", block) if w in names}) >= 3:
-                out.append(f"{doc}: restates the grammar ({', '.join(sorted(hit))}): {block.strip()[:80]}")
+            if len(hit := {word for word in re.findall(r"`([a-z_]+)`", block) if word in names}) >= 3:
+                out.append(f"{document}: restates the grammar ({', '.join(sorted(hit))}): {block.strip()[:80]}")
     print("\n".join(out) or "prose: ok")
     return 1 if out else 0
 
 
 def main(args):
-    cmd = args[0] if args else "help"
-    if cmd == "check" and len(args) == 2:
+    command = args[0] if args else "help"
+    if command == "check" and len(args) == 2:
         return check(args[1])
-    if cmd == "weights" and len(args) == 2:
+    if command == "weights" and len(args) == 2:
         return show_weights(args[1])
-    if cmd == "fixtures" and len(args) == 1:
+    if command == "fixtures" and len(args) == 1:
         return fixtures()
-    if cmd == "rules" and len(args) == 1:
-        for name, (sev, what) in RULES.items():
-            print(f"{name:24s} {sev:7s} {what}")
+    if command == "rules" and len(args) == 1:
+        for name, (severity, description) in RULES.items():
+            print(f"{name:24s} {severity:7s} {description}")
         return 0
-    if cmd == "prose":
+    if command == "prose":
         return prose(args[1:])
     print(__doc__, file=sys.stderr)
     return 2

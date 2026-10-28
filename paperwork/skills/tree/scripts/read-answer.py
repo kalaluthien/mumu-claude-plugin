@@ -16,13 +16,13 @@ import tree_plan  # noqa: E402
 
 def next_plan(plan_path, answer_path):
     plan = tree_plan.load_file(plan_path)
-    md = pathlib.Path(answer_path).read_text(encoding="utf-8")
-    tree_plan.check_head(plan, md)
-    entries = tree_plan.parse_answer(md)
+    answer_text = pathlib.Path(answer_path).read_text(encoding="utf-8")
+    tree_plan.check_head(plan, answer_text)
+    entries = tree_plan.parse_answer(answer_text)
     new = tree_plan.apply_answer(plan, entries)
-    errs = tree_plan.check(new)
-    if errs:
-        raise tree_plan.AnswerError(0, f"the next plan fails the checker: {errs[0][0]}: {errs[0][1]}")
+    errors = tree_plan.check(new)
+    if errors:
+        raise tree_plan.AnswerError(0, f"the next plan fails the checker: {errors[0][0]}: {errors[0][1]}")
     return new
 
 
