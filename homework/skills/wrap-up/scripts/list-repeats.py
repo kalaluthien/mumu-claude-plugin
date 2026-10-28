@@ -25,7 +25,7 @@ import sys
 import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
-import claude_config  # noqa: E402
+import memory_home  # noqa: E402
 import transcript  # noqa: E402
 
 WINDOW_DAYS, ALIVE_DAYS, EXAMPLES = 14, 3, 3
@@ -50,7 +50,7 @@ def memory_lines(key):
     if len(phrase) < 6:
         return []
     found = []
-    for path in glob.glob(os.path.join(glob.escape(str(claude_config.folder())), "projects", "*", "memory", "*.md")):
+    for path in (path for pool in memory_home.pools() for path in glob.glob(os.path.join(glob.escape(pool), "*.md"))):
         for number, line in enumerate(open(path, encoding="utf-8", errors="ignore"), 1):
             if phrase.lower() in line.lower():
                 found.append(f"{path}:{number}: {line.strip()[:160]}")
