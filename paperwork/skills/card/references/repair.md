@@ -1,6 +1,6 @@
 # Repair
 
-A graded answer landed in the wrong order. Find the step of [author.md](author.md) that let it, and fix the spec there.
+A graded answer landed in the wrong order. Find the step of [author.md](author.md) that let it, and fix the rubric there.
 
 ## Domain
 
@@ -15,7 +15,7 @@ A graded answer landed in the wrong order. Find the step of [author.md](author.m
 ## Steps
 
 1. Match the answer's sign to a cause above.
-2. Apply that cause's fix to the spec.
+2. Apply that cause's fix to the rubric.
 3. Rerun `check-spec.py check` and the dry run.
 
 ## Rules

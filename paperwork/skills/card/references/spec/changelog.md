@@ -1,6 +1,6 @@
 # Changelog
 
-Each version of the grammar, [assets/rubric-schema.json](assets/rubric-schema.json), newest first. A spec names the version it is written in.
+Each version of the grammar, [assets/rubric-schema.json](assets/rubric-schema.json), newest first. A rubric names the version it is written in.
 
 ## 1
 
@@ -9,4 +9,4 @@ Each version of the grammar, [assets/rubric-schema.json](assets/rubric-schema.js
 - Each criterion cites its provenance.
 - No tier or criterion carries a weight; `check-spec.py weights` derives each tier's.
 - The verdict file a scoring script reads is `$defs/verdicts`.
-- The grades file `make-report.py` reads is `$defs/grades`: one target's verdicts with their evidence, reasons and fixes, or `null` for a criterion not judged (added 2026-10-28; a spec needs no change).
+- The grades file `make-report.py` reads is `$defs/grades`: one target's verdicts with their evidence, reasons and fixes, or `null` for a criterion not judged (added 2026-10-28; a rubric needs no change).

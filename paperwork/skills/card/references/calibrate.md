@@ -1,16 +1,16 @@
 # Calibrate
 
-Measure how far a judge's verdicts on a spec can be trusted, and set each tier's judge error from what you measure.
+Measure how far a judge's verdicts on a rubric can be trusted, and set each tier's judge error from what you measure.
 
-The commands are `${CLAUDE_PLUGIN_ROOT}/skills/card/scripts/measure-judge.py <mode> <spec> …`; each prints what its numbers mean. [spec/model.md](spec/model.md) says why agreement bounds the weights.
+The commands are `../scripts/measure-judge.py <mode> <spec> …`; each prints what its numbers mean. [spec/model.md](spec/model.md) says why agreement bounds the weights.
 
 ## Steps
 
-1. **Full rubric**: the judge grades every criterion of the spec in one call, with the whole rubric in view.
+1. **Full rubric**: the judge grades every criterion of the rubric in one call, with the whole rubric in view.
 2. **Runs**: grade the same 30 or more answers three times into one fresh folder of verdict files and run `alpha <spec> <folder>`. Rewrite each criterion it names below 0.800, and each with no headroom; never reweight it:
    - a folder an older run still writes turns its stale replies into cache; a run on a copy with a planted defect reuses only the clean run's replies to items it left unchanged, never replies built per batch, whose batches shift;
    - a criterion has no headroom when every answer meets it or every dry-run answer scores top: read the sample for what it lacks, as "the opening says how the parts relate" leaves room where "the opening names the parts" does not.
-3. **People**: with human verdicts on the same answers, run `human <spec> <judge verdicts> <human verdicts>`. Record kappa, macro F1 and the MET-rate gap in the spec's judge calibration. A judge that says met more often than people is lenient, and lenience is what optimisation exploits.
+3. **People**: with human verdicts on the same answers, run `human <spec> <judge verdicts> <human verdicts>`. Record kappa, macro F1 and the MET-rate gap in the rubric's judge calibration. A judge that says met more often than people is lenient, and lenience is what optimisation exploits.
 4. **Perturbations**: for each answer `a`, add answers named `a~<kind>` that change only one surface, and run `bias <spec> <verdicts>`:
    - paraphrase: the same content in other words;
    - padding: the same content with filler added;
@@ -22,12 +22,12 @@ The commands are `${CLAUDE_PLUGIN_ROOT}/skills/card/scripts/measure-judge.py <mo
 
 **Monitor**
 
-During training, watch the signals the spec's monitor lists, and at least these:
+During training, watch the signals the rubric's monitor lists, and at least these:
 - reward rising while held-out expert pairwise wins stay flat: the policy found a gap in the criteria;
 - the MET rate of one criterion drifting: the policy learned to satisfy the judge's reading of it;
 - answer length trending up: a length bias the perturbation suite missed.
 
-Each one sends the spec to [repair.md](repair.md).
+Each one sends the rubric to [repair.md](repair.md).
 
 ## Rules
 
