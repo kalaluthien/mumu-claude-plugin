@@ -13,7 +13,7 @@ The steps for each kind of work a task changes or ends in, one section per kind;
 
 1. Write the failing test or probe first, by the repository's test rules. Each asserts a behaviour your task names through the code's own interface, so it fails when that behaviour breaks, never an assertion true whatever the code does (`A is A`). Drive the code until they pass. Where the rules keep none: keep them in the scratchpad, never committed; hand the `judge` their paths with the url; and run each by [run-on-refs.py](../scripts/run-on-refs.py) `'<command>' origin/<base> <head sha>` until it prints that it fails on the base and passes at the head. Quote the command in the criterion, so the judge reruns it. A plugin's test runs in its copy: the command copies it into the plugin's folder, then runs `claude plugin test <plugin>`.
 2. Run the repository's or plugin's tests; for an eval case, `claude plugin eval ./<plugin>` and read the failing transcript.
-3. A hook, monitor, start script or service: probe the live copy in a new session or on its host, never only its fixture; a monitor reads everything on its first loop, so to probe that it notices a change, start it, wait for its first line, then make the change; for a change in looks, the owner checks how it looks on the live pane or page.
+3. A hook, monitor, start script or service: probe the live copy in a new session or on its host, never only its fixture; a monitor reads everything on its first loop, so to probe that it notices a change, start the real monitor, wait for its first line, make the change, and check the probe fails with the call under test removed; for a change in looks, the owner checks how it looks on the live pane or page.
 
 ## UI
 
