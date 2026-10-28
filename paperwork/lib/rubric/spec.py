@@ -50,14 +50,14 @@ def line(rule, where, message):
 def forbidden(spec):
     """Each key the grammar names in x-forbidden, as its rule, so a hand-set number reads as what it is."""
     out = []
-    for t, tier in enumerate(spec.get("tiers") or []):
+    for tier_index, tier in enumerate(spec.get("tiers") or []):
         if not isinstance(tier, dict):
             continue
-        out += [(r, f"spec.tiers[{t}].{k}", "is derived, never written") for k, r in SCHEMA["$defs"]["tier"]["x-forbidden"].items() if k in tier]
-        for c, crit in enumerate(tier.get("criteria") or []):
-            if isinstance(crit, dict):
-                out += [(r, f"spec.tiers[{t}].criteria[{c}].{k}", "is not part of the grammar")
-                        for k, r in SCHEMA["$defs"]["criterion"]["x-forbidden"].items() if k in crit]
+        out += [(rule, f"spec.tiers[{tier_index}].{k}", "is derived, never written") for k, rule in SCHEMA["$defs"]["tier"]["x-forbidden"].items() if k in tier]
+        for criterion_index, criterion in enumerate(tier.get("criteria") or []):
+            if isinstance(criterion, dict):
+                out += [(rule, f"spec.tiers[{tier_index}].criteria[{criterion_index}].{k}", "is not part of the grammar")
+                        for k, rule in SCHEMA["$defs"]["criterion"]["x-forbidden"].items() if k in criterion]
     return out
 
 
@@ -67,44 +67,44 @@ def without_forbidden(spec):
         if isinstance(tier, dict):
             for k in SCHEMA["$defs"]["tier"]["x-forbidden"]:
                 tier.pop(k, None)
-            for crit in tier.get("criteria") or []:
-                if isinstance(crit, dict):
+            for criterion in tier.get("criteria") or []:
+                if isinstance(criterion, dict):
                     for k in SCHEMA["$defs"]["criterion"]["x-forbidden"]:
-                        crit.pop(k, None)
+                        criterion.pop(k, None)
     return clean
 
 
 def violations(spec):
     """Every violation as (rule, path, message, severity): the grammar's first, then the rules that need a valid shape."""
     if not isinstance(spec, dict):
-        return [(r, *t.split(": ", 1), "error") for r, t in shape(spec, SCHEMA, "spec")]
-    rows = [(r, w, m, "error") for r, w, m in forbidden(spec)]
+        return [(rule, *text.split(": ", 1), "error") for rule, text in shape(spec, SCHEMA, "spec")]
+    rows = [(rule, where, message, "error") for rule, where, message in forbidden(spec)]
     wrong = shape(without_forbidden(spec), SCHEMA, "spec")
-    rows += [(r, *t.split(": ", 1), "error") for r, t in wrong]
+    rows += [(rule, *text.split(": ", 1), "error") for rule, text in wrong]
     if isinstance(spec.get("tiers"), list) and not spec["tiers"]:   # shape() reads no minItems
         rows.append(("form", "spec.tiers", "holds no tier", "error"))
     if rows:   # nothing else reads true until the spec fits the grammar
         return rows
-    return [(r, w, m, RULES[r][0]) for r, w, m in narrow(spec)]
+    return [(rule, where, message, RULES[rule][0]) for rule, where, message in narrow(spec)]
 
 
 def narrow(spec):
     tiers = spec["tiers"]
     out = []
     where = {}
-    for t, tier in enumerate(tiers):
-        for c, crit in enumerate(tier.get("criteria", [])):
-            where.setdefault(crit["id"], (t, f"spec.tiers[{t}].criteria[{c}]"))
-    ids = [tier["id"] for tier in tiers] + [c["id"] for tier in tiers for c in tier.get("criteria", [])]
-    out += [("id-duplicate", "spec", f"{i} is used {ids.count(i)} times") for i in sorted(set(ids)) if ids.count(i) > 1]
-    for t, tier in enumerate(tiers):
-        at = f"spec.tiers[{t}]"
-        if tier.get("pairwise") and t != len(tiers) - 1:
-            out.append(("pairwise-not-last", at, f"{tier['id']} is pairwise but tier {t + 1} of {len(tiers)}"))
+    for tier_index, tier in enumerate(tiers):
+        for criterion_index, criterion in enumerate(tier.get("criteria", [])):
+            where.setdefault(criterion["id"], (tier_index, f"spec.tiers[{tier_index}].criteria[{criterion_index}]"))
+    ids = [tier["id"] for tier in tiers] + [entry["id"] for tier in tiers for entry in tier.get("criteria", [])]
+    out += [("id-duplicate", "spec", f"{identifier} is used {ids.count(identifier)} times") for identifier in sorted(set(ids)) if ids.count(identifier) > 1]
+    for tier_index, tier in enumerate(tiers):
+        at = f"spec.tiers[{tier_index}]"
+        if tier.get("pairwise") and tier_index != len(tiers) - 1:
+            out.append(("pairwise-not-last", at, f"{tier['id']} is pairwise but tier {tier_index + 1} of {len(tiers)}"))
         if not tier.get("pairwise") and not tier.get("criteria"):
             out.append(("tier-empty", at, f"{tier['id']} has no criteria"))
-        if t < len(tiers) - 1:
-            out += [("threshold-missing", at, f"{tier['id']} names no {k}") for k in ("delta", "judge_error") if k not in tier]
+        if tier_index < len(tiers) - 1:
+            out += [("threshold-missing", at, f"{tier['id']} names no {field}") for field in ("delta", "judge_error") if field not in tier]
         if "judge_error" in tier and not 0 <= tier["judge_error"] < 0.5:
             out.append(("judge-error-range", f"{at}.judge_error", f"{tier['judge_error']} is not in [0, 0.5)"))
         if "delta" in tier and not 0 < tier["delta"] <= 1:
@@ -113,45 +113,45 @@ def narrow(spec):
             dead = no_signal(tier["pass_rate"], spec.get("group_size", GROUP_SIZE))
             if dead > NO_SIGNAL:
                 out.append(("mask-no-signal", at, f"{dead:.0%} of groups get no signal at pass_rate {tier['pass_rate']}"))
-        for c, crit in enumerate(tier.get("criteria", [])):
-            cat = f"{at}.criteria[{c}]"
-            if (m := VAGUE.search(crit["text"])) and not crit.get("anchors"):
-                out.append(("criterion-vague", cat, f"{m.group(0).strip()!r} has no anchors"))
-            if (n := len(CONJUNCTION.findall(crit["text"]))) >= 2:
-                out.append(("criterion-conjunction", cat, f"{n} conjunctions; split it unless they are one condition"))
-            if crit["check"] == "judge" and not (crit.get("variants_ok") and crit.get("near_miss")):
-                out.append(("boundary-missing", cat, "no variants_ok or no near_miss to test its boundary"))
+        for criterion_index, criterion in enumerate(tier.get("criteria", [])):
+            criterion_path = f"{at}.criteria[{criterion_index}]"
+            if (match := VAGUE.search(criterion["text"])) and not criterion.get("anchors"):
+                out.append(("criterion-vague", criterion_path, f"{match.group(0).strip()!r} has no anchors"))
+            if (n := len(CONJUNCTION.findall(criterion["text"]))) >= 2:
+                out.append(("criterion-conjunction", criterion_path, f"{n} conjunctions; split it unless they are one condition"))
+            if criterion["check"] == "judge" and not (criterion.get("variants_ok") and criterion.get("near_miss")):
+                out.append(("boundary-missing", criterion_path, "no variants_ok or no near_miss to test its boundary"))
     out += exchanges(spec, where)
-    if not any(RULES[r][0] == "error" for r, _, _ in out):
-        eps = weights(spec)
-        if eps[-1] / eps[0] < TINY:
-            out.append(("weight-tiny", f"spec.tiers[{len(tiers) - 1}]", f"its weight is {eps[-1] / eps[0]:.1e} of the top's: "
+    if not any(RULES[rule][0] == "error" for rule, _, _ in out):
+        epsilons = weights(spec)
+        if epsilons[-1] / epsilons[0] < TINY:
+            out.append(("weight-tiny", f"spec.tiers[{len(tiers) - 1}]", f"its weight is {epsilons[-1] / epsilons[0]:.1e} of the top's: "
                         "normalise advantages per group, merge tiers, or lower the top tiers' judge_error"))
     return out
 
 
 def exchanges(spec, where):
     tiers, out, seen = spec["tiers"], [], set()
-    for x, ex in enumerate(spec["exchange"]):
-        at = f"spec.exchange[{x}]"
-        if ex["a"] not in where or ex["b"] not in where:
-            out.append(("exchange-unknown", at, f"{ex['a']}/{ex['b']} names a criterion the spec does not have"))
+    for exchange_index, exchange in enumerate(spec["exchange"]):
+        at = f"spec.exchange[{exchange_index}]"
+        if exchange["a"] not in where or exchange["b"] not in where:
+            out.append(("exchange-unknown", at, f"{exchange['a']}/{exchange['b']} names a criterion the spec does not have"))
             continue
-        if ex["a"] == ex["b"]:
-            out.append(("exchange-unknown", at, f"{ex['a']} is set against itself, which tests nothing"))
+        if exchange["a"] == exchange["b"]:
+            out.append(("exchange-unknown", at, f"{exchange['a']} is set against itself, which tests nothing"))
             continue
-        seen.add(frozenset((ex["a"], ex["b"])))
-        ta, tb = where[ex["a"]][0], where[ex["b"]][0]
-        want = "same" if ta == tb else "a_over_b" if ta < tb else "b_over_a"
-        if ex["result"] != want:
-            out.append(("exchange-contradicts", at, f"{ex['a']}/{ex['b']} says {ex['result']} but their tiers say {want}"))
-    for t, tier in enumerate(tiers):
-        mine = [c["id"] for c in tier.get("criteria", [])]
-        below = [c["id"] for c in tiers[t + 1].get("criteria", [])] if t + 1 < len(tiers) else []
-        for cid in mine:
-            peers = [p for p in mine if p != cid]
-            if peers and not any(frozenset((cid, p)) in seen for p in peers):
-                out.append(("exchange-peer-missing", where[cid][1], f"{cid} has no exchange with a peer in {tier['id']}"))
-            if below and not any(frozenset((cid, b)) in seen for b in below):
-                out.append(("exchange-below-missing", where[cid][1], f"{cid} has no exchange with {tiers[t + 1]['id']}"))
+        seen.add(frozenset((exchange["a"], exchange["b"])))
+        first_tier, second_tier = where[exchange["a"]][0], where[exchange["b"]][0]
+        want = "same" if first_tier == second_tier else "a_over_b" if first_tier < second_tier else "b_over_a"
+        if exchange["result"] != want:
+            out.append(("exchange-contradicts", at, f"{exchange['a']}/{exchange['b']} says {exchange['result']} but their tiers say {want}"))
+    for tier_index, tier in enumerate(tiers):
+        mine = [criterion["id"] for criterion in tier.get("criteria", [])]
+        below = [criterion["id"] for criterion in tiers[tier_index + 1].get("criteria", [])] if tier_index + 1 < len(tiers) else []
+        for criterion_id in mine:
+            peers = [peer for peer in mine if peer != criterion_id]
+            if peers and not any(frozenset((criterion_id, peer)) in seen for peer in peers):
+                out.append(("exchange-peer-missing", where[criterion_id][1], f"{criterion_id} has no exchange with a peer in {tier['id']}"))
+            if below and not any(frozenset((criterion_id, below_id)) in seen for below_id in below):
+                out.append(("exchange-below-missing", where[criterion_id][1], f"{criterion_id} has no exchange with {tiers[tier_index + 1]['id']}"))
     return out

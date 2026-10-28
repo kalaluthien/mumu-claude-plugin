@@ -63,7 +63,7 @@ def cycles(level):
 
 def counts(model):
     """Each count criterion of #511's table, as found on the model; lower is better unless the name says more."""
-    m, levels = model.m, model.m["levels"]
+    m, levels = model.document, model.document["levels"]
     nodes = list(model.nodes.values())
     edges = [e for level in levels for e in level["edges"]]
     texts = [x.get("label", "") for x in nodes] + [x.get("what", "") for x in nodes + edges if x.get("what")]
@@ -75,7 +75,7 @@ def counts(model):
     across = sum(1 for e in edges if part.get(e["from"]) and part.get(e["to"]) and part[e["from"]] != part[e["to"]])
     used = set().union(*model.footprint.values()) if model.footprint else set()
     handled = used | {("node", n) for r in m["rules"] for n in re.findall(r"\w+", r["formula"])}
-    situations = {("trig", k) for k in model.trigs} | {("node", n["id"]) for level in levels if level["kind"] == "state" for n in level["nodes"]}
+    situations = {("trig", k) for k in model.triggers} | {("node", n["id"]) for level in levels if level["kind"] == "state" for n in level["nodes"]}
     returns = lambda o: "→" in o["sig"] and not re.search(r"→\s*(Nothing|Unit|None)?\s*$", o["sig"])
     return {
         "economy (nodes + edges + rules + operations)": len(nodes) + len(edges) + len(m["rules"]) + len(m["operations"]),
@@ -104,15 +104,15 @@ def main(args):
     old, new = Model(data[0]), Model(data[1])
     dropped = 0
     for kind, items in (("scenario", "scenarios"), ("rule", "rules")):
-        have = {x["slug"] for x in new.m[items]}
-        for x in old.m[items]:
+        have = {x["slug"] for x in new.document[items]}
+        for x in old.document[items]:
             state = "kept" if x["slug"] in have else "dropped"
             dropped += state == "dropped"
             print(f"{state:8s} {kind} {x['slug']}")
-            now = next((y for y in new.m[items] if y["slug"] == x["slug"]), None)
+            now = next((y for y in new.document[items] if y["slug"] == x["slug"]), None)
             if now and any(now.get(k) != x.get(k) for k in ("formula", "walk", "text")):
                 print(f"changed  {kind} {x['slug']}")
-    added = [x["slug"] for items in ("scenarios", "rules") for x in new.m[items] if x["slug"] not in {y["slug"] for y in old.m[items]}]
+    added = [x["slug"] for items in ("scenarios", "rules") for x in new.document[items] if x["slug"] not in {y["slug"] for y in old.document[items]}]
     print(f"added    {', '.join(added) or 'none'}")
     a, b = counts(old), counts(new)
     print(f"\n{'count':72s} {'original':>9s} {'improved':>9s}")

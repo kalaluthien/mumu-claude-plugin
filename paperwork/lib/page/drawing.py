@@ -14,7 +14,7 @@ from playwright.async_api import async_playwright
 
 from .view import LIMITS
 
-MIN_PX = float(LIMITS["minPx"])
+MIN_PIXELS = float(LIMITS["minPx"])
 
 LAYOUT = """async () => {
   const z = window.zoom, root = document.getElementById('zoom'), bad = [];
@@ -72,8 +72,8 @@ TEXT = """() => { let m = 99; document.querySelectorAll('svg text').forEach(t =>
 async def _check(path, shots=None, font_css=None):
     url, problems = pathlib.Path(path).resolve().as_uri(), []
     css = pathlib.Path(font_css).read_text() if font_css else None
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(channel="chrome")
+    async with async_playwright() as playwright_instance:
+        browser = await playwright_instance.chromium.launch(channel="chrome")
         for width in (390, 1200):
             for scheme in ("light", "dark"):
                 tag = f"{width}px {scheme}"
@@ -89,19 +89,19 @@ async def _check(path, shots=None, font_css=None):
                 if await page.evaluate("document.documentElement.scrollWidth") > width:
                     problems.append(f"fits: {tag} scrolls sideways")
                 if width < 900:
-                    if (px := await page.evaluate(TEXT)) < MIN_PX:
-                        problems.append(f"fits: {tag} text {px:.1f}px < {MIN_PX}")
+                    if (pixels := await page.evaluate(TEXT)) < MIN_PIXELS:
+                        problems.append(f"fits: {tag} text {pixels:.1f}px < {MIN_PIXELS}")
                     need, have = await page.evaluate(ROOT)
                     if need > have:
                         problems.append(f"fits: {tag} root needs {need} px in a {have} px card")
                 if shots:   # every level, for the critic's pass
                     pathlib.Path(shots).mkdir(parents=True, exist_ok=True)
-                    for lid in await page.evaluate("[...document.querySelectorAll('#zoom [data-l]')].map(b => b.dataset.l)"):
-                        await page.evaluate(f"window.zoom.goto({json.dumps(lid)})")
+                    for level_id in await page.evaluate("[...document.querySelectorAll('#zoom [data-l]')].map(b => b.dataset.l)"):
+                        await page.evaluate(f"window.zoom.goto({json.dumps(level_id)})")
                         await page.wait_for_timeout(450)
-                        await page.screenshot(path=f"{shots}/{lid}-{width}-{scheme}.png", full_page=True)
+                        await page.screenshot(path=f"{shots}/{level_id}-{width}-{scheme}.png", full_page=True)
                     await page.evaluate("window.zoom.goto(window.zoom.state.level)")
-                problems += [f"fits: {tag} {x}" for x in await page.evaluate(LAYOUT)]
+                problems += [f"fits: {tag} {problem}" for problem in await page.evaluate(LAYOUT)]
                 if width > 900 and scheme == "light":   # turned or resized to a phone, the root lays itself out again
                     await page.set_viewport_size({"width": 390, "height": 900})
                     await page.wait_for_timeout(600)

@@ -6,36 +6,36 @@ VERDICTS = {**SCHEMA["$defs"]["verdicts"], "$defs": SCHEMA["$defs"]}
 
 
 def criteria(spec):
-    return [c for tier in spec["tiers"] for c in tier.get("criteria", [])]
+    return [criterion for tier in spec["tiers"] for criterion in tier.get("criteria", [])]
 
 
 def problems(spec, verdicts, complete=True, groups=False):
     """Each way the file breaks the grammar or the spec, as `where: what`; complete asks a verdict on every criterion
     of every answer, groups asks for groups."""
     if wrong := shape(verdicts, VERDICTS, "verdicts"):
-        return [t for _, t in wrong]
+        return [text for _, text in wrong]
     out = []
-    known = {c["id"] for c in criteria(spec)}
-    pairwise = any(t.get("pairwise") for t in spec["tiers"])
+    known = {criterion["id"] for criterion in criteria(spec)}
+    pairwise = any(tier.get("pairwise") for tier in spec["tiers"])
     answers = verdicts["answers"]
     if not answers:
         out.append("verdicts.answers: holds no answer")
-    for a, given in answers.items():
-        out += [f"verdicts.answers.{a}.{k}: no criterion of the spec" for k in given if k != "beats" and k not in known]
+    for answer, given in answers.items():
+        out += [f"verdicts.answers.{answer}.{criterion_id}: no criterion of the spec" for criterion_id in given if criterion_id != "beats" and criterion_id not in known]
         if complete:
-            out += [f"verdicts.answers.{a}: no verdict on {k}" for k in sorted(known - set(given))]
+            out += [f"verdicts.answers.{answer}: no verdict on {criterion_id}" for criterion_id in sorted(known - set(given))]
         if "beats" in given and not pairwise:
-            out.append(f"verdicts.answers.{a}.beats: the spec has no pairwise tier")
-        out += [f"verdicts.answers.{a}.beats: {b} is no answer" for b in given.get("beats", []) if b not in answers]
+            out.append(f"verdicts.answers.{answer}.beats: the spec has no pairwise tier")
+        out += [f"verdicts.answers.{answer}.beats: {beaten} is no answer" for beaten in given.get("beats", []) if beaten not in answers]
     seen = set()
-    for g, group in enumerate(verdicts.get("groups", [])):
-        out += [f"verdicts.groups[{g}]: {a} is no answer" for a in group if a not in answers]
-        for a in group:
-            if a in seen:
-                out.append(f"verdicts.groups[{g}]: {a} is listed twice, in this group or an earlier one")
-            seen.add(a)
+    for group_index, group in enumerate(verdicts.get("groups", [])):
+        out += [f"verdicts.groups[{group_index}]: {member} is no answer" for member in group if member not in answers]
+        for answer in group:
+            if answer in seen:
+                out.append(f"verdicts.groups[{group_index}]: {answer} is listed twice, in this group or an earlier one")
+            seen.add(answer)
         if not group:
-            out.append(f"verdicts.groups[{g}]: holds no answer")
+            out.append(f"verdicts.groups[{group_index}]: holds no answer")
     if groups and "groups" not in verdicts:
         out.append("verdicts: no groups, which scoring for training needs")
     return out
