@@ -21,13 +21,16 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 0
     try:
-        cwd = json.load(sys.stdin).get("cwd") or "."
+        cwd = json.load(sys.stdin).get("cwd")
     except (ValueError, AttributeError):
-        cwd = "."
+        cwd = None
+    cwd = cwd if isinstance(cwd, str) and cwd else "."
     root = memory_home.home(cwd)
     if not root:
         return 0
     repository = memory_home.repository(cwd)
+    if not repository:
+        return 0
     folder = root / repository
     print(SENTENCE.format(repository=repository, folder=folder, root=root))
     index = folder / "MEMORY.md"

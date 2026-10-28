@@ -6,6 +6,7 @@ usage: move-memory.py <memory file> <destination folder>
 The file's line in its folder's `MEMORY.md` moves to the destination's `MEMORY.md`, which is made when missing; it refuses a
 destination that already holds a file of that name, so no lesson is overwritten."""
 import pathlib
+import re
 import sys
 
 INDEX = "MEMORY.md"
@@ -26,14 +27,15 @@ def main(args):
     if target.exists():
         print(f"not moved: {target} exists; merge the two by hand", file=sys.stderr)
         return 1
-    link = f"]({source.name})"
+    # only the line whose own link is the file, so a line that mentions it in its text stays
+    link = re.compile(rf"^\s*[-*] \[[^\]]*\]\({re.escape(source.name)}\)")
     source_index = source.parent / INDEX
     lines = source_index.read_text(encoding="utf-8").splitlines(keepends=True) if source_index.is_file() else []
-    moved = [line for line in lines if link in line]
+    moved = [line for line in lines if link.match(line)]
     destination.mkdir(parents=True, exist_ok=True)
     source.rename(target)
     if moved:
-        source_index.write_text("".join(line for line in lines if link not in line), encoding="utf-8")
+        source_index.write_text("".join(line for line in lines if not link.match(line)), encoding="utf-8")
         destination_index = destination / INDEX
         before = destination_index.read_text(encoding="utf-8") if destination_index.is_file() else ""
         separator = "" if not before or before.endswith("\n") else "\n"

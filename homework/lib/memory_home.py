@@ -20,7 +20,7 @@ def git(cwd, *args):
 def checkout(cwd):
     """The main checkout's root of the repository at cwd, which its worktrees share, else cwd itself."""
     common = git(cwd, "rev-parse", "--path-format=absolute", "--git-common-dir")
-    return pathlib.Path(common).parent if common else pathlib.Path(cwd)
+    return pathlib.Path(common).parent if common else pathlib.Path(cwd).resolve()
 
 
 def repository(cwd):
