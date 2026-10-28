@@ -40,7 +40,7 @@ Pick the kind by what the reader follows ([semantics.md](semantics.md)): the par
 
 Rules for a level:
 - The model's `level` is the root, the system's outermost repeating structure. A node opens the level inside it with `opens`.
-- Show what it is made of (components) and how it works (activities, states); a body of knowledge has claims and what they rest on [mechanism]; a model without a topology level, which a state may open (`link: view`) for the root Scenario to walk, gets the `mechanism` warning, which a fixture under `playbook/fixtures/` may keep and one under `schema/fixtures/` may not, since `check-schema.py fixtures` accepts a plain name only with no warning.
+- Show what it is made of (components) and how it works (activities, states); a body of knowledge has claims and what they rest on [mechanism]; a model without a topology level, which a state may open (`link: view`) for the root Scenario to walk, gets the `mechanism` warning, which a fixture under `schema/fixtures/` may not keep, since `check-schema.py fixtures` accepts a plain name only with no warning.
 - A level has 2 to 7 nodes; group states that react alike and detail them below.
 - Every edge says something: a `what`, an operation or a guard [explained].
 - A condition such as "pass" is a guard, not an artifact: name what is handed on.
