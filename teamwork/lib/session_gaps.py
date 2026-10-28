@@ -12,7 +12,7 @@ from datetime import datetime
 IDLE_HOURS = 0.5
 
 
-def stamp(text):
+def parse_time(text):
     """A GitHub or transcript time; Python before 3.11 cannot read its `Z`."""
     return datetime.fromisoformat(text.replace("Z", "+00:00"))
 
@@ -26,27 +26,27 @@ def _scan(root):
             if '"agent-name"' not in line and '"timestamp"' not in line:
                 continue
             try:
-                rec = json.loads(line)
+                record = json.loads(line)
             except ValueError:
                 continue
-            if rec.get("type") == "agent-name":
-                names.add(rec.get("agentName"))
-            elif rec.get("type") in ("user", "assistant") and rec.get("timestamp"):
-                stamps.append(stamp(rec["timestamp"]))
+            if record.get("type") == "agent-name":
+                names.add(record.get("agentName"))
+            elif record.get("type") in ("user", "assistant") and record.get("timestamp"):
+                stamps.append(parse_time(record["timestamp"]))
         if stamps:
             stamps.sort()
-            idle = sum((b - a).total_seconds() / 3600 > IDLE_HOURS for a, b in zip(stamps, stamps[1:]))
+            idle = sum((later - earlier).total_seconds() / 3600 > IDLE_HOURS for earlier, later in zip(stamps, stamps[1:]))
             for name in names:
                 found[(path.parent.name, name)].append((stamps[0], stamps[-1], idle))
-    return {key: sorted(s) for key, s in found.items()}
+    return {key: sorted(sessions) for key, sessions in found.items()}
 
 
 def _summary(project, name, sessions):
-    restart_hours = [max(0.0, (b[0] - a[1]).total_seconds() / 3600) for a, b in zip(sessions, sessions[1:])]
+    restart_hours = [max(0.0, (later[0] - earlier[1]).total_seconds() / 3600) for earlier, later in zip(sessions, sessions[1:])]
     return {"worker": name, "project": project, "sessions": len(sessions), "restarts": len(restart_hours),
-            "restart_hours": restart_hours, "idle_gaps": sum(s[2] for s in sessions)}
+            "restart_hours": restart_hours, "idle_gaps": sum(session[2] for session in sessions)}
 
 
 def summaries(root, names=None):
     """Summaries, one per project folder and name, of the names in NAMES or of every named session."""
-    return [_summary(p, n, s) for (p, n), s in sorted(_scan(root).items()) if names is None or n in names]
+    return [_summary(project, name, sessions) for (project, name), sessions in sorted(_scan(root).items()) if names is None or name in names]

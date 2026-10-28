@@ -14,15 +14,15 @@ import landing_git  # noqa: E402
 
 
 def main(args):
-    verb, *a = args or [""]
+    verb, *operands = args or [""]
     try:
-        if verb == "change" and len(a) in (3, 4):
+        if verb == "change" and len(operands) in (3, 4):
             if landing_git.folder() is None:
                 sys.exit("use-landing: run it inside the repository")
             base = landing_git.git("symbolic-ref", "--short", "HEAD", cwd=data_folder.common_folder().parent).stdout.strip()
-            print(landing_git.change(a[0], a[1], pathlib.Path(a[2]).read_text(), a[3] if a[3:] else base))
-        elif verb == "merge" and len(a) == 2:
-            print(landing_git.merge(*a))
+            print(landing_git.change(operands[0], operands[1], pathlib.Path(operands[2]).read_text(), operands[3] if operands[3:] else base))
+        elif verb == "merge" and len(operands) == 2:
+            print(landing_git.merge(*operands))
         else:
             print(__doc__, file=sys.stderr)
             return 2

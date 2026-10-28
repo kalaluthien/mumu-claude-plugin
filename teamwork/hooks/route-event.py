@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Timing-bound steps live in this hook, routed per event and role, instead of in the playbooks.
+"""Route each hook event to its role's timing-bound steps, kept in this hook instead of in the playbooks.
 
 usage: route-event.py
 It reads one hook event as JSON on stdin and prints the hook's answer, if any, as JSON on stdout."""
@@ -13,7 +13,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import background_work  # noqa: E402
 import board  # noqa: E402
-import json_command  # noqa: E402
+import install_line  # noqa: E402
 import session  # noqa: E402
 import team_gaps  # noqa: E402
 import team_names  # noqa: E402
@@ -28,14 +28,14 @@ REMINDED = {"file": ("`file`", "40 characters"), "change": ("40 characters",), "
 FENCE = re.compile(r"^```teamwork\n.*?^```", re.S | re.M)
 STATE_LINE = re.compile(r"^\s*(holders|deferred):", re.M)
 WORKTREES = "/.claude/worktrees/"
-CD = re.compile(r"(?:^|[;&|({]|\bthen|\bdo)[ \t]*(?:cd|pushd)[ \t]+(?:--[ \t]+)?(\"[^\"]*\"|'[^']*'|[^\s;&|)}]+)", re.M)
+CHANGE_DIRECTORY = re.compile(r"(?:^|[;&|({]|\bthen|\bdo)[ \t]*(?:cd|pushd)[ \t]+(?:--[ \t]+)?(\"[^\"]*\"|'[^']*'|[^\s;&|)}]+)", re.M)
 
 
-def live_cd(command, cwd):
+def live_change_directory(command, cwd):
     """(folder, worktree): the folder of the live checkout a `cd` in COMMAND enters from the worktree CWD, None for any other;
     a cd, never a write, is matched, since a script run after it may write anywhere."""
     root, inside, rest = (cwd or "").partition(WORKTREES)
-    for target in CD.findall(command) if inside else ():
+    for target in CHANGE_DIRECTORY.findall(command) if inside else ():
         path = os.path.normpath(os.path.join(cwd, os.path.expanduser(target.strip("\"'"))))
         if (path + "/").startswith(root + "/") and WORKTREES not in path + "/":
             return path, root + WORKTREES + rest.split("/")[0]
@@ -61,7 +61,7 @@ def reminder(call, role, cwd):
     called, needles = call["called"], REMINDED.get(call["write"], ())
     found = [f"- {path.relative_to(PLAYBOOKS.parents[1])}:{number}: {line.strip()}"
              for path in (PLAYBOOKS / "protocol.md", PLAYBOOKS / f"{role}.md", GRAMMAR, *sorted((PLAYBOOKS / "adapters").glob("*-github.md")))  # a gh command keeps GitHub's adapter rules, never another board's
-             for number, line in enumerate(path.read_text().splitlines(), 1) if any(n in line for n in needles)]
+             for number, line in enumerate(path.read_text().splitlines(), 1) if any(needle in line for needle in needles)]
     stray = ["- A `holders:` or `deferred:` line sits outside a ```teamwork fence in the posted file, so code reads no holder: put it inside the fence, as "
              f"{GRAMMAR.relative_to(PLAYBOOKS.parents[1])} says."] if called and stray_state(call, cwd) else []
     return (found or stray) and "\n".join([f"Reminder: the playbook rules this `{called}` must keep:", *found, *stray])
@@ -91,10 +91,10 @@ def route(kind, event, role, me, listed):
         return {"hookSpecificOutput": {"hookEventName": kind, "additionalContext": text}}
     # once, so a real wait still stops; never while a subagent or a background command it waits on still runs
     if kind == "Stop" and role == "worker" and not event.get("stop_hook_active") and not background_work.running_work(event.get("transcript_path") or ""):
-        goal = [g for g in team_gaps.worker_goal(me) if g.endswith(": open")]
+        goal = [line for line in team_gaps.worker_goal(me) if line.endswith(": open")]
         return goal and {"decision": "block", "reason": "\n".join(["Your goal still waits on you:", *goal,
                          "Take its next step; stop again only while a subagent, a check or your manager has it."])}
-    entered = role == "worker" and live_cd((event.get("tool_input") or {}).get("command", ""), event.get("cwd"))
+    entered = role == "worker" and live_change_directory((event.get("tool_input") or {}).get("command", ""), event.get("cwd"))
     if entered:  # guards the checkout every session loads, no issue rule, so no setting makes it a warning
         return {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason":
                 f"This cd enters {entered[0]} in the live checkout, which every session loads, so an edit there lands outside your worktree; "
@@ -115,9 +115,9 @@ def main(args):
     kind = event.get("hook_event_name")
     command = (event.get("tool_input") or {}).get("command", "")
     # without its host's command no session has a name, so no role matches and the role's SessionStart text never comes to say why
-    if kind == "SessionStart" and (missing := next(filter(None, map(json_command.missing, session.NEEDS)), None)):
+    if kind == "SessionStart" and (missing := next(filter(None, map(install_line.missing, session.NEEDS)), None)):
         print(json.dumps({"systemMessage": missing}))
-    elif kind not in ("PreToolUse", "PostToolUse") or board.command(command) or kind == "PreToolUse" and live_cd(command, event.get("cwd")):  # skip other Bash fast
+    elif kind not in ("PreToolUse", "PostToolUse") or board.command(command) or kind == "PreToolUse" and live_change_directory(command, event.get("cwd")):  # skip other Bash fast
         listed, me = session.sessions(event.get("session_id"))
         role = team_names.role(me.get("name"))
         if out := role and route(kind, event, role, me, listed):

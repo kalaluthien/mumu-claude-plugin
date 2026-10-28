@@ -28,7 +28,7 @@ def main(args):
             shutil.rmtree(copy)
         print(f"{ref} {sha}: exit {codes[ref]}", flush=True)
     base, *heads = refs
-    if codes[base] and not any(codes[h] for h in heads):
+    if codes[base] and not any(codes[head] for head in heads):
         print(f"fails on {base}, passes on {', '.join(heads)}")
     else:
         print(f"does not fail on {base} and pass on {', '.join(heads)}: the command does not show the change")

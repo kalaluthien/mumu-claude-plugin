@@ -6,4 +6,4 @@ disable-model-invocation: true
 
 # issues
 
-The `issue-pane` hook answers this command by showing the Issues pane (opened if closed) and refreshing its board, so this body reaches a session only when that hook is off: then say the pane needs Claude Code's function hooks.
+The `draw-issue-pane` hook answers this command by showing the Issues pane (opened if closed) and refreshing its board, so this body reaches a session only when that hook is off: then say the pane needs Claude Code's function hooks.

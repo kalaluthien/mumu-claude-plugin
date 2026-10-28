@@ -11,7 +11,7 @@ def pulls(state="open", repo=None, limit=None, branch=None):
     """Pull requests as `number`, `headRefName`, `headRefOid`, `mergedAt`, newest update first; LIMIT cuts it to one page, BRANCH to one head. None when a read failed."""
     raw = get(f"repos/pulls?state={state}&sort=updated&direction=desc&per_page={limit or 100}" + (f"&head={{owner}}:{branch}" if branch else ""),
               repo, paginate=not limit)
-    return raw and [{"number": p["number"], "headRefName": p["head"]["ref"], "headRefOid": p["head"]["sha"], "mergedAt": p["merged_at"]} for p in raw]
+    return raw and [{"number": pull["number"], "headRefName": pull["head"]["ref"], "headRefOid": pull["head"]["sha"], "mergedAt": pull["merged_at"]} for pull in raw]
 
 
 def conflicts(number, repo=None):

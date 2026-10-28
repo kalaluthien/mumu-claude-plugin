@@ -6,7 +6,6 @@ repository `GH_REPO` names, as the tape of recorded-gh/gh beside this file holds
 with `GH_REPO` unset or naming it, the run calls no gh, prints `not a sandbox` and exits 1.
 
 usage: replay-board-scenario.py --board <github|files>"""
-import argparse
 import difflib
 import os
 import pathlib
@@ -20,6 +19,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 USE = HERE.parent / "scripts" / "use-board.py"
 THIS_REPO = "kalaluthien/mumu-claude-plugin"
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import usage_parser  # noqa: E402
 
 names = {}  # the number each issue got, by the name the output uses
 
@@ -39,32 +39,32 @@ def filed(name, title, body, labels=()):
 
 
 def number(name):
-    return next(n for n, v in names.items() if v == name)
+    return next(issue_number for issue_number, known in names.items() if known == name)
 
 
 def plain(out):
     """OUT with each url one word and each issue number its name."""
-    return re.sub(r"#(\d+)", lambda m: "#" + names.get(int(m.group(1)), m.group(1)), re.sub(r"(?:https|file)://\S+", "<url>", out))
+    return re.sub(r"#(\d+)", lambda match: "#" + names.get(int(match.group(1)), match.group(1)), re.sub(r"(?:https|file)://\S+", "<url>", out))
 
 
 def show(step):
     print(f"step {step}")
-    for n, name in sorted(names.items(), key=lambda x: x[1]):
-        r = board.fresh(n)
-        s = issue_state.compose(r, board.blockers(n))
-        parent = names.get(r["parent"])
-        criteria = [(d["kind"], d["name"], bool(d["met"])) for d in s["done"]]
-        print(plain(f"{name}: {r['state']} labels={sorted(r['labels'])} parent={parent} holders={s['holders']} waits={s['waits']} comments={len(r['comments'])} criteria={criteria}"))
-    closed = sum(board.fresh(n, comments=False)["state"] == "CLOSED" for n, v in names.items() if v != "backlog")
+    for issue_number, name in sorted(names.items(), key=lambda item: item[1]):
+        record = board.fresh(issue_number)
+        state = issue_state.compose(record, board.blockers(issue_number))
+        parent = names.get(record["parent"])
+        criteria = [(criterion["kind"], criterion["name"], bool(criterion["met"])) for criterion in state["done"]]
+        print(plain(f"{name}: {record['state']} labels={sorted(record['labels'])} parent={parent} holders={state['holders']} waits={state['waits']} comments={len(record['comments'])} criteria={criteria}"))
+    closed = sum(board.fresh(issue_number, comments=False)["state"] == "CLOSED" for issue_number, known in names.items() if known != "backlog")
     for _ in range(15):  # GitHub counts a parent's closed sub-issues a moment after the close, so read until the count agrees
         nodes = board.tree(None)
         if nodes is None:
             sys.exit("replay-board-scenario: the board read failed")
-        counts = [n["subIssuesSummary"]["completed"] for n in nodes if n["number"] == number("backlog")]
+        counts = [node["subIssuesSummary"]["completed"] for node in nodes if node["number"] == number("backlog")]
         if counts in ([], [closed]):
             break
         time.sleep(2)
-    print(plain("\n".join(issue_board.lines(issue_board.board([n for n in nodes if n["number"] in names])))))
+    print(plain("\n".join(issue_board.lines(issue_board.board([node for node in nodes if node["number"] in names])))))
 
 
 TASK = "## Goal\n\nProbe the board.\n\n## Definition of done\n\n1. [check] **probe passes**: `echo ok` prints `ok`; on base nothing.\n"
@@ -72,7 +72,7 @@ TASK = "## Goal\n\nProbe the board.\n\n## Definition of done\n\n1. [check] **pro
 
 def main(args):
     global work, board, issue_board, issue_state
-    parser = argparse.ArgumentParser()
+    parser = usage_parser.parser(__doc__)
     parser.add_argument("--board", choices=("github", "files"), required=True)
     board_name = parser.parse_args(args).board
     work = pathlib.Path(tempfile.mkdtemp(prefix="board-scenario-"))

@@ -27,7 +27,6 @@ stage it cannot split surely: before its first pipe, outside quotes, only words,
 may stand, and the first word is no `if`, `while`, `for` or other compound keyword; inside double quotes no `$(`, `${`, backtick
 or backslash; exit 1 on any
 `wrong pass`. It finds a check that can never pass, such as `check-schema.py check /dev/stdin`, which reads its input twice."""
-import argparse
 import json
 import os
 import pathlib
@@ -42,6 +41,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
 import criteria_check  # noqa: E402
 import issue_state  # noqa: E402
+import usage_parser  # noqa: E402
 
 HEADER = "REPORTED: criteria at "
 CELL = 160
@@ -50,7 +50,7 @@ CELL = 160
 def read_task(source):
     if source == "-":
         task = json.load(sys.stdin)  # a comment the board adapter has not marked, as a board's own listing prints it, gets its mark here
-        return {**task, "comments": [{**c, "trusted": c.get("trusted", board.trusted(c))} for c in task.get("comments", [])]}
+        return {**task, "comments": [{**comment, "trusted": comment.get("trusted", board.trusted(comment))} for comment in task.get("comments", [])]}
     found = board.fresh(source)
     if found is None:
         sys.exit(f"run-criteria: could not read task {source} from GitHub")
@@ -98,22 +98,22 @@ def after_first_pipe(command):
         return None
     quote, i = None, 0
     while i < len(command):
-        c = command[i]
-        if c == "\\":
+        char = command[i]
+        if char == "\\":
             return None
         if quote:
             # a substitution inside double quotes can hold quotes of its own, which end this quote early
-            if quote == '"' and (c == "`" or command[i:i + 2] in ("$(", "${")):
+            if quote == '"' and (char == "`" or command[i:i + 2] in ("$(", "${")):
                 return None
-            quote = None if c == quote else quote
-        elif c in "'\"":
-            quote = c
-        elif c == "|" and command[i:i + 2] != "||":
+            quote = None if char == quote else quote
+        elif char in "'\"":
+            quote = char
+        elif char == "|" and command[i:i + 2] != "||":
             return command[i + 1:]
-        elif not (m := SAFE.match(command, i)):
+        elif not (match := SAFE.match(command, i)):
             return None
         else:
-            i = m.end() - 1
+            i = match.end() - 1
         i += 1
     return None
 
@@ -138,24 +138,24 @@ def base_ref(ref):
 def run_on_base(root, ref, rows, timeout):
     """Rows of every criterion run in a `git archive` copy of the base, so the head's files never answer."""
     with tempfile.TemporaryDirectory(prefix="run-criteria-base-") as copy:
-        tar = subprocess.Popen(["git", "archive", ref], cwd=root, stdout=subprocess.PIPE)
-        subprocess.run(["tar", "-x", "-C", copy], stdin=tar.stdout, check=True)
-        if tar.wait():
+        exported = subprocess.Popen(["git", "archive", ref], cwd=root, stdout=subprocess.PIPE)
+        subprocess.run(["tar", "-x", "-C", copy], stdin=exported.stdout, check=True)
+        if exported.wait():
             sys.exit(f"run-criteria: could not export {ref}; fetch it first")
-        return [base_row(str(n), *c, copy, timeout) for n, c in enumerate(rows, 1)]
+        return [base_row(str(n), *criterion, copy, timeout) for n, criterion in enumerate(rows, 1)]
 
 
 def run(command, cwd, timeout):
     """(exit status or None on a timeout, stdout and stderr as one text)."""
-    p = subprocess.Popen(["bash", "-c", command], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+    process = subprocess.Popen(["bash", "-c", command], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                          start_new_session=True)
     try:
-        out, _ = p.communicate(timeout=timeout)
-        return p.returncode, out.strip()
+        out, _ = process.communicate(timeout=timeout)
+        return process.returncode, out.strip()
     except subprocess.TimeoutExpired:
         # the check's children share its session, so killing only bash would leave them running
-        os.killpg(p.pid, signal.SIGKILL)
-        p.communicate()
+        os.killpg(process.pid, signal.SIGKILL)
+        process.communicate()
         return None, f"timed out after {timeout} s"
 
 
@@ -200,65 +200,65 @@ def criteria(text):
 def earlier_fails(task):
     """{name: {output, ...}} of the `fail` rows in earlier tables on the task, by trusted authors only."""
     found = {}
-    for c in task.get("comments", []):
-        if issue_state.trusted(c) and c["body"].startswith(HEADER):
-            for line in c["body"].splitlines():
-                cells = [x.strip() for x in re.split(r"(?<!\\)\|", line)[1:-1]]
+    for comment in task.get("comments", []):
+        if issue_state.trusted(comment) and comment["body"].startswith(HEADER):
+            for line in comment["body"].splitlines():
+                cells = [part.strip() for part in re.split(r"(?<!\\)\|", line)[1:-1]]
                 if len(cells) == 4 and cells[2] == "fail":
                     found.setdefault(cells[1], set()).add(cells[3])
     return found
 
 
 def main(args):
-    parser = argparse.ArgumentParser()
+    parser = usage_parser.parser(__doc__)
     parser.add_argument("--timeout", type=int, default=300)
     parser.add_argument("--base", "--main", action="store_true")
     parser.add_argument("--ref")
     parser.add_argument("--pass", dest="samples", action="append", default=[], metavar="N=FILE")
     parser.add_argument("task")
-    a = parser.parse_args(args)
-    file = pathlib.Path(a.task)
-    task = {"body": file.read_text(), "comments": []} if (a.base or a.samples) and file.is_file() else runnable(read_task(a.task))
+    options = parser.parse_args(args)
+    file = pathlib.Path(options.task)
+    task = {"body": file.read_text(), "comments": []} if (options.base or options.samples) and file.is_file() else runnable(read_task(options.task))
     root = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip() or "."
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
     dirty = subprocess.run(["git", "status", "--porcelain"], cwd=root, capture_output=True, text=True).stdout.strip()
-    if a.samples:
-        if a.base:
+    if options.samples:
+        if options.base:
             sys.exit("run-criteria: --pass and --base cannot run together")
         given = {}
-        for x in a.samples:
-            n, _, f = x.partition("=")
-            if not n.isdigit() or not f:
-                sys.exit(f"run-criteria: --pass wants <n>=<sample-file>, got {x}")
-            given[int(n)] = os.path.abspath(f)
+        for sample in options.samples:
+            position, _, sample_file = sample.partition("=")
+            if not position.isdigit() or not sample_file:
+                sys.exit(f"run-criteria: --pass wants <n>=<sample-file>, got {sample}")
+            given[int(position)] = os.path.abspath(sample_file)
         found = list(criteria(issue_state.sections(task.get("body")).get("done", "")))
         if set(given) - set(range(1, len(found) + 1)):
             sys.exit(f"run-criteria: --pass names a criterion the task lacks; it has {len(found)}")
-        rows = [pass_row(str(n), *c, given.get(n), root, a.timeout) for n, c in enumerate(found, 1)]
+        rows = [pass_row(str(n), *criterion, given.get(n), root, options.timeout) for n, criterion in enumerate(found, 1)]
         print("REPORTED: pass outputs at " + head + "\n\n| # | criterion | result | output on sample |\n| --- | --- | --- | --- |")
-        for r in rows:
-            print("| " + " | ".join([r[0], r[1].replace("|", "\\|"), r[2], r[3]]) + " |")
-        return 1 if any(r[2] == "wrong pass" for r in rows) else 0
-    if a.base:
-        ref = base_ref(a.ref)
+        for table_row in rows:
+            print("| " + " | ".join([table_row[0], table_row[1].replace("|", "\\|"), table_row[2], table_row[3]]) + " |")
+        return 1 if any(table_row[2] == "wrong pass" for table_row in rows) else 0
+    if options.base:
+        ref = base_ref(options.ref)
         sha = subprocess.run(["git", "rev-parse", "--short", ref], cwd=root, capture_output=True, text=True).stdout.strip()
-        rows = run_on_base(root, ref, list(criteria(issue_state.sections(task.get("body")).get("done", ""))), a.timeout)
+        rows = run_on_base(root, ref, list(criteria(issue_state.sections(task.get("body")).get("done", ""))), options.timeout)
         print(f"REPORTED: base outputs at {ref} {sha}\n\n| # | criterion | result | output on base |\n| --- | --- | --- | --- |")
-        for r in rows:
-            print("| " + " | ".join([r[0], r[1].replace("|", "\\|"), r[2], r[3]]) + " |")
-        return 1 if any(r[2] == "wrong base" for r in rows) else 0
+        for table_row in rows:
+            print("| " + " | ".join([table_row[0], table_row[1].replace("|", "\\|"), table_row[2], table_row[3]]) + " |")
+        return 1 if any(table_row[2] == "wrong base" for table_row in rows) else 0
     standing = pathlib.Path(root, ".teamwork", "default-criteria.md")
-    rows = [row(str(n), *c, root, a.timeout) for n, c in enumerate(criteria(issue_state.sections(task.get("body")).get("done", "")), 1)]
-    rows += [row("standing", *c, root, a.timeout) for c in criteria(standing.read_text())] if standing.exists() else []
+    rows = [row(str(n), *criterion, root, options.timeout) for n, criterion in enumerate(criteria(issue_state.sections(task.get("body")).get("done", "")), 1)]
+    rows += [row("standing", *criterion, root, options.timeout) for criterion in criteria(standing.read_text())] if standing.exists() else []
     print(f"{HEADER}{head}" + (" with uncommitted changes" if dirty else ""))
     print("\n| # | criterion | result | output |\n| --- | --- | --- | --- |")
-    for r in rows:
-        print("| " + " | ".join([r[0], r[1].replace("|", "\\|"), r[2], r[3]]) + " |")
+    for table_row in rows:
+        print("| " + " | ".join([table_row[0], table_row[1].replace("|", "\\|"), table_row[2], table_row[3]]) + " |")
     before = earlier_fails(task)
     for _, name, result, out in rows:
         if result == "fail" and out in before.get(name.replace("|", "\\|"), ()):
             print(f"\nBLOCKED due: {name} failed with the same output as in an earlier table; ask your manager by `BLOCKED:`.")
-    return 1 if any(r[2] == "fail" for r in rows) else 0
+    return 1 if any(table_row[2] == "fail" for table_row in rows) else 0
 
 
 if __name__ == "__main__":

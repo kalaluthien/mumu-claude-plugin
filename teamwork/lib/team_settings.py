@@ -10,17 +10,17 @@ import agent
 FILE = pathlib.Path(".teamwork", "settings.json")
 DEFAULTS = {"refuse": False, "title_max": 40, "backlog_label": "backlog", "scope_prefix": "scope:",
             "tools_off": {role: tools.split(",") for role, tools in agent.TOOLS_OFF.items()}}
-NUMBER = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)  # True is an int in Python, and no limit
-TOOL_LISTS = lambda v: isinstance(v, dict) and all(isinstance(t, list) and all(isinstance(x, str) for x in t) for t in v.values())
-KINDS = {"refuse": ("a boolean", lambda v: isinstance(v, bool)), "title_max": ("a number", NUMBER),
-         "backlog_label": ("a string", lambda v: isinstance(v, str)), "scope_prefix": ("a string", lambda v: isinstance(v, str)),
+NUMBER = lambda value: isinstance(value, (int, float)) and not isinstance(value, bool)  # True is an int in Python, and no limit
+TOOL_LISTS = lambda value: isinstance(value, dict) and all(isinstance(tools, list) and all(isinstance(tool, str) for tool in tools) for tools in value.values())
+KINDS = {"refuse": ("a boolean", lambda value: isinstance(value, bool)), "title_max": ("a number", NUMBER),
+         "backlog_label": ("a string", lambda value: isinstance(value, str)), "scope_prefix": ("a string", lambda value: isinstance(value, str)),
          "tools_off": ("an object of role to list of tool names", TOOL_LISTS)}
 
 
 def root(folder):
     """The git root holding FOLDER, by its `.git` entry, which a worktree has as a file; None outside a repository."""
     here = pathlib.Path(folder).resolve()
-    return next((p for p in (here, *here.parents) if (p / ".git").exists()), None)
+    return next((candidate for candidate in (here, *here.parents) if (candidate / ".git").exists()), None)
 
 
 def load(folder):

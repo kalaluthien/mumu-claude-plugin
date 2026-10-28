@@ -28,7 +28,7 @@ def recorded(session_id):
 
 
 def main(args):
-    if len(args) != 1:
+    if len(args) != 1 or args[0].startswith("-"):
         print(__doc__, file=sys.stderr)
         return 2
     name = args[0]

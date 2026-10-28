@@ -19,39 +19,39 @@ def _estimate(prior, labels, levels):
 def _score(rows, start, levels):
     """Per task from START on: (actual, low, high, median guess, baseline low, baseline high, baseline median)."""
     out = []
-    for j in range(start, len(rows)):
-        prior = rows[:j]
-        low, high, mid = _estimate(prior, rows[j]["labels"], levels)
-        every = [r["hours"] for r in prior]
-        out.append((rows[j]["hours"], low, high, mid, *task_estimate.bounds(every, (0.1, 0.9)), statistics.median(every)))
+    for index in range(start, len(rows)):
+        prior = rows[:index]
+        low, high, mid = _estimate(prior, rows[index]["labels"], levels)
+        every = [row["hours"] for row in prior]
+        out.append((rows[index]["hours"], low, high, mid, *task_estimate.bounds(every, (0.1, 0.9)), statistics.median(every)))
     return out
 
 
 def _runs(rows, start, stop, levels, seed):
     """Coverage of the bootstrap total over each run of RUN tasks that starts in START..STOP-RUN, and the run count."""
     covered = runs = 0
-    for j in range(start, stop - RUN + 1):
-        groups = [task_estimate.group(rows[:j], rows[i]["labels"])[0] for i in range(j, j + RUN)]
+    for index in range(start, stop - RUN + 1):
+        groups = [task_estimate.group(rows[:index], rows[i]["labels"])[0] for i in range(index, index + RUN)]
         low, high = task_estimate.total_range(groups, seed, levels)
-        covered += low <= sum(r["hours"] for r in rows[j:j + RUN]) <= high
+        covered += low <= sum(row["hours"] for row in rows[index:index + RUN]) <= high
         runs += 1
     return covered, runs
 
 
-def _stats(scored, base):
+def _spread(scored, base):
     cut = 4 if base else 1
-    cover = sum(s[cut] <= s[0] <= s[cut + 1] for s in scored) / len(scored)
-    return {"coverage": cover, "width": statistics.median(s[cut + 1] - s[cut] for s in scored),
-            "error": statistics.median(abs(s[0] - s[cut + 2]) for s in scored)}
+    cover = sum(score[cut] <= score[0] <= score[cut + 1] for score in scored) / len(scored)
+    return {"coverage": cover, "width": statistics.median(score[cut + 1] - score[cut] for score in scored),
+            "error": statistics.median(abs(score[0] - score[cut + 2]) for score in scored)}
 
 
 def _narrowest(cover_at):
     """The first of LEVELS whose coverage reaches TARGET, else the widest, with the coverage last measured."""
     cover = None
-    for lv in LEVELS:
-        cover = cover_at(lv)
+    for candidate in LEVELS:
+        cover = cover_at(candidate)
         if cover is not None and cover >= TARGET:
-            return lv, cover
+            return candidate, cover
     return LEVELS[-1], cover
 
 
@@ -60,45 +60,45 @@ def _share(hit, runs):
 
 
 def _covered(scored):
-    return _share(sum(s[1] <= s[0] <= s[2] for s in scored), len(scored))
+    return _share(sum(score[1] <= score[0] <= score[2] for score in scored), len(scored))
 
 
 def fit(rows, seed=0):
     """Calibrate on the first FIT of ROWS (oldest first): the narrowest per-task levels and total levels whose coverage
     over the later half of that part reaches TARGET, each with that coverage; None when too few tasks."""
-    k = int(len(rows) * FIT)
-    if k < task_estimate.MIN_GROUP:
+    split = int(len(rows) * FIT)
+    if split < task_estimate.MIN_GROUP:
         return None
-    levels, cover = _narrowest(lambda lv: _covered(_score(rows[:k], k // 2, lv)))
-    total_levels, total_cover = _narrowest(lambda lv: _share(*_runs(rows, k // 2, k, lv, seed)))
+    levels, cover = _narrowest(lambda candidate: _covered(_score(rows[:split], split // 2, candidate)))
+    total_levels, total_cover = _narrowest(lambda candidate: _share(*_runs(rows, split // 2, split, candidate, seed)))
     return levels, cover, total_levels, total_cover
 
 
 def backtest(rows, seed=0):
     """The fitted levels and fit coverages, the held-out stats of the estimator and the baseline, and the coverage of
     the bootstrap total over each run of RUN held-out tasks. None when too few tasks to fit and score."""
-    rows = sorted(rows, key=lambda r: r["end"])
-    k = int(len(rows) * FIT)
+    rows = sorted(rows, key=lambda row: row["end"])
+    split = int(len(rows) * FIT)
     fitted = fit(rows, seed)
-    if fitted is None or len(rows) - k < RUN:
+    if fitted is None or len(rows) - split < RUN:
         return None
     levels, cover, total_levels, total_cover = fitted
-    held = _score(rows, k, levels)
-    hit, runs = _runs(rows, k, len(rows), total_levels, seed)
+    held = _score(rows, split, levels)
+    hit, runs = _runs(rows, split, len(rows), total_levels, seed)
     return {"tasks": len(rows), "scored": len(held), "levels": levels, "fit_coverage": cover,
-            "estimator": _stats(held, False), "baseline": _stats(held, True), "total_levels": total_levels,
+            "estimator": _spread(held, False), "baseline": _spread(held, True), "total_levels": total_levels,
             "total_fit_coverage": total_cover, "covered": hit, "runs": runs}
 
 
 def as_of(rows, cutoff, numbers):
     """(history size, [(number, low, high, actual hours)]): each task in NUMBERS estimated from the tasks closed before
     CUTOFF with the NUMBERS themselves left out, at the levels fitted on that history as the estimator fits them."""
-    prior = sorted((r for r in rows if r["end"] < cutoff and r["number"] not in numbers), key=lambda r: r["end"])
+    prior = sorted((row for row in rows if row["end"] < cutoff and row["number"] not in numbers), key=lambda row: row["end"])
     fitted = fit(prior)
     levels = fitted[0] if fitted else (0.1, 0.9)
     out = []
-    for r in rows:
-        if r["number"] in numbers:
-            hours, _ = task_estimate.group(prior, r["labels"])
-            out.append((r["number"], *task_estimate.bounds(hours, levels), r["hours"]))
+    for row in rows:
+        if row["number"] in numbers:
+            hours, _ = task_estimate.group(prior, row["labels"])
+            out.append((row["number"], *task_estimate.bounds(hours, levels), row["hours"]))
     return len(prior), out

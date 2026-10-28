@@ -25,34 +25,34 @@ import issue_state  # noqa: E402
 
 
 def main(args):
-    verb, *a = args or [""]
+    verb, *operands = args or [""]
     text = lambda path: pathlib.Path(path).read_text()
     try:
-        if verb == "read" and len(a) == 1:
-            i = board.fresh(a[0]) or sys.exit(f"use-board: cannot read #{a[0]}")
-            print(f"#{i['number']} {issue_state.title(i)}\nstate: {i['state']}\nlabels: {', '.join(i['labels'])}\nparent: {i['parent']}\n\n{i['body']}")
-            for c in i["comments"]:
-                print(f"\n--- {c['url']}\n{c['body']}")
-        elif verb == "comment" and len(a) == 2:
-            print(board.comment(a[0], text(a[1])))
-        elif verb == "file" and len(a) >= 2:
-            print(board.fresh(board.file(a[0], text(a[1]), a[2:]), comments=False)["url"])
-        elif verb == "edit" and len(a) == 3:
-            return subprocess.run([sys.executable, str(HERE / "edit-issue-body.py"), *a]).returncode
-        elif verb == "resolve" and len(a) in (2, 3) and text(a[1]).startswith("REPORTED:"):
-            board.resolve(a[0], text(a[1]), "--not-planned" not in a[2:])
-        elif verb == "title" and len(a) == 2:
-            board.retitle(*a)
-        elif verb == "reopen" and len(a) == 1:
-            board.reopen(a[0])
-        elif verb == "decide" and len(a) == 2 and text(a[1]).startswith("DECIDED:"):
-            print(board.comment(a[0], text(a[1])))
-        elif verb == "order" and len(a) == 2:
-            board.order(*a)
-        elif verb == "nest" and len(a) == 2:
-            board.nest(*a)
-        elif verb == "label" and len(a) in (2, 3):
-            board.label(a[0], a[1], "--remove" in a[2:])
+        if verb == "read" and len(operands) == 1:
+            issue = board.fresh(operands[0]) or sys.exit(f"use-board: cannot read #{operands[0]}")
+            print(f"#{issue['number']} {issue_state.title(issue)}\nstate: {issue['state']}\nlabels: {', '.join(issue['labels'])}\nparent: {issue['parent']}\n\n{issue['body']}")
+            for comment in issue["comments"]:
+                print(f"\n--- {comment['url']}\n{comment['body']}")
+        elif verb == "comment" and len(operands) == 2:
+            print(board.comment(operands[0], text(operands[1])))
+        elif verb == "file" and len(operands) >= 2:
+            print(board.fresh(board.file(operands[0], text(operands[1]), operands[2:]), comments=False)["url"])
+        elif verb == "edit" and len(operands) == 3:
+            return subprocess.run([sys.executable, str(HERE / "edit-issue-body.py"), *operands]).returncode
+        elif verb == "resolve" and len(operands) in (2, 3) and text(operands[1]).startswith("REPORTED:"):
+            board.resolve(operands[0], text(operands[1]), "--not-planned" not in operands[2:])
+        elif verb == "title" and len(operands) == 2:
+            board.retitle(*operands)
+        elif verb == "reopen" and len(operands) == 1:
+            board.reopen(operands[0])
+        elif verb == "decide" and len(operands) == 2 and text(operands[1]).startswith("DECIDED:"):
+            print(board.comment(operands[0], text(operands[1])))
+        elif verb == "order" and len(operands) == 2:
+            board.order(*operands)
+        elif verb == "nest" and len(operands) == 2:
+            board.nest(*operands)
+        elif verb == "label" and len(operands) in (2, 3):
+            board.label(operands[0], operands[1], "--remove" in operands[2:])
         else:
             print(__doc__, file=sys.stderr)
             return 2

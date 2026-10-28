@@ -18,14 +18,14 @@ const WAIT_COLOR: Record<string, string> = { 'waits on the owner': 'error', 'wai
 const TEAM_CHANGE = /\bedit-issue-body\.py\b|\bgh\s+(?:-{1,2}\w[\w-]*(?:[\s=][^\s-]\S*)?\s+)*(?:(issue|pr)\s+(create|comment|edit|close|reopen|merge|review|ready)\b|api\s+(?!graphql)(?!(?:[^;&|\n]*\s)?(-X|--method)[\s=]*GET\b)(?=[^;&|\n]*(\s(-X|--method)[\s=]*(POST|PATCH|PUT|DELETE)\b|\s-[fF]\b|\s--(raw-)?field\b|\s--input\b))[^;&|\n]*\b(issues|sub_issues|dependencies|pulls)\b)/
 
 // a manager's pane and its waiter, once per session; the start directory, since the current one may be a worktree removed since
-let startDir: string | undefined
+let startFolder: string | undefined
 let watching = false
 // the manager's board read, set once it watches, so the issues command reads the board again
 let refresh: (() => Promise<void>) | undefined
 const openPane = ($: any) => $.ui.open({ id: PANE, title: 'Issues' })
 // a plain open of an open id leaves it behind another plugin's tab, and focus may take the prompt's keys, so a hidden pane closes and opens again
 async function showPane($: any) {
-  if ((await $.ui.panes()).some((p: { id: string; isShown: boolean }) => p.id === PANE && !p.isShown)) await $.ui.close({ id: PANE })
+  if ((await $.ui.panes()).some((pane: { id: string; isShown: boolean }) => pane.id === PANE && !pane.isShown)) await $.ui.close({ id: PANE })
   return openPane($)
 }
 function watch($: any, name: string) {
@@ -38,15 +38,15 @@ function watch($: any, name: string) {
   const load = async () => {
     retry?.cancel()
     try {
-      const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json'], { cwd: startDir, timeoutMs: 60000 })
+      const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json'], { cwd: startFolder, timeoutMs: 60000 })
       if (run.exitCode === 0) {
         await update($, board, () => JSON.parse(run.stdout) as BoardIssue[])
         await update($, loaded, () => true)
       }
       await update($, failure, () => run.exitCode === 0 ? '' : (run.stderr ?? '').trim() || `the board read exited ${run.exitCode}`)
       if (run.exitCode !== 0) retry = $.clock.after(RETRY_MS, () => void load())
-    } catch (err) {  // a failed read must not end the loop, whose end kills the waiter
-      await update($, failure, () => `the board read failed: ${err}`).catch(() => undefined)
+    } catch (error) {  // a failed read must not end the loop, whose end kills the waiter
+      await update($, failure, () => `the board read failed: ${error}`).catch(() => undefined)
       retry = $.clock.after(RETRY_MS, () => void load())
     }
   }
@@ -62,51 +62,51 @@ function watch($: any, name: string) {
 
 export const register: Register = on => {
   // every team session marks its change, so the manager's waiter wakes without reading GitHub
-  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
-    const ran = await next(e)
-    if (ran.deny === undefined && !ran.isError && TEAM_CHANGE.test(e.command)) {
-      const config = (await $.env.get('CLAUDE_CONFIG_DIR')) || `${await $.env.get('HOME')}/.claude`
-      await $.process.run(['touch', `${config}/teamwork/issues-changed`]).catch(() => undefined)
+  on('tool.call', { tool: 'Bash' }, async ($, event, next) => {
+    const ran = await next(event)
+    if (ran.deny === undefined && !ran.isError && TEAM_CHANGE.test(event.command)) {
+      const claudeFolder = (await $.env.get('CLAUDE_CONFIG_DIR')) || `${await $.env.get('HOME')}/.claude`
+      await $.process.run(['touch', `${claudeFolder}/teamwork/issues-changed`]).catch(() => undefined)
     }
     return ran
-  }).catch(($, e, next) => next(e))  // a failed mark must never fail the command it follows
+  }).catch(($, event, next) => next(event))  // a failed mark must never fail the command it follows
 
-  on('session.start', async ($, e, next) => {
-    const started = await next(e)
-    startDir = e.cwd
+  on('session.start', async ($, event, next) => {
+    const started = await next(event)
+    startFolder = event.cwd
     const me = await $.process.run([`${$.plugin.root}/skills/kick-off/scripts/list-sessions.py`, '--me']).catch(() => undefined)
     watch($, me?.stdout.trim() ?? '')  // outside a team's host no session is a manager
     return started
   })
 
   // a session may take its manager name after it started, as a successor does
-  on('command.run', { command: 'rename' }, async ($, e, next) => {
-    const ran = await next(e)
+  on('command.run', { command: 'rename' }, async ($, event, next) => {
+    const ran = await next(event)
     // a typed argument may land garbled, so a herdr name stands in unless the argument is already a manager name
-    const typed = e.args.trim()
+    const typed = event.args.trim()
     const me = typed.endsWith('-manager') ? undefined : await $.process.run([`${$.plugin.root}/skills/kick-off/scripts/list-sessions.py`, '--me']).catch(() => undefined)
     watch($, me?.stdout.trim() || typed)
     return ran
-  }).catch(($, e, next) => next(e))  // a failed open must never fail the rename
+  }).catch(($, event, next) => next(event))  // a failed open must never fail the rename
 
   // the owner closes the pane by its frame's x; this skill shows it again and reads the board anew, with no model turn
   on('command.run', { command: 'teamwork:issues' }, async ($) => {
     await showPane($)
     await refresh?.()
     return { text: 'Issues pane shown' }
-  }).catch(($, e, next) => next(e))  // a failed open falls back to the skill's body
+  }).catch(($, event, next) => next(event))  // a failed open falls back to the skill's body
 
-  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Text, Link, Button, Markdown } = $.ui.resolve(e)
+  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, event) => {
+    const { Box, Text, Link, Button, Markdown } = $.ui.resolve(event)
     const unfolded = new Set(await read($, expanded))
-    const toggle = (n: number | string) => () => void update($, expanded, old => old.includes(n) ? old.filter(x => x !== n) : [...old, n])
-    const status = (i: BoardIssue) => [
-      i.progress && <Text dimColor>{i.progress}</Text>,
-      i.wait && <Text color={WAIT_COLOR[i.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{i.wait}</Text>,
-    ].filter(Boolean).flatMap((x, k) => (k ? [<Text> </Text>, x] : [x]))
+    const toggle = (id: number | string) => () => void update($, expanded, old => old.includes(id) ? old.filter(item => item !== id) : [...old, id])
+    const status = (issue: BoardIssue) => [
+      issue.progress && <Text dimColor>{issue.progress}</Text>,
+      issue.wait && <Text color={WAIT_COLOR[issue.wait.split(' by ')[0]] ?? 'subtle'} weight="semibold">{issue.wait}</Text>,
+    ].filter(Boolean).flatMap((node, k) => (k ? [<Text> </Text>, node] : [node]))
     // every blocker, as links: an open one bold, a closed one dim, so what still holds a task stands out
-    const after = (t: { url: string; blockers: BoardIssue['blockers'] }) => t.blockers.length > 0 && [<Text dimColor>{' ← '}</Text>, ...t.blockers.map((b, k) =>
-      <Text dimColor={b.closed} weight={b.closed ? undefined : 'semibold'}>{k ? ' ' : ''}<Link href={t.url.replace(/\d+$/, String(b.number))} label={`#${b.number}`} /></Text>)]
+    const after = (task: { url: string; blockers: BoardIssue['blockers'] }) => task.blockers.length > 0 && [<Text dimColor>{' ← '}</Text>, ...task.blockers.map((blocker, k) =>
+      <Text dimColor={blocker.closed} weight={blocker.closed ? undefined : 'semibold'}>{k ? ' ' : ''}<Link href={task.url.replace(/\d+$/, String(blocker.number))} label={`#${blocker.number}`} /></Text>)]
     // a goal or a criterion: its name on one line, its details only once a press on that line unfolds them; unfolded, the name goes gray so the white detail reads first,
     // and a blank line ends the detail, so the next name does not read as part of it
     const part = (key: string, name: string, detail: string[]) => (
@@ -115,51 +115,51 @@ export const register: Register = on => {
         {unfolded.has(key) && detail.length > 0 && <Box paddingLeft={2} marginBottom={1} flexDirection="column"><Markdown text={detail.join('\n')} /></Box>}
       </Box>
     )
-    const entry = (i: BoardIssue): JSX.Element => {
-      const open = unfolded.has(i.number)
-      const line = status(i)
-      const more = Boolean(i.goal || i.detail.length || i.done.length || i.next || i.tasks.length || i.closed.length)
+    const entry = (issue: BoardIssue): JSX.Element => {
+      const open = unfolded.has(issue.number)
+      const line = status(issue)
+      const more = Boolean(issue.goal || issue.detail.length || issue.done.length || issue.next || issue.tasks.length || issue.closed.length)
       return (
         <Box flexDirection="column">
           <Box flexDirection="row">
             {/* the link first, and the fold mark, kept at full width (flexShrink 0), so a narrow pane wraps the title, never the link */}
             <Box flexShrink={0}>
-              <Text color={i.kind === 'backlog' ? 'merged' : 'claude'} weight="semibold"><Link href={i.url} label={`#${i.number}`} /></Text>
+              <Text color={issue.kind === 'backlog' ? 'merged' : 'claude'} weight="semibold"><Link href={issue.url} label={`#${issue.number}`} /></Text>
               <Text> </Text>
             </Box>
             {/* the whole rest of the row folds; a Button holds only Text, so no link sits in it */}
-            <Button key={`row-${i.number}`} plain onPress={toggle(i.number)}>
-              <Text wrap="wrap" weight="semibold">{i.title}</Text>
+            <Button key={`row-${issue.number}`} plain onPress={toggle(issue.number)}>
+              <Text wrap="wrap" weight="semibold">{issue.title}</Text>
               {line.length > 0 && <Text> </Text>}
               {line}
             </Button>
             {/* a blocker is a link, so it sits outside the Button, last in the row as the wait was */}
-            {after(i)}
+            {after(issue)}
             {/* only a box folds by a mark, a + or - at its top-right */}
             <Box flexGrow={1} />
             <Box flexShrink={0}>
-              <Button key={`fold-${i.number}`} plain dimColor label={open ? ' -' : ' +'} onPress={toggle(i.number)} />
+              <Button key={`fold-${issue.number}`} plain dimColor label={open ? ' -' : ' +'} onPress={toggle(issue.number)} />
             </Box>
           </Box>
           {/* the holder on a line of its own, so a long title never pushes it off the row */}
-          {i.holder && <Box paddingLeft={2}><Text color="suggestion">{i.holder}</Text></Box>}
+          {issue.holder && <Box paddingLeft={2}><Text color="suggestion">{issue.holder}</Text></Box>}
           <Box paddingLeft={2} flexDirection="column">
             {/* every entry folds alike, so an empty one says so when unfolded */}
             {open && !more && <Text dimColor>(empty)</Text>}
-            {open && i.goal && <Markdown text={i.goal} />}
+            {open && issue.goal && <Markdown text={issue.goal} />}
             {/* the title sums a task up, so its goal is detail, folded */}
-            {open && i.detail.length > 0 && part(`goal-${i.number}`, 'see detail', i.detail)}
-            {open && i.done.map((d, k) => part(`done-${i.number}-${k}`, [d.met === null ? '' : d.met ? '[x]' : '[ ]', d.kind && `(${d.kind})`, d.name].filter(Boolean).join(' '), d.detail ? [d.detail] : []))}
-            {open && i.next && <Text wrap="wrap">{`next step: ${i.next}`}</Text>}
-            {open && i.tasks.map(t => framed(t))}
+            {open && issue.detail.length > 0 && part(`goal-${issue.number}`, 'see detail', issue.detail)}
+            {open && issue.done.map((criterion, k) => part(`done-${issue.number}-${k}`, [criterion.met === null ? '' : criterion.met ? '[x]' : '[ ]', criterion.kind && `(${criterion.kind})`, criterion.name].filter(Boolean).join(' '), criterion.detail ? [criterion.detail] : []))}
+            {open && issue.next && <Text wrap="wrap">{`next step: ${issue.next}`}</Text>}
+            {open && issue.tasks.map(task => framed(task))}
             {/* closed tasks after the open ones, dim and newest first, so what landed last stays in view */}
-            {open && i.closed.length > 0 && <Box marginTop={1} flexDirection="column">{i.closed.map(t => <Text wrap="wrap" dimColor><Link href={t.url} label={`#${t.number}`} />{' '}<Text strikethrough={t.stopped}>{t.title}</Text>{after(t)}</Text>)}{i.earlier && <Text dimColor>…</Text>}</Box>}
+            {open && issue.closed.length > 0 && <Box marginTop={1} flexDirection="column">{issue.closed.map(task => <Text wrap="wrap" dimColor><Link href={task.url} label={`#${task.number}`} />{' '}<Text strikethrough={task.stopped}>{task.title}</Text>{after(task)}</Text>)}{issue.earlier && <Text dimColor>…</Text>}</Box>}
           </Box>
         </Box>
       )
     }
     // a border sets each backlog and each task apart from the next
-    const framed = (i: BoardIssue) => <Box borderStyle="round" borderDimColor paddingX={1}>{entry(i)}</Box>
+    const framed = (issue: BoardIssue) => <Box borderStyle="round" borderDimColor paddingX={1}>{entry(issue)}</Box>
     const list = await read($, board)
     const error = await read($, failure)
     const empty = (await read($, loaded)) ? 'The board has no open issues.' : 'No board read yet.'

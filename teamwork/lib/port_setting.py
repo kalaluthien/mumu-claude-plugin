@@ -16,7 +16,7 @@ def roots():
     """The current folder's git root, then the main checkout's, since a worktree has no `settings.local.json` of its own."""
     common = data_folder.common_folder()
     found = [team_settings.root(os.getcwd()), common.parent if common and common.name == ".git" else None]
-    return list(dict.fromkeys(r for r in found if r))
+    return list(dict.fromkeys(candidate for candidate in found if candidate))
 
 
 def value(variable, default):

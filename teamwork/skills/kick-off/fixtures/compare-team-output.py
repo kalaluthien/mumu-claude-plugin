@@ -8,8 +8,7 @@ usage: compare-team-output.py [--ref <ref>] [--only <entry>,...] [--skip <entry>
 The manager is teamwork-manager, the worker protocol-split-worker. The sandbox's fixture issues and one merged change give every
 entry output; `edit-write` edits its issue #6 (base) or #7 (head) forward and back.
 `--only` keeps the entries whose names start with one of its words, `--skip` drops them."""
-import argparse
-import concurrent.futures as cf
+import concurrent.futures
 import difflib
 import json
 import os
@@ -19,6 +18,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import usage_parser  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 SANDBOX = "kalaluthien/teamwork-board-sandbox"
@@ -33,8 +35,8 @@ COMMANDS = ['gh issue create --title "x" --body-file f.md', "gh issue comment 1 
             "gh issue edit 1 --body-file f.md", f'gh pr create --title "{TITLE}" --body-file f.md', "gh pr comment 1 --body-file f.md",
             "gh api -X POST repos/o/r/issues/1/comments -F body=@f.md", "gh api -X PATCH repos/o/r/issues/1 -f state=closed",
             "gh issue close 1 --reason completed", 'gh pr edit 1 --title "y"', "ls"]
-for n, c in enumerate(COMMANDS):
-    EVENTS[f"pre-{n}"] = ("protocol-split-worker", {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": c}, "cwd": "."})
+for n, command in enumerate(COMMANDS):
+    EVENTS[f"pre-{n}"] = ("protocol-split-worker", {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": command}, "cwd": "."})
 # a holders line outside its fence, in a body file before the write and read back from the sandbox's #9 after it
 EVENTS["stray-pre"] = ("protocol-split-worker", {"hook_event_name": "PreToolUse", "tool_name": "Bash", "cwd": str(HERE),
                                                  "tool_input": {"command": "gh issue comment 1 --body-file stray-holders.md"}})
@@ -56,21 +58,21 @@ def fake_herdr(tree):
     return state
 
 
-def gh_env(tree):
+def github_env(tree):
     """What sends a tree's gh calls to the tape, each tree counting its own turns."""
     return {"PATH": f"{HERE / 'recorded-gh'}:{HERE / 'fake-herdr'}:{os.environ['PATH']}", "GH_TAPE": "compare-team-output", "GH_TAPE_STATE": str(STATES[tree]) + ".gh"}
 
 
 def run(tree, argv, pane=None, stdin=None, seconds=120, cwd=None, board=True):
     env = {**os.environ, **({"HERDR_PANE_ID": pane} if pane else {}), **({"GH_REPO": SANDBOX} if board else {}), "MONITOR_POLL": "1000",
-           **gh_env(tree), "FAKE_HERDR_STATE": str(STATES[tree])}
-    argv = [str(tree / a) if a.startswith("teamwork/") else a for a in argv]
-    p = subprocess.Popen(argv, cwd=cwd or ROOT, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+           **github_env(tree), "FAKE_HERDR_STATE": str(STATES[tree])}
+    argv = [str(tree / argument) if argument.startswith("teamwork/") else argument for argument in argv]
+    process = subprocess.Popen(argv, cwd=cwd or ROOT, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     try:
-        out, _ = p.communicate(stdin, timeout=seconds)
+        out, _ = process.communicate(stdin, timeout=seconds)
     except subprocess.TimeoutExpired:  # the heartbeat runs until killed
-        p.kill()
-        out, _ = p.communicate()
+        process.kill()
+        out, _ = process.communicate()
     # a reminder cites the rule's file and line, which the split moves; the rule's text is what must stay
     return re.sub(r"kick-off/[\w/.-]+:\d+: ", "kick-off/<file>: ", out.replace(str(tree), "<root>"))
 
@@ -78,12 +80,12 @@ def run(tree, argv, pane=None, stdin=None, seconds=120, cwd=None, board=True):
 def edit_write(tree, side):
     """The two lines edit-issue-body.py prints when it edits the sandbox issue forward, then back."""
     diffs = {}
-    for name, a, b in (("forward", "before", "after"), ("back", "after", "before")):
+    for name, old, new in (("forward", "before", "after"), ("back", "after", "before")):
         diffs[name] = pathlib.Path(tempfile.mkstemp(suffix=".diff")[1])
-        diffs[name].write_text(f"--- a\n+++ b\n@@ -3 +3 @@\n-probe: {a}\n+probe: {b}\n")
-    out = "".join(run(tree, [SCRIPTS + "edit-issue-body.py", EDIT_ISSUE[side], str(diffs[d]), f"DECIDED: probe {d}"]) for d in ("forward", "back"))
+        diffs[name].write_text(f"--- a\n+++ b\n@@ -3 +3 @@\n-probe: {old}\n+probe: {new}\n")
+    out = "".join(run(tree, [SCRIPTS + "edit-issue-body.py", EDIT_ISSUE[side], str(diffs[direction]), f"DECIDED: probe {direction}"]) for direction in ("forward", "back"))
     for comment in set(re.findall(rf"(?:repos/{SANDBOX}/issues/comments/|{SANDBOX}/issues/\d+#issuecomment-)(\d+)", out)):  # so the issue does not grow a comment pair per run
-        subprocess.run(["gh", "api", "-X", "DELETE", f"repos/{SANDBOX}/issues/comments/{comment}"], capture_output=True, env={**os.environ, **gh_env(tree)})
+        subprocess.run(["gh", "api", "-X", "DELETE", f"repos/{SANDBOX}/issues/comments/{comment}"], capture_output=True, env={**os.environ, **github_env(tree)})
     return "\n".join(re.findall(r"edit-issue-body: .*", out)).replace(f"#{EDIT_ISSUE[side]}", "#<issue>")
 
 
@@ -102,7 +104,7 @@ def remove(tree):
 
 
 def outputs(tree, side, ids):
-    jobs = {name: (["teamwork/hooks/route-event.py"], ids.get(who), json.dumps(e), 60) for name, (who, e) in EVENTS.items()}
+    jobs = {name: (["teamwork/hooks/route-event.py"], ids.get(who), json.dumps(event), 60) for name, (who, event) in EVENTS.items()}
     jobs["board"] = (["teamwork/hooks/list-issue-board.py", "teamwork"], None, None, 120)
     jobs["board-json"] = (["teamwork/hooks/list-issue-board.py", "teamwork", "--json"], None, None, 120)
     jobs["heartbeat"] = (["teamwork/monitors/print-team-gaps.py"], ids.get("teamwork-manager"), None, 45)
@@ -114,30 +116,30 @@ def outputs(tree, side, ids):
     jobs["durations"] = ([SCRIPTS + "list-task-durations.py", SANDBOX], None, None, 300, None, False)
     jobs["edit-missing"] = ([SCRIPTS + "edit-issue-body.py", "999999", str(HERE / "edit-probe.diff"), "DECIDED: probe"], None, None, 60)
     keep = lambda k: (not ONLY or k.startswith(tuple(ONLY))) and not k.startswith(tuple(SKIP))
-    with cf.ThreadPoolExecutor(8) as pool:
-        futures = {k: pool.submit(run, tree, *v) for k, v in jobs.items() if keep(k)}
+    with concurrent.futures.ThreadPoolExecutor(8) as pool:
+        futures = {k: pool.submit(run, tree, *job) for k, job in jobs.items() if keep(k)}
         if keep("remove"):
             futures["remove"] = pool.submit(remove, tree)
         if keep("edit-write"):
             futures["edit-write"] = pool.submit(edit_write, tree, side)
-        return {k: f.result() for k, f in futures.items()}
+        return {k: future.result() for k, future in futures.items()}
 
 
 def main(args):
     global ONLY, SKIP, ROOT, STATES
-    parser = argparse.ArgumentParser()
+    parser = usage_parser.parser(__doc__)
     parser.add_argument("--ref", default="origin/main")
     parser.add_argument("--only", default="")
     parser.add_argument("--skip", default="")
-    a = parser.parse_args(args)
-    ONLY, SKIP = [w for w in a.only.split(",") if w], [w for w in a.skip.split(",") if w]
+    options = parser.parse_args(args)
+    ONLY, SKIP = [word for word in options.only.split(",") if word], [word for word in options.skip.split(",") if word]
     ROOT = pathlib.Path(subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip() or ".")
     base = pathlib.Path(tempfile.mkdtemp(prefix="compare-team-")).resolve()
-    archive = subprocess.Popen(["git", "archive", a.ref, "teamwork"], cwd=ROOT, stdout=subprocess.PIPE)
+    archive = subprocess.Popen(["git", "archive", options.ref, "teamwork"], cwd=ROOT, stdout=subprocess.PIPE)
     subprocess.run(["tar", "-x", "-C", str(base)], stdin=archive.stdout, check=True)
     ids = {name: pane for name, (pane, _) in SESSIONS.items()}
     STATES = {ROOT: fake_herdr(ROOT), base: fake_herdr(base)}
-    with cf.ThreadPoolExecutor(2) as pool:
+    with concurrent.futures.ThreadPoolExecutor(2) as pool:
         here, there = pool.submit(outputs, ROOT, "head", ids), pool.submit(outputs, base, "base", ids)
         here, there = here.result(), there.result()
     shutil.rmtree(base, ignore_errors=True)
@@ -145,7 +147,7 @@ def main(args):
         pathlib.Path(f"{state}.gh").unlink(missing_ok=True)
     differ = [k for k in here if here[k] != there[k]]
     for k in differ:
-        sys.stdout.writelines(difflib.unified_diff(there[k].splitlines(True), here[k].splitlines(True), f"{a.ref}:{k}", f"head:{k}"))
+        sys.stdout.writelines(difflib.unified_diff(there[k].splitlines(True), here[k].splitlines(True), f"{options.ref}:{k}", f"head:{k}"))
     print(f"{len(here)} entries, empty: {' '.join(k for k in here if not here[k].strip()) or 'none'}")
     print("same" if not differ else f"differ: {' '.join(differ)}")
     return 0

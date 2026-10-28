@@ -23,22 +23,23 @@ import session_gaps  # noqa: E402
 import task_backtest  # noqa: E402
 import task_estimate  # noqa: E402
 import task_history  # noqa: E402
+import usage_parser  # noqa: E402
 
 
-def options(argv):
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+def parse_options(argv):
+    parser = usage_parser.parser(__doc__, description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--from-json")
     parser.add_argument("--gaps-json")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--expect-restarts", type=float, default=0.0)
-    parser.add_argument("--wait", action="append", default=[], type=lambda v: (v.partition("=")[0], float(v.partition("=")[2])))
+    parser.add_argument("--wait", action="append", default=[], type=lambda value: (value.partition("=")[0], float(value.partition("=")[2])))
     parser.add_argument("urls", nargs="*")
     return parser.parse_args(argv)
 
 
-def load(opt, urls):
-    if opt.from_json:
-        fixture = json.load(open(opt.from_json))
+def load(options, urls):
+    if options.from_json:
+        fixture = json.load(open(options.from_json))
         return task_history.rows(fixture["history"]), fixture["tasks"]
     if not urls:
         print(__doc__, file=sys.stderr)
@@ -56,40 +57,40 @@ def load(opt, urls):
         if issue is None:
             sys.exit(f"estimate-task-time.py: the REST read of {url} failed")
         tasks.append({"number": issue["number"], "labels": issue["labels"], "repo": repo})
-    return [r for rows in history.values() for r in rows], tasks
+    return [row for rows in history.values() for row in rows], tasks
 
 
 def main(args):
-    opt = options(args)
-    history, tasks = load(opt, opt.urls)
+    options = parse_options(args)
+    history, tasks = load(options, options.urls)
     groups = []
-    fitted = task_backtest.fit(sorted(history, key=lambda r: r["end"]), opt.seed)
+    fitted = task_backtest.fit(sorted(history, key=lambda row: row["end"]), options.seed)
     levels, total_levels = (fitted[0], fitted[2]) if fitted else ((0.1, 0.9), (0.1, 0.9))
     short = [] if not fitted else [
         *([f"per task below the {task_backtest.TARGET:.0%} target at every level, so the widest"] if fitted[1] < task_backtest.TARGET else []),
         *([f"total: no run of {task_backtest.RUN} tasks to fit, so the widest"] if fitted[3] is None else [])]
     print(f"levels p{levels[0]*100:.0f}-p{levels[1]*100:.0f} per task, p{total_levels[0]*100:.0f}-p{total_levels[1]*100:.0f} total"
           f" ({'fitted on the first 60% of the history, as backtest-estimate.py scores them' if fitted else 'default: too few past tasks to fit'}"
-          f"{''.join('; ' + s for s in short)})")
+          f"{''.join('; ' + shortfall for shortfall in short)})")
     print("task\tlow h\thigh h\tsamples\tnote")
-    for t in tasks:
-        hours, fallback = task_estimate.group(history, t["labels"])
+    for task in tasks:
+        hours, fallback = task_estimate.group(history, task["labels"])
         if not hours:
-            print(f"#{t['number']}\t-\t-\t0\tno range: no past task exists")
+            print(f"#{task['number']}\t-\t-\t0\tno range: no past task exists")
             continue
         groups.append(hours)
         low, high = task_estimate.bounds(hours, levels)
-        print(f"#{t['number']}\t{low:.1f}\t{high:.1f}\t{len(hours)}\t{'all past tasks used' if fallback else 'same first label'}")
-    low, high = task_estimate.total_range(groups, opt.seed, total_levels) if groups else (None, None)
+        print(f"#{task['number']}\t{low:.1f}\t{high:.1f}\t{len(hours)}\t{'all past tasks used' if fallback else 'same first label'}")
+    low, high = task_estimate.total_range(groups, options.seed, total_levels) if groups else (None, None)
     extra = 0.0
-    if opt.expect_restarts:
-        gaps = json.load(open(opt.gaps_json)) if opt.gaps_json else session_gaps.summaries(claude_config.folder() / "projects")
+    if options.expect_restarts:
+        gaps = json.load(open(options.gaps_json)) if options.gaps_json else session_gaps.summaries(claude_config.folder() / "projects")
         each = task_estimate.restart_hours(gaps)
         if each is None:
             sys.exit("estimate-task-time.py: no restart is recorded, so its hours are unknown; pass --wait instead.")
-        extra += opt.expect_restarts * each
-        print(f"restart\t{opt.expect_restarts * each:.1f}h\t({opt.expect_restarts:g} restarts x {each:.1f}h median)")
-    for name, hours in opt.wait:
+        extra += options.expect_restarts * each
+        print(f"restart\t{options.expect_restarts * each:.1f}h\t({options.expect_restarts:g} restarts x {each:.1f}h median)")
+    for name, hours in options.wait:
         extra += hours
         print(f"wait {name}\t{hours:.1f}h")
     if not groups:

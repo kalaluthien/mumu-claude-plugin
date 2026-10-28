@@ -22,14 +22,17 @@ REFRESH = float(os.environ.get("MONITOR_REFRESH", 900))  # a change made outside
 SKEW = timedelta(seconds=5)  # GitHub's clock against ours
 
 
-def read(manager, me, staffed, since):
-    return team_gaps.manager_read(me, history=not staffed, since=since) if manager else team_gaps.worker_read(me)
+def read(manager, me, had_worker, since):
+    return team_gaps.manager_read(me, history=not had_worker, since=since) if manager else team_gaps.worker_read(me)
 
 
 def main(args):
-    shown, staffed = set(), False  # the exit waits until this manager has had a worker, so a fresh manager routes first
+    if args:
+        print(__doc__, file=sys.stderr)
+        return 2
+    shown, had_worker = set(), False  # the exit waits until this manager has had a worker, so a fresh manager routes first
     waiting = set()  # a worker's issues with an open blocker, so a restart reports no blocker closed long ago
-    fed = set()  # the reports a manager was already fed
+    fed_urls = set()  # the urls of the reports a manager was already fed
     data, read_at, signal = None, 0.0, team_signal.stamp()  # what GitHub last gave, when, and the signal file's change then
     ports = None  # the board and landing the last read used
     while True:
@@ -49,16 +52,16 @@ def main(args):
             since = (datetime.fromtimestamp(read_at, timezone.utc) - SKEW).strftime("%Y-%m-%dT%H:%M:%SZ")
             checks = {board.changed_since, landing.changed_since}  # one function when both ports read GitHub, so its read runs once
             if data is None or any(check(since) for check in checks):
-                data = read(manager, me, staffed, since if read_at else None)
+                data = read(manager, me, had_worker, since if read_at else None)
             if data is not None:  # a failed read keeps the last good time, so the next read still feeds what came after it
                 read_at, signal = now.timestamp(), seen
-        lines = [] if not (manager or worker) else None if data is None else team_gaps.manager_actions(me, listed, data, fed) if manager else team_gaps.worker_actions(me, waiting, data)
+        lines = [] if not (manager or worker) else None if data is None else team_gaps.manager_actions(me, listed, data, fed_urls) if manager else team_gaps.worker_actions(me, waiting, data)
         if manager and lines is not None:
-            crew = team_names.workers(me, listed)
-            staffed = staffed or bool(crew)
-            idle = not crew and not data["found"] and not data["outside"]  # any open issue, deferred ones included, is work not yet done
-            staffed = staffed or idle and data["had_worker"]  # a restart lost the memory of a worker, so GitHub gives it back
-            if staffed and idle:
+            workers = team_names.workers(me, listed)
+            had_worker = had_worker or bool(workers)
+            idle = not workers and not data["found"] and not data["outside"]  # any open issue, deferred ones included, is work not yet done
+            had_worker = had_worker or idle and data["had_worker"]  # a restart lost the memory of a worker, so GitHub gives it back
+            if had_worker and idle:
                 lines += filter(None, [team_gaps.exit_action(me, listed)])
         for line in lines or []:  # a failed read (None) keeps what was shown, so the next poll repeats nothing
             if line not in shown:

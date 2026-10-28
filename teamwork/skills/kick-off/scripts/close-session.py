@@ -20,17 +20,17 @@ TIMEOUT, POLL = float(os.environ.get("CLOSE_SESSION_TIMEOUT", 3600)), 1.0
 
 def close(name):
     deadline = time.time() + TIMEOUT
-    while (a := session.agent(name)) and a.get("agent_status") == "working":
+    while (listed := session.agent(name)) and listed.get("agent_status") == "working":
         if time.time() >= deadline:
             sys.exit(f"close-session.py: {name} still at work after {TIMEOUT:g}s; nothing closed.")
         time.sleep(POLL)
-    if not a:
+    if not listed:
         return print(f"{name} is not live; nothing to close.")
-    if a.get("agent_status") != "blocked":  # a blocked session already shows a dialog and refuses a prompt
+    if listed.get("agent_status") != "blocked":  # a blocked session already shows a dialog and refuses a prompt
         session.prompt(name, agent.EXIT)  # the name, which herdr resolves on each call, since it may move the pane
     answered = set()
     while (now := session.agent(name)) and time.time() < deadline:
-        a, screen = now, session.screen(name)  # the latest read, whose tab close shuts
+        listed, screen = now, session.screen(name)  # the latest read, whose tab close shuts
         for text, key in agent.DIALOGS:
             if text in screen and text not in answered:
                 session.send_keys(name, key)
@@ -39,7 +39,7 @@ def close(name):
         time.sleep(POLL)
     if session.agent(name):
         sys.exit(f"close-session.py: {name} is still live after {TIMEOUT:g}s; its tab stays open.")
-    print(f"{name} exited and its {session.close(a)} closed.")
+    print(f"{name} exited and its {session.close(listed)} closed.")
 
 
 def main(args):

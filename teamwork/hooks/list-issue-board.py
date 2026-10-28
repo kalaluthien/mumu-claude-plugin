@@ -15,7 +15,11 @@ import issue_board  # noqa: E402
 
 
 def main(args):
-    read = board.tree(None, json.loads(pathlib.Path(args[args.index("--nodes") + 1]).read_text())) if "--nodes" in args else board.tree(args[0])
+    words = [word for word in args if word not in ("--json", "--nodes")]
+    if len(words) != 1 or words[0].startswith("-"):
+        print(__doc__, file=sys.stderr)
+        return 2
+    read = board.tree(None, json.loads(pathlib.Path(words[0]).read_text())) if "--nodes" in args else board.tree(words[0])
     if read is None:
         sys.exit(f"list-issue-board: the {board.kind()} board read failed, so no board is shown")
     tree = issue_board.board(read)

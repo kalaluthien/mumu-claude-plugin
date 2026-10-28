@@ -17,16 +17,16 @@ def sessions(session_id=None):
     HERDR_PANE_ID stays as it started; else its pane's, unless the pane runs another session, as a worker's child does."""
     listed = (run("herdr", "agent", "list") or {}).get("result", {}).get("agents", [])
     session_id = session_id or os.environ.get("CLAUDE_CODE_SESSION_ID")
-    by_id = next((a for a in listed if session_id and (a.get("agent_session") or {}).get("value") == session_id), None)
+    by_id = next((live for live in listed if session_id and (live.get("agent_session") or {}).get("value") == session_id), None)
     if by_id:
         return listed, by_id
-    me = next((a for a in listed if a.get("pane_id") == os.environ.get("HERDR_PANE_ID")), {})
+    me = next((live for live in listed if live.get("pane_id") == os.environ.get("HERDR_PANE_ID")), {})
     own = not session_id or (me.get("agent_session") or {}).get("value") in (None, "", session_id)
     return listed, me if own else {}
 
 
 def agent(name):
-    return next((a for a in sessions()[0] if a.get("name") == name), None)
+    return next((live for live in sessions()[0] if live.get("name") == name), None)
 
 
 def screen(pane):
@@ -60,24 +60,24 @@ def rename(place, name):
 def start(name, pane, kind, argv, timeout):
     deadline = time.time() + timeout
     while True:
-        p = subprocess.run(["herdr", "agent", "start", name, "--kind", kind, "--pane", pane, "--", *argv], capture_output=True, text=True)
-        out = p.stdout + p.stderr
-        if not p.returncode or '"agent_not_ready"' in out:  # not ready: the trust dialog holds it
+        process = subprocess.run(["herdr", "agent", "start", name, "--kind", kind, "--pane", pane, "--", *argv], capture_output=True, text=True)
+        out = process.stdout + process.stderr
+        if not process.returncode or '"agent_not_ready"' in out:  # not ready: the trust dialog holds it
             return
         if '"agent_pane_busy"' not in out or time.time() >= deadline:  # busy: the shell is still starting
-            raise RuntimeError(f"herdr agent start: {(p.stderr or p.stdout).strip()}")
+            raise RuntimeError(f"herdr agent start: {(process.stderr or process.stdout).strip()}")
         time.sleep(POLL)
 
 
 def prompt(pane, text):
     """None once herdr took the text, else its error code, such as `agent_blocked` for a session at a tool prompt."""
-    p = subprocess.run(["herdr", "agent", "prompt", pane, text], capture_output=True, text=True)
-    if not p.returncode:
+    process = subprocess.run(["herdr", "agent", "prompt", pane, text], capture_output=True, text=True)
+    if not process.returncode:
         return None
     try:
-        return json.loads(p.stdout)["error"]["code"]
+        return json.loads(process.stdout)["error"]["code"]
     except (ValueError, KeyError, TypeError):
-        return (p.stderr or p.stdout).strip() or f"exit {p.returncode}"
+        return (process.stderr or process.stdout).strip() or f"exit {process.returncode}"
 
 
 def send_keys(pane, *keys):

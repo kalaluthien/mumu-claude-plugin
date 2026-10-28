@@ -21,8 +21,8 @@ HERE = pathlib.Path(__file__).resolve().parent
 
 def without_etag(args):
     """ARGS without their `-H If-None-Match: …`, which the reader's cache adds or not, so one call has one name and the tape a full answer."""
-    drop = {j for i, a in enumerate(args) if i and a.startswith("If-None-Match:") and args[i - 1] == "-H" for j in (i - 1, i)}
-    return [a for i, a in enumerate(args) if i not in drop]
+    drop = {position for i, argument in enumerate(args) if i and argument.startswith("If-None-Match:") and args[i - 1] == "-H" for position in (i - 1, i)}
+    return [argument for i, argument in enumerate(args) if i not in drop]
 
 
 def key(args, text):
@@ -62,7 +62,7 @@ def main(args):
     name = os.environ.get("GH_TAPE") or sys.exit("recorded-gh: set GH_TAPE to the tape's name")
     tape = pathlib.Path(os.environ.get("CLAUDE_CONFIG_DIR") or pathlib.Path.home() / ".claude") / "teamwork" / "recorded-gh" / f"{name}.json"
     tape.parent.mkdir(parents=True, exist_ok=True)
-    text = sys.stdin.read() if any(a.endswith("@-") for a in args) else ""
+    text = sys.stdin.read() if any(argument.endswith("@-") for argument in args) else ""
     call = key(args, text)
     with locked():
         answers = load(tape).get(call, [])

@@ -26,8 +26,8 @@ def stamp(seconds=None):
 
 
 def records():
-    d = folder()
-    return None if d is None else [json.loads(p.read_text()) for p in d.glob("[0-9]*.json")]
+    directory = folder()
+    return None if directory is None else [json.loads(path.read_text()) for path in directory.glob("[0-9]*.json")]
 
 
 def record(number):
@@ -37,13 +37,13 @@ def record(number):
         raise LookupError(f"no change {number} in this repository") from e
 
 
-def save(r, new=False):
+def save(entry, new=False):
     """Writes R whole, then touches the signal file, which the issue pane and the heartbeat wait on; NEW claims its number, raising FileExistsError
     when another session took it first."""
-    path = folder() / f"{r['number']}.json"
+    path = folder() / f"{entry['number']}.json"
     # written aside, then put in place in one step, so a reader never meets half a record
-    draft = path.with_name(f".{r['number']}.{os.getpid()}.draft")
-    draft.write_text(json.dumps({**r, "updatedAt": stamp()}))
+    draft = path.with_name(f".{entry['number']}.{os.getpid()}.draft")
+    draft.write_text(json.dumps({**entry, "updatedAt": stamp()}))
     try:
         os.link(draft, path) if new else os.replace(draft, path)
     finally:
@@ -61,16 +61,16 @@ def pulls(state="open", repo=None, limit=None, branch=None):
     found = records()
     if found is None:
         return None
-    keep = sorted((r for r in found if state in ("all", r["state"].lower()) and branch in (None, r["headRefName"])),
-                  key=lambda r: (r["updatedAt"], r["number"]), reverse=True)
-    return [{"number": r["number"], "headRefName": r["headRefName"], "headRefOid": r.get("headRefOid") or tip(f"refs/heads/{r['headRefName']}"),
-             "mergedAt": r.get("mergedAt")} for r in keep[:limit]]
+    keep = sorted((entry for entry in found if state in ("all", entry["state"].lower()) and branch in (None, entry["headRefName"])),
+                  key=lambda entry: (entry["updatedAt"], entry["number"]), reverse=True)
+    return [{"number": entry["number"], "headRefName": entry["headRefName"], "headRefOid": entry.get("headRefOid") or tip(f"refs/heads/{entry['headRefName']}"),
+             "mergedAt": entry.get("mergedAt")} for entry in keep[:limit]]
 
 
 def conflicts(number, repo=None):
     """Whether the change cannot merge cleanly into its base now; None when its branch or base is gone."""
-    r = record(number)
-    head, base = tip(f"refs/heads/{r['headRefName']}"), tip(f"refs/heads/{r['base']}")
+    entry = record(number)
+    head, base = tip(f"refs/heads/{entry['headRefName']}"), tip(f"refs/heads/{entry['base']}")
     if not head or not base:
         return None
     return {0: False, 1: True}.get(git("merge-tree", "--write-tree", "--quiet", base, head).returncode)
@@ -78,17 +78,17 @@ def conflicts(number, repo=None):
 
 def first_commit(number, repo=None):
     """When the change's first commit off its base was authored; None when it has none. It raises LookupError when the read failed."""
-    r = record(number)
-    head = r.get("headRefOid") or f"refs/heads/{r['headRefName']}"
-    p = git("log", "--reverse", "--format=%at", f"{r.get('baseOid') or 'refs/heads/' + r['base']}..{head}")
-    if p.returncode:
-        raise LookupError(f"the commits of change {number} could not be read: {p.stderr.strip()}")
-    return p.stdout.split() and stamp(int(p.stdout.split()[0])) or None
+    entry = record(number)
+    head = entry.get("headRefOid") or f"refs/heads/{entry['headRefName']}"
+    result = git("log", "--reverse", "--format=%at", f"{entry.get('baseOid') or 'refs/heads/' + entry['base']}..{head}")
+    if result.returncode:
+        raise LookupError(f"the commits of change {number} could not be read: {result.stderr.strip()}")
+    return result.stdout.split() and stamp(int(result.stdout.split()[0])) or None
 
 
 def changed_since(stamp):
     """Whether any change was filed or merged since STAMP (an ISO time)."""
-    return any(r["updatedAt"] >= stamp for r in records() or [])
+    return any(entry["updatedAt"] >= stamp for entry in records() or [])
 
 
 def worktree_of(branch):
@@ -107,13 +107,13 @@ def change(branch, title, body, base):
     for name in (branch, base):
         if not tip(f"refs/heads/{name}"):
             raise LookupError(f"no branch {name} in this repository")
-    d = folder()
-    d.mkdir(parents=True, exist_ok=True)
-    number = max((r["number"] for r in records()), default=0) + 1
+    directory = folder()
+    directory.mkdir(parents=True, exist_ok=True)
+    number = max((entry["number"] for entry in records()), default=0) + 1
     while True:  # two workers filing at once take the next free number each, never one record
         try:
             save({"number": number, "title": title, "body": body, "headRefName": branch, "base": base, "state": "OPEN", "createdAt": stamp()}, new=True)
-            return f"file://{d}/{number}.json"
+            return f"file://{directory}/{number}.json"
         except FileExistsError:
             number += 1
 
@@ -121,23 +121,23 @@ def change(branch, title, body, base):
 def merge(number, sha):
     """Squashes the change's head onto its base as one commit, only when SHA is its branch tip, and fast-forwards the worktree that has the base
     checked out, which refuses rather than overwrites; the new commit's sha."""
-    r = record(number)
-    if r["state"] != "OPEN":
+    entry = record(number)
+    if entry["state"] != "OPEN":
         raise LookupError(f"change {number} is closed")
-    head, base = tip(f"refs/heads/{r['headRefName']}"), tip(f"refs/heads/{r['base']}")
+    head, base = tip(f"refs/heads/{entry['headRefName']}"), tip(f"refs/heads/{entry['base']}")
     # only a sha names what the judge approved; a branch name would follow the tip wherever it moved
     if not head or not re.fullmatch(r"[0-9a-f]{7,40}", sha) or tip(sha) != head:
-        raise LookupError(f"change {number}: {sha} is not the tip of {r['headRefName']} ({head and head[:9]}); judge the tip again")
+        raise LookupError(f"change {number}: {sha} is not the tip of {entry['headRefName']} ({head and head[:9]}); judge the tip again")
     tree = git("merge-tree", "--write-tree", base, head)
     if tree.returncode:
-        raise LookupError(f"change {number} conflicts with {r['base']}; rebase it")
-    made = git("commit-tree", tree.stdout.split()[0], "-p", base, "-F", "-", stdin=f"{r['title']} (change {number})\n\n{r['body']}")
+        raise LookupError(f"change {number} conflicts with {entry['base']}; rebase it")
+    made = git("commit-tree", tree.stdout.split()[0], "-p", base, "-F", "-", stdin=f"{entry['title']} (change {number})\n\n{entry['body']}")
     if made.returncode:
         raise LookupError(f"change {number}: no commit made: {made.stderr.strip()}")
-    commit, holder = made.stdout.strip(), worktree_of(r["base"])
+    commit, holder = made.stdout.strip(), worktree_of(entry["base"])
     # the worktree that has the base checked out moves with it, so its files never fall behind the branch
-    p = git("merge", "--ff-only", "--quiet", commit, cwd=holder) if holder else git("update-ref", f"refs/heads/{r['base']}", commit, base)
-    if p.returncode:
-        raise LookupError(f"change {number}: {holder or r['base']} did not take the merge: {p.stderr.strip()}")
-    save({**r, "state": "CLOSED", "headRefOid": head, "baseOid": base, "mergeOid": commit, "mergedAt": stamp()})
+    result = git("merge", "--ff-only", "--quiet", commit, cwd=holder) if holder else git("update-ref", f"refs/heads/{entry['base']}", commit, base)
+    if result.returncode:
+        raise LookupError(f"change {number}: {holder or entry['base']} did not take the merge: {result.stderr.strip()}")
+    save({**entry, "state": "CLOSED", "headRefOid": head, "baseOid": base, "mergeOid": commit, "mergedAt": stamp()})
     return commit

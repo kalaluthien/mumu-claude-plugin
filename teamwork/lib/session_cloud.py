@@ -15,7 +15,7 @@ def sessions(session_id=None):
 
 
 def agent(name):
-    return next((a for a in sessions()[0] if a.get("name") == name), None)
+    return next((live for live in sessions()[0] if live.get("name") == name), None)
 
 
 def screen(pane):

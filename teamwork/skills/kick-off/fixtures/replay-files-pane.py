@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check that the issue pane draws a files board as it draws the same issues from GitHub: file a backlog with an open held task, a task waiting on it, a
 completed task and a not-planned one through use-board.py, then compare list-issue-board.py's lines on the files board with its lines on GitHub-shaped nodes
-written here by hand. Prints `ok pane` and exits 0, else the two outputs and exit 1.
+written here by hand. Prints `ok pane` and exits 0, else `fail pane:` with the two outputs and exit 1.
 
 usage: replay-files-pane.py"""
 import json
@@ -29,14 +29,23 @@ def node(number, **more):
 
 def github_nodes():
     """What GitHub's read gives for the issues filed below: the open ones as nodes, the closed ones only under their backlog."""
-    sub = lambda n, state, reason, **more: {"number": n, "title": TITLES[n], "url": f"https://github.com/o/r/issues/{n}", "state": state, "stateReason": reason,
+    sub = lambda number, state, reason, **more: {"number": number, "title": TITLES[number], "url": f"https://github.com/o/r/issues/{number}", "state": state, "stateReason": reason,
                                             "authorAssociation": "OWNER", **more}
     backlog = node(1, subIssuesSummary={"total": 4, "completed": 2}, subIssues={"nodes": [
         sub(2, "OPEN", None), sub(3, "OPEN", None), sub(4, "CLOSED", "COMPLETED", blockedBy={"nodes": []}), sub(5, "CLOSED", "NOT_PLANNED", blockedBy={"nodes": []})]})
     return [backlog, node(2), node(3, blockedBy={"nodes": [{"number": 2, "state": "OPEN"}]})]
 
 
+def step(name, ok, detail=""):
+    """Print `ok <name>`, or `fail <name>: <detail>`, and give the exit status it means."""
+    print(f"ok {name}" if ok else f"fail {name}: {detail.strip()}", flush=True)
+    return 0 if ok else 1
+
+
 def main(args):
+    if args:
+        print(__doc__, file=sys.stderr)
+        return 2
     work = pathlib.Path(tempfile.mkdtemp(prefix="files-pane-"))
     env = {**os.environ, "TEAMWORK_BOARD": "files", "TEAMWORK_BOARD_DIR": str(work / "board"), "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home")}
     use = lambda *argv: subprocess.run([sys.executable, str(USE), *map(str, argv)], env=env, capture_output=True, text=True, check=True).stdout
@@ -52,11 +61,8 @@ def main(args):
     files = subprocess.run([sys.executable, str(LIST), "x"], env=env, capture_output=True, text=True)
     (work / "nodes.json").write_text(json.dumps(github_nodes()))
     github = subprocess.run([sys.executable, str(LIST), "--nodes", str(work / "nodes.json")], env={**env, "TEAMWORK_BOARD": "github"}, capture_output=True, text=True)
-    if files.returncode or github.returncode or files.stdout != github.stdout or "closed stopped" not in files.stdout:
-        print(f"files board:\n{files.stdout}{files.stderr}\ngithub nodes:\n{github.stdout}{github.stderr}")
-        return 1
-    print("ok pane")
-    return 0
+    same = not files.returncode and not github.returncode and files.stdout == github.stdout and "closed stopped" in files.stdout
+    return step("pane", same, f"files board:\n{files.stdout}{files.stderr}\ngithub nodes:\n{github.stdout}{github.stderr}")
 
 
 if __name__ == "__main__":

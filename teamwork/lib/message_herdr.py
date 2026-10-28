@@ -13,12 +13,12 @@ def tell(name, text, timeout):
         return False, "the text is empty"
     deadline, retries, waited = time.time() + timeout, 0, False
     while True:
-        a = session.agent(name)
-        if not a:
+        live = session.agent(name)
+        if not live:
             return False, "not live"
-        if a.get("agent") == agent.KIND:  # a session of the team's own kind has its own message adapter, which waits for no turn
+        if live.get("agent") == agent.KIND:  # a session of the team's own kind has its own message adapter, which waits for no turn
             return False, f"a {agent.KIND} session; tell it by {agent.TELL} to {name}"
-        if a.get("agent_status") not in ("idle", "done"):
+        if live.get("agent_status") not in ("idle", "done"):
             waited = True
             if not session.wait_idle(name, max(deadline - time.time(), 0)):
                 status = (session.agent(name) or {}).get("agent_status")
