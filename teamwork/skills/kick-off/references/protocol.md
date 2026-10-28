@@ -52,7 +52,7 @@ Each port is a set of operations the playbooks name; an adapter does each, and [
 | landing | `remove` | removes a closed worker's worktree and merged branches |
 | agent | `delegate` | starts a subagent at a tier and effort, with a brief |
 
-## Authority
+### Authority
 
 Each role decides alone what keeps the intent it was handed, and asks before it changes that intent or touches another's work.
 
@@ -72,7 +72,7 @@ Each role decides alone what keeps the intent it was handed, and asks before it 
 - **Before** new work, an issue or a `BLOCKED:`, follow [recall.md](recall.md); a time estimate, [estimation.md](estimation.md).
 - **Do it now**: when a step is yours by the Authority table and its inputs exist, do it in this turn, such as starting a session that is missing or filing an issue. Never defer it to a later event, ask leave to do it, or list it as waiting. Wait only for an input not yet there, a decision the table reserves to another role, or a refusal.
 - **Refused step**: when your runtime refuses a step, hand the owner the step, the reason and the command that does it, by `notify` when the owner is away, and wait in your tab, never retrying it in another form.
-  - For a rule, guard or agent file, the command applies a patch kept in your scratch folder, first checked unless that is refused too, then say it was not run.
+  - For a rule, guard or agent file, the command applies a patch kept in your scratchpad, first checked unless that is refused too, then say it was not run.
 - **Subagents**: hand each lookup or independent track beyond a few reads or edits to a subagent by `delegate`, parallel where files or fields differ. Brief it with the ask verbatim and its bounds. Brief one for a field to do that field's work, never to write in its voice. Check once each claim it cites no command, `path:line` or url for. Every `delegate` names its tier, since one without runs on yours.
 
   - planning, debugging: `deep`, `high`

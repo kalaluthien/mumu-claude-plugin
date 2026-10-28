@@ -2,6 +2,8 @@
 
 Which adapter does each port's operations of [protocol.md](protocol.md): the adapters of the set your kick-off arguments name, else the first row of a port whose condition holds.
 
+## Domain
+
 | port | adapter | when |
 | --- | --- | --- |
 | board | [board.md](adapters/board.md) | always; `TEAMWORK_BOARD=files` picks the files board, else GitHub |
@@ -13,7 +15,7 @@ Which adapter does each port's operations of [protocol.md](protocol.md): the ada
 | session | [session-herdr.md](adapters/session-herdr.md) | the team runs in herdr |
 | agent | [agent-claude.md](adapters/agent-claude.md) | you are a Claude Code session |
 
-## Adapter sets
+### Adapter sets
 
 The manager picks each worker's set when it starts it and names it in the worker's kick-off arguments, `set <set>`; a worker with none uses `local`.
 

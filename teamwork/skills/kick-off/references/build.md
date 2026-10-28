@@ -2,7 +2,7 @@
 
 The steps for each kind of work a task changes or ends in, one section per kind; open the one [worker.md](worker.md) step 2 **Build** names.
 
-## Rules
+## Instructions
 
 1. `git grep` every file that states the rule; past 5 files, a `light`, `low` subagent lists them.
 2. Edit the rule where it lives; check any size cap with `git diff --numstat origin/<base>`.

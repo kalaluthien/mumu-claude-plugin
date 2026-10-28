@@ -1,4 +1,4 @@
-# Session: cloud
+# Session cloud
 
 Each worker is a Claude Code cloud session on claude.ai, started from a local session; the cloud session sees only itself, so its manager starts, lists and closes it. No plugin loads there, so the worker reads `teamwork/skills/kick-off/SKILL.md` by path from its checkout, and gets the teamwork hooks from the repository's `.claude/settings.json`, which runs them only where `CLAUDE_CODE_REMOTE` is `true`; a repository without that file gives its cloud worker no hook.
 
