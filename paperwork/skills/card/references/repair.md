@@ -1,6 +1,6 @@
 # Repair
 
-A graded answer landed in the wrong order. Find the step of [author.md](author.md) that let it, and fix the spec there.
+A graded answer landed in the wrong order. Find the step of [author.md](author.md) that let it, and fix the rubric there.
 
 ## Domain
 

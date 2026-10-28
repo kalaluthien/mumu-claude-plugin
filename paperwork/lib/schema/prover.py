@@ -708,9 +708,9 @@ _checked = {}   # (path, size, mtime) -> whether it matched the pin, so a jar is
 
 
 def jar():
-    """The jar to run: the one ALLOY_JAR names, since the owner chose that file, or the cached one when it matches
+    """The jar to run: the one PAPERWORK_ALLOY_JAR names, since the owner chose that file, or the cached one when it matches
     the pin. A cached file that does not match is refused (None), as a download would be."""
-    named_jar = os.environ.get("ALLOY_JAR")
+    named_jar = os.environ.get("PAPERWORK_ALLOY_JAR")
     if named_jar and Path(named_jar).is_file():
         return named_jar
     cached = Path.home() / ".cache/paperwork-alloy/alloy.jar"

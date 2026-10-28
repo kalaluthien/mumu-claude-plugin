@@ -26,7 +26,7 @@ Write each one on the element it concerns as `meta.note` `<Fault>: <what is wron
 
 ## Rules
 
-- **Kept behaviour**: every original Scenario and rule stays, by slug and meaning. Adding behaviour is free; a removal fails the comparison until the user approves. `compare-models.py` prints `kept` or `dropped` per slug, `changed` where a kept slug's text differs, each count below on both documents, then the improved document's check; exit 0 means nothing dropped and the check passes.
+- **Kept behaviour**: every original Scenario and rule stays, by slug and meaning. Adding behaviour is free; a removal fails the comparison until the owner approves. `compare-models.py` prints `kept` or `dropped` per slug, `changed` where a kept slug's text differs, each count below on both documents, then the improved document's check; exit 0 means nothing dropped and the check passes.
 - **Criteria**: unless the ask states its own, compare by these counts, which `compare-models.py` prints:
   - economy (elements), duplication, one term per entity: fewer;
   - deep modules: more; low coupling and cycles: fewer;

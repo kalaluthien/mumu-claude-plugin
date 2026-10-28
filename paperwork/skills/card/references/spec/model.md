@@ -1,6 +1,6 @@
 # Model
 
-How a spec turns verdicts into an order. The grammar, [assets/rubric-schema.json](assets/rubric-schema.json), says what a spec may hold; this file says what it means, so every script scores it the same way.
+How a rubric turns verdicts into an order. The grammar, [assets/rubric-schema.json](assets/rubric-schema.json), says what a rubric may hold; this file says what it means, so every script scores it the same way.
 
 ## Tier score and reward
 
@@ -20,7 +20,7 @@ A judge that flips each verdict with chance $e_d$ shrinks a true tier-score diff
 
 $$\sum_{j>d}\varepsilon_j<\varepsilon_d\,(1-2e_d)\,\delta_d .$$
 
-`check-spec.py weights` prints the least $\varepsilon_d$ that meets this, with a 5% margin, beside the $e_d$ and $\delta_d$ it came from; a spec never writes one.
+`check-spec.py weights` prints the least $\varepsilon_d$ that meets this, with a 5% margin, beside the $e_d$ and $\delta_d$ it came from; a rubric never writes one.
 
 At $e_d=\tfrac12$ the factor $1-2e_d$ is 0: a verdict that is a coin flip carries no order, so no weight can rescue it. A high $e_d$ on a top tier makes the lower weights tiny.
 

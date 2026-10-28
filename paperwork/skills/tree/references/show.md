@@ -43,6 +43,6 @@ Show a plan to the owner as a page, then read their Answer back into the next pl
 
 **Check the page**
 
-`uv run --with playwright==1.64.1 python3 ${CLAUDE_PLUGIN_ROOT}/skills/tree/scripts/make-page.py --check ${CLAUDE_PLUGIN_ROOT}/skills/tree/examples` builds each example, checks which Parts are faded before and after the first pick, answers it in headless Chromium, copies, applies the text and prints `ok 13`.
+`uv run --with playwright==1.64.1 python3 ../scripts/make-page.py --check ../examples` builds each example, checks which Parts are faded before and after the first pick, answers it in headless Chromium, copies, applies the text and prints `ok 13`.
 
 The same call with `--layout` measures each page as a tree at 1200 px and 390 px and checks that a card's tools never cover its text, that labels hold no middle dot or all-caps, and that a pick looks apart from the suggestion, and prints `layout ok 13`; `--strategies` drives Your choices, the stub, focus, fold, the mockup frames and the Matters most mark and prints `strategies ok 13`. `--capture <page.html> <dir>` writes four PNGs of a built page to look at, `--capture-all <page.html> <dir>` every page as a reader first meets it, in screens 700 px apart, and `--capture-picked <page.html> <dir>` each Decision page after its first Option is picked.

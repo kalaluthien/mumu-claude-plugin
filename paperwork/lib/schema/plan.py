@@ -1,6 +1,6 @@
 """What a system model's `plan` may change, with the defaults."""
 DEFAULTS = {
-    "intent": ("", None, "the user's question, in one sentence"),
+    "intent": ("", None, "the owner's question, in one sentence"),
     "scenarios": ("entry", ("entry", "every"), "entry: a level needs its own Scenario only where something arrives from outside; every: each level does"),
     "prove": ("rules", ("rules", "off"), "rules: --prove asks Alloy whether each dynamic rule holds; off: it asks nothing"),
     "strict": ([], "check names", "style checks that block instead of warning"),
