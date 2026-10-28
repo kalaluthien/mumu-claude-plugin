@@ -18,7 +18,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import claude_config  # noqa: E402
 
 NOW = time.time()
-VARIABLE = [(re.compile(p), r) for p, r in [
+VARIABLE = [(re.compile(pattern), replacement) for pattern, replacement in [
     (r"/[\w.~@%+-]+(?:/[\w.~@%+-]+)+", "<path>"), (r"\b[0-9a-f]{7,40}\b", "<hash>"),
     (r"https?://\S+", "<url>"), (r"(['\"`]).*?\1", "<q>"), (r"\d+", "<n>"), (r"\s+", " ")]]
 NOISE = re.compile(r"^(Exit code <n>|<n>|-+|ok\b.*|This hook comes from .*)$")
@@ -84,21 +84,21 @@ def main(args):
             if stamp >= NOW - DAYS * 86400:
                 seen[key].append((stamp, path, repo(os.path.dirname(path))))
 
-    spread = {k: v for k, v in seen.items() if len({s for _, s, _ in v}) >= 3}
-    alive = [k for k, v in spread.items() if max(t for t, _, _ in v) >= NOW - 3 * 86400]
-    repos = [k for k, v in spread.items() if len({r for _, _, r in v}) >= 2]
+    spread = {key: rows for key, rows in seen.items() if len({session for _, session, _ in rows}) >= 3}
+    alive = [key for key, rows in spread.items() if max(moment for moment, _, _ in rows) >= NOW - 3 * 86400]
+    repos = [key for key, rows in spread.items() if len({project for _, _, project in rows}) >= 2]
     days_to_third = sorted(
-        (sorted({s: t for t, s, _ in sorted(v, reverse=True)}.values())[2] - min(t for t, _, _ in v)) / 86400
-        for v in spread.values())
+        (sorted({session: moment for moment, session, _ in sorted(rows, reverse=True)}.values())[2] - min(moment for moment, _, _ in rows)) / 86400
+        for rows in spread.values())
     print(f"window {DAYS:g} days: {sessions} interactive sessions, {sum(map(len, seen.values()))} failures with text, "
           f"{len(seen)} signatures")
     print(f"in 3+ sessions: {len(spread)}; of them in 2+ repositories: {len(repos)}; seen in the last 3 days: {len(alive)}")
     if days_to_third:
         median = days_to_third[len(days_to_third) // 2]
-        within = sum(d <= 7 for d in days_to_third)
+        within = sum(days <= 7 for days in days_to_third)
         print(f"days from first sighting to third session: median {median:.1f}; within 7 days: {within} of {len(days_to_third)}")
-    for key, rows in sorted(spread.items(), key=lambda kv: -len({s for _, s, _ in kv[1]}))[:15]:
-        print(f"{len({s for _, s, _ in rows}):4} sessions {len(rows):4} failures  {key[:110]}")
+    for key, rows in sorted(spread.items(), key=lambda item: -len({session for _, session, _ in item[1]}))[:15]:
+        print(f"{len({session for _, session, _ in rows}):4} sessions {len(rows):4} failures  {key[:110]}")
     return 0
 
 

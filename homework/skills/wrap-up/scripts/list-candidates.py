@@ -46,7 +46,7 @@ def overrides(use, result):
     """Questions whose answer is not their (Recommended) option."""
     answers = (result.get("toolUseResult") or {}).get("answers") or {}
     for question in (use.get("input") or {}).get("questions") or []:
-        picks = [o.get("label", "") for o in question.get("options") or [] if "(Recommended)" in o.get("label", "")]
+        picks = [option.get("label", "") for option in question.get("options") or [] if "(Recommended)" in option.get("label", "")]
         answer = str(answers.get(question.get("question"), ""))
         if picks and answer and not any(pick in answer for pick in picks):
             yield f"{question.get('question', '')[:60]!r} -> {answer[:60]!r}"
@@ -54,26 +54,26 @@ def overrides(use, result):
 
 def github_refs(window):
     """(repo, number) of each issue or pull request a gh command named, or a gh create printed."""
-    uses, refs, bare, repos = {}, set(), [], []
+    uses, references, bare, repos = {}, set(), [], []
     for entry in window:
         for use in transcript.blocks_of(entry, "tool_use"):
             command = str((use.get("input") or {}).get("command", ""))
             if use.get("name") == "Bash" and re.search(r"\bgh\s", command):
                 uses[use.get("id")] = command
-                refs.update(ISSUE_URL.findall(command))
+                references.update(ISSUE_URL.findall(command))
                 for found in GH_REPO.finditer(command):
                     repos.append(found.group(1) or found.group(2))
                     if found.group(3):
-                        refs.add((found.group(2), found.group(3)))
+                        references.add((found.group(2), found.group(3)))
                 named = re.search(REPO_FLAG, command)
                 bare += [(named.group(1) if named else None, n) for n in GH_NUMBER.findall(command)]
         for result in transcript.blocks_of(entry, "tool_result"):
             if re.search(r"\bgh\s+(?:issue|pr)\s+create\b", uses.get(result.get("tool_use_id"), "")):
-                refs.update(ISSUE_URL.findall(transcript.text_of(result)))
-    repos += [repo for repo, _ in refs]
+                references.update(ISSUE_URL.findall(transcript.text_of(result)))
+    repos += [repo for repo, _ in references]
     default = max(set(repos), key=repos.count) if repos else None
-    refs.update((repo or default, n) for repo, n in bare if repo or default)
-    return sorted(refs)
+    references.update((repo or default, n) for repo, n in bare if repo or default)
+    return sorted(references)
 
 
 def comments(repo, number, start, end):
@@ -111,7 +111,7 @@ def candidates(entries):
                 lines.append(f"{at} {kind} {use.get('name', '?')}: {text[:120]!r}")
             elif use.get("name") == "AskUserQuestion":
                 lines += [f"{at} override {what}" for what in overrides(use, entry)]
-    times = [t for t in (transcript.seconds(e.get("timestamp")) for e in window) if t is not None]
+    times = [seconds for seconds in (transcript.seconds(e.get("timestamp")) for e in window) if seconds is not None]
     if times:
         for repo, number in github_refs(window):
             lines += comments(repo, number, times[0], times[-1])

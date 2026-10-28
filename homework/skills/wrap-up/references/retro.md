@@ -2,7 +2,9 @@
 
 Keep what this session learned where the next agent will meet it. A lesson handed over by a person skips to step 4.
 
-1. **Candidates**: list candidates since the last wrap-up: `<skill>/scripts/list-candidates.py`.
+## Steps
+
+1. **Candidates**: list candidates since the last wrap-up: `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-candidates.py`.
 2. **Lenses**: over them and the session ask what was intended, what happened, why, and what to sustain or improve. Then look through these lenses of the retrospective skill in [Matt Pocock's skills](https://github.com/mattpocock/skills), each with the evidence that calls for it:
    - **Navigation**: finding a file or fact took long: a pointer where the search began.
    - **Checks**: a mistake a check could have caught: first read the repository's own check commands and CI, since one that exists but is unwired is the finding.
@@ -34,7 +36,7 @@ Keep what this session learned where the next agent will meet it. A lesson hande
    **Patch**: a destination marked patch is never written in place, since only this project's memory is retro's to change. Write the change as a unified diff to `<data>/patches/<today>-<topic>.patch`, its paths relative to `<root>`, the repository that holds the file, else the file's folder. Check it with `git -C <root> apply --check <patch file>`.
 
 5. **Operation**: read every memory pool afresh, `<config>/projects/*/memory/`; a pool's key is its project's absolute path with each non-alphanumeric character as `-`, derived from the path, never back. Take the first operation that fits:
-   - **Confirm**: an entry says it already: `<skill>/scripts/count-confirmations.py <file>`.
+   - **Confirm**: an entry says it already: `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/count-confirmations.py <file>`.
    - **Extend**: an entry on the same subject or mechanism: add to it.
    - **Add**: a new memory file with `confirmed: 1` and `last-confirmed: <today>` in its frontmatter, justified in one line: the nearest entry and why it could not be extended, or that none exists.
 

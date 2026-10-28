@@ -31,32 +31,32 @@ def case(name, ok):
     print(f"{'pass' if ok else 'FAIL'}: {name}")
 
 
-def stamp(t):
-    return time.strftime("%Y-%m-%dT%H:%M:%S.123Z", time.gmtime(t))
+def stamp(seconds):
+    return time.strftime("%Y-%m-%dT%H:%M:%S.123Z", time.gmtime(seconds))
 
 
-def session(project, sid, t, turns, entrypoint="cli"):
+def session(project, session_id, seconds, turns, entrypoint="cli"):
     """Write a transcript; turns are ('owner', text) | ('agent', text) | ('fail', tool, error text)."""
     folder = os.path.join(CONFIG, "projects", project)
     os.makedirs(folder, exist_ok=True)
-    path = os.path.join(folder, f"{sid}.jsonl")
+    path = os.path.join(folder, f"{session_id}.jsonl")
     with open(path, "w") as out:
         for k, turn in enumerate(turns):
-            base = {"sessionId": sid, "timestamp": stamp(t + k), "entrypoint": entrypoint, "cwd": "/x"}
+            base = {"sessionId": session_id, "timestamp": stamp(seconds + k), "entrypoint": entrypoint, "cwd": "/x"}
             if turn[0] == "owner":
                 rows = [dict(base, type="user", origin={"kind": "human"}, message={"role": "user", "content": turn[1]})]
             elif turn[0] == "agent":
                 rows = [dict(base, type="assistant", message={"role": "assistant",
                                                               "content": [{"type": "text", "text": turn[1]}]})]
             else:
-                use = f"toolu_{sid[:6]}_{k}"
+                use = f"toolu_{session_id[:6]}_{k}"
                 rows = [dict(base, type="assistant", message={"role": "assistant", "content": [
                             {"type": "tool_use", "id": use, "name": turn[1], "input": {}}]}),
                         dict(base, type="user", message={"role": "user", "content": [
                             {"type": "tool_result", "tool_use_id": use, "is_error": True, "content": turn[2]}]})]
             for row in rows:
                 out.write(json.dumps(row) + "\n")
-    os.utime(path, (t + len(turns), t + len(turns)))
+    os.utime(path, (seconds + len(turns), seconds + len(turns)))
     return path
 
 
@@ -80,10 +80,13 @@ def snapshot():
 
 
 def main(args):
+    if args:
+        print(__doc__, file=sys.stderr)
+        return 2
     # memory a run must leave alone
     os.makedirs(os.path.join(CONFIG, "projects", "-r-alpha", "memory"), exist_ok=True)
-    with open(os.path.join(CONFIG, "projects", "-r-alpha", "memory", "MEMORY.md"), "w") as f:
-        f.write("- [Tool trap](trap.md) — Bash: boom at <path>\n- [Gate](gate.md) — always run the gate first\n")
+    with open(os.path.join(CONFIG, "projects", "-r-alpha", "memory", "MEMORY.md"), "w") as handle:
+        handle.write("- [Tool trap](trap.md) — Bash: boom at <path>\n- [Gate](gate.md) — always run the gate first\n")
 
     # tool repeat: 3 recent sessions in 2 repos, paths and numbers differ, so masking must merge them
     for i, project in enumerate(["-r-alpha", "-r-alpha", "-r-beta"]):
@@ -122,7 +125,7 @@ def main(args):
     before = snapshot()
     case("due on fresh data", run(SESSIONS, "due", DATA).strip() == "due")
     first = run(SESSIONS, "map", DATA)
-    digests = {os.path.basename(p)[:-4] for p in glob.glob(os.path.join(DATA, "digests", "*.txt"))}
+    digests = {os.path.basename(path)[:-4] for path in glob.glob(os.path.join(DATA, "digests", "*.txt"))}
     batches = [line for line in first.splitlines() if line.startswith("batch ")]
     case("not due right after a map", run(SESSIONS, "due", DATA).strip() == "not due")
     untouched = snapshot() == before
@@ -136,15 +139,15 @@ def main(args):
     case("long digest keeps every owner line and the agent text before it, within 30k chars",
          text and all(f"OWNERLINE{k:03d}" in text and f"step {k} " in text for k in range(80)) and len(text) <= 30000
          and "z" * 301 not in text)
-    case("batches of at most 10 digests", batches and all(len(re.findall(r"\.txt\b", b)) <= 10 for b in batches))
+    case("batches of at most 10 digests", batches and all(len(re.findall(r"\.txt\batch", batch)) <= 10 for batch in batches))
 
     # 45 more fresh sessions: a map takes at most 40, newest first; a mapped session with a facet is not listed again
     for k in range(45):
         session("-r-gamma", f"9999{k:04d}-0000-0000-0000-000000000000", NOW - 3600 * (k + 1), [("owner", f"hi {k}")])
     before = snapshot()
     os.makedirs(os.path.join(DATA, "facets"), exist_ok=True)
-    for sid in digests:
-        json.dump({"friction": [], "instructions": []}, open(os.path.join(DATA, "facets", f"{sid}.json"), "w"))
+    for session_id in digests:
+        json.dump({"friction": [], "instructions": []}, open(os.path.join(DATA, "facets", f"{session_id}.json"), "w"))
     last = os.path.join(DATA, "last-map")
     os.utime(last, (NOW - 23 * 3600, NOW - 23 * 3600)) if os.path.exists(last) else None
     not_due = run(SESSIONS, "due", DATA).strip() == "not due"
@@ -161,26 +164,26 @@ def main(args):
     os.makedirs(facets, exist_ok=True)
     said = [["Always run the gate first."], ["  always run the GATE first!! ", "one-off rule 1"], ["Never touch Desktop."]]
     for i in range(3):
-        sid = f"aaaa000{i}-0000-0000-0000-000000000000"
+        session_id = f"aaaa000{i}-0000-0000-0000-000000000000"
         json.dump({"friction": [{"quote": f"why did you stop {i}", "what_went_wrong": "stopped to ask", "line": 1}],
-                   "instructions": said[i]}, open(os.path.join(facets, f"{sid}.json"), "w"))
+                   "instructions": said[i]}, open(os.path.join(facets, f"{session_id}.json"), "w"))
     out = run(REPEATS, DATA)
     lines = out.splitlines()
     case("tool repeat in 3 recent sessions listed, paths and numbers merged",
-         any(l.startswith("tool 3 sessions") and "boom at" in l for l in lines))
+         any(line.startswith("tool 3 sessions") and "boom at" in line for line in lines))
     case("2-session and stale signatures not listed",
-         not any("twice only" in l or "stale only" in l for l in lines if l.startswith("tool ")))
+         not any("twice only" in line or "stale only" in line for line in lines if line.startswith("tool ")))
     case("bare exit code, user denied and hook footer dropped; hashes, urls and quoted values masked; reason kept",
-         not any(re.search(r"Exit code|doesn't want to proceed|hook comes from|abcdef1|1234567|e\.x|value\d", l)
-                 for l in lines if l.startswith("tool "))
-         and any(l.startswith("tool 3 sessions") and "[Create Unsafe Agents]" in l for l in lines))
+         not any(re.search(r"Exit code|doesn't want to proceed|hook comes from|abcdef1|1234567|e\.x|value\d", line)
+                 for line in lines if line.startswith("tool "))
+         and any(line.startswith("tool 3 sessions") and "[Create Unsafe Agents]" in line for line in lines))
     case("instruction in 2 sessions listed, in 1 not",
-         any(l.startswith("instruction 2 sessions") and "gate" in l.lower() for l in lines)
-         and not any(l.startswith("instruction") and ("one-off" in l or "Desktop" in l) for l in lines))
+         any(line.startswith("instruction 2 sessions") and "gate" in line.lower() for line in lines)
+         and not any(line.startswith("instruction") and ("one-off" in line or "Desktop" in line) for line in lines))
     case("memory line naming a repeat is shown, for tool and instruction repeats",
          "trap.md" in memory_under(out, "tool 3 sessions", "boom at") and "gate.md" in memory_under(out, "instruction", "gate"))
 
-    items = [json.loads(l) for l in open(os.path.join(DATA, "friction.jsonl"))] if os.path.exists(os.path.join(DATA, "friction.jsonl")) else []
+    items = [json.loads(line) for line in open(os.path.join(DATA, "friction.jsonl"))] if os.path.exists(os.path.join(DATA, "friction.jsonl")) else []
     ids = [i.get("id") for i in items]
     mistakes = os.path.join(TMP, "mistakes.json")
     json.dump([{"name": "stops to ask when the rule says act", "ids": ids[:3]},
@@ -188,15 +191,15 @@ def main(args):
     out = run(REPEATS, DATA, "--mistakes", mistakes)
     case("friction items written with ids", len(ids) == 3 and all(ids))
     case("mistake counted by script: 3 sessions listed, 2 not",
-         any(l.startswith("mistake 3 sessions") and "stops to ask" in l for l in out.splitlines())
-         and not any("only two sessions" in l for l in out.splitlines() if l.startswith("mistake")))
+         any(line.startswith("mistake 3 sessions") and "stops to ask" in line for line in out.splitlines())
+         and not any("only two sessions" in line for line in out.splitlines() if line.startswith("mistake")))
 
-    key = next((l.split(": ", 1)[1] for l in lines if l.startswith("tool 3 sessions") and "boom at" in l), "none")
+    key = next((line.split(": ", 1)[1] for line in lines if line.startswith("tool 3 sessions") and "boom at" in line), "none")
     printed = re.search(r"last seen (\S+),", run(REPEATS, DATA).split(key, 1)[-1])
     run(REPEATS, DATA, "--record", "https://github.com/o/r/issues/1", printed.group(1) if printed else "0", key)
-    fresh = [l for l in run(REPEATS, DATA).splitlines() if "boom at" in l and l.startswith("tool ")]
+    fresh = [line for line in run(REPEATS, DATA).splitlines() if "boom at" in line and line.startswith("tool ")]
     json.dump({key: {"url": "https://github.com/o/r/issues/1", "last_seen": NOW - 10 * DAY}}, open(os.path.join(DATA, "filed.json"), "w"))
-    stale = [l for l in run(REPEATS, DATA).splitlines() if "boom at" in l and l.startswith("tool ")]
+    stale = [line for line in run(REPEATS, DATA).splitlines() if "boom at" in line and line.startswith("tool ")]
     case("a recorded repeat carries its url; `seen since` only when sighted after its recorded last sighting",
          fresh and "filed https://github.com/o/r/issues/1" in fresh[0] and "seen since" not in fresh[0]
          and stale and "filed https://github.com/o/r/issues/1" in stale[0] and "seen since" in stale[0])
