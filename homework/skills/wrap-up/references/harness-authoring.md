@@ -13,7 +13,13 @@ Write or edit a skill, an agent file, a hook or a script, so its reader follows 
 - **One question**: one script answers one question: a sequence with judgement is a skill, one without is a script. Never write a second reader of a rule another script owns.
 - **Exit codes**: a harness hook exits 0 to allow and 2 to refuse, the reason on stderr; for more, exit 0 with JSON under `hookSpecificOutput`, never both. A git hook blocks on any non-zero, so its docstring names its codes. A script that answers prints the answer as a word and exits 0; non-zero means *I could not look*.
 - **Crash permits**: a guard's own crash permits and names itself, so a bug costs one unjudged call, not a wall across everything it guards.
-- **Event limits**: exit 2 blocks only on events that can block; stdout reaches the model on `SessionStart` and `UserPromptSubmit` only at exit 0; a `PreToolUse` matcher never sees a tool it does not name; `SessionStart` fires again after each compaction, and `SessionEnd` never fires on `kill -9`; a plugin monitor is never restarted once it dies, `/reload-plugins` leaves a running one as it is, and it starts at session start with `when: always` but on the skill's first run only with `when: on-skill-invoke`.
+- **Event limits**: what a hook or monitor may do depends on its event.
+  - **Blocking**: exit 2 blocks only on events that can block.
+  - **Stdout**: it reaches the model on `SessionStart` and `UserPromptSubmit` only at exit 0.
+  - **Matcher**: a `PreToolUse` matcher never sees a tool it does not name.
+  - **Firing**: `SessionStart` fires again after each compaction, and `SessionEnd` never fires on `kill -9`.
+  - **Monitor start**: `when: always` starts it at session start, `when: on-skill-invoke` on the skill's first run only.
+  - **Monitor restart**: never once it dies; `/reload-plugins` leaves a running one as it is, and ignoring SIGTERM does not help, since the harness's `zsh -c` wrapper dies and the output pipe closes.
 
 ## Steps
 
@@ -23,24 +29,24 @@ Write or edit a skill, an agent file, a hook or a script, so its reader follows 
 4. **Move**: `git mv`, then search the plugin and its checks for the old path and bare name until none is stale, and open each new link once. A stale path fails only when that step runs.
    - **Moved rule**: re-derive it against each member of its new home; empty the old home only once a grep of the destination finds the rule's nouns.
    - **Moved plugin folder**: it moves its data folder too. Remove the empty `<new>-inline` folders a `--plugin-dir` probe leaves first, since `mv` into an existing folder nests.
-   - **Uninstall**: the old plugin only with `--keep-data`.
+   - **Uninstall**: the old plugin only with `--keep-data`, since without it its data is deleted.
    - **Bridge symlink**: check `readlink` of each, never `ls -l` alone; an old folder holding untracked `__pycache__` nests the link.
-   - **Hook script**: a deleted script a git hook calls breaks every commit.
-   - **Cutover**: mark a criterion on live state "at cutover" and post its output after the merge.
+   - **Hook script**: a deleted script a git hook calls breaks every commit until the hook is removed.
+   - **Cutover**: mark a criterion on live state "at cutover" and post its output after the merge, since it cannot pass at head without breaking live sessions.
 5. **Sweep**: a sweep's zero counts only once its pattern has found one known hit. List the surfaces first: the tracked tree, untracked files, other checkouts, every memory pool, issue and pull request bodies. Sweep a hyphenated name with any separator and any case, and a moved rule by its vocabulary. Re-read each edited file top to bottom, since the survivor sits nearest the correction.
 6. **Watch it refuse**: a guard you did not watch refuse is not verified. Break each branch separately, watch its named check fail, restore by undoing that one edit, and assert on what the break changes, never on an exit status alone. Beside every refusal put named allow cases for its ordinary neighbours, because a suite of refusals stays green while the guard refuses too much. Drive a git hook with `git commit`, since a clean merge runs none. Drive a harness hook, skill or monitor in a real session, and measure on the record it leaves:
-   - **Hook in `claude -p`**: in a scratch git folder, with the plugin copied to the scratchpad.
+   - **Hook in `claude -p`**: in a scratch git folder, with the plugin copied to the scratchpad; a mechanical hook needs no herdr tab.
      - **Run**: `claude -p "<prompt>" --plugin-dir <copy> --model haiku --output-format json` with the herdr variables and `CLAUDECODE` unset; a same-named plugin replaces the installed one. A copied `CLAUDE_CONFIG_DIR` starts `Not logged in`.
      - **Count**: change state, `--resume <id>`, count the `hook_additional_context` attachments in the transcript; match paths resolved and as spelled (`/var` is `/private/var`).
-     - **Skills**: under `-p` a refused typed command prints nothing: read the `Skill` `tool_result` from `--output-format stream-json --verbose --max-turns 2`, and the skill list from the `init` line (`.type=="system" and .subtype=="init"`; `.type=="system"` alone also matches hook messages).
+     - **Skills**: under `-p` a refused typed command prints nothing: read the `Skill` `tool_result` from `--output-format stream-json --verbose --max-turns 2`, and the skill list from the `init` line (`.type=="system" and .subtype=="init"`; `.type=="system"` alone also matches hook messages). `--settings '{"skillOverrides":{"<skill>":"off"}}'` hides user skills for a listing probe; plugin skills and the login stay.
      - **Auto mode**: needs `--model sonnet`, since on haiku it is off and every command reads `requires approval`; run a control with no deny first.
      - **Classifier**: to test a hook `allow`, add `--setting-sources project,local` and `--settings '{"autoMode":{"hard_deny":["$defaults","Never run <cmd>"]}}'`.
    - **Interactive tab**: for a flow `-p` cannot reach (handoff, start-up, monitor, pane), since a `-p` child of a manager's pane takes itself for the manager.
      - **Start**: in a folder that enables the plugins and sets no `agent`, or with `--plugin-dir <worktree plugin>` and no settings file; confirm the skill is listed first.
      - **Trust dialog**: `herdr agent start` answers `agent_not_ready`; `send-keys` down and enter.
-     - **Setup**: pass your own workspace and a fresh agent name; set env by `pane send-text`, since `agent start` env never reaches the pane's shell.
+     - **Setup**: create the tab with `--no-focus` in your own workspace, with a fresh agent name; set env by `pane send-text`, since `agent start` env never reaches the pane's shell.
      - **Mode**: add `--permission-mode default` or no tool prompt shows; make the agent busy by a long reply, since a foreground `sleep` is refused.
-     - **Slash command**: a `herdr agent prompt` slash command does not run; type `/reload-plugins` by `pane send-text`, then `send-keys enter`.
+     - **Slash command**: send `/reload-plugins` to the tab as wrap-up's **No waiting** rule sends a typed-only command.
      - **Quit**: `/exit`, one more `enter` for the stop-background-work dialog, then `herdr tab close`. Stage files by name, never `git add -A`, since a `--plugin-dir` tab writes an untracked file into the plugin.
      - **Refused**: auto mode refuses editing a probe's transcript, keys or reads sent to a probe, and a fan-out of `claude -p`: write a scratchpad script and hand the owner `! bash <path>`.
    - **Baseline**: before blaming a change, run the same command on `git archive <sha> <plugin> | tar -x -C <scratch>` beside head, which compares head against the merge base (`git merge-base HEAD origin/main`), never the moving `origin/main`.
@@ -48,7 +54,7 @@ Write or edit a skill, an agent file, a hook or a script, so its reader follows 
      - **Sessions**: count top-level interactive ones (`entrypoint` not `sdk*`, with a stop entry); subagents sit in subfolders; `agent-setting`, else `sdk-cli`, marks headless.
      - **Replay**: cut at each event's byte offset with a fresh `CLAUDE_PLUGIN_DATA`; skip and count missing files.
      - **Sample**: per band of tool calls; tune on one hash half and score the other.
-     - **Labels**: a first prompt is a launch prompt and says nothing; give a timeline without call counts and read the boundary rows yourself.
+     - **Labels**: a first prompt is a launch prompt and says nothing: show its `<command-args>` and later user words, and drop `<task-notification>` lines. Label from a timeline of user words, calls, errors and replies with no counts, since tuning a call-count trigger on count-labelled rows is circular; read the boundary rows yourself.
      - **Dating**: transcripts are the only record of a guard's refusals; date a lesson by the first Write or Edit of its path, since a file's mtime may come from a batch touch.
      - **Changed files**: add the diff of each `pr-link` record's PR whose head branch is the session's `agent-name`, since Edit and Write miss Bash edits; check first that `pr-link` records exist.
 
@@ -58,7 +64,8 @@ Write or edit a skill, an agent file, a hook or a script, so its reader follows 
 
 - **`name`**: the directory's name, a gerund with its object when the model loads it.
 - **`description`**: one `Use when …` sentence that classifies the situation without restating the body, in the third person, with no list of typed words and no angle brackets, since the listing truncates. A `Not for …` clause names the sibling that could claim the same request, because negative scope stops over-triggering and more positive description does not.
-- **Eval case**: count firing in live `claude -p --output-format stream-json` runs, since `plugin eval` overstates it; a `claude plugin eval` case has these limits:
+- **Eval case**: a `claude plugin eval` case has these limits:
+  - **Firing**: count it in live `claude -p --output-format stream-json` runs, since `plugin eval` overstates it.
   - **Grants and scoring**: Bash and Write need `--allow-tools Bash Write`, else a `tool_used: Bash` or path grader scores 0 on main too; a reply-only llm grader cannot see a code total; a grader path with `..` is refused. Probe a grader `pattern` with Python `re.search`, never `grep -E`; a `'` inside a single-quoted YAML pattern fails the case load; a judge at `effort: low` skipped per-criterion rules.
   - **Role**: there is no agent field: put the role in `append_system_prompt`, which replaces the agent body, so a case needing the body's paths cannot pass honestly.
   - **Scaffold**: `--scaffold` is off and skipped silently, and the child cannot read the config, so grade the attempt (`tool_used`, `input_match`), not its result.
