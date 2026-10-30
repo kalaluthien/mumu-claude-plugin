@@ -1,50 +1,31 @@
 <style>
-/* Each name reads a KRDS colour, so the page follows the frame's theme. */
-:root {
-  --surface: var(--krds-color-surface-white); --panel: var(--krds-color-surface-gray-subtler);
-  --ink: var(--krds-color-text-bolder); --body: var(--krds-color-text-basic); --muted: var(--krds-color-text-subtle);
-  --line: var(--krds-color-border-gray); --card-line: var(--krds-color-border-gray-light); --accent: var(--krds-color-text-primary);
-  --accent-bg: var(--krds-color-surface-primary-subtler); --accent-line: var(--krds-color-border-primary);
-  --pass: var(--krds-color-text-success); --pass-bg: var(--krds-color-surface-success-subtler);
-  --fail: var(--krds-color-text-danger); --fail-bg: var(--krds-color-surface-danger-subtler);
-  --warn: var(--krds-color-text-warning); --warn-bg: var(--krds-color-surface-warning-subtler);
-  --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
-}
-a { color: inherit; text-underline-offset: 3px; }
-a:hover { color: var(--accent); }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* The sticky bar sits under the frame's top bar, so a section must stop below both. */
 .frame-body [id] { scroll-margin-top: 106px; }
-h1 { font: 600 1.6rem/1.25 var(--font-sans); color: var(--ink); margin: 16px 0 4px; overflow-wrap: anywhere; }
 
 /* one row of numbers and one primary action, kept in view */
-.tree-bar { position: sticky; top: 52px; z-index: 1; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 0; background: var(--krds-color-background-white); border-bottom: 1px solid var(--card-line); box-shadow: 0 -20px 0 var(--krds-color-background-white); }
-.tree-stats { display: flex; flex: 1 1 auto; flex-wrap: wrap; gap: 0 16px; min-width: 0; margin: 0; font-size: .9rem; color: var(--body); font-variant-numeric: tabular-nums; }
+.tree-bar { position: sticky; top: var(--frame-top-height); z-index: 1; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 0; background: var(--krds-color-background-white); border-bottom: 1px solid var(--card-line); }
+.tree-stats { display: flex; flex: 1 1 auto; flex-wrap: wrap; gap: 0 16px; min-width: 0; margin: 0; font-size: var(--text-body); color: var(--body); font-variant-numeric: tabular-nums; }
 .tree-stats b { font-weight: 700; color: var(--ink); }
 .delta { color: var(--accent); font-weight: 600; }
-.bar-button { flex: none; height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: 500 .85rem var(--font-sans); cursor: pointer; }
-.bar-button:hover:not([disabled]) { background: var(--panel); }
-.bar-button[disabled] { color: var(--muted); border-style: dashed; cursor: default; }
-.bar-button.primary { background: var(--accent); border-color: var(--accent); color: var(--krds-color-text-basic-inverse); }
-.bar-button.primary:hover:not([disabled]) { background: var(--accent); opacity: .9; }
+.tree-bar .krds-btn { flex: none; }
 
 /* the overview: open Decisions first, the settled folded into a count */
 #overview { padding-bottom: 8px; }
-.how { margin: 10px 0 12px; color: var(--body); font-size: .95rem; }
-.queue { list-style: none; margin: 0; padding: 0; border: 1px solid var(--card-line); border-radius: 10px; background: var(--surface); }
+.how { margin: 10px 0 12px; color: var(--body); font-size: var(--text-body); }
+.queue { list-style: none; margin: 0; padding: 0; border: 1px solid var(--card-line); border-radius: var(--krds-radius-large1); background: var(--surface); }
 .queue li + li { border-top: 1px solid var(--card-line); }
 .queue a { display: grid; grid-template-columns: 22px minmax(0, 1.15fr) minmax(0, 1fr); gap: 2px 8px; padding: 7px 12px; text-decoration: none; }
 .queue a:hover { background: var(--panel); color: inherit; }
-.row-mark { color: var(--muted); font-size: .9rem; }
-.row-question { font-weight: 600; color: var(--ink); font-size: .93rem; }
-.row-pick { color: var(--body); font-size: .9rem; }
-.row-pick small { color: var(--muted); font-size: .78rem; }
+.row-mark { color: var(--muted); font-size: var(--text-body); }
+.row-question { font-weight: 600; color: var(--ink); font-size: var(--text-body); }
+.row-pick { color: var(--body); font-size: var(--text-body); }
+.row-pick small { color: var(--muted); font-size: var(--text-meta); }
 .queue .answered .row-mark { color: var(--pass); }
 .queue .waiting .row-pick { color: var(--body); }
-.folded { margin: 8px 0 0; color: var(--body); font-size: .88rem; }
+.folded { margin: 8px 0 0; color: var(--body); font-size: var(--text-body); }
 .folded a { font-weight: 500; }
-.keys { margin: 6px 0 0; color: var(--muted); font-size: .78rem; }
-.keys kbd { font: .74rem var(--mono); padding: 0 4px; border: 1px solid var(--line); border-radius: 3px; }
+.keys { margin: 6px 0 0; color: var(--muted); font-size: var(--text-meta); }
+.keys kbd { font: var(--text-meta) var(--mono); padding: 0 4px; border: 1px solid var(--line); border-radius: var(--krds-radius-small1); }
 
 /* the closed tree */
 /* With the frame's own room, this lets a short last section reach the top of the body. */
@@ -53,17 +34,17 @@ h1 { font: 600 1.6rem/1.25 var(--font-sans); color: var(--ink); margin: 16px 0 4
 .part-children { margin: 2px 0 6px 11px; padding-left: 14px; border-left: 1px solid var(--card-line); }
 .part-line { display: flex; align-items: flex-start; gap: 8px; padding: 3px 0; }
 .part-main { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
-.part-id { flex: none; min-width: 2.2em; font: .74rem/1.9 var(--mono); color: var(--muted); }
-.part-text { margin: 0; color: var(--body); font-size: .95rem; }
+.part-id { flex: none; min-width: 2.2em; font: var(--text-meta)/1.9 var(--mono); color: var(--muted); }
+.part-text { margin: 0; color: var(--body); font-size: var(--text-body); }
 #tree-parts > .tree-part { margin-top: 10px; }
 #tree-parts > .tree-part > .part-body .part-text { color: var(--ink); font-weight: 600; }
-#tree-goal .part-text { font-size: 1.02rem; color: var(--body); }
-.part-kind { margin-right: 6px; color: var(--muted); font-size: .76rem; }
-.risk-pill { display: inline-flex; align-items: center; gap: 3px; margin-right: 6px; padding: 0 6px; border-radius: 4px; background: var(--fail-bg); color: var(--fail); font-size: .76rem; font-weight: 600; }
-.source { margin-left: 6px; color: var(--muted); font-size: .8rem; white-space: normal; }
-.fold { margin-left: 6px; padding: 0 4px; border: 0; background: none; color: var(--accent); font: .8rem var(--font-sans); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+#tree-goal .part-text { font-size: var(--text-lead); color: var(--body); }
+.part-kind { margin-right: 6px; color: var(--muted); font-size: var(--text-meta); }
+.risk-pill { margin-right: 6px; }
+.source { margin-left: 6px; color: var(--muted); font-size: var(--text-meta); white-space: normal; }
+.fold { margin-left: 6px; padding: 0 4px; border: 0; background: none; color: var(--accent); font: var(--text-meta) var(--font-sans); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .part-tools { display: flex; flex: none; gap: 2px; }
-.tool { padding: 0 5px; border: 0; background: none; color: var(--muted); font: .76rem var(--font-sans); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.tool { padding: 0 5px; border: 0; background: none; color: var(--muted); font: var(--text-meta) var(--font-sans); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .tool:hover { color: var(--accent); }
 .tool[aria-disabled="true"] { cursor: not-allowed; text-decoration: none; }
 /* A tool never covers the text: it keeps its width and only shows on demand where a pointer can hover. */
@@ -72,14 +53,14 @@ h1 { font: 600 1.6rem/1.25 var(--font-sans); color: var(--ink); margin: 16px 0 4
 }
 .struck > .part-body .part-text, .struck > .part-body .mock, .struck > .part-body .diff { text-decoration: line-through; color: var(--muted); }
 .struck > .part-children, .struck > .part-options { display: none; }
-.note-line { margin: 2px 0 0; color: var(--body); font-size: .85rem; }
+.note-line { margin: 2px 0 0; color: var(--body); font-size: var(--text-meta); }
 .note-line .remove { margin-left: 6px; }
 .note-line b { font-weight: 600; }
 .editor { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
-.editor-field { flex: 1 1 14em; min-width: 0; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: .9rem var(--font-sans); }
+.editor-field { flex: 1 1 14em; min-width: 0; padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--krds-radius-medium1); background: var(--surface); color: var(--ink); font: var(--text-body) var(--font-sans); }
 
 /* a Decision: the question, what it rests on, then its options, all in view */
-.tree-decision { margin: 10px 0; padding: 10px 14px 12px; border: 1px solid var(--card-line); border-left: 4px solid var(--line); border-radius: 10px; background: var(--surface); }
+.tree-decision { margin: 10px 0; padding: 10px 14px 12px; border: 1px solid var(--card-line); border-left: 4px solid var(--line); border-radius: var(--krds-radius-large1); background: var(--surface); }
 .tree-decision[data-state="waiting"] { border-left-color: var(--accent-line); }
 .tree-decision[data-state="answered"] { border-left-color: var(--krds-color-border-success); }
 .tree-decision[data-state="not-needed"], .tree-decision[data-state="settled"] { background: var(--panel); border-left-style: dashed; }
@@ -88,47 +69,47 @@ h1 { font: 600 1.6rem/1.25 var(--font-sans); color: var(--ink); margin: 16px 0 4
 .tree-decision.flash { animation: flash 1s ease-out; }
 @keyframes flash { from { background: var(--accent-bg); } }
 @media (prefers-reduced-motion: reduce) { .tree-decision.flash { animation: none; } }
-.decision-head { display: flex; flex-wrap: wrap; gap: 0 8px; align-items: baseline; font-size: .78rem; color: var(--muted); }
+.decision-head { display: flex; flex-wrap: wrap; gap: 0 8px; align-items: baseline; font-size: var(--text-meta); color: var(--muted); }
 .decision-word { font-weight: 600; color: var(--accent); }
 [data-state="answered"] > .part-body .decision-word { color: var(--pass); }
 [data-state="settled"] > .part-body .decision-word, [data-state="not-needed"] > .part-body .decision-word { color: var(--body); }
-.tree-decision > .part-body .part-text { color: var(--ink); font-size: 1.02rem; font-weight: 600; }
-.reason { margin: 2px 0 0; color: var(--body); font-size: .85rem; }
+.tree-decision > .part-body .part-text { color: var(--ink); font-size: var(--text-lead); font-weight: 600; }
+.reason { margin: 2px 0 0; color: var(--body); font-size: var(--text-meta); }
 .reason a { font-weight: 500; }
 [data-state="not-needed"] > .part-children:not(.holds-decision), [data-state="settled"] > .part-children:not(.holds-decision) { display: none; }
 .part-options[hidden] { display: none; }
-.part-options:not([hidden]) { display: grid; gap: 6px; margin-top: 8px; }
-.option { border: 1px solid var(--card-line); border-radius: 8px; background: var(--surface); }
-.option-press { display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 6px 10px; border: 0; border-radius: 8px; background: none; color: var(--ink); font: 500 .95rem/1.4 var(--font-sans); text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.part-options:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin-top: 8px; }
+.option { border: 1px solid var(--card-line); border-radius: var(--krds-radius-large1); background: var(--surface); }
+.option-press { display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 6px 10px; border: 0; border-radius: var(--krds-radius-large1); background: none; color: var(--ink); font: 500 var(--text-body)/1.4 var(--font-sans); text-align: left; cursor: pointer; overflow-wrap: anywhere; }
 .option-press:hover { background: var(--panel); }
-.option-number { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid var(--line); border-radius: 50%; font-size: .78rem; font-variant-numeric: tabular-nums; }
+.option-number { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid var(--line); border-radius: var(--krds-radius-max); font-size: var(--text-meta); font-variant-numeric: tabular-nums; }
 .option-label { flex: 1 1 auto; min-width: 0; }
-.option-tag { flex: none; padding: 0 6px; border-radius: 4px; background: var(--panel); color: var(--body); font-size: .76rem; font-weight: 500; }
+.option-tag { flex: none; }
 .option.default { border-style: dashed; border-color: var(--accent-line); }
 .option.picked { border: 2px solid var(--krds-color-border-success); }
 .option.picked .option-number { background: var(--krds-color-border-success); border-color: var(--krds-color-border-success); color: var(--krds-color-text-basic-inverse); }
-.option.picked .option-tag:first-of-type { background: var(--pass-bg); color: var(--pass); }
+.option.picked .option-tag:first-of-type { --tag-ink: var(--pass); --tag-fill: var(--pass-bg); }
 .option.blocked { border-style: dashed; background: var(--panel); }
 .option.blocked .option-press { color: var(--body); font-weight: 400; cursor: not-allowed; }
 .option.blocked .option-press:hover { background: none; }
-.option.blocked .option-tag { background: var(--warn-bg); color: var(--warn); font-weight: 600; }
-.blocked-reason { margin: 0; padding: 0 10px 6px 40px; color: var(--body); font-size: .85rem; }
+.option.blocked .option-tag { --tag-ink: var(--warn); --tag-fill: var(--warn-bg); }
+.blocked-reason { margin: 0; padding: 0 10px 6px 40px; color: var(--body); font-size: var(--text-meta); }
 .option-facts { padding: 0 10px 6px 40px; }
-.option-facts .part-text { font-size: .88rem; }
+.option-facts .part-text { font-size: var(--text-body); }
 .fact-below { margin-left: 14px; }
 
 /* exhibits read as the real thing in form only */
-.mock { margin: 6px 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.mock { margin: 6px 0; border: 1px solid var(--line); border-radius: var(--krds-radius-large1); overflow: hidden; background: var(--surface); }
 .mock-bar { display: flex; gap: 4px; padding: 5px 8px; background: var(--panel); border-bottom: 1px solid var(--card-line); }
-.mock-bar i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
-.mock pre, .diff { margin: 0; font: .8rem/1.5 var(--mono); overflow-x: auto; }
+.mock-bar i { width: 7px; height: 7px; border-radius: var(--krds-radius-max); background: var(--line); }
+.mock pre, .diff { margin: 0; font: var(--text-meta)/1.5 var(--mono); overflow-x: auto; }
 .mock pre { padding: 8px 10px; color: var(--body); }
-.mock-button { padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; }
+.mock-button { padding: 1px 6px; border: 1px solid var(--line); border-radius: var(--krds-radius-small1); }
 .mock-button.main { background: var(--accent); border-color: var(--accent); color: var(--krds-color-text-basic-inverse); }
-.quote { margin: 6px 0; padding: 4px 12px; border-left: 3px solid var(--line); color: var(--body); font-size: .95rem; }
+.quote { margin: 6px 0; padding: 4px 12px; border-left: 3px solid var(--line); color: var(--body); font-size: var(--text-body); }
 .quote p { margin: 0; }
-.quote cite { display: block; margin-top: 2px; color: var(--muted); font-size: .8rem; font-style: normal; }
-.diff { margin: 6px 0; padding: 6px 0; border: 1px solid var(--card-line); border-radius: 8px; background: var(--surface); }
+.quote cite { display: block; margin-top: 2px; color: var(--muted); font-size: var(--text-meta); font-style: normal; }
+.diff { margin: 6px 0; padding: 6px 0; border: 1px solid var(--card-line); border-radius: var(--krds-radius-large1); background: var(--surface); }
 .diff-line { display: block; min-width: max-content; padding: 0 10px; color: var(--body); }
 .diff-add { background: var(--pass-bg); color: var(--pass); }
 .diff-remove { background: var(--fail-bg); color: var(--fail); }
@@ -136,13 +117,15 @@ h1 { font: 600 1.6rem/1.25 var(--font-sans); color: var(--ink); margin: 16px 0 4
 
 /* the left tree: one state per Decision, one mark per change */
 .krds-side-navigation .lnb-list .lnb-item .lnb-btn[data-state]::before { content: attr(data-mark); position: static; display: inline; width: auto; height: auto; margin-right: 5px; background: none; color: var(--muted); }
-.krds-side-navigation .lnb-list .lnb-item .lnb-btn[data-effect]::after { content: attr(data-effect); position: static; display: inline-block; width: auto; height: auto; margin-left: 6px; padding: 0 5px; border-radius: 4px; background: var(--warn-bg); color: var(--warn); font-size: .72rem; font-weight: 600; }
+.krds-side-navigation .lnb-list .lnb-item .lnb-btn[data-effect]::after { content: attr(data-effect); position: static; display: inline-block; width: auto; height: auto; margin-left: 6px; padding: 0 5px; border-radius: var(--krds-radius-small1); background: var(--warn-bg); color: var(--warn); font-size: var(--text-meta); font-weight: 600; }
 .frame-nav.previewing .lnb-link:not([data-effect]) { color: var(--muted); }
 
 @media (max-width: 820px) {
+  /* A finger-sized control inside a sentence would stretch its line, so it takes its own. */
+  .fold { display: block; margin-left: 0; }
   .long { display: none; }
-  .tree-stats { gap: 0 10px; font-size: .84rem; }
-  .bar-button { padding: 0 8px; }
+  .tree-stats { gap: 0 10px; font-size: var(--text-meta); }
+  .tree-bar .krds-btn { padding-inline: 8px; }
   .queue a { grid-template-columns: 22px minmax(0, 1fr); }
   .row-pick { grid-column: 2; }
   .part-line { flex-wrap: wrap; }
@@ -162,9 +145,9 @@ h1 { font: 600 1.6rem/1.25 var(--font-sans); color: var(--ink); margin: 16px 0 4
 <span id="tree-risks"></span>
 <span id="tree-files"></span>
 </p>
-<button class="bar-button" id="tree-next" type="button">Next<span class="long"> decision</span> ↓</button>
-<button class="bar-button" id="tree-undo" type="button">Undo</button>
-<button class="bar-button" id="tree-finish" type="button">Copy<span class="long"> answer</span></button>
+<button class="krds-btn xsmall primary" id="tree-next" type="button">Next<span class="long"> decision</span> ↓</button>
+<button class="krds-btn xsmall secondary" id="tree-undo" type="button">Undo</button>
+<button class="krds-btn xsmall secondary" id="tree-finish" type="button">Copy<span class="long"> answer</span></button>
 </div>
 
 <section id="overview">
@@ -362,7 +345,7 @@ function content(part, text) {
   if (part.kind === "diff") return diff(text);
   const tail = part.source ? [source(part.source)] : [];
   if (part.kind === "quote") return make("blockquote", "quote", make("p", "", text), make("cite", "", ...tail));
-  const head = part.kind === "risk" ? [make("span", "risk-pill", "! Risk")] : part.kind && !QUIET_KINDS.has(part.kind) ? [make("span", "part-kind", part.kind)] : [];
+  const head = part.kind === "risk" ? [make("span", "frame-tag fail risk-pill", "! Risk")] : part.kind && !QUIET_KINDS.has(part.kind) ? [make("span", "part-kind", part.kind)] : [];
   return make("p", "part-text", ...head, text, ...tail);
 }
 function facts(list, into, below) {
@@ -513,7 +496,7 @@ function renderOptions(id, entry, box) {
   const other = entry.choice === OTHER, chosen = other && entry.answered;
   const press = button("option-press", "", () => openEditor("other", id), `option:${id}:${OTHER}`);
   press.append(make("span", "option-number", String(rows.length + 1)), make("span", "option-label", chosen ? state.others[id] : "Other: write your own"));
-  if (chosen) press.append(make("span", "option-tag", "Your pick"));
+  if (chosen) press.append(make("span", "frame-tag option-tag", "Your pick"));
   const row = make("div", `option${chosen ? " picked" : ""}`, press);
   if (editor?.id === id && editor.kind === "other") row.append(make("div", "blocked-reason", editorRow()));
   box.replaceChildren(...rows, row);
@@ -524,10 +507,10 @@ function optionRow(id, position, option, entry) {
   const press = button("option-press", "", () => pick(id, position), `option:${id}:${position}`);
   press.dataset.option = `${id}:${position}`;
   press.append(make("span", "option-number", blocker ? "⊘" : String(position)), make("span", "option-label", option.text));
-  if (picked) press.append(make("span", "option-tag", "Your pick"));
-  if (position === 1) press.append(make("span", "option-tag", "Agent's pick"));
-  if (chosen && !picked && position !== 1) press.append(make("span", "option-tag", "In force"));
-  if (blocker) press.append(make("span", "option-tag", "Blocked"));
+  if (picked) press.append(make("span", "frame-tag option-tag", "Your pick"));
+  if (position === 1) press.append(make("span", "frame-tag option-tag", "Agent's pick"));
+  if (chosen && !picked && position !== 1) press.append(make("span", "frame-tag option-tag", "In force"));
+  if (blocker) press.append(make("span", "frame-tag option-tag", "Blocked"));
   press.setAttribute("aria-pressed", String(picked));
   if (blocker) press.setAttribute("aria-disabled", "true");
   const row = make("div", `option${picked ? " picked" : chosen ? " default" : ""}${blocker ? " blocked" : ""}`, press);
@@ -719,7 +702,9 @@ function render() {
   const next = document.getElementById("tree-next"), finish = document.getElementById("tree-finish");
   next.disabled = left === 0;
   next.classList.toggle("primary", left > 0);
+  next.classList.toggle("secondary", left === 0);
   finish.classList.toggle("primary", left === 0);
+  finish.classList.toggle("secondary", left > 0);
   document.getElementById("tree-undo").disabled = history.length === 0;
   if (editor) document.querySelector(".editor-field").focus();
   else if (focused) document.querySelector(`[data-key="${focused}"]`)?.focus({preventScroll: true});

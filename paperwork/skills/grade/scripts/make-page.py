@@ -67,7 +67,7 @@ def rows(rubric, grades):
 
 
 def critical_tag(criterion):
-    return '<span class="tag">critical</span>' if criterion.get("critical") else ""
+    return '<span class="frame-tag fail critical">critical</span>' if criterion.get("critical") else ""
 
 
 def list_item(criterion, content):
@@ -104,7 +104,7 @@ def card(criterion, grade, state):
     link = f'<a href="#fix-{name}">See the list above.</a>' if grade.get("fix") or needs_person(grade) else ""
     fold = f'<details><summary>Evidence</summary>{evidence(grade)}</details>' if evidence(grade) else ""
     return (f'<article class="crit {state}" id="c-{name}" data-criterion="{name}"{f" data-runs={len(runs)}" if judged else ""} data-copy="{escape(copy_text(criterion, grade))}">'
-            f'<div class="crit-head"><span class="status">{word(criterion, grade)}</span><span class="crit-text">{critical_tag(criterion)}{linked(criterion["text"])}</span>'
+            f'<div class="crit-head"><span class="frame-tag status">{word(criterion, grade)}</span><span class="crit-text">{critical_tag(criterion)}{linked(criterion["text"])}</span>'
             f'<span class="crit-id">{name}</span></div><div class="runs">{count}</div>{reason}{link}{fold}</article>')
 
 

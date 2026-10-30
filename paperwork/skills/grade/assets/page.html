@@ -1,58 +1,47 @@
 <style>
-/* Each name reads a KRDS colour, so the page follows the frame's theme. */
-:root {
-  --surface: var(--krds-color-surface-white); --panel: var(--krds-color-surface-gray-subtle);
-  --body: var(--krds-color-text-basic); --muted: var(--krds-color-text-subtle);
-  --line: var(--krds-color-border-gray); --card-line: var(--krds-color-border-gray-light); --accent: var(--krds-color-text-primary);
-  --pass: var(--krds-color-text-success); --pass-bg: var(--krds-color-surface-success-subtler);
-  --fail: var(--krds-color-text-danger); --fail-bg: var(--krds-color-surface-danger-subtler);
-  --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
-}
-a { color: inherit; text-decoration-color: var(--line); text-underline-offset: 3px; }
-h1 { font: 500 1.5rem/1.2 var(--font-sans); margin: 2px 0 4px; overflow-wrap: anywhere; }
-h2 { font: 500 1.15rem/1.3 var(--font-sans); margin: 22px 0 8px; }
-h3 { font: 600 .95rem/1.3 var(--font-sans); margin: 20px 0 8px; }
-.eyebrow, .meta, .crit-id, .where { font: .78rem var(--mono); color: var(--muted); }
+h2 { margin: 22px 0 8px; }
+h3 { margin: 20px 0 8px; }
+.eyebrow, .meta { font-size: var(--text-meta); color: var(--muted); }
+.crit-id, .where { font: var(--text-meta) var(--mono); color: var(--muted); }
 .meta { display: flex; flex-wrap: wrap; gap: 4px 14px; overflow-wrap: anywhere; }
-.rating { margin-top: 14px; background: var(--surface); border: 1px solid var(--card-line); border-radius: 12px; padding: 12px 18px; }
+.rating { margin-top: 14px; background: var(--surface); border: 1px solid var(--card-line); border-radius: var(--krds-radius-large1); padding: 12px 18px; }
 .rating p { margin: 4px 0 0; color: var(--body); }
-.rating .decision { margin: 0; font: 500 1.15rem/1.4 var(--font-sans); }
-.rating .legend { font-size: .8rem; line-height: 1.4; color: var(--muted); }
-.warn { margin-top: 12px; padding: 8px 14px; border: 1px solid var(--fail); border-radius: 8px; overflow-wrap: anywhere; }
+.rating .decision { margin: 0; font: 500 var(--text-heading)/1.4 var(--font-sans); }
+.rating .legend { font-size: var(--text-meta); line-height: 1.4; color: var(--muted); }
+.warn { margin-top: 12px; padding: 8px 14px; border: 1px solid var(--fail); border-radius: var(--krds-radius-large1); overflow-wrap: anywhere; }
 ol.person, ol.fixes { margin: 0; padding-left: 1.4em; overflow-wrap: anywhere; }
-ol.person li, ol.fixes li { margin: 0 0 6px; padding-left: 4px; scroll-margin-top: 12px; }
-.tag { font: .72rem var(--mono); color: var(--fail); background: var(--fail-bg); border-radius: 4px; padding: 1px 6px; margin-right: 6px; white-space: nowrap; }
+ol.person li, ol.fixes li { margin: 0 0 6px; padding-left: 4px; }
+.frame-tag.critical { margin-right: 6px; }
 .none { color: var(--muted); margin: 0 0 8px; }
 
 /* One card per criterion: a status word in a fixed slot, never colour alone. */
-.crit { background: var(--surface); border: 1px solid var(--card-line); border-left-width: 4px; border-radius: 10px; padding: 10px 14px; margin: 0 0 10px; overflow-wrap: anywhere; scroll-margin-top: 12px; }
+.crit { background: var(--surface); border: 1px solid var(--card-line); border-left-width: 4px; border-radius: var(--krds-radius-large1); padding: 10px 14px; margin: 0 0 10px; overflow-wrap: anywhere; }
 .crit.failed { border-left-color: var(--fail); }
 .crit.passed { border-left-color: var(--pass); }
 .crit.open { border-left-color: var(--line); border-left-style: dashed; }
 .crit:target, li:target { box-shadow: 0 0 0 2px var(--accent); }
 .crit-head { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) auto; gap: 10px; align-items: baseline; }
-.status { font: 600 .78rem var(--font-sans); border-radius: 5px; padding: 1px 8px; white-space: nowrap; justify-self: start; }
-.failed .status { color: var(--fail); background: var(--fail-bg); }
-.passed .status { color: var(--pass); background: var(--pass-bg); }
-.open .status { color: var(--body); background: var(--panel); }
-.runs { margin-top: 4px; font-size: .82rem; color: var(--muted); }
+.crit-head .status { justify-self: start; }
+.failed .status { --tag-ink: var(--fail); --tag-fill: var(--fail-bg); }
+.passed .status { --tag-ink: var(--pass); --tag-fill: var(--pass-bg); }
+.runs { margin-top: 4px; font-size: var(--text-meta); color: var(--muted); }
 .dots { display: inline-flex; gap: 3px; margin-right: 6px; }
-.dots i { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--body); }
+.dots i { width: 9px; height: 9px; border-radius: var(--krds-radius-max); border: 1px solid var(--body); }
 .dots .yes { background: var(--body); }
 .dots .blank { border-style: dashed; }
 details { margin-top: 6px; }
-summary { cursor: pointer; font-size: .85rem; color: var(--muted); }
-blockquote.evidence { margin: 6px 0; padding: 4px 12px; border-left: 3px solid var(--line); background: var(--panel); border-radius: 0 6px 6px 0; white-space: pre-wrap; font-size: .9rem; color: var(--body); }
+summary { cursor: pointer; font-size: var(--text-meta); color: var(--muted); }
+blockquote.evidence { margin: 6px 0; padding: 4px 12px; border-left: 3px solid var(--line); background: var(--panel); border-radius: 0 var(--krds-radius-medium1) var(--krds-radius-medium1) 0; white-space: pre-wrap; font-size: var(--text-body); color: var(--body); }
 dl.subject { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 0; }
 dl.subject dd { margin: 0; overflow-wrap: anywhere; }
 dl.subject ul, .warn ul { margin: 0; padding-left: 1.1em; }
-footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--line); font-size: .85rem; color: var(--muted); }
+footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--line); font-size: var(--text-meta); color: var(--muted); }
 @media (max-width: 560px) {
   .crit-head { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   dl.subject { grid-template-columns: minmax(0, 1fr); }
 }
 @media print {
-  .status, .tag, .dots i { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .frame-tag, .dots i { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .crit { break-inside: avoid; }
 }
 </style>

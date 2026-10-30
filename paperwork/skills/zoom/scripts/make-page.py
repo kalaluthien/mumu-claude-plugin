@@ -195,8 +195,11 @@ def section(model, level_id):
             '<div class="detail" hidden></div>\n</section>')
 
 
+TONES = {"pass": "pass", "counterexample": "fail", "unproved": "warn"}
+
+
 def badge(verdict):
-    return f'<span class="verdict" data-verdict="{verdict}">{verdict.capitalize()}</span>' if verdict else ""
+    return f'<span class="frame-tag verdict {TONES[verdict]}" data-verdict="{verdict}">{verdict.capitalize()}</span>' if verdict else ""
 
 
 def overview(target, title, why, items):

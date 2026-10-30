@@ -1,39 +1,29 @@
 <style>
-/* Each name reads a KRDS colour, so the page follows the frame's theme. */
-:root {
-  --bg: var(--krds-color-background-white); --surface: var(--krds-color-surface-white); --panel: var(--krds-color-surface-gray-subtler);
-  --ink: var(--krds-color-text-bolder); --body: var(--krds-color-text-basic); --muted: var(--krds-color-text-subtle);
-  --line: var(--krds-color-border-gray-dark); --card-line: var(--krds-color-border-gray-light); --accent: var(--krds-color-text-primary);
-  --state-bg: var(--krds-color-surface-primary-subtler); --state-line: var(--krds-color-border-primary);
-  --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
-}
-a { color: inherit; text-underline-offset: 3px; }
-a:hover { color: var(--accent); }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* the chart's lines are darker than a card's edge, so they read at a glance */
+:root { --chart-line: var(--krds-color-border-gray-dark); --state-bg: var(--krds-color-surface-primary-subtler); --state-line: var(--krds-color-border-primary); }
 /* A level not shown keeps its place in the frame's list of sections, so only the one shown counts as the current one. */
 .view.away { position: fixed; top: 200vh; left: 0; width: 100%; visibility: hidden; }
-.crumbs { margin: 8px 0 0; font-size: .85rem; color: var(--muted); overflow-wrap: anywhere; }
-h1 { font-size: 1.7rem; line-height: 1.25; font-weight: 600; color: var(--ink); margin: 2px 0 6px; overflow-wrap: anywhere; }
+.crumbs { margin: 8px 0 0; font-size: var(--text-meta); color: var(--muted); overflow-wrap: anywhere; }
 .lede { margin: 0 0 14px; max-width: 46em; color: var(--body); }
 
 /* one drawing per level; its text is the page's own font, measured before the shapes are sized */
 .chart { min-height: 120px; }
 .chart svg { display: block; max-width: 100%; overflow: visible; }
-.chart text { font: 600 15px/1 var(--font-sans); fill: var(--ink); }
+.chart text { font: 600 var(--text-body)/1 var(--font-sans); fill: var(--ink); }
 .band rect { fill: var(--panel); stroke: none; }
-.band text { font-size: 13px; fill: var(--muted); }
-.line { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-linecap: round; }
+.band text { font-size: var(--text-meta); fill: var(--muted); }
+.line { fill: none; stroke: var(--chart-line); stroke-width: 1.5; stroke-linecap: round; }
 .edge[data-kind="call"] .line { stroke-dasharray: 6 5; }
 .hit { fill: none; stroke: transparent; stroke-width: 16; }
 .edge { cursor: pointer; }
 .edge-pill { fill: var(--surface); stroke: var(--card-line); }
-.edge .edge-label { font-size: 12.5px; font-weight: 500; fill: var(--body); }
+.edge .edge-label { font-size: var(--text-meta); font-weight: 500; fill: var(--body); }
 .node { cursor: pointer; }
-.node .shape { fill: var(--surface); stroke: var(--line); stroke-width: 1.25; filter: drop-shadow(0 1px 2px rgb(0 0 0 / .1)); }
+.node .shape { fill: var(--surface); stroke: var(--chart-line); stroke-width: 1.25; filter: drop-shadow(0 1px 2px rgb(0 0 0 / .1)); }
 .node[data-shape="state"] .shape { fill: var(--state-bg); stroke: var(--state-line); }
 .start { fill: var(--ink); stroke: none; }
 .start-line { fill: none; stroke: var(--ink); stroke-width: 1.5; }
-.arrow { fill: var(--line); fill: context-stroke; }
+.arrow { fill: var(--chart-line); fill: context-stroke; }
 .node:hover .shape, .node.selected .shape { stroke: var(--accent); stroke-width: 2.5; }
 .edge:hover .line, .edge.selected .line { stroke: var(--accent); stroke-width: 2.5; }
 .edge.selected .edge-label { fill: var(--accent); font-weight: 600; }
@@ -47,44 +37,44 @@ h1 { font-size: 1.7rem; line-height: 1.25; font-weight: 600; color: var(--ink); 
 .edge.now .edge-label, .edge.path .edge-label { fill: var(--accent); font-weight: 600; }
 .edge.now .edge-pill, .edge.path .edge-pill, .edge.selected .edge-pill { stroke: var(--accent); }
 .step-tag rect { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; }
-.node.now .step-tag text { font-size: 12px; font-weight: 600; fill: var(--accent); }
+.node.now .step-tag text { font-size: var(--text-meta); font-weight: 600; fill: var(--accent); }
 .step-tag.broken rect { stroke: var(--krds-color-text-danger); }
 .node.now .step-tag.broken text { fill: var(--krds-color-text-danger); }
 .opener { cursor: pointer; }
 .opener rect { fill: transparent; stroke: none; }
 .opener line { stroke: var(--state-line); stroke-opacity: .35; }
-.opener text { font-size: 12.5px; font-weight: 600; fill: var(--accent); }
+.opener text { font-size: var(--text-meta); font-weight: 600; fill: var(--accent); }
 .opener:hover text { text-decoration: underline; }
 .node.now + .opener text { fill: var(--krds-color-text-basic-inverse, #fff); }
 .node.now + .opener line { stroke: var(--krds-color-text-basic-inverse, #fff); }
 
-.legend { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 12px 0 0; padding: 0; font-size: .82rem; color: var(--muted); }
+.legend { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 12px 0 0; padding: 0; font-size: var(--text-meta); color: var(--muted); }
 .legend li { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.legend svg { flex: none; fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
-.inside { list-style: none; margin: 14px 0 0; padding: 0; font-size: .9rem; color: var(--muted); }
+.legend svg { flex: none; fill: var(--surface); stroke: var(--chart-line); stroke-width: 1.25; }
+.inside { list-style: none; margin: 14px 0 0; padding: 0; font-size: var(--text-body); color: var(--muted); }
 .inside a { color: var(--ink); font-weight: 600; }
 .level.played .inside { display: none; }
 .legend .key-state svg { fill: var(--state-bg); stroke: var(--state-line); }
 
 /* the panel sits under the chart, so opening it covers nothing */
-.detail { margin-top: 16px; border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; font-size: .92rem; overflow-wrap: anywhere; }
+.detail { margin-top: 16px; border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; font-size: var(--text-body); overflow-wrap: anywhere; }
 .detail-head { display: flex; align-items: baseline; gap: 10px; }
-.detail h2 { font-size: 1.1rem; font-weight: 600; color: var(--ink); margin: 0; }
-.detail-kind { font-size: .82rem; color: var(--muted); }
+.detail h2 { margin: 0; }
+.detail-kind { font-size: var(--text-meta); color: var(--muted); }
 .detail-close { margin-left: auto; flex: none; }
 .detail p { margin: 8px 0 0; }
-.detail dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; margin: 12px 0 0; font-size: .9rem; }
+.detail dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; margin: 12px 0 0; font-size: var(--text-body); }
 .detail dt { color: var(--muted); }
 .detail dd { margin: 0; }
 .detail ul { margin: 0; padding: 0; list-style: none; }
-.detail code { font: .85rem var(--mono); }
+.detail code { font: var(--text-meta) var(--mono); }
 .detail .rule-kind { color: var(--muted); }
 
-.bar { border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; margin: 8px 0 16px; font-size: .92rem; overflow-wrap: anywhere; }
+.bar { border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; margin: 8px 0 16px; font-size: var(--text-body); overflow-wrap: anywhere; }
 .bar-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
-.bar h2 { font-size: 1.15rem; font-weight: 600; color: var(--ink); margin: 0; }
-.bar-kind, .bar-strength, .bar-meaning { font-size: .82rem; color: var(--muted); }
-.bar-source { margin-left: auto; font-size: .82rem; }
+.bar h2 { margin: 0; }
+.bar-kind, .bar-strength, .bar-meaning { font-size: var(--text-meta); color: var(--muted); }
+.bar-source { margin-left: auto; font-size: var(--text-meta); }
 .bar p { margin: 4px 0 0; }
 .bar dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 14px; margin: 6px 0 0; }
 .bar dt { color: var(--muted); }
@@ -92,31 +82,21 @@ h1 { font-size: 1.7rem; line-height: 1.25; font-weight: 600; color: var(--ink); 
 .bar-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .bar-count { font-weight: 600; color: var(--ink); }
 .bar-steps { order: 1; flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px; list-style: none; margin: 0; padding: 0; }
-.bar-chip { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--accent); background: none; color: var(--accent); padding: 0; font: 600 .82rem var(--font-sans); overflow-wrap: normal; cursor: pointer; }
+.bar-chip { width: 28px; height: 28px; border-radius: var(--krds-radius-max); border: 1.5px solid var(--accent); background: none; color: var(--accent); padding: 0; font: 600 var(--text-meta) var(--font-sans); overflow-wrap: normal; cursor: pointer; }
 .bar-chip[aria-current="step"] { background: var(--accent); color: var(--krds-color-text-basic-inverse, #fff); }
 .bar-run { margin: 8px 0 0; padding-left: 1.4em; color: var(--muted); }
 .bar-run li { margin-top: 4px; }
 .bar-run [aria-current] { color: var(--ink); font-weight: 600; }
-.verdict { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: .85rem; font-weight: 600; }
-.verdict[data-verdict="pass"] { color: var(--krds-color-text-success); background: var(--krds-color-surface-success-subtler); }
-.verdict[data-verdict="counterexample"] { color: var(--krds-color-text-danger); background: var(--krds-color-surface-danger-subtler); }
-.verdict[data-verdict="unproved"] { color: var(--krds-color-text-warning); background: var(--krds-color-surface-warning-subtler); }
 /* the same mark as the navigation's, so a reader ties the two */
 .verdict[data-verdict="pass"]::before { content: "✓ "; }
 .verdict[data-verdict="counterexample"]::before { content: "✗ "; }
 .verdict[data-verdict="unproved"]::before { content: "? "; }
 .level.played .lede { display: none; }
 /* the bar names what plays, so the level's title only says where */
-.level.played h1 { font-size: 1.05rem; font-weight: 600; margin-block: 2px; }
 .items { list-style: none; margin: 0; padding: 0; }
 .items li { padding: 10px 0; border-top: 1px solid var(--card-line); }
 .items a { font-weight: 600; }
 .items p { margin: 4px 0 0; color: var(--body); }
-/* a document's scenarios and rules should fit one screen of the navigation */
-@media (min-width: 821px) {
-  .frame-nav.krds-side-navigation .lnb-list .lnb-item .lnb-btn { padding-block: 6px; }
-  .frame-nav.krds-side-navigation .lnb-list .lnb-item .lnb-submenu .lnb-btn { padding-block: 2px; }
-}
 
 /* beside the chart, so the chart stays the one main thing and the controls stay put between levels */
 @media (min-width: 1100px) {
@@ -126,6 +106,9 @@ h1 { font-size: 1.7rem; line-height: 1.25; font-weight: 600; color: var(--ink); 
   .view.item:not(.away) { grid-column: 2; grid-row: 1; position: sticky; top: 60px; }
   .bar dl { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .bar-source { margin-left: 0; }
+}
+@media (max-width: 820px) {
+  .bar-chip { width: 44px; height: 44px; }
 }
 @media (max-width: 560px) {
   .detail dl, .bar dl { grid-template-columns: minmax(0, 1fr); gap: 0; }
@@ -142,6 +125,7 @@ __SECTIONS__
 <script type="application/json" id="page-data">__DATA__</script>
 <script>
 const data = JSON.parse(document.getElementById("page-data").textContent);
+const TONES = {pass: "pass", counterexample: "fail", unproved: "warn"};
 const levels = Object.fromEntries(data.levels.map(level => [level.id, level]));
 const items = Object.fromEntries(data.items.map(item => [item.key, item]));
 const SVG = "http://www.w3.org/2000/svg";
@@ -535,7 +519,7 @@ function openDetail(section, chosen, title, kind, meta, facts) {
   chosen.classList.add("selected");
   section.querySelectorAll(`.edge-tag[data-key="${CSS.escape(chosen.dataset.key || "")}"]`).forEach(tag => tag.classList.add("selected"));
   const panel = section.querySelector(".detail");
-  const close = tag("button", "krds-btn text small detail-close", "Close");
+  const close = tag("button", "krds-btn text xsmall detail-close", "Close");
   close.type = "button";
   close.addEventListener("click", () => { closeDetail(section); chosen.focus(); });
   const head = tag("div", "detail-head");
@@ -630,7 +614,7 @@ function runList(item) {
   return run;
 }
 function stepControl(role, label, disabled) {
-  const button = tag("button", `krds-btn secondary small ${role}`, label);
+  const button = tag("button", `krds-btn secondary xsmall ${role}`, label);
   button.type = "button";
   button.disabled = disabled;
   button.addEventListener("click", () => {
@@ -645,7 +629,7 @@ function drawBar(item) {
   head.append(tag("span", "bar-kind", item.kind), tag("h2", "", item.title));
   if (item.strength) head.append(tag("span", "bar-strength", item.strength));
   if (item.verdict) {
-    const badge = tag("span", "verdict", item.verdict[0].toUpperCase() + item.verdict.slice(1));
+    const badge = tag("span", `frame-tag verdict ${TONES[item.verdict]}`, item.verdict[0].toUpperCase() + item.verdict.slice(1));
     badge.dataset.verdict = item.verdict;
     head.append(badge, tag("span", "bar-meaning", item.why || VERDICT_WORDS[item.verdict]));
   }
