@@ -1,0 +1,32 @@
+{
+  "title": "A strike removes the last relation that names a store",
+  "parts": [
+    {
+      "text": "Pick a store.",
+      "name": "store",
+      "pick": {
+        "text": "Files",
+        "name": "files"
+      },
+      "else": [
+        {
+          "text": "A table"
+        }
+      ]
+    },
+    {
+      "text": "Pick a format.",
+      "requires": [
+        "store.files"
+      ],
+      "pick": {
+        "text": "Plain"
+      },
+      "else": [
+        {
+          "text": "Rows"
+        }
+      ]
+    }
+  ]
+}

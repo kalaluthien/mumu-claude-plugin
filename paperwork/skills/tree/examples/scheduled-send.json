@@ -1,5 +1,6 @@
 {
   "title": "Scheduling Sent Messages in PostBox",
+  "files": 9,
   "parts": [
     {
       "text": "Add send later to the composer. The user must be able to cancel it, and it must never go out early.",
@@ -7,14 +8,18 @@
       "source": "Dana Kim, 2026-10-22"
     },
     {
+      "kind": "quote",
       "text": "People write replies at night and do not want them to arrive at night.",
-      "kind": "evidence",
       "source": "https://example-co.atlassian.net/wiki/spaces/SUP/pages/support-notes"
     },
     {
       "text": "The user can pick a time in the composer.",
       "kind": "claim",
       "parts": [
+        {
+          "kind": "mockup",
+          "text": "To: dana@example.com\nSubject: Monday plan\n\n[Send later ▾]  [[Send]]\n  Tomorrow 8:00\n  Monday 9:00\n  Pick a time"
+        },
         {
           "text": "Send later saves the message with a time. It does not send.",
           "kind": "claim",
@@ -39,9 +44,17 @@
                   "text": "500"
                 },
                 {
-                  "text": "No limit"
+                  "text": "No limit",
+                  "name": "none",
+                  "parts": [
+                    {
+                      "kind": "risk",
+                      "text": "Guess: one user can fill the worker's queue."
+                    }
+                  ]
                 }
-              ]
+              ],
+              "name": "limit"
             }
           ]
         }
@@ -62,6 +75,10 @@
         {
           "text": "A message is sent only at its time. A failed send is kept.",
           "kind": "claim"
+        },
+        {
+          "kind": "risk",
+          "text": "An edit close to the send time can lose to the worker's claim."
         }
       ]
     },
@@ -82,7 +99,8 @@
               "text": "Should a failed send retry on its own?",
               "kind": "question",
               "pick": {
-                "text": "Yes, 3 times, 5 minutes apart"
+                "text": "Yes, 3 times, 5 minutes apart",
+                "files": 1
               },
               "else": [
                 {
@@ -92,11 +110,17 @@
                       "text": "The user presses Try again.",
                       "kind": "note"
                     }
-                  ]
+                  ],
+                  "name": "no"
                 }
-              ]
+              ],
+              "name": "retry"
             }
           ]
+        },
+        {
+          "kind": "risk",
+          "text": "Two workers could claim one message, unless the claim is atomic."
         }
       ]
     },
@@ -122,7 +146,9 @@
                   "text": "Adds one template.",
                   "kind": "consequence"
                 }
-              ]
+              ],
+              "name": "email",
+              "files": 1
             },
             {
               "text": "Not at all",
@@ -130,6 +156,36 @@
                 {
                   "text": "The claim \"The user is told when a scheduled message fails\" goes.",
                   "kind": "consequence"
+                },
+                {
+                  "kind": "risk",
+                  "text": "A failed message stays unsent and nobody knows."
+                }
+              ],
+              "excludes": [
+                "retry.no"
+              ]
+            }
+          ],
+          "name": "notify"
+        },
+        {
+          "kind": "question",
+          "text": "What does the failure email look like?",
+          "requires": [
+            "notify.email"
+          ],
+          "pick": {
+            "text": "Plain text, one line"
+          },
+          "else": [
+            {
+              "text": "The branded template",
+              "files": 1,
+              "parts": [
+                {
+                  "kind": "consequence",
+                  "text": "Adds one design review."
                 }
               ]
             }
@@ -146,6 +202,10 @@
       "kind": "claim",
       "parts": [
         {
+          "kind": "diff",
+          "text": "--- a/db/schema.sql\n+++ b/db/schema.sql\n@@ -12,5 +12,7 @@\n CREATE TABLE messages (\n   id        bigint PRIMARY KEY,\n-  status    text NOT NULL\n+  status    text NOT NULL DEFAULT 'draft',\n+  send_at   timestamptz,\n+  owner_id  bigint NOT NULL\n );\n"
+        },
+        {
           "text": "How long do sent and cancelled rows stay?",
           "kind": "question",
           "pick": {
@@ -153,7 +213,16 @@
           },
           "else": [
             {
-              "text": "Forever"
+              "text": "Forever",
+              "excludes": [
+                "limit.none"
+              ],
+              "parts": [
+                {
+                  "kind": "note",
+                  "text": "With no limit per user, kept rows grow without end."
+                }
+              ]
             }
           ]
         }

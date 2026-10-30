@@ -11,7 +11,8 @@ Write a plan as one JSON document, show it as one fixed HTML page, and read the 
 
 - **Part**: one sentence in a tree, with an optional `kind`, `source` and child `parts`. Goal, step, evidence, risk, note, consequence and mockup are kinds of Part, not types.
 - **Decision**: a Part that carries a `pick`, the agent's default Option, and optional `else` Options.
-- **Option**: one choice with its consequences in `parts`; it may hold one follow-up Question, one level deep.
+- **Option**: one choice with its consequences in `parts`, and the files it adds in `files`, the writer's estimate.
+- **Relation**: `requires` on a Decision or Option and `excludes` on an Option, each a list of `<decision>.<option>` names, so one answer can leave a later Decision not needed, block its option or settle it.
 - **Answer**: the owner's reply as one Markdown line per Part touched; a Part with no line is kept.
 - **id**: a Part's tree position, such as `1.2.1`, computed and never written.
 
@@ -24,6 +25,7 @@ The full grammar, with the checker's rule ids, is [references/grammar.md](refere
 | ask | playbook |
 | --- | --- |
 | write a plan document from a task | [references/write.md](references/write.md) |
+| choose what to ask the owner, and what to settle yourself | [references/decision-points.md](references/decision-points.md) |
 | show a plan to the owner, or read a pasted Answer back | [references/show.md](references/show.md) |
 
 ## Rules
@@ -31,4 +33,4 @@ The full grammar, with the checker's rule ids, is [references/grammar.md](refere
 - **Checked plan**: run `${CLAUDE_PLUGIN_ROOT}/skills/tree/scripts/check-plan.py <plan>` after every edit; a plan that does not print `ok 1` is not shown.
 - **Scripts compute**: ids, pages and next plans come from `${CLAUDE_PLUGIN_ROOT}/skills/tree/scripts/make-page.py` and `${CLAUDE_PLUGIN_ROOT}/skills/tree/scripts/read-answer.py`, never from your own edits of the Answer.
 - **One page**: every plan uses the same page; change the plan, never the page.
-- **Examples**: [examples/](examples/) holds twelve finished plans, the report on this skill among them, each with the Answer a reader could paste back.
+- **Examples**: [examples/](examples/) holds fourteen finished plans, the report on this skill among them, each with the Answer a reader could paste back.

@@ -16,16 +16,29 @@
       "kind": "question",
       "source": "https://raw.githubusercontent.com/github/spec-kit/main/templates/commands/clarify.md",
       "parts": [
-        {"text": "Why it matters: skipping raises the risk of downstream rework.", "kind": "note"}
+        {
+          "text": "Why it matters: skipping raises the risk of downstream rework.",
+          "kind": "note"
+        }
       ],
       "pick": {
         "text": "A (Recommended): clarify first, then plan",
-        "parts": [{"text": "Clarification is expected to run before the plan.", "kind": "note"}]
+        "parts": [
+          {
+            "text": "Clarification is expected to run before the plan.",
+            "kind": "note"
+          }
+        ]
       },
       "else": [
         {
           "text": "B: skip clarification, for an exploratory spike",
-          "parts": [{"text": "Proceed with a warning that downstream rework risk increases.", "kind": "risk"}]
+          "parts": [
+            {
+              "text": "Proceed with a warning that downstream rework risk increases.",
+              "kind": "risk"
+            }
+          ]
         }
       ]
     },
@@ -34,13 +47,24 @@
       "kind": "question",
       "source": "https://raw.githubusercontent.com/github/spec-kit/main/templates/commands/clarify.md",
       "parts": [
-        {"text": "Why it matters: the question quota is 5, so the top categories by impact times uncertainty go first.", "kind": "note"}
+        {
+          "text": "Why it matters: the question quota is 5, so the top categories by impact times uncertainty go first.",
+          "kind": "note"
+        }
       ],
-      "pick": {"text": "A (Recommended): Security and privacy"},
+      "pick": {
+        "text": "A (Recommended): Security and privacy"
+      },
       "else": [
-        {"text": "B: Edge cases and failure handling"},
-        {"text": "C: Domain and data model"},
-        {"text": "D: Integration and external dependencies"}
+        {
+          "text": "B: Edge cases and failure handling"
+        },
+        {
+          "text": "C: Domain and data model"
+        },
+        {
+          "text": "D: Integration and external dependencies"
+        }
       ]
     },
     {
@@ -48,19 +72,31 @@
       "kind": "question",
       "source": "https://raw.githubusercontent.com/github/spec-kit/main/templates/commands/clarify.md",
       "parts": [
-        {"text": "Why it matters: an ambiguous adjective cannot be tested. Format: short answer, 5 words or fewer.", "kind": "note"}
+        {
+          "text": "Why it matters: an ambiguous adjective cannot be tested. Format: short answer, 5 words or fewer.",
+          "kind": "note"
+        }
       ],
-      "pick": {"text": "Suggested: a number with a unit"}
+      "pick": {
+        "text": "Suggested: a number with a unit"
+      }
     },
     {
       "text": "After the last answer: proceed to the plan, or run clarify again later after the plan?",
       "kind": "question",
       "source": "https://raw.githubusercontent.com/github/spec-kit/main/templates/commands/clarify.md",
-      "pick": {"text": "A (Recommended): proceed to the technical plan"},
+      "pick": {
+        "text": "A (Recommended): proceed to the technical plan"
+      },
       "else": [
         {
           "text": "B: run clarify again after the plan",
-          "parts": [{"text": "Outstanding or Deferred categories stay flagged.", "kind": "note"}]
+          "parts": [
+            {
+              "text": "Outstanding or Deferred categories stay flagged.",
+              "kind": "note"
+            }
+          ]
         }
       ]
     }

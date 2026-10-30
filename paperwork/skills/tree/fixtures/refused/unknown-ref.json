@@ -1,0 +1,1 @@
+{"title": "Names nothing", "parts": [{"text": "Where?", "name": "host", "pick": {"text": "Cloud", "name": "cloud"}}, {"text": "Which store?", "pick": {"text": "Postgres", "requires": ["host.rack"]}}]}

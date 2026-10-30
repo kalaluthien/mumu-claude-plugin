@@ -22,63 +22,12 @@
       ],
       "pick": {
         "text": "Roll back to #481",
-        "then": {
-          "text": "Tell customers about it?",
-          "pick": {
-            "text": "Post on the status page",
-            "parts": [
-              {
-                "text": "Public. Updates every 15 min.",
-                "kind": "consequence"
-              }
-            ]
-          },
-          "else": [
-            {
-              "text": "Only tell the team",
-              "parts": [
-                {
-                  "text": "#incidents only. Nothing public.",
-                  "kind": "consequence"
-                }
-              ]
-            }
-          ]
-        }
+        "name": "rollback"
       },
       "else": [
         {
           "text": "Ship a hotfix",
-          "then": {
-            "text": "Wait for the test run?",
-            "pick": {
-              "text": "Ship right away",
-              "parts": [
-                {
-                  "text": "Skips 1,284 tests.",
-                  "kind": "risk",
-                  "parts": [
-                    {
-                      "text": "The last hotfix that skipped the tests broke refunds for two hours.",
-                      "kind": "note",
-                      "source": "https://github.com/example-co/app/pull/455"
-                    }
-                  ]
-                }
-              ]
-            },
-            "else": [
-              {
-                "text": "After the tests",
-                "parts": [
-                  {
-                    "text": "14 min. Errors keep coming.",
-                    "kind": "consequence"
-                  }
-                ]
-              }
-            ]
-          }
+          "name": "hotfix"
         },
         {
           "text": "Turn the flag off",
@@ -89,6 +38,66 @@
             },
             {
               "text": "The old one takes over.",
+              "kind": "consequence"
+            }
+          ]
+        }
+      ],
+      "name": "response"
+    },
+    {
+      "text": "Tell customers about it?",
+      "requires": [
+        "response.rollback"
+      ],
+      "pick": {
+        "text": "Post on the status page",
+        "parts": [
+          {
+            "text": "Public. Updates every 15 min.",
+            "kind": "consequence"
+          }
+        ]
+      },
+      "else": [
+        {
+          "text": "Only tell the team",
+          "parts": [
+            {
+              "text": "#incidents only. Nothing public.",
+              "kind": "consequence"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "Wait for the test run?",
+      "requires": [
+        "response.hotfix"
+      ],
+      "pick": {
+        "text": "Ship right away",
+        "parts": [
+          {
+            "text": "Skips 1,284 tests.",
+            "kind": "risk",
+            "parts": [
+              {
+                "text": "The last hotfix that skipped the tests broke refunds for two hours.",
+                "kind": "note",
+                "source": "https://github.com/example-co/app/pull/455"
+              }
+            ]
+          }
+        ]
+      },
+      "else": [
+        {
+          "text": "After the tests",
+          "parts": [
+            {
+              "text": "14 min. Errors keep coming.",
               "kind": "consequence"
             }
           ]
@@ -109,63 +118,12 @@
       ],
       "pick": {
         "text": "Offer 15% instead",
-        "then": {
-          "text": "Tie it to a longer contract?",
-          "pick": {
-            "text": "Only with 2 years",
-            "parts": [
-              {
-                "text": "$71.4k a year until 2028.",
-                "kind": "consequence"
-              }
-            ]
-          },
-          "else": [
-            {
-              "text": "For one year",
-              "parts": [
-                {
-                  "text": "$71.4k. Renews at full price.",
-                  "kind": "consequence"
-                }
-              ]
-            }
-          ]
-        }
+        "name": "counter"
       },
       "else": [
         {
           "text": "Ask the VP",
-          "then": {
-            "text": "What should I send along?",
-            "pick": {
-              "text": "The call notes",
-              "parts": [
-                {
-                  "text": "Summary of yesterday's call.",
-                  "kind": "consequence"
-                }
-              ]
-            },
-            "else": [
-              {
-                "text": "Usage and margin",
-                "parts": [
-                  {
-                    "text": "Margin drops to 41%.",
-                    "kind": "risk",
-                    "parts": [
-                      {
-                        "text": "Finance set a 45% floor for any discount above 20%.",
-                        "kind": "note",
-                        "source": "https://example-co.atlassian.net/wiki/spaces/FIN/pages/discount-policy"
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
+          "name": "vp"
         },
         {
           "text": "Accept 25%",
@@ -178,6 +136,66 @@
                   "text": "Anything above 20% off needs the CRO's approval before the quote goes out.",
                   "kind": "note",
                   "source": "https://example-co.atlassian.net/wiki/spaces/SALES/pages/approval-rules"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "name": "offer"
+    },
+    {
+      "text": "Tie it to a longer contract?",
+      "requires": [
+        "offer.counter"
+      ],
+      "pick": {
+        "text": "Only with 2 years",
+        "parts": [
+          {
+            "text": "$71.4k a year until 2028.",
+            "kind": "consequence"
+          }
+        ]
+      },
+      "else": [
+        {
+          "text": "For one year",
+          "parts": [
+            {
+              "text": "$71.4k. Renews at full price.",
+              "kind": "consequence"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "What should I send along?",
+      "requires": [
+        "offer.vp"
+      ],
+      "pick": {
+        "text": "The call notes",
+        "parts": [
+          {
+            "text": "Summary of yesterday's call.",
+            "kind": "consequence"
+          }
+        ]
+      },
+      "else": [
+        {
+          "text": "Usage and margin",
+          "parts": [
+            {
+              "text": "Margin drops to 41%.",
+              "kind": "risk",
+              "parts": [
+                {
+                  "text": "Finance set a 45% floor for any discount above 20%.",
+                  "kind": "note",
+                  "source": "https://example-co.atlassian.net/wiki/spaces/FIN/pages/discount-policy"
                 }
               ]
             }
@@ -199,70 +217,12 @@
       ],
       "pick": {
         "text": "Stop the job",
-        "then": {
-          "text": "What about the half-done export?",
-          "pick": {
-            "text": "Restart from checkpoint",
-            "parts": [
-              {
-                "text": "Re-runs 3 of 8 hours. About $40.",
-                "kind": "consequence"
-              }
-            ]
-          },
-          "else": [
-            {
-              "text": "Write it off",
-              "parts": [
-                {
-                  "text": "Yesterday's report stays empty.",
-                  "kind": "risk",
-                  "parts": [
-                    {
-                      "text": "Finance pulls this report for Friday's board pack.",
-                      "kind": "note",
-                      "source": "https://example-co.atlassian.net/wiki/spaces/FIN/pages/reporting-calendar"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
+        "name": "stop"
       },
       "else": [
         {
           "text": "Set a spend limit",
-          "then": {
-            "text": "How tight?",
-            "pick": {
-              "text": "$50 an hour",
-              "parts": [
-                {
-                  "text": "Throttles 4 other services.",
-                  "kind": "risk",
-                  "parts": [
-                    {
-                      "text": "The API and the search index share this account's limit.",
-                      "kind": "note",
-                      "source": "https://example-co.atlassian.net/wiki/spaces/INFRA/pages/aws-budgets"
-                    }
-                  ]
-                }
-              ]
-            },
-            "else": [
-              {
-                "text": "$200 an hour",
-                "parts": [
-                  {
-                    "text": "Only the export slows down.",
-                    "kind": "consequence"
-                  }
-                ]
-              }
-            ]
-          }
+          "name": "limit"
         },
         {
           "text": "Page the on-call",
@@ -273,6 +233,73 @@
             },
             {
               "text": "Costs run until she's in.",
+              "kind": "consequence"
+            }
+          ]
+        }
+      ],
+      "name": "spend"
+    },
+    {
+      "text": "What about the half-done export?",
+      "requires": [
+        "spend.stop"
+      ],
+      "pick": {
+        "text": "Restart from checkpoint",
+        "parts": [
+          {
+            "text": "Re-runs 3 of 8 hours. About $40.",
+            "kind": "consequence"
+          }
+        ]
+      },
+      "else": [
+        {
+          "text": "Write it off",
+          "parts": [
+            {
+              "text": "Yesterday's report stays empty.",
+              "kind": "risk",
+              "parts": [
+                {
+                  "text": "Finance pulls this report for Friday's board pack.",
+                  "kind": "note",
+                  "source": "https://example-co.atlassian.net/wiki/spaces/FIN/pages/reporting-calendar"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "How tight?",
+      "requires": [
+        "spend.limit"
+      ],
+      "pick": {
+        "text": "$50 an hour",
+        "parts": [
+          {
+            "text": "Throttles 4 other services.",
+            "kind": "risk",
+            "parts": [
+              {
+                "text": "The API and the search index share this account's limit.",
+                "kind": "note",
+                "source": "https://example-co.atlassian.net/wiki/spaces/INFRA/pages/aws-budgets"
+              }
+            ]
+          }
+        ]
+      },
+      "else": [
+        {
+          "text": "$200 an hour",
+          "parts": [
+            {
+              "text": "Only the export slows down.",
               "kind": "consequence"
             }
           ]

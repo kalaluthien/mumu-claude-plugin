@@ -12,12 +12,22 @@
       "source": "https://docs.langchain.com/oss/python/langgraph/interrupts",
       "pick": {
         "text": "Approve: resume with True",
-        "parts": [{"text": "The node routes to proceed.", "kind": "consequence"}]
+        "parts": [
+          {
+            "text": "The node routes to proceed.",
+            "kind": "consequence"
+          }
+        ]
       },
       "else": [
         {
           "text": "Reject: resume with False",
-          "parts": [{"text": "The node routes to cancel.", "kind": "consequence"}]
+          "parts": [
+            {
+              "text": "The node routes to cancel.",
+              "kind": "consequence"
+            }
+          ]
         }
       ]
     },
@@ -26,7 +36,10 @@
       "kind": "step",
       "source": "https://docs.langchain.com/oss/python/langgraph/interrupts",
       "parts": [
-        {"text": "The edited text is the resume value and becomes generated_text in the state.", "kind": "note"}
+        {
+          "text": "The edited text is the resume value and becomes generated_text in the state.",
+          "kind": "note"
+        }
       ]
     },
     {
@@ -37,12 +50,16 @@
         {
           "text": "question_a",
           "kind": "question",
-          "pick": {"text": "answer for question_a"}
+          "pick": {
+            "text": "answer for question_a"
+          }
         },
         {
           "text": "question_b",
           "kind": "question",
-          "pick": {"text": "answer for question_b"}
+          "pick": {
+            "text": "answer for question_b"
+          }
         }
       ]
     },
@@ -51,14 +68,27 @@
       "kind": "question",
       "source": "https://docs.langchain.com/oss/python/langgraph/interrupts",
       "parts": [
-        {"text": "The tool call carries to, subject and body. The resume value can override each of them before the tool runs.", "kind": "note"},
-        {"text": "Subject of the email.", "kind": "step"}
+        {
+          "text": "The tool call carries to, subject and body. The resume value can override each of them before the tool runs.",
+          "kind": "note"
+        },
+        {
+          "text": "Subject of the email.",
+          "kind": "step"
+        }
       ],
-      "pick": {"text": "Approve: resume with action approve"},
+      "pick": {
+        "text": "Approve: resume with action approve"
+      },
       "else": [
         {
           "text": "Cancel",
-          "parts": [{"text": "Email cancelled by user.", "kind": "consequence"}]
+          "parts": [
+            {
+              "text": "Email cancelled by user.",
+              "kind": "consequence"
+            }
+          ]
         }
       ]
     }

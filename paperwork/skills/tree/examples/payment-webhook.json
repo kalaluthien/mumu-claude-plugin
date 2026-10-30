@@ -1,0 +1,86 @@
+{
+  "title": "결제 웹훅(webhook) 재처리",
+  "files": 4,
+  "parts": [
+    {
+      "text": "결제 대행사가 보낸 웹훅(webhook)을 놓치지 않고, 같은 결제를 두 번 반영하지 않습니다.",
+      "kind": "goal",
+      "source": "https://example-co.atlassian.net/wiki/spaces/PAY/pages/webhook"
+    },
+    {
+      "text": "수신 서버는 웹훅(webhook)을 저장한 뒤 바로 응답합니다.",
+      "parts": [
+        {
+          "text": "처리는 큐(queue)에서 비동기로 진행합니다."
+        },
+        {
+          "text": "같은 이벤트 번호가 다시 오면 저장을 건너뛰어 멱등성을 지킵니다."
+        },
+        {
+          "text": "저장에 실패하면 대행사가 같은 웹훅(webhook)을 다시 보낼 때까지 처리가 멈춥니다.",
+          "kind": "risk"
+        }
+      ]
+    },
+    {
+      "text": "처리에 실패한 웹훅(webhook)을 다시 시도합니다.",
+      "parts": [
+        {
+          "text": "실패한 웹훅(webhook)을 어떻게 다시 시도합니까?",
+          "name": "retry",
+          "pick": {
+            "text": "지수 백오프(exponential backoff)로 재시도합니다",
+            "name": "backoff",
+            "files": 1,
+            "parts": [
+              {
+                "text": "재시도 간격이 1분에서 시작해 두 배씩 늘어납니다.",
+                "kind": "consequence"
+              }
+            ]
+          },
+          "else": [
+            {
+              "text": "재시도하지 않고 담당자에게 알립니다",
+              "parts": [
+                {
+                  "text": "담당자가 직접 재처리합니다.",
+                  "kind": "consequence"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "text": "재시도 횟수는 몇 번으로 합니까?",
+          "requires": [
+            "retry.backoff"
+          ],
+          "pick": {
+            "text": "5번",
+            "parts": [
+              {
+                "text": "약 31분 안에 끝납니다.",
+                "kind": "consequence"
+              }
+            ]
+          },
+          "else": [
+            {
+              "text": "10번",
+              "parts": [
+                {
+                  "text": "약 17시간 동안 이어집니다.",
+                  "kind": "consequence"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "text": "끝내 실패한 웹훅(webhook)은 데드 레터 큐(dead letter queue)에 남겨 담당자가 확인합니다."
+    }
+  ]
+}

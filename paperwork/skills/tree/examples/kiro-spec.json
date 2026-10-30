@@ -12,20 +12,41 @@
       "source": "https://kiro.dev/docs/specs/",
       "pick": {
         "text": "Feature spec",
-        "then": {
-          "text": "Which workflow?",
-          "pick": {"text": "Requirements-First"},
-          "else": [{"text": "Design-First"}]
-        }
+        "name": "feature"
       },
       "else": [
         {
           "text": "Bugfix spec",
-          "parts": [{"text": "Bug analysis with current, expected and unchanged behavior in bugfix.md.", "kind": "note"}]
+          "parts": [
+            {
+              "text": "Bug analysis with current, expected and unchanged behavior in bugfix.md.",
+              "kind": "note"
+            }
+          ]
         },
         {
           "text": "Quick Spec",
-          "parts": [{"text": "Auto-generates all three artifacts without approval gates.", "kind": "consequence"}]
+          "parts": [
+            {
+              "text": "Auto-generates all three artifacts without approval gates.",
+              "kind": "consequence"
+            }
+          ]
+        }
+      ],
+      "name": "spec-type"
+    },
+    {
+      "text": "Which workflow?",
+      "requires": [
+        "spec-type.feature"
+      ],
+      "pick": {
+        "text": "Requirements-First"
+      },
+      "else": [
+        {
+          "text": "Design-First"
         }
       ]
     },
@@ -34,7 +55,10 @@
       "kind": "step",
       "source": "https://kiro.dev/docs/specs/",
       "parts": [
-        {"text": "Break down requirements into user stories with acceptance criteria.", "kind": "step"}
+        {
+          "text": "Break down requirements into user stories with acceptance criteria.",
+          "kind": "step"
+        }
       ]
     },
     {
@@ -42,9 +66,18 @@
       "kind": "step",
       "source": "https://kiro.dev/docs/specs/",
       "parts": [
-        {"text": "System architecture and component design.", "kind": "step"},
-        {"text": "Sequence diagrams and data flow.", "kind": "step"},
-        {"text": "Error handling and testing strategy.", "kind": "step"}
+        {
+          "text": "System architecture and component design.",
+          "kind": "step"
+        },
+        {
+          "text": "Sequence diagrams and data flow.",
+          "kind": "step"
+        },
+        {
+          "text": "Error handling and testing strategy.",
+          "kind": "step"
+        }
       ]
     },
     {
@@ -52,18 +85,31 @@
       "kind": "step",
       "source": "https://kiro.dev/docs/specs/",
       "parts": [
-        {"text": "Trackable tasks with clear outcomes.", "kind": "step"},
-        {"text": "Real-time status updates as you implement.", "kind": "note"},
+        {
+          "text": "Trackable tasks with clear outcomes.",
+          "kind": "step"
+        },
+        {
+          "text": "Real-time status updates as you implement.",
+          "kind": "note"
+        },
         {
           "text": "Run tasks individually or all at once.",
           "kind": "question",
           "pick": {
             "text": "Run all tasks",
             "parts": [
-              {"text": "Kiro builds a dependency graph and groups independent tasks into waves. Waves run in order; tasks within a wave run together.", "kind": "consequence"}
+              {
+                "text": "Kiro builds a dependency graph and groups independent tasks into waves. Waves run in order; tasks within a wave run together.",
+                "kind": "consequence"
+              }
             ]
           },
-          "else": [{"text": "Run tasks individually"}]
+          "else": [
+            {
+              "text": "Run tasks individually"
+            }
+          ]
         }
       ]
     }

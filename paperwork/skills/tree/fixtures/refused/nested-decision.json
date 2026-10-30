@@ -1,0 +1,29 @@
+{
+  "title": "A Decision inside a Decision",
+  "parts": [
+    {
+      "text": "Pick a store.",
+      "pick": {
+        "text": "Files"
+      },
+      "else": [
+        {
+          "text": "A table"
+        }
+      ],
+      "parts": [
+        {
+          "text": "Pick a format.",
+          "pick": {
+            "text": "Plain"
+          },
+          "else": [
+            {
+              "text": "Rows"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

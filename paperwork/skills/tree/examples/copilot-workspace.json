@@ -11,8 +11,14 @@
       "kind": "step",
       "source": "https://githubnext.com/projects/copilot-workspace",
       "parts": [
-        {"text": "Current state of the codebase.", "kind": "note"},
-        {"text": "Desired state of the codebase.", "kind": "note"}
+        {
+          "text": "Current state of the codebase.",
+          "kind": "note"
+        },
+        {
+          "text": "Desired state of the codebase.",
+          "kind": "note"
+        }
       ]
     },
     {
@@ -20,8 +26,14 @@
       "kind": "step",
       "source": "https://githubnext.com/projects/copilot-workspace",
       "parts": [
-        {"text": "A file to create, modify, or delete.", "kind": "note"},
-        {"text": "The actions to be taken in that file.", "kind": "note"}
+        {
+          "text": "A file to create, modify, or delete.",
+          "kind": "note"
+        },
+        {
+          "text": "The actions to be taken in that file.",
+          "kind": "note"
+        }
       ]
     },
     {
@@ -35,12 +47,22 @@
       "source": "https://githubnext.com/projects/copilot-workspace",
       "pick": {
         "text": "Approve and generate the changes",
-        "parts": [{"text": "The generated diff is itself directly editable before a pull request or a push to a branch.", "kind": "consequence"}]
+        "parts": [
+          {
+            "text": "The generated diff is itself directly editable before a pull request or a push to a branch.",
+            "kind": "consequence"
+          }
+        ]
       },
       "else": [
         {
           "text": "Edit again and regenerate",
-          "parts": [{"text": "All downstream steps are regenerated.", "kind": "consequence"}]
+          "parts": [
+            {
+              "text": "All downstream steps are regenerated.",
+              "kind": "consequence"
+            }
+          ]
         }
       ]
     },
