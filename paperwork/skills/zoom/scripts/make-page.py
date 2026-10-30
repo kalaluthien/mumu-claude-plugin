@@ -155,7 +155,7 @@ def chart(page, data):
           const apart = (a, b) => a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top;
           return {nodes: boxes.length, edges: section.querySelectorAll('.edge .line').length,
                   overlap: boxes.some((a, i) => boxes.slice(i + 1).some(b => !apart(a, b))),
-                  styles: [...section.querySelectorAll('.edge')].map(edge => [edge.dataset.kind, getComputedStyle(edge.querySelector('.line')).strokeDasharray])};
+                  styles: [...section.querySelectorAll('.edge:not(.edge-tag)')].map(edge => [edge.dataset.kind, getComputedStyle(edge.querySelector('.line')).strokeDasharray])};
         }""", f'level-{level["id"]}')
         if drawn["nodes"] != len(level["nodes"]) or drawn["edges"] != len(level["edges"]):
             return f'{level["id"]} draws {drawn["nodes"]} nodes and {drawn["edges"]} edges of {len(level["nodes"])} and {len(level["edges"])}'

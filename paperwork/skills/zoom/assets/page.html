@@ -268,7 +268,8 @@ function route(edge, boxes, spread) {
 function placeLabel(edge, line, boxes, placed, routes) {
   const width = textWidth(edge.label, 13, 400) + 8, height = 18;
   const beside = width / 2 + 4;
-  const spots = line.from ? [.5, .4, .6, .3, .7, .22, .78].flatMap(t => { const [x, y] = onCurve(line.from, line.control, line.to, t); return [[x, y], [x, y - 16], [x, y + 16], [x + beside, y], [x - beside, y]]; }) : [line.mid];
+  const near = line.from ? [.5, .4, .6, .3, .7, .22, .78].map(t => onCurve(line.from, line.control, line.to, t)) : [line.mid];
+  const spots = [1, 2, 3, 4].flatMap(far => near.flatMap(([x, y]) => [...(far === 1 ? [[x, y]] : []), [x, y - 16 * far], [x, y + 16 * far], [x + beside * far, y], [x - beside * far, y]]));
   const nodes = Object.values(boxes);
   const crossed = box => routes.filter(other => other !== line && other.points.some(point => holds(box, point))).length;
   const free = spots.map(([x, y]) => ({x: x - width / 2, y: y - height / 2, w: width, h: height})).filter(box => !nodes.some(node => meets(node, box)) && !placed.some(other => meets(other, box)));
@@ -324,10 +325,14 @@ function drawOpener(node, box) {
 }
 function drawEdge({edge, line, label}, level) {
   const name = id => level.nodes.find(node => node.id === id).label;
+  return element("g", {class: "edge", "data-key": edge.key, "data-kind": edge.kind, tabindex: 0, role: "button", "aria-label": `${edge.label}, a ${edge.kind} from ${name(edge.from)} to ${name(edge.to)}. Show details.`},
+    element("path", {class: "hit", d: line.path}), element("path", {class: "line", d: line.path, "marker-end": `url(#arrow-${level.id})`}));
+}
+// A label is a layer of its own, over every line's wide click area, so a crowded chart leaves each one clickable.
+function drawTag({edge, label}) {
   const text = element("text", {class: "edge-label", x: label.x + label.w / 2, y: label.y + 13, "text-anchor": "middle"});
   text.textContent = edge.label;
-  return element("g", {class: "edge", "data-key": edge.key, "data-kind": edge.kind, tabindex: 0, role: "button", "aria-label": `${edge.label}, a ${edge.kind} from ${name(edge.from)} to ${name(edge.to)}. Show details.`},
-    element("path", {class: "hit", d: line.path}), element("path", {class: "line", d: line.path, "marker-end": `url(#arrow-${level.id})`}), text);
+  return element("g", {class: "edge edge-tag", "data-key": edge.key, "aria-hidden": "true"}, text);
 }
 
 function draw(id) {
@@ -356,6 +361,7 @@ function draw(id) {
     svg.append(drawNode(node, best.boxes[node.id], sizes[node.id]));
     if (node.opens) svg.append(drawOpener(node, best.boxes[node.id]));
   }
+  best.lines.forEach(line => svg.append(drawTag(line)));
   holder.replaceChildren(svg);
 }
 
@@ -391,6 +397,7 @@ function closeDetail(section) {
 function openDetail(section, chosen, title, kind, meta, facts) {
   closeDetail(section);
   chosen.classList.add("selected");
+  section.querySelectorAll(`.edge-tag[data-key="${CSS.escape(chosen.dataset.key || "")}"]`).forEach(tag => tag.classList.add("selected"));
   const panel = section.querySelector(".detail");
   const close = tag("button", "krds-btn text small detail-close", "Close");
   close.type = "button";
@@ -415,10 +422,11 @@ function choose(chosen) {
     openDetail(section, chosen, node.label, node.state ? "State" : "Part", node.meta, facts);
   } else {
     const edge = level.edges.find(known => known.key === chosen.dataset.key);
+    const line = section.querySelector(`.edge:not(.edge-tag)[data-key="${CSS.escape(edge.key)}"]`);
     const name = id => level.nodes.find(node => node.id === id).label;
     const facts = [["From, to", document.createTextNode(`${name(edge.from)} → ${name(edge.to)}`)],
       ...(edge.changes.length ? [["Changes", bullets(edge.changes)]] : []), ...(edge.rules.length ? [["Rules", ruleList(edge.rules)]] : [])];
-    openDetail(section, chosen, edge.label, edge.kind === "call" ? "Call" : "Transition", edge.meta, facts);
+    openDetail(section, line, edge.label, edge.kind === "call" ? "Call" : "Transition", edge.meta, facts);
   }
 }
 

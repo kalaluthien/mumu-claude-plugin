@@ -131,8 +131,8 @@ def source_mixed(model):
 
 
 def inside_its_file(source, root):
-    target = pathlib.Path(root) / source.rpartition(":")[0]
-    return target.is_file() and int(source.rpartition(":")[2].split("-")[-1]) <= len(target.read_text(encoding="utf-8", errors="replace").splitlines())
+    target, lines = pathlib.Path(root) / source.rpartition(":")[0], [int(line) for line in source.rpartition(":")[2].split("-")]
+    return target.is_file() and 0 < lines[0] <= lines[-1] <= len(target.read_text(encoding="utf-8", errors="replace").splitlines())
 
 
 def source_unresolved(model, root):
