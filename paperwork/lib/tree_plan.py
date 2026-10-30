@@ -326,6 +326,8 @@ def _graph_errors(plan):
     graph = decisions(plan)
     every = set()
     for part_id, decision in graph:
+        if any(part_id.startswith(other + ".") for other, _ in graph):
+            errors.append((f"part {part_id}", "nested-decision", "a Decision's parts hold no Decision; write a later Decision with requires"))
         names = [option["name"] for option in options(decision) if "name" in option]
         if decision.get("name") in every or len(names) != len(set(names)):
             errors.append((f"part {part_id}", "duplicate-name", "a Decision's name, or an option's within it, is written twice"))
@@ -356,12 +358,17 @@ def _graph_errors(plan):
     return errors or _unused_names(graph)
 
 
-def _unused_names(graph):
+def _references(graph):
     used = set()
     for _, decision in graph:
         used.update(decision.get("requires", []))
         for option in options(decision):
             used.update(option.get("requires", []) + option.get("excludes", []))
+    return used
+
+
+def _unused_names(graph):
+    used = _references(graph)
     errors = []
     for part_id, decision in graph:
         if "name" in decision and not any(ref.startswith(decision["name"] + ".") for ref in used):
@@ -461,6 +468,18 @@ def _answers_of(plan, entries):
     return answers, state
 
 
+def _drop_unused_names(plan):
+    """A strike can remove the last relation that names something, and the checker refuses a name no relation uses."""
+    graph = decisions(plan)
+    used = _references(graph)
+    for _, decision in graph:
+        for option in options(decision):
+            if f"{decision.get('name')}.{option.get('name')}" not in used:
+                option.pop("name", None)
+        if not any(ref.startswith(f"{decision.get('name')}.") for ref in used):
+            decision.pop("name", None)
+
+
 def apply_answer(plan, entries):
     """Return the next plan. Ids refer to the plan as given; struck parts go last."""
     answers, state = _answers_of(plan, entries)
@@ -491,6 +510,7 @@ def apply_answer(plan, entries):
             if sibling is ids[part_id]:
                 del siblings[i]
                 break
+    _drop_unused_names(new)
     return new
 
 

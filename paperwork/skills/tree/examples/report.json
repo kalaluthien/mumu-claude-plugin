@@ -33,11 +33,11 @@
         },
         {
           "kind": "claim",
-          "text": "Option: one answer, with its consequences as child Parts and at most one follow-up Question. A follow-up holds only leaf Options, so a follow-up of a follow-up cannot be written."
+          "text": "Option: one answer, with its consequences as child Parts; a question only one answer raises is a later Decision with requires."
         },
         {
           "kind": "claim",
-          "text": "Answer: one Markdown line per Part the owner touched: pick N [then M], other, struck, comment or edited. An untouched Part writes nothing and is kept."
+          "text": "Answer: one Markdown line per Part the owner touched: pick N, other, struck, comment or edited. An untouched Part writes nothing and is kept."
         }
       ]
     },
@@ -74,11 +74,11 @@
       "parts": [
         {
           "kind": "step",
-          "text": "The first Decision is selected on load. A number picks an Option, a hint shows the follow-up's numbers, the last number opens Other, and j and k move between Decisions."
+          "text": "The first Decision is selected on load. A number picks an Option, the last number opens Other, and j and k move between Decisions."
         },
         {
           "kind": "step",
-          "text": "Each Option's consequences, risks in amber and notes with their source show before the choice, and every follow-up shows under its Option from the start."
+          "text": "Each Option's consequences, risks in amber and notes with their source show before the choice, and a later Decision says when an answer leaves it not needed."
         },
         {
           "kind": "step",
@@ -117,7 +117,7 @@
         },
         {
           "kind": "evidence",
-          "text": "Whole tree up front, follow-up under its option: the grammar's then, drawn under its Option.",
+          "text": "Whole tree up front, each Decision on the Part it changes: a relation names only an earlier Decision.",
           "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/grammar.md"
         },
         {
@@ -246,7 +246,7 @@
         },
         {
           "kind": "evidence",
-          "text": "Load on the owner: the page shows every Part and follow-up at once, which a long plan makes tall. Kept as a view choice; a host that needs paging can page Decisions without changing the grammar.",
+          "text": "Load on the owner: the page shows every Part and Decision at once, which a long plan makes tall. Kept as a view choice; a host that needs paging can page Decisions without changing the grammar.",
           "source": "https://github.com/kalaluthien/mumu-claude-plugin/blob/main/paperwork/skills/tree/references/show.md"
         },
         {

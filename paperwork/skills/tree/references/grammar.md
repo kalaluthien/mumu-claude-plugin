@@ -52,6 +52,7 @@ A refusal prints `path: rule: detail`.
 | `default-blocked` | a `pick` blocked when every pick stands, so the default path cannot hold |
 | `dead-end` | answers, Other among them, that leave a needed Decision with no open option |
 | `unused-name` | a `name` no relation uses |
+| `nested-decision` | a Decision inside a Decision's `parts` |
 | `bad-kind` | a `kind` that is not lowercase letters and `-` |
 | `wrong-type` | a value of the wrong JSON type |
 | `missing-key` | a plan with no `parts` |
@@ -82,7 +83,7 @@ A Part may have several lines, such as a pick and a comment, but one pick or oth
 
 - `pick N`: Option N becomes the `pick`; the others follow in `else` in their old order. A Decision that an answer settled, or whose `pick` it blocked, takes its option in force the same way.
 - `other`: a new pick `{"text": ...}`; the old options move to `else`.
-- `struck`: removes the Part and its subtree.
+- `struck`: removes the Part and its subtree, and any `name` only they used.
 - `comment`: appends a child Part `{"kind": "comment", "text": ...}`.
 - `edited`: replaces `text`.
 
