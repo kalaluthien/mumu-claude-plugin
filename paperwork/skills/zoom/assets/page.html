@@ -48,6 +48,8 @@ h1 { font-size: 1.7rem; line-height: 1.25; font-weight: 600; color: var(--ink); 
 .edge.now .edge-pill, .edge.path .edge-pill, .edge.selected .edge-pill { stroke: var(--accent); }
 .step-tag rect { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; }
 .node.now .step-tag text { font-size: 12px; font-weight: 600; fill: var(--accent); }
+.step-tag.broken rect { stroke: var(--krds-color-text-danger); }
+.node.now .step-tag.broken text { fill: var(--krds-color-text-danger); }
 .opener { cursor: pointer; }
 .opener rect { fill: transparent; stroke: none; }
 .opener line { stroke: var(--state-line); stroke-opacity: .35; }
@@ -594,8 +596,10 @@ function mark() {
   if (first) stepTag(first);
 }
 function stepTag(node) {
-  const box = node.querySelector(".shape").getBBox(), words = `Step ${stepAt + 1}`, width = 56, height = 20;
-  const shown = element("g", {class: "step-tag"}, element("rect", {x: box.x + box.width - width, y: box.y - height / 2, width, height, rx: height / 2}),
+  // A counterexample's last step is where the rule breaks, so the chart says so, not only the bar.
+  const broken = playing.verdict === "counterexample" && stepAt === playing.steps.length - 1;
+  const box = node.querySelector(".shape").getBBox(), words = `Step ${stepAt + 1}${broken ? ": broken" : ""}`, width = broken ? 104 : 56, height = 20;
+  const shown = element("g", {class: broken ? "step-tag broken" : "step-tag"}, element("rect", {x: box.x + box.width - width, y: box.y - height / 2, width, height, rx: height / 2}),
     element("text", {x: box.x + box.width - width / 2, y: box.y + 4, "text-anchor": "middle"}, words));
   node.append(shown);
 }

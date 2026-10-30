@@ -360,7 +360,8 @@ def played(page, item):
             return f'{item["key"]} step {index + 1} leaves {step["level"]}'
         if marked(page, ".now") == 0:
             return f'{item["key"]} step {index + 1} marks nothing'
-        if page.locator(f'#level-{step["level"]} .step-tag text').first.text_content() != f"Step {index + 1}" or bar.locator('.bar-chip[aria-current="step"]').inner_text() != str(index + 1):
+        breaks = item.get("verdict") == "counterexample" and index == len(item["steps"]) - 1
+        if page.locator(f'#level-{step["level"]} .step-tag text').first.text_content() != f"Step {index + 1}" + (": broken" if breaks else "") or bar.locator('.bar-chip[aria-current="step"]').inner_text() != str(index + 1):
             return f'{item["key"]} step {index + 1} names another step'
         if item.get("verdict") and step["does"] not in bar.locator('.bar-run [aria-current="step"]').inner_text():
             return f'{item["key"]} step {index + 1} marks another line of its run'
@@ -539,7 +540,7 @@ def capture(page_path, folder):
             if item:
                 open_item(page, item["key"])
                 if moved(item) and "step" in name:
-                    page.locator(f'#{item["key"]} .bar-next').click()
+                    page.locator(f'#{item["key"]} .bar-chip').nth(-1 if item.get("verdict") else 1).click()
                 page.screenshot(path=str(folder / name), full_page=True)
         browser.close()
     print(f"wrote {2 + sum(item is not None for _, item in chosen)} PNGs into {folder}")
