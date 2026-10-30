@@ -1,6 +1,8 @@
 """A criterion's result from its runs, and a target's rating from its gaps; report.md says why each rule holds."""
 import hashlib
 
+RUNS = 3
+
 
 def rubric_sha(rubric_bytes):
     return hashlib.sha256(rubric_bytes).hexdigest()[:12]

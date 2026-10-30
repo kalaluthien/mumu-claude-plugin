@@ -15,9 +15,9 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 
 from rubric.check import Refused, read_rubric  # noqa: E402
+from rubric.verdict import RUNS  # noqa: E402
 
 BRIEF = pathlib.Path(__file__).resolve().parents[1] / "assets" / "judge-brief.md"
-RUNS = 3
 # About 20,000 tokens: between the outputs of 7,000 tokens where batching changed little and 49,000 where it cost
 # double digits (https://arxiv.org/abs/2606.29920); the cut itself is not measured.
 LONG_CHARACTERS = 80_000
@@ -50,7 +50,9 @@ def write(rubric, source, folder):
     text = target_text(source, delimiter)
     (folder / "target.txt").write_text(text, encoding="utf-8")
     judged = [criterion for criterion in rubric["criteria"] if criterion["check"] == "judge"]
-    size = CALL_SIZE if len(text) > LONG_CHARACTERS else len(judged)
+    if not judged:
+        raise Refused("no criterion needs a judge; run merge-runs.py on an empty folder")
+    size = min(CALL_SIZE, len(judged)) if len(text) > LONG_CHARACTERS else len(judged)
     calls = math.ceil(len(judged) / size)
     brief = BRIEF.read_text(encoding="utf-8").replace("__TARGET__", str(folder / "target.txt")).replace("__DELIMITER__", delimiter)
     for run in range(1, RUNS + 1):

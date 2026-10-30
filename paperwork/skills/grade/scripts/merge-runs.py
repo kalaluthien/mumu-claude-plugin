@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 
 from rubric.check import Refused, errors, grades_problems, line, read_rubric, run_problems  # noqa: E402
-from rubric.verdict import gaps, majority, rating, rubric_sha, status  # noqa: E402
+from rubric.verdict import RUNS, gaps, majority, rating, rubric_sha, status  # noqa: E402
 
 PLACE = re.compile(r"^(.+?)(?::(\d+)(?:-(\d+))?)?$")
 RUN_FILE = re.compile(r"^run-(\d+)-call-\d+\.json$")
@@ -69,15 +69,13 @@ def read_runs(rubric, folder):
         runs.setdefault(int(name.group(1)), {}).update(run["grades"])
         judges.add(run["judge"])
         grader_text += run["grader_text"]
-    if not runs:
-        raise Refused(f"{folder}: no run file")
     return runs, sorted(judges), grader_text
 
 
 def scanned_text(source):
     """Passages that address a grader, found without a judge, since a judge the passage fooled would not report it."""
     root = pathlib.Path(source)
-    for path in sorted(path for path in root.rglob("*") if path.is_file()):
+    for path in sorted(path for path in root.rglob("*") if path.is_file() and ".git" not in path.parts):
         for i, text in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
             if GRADER_TEXT.search(text):
                 yield {"quote": text.strip()[:QUOTE_LIMIT], "where": f"{path.relative_to(root)}:{i}"}
@@ -92,8 +90,9 @@ def program_grade(source, criterion):
 
 def judged_grade(source, criterion, runs):
     verdicts = [checked(source, criterion, run[criterion["id"]]) for run in runs.values() if criterion["id"] in run]
-    if not verdicts:
-        raise Refused(f"no run grades {criterion['id']}")
+    # A lost call file must not let fewer judges decide, so the count is the briefs' own, never the files found.
+    if len(verdicts) < RUNS:
+        raise Refused(f"{criterion['id']} has {len(verdicts)} of {RUNS} runs")
     votes = [verdict["met"] for verdict in verdicts]
     met = majority(votes)
     kept = next((verdict for verdict in verdicts if verdict["met"] == met), None) or not_judged("the runs reach no majority", verdicts[0])
@@ -109,7 +108,7 @@ def merge(rubric_path, source, folder):
               for criterion in rubric["criteria"]}
     reported = [passage for passage in grader_text if quote_found(source, passage["quote"], passage["where"])]
     found = list({passage["where"]: passage for passage in [*reported, *scanned_text(source)]}.values())
-    merged = {"rubric_sha": rubric_sha(rubric_bytes), "judge": {"model": ", ".join(judges), "runs": len(runs)}, "grades": grades, "grader_text": found}
+    merged = {"rubric_sha": rubric_sha(rubric_bytes), "judge": {"model": ", ".join(judges) or "no judge", "runs": len(runs)}, "grades": grades, "grader_text": found}
     if wrong := errors(grades_problems(rubric, rubric_bytes, merged)):
         raise Refused(line(wrong[0]))
     return rubric, merged
@@ -133,7 +132,7 @@ def main(args):
     critical, other = gaps(rubric, merged)
     print(f"Rating {rating(critical, other)}: {critical} critical gaps and {other} other gaps. A run count shows how far the "
           f"runs agree, not how often they are right.")
-    if "," not in merged["judge"]["model"]:
+    if merged["judge"]["runs"] and "," not in merged["judge"]["model"]:
         print("One model ran every call, so its blind spots are shared; use another model family when the session has one.")
     print(f"wrote {args[3]}")
     return 0
