@@ -2199,7 +2199,7 @@ function start({copy, reset}) {
 </button>
 </header>
 <nav class="krds-side-navigation frame-nav" id="frame-nav" aria-label="Sections">
-<ul class="lnb-list"><li class="lnb-item active"><a class="lnb-btn lnb-link" href="#level-root">zoom&#x27;s parts</a><div class="lnb-submenu"><ul><li class="lnb-subitem"><a class="lnb-btn lnb-link" href="#level-document">A document&#x27;s life</a></li></ul></div></li></ul>
+<ul class="lnb-list"><li class="lnb-item active"><a class="lnb-btn lnb-link" href="#level-root">zoom&#x27;s parts</a><div class="lnb-submenu"><ul><li class="lnb-subitem"><a class="lnb-btn lnb-link" href="#level-document">A document&#x27;s life</a></li></ul></div></li><li class="lnb-item active"><a class="lnb-btn lnb-link" href="#scenarios">Scenarios</a><div class="lnb-submenu"><ul><li class="lnb-subitem"><a class="lnb-btn lnb-link" href="#scenario-show-a-system">show a system</a></li><li class="lnb-subitem"><a class="lnb-btn lnb-link" href="#scenario-prove-a-rule">prove a rule</a></li></ul></div></li><li class="lnb-item active"><a class="lnb-btn lnb-link" href="#rules">Rules</a><div class="lnb-submenu"><ul><li class="lnb-subitem"><a class="lnb-btn lnb-link" href="#rule-proof-after-check">✓ proof after check</a></li></ul></div></li></ul>
 </nav>
 <main class="frame-body">
 <style>
@@ -2215,44 +2215,63 @@ a { color: inherit; text-underline-offset: 3px; }
 a:hover { color: var(--accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* A level not shown keeps its place in the frame's list of sections, so only the one shown counts as the current one. */
-.level.away { position: fixed; top: 200vh; left: 0; width: 100%; visibility: hidden; }
+.view.away { position: fixed; top: 200vh; left: 0; width: 100%; visibility: hidden; }
 .crumbs { margin: 8px 0 0; font-size: .85rem; color: var(--muted); overflow-wrap: anywhere; }
 h1 { font-size: 1.7rem; line-height: 1.25; font-weight: 600; color: var(--ink); margin: 2px 0 6px; overflow-wrap: anywhere; }
 .lede { margin: 0 0 14px; max-width: 46em; color: var(--body); }
 
 /* one drawing per level; its text is the page's own font, measured before the shapes are sized */
 .chart { min-height: 120px; }
-.chart svg { display: block; max-width: 100%; }
-.chart text { font: 500 15px/1 var(--font-sans); fill: var(--ink); }
+.chart svg { display: block; max-width: 100%; overflow: visible; }
+.chart text { font: 600 15px/1 var(--font-sans); fill: var(--ink); }
 .band rect { fill: var(--panel); stroke: none; }
 .band text { font-size: 13px; fill: var(--muted); }
-.line { fill: none; stroke: var(--line); stroke-width: 1.5; }
+.line { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-linecap: round; }
 .edge[data-kind="call"] .line { stroke-dasharray: 6 5; }
 .hit { fill: none; stroke: transparent; stroke-width: 16; }
 .edge { cursor: pointer; }
-.edge .edge-label { font-size: 13px; font-weight: 400; fill: var(--body); paint-order: stroke; stroke: var(--bg); stroke-width: 5px; stroke-linejoin: round; }
-.band ~ .edge .edge-label { stroke: var(--bg); }
+.edge-pill { fill: var(--surface); stroke: var(--card-line); }
+.edge .edge-label { font-size: 12.5px; font-weight: 500; fill: var(--body); }
 .node { cursor: pointer; }
-.node .shape { fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
+.node .shape { fill: var(--surface); stroke: var(--line); stroke-width: 1.25; filter: drop-shadow(0 1px 2px rgb(0 0 0 / .1)); }
 .node[data-shape="state"] .shape { fill: var(--state-bg); stroke: var(--state-line); }
 .start { fill: var(--ink); stroke: none; }
 .start-line { fill: none; stroke: var(--ink); stroke-width: 1.5; }
-.arrow { fill: var(--line); }
+.arrow { fill: var(--line); fill: context-stroke; }
 .node:hover .shape, .node.selected .shape { stroke: var(--accent); stroke-width: 2.5; }
 .edge:hover .line, .edge.selected .line { stroke: var(--accent); stroke-width: 2.5; }
 .edge.selected .edge-label { fill: var(--accent); font-weight: 600; }
+/* playback: what the item names stands out, the current step most, so a person follows it without reading the chart */
+.played .node:not(.path, .now, .related), .played .edge:not(.path, .now) { opacity: .35; }
+.node.path .shape, .node.related .shape { stroke: var(--accent); stroke-width: 2.5; }
+.edge.path .line { stroke: var(--accent); stroke-width: 2.5; }
+.node.now .shape { fill: var(--accent); stroke: var(--accent); stroke-width: 2.5; }
+.node.now text { fill: var(--krds-color-text-basic-inverse, #fff); }
+.edge.now .line { stroke: var(--accent); stroke-width: 4; }
+.edge.now .edge-label, .edge.path .edge-label { fill: var(--accent); font-weight: 600; }
+.edge.now .edge-pill, .edge.path .edge-pill, .edge.selected .edge-pill { stroke: var(--accent); }
+.step-tag rect { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; }
+.node.now .step-tag text { font-size: 12px; font-weight: 600; fill: var(--accent); }
+.step-tag.broken rect { stroke: var(--krds-color-text-danger); }
+.node.now .step-tag.broken text { fill: var(--krds-color-text-danger); }
 .opener { cursor: pointer; }
-.opener rect { fill: var(--accent); stroke: none; }
-.opener text { font-size: 13px; font-weight: 600; fill: var(--krds-color-text-basic-inverse, #fff); }
-.opener:hover rect { opacity: .85; }
+.opener rect { fill: transparent; stroke: none; }
+.opener line { stroke: var(--state-line); stroke-opacity: .35; }
+.opener text { font-size: 12.5px; font-weight: 600; fill: var(--accent); }
+.opener:hover text { text-decoration: underline; }
+.node.now + .opener text { fill: var(--krds-color-text-basic-inverse, #fff); }
+.node.now + .opener line { stroke: var(--krds-color-text-basic-inverse, #fff); }
 
 .legend { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 12px 0 0; padding: 0; font-size: .82rem; color: var(--muted); }
 .legend li { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .legend svg { flex: none; fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
+.inside { list-style: none; margin: 14px 0 0; padding: 0; font-size: .9rem; color: var(--muted); }
+.inside a { color: var(--ink); font-weight: 600; }
+.level.played .inside { display: none; }
 .legend .key-state svg { fill: var(--state-bg); stroke: var(--state-line); }
 
 /* the panel sits under the chart, so opening it covers nothing */
-.detail { margin-top: 16px; background: var(--surface); border: 1px solid var(--card-line); border-radius: 12px; padding: 14px 18px; overflow-wrap: anywhere; }
+.detail { margin-top: 16px; border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; font-size: .92rem; overflow-wrap: anywhere; }
 .detail-head { display: flex; align-items: baseline; gap: 10px; }
 .detail h2 { font-size: 1.1rem; font-weight: 600; color: var(--ink); margin: 0; }
 .detail-kind { font-size: .82rem; color: var(--muted); }
@@ -2265,43 +2284,114 @@ h1 { font-size: 1.7rem; line-height: 1.25; font-weight: 600; color: var(--ink); 
 .detail code { font: .85rem var(--mono); }
 .detail .rule-kind { color: var(--muted); }
 
+.bar { border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; margin: 8px 0 16px; font-size: .92rem; overflow-wrap: anywhere; }
+.bar-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.bar h2 { font-size: 1.15rem; font-weight: 600; color: var(--ink); margin: 0; }
+.bar-kind, .bar-strength, .bar-meaning { font-size: .82rem; color: var(--muted); }
+.bar-source { margin-left: auto; font-size: .82rem; }
+.bar p { margin: 4px 0 0; }
+.bar dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 14px; margin: 6px 0 0; }
+.bar dt { color: var(--muted); }
+.bar dd { margin: 0; }
+.bar-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.bar-count { font-weight: 600; color: var(--ink); }
+.bar-steps { order: 1; flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px; list-style: none; margin: 0; padding: 0; }
+.bar-chip { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--accent); background: none; color: var(--accent); padding: 0; font: 600 .82rem var(--font-sans); overflow-wrap: normal; cursor: pointer; }
+.bar-chip[aria-current="step"] { background: var(--accent); color: var(--krds-color-text-basic-inverse, #fff); }
+.bar-run { margin: 8px 0 0; padding-left: 1.4em; color: var(--muted); }
+.bar-run li { margin-top: 4px; }
+.bar-run [aria-current] { color: var(--ink); font-weight: 600; }
+.verdict { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: .85rem; font-weight: 600; }
+.verdict[data-verdict="pass"] { color: var(--krds-color-text-success); background: var(--krds-color-surface-success-subtler); }
+.verdict[data-verdict="counterexample"] { color: var(--krds-color-text-danger); background: var(--krds-color-surface-danger-subtler); }
+.verdict[data-verdict="unproved"] { color: var(--krds-color-text-warning); background: var(--krds-color-surface-warning-subtler); }
+/* the same mark as the navigation's, so a reader ties the two */
+.verdict[data-verdict="pass"]::before { content: "✓ "; }
+.verdict[data-verdict="counterexample"]::before { content: "✗ "; }
+.verdict[data-verdict="unproved"]::before { content: "? "; }
+.level.played .lede { display: none; }
+/* the bar names what plays, so the level's title only says where */
+.level.played h1 { font-size: 1.05rem; font-weight: 600; margin-block: 2px; }
+.items { list-style: none; margin: 0; padding: 0; }
+.items li { padding: 10px 0; border-top: 1px solid var(--card-line); }
+.items a { font-weight: 600; }
+.items p { margin: 4px 0 0; color: var(--body); }
+/* the frame's icons alone do not say what they do */
+/* a document's scenarios and rules should fit one screen of the navigation */
+@media (min-width: 821px) {
+  .frame-nav.krds-side-navigation .lnb-list .lnb-item .lnb-btn { padding-block: 6px; }
+  .frame-nav.krds-side-navigation .lnb-list .lnb-item .lnb-submenu .lnb-btn { padding-block: 2px; }
+}
+#frame-copy::after { content: "Copy this view"; }
+#frame-reset::after { content: "Back to start"; }
+#frame-theme::after { content: "Light or dark"; }
+.frame-top .krds-btn.icon:not(#frame-menu) { width: auto; gap: 4px; padding-inline: 6px; font-size: .85rem; }
+
+/* beside the chart, so the chart stays the one main thing and the controls stay put between levels */
+@media (min-width: 1100px) {
+  .frame-body:has(.item:not(.away)) { display: grid; grid-template-columns: minmax(0, 1fr) 290px; column-gap: 28px; align-items: start; max-width: 1180px; }
+  .frame-body:has(.item:not(.away))::after { grid-column: 1 / -1; }
+  .view.level { grid-column: 1; grid-row: 1; }
+  .view.item:not(.away) { grid-column: 2; grid-row: 1; position: sticky; top: 60px; }
+  .bar dl { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .bar-source { margin-left: 0; }
+}
 @media (max-width: 820px) {
   /* The frame hides the navigation by visibility, which an open submenu turns back on. */
   .frame-nav:not(.open) .lnb-list .lnb-item.active .lnb-submenu { visibility: hidden; }
+  /* A long list must scroll, and KRDS's own rule leaves the open navigation taller than the screen. */
+  .frame-nav.krds-side-navigation { top: 52px; bottom: 0; height: auto; max-height: calc(100vh - 52px); overflow-y: auto; }
 }
 @media (max-width: 560px) {
-  .detail dl { grid-template-columns: minmax(0, 1fr); gap: 0; }
-  .detail dd { margin-bottom: 8px; }
+  .detail dl, .bar dl { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .detail dd, .bar dd { margin-bottom: 8px; }
 }
 @media print {
-  .level.away { position: static; visibility: visible; }
-  .level { break-after: page; }
+  .view.away { position: static; visibility: visible; }
+  .view { break-after: page; }
+  .item { display: none; }
   .detail-close { display: none; }
 }
 </style>
-<section class="level" id="level-root">
+<section class="view overview away" id="scenarios">
+<h1>Scenarios</h1>
+<p class="lede">Each one walks the chart step by step.</p>
+<ul class="items"><li><a href="#scenario-show-a-system">show a system</a> <p>Someone asks how a system works: the document is written, accepted and drawn.</p></li><li><a href="#scenario-prove-a-rule">prove a rule</a> <p>Someone asks whether a promise holds: Alloy answers on the checked document.</p></li></ul>
+</section>
+<section class="view overview away" id="rules">
+<h1>Rules</h1>
+<p class="lede">Each one marks what it concerns, and a counterexample plays its run.</p>
+<ul class="items"><li><a href="#rule-proof-after-check">proof after check</a> <span class="verdict" data-verdict="pass">Pass</span><p>Alloy reads only what the checker accepted, since a name that points nowhere gives no answer worth reading.</p></li></ul>
+</section>
+<section class="view item away" id="scenario-show-a-system"><div class="bar"></div></section>
+<section class="view item away" id="scenario-prove-a-rule"><div class="bar"></div></section>
+<section class="view item away" id="rule-proof-after-check"><div class="bar"></div></section>
+<section class="view level" id="level-root">
 <p class="crumbs">zoom</p>
 <h1>zoom&#x27;s parts</h1>
 <p class="lede">Three entries share one document: the checker keeps it sound, the prover answers on it, and the page shows it. The page runs no proof and no check of its own, so each side can be replaced alone. Its template fills in one pass, so a text holding `__DATA__` stays as written.</p>
 <div class="chart" data-level="root"></div>
-<ul class="legend" aria-label="What the shapes mean"><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li></ul>
+<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li></ul>
+<ul class="inside" aria-label="What is inside"><li><a href="#level-document">A document&#x27;s life</a>: Drafted, Checked, Proved, Shown</li></ul>
 <div class="detail" hidden></div>
 </section>
-<section class="level" id="level-document">
+<section class="view level" id="level-document">
 <p class="crumbs"><a href="#level-root">zoom&#x27;s parts</a></p>
 <h1>A document&#x27;s life</h1>
 <p class="lede">A document is worked on until the checker accepts it. Only then does the prover read it or the page show it, and any edit sends it back.</p>
 <div class="chart" data-level="document"></div>
-<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="7"/></svg>State: where a thing is now</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li></ul>
+<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li></ul>
+
 <div class="detail" hidden></div>
 </section>
-<script type="application/json" id="page-data">{"levels": [{"id": "root", "title": "zoom's parts", "initial": [], "lanes": [{"id": "entries", "label": "Entries", "unit": "The scripts a person runs"}, {"id": "library", "label": "Library", "unit": "paperwork/lib/schema"}], "nodes": [{"id": "document", "label": "Schema document", "state": false, "lane": null, "opens": "document", "attrs": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/schema/assets/schema.json:4", "description": "One JSON file in the grammar: a system as levels, with scenarios and rules."}}, {"id": "check-script", "label": "Check script", "state": false, "lane": "entries", "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/schema/scripts/check-schema.py:85", "description": "Prints each violation, then ok."}}, {"id": "prove-script", "label": "Prove script", "state": false, "lane": "entries", "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/scripts/prove-schema.py:112", "description": "Prints one verdict per rule."}}, {"id": "page-script", "label": "Page script", "state": false, "lane": "entries", "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/scripts/make-page.py:323", "description": "Builds one self-contained page, and measures it in a browser. Its data escapes every `\u003c`, so a description holding `\u003c!-- \u003cscript` leaves the page whole."}}, {"id": "constructor", "label": "Model", "state": false, "lane": "library", "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/lib/schema/model.py:43", "description": "Indexes a document: levels, nodes, edges, and where a scenario walks."}}, {"id": "checks", "label": "Checks", "state": false, "lane": "library", "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/lib/schema/checks.py:123", "description": "The structure rules the grammar cannot state."}}, {"id": "translator", "label": "Translator", "state": false, "lane": "library", "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/lib/schema/prover.py:301", "description": "Turns the model into an Alloy module and runs it."}}], "edges": [{"key": "root:check-script>checks#0", "from": "check-script", "to": "checks", "kind": "call", "label": "runs", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/schema/scripts/check-schema.py:22", "description": "The script holds no rule of its own."}}, {"key": "root:check-script>document#1", "from": "check-script", "to": "document", "kind": "call", "label": "checks", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/schema/scripts/check-schema.py:50", "description": "Reads one document."}}, {"key": "root:checks>constructor#2", "from": "checks", "to": "constructor", "kind": "call", "label": "reads", "changes": [], "rules": [], "meta": {"source": "paperwork/lib/schema/checks.py:7", "description": "Every rule reads the indexed document."}}, {"key": "root:checks>translator#3", "from": "checks", "to": "translator", "kind": "call", "label": "asks", "changes": [], "rules": [], "meta": {"source": "paperwork/lib/schema/checks.py:6", "description": "Names and formulas are checked against what Alloy would declare."}}, {"key": "root:translator>constructor#4", "from": "translator", "to": "constructor", "kind": "call", "label": "translates", "changes": [], "rules": [], "meta": {"source": "paperwork/lib/schema/prover.py:301", "description": "The module comes only from the model."}}, {"key": "root:prove-script>translator#5", "from": "prove-script", "to": "translator", "kind": "call", "label": "proves with", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/scripts/prove-schema.py:29", "description": "The script prints what Alloy answered."}}, {"key": "root:prove-script>document#6", "from": "prove-script", "to": "document", "kind": "call", "label": "proves", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/scripts/prove-schema.py:121", "description": "Reads one document."}}, {"key": "root:page-script>constructor#7", "from": "page-script", "to": "constructor", "kind": "call", "label": "draws from", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/scripts/make-page.py:29", "description": "The page imports the model and nothing that runs a proof."}}, {"key": "root:page-script>document#8", "from": "page-script", "to": "document", "kind": "call", "label": "shows", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/scripts/make-page.py:59", "description": "Reads one document."}}], "copy": "zoom's parts\nThree entries share one document: the checker keeps it sound, the prover answers on it, and the page shows it. The page runs no proof and no check of its own, so each side can be replaced alone. Its template fills in one pass, so a text holding `__DATA__` stays as written.\n\n- Schema document: One JSON file in the grammar: a system as levels, with scenarios and rules. (paperwork/skills/zoom/references/schema/assets/schema.json:4)\n- Check script: Prints each violation, then ok. (paperwork/skills/zoom/references/schema/scripts/check-schema.py:85)\n- Prove script: Prints one verdict per rule. (paperwork/skills/zoom/scripts/prove-schema.py:112)\n- Page script: Builds one self-contained page, and measures it in a browser. Its data escapes every `\u003c`, so a description holding `\u003c!-- \u003cscript` leaves the page whole. (paperwork/skills/zoom/scripts/make-page.py:323)\n- Model: Indexes a document: levels, nodes, edges, and where a scenario walks. (paperwork/lib/schema/model.py:43)\n- Checks: The structure rules the grammar cannot state. (paperwork/lib/schema/checks.py:123)\n- Translator: Turns the model into an Alloy module and runs it. (paperwork/lib/schema/prover.py:301)\n- Check script → Checks, runs: The script holds no rule of its own.\n- Check script → Schema document, checks: Reads one document.\n- Checks → Model, reads: Every rule reads the indexed document.\n- Checks → Translator, asks: Names and formulas are checked against what Alloy would declare.\n- Translator → Model, translates: The module comes only from the model.\n- Prove script → Translator, proves with: The script prints what Alloy answered.\n- Prove script → Schema document, proves: Reads one document.\n- Page script → Model, draws from: The page imports the model and nothing that runs a proof.\n- Page script → Schema document, shows: Reads one document."}, {"id": "document", "title": "A document's life", "initial": ["drafted"], "lanes": [], "nodes": [{"id": "drafted", "label": "Drafted", "state": true, "lane": null, "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/model.md:1", "description": "Written from code or requirements, not yet accepted by the checker."}}, {"id": "checked", "label": "Checked", "state": true, "lane": null, "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/schema/scripts/check-schema.py:50", "description": "The checker prints ok: the document fits the grammar and every structure rule."}}, {"id": "proved", "label": "Proved", "state": true, "lane": null, "opens": null, "attrs": [], "rules": ["proof-after-check"], "meta": {"source": "paperwork/skills/zoom/scripts/prove-schema.py:33", "description": "Alloy gave each rule a verdict, so the document's promises are known to hold or known to break."}}, {"id": "shown", "label": "Shown", "state": true, "lane": null, "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/scripts/make-page.py:132", "description": "The page is built, so a person can read the system in a browser."}}], "edges": [{"key": "document:drafted>checked#0", "from": "drafted", "to": "checked", "kind": "transition", "label": "pass the checker", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/schema/scripts/check-schema.py:38", "description": "The grammar comes first; the structure rules read only a document that fits it."}}, {"key": "document:checked>drafted#1", "from": "checked", "to": "drafted", "kind": "transition", "label": "edit", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/model.md:1", "description": "Any change goes back through the checker."}}, {"key": "document:checked>proved#2", "from": "checked", "to": "proved", "kind": "transition", "label": "prove the rules", "changes": [], "rules": ["proof-after-check"], "meta": {"source": "paperwork/skills/zoom/scripts/prove-schema.py:112", "description": "Translate to Alloy and check each rule."}}, {"key": "document:checked>shown#3", "from": "checked", "to": "shown", "kind": "transition", "label": "build the page", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/scripts/make-page.py:323", "description": "Fill the template with the document's data."}}, {"key": "document:proved>shown#4", "from": "proved", "to": "shown", "kind": "transition", "label": "show the result", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/show.md:1", "description": "A proved document is shown the same way as a checked one."}}, {"key": "document:proved>drafted#5", "from": "proved", "to": "drafted", "kind": "transition", "label": "fix a broken rule", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/prove.md:1", "description": "A counterexample is a fault in the system or in the document, so the document changes."}}], "copy": "A document's life\nA document is worked on until the checker accepts it. Only then does the prover read it or the page show it, and any edit sends it back.\n\n- Drafted: Written from code or requirements, not yet accepted by the checker. (paperwork/skills/zoom/references/model.md:1)\n- Checked: The checker prints ok: the document fits the grammar and every structure rule. (paperwork/skills/zoom/references/schema/scripts/check-schema.py:50)\n- Proved: Alloy gave each rule a verdict, so the document's promises are known to hold or known to break. (paperwork/skills/zoom/scripts/prove-schema.py:33)\n- Shown: The page is built, so a person can read the system in a browser. (paperwork/skills/zoom/scripts/make-page.py:132)\n- Drafted → Checked, pass the checker: The grammar comes first; the structure rules read only a document that fits it.\n- Checked → Drafted, edit: Any change goes back through the checker.\n- Checked → Proved, prove the rules: Translate to Alloy and check each rule.\n- Checked → Shown, build the page: Fill the template with the document's data.\n- Proved → Shown, show the result: A proved document is shown the same way as a checked one.\n- Proved → Drafted, fix a broken rule: A counterexample is a fault in the system or in the document, so the document changes."}], "rules": {"proof-after-check": {"kind": "must", "source": "paperwork/skills/zoom/references/prove.md:1", "description": "Alloy reads only what the checker accepted, since a name that points nowhere gives no answer worth reading."}}}</script>
+<script type="application/json" id="page-data">{"levels": [{"id": "root", "title": "zoom's parts", "initial": [], "lanes": [{"id": "entries", "label": "Entries", "unit": "The scripts a person runs"}, {"id": "library", "label": "Library", "unit": "paperwork/lib/schema"}], "nodes": [{"id": "document", "label": "Schema document", "state": false, "lane": null, "opens": "document", "attrs": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/schema/assets/schema.json:4", "description": "One JSON file in the grammar: a system as levels, with scenarios and rules."}}, {"id": "check-script", "label": "Check script", "state": false, "lane": "entries", "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/schema/scripts/check-schema.py:85", "description": "Prints each violation, then ok."}}, {"id": "prove-script", "label": "Prove script", "state": false, "lane": "entries", "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/scripts/prove-schema.py:121", "description": "Prints one verdict per rule."}}, {"id": "page-script", "label": "Page script", "state": false, "lane": "entries", "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/scripts/make-page.py:548", "description": "Builds one self-contained page, and measures it in a browser. Its data escapes every `\u003c`, so a description holding `\u003c!-- \u003cscript` leaves the page whole."}}, {"id": "constructor", "label": "Model", "state": false, "lane": "library", "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/lib/schema/model.py:43", "description": "Indexes a document: levels, nodes, edges, and where a scenario walks."}}, {"id": "checks", "label": "Checks", "state": false, "lane": "library", "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/lib/schema/checks.py:123", "description": "The structure rules the grammar cannot state."}}, {"id": "translator", "label": "Translator", "state": false, "lane": "library", "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/lib/schema/prover.py:301", "description": "Turns the model into an Alloy module and runs it."}}], "edges": [{"key": "root:check-script>checks#0", "from": "check-script", "to": "checks", "kind": "call", "label": "runs", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/schema/scripts/check-schema.py:22", "description": "The script holds no rule of its own."}}, {"key": "root:check-script>document#1", "from": "check-script", "to": "document", "kind": "call", "label": "checks", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/schema/scripts/check-schema.py:50", "description": "Reads one document."}}, {"key": "root:checks>constructor#2", "from": "checks", "to": "constructor", "kind": "call", "label": "reads", "changes": [], "rules": [], "meta": {"source": "paperwork/lib/schema/checks.py:7", "description": "Every rule reads the indexed document."}}, {"key": "root:checks>translator#3", "from": "checks", "to": "translator", "kind": "call", "label": "asks", "changes": [], "rules": [], "meta": {"source": "paperwork/lib/schema/checks.py:6", "description": "Names and formulas are checked against what Alloy would declare."}}, {"key": "root:translator>constructor#4", "from": "translator", "to": "constructor", "kind": "call", "label": "translates", "changes": [], "rules": [], "meta": {"source": "paperwork/lib/schema/prover.py:301", "description": "The module comes only from the model."}}, {"key": "root:prove-script>translator#5", "from": "prove-script", "to": "translator", "kind": "call", "label": "proves with", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/scripts/prove-schema.py:32", "description": "The script prints what Alloy answered."}}, {"key": "root:prove-script>document#6", "from": "prove-script", "to": "document", "kind": "call", "label": "proves", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/scripts/prove-schema.py:131", "description": "Reads one document."}}, {"key": "root:page-script>constructor#7", "from": "page-script", "to": "constructor", "kind": "call", "label": "draws from", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/scripts/make-page.py:31", "description": "The page imports the model and nothing that runs a proof."}}, {"key": "root:page-script>document#8", "from": "page-script", "to": "document", "kind": "call", "label": "shows", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/scripts/make-page.py:64", "description": "Reads one document."}}], "copy": "zoom's parts\nThree entries share one document: the checker keeps it sound, the prover answers on it, and the page shows it. The page runs no proof and no check of its own, so each side can be replaced alone. Its template fills in one pass, so a text holding `__DATA__` stays as written.\n\n- Schema document: One JSON file in the grammar: a system as levels, with scenarios and rules. (paperwork/skills/zoom/references/schema/assets/schema.json:4)\n- Check script: Prints each violation, then ok. (paperwork/skills/zoom/references/schema/scripts/check-schema.py:85)\n- Prove script: Prints one verdict per rule. (paperwork/skills/zoom/scripts/prove-schema.py:121)\n- Page script: Builds one self-contained page, and measures it in a browser. Its data escapes every `\u003c`, so a description holding `\u003c!-- \u003cscript` leaves the page whole. (paperwork/skills/zoom/scripts/make-page.py:548)\n- Model: Indexes a document: levels, nodes, edges, and where a scenario walks. (paperwork/lib/schema/model.py:43)\n- Checks: The structure rules the grammar cannot state. (paperwork/lib/schema/checks.py:123)\n- Translator: Turns the model into an Alloy module and runs it. (paperwork/lib/schema/prover.py:301)\n- Check script → Checks, runs: The script holds no rule of its own.\n- Check script → Schema document, checks: Reads one document.\n- Checks → Model, reads: Every rule reads the indexed document.\n- Checks → Translator, asks: Names and formulas are checked against what Alloy would declare.\n- Translator → Model, translates: The module comes only from the model.\n- Prove script → Translator, proves with: The script prints what Alloy answered.\n- Prove script → Schema document, proves: Reads one document.\n- Page script → Model, draws from: The page imports the model and nothing that runs a proof.\n- Page script → Schema document, shows: Reads one document."}, {"id": "document", "title": "A document's life", "initial": ["drafted"], "lanes": [], "nodes": [{"id": "drafted", "label": "Drafted", "state": true, "lane": null, "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/model.md:1", "description": "Written from code or requirements, not yet accepted by the checker."}}, {"id": "checked", "label": "Checked", "state": true, "lane": null, "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/schema/scripts/check-schema.py:50", "description": "The checker prints ok: the document fits the grammar and every structure rule."}}, {"id": "proved", "label": "Proved", "state": true, "lane": null, "opens": null, "attrs": [], "rules": ["proof-after-check"], "meta": {"source": "paperwork/skills/zoom/scripts/prove-schema.py:36", "description": "Alloy gave each rule a verdict, so the document's promises are known to hold or known to break."}}, {"id": "shown", "label": "Shown", "state": true, "lane": null, "opens": null, "attrs": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/scripts/make-page.py:215", "description": "The page is built, so a person can read the system in a browser."}}], "edges": [{"key": "document:drafted>checked#0", "from": "drafted", "to": "checked", "kind": "transition", "label": "pass the checker", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/schema/scripts/check-schema.py:38", "description": "The grammar comes first; the structure rules read only a document that fits it."}}, {"key": "document:checked>drafted#1", "from": "checked", "to": "drafted", "kind": "transition", "label": "edit", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/model.md:1", "description": "Any change goes back through the checker."}}, {"key": "document:checked>proved#2", "from": "checked", "to": "proved", "kind": "transition", "label": "prove the rules", "changes": [], "rules": ["proof-after-check"], "meta": {"source": "paperwork/skills/zoom/scripts/prove-schema.py:121", "description": "Translate to Alloy and check each rule."}}, {"key": "document:checked>shown#3", "from": "checked", "to": "shown", "kind": "transition", "label": "build the page", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/scripts/make-page.py:548", "description": "Fill the template with the document's data."}}, {"key": "document:proved>shown#4", "from": "proved", "to": "shown", "kind": "transition", "label": "show the result", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/show.md:1", "description": "A proved document is shown the same way as a checked one."}}, {"key": "document:proved>drafted#5", "from": "proved", "to": "drafted", "kind": "transition", "label": "fix a broken rule", "changes": [], "rules": [], "meta": {"source": "paperwork/skills/zoom/references/prove.md:1", "description": "A counterexample is a fault in the system or in the document, so the document changes."}}], "copy": "A document's life\nA document is worked on until the checker accepts it. Only then does the prover read it or the page show it, and any edit sends it back.\n\n- Drafted: Written from code or requirements, not yet accepted by the checker. (paperwork/skills/zoom/references/model.md:1)\n- Checked: The checker prints ok: the document fits the grammar and every structure rule. (paperwork/skills/zoom/references/schema/scripts/check-schema.py:50)\n- Proved: Alloy gave each rule a verdict, so the document's promises are known to hold or known to break. (paperwork/skills/zoom/scripts/prove-schema.py:36)\n- Shown: The page is built, so a person can read the system in a browser. (paperwork/skills/zoom/scripts/make-page.py:215)\n- Drafted → Checked, pass the checker: The grammar comes first; the structure rules read only a document that fits it.\n- Checked → Drafted, edit: Any change goes back through the checker.\n- Checked → Proved, prove the rules: Translate to Alloy and check each rule.\n- Checked → Shown, build the page: Fill the template with the document's data.\n- Proved → Shown, show the result: A proved document is shown the same way as a checked one.\n- Proved → Drafted, fix a broken rule: A counterexample is a fault in the system or in the document, so the document changes."}], "rules": {"proof-after-check": {"kind": "must", "source": "paperwork/skills/zoom/references/prove.md:1", "description": "Alloy reads only what the checker accepted, since a name that points nowhere gives no answer worth reading."}}, "items": [{"key": "scenario-show-a-system", "kind": "Scenario", "title": "show a system", "text": "Someone asks how a system works: the document is written, accepted and drawn.", "nodes": [], "steps": [{"nodes": ["document"], "edges": [], "level": "root", "does": "Write the system as a document.", "expects": "It holds levels, each with its nodes and edges."}, {"nodes": ["drafted"], "edges": [], "level": "document", "does": "Open the document's life.", "expects": "It starts as a draft."}, {"nodes": ["checked"], "edges": ["document:drafted>checked#0"], "level": "document", "does": "Run the checker until it prints ok.", "expects": "The document fits the grammar and the structure rules."}, {"nodes": ["shown"], "edges": ["document:checked>shown#3"], "level": "document", "does": "Build the page.", "expects": "A self-contained page shows the system."}]}, {"key": "scenario-prove-a-rule", "kind": "Scenario", "title": "prove a rule", "text": "Someone asks whether a promise holds: Alloy answers on the checked document.", "nodes": [], "steps": [{"nodes": ["checked"], "edges": [], "level": "document", "does": "Start from an accepted document.", "expects": "Its rules are in Alloy over its own names."}, {"nodes": ["proved"], "edges": ["document:checked>proved#2"], "level": "document", "does": "Run the prover.", "expects": "Each rule has a verdict."}, {"nodes": ["drafted"], "edges": ["document:proved>drafted#5"], "level": "document", "does": "Read the counterexample and change the document.", "expects": "The document goes back through the checker."}]}, {"key": "rule-proof-after-check", "kind": "Rule", "title": "proof after check", "text": "Alloy reads only what the checker accepted, since a name that points nowhere gives no answer worth reading.", "strength": "must", "verdict": "pass", "why": "", "source": "paperwork/skills/zoom/references/prove.md:1", "nodes": ["checked", "proved"], "names": ["Checked", "Proved"], "level": "document", "steps": []}]}</script>
 <script>
 const data = JSON.parse(document.getElementById("page-data").textContent);
 const levels = Object.fromEntries(data.levels.map(level => [level.id, level]));
+const items = Object.fromEntries(data.items.map(item => [item.key, item]));
 const SVG = "http://www.w3.org/2000/svg";
-const NODE_PAD = 16, LINE_HEIGHT = 20, MAX_TEXT = 168, GAP_ALONG = 130, GAP_ACROSS = 30, GAP_ROW = 70, GAP_DOWN = 72, BAND_HEAD = 26, BAND_GAP = 22, OPENER_HEIGHT = 26, LOOP = 34;
-let current = "root";
+const NODE_PAD = 16, LINE_HEIGHT = 20, MAX_TEXT = 168, GAP_ALONG = 100, GAP_ACROSS = 48, GAP_ROW = 100, GAP_DOWN = 72, BAND_HEAD = 26, BAND_GAP = 22, OPENER_HEIGHT = 28, LOOP = 46, LOOP_ROOM = 52, PORT_GAP = 24, PORT_MARGIN = 10, CORNER = 14, BULGE = 44, BULGE_STEP = 36;
+let current = "root", playing = null, stepAt = 0;
 const drawnAt = {};
 const pen = document.createElement("canvas").getContext("2d");
 
@@ -2318,10 +2408,12 @@ function wrapped(label) {
   }
   return lines;
 }
-function sized(node) {
+function sized(node, level) {
   const lines = wrapped(node.label);
+  // each line needs its own place on a side, so a busy node stands taller
+  const links = level.edges.filter(edge => edge.from === node.id || edge.to === node.id).length;
   const wide = Math.max(92, ...lines.map(line => textWidth(line) + 2 * NODE_PAD), node.opens ? 120 : 0);
-  return {lines, w: Math.ceil(wide), h: 18 + LINE_HEIGHT * lines.length + (node.opens ? OPENER_HEIGHT : 0)};
+  return {lines, w: Math.ceil(wide), h: Math.max(26 + LINE_HEIGHT * lines.length + (node.opens ? OPENER_HEIGHT : 0), PORT_GAP * (links - 1) + 2 * PORT_MARGIN)};
 }
 
 // How far each node is from where the level starts: its initial states, or else what nothing points at.
@@ -2374,13 +2466,17 @@ function arrange(level, sizes, shape) {
   const width = id => sizes[id].w, height = id => sizes[id].h;
   const all = lanes.flatMap(lane => lane.cells.flat());
   const rowHeight = Math.max(...all.map(height)) + GAP_ACROSS;
+  const gapAlong = Math.max(GAP_ALONG, ...level.edges.map(edge => textWidth(edge.label, 12.5, 500) + 60));
   const head = level.lanes.length ? BAND_HEAD : 0;
+  // A band stacked under another keeps room above a self loop, which then stays inside its own band.
+  const loopRoom = ids => head && level.edges.some(edge => edge.from === edge.to && ids.includes(edge.from)) ? LOOP_ROOM : 0;
   if (shape === "wide") {
     const count = Math.max(...lanes.map(lane => lane.cells.length));
     const columnWidth = Array.from({length: count}, (_, i) => Math.max(0, ...lanes.flatMap(lane => (lane.cells[i] || []).map(width))));
-    const columnX = columnWidth.map((_, i) => columnWidth.slice(0, i).reduce((sum, w) => sum + w + GAP_ALONG, 24));
+    const columnX = columnWidth.map((_, i) => columnWidth.slice(0, i).reduce((sum, w) => sum + w + gapAlong, 24));
     let y = head;
     for (const lane of lanes) {
+      y += loopRoom(lane.cells.flat());
       const rows = Math.max(...lane.cells.map(cell => cell.length));
       lane.cells.forEach((cell, i) => cell.forEach((id, row) => {
         boxes[id] = {x: columnX[i] + (columnWidth[i] - width(id)) / 2, y: y + (row + (rows - cell.length) / 2) * rowHeight + (rowHeight - GAP_ACROSS - height(id)) / 2, w: width(id), h: height(id)};
@@ -2389,10 +2485,10 @@ function arrange(level, sizes, shape) {
     }
   } else if (shape === "rows") {
     // Each lane is one row, so edges between lanes run downward instead of past the nodes of a column.
-    const rows = lanes.map(lane => lane.cells.flat()), middle = {};
-    const rowWidth = row => row.reduce((sum, id) => sum + width(id) + GAP_ROW, -GAP_ROW);
+    const rows = lanes.map(lane => lane.cells.flat()), middle = {}, gapRow = Math.max(GAP_ROW, gapAlong);
+    const rowWidth = row => row.reduce((sum, id) => sum + width(id) + gapRow, -gapRow);
     const widest = Math.max(...rows.map(rowWidth));
-    const lay = () => rows.forEach(row => row.reduce((x, id) => { middle[id] = x + width(id) / 2; return x + width(id) + GAP_ROW; }, 24 + (widest - rowWidth(row)) / 2));
+    const lay = () => rows.forEach(row => row.reduce((x, id) => { middle[id] = x + width(id) / 2; return x + width(id) + gapRow; }, 24 + (widest - rowWidth(row)) / 2));
     const toward = id => {
       const others = level.edges.filter(edge => edge.from !== edge.to && (edge.from === id || edge.to === id)).map(edge => middle[edge.from === id ? edge.to : edge.from]);
       return others.length ? others.reduce((a, b) => a + b) / others.length : middle[id];
@@ -2404,6 +2500,7 @@ function arrange(level, sizes, shape) {
     lay();
     let y = head;
     for (const row of rows) {
+      y += loopRoom(row);
       const tallest = Math.max(...row.map(height));
       for (const id of row) boxes[id] = {x: middle[id] - width(id) / 2, y: y + (tallest - height(id)) / 2, w: width(id), h: height(id)};
       y += tallest + GAP_DOWN + head;
@@ -2430,7 +2527,7 @@ function arrange(level, sizes, shape) {
       y += head;
       for (const id of lane.cells.flat()) {
         boxes[id] = {x: 8, y, w: width(id), h: height(id)};
-        y += height(id) + 40;
+        y += height(id) + GAP_DOWN;
       }
       y += BAND_GAP * Boolean(head);
     }
@@ -2441,7 +2538,7 @@ function arrange(level, sizes, shape) {
     const own = lane.cells.flat().map(id => boxes[id]);
     const stacked = shape === "wide" || shape === "rows";
     const left = stacked ? wideLeft : Math.min(...own.map(box => box.x)) - 12, right = stacked ? wideRight : Math.max(...own.map(box => box.x + box.w)) + 12;
-    bands.push({label: level.lanes.find(known => known.id === lane.id).label, left, right, top: Math.min(...own.map(box => box.y)) - BAND_HEAD, bottom: Math.max(...own.map(box => box.y + box.h)) + 12});
+    bands.push({label: level.lanes.find(known => known.id === lane.id).label, ids: lane.cells.flat(), left, right, top: Math.min(...own.map(box => box.y)) - BAND_HEAD, bottom: Math.max(...own.map(box => box.y + box.h)) + 12});
   }
   return {boxes, bands};
 }
@@ -2450,71 +2547,132 @@ const centre = box => [box.x + box.w / 2, box.y + box.h / 2];
 const inflated = (box, by) => ({x: box.x - by, y: box.y - by, w: box.w + 2 * by, h: box.h + 2 * by});
 const holds = (box, [x, y]) => x > box.x && x < box.x + box.w && y > box.y && y < box.y + box.h;
 const meets = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-const onCurve = (a, c, b, t) => [0, 1].map(i => (1 - t) ** 2 * a[i] + 2 * (1 - t) * t * c[i] + t ** 2 * b[i]);
+const onCurve = ([p0, p1, p2, p3], t) => [0, 1].map(i => (1 - t) ** 3 * p0[i] + 3 * (1 - t) ** 2 * t * p1[i] + 3 * (1 - t) * t ** 2 * p2[i] + t ** 3 * p3[i]);
+const OUTWARD = {left: [-1, 0], right: [1, 0], top: [0, -1], bottom: [0, 1]};
+const flat = side => side === "left" || side === "right";
 
-// Where the ray from a box's centre toward a point leaves the box.
-function border(box, toward) {
-  const [cx, cy] = centre(box), dx = toward[0] - cx, dy = toward[1] - cy;
-  const scale = Math.min(dx ? box.w / 2 / Math.abs(dx) : Infinity, dy ? box.h / 2 / Math.abs(dy) : Infinity);
-  return [cx + dx * scale, cy + dy * scale];
+// The two sides that look at each other, along the wider gap.
+function facing(a, b) {
+  const across = Math.max(b.x - a.x - a.w, a.x - b.x - b.w), down = Math.max(b.y - a.y - a.h, a.y - b.y - b.h);
+  if (across >= down) return b.x > a.x ? ["right", "left"] : ["left", "right"];
+  return b.y > a.y ? ["bottom", "top"] : ["top", "bottom"];
+}
+function port(box, side, shift) {
+  const [cx, cy] = centre(box);
+  return {left: [box.x, cy + shift], right: [box.x + box.w, cy + shift], top: [cx + shift, box.y], bottom: [cx + shift, box.y + box.h]}[side];
+}
+// Each end leaves square to its side, so lines never fan out of a corner; a bulge is how far the curve stands off.
+function curve(from, out, to, into, bulge) {
+  const reach = bulge ? bulge / .75 : Math.max(28, .45 * Math.hypot(to[0] - from[0], to[1] - from[1]));
+  const ahead = (point, side) => [point[0] + OUTWARD[side][0] * reach, point[1] + OUTWARD[side][1] * reach];
+  return [from, ahead(from, out), ahead(to, into), to];
+}
+// A self loop stands on one side's centre, so it reads the same on any side.
+function loop(box, side) {
+  const [x, y] = port(box, side, 0), [outX, outY] = OUTWARD[side], [alongX, alongY] = [outY, outX], stand = LOOP / .75;
+  return [[16, 0], [34, stand], [-34, stand], [-16, 0]].map(([along, out]) => [x + alongX * along + outX * out, y + alongY * along + outY * out]);
+}
+const samples = points => Array.from({length: 33}, (_, i) => onCurve(points, i / 32));
+
+// Direct where nothing stands between two nodes, else round the outside; then each side shares its ports out, so no two lines meet at a point.
+function routes(level, boxes) {
+  const crosses = (edge, points) => {
+    const others = Object.entries(boxes).filter(([id]) => id !== edge.from && id !== edge.to).map(([, box]) => inflated(box, 8));
+    return samples(points).some(point => others.some(box => holds(box, point)));
+  };
+  const used = {}, ends = {};
+  const ways = level.edges.map(edge => {
+    if (edge.from === edge.to) return null;
+    const a = boxes[edge.from], b = boxes[edge.to], [out, into] = facing(a, b);
+    if (!crosses(edge, curve(port(a, out, 0), out, port(b, into, 0), into))) return {out, into};
+    // the left of an initial state holds its start mark
+    const sides = flat(out) ? ["top", "bottom"] : level.initial.includes(edge.from) || level.initial.includes(edge.to) ? ["right"] : ["right", "left"];
+    sides.sort((one, two) => (used[one] || 0) - (used[two] || 0));
+    for (const reach of [0, 1, 2, 3, 4, 5]) for (const side of sides) {
+      const bulge = BULGE + BULGE_STEP * ((used[side] || 0) + reach);
+      if (!crosses(edge, curve(port(a, side, 0), side, port(b, side, 0), side, bulge))) {
+        used[side] = (used[side] || 0) + 1;
+        return {out: side, into: side, bulge};
+      }
+    }
+    return {out, into, stuck: true};
+  });
+  level.edges.forEach((edge, i) => {
+    if (!ways[i]) return;
+    (ends[`${edge.from}\n${ways[i].out}`] ||= []).push({i, end: "from", other: edge.to});
+    (ends[`${edge.to}\n${ways[i].into}`] ||= []).push({i, end: "to", other: edge.from});
+  });
+  const shifts = {};
+  for (const [key, list] of Object.entries(ends)) {
+    const [id, side] = key.split("\n"), box = boxes[id], axis = flat(side) ? 1 : 0, room = (flat(side) ? box.h : box.w) - 2 * PORT_MARGIN;
+    list.sort((one, two) => centre(boxes[one.other])[axis] - centre(boxes[two.other])[axis]);
+    const gap = list.length > 1 ? Math.min(PORT_GAP, room / (list.length - 1)) : 0;
+    list.forEach(({i, end}, place) => { (shifts[i] ||= {})[end] = (place - (list.length - 1) / 2) * gap; });
+  }
+  return level.edges.map((edge, i) => {
+    if (!ways[i]) {
+      const box = boxes[edge.from], options = ["top", "bottom", "right", ...(level.initial.includes(edge.from) ? [] : ["left"])].map(side => ({side, points: loop(box, side)}));
+      const {points: [p0, p1, p2, p3]} = options.find(({side, points}) => !ends[`${edge.from}\n${side}`] && !crosses(edge, points)) || options[0];
+      return {path: `M${p0[0]} ${p0[1]}C${p1[0]} ${p1[1]} ${p2[0]} ${p2[1]} ${p3[0]} ${p3[1]}`, points: samples([p0, p1, p2, p3])};
+    }
+    const {out, into, bulge, stuck} = ways[i];
+    const points = curve(port(boxes[edge.from], out, shifts[i].from), out, port(boxes[edge.to], into, shifts[i].to), into, bulge);
+    const [p0, p1, p2, p3] = points;
+    return {path: `M${p0[0]} ${p0[1]}C${p1[0]} ${p1[1]} ${p2[0]} ${p2[1]} ${p3[0]} ${p3[1]}`, points: samples(points), blocked: Boolean(stuck)};
+  });
 }
 
-// A curve between two nodes, bent away from every node between them; parallel edges spread apart.
-function route(edge, boxes, spread) {
-  const a = boxes[edge.from], b = boxes[edge.to];
-  if (edge.from === edge.to) {
-    const x = a.x + a.w * .7, y = a.y;
-    return {path: `M${x - 12} ${y}C${x - 12} ${y - LOOP} ${x + 26} ${y - LOOP} ${x + 12} ${y}`, points: [[x - 12, y], [x + 7, y - LOOP * .8], [x + 12, y]], mid: [x + 7, y - LOOP * .8]};
-  }
-  const start = centre(a), end = centre(b);
-  const mirrored = edge.from > edge.to;
-  const dx = (end[0] - start[0]) * (mirrored ? -1 : 1), dy = (end[1] - start[1]) * (mirrored ? -1 : 1);
-  const length = Math.hypot(dx, dy) || 1;
-  const normal = [-dy / length, dx / length];
-  const others = Object.entries(boxes).filter(([id]) => id !== edge.from && id !== edge.to).map(([, box]) => inflated(box, 8));
-  let control = null, blocked = true;
-  for (const extra of [0, 50, -50, 100, -100, 160, -160, 230, -230, 300, -300]) {
-    const bend = spread + extra;
-    const candidate = [(start[0] + end[0]) / 2 + normal[0] * bend, (start[1] + end[1]) / 2 + normal[1] * bend];
-    control = candidate;
-    blocked = Array.from({length: 24}, (_, i) => onCurve(start, candidate, end, (i + 1) / 25)).some(point => others.some(box => holds(box, point)));
-    if (!blocked) break;
-  }
-  const from = border(a, control), to = border(b, control);
-  return {path: `M${from[0]} ${from[1]}Q${control[0]} ${control[1]} ${to[0]} ${to[1]}`, points: Array.from({length: 33}, (_, i) => onCurve(from, control, to, i / 32)), from, control, to, blocked};
-}
-
-// A label beside its curve, clear of the nodes and of the labels placed before it, on as few other curves as it can.
-function placeLabel(edge, line, boxes, placed, routes) {
-  const width = textWidth(edge.label, 13, 400) + 8, height = 18;
-  const beside = width / 2 + 4;
-  const near = line.from ? [.5, .4, .6, .3, .7, .22, .78].map(t => onCurve(line.from, line.control, line.to, t)) : [line.mid];
-  const spots = [1, 2, 3, 4].flatMap(far => near.flatMap(([x, y]) => [...(far === 1 ? [[x, y]] : []), [x, y - 16 * far], [x, y + 16 * far], [x + beside * far, y], [x - beside * far, y]]));
-  const nodes = Object.values(boxes);
-  const crossed = box => routes.filter(other => other !== line && other.points.some(point => holds(box, point))).length;
-  const free = spots.map(([x, y]) => ({x: x - width / 2, y: y - height / 2, w: width, h: height})).filter(box => !nodes.some(node => meets(node, box)) && !placed.some(other => meets(other, box)));
-  if (!free.length) return {x: spots[0][0] - width / 2, y: spots[0][1] - height / 2, w: width, h: height};
-  return free.reduce((best, box) => crossed(box) < crossed(best) ? box : best);
+// A label is a pill always crossed by its own line, so a reader can tell whose it is. It takes the spot nearest the line's middle that covers no other line, and may slide sideways on the line to clear one.
+function placeLabel(edge, line, boxes, bands, placed, every, aim) {
+  const width = textWidth(edge.label, 12.5, 500) + 16, height = 20, slide = width / 2 - 8;
+  const nodes = [...Object.values(boxes).map(box => inflated(box, 4)), ...bands.map(band => band.name)];
+  const pill = ([x, y]) => ({x: x - width / 2, y: y - height / 2, w: width, h: height});
+  const clear = box => !nodes.some(node => meets(node, box)) && !placed.some(other => meets(inflated(other, 3), box));
+  const covered = box => every.filter(other => other !== line && other.points.some(point => holds(box, point))).length;
+  const options = line.points.slice(4, -4).flatMap(([x, y], i, all) => [[0, 0, 0], [-slide, 0, 8], [slide, 0, 8], [0, -7, 4], [0, 7, 4]].map(([dx, dy, cost]) => {
+    const box = pill([x + dx, y + dy]);
+    return {box, cost: cost + Math.abs(i - aim * (all.length - 1)) / all.length * 10};
+  }));
+  const free = options.filter(({box}) => clear(box));
+  if (!free.length) return options[Math.floor(options.length / 2)].box;
+  return free.reduce((best, option) => {
+    const score = option.cost + 100 * covered(option.box);
+    return score < best.score ? {...option, score} : best;
+  }, {score: Infinity}).box;
 }
 
 function plan(level, sizes, shape) {
   const {boxes, bands} = arrange(level, sizes, shape);
-  const pairs = {};
-  for (const edge of level.edges) (pairs[[edge.from, edge.to].sort().join(" ")] ||= []).push(edge);
-  const placed = [];
-  const routes = level.edges.map(edge => {
-    const siblings = pairs[[edge.from, edge.to].sort().join(" ")];
-    return route(edge, boxes, (siblings.indexOf(edge) - (siblings.length - 1) / 2) * 56);
-  });
+  const placed = [], routed = routes(level, boxes);
+  // A band's name takes the top corner no line runs through; a self loop does not count, since its band grows above it.
+  for (const band of bands) {
+    const width = textWidth(band.label, 13, 500) + 8, corner = x => ({x, y: band.top + 2, w: width, h: 20});
+    const [near, far] = [corner(band.left + 6), corner(band.right - 6 - width)];
+    band.name = routed.some((line, i) => level.edges[i].from !== level.edges[i].to && line.points.some(point => holds(near, point))) ? far : near;
+  }
   const lines = level.edges.map((edge, i) => {
-    const label = placeLabel(edge, routes[i], boxes, placed, routes);
+    const start = routed[i].points[0], end = routed[i].points.at(-1);
+    // Two lines running opposite ways up a short gap have no room for two labels side by side, so each label moves toward its own line's start.
+    const twin = level.edges.some(other => other.from === edge.to && other.to === edge.from) && Math.abs(end[1] - start[1]) > Math.abs(end[0] - start[0]);
+    const label = placeLabel(edge, routed[i], boxes, bands, placed, routed, twin ? .3 : .5);
     placed.push(label);
-    return {edge, line: routes[i], label};
+    return {edge, line: routed[i], label};
   });
+  for (const band of bands) for (const {edge, line, label} of lines) {
+    if (edge.from !== edge.to || !band.ids.includes(edge.from)) continue;
+    const xs = [label.x, label.x + label.w, ...line.points.map(point => point[0])], ys = [label.y, label.y + label.h, ...line.points.map(point => point[1])];
+    band.left = Math.min(band.left, Math.min(...xs) - 8);
+    band.right = Math.max(band.right, Math.max(...xs) + 8);
+    band.top = Math.min(band.top, Math.min(...ys) - 22);
+    band.name.y = band.top + 2;
+    band.bottom = Math.max(band.bottom, Math.max(...ys) + 8);
+  }
   const xs = [...level.initial.map(id => boxes[id].x - 22), ...Object.values(boxes).flatMap(box => [box.x, box.x + box.w]), ...bands.flatMap(band => [band.left, band.right]), ...placed.flatMap(box => [box.x, box.x + box.w]), ...lines.flatMap(({line}) => line.points.map(point => point[0]))];
   const ys = [...Object.values(boxes).flatMap(box => [box.y, box.y + box.h]), ...bands.flatMap(band => [band.top, band.bottom]), ...placed.flatMap(box => [box.y, box.y + box.h]), ...lines.flatMap(({line}) => line.points.map(point => point[1]))];
   const left = Math.min(...xs, 0) - 4, top = Math.min(...ys, 0) - 4;
-  return {boxes, bands, lines, left, top, blocked: routes.some(line => line.blocked), width: Math.ceil(Math.max(...xs) - left + 4), height: Math.ceil(Math.max(...ys) - top + 4)};
+  const reach = routed.reduce((sum, {points}) => sum + points.slice(1).reduce((total, point, i) => total + Math.hypot(point[0] - points[i][0], point[1] - points[i][1]), 0), 0);
+  const crowded = placed.filter((one, i) => placed.some((two, j) => j > i && meets(inflated(one, 3), two))).length;
+  return {boxes, bands, lines, left, top, reach, crowded, blocked: routed.some(line => line.blocked), width: Math.ceil(Math.max(...xs) - left + 4), height: Math.ceil(Math.max(...ys) - top + 4)};
 }
 
 function element(name, attributes = {}, ...children) {
@@ -2526,22 +2684,22 @@ function element(name, attributes = {}, ...children) {
 
 function drawNode(node, box, size) {
   const kind = node.state ? "state" : "part";
-  const radius = node.state ? Math.min(20, box.h / 2) : 2;
+  const radius = node.state ? CORNER : 3;
   const group = element("g", {class: "node", "data-id": node.id, "data-shape": kind, tabindex: 0, role: "button", "aria-label": `${node.label}, a ${kind}. Show details.`},
     element("rect", {class: "shape", x: box.x, y: box.y, width: box.w, height: box.h, rx: radius}));
   size.lines.forEach((line, i) => {
-    const label = element("text", {x: box.x + box.w / 2, y: box.y + 9 + LINE_HEIGHT * i + 15, "text-anchor": "middle"});
+    const label = element("text", {x: box.x + box.w / 2, y: box.y + (box.h - (node.opens ? OPENER_HEIGHT : 0) - LINE_HEIGHT * size.lines.length) / 2 + LINE_HEIGHT * i + 15, "text-anchor": "middle"});
     label.textContent = line;
     group.append(label);
   });
   return group;
 }
 function drawOpener(node, box) {
-  const y = box.y + box.h - OPENER_HEIGHT - 4, x = box.x + 10, w = box.w - 20;
-  const word = element("text", {x: x + w / 2, y: y + 16, "text-anchor": "middle"});
-  word.textContent = "See inside";
+  const y = box.y + box.h - OPENER_HEIGHT, x = box.x, w = box.w;
+  const word = element("text", {x: x + w / 2, y: y + 19, "text-anchor": "middle"});
+  word.textContent = "See inside ›";
   return element("a", {class: "opener", href: `#level-${node.opens}`, "aria-label": `See inside: ${levels[node.opens].title}`},
-    element("rect", {x, y, width: w, height: OPENER_HEIGHT - 4, rx: 4}), word);
+    element("rect", {x, y, width: w, height: OPENER_HEIGHT, rx: CORNER}), element("line", {x1: x + 12, y1: y, x2: x + w - 12, y2: y}), word);
 }
 function drawEdge({edge, line, label}, level) {
   const name = id => level.nodes.find(node => node.id === id).label;
@@ -2550,9 +2708,9 @@ function drawEdge({edge, line, label}, level) {
 }
 // A label is a layer of its own, over every line's wide click area, so a crowded chart leaves each one clickable.
 function drawTag({edge, label}) {
-  const text = element("text", {class: "edge-label", x: label.x + label.w / 2, y: label.y + 13, "text-anchor": "middle"});
+  const text = element("text", {class: "edge-label", x: label.x + label.w / 2, y: label.y + 14, "text-anchor": "middle"});
   text.textContent = edge.label;
-  return element("g", {class: "edge edge-tag", "data-key": edge.key, "aria-hidden": "true"}, text);
+  return element("g", {class: "edge edge-tag", "data-key": edge.key, "aria-hidden": "true"}, element("rect", {class: "edge-pill", x: label.x, y: label.y, width: label.w, height: label.h, rx: label.h / 2}), text);
 }
 
 function draw(id) {
@@ -2561,14 +2719,17 @@ function draw(id) {
   if (drawnAt[id] === room) return;
   drawnAt[id] = room;
   const level = levels[id];
-  const sizes = Object.fromEntries(level.nodes.map(node => [node.id, sized(node)]));
+  const sizes = Object.fromEntries(level.nodes.map(node => [node.id, sized(node, level)]));
   const plans = ["wide", ...(level.lanes.length ? ["rows"] : []), "tall", "stack"].map(shape => plan(level, sizes, shape));
   const fitting = plans.filter(option => option.width <= room);
-  const best = fitting.find(option => !option.blocked) || fitting[0] || plans.at(-1);
+  // Among the shapes that fit, labels clear of each other come first, then the shortest lines, since a long line is a detour for the eye.
+  const shortest = options => options.reduce((best, option) => option.crowded < best.crowded || option.crowded === best.crowded && option.reach < best.reach ? option : best);
+  const open = fitting.filter(option => !option.blocked);
+  const best = open.length ? shortest(open) : fitting[0] || plans.at(-1);
   const svg = element("svg", {viewBox: `${best.left} ${best.top} ${best.width} ${best.height}`, width: best.width, height: best.height, role: "group", "aria-label": `Chart of ${level.title}`},
-    element("defs", {}, element("marker", {id: `arrow-${id}`, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: "auto-start-reverse"}, element("path", {class: "arrow", d: "M0 0L10 5L0 10z"}))));
+    element("defs", {}, element("marker", {id: `arrow-${id}`, viewBox: "0 0 10 10", refX: 9, refY: 5, markerUnits: "userSpaceOnUse", markerWidth: 9, markerHeight: 9, orient: "auto-start-reverse"}, element("path", {class: "arrow", d: "M0 0L10 5L0 10z"}))));
   for (const band of best.bands) {
-    const label = element("text", {x: band.left + 10, y: band.top + 17});
+    const label = element("text", {x: band.name.x + 4, y: band.top + 17});
     label.textContent = band.label;
     svg.append(element("g", {class: "band"}, element("rect", {x: band.left, y: band.top, width: band.right - band.left, height: band.bottom - band.top, rx: 8}), label));
   }
@@ -2650,21 +2811,149 @@ function choose(chosen) {
   }
 }
 
-function show(id) {
-  current = id;
-  document.querySelectorAll(".level").forEach(section => section.classList.toggle("away", section.id !== `level-${id}`));
-  draw(id);
+function mark() {
+  document.querySelectorAll(".played").forEach(section => section.classList.remove("played"));
+  document.querySelectorAll(".path, .now, .related").forEach(on => on.classList.remove("path", "now", "related"));
+  document.querySelectorAll(".step-tag").forEach(old => old.remove());
+  if (!playing) return;
+  const section = document.getElementById(`level-${current}`);
+  section.classList.add("played");
+  const add = (name, nodes, edges) => {
+    nodes.forEach(id => section.querySelectorAll(`.node[data-id="${CSS.escape(id)}"]`).forEach(node => node.classList.add(name)));
+    edges.forEach(key => section.querySelectorAll(`.edge[data-key="${CSS.escape(key)}"]`).forEach(edge => edge.classList.add(name)));
+  };
+  add("related", playing.nodes, []);
+  if (!playing.verdict) playing.steps.forEach(step => add("path", step.nodes, step.edges));
+  if (playing.steps[stepAt]) add("now", playing.steps[stepAt].nodes, playing.steps[stepAt].edges);
+  // one tag, since a step is one moment however many nodes it moves
+  const first = section.querySelector(".node.now");
+  if (first) stepTag(first);
+}
+function stepTag(node) {
+  // A counterexample's last step is where the rule breaks, so the chart says so, not only the bar.
+  const broken = playing.verdict === "counterexample" && stepAt === playing.steps.length - 1;
+  const box = node.querySelector(".shape").getBBox(), words = `Step ${stepAt + 1}${broken ? ": broken" : ""}`, width = broken ? 104 : 56, height = 20;
+  const shown = element("g", {class: broken ? "step-tag broken" : "step-tag"}, element("rect", {x: box.x + box.width - width, y: box.y - height / 2, width, height, rx: height / 2}),
+    element("text", {x: box.x + box.width - width / 2, y: box.y + 4, "text-anchor": "middle"}, words));
+  node.append(shown);
+}
+function reveal(...ids) {
+  document.querySelectorAll(".view").forEach(section => section.classList.toggle("away", !ids.includes(section.id)));
   // The frame marks the current link on scroll, and this change moves no scrollbar.
   dispatchEvent(new Event("scroll"));
 }
+function show(id) {
+  current = id;
+  reveal(`level-${id}`, ...(playing ? [playing.key] : []));
+  draw(id);
+  mark();
+}
+const VERDICT_WORDS = {pass: "No run within the scope breaks it.", counterexample: "A run breaks it.", unproved: "Alloy gave no answer."};
+function shortSource(source) {
+  if (!source.includes("://")) return tag("code", "", source);
+  const link = tag("a", "", `Source: ${new URL(source).hostname}`);
+  link.href = source;
+  return link;
+}
+function stepChip(index) {
+  const chip = tag("button", "bar-chip", String(index + 1));
+  chip.type = "button";
+  chip.setAttribute("aria-label", `Step ${index + 1}`);
+  if (index === stepAt) chip.setAttribute("aria-current", "step");
+  chip.addEventListener("click", () => playStep(index));
+  const place = tag("li");
+  place.append(chip);
+  return place;
+}
+function runList(item) {
+  const run = tag("ol", "bar-step bar-run");
+  item.steps.forEach((step, index) => {
+    const told = tag("li", "", `${step.does} ${step.expects}`.trim());
+    if (index === stepAt) told.setAttribute("aria-current", "step");
+    run.append(told);
+  });
+  return run;
+}
+function stepControl(role, label, disabled) {
+  const button = tag("button", `krds-btn secondary small ${role}`, label);
+  button.type = "button";
+  button.disabled = disabled;
+  button.addEventListener("click", () => {
+    playStep(stepAt + (role === "bar-next" ? 1 : -1));
+    const again = document.querySelector(`#${playing.key} .${role}:not(:disabled)`);
+    if (again) again.focus();
+  });
+  return button;
+}
+function drawBar(item) {
+  const head = tag("div", "bar-head");
+  head.append(tag("span", "bar-kind", item.kind), tag("h2", "", item.title));
+  if (item.strength) head.append(tag("span", "bar-strength", item.strength));
+  if (item.verdict) {
+    const badge = tag("span", "verdict", item.verdict[0].toUpperCase() + item.verdict.slice(1));
+    badge.dataset.verdict = item.verdict;
+    head.append(badge, tag("span", "bar-meaning", item.why || VERDICT_WORDS[item.verdict]));
+  }
+  if (item.source) {
+    const source = tag("span", "bar-source");
+    source.append(shortSource(item.source));
+    head.append(source);
+  }
+  const parts = [head, tag("p", "", item.text)];
+  if (item.names?.length) {
+    const facts = tag("dl");
+    row(facts, "Concerns", document.createTextNode(item.names.join(", ")));
+    parts.push(facts);
+  }
+  const step = item.steps[stepAt];
+  if (step) {
+    const controls = tag("div", "bar-controls");
+    const chips = tag("ol", "bar-steps");
+    chips.append(...item.steps.map((_, index) => stepChip(index)));
+    controls.append(stepControl("bar-previous", "Previous", stepAt === 0), chips, stepControl("bar-next", "Next", stepAt === item.steps.length - 1), tag("span", "bar-count", `Step ${stepAt + 1} of ${item.steps.length}`));
+    // a run has only ids behind it, so it reads best whole; a scenario's steps carry their own sentences
+    const said = item.verdict ? runList(item) : tag("dl", "bar-step");
+    said.setAttribute("aria-live", "polite");
+    if (!item.verdict) {
+      row(said, "Does", document.createTextNode(step.does));
+      if (step.expects) row(said, "Expects", document.createTextNode(step.expects));
+    }
+    parts.push(controls, said);
+  }
+  document.querySelector(`#${item.key} .bar`).replaceChildren(...parts);
+}
+function playStep(index) {
+  stepAt = index;
+  drawBar(playing);
+  show(playing.steps[stepAt]?.level || playing.level);
+}
+function follow(target) {
+  if (Object.hasOwn(items, target)) {
+    if (playing?.key === target) return;
+    playing = items[target];
+    document.querySelectorAll(".level").forEach(closeDetail);
+    playStep(0);
+    return;
+  }
+  playing = null;
+  if (target === "scenarios" || target === "rules") {
+    reveal(target);
+    mark();
+    return;
+  }
+  const id = target.slice("level-".length);
+  show(target.startsWith("level-") && Object.hasOwn(levels, id) ? id : "root");
+}
 function followHash() {
-  const id = location.hash.slice("#level-".length);
-  show(location.hash.startsWith("#level-") && Object.hasOwn(levels, id) ? id : "root");
+  follow(location.hash.slice(1));
+}
+function itemCopy(item) {
+  return [item.title, item.text, ...item.steps.map((step, i) => `${i + 1}. ${step.does} ${step.expects}`.trim())].join("\n");
 }
 
 document.addEventListener("click", event => {
-  const link = event.target.closest('a[href^="#level-"]');
-  if (link) show(link.getAttribute("href").slice("#level-".length));
+  const link = event.target.closest('a[href^="#"]');
+  if (link) follow(link.getAttribute("href").slice(1));
   const chosen = event.target.closest(".node, .edge");
   if (chosen) choose(chosen);
 });
@@ -2676,14 +2965,15 @@ document.addEventListener("keydown", event => {
   }
 });
 addEventListener("hashchange", followHash);
-addEventListener("resize", () => draw(current));
+addEventListener("resize", () => { draw(current); mark(); });
 addEventListener("beforeprint", () => data.levels.forEach(level => draw(level.id)));
 followHash();
 start({
-  copy: () => levels[current].copy,
+  copy: () => playing ? itemCopy(playing) : levels[current].copy,
   reset: () => {
     document.querySelectorAll(".level").forEach(closeDetail);
     history.replaceState(null, "", location.pathname + location.search);
+    playing = null;
     show("root");
     scrollTo(0, 0);
   },

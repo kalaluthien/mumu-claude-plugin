@@ -24,6 +24,8 @@ With no rule named, pick the promise whose break harms people most and that test
 
 A trace names Schema ids, as `check-schema.py ids` prints them: `[a, b]` are the nodes whose things witness the break, then the elements called at each step, `→` between steps, ` + ` within one, and `x|y` where one call may be either.
 
+`--proofs <out.json>` also writes each rule's verdict, related node ids and a counterexample's steps as node and edge ids, for [show.md](show.md) to draw.
+
 ## Rules
 
 - **Able to fail**: a pass you never saw fail proves nothing, so run `prove-schema.py --mutate <doc.json>` before handing over a pass. It checks each passing `must` again on copies that each drop one restriction (a sync or a `must`). It ends its line `, fails without <id>, ...` for the restrictions that hold the rule, or `, unfalsified` for a rule that holds by the structure alone or says nothing. Hand an unfalsified rule back as such. A guard's own slug in the list means only the guard holds the rule.

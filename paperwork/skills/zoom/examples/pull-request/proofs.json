@@ -1,0 +1,132 @@
+{
+ "rules": [
+  {
+   "slug": "mergeable",
+   "verdict": "pass",
+   "nodes": [
+    "mergebox",
+    "merged-s",
+    "open-s"
+   ]
+  },
+  {
+   "slug": "no-self-approval",
+   "verdict": "pass",
+   "nodes": [
+    "mergebox",
+    "review",
+    "review-x"
+   ]
+  },
+  {
+   "slug": "checks-on-head",
+   "verdict": "pass",
+   "nodes": [
+    "branch",
+    "checks",
+    "commit",
+    "push"
+   ]
+  },
+  {
+   "slug": "three-dot",
+   "verdict": "counterexample",
+   "nodes": [
+    "comment",
+    "commit",
+    "line",
+    "pr",
+    "review-x"
+   ],
+   "steps": [
+    {
+     "nodes": [
+      "comment",
+      "pr",
+      "review-x"
+     ],
+     "edges": []
+    }
+   ]
+  },
+  {
+   "slug": "review-on-commit",
+   "verdict": "pass",
+   "nodes": [
+    "commit",
+    "mergebox",
+    "review",
+    "review-x"
+   ]
+  },
+  {
+   "slug": "fresh-approval",
+   "verdict": "counterexample",
+   "nodes": [
+    "mergebox",
+    "pr",
+    "review",
+    "review-x"
+   ],
+   "steps": [
+    {
+     "nodes": [
+      "checks",
+      "clean",
+      "closed-s",
+      "open-s",
+      "push",
+      "unpushed"
+     ],
+     "edges": [
+      "open-s:push>checks#0",
+      "push:clean>unpushed#0",
+      "root:open-s>closed-s#2"
+     ]
+    },
+    {
+     "nodes": [
+      "checks",
+      "push",
+      "review"
+     ],
+     "edges": [
+      "open-s:checks>review#1",
+      "open-s:push>checks#0"
+     ]
+    },
+    {
+     "nodes": [
+      "clean",
+      "matching",
+      "mergebox",
+      "review",
+      "unpushed"
+     ],
+     "edges": [
+      "open-s:review>mergebox#3",
+      "push:matching>matching#5",
+      "push:unpushed>clean#1"
+     ]
+    },
+    {
+     "nodes": [
+      "merged-s",
+      "open-s"
+     ],
+     "edges": [
+      "root:open-s>merged-s#4"
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "fast-forward-push",
+   "verdict": "pass",
+   "nodes": [
+    "clean",
+    "unpushed"
+   ]
+  }
+ ]
+}

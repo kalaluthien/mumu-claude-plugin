@@ -1,0 +1,12 @@
+{
+ "rules": [
+  {
+   "slug": "proof-after-check",
+   "verdict": "pass",
+   "nodes": [
+    "checked",
+    "proved"
+   ]
+  }
+ ]
+}

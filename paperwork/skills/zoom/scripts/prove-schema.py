@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Prove a Schema document's rules with Alloy 6.
 
-usage: prove-schema.py doc.json [--als out.als] [--mutate]
+usage: prove-schema.py doc.json [--als out.als] [--mutate] [--proofs out.json]
       write the document as an Alloy module (by default in the system's temp folder, its path on stderr), check each
       rule there, and print one line per rule, in the document's order:
       <rule>: pass                     no run within the scope breaks it
@@ -13,6 +13,9 @@ usage: prove-schema.py doc.json [--als out.als] [--mutate]
       <rule>: pass, fails without <id>, ...   the restrictions whose loss breaks it: the pass can fail
       <rule>: pass, unfalsified                no single loss breaks it: it holds by the structure alone, or is vacuous
       a copy Alloy gives no answer for is named after either, as `(no answer without <id>, ...)`.
+      With --proofs, it also writes the same verdicts as data for make-page.py: {"rules": [{slug, verdict, nodes, steps}]},
+      verdict pass, counterexample or unproved, nodes the ids the rule concerns, and steps a counterexample's, each
+      {nodes, edges} by id.
 usage: prove-schema.py --fetch   download the pinned Alloy 6.2.0 jar to ~/.cache/paperwork-alloy/alloy.jar
 
 Exit status 0 once every rule has a line, 2 when the document cannot be read.
@@ -31,6 +34,7 @@ from schema.model import Model, shape  # noqa: E402
 
 
 def lines(model, alloy_path):
+    """One line per rule, and the same verdicts as data."""
     alloy_source, world, checks = prover.translate(model)
     alloy_path.write_text(alloy_source, encoding="utf-8")
     print(f"wrote {alloy_path}", file=sys.stderr)
@@ -38,7 +42,7 @@ def lines(model, alloy_path):
         results = prover.run(alloy_source)
     except RuntimeError as e:
         results = {"_refused": str(e).splitlines()[0]}
-    report = []
+    report, proofs = [], []
     for name, _, _, _, slug in checks:
         if results is None:
             why = "no Alloy (java and alloy.jar); run prove-schema.py --fetch"
@@ -46,12 +50,17 @@ def lines(model, alloy_path):
             why = f"Alloy refused the module: {results['_refused']}"
         elif name in results.get("_slow", []) or name not in results:
             why = f"past {prover.SECONDS} s"
+        elif results[name]["sat"]:
+            report.append(f"{slug}: counterexample {prover.trace(world, results[name]['instances'], slug)}")
+            proofs.append({"slug": slug, "verdict": "counterexample", **prover.proof(world, results[name]["instances"], slug)})
+            continue
         else:
-            result = results[name]
-            report.append(f"{slug}: counterexample {prover.trace(world, result['instances'], slug)}" if result["sat"] else f"{slug}: pass")
+            report.append(f"{slug}: pass")
+            proofs.append({"slug": slug, "verdict": "pass", "nodes": model.concerns(slug)})
             continue
         report.append(f"{slug}: unproved: {why}")
-    return report
+        proofs.append({"slug": slug, "verdict": "unproved", "why": why, "nodes": model.concerns(slug)})
+    return report, proofs
 
 
 def restrictions(data):
@@ -115,7 +124,8 @@ def main(args):
         return 0
     mutate = "--mutate" in args
     args = [argument for argument in args if argument != "--mutate"]
-    if len(args) not in (1, 3) or args[0].startswith("--") or (len(args) == 3 and args[1] != "--als"):
+    paths = dict(zip(args[1::2], args[2::2]))
+    if len(args) % 2 == 0 or args[0].startswith("--") or set(paths) - {"--als", "--proofs"} or len(paths) != len(args) // 2:
         print(__doc__, file=sys.stderr)
         return 2
     document = pathlib.Path(args[0])
@@ -123,8 +133,10 @@ def main(args):
     if wrong := shape(data):
         print("\n".join(f"{rule}: {text}" for rule, text in wrong), file=sys.stderr)
         return 2
-    alloy_path = pathlib.Path(args[2]) if len(args) == 3 else pathlib.Path(tempfile.gettempdir()) / f"{re.sub(r'[^A-Za-z0-9]+', '-', document.resolve().parent.name + '-' + document.stem)}.als"
-    report = lines(Model(data), alloy_path)
+    alloy_path = pathlib.Path(paths["--als"]) if "--als" in paths else pathlib.Path(tempfile.gettempdir()) / f"{re.sub(r'[^A-Za-z0-9]+', '-', document.resolve().parent.name + '-' + document.stem)}.als"
+    report, proofs = lines(Model(data), alloy_path)
+    if "--proofs" in paths:
+        pathlib.Path(paths["--proofs"]).write_text(json.dumps({"rules": proofs}, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     if mutate:
         musts = {rule["slug"] for rule in data["rules"] if rule["kind"] == "must"}
         passed = [line.split(": ")[0] for line in report if line.endswith(": pass") and line.split(": ")[0] in musts]

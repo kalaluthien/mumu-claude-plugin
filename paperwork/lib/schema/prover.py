@@ -565,10 +565,9 @@ def sit_ids(model, slug):
     return {element_id for _, element_id in model.sits().get(slug, ())}
 
 
-def trace(world, instances, slug):
-    """A counterexample as Schema ids: the nodes whose things witness it, in brackets, then the edges called at each
-    step, ` + ` within a step and `|` between edges one call may stand for; where it names neither, the nodes and
-    edges the rule sits on."""
+def run_of(world, instances):
+    """What a counterexample names: the nodes whose things witness it, and per step its calls, each the sorted edges it
+    may stand for."""
     kinds, atom = {}, lambda atom_id: re.sub(r"\$\d+$", "", atom_id)
     for key, kind in world.edge_kind.items():
         kinds.setdefault(kind, set()).add(key)
@@ -580,8 +579,24 @@ def trace(world, instances, slug):
     steps = []
     for instance in instances or []:
         now = next((value for k, value in instance["values"].items() if k.startswith("Now$")), {})
-        step = sorted({"|".join(sorted(kinds.get(atom(call[0]), ()))) for call in now.get("happens", [])} - {""})
+        step = sorted({tuple(sorted(kinds.get(atom(call[0]), ()))) for call in now.get("happens", [])} - {()})
         if step:
-            steps.append(" + ".join(step))
-    parts = ([f"[{', '.join(witness)}]"] if witness else []) + ([" → ".join(steps)] if steps else [])
+            steps.append(step)
+    return witness, steps
+
+
+def trace(world, instances, slug):
+    """A counterexample as Schema ids: the witness in brackets, then the edges called at each step, ` + ` within a step
+    and `|` between edges one call may stand for; where it names neither, the nodes and edges the rule sits on."""
+    witness, steps = run_of(world, instances)
+    parts = ([f"[{', '.join(witness)}]"] if witness else []) + ([" → ".join(" + ".join("|".join(call) for call in step) for step in steps)] if steps else [])
     return " ".join(parts) or ", ".join(sorted(sit_ids(world.model, slug)))
+
+
+def proof(world, instances, slug):
+    """A counterexample as ids a page can draw: the nodes it concerns, and its steps, one step when it has no run."""
+    witness, steps = run_of(world, instances)
+    edges = lambda step: sorted({key for call in step for key in call})
+    ends = lambda keys: sorted({world.model.edges[key][1][end] for key in keys for end in ("from", "to")})
+    nodes = sorted({*witness, *world.model.concerns(slug)})
+    return {"nodes": nodes, "steps": [{"nodes": ends(edges(step)), "edges": edges(step)} for step in steps] or [{"nodes": witness or nodes, "edges": []}]}
