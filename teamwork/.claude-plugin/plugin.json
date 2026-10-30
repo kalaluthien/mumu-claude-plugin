@@ -1,6 +1,6 @@
 {
   "name": "teamwork",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "license": "Apache-2.0",
   "description": "A manager routes the owner's intent to workers that define, do and close it.",
   "author": { "name": "kalaluthien" },
