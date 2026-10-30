@@ -540,7 +540,7 @@ def capture(page_path, folder):
             if item:
                 open_item(page, item["key"])
                 if moved(item) and "step" in name:
-                    page.locator(f'#{item["key"]} .bar-chip').nth(-1 if item.get("verdict") else 1).click()
+                    page.locator(f'#{item["key"]} .bar-next').click()
                 page.screenshot(path=str(folder / name), full_page=True)
         browser.close()
     print(f"wrote {2 + sum(item is not None for _, item in chosen)} PNGs into {folder}")
