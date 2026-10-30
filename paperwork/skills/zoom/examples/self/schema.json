@@ -113,7 +113,7 @@
         "proof-after-check"
        ],
        "meta": {
-        "source": "paperwork/skills/zoom/scripts/prove-schema.py:33",
+        "source": "paperwork/skills/zoom/scripts/prove-schema.py:36",
         "description": "Alloy gave each rule a verdict, so the document's promises are known to hold or known to break."
        }
       },
@@ -121,7 +121,7 @@
        "id": "shown",
        "label": "Shown",
        "meta": {
-        "source": "paperwork/skills/zoom/scripts/make-page.py:132",
+        "source": "paperwork/skills/zoom/scripts/make-page.py:215",
         "description": "The page is built, so a person can read the system in a browser."
        }
       }
@@ -156,7 +156,7 @@
         "proof-after-check"
        ],
        "meta": {
-        "source": "paperwork/skills/zoom/scripts/prove-schema.py:112",
+        "source": "paperwork/skills/zoom/scripts/prove-schema.py:121",
         "description": "Translate to Alloy and check each rule."
        }
       },
@@ -166,7 +166,7 @@
        "kind": "transition",
        "label": "build the page",
        "meta": {
-        "source": "paperwork/skills/zoom/scripts/make-page.py:323",
+        "source": "paperwork/skills/zoom/scripts/make-page.py:548",
         "description": "Fill the template with the document's data."
        }
       },
@@ -211,7 +211,7 @@
     "label": "Prove script",
     "area": "entries",
     "meta": {
-     "source": "paperwork/skills/zoom/scripts/prove-schema.py:112",
+     "source": "paperwork/skills/zoom/scripts/prove-schema.py:121",
      "description": "Prints one verdict per rule."
     }
    },
@@ -220,7 +220,7 @@
     "label": "Page script",
     "area": "entries",
     "meta": {
-     "source": "paperwork/skills/zoom/scripts/make-page.py:323",
+     "source": "paperwork/skills/zoom/scripts/make-page.py:548",
      "description": "Builds one self-contained page, and measures it in a browser. Its data escapes every `<`, so a description holding `<!-- <script` leaves the page whole."
     }
    },
@@ -309,7 +309,7 @@
     "kind": "call",
     "label": "proves with",
     "meta": {
-     "source": "paperwork/skills/zoom/scripts/prove-schema.py:29",
+     "source": "paperwork/skills/zoom/scripts/prove-schema.py:32",
      "description": "The script prints what Alloy answered."
     }
    },
@@ -319,7 +319,7 @@
     "kind": "call",
     "label": "proves",
     "meta": {
-     "source": "paperwork/skills/zoom/scripts/prove-schema.py:121",
+     "source": "paperwork/skills/zoom/scripts/prove-schema.py:131",
      "description": "Reads one document."
     }
    },
@@ -329,7 +329,7 @@
     "kind": "call",
     "label": "draws from",
     "meta": {
-     "source": "paperwork/skills/zoom/scripts/make-page.py:29",
+     "source": "paperwork/skills/zoom/scripts/make-page.py:31",
      "description": "The page imports the model and nothing that runs a proof."
     }
    },
@@ -339,7 +339,7 @@
     "kind": "call",
     "label": "shows",
     "meta": {
-     "source": "paperwork/skills/zoom/scripts/make-page.py:59",
+     "source": "paperwork/skills/zoom/scripts/make-page.py:64",
      "description": "Reads one document."
     }
    }

@@ -94,6 +94,12 @@ class Model:
             return [], f"{first} → {second} walks a transition backwards"
         return [], wrong
 
+    def concerns(self, slug):
+        """The ids of the nodes a rule sits on, an edge by its two ends."""
+        ends = [element_id for _, element_id in self.sits().get(slug, ()) if element_id in self.nodes]
+        ends += [end for _, element_id in self.sits().get(slug, ()) if element_id in self.edges for end in (self.edges[element_id][1]["from"], self.edges[element_id][1]["to"])]
+        return sorted(set(ends))
+
     def walk(self, scenario):
         """A Scenario's steps resolved once, for the check and the page alike: {nodes, edges} per step, and the problems found."""
         steps, problems, previous = [], [], None
