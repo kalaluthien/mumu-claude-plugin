@@ -111,7 +111,9 @@ def card(criterion, grade, state):
 def decision(critical, other):
     if critical:
         return f"Do not rely on this yet: {counted(critical, 'critical gap')}."
-    return f"Good enough to use, with {counted(other, 'gap')} to close." if other else "Meets every criterion of its rubric."
+    if other > 1:
+        return f"Close {counted(other, 'gap')} before you rely on it."
+    return "Good enough to use, with 1 gap to close." if other else "Meets every criterion of its rubric."
 
 
 def body(rubric, grades):
@@ -211,7 +213,6 @@ def check(folder, picture_folder=None):
                 if why:
                     failures.setdefault(fact, f"{example}: {why}")
             fits(browser, built.as_uri(), example.name, picture_folder)
-        rubric, grades = load(pathlib.Path(folder) / "every-state/rubric.json", pathlib.Path(folder) / "every-state/grades.json")
         all_met = {**grades, "grades": {name: {"met": 1, "runs": [1, 1, 1], "quote": "a quote", "where": "a place"} for name in grades["grades"]}}
         empty = pathlib.Path(temporary_folder) / "all-met.html"
         empty.write_text(built_page(rubric, all_met), encoding="utf-8")
@@ -222,7 +223,7 @@ def check(folder, picture_folder=None):
     for fact in (*frame.FACTS, *PAGE_FACTS):
         if fact not in failures:
             print(f"{fact} ok")
-    print("Each line ending in ok names a fact the browser measured on every page, and `empty fixes` on every-state rebuilt with every criterion met.")
+    print("Each line ending in ok names a fact the browser measured on every page, and `empty fixes` on the last one rebuilt with every criterion met.")
     print("Every page fits 390 and 1200 px in light and dark and cuts no text.")
     if failures:
         raise Refused("; ".join(f"{fact}: {why}" for fact, why in failures.items()))

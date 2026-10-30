@@ -117,7 +117,7 @@ def verdict_problems(criterion, verdict, at):
         return [("form", f"{at}.met", f"{met} is not 0, 1 or null")]
     if met is None:
         return [("reason-missing", at, "not judged, with no reason")] if not verdict.get("reason", "").strip() else []
-    if criterion.get("absence"):
+    if criterion.get("absence") and criterion["check"] == "judge":
         if not verdict.get("items"):
             out.append(("items-missing", at, "an absence criterion lists its items"))
     elif not verdict.get("quote", "").strip() and (met or not verdict.get("searched", "").strip()):

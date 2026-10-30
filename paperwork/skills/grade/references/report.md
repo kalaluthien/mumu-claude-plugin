@@ -34,4 +34,5 @@ Grade one target, a document, skill, code, page or plan, into an HTML report car
 - **Critical split**: a split on a critical criterion is a gap until a person settles it, since a wrong pass there costs the most.
 - **Rating, not a score**: the rating follows AMSTAR 2's pattern of critical and other flaws, "not intended to generate an overall score" (https://www.bmj.com/content/358/bmj.j4008), since an aggregate hides which checks failed (OpenSSF Scorecard, https://github.com/ossf/scorecard).
 - **Feed forward**: each failure carries its evidence and a fix, since "where to next" is the feedback that helps most (Hattie and Timperley, https://doi.org/10.3102/003465430298487).
+- **Content language**: write the rubric in the request's language, and the page's fixed labels stay English or emoji, never Korean; in Korean content, a term takes its settled Sino-Korean word first, else a transliteration with the English beside it.
 - **Not colour alone**: every verdict is a word and an icon as well as a colour (WCAG 1.4.1, https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html).

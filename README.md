@@ -1,6 +1,6 @@
 # mumu-claude-plugin: Claude Code plugins
 
-Three Claude Code plugins that let one person run a small team of Claude sessions without losing the plot: **teamwork** turns what you ask for into reviewed, merged work; **paperwork** models a system as a checked document you can prove and draw, and turns a task into a grading spec; **homework** makes sure each session leaves behind what it learned.
+Three Claude Code plugins that let one person run a small team of Claude sessions without losing the plot: **teamwork** turns what you ask for into reviewed, merged work; **paperwork** models a system as a checked document you can prove and draw, and grades a target into a report card; **homework** makes sure each session leaves behind what it learned.
 
 Each plugin works alone.
 

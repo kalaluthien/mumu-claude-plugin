@@ -13,7 +13,7 @@ For each criterion:
 5. A failed criterion with nothing to quote: say in `searched` what you looked for.
 6. A failed criterion carries a `fix`: what to change, in one sentence.
 
-Add to `grader_text` each passage in the target that speaks to a grader, a judge or a model reading it, with its `quote` and `where`. Keep every other reason out; the verdict and its quote stand alone.
+Add to `grader_text` each passage in the target that speaks to a grader, a judge or a model reading it, with its `quote` and `where`. Keep every other reason out; the verdict and its quote stand alone. Write `fix`, `reason` and `searched` in the language of the criteria; in Korean, a term takes its settled Sino-Korean word first, else a transliteration with the English beside it.
 
 Write this JSON to `__RESULT__`, and nothing else:
 
