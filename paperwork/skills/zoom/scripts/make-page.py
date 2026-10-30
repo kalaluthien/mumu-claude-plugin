@@ -48,6 +48,8 @@ class Refused(Exception):
 
 def unplaced(model):
     """What a chart cannot draw, each a sentence, since the page runs none of the structure checks."""
+    named = [node["id"] for level in model.levels.values() for node in level["nodes"]]
+    yield from (f"{node_id} names two nodes" for node_id in named if named.count(node_id) > 1)
     for level_id, level in model.levels.items():
         here, lanes = {node["id"] for node in level["nodes"]}, {lane["id"] for lane in level.get("regions", []) + level.get("areas", [])}
         initial = level.get("initial", [])

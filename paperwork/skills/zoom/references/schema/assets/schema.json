@@ -113,7 +113,7 @@
       "properties": {
        "id": {"$ref": "#/$defs/id"},
        "label": {"type": "string"},
-       "unit": {"type": "string", "description": "The name a person uses for this group, such as a team or a deploy unit."}
+       "unit": {"type": "string", "pattern": "\\S", "description": "The name a person uses for this group, such as a team or a deploy unit.", "x-rule": "area-cohesion"}
       }
      }
     },
