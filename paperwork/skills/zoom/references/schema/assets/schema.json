@@ -171,7 +171,7 @@
    }
   },
   "rule-slugs": {"type": "array", "description": "The rules this element holds.", "items": {"$ref": "#/$defs/id"}},
-  "id": {"type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$", "x-rule": "name-pattern"},
+  "id": {"type": "string", "pattern": "^(?!root$)[a-z][a-z0-9]*(-[a-z0-9]+)*$", "description": "`root` names the outermost level.", "x-rule": "name-pattern"},
   "type-name": {"type": "string", "pattern": "^[A-Z][A-Za-z0-9]*$", "x-rule": "name-pattern"},
   "member": {"type": "string", "pattern": "^[a-z][A-Za-z0-9]*$", "x-rule": "name-pattern"}
  }

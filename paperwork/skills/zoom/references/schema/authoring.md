@@ -6,7 +6,7 @@ How to write a Schema document well. The grammar is [assets/schema.json](assets/
 
 ### Names
 
-Ids, slugs and type names follow the grammar's patterns [name-pattern]. No two nodes share an id or a label, ignoring case, spaces, `-` and `_`, and no two rules or scenarios share a slug; only an edge's label may recur [unique-names]. No name is an Alloy keyword (`open`, `run`, `in`, `until`, `check`, …) or a translation word (`Now`, `Call`, `happens`, `at`, `self`, `result`) [vocabulary]. Forms by element:
+Ids, slugs and type names follow the grammar's patterns, and no id is `root`, the outermost level's name [name-pattern]. No two nodes share an id or a label, ignoring case, spaces, `-` and `_`, and no two rules or scenarios share a slug; only an edge's label may recur [unique-names]. No name is an Alloy keyword (`open`, `run`, `in`, `until`, `check`, …) or a translation word (`Now`, `Call`, `happens`, `at`, `self`, `result`) [vocabulary]. Forms by element:
 
 - Scenario: verb phrase with object (`land-change`).
 - Rule: a property (`least-privilege`).
