@@ -2,12 +2,21 @@
 import contextlib
 import html
 import pathlib
+import re
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 SECTION_TOP_LIMIT = 120
 TIMEOUT_MS = 5000
+MARK_WAIT_MS = 1000
 PHONE_WIDTH = 390
 SCREEN_WIDTH = 1200
+NARROW_WIDTHS = (PHONE_WIDTH, 820)
+SHORT_SCREEN = 500
+OUTSIDE_POINT = (PHONE_WIDTH - 10, 600)
+CONTROL_WORDS = {"#frame-copy": "Copy this view", "#frame-reset": "Back to start", "#frame-theme": "Light or dark"}
+# Fixed English around Korean content leaves Hangul at about a third of the letters; a quoted Korean word stays under this.
+KOREAN_SHARE = 0.1
+OUTSIDE_PROSE = re.compile(r"<style.*?</style>|<script(?![^>]*json).*?</script>|<[^>]*>", re.S)
 BACKGROUND = "getComputedStyle(document.body).backgroundColor"
 
 
@@ -28,16 +37,24 @@ def links(nav):
     return "".join(out)
 
 
+def language(content):
+    """ko when Hangul is a real share of the letters a reader meets, else en."""
+    prose = OUTSIDE_PROSE.sub("", content)
+    hangul, latin = len(re.findall("[\uac00-\ud7a3]", prose)), len(re.findall("[A-Za-z]", prose))
+    return "ko" if hangul > KOREAN_SHARE * (hangul + latin) else "en"
+
+
 def build(title, content, nav):
     """One self-contained page: the frame's css and script are inlined, so it opens with nothing beside it."""
-    style = "".join(read(name) for name in ("tokens.css", "parts.css", "frame.css"))
-    return (read("frame.html").replace("__TITLE__", html.escape(title)).replace("__STYLE__", style)
-            .replace("__SCRIPT__", read("frame.js")).replace("__NAV__", links(nav)).replace("__CONTENT__", content))
+    fills = {"__LANGUAGE__": language(content), "__TITLE__": html.escape(title), "__NAV__": links(nav), "__CONTENT__": content,
+             "__STYLE__": "".join(read(name) for name in ("tokens.css", "parts.css", "frame.css")), "__SCRIPT__": read("frame.js")}
+    # One pass, so a title or label that reads like a placeholder stays as written.
+    return re.sub("|".join(fills), lambda found: fills[found.group()], read("frame.html"))
 
 
 @contextlib.contextmanager
-def opened(browser, url, width, scheme="light", permissions=(), requests=None):
-    context = browser.new_context(viewport={"width": width, "height": 900}, color_scheme=scheme, permissions=list(permissions))
+def opened(browser, url, width, scheme="light", permissions=(), requests=None, height=900):
+    context = browser.new_context(viewport={"width": width, "height": height}, color_scheme=scheme, permissions=list(permissions))
     context.set_default_timeout(TIMEOUT_MS)
     page = context.new_page()
     if requests is not None:
@@ -146,7 +163,7 @@ def root(browser, url, **_):
 def icons(browser, url, **_):
     with opened(browser, url, SCREEN_WIDTH) as page:
         for button in ("#frame-copy", "#frame-reset"):
-            if not page.locator(f"{button} svg").is_visible() or not page.locator(f"{button} .sr-only").inner_text().strip():
+            if not page.locator(f"{button} svg").is_visible() or not page.locator(f"{button} .frame-word").inner_text().strip():
                 return f"{button} lacks an inline icon or a name a screen reader reads"
             shown = page.locator(f"{button} svg").evaluate("e => [getComputedStyle(e).backgroundColor, getComputedStyle(e).fill]")
             if shown != ["rgba(0, 0, 0, 0)", "none"]:
@@ -154,8 +171,99 @@ def icons(browser, url, **_):
     return None
 
 
+def menu_under_bar(browser, url, **_):
+    for width in NARROW_WIDTHS:
+        with opened(browser, url, width) as page:
+            page.locator("#frame-menu").click()
+            bar, nav = page.locator(".frame-top").bounding_box(), page.locator(".frame-nav").bounding_box()
+            if abs(nav["y"] - (bar["y"] + bar["height"])) > 1:
+                return f"at {width} px the navigation starts at {nav['y']}, the top bar ends at {bar['y'] + bar['height']}"
+    return None
+
+
+def menu_closed(browser, url, **_):
+    with opened(browser, url, PHONE_WIDTH) as page:
+        if shown := [link for link in page.locator(".frame-nav a").all() if link.is_visible()]:
+            return f"{shown[0].inner_text()} shows while the navigation is closed"
+    return None
+
+
+def long_menu(browser, url, **_):
+    for width in NARROW_WIDTHS:
+        with opened(browser, url, width, height=SHORT_SCREEN) as page:
+            page.locator("#frame-menu").click()
+            nav = page.locator(".frame-nav").bounding_box()
+            if nav["y"] + nav["height"] > SHORT_SCREEN + 1:
+                return f"at {width} px the navigation ends at {nav['y'] + nav['height']}, below the screen"
+            page.locator(".frame-nav a").last.scroll_into_view_if_needed()
+            link = page.locator(".frame-nav a").last.bounding_box()
+            if link["y"] + link["height"] > SHORT_SCREEN + 1:
+                return f"at {width} px the last link stays below the screen"
+    return None
+
+
+def outside_press(browser, url, **_):
+    with opened(browser, url, PHONE_WIDTH) as page:
+        page.locator("#frame-menu").click()
+        page.mouse.click(*OUTSIDE_POINT)
+        if page.locator(".frame-nav").is_visible():
+            return "a press outside leaves the navigation open"
+    return None
+
+
+def sub_link_current(browser, url, **_):
+    with opened(browser, url, SCREEN_WIDTH) as page:
+        links = page.locator(".lnb-subitem a")
+        if links.count() < 2:
+            return None
+        links.nth(1).click()
+        look = "e => { const s = getComputedStyle(e); return [s.color, s.backgroundColor, s.fontWeight]; }"
+        try:
+            page.wait_for_function("document.querySelectorAll('.lnb-subitem a')[1].hasAttribute('aria-current')", timeout=MARK_WAIT_MS)
+        except Exception:
+            return f"{links.nth(1).inner_text()} is not marked after a press"
+        if links.nth(1).evaluate(look) == links.nth(0).evaluate(look):
+            return f"{links.nth(1).inner_text()} looks like the links around it"
+    return None
+
+
+def print_light(browser, url, **_):
+    with opened(browser, url, SCREEN_WIDTH, scheme="dark") as page:
+        page.evaluate("""() => { window.printedTheme = null;
+            addEventListener("beforeprint", () => { window.printedTheme = document.documentElement.dataset.theme; }); }""")
+        page.pdf()
+        found = page.evaluate("[window.printedTheme, document.documentElement.dataset.theme]")
+        if found != ["light", "dark"]:
+            return f"a print of a dark page reads {found[0]} and leaves it {found[1]}"
+    return None
+
+
+def print_menu(browser, url, **_):
+    with opened(browser, url, PHONE_WIDTH) as page:
+        page.locator("#frame-menu").click()
+        page.emulate_media(media="print")
+        if page.locator(".frame-nav").is_visible():
+            return "a print of a narrow page shows the open menu"
+    return None
+
+
+def control_words(browser, url, **_):
+    with opened(browser, url, SCREEN_WIDTH) as page:
+        for button, word in CONTROL_WORDS.items():
+            if not page.locator(f"{button} .frame-word").is_visible() or page.locator(button).inner_text().strip() != word:
+                return f"{button} does not show {word}"
+    with opened(browser, url, PHONE_WIDTH) as page:
+        if page.evaluate("document.querySelector('.frame-top').scrollWidth > document.querySelector('.frame-top').clientWidth"):
+            return "the top bar runs past the screen"
+        if page.locator("#frame-copy .frame-word").inner_text().strip() != CONTROL_WORDS["#frame-copy"]:
+            return "a narrow control leaves a screen reader no word"
+    return None
+
+
 FACTS = {"left navigation": left_navigation, "right body": right_body, "copy": copy, "reset": reset, "theme": theme,
-         "root": root, "icons": icons}
+         "root": root, "icons": icons, "menu under bar": menu_under_bar, "menu closed": menu_closed, "long menu": long_menu,
+         "outside press": outside_press, "sub-link current": sub_link_current, "print light": print_light,
+         "print menu": print_menu, "control words": control_words}
 
 
 def probe(browser, url, **expected):

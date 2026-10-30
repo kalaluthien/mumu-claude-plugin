@@ -38,8 +38,10 @@ function startNavigation() {
     if (open && !wasOpen) links[0].focus();
     if (!open && wasOpen) menu.focus();
   };
+  // A page's sticky bars set where a link lands, so a section is reached a little below its own scroll margin.
+  const reached = section => section.getBoundingClientRect().top <= parseFloat(getComputedStyle(section).scrollMarginTop) + 28;
   const markCurrent = () => {
-    const current = sections.filter(section => section.getBoundingClientRect().top <= 96).pop() || sections[0];
+    const current = sections.filter(reached).pop() || sections[0];
     links.forEach((link, i) => {
       link.classList.toggle("selected", sections[i] === current);
       if (sections[i] === current) link.setAttribute("aria-current", "location");
@@ -49,7 +51,10 @@ function startNavigation() {
   menu.addEventListener("click", () => showMenu(!nav.classList.contains("open")));
   links.forEach(link => link.addEventListener("click", () => showMenu(false)));
   addEventListener("keydown", event => { if (event.key === "Escape") showMenu(false); });
+  addEventListener("pointerdown", event => { if (!nav.contains(event.target) && !menu.contains(event.target)) showMenu(false); });
   addEventListener("scroll", markCurrent, {passive: true});
+  // A press on a link already in view scrolls nothing, so the scroll alone would leave the old mark.
+  addEventListener("hashchange", markCurrent);
   markCurrent();
 }
 
