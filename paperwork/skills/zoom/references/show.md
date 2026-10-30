@@ -11,7 +11,7 @@ One checked Schema document drawn as one self-contained, read-only html page: a 
 
 ## Steps
 
-1. Run `../scripts/make-page.py doc.json out.html`, which reads the document and refuses one that breaks the grammar or a scenario that leaves the edges. It runs no proof, so a page never waits on Alloy.
+1. Run `../scripts/make-page.py doc.json out.html`, which reads the document and refuses one that breaks the grammar, names what a chart cannot place, or has a scenario that leaves the edges. It runs no proof, so a page never waits on Alloy.
 2. Run `uv run --with playwright==1.64.1 python3 ../scripts/make-page.py --check <dir>` over a folder of `<name>/schema.json`, until it prints `ok <n>` and a line per fact.
 3. Run `--layout <dir>` the same way, until it prints `layout ok <n>`.
 4. Run `--capture out.html <dir>` and look at each PNG; a measure cannot see a chart that reads badly.

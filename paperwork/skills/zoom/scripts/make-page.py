@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Build the clickable HTML page of one Schema document; it runs no proof.
 
-usage: make-page.py DOC.json OUT.html       one self-contained page; refused when the document breaks the grammar or a
-                                              scenario leaves the edges
+usage: make-page.py DOC.json OUT.html       one self-contained page; refused when the document breaks the grammar, a
+                                              chart has a name it cannot place or a scenario
+                                              leaves the edges
        make-page.py --check DIR             build every DIR/X/schema.json, check the page in headless Chromium and print
                                               "ok N", then "<fact> ok" for each fact it measured on every page; a kept
                                               DIR/X/page.html must equal the page built
@@ -44,6 +45,18 @@ class Refused(Exception):
     pass
 
 
+def unplaced(model):
+    """What a chart cannot draw, each a sentence, since the page runs none of the structure checks."""
+    for level_id, level in model.levels.items():
+        here, lanes = {node["id"] for node in level["nodes"]}, {lane["id"] for lane in level.get("regions", []) + level.get("areas", [])}
+        initial = level.get("initial", [])
+        for edge in level["edges"]:
+            yield from (f'{level_id}: {edge["label"]} ends on {end}, no node of this level' for end in (edge["from"], edge["to"]) if end not in here)
+        for node in level["nodes"]:
+            yield from (f'{level_id}: {node["id"]} sits in {lane}, no region or area of this level' for lane in (node.get("region"), node.get("area")) if lane and lane not in lanes)
+        yield from (f'{level_id}: {start} starts no node of this level' for start in ([initial] if isinstance(initial, str) else initial) if start not in here)
+
+
 def load(path):
     """The document's model, or Refused naming the first thing that stops the page."""
     try:
@@ -53,6 +66,8 @@ def load(path):
     if wrong := shape(document):
         raise Refused(f"{path}: {wrong[0][1]}")
     model = Model(document)
+    if wrong := next(unplaced(model), None):
+        raise Refused(f"{path}: {wrong}")
     for scenario in document["scenarios"]:
         if wrong := model.walk(scenario)[1]:
             raise Refused(f"{path}: {wrong[0]}")
