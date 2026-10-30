@@ -64,7 +64,7 @@ def fixtures():
     known, failed = rules(), 0
     for fixture_path in sorted(FIXTURES.glob("*.json")):
         errors = {rule for rule, _ in violations(json.loads(fixture_path.read_text(encoding="utf-8")), ROOT)}
-        named = fixture_path.stem if fixture_path.stem in known else None
+        named = next((rule for rule in known if fixture_path.stem == rule or fixture_path.stem.startswith(f"{rule}-")), None)
         good = errors == {named} if named else not errors
         failed += not good
         got = "rejected by " + ", ".join(sorted(errors)) if errors else "accepted"

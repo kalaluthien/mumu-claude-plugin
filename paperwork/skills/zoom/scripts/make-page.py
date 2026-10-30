@@ -118,8 +118,8 @@ def navigation(model):
 def build(path):
     model = load(path)
     sections = "\n".join(section(model, level_id) for level_id in model.levels)
-    # the data goes in last, so no text of the document is read as a placeholder; `</` would close its script
-    data = json.dumps(page_data(model), ensure_ascii=False).replace("</", "<\\/")
+    # the data goes in last, so no text of the document is read as a placeholder; a `<` could close or hide its script
+    data = json.dumps(page_data(model), ensure_ascii=False).replace("<", "\\u003c")
     content = TEMPLATE.read_text(encoding="utf-8").replace("__SECTIONS__", sections).replace("__DATA__", data)
     return frame.build(model.document["title"], content, navigation(model))
 

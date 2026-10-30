@@ -1,0 +1,100 @@
+{
+ "version": "2",
+ "title": "Fixture",
+ "types": {},
+ "scenarios": [
+  {
+   "slug": "finish-a-job",
+   "text": "A job finishes.",
+   "walk": [
+    {
+     "place": "waiting",
+     "does": "The job waits.",
+     "expects": "It is waiting."
+    },
+    {
+     "place": "done",
+     "does": "The job finishes.",
+     "expects": "It is done."
+    }
+   ]
+  }
+ ],
+ "rules": [
+  {
+   "slug": "done-stays",
+   "kind": "should",
+   "formula": "all job: Job | job in Done implies after job in Done",
+   "meta": {
+    "source": "paperwork/skills/zoom/SKILL.md:1",
+    "description": "A finished job stays finished."
+   }
+  }
+ ],
+ "level": {
+  "title": "Jobs",
+  "why": "How a job moves.",
+  "subject": "Job",
+  "initial": "waiting",
+  "nodes": [
+   {
+    "id": "waiting",
+    "label": "Waiting",
+    "meta": {
+     "source": "../outside.md:1",
+     "description": "Waiting in the fixture."
+    }
+   },
+   {
+    "id": "done",
+    "label": "Done",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "Done in the fixture."
+    }
+   },
+   {
+    "id": "job",
+    "label": "Job",
+    "attrs": [
+     "owner: Worker"
+    ],
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "Job in the fixture."
+    }
+   },
+   {
+    "id": "worker",
+    "label": "Worker",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "Worker in the fixture."
+    }
+   }
+  ],
+  "edges": [
+   {
+    "from": "waiting",
+    "to": "done",
+    "kind": "transition",
+    "label": "finish",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "finish in the fixture."
+    }
+   },
+   {
+    "from": "job",
+    "to": "worker",
+    "kind": "call",
+    "label": "assign",
+    "attr": "owner",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "assign in the fixture."
+    }
+   }
+  ]
+ }
+}

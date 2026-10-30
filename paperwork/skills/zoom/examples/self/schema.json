@@ -221,7 +221,7 @@
     "area": "entries",
     "meta": {
      "source": "paperwork/skills/zoom/scripts/make-page.py:299",
-     "description": "Builds one self-contained page, and measures it in a browser."
+     "description": "Builds one self-contained page, and measures it in a browser. Its data escapes every `<`, so a description holding `<!-- <script` leaves the page whole."
     }
    },
    {
