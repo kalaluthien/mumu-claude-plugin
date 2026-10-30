@@ -20,7 +20,7 @@ What each one needs on your machine; every Python 3 below means Python 3.9 or la
 | plugin or feature | needs |
 | --- | --- |
 | teamwork | Python 3; `git`; [`gh`](https://cli.github.com/), signed in; [herdr](https://herdr.dev), the terminal workspace where sessions live and talk by name |
-| paperwork | Python 3 and `git`, with [`uv`](https://docs.astral.sh/uv/); Google Chrome for checking pages and diagrams; Node, `npm` and a Playwright headless Chromium for the optional [pele](https://www.npmjs.com/package/pele) diagrams (`npm` fetches pele on first use, not the Chromium); Java for the optional Alloy proofs (`prove-schema.py --fetch` downloads the Alloy jar) |
+| paperwork | Python 3 and `git`, with [`uv`](https://docs.astral.sh/uv/); Google Chrome for checking pages and diagrams; Java for the optional Alloy proofs (`prove-schema.py --fetch` downloads the Alloy jar) |
 | homework | Python 3; `git`; `gh`, signed in, to read the issue comments a session wrote |
 | Claude Code | 2.1.299 or later |
 
@@ -96,7 +96,7 @@ flowchart TB
 
 One Schema document holds what a system is, or must be, and every view is drawn from it after a checker passes it.
 
-- [`/paperwork:zoom`](paperwork/skills/zoom/SKILL.md) models a system, from code, docs or requirements, as a checked Schema document, then proves it with Alloy (needs Java) or shows it as a Mermaid diagram in chat, a clickable HTML page or an SVG.
+- [`/paperwork:zoom`](paperwork/skills/zoom/SKILL.md) models a system, from code, docs or requirements, as a checked Schema document, then proves it with Alloy (needs Java) or shows it as a clickable HTML page.
 - [`/paperwork:grade`](paperwork/skills/grade/SKILL.md) grades a target, a document, skill, code, page or plan, into an HTML report card: it finds what the target is for, derives a rubric for it and grades it with quoted evidence; it also writes, measures and repairs grading specs for a judge, a benchmark or a human grading sheet.
 - [`/paperwork:tree`](paperwork/skills/tree/SKILL.md) writes a plan as one checked JSON document, shows it as a page where the owner picks, strikes, comments and edits, and reads the copied Answer back into the plan's next version.
 
