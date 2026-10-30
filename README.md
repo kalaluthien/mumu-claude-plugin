@@ -1,5 +1,7 @@
 # mumu-claude-plugin: Claude Code plugins
 
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-donate-yellow)](https://buymeacoffee.com/kalaluthien)
+
 Three Claude Code plugins that let one person run a small team of Claude sessions without losing the plot: **teamwork** turns what you ask for into reviewed, merged work; **paperwork** models a system as a checked document you can prove and draw, and grades a target into a report card; **homework** makes sure each session leaves behind what it learned.
 
 Each plugin works alone.
