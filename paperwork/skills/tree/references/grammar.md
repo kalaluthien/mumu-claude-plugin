@@ -52,13 +52,14 @@ A refusal prints `path: rule: detail`.
 | `default-blocked` | a `pick` blocked when every pick stands, so the default path cannot hold |
 | `dead-end` | answers, Other among them, that leave a needed Decision with no open option |
 | `unused-name` | a `name` no relation uses |
+| `too-many-named` | more than eight named Decisions, since each multiplies the answers the graph tries; split the plan |
 | `nested-decision` | a Decision inside a Decision's `parts` |
 | `bad-kind` | a `kind` that is not lowercase letters and `-` |
 | `wrong-type` | a value of the wrong JSON type |
 | `missing-key` | a plan with no `parts` |
 | `bad-json` | text that is not JSON |
 
-The refused fixtures in [../fixtures/refused/](../fixtures/refused/) show the refusals. `answer-plan.json` is a valid plan, and its four `*.answer.md` are refused by the reader, not the checker: `read-answer.py --expect-refused fixtures/refused/answer-plan.json fixtures/refused/*.answer.md` prints `refused 4 of 4`.
+The refused fixtures in [../fixtures/refused/](../fixtures/refused/) show the refusals. `answer-plan.json` is a valid plan, and its five `*.answer.md` are refused by the reader, not the checker: `read-answer.py --expect-refused fixtures/refused/answer-plan.json fixtures/refused/*.answer.md` prints `refused 5 of 5`.
 
 ## Answer
 
@@ -75,7 +76,7 @@ One Markdown form, one line per Part touched, nothing for a Part kept. A pressed
 
 The stamp is the first eight hex digits of the SHA-256 of the plan's JSON with sorted keys and no spaces; `make-page.py` writes it into the page. An Answer whose title or stamp differs from the plan it is read against is refused, since ids are positions and an older version's ids name other Parts; `stale.answer.md` shows it.
 
-A Part may have several lines, such as a pick and a comment, but one pick or other at most. The reader refuses with the line number: an unknown id, a `pick` out of range, a `pick` of a blocked option or of a Decision not needed, a strike of a Part another Decision depends on, `pick` on a Part with no options, or a line it cannot parse.
+A Part may have several lines, such as a pick and a comment, but one pick or other at most. The reader refuses with the line number: an unknown id, a `pick` out of range, a `pick` of a blocked option, a `pick` or `other` of a Decision not needed, a strike of a Part another Decision depends on, `pick` on a Part with no options, or a line it cannot parse.
 
 ## Apply
 

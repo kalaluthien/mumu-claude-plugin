@@ -1,0 +1,160 @@
+{
+  "title": "Nine named Decisions",
+  "parts": [
+    {
+      "text": "Step 1?",
+      "name": "step-1",
+      "pick": {
+        "text": "Yes",
+        "name": "yes"
+      },
+      "else": [
+        {
+          "text": "No"
+        }
+      ]
+    },
+    {
+      "text": "Step 2?",
+      "name": "step-2",
+      "pick": {
+        "text": "Yes",
+        "name": "yes"
+      },
+      "else": [
+        {
+          "text": "No"
+        }
+      ],
+      "requires": [
+        "step-1.yes"
+      ]
+    },
+    {
+      "text": "Step 3?",
+      "name": "step-3",
+      "pick": {
+        "text": "Yes",
+        "name": "yes"
+      },
+      "else": [
+        {
+          "text": "No"
+        }
+      ],
+      "requires": [
+        "step-2.yes"
+      ]
+    },
+    {
+      "text": "Step 4?",
+      "name": "step-4",
+      "pick": {
+        "text": "Yes",
+        "name": "yes"
+      },
+      "else": [
+        {
+          "text": "No"
+        }
+      ],
+      "requires": [
+        "step-3.yes"
+      ]
+    },
+    {
+      "text": "Step 5?",
+      "name": "step-5",
+      "pick": {
+        "text": "Yes",
+        "name": "yes"
+      },
+      "else": [
+        {
+          "text": "No"
+        }
+      ],
+      "requires": [
+        "step-4.yes"
+      ]
+    },
+    {
+      "text": "Step 6?",
+      "name": "step-6",
+      "pick": {
+        "text": "Yes",
+        "name": "yes"
+      },
+      "else": [
+        {
+          "text": "No"
+        }
+      ],
+      "requires": [
+        "step-5.yes"
+      ]
+    },
+    {
+      "text": "Step 7?",
+      "name": "step-7",
+      "pick": {
+        "text": "Yes",
+        "name": "yes"
+      },
+      "else": [
+        {
+          "text": "No"
+        }
+      ],
+      "requires": [
+        "step-6.yes"
+      ]
+    },
+    {
+      "text": "Step 8?",
+      "name": "step-8",
+      "pick": {
+        "text": "Yes",
+        "name": "yes"
+      },
+      "else": [
+        {
+          "text": "No"
+        }
+      ],
+      "requires": [
+        "step-7.yes"
+      ]
+    },
+    {
+      "text": "Step 9?",
+      "name": "step-9",
+      "pick": {
+        "text": "Yes",
+        "name": "yes"
+      },
+      "else": [
+        {
+          "text": "No"
+        }
+      ],
+      "requires": [
+        "step-8.yes"
+      ]
+    },
+    {
+      "text": "Step 10?",
+      "requires": [
+        "step-9.yes"
+      ],
+      "pick": {
+        "text": "Yes"
+      },
+      "else": [
+        {
+          "text": "No"
+        }
+      ]
+    }
+  ]
+}

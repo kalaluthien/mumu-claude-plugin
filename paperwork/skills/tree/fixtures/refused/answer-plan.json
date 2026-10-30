@@ -31,6 +31,15 @@
           "text": "A file on disk"
         }
       ]
+    },
+    {
+      "text": "Which backup?",
+      "requires": [
+        "store.postgres"
+      ],
+      "pick": {
+        "text": "Nightly"
+      }
     }
   ]
 }

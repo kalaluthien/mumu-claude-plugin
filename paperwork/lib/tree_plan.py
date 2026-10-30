@@ -14,6 +14,8 @@ KIND_PATTERN = re.compile(r"^[a-z][a-z-]*$")
 SOURCE_URL_PATTERN = re.compile(r"^https?://(?!localhost\b|127\.0\.0\.1\b|\[::1\])[^\s/]+\.[^\s/]+(/\S*)?$")
 SOURCE_PERSON_PATTERN = re.compile(r"^[^/\\:,]+, \d{4}-\d{2}-\d{2}$")
 NAME_PATTERN = re.compile(r"^[a-z][a-z0-9-]*$")
+# Each named Decision multiplies the answers the graph tries, and a graph this wide no reader can review.
+NAMED_LIMIT = 8
 PLAN_KEYS = {"title", "files", "parts"}
 OPTION_KEYS = {"text", "parts", "name", "requires", "excludes", "files"}
 PLAIN_KEYS = {"text", "kind", "source", "parts"}
@@ -349,6 +351,9 @@ def _graph_errors(plan):
             earlier[decision["name"]] = {option.get("name") for option in options(decision)}
     if errors:
         return errors
+    named = sum("name" in decision for _, decision in graph)
+    if named > NAMED_LIMIT:
+        return [("$.parts", "too-many-named", f"{named} named Decisions, at most {NAMED_LIMIT}: split the plan")]
     for part_id, entry in evaluate(plan).items():
         if entry["cause"] is None and entry["blockers"][0]:
             errors.append((f"part {part_id}", "default-blocked", f"the pick is blocked by '{entry['blockers'][0]}' when every pick stands"))
@@ -461,7 +466,7 @@ def _answers_of(plan, entries):
             raise AnswerError(line_number, f"pick {argument} is out of range 1-{len(options(part))} for part {part_id}")
     state = evaluate(plan, answers)
     for line_number, part_id, verb, argument in entries:
-        if verb == "pick" and state[part_id]["cause"]:
+        if verb in ("pick", "other") and state[part_id]["cause"]:
             raise AnswerError(line_number, f"part {part_id} is not needed: it requires {state[part_id]['cause']}")
         if verb == "pick" and state[part_id]["blockers"][argument - 1]:
             raise AnswerError(line_number, f"pick {argument} of part {part_id} is blocked by {state[part_id]['blockers'][argument - 1]}")
