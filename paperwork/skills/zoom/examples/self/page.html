@@ -2329,6 +2329,7 @@ function start({copy, reset}) {
 .bar-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .bar-count { font-weight: 600; color: var(--ink); }
 .bar-steps { order: 1; flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px; list-style: none; margin: 0; padding: 0; }
+.bar-steps-label { align-self: center; margin-right: 4px; color: var(--muted); font-size: var(--text-meta); }
 .krds-btn.bar-chip { width: 32px; padding: 0; border-radius: var(--krds-radius-max); overflow-wrap: normal; }
 .krds-btn.bar-chip[aria-current="step"] { background: var(--accent); color: var(--krds-color-text-basic-inverse, #fff); }
 .bar-run { margin: 8px 0 0; padding-left: 1.4em; color: var(--muted); }
@@ -2386,7 +2387,7 @@ function start({copy, reset}) {
 <h1>zoom&#x27;s parts</h1>
 <p class="lede">Three entries share one document: the checker keeps it sound, the prover answers on it, and the page shows it. The page runs no proof and no check of its own, so each side can be replaced alone. Its template fills in one pass, so a text holding `__DATA__` stays as written.</p>
 <div class="chart" data-level="root"></div>
-<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li><li><span class="frame-tag pass">✓ Pass</span> A rule holds</li><li><span class="frame-tag fail">✗ Counterexample</span> A run breaks it</li><li>Press a box or a line to read it and its source</li></ul>
+<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li><li>✓ <span class="frame-tag pass">Pass</span> A rule holds</li><li>✗ <span class="frame-tag fail">Counterexample</span> A run breaks it</li><li>Press a box or a line to read it and its source</li></ul>
 <h2 class="inside-heading">Main parts</h2>
 <ul class="inside" aria-label="What is inside"><li><a href="#level-document">A document&#x27;s life</a>: Drafted, Checked, Proved, Shown</li></ul>
 <div class="detail" hidden></div>
@@ -2396,7 +2397,7 @@ function start({copy, reset}) {
 <h1>A document&#x27;s life</h1>
 <p class="lede">A document is worked on until the checker accepts it. Only then does the prover read it or the page show it, and any edit sends it back.</p>
 <div class="chart" data-level="document"></div>
-<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li><li><span class="frame-tag pass">✓ Pass</span> A rule holds</li><li><span class="frame-tag fail">✗ Counterexample</span> A run breaks it</li><li>Press a box or a line to read it and its source</li></ul>
+<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li><li>✓ <span class="frame-tag pass">Pass</span> A rule holds</li><li>✗ <span class="frame-tag fail">Counterexample</span> A run breaks it</li><li>Press a box or a line to read it and its source</li></ul>
 
 <div class="detail" hidden></div>
 </section>
@@ -2926,7 +2927,9 @@ function drawBar(item) {
   if (step) {
     const controls = tag("div", "bar-controls");
     const chips = tag("ol", "bar-steps");
-    chips.append(...item.steps.map((_, index) => stepChip(index)));
+    const chipsLabel = tag("li", "bar-steps-label", "Steps");
+    chipsLabel.setAttribute("aria-hidden", "true");
+    chips.append(chipsLabel, ...item.steps.map((_, index) => stepChip(index)));
     controls.append(stepControl("bar-previous", "Previous", stepAt === 0), chips, stepControl("bar-next", "Next", stepAt === item.steps.length - 1), tag("span", "bar-count", `Step ${stepAt + 1} of ${item.steps.length}`));
     // a run has only ids behind it, so it reads best whole; a scenario's steps carry their own sentences
     const said = item.verdict ? runList(item) : tag("dl", "bar-step");

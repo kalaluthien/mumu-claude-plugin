@@ -82,6 +82,7 @@
 .bar-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .bar-count { font-weight: 600; color: var(--ink); }
 .bar-steps { order: 1; flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px; list-style: none; margin: 0; padding: 0; }
+.bar-steps-label { align-self: center; margin-right: 4px; color: var(--muted); font-size: var(--text-meta); }
 .krds-btn.bar-chip { width: 32px; padding: 0; border-radius: var(--krds-radius-max); overflow-wrap: normal; }
 .krds-btn.bar-chip[aria-current="step"] { background: var(--accent); color: var(--krds-color-text-basic-inverse, #fff); }
 .bar-run { margin: 8px 0 0; padding-left: 1.4em; color: var(--muted); }
@@ -648,7 +649,9 @@ function drawBar(item) {
   if (step) {
     const controls = tag("div", "bar-controls");
     const chips = tag("ol", "bar-steps");
-    chips.append(...item.steps.map((_, index) => stepChip(index)));
+    const chipsLabel = tag("li", "bar-steps-label", "Steps");
+    chipsLabel.setAttribute("aria-hidden", "true");
+    chips.append(chipsLabel, ...item.steps.map((_, index) => stepChip(index)));
     controls.append(stepControl("bar-previous", "Previous", stepAt === 0), chips, stepControl("bar-next", "Next", stepAt === item.steps.length - 1), tag("span", "bar-count", `Step ${stepAt + 1} of ${item.steps.length}`));
     // a run has only ids behind it, so it reads best whole; a scenario's steps carry their own sentences
     const said = item.verdict ? runList(item) : tag("dl", "bar-step");

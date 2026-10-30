@@ -39,7 +39,7 @@ GROUPS = (("scenarios", "Scenarios", "Scenario"), ("rules", "Rules", "Rule"))
 WHY = {"scenarios": "Each one walks the chart step by step.", "rules": "Each one marks what it concerns, and a counterexample plays its run."}
 VERDICTS = {"pass": "✓", "counterexample": "✗", "unproved": "?"}
 RESPONSE_PATHS = ("fetch(", "XMLHttpRequest", "sendBeacon", "WebSocket", "<form", "<input", "<textarea", "<select")
-HINTS = ('<span class="frame-tag pass">✓ Pass</span> A rule holds', '<span class="frame-tag fail">✗ Counterexample</span> A run breaks it', "Press a box or a line to read it and its source")
+HINTS = ('✓ <span class="frame-tag pass">Pass</span> A rule holds', '✗ <span class="frame-tag fail">Counterexample</span> A run breaks it', "Press a box or a line to read it and its source")
 LEGEND = {
     "state": ('<rect x="1" y="1" width="26" height="14" rx="5"/>', "State: where a thing is now"),
     "part": ('<rect x="1" y="1" width="26" height="14" rx="1"/>', "Part: a piece of the system"),
