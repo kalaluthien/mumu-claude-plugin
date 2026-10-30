@@ -8,8 +8,8 @@ usage: prove-schema.py doc.json [--als out.als] [--mutate]
       <rule>: counterexample <trace>   a run breaks it; the trace names Schema node and edge ids
       <rule>: unproved: <reason>       no Alloy here, Alloy refused the module, or the check ran past the time limit
       With --mutate, each passing `must` is checked again on copies of the document that each drop one restriction (a
-      sync by its name, an operation's `<Op>:pre` or `<Op>:post`, or a `must` by its slug, the rule's own when it is a
-      guard on an edge and so holds by construction), and its line ends:
+      sync by its name, or a `must` by its slug, the rule's own when it is a guard on an edge and so holds by
+      construction), and its line ends:
       <rule>: pass, fails without <id>, ...   the restrictions whose loss breaks it: the pass can fail
       <rule>: pass, unfalsified                no single loss breaks it: it holds by the structure alone, or is vacuous
       a copy Alloy gives no answer for is named after either, as `(no answer without <id>, ...)`.
@@ -61,12 +61,6 @@ def restrictions(data):
             variant = copy.deepcopy(data)
             variant["rules"][index]["kind"] = "should"   # still checked, no longer assumed or a guard
             yield rule["slug"], variant
-    for index, operation in enumerate(data.get("operations", [])):
-        for part in ("pre", "post"):
-            if part in operation:
-                variant = copy.deepcopy(data)
-                del variant["operations"][index][part]
-                yield f"{operation['slug']}:{part}", variant
     for path, sync in syncs(data):
         variant = copy.deepcopy(data)
         at = variant

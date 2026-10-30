@@ -1,100 +1,99 @@
 {
- "version": "1",
- "title": "Release",
- "plan": {
-  "intent": "How does a change get released?"
- },
+ "version": "2",
+ "title": "Fixture",
+ "types": {},
  "scenarios": [
   {
-   "slug": "ship-change",
-   "text": "When a change is ready, the pipeline builds it on the build server and ships it.",
+   "slug": "finish-a-job",
+   "text": "A job finishes.",
    "walk": [
     {
-     "place": "build",
-     "does": "The pipeline builds the change.",
-     "expects": "A package exists."
+     "place": "waiting",
+     "does": "The job waits.",
+     "expects": "It is waiting."
     },
     {
-     "place": "server",
-     "does": "The build server compiles the code.",
-     "expects": "The package is on the server."
-    },
-    {
-     "place": "cache",
-     "does": "The server reuses old builds.",
-     "expects": "Unchanged parts come from the cache."
-    },
-    {
-     "place": "ship",
-     "does": "The pipeline ships the package.",
-     "expects": "The package is live."
+     "place": "done",
+     "does": "The job finishes.",
+     "expects": "It is done."
     }
    ]
   }
  ],
- "operations": [],
  "rules": [
   {
-   "slug": "packaged-first",
-   "kind": "must",
-   "formula": "some Package",
-   "text": "A release ships a package."
+   "slug": "done-stays",
+   "kind": "should",
+   "formula": "all job: Job | job in Nothing",
+   "meta": {
+    "source": "paperwork/skills/zoom/SKILL.md:1",
+    "description": "A finished job stays finished."
+   }
   }
  ],
  "level": {
-  "kind": "workflow",
-  "title": "Release",
-  "why": "The steps from change to live.",
+  "title": "Jobs",
+  "why": "How a job moves.",
+  "subject": "Job",
+  "initial": "waiting",
   "nodes": [
    {
-    "id": "build",
-    "label": "Building change",
-    "what": "Compile and test.",
-    "link": "view",
-    "opens": {
-     "kind": "topology",
-     "title": "Build server",
-     "why": "What builds the change.",
-     "nodes": [
-      {
-       "id": "server",
-       "label": "Server",
-       "what": "Runs the build."
-      },
-      {
-       "id": "cache",
-       "label": "Cache",
-       "what": "Keeps old builds."
-      }
-     ],
-     "edges": [
-      {
-       "from": "server",
-       "to": "cache",
-       "label": "reads builds",
-       "what": "The server reuses old builds."
-      }
-     ]
+    "id": "waiting",
+    "label": "Waiting",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "Waiting in the fixture."
     }
    },
    {
-    "id": "ship",
-    "label": "Shipping package",
-    "what": "Deploy the package.",
-    "rules": [
-     "packaged-first"
-    ]
+    "id": "done",
+    "label": "Done",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "Done in the fixture."
+    }
+   },
+   {
+    "id": "job",
+    "label": "Job",
+    "attrs": [
+     "owner: Worker"
+    ],
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "Job in the fixture."
+    }
+   },
+   {
+    "id": "worker",
+    "label": "Worker",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "Worker in the fixture."
+    }
    }
   ],
   "edges": [
    {
-    "from": "build",
-    "to": "ship",
-    "label": "package",
-    "what": "The built package.",
-    "mark": [
-     "happy"
-    ]
+    "from": "waiting",
+    "to": "done",
+    "kind": "transition",
+    "label": "finish",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "finish in the fixture."
+    }
+   },
+   {
+    "from": "job",
+    "to": "worker",
+    "kind": "call",
+    "label": "assign",
+    "attr": "owner",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "assign in the fixture."
+    }
    }
   ]
  }

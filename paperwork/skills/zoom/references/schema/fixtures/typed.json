@@ -1,113 +1,99 @@
 {
- "version": "1",
- "title": "Order",
- "plan": {
-  "intent": "Which states does an order pass through?"
- },
- "types": {
-  "Order": "One customer's request to buy."
- },
+ "version": "2",
+ "title": "Fixture",
+ "types": {},
  "scenarios": [
   {
-   "slug": "pay-order",
-   "text": "When a customer pays, the order goes from open to paid and the ledger records it.",
+   "slug": "finish-a-job",
+   "text": "A job finishes.",
    "walk": [
     {
-     "place": "open",
-     "does": "The order waits for payment.",
-     "expects": "The order is open."
+     "place": "waiting",
+     "does": "The job waits.",
+     "expects": "It is waiting."
     },
     {
-     "place": "paid",
-     "does": "The customer pays.",
-     "expects": "The order is paid."
-    },
-    {
-     "place": "books",
-     "does": "The books record the payment.",
-     "expects": "The books hold it."
-    },
-    {
-     "place": "bank",
-     "does": "The books ask the bank for the money.",
-     "expects": "The bank moves it."
+     "place": "done",
+     "does": "The job finishes.",
+     "expects": "It is done."
     }
    ]
   }
  ],
- "operations": [
-  {
-   "slug": "Order.pay",
-   "sig": "() → Ghost",
-   "text": "The customer pays the order."
-  }
- ],
  "rules": [
   {
-   "slug": "paid-stays",
-   "kind": "must",
-   "formula": "all o: Order | o in Paid implies after o in Paid",
-   "text": "A paid order stays paid."
+   "slug": "done-stays",
+   "kind": "should",
+   "formula": "all job: Job | job in Done implies after job in Done",
+   "meta": {
+    "source": "paperwork/skills/zoom/SKILL.md:1",
+    "description": "A finished job stays finished."
+   }
   }
  ],
  "level": {
-  "kind": "state",
-  "title": "Order lifecycle",
-  "why": "The states of one order.",
-  "subject": "Order",
-  "initial": "open",
+  "title": "Jobs",
+  "why": "How a job moves.",
+  "subject": "Job",
+  "initial": "waiting",
   "nodes": [
    {
-    "id": "open",
-    "label": "Open",
-    "what": "Waiting for payment."
+    "id": "waiting",
+    "label": "Waiting",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "Waiting in the fixture."
+    }
    },
    {
-    "id": "paid",
-    "label": "Paid",
-    "what": "Payment received.",
-    "rules": [
-     "paid-stays"
+    "id": "done",
+    "label": "Done",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "Done in the fixture."
+    }
+   },
+   {
+    "id": "job",
+    "label": "Job",
+    "attrs": [
+     "owner: Nobody"
     ],
-    "link": "view",
-    "opens": {
-     "kind": "topology",
-     "title": "Accounts",
-     "why": "Where a payment is recorded.",
-     "nodes": [
-      {
-       "id": "books",
-       "label": "Books",
-       "what": "Record payments."
-      },
-      {
-       "id": "bank",
-       "label": "Bank",
-       "what": "Moves money."
-      }
-     ],
-     "edges": [
-      {
-       "from": "books",
-       "to": "bank",
-       "label": "asks",
-       "what": "The books ask the bank for the money."
-      }
-     ]
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "Job in the fixture."
+    }
+   },
+   {
+    "id": "worker",
+    "label": "Worker",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "Worker in the fixture."
     }
    }
   ],
   "edges": [
    {
-    "from": "open",
-    "to": "paid",
-    "label": "pay",
-    "ops": [
-     "Order.pay"
-    ],
-    "mark": [
-     "happy"
-    ]
+    "from": "waiting",
+    "to": "done",
+    "kind": "transition",
+    "label": "finish",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "finish in the fixture."
+    }
+   },
+   {
+    "from": "job",
+    "to": "worker",
+    "kind": "call",
+    "label": "assign",
+    "attr": "owner",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "assign in the fixture."
+    }
    }
   ]
  }

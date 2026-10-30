@@ -5,5 +5,4 @@ Licensed under the Apache License, Version 2.0 (Apache-2.0); see LICENSE.
 None of the works below is vendored in this repository: each is downloaded at run time, linked, or adapted, as said.
 
 - Alloy (https://github.com/AlloyTools/org.alloytools.alloy), MIT per its upstream LICENSE file, which says the Apache text below it is not valid yet: downloaded at run time by paperwork/lib/schema/prover.py; the libraries bundled in its jar are not reviewed here.
-- dzhng/skills (https://github.com/dzhng/skills), MIT: linked from a paperwork zoom example.
 - mattpocock/skills (https://github.com/mattpocock/skills), MIT: the retrospective lenses in homework/skills/wrap-up/references/retro.md are adapted from it.

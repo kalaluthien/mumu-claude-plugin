@@ -1,0 +1,67 @@
+{
+ "version": "2",
+ "title": "Fixture",
+ "types": {},
+ "scenarios": [],
+ "rules": [],
+ "level": {
+  "title": "Jobs",
+  "why": "How a job moves.",
+  "nodes": [
+   {
+    "id": "gate",
+    "label": "Gate",
+    "area": "front",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "Gate in the fixture."
+    }
+   },
+   {
+    "id": "door",
+    "label": "Door",
+    "area": "front",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "Door in the fixture."
+    }
+   },
+   {
+    "id": "yard",
+    "label": "Yard",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "Yard in the fixture."
+    }
+   }
+  ],
+  "edges": [
+   {
+    "from": "gate",
+    "to": "door",
+    "kind": "call",
+    "label": "unlatches",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "unlatches in the fixture."
+    }
+   },
+   {
+    "from": "gate",
+    "to": "yard",
+    "kind": "call",
+    "label": "faces",
+    "meta": {
+     "source": "paperwork/skills/zoom/SKILL.md:1",
+     "description": "faces in the fixture."
+    }
+   }
+  ],
+  "areas": [
+   {
+    "id": "front",
+    "label": "Front"
+   }
+  ]
+ }
+}
