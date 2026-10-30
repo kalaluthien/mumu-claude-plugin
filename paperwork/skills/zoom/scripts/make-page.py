@@ -39,7 +39,7 @@ GROUPS = (("scenarios", "Scenarios", "Scenario"), ("rules", "Rules", "Rule"))
 WHY = {"scenarios": "Each one walks the chart step by step.", "rules": "Each one marks what it concerns, and a counterexample plays its run."}
 VERDICTS = {"pass": "✓", "counterexample": "✗", "unproved": "?"}
 RESPONSE_PATHS = ("fetch(", "XMLHttpRequest", "sendBeacon", "WebSocket", "<form", "<input", "<textarea", "<select")
-HINTS = ("✓ A rule passes", "✗ A run breaks it", "Press a box or a line to read it and its source")
+HINTS = ('<span class="frame-tag pass">✓ Pass</span> A rule holds', '<span class="frame-tag fail">✗ Counterexample</span> A run breaks it', "Press a box or a line to read it and its source")
 LEGEND = {
     "state": ('<rect x="1" y="1" width="26" height="14" rx="5"/>', "State: where a thing is now"),
     "part": ('<rect x="1" y="1" width="26" height="14" rx="1"/>', "Part: a piece of the system"),
@@ -178,7 +178,7 @@ def inside(model):
     """What the root's chart only opens, so the first screen names the whole system."""
     rows = "".join(f'<li><a href="#level-{escape(level_id)}">{escape(level["title"])}</a>: {escape(", ".join(node["label"] for node in level["nodes"]))}</li>'
                    for level_id, level in model.levels.items() if level_id != "root")
-    return f'<h2>Main parts</h2>\n<ul class="inside" aria-label="What is inside">{rows}</ul>' if rows else ""
+    return f'<h2 class="inside-heading">Main parts</h2>\n<ul class="inside" aria-label="What is inside">{rows}</ul>' if rows else ""
 
 
 def legend(model):

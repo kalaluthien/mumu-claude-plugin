@@ -59,6 +59,7 @@ SHORT_CONTROLS = f"""() => [...document.querySelectorAll("button, input, select,
 ROW_HEIGHTS = """selector => [...document.querySelectorAll(".frame-nav " + selector)].filter(e => e.getClientRects().length).filter(e => {
       const style = getComputedStyle(e), lines = (e.getBoundingClientRect().height - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)) / parseFloat(style.lineHeight);
       return Math.round(lines) === 1; }).map(e => e.getBoundingClientRect().height)"""
+HAND_BUTTONS = """() => [...document.querySelectorAll(".frame-body button:not(.krds-btn):not(.frame-row)")].map(e => e.outerHTML.slice(0, 80))"""
 BLANK_TAGS = """() => [...document.querySelectorAll(".frame-tag")].filter(e => e.getClientRects().length && getComputedStyle(e).visibility === "visible" && !e.innerText.trim()).map(e => e.outerHTML)"""
 CONTROL_WORDS = {"#frame-copy": "Copy this view", "#frame-reset": "Back to start", "#frame-theme": "Light or dark"}
 # Fixed English around Korean content leaves Hangul at about a third of the letters; a quoted Korean word stays under this.
@@ -286,6 +287,10 @@ def status_words(browser, url, **_):
     return swept(browser, url, BLANK_TAGS, widths=(SCREEN_WIDTH,))
 
 
+def body_buttons(browser, url, **_):
+    return swept(browser, url, HAND_BUTTONS, widths=(SCREEN_WIDTH,))
+
+
 def menu_under_bar(browser, url, **_):
     for width in NARROW_WIDTHS:
         with opened(browser, url, width) as page:
@@ -379,7 +384,8 @@ FACTS = {"left navigation": left_navigation, "right body": right_body, "copy": c
          "root": root, "icons": icons, "menu under bar": menu_under_bar, "menu closed": menu_closed, "long menu": long_menu,
          "outside press": outside_press, "sub-link current": sub_link_current, "print light": print_light,
          "print menu": print_menu, "control words": control_words, "type scale": type_scale, "corners": corners, "title style": title_style,
-         "text contrast": text_contrast, "touch targets": touch_targets, "navigation rows": navigation_rows, "status words": status_words}
+         "text contrast": text_contrast, "touch targets": touch_targets, "navigation rows": navigation_rows, "status words": status_words,
+         "body buttons": body_buttons}
 
 
 def probe(browser, url, **expected):

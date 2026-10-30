@@ -2099,6 +2099,7 @@ a:hover{color:var(--accent)}
 .frame-nav.krds-side-navigation{--krds-side-navigation--btn-font-size:var(--text-body);--krds-side-navigation--btn-padding-y:8px;--krds-side-navigation--3depth-btn-padding-y:4px;--krds-side-navigation--3depth-padding-y:0;line-height:24px}
 .frame-nav a{text-decoration:none}
 .frame-nav ul{margin:0;padding:0;list-style:none}
+.frame-nav.krds-side-navigation .lnb-list .lnb-item .lnb-submenu .lnb-btn::before{display:none}
 .frame-top{grid-area:top;position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:flex-end;gap:12px;height:var(--frame-top-height);padding:0 20px;background:var(--krds-color-background-white)}
 .frame-icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .frame-icon .frame-fill{fill:currentColor;stroke:none}
@@ -2112,7 +2113,7 @@ a:hover{color:var(--accent)}
 @media (max-width:820px){
   :root{--text-title:var(--krds-mobile-font-size-heading-medium)}
   /* A finger needs this height at any width of text. */
-  .frame button,.frame input,.frame select,.frame textarea,.frame summary{min-height:44px}
+  .frame button,.frame input,.frame select,.frame textarea,.frame summary,.frame-body .krds-btn.text.xsmall{min-height:44px}
   .frame-nav.krds-side-navigation{--krds-side-navigation--btn-padding-y:10px;--krds-side-navigation--3depth-btn-padding-y:10px}
   .frame{grid-template:"top" auto "body" 1fr / minmax(0,1fr)}
   .frame-menu{display:inline-flex}
@@ -2298,7 +2299,7 @@ function start({copy, reset}) {
 .legend svg { flex: none; fill: var(--surface); stroke: var(--chart-line); stroke-width: 1.25; }
 .inside { list-style: none; margin: 14px 0 0; padding: 0; font-size: var(--text-body); color: var(--muted); }
 .inside a { color: var(--ink); font-weight: 600; }
-.level.played .inside { display: none; }
+.level.played .inside, .level.played .inside-heading { display: none; }
 .legend .key-state svg { fill: var(--state-bg); stroke: var(--state-line); }
 
 /* the panel sits under the chart, so opening it covers nothing */
@@ -2327,8 +2328,8 @@ function start({copy, reset}) {
 .bar-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .bar-count { font-weight: 600; color: var(--ink); }
 .bar-steps { order: 1; flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px; list-style: none; margin: 0; padding: 0; }
-.bar-chip { width: 28px; height: 28px; border-radius: var(--krds-radius-max); border: 1.5px solid var(--accent); background: none; color: var(--accent); padding: 0; font: 600 var(--text-meta) var(--font-sans); overflow-wrap: normal; cursor: pointer; }
-.bar-chip[aria-current="step"] { background: var(--accent); color: var(--krds-color-text-basic-inverse, #fff); }
+.krds-btn.bar-chip { width: 32px; padding: 0; border-radius: var(--krds-radius-max); overflow-wrap: normal; }
+.krds-btn.bar-chip[aria-current="step"] { background: var(--accent); color: var(--krds-color-text-basic-inverse, #fff); }
 .bar-run { margin: 8px 0 0; padding-left: 1.4em; color: var(--muted); }
 .bar-run li { margin-top: 4px; white-space: pre-line; }
 .bar-run [aria-current] { color: var(--ink); font-weight: 600; }
@@ -2353,7 +2354,7 @@ function start({copy, reset}) {
   .bar-source { margin-left: 0; }
 }
 @media (max-width: 820px) {
-  .bar-chip { width: 44px; height: 44px; }
+  .krds-btn.bar-chip { width: 44px; height: 44px; }
 }
 @media (max-width: 560px) {
   .detail dl, .bar dl { grid-template-columns: minmax(0, 1fr); gap: 0; }
@@ -2398,8 +2399,8 @@ function start({copy, reset}) {
 <h1>Pull request lifecycle</h1>
 <p class="lede">풀 리퀘스트(pull request) 하나가 열려서 병합되거나 닫힐 때까지 거치는 상태입니다. 대부분의 일은 열린 동안 일어나고, 병합된 뒤에는 끝납니다.</p>
 <div class="chart" data-level="root"></div>
-<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li><li>✓ A rule passes</li><li>✗ A run breaks it</li><li>Press a box or a line to read it and its source</li></ul>
-<h2>Main parts</h2>
+<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li><li><span class="frame-tag pass">✓ Pass</span> A rule holds</li><li><span class="frame-tag fail">✗ Counterexample</span> A run breaks it</li><li>Press a box or a line to read it and its source</li></ul>
+<h2 class="inside-heading">Main parts</h2>
 <ul class="inside" aria-label="What is inside"><li><a href="#level-open-s">Review round</a>: Pushing, Running checks, Reviewing code, Gating the merge</li><li><a href="#level-push">Branch sync</a>: Clean, Unpushed, Matching, Ahead</li><li><a href="#level-review">Pull request parts</a>: Pull request, Branch, Commit, Review, Comment, Diff line</li></ul>
 <div class="detail" hidden></div>
 </section>
@@ -2408,7 +2409,7 @@ function start({copy, reset}) {
 <h1>Review round</h1>
 <p class="lede">열린 풀 리퀘스트(pull request) 안에서 한 바퀴 도는 일입니다. 커밋(commit)이 올라오면 검사가 돌고, 검토자가 읽고, 변경을 요청하면 처음으로 돌아가며, 승인되면 병합 상자로 넘어갑니다.</p>
 <div class="chart" data-level="open-s"></div>
-<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li><li>✓ A rule passes</li><li>✗ A run breaks it</li><li>Press a box or a line to read it and its source</li></ul>
+<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li><li><span class="frame-tag pass">✓ Pass</span> A rule holds</li><li><span class="frame-tag fail">✗ Counterexample</span> A run breaks it</li><li>Press a box or a line to read it and its source</li></ul>
 
 <div class="detail" hidden></div>
 </section>
@@ -2417,7 +2418,7 @@ function start({copy, reset}) {
 <h1>Branch sync</h1>
 <p class="lede">작업 브랜치(branch) 하나는 두 곳에 동시에 있습니다. 내 컴퓨터의 브랜치와 GitHub의 브랜치는 각자 상태가 바뀌고, 둘을 잇는 것은 동기화뿐입니다. 내가 푸시(push)하면 GitHub이 받고, 내가 풀(pull)하면 GitHub 쪽을 따라잡습니다.</p>
 <div class="chart" data-level="push"></div>
-<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li><li>✓ A rule passes</li><li>✗ A run breaks it</li><li>Press a box or a line to read it and its source</li></ul>
+<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li><li><span class="frame-tag pass">✓ Pass</span> A rule holds</li><li><span class="frame-tag fail">✗ Counterexample</span> A run breaks it</li><li>Press a box or a line to read it and its source</li></ul>
 
 <div class="detail" hidden></div>
 </section>
@@ -2426,7 +2427,7 @@ function start({copy, reset}) {
 <h1>Pull request parts</h1>
 <p class="lede">풀 리퀘스트(pull request) 하나를 이루는 것들입니다. GitHub에만 있는 기록과 어느 저장소에나 있는 Git의 것으로 나뉩니다. 풀 리퀘스트는 두 브랜치(branch)를 잇고, 검토는 특정 커밋(commit)을 읽고 쓴 것이며, 의견은 바뀐 줄에 붙습니다.</p>
 <div class="chart" data-level="review"></div>
-<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li><li>✓ A rule passes</li><li>✗ A run breaks it</li><li>Press a box or a line to read it and its source</li></ul>
+<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li><li><span class="frame-tag pass">✓ Pass</span> A rule holds</li><li><span class="frame-tag fail">✗ Counterexample</span> A run breaks it</li><li>Press a box or a line to read it and its source</li></ul>
 
 <div class="detail" hidden></div>
 </section>
@@ -2903,7 +2904,7 @@ function shortSource(source) {
   return link;
 }
 function stepChip(index) {
-  const chip = tag("button", "bar-chip", String(index + 1));
+  const chip = tag("button", "krds-btn secondary xsmall bar-chip", String(index + 1));
   chip.type = "button";
   chip.setAttribute("aria-label", `Step ${index + 1}`);
   if (index === stepAt) chip.setAttribute("aria-current", "step");

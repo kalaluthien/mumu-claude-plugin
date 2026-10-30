@@ -2099,6 +2099,7 @@ a:hover{color:var(--accent)}
 .frame-nav.krds-side-navigation{--krds-side-navigation--btn-font-size:var(--text-body);--krds-side-navigation--btn-padding-y:8px;--krds-side-navigation--3depth-btn-padding-y:4px;--krds-side-navigation--3depth-padding-y:0;line-height:24px}
 .frame-nav a{text-decoration:none}
 .frame-nav ul{margin:0;padding:0;list-style:none}
+.frame-nav.krds-side-navigation .lnb-list .lnb-item .lnb-submenu .lnb-btn::before{display:none}
 .frame-top{grid-area:top;position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:flex-end;gap:12px;height:var(--frame-top-height);padding:0 20px;background:var(--krds-color-background-white)}
 .frame-icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .frame-icon .frame-fill{fill:currentColor;stroke:none}
@@ -2112,7 +2113,7 @@ a:hover{color:var(--accent)}
 @media (max-width:820px){
   :root{--text-title:var(--krds-mobile-font-size-heading-medium)}
   /* A finger needs this height at any width of text. */
-  .frame button,.frame input,.frame select,.frame textarea,.frame summary{min-height:44px}
+  .frame button,.frame input,.frame select,.frame textarea,.frame summary,.frame-body .krds-btn.text.xsmall{min-height:44px}
   .frame-nav.krds-side-navigation{--krds-side-navigation--btn-padding-y:10px;--krds-side-navigation--3depth-btn-padding-y:10px}
   .frame{grid-template:"top" auto "body" 1fr / minmax(0,1fr)}
   .frame-menu{display:inline-flex}

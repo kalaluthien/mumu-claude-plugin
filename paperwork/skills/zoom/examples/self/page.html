@@ -2099,6 +2099,7 @@ a:hover{color:var(--accent)}
 .frame-nav.krds-side-navigation{--krds-side-navigation--btn-font-size:var(--text-body);--krds-side-navigation--btn-padding-y:8px;--krds-side-navigation--3depth-btn-padding-y:4px;--krds-side-navigation--3depth-padding-y:0;line-height:24px}
 .frame-nav a{text-decoration:none}
 .frame-nav ul{margin:0;padding:0;list-style:none}
+.frame-nav.krds-side-navigation .lnb-list .lnb-item .lnb-submenu .lnb-btn::before{display:none}
 .frame-top{grid-area:top;position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:flex-end;gap:12px;height:var(--frame-top-height);padding:0 20px;background:var(--krds-color-background-white)}
 .frame-icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .frame-icon .frame-fill{fill:currentColor;stroke:none}
@@ -2112,7 +2113,7 @@ a:hover{color:var(--accent)}
 @media (max-width:820px){
   :root{--text-title:var(--krds-mobile-font-size-heading-medium)}
   /* A finger needs this height at any width of text. */
-  .frame button,.frame input,.frame select,.frame textarea,.frame summary{min-height:44px}
+  .frame button,.frame input,.frame select,.frame textarea,.frame summary,.frame-body .krds-btn.text.xsmall{min-height:44px}
   .frame-nav.krds-side-navigation{--krds-side-navigation--btn-padding-y:10px;--krds-side-navigation--3depth-btn-padding-y:10px}
   .frame{grid-template:"top" auto "body" 1fr / minmax(0,1fr)}
   .frame-menu{display:inline-flex}
@@ -2298,7 +2299,7 @@ function start({copy, reset}) {
 .legend svg { flex: none; fill: var(--surface); stroke: var(--chart-line); stroke-width: 1.25; }
 .inside { list-style: none; margin: 14px 0 0; padding: 0; font-size: var(--text-body); color: var(--muted); }
 .inside a { color: var(--ink); font-weight: 600; }
-.level.played .inside { display: none; }
+.level.played .inside, .level.played .inside-heading { display: none; }
 .legend .key-state svg { fill: var(--state-bg); stroke: var(--state-line); }
 
 /* the panel sits under the chart, so opening it covers nothing */
@@ -2327,8 +2328,8 @@ function start({copy, reset}) {
 .bar-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .bar-count { font-weight: 600; color: var(--ink); }
 .bar-steps { order: 1; flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px; list-style: none; margin: 0; padding: 0; }
-.bar-chip { width: 28px; height: 28px; border-radius: var(--krds-radius-max); border: 1.5px solid var(--accent); background: none; color: var(--accent); padding: 0; font: 600 var(--text-meta) var(--font-sans); overflow-wrap: normal; cursor: pointer; }
-.bar-chip[aria-current="step"] { background: var(--accent); color: var(--krds-color-text-basic-inverse, #fff); }
+.krds-btn.bar-chip { width: 32px; padding: 0; border-radius: var(--krds-radius-max); overflow-wrap: normal; }
+.krds-btn.bar-chip[aria-current="step"] { background: var(--accent); color: var(--krds-color-text-basic-inverse, #fff); }
 .bar-run { margin: 8px 0 0; padding-left: 1.4em; color: var(--muted); }
 .bar-run li { margin-top: 4px; white-space: pre-line; }
 .bar-run [aria-current] { color: var(--ink); font-weight: 600; }
@@ -2353,7 +2354,7 @@ function start({copy, reset}) {
   .bar-source { margin-left: 0; }
 }
 @media (max-width: 820px) {
-  .bar-chip { width: 44px; height: 44px; }
+  .krds-btn.bar-chip { width: 44px; height: 44px; }
 }
 @media (max-width: 560px) {
   .detail dl, .bar dl { grid-template-columns: minmax(0, 1fr); gap: 0; }
@@ -2384,8 +2385,8 @@ function start({copy, reset}) {
 <h1>zoom&#x27;s parts</h1>
 <p class="lede">Three entries share one document: the checker keeps it sound, the prover answers on it, and the page shows it. The page runs no proof and no check of its own, so each side can be replaced alone. Its template fills in one pass, so a text holding `__DATA__` stays as written.</p>
 <div class="chart" data-level="root"></div>
-<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li><li>✓ A rule passes</li><li>✗ A run breaks it</li><li>Press a box or a line to read it and its source</li></ul>
-<h2>Main parts</h2>
+<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li><li><span class="frame-tag pass">✓ Pass</span> A rule holds</li><li><span class="frame-tag fail">✗ Counterexample</span> A run breaks it</li><li>Press a box or a line to read it and its source</li></ul>
+<h2 class="inside-heading">Main parts</h2>
 <ul class="inside" aria-label="What is inside"><li><a href="#level-document">A document&#x27;s life</a>: Drafted, Checked, Proved, Shown</li></ul>
 <div class="detail" hidden></div>
 </section>
@@ -2394,7 +2395,7 @@ function start({copy, reset}) {
 <h1>A document&#x27;s life</h1>
 <p class="lede">A document is worked on until the checker accepts it. Only then does the prover read it or the page show it, and any edit sends it back.</p>
 <div class="chart" data-level="document"></div>
-<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li><li>✓ A rule passes</li><li>✗ A run breaks it</li><li>Press a box or a line to read it and its source</li></ul>
+<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="5"/></svg>State: where a thing is now</li><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li><li><span class="frame-tag pass">✓ Pass</span> A rule holds</li><li><span class="frame-tag fail">✗ Counterexample</span> A run breaks it</li><li>Press a box or a line to read it and its source</li></ul>
 
 <div class="detail" hidden></div>
 </section>
@@ -2871,7 +2872,7 @@ function shortSource(source) {
   return link;
 }
 function stepChip(index) {
-  const chip = tag("button", "bar-chip", String(index + 1));
+  const chip = tag("button", "krds-btn secondary xsmall bar-chip", String(index + 1));
   chip.type = "button";
   chip.setAttribute("aria-label", `Step ${index + 1}`);
   if (index === stepAt) chip.setAttribute("aria-current", "step");
