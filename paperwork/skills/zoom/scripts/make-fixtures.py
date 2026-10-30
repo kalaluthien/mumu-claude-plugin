@@ -17,7 +17,7 @@ import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
 OUTPUT = HERE.parent / "fixtures"
-DOCUMENT = HERE.parents[2] / "schema" / "fixtures" / "meta-every-format.json"
+DOCUMENT = HERE.parent / "references" / "schema" / "fixtures" / "meta-every-format.json"
 
 CLICK = 'g.addEventListener("click", () => act(n.id, () => open && st.sel && st.sel.node === n.id ? goto(open, b) : select({ node: n.id })));'
 GOTO_BUTTON = '.addEventListener("click", ev => { ev.stopPropagation(); goto(open, b); });'
@@ -38,7 +38,7 @@ def main(args):
     with tempfile.TemporaryDirectory() as directory:
         view, page = pathlib.Path(directory) / "view.json", pathlib.Path(directory) / "page.html"
         for call in (["new", view], ["build", DOCUMENT, view, page]):
-            subprocess.run([sys.executable, HERE / "make-diagram.py", *map(str, call)], check=True, capture_output=True)
+            subprocess.run([sys.executable, HERE / "make-page.py", *map(str, call)], check=True, capture_output=True)
         built = page.read_text(encoding="utf-8")
     # The fixtures sit beside the vendored font, so they point at it instead of each carrying a copy.
     built = re.sub(r"url\(data:font/woff2;base64,[^)]*\)", "url(../assets/fonts/poorstory.woff2)", built)

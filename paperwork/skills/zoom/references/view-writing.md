@@ -1,6 +1,6 @@
 # View writing
 
-`view.json` (`assets/view-schema.json`) says how to draw a Schema document, never changing it (fixes go to the document). Brackets name the enforcing check (`make-diagram.py rules`). `make-diagram.py new view.json` starts one; `next` is the reader's next step; `why` says why each changed `plan` default changed [form].
+`view.json` (`../assets/view-schema.json`) says how to draw a Schema document, never changing it (fixes go to the document). Brackets name the enforcing check (`make-page.py rules`). `make-page.py new view.json` starts one; `next` is the reader's next step; `why` says why each changed `plan` default changed [form].
 
 ## Views
 

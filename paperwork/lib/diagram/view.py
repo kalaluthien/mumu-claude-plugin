@@ -9,7 +9,7 @@ import unicodedata
 from schema import plan as system_plan
 from schema.model import Model, levels_of, shape, walk_steps
 
-ASSETS = pathlib.Path(__file__).resolve().parents[2] / "skills/zoom/references/ui/html/assets"
+ASSETS = pathlib.Path(__file__).resolve().parents[2] / "skills/zoom/assets"
 SCHEMA = json.loads((ASSETS / "view-schema.json").read_text(encoding="utf-8"))
 LIMITS = json.loads((ASSETS / "phone-limits.json").read_text(encoding="utf-8"))   # a phone's limits, shared with the engine
 
