@@ -18,6 +18,7 @@ Exit status 0 means done, 1 a refusal, 2 a usage error.
 import html
 import json
 import pathlib
+import re
 import sys
 import tempfile
 
@@ -133,9 +134,11 @@ def navigation(model):
 def build(path):
     model = load(path)
     sections = "\n".join(section(model, level_id) for level_id in model.levels)
-    # the data goes in last, so no text of the document is read as a placeholder; a `<` could close or hide its script
+    # a `<` could close or hide its script
     data = json.dumps(page_data(model), ensure_ascii=False).replace("<", "\\u003c")
-    content = TEMPLATE.read_text(encoding="utf-8").replace("__SECTIONS__", sections).replace("__DATA__", data)
+    # one pass, so no text of the document is read as a placeholder
+    fills = {"__SECTIONS__": sections, "__DATA__": data}
+    content = re.sub("|".join(fills), lambda found: fills[found.group()], TEMPLATE.read_text(encoding="utf-8"))
     return frame.build(model.document["title"], content, navigation(model))
 
 
@@ -218,7 +221,15 @@ def read_only(page, _):
     return None
 
 
-FACTS = {"chart": chart, "detail panel": detail_panel, "level opens": level_opens, "read only": read_only}
+def text_as_written(page, data):
+    for level in data["levels"]:
+        open_level(page, level["id"])
+        if page.locator(f'#level-{level["id"]} .lede').inner_text() not in level["copy"]:
+            return f'{level["id"]} shows a text other than the one written'
+    return None
+
+
+FACTS = {"chart": chart, "detail panel": detail_panel, "level opens": level_opens, "read only": read_only, "text as written": text_as_written}
 
 
 def check(folder):

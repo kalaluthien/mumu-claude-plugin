@@ -67,7 +67,7 @@
  ],
  "level": {
   "title": "zoom's parts",
-  "why": "Three entries share one document: the checker keeps it sound, the prover answers on it, and the page shows it. The page runs no proof and no check of its own, so each side can be replaced alone.",
+  "why": "Three entries share one document: the checker keeps it sound, the prover answers on it, and the page shows it. The page runs no proof and no check of its own, so each side can be replaced alone. Its template fills in one pass, so a text holding `__DATA__` stays as written.",
   "areas": [
    {
     "id": "entries",
@@ -121,7 +121,7 @@
        "id": "shown",
        "label": "Shown",
        "meta": {
-        "source": "paperwork/skills/zoom/scripts/make-page.py:133",
+        "source": "paperwork/skills/zoom/scripts/make-page.py:134",
         "description": "The page is built, so a person can read the system in a browser."
        }
       }
@@ -166,7 +166,7 @@
        "kind": "transition",
        "label": "build the page",
        "meta": {
-        "source": "paperwork/skills/zoom/scripts/make-page.py:314",
+        "source": "paperwork/skills/zoom/scripts/make-page.py:325",
         "description": "Fill the template with the document's data."
        }
       },
@@ -220,7 +220,7 @@
     "label": "Page script",
     "area": "entries",
     "meta": {
-     "source": "paperwork/skills/zoom/scripts/make-page.py:314",
+     "source": "paperwork/skills/zoom/scripts/make-page.py:325",
      "description": "Builds one self-contained page, and measures it in a browser. Its data escapes every `<`, so a description holding `<!-- <script` leaves the page whole."
     }
    },
@@ -329,7 +329,7 @@
     "kind": "call",
     "label": "draws from",
     "meta": {
-     "source": "paperwork/skills/zoom/scripts/make-page.py:28",
+     "source": "paperwork/skills/zoom/scripts/make-page.py:29",
      "description": "The page imports the model and nothing that runs a proof."
     }
    },
@@ -339,7 +339,7 @@
     "kind": "call",
     "label": "shows",
     "meta": {
-     "source": "paperwork/skills/zoom/scripts/make-page.py:60",
+     "source": "paperwork/skills/zoom/scripts/make-page.py:61",
      "description": "Reads one document."
     }
    }
