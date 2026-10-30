@@ -1,0 +1,86 @@
+{
+ "rubric_sha": "ab098b255f11",
+ "judge": {
+  "model": "claude-sonnet-5-5",
+  "runs": 3
+ },
+ "grades": {
+  "install-command": {
+   "met": 1,
+   "runs": [
+    1,
+    1,
+    1
+   ],
+   "quote": "pip install tool",
+   "where": "README.md:3"
+  },
+  "usage-example": {
+   "met": 1,
+   "runs": [
+    1,
+    1,
+    1
+   ],
+   "quote": "pip install tool",
+   "where": "README.md:3"
+  },
+  "license-named": {
+   "met": 1,
+   "runs": [
+    1,
+    1,
+    1
+   ],
+   "quote": "pip install tool",
+   "where": "README.md:3"
+  },
+  "requires-listed": {
+   "met": 1,
+   "runs": [
+    1,
+    1,
+    1
+   ],
+   "quote": "pip install tool",
+   "where": "README.md:3"
+  },
+  "link-to-issues": {
+   "met": 1,
+   "runs": [
+    1,
+    1,
+    1
+   ],
+   "quote": "pip install tool",
+   "where": "README.md:3"
+  },
+  "first-line-says-what": {
+   "met": 1,
+   "runs": [
+    1,
+    1,
+    1
+   ],
+   "quote": "pip install tool",
+   "where": "README.md:3"
+  },
+  "bug-report-path": {
+   "met": 1,
+   "runs": [
+    1,
+    1,
+    1
+   ],
+   "items": [
+    {
+     "item": "the tracker",
+     "found": true,
+     "quote": "file an issue",
+     "where": "README.md:9"
+    }
+   ]
+  }
+ },
+ "grader_text": []
+}

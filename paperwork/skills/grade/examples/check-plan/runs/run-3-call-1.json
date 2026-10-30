@@ -1,0 +1,11 @@
+{"judge": "claude-sonnet-5-5", "grader_text": [], "grades": {
+  "comments-say-why": {"met": 0, "fix": "Replace the section dividers and the bare noqa pragma with a reason, or delete them.", "items": [
+    {"item": "check-plan.py comment on import tree_plan (noqa pragma)", "found": false, "quote": "import tree_plan  # noqa: E402", "where": "check-plan.py:13"},
+    {"item": "check-plan.py comment on *-plan.json handling", "found": true, "quote": "A *-plan.json is the valid plan an answer fixture is applied to, so it is", "where": "check-plan.py:46-47"},
+    {"item": "tree_plan.py comment on SOURCE_URL_RE", "found": true, "quote": "A source a reader can open: a link off the writer's machine, or a person and the day they said it, dot-free since the page draws it.", "where": "tree_plan.py:12"},
+    {"item": "tree_plan.py divider: load", "found": false, "quote": "# -- load ------", "where": "tree_plan.py:36"},
+    {"item": "tree_plan.py divider: check", "found": false, "quote": "# -- check ------", "where": "tree_plan.py:60"},
+    {"item": "tree_plan.py divider: ids", "found": false, "quote": "# -- ids ------", "where": "tree_plan.py:174"},
+    {"item": "tree_plan.py divider: answer", "found": false, "quote": "# -- answer ------", "where": "tree_plan.py:197"}
+  ]}
+}}

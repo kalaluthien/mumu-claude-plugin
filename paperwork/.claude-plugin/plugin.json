@@ -2,7 +2,7 @@
   "name": "paperwork",
   "version": "0.6.0",
   "license": "Apache-2.0",
-  "description": "Model a system as a checked Schema document, prove its rules with Alloy and show it as a diagram; grade a target into an HTML report card by a rubric spec; tree plans the owner answers on a page.",
+  "description": "Model a system as a checked Schema document, prove its rules with Alloy and show it as a diagram; grade a target into an HTML report card by a rubric; tree plans the owner answers on a page.",
   "author": {
     "name": "kalaluthien"
   }

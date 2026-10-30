@@ -1,0 +1,102 @@
+{
+ "target": {
+  "name": "Sample tool README, made up to show every state",
+  "where": "examples/every-state/source/README.md",
+  "version": "sample"
+ },
+ "subject": {
+  "kind": "documentation, how-to",
+  "purpose": "says how to install and run the tool",
+  "reader": "a new user, who loses the tool if a step fails",
+  "frameworks": [
+   "Diátaxis (https://diataxis.fr/compass/)"
+  ]
+ },
+ "promises": [
+  {
+   "text": "counts the words in a file",
+   "where": "README.md:3"
+  }
+ ],
+ "flaws": [
+  "an install step that cannot run",
+  "an option left out",
+  "no license"
+ ],
+ "criteria": [
+  {
+   "id": "install-command",
+   "text": "The page gives one install command.",
+   "check": "judge",
+   "from": "Diátaxis how-to: a reader can follow it",
+   "critical": true
+  },
+  {
+   "id": "python-version",
+   "text": "The page names the Python version the tool needs.",
+   "check": "judge",
+   "from": "Diátaxis how-to: a reader can follow it",
+   "critical": true
+  },
+  {
+   "id": "critical-split",
+   "text": "The usage command names an input file.",
+   "check": "judge",
+   "from": "Diátaxis how-to: a reader can follow it",
+   "critical": true
+  },
+  {
+   "id": "usage-example",
+   "text": "The page shows one usage command.",
+   "check": "judge",
+   "from": "Diátaxis how-to: a reader can follow it"
+  },
+  {
+   "id": "license-named",
+   "text": "The page names the license.",
+   "check": "judge",
+   "from": "Diátaxis reference: it describes the tool"
+  },
+  {
+   "id": "invented-quote",
+   "text": "The page says where bugs are reported.",
+   "check": "judge",
+   "from": "Diátaxis reference: it describes the tool"
+  },
+  {
+   "id": "split-vote",
+   "text": "The page says what the count includes.",
+   "check": "judge",
+   "from": "Diátaxis reference: it describes the tool"
+  },
+  {
+   "id": "split-failed",
+   "text": "The page prints a sample of what the tool outputs.",
+   "check": "judge",
+   "from": "Diátaxis how-to: a reader can follow it"
+  },
+  {
+   "id": "missing-item",
+   "text": "Each of the options --json, --lines, --quiet is described.",
+   "check": "judge",
+   "from": "Diátaxis reference: it describes the tool",
+   "absence": true
+  },
+  {
+   "id": "readme-exists",
+   "text": "The target holds a README.md.",
+   "check": "program",
+   "from": "Diátaxis reference: it describes the tool",
+   "command": "test -f README.md && echo found",
+   "fix": "Add a README.md."
+  },
+  {
+   "id": "license-file",
+   "text": "The target holds a LICENSE file.",
+   "check": "program",
+   "from": "Diátaxis reference: it describes the tool",
+   "command": "test -f LICENSE",
+   "fix": "Add a LICENSE file."
+  }
+ ]
+}

@@ -1,0 +1,68 @@
+{
+ "judge": "made-up judge",
+ "grader_text": [],
+ "grades": {
+  "install-command": {
+   "met": 1,
+   "quote": "Run `pip install sample-tool`.",
+   "where": "README.md:7"
+  },
+  "python-version": {
+   "met": 0,
+   "searched": "a Python version under Install",
+   "fix": "Name the Python version under Install."
+  },
+  "usage-example": {
+   "met": 1,
+   "quote": "Run `sample-tool notes.txt` to print the count.",
+   "where": "README.md:11"
+  },
+  "license-named": {
+   "met": 0,
+   "searched": "a license name anywhere in the page",
+   "fix": "Add a License section that names the license."
+  },
+  "invented-quote": {
+   "met": 1,
+   "quote": "Report bugs at the issue tracker.",
+   "where": "README.md:20"
+  },
+  "missing-item": {
+   "met": 0,
+   "fix": "Describe --quiet under Options.",
+   "items": [
+    {
+     "item": "--json",
+     "found": true,
+     "quote": "`--json` prints the count as JSON.",
+     "where": "README.md:15"
+    },
+    {
+     "item": "--lines",
+     "found": true,
+     "quote": "`--lines` counts lines instead.",
+     "where": "README.md:16"
+    },
+    {
+     "item": "--quiet",
+     "found": false
+    }
+   ]
+  },
+  "critical-split": {
+   "met": 1,
+   "quote": "`sample-tool notes.txt`",
+   "where": "README.md:11"
+  },
+  "split-vote": {
+   "met": 1,
+   "quote": "counts the words in a file",
+   "where": "README.md:3"
+  },
+  "split-failed": {
+   "met": 0,
+   "searched": "a sample of the output",
+   "fix": "Show the printed count after the command."
+  }
+ }
+}

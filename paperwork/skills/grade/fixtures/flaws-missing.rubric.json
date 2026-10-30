@@ -1,0 +1,68 @@
+{
+ "target": {
+  "name": "A small README",
+  "where": "https://example.com/readme",
+  "version": "abc123"
+ },
+ "subject": {
+  "kind": "documentation",
+  "purpose": "says how to install the tool",
+  "reader": "a new user",
+  "frameworks": [
+   "Diátaxis"
+  ]
+ },
+ "promises": [
+  {
+   "text": "install it in one command",
+   "where": "README.md:3"
+  }
+ ],
+ "flaws": [],
+ "criteria": [
+  {
+   "id": "install-command",
+   "text": "The page gives one install command.",
+   "check": "judge",
+   "from": "a flaw candidate of the kind",
+   "critical": true
+  },
+  {
+   "id": "usage-example",
+   "text": "The page shows one usage example.",
+   "check": "judge",
+   "from": "a flaw candidate of the kind"
+  },
+  {
+   "id": "license-named",
+   "text": "The page names the license.",
+   "check": "judge",
+   "from": "a flaw candidate of the kind"
+  },
+  {
+   "id": "requires-listed",
+   "text": "The page names the required Python version.",
+   "check": "judge",
+   "from": "a flaw candidate of the kind"
+  },
+  {
+   "id": "link-to-issues",
+   "text": "The page links to the issue tracker.",
+   "check": "judge",
+   "from": "a flaw candidate of the kind"
+  },
+  {
+   "id": "first-line-says-what",
+   "text": "The first line says what the tool does.",
+   "check": "judge",
+   "from": "a flaw candidate of the kind"
+  },
+  {
+   "id": "bug-report-path",
+   "text": "The page says where bugs go.",
+   "check": "judge",
+   "from": "a flaw candidate of the kind",
+   "absence": true
+  }
+ ]
+}

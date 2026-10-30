@@ -1,0 +1,141 @@
+{
+ "target": {
+  "name": "mumu-claude-plugin README",
+  "where": "https://github.com/kalaluthien/mumu-claude-plugin/blob/74b7410/README.md",
+  "version": "74b7410"
+ },
+ "subject": {
+  "kind": "documentation: a how-to with reference parts",
+  "purpose": "lets a visitor pick a plugin, install it and start it from the page alone",
+  "reader": "a new visitor deciding on the plugins, who leaves or fails the install if a step is missing",
+  "frameworks": [
+   "Diátaxis (https://diataxis.fr/compass/)"
+  ]
+ },
+ "promises": [
+  {
+   "text": "three plugins and what each one does",
+   "where": "README.txt:3"
+  },
+  {
+   "text": "install the plugins you want",
+   "where": "README.txt:9"
+  },
+  {
+   "text": "what each one needs on your machine",
+   "where": "README.txt:18"
+  }
+ ],
+ "flaws": [
+  "a visitor cannot tell from the top what each plugin is for",
+  "an install fails for a tool the page never named",
+  "a reader thinks all three must be installed together",
+  "a reader installs a plugin and cannot begin",
+  "a link or a path has gone stale",
+  "a pinned tag does not exist",
+  "a role or a tool has no meaning",
+  "a dense line hides its point",
+  "a diagram has no stated point"
+ ],
+ "criteria": [
+  {
+   "id": "purpose-each-plugin",
+   "text": "The opening paragraph says in one clause per plugin what teamwork, paperwork and homework each do.",
+   "check": "judge",
+   "from": "Diátaxis how-to: a reader can follow it",
+   "critical": true
+  },
+  {
+   "id": "install-commands",
+   "text": "The Installation section gives a marketplace-add command and one install command for each of the three plugins.",
+   "check": "program",
+   "from": "Diátaxis how-to: a reader can follow it",
+   "command": "grep -E '^/plugin (marketplace add|install) ' README.txt | grep -c . | grep -x 4",
+   "fix": "Give one marketplace-add command and one install command per plugin.",
+   "critical": true
+  },
+  {
+   "id": "needs-listed",
+   "text": "A table states what each plugin needs on the machine (tools, accounts, versions).",
+   "check": "judge",
+   "from": "Diátaxis how-to: a reader can follow it",
+   "critical": true
+  },
+  {
+   "id": "works-alone",
+   "text": "The page states that each plugin works without the others.",
+   "check": "judge",
+   "from": "Diátaxis how-to: a reader can follow it",
+   "critical": true
+  },
+  {
+   "id": "usage-each-plugin",
+   "text": "Each plugin's section holds a usage example or a named command that starts it.",
+   "check": "judge",
+   "from": "Diátaxis how-to: a reader can follow it",
+   "absence": true
+  },
+  {
+   "id": "relative-links-resolve",
+   "text": "Each relative link in the page points to a file or folder that exists at the graded commit.",
+   "check": "program",
+   "from": "Diátaxis reference: it holds what a reader looks up",
+   "command": "! grep -oE '\\]\\([^)#]+' README.txt | cut -c3- | grep -v '^http' | while read -r path; do git cat-file -e \"74b7410:$path\" 2>/dev/null || echo \"gone: $path\"; done | grep gone",
+   "fix": "Point each dead link at a path that exists."
+  },
+  {
+   "id": "backtick-paths-exist",
+   "text": "Each file path the page writes in backticks with a plugin folder prefix exists at the graded commit.",
+   "check": "program",
+   "from": "Diátaxis reference: it holds what a reader looks up",
+   "command": "! grep -oE '`(teamwork|paperwork|homework)/[^` ]+`' README.txt | tr -d '`' | while read -r path; do git cat-file -e \"74b7410:$path\" 2>/dev/null || echo \"gone: $path\"; done | grep gone",
+   "fix": "Correct each path that no longer exists."
+  },
+  {
+   "id": "terms-defined",
+   "text": "The teamwork roles (owner, manager, worker, sentinel, judge) are each defined in one line before the usage example.",
+   "check": "judge",
+   "from": "Diátaxis reference: it holds what a reader looks up",
+   "absence": true
+  },
+  {
+   "id": "install-pins-tag",
+   "text": "The marketplace-add command pins a version tag that exists in the repository.",
+   "check": "program",
+   "from": "Diátaxis how-to: a reader can follow it",
+   "command": "git rev-parse -q --verify \"refs/tags/$(grep -oE '#v[0-9.]+' README.txt | head -1 | tr -d '#')\"",
+   "fix": "Pin a tag that exists."
+  },
+  {
+   "id": "tools-explained",
+   "text": "Each required outside tool (herdr, uv, pele, Alloy, gh) has a link or a gloss at its first mention.",
+   "check": "judge",
+   "from": "Diátaxis reference: it holds what a reader looks up",
+   "absence": true,
+   "anchors": "A link or a clause saying what the tool is counts as a gloss."
+  },
+  {
+   "id": "short-lines",
+   "text": "No prose line in the page is over 400 characters.",
+   "check": "program",
+   "from": "Diátaxis reference: it holds what a reader looks up",
+   "command": "! awk 'length > 400 && !/^[|]/ { print FNR }' README.txt | grep .",
+   "fix": "Split each line over 400 characters."
+  },
+  {
+   "id": "states-license",
+   "text": "The page names its license and links the license file.",
+   "check": "program",
+   "from": "Diátaxis reference: it holds what a reader looks up",
+   "command": "grep -E 'Apache.*\\(LICENSE\\)|\\(LICENSE\\).*Apache' README.txt",
+   "fix": "Name the license and link LICENSE."
+  },
+  {
+   "id": "diagram-has-caption",
+   "text": "Each diagram sits under a one-sentence summary saying what it shows.",
+   "check": "judge",
+   "from": "Diátaxis reference: it holds what a reader looks up",
+   "absence": true
+  }
+ ]
+}

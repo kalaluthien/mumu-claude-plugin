@@ -1,64 +1,42 @@
 #!/usr/bin/env python3
-"""Build the HTML report card of one target from its spec and its grades file.
+"""Build the HTML report card of one target from its rubric and its grades.
 
-usage: make-page.py SPEC.json GRADES.json OUT.html   one self-contained page; refused when the grades break the grammar
-                                                       or the spec
-       make-page.py verdicts SPEC.json GRADES.json   print the verdict file the grades make, for score-spec.py
-       make-page.py --check DIR                      build every DIR/X/ that holds spec.json and grades.json, check the
-                                                       page in headless Chromium and print "ok N", then "<fact> ok" for each
-                                                       fact of the frame every page holds; a kept DIR/X/report.html must
-                                                       equal the page built
-       make-page.py --layout DIR                     measure every DIR/X/'s page at 390 and 1200 px, light and dark,
-                                                       and print "layout ok N"
-       make-page.py --capture PAGE.html DIR          write four PNGs of a built page: 1200 and 390 px, light and dark
-                                                       (every call with -- needs playwright: uv run --with playwright==1.64.1
-                                                       python3 make-page.py ...)
-
-Exit status 0 means done, 1 a refusal, 2 a usage error.
+usage: make-page.py RUBRIC.json GRADES.json OUT.html   one self-contained page; refused when they break check-rubric.py's rules
+       make-page.py --check DIR [PNG_DIR]              measure the page of every DIR/X/ in headless Chromium, printing "ok N", then
+                                                         "<fact> ok" per fact; PNG_DIR takes pictures (needs playwright)
 """
 import html
 import json
 import pathlib
 import re
-import subprocess
 import sys
 import tempfile
 
-sys.dont_write_bytecode = True
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 
 from page import frame  # noqa: E402
-from rubric.grades import failed, judged, problems, verdicts  # noqa: E402
-from rubric.model import tier_scores  # noqa: E402
-from rubric.spec import violations  # noqa: E402
+from rubric.check import Refused, errors, grades_problems, line, read_rubric  # noqa: E402
+from rubric.verdict import gaps, needs_person, rating, split, status  # noqa: E402
 
-HERE = pathlib.Path(__file__).resolve().parent
-TEMPLATE = HERE.parent / "assets" / "page.html"
-SCORE_SPEC = HERE / "score-spec.py"
-WIDTHS = (390, 1200)
+ASSETS = pathlib.Path(__file__).resolve().parents[1] / "assets"
 URL = re.compile(r"https?://\S+")
 FOLD_STATE = "[...document.querySelectorAll('details')].map(d => d.open)"
 FOLD_CHANGE = "(d => { d.open = !d.open; })(document.querySelector('details'))"
+PAGE_FACTS = ("first screen", "run counts", "needs a person", "evidence folded", "grader text", "empty fixes", "copy pairs", "fix once",
+              "no response path", "split rule", "outside fold")
+# (title, card class, status words it holds, what an empty group says)
+GROUPS = (("Not met", "failed", ("✗ Not met",), "No criterion failed with every run agreeing."),
+          ("Not sure", "open", ("? Not sure", "? Not settled"), "The runs agreed on every criterion."),
+          ("Not judged", "open", ("? Not judged",), "Every criterion was judged."),
+          ("Met", "passed", ("✓ Met",), "No criterion was met."))
 
 
-class Refused(Exception):
-    pass
-
-
-def load(spec_path, grades_path):
-    """The spec and the grades, or Refused naming the first rule they break."""
-    spec_bytes = pathlib.Path(spec_path).read_bytes()
-    try:
-        spec, grades = json.loads(spec_bytes), json.loads(pathlib.Path(grades_path).read_text(encoding="utf-8"))
-    except ValueError as e:
-        raise Refused(f"not a JSON document: {e}")
-    if errors := [f"{where}: {message}" for rule, where, message, severity in violations(spec) if severity == "error"]:
-        raise Refused(f"{spec_path}: {errors[0]}")
-    if any(tier.get("pairwise") for tier in spec["tiers"]):
-        raise Refused(f"{spec_path}: a report grades one target, so its spec takes no pairwise tier")
-    if wrong := problems(spec, spec_bytes, grades):
-        raise Refused(f"{grades_path}: {wrong[0]}")
-    return spec, grades
+def load(rubric_path, grades_path):
+    rubric, rubric_bytes = read_rubric(rubric_path)
+    grades = json.loads(pathlib.Path(grades_path).read_text(encoding="utf-8"))
+    if wrong := errors(grades_problems(rubric, rubric_bytes, grades)):
+        raise Refused(f"{rubric_path}: {line(wrong[0])}")
+    return rubric, grades
 
 
 def escape(text):
@@ -66,7 +44,6 @@ def escape(text):
 
 
 def linked(text):
-    """Escaped text whose urls are links."""
     out, last = [], 0
     for match in URL.finditer(text):
         url = match.group().rstrip(".,;)")
@@ -75,263 +52,194 @@ def linked(text):
     return "".join(out + [escape(text[last:])])
 
 
-def status_word(criterion, grade):
-    if not judged(grade):
-        return "? Not judged"
-    if criterion["polarity"] == "+":
-        return ("✓ Met", "✗ Not met")[failed(criterion, grade)]
-    return ("✓ No error", "✗ Error found")[failed(criterion, grade)]
+def word(criterion, grade):
+    state = status(criterion, grade)
+    if state in ("not judged", "not settled"):
+        return f"? {state.capitalize()}"
+    return "? Not sure" if split(grade) else "✓ Met" if state == "met" else "✗ Not met"
 
 
-def fix_list(spec, grades):
-    """(tier, criterion, grade) of each failed criterion, highest tier first, in the spec's order within a tier."""
-    return [(tier, criterion, grades["grades"][criterion["id"]]) for tier in spec["tiers"] for criterion in tier["criteria"]
-            if failed(criterion, grades["grades"][criterion["id"]])]
+def counted(n, one, many=None):
+    return f"{n} {one if n == 1 else many or one + 's'}"
 
 
-def verdict_sentence(spec, grades, scores):
-    for tier, score in zip(spec["tiers"], scores):
-        if score < 1:
-            missed = sum(failed(criterion, grades["grades"][criterion["id"]]) for criterion in tier["criteria"])
-            unknown = sum(not judged(grades["grades"][criterion["id"]]) for criterion in tier["criteria"])
-            return (f"Falls short at “{tier['name']}”: {missed} of {len(tier['criteria'])} criteria "
-                    f"{'fails' if missed == 1 else 'fail'} there"
-                    + (f", and {unknown} could not be judged." if unknown else "."))
-    return "Meets every criterion of the rubric."
+def rows(rubric, grades):
+    return [(criterion, grades["grades"][criterion["id"]]) for criterion in sorted(rubric["criteria"], key=lambda criterion: not criterion.get("critical"))]
 
 
-def tier_rows(spec, grades, scores):
-    rows = []
-    for tier, score in zip(spec["tiers"], scores):
-        criteria = tier["criteria"]
-        given = [grades["grades"][criterion["id"]] for criterion in criteria]
-        met = sum(judged(grade) and not failed(criterion, grade) for criterion, grade in zip(criteria, given))
-        unknown = sum(not judged(grade) for grade in given)
-        target = tier.get("pass", 1) if tier.get("mask_below") else 1
-        masked = score == 0 and met > 0
-        count = (f"{met} of {len(criteria) - unknown} judged met" + (f", {unknown} not judged" if unknown else "")
-                 + (" · zeroed by a higher tier's mask" if masked else ""))
-        rows.append(f'<div class="tier-name">{escape(tier["name"])}</div>'
-                    f'<div class="bullet" role="img" aria-label="{escape(count)}"><div class="fill" style="width:{score * 100:.1f}%"></div>'
-                    f'<div class="target" style="left:calc({target * 100:.1f}% - 1px)"></div></div>'
-                    f'<div class="tier-count" data-tier="{escape(tier["id"])}" data-score="{score:.3g}">{escape(count)}</div>')
-    return "".join(rows)
+def critical_tag(criterion):
+    return '<span class="tag">critical</span>' if criterion.get("critical") else ""
 
 
-def card(tier, criterion, grade):
-    bad = failed(criterion, grade)
-    runs = grade.get("runs", [])
-    split = (f'<span class="split">the {len(runs)} judge runs split; the stricter verdict is kept</span>'
-             if len(set(runs)) > 1 else "")
-    where = f'<div class="where">{linked(grade["where"])}</div>' if grade.get("where") else ""
-    fix = f'<p class="fix"><b>Fix:</b> {linked(grade["fix"])}</p>' if bad and grade.get("fix") else ""
-    state = "unjudged" if not judged(grade) else "failed" if bad else "passed"
-    return (f'<article class="crit {state}" id="c-{escape(criterion["id"])}" '
-            f'data-criterion="{escape(criterion["id"])}">'
-            f'<div class="crit-head"><span class="status">{status_word(criterion, grade)}</span>'
-            f'<span class="crit-text">{linked(criterion["text"])}</span>{split}'
-            f'<span class="crit-id">{escape(criterion["id"])}</span></div>'
-            f'<details{" open" if bad or not judged(grade) else ""}><summary>Evidence</summary>'
-            f'<blockquote class="evidence">{linked(grade["evidence"])}</blockquote>{where}'
-            f'<p class="why">{linked(grade["why"])}</p></details>{fix}</article>')
+def list_item(criterion, content):
+    mark = ' class="critical"' if criterion.get("critical") else ""
+    return f'<li id="fix-{escape(criterion["id"])}"{mark} data-criterion="{escape(criterion["id"])}">{critical_tag(criterion)}{content}</li>'
 
 
-def body(spec, grades):
-    target, subject, judge = grades["target"], grades["subject"], grades["judge"]
-    scores = tier_scores(spec, verdicts(spec, grades), target["name"])
-    fixes = fix_list(spec, grades)
+def person_line(criterion, grade):
+    why = ("Not judged: " + grade["reason"].rstrip(".") + "." if grade["met"] is None
+           else f"The runs disagreed, {grade['runs'].count(1)} of {len(grade['runs'])} said met, and I could not settle it.")
+    place = grade.get("where") or next((item["where"] for item in grade.get("items", []) if item.get("where")), "the target")
+    fix = f' If it fails: {linked(grade["fix"])}' if grade.get("fix") else ""
+    return list_item(criterion, f'{linked(criterion["text"])} {escape(why)} Check <span class="where">{linked(place)}</span>.{fix}')
+
+
+def evidence(grade):
+    places = [(item.get("quote") or f'Not found: {item["item"]}', item.get("where", "")) for item in grade.get("items", [])]
+    places += [(grade["quote"], grade.get("where", ""))] if grade.get("quote") else [(f'Searched for: {grade["searched"]}', "")] if grade.get("searched") else []
+    return "".join(f'<blockquote class="evidence">{linked(quote)}</blockquote>' + (f'<div class="where">quote matches {linked(where)}</div>' if where else "") for quote, where in places)
+
+
+def copy_text(criterion, grade):
+    out = [f'{criterion["id"]}: {word(criterion, grade)[2:]}. {criterion["text"]}']
+    out += [f'  {item["item"]}: "{item.get("quote", "not found")}" {item.get("where", "")}' for item in grade.get("items", [])]
+    out += [f'  "{grade["quote"]}" {grade.get("where", "")}'] if grade.get("quote") else []
+    return "\n".join(out + ([f'  Fix: {grade["fix"]}'] if grade.get("fix") else []))
+
+
+def card(criterion, grade, state):
+    judged, runs, name = criterion["check"] == "judge", grade["runs"], escape(criterion["id"])
+    dots = "".join(f'<i class="{"blank" if run is None else "yes" if run else "no"}"></i>' for run in runs)
+    count = f'<span class="dots" aria-hidden="true">{dots}</span>{runs.count(1)} of {len(runs)} judge runs said met' if judged else "Decided by a program, not a judge."
+    reason = f'<p class="none">{linked(grade["reason"])}</p>' if grade["met"] is None else ""
+    link = f'<a href="#fix-{name}">See the list above.</a>' if grade.get("fix") or needs_person(grade) else ""
+    fold = f'<details><summary>Evidence</summary>{evidence(grade)}</details>' if evidence(grade) else ""
+    return (f'<article class="crit {state}" id="c-{name}" data-criterion="{name}"{f" data-runs={len(runs)}" if judged else ""} data-copy="{escape(copy_text(criterion, grade))}">'
+            f'<div class="crit-head"><span class="status">{word(criterion, grade)}</span><span class="crit-text">{critical_tag(criterion)}{linked(criterion["text"])}</span>'
+            f'<span class="crit-id">{name}</span></div><div class="runs">{count}</div>{reason}{link}{fold}</article>')
+
+
+def decision(critical, other):
+    if critical:
+        return f"Do not rely on this yet: {counted(critical, 'critical gap')}."
+    return f"Good enough to use, with {counted(other, 'gap')} to close." if other else "Meets every criterion of its rubric."
+
+
+def body(rubric, grades):
+    target, subject, judge = rubric["target"], rubric["subject"], grades["judge"]
+    critical, other = gaps(rubric, grades)
+    person = [row for row in rows(rubric, grades) if needs_person(row[1])]
+    fixes = [row for row in rows(rubric, grades) if not needs_person(row[1]) and not row[1]["met"]]
+    met = sum(word(*row) == "✓ Met" for row in rows(rubric, grades))
+    total = counted(len(rubric["criteria"]), "criterion", "criteria")
     out = [f'<div class="eyebrow">Report card</div><h1>{escape(target["name"])}</h1>',
-           f'<p class="lede">{escape(subject["kind"])}</p>',
            f'<div class="meta"><span>{linked(target["where"])}</span><span>version {escape(target["version"])}</span>'
-           f'<span>judge {escape(judge["model"])}, {judge["runs"]} run{"s" if judge["runs"] > 1 else ""}</span>'
-           f'<span>spec {escape(grades["spec_sha"])}</span></div>',
-           f'<section class="verdict" id="verdict"><p>{escape(verdict_sentence(spec, grades, scores))}</p>'
-           f'<div class="tiers">{tier_rows(spec, grades, scores)}</div>'
-           '<p class="legend">Tiers run highest first and never trade off: a lower tier only orders what the higher '
-           'ones tie. Each bar is the share of its tier met; the mark is the share the tier asks for.</p></section>',
-           '<h2 id="fix-first">Fix first</h2>']
-    if fixes:
-        items = "".join(f'<li data-fix="{escape(failed_grade["fix"])}"><span class="fix-tier">{escape(failed_tier["name"])}</span>'
-                        f'<a href="#c-{escape(failed_criterion["id"])}">{linked(failed_grade["fix"])}</a></li>' for failed_tier, failed_criterion, failed_grade in fixes)
-        out.append(f'<ol class="fixes">{items}</ol>')
-    else:
-        out.append('<p class="none">Nothing to fix: every criterion is met.</p>')
+           f'<span>{counted(judge["runs"], "run")} by {escape(judge["model"])}</span><span>rubric {escape(grades["rubric_sha"])}</span></div>',
+           f'<section class="rating" id="rating"><p class="decision">{rating(critical, other)}: {escape(decision(critical, other))}</p>'
+           f'<p>{counted(critical, "critical gap")}, {counted(other, "other gap")}, {met} of {total} met.</p>'
+           '<p class="legend">The rating counts gaps, it is never a score: High has no critical gap and at most one other; Moderate more others; Low one critical gap; '
+           'Critically low more. A criterion failed or not judged is a gap, and a split on a critical criterion is a gap until a person settles it.</p></section>']
+    if grades["grader_text"]:
+        passages = "".join(f'<li>{escape(passage["quote"])} <span class="where">{escape(passage["where"])}</span></li>' for passage in grades["grader_text"])
+        out.append(f'<section class="warn" id="grader-text"><b>The target speaks to its grader.</b> The judges read this as data; check it did not sway them.<ul>{passages}</ul></section>')
+    out.append('<h2 id="needs-person">Needs a person</h2>' + (f'<ol class="person">{"".join(person_line(*row) for row in person)}</ol>' if person else '<p class="none">Nothing: the runs agreed on every criterion.</p>'))
+    items = "".join(list_item(criterion, f'<a href="#c-{escape(criterion["id"])}">{linked(grade["fix"])}</a>') for criterion, grade in fixes)
+    out.append('<h2 id="fix-first">Fix first</h2>' + (f'<ol class="fixes">{items}</ol>' if fixes else
+               f'<p class="none">{total} were checked and none failed outright. The rubric itself was not judged, and nothing outside it was checked.</p>'))
     out.append('<h2 id="criteria">Criteria</h2>')
-    for tier in spec["tiers"]:
-        criteria = sorted((criterion for criterion in tier["criteria"] if judged(grades["grades"][criterion["id"]])),
-                          key=lambda criterion: not failed(criterion, grades["grades"][criterion["id"]]))
-        out.append(f'<h3 id="tier-{escape(tier["id"])}">{escape(tier["name"])}</h3>' + "".join(card(tier, criterion, grades["grades"][criterion["id"]]) for criterion in criteria))
-    unjudged = [(unjudged_tier, unjudged_criterion) for unjudged_tier in spec["tiers"] for unjudged_criterion in unjudged_tier["criteria"] if not judged(grades["grades"][unjudged_criterion["id"]])]
-    if unjudged:
-        out.append('<h2 id="not-judged">Not judged</h2><p class="none">These could not be checked, each for the reason on its card. '
-                   'They are left out of the counts above, but the tier score treats each as failed, so the order never '
-                   'rewards what nobody checked.</p>' + "".join(card(unjudged_tier, unjudged_criterion, grades["grades"][unjudged_criterion["id"]]) for unjudged_tier, unjudged_criterion in unjudged))
-    frameworks = "".join(f"<li>{linked(framework)}</li>" for framework in subject["frameworks"])
+    for title, state, words, empty in GROUPS:
+        cards = [card(*row, state) for row in rows(rubric, grades) if word(*row) in words]
+        out.append(f'<h3>{title}</h3>' + ("".join(cards) or f'<p class="none">{empty}</p>'))
+    listed = lambda values: "<ul>" + "".join(f"<li>{linked(value)}</li>" for value in values) + "</ul>"
     out.append('<h2 id="what-was-graded">What was graded</h2><dl class="subject">'
-               f'<dt>Kind</dt><dd>{escape(subject["kind"])}</dd><dt>Purpose</dt><dd>{linked(subject["purpose"])}</dd>'
-               f'<dt>Reader</dt><dd>{linked(subject["reader"])}</dd><dt>Criteria drawn from</dt><dd><ul>{frameworks}</ul></dd>'
-               f'<dt>Rubric</dt><dd>{linked(spec["task"]["instruction"])}</dd></dl>')
-    estimated = spec["judge"].get("calibration", {}).get("estimated", True)
-    out.append('<footer><p>Each criterion is one yes-or-no check. '
-               f'{escape(judge["model"])} graded every criterion in {judge["runs"]} fresh '
-               f'run{"s" if judge["runs"] > 1 else ""} that saw only the target and the rubric, quoting its evidence before '
-               'each verdict; when runs split, the stricter verdict counts.</p>'
-               f'<p>The judge’s error rate per tier is {"estimated, not measured on human labels" if estimated else "measured on human labels"}. '
-               'Read the tier counts as an order between versions of a target, not as a percentage of quality.</p></footer>')
+               f'<dt>Kind</dt><dd>{escape(subject["kind"])}</dd><dt>Purpose</dt><dd>{linked(subject["purpose"])}</dd><dt>Reader</dt><dd>{linked(subject["reader"])}</dd>'
+               f'<dt>Promises</dt><dd>{listed(promise["text"] + " (" + promise["where"] + ")" for promise in rubric["promises"])}</dd>'
+               f'<dt>Flaws sought</dt><dd>{listed(rubric["flaws"])}</dd><dt>Criteria from</dt><dd>{listed(subject["frameworks"])}</dd></dl>')
+    out.append(f'<footer>Each criterion is one yes-or-no check, and fresh judges saw only the target and the criteria. Dots show how far {counted(judge["runs"], "run")} agree, '
+               'not how often they are right. “Quote matches” means the words stand at that place, not that the reading is right.</footer>')
     return "\n".join(out)
 
 
-def navigation(spec, grades):
-    tiers = [(f"tier-{tier['id']}", tier["name"]) for tier in spec["tiers"]]
-    unjudged = any(not judged(grade) for grade in grades["grades"].values())
-    return [("verdict", "Verdict"), ("fix-first", "Fix first"), ("criteria", "Criteria", tiers),
-            *([("not-judged", "Not judged")] if unjudged else []), ("what-was-graded", "What was graded")]
+def built_page(rubric, grades):
+    navigation = [("rating", "Rating"), *([("grader-text", "Text to the grader")] if grades["grader_text"] else []), ("needs-person", "Needs a person"),
+                  ("fix-first", "Fix first"), ("criteria", "Criteria"), ("what-was-graded", "What was graded")]
+    content = (ASSETS / "page.html").read_text(encoding="utf-8").replace("__BODY__", body(rubric, grades))
+    return frame.build(f"Report card: {rubric['target']['name']}", content, navigation)
 
 
-def build(spec_path, grades_path):
-    spec, grades = load(spec_path, grades_path)
-    content = TEMPLATE.read_text(encoding="utf-8").replace("__BODY__", body(spec, grades))
-    return frame.build(f"Report card: {grades['target']['name']}", content, navigation(spec, grades))
+def copied_text(rubric, grades):
+    return "\n".join(copy_text(*row) for _, _, words, _ in GROUPS for row in rows(rubric, grades) if word(*row) in words)
 
 
-def examples(folder):
-    found = sorted(path for path in pathlib.Path(folder).iterdir() if (path / "spec.json").is_file() and (path / "grades.json").is_file())
-    if not found:
-        raise Refused(f"{folder}: no folder holds spec.json and grades.json")
-    return found
-
-
-def score_spec_scores(spec_path, verdicts_file):
-    """Each tier's score as score-spec.py order prints it, so the page is checked against the scoring script."""
-    out = subprocess.run([sys.executable, str(SCORE_SPEC), "order", str(spec_path), str(verdicts_file)],
-                         capture_output=True, text=True, check=True).stdout.splitlines()[0]
-    return dict(pair.split(" ") for pair in re.search(r"\(([^()]*)\)$", out).group(1).split(", "))
-
-
-def check_one(page, folder, temporary_folder):
-    spec, grades = load(folder / "spec.json", folder / "grades.json")
-    out = pathlib.Path(temporary_folder) / f"{folder.name}.html"
-    out.write_text(build(folder / "spec.json", folder / "grades.json"), encoding="utf-8")
-    kept = folder / "report.html"
-    if kept.is_file() and kept.read_text(encoding="utf-8") != out.read_text(encoding="utf-8"):
-        raise Refused(f"{folder}: report.html differs from the page its spec and grades build; rebuild it")
-    verdict_file = pathlib.Path(temporary_folder) / f"{folder.name}.verdicts.json"
-    verdict_file.write_text(json.dumps(verdicts(spec, grades)), encoding="utf-8")
-    want = score_spec_scores(folder / "spec.json", verdict_file)
+def measured(browser, url, rubric, grades):
+    """Each page fact with what broke it, or Refused for a request off the file."""
+    page = browser.new_page(viewport={"width": 1200, "height": 900})
     leaks = []
     page.on("request", lambda request: leaks.append(request.url) if not request.url.startswith(("file:", "data:")) else None)
-    page.goto(out.as_uri())
-    shown = dict(page.eval_on_selector_all(".tier-count", "els => els.map(e => [e.dataset.tier, e.dataset.score])"))
-    if shown != want:
-        raise Refused(f"{folder}: tier scores shown {shown}, score-spec.py computes {want}")
-    cards = page.eval_on_selector_all(".crit", "els => els.map(e => [e.dataset.criterion, e.querySelector('.status').innerText, "
-                                      "e.querySelector('.evidence').textContent.trim()])")
-    ids = [criterion["id"] for tier in spec["tiers"] for criterion in tier["criteria"]]
-    if sorted(card_row[0] for card_row in cards) != sorted(ids):
-        raise Refused(f"{folder}: the page shows criteria {sorted(card_row[0] for card_row in cards)}, the spec has {sorted(ids)}")
-    if bare := [card_row[0] for card_row in cards if not card_row[1].strip() or not card_row[2]]:
-        raise Refused(f"{folder}: no verdict or no evidence shown for {', '.join(bare)}")
-    listed = page.eval_on_selector_all("ol.fixes li a", "els => els.map(e => e.getAttribute('href').slice(3))")
-    expected = [criterion["id"] for _, criterion, _ in fix_list(spec, grades)]
-    if listed != expected:
-        raise Refused(f"{folder}: fixes listed {listed}, highest tier first they are {expected}")
+    page.goto(url)
+    facts = page.evaluate((ASSETS / "measure-page.js").read_text(encoding="utf-8").split("\n", 1)[1], {
+        "person": [criterion["id"] for criterion, grade in rows(rubric, grades) if needs_person(grade)], "grader": len(grades["grader_text"]),
+        "judged": sum(criterion["check"] == "judge" for criterion in rubric["criteria"]), "fixes": [grade["fix"] for grade in grades["grades"].values() if grade.get("fix")]})
+    page.close()
     if leaks:
-        raise Refused(f"{folder}: requests left for {', '.join(leaks)}")
+        raise Refused(f"requests left for {', '.join(leaks)}")
+    copied = copied_text(rubric, grades)
+    bare = [criterion["id"] for criterion, grade in rows(rubric, grades) if any(value not in copied for value in (criterion["text"], grade.get("quote", ""), grade.get("fix", "")))]
+    return {**facts, "copy pairs": f"copy lacks {bare}" if bare else None}
 
 
-def copied_text(spec, grades):
-    fixes = [f'{i}. {grade["fix"]}' for i, (_, _, grade) in enumerate(fix_list(spec, grades), 1)]
-    return "\n".join(fixes) or "Nothing to fix: every criterion is met."
+def fits(browser, url, name, picture_folder):
+    for width in (390, 1200):
+        for scheme in ("light", "dark"):
+            page = browser.new_page(viewport={"width": width, "height": 900}, color_scheme=scheme)
+            page.goto(url)
+            if (wide := page.evaluate("document.documentElement.scrollWidth")) > width:
+                raise Refused(f"{name}: {wide} px wide at {width} px, {scheme}")
+            if clipped := page.eval_on_selector_all(".crit-text, .status, h1", "els => els.filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.innerText.slice(0, 30))"):
+                raise Refused(f"{name}: text cut at {width} px, {scheme}: {clipped[0]}")
+            if picture_folder:
+                page.screenshot(path=str(pathlib.Path(picture_folder) / f"{name}-{width}-{scheme}.png"), full_page=True)
+            page.close()
 
 
-def check(folder):
+def check(folder, picture_folder=None):
     from playwright.sync_api import sync_playwright
-    found, failures = examples(folder), {}
+    found = sorted(path for path in pathlib.Path(folder).iterdir() if (path / "rubric.json").is_file() and (path / "grades.json").is_file())
+    if not found:
+        raise Refused(f"{folder}: no folder holds rubric.json and grades.json")
+    failures = {}
     with tempfile.TemporaryDirectory() as temporary_folder, sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         for example in found:
-            page = browser.new_page()
-            check_one(page, example, temporary_folder)
-            page.close()
-            spec, grades = load(example / "spec.json", example / "grades.json")
+            rubric, grades = load(example / "rubric.json", example / "grades.json")
             built = pathlib.Path(temporary_folder) / f"{example.name}.html"
-            for fact, why in frame.probe(browser, built.as_uri(), copied=copied_text(spec, grades), change=FOLD_CHANGE, state=FOLD_STATE).items():
-                failures.setdefault(fact, f"{example}: {why}")
+            built.write_text(built_page(rubric, grades), encoding="utf-8")
+            kept = example / "report.html"
+            if kept.is_file() and kept.read_text(encoding="utf-8") != built.read_text(encoding="utf-8"):
+                raise Refused(f"{example}: report.html differs from the page its rubric and grades build; rebuild it")
+            probed = frame.probe(browser, built.as_uri(), copied=copied_text(rubric, grades), change=FOLD_CHANGE, state=FOLD_STATE)
+            for fact, why in {**probed, **measured(browser, built.as_uri(), rubric, grades)}.items():
+                if why:
+                    failures.setdefault(fact, f"{example}: {why}")
+            fits(browser, built.as_uri(), example.name, picture_folder)
+        rubric, grades = load(pathlib.Path(folder) / "every-state/rubric.json", pathlib.Path(folder) / "every-state/grades.json")
+        all_met = {**grades, "grades": {name: {"met": 1, "runs": [1, 1, 1], "quote": "a quote", "where": "a place"} for name in grades["grades"]}}
+        empty = pathlib.Path(temporary_folder) / "all-met.html"
+        empty.write_text(built_page(rubric, all_met), encoding="utf-8")
+        if why := measured(browser, empty.as_uri(), rubric, all_met)["empty fixes"]:
+            failures.setdefault("empty fixes", why)
         browser.close()
     print(f"ok {len(found)}")
-    print("Each page shows the tier scores score-spec.py computes, every criterion with its verdict and evidence, the "
-          "failed ones as fixes highest tier first, and sends no request off the file.")
-    for fact in frame.FACTS:
+    for fact in (*frame.FACTS, *PAGE_FACTS):
         if fact not in failures:
             print(f"{fact} ok")
-    print("Each line ending in ok names a fact of the frame the browser measured on every page.")
+    print("Each line ending in ok names a fact the browser measured on every page, and `empty fixes` on every-state rebuilt with every criterion met.")
+    print("Every page fits 390 and 1200 px in light and dark and cuts no text.")
     if failures:
         raise Refused("; ".join(f"{fact}: {why}" for fact, why in failures.items()))
 
 
-def layout(folder):
-    from playwright.sync_api import sync_playwright
-    found = examples(folder)
-    with tempfile.TemporaryDirectory() as temporary_folder, sync_playwright() as playwright:
-        browser = playwright.chromium.launch()
-        for example in found:
-            out = pathlib.Path(temporary_folder) / f"{example.name}.html"
-            out.write_text(build(example / "spec.json", example / "grades.json"), encoding="utf-8")
-            for width in WIDTHS:
-                for scheme in ("light", "dark"):
-                    page = browser.new_page(viewport={"width": width, "height": 900}, color_scheme=scheme)
-                    page.goto(out.as_uri())
-                    wide = page.evaluate("document.documentElement.scrollWidth")
-                    if wide > width:
-                        raise Refused(f"{example}: {wide} px wide at {width} px, {scheme}")
-                    words = page.eval_on_selector_all(".status", "els => els.map(e => e.innerText.trim())")
-                    if not words or any(not re.search(r"[A-Za-z]{2}", word) for word in words):
-                        raise Refused(f"{example}: a verdict shows no word at {width} px, {scheme}")
-                    clipped = page.eval_on_selector_all(
-                        ".crit-text, .tier-name, .tier-count, h1",
-                        "els => els.filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.innerText.slice(0, 30))")
-                    if clipped:
-                        raise Refused(f"{example}: text cut at {width} px, {scheme}: {clipped[0]}")
-                    page.close()
-        browser.close()
-    print(f"layout ok {len(found)}")
-    print("Every page fits 390 and 1200 px in light and dark, cuts no text, and names each verdict in words.")
-
-
-def capture(page_path, folder):
-    from playwright.sync_api import sync_playwright
-    folder = pathlib.Path(folder)
-    folder.mkdir(parents=True, exist_ok=True)
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch()
-        for width in WIDTHS:
-            for scheme in ("light", "dark"):
-                page = browser.new_page(viewport={"width": width, "height": 900}, color_scheme=scheme)
-                page.goto(pathlib.Path(page_path).resolve().as_uri())
-                page.screenshot(path=str(folder / f"{width}-{scheme}.png"), full_page=True)
-                page.close()
-        browser.close()
-    print(f"wrote 4 PNGs into {folder}")
-
-
 def main(args):
     try:
-        if len(args) == 2 and args[0] == "--check":
-            check(args[1])
-        elif len(args) == 2 and args[0] == "--layout":
-            layout(args[1])
-        elif len(args) == 3 and args[0] == "--capture":
-            capture(args[1], args[2])
-        elif len(args) == 3 and args[0] == "verdicts":
-            spec, grades = load(args[1], args[2])
-            print(json.dumps(verdicts(spec, grades), indent=1))
+        if len(args) in (2, 3) and args[0] == "--check":
+            check(*args[1:])
         elif len(args) == 3 and not any(argument.startswith("-") for argument in args):
-            pathlib.Path(args[2]).write_text(build(args[0], args[1]), encoding="utf-8")
+            pathlib.Path(args[2]).write_text(built_page(*load(args[0], args[1])), encoding="utf-8")
             print(f"wrote {args[2]}")
         else:
             print(__doc__, file=sys.stderr)
             return 2
-    except (Refused, OSError) as e:
+    except (Refused, OSError, ValueError) as e:
         print(f"refused: {e}")
         return 1
     return 0

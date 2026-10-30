@@ -1,154 +1,160 @@
 {
- "target": {
-  "name": "check-plan.py and tree_plan.py (tree plan checker)",
-  "where": "https://github.com/kalaluthien/mumu-claude-plugin/blob/74b7410/paperwork/skills/tree/scripts/check-plan.py",
-  "version": "74b7410"
- },
- "subject": {
-  "kind": "a command-line Python script with its library (software, ISO/IEC 25010)",
-  "purpose": "Checks tree plan JSON files against the grammar: docstring 'Check tree plan files against the grammar', prints 'ok N' or one error per line, exit 1; --expect-refused replays refused fixtures.",
-  "reader": "The tree skill's author and the fixture replay that run it; a wrong accept ships a broken plan page to the owner, a wrong refusal blocks a valid plan.",
-  "frameworks": [
-   "ISO/IEC 25010 functional correctness and reliability (https://iso25000.com/index.php/en/iso-25000-standards/iso-25010)",
-   "The repository's AGENTS.md Script form and Comments say why rules"
-  ]
- },
- "spec_sha": "37963afce3c7",
+ "rubric_sha": "7d092d98b9da",
  "judge": {
-  "model": "sonnet",
-  "runs": 2
+  "model": "claude-sonnet-5-5",
+  "runs": 3
  },
  "grades": {
   "accepts-valid": {
    "met": 1,
-   "evidence": "python3 -I check-plan.py ok.json -> 'ok 1', rc=0",
-   "where": "paperwork/skills/tree/scripts/check-plan.py:40",
-   "why": "prints ok 1 and exits 0",
    "runs": [
-    1,
     1
-   ]
+   ],
+   "quote": "ok 1",
+   "where": "PYTHONPATH=. python3 check-plan.py refused/answer-plan.json | grep -x 'ok 1'"
   },
   "refuses-unknown-key": {
    "met": 1,
-   "evidence": "unk.json: $.parts[1].zzz: unknown-key: ... rc=1",
-   "where": "paperwork/skills/tree/scripts/check-plan.py:36",
-   "why": "rule named, exit 1",
    "runs": [
-    1,
     1
-   ]
+   ],
+   "quote": "refused/written-id.json: $.parts[1].id: unknown-key: 'id' is not part of the grammar here refused/written-id.json: $.parts[2].id: unknown-key: 'id' is not part of the grammar here",
+   "where": "PYTHONPATH=. python3 check-plan.py refused/written-id.json | grep unknown-key; ! PYTHONPATH=. python3 check-plan.py refused/written-id.json >/dev/null"
   },
   "refuses-duplicate-key": {
    "met": 1,
-   "evidence": "dup.json: $: duplicate-key: key 'title' is written twice ... rc=1",
-   "where": "paperwork/lib/tree_plan.py:42",
-   "why": "rule named, exit 1",
    "runs": [
-    1,
     1
-   ]
+   ],
+   "quote": "refused/two-picks.json: $: duplicate-key: key 'pick' is written twice in one object",
+   "where": "PYTHONPATH=. python3 check-plan.py refused/two-picks.json | grep duplicate-key; ! PYTHONPATH=. python3 check-plan.py refused/two-picks.json >/dev/null"
   },
   "refuses-missing-source": {
    "met": 1,
-   "evidence": "ev.json: $.parts[1]: evidence-needs-source ... rc=1",
-   "where": "paperwork/lib/tree_plan.py:151",
-   "why": "rule named, exit 1",
    "runs": [
-    1,
     1
-   ]
+   ],
+   "quote": "refused/evidence-without-source.json: $.parts[1]: evidence-needs-source: evidence needs a source a person can open",
+   "where": "PYTHONPATH=. python3 check-plan.py refused/evidence-without-source.json | grep evidence-needs-source; ! PYTHONPATH=. python3 check-plan.py refused/evidence-without-source.json >/dev/null"
   },
   "usage-exit-2": {
    "met": 1,
-   "evidence": "no args: rc=2, stdout 0 bytes, stderr starts 'Check tree plan files against the grammar.'",
-   "where": "paperwork/skills/tree/scripts/check-plan.py:29",
-   "why": "matches",
    "runs": [
-    1,
     1
-   ]
+   ],
+   "quote": "usage: check-plan.py FILE... prints \"ok N\", or one error per line and exits 1",
+   "where": "out=$(PYTHONPATH=. python3 check-plan.py 2>/dev/null); status=$?; test $status -eq 2 && test -z \"$out\" && PYTHONPATH=. python3 check-plan.py 2>&1 | grep '^usage:'"
   },
   "unreadable-reported": {
    "met": 1,
-   "evidence": "nope.json: $: unreadable: [Errno 2] ... rc=1, Traceback count 0",
-   "where": "paperwork/skills/tree/scripts/check-plan.py:22",
-   "why": "matches",
    "runs": [
-    1,
     1
-   ]
+   ],
+   "quote": "refused/none.json: $: unreadable: [Errno 2] No such file or directory: 'refused/none.json' refused: 1 error(s) above; fix them and run again",
+   "where": "out=$(PYTHONPATH=. python3 check-plan.py refused/none.json 2>&1); status=$?; echo \"$out\"; test $status -eq 1 && echo \"$out\" | grep -q unreadable && ! echo \"$out\" | grep -q Traceback"
   },
   "bad-encoding-reported": {
    "met": 0,
-   "evidence": "invalid UTF-8 file: rc=1 but stderr has Traceback ... UnicodeDecodeError",
-   "where": "paperwork/skills/tree/scripts/check-plan.py:21",
-   "why": "only OSError and PlanError are caught; UnicodeDecodeError escapes",
-   "fix": "Catch UnicodeDecodeError (or ValueError) in errors_of and return an 'unreadable' error",
    "runs": [
-    0,
     0
-   ]
+   ],
+   "quote": "UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
+   "where": "out=$(PYTHONPATH=. python3 check-plan.py refused/not-utf8.json 2>&1); status=$?; echo \"$out\" | tail -1; test $status -eq 1 && ! echo \"$out\" | grep -q Traceback",
+   "fix": "Catch UnicodeDecodeError in errors_of as an unreadable file."
   },
   "expect-refused-summary": {
    "met": 1,
-   "evidence": "--expect-refused unk.json -> 'unk.json: unknown-key' then 'refused 1 of 1', rc=0",
-   "where": "paperwork/skills/tree/scripts/check-plan.py:59",
-   "why": "matches",
    "runs": [
-    1,
     1
-   ]
+   ],
+   "quote": "refused 1 of 1",
+   "where": "PYTHONPATH=. python3 check-plan.py --expect-refused refused/written-id.json | tail -1 | grep -x 'refused 1 of 1'"
   },
   "docstring-form": {
    "met": 1,
-   "evidence": "line 2 'Check tree plan files against the grammar.' then two 'usage:' lines",
-   "where": "paperwork/skills/tree/scripts/check-plan.py:2",
-   "why": "purpose sentence plus one usage per call form",
    "runs": [
-    1,
     1
-   ]
+   ],
+   "quote": "2",
+   "where": "sed -n 2p check-plan.py | grep -q '[.]$' && grep -cE '^(usage: |       )check-plan.py ' check-plan.py | grep -x 2"
   },
   "main-form": {
    "met": 1,
-   "evidence": "'def main(args):' and 'sys.exit(main(sys.argv[1:]))'",
-   "where": "paperwork/skills/tree/scripts/check-plan.py:25",
-   "why": "both present",
    "runs": [
-    1,
     1
-   ]
+   ],
+   "quote": "sys.exit(main(sys.argv[1:]))",
+   "where": "grep -q '^def main(args):' check-plan.py && tail -1 check-plan.py | grep -F 'sys.exit(main(sys.argv[1:]))'"
   },
   "rule-names-documented": {
    "met": 1,
-   "evidence": "grep of all 12 emitted rules in references/grammar.md: each count 1",
-   "where": "paperwork/skills/tree/references/grammar.md",
-   "why": "all present",
    "runs": [
-    1,
     1
-   ]
+   ],
+   "quote": "exit 0",
+   "where": "! grep -oE '\"[a-z]+(-[a-z]+)+\"' tree_plan.py | tr -d '\"' | sort -u | while read -r rule; do grep -qF \"$rule\" grammar.txt || echo \"undocumented: $rule\"; done | grep undocumented"
   },
   "lib-no-io": {
    "met": 1,
-   "evidence": "only open( at line 56 in load_file; imports hashlib, json, re",
-   "where": "paperwork/lib/tree_plan.py:56",
-   "why": "matches",
    "runs": [
-    1,
     1
-   ]
+   ],
+   "quote": "1",
+   "where": "! grep -nE '^(import|from) (socket|urllib|http|requests)' tree_plan.py && grep -cE '[.]open[(]|[^_a-z]open[(]|read_text[(]|read_bytes[(]' tree_plan.py | grep -x 1"
   },
-  "comment-restates-code": {
+  "comments-say-why": {
+   "fix": "Delete the four section-divider comments in tree_plan.py and explain or drop the bare noqa directive in check-plan.py.",
+   "items": [
+    {
+     "item": "check-plan.py comment: noqa E402",
+     "found": false,
+     "quote": "import tree_plan  # noqa: E402",
+     "where": "check-plan.py:13"
+    },
+    {
+     "item": "check-plan.py comment: valid-plan fixture is not counted",
+     "found": true,
+     "quote": "# A *-plan.json is the valid plan an answer fixture is applied to, so it is",
+     "where": "check-plan.py:46-47"
+    },
+    {
+     "item": "tree_plan.py comment: source a reader can open",
+     "found": true,
+     "quote": "# A source a reader can open: a link off the writer's machine, or a person and the day they said it, dot-free since the page draws it.",
+     "where": "tree_plan.py:12"
+    },
+    {
+     "item": "tree_plan.py comment: load divider",
+     "found": false,
+     "quote": "# -- load ------------------------------------------------------------------",
+     "where": "tree_plan.py:36"
+    },
+    {
+     "item": "tree_plan.py comment: check divider",
+     "found": false,
+     "quote": "# -- check -----------------------------------------------------------------",
+     "where": "tree_plan.py:60"
+    },
+    {
+     "item": "tree_plan.py comment: ids divider",
+     "found": false,
+     "quote": "# -- ids -------------------------------------------------------------------",
+     "where": "tree_plan.py:174"
+    },
+    {
+     "item": "tree_plan.py comment: answer divider",
+     "found": false,
+     "quote": "# -- answer ----------------------------------------------------------------",
+     "where": "tree_plan.py:197"
+    }
+   ],
    "met": 0,
-   "evidence": "Comments seen: tree_plan.py:12 (why source shape), check-plan.py:46-47 (variant_ok text), section dividers; none paraphrases the next line",
-   "where": "paperwork/skills/tree/scripts/check-plan.py:46",
-   "why": "no restating comment found",
    "runs": [
     0,
+    null,
     0
    ]
   }
- }
+ },
+ "grader_text": []
 }
