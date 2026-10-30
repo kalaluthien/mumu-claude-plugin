@@ -15,6 +15,7 @@ a:hover { color: var(--accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* The sticky bar sits under the frame's top bar, so a section must stop below both. */
 .frame-body [id] { scroll-margin-top: 106px; }
+html:lang(ko) { word-break: keep-all; overflow-wrap: anywhere; }
 h1 { font: 600 1.6rem/1.25 var(--font-sans); color: var(--ink); margin: 16px 0 4px; overflow-wrap: anywhere; }
 
 /* one row of numbers and one primary action, kept in view */
@@ -728,6 +729,7 @@ function render() {
   else if (focused) document.querySelector(`[data-key="${focused}"]`)?.focus({preventScroll: true});
 }
 
+document.documentElement.lang = /[\uac00-\ud7a3]/.test(plan.title) ? "ko" : "en";
 document.getElementById("tree-title").textContent = plan.title;
 [...parts.keys()].filter(id => !id.includes(".")).forEach(id => {
   document.getElementById(isGoal(id) ? "tree-goal" : "tree-parts").append(skeleton(id));

@@ -90,12 +90,10 @@ def reaches_top(page, part_id):
 
 def contrast(page, selector):
     return page.evaluate("""key => {
-      const node = document.querySelector(key), ground = element => {
-        const colour = getComputedStyle(element).backgroundColor;
-        return colour === "rgba(0, 0, 0, 0)" ? ground(element.parentElement) : colour;
-      };
-      const light = colour => {
-        const [r, g, b] = colour.match(/\\d+/g).map(n => n / 255).map(c => c <= .03928 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4);
+      const node = document.querySelector(key), colour = element => getComputedStyle(element).backgroundColor;
+      const ground = element => colour(element) === "rgba(0, 0, 0, 0)" ? ground(element.parentElement) : colour(element);
+      const light = value => {
+        const [r, g, b] = value.match(/\\d+/g).map(n => n / 255).map(c => c <= .03928 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4);
         return .2126 * r + .7152 * g + .0722 * b;
       };
       const pair = [light(getComputedStyle(node).color), light(ground(node))].sort((a, b) => b - a);
@@ -271,6 +269,11 @@ class Facts:
             if part.get("parts") and not tree_plan.is_decision(part):
                 closed = self.page.locator(f'[id="part-{part_id}"] > .part-children').is_hidden()
                 assert closed != tree_plan.holds_decision(part), f"part {part_id} is {'closed' if closed else 'open'}"
+
+    def language(self):
+        needs(re.search("[\uac00-\ud7a3]", self.plan["title"]))
+        found = self.page.evaluate("[document.documentElement.lang, getComputedStyle(document.getElementById('tree-title')).wordBreak]")
+        assert found == ["ko", "keep-all"], f"a Korean plan reads {found}"
 
 
 MEASURES = [name for name in vars(Facts) if not name.startswith("__") and name != "left"]

@@ -33,4 +33,4 @@ The full grammar, with the checker's rule ids, is [references/grammar.md](refere
 - **Checked plan**: run `${CLAUDE_PLUGIN_ROOT}/skills/tree/scripts/check-plan.py <plan>` after every edit; a plan that does not print `ok 1` is not shown.
 - **Scripts compute**: ids, pages and next plans come from `${CLAUDE_PLUGIN_ROOT}/skills/tree/scripts/make-page.py` and `${CLAUDE_PLUGIN_ROOT}/skills/tree/scripts/read-answer.py`, never from your own edits of the Answer.
 - **One page**: every plan uses the same page; change the plan, never the page.
-- **Examples**: [examples/](examples/) holds thirteen finished plans, the report on this skill among them, each with the Answer a reader could paste back.
+- **Examples**: [examples/](examples/) holds fourteen finished plans, the report on this skill among them, each with the Answer a reader could paste back.
