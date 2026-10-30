@@ -1,0 +1,24 @@
+{
+  "title": "A relation on a Part that is no Decision",
+  "parts": [
+    {
+      "text": "Pick a store.",
+      "name": "store",
+      "pick": {
+        "text": "Files",
+        "name": "files"
+      },
+      "else": [
+        {
+          "text": "A table"
+        }
+      ]
+    },
+    {
+      "text": "The files move at night.",
+      "requires": [
+        "store.files"
+      ]
+    }
+  ]
+}

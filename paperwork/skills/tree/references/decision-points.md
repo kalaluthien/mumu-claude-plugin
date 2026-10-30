@@ -17,7 +17,7 @@ Choose what to ask the owner and what to settle yourself, so each question earns
 3. Look for the answer yourself first: read the code, the request and past decisions. A fact you can find is not a Decision.
 4. Weigh what is left by reversal cost: a choice that is cheap to undo stays with you, written as a Part, with its reason.
 5. Weigh the rest by expected information: ask where you are torn and the owner knows something you do not; where entropy is low, decide and let the owner read your pick.
-6. Keep 2 to 5 Decisions in a plan. A sixth means the plan is too large, or some question can wait until an earlier answer is in.
+6. Keep the Decisions few. Past 5, check that each still earns its place, or can wait until an earlier answer is in.
 7. Order them so a later one depends on an earlier one, with `requires`, and never ask what an earlier answer settles.
 8. For each Decision, make the `pick` the option you would take with no answer, and put in its Parts the consequence that separates it from the others.
 

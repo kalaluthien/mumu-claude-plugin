@@ -38,7 +38,7 @@ A refusal prints `path: rule: detail`.
 | rule | refuses |
 | --- | --- |
 | `duplicate-key` | a key written twice in one object, such as two `pick` keys |
-| `unknown-key` | a key the grammar lacks at that place, such as `id` or `then` |
+| `unknown-key` | a key the grammar lacks at that place, such as `id`, `then`, or `requires` on a Part that is no Decision |
 | `else-needs-pick` | `else` with no `pick` |
 | `decision-in-option` | `pick` or `else` inside an Option's `parts` |
 | `empty-text` | an empty or missing `text` or `title` |
@@ -50,7 +50,7 @@ A refusal prints `path: rule: detail`.
 | `forward-ref` | a relation that names a Decision not before this one |
 | `unknown-ref` | a relation that names no Decision, or no option of it |
 | `default-blocked` | a `pick` blocked when every pick stands, so the default path cannot hold |
-| `dead-end` | answers that leave a needed Decision with no open option |
+| `dead-end` | answers, Other among them, that leave a needed Decision with no open option |
 | `unused-name` | a `name` no relation uses |
 | `bad-kind` | a `kind` that is not lowercase letters and `-` |
 | `wrong-type` | a value of the wrong JSON type |

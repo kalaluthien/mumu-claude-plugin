@@ -15,9 +15,9 @@ SOURCE_URL_PATTERN = re.compile(r"^https?://(?!localhost\b|127\.0\.0\.1\b|\[::1\
 SOURCE_PERSON_PATTERN = re.compile(r"^[^/\\:,]+, \d{4}-\d{2}-\d{2}$")
 NAME_PATTERN = re.compile(r"^[a-z][a-z0-9-]*$")
 PLAN_KEYS = {"title", "files", "parts"}
-PART_KEYS = {"text", "kind", "source", "parts", "pick", "else", "name", "requires"}
 OPTION_KEYS = {"text", "parts", "name", "requires", "excludes", "files"}
-OPTION_PART_KEYS = {"text", "kind", "source", "parts"}
+PLAIN_KEYS = {"text", "kind", "source", "parts"}
+DECISION_KEYS = PLAIN_KEYS | {"pick", "else", "name", "requires"}
 OTHER = 0  # the answer position of the free-text Other, which is no written option
 
 
@@ -137,7 +137,7 @@ def _decision_shape(decision, path, errors):
 def _part(part, path, errors, in_option=False):
     if not _expect_object(part, path, errors):
         return
-    _keys(part, OPTION_PART_KEYS if in_option else PART_KEYS, path, errors)
+    _keys(part, DECISION_KEYS if ("pick" in part or "else" in part) and not in_option else PLAIN_KEYS, path, errors)
     if in_option:
         for k in ("pick", "else"):
             if k in part:
@@ -315,8 +315,9 @@ def _dead_end(graph, chosen):
         if not openings:
             return part_id
         if name:
-            # Only a named Decision can change a later one, so only it branches.
-            return next(filter(None, (_dead_end(graph[i + 1:], {**chosen, name: option.get("name")}) for option in openings)), None)
+            # Only a named Decision can change a later one, so only it branches; an Other answer is one more branch, satisfying no relation.
+            branches = [option.get("name") for option in openings] + [None]
+            return next(filter(None, (_dead_end(graph[i + 1:], {**chosen, name: branch}) for branch in branches)), None)
     return None
 
 

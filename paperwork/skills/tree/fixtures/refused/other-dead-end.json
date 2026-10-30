@@ -1,0 +1,36 @@
+{
+  "title": "An Other answer leaves B with no open option",
+  "parts": [
+    {
+      "text": "Pick a store.",
+      "name": "store",
+      "pick": {
+        "text": "Files",
+        "name": "files"
+      },
+      "else": [
+        {
+          "text": "A table",
+          "name": "table"
+        }
+      ]
+    },
+    {
+      "text": "Pick a format.",
+      "pick": {
+        "text": "Plain",
+        "requires": [
+          "store.files"
+        ]
+      },
+      "else": [
+        {
+          "text": "Rows",
+          "requires": [
+            "store.table"
+          ]
+        }
+      ]
+    }
+  ]
+}

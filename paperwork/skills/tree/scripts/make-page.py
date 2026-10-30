@@ -26,7 +26,6 @@ CHANGE = 'change(() => { state.comments["1"] = ["x"]; })'
 STATS = {"files": "#tree-files", "left": "#tree-left", "risks": "#tree-risks"}
 
 
-
 def navigation(plan):
     """The left tree: each top-level Part with the Decisions under it; a goal stands in the Overview."""
     entries = [("overview", "Overview")]
@@ -162,10 +161,10 @@ class Facts:
     def effect(self):
         part_id, position = needs([item for item in tree_plan.presses(self.plan) if tree_plan.changes(self.plan, {}, *item)])[0]
         changed = tree_plan.changes(self.plan, {}, part_id, position)
-        before, selector = self.page.inner_text(".tree-stats"), OPTION.format(part_id, position)
+        before, selector, rows = self.page.inner_text(".tree-stats"), OPTION.format(part_id, position), self.page.locator(".frame-nav a").count()
         self.page.locator(f".option:has({selector})").hover()
-        assert marked(self.page) == changed, f"a hover marks {marked(self.page)}, not {changed}"
-        assert self.page.inner_text(".tree-stats") != before, "a hover leaves the numbers as they were"
+        assert marked(self.page) == changed and self.page.inner_text(".tree-stats") != before, f"a hover marks {marked(self.page)}, not {changed}, or leaves the numbers"
+        assert self.page.locator(".frame-nav.previewing a:visible").count() == rows, "the tree does not dim with every row kept"
         self.page.mouse.move(0, 0)
         assert not marked(self.page) and self.page.inner_text(".tree-stats") == before, "the marks stay after the pointer leaves"
         self.page.locator(selector).focus()
