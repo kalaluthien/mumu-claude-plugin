@@ -1,0 +1,2703 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>GitHub pull request</title>
+<style>
+:root, [data-theme="light"] {
+  --krds-primary-5: #ecf2fe;
+  --krds-primary-10: #d8e5fd;
+  --krds-primary-20: #b1cefb;
+  --krds-primary-30: #86aff9;
+  --krds-primary-40: #4c87f6;
+  --krds-primary-50: #256ef4;
+  --krds-primary-60: #0b50d0;
+  --krds-primary-70: #083891;
+  --krds-primary-80: #052561;
+  --krds-primary-90: #03163a;
+  --krds-primary-95: #020f27;
+  --krds-secondary-5: #eef2f7;
+  --krds-secondary-10: #d6e0eb;
+  --krds-secondary-20: #bacbde;
+  --krds-secondary-30: #90b0d5;
+  --krds-secondary-40: #6b96c7;
+  --krds-secondary-50: #346fb2;
+  --krds-secondary-60: #1c589c;
+  --krds-secondary-70: #063a74;
+  --krds-secondary-80: #052b57;
+  --krds-secondary-90: #031f3f;
+  --krds-secondary-95: #02162c;
+  --krds-gray-0: #ffffff;
+  --krds-gray-5: #f4f5f6;
+  --krds-gray-10: #e6e8ea;
+  --krds-gray-20: #cdd1d5;
+  --krds-gray-30: #b1b8be;
+  --krds-gray-40: #8a949e;
+  --krds-gray-50: #6d7882;
+  --krds-gray-60: #58616a;
+  --krds-gray-70: #464c53;
+  --krds-gray-80: #33363d;
+  --krds-gray-90: #1e2124;
+  --krds-gray-95: #131416;
+  --krds-gray-100: #000000;
+  --krds-alpha-black100: #000000;
+  --krds-alpha-black75: #000000bf;
+  --krds-alpha-black50: #00000080;
+  --krds-alpha-black25: #00000040;
+  --krds-alpha-black10: #0000001a;
+  --krds-alpha-black0: #00000000;
+  --krds-alpha-white100: #ffffff;
+  --krds-alpha-white75: #ffffffbf;
+  --krds-alpha-white50: #ffffff80;
+  --krds-alpha-white25: #ffffff40;
+  --krds-alpha-white10: #ffffff1a;
+  --krds-alpha-white0: #ffffff00;
+  --krds-danger-5: #fdefec;
+  --krds-danger-10: #fcdfd9;
+  --krds-danger-20: #f7afa1;
+  --krds-danger-30: #f48771;
+  --krds-danger-40: #f05f42;
+  --krds-danger-50: #de3412;
+  --krds-danger-60: #bd2c0f;
+  --krds-danger-70: #8a240f;
+  --krds-danger-80: #5c180a;
+  --krds-danger-90: #390d05;
+  --krds-danger-95: #260903;
+  --krds-information-5: #e7f4fe;
+  --krds-information-10: #d3ebfd;
+  --krds-information-20: #9ed2fa;
+  --krds-information-30: #5fb5f7;
+  --krds-information-40: #2098f3;
+  --krds-information-50: #0b78cb;
+  --krds-information-60: #096ab3;
+  --krds-information-70: #085691;
+  --krds-information-80: #053961;
+  --krds-information-90: #03253f;
+  --krds-information-95: #021a2c;
+  --krds-warning-5: #fff3db;
+  --krds-warning-10: #ffe0a3;
+  --krds-warning-20: #ffc95c;
+  --krds-warning-30: #ffb114;
+  --krds-warning-40: #c78500;
+  --krds-warning-50: #9e6a00;
+  --krds-warning-60: #8a5c00;
+  --krds-warning-70: #614100;
+  --krds-warning-80: #422c00;
+  --krds-warning-90: #2e1f00;
+  --krds-warning-95: #241800;
+  --krds-success-5: #eaf6ec;
+  --krds-success-10: #d8eedd;
+  --krds-success-20: #a9dab4;
+  --krds-success-30: #7ec88e;
+  --krds-success-40: #3fa654;
+  --krds-success-50: #228738;
+  --krds-success-60: #267337;
+  --krds-success-70: #285d33;
+  --krds-success-80: #1f4727;
+  --krds-success-90: #122b18;
+  --krds-success-95: #0e2012;
+  --krds-point-5: #fbeff0;
+  --krds-point-10: #f5d6d9;
+  --krds-point-20: #ebadb2;
+  --krds-point-30: #e0858c;
+  --krds-point-40: #d65c66;
+  --krds-point-50: #d63d4a;
+  --krds-point-60: #ab2b36;
+  --krds-point-70: #7a1f26;
+  --krds-point-80: #521419;
+  --krds-point-90: #310c0f;
+  --krds-point-95: #21080a;
+  --krds-graphic-10: #e5ecf9;
+  --krds-graphic-30: #98acc5;
+  --krds-graphic-50: #61758f;
+  --krds-graphic-70: #39506c;
+  --krds-graphic-90: #223a58;
+  --krds-color-surface-gray-subtler: var(--krds-gray-5);
+  --krds-color-surface-gray-subtle: var(--krds-gray-10);
+  --krds-color-surface-disabled: var(--krds-gray-20);
+  --krds-color-surface-primary-subtler: var(--krds-primary-5);
+  --krds-color-surface-secondary-subtler: var(--krds-secondary-5);
+  --krds-color-surface-danger-subtler: var(--krds-danger-5);
+  --krds-color-surface-warning-subtler: var(--krds-warning-5);
+  --krds-color-surface-success-subtler: var(--krds-success-5);
+  --krds-color-surface-information-subtler: var(--krds-information-5);
+  --krds-color-surface-point-subtler: var(--krds-point-5);
+  --krds-color-surface-white: var(--krds-gray-0);
+  --krds-color-surface-inverse: var(--krds-gray-90);
+  --krds-color-surface-white-static: var(--krds-gray-0);
+  --krds-color-surface-inverse-static: var(--krds-gray-90);
+  --krds-color-surface-white-subtle: var(--krds-gray-0);
+  --krds-color-surface-white-subtler: var(--krds-gray-0);
+  --krds-color-border-gray-light: var(--krds-gray-20);
+  --krds-color-border-gray: var(--krds-gray-30);
+  --krds-color-border-secondary-light: var(--krds-secondary-10);
+  --krds-color-border-danger-light: var(--krds-danger-10);
+  --krds-color-border-danger: var(--krds-danger-50);
+  --krds-color-border-warning-light: var(--krds-warning-10);
+  --krds-color-border-warning: var(--krds-warning-50);
+  --krds-color-border-success-light: var(--krds-success-10);
+  --krds-color-border-success: var(--krds-success-50);
+  --krds-color-border-information-light: var(--krds-information-10);
+  --krds-color-border-information: var(--krds-information-50);
+  --krds-color-border-gray-dark: var(--krds-gray-60);
+  --krds-color-border-primary: var(--krds-primary-50);
+  --krds-color-border-disabled: var(--krds-gray-30);
+  --krds-color-border-gray-darker: var(--krds-gray-90);
+  --krds-color-border-secondary: var(--krds-secondary-70);
+  --krds-color-border-inverse: var(--krds-gray-0);
+  --krds-color-border-transparency: var(--krds-alpha-black0);
+  --krds-color-border-primary-light: var(--krds-primary-10);
+  --krds-color-border-point: var(--krds-point-50);
+  --krds-color-border-point-light: var(--krds-point-10);
+  --krds-color-divider-gray-light: var(--krds-gray-20);
+  --krds-color-divider-gray: var(--krds-gray-40);
+  --krds-color-divider-gray-dark: var(--krds-gray-50);
+  --krds-color-divider-primary: var(--krds-primary-50);
+  --krds-color-divider-secondary-light: var(--krds-secondary-10);
+  --krds-color-divider-secondary: var(--krds-secondary-70);
+  --krds-color-divider-error: var(--krds-danger-50);
+  --krds-color-divider-primary-light: var(--krds-primary-10);
+  --krds-color-divider-inverse: var(--krds-gray-0);
+  --krds-color-divider-gray-darker: var(--krds-gray-90);
+  --krds-color-divider-point: var(--krds-point-50);
+  --krds-color-text-bolder: var(--krds-gray-95);
+  --krds-color-text-subtle: var(--krds-gray-70);
+  --krds-color-text-disabled: var(--krds-gray-40);
+  --krds-color-text-disabled-on: var(--krds-gray-50);
+  --krds-color-text-primary: var(--krds-primary-60);
+  --krds-color-text-secondary: var(--krds-secondary-80);
+  --krds-color-text-danger: var(--krds-danger-60);
+  --krds-color-text-warning: var(--krds-warning-60);
+  --krds-color-text-success: var(--krds-success-60);
+  --krds-color-text-information: var(--krds-information-60);
+  --krds-color-text-basic: var(--krds-gray-90);
+  --krds-color-text-point: var(--krds-point-60);
+  --krds-color-text-bolder-inverse: var(--krds-gray-0);
+  --krds-color-text-basic-inverse: var(--krds-gray-0);
+  --krds-color-text-subtle-inverse: var(--krds-gray-30);
+  --krds-color-text-inverse-static: var(--krds-gray-0);
+  --krds-color-text-static: var(--krds-gray-90);
+  --krds-color-icon-gray: var(--krds-gray-80);
+  --krds-color-icon-gray-fill: var(--krds-gray-20);
+  --krds-color-icon-inverse: var(--krds-gray-0);
+  --krds-color-icon-primary: var(--krds-primary-50);
+  --krds-color-icon-secondary: var(--krds-secondary-80);
+  --krds-color-icon-point: var(--krds-point-50);
+  --krds-color-icon-danger: var(--krds-danger-50);
+  --krds-color-icon-warning: var(--krds-warning-50);
+  --krds-color-icon-success: var(--krds-success-50);
+  --krds-color-icon-information: var(--krds-information-50);
+  --krds-color-icon-gray-light: var(--krds-gray-70);
+  --krds-color-icon-disabled: var(--krds-gray-40);
+  --krds-color-icon-disabled-on: var(--krds-gray-50);
+  --krds-color-icon-inverse-static: var(--krds-gray-0);
+  --krds-color-icon-primary-static: var(--krds-primary-50);
+  --krds-color-icon-secondary-static: var(--krds-secondary-80);
+  --krds-color-icon-point-static: var(--krds-point-50);
+  --krds-color-icon-danger-static: var(--krds-danger-50);
+  --krds-color-icon-warning-static: var(--krds-warning-50);
+  --krds-color-icon-success-static: var(--krds-success-50);
+  --krds-color-icon-information-static: var(--krds-information-50);
+  --krds-color-icon-gray-static: var(--krds-gray-80);
+  --krds-color-link-default: var(--krds-primary-50);
+  --krds-color-link-hover: var(--krds-primary-60);
+  --krds-color-link-pressed: var(--krds-primary-70);
+  --krds-color-link-visited: #5917b8;
+  --krds-color-button-primary-fill: var(--krds-primary-50);
+  --krds-color-button-primary-fill-hover: var(--krds-primary-60);
+  --krds-color-button-primary-fill-pressed: var(--krds-primary-70);
+  --krds-color-button-secondary-fill: var(--krds-primary-5);
+  --krds-color-button-secondary-fill-hover: var(--krds-primary-10);
+  --krds-color-button-secondary-fill-pressed: var(--krds-primary-20);
+  --krds-color-button-secondary-border: var(--krds-primary-50);
+  --krds-color-button-tertiary-fill: var(--krds-alpha-white0);
+  --krds-color-button-tertiary-fill-hover: var(--krds-gray-5);
+  --krds-color-button-tertiary-fill-pressed: var(--krds-gray-10);
+  --krds-color-button-tertiary-border: var(--krds-gray-60);
+  --krds-color-button-disabled-fill: var(--krds-gray-20);
+  --krds-color-button-text-fill-hover: var(--krds-secondary-5);
+  --krds-color-button-text-fill-pressed: var(--krds-secondary-10);
+  --krds-color-button-text-fill: var(--krds-alpha-white0);
+  --krds-color-button-text-border: var(--krds-alpha-black0);
+  --krds-color-button-disabled-border: var(--krds-gray-30);
+  --krds-color-background-white: var(--krds-gray-0);
+  --krds-color-background-inverse: var(--krds-gray-90);
+  --krds-color-background-gray-subtler: var(--krds-gray-5);
+  --krds-color-background-gray-subtle: var(--krds-gray-10);
+  --krds-color-background-dim: var(--krds-alpha-black75);
+  --krds-color-element-disabled-light: var(--krds-gray-20);
+  --krds-color-element-disabled-dark: var(--krds-gray-40);
+  --krds-color-element-gray-lighter: var(--krds-gray-5);
+  --krds-color-element-gray-light: var(--krds-gray-10);
+  --krds-color-element-gray: var(--krds-gray-50);
+  --krds-color-element-primary-lighter: var(--krds-primary-5);
+  --krds-color-element-primary-light: var(--krds-primary-10);
+  --krds-color-element-primary: var(--krds-primary-50);
+  --krds-color-element-secondary-lighter: var(--krds-secondary-5);
+  --krds-color-element-secondary-light: var(--krds-secondary-10);
+  --krds-color-element-secondary: var(--krds-secondary-70);
+  --krds-color-element-point-lighter: var(--krds-point-5);
+  --krds-color-element-point-light: var(--krds-point-10);
+  --krds-color-element-point: var(--krds-point-50);
+  --krds-color-element-danger-lighter: var(--krds-danger-5);
+  --krds-color-element-danger: var(--krds-danger-50);
+  --krds-color-element-warning-lighter: var(--krds-warning-5);
+  --krds-color-element-warning: var(--krds-warning-30);
+  --krds-color-element-success-lighter: var(--krds-success-5);
+  --krds-color-element-success: var(--krds-success-50);
+  --krds-color-element-information-lighter: var(--krds-information-5);
+  --krds-color-element-information: var(--krds-information-50);
+  --krds-color-element-inverse: var(--krds-gray-0);
+  --krds-color-element-gray-dark: var(--krds-gray-60);
+  --krds-color-element-inverse-static: var(--krds-gray-0);
+  --krds-color-action-white: var(--krds-gray-0);
+  --krds-color-action-primary: var(--krds-alpha-white0);
+  --krds-color-action-primary-hover: var(--krds-primary-5);
+  --krds-color-action-primary-pressed: var(--krds-primary-10);
+  --krds-color-action-secondary: var(--krds-alpha-white0);
+  --krds-color-action-secondary-hover: var(--krds-secondary-5);
+  --krds-color-action-secondary-pressed: var(--krds-secondary-10);
+  --krds-color-action-secondary-selected: var(--krds-secondary-5);
+  --krds-color-action-secondary-on: var(--krds-alpha-white0);
+  --krds-color-action-secondary-on-hover: var(--krds-gray-0);
+  --krds-color-action-secondary-on-pressed: var(--krds-secondary-10);
+  --krds-color-action-secondary-on-selected: var(--krds-gray-0);
+  --krds-color-action-secondary-active: var(--krds-secondary-70);
+  --krds-color-action-primary-active: var(--krds-primary-50);
+  --krds-color-action-disabled: var(--krds-gray-20);
+  --krds-color-action-primary-selected: var(--krds-primary-5);
+  --krds-color-input-border: var(--krds-gray-60);
+  --krds-color-input-border-disabled: var(--krds-gray-30);
+  --krds-color-input-border-active: var(--krds-primary-50);
+  --krds-color-input-border-error: var(--krds-danger-50);
+  --krds-color-input-surface: var(--krds-gray-0);
+  --krds-color-input-surface-disabled: var(--krds-gray-20);
+  --krds-color-graphic-blue-subtler: var(--krds-graphic-10);
+  --krds-color-graphic-blue-subtle: var(--krds-graphic-30);
+  --krds-color-graphic-blue: var(--krds-graphic-50);
+  --krds-color-graphic-blue-dark: var(--krds-graphic-70);
+  --krds-color-graphic-blue-darker: var(--krds-graphic-90);
+  --krds-color-graphic-red-subtler: var(--krds-point-5);
+  --krds-color-graphic-red-subtle: var(--krds-point-10);
+  --krds-color-graphic-red: var(--krds-point-20);
+  --krds-color-graphic-red-dark: var(--krds-point-40);
+  --krds-color-graphic-red-darker: var(--krds-point-70);
+  --krds-color-graphic-brand: var(--krds-primary-50);
+  --krds-color-alpha-base100: var(--krds-alpha-white100);
+  --krds-color-alpha-base50: var(--krds-alpha-white50);
+  --krds-color-alpha-base25: var(--krds-alpha-white25);
+  --krds-color-alpha-base0: var(--krds-alpha-white0);
+  --krds-color-alpha-inverse100: var(--krds-alpha-black100);
+  --krds-color-alpha-inverse50: var(--krds-alpha-black50);
+  --krds-color-alpha-inverse25: var(--krds-alpha-black25);
+  --krds-color-alpha-inverse0: var(--krds-alpha-black0);
+  --krds-color-alpha-base75: var(--krds-alpha-white75);
+  --krds-color-alpha-inverse75: var(--krds-alpha-black75);
+  --krds-color-alpha-inverse10: var(--krds-alpha-black10);
+  --krds-color-alpha-base10: var(--krds-alpha-white10);
+  --krds-color-alpha-shadow1: #0000000d;
+  --krds-color-alpha-shadow2: #00000014;
+  --krds-color-alpha-shadow3: #0000001f;
+  --krds-color-surface-raised: var(--krds-gray-0);
+  --krds-color-surface-sunken: var(--krds-gray-5);
+  --krds-color-border-focus: var(--krds-primary-50);
+  --krds-color-overlay-scrim: #0000008c;
+  --krds-shadow-1: 0 1px 2px #0000000f, 0 1px 1px #0000000a;
+  --krds-shadow-2: 0 4px 12px #00000014, 0 1px 3px #0000000f;
+  --krds-shadow-3: 0 16px 40px #0000001f, 0 2px 6px #00000014;
+}
+[data-theme="dark"] {
+  --krds-color-surface-gray-subtler: var(--krds-gray-90);
+  --krds-color-surface-gray-subtle: var(--krds-gray-80);
+  --krds-color-surface-disabled: var(--krds-gray-70);
+  --krds-color-surface-primary-subtler: var(--krds-primary-90);
+  --krds-color-surface-secondary-subtler: var(--krds-secondary-90);
+  --krds-color-surface-danger-subtler: var(--krds-danger-90);
+  --krds-color-surface-warning-subtler: var(--krds-warning-90);
+  --krds-color-surface-success-subtler: var(--krds-success-90);
+  --krds-color-surface-information-subtler: var(--krds-information-90);
+  --krds-color-surface-point-subtler: var(--krds-point-90);
+  --krds-color-surface-white: var(--krds-gray-95);
+  --krds-color-surface-inverse: var(--krds-gray-10);
+  --krds-color-surface-white-static: var(--krds-gray-0);
+  --krds-color-surface-inverse-static: var(--krds-gray-90);
+  --krds-color-surface-white-subtle: var(--krds-gray-90);
+  --krds-color-surface-white-subtler: var(--krds-gray-80);
+  --krds-color-border-gray-light: var(--krds-gray-70);
+  --krds-color-border-gray: var(--krds-gray-60);
+  --krds-color-border-secondary-light: var(--krds-secondary-80);
+  --krds-color-border-danger-light: var(--krds-danger-80);
+  --krds-color-border-danger: var(--krds-danger-50);
+  --krds-color-border-warning-light: var(--krds-warning-80);
+  --krds-color-border-warning: var(--krds-warning-50);
+  --krds-color-border-success-light: var(--krds-success-80);
+  --krds-color-border-success: var(--krds-success-50);
+  --krds-color-border-information-light: var(--krds-information-80);
+  --krds-color-border-information: var(--krds-information-50);
+  --krds-color-border-gray-dark: var(--krds-gray-40);
+  --krds-color-border-primary: var(--krds-primary-50);
+  --krds-color-border-disabled: var(--krds-gray-70);
+  --krds-color-border-gray-darker: var(--krds-gray-10);
+  --krds-color-border-secondary: var(--krds-secondary-60);
+  --krds-color-border-inverse: var(--krds-gray-95);
+  --krds-color-border-transparency: var(--krds-alpha-white0);
+  --krds-color-border-primary-light: var(--krds-primary-80);
+  --krds-color-border-point: var(--krds-point-50);
+  --krds-color-border-point-light: var(--krds-point-80);
+  --krds-color-divider-gray-light: var(--krds-gray-70);
+  --krds-color-divider-gray: var(--krds-gray-70);
+  --krds-color-divider-gray-dark: var(--krds-gray-50);
+  --krds-color-divider-primary: var(--krds-primary-50);
+  --krds-color-divider-secondary-light: var(--krds-secondary-80);
+  --krds-color-divider-secondary: var(--krds-secondary-60);
+  --krds-color-divider-error: var(--krds-danger-50);
+  --krds-color-divider-primary-light: var(--krds-primary-80);
+  --krds-color-divider-inverse: var(--krds-gray-95);
+  --krds-color-divider-gray-darker: var(--krds-gray-10);
+  --krds-color-divider-point: var(--krds-point-50);
+  --krds-color-text-bolder: var(--krds-gray-5);
+  --krds-color-text-subtle: var(--krds-gray-30);
+  --krds-color-text-disabled: var(--krds-gray-50);
+  --krds-color-text-disabled-on: var(--krds-gray-50);
+  --krds-color-text-primary: var(--krds-primary-20);
+  --krds-color-text-secondary: var(--krds-secondary-20);
+  --krds-color-text-danger: var(--krds-danger-20);
+  --krds-color-text-warning: var(--krds-warning-20);
+  --krds-color-text-success: var(--krds-success-20);
+  --krds-color-text-information: var(--krds-information-20);
+  --krds-color-text-basic: var(--krds-gray-10);
+  --krds-color-text-point: var(--krds-point-20);
+  --krds-color-text-bolder-inverse: var(--krds-gray-95);
+  --krds-color-text-basic-inverse: var(--krds-gray-90);
+  --krds-color-text-subtle-inverse: var(--krds-gray-70);
+  --krds-color-text-inverse-static: var(--krds-gray-0);
+  --krds-color-text-static: var(--krds-gray-90);
+  --krds-color-icon-gray: var(--krds-gray-10);
+  --krds-color-icon-gray-fill: var(--krds-gray-70);
+  --krds-color-icon-inverse: var(--krds-gray-90);
+  --krds-color-icon-primary: var(--krds-primary-20);
+  --krds-color-icon-secondary: var(--krds-secondary-20);
+  --krds-color-icon-point: var(--krds-point-20);
+  --krds-color-icon-danger: var(--krds-danger-20);
+  --krds-color-icon-warning: var(--krds-warning-20);
+  --krds-color-icon-success: var(--krds-success-20);
+  --krds-color-icon-information: var(--krds-information-20);
+  --krds-color-icon-gray-light: var(--krds-gray-30);
+  --krds-color-icon-disabled: var(--krds-gray-50);
+  --krds-color-icon-disabled-on: var(--krds-gray-50);
+  --krds-color-icon-inverse-static: var(--krds-gray-0);
+  --krds-color-icon-primary-static: var(--krds-primary-50);
+  --krds-color-icon-secondary-static: var(--krds-secondary-80);
+  --krds-color-icon-point-static: var(--krds-point-50);
+  --krds-color-icon-danger-static: var(--krds-danger-50);
+  --krds-color-icon-warning-static: var(--krds-warning-50);
+  --krds-color-icon-success-static: var(--krds-success-50);
+  --krds-color-icon-information-static: var(--krds-information-50);
+  --krds-color-icon-gray-static: var(--krds-gray-80);
+  --krds-color-link-default: var(--krds-primary-30);
+  --krds-color-link-hover: var(--krds-primary-20);
+  --krds-color-link-pressed: var(--krds-primary-10);
+  --krds-color-link-visited: #c49ff9;
+  --krds-color-button-primary-fill: var(--krds-primary-50);
+  --krds-color-button-primary-fill-hover: var(--krds-primary-60);
+  --krds-color-button-primary-fill-pressed: var(--krds-primary-70);
+  --krds-color-button-secondary-fill: var(--krds-primary-90);
+  --krds-color-button-secondary-fill-hover: var(--krds-primary-80);
+  --krds-color-button-secondary-fill-pressed: var(--krds-primary-80);
+  --krds-color-button-secondary-border: var(--krds-primary-50);
+  --krds-color-button-tertiary-fill: var(--krds-alpha-black0);
+  --krds-color-button-tertiary-fill-hover: var(--krds-gray-90);
+  --krds-color-button-tertiary-fill-pressed: var(--krds-gray-80);
+  --krds-color-button-tertiary-border: var(--krds-gray-40);
+  --krds-color-button-disabled-fill: var(--krds-gray-80);
+  --krds-color-button-text-fill-hover: var(--krds-secondary-90);
+  --krds-color-button-text-fill-pressed: var(--krds-secondary-80);
+  --krds-color-button-text-fill: var(--krds-alpha-black0);
+  --krds-color-button-text-border: var(--krds-alpha-white0);
+  --krds-color-button-disabled-border: var(--krds-gray-70);
+  --krds-color-background-white: var(--krds-gray-95);
+  --krds-color-background-inverse: var(--krds-gray-10);
+  --krds-color-background-gray-subtler: var(--krds-gray-90);
+  --krds-color-background-gray-subtle: var(--krds-gray-80);
+  --krds-color-background-dim: var(--krds-alpha-black75);
+  --krds-color-element-disabled-light: var(--krds-gray-80);
+  --krds-color-element-disabled-dark: var(--krds-gray-60);
+  --krds-color-element-gray-lighter: var(--krds-gray-90);
+  --krds-color-element-gray-light: var(--krds-gray-80);
+  --krds-color-element-gray: var(--krds-gray-50);
+  --krds-color-element-primary-lighter: var(--krds-primary-90);
+  --krds-color-element-primary-light: var(--krds-primary-80);
+  --krds-color-element-primary: var(--krds-primary-50);
+  --krds-color-element-secondary-lighter: var(--krds-secondary-90);
+  --krds-color-element-secondary-light: var(--krds-secondary-80);
+  --krds-color-element-secondary: var(--krds-secondary-60);
+  --krds-color-element-point-lighter: var(--krds-point-90);
+  --krds-color-element-point-light: var(--krds-point-80);
+  --krds-color-element-point: var(--krds-point-50);
+  --krds-color-element-danger-lighter: var(--krds-danger-90);
+  --krds-color-element-danger: var(--krds-danger-50);
+  --krds-color-element-warning-lighter: var(--krds-warning-90);
+  --krds-color-element-warning: var(--krds-warning-30);
+  --krds-color-element-success-lighter: var(--krds-success-90);
+  --krds-color-element-success: var(--krds-success-50);
+  --krds-color-element-information-lighter: var(--krds-information-90);
+  --krds-color-element-information: var(--krds-information-50);
+  --krds-color-element-inverse: var(--krds-gray-90);
+  --krds-color-element-gray-dark: var(--krds-gray-40);
+  --krds-color-element-inverse-static: var(--krds-gray-0);
+  --krds-color-action-white: var(--krds-gray-95);
+  --krds-color-action-primary: var(--krds-alpha-black0);
+  --krds-color-action-primary-hover: var(--krds-primary-90);
+  --krds-color-action-primary-pressed: var(--krds-primary-80);
+  --krds-color-action-secondary: var(--krds-alpha-black0);
+  --krds-color-action-secondary-hover: var(--krds-secondary-90);
+  --krds-color-action-secondary-pressed: var(--krds-secondary-80);
+  --krds-color-action-secondary-selected: var(--krds-secondary-90);
+  --krds-color-action-secondary-on: var(--krds-alpha-black0);
+  --krds-color-action-secondary-on-hover: var(--krds-gray-95);
+  --krds-color-action-secondary-on-pressed: var(--krds-secondary-80);
+  --krds-color-action-secondary-on-selected: var(--krds-gray-90);
+  --krds-color-action-secondary-active: var(--krds-secondary-60);
+  --krds-color-action-primary-active: var(--krds-primary-50);
+  --krds-color-action-disabled: var(--krds-gray-80);
+  --krds-color-action-primary-selected: var(--krds-primary-90);
+  --krds-color-input-border: var(--krds-gray-40);
+  --krds-color-input-border-disabled: var(--krds-gray-70);
+  --krds-color-input-border-active: var(--krds-primary-50);
+  --krds-color-input-border-error: var(--krds-danger-50);
+  --krds-color-input-surface: var(--krds-gray-80);
+  --krds-color-input-surface-disabled: var(--krds-gray-90);
+  --krds-color-graphic-blue-subtler: var(--krds-graphic-10);
+  --krds-color-graphic-blue-subtle: var(--krds-graphic-30);
+  --krds-color-graphic-blue: var(--krds-graphic-50);
+  --krds-color-graphic-blue-dark: var(--krds-graphic-70);
+  --krds-color-graphic-blue-darker: var(--krds-graphic-90);
+  --krds-color-graphic-red-subtler: var(--krds-point-5);
+  --krds-color-graphic-red-subtle: var(--krds-point-10);
+  --krds-color-graphic-red: var(--krds-point-20);
+  --krds-color-graphic-red-dark: var(--krds-point-40);
+  --krds-color-graphic-red-darker: var(--krds-point-70);
+  --krds-color-graphic-brand: var(--krds-primary-50);
+  --krds-color-alpha-base100: var(--krds-alpha-black100);
+  --krds-color-alpha-base50: var(--krds-alpha-black50);
+  --krds-color-alpha-base25: var(--krds-alpha-black25);
+  --krds-color-alpha-base0: var(--krds-alpha-black0);
+  --krds-color-alpha-inverse100: var(--krds-alpha-white100);
+  --krds-color-alpha-inverse50: var(--krds-alpha-white50);
+  --krds-color-alpha-inverse25: var(--krds-alpha-white25);
+  --krds-color-alpha-inverse0: var(--krds-alpha-white0);
+  --krds-color-alpha-base75: var(--krds-alpha-black75);
+  --krds-color-alpha-inverse75: var(--krds-alpha-white75);
+  --krds-color-alpha-inverse10: var(--krds-alpha-black25);
+  --krds-color-alpha-base10: var(--krds-alpha-black10);
+  --krds-color-alpha-shadow1: #00000059;
+  --krds-color-alpha-shadow2: #00000073;
+  --krds-color-alpha-shadow3: #0000008c;
+  --krds-color-surface-raised: var(--krds-gray-90);
+  --krds-color-surface-sunken: var(--krds-gray-100);
+  --krds-color-border-focus: var(--krds-primary-30);
+  --krds-color-overlay-scrim: #000000b3;
+  --krds-shadow-1: 0 1px 2px #00000066;
+  --krds-shadow-2: 0 6px 16px #00000080, 0 0 0 1px #ffffff0f;
+  --krds-shadow-3: 0 20px 48px #000000a6, 0 0 0 1px #ffffff14;
+}
+:root {
+  --krds-number-0: 0px;
+  --krds-number-1: 1px;
+  --krds-number-2: 2px;
+  --krds-number-3: 4px;
+  --krds-number-4: 6px;
+  --krds-number-5: 8px;
+  --krds-number-6: 10px;
+  --krds-number-7: 12px;
+  --krds-number-8: 16px;
+  --krds-number-9: 20px;
+  --krds-number-10: 24px;
+  --krds-number-11: 28px;
+  --krds-number-12: 32px;
+  --krds-number-13: 36px;
+  --krds-number-14: 40px;
+  --krds-number-15: 44px;
+  --krds-number-16: 48px;
+  --krds-number-17: 56px;
+  --krds-number-18: 64px;
+  --krds-number-19: 72px;
+  --krds-number-20: 80px;
+  --krds-number-21: 96px;
+  --krds-number-max: 1000px;
+  --krds-gap-1: 2px;
+  --krds-gap-2: 4px;
+  --krds-gap-3: 8px;
+  --krds-gap-4: 12px;
+  --krds-gap-5: 16px;
+  --krds-gap-6: 20px;
+  --krds-gap-7: 24px;
+  --krds-gap-8: 32px;
+  --krds-gap-9: 40px;
+  --krds-gap-10: 48px;
+  --krds-gap-11: 64px;
+  --krds-gap-12: 80px;
+  --krds-padding-1: 2px;
+  --krds-padding-2: 4px;
+  --krds-padding-3: 8px;
+  --krds-padding-4: 10px;
+  --krds-padding-5: 12px;
+  --krds-padding-6: 16px;
+  --krds-padding-7: 20px;
+  --krds-padding-8: 24px;
+  --krds-padding-9: 32px;
+  --krds-padding-10: 40px;
+  --krds-radius-xsmall1: 2px;
+  --krds-radius-xsmall2: 2px;
+  --krds-radius-xsmall3: 2px;
+  --krds-radius-small1: 4px;
+  --krds-radius-small2: 4px;
+  --krds-radius-small3: 4px;
+  --krds-radius-medium1: 6px;
+  --krds-radius-medium2: 6px;
+  --krds-radius-medium3: 8px;
+  --krds-radius-medium4: 8px;
+  --krds-radius-large1: 10px;
+  --krds-radius-large2: 10px;
+  --krds-radius-xlarge1: 12px;
+  --krds-radius-xlarge2: 12px;
+  --krds-radius-max: 1000px;
+  --krds-size-height-1: 8px;
+  --krds-size-height-2: 16px;
+  --krds-size-height-3: 20px;
+  --krds-size-height-4: 24px;
+  --krds-size-height-5: 32px;
+  --krds-size-height-6: 40px;
+  --krds-size-height-7: 48px;
+  --krds-size-height-8: 56px;
+  --krds-size-height-9: 64px;
+  --krds-size-height-10: 72px;
+  --krds-size-height-11: 80px;
+  --krds-border-width-variable-regular: 1px;
+  --krds-border-width-variable-medium: 2px;
+  --krds-border-width-static-regular: 1px;
+  --krds-border-width-static-medium: 2px;
+  --krds-pc-font-size-display-large: 60px;
+  --krds-pc-font-size-display-medium: 44px;
+  --krds-pc-font-size-display-small: 36px;
+  --krds-pc-font-size-body-large: 19px;
+  --krds-pc-font-size-body-medium: 17px;
+  --krds-pc-font-size-body-small: 15px;
+  --krds-pc-font-size-body-xsmall: 13px;
+  --krds-pc-font-size-label-large: 19px;
+  --krds-pc-font-size-label-medium: 17px;
+  --krds-pc-font-size-label-small: 15px;
+  --krds-pc-font-size-label-xsmall: 13px;
+  --krds-pc-font-size-heading-large: 32px;
+  --krds-pc-font-size-heading-medium: 24px;
+  --krds-pc-font-size-heading-small: 19px;
+  --krds-pc-font-size-heading-xsmall: 17px;
+  --krds-pc-font-size-heading-xxsmall: 15px;
+  --krds-pc-font-size-heading-xlarge: 40px;
+  --krds-pc-font-size-navigation-title-medium: 24px;
+  --krds-pc-font-size-navigation-title-small: 19px;
+  --krds-pc-font-size-navigation-depth-medium-bold: 17px;
+  --krds-pc-font-size-navigation-depth-medium: 17px;
+  --krds-pc-font-size-navigation-depth-small-bold: 15px;
+  --krds-pc-font-size-navigation-depth-small: 15px;
+  --krds-mobile-font-size-display-large: 44px;
+  --krds-mobile-font-size-display-medium: 32px;
+  --krds-mobile-font-size-display-small: 28px;
+  --krds-mobile-font-size-body-large: 19px;
+  --krds-mobile-font-size-body-medium: 17px;
+  --krds-mobile-font-size-body-small: 15px;
+  --krds-mobile-font-size-body-xsmall: 13px;
+  --krds-mobile-font-size-label-large: 19px;
+  --krds-mobile-font-size-label-medium: 17px;
+  --krds-mobile-font-size-label-small: 15px;
+  --krds-mobile-font-size-label-xsmall: 13px;
+  --krds-mobile-font-size-heading-large: 24px;
+  --krds-mobile-font-size-heading-medium: 22px;
+  --krds-mobile-font-size-heading-small: 19px;
+  --krds-mobile-font-size-heading-xsmall: 17px;
+  --krds-mobile-font-size-heading-xxsmall: 15px;
+  --krds-mobile-font-size-heading-xlarge: 28px;
+  --krds-mobile-font-size-navigation-title-medium: 22px;
+  --krds-mobile-font-size-navigation-title-small: 19px;
+  --krds-mobile-font-size-navigation-depth-medium-bold: 17px;
+  --krds-mobile-font-size-navigation-depth-medium: 17px;
+  --krds-mobile-font-size-navigation-depth-small-bold: 15px;
+  --krds-mobile-font-size-navigation-depth-small: 15px;
+  --krds-pc-gap-layout-header-breadcrumb: 24px;
+  --krds-pc-gap-layout-left-contents: 64px;
+  --krds-pc-gap-layout-contents-right: 40px;
+  --krds-pc-gap-layout-h1-h2: 48px;
+  --krds-pc-gap-layout-h2-h2: 80px;
+  --krds-pc-gap-layout-h2-h3: 40px;
+  --krds-pc-gap-layout-h3-h3: 64px;
+  --krds-pc-gap-layout-h3-h4: 24px;
+  --krds-pc-gap-layout-h4-h4: 40px;
+  --krds-pc-gap-layout-h4-h5: 16px;
+  --krds-pc-gap-layout-h5-h5: 32px;
+  --krds-pc-gap-layout-title-body-small: 16px;
+  --krds-pc-gap-layout-title-body-medium: 20px;
+  --krds-pc-gap-layout-title-body-large: 24px;
+  --krds-pc-gap-layout-breadcrumb-h1: 40px;
+  --krds-pc-gap-layout-contents-footer: 64px;
+  --krds-pc-gap-layout-text-text-large: 20px;
+  --krds-pc-gap-layout-text-text-medium: 16px;
+  --krds-pc-gap-layout-text-text-small: 12px;
+  --krds-pc-gap-layout-image-text-small: 20px;
+  --krds-pc-gap-layout-image-text-medium: 24px;
+  --krds-pc-gap-layout-image-text-large: 32px;
+  --krds-mobile-gap-layout-header-breadcrumb: 16px;
+  --krds-mobile-gap-layout-left-contents: 0px;
+  --krds-mobile-gap-layout-contents-right: 0px;
+  --krds-mobile-gap-layout-h1-h2: 32px;
+  --krds-mobile-gap-layout-h2-h2: 40px;
+  --krds-mobile-gap-layout-h2-h3: 24px;
+  --krds-mobile-gap-layout-h3-h3: 32px;
+  --krds-mobile-gap-layout-h3-h4: 16px;
+  --krds-mobile-gap-layout-h4-h4: 24px;
+  --krds-mobile-gap-layout-h4-h5: 12px;
+  --krds-mobile-gap-layout-h5-h5: 16px;
+  --krds-mobile-gap-layout-title-body-small: 8px;
+  --krds-mobile-gap-layout-title-body-medium: 12px;
+  --krds-mobile-gap-layout-title-body-large: 20px;
+  --krds-mobile-gap-layout-breadcrumb-h1: 32px;
+  --krds-mobile-gap-layout-contents-footer: 40px;
+  --krds-mobile-gap-layout-text-text-large: 16px;
+  --krds-mobile-gap-layout-text-text-medium: 12px;
+  --krds-mobile-gap-layout-text-text-small: 10px;
+  --krds-mobile-gap-layout-image-text-small: 16px;
+  --krds-mobile-gap-layout-image-text-medium: 20px;
+  --krds-mobile-gap-layout-image-text-large: 24px;
+  --krds-pc-padding-card-large: 40px;
+  --krds-pc-padding-card-medium: 32px;
+  --krds-pc-padding-card-small: 24px;
+  --krds-pc-padding-card-xsmall: 16px;
+  --krds-mobile-padding-card-large: 24px;
+  --krds-mobile-padding-card-medium: 24px;
+  --krds-mobile-padding-card-small: 20px;
+  --krds-mobile-padding-card-xsmall: 12px;
+  --krds-typo-letter-spacing-0: 0px;
+  --krds-typo-letter-spacing-1: 1px;
+  --krds-motion-duration-instant: 80ms;
+  --krds-motion-duration-fast: 160ms;
+  --krds-motion-duration-base: 240ms;
+  --krds-motion-duration-slow: 400ms;
+  --krds-motion-duration-slower: 700ms;
+  --krds-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --krds-motion-easing-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --krds-motion-easing-exit: cubic-bezier(0.4, 0, 1, 1);
+  --krds-motion-easing-spring: linear(0, 0.25 8%, 0.72 20%, 1.02 33%, 1.06 40%, 1.02 52%, 0.99 66%, 1);
+  --krds-motion-easing-linear: linear;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", Roboto, sans-serif;
+  --text-display-large: 700 60px/1.5 var(--font-sans);
+  --text-display-medium: 700 44px/1.5 var(--font-sans);
+  --text-display-small: 700 36px/1.5 var(--font-sans);
+  --text-heading-xlarge: 700 40px/1.5 var(--font-sans);
+  --text-heading-large: 700 32px/1.5 var(--font-sans);
+  --text-heading-medium: 700 24px/1.5 var(--font-sans);
+  --text-heading-small: 700 19px/1.5 var(--font-sans);
+  --text-heading-xsmall: 700 17px/1.5 var(--font-sans);
+  --text-heading-xxsmall: 700 15px/1.5 var(--font-sans);
+  --text-body-large: 400 19px/1.5 var(--font-sans);
+  --text-body-medium: 400 17px/1.5 var(--font-sans);
+  --text-body-small: 400 15px/1.5 var(--font-sans);
+  --text-body-xsmall: 400 13px/1.5 var(--font-sans);
+  --text-label-large: 400 19px/1.5 var(--font-sans);
+  --text-label-medium: 400 17px/1.5 var(--font-sans);
+  --text-label-small: 400 15px/1.5 var(--font-sans);
+  --text-label-xsmall: 400 13px/1.5 var(--font-sans);
+  --text-navigation-title-medium: 700 24px/1.5 var(--font-sans);
+  --text-navigation-title-small: 700 19px/1.5 var(--font-sans);
+  --text-navigation-depth-medium-bold: 700 17px/1.5 var(--font-sans);
+  --text-navigation-depth-medium: 400 17px/1.5 var(--font-sans);
+  --text-navigation-depth-small-bold: 700 15px/1.5 var(--font-sans);
+  --text-navigation-depth-small: 400 15px/1.5 var(--font-sans);
+}
+.display-large {
+  font-family: var(--font-sans);
+  font-size: 60px;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+.display-medium {
+  font-family: var(--font-sans);
+  font-size: 44px;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+.display-small {
+  font-family: var(--font-sans);
+  font-size: 36px;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+.heading-xlarge {
+  font-family: var(--font-sans);
+  font-size: 40px;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+.heading-large {
+  font-family: var(--font-sans);
+  font-size: 32px;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+.heading-medium {
+  font-family: var(--font-sans);
+  font-size: 24px;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+.heading-small {
+  font-family: var(--font-sans);
+  font-size: 19px;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+.heading-xsmall {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+.heading-xxsmall {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+.body-large {
+  font-family: var(--font-sans);
+  font-size: 19px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0px;
+}
+.body-medium {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0px;
+}
+.body-small {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0px;
+}
+.body-xsmall {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0px;
+}
+.label-large {
+  font-family: var(--font-sans);
+  font-size: 19px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0px;
+}
+.label-medium {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0px;
+}
+.label-small {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0px;
+}
+.label-xsmall {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0px;
+}
+.navigation-title-medium {
+  font-family: var(--font-sans);
+  font-size: 24px;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+.navigation-title-small {
+  font-family: var(--font-sans);
+  font-size: 19px;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+.navigation-depth-medium-bold {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+.navigation-depth-medium {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0px;
+}
+.navigation-depth-small-bold {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+.navigation-depth-small {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0px;
+}
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+.krds-btn {
+  --krds-button--size-height-xsmall: var(--krds-size-height-5);
+  --krds-button--padding-x-xsmall: var(--krds-padding-4);
+  --krds-button--padding-y-xsmall: 0;
+  --krds-button--gap-xsmall: var(--krds-gap-1);
+  --krds-button--radius-xsmall: var(--krds-radius-small3);
+  --krds-button--pc-font-size-xsmall: var(--krds-pc-font-size-label-small);
+  --krds-button--mobile-font-size-xsmall: var(--krds-mobile-font-size-label-small);
+  --krds-button--font-weight-xsmall: var(--krds-font-weight-regular);
+  --krds-button--size-height-small: var(--krds-size-height-6);
+  --krds-button--padding-x-small: var(--krds-padding-5);
+  --krds-button--padding-y-small: 0;
+  --krds-button--gap-small: var(--krds-gap-1);
+  --krds-button--radius-small: var(--krds-radius-medium1);
+  --krds-button--pc-font-size-small: var(--krds-pc-font-size-label-small);
+  --krds-button--mobile-font-size-small: var(--krds-mobile-font-size-label-small);
+  --krds-button--font-weight-small: var(--krds-font-weight-regular);
+  --krds-button--size-height-medium: var(--krds-size-height-7);
+  --krds-button--padding-x-medium: var(--krds-padding-6);
+  --krds-button--padding-y-medium: 0;
+  --krds-button--gap-medium: var(--krds-gap-2);
+  --krds-button--radius-medium: var(--krds-radius-medium2);
+  --krds-button--pc-font-size-medium: var(--krds-pc-font-size-label-medium);
+  --krds-button--mobile-font-size-medium: var(--krds-mobile-font-size-label-medium);
+  --krds-button--font-weight-medium: var(--krds-font-weight-regular);
+  --krds-button--size-height-large: var(--krds-size-height-8);
+  --krds-button--padding-x-large: var(--krds-padding-7);
+  --krds-button--padding-y-large: 0;
+  --krds-button--gap-large: var(--krds-gap-2);
+  --krds-button--radius-large: var(--krds-radius-medium3);
+  --krds-button--pc-font-size-large: var(--krds-pc-font-size-label-large);
+  --krds-button--mobile-font-size-large: var(--krds-mobile-font-size-label-large);
+  --krds-button--font-weight-large: var(--krds-font-weight-regular);
+  --krds-button--size-height-xlarge: var(--krds-size-height-9);
+  --krds-button--padding-x-xlarge: var(--krds-padding-8);
+  --krds-button--padding-y-xlarge: 0;
+  --krds-button--gap-xlarge: var(--krds-gap-2);
+  --krds-button--radius-xlarge: var(--krds-radius-medium4);
+  --krds-button--pc-font-size-xlarge: var(--krds-pc-font-size-label-large);
+  --krds-button--mobile-font-size-xlarge: var(--krds-mobile-font-size-label-large);
+  --krds-button--font-weight-xlarge: var(--krds-font-weight-regular);
+}
+.krds-btn {
+  gap: var(--krds-button--gap-large);
+  height: var(--krds-button--size-height-large);
+  padding: var(--krds-button--padding-y-large) var(--krds-button--padding-x-large);
+  border-radius: var(--krds-button--radius-large);
+  font-size: var(--krds-button--pc-font-size-large);
+  font-weight: var(--krds-button--font-weight-large);
+}
+@media (max-width: 767px) {
+  .krds-btn {
+    font-size: var(--krds-button--mobile-font-size-large);
+  }
+}
+.krds-btn .svg-icon {
+  width: var(--krds-icon--size-large);
+  height: var(--krds-icon--size-large);
+}
+.krds-btn.xsmall {
+  gap: var(--krds-button--gap-xsmall);
+  height: var(--krds-button--size-height-xsmall);
+  padding: var(--krds-button--padding-y-xsmall) var(--krds-button--padding-x-xsmall);
+  border-radius: var(--krds-button--radius-xsmall);
+  font-size: var(--krds-button--pc-font-size-xsmall);
+  font-weight: var(--krds-button--font-weight-xsmall);
+}
+@media (max-width: 767px) {
+  .krds-btn.xsmall {
+    font-size: var(--krds-button--mobile-font-size-xsmall);
+  }
+}
+.krds-btn.xsmall .svg-icon {
+  width: var(--krds-icon--size-xsmall);
+  height: var(--krds-icon--size-xsmall);
+}
+.krds-btn.small {
+  gap: var(--krds-button--gap-small);
+  height: var(--krds-button--size-height-small);
+  padding: var(--krds-button--padding-y-small) var(--krds-button--padding-x-small);
+  border-radius: var(--krds-button--radius-small);
+  font-size: var(--krds-button--pc-font-size-small);
+  font-weight: var(--krds-button--font-weight-small);
+}
+@media (max-width: 767px) {
+  .krds-btn.small {
+    font-size: var(--krds-button--mobile-font-size-small);
+  }
+}
+.krds-btn.small .svg-icon {
+  width: var(--krds-icon--size-small);
+  height: var(--krds-icon--size-small);
+}
+.krds-btn.medium {
+  gap: var(--krds-button--gap-medium);
+  height: var(--krds-button--size-height-medium);
+  padding: var(--krds-button--padding-y-medium) var(--krds-button--padding-x-medium);
+  border-radius: var(--krds-button--radius-medium);
+  font-size: var(--krds-button--pc-font-size-medium);
+  font-weight: var(--krds-button--font-weight-medium);
+}
+@media (max-width: 767px) {
+  .krds-btn.medium {
+    font-size: var(--krds-button--mobile-font-size-medium);
+  }
+}
+.krds-btn.medium .svg-icon {
+  width: var(--krds-icon--size-medium);
+  height: var(--krds-icon--size-medium);
+}
+.krds-btn.large {
+  gap: var(--krds-button--gap-large);
+  height: var(--krds-button--size-height-large);
+  padding: var(--krds-button--padding-y-large) var(--krds-button--padding-x-large);
+  border-radius: var(--krds-button--radius-large);
+  font-size: var(--krds-button--pc-font-size-large);
+  font-weight: var(--krds-button--font-weight-large);
+}
+@media (max-width: 767px) {
+  .krds-btn.large {
+    font-size: var(--krds-button--mobile-font-size-large);
+  }
+}
+.krds-btn.large .svg-icon {
+  width: var(--krds-icon--size-large);
+  height: var(--krds-icon--size-large);
+}
+.krds-btn {
+  --krds-button--color-primary-fill: var(--krds-color-button-primary-fill);
+  --krds-button--color-primary-fill-hover: var(--krds-color-button-primary-fill-hover);
+  --krds-button--color-primary-fill-pressed: var(--krds-color-button-primary-fill-pressed);
+  --krds-button--color-primary-fill-disabled: var(--krds-color-button-disabled-fill);
+  --krds-button--color-primary-border: var(--krds-color-button-primary-fill);
+  --krds-button--color-primary-border-disabled: var(--krds-color-button-disabled-border);
+  --krds-button--color-primary-text: var(--krds-color-text-inverse-static);
+  --krds-button--color-primary-text-disabled: var(--krds-color-text-disabled-on);
+  --krds-button--color-secondary-fill: var(--krds-color-button-secondary-fill);
+  --krds-button--color-secondary-fill-hover: var(--krds-color-button-secondary-fill-hover);
+  --krds-button--color-secondary-fill-pressed: var(--krds-color-button-secondary-fill-pressed);
+  --krds-button--color-secondary-fill-disabled: var(--krds-color-button-disabled-fill);
+  --krds-button--color-secondary-border: var(--krds-color-button-secondary-border);
+  --krds-button--color-secondary-border-disabled: var(--krds-color-button-disabled-border);
+  --krds-button--color-secondary-text: var(--krds-color-text-primary);
+  --krds-button--color-secondary-text-disabled: var(--krds-color-text-disabled-on);
+  --krds-button--color-tertiary-fill: var(--krds-color-button-tertiary-fill);
+  --krds-button--color-tertiary-fill-hover: var(--krds-color-button-tertiary-fill-hover);
+  --krds-button--color-tertiary-fill-pressed: var(--krds-color-button-tertiary-fill-pressed);
+  --krds-button--color-tertiary-fill-disabled: var(--krds-color-button-disabled-fill);
+  --krds-button--color-tertiary-border: var(--krds-color-button-tertiary-border);
+  --krds-button--color-tertiary-border-disabled: var(--krds-color-button-disabled-border);
+  --krds-button--color-tertiary-text: var(--krds-color-text-basic);
+  --krds-button--color-tertiary-text-disabled: var(--krds-color-text-disabled-on);
+  --krds-button--color-text-fill: var(--krds-color-button-text-fill);
+  --krds-button--color-text-fill-hover: var(--krds-color-button-text-fill-hover);
+  --krds-button--color-text-fill-pressed: var(--krds-color-button-text-fill-pressed);
+  --krds-button--color-text-fill-disabled: var(--krds-color-button-text-fill);
+  --krds-button--color-text-border: var(--krds-color-button-text-border);
+  --krds-button--color-text-border-disabled: var(--krds-color-border-transparency);
+  --krds-button--color-text-text: var(--krds-color-text-basic);
+  --krds-button--color-text-text-disabled: var(--krds-color-text-disabled);
+  --krds-button--color-link-fill: var(--krds-color-button-text-fill);
+  --krds-button--color-link-fill-hover: var(--krds-color-button-text-fill);
+  --krds-button--color-link-fill-pressed: var(--krds-color-button-text-fill);
+  --krds-button--color-link-fill-disabled: var(--krds-color-button-text-fill);
+  --krds-button--color-link-border: var(--krds-color-button-text-border);
+  --krds-button--color-link-border-disabled: var(--krds-color-border-transparency);
+  --krds-button--color-link-text: var(--krds-color-link-default);
+  --krds-button--color-link-text-disabled: var(--krds-color-text-disabled);
+  
+}
+.krds-btn {
+  background-color: var(--krds-button--color-primary-fill);
+  border-color: var(--krds-button--color-primary-border);
+  color: var(--krds-button--color-primary-text);
+}
+.krds-btn.primary {
+  background-color: var(--krds-button--color-primary-fill);
+  border-color: var(--krds-button--color-primary-border);
+  color: var(--krds-button--color-primary-text);
+}
+.krds-btn.primary:not(.icon) .svg-icon {
+  background-color: var(--krds-button--color-primary-text);
+}
+.krds-btn.primary:hover {
+  background-color: var(--krds-button--color-primary-fill-hover);
+}
+.krds-btn.primary:active,
+.krds-btn.primary:focus {
+  background-color: var(--krds-button--color-primary-fill-pressed);
+}
+.krds-btn.primary[disabled],
+.krds-btn.primary.disabled {
+  background-color: var(--krds-button--color-primary-fill-disabled);
+  border-color: var(--krds-button--color-primary-border-disabled);
+  color: var(--krds-button--color-primary-text-disabled);
+}
+.krds-btn.primary[disabled]:not(.icon) .svg-icon,
+.krds-btn.primary.disabled:not(.icon) .svg-icon {
+  background-color: var(--krds-button--color-primary-text-disabled);
+}
+.krds-btn.primary[disabled]:hover,
+.krds-btn.primary.disabled:hover {
+  background-color: var(--krds-button--color-primary-fill-disabled);
+  border-color: var(--krds-button--color-primary-border-disabled);
+  color: var(--krds-button--color-primary-text-disabled);
+}
+.krds-btn.secondary {
+  background-color: var(--krds-button--color-secondary-fill);
+  border-color: var(--krds-button--color-secondary-border);
+  color: var(--krds-button--color-secondary-text);
+}
+.krds-btn.secondary:not(.icon) .svg-icon {
+  background-color: var(--krds-button--color-secondary-text);
+}
+.krds-btn.secondary:hover {
+  background-color: var(--krds-button--color-secondary-fill-hover);
+}
+.krds-btn.secondary:active,
+.krds-btn.secondary:focus {
+  background-color: var(--krds-button--color-secondary-fill-pressed);
+}
+.krds-btn.secondary[disabled],
+.krds-btn.secondary.disabled {
+  background-color: var(--krds-button--color-secondary-fill-disabled);
+  border-color: var(--krds-button--color-secondary-border-disabled);
+  color: var(--krds-button--color-secondary-text-disabled);
+}
+.krds-btn.secondary[disabled]:not(.icon) .svg-icon,
+.krds-btn.secondary.disabled:not(.icon) .svg-icon {
+  background-color: var(--krds-button--color-secondary-text-disabled);
+}
+.krds-btn.secondary[disabled]:hover,
+.krds-btn.secondary.disabled:hover {
+  background-color: var(--krds-button--color-secondary-fill-disabled);
+  border-color: var(--krds-button--color-secondary-border-disabled);
+  color: var(--krds-button--color-secondary-text-disabled);
+}
+.krds-btn.tertiary {
+  background-color: var(--krds-button--color-tertiary-fill);
+  border-color: var(--krds-button--color-tertiary-border);
+  color: var(--krds-button--color-tertiary-text);
+}
+.krds-btn.tertiary:not(.icon) .svg-icon {
+  background-color: var(--krds-button--color-tertiary-text);
+}
+.krds-btn.tertiary:hover {
+  background-color: var(--krds-button--color-tertiary-fill-hover);
+}
+.krds-btn.tertiary:active,
+.krds-btn.tertiary:focus {
+  background-color: var(--krds-button--color-tertiary-fill-pressed);
+}
+.krds-btn.tertiary[disabled],
+.krds-btn.tertiary.disabled {
+  background-color: var(--krds-button--color-tertiary-fill-disabled);
+  border-color: var(--krds-button--color-tertiary-border-disabled);
+  color: var(--krds-button--color-tertiary-text-disabled);
+}
+.krds-btn.tertiary[disabled]:not(.icon) .svg-icon,
+.krds-btn.tertiary.disabled:not(.icon) .svg-icon {
+  background-color: var(--krds-button--color-tertiary-text-disabled);
+}
+.krds-btn.tertiary[disabled]:hover,
+.krds-btn.tertiary.disabled:hover {
+  background-color: var(--krds-button--color-tertiary-fill-disabled);
+  border-color: var(--krds-button--color-tertiary-border-disabled);
+  color: var(--krds-button--color-tertiary-text-disabled);
+}
+.krds-btn.text {
+  background-color: var(--krds-button--color-text-fill);
+  border-color: var(--krds-button--color-text-border);
+  color: var(--krds-button--color-text-text);
+}
+.krds-btn.text:not(.icon) .svg-icon {
+  background-color: var(--krds-button--color-text-text);
+}
+.krds-btn.text:hover {
+  background-color: var(--krds-button--color-text-fill-hover);
+}
+.krds-btn.text:active,
+.krds-btn.text:focus {
+  background-color: var(--krds-button--color-text-fill-pressed);
+}
+.krds-btn.text[disabled],
+.krds-btn.text.disabled {
+  background-color: var(--krds-button--color-text-fill-disabled);
+  border-color: var(--krds-button--color-text-border-disabled);
+  color: var(--krds-button--color-text-text-disabled);
+}
+.krds-btn.text[disabled]:not(.icon) .svg-icon,
+.krds-btn.text.disabled:not(.icon) .svg-icon {
+  background-color: var(--krds-button--color-text-text-disabled);
+}
+.krds-btn.text[disabled]:hover,
+.krds-btn.text.disabled:hover {
+  background-color: var(--krds-button--color-text-fill-disabled);
+  border-color: var(--krds-button--color-text-border-disabled);
+  color: var(--krds-button--color-text-text-disabled);
+}
+.krds-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  width: auto;
+  border-style: solid;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--krds-transition-base);
+  border-width: var(--krds-border-width-variable-regular);
+}
+.krds-btn .svg-icon {
+  background-color: var(--krds-button--color-primary-text);
+  transition: var(--krds-transition-base);
+}
+.krds-btn:hover {
+  background-color: var(--krds-button--color-primary-fill-hover);
+}
+.krds-btn:active,
+.krds-btn:focus {
+  background-color: var(--krds-button--color-primary-fill-pressed);
+}
+.krds-btn[disabled],
+.krds-btn.disabled {
+  background-color: var(--krds-button--color-primary-fill-disabled);
+  border-color: var(--krds-button--color-primary-border-disabled);
+  color: var(--krds-button--color-primary-text-disabled);
+  cursor: default;
+}
+.krds-btn[disabled]:hover,
+.krds-btn.disabled:hover {
+  background-color: var(--krds-button--color-primary-fill-disabled);
+  border-color: var(--krds-button--color-primary-border-disabled);
+  color: var(--krds-button--color-primary-text-disabled);
+}
+.krds-btn.text {
+  --krds-button--size-height-xsmall: var(--krds-size-height-3);
+  --krds-button--padding-x-xsmall: var(--krds-padding-1);
+  --krds-button--padding-y-xsmall: var(--krds-number-0);
+  --krds-button--size-height-small: var(--krds-size-height-4);
+  --krds-button--padding-x-small: var(--krds-padding-1);
+  --krds-button--padding-y-small: var(--krds-number-0);
+  --krds-button--size-height-medium: var(--krds-size-height-5);
+  --krds-button--padding-x-medium: var(--krds-padding-1);
+  --krds-button--padding-y-medium: var(--krds-number-2);
+  --krds-button--size-height-large: var(--krds-size-height-6);
+  --krds-button--padding-x-large: var(--krds-padding-1);
+  --krds-button--padding-y-large: 5px;
+  --krds-button--size-height-xlarge: var(--krds-size-height-7);
+  --krds-button--padding-x-xlarge: var(--krds-padding-1);
+  --krds-button--padding-y-xlarge: 9px;
+  display: inline-block;
+  height: auto !important;
+  padding: var(--krds-button--padding-y-large) var(--krds-button--padding-x-large);
+  text-align: left;
+  white-space: normal;
+}
+.krds-btn.text.xsmall {
+  min-height: var(--krds-button--size-height-xsmall);
+  padding: var(--krds-button--padding-y-xsmall) var(--krds-button--padding-x-xsmall);
+}
+.krds-btn.text.xsmall .svg-icon {
+  margin-bottom: -3px;
+}
+.krds-btn.text.small {
+  padding: var(--krds-button--padding-y-small) var(--krds-button--padding-x-small);
+}
+.krds-btn.text.small .svg-icon {
+  margin-bottom: -3px;
+}
+.krds-btn.text.medium {
+  padding: var(--krds-button--padding-y-medium) var(--krds-button--padding-x-medium);
+}
+.krds-btn.text.medium .svg-icon {
+  margin-bottom: -4px;
+}
+.krds-btn.text.large {
+  padding: var(--krds-button--padding-y-large) var(--krds-button--padding-x-large);
+}
+.krds-btn.text.large .svg-icon {
+  margin-bottom: -5px;
+}
+.krds-btn.text.h-auto {
+  height: auto;
+  padding: var(--krds-padding-1) !important;
+}
+.krds-btn.text .svg-icon {
+  display: inline-block;
+  margin-bottom: -5px;
+}
+.krds-btn.icon {
+  --krds-button--icon-size-xsmall: var(--krds-size-height-2);
+  --krds-button--icon-size-small: var(--krds-size-height-3);
+  --krds-button--icon-size-medium: var(--krds-size-height-4);
+  --krds-button--icon-size-large: var(--krds-size-height-5);
+  --krds-button--icon-size-xlarge: var(--krds-size-height-6);
+  width: var(--krds-button--icon-size-medium);
+  height: var(--krds-button--icon-size-medium);
+  padding: 0 !important;
+  background-color: transparent;
+  border-color: var(--krds-color-border-transparency);
+  color: inherit;
+  border: 0;
+}
+.krds-btn.icon:hover,
+.krds-btn.icon:active {
+  background-color: inherit;
+}
+.krds-btn.icon.xsmall {
+  width: var(--krds-button--icon-size-xsmall);
+  height: var(--krds-button--icon-size-xsmall);
+}
+.krds-btn.icon.xsmall .svg-icon {
+  width: 100%;
+  height: 100%;
+}
+.krds-btn.icon.small {
+  width: var(--krds-button--icon-size-small);
+  height: var(--krds-button--icon-size-small);
+}
+.krds-btn.icon.small .svg-icon {
+  width: 100%;
+  height: 100%;
+}
+.krds-btn.icon.medium {
+  width: var(--krds-button--icon-size-medium);
+  height: var(--krds-button--icon-size-medium);
+}
+.krds-btn.icon.medium .svg-icon {
+  width: 100%;
+  height: 100%;
+}
+.krds-btn.icon.large {
+  width: var(--krds-button--icon-size-large);
+  height: var(--krds-button--icon-size-large);
+}
+.krds-btn.icon.large .svg-icon {
+  width: 100%;
+  height: 100%;
+}
+.krds-btn.icon .svg-icon {
+  background-color: var(--krds-color-text-basic);
+}
+.krds-btn.icon.pure .svg-icon {
+  background-color: transparent;
+}
+.krds-btn.icon.border {
+  background-color: var(--krds-color-background-white);
+  border: 1px solid var(--krds-color-border-gray);
+  border-radius: var(--krds-radius-max);
+}
+.krds-btn.icon.border.large .svg-icon {
+  width: var(--krds-icon--size-xsmall);
+  height: var(--krds-icon--size-xsmall);
+}
+.krds-btn.icon.border[disabled],
+.krds-btn.icon.border.disabled {
+  background-color: var(--krds-color-button-disabled-fill);
+}
+[data-theme="dark"] .krds-btn {
+  border-width: var(--krds-border-width-variable-regular);
+  --krds-button--color-primary-fill: var(--krds-color-button-primary-fill);
+  --krds-button--color-primary-fill-hover: var(--krds-color-button-primary-fill-hover);
+  --krds-button--color-primary-fill-pressed: var(--krds-color-button-primary-fill-pressed);
+  --krds-button--color-primary-fill-disabled: var(--krds-color-button-disabled-fill);
+  --krds-button--color-primary-border: var(--krds-color-button-primary-fill);
+  --krds-button--color-primary-border-disabled: var(--krds-color-button-disabled-border);
+  --krds-button--color-primary-text: var(--krds-color-text-inverse-static);
+  --krds-button--color-primary-text-disabled: var(--krds-color-text-disabled-on);
+  --krds-button--color-secondary-fill: var(--krds-color-button-secondary-fill);
+  --krds-button--color-secondary-fill-hover: var(--krds-color-button-secondary-fill-hover);
+  --krds-button--color-secondary-fill-pressed: var(--krds-color-button-secondary-fill-pressed);
+  --krds-button--color-secondary-fill-disabled: var(--krds-color-button-disabled-fill);
+  --krds-button--color-secondary-border: var(--krds-color-button-secondary-border);
+  --krds-button--color-secondary-border-disabled: var(--krds-color-button-disabled-border);
+  --krds-button--color-secondary-text: var(--krds-color-text-primary);
+  --krds-button--color-secondary-text-disabled: var(--krds-color-text-disabled-on);
+  --krds-button--color-tertiary-fill: var(--krds-color-button-tertiary-fill);
+  --krds-button--color-tertiary-fill-hover: var(--krds-color-button-tertiary-fill-hover);
+  --krds-button--color-tertiary-fill-pressed: var(--krds-color-button-tertiary-fill-pressed);
+  --krds-button--color-tertiary-fill-disabled: var(--krds-color-button-disabled-fill);
+  --krds-button--color-tertiary-border: var(--krds-color-button-tertiary-border);
+  --krds-button--color-tertiary-border-disabled: var(--krds-color-button-disabled-border);
+  --krds-button--color-tertiary-text: var(--krds-color-text-basic);
+  --krds-button--color-tertiary-text-disabled: var(--krds-color-text-disabled-on);
+  --krds-button--color-text-fill: var(--krds-color-button-text-fill);
+  --krds-button--color-text-fill-hover: var(--krds-color-button-text-fill-hover);
+  --krds-button--color-text-fill-pressed: var(--krds-color-button-text-fill-pressed);
+  --krds-button--color-text-fill-disabled: var(--krds-color-button-text-fill);
+  --krds-button--color-text-border: var(--krds-color-button-text-border);
+  --krds-button--color-text-border-disabled: var(--krds-color-border-transparency);
+  --krds-button--color-text-text: var(--krds-color-text-basic);
+  --krds-button--color-text-text-disabled: var(--krds-color-text-disabled);
+  --krds-button--color-link-fill: var(--krds-color-button-text-fill);
+  --krds-button--color-link-fill-hover: var(--krds-color-button-text-fill);
+  --krds-button--color-link-fill-pressed: var(--krds-color-button-text-fill);
+  --krds-button--color-link-fill-disabled: var(--krds-color-button-text-fill);
+  --krds-button--color-link-border: var(--krds-color-button-text-border);
+  --krds-button--color-link-border-disabled: var(--krds-color-border-transparency);
+  --krds-button--color-link-text: var(--krds-color-link-default);
+  --krds-button--color-link-text-disabled: var(--krds-color-text-disabled);
+  
+}
+[data-theme="dark"] .krds-btn {
+  background-color: var(--krds-button--color-primary-fill);
+  border-color: var(--krds-button--color-primary-border);
+  color: var(--krds-button--color-primary-text);
+}
+[data-theme="dark"] .krds-btn.primary {
+  background-color: var(--krds-button--color-primary-fill);
+  border-color: var(--krds-button--color-primary-border);
+  color: var(--krds-button--color-primary-text);
+}
+[data-theme="dark"] .krds-btn.primary:not(.icon) .svg-icon {
+  background-color: var(--krds-button--color-primary-text);
+}
+[data-theme="dark"] .krds-btn.primary:hover {
+  background-color: var(--krds-button--color-primary-fill-hover);
+}
+[data-theme="dark"] .krds-btn.primary:active,
+[data-theme="dark"] .krds-btn.primary:focus {
+  background-color: var(--krds-button--color-primary-fill-pressed);
+}
+[data-theme="dark"] .krds-btn.primary[disabled],
+[data-theme="dark"] .krds-btn.primary.disabled {
+  background-color: var(--krds-button--color-primary-fill-disabled);
+  border-color: var(--krds-button--color-primary-border-disabled);
+  color: var(--krds-button--color-primary-text-disabled);
+}
+[data-theme="dark"] .krds-btn.primary[disabled]:not(.icon) .svg-icon,
+[data-theme="dark"] .krds-btn.primary.disabled:not(.icon) .svg-icon {
+  background-color: var(--krds-button--color-primary-text-disabled);
+}
+[data-theme="dark"] .krds-btn.primary[disabled]:hover,
+[data-theme="dark"] .krds-btn.primary.disabled:hover {
+  background-color: var(--krds-button--color-primary-fill-disabled);
+  border-color: var(--krds-button--color-primary-border-disabled);
+  color: var(--krds-button--color-primary-text-disabled);
+}
+[data-theme="dark"] .krds-btn.secondary {
+  background-color: var(--krds-button--color-secondary-fill);
+  border-color: var(--krds-button--color-secondary-border);
+  color: var(--krds-button--color-secondary-text);
+}
+[data-theme="dark"] .krds-btn.secondary:not(.icon) .svg-icon {
+  background-color: var(--krds-button--color-secondary-text);
+}
+[data-theme="dark"] .krds-btn.secondary:hover {
+  background-color: var(--krds-button--color-secondary-fill-hover);
+}
+[data-theme="dark"] .krds-btn.secondary:active,
+[data-theme="dark"] .krds-btn.secondary:focus {
+  background-color: var(--krds-button--color-secondary-fill-pressed);
+}
+[data-theme="dark"] .krds-btn.secondary[disabled],
+[data-theme="dark"] .krds-btn.secondary.disabled {
+  background-color: var(--krds-button--color-secondary-fill-disabled);
+  border-color: var(--krds-button--color-secondary-border-disabled);
+  color: var(--krds-button--color-secondary-text-disabled);
+}
+[data-theme="dark"] .krds-btn.secondary[disabled]:not(.icon) .svg-icon,
+[data-theme="dark"] .krds-btn.secondary.disabled:not(.icon) .svg-icon {
+  background-color: var(--krds-button--color-secondary-text-disabled);
+}
+[data-theme="dark"] .krds-btn.secondary[disabled]:hover,
+[data-theme="dark"] .krds-btn.secondary.disabled:hover {
+  background-color: var(--krds-button--color-secondary-fill-disabled);
+  border-color: var(--krds-button--color-secondary-border-disabled);
+  color: var(--krds-button--color-secondary-text-disabled);
+}
+[data-theme="dark"] .krds-btn.tertiary {
+  background-color: var(--krds-button--color-tertiary-fill);
+  border-color: var(--krds-button--color-tertiary-border);
+  color: var(--krds-button--color-tertiary-text);
+}
+[data-theme="dark"] .krds-btn.tertiary:not(.icon) .svg-icon {
+  background-color: var(--krds-button--color-tertiary-text);
+}
+[data-theme="dark"] .krds-btn.tertiary:hover {
+  background-color: var(--krds-button--color-tertiary-fill-hover);
+}
+[data-theme="dark"] .krds-btn.tertiary:active,
+[data-theme="dark"] .krds-btn.tertiary:focus {
+  background-color: var(--krds-button--color-tertiary-fill-pressed);
+}
+[data-theme="dark"] .krds-btn.tertiary[disabled],
+[data-theme="dark"] .krds-btn.tertiary.disabled {
+  background-color: var(--krds-button--color-tertiary-fill-disabled);
+  border-color: var(--krds-button--color-tertiary-border-disabled);
+  color: var(--krds-button--color-tertiary-text-disabled);
+}
+[data-theme="dark"] .krds-btn.tertiary[disabled]:not(.icon) .svg-icon,
+[data-theme="dark"] .krds-btn.tertiary.disabled:not(.icon) .svg-icon {
+  background-color: var(--krds-button--color-tertiary-text-disabled);
+}
+[data-theme="dark"] .krds-btn.tertiary[disabled]:hover,
+[data-theme="dark"] .krds-btn.tertiary.disabled:hover {
+  background-color: var(--krds-button--color-tertiary-fill-disabled);
+  border-color: var(--krds-button--color-tertiary-border-disabled);
+  color: var(--krds-button--color-tertiary-text-disabled);
+}
+[data-theme="dark"] .krds-btn.text {
+  background-color: var(--krds-button--color-text-fill);
+  border-color: var(--krds-button--color-text-border);
+  color: var(--krds-button--color-text-text);
+}
+[data-theme="dark"] .krds-btn.text:not(.icon) .svg-icon {
+  background-color: var(--krds-button--color-text-text);
+}
+[data-theme="dark"] .krds-btn.text:hover {
+  background-color: var(--krds-button--color-text-fill-hover);
+}
+[data-theme="dark"] .krds-btn.text:active,
+[data-theme="dark"] .krds-btn.text:focus {
+  background-color: var(--krds-button--color-text-fill-pressed);
+}
+[data-theme="dark"] .krds-btn.text[disabled],
+[data-theme="dark"] .krds-btn.text.disabled {
+  background-color: var(--krds-button--color-text-fill-disabled);
+  border-color: var(--krds-button--color-text-border-disabled);
+  color: var(--krds-button--color-text-text-disabled);
+}
+[data-theme="dark"] .krds-btn.text[disabled]:not(.icon) .svg-icon,
+[data-theme="dark"] .krds-btn.text.disabled:not(.icon) .svg-icon {
+  background-color: var(--krds-button--color-text-text-disabled);
+}
+[data-theme="dark"] .krds-btn.text[disabled]:hover,
+[data-theme="dark"] .krds-btn.text.disabled:hover {
+  background-color: var(--krds-button--color-text-fill-disabled);
+  border-color: var(--krds-button--color-text-border-disabled);
+  color: var(--krds-button--color-text-text-disabled);
+}
+[data-theme="dark"] .krds-btn.text.ico-filter .num {
+  color: var(--krds-color-text-basic-inverse);
+  background-color: var(--krds-color-element-primary);
+}
+[data-theme="dark"] .krds-btn.icon {
+  background-color: transparent;
+  border-color: var(--krds-color-border-transparency);
+}
+[data-theme="dark"] .krds-btn.icon .svg-icon {
+  background-color: var(--krds-color-text-basic);
+}
+[data-theme="dark"] .krds-btn.icon.border {
+  background-color: var(--krds-color-background-white);
+  border-color: var(--krds-color-border-gray);
+}
+[data-theme="dark"] .krds-btn.icon.border[disabled],
+[data-theme="dark"] .krds-btn.icon.border.disabled {
+  background-color: var(--krds-color-button-disabled-fill);
+}
+.krds-modal .modal-dialog .modal-btn .krds-btn {
+  min-width: var(--krds-modal--btn-size-min-wdith);
+}
+.krds-modal[data-type=bottom-sheet] .modal-btn.btn-wrap .krds-btn {
+  flex: 1;
+}
+.krds-help-panel .help-panel-wrap .conts-area .help-title .krds-btn.icon {
+  margin-left: var(--krds-gap-2);
+}
+#krds-footer .f-cnt .f-link .link-go .krds-btn.text {
+  gap: var(--krds-button--gap-medium);
+  height: var(--krds-button--size-height-medium);
+  padding: var(--krds-button--padding-y-medium) var(--krds-button--padding-x-medium);
+  border-radius: var(--krds-button--radius-medium);
+  font-size: var(--krds-button--pc-font-size-medium);
+  font-weight: var(--krds-button--font-weight-medium);
+}
+@media (max-width: 767px) {
+  #krds-footer .f-cnt .f-link .link-go .krds-btn.text {
+    font-size: var(--krds-button--mobile-font-size-medium);
+  }
+}
+#krds-footer .f-cnt .f-link .link-go .krds-btn.text .svg-icon {
+  width: var(--krds-icon--size-medium);
+  height: var(--krds-icon--size-medium);
+}
+@media (max-width: 767px) {
+  #krds-footer .f-cnt .f-link .link-go .krds-btn.text {
+    gap: var(--krds-button--gap-small);
+    height: var(--krds-button--size-height-small);
+    padding: var(--krds-button--padding-y-small) var(--krds-button--padding-x-small);
+    border-radius: var(--krds-button--radius-small);
+    font-size: var(--krds-button--pc-font-size-small);
+    font-weight: var(--krds-button--font-weight-small);
+    padding: 0;
+  }
+}
+@media (max-width: 767px) and (max-width: 767px) {
+  #krds-footer .f-cnt .f-link .link-go .krds-btn.text {
+    font-size: var(--krds-button--mobile-font-size-small);
+  }
+}
+@media (max-width: 767px) {
+  #krds-footer .f-cnt .f-link .link-go .krds-btn.text .svg-icon {
+    width: var(--krds-icon--size-small);
+    height: var(--krds-icon--size-small);
+  }
+}
+.krds-side-navigation {
+  --krds-side-navigation--padding: var(--krds-padding-10);
+  --krds-side-navigation--title-padding-x: var(--krds-padding-3);
+  --krds-side-navigation--title-padding-bottom: var(--krds-padding-6);
+  --krds-side-navigation--title-font-size: var(--krds-pc-font-size-navigation-title-medium);
+  --krds-side-navigation--btn-gap: var(--krds-gap-3);
+  --krds-side-navigation--btn-padding-x: var(--krds-padding-3);
+  --krds-side-navigation--btn-padding-y: var(--krds-padding-6);
+  --krds-side-navigation--btn-padding-y-selected: var(--krds-padding-3);
+  --krds-side-navigation--btn-font-size: var(--krds-pc-font-size-navigation-depth-medium-bold);
+  --krds-side-navigation--3depth-padding-y: var(--krds-padding-3);
+  --krds-side-navigation--3depth-btn-padding-x: var(--krds-padding-6);
+  --krds-side-navigation--3depth-btn-padding-y: var(--krds-padding-3);
+  --krds-side-navigation--3depth-btn-radius: var(--krds-radius-medium2);
+  --krds-side-navigation--4depth-padding: var(--krds-padding-6);
+  --krds-side-navigation--4depth-title-padding: var(--krds-padding-3);
+  --krds-side-navigation--4depth-title-radius: var(--krds-radius-medium3);
+  --krds-side-navigation--4depth-title-font-size: var(--krds-pc-font-size-navigation-title-medium);
+  --krds-side-navigation--title-color-border: var(--krds-color-divider-gray);
+  --krds-side-navigation--title-border-width: var(--krds-border-width-static-regular);
+  --krds-side-navigation--color-action: var(--krds-color-action-secondary);
+  --krds-side-navigation--color-action-hover: var(--krds-color-action-secondary-hover);
+  --krds-side-navigation--color-action-pressed: var(--krds-color-action-secondary-pressed);
+  --krds-side-navigation--color-action-selected: var(--krds-color-action-secondary-selected);
+  --krds-side-navigation--color-border: var(--krds-color-divider-gray-light);
+  --krds-side-navigation--color-text-selected: var(--krds-color-text-secondary);
+  --krds-side-navigation--color-border-selected: var(--krds-color-action-secondary-active);
+  --krds-side-navigation--item-color-border: var(--krds-color-divider-gray-light);
+  --krds-side-navigation--item-color-border-selected: var(--krds-color-border-gray);
+  --krds-side-navigation--item-border-width: var(--krds-border-width-static-regular);
+  --krds-side-navigation--2depth-btn-color-border: var(--krds-color-border-secondary);
+  --krds-side-navigation--4depth-color-border: var(--krds-color-border-gray);
+  --krds-side-navigation--4depth-background: var(--krds-color-background-white);
+  position: relative;
+  overflow: hidden;
+  padding: var(--krds-side-navigation--padding) 0;
+}
+.krds-side-navigation .lnb-tit {
+  font-size: var(--krds-side-navigation--title-font-size);
+  font-weight: var(--krds-font-weight-bold);
+  padding: 0 var(--krds-side-navigation--title-padding-x) var(--krds-side-navigation--title-padding-bottom) var(--krds-side-navigation--title-padding-x);
+  border-bottom: var(--krds-side-navigation--title-border-width) solid var(--krds-side-navigation--title-color-border);
+}
+.krds-side-navigation .lnb-list .lnb-item {
+  border-bottom: var(--krds-side-navigation--item-border-width) solid var(--krds-side-navigation--item-color-border);
+}
+.krds-side-navigation .lnb-list .lnb-item .lnb-btn {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-direction: row;
+  gap: var(--krds-side-navigation--btn-gap);
+  position: relative;
+  width: 100%;
+  background-color: var(--krds-side-navigation--color-action);
+  padding: var(--krds-side-navigation--btn-padding-y) var(--krds-side-navigation--btn-padding-x);
+  font-size: var(--krds-side-navigation--btn-font-size);
+  font-weight: var(--krds-font-weight-bold);
+  text-align: left;
+}
+.krds-side-navigation .lnb-list .lnb-item .lnb-btn:hover {
+  background-color: var(--krds-side-navigation--color-action-hover);
+}
+.krds-side-navigation .lnb-list .lnb-item .lnb-btn:active {
+  background-color: var(--krds-side-navigation--color-action-pressed);
+}
+.krds-side-navigation .lnb-list .lnb-item .lnb-btn:focus {
+  box-shadow: var(--krds-box-shadow-outline-inset);
+  outline-offset: -4px;
+}
+.krds-side-navigation .lnb-list .lnb-item .lnb-btn.selected {
+  background-color: var(--krds-side-navigation--color-action-selected);
+  color: var(--krds-side-navigation--color-text-selected);
+}
+.krds-side-navigation .lnb-list .lnb-item [class*=lnb-toggle]::after {
+  content: "";
+  flex-shrink: 0;
+  display: inline-flex;
+  width: var(--krds-icon--size-medium);
+  height: var(--krds-icon--size-medium);
+  background-color: var(--krds-color-text-basic);
+  forced-color-adjust: none;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center center;
+  -webkit-mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center center;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M4.47243 8.39766C4.80494 8.10671 5.31035 8.1404 5.60129 8.47291L11.9992 15.7848L18.3972 8.47291C18.6881 8.1404 19.1935 8.10671 19.526 8.39766C19.8585 8.6886 19.8922 9.19401 19.6013 9.52652L11.9992 18.2146L4.39717 9.52652C4.10622 9.19401 4.13992 8.6886 4.47243 8.39766Z' fill='%232D2D2D'/%3E %3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M4.47243 8.39766C4.80494 8.10671 5.31035 8.1404 5.60129 8.47291L11.9992 15.7848L18.3972 8.47291C18.6881 8.1404 19.1935 8.10671 19.526 8.39766C19.8585 8.6886 19.8922 9.19401 19.6013 9.52652L11.9992 18.2146L4.39717 9.52652C4.10622 9.19401 4.13992 8.6886 4.47243 8.39766Z' fill='%232D2D2D'/%3E %3C/svg%3E");
+  margin-top: var(--krds-padding-1);
+  margin-left: auto;
+  transition: var(--krds-transition-base);
+  transform: rotate(0deg);
+}
+.krds-side-navigation .lnb-list .lnb-item [class*=lnb-toggle][aria-expanded=true] {
+  padding-bottom: var(--krds-side-navigation--btn-padding-y-selected);
+}
+.krds-side-navigation .lnb-list .lnb-item [class*=lnb-toggle][aria-expanded=true]::after {
+  background-color: var(--krds-side-navigation--color-text-selected);
+  transform: rotate(180deg);
+}
+.krds-side-navigation .lnb-list .lnb-item .lnb-submenu {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition: var(--krds-transition-base);
+}
+.krds-side-navigation .lnb-list .lnb-item .lnb-submenu > ul {
+  padding: 0;
+  overflow: hidden;
+}
+.krds-side-navigation .lnb-list .lnb-item .lnb-submenu .lnb-btn {
+  padding: var(--krds-side-navigation--3depth-btn-padding-y) var(--krds-side-navigation--3depth-btn-padding-x);
+  border-radius: var(--krds-side-navigation--3depth-btn-radius);
+  font-weight: var(--krds-font-weight-regular);
+}
+.krds-side-navigation .lnb-list .lnb-item .lnb-submenu .lnb-btn::before {
+  content: "•";
+}
+.krds-side-navigation .lnb-list .lnb-item .lnb-submenu .lnb-btn.selected {
+  color: var(--krds-side-navigation--color-text-selected);
+  font-weight: var(--krds-font-weight-bold);
+}
+.krds-side-navigation .lnb-list .lnb-item.active {
+  border-bottom-color: var(--krds-side-navigation--item-color-border-selected);
+}
+.krds-side-navigation .lnb-list .lnb-item.active .lnb-submenu {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  padding: var(--krds-side-navigation--3depth-padding-y) 0;
+}
+.krds-side-navigation .lnb-list > li > .lnb-btn::before {
+  display: inline-flex;
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0%;
+  width: 0;
+  height: 3px;
+  background-color: var(--krds-side-navigation--color-border-selected);
+  transition: var(--krds-transition-base);
+}
+.krds-side-navigation .lnb-list > li > .lnb-btn:hover::before {
+  left: 0;
+  width: 100%;
+}
+.krds-side-navigation .lnb-list > li > .lnb-btn.active:not(.lnb-toggle)::before {
+  left: 0;
+  width: 100%;
+}
+[data-theme="dark"] .krds-side-navigation {
+  --krds-side-navigation--title-color-border: var(--krds-color-divider-gray);
+  --krds-side-navigation--title-border-width: var(--krds-border-width-static-regular);
+  --krds-side-navigation--color-action: var(--krds-color-action-secondary);
+  --krds-side-navigation--color-action-hover: var(--krds-color-action-secondary-hover);
+  --krds-side-navigation--color-action-pressed: var(--krds-color-action-secondary-pressed);
+  --krds-side-navigation--color-action-selected: var(--krds-color-action-secondary-selected);
+  --krds-side-navigation--color-border: var(--krds-color-divider-gray-light);
+  --krds-side-navigation--color-text-selected: var(--krds-color-text-secondary);
+  --krds-side-navigation--color-border-selected: var(--krds-color-action-secondary-active);
+  --krds-side-navigation--item-color-border: var(--krds-color-divider-gray-light);
+  --krds-side-navigation--item-color-border-selected: var(--krds-color-border-gray);
+  --krds-side-navigation--item-border-width: var(--krds-border-width-static-regular);
+  --krds-side-navigation--2depth-btn-color-border: var(--krds-color-border-secondary);
+  --krds-side-navigation--4depth-color-border: var(--krds-color-border-gray);
+  --krds-side-navigation--4depth-background: var(--krds-color-background-white);
+}
+[data-theme="dark"] .krds-side-navigation .lnb-list .lnb-item [class*=lnb-toggle]::after {
+  display: inline-flex;
+  width: var(--krds-icon--size-medium);
+  height: var(--krds-icon--size-medium);
+  background-color: var(--krds-color-text-basic);
+  forced-color-adjust: none;
+}
+.krds-structured-list .card-btn .krds-btn {
+  height: var(--krds-structured-list--card-buttons-size-height);
+}
+@media (max-width: 767px) {
+  .search-list-top .sch-sort .krds-btn.ico-filter {
+    position: relative;
+    font-size: var(--krds-pc-font-size-heading-xxsmall);
+    height: 25px;
+    padding: var(--krds-padding-1);
+  }
+  .search-list-top .sch-sort .krds-btn.ico-filter .span {
+    position: relative;
+    z-index: 2;
+    font-weight: var(--krds-font-weight-bold);
+  }
+  .search-list-top .sch-sort .krds-btn.ico-filter .krds-badge.number {
+    position: absolute;
+    top: calc(-1 * var(--krds-number-6));
+    right: var(--krds-number-5);
+    z-index: 1;
+  }
+}
+.krds-in-page-navigation-type .krds-in-page-navigation-area .in-page-navigation-action .krds-btn {
+  width: 100%;
+}
+.krds-tag-wrap.small .krds-btn-tag {
+  gap: var(--krds-gap-1);
+  height: var(--krds-btn-tag--size-height-small);
+  padding: var(--krds-padding-3) var(--krds-btn-tag--padding-x-small);
+  border-radius: var(--krds-btn-tag--size-height-small);
+  font-size: var(--krds-btn-tag--pc-font-size-small);
+  line-height: var(--krds-line-height-none);
+}
+@media (max-width: 767px) {
+  .krds-tag-wrap.small .krds-btn-tag {
+    font-size: var(--krds-btn-tag--mobile-font-size-small);
+  }
+}
+.krds-tag-wrap.small .krds-btn-tag .btn-delete {
+  width: var(--krds-btn-tag--button-size-small);
+  height: var(--krds-btn-tag--button-size-small);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center center;
+  -webkit-mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center center;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Crect x='18.332' y='1.6665' width='16.6667' height='16.6667' rx='8.33333' transform='rotate(90 18.332 1.6665)' fill='%23CDD1D5'/%3E %3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M6.7201 5.77876C6.45975 5.51841 6.03764 5.51841 5.77729 5.77876C5.51694 6.03911 5.51694 6.46122 5.77729 6.72157L9.05654 10.0008L5.7786 13.2788C5.51825 13.5391 5.51825 13.9612 5.7786 14.2216C6.03894 14.4819 6.46106 14.4819 6.7214 14.2216L9.99935 10.9436L13.2773 14.2216C13.5376 14.4819 13.9598 14.4819 14.2201 14.2216C14.4805 13.9612 14.4805 13.5391 14.2201 13.2788L10.9422 10.0008L14.2214 6.72157C14.4818 6.46122 14.4818 6.03911 14.2214 5.77876C13.9611 5.51841 13.5389 5.51841 13.2786 5.77876L9.99935 9.05801L6.7201 5.77876Z' fill='%2333363D'/%3E %3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Crect x='18.332' y='1.6665' width='16.6667' height='16.6667' rx='8.33333' transform='rotate(90 18.332 1.6665)' fill='%23CDD1D5'/%3E %3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M6.7201 5.77876C6.45975 5.51841 6.03764 5.51841 5.77729 5.77876C5.51694 6.03911 5.51694 6.46122 5.77729 6.72157L9.05654 10.0008L5.7786 13.2788C5.51825 13.5391 5.51825 13.9612 5.7786 14.2216C6.03894 14.4819 6.46106 14.4819 6.7214 14.2216L9.99935 10.9436L13.2773 14.2216C13.5376 14.4819 13.9598 14.4819 14.2201 14.2216C14.4805 13.9612 14.4805 13.5391 14.2201 13.2788L10.9422 10.0008L14.2214 6.72157C14.4818 6.46122 14.4818 6.03911 14.2214 5.77876C13.9611 5.51841 13.5389 5.51841 13.2786 5.77876L9.99935 9.05801L6.7201 5.77876Z' fill='%2333363D'/%3E %3C/svg%3E");
+  -webkit-mask-image: none;
+  mask-image: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Crect x='18.332' y='1.6665' width='16.6667' height='16.6667' rx='8.33333' transform='rotate(90 18.332 1.6665)' fill='%23CDD1D5'/%3E %3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M6.7201 5.77876C6.45975 5.51841 6.03764 5.51841 5.77729 5.77876C5.51694 6.03911 5.51694 6.46122 5.77729 6.72157L9.05654 10.0008L5.7786 13.2788C5.51825 13.5391 5.51825 13.9612 5.7786 14.2216C6.03894 14.4819 6.46106 14.4819 6.7214 14.2216L9.99935 10.9436L13.2773 14.2216C13.5376 14.4819 13.9598 14.4819 14.2201 14.2216C14.4805 13.9612 14.4805 13.5391 14.2201 13.2788L10.9422 10.0008L14.2214 6.72157C14.4818 6.46122 14.4818 6.03911 14.2214 5.77876C13.9611 5.51841 13.5389 5.51841 13.2786 5.77876L9.99935 9.05801L6.7201 5.77876Z' fill='%2333363D'/%3E %3C/svg%3E");
+  background-color: transparent !important;
+  background-size: contain;
+  background-repeat: no-repeat;
+  -webkit-mask: none;
+  mask: none;
+  line-height: var(--krds-line-height-none);
+}
+.krds-tag-wrap.medium .krds-btn-tag {
+  gap: var(--krds-gap-1);
+  height: var(--krds-btn-tag--size-height-medium);
+  padding: var(--krds-padding-3) var(--krds-btn-tag--padding-x-medium);
+  border-radius: var(--krds-btn-tag--size-height-medium);
+  font-size: var(--krds-btn-tag--pc-font-size-medium);
+  line-height: var(--krds-line-height-none);
+}
+@media (max-width: 767px) {
+  .krds-tag-wrap.medium .krds-btn-tag {
+    font-size: var(--krds-btn-tag--mobile-font-size-medium);
+  }
+}
+.krds-tag-wrap.medium .krds-btn-tag .btn-delete {
+  width: var(--krds-btn-tag--button-size-medium);
+  height: var(--krds-btn-tag--button-size-medium);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center center;
+  -webkit-mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center center;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Crect x='18.332' y='1.6665' width='16.6667' height='16.6667' rx='8.33333' transform='rotate(90 18.332 1.6665)' fill='%23CDD1D5'/%3E %3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M6.7201 5.77876C6.45975 5.51841 6.03764 5.51841 5.77729 5.77876C5.51694 6.03911 5.51694 6.46122 5.77729 6.72157L9.05654 10.0008L5.7786 13.2788C5.51825 13.5391 5.51825 13.9612 5.7786 14.2216C6.03894 14.4819 6.46106 14.4819 6.7214 14.2216L9.99935 10.9436L13.2773 14.2216C13.5376 14.4819 13.9598 14.4819 14.2201 14.2216C14.4805 13.9612 14.4805 13.5391 14.2201 13.2788L10.9422 10.0008L14.2214 6.72157C14.4818 6.46122 14.4818 6.03911 14.2214 5.77876C13.9611 5.51841 13.5389 5.51841 13.2786 5.77876L9.99935 9.05801L6.7201 5.77876Z' fill='%2333363D'/%3E %3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Crect x='18.332' y='1.6665' width='16.6667' height='16.6667' rx='8.33333' transform='rotate(90 18.332 1.6665)' fill='%23CDD1D5'/%3E %3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M6.7201 5.77876C6.45975 5.51841 6.03764 5.51841 5.77729 5.77876C5.51694 6.03911 5.51694 6.46122 5.77729 6.72157L9.05654 10.0008L5.7786 13.2788C5.51825 13.5391 5.51825 13.9612 5.7786 14.2216C6.03894 14.4819 6.46106 14.4819 6.7214 14.2216L9.99935 10.9436L13.2773 14.2216C13.5376 14.4819 13.9598 14.4819 14.2201 14.2216C14.4805 13.9612 14.4805 13.5391 14.2201 13.2788L10.9422 10.0008L14.2214 6.72157C14.4818 6.46122 14.4818 6.03911 14.2214 5.77876C13.9611 5.51841 13.5389 5.51841 13.2786 5.77876L9.99935 9.05801L6.7201 5.77876Z' fill='%2333363D'/%3E %3C/svg%3E");
+  -webkit-mask-image: none;
+  mask-image: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Crect x='18.332' y='1.6665' width='16.6667' height='16.6667' rx='8.33333' transform='rotate(90 18.332 1.6665)' fill='%23CDD1D5'/%3E %3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M6.7201 5.77876C6.45975 5.51841 6.03764 5.51841 5.77729 5.77876C5.51694 6.03911 5.51694 6.46122 5.77729 6.72157L9.05654 10.0008L5.7786 13.2788C5.51825 13.5391 5.51825 13.9612 5.7786 14.2216C6.03894 14.4819 6.46106 14.4819 6.7214 14.2216L9.99935 10.9436L13.2773 14.2216C13.5376 14.4819 13.9598 14.4819 14.2201 14.2216C14.4805 13.9612 14.4805 13.5391 14.2201 13.2788L10.9422 10.0008L14.2214 6.72157C14.4818 6.46122 14.4818 6.03911 14.2214 5.77876C13.9611 5.51841 13.5389 5.51841 13.2786 5.77876L9.99935 9.05801L6.7201 5.77876Z' fill='%2333363D'/%3E %3C/svg%3E");
+  background-color: transparent !important;
+  background-size: contain;
+  background-repeat: no-repeat;
+  -webkit-mask: none;
+  mask: none;
+  line-height: var(--krds-line-height-none);
+}
+.krds-tag-wrap.large .krds-btn-tag {
+  gap: var(--krds-gap-1);
+  height: var(--krds-btn-tag--size-height-large);
+  padding: var(--krds-padding-3) var(--krds-btn-tag--padding-x-large);
+  border-radius: var(--krds-btn-tag--size-height-large);
+  font-size: var(--krds-btn-tag--pc-font-size-large);
+  line-height: var(--krds-line-height-none);
+}
+@media (max-width: 767px) {
+  .krds-tag-wrap.large .krds-btn-tag {
+    font-size: var(--krds-btn-tag--mobile-font-size-large);
+  }
+}
+.krds-tag-wrap.large .krds-btn-tag .btn-delete {
+  width: var(--krds-btn-tag--button-size-large);
+  height: var(--krds-btn-tag--button-size-large);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center center;
+  -webkit-mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center center;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Crect x='18.332' y='1.6665' width='16.6667' height='16.6667' rx='8.33333' transform='rotate(90 18.332 1.6665)' fill='%23CDD1D5'/%3E %3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M6.7201 5.77876C6.45975 5.51841 6.03764 5.51841 5.77729 5.77876C5.51694 6.03911 5.51694 6.46122 5.77729 6.72157L9.05654 10.0008L5.7786 13.2788C5.51825 13.5391 5.51825 13.9612 5.7786 14.2216C6.03894 14.4819 6.46106 14.4819 6.7214 14.2216L9.99935 10.9436L13.2773 14.2216C13.5376 14.4819 13.9598 14.4819 14.2201 14.2216C14.4805 13.9612 14.4805 13.5391 14.2201 13.2788L10.9422 10.0008L14.2214 6.72157C14.4818 6.46122 14.4818 6.03911 14.2214 5.77876C13.9611 5.51841 13.5389 5.51841 13.2786 5.77876L9.99935 9.05801L6.7201 5.77876Z' fill='%2333363D'/%3E %3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Crect x='18.332' y='1.6665' width='16.6667' height='16.6667' rx='8.33333' transform='rotate(90 18.332 1.6665)' fill='%23CDD1D5'/%3E %3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M6.7201 5.77876C6.45975 5.51841 6.03764 5.51841 5.77729 5.77876C5.51694 6.03911 5.51694 6.46122 5.77729 6.72157L9.05654 10.0008L5.7786 13.2788C5.51825 13.5391 5.51825 13.9612 5.7786 14.2216C6.03894 14.4819 6.46106 14.4819 6.7214 14.2216L9.99935 10.9436L13.2773 14.2216C13.5376 14.4819 13.9598 14.4819 14.2201 14.2216C14.4805 13.9612 14.4805 13.5391 14.2201 13.2788L10.9422 10.0008L14.2214 6.72157C14.4818 6.46122 14.4818 6.03911 14.2214 5.77876C13.9611 5.51841 13.5389 5.51841 13.2786 5.77876L9.99935 9.05801L6.7201 5.77876Z' fill='%2333363D'/%3E %3C/svg%3E");
+  -webkit-mask-image: none;
+  mask-image: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Crect x='18.332' y='1.6665' width='16.6667' height='16.6667' rx='8.33333' transform='rotate(90 18.332 1.6665)' fill='%23CDD1D5'/%3E %3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M6.7201 5.77876C6.45975 5.51841 6.03764 5.51841 5.77729 5.77876C5.51694 6.03911 5.51694 6.46122 5.77729 6.72157L9.05654 10.0008L5.7786 13.2788C5.51825 13.5391 5.51825 13.9612 5.7786 14.2216C6.03894 14.4819 6.46106 14.4819 6.7214 14.2216L9.99935 10.9436L13.2773 14.2216C13.5376 14.4819 13.9598 14.4819 14.2201 14.2216C14.4805 13.9612 14.4805 13.5391 14.2201 13.2788L10.9422 10.0008L14.2214 6.72157C14.4818 6.46122 14.4818 6.03911 14.2214 5.77876C13.9611 5.51841 13.5389 5.51841 13.2786 5.77876L9.99935 9.05801L6.7201 5.77876Z' fill='%2333363D'/%3E %3C/svg%3E");
+  background-color: transparent !important;
+  background-size: contain;
+  background-repeat: no-repeat;
+  -webkit-mask: none;
+  mask: none;
+  line-height: var(--krds-line-height-none);
+}
+.krds-tag-wrap .krds-btn-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-direction: row;
+  position: relative;
+  background-color: var(--krds-btn-tag--color-action);
+  border: 1px solid var(--krds-btn-tag--color-border);
+  transition: var(--krds-transition-base);
+  gap: var(--krds-gap-1);
+  height: var(--krds-btn-tag--size-height-medium);
+  padding: var(--krds-padding-3) var(--krds-btn-tag--padding-x-medium);
+  border-radius: var(--krds-btn-tag--size-height-medium);
+  font-size: var(--krds-btn-tag--pc-font-size-medium);
+  line-height: var(--krds-line-height-none);
+}
+@media (max-width: 767px) {
+  .krds-tag-wrap .krds-btn-tag {
+    font-size: var(--krds-btn-tag--mobile-font-size-medium);
+  }
+}
+.krds-tag-wrap .krds-btn-tag:hover {
+  background-color: var(--krds-btn-tag--color-action-hover);
+}
+.krds-tag-wrap .krds-btn-tag:active {
+  background-color: var(--krds-btn-tag--color-action-pressed);
+}
+.krds-tag-wrap .krds-btn-tag.link:hover,
+.krds-tag-wrap .krds-btn-tag.link:active {
+  text-decoration: underline;
+  text-underline-offset: var(--krds-font-underline-offset);
+}
+.krds-tag-wrap .krds-btn-tag .btn-delete {
+  width: var(--krds-btn-tag--button-size-medium);
+  height: var(--krds-btn-tag--button-size-medium);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center center;
+  -webkit-mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center center;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Crect x='18.332' y='1.6665' width='16.6667' height='16.6667' rx='8.33333' transform='rotate(90 18.332 1.6665)' fill='%23CDD1D5'/%3E %3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M6.7201 5.77876C6.45975 5.51841 6.03764 5.51841 5.77729 5.77876C5.51694 6.03911 5.51694 6.46122 5.77729 6.72157L9.05654 10.0008L5.7786 13.2788C5.51825 13.5391 5.51825 13.9612 5.7786 14.2216C6.03894 14.4819 6.46106 14.4819 6.7214 14.2216L9.99935 10.9436L13.2773 14.2216C13.5376 14.4819 13.9598 14.4819 14.2201 14.2216C14.4805 13.9612 14.4805 13.5391 14.2201 13.2788L10.9422 10.0008L14.2214 6.72157C14.4818 6.46122 14.4818 6.03911 14.2214 5.77876C13.9611 5.51841 13.5389 5.51841 13.2786 5.77876L9.99935 9.05801L6.7201 5.77876Z' fill='%2333363D'/%3E %3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Crect x='18.332' y='1.6665' width='16.6667' height='16.6667' rx='8.33333' transform='rotate(90 18.332 1.6665)' fill='%23CDD1D5'/%3E %3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M6.7201 5.77876C6.45975 5.51841 6.03764 5.51841 5.77729 5.77876C5.51694 6.03911 5.51694 6.46122 5.77729 6.72157L9.05654 10.0008L5.7786 13.2788C5.51825 13.5391 5.51825 13.9612 5.7786 14.2216C6.03894 14.4819 6.46106 14.4819 6.7214 14.2216L9.99935 10.9436L13.2773 14.2216C13.5376 14.4819 13.9598 14.4819 14.2201 14.2216C14.4805 13.9612 14.4805 13.5391 14.2201 13.2788L10.9422 10.0008L14.2214 6.72157C14.4818 6.46122 14.4818 6.03911 14.2214 5.77876C13.9611 5.51841 13.5389 5.51841 13.2786 5.77876L9.99935 9.05801L6.7201 5.77876Z' fill='%2333363D'/%3E %3C/svg%3E");
+  -webkit-mask-image: none;
+  mask-image: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E %3Crect x='18.332' y='1.6665' width='16.6667' height='16.6667' rx='8.33333' transform='rotate(90 18.332 1.6665)' fill='%23CDD1D5'/%3E %3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M6.7201 5.77876C6.45975 5.51841 6.03764 5.51841 5.77729 5.77876C5.51694 6.03911 5.51694 6.46122 5.77729 6.72157L9.05654 10.0008L5.7786 13.2788C5.51825 13.5391 5.51825 13.9612 5.7786 14.2216C6.03894 14.4819 6.46106 14.4819 6.7214 14.2216L9.99935 10.9436L13.2773 14.2216C13.5376 14.4819 13.9598 14.4819 14.2201 14.2216C14.4805 13.9612 14.4805 13.5391 14.2201 13.2788L10.9422 10.0008L14.2214 6.72157C14.4818 6.46122 14.4818 6.03911 14.2214 5.77876C13.9611 5.51841 13.5389 5.51841 13.2786 5.77876L9.99935 9.05801L6.7201 5.77876Z' fill='%2333363D'/%3E %3C/svg%3E");
+  background-color: transparent !important;
+  background-size: contain;
+  background-repeat: no-repeat;
+  -webkit-mask: none;
+  mask: none;
+  line-height: var(--krds-line-height-none);
+}
+.form-group .form-conts.btn-ico-wrap .krds-btn {
+  position: absolute;
+  top: 50%;
+  right: var(--krds-padding-7);
+  transform: translateY(-50%);
+}
+.form-group .form-conts.btn-ico-wrap .btn-group .krds-btn {
+  position: static;
+  transform: translateY(0);
+}
+.sch-form-wrap .krds-btn.ico-sch-plus::before {
+  width: var(--krds-size-height-4);
+  height: var(--krds-size-height-4);
+}
+.calendar-input .krds-btn {
+  position: absolute;
+  top: 50%;
+  right: var(--krds-padding-7);
+  transform: translateY(-50%);
+}
+.krds-calendar-area .calendar-wrap .calendar-footer .calendar-btn-wrap .krds-btn:first-child {
+  margin-right: auto;
+}
+.krds-btn { position: relative; }
+.krds-btn:focus:not(:focus-visible):not(:active),
+.krds-btn.primary:focus:not(:focus-visible):not(:active) { background-color: var(--krds-button--color-primary-fill); }
+.krds-btn:focus:not(:focus-visible):not(:active):hover,
+.krds-btn.primary:focus:not(:focus-visible):not(:active):hover { background-color: var(--krds-button--color-primary-fill-hover); }
+.krds-btn.secondary:focus:not(:focus-visible):not(:active) { background-color: var(--krds-button--color-secondary-fill); }
+.krds-btn.secondary:focus:not(:focus-visible):not(:active):hover { background-color: var(--krds-button--color-secondary-fill-hover); }
+.krds-btn.tertiary:focus:not(:focus-visible):not(:active) { background-color: var(--krds-button--color-tertiary-fill); }
+.krds-btn.tertiary:focus:not(:focus-visible):not(:active):hover { background-color: var(--krds-button--color-tertiary-fill-hover); }
+.krds-btn.text:focus:not(:focus-visible):not(:active) { background-color: var(--krds-button--color-text-fill); }
+.krds-btn.text:focus:not(:focus-visible):not(:active):hover { background-color: var(--krds-button--color-text-fill-hover); }
+.krds-btn .svg-icon { transition: translate var(--krds-motion-duration-fast) var(--krds-ease), background-color var(--krds-motion-duration-fast) var(--krds-ease); }
+.krds-btn:not(.icon):not([disabled]):hover .svg-icon.ico-go { translate: 1px -1px; }
+.krds-btn:not(.icon):not([disabled]):hover .svg-icon.ico-page-next { translate: 2px 0; }
+.krds-btn:not(.icon):not([disabled]):hover .svg-icon.ico-down { translate: 0 1px; }
+.krds-btn[aria-busy="true"] { overflow: hidden; pointer-events: none; cursor: progress; }
+.krds-btn[aria-busy="true"]::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, currentColor 26%, transparent) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: krds-shimmer 1.4s var(--krds-motion-easing-linear) infinite;
+}
+.krds-btn[disabled]:not(.secondary):not(.tertiary):not(.text):not(.link):not(.icon),
+.krds-btn.disabled:not(.secondary):not(.tertiary):not(.text):not(.link):not(.icon) {
+  background-color: var(--krds-button--color-primary-fill-disabled);
+  border-color: var(--krds-button--color-primary-border-disabled);
+  color: var(--krds-button--color-primary-text-disabled);
+}
+.krds-btn[disabled]:not(.secondary):not(.tertiary):not(.text):not(.link):not(.icon) .svg-icon { background-color: var(--krds-button--color-primary-text-disabled); }
+.krds-btn:is(.btn-ico-wrap > * { transform: translateY(-50%); }
+.krds-btn:is(.btn-group > *):active:not(:disabled) { transform: none; }
+#krds-footer .f-cnt .f-link .link-sns .krds-btn { transition: transform var(--krds-motion-duration-base) var(--krds-motion-easing-spring), background-color var(--krds-motion-duration-fast) var(--krds-motion-easing-standard); }
+#krds-footer .f-cnt .f-link .link-sns .krds-btn:hover { transform: translateY(-2px); }
+.krds-side-navigation .lnb-tit { border-bottom-color: var(--krds-color-border-gray-light); }
+.krds-side-navigation .lnb-list .lnb-item .lnb-btn {
+  background-color: transparent;
+  border-radius: var(--krds-radius-medium1);
+  transition: background-color var(--krds-motion-duration-fast) var(--krds-motion-easing-standard),
+              color var(--krds-motion-duration-fast) var(--krds-motion-easing-standard);
+}
+.krds-side-navigation .lnb-list .lnb-item .lnb-btn:hover { background-color: var(--krds-color-surface-gray-subtler); }
+.krds-side-navigation .lnb-list .lnb-item .lnb-btn:active { background-color: var(--krds-color-surface-gray-subtle); }
+.krds-side-navigation .lnb-list .lnb-item .lnb-btn.selected,
+.krds-side-navigation .lnb-list .lnb-item .lnb-subitem.active > .lnb-btn { background-color: var(--krds-color-action-secondary-selected); }
+.krds-side-navigation .lnb-list .lnb-item [class*=lnb-toggle]::after {
+  transition: transform var(--krds-motion-duration-base) var(--krds-motion-easing-spring), background-color var(--krds-motion-duration-fast) var(--krds-motion-easing-standard);
+}
+.krds-side-navigation .lnb-list .lnb-item .lnb-submenu {
+  transition: grid-template-rows var(--krds-motion-duration-base) var(--krds-motion-easing-standard),
+              opacity var(--krds-motion-duration-base) var(--krds-motion-easing-standard),
+              visibility 0s linear var(--krds-motion-duration-base);
+}
+.krds-side-navigation .lnb-list .lnb-item.active .lnb-submenu {
+  transition: grid-template-rows var(--krds-motion-duration-base) var(--krds-motion-easing-enter),
+              opacity var(--krds-motion-duration-base) var(--krds-motion-easing-enter),
+              visibility 0s;
+}
+.krds-structured-list .card-btn .krds-btn { color: var(--krds-color-text-subtle); }
+.krds-structured-list .card-btn .krds-btn:hover { color: var(--krds-color-text-bolder); }
+.krds-tag-wrap .krds-btn-tag {
+  transition: background-color var(--krds-motion-duration-fast) var(--krds-ease),
+              border-color var(--krds-motion-duration-fast) var(--krds-ease),
+              opacity var(--krds-motion-duration-base) var(--krds-ease-in),
+              scale var(--krds-motion-duration-base) var(--krds-ease-spring);
+  font-variant-numeric: tabular-nums;
+}
+.krds-tag-wrap .krds-btn-tag.is-leaving {
+  opacity: 0; scale: 0.9; pointer-events: none;
+  transition-duration: var(--krds-motion-duration-fast); transition-timing-function: var(--krds-ease-out);
+}
+.krds-tag-wrap .krds-btn-tag:active:not(:has(.btn-delete:active)) { scale: 0.97; }
+.krds-tag-wrap .krds-btn-tag .btn-delete,
+.large) .krds-btn-tag .btn-delete {
+  background-image: none;
+  background-color: var(--krds-color-icon-gray) !important;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 6l8 8M14 6l-8 8' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 6l8 8M14 6l-8 8' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% no-repeat;
+  border-radius: var(--krds-radius-max);
+  cursor: pointer;
+  transition: background-color var(--krds-motion-duration-fast) var(--krds-ease), scale var(--krds-motion-duration-fast) var(--krds-ease-spring);
+}
+.krds-tag-wrap .krds-btn-tag .btn-delete:hover,
+.large) .krds-btn-tag .btn-delete:hover { background-color: var(--krds-color-text-bolder) !important; scale: 1.15; }
+.krds-tag-wrap .krds-btn-tag .btn-delete:active { scale: 0.9; }
+.krds-btn {
+  transition: background-color var(--krds-motion-duration-fast) var(--krds-ease),
+              border-color var(--krds-motion-duration-fast) var(--krds-ease),
+              color var(--krds-motion-duration-fast) var(--krds-ease),
+              box-shadow var(--krds-motion-duration-fast) var(--krds-ease),
+              scale var(--krds-motion-duration-instant) var(--krds-ease);
+}
+.krds-btn:active:not(:disabled) { scale: 0.98; }
+.krds-approval__actions .krds-btn { flex: 0 1 auto; }
+.krds-approval__result .krds-btn { margin-left: auto; }
+.krds-tpl-ed-mini__actions .krds-btn { min-width: 0; }
+.krds-tpl-file-browser .krds-btn[hidden] { display: none; }
+.krds-inline-diff__actions .krds-btn { white-space: nowrap; }
+.krds-tpl-mkt > .krds-btn { align-self: flex-start; }
+.krds-question__actions .krds-btn[hidden] { display: none; }
+.krds-question__quick .krds-btn { flex: 1 1 140px; min-width: 0; justify-content: center; }
+.krds-skeleton__controls .krds-btn[aria-pressed="true"] { background: var(--krds-color-surface-primary-subtler); border-color: var(--krds-color-border-primary); color: var(--krds-color-text-primary); }
+.krds-terminal__tools .krds-btn { font-size: var(--krds-pc-font-size-label-xsmall); }
+*{box-sizing:border-box}
+body{margin:0;background:var(--krds-color-background-white);color:var(--krds-color-text-basic);font:16px/1.5 var(--font-sans)}
+.frame{display:grid;grid-template:"nav top" auto "nav body" 1fr / 260px minmax(0,1fr);min-height:100vh}
+.frame-nav{grid-area:nav;position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:16px 12px;background:var(--krds-color-background-white);border-right:1px solid var(--krds-color-divider-gray-light)}
+.frame-nav a{text-decoration:none}
+.frame-nav ul{margin:0;padding:0;list-style:none}
+.frame-top{grid-area:top;position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:flex-end;gap:4px;padding:6px 20px;background:var(--krds-color-background-white)}
+.frame-icon{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.frame-icon .frame-fill{fill:currentColor;stroke:none}
+.frame-menu{display:none;margin-right:auto}
+.frame-status{margin:0 8px 0 0;font-size:14px;color:var(--krds-color-text-subtle)}
+.frame-body{grid-area:body;min-width:0;width:100%;max-width:908px;margin:0 auto;padding:8px 24px 56px}
+/* Lets the last section reach the top of the body when a link names it. */
+.frame-body::after{content:"";display:block;height:70vh}
+.frame-body [id]{scroll-margin-top:68px}
+@media (max-width:820px){
+  .frame{grid-template:"top" auto "body" 1fr / minmax(0,1fr)}
+  .frame-menu{display:inline-flex}
+  .frame-body{padding:8px 14px 40px}
+  .frame-nav{position:fixed;inset:52px auto 0 0;z-index:3;width:min(280px,85vw);height:auto;visibility:hidden;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+  .frame-nav.open{visibility:visible}
+}
+@media print{
+  .frame{display:block}
+  .frame-nav,.frame-top,.frame-body::after{display:none}
+}
+
+</style>
+<script>
+const THEME_KEY = "paperwork-theme";
+const themeRoot = document.documentElement;
+const systemDark = matchMedia("(prefers-color-scheme: dark)");
+
+// A page opened from a file may be refused storage; the theme then lasts until it closes.
+function savedTheme() {
+  try { return localStorage.getItem(THEME_KEY); } catch { return null; }
+}
+function saveTheme(theme) {
+  try { localStorage.setItem(THEME_KEY, theme); } catch { /* the choice lasts until the page closes */ }
+}
+function systemTheme() {
+  return systemDark.matches ? "dark" : "light";
+}
+// Runs in the head, so a saved dark theme never flashes light.
+themeRoot.dataset.theme = savedTheme() || systemTheme();
+
+function fallbackCopy(text) {
+  const area = document.createElement("textarea");
+  area.value = text;
+  document.body.append(area);
+  area.select();
+  const done = document.execCommand("copy");
+  area.remove();
+  return done;
+}
+
+function startNavigation() {
+  const nav = document.getElementById("frame-nav");
+  const menu = document.getElementById("frame-menu");
+  const links = [...nav.querySelectorAll("a")];
+  const sections = links.map(link => document.getElementById(link.getAttribute("href").slice(1)));
+  // The navigation follows the top bar in the document, so a keyboard reader needs focus moved into it and back.
+  const showMenu = open => {
+    const wasOpen = nav.classList.contains("open");
+    nav.classList.toggle("open", open);
+    menu.setAttribute("aria-expanded", open);
+    if (open && !wasOpen) links[0].focus();
+    if (!open && wasOpen) menu.focus();
+  };
+  const markCurrent = () => {
+    const current = sections.filter(section => section.getBoundingClientRect().top <= 96).pop() || sections[0];
+    links.forEach((link, i) => {
+      link.classList.toggle("selected", sections[i] === current);
+      if (sections[i] === current) link.setAttribute("aria-current", "location");
+      else link.removeAttribute("aria-current");
+    });
+  };
+  menu.addEventListener("click", () => showMenu(!nav.classList.contains("open")));
+  links.forEach(link => link.addEventListener("click", () => showMenu(false)));
+  addEventListener("keydown", event => { if (event.key === "Escape") showMenu(false); });
+  addEventListener("scroll", markCurrent, {passive: true});
+  markCurrent();
+}
+
+// copy returns the text the copy icon puts on the clipboard; reset puts the page back as it opened.
+function start({copy, reset}) {
+  const status = document.getElementById("frame-status");
+  const say = message => {
+    status.textContent = message;
+    setTimeout(() => { if (status.textContent === message) status.textContent = ""; }, 3000);
+  };
+  document.getElementById("frame-copy").addEventListener("click", async () => {
+    const text = copy();
+    try { await navigator.clipboard.writeText(text); say("Copied"); }
+    catch { say(fallbackCopy(text) ? "Copied" : "Copy failed: select the text instead"); }
+  });
+  document.getElementById("frame-reset").addEventListener("click", () => { reset(); say("Reset"); });
+  document.getElementById("frame-theme").addEventListener("click", () => {
+    themeRoot.dataset.theme = themeRoot.dataset.theme === "dark" ? "light" : "dark";
+    saveTheme(themeRoot.dataset.theme);
+  });
+  systemDark.addEventListener("change", () => { if (!savedTheme()) themeRoot.dataset.theme = systemTheme(); });
+  // Paper is light whatever the screen shows.
+  addEventListener("beforeprint", () => { themeRoot.dataset.printed = themeRoot.dataset.theme; themeRoot.dataset.theme = "light"; });
+  addEventListener("afterprint", () => { themeRoot.dataset.theme = themeRoot.dataset.printed; });
+  startNavigation();
+}
+
+</script>
+</head>
+<body>
+<div class="frame">
+<header class="frame-top">
+<button class="krds-btn icon frame-menu" id="frame-menu" type="button" aria-controls="frame-nav" aria-expanded="false">
+<span class="sr-only">Sections</span>
+<svg class="frame-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+</button>
+<p class="frame-status" id="frame-status" role="status" aria-live="polite"></p>
+<button class="krds-btn icon" id="frame-copy" type="button" title="Copy">
+<span class="sr-only">Copy</span>
+<svg class="frame-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4V6a2 2 0 0 1 2-2h9v1"/></svg>
+</button>
+<button class="krds-btn icon" id="frame-reset" type="button" title="Reset">
+<span class="sr-only">Reset</span>
+<svg class="frame-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8.6M20 4v4.6h-4.6"/></svg>
+</button>
+<button class="krds-btn icon" id="frame-theme" type="button" title="Theme">
+<span class="sr-only">Change the theme</span>
+<svg class="frame-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path class="frame-fill" d="M12 4a8 8 0 0 1 0 16z"/></svg>
+</button>
+</header>
+<nav class="krds-side-navigation frame-nav" id="frame-nav" aria-label="Sections">
+<ul class="lnb-list"><li class="lnb-item active"><a class="lnb-btn lnb-link" href="#level-root">Pull request lifecycle</a><div class="lnb-submenu"><ul><li class="lnb-subitem"><a class="lnb-btn lnb-link" href="#level-open-s">Review round</a></li><li class="lnb-subitem"><a class="lnb-btn lnb-link" href="#level-push">Branch sync</a></li><li class="lnb-subitem"><a class="lnb-btn lnb-link" href="#level-review">Pull request parts</a></li></ul></div></li></ul>
+</nav>
+<main class="frame-body">
+<style>
+/* Each name reads a KRDS colour, so the page follows the frame's theme. */
+:root {
+  --bg: var(--krds-color-background-white); --surface: var(--krds-color-surface-white); --panel: var(--krds-color-surface-gray-subtler);
+  --ink: var(--krds-color-text-bolder); --body: var(--krds-color-text-basic); --muted: var(--krds-color-text-subtle);
+  --line: var(--krds-color-border-gray-dark); --card-line: var(--krds-color-border-gray-light); --accent: var(--krds-color-text-primary);
+  --state-bg: var(--krds-color-surface-primary-subtler); --state-line: var(--krds-color-border-primary);
+  --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+}
+a { color: inherit; text-underline-offset: 3px; }
+a:hover { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* A level not shown keeps its place in the frame's list of sections, so only the one shown counts as the current one. */
+.level.away { position: fixed; top: 200vh; left: 0; width: 100%; visibility: hidden; }
+.crumbs { margin: 8px 0 0; font-size: .85rem; color: var(--muted); overflow-wrap: anywhere; }
+h1 { font-size: 1.7rem; line-height: 1.25; font-weight: 600; color: var(--ink); margin: 2px 0 6px; overflow-wrap: anywhere; }
+.lede { margin: 0 0 14px; max-width: 46em; color: var(--body); }
+
+/* one drawing per level; its text is the page's own font, measured before the shapes are sized */
+.chart { min-height: 120px; }
+.chart svg { display: block; max-width: 100%; }
+.chart text { font: 500 15px/1 var(--font-sans); fill: var(--ink); }
+.band rect { fill: var(--panel); stroke: none; }
+.band text { font-size: 13px; fill: var(--muted); }
+.line { fill: none; stroke: var(--line); stroke-width: 1.5; }
+.edge[data-kind="call"] .line { stroke-dasharray: 6 5; }
+.hit { fill: none; stroke: transparent; stroke-width: 16; }
+.edge { cursor: pointer; }
+.edge .edge-label { font-size: 13px; font-weight: 400; fill: var(--body); paint-order: stroke; stroke: var(--bg); stroke-width: 5px; stroke-linejoin: round; }
+.band ~ .edge .edge-label { stroke: var(--bg); }
+.node { cursor: pointer; }
+.node .shape { fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
+.node[data-shape="state"] .shape { fill: var(--state-bg); stroke: var(--state-line); }
+.start { fill: var(--ink); stroke: none; }
+.start-line { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+.arrow { fill: var(--line); }
+.node:hover .shape, .node.selected .shape { stroke: var(--accent); stroke-width: 2.5; }
+.edge:hover .line, .edge.selected .line { stroke: var(--accent); stroke-width: 2.5; }
+.edge.selected .edge-label { fill: var(--accent); font-weight: 600; }
+.opener { cursor: pointer; }
+.opener rect { fill: var(--accent); stroke: none; }
+.opener text { font-size: 13px; font-weight: 600; fill: var(--krds-color-text-basic-inverse, #fff); }
+.opener:hover rect { opacity: .85; }
+
+.legend { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 12px 0 0; padding: 0; font-size: .82rem; color: var(--muted); }
+.legend li { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.legend svg { flex: none; fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
+.legend .key-state svg { fill: var(--state-bg); stroke: var(--state-line); }
+
+/* the panel sits under the chart, so opening it covers nothing */
+.detail { margin-top: 16px; background: var(--surface); border: 1px solid var(--card-line); border-radius: 12px; padding: 14px 18px; overflow-wrap: anywhere; }
+.detail-head { display: flex; align-items: baseline; gap: 10px; }
+.detail h2 { font-size: 1.1rem; font-weight: 600; color: var(--ink); margin: 0; }
+.detail-kind { font-size: .82rem; color: var(--muted); }
+.detail-close { margin-left: auto; flex: none; }
+.detail p { margin: 8px 0 0; }
+.detail dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; margin: 12px 0 0; font-size: .9rem; }
+.detail dt { color: var(--muted); }
+.detail dd { margin: 0; }
+.detail ul { margin: 0; padding: 0; list-style: none; }
+.detail code { font: .85rem var(--mono); }
+.detail .rule-kind { color: var(--muted); }
+
+@media (max-width: 820px) {
+  /* The frame hides the navigation by visibility, which an open submenu turns back on. */
+  .frame-nav:not(.open) .lnb-list .lnb-item.active .lnb-submenu { visibility: hidden; }
+}
+@media (max-width: 560px) {
+  .detail dl { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .detail dd { margin-bottom: 8px; }
+}
+@media print {
+  .level.away { position: static; visibility: visible; }
+  .level { break-after: page; }
+  .detail-close { display: none; }
+}
+</style>
+<section class="level" id="level-root">
+<p class="crumbs">GitHub pull request</p>
+<h1>Pull request lifecycle</h1>
+<p class="lede">풀 리퀘스트(pull request) 하나가 열려서 병합되거나 닫힐 때까지 거치는 상태입니다. 대부분의 일은 열린 동안 일어나고, 병합된 뒤에는 끝납니다.</p>
+<div class="chart" data-level="root"></div>
+<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="7"/></svg>State: where a thing is now</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li></ul>
+<div class="detail" hidden></div>
+</section>
+<section class="level" id="level-open-s">
+<p class="crumbs"><a href="#level-root">Pull request lifecycle</a></p>
+<h1>Review round</h1>
+<p class="lede">열린 풀 리퀘스트(pull request) 안에서 한 바퀴 도는 일입니다. 커밋(commit)이 올라오면 검사가 돌고, 검토자가 읽고, 변경을 요청하면 처음으로 돌아가며, 승인되면 병합 상자로 넘어갑니다.</p>
+<div class="chart" data-level="open-s"></div>
+<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="7"/></svg>State: where a thing is now</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li></ul>
+<div class="detail" hidden></div>
+</section>
+<section class="level" id="level-push">
+<p class="crumbs"><a href="#level-root">Pull request lifecycle</a> <span aria-hidden="true">›</span> <a href="#level-open-s">Review round</a></p>
+<h1>Branch sync</h1>
+<p class="lede">작업 브랜치(branch) 하나는 두 곳에 동시에 있습니다. 내 컴퓨터의 브랜치와 GitHub의 브랜치는 각자 상태가 바뀌고, 둘을 잇는 것은 동기화뿐입니다. 내가 push하면 GitHub이 받고, 내가 pull하면 GitHub 쪽을 따라잡습니다.</p>
+<div class="chart" data-level="push"></div>
+<ul class="legend" aria-label="What the shapes mean"><li class="key-state"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="7"/></svg>State: where a thing is now</li><li class="key-transition"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8"/></svg>Transition: a move between states</li></ul>
+<div class="detail" hidden></div>
+</section>
+<section class="level" id="level-review">
+<p class="crumbs"><a href="#level-root">Pull request lifecycle</a> <span aria-hidden="true">›</span> <a href="#level-open-s">Review round</a></p>
+<h1>Pull request parts</h1>
+<p class="lede">풀 리퀘스트(pull request) 하나를 이루는 것들입니다. GitHub에만 있는 기록과 어느 저장소에나 있는 Git의 것으로 나뉩니다. 풀 리퀘스트는 두 브랜치(branch)를 잇고, 검토는 특정 커밋(commit)을 읽고 쓴 것이며, 의견은 바뀐 줄에 붙습니다.</p>
+<div class="chart" data-level="review"></div>
+<ul class="legend" aria-label="What the shapes mean"><li class="key-part"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><rect x="1" y="1" width="26" height="14" rx="1"/></svg>Part: a piece of the system</li><li class="key-call"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true"><line x1="1" y1="8" x2="27" y2="8" stroke-dasharray="5 4"/></svg>Call: one part uses another</li></ul>
+<div class="detail" hidden></div>
+</section>
+<script type="application/json" id="page-data">{"levels": [{"id": "root", "title": "Pull request lifecycle", "initial": ["open-s"], "lanes": [], "nodes": [{"id": "draft-s", "label": "Draft", "state": true, "lane": null, "opens": null, "attrs": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request", "description": "아직 검토를 청하지 않은 상태입니다. 누구나 볼 수 있지만 병합할 수 없습니다."}}, {"id": "open-s", "label": "Open", "state": true, "lane": null, "opens": "open-s", "attrs": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "검토와 검사가 오가는 상태입니다. 안을 열면 검토가 한 바퀴 도는 과정을 볼 수 있습니다."}}, {"id": "closed-s", "label": "Closed", "state": true, "lane": null, "opens": null, "attrs": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/closing-a-pull-request", "description": "병합하지 않고 닫은 상태입니다. 다시 열면 열린 상태로 돌아갑니다."}}, {"id": "merged-s", "label": "Merged", "state": true, "lane": null, "opens": null, "attrs": [], "rules": [], "meta": {"source": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-merge-methods-on-github", "description": "변경이 기준 브랜치(branch)에 합쳐진 상태입니다. 풀 리퀘스트(pull request)의 일은 여기서 끝납니다."}}], "edges": [{"key": "root:draft-s>open-s#0", "from": "draft-s", "to": "open-s", "kind": "transition", "label": "mark ready", "changes": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "초안을 검토 받을 준비가 된 상태로 바꿉니다."}}, {"key": "root:open-s>draft-s#1", "from": "open-s", "to": "draft-s", "kind": "transition", "label": "convert to draft", "changes": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "검토를 기다리던 풀 리퀘스트(pull request)를 다시 초안으로 돌립니다."}}, {"key": "root:open-s>closed-s#2", "from": "open-s", "to": "closed-s", "kind": "transition", "label": "close", "changes": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "병합하지 않고 닫습니다."}}, {"key": "root:closed-s>open-s#3", "from": "closed-s", "to": "open-s", "kind": "transition", "label": "reopen", "changes": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "닫은 풀 리퀘스트(pull request)를 다시 엽니다."}}, {"key": "root:open-s>merged-s#4", "from": "open-s", "to": "merged-s", "kind": "transition", "label": "merge", "changes": [], "rules": ["mergeable"], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "승인과 필수 검사가 채워지면 변경을 기준 브랜치(branch)에 합칩니다."}}], "copy": "Pull request lifecycle\n풀 리퀘스트(pull request) 하나가 열려서 병합되거나 닫힐 때까지 거치는 상태입니다. 대부분의 일은 열린 동안 일어나고, 병합된 뒤에는 끝납니다.\n\n- Draft: 아직 검토를 청하지 않은 상태입니다. 누구나 볼 수 있지만 병합할 수 없습니다. (https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request)\n- Open: 검토와 검사가 오가는 상태입니다. 안을 열면 검토가 한 바퀴 도는 과정을 볼 수 있습니다. (https://docs.github.com/en/pull-requests/reference/pull-requests)\n- Closed: 병합하지 않고 닫은 상태입니다. 다시 열면 열린 상태로 돌아갑니다. (https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/closing-a-pull-request)\n- Merged: 변경이 기준 브랜치(branch)에 합쳐진 상태입니다. 풀 리퀘스트(pull request)의 일은 여기서 끝납니다. (https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-merge-methods-on-github)\n- Draft → Open, mark ready: 초안을 검토 받을 준비가 된 상태로 바꿉니다.\n- Open → Draft, convert to draft: 검토를 기다리던 풀 리퀘스트(pull request)를 다시 초안으로 돌립니다.\n- Open → Closed, close: 병합하지 않고 닫습니다.\n- Closed → Open, reopen: 닫은 풀 리퀘스트(pull request)를 다시 엽니다.\n- Open → Merged, merge: 승인과 필수 검사가 채워지면 변경을 기준 브랜치(branch)에 합칩니다."}, {"id": "open-s", "title": "Review round", "initial": ["push"], "lanes": [], "nodes": [{"id": "push", "label": "Pushing", "state": true, "lane": null, "opens": "push", "attrs": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "작성자가 자기 컴퓨터에서 커밋(commit)을 만들고 작업 브랜치(branch)로 올립니다. 풀 리퀘스트(pull request)는 언제나 그 브랜치의 가장 최근 커밋을 가리킵니다."}}, {"id": "checks", "label": "Running checks", "state": true, "lane": null, "opens": null, "attrs": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/status-checks", "description": "새 커밋(commit)에 대해 빌드(build)와 테스트가 돌고, 결과가 풀 리퀘스트(pull request) 화면에 붙습니다."}}, {"id": "review", "label": "Reviewing code", "state": true, "lane": null, "opens": "review", "attrs": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-request-reviews", "description": "검토자가 바뀐 파일을 읽고 의견을 남긴 뒤 판정을 골라 제출합니다. 안을 열면 검토가 무엇으로 이루어졌는지 볼 수 있습니다."}}, {"id": "mergebox", "label": "Gating the merge", "state": true, "lane": null, "opens": null, "attrs": [], "rules": ["mergeable"], "meta": {"source": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches", "description": "승인과 필수 검사가 모두 채워졌는지 보여 주고, 채워지면 병합 버튼이 열립니다."}}], "edges": [{"key": "open-s:push>checks#0", "from": "push", "to": "checks", "kind": "transition", "label": "head commit", "changes": [], "rules": ["checks-on-head"], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "새 커밋(commit)이 작업 브랜치(branch) 끝에 올라오면 그 커밋에 대해 검사가 돕니다."}}, {"key": "open-s:checks>review#1", "from": "checks", "to": "review", "kind": "transition", "label": "check results", "changes": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "검사 결과가 풀 리퀘스트(pull request) 화면에 붙어 검토자에게 보입니다."}}, {"key": "open-s:review>push#2", "from": "review", "to": "push", "kind": "transition", "label": "change requests", "changes": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "검토자가 변경을 요청하면 작성자가 새 커밋(commit)을 올리는 단계로 돌아갑니다."}}, {"key": "open-s:review>mergebox#3", "from": "review", "to": "mergebox", "kind": "transition", "label": "approved review", "changes": [], "rules": ["no-self-approval", "fresh-approval", "review-on-commit"], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "검토자가 승인하면 병합을 가르는 단계로 넘어갑니다. 승인은 그때의 브랜치(branch) 끝 커밋(commit)을 읽고 합니다."}}, {"key": "open-s:mergebox>push#4", "from": "mergebox", "to": "push", "kind": "transition", "label": "merge blockers", "changes": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "승인이 모자라거나 필수 검사가 실패했거나 기준 브랜치(branch)와 충돌하면 병합 버튼이 닫힌 채, 무엇이 막고 있는지를 들고 작성자에게 돌아갑니다."}}], "copy": "Review round\n열린 풀 리퀘스트(pull request) 안에서 한 바퀴 도는 일입니다. 커밋(commit)이 올라오면 검사가 돌고, 검토자가 읽고, 변경을 요청하면 처음으로 돌아가며, 승인되면 병합 상자로 넘어갑니다.\n\n- Pushing: 작성자가 자기 컴퓨터에서 커밋(commit)을 만들고 작업 브랜치(branch)로 올립니다. 풀 리퀘스트(pull request)는 언제나 그 브랜치의 가장 최근 커밋을 가리킵니다. (https://docs.github.com/en/pull-requests/reference/pull-requests)\n- Running checks: 새 커밋(commit)에 대해 빌드(build)와 테스트가 돌고, 결과가 풀 리퀘스트(pull request) 화면에 붙습니다. (https://docs.github.com/en/pull-requests/reference/status-checks)\n- Reviewing code: 검토자가 바뀐 파일을 읽고 의견을 남긴 뒤 판정을 골라 제출합니다. 안을 열면 검토가 무엇으로 이루어졌는지 볼 수 있습니다. (https://docs.github.com/en/pull-requests/reference/pull-request-reviews)\n- Gating the merge: 승인과 필수 검사가 모두 채워졌는지 보여 주고, 채워지면 병합 버튼이 열립니다. (https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)\n- Pushing → Running checks, head commit: 새 커밋(commit)이 작업 브랜치(branch) 끝에 올라오면 그 커밋에 대해 검사가 돕니다.\n- Running checks → Reviewing code, check results: 검사 결과가 풀 리퀘스트(pull request) 화면에 붙어 검토자에게 보입니다.\n- Reviewing code → Pushing, change requests: 검토자가 변경을 요청하면 작성자가 새 커밋(commit)을 올리는 단계로 돌아갑니다.\n- Reviewing code → Gating the merge, approved review: 검토자가 승인하면 병합을 가르는 단계로 넘어갑니다. 승인은 그때의 브랜치(branch) 끝 커밋(commit)을 읽고 합니다.\n- Gating the merge → Pushing, merge blockers: 승인이 모자라거나 필수 검사가 실패했거나 기준 브랜치(branch)와 충돌하면 병합 버튼이 닫힌 채, 무엇이 막고 있는지를 들고 작성자에게 돌아갑니다."}, {"id": "push", "title": "Branch sync", "initial": ["clean", "matching"], "lanes": [{"id": "local", "label": "Local"}, {"id": "github", "label": "GitHub"}], "nodes": [{"id": "clean", "label": "Clean", "state": true, "lane": "local", "opens": null, "attrs": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "내 브랜치(branch)에 아직 올리지 않은 커밋(commit)이 없습니다."}}, {"id": "unpushed", "label": "Unpushed", "state": true, "lane": "local", "opens": null, "attrs": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "내 브랜치(branch)에 GitHub에 아직 올리지 않은 커밋(commit)이 있습니다."}}, {"id": "matching", "label": "Matching", "state": true, "lane": "github", "opens": null, "attrs": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "GitHub의 브랜치(branch)에 내가 아직 받지 않은 커밋(commit)이 없습니다."}}, {"id": "ahead", "label": "Ahead", "state": true, "lane": "github", "opens": null, "attrs": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "GitHub의 브랜치(branch)에 내가 아직 받지 않은 커밋(commit)이 있습니다. 다른 사람이 올렸거나, GitHub에서 Update branch를 눌렀을 때입니다."}}], "edges": [{"key": "push:clean>unpushed#0", "from": "clean", "to": "unpushed", "kind": "transition", "label": "commit changes", "changes": [], "rules": [], "meta": {"source": "https://git-scm.com/docs/git-push", "description": "내 컴퓨터에서 커밋(commit)하면 GitHub보다 앞서게 됩니다."}}, {"key": "push:unpushed>clean#1", "from": "unpushed", "to": "clean", "kind": "transition", "label": "push", "changes": ["Branch.tip", "PullRequest.checks"], "rules": ["fast-forward-push"], "meta": {"source": "https://git-scm.com/docs/git-push", "description": "커밋(commit)을 올리면 두 브랜치(branch)가 다시 같아집니다. GitHub 쪽이 앞서 있으면 거절됩니다."}}, {"key": "push:unpushed>unpushed#2", "from": "unpushed", "to": "unpushed", "kind": "transition", "label": "reject", "changes": [], "rules": [], "meta": {"source": "https://git-scm.com/docs/git-push", "description": "GitHub 쪽에 내가 모르는 커밋(commit)이 있으면 push가 거절되고, 내 브랜치(branch)는 그대로 앞서 있습니다. 먼저 받아서 합쳐야 합니다."}}, {"key": "push:clean>clean#3", "from": "clean", "to": "clean", "kind": "transition", "label": "pull", "changes": [], "rules": [], "meta": {"source": "https://git-scm.com/docs/git-pull", "description": "GitHub의 새 커밋(commit)을 받아 내 브랜치(branch)에 합칩니다."}}, {"key": "push:matching>ahead#4", "from": "matching", "to": "ahead", "kind": "transition", "label": "update branch", "changes": [], "rules": [], "meta": {"source": "https://git-scm.com/docs/git-push", "description": "다른 사람이 커밋(commit)을 올리거나 GitHub에서 기준 브랜치(branch)를 끌어오면 GitHub 쪽이 앞서게 됩니다."}}, {"key": "push:matching>matching#5", "from": "matching", "to": "matching", "kind": "transition", "label": "receive", "changes": [], "rules": [], "meta": {"source": "https://git-scm.com/docs/git-push", "description": "내가 올린 커밋(commit)을 받습니다. 받은 뒤에도 GitHub 쪽에 내가 모르는 커밋은 없습니다."}}, {"key": "push:ahead>matching#6", "from": "ahead", "to": "matching", "kind": "transition", "label": "catch up", "changes": [], "rules": [], "meta": {"source": "https://git-scm.com/docs/git-push", "description": "내가 GitHub의 새 커밋(commit)을 받아 가면, GitHub 쪽은 더 이상 앞서 있지 않습니다."}}], "copy": "Branch sync\n작업 브랜치(branch) 하나는 두 곳에 동시에 있습니다. 내 컴퓨터의 브랜치와 GitHub의 브랜치는 각자 상태가 바뀌고, 둘을 잇는 것은 동기화뿐입니다. 내가 push하면 GitHub이 받고, 내가 pull하면 GitHub 쪽을 따라잡습니다.\n\n- Clean: 내 브랜치(branch)에 아직 올리지 않은 커밋(commit)이 없습니다. (https://docs.github.com/en/pull-requests/reference/pull-requests)\n- Unpushed: 내 브랜치(branch)에 GitHub에 아직 올리지 않은 커밋(commit)이 있습니다. (https://docs.github.com/en/pull-requests/reference/pull-requests)\n- Matching: GitHub의 브랜치(branch)에 내가 아직 받지 않은 커밋(commit)이 없습니다. (https://docs.github.com/en/pull-requests/reference/pull-requests)\n- Ahead: GitHub의 브랜치(branch)에 내가 아직 받지 않은 커밋(commit)이 있습니다. 다른 사람이 올렸거나, GitHub에서 Update branch를 눌렀을 때입니다. (https://docs.github.com/en/pull-requests/reference/pull-requests)\n- Clean → Unpushed, commit changes: 내 컴퓨터에서 커밋(commit)하면 GitHub보다 앞서게 됩니다.\n- Unpushed → Clean, push: 커밋(commit)을 올리면 두 브랜치(branch)가 다시 같아집니다. GitHub 쪽이 앞서 있으면 거절됩니다.\n- Unpushed → Unpushed, reject: GitHub 쪽에 내가 모르는 커밋(commit)이 있으면 push가 거절되고, 내 브랜치(branch)는 그대로 앞서 있습니다. 먼저 받아서 합쳐야 합니다.\n- Clean → Clean, pull: GitHub의 새 커밋(commit)을 받아 내 브랜치(branch)에 합칩니다.\n- Matching → Ahead, update branch: 다른 사람이 커밋(commit)을 올리거나 GitHub에서 기준 브랜치(branch)를 끌어오면 GitHub 쪽이 앞서게 됩니다.\n- Matching → Matching, receive: 내가 올린 커밋(commit)을 받습니다. 받은 뒤에도 GitHub 쪽에 내가 모르는 커밋은 없습니다.\n- Ahead → Matching, catch up: 내가 GitHub의 새 커밋(commit)을 받아 가면, GitHub 쪽은 더 이상 앞서 있지 않습니다."}, {"id": "review", "title": "Pull request parts", "initial": [], "lanes": [{"id": "github", "label": "GitHub", "unit": "GitHub 서비스"}, {"id": "git", "label": "Git", "unit": "Git 저장소"}], "nodes": [{"id": "pr", "label": "Pull request", "state": false, "lane": "github", "opens": null, "attrs": ["base: Branch", "head: Branch", "author: User", "reviews: Review[]", "checks: Text[]"], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "작업 브랜치(branch, head)를 기준 브랜치(base)에 합치자는 제안입니다. 바뀐 줄과 검사 결과, 그동안 쌓인 검토를 한곳에 모읍니다."}}, {"id": "branch", "label": "Branch", "state": false, "lane": "git", "opens": null, "attrs": ["tip: Commit", "history: Commit[]", "requiredApprovals: Number", "requiredChecks: Text[]"], "rules": [], "meta": {"source": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches", "description": "커밋(commit)이 이어진 한 줄의 역사입니다. 기준 브랜치(branch)에는 보호 규칙이 붙어, 병합에 필요한 승인 수와 통과해야 할 검사를 정합니다."}}, {"id": "commit", "label": "Commit", "state": false, "lane": "git", "opens": null, "attrs": ["sha: Text", "passed: Text[]"], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "브랜치(branch) 역사의 한 시점입니다. 검사 결과는 커밋(commit)마다 따로 붙고, passed에는 이 커밋에서 통과한 검사 이름이 모입니다."}}, {"id": "review-x", "label": "Review", "state": false, "lane": "github", "opens": null, "attrs": ["author: User", "commit: Commit", "verdict: Verdict", "comments: Comment[]"], "rules": ["no-self-approval"], "meta": {"source": "https://docs.github.com/en/rest/pulls/reviews", "description": "검토자 한 명이 한 번에 제출한 판정과 의견의 묶음입니다."}}, {"id": "comment", "label": "Comment", "state": false, "lane": "github", "opens": null, "attrs": ["line: DiffLine", "text: Text"], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/how-tos/review-pull-requests/commenting-on-a-pull-request", "description": "바뀐 파일의 줄에 붙은 의견 하나입니다."}}, {"id": "line", "label": "Diff line", "state": false, "lane": "git", "opens": null, "attrs": ["commit: Commit", "text: Text"], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/branches", "description": "바뀐 파일의 한 줄입니다. 줄 의견은 이 줄에 붙습니다."}}], "edges": [{"key": "review:pr>branch#0", "from": "pr", "to": "branch", "kind": "call", "label": "merges into", "changes": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "기준 브랜치(branch, base)입니다. 병합하면 변경이 이 브랜치에 들어갑니다."}}, {"key": "review:pr>branch#1", "from": "pr", "to": "branch", "kind": "call", "label": "merges from", "changes": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "작업 브랜치(branch, head)입니다. 풀 리퀘스트(pull request)는 이 브랜치 끝의 커밋(commit)을 따라갑니다."}}, {"key": "review:branch>commit#2", "from": "branch", "to": "commit", "kind": "call", "label": "points to", "changes": [], "rules": ["checks-on-head"], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "브랜치(branch) 끝(tip)은 가장 최근 커밋(commit)을 가리킵니다. 풀 리퀘스트(pull request) 화면의 검사는 작업 브랜치 끝 커밋의 것입니다."}}, {"key": "review:pr>review-x#3", "from": "pr", "to": "review-x", "kind": "call", "label": "has", "changes": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "풀 리퀘스트(pull request)는 그동안 제출된 검토를 모두 갖습니다."}}, {"key": "review:review-x>commit#4", "from": "review-x", "to": "commit", "kind": "call", "label": "reads", "changes": [], "rules": ["review-on-commit"], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "검토는 검토자가 읽은 커밋(commit) 하나에 묶입니다."}}, {"key": "review:review-x>comment#5", "from": "review-x", "to": "comment", "kind": "call", "label": "groups", "changes": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "검토 하나는 그 안에서 남긴 줄 의견들을 한 번에 묶어 제출합니다."}}, {"key": "review:comment>line#6", "from": "comment", "to": "line", "kind": "call", "label": "attaches to", "changes": [], "rules": [], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "의견은 바뀐 파일의 특정 줄에 붙습니다."}}, {"key": "review:line>commit#7", "from": "line", "to": "commit", "kind": "call", "label": "comes from", "changes": [], "rules": ["three-dot"], "meta": {"source": "https://docs.github.com/en/pull-requests/reference/pull-requests", "description": "바뀐 줄마다 그 줄을 만든 커밋(commit)이 있습니다."}}], "copy": "Pull request parts\n풀 리퀘스트(pull request) 하나를 이루는 것들입니다. GitHub에만 있는 기록과 어느 저장소에나 있는 Git의 것으로 나뉩니다. 풀 리퀘스트는 두 브랜치(branch)를 잇고, 검토는 특정 커밋(commit)을 읽고 쓴 것이며, 의견은 바뀐 줄에 붙습니다.\n\n- Pull request: 작업 브랜치(branch, head)를 기준 브랜치(base)에 합치자는 제안입니다. 바뀐 줄과 검사 결과, 그동안 쌓인 검토를 한곳에 모읍니다. (https://docs.github.com/en/pull-requests/reference/pull-requests)\n- Branch: 커밋(commit)이 이어진 한 줄의 역사입니다. 기준 브랜치(branch)에는 보호 규칙이 붙어, 병합에 필요한 승인 수와 통과해야 할 검사를 정합니다. (https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)\n- Commit: 브랜치(branch) 역사의 한 시점입니다. 검사 결과는 커밋(commit)마다 따로 붙고, passed에는 이 커밋에서 통과한 검사 이름이 모입니다. (https://docs.github.com/en/pull-requests/reference/pull-requests)\n- Review: 검토자 한 명이 한 번에 제출한 판정과 의견의 묶음입니다. (https://docs.github.com/en/rest/pulls/reviews)\n- Comment: 바뀐 파일의 줄에 붙은 의견 하나입니다. (https://docs.github.com/en/pull-requests/how-tos/review-pull-requests/commenting-on-a-pull-request)\n- Diff line: 바뀐 파일의 한 줄입니다. 줄 의견은 이 줄에 붙습니다. (https://docs.github.com/en/pull-requests/reference/branches)\n- Pull request → Branch, merges into: 기준 브랜치(branch, base)입니다. 병합하면 변경이 이 브랜치에 들어갑니다.\n- Pull request → Branch, merges from: 작업 브랜치(branch, head)입니다. 풀 리퀘스트(pull request)는 이 브랜치 끝의 커밋(commit)을 따라갑니다.\n- Branch → Commit, points to: 브랜치(branch) 끝(tip)은 가장 최근 커밋(commit)을 가리킵니다. 풀 리퀘스트(pull request) 화면의 검사는 작업 브랜치 끝 커밋의 것입니다.\n- Pull request → Review, has: 풀 리퀘스트(pull request)는 그동안 제출된 검토를 모두 갖습니다.\n- Review → Commit, reads: 검토는 검토자가 읽은 커밋(commit) 하나에 묶입니다.\n- Review → Comment, groups: 검토 하나는 그 안에서 남긴 줄 의견들을 한 번에 묶어 제출합니다.\n- Comment → Diff line, attaches to: 의견은 바뀐 파일의 특정 줄에 붙습니다.\n- Diff line → Commit, comes from: 바뀐 줄마다 그 줄을 만든 커밋(commit)이 있습니다."}], "rules": {"mergeable": {"kind": "must", "source": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches", "description": "보호된 브랜치(branch)에 합치려면 초안이 아니어야 하고, 정해진 수만큼 승인을 받아야 하며, 필수 검사가 가장 최근 커밋(commit)에서 모두 통과해야 합니다. 저장소 관리자는 이 조건을 건너뛸 수 있습니다."}, "no-self-approval": {"kind": "must", "source": "https://docs.github.com/en/pull-requests/how-tos/review-pull-requests/approving-a-pull-request-with-required-reviews", "description": "작성자는 자기 풀 리퀘스트(pull request)를 승인할 수 없습니다. 승인은 언제나 다른 사람의 눈을 한 번 거쳤다는 뜻이 됩니다."}, "checks-on-head": {"kind": "must", "source": "https://docs.github.com/en/rest/guides/using-the-rest-api-to-interact-with-checks", "description": "풀 리퀘스트(pull request)에 보이는 검사 결과는 언제나 가장 최근 커밋(commit)에 대한 것입니다. 새 커밋이 올라오면 옛 결과는 새 결과로 바뀝니다."}, "three-dot": {"kind": "must", "source": "https://docs.github.com/en/pull-requests/reference/branches", "description": "바뀐 파일 화면은 두 브랜치(branch)가 갈라진 지점과 작업 브랜치의 가장 최근 커밋(commit)을 비교합니다. 그래서 기준 브랜치에 나중에 들어온 변경은 섞이지 않습니다."}, "review-on-commit": {"kind": "must", "source": "https://docs.github.com/en/rest/pulls/reviews", "description": "검토는 검토자가 읽은 커밋(commit)에 묶입니다. 승인은 그때의 브랜치(branch) 끝 커밋을 읽고 하고, 그 뒤에 커밋이 더 올라오면 앞선 검토는 옛 코드에 대한 것으로 표시됩니다."}, "fresh-approval": {"kind": "should", "source": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches", "description": "병합에 세는 승인은 지금 작업 브랜치(branch) 끝 커밋(commit)을 읽고 한 것이어야 합니다. 승인 뒤에 올라온 커밋은 아무도 읽지 않은 채 들어갈 수 있기 때문입니다."}, "fast-forward-push": {"kind": "must", "source": "https://git-scm.com/docs/git-push", "description": "push는 원격 브랜치(branch)에 내가 모르는 커밋(commit)이 없을 때만 받아들여집니다. 그래야 남이 올린 커밋을 덮어쓰지 않습니다."}}}</script>
+<script>
+const data = JSON.parse(document.getElementById("page-data").textContent);
+const levels = Object.fromEntries(data.levels.map(level => [level.id, level]));
+const SVG = "http://www.w3.org/2000/svg";
+const NODE_PAD = 16, LINE_HEIGHT = 20, MAX_TEXT = 168, GAP_ALONG = 130, GAP_ACROSS = 30, GAP_ROW = 70, GAP_DOWN = 72, BAND_HEAD = 26, BAND_GAP = 22, OPENER_HEIGHT = 26, LOOP = 34;
+let current = "root";
+const drawnAt = {};
+const pen = document.createElement("canvas").getContext("2d");
+
+function textWidth(text, size = 15, weight = 500) {
+  pen.font = `${weight} ${size}px ${getComputedStyle(document.body).fontFamily}`;
+  return pen.measureText(text).width;
+}
+function wrapped(label) {
+  const lines = [];
+  for (const word of label.split(/\s+/)) {
+    const joined = lines.length ? `${lines[lines.length - 1]} ${word}` : word;
+    if (lines.length && textWidth(joined) <= MAX_TEXT) lines[lines.length - 1] = joined;
+    else lines.push(word);
+  }
+  return lines;
+}
+function sized(node) {
+  const lines = wrapped(node.label);
+  const wide = Math.max(92, ...lines.map(line => textWidth(line) + 2 * NODE_PAD), node.opens ? 120 : 0);
+  return {lines, w: Math.ceil(wide), h: 18 + LINE_HEIGHT * lines.length + (node.opens ? OPENER_HEIGHT : 0)};
+}
+
+// How far each node is from where the level starts: its initial states, or else what nothing points at.
+function depths(level) {
+  const depth = {};
+  const entered = new Set(level.edges.filter(edge => edge.from !== edge.to).map(edge => edge.to));
+  const seeds = level.initial.length ? level.initial : level.nodes.filter(node => !entered.has(node.id)).map(node => node.id);
+  for (const seed of [...seeds, ...level.nodes.map(node => node.id)]) {
+    if (seed in depth) continue;
+    depth[seed] = 0;
+    const queue = [seed];
+    while (queue.length) {
+      const at = queue.shift();
+      for (const edge of level.edges) {
+        if (edge.from === at && !(edge.to in depth)) {
+          depth[edge.to] = depth[at] + 1;
+          queue.push(edge.to);
+        }
+      }
+    }
+  }
+  return depth;
+}
+
+// Lanes, each a list of columns of node ids, ordered so a node sits near the nodes it links to (barycentre sweeps).
+function columns(level) {
+  const depth = depths(level);
+  const laneIds = [...level.lanes.map(lane => lane.id), null];
+  const lanes = laneIds.map(id => {
+    const inLane = level.nodes.filter(node => (node.lane || null) === id);
+    const cells = [];
+    for (const node of inLane) (cells[depth[node.id]] ||= []).push(node.id);
+    return {id, cells: Array.from(cells, cell => cell || [])};
+  }).filter(lane => lane.cells.length);
+  for (let sweep = 0; sweep < 4; sweep++) {
+    const slot = {};
+    for (const lane of lanes) lane.cells.forEach(cell => cell.forEach((id, i) => { slot[id] = i - (cell.length - 1) / 2; }));
+    const pull = id => {
+      const others = level.edges.filter(edge => edge.from !== edge.to && (edge.from === id || edge.to === id)).map(edge => slot[edge.from === id ? edge.to : edge.from]);
+      return others.length ? others.reduce((a, b) => a + b) / others.length : slot[id];
+    };
+    for (const lane of lanes) for (const cell of lane.cells) cell.sort((a, b) => pull(a) - pull(b));
+  }
+  return lanes;
+}
+
+function arrange(level, sizes, shape) {
+  const lanes = columns(level), boxes = {}, bands = [];
+  const width = id => sizes[id].w, height = id => sizes[id].h;
+  const all = lanes.flatMap(lane => lane.cells.flat());
+  const rowHeight = Math.max(...all.map(height)) + GAP_ACROSS;
+  const head = level.lanes.length ? BAND_HEAD : 0;
+  if (shape === "wide") {
+    const count = Math.max(...lanes.map(lane => lane.cells.length));
+    const columnWidth = Array.from({length: count}, (_, i) => Math.max(0, ...lanes.flatMap(lane => (lane.cells[i] || []).map(width))));
+    const columnX = columnWidth.map((_, i) => columnWidth.slice(0, i).reduce((sum, w) => sum + w + GAP_ALONG, 24));
+    let y = head;
+    for (const lane of lanes) {
+      const rows = Math.max(...lane.cells.map(cell => cell.length));
+      lane.cells.forEach((cell, i) => cell.forEach((id, row) => {
+        boxes[id] = {x: columnX[i] + (columnWidth[i] - width(id)) / 2, y: y + (row + (rows - cell.length) / 2) * rowHeight + (rowHeight - GAP_ACROSS - height(id)) / 2, w: width(id), h: height(id)};
+      }));
+      y += rows * rowHeight + head + BAND_GAP * Boolean(head);
+    }
+  } else if (shape === "rows") {
+    // Each lane is one row, so edges between lanes run downward instead of past the nodes of a column.
+    const rows = lanes.map(lane => lane.cells.flat()), middle = {};
+    const rowWidth = row => row.reduce((sum, id) => sum + width(id) + GAP_ROW, -GAP_ROW);
+    const widest = Math.max(...rows.map(rowWidth));
+    const lay = () => rows.forEach(row => row.reduce((x, id) => { middle[id] = x + width(id) / 2; return x + width(id) + GAP_ROW; }, 24 + (widest - rowWidth(row)) / 2));
+    const toward = id => {
+      const others = level.edges.filter(edge => edge.from !== edge.to && (edge.from === id || edge.to === id)).map(edge => middle[edge.from === id ? edge.to : edge.from]);
+      return others.length ? others.reduce((a, b) => a + b) / others.length : middle[id];
+    };
+    for (let sweep = 0; sweep < 4; sweep++) {
+      lay();
+      for (const row of rows) row.sort((a, b) => toward(a) - toward(b));
+    }
+    lay();
+    let y = head;
+    for (const row of rows) {
+      const tallest = Math.max(...row.map(height));
+      for (const id of row) boxes[id] = {x: middle[id] - width(id) / 2, y: y + (tallest - height(id)) / 2, w: width(id), h: height(id)};
+      y += tallest + GAP_DOWN + head;
+    }
+  } else if (shape === "tall") {
+    const count = Math.max(...lanes.map(lane => lane.cells.length));
+    const rowY = [];
+    for (let i = 0, y = head + 14; i < count; i++) {
+      rowY[i] = y;
+      y += Math.max(0, ...lanes.flatMap(lane => (lane.cells[i] || []).map(height))) + GAP_DOWN;
+    }
+    const cellWidth = Math.max(...all.map(width)) + 28;
+    let x = 8;
+    for (const lane of lanes) {
+      const across = Math.max(...lane.cells.map(cell => cell.length));
+      lane.cells.forEach((cell, i) => cell.forEach((id, column) => {
+        boxes[id] = {x: x + (column + (across - cell.length) / 2) * cellWidth + (cellWidth - 28 - width(id)) / 2, y: rowY[i], w: width(id), h: height(id)};
+      }));
+      x += across * cellWidth + BAND_GAP;
+    }
+  } else {
+    let y = 14;
+    for (const lane of lanes) {
+      y += head;
+      for (const id of lane.cells.flat()) {
+        boxes[id] = {x: 8, y, w: width(id), h: height(id)};
+        y += height(id) + 40;
+      }
+      y += BAND_GAP * Boolean(head);
+    }
+  }
+  // Bands stacked one over the other share their ends, so a band's name sits clear of the lines that cross between them.
+  const everyBox = Object.values(boxes), wideLeft = Math.min(...everyBox.map(box => box.x)) - 12, wideRight = Math.max(...everyBox.map(box => box.x + box.w)) + 12;
+  for (const lane of lanes.filter(lane => lane.id)) {
+    const own = lane.cells.flat().map(id => boxes[id]);
+    const stacked = shape === "wide" || shape === "rows";
+    const left = stacked ? wideLeft : Math.min(...own.map(box => box.x)) - 12, right = stacked ? wideRight : Math.max(...own.map(box => box.x + box.w)) + 12;
+    bands.push({label: level.lanes.find(known => known.id === lane.id).label, left, right, top: Math.min(...own.map(box => box.y)) - BAND_HEAD, bottom: Math.max(...own.map(box => box.y + box.h)) + 12});
+  }
+  return {boxes, bands};
+}
+
+const centre = box => [box.x + box.w / 2, box.y + box.h / 2];
+const inflated = (box, by) => ({x: box.x - by, y: box.y - by, w: box.w + 2 * by, h: box.h + 2 * by});
+const holds = (box, [x, y]) => x > box.x && x < box.x + box.w && y > box.y && y < box.y + box.h;
+const meets = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+const onCurve = (a, c, b, t) => [0, 1].map(i => (1 - t) ** 2 * a[i] + 2 * (1 - t) * t * c[i] + t ** 2 * b[i]);
+
+// Where the ray from a box's centre toward a point leaves the box.
+function border(box, toward) {
+  const [cx, cy] = centre(box), dx = toward[0] - cx, dy = toward[1] - cy;
+  const scale = Math.min(dx ? box.w / 2 / Math.abs(dx) : Infinity, dy ? box.h / 2 / Math.abs(dy) : Infinity);
+  return [cx + dx * scale, cy + dy * scale];
+}
+
+// A curve between two nodes, bent away from every node between them; parallel edges spread apart.
+function route(edge, boxes, spread) {
+  const a = boxes[edge.from], b = boxes[edge.to];
+  if (edge.from === edge.to) {
+    const x = a.x + a.w * .7, y = a.y;
+    return {path: `M${x - 12} ${y}C${x - 12} ${y - LOOP} ${x + 26} ${y - LOOP} ${x + 12} ${y}`, points: [[x - 12, y], [x + 7, y - LOOP * .8], [x + 12, y]], mid: [x + 7, y - LOOP * .8]};
+  }
+  const start = centre(a), end = centre(b);
+  const mirrored = edge.from > edge.to;
+  const dx = (end[0] - start[0]) * (mirrored ? -1 : 1), dy = (end[1] - start[1]) * (mirrored ? -1 : 1);
+  const length = Math.hypot(dx, dy) || 1;
+  const normal = [-dy / length, dx / length];
+  const others = Object.entries(boxes).filter(([id]) => id !== edge.from && id !== edge.to).map(([, box]) => inflated(box, 8));
+  let control = null, blocked = true;
+  for (const extra of [0, 50, -50, 100, -100, 160, -160, 230, -230, 300, -300]) {
+    const bend = spread + extra;
+    const candidate = [(start[0] + end[0]) / 2 + normal[0] * bend, (start[1] + end[1]) / 2 + normal[1] * bend];
+    control = candidate;
+    blocked = Array.from({length: 24}, (_, i) => onCurve(start, candidate, end, (i + 1) / 25)).some(point => others.some(box => holds(box, point)));
+    if (!blocked) break;
+  }
+  const from = border(a, control), to = border(b, control);
+  return {path: `M${from[0]} ${from[1]}Q${control[0]} ${control[1]} ${to[0]} ${to[1]}`, points: Array.from({length: 33}, (_, i) => onCurve(from, control, to, i / 32)), from, control, to, blocked};
+}
+
+// A label beside its curve, clear of the nodes and of the labels placed before it, on as few other curves as it can.
+function placeLabel(edge, line, boxes, placed, routes) {
+  const width = textWidth(edge.label, 13, 400) + 8, height = 18;
+  const beside = width / 2 + 4;
+  const spots = line.from ? [.5, .4, .6, .3, .7, .22, .78].flatMap(t => { const [x, y] = onCurve(line.from, line.control, line.to, t); return [[x, y], [x, y - 16], [x, y + 16], [x + beside, y], [x - beside, y]]; }) : [line.mid];
+  const nodes = Object.values(boxes);
+  const crossed = box => routes.filter(other => other !== line && other.points.some(point => holds(box, point))).length;
+  const free = spots.map(([x, y]) => ({x: x - width / 2, y: y - height / 2, w: width, h: height})).filter(box => !nodes.some(node => meets(node, box)) && !placed.some(other => meets(other, box)));
+  if (!free.length) return {x: spots[0][0] - width / 2, y: spots[0][1] - height / 2, w: width, h: height};
+  return free.reduce((best, box) => crossed(box) < crossed(best) ? box : best);
+}
+
+function plan(level, sizes, shape) {
+  const {boxes, bands} = arrange(level, sizes, shape);
+  const pairs = {};
+  for (const edge of level.edges) (pairs[[edge.from, edge.to].sort().join(" ")] ||= []).push(edge);
+  const placed = [];
+  const routes = level.edges.map(edge => {
+    const siblings = pairs[[edge.from, edge.to].sort().join(" ")];
+    return route(edge, boxes, (siblings.indexOf(edge) - (siblings.length - 1) / 2) * 56);
+  });
+  const lines = level.edges.map((edge, i) => {
+    const label = placeLabel(edge, routes[i], boxes, placed, routes);
+    placed.push(label);
+    return {edge, line: routes[i], label};
+  });
+  const xs = [...level.initial.map(id => boxes[id].x - 22), ...Object.values(boxes).flatMap(box => [box.x, box.x + box.w]), ...bands.flatMap(band => [band.left, band.right]), ...placed.flatMap(box => [box.x, box.x + box.w]), ...lines.flatMap(({line}) => line.points.map(point => point[0]))];
+  const ys = [...Object.values(boxes).flatMap(box => [box.y, box.y + box.h]), ...bands.flatMap(band => [band.top, band.bottom]), ...placed.flatMap(box => [box.y, box.y + box.h]), ...lines.flatMap(({line}) => line.points.map(point => point[1]))];
+  const left = Math.min(...xs, 0) - 4, top = Math.min(...ys, 0) - 4;
+  return {boxes, bands, lines, left, top, blocked: routes.some(line => line.blocked), width: Math.ceil(Math.max(...xs) - left + 4), height: Math.ceil(Math.max(...ys) - top + 4)};
+}
+
+function element(name, attributes = {}, ...children) {
+  const made = document.createElementNS(SVG, name);
+  for (const [key, value] of Object.entries(attributes)) made.setAttribute(key, value);
+  made.append(...children);
+  return made;
+}
+
+function drawNode(node, box, size) {
+  const kind = node.state ? "state" : "part";
+  const radius = node.state ? Math.min(20, box.h / 2) : 2;
+  const group = element("g", {class: "node", "data-id": node.id, "data-shape": kind, tabindex: 0, role: "button", "aria-label": `${node.label}, a ${kind}. Show details.`},
+    element("rect", {class: "shape", x: box.x, y: box.y, width: box.w, height: box.h, rx: radius}));
+  size.lines.forEach((line, i) => {
+    const label = element("text", {x: box.x + box.w / 2, y: box.y + 9 + LINE_HEIGHT * i + 15, "text-anchor": "middle"});
+    label.textContent = line;
+    group.append(label);
+  });
+  return group;
+}
+function drawOpener(node, box) {
+  const y = box.y + box.h - OPENER_HEIGHT - 4, x = box.x + 10, w = box.w - 20;
+  const word = element("text", {x: x + w / 2, y: y + 16, "text-anchor": "middle"});
+  word.textContent = "See inside";
+  return element("a", {class: "opener", href: `#level-${node.opens}`, "aria-label": `See inside: ${levels[node.opens].title}`},
+    element("rect", {x, y, width: w, height: OPENER_HEIGHT - 4, rx: 4}), word);
+}
+function drawEdge({edge, line, label}, level) {
+  const name = id => level.nodes.find(node => node.id === id).label;
+  const text = element("text", {class: "edge-label", x: label.x + label.w / 2, y: label.y + 13, "text-anchor": "middle"});
+  text.textContent = edge.label;
+  return element("g", {class: "edge", "data-key": edge.key, "data-kind": edge.kind, tabindex: 0, role: "button", "aria-label": `${edge.label}, a ${edge.kind} from ${name(edge.from)} to ${name(edge.to)}. Show details.`},
+    element("path", {class: "hit", d: line.path}), element("path", {class: "line", d: line.path, "marker-end": `url(#arrow-${level.id})`}), text);
+}
+
+function draw(id) {
+  const holder = document.querySelector(`.chart[data-level="${CSS.escape(id)}"]`);
+  const room = holder.clientWidth || document.querySelector(".frame-body").clientWidth - 48;
+  if (drawnAt[id] === room) return;
+  drawnAt[id] = room;
+  const level = levels[id];
+  const sizes = Object.fromEntries(level.nodes.map(node => [node.id, sized(node)]));
+  const plans = ["wide", ...(level.lanes.length ? ["rows"] : []), "tall", "stack"].map(shape => plan(level, sizes, shape));
+  const fitting = plans.filter(option => option.width <= room);
+  const best = fitting.find(option => !option.blocked) || fitting[0] || plans.at(-1);
+  const svg = element("svg", {viewBox: `${best.left} ${best.top} ${best.width} ${best.height}`, width: best.width, height: best.height, role: "group", "aria-label": `Chart of ${level.title}`},
+    element("defs", {}, element("marker", {id: `arrow-${id}`, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: "auto-start-reverse"}, element("path", {class: "arrow", d: "M0 0L10 5L0 10z"}))));
+  for (const band of best.bands) {
+    const label = element("text", {x: band.left + 10, y: band.top + 17});
+    label.textContent = band.label;
+    svg.append(element("g", {class: "band"}, element("rect", {x: band.left, y: band.top, width: band.right - band.left, height: band.bottom - band.top, rx: 8}), label));
+  }
+  for (const start of level.initial) {
+    const box = best.boxes[start], y = box.y + box.h / 2;
+    svg.append(element("circle", {class: "start", cx: box.x - 18, cy: y, r: 4}), element("path", {class: "start-line", d: `M${box.x - 14} ${y}L${box.x} ${y}`}));
+  }
+  best.lines.forEach(line => svg.append(drawEdge(line, level)));
+  for (const node of level.nodes) {
+    svg.append(drawNode(node, best.boxes[node.id], sizes[node.id]));
+    if (node.opens) svg.append(drawOpener(node, best.boxes[node.id]));
+  }
+  holder.replaceChildren(svg);
+}
+
+function tag(name, className, text) {
+  const made = document.createElement(name);
+  if (className) made.className = className;
+  if (text !== undefined) made.textContent = text;
+  return made;
+}
+function row(list, term, ...values) {
+  const value = tag("dd");
+  value.append(...values);
+  list.append(tag("dt", "", term), value);
+}
+function sourceOf(meta) {
+  if (!meta.source.includes("://")) return tag("code", "", meta.source);
+  const link = tag("a", "", meta.source);
+  link.href = meta.source;
+  return link;
+}
+function bullets(texts) {
+  const list = tag("ul");
+  list.append(...texts.map(text => tag("li", "", text)));
+  return list;
+}
+
+function closeDetail(section) {
+  const panel = section.querySelector(".detail");
+  panel.hidden = true;
+  panel.replaceChildren();
+  section.querySelectorAll(".selected").forEach(chosen => chosen.classList.remove("selected"));
+}
+function openDetail(section, chosen, title, kind, meta, facts) {
+  closeDetail(section);
+  chosen.classList.add("selected");
+  const panel = section.querySelector(".detail");
+  const close = tag("button", "krds-btn text small detail-close", "Close");
+  close.type = "button";
+  close.addEventListener("click", () => { closeDetail(section); chosen.focus(); });
+  const head = tag("div", "detail-head");
+  head.append(tag("h2", "", title), tag("span", "detail-kind", kind), close);
+  const list = tag("dl");
+  for (const [term, value] of facts) row(list, term, value);
+  row(list, "Source", sourceOf(meta));
+  panel.append(head, tag("p", "", meta.description), list);
+  panel.hidden = false;
+  panel.scrollIntoView({block: "nearest"});
+}
+function ruleList(slugs) {
+  return bullets(slugs.map(slug => `${slug} (${data.rules[slug].kind}): ${data.rules[slug].description}`));
+}
+function choose(chosen) {
+  const section = chosen.closest(".level"), level = levels[section.id.slice("level-".length)];
+  if (chosen.matches(".node")) {
+    const node = level.nodes.find(known => known.id === chosen.dataset.id);
+    const facts = [...(node.attrs.length ? [["Attributes", bullets(node.attrs)]] : []), ...(node.rules.length ? [["Rules", ruleList(node.rules)]] : [])];
+    openDetail(section, chosen, node.label, node.state ? "State" : "Part", node.meta, facts);
+  } else {
+    const edge = level.edges.find(known => known.key === chosen.dataset.key);
+    const name = id => level.nodes.find(node => node.id === id).label;
+    const facts = [["From, to", document.createTextNode(`${name(edge.from)} → ${name(edge.to)}`)],
+      ...(edge.changes.length ? [["Changes", bullets(edge.changes)]] : []), ...(edge.rules.length ? [["Rules", ruleList(edge.rules)]] : [])];
+    openDetail(section, chosen, edge.label, edge.kind === "call" ? "Call" : "Transition", edge.meta, facts);
+  }
+}
+
+function show(id) {
+  current = id;
+  document.querySelectorAll(".level").forEach(section => section.classList.toggle("away", section.id !== `level-${id}`));
+  draw(id);
+  // The frame marks the current link on scroll, and this change moves no scrollbar.
+  dispatchEvent(new Event("scroll"));
+}
+function followHash() {
+  const id = location.hash.slice("#level-".length);
+  show(location.hash.startsWith("#level-") && levels[id] ? id : "root");
+}
+
+document.addEventListener("click", event => {
+  const link = event.target.closest('a[href^="#level-"]');
+  if (link) show(link.getAttribute("href").slice("#level-".length));
+  const chosen = event.target.closest(".node, .edge");
+  if (chosen) choose(chosen);
+});
+document.addEventListener("keydown", event => {
+  const chosen = event.target.closest?.(".node, .edge");
+  if (chosen && (event.key === "Enter" || event.key === " ")) {
+    event.preventDefault();
+    choose(chosen);
+  }
+});
+addEventListener("hashchange", followHash);
+addEventListener("resize", () => draw(current));
+addEventListener("beforeprint", () => data.levels.forEach(level => draw(level.id)));
+followHash();
+start({
+  copy: () => levels[current].copy,
+  reset: () => {
+    document.querySelectorAll(".level").forEach(closeDetail);
+    history.replaceState(null, "", location.pathname + location.search);
+    show("root");
+    scrollTo(0, 0);
+  },
+});
+</script>
+
+</main>
+</div>
+</body>
+</html>

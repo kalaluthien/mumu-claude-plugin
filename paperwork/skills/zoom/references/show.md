@@ -1,54 +1,22 @@
-# HTML
+# Show
 
-One checked Schema document drawn by one view into one html page, read level by level: click a node to open the level inside it, and play a scenario to watch it walk. The Schema says what is drawn; `view.json` says how, with the reader's next action (`next`) under the page.
+One checked Schema document drawn as one self-contained, read-only html page: a level at a time, overview first, with a node's detail on demand.
 
 ## Domain
 
-- Engine: `../assets/page.*`; view grammar: `../assets/view-schema.json`; phone limits: `../assets/phone-limits.json`.
-- Drawing checks: `../../../lib/diagram/view.py`; drawing measure: `../../../lib/diagram/drawing.py`.
-- Worked pairs: `../examples/<name>/schema.json` and `view.json`.
-
-### Layout
-
-Each kind is drawn as its reading in [semantics.md](schema/semantics.md) says, on a hand-drawn grid the view may place by `x`, `y`:
-
-- [Topology](schema/semantics.md#topology): a component is a square box, a relation an arrow labelled with its field.
-- [Workflow](schema/semantics.md#workflow): an activity is a rounded box, a partition a band around its activities, a trigger a circle with an arrow in, and a port a stub into or out of the level.
-- [State](schema/semantics.md#state): a state is a round box, an event an arrow; the initial state takes a dot, one per region, and a sync is written on its events as `→ then` and `← when`.
-
-A mark styles its node or arrow and joins the legend; a `diff` tints the node, or the arrow, green, red or amber. A phone draws the top level in the columns that fit its width.
-
-### Interaction
-
-- A node that opens a level ([semantics.md](schema/semantics.md#opening-a-level)) wears a chevron: a first click selects it, a second, or a click on the chevron, opens its level. The path above the drawing, or Escape, goes back up.
-- Selecting a node or an arrow opens its note: what it is, its operations, rules, media and metadata. Metadata reads as [formats.md](ui/formats.md) says, and with nothing selected the note shows the level's, and on the top level the document's.
-- The level menu lists every level and the scenarios of the shown one.
-- **Scenario animation**: a scenario from the menu plays its walk step by step: the step counter shows `<step> / <steps>`, `‹` and `›` or the arrow keys move one step, the rail jumps to any, and `✕` ends the run. Each step lights what it reaches, follows the walk into another level, and shows what the step does and expects. A rule that can break plays its breaking run the same way.
-
-### Behaviours
-
-Adopted from the whiteboard in https://news.hada.io/topic?id=34245 (#747); `../scripts/probe-page.py behaviours` checks each.
-
-- viewer open-level: clicking a node that opens a level shows that level.
-- viewer scenario-steps: a playing scenario shows a step counter and moves one step forward or back on `›` and `‹`.
-- editor copy-for-agent: a selected node or arrow's note copies its level path, label and id for an agent to find it.
+- Page: the left navigation lists the document's levels; the body draws the shown level, with its `why`, its chart and a legend. It holds no way to answer, since a person reads it to understand a system.
+- Chart: a part is a square box and a call a dashed arrow, a state a round box and a transition a solid arrow, an area a band around its nodes, and the initial state wears a dot.
+- Detail: a click on a node or edge opens a panel with its description, source, rules and attributes; a click on a node that opens a level, by its link, draws that level.
+- Worked pages: `../examples/<name>/page.html`, built from the `schema.json` beside them.
 
 ## Steps
 
-1. Unless the document has a `view.json` beside it, write one as [view-writing.md](view-writing.md) says, from `../scripts/make-page.py new view.json`.
-2. Run `uv run --with playwright==1.64.1 python3 ../scripts/make-page.py make doc.json view.json out.html`. It runs [check-schema.py](schema/scripts/check-schema.py) on the document, then the drawing checks on the view, builds the page and checks the drawing in Chrome. Fix drawing problems in `view.json`, Schema problems in the document.
-3. Review every level as a critic ([drawing-review.md](drawing-review.md)), then hand over.
-
-A view written for the engine before the Schema carries over by `../scripts/migrate-view.py old-view.json`.
+1. Run `../scripts/make-page.py doc.json out.html`, which reads the document and refuses one that breaks the grammar or a scenario that leaves the edges. It runs no proof, so a page never waits on Alloy.
+2. Run `uv run --with playwright==1.64.1 python3 ../scripts/make-page.py --check <dir>` over a folder of `<name>/schema.json`, until it prints `ok <n>` and a line per fact.
+3. Run `--layout <dir>` the same way, until it prints `layout ok <n>`.
+4. Run `--capture out.html <dir>` and look at each PNG; a measure cannot see a chart that reads badly.
 
 ## Rules
 
-- **Drawing checks**: `../scripts/make-page.py rules` lists the drawing checks and the plan's defaults; `../scripts/prove-checks.py` shows each can fail.
-- **Page probes**: `../scripts/probe-page.py labels|zoom|meta|behaviours page.html` checks a built page in Chrome, as the reader meets it, and the pages in `../fixtures/` (`../scripts/make-fixtures.py` writes them again after a change to the engine) each make one probe fail. To run the probe:
-  - run it under `uv run --with playwright==1.64.1 python3`, since it needs playwright, which `uv run --with` supplies;
-  - for a page published as an Artifact, probe the copy `Artifact` `action: read`, `path: "index.html"` returns, since headless Chrome cannot open the login-gated link;
-  - when no signed-in browser is connected to check it live, add to that copy a `<meta http-equiv>` Content-Security-Policy of the Artifact tool's CDN allowlist (scripts: cdnjs, jsdelivr/npm, unpkg; styles: fonts.googleapis; fonts: fonts.gstatic, `data:`), since the copy carries no CSP, and a control that must break (a jsdelivr stylesheet);
-  - on a page that keeps hidden views in the DOM, scope selectors to `section:not([hidden])`, or one matches the hidden copy first and times out;
-  - a focus-dimming probe multiplies opacity up the ancestors, since a dimmed parent can leave the child at `opacity: 1`.
-- **No Alloy**: `make` never starts Alloy; it shows the answers last stored in `~/.cache/paperwork-alloy/results`.
-- **Fits**: when `fits` fails, give that level's nodes `x`, `y` in `view.json` ([view-writing.md](view-writing.md), Layout), not shorter labels.
+- **Long labels**: shorten a label a level cannot fit only after moving detail into `meta.description`, since the panel holds what a box cannot.
+- **Kept pages**: build `../examples/<name>/page.html` again after a change to the page, since `--check` refuses a kept page that differs from the one built.

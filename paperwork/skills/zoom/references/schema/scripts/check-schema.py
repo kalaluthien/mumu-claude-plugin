@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Check a Schema document against the grammar (assets/schema.json) and the rules the grammar cannot state.
 
-usage: check-schema.py check doc.json      print each violation as `path: rule: message`, then `ok`, or the error count on stderr
-       check-schema.py fixtures            check every document in fixtures/: one named after an error rule must be
-                                           rejected by it, one named after a warning rule accepted with that warning,
-                                           any other accepted with no warning
-       check-schema.py rules               list each rule, error or warning, and what it asks
-       check-schema.py ids doc.json        print every node id and edge key (level:from>to#n), one per line
-       check-schema.py prose [file.md]     check that schema/'s prose, or the files given, cite the grammar and never restate it
+usage: check-schema.py check doc.json [--root DIR]   print each violation as `path: rule: message`, then `ok`, or the
+                                                     error count on stderr; with --root, each `path:line` must point
+                                                     inside its file under DIR
+       check-schema.py fixtures                      check every document in fixtures/: one named after a rule must be
+                                                     rejected by it alone, any other accepted
+       check-schema.py rules                         list each rule and what it asks
+       check-schema.py ids doc.json                  print every node id and edge key (level:from>to#n), one per line
 
 Exit status 0 means ok, 1 a violation, 2 a usage error.
 """
@@ -20,82 +20,59 @@ HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 
 from schema import checks  # noqa: E402
-from schema.model import Model, SCHEMA, shape  # noqa: E402
+from schema.model import Model, shape  # noqa: E402
 
 FIXTURES = HERE.parent / "fixtures"
+ROOT = pathlib.Path(__file__).resolve().parents[6]   # fixtures cite this repository's files
 # rules the grammar itself states, by the x-rule of a subschema or a required field
 GRAMMAR_RULES = {
     "form": "the document fits the grammar's shape",
     "version-missing": "the document names the grammar version it is written in",
-    "kind-unknown": "a level's kind is topology, workflow or state",
-    "name-pattern": "ids, slugs, operation and type names follow the grammar's patterns",
-    "meta-key": "a meta key is reserved (note, diff, evidence, constraint) or <name>-<format> with a known format",
-    "meta-format": "a meta value fits the format its key ends in",
-    "evidence-pointer": "evidence is a path:line, a url or a commit sha",
-    "constraint-id": "a constraint is <path or url>#<requirement>",
-}
-NARROW_RULES = {
-    "reference": "every id, operation, rule, port and ref a document names points at something",
-    "region-without-initial": "each region of a state level names one initial state",
-    "sync-unknown-transition": "a sync's when and then name events of its level, and where a state of it",
-    "history-outside-superstate": "only a state level opened from a state of its subject has history",
-    "enters-without-superstate": "only an edge into a state that opens a state level of its subject picks how it enters",
-    "final-with-exit": "no edge leaves a final state",
-    "completion-without-final": "a completion edge leaves a superstate whose every region has a final state",
-    "view-link-unmarked": "a node that opens a level of another kind is marked link: view",
-    "opens-interface": "an unmarked same-kind open maps every edge of its node onto the child's ports",
-    "nest-unrefined": "a same-kind open marked nest makes no interface claim",
-    "join-without-fork": "a join has two or more edges in, from branches of a fork before it",
+    "name-pattern": "ids, slugs and type names follow the grammar's patterns",
+    "source-missing": "every node, edge and rule names its source",
+    "description-missing": "every node, edge and rule carries a description",
+    "source-pointer": "a source is path:line, or a url",
 }
 
 
-def violations(data):
-    if wrong := shape(data):   # nothing else can be read until the document fits the grammar
-        return [(rule, text, "error") for rule, text in wrong]
-    return checks.violations(Model(data))
+def violations(data, root=None):
+    # nothing else can be read until the document fits the grammar
+    return shape(data) or checks.violations(Model(data), root)
 
 
-def check(path):
-    rows = violations(json.loads(pathlib.Path(path).read_text(encoding="utf-8")))
-    for rule, text, severity in rows:
-        print(("" if severity == "error" else "warning ") + checks.line(rule, text))
-    errors = sum(1 for _, _, severity in rows if severity == "error")
+def line(rule, text):
+    """`path: rule: message`, the path being what the problem's sentence opens with."""
+    where, _, message = text.partition(": ")
+    # a sentence that opens with words before its first colon is about the whole document
+    return f"{where}: {rule}: {message}" if message and not re.search(r"\s", where) else f"schema: {rule}: {text}"
+
+
+def check(path, root):
+    rows = violations(json.loads(pathlib.Path(path).read_text(encoding="utf-8")), root)
+    for rule, text in rows:
+        print(line(rule, text))
     # the count goes to stderr, so stdout holds only violation lines, or ok
-    print(f"{errors} error(s)", file=sys.stderr) if errors else print("ok")
-    return 1 if errors else 0
+    print(f"{len(rows)} error(s)", file=sys.stderr) if rows else print("ok")
+    return 1 if rows else 0
 
 
 def rules():
-    """Every rule by name: (severity, what it asks)."""
-    descriptions = {name: what for name, what in GRAMMAR_RULES.items()}
-    descriptions |= {name: what for name, what, _ in checks.RULES if name != "opens"}   # opens states only narrower rules
-    descriptions |= NARROW_RULES
-    return {name: ("warning" if name in checks.LINT else "error", what) for name, what in descriptions.items()}
+    return GRAMMAR_RULES | {name: what for name, _, what in checks.RULES} | {"source-unresolved": checks.UNRESOLVED}
 
 
 def fixtures():
-    known, failed, accepted, rejected = rules(), 0, 0, 0
+    known, failed = rules(), 0
     for fixture_path in sorted(FIXTURES.glob("*.json")):
-        rows = violations(json.loads(fixture_path.read_text(encoding="utf-8")))
-        errors = {rule for rule, _, severity in rows if severity == "error"}
-        warnings = {rule for rule, _, severity in rows if severity == "warning"}
+        errors = {rule for rule, _ in violations(json.loads(fixture_path.read_text(encoding="utf-8")), ROOT)}
         named = fixture_path.stem if fixture_path.stem in known else None
-        if named and known[named][0] == "error":
-            good, want = errors == {named}, f"rejected by {named} alone"
-        elif named:
-            good, want = not errors and named in warnings, f"accepted, warned by {named}"
-        else:
-            good, want = not errors and not warnings, "accepted with no warning"
+        good = errors == {named} if named else not errors
         failed += not good
-        accepted += not errors
-        rejected += bool(errors)
-        got = ", ".join(sorted(errors)) and "rejected by " + ", ".join(sorted(errors)) or "accepted" + (", warned by " + ", ".join(sorted(warnings)) if warnings else "")
-        print(f"{'ok  ' if good else 'FAIL'}  {fixture_path.name}: {got}" + ("" if good else f"; want {want}"))
+        got = "rejected by " + ", ".join(sorted(errors)) if errors else "accepted"
+        print(f"{'ok  ' if good else 'FAIL'}  {fixture_path.name}: {got}" + ("" if good else f"; want {'rejected by ' + named + ' alone' if named else 'accepted'}"))
     unnamed = sorted(set(known) - {path.stem for path in FIXTURES.glob("*.json")})
     for name in unnamed:
         print(f"FAIL  no fixture names rule {name}")
-    print(f"fixtures: {accepted} accepted, {rejected} rejected by their named rule" if not failed and not unnamed
-          else f"fixtures: {failed + len(unnamed)} failed")
+    print("fixtures: ok" if not failed and not unnamed else f"fixtures: {failed + len(unnamed)} failed")
     return 1 if failed or unnamed else 0
 
 
@@ -105,66 +82,29 @@ def ids(path):
     return 0
 
 
-KINDS = ("Topology", "Workflow", "State")
-
-
-def prose(files):
-    """Each schema/ document links the grammar, and no sentence names three or more of its property names, which would
-    restate it; semantics.md reads each kind in one paragraph under its own heading."""
-    names, problems = set(), []
-
-    def collect(node):
-        if isinstance(node, dict):
-            names.update(node.get("properties", {}))
-            for child in node.values():
-                collect(child)
-        elif isinstance(node, list):
-            for child in node:
-                collect(child)
-    collect(SCHEMA)
-    documents = [pathlib.Path(file) for file in files] or sorted(HERE.parent.glob("*.md"))
-    if missing := [str(document) for document in documents if not document.is_file()]:
-        print(f"prose: no such file: {', '.join(missing)}", file=sys.stderr)
-        return 2
-    for document in documents:
-        text = document.read_text(encoding="utf-8")
-        if "assets/schema.json" not in text:
-            problems.append(f"{document.name}: links no assets/schema.json")
-        for sentence in re.split(r"(?<=[.!?:;]) +|\n", text):
-            if len({word for word in re.findall(r"`([a-z-]+)`", sentence) if word in names}) >= 3:
-                problems.append(f"{document.name}: restates the grammar: {sentence.strip()[:80]}")
-        if document.name == "semantics.md":
-            for kind in KINDS:
-                body = re.search(rf"^## {kind}\n\n(.*?)(?=^## |\Z)", text, re.M | re.S)
-                if not body or len(body.group(1).strip().split("\n\n")) != 1:
-                    problems.append(f"{document.name}: give {kind} one paragraph under ## {kind}")
-    print("\n".join(problems) or "prose: ok")
-    return 1 if problems else 0
-
-
 def main(args):
+    root = None
+    if len(args) == 4 and args[0] == "check" and args[2] == "--root":
+        root, args = args[3], args[:2]
     command = args[0] if args else "help"
     if command in ("check", "ids") and len(args) == 2:
         try:
-            json.loads(pathlib.Path(args[1]).read_text(encoding="utf-8"))
+            data = json.loads(pathlib.Path(args[1]).read_text(encoding="utf-8"))
         except (OSError, ValueError) as e:
             print(f"{args[1]}: not a JSON document: {e}", file=sys.stderr)
             return 2
-    if command == "ids" and len(args) == 2 and shape(json.loads(pathlib.Path(args[1]).read_text(encoding="utf-8"))):
-        print(f"{args[1]}: breaks the grammar, so it has no ids yet; run check", file=sys.stderr)
-        return 2
-    if command == "check" and len(args) == 2:
-        return check(args[1])
-    if command == "fixtures":
-        return fixtures()
-    if command == "rules":
-        for name, (severity, what) in rules().items():
-            print(f"{name:24s} {severity:7s} {what}")
-        return 0
-    if command == "ids" and len(args) == 2:
+        if command == "check":
+            return check(args[1], root)
+        if shape(data):
+            print(f"{args[1]}: breaks the grammar, so it has no ids yet; run check", file=sys.stderr)
+            return 2
         return ids(args[1])
-    if command == "prose":
-        return prose(args[1:])
+    if command == "fixtures" and len(args) == 1:
+        return fixtures()
+    if command == "rules" and len(args) == 1:
+        for name, what in rules().items():
+            print(f"{name:24s} {what}")
+        return 0
     print(__doc__, file=sys.stderr)
     return 2
 

@@ -20,7 +20,7 @@ What each one needs on your machine; every Python 3 below means Python 3.9 or la
 | plugin or feature | needs |
 | --- | --- |
 | teamwork | Python 3; `git`; [`gh`](https://cli.github.com/), signed in; [herdr](https://herdr.dev), the terminal workspace where sessions live and talk by name |
-| paperwork | Python 3 and `git`, with [`uv`](https://docs.astral.sh/uv/); Google Chrome for checking pages and diagrams; Java for the optional Alloy proofs (`prove-schema.py --fetch` downloads the Alloy jar) |
+| paperwork | Python 3 and `git`, with [`uv`](https://docs.astral.sh/uv/); Playwright's Chromium for checking pages; Java for the optional Alloy proofs (`prove-schema.py --fetch` downloads the Alloy jar) |
 | homework | Python 3; `git`; `gh`, signed in, to read the issue comments a session wrote |
 | Claude Code | 2.1.299 or later |
 
