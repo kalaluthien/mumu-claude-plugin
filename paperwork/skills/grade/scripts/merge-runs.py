@@ -98,7 +98,8 @@ def judged_grade(source, criterion, runs):
     kept = next((verdict for verdict in verdicts if verdict["met"] == met), None) or not_judged("the runs reach no majority", verdicts[0])
     # A dissenting run's fix and place stay, since a person settling the split needs them.
     dissent = {key: verdict[key] for verdict in reversed(verdicts) for key in ("fix", "where") if verdict.get(key)}
-    return {**dissent, **{key: value for key, value in kept.items() if value}, "met": kept["met"], "runs": votes}
+    grade = {**dissent, **{key: value for key, value in kept.items() if value}, "met": kept["met"], "runs": votes}
+    return {key: value for key, value in grade.items() if key != "fix"} if set(votes) == {1} else grade
 
 
 def merge(rubric_path, source, folder):

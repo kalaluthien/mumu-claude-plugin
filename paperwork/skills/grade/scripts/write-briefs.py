@@ -52,7 +52,7 @@ def write(rubric, source, folder):
     judged = [criterion for criterion in rubric["criteria"] if criterion["check"] == "judge"]
     if not judged:
         raise Refused("no criterion needs a judge; run merge-runs.py on an empty folder")
-    size = min(CALL_SIZE, len(judged)) if len(text) > LONG_CHARACTERS else len(judged)
+    size = min(CALL_SIZE, len(judged)) if sum(len(body) for _, body in files(source)) > LONG_CHARACTERS else len(judged)
     calls = math.ceil(len(judged) / size)
     brief = BRIEF.read_text(encoding="utf-8").replace("__TARGET__", str(folder / "target.txt")).replace("__DELIMITER__", delimiter)
     for run in range(1, RUNS + 1):
