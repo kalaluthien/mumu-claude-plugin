@@ -5,8 +5,9 @@ usage: make-page.py SPEC.json GRADES.json OUT.html   one self-contained page; re
                                                        or the spec
        make-page.py verdicts SPEC.json GRADES.json   print the verdict file the grades make, for score-spec.py
        make-page.py --check DIR                      build every DIR/X/ that holds spec.json and grades.json, check the
-                                                       page in headless Chromium and print "ok N"; a kept DIR/X/report.html
-                                                       must equal the page built
+                                                       page in headless Chromium and print "ok N", then "<fact> ok" for each
+                                                       fact of the frame every page holds; a kept DIR/X/report.html must
+                                                       equal the page built
        make-page.py --layout DIR                     measure every DIR/X/'s page at 390 and 1200 px, light and dark,
                                                        and print "layout ok N"
        make-page.py --capture PAGE.html DIR          write four PNGs of a built page: 1200 and 390 px, light and dark
@@ -26,6 +27,7 @@ import tempfile
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 
+from page import frame  # noqa: E402
 from rubric.grades import failed, judged, problems, verdicts  # noqa: E402
 from rubric.model import tier_scores  # noqa: E402
 from rubric.spec import violations  # noqa: E402
@@ -35,6 +37,8 @@ TEMPLATE = HERE.parent / "assets" / "page.html"
 SCORE_SPEC = HERE / "score-spec.py"
 WIDTHS = (390, 1200)
 URL = re.compile(r"https?://\S+")
+FOLD_STATE = "[...document.querySelectorAll('details')].map(d => d.open)"
+FOLD_CHANGE = "(d => { d.open = !d.open; })(document.querySelector('details'))"
 
 
 class Refused(Exception):
@@ -145,25 +149,25 @@ def body(spec, grades):
            f'<div class="tiers">{tier_rows(spec, grades, scores)}</div>'
            '<p class="legend">Tiers run highest first and never trade off: a lower tier only orders what the higher '
            'ones tie. Each bar is the share of its tier met; the mark is the share the tier asks for.</p></section>',
-           '<h2>Fix first</h2>']
+           '<h2 id="fix-first">Fix first</h2>']
     if fixes:
         items = "".join(f'<li data-fix="{escape(failed_grade["fix"])}"><span class="fix-tier">{escape(failed_tier["name"])}</span>'
                         f'<a href="#c-{escape(failed_criterion["id"])}">{linked(failed_grade["fix"])}</a></li>' for failed_tier, failed_criterion, failed_grade in fixes)
-        out.append(f'<ol class="fixes">{items}</ol><button class="copy" id="copy-fixes" type="button">Copy the fix list</button>')
+        out.append(f'<ol class="fixes">{items}</ol>')
     else:
         out.append('<p class="none">Nothing to fix: every criterion is met.</p>')
-    out.append('<h2>Criteria</h2>')
+    out.append('<h2 id="criteria">Criteria</h2>')
     for tier in spec["tiers"]:
         criteria = sorted((criterion for criterion in tier["criteria"] if judged(grades["grades"][criterion["id"]])),
                           key=lambda criterion: not failed(criterion, grades["grades"][criterion["id"]]))
-        out.append(f'<h3>{escape(tier["name"])}</h3>' + "".join(card(tier, criterion, grades["grades"][criterion["id"]]) for criterion in criteria))
+        out.append(f'<h3 id="tier-{escape(tier["id"])}">{escape(tier["name"])}</h3>' + "".join(card(tier, criterion, grades["grades"][criterion["id"]]) for criterion in criteria))
     unjudged = [(unjudged_tier, unjudged_criterion) for unjudged_tier in spec["tiers"] for unjudged_criterion in unjudged_tier["criteria"] if not judged(grades["grades"][unjudged_criterion["id"]])]
     if unjudged:
-        out.append('<h2>Not judged</h2><p class="none">These could not be checked, each for the reason on its card. '
+        out.append('<h2 id="not-judged">Not judged</h2><p class="none">These could not be checked, each for the reason on its card. '
                    'They are left out of the counts above, but the tier score treats each as failed, so the order never '
                    'rewards what nobody checked.</p>' + "".join(card(unjudged_tier, unjudged_criterion, grades["grades"][unjudged_criterion["id"]]) for unjudged_tier, unjudged_criterion in unjudged))
     frameworks = "".join(f"<li>{linked(framework)}</li>" for framework in subject["frameworks"])
-    out.append('<h2>What was graded</h2><dl class="subject">'
+    out.append('<h2 id="what-was-graded">What was graded</h2><dl class="subject">'
                f'<dt>Kind</dt><dd>{escape(subject["kind"])}</dd><dt>Purpose</dt><dd>{linked(subject["purpose"])}</dd>'
                f'<dt>Reader</dt><dd>{linked(subject["reader"])}</dd><dt>Criteria drawn from</dt><dd><ul>{frameworks}</ul></dd>'
                f'<dt>Rubric</dt><dd>{linked(spec["task"]["instruction"])}</dd></dl>')
@@ -177,10 +181,17 @@ def body(spec, grades):
     return "\n".join(out)
 
 
+def navigation(spec, grades):
+    tiers = [(f"tier-{tier['id']}", tier["name"]) for tier in spec["tiers"]]
+    unjudged = any(not judged(grade) for grade in grades["grades"].values())
+    return [("verdict", "Verdict"), ("fix-first", "Fix first"), ("criteria", "Criteria", tiers),
+            *([("not-judged", "Not judged")] if unjudged else []), ("what-was-graded", "What was graded")]
+
+
 def build(spec_path, grades_path):
     spec, grades = load(spec_path, grades_path)
-    page = TEMPLATE.read_text(encoding="utf-8")
-    return page.replace("__TITLE__", escape(f"Report card: {grades['target']['name']}")).replace("__BODY__", body(spec, grades))
+    content = TEMPLATE.read_text(encoding="utf-8").replace("__BODY__", body(spec, grades))
+    return frame.build(f"Report card: {grades['target']['name']}", content, navigation(spec, grades))
 
 
 def examples(folder):
@@ -228,19 +239,34 @@ def check_one(page, folder, temporary_folder):
         raise Refused(f"{folder}: requests left for {', '.join(leaks)}")
 
 
+def copied_text(spec, grades):
+    fixes = [f'{i}. {grade["fix"]}' for i, (_, _, grade) in enumerate(fix_list(spec, grades), 1)]
+    return "\n".join(fixes) or "Nothing to fix: every criterion is met."
+
+
 def check(folder):
     from playwright.sync_api import sync_playwright
-    found = examples(folder)
+    found, failures = examples(folder), {}
     with tempfile.TemporaryDirectory() as temporary_folder, sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         for example in found:
             page = browser.new_page()
             check_one(page, example, temporary_folder)
             page.close()
+            spec, grades = load(example / "spec.json", example / "grades.json")
+            built = pathlib.Path(temporary_folder) / f"{example.name}.html"
+            for fact, why in frame.probe(browser, built.as_uri(), copied=copied_text(spec, grades), change=FOLD_CHANGE, state=FOLD_STATE).items():
+                failures.setdefault(fact, f"{example}: {why}")
         browser.close()
     print(f"ok {len(found)}")
     print("Each page shows the tier scores score-spec.py computes, every criterion with its verdict and evidence, the "
           "failed ones as fixes highest tier first, and sends no request off the file.")
+    for fact in frame.FACTS:
+        if fact not in failures:
+            print(f"{fact} ok")
+    print("Each line ending in ok names a fact of the frame the browser measured on every page.")
+    if failures:
+        raise Refused("; ".join(f"{fact}: {why}" for fact, why in failures.items()))
 
 
 def layout(folder):
