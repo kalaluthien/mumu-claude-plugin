@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Check a Schema document and its view, build the zoom page, check the drawing.
 
-usage: make-diagram.py new view.json                  write a minimal view of a Schema document
-       make-diagram.py rules                          list the Schema's and the drawing's checks and the plan's parameters
-       make-diagram.py plan doc.json view.json        print the plan in effect, marking what differs from the defaults
-       make-diagram.py check doc.json view.json [--only a,b]   run the Schema's checks, then the drawing's
-       make-diagram.py build doc.json view.json out.html   run the checks, then inline the joined model into the engine
-       make-diagram.py render out.html [--shots DIR] [--font-css FILE]
-       make-diagram.py make doc.json view.json out.html [--font-css FILE]   check, build, render; stop at the first failure
+usage: make-page.py new view.json                  write a minimal view of a Schema document
+       make-page.py rules                          list the Schema's and the drawing's checks and the plan's parameters
+       make-page.py plan doc.json view.json        print the plan in effect, marking what differs from the defaults
+       make-page.py check doc.json view.json [--only a,b]   run the Schema's checks, then the drawing's
+       make-page.py build doc.json view.json out.html   run the checks, then inline the joined model into the engine
+       make-page.py render out.html [--shots DIR] [--font-css FILE]
+       make-page.py make doc.json view.json out.html [--font-css FILE]   check, build, render; stop at the first failure
 
 ../../../schema/scripts/check-schema.py checks the document; this script draws it. A finding line is a defect of
 the system the document describes, for the hand-over, never a failure. Exit status 0 means ok.
@@ -22,10 +22,10 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 ASSETS = HERE.parent / "assets"
-CHECKER = HERE.parents[2] / "schema" / "scripts" / "check-schema.py"
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[6] / "lib"))
+CHECKER = HERE.parent / "references" / "schema" / "scripts" / "check-schema.py"
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 
-from page import view  # noqa: E402
+from diagram import view  # noqa: E402
 from schema import checks  # noqa: E402
 from schema import plan as parameters  # noqa: E402
 from schema.model import Model, dump  # noqa: E402
@@ -92,11 +92,11 @@ def build(schema_path, view_path, output_path):
     if check(schema_path, view_path):   # a model that fails its checks is not drawn
         return 1
     model = prepare(read(schema_path), read(view_path))
-    page = (ASSETS / "zoom.html").read_text(encoding="utf-8")
+    page = (ASSETS / "page.html").read_text(encoding="utf-8")
     slots = {"TITLE": html.escape(model["title"]),
              "LANG": html.escape(model.get("lang", "en")),
-             "CSS": (ASSETS / "zoom.css").read_text(encoding="utf-8"),
-             "JS": (ASSETS / "zoom.js").read_text(encoding="utf-8"),
+             "CSS": (ASSETS / "page.css").read_text(encoding="utf-8"),
+             "JS": (ASSETS / "page.js").read_text(encoding="utf-8"),
              "NEXT": html.escape(model.get("next", "")),
              "MODEL": json.dumps(model, ensure_ascii=False).replace("</", "<\\/"),
              "FONT": "data:font/woff2;base64," + base64.b64encode((ASSETS / "fonts" / "poorstory.woff2").read_bytes()).decode(),
@@ -108,7 +108,7 @@ def build(schema_path, view_path, output_path):
 
 
 def render(path, screenshots=None, font_css=None):
-    from page import drawing as drawing
+    from diagram import drawing as drawing
     problems = drawing.check(path, screenshots, font_css)
     print("\n".join(problems) if problems else "ok")
     return 1 if problems else 0

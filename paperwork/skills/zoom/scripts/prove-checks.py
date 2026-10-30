@@ -13,9 +13,9 @@ import pathlib
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-EXAMPLES = HERE.parents[3] / "examples"
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[6] / "lib"))
-from page import view  # noqa: E402
+EXAMPLES = HERE.parent / "examples"
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+from diagram import view  # noqa: E402
 from schema.model import levels_of  # noqa: E402
 
 EXAMPLE_DOCUMENTS = {directory.name: view.merge(*(json.loads((directory / file_name).read_text(encoding="utf-8")) for file_name in ("schema.json", "view.json")))

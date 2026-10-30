@@ -9,8 +9,8 @@ usage: probe-page.py labels <page>       print each level's node and edge labels
        probe-page.py zoom <page>         `zoom: ok` when clicking a node that opens a level shows that level and the first
                                          scenario steps through its walk, with no page error; else `zoom: fail` and why
        probe-page.py meta <page>         `meta: <n> shown, <k> missing`: every `meta` value of the page's document,
-                                         looked for in its note as ../../formats.md displays it
-       probe-page.py behaviours <page>   `<role> <behaviour>: ok` or `: fail` per behaviour ../../html.md adopts
+                                         looked for in its note as ../references/ui/formats.md displays it
+       probe-page.py behaviours <page>   `<role> <behaviour>: ok` or `: fail` per behaviour ../references/show.md adopts
 
 Exit status 0 when nothing fails or is missing, 1 otherwise, 2 on a usage error.
 """

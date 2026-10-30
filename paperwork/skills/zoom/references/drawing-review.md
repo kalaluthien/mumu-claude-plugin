@@ -12,7 +12,7 @@ Review each level of a built page as a critic, before hand-over.
 
 ## Steps
 
-After `make-diagram.py make` passes, view each level at both widths and themes (`render out.html --shots DIR`). Check arrow tips sit on borders, nothing is clipped, opening nodes have a chevron, shown nodes show it, and the Rules hold. A wide non-root level scrolling sideways on a phone is not clipping.
+After `make-page.py make` passes, view each level at both widths and themes (`render out.html --shots DIR`). Check arrow tips sit on borders, nothing is clipped, opening nodes have a chevron, shown nodes show it, and the Rules hold. A wide non-root level scrolling sideways on a phone is not clipping.
 
 ## Rules
 

@@ -11,7 +11,7 @@ import json
 import pathlib
 import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[6] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 
 from schema.model import dump  # noqa: E402
 

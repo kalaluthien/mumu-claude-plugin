@@ -1,6 +1,6 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
- "$id": "https://github.com/kalaluthien/mumu-claude-plugin/paperwork/skills/card/references/spec/assets/rubric-schema.json",
+ "$id": "https://github.com/kalaluthien/mumu-claude-plugin/paperwork/skills/grade/references/spec/assets/rubric-schema.json",
  "title": "rubric grading spec",
  "description": "Binary criteria over an answer space, grouped in tiers that never trade off, and the records that placed them.",
  "type": "object",
@@ -131,7 +131,7 @@
   },
   "grades": {
    "type": "object",
-   "description": "One target graded by a spec with evidence, the input of make-report.py; its met values are a verdict file's 0 or 1.",
+   "description": "One target graded by a spec with evidence, the input of make-page.py; its met values are a verdict file's 0 or 1.",
    "required": ["target", "subject", "spec_sha", "judge", "grades"],
    "additionalProperties": false,
    "properties": {

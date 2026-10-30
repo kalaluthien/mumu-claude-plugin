@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """Build the HTML report card of one target from its spec and its grades file.
 
-usage: make-report.py SPEC.json GRADES.json OUT.html   one self-contained page; refused when the grades break the grammar
+usage: make-page.py SPEC.json GRADES.json OUT.html   one self-contained page; refused when the grades break the grammar
                                                        or the spec
-       make-report.py verdicts SPEC.json GRADES.json   print the verdict file the grades make, for score-spec.py
-       make-report.py --check DIR                      build every DIR/X/ that holds spec.json and grades.json, check the
+       make-page.py verdicts SPEC.json GRADES.json   print the verdict file the grades make, for score-spec.py
+       make-page.py --check DIR                      build every DIR/X/ that holds spec.json and grades.json, check the
                                                        page in headless Chromium and print "ok N"; a kept DIR/X/report.html
                                                        must equal the page built
-       make-report.py --layout DIR                     measure every DIR/X/'s page at 390 and 1200 px, light and dark,
+       make-page.py --layout DIR                     measure every DIR/X/'s page at 390 and 1200 px, light and dark,
                                                        and print "layout ok N"
-       make-report.py --capture PAGE.html DIR          write four PNGs of a built page: 1200 and 390 px, light and dark
+       make-page.py --capture PAGE.html DIR          write four PNGs of a built page: 1200 and 390 px, light and dark
                                                        (every call with -- needs playwright: uv run --with playwright==1.64.1
-                                                       python3 make-report.py ...)
+                                                       python3 make-page.py ...)
 
 Exit status 0 means done, 1 a refusal, 2 a usage error.
 """
@@ -31,7 +31,7 @@ from rubric.model import tier_scores  # noqa: E402
 from rubric.spec import violations  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
-TEMPLATE = HERE.parent / "assets" / "report.html"
+TEMPLATE = HERE.parent / "assets" / "page.html"
 SCORE_SPEC = HERE / "score-spec.py"
 WIDTHS = (390, 1200)
 URL = re.compile(r"https?://\S+")
