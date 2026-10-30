@@ -1,0 +1,48 @@
+{
+  "title": "Settled by an answer",
+  "parts": [
+    {
+      "text": "Who runs it?",
+      "name": "mode",
+      "pick": {
+        "text": "A robot"
+      },
+      "else": [
+        {
+          "text": "A person",
+          "name": "hand"
+        }
+      ]
+    },
+    {
+      "text": "How is it checked?",
+      "name": "how",
+      "pick": {
+        "text": "By the robot",
+        "excludes": [
+          "mode.hand"
+        ]
+      },
+      "else": [
+        {
+          "text": "By hand",
+          "name": "manual"
+        }
+      ]
+    },
+    {
+      "text": "When does it run?",
+      "pick": {
+        "text": "At night"
+      },
+      "else": [
+        {
+          "text": "At noon"
+        }
+      ],
+      "requires": [
+        "how.manual"
+      ]
+    }
+  ]
+}

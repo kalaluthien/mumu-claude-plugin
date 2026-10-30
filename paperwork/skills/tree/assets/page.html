@@ -1,740 +1,740 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>__TITLE__</title>
 <style>
-/* The palette and type of the html-plan pages (thariqs/html-effectiveness), so the tree reads as one family with them. */
+/* Each name reads a KRDS colour, so the page follows the frame's theme. */
 :root {
-  --bg: #FAF9F5; --surface: #ffffff; --panel: #F0EEE6; --ink: #141413; --body: #3D3D3A; --muted: #87867F; --faint: #a9a79f; --line: #D1CFC5; --card-line: #E3DACC;
-  --accent: #D97757; --halo: rgba(217,119,87,.15); --olive: #788C5D;
-  --amber: #8A3B1E; --amber-bg: #F3D9CC;
-  --serif: ui-serif, Georgia, "Times New Roman", serif; --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
-  --shadow: 0 1px 2px rgba(20,20,19,.05), 0 4px 14px rgba(20,20,19,.05); --lift: 0 2px 4px rgba(20,20,19,.06), 0 10px 28px rgba(20,20,19,.10);
-  --gap: 28px; --elbow: 50%; --elbow-first: 50%;
+  --surface: var(--krds-color-surface-white); --panel: var(--krds-color-surface-gray-subtler);
+  --ink: var(--krds-color-text-bolder); --body: var(--krds-color-text-basic); --muted: var(--krds-color-text-subtle);
+  --line: var(--krds-color-border-gray); --card-line: var(--krds-color-border-gray-light); --accent: var(--krds-color-text-primary);
+  --accent-bg: var(--krds-color-surface-primary-subtler); --accent-line: var(--krds-color-border-primary);
+  --pass: var(--krds-color-text-success); --pass-bg: var(--krds-color-surface-success-subtler);
+  --fail: var(--krds-color-text-danger); --fail-bg: var(--krds-color-surface-danger-subtler);
+  --warn: var(--krds-color-text-warning); --warn-bg: var(--krds-color-surface-warning-subtler);
+  --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1f1e1b; --surface: #2a2925; --panel: #34322d; --ink: #FAF9F5; --body: #e3e1d9; --muted: #a8a69e; --faint: #77756e; --line: #4a4842; --card-line: #3d3b36;
-    --accent: #e08a6d; --halo: rgba(224,138,109,.22); --olive: #9bb07e;
-    --amber: #f0b8a0; --amber-bg: #4a2a1e;
-    --shadow: 0 1px 2px rgba(0,0,0,.4); --lift: 0 6px 20px rgba(0,0,0,.6);
-  }
-}
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 var(--sans); padding-bottom: 72px; }
-button, textarea, input { font: inherit; color: inherit; }
-button { cursor: pointer; }
+a { color: inherit; text-underline-offset: 3px; }
+a:hover { color: var(--accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-kbd { display: inline-block; min-width: 1.6em; padding: 0 5px; border-radius: 5px; background: var(--card-line); color: var(--ink); font: 600 .8rem/1.6 system-ui, sans-serif; text-align: center; }
+/* The sticky bar sits under the frame's top bar, so a section must stop below both. */
+.frame-body [id] { scroll-margin-top: 106px; }
+h1 { font: 600 1.6rem/1.25 var(--font-sans); color: var(--ink); margin: 16px 0 4px; overflow-wrap: anywhere; }
 
-/* header */
-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 22px 40px 8px; }
-header svg { flex: none; color: var(--accent); }
-h1 { font: 500 1.35rem/1.25 var(--serif); margin: 0; }
-#waiting { color: var(--muted); }
-#pager { margin-left: auto; display: flex; align-items: center; gap: 6px; color: var(--muted); }
-#pager .dot { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 3px; background: var(--line); }
-#pager .dot.on { background: var(--ink); }
-#pager .of { margin-left: 8px; font-variant-numeric: tabular-nums; }
+/* one row of numbers and one primary action, kept in view */
+.tree-bar { position: sticky; top: 52px; z-index: 1; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 0; background: var(--krds-color-background-white); border-bottom: 1px solid var(--card-line); box-shadow: 0 -20px 0 var(--krds-color-background-white); }
+.tree-stats { display: flex; flex: 1 1 auto; flex-wrap: wrap; gap: 0 16px; min-width: 0; margin: 0; font-size: .9rem; color: var(--body); font-variant-numeric: tabular-nums; }
+.tree-stats b { font-weight: 700; color: var(--ink); }
+.delta { color: var(--accent); font-weight: 600; }
+.bar-button { flex: none; height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: 500 .85rem var(--font-sans); cursor: pointer; }
+.bar-button:hover:not([disabled]) { background: var(--panel); }
+.bar-button[disabled] { color: var(--muted); border-style: dashed; cursor: default; }
+.bar-button.primary { background: var(--accent); border-color: var(--accent); color: var(--krds-color-text-basic-inverse); }
+.bar-button.primary:hover:not([disabled]) { background: var(--accent); opacity: .9; }
 
-/* cards */
-.node { position: relative; background: var(--surface); border: 1px solid var(--card-line); border-radius: 12px; box-shadow: var(--shadow); padding: 12px 16px; text-align: left; overflow-wrap: anywhere; transition: opacity .15s, box-shadow .15s; }
-button.node { display: block; width: 100%; }
-button.node:hover, .node:focus-within { box-shadow: var(--lift); }
-.num { display: inline-block; min-width: 1.6em; margin-right: 10px; border-radius: 5px; background: var(--card-line); color: var(--body); font: .78rem/1.6 var(--mono); text-align: center; font-variant-numeric: tabular-nums; }
-.mark { margin-left: 8px; font-size: .82rem; color: var(--accent); white-space: nowrap; }
-.chip { margin-left: 6px; font: .72rem/1.5 var(--mono); color: var(--muted); background: var(--bg); border: 1px solid var(--card-line); border-radius: 9px; padding: 0 7px; text-decoration: none; display: inline-block; max-width: 100%; overflow-wrap: anywhere; line-height: 1.5; }
-a.chip:hover { color: var(--accent); }
-.kind { font: .72rem var(--mono); color: var(--muted); }
-.risk-text { background: var(--amber-bg); color: var(--amber); border-radius: 4px; padding: 0 4px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
-.dim { opacity: .7; }
-/* a leaf under an unchosen Option fades once, not twice, so its facts and sources stay readable */
-.dim .dim { opacity: 1; }
-.dim:hover, .dim:focus-within { opacity: 1; }
-.struck .ptext, .struck .qtext { text-decoration: line-through; color: var(--muted); }
-.reason { font-size: .82rem; color: var(--muted); margin-top: 4px; }
-.edited { font-size: .72rem; color: var(--accent); margin-left: 6px; }
-.comment { margin-top: 6px; padding-left: 8px; border-left: 3px solid var(--olive); font-size: .88rem; display: flex; gap: 8px; align-items: baseline; }
-.comment button { border: 0; background: none; color: var(--muted); font-size: .78rem; padding: 0; }
+/* the overview: open Decisions first, the settled folded into a count */
+#overview { padding-bottom: 8px; }
+.how { margin: 10px 0 12px; color: var(--body); font-size: .95rem; }
+.queue { list-style: none; margin: 0; padding: 0; border: 1px solid var(--card-line); border-radius: 10px; background: var(--surface); }
+.queue li + li { border-top: 1px solid var(--card-line); }
+.queue a { display: grid; grid-template-columns: 22px minmax(0, 1.15fr) minmax(0, 1fr); gap: 2px 8px; padding: 7px 12px; text-decoration: none; }
+.queue a:hover { background: var(--panel); color: inherit; }
+.row-mark { color: var(--muted); font-size: .9rem; }
+.row-question { font-weight: 600; color: var(--ink); font-size: .93rem; }
+.row-pick { color: var(--body); font-size: .9rem; }
+.row-pick small { color: var(--muted); font-size: .78rem; }
+.queue .answered .row-mark { color: var(--pass); }
+.queue .waiting .row-pick { color: var(--body); }
+.folded { margin: 8px 0 0; color: var(--body); font-size: .88rem; }
+.folded a { font-weight: 500; }
+.keys { margin: 6px 0 0; color: var(--muted); font-size: .78rem; }
+.keys kbd { font: .74rem var(--mono); padding: 0 4px; border: 1px solid var(--line); border-radius: 3px; }
 
-/* the card's own tools, in their own row under its text so they never cover it; the row keeps its height and shows on hover or focus */
-.acts { display: flex; gap: 4px; margin-top: 8px; opacity: 0; transition: opacity .1s; }
-.node:hover > .acts, .node:focus-within > .acts { opacity: 1; }
-@media (hover: none) { .acts { opacity: 1; } }
-.acts button { border: 1px solid var(--card-line); background: var(--surface); border-radius: 6px; font-size: .75rem; padding: 1px 8px; color: var(--muted); }
-.acts button:hover { color: var(--accent); border-color: var(--accent); }
-.editor { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
-.editor textarea, .editor input { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
-.editor .btns { display: flex; gap: 6px; }
-.editor .btns button { border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 2px 10px; font-size: .85rem; }
-.editor .btns button:first-child { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* the closed tree */
+/* With the frame's own room, this lets a short last section reach the top of the body. */
+#tree-parts { margin-top: 18px; padding-bottom: 24vh; }
+.tree-part { position: relative; }
+.part-children { margin: 2px 0 6px 11px; padding-left: 14px; border-left: 1px solid var(--card-line); }
+.part-line { display: flex; align-items: flex-start; gap: 8px; padding: 3px 0; }
+.part-main { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.part-id { flex: none; min-width: 2.2em; font: .74rem/1.9 var(--mono); color: var(--muted); }
+.part-text { margin: 0; color: var(--body); font-size: .95rem; }
+#tree-parts > .tree-part { margin-top: 10px; }
+#tree-parts > .tree-part > .part-body .part-text { color: var(--ink); font-weight: 600; }
+#tree-goal .part-text { font-size: 1.02rem; color: var(--body); }
+.part-kind { margin-right: 6px; color: var(--muted); font-size: .76rem; }
+.risk-pill { display: inline-flex; align-items: center; gap: 3px; margin-right: 6px; padding: 0 6px; border-radius: 4px; background: var(--fail-bg); color: var(--fail); font-size: .76rem; font-weight: 600; }
+.source { margin-left: 6px; color: var(--muted); font-size: .8rem; white-space: normal; }
+.fold { margin-left: 6px; padding: 0 4px; border: 0; background: none; color: var(--accent); font: .8rem var(--font-sans); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.part-tools { display: flex; flex: none; gap: 2px; }
+.tool { padding: 0 5px; border: 0; background: none; color: var(--muted); font: .76rem var(--font-sans); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.tool:hover { color: var(--accent); }
+.tool[aria-disabled="true"] { cursor: not-allowed; text-decoration: none; }
+/* A tool never covers the text: it keeps its width and only shows on demand where a pointer can hover. */
+@media (hover: hover) {
+  .part-line:not(:hover):not(:focus-within) .part-tools { opacity: 0; }
+}
+.struck > .part-body .part-text, .struck > .part-body .mock, .struck > .part-body .diff { text-decoration: line-through; color: var(--muted); }
+.struck > .part-children, .struck > .part-options { display: none; }
+.note-line { margin: 2px 0 0; color: var(--body); font-size: .85rem; }
+.note-line .remove { margin-left: 6px; }
+.note-line b { font-weight: 600; }
+.editor { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
+.editor-field { flex: 1 1 14em; min-width: 0; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: .9rem var(--font-sans); }
 
-/* an Agent's note, inline under what it explains, so the page alone carries the reason */
-.note-line { margin: 4px 0 2px 14px; padding: 2px 0 2px 10px; border-left: 3px solid var(--line); color: var(--body); font-size: .9rem; }
-.note-head { font: .76rem var(--mono); color: var(--muted); margin-right: 6px; }
-/* a fact: an olive dot leads an outcome, a Risk pill leads a risk */
-.fact { color: var(--body); position: relative; padding-left: 14px; }
-.fact::before { content: ""; position: absolute; left: 0; top: .55em; width: 7px; height: 7px; border-radius: 50%; background: var(--olive); }
-.fact.risk::before { background: var(--accent); }
-.sev { display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 5px; background: var(--amber-bg); color: var(--amber); font: .74rem/1.7 var(--mono); vertical-align: 1px; }
-.most-why { margin-top: 10px; padding-left: 10px; border-left: 2px solid var(--accent); color: var(--body); font-size: .9rem; }
-.most { display: inline-block; padding: 0 8px; border-radius: 999px; background: var(--accent); color: #fff; font: .76rem/1.8 var(--mono); white-space: nowrap; }
-/* a mockup: its text as a screen, [[x]] a primary button and [x] a button */
-.mock { margin: 6px 0; max-width: 100%; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
-.mock-bar { display: flex; gap: 5px; padding: 6px 9px; background: var(--panel); border-bottom: 1px solid var(--line); }
-.mock-bar i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-.mock-bar .note-head { margin-left: auto; margin-right: 0; line-height: 8px; }
-.mock-screen { margin: 0; padding: 10px 12px; font: .8rem/1.55 var(--mono); color: var(--ink); white-space: pre; overflow-x: auto; }
-.mk-btn { border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
-/* drawn, not live: an outline on a tint, so a mockup's button never passes for the page's own */
-.mk-primary { border: 1px solid var(--accent); background: var(--halo); color: var(--accent); border-radius: 5px; padding: 0 6px; }
+/* a Decision: the question, what it rests on, then its options, all in view */
+.tree-decision { margin: 10px 0; padding: 10px 14px 12px; border: 1px solid var(--card-line); border-left: 4px solid var(--line); border-radius: 10px; background: var(--surface); }
+.tree-decision[data-state="waiting"] { border-left-color: var(--accent-line); }
+.tree-decision[data-state="answered"] { border-left-color: var(--krds-color-border-success); }
+.tree-decision[data-state="not-needed"], .tree-decision[data-state="settled"] { background: var(--panel); border-left-style: dashed; }
+.tree-decision.current { box-shadow: 0 0 0 2px var(--accent-line); }
+.tree-decision[data-effect] { box-shadow: 0 0 0 2px var(--krds-color-border-warning); }
+.tree-decision.flash { animation: flash 1s ease-out; }
+@keyframes flash { from { background: var(--accent-bg); } }
+@media (prefers-reduced-motion: reduce) { .tree-decision.flash { animation: none; } }
+.decision-head { display: flex; flex-wrap: wrap; gap: 0 8px; align-items: baseline; font-size: .78rem; color: var(--muted); }
+.decision-word { font-weight: 600; color: var(--accent); }
+[data-state="answered"] > .part-body .decision-word { color: var(--pass); }
+[data-state="settled"] > .part-body .decision-word, [data-state="not-needed"] > .part-body .decision-word { color: var(--body); }
+.tree-decision > .part-body .part-text { color: var(--ink); font-size: 1.02rem; font-weight: 600; }
+.reason { margin: 2px 0 0; color: var(--body); font-size: .85rem; }
+.reason a { font-weight: 500; }
+[data-state="not-needed"] > .part-children:not(.holds-decision), [data-state="settled"] > .part-children:not(.holds-decision) { display: none; }
+.part-options[hidden] { display: none; }
+.part-options:not([hidden]) { display: grid; gap: 6px; margin-top: 8px; }
+.option { border: 1px solid var(--card-line); border-radius: 8px; background: var(--surface); }
+.option-press { display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 6px 10px; border: 0; border-radius: 8px; background: none; color: var(--ink); font: 500 .95rem/1.4 var(--font-sans); text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.option-press:hover { background: var(--panel); }
+.option-number { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid var(--line); border-radius: 50%; font-size: .78rem; font-variant-numeric: tabular-nums; }
+.option-label { flex: 1 1 auto; min-width: 0; }
+.option-tag { flex: none; padding: 0 6px; border-radius: 4px; background: var(--panel); color: var(--body); font-size: .76rem; font-weight: 500; }
+.option.default { border-style: dashed; border-color: var(--accent-line); }
+.option.picked { border: 2px solid var(--krds-color-border-success); }
+.option.picked .option-number { background: var(--krds-color-border-success); border-color: var(--krds-color-border-success); color: var(--krds-color-text-basic-inverse); }
+.option.picked .option-tag:first-of-type { background: var(--pass-bg); color: var(--pass); }
+.option.blocked { border-style: dashed; background: var(--panel); }
+.option.blocked .option-press { color: var(--body); font-weight: 400; cursor: not-allowed; }
+.option.blocked .option-press:hover { background: none; }
+.option.blocked .option-tag { background: var(--warn-bg); color: var(--warn); font-weight: 600; }
+.blocked-reason { margin: 0; padding: 0 10px 6px 40px; color: var(--body); font-size: .85rem; }
+.option-facts { padding: 0 10px 6px 40px; }
+.option-facts .part-text { font-size: .88rem; }
+.fact-below { margin-left: 14px; }
 
-/* tree lines, one rule for every branching list: a stub from the parent, a trunk, an elbow to each child */
-.branches, .kids, .leaves { list-style: none; margin: 0; padding: 0 0 0 var(--gap); position: relative; }
-.branches::before, .kids::before { content: ""; position: absolute; left: 0; top: 50%; width: var(--gap); border-top: 1.5px solid var(--line); }
-.branches > li, .kids > li, .leaves > li { position: relative; padding: 7px 0 7px var(--gap); }
-.branches > li::before, .kids > li::before, .leaves > li::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; border-left: 1.5px solid var(--line); }
-.branches > li:first-child::before, .kids > li:first-child::before, .leaves > li:first-child::before { top: var(--elbow-first); }
-.branches > li:last-child::before, .kids > li:last-child::before, .leaves > li:last-child::before { bottom: calc(100% - var(--elbow)); }
-.branches > li:only-child::before, .kids > li:only-child::before { display: none; }
-.branches > li::after, .kids > li::after, .leaves > li::after { content: ""; position: absolute; left: 0; top: var(--elbow); width: var(--gap); border-top: 1.5px solid var(--line); }
-.leaves { --elbow: 26px; --elbow-first: 0; margin-left: 18px; padding-left: 0; }
-.leaves > li { padding-left: 22px; }
-.leaves > li::after { width: 22px; }
+/* exhibits read as the real thing in form only */
+.mock { margin: 6px 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.mock-bar { display: flex; gap: 4px; padding: 5px 8px; background: var(--panel); border-bottom: 1px solid var(--card-line); }
+.mock-bar i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.mock pre, .diff { margin: 0; font: .8rem/1.5 var(--mono); overflow-x: auto; }
+.mock pre { padding: 8px 10px; color: var(--body); }
+.mock-button { padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; }
+.mock-button.main { background: var(--accent); border-color: var(--accent); color: var(--krds-color-text-basic-inverse); }
+.quote { margin: 6px 0; padding: 4px 12px; border-left: 3px solid var(--line); color: var(--body); font-size: .95rem; }
+.quote p { margin: 0; }
+.quote cite { display: block; margin-top: 2px; color: var(--muted); font-size: .8rem; font-style: normal; }
+.diff { margin: 6px 0; padding: 6px 0; border: 1px solid var(--card-line); border-radius: 8px; background: var(--surface); }
+.diff-line { display: block; min-width: max-content; padding: 0 10px; color: var(--body); }
+.diff-add { background: var(--pass-bg); color: var(--pass); }
+.diff-remove { background: var(--fail-bg); color: var(--fail); }
+.diff-hunk, .diff-file { color: var(--muted); }
 
-/* a Decision page */
-.stage { padding: 24px 40px; }
-.dtree, .trow { display: flex; align-items: center; }
-.qcol { flex: 0 1 360px; min-width: 260px; }
-.badges { margin-bottom: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
-.qcard { padding: 22px 24px; border-radius: 14px; }
-.who-sub { color: var(--muted); font-size: .9rem; }
-.qcard > .who-sub { margin-bottom: 12px; }
-.qtext { font: 500 1.3rem/1.35 var(--serif); margin: 0; }
-.context { color: var(--muted); margin-top: 10px; }
-.ctx { margin-top: 4px; }
-.ctx-row { display: flex; gap: 4px; align-items: baseline; }
-.ctx-toggle { flex: none; width: 1.3em; font-size: 1rem; border: 0; background: none; padding: 0; color: var(--accent); text-align: center; }
-.ctx-text { min-width: 0; }
-.ctx-kids { margin: 4px 0 4px 1.3em; padding-left: 8px; border-left: 2px solid var(--line); }
-.dtree > .branches { flex: 1 1 auto; min-width: 0; }
-.branch { display: flex; align-items: center; }
-.branch > .onode-wrap { flex: 0 1 300px; min-width: 200px; }
-.onode { font-size: 1.05rem; padding: 14px 16px; }
-.mark.mine { font-weight: 650; }
-/* the agent's suggestion is faint and dashed until the owner answers; the owner's pick is a heavy ring and bold text */
-.onode.suggested, .leaf.suggested { border: 1px dashed var(--line); box-shadow: none; color: var(--body); }
-.onode.suggested .mark, .leaf.suggested .mark { color: var(--muted); }
-.onode.picked, .leaf.picked { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px var(--halo); font-weight: 650; }
-.onode.picked .num, .leaf.picked .num { background: var(--accent); color: #fff; }
-.stub { padding: 8px 14px; color: var(--muted); font-size: .92rem; border-style: dashed; box-shadow: none; }
-.detail { position: relative; flex: 0 1 380px; min-width: 200px; margin-left: var(--gap); display: flex; flex-direction: column; gap: 8px; }
-.detail::before { content: ""; position: absolute; left: calc(-1 * var(--gap)); top: 50%; width: var(--gap); border-top: 1.5px solid var(--line); }
-.facts { padding: 8px 14px; box-shadow: none; border-radius: 10px; }
-.fq { display: inline-block; align-self: flex-start; border-radius: 10px; padding: 8px 14px; font-weight: 550; }
-.leaf { padding: 10px 14px; }
-.leaf .fact { margin-top: 2px; font-size: .92rem; }
-.other-text { color: var(--muted); }
-.gone { display: none; }
+/* the left tree: one state per Decision, one mark per change */
+.krds-side-navigation .lnb-list .lnb-item .lnb-btn[data-state]::before { content: attr(data-mark); position: static; display: inline; width: auto; height: auto; margin-right: 5px; background: none; color: var(--muted); }
+.krds-side-navigation .lnb-list .lnb-item .lnb-btn[data-effect]::after { content: attr(data-effect); position: static; display: inline-block; width: auto; height: auto; margin-left: 6px; padding: 0 5px; border-radius: 4px; background: var(--warn-bg); color: var(--warn); font-size: .72rem; font-weight: 600; }
+.frame-nav.previewing .lnb-link:not([data-effect]) { color: var(--muted); }
 
-/* the whole plan page */
-.ptree { display: flex; flex-direction: column; gap: 14px; }
-.part { flex: 0 1 340px; min-width: 200px; }
-.trow > .kids { flex: 1 1 auto; min-width: 0; }
-.pid { font-size: .72rem; color: var(--faint); margin-right: 6px; font-variant-numeric: tabular-nums; }
-.part.risk-part .ptext { color: var(--amber); }
-.part.decision { border-left: 4px solid var(--accent); }
-.part.unfocus { opacity: .22; }
-.part.focused { border-color: var(--accent); box-shadow: 0 0 0 3px var(--halo); }
-.fold { display: block; margin-top: 6px; border: 1px solid var(--card-line); background: var(--panel); border-radius: 6px; font: .7rem/1.5 var(--mono); color: var(--body); padding: 0 6px; }
-.choice { margin-top: 6px; font-size: .88rem; color: var(--muted); }
-.choice button { border: 0; background: none; color: var(--accent); padding: 0; }
-/* Your choices: one row per Decision, its pick and what that pick sets off */
-.choices { margin-bottom: 8px; padding: 16px 18px; }
-.choices h2 { font: 500 1.1rem var(--serif); margin: 0 0 8px; }
-.crow { display: grid; grid-template-columns: 2em minmax(0, 1fr) minmax(0, 1.3fr); gap: 4px 14px; width: 100%; text-align: left; border: 0; border-left: 4px solid transparent; border-top: 1px solid var(--card-line); background: none; padding: 9px 8px; }
-.crow:hover { background: var(--panel); }
-.crow.waiting { border-left-color: var(--accent); }
-.crow .cq { font-weight: 550; }
-.crow .cpick { color: var(--ink); }
-.crow .who-picked { font: .74rem var(--mono); color: var(--muted); display: block; }
-.crow .fact { font-size: .9rem; }
-.choices .cnext { margin: 10px 0 0; padding-top: 9px; border-top: 1px solid var(--card-line); color: var(--muted); font-size: .9rem; }
-.later { opacity: .5; }
-.later:hover, .later:focus-within { opacity: 1; }
-.empty { color: var(--muted); }
-
-/* bottom bar: the keys of the step shown, then undo and copy */
-#bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 12px; padding: 12px 40px; background: var(--bg); box-shadow: 0 -1px 0 var(--card-line); z-index: 10; }
-#hint { flex: 1; color: var(--muted); }
-#hint kbd { margin: 0 2px; }
-#undo { border: 0; background: none; color: var(--muted); padding: 4px 8px; }
-#undo:disabled { visibility: hidden; }
-#copy { border: 1px solid var(--accent); background: var(--accent); font-family: var(--sans); color: #fff; border-radius: 9px; padding: 6px 14px; font-weight: 600; white-space: nowrap; }
-
-@media (max-width: 760px) {
-  :root { --gap: 18px; --elbow: 24px; --elbow-first: 0; }
-  header, .stage { padding-left: 16px; padding-right: 16px; }
-  body { padding-bottom: 110px; }
-  #bar { padding: 10px 16px; gap: 6px 8px; flex-wrap: wrap; }
-  #hint { flex: 1 1 100%; font-size: .88rem; }
-  #undo { margin-left: auto; }
-  .dtree, .trow, .branch { flex-direction: column; align-items: stretch; }
-  .qcol, .part, .branch > .onode-wrap, .detail { flex: none; min-width: 0; }
-  .branches, .kids { margin-left: 14px; padding-left: 0; margin-top: 8px; }
-  .branches::before, .kids::before, .detail::before { display: none; }
-  .detail { margin: 8px 0 0 16px; }
-  .crow { grid-template-columns: 2em minmax(0, 1fr); }
-  .crow .cfacts { grid-column: 2; }
+@media (max-width: 820px) {
+  /* The frame shows a submenu under a closed navigation and lets a long one run off the screen; its issue is #1105. */
+  .frame-nav:not(.open) .lnb-list .lnb-item.active .lnb-submenu { visibility: hidden; }
+  .frame-nav.open { top: 52px; bottom: 0; height: calc(100vh - 52px); }
+  .long { display: none; }
+  .tree-stats { gap: 0 10px; font-size: .84rem; }
+  .bar-button { padding: 0 8px; }
+  .queue a { grid-template-columns: 22px minmax(0, 1fr); }
+  .row-pick { grid-column: 2; }
+  .part-line { flex-wrap: wrap; }
+  .part-main { flex: 1 1 0; }
+  .part-tools { order: 3; width: 100%; padding-left: 2.6em; }
+  .blocked-reason, .option-facts { padding-left: 10px; }
+}
+@media print {
+  .tree-bar, .part-tools, .keys { display: none; }
+  .part-children[hidden] { display: block; }
 }
 </style>
-</head>
-<body>
-<header>
-  <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="5" cy="13" r="3"/><circle cx="20" cy="5" r="3"/><circle cx="20" cy="21" r="3"/><path d="M8 13h3c3 0 3-8 6-8M11 13c3 0 3 8 6 8"/></svg>
-  <h1 id="title"></h1>
-  <span id="waiting"></span>
-  <nav id="pager" aria-label="Pages"></nav>
-</header>
-<main class="stage" id="stage"></main>
-<div id="bar">
-  <span id="hint"></span>
-  <button id="undo" type="button">Undo</button>
-  <button id="copy" type="button">Copy answer</button>
+
+<div class="tree-bar">
+<p class="tree-stats">
+<span id="tree-left"></span>
+<span id="tree-risks"></span>
+<span id="tree-files"></span>
+</p>
+<button class="bar-button" id="tree-next" type="button">Next<span class="long"> decision</span> ↓</button>
+<button class="bar-button" id="tree-undo" type="button">Undo</button>
+<button class="bar-button" id="tree-finish" type="button">Copy<span class="long"> answer</span></button>
 </div>
-<textarea id="answer" hidden readonly aria-hidden="true" tabindex="-1"></textarea>
-<script type="application/json" id="plan">__PLAN__</script>
+
+<section id="overview">
+<h1 id="tree-title"></h1>
+<div id="tree-goal"></div>
+<p class="how">Press an option in each open decision, then press Copy answer and paste the text back to the agent. A decision you leave alone stays open.</p>
+<ol class="queue" id="tree-queue"></ol>
+<p class="folded" id="tree-folded"></p>
+<p class="keys"><kbd>1</kbd>-<kbd>9</kbd> pick, <kbd>j</kbd> <kbd>k</kbd> move, <kbd>n</kbd> next open, <kbd>u</kbd> undo</p>
+</section>
+
+<div id="tree-parts"></div>
+
+<script type="application/json" id="tree-plan">__PLAN__</script>
 <script>
-(function () {
-"use strict";
-var plan = JSON.parse(document.getElementById("plan").textContent);
-var STAMP = "__STAMP__";
-// One id rule, the same as the lib: depth-first over parts, 1-based, dot-joined.
-var order = [], byId = {}, parentOf = {};
-(function walk(parts, prefix, parent) {
-  parts.forEach(function (p, i) {
-    var id = prefix + (i + 1);
-    order.push(id); byId[id] = p; parentOf[id] = parent;
-    walk(p.parts || [], id + ".", id);
+const plan = JSON.parse(document.getElementById("tree-plan").textContent);
+const STORE_KEY = "paperwork-tree-__STAMP__";
+const OTHER = 0;
+const WORD = {waiting: "Open", answered: "Answered", settled: "Settled", "not-needed": "Not needed", struck: "Struck"};
+const MARK = {waiting: "○", answered: "✓", settled: "=", "not-needed": "–", struck: "✕"};
+const QUIET_KINDS = new Set(["step", "goal", "claim", "question", "mockup", "diff", "quote", "risk"]);
+
+const parts = new Map();
+const decisionIds = [];
+(function index(list, prefix) {
+  list.forEach((part, i) => {
+    const id = `${prefix}${i + 1}`;
+    parts.set(id, part);
+    if ("pick" in part) decisionIds.push(id);
+    index(part.parts || [], `${id}.`);
   });
-})(plan.parts, "", "");
-var decisions = order.filter(function (id) { return "pick" in byId[id]; });
-// One page per Decision, then the whole plan, where every Part takes strike, comment and edit.
-var pages = decisions.concat(["plan"]);
+})(plan.parts, "");
+const decisionOfName = new Map(decisionIds.filter(id => parts.get(id).name).map(id => [parts.get(id).name, id]));
 
-var S = { pick: {}, strike: {}, edit: {}, comment: {} };
-var history = [];
-var ui = { ctx: {}, page: 0, awaiting: null, open: null, showAll: {}, copied: false, focus: null, fold: {} };
+const options = decision => [decision.pick, ...(decision.else || [])];
+const childIds = id => (parts.get(id).parts || []).map((_, i) => `${id}.${i + 1}`);
+const within = (id, top) => id === top || id.startsWith(`${top}.`);
+const holdsDecision = id => decisionIds.some(other => within(other, id));
 
-function options(d) { return [d.pick].concat(d.else || []); }
-function h(tag, cls, text) {
-  var e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text != null) e.textContent = text;
-  return e;
-}
-function btn(label, fn, cls) {
-  var b = h("button", cls, label); b.type = "button";
-  b.addEventListener("click", function (e) { e.stopPropagation(); fn(e); });
-  return b;
-}
-function kbd(t) { return h("kbd", null, t); }
-function snapshot() { history.push(JSON.stringify(S)); ui.copied = false; }
-function change(fn) { snapshot(); fn(); render(); }
-function isStruckBelow(id) {
-  for (var x = id; x; x = parentOf[x]) if (S.strike[x] != null) return true;
-  return false;
-}
-function shownText(id) { return S.edit[id] != null ? S.edit[id] : byId[id].text; }
+// -- the decision graph, the same calculation as tree_plan.py, which the check compares ------------
 
-// -- answer ---------------------------------------------------------------
-function lines() {
-  var out = [];
-  order.forEach(function (id) {
-    if (isStruckBelow(id) && S.strike[id] == null) return;
-    var c = S.pick[id], one = function (t) { out.push("- " + id + " " + t); };
-    if (S.strike[id] == null) {
-      if (c && c.other != null) one("other: " + oneLine(c.other));
-      else if (c && (c.k !== 1 || (c.then != null && c.then !== 1)))
-        one("pick " + c.k + (c.then != null ? " then " + c.then : ""));
-      if (S.edit[id] != null) one("edited: " + oneLine(S.edit[id]));
-      (S.comment[id] || []).forEach(function (t) { one("comment: " + oneLine(t)); });
-    } else one("struck: " + oneLine(S.strike[id]));
+function evaluate(answers) {
+  const chosen = {}, result = {};
+  for (const id of decisionIds) {
+    const decision = parts.get(id);
+    const held = ref => { const [target, option] = ref.split("."); return chosen[target] === option; };
+    const cause = (decision.requires || []).find(ref => !held(ref)) ?? null;
+    const blockers = options(decision).map(option =>
+      (option.requires || []).find(ref => !held(ref)) ?? (option.excludes || []).find(held) ?? null);
+    const openings = blockers.flatMap((blocker, i) => blocker === null ? [i + 1] : []);
+    const answer = answers[id];
+    const answered = cause === null && (answer === OTHER || openings.includes(answer));
+    const choice = cause !== null ? null : answered ? answer : openings[0] ?? null;
+    result[id] = {cause, blockers, choice, answered};
+    chosen[decision.name] = choice ? options(decision)[choice - 1].name : null;
+  }
+  return result;
+}
+
+function isSettled(entry) {
+  const open = entry.blockers.filter(blocker => blocker === null).length;
+  return entry.cause === null && !entry.answered && open === 1 && entry.blockers.length > 1;
+}
+
+function isWaiting(entry) {
+  return entry.cause === null && !entry.answered && !isSettled(entry);
+}
+
+function inForce(list, entries, struck, prefix, out) {
+  const flat = nodes => nodes.forEach(node => { out.push(node); flat(node.parts || []); });
+  list.forEach((part, i) => {
+    const id = `${prefix}${i + 1}`, entry = entries[id];
+    if (id in struck || entry?.cause) return;
+    out.push(part);
+    if (entry?.choice) {
+      const option = options(part)[entry.choice - 1];
+      out.push(option);
+      flat(option.parts || []);
+    }
+    inForce(part.parts || [], entries, struck, `${id}.`, out);
   });
   return out;
 }
-function oneLine(t) { return String(t).replace(/\s*\n\s*/g, " ").trim(); }
-function answerText() { return ["# Answer: " + plan.title + " · plan " + STAMP].concat(lines()).join("\n") + "\n"; }
 
-// -- small views ----------------------------------------------------------
-function chip(source, asLink) {
-  var e;
-  if (asLink && /^https?:\/\//.test(source)) { e = h("a", "chip", source.replace(/^https?:\/\/(www\.)?/, "")); e.href = source; e.target = "_blank"; e.rel = "noopener noreferrer"; e.title = source; }
-  else e = h("span", "chip", source);
-  return e;
+function summary(answers, struck) {
+  const entries = evaluate(answers);
+  const kept = inForce(plan.parts, entries, struck, "", []);
+  const estimates = [...("files" in plan ? [plan.files] : []), ...kept.filter(node => "files" in node).map(node => node.files)];
+  const out = Object.keys(struck);
+  return {
+    files: estimates.length ? estimates.reduce((sum, n) => sum + n, 0) : null,
+    left: decisionIds.filter(id => isWaiting(entries[id]) && !out.some(top => within(id, top))).length,
+    risks: kept.filter(node => node.kind === "risk").length,
+  };
 }
-// A mockup's text drawn as a framed screen; [[x]] reads as the primary button, [x] as a button.
-function mock(text) {
-  var box = h("div", "mock"), bar = h("div", "mock-bar"), pre = h("pre", "mock-screen");
-  for (var i = 0; i < 3; i++) bar.appendChild(h("i"));
-  bar.appendChild(h("span", "note-head", "Mockup"));
-  String(text).split(/(\[\[[^\]\n]+\]\]|\[[^\]\n]+\])/).forEach(function (bit) {
-    if (/^\[\[/.test(bit)) pre.appendChild(h("span", "mk-primary", bit.slice(2, -2).trim()));
-    else if (/^\[/.test(bit)) pre.appendChild(h("span", "mk-btn", bit.slice(1, -1).trim()));
-    else if (bit) pre.appendChild(document.createTextNode(bit));
+
+// -- the state, saved on each change ------------------------------------------------------------
+
+const blank = () => ({picks: {}, others: {}, struck: {}, comments: {}, edits: {}});
+function restored() {
+  try { return {...blank(), ...JSON.parse(localStorage.getItem(STORE_KEY))}; } catch { return blank(); }
+}
+let state = restored();
+const history = [];
+const opened = new Set();
+let editor = null, lastChange = {}, current = null, statusTimer;
+
+function save() {
+  // A page opened from a file may be refused storage; the answers then last until it closes.
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch { /* nothing to do */ }
+}
+function change(apply) {
+  history.push(JSON.stringify(state));
+  apply();
+  save();
+  render();
+}
+function announce(message) {
+  const status = document.getElementById("frame-status");
+  status.textContent = message;
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => { status.textContent = ""; }, 4000);
+}
+
+const isStruck = id => Object.keys(state.struck).some(top => within(id, top));
+const shownText = id => state.edits[id] ?? parts.get(id).text;
+const oneLine = text => String(text).replace(/\s*\n\s*/g, " ").trim();
+
+function answerText() {
+  const entries = evaluate(state.picks), lines = [`# Answer: ${plan.title} · plan __STAMP__`];
+  for (const id of parts.keys()) {
+    const line = text => lines.push(`- ${id} ${text}`);
+    if (id in state.struck) line(`struck: ${oneLine(state.struck[id])}`);
+    if (isStruck(id)) continue;
+    if (entries[id]?.answered) line(entries[id].choice === OTHER ? `other: ${oneLine(state.others[id])}` : `pick ${entries[id].choice}`);
+    if (id in state.edits) line(`edited: ${oneLine(state.edits[id])}`);
+    (state.comments[id] || []).forEach(text => line(`comment: ${oneLine(text)}`));
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+// The reader refuses this strike too: a Decision outside would name one that is gone.
+function strikeBlocker(id) {
+  const inside = new Set([...decisionOfName].filter(([, other]) => within(other, id)).map(([name]) => name));
+  return decisionIds.find(other => {
+    const decision = parts.get(other);
+    const refs = [...(decision.requires || []), ...options(decision).flatMap(option => [...(option.requires || []), ...(option.excludes || [])])];
+    return !within(other, id) && refs.some(ref => inside.has(ref.split(".")[0]));
   });
-  box.appendChild(bar); box.appendChild(pre);
-  return box;
 }
-function factLine(p) {
-  var line = h("div", "fact" + (p.kind === "risk" ? " risk" : ""));
-  if (p.kind === "risk") line.appendChild(h("span", "sev", "Risk"));
-  line.appendChild(h("span", "ftext", p.text));
-  if (p.source) line.appendChild(chip(p.source));
+
+// -- small drawing helpers ------------------------------------------------------------------------
+
+function make(tag, name, ...children) {
+  const node = document.createElement(tag);
+  if (name) node.className = name;
+  node.append(...children);
+  return node;
+}
+function button(name, label, press, key) {
+  const node = make("button", name, label);
+  node.type = "button";
+  node.addEventListener("click", press);
+  if (key) node.dataset.key = key;
+  return node;
+}
+function jumpLink(id, label) {
+  const link = make("a", "", label);
+  link.href = `#part-${id}`;
+  link.addEventListener("click", event => { event.preventDefault(); goTo(id); });
+  return link;
+}
+function source(text) {
+  if (!/^https?:/.test(text)) return make("span", "source", text);
+  const link = make("a", "source", new URL(text).hostname);
+  link.href = text;
+  link.target = "_blank";
+  link.rel = "noopener";
+  return link;
+}
+function mockup(text) {
+  const screen = make("pre");
+  for (const bit of text.split(/(\[\[[^\]\n]+\]\]|\[[^\]\n]+\])/)) {
+    const main = bit.match(/^\[\[(.+)\]\]$/), plain = bit.match(/^\[(.+)\]$/);
+    screen.append(main ? make("span", "mock-button main", main[1]) : plain ? make("span", "mock-button", plain[1]) : bit);
+  }
+  return make("figure", "mock", make("div", "mock-bar", make("i"), make("i"), make("i")), screen);
+}
+function diff(text) {
+  const kind = line => /^(\+\+\+|---)/.test(line) ? "file" : line.startsWith("@@") ? "hunk" : line.startsWith("+") ? "add" : line.startsWith("-") ? "remove" : "context";
+  return make("pre", "diff", ...text.replace(/\n$/, "").split("\n").map(line => make("span", `diff-line diff-${kind(line)}`, line || " ")));
+}
+function content(part, text) {
+  if (part.kind === "mockup") return mockup(text);
+  if (part.kind === "diff") return diff(text);
+  const tail = part.source ? [source(part.source)] : [];
+  if (part.kind === "quote") return make("blockquote", "quote", make("p", "", text), make("cite", "", ...tail));
+  const head = part.kind === "risk" ? [make("span", "risk-pill", "! Risk")] : part.kind && !QUIET_KINDS.has(part.kind) ? [make("span", "part-kind", part.kind)] : [];
+  return make("p", "part-text", ...head, text, ...tail);
+}
+function facts(list, into, below) {
+  for (const part of list || []) {
+    const node = make("div", below ? "fact-below" : "", content(part, part.text));
+    into.append(node);
+    facts(part.parts, into, true);
+  }
+  return into;
+}
+
+// -- a stable element per Part, since the frame's navigation holds on to the ones it links to --------
+
+const elements = new Map();
+
+function skeleton(id) {
+  const part = parts.get(id), isDecision = "pick" in part;
+  const node = make(id.includes(".") ? "div" : "section", `tree-part${isDecision ? " tree-decision" : ""}`);
+  node.id = `part-${id}`;
+  node.tabIndex = -1;
+  const body = make("div", "part-body");
+  const children = make("div", `part-children${holdsDecision(id) ? " holds-decision" : ""}`);
+  node.append(body, children);
+  if (isDecision) node.append(make("div", "part-options"));
+  elements.set(id, node);
+  childIds(id).forEach(child => children.append(skeleton(child)));
+  return node;
+}
+
+// A goal leads the overview, so the first screen says what the plan changes.
+const isGoal = id => parts.get(id).kind === "goal" && !holdsDecision(id);
+
+function tools(id) {
+  const line = make("div", "part-tools");
+  const tool = (label, press, disabled) => {
+    const node = button("tool", label, press, `${label}:${id}`);
+    if (disabled) node.setAttribute("aria-disabled", "true");
+    return node;
+  };
+  const blocker = strikeBlocker(id);
+  if (id in state.struck) line.append(tool("Unstrike", () => change(() => { delete state.struck[id]; })));
+  else line.append(tool("Strike", () => blocker ? announce(`Decision ${blocker} depends on this, so it stays`) : openEditor("strike", id), blocker));
+  line.append(tool("Comment", () => openEditor("comment", id)));
+  if (id in state.edits) line.append(tool("Revert", () => change(() => { delete state.edits[id]; })));
+  else line.append(tool("Edit", () => openEditor("edit", id)));
   return line;
 }
-// An Option's facts, every one in view: outcomes, risks, notes inline under what they explain, mockups as screens.
-function facts(parts, into) {
-  (parts || []).forEach(function (p) {
-    if (p.kind === "mockup") into.appendChild(mock(p.text));
-    else if (p.kind === "note") {
-      var n = h("div", "note-line");
-      n.appendChild(h("span", "note-head", "Agent's note"));
-      n.appendChild(h("span", null, p.text.replace(/^Agent's note:\s*/i, "")));
-      if (p.source) n.appendChild(chip(p.source));
-      into.appendChild(n);
-    } else into.appendChild(factLine(p));
-    if (p.parts) facts(p.parts, into);
+
+function openEditor(kind, id) {
+  editor = {kind, id, draft: kind === "edit" ? shownText(id) : kind === "other" ? state.others[id] || "" : ""};
+  render();
+}
+function closeEditor() {
+  editor = null;
+  render();
+}
+function saveEditor() {
+  const {kind, id} = editor, text = editor.draft.trim();
+  if (!text) return;
+  editor = null;
+  change(() => {
+    if (kind === "strike") state.struck[id] = text;
+    if (kind === "comment") (state.comments[id] ||= []).push(text);
+    if (kind === "other") { state.picks[id] = OTHER; state.others[id] = text; }
+    if (kind === "edit" && text === parts.get(id).text) delete state.edits[id];
+    else if (kind === "edit") state.edits[id] = text;
   });
 }
-// The Decision that matters most: the most risks under it, then the most Parts under its Options, then the first.
-function items(x) {
-  var out = [];
-  (x.parts || []).forEach(function (p) { out.push(p); out = out.concat(items(p)); });
-  if ("pick" in x) options(x).forEach(function (o) { out = out.concat(items(o)); });
-  if (x.then) out = out.concat(items(x.then));
-  return out;
-}
-var most = (function () {
-  var all = decisions.map(function (id) {
-    var d = byId[id], found = items(d).filter(function (p) { return p.kind === "risk"; });
-    var parts = options(d).reduce(function (a, o) { return a.concat(items(o)); }, []);
-    return { id: id, risks: found.length, effects: parts.length };
+function editorRow() {
+  const label = {strike: "Why strike this?", comment: "Your comment", edit: "New text", other: "Your own option"}[editor.kind];
+  const field = make("input", "editor-field");
+  field.value = editor.draft;
+  field.setAttribute("aria-label", label);
+  field.placeholder = label;
+  field.addEventListener("input", () => { editor.draft = field.value; });
+  field.addEventListener("keydown", event => {
+    if (event.key === "Enter") saveEditor();
+    if (event.key === "Escape") { event.stopPropagation(); closeEditor(); }
   });
-  var best = null;
-  all.forEach(function (x) { if (!best || x.risks > best.risks || (x.risks === best.risks && x.effects > best.effects)) best = x; });
-  if (!best) return null;
-  // The reason names the rule that decided, so a tie never reads as "more than any other".
-  var same = all.filter(function (x) { return x !== best && x.risks === best.risks; });
-  best.by = !same.length ? "risks" : same.every(function (x) { return x.effects < best.effects; }) ? "parts" : "order";
-  best.why = best.risks ? best.risks + (best.risks === 1 ? " risk" : " risks")
-    : best.effects ? best.effects + (best.effects === 1 ? " part" : " parts") : "first to answer";
-  return best;
-})();
-function mostMark(id, el) {
-  if (!most || most.id !== id) return;
-  el.setAttribute("data-most", id);
-  var m = h("span", "most", "Matters most: " + most.why);
-  m.title = "The Decision with the most risks under it, then the most Parts under its Options, then the first";
-  return m;
-}
-// The reason on the Decision's own card as counts, since the risks and Parts themselves stand beside it.
-function mostWhy(id) {
-  if (!most || most.id !== id) return null;
-  var why = h("div", "most-why"), risks = most.risks + (most.risks === 1 ? " risk" : " risks");
-  why.appendChild(h("span", "note-head", "Why it matters most"));
-  why.appendChild(h("span", null, most.by === "risks"
-    ? "More risks than any other Decision: " + risks + "."
-    : most.by === "parts"
-    ? (most.risks ? "As many risks as the most (" + risks + "), and more" : "No Decision has more risks, and it has more") + " Parts under its Options than any other: " + most.effects + "."
-    : "It ties with another Decision on risks and Parts and comes first" + (most.risks ? "; it has " + risks : "") + "."));
-  return why;
-}
-// A context line of a Decision: its text and source chip; a line with Parts of its own opens them on a click, to any depth. A risk keeps its Risk mark and amber text.
-function contextItem(cid, p) {
-  var box = h("div", "ctx");
-  if (p.kind === "mockup") { box.appendChild(mock(shownText(cid))); return box; }
-  var kids = p.parts || [], open = !!ui.ctx[cid], row = h("div", "ctx-row"), text = h("span", "ctx-text");
-  if (kids.length) {
-    var toggle = btn(open ? "\u25be" : "\u25b8", function () { ui.ctx[cid] = !open; render(); }, "ctx-toggle");
-    toggle.setAttribute("aria-expanded", String(open));
-    toggle.setAttribute("aria-label", (open ? "Hide " : "Show ") + kids.length + (kids.length === 1 ? " part" : " parts"));
-    row.appendChild(toggle);
-  } else row.appendChild(h("span", "ctx-toggle"));
-  if (p.kind === "risk") { text.appendChild(h("span", "sev", "Risk")); text.appendChild(h("span", "risk-text", shownText(cid))); }
-  else text.appendChild(document.createTextNode(shownText(cid)));
-  if (p.source) text.appendChild(chip(p.source, true));
-  row.appendChild(text); box.appendChild(row);
-  if (kids.length && open) {
-    var sub = h("div", "ctx-kids");
-    kids.forEach(function (k, i) { sub.appendChild(contextItem(cid + "." + (i + 1), k)); });
-    box.appendChild(sub);
-  }
-  return box;
-}
-function acts(id) {
-  var a = h("span", "acts");
-  if (S.strike[id] != null) a.appendChild(btn("Unstrike", function () { change(function () { delete S.strike[id]; }); }));
-  else a.appendChild(btn("Strike", function () { openEditor("strike", id); }));
-  a.appendChild(btn("Comment", function () { openEditor("comment", id); }));
-  if (S.edit[id] != null) a.appendChild(btn("Revert", function () { change(function () { delete S.edit[id]; }); }));
-  else a.appendChild(btn("Edit", function () { openEditor("edit", id); }));
-  return a;
-}
-function openEditor(kind, id) { ui.open = { kind: kind, pid: id }; render(); }
-function editor(id, kind) {
-  var box = h("div", "editor");
-  var field = kind === "edit" || kind === "other" ? h("textarea") : h("input");
-  if (field.tagName === "INPUT") field.type = "text"; else field.rows = 2;
-  field.className = "ed-" + kind;
-  field.setAttribute("aria-label", { strike: "Reason for striking", edit: "New text", comment: "Comment", other: "Other answer" }[kind]);
-  field.placeholder = { strike: "Why strike this?", edit: "", comment: "Your comment", other: "Your answer" }[kind];
-  if (kind === "edit") field.value = shownText(id);
-  var c = S.pick[id];
-  if (kind === "other" && c && c.other != null) field.value = c.other;
-  var done = function () {
-    var v = field.value.trim();
-    if (!v) return;
-    ui.open = null;
-    change(function () {
-      if (kind === "strike") S.strike[id] = v;
-      else if (kind === "edit") { if (v === byId[id].text) delete S.edit[id]; else S.edit[id] = v; }
-      else if (kind === "other") { S.pick[id] = { k: 0, other: v }; ui.awaiting = null; ui.showAll[id] = false; }
-      else (S.comment[id] = S.comment[id] || []).push(v);
-    });
-  };
-  field.addEventListener("keydown", function (e) {
-    e.stopPropagation();
-    if (e.key === "Escape") { ui.open = null; render(); }
-    else if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); done(); }
-  });
-  field.addEventListener("click", function (e) { e.stopPropagation(); });
-  var b = h("div", "btns");
-  b.appendChild(btn({ strike: "Strike", edit: "Save", comment: "Add", other: "Use this" }[kind], done));
-  b.appendChild(btn("Cancel", function () { ui.open = null; render(); }));
-  box.appendChild(field); box.appendChild(b);
-  return box;
-}
-// What a Part card carries below its text: edited mark, struck reason, comments, its open editor.
-function tail(id, card) {
-  if (S.strike[id] != null) card.appendChild(h("div", "reason", "Struck: " + S.strike[id]));
-  (S.comment[id] || []).forEach(function (t, i) {
-    var c = h("div", "comment"); c.appendChild(h("span", null, t));
-    c.appendChild(btn("remove", function () { change(function () { S.comment[id].splice(i, 1); if (!S.comment[id].length) delete S.comment[id]; }); }));
-    card.appendChild(c);
-  });
-  if (ui.open && ui.open.pid === id && ui.open.kind !== "other") card.appendChild(editor(id, ui.open.kind));
-  card.appendChild(acts(id));
+  return make("div", "editor", field, button("tool", "Save", saveEditor), button("tool", "Cancel", closeEditor));
 }
 
-// -- a Decision page ------------------------------------------------------
-function chosenOf(id) {
-  var c = S.pick[id];
-  if (!c) return null;
-  return c.other != null ? options(byId[id]).length + 1 : c.k;
-}
-function decisionPage(id) {
-  var d = byId[id], opts = options(d), K = opts.length, c = S.pick[id];
-  var struck = S.strike[id] != null, chosen = chosenOf(id), collapsed = chosen != null && !ui.showAll[id];
-  var tree = h("div", "dtree");
-
-  var col = h("div", "qcol");
-  var badges = h("div", "badges"), context = h("div", "context");
-  (d.parts || []).forEach(function (p, i) { context.appendChild(contextItem(id + "." + (i + 1), p)); });
-  var card = h("div", "node qcard" + (struck ? " struck" : ""));
-  var mm = mostMark(id, card);
-  if (mm) badges.insertBefore(mm, badges.firstChild);
-  if (badges.childNodes.length) col.appendChild(badges);
-  card.setAttribute("data-card", id);
-  // A link is a chip that opens; a person and day is a chip that reads, since the checker allows only these two.
-  if (d.source) { var src = h("div", "who-sub"); src.appendChild(h("span", "note-head", "Source")); src.appendChild(chip(d.source, true)); card.appendChild(src); }
-  var q = h("p", "qtext", shownText(id));
-  if (S.edit[id] != null) q.appendChild(h("span", "edited", "edited"));
-  card.appendChild(q);
-  if (context.childNodes.length) card.appendChild(context);
-  var why = mostWhy(id);
-  if (why) card.appendChild(why);
-  tail(id, card);
-  col.appendChild(card);
-  tree.appendChild(col);
-  if (struck) return tree;
-
-  var ul = h("ul", "branches");
-  opts.forEach(function (o, i) {
-    var k = i + 1;
-    if (collapsed && k !== chosen) return;
-    // Only the Option fades, never its facts, since what an unchosen Option sets off is still read to judge it.
-    var li = h("li", "branch");
-    var wrap = h("div", "onode-wrap" + ((chosen == null ? k !== 1 : k !== chosen) ? " dim" : ""));
-    var ob = btn("", function () { if (collapsed && k === chosen) { ui.showAll[id] = true; render(); } else pickOption(id, k); }, "node onode" + (chosen == null ? (k === 1 ? " suggested" : "") : (k === chosen ? " picked" : "")));
-    ob.setAttribute("data-option", String(k));
-    ob.appendChild(h("span", "num", String(k)));
-    ob.appendChild(h("span", null, o.text));
-    if (chosen === k) ob.appendChild(h("span", "mark mine", "Your pick"));
-    else if (k === 1) ob.appendChild(h("span", "mark", "Agent's pick"));
-    wrap.appendChild(ob); li.appendChild(wrap);
-    var factsBox = h("div", "node facts");
-    if ((o.parts || []).length) factsBox.appendChild(h("div", "note-head", "Parts under option " + k));
-    facts(o.parts, factsBox);
-    if (factsBox.childNodes.length || o.then) {
-      var det = h("div", "detail");
-      if (factsBox.childNodes.length) det.appendChild(factsBox);
-      if (o.then) det.appendChild(followUp(id, k, o.then, chosen === k));
-      li.appendChild(det);
-    }
-    ul.appendChild(li);
-  });
-  if (!collapsed || chosen === K + 1) {
-    var oli = h("li", "branch" + (chosen === K + 1 ? "" : " dim"));
-    var owrap = h("div", "onode-wrap");
-    var other = h("div", "node onode");
-    var obtn = btn("", function () { ui.awaiting = null; openEditor("other", id); }, "");
-    obtn.style.cssText = "border:0;background:none;padding:0;text-align:left;width:100%";
-    obtn.appendChild(h("span", "num", String(K + 1)));
-    obtn.appendChild(h("span", "other-text", c && c.other != null ? "Other: " + c.other : "Other…"));
-    other.appendChild(obtn);
-    if (ui.open && ui.open.pid === id && ui.open.kind === "other") other.appendChild(editor(id, "other"));
-    owrap.appendChild(other); oli.appendChild(owrap); ul.appendChild(oli);
-  }
-  if (collapsed) {
-    // One stub stands for the folded Options, so the way back is on the page, not only on Esc.
-    var sli = h("li", "branch"), swrap = h("div", "onode-wrap");
-    swrap.appendChild(btn("+ " + K + " other options", function () { ui.showAll[id] = true; render(); }, "node stub"));
-    sli.appendChild(swrap); ul.appendChild(sli);
-  }
-  tree.appendChild(ul);
-  return tree;
-}
-function followUp(id, k, q, live) {
-  var c = S.pick[id], fu = h("div", "fu");
-  fu.appendChild(h("div", "node fq", q.text));
-  var leaves = h("ul", "leaves");
-  options(q).forEach(function (leaf, j) {
-    var m = j + 1, choosing = live && c && c.then == null, picked = live && c && c.then != null ? c.then : 1;
-    var li = h("li", choosing || m === picked ? "" : "dim");
-    var lb = btn("", function () { pickLeaf(id, k, m); }, "node leaf" + (!live || !c ? "" : c.then == null ? (m === 1 ? " suggested" : "") : (m === c.then ? " picked" : "")));
-    if (live) lb.appendChild(h("span", "num", String(m)));
-    lb.appendChild(h("span", null, leaf.text));
-    if (live && c && c.then === m) lb.appendChild(h("span", "mark mine", "Your pick"));
-    else if (m === 1) lb.appendChild(h("span", "mark", "Agent's pick"));
-    facts(leaf.parts, lb);
-    li.appendChild(lb); leaves.appendChild(li);
-  });
-  fu.appendChild(leaves);
-  return fu;
-}
-function pickOption(id, k) {
-  ui.open = null; ui.showAll[id] = false;
-  ui.awaiting = options(byId[id])[k - 1].then ? id : null;
-  change(function () { S.pick[id] = { k: k, then: null }; });
-}
-function pickLeaf(id, k, m) {
-  ui.open = null; ui.awaiting = null; ui.showAll[id] = false;
-  change(function () { S.pick[id] = { k: k, then: m }; });
+function notes(id) {
+  const list = [];
+  if (id in state.struck) list.push(make("p", "note-line", make("b", "", "Struck: "), state.struck[id]));
+  (state.comments[id] || []).forEach((text, i) => list.push(make("p", "note-line", make("b", "", "Comment: "), text,
+    button("tool remove", "Remove", () => change(() => {
+      state.comments[id].splice(i, 1);
+      if (!state.comments[id].length) delete state.comments[id];
+    }), `Remove:${id}:${i}`))));
+  if (editor?.id === id && editor.kind !== "other") list.push(editorRow());
+  return list;
 }
 
-// -- the whole plan page --------------------------------------------------
-// The view's one gate: Parts after the first Decision still open are faded, never hidden.
-function laterIds() {
-  var open = decisions.filter(function (id) { return !(id in S.pick) && S.strike[id] == null; })[0];
-  var out = {};
-  if (!open) return out;
-  order.slice(order.indexOf(open) + 1).forEach(function (id) {
-    if (id.indexOf(open + ".") !== 0) out[id] = true;
-  });
-  return out;
+function foldButton(id) {
+  const count = childIds(id).length;
+  return button("fold", opened.has(id) ? "Fold" : `${count} ${count === 1 ? "part" : "parts"}`, () => {
+    if (opened.has(id)) opened.delete(id); else opened.add(id);
+    render();
+  }, `fold:${id}`);
 }
-// Focus keeps a card, its parent, its children and every Part with its source; the rest fade.
-function focusSet() {
-  if (!ui.focus) return null;
-  var f = ui.focus, src = byId[f].source, keep = {};
-  keep[f] = true;
-  if (parentOf[f]) keep[parentOf[f]] = true;
-  (byId[f].parts || []).forEach(function (_, i) { keep[f + "." + (i + 1)] = true; });
-  if (src) order.forEach(function (id) { if (byId[id].source === src) keep[id] = true; });
-  return keep;
+
+function refName(ref) {
+  const [target, name] = ref.split(".");
+  const id = decisionOfName.get(target), decision = parts.get(id);
+  return {id, option: options(decision).find(option => option.name === name).text, question: shownText(id)};
 }
-function partNode(id, later, keep) {
-  var p = byId[id], isDec = "pick" in p, kids = p.parts || [];
-  var row = h("div", "trow");
-  var card = h("div", "node part" + (p.kind === "risk" ? " risk-part" : "") + (isDec ? " decision" : "") + (S.strike[id] != null ? " struck" : "") + (later[id] ? " later" : "")
-    + (keep ? (keep[id] ? (ui.focus === id ? " focused" : "") : " unfocus") : ""));
-  card.setAttribute("data-id", id);
-  card.addEventListener("click", function (e) { if (e.target.closest("a")) return; ui.focus = ui.focus === id ? null : id; ui.open = null; render(); });
-  var top = h("div");
-  top.appendChild(h("span", "pid", id));
-  if (p.kind && p.kind !== "risk") top.appendChild(h("span", "kind", p.kind));
-  if (p.kind === "risk") top.appendChild(h("span", "sev", "Risk"));
-  var mm = isDec && mostMark(id, card);
-  if (mm) { top.appendChild(document.createTextNode(" ")); top.appendChild(mm); }
-  card.appendChild(top);
-  var t = h("div", "ptext");
-  if (p.kind === "mockup") t.appendChild(mock(shownText(id)));
-  else t.appendChild(document.createTextNode(shownText(id)));
-  if (S.edit[id] != null) t.appendChild(h("span", "edited", "edited"));
-  if (p.source) t.appendChild(chip(p.source, true));
-  card.appendChild(t);
-  if (isDec) {
-    var ch = h("div", "choice"), c = S.pick[id];
-    ch.appendChild(document.createTextNode(c ? "Your pick: " + (c.other != null ? c.other : options(p)[c.k - 1].text) + " " : "Agent's pick: " + p.pick.text + " "));
-    ch.appendChild(btn("open →", function () { goTo(pages.indexOf(id)); }));
-    card.appendChild(ch);
+function reason(ref, needed, lead) {
+  const {id, option, question} = refName(ref);
+  const word = lead ?? (needed ? "Needs" : "Ruled out by");
+  return [`${word} "${option}" in Decision ${id}: `, jumpLink(id, question)];
+}
+
+function decisionWord(id, entry) {
+  if (isStruck(id)) return "struck";
+  return entry.cause ? "not-needed" : entry.answered ? "answered" : isSettled(entry) ? "settled" : "waiting";
+}
+
+function renderPart(id, entries) {
+  const part = parts.get(id), node = elements.get(id), entry = entries[id];
+  const line = make("div", "part-line", make("span", "part-id", id));
+  const main = make("div", "part-main", content(part, shownText(id)));
+  const foldable = !entry && childIds(id).length && !holdsDecision(id);
+  if (foldable) main.querySelector("p")?.append(foldButton(id));
+  line.append(main, tools(id));
+  const head = [];
+  if (entry) {
+    const word = decisionWord(id, entry);
+    node.dataset.state = word;
+    const held = state.picks[id] !== undefined && state.picks[id] !== OTHER && entry.blockers[state.picks[id] - 1];
+    head.push(make("div", "decision-head", make("span", "", `Decision ${decisionIds.indexOf(id) + 1} of ${decisionIds.length}`), make("span", "decision-word", WORD[word])));
+    if (entry.cause) head.push(make("p", "reason", ...reason(entry.cause, true, "Asked only with")));
+    else if (word === "settled") head.push(make("p", "reason", `Only "${options(part)[entry.choice - 1].text}" is left, so the next plan holds it. `, button("fold", opened.has(id) ? "Fold" : "See why", () => { if (opened.has(id)) opened.delete(id); else opened.add(id); render(); }, `fold:${id}`)));
+    else if (held) head.push(make("p", "reason", "Your earlier pick no longer holds, so this decision is open again."));
+    else if (part.requires) head.push(make("p", "reason", ...reason(part.requires[0], true, "Asked because of")));
   }
-  // Below the text, with the card's other controls.
-  if (kids.length) card.appendChild(btn((ui.fold[id] ? "▸ " : "▾ ") + kids.length + (kids.length === 1 ? " part" : " parts"), function () { ui.fold[id] = !ui.fold[id]; render(); }, "fold"));
-  tail(id, card);
-  row.appendChild(card);
-  if (kids.length && !ui.fold[id]) {
-    var ul = h("ul", "kids");
-    kids.forEach(function (_, i) { var li = h("li"); li.appendChild(partNode(id + "." + (i + 1), later, keep)); ul.appendChild(li); });
-    row.appendChild(ul);
+  node.classList.toggle("struck", id in state.struck);
+  node.querySelector(":scope > .part-body").replaceChildren(...head, line, ...notes(id));
+  const children = node.querySelector(":scope > .part-children");
+  children.hidden = childIds(id).length === 0 || (foldable && !opened.has(id));
+  if (entry) renderOptions(id, entry, node.querySelector(":scope > .part-options"));
+}
+
+function renderOptions(id, entry, box) {
+  const decision = parts.get(id);
+  box.hidden = Boolean(entry.cause) || (isSettled(entry) && !opened.has(id));
+  const rows = options(decision).map((option, i) => optionRow(id, i + 1, option, entry));
+  const other = entry.choice === OTHER, chosen = other && entry.answered;
+  const press = button("option-press", "", () => openEditor("other", id), `option:${id}:${OTHER}`);
+  press.append(make("span", "option-number", String(rows.length + 1)), make("span", "option-label", chosen ? state.others[id] : "Other: write your own"));
+  if (chosen) press.append(make("span", "option-tag", "Your pick"));
+  const row = make("div", `option${chosen ? " picked" : ""}`, press);
+  if (editor?.id === id && editor.kind === "other") row.append(make("div", "blocked-reason", editorRow()));
+  box.replaceChildren(...rows, row);
+}
+
+function optionRow(id, position, option, entry) {
+  const blocker = entry.blockers[position - 1], chosen = entry.choice === position, picked = chosen && entry.answered;
+  const press = button("option-press", "", () => pick(id, position), `option:${id}:${position}`);
+  press.dataset.option = `${id}:${position}`;
+  press.append(make("span", "option-number", blocker ? "⊘" : String(position)), make("span", "option-label", option.text));
+  if (picked) press.append(make("span", "option-tag", "Your pick"));
+  if (position === 1) press.append(make("span", "option-tag", "Agent's pick"));
+  if (chosen && !picked && position !== 1) press.append(make("span", "option-tag", "In force"));
+  if (blocker) press.append(make("span", "option-tag", "Blocked"));
+  press.setAttribute("aria-pressed", String(picked));
+  if (blocker) press.setAttribute("aria-disabled", "true");
+  const row = make("div", `option${picked ? " picked" : chosen ? " default" : ""}${blocker ? " blocked" : ""}`, press);
+  if (blocker) row.append(make("p", "blocked-reason", ...reason(blocker, (option.requires || []).includes(blocker))));
+  if (option.parts?.length) row.append(facts(option.parts, make("div", "option-facts")));
+  if (!blocker) {
+    row.addEventListener("pointerenter", () => preview(id, position));
+    row.addEventListener("pointerleave", endPreview);
+    row.addEventListener("focusin", () => preview(id, position));
+    row.addEventListener("focusout", endPreview);
   }
   return row;
 }
-// Your choices: each Decision's pick as it stands and what that pick sets off; a click opens the Decision.
-function choicesView() {
-  var box = h("div", "node choices");
-  box.appendChild(h("h2", null, "Your choices"));
-  decisions.forEach(function (id) {
-    var d = byId[id], c = S.pick[id], struck = S.strike[id] != null;
-    var row = btn("", function () { goTo(pages.indexOf(id)); }, "crow" + (waitingFor(id) ? " waiting" : ""));
-    row.setAttribute("data-row", id);
-    row.appendChild(h("span", "pid", id));
-    var q = h("span", "cq", shownText(id) + " ");
-    var mm = mostMark(id, row);
-    if (mm) q.appendChild(mm);
-    row.appendChild(q);
-    var right = h("span", "cfacts"), pick = h("span", "cpick");
-    var o = c && c.other == null ? options(d)[c.k - 1] : (c ? null : d.pick);
-    pick.appendChild(h("span", "who-picked", struck ? "Struck" : c ? "Your pick" : "Agent's pick, waiting"));
-    pick.appendChild(document.createTextNode(struck ? S.strike[id] : c && c.other != null ? c.other : o.text));
-    right.appendChild(pick);
-    if (o && !struck) {
-      (o.parts || []).forEach(function (f) { if (f.kind !== "mockup" && f.kind !== "note") right.appendChild(factLine(f)); });
-      if (o.then) {
-        // Until the follow-up is answered, its Agent's pick stands, so the row still shows where the plan ends.
-        var answered = c && c.then != null, leaf = answered ? options(o.then)[c.then - 1] : o.then.pick;
-        right.appendChild(factLine({ text: o.then.text + " " + (leaf ? leaf.text + (answered ? "" : " (Agent's pick)") : "waiting") }));
-        if (leaf) (leaf.parts || []).forEach(function (f) { if (f.kind !== "mockup" && f.kind !== "note") right.appendChild(factLine(f)); });
-      }
+
+function pick(id, position) {
+  const entries = evaluate(state.picks), entry = entries[id];
+  if (entry.blockers[position - 1]) return announce(`Blocked: pick stays as it was`);
+  if (entry.answered && entry.choice === position) return;
+  const key = `option:${id}:${position}`;
+  const top = document.querySelector(`[data-key="${key}"]`).getBoundingClientRect().top;
+  const next = {...state.picks, [id]: position};
+  const changed = changes(next);
+  change(() => { state.picks[id] = position; lastChange = changed; });
+  // A pick may fold a row above this one, so the page moves back to leave the pressed row under the hand.
+  scrollBy(0, document.querySelector(`[data-key="${key}"]`).getBoundingClientRect().top - top);
+  const others = Object.keys(changed).length;
+  announce(`Picked. ${summary(state.picks, state.struck).left} left${others ? `, ${others} other changed` : ""}. Undo takes it back.`);
+}
+
+// -- one highlight, fed by a hover, a keyboard focus and a pick ---------------------------------------
+
+function changes(next) {
+  const before = evaluate(state.picks), after = evaluate(next), out = {};
+  for (const id of decisionIds) {
+    const was = before[id], now = after[id];
+    if (next[id] === state.picks[id] && JSON.stringify([was.cause, was.blockers, was.choice]) !== JSON.stringify([now.cause, now.blockers, now.choice]))
+      out[id] = was.cause && !now.cause ? "opens" : !was.cause && now.cause ? "closes" : isSettled(now) && !isSettled(was) ? "settles" : "changes";
+  }
+  return out;
+}
+
+function showMarks(marks, previewing) {
+  document.getElementById("frame-nav").classList.toggle("previewing", previewing);
+  for (const id of decisionIds) {
+    const link = document.querySelector(`.frame-nav a[href="#part-${id}"]`);
+    for (const node of [link, elements.get(id)]) {
+      if (marks[id]) node.dataset.effect = marks[id]; else delete node.dataset.effect;
     }
-    row.appendChild(right);
-    box.appendChild(row);
-  });
-  box.appendChild(h("p", "cnext", "Once every Decision is answered, press Copy answer and paste it back: the agent goes on with these picks."));
-  return box;
-}
-function planPage() {
-  var later = laterIds(), keep = focusSet(), box = h("div", "ptree");
-  if (decisions.length) box.appendChild(choicesView());
-  plan.parts.forEach(function (_, i) { box.appendChild(partNode(String(i + 1), later, keep)); });
-  if (!plan.parts.length) box.appendChild(h("p", "empty", "This plan has no parts."));
-  return box;
-}
-
-// -- frame ----------------------------------------------------------------
-function waitingFor(id) {
-  var c = S.pick[id];
-  if (S.strike[id] != null) return false;
-  if (!c) return true;
-  return c.other == null && c.then == null && !!options(byId[id])[c.k - 1].then;
-}
-function waiting() { return decisions.filter(waitingFor).length; }
-function goTo(i) {
-  ui.page = Math.max(0, Math.min(pages.length - 1, i)); ui.awaiting = null; ui.open = null; render();
-  window.scrollTo(0, 0);
-}
-function hint() {
-  var el = document.getElementById("hint"), id = pages[ui.page];
-  el.textContent = "";
-  var say = function () { for (var i = 0; i < arguments.length; i++) el.appendChild(typeof arguments[i] === "string" ? document.createTextNode(arguments[i]) : arguments[i]); };
-  var nextKey = ui.page < pages.length - 1 ? [", next ", kbd("→")] : [", back ", kbd("←")];
-  if (ui.open) return say("Type, then ", kbd("Enter"), ", close ", kbd("Esc"));
-  if (id === "plan" && ui.focus) return say("Focused on " + ui.focus + ", show all ", kbd("Esc"));
-  if (id === "plan") return say("Click a part to focus it, hover to strike, comment or edit", ui.page ? ", back " : "", ui.page ? kbd("←") : "");
-  if (S.strike[id] != null) return say.apply(null, ["Struck"].concat(nextKey));
-  if (ui.awaiting === id) {
-    var q = options(byId[id])[S.pick[id].k - 1].then;
-    return say("Then ", kbd("1"), " – ", kbd(String(options(q).length)), ", all options ", kbd("Esc"));
   }
-  var K = options(byId[id]).length;
-  say.apply(null, ["Pick a branch ", kbd("1"), " – ", kbd(String(K + 1))].concat(nextKey));
-}
-function render() {
-  var stage = document.getElementById("stage");
-  stage.textContent = "";
-  // Every page stays in the document, the ones not shown hidden, so the plan's fade is always measurable.
-  pages.forEach(function (id, i) {
-    var sec = h("section", "page");
-    sec.setAttribute("data-page", id);
-    sec.hidden = i !== ui.page;
-    sec.appendChild(id === "plan" ? planPage() : decisionPage(id));
-    stage.appendChild(sec);
-  });
-  var n = waiting();
-  document.getElementById("waiting").textContent = decisions.length ? n + " waiting for you" : "nothing to decide";
-  var pager = document.getElementById("pager");
-  pager.textContent = "";
-  pages.forEach(function (id, i) {
-    var dot = btn("", function () { goTo(i); }, "dot" + (i === ui.page ? " on" : ""));
-    dot.setAttribute("aria-label", id === "plan" ? "Whole plan" : "Decision " + (i + 1));
-    dot.setAttribute("data-goto", id);
-    pager.appendChild(dot);
-  });
-  pager.appendChild(h("span", "of", (pages[ui.page] === "plan" ? "Whole plan, " : "") + (ui.page + 1) + " of " + pages.length));
-  hint();
-  var count = lines().length;
-  document.getElementById("answer").value = answerText();
-  document.getElementById("undo").disabled = history.length === 0;
-  document.getElementById("copy").textContent = ui.copied ? "Copied – paste it back to the agent" : "Copy answer" + (count ? " (" + count + ")" : "");
-  var f = stage.querySelector("section:not([hidden]) .editor textarea, section:not([hidden]) .editor input");
-  if (f) f.focus();
 }
 
-// -- keys -----------------------------------------------------------------
-document.addEventListener("keydown", function (e) {
-  var t = e.target;
-  if ((t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT")) || e.ctrlKey || e.metaKey || e.altKey) return;
-  var id = pages[ui.page];
-  if (e.key === "ArrowRight" || e.key === "j") { goTo(ui.page + 1); e.preventDefault(); }
-  else if (e.key === "ArrowLeft" || e.key === "k") { goTo(ui.page - 1); e.preventDefault(); }
-  else if (e.key === "Escape") {
-    if (ui.open || ui.awaiting) { ui.open = null; ui.awaiting = null; }
-    if (id !== "plan") ui.showAll[id] = true;
-    else ui.focus = null;
-    render();
-  } else if (/^[1-9]$/.test(e.key) && id !== "plan" && S.strike[id] == null) {
-    var n = +e.key, d = byId[id], K = options(d).length, c = S.pick[id];
-    if (ui.awaiting === id) {
-      var q = options(d)[c.k - 1].then;
-      if (n <= options(q).length) pickLeaf(id, c.k, n);
-    } else if (n <= K) pickOption(id, n);
-    else if (n === K + 1) { e.preventDefault(); openEditor("other", id); }
-  }
-});
+function showStat(id, value, next, label, lead = "") {
+  const delta = next - value;
+  const shown = delta ? [" ", make("span", "delta", `(${delta > 0 ? "+" : ""}${delta})`)] : [];
+  document.getElementById(id).replaceChildren(make("b", "", `${lead}${next}`), ...shown, ...label(next));
+}
 
-document.getElementById("undo").addEventListener("click", function () {
+function showNumbers(now, next) {
+  showStat("tree-left", now.left, next.left, n => [make("span", "long", n === 1 ? " decision" : " decisions"), " left"]);
+  showStat("tree-risks", now.risks, next.risks, n => [n === 1 ? " risk" : " risks"]);
+  const files = document.getElementById("tree-files");
+  files.hidden = now.files === null;
+  if (now.files !== null) showStat("tree-files", now.files, next.files, n => [n === 1 ? " file" : " files", make("span", "long", " (estimate)")], "~");
+}
+
+function preview(id, position) {
+  if (state.picks[id] === position) return endPreview();
+  const next = {...state.picks, [id]: position};
+  showNumbers(summary(state.picks, state.struck), summary(next, state.struck));
+  showMarks(changes(next), true);
+}
+function endPreview() {
+  const now = summary(state.picks, state.struck);
+  showNumbers(now, now);
+  showMarks(lastChange, false);
+}
+
+// -- moving through the Decisions -------------------------------------------------------------------
+
+function goTo(id) {
+  const node = elements.get(id);
+  current = id;
+  for (const other of decisionIds) elements.get(other).classList.toggle("current", other === id);
+  node.scrollIntoView({block: "start"});
+  node.focus({preventScroll: true});
+  node.classList.remove("flash");
+  void node.offsetWidth;
+  node.classList.add("flash");
+}
+const inView = id => {
+  const box = elements.get(id).getBoundingClientRect();
+  return box.bottom > 100 && box.top < innerHeight;
+};
+const live = () => { const entries = evaluate(state.picks); return decisionIds.filter(id => !entries[id].cause && !isStruck(id)); };
+const currentDecision = () => current && inView(current) ? current : live().find(inView);
+
+function nextOpen() {
+  const entries = evaluate(state.picks);
+  const open = decisionIds.find(id => isWaiting(entries[id]) && !isStruck(id));
+  if (open) goTo(open);
+}
+function move(step) {
+  const list = live(), at = list.indexOf(currentDecision());
+  const target = list[Math.min(list.length - 1, Math.max(0, at + step))];
+  if (target) goTo(target);
+}
+function pressNumber(n) {
+  const id = currentDecision();
+  if (!id) return;
+  const count = options(parts.get(id)).length;
+  if (n <= count) pick(id, n);
+  else if (n === count + 1) openEditor("other", id);
+}
+function undo() {
   if (!history.length) return;
-  S = JSON.parse(history.pop()); ui.awaiting = null; ui.open = null; ui.copied = false; render();
-});
-document.getElementById("copy").addEventListener("click", function () {
-  var text = answerText();
-  var done = function () { ui.copied = true; render(); };
-  var fallback = function () {
-    var ta = h("textarea"); ta.value = text; ta.style.cssText = "position:fixed;left:-9999px;top:0";
-    document.body.appendChild(ta); ta.select();
-    try { document.execCommand("copy"); } catch (e) {}
-    ta.remove(); done();
-  };
-  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
-  else fallback();
+  state = JSON.parse(history.pop());
+  lastChange = {};
+  save();
+  render();
+  announce("Undone");
+}
+function reset() {
+  editor = null;
+  lastChange = {};
+  history.push(JSON.stringify(state));
+  state = blank();
+  save();
+  render();
+}
+
+addEventListener("keydown", event => {
+  if (event.metaKey || event.ctrlKey || event.altKey || event.target.closest("input, textarea")) return;
+  if (/^[1-9]$/.test(event.key)) pressNumber(Number(event.key));
+  else if (event.key === "j") move(1);
+  else if (event.key === "k") move(-1);
+  else if (event.key === "n") nextOpen();
+  else if (event.key === "u") undo();
 });
 
-document.getElementById("title").textContent = plan.title;
-render();
+// -- the page -----------------------------------------------------------------------------------------
+
+// Set once, so a row never moves under the hand; what a later visit finds open comes first.
+const queueOrder = (() => {
+  const entries = evaluate(state.picks);
+  return [...decisionIds].sort((a, b) => isWaiting(entries[b]) - isWaiting(entries[a]));
 })();
+
+function pickLabel(id, entry) {
+  if (entry.choice === OTHER) return ["Your own", state.others[id]];
+  if (entry.choice === null) return ["No option left", "Write your own"];
+  const text = options(parts.get(id))[entry.choice - 1].text;
+  return [entry.answered ? "Your pick" : entry.choice === 1 ? "Agent's pick" : "In force", text];
+}
+
+function renderOverview(entries) {
+  const rows = queueOrder.filter(id => !isStruck(id) && (entries[id].answered || isWaiting(entries[id]))).map(id => {
+    const [label, text] = pickLabel(id, entries[id]), word = decisionWord(id, entries[id]);
+    const link = make("a", "", make("span", "row-mark", MARK[word]), make("span", "row-question", shownText(id)),
+      make("span", "row-pick", make("small", "", `${label}: `), text));
+    link.href = `#part-${id}`;
+    link.addEventListener("click", event => { event.preventDefault(); goTo(id); });
+    return make("li", word, link);
+  });
+  document.getElementById("tree-queue").replaceChildren(...rows);
+  const counted = word => decisionIds.filter(id => decisionWord(id, entries[id]) === word);
+  const settled = counted("settled"), unneeded = counted("not-needed"), folded = [];
+  if (settled.length) folded.push(`${settled.length} auto-settled: `, ...settled.flatMap((id, i) => [...(i ? ", " : ""), jumpLink(id, shownText(id))]), ". ");
+  if (unneeded.length) folded.push(`${unneeded.length} not needed now: `, ...unneeded.flatMap((id, i) => [...(i ? ", " : ""), jumpLink(id, shownText(id))]), ".");
+  document.getElementById("tree-folded").replaceChildren(...folded);
+}
+
+function renderNav(entries) {
+  for (const id of decisionIds) {
+    const link = document.querySelector(`.frame-nav a[href="#part-${id}"]`), word = decisionWord(id, entries[id]);
+    link.dataset.state = word;
+    link.dataset.mark = MARK[word];
+    link.title = WORD[word];
+  }
+}
+
+function render() {
+  const focused = document.activeElement?.dataset.key;
+  const entries = evaluate(state.picks);
+  for (const id of parts.keys()) renderPart(id, entries);
+  renderOverview(entries);
+  renderNav(entries);
+  endPreview();
+  const left = summary(state.picks, state.struck).left;
+  const next = document.getElementById("tree-next"), finish = document.getElementById("tree-finish");
+  next.disabled = left === 0;
+  next.classList.toggle("primary", left > 0);
+  finish.classList.toggle("primary", left === 0);
+  document.getElementById("tree-undo").disabled = history.length === 0;
+  if (editor) document.querySelector(".editor-field").focus();
+  else if (focused) document.querySelector(`[data-key="${focused}"]`)?.focus({preventScroll: true});
+}
+
+document.getElementById("tree-title").textContent = plan.title;
+[...parts.keys()].filter(id => !id.includes(".")).forEach(id => {
+  document.getElementById(isGoal(id) ? "tree-goal" : "tree-parts").append(skeleton(id));
+});
+document.getElementById("tree-next").addEventListener("click", nextOpen);
+document.getElementById("tree-undo").addEventListener("click", undo);
+document.getElementById("tree-finish").addEventListener("click", () => document.getElementById("frame-copy").click());
+render();
+start({copy: answerText, reset});
 </script>
-</body>
-</html>

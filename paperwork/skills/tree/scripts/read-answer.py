@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Apply an owner's Answer to a plan and print the next plan.
 
-usage: read-answer.py PLAN.json ANSWER.md        next plan JSON on stdout; "refused: line N: ..." and exit 1 when the Answer does not apply
+usage: read-answer.py PLAN.json ANSWER.md        next plan JSON on stdout, "not answered: <id> <text>" on stderr per Decision left open; "refused: line N: ..." and exit 1 when the Answer does not apply
        read-answer.py --expect-refused PLAN ANSWER...   "refused K of N": each Answer must be refused against PLAN
        read-answer.py --check DIR                "ok N": each X.json with an X.answer.md applies and the result passes the checker
 """
@@ -20,10 +20,11 @@ def next_plan(plan_path, answer_path):
     tree_plan.check_head(plan, answer_text)
     entries = tree_plan.parse_answer(answer_text)
     new = tree_plan.apply_answer(plan, entries)
+    left = tree_plan.unanswered(plan, entries)
     errors = tree_plan.check(new)
     if errors:
         raise tree_plan.AnswerError(0, f"the next plan fails the checker: {errors[0][0]}: {errors[0][1]}")
-    return new
+    return new, left
 
 
 def main(args):
@@ -58,13 +59,15 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     try:
-        new = next_plan(*args)
+        new, left = next_plan(*args)
     except tree_plan.AnswerError as e:
         print(f"refused: {e}")
         return 1
     except (tree_plan.PlanError, OSError) as e:
         print(f"refused: {e}")
         return 1
+    for part_id, text in left:
+        print(f"not answered: {part_id} {text}", file=sys.stderr)
     print(json.dumps(new, indent=2, ensure_ascii=False))
     return 0
 

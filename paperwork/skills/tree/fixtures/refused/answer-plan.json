@@ -1,1 +1,36 @@
-{"title": "Answer names a missing part", "parts": [{"kind": "goal", "text": "Ship the change."}, {"text": "Which store?", "pick": {"text": "Postgres"}, "else": [{"text": "SQLite"}]}]}
+{
+  "title": "Answer names a missing part",
+  "parts": [
+    {
+      "kind": "goal",
+      "text": "Ship the change."
+    },
+    {
+      "text": "Which store?",
+      "name": "store",
+      "pick": {
+        "text": "Postgres",
+        "name": "postgres"
+      },
+      "else": [
+        {
+          "text": "SQLite"
+        }
+      ]
+    },
+    {
+      "text": "Which host?",
+      "pick": {
+        "text": "Cloud",
+        "requires": [
+          "store.postgres"
+        ]
+      },
+      "else": [
+        {
+          "text": "A file on disk"
+        }
+      ]
+    }
+  ]
+}

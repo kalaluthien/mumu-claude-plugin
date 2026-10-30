@@ -1,0 +1,1 @@
+{"title": "Default path blocked", "parts": [{"text": "Where?", "name": "host", "pick": {"text": "Cloud", "name": "cloud"}, "else": [{"text": "Rack", "name": "rack"}]}, {"text": "Which store?", "pick": {"text": "SQLite", "excludes": ["host.cloud"]}, "else": [{"text": "Postgres"}]}]}

@@ -22,21 +22,35 @@
       "source": "https://cursor.com/help/ai-features/plan-mode",
       "pick": {
         "text": "Build",
-        "parts": [{"text": "Agent starts coding from the plan.", "kind": "consequence"}]
+        "parts": [
+          {
+            "text": "Agent starts coding from the plan.",
+            "kind": "consequence"
+          }
+        ]
       },
       "else": [
-        {"text": "Keep editing the plan"}
+        {
+          "text": "Keep editing the plan"
+        }
       ]
     },
     {
       "text": "Plans are saved by default in your home directory.",
       "kind": "question",
       "source": "https://cursor.com/help/ai-features/plan-mode",
-      "pick": {"text": "Keep it in the home directory"},
+      "pick": {
+        "text": "Keep it in the home directory"
+      },
       "else": [
         {
           "text": "Save to workspace",
-          "parts": [{"text": "For future reference, team sharing, and documentation.", "kind": "consequence"}]
+          "parts": [
+            {
+              "text": "For future reference, team sharing, and documentation.",
+              "kind": "consequence"
+            }
+          ]
         }
       ]
     },
