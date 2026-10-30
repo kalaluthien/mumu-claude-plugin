@@ -72,6 +72,13 @@ def right_body(browser, url, **_):
             return "the page scrolls wider than the screen"
         if page.locator(".frame-nav").is_visible():
             return "the navigation covers the body before a press"
+        page.locator("#frame-menu").focus()
+        page.keyboard.press("Enter")
+        if not page.evaluate("document.activeElement.closest('.frame-nav') !== null"):
+            return "the keyboard does not reach the navigation"
+        page.keyboard.press("Escape")
+        if page.locator(".frame-nav").is_visible() or page.evaluate("document.activeElement.id") != "frame-menu":
+            return "Escape does not close the navigation and return to the menu"
         page.locator("#frame-menu").click()
         if not page.locator(".frame-nav").is_visible():
             return "a press does not show the navigation"

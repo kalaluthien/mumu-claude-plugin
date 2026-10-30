@@ -2128,9 +2128,13 @@ function startNavigation() {
   const menu = document.getElementById("frame-menu");
   const links = [...nav.querySelectorAll("a")];
   const sections = links.map(link => document.getElementById(link.getAttribute("href").slice(1)));
+  // The navigation follows the top bar in the document, so a keyboard reader needs focus moved into it and back.
   const showMenu = open => {
+    const wasOpen = nav.classList.contains("open");
     nav.classList.toggle("open", open);
     menu.setAttribute("aria-expanded", open);
+    if (open && !wasOpen) links[0].focus();
+    if (!open && wasOpen) menu.focus();
   };
   const markCurrent = () => {
     const current = sections.filter(section => section.getBoundingClientRect().top <= 96).pop() || sections[0];
