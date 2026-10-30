@@ -22,7 +22,7 @@ ASSETS = pathlib.Path(__file__).resolve().parents[1] / "assets"
 URL = re.compile(r"https?://\S+")
 FOLD_STATE = "[...document.querySelectorAll('details')].map(d => d.open)"
 FOLD_CHANGE = "(d => { d.open = !d.open; })(document.querySelector('details'))"
-PAGE_FACTS = ("first screen", "run counts", "needs a person", "evidence folded", "grader text", "empty fixes", "copy pairs", "fix once",
+PAGE_FACTS = ("first screen", "run counts", "needs a person", "evidence folded", "grader text", "empty fixes", "copy pairs", "status tags", "fix once",
               "no response path", "split rule", "outside fold")
 GROUPS = (("Not met", "failed", ("✗ Not met",), "No criterion failed with every run agreeing."),
           ("Not sure", "open", ("? Not sure", "? Not settled"), "The runs agreed on every criterion."),
@@ -67,7 +67,7 @@ def rows(rubric, grades):
 
 
 def critical_tag(criterion):
-    return '<span class="tag">critical</span>' if criterion.get("critical") else ""
+    return '<span class="frame-tag fail critical">critical</span>' if criterion.get("critical") else ""
 
 
 def list_item(criterion, content):
@@ -104,7 +104,7 @@ def card(criterion, grade, state):
     link = f'<a href="#fix-{name}">See the list above.</a>' if grade.get("fix") or needs_person(grade) else ""
     fold = f'<details><summary>Evidence</summary>{evidence(grade)}</details>' if evidence(grade) else ""
     return (f'<article class="crit {state}" id="c-{name}" data-criterion="{name}"{f" data-runs={len(runs)}" if judged else ""} data-copy="{escape(copy_text(criterion, grade))}">'
-            f'<div class="crit-head"><span class="status">{word(criterion, grade)}</span><span class="crit-text">{critical_tag(criterion)}{linked(criterion["text"])}</span>'
+            f'<div class="crit-head"><span class="frame-tag status">{word(criterion, grade)}</span><span class="crit-text">{critical_tag(criterion)}{linked(criterion["text"])}</span>'
             f'<span class="crit-id">{name}</span></div><div class="runs">{count}</div>{reason}{link}{fold}</article>')
 
 
@@ -171,12 +171,13 @@ def measured(browser, url, rubric, grades):
     facts = page.evaluate((ASSETS / "measure-page.js").read_text(encoding="utf-8").split("\n", 1)[1], {
         "person": [criterion["id"] for criterion, grade in rows(rubric, grades) if needs_person(grade)], "grader": len(grades["grader_text"]),
         "judged": sum(criterion["check"] == "judge" for criterion in rubric["criteria"]), "fixes": [grade["fix"] for grade in grades["grades"].values() if grade.get("fix")]})
+    tags = page.locator(".frame-tag.status").count()
     page.close()
     if leaks:
         raise Refused(f"requests left for {', '.join(leaks)}")
     copied = copied_text(rubric, grades)
     bare = [criterion["id"] for criterion, grade in rows(rubric, grades) if any(value not in copied for value in (criterion["text"], grade.get("quote", ""), grade.get("fix", "")))]
-    return {**facts, "copy pairs": f"copy lacks {bare}" if bare else None}
+    return {**facts, "copy pairs": f"copy lacks {bare}" if bare else None, "status tags": f"{tags} tags for {len(rubric['criteria'])} criteria" if tags != len(rubric["criteria"]) else None}
 
 
 def fits(browser, url, name, picture_folder):

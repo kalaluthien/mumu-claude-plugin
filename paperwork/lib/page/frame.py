@@ -13,6 +13,54 @@ SCREEN_WIDTH = 1200
 NARROW_WIDTHS = (PHONE_WIDTH, 820)
 SHORT_SCREEN = 500
 OUTSIDE_POINT = (PHONE_WIDTH - 10, 600)
+TEXT_SIZES = {13, 15, 17, 19, 22, 24}
+CORNERS = {0, 4, 6, 8, 10}
+TITLE_LOOK = {SCREEN_WIDTH: ["24px", "600"], PHONE_WIDTH: ["22px", "600"]}
+NAV_ROWS = {SCREEN_WIDTH: {".lnb-item > .lnb-link": 40, ".lnb-subitem a": 32}, PHONE_WIDTH: {".lnb-item > .lnb-link": 44, ".lnb-subitem a": 44}}
+TOUCH_HEIGHT = 44
+CONTRAST = 4.5
+TEXTS = """() => { const walker = document.createTreeWalker(document.querySelector(".frame"), NodeFilter.SHOW_TEXT), found = new Set();
+    while (walker.nextNode()) {
+      const element = walker.currentNode.parentElement;
+      if (walker.currentNode.textContent.trim() && element.getClientRects().length && getComputedStyle(element).visibility === "visible"
+          && !element.closest("style, script, .sr-only")) found.add(element);
+    }
+    return [...found]; }"""
+OFF_SCALE = f"""() => {{ const sizes = {sorted(TEXT_SIZES)};
+    return ({TEXTS})().filter(e => !sizes.includes(parseFloat(getComputedStyle(e).fontSize)))
+      .map(e => e.tagName + "." + e.className + " " + getComputedStyle(e).fontSize); }}"""
+OFF_CORNERS = f"""() => {{ const allowed = {sorted(CORNERS)};
+    return [...document.querySelectorAll(".frame, .frame *")].filter(e => e.getClientRects().length && getComputedStyle(e).visibility === "visible").filter(e => {{
+      const box = e.getBoundingClientRect(), round = Math.min(box.width, box.height) / 2;
+      return ["TopLeft", "TopRight", "BottomLeft", "BottomRight"].some(corner => {{
+        const value = getComputedStyle(e)["border" + corner + "Radius"], number = parseFloat(value);
+        return !value.includes("%") && !allowed.includes(number) && number < round; }}); }})
+      .map(e => e.tagName + "." + e.className + " " + getComputedStyle(e).borderTopLeftRadius); }}"""
+LOW_CONTRAST = f"""() => {{
+    const channels = text => text.match(/[\\d.]+/g).map(Number);
+    const light = ([r, g, b]) => {{ const part = v => (v /= 255) <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;
+      return .2126 * part(r) + .7152 * part(g) + .0722 * part(b); }};
+    const solid = paint => {{ const [r, g, b, a = 1] = channels(paint); return a === 1 ? [r, g, b] : null; }};
+    const shapeBehind = text => {{ text.scrollIntoView({{block: "center", behavior: "instant"}});
+      const box = text.getBoundingClientRect();
+      const paints = document.elementsFromPoint(box.x + box.width / 2, box.y + box.height / 2).filter(e => e.matches("rect, path, circle, ellipse, polygon"))
+        .map(e => getComputedStyle(e).fill).filter(fill => fill.startsWith("rgb")).map(solid);
+      return paints.find(Boolean); }};
+    const behind = element => {{ for (let e = element; e; e = e.parentElement) {{
+      const paint = solid(getComputedStyle(e).backgroundColor);
+      if (paint) return paint; }} return [255, 255, 255]; }};
+    const ink = e => getComputedStyle(e)[e instanceof SVGElement ? "fill" : "color"];
+    return ({TEXTS})().filter(e => !e.closest("[disabled], [aria-disabled=true]")).filter(e => {{
+      const [hi, lo] = [light(channels(ink(e))), light((e instanceof SVGElement && shapeBehind(e)) || behind(e))].sort((a, b) => b - a);
+      return (hi + .05) / (lo + .05) < {CONTRAST}; }}).map(e => e.tagName + "." + e.className + " " + e.textContent.trim().slice(0, 30)); }}"""
+SHORT_CONTROLS = f"""() => [...document.querySelectorAll("button, input, select, textarea, summary, .frame-nav a")]
+    .filter(e => e.getClientRects().length && getComputedStyle(e).visibility === "visible" && e.getBoundingClientRect().height < {TOUCH_HEIGHT})
+    .map(e => e.tagName + "." + e.className + " " + e.getBoundingClientRect().height)"""
+ROW_HEIGHTS = """selector => [...document.querySelectorAll(".frame-nav " + selector)].filter(e => e.getClientRects().length).filter(e => {
+      const style = getComputedStyle(e), lines = (e.getBoundingClientRect().height - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)) / parseFloat(style.lineHeight);
+      return Math.round(lines) === 1; }).map(e => e.getBoundingClientRect().height)"""
+HAND_BUTTONS = """() => [...document.querySelectorAll(".frame-body button:not(.krds-btn):not(.frame-row)")].map(e => e.outerHTML.slice(0, 80))"""
+BLANK_TAGS = """() => [...document.querySelectorAll(".frame-tag")].filter(e => e.getClientRects().length && getComputedStyle(e).visibility === "visible" && !e.innerText.trim()).map(e => e.outerHTML)"""
 CONTROL_WORDS = {"#frame-copy": "Copy this view", "#frame-reset": "Back to start", "#frame-theme": "Light or dark"}
 # Fixed English around Korean content leaves Hangul at about a third of the letters; a quoted Korean word stays under this.
 KOREAN_SHARE = 0.1
@@ -171,6 +219,78 @@ def icons(browser, url, **_):
     return None
 
 
+def views(page):
+    """The page as it opens, then with each navigation link pressed, since a section may stay hidden until then."""
+    yield page
+    for link in page.locator(".frame-nav a").all():
+        if not link.is_visible():
+            page.locator("#frame-menu").click()
+        link.click()
+        yield page
+
+
+def swept(browser, url, measure, widths=(SCREEN_WIDTH, PHONE_WIDTH), schemes=("light",)):
+    """The first thing measure finds wrong, opening every fold first, with each view walked."""
+    for width in widths:
+        for scheme in schemes:
+            with opened(browser, url, width, scheme=scheme) as page:
+                page.evaluate("document.querySelectorAll('details').forEach(fold => { fold.open = true; })")
+                for shown in views(page):
+                    if found := shown.evaluate(measure):
+                        return f"at {width} px in {scheme}: {found[0]}"
+    return None
+
+
+def type_scale(browser, url, **_):
+    return swept(browser, url, OFF_SCALE)
+
+
+def corners(browser, url, **_):
+    return swept(browser, url, OFF_CORNERS)
+
+
+def title_style(browser, url, **_):
+    for width, look in TITLE_LOOK.items():
+        with opened(browser, url, width) as page:
+            found = page.locator("h1:visible").first.evaluate("e => [getComputedStyle(e).fontSize, getComputedStyle(e).fontWeight]")
+            if found != look:
+                return f"at {width} px the title is {found}"
+    return None
+
+
+def text_contrast(browser, url, **_):
+    return swept(browser, url, LOW_CONTRAST, widths=(SCREEN_WIDTH,), schemes=("light", "dark"))
+
+
+def touch_targets(browser, url, **_):
+    if found := swept(browser, url, SHORT_CONTROLS, widths=(PHONE_WIDTH,)):
+        return found
+    with opened(browser, url, PHONE_WIDTH) as page:
+        page.locator("#frame-menu").click()
+        if found := page.evaluate(SHORT_CONTROLS):
+            return f"with the menu open: {found[0]}"
+    return None
+
+
+def navigation_rows(browser, url, **_):
+    for width, rows in NAV_ROWS.items():
+        with opened(browser, url, width) as page:
+            if width == PHONE_WIDTH:
+                page.locator("#frame-menu").click()
+            for selector, height in rows.items():
+                if wrong := [found for found in page.evaluate(ROW_HEIGHTS, selector) if abs(found - height) > .5]:
+                    return f"at {width} px {selector} is {wrong[0]} px high"
+    return None
+
+
+def status_words(browser, url, **_):
+    return swept(browser, url, BLANK_TAGS, widths=(SCREEN_WIDTH,))
+
+
+def body_buttons(browser, url, **_):
+    return swept(browser, url, HAND_BUTTONS, widths=(SCREEN_WIDTH,))
+
+
 def menu_under_bar(browser, url, **_):
     for width in NARROW_WIDTHS:
         with opened(browser, url, width) as page:
@@ -263,7 +383,9 @@ def control_words(browser, url, **_):
 FACTS = {"left navigation": left_navigation, "right body": right_body, "copy": copy, "reset": reset, "theme": theme,
          "root": root, "icons": icons, "menu under bar": menu_under_bar, "menu closed": menu_closed, "long menu": long_menu,
          "outside press": outside_press, "sub-link current": sub_link_current, "print light": print_light,
-         "print menu": print_menu, "control words": control_words}
+         "print menu": print_menu, "control words": control_words, "type scale": type_scale, "corners": corners, "title style": title_style,
+         "text contrast": text_contrast, "touch targets": touch_targets, "navigation rows": navigation_rows, "status words": status_words,
+         "body buttons": body_buttons}
 
 
 def probe(browser, url, **expected):

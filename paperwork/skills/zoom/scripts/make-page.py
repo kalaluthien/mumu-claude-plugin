@@ -39,6 +39,7 @@ GROUPS = (("scenarios", "Scenarios", "Scenario"), ("rules", "Rules", "Rule"))
 WHY = {"scenarios": "Each one walks the chart step by step.", "rules": "Each one marks what it concerns, and a counterexample plays its run."}
 VERDICTS = {"pass": "✓", "counterexample": "✗", "unproved": "?"}
 RESPONSE_PATHS = ("fetch(", "XMLHttpRequest", "sendBeacon", "WebSocket", "<form", "<input", "<textarea", "<select")
+HINTS = ('✓ <span class="frame-tag pass">Pass</span> A rule holds', '✗ <span class="frame-tag fail">Counterexample</span> A run breaks it', "Press a box or a line to read it and its source")
 LEGEND = {
     "state": ('<rect x="1" y="1" width="26" height="14" rx="5"/>', "State: where a thing is now"),
     "part": ('<rect x="1" y="1" width="26" height="14" rx="1"/>', "Part: a piece of the system"),
@@ -144,7 +145,7 @@ def run_text(model, step):
     """What a step of a counterexample does, from the only words a proof has: the labels it names."""
     label = lambda node_id: model.nodes[node_id]["label"]
     moves = [f'{label(edge["from"])} goes to {label(edge["to"])} by {edge["label"]}.' for key, (_, edge) in model.edges.items() if key in step["edges"]]
-    return ("At the same time: " if len(moves) > 1 else "") + " ".join(moves) or f'Together these break it: {", ".join(label(node) for node in step["nodes"])}.'
+    return ("At the same time:\n" if len(moves) > 1 else "") + "\n".join(moves) or f'Together these break it: {", ".join(label(node) for node in step["nodes"])}.'
 
 
 def rule_item(model, rule, proof):
@@ -177,14 +178,14 @@ def inside(model):
     """What the root's chart only opens, so the first screen names the whole system."""
     rows = "".join(f'<li><a href="#level-{escape(level_id)}">{escape(level["title"])}</a>: {escape(", ".join(node["label"] for node in level["nodes"]))}</li>'
                    for level_id, level in model.levels.items() if level_id != "root")
-    return f'<ul class="inside" aria-label="What is inside">{rows}</ul>' if rows else ""
+    return f'<h2 class="inside-heading">Main parts</h2>\n<ul class="inside" aria-label="What is inside">{rows}</ul>' if rows else ""
 
 
 def legend(model):
     """Every kind the document uses, so a level of one kind still says how the other reads."""
     kinds = [kind for kind in LEGEND if kind in {"state" if node_id in model.states(model.node_level[node_id]) else "part" for node_id in model.nodes} | {edge["kind"] for _, edge in model.edges.values()}]
     return '<ul class="legend" aria-label="What the shapes mean">' + "".join(
-        f'<li class="key-{kind}"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true">{LEGEND[kind][0]}</svg>{escape(LEGEND[kind][1])}</li>' for kind in kinds) + "</ul>"
+        f'<li class="key-{kind}"><svg viewBox="0 0 28 16" width="28" height="16" aria-hidden="true">{LEGEND[kind][0]}</svg>{escape(LEGEND[kind][1])}</li>' for kind in kinds) + "".join(f"<li>{hint}</li>" for hint in HINTS) + "</ul>"
 
 
 def section(model, level_id):
@@ -195,8 +196,11 @@ def section(model, level_id):
             '<div class="detail" hidden></div>\n</section>')
 
 
+TONES = {"pass": "pass", "counterexample": "fail", "unproved": "warn"}
+
+
 def badge(verdict):
-    return f'<span class="verdict" data-verdict="{verdict}">{verdict.capitalize()}</span>' if verdict else ""
+    return f'<span class="frame-tag verdict {TONES[verdict]}" data-verdict="{verdict}">{verdict.capitalize()}</span>' if verdict else ""
 
 
 def overview(target, title, why, items):
@@ -383,6 +387,11 @@ def scenario_playback(page, data):
     return next((why for item in data["items"] if item["kind"] == "Scenario" and (why := played(page, item))), None)
 
 
+def status_tags(page, data):
+    rules = [item for item in data["items"] if item["kind"] == "Rule"]
+    return f"{page.locator('.frame-tag.verdict').count()} tags for {len(rules)} rules" if page.locator(".frame-tag.verdict").count() < len(rules) else None
+
+
 def verdict_badge(page, data):
     for item in data["items"]:
         if item["kind"] == "Rule":
@@ -409,7 +418,7 @@ def reset_from_playback(page, data):
 
 
 FACTS = {"chart": chart, "detail panel": detail_panel, "level opens": level_opens, "read only": read_only, "text as written": text_as_written, "navigation items": navigation_items,
-         "scenario playback": scenario_playback, "verdict badge": verdict_badge, "counterexample playback": counterexample_playback, "reset from playback": reset_from_playback}
+         "scenario playback": scenario_playback, "verdict badge": verdict_badge, "status tags": status_tags, "counterexample playback": counterexample_playback, "reset from playback": reset_from_playback}
 
 
 def check(folder):

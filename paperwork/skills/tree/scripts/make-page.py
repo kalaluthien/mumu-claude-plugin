@@ -29,7 +29,7 @@ STATS = {"files": "#tree-files", "left": "#tree-left", "risks": "#tree-risks"}
 def navigation(plan):
     """The left tree: each top-level Part with the Decisions under it; a goal stands in the Overview."""
     entries = [("overview", "Overview")]
-    label = lambda part: textwrap.shorten(part["text"], 46, placeholder="…")
+    label = lambda part: textwrap.shorten(part["text"], 26, placeholder="…")
     for i, part in enumerate(plan["parts"], 1):
         if part.get("kind") == "goal" and not tree_plan.holds_decision(part):
             continue
@@ -262,6 +262,12 @@ class Facts:
         self.page.locator(f".option:has({OPTION.format(needs(self.left())[0], 1)})").hover()
         assert re.search(r"\d+ \([+-]\d+\)", self.page.inner_text("#tree-left")), f"a hover shows {self.page.inner_text('#tree-left')!r}"
         assert self.page.eval_on_selector(".tree-stats", "line => getComputedStyle(line).fontVariantNumeric") == "tabular-nums", "the digits are not tabular"
+
+    def status_tags(self):
+        risks = [part for _, part in tree_plan.walk(self.plan["parts"]) if part.get("kind") == "risk"]
+        needs(risks)
+        shown = self.page.locator(".frame-tag", has_text="! Risk").count()
+        assert shown >= len(risks), f"{shown} risk tags for {len(risks)} risks"
 
     def fold(self):
         for part_id, part in tree_plan.walk(self.plan["parts"]):
