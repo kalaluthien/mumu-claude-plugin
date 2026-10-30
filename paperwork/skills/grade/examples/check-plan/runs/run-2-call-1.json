@@ -1,0 +1,11 @@
+{"judge": "claude-sonnet-5-5", "grader_text": [], "grades": {
+  "comments-say-why": {"met": 0, "fix": "Delete the section-divider comments and the bare noqa marker, or give each a reason; keep the two reason-giving comments.", "items": [
+    {"item": "check-plan.py:13 '# noqa: E402'", "found": false},
+    {"item": "check-plan.py:46-47 A *-plan.json is the valid plan an answer fixture is applied to", "found": true, "quote": "A *-plan.json is the valid plan an answer fixture is applied to, so it is checked to be accepted and is not counted as a refused fixture.", "where": "check-plan.py:46-47"},
+    {"item": "tree_plan.py:12 source regex comment", "found": true, "quote": "A source a reader can open: a link off the writer's machine, or a person and the day they said it, dot-free since the page draws it.", "where": "tree_plan.py:12"},
+    {"item": "tree_plan.py:36 '# -- load ---'", "found": false},
+    {"item": "tree_plan.py:60 '# -- check ---'", "found": false},
+    {"item": "tree_plan.py:174 '# -- ids ---'", "found": false},
+    {"item": "tree_plan.py:197 '# -- answer ---'", "found": false}
+  ]}
+}}

@@ -1,77 +1,58 @@
 <style>
 /* Each name reads a KRDS colour, so the page follows the frame's theme. */
 :root {
-  --bg: var(--krds-color-background-white); --surface: var(--krds-color-surface-white); --panel: var(--krds-color-surface-gray-subtle);
-  --ink: var(--krds-color-text-bolder); --body: var(--krds-color-text-basic); --muted: var(--krds-color-text-subtle);
+  --surface: var(--krds-color-surface-white); --panel: var(--krds-color-surface-gray-subtle);
+  --body: var(--krds-color-text-basic); --muted: var(--krds-color-text-subtle);
   --line: var(--krds-color-border-gray); --card-line: var(--krds-color-border-gray-light); --accent: var(--krds-color-text-primary);
   --pass: var(--krds-color-text-success); --pass-bg: var(--krds-color-surface-success-subtler);
   --fail: var(--krds-color-text-danger); --fail-bg: var(--krds-color-surface-danger-subtler);
-  --serif: var(--font-sans); --sans: var(--font-sans); --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+  --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
 }
 a { color: inherit; text-decoration-color: var(--line); text-underline-offset: 3px; }
-a:hover { color: var(--accent); }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-h1 { font: 500 1.7rem/1.2 var(--serif); margin: 4px 0 6px; overflow-wrap: anywhere; }
-h2 { font: 500 1.2rem/1.3 var(--serif); margin: 36px 0 12px; }
-h3 { font: 600 .95rem/1.3 var(--sans); margin: 22px 0 10px; color: var(--body); }
-.eyebrow { font: .78rem var(--mono); color: var(--muted); letter-spacing: .02em; }
-.lede { color: var(--body); margin: 0; }
-.meta { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font: .78rem var(--mono); color: var(--muted); }
-.meta span { overflow-wrap: anywhere; }
+h1 { font: 500 1.5rem/1.2 var(--font-sans); margin: 2px 0 4px; overflow-wrap: anywhere; }
+h2 { font: 500 1.15rem/1.3 var(--font-sans); margin: 22px 0 8px; }
+h3 { font: 600 .95rem/1.3 var(--font-sans); margin: 20px 0 8px; }
+.eyebrow, .meta, .crit-id, .where { font: .78rem var(--mono); color: var(--muted); }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 14px; overflow-wrap: anywhere; }
+.rating { margin-top: 14px; background: var(--surface); border: 1px solid var(--card-line); border-radius: 12px; padding: 12px 18px; }
+.rating p { margin: 4px 0 0; color: var(--body); }
+.rating .decision { margin: 0; font: 500 1.15rem/1.4 var(--font-sans); }
+.rating .legend { font-size: .8rem; line-height: 1.4; color: var(--muted); }
+.warn { margin-top: 12px; padding: 8px 14px; border: 1px solid var(--fail); border-radius: 8px; overflow-wrap: anywhere; }
+ol.person, ol.fixes { margin: 0; padding-left: 1.4em; overflow-wrap: anywhere; }
+ol.person li, ol.fixes li { margin: 0 0 6px; padding-left: 4px; scroll-margin-top: 12px; }
+.tag { font: .72rem var(--mono); color: var(--fail); background: var(--fail-bg); border-radius: 4px; padding: 1px 6px; margin-right: 6px; white-space: nowrap; }
+.none { color: var(--muted); margin: 0 0 8px; }
 
-/* the verdict comes first, as a sentence, then one bullet bar per tier */
-.verdict { margin-top: 22px; background: var(--surface); border: 1px solid var(--card-line); border-radius: 12px; padding: 18px 20px; }
-.verdict p { font: 500 1.2rem/1.4 var(--serif); margin: 0 0 14px; }
-.tiers { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: 10px 14px; align-items: center; }
-.tier-name { font-size: .9rem; color: var(--body); overflow-wrap: anywhere; }
-.bullet { position: relative; height: 12px; background: var(--panel); border-radius: 3px; }
-.bullet .fill { position: absolute; inset: 0 auto 0 0; background: var(--ink); border-radius: 3px; }
-.bullet .target { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--accent); }
-.tier-count { font: .82rem var(--mono); color: var(--body); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.verdict .legend { margin: 12px 0 0; font: .8rem/1.45 var(--sans); color: var(--muted); }
-
-/* fix first: what to change, highest tier first */
-ol.fixes { margin: 0; padding-left: 1.4em; }
-ol.fixes li { margin: 0 0 10px; padding-left: 4px; }
-.fix-tier { font: .72rem var(--mono); color: var(--fail); background: var(--fail-bg); border-radius: 4px; padding: 1px 6px; margin-right: 6px; white-space: nowrap; }
-.none { color: var(--muted); }
-
-/* one card per criterion: a status word with its icon, never colour alone */
-.crit { background: var(--surface); border: 1px solid var(--card-line); border-left-width: 4px; border-radius: 10px; padding: 12px 16px; margin: 0 0 10px; overflow-wrap: anywhere; scroll-margin-top: 12px; }
+/* One card per criterion: a status word in a fixed slot, never colour alone. */
+.crit { background: var(--surface); border: 1px solid var(--card-line); border-left-width: 4px; border-radius: 10px; padding: 10px 14px; margin: 0 0 10px; overflow-wrap: anywhere; scroll-margin-top: 12px; }
 .crit.failed { border-left-color: var(--fail); }
 .crit.passed { border-left-color: var(--pass); }
-.crit.unjudged { border-left-color: var(--line); border-left-style: dashed; }
-.crit:target { box-shadow: 0 0 0 2px var(--accent); }
-.crit-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
-.status { font: 600 .78rem var(--sans); border-radius: 5px; padding: 1px 8px; white-space: nowrap; }
+.crit.open { border-left-color: var(--line); border-left-style: dashed; }
+.crit:target, li:target { box-shadow: 0 0 0 2px var(--accent); }
+.crit-head { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) auto; gap: 10px; align-items: baseline; }
+.status { font: 600 .78rem var(--font-sans); border-radius: 5px; padding: 1px 8px; white-space: nowrap; justify-self: start; }
 .failed .status { color: var(--fail); background: var(--fail-bg); }
 .passed .status { color: var(--pass); background: var(--pass-bg); }
-.unjudged .status { color: var(--body); background: var(--panel); }
-.crit-text { flex: 1 1 18em; min-width: 0; }
-.split { font: .75rem var(--sans); color: var(--muted); border: 1px dashed var(--line); border-radius: 5px; padding: 0 6px; }
-.crit-id { font: .72rem var(--mono); color: var(--muted); }
-details { margin-top: 8px; }
+.open .status { color: var(--body); background: var(--panel); }
+.runs { margin-top: 4px; font-size: .82rem; color: var(--muted); }
+.dots { display: inline-flex; gap: 3px; margin-right: 6px; }
+.dots i { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--body); }
+.dots .yes { background: var(--body); }
+.dots .blank { border-style: dashed; }
+details { margin-top: 6px; }
 summary { cursor: pointer; font-size: .85rem; color: var(--muted); }
-blockquote.evidence { margin: 8px 0; padding: 6px 12px; border-left: 3px solid var(--line); background: var(--panel); border-radius: 0 6px 6px 0; white-space: pre-wrap; font-size: .9rem; color: var(--body); }
-.where { font: .78rem var(--mono); color: var(--muted); }
-.why { margin: 6px 0 0; color: var(--body); font-size: .92rem; }
-.fix { margin: 8px 0 0; font-size: .92rem; }
-.fix b { color: var(--fail); }
-
+blockquote.evidence { margin: 6px 0; padding: 4px 12px; border-left: 3px solid var(--line); background: var(--panel); border-radius: 0 6px 6px 0; white-space: pre-wrap; font-size: .9rem; color: var(--body); }
 dl.subject { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 0; }
-dl.subject dt { color: var(--muted); font-size: .88rem; }
 dl.subject dd { margin: 0; overflow-wrap: anywhere; }
-dl.subject ul { margin: 0; padding-left: 1.1em; }
-footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: .85rem; color: var(--muted); }
-footer p { margin: 0 0 8px; }
-
+dl.subject ul, .warn ul { margin: 0; padding-left: 1.1em; }
+footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--line); font-size: .85rem; color: var(--muted); }
 @media (max-width: 560px) {
-  .tiers { grid-template-columns: minmax(0, 1fr) auto; }
-  .tiers .tier-name { grid-column: 1 / -1; margin-bottom: -4px; }
+  .crit-head { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   dl.subject { grid-template-columns: minmax(0, 1fr); }
 }
 @media print {
-  .status, .bullet .fill, .fix-tier { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .status, .tag, .dots i { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .crit { break-inside: avoid; }
 }
 </style>
@@ -79,9 +60,8 @@ __BODY__
 <script>
 // Opens every card's evidence before printing, since a closed <details> prints closed.
 addEventListener("beforeprint", () => document.querySelectorAll("details").forEach(d => d.open = true));
-const folds = [...document.querySelectorAll("details")].map(d => [d, d.open]);
 start({
-  copy: () => [...document.querySelectorAll("ol.fixes li")].map((li, i) => `${i + 1}. ${li.dataset.fix}`).join("\n") || "Nothing to fix: every criterion is met.",
-  reset: () => folds.forEach(([d, open]) => d.open = open),
+  copy: () => [...document.querySelectorAll("[data-copy]")].map(e => e.dataset.copy).join("\n"),
+  reset: () => document.querySelectorAll("details").forEach(d => d.open = false),
 });
 </script>

@@ -1,0 +1,11 @@
+{"judge": "claude-sonnet-5-5", "grader_text": [], "grades": {
+  "comments-say-why": {"met": 0, "fix": "Delete the four section-divider comments in tree_plan.py and explain or drop the bare noqa directive in check-plan.py.", "items": [
+    {"item": "check-plan.py comment: noqa E402", "found": false, "quote": "import tree_plan  # noqa: E402", "where": "check-plan.py:13"},
+    {"item": "check-plan.py comment: valid-plan fixture is not counted", "found": true, "quote": "# A *-plan.json is the valid plan an answer fixture is applied to, so it is", "where": "check-plan.py:46-47"},
+    {"item": "tree_plan.py comment: source a reader can open", "found": true, "quote": "# A source a reader can open: a link off the writer's machine, or a person and the day they said it, dot-free since the page draws it.", "where": "tree_plan.py:12"},
+    {"item": "tree_plan.py comment: load divider", "found": false, "quote": "# -- load ------------------------------------------------------------------", "where": "tree_plan.py:36"},
+    {"item": "tree_plan.py comment: check divider", "found": false, "quote": "# -- check -----------------------------------------------------------------", "where": "tree_plan.py:60"},
+    {"item": "tree_plan.py comment: ids divider", "found": false, "quote": "# -- ids -------------------------------------------------------------------", "where": "tree_plan.py:174"},
+    {"item": "tree_plan.py comment: answer divider", "found": false, "quote": "# -- answer ----------------------------------------------------------------", "where": "tree_plan.py:197"}
+  ]}
+}}

@@ -1,6 +1,6 @@
 # mumu-claude-plugin: Claude Code plugins
 
-Three Claude Code plugins that let one person run a small team of Claude sessions without losing the plot: **teamwork** turns what you ask for into reviewed, merged work; **paperwork** models a system as a checked document you can prove and draw, and turns a task into a grading spec; **homework** makes sure each session leaves behind what it learned.
+Three Claude Code plugins that let one person run a small team of Claude sessions without losing the plot: **teamwork** turns what you ask for into reviewed, merged work; **paperwork** models a system as a checked document you can prove and draw, and grades a target into a report card; **homework** makes sure each session leaves behind what it learned.
 
 Each plugin works alone.
 
@@ -71,10 +71,10 @@ That session becomes the manager. It files the backlog, starts a worker in a new
 - A monitor ([`print-team-gaps.py`](teamwork/monitors/print-team-gaps.py)) tells the manager where GitHub and the team disagree, and wakes a worker when its wait ends.
 - `/teamwork:issues` shows the Issues pane, a board of the open issues, again after you close it.
 
-## Paperwork: system models and grading specs
+## Paperwork: system models and report cards
 
 <details>
-<summary>Structure: Each skill calls the library of its own job; the Rubric lib reuses the Schema lib's document shape.</summary>
+<summary>Structure: Each skill calls the library of its own job.</summary>
 
 ```mermaid
 flowchart TB
@@ -88,7 +88,6 @@ flowchart TB
   n_zoom -->|"checks with"| n_schema
   n_zoom -->|"draws with"| n_page
   n_grade -->|"grades with"| n_spec
-  n_spec -->|"reuses"| n_schema
   n_tree -->|"checks and reads answers with"| n_plan
 ```
 
@@ -97,7 +96,7 @@ flowchart TB
 One Schema document holds what a system is, or must be, and every view is drawn from it after a checker passes it.
 
 - [`/paperwork:zoom`](paperwork/skills/zoom/SKILL.md) models a system, from code, docs or requirements, as a checked Schema document, then proves it with Alloy (needs Java) or shows it as a clickable HTML page.
-- [`/paperwork:grade`](paperwork/skills/grade/SKILL.md) grades a target, a document, skill, code, page or plan, into an HTML report card: it finds what the target is for, derives a rubric for it and grades it with quoted evidence; it also writes, measures and repairs grading specs for a judge, a benchmark or a human grading sheet.
+- [`/paperwork:grade`](paperwork/skills/grade/SKILL.md) grades a target, a document, skill, code, page or plan, into an HTML report card: it finds what the target promises, derives yes-or-no criteria, grades it with three fresh judges and quoted evidence, and shows a rating and the fixes on one page.
 - [`/paperwork:tree`](paperwork/skills/tree/SKILL.md) writes a plan as one checked JSON document, shows it as a page where the owner picks, strikes, comments and edits, and reads the copied Answer back into the plan's next version.
 
 **Usage.**

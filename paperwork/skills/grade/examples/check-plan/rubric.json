@@ -1,0 +1,143 @@
+{
+ "target": {
+  "name": "check-plan.py and tree_plan.py",
+  "where": "https://github.com/kalaluthien/mumu-claude-plugin/blob/74b7410/paperwork/skills/tree/scripts/check-plan.py",
+  "version": "74b7410"
+ },
+ "subject": {
+  "kind": "software: a command-line checker",
+  "purpose": "checks tree plan files against the grammar",
+  "reader": "the tree skill's author, whose owner sees a broken page when a malformed plan passes",
+  "frameworks": [
+   "ISO/IEC 25010 (https://iso25000.com/index.php/en/iso-25000-standards/iso-25010)",
+   "the repository's AGENTS.md"
+  ]
+ },
+ "promises": [
+  {
+   "text": "prints \"ok N\", or one error per line and exits 1",
+   "where": "check-plan.py:4"
+  },
+  {
+   "text": "prints a line per refused file, then \"refused K of N\"",
+   "where": "check-plan.py:5"
+  }
+ ],
+ "flaws": [
+  "a valid plan is refused",
+  "a malformed plan is accepted",
+  "a stack trace hides which file was wrong",
+  "a rule the author cannot look up",
+  "a comment repeats the code"
+ ],
+ "criteria": [
+  {
+   "id": "accepts-valid",
+   "text": "Run on a valid plan file, the script prints `ok 1` and exits 0.",
+   "check": "program",
+   "from": "ISO/IEC 25010 functional correctness: the verdict is right",
+   "command": "PYTHONPATH=. python3 check-plan.py refused/answer-plan.json | grep -x 'ok 1'",
+   "fix": "Accept the valid plan.",
+   "critical": true
+  },
+  {
+   "id": "refuses-unknown-key",
+   "text": "Run on a plan with an unknown key, the script exits 1 with the rule name `unknown-key` in its output.",
+   "check": "program",
+   "from": "ISO/IEC 25010 functional correctness: the verdict is right",
+   "command": "PYTHONPATH=. python3 check-plan.py refused/written-id.json | grep unknown-key; ! PYTHONPATH=. python3 check-plan.py refused/written-id.json >/dev/null",
+   "fix": "Refuse a key the grammar lacks.",
+   "critical": true
+  },
+  {
+   "id": "refuses-duplicate-key",
+   "text": "Run on a plan file that writes one key twice in an object, the script exits 1 and prints the rule name `duplicate-key`.",
+   "check": "program",
+   "from": "ISO/IEC 25010 functional correctness: the verdict is right",
+   "command": "PYTHONPATH=. python3 check-plan.py refused/two-picks.json | grep duplicate-key; ! PYTHONPATH=. python3 check-plan.py refused/two-picks.json >/dev/null",
+   "fix": "Refuse a repeated key when the file loads.",
+   "critical": true
+  },
+  {
+   "id": "refuses-missing-source",
+   "text": "An `evidence` part that lacks a source draws exit 1 and `evidence-needs-source`.",
+   "check": "program",
+   "from": "ISO/IEC 25010 functional correctness: the verdict is right",
+   "command": "PYTHONPATH=. python3 check-plan.py refused/evidence-without-source.json | grep evidence-needs-source; ! PYTHONPATH=. python3 check-plan.py refused/evidence-without-source.json >/dev/null",
+   "fix": "Refuse evidence with no source.",
+   "critical": true
+  },
+  {
+   "id": "usage-exit-2",
+   "text": "Run with no argument, the script exits 2, prints nothing on stdout and prints its docstring on stderr.",
+   "check": "program",
+   "from": "repository rules: AGENTS.md Script form",
+   "command": "out=$(PYTHONPATH=. python3 check-plan.py 2>/dev/null); status=$?; test $status -eq 2 && test -z \"$out\" && PYTHONPATH=. python3 check-plan.py 2>&1 | grep '^usage:'",
+   "fix": "Print the docstring on stderr and exit 2."
+  },
+  {
+   "id": "unreadable-reported",
+   "text": "Run on a path that does not exist, the script exits 1 and prints a line holding `unreadable`, with no `Traceback` on stderr.",
+   "check": "program",
+   "from": "ISO/IEC 25010 fault tolerance: a bad input fails in form",
+   "command": "out=$(PYTHONPATH=. python3 check-plan.py refused/none.json 2>&1); status=$?; echo \"$out\"; test $status -eq 1 && echo \"$out\" | grep -q unreadable && ! echo \"$out\" | grep -q Traceback",
+   "fix": "Report an unreadable file as a rule."
+  },
+  {
+   "id": "bad-encoding-reported",
+   "text": "Run on a file of invalid UTF-8 bytes, the script exits 1 with an error line and no `Traceback` on stderr.",
+   "check": "program",
+   "from": "ISO/IEC 25010 fault tolerance: a bad input fails in form",
+   "command": "out=$(PYTHONPATH=. python3 check-plan.py refused/not-utf8.json 2>&1); status=$?; echo \"$out\" | tail -1; test $status -eq 1 && ! echo \"$out\" | grep -q Traceback",
+   "fix": "Catch UnicodeDecodeError in errors_of as an unreadable file."
+  },
+  {
+   "id": "expect-refused-summary",
+   "text": "Run with `--expect-refused` on one refused plan file, the script prints a last line `refused 1 of 1` and exits 0.",
+   "check": "program",
+   "from": "ISO/IEC 25010 functional correctness: the verdict is right",
+   "command": "PYTHONPATH=. python3 check-plan.py --expect-refused refused/written-id.json | tail -1 | grep -x 'refused 1 of 1'",
+   "fix": "End the run with the refused count."
+  },
+  {
+   "id": "docstring-form",
+   "text": "The script's docstring opens with a purpose sentence and holds one `usage:` line per call form.",
+   "check": "program",
+   "from": "repository rules: AGENTS.md Script form",
+   "command": "sed -n 2p check-plan.py | grep -q '[.]$' && grep -cE '^(usage: |       )check-plan.py ' check-plan.py | grep -x 2",
+   "fix": "Open the docstring with a purpose and give a usage line per call."
+  },
+  {
+   "id": "main-form",
+   "text": "The script defines `def main(args)` and ends with `sys.exit(main(sys.argv[1:]))`.",
+   "check": "program",
+   "from": "repository rules: AGENTS.md Script form",
+   "command": "grep -q '^def main(args):' check-plan.py && tail -1 check-plan.py | grep -F 'sys.exit(main(sys.argv[1:]))'",
+   "fix": "Use the main form of AGENTS.md."
+  },
+  {
+   "id": "rule-names-documented",
+   "text": "Each rule name that `tree_plan.check` can emit appears in the tree skill's `references/grammar.md`.",
+   "check": "program",
+   "from": "repository rules: AGENTS.md Script form",
+   "command": "! grep -oE '\"[a-z]+(-[a-z]+)+\"' tree_plan.py | tr -d '\"' | sort -u | while read -r rule; do grep -qF \"$rule\" grammar.txt || echo \"undocumented: $rule\"; done | grep undocumented",
+   "fix": "Add each undocumented rule to the grammar."
+  },
+  {
+   "id": "lib-no-io",
+   "text": "`tree_plan.py` opens a file only in `load_file` and imports no network module.",
+   "check": "program",
+   "from": "the lib's docstring: every function is a calculation",
+   "command": "! grep -nE '^(import|from) (socket|urllib|http|requests)' tree_plan.py && grep -cE '[.]open[(]|[^_a-z]open[(]|read_text[(]|read_bytes[(]' tree_plan.py | grep -x 1",
+   "fix": "Move file reads into load_file."
+  },
+  {
+   "id": "comments-say-why",
+   "text": "Each comment in either file says why, not what the next line does.",
+   "check": "judge",
+   "from": "AGENTS.md Comments say why",
+   "absence": true,
+   "anchors": "Says why: removing the comment loses a reason, not a paraphrase of the code line. List one item per comment."
+  }
+ ]
+}

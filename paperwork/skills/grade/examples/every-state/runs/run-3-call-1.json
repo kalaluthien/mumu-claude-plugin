@@ -1,0 +1,68 @@
+{
+ "judge": "made-up judge",
+ "grader_text": [],
+ "grades": {
+  "install-command": {
+   "met": 1,
+   "quote": "Run `pip install sample-tool`.",
+   "where": "README.md:7"
+  },
+  "python-version": {
+   "met": 0,
+   "searched": "a Python version under Install",
+   "fix": "Name the Python version under Install."
+  },
+  "usage-example": {
+   "met": 1,
+   "quote": "Run `sample-tool notes.txt` to print the count.",
+   "where": "README.md:11"
+  },
+  "license-named": {
+   "met": 0,
+   "searched": "a license name anywhere in the page",
+   "fix": "Add a License section that names the license."
+  },
+  "invented-quote": {
+   "met": 1,
+   "quote": "Report bugs at the issue tracker.",
+   "where": "README.md:20"
+  },
+  "missing-item": {
+   "met": 0,
+   "fix": "Describe --quiet under Options.",
+   "items": [
+    {
+     "item": "--json",
+     "found": true,
+     "quote": "`--json` prints the count as JSON.",
+     "where": "README.md:15"
+    },
+    {
+     "item": "--lines",
+     "found": true,
+     "quote": "`--lines` counts lines instead.",
+     "where": "README.md:16"
+    },
+    {
+     "item": "--quiet",
+     "found": false
+    }
+   ]
+  },
+  "critical-split": {
+   "met": 0,
+   "searched": "a file named as input, not a sample name",
+   "fix": "Say that notes.txt stands for any input file."
+  },
+  "split-vote": {
+   "met": 0,
+   "searched": "what counts as a word",
+   "fix": "Say what counts as a word."
+  },
+  "split-failed": {
+   "met": 1,
+   "quote": "to print the count",
+   "where": "README.md:11"
+  }
+ }
+}

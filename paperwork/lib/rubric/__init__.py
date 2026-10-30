@@ -1,1 +1,1 @@
-"""A rubric grading spec: check it, derive its tier weights, and score answers by it."""
+"""A grading rubric: check it and its grades, and turn runs into verdicts and a rating."""

@@ -1,0 +1,25 @@
+{"judge": "claude-sonnet-5-5", "grader_text": [], "grades": {
+  "needs-listed": {"met": 1, "quote": "| plugin or feature | needs |", "where": "README.txt:20-25"},
+  "terms-defined": {"met": 1, "quote": "- **judge**: a new Claude helper that did not write the work and only reviews it", "where": "README.txt:54-58", "items": [
+    {"item": "owner", "found": true, "quote": "**owner**: the person who asks the sessions for work and answers their questions", "where": "README.txt:54"},
+    {"item": "manager", "found": true, "quote": "**manager**: the one Claude session per project that writes down what the owner asks for as a GitHub issue", "where": "README.txt:55"},
+    {"item": "worker", "found": true, "quote": "**worker**: a Claude session that takes one issue from the manager", "where": "README.txt:56"},
+    {"item": "sentinel", "found": true, "quote": "**sentinel**: a light Claude session that the manager starts for one endless duty", "where": "README.txt:57"},
+    {"item": "judge", "found": true, "quote": "**judge**: a new Claude helper that did not write the work and only reviews it", "where": "README.txt:58"}]},
+  "purpose-each-plugin": {"met": 1, "quote": "**teamwork** turns what you ask for into reviewed, merged work; **paperwork** models a system as a checked document you can prove and draw, and turns a task into a grading spec; **homework** makes sure each session leaves behind what it learned.", "where": "README.txt:3"},
+  "works-alone": {"met": 1, "quote": "Each plugin works alone.", "where": "README.txt:5"},
+  "tools-explained": {"met": 0, "fix": "Add a link or a clause saying what Alloy is at its first mention in the needs table.", "items": [
+    {"item": "herdr", "found": true, "quote": "[herdr](https://herdr.dev), the terminal workspace where sessions live and talk by name", "where": "README.txt:22"},
+    {"item": "uv", "found": true, "quote": "[`uv`](https://docs.astral.sh/uv/)", "where": "README.txt:23"},
+    {"item": "pele", "found": true, "quote": "[pele](https://www.npmjs.com/package/pele) diagrams", "where": "README.txt:23"},
+    {"item": "Alloy", "found": false},
+    {"item": "gh", "found": true, "quote": "[`gh`](https://cli.github.com/), signed in", "where": "README.txt:22"}]},
+  "diagram-has-caption": {"met": 1, "quote": "<summary>Structure: The hook, monitor and pane read one shared lib; the skills hold the instructions.</summary>", "where": "README.txt:30", "items": [
+    {"item": "teamwork diagram", "found": true, "quote": "Structure: The hook, monitor and pane read one shared lib; the skills hold the instructions.", "where": "README.txt:30"},
+    {"item": "paperwork diagram", "found": true, "quote": "Structure: Each skill calls the library of its own job; the Rubric lib reuses the Schema lib's document shape.", "where": "README.txt:77"},
+    {"item": "homework diagram", "found": true, "quote": "Structure: The hook only counts and signals; the skill does the writing.", "where": "README.txt:113"}]},
+  "usage-each-plugin": {"met": 1, "quote": "/paperwork:zoom map how the release pipeline works", "where": "README.txt:62-132", "items": [
+    {"item": "teamwork", "found": true, "quote": "Be this project's teamwork manager: fix the login timeout", "where": "README.txt:65"},
+    {"item": "paperwork", "found": true, "quote": "/paperwork:zoom map how the release pipeline works", "where": "README.txt:106"},
+    {"item": "homework", "found": true, "quote": "To ask for it yourself, tell Claude to keep a lesson (retro) or tidy memory (dream).", "where": "README.txt:132"}]}
+}}
