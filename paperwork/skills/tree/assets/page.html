@@ -37,9 +37,7 @@
 .part-id { flex: none; min-width: 2.2em; font: var(--text-meta)/1.9 var(--mono); color: var(--muted); }
 .part-text { margin: 0; color: var(--body); font-size: var(--text-body); }
 #tree-parts > .tree-part { margin-top: 10px; }
-#tree-parts > .tree-part > .part-body .part-text { color: var(--ink); font-weight: 600; }
-#tree-goal .part-text { font-size: var(--text-lead); color: var(--body); }
-.part-kind { margin-right: 6px; color: var(--muted); font-size: var(--text-meta); }
+#tree-parts > .tree-part > .part-body .part-text { color: var(--ink); }
 .part-text .frame-tag { margin-right: 6px; }
 .source { margin-left: 6px; color: var(--muted); font-size: var(--text-meta); white-space: normal; }
 .fold { margin-left: 6px; padding: 0 4px; border: 0; background: none; color: var(--accent); font: var(--text-meta) var(--font-sans); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
@@ -153,12 +151,14 @@
 <section id="overview">
 <h1 id="tree-title"></h1>
 <div id="tree-goal"></div>
+<h2>Open decisions</h2>
 <p class="how">Press an option in each open decision, then press Copy answer and paste the text back to the agent. A decision you leave alone stays open.</p>
 <ol class="queue" id="tree-queue"></ol>
 <p class="folded" id="tree-folded"></p>
 <p class="keys"><kbd>1</kbd>-<kbd>9</kbd> pick, <kbd>j</kbd> <kbd>k</kbd> move, <kbd>n</kbd> next open, <kbd>u</kbd> undo</p>
 </section>
 
+<h2>Plan</h2>
 <div id="tree-parts"></div>
 
 <script type="application/json" id="tree-plan">__PLAN__</script>
@@ -345,7 +345,7 @@ function content(part, text) {
   if (part.kind === "diff") return diff(text);
   const tail = part.source ? [source(part.source)] : [];
   if (part.kind === "quote") return make("blockquote", "quote", make("p", "", text), make("cite", "", ...tail));
-  const head = part.kind === "risk" ? [make("span", "frame-tag fail", "! Risk")] : part.kind && !QUIET_KINDS.has(part.kind) ? [make("span", "part-kind", part.kind)] : [];
+  const head = part.kind === "risk" ? [make("span", "frame-tag fail", "! Risk")] : part.kind && !QUIET_KINDS.has(part.kind) ? [make("span", "frame-tag", part.kind)] : [];
   return make("p", "part-text", ...head, text, ...tail);
 }
 function facts(list, into, below) {

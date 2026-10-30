@@ -28,7 +28,7 @@
 .edge:hover .line, .edge.selected .line { stroke: var(--accent); stroke-width: 2.5; }
 .edge.selected .edge-label { fill: var(--accent); font-weight: 600; }
 /* playback: what the item names stands out, the current step most, so a person follows it without reading the chart */
-.played .node:not(.path, .now, .related), .played .edge:not(.path, .now) { opacity: .35; }
+.played .node:not(.path, .now, .related), .played .edge:not(.path, .now) { opacity: .55; }
 .node.path .shape, .node.related .shape { stroke: var(--accent); stroke-width: 2.5; }
 .edge.path .line { stroke: var(--accent); stroke-width: 2.5; }
 .node.now .shape { fill: var(--accent); stroke: var(--accent); stroke-width: 2.5; }
@@ -85,7 +85,7 @@
 .bar-chip { width: 28px; height: 28px; border-radius: var(--krds-radius-max); border: 1.5px solid var(--accent); background: none; color: var(--accent); padding: 0; font: 600 var(--text-meta) var(--font-sans); overflow-wrap: normal; cursor: pointer; }
 .bar-chip[aria-current="step"] { background: var(--accent); color: var(--krds-color-text-basic-inverse, #fff); }
 .bar-run { margin: 8px 0 0; padding-left: 1.4em; color: var(--muted); }
-.bar-run li { margin-top: 4px; }
+.bar-run li { margin-top: 4px; white-space: pre-line; }
 .bar-run [aria-current] { color: var(--ink); font-weight: 600; }
 /* the same mark as the navigation's, so a reader ties the two */
 .verdict[data-verdict="pass"]::before { content: "✓ "; }

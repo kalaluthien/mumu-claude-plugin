@@ -29,7 +29,7 @@ STATS = {"files": "#tree-files", "left": "#tree-left", "risks": "#tree-risks"}
 def navigation(plan):
     """The left tree: each top-level Part with the Decisions under it; a goal stands in the Overview."""
     entries = [("overview", "Overview")]
-    label = lambda part: textwrap.shorten(part["text"], 46, placeholder="…")
+    label = lambda part: textwrap.shorten(part["text"], 26, placeholder="…")
     for i, part in enumerate(plan["parts"], 1):
         if part.get("kind") == "goal" and not tree_plan.holds_decision(part):
             continue
