@@ -1,28 +1,13 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<title>__TITLE__</title>
 <style>
-/* The tree page's palette, so paperwork's pages read as one family. */
+/* Each name reads a KRDS colour, so the page follows the frame's theme. */
 :root {
-  --bg: #FAF9F5; --surface: #ffffff; --panel: #F0EEE6; --ink: #141413; --body: #3D3D3A; --muted: #6f6e68; --line: #D1CFC5; --card-line: #E3DACC;
-  --accent: #D97757; --pass: #4f6a35; --pass-bg: #e3ead9; --fail: #8A3B1E; --fail-bg: #F3D9CC; --bar: #c9c6ba;
-  --serif: ui-serif, Georgia, "Times New Roman", serif; --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
-  --shadow: 0 1px 2px rgba(20,20,19,.05), 0 4px 14px rgba(20,20,19,.05);
+  --bg: var(--krds-color-background-white); --surface: var(--krds-color-surface-white); --panel: var(--krds-color-surface-gray-subtle);
+  --ink: var(--krds-color-text-bolder); --body: var(--krds-color-text-basic); --muted: var(--krds-color-text-subtle);
+  --line: var(--krds-color-border-gray); --card-line: var(--krds-color-border-gray-light); --accent: var(--krds-color-text-primary);
+  --pass: var(--krds-color-text-success); --pass-bg: var(--krds-color-surface-success-subtler);
+  --fail: var(--krds-color-text-danger); --fail-bg: var(--krds-color-surface-danger-subtler);
+  --serif: var(--font-sans); --sans: var(--font-sans); --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1f1e1b; --surface: #2a2925; --panel: #34322d; --ink: #FAF9F5; --body: #e3e1d9; --muted: #b2b0a8; --line: #4a4842; --card-line: #3d3b36;
-    --accent: #e08a6d; --pass: #b5cf95; --pass-bg: #33402a; --fail: #f4bea6; --fail-bg: #4a2a1e; --bar: #5a5850;
-    --shadow: 0 1px 2px rgba(0,0,0,.4);
-  }
-}
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans); }
-main { max-width: 860px; margin: 0 auto; padding: 28px 20px 56px; }
 a { color: inherit; text-decoration-color: var(--line); text-underline-offset: 3px; }
 a:hover { color: var(--accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -35,7 +20,7 @@ h3 { font: 600 .95rem/1.3 var(--sans); margin: 22px 0 10px; color: var(--body); 
 .meta span { overflow-wrap: anywhere; }
 
 /* the verdict comes first, as a sentence, then one bullet bar per tier */
-.verdict { margin-top: 22px; background: var(--surface); border: 1px solid var(--card-line); border-radius: 12px; box-shadow: var(--shadow); padding: 18px 20px; }
+.verdict { margin-top: 22px; background: var(--surface); border: 1px solid var(--card-line); border-radius: 12px; padding: 18px 20px; }
 .verdict p { font: 500 1.2rem/1.4 var(--serif); margin: 0 0 14px; }
 .tiers { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: 10px 14px; align-items: center; }
 .tier-name { font-size: .9rem; color: var(--body); overflow-wrap: anywhere; }
@@ -49,8 +34,6 @@ h3 { font: 600 .95rem/1.3 var(--sans); margin: 22px 0 10px; color: var(--body); 
 ol.fixes { margin: 0; padding-left: 1.4em; }
 ol.fixes li { margin: 0 0 10px; padding-left: 4px; }
 .fix-tier { font: .72rem var(--mono); color: var(--fail); background: var(--fail-bg); border-radius: 4px; padding: 1px 6px; margin-right: 6px; white-space: nowrap; }
-.copy { margin-top: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 3px 12px; font: inherit; font-size: .85rem; color: var(--body); cursor: pointer; }
-.copy:hover { border-color: var(--accent); color: var(--accent); }
 .none { color: var(--muted); }
 
 /* one card per criterion: a status word with its icon, never colour alone */
@@ -83,32 +66,22 @@ footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line);
 footer p { margin: 0 0 8px; }
 
 @media (max-width: 560px) {
-  main { padding: 20px 14px 40px; }
   .tiers { grid-template-columns: minmax(0, 1fr) auto; }
   .tiers .tier-name { grid-column: 1 / -1; margin-bottom: -4px; }
   dl.subject { grid-template-columns: minmax(0, 1fr); }
 }
 @media print {
-  body { background: #fff; }
-  .copy { display: none; }
   .status, .bullet .fill, .fix-tier { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .crit { break-inside: avoid; }
 }
 </style>
-</head>
-<body>
-<main>
 __BODY__
-</main>
 <script>
 // Opens every card's evidence before printing, since a closed <details> prints closed.
 addEventListener("beforeprint", () => document.querySelectorAll("details").forEach(d => d.open = true));
-const copy = document.getElementById("copy-fixes");
-if (copy) copy.addEventListener("click", async () => {
-  const text = [...document.querySelectorAll("ol.fixes li")].map((li, i) => `${i + 1}. ${li.dataset.fix}`).join("\n");
-  try { await navigator.clipboard.writeText(text); copy.textContent = "Copied"; }
-  catch { copy.textContent = "Copy failed: select the list instead"; }
+const folds = [...document.querySelectorAll("details")].map(d => [d, d.open]);
+start({
+  copy: () => [...document.querySelectorAll("ol.fixes li")].map((li, i) => `${i + 1}. ${li.dataset.fix}`).join("\n") || "Nothing to fix: every criterion is met.",
+  reset: () => folds.forEach(([d, open]) => d.open = open),
 });
 </script>
-</body>
-</html>
