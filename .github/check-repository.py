@@ -17,13 +17,6 @@ from urllib.parse import unquote
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
-# Copies of docs kept with dangling links on purpose, as page-check fixtures.
-BROKEN_ON_PURPOSE = {
-    "paperwork/skills/zoom/references/ui/fixtures/formats-missing-row.md",
-    "paperwork/skills/zoom/references/ui/fixtures/mermaid-false-kept.md",
-    "paperwork/skills/zoom/references/ui/fixtures/mermaid-missing-row.md",
-}
-
 MANIFEST_NAMES = {"plugin.json", "hooks.json", "monitors.json"}
 FENCE = re.compile(r"^\s*(`{3,}|~{3,})")
 INLINE_CODE = re.compile(r"(`+)(?:(?!\1).)+?\1")
@@ -146,7 +139,7 @@ def main(args):
                     json.load(handle)
             except (ValueError, UnicodeDecodeError) as error:
                 failures.append("json {}: {}".format(path, error))
-        elif path.endswith(".md") and path not in BROKEN_ON_PURPOSE:
+        elif path.endswith(".md"):
             docs += 1
             with open(full, encoding="utf-8", errors="replace") as handle:
                 links += check_markdown(root, path, handle.read(), failures)
