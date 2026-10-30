@@ -263,6 +263,12 @@ class Facts:
         assert re.search(r"\d+ \([+-]\d+\)", self.page.inner_text("#tree-left")), f"a hover shows {self.page.inner_text('#tree-left')!r}"
         assert self.page.eval_on_selector(".tree-stats", "line => getComputedStyle(line).fontVariantNumeric") == "tabular-nums", "the digits are not tabular"
 
+    def status_tags(self):
+        risks = [part for _, part in tree_plan.walk(self.plan["parts"]) if part.get("kind") == "risk"]
+        needs(risks)
+        shown = self.page.locator(".frame-tag", has_text="! Risk").count()
+        assert shown >= len(risks), f"{shown} risk tags for {len(risks)} risks"
+
     def fold(self):
         for part_id, part in tree_plan.walk(self.plan["parts"]):
             if part.get("parts") and not tree_plan.is_decision(part):

@@ -386,6 +386,11 @@ def scenario_playback(page, data):
     return next((why for item in data["items"] if item["kind"] == "Scenario" and (why := played(page, item))), None)
 
 
+def status_tags(page, data):
+    rules = [item for item in data["items"] if item["kind"] == "Rule"]
+    return f"{page.locator('.frame-tag.verdict').count()} tags for {len(rules)} rules" if page.locator(".frame-tag.verdict").count() < len(rules) else None
+
+
 def verdict_badge(page, data):
     for item in data["items"]:
         if item["kind"] == "Rule":
@@ -412,7 +417,7 @@ def reset_from_playback(page, data):
 
 
 FACTS = {"chart": chart, "detail panel": detail_panel, "level opens": level_opens, "read only": read_only, "text as written": text_as_written, "navigation items": navigation_items,
-         "scenario playback": scenario_playback, "verdict badge": verdict_badge, "counterexample playback": counterexample_playback, "reset from playback": reset_from_playback}
+         "scenario playback": scenario_playback, "verdict badge": verdict_badge, "status tags": status_tags, "counterexample playback": counterexample_playback, "reset from playback": reset_from_playback}
 
 
 def check(folder):

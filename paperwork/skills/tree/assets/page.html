@@ -40,7 +40,7 @@
 #tree-parts > .tree-part > .part-body .part-text { color: var(--ink); font-weight: 600; }
 #tree-goal .part-text { font-size: var(--text-lead); color: var(--body); }
 .part-kind { margin-right: 6px; color: var(--muted); font-size: var(--text-meta); }
-.risk-pill { margin-right: 6px; }
+.part-text .frame-tag { margin-right: 6px; }
 .source { margin-left: 6px; color: var(--muted); font-size: var(--text-meta); white-space: normal; }
 .fold { margin-left: 6px; padding: 0 4px; border: 0; background: none; color: var(--accent); font: var(--text-meta) var(--font-sans); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .part-tools { display: flex; flex: none; gap: 2px; }
@@ -84,15 +84,15 @@
 .option-press:hover { background: var(--panel); }
 .option-number { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid var(--line); border-radius: var(--krds-radius-max); font-size: var(--text-meta); font-variant-numeric: tabular-nums; }
 .option-label { flex: 1 1 auto; min-width: 0; }
-.option-tag { flex: none; }
+.option-press .frame-tag { flex: none; }
 .option.default { border-style: dashed; border-color: var(--accent-line); }
 .option.picked { border: 2px solid var(--krds-color-border-success); }
 .option.picked .option-number { background: var(--krds-color-border-success); border-color: var(--krds-color-border-success); color: var(--krds-color-text-basic-inverse); }
-.option.picked .option-tag:first-of-type { --tag-ink: var(--pass); --tag-fill: var(--pass-bg); }
+.option.picked .frame-tag:first-of-type { --tag-ink: var(--pass); --tag-fill: var(--pass-bg); }
 .option.blocked { border-style: dashed; background: var(--panel); }
 .option.blocked .option-press { color: var(--body); font-weight: 400; cursor: not-allowed; }
 .option.blocked .option-press:hover { background: none; }
-.option.blocked .option-tag { --tag-ink: var(--warn); --tag-fill: var(--warn-bg); }
+.option.blocked .frame-tag { --tag-ink: var(--warn); --tag-fill: var(--warn-bg); }
 .blocked-reason { margin: 0; padding: 0 10px 6px 40px; color: var(--body); font-size: var(--text-meta); }
 .option-facts { padding: 0 10px 6px 40px; }
 .option-facts .part-text { font-size: var(--text-body); }
@@ -345,7 +345,7 @@ function content(part, text) {
   if (part.kind === "diff") return diff(text);
   const tail = part.source ? [source(part.source)] : [];
   if (part.kind === "quote") return make("blockquote", "quote", make("p", "", text), make("cite", "", ...tail));
-  const head = part.kind === "risk" ? [make("span", "frame-tag fail risk-pill", "! Risk")] : part.kind && !QUIET_KINDS.has(part.kind) ? [make("span", "part-kind", part.kind)] : [];
+  const head = part.kind === "risk" ? [make("span", "frame-tag fail", "! Risk")] : part.kind && !QUIET_KINDS.has(part.kind) ? [make("span", "part-kind", part.kind)] : [];
   return make("p", "part-text", ...head, text, ...tail);
 }
 function facts(list, into, below) {
@@ -496,7 +496,7 @@ function renderOptions(id, entry, box) {
   const other = entry.choice === OTHER, chosen = other && entry.answered;
   const press = button("option-press", "", () => openEditor("other", id), `option:${id}:${OTHER}`);
   press.append(make("span", "option-number", String(rows.length + 1)), make("span", "option-label", chosen ? state.others[id] : "Other: write your own"));
-  if (chosen) press.append(make("span", "frame-tag option-tag", "Your pick"));
+  if (chosen) press.append(make("span", "frame-tag", "Your pick"));
   const row = make("div", `option${chosen ? " picked" : ""}`, press);
   if (editor?.id === id && editor.kind === "other") row.append(make("div", "blocked-reason", editorRow()));
   box.replaceChildren(...rows, row);
@@ -507,10 +507,10 @@ function optionRow(id, position, option, entry) {
   const press = button("option-press", "", () => pick(id, position), `option:${id}:${position}`);
   press.dataset.option = `${id}:${position}`;
   press.append(make("span", "option-number", blocker ? "⊘" : String(position)), make("span", "option-label", option.text));
-  if (picked) press.append(make("span", "frame-tag option-tag", "Your pick"));
-  if (position === 1) press.append(make("span", "frame-tag option-tag", "Agent's pick"));
-  if (chosen && !picked && position !== 1) press.append(make("span", "frame-tag option-tag", "In force"));
-  if (blocker) press.append(make("span", "frame-tag option-tag", "Blocked"));
+  if (picked) press.append(make("span", "frame-tag", "Your pick"));
+  if (position === 1) press.append(make("span", "frame-tag", "Agent's pick"));
+  if (chosen && !picked && position !== 1) press.append(make("span", "frame-tag", "In force"));
+  if (blocker) press.append(make("span", "frame-tag", "Blocked"));
   press.setAttribute("aria-pressed", String(picked));
   if (blocker) press.setAttribute("aria-disabled", "true");
   const row = make("div", `option${picked ? " picked" : chosen ? " default" : ""}${blocker ? " blocked" : ""}`, press);

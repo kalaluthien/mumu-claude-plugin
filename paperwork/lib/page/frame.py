@@ -40,11 +40,18 @@ LOW_CONTRAST = f"""() => {{
     const channels = text => text.match(/[\\d.]+/g).map(Number);
     const light = ([r, g, b]) => {{ const part = v => (v /= 255) <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;
       return .2126 * part(r) + .7152 * part(g) + .0722 * part(b); }};
+    const solid = paint => {{ const [r, g, b, a = 1] = channels(paint); return a === 1 ? [r, g, b] : null; }};
+    const shapeBehind = text => {{ text.scrollIntoView({{block: "center", behavior: "instant"}});
+      const box = text.getBoundingClientRect();
+      const paints = document.elementsFromPoint(box.x + box.width / 2, box.y + box.height / 2).filter(e => e.matches("rect, path, circle, ellipse, polygon"))
+        .map(e => getComputedStyle(e).fill).filter(fill => fill.startsWith("rgb")).map(solid);
+      return paints.find(Boolean); }};
     const behind = element => {{ for (let e = element; e; e = e.parentElement) {{
-      const [r, g, b, a = 1] = channels(getComputedStyle(e).backgroundColor);
-      if (a === 1) return [r, g, b]; }} return [255, 255, 255]; }};
-    return ({TEXTS})().filter(e => !(e instanceof SVGElement) && !e.closest("[disabled], [aria-disabled=true]")).filter(e => {{
-      const [hi, lo] = [light(channels(getComputedStyle(e).color)), light(behind(e))].sort((a, b) => b - a);
+      const paint = solid(getComputedStyle(e).backgroundColor);
+      if (paint) return paint; }} return [255, 255, 255]; }};
+    const ink = e => getComputedStyle(e)[e instanceof SVGElement ? "fill" : "color"];
+    return ({TEXTS})().filter(e => !e.closest("[disabled], [aria-disabled=true]")).filter(e => {{
+      const [hi, lo] = [light(channels(ink(e))), light((e instanceof SVGElement && shapeBehind(e)) || behind(e))].sort((a, b) => b - a);
       return (hi + .05) / (lo + .05) < {CONTRAST}; }}).map(e => e.tagName + "." + e.className + " " + e.textContent.trim().slice(0, 30)); }}"""
 SHORT_CONTROLS = f"""() => [...document.querySelectorAll("button, input, select, textarea, summary, .frame-nav a")]
     .filter(e => e.getClientRects().length && getComputedStyle(e).visibility === "visible" && e.getBoundingClientRect().height < {TOUCH_HEIGHT})
