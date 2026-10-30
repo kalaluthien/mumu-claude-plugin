@@ -21,7 +21,8 @@ NOW = time.time()
 VARIABLE = [(re.compile(pattern), replacement) for pattern, replacement in [
     (r"/[\w.~@%+-]+(?:/[\w.~@%+-]+)+", "<path>"), (r"\b[0-9a-f]{7,40}\b", "<hash>"),
     (r"https?://\S+", "<url>"), (r"(['\"`]).*?\1", "<q>"), (r"\d+", "<n>"), (r"\s+", " ")]]
-NOISE = re.compile(r"^(Exit code <n>|<n>|-+|ok\b.*|This hook comes from .*)$")
+# the last lines of a `diff` that found a difference are file content, never an error, so they must not name the repeat
+NOISE = re.compile(r"^(Exit code <n>|<n>|-+|ok\b.*|This hook comes from .*|<n>(,<n>)?[acd]<n>(,<n>)?|[<>]( .*)?)$")
 
 
 def signature(tool, text):
