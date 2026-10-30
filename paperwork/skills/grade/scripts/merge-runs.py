@@ -29,8 +29,9 @@ def flat(text):
 
 def quote_found(source, quote, where):
     match = PLACE.match(where or "")
-    path = pathlib.Path(source) / match.group(1) if match else None
-    if path is None or not path.is_file() or not quote.strip() or len(quote) > QUOTE_LIMIT:
+    root = pathlib.Path(source).resolve()
+    path = (root / match.group(1)).resolve() if match else None
+    if path is None or not path.is_relative_to(root) or not path.is_file() or not quote.strip() or len(quote) > QUOTE_LIMIT:
         return False
     lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     first = int(match.group(2) or 1)

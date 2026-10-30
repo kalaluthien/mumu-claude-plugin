@@ -24,7 +24,6 @@ FOLD_STATE = "[...document.querySelectorAll('details')].map(d => d.open)"
 FOLD_CHANGE = "(d => { d.open = !d.open; })(document.querySelector('details'))"
 PAGE_FACTS = ("first screen", "run counts", "needs a person", "evidence folded", "grader text", "empty fixes", "copy pairs", "fix once",
               "no response path", "split rule", "outside fold")
-# (title, card class, status words it holds, what an empty group says)
 GROUPS = (("Not met", "failed", ("✗ Not met",), "No criterion failed with every run agreeing."),
           ("Not sure", "open", ("? Not sure", "? Not settled"), "The runs agreed on every criterion."),
           ("Not judged", "open", ("? Not judged",), "Every criterion was judged."),

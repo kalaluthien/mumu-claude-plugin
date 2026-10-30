@@ -33,8 +33,8 @@ def files(source):
             continue
 
 
-def target_text(source, delimiter):
-    numbered = [f"=== {name}\n" + "".join(f"{i}: {text}\n" for i, text in enumerate(body.splitlines(), 1)) for name, body in files(source)]
+def target_text(sources, delimiter):
+    numbered = [f"=== {name}\n" + "".join(f"{i}: {text}\n" for i, text in enumerate(body.splitlines(), 1)) for name, body in sources]
     return f"<{delimiter}>\n{''.join(numbered)}</{delimiter}>\n"
 
 
@@ -45,14 +45,16 @@ def criterion_block(criterion):
 
 
 def write(rubric, source, folder):
-    folder.mkdir(parents=True, exist_ok=True)
-    delimiter = f"target-{secrets.token_hex(4)}"
-    text = target_text(source, delimiter)
-    (folder / "target.txt").write_text(text, encoding="utf-8")
+    sources = list(files(source))
+    if not sources:
+        raise Refused(f"{source}: holds no text file to grade")
     judged = [criterion for criterion in rubric["criteria"] if criterion["check"] == "judge"]
     if not judged:
         raise Refused("no criterion needs a judge; run merge-runs.py on an empty folder")
-    size = min(CALL_SIZE, len(judged)) if sum(len(body) for _, body in files(source)) > LONG_CHARACTERS else len(judged)
+    folder.mkdir(parents=True, exist_ok=True)
+    delimiter = f"target-{secrets.token_hex(4)}"
+    (folder / "target.txt").write_text(target_text(sources, delimiter), encoding="utf-8")
+    size = min(CALL_SIZE, len(judged)) if sum(len(body) for _, body in sources) > LONG_CHARACTERS else len(judged)
     calls = math.ceil(len(judged) / size)
     brief = BRIEF.read_text(encoding="utf-8").replace("__TARGET__", str(folder / "target.txt")).replace("__DELIMITER__", delimiter)
     for run in range(1, RUNS + 1):

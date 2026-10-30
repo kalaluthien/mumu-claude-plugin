@@ -13,7 +13,6 @@ CONJUNCTION = re.compile(r"\band\b|그리고|및|하고 ", re.I)
 ABSENCE = re.compile(r"\b(every|all|covers?|lists?|missing)\b|모든|빠짐|누락", re.I)
 WORD = re.compile(r"[^\W_]+")
 
-# rule: (severity, what it asks)
 RULES = {
     "form": ("error", "the file fits the grammar's shape"),
     "id-duplicate": ("error", "each criterion id is used once"),
