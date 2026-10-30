@@ -5,8 +5,8 @@ references/grammar.md. Every function here is a calculation: no file or
 network access besides load_file.
 """
 import hashlib
-import itertools
 import json
+import math
 import re
 
 KIND_PATTERN = re.compile(r"^[a-z][a-z-]*$")
@@ -14,8 +14,8 @@ KIND_PATTERN = re.compile(r"^[a-z][a-z-]*$")
 SOURCE_URL_PATTERN = re.compile(r"^https?://(?!localhost\b|127\.0\.0\.1\b|\[::1\])[^\s/]+\.[^\s/]+(/\S*)?$")
 SOURCE_PERSON_PATTERN = re.compile(r"^[^/\\:,]+, \d{4}-\d{2}-\d{2}$")
 NAME_PATTERN = re.compile(r"^[a-z][a-z0-9-]*$")
-# Each named Decision multiplies the answers the graph tries, and a graph this wide no reader can review.
-NAMED_LIMIT = 8
+# Each named option multiplies the paths the graph tries, and a graph this wide no reader can review.
+BRANCH_LIMIT = 4096
 PLAN_KEYS = {"title", "files", "parts"}
 OPTION_KEYS = {"text", "parts", "name", "requires", "excludes", "files"}
 PLAIN_KEYS = {"text", "kind", "source", "parts"}
@@ -290,11 +290,9 @@ def presses(plan):
 
 def reachable(plan, part_id, position):
     """Answers of the named Decisions that open this option, or None when none do."""
-    named = [(other_id, part) for other_id, part in decisions(plan) if "name" in part and other_id != part_id]
-    for chosen in itertools.product(*[[(other_id, n + 1) for n in range(len(options(part)))] for other_id, part in named]):
-        state = evaluate(plan, dict(chosen))
-        if state[part_id]["cause"] is None and state[part_id]["blockers"][position - 1] is None:
-            return {other_id: n for other_id, n in chosen if state[other_id]["answered"]}
+    for other_id, cause, blockers, answers in _paths(decisions(plan)):
+        if other_id == part_id and cause is None and blockers[position - 1] is None and OTHER not in answers.values():
+            return answers
     return None
 
 
@@ -305,22 +303,33 @@ def changes(plan, answers, part_id, position):
     return {other for other in before if other != part_id and any(before[other][field] != after[other][field] for field in fields)}
 
 
-def _dead_end(graph, chosen):
-    """The id of the first needed Decision some answers leave with no open option, or None."""
+def _paths(graph, chosen=None, answers=None):
+    """Each Decision as each path of answers meets it: (id, cause, blockers, answers so far).
+
+    Only a name changes a later Decision, so a named Decision branches once per name an answer can hold, an Other
+    among them, which holds none.
+    """
+    chosen, answers = chosen or {}, answers or {}
     for i, (part_id, decision) in enumerate(graph):
         cause, blockers = _step(decision, chosen)
+        yield part_id, cause, blockers, answers
         name = decision.get("name")
         if cause:
             chosen = {**chosen, name: None}
-            continue
-        openings = [option for option, blocker in zip(options(decision), blockers) if blocker is None]
-        if not openings:
-            return part_id
-        if name:
-            # Only a named Decision can change a later one, so only it branches; an Other answer is one more branch, satisfying no relation.
-            branches = [option.get("name") for option in openings] + [None]
-            return next(filter(None, (_dead_end(graph[i + 1:], {**chosen, name: branch}) for branch in branches)), None)
-    return None
+        elif name:
+            held = {}
+            for position, (option, blocker) in enumerate(zip(options(decision), blockers), 1):
+                if blocker is None:
+                    held.setdefault(option.get("name"), position)
+            held.setdefault(None, OTHER)
+            for option_name, position in held.items():
+                yield from _paths(graph[i + 1:], {**chosen, name: option_name}, {**answers, part_id: position})
+            return
+
+
+def _dead_end(graph):
+    """The id of the first needed Decision some answers leave with no open option, or None."""
+    return next((part_id for part_id, cause, blockers, _ in _paths(graph) if cause is None and all(blockers)), None)
 
 
 def _graph_errors(plan):
@@ -351,13 +360,13 @@ def _graph_errors(plan):
             earlier[decision["name"]] = {option.get("name") for option in options(decision)}
     if errors:
         return errors
-    named = sum("name" in decision for _, decision in graph)
-    if named > NAMED_LIMIT:
-        return [("$.parts", "too-many-named", f"{named} named Decisions, at most {NAMED_LIMIT}: split the plan")]
+    branches = math.prod(1 + sum("name" in option for option in options(decision)) for _, decision in graph if "name" in decision)
+    if branches > BRANCH_LIMIT:
+        return [("$.parts", "too-many-branches", f"named options combine in {branches} ways, at most {BRANCH_LIMIT}: split the plan")]
     for part_id, entry in evaluate(plan).items():
         if entry["cause"] is None and entry["blockers"][0]:
             errors.append((f"part {part_id}", "default-blocked", f"the pick is blocked by '{entry['blockers'][0]}' when every pick stands"))
-    dead = _dead_end(graph, {})
+    dead = _dead_end(graph)
     if dead:
         errors.append((f"part {dead}", "dead-end", "some answers leave this Decision with no open option"))
     return errors or _unused_names(graph)

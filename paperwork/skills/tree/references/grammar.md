@@ -52,7 +52,7 @@ A refusal prints `path: rule: detail`.
 | `default-blocked` | a `pick` blocked when every pick stands, so the default path cannot hold |
 | `dead-end` | answers, Other among them, that leave a needed Decision with no open option |
 | `unused-name` | a `name` no relation uses |
-| `too-many-named` | more than eight named Decisions, since each multiplies the answers the graph tries; split the plan |
+| `too-many-branches` | named options that combine in more than 4096 ways, each named Decision counting its named options plus one; split the plan |
 | `nested-decision` | a Decision inside a Decision's `parts` |
 | `bad-kind` | a `kind` that is not lowercase letters and `-` |
 | `wrong-type` | a value of the wrong JSON type |

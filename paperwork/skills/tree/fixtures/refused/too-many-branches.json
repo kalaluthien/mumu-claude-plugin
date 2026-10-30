@@ -1,5 +1,5 @@
 {
-  "title": "Nine named Decisions",
+  "title": "Thirteen named Decisions",
   "parts": [
     {
       "text": "Step 1?",
@@ -144,8 +144,72 @@
     },
     {
       "text": "Step 10?",
+      "name": "step-10",
+      "pick": {
+        "text": "Yes",
+        "name": "yes"
+      },
+      "else": [
+        {
+          "text": "No"
+        }
+      ],
       "requires": [
         "step-9.yes"
+      ]
+    },
+    {
+      "text": "Step 11?",
+      "name": "step-11",
+      "pick": {
+        "text": "Yes",
+        "name": "yes"
+      },
+      "else": [
+        {
+          "text": "No"
+        }
+      ],
+      "requires": [
+        "step-10.yes"
+      ]
+    },
+    {
+      "text": "Step 12?",
+      "name": "step-12",
+      "pick": {
+        "text": "Yes",
+        "name": "yes"
+      },
+      "else": [
+        {
+          "text": "No"
+        }
+      ],
+      "requires": [
+        "step-11.yes"
+      ]
+    },
+    {
+      "text": "Step 13?",
+      "name": "step-13",
+      "pick": {
+        "text": "Yes",
+        "name": "yes"
+      },
+      "else": [
+        {
+          "text": "No"
+        }
+      ],
+      "requires": [
+        "step-12.yes"
+      ]
+    },
+    {
+      "text": "Step 14?",
+      "requires": [
+        "step-13.yes"
       ],
       "pick": {
         "text": "Yes"
