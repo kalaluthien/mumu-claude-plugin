@@ -272,7 +272,10 @@ def body(number):
     """NUMBER's body as GitHub keeps it; raises LookupError naming the cause when the read failed."""
     need("gh")
     # REST, not `gh issue`: GraphQL hits its rate limit while REST still works
-    read = subprocess.run(["gh", "api", f"repos/{{owner}}/{{repo}}/issues/{number}", "-q", ".body"], capture_output=True, text=True)
+    # a folder outside any repository, such as a scratchpad, cannot fill {owner}/{repo}, so gh then reads from this checkout
+    outside = subprocess.run(["git", "rev-parse"], capture_output=True).returncode and not os.environ.get("GH_REPO")
+    read = subprocess.run(["gh", "api", f"repos/{{owner}}/{{repo}}/issues/{number}", "-q", ".body"], capture_output=True, text=True,
+                          cwd=os.path.dirname(os.path.abspath(__file__)) if outside else None)
     if read.returncode:
         # gh fills {owner}/{repo} from the working folder, or from GH_REPO
         # gh's own line keeps a missing issue or an auth failure from reading as a folder fault
