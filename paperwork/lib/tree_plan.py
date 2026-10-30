@@ -190,7 +190,7 @@ def index(plan):
 
 
 def options(decision):
-    """The options of a Decision or Question as pressed: pick is 1, then else in order."""
+    """The options of a Decision as pressed: pick is 1, then else in order."""
     return ([decision["pick"]] if "pick" in decision else []) + list(decision.get("else", []))
 
 
