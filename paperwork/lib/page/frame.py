@@ -238,6 +238,15 @@ def print_light(browser, url, **_):
     return None
 
 
+def print_menu(browser, url, **_):
+    with opened(browser, url, PHONE_WIDTH) as page:
+        page.locator("#frame-menu").click()
+        page.emulate_media(media="print")
+        if page.locator(".frame-nav").is_visible():
+            return "a print of a narrow page shows the open menu"
+    return None
+
+
 def control_words(browser, url, **_):
     with opened(browser, url, SCREEN_WIDTH) as page:
         for button, word in CONTROL_WORDS.items():
@@ -254,7 +263,7 @@ def control_words(browser, url, **_):
 FACTS = {"left navigation": left_navigation, "right body": right_body, "copy": copy, "reset": reset, "theme": theme,
          "root": root, "icons": icons, "menu under bar": menu_under_bar, "menu closed": menu_closed, "long menu": long_menu,
          "outside press": outside_press, "sub-link current": sub_link_current, "print light": print_light,
-         "control words": control_words}
+         "print menu": print_menu, "control words": control_words}
 
 
 def probe(browser, url, **expected):

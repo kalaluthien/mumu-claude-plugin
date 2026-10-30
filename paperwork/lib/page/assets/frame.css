@@ -30,5 +30,5 @@ body{margin:0;background:var(--krds-color-background-white);color:var(--krds-col
 }
 @media print{
   .frame{display:block}
-  .frame-nav,.frame-top,.frame-body::after{display:none}
+  .frame-nav,.frame-nav.krds-side-navigation.open,.frame-top,.frame-body::after{display:none}
 }
