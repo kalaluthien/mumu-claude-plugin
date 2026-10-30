@@ -2342,7 +2342,8 @@ function sized(node) {
 
 // How far each node is from where the level starts: its initial states, or else what nothing points at.
 function depths(level) {
-  const depth = {};
+  // no inherited names, since `in` would find a node id such as constructor
+  const depth = Object.create(null);
   const entered = new Set(level.edges.filter(edge => edge.from !== edge.to).map(edge => edge.to));
   const seeds = level.initial.length ? level.initial : level.nodes.filter(node => !entered.has(node.id)).map(node => node.id);
   for (const seed of [...seeds, ...level.nodes.map(node => node.id)]) {
@@ -2365,7 +2366,7 @@ function depths(level) {
 // Lanes, each a list of columns of node ids, ordered so a node sits near the nodes it links to (barycentre sweeps).
 function columns(level) {
   const depth = depths(level);
-  const laneIds = [...level.lanes.map(lane => lane.id), null];
+  const laneIds = [...new Set(level.lanes.map(lane => lane.id)), null];
   const lanes = laneIds.map(id => {
     const inLane = level.nodes.filter(node => (node.lane || null) === id);
     const cells = [];
@@ -2674,7 +2675,7 @@ function show(id) {
 }
 function followHash() {
   const id = location.hash.slice("#level-".length);
-  show(location.hash.startsWith("#level-") && levels[id] ? id : "root");
+  show(location.hash.startsWith("#level-") && Object.hasOwn(levels, id) ? id : "root");
 }
 
 document.addEventListener("click", event => {

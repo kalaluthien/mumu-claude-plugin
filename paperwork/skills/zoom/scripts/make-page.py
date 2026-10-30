@@ -51,8 +51,8 @@ def unplaced(model):
     named = [node["id"] for level in model.levels.values() for node in level["nodes"]]
     out = references(model) + edge_across_levels(model) + [f"{node_id} names two nodes" for node_id in named if named.count(node_id) > 1]
     for level_id, level in model.levels.items():
-        initial = level.get("initial", [])
-        out += [f"{level_id}: {start} starts no node of this level" for start in ([initial] if isinstance(initial, str) else initial) if start not in named]
+        initial, here = level.get("initial", []), {node["id"] for node in level["nodes"]}
+        out += [f"{level_id}: {start} starts no node of this level" for start in ([initial] if isinstance(initial, str) else initial) if start not in here]
     return out
 
 

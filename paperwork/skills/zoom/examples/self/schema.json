@@ -225,7 +225,7 @@
     }
    },
    {
-    "id": "model",
+    "id": "constructor",
     "label": "Model",
     "area": "library",
     "meta": {
@@ -275,7 +275,7 @@
    },
    {
     "from": "checks",
-    "to": "model",
+    "to": "constructor",
     "kind": "call",
     "label": "reads",
     "meta": {
@@ -295,7 +295,7 @@
    },
    {
     "from": "translator",
-    "to": "model",
+    "to": "constructor",
     "kind": "call",
     "label": "translates",
     "meta": {
@@ -325,7 +325,7 @@
    },
    {
     "from": "page-script",
-    "to": "model",
+    "to": "constructor",
     "kind": "call",
     "label": "draws from",
     "meta": {
