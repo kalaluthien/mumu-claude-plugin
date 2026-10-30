@@ -121,7 +121,7 @@
        "id": "shown",
        "label": "Shown",
        "meta": {
-        "source": "paperwork/skills/zoom/scripts/make-page.py:136",
+        "source": "paperwork/skills/zoom/scripts/make-page.py:132",
         "description": "The page is built, so a person can read the system in a browser."
        }
       }
@@ -166,7 +166,7 @@
        "kind": "transition",
        "label": "build the page",
        "meta": {
-        "source": "paperwork/skills/zoom/scripts/make-page.py:327",
+        "source": "paperwork/skills/zoom/scripts/make-page.py:323",
         "description": "Fill the template with the document's data."
        }
       },
@@ -220,7 +220,7 @@
     "label": "Page script",
     "area": "entries",
     "meta": {
-     "source": "paperwork/skills/zoom/scripts/make-page.py:327",
+     "source": "paperwork/skills/zoom/scripts/make-page.py:323",
      "description": "Builds one self-contained page, and measures it in a browser. Its data escapes every `<`, so a description holding `<!-- <script` leaves the page whole."
     }
    },
@@ -238,7 +238,7 @@
     "label": "Checks",
     "area": "library",
     "meta": {
-     "source": "paperwork/lib/schema/checks.py:142",
+     "source": "paperwork/lib/schema/checks.py:123",
      "description": "The structure rules the grammar cannot state."
     }
    },
@@ -339,7 +339,7 @@
     "kind": "call",
     "label": "shows",
     "meta": {
-     "source": "paperwork/skills/zoom/scripts/make-page.py:63",
+     "source": "paperwork/skills/zoom/scripts/make-page.py:59",
      "description": "Reads one document."
     }
    }

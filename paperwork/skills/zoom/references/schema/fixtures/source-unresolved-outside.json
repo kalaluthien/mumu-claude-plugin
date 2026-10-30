@@ -41,7 +41,7 @@
     "id": "waiting",
     "label": "Waiting",
     "meta": {
-     "source": "../outside.md:1",
+     "source": "/etc/hosts:1",
      "description": "Waiting in the fixture."
     }
    },

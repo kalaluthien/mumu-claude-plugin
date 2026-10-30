@@ -4,26 +4,7 @@ import re
 
 from . import formula
 from . import prover
-from .model import MEMBER, places
-
-
-def references(model):
-    """Every name points at something, so nothing after this asks whether an id exists."""
-    out, slugs = [], {rule["slug"] for rule in model.document["rules"]}
-    for level_id, level in model.levels.items():
-        regions, groups = {region["id"] for region in level.get("regions", [])}, {area["id"] for area in level.get("areas", [])}
-        out += [f'{level_id}: {node["id"]} is in no region {node["region"]}' for node in level["nodes"] if "region" in node and node["region"] not in regions]
-        out += [f'{level_id}: {node["id"]} is in no area {node["area"]}' for node in level["nodes"] if "area" in node and node["area"] not in groups]
-        for element in level["nodes"] + level["edges"]:
-            out += [f"{level_id}: {element.get('id', element.get('label'))} names no rule {slug}" for slug in element.get("rules", []) if slug not in slugs]
-        out += [f'{level_id}: {edge["label"]} ends on no node {end}' for edge in level["edges"] for end in (edge["from"], edge["to"]) if end not in model.nodes]
-    return out
-
-
-def edge_across_levels(model):
-    return [f'{level_id}: {edge["label"]} ends on {end} of another level; write it on the outer level, ending on the opener'
-            for level_id, level in model.levels.items() for edge in level["edges"] for end in (edge["from"], edge["to"])
-            if end in model.nodes and model.node_level[end] != level_id]
+from .model import MEMBER, edge_across_levels, places, references
 
 
 def unique_names(model):

@@ -128,9 +128,28 @@ def real_date(text):
         return False
 
 
+def references(model):
+    """Every name points at something, so nothing after this asks whether an id exists."""
+    out, slugs = [], {rule["slug"] for rule in model.document["rules"]}
+    for level_id, level in model.levels.items():
+        regions, groups = {region["id"] for region in level.get("regions", [])}, {area["id"] for area in level.get("areas", [])}
+        out += [f'{level_id}: {node["id"]} is in no region {node["region"]}' for node in level["nodes"] if "region" in node and node["region"] not in regions]
+        out += [f'{level_id}: {node["id"]} is in no area {node["area"]}' for node in level["nodes"] if "area" in node and node["area"] not in groups]
+        for element in level["nodes"] + level["edges"]:
+            out += [f"{level_id}: {element.get('id', element.get('label'))} names no rule {slug}" for slug in element.get("rules", []) if slug not in slugs]
+        out += [f'{level_id}: {edge["label"]} ends on no node {end}' for edge in level["edges"] for end in (edge["from"], edge["to"]) if end not in model.nodes]
+    return out
+
+
+def edge_across_levels(model):
+    return [f'{level_id}: {edge["label"]} ends on {end} of another level; write it on the outer level, ending on the opener'
+            for level_id, level in model.levels.items() for edge in level["edges"] for end in (edge["from"], edge["to"])
+            if end in model.nodes and model.node_level[end] != level_id]
+
+
 def shape(data, schema=SCHEMA, path="schema", root=None):
     """Where the document departs from the grammar, each as (rule, "path: what is wrong"): the subset of JSON Schema
-    the grammar uses ($ref, type, const, enum, pattern, format date, minimum, maximum, required, properties, propertyNames,
+    the grammar uses ($ref, type, const, enum, pattern, format date, minimum, maximum, minItems, required, properties, propertyNames,
     additionalProperties, items). A subschema's `x-rule` names the rule it states."""
     root = root or schema
     rule = schema.get("x-rule", "form")
@@ -164,6 +183,8 @@ def shape(data, schema=SCHEMA, path="schema", root=None):
                 out.append((rule, f"{path}: unknown field {k}"))
             elif isinstance(extra := schema.get("additionalProperties"), dict):
                 out += shape(value, extra, f"{path}.{k}", root)
+    if isinstance(data, list) and len(data) < schema.get("minItems", 0):
+        return [(rule, f"{path}: holds at least {schema['minItems']}")]
     if isinstance(data, list) and "items" in schema:
         for i, value in enumerate(data):
             out += shape(value, schema["items"], f"{path}[{i}]", root)

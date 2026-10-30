@@ -26,7 +26,7 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 
 from page import frame  # noqa: E402
-from schema.model import Model, shape  # noqa: E402
+from schema.model import Model, edge_across_levels, references, shape  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 TEMPLATE = HERE.parent / "assets" / "page.html"
@@ -47,17 +47,13 @@ class Refused(Exception):
 
 
 def unplaced(model):
-    """What a chart cannot draw, each a sentence, since the page runs none of the structure checks."""
+    """What a chart cannot draw, each a sentence, since the page runs no other structure check."""
     named = [node["id"] for level in model.levels.values() for node in level["nodes"]]
-    yield from (f"{node_id} names two nodes" for node_id in named if named.count(node_id) > 1)
+    out = references(model) + edge_across_levels(model) + [f"{node_id} names two nodes" for node_id in named if named.count(node_id) > 1]
     for level_id, level in model.levels.items():
-        here, lanes = {node["id"] for node in level["nodes"]}, {lane["id"] for lane in level.get("regions", []) + level.get("areas", [])}
         initial = level.get("initial", [])
-        for edge in level["edges"]:
-            yield from (f'{level_id}: {edge["label"]} ends on {end}, no node of this level' for end in (edge["from"], edge["to"]) if end not in here)
-        for node in level["nodes"]:
-            yield from (f'{level_id}: {node["id"]} sits in {lane}, no region or area of this level' for lane in (node.get("region"), node.get("area")) if lane and lane not in lanes)
-        yield from (f'{level_id}: {start} starts no node of this level' for start in ([initial] if isinstance(initial, str) else initial) if start not in here)
+        out += [f"{level_id}: {start} starts no node of this level" for start in ([initial] if isinstance(initial, str) else initial) if start not in named]
+    return out
 
 
 def load(path):
@@ -69,8 +65,8 @@ def load(path):
     if wrong := shape(document):
         raise Refused(f"{path}: {wrong[0][1]}")
     model = Model(document)
-    if wrong := next(unplaced(model), None):
-        raise Refused(f"{path}: {wrong}")
+    if wrong := unplaced(model):
+        raise Refused(f"{path}: {wrong[0]}")
     for scenario in document["scenarios"]:
         if wrong := model.walk(scenario)[1]:
             raise Refused(f"{path}: {wrong[0]}")
