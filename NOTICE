@@ -6,4 +6,3 @@ None of the works below is vendored in this repository: each is downloaded at ru
 
 - Alloy (https://github.com/AlloyTools/org.alloytools.alloy), MIT per its upstream LICENSE file, which says the Apache text below it is not valid yet: downloaded at run time by paperwork/lib/schema/prover.py; the libraries bundled in its jar are not reviewed here.
 - mattpocock/skills (https://github.com/mattpocock/skills), MIT: the retrospective lenses in homework/skills/wrap-up/references/retro.md are adapted from it.
-- humanlayer/skills, `show-me` (https://github.com/humanlayer/skills/tree/bba9d13ab34f0a87f1cc33df4dd196372393ddfc/plugins/show-me), MIT: its name was taken by the paperwork show-me skill, credited in e1af0a5 and removed in c685307; no text is kept in this tree.
