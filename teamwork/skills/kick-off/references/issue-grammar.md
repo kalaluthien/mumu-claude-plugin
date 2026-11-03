@@ -25,7 +25,6 @@ holders: issue-pane-worker
 | key | value | role |
 | --- | --- | --- |
 | `holders` | session names, space-separated, replacing every earlier value; empty when no one holds it | holders |
-| `deferred` | why someone chose to leave it for later; a later holders value with names ends it | deferral |
 | `cloud` | the holders that run as cloud sessions, space-separated, replacing every earlier value, since no local listing shows them; a name counts as live on every open issue | cloud |
 | `asks` | `owner` on an ask the owner answers, not the manager | audience |
 | `depends on` | the tasks this one waits on, `#a #b`, read from the body only; a task waits until each is closed as completed | depends |
@@ -67,8 +66,7 @@ What an open issue waits on, first match:
 1. a task its `depends on` names that is not closed as completed: `blocked by #<n>`;
 2. an open question: `waits on the owner` when the latest one's audience is `owner`, else `waits on the manager`;
 3. holders with names: `held`;
-4. a deferred reason that no later holders with names ended: `deferred`;
-5. else `no holder`.
+4. else `no holder`.
 
 ## Rules
 

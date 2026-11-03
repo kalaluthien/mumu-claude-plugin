@@ -31,9 +31,9 @@ def main(args):
     # the verb names the keyword, so a text that lacks it gets it rather than a refusal no caller can read
     keyed = lambda keyword, path: text(path) if text(path).startswith(keyword) else f"{keyword} {text(path)}"
     try:
-        # a holders or deferred line outside a teamwork fence is read by no code, so it would leave an issue unrouted
+        # a holders line outside a teamwork fence is read by no code, so it would leave an issue unrouted
         if verb in ("comment", "decide", "file", "resolve") and len(operands) >= 2 and issue_state.stray_state(text(operands[1])):
-            sys.exit(f"use-board: nothing posted: a holders: or deferred: line in {operands[1]} sits outside a teamwork fence; put it inside the fence, as {issue_state.GRAMMAR} says")
+            sys.exit(f"use-board: nothing posted: a holders: line in {operands[1]} sits outside a teamwork fence; put it inside the fence, as {issue_state.GRAMMAR} says")
         if verb == "read" and len(operands) == 1:
             issue = board.fresh(operands[0]) or sys.exit(f"use-board: cannot read #{operands[0]}")
             print(f"#{issue['number']} {issue_state.title(issue)}\nstate: {issue['state']}\nlabels: {', '.join(issue['labels'])}\nparent: {issue['parent']}\n\n{issue['body']}")

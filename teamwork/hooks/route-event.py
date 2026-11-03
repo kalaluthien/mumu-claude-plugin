@@ -42,7 +42,7 @@ def live_change_directory(command, cwd):
 
 
 def stray_state(call, cwd):
-    """A holders or deferred line in the posted file that no teamwork fence holds, which code never reads."""
+    """A holders line in the posted file that no teamwork fence holds, which code never reads."""
     path = call["body file"] and pathlib.Path(cwd or ".") / call["body file"]
     try:
         return bool(path and issue_state.stray_state(path.read_text()))
@@ -51,7 +51,7 @@ def stray_state(call, cwd):
 
 
 def stray_posted(output):
-    """The url the write printed when a holders or deferred line in what it posted sits outside a teamwork fence, read back from the board."""
+    """The url the write printed when a holders line in what it posted sits outside a teamwork fence, read back from the board."""
     url, body = board.posted(output) or (None, "")
     return issue_state.stray_state(body) and url
 
@@ -80,7 +80,7 @@ def reminder(call, role, cwd, session_id=None):
              for path in (PLAYBOOKS / "protocol.md", PLAYBOOKS / f"{role}.md", GRAMMAR, *sorted((PLAYBOOKS / "adapters").glob("*-github.md")))  # a gh command keeps GitHub's adapter rules, never another board's
              for number, line in enumerate(path.read_text().splitlines(), 1) if any(needle in line for needle in needles)]
     found = unseen(found, session_id)
-    stray = ["- A `holders:` or `deferred:` line sits outside a ```teamwork fence in the posted file, so code reads no holder: put it inside the fence, as "
+    stray = ["- A `holders:` line sits outside a ```teamwork fence in the posted file, so code reads no holder: put it inside the fence, as "
              f"{GRAMMAR.relative_to(PLAYBOOKS.parents[1])} says."] if called and stray_state(call, cwd) else []
     return (found or stray) and "\n".join([f"Reminder: the playbook rules this `{called}` must keep:", *found, *stray])
 
@@ -101,7 +101,7 @@ def route(kind, event, role, me, listed):
     call = board.command((event.get("tool_input") or {}).get("command", ""))
     if kind == "PostToolUse":
         stray = call and call["write"] in ("file", "comment", "edit") and stray_posted(json.dumps(event.get("tool_response")))
-        return stray and verdict(kind, f"A `holders:` or `deferred:` line sits outside a ```teamwork fence in {stray}, so code reads no holder; "
+        return stray and verdict(kind, f"A `holders:` line sits outside a ```teamwork fence in {stray}, so code reads no holder; "
                                  f"post the record again with the line inside the fence, as {GRAMMAR} says.", team_settings.load(event.get("cwd") or "."))
     if kind == "SessionStart":
         gaps = (team_gaps.manager_actions(me, listed) if role == "manager" else team_gaps.worker_goal(me)) or []

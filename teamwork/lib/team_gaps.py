@@ -33,8 +33,16 @@ def asking(issue):
 
 
 def unanswered(issue):
-    """An outside contributor's issue or pull request that no trusted record has routed or left for later yet."""
-    return not issue_state.trusted(issue) and not issue_state.deferral(issue) and not issue_state.holder_values(issue)
+    """An outside contributor's issue or pull request that no trusted `DECIDED:` has routed or answered yet."""
+    return (not issue_state.trusted(issue) and not issue_state.holder_values(issue)
+            and not any(issue_state.KEYWORDS.get(word) == "answer" for word, _, _ in issue_state.records(issue)[1:]))
+
+
+def waiting(issue, open_issues):
+    """Whether an open task waits on another open task: its own `depends on:` names one, or each of its open parts does."""
+    blocked = lambda body: any(number in open_issues for number in task_links.depends(body))
+    parts = [open_issues[number] for number in task_links.parts(issue["body"]) if number in open_issues]
+    return blocked(issue["body"]) or bool(parts) and all(blocked(part["body"]) for part in parts)
 
 
 def feed_read(name, since):
@@ -93,11 +101,12 @@ def manager_actions(me, listed, data=None, fed_urls=None):
     present = set(team) | {tab.get("label") for tab in tabs(me.get("workspace_id", ""))}
     # a cloud name holds on every open issue, so a task its worker filed itself counts as held though only its root names it cloud
     present |= {name for issue in data["everything"] for name in issue_state.cloud(issue)}
-    unrouted = lambda issue: not unanswered(issue) and not issue_state.deferral(issue) and not any(holds(issue, name) for name in present if name)
+    open_issues = {issue["number"]: issue for issue in [*data["everything"], *found]}
+    unrouted = lambda issue: not unanswered(issue) and not waiting(issue, open_issues) and not any(holds(issue, name) for name in present if name)
     for issue in found:
         # the kept read may predate the manager's own `decide`, so a candidate is read again before it is called unrouted
         if unrouted(issue) and unrouted(board.fresh(issue["number"]) or issue):
-            lines.append(f"route #{issue['number']} {issue_state.title(issue)}: no live worker holds it; route it, or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
+            lines.append(f"route #{issue['number']} {issue_state.title(issue)}: no live worker holds it; route it, or write in its body `{issue_state.WORD["depends"]}:` the open task it waits for, or close it as not planned")
         if asking(issue):
             ask = issue_state.open_questions(issue)[-1]["ask"]
             lines.append(f"answer #{issue['number']}: its worker asks at {ask['url']}; answer by `decide` there with `{decisions.FIELD['answers']}: {ask['url']}`; "
@@ -108,7 +117,7 @@ def manager_actions(me, listed, data=None, fed_urls=None):
         if issue.get("isPullRequest"):
             lines.append(f"outside #{issue['number']} {issue_state.title(issue)}: an outside contributor opened this pull request; close it unread with a comment that outside pull requests are not accepted and issues are welcome")
         else:
-            lines.append(f"outside #{issue['number']} {issue_state.title(issue)}: an outside contributor opened it; ask the owner, then route it or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
+            lines.append(f"outside #{issue['number']} {issue_state.title(issue)}: an outside contributor opened it; ask the owner, then route it or close it")
     for name in team:
         held = " ".join(f"#{issue['number']}" for issue in data["everything"] if holds(issue, name)) or "nothing open"
         if status[name] == "blocked":

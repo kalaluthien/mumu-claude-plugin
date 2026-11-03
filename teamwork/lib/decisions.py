@@ -23,8 +23,8 @@ def parent_of(issue):
 
 
 def role(decider):
-    """`owner`; `manager` for a session named `<project>-manager`; else `worker`."""
-    return "owner" if decider == "owner" else "manager" if decider == "manager" or decider.endswith("-manager") else "worker"
+    """`owner`; `manager` for a session named `<project>-manager`, or `<project>-manager-next`, the name Succession gives; else `worker`."""
+    return "owner" if decider == "owner" else "manager" if decider == "manager" or decider.removesuffix("-next").endswith("-manager") else "worker"
 
 
 def quoted(text):
@@ -117,6 +117,11 @@ def refusals(number, text, issues):
     owner = role(fields.get(FIELD["decider"], "")) == "owner"
     if owner and not quoted(text):
         found.append(f"`{FIELD['decider']}: owner` quotes no words of the owner's, as a `>` line or in double quotes")
+    answered = fields.get(FIELD["answers"])
+    if answered and answered not in [question["ask"]["url"] for question in issue_state.questions(as_issue(issues[int(number)]))]:
+        home = next((task for task, issue in issues.items() for comment in as_issue(issue)["comments"] if comment.get("url") == answered), None)
+        found.append(f"`{FIELD['answers']}:` names {answered}, which is no question on #{number}"
+                     + (f"; post the decision on #{home}, the question's own task" if home and home != int(number) else ""))
     replaced = fields.get(FIELD["supersedes"])
     if replaced:
         root = chain(int(number), issues)[-1]
@@ -129,8 +134,8 @@ def refusals(number, text, issues):
 
 
 def first_line(comment):
-    """A comment's first line without its keyword."""
-    return re.sub(r"^\s*[A-Z]+:\s*", "", (comment["body"] or "").strip().splitlines()[0] if (comment["body"] or "").strip() else "")
+    """A comment's first line of text without its keyword, the line after a keyword that stands alone."""
+    return next((line.strip() for line in re.sub(r"^\s*[A-Z]+:", "", (comment["body"] or "").strip()).splitlines() if line.strip()), "")
 
 
 def gaps(found):

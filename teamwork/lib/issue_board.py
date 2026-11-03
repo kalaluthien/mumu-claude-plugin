@@ -10,7 +10,7 @@ SHOWN_CLOSED = 10
 # close reasons of work stopped, not done; GitHub's duplicate close counts with them
 STOPPED = ("NOT_PLANNED", "DUPLICATE")
 # waits that need someone, which the status shows; a blocked task shows its `←` line instead
-SHOWN_WAITS = ("waits on the owner", "waits on the manager", "no holder", "deferred")
+SHOWN_WAITS = ("waits on the owner", "waits on the manager", "no holder")
 WIDTHS = (24, 30, 40, 60, 80)
 PANE_WIDTH = 40  # the pane draws at a width it cannot read, so it lays out for a narrow docked pane
 MIN_TEXT = 16  # cells a row keeps for its text before its depth stops growing
@@ -26,7 +26,8 @@ def summary_of(body):
 def next_step_of(comments):
     """A parent's next step: the latest `REPORTED:` that names one, so a parent with nothing open says why it stays open."""
     firsts = [(comment["body"] or "").replace("\r\n", "\n").split("\n\n")[0] for comment in comments]
-    return next((" ".join(first.rsplit("next step:", 1)[1].split()) for first in reversed(firsts) if first.startswith("REPORTED:") and "next step:" in first), "")
+    return next((" ".join(first.rsplit("next step:", 1)[1].split()) for first in reversed(firsts) if first.startswith("REPORTED:") and "next step:" in first),
+                "all parts done; no report names what keeps it open")
 
 
 def blockers_of(node):
@@ -44,7 +45,7 @@ def entry(node, superseded=frozenset()):
     closed = [{"number": task["number"], "title": issue_state.title(task), "url": task["url"], "blockers": blockers_of(task),
                "stopped": task.get("stateReason") in STOPPED} for task in (node.get("subIssues") or {}).get("nodes", []) if task["state"] == "CLOSED"]
     wait = state["waits"].split(" by ")[0]
-    return {"number": node["number"], "title": issue_state.title(node), "url": node["url"], "kind": "parent" if summary.get("total") else "task",
+    return {"number": node["number"], "title": issue_state.title(node), "url": node["url"],
             "holder": " ".join(state["holders"] or []), "wait": wait if wait in SHOWN_WAITS else "",
             "progress": f"{summary['completed']}/{summary['total']} done" if summary.get("total") else "",
             "goal": "" if state["goal"] else summary_of(node["body"]), "detail": state["goal"], "done": [item for item in state["done"] if item["kind"] != "task"],
@@ -181,7 +182,7 @@ def criterion(item):
 
 
 def heading(row, width):
-    """A row's lines the pane always shows, wrapped to WIDTH less its guide: `title`, `status`, `after`, its `←` line, and `notes`, its open questions and owner decisions."""
+    """A row's lines the pane always shows, wrapped to WIDTH less its guide: `title`, `status`, `after`, its `←` line, and `notes`, its open questions, owner decisions and, once every part is done, what keeps it open."""
     room = None if width is None else width - max(cells(row["guide"]), cells(row["pad"]))
     said = status(row)
     # parts share a line when they fit; else each takes its own, so no line ends on a bare `·`
@@ -189,6 +190,7 @@ def heading(row, width):
     notes = [line for question in row.get("questions", []) for line in note("?", question, room)]
     notes += [line for decided in row.get("decided", []) for line in note("◆", decided, room)]
     notes += note("◆", f"{row['more']} more decided", room) if row.get("more") else []
+    notes += note("→", row["next"], room) if row.get("next") else []
     return {"title": wrap(label(row), room), "status": shown, "after": wrap(after(row["blockers"]), room) if row["blockers"] else [], "notes": notes}
 
 
@@ -214,7 +216,6 @@ def lines(issues, width=None):
         details = [row["goal"]] if row["goal"] else []
         details += ["see detail"] if row["detail"] else []
         details += [criterion(item) for item in row["done"]]
-        details += [f"next step: {row['next']}"] if row["next"] else []
         details += [f"#{task['number']} {task['title']} closed{' stopped' * task['stopped']}" + (f" {after(task['blockers'])}" if task["blockers"] else "") for task in row["closed"]]
         details += ["…"] if row["earlier"] else []
         yield from (row["pad"] + "  " + line for detail in details for line in wrap(detail, None if room is None else room - 2))
