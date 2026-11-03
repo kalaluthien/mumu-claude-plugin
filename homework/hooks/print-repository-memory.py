@@ -3,8 +3,9 @@
 
 usage: print-repository-memory.py   a SessionStart hook; reads the event's JSON on stdin
 
-It prints nothing when no `autoMemoryDirectory` is set, since the session then has a pool of its own, and always exits 0,
-since a failure here must never stop a session from starting."""
+When no `autoMemoryDirectory` is set, it prints only a `systemMessage` for the person, with the line to add to
+`~/.claude/settings.json`, since the agent needs no word of it and a new machine would run on without the shared home
+unnoticed; it never writes a settings file. It always exits 0, since a failure here must never stop a session from starting."""
 import json
 import pathlib
 import sys
@@ -14,6 +15,8 @@ import memory_home  # noqa: E402
 
 SENTENCE = ("Repository memory: a lesson true only for {repository} goes in {folder}/, one file each, its index line in "
             "{folder}/MEMORY.md; a lesson for every project goes in the auto-memory root, {root}/.")
+WARNING = ("homework: `autoMemoryDirectory` is not set, so memory stays in each project's own pool. "
+           "To share one memory home, add to ~/.claude/settings.json: {\"autoMemoryDirectory\": \"~/.claude/memory\"}")
 
 
 def main(args):
@@ -27,6 +30,7 @@ def main(args):
     cwd = cwd if isinstance(cwd, str) and cwd else "."
     root = memory_home.home(cwd)
     if not root:
+        print(json.dumps({"systemMessage": WARNING}))
         return 0
     repository = memory_home.repository(cwd)
     if not repository:
