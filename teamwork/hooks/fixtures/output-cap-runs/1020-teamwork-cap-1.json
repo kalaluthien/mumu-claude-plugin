@@ -1,0 +1,505 @@
+{
+ "task": 1020,
+ "pull": "1021",
+ "base_sha": "8a4631869a2f8c034e6fd2183deefa275e317d84",
+ "arm": "teamwork-cap",
+ "repeat": 1,
+ "command": [
+  "claude",
+  "-p",
+  "<prompt>",
+  "--model",
+  "sonnet",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--max-budget-usd",
+  "5",
+  "--permission-mode",
+  "acceptEdits",
+  "--allowedTools",
+  "Bash",
+  "Read",
+  "Edit",
+  "Write",
+  "Grep",
+  "Glob",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--include-hook-events",
+  "--no-session-persistence",
+  "--plugin-dir",
+  "/Users/hyungmokim/workspace/plugins/.claude/worktrees/read-shunt-worker/teamwork/hooks/fixtures/teamwork-cap-arm"
+ ],
+ "prompt": "You are replaying a past task in a fresh checkout of the mumu-claude-plugin repository, your working folder.\nDo the task below fully: change the files so that each `[check]` of its Definition of done passes, run the checks you can,\nthen commit your change with git. GitHub, herdr and other Claude sessions are off in this replay: skip each step that reads\nor writes an issue, pull request, comment or session (filing, commenting, judging, pushing, telling), and each check\nthat needs one.\n\nTask #1020: Follow a board setting written late\n\n## Goal\n\nMake the issue pane and the heartbeat read the board the project's settings name, even when a process started before the setting was written, as the owner asked: \"Fix the ordering bug in which the Mod and heartbeat read GitHub issues or local files\" (https://github.com/kalaluthien/mumu-claude-plugin/issues/1019).\n\n- **Settings read at each call**: `teamwork/lib/board.py` and `landing.py` pick their adapter at each use, from `TEAMWORK_BOARD` / `TEAMWORK_LANDING` in the environment, else from the `env` of the project's `.claude/settings.local.json`, then `settings.json`, in the current git root, then the main checkout (a worktree has no local settings). This is fix option (b) of #1019; option (a), a manager restart by Succession, is set aside, since it fixes only the manager's processes and only when the manager remembers it.\n- **Heartbeat follows a change**: `teamwork/monitors/print-team-gaps.py`, seeing the board or landing change, drops its last read and touches the signal file, so the issue pane reads the board again too.\n- **Plain output**: the board read failure names the board kind (`list-issue-board.py`); the pane says \"No board read yet.\" before a read worked and \"The board has no open issues.\" after; `monitors.json` no longer calls the heartbeat GitHub-only.\n- **Manager step**: `kick-off/references/manager.md` step 1 no longer asks to export the pick in the shell, since every script reads the settings file.\n- **Kept**: the team and landing scenarios still pass, and the pane still builds; the change's judge runs them, since they pass on base too.\n- **Not here**: a setting changed while the environment variable is set (the environment wins, as in Claude Code); the session, agent ports.\n- Builds on #984 (board choice at manager start, https://github.com/kalaluthien/mumu-claude-plugin/pull/985), #933 (git landing) and #862 (ports).\n- Files: new `teamwork/lib/port_setting.py`, `teamwork/lib/board.py`, `teamwork/lib/landing.py`, `teamwork/monitors/print-team-gaps.py`, `teamwork/monitors/monitors.json`, `teamwork/hooks/list-issue-board.py`, `teamwork/hooks/issue-pane.tsx`, `teamwork/types/index.d.ts`, `teamwork/skills/kick-off/references/manager.md`, new `teamwork/skills/kick-off/fixtures/replay-board-setting.py`, new `teamwork/hooks/fixtures/render-empty-pane.ts`.\n\n\n\n## Definition of done\n\n1. [check] **pane woken**: `python3 teamwork/skills/kick-off/fixtures/replay-board-setting.py 2>&1 | grep -c '^ok signal$'` prints `1`, a manager heartbeat started with no setting touching the signal file the pane waits on once `settings.local.json` names the files board; on base `0`.\n2. [check] **heartbeat follows a late landing**: `python3 teamwork/skills/kick-off/fixtures/replay-board-setting.py 2>&1 | grep -c '^ok late-landing$'` prints `1`, the heartbeat routing nothing while its landing reads a failing GitHub, and `TEAMWORK_LANDING=git` written later alone touching the signal file again; on base `0`.\n3. [check] **heartbeat follows a late setting**: `python3 teamwork/skills/kick-off/fixtures/replay-board-setting.py 2>&1 | grep -c '^ok late-setting$'` prints `1`, the heartbeat then routing the files board's backlog, never routed before; on base `0`.\n4. [check] **worktree reads main settings**: `python3 teamwork/skills/kick-off/fixtures/replay-board-setting.py 2>&1 | grep -c '^ok worktree$'` prints `1`; on base `0`.\n5. [check] **environment wins**: `python3 teamwork/skills/kick-off/fixtures/replay-board-setting.py 2>&1 | grep -c '^ok environment-wins$'` prints `1`; on base `0`.\n6. [check] **failure names the board**: `python3 teamwork/skills/kick-off/fixtures/replay-board-setting.py 2>&1 | grep -c '^ok failure-names-board$'` prints `1`; on base `0`.\n7. [check] **empty told from not read**: `bun teamwork/hooks/fixtures/render-empty-pane.ts 2>&1 | grep -cxE 'unread: No board read yet\\.|empty: The board has no open issues\\.'` prints `2`, the pane rendered before any read and after a good read of no issues; on base `0`.\n8. [check] **heartbeat not GitHub-only**: `grep -c GitHub teamwork/monitors/monitors.json` prints `0`; on base `1`.\n9. [check] **no shell export step**: `grep -c 'export it in your shell' teamwork/skills/kick-off/references/manager.md` prints `0`; on base `1`.",
+ "environment": {
+  "CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1",
+  "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1"
+ },
+ "blocked_tools": [
+  "gh",
+  "herdr",
+  "claude"
+ ],
+ "init": {
+  "plugins": [
+   "teamwork-cap-arm",
+   "cc-plugin-agents-md",
+   "cc-plugin-telemetry",
+   "cc-plugin-privacy",
+   "cc-plugin-plugin-authoring"
+  ],
+  "mcp_servers": [],
+  "model": "claude-sonnet-5-5"
+ },
+ "hook_events": [
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash"
+ ],
+ "total_cost_usd": 0.3893634,
+ "models": [
+  "claude-sonnet-5-5"
+ ],
+ "is_error": false,
+ "subtype": "success",
+ "num_turns": 1,
+ "turns": [
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 6094,
+    "cache_read_input_tokens": 13968,
+    "output_tokens": 20,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 6094
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 3944,
+    "cache_read_input_tokens": 20062,
+    "output_tokens": 20,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 3944
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 9552,
+    "cache_read_input_tokens": 24006,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 9552
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 4736,
+    "cache_read_input_tokens": 33558,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 4736
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2181,
+    "cache_read_input_tokens": 38294,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2181
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1825,
+    "cache_read_input_tokens": 40475,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1825
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2062,
+    "cache_read_input_tokens": 42300,
+    "output_tokens": 2,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2062
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2105,
+    "cache_read_input_tokens": 44362,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2105
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2129,
+    "cache_read_input_tokens": 46467,
+    "output_tokens": 7,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2129
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 5332,
+    "cache_read_input_tokens": 48596,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 5332
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 3057,
+    "cache_read_input_tokens": 53928,
+    "output_tokens": 43,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 3057
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 580,
+    "cache_read_input_tokens": 56985,
+    "output_tokens": 20,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 580
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 603,
+    "cache_read_input_tokens": 57565,
+    "output_tokens": 38,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 603
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 366,
+    "cache_read_input_tokens": 58168,
+    "output_tokens": 20,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 366
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 372,
+    "cache_read_input_tokens": 58534,
+    "output_tokens": 5,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 372
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 514,
+    "cache_read_input_tokens": 58906,
+    "output_tokens": 688,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 514
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1287,
+    "cache_read_input_tokens": 59420,
+    "output_tokens": 1,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1287
+    }
+   }
+  }
+ ],
+ "bash_results": [
+  {
+   "id": "toolu_01XLhzkSkAj6pToeHSy6dA2W",
+   "command": "cd teamwork; cat lib/board.py lib/landing.py monitors/print-team-gaps.py monitors/monitors.json hooks/list-issue-board.py; ls lib hooks hooks/fixtures skills/kick-off/fixtures; grep -n \"export it\" -B3 -A3 skills/kick-off/references/manager.md",
+   "chars": 9309,
+   "lines": 196
+  },
+  {
+   "id": "toolu_01W6zA5ThSNU6bibuxDegKSB",
+   "command": "cd teamwork; cat lib/team_signal.py lib/team_settings.py hooks/issue-pane.tsx; sed -n 1,60p skills/kick-off/fixtures/replay-landing-scenario.py; grep -n \"changed_since\" -A12 lib/board_files.py lib/landing_git.py lib/board_github.py lib/landing_github.py | head -120; grep -n \"board\\b\\|landing\\b\" lib/team_gaps.py | head -30; grep -n \"unread\\|No open\\|no open\" -i types/index.d.ts hooks/issue-pane.tsx",
+   "chars": 22276,
+   "lines": 362
+  },
+  {
+   "id": "toolu_01Xw2aiLaZuZRHa8TGznyFkN",
+   "command": "cd teamwork; grep -rn \"\\.adapter\\|TEAMWORK_BOARD\\b\\|TEAMWORK_LANDING\\b\" --include=*.py --include=*.ts --include=*.tsx . | grep -v \"^./skills/kick-off/fixtures/replay-\" | head -30; grep -n \"heartbeat\" -B3 -A25 skills/kick-off/fixtures/replay-landing-scenario.py | sed -n 1,120p; grep -n \"BoardIssue\" -B2 -A3 types/index.d.ts | head -20; sed -n 1,40p lib/board_files.py; ls ../; ls hooks/fixtures; cat skills/kick-off/fixtures/fake-herdr | head -30",
+   "chars": 9442,
+   "lines": 187
+  },
+  {
+   "id": "toolu_01SMwpeid4LDmFFJuX5ZUQfQ",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1020-teamwork-cap-1-krxj3sns/repository/teamwork; cat lib/data_folder.py; ls skills/kick-off/fixtures/fake-herdr skills/kick-off/fixtures/fake-gh; head -30 skills/kick-off/fixtures/fake-gh/gh 2>/dev/null; sed -n 1,40p lib/session.py; ls hooks/fixtures; which bun",
+   "chars": 3847,
+   "lines": 77
+  },
+  {
+   "id": "toolu_01Uzw68Au2EwKv22rRo8FWBf",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1020-teamwork-cap-1-krxj3sns/repository/teamwork\ncat > lib/port_setting.py <<'EOF'\n\"\"\"Which adapter a port uses, read at each call: the environment variable, else the `env` of `.claude/settings.local.json`, then `settings.json`,\nin the current git root, then the main checkout (a worktree has no local settings). The environment wins, as in Claude Code.\"\"\"\nimport importlib\nimport json\nimport os\nimport pathlib\nimport subprocess\n\nFILES = (\"settings.local.json\", \"settings.json\")\n\n\ndef git(*argv):\n    try:\n        run = subprocess.run([\"git\", *argv], capture_output=True, text=True)\n    except OSError:\n        return None\n    return run.stdout.strip() if run.returncode == 0 and run.stdout.strip() else None\n\n\ndef roots():\n    \"\"\"The current git root, then the main checkout when it differs.\"\"\"\n    top, common = git(\"rev-parse\", \"--show-toplevel\"), git(\"rev-parse\", \"--path-format=absolute\", \"--git-common-dir\")\n    found = [pathlib.Path(top)] if top else []\n    if common and pathlib.Path(common).name == \".git\" and pathlib.Path(common).parent not in found:\n        found.append(pathlib.Path(common).parent)\n    return found\n\n\ndef value(name, default):\n    \"\"\"The setting NAME: the environment, else the settings files' `env`, else DEFAULT.\"\"\"\n    if os.environ.get(name):\n        return os.environ[name]\n    for root in roots():\n        for file in FILES:\n            try:\n                given = json.loads((root / \".claude\" / file).read_text())[\"env\"][name]\n            except (OSError, ValueError, KeyError, TypeError):\n                continue\n            if isinstance(given, str) and given:\n                return given\n    return default\n\n\ndef kind(name):\n    return value(name, \"github\")\n\n\ndef adapter(prefix, name):\n    return importlib.import_module(f\"{prefix}_{kind(name)}\")\nEOF\npython3 - <<'EOF'\nimport re\nfor f,p,n in ((\"lib/board.py\",\"board\",\"TEAMWORK_BOARD\"),(\"lib/landing.py\",\"landing\",\"TEAMWORK_LANDING\")):\n    s",
+   "chars": 1479,
+   "lines": 30
+  },
+  {
+   "id": "toolu_01UthxKRTWZDBJynfDzx5gKv",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1020-teamwork-cap-1-krxj3sns/repository/teamwork\npython3 - <<'EOF'\np=\"monitors/print-team-gaps.py\"\ns=open(p).read()\ns=s.replace(\"\"\"    data, read_at, signal = None, 0.0, team_signal.stamp()  # what GitHub last gave, when, and the signal file's change then\n    while True:\n\"\"\",\"\"\"    data, read_at, signal = None, 0.0, team_signal.stamp()  # what GitHub last gave, when, and the signal file's change then\n    kinds = (board.kind(), landing.kind())  # a setting written after this started changes them\n    while True:\n        if (now_kinds := (board.kind(), landing.kind())) != kinds:  # drop the last read, and wake the issue pane, which reads the board again\n            kinds, data = now_kinds, None\n            team_signal.SIGNAL.parent.mkdir(parents=True, exist_ok=True)\n            team_signal.SIGNAL.touch()\n\"\"\")\ns=s.replace(\"reads GitHub when\",\"reads the board when\")\nopen(p,\"w\").write(s)\np=\"hooks/list-issue-board.py\"\ns=open(p).read()\ns=s.replace('sys.exit(\"list-issue-board: a GitHub read failed, so no board is shown\")','sys.exit(f\"list-issue-board: a read of the {board.kind()} board failed, so no board is shown\")')\nopen(p,\"w\").write(s)\np=\"monitors/monitors.json\"\ns=open(p).read().replace(\"between GitHub and\",\"between the board and\")\nopen(p,\"w\").write(s)\np=\"skills/kick-off/references/manager.md\"\ns=open(p).read().replace(\" and export it in your shell, since a session started before it never reads it.\",\" ; every script reads that file at each call, so a process started before it follows it.\")\nopen(p,\"w\").write(s)\np=\"hooks/issue-pane.tsx\"\ns=open(p).read()\ns=s.replace(\"\"\"const failure = atom({ plugin: 'teamwork', key: 'failure' } as const, '')\n\"\"\",\"\"\"const failure = atom({ plugin: 'teamwork', key: 'failure' } as const, '')\n// whether a read ever worked, so an empty board is told from one not read yet\nconst loaded = atom({ plugin: 'teamwork', key: 'loaded' } as const, false)\n\"\"\")\ns=s.replace(\"\"\"      if (run.exit",
+   "chars": 1799,
+   "lines": 9
+  },
+  {
+   "id": "toolu_01UmfwR6sbY6oq9heZrjSNfe",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1020-teamwork-cap-1-krxj3sns/repository/teamwork\nsed -i 's/`env` ; every/`env`; every/' skills/kick-off/references/manager.md\ngrep -c GitHub monitors/monitors.json; sed -n 1,50p skills/kick-off/fixtures/replay-files-pane.py; grep -rn \"claude-code\" --include=*.json --include=*.ts -l .. 2>/dev/null | grep -v node_modules | head; ls ..; ls /usr/local/lib/node_modules 2>/dev/null",
+   "chars": 3556,
+   "lines": 64
+  },
+  {
+   "id": "toolu_01UCu6X9PKuUf4n6Gn9RCpAi",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1020-teamwork-cap-1-krxj3sns/repository/teamwork\nsed -i '' 's/`env` ; every/`env`; every/' skills/kick-off/references/manager.md\ncat > hooks/fixtures/render-empty-pane.ts <<'EOF'\n// Renders the issue pane with a stub host, before any board read and after a good read of no issues, and prints the text of each as `unread: \u2026` and `empty: \u2026`.\n// usage: bun render-empty-pane.ts\nimport { plugin } from 'bun'\n\nconst store = new Map<string, unknown>()\nconst keyOf = (a: any) => `${a.plugin}/${a.key}`\nconst stub = `\n  export const atom = (k, initial) => ({ ...k, initial })\n  export const read = async ($, a) => globalThis.__store.has(a.plugin + '/' + a.key) ? globalThis.__store.get(a.plugin + '/' + a.key) : a.initial\n  export const update = async ($, a, f) => { globalThis.__store.set(a.plugin + '/' + a.key, f(await read($, a))) }\n`\nconst jsx = `\n  export const Fragment = 'Fragment'\n  export const jsx = (type, props) => ({ type, props })\n  export const jsxs = jsx\n  export const jsxDEV = jsx\n`\n;(globalThis as any).__store = store\nplugin({\n  name: 'stub-host',\n  setup(build) {\n    build.module('claude-code', () => ({ contents: stub, loader: 'js' }))\n    build.module('react/jsx-dev-runtime', () => ({ contents: jsx, loader: 'js' }))\n    build.module('react/jsx-runtime', () => ({ contents: jsx, loader: 'js' }))\n  },\n})\n\nconst handlers: { filter: any; fn: (...a: any[]) => any }[] = []\nconst on: any = (name: string, ...rest: any[]) => {\n  const fn = rest.pop()\n  handlers.push({ filter: [name, rest[0]], fn })\n  return { catch: () => on }\n}\nconst pane = await import('../issue-pane.tsx')\npane.register(on)\nconst handler = (name: string, match?: string) => handlers.find(h => h.filter[0] === name && (!match || JSON.stringify(h.filter[1]).includes(match)))!.fn\n\nconst names = ['Box', 'Text', 'Link', 'Button', 'Markdown']\nconst $: any = {\n  plugin: { root: '/nowhere' },\n  env: { get: async () => '' },\n  ui: { resolve: () => Objec",
+   "chars": 63,
+   "lines": 2
+  },
+  {
+   "id": "toolu_019sZLnehfhVwRP51aqyQdVU",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1020-teamwork-cap-1-krxj3sns/repository/teamwork\nsed -i '' '/^const keyOf/d' hooks/fixtures/render-empty-pane.ts\nsed -n 55,150p lib/team_gaps.py; sed -n 60,90p skills/kick-off/fixtures/replay-landing-scenario.py; cat skills/kick-off/fixtures/fake-herdr/herdr | head -40; sed -n 1,40p lib/session_herdr.py | grep -n \"herdr\\|def \" ",
+   "chars": 10472,
+   "lines": 179
+  },
+  {
+   "id": "toolu_01CbeKBQohoj35fDATTxDsdg",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1020-teamwork-cap-1-krxj3sns/repository/teamwork\ncat > skills/kick-off/fixtures/replay-board-setting.py <<'EOF'\n#!/usr/bin/env python3\n\"\"\"Write the board and landing settings after a manager's heartbeat started, in a temporary repository, and print `ok <step>` or `fail <step>: <what differed>`\nfor each step; exit 1 on any fail.\n\nusage: replay-board-setting.py\n- signal: the heartbeat, started with no setting and a failing `gh`, touches the signal file once `settings.local.json` names the files board\n- late-landing: it routes nothing while its landing reads the failing GitHub, and `TEAMWORK_LANDING=git` written later alone touches the signal file again\n- late-setting: it then routes the files board's open issue, which it never routed before\n- worktree: a worktree of the repository reads the main checkout's settings\n- environment-wins: an environment variable beats the settings file\n- failure-names-board: list-issue-board.py's failure names the board kind\"\"\"\nimport json\nimport os\nimport pathlib\nimport subprocess\nimport sys\nimport tempfile\nimport time\n\nHERE = pathlib.Path(__file__).resolve().parent\nROOT = pathlib.Path(__file__).resolve().parents[3]\nwork = pathlib.Path(tempfile.mkdtemp(prefix=\"board-setting-\"))\nrepo = work / \"repo\"\nfor name in (\"TEAMWORK_BOARD\", \"TEAMWORK_LANDING\", \"TEAMWORK_BOARD_DIR\"):\n    os.environ.pop(name, None)\n(work / \"bin\").mkdir()\n(work / \"bin\" / \"gh\").write_text(\"#!/bin/sh\\nexit 1\\n\")  # GitHub fails, so a heartbeat reading it routes nothing\n(work / \"bin\" / \"gh\").chmod(0o755)\nENV = {**os.environ, \"CLAUDE_CONFIG_DIR\": str(work / \"claude\"), \"GIT_CONFIG_GLOBAL\": str(work / \"gitconfig\"), \"HOME\": str(work),\n       \"GIT_AUTHOR_NAME\": \"probe\", \"GIT_AUTHOR_EMAIL\": \"probe@example.com\", \"GIT_COMMITTER_NAME\": \"probe\", \"GIT_COMMITTER_EMAIL\": \"probe@example.com\",\n       \"PATH\": f\"{work / 'bin'}:{os.environ['PATH']}\"}\nsys.path.insert(0, str(ROOT / \"lib\"))\nfailed = []\n\n\ndef run(argv, cwd=repo",
+   "chars": 96,
+   "lines": 6
+  },
+  {
+   "id": "toolu_01Pp5DnUNCLnHKhF9iZ6aoeK",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1020-teamwork-cap-1-krxj3sns/repository/teamwork\nfor f in replay-landing-scenario replay-team-scenarios replay-board-scenario replay-files-pane; do echo == $f; timeout 500 python3 skills/kick-off/fixtures/$f.py 2>&1 | grep -v '^ok' | head -8; done\ngrep -c GitHub monitors/monitors.json; grep -c 'export it in your shell' skills/kick-off/references/manager.md; git status --short",
+   "chars": 568,
+   "lines": 21
+  },
+  {
+   "id": "toolu_01WfoQaEwVo7pAfXtibPpU4o",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1020-teamwork-cap-1-krxj3sns/repository/teamwork\nfor f in replay-landing-scenario replay-team-scenarios replay-board-scenario replay-files-pane; do echo == $f; python3 skills/kick-off/fixtures/$f.py 2>&1 | grep -v '^ok' | head -8; done",
+   "chars": 889,
+   "lines": 4
+  },
+  {
+   "id": "toolu_01KSma9APwkJE5FMCYHNY471",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1020-teamwork-cap-1-krxj3sns/repository/teamwork\npython3 skills/kick-off/fixtures/replay-board-scenario.py 2>&1 | grep -v '^ok'; python3 skills/kick-off/fixtures/replay-files-pane.py 2>&1 | tail -2; cat /private/tmp/claude-501/*/*/tasks/bewhjh4e6.output | grep -v '^ok' | head",
+   "chars": 198,
+   "lines": 5
+  },
+  {
+   "id": "toolu_01MoZXqseHATjue16ZSaMFPT",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1020-teamwork-cap-1-krxj3sns/repository/teamwork\npython3 skills/kick-off/fixtures/replay-board-scenario.py --board files 2>&1 | grep -v '^ok' | head -5\ncat /private/tmp/claude-501/*/*/tasks/bewhjh4e6.output | tail -3",
+   "chars": 322,
+   "lines": 7
+  },
+  {
+   "id": "toolu_018RULzDq2xu18HvR327zzEH",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1020-teamwork-cap-1-krxj3sns/repository\ngit add -A && git commit -qm \"Follow a board setting written late\n\nPick the board and landing adapters at each call from the environment, else the project's settings env; the heartbeat follows a change and wakes the pane.\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -2",
+   "chars": 97,
+   "lines": 2
+  }
+ ],
+ "refetches": [],
+ "saving": {
+  "removed_units": 0.0,
+  "refetch_units": 0.0,
+  "reread_units": 0.0,
+  "net_units": 0.0,
+  "run_units": 520594.2,
+  "net_share": 0.0,
+  "net_share_reread_results_charged": 0.0,
+  "net_share_rereads_charged": 0.0
+ },
+ "checks": [
+  {
+   "index": 1,
+   "command": "python3 teamwork/skills/kick-off/fixtures/replay-board-setting.py 2>&1 | grep -c '^ok signal$'",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 2,
+   "command": "python3 teamwork/skills/kick-off/fixtures/replay-board-setting.py 2>&1 | grep -c '^ok late-landing$'",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 3,
+   "command": "python3 teamwork/skills/kick-off/fixtures/replay-board-setting.py 2>&1 | grep -c '^ok late-setting$'",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 4,
+   "command": "python3 teamwork/skills/kick-off/fixtures/replay-board-setting.py 2>&1 | grep -c '^ok worktree$'",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 5,
+   "command": "python3 teamwork/skills/kick-off/fixtures/replay-board-setting.py 2>&1 | grep -c '^ok environment-wins$'",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 6,
+   "command": "python3 teamwork/skills/kick-off/fixtures/replay-board-setting.py 2>&1 | grep -c '^ok failure-names-board$'",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 7,
+   "command": "bun teamwork/hooks/fixtures/render-empty-pane.ts 2>&1 | grep -cxE 'unread: No board read yet\\.|empty: The board has no open issues\\.'",
+   "test": [
+    "prints",
+    "2"
+   ],
+   "result": "pass",
+   "output": "2"
+  },
+  {
+   "index": 8,
+   "command": "grep -c GitHub teamwork/monitors/monitors.json",
+   "test": [
+    "prints",
+    "0"
+   ],
+   "result": "pass",
+   "output": "0"
+  },
+  {
+   "index": 9,
+   "command": "grep -c 'export it in your shell' teamwork/skills/kick-off/references/manager.md",
+   "test": [
+    "prints",
+    "0"
+   ],
+   "result": "pass",
+   "output": "0"
+  }
+ ],
+ "started": "2026-11-03T16:56:07Z",
+ "hook": {
+  "path": "teamwork/hooks/cap-program-output.py",
+  "sha256": "cd2d2107999507b92568a09242bfc2580b2e89d062d4c96d54b80079256a581c"
+ },
+ "stderr": "",
+ "passed": true,
+ "seconds": 293
+}

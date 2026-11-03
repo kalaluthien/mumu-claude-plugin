@@ -74,6 +74,7 @@ BLOCKED_TOOLS = ("gh", "herdr", "claude")
 SOURCE_FILE = re.compile(r"[\w.-]+\.(?:py|md|json|jsonl|sh|txt|ya?ml|toml)\b")
 REREAD_WINDOW = 2
 FILE_READ = re.compile(r"\b(?:cat|sed|head|tail)\b")
+SHELL_ONLY = {"cd", "echo", "printf", "true", "false", "set", "export", "EOF"}
 # a command that sets its own EXIT trap or execs replaces the cap's trap, so its output would vanish
 CAP_BREAKER = re.compile(r"\btrap\b|(?:^|[;&|]\s*)exec\b")
 CHECK_TIMEOUT = 180
@@ -581,10 +582,22 @@ def new_rows():
     return [row for row in records() if row["task"] in numbers]
 
 
+def segment_words(command):
+    """The program word of each `;`, `&&`, `||`, `|` or line-separated part of a command, a leading `VAR=…` skipped."""
+    parts = re.split(r"\|\||&&|[;|\n]", command)
+    words = [re.sub(r"^(?:\s*\w+=\S*(?:\s+|$))*", "", part).split()[:1] for part in parts]
+    return [word[0] for word in words if word]
+
+
+def mixed_read(command):
+    """A call the shipped hook left whole as a file read although it also ran another program, such as `ls` or `grep`."""
+    return bool(FILE_READ.search(command)) and any(word not in SHELL_ONLY and not FILE_READ.fullmatch(word)
+                                                   for word in segment_words(command))
+
+
 def first_word(command):
-    # a leading `cd <dir> &&` or `;` only sets the folder, so the program is the word after it
-    command = re.sub(r"^(?:\s*cd\s+\S+\s*(?:&&|;)\s*)+", "", command)
-    return (command.split() or [""])[0]
+    # a `cd`, `echo` or `VAR=…` part only sets the stage, so the program is the first other word
+    return next((word for word in segment_words(command) if word not in SHELL_ONLY), "")
 
 
 def check_measured(arm):
@@ -670,6 +683,15 @@ def summary():
     shipped = [result for row in rows if row["arm"] == "teamwork-cap" for result in row["bash_results"] if "cut" in result]
     if shipped:
         print(f"teamwork-cap cuts by first word: {sorted({first_word(result['command']) for result in shipped})}, {len(shipped)} cuts")
+        capped_rows = [row for row in rows if row["arm"] == "teamwork-cap"]
+        long = [result for row in capped_rows for result in row["bash_results"] if result["lines"] > 50 or result["chars"] > 8000]
+        whole = [result for result in long if "cut" not in result]
+        print(f"teamwork-cap outputs over 50 lines or 8,000 characters: {len(long)}; cut {len(long) - len(whole)}; left whole "
+              f"as file reads {sum(bool(FILE_READ.search(result['command'])) for result in whole)}, of which "
+              f"{sum(mixed_read(result['command']) for result in whole)} also ran another program (commands kept to 2,000 characters)")
+        print(f"teamwork-cap Bash calls left whole as file reads although they ran another program: "
+              f"{sum(mixed_read(result['command']) for row in capped_rows for result in row['bash_results'] if 'cut' not in result)} "
+              f"of {sum(len(row['bash_results']) for row in capped_rows)}")
         held, none_passed, capped_passed, mean = gain("teamwork-cap")
         print(f"teamwork-cap gain on the new tasks: passed {capped_passed} against none's {none_passed}, mean net saving with "
               f"re-read results charged {mean:.2%}; {'holds, so wire the hook' if held else 'does not hold, so leave the hook unwired'}")

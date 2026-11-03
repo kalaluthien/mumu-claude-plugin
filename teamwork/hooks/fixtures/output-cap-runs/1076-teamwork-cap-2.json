@@ -1,0 +1,1473 @@
+{
+ "task": 1076,
+ "pull": "1088",
+ "base_sha": "71d7a486612b4e5bed5179592306532a3be59bbe",
+ "arm": "teamwork-cap",
+ "repeat": 2,
+ "command": [
+  "claude",
+  "-p",
+  "<prompt>",
+  "--model",
+  "sonnet",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--max-budget-usd",
+  "5",
+  "--permission-mode",
+  "acceptEdits",
+  "--allowedTools",
+  "Bash",
+  "Read",
+  "Edit",
+  "Write",
+  "Grep",
+  "Glob",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--include-hook-events",
+  "--no-session-persistence",
+  "--plugin-dir",
+  "/Users/hyungmokim/workspace/plugins/.claude/worktrees/read-shunt-worker/teamwork/hooks/fixtures/teamwork-cap-arm"
+ ],
+ "prompt": "You are replaying a past task in a fresh checkout of the mumu-claude-plugin repository, your working folder.\nDo the task below fully: change the files so that each `[check]` of its Definition of done passes, run the checks you can,\nthen commit your change with git. GitHub, herdr and other Claude sessions are off in this replay: skip each step that reads\nor writes an issue, pull request, comment or session (filing, commenting, judging, pushing, telling), and each check\nthat needs one.\n\nTask #1076: Rename teamwork code to whole words\n\n## Goal\n\nMake every name in teamwork's code the whole word it stands for, take the cross-plugin names, and drop the one stale fixture, with behaviour kept (owner's words on #1062: \"\uc4f0\uc9c0 \uc54a\ub294 playbook\uc774\ub098 \uad00\ub828 \uc2a4\ud06c\ub9bd\ud2b8 \uac19\uc740 \uac70 \ub0a1\uc740\uac70 \uc804\ubd80\", https://github.com/kalaluthien/mumu-claude-plugin/issues/1062, and \"\ud30c\uc77c \uc774\ub984 \ud568\uc218 \uc774\ub984 \ud5e4\ub354 \uc774\ub984 \uac1c\ub150 \uc774\ub984 \uc77c\uad00\uc131\uc774\ub098 \uaddc\uce59 \uc548\ub9de\ub294\uac83\ub3c4 \uc804\uc218 \uc870\uc0ac\ud574\uc11c \uc77c\uce58\uc2dc\ucf1c. \uc138 \ud50c\ub7ec\uadf8\uc778 \uac01\uac01 + \ud50c\ub7ec\uadf8\uc778 \uac04\uc5d0 \uc804\ubd80\", https://github.com/kalaluthien/mumu-claude-plugin/issues/1062#issuecomment-6459763030).\n\n- **Word names**: every Python and TypeScript name under `teamwork/` (variables, parameters, lambdas, functions, attributes, import aliases, TypeScript bindings and `catch` names) is a whole word, as `AGENTS.md` **Word names** says: each `_` or camelCase part is an English word or a standard term of the field (`args`, `stdout`, `worktree`). A lone `n`, `k`, `e` or `i` stays only for a count, key, error or index, so an `i`, `n`, `k` or `e` that holds anything else (an issue, an issue number, a session name, a node, an event), as a parameter, a loop target or an assignment, takes the whole word; the plugin API's `$` stays. About 344 names and 91 letters, listed by the first two criteria's commands.\n- **Cross-plugin names**: teamwork's rows of the names list (https://github.com/kalaluthien/mumu-claude-plugin/issues/1062#issuecomment-6459949094): `INSTALL`, `missing` and `need` move from `lib/json_command.py` to `lib/install_line.py`; `lint-criteria.py` becomes `check-criteria.py`; each self-check (the six `replay-*.py` beside `probe-tell-session.py`, not `replay-board-scenario.py`, which prints a board dump) prints `ok <name>` or `fail <name>: <detail>` through a `step` helper.\n- **One word, one meaning**: `session_gaps.stamp(text)`, which parses a time, takes a name saying so, since `stamp` elsewhere makes an ISO time (`board_files.py:25`, `landing_git.py:24`) or reads a signal file (`team_signal.py:7`).\n- **Script form**: each script, and each Python fixture (`probe-tell-session.py`, `replay-data-folder.py` and `replay-files-pane.py` run on with `--x` today), answers an unknown option, and a call with no argument when each of its `usage:` lines needs one, with its docstring on stderr and exit 2 (`AGENTS.md` **Script form**), and so do the scripts the issue pane and Claude Code's monitor run (`hooks/list-issue-board.py`, `hooks/wait-team-change.py`, `monitors/print-team-gaps.py`), while `hooks/route-event.py`, a hook, keeps its exit codes; option-parsing scripts go through one parser in a new `lib/usage_parser.py` rather than a copy per script, and each flag a script's `usage:` line names is lowercase whole words (`list-session-gaps.py --from-dir` becomes `--from-folder`); `rename-session.py` today renames the session to any argument, `--x` included. Each script, hook, monitor and fixture docstring opens with a verb in the imperative, as most do (`list-sessions.py` and `print-scope-label.py` open with \"Prints\", `route-event.py` with \"Timing-bound steps live\", `fake-herdr/herdr` with \"A stand-in\"). Each script and fixture reaches a path beside it through `HERE` or `ROOT` (`replay-nest-target.py` builds `parents[1] / \"scripts\"` inline).\n- **File names**: each script's name opens with a verb (`AGENTS.md` **Names**, \"a hook's included\"): `hooks/issue-pane.tsx`, the module `hooks.json` loads, becomes `hooks/draw-issue-pane.tsx`, with its four references; `fake-herdr/herdr` and `recorded-gh/gh` keep the name of the tool they stand in for, a name the tool fixes.\n- **Stale file**: `fixtures/fake-gh/gh` goes: no script or document names it or its `FAKE_GH_LOG` (`git grep -n \"fake-gh\\|FAKE_GH_LOG\"` finds only the file itself). The `.md` fixtures stay: they are the documents `lint-criteria.py` and `run-criteria.py` must accept or reject, which **No tests or evals** allows, and each still gives its verdict at 5abee22. `fixtures/pass-sample-input.txt` stays, though no file names it: it is the sample `run-criteria.py --pass <n>=fixtures/pass-sample-input.txt fixtures/pass-sample.md` feeds each pipe split, the `--pass` probe #857 kept, run by hand. Every other teamwork file is named by another file, a loader, or is such a fixture.\n- **Behaviour kept**: no output of any hook, monitor or script changes but the usage text; the fixtures replay as on the base. `compare-team-output.py` covers the hooks, the board, the heartbeat and the scripts its jobs name; a second guard runs the rest (the criteria checker on each `.md` fixture, `list-session-gaps.py`, `backtest-estimate.py` on a saved history, `run-on-refs.py`, `wait-team-change.py`) at the head and on the base.\n- **Not here**: Markdown headers and words, which #1077 changes after this task lands; here Markdown changes only where it names a renamed file (`worker.md:14`); `gaps` stays in both `team_gaps` (missing work) and `session_gaps` (idle time), as plain English for both.\n\n## Definition of done\n\nCommands run from the repository root.\n\n1. [check] **No short names**: `python3 /Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062/list-short-names.py teamwork | tail -1` prints `0`; on base `347`. The check reads the flags of each `usage:` line too.\n2. [check] **Letters hold indexes**: `python3 /Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062/list-letter-misuse.py teamwork | tail -1` prints `0`; on base `104`, Python and TypeScript.\n3. [check] **Install helper moved**: `grep -lE '^(def need|def missing|INSTALL =)' teamwork/lib/*.py | xargs -n1 basename | tr '\\n' ' '` prints `install_line.py`; on base `json_command.py`.\n4. [check] **Checker renamed**: `{ grep -rl lint-criteria teamwork AGENTS.md; find teamwork -name 'lint-criteria*'; } | wc -l | tr -d ' '` prints `0`; on base `4`.\n5. [check] **Old result lines gone**: `grep -rnE \"def case\\(|[} ]pass\\\"|'pass' if\" teamwork/skills/kick-off/fixtures teamwork/hooks/fixtures | wc -l | tr -d ' '` prints `0`; on base `5`.\n6. [check] **Every self-check steps**: `grep -L \"def step\" teamwork/skills/kick-off/fixtures/replay-board-setting.py teamwork/skills/kick-off/fixtures/replay-data-folder.py teamwork/skills/kick-off/fixtures/replay-files-pane.py teamwork/skills/kick-off/fixtures/replay-landing-scenario.py teamwork/skills/kick-off/fixtures/replay-nest-target.py teamwork/skills/kick-off/fixtures/replay-team-scenarios.py teamwork/skills/kick-off/fixtures/probe-tell-session.py | wc -l | tr -d ' '` prints `0`; on base `5`.\n7. [check] **Time parser named**: `grep -oE \"^def (stamp|parse_time)\\(\" teamwork/lib/session_gaps.py | cut -c5-` prints `parse_time(`; on base `stamp(`.\n8. [check] **Usage on a bad call**: `python3 /Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062/list-bad-call-scripts.py teamwork/skills/kick-off/scripts | tail -1` prints `0`; on base `7`.\n9. [check] **Fixture usage on a bad call**: `python3 /Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062/list-bad-call-scripts.py teamwork/skills/kick-off/fixtures/*.py teamwork/hooks/fixtures/*.py | tail -1` prints `0`; on base `7`.\n10. [check] **One usage parser**: `grep -rlE \"ArgumentParser\\(\" teamwork | wc -l | tr -d ' '` prints `1`; on base `10`. The one file is `lib/usage_parser.py`.\n11. [check] **Pane and monitor usage on a bad call**: `python3 /Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062/list-bad-call-scripts.py teamwork/hooks/list-issue-board.py teamwork/hooks/wait-team-change.py teamwork/monitors/print-team-gaps.py | tail -1` prints `0`; on base `3`.\n12. [check] **Imperative docstrings**: `find teamwork \\( -path \"*/scripts/*\" -o -path \"*/hooks/*\" -o -path \"*/monitors/*\" -o -path \"*/fixtures/*\" \\) -type f -exec grep -hm1 '^\"\"\"' {} + | sed 's/^\"\"\"//' | cut -d' ' -f1 | grep -cE '^(A|An|The|This)$|[^s]s$|-'` prints `0`; on base `4`.\n13. [check] **Stale fixture gone**: `find teamwork/skills/kick-off/fixtures -path '*fake-gh*' -type f | wc -l | tr -d ' '` prints `0`; on base `1`.\n14. [check] **Team output kept**: `python3 teamwork/skills/kick-off/fixtures/compare-team-output.py --ref origin/main 2>&1 | tail -1` prints `same`; on base `same`, quoted from a run in a worktree at the base, since the script clones the checkout. A guard: the hooks, board, heartbeat and scripts its jobs name match the base's.\n15. [check] **Session calls kept**: `python3 teamwork/skills/kick-off/fixtures/compare-session-calls.py --ref origin/main 2>&1 | tail -1` prints `same`; on base `same`, quoted likewise. A guard.\n16. [check] **Replays pass**: `for f in replay-board-setting replay-data-folder replay-files-pane replay-nest-target replay-landing-scenario replay-team-scenarios; do python3 teamwork/skills/kick-off/fixtures/$f.py; done 2>&1 | grep -cv '^ok '` prints `0`; on base `20`. The two `pass` lines of `replay-nest-target.py` become `ok` lines.\n17. [check] **Other scripts kept**: `python3 /Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062/compare-script-outputs.py /Users/hyungmokim/workspace/plugins origin/main 2>&1 | tail -1` prints `same`; on base `same`, since the base against itself matches. A guard: the scripts compare-team-output.py leaves out give the base's outputs on fixed inputs.\n18. [check] **Script names open with a verb**: `find teamwork \\( -name \"*.py\" -o -name \"*.ts\" -o -name \"*.tsx\" \\) ! -path \"*/lib/*\" ! -name \"*.d.ts\" | sed \"s|.*/||\" | cut -d- -f1 | sort -u | paste -sd- -` prints `answer-backtest-check-close-compare-draw-edit-estimate-list-print-probe-recall-remove-rename-render-replay-route-run-start-tell-use-wait`; on base `answer-backtest-close-compare-edit-estimate-issue-lint-list-print-probe-recall-remove-rename-render-replay-route-run-start-tell-use-wait`.\n19. [check] **Paths through HERE or ROOT**: `grep -rn \"__file__).resolve()\" teamwork --include=*.py | grep -v \"/lib/\" | grep -vcE \":(HERE|ROOT) = |sys\\.path\\.insert\"` prints `0`; on base `1`.\n20. [check] **No unnamed file**: `python3 /Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062/list-unnamed-files.py . teamwork | sed \"s|.*/||\" | paste -sd\" \" -` prints `pass-sample-input.txt 1 unnamed`, the sample kept above; on base `gh pass-sample-input.txt 2 unnamed`.\n21. [check] **Usage on a missing argument**: `python3 /Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062/list-bad-call-scripts.py --empty teamwork/skills/kick-off/scripts | tail -1` prints `0`; on base `3`.\n22. [check] **Fixture, pane and monitor usage on a missing argument**: `python3 /Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062/list-bad-call-scripts.py --empty teamwork/skills/kick-off/fixtures/*.py teamwork/hooks/fixtures/*.py teamwork/hooks/list-issue-board.py teamwork/hooks/wait-team-change.py teamwork/monitors/print-team-gaps.py | tail -1` prints `0`; on base `2`.",
+ "environment": {
+  "CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1",
+  "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1"
+ },
+ "blocked_tools": [
+  "gh",
+  "herdr",
+  "claude"
+ ],
+ "init": {
+  "plugins": [
+   "teamwork-cap-arm",
+   "cc-plugin-agents-md",
+   "cc-plugin-telemetry",
+   "cc-plugin-privacy",
+   "cc-plugin-plugin-authoring"
+  ],
+  "mcp_servers": [],
+  "model": "claude-sonnet-5-5"
+ },
+ "hook_events": [
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash"
+ ],
+ "total_cost_usd": 2.5281524000000006,
+ "models": [
+  "claude-sonnet-5-5"
+ ],
+ "is_error": false,
+ "subtype": "success",
+ "num_turns": 63,
+ "turns": [
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 9254,
+    "cache_read_input_tokens": 13968,
+    "output_tokens": 6,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 9254
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2002,
+    "cache_read_input_tokens": 23222,
+    "output_tokens": 20,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2002
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 9372,
+    "cache_read_input_tokens": 25224,
+    "output_tokens": 5,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 9372
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 6604,
+    "cache_read_input_tokens": 34596,
+    "output_tokens": 2,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 6604
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2661,
+    "cache_read_input_tokens": 41200,
+    "output_tokens": 7,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2661
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1420,
+    "cache_read_input_tokens": 43861,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1420
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 5159,
+    "cache_read_input_tokens": 45281,
+    "output_tokens": 10,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 5159
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 10767,
+    "cache_read_input_tokens": 50440,
+    "output_tokens": 4,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 10767
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1183,
+    "cache_read_input_tokens": 61207,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1183
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2213,
+    "cache_read_input_tokens": 62390,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2213
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 7797,
+    "cache_read_input_tokens": 64603,
+    "output_tokens": 5,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7797
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2331,
+    "cache_read_input_tokens": 72400,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2331
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 9275,
+    "cache_read_input_tokens": 74731,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 9275
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 5246,
+    "cache_read_input_tokens": 84006,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 5246
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1344,
+    "cache_read_input_tokens": 89252,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1344
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 10610,
+    "cache_read_input_tokens": 90596,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 10610
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2190,
+    "cache_read_input_tokens": 101206,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2190
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 4065,
+    "cache_read_input_tokens": 103396,
+    "output_tokens": 7,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 4065
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 3218,
+    "cache_read_input_tokens": 107461,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 3218
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1078,
+    "cache_read_input_tokens": 110679,
+    "output_tokens": 6,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1078
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 5972,
+    "cache_read_input_tokens": 111757,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 5972
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2970,
+    "cache_read_input_tokens": 117729,
+    "output_tokens": 6,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2970
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2558,
+    "cache_read_input_tokens": 120699,
+    "output_tokens": 5,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2558
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 9099,
+    "cache_read_input_tokens": 123257,
+    "output_tokens": 9,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 9099
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 134075,
+    "output_tokens": 9,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1776,
+    "cache_read_input_tokens": 134075,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1776
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 5746,
+    "cache_read_input_tokens": 135851,
+    "output_tokens": 5,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 5746
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 10248,
+    "cache_read_input_tokens": 141597,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 10248
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2288,
+    "cache_read_input_tokens": 151845,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2288
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2244,
+    "cache_read_input_tokens": 154133,
+    "output_tokens": 9,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2244
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 5143,
+    "cache_read_input_tokens": 156377,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 5143
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1713,
+    "cache_read_input_tokens": 161520,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1713
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 7038,
+    "cache_read_input_tokens": 163233,
+    "output_tokens": 2,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7038
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2657,
+    "cache_read_input_tokens": 170271,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2657
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 8717,
+    "cache_read_input_tokens": 172928,
+    "output_tokens": 6,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 8717
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 8928,
+    "cache_read_input_tokens": 181645,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 8928
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 3804,
+    "cache_read_input_tokens": 190573,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 3804
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2666,
+    "cache_read_input_tokens": 194377,
+    "output_tokens": 10,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2666
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2164,
+    "cache_read_input_tokens": 197043,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2164
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 5987,
+    "cache_read_input_tokens": 199207,
+    "output_tokens": 5,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 5987
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 6031,
+    "cache_read_input_tokens": 205194,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 6031
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 5767,
+    "cache_read_input_tokens": 211225,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 5767
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 7076,
+    "cache_read_input_tokens": 216992,
+    "output_tokens": 5,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7076
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 6934,
+    "cache_read_input_tokens": 224068,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 6934
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 3673,
+    "cache_read_input_tokens": 231002,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 3673
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1041,
+    "cache_read_input_tokens": 234675,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1041
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 750,
+    "cache_read_input_tokens": 235716,
+    "output_tokens": 20,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 750
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 376,
+    "cache_read_input_tokens": 236466,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 376
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 474,
+    "cache_read_input_tokens": 236842,
+    "output_tokens": 34,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 474
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1304,
+    "cache_read_input_tokens": 237316,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1304
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1327,
+    "cache_read_input_tokens": 238620,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1327
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 463,
+    "cache_read_input_tokens": 239947,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 463
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1191,
+    "cache_read_input_tokens": 240410,
+    "output_tokens": 20,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1191
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 931,
+    "cache_read_input_tokens": 241601,
+    "output_tokens": 4,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 931
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1056,
+    "cache_read_input_tokens": 242532,
+    "output_tokens": 59,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1056
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 322,
+    "cache_read_input_tokens": 243588,
+    "output_tokens": 21,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 322
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1192,
+    "cache_read_input_tokens": 243910,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1192
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 577,
+    "cache_read_input_tokens": 245102,
+    "output_tokens": 20,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 577
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1622,
+    "cache_read_input_tokens": 245679,
+    "output_tokens": 6,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1622
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 406,
+    "cache_read_input_tokens": 247301,
+    "output_tokens": 20,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 406
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 336,
+    "cache_read_input_tokens": 247707,
+    "output_tokens": 6,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 336
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2038,
+    "cache_read_input_tokens": 248043,
+    "output_tokens": 5,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2038
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 664,
+    "cache_read_input_tokens": 250081,
+    "output_tokens": 778,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 664
+    }
+   }
+  }
+ ],
+ "bash_results": [
+  {
+   "id": "toolu_01AdpUA8UKemnNfXYPoBTRxa",
+   "command": "cd teamwork && git ls-files | head -200; ls /Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062/ 2>&1; wc -l AGENTS.md ../AGENTS.md 2>&1",
+   "chars": 3778,
+   "lines": 114
+  },
+  {
+   "id": "toolu_01Y7YLD1MFVHvjnWXw4Sjj6P",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository; cat AGENTS.md; C=/Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062; cat $C/list-short-names.py $C/list-letter-misuse.py $C/list-bad-call-scripts.py; python3 $C/list-short-names.py teamwork | wc -l; find teamwork -name '*.py' -o -name '*.ts*' | xargs wc -l | tail -1",
+   "chars": 23484,
+   "lines": 356
+  },
+  {
+   "id": "toolu_01VekQiKodeQ5CveEAD5mMjP",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository; C=/Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062; python3 $C/list-short-names.py teamwork | sed 's|teamwork/||' | awk '{a[$1]=a[$1]\" \"$2} END{for(k in a)print k a[k]}' | sort | head -400",
+   "chars": 11615,
+   "lines": 316
+  },
+  {
+   "id": "toolu_01TfuCA3XV4FTvvUSKx6KaZu",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository; C=/Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062; python3 $C/list-letter-misuse.py teamwork | sed 's|teamwork/||' | awk '{a[$1]=a[$1]\" \"$2} END{for(k in a)print k a[k]}' | sort | tr '\\n' ';'",
+   "chars": 3031,
+   "lines": 1
+  },
+  {
+   "id": "toolu_018oZ6Vs8btBZNy57DyZ9qfm",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/lib; for f in background_work board_files board_github criteria_check issue_board issue_state json_command; do echo \"=== $f\"; cat -n $f.py; done",
+   "chars": 2254,
+   "lines": 39
+  },
+  {
+   "id": "toolu_01NEy9v415b25jwo2hLAuw63",
+   "command": "mkdir -p /tmp/w && cat > /tmp/w/rn.py <<'EOF'\nimport sys, re, io, tokenize\n# usage: rn.py FILE rule... ; rule: [.]old=new[@a-b]  (line range inclusive)\npath, rules = sys.argv[1], []\nfor r in sys.argv[2:]:\n    m = re.fullmatch(r\"(\\.?)(\\w+)=(\\w+)(?:@(\\d+)-(\\d+))?\", r)\n    assert m, r\n    rules.append((bool(m[1]), m[2], m[3], int(m[4] or 0), int(m[5] or 10**9)))\nsrc = open(path).read()\nlines = src.split(\"\\n\")\ndef hit(attr, name, ln):\n    for a, o, n, lo, hi in rules:\n        if o == name and lo <= ln <= hi and (a or not attr):\n            return n\nif path.endswith((\".ts\", \".tsx\")):\n    out = []\n    for ln, line in enumerate(lines, 1):\n        def sub(m):\n            attr = m.start() > 0 and line[m.start()-1] == \".\"\n            return hit(attr, m[0], ln) or m[0]\n        out.append(re.sub(r\"(?<![\\w$])[A-Za-z_]\\w*\", sub, line))\n    open(path, \"w\").write(\"\\n\".join(out))\nelse:\n    toks = list(tokenize.generate_tokens(io.StringIO(src).readline))\n    edits = []\n    prev = None\n    for t in toks:\n        if t.type == tokenize.NAME:\n            n = hit(prev is not None and prev.string == \".\", t.string, t.start[0])\n            if n: edits.append((t.start, t.end, n))\n        if t.type not in (tokenize.NL, tokenize.COMMENT): prev = t\n    for (r, c), (r2, c2), n in reversed(edits):\n        l = lines[r-1]; lines[r-1] = l[:c] + n + l[c2:]\n    open(path, \"w\").write(\"\\n\".join(lines))\nEOF\ncd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/lib; cat -n board_files.py",
+   "chars": 9722,
+   "lines": 171
+  },
+  {
+   "id": "toolu_01MvWE7JhNkN2NEfkyANBNxd",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/lib; R=\"python3 /tmp/w/rn.py\"\n$R board_files.py .DIR=FOLDER m=fields@41-47 d=folder@41-47 p=path@29-29 p=path@43-44 n=number@49-69 c=comment@66-66 b=blocker@72-72 n=number@76-77 b=blocker@77-77 c=child@78-78 m=fields@78-78 r=issue_record@80-84 c=comment@81-81 c=child@82-84 x=label_name@81-81 m=fields@56-56 n=node@85-86 c=item@87-88 k=comment_number@96-99 k=comment_number@169-170 x=label_name@145-145 \nsed -i 's/for c in kids(/for c in kids(/' board_files.py\ngrep -n \"child\\|number = \\|numbers()\" board_files.py | sed -n 1,5p; grep -rn \"\\bDIR\\b\" .. --include=*.py --include=*.md --include=*.tsx | grep -v \"_DIR\" | head; sed -n 50,100p board_github.py | head -0; cat -n board_github.py",
+   "chars": 22397,
+   "lines": 380
+  },
+  {
+   "id": "toolu_01FCyUwKAdoJ6YAhAai4w6cq",
+   "command": "printf '#!/bin/sh\\nexec python3 /tmp/w/rn.py \"$@\"\\n' > /tmp/w/rn; chmod +x /tmp/w/rn; cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/lib; R=/tmp/w/rn\n$R board_files.py .DIR=FOLDER m=fields@41-47 d=folder@41-47 p=path@29-29 p=path@43-44 n=number@49-69 c=comment@66-66 b=blocker@72-72 n=number@76-77 b=blocker@77-77 c=child@78-78 m=fields@78-78 r=issue_record@80-84 c=comment@81-81 c=child@82-84 x=label_name@81-81 m=fields@56-56 n=node@85-86 c=item@87-88 k=comment_number@96-99 k=comment_number@169-170 x=label_name@145-145\nsed -i '' 's/\\bDIR\\b/FOLDER/g; s/\\bkids\\b/children/g' board_files.py\ngit diff --stat; python3 -c \"import ast;ast.parse(open('board_files.py').read())\"; grep -n \"FOLDER\\|DIR\" board_files.py | head -3\n# board_github\n$R board_github.py x=label_name@113-113 m=match@96-96 r=raw_issue@165-166 v=value@77-77 k=header@77-77 c=comment@173-173 b=blocker@191-191 c=item@205-206 n=node@203-206 t=sub_issue@227-234 k=number@229-229 p=process@241-242 f=flag@267-267 c=command_name@344-344 i=issue@124-136 c=comment@131-132 n=page_number@98-99 j=_x@0-0 r=raw@179-179 v=value@166-166 k=key@166-166 \ngrep -n \"\\bPR_LIMIT\" -r .. | head",
+   "chars": 570,
+   "lines": 7
+  },
+  {
+   "id": "toolu_01Ks5SftsXM7yJL4NRzNv3CX",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/lib; python3 --version; R=/tmp/w/rn\nsed -i '' '124,136s/\\bissue\\b/row/g' board_github.py\n$R board_github.py i=row@166-166 n=issue_node@227-227\ngit diff board_github.py | grep '^[+]' | cut -c1-230",
+   "chars": 2769,
+   "lines": 32
+  },
+  {
+   "id": "toolu_011HNP5xzQYuawShguMF5giq",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/lib; \nperl -pi -e 'if($.>=124&&$.<=136){s/\\bissue\\b/row/g}' board_github.py\nperl -pi -e 's/\\blabel_name\\[\"name\"\\] for label_name in/label[\"name\"] for label in/; if($.==179){s/\\braw\\b/entry/g}' board_github.py\nperl -pi -e 's/\\bkids\\b/children/g' board_files.py\nsed -n 124,136p board_github.py | cut -c1-150; sed -n 113p board_github.py|cut -c1-200; sed -n 179p board_github.py; grep -n children board_files.py | head -2\ncat -n issue_board.py issue_state.py json_command.py",
+   "chars": 16624,
+   "lines": 288
+  },
+  {
+   "id": "toolu_01H6a6rptKauw5mZWHyoeHhP",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/lib; R=/tmp/w/rn\n$R issue_board.py c=comment@24-24 f=paragraph@25-25 b=blocker@30-30 b=blocker@36-36 x=label@38-38 t=task@41-42 n=number@56-82 i=item@56-56 a=first@63-66 b=second@63-66 i=node@74-81 c=comment@77-77 b=blocker@80-81 i=node@87-91 i=item@94-99 t=task_item@96-96 b=blocker@106-106 d=done_item@109-111 x=part@111-111 i=item@116-130 x=part@119-119 d=done_item@124-126 t=task@129-129\n$R issue_board.py n=number@56-82 \n$R issue_state.py w=word@12-12 r=role@12-12 sep=separator@38-38 v=value@38-38 h=heading@44-44 c=comment@68-68 w=word@73-73 d=record_data@73-89 c=comment@73-73 n=number@105-105 c=item@112-112 d=done_item@113-114\nperl -pi -e 's/\\bp\\b/process/g if $.>=12 && $.<=13' json_command.py\n# install_line\npython3 - <<'EOF'\ns=open('json_command.py').read()\ni=s.index('def missing')\nopen('install_line.py','w').write('\"\"\"Names the install page of a command that is missing.\"\"\"\\nimport shutil\\n\\nINSTALL = {\"gh\": \"https://cli.github.com\", \"herdr\": \"https://herdr.dev\"}\\n\\n\\n'+s[i:])\ns=s[:i].rstrip()+\"\\n\"\ns=s.replace(\"import shutil\\n\",\"\").replace('INSTALL = {\"gh\": \"https://cli.github.com\", \"herdr\": \"https://herdr.dev\"}\\n\\n\\n','\\n').replace('\"\"\"Runs a command and parses its JSON output, and names the install page of a command that is missing.\"\"\"','\"\"\"Runs a command and parses its JSON output.\"\"\"')\nopen('json_command.py','w').write(s)\nEOF\ncat json_command.py | head -12; grep -rn \"json_command\\|\\bneed\\b\\|missing(\\|INSTALL\" .. --include=*.py --include=*.md --include=*.tsx | grep -v \"^../lib/install_line\\|^../lib/json_command\"",
+   "chars": 1355,
+   "lines": 23
+  },
+  {
+   "id": "toolu_017drEJNXSr5g6M6kFi92Bj4",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/lib; \nperl -pi -e 's/^from json_command import need, run/from install_line import need\\nfrom json_command import run/' board_github.py\ncat -n team_gaps.py task_history.py task_backtest.py task_estimate.py",
+   "chars": 22825,
+   "lines": 387
+  },
+  {
+   "id": "toolu_016Sgf4YNE782Ta74sKBSd8t",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork; R=/tmp/w/rn; grep -rn \"fed=\\|\\bfed\\b\\|prs\\b\\|PR_LIMIT\\|p=\\|quantile(\\|plugin_dir\\|stamp\\b\" --include=*.py --include=*.tsx . | grep -v \"^./lib/team_gaps.py\\|^./lib/task_estimate\" | cut -c1-170",
+   "chars": 6203,
+   "lines": 51,
+   "cut": {
+    "lines_cut": 3,
+    "lines": 53,
+    "file": "/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/bash-stdout-dbui2wm3.txt",
+    "files": [
+     "/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/bash-stdout-dbui2wm3.txt"
+    ],
+    "file_chars": 6238,
+    "removed_chars": 37,
+    "removed_units": 348.1
+   }
+  },
+  {
+   "id": "toolu_01AePULYcXcX4f2kxRvtnExX",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/lib; R=/tmp/w/rn\n$R team_gaps.py PR_LIMIT=PULL_LIMIT i=issue p=pull prs=pulls fed=fed_urls a=agent t=tab l=line c=comment w=word@14-14 r=meaning@14-14 r=kind@32-32 r=kind@173-173 n=number@50-50 n=name@93-171\n$R task_history.py i=issue n=number@28-28 n=number@30-30 c=marker@47-47 r=row@49-49 stamp=parse_time\n$R task_backtest.py r=row j=index k=fit_count s=scored_row lv=level _stats=_summary\n$R task_estimate.py p=probability@13-18 k=position@15-18 lo=lower hi=upper x=label@29-29 r=row@36-37 rng=generator@42-43 g=durations@43-43 h=duration@50-50 s=summary@50-50\n$R agent_claude.py plugin_dir=plugin_folder; $R agent.py plugin_dir=plugin_folder\nperl -pi -e 's/plugin_dir/plugin_folder/g' agent.py\ngrep -n \"plugin_dir\\|plugin_folder\" agent.py agent_claude.py | cut -c1-120\nsed -n 28,31p team_gaps.py | head -0; git diff task_estimate.py | grep '^+' | cut -c1-140",
+   "chars": 1089,
+   "lines": 16
+  },
+  {
+   "id": "toolu_01RV6mVv8xEReYhpn9AJDTXK",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/lib; for f in session_gaps session_herdr session_cloud message_herdr landing_git landing_github port_setting team_names team_settings; do echo \"== $f\"; cat -n $f.py | cut -c1-200; done | grep -v '^ *[0-9]*\\s*$' | head -400",
+   "chars": 26121,
+   "lines": 400
+  },
+  {
+   "id": "toolu_01AveX85M2q5DLd3LhKfTXKt",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/lib; R=/tmp/w/rn\n$R session_gaps.py stamp=parse_time rec=record a=earlier@38-45 b=later@38-45 s=times@41-41 s=session@47-47 p=project@52-52 n=name@52-52 s=session_times@52-52\n$R session_herdr.py a=entry p=process\n$R session_cloud.py a=entry\n$R message_herdr.py a=live\n$R landing_git.py d=changes_folder@29-30 p=path@30-30 d=changes_folder@110-116 r=fields@40-46 r=row@64-67 r=fields@72-86 r=row@91-91 r=row@112-112 r=fields@124-142 p=process@83-86 p=process@139-141\n$R landing_github.py p=pull\n$R port_setting.py r=root\n$R team_names.py r=suffix@6-6 a=agent n=name@26-26\n$R team_settings.py v=value@13-16 t=tools_list@14-14 x=tool@14-14 p=parent@23-23\n$R issue_state.py sep=separator\ncd ..; python3 -c \"\nimport sys;sys.path.insert(0,'lib')\nimport importlib,pkgutil\nfor m in sorted(p.stem for p in __import__('pathlib').Path('lib').glob('*.py')):\n    try: importlib.import_module(m)\n    except Exception as e: print(m, repr(e)[:150])\n\"; git diff lib/team_settings.py | grep '^+' | cut -c1-200",
+   "chars": 695,
+   "lines": 6
+  },
+  {
+   "id": "toolu_0142nGfMHHbyAGK4NqstnSxC",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository; C=/Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062; python3 $C/list-short-names.py teamwork/lib | tr '\\n' ';'; python3 $C/list-letter-misuse.py teamwork/lib| tr '\\n' ';'; cat teamwork/hooks/route-event.py",
+   "chars": 8779,
+   "lines": 129
+  },
+  {
+   "id": "toolu_01QjZJqh5B1Q8zFbsVXiqerK",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork; R=/tmp/w/rn\nperl -pi -e 's/^import json_command  # noqa: E402/import install_line  # noqa: E402/; s/json_command\\.missing/install_line.missing/; s/^\"\"\"Timing-bound steps live in this hook, routed per event and role, instead of in the playbooks\\./\"\"\"Route timing-bound steps per event and role in this hook, instead of in the playbooks./' hooks/route-event.py\nsed -n 8,18p hooks/route-event.py | head -3\n$R hooks/route-event.py n=needle@64-64 g=line@94-94\n$R lib/background_work.py x=part@10-10 r=record@20-21 b=block@25-30\nsed -n 94p hooks/route-event.py; sed -n 64p hooks/route-event.py | cut -c1-200\npython3 - <<'EOF'\nimport re\ns=open('hooks/route-event.py').read()\ns=s.replace(\"import background_work  # noqa: E402\\nimport board  # noqa: E402\\nimport install_line  # noqa: E402\\nimport session\",\"import background_work  # noqa: E402\\nimport board  # noqa: E402\\nimport install_line  # noqa: E402\\nimport session\")\nopen('hooks/route-event.py','w').write(s)\nEOF\ncat -n lib/criteria_check.py | sed -n 1,80p",
+   "chars": 4835,
+   "lines": 85
+  },
+  {
+   "id": "toolu_01AsoATmSNEWHSsqWjevLDtr",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork; R=/tmp/w/rn\n$R lib/criteria_check.py m=match s=span@54-54\nhead -2 hooks/route-event.py\ngit mv skills/kick-off/scripts/lint-criteria.py skills/kick-off/scripts/check-criteria.py\ngit mv hooks/issue-pane.tsx hooks/draw-issue-pane.tsx\ngit rm -q skills/kick-off/fixtures/fake-gh/gh\ngrep -rn \"lint-criteria\\|issue-pane\\.tsx\\|issue-pane\" .. --include=* -I 2>/dev/null | grep -v \"^../.git/\" | cut -c1-200",
+   "chars": 1324,
+   "lines": 11
+  },
+  {
+   "id": "toolu_018WCcTvZ5AYGVLZKtbrKSM8",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork; \nperl -pi -e 's/\\.\\/issue-pane\\.tsx/.\\/draw-issue-pane.tsx/' hooks/hooks.json\nperl -pi -e 's/\\.\\.\\/issue-pane\\.tsx/..\\/draw-issue-pane.tsx/' hooks/fixtures/render-empty-pane.ts\nperl -pi -e 's/hooks\\/issue-pane\\.tsx/hooks\\/draw-issue-pane.tsx/' skills/kick-off/references/build.md\nperl -pi -e 's/lint-criteria/check-criteria/g' lib/criteria_check.py skills/kick-off/references/worker.md skills/kick-off/scripts/check-criteria.py\ngrep -rn \"issue-pane.tsx\\|lint-criteria\" . | cut -c1-100; cat -n skills/kick-off/scripts/check-criteria.py hooks/list-issue-board.py hooks/wait-team-change.py monitors/print-team-gaps.py",
+   "chars": 13636,
+   "lines": 228
+  },
+  {
+   "id": "toolu_01V1N4sMbKC1WGZ73DboNE5i",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork; grep -rn \"ArgumentParser\\|add_argument\\|parse_args\\|sys.argv\\|argparse\" --include=* -I . | grep -v pycache | cut -c1-210; wc -l skills/kick-off/scripts/* skills/kick-off/fixtures/*.py skills/kick-off/fixtures/*/* hooks/fixtures/*",
+   "chars": 4364,
+   "lines": 51,
+   "cut": {
+    "lines_cut": 83,
+    "lines": 133,
+    "file": "/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/bash-stdout-vcnieafy.txt",
+    "files": [
+     "/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/bash-stdout-vcnieafy.txt"
+    ],
+    "file_chars": 10991,
+    "removed_chars": 6629,
+    "removed_units": 55141.2
+   }
+  },
+  {
+   "id": "toolu_01PXNNveUqxezKUxaYspq1Ei",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork; grep -rl \"ArgumentParser(\" . | grep -v pycache; C=/Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062; for s in skills/kick-off/scripts hooks/list-issue-board.py hooks/wait-team-change.py monitors/print-team-gaps.py; do python3 $C/list-bad-call-scripts.py $s 2>&1 | head -12; done; python3 $C/list-bad-call-scripts.py skills/kick-off/fixtures/*.py hooks/fixtures/*.py | head; python3 $C/list-bad-call-scripts.py --empty skills/kick-off/scripts hooks/list-issue-board.py hooks/wait-team-change.py monitors/print-team-gaps.py | head;  python3 $C/list-bad-call-scripts.py --empty skills/kick-off/fixtures/*.py hooks/fixtures/*.py",
+   "chars": 2150,
+   "lines": 24
+  },
+  {
+   "id": "toolu_01UraJ5zVZR29aTW7BhdEQEZ",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork; cat > lib/usage_parser.py <<'EOF'\n\"\"\"Reads a script's command line, answering a call it cannot read with the script's docstring on stderr and exit 2.\"\"\"\nimport argparse\nimport sys\n\n\ndef usage_parser(doc):\n    \"\"\"An argument parser for a script whose docstring is DOC: an unknown option or a missing argument prints DOC on stderr and exits 2,\n    and no option is abbreviated, since a script's `usage:` lines name each one whole.\"\"\"\n    parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)\n\n    def refuse(message):\n        print(doc, file=sys.stderr)\n        sys.exit(2)\n\n    parser.error = refuse\n    return parser\nEOF\ncd skills/kick-off/scripts; cat -n list-session-gaps.py recall-work.py backtest-estimate.py estimate-task-time.py",
+   "chars": 18247,
+   "lines": 333
+  },
+  {
+   "id": "toolu_019EZ41fMPo4dchQqSsibUvf",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/scripts; R=/tmp/w/rn\npython3 - <<'EOF'\nimport re\ndef sub(path, pairs):\n    s = open(path).read()\n    for a, b in pairs:\n        assert a in s, (path, a)\n        s = s.replace(a, b)\n    open(path, \"w\").write(s)\nP = 'parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)'\nsub(\"list-session-gaps.py\", [(\"import argparse\\n\",\"\"), (\"import session_gaps  # noqa: E402\\n\",\"import session_gaps  # noqa: E402\\nfrom usage_parser import usage_parser  # noqa: E402\\n\"),\n  (P,\"parser = usage_parser(__doc__)\"), (\"--from-dir <projects folder>\",\"--from-folder <projects folder>\"), ('\"--from-dir\"','\"--from-folder\"'), (\"opt.from_dir\",\"options.from_folder\")])\nsub(\"backtest-estimate.py\", [(\"import argparse\\n\",\"\"), (\"import task_history  # noqa: E402\\n\",\"import task_history  # noqa: E402\\nfrom usage_parser import usage_parser  # noqa: E402\\n\"),\n  (P,\"parser = usage_parser(__doc__)\"), (\"lambda v: {int(n) for n in v.split(\\\",\\\")}\",\"lambda text: {int(number) for number in text.split(\\\",\\\")}\")])\nsub(\"estimate-task-time.py\", [(\"import argparse\\n\",\"\"), (\"import task_history  # noqa: E402\\n\",\"import task_history  # noqa: E402\\nfrom usage_parser import usage_parser  # noqa: E402\\n\"),\n  (P,\"parser = usage_parser(__doc__)\"), (\"lambda v: (v.partition(\\\"=\\\")[0], float(v.partition(\\\"=\\\")[2]))\",\"lambda text: (text.partition(\\\"=\\\")[0], float(text.partition(\\\"=\\\")[2]))\")])\nsub(\"recall-work.py\", [(\"import argparse\\n\",\"\"), (\"import team_settings  # noqa: E402\\n\",\"import team_settings  # noqa: E402\\nfrom usage_parser import usage_parser  # noqa: E402\\n\"),\n  (\"parser = argparse.ArgumentParser()\",\"parser = usage_parser(__doc__)\")])\nEOF\nsed -i '' 's/\\bopt\\b/options/g' list-session-gaps.py backtest-estimate.py 2>/dev/null; perl -pi -e 's/\\bopt\\b/options/g' list-session-gaps.py backtest-estimate.py estimate-task-time.py\ngrep -n \"optio",
+   "chars": 809,
+   "lines": 13
+  },
+  {
+   "id": "toolu_01BUifKxjLoLyVCbmNdUPTQZ",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/scripts; R=/tmp/w/rn\n$R estimate-task-time.py options=parse_options@28-28 options=parse_options@63-63 r=row s=reason@73-73 t=task@75-82\nperl -pi -e 's/options = parse_options\\(args\\)/options = parse_options(args)/' estimate-task-time.py\nsed -n 63p estimate-task-time.py; sed -n 28p estimate-task-time.py\n$R list-session-gaps.py r=row h=hour\n$R backtest-estimate.py r=result e=estimator_stats@51-51 b=baseline_stats@51-58 e=estimator_stats@56-58\n$R recall-work.py p=process@35-40 w=word@44-45 c=comment@56-56 n=number@67-67 n=number@74-84 d=counts@74-84 w=word@74-84 i=item@74-84 df=document_frequency idf=inverse_frequency pr=pull@94-95 n=number@95-96 n=number@110-116\nsed -n 63p backtest-estimate.py | head -0; grep -n \"e\\b.*b\\b\" backtest-estimate.py | head -0\npython3 - <<'EOF'\nimport re\ns=open('backtest-estimate.py').read()\nprint([l for l in s.splitlines() if 'estimator_stats' in l or 'baseline_stats' in l or '\"\\\\testimator' in l])\nEOF",
+   "chars": 593,
+   "lines": 5
+  },
+  {
+   "id": "toolu_016AqEKac7FZE3xo5G6E51tX",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/scripts; perl -pi -e 's/^    parse_options = parse_options\\(args\\)/    options = parse_options(args)/' estimate-task-time.py\ncat -n answer-prompt.py close-session.py edit-issue-body.py list-sessions.py list-task-durations.py print-scope-label.py",
+   "chars": 13081,
+   "lines": 267
+  },
+  {
+   "id": "toolu_012JFCHnoVGu2WxSLBNaZjHo",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/scripts; R=/tmp/w/rn\n$R answer-prompt.py m=option_match w=phrase@56-56\n$R close-session.py a=live@22-42\n$R list-sessions.py a=entry\n$R list-task-durations.py r=row\nperl -pi -e 's/^\"\"\"Prints /\"\"\"Print /' list-sessions.py print-scope-label.py\nhead -3 list-sessions.py print-scope-label.py | cut -c1-60\ncat -n remove-worktree.py rename-session.py run-on-refs.py start-session.py use-board.py use-landing.py tell-session.py",
+   "chars": 23023,
+   "lines": 429
+  },
+  {
+   "id": "toolu_01Vgue8EVetBikWULMY3nBDf",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/scripts; R=/tmp/w/rn\n$R remove-worktree.py pr=pull@30-30 t=tip@32-32 p=process a=argument@62-62\n$R run-on-refs.py h=head@31-31\n$R use-board.py a=operands i=issue@32-33 c=comment@34-35\n$R use-landing.py a=operands\n$R start-session.py a=options@77-112 a=entry@53-53 r=kind@81-81 t=tool@88-88 s=agent_state@104-107 arg=argument@72-73 \nperl -pi -e 's/^    if len\\(args\\) != 1:\\n/XX/; ' rename-session.py\npython3 - <<'EOF'\ndef sub(path, pairs):\n    s = open(path).read()\n    for a, b in pairs:\n        assert a in s, (path, a)\n        s = s.replace(a, b)\n    open(path, \"w\").write(s)\nsub(\"rename-session.py\", [(\"    if len(args) != 1:\\n\", '    if len(args) != 1 or args[0].startswith(\"-\"):\\n')])\nsub(\"start-session.py\", [(\"import argparse\\n\",\"\"), (\"import team_settings  # noqa: E402\\n\",\"import team_settings  # noqa: E402\\nfrom usage_parser import usage_parser  # noqa: E402\\n\"),\n  ('parser = argparse.ArgumentParser(prog=\"start-session.py\", allow_abbrev=False)','parser = usage_parser(__doc__)'),\n  (\"            parser.error(rule)\\n\", '            print(f\"start-session.py: {rule}\", file=sys.stderr)\\n            return 2\\n')])\nEOF\ngrep -n \"s\\.get\\|lambda\" start-session.py | cut -c1-150; sed -n 80,86p start-session.py",
+   "chars": 1188,
+   "lines": 16
+  },
+  {
+   "id": "toolu_01NH6WLFUutc1PkJj75bRKnp",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/scripts; R=/tmp/w/rn\ngrep -n \"^XX\" rename-session.py; perl -pi -e 's/^XX/    if len(args) != 1 or args[0].startswith(\"-\"):\\n/' rename-session.py; sed -n 30,34p rename-session.py\n$R start-session.py s=entry@90-90\npython3 - <<'EOF'\ndef sub(path, pairs):\n    s = open(path).read()\n    for a, b in pairs:\n        assert a in s, (path, a)\n        s = s.replace(a, b)\n    open(path, \"w\").write(s)\nsub(\"start-session.py\", [(\"import argparse\\n\",\"\"), (\"import team_settings  # noqa: E402\\n\",\"import team_settings  # noqa: E402\\nfrom usage_parser import usage_parser  # noqa: E402\\n\"),\n  ('parser = argparse.ArgumentParser(prog=\"start-session.py\", allow_abbrev=False)','parser = usage_parser(__doc__)'),\n  (\"            parser.error(rule)\\n\", '            print(f\"start-session.py: {rule}\", file=sys.stderr)\\n            return 2\\n')])\nEOF\ncat -n run-criteria.py | sed -n 1,60p",
+   "chars": 3985,
+   "lines": 66
+  },
+  {
+   "id": "toolu_015TzpS7P63mpS1KsRNWRXdg",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/scripts; cat -n run-criteria.py | sed -n 60,270p",
+   "chars": 11789,
+   "lines": 206
+  },
+  {
+   "id": "toolu_01WMhAZexDu4swX1NrQNrGvC",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/scripts; R=/tmp/w/rn\n$R run-criteria.py c=comment@53-53 c=char@101-117 m=match@113-116 tar=archive@141-143 p=process@150-159 c=criterion@145-145 c=criterion@237-252 c=comment@203-204 x=part@206-206 n=number@230-233 f=sample_file@230-233 x=sample@229-232 a=options@219-261 r=table_row@239-261 \npython3 - <<'EOF'\ns=open(\"run-criteria.py\").read()\ns=s.replace(\"import argparse\\n\",\"\").replace(\"import issue_state  # noqa: E402\\n\",\"import issue_state  # noqa: E402\\nfrom usage_parser import usage_parser  # noqa: E402\\n\",1).replace(\"parser = argparse.ArgumentParser()\",\"parser = usage_parser(__doc__)\")\nopen(\"run-criteria.py\",\"w\").write(s)\nEOF\ngrep -n \"criterion\" run-criteria.py | sed -n 1,12p | cut -c1-140; sed -n 236,238p run-criteria.py | cut -c1-140",
+   "chars": 1861,
+   "lines": 15
+  },
+  {
+   "id": "toolu_01DovMdi9GVFjtY7TmM2impK",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork; R=/tmp/w/rn\n$R monitors/print-team-gaps.py staffed=had_worker fed=fed_urls crew=team\npython3 - <<'EOF'\ndef sub(path, pairs):\n    s = open(path).read()\n    for a, b in pairs:\n        assert a in s, (path, a)\n        s = s.replace(a, b, 1)\n    open(path, \"w\").write(s)\nsub(\"monitors/print-team-gaps.py\", [(\"import team_signal  # noqa: E402\\n\",\"import team_signal  # noqa: E402\\nfrom usage_parser import usage_parser  # noqa: E402\\n\"),\n (\"def main(args):\\n\",\"def main(args):\\n    usage_parser(__doc__).parse_args(args)\\n\")])\nsub(\"hooks/wait-team-change.py\", [(\"from team_signal import SIGNAL  # noqa: E402\\n\",\"from team_signal import SIGNAL  # noqa: E402\\nfrom usage_parser import usage_parser  # noqa: E402\\n\"),\n (\"def main(args):\\n\",\"def main(args):\\n    usage_parser(__doc__).parse_args(args)\\n\")])\nsub(\"hooks/list-issue-board.py\", [(\"import issue_board  # noqa: E402\\n\",\"import issue_board  # noqa: E402\\nfrom usage_parser import usage_parser  # noqa: E402\\n\"),\n ('''    read = board.tree(None, json.loads(pathlib.Path(args[args.index(\"--nodes\") + 1]).read_text())) if \"--nodes\" in args else board.tree(args[0])\n''','''    parser = usage_parser(__doc__)\n    parser.add_argument(\"project\", nargs=\"?\")\n    parser.add_argument(\"--nodes\")\n    parser.add_argument(\"--json\", action=\"store_true\")\n    options = parser.parse_args(args)\n    if not (options.project or options.nodes):\n        parser.error(\"\")\n    read = board.tree(None, json.loads(pathlib.Path(options.nodes).read_text())) if options.nodes else board.tree(options.project)\n'''), ('\"--json\" in args','options.json')])\nEOF\ngrep -n \"sys.path\\|ROOT\\|HERE\" hooks/list-issue-board.py | head -3\ncat -n skills/kick-off/fixtures/compare-team-output.py",
+   "chars": 11588,
+   "lines": 156
+  },
+  {
+   "id": "toolu_01JtDQMr5iPrT4jURVUVysBK",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/fixtures; R=/tmp/w/rn\n$R compare-team-output.py c=command@36-37 a=argument@67-67 p=process@68-75 a=old_text@81-83 b=new_text@81-83 d=direction@84-84 e=event@105-105 v=job@118-118 f=future@123-123 a=options@132-148 w=word@133-133 cf=concurrent_futures\npython3 - <<'EOF'\ns=open(\"compare-team-output.py\").read()\ns=s.replace(\"import argparse\\nimport concurrent.futures as concurrent_futures\\n\",\"import concurrent.futures\\n\").replace(\"concurrent_futures.\",\"concurrent.futures.\")\ns=s.replace(\"import tempfile\\n\\nHERE = pathlib.Path(__file__).resolve().parent\\n\",\"import tempfile\\n\\nHERE = pathlib.Path(__file__).resolve().parent\\nROOT = HERE.parents[3]  # this checkout, as the plugin\\nsys.path.insert(0, str(ROOT / \\\"teamwork\\\" / \\\"lib\\\"))\\nfrom usage_parser import usage_parser  # noqa: E402\\n\",1) if False else s\ns=s.replace(\"parser = argparse.ArgumentParser()\",\"parser = usage_parser(__doc__)\")\ns=s.replace(\"import tempfile\\n\\nHERE = pathlib.Path(__file__).resolve().parent\\n\",'import tempfile\\n\\nHERE = pathlib.Path(__file__).resolve().parent\\nsys.path.insert(0, str(HERE.parents[2] / \"lib\"))\\nfrom usage_parser import usage_parser  # noqa: E402\\n',1)\nopen(\"compare-team-output.py\",\"w\").write(s)\nEOF\ngrep -n \"concurrent\\|^import\\|^from\\|e)\" compare-team-output.py | head -30; git branch -a | head",
+   "chars": 2042,
+   "lines": 31
+  },
+  {
+   "id": "toolu_01PeWdC15bhyA5XNLcDSNJoi",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/fixtures; git update-ref refs/remotes/origin/main HEAD; cat -n compare-session-calls.py replay-board-scenario.py probe-tell-session.py",
+   "chars": 19372,
+   "lines": 306
+  },
+  {
+   "id": "toolu_017GAWgUvNhkqwSzriMFTkDo",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/fixtures; cat -n replay-board-setting.py replay-data-folder.py replay-files-pane.py replay-nest-target.py",
+   "chars": 18720,
+   "lines": 306
+  },
+  {
+   "id": "toolu_0138AtMRLZbtDYyF4a28VxXv",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/fixtures; R=/tmp/w/rn\n$R compare-session-calls.py p=process@50-51 a=options@58-66\n$R replay-board-scenario.py v=issue_name@42-42 n=issue_number@42-42 m=match@47-47 n=issue_number@52-58 x=item@52-52 v=issue_name@52-58 r=issue@53-55 s=state@54-56 d=criterion@56-56 n=node@63-63 n=node@67-67\n$R replay-board-setting.py k=key@30-30 v=value@30-30 a=argument@36-36\n$R replay-data-folder.py v=value@18-18 k=key@18-18 c=folder@59-60\n$R replay-nest-target.py l=line@27-27\n$R probe-tell-session.py p=process@29-30 p=process@75-77 l=line@46-46 n=name@82-83 s=status@82-83\nsed -n 42p replay-board-scenario.py; sed -n 52p replay-board-scenario.py; grep -rn \"board_files.DIR\\|\\\"DIR\\\"\" .. ../../../hooks ../../../lib | grep -v pycache | cut -c1-120",
+   "chars": 538,
+   "lines": 5
+  },
+  {
+   "id": "toolu_01HDESuypAAYyxGnaYaBioEE",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/fixtures; R=/tmp/w/rn\n$R replay-board-scenario.py r=issue@57-57 s=state@57-57\nsed -n 53,57p replay-board-scenario.py | cut -c1-170\npython3 - <<'EOF'\ndef sub(path, pairs):\n    s = open(path).read()\n    for a, b in pairs:\n        assert a in s, (path, a)\n        s = s.replace(a, b)\n    open(path, \"w\").write(s)\n\nLIBINS = 'sys.path.insert(0, str(ROOT / \"lib\"))\\nfrom usage_parser import usage_parser  # noqa: E402\\n'\nsub(\"replay-data-folder.py\", [\n ('Prints `ok <case>` per passing case and the failing case, then exits 1 when any fails.', 'Print `ok <case>` per passing case and `fail <case>: <detail>` per failing one, then exit 1 when any fails.'),\n ('LIB = ROOT / \"lib\"\\n', 'LIB = ROOT / \"lib\"\\nsys.path.insert(0, str(LIB))\\nfrom usage_parser import usage_parser  # noqa: E402\\n'),\n ('\"DIR\"','\"FOLDER\"'),\n ('def git(repo, *argv):','''def step(name, ok, detail=\"\"):\n    print(f\"ok {name}\" if ok else f\"fail {name}: {detail}\", flush=True)\n    if not ok:\n        failed.append(name)\n\n\ndef same(name, got, want):\n    step(name, got == want, f\"{got} != {want}\")\n\n\ndef git(repo, *argv):'''),\n ('def main(args):\\n    global home\\n','def main(args):\\n    global home\\n    usage_parser(__doc__).parse_args(args)\\n'),\n ('    results = {}\\n\\n    def case(name, got, want):\\n        results[name] = f\"{got} != {want}\" if got != want else None\\n\\n',''),\n ('    for name, bad in results.items():\\n        print(f\"ok {name}\" if bad is None else f\"fail {name}: {bad}\")\\n    return 1 if any(results.values()) else 0','    return 1 if failed else 0'),\n ('def run(argv, cwd, path=None','failed = []\\n\\n\\ndef run(argv, cwd, path=None'),\n])\ns=open(\"replay-data-folder.py\").read().replace(\"    case(\",\"    same(\")\nopen(\"replay-data-folder.py\",\"w\").write(s)\n\nsub(\"replay-files-pane.py\", [\n ('Prints `ok pane` and exits 0, else the two outputs and exit 1.','Print `ok pane`, else `fail pane",
+   "chars": 597,
+   "lines": 8
+  },
+  {
+   "id": "toolu_019Z9ZTzPPEWskc1maTmQ48j",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/fixtures; \npython3 - <<'EOF'\ndef sub(path, pairs):\n    s = open(path).read()\n    for a, b in pairs:\n        assert a in s, (path, a)\n        s = s.replace(a, b)\n    open(path, \"w\").write(s)\nLIBINS = 'sys.path.insert(0, str(ROOT / \"lib\"))\\nfrom usage_parser import usage_parser  # noqa: E402\\n'\nsub(\"replay-board-setting.py\", [\n (\"usage: replay-board-setting.py [-v]\\n`-v` also\",\"usage: replay-board-setting.py [--verbose]\\n`--verbose` also\"),\n ('ROOT = pathlib.Path(__file__).resolve().parents[3]\\n','ROOT = pathlib.Path(__file__).resolve().parents[3]\\n'+LIBINS),\n ('''    if any(a != \"-v\" for a in args):\n        print(__doc__, file=sys.stderr)\n        return 2\n''','''    parser = usage_parser(__doc__)\n    parser.add_argument(\"--verbose\", action=\"store_true\")\n    options = parser.parse_args(args)\n'''),\n ('if \"-v\" in args:','if options.verbose:'),\n])\nsub(\"compare-session-calls.py\", [\n (\"import argparse, difflib, json, os, pathlib, subprocess, sys, tempfile\\n\\nHERE = pathlib.Path(__file__).resolve().parent\\n\",\n  \"import difflib\\nimport json\\nimport os\\nimport pathlib\\nimport subprocess\\nimport sys\\nimport tempfile\\n\\nHERE = pathlib.Path(__file__).resolve().parent\\nsys.path.insert(0, str(HERE.parents[2] / \\\"lib\\\"))\\nfrom usage_parser import usage_parser  # noqa: E402\\n\"),\n (\"usage: compare-session-calls.py [--ref <ref>]\",\"usage: compare-session-calls.py [--ref <ref>] [--verbose]\"),\n (\"parser = argparse.ArgumentParser()\\n\",\"parser = usage_parser(__doc__)\\n\"),\n ('    parser.add_argument(\"--ref\", default=\"origin/main\")\\n','    parser.add_argument(\"--ref\", default=\"origin/main\")\\n    parser.add_argument(\"--verbose\", action=\"store_true\")\\n'),\n ('if \"-v\" in args or os.environ.get(\"SHOW\"):','if options.verbose or os.environ.get(\"SHOW\"):'),\n])\nsub(\"replay-board-scenario.py\", [\n (\"import argparse\\n\",\"\"),\n ('sys.path.insert(0, str(pathlib.Path(__file__).re",
+   "chars": 173,
+   "lines": 8
+  },
+  {
+   "id": "toolu_01QbnDnppbmDEGAXSdjkFYiU",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/fixtures; perl -0pi -e 's/\\n\\n\\n\\ndef tell/\\n\\n\\ndef tell/' probe-tell-session.py; cat -n replay-landing-scenario.py; sed -n 1,60p replay-team-scenarios.py",
+   "chars": 12516,
+   "lines": 217
+  },
+  {
+   "id": "toolu_01SFcTNLLjVx8ZNN7rfzEn2Z",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/fixtures; sed -n 60,293p replay-team-scenarios.py",
+   "chars": 13239,
+   "lines": 234
+  },
+  {
+   "id": "toolu_015jyH21mnDpxaF5VX2NzP9s",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/fixtures; R=/tmp/w/rn\n$R replay-team-scenarios.py p=process l=line t=tab a=entry n=name o=answer@56-60 o=text@155-155 \n$R replay-landing-scenario.py a=argument@41-41 p=process@41-42 a=member@81-81 n=branch@110-110 p=pull@111-111 u=url@112-112 r=racer@151-151\npython3 - <<'EOF'\ndef sub(path, pairs):\n    s = open(path).read()\n    for a, b in pairs:\n        assert a in s, (path, a)\n        s = s.replace(a, b)\n    open(path, \"w\").write(s)\nLIBINS = 'sys.path.insert(0, str(ROOT / \"lib\"))\\nfrom usage_parser import usage_parser  # noqa: E402\\n'\nsub(\"replay-landing-scenario.py\", [\n (\"usage: replay-landing-scenario.py [-v]\\n`-v` also\",\"usage: replay-landing-scenario.py [--verbose]\\n`--verbose` also\"),\n ('''    if any(a != \"-v\" for a in args):\n        print(__doc__, file=sys.stderr)\n        return 2\n    VERBOSE = \"-v\" in args\n''','''    parser = usage_parser(__doc__)\n    parser.add_argument(\"--verbose\", action=\"store_true\")\n    VERBOSE = parser.parse_args(args).verbose\n'''),\n ('sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / \"lib\"))\\nimport landing_git','sys.path.insert(0, str(ROOT / \"lib\"))\\nfrom usage_parser import usage_parser  # noqa: E402\\nimport landing_git'),\n])\nsub(\"replay-team-scenarios.py\", [\n (\"and print `<scenario> pass`, or `<scenario> fail` with the output that failed.\",\"and print `ok <scenario>`, or `fail <scenario>: <output>` with the output that failed.\"),\n (\"[--only <scenario>,...] [-v]\\n`-v` also\",\"[--only <scenario>,...] [--verbose]\\n`--verbose` also\"),\n (\"import argparse\\n\",\"\"),\n ('ROOT = pathlib.Path(__file__).resolve().parents[3]\\n','ROOT = pathlib.Path(__file__).resolve().parents[3]\\n'+LIBINS),\n ('}\\ndef main(args):','}\\n\\n\\ndef step(name, ok, detail=\"\"):\\n    print(f\"ok {name}\" if ok else f\"fail {name}: {detail.strip()}\", flush=True)\\n    return ok\\n\\n\\ndef main(args):'),\n (\"parser = argparse.ArgumentPa",
+   "chars": 7165,
+   "lines": 132
+  },
+  {
+   "id": "toolu_01KuxZFxHvcE9Ho7dZ3yaz1T",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork/skills/kick-off/fixtures; R=/tmp/w/rn\n$R replay-team-scenarios.py entry=options@/dev/null 2>/dev/null; \npython3 - <<'EOF'\ndef sub(path, pairs):\n    s = open(path).read()\n    for a, b in pairs:\n        assert a in s, (path, a)\n        s = s.replace(a, b)\n    open(path, \"w\").write(s)\nLIBINS = 'sys.path.insert(0, str(ROOT / \"lib\"))\\nfrom usage_parser import usage_parser  # noqa: E402\\n'\nsub(\"replay-team-scenarios.py\", [\n (\"and print `<scenario> pass`, or `<scenario> fail` with the output that failed.\",\"and print `ok <scenario>`, or `fail <scenario>: <output>` with the output that failed.\"),\n (\"[--only <scenario>,...] [-v]\\n`-v` also\",\"[--only <scenario>,...] [--verbose]\\n`--verbose` also\"),\n (\"import argparse\\n\",\"\"),\n ('ROOT = pathlib.Path(__file__).resolve().parents[3]\\n','ROOT = pathlib.Path(__file__).resolve().parents[3]\\n'+LIBINS),\n ('}\\ndef main(args):','}\\n\\n\\ndef step(name, ok, detail=\"\"):\\n    print(f\"ok {name}\" if ok else f\"fail {name}: {detail.strip()}\", flush=True)\\n    return ok\\n\\n\\ndef main(args):'),\n (\"parser = argparse.ArgumentParser()\",\"parser = usage_parser(__doc__)\"),\n ('parser.add_argument(\"-v\", action=\"store_true\")','parser.add_argument(\"--verbose\", action=\"store_true\")'),\n (\"    entry = parser.parse_args(args)\\n    VERBOSE = entry.v\\n\",\"    options = parser.parse_args(args)\\n    VERBOSE = options.verbose\\n\"),\n ('if entry.only and name not in entry.only.split(\",\"):','if options.only and name not in options.only.split(\",\"):'),\n ('''        print(f\"{name} pass\" if ok else f\"{out.strip()}\\\\n{name} fail\", flush=True)\n    shutil.rmtree(TURNS)\n    return 0''','''        passed = step(name, ok, out) and passed\n    shutil.rmtree(TURNS)\n    return 0 if passed else 1'''),\n (\"    for name, scenario in SCENARIOS.items():\",\"    passed = True\\n    for name, scenario in SCENARIOS.items():\"),\n])\nEOF\nR=/tmp/w/rn; $R replay-event.py d=folder m=line@41-",
+   "chars": 12165,
+   "lines": 228
+  },
+  {
+   "id": "toolu_013NtHZaYfZ7T97Geb5dzHQ3",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork; R=/tmp/w/rn\n$R hooks/fixtures/replay-event.py d=folder m=line@41-41; $R hooks/fixtures/render-empty-pane.ts a=atom@14-15 f=argument@31-31\ncd skills/kick-off/fixtures\n$R fake-herdr/herdr s=state r=result@21-21 a=entry v=value@40-40 t=tab opt=option w=word@116-116 f=handle@86-87 tmp=temporary\nperl -pi -e 's/^\"\"\"A stand-in for herdr that logs each call and keeps/\"\"\"Stand in for herdr: log each call and keep/' fake-herdr/herdr\n$R recorded-gh/gh a=argument j=index@24-24\nperl -pi -e 'if($.==2){s/handle/handle/}' fake-herdr/herdr\nsed -n 1,3p fake-herdr/herdr | cut -c1-120; sed -n 24,25p recorded-gh/gh|cut -c1-170; sed -n 65p recorded-gh/gh; cd ../../..; sed -n 14,15p hooks/fixtures/render-empty-pane.ts | cut -c1-120; cat -n hooks/draw-issue-pane.tsx",
+   "chars": 12954,
+   "lines": 181
+  },
+  {
+   "id": "toolu_01WhEpxJjQYbjunhTAZ4W4k2",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork; R=/tmp/w/rn\n$R hooks/draw-issue-pane.tsx startDir=startFolder p=pane@28-28 err=error@48-49 e=event@65-100 n=key@102-102 x=entry@102-102 i=issue@103-106 x=item@106-106 t=task@108-109 b=blocker@108-109 i=issue@118-162 d=criterion@152-152 t=task@154-156 config=claudeFolder@68-69\ngit diff -U0 hooks/draw-issue-pane.tsx | grep '^+' | cut -c1-150 | head -60",
+   "chars": 4018,
+   "lines": 46
+  },
+  {
+   "id": "toolu_018EBPgLAzCnVLd3ARS2gKuG",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork; perl -pi -e 's/\\.\\.\\.t\\.blockers/...task.blockers/; s/filter\\(entry => entry !== key\\)/filter(other => other !== key)/' hooks/draw-issue-pane.tsx; grep -n \"\\bt\\.\\|\\bb\\.\\|\\bx\\b\" hooks/draw-issue-pane.tsx | cut -c1-100\ncd ..; C=/Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062; python3 $C/list-short-names.py teamwork | sed 's|teamwork/||' | tr '\\n' ';'; python3 $C/list-letter-misuse.py teamwork | sed 's|teamwork/||'| tr '\\n' ';'",
+   "chars": 451,
+   "lines": 3
+  },
+  {
+   "id": "toolu_01Kxk3TpGEMs24tZKhqExhPY",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork; R=/tmp/w/rn\n$R skills/kick-off/scripts/backtest-estimate.py estimator_stats=estimator_summary baseline_stats=baseline_summary\n$R skills/kick-off/scripts/check-criteria.py d=defect@78-78 n=position@74-77\n$R lib/board_files.py n=number@78-78\ncd ..; C=/Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062\npython3 $C/list-short-names.py teamwork | tail -3; python3 $C/list-letter-misuse.py teamwork | tail -3\nfor s in \"teamwork/skills/kick-off/scripts\" \"teamwork/hooks/list-issue-board.py teamwork/monitors/print-team-gaps.py\"; do timeout 200 python3 $C/list-bad-call-scripts.py $s | tail -5; done\ntimeout 100 python3 $C/list-bad-call-scripts.py --empty teamwork/skills/kick-off/scripts | tail -4",
+   "chars": 114,
+   "lines": 5
+  },
+  {
+   "id": "toolu_01VcNbiVMMJPzND81aENHUgK",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository; C=/Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062\npython3 $C/list-bad-call-scripts.py teamwork/skills/kick-off/scripts teamwork/hooks/list-issue-board.py | tail -5; python3 $C/list-bad-call-scripts.py teamwork/hooks/list-issue-board.py teamwork/hooks/wait-team-change.py teamwork/monitors/print-team-gaps.py | tail -4\npython3 $C/list-bad-call-scripts.py --empty teamwork/skills/kick-off/scripts | tail -4",
+   "chars": 5,
+   "lines": 3
+  },
+  {
+   "id": "toolu_013PGiMkRQ4i89JzFEpXtEAE",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository; C=/Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062\npython3 $C/list-bad-call-scripts.py teamwork/skills/kick-off/fixtures/*.py teamwork/hooks/fixtures/*.py | tail -6\npython3 $C/list-bad-call-scripts.py --empty teamwork/skills/kick-off/fixtures/*.py teamwork/hooks/fixtures/*.py teamwork/hooks/list-issue-board.py teamwork/hooks/wait-team-change.py teamwork/monitors/print-team-gaps.py | tail -4",
+   "chars": 3,
+   "lines": 2
+  },
+  {
+   "id": "toolu_01PCdrEV72YFt1HKB76njWB4",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository; C=/Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062\necho 3: $(grep -lE '^(def need|def missing|INSTALL =)' teamwork/lib/*.py | xargs -n1 basename | tr '\\n' ' ')\necho 4: $({ grep -rl lint-criteria teamwork AGENTS.md; find teamwork -name 'lint-criteria*'; } | grep -v pycache | wc -l | tr -d ' ')\necho 5: $(grep -rnE \"def case\\(|[} ]pass\\\"|'pass' if\" teamwork/skills/kick-off/fixtures teamwork/hooks/fixtures | wc -l | tr -d ' ')\necho 6: $(grep -L \"def step\" teamwork/skills/kick-off/fixtures/replay-board-setting.py teamwork/skills/kick-off/fixtures/replay-data-folder.py teamwork/skills/kick-off/fixtures/replay-files-pane.py teamwork/skills/kick-off/fixtures/replay-landing-scenario.py teamwork/skills/kick-off/fixtures/replay-nest-target.py teamwork/skills/kick-off/fixtures/replay-team-scenarios.py teamwork/skills/kick-off/fixtures/probe-tell-session.py | wc -l | tr -d ' ')\necho 7: $(grep -oE \"^def (stamp|parse_time)\\(\" teamwork/lib/session_gaps.py | cut -c5-)\necho 10: $(grep -rlE \"ArgumentParser\\(\" teamwork | grep -v pycache | wc -l | tr -d ' ')\necho 12: $(find teamwork \\( -path \"*/scripts/*\" -o -path \"*/hooks/*\" -o -path \"*/monitors/*\" -o -path \"*/fixtures/*\" \\) -type f -exec grep -hm1 '^\"\"\"' {} + | sed 's/^\"\"\"//' | cut -d' ' -f1 | grep -cE '^(A|An|The|This)$|[^s]s$|-')\necho 13: $(find teamwork/skills/kick-off/fixtures -path '*fake-gh*' -type f | wc -l | tr -d ' ')\necho 18: $(find teamwork \\( -name \"*.py\" -o -name \"*.ts\" -o -name \"*.tsx\" \\) ! -path \"*/lib/*\" ! -name \"*.d.ts\" | sed \"s|.*/||\" | cut -d- -f1 | sort -u | paste -sd- -)\necho 19: $(grep -rn \"__file__).resolve()\" teamwork --include=*.py | grep -v \"/lib/\" | grep -vcE \":(HERE|ROOT) = |sys\\.path\\.insert\")\necho 20: $(python3 $C/list-unnamed-files.py . teamwork | sed \"s|.*/||\" | paste -sd\" \" -)",
+   "chars": 249,
+   "lines": 11
+  },
+  {
+   "id": "toolu_012bpqujfBCvRhZiotgcfCzd",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository; (for f in replay-board-setting replay-data-folder replay-files-pane replay-nest-target replay-landing-scenario replay-team-scenarios; do python3 teamwork/skills/kick-off/fixtures/$f.py; done) > /tmp/w/replays.txt 2>&1; grep -cv '^ok ' /tmp/w/replays.txt; grep -v '^ok ' /tmp/w/replays.txt | head -20 | cut -c1-300",
+   "chars": 1854,
+   "lines": 21
+  },
+  {
+   "id": "toolu_01SoKPPD81cdWoMRAGhBfj2A",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository; /tmp/w/rn teamwork/lib/issue_state.py d=record_data@89-93; (python3 -m pyflakes --version || ruff --version || python3 -m pylint --version) 2>&1 | head -3",
+   "chars": 157,
+   "lines": 3
+  },
+  {
+   "id": "toolu_018thsXUWsRA6ZWnmKUuRa66",
+   "command": "cat > /tmp/w/undef.py <<'EOF'\nimport sys, dis, builtins, ast\nfor path in sys.argv[1:]:\n    src = open(path).read()\n    tree = ast.parse(src)\n    defined = set(dir(builtins)) | {\"__file__\", \"__doc__\", \"__name__\"}\n    for n in ast.walk(tree):\n        if isinstance(n, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)) and n in tree.body: defined.add(n.name)\n        if isinstance(n, ast.Import): defined |= {(a.asname or a.name).split(\".\")[0] for a in n.names}\n        if isinstance(n, ast.ImportFrom): defined |= {a.asname or a.name for a in n.names}\n    for n in ast.walk(tree):  # module-level names incl. global stmts: all Store names anywhere at module scope or declared global\n        if isinstance(n, ast.Global): defined |= set(n.names)\n    for n in tree.body:\n        for m in ast.walk(n) if not isinstance(n,(ast.FunctionDef,ast.ClassDef,ast.AsyncFunctionDef)) else []:\n            if isinstance(m, ast.Name) and isinstance(m.ctx, ast.Store): defined.add(m.id)\n    code = compile(src, path, \"exec\")\n    stack = [code]\n    while stack:\n        c = stack.pop()\n        for ins in dis.get_instructions(c):\n            if ins.opname in (\"LOAD_GLOBAL\", \"LOAD_NAME\") and ins.argval not in defined:\n                print(f\"{path}:{ins.positions.lineno if ins.positions else '?'} {ins.argval}\")\n        stack += [k for k in c.co_consts if hasattr(k, \"co_code\")]\nEOF\ncd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository; python3 /tmp/w/undef.py $(git ls-files 'teamwork/*.py'; ls teamwork/lib/usage_parser.py teamwork/lib/install_line.py; echo teamwork/skills/kick-off/fixtures/fake-herdr/herdr teamwork/skills/kick-off/fixtures/recorded-gh/gh) 2>&1 | sort -u | head -30",
+   "chars": 223,
+   "lines": 5
+  },
+  {
+   "id": "toolu_011dZvJ8WWzCtVxHmLZHdifw",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork; sed -n 85,88p lib/board_files.py; sed -n 49,52p lib/team_gaps.py; sed -n 115,118p skills/kick-off/scripts/recall-work.py; sed -n 203,206p skills/kick-off/scripts/run-criteria.py; sed -n 32,35p skills/kick-off/scripts/use-board.py",
+   "chars": 1324,
+   "lines": 20
+  },
+  {
+   "id": "toolu_01Y6qsYuHcEYXhLxD3QMyY2V",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository/teamwork; R=/tmp/w/rn\n$R lib/board_files.py n=node@87-87\n$R lib/team_gaps.py n=number@51-51\n$R skills/kick-off/scripts/recall-work.py n=number@117-117\n$R skills/kick-off/scripts/run-criteria.py c=comment@205-205\n$R skills/kick-off/scripts/use-board.py i=issue@34-34\ncd ..; python3 /tmp/w/undef.py $(git ls-files 'teamwork/*.py') | sort -u\n(for f in replay-board-setting replay-data-folder replay-files-pane replay-nest-target replay-landing-scenario replay-team-scenarios; do python3 teamwork/skills/kick-off/fixtures/$f.py; done) > /tmp/w/replays.txt 2>&1; grep -cv '^ok ' /tmp/w/replays.txt; grep -v '^ok ' /tmp/w/replays.txt | head -12 | cut -c1-300",
+   "chars": 1015,
+   "lines": 2
+  },
+  {
+   "id": "toolu_01JejDdxwt3GgG8CRqe5UdCD",
+   "command": "sleep 100; cat /tmp/w/replays.txt | grep -cv '^ok '; wc -l /tmp/w/replays.txt",
+   "chars": 346,
+   "lines": 1
+  },
+  {
+   "id": "toolu_017YMqXZQwC61NZ8ss6VZ9XG",
+   "command": "until [ -s /private/tmp/claude-501/-private-var-folders-h4-dwj81jd52tj594pt6m8-fnnw0000gn-T-replay-1076-teamwork-cap-2-rybh2sm5-repository/83f0abfa-637a-4105-a832-af6441a41ea8/tasks/bwbfmqu04.output ]; do sleep 3; done; cat /private/tmp/claude-501/-private-var-folders-h4-dwj81jd52tj594pt6m8-fnnw0000gn-T-replay-1076-teamwork-cap-2-rybh2sm5-repository/83f0abfa-637a-4105-a832-af6441a41ea8/tasks/bwbfmqu04.output | cut -c1-300 | head -20; grep -cv '^ok ' /tmp/w/replays.txt",
+   "chars": 25,
+   "lines": 4
+  },
+  {
+   "id": "toolu_01F7eo2aFtNjgfwCfGx4CoJ4",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository; (python3 teamwork/skills/kick-off/fixtures/compare-session-calls.py --ref origin/main 2>&1 | tail -30; python3 teamwork/skills/kick-off/fixtures/compare-team-output.py --ref origin/main 2>&1 | tail -40) > /tmp/w/compare.txt 2>&1 &\nsleep 1; echo started",
+   "chars": 7,
+   "lines": 1
+  },
+  {
+   "id": "toolu_017smLQYAmyZH8W2VYcdozvv",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository; sed -n 1,60p /Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062/compare-script-outputs.py | cut -c1-200",
+   "chars": 3250,
+   "lines": 60
+  },
+  {
+   "id": "toolu_01XHgqxQcvCmMMXKqNQMANE4",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository; python3 /Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062/compare-script-outputs.py . origin/main 2>&1 | tail -25 | cut -c1-200",
+   "chars": 13,
+   "lines": 2
+  },
+  {
+   "id": "toolu_01QC5L6j7sx93Fx5EQHB1Egb",
+   "command": "until [ \"$(wc -l < /tmp/w/compare.txt)\" -gt 3 ] && ! pgrep -f compare-team-output >/dev/null; do sleep 5; done; cat /tmp/w/compare.txt | cut -c1-250 | tail -40",
+   "chars": 397,
+   "lines": 13
+  },
+  {
+   "id": "toolu_01Rr41ZYogAYjBj8TrpA5Qwx",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository; grep -rn \"from-dir\\|json_command\\|\\-v\\b\" --include=*.md --include=*.json --include=*.ts* . | grep -v \"^./.git/\" | grep -i \"from-dir\\|json_command\\| -v\\b\" | cut -c1-140 | head; find teamwork -name __pycache__ -prune -exec rm -rf {} +; git update-ref -d refs/remotes/origin/main; git status --short | head -60",
+   "chars": 2767,
+   "lines": 60
+  },
+  {
+   "id": "toolu_01A28VUfa7s1QEnw4sTBF8Wp",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1076-teamwork-cap-2-rybh2sm5/repository; C=/Users/hyungmokim/.claude/plugins/data/teamwork-mumu-claude-plugin/checks/1062; python3 $C/list-short-names.py teamwork | tail -1; python3 $C/list-letter-misuse.py teamwork | tail -1; find teamwork -name __pycache__ -prune -exec rm -rf {} +; git add -A && git commit -q -m \"Rename teamwork code to whole words\n\nWhole-word names across teamwork's Python and TypeScript; install helpers move to lib/install_line.py; lint-criteria.py becomes check-criteria.py; issue-pane.tsx becomes draw-issue-pane.tsx; session_gaps.stamp becomes parse_time; one usage parser in lib/usage_parser.py answers a bad call with the docstring and exit 2; self-checks print ok/fail through a step helper; the unused fake-gh fixture goes.\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -2",
+   "chars": 101,
+   "lines": 4
+  }
+ ],
+ "refetches": [
+  {
+   "id": "toolu_01AePULYcXcX4f2kxRvtnExX",
+   "files": [
+    "team_gaps.py"
+   ],
+   "chars": 1089,
+   "units": 66901.8,
+   "reread": true
+  }
+ ],
+ "saving": {
+  "removed_units": 55489.4,
+  "refetch_units": 0.0,
+  "reread_units": 66901.8,
+  "net_units": 55489.4,
+  "run_units": 4387244.4,
+  "net_share": 0.0125,
+  "net_share_reread_results_charged": 0.0102,
+  "net_share_rereads_charged": -0.0026
+ },
+ "checks": [
+  {
+   "index": 3,
+   "command": "grep -lE '^(def need|def missing|INSTALL =)' teamwork/lib/*.py | xargs -n1 basename | tr '\\n' ' '",
+   "test": [
+    "prints",
+    "install_line.py"
+   ],
+   "result": "pass",
+   "output": "install_line.py"
+  },
+  {
+   "index": 4,
+   "command": "{ grep -rl lint-criteria teamwork AGENTS.md; find teamwork -name 'lint-criteria*'; } | wc -l | tr -d ' '",
+   "test": [
+    "prints",
+    "0"
+   ],
+   "result": "pass",
+   "output": "0"
+  },
+  {
+   "index": 5,
+   "command": "grep -rnE \"def case\\(|[} ]pass\\\"|'pass' if\" teamwork/skills/kick-off/fixtures teamwork/hooks/fixtures | wc -l | tr -d ' '",
+   "test": [
+    "prints",
+    "0"
+   ],
+   "result": "pass",
+   "output": "0"
+  },
+  {
+   "index": 6,
+   "command": "grep -L \"def step\" teamwork/skills/kick-off/fixtures/replay-board-setting.py teamwork/skills/kick-off/fixtures/replay-data-folder.py teamwork/skills/kick-off/fixtures/replay-files-pane.py teamwork/skills/kick-off/fixtures/replay-landing-scenario.py teamwork/skills/kick-off/fixtures/replay-nest-target.py teamwork/skills/kick-off/fixtures/replay-team-scenarios.py teamwork/skills/kick-off/fixtures/probe-tell-session.py | wc -l | tr -d ' '",
+   "test": [
+    "prints",
+    "0"
+   ],
+   "result": "pass",
+   "output": "0"
+  },
+  {
+   "index": 7,
+   "command": "grep -oE \"^def (stamp|parse_time)\\(\" teamwork/lib/session_gaps.py | cut -c5-",
+   "test": [
+    "prints",
+    "parse_time("
+   ],
+   "result": "pass",
+   "output": "parse_time("
+  },
+  {
+   "index": 10,
+   "command": "grep -rlE \"ArgumentParser\\(\" teamwork | wc -l | tr -d ' '",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 12,
+   "command": "find teamwork \\( -path \"*/scripts/*\" -o -path \"*/hooks/*\" -o -path \"*/monitors/*\" -o -path \"*/fixtures/*\" \\) -type f -exec grep -hm1 '^\"\"\"' {} + | sed 's/^\"\"\"//' | cut -d' ' -f1 | grep -cE '^(A|An|The|This)$|[^s]s$|-'",
+   "test": [
+    "prints",
+    "0"
+   ],
+   "result": "pass",
+   "output": "0"
+  },
+  {
+   "index": 16,
+   "command": "for f in replay-board-setting replay-data-folder replay-files-pane replay-nest-target replay-landing-scenario replay-team-scenarios; do python3 teamwork/skills/kick-off/fixtures/$f.py; done 2>&1 | grep -cv '^ok '",
+   "test": [
+    "prints",
+    "0"
+   ],
+   "result": "pass",
+   "output": "0"
+  },
+  {
+   "index": 18,
+   "command": "find teamwork \\( -name \"*.py\" -o -name \"*.ts\" -o -name \"*.tsx\" \\) ! -path \"*/lib/*\" ! -name \"*.d.ts\" | sed \"s|.*/||\" | cut -d- -f1 | sort -u | paste -sd- -",
+   "test": [
+    "prints",
+    "answer-backtest-check-close-compare-draw-edit-estimate-list-print-probe-recall-remove-rename-render-replay-route-run-start-tell-use-wait"
+   ],
+   "result": "pass",
+   "output": "answer-backtest-check-close-compare-draw-edit-estimate-list-print-probe-recall-remove-rename-render-replay-route-run-start-tell-use-wait"
+  },
+  {
+   "index": 19,
+   "command": "grep -rn \"__file__).resolve()\" teamwork --include=*.py | grep -v \"/lib/\" | grep -vcE \":(HERE|ROOT) = |sys\\.path\\.insert\"",
+   "test": [
+    "prints",
+    "0"
+   ],
+   "result": "pass",
+   "output": "0"
+  }
+ ],
+ "started": "2026-11-03T17:04:22Z",
+ "hook": {
+  "path": "teamwork/hooks/cap-program-output.py",
+  "sha256": "cd2d2107999507b92568a09242bfc2580b2e89d062d4c96d54b80079256a581c"
+ },
+ "stderr": "",
+ "passed": true,
+ "seconds": 1260
+}
