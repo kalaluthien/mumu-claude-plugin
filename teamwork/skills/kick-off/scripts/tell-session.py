@@ -9,13 +9,22 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import message_herdr  # noqa: E402
+import session  # noqa: E402
 
 
 def main(args):
     if len(args) != 2:
         print(__doc__, file=sys.stderr)
         return 2
-    name, text = args[0], pathlib.Path(args[1]).read_text().strip()
+    name = args[0]
+    # the kind check comes first, so a Claude receiver is refused whatever the second argument holds
+    if refusal := message_herdr.refusal(name, session.agent(name)):
+        sys.exit(f"not delivered to {name}: {refusal}")
+    try:
+        text = pathlib.Path(args[1]).read_text().strip()
+    except OSError:
+        print(__doc__, file=sys.stderr)
+        return 2
     delivered, how = message_herdr.tell(name, text, float(os.environ.get("TELL_SESSION_TIMEOUT", 600)))
     if not delivered:
         sys.exit(f"not delivered to {name}: {how}")

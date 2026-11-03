@@ -7,6 +7,15 @@ import session
 POLL, SEEN = 1.0, 10.0  # how long a taken prompt may take to show, as work or as text on the screen
 
 
+def refusal(name, live):
+    """Why NAME, whose herdr row is LIVE, cannot be told through herdr, or None: it is not live, or its own kind has its own message adapter, which waits for no turn."""
+    if not live:
+        return "not live"
+    if live.get("agent") == agent.KIND:
+        return f"a {agent.KIND} session; tell it by {agent.TELL} to {name}"
+    return None
+
+
 def tell(name, text, timeout):
     """(delivered, what happened): `after its turn`, `after <n> retries`, or why it was not delivered."""
     if not text.strip():  # an empty text shows on every screen, so the confirm would pass with nothing sent
@@ -14,10 +23,8 @@ def tell(name, text, timeout):
     deadline, retries, waited = time.time() + timeout, 0, False
     while True:
         live = session.agent(name)
-        if not live:
-            return False, "not live"
-        if live.get("agent") == agent.KIND:  # a session of the team's own kind has its own message adapter, which waits for no turn
-            return False, f"a {agent.KIND} session; tell it by {agent.TELL} to {name}"
+        if reason := refusal(name, live):
+            return False, reason
         if live.get("agent_status") not in ("idle", "done"):
             waited = True
             if not session.wait_idle(name, max(deadline - time.time(), 0)):
