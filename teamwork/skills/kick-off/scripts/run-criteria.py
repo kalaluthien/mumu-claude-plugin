@@ -11,7 +11,9 @@ file is the worker's own draft, so it runs.
 
 A row is `pass` or `fail` by the output the criterion says it `prints`, or the status it `exits`; `unclear` when the
 script cannot decide it, such as a `<placeholder>`, two commands or an expected text found inside other output, which the
-judge runs; `judged` for a `[score]`. A timeout is a `fail`. Exit 1 on any `fail`. A `BLOCKED due: <name>` line follows
+judge runs; `judged` for a `[score]`. A timeout is a `fail`. Exit 1 on any `fail`. Each row's `sha-256` is the
+first 16 hex digits of the hash of the criterion's kind, name and details, so a judge sees a criterion reworded after
+its first judged table. A `BLOCKED due: <name>` line follows
 when a criterion fails with the output it had in an earlier table on the task: ask your manager by `BLOCKED:`, since
 it has failed twice the same way.
 
@@ -27,6 +29,7 @@ stage it cannot split surely: before its first pipe, outside quotes, only words,
 may stand, and the first word is no `if`, `while`, `for` or other compound keyword; inside double quotes no `$(`, `${`, backtick
 or backslash; exit 1 on any
 `wrong pass`. It finds a check that can never pass, such as `check-schema.py check /dev/stdin`, which reads its input twice."""
+import hashlib
 import json
 import os
 import pathlib
@@ -191,6 +194,11 @@ def row(label, kind, name, detail, cwd, timeout):
     return label, name, verdict(test, status, out), cell(out)
 
 
+def fingerprint(criterion):
+    """The first 16 hex digits of the sha-256 of a criterion's kind, name and details, so any rewording changes it."""
+    return hashlib.sha256("\0".join(criterion).encode()).hexdigest()[:16]
+
+
 def criteria(text):
     for line in issue_state.ITEM.findall(text):
         _, kind, name, detail = issue_state.CRITERION.match(line).groups()
@@ -205,7 +213,7 @@ def earlier_fails(task):
         if issue_state.trusted(comment) and comment["body"].startswith(HEADER):
             for line in comment["body"].splitlines():
                 cells = [part.strip() for part in re.split(r"(?<!\\)\|", line)[1:-1]]
-                if len(cells) == 4 and cells[2] == "fail":
+                if len(cells) in (4, 5) and cells[2] == "fail":
                     found.setdefault(cells[1], set()).add(cells[3])
     return found
 
@@ -249,14 +257,15 @@ def main(args):
             print("| " + " | ".join([table_row[0], table_row[1].replace("|", "\\|"), table_row[2], table_row[3]]) + " |")
         return 1 if any(table_row[2] == "wrong base" for table_row in rows) else 0
     standing = pathlib.Path(root, ".teamwork", "default-criteria.md")
-    rows = [row(str(n), *criterion, root, options.timeout) for n, criterion in enumerate(criteria(issue_state.sections(task.get("body")).get("done", "")), 1)]
-    rows += [row("standing", *criterion, root, options.timeout) for criterion in criteria(standing.read_text())] if standing.exists() else []
+    found = [(str(n), criterion) for n, criterion in enumerate(criteria(issue_state.sections(task.get("body")).get("done", "")), 1)]
+    found += [("standing", criterion) for criterion in criteria(standing.read_text())] if standing.exists() else []
+    rows = [(*row(label, *criterion, root, options.timeout), fingerprint(criterion)) for label, criterion in found]
     print(f"{HEADER}{head}" + (" with uncommitted changes" if dirty else ""))
-    print("\n| # | criterion | result | output |\n| --- | --- | --- | --- |")
+    print("\n| # | criterion | result | output | sha-256 |\n| --- | --- | --- | --- | --- |")
     for table_row in rows:
-        print("| " + " | ".join([table_row[0], table_row[1].replace("|", "\\|"), table_row[2], table_row[3]]) + " |")
+        print("| " + " | ".join([table_row[0], table_row[1].replace("|", "\\|"), *table_row[2:]]) + " |")
     before = earlier_fails(task)
-    for _, name, result, out in rows:
+    for _, name, result, out, _ in rows:
         if result == "fail" and out in before.get(name.replace("|", "\\|"), ()):
             print(f"\nBLOCKED due: {name} failed with the same output as in an earlier table; ask your manager by `BLOCKED:`.")
     return 1 if any(table_row[2] == "fail" for table_row in rows) else 0
