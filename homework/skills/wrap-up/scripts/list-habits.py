@@ -2,7 +2,7 @@
 """List the owner's preferences that show in more than one of habit's mapped sessions, one line each, details below it.
 
 usage: list-habits.py <data> [--groups <file>]
-       list-habits.py <data> --record <where> <last seen> <name>   record where a preference went (a memory file, a url or `owner`) in <data>/kept.json
+       list-habits.py <data> --record <where> <last seen> <name>   record where a preference went (a file, a url, a session, `owner` or `dropped`) in <data>/kept.json
 
 Reads <data>/stats/ and <data>/facets/ for the sessions of the last 28 days and writes <data>/habits.jsonl, every habit
 item with an id, for the agent that groups them. With --groups (`[{"name", "ids"}]`), a group of items in 2+ sessions
@@ -50,7 +50,7 @@ def main(args):
 
     by_id = {item["id"]: item for item in items}
     for group in repeats.load(args[2], []) if len(args) == 3 else []:
-        found = [by_id[i] for i in group.get("ids") or [] if i in by_id]
+        found = [by_id[item_id] for item_id in group.get("ids") or [] if item_id in by_id]
         if len({item["path"] for item in found}) < 2:
             continue
         sightings = [(item["time"], item["path"], item.get("line") or 0, item["repo"]) for item in found]

@@ -21,7 +21,7 @@ You read digests of Claude Code sessions and write one facet per digest: what th
 ## Rules
 
 - **Kinds**:
-  - `instruct`: a request the agent read otherwise than the owner meant, as a later owner line shows, or a short form the owner uses for a request;
+  - `instruct`: a request the agent read otherwise than the owner meant, as a later owner line shows, or a short form the owner uses for a request; its `quote` is the request line, never the later line, which is dejavu's when it objects;
   - `ask`: the owner asks what something the agent wrote or made means, or why, such as a term, a name, a number or a choice;
   - `answer`: an `[ANSWER]` line where the owner did not pick the recommended option, or wrote their own words;
   - `feedback`: the owner corrects or approves how the agent explained, proposed, asked or reported;

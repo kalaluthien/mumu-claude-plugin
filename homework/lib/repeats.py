@@ -37,7 +37,7 @@ def memory_lines(key):
 
 
 def show(kind, key, sightings, records, went):
-    """Print one repeat; sightings are (time, session path, line, repo), records map a key to where it `went`."""
+    """Print one repeat; sightings are (time, session path, line, repo), records map a key to where it went, shown after the label `went`."""
     sessions = {path for _, path, _, _ in sightings}
     repos = sorted({repo for _, _, _, repo in sightings})
     last = int(max(moment for moment, _, _, _ in sightings))
