@@ -102,6 +102,12 @@ def worktree_of(branch):
     return None
 
 
+def bare_flagged():
+    """Whether `core.bare` is true on a repository that has a main checkout (its common folder is a `.git`), where git then lists that checkout as bare."""
+    common = data_folder.common_folder()
+    return bool(common) and common.name == ".git" and git("config", "--bool", "core.bare").stdout.strip() == "true"
+
+
 def change(branch, title, body, base):
     """Files BRANCH as a change into BASE; its url."""
     for name in (branch, base):
@@ -128,6 +134,9 @@ def merge(number, sha):
     # only a sha names what the judge approved; a branch name would follow the tip wherever it moved
     if not head or not re.fullmatch(r"[0-9a-f]{7,40}", sha) or tip(sha) != head:
         raise LookupError(f"change {number}: {sha} is not the tip of {entry['headRefName']} ({head and head[:9]}); judge the tip again")
+    # git then lists the main checkout as bare, so no worktree holds the base and a ref move would leave its files behind
+    if bare_flagged():
+        raise LookupError(f"change {number}: core.bare is true, so the checkout of {entry['base']} would stay behind the merge; run `git config core.bare false`")
     tree = git("merge-tree", "--write-tree", base, head)
     if tree.returncode:
         raise LookupError(f"change {number} conflicts with {entry['base']}; rebase it")
