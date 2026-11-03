@@ -58,17 +58,21 @@ def stray_posted(output):
 
 
 def unseen(lines, session_id):
-    """LINES not yet reminded in this session, recorded so each playbook line is added to the context once."""
+    """LINES not yet reminded in this session, recorded so each playbook line is added to the context once; a record that cannot be read or written
+    leaves them all unseen, since a reminder must never break the call it decorates."""
     if not session_id:
         return lines
     seen_file = pathlib.Path(os.environ.get("TMPDIR", "/tmp")) / "teamwork-reminded" / f"{session_id}.txt"
-    seen = set(seen_file.read_text().splitlines()) if seen_file.exists() else set()
-    new = [line for line in lines if line not in seen]
-    if new:
-        seen_file.parent.mkdir(parents=True, exist_ok=True)
-        with seen_file.open("a") as fh:
-            fh.write("".join(line + "\n" for line in new))
-    return new
+    try:
+        seen = set(seen_file.read_text().splitlines()) if seen_file.exists() else set()
+        new = [line for line in lines if line not in seen]
+        if new:
+            seen_file.parent.mkdir(parents=True, exist_ok=True)
+            with seen_file.open("a") as fh:
+                fh.write("".join(line + "\n" for line in new))
+        return new
+    except OSError:
+        return lines
 
 
 def reminder(call, role, cwd, session_id=None):
