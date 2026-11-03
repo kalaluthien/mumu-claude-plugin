@@ -97,13 +97,13 @@ def github_team():
 
 
 def files_board():
-    """The same protocol on a files board: an issue filed, nested, ordered, held, asked, answered, edited, resolved and reopened reads back as written."""
+    """The same protocol on a files board: an issue filed, made a part, made to wait, held, asked, answered, edited, resolved and reopened reads back as written."""
     code, out = run([HERE / "replay-board-scenario.py", "--board", "files"], herdr(*TEAM))
     steps = dict(re.findall(r"^step (\S+)\n((?:(?!step ).*\n?)*)", out, re.M))
-    ok = code == 0 and "holders=['probe-worker']" in steps.get("hold", "") and "parent=backlog" in steps.get("nest", "") \
+    ok = code == 0 and "holders=['probe-worker']" in steps.get("hold", "") and "parent=root" in steps.get("part", "") \
         and "waits=blocked by #task" in steps.get("order", "") and "task: CLOSED" in steps.get("resolve-task", "") \
-        and "backlog: CLOSED" in steps.get("resolve-backlog", "") and "backlog: OPEN" in steps.get("reopen", "") \
-        and "follow-up: OPEN labels=[] parent=backlog" in steps.get("nest-again", "")
+        and "root: CLOSED" in steps.get("resolve-task", "") and "root: OPEN" in steps.get("reopen", "") \
+        and "follow-up: OPEN labels=[] parent=root" in steps.get("part-again", "") and "root: CLOSED" in steps.get("resolve-again", "")
     return ok, out
 
 

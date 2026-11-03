@@ -1,10 +1,9 @@
 """Each role's next actions: the gaps between the board's issues and the live team, as lines a monitor or hook prints."""
-import os
 
 import board
 import issue_state
 import landing
-import team_settings
+import task_links
 from session import screen, tabs
 from team_names import crowding, members, owns, project, role
 
@@ -38,14 +37,13 @@ def unanswered(issue):
 
 
 def feed_read(name, since):
-    """The trusted reports posted since SINCE (an ISO time) on this manager's project's backlogs and on its issues closed now, as (issue, comment);
+    """The trusted reports posted since SINCE (an ISO time) on this manager's project's open roots and parents and on its issues closed now, as (issue, comment);
     None when a read failed. A task's other reports, such as each precheck table, are steps the owner need not follow."""
     touched = board.issues("all", project(name), comments=False, since=since)
     posted = board.comments_since(since)
     if touched is None or posted is None:
         return None
-    backlog = team_settings.load(os.getcwd())["backlog_label"]
-    by = {issue["number"]: issue for issue in touched if issue["state"] == "CLOSED" or backlog in issue["labels"]}
+    by = {issue["number"]: issue for issue in touched if issue["state"] == "CLOSED" or issue["parent"] is None or task_links.parts(issue["body"])}
     # `since` matches an edit too, so an old comment edited now is left out by its creation time
     found = [(by[number], comment) for number, comment in posted
              if number in by and comment["createdAt"] >= since and issue_state.trusted(comment) and issue_state.keyword(comment["body"]) == FEED]
@@ -67,10 +65,11 @@ def manager_read(me, since=None):
     outside = board.issues(pulls=True, comments=False)
     outside = outside and [board.fresh(issue["number"]) for issue in outside if not issue_state.trusted(issue)]
     feed = feed_read(me["name"], since) if since else []  # a first read has no earlier one, so a restart pushes nothing old
-    if found is None or everything is None or pulls is None or outside is None or None in outside or feed is None:
+    links = board.tree(project(me["name"]))
+    if found is None or everything is None or pulls is None or outside is None or None in outside or feed is None or links is None:
         return None
     return {"found": found, "everything": everything, "prs": pulls, "outside": [issue for issue in outside if unanswered(issue)],
-            "feed": feed}
+            "feed": feed, "links": task_links.drift(links)}
 
 
 def manager_actions(me, listed, data=None, fed_urls=None):
@@ -89,7 +88,7 @@ def manager_actions(me, listed, data=None, fed_urls=None):
                      f"`start` `{me['name']}-next` with `succeed {me['name']}`, as Succession says, which opens one")
     # a started worker names its tab before its agent is live, so its tab counts it as routed
     present = set(team) | {tab.get("label") for tab in tabs(me.get("workspace_id", ""))}
-    # a cloud name holds on every open issue, so a task its worker filed itself counts as held though only the backlog names it cloud
+    # a cloud name holds on every open issue, so a task its worker filed itself counts as held though only its root names it cloud
     present |= {name for issue in data["everything"] for name in issue_state.cloud(issue)}
     unrouted = lambda issue: not unanswered(issue) and not issue_state.deferral(issue) and not any(holds(issue, name) for name in present if name)
     for issue in found:
@@ -98,6 +97,7 @@ def manager_actions(me, listed, data=None, fed_urls=None):
             lines.append(f"route #{issue['number']} {issue_state.title(issue)}: no live worker holds it; route it, or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
         if asking(issue):
             lines.append(f"answer #{issue['number']}: its worker asks; post your {ANSWER}: there; the worker waits on it")
+    lines += [f"links {gap}" for gap in data.get("links", [])]
     for issue in data["outside"]:
         if issue.get("isPullRequest"):
             lines.append(f"outside #{issue['number']} {issue_state.title(issue)}: an outside contributor opened this pull request; close it unread with a comment that outside pull requests are not accepted and issues are welcome")

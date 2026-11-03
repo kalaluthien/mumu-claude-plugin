@@ -6,7 +6,7 @@ usage: replay-board-setting.py [--verbose]
 `--verbose` also prints the heartbeat's output.
 - signal: the heartbeat, started with no setting, touches the signal file, which wakes the issue pane, once `.claude/settings.local.json` names the files board
 - late-landing: with the board set, the heartbeat routes nothing while its landing reads the failing GitHub, and a later `TEAMWORK_LANDING=git` alone touches the signal file again
-- late-setting: the heartbeat then routes the files board's backlog, which it never did before the settings
+- late-setting: the heartbeat then routes the files board's root, which it never did before the settings
 - worktree: a script run in a worktree of the repository reads the board and landing the main checkout's settings name
 - environment-wins: `TEAMWORK_BOARD` in the environment wins over the settings
 - failure-names-board: the pane's board read names the board whose read failed"""
@@ -71,7 +71,7 @@ def main(args):
         run(["git", *argv], GIT_AUTHOR_NAME="probe", GIT_AUTHOR_EMAIL="probe@example.com", GIT_COMMITTER_NAME="probe", GIT_COMMITTER_EMAIL="probe@example.com")
     (work / "body.md").write_text("Probe the late board setting.\n")
     # filed with a config folder of its own, so the heartbeat's has no signal folder until the heartbeat makes one
-    run([sys.executable, USE, "file", "Probe the late setting", work / "body.md", "backlog"], TEAMWORK_BOARD="files", CLAUDE_CONFIG_DIR=str(work / "filer"))
+    run([sys.executable, USE, "file", "Probe the late setting", work / "body.md"], TEAMWORK_BOARD="files", CLAUDE_CONFIG_DIR=str(work / "filer"))
 
     team = [{"name": "probe-manager", "pane_id": "w1:p1", "tab_id": "w1:t1", "workspace_id": "w1", "agent": "claude", "agent_status": "working",
              "interactive_ready": True}]

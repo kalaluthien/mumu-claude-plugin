@@ -1,10 +1,11 @@
-"""A local board's records, whatever store keeps them: each issue is `<n>/issue.json` (title, labels, state, reason, parent, blockers, times),
+"""A local board's records, whatever store keeps them: each issue is `<n>/issue.json` (title, labels, state, reason, times),
 `<n>/body.md` and `<n>/comments/<k>.md`, oldest first. Every record is trusted, since only local users write the store.
 
 A store (a `Store` subclass) knows how to keep files, never what they hold: `names(folder)` lists the names right under a folder ('' the top),
 `load(path)` reads one, raising OSError when it is missing, `written(path)` says when it was written, `url(path)` names it, `refresh()` lets a
 long-lived reader see later writes, and `keep(change)` runs `change()` once or more and keeps every file it staged, all at once.
-`bind(store)` gives the board port's functions over that store, which a board adapter puts in its own namespace."""
+`bind(store)` gives the board port's functions over that store, which a board adapter puts in its own namespace.
+Links between issues live in their bodies only, as `task_links` reads them."""
 import functools
 import json
 import os
@@ -12,10 +13,11 @@ import re
 import shlex
 from datetime import datetime, timezone
 
+import task_links
 import team_settings
 import team_signal
 
-USE = re.compile(r"use-board\.py\s+(file|comment|decide|edit|title|resolve|reopen|order|nest|label)\b([^;&|\n]*)")
+USE = re.compile(r"use-board\.py\s+(file|comment|decide|edit|title|resolve|reopen|label)\b([^;&|\n]*)")
 POSTED = re.compile(r"(?:git\+)?file://\S*?/(\d+)(?:#comment-(\d+))?(?=[\s\"\\]|$)")
 trusted = lambda record: True
 
@@ -79,7 +81,7 @@ def record(store, number, comments=True):
     notes = [{"body": store.read(path), "url": f"{store.url(str(number))}#comment-{int(path.rsplit('/', 1)[1][:-3])}", "createdAt": stamp(store.written(path)), "trusted": True}
              for path in comment_paths(store, number)] if comments else []
     return {"number": number, "title": issue["title"], "body": store.read(f"{number}/body.md"), "url": store.url(str(number)), "state": issue["state"], "stateReason": issue["reason"],
-            "createdAt": issue["createdAt"], "closedAt": issue["closedAt"], "trusted": True, "labels": issue["labels"], "parent": issue["parent"], "isPullRequest": False,
+            "createdAt": issue["createdAt"], "closedAt": issue["closedAt"], "trusted": True, "labels": issue["labels"], "parent": parent_of(store, number), "isPullRequest": False,
             "mergedAt": None, "comments": notes}
 
 
@@ -115,28 +117,42 @@ def changed_since(store, stamp):
     return any(meta(store, number)["updatedAt"] >= stamp for number in numbers(store))
 
 
+def parent_of(store, number):
+    """The issue whose body names NUMBER as a part, else None."""
+    return next((owner for owner in numbers(store) if int(number) in task_links.parts(store.read(f"{owner}/body.md"))), None)
+
+
+def exists(store, number):
+    try:
+        return record(store, int(number), comments=False)
+    except (OSError, ValueError, KeyError):
+        return None
+
+
 def blockers(store, number):
     store.view()
-    return [blocker for blocker in meta(store, number)["blockers"] if meta(store, blocker)["state"] == "OPEN"]
+    return [target for target in task_links.depends(store.read(f"{number}/body.md")) if not ((found := exists(store, target)) and task_links.completed(found))]
+
+
+def check_links(store, number, text):
+    """Raises LookupError naming why TEXT cannot be NUMBER's body (None for an issue not yet filed)."""
+    store.view()
+    found = task_links.refusals(number and int(number), text, lambda n: exists(store, n), lambda n: parent_of(store, n))
+    if found:
+        raise LookupError(f"nothing written to #{number or 'a new issue'}: " + "; ".join(found))
 
 
 def tree(store, project, nodes=None):
     """The open issues' nodes in the shape the issue pane draws, as GitHub's read gives them."""
     store.view()
-    every = {number: meta(store, number) for number in numbers(store)}
-    waits = lambda number: {"nodes": [{"number": blocker, "state": every[blocker]["state"]} for blocker in every[number]["blockers"]]}
-    children = lambda number: [child for child, issue in every.items() if issue["parent"] == number]
     nodes = nodes if nodes is not None else [
-        {**{k: issue[k] for k in ("number", "title", "url", "body")}, "parent": issue["parent"] and {"number": issue["parent"]}, "blockedBy": waits(issue["number"]),
-         "labels": {"nodes": [{"name": name} for name in issue["labels"]]}, "comments": {"nodes": [{"body": note["body"], "url": note["url"]} for note in issue["comments"]]},
-         "subIssuesSummary": {"total": len(children(issue["number"])), "completed": sum(every[child]["state"] == "CLOSED" for child in children(issue["number"]))},
-         "subIssues": {"nodes": [{"number": child, "title": every[child]["title"], "url": store.url(str(child)), "state": every[child]["state"], "stateReason": every[child]["reason"] or None, "blockedBy": waits(child)}
-                                 for child in children(issue["number"])][-50:]}} for issue in reversed(issues(store, "open", project))]
+        {**{k: issue[k] for k in ("number", "title", "url", "body")}, "labels": {"nodes": [{"name": name} for name in issue["labels"]]},
+         "comments": {"nodes": [{"body": note["body"], "url": note["url"]} for note in issue["comments"]]}} for issue in reversed(issues(store, "open", project))]
     for node in nodes:
         node["trusted"] = True
-        for item in node["comments"]["nodes"] + (node.get("subIssues") or {}).get("nodes", []):
+        for item in node["comments"]["nodes"]:
             item["trusted"] = True
-    return nodes
+    return task_links.derive(nodes, lambda n: exists(store, n))
 
 
 def comment(store, number, text):
@@ -152,9 +168,10 @@ def comment(store, number, text):
 
 def file(store, title, body, labels) -> int:
     def change():
+        check_links(store, None, body)
         number = max(numbers(store), default=0) + 1
         store.stage(f"{number}/body.md", body)  # before issue.json, so a reader that lists the issue finds its body
-        save(store, number, title=title, labels=list(labels), state="OPEN", reason="", parent=None, blockers=[], createdAt=stamp(), closedAt=None)
+        save(store, number, title=title, labels=list(labels), state="OPEN", reason="", createdAt=stamp(), closedAt=None)
         return number
     return store.write(change)
 
@@ -170,6 +187,7 @@ def body(store, number):
 def edit(store, number, text):
     def change():
         body(store, number)
+        check_links(store, number, text)
         store.stage(f"{number}/body.md", text)
         save(store, number)
     store.write(change)
@@ -192,25 +210,6 @@ def reopen(store, number):
 
 def retitle(store, number, title):
     store.write(lambda: save(store, number, title=title))
-
-
-# each refusal below is one GitHub answers with 422 or 404, so a local board accepts only what GitHub accepts
-def order(store, later, earlier):
-    def change():
-        meta(store, earlier)  # raises when it does not exist, before anything is written
-        if int(later) == int(earlier) or int(earlier) in meta(store, later)["blockers"]:
-            raise LookupError(f"#{later} already waits on #{earlier}, or is #{earlier}")
-        save(store, later, blockers=sorted([*meta(store, later)["blockers"], int(earlier)]))
-    store.write(change)
-
-
-def nest(store, backlog, task):
-    def change():
-        meta(store, backlog)
-        if int(backlog) == int(task) or meta(store, task)["parent"]:
-            raise LookupError(f"#{task} already has a parent, or is #{backlog}")
-        save(store, task, parent=int(backlog))
-    store.write(change)
 
 
 def label(store, number, name, remove=False):
@@ -251,7 +250,7 @@ def posted(store, output):
 
 
 PORT = ("issues", "fresh", "comments_since", "changed_since", "blockers", "scoped", "tree", "comment", "file", "body", "edit", "resolve", "reopen",
-        "retitle", "order", "nest", "label", "posted")
+        "retitle", "label", "posted", "parent_of", "check_links")
 
 
 def bind(store):

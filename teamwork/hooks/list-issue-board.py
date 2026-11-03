@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Print the project's open issues as the issue pane draws them: backlogs grouped with related ones, each task under its
-backlog by number, an entry's link line then its holder and wait, a task's goal and criteria, a backlog's progress and its closed tasks.
+"""Print the project's open tasks as the issue pane draws them: each part under its parent by a guide, a row's title, then its
+status (`n/m done · holder · wait`) and its `← #a #b` line, then what the pane folds under it: goal, criteria, next step, closed parts.
 
-usage: list-issue-board.py <project> [--json]
-       list-issue-board.py --nodes <file> [--json]
-`--json` prints the same tree for the pane; `--nodes` reads the board's issue nodes from a file instead of the board."""
+usage: list-issue-board.py <project> [--json | --width <n> | --check]
+       list-issue-board.py --nodes <file> [--json | --width <n> | --check]
+`--json` prints the rows the pane draws, laid out for its width; `--width` wraps the text to that many cells; `--check` prints per
+width 24, 30, 40, 60 and 80 whether the rows fit; `--nodes` reads the board's issue nodes from a file instead of the board."""
 import json
 import pathlib
 import sys
@@ -15,15 +16,21 @@ import issue_board  # noqa: E402
 
 
 def main(args):
-    words = [word for word in args if word not in ("--json", "--nodes")]
-    if len(words) != 1 or words[0].startswith("-"):
+    width = args[args.index("--width") + 1] if "--width" in args and args.index("--width") + 1 < len(args) else None
+    words = [word for word in args if word not in ("--json", "--nodes", "--check", "--width", width)]
+    if len(words) != 1 or words[0].startswith("-") or "--width" in args and not (width or "").isdigit():
         print(__doc__, file=sys.stderr)
         return 2
     read = board.tree(None, json.loads(pathlib.Path(words[0]).read_text())) if "--nodes" in args else board.tree(words[0])
     if read is None:
         sys.exit(f"list-issue-board: the {board.kind()} board read failed, so no board is shown")
     tree = issue_board.board(read)
-    print(json.dumps(tree) if "--json" in args else "\n".join(issue_board.lines(tree)))
+    if "--json" in args:
+        print(json.dumps([{**row, "lines": issue_board.heading(row, issue_board.PANE_WIDTH)} for row in issue_board.rows(tree)]))
+    elif "--check" in args:
+        print("\n".join(issue_board.check(tree)))
+    else:
+        print("\n".join(issue_board.lines(tree, width and int(width))))
     return 0
 
 

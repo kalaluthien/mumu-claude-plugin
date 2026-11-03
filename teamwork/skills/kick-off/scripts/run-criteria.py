@@ -194,7 +194,8 @@ def row(label, kind, name, detail, cwd, timeout):
 def criteria(text):
     for line in issue_state.ITEM.findall(text):
         _, kind, name, detail = issue_state.CRITERION.match(line).groups()
-        yield kind or "", name or detail, detail if name else ""
+        if kind != "task":  # a part is met by its own task's close, never by a command
+            yield kind or "", name or detail, detail if name else ""
 
 
 def earlier_fails(task):

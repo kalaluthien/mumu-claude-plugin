@@ -73,7 +73,7 @@ def main(args):
         parser.add_argument(field)
     parser.add_argument("--model", required=True)  # no default: the caller picks per role
     parser.add_argument("--effort", required=True)
-    parser.add_argument("--allow", action="append", default=[], metavar="TOOL")  # its subagents lack a tool their session lacks: grant it per backlog
+    parser.add_argument("--allow", action="append", default=[], metavar="TOOL")  # its subagents lack a tool their session lacks: grant it per root task
     options = parser.parse_args(args)
     settings = team_settings.load(options.cwd)  # the session's repository, not this process's working folder
     for line in settings["warnings"]:

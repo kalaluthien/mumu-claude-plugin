@@ -11,8 +11,6 @@ Each operation is one call of `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/use
 | `resolve` | `use-board.py resolve <n> <summary-file> [--not-planned]`, the file's text opening with `REPORTED:` |
 | `reopen` | `use-board.py reopen <n>` |
 | `decide` | `use-board.py decide <n> <body-file>`, the file's text opening with `DECIDED:` |
-| `order` | `use-board.py order <later> <earlier>` |
-| `nest` | `use-board.py nest <issue> <task>` |
 | `label` | `use-board.py label <n> <name> [--remove]` |
 
 ## GitHub

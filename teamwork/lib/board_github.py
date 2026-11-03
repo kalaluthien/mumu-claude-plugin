@@ -8,7 +8,7 @@ import subprocess
 from urllib.parse import quote
 
 import claude_config
-from issue_board import SHOWN_CLOSED
+import task_links
 from install_line import need
 from json_command import run
 import team_settings
@@ -16,16 +16,15 @@ import team_settings
 TRUSTED = {"OWNER", "MEMBER", "COLLABORATOR"}
 CACHE = claude_config.folder() / "teamwork" / "github-cache"
 SINCE = re.compile(r"(?<=since=)[^&]*")
-# one point or two per read: GitHub charges each connection a node is asked for, so the sub-issues' blockers, the costliest part,
-# are read only for the closed ones the board shows, by the second query
+# one point or two per read: GitHub charges each connection a node is asked for; the native links are read only to find a mirror
+# that drifted from the bodies, and the issues a body names that are not open come by the second query
 ISSUES = """query($owner: String!, $name: String!, $labels: [String!], $after: String) {
   repository(owner: $owner, name: $name) {
     issues(states: OPEN, first: 30, after: $after, labels: $labels, orderBy: {field: CREATED_AT, direction: ASC}) {
-      nodes { number title url body authorAssociation parent { number } labels(first: 20) { nodes { name } } subIssuesSummary { total completed }
-              subIssues(last: 50) { nodes { number title url state stateReason authorAssociation } }
-              blockedBy(first: 20) { nodes { number state } } comments(last: 100) { nodes { body url authorAssociation } } }
+      nodes { number title url body authorAssociation parent { number } labels(first: 20) { nodes { name } }
+              subIssues(last: 50) { nodes { number title } } subIssuesSummary { total } blockedBy(first: 50) { nodes { number } } comments(last: 100) { nodes { body url authorAssociation } } }
       pageInfo { hasNextPage endCursor } } } }"""
-BLOCKERS = """query($owner: String!, $name: String!) {
+NAMED = """query($owner: String!, $name: String!) {
   repository(owner: $owner, name: $name) {
     %s } }"""
 # only where a command segment starts, so gh text quoted inside another command's argument is not read as a call
@@ -187,9 +186,23 @@ def changed_since(stamp):
 
 
 def blockers(number):
-    """The numbers of the open issues NUMBER waits on; None when the read failed."""
-    found = get(f"repos/issues/{number}/dependencies/blocked_by")
-    return None if found is None else [blocker["number"] for blocker in found if blocker["state"] == "open"]
+    """The numbers of the tasks NUMBER's `depends on` names that are not closed as completed; None when a read failed."""
+    found = fresh(number, comments=False)
+    targets = found and [fresh(target, comments=False) for target in task_links.depends(found["body"])]
+    return None if found is None or None in targets else [target["number"] for target in targets if not task_links.completed(target)]
+
+
+def parent_of(number):
+    """The issue GitHub lists as NUMBER's parent, the mirror of the `[task]` line naming it, since no read finds that line in every body."""
+    found = fresh(number, comments=False)
+    return found and found["parent"]
+
+
+def check_links(number, text):
+    """Raises LookupError naming why TEXT cannot be NUMBER's body (None for an issue not yet filed)."""
+    found = task_links.refusals(number and int(number), text, lambda n: fresh(n, comments=False), parent_of)
+    if found:
+        raise LookupError(f"nothing written to #{number or 'a new issue'}: " + "; ".join(found))
 
 
 def graphql(query, owner, name, *fields):
@@ -201,11 +214,17 @@ def tree(project, nodes=None):
     """The open issues' nodes, those labelled `scope:<project>` when that label exists, else all, or NODES when given, each issue and comment
     marked `trusted`; None when a read failed."""
     nodes = nodes if nodes is not None else read_tree(project)
-    for node in nodes or []:
+    if nodes is None:
+        return None
+    for node in nodes:
         node["trusted"] = trusted(node)
-        for item in node["comments"]["nodes"] + (node.get("subIssues") or {}).get("nodes", []):
+        for item in node["comments"]["nodes"]:
             item["trusted"] = trusted(item)
-    return nodes
+        native_parts = (node.get("subIssues") or {}).get("nodes", [])
+        node["native"] = {"parent": (node.get("parent") or {}).get("number"), "parts": [part["number"] for part in native_parts],
+                          "titles": {part["number"]: part["title"] for part in native_parts}, "total": (node.get("subIssuesSummary") or {}).get("total", len(native_parts)),
+                          "depends": [wait["number"] for wait in (node.get("blockedBy") or {}).get("nodes", [])]}
+    return task_links.derive(nodes, lambda n: None)
 
 
 def read_tree(project):
@@ -225,14 +244,16 @@ def read_tree(project):
         if not found["issues"]["pageInfo"]["hasNextPage"]:
             break
         after = ["-f", f"after={found['issues']['pageInfo']['endCursor']}"]
-    shown = [sub_issue for node in found_issues for sub_issue in [sub_issue for sub_issue in node["subIssues"]["nodes"] if sub_issue["state"] == "CLOSED"][-SHOWN_CLOSED:]]
-    if shown:
-        asked = graphql(BLOCKERS % " ".join(f"i{number}: issue(number: {number}) {{ blockedBy(first: 20) {{ nodes {{ number state }} }} }}" for number in {sub_issue["number"] for sub_issue in shown}),
+    for _ in range(2):  # the issues the open ones name, then those the named ones wait on, which the pane shows beside them
+        known = {node["number"] for node in found_issues}
+        missing = {n for node in found_issues for n in task_links.parts(node["body"]) + task_links.depends(node["body"])} - known
+        if not missing:
+            break
+        asked = graphql(NAMED % " ".join(f"i{n}: issue(number: {n}) {{ number title url body state stateReason authorAssociation }}" for n in sorted(missing)),
                         repo["owner"], repo["name"])
         if asked is None:
             return None
-        for sub_issue in shown:
-            sub_issue["blockedBy"] = asked[f"i{sub_issue['number']}"]["blockedBy"]
+        found_issues += [{**named, "labels": {"nodes": []}, "comments": {"nodes": []}} for named in asked.values() if named]
     return found_issues
 
 
@@ -262,10 +283,13 @@ def comment(number, text):
 
 def file(title, body, labels) -> int:
     """Opens an issue; its number."""
+    check_links(None, body)
     for name in labels:
         make_label(name)
-    return write("-X", "POST", "repos/{owner}/{repo}/issues", "-f", f"title={title}", "-F", "body=@-",
-                 *[argument for name in labels for argument in ("-f", f"labels[]={name}")], text=body)["number"]
+    number = write("-X", "POST", "repos/{owner}/{repo}/issues", "-f", f"title={title}", "-F", "body=@-",
+                   *[argument for name in labels for argument in ("-f", f"labels[]={name}")], text=body)["number"]
+    mirror(number, "", body)
+    return number
 
 
 def body(number):
@@ -285,7 +309,25 @@ def body(number):
 
 
 def edit(number, text):
+    old = body(number)
+    check_links(number, text)
     write("-X", "PATCH", f"repos/{{owner}}/{{repo}}/issues/{number}", "-F", "body=@-", text=text)
+    mirror(number, old, text)
+
+
+def mirror(number, old, new):
+    """Copies the link lines NUMBER's body gained or lost into GitHub's sub-issue and `blocked by` links, for people on github.com;
+    a failed copy is left to the heartbeat, since every read takes links from bodies."""
+    steps = [("POST", f"issues/{number}/sub_issues", "sub_issue_id", part) for part in task_links.parts(new) if part not in task_links.parts(old)]
+    steps += [("DELETE", f"issues/{number}/sub_issue", "sub_issue_id", part) for part in task_links.parts(old) if part not in task_links.parts(new)]
+    steps += [("POST", f"issues/{number}/dependencies/blocked_by", "issue_id", target) for target in task_links.depends(new) if target not in task_links.depends(old)]
+    steps += [("DELETE", f"issues/{number}/dependencies/blocked_by/{{id}}", None, target) for target in task_links.depends(old) if target not in task_links.depends(new)]
+    for method, path, field, target in steps:
+        try:
+            identity = node_id(target)
+            write("-X", method, f"repos/{{owner}}/{{repo}}/{path.replace('{id}', str(identity))}", *(["-F", f"{field}={identity}"] if field else []))
+        except (LookupError, subprocess.CalledProcessError):
+            pass
 
 
 def resolve(number, summary, completed=True):
@@ -300,15 +342,6 @@ def reopen(number):
 
 def retitle(number, title):
     write("-X", "PATCH", f"repos/{{owner}}/{{repo}}/issues/{number}", "-f", f"title={title}")
-
-
-def order(later, earlier):
-    """Records that LATER waits on EARLIER."""
-    write("-X", "POST", f"repos/{{owner}}/{{repo}}/issues/{later}/dependencies/blocked_by", "-F", f"issue_id={node_id(earlier)}")
-
-
-def nest(backlog, task):
-    write("-X", "POST", f"repos/{{owner}}/{{repo}}/issues/{backlog}/sub_issues", "-F", f"sub_issue_id={node_id(task)}")
 
 
 def label(number, name, remove=False):

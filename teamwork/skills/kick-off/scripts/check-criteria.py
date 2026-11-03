@@ -71,7 +71,8 @@ def main(args):
     source = args[0]
     body = sys.stdin.read() if source == "-" else pathlib.Path(source).read_text()
     lines = issue_state.ITEM.findall(issue_state.sections(body).get("done", ""))
-    flagged = [(line_number, found) for line_number, line in enumerate(lines, 1)
+    # a part, `[task] #n`, is no criterion, so its form is the graph's to check
+    flagged = [(line_number, found) for line_number, line in enumerate(lines, 1) if issue_state.CRITERION.match(line).group(2) != "task"
                for found in [defects(*issue_state.CRITERION.match(line).groups()[1:])] if found]
     for line_number, found in flagged:
         print(f"{line_number}: {', '.join(found)}")

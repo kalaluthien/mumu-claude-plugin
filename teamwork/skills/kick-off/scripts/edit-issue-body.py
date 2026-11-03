@@ -34,6 +34,11 @@ def main(args):
     check = subprocess.run(["patch", "--forward", "--batch", "--dry-run", "-s", str(body), diff_file], capture_output=True, text=True)
     if check.returncode:
         sys.exit(f"edit-issue-body: the diff does not apply to #{issue}'s body, so nothing was posted or changed:\n{check.stdout}{check.stderr}")
+    applied = subprocess.run(["patch", "--forward", "--batch", "-s", "-o", "-", str(body), diff_file], capture_output=True, text=True)
+    try:
+        board.check_links(issue, applied.stdout)
+    except LookupError as e:
+        sys.exit(f"edit-issue-body: {e}")
     fence = "`" * max([3] + [len(run) + 1 for run in re.findall(r"`+", diff)])
     comment = work / "comment.md"
     comment.write_text(f"{line}\n\n{fence}diff\n{diff}{'' if diff.endswith(chr(10)) else chr(10)}{fence}\n")

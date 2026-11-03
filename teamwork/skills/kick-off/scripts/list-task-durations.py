@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print one row per closed non-backlog issue: number, labels, criteria count, start, end, hours and where the start came
+"""Print one row per closed issue that holds no parts: number, labels, criteria count, start, end, hours and where the start came
 from (`pr`: first commit of the pull request that closed it; `created`: no such pull request, so its creation), then
 the count of rows per start source.
 

@@ -5,14 +5,13 @@ usage: use-board.py <operation> <args>
 
   read <issue>                          print its title, state, labels, parent, body and comments
   comment <issue> <body-file>           append the file's text as a comment
-  file <title> <body-file> [label...]   open an issue; print its url
+  file <title> <body-file> [label...]   open an issue; print its url; its `[task]` and `depends on` lines link it, refused when they make a cycle,
+                                        a second parent or name an unknown issue
   edit <issue> <diff-file> <line>       change the body by a diff, with the keyword line [edit-issue-body.py](edit-issue-body.py) posts first
   title <issue> <title>                 change the title
   resolve <issue> <summary-file> [--not-planned]   close it with the summary, `REPORTED: ` put first when it lacks it
   reopen <issue>                        open a closed issue again
   decide <issue> <body-file>            comment the text, `DECIDED: ` put first when it lacks it
-  order <later> <earlier>               record that LATER waits on EARLIER
-  nest <issue> <task>                   put TASK under the nearest backlog at or above ISSUE
   label <issue> <name> [--remove]"""
 import pathlib
 import subprocess
@@ -52,10 +51,6 @@ def main(args):
             board.reopen(operands[0])
         elif verb == "decide" and len(operands) == 2:
             print(board.comment(operands[0], keyed("DECIDED:", operands[1])))
-        elif verb == "order" and len(operands) == 2:
-            board.order(*operands)
-        elif verb == "nest" and len(operands) == 2:
-            board.nest(*operands)
         elif verb == "label" and len(operands) in (2, 3):
             board.label(operands[0], operands[1], "--remove" in operands[2:])
         else:
