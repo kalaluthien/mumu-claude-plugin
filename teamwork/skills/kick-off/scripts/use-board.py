@@ -4,14 +4,15 @@
 usage: use-board.py <operation> <args>
 
   read <issue>                          print its title, state, labels, parent, body and comments
-  comment <issue> <body-file>           append the file's text as a comment
+  comment <issue> <body-file>           append the file's text as a comment; refused, nothing posted, when it holds a `decision` block, which `decide` posts
   file <title> <body-file> [label...]   open an issue; print its url; its `[task]` and `depends on` lines link it, refused when they make a cycle,
                                         a second parent or name an unknown issue
   edit <issue> <diff-file> <line>       change the body by a diff, with the keyword line [edit-issue-body.py](edit-issue-body.py) posts first
   title <issue> <title>                 change the title
   resolve <issue> <summary-file> [--not-planned]   close it with the summary, `REPORTED: ` put first when it lacks it
   reopen <issue>                        open a closed issue again
-  decide <issue> <body-file>            comment the text, `DECIDED: ` put first when it lacks it
+  decide <issue> <body-file>            comment the text, `DECIDED: ` put first when it lacks it; a `decision` block is refused,
+                                        nothing posted, when it breaks a rule of the grammar's Decisions section
   label <issue> <name> [--remove]"""
 import pathlib
 import subprocess
@@ -20,6 +21,7 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
+import decisions  # noqa: E402
 import issue_state  # noqa: E402
 
 
@@ -38,6 +40,9 @@ def main(args):
             for comment in issue["comments"]:
                 print(f"\n--- {comment['url']}\n{comment['body']}")
         elif verb == "comment" and len(operands) == 2:
+            # a decision block binds, so only `decide`, which holds it to the grammar's rules, may post one
+            if issue_state.decision(text(operands[1])) is not None:
+                sys.exit(f"use-board: nothing posted: {operands[1]} holds a decision block; post it by `decide`, which checks it")
             print(board.comment(operands[0], text(operands[1])))
         elif verb == "file" and len(operands) >= 2:
             print(board.fresh(board.file(operands[0], text(operands[1]), operands[2:]), comments=False)["url"])
@@ -50,7 +55,11 @@ def main(args):
         elif verb == "reopen" and len(operands) == 1:
             board.reopen(operands[0])
         elif verb == "decide" and len(operands) == 2:
-            print(board.comment(operands[0], keyed("DECIDED:", operands[1])))
+            said = keyed("DECIDED:", operands[1])
+            refused = decisions.refusals(operands[0], said, decisions.read(operands[0], board.fresh)) if issue_state.decision(said) else []
+            if refused:
+                sys.exit(f"use-board: nothing posted: {'; '.join(refused)}")
+            print(board.comment(operands[0], said))
         elif verb == "label" and len(operands) in (2, 3):
             board.label(operands[0], operands[1], "--remove" in operands[2:])
         else:

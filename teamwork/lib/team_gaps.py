@@ -1,6 +1,7 @@
 """Each role's next actions: the gaps between the board's issues and the live team, as lines a monitor or hook prints."""
 
 import board
+import decisions
 import issue_state
 import landing
 import task_links
@@ -28,7 +29,7 @@ def holds(issue, name):
 
 
 def asking(issue):
-    return [kind for kind, _, _ in issue_state.exchange(issue)][-1:] == ["ask"]
+    return bool(issue_state.open_questions(issue))
 
 
 def unanswered(issue):
@@ -98,8 +99,11 @@ def manager_actions(me, listed, data=None, fed_urls=None):
         if unrouted(issue) and unrouted(board.fresh(issue["number"]) or issue):
             lines.append(f"route #{issue['number']} {issue_state.title(issue)}: no live worker holds it; route it, or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
         if asking(issue):
-            lines.append(f"answer #{issue['number']}: its worker asks; post your {ANSWER}: there; the worker waits on it")
+            ask = issue_state.open_questions(issue)[-1]["ask"]
+            lines.append(f"answer #{issue['number']}: its worker asks at {ask['url']}; answer by `decide` there with `{decisions.FIELD['answers']}: {ask['url']}`; "
+                         f"the worker waits on it")
     lines += [f"links {gap}" for gap in data.get("links", [])]
+    lines += decisions.gaps(found)
     for issue in data["outside"]:
         if issue.get("isPullRequest"):
             lines.append(f"outside #{issue['number']} {issue_state.title(issue)}: an outside contributor opened this pull request; close it unread with a comment that outside pull requests are not accepted and issues are welcome")
@@ -159,9 +163,9 @@ def worker_actions(me, waiting, data=None):
     name, found, pulls = me["name"], data["found"], data["prs"]
     lines = limited(found, ISSUE_LIMIT, "open-issue")
     for issue in (issue for issue in found if holds(issue, name)):
-        turns = issue_state.exchange(issue)
-        if [kind for kind, _, _ in turns[-2:]] == ["ask", "answer"]:
-            lines.append(f"answered #{issue['number']}: {turns[-1][2]['url']} answers your {ASK}:; act on it")
+        latest = issue_state.questions(issue)[-1:]
+        if latest and latest[0]["answer"]:
+            lines.append(f"answered #{issue['number']}: {latest[0]['answer']['url']} answers your {ASK}:; act on it")
         if data["blockers"][issue["number"]]:
             waiting.add(issue["number"])
         elif issue["number"] in waiting:

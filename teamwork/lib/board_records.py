@@ -155,7 +155,7 @@ def tree(store, project, nodes=None):
     store.view()
     nodes = nodes if nodes is not None else [
         {**{k: issue[k] for k in ("number", "title", "url", "body")}, "labels": {"nodes": [{"name": name} for name in issue["labels"]]},
-         "comments": {"nodes": [{"body": note["body"], "url": note["url"]} for note in issue["comments"]]}} for issue in reversed(issues(store, "open", project))]
+         "comments": {"nodes": [{"body": note["body"], "url": note["url"], "createdAt": note["createdAt"]} for note in issue["comments"]]}} for issue in reversed(issues(store, "open", project))]
     for node in nodes:
         node["trusted"] = True
         for item in node["comments"]["nodes"]:

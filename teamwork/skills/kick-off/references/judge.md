@@ -7,7 +7,7 @@ Review what your caller hands you, which you did not write, in [protocol.md](pro
 
    | reviewing | a gap is |
    | --- | --- |
-   | tasks | a clause of the parent's words or of a `DECIDED:` with no criterion; a criterion not as protocol.md defines it, each `[check]` run on the base as written, a `[task]` part being no criterion but met once its task is closed as completed; two open tasks touching the same files, neither's `depends on` naming the other |
+   | tasks | a clause of the parent's words or of a `DECIDED:` with no criterion; an owner decision in a task's binding set, as `list-decisions.py <task>` prints it, met by no criterion and no `[task]` part; a criterion not as protocol.md defines it, each `[check]` run on the base as written, a `[task]` part being no criterion but met once its task is closed as completed; two open tasks touching the same files, neither's `depends on` naming the other |
    | a change, against its task's Definition of done however it lands | a `[check]` missing its pass condition at the head, read from the task's `run-criteria.py` table, a row you run again only when it is `unclear` or its output looks wrong; that table missing, or at another sha, is a gap itself; a `[score]` not measured beside the base now; work beyond or short of its task; with no task, a diff of 10 or more lines added plus removed, as `git diff --numstat` counts them; a broken caller or boundary input; no check that fails without it; a test the worker handed you that passes whatever the code does; a test you wrote that fails at the head; not the simplest change, or not reading like the code around it |
    | a report | a claim with no source cited |
 

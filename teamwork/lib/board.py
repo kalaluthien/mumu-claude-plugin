@@ -12,6 +12,7 @@ A record has `number`, `title`, `body`, `labels` (names), `state` (`OPEN` or `CL
 each comment with `body` and `trusted`."""
 import importlib
 
+import issue_state
 import port_setting
 import task_links
 
@@ -49,7 +50,7 @@ def resolve(number, summary, completed=True):
     record = adapter().fresh(number, comments=False)
     stopping = [part for part in task_links.parts(record["body"]) if (found := adapter().fresh(part, comments=False)) and found["state"] == "OPEN"] if record and not completed else []
     if stopping:
-        adapter().comment(number, f"DECIDED: stopping #{number} stops its open parts {' '.join(f'#{part}' for part in stopping)}.")
+        adapter().comment(number, f"{issue_state.STOPPING}{number} stops its open parts {' '.join(f'#{part}' for part in stopping)}.")
     adapter().resolve(number, summary, completed)
     for part in stopping:
         resolve(part, f"REPORTED: stopped with its parent #{number}.", False)
