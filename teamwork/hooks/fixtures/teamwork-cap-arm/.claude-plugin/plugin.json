@@ -1,5 +1,5 @@
 {
  "name": "teamwork-cap-arm",
  "version": "0.0.0",
- "description": "Replay arm that runs teamwork/hooks/cap-program-output.py from its shipped path, never a copy"
+ "description": "Replay arm whose PostToolUse hook, hooks/cap-program-output.py, caps long Bash program output"
 }
