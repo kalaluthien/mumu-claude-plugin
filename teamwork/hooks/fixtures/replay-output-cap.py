@@ -251,7 +251,7 @@ def net_saving(turns, uses, results):
                 refetches.append({"id": result["id"], "file": cut["file"], "chars": len(result["text"]),
                                   "units": round(units + turn_units, 1)})
                 break
-    reread_units, rereads = 0.0, []
+    reread_units, reread_carry, rereads = 0.0, 0.0, []
     reads = [result for result in results if (uses.get(result["id"]) or {}).get("name") in ("Bash", "Read")]
     for cut in cuts:
         after = [result for result in reads if result["position"] > cut["position"]][:REREAD_WINDOW]
@@ -263,6 +263,7 @@ def net_saving(turns, uses, results):
                 units = carry(len(result["text"]) / CHARS_PER_TOKEN, result["position"], turns)
                 turn_units = turn_cost[id(issuing)] if issuing else 0.0
                 reread_units += units + turn_units
+                reread_carry += units
                 rereads.append({"id": result["id"], "files": sorted(cut["sources"] & named), "chars": len(result["text"]),
                                 "units": round(units + turn_units, 1)})
     net = removed_units - refetch_units
@@ -270,7 +271,8 @@ def net_saving(turns, uses, results):
     share = lambda value: round(value / (run_units + value), 4) if run_units + value else 0.0
     return bash, refetches + [{**row, "reread": True} for row in rereads], {
         "removed_units": round(removed_units, 1), "refetch_units": round(refetch_units, 1), "reread_units": round(reread_units, 1),
-        "net_units": round(net, 1), "run_units": round(run_units, 1), "net_share": share(net), "net_share_rereads_charged": share(charged)}
+        "net_units": round(net, 1), "run_units": round(run_units, 1), "net_share": share(net),
+        "net_share_reread_results_charged": share(net - reread_carry), "net_share_rereads_charged": share(charged)}
 
 
 def record_path(task, arm, repeat):
@@ -438,18 +440,20 @@ def probe_arms():
 def summary():
     rows = records()
     spread = lambda values: f"{min(values):.2%} / {sum(values) / len(values):.2%} / {max(values):.2%}"
-    print("| arm | runs | passed | mean cost $ | estimated net saving (min / mean / max) | same, re-reads charged |")
-    print("| --- | --- | --- | --- | --- | --- |")
+    print("| arm | runs | passed | mean cost $ | estimated net saving (min / mean / max) | re-read results charged | "
+          "re-read results and turns charged |")
+    print("| --- | --- | --- | --- | --- | --- | --- |")
     for arm in ARMS:
         mine = [row for row in rows if row["arm"] == arm]
         if not mine:
             continue
         estimate = [spread([row["saving"][key] for row in mine]) if arm != "none" else ""
-                    for key in ("net_share", "net_share_rereads_charged")]
+                    for key in ("net_share", "net_share_reread_results_charged", "net_share_rereads_charged")]
         cost = sum(row["total_cost_usd"] or 0 for row in mine) / len(mine)
-        print(f"| {arm} | {len(mine)} | {sum(row['passed'] for row in mine)} | {cost:.3f} | {estimate[0]} | {estimate[1]} |")
+        print(f"| {arm} | {len(mine)} | {sum(row['passed'] for row in mine)} | {cost:.3f} | {estimate[0]} | {estimate[1]} | {estimate[2]} |")
     print()
-    print("| task | passed none / cap | mean cost none $ | mean cost cap $ | observed cost change | cuts | re-reads | estimated / re-reads charged |")
+    print("| task | passed none / cap | mean cost none $ | mean cost cap $ | observed cost change | cuts | re-reads | "
+          "estimated / re-read results / re-read turns charged |")
     print("| --- | --- | --- | --- | --- | --- | --- | --- |")
     changes = []
     for task in sorted({row["task"] for row in rows}):
@@ -465,7 +469,7 @@ def summary():
         mean = lambda key: sum(row["saving"][key] for row in capped) / len(capped)
         print(f"| {task} | {sum(row['passed'] for row in arms['none'])} / {sum(row['passed'] for row in capped)} | "
               f"{cost['none']:.3f} | {cost['output-cap']:.3f} | {change:+.1%} | {cuts} | {rereads} | "
-              f"{mean('net_share'):.1%} / {mean('net_share_rereads_charged'):.1%} |")
+              f"{mean('net_share'):.1%} / {mean('net_share_reread_results_charged'):.1%} / {mean('net_share_rereads_charged'):.1%} |")
     if changes:
         print(f"\nobserved cost change, cap over none, mean of tasks: {sum(changes) / len(changes):+.1%} (min {min(changes):+.1%}, max {max(changes):+.1%})")
     print(f"spent ${spent():.2f}. Reading: the cap is worth building only when its arm passes as often as none, its net saving "

@@ -203,6 +203,7 @@
   "net_units": 40632.0,
   "run_units": 158646.0,
   "net_share": 0.2039,
+  "net_share_reread_results_charged": 0.2014,
   "net_share_rereads_charged": -0.0412
  },
  "checks": [
