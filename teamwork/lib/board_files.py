@@ -1,5 +1,8 @@
 """The board in plain files: each issue is a folder `<n>/` under `TEAMWORK_BOARD_DIR` holding `issue.json` (title, labels, state, parent, blockers, times),
 `body.md` and `comments/<k>.md`, oldest first. Every record is trusted, since only local users write the folder."""
+import contextlib
+import fcntl
+import functools
 import json
 import os
 import pathlib
@@ -21,6 +24,36 @@ FOLDER = pathlib.Path(os.environ.get("TEAMWORK_BOARD_DIR") or default_folder())
 USE = re.compile(r"use-board\.py\s+(file|comment|decide|edit|title|resolve|reopen|order|nest|label)\b([^;&|\n]*)")
 POSTED = re.compile(r"file://\S*?/(\d+)(?:#comment-(\d+))?(?=[\s\"\\]|$)")
 trusted = lambda record: True
+held = False  # whether this process holds the lock, so resolve's comment does not wait on its own lock
+
+@contextlib.contextmanager
+def writing():
+    """Holds the board's lock for one write, since two sessions writing at once would number or read-modify-write over each other."""
+    global held
+    if held:
+        yield
+        return
+    FOLDER.mkdir(parents=True, exist_ok=True)
+    with open(FOLDER / ".lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        held = True
+        try:
+            yield
+        finally:
+            held = False
+
+def locked(write):
+    @functools.wraps(write)
+    def run(*args, **kwargs):
+        with writing():
+            return write(*args, **kwargs)
+    return run
+
+def put(path, text):
+    """Writes PATH whole by a rename, so a reader that takes no lock never sees it half written."""
+    part = path.with_name(f".{path.name}.{os.getpid()}.part")
+    part.write_text(text)
+    os.replace(part, path)
 
 def stamp(seconds=None):
     return datetime.fromtimestamp(seconds or datetime.now().timestamp(), timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -34,7 +67,7 @@ def meta(number):
 def save(number, **change):
     """Writes NUMBER's changed fields, then touches the signal file, which a GitHub write gets from the issue pane."""
     old = meta(number) if change.get("createdAt") is None else {}  # a change to a missing issue raises, never makes the folder
-    (FOLDER / str(number) / "issue.json").write_text(json.dumps({**old, **change, "updatedAt": stamp()}))
+    put(FOLDER / str(number) / "issue.json", json.dumps({**old, **change, "updatedAt": stamp()}))
     team_signal.SIGNAL.parent.mkdir(parents=True, exist_ok=True)
     team_signal.SIGNAL.touch()
 
@@ -88,21 +121,23 @@ def tree(project, nodes=None):
             item["trusted"] = True
     return nodes
 
+@locked
 def comment(number, text):
     """Adds TEXT as NUMBER's next comment; its url."""
     meta(number)  # raises when NUMBER does not exist
     folder = FOLDER / str(number) / "comments"
     folder.mkdir(exist_ok=True)
     position = len(list(folder.glob("*.md"))) + 1
-    (folder / f"{position:04d}.md").write_text(text)
+    put(folder / f"{position:04d}.md", text)
     save(number)
     return f"file://{FOLDER}/{number}#comment-{position}"
 
+@locked
 def file(title, body, labels) -> int:
     number = max(numbers(), default=0) + 1
     (FOLDER / str(number)).mkdir(parents=True)
     save(number, title=title, labels=list(labels), state="OPEN", reason="", parent=None, blockers=[], createdAt=stamp(), closedAt=None)
-    (FOLDER / str(number) / "body.md").write_text(body)
+    put(FOLDER / str(number) / "body.md", body)
     return number
 
 def body(number):
@@ -111,36 +146,43 @@ def body(number):
     except OSError as e:
         raise LookupError(f"cannot read #{number} ({e.strerror}); check TEAMWORK_BOARD_DIR") from e
 
+@locked
 def edit(number, text):
     body(number)
-    (FOLDER / str(number) / "body.md").write_text(text)
+    put(FOLDER / str(number) / "body.md", text)
     save(number)
 
+@locked
 def resolve(number, summary, completed=True):
     comment(number, summary)
     save(number, state="CLOSED", reason="COMPLETED" if completed else "NOT_PLANNED", closedAt=stamp())
 
+@locked
 def reopen(number):
     """Opens NUMBER again; an open one stays as it is, as GitHub leaves it."""
     if meta(number)["state"] == "CLOSED":
         save(number, state="OPEN", reason="REOPENED", closedAt=None)
 
+@locked
 def retitle(number, title):
     save(number, title=title)
 
 # each refusal below is one GitHub answers with 422 or 404, so a files board accepts only what GitHub accepts
+@locked
 def order(later, earlier):
     meta(earlier)  # raises when it does not exist, before anything is written
     if int(later) == int(earlier) or int(earlier) in meta(later)["blockers"]:
         raise LookupError(f"#{later} already waits on #{earlier}, or is #{earlier}")
     save(later, blockers=sorted([*meta(later)["blockers"], int(earlier)]))
 
+@locked
 def nest(backlog, task):
     meta(backlog)
     if int(backlog) == int(task) or meta(task)["parent"]:
         raise LookupError(f"#{task} already has a parent, or is #{backlog}")
     save(task, parent=int(backlog))
 
+@locked
 def label(number, name, remove=False):
     labels = [existing for existing in meta(number)["labels"] if existing != name]
     if remove and len(labels) == len(meta(number)["labels"]):
