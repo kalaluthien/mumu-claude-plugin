@@ -8,6 +8,7 @@ usage: replay-landing-scenario.py [--verbose]
 - refuse-moved-head: change 1 merged at a sha other than its tip, or at its branch name, exits 1 and leaves the base as it was
 - refuse-dirty-checkout: change 1 merged over an uncommitted file in the base's checkout exits 1 and leaves the file and the base as they were
 - refuse-bare-checkout: change 1 merged while `core.bare` is true exits 1, names `core.bare`, and leaves the base and the change as they were
+- bare-repository: a truly bare clone is not flagged, so the guard leaves its `update-ref` merges alone
 - merge: change 1 merged at its tip after the base moved: one commit whose one parent is the old base, the merged tree, a message citing its task,
   and the base's checkout showing it
 - signal: the merge touched the signal file, and the landing's change check is true since before it
@@ -128,6 +129,10 @@ def main(args):
     git("config", "core.bare", "false")
     step("refuse-bare-checkout", code == 1 and "core.bare" in out and git("rev-parse", "main") == base and landing_git.record(1)["state"] == "OPEN",
          f"exit {code}: {out}")
+    git("clone", "-q", "--bare", str(repo), str(work / "bare.git"))
+    os.chdir(work / "bare.git")
+    step("bare-repository", landing_git.bare_flagged() is False and git("config", "--bool", "core.bare", cwd=work / "bare.git") == "true")
+    os.chdir(repo)
 
     # the manager's heartbeat runs before the merge, so only its change check, not its first read, can bring the merged line
     log = work / "heartbeat.log"
