@@ -40,7 +40,7 @@ Keep what this session learned where the next agent will meet it. A lesson hande
 5. **Operation**: read every memory folder afresh, `<home>` with its folders and `<config>/projects/*/memory/`. Take the first operation that fits:
    - **Confirm**: an entry says it already: `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/count-confirmations.py <file>`.
    - **Extend**: an entry on the same subject or mechanism: add to it.
-   - **Add**: a new memory file with `confirmed: 1` and `last-confirmed: <today>` in its frontmatter, justified in one line: the nearest entry and why it could not be extended, or that none exists.
+   - **Add**: a new memory file whose frontmatter has `name`, `description`, `metadata.type`, `confirmed: 1` and `last-confirmed: <today>`, justified in one line: the nearest entry and why it could not be extended, or that none exists.
 
    An extend or add to another repository's folder or pool is a patch, as step 4 says; skip a confirm there.
 

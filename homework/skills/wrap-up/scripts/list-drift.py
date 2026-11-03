@@ -7,8 +7,9 @@ usage: list-drift.py <config> [<pool>...]   every memory folder: the auto-memory
 
 A finding is a `MEMORY.md` link to a missing file, a memory file no index
 links, a file name two pools share, an index past the load limit (only its
-first 200 lines or 25KB load at start), a file missing a `When it applies:` or
-`When it is wrong:` line, or a lesson never found again: `confirmed` 1 and
+first 200 lines or 25KB load at start), a file whose header lacks a `name` that
+is its file name, a `description` or a `metadata.type`, a file missing a
+`When it applies:` or `When it is wrong:` line, or a lesson never found again: `confirmed` 1 and
 `last-confirmed` over STALE_DAYS days old. It ends with the count, so no
 output is never mistaken for no drift.
 """
@@ -54,6 +55,9 @@ def drift(pools, today):
             if name not in linked:
                 found.append(f"unindexed: {path}")
             body = read(path)
+            problems = memory.header_problems(path, body)
+            if problems:
+                found.append(f"bad header: {path}, {'; '.join(problems)}")
             missing = [phrase for phrase in ("When it applies:", "When it is wrong:") if phrase not in body]
             if missing:
                 found.append(f"missing {' and '.join(missing)} {path}")

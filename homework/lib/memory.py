@@ -1,4 +1,4 @@
-"""Read a memory file's frontmatter: its confirmation count and the date it was last confirmed."""
+"""Read a memory file's frontmatter: its confirmation count, the date it was last confirmed, and the header Claude Code reads."""
 import os
 import re
 from datetime import date
@@ -7,6 +7,9 @@ from datetime import date
 # home is kept in the match, so one name in two folders counts twice
 PATH = re.compile(r"/memory/((?:[\w.-]+/)?(?!MEMORY\.md)[\w.-]+\.md)")
 # the indent is kept, so a field nested under `metadata:` is rewritten in place
+TYPES = ("user", "feedback", "project", "reference")
+# `type` is read only when indented, since Claude Code reads it under `metadata:`
+TYPE = re.compile(r"^[ \t]+type:[ \t]*(.*)$", re.M)
 FIELD = re.compile(r"^([ \t]*)(confirmed|last-confirmed):[ \t]*(.*)$", re.M)
 
 
@@ -29,3 +32,22 @@ def fields(path, text):
     except (KeyError, ValueError):
         last = date.fromtimestamp(os.path.getmtime(path))
     return count, last
+
+
+def header_problems(path, text):
+    """What is wrong with the header Claude Code reads, one phrase each; empty when the header is whole."""
+    front, _ = split(text)
+    if front is None:
+        return ["no frontmatter"]
+    found = []
+    name = re.search(r"^name:[ \t]*(.*)$", front, re.M)
+    stem = os.path.basename(path)[:-len(".md")]
+    if not name or name.group(1).strip().strip("\"'") != stem:
+        found.append(f"name is not {stem}")
+    description = re.search(r"^description:[ \t]*(.*)$", front, re.M)
+    if not description or not description.group(1).strip().strip("\"'"):
+        found.append("no description")
+    kind = TYPE.search(front)
+    if not kind or kind.group(1).strip().strip("\"'") not in TYPES:
+        found.append(f"metadata.type is not {', '.join(TYPES[:-1])} or {TYPES[-1]}")
+    return found
