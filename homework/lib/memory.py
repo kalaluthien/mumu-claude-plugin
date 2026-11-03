@@ -1,4 +1,4 @@
-"""Read a memory file's frontmatter: its confirmation count and the date it was last confirmed."""
+"""Read a memory file's frontmatter: its confirmation count, the date it was last confirmed, and the header Claude Code reads."""
 import os
 import re
 from datetime import date
@@ -29,3 +29,34 @@ def fields(path, text):
     except (KeyError, ValueError):
         last = date.fromtimestamp(os.path.getmtime(path))
     return count, last
+
+
+TYPES = ("user", "feedback", "project", "reference")
+# a block of indented lines under a top-level `metadata:`, where Claude Code reads `type`
+METADATA = re.compile(r"^metadata:[ \t]*\n((?:[ \t]+.*\n?|\n)*)", re.M)
+TYPE = re.compile(r"^[ \t]+type:[ \t]*(.*)$", re.M)
+
+
+def value(text):
+    """A YAML scalar of a header line: its trailing ` # comment` and its quotes cut."""
+    return re.split(r"\s#", text, maxsplit=1)[0].strip().strip("\"'")
+
+
+def header_problems(path, text):
+    """What is wrong with the header Claude Code reads, one phrase each; empty when the header is whole."""
+    front, _ = split(text)
+    if front is None:
+        return ["no frontmatter"]
+    found = []
+    name = re.search(r"^name:[ \t]*(.*)$", front, re.M)
+    stem = os.path.basename(path)[:-len(".md")]
+    if not name or value(name.group(1)) != stem:
+        found.append(f"name is not {stem}")
+    description = re.search(r"^description:[ \t]*(.*)$", front, re.M)
+    if not description or not value(description.group(1)):
+        found.append("no description")
+    block = METADATA.search(front)
+    kind = TYPE.search(block.group(1)) if block else None
+    if not kind or value(kind.group(1)) not in TYPES:
+        found.append(f"metadata.type is not {', '.join(TYPES[:-1])} or {TYPES[-1]}")
+    return found

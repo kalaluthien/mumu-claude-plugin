@@ -40,12 +40,12 @@ Keep what this session learned where the next agent will meet it. A lesson hande
 5. **Operation**: read every memory folder afresh, `<home>` with its folders and `<config>/projects/*/memory/`. Take the first operation that fits:
    - **Confirm**: an entry says it already: `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/count-confirmations.py <file>`.
    - **Extend**: an entry on the same subject or mechanism: add to it.
-   - **Add**: a new memory file with `confirmed: 1` and `last-confirmed: <today>` in its frontmatter, justified in one line: the nearest entry and why it could not be extended, or that none exists.
+   - **Add**: a new memory file whose frontmatter has `name`, `description`, `metadata.type`, `confirmed: 1` and `last-confirmed: <today>`, justified in one line: the nearest entry and why it could not be extended, or that none exists.
 
    An extend or add to another repository's folder or pool is a patch, as step 4 says; skip a confirm there.
 
    An extend or add cites evidence: a candidate's time, a url or a `path:line`.
-6. **Edit**: edit only the lines that change, `MEMORY.md` over a fresh read, since other sessions write it. Delete or correct any entry this session showed wrong.
+6. **Edit**: edit only the lines that change, `MEMORY.md` over a fresh read, since other sessions write it. Delete or correct any entry this session showed wrong. Then run `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-drift.py <config> <folder>` on each folder you wrote and fix each `bad header` line for your file before the report, since only a dream would find a headerless file otherwise.
 7. **Repeat**: a repeat an entry should have prevented: confirm it, and file a task in its project's issue tracker to make it a check or a skill step, naming which, the lesson and the repeat's evidence. With no tracker, tell the owner in one line. The filing asks first: show the owner the task's title and file it only on their yes.
 
 8. **Report**: tell the owner each lesson filed: its operation, text and file, and an add's one line, and for a patch the line `! git -C <root> apply <patch file>` that applies it; with none, say nothing.
