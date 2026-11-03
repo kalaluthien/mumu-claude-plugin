@@ -162,12 +162,15 @@ def gaps(found):
     return lines
 
 
-def shown(node, nodes):
-    """What the pane draws under a task: its open questions' first lines, its latest owner decisions no decision among NODES
-    supersedes, newest last, and how many more there are."""
+def superseded_in(nodes):
+    """The urls of the decisions among NODES that a decision passed by its door supersedes, read once for a whole draw."""
+    return replaced([decision for node in nodes for decision in typed(node["number"], node)])
+
+
+def shown(node, superseded=frozenset()):
+    """What the pane draws under a task: its open questions' first lines, its latest owner decisions whose url is not in SUPERSEDED,
+    newest last, and how many more there are."""
     issue = as_issue(node)
-    every = [decision for other in nodes for decision in typed(other["number"], other)]
-    superseded = replaced(every)
     owned = [decision["decision"] for decision in typed(node["number"], node) if decision["role"] == "owner" and decision["url"] not in superseded]
     asked = [first_line(question["ask"]) for question in issue_state.open_questions(issue)]
     return {"questions": [text for k, text in enumerate(asked) if text not in asked[:k]],  # an ask posted again is one question

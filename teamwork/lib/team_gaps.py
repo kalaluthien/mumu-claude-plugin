@@ -99,7 +99,9 @@ def manager_actions(me, listed, data=None, fed_urls=None):
         if unrouted(issue) and unrouted(board.fresh(issue["number"]) or issue):
             lines.append(f"route #{issue['number']} {issue_state.title(issue)}: no live worker holds it; route it, or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
         if asking(issue):
-            lines.append(f"answer #{issue['number']}: its worker asks; post your {ANSWER}: there; the worker waits on it")
+            ask = issue_state.open_questions(issue)[-1]["ask"]
+            lines.append(f"answer #{issue['number']}: its worker asks at {ask['url']}; answer by `decide` there with `{decisions.FIELD['answers']}: {ask['url']}`; "
+                         f"the worker waits on it")
     lines += [f"links {gap}" for gap in data.get("links", [])]
     lines += decisions.gaps(found)
     for issue in data["outside"]:

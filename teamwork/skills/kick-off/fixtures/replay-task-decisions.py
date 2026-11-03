@@ -7,9 +7,11 @@ decision comments untrusted, as the GitHub adapter marks an outsider's, before t
 - authority-refuses, authority-unquoted, authority-comment, authority-owner, authority-manager: who may supersede an owner decision
 - binding-ancestors, binding-stopped-root, binding-answered, binding-event-keeps-question, binding-one-way-waits,
   binding-one-way-supersedes: a task's binding set and open questions
-- heartbeat-open-question, heartbeat-twice-superseded, heartbeat-one-way, heartbeat-one-way-superseded, heartbeat-unblocked-decided,
+- heartbeat-open-question, heartbeat-twice-superseded, heartbeat-one-way, heartbeat-one-way-superseded, heartbeat-answer-line,
+  heartbeat-unblocked-decided,
   heartbeat-legacy-quiet: the manager's heartbeat lines
-- pane-question, pane-latest-three, pane-cut, pane-untrusted: list-issue-board.py's `?` and `◆` lines
+- pane-question, pane-latest-three, pane-cut, pane-untrusted: list-issue-board.py's `?` and `◆` lines; pane-linear, on github-nodes
+  only: one draw parses each task's comments a bounded number of times, however many tasks there are
 
 usage: replay-task-decisions.py --board <files|git|github-nodes>"""
 import json
@@ -180,7 +182,7 @@ def heartbeat(numbers, since=None):
         lines = team_gaps.manager_actions({"name": "probe-manager", "workspace_id": ""}, [], data)
     finally:
         issue_state.TYPED_SINCE = kept
-    return [line for line in lines if line.startswith(("question ", "superseded twice ", "one-way ", "untyped "))]
+    return [line for line in lines if line.startswith(("question ", "answer ", "superseded twice ", "one-way ", "untyped "))]
 
 
 def heartbeat_cases():
@@ -202,6 +204,10 @@ def heartbeat_cases():
     redone = file("Probe a door its worker replaced")
     dropped = decide(redone, "drop the cache", by="probe-worker", door="one-way")
     decide(redone, "keep the cache", by="probe-worker", supersedes=dropped)
+    asker = file("Probe a worker's question")
+    asked_url = ask(asker, "which cache")
+    answer_line = next((line for line in heartbeat({asker}) if line.startswith(f"answer #{asker}:")), "")
+    step("heartbeat-answer-line", "`decide`" in answer_line and f"answers: {asked_url}" in answer_line, heartbeat({asker}))
     step("heartbeat-one-way-superseded", not any(line.startswith(f"one-way #{redone}:") for line in heartbeat({redone})), heartbeat({redone}))
     plain = file("Probe a plain decision")
     said = post(plain, "DECIDED: probe a decision with no block\n", "decide")
@@ -274,6 +280,25 @@ def nodes_pane():
     listed = subprocess.run([sys.executable, str(LIST), "--nodes", str(path)], capture_output=True, text=True).stdout.splitlines()
     narrow = subprocess.run([sys.executable, str(LIST), "--nodes", str(path), "--width", "24"], capture_output=True, text=True).stdout.splitlines()
     pane_cases(listed, narrow, listed, 1, 2, 3, 4)
+    import issue_board
+    import issue_state
+    original, parses = issue_state.records, [0]
+
+    def counted(issue):
+        parses[0] += 1
+        return original(issue)
+
+    def draw(count):
+        parses[0] = 0
+        issue_board.board(board.tree(None, [node(n, [comment(n, k % 10, f"DECIDED: rule {k}") for k in range(20)]) for n in range(1, count + 1)]))
+        return parses[0]
+
+    issue_state.records = counted
+    try:
+        small, large = draw(40), draw(80)
+    finally:
+        issue_state.records = original
+    step("pane-linear", large <= 2.5 * small, f"{small} parses for 40 tasks, {large} for 80")
 
 
 def main(args):

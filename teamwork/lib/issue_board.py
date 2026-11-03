@@ -35,7 +35,7 @@ def blockers_of(node):
             for blocker in (node.get("blockedBy") or {}).get("nodes", [])]
 
 
-def entry(node, nodes=()):
+def entry(node, superseded=frozenset()):
     """One task as the board shows it: its status, its open questions and owner decisions, its goal and criteria, its parts' progress."""
     every = blockers_of(node)
     blockers = [blocker["number"] for blocker in every if not blocker["closed"]]
@@ -49,7 +49,7 @@ def entry(node, nodes=()):
             "progress": f"{summary['completed']}/{summary['total']} done" if summary.get("total") else "",
             "goal": "" if state["goal"] else summary_of(node["body"]), "detail": state["goal"], "done": [item for item in state["done"] if item["kind"] != "task"],
             "next": next_step_of(node["comments"]["nodes"]) if summary.get("total") and summary.get("total") == summary.get("completed") else "",
-            **decisions.shown(node, nodes), "tasks": [], "blockers": every, "closed": closed[::-1][:SHOWN_CLOSED], "earlier": summary.get("completed", 0) > min(len(closed), SHOWN_CLOSED)}
+            **decisions.shown(node, superseded), "tasks": [], "blockers": every, "closed": closed[::-1][:SHOWN_CLOSED], "earlier": summary.get("completed", 0) > min(len(closed), SHOWN_CLOSED)}
 
 
 def related(nodes, roots):
@@ -86,7 +86,8 @@ def related(nodes, roots):
 
 def board(nodes):
     """The open tasks as a tree: parts under their parent by number, roots grouped with related ones by lowest number."""
-    items = {node["number"]: entry(node, nodes) for node in nodes}
+    superseded = decisions.superseded_in(nodes)
+    items = {node["number"]: entry(node, superseded) for node in nodes}
     top = []
     for node in nodes:
         parent = (node["parent"] or {}).get("number")
