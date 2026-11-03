@@ -67,7 +67,7 @@ Teamwork splits work between a manager, workers, sentinels and judges; [the auth
 Be this project's teamwork manager: fix the login timeout
 ```
 
-That session becomes the manager. It files the backlog, starts a worker in a new tab, and from then on you mostly answer questions.
+That session becomes the manager. It files the root task, starts a worker in a new tab, and from then on you mostly answer questions.
 
 - A hook ([`route-event.py`](teamwork/hooks/route-event.py)) tells each session at start what waits on it, and keeps a worker from going idle while an issue it holds is open.
 - A monitor ([`print-team-gaps.py`](teamwork/monitors/print-team-gaps.py)) tells the manager where GitHub and the team disagree, and wakes a worker when its wait ends.
