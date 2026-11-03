@@ -7,7 +7,8 @@ pane, from GitHub-shaped nodes written here by hand.
 - refuse-cycle, refuse-part-waits-on-parent, refuse-second-parent-open, refuse-second-parent-closed, refuse-unknown, refuse-too-many: an `edit`
   that exits 1 naming the issues, the body and comments unchanged; refuse-on-file: a `file` naming an unknown issue exits 1, no issue made
 - derive-waits, derive-released, derive-not-planned-holds, derive-parent-closes, derive-parent-stays, derive-stopped-part-holds-parent,
-  derive-drop-closes-parent, derive-follow-up-reopens, derive-stop-closes-parts
+  derive-drop-closes-parent, derive-follow-up-reopens, derive-link-edit-keeps-ask (an edit's `DECIDED:` answers a `BLOCKED:` unless it only
+  links), derive-stop-closes-parts
 - mirror-file, mirror-edit: GitHub's native sub-issue and `blocked by` links follow the body
 - refuse-pull-request, derive-missing-target-holds, derive-tree-names-no-issue, on github only: an edit naming a pull request exits 1;
   written behind the write path, a body naming a missing issue lists it as a blocker, and one naming a pull request and a missing issue
@@ -147,6 +148,14 @@ def derive_cases():
     follow_up = file("Probe a follow-up", body())
     edit(parent, body(parts=[first, second, follow_up], check=False))
     step("derive-follow-up-reopens", not closed(parent), "the parent stayed closed")
+
+    import team_gaps
+    target, asker = file("Probe a target of an asking task", body()), file("Probe an asking task", body())
+    use("comment", asker, write("ask.md", "BLOCKED: which way?\n\n1. one\n2. another\n"))
+    edit(asker, body(depends=[target]))
+    linked = team_gaps.asking(board.fresh(asker))
+    edit(asker, body(depends=[target]).replace("prints `ok`", "prints `ok` once"))
+    step("derive-link-edit-keeps-ask", linked and not team_gaps.asking(board.fresh(asker)), f"asking after the link edit {linked}, after the criterion edit {team_gaps.asking(board.fresh(asker))}")
 
     parts = [file("Probe a part to stop", body()), file("Probe another part to stop", body())]
     stop = file("Probe a parent to stop", body(parts=parts, check=False))

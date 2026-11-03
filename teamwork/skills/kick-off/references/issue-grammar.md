@@ -10,6 +10,8 @@ How a teamwork issue is written, so a person reads it as prose and code composes
 | `DECIDED` | binds until a newer one: answers, routes, orders, or adds intent, its source named and its words quoted | answer |
 | `REPORTED` | informs: findings each citing its source, a batch landed with the root's words not all covered, or a close summary; open or closed is the board's state | |
 
+A `DECIDED` whose body-edit diff adds or drops only links, `[task]` parts or the `depends on` line, answers no ask, since a parent's or a dependent's edit posts it on another task.
+
 ## Data
 
 Data a script reads sits only in a fenced block whose info string is `teamwork`, one `key: value` per line; explanation never uses that fence, so prose never parses as data. Only lines inside such a fence count, in a body or any comment, each value as written, so a `holders:` line outside it, or a name in brackets (`[a-worker]`), holds nothing and the heartbeat routes the issue again.

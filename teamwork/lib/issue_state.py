@@ -73,9 +73,25 @@ def records(issue):
     return [(None, data(issue.get("body")) if trusted(issue) else {}, None)] + [(keyword(comment["body"]), data(comment["body"]), comment) for comment in issue.get("comments", []) if trusted(comment)]
 
 
+DIFF = re.compile(r"^(`{3,})diff\n(.*?)^\1$", re.M | re.S)
+# a line a link edit adds or drops: a part, the `depends on` line, the fence holding it, the section holding parts, or a blank
+LINK_LINE = re.compile(rf"^[+-](?:\s*(?:\d+\.|[-*])\s+\[task\]\s+#\d+.*|{re.escape(WORD['depends'])}:.*|```(?:teamwork)?|"
+                       rf"## {re.escape(next(heading for heading, role in SECTIONS.items() if role == 'done'))}|\s*)$")
+
+
+def links_only(text):
+    """Whether TEXT is a body edit's comment whose diff adds or drops only links, which a parent's or a dependent's edit posts on
+    another task, so it answers none of that task's asks."""
+    found = DIFF.search(text or "")
+    changed = [line for line in found.group(2).splitlines() if line[:1] in "+-" and not line.startswith(("+++", "---"))] if found else []
+    return bool(changed) and all(LINK_LINE.match(line) for line in changed)
+
+
 def exchange(issue):
-    """Its asks and answers, oldest first, each as (role, data, comment); the other keywords take no part in a wait."""
-    return [(KEYWORDS[word], fields, comment) for word, fields, comment in records(issue) if KEYWORDS.get(word) in ("ask", "answer")]
+    """Its asks and answers, oldest first, each as (role, data, comment); the other keywords take no part in a wait, nor an
+    edit that only links."""
+    return [(KEYWORDS[word], fields, comment) for word, fields, comment in records(issue)
+            if KEYWORDS.get(word) == "ask" or KEYWORDS.get(word) == "answer" and not links_only(comment["body"])]
 
 
 def holder_values(issue):
