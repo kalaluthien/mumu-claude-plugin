@@ -4,7 +4,11 @@ Tidy what earlier sessions kept: find the drift in each target below, fix it in 
 
 ## Domain
 
-What a dream reads, found afresh in the project at hand: list what exists with `git ls-files` and a glob, never assume a layout.
+What a dream reads, found afresh in every project: list what exists with `git ls-files` and a glob, never assume a layout.
+
+- **Every root**: a dream reads each root `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-projects.py <config>` prints, its instruction files, documents and skills as the table below says, not only the project at hand.
+- **Write in place**: a dream writes `<home>`, each `<home>/<repo>/` and each `<config>/projects/*/memory/` directly, after the backup of step 2, since they are all the owner's memory and a patch would only wait on them.
+
 
 | target | where it lives | drift to look for |
 | --- | --- | --- |
@@ -22,7 +26,7 @@ What a dream reads, found afresh in the project at hand: list what exists with `
 
 1. **Bound**: judge from this session's own instructions whether it may change memory and shared files. Bound to one task or scope, it may not: stop here, changing nothing, with one line saying why.
 2. **Back up**: copy each memory folder not under version control to `<data>/backup/<today>/` before changing it, since a merge or a delete there cannot be undone.
-3. **Find**: run `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-drift.py <config>`, then read every target, routing each entry through [retro.md](retro.md)'s step 4 table.
+3. **Find**: run `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-drift.py <config>`, then read every target of every root, routing each entry through [retro.md](retro.md)'s step 4 table.
 4. **Fix in order**, so each conflict is judged once:
    1. **Duplicates**: one lesson in several places is kept in one; two entries on one subject or mechanism become one, keeping the shared procedure and dropping one-off ids, dates and paths.
    2. **Contradictions**: of two entries that conflict, keep the one with newer evidence; with none either way, keep the more specific one (the repository's own rule over a global one) and say so in the report.
@@ -30,7 +34,7 @@ What a dream reads, found afresh in the project at hand: list what exists with `
    4. **Stale**: check each path, command, flag or package an entry names with a read-only probe (list, search, `--help`); fix it when the new target is plain, else delete the entry.
    5. **Placement**: a lesson a file should hold moves there and its entry is deleted; a lesson in the wrong memory folder moves by `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/move-memory.py <file> <folder>`; an instruction line that restates what the repository shows is cut, its non-standard rules kept; a document for people keeps its overview.
    6. **Size**: an index past its load limit is cut to one line per entry; a skill grown past a few focused parts is split, not extended.
-5. **Apply on your own**: apply each fix to this project's memory the steps above give at once, large ones too, since the backup makes it undoable. A fix to `<config>/CLAUDE.md`, another project's memory, a skill, a hook or a script goes as a patch, as [retro.md](retro.md) step 4 says. A patch to a skill, hook or script names the check that must still pass once applied.
+5. **Apply on your own**: apply each memory fix the steps above give at once, in every memory folder, large ones too, since the backup makes it undoable. Any other fix, to `<config>/CLAUDE.md`, an instruction file, a document, a skill, a hook or a script, goes by `SKILL.md`'s **Hand over** and **Foreign repositories**; a fix to a skill, hook or script names the check that must still pass once made.
 6. **Replay**: keep the memory content that scores best on every project's corrections:
    1. Run `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-replay-cases.py <data>/dejavu`; with no case, skip this step with one line why.
    2. Delete `<data>/dejavu/candidates/`, `<data>/dejavu/picks/` and `<data>/dejavu/marks/`, then copy `<home>` to `<data>/dejavu/candidates/current/`.
@@ -38,6 +42,6 @@ What a dream reads, found afresh in the project at hand: list what exists with `
    4. Mark the candidate just picked, `<name>`: create `<data>/dejavu/marks/`, run `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-recall-sets.py <data>/dejavu`, then for each `batch` line, start one `Agent` with `model: haiku`, all in one message, prompted: `Read ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/references/dream/mark-brief.md, then mark into <data>/dejavu/marks/<name>-<k>.jsonl these cases: <the batch's case, instructions and set lines>`.
    5. Revise: start one `Agent`, prompted: `Read ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/references/dream/revise-brief.md, then write candidate r<n> from <last> in <data>/dejavu with the scripts in ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts`, `<last>` the candidate marked last, since this session has read the held-out owner words in 4 and a fresh one sees only the tuning cases. Pick and mark `r<n>` as in 3 and 4. Write at most two revisions, since each costs a round of judges.
    6. Run `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/score-memory.py <data>/dejavu`; while it prints a `missing:` line, a judge skipped a case: pick again in 3 the cases with no pick, mark again in 4, and run it again. Then act on its last line: apply each change `diff -ru` prints from `current` to the selected revision to `<home>` file by file, over a fresh read, a file renamed in `<home>` meanwhile taking the change under its new name, since other sessions write it meanwhile and copying the revision's files would bring an old name back, as step 5 lets you; keep `current` unchanged.
-7. **Skill lessons**: for each memory file marked `skill:`, ask the owner, one at a time, with its lesson and the skill it names: write it, keep it in memory, or drop it. On write, write it into that skill as a patch by [harness-authoring.md](harness-authoring.md), or, for a skill of another repository's plugin, as a `backlog` issue there, then delete the memory file and its index line; on drop, delete them; on keep, change nothing.
+7. **Skill lessons**: for each memory file marked `skill:`, ask the owner, one at a time, with its lesson and the skill it names: write it, keep it in memory, or drop it. On write, write it into that skill as a patch by [harness-authoring.md](harness-authoring.md), or, for a skill of another repository's plugin, by `SKILL.md`'s **Hand over** and **Foreign repositories**, then delete the memory file and its index line; on drop, delete them; on keep, change nothing.
 8. **Leave the rest**: a fix the steps do not give, one that widens a permission or a guard, or a lesson `list-drift.py` lists as never found again, goes as one issue. File it in the repository that owns the file, labelled `backlog`. Its body names each file, reason and cost, `<n> files, <m> lines`, never a memory file's body. The filing asks first, and files only on the owner's yes. A pool with no repository: list the fix and its cost in the final message.
-9. **Report** the replay score table and the version kept, each fix applied, each skill lesson's answer, each patch with its `! git -C <root> apply <patch file>` line, each issue's url and each fix left; with none found, say so.
+9. **Report** the replay score table and the version kept, each fix applied, each fix handed over and to whom or landed and where, each skill lesson's answer, each patch with its `! git -C <root> apply <patch file>` line, each issue's url and each fix left; with none found, say so.
