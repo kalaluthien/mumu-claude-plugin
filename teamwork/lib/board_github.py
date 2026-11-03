@@ -185,11 +185,23 @@ def changed_since(stamp):
     return newest is None or bool(newest)
 
 
+def missing(number):
+    """Whether GitHub answers that NUMBER names no issue, a 404 or 410, rather than failing to read it."""
+    need("gh")
+    head = subprocess.run(["gh", "api", "-i", f"repos/{{owner}}/{{repo}}/issues/{number}"], capture_output=True, text=True).stdout
+    return head.startswith("HTTP/") and head.split(" ", 2)[1] in ("404", "410")
+
+
 def blockers(number):
-    """The numbers of the tasks NUMBER's `depends on` names that are not closed as completed; None when a read failed."""
+    """The numbers of the tasks NUMBER's `depends on` names that are not closed as completed, a missing one among them, as the other
+    boards count it; None when a read failed."""
     found = fresh(number, comments=False)
-    targets = found and [fresh(target, comments=False) for target in task_links.depends(found["body"])]
-    return None if found is None or None in targets else [target["number"] for target in targets if not task_links.completed(target)]
+    if found is None:
+        return None
+    targets = {target: fresh(target, comments=False) for target in task_links.depends(found["body"])}
+    if any(record is None and not missing(target) for target, record in targets.items()):
+        return None
+    return [target for target, record in targets.items() if not (record and task_links.completed(record))]
 
 
 def parent_of(number):

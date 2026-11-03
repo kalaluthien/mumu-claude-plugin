@@ -9,8 +9,9 @@ pane, from GitHub-shaped nodes written here by hand.
 - derive-waits, derive-released, derive-not-planned-holds, derive-parent-closes, derive-parent-stays, derive-stopped-part-holds-parent,
   derive-drop-closes-parent, derive-follow-up-reopens, derive-stop-closes-parts
 - mirror-file, mirror-edit: GitHub's native sub-issue and `blocked by` links follow the body
-- refuse-pull-request, derive-tree-names-no-issue, on github only: an edit naming a pull request exits 1; a body naming a pull request and
-  a missing issue, written behind the write path, leaves the tree read whole
+- refuse-pull-request, derive-missing-target-holds, derive-tree-names-no-issue, on github only: an edit naming a pull request exits 1;
+  written behind the write path, a body naming a missing issue lists it as a blocker, and one naming a pull request and a missing issue
+  leaves the tree read whole
 - heartbeat-cycle, heartbeat-second-parent, heartbeat-backlog-label, and on github-nodes heartbeat-native-only and heartbeat-body-only
 - pane-nesting, pane-wait-line, pane-done-count, pane-named-no-row: list-issue-board.py's lines, with no native link written, and no
   row for an issue outside the scope that only a body names
@@ -172,7 +173,10 @@ def not_issue_cases():
     pulls = board_github.get("repos/pulls?state=all&per_page=1", paginate=False) or [{"number": 0}]
     pull, task = pulls[0]["number"], file("Probe a link to a pull request", body())
     refused("refuse-pull-request", task, body(depends=[pull]), pull)
-    # written behind the write path, as a body written before the refusal existed may name them
+    # written behind the write path, as a body written before the refusal existed, or a target deleted since, leaves them
+    board_github.write("-X", "PATCH", f"repos/{{owner}}/{{repo}}/issues/{task}", "-F", "body=@-", text=body(depends=[10 ** 7]))
+    waits = board.blockers(task)
+    step("derive-missing-target-holds", waits == [10 ** 7], waits)
     board_github.write("-X", "PATCH", f"repos/{{owner}}/{{repo}}/issues/{task}", "-F", "body=@-", text=body(depends=[pull, 10 ** 7]))
     nodes = board.tree(None)
     step("derive-tree-names-no-issue", nodes is not None and task in [node["number"] for node in nodes], "the tree read failed" if nodes is None else f"#{task} missing")
