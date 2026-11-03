@@ -2,12 +2,15 @@
 import hashlib
 import json
 import pathlib
+import re
 
 import memory_home
 
 HELD_OUT_SHARE = 5
 ASKED_CHARS = 400
 THEN_CHARS = 800
+# what Claude Code wraps around a person's words, stripped as dejavu strips it
+TAGS = re.compile(r"<(system-reminder|task-notification)>.*?</\1>", re.S)
 # a mark on the instruction files, which load alike for every candidate
 INSTRUCTIONS = "instructions"
 
@@ -24,14 +27,19 @@ def number(value):
 
 
 def said(entry):
-    """What a transcript entry says: a person's prompt as ("asked", text), the agent's words and tool calls as ("then", text)."""
+    """What a transcript entry says: a person's prompt as ("asked", text), the agent's words and tool calls as ("then", text).
+
+    A prompt is a person's only as dejavu reads one, of origin `human` and no interrupt notice, so a monitor event or a
+    command's output does not hide the prompt before it."""
     message = entry.get("message") or {}
     body = message.get("content")
-    if entry.get("type") == "user" and not entry.get("isMeta"):
-        if isinstance(body, str):
-            return "asked", body
-        texts = [block.get("text", "") for block in body or [] if isinstance(block, dict) and block.get("type") == "text"]
-        return ("asked", " ".join(texts)) if texts else (None, "")
+    if entry.get("type") == "user":
+        if (entry.get("origin") or {}).get("kind") != "human":
+            return None, ""
+        texts = [body] if isinstance(body, str) else [
+            block.get("text", "") for block in body or [] if isinstance(block, dict) and block.get("type") == "text"]
+        text = TAGS.sub("", " ".join(texts)).strip()
+        return ("asked", text) if text and not text.startswith("[Request interrupted") else (None, "")
     if entry.get("type") == "assistant" and isinstance(body, list):
         parts = []
         for block in body:

@@ -1,4 +1,5 @@
-{"type": "user", "cwd": "/nonexistent-dir", "message": {"role": "user", "content": "please tidy the docs"}}
+{"type": "user", "cwd": "/nonexistent-dir", "origin": {"kind": "human"}, "message": {"role": "user", "content": "please tidy the docs"}}
 {not json
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "I will delete the docs folder"}, {"type": "tool_use", "name": "Bash", "input": {"command": "rm -r docs"}}]}}
-{"type": "user", "message": {"role": "user", "content": "owner correction a01"}}
+{"type": "user", "origin": {"kind": "task-notification"}, "message": {"role": "user", "content": "<task-notification>monitor event</task-notification>"}}
+{"type": "user", "origin": {"kind": "human"}, "message": {"role": "user", "content": "owner correction a01"}}

@@ -1,4 +1,4 @@
-{"id": "a01", "repo": "-Users-x-repo-a", "time": "1000", "quote": "owner correction a01", "what_went_wrong": "the agent made mistake a01", "line": "3", "session": "session-transcript", "path": "session-transcript.jsonl"}
+{"id": "a01", "repo": "-Users-x-repo-a", "time": "1000", "quote": "owner correction a01", "what_went_wrong": "the agent made mistake a01", "line": "4", "session": "session-transcript", "path": "session-transcript.jsonl"}
 {"id": "a02", "repo": "-Users-x-repo-a", "time": "1001", "quote": "owner correction a02", "what_went_wrong": "the agent made mistake a02", "line": "9", "session": "session-transcript", "path": "session-transcript.jsonl"}
 {"id": "a03", "repo": "-Users-x-repo-a", "time": "1002", "quote": "owner correction a03", "what_went_wrong": "the agent made mistake a03", "line": "3", "session": "session-transcript", "path": "/nonexistent/session-transcript.jsonl"}
 {"id": "a04", "repo": "-Users-x-repo-a", "time": "1003", "quote": "owner correction a04", "what_went_wrong": "the agent made mistake a04", "line": "4", "session": "session-transcript", "path": "/nonexistent/session-transcript.jsonl"}
