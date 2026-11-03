@@ -11,7 +11,7 @@ Find what keeps going wrong across recent sessions, in every project, and hand e
 ## Steps
 
 1. Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-sessions.py map <d>`.
-2. For each `batch` line, start one `Agent` with `model: haiku`, all in one message so they run in parallel, prompted: `Read ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/references/dejavu-facet.md, then facet these digests into <d>/facets: <the batch's paths>`.
+2. For each `batch` line, start one `Agent` with `model: haiku`, all in one message so they run in parallel, prompted: `Read ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/references/dejavu/facet-brief.md, then facet these digests into <d>/facets: <the batch's paths>`.
 3. Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-repeats.py <d>`, which writes `<d>/friction.jsonl`.
 4. Start one `Agent` with `model: haiku`, prompted: `Read <d>/friction.jsonl. Group the items that describe the same concrete mistake by the agent, such as "stopped to ask when the rule said act", across sessions and projects. Write <d>/mistakes.json as a JSON list of {"name": "<the mistake in one plain line, under 100 chars, distinct from every other name>", "ids": ["<item id>", ...]}. Leave out items that fit no group. Count nothing.`
 5. Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-repeats.py <d> --mistakes <d>/mistakes.json`.
