@@ -14,6 +14,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import background_work  # noqa: E402
 import board  # noqa: E402
 import install_line  # noqa: E402
+import issue_state  # noqa: E402
 import session  # noqa: E402
 import team_gaps  # noqa: E402
 import team_names  # noqa: E402
@@ -25,8 +26,6 @@ EDIT_BODY = PLAYBOOKS.parent / "scripts" / "edit-issue-body.py"
 # the rules are found in the playbooks at each call, never copied here, so a playbook edit cannot leave a stale reminder
 REMINDED = {"file": ("`file`", "40 characters"), "change": ("40 characters",), "comment": ("**Comment**", "`comment`"), "change comment": ("**Comment**",),
             "resolve": ("`resolve`",), "edit": ("edit-issue-body", "40 characters"), "change edit": ("40 characters",)}
-FENCE = re.compile(r"^```teamwork\n.*?^```", re.S | re.M)
-STATE_LINE = re.compile(r"^\s*(holders|deferred):", re.M)
 WORKTREES = "/.claude/worktrees/"
 CHANGE_DIRECTORY = re.compile(r"(?:^|[;&|({]|\bthen|\bdo)[ \t]*(?:cd|pushd)[ \t]+(?:--[ \t]+)?(\"[^\"]*\"|'[^']*'|[^\s;&|)}]+)", re.M)
 
@@ -46,7 +45,7 @@ def stray_state(call, cwd):
     """A holders or deferred line in the posted file that no teamwork fence holds, which code never reads."""
     path = call["body file"] and pathlib.Path(cwd or ".") / call["body file"]
     try:
-        return bool(path and STATE_LINE.search(FENCE.sub("", path.read_text())))
+        return bool(path and issue_state.stray_state(path.read_text()))
     except OSError:
         return False
 
@@ -54,7 +53,7 @@ def stray_state(call, cwd):
 def stray_posted(output):
     """The url the write printed when a holders or deferred line in what it posted sits outside a teamwork fence, read back from the board."""
     url, body = board.posted(output) or (None, "")
-    return STATE_LINE.search(FENCE.sub("", body)) and url
+    return issue_state.stray_state(body) and url
 
 
 def unseen(lines, session_id):

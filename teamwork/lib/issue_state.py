@@ -38,6 +38,11 @@ def data(text):
     return {k.strip(): value.strip() for k, separator, value in pairs if separator and k.strip() in KEYS}
 
 
+def stray_state(text):
+    """Whether TEXT holds a holders or deferred line outside every reserved block, which `data` never reads."""
+    return bool(re.search(rf"^\s*({WORD['holders']}|{WORD['deferral']}):", DATA.sub("", text or ""), re.M))
+
+
 def sections(text):
     """{role: text} of the sections it carries, by the heading the grammar names."""
     found = re.findall(r"^## ([^\n]+)\n(.*?)(?=^## |\Z)", text or "", re.M | re.S)

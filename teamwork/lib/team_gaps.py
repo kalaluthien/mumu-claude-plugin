@@ -91,8 +91,10 @@ def manager_actions(me, listed, data=None, fed_urls=None):
     present = set(team) | {tab.get("label") for tab in tabs(me.get("workspace_id", ""))}
     # a cloud name holds on every open issue, so a task its worker filed itself counts as held though only the backlog names it cloud
     present |= {name for issue in data["everything"] for name in issue_state.cloud(issue)}
+    unrouted = lambda issue: not unanswered(issue) and not issue_state.deferral(issue) and not any(holds(issue, name) for name in present if name)
     for issue in found:
-        if not unanswered(issue) and not issue_state.deferral(issue) and not any(holds(issue, name) for name in present if name):
+        # the kept read may predate the manager's own `decide`, so a candidate is read again before it is called unrouted
+        if unrouted(issue) and unrouted(board.fresh(issue["number"]) or issue):
             lines.append(f"route #{issue['number']} {issue_state.title(issue)}: no live worker holds it; route it, or leave it for later by a {ANSWER}: with an empty holders and a deferred reason")
         if asking(issue):
             lines.append(f"answer #{issue['number']}: its worker asks; post your {ANSWER}: there; the worker waits on it")
