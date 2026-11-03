@@ -21,11 +21,6 @@ def members(me, listed):
     return [agent["name"] for agent in listed if agent.get("workspace_id") == me.get("workspace_id") and agent is not me and agent.get("name") and role(agent["name"]) != "manager"]
 
 
-def workers(me, listed):
-    """The workers in your workspace, which a manager's exit waits on; a sentinel judges alone what to do once its manager ends."""
-    return [name for name in members(me, listed) if role(name) == "worker"]
-
-
 def crowding(me, listed):
     """The managers of another project in your workspace."""
     return [agent["name"] for agent in listed if agent.get("workspace_id") == me.get("workspace_id") and role(agent.get("name")) == "manager"

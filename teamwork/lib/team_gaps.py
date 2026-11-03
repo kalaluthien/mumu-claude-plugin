@@ -54,9 +54,9 @@ def feed_read(name, since):
     return [(issue, comment) for issue, comment in found if issue["state"] == "OPEN" or last[issue["number"]] == comment["url"]]
 
 
-def manager_read(me, history=False, since=None):
+def manager_read(me, since=None):
     """What a manager's gaps need from the board, read once and kept by the caller until something changed; None when a read failed.
-    HISTORY adds whether a worker ever held a closed issue, for a manager that has not yet seen one; SINCE adds the reports posted since then."""
+    SINCE adds the reports posted since then."""
     found = issues(project(me["name"]))
     # a worker may hold an open issue the scope label misses, which the idle line must still count
     everything = issues() if found is not None and board.scoped(project(me["name"])) else found
@@ -70,7 +70,7 @@ def manager_read(me, history=False, since=None):
     if found is None or everything is None or pulls is None or outside is None or None in outside or feed is None:
         return None
     return {"found": found, "everything": everything, "prs": pulls, "outside": [issue for issue in outside if unanswered(issue)],
-            "had_worker": had_worker(me) if history else False, "feed": feed}
+            "feed": feed}
 
 
 def manager_actions(me, listed, data=None, fed_urls=None):
@@ -124,20 +124,6 @@ def prompt_text(pane):
     """The last lines of a blocked pane's screen, which hold the prompt's question and numbered choices, on one line."""
     lines = [line.strip() for line in screen(pane).splitlines() if line.strip()]
     return " | ".join(lines[-8:])
-
-
-def had_worker(me):
-    """Whether a manager of this project ever routed a worker, read from the holders of its closed issues, so a restarted monitor knows what its memory lost."""
-    found = issues(project(me["name"]), "closed")
-    return any(role(name) == "worker" for issue in found or [] for names in issue_state.holder_values(issue) for name in names)
-
-
-def exit_action(me, listed):
-    """The exit line, or None for the keeper, the live manager first by name, who stays so one manager is always live:
-    two managers that each answer the other's proposal would otherwise both close."""
-    managers = sorted({agent["name"] for agent in listed if role(agent.get("name")) == "manager"} | {me["name"]})
-    others = [name for name in managers if name != me["name"]]
-    return f"exit: no worker is live and nothing waits; propose your exit to {', '.join(others)} as step 5 says" if managers[0] != me["name"] else None
 
 
 def worker_goal(me):
