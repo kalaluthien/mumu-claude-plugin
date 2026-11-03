@@ -46,7 +46,7 @@ def said(entry):
 
 
 def read_transcript(path):
-    """The transcript's raw lines parsed, a bad line as {}, and the first `cwd` it records."""
+    """The transcript's entries, numbered as dejavu numbers a case's `line`, dropping a line that is no JSON, and its first `cwd`."""
     entries, cwd = [], None
     try:
         with open(path, encoding="utf-8", errors="ignore") as handle:
@@ -54,7 +54,7 @@ def read_transcript(path):
                 try:
                     entry = json.loads(line)
                 except ValueError:
-                    entry = {}
+                    continue
                 entries.append(entry if isinstance(entry, dict) else {})
                 cwd = cwd or entries[-1].get("cwd")
     except OSError:
@@ -68,7 +68,7 @@ def situation(entries, line):
     end = int(number(line))
     # a line past the transcript's end would show the owner's own words, so it shows nothing
     for entry in entries[:max(end - 1, 0)] if end <= len(entries) else []:
-        kind, text = said(entry)
+        kind, text = said(entry) if not entry.get("isSidechain") else (None, "")
         if kind == "asked" and text.strip():
             asked, then = text, []
         elif kind == "then" and text.strip():
