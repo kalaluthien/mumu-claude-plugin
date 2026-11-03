@@ -121,15 +121,16 @@ def herdr_receiver(status_now, expect_code, expect):
 
 
 def tell_claude():
-    """A Claude receiver, idle or working, told by tell-session.py: refused within 2 s, naming SendMessage, and never prompted."""
+    """A Claude receiver, idle or working, told by tell-session.py with a text file or with a second argument that is no file: refused within 2 s, naming SendMessage, and never prompted."""
     state = herdr(agent("protocol-split-worker", 1, "working"), agent("idle-worker", 2, "idle"), agent("busy-worker", 3, "working"))
     outs = []
     for name, before in (("idle-worker", "idle"), ("busy-worker", "working")):
-        started = time.time()
-        code, out = tell(state, name)
-        outs.append(out)
-        if code != 1 or time.time() - started > 2 or "SendMessage" not in out or status(state, name) != before:
-            return False, "\n".join(outs)
+        for call in (lambda: tell(state, name), lambda: run([SCRIPTS / "tell-session.py", name, "not a file"], state, TELL_SESSION_TIMEOUT="5")):
+            started = time.time()
+            code, out = call()
+            outs.append(out)
+            if code != 1 or time.time() - started > 2 or "SendMessage" not in out or status(state, name) != before:
+                return False, "\n".join(outs)
     return True, "\n".join(outs)
 
 
