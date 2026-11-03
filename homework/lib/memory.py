@@ -7,9 +7,6 @@ from datetime import date
 # home is kept in the match, so one name in two folders counts twice
 PATH = re.compile(r"/memory/((?:[\w.-]+/)?(?!MEMORY\.md)[\w.-]+\.md)")
 # the indent is kept, so a field nested under `metadata:` is rewritten in place
-TYPES = ("user", "feedback", "project", "reference")
-# `type` is read only when indented, since Claude Code reads it under `metadata:`
-TYPE = re.compile(r"^[ \t]+type:[ \t]*(.*)$", re.M)
 FIELD = re.compile(r"^([ \t]*)(confirmed|last-confirmed):[ \t]*(.*)$", re.M)
 
 
@@ -34,6 +31,17 @@ def fields(path, text):
     return count, last
 
 
+TYPES = ("user", "feedback", "project", "reference")
+# a block of indented lines under a top-level `metadata:`, where Claude Code reads `type`
+METADATA = re.compile(r"^metadata:[ \t]*\n((?:[ \t]+.*\n?)*)", re.M)
+TYPE = re.compile(r"^[ \t]+type:[ \t]*(.*)$", re.M)
+
+
+def value(text):
+    """A YAML scalar of a header line: its trailing ` # comment` and its quotes cut."""
+    return re.split(r"\s#", text, maxsplit=1)[0].strip().strip("\"'")
+
+
 def header_problems(path, text):
     """What is wrong with the header Claude Code reads, one phrase each; empty when the header is whole."""
     front, _ = split(text)
@@ -42,12 +50,13 @@ def header_problems(path, text):
     found = []
     name = re.search(r"^name:[ \t]*(.*)$", front, re.M)
     stem = os.path.basename(path)[:-len(".md")]
-    if not name or name.group(1).strip().strip("\"'") != stem:
+    if not name or value(name.group(1)) != stem:
         found.append(f"name is not {stem}")
     description = re.search(r"^description:[ \t]*(.*)$", front, re.M)
-    if not description or not description.group(1).strip().strip("\"'"):
+    if not description or not value(description.group(1)):
         found.append("no description")
-    kind = TYPE.search(front)
-    if not kind or kind.group(1).strip().strip("\"'") not in TYPES:
+    block = METADATA.search(front)
+    kind = TYPE.search(block.group(1)) if block else None
+    if not kind or value(kind.group(1)) not in TYPES:
         found.append(f"metadata.type is not {', '.join(TYPES[:-1])} or {TYPES[-1]}")
     return found
