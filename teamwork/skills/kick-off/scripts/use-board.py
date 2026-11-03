@@ -4,7 +4,7 @@
 usage: use-board.py <operation> <args>
 
   read <issue>                          print its title, state, labels, parent, body and comments
-  comment <issue> <body-file>           append the file's text as a comment
+  comment <issue> <body-file>           append the file's text as a comment; refused, nothing posted, when it holds a `decision` block, which `decide` posts
   file <title> <body-file> [label...]   open an issue; print its url; its `[task]` and `depends on` lines link it, refused when they make a cycle,
                                         a second parent or name an unknown issue
   edit <issue> <diff-file> <line>       change the body by a diff, with the keyword line [edit-issue-body.py](edit-issue-body.py) posts first
@@ -40,6 +40,9 @@ def main(args):
             for comment in issue["comments"]:
                 print(f"\n--- {comment['url']}\n{comment['body']}")
         elif verb == "comment" and len(operands) == 2:
+            # a decision block binds, so only `decide`, which holds it to the grammar's rules, may post one
+            if issue_state.decision(text(operands[1])) is not None:
+                sys.exit(f"use-board: nothing posted: {operands[1]} holds a decision block; post it by `decide`, which checks it")
             print(board.comment(operands[0], text(operands[1])))
         elif verb == "file" and len(operands) >= 2:
             print(board.fresh(board.file(operands[0], text(operands[1]), operands[2:]), comments=False)["url"])

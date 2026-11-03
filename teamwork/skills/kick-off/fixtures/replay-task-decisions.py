@@ -4,10 +4,11 @@
 nodes written here by hand. The files and git boards trust every comment, so pane-untrusted there marks one of the board's own
 decision comments untrusted, as the GitHub adapter marks an outsider's, before the rows are laid out.
 - record-fields, record-event, record-supersedes, record-unknown-supersedes: `decide` writes a decision block the index reads back
-- authority-refuses, authority-unquoted, authority-owner, authority-manager: who may supersede an owner decision
+- authority-refuses, authority-unquoted, authority-comment, authority-owner, authority-manager: who may supersede an owner decision
 - binding-ancestors, binding-stopped-root, binding-answered, binding-event-keeps-question, binding-one-way-waits: a task's binding set
   and open questions
-- heartbeat-open-question, heartbeat-twice-superseded, heartbeat-one-way, heartbeat-unblocked-decided, heartbeat-legacy-quiet: the
+- heartbeat-open-question, heartbeat-twice-superseded, heartbeat-one-way, heartbeat-one-way-superseded, heartbeat-unblocked-decided,
+  heartbeat-legacy-quiet: the
   manager's heartbeat lines
 - pane-question, pane-latest-three, pane-cut, pane-untrusted: list-issue-board.py's `?` and `◆` lines
 
@@ -59,12 +60,12 @@ def file(title, parts=()):
     return int(done.stdout.strip().rsplit("/", 1)[1])
 
 
-def decide(number, decision, by="probe-manager", door="two-way", supersedes="", answers="", depends="", quote=None):
-    """Posts a decision by `use-board.py decide`; its url, or the finished call when it exited non-zero."""
+def decide(number, decision, by="probe-manager", door="two-way", supersedes="", answers="", depends="", quote=None, verb="decide"):
+    """Posts a decision by `use-board.py <VERB>`; its url, or the finished call when it exited non-zero."""
     fields = {"decision": decision, "decided by": by, "door": door, "supersedes": supersedes, "answers": answers, "depends on": depends}
     said = f"> {quote}\n\n" if quote else ""
     block = "".join(f"{key}: {value}\n" for key, value in fields.items() if value)
-    done = use("decide", number, write(f"DECIDED: {decision}\n\n{said}```decision\n{block}```\n"))
+    done = use(verb, number, write(f"DECIDED: {decision}\n\n{said}```decision\n{block}```\n"))
     return done.stdout.strip() if done.returncode == 0 else done
 
 
@@ -126,6 +127,7 @@ def authority_cases():
     owner = decide(task, "no external service", by="owner", door="one-way", quote="no external service")
     refused("authority-refuses", task, lambda: decide(task, "an external service is fine", supersedes=owner), owner, "owner")
     refused("authority-unquoted", task, lambda: decide(task, "an external service is fine", by="owner", supersedes=owner), "quotes no words")
+    refused("authority-comment", task, lambda: decide(task, "an external service is fine", supersedes=owner, verb="comment"), "decide")
     again = decide(task, "only the sandbox service", by="owner", door="one-way", supersedes=owner, quote="the sandbox is fine")
     step("authority-owner", isinstance(again, str) and bound(task) == [again], index(task))
     managed = file("Probe a manager's task")
@@ -192,6 +194,10 @@ def heartbeat_cases():
     gated = file("Probe an unfollowed door")
     worker = decide(gated, "drop the index", by="probe-worker", door="one-way")
     step("heartbeat-one-way", any(line.startswith(f"one-way #{gated}: probe-worker's {worker}") for line in heartbeat({gated})), heartbeat({gated}))
+    redone = file("Probe a door its worker replaced")
+    dropped = decide(redone, "drop the cache", by="probe-worker", door="one-way")
+    decide(redone, "keep the cache", by="probe-worker", supersedes=dropped)
+    step("heartbeat-one-way-superseded", not any(line.startswith(f"one-way #{redone}:") for line in heartbeat({redone})), heartbeat({redone}))
     plain = file("Probe a plain decision")
     said = post(plain, "DECIDED: probe a decision with no block\n", "decide")
     post(plain, "DECIDED: probe-worker holds this\n\n```teamwork\nholders: probe-worker\n```\n", "decide")

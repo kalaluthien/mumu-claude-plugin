@@ -130,7 +130,7 @@ def first_line(comment):
 
 def gaps(found):
     """The heartbeat's decision lines for the open issues FOUND: open questions to the owner, oldest first; a decision two later
-    ones supersede; a worker's one-way decision no manager or owner decision follows; a `DECIDED:` posted since decisions were typed
+    ones supersede; a worker's one-way decision nothing supersedes and no manager or owner decision follows; a `DECIDED:` posted since decisions were typed
     with no block that is no event."""
     issues = {issue["number"]: as_issue(issue) for issue in found}
     asked = sorted(((question["ask"].get("createdAt") or "", number, question["ask"]) for number, issue in issues.items()
@@ -144,8 +144,9 @@ def gaps(found):
         if len(later) > 1:
             lines.append(f"superseded twice #{later[0]['task']}: {url} is superseded by {' and '.join(decision['url'] for decision in later)}; "
                          f"keep one by a decision that supersedes the other")
+    superseded = {decision["supersedes"] for decision in every if decision["supersedes"]}
     for decision in every:
-        if not binds(decision, every):
+        if decision["url"] not in superseded and not binds(decision, every):
             lines.append(f"one-way #{decision['task']}: {decision['decider']}'s {decision['url']} binds only once you repeat or supersede it by `decide`")
     for number, issue in issues.items():
         for word, _, comment in issue_state.records(issue)[1:]:
