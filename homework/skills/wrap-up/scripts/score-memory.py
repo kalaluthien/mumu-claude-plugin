@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Score each candidate memory on dream's replay cases from its judges' verdicts, and print the one to keep.
+"""Score each candidate memory on dream's replay cases from its picks and their marks, and print the one to keep.
 
 usage: score-memory.py <dejavu>   reads <dejavu>/friction.jsonl, each candidate folder <dejavu>/candidates/<name>/,
-                                  `current` among them, and its verdicts <dejavu>/judgements/<name>/*.jsonl, one file
-                                  per judge
+                                  `current` among them, its picks <dejavu>/picks/<name>/*.jsonl and the marks
+                                  <dejavu>/marks/*.jsonl
 
-A verdict line is {"case": "<id>", "covered": true|false, "misfire": true|false}; the last one for a case counts. The
-tuning score is covered cases minus misfires minus LOAD_COST per index line (`- [` lines of every MEMORY.md in the
-candidate), since each line loads into every session. The highest tuning score is selected, `current` on a tie; a
-selection whose held-out covered minus misfires falls below current's is rejected for current, since it fits only the
-cases it was written from. A case with no verdict counts as not covered, and prints as `missing: <name> <n>`.
+A case is covered for a candidate when the instruction files' mark or its recalled set's mark is covered, so a lesson
+copied from the instruction files gains nothing; it misfires when its set's mark does. The tuning score is covered cases
+minus misfires minus LOAD_COST per index line (`- [` lines of every MEMORY.md in the candidate), since each line loads
+into every session. A candidate whose held-out covered minus misfires falls below current's is rejected, since it fits
+only the cases it was written from; of the rest the highest tuning score is selected, `current` on a tie. A case with
+no pick or no mark counts as not covered, and prints as `missing: <name> <n>`.
 """
-import json
 import pathlib
 import sys
 
@@ -26,32 +26,29 @@ def index_lines(candidate):
                for line in index.read_text(encoding="utf-8").splitlines())
 
 
-def verdicts(folder):
-    found = {}
-    lines = []
-    for path in sorted(folder.glob("*.jsonl")):
-        try:
-            lines += path.read_text(encoding="utf-8").splitlines()
-        except OSError:
-            continue
-    for line in lines:
-        try:
-            item = json.loads(line)
-        except ValueError:
-            continue
-        if isinstance(item, dict) and "case" in item:
-            found[str(item["case"])] = (bool(item.get("covered")), bool(item.get("misfire")))
-    return found
+def verdict(candidate, files, case, marked):
+    """(covered, misfire, missing) of one case for one candidate."""
+    if files is None:
+        return False, False, True
+    instructions = marked.get((case, replay_cases.INSTRUCTIONS))
+    key = replay_cases.recall_set(candidate, files)
+    own = marked.get((case, key)) if key else (False, False)
+    missing = instructions is None or own is None
+    covered = bool(instructions and instructions[0]) or bool(own and own[0])
+    return covered, bool(own and own[1]), missing
 
 
-def score(candidate, judgements, cases):
-    found = verdicts(judgements)
-    row = {"name": candidate.name, "lines": index_lines(candidate),
-           "missing": sum(item["id"] not in found for item in cases)}
+def score(candidate, dejavu, cases, marked):
+    found = replay_cases.picks(dejavu, candidate.name)
+    row = {"name": candidate.name, "lines": index_lines(candidate), "missing": 0}
     for split, held in (("tuning", False), ("held", True)):
-        picked = [found.get(item["id"], (False, False)) for item in cases if item["held_out"] == held]
-        row[split + "_covered"] = sum(covered for covered, _ in picked)
-        row[split + "_misfires"] = sum(misfire for _, misfire in picked)
+        row[split + "_covered"] = row[split + "_misfires"] = 0
+        for item in cases:
+            if item["held_out"] == held:
+                covered, misfire, missing = verdict(candidate, found.get(item["id"]), item["id"], marked)
+                row[split + "_covered"] += covered
+                row[split + "_misfires"] += misfire
+                row["missing"] += missing
     row["tuning"] = round(row["tuning_covered"] - row["tuning_misfires"] - LOAD_COST * row["lines"], 2)
     row["held"] = row["held_covered"] - row["held_misfires"]
     return row
@@ -63,11 +60,12 @@ def main(args):
         return 2
     dejavu = pathlib.Path(args[0])
     cases = replay_cases.load(dejavu)
-    folders = sorted(path for path in (dejavu / "candidates").glob("*") if path.is_dir())
+    folders = replay_cases.candidates(dejavu)
     if not cases or "current" not in {path.name for path in folders}:
         print(f"score-memory: {dejavu} needs friction.jsonl and candidates/current/", file=sys.stderr)
         return 1
-    rows = [score(path, dejavu / "judgements" / path.name, cases) for path in folders]
+    marked = replay_cases.marks(dejavu)
+    rows = [score(path, dejavu, cases, marked) for path in folders]
     rows.sort(key=lambda row: row["name"] != "current")
     print("| candidate | index lines | tuning covered | tuning misfires | tuning score | held-out covered | held-out misfires |")
     print("| --- | --- | --- | --- | --- | --- | --- |")
@@ -78,12 +76,13 @@ def main(args):
         if row["missing"]:
             print(f"missing: {row['name']} {row['missing']}")
     current = rows[0]
-    best = max(rows, key=lambda row: row["tuning"])
-    if best["tuning"] <= current["tuning"]:
-        best = current
-    if best["held"] < current["held"]:
-        print(f"rejected: {best['name']} held-out {best['held']} below current {current['held']}")
-        best = current
+    for row in rows:
+        if row["held"] < current["held"]:
+            print(f"rejected: {row['name']} held-out {row['held']} below current {current['held']}")
+    best = current
+    for row in rows:
+        if row["held"] >= current["held"] and row["tuning"] > best["tuning"]:
+            best = row
     print(f"selected: {best['name']}")
     if best is current:
         print("Keep the memory as it is: no candidate beat it on the tuning cases without losing held-out ones.")
