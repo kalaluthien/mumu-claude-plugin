@@ -1,0 +1,22 @@
+# Memory index
+
+- [Lesson 1](lesson-1.md) — situation 1
+- [Lesson 2](lesson-2.md) — situation 2
+- [Lesson 3](lesson-3.md) — situation 3
+- [Lesson 4](lesson-4.md) — situation 4
+- [Lesson 5](lesson-5.md) — situation 5
+- [Lesson 6](lesson-6.md) — situation 6
+- [Lesson 7](lesson-7.md) — situation 7
+- [Lesson 8](lesson-8.md) — situation 8
+- [Lesson 9](lesson-9.md) — situation 9
+- [Lesson 10](lesson-10.md) — situation 10
+- [Lesson 11](lesson-11.md) — situation 11
+- [Lesson 12](lesson-12.md) — situation 12
+- [Lesson 13](lesson-13.md) — situation 13
+- [Lesson 14](lesson-14.md) — situation 14
+- [Lesson 15](lesson-15.md) — situation 15
+- [Lesson 16](lesson-16.md) — situation 16
+- [Lesson 17](lesson-17.md) — situation 17
+- [Lesson 18](lesson-18.md) — situation 18
+- [Lesson 19](lesson-19.md) — situation 19
+- [Lesson 20](lesson-20.md) — situation 20

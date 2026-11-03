@@ -1,6 +1,6 @@
 # Dream
 
-Tidy what earlier sessions kept: find the drift in each target below, then fix it in the order the steps give.
+Tidy what earlier sessions kept: find the drift in each target below, fix it in the order the steps give, then keep the memory that best spares the owner's corrections when replayed on every project's history, after Dream-RSI (https://arxiv.org/html/2609.14858v1).
 
 ## Domain
 
@@ -12,6 +12,10 @@ What a dream reads, found afresh in the project at hand: list what exists with `
 | Claude memory: auto-memory | `<home>` and this repository's folder `<home>/<repo>/`, else this project's pool, and any folder holding a copy of one of its lessons | what `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-drift.py` prints; one lesson in several files or folders; an entry a later one replaces; a lesson an instruction file should hold; a lesson in `<home>` true for one repository only, or in a repository's folder true for every project; a file marked `skill:` |
 | project documents | `README.md` and the other documents the repository keeps for people, such as `docs/` and `CONTRIBUTING.md` | a step, file or command the repository no longer has; two documents that disagree |
 | project skills | `.claude/skills/*/SKILL.md` and the skills of plugins the repository owns, with their references and scripts | a description that overlaps another skill's, a skill grown past a few focused parts, a skill whose commands fail |
+
+- **Replay case**: one owner correction dejavu recorded in any project, `<data>/dejavu/friction.jsonl`; the newest fifth is held out, never shown while revising.
+- **Candidate**: one version of the memory home, a folder `<data>/dejavu/candidates/<name>/`: `current`, a copy as it is, and each revision `r<n>`.
+- **Verdict**: a judge's mark per case and candidate: covered, when the files the candidate's index makes an agent open tell the action the owner wanted, or misfired, when one pushes the action the owner objected to.
 
 ## Steps
 
@@ -26,6 +30,12 @@ What a dream reads, found afresh in the project at hand: list what exists with `
    5. **Placement**: a lesson a file should hold moves there and its entry is deleted; a lesson in the wrong memory folder moves by `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/move-memory.py <file> <folder>`; an instruction line that restates what the repository shows is cut, its non-standard rules kept; a document for people keeps its overview.
    6. **Size**: an index past its load limit is cut to one line per entry; a skill grown past a few focused parts is split, not extended.
 5. **Apply on your own**: apply each fix to this project's memory the steps above give at once, large ones too, since the backup makes it undoable. A fix to `<config>/CLAUDE.md`, another project's memory, a skill, a hook or a script goes as a patch, as [retro.md](retro.md) step 4 says. A patch to a skill, hook or script names the check that must still pass once applied.
-6. **Skill lessons**: for each memory file marked `skill:`, ask the owner, one at a time, with its lesson and the skill it names: write it, keep it in memory, or drop it. On write, write it into that skill as a patch by [harness-authoring.md](harness-authoring.md), or, for a skill of another repository's plugin, as a `backlog` issue there, then delete the memory file and its index line; on drop, delete them; on keep, change nothing.
-7. **Leave the rest**: a fix the steps do not give, one that widens a permission or a guard, or a lesson `list-drift.py` lists as never found again, goes as one issue. File it in the repository that owns the file, labelled `backlog`. Its body names each file, reason and cost, `<n> files, <m> lines`, never a memory file's body. The filing asks first, and files only on the owner's yes. A pool with no repository: list the fix and its cost in the final message.
-8. **Report** each fix applied, each skill lesson's answer, each patch with its `! git -C <root> apply <patch file>` line, each issue's url and each fix left; with none found, say so.
+6. **Replay**: keep the memory content that scores best on every project's corrections:
+   1. Run `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-replay-cases.py <data>/dejavu`; with no case, skip this step with one line why.
+   2. Delete `<data>/dejavu/candidates/` and `<data>/dejavu/judgements/`, then copy `<home>` to `<data>/dejavu/candidates/current/`.
+   3. Judge a candidate: create `<data>/dejavu/judgements/<name>/`, then for each `batch` line, start one `Agent` with `model: haiku`, all in one message, prompted: `Read ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/references/dream/replay-brief.md, then judge candidate <data>/dejavu/candidates/<name> into <data>/dejavu/judgements/<name>/<k>.jsonl on these cases: <the batch's case lines>`.
+   4. Revise: copy the last candidate to `r<n>` and change it from that candidate's verdicts on the `tuning` cases only: an uncovered case extends the entry on its subject, or sharpens the index line that should have recalled it, and adds a file only when no entry fits; a misfire narrows or deletes its entry. Judge it as in 3. Write at most two revisions, since each costs a round of judges.
+   5. Run `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/score-memory.py <data>/dejavu` and act on its last line: apply each change of the selected revision to `<home>` file by file, over a fresh read, since other sessions write it meanwhile, as step 5 lets you; keep `current` unchanged.
+7. **Skill lessons**: for each memory file marked `skill:`, ask the owner, one at a time, with its lesson and the skill it names: write it, keep it in memory, or drop it. On write, write it into that skill as a patch by [harness-authoring.md](harness-authoring.md), or, for a skill of another repository's plugin, as a `backlog` issue there, then delete the memory file and its index line; on drop, delete them; on keep, change nothing.
+8. **Leave the rest**: a fix the steps do not give, one that widens a permission or a guard, or a lesson `list-drift.py` lists as never found again, goes as one issue. File it in the repository that owns the file, labelled `backlog`. Its body names each file, reason and cost, `<n> files, <m> lines`, never a memory file's body. The filing asks first, and files only on the owner's yes. A pool with no repository: list the fix and its cost in the final message.
+9. **Report** the replay score table and the version kept, each fix applied, each skill lesson's answer, each patch with its `! git -C <root> apply <patch file>` line, each issue's url and each fix left; with none found, say so.
