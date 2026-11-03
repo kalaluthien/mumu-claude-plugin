@@ -10,8 +10,6 @@ How a teamwork issue is written, so a person reads it as prose and code composes
 | `DECIDED` | binds until a newer one: answers, routes, orders, or adds intent, its source named and its words quoted | answer |
 | `REPORTED` | informs: findings each citing its source, a batch landed with the root's words not all covered, or a close summary; open or closed is the board's state | |
 
-A `DECIDED` whose body-edit diff adds or drops only links, `[task]` parts or the `depends on` line, answers no ask, since a parent's or a dependent's edit posts it on another task.
-
 ## Data
 
 Data a script reads sits only in a fenced block whose info string is `teamwork`, one `key: value` per line; explanation never uses that fence, so prose never parses as data. Only lines inside such a fence count, in a body or any comment, each value as written, so a `holders:` line outside it, or a name in brackets (`[a-worker]`), holds nothing and the heartbeat routes the issue again.
@@ -32,6 +30,25 @@ holders: issue-pane-worker
 | `asks` | `owner` on an ask the owner answers, not the manager | audience |
 | `depends on` | the tasks this one waits on, `#a #b`, read from the body only; a task waits until each is closed as completed | depends |
 
+## Decisions
+
+A decision is a `DECIDED` comment holding a fenced block whose info string is `decision`, written by `use-board.py decide` on the task it binds, one `key: value` per line:
+
+| key | value | role |
+| --- | --- | --- |
+| `decision` | one binding sentence | decision |
+| `decided by` | `owner`, the owner's words quoted in the comment as a `>` line or in double quotes, else the deciding session's name | decider |
+| `door` | `one-way` or `two-way` | door |
+| `supersedes` | the url of the decision it replaces, anywhere in the same root's tree | supersedes |
+| `answers` | the url of the `BLOCKED` it settles | answers |
+| `depends on` | the tasks it waits on, `#a #b` | depends |
+
+- **Binds**: a decision binds its task and that task's parts. A task's binding set is the decisions on it and on its ancestors that no decision in the root's tree supersedes, and none once the root is closed as not planned.
+- **Door**: a `one-way` decision by a worker, a session not named `owner` or `<project>-manager`, binds once a later decision on the same task by the manager or the owner repeats its `decision` or supersedes it.
+- **Authority**: `decide` refuses, posting nothing, a decision that supersedes one `decided by: owner` unless it is `decided by: owner` too.
+- **Questions**: a `BLOCKED` is an open question until a decision names its url in `answers`. A `BLOCKED` posted before `2026-11-05` also closes on a later `DECIDED` that is no event.
+- **Events**: a `DECIDED` with no `decision` block is an event when it carries a `teamwork` block or a body edit's `diff`, or is the note a stop posts on the stopped parent; it binds nothing and answers nothing. Any other `DECIDED` with no block, posted since that date, is a decision the index cannot read, which the heartbeat lists.
+
 ## Sections
 
 A task's sections, each a `## <section>` heading in the body, which holds their current text; a comment's heading is prose.
@@ -48,7 +65,7 @@ A `N. [task] #n <title>` line in `Definition of done` is a part, not a criterion
 What an open issue waits on, first match:
 
 1. a task its `depends on` names that is not closed as completed: `blocked by #<n>`;
-2. its latest ask or answer is an ask: `waits on the owner` with audience `owner`, else `waits on the manager`;
+2. an open question: `waits on the owner` when the latest one's audience is `owner`, else `waits on the manager`;
 3. holders with names: `held`;
 4. a deferred reason that no later holders with names ended: `deferred`;
 5. else `no holder`.

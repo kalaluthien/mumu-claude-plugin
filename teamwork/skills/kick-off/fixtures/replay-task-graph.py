@@ -7,8 +7,8 @@ pane, from GitHub-shaped nodes written here by hand.
 - refuse-cycle, refuse-part-waits-on-parent, refuse-second-parent-open, refuse-second-parent-closed, refuse-unknown, refuse-too-many: an `edit`
   that exits 1 naming the issues, the body and comments unchanged; refuse-on-file: a `file` naming an unknown issue exits 1, no issue made
 - derive-waits, derive-released, derive-not-planned-holds, derive-parent-closes, derive-parent-stays, derive-stopped-part-holds-parent,
-  derive-drop-closes-parent, derive-follow-up-reopens, derive-link-edit-keeps-ask (an edit's `DECIDED:` answers a `BLOCKED:` unless it only
-  links), derive-stop-closes-parts
+  derive-drop-closes-parent, derive-follow-up-reopens, derive-link-edit-keeps-ask (no body edit's `DECIDED:` answers a `BLOCKED:`; a
+  decision naming it in `answers:` does), derive-stop-closes-parts
 - mirror-file, mirror-edit: GitHub's native sub-issue and `blocked by` links follow the body
 - refuse-pull-request, derive-missing-target-holds, derive-tree-names-no-issue, on github only: an edit naming a pull request exits 1;
   written behind the write path, a body naming a missing issue lists it as a blocker, and one naming a pull request and a missing issue
@@ -151,11 +151,14 @@ def derive_cases():
 
     import team_gaps
     target, asker = file("Probe a target of an asking task", body()), file("Probe an asking task", body())
-    use("comment", asker, write("ask.md", "BLOCKED: which way?\n\n1. one\n2. another\n"))
+    question = use("comment", asker, write("ask.md", "BLOCKED: which way?\n\n1. one\n2. another\n")).stdout.strip()
     edit(asker, body(depends=[target]))
     linked = team_gaps.asking(board.fresh(asker))
     edit(asker, body(depends=[target]).replace("prints `ok`", "prints `ok` once"))
-    step("derive-link-edit-keeps-ask", linked and not team_gaps.asking(board.fresh(asker)), f"asking after the link edit {linked}, after the criterion edit {team_gaps.asking(board.fresh(asker))}")
+    edited = team_gaps.asking(board.fresh(asker))
+    use("decide", asker, write("answer.md", f"DECIDED: one\n\n```decision\ndecision: one\ndecided by: probe-manager\ndoor: two-way\nanswers: {question}\n```\n"))
+    answered = team_gaps.asking(board.fresh(asker))
+    step("derive-link-edit-keeps-ask", linked and edited and not answered, f"asking after the link edit {linked}, the criterion edit {edited}, the answer {answered}")
 
     parts = [file("Probe a part to stop", body()), file("Probe another part to stop", body())]
     stop = file("Probe a parent to stop", body(parts=parts, check=False))

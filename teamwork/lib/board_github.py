@@ -22,7 +22,7 @@ ISSUES = """query($owner: String!, $name: String!, $labels: [String!], $after: S
   repository(owner: $owner, name: $name) {
     issues(states: OPEN, first: 30, after: $after, labels: $labels, orderBy: {field: CREATED_AT, direction: ASC}) {
       nodes { number title url body authorAssociation parent { number } labels(first: 20) { nodes { name } }
-              subIssues(first: MOST_PARTS) { nodes { number title } } blockedBy(first: MOST_DEPENDS) { nodes { number } } comments(last: 100) { nodes { body url authorAssociation } } }
+              subIssues(first: MOST_PARTS) { nodes { number title } } blockedBy(first: MOST_DEPENDS) { nodes { number } } comments(last: 100) { nodes { body url authorAssociation createdAt } } }
       pageInfo { hasNextPage endCursor } } } }""".replace("MOST_PARTS", str(task_links.MOST_PARTS)).replace("MOST_DEPENDS", str(task_links.MOST_DEPENDS))
 # a native link past the page would read as missing, so the page holds as many as the write path lets a body name
 NAMED = """query($owner: String!, $name: String!) {

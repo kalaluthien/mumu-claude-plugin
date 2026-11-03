@@ -14,11 +14,17 @@ def rows(text, heading):
 
 def load(path=GRAMMAR):
     text = path.read_text()
-    return rows(text, "Keywords"), rows(text, "Data"), rows(text, "Sections")
+    since = re.search(r"posted before `(\d{4}-\d\d-\d\d)`", text).group(1)
+    return rows(text, "Keywords"), rows(text, "Data"), rows(text, "Sections"), rows(text, "Decisions"), since
 
 
-KEYWORDS, KEYS, SECTIONS = load()
+KEYWORDS, KEYS, SECTIONS, DECISION_KEYS, TYPED_SINCE = load()
 WORD = {role: word for table in (KEYWORDS, KEYS) for word, role in table.items() if role}
+FIELD = {role: word for word, role in DECISION_KEYS.items()}
+DECISION = re.compile(r"^```decision\n(.*?)^```", re.M | re.S)
+DIFF = re.compile(r"^(`{3,})diff\n(.*?)^\1$", re.M | re.S)
+# the note `resolve` posts on a parent it stops, naming the parts it stops with it
+STOPPING = "DECIDED: stopping #"
 ITEM = re.compile(r"^(?:\d+\.|[-*])\s+(.*)$", re.M)
 # a criterion `[check] **<name>**: <details>`, after a task-list box when one marks it met; one filed before names were asked for is its own name
 CRITERION = re.compile(r"^(?:\[([ xX])\]\s+)?(?:\[(\w+)\]\s+)?(?:\*\*(.+?)\*\*:?\s*)?(.*)$")
@@ -73,25 +79,45 @@ def records(issue):
     return [(None, data(issue.get("body")) if trusted(issue) else {}, None)] + [(keyword(comment["body"]), data(comment["body"]), comment) for comment in issue.get("comments", []) if trusted(comment)]
 
 
-DIFF = re.compile(r"^(`{3,})diff\n(.*?)^\1$", re.M | re.S)
-# a line a link edit adds or drops: a part, the `depends on` line, the fence holding it, the section holding parts, or a blank
-LINK_LINE = re.compile(rf"^[+-](?:\s*(?:\d+\.|[-*])\s+\[task\]\s+#\d+.*|{re.escape(WORD['depends'])}:.*|```(?:teamwork)?|"
-                       rf"## {re.escape(next(heading for heading, role in SECTIONS.items() if role == 'done'))}|\s*)$")
+def decision(text):
+    """The `key: value` lines of its `decision` block, keys the grammar names only; None when it holds no such block."""
+    found = DECISION.search(text or "")
+    if not found:
+        return None
+    pairs = (line.partition(":") for line in found.group(1).splitlines())
+    return {k.strip(): value.strip() for k, separator, value in pairs if separator and k.strip() in DECISION_KEYS}
 
 
-def links_only(text):
-    """Whether TEXT is a body edit's comment whose diff adds or drops only links, which a parent's or a dependent's edit posts on
-    another task, so it answers none of that task's asks."""
-    found = DIFF.search(text or "")
-    changed = [line for line in found.group(2).splitlines() if line[:1] in "+-" and not line.startswith(("+++", "---"))] if found else []
-    return bool(changed) and all(LINK_LINE.match(line) for line in changed)
+def event(comment):
+    """Whether a `DECIDED:` comment is an event, which binds and answers nothing: no `decision` block, and a teamwork block, a body
+    edit's diff, or a stop's note."""
+    text = comment["body"] or ""
+    return decision(text) is None and bool(DATA.search(text) or DIFF.search(text) or text.startswith(STOPPING))
 
 
-def exchange(issue):
-    """Its asks and answers, oldest first, each as (role, data, comment); the other keywords take no part in a wait, nor an
-    edit that only links."""
-    return [(KEYWORDS[word], fields, comment) for word, fields, comment in records(issue)
-            if KEYWORDS.get(word) == "ask" or KEYWORDS.get(word) == "answer" and not links_only(comment["body"])]
+def legacy(comment):
+    """Whether it was posted before decisions were typed, so it keeps its earlier reading; one with no date counts as legacy."""
+    return (comment.get("createdAt") or "") < TYPED_SINCE
+
+
+def questions(issue):
+    """Its questions, oldest first, each {'ask': the `BLOCKED:` comment, 'fields': its data, 'answer': the comment that settles it or None}:
+    a later decision naming its url in `answers`, or for a legacy question a later `DECIDED:` that is no event."""
+    found = []
+    for word, fields, comment in records(issue)[1:]:
+        role = KEYWORDS.get(word)
+        if role == "ask":
+            found.append({"ask": comment, "fields": fields, "answer": None})
+        elif role == "answer" and not event(comment):
+            named = (decision(comment["body"]) or {}).get(FIELD["answers"], "")
+            for question in found:
+                if question["answer"] is None and (named == question["ask"]["url"] if named else legacy(question["ask"])):
+                    question["answer"] = comment
+    return found
+
+
+def open_questions(issue):
+    return [question for question in questions(issue) if question["answer"] is None]
 
 
 def holder_values(issue):
@@ -121,11 +147,11 @@ def compose(issue, blockers=()):
     'done': the body's criteria, each {'met': True, False or None when it has no box, 'kind', 'name', 'detail'}}."""
     holders = (holder_values(issue) or [None])[-1]
     deferred = deferral(issue)
-    asked = exchange(issue)[-1:]
+    asked = open_questions(issue)[-1:]
     if blockers:
         waits = " ".join(f"blocked by #{number}" for number in blockers)
-    elif asked and asked[0][0] == "ask":
-        waits = "waits on the owner" if asked[0][1].get(WORD["audience"]) == "owner" else "waits on the manager"
+    elif asked:
+        waits = "waits on the owner" if asked[0]["fields"].get(WORD["audience"]) == "owner" else "waits on the manager"
     else:
         waits = "held" if holders else "deferred" if deferred else "no holder"
     # the body alone, since a section is edited there with its diff posted as a comment

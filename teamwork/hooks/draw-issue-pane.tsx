@@ -137,6 +137,8 @@ export const register: Register = on => {
           {rest.map(line => <Text>{lead(issue.pad)}<Text weight="semibold">{line}</Text></Text>)}
           {issue.lines.status.map(line => <Text>{lead(issue.pad)}{status(issue, line)}</Text>)}
           {issue.lines.after.map(line => <Text>{lead(issue.pad)}{after(issue, line)}</Text>)}
+          {/* open questions and the owner's latest decisions, which steer the task, as list-issue-board.py wrapped them */}
+          {issue.lines.notes.map(line => <Text>{lead(issue.pad)}<Text color={line.startsWith('?') ? 'warning' : undefined}>{line}</Text></Text>)}
           {open && (
             <Box flexDirection="row">
               {lead(issue.pad)}

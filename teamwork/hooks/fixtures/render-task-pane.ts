@@ -1,5 +1,5 @@
 // Render a manager's issue pane from the board in a nodes file, every row unfolded, through stand-ins for `claude-code` and the JSX
-// runtime, and check it row for row against `list-issue-board.py`: each row's title, status and `←` lines, guide included, are the
+// runtime, and check it row for row against `list-issue-board.py`: each row's title, status, `←`, `?` and `◆` lines, guide included, are the
 // lines its `--json` row lays out, in the order `--width 40` prints them, and an unfolded row with a goal, criteria or closed parts
 // draws them: `same`, else `differ: <the first difference>`, exit 1.
 // usage: bun teamwork/hooks/fixtures/render-task-pane.ts <nodes-file>
@@ -74,7 +74,7 @@ register(on as any)
 await handlers['session.start']($, { cwd: '/repo' }, async () => ({}))
 await settle(1)
 type Row = { number: number; guide: string; pad: string; goal: string; detail: string[]; done: { name: string }[]; next: string;
-  closed: { title: string }[]; lines: { title: string[]; status: string[]; after: string[] } }
+  closed: { title: string }[]; lines: { title: string[]; status: string[]; after: string[]; notes: string[] } }
 const rows = JSON.parse(listed('--json')) as Row[]
 store.set('expanded', rows.map(row => row.number))
 const pane = await handlers['ui.render Pane']($, {})
@@ -84,7 +84,7 @@ if (drawn.length !== rows.length) differ(`${drawn.length} rows drawn, ${rows.len
 const printed = listed('--width', '40').split('\n')
 let at = 0
 rows.forEach((row, k) => {
-  const heading = [row.guide + row.lines.title[0], ...[...row.lines.title.slice(1), ...row.lines.status, ...row.lines.after].map(line => row.pad + line)]
+  const heading = [row.guide + row.lines.title[0], ...[...row.lines.title.slice(1), ...row.lines.status, ...row.lines.after, ...row.lines.notes].map(line => row.pad + line)]
   const lines = children(drawn[k])
   heading.forEach((line, i) => {
     if (text(lines[i]) !== line) differ(`#${row.number} line ${i + 1}: drew ${JSON.stringify(text(lines[i]))}, listed ${JSON.stringify(line)}`)
