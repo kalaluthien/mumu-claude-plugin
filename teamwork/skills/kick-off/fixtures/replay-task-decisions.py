@@ -147,8 +147,12 @@ def binding_cases():
     question = ask(task, "which width counts")
     post(task, "DECIDED: probe-worker holds this\n\n```teamwork\nholders: probe-worker\n```\n", "decide")
     step("binding-event-keeps-question", asked(task) == [question], index(task))
+    other = ask(task, "which height counts")
+    decide(task, "any height counts", answers=other)
+    # a decision naming another question leaves this one open, though a legacy question closes on any later decision with no `answers:`
+    named_other = asked(task) == [question]
     decide(task, "24 to 80 columns count", answers=question)
-    step("binding-answered", asked(task) == [], index(task))
+    step("binding-answered", named_other and asked(task) == [], index(task))
     gated = file("Probe a one-way door")
     worker = decide(gated, "drop the cache", by="probe-worker", door="one-way")
     waited = worker not in bound(gated)
