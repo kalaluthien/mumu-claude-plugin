@@ -54,6 +54,9 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     config = pathlib.Path(args[0])
+    if not (config / "projects").is_dir():
+        print(f"list-projects: {config / 'projects'} is no folder; name the Claude config folder", file=sys.stderr)
+        return 1
     seen = set()
     for folder in sorted(glob.glob(os.path.join(glob.escape(str(config)), "projects", "*"))):
         for path in glob.glob(os.path.join(glob.escape(folder), "*.jsonl")):
