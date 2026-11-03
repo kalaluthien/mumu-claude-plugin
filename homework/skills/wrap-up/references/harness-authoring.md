@@ -23,7 +23,7 @@ Write or edit a skill, an agent file, a hook or a script, so its reader follows 
 
 ## Steps
 
-1. **Place**: put the file where the repository's `AGENTS.md` says. A skill folder has no `skill.md` in any case, since on a case-insensitive filesystem it is `SKILL.md`.
+1. **Place**: first name the nearest existing skill, file or folder that could hold the change and why it cannot, since adding is cheaper than reading and fitting; add a new one only when nothing fits. Then put the file where the repository's `AGENTS.md` says. A skill folder has no `skill.md` in any case, since on a case-insensitive filesystem it is `SKILL.md`.
 2. **Write a skill**: follow Skill below. A directory marketplace loads plugins from its checkout, so a pulled merge needs no update and a worktree's edit reaches no session.
 3. **Write a hook or script**: follow Hook below, the reader and guard rules first.
 4. **Move**: `git mv`, then search the plugin and its checks for the old path and bare name until none is stale, and open each new link once. A stale path fails only when that step runs.
