@@ -12,7 +12,8 @@ pane, from GitHub-shaped nodes written here by hand.
 - refuse-pull-request, derive-missing-target-holds, derive-tree-names-no-issue, on github only: an edit naming a pull request exits 1;
   written behind the write path, a body naming a missing issue lists it as a blocker, and one naming a pull request and a missing issue
   leaves the tree read whole
-- heartbeat-cycle, heartbeat-second-parent, heartbeat-backlog-label, and on github-nodes heartbeat-native-only and heartbeat-body-only
+- heartbeat-cycle, heartbeat-second-parent, heartbeat-backlog-label, and on github-nodes heartbeat-native-only and heartbeat-body-only;
+  heartbeat-tree-unread on files: a failed tree read leaves the manager's read whole, with one `unread` link line
 - pane-nesting, pane-wait-line, pane-done-count, pane-named-no-row: list-issue-board.py's lines, with no native link written, and no
   row for an issue outside the scope that only a body names
 
@@ -202,6 +203,20 @@ def heartbeat_cases(nodes, native):
         step("heartbeat-body-only", has(r"^links body-only #\d+: its body names #\d+"), lines)
 
 
+def heartbeat_unread():
+    """The manager's read with the tree read failing, as GitHub's GraphQL fails on its rate limit while REST reads still work; the
+    pull requests, which a files board in a folder with no repository cannot list, stand in as none."""
+    import landing
+    import team_gaps
+    kept = board.tree, landing.pulls
+    board.tree, landing.pulls = (lambda *args, **kwargs: None), (lambda *args, **kwargs: [])
+    try:
+        data = team_gaps.manager_read({"name": "probe-manager", "workspace_id": ""})
+    finally:
+        board.tree, landing.pulls = kept
+    step("heartbeat-tree-unread", data is not None and [gap.split(":")[0] for gap in data["links"]] == ["unread"], data and data["links"])
+
+
 def files_drift():
     """Writes, behind the write path, the drift two concurrent writes can leave: a cycle and a part two parents name; and the retired label."""
     first, second, part = file("Probe a drift", body()), file("Probe a drift's pair", body()), file("Probe a doubly claimed part", body())
@@ -282,6 +297,7 @@ def main(args):
         return 1 if failures else 0
     if kind == "files":
         heartbeat_cases(files_drift(), native=False)
+        heartbeat_unread()
     first, second, closed_part = file("Probe a first target", body()), file("Probe a second target", body()), file("Probe a done part", body())
     waiting = file("Probe a part that waits", body(depends=[first, second]))
     root = file("Probe a pane root", body(parts=[closed_part, waiting], check=False))

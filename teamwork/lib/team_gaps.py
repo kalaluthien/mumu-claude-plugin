@@ -65,11 +65,13 @@ def manager_read(me, since=None):
     outside = board.issues(pulls=True, comments=False)
     outside = outside and [board.fresh(issue["number"]) for issue in outside if not issue_state.trusted(issue)]
     feed = feed_read(me["name"], since) if since else []  # a first read has no earlier one, so a restart pushes nothing old
-    links = board.tree(project(me["name"]))
-    if found is None or everything is None or pulls is None or outside is None or None in outside or feed is None or links is None:
+    # GitHub's tree is a GraphQL read, which hits its rate limit while REST still works, so its failure costs only the link lines
+    tree = board.tree(project(me["name"]))
+    links = task_links.drift(tree) if tree is not None else ["unread: the board's tree read failed, so link gaps are not checked this time"]
+    if found is None or everything is None or pulls is None or outside is None or None in outside or feed is None:
         return None
     return {"found": found, "everything": everything, "prs": pulls, "outside": [issue for issue in outside if unanswered(issue)],
-            "feed": feed, "links": task_links.drift(links)}
+            "feed": feed, "links": links}
 
 
 def manager_actions(me, listed, data=None, fed_urls=None):
