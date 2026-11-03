@@ -69,15 +69,20 @@ def binds(decision, every):
                and (later["decision"] == decision["decision"] or later["supersedes"] == decision["url"]) for later in every)
 
 
+def replaced(every):
+    """The urls of the decisions in EVERY that a decision passed by its door supersedes; one still behind its door replaces nothing."""
+    return {decision["supersedes"] for decision in every if decision["supersedes"] and binds(decision, every)}
+
+
 def binding(number, issues):
-    """NUMBER's binding set: the decisions on it and its ancestors that no decision in the root's tree supersedes and whose door is
-    passed, oldest first; none once the root was closed as not planned."""
+    """NUMBER's binding set: the decisions on it and its ancestors that no decision in the root's tree passed by its door supersedes,
+    and whose door is passed, oldest first; none once the root was closed as not planned."""
     lineage = chain(number, issues)
     root = issues[lineage[-1]]
     if root.get("state") == "CLOSED" and not task_links.completed(root):
         return []
     every = [decision for task in tree_of(lineage[-1], issues) for decision in typed(task, issues[task])]
-    superseded = {decision["supersedes"] for decision in every if decision["supersedes"]}
+    superseded = replaced(every)
     return sorted((decision for decision in every if decision["task"] in lineage and decision["url"] not in superseded and binds(decision, every)),
                   key=lambda decision: (decision["createdAt"], decision["task"], decision["index"]))
 
@@ -144,7 +149,7 @@ def gaps(found):
         if len(later) > 1:
             lines.append(f"superseded twice #{later[0]['task']}: {url} is superseded by {' and '.join(decision['url'] for decision in later)}; "
                          f"keep one by a decision that supersedes the other")
-    superseded = {decision["supersedes"] for decision in every if decision["supersedes"]}
+    superseded = replaced(every)
     for decision in every:
         if decision["url"] not in superseded and not binds(decision, every):
             lines.append(f"one-way #{decision['task']}: {decision['decider']}'s {decision['url']} binds only once you repeat or supersede it by `decide`")
@@ -162,7 +167,7 @@ def shown(node, nodes):
     supersedes, newest last, and how many more there are."""
     issue = as_issue(node)
     every = [decision for other in nodes for decision in typed(other["number"], other)]
-    superseded = {decision["supersedes"] for decision in every if decision["supersedes"]}
+    superseded = replaced(every)
     owned = [decision["decision"] for decision in typed(node["number"], node) if decision["role"] == "owner" and decision["url"] not in superseded]
     asked = [first_line(question["ask"]) for question in issue_state.open_questions(issue)]
     return {"questions": [text for k, text in enumerate(asked) if text not in asked[:k]],  # an ask posted again is one question

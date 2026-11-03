@@ -5,11 +5,10 @@ nodes written here by hand. The files and git boards trust every comment, so pan
 decision comments untrusted, as the GitHub adapter marks an outsider's, before the rows are laid out.
 - record-fields, record-event, record-supersedes, record-unknown-supersedes: `decide` writes a decision block the index reads back
 - authority-refuses, authority-unquoted, authority-comment, authority-owner, authority-manager: who may supersede an owner decision
-- binding-ancestors, binding-stopped-root, binding-answered, binding-event-keeps-question, binding-one-way-waits: a task's binding set
-  and open questions
+- binding-ancestors, binding-stopped-root, binding-answered, binding-event-keeps-question, binding-one-way-waits,
+  binding-one-way-supersedes: a task's binding set and open questions
 - heartbeat-open-question, heartbeat-twice-superseded, heartbeat-one-way, heartbeat-one-way-superseded, heartbeat-unblocked-decided,
-  heartbeat-legacy-quiet: the
-  manager's heartbeat lines
+  heartbeat-legacy-quiet: the manager's heartbeat lines
 - pane-question, pane-latest-three, pane-cut, pane-untrusted: list-issue-board.py's `?` and `◆` lines
 
 usage: replay-task-decisions.py --board <files|git|github-nodes>"""
@@ -160,6 +159,12 @@ def binding_cases():
     waited = worker not in bound(gated)
     decide(gated, "drop the cache")
     step("binding-one-way-waits", waited and worker in bound(gated), index(gated))
+    held = file("Probe a door over a manager's rule")
+    rule = decide(held, "keep the cache")
+    pending = decide(held, "drop the cache", by="probe-worker", door="one-way", supersedes=rule)
+    kept = bound(held) == [rule]
+    followed = decide(held, "drop the cache", supersedes=pending)
+    step("binding-one-way-supersedes", kept and bound(held) == [followed], index(held))
 
 
 def heartbeat(numbers, since=None):
