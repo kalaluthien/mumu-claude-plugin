@@ -1,0 +1,412 @@
+{
+ "task": 1023,
+ "pull": "1024",
+ "base_sha": "2ceeef164f16bc748d353feea274c8d646164ce0",
+ "arm": "output-cap",
+ "repeat": 2,
+ "command": [
+  "claude",
+  "-p",
+  "<prompt>",
+  "--model",
+  "sonnet",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--max-budget-usd",
+  "5",
+  "--permission-mode",
+  "acceptEdits",
+  "--allowedTools",
+  "Bash",
+  "Read",
+  "Edit",
+  "Write",
+  "Grep",
+  "Glob",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--include-hook-events",
+  "--no-session-persistence",
+  "--plugin-dir",
+  "/Users/hyungmokim/workspace/plugins/.claude/worktrees/read-shunt-worker/teamwork/hooks/fixtures/output-cap-arm"
+ ],
+ "prompt": "You are replaying a past task in a fresh checkout of the mumu-claude-plugin repository, your working folder.\nDo the task below fully: change the files so that each `[check]` of its Definition of done passes, run the checks you can,\nthen commit your change with git. GitHub, herdr and other Claude sessions are off in this replay: skip each step that reads\nor writes an issue, pull request, comment or session (filing, commenting, judging, pushing, telling), and each check\nthat needs one.\n\nTask #1023: Reopen and retitle on the files board\n\n## Goal\n\nMake the files board (`TEAMWORK_BOARD=files`) follow the GitHub board's usage pattern, reopening a closed backlog or task first, as the owner asked in https://github.com/kalaluthien/mumu-claude-plugin/issues/1022.\n\n- **Reopen**: a `reopen` board operation in `protocol.md`'s table, a row in both board adapters, `board_files.reopen` and `board_github.reopen`, and `use-board.py reopen <issue>`; on both boards a reopened issue reads `state: OPEN`, `stateReason: REOPENED`, `closedAt: None`, as GitHub answers (sandbox probe on `kalaluthien/teamwork-board-sandbox#42`: `[\"open\",\"reopened\",null]`). `manager.md`'s closed-backlog row names `reopen`, since it says \"reopen that backlog\" with no operation behind it today.\n- **Retitle**: `manager.md` rewrites a backlog's title at each material scope change; `board-github.md` does it by `gh issue edit --title`, the files board has no way. Add `use-board.py title <issue> <title>` on both boards, named in both adapters' `edit` rows, its title length read by `board_files.command`, so the title hook guards it as it guards `gh issue edit --title`.\n- **Refusals as GitHub refuses**: sandbox probes (`kalaluthien/teamwork-board-sandbox#42`-`#48`) showed GitHub refuse, each 422 unless named: a second parent (`Sub issue may only have one parent`, the same parent again included), an issue nested under itself (`Sub issue cannot be the same as the parent issue`), an issue blocked by itself (`Target issue cannot be the same as the source issue`), the same blocker twice (`Target issue has already been taken`), and removing a label the issue lacks (`Label does not exist`, 404); it accepts adding a label twice (kept once) and reopening an open issue (`already open`, exit 0, `state_reason` unchanged). The files board accepts each refused case silently today (`teamwork/lib/board_files.py:123-133`). Each refuses on the files board, writing nothing; a missing issue stays refused, as today.\n- **Scenario**: `fixtures/replay-board-scenario.py` gains the steps `retitle`, `reopen` (the resolved backlog), `nest-again` (a new task under it) and `resolve-again`, so the same-result diff covers the new scenario on both boards.\n- **Hook sees the new writes**: `board_files.command` matches `use-board.py reopen` and `use-board.py title`, as `board_github.command` matches any `gh issue` write, so the hook's title guard and reminders reach them.\n- Builds on #865 (files board, scenario) and #1019/#1020 (board setting read).\n\n\n\n## Definition of done\n\n1. [check] **same result on both boards**: `F=teamwork/skills/kick-off/fixtures; /usr/bin/diff <(python3 $F/replay-board-scenario.py --board files) <(GH_REPO=kalaluthien/teamwork-board-sandbox python3 $F/replay-board-scenario.py --board github) >/dev/null && python3 $F/replay-board-scenario.py --board files | grep -cE '^step (retitle|reopen|nest-again|resolve-again)$'` prints `4`; on base `0`.\n2. [check] **files board reopens**: `d=$(mktemp -d); echo b > $d/b; echo 'REPORTED: done' > $d/r; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; python3 $U file T $d/b >/dev/null; python3 $U resolve 1 $d/r; python3 $U reopen 1 2>/dev/null; python3 -c 'import sys; sys.path[:0] = [\"teamwork/lib\"]; import board; i = board.fresh(1); print(i[\"state\"], i[\"stateReason\"], i[\"closedAt\"] is None)'` prints `OPEN REOPENED True`; on base `CLOSED COMPLETED False`.\n3. [check] **files board retitles**: `d=$(mktemp -d); echo b > $d/b; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; python3 $U file Old $d/b >/dev/null; python3 $U title 1 New 2>/dev/null; python3 $U read 1 | head -1 | cut -d' ' -f2` prints `New`; on base `Old`.\n4. [check] **refused as GitHub refuses**: `d=$(mktemp -d); echo b > $d/b; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; for t in A B C D; do python3 $U file $t $d/b >/dev/null; done; python3 $U nest 1 3; python3 $U order 1 2; { for c in 'nest 2 3' 'nest 1 3' 'nest 4 4' 'order 1 1' 'order 1 2' 'order 1 9' 'label 1 nolabel --remove'; do python3 $U $c; echo $?; done; python3 -c 'import sys, json; m = lambda n: json.load(open(f\"{sys.argv[1]}/{n}/issue.json\")); print(m(3)[\"parent\"], m(4)[\"parent\"], m(1)[\"blockers\"])' $d/board; } 2>/dev/null | paste -sd' ' -` prints `1 1 1 1 1 1 1 1 None [2]`; on base `0 0 0 0 0 1 0 1 4 [1, 2]`.\n5. [check] **title hook reads use-board**: `python3 -c 'import sys; sys.path[:0] = [\"teamwork/lib\"]; import board_files; c = board_files.command(\"use-board.py title 3 \\\"\" + \"x\" * 41 + \"\\\"\"); print(c and c[\"title\"])'` prints `41`; on base `None`.\n6. [check] **reopen and title documented**: `` R=teamwork/skills/kick-off/references; { for f in protocol.md adapters/board-github.md adapters/board-files.md; do grep -q '^| .*`reopen`' $R/$f || echo \"no reopen $f\"; done; grep '^| `edit`' $R/adapters/board-files.md | grep -q 'use-board.py title' || echo 'no title'; grep 'closed backlog' $R/manager.md | grep -q '`reopen`' || echo 'no manager'; } | wc -l | tr -d ' ' `` prints `0`; on base `5`.\n\n7. [check] **hook matches the new writes**: `python3 -c 'import sys; sys.path[:0] = [\"teamwork/lib\"]; import board_files; print([(c or {}).get(\"called\") for c in map(board_files.command, [\"use-board.py reopen 1\", \"use-board.py title 1 New\"])])'` prints `['use-board.py reopen', 'use-board.py title']`; on base `[None, None]`.\n8. [check] **reopening an open issue is quiet**: `d=$(mktemp -d); echo b > $d/b; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; python3 $U file T $d/b >/dev/null; python3 $U reopen 1 >/dev/null 2>&1; echo $? $(python3 -c 'import sys; sys.path[:0] = [\"teamwork/lib\"]; import board; i = board.fresh(1); print(i[\"state\"], repr(i[\"stateReason\"]))')` prints `0 OPEN ''`; on base `2 OPEN ''`.",
+ "environment": {
+  "CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1",
+  "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1"
+ },
+ "blocked_tools": [
+  "gh",
+  "herdr",
+  "claude"
+ ],
+ "init": {
+  "plugins": [
+   "output-cap-arm",
+   "cc-plugin-agents-md",
+   "cc-plugin-telemetry",
+   "cc-plugin-privacy",
+   "cc-plugin-plugin-authoring"
+  ],
+  "mcp_servers": [],
+  "model": "claude-sonnet-5-5"
+ },
+ "hook_events": [
+  "PreToolUse:Bash",
+  "PreToolUse:Bash",
+  "PreToolUse:Bash",
+  "PreToolUse:Bash",
+  "PreToolUse:Bash",
+  "PreToolUse:Bash",
+  "PreToolUse:Bash",
+  "PreToolUse:Bash"
+ ],
+ "total_cost_usd": 0.20014869999999998,
+ "models": [
+  "claude-sonnet-5-5"
+ ],
+ "is_error": false,
+ "subtype": "success",
+ "num_turns": 12,
+ "turns": [
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 7079,
+    "cache_read_input_tokens": 13968,
+    "output_tokens": 21,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7079
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 7829,
+    "cache_read_input_tokens": 21047,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7829
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1551,
+    "cache_read_input_tokens": 28876,
+    "output_tokens": 16,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1551
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 329,
+    "cache_read_input_tokens": 30427,
+    "output_tokens": 27,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 329
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1217,
+    "cache_read_input_tokens": 30756,
+    "output_tokens": 16,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1217
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1196,
+    "cache_read_input_tokens": 31973,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1196
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2956,
+    "cache_read_input_tokens": 33169,
+    "output_tokens": 20,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2956
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 903,
+    "cache_read_input_tokens": 36125,
+    "output_tokens": 21,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 903
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2350,
+    "cache_read_input_tokens": 37028,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2350
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 906,
+    "cache_read_input_tokens": 39378,
+    "output_tokens": 768,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 906
+    }
+   }
+  }
+ ],
+ "bash_results": [
+  {
+   "id": "toolu_01SxkqMRYSrb1UyzxcUscyFG",
+   "command": "cd teamwork; ls skills/kick-off/fixtures skills/kick-off/fixtures/recorded-gh | head -30; grep -n \"def \\|^USE\\|^[A-Z_]* =\" lib/board_github.py | head -60; grep -rn \"board_files\\|board_github\" --include=*.py -l . | head",
+   "chars": 2144,
+   "lines": 51,
+   "cut": {
+    "lines_cut": 23,
+    "lines": 73,
+    "file": "/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/bash-output.K1bDOozbYF",
+    "file_chars": 2896,
+    "removed_chars": 881,
+    "removed_units": 3243.7
+   }
+  },
+  {
+   "id": "toolu_01SSsiJ9LTc9Zd89zDRC2gcJ",
+   "command": "cd teamwork 2>/dev/null || cd ..; pwd; sed -n 270,345p lib/board_github.py; cat skills/kick-off/fixtures/recorded-gh/gh | head -80; ls skills/kick-off/fixtures/recorded-gh; git ls-files | grep -i tape",
+   "chars": 293,
+   "lines": 4
+  },
+  {
+   "id": "toolu_01Nkj5pYv9KuTwtNWJAiX8AN",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1023-output-cap-2-rqg1o88o/repository; sed -n 270,345p teamwork/lib/board_github.py; cat teamwork/skills/kick-off/fixtures/recorded-gh/gh | head -80; git ls-files | grep -i tape",
+   "chars": 2288,
+   "lines": 51,
+   "cut": {
+    "lines_cut": 106,
+    "lines": 156,
+    "file": "/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/bash-output.zdjCATTgy5",
+    "file_chars": 7165,
+    "removed_chars": 5008,
+    "removed_units": 17072.7
+   }
+  },
+  {
+   "id": "toolu_01MzzcP1JAvcUbNoaVXN9Sxi",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1023-output-cap-2-rqg1o88o/repository/teamwork; sed -n 325,345p lib/board_github.py; wc -l skills/kick-off/fixtures/recorded-gh/gh; cut -c1-220 skills/kick-off/fixtures/recorded-gh/gh | sed -n 1,140p",
+   "chars": 2401,
+   "lines": 51,
+   "cut": {
+    "lines_cut": 64,
+    "lines": 114,
+    "file": "/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/bash-output.WeLDa3sX02",
+    "file_chars": 4885,
+    "removed_chars": 2614,
+    "removed_units": 8554.9
+   }
+  },
+  {
+   "id": "toolu_01VMcyWsnezn4w4raWbbDRbX",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1023-output-cap-2-rqg1o88o/repository/teamwork; python3 - <<'E'\nimport re\np='lib/board_files.py'; s=open(p).read()\ns=s.replace(\"(file|comment|decide|edit|resolve|order|nest|label)\",\"(file|comment|decide|edit|resolve|reopen|title|order|nest|label)\")\na=s.index(\"def order(\"); b=s.index(\"def command(\")\ns=s[:a]+'''def reopen(number):\n    \"\"\"Opens a closed NUMBER as GitHub does; an open one stays as it is.\"\"\"\n    if meta(number)[\"state\"] == \"CLOSED\":\n        save(number, state=\"OPEN\", reason=\"REOPENED\", closedAt=None)\n\n\ndef title(number, text):\n    meta(number)\n    save(number, title=text)\n\n\ndef order(later, earlier):\n    meta(earlier)  # raises when it does not exist, before anything is written\n    if int(later) == int(earlier):\n        raise LookupError(\"Target issue cannot be the same as the source issue\")\n    if int(earlier) in meta(later)[\"blockers\"]:\n        raise LookupError(\"Target issue has already been taken\")\n    save(later, blockers=sorted({*meta(later)[\"blockers\"], int(earlier)}))\n\n\ndef nest(backlog, task):\n    meta(backlog)\n    if int(backlog) == int(task):\n        raise LookupError(\"Sub issue cannot be the same as the parent issue\")\n    if meta(task)[\"parent\"] is not None:\n        raise LookupError(\"Sub issue may only have one parent\")\n    save(task, parent=int(backlog))\n\n\ndef label(number, name, remove=False):\n    labels = [x for x in meta(number)[\"labels\"] if x != name]\n    if remove and len(labels) == len(meta(number)[\"labels\"]):\n        raise LookupError(\"Label does not exist\")\n    save(number, labels=labels if remove else [*labels, name])\n\n\n'''+s[b:]\ns=s.replace('''\"write\": \"comment\" if verb == \"decide\" else verb if verb in (\"file\", \"comment\", \"resolve\", \"edit\") else None,\n            \"title\": len(args[0]) if verb == \"file\" and args else None,''','''\"write\": \"comment\" if verb == \"decide\" else verb if verb in (\"file\", \"comment\", \"resolve\", \"edit\") else None,\n            \"title\": len(args",
+   "chars": 1397,
+   "lines": 17
+  },
+  {
+   "id": "toolu_011aqGZxSK9FCeTmdUe3PyT4",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1023-output-cap-2-rqg1o88o/repository/teamwork/skills/kick-off/references; grep -n \"resolve\" protocol.md | head -5; sed -n 8,12p adapters/board-files.md; sed -n 1,5p adapters/board-files.md",
+   "chars": 1273,
+   "lines": 11
+  },
+  {
+   "id": "toolu_01S3iNAZoRDbDFUDbajrvdC2",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1023-output-cap-2-rqg1o88o/repository/teamwork/skills/kick-off/references; python3 - <<'E'\ndef sub(p,a,b):\n    s=open(p).read(); assert a in s,(p,a); open(p,'w').write(s.replace(a,b,1))\nsub('protocol.md','| board | `resolve` |','| board | `reopen` | opens a closed issue again, reading `OPEN` with the reason `REOPENED`; an open issue stays as it is |\\n| board | `resolve` |')\nsub('adapters/board-files.md','| `resolve` |','| `reopen` | `use-board.py reopen <n>` |\\n| `resolve` |')\nsub('adapters/board-files.md','`use-board.py edit <n> <diff-file> \"DECIDED: <why>\"`, which runs [edit-issue-body.py](../../scripts/edit-issue-body.py) |','`use-board.py edit <n> <diff-file> \"DECIDED: <why>\"`, which runs [edit-issue-body.py](../../scripts/edit-issue-body.py); the title by `use-board.py title <n> <title>` |')\nsub('adapters/board-github.md','| `resolve` |','| `reopen` | `gh issue reopen <n>` |\\n| `resolve` |')\nsub('manager.md','reopen that backlog,','`reopen` that backlog,')\nE\ncd ../../..; git diff --stat; sed -n 29p skills/kick-off/references/protocol.md >/dev/null\n# run checks\ncd ..; R=$PWD; F=teamwork/skills/kick-off/fixtures\npython3 $F/replay-board-scenario.py --board files | grep -cE '^step (retitle|reopen|nest-again|resolve-again)$'; python3 $F/replay-board-scenario.py --board files | tail -25\nd=$(mktemp -d); echo b > $d/b; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; for t in A B C D; do python3 $U file $t $d/b >/dev/null; done; python3 $U nest 1 3; python3 $U order 1 2; { for c in 'nest 2 3' 'nest 1 3' 'nest 4 4' 'order 1 1' 'order 1 2' 'order 1 9' 'label 1 nolabel --remove'; do python3 $U $c; echo $?; done; python3 -c 'import sys, json; m = lambda n: json.load(open(f\"{sys.argv[1]}/{n}/issue.json\")); print(m(3)[\"parent\"], m(4)[\"parent\"], m(1)[\"blockers\"])' $d/board; } 2>/dev/null | paste -sd' ' -\npython3 $U reopen 1; echo $?; echo 'REPORT",
+   "chars": 2052,
+   "lines": 40
+  },
+  {
+   "id": "toolu_01JizUn1tGgXWJPnetPJrDR9",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1023-output-cap-2-rqg1o88o/repository; bash -c 'd=$(mktemp -d); echo b > $d/b; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; for t in A B C D; do python3 $U file $t $d/b >/dev/null; done; python3 $U nest 1 3; python3 $U order 1 2; { for c in \"nest 2 3\" \"nest 1 3\" \"nest 4 4\" \"order 1 1\" \"order 1 2\" \"order 1 9\" \"label 1 nolabel --remove\"; do python3 $U $c; echo $?; done; python3 -c \"import sys, json; m = lambda n: json.load(open(f\\\"{sys.argv[1]}/{n}/issue.json\\\")); print(m(3)[\\\"parent\\\"], m(4)[\\\"parent\\\"], m(1)[\\\"blockers\\\"])\" $d/board; } 2>/dev/null | paste -sd\" \" -\necho b>$d/r2; echo \"REPORTED: x\" > $d/r; python3 $U resolve 1 $d/r; python3 $U reopen 1; python3 -c \"import sys; sys.path[:0] = [\\\"teamwork/lib\\\"]; import board; i = board.fresh(1); print(i[\\\"state\\\"], i[\\\"stateReason\\\"], i[\\\"closedAt\\\"] is None)\"'; git add -A; git commit -qm \"Reopen and retitle on the files board; refuse as GitHub refuses\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\"; git log --oneline | head -1",
+   "chars": 115,
+   "lines": 3
+  }
+ ],
+ "refetches": [
+  {
+   "id": "toolu_01SSsiJ9LTc9Zd89zDRC2gcJ",
+   "files": [
+    "board_github.py"
+   ],
+   "chars": 293,
+   "units": 19253.6,
+   "reread": true
+  },
+  {
+   "id": "toolu_01Nkj5pYv9KuTwtNWJAiX8AN",
+   "files": [
+    "board_github.py"
+   ],
+   "chars": 2288,
+   "units": 19313.1,
+   "reread": true
+  },
+  {
+   "id": "toolu_01MzzcP1JAvcUbNoaVXN9Sxi",
+   "files": [
+    "board_github.py"
+   ],
+   "chars": 2401,
+   "units": 24632.6,
+   "reread": true
+  },
+  {
+   "id": "toolu_01VMcyWsnezn4w4raWbbDRbX",
+   "files": [
+    "board_github.py"
+   ],
+   "chars": 1397,
+   "units": 21200.4,
+   "reread": true
+  }
+ ],
+ "saving": {
+  "removed_units": 28871.3,
+  "refetch_units": 0.0,
+  "reread_units": 84399.7,
+  "net_units": 28871.3,
+  "run_units": 262250.1,
+  "net_share": 0.0992,
+  "net_share_reread_results_charged": 0.0289,
+  "net_share_rereads_charged": -0.2686
+ },
+ "checks": [
+  {
+   "index": 1,
+   "command": "F=teamwork/skills/kick-off/fixtures; /usr/bin/diff <(python3 $F/replay-board-scenario.py --board files) <(GH_REPO=kalaluthien/teamwork-board-sandbox python3 $F/replay-board-scenario.py --board github) >/dev/null && python3 $F/replay-board-scenario.py --board files | grep -cE '^step (retitle|reopen|nest-again|resolve-again)$'",
+   "test": [
+    "prints",
+    "4"
+   ],
+   "result": "fail",
+   "output": ""
+  },
+  {
+   "index": 2,
+   "command": "d=$(mktemp -d); echo b > $d/b; echo 'REPORTED: done' > $d/r; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; python3 $U file T $d/b >/dev/null; python3 $U resolve 1 $d/r; python3 $U reopen 1 2>/dev/null; python3 -c 'import sys; sys.path[:0] = [\"teamwork/lib\"]; import board; i = board.fresh(1); print(i[\"state\"], i[\"stateReason\"], i[\"closedAt\"] is None)'",
+   "test": [
+    "prints",
+    "OPEN REOPENED True"
+   ],
+   "result": "pass",
+   "output": "OPEN REOPENED True"
+  },
+  {
+   "index": 3,
+   "command": "d=$(mktemp -d); echo b > $d/b; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; python3 $U file Old $d/b >/dev/null; python3 $U title 1 New 2>/dev/null; python3 $U read 1 | head -1 | cut -d' ' -f2",
+   "test": [
+    "prints",
+    "New"
+   ],
+   "result": "pass",
+   "output": "New"
+  },
+  {
+   "index": 4,
+   "command": "d=$(mktemp -d); echo b > $d/b; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; for t in A B C D; do python3 $U file $t $d/b >/dev/null; done; python3 $U nest 1 3; python3 $U order 1 2; { for c in 'nest 2 3' 'nest 1 3' 'nest 4 4' 'order 1 1' 'order 1 2' 'order 1 9' 'label 1 nolabel --remove'; do python3 $U $c; echo $?; done; python3 -c 'import sys, json; m = lambda n: json.load(open(f\"{sys.argv[1]}/{n}/issue.json\")); print(m(3)[\"parent\"], m(4)[\"parent\"], m(1)[\"blockers\"])' $d/board; } 2>/dev/null | paste -sd' ' -",
+   "test": [
+    "prints",
+    "1 1 1 1 1 1 1 1 None [2]"
+   ],
+   "result": "pass",
+   "output": "1 1 1 1 1 1 1 1 None [2]"
+  },
+  {
+   "index": 5,
+   "command": "python3 -c 'import sys; sys.path[:0] = [\"teamwork/lib\"]; import board_files; c = board_files.command(\"use-board.py title 3 \\\"\" + \"x\" * 41 + \"\\\"\"); print(c and c[\"title\"])'",
+   "test": [
+    "prints",
+    "41"
+   ],
+   "result": "pass",
+   "output": "41"
+  },
+  {
+   "index": 6,
+   "command": " R=teamwork/skills/kick-off/references; { for f in protocol.md adapters/board-github.md adapters/board-files.md; do grep -q '^| .*`reopen`' $R/$f || echo \"no reopen $f\"; done; grep '^| `edit`' $R/adapters/board-files.md | grep -q 'use-board.py title' || echo 'no title'; grep 'closed backlog' $R/manager.md | grep -q '`reopen`' || echo 'no manager'; } | wc -l | tr -d ' ' ",
+   "test": [
+    "prints",
+    "0"
+   ],
+   "result": "pass",
+   "output": "0"
+  },
+  {
+   "index": 7,
+   "command": "python3 -c 'import sys; sys.path[:0] = [\"teamwork/lib\"]; import board_files; print([(c or {}).get(\"called\") for c in map(board_files.command, [\"use-board.py reopen 1\", \"use-board.py title 1 New\"])])'",
+   "test": [
+    "prints",
+    "['use-board.py reopen', 'use-board.py title']"
+   ],
+   "result": "pass",
+   "output": "['use-board.py reopen', 'use-board.py title']"
+  },
+  {
+   "index": 8,
+   "command": "d=$(mktemp -d); echo b > $d/b; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; python3 $U file T $d/b >/dev/null; python3 $U reopen 1 >/dev/null 2>&1; echo $? $(python3 -c 'import sys; sys.path[:0] = [\"teamwork/lib\"]; import board; i = board.fresh(1); print(i[\"state\"], repr(i[\"stateReason\"]))')",
+   "test": [
+    "prints",
+    "0 OPEN ''"
+   ],
+   "result": "pass",
+   "output": "0 OPEN ''"
+  }
+ ],
+ "stderr": "",
+ "passed": false,
+ "seconds": 63
+}

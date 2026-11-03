@@ -1,0 +1,280 @@
+{
+ "task": 1151,
+ "pull": "1154",
+ "base_sha": "2822edcfd9d783175da40ca1e8e16fab68c3c689",
+ "arm": "none",
+ "repeat": 2,
+ "command": [
+  "claude",
+  "-p",
+  "<prompt>",
+  "--model",
+  "sonnet",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--max-budget-usd",
+  "5",
+  "--permission-mode",
+  "acceptEdits",
+  "--allowedTools",
+  "Bash",
+  "Read",
+  "Edit",
+  "Write",
+  "Grep",
+  "Glob",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--include-hook-events",
+  "--no-session-persistence"
+ ],
+ "prompt": "You are replaying a past task in a fresh checkout of the mumu-claude-plugin repository, your working folder.\nDo the task below fully: change the files so that each `[check]` of its Definition of done passes, run the checks you can,\nthen commit your change with git. GitHub, herdr and other Claude sessions are off in this replay: skip each step that reads\nor writes an issue, pull request, comment or session (filing, commenting, judging, pushing, telling), and each check\nthat needs one.\n\nTask #1151: Require memory header, list bad ones\n\n## Goal\n\nMake wrap-up write the memory-file header Claude Code reads (`name`, `description`, `metadata.type`), and make `list-drift.py` list a file whose header is missing or wrong, so no memory file lands headerless again. Owner approved the finding (https://github.com/kalaluthien/mumu-claude-plugin/issues/1148). Prior work: #433 and #446 (wrap-up merge) and #1094 (memory home); none set a header.\n\n- Cause: `homework/skills/wrap-up/SKILL.md` Domain **Memory file** defines the body lines only, and `references/retro.md` step 5 **Add** names only `confirmed` and `last-confirmed`.\n- A bad header is: no frontmatter; a `name` that differs from the file name without `.md`; no `description`; a `metadata.type` that is not `user`, `feedback`, `project` or `reference`.\n- Scope: the SKILL.md line, the retro.md **Add** line, `scripts/list-drift.py` with a reader in `homework/lib/memory.py`, and a fixture pool in `homework/skills/wrap-up/fixtures/header-pool/`. `MEMORY.md` is not a memory file and stays unchecked.\n- Order: #1149 waits on this task.\n\n## Definition of done\n\n1. [check] **Skill names the header**: `grep -c 'metadata.type' homework/skills/wrap-up/SKILL.md` prints `1`; on base `0`.\n2. [check] **Add step names the header**: `grep -c 'metadata.type' homework/skills/wrap-up/references/retro.md` prints `1`; on base `0`.\n3. [check] **Headerless file listed**: `python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*headerless.md'` prints `1`; on base `0`.\n4. [check] **Wrong name listed**: `python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*wrong-name.md.*name'` prints `1`; on base `0`.\n5. [check] **Missing description listed**: `python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*no-description.md.*description'` prints `1`; on base `0`.\n6. [check] **Bad type listed**: `python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*bad-type.md.*metadata.type'` prints `1`; on base `0`.\n7. [check] **Only the bad files listed**: `python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header'` prints `5`; on base `0`.\n8. [check] **Pool holds the files that must pass**: `ls homework/skills/wrap-up/fixtures/header-pool/good.md homework/skills/wrap-up/fixtures/header-pool/blank-line.md homework/skills/wrap-up/fixtures/header-pool/MEMORY.md 2>/dev/null | wc -l` prints `3`; on base `0`.\n\n9. [check] **Index stays headerless**: `test -f homework/skills/wrap-up/fixtures/header-pool/MEMORY.md && grep -c \"^---\" homework/skills/wrap-up/fixtures/header-pool/MEMORY.md` prints `0`; on base nothing.\n\n10. [check] **Retro runs the check**: `grep -c 'bad header' homework/skills/wrap-up/references/retro.md` prints `1`; on base `0`.\n11. [check] **Real memory raises no alarm**: `python3 homework/skills/wrap-up/scripts/list-drift.py ~/.claude ~/.claude/memory ~/.claude/memory/*/ homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header'` prints `5`; on base `0`.\n12. [check] **Type under another key listed**: `python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*outside-metadata.md.*metadata.type'` prints `1`; on base `0`.",
+ "environment": {
+  "CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1",
+  "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1"
+ },
+ "blocked_tools": [
+  "gh",
+  "herdr",
+  "claude"
+ ],
+ "init": {
+  "plugins": [
+   "cc-plugin-agents-md",
+   "cc-plugin-telemetry",
+   "cc-plugin-privacy",
+   "cc-plugin-plugin-authoring"
+  ],
+  "mcp_servers": [],
+  "model": "claude-sonnet-5-5"
+ },
+ "hook_events": [],
+ "total_cost_usd": 0.0839878,
+ "models": [
+  "claude-sonnet-5-5"
+ ],
+ "is_error": false,
+ "subtype": "success",
+ "num_turns": 5,
+ "turns": [
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 5991,
+    "cache_read_input_tokens": 13968,
+    "output_tokens": 20,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 5991
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 3072,
+    "cache_read_input_tokens": 19959,
+    "output_tokens": 4,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 3072
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 334,
+    "cache_read_input_tokens": 23031,
+    "output_tokens": 7,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 334
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2070,
+    "cache_read_input_tokens": 23365,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2070
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 381,
+    "cache_read_input_tokens": 25435,
+    "output_tokens": 489,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 381
+    }
+   }
+  }
+ ],
+ "bash_results": [
+  {
+   "id": "toolu_01RwDPL99ftLvLtoBKFVBa3K",
+   "command": "cd homework; cat lib/memory.py skills/wrap-up/scripts/list-drift.py; grep -n -i \"memory file\\|confirmed\" skills/wrap-up/SKILL.md skills/wrap-up/references/retro.md; ls skills/wrap-up skills/wrap-up/fixtures",
+   "chars": 7026,
+   "lines": 131
+  },
+  {
+   "id": "toolu_01KQhyCZdpLvyFfwn7MTRU8F",
+   "command": "cd skills/wrap-up; grep -n \"list-drift\\|drift\" references/retro.md SKILL.md | cut -c1-300",
+   "chars": 31,
+   "lines": 1
+  },
+  {
+   "id": "toolu_01MzzFKsX6uJCCJWHwfa9R5a",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1151-none-2-ruqrlk3w/repository/homework\npython3 - <<'E'\nimport re\np='skills/wrap-up/SKILL.md'; s=open(p).read()\ns=s.replace(\"- **Memory file**: one lesson,\",\"- **Memory file**: a frontmatter header Claude Code reads, `name` (the file name without `.md`), `description` and `metadata.type` (`user`, `feedback`, `project` or `reference`), then one lesson,\")\nopen(p,'w').write(s)\np='skills/wrap-up/references/retro.md'; s=open(p).read()\ns=s.replace(\"with `confirmed: 1` and `last-confirmed: <today>` in its frontmatter,\",\"with the header `name`, `description` and `metadata.type` and `confirmed: 1` and `last-confirmed: <today>` in its frontmatter (`scripts/list-drift.py` lists a file with a `bad header`),\")\nopen(p,'w').write(s)\np='lib/memory.py'; s=open(p).read()\ns+='''\n\nTYPES = (\"user\", \"feedback\", \"project\", \"reference\")\n\n\ndef header_problems(path, text):\n    \"\"\"What is wrong with a memory file's header: no frontmatter, `name` not the file name, no `description`, `metadata.type` not one of TYPES.\"\"\"\n    front, _ = split(text)\n    if front is None:\n        return [\"no frontmatter\"]\n    top, meta, inside = {}, {}, False\n    for line in front.splitlines():\n        found = re.match(r\"([ \\\\t]*)([\\\\w-]+):[ \\\\t]*(.*?)[ \\\\t]*$\", line)\n        if not found:\n            continue\n        indent, key, value = found.groups()\n        if not indent:\n            inside = key == \"metadata\"\n            top[key] = value.strip(\"'\\\\\"\")\n        elif inside:\n            meta[key] = value.strip(\"'\\\\\"\")\n    problems = []\n    if top.get(\"name\") != os.path.basename(path)[:-3]:\n        problems.append(\"name is not the file name without .md\")\n    if not top.get(\"description\"):\n        problems.append(\"no description\")\n    if meta.get(\"type\") not in TYPES:\n        problems.append(\"metadata.type is not user, feedback, project or reference\")\n    return problems\n'''\nopen(p,'w').write(s)\np='skills/wrap-up/scripts/list-drift.py'; s=open(p).r",
+   "chars": 573,
+   "lines": 9
+  },
+  {
+   "id": "toolu_011W6JgMw4NAbuS9GfBBxJnr",
+   "command": "cd .. && git add -A && git commit -qm \"Require memory header in wrap-up, list bad ones in list-drift\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -1",
+   "chars": 69,
+   "lines": 1
+  }
+ ],
+ "refetches": [],
+ "saving": {
+  "removed_units": 0.0,
+  "refetch_units": 0.0,
+  "reread_units": 0.0,
+  "net_units": 0.0,
+  "run_units": 110765.4,
+  "net_share": 0.0,
+  "net_share_reread_results_charged": 0.0,
+  "net_share_rereads_charged": 0.0
+ },
+ "checks": [
+  {
+   "index": 1,
+   "command": "grep -c 'metadata.type' homework/skills/wrap-up/SKILL.md",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 2,
+   "command": "grep -c 'metadata.type' homework/skills/wrap-up/references/retro.md",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 3,
+   "command": "python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*headerless.md'",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 4,
+   "command": "python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*wrong-name.md.*name'",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 5,
+   "command": "python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*no-description.md.*description'",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 6,
+   "command": "python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*bad-type.md.*metadata.type'",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 7,
+   "command": "python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header'",
+   "test": [
+    "prints",
+    "5"
+   ],
+   "result": "pass",
+   "output": "5"
+  },
+  {
+   "index": 8,
+   "command": "ls homework/skills/wrap-up/fixtures/header-pool/good.md homework/skills/wrap-up/fixtures/header-pool/blank-line.md homework/skills/wrap-up/fixtures/header-pool/MEMORY.md 2>/dev/null | wc -l",
+   "test": [
+    "prints",
+    "3"
+   ],
+   "result": "pass",
+   "output": "3"
+  },
+  {
+   "index": 9,
+   "command": "test -f homework/skills/wrap-up/fixtures/header-pool/MEMORY.md && grep -c \"^---\" homework/skills/wrap-up/fixtures/header-pool/MEMORY.md",
+   "test": [
+    "prints",
+    "0"
+   ],
+   "result": "pass",
+   "output": "0"
+  },
+  {
+   "index": 10,
+   "command": "grep -c 'bad header' homework/skills/wrap-up/references/retro.md",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 12,
+   "command": "python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*outside-metadata.md.*metadata.type'",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  }
+ ],
+ "stderr": "",
+ "passed": true,
+ "seconds": 22
+}

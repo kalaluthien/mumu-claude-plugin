@@ -1,0 +1,326 @@
+{
+ "task": 1136,
+ "pull": "1142",
+ "base_sha": "28e0a9545444efa7512d0345fe61cd46c100a1e0",
+ "arm": "output-cap",
+ "repeat": 2,
+ "command": [
+  "claude",
+  "-p",
+  "<prompt>",
+  "--model",
+  "sonnet",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--max-budget-usd",
+  "5",
+  "--permission-mode",
+  "acceptEdits",
+  "--allowedTools",
+  "Bash",
+  "Read",
+  "Edit",
+  "Write",
+  "Grep",
+  "Glob",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--include-hook-events",
+  "--no-session-persistence",
+  "--plugin-dir",
+  "/Users/hyungmokim/workspace/plugins/.claude/worktrees/read-shunt-worker/teamwork/hooks/fixtures/output-cap-arm"
+ ],
+ "prompt": "You are replaying a past task in a fresh checkout of the mumu-claude-plugin repository, your working folder.\nDo the task below fully: change the files so that each `[check]` of its Definition of done passes, run the checks you can,\nthen commit your change with git. GitHub, herdr and other Claude sessions are off in this replay: skip each step that reads\nor writes an issue, pull request, comment or session (filing, commenting, judging, pushing, telling), and each check\nthat needs one.\n\nTask #1136: Guard git landing, place worktrees\n\n## Goal\n\nStop a git landing from reporting success while the base checkout stays behind, and put a worker's worktree beside the others, from the outside projects' requests in https://github.com/kalaluthien/mumu-claude-plugin/issues/1133 (`landing-bare-report.md`: two landings moved `main` while the files stayed old for two hours; `repeated-mistakes.md` section 2: 3 sessions made the worktree under a plugin subfolder).\n\n- **Bare flag**: `landing_git.merge()` refuses, changing nothing, when `core.bare` is true on a repository whose common folder is a `.git`, since no worktree then shows as holding the base, and the error says `git config core.bare false`. A truly bare repository still lands by `update-ref`. Their `git init` cause is theirs to fix.\n- **Worktree place**: a new `teamwork/skills/kick-off/scripts/add-worktree.py <name> <base> [<branch>]` runs `git worktree add` at the main checkout's `.claude/worktrees/<name>` from any folder, and prints the path; both landing adapters' `branch` rows name it.\n- **Not here**: the reflog message of the `update-ref` path; `~/.claude/CLAUDE.md` (section 3).\n- Files: `teamwork/lib/landing_git.py`, `teamwork/skills/kick-off/fixtures/replay-landing-scenario.py`, new `add-worktree.py`, `references/adapters/landing-git.md`, `landing-github.md`.\n\n\n\n## Definition of done\n\n1. [check] **a bare flag refuses the merge**: `python3 teamwork/skills/kick-off/fixtures/replay-landing-scenario.py 2>&1 | grep -c '^ok refuse-bare-checkout$'` prints `1`, a merge with `core.bare` true exiting 1, naming `core.bare`, and leaving the base and the change as they were; on base `0`.\n2. [check] **the worktree lands at the main checkout**: `S=$PWD/teamwork/skills/kick-off/scripts; d=$(mktemp -d) && git -C $d init -q -b main && git -C $d commit -q --allow-empty -m i && mkdir $d/sub && (cd $d/sub && python3 $S/add-worktree.py probe-worker main >/dev/null 2>&1); test -d $d/.claude/worktrees/probe-worker && ! test -e $d/sub/.claude && echo root || echo misplaced` prints `root`; on base `misplaced`.\n3. [check] **a branch name is kept**: `S=$PWD/teamwork/skills/kick-off/scripts; d=$(mktemp -d) && git -C $d init -q -b main && git -C $d commit -q --allow-empty -m i && (cd $d && python3 $S/add-worktree.py probe-worker main feature/probe-worker >/dev/null 2>&1); git -C $d branch --list feature/probe-worker | grep -c feature/probe-worker` prints `1`; on base `0`.\n4. [check] **both adapters name the script**: `cat teamwork/skills/kick-off/references/adapters/landing-git.md teamwork/skills/kick-off/references/adapters/landing-github.md | grep -c 'add-worktree.py'` prints `2`; on base `0`.\n5. [check] **no replay step fails and the bare clone is left alone**: `python3 teamwork/skills/kick-off/fixtures/replay-landing-scenario.py 2>&1 | grep -c '^ok '` prints `11`, every step ok including `bare-repository`, a truly bare clone not flagged by the guard; on base `9`.",
+ "environment": {
+  "CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1",
+  "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1"
+ },
+ "blocked_tools": [
+  "gh",
+  "herdr",
+  "claude"
+ ],
+ "init": {
+  "plugins": [
+   "output-cap-arm",
+   "cc-plugin-agents-md",
+   "cc-plugin-telemetry",
+   "cc-plugin-privacy",
+   "cc-plugin-plugin-authoring"
+  ],
+  "mcp_servers": [],
+  "model": "claude-sonnet-5-5"
+ },
+ "hook_events": [
+  "PreToolUse:Bash",
+  "PreToolUse:Bash",
+  "PreToolUse:Bash",
+  "PreToolUse:Bash",
+  "PreToolUse:Bash",
+  "PreToolUse:Bash",
+  "PreToolUse:Bash",
+  "PreToolUse:Bash",
+  "PreToolUse:Bash"
+ ],
+ "total_cost_usd": 0.16006690000000004,
+ "models": [
+  "claude-sonnet-5-5"
+ ],
+ "is_error": false,
+ "subtype": "success",
+ "num_turns": 12,
+ "turns": [
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 5604,
+    "cache_read_input_tokens": 13968,
+    "output_tokens": 21,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 5604
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 8500,
+    "cache_read_input_tokens": 19572,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 8500
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 265,
+    "cache_read_input_tokens": 28072,
+    "output_tokens": 20,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 265
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1262,
+    "cache_read_input_tokens": 28337,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1262
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2791,
+    "cache_read_input_tokens": 29599,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2791
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 781,
+    "cache_read_input_tokens": 32390,
+    "output_tokens": 58,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 781
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 348,
+    "cache_read_input_tokens": 33171,
+    "output_tokens": 6,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 348
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 503,
+    "cache_read_input_tokens": 33519,
+    "output_tokens": 53,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 503
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 617,
+    "cache_read_input_tokens": 34022,
+    "output_tokens": 20,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 617
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 186,
+    "cache_read_input_tokens": 34639,
+    "output_tokens": 457,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 186
+    }
+   }
+  }
+ ],
+ "bash_results": [
+  {
+   "id": "toolu_015f2YXnyNGHUWa1C6RBx82r",
+   "command": "cd teamwork/skills/kick-off; ls scripts; grep -n -i 'worktree' references/adapters/landing-git.md references/adapters/landing-github.md",
+   "chars": 1972,
+   "lines": 27
+  },
+  {
+   "id": "toolu_01R3BJnBnMTM8XaxrtjdZHwL",
+   "command": "cd teamwork/skills/kick-off/scripts; cat remove-worktree.py | head -40; cat ../../../lib/data_folder.py | head -40",
+   "chars": 183,
+   "lines": 3
+  },
+  {
+   "id": "toolu_012xEDscWBCH862QzpErJ3Vw",
+   "command": "cd scripts; head -30 remove-worktree.py; head -40 ../../../lib/data_folder.py",
+   "chars": 2462,
+   "lines": 51,
+   "cut": {
+    "lines_cut": 20,
+    "lines": 70,
+    "file": "/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/bash-output.gIAJ55xMK3",
+    "file_chars": 3229,
+    "removed_chars": 896,
+    "removed_units": 3176.7
+   }
+  },
+  {
+   "id": "toolu_01CksLSPHhTnMZDjawQ1dAuV",
+   "command": "cd scripts; cat > add-worktree.py <<'EOF'\n#!/usr/bin/env python3\n\"\"\"Add a worker's worktree at `<main checkout>/.claude/worktrees/<name>`, from any folder of the repository, and print its path. The branch is\nBRANCH, or NAME when none is given, made new off BASE.\n\nusage: add-worktree.py <name> <base> [<branch>]\"\"\"\nimport pathlib\nimport subprocess\nimport sys\n\n\ndef main(args):\n    if len(args) not in (2, 3):\n        print(__doc__, file=sys.stderr)\n        return 2\n    name, base, branch = args[0], args[1], args[2] if len(args) == 3 else args[0]\n    common = subprocess.run([\"git\", \"rev-parse\", \"--path-format=absolute\", \"--git-common-dir\"], capture_output=True, text=True)\n    if common.returncode:\n        print(common.stderr.strip() or \"not in a git repository\", file=sys.stderr)\n        return 1\n    folder = pathlib.Path(common.stdout.strip())\n    root = folder.parent if folder.name == \".git\" else folder\n    tree = root / \".claude\" / \"worktrees\" / name\n    made = subprocess.run([\"git\", \"worktree\", \"add\", \"-q\", \"-b\", branch, str(tree), base], cwd=root, capture_output=True, text=True)\n    if made.returncode:\n        print(made.stderr.strip(), file=sys.stderr)\n        return 1\n    print(tree)\n    return 0\n\n\nif __name__ == \"__main__\":\n    sys.exit(main(sys.argv[1:]))\nEOF\nchmod +x add-worktree.py\ncd ../references/adapters\nsed -i '' 's#`git worktree add -b <name> .claude/worktrees/<name> <base>` in the checkout#[add-worktree.py](../../scripts/add-worktree.py) `<name> <base> [<branch>]`, from any folder, which adds the worktree at the main checkout'\"'\"'s `.claude/worktrees/<name>` and prints its path#' landing-git.md\nsed -i '' 's#`git worktree add -b <name> .claude/worktrees/<name> origin/<base>` in the checkout#[add-worktree.py](../../scripts/add-worktree.py) `<name> origin/<base> [<branch>]`, from any folder, which adds the worktree at the main checkout'\"'\"'s `.claude/worktrees/<name>` and prints its path#' landing-github.md\ncd ../../../../lib\npython3 - <<'EOF'\np='landing_git",
+   "chars": 494,
+   "lines": 14
+  },
+  {
+   "id": "toolu_01L99USArJqT24dpE9vSfUTk",
+   "command": "git status --short; pwd; ls teamwork/skills/kick-off/scripts/add-worktree.py; git diff --stat",
+   "chars": 763,
+   "lines": 12
+  },
+  {
+   "id": "toolu_01PVauba5J2mAK2aifXeg2u9",
+   "command": "cd /tmp && rm -rf bt && git clone -q --bare /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1136-output-cap-2-qep_xdal/repository bt 2>&1 | tail -2; git -C bt branch -a | head; git -C bt rev-parse 'main^{tree}'",
+   "chars": 172,
+   "lines": 3
+  },
+  {
+   "id": "toolu_01MwFMfWvGh14iPBLizNwv9L",
+   "command": "grep -n 'base\\|argv' teamwork/skills/kick-off/scripts/use-landing.py | head -20",
+   "chars": 578,
+   "lines": 5
+  },
+  {
+   "id": "toolu_01ACEEbAzirmFJ3ab4brfUdh",
+   "command": "sed -i '' 's#\"Bare\", work / \"body.md\"\\]#\"Bare\", work / \"body.md\", \"main\"]#' teamwork/skills/kick-off/fixtures/replay-landing-scenario.py\npython3 teamwork/skills/kick-off/fixtures/replay-landing-scenario.py 2>&1 | tail -3; python3 teamwork/skills/kick-off/fixtures/replay-landing-scenario.py 2>&1 | grep -c '^ok '\nS=$PWD/teamwork/skills/kick-off/scripts; d=$(mktemp -d) && git -C $d init -q -b main && git -C $d commit -q --allow-empty -m i && mkdir $d/sub && (cd $d/sub && python3 $S/add-worktree.py probe-worker main feature/x); ls $d/.claude/worktrees; git -C $d branch --list 'feature/x'\ncat teamwork/skills/kick-off/references/adapters/landing-*.md | grep -c add-worktree.py",
+   "chars": 319,
+   "lines": 9
+  },
+  {
+   "id": "toolu_01FEzKsbRSUprZavQhZeLSzE",
+   "command": "git add -A && git commit -qm \"Guard git landing against a bare flag, add add-worktree.py\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -1",
+   "chars": 66,
+   "lines": 1
+  }
+ ],
+ "refetches": [],
+ "saving": {
+  "removed_units": 3176.7,
+  "refetch_units": 0.0,
+  "reread_units": 0.0,
+  "net_units": 3176.7,
+  "run_units": 221198.7,
+  "net_share": 0.0142,
+  "net_share_reread_results_charged": 0.0142,
+  "net_share_rereads_charged": 0.0142
+ },
+ "checks": [
+  {
+   "index": 1,
+   "command": "python3 teamwork/skills/kick-off/fixtures/replay-landing-scenario.py 2>&1 | grep -c '^ok refuse-bare-checkout$'",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 3,
+   "command": "S=$PWD/teamwork/skills/kick-off/scripts; d=$(mktemp -d) && git -C $d init -q -b main && git -C $d commit -q --allow-empty -m i && (cd $d && python3 $S/add-worktree.py probe-worker main feature/probe-worker >/dev/null 2>&1); git -C $d branch --list feature/probe-worker | grep -c feature/probe-worker",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 4,
+   "command": "cat teamwork/skills/kick-off/references/adapters/landing-git.md teamwork/skills/kick-off/references/adapters/landing-github.md | grep -c 'add-worktree.py'",
+   "test": [
+    "prints",
+    "2"
+   ],
+   "result": "pass",
+   "output": "2"
+  },
+  {
+   "index": 5,
+   "command": "python3 teamwork/skills/kick-off/fixtures/replay-landing-scenario.py 2>&1 | grep -c '^ok '",
+   "test": [
+    "prints",
+    "11"
+   ],
+   "result": "pass",
+   "output": "11"
+  }
+ ],
+ "stderr": "",
+ "passed": true,
+ "seconds": 136
+}
