@@ -229,13 +229,14 @@ def drift_nodes():
             node(6, body(), native_parts=[3]), node(7, body(depends=[3]))]
 
 
-def pane_cases(lines, root, waiting, first, second):
+def pane_cases(lines, root, waiting, first, second, named=None):
     rows = [line for line in lines if re.match(r"^[\s│├└]*#\d+ ", line)]
     under = [line for line in rows if line.lstrip(" │├└").startswith(f"#{waiting} ")]
     step("pane-nesting", len(under) == 1 and under[0].startswith(("  └ ", "  ├ ")) and rows[0].startswith(f"#{root} "), rows)
     step("pane-wait-line", sum(line.strip(" │") == f"← #{first} #{second}" for line in lines) == 1, lines)
     step("pane-done-count", any(line.strip(" │").startswith("1/2 done") for line in lines), lines)
-    step("pane-named-no-row", not any(line.lstrip(" │├└").startswith("#6 ") for line in rows), rows)
+    if named:
+        step("pane-named-no-row", not any(line.lstrip(" │├└").startswith(f"#{named} ") for line in rows), rows)
 
 
 def main(args):
@@ -267,7 +268,7 @@ def main(args):
         heartbeat_cases(board.tree(None, json.loads((work / "nodes.json").read_text())), native=True)
         (work / "nodes.json").write_text(json.dumps(pane_nodes()))
         shown = subprocess.run([sys.executable, str(LIST), "--nodes", str(work / "nodes.json")], capture_output=True, text=True)
-        pane_cases(shown.stdout.splitlines(), 1, 3, 4, 5)
+        pane_cases(shown.stdout.splitlines(), 1, 3, 4, 5, named=6)
         return 1 if failures else 0
     refuse_cases()
     derive_cases()
