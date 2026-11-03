@@ -1,6 +1,7 @@
-// Render a manager's issue pane from the board in a nodes file, through stand-ins for `claude-code` and the JSX runtime, and check
-// that every line it draws, every row folded, is a line `list-issue-board.py --width 40` prints for that board, in the same order:
-// `same`, else `differ: <the first line not found>`, exit 1.
+// Render a manager's issue pane from the board in a nodes file, every row unfolded, through stand-ins for `claude-code` and the JSX
+// runtime, and check it row for row against `list-issue-board.py`: each row's title, status and `←` lines, guide included, are the
+// lines its `--json` row lays out, in the order `--width 40` prints them, and an unfolded row with a goal, criteria or closed parts
+// draws them: `same`, else `differ: <the first difference>`, exit 1.
 // usage: bun teamwork/hooks/fixtures/render-task-pane.ts <nodes-file>
 import { plugin } from 'bun'
 
@@ -35,12 +36,13 @@ plugin({
   },
 })
 
-type Node = { type?: string; props?: { children?: unknown; label?: string } }
-// a link shows its label; a button's own label is the fold mark, drawn apart from the row's text
+type Node = { type?: string; props?: { children?: unknown; label?: string; text?: string } }
+// a link shows its label and Markdown its text; a button's own label is the fold mark, drawn apart from the row's text
 const text = (node: unknown): string =>
   node == null || typeof node === 'boolean' ? '' : typeof node === 'string' || typeof node === 'number' ? String(node)
     : Array.isArray(node) ? node.map(text).join('')
     : (node as Node).type === 'Link' ? (node as Node).props?.label ?? ''
+    : (node as Node).type === 'Markdown' ? (node as Node).props?.text ?? ''
     : (node as Node).type === 'Button' && (node as Node).props?.label !== undefined ? '' : text((node as Node).props?.children)
 const children = (node: unknown): unknown[] => [(node as Node).props?.children].flat(Infinity).filter(child => child != null && typeof child !== 'boolean')
 
@@ -71,18 +73,27 @@ const { register } = await import('../draw-issue-pane.tsx')
 register(on as any)
 await handlers['session.start']($, { cwd: '/repo' }, async () => ({}))
 await settle(1)
+type Row = { number: number; guide: string; pad: string; goal: string; detail: string[]; done: { name: string }[]; next: string;
+  closed: { title: string }[]; lines: { title: string[]; status: string[]; after: string[] } }
+const rows = JSON.parse(listed('--json')) as Row[]
+store.set('expanded', rows.map(row => row.number))
 const pane = await handlers['ui.render Pane']($, {})
-// each row is a column whose children are its lines
-const drawn = children(pane).flatMap(row => children(row).map(text))
+const drawn = children(pane).filter(child => (child as Node).type === 'Box')
+const differ = (what: string) => { console.log(`differ: ${what}`); process.exit(1) }
+if (drawn.length !== rows.length) differ(`${drawn.length} rows drawn, ${rows.length} listed`)
 const printed = listed('--width', '40').split('\n')
 let at = 0
-for (const line of drawn) {
-  while (at < printed.length && printed[at] !== line) at++
-  if (at === printed.length) {
-    console.log(`differ: ${JSON.stringify(line)}`)
-    process.exit(1)
-  }
-  at++
-}
-console.log(drawn.length > 0 ? 'same' : 'differ: the pane drew no row')
-process.exit(drawn.length > 0 ? 0 : 1)
+rows.forEach((row, k) => {
+  const heading = [row.guide + row.lines.title[0], ...[...row.lines.title.slice(1), ...row.lines.status, ...row.lines.after].map(line => row.pad + line)]
+  const lines = children(drawn[k])
+  heading.forEach((line, i) => {
+    if (text(lines[i]) !== line) differ(`#${row.number} line ${i + 1}: drew ${JSON.stringify(text(lines[i]))}, listed ${JSON.stringify(line)}`)
+    while (at < printed.length && printed[at] !== line) at++
+    if (at++ === printed.length) differ(`#${row.number}: ${JSON.stringify(line)} is not in the --width 40 listing, in order`)
+  })
+  const folded = lines.slice(heading.length).map(text).join(' ')
+  const owed = [row.goal, row.detail.length ? 'see detail' : '', ...row.done.map(item => item.name), row.next, ...row.closed.map(task => task.title)].filter(Boolean)
+  const missing = owed.find(piece => !folded.includes(piece))
+  if (missing !== undefined) differ(`#${row.number} unfolded lacks ${JSON.stringify(missing)}`)
+})
+console.log('same')

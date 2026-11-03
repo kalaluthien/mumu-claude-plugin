@@ -220,7 +220,9 @@ def tree(project, nodes=None):
         node["trusted"] = trusted(node)
         for item in node["comments"]["nodes"]:
             item["trusted"] = trusted(item)
-        native_parts = (node.get("subIssues") or {}).get("nodes", [])
+        if "subIssues" not in node:  # an issue a body names, read without its native links, which then are not compared
+            continue
+        native_parts = node["subIssues"]["nodes"]
         node["native"] = {"parent": (node.get("parent") or {}).get("number"), "parts": [part["number"] for part in native_parts],
                           "titles": {part["number"]: part["title"] for part in native_parts}, "total": (node.get("subIssuesSummary") or {}).get("total", len(native_parts)),
                           "depends": [wait["number"] for wait in (node.get("blockedBy") or {}).get("nodes", [])]}

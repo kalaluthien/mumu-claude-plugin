@@ -131,5 +131,18 @@
   "comments": {
    "nodes": []
   }
+ },
+ {
+  "number": 17,
+  "title": "Note a root with no sections",
+  "url": "u/17",
+  "body": "Keep the pane readable when a root has only a summary paragraph.\n",
+  "authorAssociation": "OWNER",
+  "labels": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  }
  }
 ]

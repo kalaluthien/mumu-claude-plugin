@@ -64,7 +64,7 @@ def plan(nodes):
             changes[number] = {"scope": scope_of(node) if node else None, "open": node is not None, "parts": [], "depends": [], "label": False}
         return changes[number]
 
-    for node in nodes:
+    for node in (node for node in nodes if "native" in node):
         native, number = node["native"], node["number"]
         said = task_links.parts(node["body"])
         titles = dict(native["titles"])

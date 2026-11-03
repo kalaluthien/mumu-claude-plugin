@@ -49,7 +49,8 @@ def resolve(number, summary, completed=True):
         resolve(part, f"REPORTED: stopped with its parent #{number}.", False)
     parent = completed and adapter().parent_of(number)
     found = parent and adapter().fresh(parent, comments=False)
-    if found and found["state"] == "OPEN" and not task_links.criteria(found["body"]):
+    # GitHub names the parent by its native mirror, so the parent's own body must name the part too
+    if found and found["state"] == "OPEN" and int(number) in task_links.parts(found["body"]) and not task_links.criteria(found["body"]):
         named = [adapter().fresh(part, comments=False) for part in task_links.parts(found["body"])]
         if all(part and task_links.completed(part) for part in named):
             resolve(parent, f"REPORTED: every part closed as completed, the last #{number}.")

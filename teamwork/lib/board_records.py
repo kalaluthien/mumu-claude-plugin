@@ -76,12 +76,13 @@ def comment_paths(store, number):
     return [f"{number}/comments/{name}" for name in store.children(f"{number}/comments") if name.endswith(".md")]
 
 
-def record(store, number, comments=True):
+def record(store, number, comments=True, owners=None):
+    """NUMBER's record; OWNERS, the parents by part from `owners(store)`, spares a read of every body when many records are read."""
     issue = meta(store, number)
     notes = [{"body": store.read(path), "url": f"{store.url(str(number))}#comment-{int(path.rsplit('/', 1)[1][:-3])}", "createdAt": stamp(store.written(path)), "trusted": True}
              for path in comment_paths(store, number)] if comments else []
     return {"number": number, "title": issue["title"], "body": store.read(f"{number}/body.md"), "url": store.url(str(number)), "state": issue["state"], "stateReason": issue["reason"],
-            "createdAt": issue["createdAt"], "closedAt": issue["closedAt"], "trusted": True, "labels": issue["labels"], "parent": parent_of(store, number), "isPullRequest": False,
+            "createdAt": issue["createdAt"], "closedAt": issue["closedAt"], "trusted": True, "labels": issue["labels"], "parent": parent_of(store, number) if owners is None else owners.get(number), "isPullRequest": False,
             "mergedAt": None, "comments": notes}
 
 
@@ -96,7 +97,8 @@ def issues(store, state="open", project=None, pulls=False, comments=True, since=
     store.view()
     label = project and scoped(store, project)
     keep = lambda issue: state in ("all", issue["state"].lower()) and (not label or label in issue["labels"]) and (not since or issue["updatedAt"] >= since)
-    return [record(store, number, comments) for number in reversed(numbers(store)) if keep(meta(store, number))]
+    parents = owners(store)
+    return [record(store, number, comments, parents) for number in reversed(numbers(store)) if keep(meta(store, number))]
 
 
 def fresh(store, number, repo=None, comments=True):
@@ -109,12 +111,18 @@ def fresh(store, number, repo=None, comments=True):
 
 def comments_since(store, since):
     store.view()
-    return [(number, note) for number in numbers(store) for note in record(store, number)["comments"] if note["createdAt"] >= since]
+    parents = owners(store)
+    return [(number, note) for number in numbers(store) for note in record(store, number, owners=parents)["comments"] if note["createdAt"] >= since]
 
 
 def changed_since(store, stamp):
     store.view()
     return any(meta(store, number)["updatedAt"] >= stamp for number in numbers(store))
+
+
+def owners(store):
+    """{part: the issue whose body names it}, read in one pass over the bodies."""
+    return {part: owner for owner in numbers(store) for part in task_links.parts(store.read(f"{owner}/body.md"))}
 
 
 def parent_of(store, number):
