@@ -33,7 +33,7 @@ def step(name, ok, detail=""):
 
 
 def session(project, session_id, seconds, text):
-    """Write a transcript of one owner line and one agent line, last changed at seconds."""
+    """Write a transcript of an owner line, an agent line and a second owner line, last changed at seconds."""
     folder = os.path.join(CONFIG, "projects", project)
     os.makedirs(folder, exist_ok=True)
     path = os.path.join(folder, f"{session_id}.jsonl")
@@ -42,6 +42,7 @@ def session(project, session_id, seconds, text):
     with open(path, "w") as out:
         out.write(json.dumps(dict(base, type="user", origin={"kind": "human"}, message={"role": "user", "content": text})) + "\n")
         out.write(json.dumps(dict(base, type="assistant", message={"role": "assistant", "content": [{"type": "text", "text": "ok"}]})) + "\n")
+        out.write(json.dumps(dict(base, type="user", origin={"kind": "human"}, message={"role": "user", "content": "go on"})) + "\n")
     os.utime(path, (seconds, seconds))
     return path
 

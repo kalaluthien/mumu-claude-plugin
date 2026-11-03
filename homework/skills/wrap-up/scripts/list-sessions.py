@@ -8,7 +8,8 @@ usage: list-sessions.py due <data> [--due-hours <h>]                  `due` when
 
 Digests print as `batch <k>: <digest> ...` lines of at most 10, one haiku agent each. The window is the interactive
 top-level transcripts under ${CLAUDE_CONFIG_DIR:-~/.claude}/projects changed in the last <d> days (14). A session with no
-owner line and no answer gets no digest, since its facet would be empty. An `AskUserQuestion` answer shows as
+owner line after its first prompt and no answer gets no digest, since a friction or habit item answers what the agent did,
+and such a session, often one another session started, shows none. An `AskUserQuestion` answer shows as
 `[ANSWER L<n>]: <question> | options: <label> / ... | answer: <the owner's pick or own words>`.
 """
 import glob
@@ -194,7 +195,8 @@ def main(args):
         if stats is None:
             continue
         write(data, path, "stats", stats)
-        if not owners or (os.path.basename(path)[:-6] in faceted and verb == "map"):
+        answered = any(owner["text"].startswith("[ANSWER") for owner in owners)
+        if (len(owners) < 2 and not answered) or (os.path.basename(path)[:-6] in faceted and verb == "map"):
             continue
         if len(digests) < settings["limit"] or verb == "digest":
             digests.append(write(data, path, "digests", digest(path, lines)))

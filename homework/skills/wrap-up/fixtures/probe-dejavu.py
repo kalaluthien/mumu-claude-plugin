@@ -125,16 +125,16 @@ def main(args):
     session("-r-alpha", "ffff0001-0000-0000-0000-000000000000", NOW - DAY, [("owner", "sdk"), ("agent", "x")], "sdk-cli")
     # a short session: owner text cut at 500, agent at 300
     short = session("-r-alpha", "abab0000-0000-0000-0000-000000000000", NOW - 2 * DAY,
-                    [("owner", "O" * 600), ("agent", "A" * 400)])
+                    [("owner", "O" * 600), ("agent", "A" * 400), ("owner", "next")])
     # a long session: every owner line kept, digest at most 30k chars
     long_turns = []
     for k in range(80):
         long_turns += [("agent", f"step {k} " + "z" * 2000), ("owner", f"OWNERLINE{k:03d} please change it")]
     session("-r-beta", "acac0000-0000-0000-0000-000000000000", NOW - 2 * DAY, long_turns)
-    # an answered question with the owner's own words; a session with no owner line and no answer
+    # an answered question with the owner's own words; a session with only its first prompt and no answer
     session("-r-alpha", "adad0000-0000-0000-0000-000000000000", NOW - 2 * DAY,
             [("agent", "pick one"), ("answer", "Which way?", ["Merge (Recommended)", "Drop"], "what is this? explain first")])
-    session("-r-alpha", "aeae0000-0000-0000-0000-000000000000", NOW - 2 * DAY, [("agent", "alone"), ("fail", "Bash", "lonely")])
+    session("-r-alpha", "aeae0000-0000-0000-0000-000000000000", NOW - 2 * DAY, [("owner", "start"), ("agent", "alone"), ("fail", "Bash", "lonely")])
 
     before = snapshot()
     step("due on fresh data", run(SESSIONS, "due", DATA).strip() == "due")
@@ -156,14 +156,14 @@ def main(args):
     text = open(os.path.join(DATA, "digests", "adad0000-0000-0000-0000-000000000000.txt")).read() if "adad0000-0000-0000-0000-000000000000" in digests else ""
     step("an answer shows as an [ANSWER L<n>] line with its options, the recommended one marked, and the owner's own words",
          re.search(r"^\[ANSWER L\d+\]: Which way\? \| options: Merge \(Recommended\) / Drop \| answer: what is this\? explain first$", text, re.M))
-    step("no digest for a session with no owner line and no answer, its signatures kept",
+    step("no digest for a session with no owner line after its first prompt and no answer, its signatures kept",
          "aeae0000-0000-0000-0000-000000000000" not in digests
          and os.path.exists(os.path.join(DATA, "stats", "aeae0000-0000-0000-0000-000000000000.json")))
     step("batches of at most 10 digests", batches and all(len(re.findall(r"\.txt\b", batch)) <= 10 for batch in batches))
 
     # 45 more fresh sessions: a map takes at most 40, newest first; a mapped session with a facet is not listed again
     for k in range(45):
-        session("-r-gamma", f"9999{k:04d}-0000-0000-0000-000000000000", NOW - 3600 * (k + 1), [("owner", f"hi {k}")])
+        session("-r-gamma", f"9999{k:04d}-0000-0000-0000-000000000000", NOW - 3600 * (k + 1), [("owner", f"hi {k}"), ("owner", "go on")])
     before = snapshot()
     os.makedirs(os.path.join(DATA, "facets"), exist_ok=True)
     for session_id in digests:
