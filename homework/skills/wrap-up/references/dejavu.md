@@ -5,8 +5,8 @@ Find what keeps going wrong across recent sessions, in every project, and hand e
 ## Domain
 
 - `<d>` is `${CLAUDE_PLUGIN_DATA}/dejavu`, where every file dejavu keeps lives.
-- **Facet**: one session's friction items (the owner objecting to what the agent did) and standing instructions, written by a haiku agent from the session's digest.
-- **Repeat**: a `tool` failure signature, an owner `instruction` or a grouped `mistake` that recurs, as `list-repeats.py` prints it; its `key` is the text after the line's first `: `.
+- **Facet**: one session's friction items (the owner objecting to what the agent did), written by a haiku agent from the session's digest.
+- **Repeat**: a `tool` failure signature or a grouped `mistake` that recurs, as `list-repeats.py` prints it; its `key` is the text after the line's first `: `.
 
 ## Steps
 
@@ -24,5 +24,5 @@ Find what keeps going wrong across recent sessions, in every project, and hand e
 
 - **Every repeat**: offer every repeat the steps reach; no cap per run.
 - **Memory in place**: a repeat whose root cause is a missing or wrong lesson gets that lesson written or corrected by dejavu itself, in `<home>` or the project's `<home>/<repo>/`, one memory file with its index line, since a memory fix needs no other hand; every other output is a hand-over, a report to the owner, or the files in `<d>`.
-- **Check a change**: after editing `list-sessions.py` or `list-repeats.py`, run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/fixtures/probe-dejavu.py`; it must print `17 of 17 steps pass`.
+- **Check a change**: after editing `list-sessions.py`, `list-repeats.py` or `homework/lib/repeats.py`, run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/fixtures/probe-dejavu.py`; it must print `probe: 18 of 18 steps pass`; after editing `list-sessions.py` or `repeats.py`, run [habit.md](habit.md)'s probe too.
 - **Measure repeats**: before tuning a signature, run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/measure-repeats.py [days]` to count how many failures repeat across sessions.
