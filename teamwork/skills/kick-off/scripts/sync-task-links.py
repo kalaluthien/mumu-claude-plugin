@@ -70,11 +70,7 @@ def plan(nodes):
     for node in (node for node in nodes if "native" in node):
         native, number = node["native"], node["number"]
         said = task_links.parts(node["body"])
-        titles = dict(native["titles"])
-        if native["total"] > len(native["parts"]):
-            listed = board.get(f"repos/issues/{number}/sub_issues")
-            titles = {item["number"]: item["title"] for item in listed or []} or titles
-        change(number)["parts"] += [(n, title) for n, title in titles.items() if n not in said]
+        change(number)["parts"] += [(n, title) for n, title in native["titles"].items() if n not in said]
         change(number)["depends"] += [n for n in native["depends"] if n not in task_links.depends(node["body"])]
         change(number)["native"] += [n for n in task_links.parts(node["body"]) if n not in native["parts"]]
         change(number)["native"] += [n for n in task_links.depends(node["body"]) if n not in native["depends"]]
@@ -142,7 +138,9 @@ def main(args):
             print(f"refused {refused}")
     if not args and changes:
         nodes = board.tree(None)
-        changes = plan(nodes) if nodes is not None else changes
+        if nodes is None:
+            print("sync-task-links: the board read after the writes failed, so the gaps left are unknown", file=sys.stderr)
+            return 1
     gaps = [gap for gap in task_links.drift(nodes) if not gap.startswith(("native-only", "body-only", "label"))] if args else task_links.drift(nodes)
     for gap in gaps:
         print(f"gap {gap}")

@@ -22,8 +22,9 @@ ISSUES = """query($owner: String!, $name: String!, $labels: [String!], $after: S
   repository(owner: $owner, name: $name) {
     issues(states: OPEN, first: 30, after: $after, labels: $labels, orderBy: {field: CREATED_AT, direction: ASC}) {
       nodes { number title url body authorAssociation parent { number } labels(first: 20) { nodes { name } }
-              subIssues(last: 50) { nodes { number title } } subIssuesSummary { total } blockedBy(first: 50) { nodes { number } } comments(last: 100) { nodes { body url authorAssociation } } }
-      pageInfo { hasNextPage endCursor } } } }"""
+              subIssues(first: MOST_PARTS) { nodes { number title } } blockedBy(first: MOST_DEPENDS) { nodes { number } } comments(last: 100) { nodes { body url authorAssociation } } }
+      pageInfo { hasNextPage endCursor } } } }""".replace("MOST_PARTS", str(task_links.MOST_PARTS)).replace("MOST_DEPENDS", str(task_links.MOST_DEPENDS))
+# a native link past the page would read as missing, so the page holds as many as the write path lets a body name
 NAMED = """query($owner: String!, $name: String!) {
   repository(owner: $owner, name: $name) {
     %s } }"""
@@ -248,7 +249,7 @@ def tree(project, nodes=None):
             continue
         native_parts = node["subIssues"]["nodes"]
         node["native"] = {"parent": (node.get("parent") or {}).get("number"), "parts": [part["number"] for part in native_parts],
-                          "titles": {part["number"]: part["title"] for part in native_parts}, "total": (node.get("subIssuesSummary") or {}).get("total", len(native_parts)),
+                          "titles": {part["number"]: part["title"] for part in native_parts},
                           "depends": [wait["number"] for wait in (node.get("blockedBy") or {}).get("nodes", [])]}
     return task_links.derive(nodes, named.get)
 
