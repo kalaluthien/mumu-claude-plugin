@@ -4,7 +4,8 @@
 usage: list-sessions.py due <data> [--due-hours <h>]                  `due` when <data>/last-map is <h> hours old (24) or missing, else `not due`
        list-sessions.py map <data> [--window-days <d>] [--limit <n>]  every in-window session: signatures to <data>/stats/; the newest
                                                                        <n> (40) without a facet: digests to <data>/digests/; touches <data>/last-map
-       list-sessions.py digest <data> <path>...                       digests and signatures of the named transcripts, window aside
+       list-sessions.py digest <data> <path>...                       digests and signatures of the named transcripts, window and
+                                                                       limit aside
 
 Digests print as `batch <k>: <digest> ...` lines of at most 10, one haiku agent each. The window is the interactive
 top-level transcripts under ${CLAUDE_CONFIG_DIR:-~/.claude}/projects changed in the last <d> days (14). A session with no
@@ -26,6 +27,7 @@ import transcript  # noqa: E402
 
 WINDOW_DAYS, PER_RUN, PER_BATCH, DUE_HOURS = 14, 40, 10, 24
 FLAGS = {"--window-days": "days", "--due-hours": "hours", "--limit": "limit"}
+VERB_FLAGS = {"due": {"--due-hours"}, "map": {"--window-days", "--limit"}, "digest": set()}
 OWNER_CAP, AGENT_CAP, DIGEST_CAP = 500, 300, 30000
 TAGS = re.compile(r"<(system-reminder|task-notification)>.*?</\1>", re.S)
 # urls before paths, so a url is masked whole
@@ -161,12 +163,12 @@ def batches(digests):
         print(f"batch {k // PER_BATCH + 1}: {' '.join(digests[k:k + PER_BATCH])}")
 
 
-def options(args):
-    """(paths, settings) of the words after <data>, or None when a flag is unknown or lacks a number."""
+def options(verb, args):
+    """(paths, settings) of the words after <data>, or None when a flag is not the verb's or lacks a number."""
     settings, paths, k = {"days": WINDOW_DAYS, "hours": DUE_HOURS, "limit": PER_RUN}, [], 0
     while k < len(args):
         if args[k].startswith("--"):
-            if args[k] not in FLAGS or k + 1 >= len(args) or not args[k + 1].isdigit():
+            if args[k] not in VERB_FLAGS.get(verb, ()) or k + 1 >= len(args) or not re.fullmatch(r"[0-9]+", args[k + 1]):
                 return None
             settings[FLAGS[args[k]]] = int(args[k + 1])
             k += 2
@@ -177,8 +179,8 @@ def options(args):
 
 
 def main(args):
-    parsed = options(args[2:]) if len(args) >= 2 else None
-    if parsed is None or args[0] not in ("due", "map", "digest") or (parsed[0] and args[0] != "digest"):
+    parsed = options(args[0], args[2:]) if len(args) >= 2 else None
+    if parsed is None or args[0] not in VERB_FLAGS or bool(parsed[0]) != (args[0] == "digest"):
         print(__doc__, file=sys.stderr)
         return 2
     (named, settings), verb, data, now = parsed, args[0], args[1], time.time()
