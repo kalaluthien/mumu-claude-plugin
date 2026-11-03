@@ -1,0 +1,366 @@
+[
+ {
+  "task": 1151,
+  "title": "Require memory header, list bad ones",
+  "pull": "1154",
+  "base_sha": "2822edcfd9d783175da40ca1e8e16fab68c3c689",
+  "merge_sha": "ff2d6435df885637133b9359dad428d1d52052d8",
+  "body": "## Goal\n\nMake wrap-up write the memory-file header Claude Code reads (`name`, `description`, `metadata.type`), and make `list-drift.py` list a file whose header is missing or wrong, so no memory file lands headerless again. Owner approved the finding (https://github.com/kalaluthien/mumu-claude-plugin/issues/1148). Prior work: #433 and #446 (wrap-up merge) and #1094 (memory home); none set a header.\n\n- Cause: `homework/skills/wrap-up/SKILL.md` Domain **Memory file** defines the body lines only, and `references/retro.md` step 5 **Add** names only `confirmed` and `last-confirmed`.\n- A bad header is: no frontmatter; a `name` that differs from the file name without `.md`; no `description`; a `metadata.type` that is not `user`, `feedback`, `project` or `reference`.\n- Scope: the SKILL.md line, the retro.md **Add** line, `scripts/list-drift.py` with a reader in `homework/lib/memory.py`, and a fixture pool in `homework/skills/wrap-up/fixtures/header-pool/`. `MEMORY.md` is not a memory file and stays unchecked.\n- Order: #1149 waits on this task.\n\n## Definition of done\n\n1. [check] **Skill names the header**: `grep -c 'metadata.type' homework/skills/wrap-up/SKILL.md` prints `1`; on base `0`.\n2. [check] **Add step names the header**: `grep -c 'metadata.type' homework/skills/wrap-up/references/retro.md` prints `1`; on base `0`.\n3. [check] **Headerless file listed**: `python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*headerless.md'` prints `1`; on base `0`.\n4. [check] **Wrong name listed**: `python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*wrong-name.md.*name'` prints `1`; on base `0`.\n5. [check] **Missing description listed**: `python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*no-description.md.*description'` prints `1`; on base `0`.\n6. [check] **Bad type listed**: `python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*bad-type.md.*metadata.type'` prints `1`; on base `0`.\n7. [check] **Only the bad files listed**: `python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header'` prints `5`; on base `0`.\n8. [check] **Pool holds the files that must pass**: `ls homework/skills/wrap-up/fixtures/header-pool/good.md homework/skills/wrap-up/fixtures/header-pool/blank-line.md homework/skills/wrap-up/fixtures/header-pool/MEMORY.md 2>/dev/null | wc -l` prints `3`; on base `0`.\n\n9. [check] **Index stays headerless**: `test -f homework/skills/wrap-up/fixtures/header-pool/MEMORY.md && grep -c \"^---\" homework/skills/wrap-up/fixtures/header-pool/MEMORY.md` prints `0`; on base nothing.\n\n10. [check] **Retro runs the check**: `grep -c 'bad header' homework/skills/wrap-up/references/retro.md` prints `1`; on base `0`.\n11. [check] **Real memory raises no alarm**: `python3 homework/skills/wrap-up/scripts/list-drift.py ~/.claude ~/.claude/memory ~/.claude/memory/*/ homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header'` prints `5`; on base `0`.\n12. [check] **Type under another key listed**: `python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*outside-metadata.md.*metadata.type'` prints `1`; on base `0`.",
+  "checks": [
+   {
+    "index": 1,
+    "command": "grep -c 'metadata.type' homework/skills/wrap-up/SKILL.md",
+    "test": [
+     "prints",
+     "1"
+    ]
+   },
+   {
+    "index": 2,
+    "command": "grep -c 'metadata.type' homework/skills/wrap-up/references/retro.md",
+    "test": [
+     "prints",
+     "1"
+    ]
+   },
+   {
+    "index": 3,
+    "command": "python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*headerless.md'",
+    "test": [
+     "prints",
+     "1"
+    ]
+   },
+   {
+    "index": 4,
+    "command": "python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*wrong-name.md.*name'",
+    "test": [
+     "prints",
+     "1"
+    ]
+   },
+   {
+    "index": 5,
+    "command": "python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*no-description.md.*description'",
+    "test": [
+     "prints",
+     "1"
+    ]
+   },
+   {
+    "index": 6,
+    "command": "python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*bad-type.md.*metadata.type'",
+    "test": [
+     "prints",
+     "1"
+    ]
+   },
+   {
+    "index": 7,
+    "command": "python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header'",
+    "test": [
+     "prints",
+     "5"
+    ]
+   },
+   {
+    "index": 8,
+    "command": "ls homework/skills/wrap-up/fixtures/header-pool/good.md homework/skills/wrap-up/fixtures/header-pool/blank-line.md homework/skills/wrap-up/fixtures/header-pool/MEMORY.md 2>/dev/null | wc -l",
+    "test": [
+     "prints",
+     "3"
+    ]
+   },
+   {
+    "index": 9,
+    "command": "test -f homework/skills/wrap-up/fixtures/header-pool/MEMORY.md && grep -c \"^---\" homework/skills/wrap-up/fixtures/header-pool/MEMORY.md",
+    "test": [
+     "prints",
+     "0"
+    ]
+   },
+   {
+    "index": 10,
+    "command": "grep -c 'bad header' homework/skills/wrap-up/references/retro.md",
+    "test": [
+     "prints",
+     "1"
+    ]
+   },
+   {
+    "index": 12,
+    "command": "python3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header: .*outside-metadata.md.*metadata.type'",
+    "test": [
+     "prints",
+     "1"
+    ]
+   }
+  ]
+ },
+ {
+  "task": 1136,
+  "title": "Guard git landing, place worktrees",
+  "pull": "1142",
+  "base_sha": "28e0a9545444efa7512d0345fe61cd46c100a1e0",
+  "merge_sha": "74f0b18feb1d981a99e54e332d4af1692ce882c2",
+  "body": "## Goal\n\nStop a git landing from reporting success while the base checkout stays behind, and put a worker's worktree beside the others, from the outside projects' requests in https://github.com/kalaluthien/mumu-claude-plugin/issues/1133 (`landing-bare-report.md`: two landings moved `main` while the files stayed old for two hours; `repeated-mistakes.md` section 2: 3 sessions made the worktree under a plugin subfolder).\n\n- **Bare flag**: `landing_git.merge()` refuses, changing nothing, when `core.bare` is true on a repository whose common folder is a `.git`, since no worktree then shows as holding the base, and the error says `git config core.bare false`. A truly bare repository still lands by `update-ref`. Their `git init` cause is theirs to fix.\n- **Worktree place**: a new `teamwork/skills/kick-off/scripts/add-worktree.py <name> <base> [<branch>]` runs `git worktree add` at the main checkout's `.claude/worktrees/<name>` from any folder, and prints the path; both landing adapters' `branch` rows name it.\n- **Not here**: the reflog message of the `update-ref` path; `~/.claude/CLAUDE.md` (section 3).\n- Files: `teamwork/lib/landing_git.py`, `teamwork/skills/kick-off/fixtures/replay-landing-scenario.py`, new `add-worktree.py`, `references/adapters/landing-git.md`, `landing-github.md`.\n\n\n\n## Definition of done\n\n1. [check] **a bare flag refuses the merge**: `python3 teamwork/skills/kick-off/fixtures/replay-landing-scenario.py 2>&1 | grep -c '^ok refuse-bare-checkout$'` prints `1`, a merge with `core.bare` true exiting 1, naming `core.bare`, and leaving the base and the change as they were; on base `0`.\n2. [check] **the worktree lands at the main checkout**: `S=$PWD/teamwork/skills/kick-off/scripts; d=$(mktemp -d) && git -C $d init -q -b main && git -C $d commit -q --allow-empty -m i && mkdir $d/sub && (cd $d/sub && python3 $S/add-worktree.py probe-worker main >/dev/null 2>&1); test -d $d/.claude/worktrees/probe-worker && ! test -e $d/sub/.claude && echo root || echo misplaced` prints `root`; on base `misplaced`.\n3. [check] **a branch name is kept**: `S=$PWD/teamwork/skills/kick-off/scripts; d=$(mktemp -d) && git -C $d init -q -b main && git -C $d commit -q --allow-empty -m i && (cd $d && python3 $S/add-worktree.py probe-worker main feature/probe-worker >/dev/null 2>&1); git -C $d branch --list feature/probe-worker | grep -c feature/probe-worker` prints `1`; on base `0`.\n4. [check] **both adapters name the script**: `cat teamwork/skills/kick-off/references/adapters/landing-git.md teamwork/skills/kick-off/references/adapters/landing-github.md | grep -c 'add-worktree.py'` prints `2`; on base `0`.\n5. [check] **no replay step fails and the bare clone is left alone**: `python3 teamwork/skills/kick-off/fixtures/replay-landing-scenario.py 2>&1 | grep -c '^ok '` prints `11`, every step ok including `bare-repository`, a truly bare clone not flagged by the guard; on base `9`.",
+  "checks": [
+   {
+    "index": 1,
+    "command": "python3 teamwork/skills/kick-off/fixtures/replay-landing-scenario.py 2>&1 | grep -c '^ok refuse-bare-checkout$'",
+    "test": [
+     "prints",
+     "1"
+    ]
+   },
+   {
+    "index": 3,
+    "command": "S=$PWD/teamwork/skills/kick-off/scripts; d=$(mktemp -d) && git -C $d init -q -b main && git -C $d commit -q --allow-empty -m i && (cd $d && python3 $S/add-worktree.py probe-worker main feature/probe-worker >/dev/null 2>&1); git -C $d branch --list feature/probe-worker | grep -c feature/probe-worker",
+    "test": [
+     "prints",
+     "1"
+    ]
+   },
+   {
+    "index": 4,
+    "command": "cat teamwork/skills/kick-off/references/adapters/landing-git.md teamwork/skills/kick-off/references/adapters/landing-github.md | grep -c 'add-worktree.py'",
+    "test": [
+     "prints",
+     "2"
+    ]
+   },
+   {
+    "index": 5,
+    "command": "python3 teamwork/skills/kick-off/fixtures/replay-landing-scenario.py 2>&1 | grep -c '^ok '",
+    "test": [
+     "prints",
+     "11"
+    ]
+   }
+  ]
+ },
+ {
+  "task": 1138,
+  "title": "Remove manager self-exit protocol",
+  "pull": "1139",
+  "base_sha": "5bba6dfe9d9119d68833c850318caa8dfd2a4f46",
+  "merge_sha": "e3b56ffa2f171ffa7e49cd9755cc619df62a8021",
+  "body": "## Goal\n\nRemove the manager's self-exit protocol from the teamwork plugin, so a manager ends only when the owner tells it to end itself or ends it by hand (https://github.com/kalaluthien/mumu-claude-plugin/issues/1137).\n\n- After this work the owner decides when a manager ends, and no heartbeat line or peer proposal ends one.\n- What it does: deletes the heartbeat `exit` line and the code that feeds it, deletes manager.md step 5's exit proposal and `OK` answer, drops manager.md step 5's `compact` rule kept for an objection, drops `team_names.workers`, whose only caller was the exit block, drops the herdr `close` row's trace of a self-ended session, and says in manager.md that a manager closes itself only on the owner's word.\n- Undoes #469, #477 / PR #478, #606, #1002; read: each landed to end an idle manager by agreement and keep one live, which the owner now rejects.\n- Keeps: the other heartbeat lines (`idle`, `route`, `feed`), the `close` of an idle worker, Succession, and the sentinel's `Manager ends` rule, since a manager still ends by the owner's word.\n- Scope: `teamwork/` only; no new mechanism.\n\n## Definition of done\n\n1. [check] **No exit protocol left**: `grep -rnE \"exit_action|had_worker|propose your exit|OK to |exit once\" teamwork --include=*.py --include=*.md --include=*.json | wc -l | tr -d ' '` prints 0; on base 15.\n2. [check] **Monitor read keeps only me and since**: `python3 -c \"import inspect,sys; sys.path.insert(0,'teamwork/lib'); import team_gaps; print(sorted(inspect.signature(team_gaps.manager_read).parameters)==['me', 'since'])\"` prints True; on base False.\n3. [check] **Owner's word ends the manager**: `grep -c \"close yourself only when the owner\" teamwork/skills/kick-off/references/manager.md` prints 1; on base 0.\n4. [check] **Exit-only helper gone**: `grep -c \"def workers\" teamwork/lib/team_names.py` prints 0; on base 1.\n5. [check] **Objection rule gone**: `grep -c \"Kept alive\" teamwork/skills/kick-off/references/manager.md` prints 0; on base 1.\n6. [check] **Monitor still loads and reads**: `python3 -c \"import runpy; print(runpy.run_path('teamwork/monitors/print-team-gaps.py')['read'].__code__.co_argcount==3)\"` prints True; on base False.",
+  "checks": [
+   {
+    "index": 1,
+    "command": "grep -rnE \"exit_action|had_worker|propose your exit|OK to |exit once\" teamwork --include=*.py --include=*.md --include=*.json | wc -l | tr -d ' '",
+    "test": [
+     "prints",
+     "0"
+    ]
+   },
+   {
+    "index": 2,
+    "command": "python3 -c \"import inspect,sys; sys.path.insert(0,'teamwork/lib'); import team_gaps; print(sorted(inspect.signature(team_gaps.manager_read).parameters)==['me', 'since'])\"",
+    "test": [
+     "prints",
+     "True"
+    ]
+   },
+   {
+    "index": 3,
+    "command": "grep -c \"close yourself only when the owner\" teamwork/skills/kick-off/references/manager.md",
+    "test": [
+     "prints",
+     "1"
+    ]
+   },
+   {
+    "index": 4,
+    "command": "grep -c \"def workers\" teamwork/lib/team_names.py",
+    "test": [
+     "prints",
+     "0"
+    ]
+   },
+   {
+    "index": 5,
+    "command": "grep -c \"Kept alive\" teamwork/skills/kick-off/references/manager.md",
+    "test": [
+     "prints",
+     "0"
+    ]
+   },
+   {
+    "index": 6,
+    "command": "python3 -c \"import runpy; print(runpy.run_path('teamwork/monitors/print-team-gaps.py')['read'].__code__.co_argcount==3)\"",
+    "test": [
+     "prints",
+     "True"
+    ]
+   }
+  ]
+ },
+ {
+  "task": 1040,
+  "title": "Nest tasks under the nearest backlog",
+  "pull": "1043",
+  "base_sha": "5f7d49baabfac893aa1ff75bd16401099dbf43d8",
+  "merge_sha": "be91e3974f9b240ac8b783b0dc93c2e3c96a7185",
+  "body": "## Goal\n\nMake `nest` put a task under the nearest backlog at or above the issue named, and refuse when none is above it, so a task can no longer hide under another task, with no extra step for the reader, as the owner asked in https://github.com/kalaluthien/mumu-claude-plugin/issues/1037 (structural, not a patch; fewer moving parts and tokens).\n\n- **Cause**: `worker.md:12` says nest \"under the backlog\", but a worker started with a task url nests under that task; nothing reads the target's labels (`teamwork/skills/kick-off/scripts/use-board.py:52-53`, `teamwork/lib/board_files.py:138-142`, `teamwork/lib/board_github.py:306-307`), and the backlog pane shows direct children only, so infra-landscape tasks #58 and #59 under task #57 were hidden.\n- **Choice removed**: the board port's `nest` walks the parent chain from the issue named to the first one labelled `backlog` and nests there, in one place for every board adapter (`teamwork/lib/board.py`); with none, it raises and writes nothing. Fix A of the backlog: the worker's url stays valid, and no start-time or label check is added.\n- **One command on both boards**: `board-github.md`'s `nest` row becomes `use-board.py nest <issue> <task>`, as the files board already does, dropping its two-call id lookup.\n- `protocol.md`'s `nest` row and `worker.md:12` say it in the same words, `nearest backlog at or above`.\n\n\n\n## Definition of done\n\n1. [check] **task under a task lands on the backlog**: `python3 teamwork/skills/kick-off/fixtures/replay-nest-target.py 2>/dev/null | grep -c '^under-task pass$'` prints `1`; on base `0`, since the script is new. On a temporary files board it files a backlog, a task nested under it, and a second task nested under the first task; the second's parent, read back by `use-board.py read`, must be the backlog for the line to say `pass`.\n2. [check] **no backlog above refused**: `python3 teamwork/skills/kick-off/fixtures/replay-nest-target.py 2>/dev/null | grep -c '^no-backlog pass$'` prints `1`; on base `0`. Nesting under an issue with no backlog at or above it must exit 1, and `use-board.py read` must show the task with no parent.\n3. [check] **GitHub nest by the port**: `grep -c 'use-board.py nest' teamwork/skills/kick-off/references/adapters/board-github.md` prints `1`; on base `0`.\n4. [check] **id lookup dropped**: `grep -c 'sub_issues' teamwork/skills/kick-off/references/adapters/board-github.md` prints `0`; on base `1`.\n5. [check] **walk in the port**: `grep -c '^def nest' teamwork/lib/board.py` prints `1`; on base `0`. Both adapters keep their own `nest`, reached only through it; a live run on kalaluthien/teamwork-board-sandbox, posted as a `REPORTED:`, shows the GitHub board follows the walk.\n6. [check] **same words**: `grep -l 'nearest backlog at or above' teamwork/skills/kick-off/references/protocol.md teamwork/skills/kick-off/references/worker.md | wc -l | tr -d ' '` prints `2`; on base `0`.",
+  "checks": [
+   {
+    "index": 1,
+    "command": "python3 teamwork/skills/kick-off/fixtures/replay-nest-target.py 2>/dev/null | grep -c '^under-task pass$'",
+    "test": [
+     "prints",
+     "1"
+    ]
+   },
+   {
+    "index": 2,
+    "command": "python3 teamwork/skills/kick-off/fixtures/replay-nest-target.py 2>/dev/null | grep -c '^no-backlog pass$'",
+    "test": [
+     "prints",
+     "1"
+    ]
+   },
+   {
+    "index": 3,
+    "command": "grep -c 'use-board.py nest' teamwork/skills/kick-off/references/adapters/board-github.md",
+    "test": [
+     "prints",
+     "1"
+    ]
+   },
+   {
+    "index": 4,
+    "command": "grep -c 'sub_issues' teamwork/skills/kick-off/references/adapters/board-github.md",
+    "test": [
+     "prints",
+     "0"
+    ]
+   },
+   {
+    "index": 5,
+    "command": "grep -c '^def nest' teamwork/lib/board.py",
+    "test": [
+     "prints",
+     "1"
+    ]
+   },
+   {
+    "index": 6,
+    "command": "grep -l 'nearest backlog at or above' teamwork/skills/kick-off/references/protocol.md teamwork/skills/kick-off/references/worker.md | wc -l | tr -d ' '",
+    "test": [
+     "prints",
+     "2"
+    ]
+   }
+  ]
+ },
+ {
+  "task": 1023,
+  "title": "Reopen and retitle on the files board",
+  "pull": "1024",
+  "base_sha": "2ceeef164f16bc748d353feea274c8d646164ce0",
+  "merge_sha": "8d70158b2ab4281fae87a9462d094f75bf00f6e6",
+  "body": "## Goal\n\nMake the files board (`TEAMWORK_BOARD=files`) follow the GitHub board's usage pattern, reopening a closed backlog or task first, as the owner asked in https://github.com/kalaluthien/mumu-claude-plugin/issues/1022.\n\n- **Reopen**: a `reopen` board operation in `protocol.md`'s table, a row in both board adapters, `board_files.reopen` and `board_github.reopen`, and `use-board.py reopen <issue>`; on both boards a reopened issue reads `state: OPEN`, `stateReason: REOPENED`, `closedAt: None`, as GitHub answers (sandbox probe on `kalaluthien/teamwork-board-sandbox#42`: `[\"open\",\"reopened\",null]`). `manager.md`'s closed-backlog row names `reopen`, since it says \"reopen that backlog\" with no operation behind it today.\n- **Retitle**: `manager.md` rewrites a backlog's title at each material scope change; `board-github.md` does it by `gh issue edit --title`, the files board has no way. Add `use-board.py title <issue> <title>` on both boards, named in both adapters' `edit` rows, its title length read by `board_files.command`, so the title hook guards it as it guards `gh issue edit --title`.\n- **Refusals as GitHub refuses**: sandbox probes (`kalaluthien/teamwork-board-sandbox#42`-`#48`) showed GitHub refuse, each 422 unless named: a second parent (`Sub issue may only have one parent`, the same parent again included), an issue nested under itself (`Sub issue cannot be the same as the parent issue`), an issue blocked by itself (`Target issue cannot be the same as the source issue`), the same blocker twice (`Target issue has already been taken`), and removing a label the issue lacks (`Label does not exist`, 404); it accepts adding a label twice (kept once) and reopening an open issue (`already open`, exit 0, `state_reason` unchanged). The files board accepts each refused case silently today (`teamwork/lib/board_files.py:123-133`). Each refuses on the files board, writing nothing; a missing issue stays refused, as today.\n- **Scenario**: `fixtures/replay-board-scenario.py` gains the steps `retitle`, `reopen` (the resolved backlog), `nest-again` (a new task under it) and `resolve-again`, so the same-result diff covers the new scenario on both boards.\n- **Hook sees the new writes**: `board_files.command` matches `use-board.py reopen` and `use-board.py title`, as `board_github.command` matches any `gh issue` write, so the hook's title guard and reminders reach them.\n- Builds on #865 (files board, scenario) and #1019/#1020 (board setting read).\n\n\n\n## Definition of done\n\n1. [check] **same result on both boards**: `F=teamwork/skills/kick-off/fixtures; /usr/bin/diff <(python3 $F/replay-board-scenario.py --board files) <(GH_REPO=kalaluthien/teamwork-board-sandbox python3 $F/replay-board-scenario.py --board github) >/dev/null && python3 $F/replay-board-scenario.py --board files | grep -cE '^step (retitle|reopen|nest-again|resolve-again)$'` prints `4`; on base `0`.\n2. [check] **files board reopens**: `d=$(mktemp -d); echo b > $d/b; echo 'REPORTED: done' > $d/r; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; python3 $U file T $d/b >/dev/null; python3 $U resolve 1 $d/r; python3 $U reopen 1 2>/dev/null; python3 -c 'import sys; sys.path[:0] = [\"teamwork/lib\"]; import board; i = board.fresh(1); print(i[\"state\"], i[\"stateReason\"], i[\"closedAt\"] is None)'` prints `OPEN REOPENED True`; on base `CLOSED COMPLETED False`.\n3. [check] **files board retitles**: `d=$(mktemp -d); echo b > $d/b; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; python3 $U file Old $d/b >/dev/null; python3 $U title 1 New 2>/dev/null; python3 $U read 1 | head -1 | cut -d' ' -f2` prints `New`; on base `Old`.\n4. [check] **refused as GitHub refuses**: `d=$(mktemp -d); echo b > $d/b; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; for t in A B C D; do python3 $U file $t $d/b >/dev/null; done; python3 $U nest 1 3; python3 $U order 1 2; { for c in 'nest 2 3' 'nest 1 3' 'nest 4 4' 'order 1 1' 'order 1 2' 'order 1 9' 'label 1 nolabel --remove'; do python3 $U $c; echo $?; done; python3 -c 'import sys, json; m = lambda n: json.load(open(f\"{sys.argv[1]}/{n}/issue.json\")); print(m(3)[\"parent\"], m(4)[\"parent\"], m(1)[\"blockers\"])' $d/board; } 2>/dev/null | paste -sd' ' -` prints `1 1 1 1 1 1 1 1 None [2]`; on base `0 0 0 0 0 1 0 1 4 [1, 2]`.\n5. [check] **title hook reads use-board**: `python3 -c 'import sys; sys.path[:0] = [\"teamwork/lib\"]; import board_files; c = board_files.command(\"use-board.py title 3 \\\"\" + \"x\" * 41 + \"\\\"\"); print(c and c[\"title\"])'` prints `41`; on base `None`.\n6. [check] **reopen and title documented**: `` R=teamwork/skills/kick-off/references; { for f in protocol.md adapters/board-github.md adapters/board-files.md; do grep -q '^| .*`reopen`' $R/$f || echo \"no reopen $f\"; done; grep '^| `edit`' $R/adapters/board-files.md | grep -q 'use-board.py title' || echo 'no title'; grep 'closed backlog' $R/manager.md | grep -q '`reopen`' || echo 'no manager'; } | wc -l | tr -d ' ' `` prints `0`; on base `5`.\n\n7. [check] **hook matches the new writes**: `python3 -c 'import sys; sys.path[:0] = [\"teamwork/lib\"]; import board_files; print([(c or {}).get(\"called\") for c in map(board_files.command, [\"use-board.py reopen 1\", \"use-board.py title 1 New\"])])'` prints `['use-board.py reopen', 'use-board.py title']`; on base `[None, None]`.\n8. [check] **reopening an open issue is quiet**: `d=$(mktemp -d); echo b > $d/b; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; python3 $U file T $d/b >/dev/null; python3 $U reopen 1 >/dev/null 2>&1; echo $? $(python3 -c 'import sys; sys.path[:0] = [\"teamwork/lib\"]; import board; i = board.fresh(1); print(i[\"state\"], repr(i[\"stateReason\"]))')` prints `0 OPEN ''`; on base `2 OPEN ''`.",
+  "checks": [
+   {
+    "index": 1,
+    "command": "F=teamwork/skills/kick-off/fixtures; /usr/bin/diff <(python3 $F/replay-board-scenario.py --board files) <(GH_REPO=kalaluthien/teamwork-board-sandbox python3 $F/replay-board-scenario.py --board github) >/dev/null && python3 $F/replay-board-scenario.py --board files | grep -cE '^step (retitle|reopen|nest-again|resolve-again)$'",
+    "test": [
+     "prints",
+     "4"
+    ]
+   },
+   {
+    "index": 2,
+    "command": "d=$(mktemp -d); echo b > $d/b; echo 'REPORTED: done' > $d/r; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; python3 $U file T $d/b >/dev/null; python3 $U resolve 1 $d/r; python3 $U reopen 1 2>/dev/null; python3 -c 'import sys; sys.path[:0] = [\"teamwork/lib\"]; import board; i = board.fresh(1); print(i[\"state\"], i[\"stateReason\"], i[\"closedAt\"] is None)'",
+    "test": [
+     "prints",
+     "OPEN REOPENED True"
+    ]
+   },
+   {
+    "index": 3,
+    "command": "d=$(mktemp -d); echo b > $d/b; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; python3 $U file Old $d/b >/dev/null; python3 $U title 1 New 2>/dev/null; python3 $U read 1 | head -1 | cut -d' ' -f2",
+    "test": [
+     "prints",
+     "New"
+    ]
+   },
+   {
+    "index": 4,
+    "command": "d=$(mktemp -d); echo b > $d/b; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; for t in A B C D; do python3 $U file $t $d/b >/dev/null; done; python3 $U nest 1 3; python3 $U order 1 2; { for c in 'nest 2 3' 'nest 1 3' 'nest 4 4' 'order 1 1' 'order 1 2' 'order 1 9' 'label 1 nolabel --remove'; do python3 $U $c; echo $?; done; python3 -c 'import sys, json; m = lambda n: json.load(open(f\"{sys.argv[1]}/{n}/issue.json\")); print(m(3)[\"parent\"], m(4)[\"parent\"], m(1)[\"blockers\"])' $d/board; } 2>/dev/null | paste -sd' ' -",
+    "test": [
+     "prints",
+     "1 1 1 1 1 1 1 1 None [2]"
+    ]
+   },
+   {
+    "index": 5,
+    "command": "python3 -c 'import sys; sys.path[:0] = [\"teamwork/lib\"]; import board_files; c = board_files.command(\"use-board.py title 3 \\\"\" + \"x\" * 41 + \"\\\"\"); print(c and c[\"title\"])'",
+    "test": [
+     "prints",
+     "41"
+    ]
+   },
+   {
+    "index": 6,
+    "command": " R=teamwork/skills/kick-off/references; { for f in protocol.md adapters/board-github.md adapters/board-files.md; do grep -q '^| .*`reopen`' $R/$f || echo \"no reopen $f\"; done; grep '^| `edit`' $R/adapters/board-files.md | grep -q 'use-board.py title' || echo 'no title'; grep 'closed backlog' $R/manager.md | grep -q '`reopen`' || echo 'no manager'; } | wc -l | tr -d ' ' ",
+    "test": [
+     "prints",
+     "0"
+    ]
+   },
+   {
+    "index": 7,
+    "command": "python3 -c 'import sys; sys.path[:0] = [\"teamwork/lib\"]; import board_files; print([(c or {}).get(\"called\") for c in map(board_files.command, [\"use-board.py reopen 1\", \"use-board.py title 1 New\"])])'",
+    "test": [
+     "prints",
+     "['use-board.py reopen', 'use-board.py title']"
+    ]
+   },
+   {
+    "index": 8,
+    "command": "d=$(mktemp -d); echo b > $d/b; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; python3 $U file T $d/b >/dev/null; python3 $U reopen 1 >/dev/null 2>&1; echo $? $(python3 -c 'import sys; sys.path[:0] = [\"teamwork/lib\"]; import board; i = board.fresh(1); print(i[\"state\"], repr(i[\"stateReason\"]))')",
+    "test": [
+     "prints",
+     "0 OPEN ''"
+    ]
+   }
+  ]
+ },
+ {
+  "task": 857,
+  "title": "Run criteria on a pass sample",
+  "pull": "858",
+  "base_sha": "e063d2268ecb87b4b59fe83d4b70cd5517c9fc0c",
+  "merge_sha": "c5fecabba928ab99e9a67aca1c4baebcb31447cf",
+  "body": "Make `run-criteria.py` able to run each `[check]` on a sample of its expected pass, so a check that can never pass is caught before the task is filed.\n\n- Lesson (memory `pitfall-unrun-criterion-command`, confirmed 6 times): run every `[check]` command on its pass path before filing, not only on the base.\n- Repeat 2026-10-24, #840: criterion 1 passed `run-criteria.py --base`, then failed at the head with a traceback, since `check-schema.py check /dev/stdin` reads a valid document twice: https://github.com/kalaluthien/mumu-claude-plugin/issues/840#issuecomment-6379112301.\n- Proposal: a check step, not a written rule, such as a `--pass <sample-file>` mode that substitutes a sample for the command's input, or a lint warning on `/dev/stdin` in a command.\n\n\n## Goal\n\nMake `run-criteria.py` run a `[check]` on a sample of its pass (owner's words above), and say `unclear` when it cannot split the command surely.\n\n## Definition of done\n\n1. [check] **Pass sample read**: `python3 teamwork/skills/kick-off/scripts/run-criteria.py --pass 1=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 2=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 3=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 4=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 5=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 6=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 7=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 8=teamwork/skills/kick-off/fixtures/pass-sample-input.txt teamwork/skills/kick-off/fixtures/pass-sample.md 2>&1 | grep -c 'pass ok'` prints `1`; on base prints `0`.\n2. [check] **Unsure split unclear**: `python3 teamwork/skills/kick-off/scripts/run-criteria.py --pass 1=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 2=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 3=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 4=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 5=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 6=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 7=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 8=teamwork/skills/kick-off/fixtures/pass-sample-input.txt teamwork/skills/kick-off/fixtures/pass-sample.md 2>&1 | grep -c unclear` prints `7`; on base prints `0`.\n3. [check] **Bad number refused**: `python3 teamwork/skills/kick-off/scripts/run-criteria.py --pass 9=x teamwork/skills/kick-off/fixtures/pass-sample.md 2>&1 | tail -1 | sed 's/^[^:]*: //'` prints `--pass names a criterion the task lacks; it has 8`; on base prints `error: unrecognized arguments: --pass teamwork/skills/kick-off/fixtures/pass-sample.md`.",
+  "checks": [
+   {
+    "index": 1,
+    "command": "python3 teamwork/skills/kick-off/scripts/run-criteria.py --pass 1=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 2=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 3=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 4=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 5=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 6=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 7=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 8=teamwork/skills/kick-off/fixtures/pass-sample-input.txt teamwork/skills/kick-off/fixtures/pass-sample.md 2>&1 | grep -c 'pass ok'",
+    "test": [
+     "prints",
+     "1"
+    ]
+   },
+   {
+    "index": 2,
+    "command": "python3 teamwork/skills/kick-off/scripts/run-criteria.py --pass 1=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 2=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 3=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 4=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 5=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 6=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 7=teamwork/skills/kick-off/fixtures/pass-sample-input.txt --pass 8=teamwork/skills/kick-off/fixtures/pass-sample-input.txt teamwork/skills/kick-off/fixtures/pass-sample.md 2>&1 | grep -c unclear",
+    "test": [
+     "prints",
+     "7"
+    ]
+   },
+   {
+    "index": 3,
+    "command": "python3 teamwork/skills/kick-off/scripts/run-criteria.py --pass 9=x teamwork/skills/kick-off/fixtures/pass-sample.md 2>&1 | tail -1 | sed 's/^[^:]*: //'",
+    "test": [
+     "prints",
+     "--pass names a criterion the task lacks; it has 8"
+    ]
+   }
+  ]
+ }
+]

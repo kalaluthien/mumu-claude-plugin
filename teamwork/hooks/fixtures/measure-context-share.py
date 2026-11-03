@@ -33,6 +33,8 @@ SHELL_READ = re.compile(r"(?:^|&&|;)\s*(?:rtk\s+read|cat|head|tail|less|more|sed
 PREFIX = re.compile(r"^(?:cd\s+\S+|[A-Za-z_][A-Za-z0-9_]*=\S*|export\s+\S+|rtk)$")
 TEAMWORK_REFERENCE = re.compile(r"teamwork/skills/[^\"]*(?:references/|SKILL\.md)")
 CALIBRATE_MIN = 30
+# a file read cut by the cap is fetched again by range, as the output-cap replay showed, so its share is split out
+FILE_READS = {"Bash cat", "Bash sed", "Bash head", "Bash tail", "Bash large read"}
 CALIBRATE_CHARS = 8000
 
 
@@ -201,12 +203,14 @@ def main(args):
             ratios["all"].append(row["chars"] / row["growth"])
     overall = statistics.median(ratios["all"]) if ratios["all"] else None
     per_kind = {kind: statistics.median(values) for kind, values in ratios.items() if len(values) >= CALIBRATE_MIN}
-    by_kind, counts, saved = defaultdict(float), defaultdict(int), defaultdict(float)
+    by_kind, counts, saved, saved_output = defaultdict(float), defaultdict(int), defaultdict(float), defaultdict(float)
     for row in rows_out:
         cost = row["chars"] / (per_kind.get(row["kind"]) or overall or 1.0) * row["factor"]
         row["cost"] = cost
         for cap, kept in row.get("kept", {}).items():
-            saved[int(cap)] += cost * (1 - kept / row["chars"]) if row["chars"] else 0.0
+            cut = cost * (1 - kept / row["chars"]) if row["chars"] else 0.0
+            saved[int(cap)] += cut
+            saved_output[int(cap)] += 0.0 if row["kind"] in FILE_READS else cut
         by_kind[row["kind"]] += cost
         counts[row["kind"]] += 1
     if options["--rows"]:
@@ -231,6 +235,7 @@ def main(args):
         print(f"| result group: {label} | {len(chosen)} | | {share(sum(row['cost'] for row in chosen))} |")
     for cap in caps:
         print(f"| saved by a Bash output cap of {cap} lines | | | {share(saved[cap])} |")
+        print(f"| saved by the same cap on program output only, file reads exempt | | | {share(saved_output[cap])} |")
     print("| role | share of bill |")
     print("| --- | --- |")
     for role, value in sorted(by_role.items(), key=lambda item: -item[1]):
