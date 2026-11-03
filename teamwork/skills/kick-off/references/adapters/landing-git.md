@@ -4,7 +4,7 @@ A change is a branch of a repository with no remote, filed and merged by `${CLAU
 
 | operation | how |
 | --- | --- |
-| `branch` | `git worktree add -b <name> .claude/worktrees/<name> <base>` in the checkout |
+| `branch` | [add-worktree.py](../../scripts/add-worktree.py) `<name> <base> [<branch>]`, which puts it under the main checkout's `.claude/worktrees/` from any folder of the checkout |
 | `push` | nothing: every worktree shares the repository's branches |
 | `change` | `use-landing.py change <branch> <title> <body-file> [<base>]`, the body citing its issue; it prints the change's url, whose number the heartbeat names |
 | `judge` | the judge reads the change at its sha by `git diff <base>...<sha>` and `git show <sha>:<path>`, with no fetch |
