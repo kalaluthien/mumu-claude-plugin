@@ -26,18 +26,6 @@ def index_lines(candidate):
                for line in index.read_text(encoding="utf-8").splitlines())
 
 
-def verdict(candidate, files, case, marked):
-    """(covered, misfire, missing) of one case for one candidate."""
-    if files is None:
-        return False, False, True
-    instructions = marked.get((case, replay_cases.INSTRUCTIONS))
-    key = replay_cases.recall_set(candidate, files)
-    own = marked.get((case, key)) if key else (False, False)
-    missing = instructions is None or own is None
-    covered = bool(instructions and instructions[0]) or bool(own and own[0])
-    return covered, bool(own and own[1]), missing
-
-
 def score(candidate, dejavu, cases, marked):
     found = replay_cases.picks(dejavu, candidate.name)
     row = {"name": candidate.name, "lines": index_lines(candidate), "missing": 0}
@@ -45,7 +33,7 @@ def score(candidate, dejavu, cases, marked):
         row[split + "_covered"] = row[split + "_misfires"] = 0
         for item in cases:
             if item["held_out"] == held:
-                covered, misfire, missing = verdict(candidate, found.get(item["id"]), item["id"], marked)
+                covered, misfire, missing = replay_cases.verdict(candidate, found.get(item["id"]), item["id"], marked)
                 row[split + "_covered"] += covered
                 row[split + "_misfires"] += misfire
                 row["missing"] += missing

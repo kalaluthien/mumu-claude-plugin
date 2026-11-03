@@ -141,11 +141,28 @@ def jsonl(paths):
                 yield item
 
 
+def inside(candidate, files):
+    """Whether `files` is a list of paths within the candidate, the only form a pick may take."""
+    if not isinstance(files, list) or not all(isinstance(file, str) and file for file in files):
+        return False
+    root = pathlib.Path(candidate).resolve()
+    return all((root / file).resolve().is_relative_to(root) for file in files)
+
+
 def picks(dejavu, name):
-    """Each case's recalled files, relative to candidate `name`, from `<dejavu>/picks/<name>/*.jsonl`; the last line wins."""
+    """Each case's recalled files, relative to candidate `name`, from `<dejavu>/picks/<name>/*.jsonl`; the last line wins.
+
+    A line whose `recalled` is not a list of paths within the candidate is dropped, so its case counts as missing."""
     folder = pathlib.Path(dejavu) / "picks" / name
-    return {str(item["case"]): [str(file) for file in item.get("recalled") or []]
-            for item in jsonl(sorted(folder.glob("*.jsonl")))}
+    candidate = pathlib.Path(dejavu) / "candidates" / name
+    found = {}
+    for item in jsonl(sorted(folder.glob("*.jsonl"))):
+        files = item.get("recalled", [])
+        if inside(candidate, files):
+            found[str(item["case"])] = files
+        else:
+            found.pop(str(item["case"]), None)
+    return found
 
 
 def recall_set(candidate, files):
@@ -166,3 +183,15 @@ def marks(dejavu):
     folder = pathlib.Path(dejavu) / "marks"
     return {(str(item["case"]), str(item.get("set"))): (bool(item.get("covered")), bool(item.get("misfire")))
             for item in jsonl(sorted(folder.glob("*.jsonl")))}
+
+
+def verdict(candidate, files, case, marked):
+    """(covered, misfire, missing) of one case for one candidate: covered by the instruction files' mark or its own set's."""
+    if files is None:
+        return False, False, True
+    instructions = marked.get((case, INSTRUCTIONS))
+    key = recall_set(candidate, files)
+    own = marked.get((case, key)) if key else (False, False)
+    missing = instructions is None or own is None
+    covered = bool(instructions and instructions[0]) or bool(own and own[0])
+    return covered, bool(own and own[1]), missing
