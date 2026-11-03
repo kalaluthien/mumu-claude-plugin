@@ -12,7 +12,8 @@ pane, from GitHub-shaped nodes written here by hand.
 - refuse-pull-request, derive-tree-names-no-issue, on github only: an edit naming a pull request exits 1; a body naming a pull request and
   a missing issue, written behind the write path, leaves the tree read whole
 - heartbeat-cycle, heartbeat-second-parent, heartbeat-backlog-label, and on github-nodes heartbeat-native-only and heartbeat-body-only
-- pane-nesting, pane-wait-line, pane-done-count: list-issue-board.py's lines, with no native link written
+- pane-nesting, pane-wait-line, pane-done-count, pane-named-no-row: list-issue-board.py's lines, with no native link written, and no
+  row for an issue outside the scope that only a body names
 
 usage: replay-task-graph.py --board <files|git|github|github-nodes>"""
 import difflib
@@ -216,9 +217,10 @@ def node(number, text, labels=(), native_parts=(), native_depends=(), state="OPE
 
 
 def pane_nodes():
-    """A root whose parts are a closed task and one waiting on two open tasks, as GitHub's read gives them with no native link."""
+    """A root whose parts are a closed task and one waiting on two open tasks, as GitHub's read gives them with no native link; one of
+    those waits on an open issue outside the scope, which only its body names."""
     return [node(1, body(parts=[2, 3], check=False)), node(2, body(), state="CLOSED", reason="COMPLETED"), node(3, body(depends=[4, 5])),
-            node(4, body()), node(5, body())]
+            node(4, body(depends=[6])), node(5, body()), {**node(6, body()), "named": True}]
 
 
 def drift_nodes():
@@ -233,6 +235,7 @@ def pane_cases(lines, root, waiting, first, second):
     step("pane-nesting", len(under) == 1 and under[0].startswith(("  └ ", "  ├ ")) and rows[0].startswith(f"#{root} "), rows)
     step("pane-wait-line", sum(line.strip(" │") == f"← #{first} #{second}" for line in lines) == 1, lines)
     step("pane-done-count", any(line.strip(" │").startswith("1/2 done") for line in lines), lines)
+    step("pane-named-no-row", not any(line.lstrip(" │├└").startswith("#6 ") for line in rows), rows)
 
 
 def main(args):

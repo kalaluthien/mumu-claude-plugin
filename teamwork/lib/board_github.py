@@ -225,17 +225,20 @@ def tree(project, nodes=None):
     nodes = nodes if nodes is not None else read_tree(project)
     if nodes is None:
         return None
-    for node in nodes:
+    # an issue only a body names, outside the scope, lends its title and state, as on the other boards, and is no row
+    named = {node["number"]: node for node in nodes if node.get("named")}
+    nodes = [node for node in nodes if not node.get("named")]
+    for node in [*nodes, *named.values()]:
         node["trusted"] = trusted(node)
         for item in node["comments"]["nodes"]:
             item["trusted"] = trusted(item)
-        if "subIssues" not in node:  # an issue a body names, read without its native links, which then are not compared
+        if "subIssues" not in node:  # read without its native links, which then are not compared
             continue
         native_parts = node["subIssues"]["nodes"]
         node["native"] = {"parent": (node.get("parent") or {}).get("number"), "parts": [part["number"] for part in native_parts],
                           "titles": {part["number"]: part["title"] for part in native_parts}, "total": (node.get("subIssuesSummary") or {}).get("total", len(native_parts)),
                           "depends": [wait["number"] for wait in (node.get("blockedBy") or {}).get("nodes", [])]}
-    return task_links.derive(nodes, lambda n: None)
+    return task_links.derive(nodes, named.get)
 
 
 def read_tree(project):
@@ -264,7 +267,7 @@ def read_tree(project):
                         repo["owner"], repo["name"])
         if asked is None:
             return None
-        found_issues += [{**named, "labels": {"nodes": []}, "comments": {"nodes": []}} for named in asked.values() if named]
+        found_issues += [{**named, "named": True, "labels": {"nodes": []}, "comments": {"nodes": []}} for named in asked.values() if named]
     return found_issues
 
 
@@ -309,14 +312,15 @@ def body(number):
     # REST, not `gh issue`: GraphQL hits its rate limit while REST still works
     # a folder outside any repository, such as a scratchpad, cannot fill {owner}/{repo}, so gh then reads from this checkout
     outside = subprocess.run(["git", "rev-parse"], capture_output=True).returncode and not os.environ.get("GH_REPO")
-    read = subprocess.run(["gh", "api", f"repos/{{owner}}/{{repo}}/issues/{number}", "-q", ".body"], capture_output=True, text=True,
+    # the JSON, not `-q .body`, which adds a newline the body lacks, so a diff built on it misses the body written back
+    read = subprocess.run(["gh", "api", f"repos/{{owner}}/{{repo}}/issues/{number}"], capture_output=True, text=True,
                           cwd=os.path.dirname(os.path.abspath(__file__)) if outside else None)
     if read.returncode:
         # gh fills {owner}/{repo} from the working folder, or from GH_REPO
         # gh's own line keeps a missing issue or an auth failure from reading as a folder fault
         cause = (read.stderr.strip().splitlines() or ["no message"])[0]
         raise LookupError(f"cannot read #{number} ({cause}); if you are not in the repository's checkout, set GH_REPO=<owner>/<repo>")
-    return read.stdout
+    return json.loads(read.stdout)["body"] or ""
 
 
 def edit(number, text):

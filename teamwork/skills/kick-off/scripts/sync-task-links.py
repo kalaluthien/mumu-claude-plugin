@@ -104,7 +104,7 @@ def describe(number, found):
 
 def apply(number, found):
     """Writes one issue's change; the error line when a write was refused, else None."""
-    old = found["body"] or ""
+    old = board.body(number).replace("\r\n", "\n")  # the body edit-issue-body.py patches, so the diff applies
     new = with_parts(old, [f"[task] #{n} {title}" for n, title in found["parts"]]) if found["parts"] else old
     new = with_depends(new, found["depends"]) if found["depends"] else new
     if new != old:
