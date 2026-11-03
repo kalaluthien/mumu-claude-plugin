@@ -164,6 +164,7 @@
  "bash_results": [
   {
    "id": "toolu_0138R9HiAUm2cyKxeJs9cGuj",
+   "command": "cd teamwork; cat lib/board.py; sed -n 120,150p lib/board_files.py; sed -n 290,320p lib/board_github.py; sed -n 30,80p skills/kick-off/scripts/use-board.py; grep -n -B2 -A2 'nest\\|sub_issues' skills/kick-off/references/adapters/board-github.md; grep -n 'nest' skills/kick-off/references/protocol.md skills/kick-off/references/worker.md; ls skills/kick-off/fixtures",
    "chars": 2836,
    "lines": 51,
    "cut": {
@@ -177,6 +178,7 @@
   },
   {
    "id": "toolu_01NeEtGgXRoTQDgqUL7cFMTA",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1040-output-cap-2-68zsgh6w/repository/teamwork; grep -n -A8 'def nest' lib/board_files.py lib/board_github.py; grep -n 'def meta' -A12 lib/board_files.py; sed -n 40,70p skills/kick-off/scripts/use-board.py; grep -n 'nest\\|sub_issues' skills/kick-off/references/adapters/board-github.md skills/kick-off/references/protocol.md skills/kick-off/references/worker.md; head -40 skills/kick-off/fixtures/replay-board-setting.py",
    "chars": 3143,
    "lines": 51,
    "cut": {
@@ -190,6 +192,7 @@
   },
   {
    "id": "toolu_013CQ2Cv4Fn7BSxjxf8iaf5i",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1040-output-cap-2-68zsgh6w/repository/teamwork; grep -n 'nest' skills/kick-off/scripts/use-board.py skills/kick-off/references/adapters/board-github.md skills/kick-off/references/protocol.md skills/kick-off/references/worker.md; sed -n 1,30p skills/kick-off/fixtures/replay-board-setting.py; grep -n 'def file\\|def issues\\|def record\\|def fresh' -A6 lib/board_files.py | head -50; grep -n 'verb == \"file\"\\|verb == \"read\"' -A4 skills/kick-off/scripts/use-board.py",
    "chars": 3422,
    "lines": 51,
    "cut": {
@@ -203,16 +206,19 @@
   },
   {
    "id": "toolu_01APfxhBpi8sKNDm7Ys2x8P6",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1040-output-cap-2-68zsgh6w/repository/teamwork; sed -n 18,31p skills/kick-off/scripts/use-board.py; sed -n 56,90p skills/kick-off/scripts/use-board.py; grep -n '\"url\"' lib/board_files.py; grep -n 'TEAMWORK_BOARD_DIR' lib/*.py | head -3",
    "chars": 1823,
    "lines": 31
   },
   {
    "id": "toolu_01QUJK9QiEKjcbGnqKM1Z7AE",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1040-output-cap-2-68zsgh6w/repository/teamwork; python3 - <<'E'\nimport re\np='lib/board.py'; s=open(p).read()\ns=s.replace(\"`nest(backlog, task)`\",\"`nest(backlog, task)` (reached only through the port's `nest(issue, task)`, which walks up from ISSUE to the nearest backlog)\")\ns+='''\n\ndef nest(issue, task):\n    \"\"\"Puts TASK under the nearest backlog at or above ISSUE; raises, writing nothing, when none is.\"\"\"\n    seen, n = set(), int(issue)\n    while n and n not in seen:\n        seen.add(n)\n        r = __getattr__(\"fresh\")(n, comments=False)\n        if r is None:\n            raise LookupError(f\"cannot read #{n}\")\n        if \"backlog\" in r[\"labels\"]:\n            return __getattr__(\"nest\")(n, task)\n        n = r[\"parent\"] and int(r[\"parent\"])\n    raise LookupError(f\"no backlog at or above #{issue}\")\n'''\nopen(p,'w').write(s)\np='skills/kick-off/scripts/use-board.py'; s=open(p).read()\ns=s.replace(\"nest <backlog> <task>                 put TASK under BACKLOG\",\"nest <issue> <task>                   put TASK under the nearest backlog at or above ISSUE\")\nopen(p,'w').write(s)\np='skills/kick-off/references/adapters/board-github.md'; s=open(p).read()\ns=re.sub(r\"\\| `nest` \\|.*\\|\\n\",\"| `nest` | `use-board.py nest <issue> <task>` |\\n\",s)\nopen(p,'w').write(s)\np='skills/kick-off/references/protocol.md'; s=open(p).read()\ns=s.replace(\"puts a task under its backlog\",\"puts a task under the nearest backlog at or above the issue named, and refuses when none is\")\nopen(p,'w').write(s)\np='skills/kick-off/references/worker.md'; s=open(p).read()\ns=s.replace(\"`nest` it under the backlog, which\",\"`nest` it under the nearest backlog at or above the issue you were given, which\")\nopen(p,'w').write(s)\nE\ngrep -n sub_issues skills/kick-off/references/adapters/board-github.md\ncat > skills/kick-off/fixtures/replay-nest-target.py <<'E'\n#!/usr/bin/env python3\n\"\"\"Replay `nest` on a temporary files board; print `under-task pass|fail` and `no-bac",
    "chars": 31,
    "lines": 2
   },
   {
    "id": "toolu_013FsBoRB8451pcyxo7jYoXp",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1040-output-cap-2-68zsgh6w/repository/teamwork/skills/kick-off; grep -c 'use-board.py nest' references/adapters/board-github.md; grep -c sub_issues references/adapters/board-github.md; grep -c '^def nest' ../../lib/board.py; grep -l 'nearest backlog at or above' references/protocol.md references/worker.md | wc -l; cd ../..; git add -A; git commit -qm \"Nest tasks under the nearest backlog at or above the issue named\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\"; git log --oneline | head -1",
    "chars": 87,
    "lines": 5
   }

@@ -128,21 +128,25 @@
  "bash_results": [
   {
    "id": "toolu_012by5nR7M2NTUhLi9BUgwJd",
+   "command": "cd teamwork/skills/kick-off; ls scripts fixtures; cat fixtures/replay-landing-scenario.py; grep -n 'branch' references/adapters/landing-git.md references/adapters/landing-github.md",
    "chars": 11736,
    "lines": 210
   },
   {
    "id": "toolu_01AYdw6t6h2v6vJYUfv5tJsj",
+   "command": "cd teamwork && python3 - <<'E'\np='lib/landing_git.py'\ns=open(p).read()\ns=s.replace('''def merge(number, sha):''','''def bare_flagged(cwd=None):\n    \"\"\"Whether core.bare is true on a repository whose common folder is a `.git`: no worktree then shows as holding the base, so a landing\n    would move the branch and leave the files behind. A truly bare repository (its own folder, not a `.git`) is not flagged.\"\"\"\n    common = git(\"rev-parse\", \"--path-format=absolute\", \"--git-common-dir\", cwd=cwd).stdout.strip()\n    return bool(common) and os.path.basename(common.rstrip(\"/\")) == \".git\" and git(\"config\", \"--type=bool\", \"core.bare\", cwd=cwd).stdout.strip() == \"true\"\n\n\ndef merge(number, sha):''')\ns=s.replace('''    entry = record(number)\n    if entry[\"state\"] != \"OPEN\":''','''    if bare_flagged():\n        raise LookupError(f\"change {number}: core.bare is true on this checkout, so no worktree shows as holding the base and the files would stay old; run `git config core.bare false`\")\n    entry = record(number)\n    if entry[\"state\"] != \"OPEN\":''')\nopen(p,'w').write(s)\n\np='skills/kick-off/fixtures/replay-landing-scenario.py'\ns=open(p).read()\ns=s.replace('''    git(\"checkout\", \"--\", \"a.txt\")\n''','''    git(\"checkout\", \"--\", \"a.txt\")\n\n    git(\"config\", \"core.bare\", \"true\")\n    code, out = run([SCRIPTS / \"use-landing.py\", \"merge\", \"1\", probe])\n    git(\"config\", \"core.bare\", \"false\")\n    step(\"refuse-bare-checkout\", code == 1 and \"core.bare\" in out and git(\"rev-parse\", \"main\") == base and landing_git.record(1)[\"state\"] == \"OPEN\", f\"exit {code}: {out}\")\n''',1)\ns=s.replace('''    return 1 if failed''','''    run([\"git\", \"clone\", \"-q\", \"--bare\", repo, work / \"bare.git\"])\n    step(\"bare-repository\", not landing_git.bare_flagged(work / \"bare.git\") and landing_git.bare_flagged(repo) is False, \"a truly bare clone was flagged\")\n    return 1 if failed''')\ns=s.replace('''- remove:''','''- refuse-bare-checkout: change 1 merged with `core.bare` true exits 1, names `core.bare`, and leaves the bas",
    "chars": 784,
    "lines": 8
   },
   {
    "id": "toolu_01F2FMNNxdMgb813f3Hmp1i4",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1136-none-2-o8ruhhcu/repository && git status --short && cd teamwork && python3 - <<'E'\np='lib/landing_git.py'\ns=open(p).read()\ns=s.replace('''def merge(number, sha):''','''def bare_flagged(cwd=None):\n    \"\"\"Whether core.bare is true on a repository whose common folder is a `.git`: no worktree then shows as holding the base, so a landing\n    would move the branch and leave the files behind. A truly bare repository (its own folder, not a `.git`) is not flagged.\"\"\"\n    common = git(\"rev-parse\", \"--path-format=absolute\", \"--git-common-dir\", cwd=cwd).stdout.strip()\n    return bool(common) and os.path.basename(common.rstrip(\"/\")) == \".git\" and git(\"config\", \"--type=bool\", \"core.bare\", cwd=cwd).stdout.strip() == \"true\"\n\n\ndef merge(number, sha):''')\ns=s.replace('''    entry = record(number)\n    if entry[\"state\"] != \"OPEN\":''','''    if bare_flagged():\n        raise LookupError(f\"change {number}: core.bare is true on this checkout, so no worktree shows as holding the base and the files would stay old; run `git config core.bare false`\")\n    entry = record(number)\n    if entry[\"state\"] != \"OPEN\":''')\nopen(p,'w').write(s)\n\np='skills/kick-off/fixtures/replay-landing-scenario.py'\ns=open(p).read()\ns=s.replace('''    git(\"checkout\", \"--\", \"a.txt\")\n''','''    git(\"checkout\", \"--\", \"a.txt\")\n\n    git(\"config\", \"core.bare\", \"true\")\n    code, out = run([SCRIPTS / \"use-landing.py\", \"merge\", \"1\", probe])\n    git(\"config\", \"core.bare\", \"false\")\n    step(\"refuse-bare-checkout\", code == 1 and \"core.bare\" in out and git(\"rev-parse\", \"main\") == base and landing_git.record(1)[\"state\"] == \"OPEN\", f\"exit {code}: {out}\")\n''',1)\ns=s.replace('''    return 1 if failed''','''    run([\"git\", \"clone\", \"-q\", \"--bare\", repo, work / \"bare.git\"])\n    step(\"bare-repository\", not landing_git.bare_flagged(work / \"bare.git\") and landing_git.bare_flagged(repo) is False, \"a truly bare clone was flagged\")\n    return 1 if failed''')\ns=s.replace('''",
    "chars": 290,
    "lines": 8
   },
   {
    "id": "toolu_0173wyyXjuYqedsqJdhz1TK4",
+   "command": "git add -A && git commit -qm \"Guard git landing against a bare flag, place worktrees at the main checkout\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git status --short",
    "chars": 31,
    "lines": 1
   }

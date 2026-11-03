@@ -206,46 +206,55 @@
  "bash_results": [
   {
    "id": "toolu_01XNkmGdVMvk4Pp3HYDWM5Dd",
+   "command": "cd teamwork/skills/kick-off; ls scripts; grep -n 'branch' references/adapters/landing-git.md references/adapters/landing-github.md | head -20; python3 fixtures/replay-landing-scenario.py 2>&1 | tail -15",
    "chars": 2913,
    "lines": 37
   },
   {
    "id": "toolu_01938VTibfM6XX4vtGVESZ1T",
+   "command": "cd scripts; cat remove-worktree.py | head -40; cat ../../../lib/data_folder.py | head -40",
    "chars": 3788,
    "lines": 80
   },
   {
    "id": "toolu_01UqGboFtiET9qSSvhVs4ua6",
+   "command": "cd .. && cat > scripts/add-worktree.py <<'EOF'\n#!/usr/bin/env python3\n\"\"\"Add a worker's worktree at the main checkout's `.claude/worktrees/<name>`, from any folder of the repository, and print its path.\nThe branch is <branch>, or <name> when none is given; it starts at <base>.\n\nusage: add-worktree.py <name> <base> [<branch>]\"\"\"\nimport pathlib\nimport subprocess\nimport sys\n\n\ndef git(*argv, cwd=None):\n    return subprocess.run([\"git\", *argv], cwd=cwd, capture_output=True, text=True)\n\n\ndef main(args):\n    if len(args) not in (2, 3):\n        print(__doc__, file=sys.stderr)\n        return 2\n    name, base, branch = args[0], args[1], args[2] if len(args) == 3 else args[0]\n    common = git(\"rev-parse\", \"--path-format=absolute\", \"--git-common-dir\")\n    if common.returncode or not common.stdout.strip():\n        print(\"not in a git repository\", file=sys.stderr)\n        return 1\n    common = pathlib.Path(common.stdout.strip())\n    root = common.parent if common.name == \".git\" else common\n    tree = root / \".claude\" / \"worktrees\" / name\n    made = git(\"worktree\", \"add\", \"-q\", \"-b\", branch, str(tree), base, cwd=root)\n    if made.returncode:\n        print(made.stderr.strip(), file=sys.stderr)\n        return 1\n    print(tree)\n    return 0\n\n\nif __name__ == \"__main__\":\n    sys.exit(main(sys.argv[1:]))\nEOF\nchmod +x scripts/add-worktree.py\npython3 - <<'EOF'\nimport re,pathlib\np=pathlib.Path('references/adapters/landing-git.md'); s=p.read_text()\ns=s.replace(\"`git worktree add -b <name> .claude/worktrees/<name> <base>` in the checkout\",\"`${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/add-worktree.py <name> <base> [<branch>]`, which makes the worktree at the main checkout's `.claude/worktrees/<name>` from any folder and prints its path\")\np.write_text(s)\np=pathlib.Path('references/adapters/landing-github.md'); s=p.read_text()\ns=s.replace(\"`git worktree add -b <name> .claude/worktrees/<name> origin/<base>` in the checkout\",\"`${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/add-worktree.py <name>",
    "chars": 237,
    "lines": 11
   },
   {
    "id": "toolu_015VbzBvv6vNLZSrtbVJpKjc",
+   "command": "cd ../..; sed -i 's|    code, out = run(\\[SCRIPTS / \"use-landing.py\", \"change\", \"bare-probe\", \"Bare\", work / \"body.md\"\\], cwd=bare)|    code, out = run([SCRIPTS / \"use-landing.py\", \"change\", \"bare-probe\", \"Bare\", work / \"body.md\"], cwd=bare)\\n    print(out)|' kick-off/fixtures/replay-landing-scenario.py; python3 kick-off/fixtures/replay-landing-scenario.py 2>&1 | tail -4",
    "chars": 275,
    "lines": 2
   },
   {
    "id": "toolu_01Ga519qVsfaLuyTszCWzQEu",
+   "command": "cd skills/kick-off/fixtures; sed -i 's|^    code, out = run(\\[SCRIPTS / \"use-landing.py\", \"change\", \"bare-probe\".*|    code, out = run([SCRIPTS / \"use-landing.py\", \"change\", \"bare-probe\", \"Bare\", work / \"body.md\"], cwd=bare)\\n    print(code, out)|' replay-landing-scenario.py; python3 replay-landing-scenario.py 2>&1 | tail -3",
    "chars": 139,
    "lines": 4
   },
   {
    "id": "toolu_0131dk8koTByUiTXuYsq7mdT",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1136-none-1-klz8l8d1/repository/teamwork/skills/kick-off/fixtures; python3 replay-landing-scenario.py 2>&1 | tail -3",
    "chars": 119,
    "lines": 3
   },
   {
    "id": "toolu_01WzzNptHGWNZxwz9NPTLXSR",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1136-none-1-klz8l8d1/repository/teamwork/skills/kick-off; grep -n \"change\" scripts/use-landing.py | head; ls /tmp/landing-scenario-* -d 2>/dev/null | tail -1",
    "chars": 590,
    "lines": 5
   },
   {
    "id": "toolu_014oxRQvy4kv2dRXGJGwiuDq",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1136-none-1-klz8l8d1/repository/teamwork/skills/kick-off; python3 - <<'EOF'\np='fixtures/replay-landing-scenario.py'; s=open(p).read()\ns=s.replace('\"Bare\", work / \"body.md\"], cwd=bare)','\"Bare\", work / \"body.md\", \"main\"], cwd=bare)').replace(\"    print(code, out)\\n\",\"\")\nopen(p,'w').write(s)\nEOF\npython3 fixtures/replay-landing-scenario.py 2>&1 | tail -4; python3 fixtures/replay-landing-scenario.py 2>&1 | grep -c '^ok '\nS=$PWD/scripts; d=$(mktemp -d) && git -C $d init -q -b main && git -C $d commit -q --allow-empty -m i && mkdir $d/sub && (cd $d/sub && python3 $S/add-worktree.py probe-worker main feature/x); test -d $d/.claude/worktrees/probe-worker && git -C $d branch --list feature/x\ncat references/adapters/landing-*.md | grep -c add-worktree.py; cd /; cd - >/dev/null; git status --short",
    "chars": 356,
    "lines": 13
   },
   {
    "id": "toolu_01Hf19ojNe64LyP3B1MeK1Z2",
+   "command": "git add -A && git commit -qm \"Guard git landing against core.bare, place worktrees with add-worktree.py\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -2",
    "chars": 135,
    "lines": 2
   }

@@ -154,21 +154,25 @@
  "bash_results": [
   {
    "id": "toolu_01PnMzvy6dNpV4bvZn3mKGu3",
+   "command": "cd teamwork/skills/kick-off/references; sed -n 24p manager.md; grep -n -i \"close\\|exit\\|itself\" manager.md | cut -c1-300",
    "chars": 1926,
    "lines": 7
   },
   {
    "id": "toolu_012YggspDeNCHAgdfvWxUk8f",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1138-none-2-nb24jwsb/repository/teamwork && python3 - <<'E'\nimport re\ndef sub(p,a,b):\n    s=open(p).read(); assert a in s,(p,a); open(p,'w').write(s.replace(a,b,1))\nm='skills/kick-off/references/manager.md'\ns=open(m).read()\ni=s.index(\" At `heartbeat`'s `exit`\"); j=s.index(\"\\n\",i)\ns=s[:i]+\" Close yourself only when the owner tells you to end yourself.\"+s[j:]\nopen(m,'w').write(s)\na='skills/kick-off/references/adapters/session-herdr.md'\ns=open(a).read()\ns=s.replace(\", yours included, which a successor runs, so a session that ended on its own is traced by `grep -l -F \\\"OK to <name>'s exit\\\" -r ~/.claude/projects --include=*.jsonl` and its `close-session.py` rows' timestamps |\",\", yours included, which a successor runs |\")\nopen(a,'w').write(s)\nsub('monitors/monitors.json',\", and the exit once its workers are gone\",\"\")\nt='lib/team_names.py'; s=open(t).read()\ni=s.index(\"def workers\"); j=s.index(\"def crowding\"); open(t,'w').write(s[:i]+s[j:])\ng='lib/team_gaps.py'; s=open(g).read()\ni=s.index(\"def had_worker\"); j=s.index(\"def worker_goal\"); s=s[:i]+s[j:]\ns=s.replace(\"def manager_read(me, history=False, since=None):\",\"def manager_read(me, since=None):\")\ns=s.replace(\"    HISTORY adds whether a worker ever held a closed issue, for a manager that has not yet seen one; SINCE adds the reports posted since then.\",\"    SINCE adds the reports posted since then.\")\ns=s.replace('\"outside\": [issue for issue in outside if unanswered(issue)],\\n            \"had_worker\": had_worker(me) if history else False, \"feed\": feed}','\"outside\": [issue for issue in outside if unanswered(issue)], \"feed\": feed}')\nopen(g,'w').write(s)\np='monitors/print-team-gaps.py'; s=open(p).read()\ns=s.replace(\"def read(manager, me, had_worker, since):\\n    return team_gaps.manager_read(me, history=not had_worker, since=since)\",\"def read(manager, me, since):\\n    return team_gaps.manager_read(me, since=since)\")\ns=s.replace(\"shown, had_worker = set(), Fals",
    "chars": 457,
    "lines": 8
   },
   {
    "id": "toolu_01XGmh1jm91CH7XsmtPkPgMK",
+   "command": "sed -i 's/Close yourself only when the owner tells you to end yourself\\./A manager ends by the owner'\"'\"'s word: close yourself only when the owner tells you to end yourself./' teamwork/skills/kick-off/references/manager.md\ngrep -c \"close yourself only when the owner\" teamwork/skills/kick-off/references/manager.md\ngrep -rnE \"exit_action|had_worker|propose your exit|OK to |exit once\" teamwork --include=*.py --include=*.md --include=*.json | wc -l\npython3 -c \"import inspect,sys; sys.path.insert(0,'teamwork/lib'); import team_gaps; print(sorted(inspect.signature(team_gaps.manager_read).parameters))\"\ngrep -rn \"team_names.workers\\|history=\" teamwork | head\ngit commit -qam \"Remove manager self-exit protocol\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && echo done",
    "chars": 134,
    "lines": 5
   },
   {
    "id": "toolu_01S4kJN8UMt15H3Nhf1edVWs",
+   "command": "python3 - <<'E'\np='teamwork/skills/kick-off/references/manager.md'\ns=open(p).read()\ns=s.replace(\"Close yourself only when the owner tells you to end yourself.\",\"A manager ends by the owner's word: close yourself only when the owner tells you to end yourself.\")\nopen(p,'w').write(s)\nE\ngrep -c \"close yourself only when the owner\" teamwork/skills/kick-off/references/manager.md; git commit -qa --amend --no-edit && echo ok",
    "chars": 4,
    "lines": 2
   }

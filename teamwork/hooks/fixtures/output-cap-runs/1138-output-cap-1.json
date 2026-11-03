@@ -204,11 +204,13 @@
  "bash_results": [
   {
    "id": "toolu_01WvFtexn7tNkbKmw4R66eev",
+   "command": "cd teamwork; grep -rnE \"exit_action|had_worker|propose your exit|OK to |exit once|Kept alive|def workers|history|self-ended|workers\\(\" . --include=*.py --include=*.md --include=*.json | grep -v \"^./skills/kick-off/\\(scripts\\|fixtures\\)/\\(run-crit\\|estim\\)\" | cut -c1-400",
    "chars": 4869,
    "lines": 35
   },
   {
    "id": "toolu_01QwZbtJEL6Yhk4HPnGrstNw",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1138-output-cap-1-m9boev98/repository/teamwork; sed -n 50,80p lib/team_gaps.py; sed -n 120,145p lib/team_gaps.py; sed -n 15,40p lib/team_names.py; sed -n 24p skills/kick-off/references/manager.md; grep -n \"exit\\|close yourself\\|self\" skills/kick-off/references/manager.md | cut -c1-300; grep -rn \"had_worker\\|exit\\b\" skills/kick-off/fixtures/replay-team-scenarios.py | head; grep -rn \"exit\" ../*.md skills/*/SKILL.md ../README* 2>/dev/null| head",
    "chars": 5735,
    "lines": 51,
    "cut": {
@@ -222,6 +224,7 @@
   },
   {
    "id": "toolu_01B2AGS8LTPma62jccp1Rf5H",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1138-output-cap-1-m9boev98/repository/teamwork; sed -n 120,142p lib/team_gaps.py; sed -n 1,30p lib/team_names.py; grep -n \"had_worker\\|exit\" lib/team_gaps.py; grep -rn \"team_names\" --include=*.py . | grep -n workers; grep -rn \"exit\\b\" skills/kick-off/SKILL.md skills/kick-off/references/*.md | grep -iv \"exit status\\|exits\" | cut -c1-200",
    "chars": 2856,
    "lines": 51,
    "cut": {
@@ -235,21 +238,25 @@
   },
   {
    "id": "toolu_0155nFxx1FhUyKETvzqJd3Qr",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1138-output-cap-1-m9boev98/repository/teamwork; sed -n 20,32p lib/team_names.py; grep -n \"issue_state\\|^import\\|^from\" lib/team_gaps.py | head -20; grep -rn \"had_worker\\|manager_read\\|exit_action\" . | grep -v \"^./lib/team_gaps.py\\|print-team-gaps\"; grep -n \"exit\" skills/kick-off/references/*.md skills/kick-off/SKILL.md | grep -i \"heartbeat\\|idle\" | cut -c1-250",
    "chars": 3096,
    "lines": 34
   },
   {
    "id": "toolu_01Jn7W6Yc6PT5t2E9poz69iA",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1138-output-cap-1-m9boev98/repository/teamwork; python3 - <<'E'\nimport re\ndef sub(p,a,b,regex=False):\n    s=open(p).read()\n    n=re.sub(a,b,s,flags=re.S) if regex else s.replace(a,b)\n    assert n!=s,(p,a); open(p,'w').write(n)\nm='skills/kick-off/references/manager.md'\nsub(m,r\"At `heartbeat`'s `exit`, propose.*?no tool output\\.\",\"Close yourself only when the owner tells you to end yourself; no heartbeat line or peer proposal ends you.\",True)\nsub('skills/kick-off/references/adapters/session-herdr.md',r\", so a session that ended on its own is traced by .*? rows' timestamps \\|\",\" |\",True)\nsub('monitors/monitors.json',\", and the exit once its workers are gone\",\"\")\nsub('lib/team_names.py',r'def workers\\(me, listed\\):.*?\\n\\n\\n','',True)\ng='lib/team_gaps.py'\nsub(g,r'def had_worker\\(me\\):.*?\\n\\n\\n(?=def exit_action)','',True)\nsub(g,r'\\n\\ndef exit_action\\(me, listed\\):.*?managers\\[0\\] != me\\[\"name\"\\] else None\\n','\\n',True)\nsub(g,\"def manager_read(me, history=False, since=None):\",\"def manager_read(me, since=None):\")\nsub(g,\"    HISTORY adds whether a worker ever held a closed issue, for a manager that has not yet seen one; SINCE adds\",\"    SINCE adds\")\nsub(g,',\\n            \"had_worker\": had_worker(me) if history else False, \"feed\": feed}',', \"feed\": feed}')\np='monitors/print-team-gaps.py'\nsub(p,\"def read(manager, me, had_worker, since):\\n    return team_gaps.manager_read(me, history=not had_worker, since=since)\",\"def read(manager, me, since):\\n    return team_gaps.manager_read(me, since=since)\")\nsub(p,\"    shown, had_worker = set(), False  # the exit waits until this manager has had a worker, so a fresh manager routes first\\n\",\"    shown = set()\\n\")\nsub(p,\"read(manager, me, had_worker, since\",\"read(manager, me, since\")\nsub(p,r\"        if manager and lines is not None:.*?exit_action\\(me, listed\\)\\]\\)\\n\",\"\",True)\nE\ngit diff --stat; tail -5 lib/team_gaps.py; grep -n \"role\\|members\" lib/team_gaps.py | head -4; sed",
    "chars": 1447,
    "lines": 27
   },
   {
    "id": "toolu_01KwQn8FH7ZQExkWBc3TMXdU",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1138-output-cap-1-m9boev98/repository; sed -i 's/Close yourself only when the owner tells you to end yourself; no heartbeat/A manager will close yourself only when the owner tells you to end yourself; no heartbeat/' teamwork/skills/kick-off/references/manager.md; sed -i 's/A manager will close yourself/You close yourself/; s/You close yourself only/You close yourself only/' teamwork/skills/kick-off/references/manager.md; sed -i 's/You close yourself only when/You `close` yourself only when/' teamwork/skills/kick-off/references/manager.md; grep -o \"You .\\{0,120\\}\" teamwork/skills/kick-off/references/manager.md | grep yourself",
    "chars": 308,
    "lines": 3
   },
   {
    "id": "toolu_012hfH6WrHKhRJ9YocduNKUm",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1138-output-cap-1-m9boev98/repository; python3 - <<'E'\np='teamwork/skills/kick-off/references/manager.md'\ns=open(p).read()\na=\"Close yourself only when the owner tells you to end yourself;\"\nassert a in s\nopen(p,'w').write(s.replace(a,\"A manager ends only by the owner's word: close yourself only when the owner tells you to end yourself, or ends you by hand;\"))\nE\ngrep -c \"close yourself only when the owner\" teamwork/skills/kick-off/references/manager.md\ngrep -rnE \"exit_action|had_worker|propose your exit|OK to |exit once\" teamwork --include=*.py --include=*.md --include=*.json | wc -l\ngit add -A && git commit -qm \"Remove manager self-exit protocol\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -1",
    "chars": 52,
    "lines": 3
   }

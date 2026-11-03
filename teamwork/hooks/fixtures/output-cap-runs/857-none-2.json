@@ -180,41 +180,49 @@
  "bash_results": [
   {
    "id": "toolu_01NZSGhLPGTosKF7waYnoiFq",
+   "command": "cd teamwork/skills/kick-off; ls . fixtures scripts; git log --oneline | head -3",
    "chars": 434,
    "lines": 28
   },
   {
    "id": "toolu_01X6LxJDwH1eRkQDeL7fkq6f",
+   "command": "cd teamwork/skills/kick-off; cat fixtures/base-quote.md; grep -n \"ITEM\\|CRITERION\\|^SPAN\\|def sections\" -A3 ../../lib/issue_state.py | head -50; grep -n \"run-criteria\" SKILL.md | head",
    "chars": 2395,
    "lines": 24
   },
   {
    "id": "toolu_01ABV6WKLAJRKQXnTX7Jzrvf",
+   "command": "cd teamwork/skills/kick-off && python3 - <<'EOF'\np='scripts/run-criteria.py'\ns=open(p).read()\ns=s.replace('[--base [--ref <ref>]] <task','[--base [--ref <ref>]] [--pass <n>=<sample-file>]... <task',1)\ns=s.replace('''export has no `.git`) and a check with a placeholder are `unclear`. The output is compared whole. It never fetches: run `git fetch` first. A body file reads criteria before the task exists, so run it before the first judge.\"\"\"''','''export has no `.git`) and a check with a placeholder are `unclear`. The output is compared whole. It never fetches: run `git fetch` first. A body file reads criteria before the task exists, so run it before the first judge.\n\n`--pass <n>=<sample-file>` runs criterion n on a sample of its pass instead: the command's one producer before its one\ntop-level `|` is replaced by `cat <sample-file>`, so a check that reads its input twice, as `/dev/stdin` does, or never\naccepts a valid one, fails here before the task is filed. A row is `pass ok` when the output is the one the criterion\n`prints`, `wrong pass` when it is not; `unclear` when the script cannot split the command surely (no `|`, two, a `||`, `&&`,\n`;`, `&`, substitution, redirect, group or newline outside quotes), the criterion is not a `prints` check, or has no sample.\nExit 1 on any `wrong pass`. Give `--pass` for each criterion to sample; a body file works, as with `--base`.\"\"\"''',1)\ns=s.replace('''def run_on_base(''','''def split_pipe(command):\n    \"\"\"(producer, consumer) around the command's one top-level `|`, or None when that is not sure.\"\"\"\n    quote, cut, i = None, [], 0\n    while i < len(command):\n        c = command[i]\n        if quote:\n            quote = None if c == quote else quote\n            i += c == \"\\\\\\\\\" and quote == '\"'\n        elif c in \"'\\\\\"\":\n            quote = c\n        elif c == \"\\\\\\\\\":\n            i += 1\n        elif c == \"|\" and command[i + 1:i + 2] != \"|\" and command[i - 1:i] != \"|\":\n            cut.append(i)\n        elif c in \"|&;`<>(){}\\\\n\" or ",
    "chars": 326,
    "lines": 6
   },
   {
    "id": "toolu_01L5PHYCTyfTCywHKv3tifo8",
+   "command": "cd teamwork/skills/kick-off 2>/dev/null; pwd; git rev-parse --show-toplevel",
    "chars": 214,
    "lines": 2
   },
   {
    "id": "toolu_01AN2YoqcyhKNVGvPTxZbqpP",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-857-none-2-32f4tkqs/repository && git status --short && grep -c split_pipe teamwork/skills/kick-off/scripts/run-criteria.py",
    "chars": 112,
    "lines": 3
   },
   {
    "id": "toolu_01GoqXUEJPoy8Rb67V9H2btE",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-857-none-2-32f4tkqs/repository && python3 - <<'EOF'\np='teamwork/skills/kick-off/scripts/run-criteria.py'\ns=open(p).read()\ns=s.replace('[--base [--ref <ref>]] <task','[--base [--ref <ref>]] [--pass <n>=<sample-file>]... <task',1)\ns=s.replace('''A body file reads criteria before the task exists, so run it before the first judge.\"\"\"''','''A body file reads criteria before the task exists, so run it before the first judge.\n\n`--pass <n>=<sample-file>` runs criterion n on a sample of its pass instead: the command's one producer before its one\ntop-level `|` is replaced by `cat <sample-file>`, so a check that reads its input twice, as `/dev/stdin` does, or never\naccepts a valid one, fails here before the task is filed. A row is `pass ok` when the output is the one the criterion\n`prints`, `wrong pass` when it is not; `unclear` when the script cannot split the command surely (no `|`, two, a `||`, `&&`,\n`;`, `&`, substitution, redirect, group or newline outside quotes), the criterion is not a `prints` check, or has no sample.\nExit 1 on any `wrong pass`. Give `--pass` for each criterion to sample; a body file works, as with `--base`.\"\"\"''',1)\ns=s.replace('''def run_on_base(''','''def split_pipe(command):\n    \"\"\"(producer, consumer) around the command's one top-level `|`, or None when that is not sure.\"\"\"\n    quote, cut, i = None, [], 0\n    while i < len(command):\n        c = command[i]\n        if quote:\n            if c == \"\\\\\\\\\" and quote == '\"':\n                i += 1\n            elif c == quote:\n                quote = None\n        elif c in \"'\\\\\"\":\n            quote = c\n        elif c == \"\\\\\\\\\":\n            i += 1\n        elif c == \"|\" and command[i + 1:i + 2] != \"|\" and command[i - 1:i] != \"|\":\n            cut.append(i)\n        elif c in \"|&;`<>(){}\\\\n\" or command[i:i + 2] == \"$(\":\n            return None\n        i += 1\n    if quote or len(cut) != 1 or not command[:cut[0]].strip() or not command[cut[0] + 1:",
    "chars": 286,
    "lines": 7
   },
   {
    "id": "toolu_013BSKThkHwFvUGF5LeEgVhM",
+   "command": "bash -c '\nS=teamwork/skills/kick-off; A=\"\"; for i in 1 2 3 4 5 6 7 8; do A=\"$A --pass $i=$S/fixtures/pass-sample-input.txt\"; done\npython3 $S/scripts/run-criteria.py $A $S/fixtures/pass-sample.md 2>&1; python3 $S/scripts/run-criteria.py $A $S/fixtures/pass-sample.md 2>&1 | grep -c \"pass ok\"; python3 $S/scripts/run-criteria.py $A $S/fixtures/pass-sample.md 2>&1 | grep -c unclear'",
    "chars": 697,
    "lines": 14
   },
   {
    "id": "toolu_01NpVPifinzUJM84ubF5cMF2",
+   "command": "git add -A && git commit -qm \"run-criteria.py: --pass runs a check on a sample of its pass\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -1",
    "chars": 68,
    "lines": 1
   }

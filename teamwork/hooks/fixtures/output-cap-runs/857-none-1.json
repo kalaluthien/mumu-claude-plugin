@@ -154,31 +154,37 @@
  "bash_results": [
   {
    "id": "toolu_01EYhXPePgAjXSGBBy31b12o",
+   "command": "cd teamwork/skills/kick-off; ls . fixtures scripts; cat scripts/run-criteria.py; head -50 fixtures/*.md | head -80",
    "chars": 15063,
    "lines": 319
   },
   {
    "id": "toolu_01X3sxPVVtrWr6JSTLGm44rz",
+   "command": "cd teamwork/skills/kick-off && python3 - <<'E'\np='scripts/run-criteria.py'\ns=open(p).read()\ns=s.replace('''usage: run-criteria.py [--timeout <s>] [--base [--ref <ref>]] <task | body-file | ->''','''usage: run-criteria.py [--timeout <s>] [--base [--ref <ref>]] [--pass <n>=<sample-file> ...] <task | body-file | ->''')\ns=s.replace('''It never fetches: run `git fetch` first.''','''It never fetches: run `git fetch` first.\n\n`--pass <n>=<sample>` (repeatable) runs criterion n on a sample of its pass instead: the command's left side of its one `|` is replaced by `cat <sample>`, and a `/dev/stdin` in the rest names the sample file, so a check that reads its input twice or never passes shows before filing. The row says `pass ok` when the output is the one the criterion `prints`, `pass wrong` when not, and `unclear` when the command cannot be split surely (no `|` or more than one, a quote, `;`, `&`, `<`, `>`, `$`, a backtick, a bracket or a backslash) or the criterion is no `prints` check. It reads a body file, and exits 1 on any `pass wrong`''',1)\ns=s.replace('''def base_ref(ref):''','''def split_pipe(command):\n    \"\"\"(left, right) of a command with exactly one `|` and nothing a split could misread, else None.\"\"\"\n    if re.search(r\"\"\"[;&<>$`(){}\\\\\\\\'\"\\\\n]\"\"\", command.replace(\"||\", \"&\")) or command.count(\"|\") != 1:\n        return None\n    left, right = command.split(\"|\")\n    return (left, right) if left.strip() and right.strip() else None\n\n\ndef pass_row(label, kind, name, detail, sample, cwd, timeout):\n    \"\"\"Row of a criterion run on a sample of its pass.\"\"\"\n    command, test = expectation(detail) if kind == \"check\" else (None, (None, \"not a check\"))\n    if test[0] != \"prints\":\n        return label, name, \"unclear\", f\"not run on a sample: {test[1] or 'not a `prints` check'}\"\n    parts = split_pipe(command)\n    if not parts:\n        return label, name, \"unclear\", \"not run on a sample: cannot split the command surely at one `|`\"\n    path = str(pathlib.Path(sample).resolve())\n  ",
    "chars": 326,
    "lines": 6
   },
   {
    "id": "toolu_01Cd8HGLvZScuXv359vmQb4T",
+   "command": "git status --short; ls teamwork/skills/kick-off/fixtures | head -20",
    "chars": 230,
    "lines": 9
   },
   {
    "id": "toolu_012ELiafAbwRpHz5Kk32dRsz",
+   "command": "python3 - <<'E'\np='teamwork/skills/kick-off/scripts/run-criteria.py'\ns=open(p).read()\ns=s.replace('''usage: run-criteria.py [--timeout <s>] [--base [--ref <ref>]] <task | body-file | ->''','''usage: run-criteria.py [--timeout <s>] [--base [--ref <ref>]] [--pass <n>=<sample-file> ...] <task | body-file | ->''')\ns=s.replace('''It never fetches: run `git fetch` first.''','''It never fetches: run `git fetch` first.\n\n`--pass <n>=<sample>` (repeatable) runs criterion n on a sample of its pass instead: the left side of the command's one `|` is replaced by `cat <sample>`, and a `/dev/stdin` in the rest names the sample file, so a check that reads its input twice or can never pass shows before filing. The row says `pass ok` when the output is the one the criterion `prints`, `pass wrong` when not, and `unclear` when the command cannot be split surely (no `|` or more than one, a quote, `;`, `&`, `<`, `>`, `$`, a backtick, a bracket or a backslash) or the criterion is no `prints` check. It reads a body file, and exits 1 on any `pass wrong`.''',1)\ns=s.replace('''def base_ref(ref):''','''def split_pipe(command):\n    \"\"\"(left, right) of a command with exactly one `|` and nothing a split could misread, else None.\"\"\"\n    if re.search(r\"\"\"[;&<>$`(){}\\\\\\\\'\"\\\\n]\"\"\", command) or command.count(\"|\") != 1:\n        return None\n    left, right = command.split(\"|\")\n    return (left, right) if left.strip() and right.strip() else None\n\n\ndef pass_row(label, kind, name, detail, sample, cwd, timeout):\n    \"\"\"Row of a criterion run on a sample of its pass.\"\"\"\n    command, test = expectation(detail) if kind == \"check\" else (None, (None, \"not a check\"))\n    if test[0] != \"prints\":\n        return label, name, \"unclear\", f\"not run on a sample: {test[1] or 'not a `prints` check'}\"\n    parts = split_pipe(command)\n    if not parts:\n        return label, name, \"unclear\", \"not run on a sample: cannot split the command surely at one `|`\"\n    path = shlex.quote(str(pathlib.Path(sample).resolve()))\n    status,",
    "chars": 286,
    "lines": 7
   },
   {
    "id": "toolu_01DdE9s95XVk5rSw578VNR77",
+   "command": "cat > /tmp/t.sh <<'E'\nS=teamwork/skills/kick-off; A=\"\"; for i in 1 2 3 4 5 6 7 8; do A=\"$A --pass $i=$S/fixtures/pass-sample-input.txt\"; done\npython3 $S/scripts/run-criteria.py $A $S/fixtures/pass-sample.md; python3 $S/scripts/run-criteria.py $A $S/fixtures/pass-sample.md 2>&1|grep -c 'pass ok'; python3 $S/scripts/run-criteria.py $A $S/fixtures/pass-sample.md 2>&1|grep -c unclear\nE\nbash /tmp/t.sh",
    "chars": 742,
    "lines": 12
   },
   {
    "id": "toolu_011dzkXvx9boK1TWccF9xW2y",
+   "command": "git add -A && git commit -qm \"Run criteria on a pass sample with run-criteria.py --pass\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -1",
    "chars": 65,
    "lines": 1
   }

@@ -141,26 +141,31 @@
  "bash_results": [
   {
    "id": "toolu_014f4yqD8fHKXZJDYSpAydNe",
+   "command": "cd teamwork; sed -n 30,90p skills/kick-off/scripts/use-board.py; sed -n 100,170p lib/board_files.py; sed -n 280,330p lib/board_github.py; grep -n 'nest' skills/kick-off/references/protocol.md skills/kick-off/references/worker.md skills/kick-off/references/adapters/board-github.md; ls skills/kick-off/fixtures | head -30",
    "chars": 7684,
    "lines": 182
   },
   {
    "id": "toolu_01DR72XgGDUnVhswqSuQ8HgM",
+   "command": "cd teamwork; sed -n 1,40p skills/kick-off/fixtures/replay-board-setting.py; sed -n 1,30p skills/kick-off/references/adapters/board-github.md; grep -n 'def fresh' -A12 lib/board_files.py",
    "chars": 5062,
    "lines": 75
   },
   {
    "id": "toolu_01QJ1qCK89AzCCt7JTCLqnSX",
+   "command": "cd teamwork && python3 - <<'E'\nimport re\np='lib/board.py'; s=open(p).read()\ns=s.replace(\"`order(later, earlier)`, `nest(backlog, task)`,\",\"`order(later, earlier)`, `nest(issue, task)`, which puts TASK under the nearest backlog at or above ISSUE and raises `LookupError` with none (the adapters' own `nest(backlog, task)` is reached only through it),\")\ns+='''\n\ndef nest(issue, task):\n    \"\"\"Puts TASK under the nearest issue labelled `backlog` at or above ISSUE; raises, writing nothing, when none is.\"\"\"\n    seen, here = set(), issue\n    while here is not None and int(here) not in seen:\n        seen.add(int(here))\n        found = __getattr__(\"fresh\")(here, comments=False)\n        if not found:\n            raise LookupError(f\"cannot read #{here}\")\n        if \"backlog\" in found[\"labels\"]:\n            return __getattr__(\"nest\")(here, task)\n        here = found[\"parent\"]\n    raise LookupError(f\"no backlog at or above #{issue}\")\n'''\nopen(p,'w').write(s)\np='skills/kick-off/references/adapters/board-github.md'; s=open(p).read()\ns=re.sub(r\"\\| `nest` \\|.*\\n\",\"| `nest` | `use-board.py nest <issue> <task>`, which walks up from `<issue>` to the nearest backlog and nests there |\\n\",s)\nopen(p,'w').write(s)\np='skills/kick-off/references/protocol.md'; s=open(p).read()\ns=s.replace(\"puts a task under its backlog\",\"puts a task under the nearest backlog at or above the issue named, and refuses with none\")\nopen(p,'w').write(s)\np='skills/kick-off/references/worker.md'; s=open(p).read()\ns=s.replace(\"`nest` it under the backlog,\",\"`nest` it under the nearest backlog at or above the issue you were given,\")\nopen(p,'w').write(s)\nE\ngrep -n 'sub_issues' skills/kick-off/references/adapters/board-github.md; grep -n 'nest' skills/kick-off/references/adapters/board-files.md\ncat > skills/kick-off/fixtures/replay-nest-target.py <<'E'\n#!/usr/bin/env python3\n\"\"\"On a temporary files board, print `under-task pass|fail` (a task nested under a task lands on the backlog) and\n`no-backlog pass|fail` (nesting under ",
    "chars": 263,
    "lines": 5
   },
   {
    "id": "toolu_01KQBisAnoq5rsjTPaBh8LgR",
+   "command": "pwd; python3 - <<'E'\nimport re\np='lib/board.py'; s=open(p).read()\ns=s.replace(\"`order(later, earlier)`, `nest(backlog, task)`,\",\"`order(later, earlier)`, `nest(issue, task)`, which puts TASK under the nearest backlog at or above ISSUE and raises `LookupError` with none (the adapters' own `nest(backlog, task)` is reached only through it),\")\ns+='''\n\ndef nest(issue, task):\n    \"\"\"Puts TASK under the nearest issue labelled `backlog` at or above ISSUE; raises, writing nothing, when none is.\"\"\"\n    seen, here = set(), issue\n    while here is not None and int(here) not in seen:\n        seen.add(int(here))\n        found = __getattr__(\"fresh\")(here, comments=False)\n        if not found:\n            raise LookupError(f\"cannot read #{here}\")\n        if \"backlog\" in found[\"labels\"]:\n            return __getattr__(\"nest\")(here, task)\n        here = found[\"parent\"]\n    raise LookupError(f\"no backlog at or above #{issue}\")\n'''\nopen(p,'w').write(s)\np='skills/kick-off/references/adapters/board-github.md'; s=open(p).read()\ns=re.sub(r\"\\| `nest` \\|.*\\n\",\"| `nest` | `use-board.py nest <issue> <task>`, which walks up from `<issue>` to the nearest backlog and nests there |\\n\",s)\nopen(p,'w').write(s)\np='skills/kick-off/references/adapters/board-files.md'; s=open(p).read()\ns=s.replace(\"`use-board.py nest <backlog> <task>`\",\"`use-board.py nest <issue> <task>`\")\nopen(p,'w').write(s)\np='skills/kick-off/references/protocol.md'; s=open(p).read()\ns=s.replace(\"puts a task under its backlog\",\"puts a task under the nearest backlog at or above the issue named, and refuses with none\")\nopen(p,'w').write(s)\np='skills/kick-off/references/worker.md'; s=open(p).read()\ns=s.replace(\"`nest` it under the backlog,\",\"`nest` it under the nearest backlog at or above the issue you were given,\")\nopen(p,'w').write(s)\nE\npython3 skills/kick-off/fixtures/replay-nest-target.py; git status --short; grep -c sub_issues skills/kick-off/references/adapters/board-github.md; grep -l 'nearest backlog at or above' skills/kick-off",
    "chars": 404,
    "lines": 11
   },
   {
    "id": "toolu_0143MAV9kCauanPtw82JiMDs",
+   "command": "git add -A && git commit -qm \"Nest tasks under the nearest backlog at or above the issue named\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -1",
    "chars": 72,
    "lines": 1
   }

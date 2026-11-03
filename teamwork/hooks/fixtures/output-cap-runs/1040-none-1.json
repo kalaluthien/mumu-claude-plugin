@@ -141,26 +141,31 @@
  "bash_results": [
   {
    "id": "toolu_01EMCBi7zDoCfguGPAQL4BUY",
+   "command": "cd teamwork; cat lib/board.py; grep -n \"nest\" -r lib skills/kick-off/scripts/use-board.py skills/kick-off/references/protocol.md skills/kick-off/references/worker.md skills/kick-off/references/adapters/board-github.md; ls skills/kick-off/fixtures",
    "chars": 2987,
    "lines": 54
   },
   {
    "id": "toolu_01TxNmcQxrfuz53pyf1hpMeT",
+   "command": "cd teamwork; sed -n 120,160p lib/board_files.py; sed -n 295,320p lib/board_github.py; sed -n 1,80p skills/kick-off/scripts/use-board.py; sed -n 1,40p skills/kick-off/fixtures/replay-board-setting.py; grep -n \"def fresh\\|def issues\" -A12 lib/board_files.py | head -60",
    "chars": 8898,
    "lines": 191
   },
   {
    "id": "toolu_01LmfG5zJteMQ9QAzhS5MWzE",
+   "command": "cd teamwork; python3 - <<'E'\nimport re\np='lib/board.py'\ns=open(p).read()\ns+='''\n\ndef nest(issue, task):\n    \"\"\"Puts TASK under the nearest backlog at or above ISSUE, the issue itself or the first of its parents labelled `backlog`; raises, writing nothing, when none is.\"\"\"\n    adapter = importlib.import_module(f\"board_{kind()}\")\n    number, seen = issue, set()\n    while number is not None and number not in seen:\n        record = adapter.fresh(number, comments=False)\n        if record is None:\n            raise LookupError(f\"cannot read #{number}\")\n        if \"backlog\" in record[\"labels\"]:\n            return adapter.nest(number, task)\n        seen.add(number)\n        number = record[\"parent\"]\n    raise LookupError(f\"no backlog at or above #{issue}\")\n'''\ns=s.replace(\"`nest(backlog, task)`\",\"`nest(backlog, task)` (the port's `nest(issue, task)` walks up to the nearest backlog, then calls it)\")\nopen(p,'w').write(s)\np='skills/kick-off/references/adapters/board-github.md'\ns=open(p).read()\ns=re.sub(r\"^\\| `nest` \\|.*$\",\"| `nest` | `use-board.py nest <issue> <task>` |\",s,flags=re.M)\nopen(p,'w').write(s)\np='skills/kick-off/references/protocol.md'\ns=open(p).read()\ns=s.replace(\"puts a task under its backlog\",\"puts a task under the nearest backlog at or above the issue named; refuses when none is\")\nopen(p,'w').write(s)\np='skills/kick-off/references/worker.md'\ns=open(p).read()\ns=s.replace(\"`nest` it under the backlog, which\",\"`nest` it under the nearest backlog at or above the issue you were given, which\")\nopen(p,'w').write(s)\np='skills/kick-off/scripts/use-board.py'\ns=open(p).read()\ns=s.replace(\"nest <backlog> <task>                 put TASK under BACKLOG\",\"nest <issue> <task>                   put TASK under the nearest backlog at or above ISSUE\")\nopen(p,'w').write(s)\nE\ngit diff --stat; sed -n 8,20p skills/kick-off/references/adapters/board-github.md; grep -n \"def file\" -A12 lib/board_files.py",
    "chars": 2935,
    "lines": 33
   },
   {
    "id": "toolu_01WvuG6XbXSstR6LUiCzFZCi",
+   "command": "cd teamwork; cat > skills/kick-off/fixtures/replay-nest-target.py <<'E'\n#!/usr/bin/env python3\n\"\"\"On a temporary files board, print `under-task pass|fail` and `no-backlog pass|fail`; exit 1 on any fail.\n\n- under-task: a task nested under a task lands on the backlog above it\n- no-backlog: nesting under an issue with no backlog at or above it exits 1 and the task keeps no parent\"\"\"\nimport os\nimport pathlib\nimport re\nimport subprocess\nimport sys\nimport tempfile\n\nUSE = pathlib.Path(__file__).resolve().parents[1] / \"scripts\" / \"use-board.py\"\nwork = pathlib.Path(tempfile.mkdtemp(prefix=\"nest-target-\"))\nenv = {**os.environ, \"TEAMWORK_BOARD\": \"files\", \"TEAMWORK_BOARD_DIR\": str(work / \"board\"), \"CLAUDE_CONFIG_DIR\": str(work / \"claude\")}\n(work / \"body.md\").write_text(\"body\")\n\n\ndef use(*argv):\n    return subprocess.run([sys.executable, str(USE), *argv], env=env, cwd=work, capture_output=True, text=True)\n\n\ndef file(title, *labels):\n    return re.search(r\"(\\d+)\\s*$\", use(\"file\", title, str(work / \"body.md\"), *labels).stdout).group(1)\n\n\ndef parent(n):\n    return re.search(r\"^parent: (.*)$\", use(\"read\", n).stdout, re.M).group(1)\n\n\nbacklog, plain = file(\"backlog\", \"backlog\"), file(\"plain task\")\nt1, t2, t3 = file(\"task one\"), file(\"task two\"), file(\"task three\")\nok = use(\"nest\", backlog, t1).returncode == 0 and use(\"nest\", t1, t2).returncode == 0 and parent(t2) == backlog\nprint(\"under-task pass\" if ok else \"under-task fail\", flush=True)\nok = use(\"nest\", plain, t3).returncode == 1 and parent(t3) == \"None\"\nprint(\"no-backlog pass\" if ok else \"no-backlog fail\", flush=True)\nsys.exit(0 if ok else 1)\nE\npython3 skills/kick-off/fixtures/replay-nest-target.py; grep -rc sub_issues skills/kick-off/references/adapters/board-github.md; grep -rn \"sub_issues\\|nest\" tests 2>/dev/null | head",
    "chars": 134,
    "lines": 4
   },
   {
    "id": "toolu_01MFxdMURxkdj88NxsxCHpPP",
+   "command": "git add -A && git commit -qm \"Nest tasks under the nearest backlog at or above the issue named\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -1",
    "chars": 72,
    "lines": 1
   }

@@ -164,16 +164,19 @@
  "bash_results": [
   {
    "id": "toolu_01F9n1e5yZsmjJs42KQXrU4L",
+   "command": "cd teamwork/skills/kick-off; ls scripts; grep -n -i 'worktree' references/adapters/landing-git.md references/adapters/landing-github.md",
    "chars": 1972,
    "lines": 27
   },
   {
    "id": "toolu_01S2aHnXW2YrBC7ixfRFYj9T",
+   "command": "cd teamwork/skills/kick-off/scripts; cat remove-worktree.py | head -40; cat ../../../lib/data_folder.py | head -40",
    "chars": 183,
    "lines": 3
   },
   {
    "id": "toolu_013ZrHrd7ksUN43U2PWoRpJZ",
+   "command": "cd scripts; head -40 remove-worktree.py; head -40 ../../../lib/data_folder.py",
    "chars": 2561,
    "lines": 51,
    "cut": {
@@ -187,16 +190,19 @@
   },
   {
    "id": "toolu_01Nt5opzVYrXqZwKqCJx9Dv5",
+   "command": "cd ../../.. && python3 - <<'E'\np='lib/landing_git.py'\ns=open(p).read()\ns=s.replace('''def merge(number, sha):''','''def flagged_bare():\n    \"\"\"Whether `core.bare` is true on a repository whose common folder is a `.git`: no worktree then shows as holding the base.\"\"\"\n    common = git(\"rev-parse\", \"--path-format=absolute\", \"--git-common-dir\").stdout.strip()\n    return os.path.basename(common) == \".git\" and git(\"config\", \"--bool\", \"core.bare\").stdout.strip() == \"true\"\n\n\ndef merge(number, sha):''')\ns=s.replace('''        raise LookupError(f\"change {number} is closed\")\n    head, base''','''        raise LookupError(f\"change {number} is closed\")\n    if flagged_bare():\n        raise LookupError(f\"change {number}: core.bare is true on a repository with a .git folder, so no worktree holds {entry['base']} and its files would stay behind; \"\n                          \"run `git config core.bare false`\")\n    head, base''')\nopen(p,'w').write(s)\n\np='skills/kick-off/references/adapters/landing-git.md'\ns=open(p).read()\ns=s.replace(\"`git worktree add -b <name> .claude/worktrees/<name> <base>` in the checkout\",\"[add-worktree.py](../../scripts/add-worktree.py) `<name> <base> [<branch>]`, from any folder: it adds the worktree at the main checkout's `.claude/worktrees/<name>` and prints the path\")\nopen(p,'w').write(s)\np='skills/kick-off/references/adapters/landing-github.md'\ns=open(p).read()\ns=s.replace(\"`git worktree add -b <name> .claude/worktrees/<name> origin/<base>` in the checkout\",\"[add-worktree.py](../../scripts/add-worktree.py) `<name> origin/<base> [<branch>]`, from any folder: it adds the worktree at the main checkout's `.claude/worktrees/<name>` and prints the path\")\nopen(p,'w').write(s)\n\np='skills/kick-off/fixtures/replay-landing-scenario.py'\ns=open(p).read()\ns=s.replace('''- remove:''','''- refuse-bare-checkout: a merge with `core.bare` true exits 1, names `core.bare`, and leaves the base and the change as they were\n- bare-repository: a truly bare clone is not flagged by the",
    "chars": 31,
    "lines": 1
   },
   {
    "id": "toolu_01SmTGSLm9meumUceD8nbDsh",
+   "command": "python3 - <<'E'\np='lib/landing_git.py'\ns=open(p).read()\ns=s.replace('def flagged_bare():','def flagged_bare(cwd=None):').replace('\"--git-common-dir\").stdout','\"--git-common-dir\", cwd=cwd).stdout').replace('\"--bool\", \"core.bare\").stdout','\"--bool\", \"core.bare\", cwd=cwd).stdout')\nopen(p,'w').write(s)\np='skills/kick-off/fixtures/replay-landing-scenario.py'\ns=open(p).read()\ns=s.replace('flagged_bare_at(bare)','flagged_bare(bare)')\nopen(p,'w').write(s)\nE\ncd ..\npython3 teamwork/skills/kick-off/fixtures/replay-landing-scenario.py 2>&1 | grep -E '^(ok|fail)'\nS=$PWD/teamwork/skills/kick-off/scripts; d=$(mktemp -d) && git -C $d init -q -b main && git -C $d commit -q --allow-empty -m i && mkdir $d/sub && (cd $d/sub && python3 $S/add-worktree.py probe-worker main feature/x) ; ls $d/.claude/worktrees; git -C $d branch",
    "chars": 317,
    "lines": 15
   },
   {
    "id": "toolu_01ACfYomBFYH77tT8mjHvTDq",
+   "command": "git add -A && git commit -qm \"Guard git landing against a core.bare flag, place worktrees with add-worktree.py\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git status --short | head",
    "chars": 31,
    "lines": 1
   }

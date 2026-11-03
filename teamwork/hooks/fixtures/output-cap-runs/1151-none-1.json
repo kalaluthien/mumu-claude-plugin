@@ -128,21 +128,25 @@
  "bash_results": [
   {
    "id": "toolu_01JzRBU7QZFtCjfdywVmm1Em",
+   "command": "cd homework; cat skills/wrap-up/scripts/list-drift.py lib/memory.py; grep -n \"Memory file\" -A6 skills/wrap-up/SKILL.md; grep -n \"Add\" skills/wrap-up/references/retro.md; ls skills/wrap-up skills/wrap-up/fixtures; ls ~/.claude/memory",
    "chars": 6833,
    "lines": 154
   },
   {
    "id": "toolu_014HA83nY18r3et2rHa2XYnY",
+   "command": "cd homework/skills/wrap-up; grep -n \"list-drift\" -r . ../../*.md | head; head -8 ~/.claude/memory/topic-git.md",
    "chars": 1751,
    "lines": 14
   },
   {
    "id": "toolu_01Y25TANd4mQHHdqJZZYTQmJ",
+   "command": "cd ..; cd \"$(git rev-parse --show-toplevel)\"\npython3 - <<'E'\nimport re\np='homework/lib/memory.py'\ns=open(p).read()\ns+='''\n\nTYPES = (\"user\", \"feedback\", \"project\", \"reference\")\n\n\ndef _value(front, key, indent):\n    found = re.search(rf\"^{indent}{key}:[ \\\\t]*(.*)$\", front, re.M)\n    return found.group(1).strip().strip(\"\\\\\"'\").strip() if found else \"\"\n\n\ndef header_problems(path, text):\n    \"\"\"What is wrong with a memory file's header, as a list of words; empty when it reads right.\"\"\"\n    front, _ = split(text)\n    if front is None:\n        return [\"no frontmatter\"]\n    problems = []\n    if _value(front, \"name\", \"\") != os.path.basename(path)[:-3]:\n        problems.append(\"name\")\n    if not _value(front, \"description\", \"\"):\n        problems.append(\"description\")\n    meta = re.search(r\"^metadata:[ \\\\t]*\\\\n((?:[ \\\\t]+.*\\\\n?)*)\", front, re.M)\n    if _value(meta.group(1) if meta else \"\", \"type\", \"[ \\\\\\\\t]+\") not in TYPES:\n        problems.append(\"metadata.type\")\n    return problems\n'''\nopen(p,'w').write(s)\np='homework/skills/wrap-up/scripts/list-drift.py'\ns=open(p).read()\ns=s.replace(\"\"\"            body = read(path)\n\"\"\",\"\"\"            body = read(path)\n            bad = memory.header_problems(path, body)\n            if bad:\n                found.append(f\"bad header: {path}, {', '.join(bad)}\")\n\"\"\")\ns=s.replace(\"`last-confirmed` over STALE_DAYS days old.\",\"`last-confirmed` over STALE_DAYS days old, or a bad header: no frontmatter, a `name` unlike the\\nfile name, no `description`, or a `metadata.type` not user, feedback, project or reference.\")\nopen(p,'w').write(s)\np='homework/skills/wrap-up/SKILL.md'\ns=open(p).read()\ns=s.replace(\"Its index line is\",\"Its frontmatter is the header Claude Code reads: `name` (the file name without `.md`), `description` and `metadata.type` (`user`, `feedback`, `project` or `reference`). Its index line is\",1)\nopen(p,'w').write(s)\np='homework/skills/wrap-up/references/retro.md'\ns=open(p).read()\ns=s.replace(\"with `confirmed: 1` and `last-confirmed: <t",
    "chars": 541,
    "lines": 10
   },
   {
    "id": "toolu_01KQSKAr8Ge95a42xaXywCvT",
+   "command": "git add -A && git commit -qm \"Require memory file header; list-drift lists bad ones\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -1",
    "chars": 61,
    "lines": 1
   }

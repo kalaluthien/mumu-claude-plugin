@@ -136,6 +136,7 @@
  "bash_results": [
   {
    "id": "toolu_01Y6XuNnmTUP5GAG7SScJquz",
+   "command": "cd homework; cat lib/memory.py; cat skills/wrap-up/scripts/list-drift.py; grep -n -i 'memory file' skills/wrap-up/SKILL.md; grep -n 'last-confirmed' skills/wrap-up/references/retro.md; ls skills/wrap-up skills/wrap-up/fixtures",
    "chars": 2654,
    "lines": 51,
    "cut": {
@@ -149,6 +150,7 @@
   },
   {
    "id": "toolu_01DThR58Cf6foBM8a98B3u53",
+   "command": "cd skills/wrap-up/scripts; cat -n list-drift.py; grep -n 'list-drift' ../references/retro.md",
    "chars": 2257,
    "lines": 51,
    "cut": {
@@ -162,11 +164,13 @@
   },
   {
    "id": "toolu_01VrVZ3LFj94vmbJmNVZFUD3",
+   "command": "cd skills/wrap-up/scripts; sed -n 37,76p list-drift.py; grep -n 'drift' ../references/retro.md | head",
    "chars": 2008,
    "lines": 40
   },
   {
    "id": "toolu_01EgjkFXj8QrnCVhJe3RNoXr",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1151-output-cap-2-_8tso_7j/repository/homework\npython3 - <<'E'\nimport re\np='lib/memory.py'\ns=open(p).read()\ns+='''\n\nTYPES = (\"user\", \"feedback\", \"project\", \"reference\")\n\n\ndef header_problems(name, text):\n    \"\"\"What is wrong with a memory file's header, as a list of field names: `name` must be the file name without `.md`, `description` set, `metadata.type` one of TYPES.\"\"\"\n    front, _ = split(text)\n    if front is None:\n        return [\"frontmatter\"]\n    problems = []\n    top = {key: value.strip().strip(\"\\\\\"'\") for key, value in re.findall(r\"^(name|description):[ \\\\t]*(.*)$\", front, re.M)}\n    if top.get(\"name\") != name.removesuffix(\".md\"):\n        problems.append(\"name\")\n    if not top.get(\"description\"):\n        problems.append(\"description\")\n    block = re.search(r\"^metadata:[ \\\\t]*\\\\n((?:[ \\\\t]+.*\\\\n|[ \\\\t]*\\\\n)*)\", front, re.M)\n    kind = re.search(r\"^[ \\\\t]+type:[ \\\\t]*(.*)$\", block.group(1), re.M) if block else None\n    if not kind or kind.group(1).strip().strip(\"\\\\\"'\") not in TYPES:\n        problems.append(\"metadata.type\")\n    return problems\n'''\nopen(p,'w').write(s)\np='skills/wrap-up/scripts/list-drift.py'\ns=open(p).read()\ns=s.replace('''            count, last =''','''            bad = memory.header_problems(name, body)\n            if bad:\n                found.append(f\"bad header: {path}, wrong or missing {', '.join(bad)}\")\n            count, last =''')\ns=s.replace(\"`last-confirmed` over STALE_DAYS days old.\",\"`last-confirmed` over STALE_DAYS days old, or a bad header (no frontmatter, a\\n`name` unlike the file name, no `description`, a `metadata.type` outside\\nuser, feedback, project, reference).\")\nopen(p,'w').write(s)\np='skills/wrap-up/SKILL.md'\ns=open(p).read()\ns=s.replace(\"- **Memory file**: one lesson,\",\"- **Memory file**: a frontmatter header Claude Code reads, `name` (the file name without `.md`), `description` and `metadata.type` (`user`, `feedback`, `project` or `reference`), then",
    "chars": 531,
    "lines": 9
   }

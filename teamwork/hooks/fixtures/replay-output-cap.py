@@ -54,6 +54,9 @@ BLOCKED_TOOLS = ("gh", "herdr", "claude")
 # a later call naming a file the cut command read may be the model fetching the cut part again by another range
 SOURCE_FILE = re.compile(r"[\w.-]+\.(?:py|md|json|jsonl|sh|txt|ya?ml|toml)\b")
 REREAD_WINDOW = 2
+FILE_READ = re.compile(r"\b(?:cat|sed|head|tail)\b")
+# a command that sets its own EXIT trap or execs replaces the cap's trap, so its output would vanish
+CAP_BREAKER = re.compile(r"\btrap\b|(?:^|[;&|]\s*)exec\b")
 CHECK_TIMEOUT = 180
 RUN_TIMEOUT = 3600
 PROMPT = """You are replaying a past task in a fresh checkout of the mumu-claude-plugin repository, your working folder.
@@ -225,7 +228,8 @@ def net_saving(turns, uses, results):
         if use.get("name") != "Bash":
             continue
         text = result["text"]
-        row = {"id": result["id"], "chars": len(text), "lines": text.count("\n") + 1}
+        row = {"id": result["id"], "command": use["input"].get("command", "")[:2000], "chars": len(text),
+               "lines": text.count("\n") + 1}
         found = CUT.search(text)
         if found:
             cut_lines, total_lines, file = int(found.group(1)), int(found.group(2)), found.group(3)
@@ -470,6 +474,12 @@ def summary():
         print(f"| {task} | {sum(row['passed'] for row in arms['none'])} / {sum(row['passed'] for row in capped)} | "
               f"{cost['none']:.3f} | {cost['output-cap']:.3f} | {change:+.1%} | {cuts} | {rereads} | "
               f"{mean('net_share'):.1%} / {mean('net_share_reread_results_charged'):.1%} / {mean('net_share_rereads_charged'):.1%} |")
+    capped_bash = [result for row in rows if row["arm"] == "output-cap" for result in row["bash_results"]]
+    cut = [result for result in capped_bash if "cut" in result]
+    print(f"\ncuts whose command reads a file with cat, sed, head or tail: {sum(bool(FILE_READ.search(result['command'])) for result in cut)} of {len(cut)}")
+    print(f"cap-arm Bash calls that set a trap or exec, which the cap cannot wrap: "
+          f"{sum(bool(CAP_BREAKER.search(result['command'])) for result in capped_bash)} of {len(capped_bash)}")
+    print(f"later reads of a saved file: {sum(1 for row in rows for fetch in row['refetches'] if not fetch.get('reread'))}")
     if changes:
         print(f"\nobserved cost change, cap over none, mean of tasks: {sum(changes) / len(changes):+.1%} (min {min(changes):+.1%}, max {max(changes):+.1%})")
     print(f"spent ${spent():.2f}. Reading: the cap is worth building only when its arm passes as often as none, its net saving "

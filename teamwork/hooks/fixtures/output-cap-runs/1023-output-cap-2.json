@@ -205,6 +205,7 @@
  "bash_results": [
   {
    "id": "toolu_01SxkqMRYSrb1UyzxcUscyFG",
+   "command": "cd teamwork; ls skills/kick-off/fixtures skills/kick-off/fixtures/recorded-gh | head -30; grep -n \"def \\|^USE\\|^[A-Z_]* =\" lib/board_github.py | head -60; grep -rn \"board_files\\|board_github\" --include=*.py -l . | head",
    "chars": 2144,
    "lines": 51,
    "cut": {
@@ -218,11 +219,13 @@
   },
   {
    "id": "toolu_01SSsiJ9LTc9Zd89zDRC2gcJ",
+   "command": "cd teamwork 2>/dev/null || cd ..; pwd; sed -n 270,345p lib/board_github.py; cat skills/kick-off/fixtures/recorded-gh/gh | head -80; ls skills/kick-off/fixtures/recorded-gh; git ls-files | grep -i tape",
    "chars": 293,
    "lines": 4
   },
   {
    "id": "toolu_01Nkj5pYv9KuTwtNWJAiX8AN",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1023-output-cap-2-rqg1o88o/repository; sed -n 270,345p teamwork/lib/board_github.py; cat teamwork/skills/kick-off/fixtures/recorded-gh/gh | head -80; git ls-files | grep -i tape",
    "chars": 2288,
    "lines": 51,
    "cut": {
@@ -236,6 +239,7 @@
   },
   {
    "id": "toolu_01MzzcP1JAvcUbNoaVXN9Sxi",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1023-output-cap-2-rqg1o88o/repository/teamwork; sed -n 325,345p lib/board_github.py; wc -l skills/kick-off/fixtures/recorded-gh/gh; cut -c1-220 skills/kick-off/fixtures/recorded-gh/gh | sed -n 1,140p",
    "chars": 2401,
    "lines": 51,
    "cut": {
@@ -249,21 +253,25 @@
   },
   {
    "id": "toolu_01VMcyWsnezn4w4raWbbDRbX",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1023-output-cap-2-rqg1o88o/repository/teamwork; python3 - <<'E'\nimport re\np='lib/board_files.py'; s=open(p).read()\ns=s.replace(\"(file|comment|decide|edit|resolve|order|nest|label)\",\"(file|comment|decide|edit|resolve|reopen|title|order|nest|label)\")\na=s.index(\"def order(\"); b=s.index(\"def command(\")\ns=s[:a]+'''def reopen(number):\n    \"\"\"Opens a closed NUMBER as GitHub does; an open one stays as it is.\"\"\"\n    if meta(number)[\"state\"] == \"CLOSED\":\n        save(number, state=\"OPEN\", reason=\"REOPENED\", closedAt=None)\n\n\ndef title(number, text):\n    meta(number)\n    save(number, title=text)\n\n\ndef order(later, earlier):\n    meta(earlier)  # raises when it does not exist, before anything is written\n    if int(later) == int(earlier):\n        raise LookupError(\"Target issue cannot be the same as the source issue\")\n    if int(earlier) in meta(later)[\"blockers\"]:\n        raise LookupError(\"Target issue has already been taken\")\n    save(later, blockers=sorted({*meta(later)[\"blockers\"], int(earlier)}))\n\n\ndef nest(backlog, task):\n    meta(backlog)\n    if int(backlog) == int(task):\n        raise LookupError(\"Sub issue cannot be the same as the parent issue\")\n    if meta(task)[\"parent\"] is not None:\n        raise LookupError(\"Sub issue may only have one parent\")\n    save(task, parent=int(backlog))\n\n\ndef label(number, name, remove=False):\n    labels = [x for x in meta(number)[\"labels\"] if x != name]\n    if remove and len(labels) == len(meta(number)[\"labels\"]):\n        raise LookupError(\"Label does not exist\")\n    save(number, labels=labels if remove else [*labels, name])\n\n\n'''+s[b:]\ns=s.replace('''\"write\": \"comment\" if verb == \"decide\" else verb if verb in (\"file\", \"comment\", \"resolve\", \"edit\") else None,\n            \"title\": len(args[0]) if verb == \"file\" and args else None,''','''\"write\": \"comment\" if verb == \"decide\" else verb if verb in (\"file\", \"comment\", \"resolve\", \"edit\") else None,\n            \"title\": len(args",
    "chars": 1397,
    "lines": 17
   },
   {
    "id": "toolu_011aqGZxSK9FCeTmdUe3PyT4",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1023-output-cap-2-rqg1o88o/repository/teamwork/skills/kick-off/references; grep -n \"resolve\" protocol.md | head -5; sed -n 8,12p adapters/board-files.md; sed -n 1,5p adapters/board-files.md",
    "chars": 1273,
    "lines": 11
   },
   {
    "id": "toolu_01S3iNAZoRDbDFUDbajrvdC2",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1023-output-cap-2-rqg1o88o/repository/teamwork/skills/kick-off/references; python3 - <<'E'\ndef sub(p,a,b):\n    s=open(p).read(); assert a in s,(p,a); open(p,'w').write(s.replace(a,b,1))\nsub('protocol.md','| board | `resolve` |','| board | `reopen` | opens a closed issue again, reading `OPEN` with the reason `REOPENED`; an open issue stays as it is |\\n| board | `resolve` |')\nsub('adapters/board-files.md','| `resolve` |','| `reopen` | `use-board.py reopen <n>` |\\n| `resolve` |')\nsub('adapters/board-files.md','`use-board.py edit <n> <diff-file> \"DECIDED: <why>\"`, which runs [edit-issue-body.py](../../scripts/edit-issue-body.py) |','`use-board.py edit <n> <diff-file> \"DECIDED: <why>\"`, which runs [edit-issue-body.py](../../scripts/edit-issue-body.py); the title by `use-board.py title <n> <title>` |')\nsub('adapters/board-github.md','| `resolve` |','| `reopen` | `gh issue reopen <n>` |\\n| `resolve` |')\nsub('manager.md','reopen that backlog,','`reopen` that backlog,')\nE\ncd ../../..; git diff --stat; sed -n 29p skills/kick-off/references/protocol.md >/dev/null\n# run checks\ncd ..; R=$PWD; F=teamwork/skills/kick-off/fixtures\npython3 $F/replay-board-scenario.py --board files | grep -cE '^step (retitle|reopen|nest-again|resolve-again)$'; python3 $F/replay-board-scenario.py --board files | tail -25\nd=$(mktemp -d); echo b > $d/b; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; for t in A B C D; do python3 $U file $t $d/b >/dev/null; done; python3 $U nest 1 3; python3 $U order 1 2; { for c in 'nest 2 3' 'nest 1 3' 'nest 4 4' 'order 1 1' 'order 1 2' 'order 1 9' 'label 1 nolabel --remove'; do python3 $U $c; echo $?; done; python3 -c 'import sys, json; m = lambda n: json.load(open(f\"{sys.argv[1]}/{n}/issue.json\")); print(m(3)[\"parent\"], m(4)[\"parent\"], m(1)[\"blockers\"])' $d/board; } 2>/dev/null | paste -sd' ' -\npython3 $U reopen 1; echo $?; echo 'REPORT",
    "chars": 2052,
    "lines": 40
   },
   {
    "id": "toolu_01JizUn1tGgXWJPnetPJrDR9",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1023-output-cap-2-rqg1o88o/repository; bash -c 'd=$(mktemp -d); echo b > $d/b; export TEAMWORK_BOARD=files TEAMWORK_BOARD_DIR=$d/board HOME=$d; U=teamwork/skills/kick-off/scripts/use-board.py; for t in A B C D; do python3 $U file $t $d/b >/dev/null; done; python3 $U nest 1 3; python3 $U order 1 2; { for c in \"nest 2 3\" \"nest 1 3\" \"nest 4 4\" \"order 1 1\" \"order 1 2\" \"order 1 9\" \"label 1 nolabel --remove\"; do python3 $U $c; echo $?; done; python3 -c \"import sys, json; m = lambda n: json.load(open(f\\\"{sys.argv[1]}/{n}/issue.json\\\")); print(m(3)[\\\"parent\\\"], m(4)[\\\"parent\\\"], m(1)[\\\"blockers\\\"])\" $d/board; } 2>/dev/null | paste -sd\" \" -\necho b>$d/r2; echo \"REPORTED: x\" > $d/r; python3 $U resolve 1 $d/r; python3 $U reopen 1; python3 -c \"import sys; sys.path[:0] = [\\\"teamwork/lib\\\"]; import board; i = board.fresh(1); print(i[\\\"state\\\"], i[\\\"stateReason\\\"], i[\\\"closedAt\\\"] is None)\"'; git add -A; git commit -qm \"Reopen and retitle on the files board; refuse as GitHub refuses\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\"; git log --oneline | head -1",
    "chars": 115,
    "lines": 3
   }

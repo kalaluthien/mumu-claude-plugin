@@ -150,6 +150,7 @@
  "bash_results": [
   {
    "id": "toolu_01MjGfAt8nrT5bW6HhkGgvNn",
+   "command": "cd teamwork/skills/kick-off; ls . fixtures scripts; cat scripts/run-criteria.py; cat fixtures/pass-sample*",
    "chars": 2017,
    "lines": 52,
    "cut": {
@@ -163,21 +164,25 @@
   },
   {
    "id": "toolu_01N8UuHuuYVxBY3mMtgGQEJq",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-857-output-cap-1-_aj7hafh/repository/teamwork/skills/kick-off; cat fixtures/guessed-main.md; ls ../../../; ls ../../scripts 2>/dev/null | head -30",
    "chars": 219,
    "lines": 9
   },
   {
    "id": "toolu_01PqWushQwuUrwihmLQHQJ11",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-857-output-cap-1-_aj7hafh/repository/teamwork/skills/kick-off\npython3 - <<'EOF'\np='scripts/run-criteria.py'\ns=open(p).read()\ns=s.replace('[--base [--ref <ref>]] <task','[--base [--ref <ref>]] [--pass <n>=<sample>]... <task',1)\ns=s.replace('''A body file reads criteria before the task exists, so run it before the first judge.\"\"\"''','''A body file reads criteria before the task exists, so run it before the first judge.\n\n`--pass <n>=<sample-file>` (repeatable) runs criterion n on a sample of its pass: the sample replaces the input of the\ncommand's last stage (`producer | consumer` runs `consumer` on the sample; a command with no pipe that reads\n`/dev/stdin` runs whole on it), and the output is judged as at the head: `pass ok` when it is what the criterion says it\n`prints` or `exits`, `wrong pass` when not (exit 1). A command it cannot split surely (a second pipe, `;`, `&&`, `||`,\na redirect, a substitution, no pipe and no `/dev/stdin`), a criterion with no sample and a check it cannot decide are\n`unclear`. A body file is read as with `--base`.\"\"\"''',1)\ns=s.replace(\"import re\\nimport signal\",\"import re\\nimport shlex\\nimport signal\",1)\ns=s.replace('''def criteria(text):''','''def split_consumer(command):\n    \"\"\"The command to run on a sample, or None when the split is not sure: the text after a single `|`, or the whole command that reads `/dev/stdin`.\"\"\"\n    lex = shlex.shlex(command, posix=True, punctuation_chars=True)\n    lex.whitespace_split = True\n    try:\n        tokens = list(lex)\n    except ValueError:\n        return None\n    if \"\\\\n\" in command or \"`\" in command or \"$(\" in command:\n        return None\n    ops = [t for t in tokens if t and all(c in \"();<>|&\" for c in t)]\n    if not ops:\n        return command if \"/dev/stdin\" in tokens else None\n    if ops != [\"|\"]:\n        return None\n    rest = tokens[tokens.index(\"|\") + 1:]\n    return shlex.join(rest) if rest and tokens.index(\"|\") else None\n\n\ndef",
    "chars": 286,
    "lines": 7
   },
   {
    "id": "toolu_01DwqFMtBnhH7LtSFqxpPhar",
+   "command": "F=teamwork/skills/kick-off/fixtures; A=\"\"; for i in 1 2 3 4 5 6 7 8; do A=\"$A --pass $i=$F/pass-sample-input.txt\"; done\ncat > /tmp/t.sh <<EOF\npython3 teamwork/skills/kick-off/scripts/run-criteria.py $A $F/pass-sample.md\nEOF\nbash /tmp/t.sh; bash /tmp/t.sh 2>&1 | grep -c 'pass ok'; bash /tmp/t.sh 2>&1 | grep -c unclear",
    "chars": 858,
    "lines": 14
   },
   {
    "id": "toolu_019sVTtjoJWvBVG1TVVZoEQJ",
+   "command": "git add -A && git commit -qm \"Run criteria on a pass sample with run-criteria.py --pass\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -1",
    "chars": 65,
    "lines": 1
   }

@@ -149,11 +149,13 @@
  "bash_results": [
   {
    "id": "toolu_01V3KCvwnruXi2aNfm9x8Db9",
+   "command": "cd teamwork/skills/kick-off/references; sed -n 24p manager.md; grep -n \"exit\\|Succession\" manager.md | cut -c1-200",
    "chars": 1155,
    "lines": 4
   },
   {
    "id": "toolu_01YHZeLv7B8JgMKjqASmFc4G",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1138-output-cap-2-o6vea66w/repository && python3 - <<'E'\nimport re\ndef sub(p,a,b):\n    s=open(p).read(); assert a in s,(p,a); open(p,'w').write(s.replace(a,b,1))\nm='teamwork/skills/kick-off/references/manager.md'\ns=open(m).read()\ni=s.index(\"At `heartbeat`'s `exit`\"); j=s.index(\"\\n\",i)\ns=s[:i]+\"Close yourself only when the owner tells you to end yourself.\"+s[j:]\nopen(m,'w').write(s)\nsub('teamwork/lib/team_names.py','''def workers(me, listed):\n    \"\"\"The workers in your workspace, which a manager's exit waits on; a sentinel judges alone what to do once its manager ends.\"\"\"\n    return [name for name in members(me, listed) if role(name) == \"worker\"]\n\n\n''','')\np='teamwork/lib/team_gaps.py'\nsub(p,'def manager_read(me, history=False, since=None):','def manager_read(me, since=None):')\nsub(p,'''    HISTORY adds whether a worker ever held a closed issue, for a manager that has not yet seen one; SINCE adds''','''    SINCE adds''')\nsub(p,''',\n            \"had_worker\": had_worker(me) if history else False, \"feed\": feed}''',''', \"feed\": feed}''')\ns=open(p).read()\na=s.index(\"def had_worker\"); b=s.index(\"def worker_goal\")\nopen(p,'w').write(s[:a]+s[b:])\np='teamwork/monitors/print-team-gaps.py'\nsub(p,'def read(manager, me, had_worker, since):\\n    return team_gaps.manager_read(me, history=not had_worker, since=since)','def read(manager, me, since):\\n    return team_gaps.manager_read(me, since=since)')\nsub(p,'shown, had_worker = set(), False  # the exit waits until this manager has had a worker, so a fresh manager routes first','shown = set()')\nsub(p,'read(manager, me, had_worker, since','read(manager, me, since')\ns=open(p).read()\na=s.index(\"        if manager and lines is not None:\"); b=s.index(\"        for line in lines or []\")\nopen(p,'w').write(s[:a]+s[b:])\nsub('teamwork/monitors/monitors.json',', and the exit once its workers are gone','')\nsub('teamwork/skills/kick-off/references/adapters/session-herdr.md',', so a ",
    "chars": 5531,
    "lines": 51,
    "cut": {
@@ -167,11 +169,13 @@
   },
   {
    "id": "toolu_01QsfdrF3rGpapRM4WSVGHXw",
+   "command": "sed -i 's/Close yourself only when the owner tells you to end yourself\\./A manager ends by the owner'\"'\"'s word: close yourself only when the owner tells you to end yourself./' teamwork/skills/kick-off/references/manager.md\ngrep -c \"close yourself only when the owner\" teamwork/skills/kick-off/references/manager.md\ngrep -rnE \"exit_action|had_worker|propose your exit|OK to |exit once|Kept alive\" teamwork --include=*.py --include=*.md --include=*.json | wc -l\ngit commit -qam \"Remove manager self-exit protocol\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -1",
    "chars": 155,
    "lines": 4
   },
   {
    "id": "toolu_01TeFAdwE6FTqbMDVQLP6i6G",
+   "command": "python3 - <<'E'\np='teamwork/skills/kick-off/references/manager.md'\ns=open(p).read()\ns=s.replace(\"Close yourself only when the owner tells you to end yourself.\",\"A manager ends by the owner's word: close yourself only when the owner tells you to end yourself.\")\nopen(p,'w').write(s)\nE\ngrep -c \"close yourself only when the owner\" teamwork/skills/kick-off/references/manager.md\ngit commit -qam \"Say a manager closes itself only on the owner's word\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -1",
    "chars": 62,
    "lines": 2
   }

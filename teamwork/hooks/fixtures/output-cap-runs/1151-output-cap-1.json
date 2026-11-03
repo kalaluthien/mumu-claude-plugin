@@ -178,6 +178,7 @@
  "bash_results": [
   {
    "id": "toolu_01VYhi1g7wqWFwCtfDKcPgRy",
+   "command": "cd homework; cat skills/wrap-up/scripts/list-drift.py lib/memory.py; grep -n \"Memory file\" -A6 skills/wrap-up/SKILL.md; grep -n \"Add\" skills/wrap-up/references/retro.md; ls skills/wrap-up skills/wrap-up/fixtures; ls ~/.claude/memory | head",
    "chars": 1741,
    "lines": 51,
    "cut": {
@@ -191,6 +192,7 @@
   },
   {
    "id": "toolu_01Y831zrV9RX1z5TapkHdoPz",
+   "command": "cd ~- 2>/dev/null; cd homework; sed -n 30,200p skills/wrap-up/scripts/list-drift.py; cat lib/memory.py; grep -n \"Memory file\" skills/wrap-up/SKILL.md; grep -n \"Add\" skills/wrap-up/references/retro.md; ls skills/wrap-up skills/wrap-up/fixtures",
    "chars": 2591,
    "lines": 51,
    "cut": {
@@ -204,26 +206,31 @@
   },
   {
    "id": "toolu_01XwNyWc7BvQDM2bHQPHHR7x",
+   "command": "cd homework; cat lib/memory.py; sed -n 70,130p skills/wrap-up/scripts/list-drift.py; grep -n \"list-drift\\|drift\" skills/wrap-up/references/retro.md",
    "chars": 2033,
    "lines": 49
   },
   {
    "id": "toolu_01UeK2u5w7uN7QfcXu2fHyjd",
+   "command": "pwd; cat >> lib/memory.py <<'EOF'\n\n\nTYPES = (\"user\", \"feedback\", \"project\", \"reference\")\n\n\ndef header_problems(path, text):\n    \"\"\"What is wrong with the header Claude Code reads (name, description, metadata.type), as a list of words.\"\"\"\n    front, _ = split(text)\n    if front is None:\n        return [\"no frontmatter\"]\n    problems, top, nested, in_meta = [], {}, {}, False\n    for line in front.splitlines():\n        if not line.strip() or line.lstrip().startswith(\"#\"):\n            continue\n        key, _, value = line.strip().partition(\":\")\n        value = value.strip().strip(\"'\\\"\")\n        if line[0] in \" \\t\":\n            if in_meta:\n                nested[key] = value\n        else:\n            in_meta = key == \"metadata\"\n            top[key] = value\n    if top.get(\"name\") != os.path.basename(path)[:-3]:\n        problems.append(\"name is not the file name without .md\")\n    if not top.get(\"description\"):\n        problems.append(\"no description\")\n    if nested.get(\"type\") not in TYPES:\n        problems.append(\"metadata.type is not user, feedback, project or reference\")\n    return problems\nEOF\npython3 - <<'EOF'\np='skills/wrap-up/scripts/list-drift.py'\ns=open(p).read()\ns=s.replace(\"\"\"            missing = [phrase\"\"\",\"\"\"            problems = memory.header_problems(path, body)\n            if problems:\n                found.append(f\"bad header: {path}: {'; '.join(problems)}\")\n            missing = [phrase\"\"\",1)\ns=s.replace(\"a file missing a `When it applies:`\",\"a file whose header lacks a `name` of its file name, a `description` or a valid `metadata.type`, a file missing a `When it applies:`\",1)\nopen(p,'w').write(s)\np='skills/wrap-up/SKILL.md'\ns=open(p).read()\ns=s.replace(\"- **Memory file**: one lesson,\",\"- **Memory file**: a frontmatter header Claude Code reads, `name` (the file name without `.md`), `description` and `metadata.type` (`user`, `feedback`, `project` or `reference`), then one lesson,\",1)\nopen(p,'w').write(s)\np='skills/wrap-up/references/retro.md'\ns=open(p).r",
    "chars": 110,
    "lines": 1
   },
   {
    "id": "toolu_01LxsaRs8H9dtVEVkfVVMALb",
+   "command": "cd skills/wrap-up; grep -n \"drift\\|^[0-9]\\.\" references/retro.md | cut -c1-220; grep -n drift SKILL.md | cut -c1-200",
    "chars": 1232,
    "lines": 8
   },
   {
    "id": "toolu_018HvVK3uC4yXN3jUFAhjQk9",
+   "command": "python3 - <<'EOF'\np='references/retro.md'\ns=open(p).read()\ns=s.replace(\"since other sessions write it.\",\"since other sessions write it. Then run `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-drift.py <config>` and fix any `bad header` it lists.\",1)\nopen(p,'w').write(s)\nEOF\ncd ../../..\nfor f in SKILL references/retro; do grep -c 'metadata.type' homework/skills/wrap-up/$f.md; done; grep -c 'bad header' homework/skills/wrap-up/references/retro.md\npython3 homework/skills/wrap-up/scripts/list-drift.py /nonexistent homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep 'bad header'\ngrep -c '^---' homework/skills/wrap-up/fixtures/header-pool/MEMORY.md\npython3 homework/skills/wrap-up/scripts/list-drift.py ~/.claude ~/.claude/memory ~/.claude/memory/*/ homework/skills/wrap-up/fixtures/header-pool 2>&1 | grep -c 'bad header'",
    "chars": 561,
    "lines": 10
   },
   {
    "id": "toolu_01Kruy7QZvLiGMoUFg5JHhDA",
+   "command": "git add -A && git commit -qm \"Require memory header in wrap-up and list bad ones in list-drift\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -1",
    "chars": 72,
    "lines": 1
   }

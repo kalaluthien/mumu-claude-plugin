@@ -164,31 +164,37 @@
  "bash_results": [
   {
    "id": "toolu_016idbxtAYmvmvQARwJ9aUWq",
+   "command": "cd teamwork/skills/kick-off; ls . fixtures scripts; cat fixtures/pass-sample* 2>&1 | head -50",
    "chars": 434,
    "lines": 28
   },
   {
    "id": "toolu_01KudAvAaTGN3nhd8U1ZB3QZ",
+   "command": "cd teamwork/skills/kick-off; cat fixtures/base-quote.md | head -30",
    "chars": 220,
    "lines": 4
   },
   {
    "id": "toolu_013aTnjvqHRJAuoGZJDt2vjP",
+   "command": "cd teamwork/skills/kick-off; printf 'hello\\n' > fixtures/pass-sample-input.txt\ncat > fixtures/pass-sample.md <<'EOF'\n## Definition of done\n1. [check] **One pipe**: `echo real | grep -c hello` prints `1`.\n2. [check] **No pipe**: `echo hi` prints `hi`.\n3. [check] **Two pipes**: `echo hi | cat | grep -c hi` prints `1`.\n4. [check] **And list**: `echo hi && echo hi | cat` prints `hi`.\n5. [check] **Semicolon**: `echo a; echo hi | cat` prints `hi`.\n6. [check] **Placeholder**: `echo <thing> | cat` prints `hi`.\n7. [check] **Or list**: `echo hi || echo hi | cat` prints `hi`.\n8. [score] **Reads well**: the text reads well.\nEOF\npython3 - <<'EOF'\nimport re\np='scripts/run-criteria.py'\ns=open(p).read()\ns=s.replace('usage: run-criteria.py [--timeout <s>] [--base [--ref <ref>]] <task','usage: run-criteria.py [--timeout <s>] [--base [--ref <ref>] | --pass <n>=<sample-file> ...] <task')\ns=s.replace('''A body file reads criteria before the task exists, so run it before the first judge.\"\"\"''','''A body file reads criteria before the task exists, so run it before the first judge.\n\n`--pass <n>=<sample-file>` (repeatable) runs criterion n on a sample of its pass: the command's one producer before a\nsingle top-level `|` is replaced by `cat <sample-file>`, so the consumer reads the sample as the pipe it will read at the\nhead (a `/dev/stdin` read twice fails here). A row is `pass ok` when the output is the expected one, `wrong pass` when\nnot, `unclear` when it cannot split the command surely (no pipe, two, `&&`, `||`, `;`, a substitution, a placeholder), is\nnot a `prints` check or has no sample. A body file is read as with `--base`; exit 1 on any `wrong pass`.\"\"\"''',1)\ns=s.replace('''def run_on_base(''','''def split_pipe(command):\n    \"\"\"(producer, consumer) when the command has one top-level `|` and nothing else that joins commands, else None.\"\"\"\n    if re.search(r\"[\\\\n;&`]|\\\\$\\\\(|<\\\\(|\\\\|\\\\|\", re.sub(r\"'[^']*'|\\\\\"(?:[^\\\\\"\\\\\\\\]|\\\\\\\\.)*\\\\\"\", \"''\", command)):\n        return None\n    plain = re",
    "chars": 351,
    "lines": 8
   },
   {
    "id": "toolu_01SXhi41rWdeb4beGk76DK3z",
+   "command": "git status --short",
    "chars": 162,
    "lines": 3
   },
   {
    "id": "toolu_01SvjHdsQfGCSTLJEjHGwt4u",
+   "command": "F=teamwork/skills/kick-off/fixtures; P=(); for i in 1 2 3 4 5 6 7 8; do P+=(--pass $i=$F/pass-sample-input.txt); done\nR=teamwork/skills/kick-off/scripts/run-criteria.py\npython3 $R $P $F/pass-sample.md\npython3 $R $P $F/pass-sample.md 2>&1 | grep -c 'pass ok'\npython3 $R $P $F/pass-sample.md 2>&1 | grep -c unclear",
    "chars": 615,
    "lines": 14
   },
   {
    "id": "toolu_019tUnFdHVmx6xuJJVRK2A92",
+   "command": "git add -A && git commit -qm \"run-criteria: --pass runs a check on a sample of its pass\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -1",
    "chars": 65,
    "lines": 1
   }
