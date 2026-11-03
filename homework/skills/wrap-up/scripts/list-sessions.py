@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Map dejavu's window of sessions: write digests for the haiku facet agents, and tool-failure signatures.
+"""Map a window of sessions for dejavu or habit: write digests for the haiku facet agents, and tool-failure signatures.
 
-usage: list-sessions.py due <data>                  `due` when <data>/last-map is 24 hours old or missing, else `not due`
-       list-sessions.py map <data>                  every in-window session: signatures to <data>/stats/; the newest 40
-                                                    without a facet: digests to <data>/digests/; touches <data>/last-map
-       list-sessions.py digest <data> <path>...     digests and signatures of the named transcripts, window aside
+usage: list-sessions.py due <data> [--due-hours <h>]                  `due` when <data>/last-map is <h> hours old (24) or missing, else `not due`
+       list-sessions.py map <data> [--window-days <d>] [--limit <n>]  every in-window session: signatures to <data>/stats/; the newest
+                                                                       <n> (40) without a facet: digests to <data>/digests/; touches <data>/last-map
+       list-sessions.py digest <data> <path>...                       digests and signatures of the named transcripts, window aside
 
 Digests print as `batch <k>: <digest> ...` lines of at most 10, one haiku agent each. The window is the interactive
-top-level transcripts under ${CLAUDE_CONFIG_DIR:-~/.claude}/projects changed in the last 14 days.
+top-level transcripts under ${CLAUDE_CONFIG_DIR:-~/.claude}/projects changed in the last <d> days (14). A session with no
+owner line and no answer gets no digest, since its facet would be empty. An `AskUserQuestion` answer shows as
+`[ANSWER L<n>]: <question> | options: <label> / ... | answer: <the owner's pick or own words>`.
 """
 import glob
 import json
@@ -22,6 +24,7 @@ import claude_config  # noqa: E402
 import transcript  # noqa: E402
 
 WINDOW_DAYS, PER_RUN, PER_BATCH, DUE_HOURS = 14, 40, 10, 24
+FLAGS = {"--window-days": "days", "--due-hours": "hours", "--limit": "limit"}
 OWNER_CAP, AGENT_CAP, DIGEST_CAP = 500, 300, 30000
 TAGS = re.compile(r"<(system-reminder|task-notification)>.*?</\1>", re.S)
 # urls before paths, so a url is masked whole
@@ -41,10 +44,10 @@ def repo_of(path):
     return re.sub(r"--claude-worktrees-.*$", "", os.path.basename(os.path.dirname(path)))
 
 
-def window(now):
+def window(now, days):
     """Top-level transcripts changed within the window, newest first."""
     paths = glob.glob(os.path.join(glob.escape(str(claude_config.folder())), "projects", "*", "*.jsonl"))
-    recent = [path for path in paths if os.path.getmtime(path) >= now - WINDOW_DAYS * 86400]
+    recent = [path for path in paths if os.path.getmtime(path) >= now - days * 86400]
     return sorted(recent, key=os.path.getmtime, reverse=True)
 
 
@@ -63,6 +66,21 @@ def signature(tool, text):
     return f"{tool}: {lines[-1][:100]}" + (f" {reason.group(0)}" if reason else "") if lines else None
 
 
+def answer_lines(result, number):
+    """One `[ANSWER L<n>]` line per question an `AskUserQuestion` result answered."""
+    answers, notes = result.get("answers") or {}, result.get("annotations") or {}
+    lines = []
+    for question in result.get("questions") or []:
+        asked = question.get("question", "")
+        if asked not in answers:
+            continue
+        labels = " / ".join(str(option.get("label", "")) for option in question.get("options") or [])
+        note = (notes.get(asked) or {}).get("notes") if isinstance(notes.get(asked), dict) else None
+        text = f"{asked[:OWNER_CAP]} | options: {labels} | answer: {str(answers[asked])[:OWNER_CAP]}"
+        lines.append(f"[ANSWER L{number}]: {text}" + (f" | note: {str(note)[:OWNER_CAP]}" if note else ""))
+    return lines
+
+
 def read(path):
     """(stats, lines, owners) of a transcript, stats None for an sdk session; lines are the digest's lines."""
     entries = transcript.entries_of(path) or []
@@ -76,6 +94,10 @@ def read(path):
         for block in transcript.blocks_of(entry, "tool_use"):
             uses[block.get("id")] = block.get("name")
             lines.append(f"[Tool: {block.get('name')}]")
+        if isinstance(entry.get("toolUseResult"), dict) and "answers" in entry["toolUseResult"]:
+            answered = answer_lines(entry["toolUseResult"], number)
+            owners += [{"line": number, "text": line} for line in answered]
+            lines += answered
         for block in transcript.blocks_of(entry, "tool_result"):
             key = block.get("is_error") and signature(uses.get(block.get("tool_use_id"), "?"), transcript.text_of(block))
             if key:
@@ -104,7 +126,7 @@ def digest(path, lines):
         return text
     keep = []
     for k, line in enumerate(lines):
-        if line.startswith("[OWNER"):
+        if line.startswith(("[OWNER", "[ANSWER")):
             before = next((lines[index] for index in range(k - 1, -1, -1) if not lines[index].startswith("[Tool")), "")
             if before.startswith("[Agent") and (not keep or keep[-1] != before):
                 keep.append(before)
@@ -138,17 +160,33 @@ def batches(digests):
         print(f"batch {k // PER_BATCH + 1}: {' '.join(digests[k:k + PER_BATCH])}")
 
 
+def options(args):
+    """(paths, settings) of the words after <data>, or None when a flag is unknown or lacks a number."""
+    settings, paths, k = {"days": WINDOW_DAYS, "hours": DUE_HOURS, "limit": PER_RUN}, [], 0
+    while k < len(args):
+        if args[k].startswith("--"):
+            if args[k] not in FLAGS or k + 1 >= len(args) or not args[k + 1].isdigit():
+                return None
+            settings[FLAGS[args[k]]] = int(args[k + 1])
+            k += 2
+        else:
+            paths.append(args[k])
+            k += 1
+    return paths, settings
+
+
 def main(args):
-    if len(args) < 2 or args[0] not in ("due", "map", "digest"):
+    parsed = options(args[2:]) if len(args) >= 2 else None
+    if parsed is None or args[0] not in ("due", "map", "digest") or (parsed[0] and args[0] != "digest"):
         print(__doc__, file=sys.stderr)
         return 2
-    verb, data, now = args[0], args[1], time.time()
+    (named, settings), verb, data, now = parsed, args[0], args[1], time.time()
     stamp = os.path.join(data, "last-map")
     if verb == "due":
-        old = not os.path.exists(stamp) or os.path.getmtime(stamp) <= now - DUE_HOURS * 3600
+        old = not os.path.exists(stamp) or os.path.getmtime(stamp) <= now - settings["hours"] * 3600
         print("due" if old else "not due")
         return 0
-    paths = args[2:] if verb == "digest" else window(now)
+    paths = named if verb == "digest" else window(now, settings["days"])
     faceted = {os.path.basename(path)[:-5] for path in glob.glob(os.path.join(glob.escape(data), "facets", "*.json"))}
     digests, waiting = [], 0
     for path in paths:
@@ -156,9 +194,9 @@ def main(args):
         if stats is None:
             continue
         write(data, path, "stats", stats)
-        if os.path.basename(path)[:-6] in faceted and verb == "map":
+        if not owners or (os.path.basename(path)[:-6] in faceted and verb == "map"):
             continue
-        if len(digests) < PER_RUN or verb == "digest":
+        if len(digests) < settings["limit"] or verb == "digest":
             digests.append(write(data, path, "digests", digest(path, lines)))
         else:
             waiting += 1

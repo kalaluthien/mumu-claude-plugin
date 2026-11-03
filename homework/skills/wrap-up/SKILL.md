@@ -25,6 +25,7 @@ Take every row whose condition holds, in order, and copy its playbook's steps ve
 | `<p>` reaches `<t>`, this session's first retro `<f>` is `due`, or the owner asks to keep a lesson | [references/retro.md](references/retro.md) |
 | `<m>` reaches `<l>`, or the owner asks to tidy memory | [references/dream.md](references/dream.md) |
 | `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-sessions.py due <data>/dejavu` prints `due`, or the owner asks for `dejavu` | [references/dejavu.md](references/dejavu.md) |
+| `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-sessions.py due <data>/habit --due-hours 168` prints `due`, or the owner asks for `habit` | [references/habit.md](references/habit.md) |
 | writing or editing a skill, an agent file, a hook or a script, with no lesson behind it | [references/harness-authoring.md](references/harness-authoring.md) |
 | typed with no signal and no row fits | [references/retro.md](references/retro.md) |
 

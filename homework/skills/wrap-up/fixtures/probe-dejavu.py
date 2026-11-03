@@ -37,7 +37,8 @@ def stamp(seconds):
 
 
 def session(project, session_id, seconds, turns, entrypoint="cli"):
-    """Write a transcript; turns are ('owner', text) | ('agent', text) | ('fail', tool, error text)."""
+    """Write a transcript; turns are ('owner', text) | ('agent', text) | ('fail', tool, error text)
+    | ('answer', question, [option labels], the owner's answer)."""
     folder = os.path.join(CONFIG, "projects", project)
     os.makedirs(folder, exist_ok=True)
     path = os.path.join(folder, f"{session_id}.jsonl")
@@ -49,6 +50,14 @@ def session(project, session_id, seconds, turns, entrypoint="cli"):
             elif turn[0] == "agent":
                 rows = [dict(base, type="assistant", message={"role": "assistant",
                                                               "content": [{"type": "text", "text": turn[1]}]})]
+            elif turn[0] == "answer":
+                use = f"toolu_{session_id[:6]}_{k}"
+                asked = {"question": turn[1], "header": "h", "options": [{"label": label, "description": "d"} for label in turn[2]]}
+                rows = [dict(base, type="assistant", message={"role": "assistant", "content": [
+                            {"type": "tool_use", "id": use, "name": "AskUserQuestion", "input": {"questions": [asked]}}]}),
+                        dict(base, type="user", toolUseResult={"questions": [asked], "answers": {turn[1]: turn[3]}},
+                             message={"role": "user", "content": [
+                                 {"type": "tool_result", "tool_use_id": use, "content": f"answered: {turn[3]}"}]})]
             else:
                 use = f"toolu_{session_id[:6]}_{k}"
                 rows = [dict(base, type="assistant", message={"role": "assistant", "content": [
@@ -87,7 +96,7 @@ def main(args):
     # memory a run must leave alone
     os.makedirs(os.path.join(CONFIG, "projects", "-r-alpha", "memory"), exist_ok=True)
     with open(os.path.join(CONFIG, "projects", "-r-alpha", "memory", "MEMORY.md"), "w") as handle:
-        handle.write("- [Tool trap](trap.md) — Bash: boom at <path>\n- [Gate](gate.md) — always run the gate first\n")
+        handle.write("- [Tool trap](trap.md) — Bash: boom at <path>\n- [Ask](ask.md) — stops to ask when the rule says act\n")
 
     # tool repeat: 3 recent sessions in 2 repos, paths and numbers differ, so masking must merge them
     for i, project in enumerate(["-r-alpha", "-r-alpha", "-r-beta"]):
@@ -122,6 +131,10 @@ def main(args):
     for k in range(80):
         long_turns += [("agent", f"step {k} " + "z" * 2000), ("owner", f"OWNERLINE{k:03d} please change it")]
     session("-r-beta", "acac0000-0000-0000-0000-000000000000", NOW - 2 * DAY, long_turns)
+    # an answered question with the owner's own words; a session with no owner line and no answer
+    session("-r-alpha", "adad0000-0000-0000-0000-000000000000", NOW - 2 * DAY,
+            [("agent", "pick one"), ("answer", "Which way?", ["Merge (Recommended)", "Drop"], "what is this? explain first")])
+    session("-r-alpha", "aeae0000-0000-0000-0000-000000000000", NOW - 2 * DAY, [("agent", "alone"), ("fail", "Bash", "lonely")])
 
     before = snapshot()
     step("due on fresh data", run(SESSIONS, "due", DATA).strip() == "due")
@@ -140,6 +153,12 @@ def main(args):
     step("long digest keeps every owner line and the agent text before it, within 30k chars",
          text and all(f"OWNERLINE{k:03d}" in text and f"step {k} " in text for k in range(80)) and len(text) <= 30000
          and "z" * 301 not in text)
+    text = open(os.path.join(DATA, "digests", "adad0000-0000-0000-0000-000000000000.txt")).read() if "adad0000-0000-0000-0000-000000000000" in digests else ""
+    step("an answer shows as an [ANSWER L<n>] line with its options, the recommended one marked, and the owner's own words",
+         re.search(r"^\[ANSWER L\d+\]: Which way\? \| options: Merge \(Recommended\) / Drop \| answer: what is this\? explain first$", text, re.M))
+    step("no digest for a session with no owner line and no answer, its signatures kept",
+         "aeae0000-0000-0000-0000-000000000000" not in digests
+         and os.path.exists(os.path.join(DATA, "stats", "aeae0000-0000-0000-0000-000000000000.json")))
     step("batches of at most 10 digests", batches and all(len(re.findall(r"\.txt\b", batch)) <= 10 for batch in batches))
 
     # 45 more fresh sessions: a map takes at most 40, newest first; a mapped session with a facet is not listed again
@@ -148,7 +167,7 @@ def main(args):
     before = snapshot()
     os.makedirs(os.path.join(DATA, "facets"), exist_ok=True)
     for session_id in digests:
-        json.dump({"friction": [], "instructions": []}, open(os.path.join(DATA, "facets", f"{session_id}.json"), "w"))
+        json.dump({"friction": []}, open(os.path.join(DATA, "facets", f"{session_id}.json"), "w"))
     last = os.path.join(DATA, "last-map")
     os.utime(last, (NOW - 23 * 3600, NOW - 23 * 3600)) if os.path.exists(last) else None
     not_due = run(SESSIONS, "due", DATA).strip() == "not due"
@@ -160,14 +179,13 @@ def main(args):
          len(listed) == 40 and "99990000-0000-0000-0000-000000000000" in listed
          and "99990044-0000-0000-0000-000000000000" not in listed and not listed & digests)
 
-    # facets: one instruction in 2 sessions, one in 1; friction items for the reduce
+    # facets: friction items for the reduce
     facets = os.path.join(DATA, "facets")
     os.makedirs(facets, exist_ok=True)
-    said = [["Always run the gate first."], ["  always run the GATE first!! ", "one-off rule 1"], ["Never touch Desktop."]]
     for i in range(3):
         session_id = f"aaaa000{i}-0000-0000-0000-000000000000"
-        json.dump({"friction": [{"quote": f"why did you stop {i}", "what_went_wrong": "stopped to ask", "line": 1}],
-                   "instructions": said[i]}, open(os.path.join(facets, f"{session_id}.json"), "w"))
+        json.dump({"friction": [{"quote": f"why did you stop {i}", "what_went_wrong": "stopped to ask", "line": 1}]},
+                  open(os.path.join(facets, f"{session_id}.json"), "w"))
     out = run(REPEATS, DATA)
     lines = out.splitlines()
     step("tool repeat in 3 recent sessions listed, paths and numbers merged",
@@ -178,11 +196,7 @@ def main(args):
          not any(re.search(r"Exit code|doesn't want to proceed|hook comes from|abcdef1|1234567|e\.x|value\d", line)
                  for line in lines if line.startswith("tool "))
          and any(line.startswith("tool 3 sessions") and "[Create Unsafe Agents]" in line for line in lines))
-    step("instruction in 2 sessions listed, in 1 not",
-         any(line.startswith("instruction 2 sessions") and "gate" in line.lower() for line in lines)
-         and not any(line.startswith("instruction") and ("one-off" in line or "Desktop" in line) for line in lines))
-    step("memory line naming a repeat is shown, for tool and instruction repeats",
-         "trap.md" in memory_under(out, "tool 3 sessions", "boom at") and "gate.md" in memory_under(out, "instruction", "gate"))
+    tool_memory = memory_under(out, "tool 3 sessions", "boom at")
 
     items = [json.loads(line) for line in open(os.path.join(DATA, "friction.jsonl"))] if os.path.exists(os.path.join(DATA, "friction.jsonl")) else []
     ids = [i.get("id") for i in items]
@@ -194,6 +208,8 @@ def main(args):
     step("mistake counted by script: 3 sessions listed, 2 not",
          any(line.startswith("mistake 3 sessions") and "stops to ask" in line for line in out.splitlines())
          and not any("only two sessions" in line for line in out.splitlines() if line.startswith("mistake")))
+    step("memory line naming a repeat is shown, for tool and mistake repeats",
+         "trap.md" in tool_memory and "ask.md" in memory_under(out, "mistake 3 sessions", "stops to ask"))
 
     key = next((line.split(": ", 1)[1] for line in lines if line.startswith("tool 3 sessions") and "boom at" in line), "none")
     printed = re.search(r"last seen (\S+),", run(REPEATS, DATA).split(key, 1)[-1])
