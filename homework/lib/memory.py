@@ -33,7 +33,7 @@ def fields(path, text):
 
 TYPES = ("user", "feedback", "project", "reference")
 # a block of indented lines under a top-level `metadata:`, where Claude Code reads `type`
-METADATA = re.compile(r"^metadata:[ \t]*\n((?:[ \t]+.*\n?)*)", re.M)
+METADATA = re.compile(r"^metadata:[ \t]*\n((?:[ \t]+.*\n?|\n)*)", re.M)
 TYPE = re.compile(r"^[ \t]+type:[ \t]*(.*)$", re.M)
 
 

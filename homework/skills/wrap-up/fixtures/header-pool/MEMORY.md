@@ -6,3 +6,4 @@
 - [no-description](no-description.md) — always
 - [bad-type](bad-type.md) — always
 - [outside-metadata](outside-metadata.md) — always
+- [blank-line](blank-line.md) — always
