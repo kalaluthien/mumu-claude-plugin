@@ -6,7 +6,7 @@ KIND = "claude"
 SETTINGS = json.dumps({"disableClaudeAiConnectors": True})
 # Each tool off is a choice, since each description costs ~2-11k tokens every turn; subagents get only their session's tools (code.claude.com/docs/en/sub-agents):
 # - manager: Artifact off, it publishes nothing; Workflow off, it orchestrates by hand
-# - worker: AskUserQuestion off, it asks the owner through its manager; Artifact off, unless its manager passes --allow Artifact for a backlog that publishes a page
+# - worker: AskUserQuestion off, it asks the owner through its manager; Artifact off, unless its manager passes --allow Artifact for a root task that publishes a page
 # - sentinel: the worker's tools off, and Agent and Workflow too, since it repeats one duty and needs no helper
 # - judge, a general-purpose subagent of a worker: the worker's tools; judge.md's steps use Read, Bash, and Write for scratchpad tests, and the plugin may ship no agent to narrow it
 TOOLS_OFF = {"worker": "Artifact,AskUserQuestion", "manager": "Artifact,Workflow", "sentinel": "Agent,Artifact,AskUserQuestion,Workflow"}

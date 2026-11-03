@@ -49,12 +49,12 @@ def main(args):
 
     (work / "b.md").write_text("A body.\n")
     (work / "c.md").write_text("A comment.\n")
+    (work / "waits.md").write_text("A body.\n\n```teamwork\ndepends on: #1\n```\n")
     scope = team_settings.load(os.getcwd())["scope_prefix"] + "probe"
     start = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 5))
     for kind in ("files", "git"):
         use(kind, "file", "First", work / "b.md", scope)
-        use(kind, "file", "Second", work / "b.md")
-        use(kind, "order", 2, 1)
+        use(kind, "file", "Second", work / "waits.md")
         use(kind, "comment", 1, work / "c.md")
     reads = {"changed-since": lambda module: (module.changed_since(start), module.changed_since("2999-01-01T00:00:00Z")),
              "comments-since": lambda module: [(n, note["body"]) for n, note in module.comments_since(start)],

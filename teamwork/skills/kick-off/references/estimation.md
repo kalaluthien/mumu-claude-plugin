@@ -1,6 +1,6 @@
 # Estimation
 
-Estimate how long a task or a backlog will take, from the hours closed tasks took.
+Estimate how long a task or a parent will take, from the hours closed tasks took.
 
 Every number comes from a script's output, never from your head.
 

@@ -1,6 +1,6 @@
 """A repository's teamwork settings, read from `.teamwork/settings.json` at the git root of a folder, and the `Warning:` lines about them.
 
-Keys, all optional: `refuse` (an issue rule refuses when true, else only warns), `title_max`, `backlog_label`, `scope_prefix`, and `tools_off`
+Keys, all optional: `refuse` (an issue rule refuses when true, else only warns), `title_max`, `scope_prefix`, and `tools_off`
 (role to list of tools). No file, or a file that is no JSON object, gives every default; a key of the wrong type gives its default and a warning."""
 import json
 import pathlib
@@ -8,12 +8,12 @@ import pathlib
 import agent
 
 FILE = pathlib.Path(".teamwork", "settings.json")
-DEFAULTS = {"refuse": False, "title_max": 40, "backlog_label": "backlog", "scope_prefix": "scope:",
+DEFAULTS = {"refuse": False, "title_max": 40, "scope_prefix": "scope:",
             "tools_off": {role: tools.split(",") for role, tools in agent.TOOLS_OFF.items()}}
 NUMBER = lambda value: isinstance(value, (int, float)) and not isinstance(value, bool)  # True is an int in Python, and no limit
 TOOL_LISTS = lambda value: isinstance(value, dict) and all(isinstance(tools, list) and all(isinstance(tool, str) for tool in tools) for tools in value.values())
 KINDS = {"refuse": ("a boolean", lambda value: isinstance(value, bool)), "title_max": ("a number", NUMBER),
-         "backlog_label": ("a string", lambda value: isinstance(value, str)), "scope_prefix": ("a string", lambda value: isinstance(value, str)),
+         "scope_prefix": ("a string", lambda value: isinstance(value, str)),
          "tools_off": ("an object of role to list of tool names", TOOL_LISTS)}
 
 

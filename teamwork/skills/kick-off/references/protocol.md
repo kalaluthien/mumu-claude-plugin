@@ -4,12 +4,12 @@ The roles, records and rules of a team, which name no tool, vendor or board; eac
 
 ## Domain
 
-Intent flows owner → manager → backlog → worker → tasks → judged changes. An issue on the board keeps what must outlive a session, written as [issue-grammar.md](issue-grammar.md) says: a `BLOCKED:` comment opens a worker's question with its options, a `DECIDED:` the manager's answer, route or order, binding until a newer one.
+Intent flows owner → manager → root → worker → tasks → judged changes. An issue on the board keeps what must outlive a session, written as [issue-grammar.md](issue-grammar.md) says: a `BLOCKED:` comment opens a worker's question with its options, a `DECIDED:` the manager's answer, route or order, binding until a newer one.
 
 - **project**: a repository, or one of its top-level folders named by a `scope:` label, which is `scope:<project>` of the manager's own name; its name lowercased, each run of other characters one `-`, cut to 22
 - **holds**: a worker holds each open issue whose latest `holders` names it, any number, and several may hold one
-- **backlog**: an issue labelled `backlog`: the owner's intent in rough words
-- **task**: an issue a worker defines: `## Goal`, `## Definition of done` of criteria, its order after other tasks
+- **task**: every issue; one a worker defines holds `## Goal`, `## Definition of done` of criteria and parts, and a `depends on` line naming the tasks it waits on, as [issue-grammar.md](issue-grammar.md) says
+- **parent**, **root**: a task with parts; a task with no parent, the owner's intent in rough words
 - **base**: the branch a change starts from and merges into, as the repository's rules say (its `AGENTS.md`, `CONTRIBUTING`, hooks, branch protection), else the default branch
 - **criterion**: a `[check]`, a command whose output decides, its failing output on base quoted; or a `[score]`, a rubric over a named sample, head against the base by a margin set after measuring the base on it
 - **precheck**: the table [run-criteria.py](../scripts/run-criteria.py) prints of each `[check]` run at the head, which the worker comments on the task before each judge, and the judge reads instead of running each again
@@ -24,13 +24,11 @@ Each port is a set of operations the playbooks name; an adapter does each, and [
 | --- | --- | --- |
 | board | `read` | an issue or change with its body, comments, labels and state |
 | board | `comment` | appends a comment, its text written to a file first |
-| board | `file` | opens an issue with a title, labels and body |
-| board | `edit` | changes a body's sections by a diff, posted as a `DECIDED:` comment first, or a title |
-| board | `resolve` | closes an issue, completed with a `REPORTED: <summary>`, or not planned for work stopped |
+| board | `file` | opens an issue with a title, labels and body; refused, writing nothing, when its `[task]` and `depends on` lines make a cycle or a second parent, name an unknown issue, or exceed 50 `depends on` entries or 100 parts |
+| board | `edit` | changes a body's sections by a diff, posted as a `DECIDED:` comment first, or a title; refused as `file` is; a `[task]` line added to a closed parent reopens it |
+| board | `resolve` | closes an issue, completed with a `REPORTED: <summary>`, or not planned for work stopped; closing a parent's last open part closes the parent too when it holds no other criterion, and stopping a parent stops its open parts, named in one `DECIDED:` |
 | board | `reopen` | opens a closed issue again; an open one stays as it is |
 | board | `decide` | comments a `DECIDED:` |
-| board | `order` | records that a later issue waits on an earlier one |
-| board | `nest` | puts a task under the nearest backlog at or above an issue named, else refuses |
 | board | `label` | adds a label to an issue or removes one |
 | message | `tell` | one message to a session, naming the url that holds what it needs and stating a fact, never a step for the peer to run |
 | message | `ask` | asks the owner in your tab, with choices |

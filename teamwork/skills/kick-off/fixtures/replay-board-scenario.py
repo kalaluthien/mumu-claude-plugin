@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""File a backlog and a task, nest and order them, set holders, ask by BLOCKED, answer by DECIDED, edit the body and resolve both, then retitle and
-reopen the backlog, nest a follow-up task under it and resolve both again, writing only through use-board.py, and print after each step a `step <name>` line, the composed state of each issue it filed and the board lines, numbers and urls replaced
+"""File a root and a task, make the task the root's part and the root wait on it by body edits, set holders, ask by BLOCKED, answer by DECIDED, edit the
+body and resolve the task, which closes the root, then retitle and reopen the root, add a follow-up part to it and resolve that, which closes the root again, writing only through use-board.py, and print after each step a `step <name>` line, the composed state of each issue it filed and the board lines, numbers and urls replaced
 by names, so two boards that print the same text keep the same protocol. The files board runs in a temporary folder, the git board in a temporary repository. The github board runs on the
 repository `GH_REPO` names, as the tape of recorded-gh/gh beside this file holds it, while no judge or worker writes it (else rerun a failure once alone), never this one, since its issues would reach the team's board:
 with `GH_REPO` unset or naming it, the run calls no gh, prints `not a sandbox` and exits 1.
@@ -55,16 +55,23 @@ def show(step):
         parent = names.get(record["parent"])
         criteria = [(criterion["kind"], criterion["name"], bool(criterion["met"])) for criterion in state["done"]]
         print(plain(f"{name}: {record['state']} labels={sorted(record['labels'])} parent={parent} holders={state['holders']} waits={state['waits']} comments={len(record['comments'])} criteria={criteria}"))
-    closed = sum(board.fresh(issue_number, comments=False)["state"] == "CLOSED" for issue_number, known in names.items() if known != "backlog")
+    closed = sum(board.fresh(issue_number, comments=False)["state"] == "CLOSED" for issue_number, known in names.items() if known != "root")
     for _ in range(15):  # GitHub counts a parent's closed sub-issues a moment after the close, so read until the count agrees
         nodes = board.tree(None)
         if nodes is None:
             sys.exit("replay-board-scenario: the board read failed")
-        counts = [node["subIssuesSummary"]["completed"] for node in nodes if node["number"] == number("backlog")]
+        counts = [node["subIssuesSummary"]["completed"] for node in nodes if node["number"] == number("root")]
         if counts in ([], [closed]):
             break
         time.sleep(2)
     print(plain("\n".join(issue_board.lines(issue_board.board([node for node in nodes if node["number"] in names])))))
+
+
+def link(name, added, why):
+    """Appends ADDED to NAME's body by a diff through `use-board.py edit`, the one way a link is written."""
+    old = board.fresh(number(name))["body"]
+    diff = "".join(difflib.unified_diff(old.splitlines(True), (old.rstrip("\n") + "\n" + added).splitlines(True), "a", "b"))
+    use("edit", number(name), text(f"{name}-link.diff", diff), f"DECIDED: {why}")
 
 
 TASK = "## Goal\n\nProbe the board.\n\n## Definition of done\n\n1. [check] **probe passes**: `echo ok` prints `ok`; on base nothing.\n"
@@ -92,12 +99,12 @@ def main(args):
     import issue_board
     import issue_state
 
-    filed("backlog", "Probe the board backlog", "Probe the board by a backlog.\n", ["backlog"])
+    filed("root", "Probe the board root", "Probe the board by a root.\n")
     filed("task", "Probe the board task", TASK)
     show("file")
-    use("nest", number("backlog"), number("task"))
-    show("nest")
-    use("order", number("backlog"), number("task"))
+    link("root", f"\n## Definition of done\n\n1. [task] #{number('task')} Probe the board task\n", "the task is the root's part")
+    show("part")
+    link("root", f"\n```teamwork\ndepends on: #{number('task')}\n```\n", "the root waits on its task")
     show("order")
     use("decide", number("task"), text("hold.md", "DECIDED: probe-worker holds this.\n\n```teamwork\nholders: probe-worker\n```\n"))
     show("hold")
@@ -115,17 +122,14 @@ def main(args):
     show("edit")
     use("resolve", number("task"), text("task-done.md", "REPORTED: probe landed\n"))
     show("resolve-task")
-    use("resolve", number("backlog"), text("backlog-done.md", "REPORTED: probe landed\n"))
-    show("resolve-backlog")
-    use("title", number("backlog"), "Probe the board again")
+    use("title", number("root"), "Probe the board again")
     show("retitle")
-    use("reopen", number("backlog"))
+    use("reopen", number("root"))
     show("reopen")
     filed("follow-up", "Probe the board follow-up", TASK)
-    use("nest", number("backlog"), number("follow-up"))
-    show("nest-again")
+    link("root", f"2. [task] #{number('follow-up')} Probe the board follow-up\n", "a follow-up part")
+    show("part-again")
     use("resolve", number("follow-up"), text("follow-up-done.md", "REPORTED: follow-up landed\n"))
-    use("resolve", number("backlog"), text("backlog-again.md", "REPORTED: follow-up landed\n"))
     show("resolve-again")
     return 0
 

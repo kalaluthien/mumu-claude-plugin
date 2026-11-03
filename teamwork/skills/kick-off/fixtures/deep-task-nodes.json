@@ -1,0 +1,148 @@
+[
+ {
+  "number": 10,
+  "title": "Let the owner steer the team from one pane",
+  "url": "u/10",
+  "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #9 Measure how often a link goes wrong in past transcripts\n2. [task] #11 Define the task graph and its two links\n3. [task] #16 Draw the graph in the issues pane at narrow widths\n",
+  "authorAssociation": "OWNER",
+  "labels": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": [
+    {
+     "body": "DECIDED: x\n\n```teamwork\nholders: pane-worker\n```",
+     "authorAssociation": "OWNER",
+     "author": {
+      "login": "o"
+     },
+     "trusted": true
+    }
+   ]
+  }
+ },
+ {
+  "number": 11,
+  "title": "Define the task graph and its two links",
+  "url": "u/11",
+  "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #12 Write the link sync script that reads Definition of done lines\n",
+  "authorAssociation": "OWNER",
+  "labels": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": [
+    {
+     "body": "DECIDED: x\n\n```teamwork\nholders: graph-worker\n```",
+     "authorAssociation": "OWNER",
+     "author": {
+      "login": "o"
+     },
+     "trusted": true
+    }
+   ]
+  }
+ },
+ {
+  "number": 12,
+  "title": "Write the link sync script that reads Definition of done lines",
+  "url": "u/12",
+  "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #13 Refuse a cycle before any link is written\n",
+  "authorAssociation": "OWNER",
+  "labels": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  }
+ },
+ {
+  "number": 13,
+  "title": "Refuse a cycle before any link is written",
+  "url": "u/13",
+  "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #14 Probe GitHub's dependency API for cycle refusal\n\n\n```teamwork\ndepends on: #14\n```\n",
+  "authorAssociation": "OWNER",
+  "labels": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  }
+ },
+ {
+  "number": 14,
+  "title": "Probe GitHub's dependency API for cycle refusal",
+  "url": "u/14",
+  "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #15 Record the probe's raw responses as fixtures\n",
+  "authorAssociation": "OWNER",
+  "labels": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  }
+ },
+ {
+  "number": 15,
+  "title": "Record the probe's raw responses as fixtures",
+  "url": "u/15",
+  "body": "## Goal\n\nx",
+  "authorAssociation": "OWNER",
+  "labels": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  }
+ },
+ {
+  "number": 16,
+  "title": "Draw the graph in the issues pane at narrow widths",
+  "url": "u/16",
+  "body": "## Goal\n\nx\n\n```teamwork\ndepends on: #11 #12\n```\n",
+  "authorAssociation": "OWNER",
+  "labels": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": [
+    {
+     "body": "DECIDED: x\n\n```teamwork\nholders: pane-worker\n```",
+     "authorAssociation": "OWNER",
+     "author": {
+      "login": "o"
+     },
+     "trusted": true
+    }
+   ]
+  }
+ },
+ {
+  "number": 9,
+  "title": "Measure how often a link goes wrong in past transcripts",
+  "url": "u/9",
+  "body": "## Goal\n\nx",
+  "state": "CLOSED",
+  "stateReason": "COMPLETED",
+  "authorAssociation": "OWNER",
+  "labels": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  }
+ },
+ {
+  "number": 17,
+  "title": "Note a root with no sections",
+  "url": "u/17",
+  "body": "Keep the pane readable when a root has only a summary paragraph.\n",
+  "authorAssociation": "OWNER",
+  "labels": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  }
+ }
+]
