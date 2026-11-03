@@ -85,7 +85,8 @@ def instruction_files(root, config):
     found = [config / "CLAUDE.md", *sorted((config / "rules").glob("*.md"))]
     if root:
         found += [root / "AGENTS.md", root / "CLAUDE.md"]
-    return [path for path in found if path.is_file()]
+    # a session in the config folder itself loads its CLAUDE.md once
+    return list(dict.fromkeys(path.resolve() for path in found if path.is_file()))
 
 
 def load(dejavu, config=None):
