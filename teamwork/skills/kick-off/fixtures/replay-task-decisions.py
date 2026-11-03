@@ -11,10 +11,13 @@ decision comments untrusted, as the GitHub adapter marks an outsider's, before t
 - heartbeat-open-question, heartbeat-twice-superseded, heartbeat-one-way, heartbeat-one-way-superseded, heartbeat-answer-line,
   heartbeat-unblocked-decided,
   heartbeat-legacy-quiet: the manager's heartbeat lines
+- route-own-depends, route-parts-blocked, route-after-close: no `route` line for a task whose own `depends on:` names an open task,
+  or whose open parts all do, until that task closes
 - pane-question, pane-latest-three, pane-cut, pane-untrusted, pane-question-next-line: list-issue-board.py's `?` and `◆` lines; pane-linear, on github-nodes
   only: one draw parses each task's comments a bounded number of times, however many tasks there are
-- row-deferred-reason, row-one-color, on github-nodes: a deferred task's status says what it waits for, and every row's number takes
-  one color, the guide alone telling a root from a part
+- row-no-deferral, row-finished-parent, outside-answered, row-one-color, on github-nodes: a `deferred:` line sets no wait; a parent
+  whose parts are all done shows its next step in full among its always-shown lines; an outsider's issue leaves the heartbeat once a
+  trusted `DECIDED:` answers it; and every row's number takes one color, the guide alone telling a root from a part
 
 usage: replay-task-decisions.py --board <files|git|github-nodes>"""
 import json

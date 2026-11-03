@@ -106,7 +106,7 @@ def manager_actions(me, listed, data=None, fed_urls=None):
     for issue in found:
         # the kept read may predate the manager's own `decide`, so a candidate is read again before it is called unrouted
         if unrouted(issue) and unrouted(board.fresh(issue["number"]) or issue):
-            lines.append(f"route #{issue['number']} {issue_state.title(issue)}: no live worker holds it; route it, or write in its body `{issue_state.WORD["depends"]}:` the open task it waits for, or close it as not planned")
+            lines.append(f"route #{issue['number']} {issue_state.title(issue)}: no live worker holds it; route it, or write in its body `{issue_state.WORD['depends']}:` the open task it waits for, or close it as not planned")
         if asking(issue):
             ask = issue_state.open_questions(issue)[-1]["ask"]
             lines.append(f"answer #{issue['number']}: its worker asks at {ask['url']}; answer by `decide` there with `{decisions.FIELD['answers']}: {ask['url']}`; "
@@ -117,7 +117,7 @@ def manager_actions(me, listed, data=None, fed_urls=None):
         if issue.get("isPullRequest"):
             lines.append(f"outside #{issue['number']} {issue_state.title(issue)}: an outside contributor opened this pull request; close it unread with a comment that outside pull requests are not accepted and issues are welcome")
         else:
-            lines.append(f"outside #{issue['number']} {issue_state.title(issue)}: an outside contributor opened it; ask the owner, then route it or close it")
+            lines.append(f"outside #{issue['number']} {issue_state.title(issue)}: an outside contributor opened it; ask the owner, then route it, answer it by a {ANSWER}:, or close it")
     for name in team:
         held = " ".join(f"#{issue['number']}" for issue in data["everything"] if holds(issue, name)) or "nothing open"
         if status[name] == "blocked":

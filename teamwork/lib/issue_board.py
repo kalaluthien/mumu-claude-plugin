@@ -190,19 +190,19 @@ def heading(row, width):
     notes = [line for question in row.get("questions", []) for line in note("?", question, room)]
     notes += [line for decided in row.get("decided", []) for line in note("◆", decided, room)]
     notes += note("◆", f"{row['more']} more decided", room) if row.get("more") else []
-    notes += note("→", row["next"], room) if row.get("next") else []
+    notes += note("→", row["next"], room, limit=None) if row.get("next") else []  # the next step has no other place to be read in full
     return {"title": wrap(label(row), room), "status": shown, "after": wrap(after(row["blockers"]), room) if row["blockers"] else [], "notes": notes}
 
 
-def note(mark, text, room):
-    """A question's or decision's lines: MARK and its text, later lines 2 cells in, at most NOTE_LINES, the last ending `…` when cut."""
+def note(mark, text, room, limit=NOTE_LINES):
+    """A note's lines: MARK and its text, later lines 2 cells in, at most LIMIT when one is given, the last ending `…` when cut."""
     inner = None if room is None else room - 2
     lines = wrap(text, inner)
-    if len(lines) > NOTE_LINES:
-        last = lines[NOTE_LINES - 1]
+    if limit and len(lines) > limit:
+        last = lines[limit - 1]
         while inner is not None and last and cells(last) + 1 > inner:
             last = last[:-1].rstrip()
-        lines = lines[:NOTE_LINES - 1] + [last + "…"]
+        lines = lines[:limit - 1] + [last + "…"]
     return [f"{mark} {lines[0]}"] + [f"  {line}" for line in lines[1:]]
 
 
