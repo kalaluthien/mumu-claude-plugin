@@ -1,0 +1,551 @@
+{
+ "task": 1094,
+ "pull": "1095",
+ "base_sha": "64a1c30a480e367c5aa9a81eb8804f8b314b600f",
+ "arm": "teamwork-cap",
+ "repeat": 1,
+ "command": [
+  "claude",
+  "-p",
+  "<prompt>",
+  "--model",
+  "sonnet",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--max-budget-usd",
+  "5",
+  "--permission-mode",
+  "acceptEdits",
+  "--allowedTools",
+  "Bash",
+  "Read",
+  "Edit",
+  "Write",
+  "Grep",
+  "Glob",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--include-hook-events",
+  "--no-session-persistence",
+  "--plugin-dir",
+  "/Users/hyungmokim/workspace/plugins/.claude/worktrees/read-shunt-worker/teamwork/hooks/fixtures/teamwork-cap-arm"
+ ],
+ "prompt": "You are replaying a past task in a fresh checkout of the mumu-claude-plugin repository, your working folder.\nDo the task below fully: change the files so that each `[check]` of its Definition of done passes, run the checks you can,\nthen commit your change with git. GitHub, herdr and other Claude sessions are off in this replay: skip each step that reads\nor writes an issue, pull request, comment or session (filing, commenting, judging, pushing, telling), and each check\nthat needs one.\n\nTask #1094: Teach homework the memory home\n\n## Goal\n\nTeach homework the memory home the owner approved in option 5 (https://github.com/kalaluthien/mumu-claude-plugin/issues/1091#issuecomment-6472364490), step 2 of its build order (#issuecomment-6472475621): one root `autoMemoryDirectory` names, whose `MEMORY.md` every session loads, and a folder per repository under it, `<home>/<repo>/`.\n\n- **SessionStart hook**: prints the repository's folder, its index, and one sentence on where a lesson goes; `<repo>` is the origin's name, else the main checkout's folder name, so worktrees and clones share one folder; the home is read from the main checkout's `.claude/settings.local.json`, which Claude Code 2.1.312 reads in each worktree too (probe: https://github.com/kalaluthien/mumu-claude-plugin/issues/1094#issuecomment-6473253475), then `<config>/settings.json`, a `~/` expanded; prints nothing when no `autoMemoryDirectory` is set, and never stops a session.\n- **`move-memory.py`**: moves a memory file and its index line between folders, refusing to overwrite.\n- **Globs**: `list-drift.py` and `list-repeats.py` read the home and its folders, the home found as the hook finds it from the folder they run in, then `<config>/projects/*/memory/`.\n- **retro**: a lesson for every project goes to the home directly, a `CLAUDE.md` patch only with no home; a repository lesson moves to the home once another repository holds it; another repository's folder is still written by patch (#890); a skill lesson stays in memory, marked `skill: <plugin>:<skill>` or `skill: new <name>`.\n- **dream**: moves a lesson in the home true for one repository down to its folder, and the reverse; asks the owner per marked lesson, write it, keep it or drop it; a skill of another repository's plugin goes as a `backlog` issue there.\n- **README and SKILL.md** name the home, the setting and the flow.\n- **Unchanged**: a user with no `autoMemoryDirectory` keeps today's pools.\n\n## Definition of done\n\nCommands run from the repository root, in bash.\n\n1. [check] **Hook wired at start**: `grep -A2 '\"SessionStart\"' homework/hooks/hooks.json | grep -c print-repository-memory` prints `1`; on base `0`.\n2. [check] **Hook prints the folder's index**: `t=$(mktemp -d) && git init -q \"$t/c\" && git -C \"$t/c\" remote add origin https://host/o/mumu-claude-plugin && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/settings.json\" && mkdir -p \"$t/m/mumu-claude-plugin\" && echo '- [A](a.md) \u2014 x' > \"$t/m/mumu-claude-plugin/MEMORY.md\" && printf '{\"cwd\": \"%s\"}' \"$t/c\" | CLAUDE_CONFIG_DIR=\"$t\" python3 homework/hooks/print-repository-memory.py 2>&1 | tail -1 | cut -d' ' -f1-2` prints `- [A](a.md)`; on base `python3: can't`.\n3. [check] **Hook silent without the setting**: `t=$(mktemp -d) && out=$(printf '{\"cwd\": \"%s\"}' \"$t\" | CLAUDE_CONFIG_DIR=\"$t\" python3 homework/hooks/print-repository-memory.py 2>/dev/null); echo \"$? ${#out}\"` prints `0 0`, exit 0 and no output; on base `2 0`.\n4. [check] **Move carries the index line**: `t=$(mktemp -d) && mkdir \"$t/s\" && echo lesson > \"$t/s/a.md\" && echo '- [A](a.md) \u2014 x' > \"$t/s/MEMORY.md\" && python3 homework/skills/wrap-up/scripts/move-memory.py \"$t/s/a.md\" \"$t/d\" >/dev/null 2>&1; d=$(LC_ALL=C ls \"$t/d\" 2>/dev/null | paste -sd' ' -); echo \"$(test -e \"$t/s/a.md\" && echo kept || echo left) ${d:-none} $(cat \"$t/d/MEMORY.md\" \"$t/s/MEMORY.md\" 2>/dev/null | grep -c a.md)\"` prints `left MEMORY.md a.md 1`, the file and its one index line moved out of the source; on base `kept none 1`.\n5. [check] **Move refuses to overwrite**: `t=$(mktemp -d) && mkdir \"$t/s\" \"$t/d\" && echo new > \"$t/s/a.md\" && echo old > \"$t/d/a.md\" && python3 homework/skills/wrap-up/scripts/move-memory.py \"$t/s/a.md\" \"$t/d\" 2>/dev/null; echo \"$? $(cat \"$t/d/a.md\")\"` prints `1 old`; on base `2 old`.\n6. [check] **Drift reads the home and its folders**: `t=$(mktemp -d) && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/settings.json\" && mkdir -p \"$t/m/r\" && echo bare > \"$t/m/r/zebra.md\" && echo bare > \"$t/m/yak.md\" && python3 homework/skills/wrap-up/scripts/list-drift.py \"$t\" 2>&1 | grep -c '^missing When.*\\(zebra\\|yak\\)\\.md'` prints `2`, one at the root and one in a folder; on base `0`.\n7. [check] **Repeats read the home**: `t=$(mktemp -d) && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/settings.json\" && mkdir -p \"$t/m/r\" && echo 'boom zebracrossing' > \"$t/m/r/z.md\" && echo 'boom zebracrossing' > \"$t/m/y.md\" && CLAUDE_CONFIG_DIR=\"$t\" python3 -c 'import runpy; print(len(runpy.run_path(\"homework/skills/wrap-up/scripts/list-repeats.py\")[\"memory_lines\"](\"tool: zebracrossing\")))'` prints `2`, a root file and a folder's; on base `0`.\n8. [check] **retro writes the home**: `grep -c 'move-memory.py .file. .home.' homework/skills/wrap-up/references/retro.md` prints `1`; on base `0`.\n9. [check] **retro marks a skill lesson**: `grep -c 'marked .skill: .plugin.:.skill..' homework/skills/wrap-up/references/retro.md` prints `1`; on base `0`.\n10. [check] **dream asks per skill lesson**: `grep -c '^6\\. \\*\\*Skill lessons\\*\\*: .*write it, keep it in memory, or drop it.*backlog' homework/skills/wrap-up/references/dream.md` prints `1`; on base `0`.\n11. [check] **SKILL.md names the home**: `grep -c '^- \\*\\*Memory home\\*\\*: ..home.. is the folder .autoMemoryDirectory. names' homework/skills/wrap-up/SKILL.md` prints `1`; on base `0`.\n12. [check] **README names the setting**: `grep -c '\"autoMemoryDirectory\": \"~/.claude/memory\"' homework/README.md` prints `1`; on base `0`.\n13. [check] **Hook expands a `~/` value**: `t=$(mktemp -d) && git init -q \"$t/c\" && git -C \"$t/c\" remote add origin https://host/o/mumu-claude-plugin && echo '{\"autoMemoryDirectory\": \"~/m\"}' > \"$t/settings.json\" && mkdir -p \"$t/m/mumu-claude-plugin\" && echo '- [T](t.md) \u2014 x' > \"$t/m/mumu-claude-plugin/MEMORY.md\" && printf '{\"cwd\": \"%s\"}' \"$t/c\" | HOME=\"$t\" CLAUDE_CONFIG_DIR=\"$t\" python3 homework/hooks/print-repository-memory.py 2>&1 | tail -1 | cut -d' ' -f1-2` prints `- [T](t.md)`; on base `python3: can't`.\n14. [check] **Scripts expand a `~/` value**: `t=$(mktemp -d) && echo '{\"autoMemoryDirectory\": \"~/m\"}' > \"$t/settings.json\" && mkdir -p \"$t/m/r\" && echo 'boom zebracrossing' > \"$t/m/r/zebra.md\" && echo \"$(HOME=\"$t\" python3 homework/skills/wrap-up/scripts/list-drift.py \"$t\" 2>&1 | grep -c '^missing When.*zebra\\.md') $(HOME=\"$t\" CLAUDE_CONFIG_DIR=\"$t\" python3 -c 'import runpy; print(len(runpy.run_path(\"homework/skills/wrap-up/scripts/list-repeats.py\")[\"memory_lines\"](\"tool: zebracrossing\")))' 2>&1)\"` prints `1 1`, drift then repeats; on base `0 0`.\n15. [check] **Local setting wins, folder named without an origin**: `t=$(mktemp -d) && git init -q \"$t/r\" && mkdir \"$t/r/.claude\" && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/local\" > \"$t/r/.claude/settings.local.json\" && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/user\" > \"$t/settings.json\" && mkdir -p \"$t/local/r\" \"$t/user/r\" && echo '- [L](l.md) \u2014 x' > \"$t/local/r/MEMORY.md\" && echo '- [U](u.md) \u2014 x' > \"$t/user/r/MEMORY.md\" && printf '{\"cwd\": \"%s\"}' \"$t/r\" | CLAUDE_CONFIG_DIR=\"$t\" python3 homework/hooks/print-repository-memory.py 2>&1 | tail -1 | cut -d' ' -f1-2` prints `- [L](l.md)`, the local home and the checkout's folder name; on base `python3: can't`.\n16. [check] **A worktree follows its main checkout**: `t=$(mktemp -d) && git init -q \"$t/r\" && git -C \"$t/r\" -c user.name=x -c user.email=x@x commit -q --allow-empty -m x && git -C \"$t/r\" worktree add -q \"$t/w\" 2>/dev/null && mkdir \"$t/r/.claude\" && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/r/.claude/settings.local.json\" && mkdir -p \"$t/m/r\" && echo '- [W](w.md) \u2014 x' > \"$t/m/r/MEMORY.md\" && printf '{\"cwd\": \"%s\"}' \"$t/w\" | CLAUDE_CONFIG_DIR=\"$t\" python3 homework/hooks/print-repository-memory.py 2>&1 | tail -1 | cut -d' ' -f1-2` prints `- [W](w.md)`, the main checkout's local setting and folder `r`, not `w`; on base `python3: can't`.\n17. [check] **Broken settings and input stay silent**: `t=$(mktemp -d) && echo '{oops' > \"$t/settings.json\" && out=$(echo 'not json' | CLAUDE_CONFIG_DIR=\"$t\" python3 homework/hooks/print-repository-memory.py 2>/dev/null); echo \"$? ${#out}\"` prints `0 0`, exit 0 and no output; on base `2 0`.\n18. [check] **A session loads both indexes**: `p=$PWD/homework; t=$(mktemp -d) && git init -q \"$t/r\" && mkdir \"$t/r/.claude\" && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/r/.claude/settings.local.json\" && mkdir -p \"$t/m/r\" && echo '- [Seed](a.md) \u2014 the root word is seedroot' > \"$t/m/MEMORY.md\" && echo '- [Seed](b.md) \u2014 the repository word is seedrepo' > \"$t/m/r/MEMORY.md\" && cd \"$t/r\" && claude -p 'List every word starting with seed that your context holds, one per line, nothing else.' --model haiku --plugin-dir \"$p\" --allowedTools=Read 2>&1 | grep -o -e seedroot -e seedrepo | sort -u | wc -l | tr -d ' '` prints `2`, the root word Claude Code loads and the repository word the hook prints; on base `1`.\n19. [check] **Pools kept with and without the setting**: `t=$(mktemp -d) && mkdir -p \"$t/projects/k/memory\" \"$t/m\" && echo bare > \"$t/projects/k/memory/ant.md\" && echo bare > \"$t/m/yak.md\" && a=$(python3 homework/skills/wrap-up/scripts/list-drift.py \"$t\" 2>&1 | grep -c '^missing When.*\\(ant\\|yak\\)\\.md'); printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/settings.json\" && echo \"$(python3 homework/skills/wrap-up/scripts/list-drift.py \"$t\" 2>&1 | grep -c '^missing When.*\\(ant\\|yak\\)\\.md') $a\"` prints `2 1`, the home and the project pool with the setting, the pool alone without; on base `1 1`.\n20. [check] **Hook names the folder's index**: `t=$(mktemp -d) && git init -q \"$t/c\" && git -C \"$t/c\" remote add origin https://host/o/mumu-claude-plugin && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/settings.json\" && printf '{\"cwd\": \"%s\"}' \"$t/c\" | CLAUDE_CONFIG_DIR=\"$t\" python3 homework/hooks/print-repository-memory.py 2>&1 | grep -cF \"$t/m/mumu-claude-plugin/MEMORY.md\"` prints `1`, one line naming where a lesson's index line goes, whatever its wording; on base `0`.\n21. [check] **Project settings are ignored**: `t=$(mktemp -d) && git init -q \"$t/r\" && mkdir \"$t/r/.claude\" && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/r/.claude/settings.json\" && out=$(printf '{\"cwd\": \"%s\"}' \"$t/r\" | CLAUDE_CONFIG_DIR=\"$t\" python3 homework/hooks/print-repository-memory.py 2>/dev/null); echo \"$? ${#out}\"` prints `0 0`, as Claude Code reads no `autoMemoryDirectory` from a project's settings; on base `2 0`.\n22. [check] **retro sends an every-project lesson to the home**: `grep -c '| true for every project: [^|]* | ..home./., one memory file each' homework/skills/wrap-up/references/retro.md` prints `1`, the home first, the `CLAUDE.md` patch only without one; on base `0`.\n23. [check] **retro patches another repository's folder**: `grep -c \"An extend or add to another repository's folder or pool is a patch\" homework/skills/wrap-up/references/retro.md` prints `1`; on base `0`.\n24. [check] **dream moves a lesson between the home and a folder**: `grep -c -e 'a lesson in ..home.. true for one repository only, or in a repository.s folder true for every project' -e 'a lesson in the wrong memory folder moves by .*move-memory.py .file. .folder.' homework/skills/wrap-up/references/dream.md` prints `2`, the down and up cases and their move; on base `0`.\n25. [check] **Scripts read the local setting too**: `k=$PWD; t=$(mktemp -d) && git init -q \"$t/r\" && mkdir -p \"$t/r/.claude\" \"$t/local/x\" \"$t/user\" && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/local\" > \"$t/r/.claude/settings.local.json\" && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/user\" > \"$t/settings.json\" && echo 'boom zebracrossing' > \"$t/local/x/zebra.md\" && cd \"$t/r\" && echo \"$(python3 \"$k/homework/skills/wrap-up/scripts/list-drift.py\" \"$t\" 2>&1 | grep -c '^missing When.*zebra\\.md') $(CLAUDE_CONFIG_DIR=\"$t\" python3 -c 'import runpy, sys; print(len(runpy.run_path(sys.argv[1])[\"memory_lines\"](\"tool: zebracrossing\")))' \"$k/homework/skills/wrap-up/scripts/list-repeats.py\" 2>&1)\"` prints `1 1`, drift then repeats, from the local home over the user's; on base `0 0`.\n26. [check] **Clones share the origin's folder**: `t=$(mktemp -d) && git init -q \"$t/a\" && git -C \"$t/a\" remote add origin git@host:o/name.git && git init -q \"$t/b\" && git -C \"$t/b\" remote add origin https://host/o/name/ && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/settings.json\" && for d in a b; do printf '{\"cwd\": \"%s\"}' \"$t/$d\" | CLAUDE_CONFIG_DIR=\"$t\" python3 homework/hooks/print-repository-memory.py 2>&1; done | grep -cF \"$t/m/name/MEMORY.md\"` prints `2`, an ssh and an https origin named `name` in folders `a` and `b`; on base `0`.\n27. [check] **Hook survives a bad home and a bad index**: `t=$(mktemp -d) && git init -q \"$t/c\" && git -C \"$t/c\" remote add origin https://host/o/name && echo '{\"autoMemoryDirectory\": \"~nosuchuser/m\"}' > \"$t/settings.json\" && printf '{\"cwd\": \"%s\"}' \"$t/c\" | CLAUDE_CONFIG_DIR=\"$t\" python3 homework/hooks/print-repository-memory.py >/dev/null 2>&1; a=$?; printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/settings.json\" && mkdir -p \"$t/m/name\" && printf '\\377\\n' > \"$t/m/name/MEMORY.md\" && printf '{\"cwd\": \"%s\"}' \"$t/c\" | CLAUDE_CONFIG_DIR=\"$t\" python3 homework/hooks/print-repository-memory.py >/dev/null 2>&1; echo \"$a $?\"` prints `0 0`, exit 0 for a `~` of no such user and for an index that is no UTF-8; on base `2 2`.\n28. [check] **Move refuses a file as destination**: `t=$(mktemp -d) && echo lesson > \"$t/a.md\" && echo file > \"$t/d\" && python3 homework/skills/wrap-up/scripts/move-memory.py \"$t/a.md\" \"$t/d\" 2>&1 | cut -d' ' -f1-2` prints `not moved:`, its own refusal, not a traceback; on base `python3: can't`.\n29. [check] **Hook survives a cwd that is no string**: `t=$(mktemp -d) && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/settings.json\" && out=$(echo '{\"cwd\": 5}' | CLAUDE_CONFIG_DIR=\"$t\" python3 homework/hooks/print-repository-memory.py 2>&1); echo \"$? $(printf '%s' \"$out\" | grep -c \"$t/m/MEMORY.md\")\"` prints `0 0`, exit 0 and no sentence sending lessons to the home root; on base `2 0`.\n30. [check] **Move takes only the file's own index line**: `t=$(mktemp -d) && mkdir \"$t/s\" && echo lesson > \"$t/s/a.md\" && printf -- '- [A](a.md) \u2014 x\\n- [B](b.md) \u2014 read with [A](a.md)\\n' > \"$t/s/MEMORY.md\" && python3 homework/skills/wrap-up/scripts/move-memory.py \"$t/s/a.md\" \"$t/d\" >/dev/null 2>&1; echo \"$(test -e \"$t/d/a.md\" && echo moved || echo kept) $(cat \"$t/d/MEMORY.md\" 2>/dev/null | grep -c 'b\\.md') $(grep -c 'b\\.md' \"$t/s/MEMORY.md\")\"` prints `moved 0 1`, the line that only mentions `a.md` staying with `b.md`; on base `kept 0 1`.\n31. [check] **Move changes nothing on an unreadable index**: `t=$(mktemp -d) && mkdir \"$t/s\" \"$t/d\" && echo lesson > \"$t/s/a.md\" && echo '- [A](a.md) \u2014 x' > \"$t/s/MEMORY.md\" && printf '\\377\\n' > \"$t/d/MEMORY.md\" && out=$(python3 homework/skills/wrap-up/scripts/move-memory.py \"$t/s/a.md\" \"$t/d\" 2>&1 | cut -d' ' -f1-2); echo \"$out $(ls \"$t/s\" | grep -c '^a\\.md$') $(grep -c 'a\\.md' \"$t/s/MEMORY.md\")\"` prints `not moved: 1 1`, the refusal with the source file and its index line still in place; on base `python3: can't 1 1`.",
+ "environment": {
+  "CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1",
+  "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1"
+ },
+ "blocked_tools": [
+  "gh",
+  "herdr",
+  "claude"
+ ],
+ "init": {
+  "plugins": [
+   "teamwork-cap-arm",
+   "cc-plugin-agents-md",
+   "cc-plugin-telemetry",
+   "cc-plugin-privacy",
+   "cc-plugin-plugin-authoring"
+  ],
+  "mcp_servers": [],
+  "model": "claude-sonnet-5-5"
+ },
+ "hook_events": [
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash",
+  "PostToolUse:Bash"
+ ],
+ "total_cost_usd": 0.4570105,
+ "models": [
+  "claude-sonnet-5-5"
+ ],
+ "is_error": false,
+ "subtype": "success",
+ "num_turns": 14,
+ "turns": [
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 11873,
+    "cache_read_input_tokens": 13968,
+    "output_tokens": 16,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 11873
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 4676,
+    "cache_read_input_tokens": 25841,
+    "output_tokens": 20,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 4676
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 5993,
+    "cache_read_input_tokens": 30517,
+    "output_tokens": 20,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 5993
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 867,
+    "cache_read_input_tokens": 36510,
+    "output_tokens": 4,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 867
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 5062,
+    "cache_read_input_tokens": 37377,
+    "output_tokens": 6,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 5062
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1108,
+    "cache_read_input_tokens": 42439,
+    "output_tokens": 6,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1108
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2097,
+    "cache_read_input_tokens": 43547,
+    "output_tokens": 5,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2097
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 4850,
+    "cache_read_input_tokens": 45644,
+    "output_tokens": 2,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 4850
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 5267,
+    "cache_read_input_tokens": 50494,
+    "output_tokens": 20,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 5267
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 455,
+    "cache_read_input_tokens": 55761,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 455
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 899,
+    "cache_read_input_tokens": 56216,
+    "output_tokens": 3,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 899
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 1561,
+    "cache_read_input_tokens": 57115,
+    "output_tokens": 8,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1561
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 464,
+    "cache_read_input_tokens": 58676,
+    "output_tokens": 20,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 464
+    }
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 343,
+    "cache_read_input_tokens": 59140,
+    "output_tokens": 467,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 343
+    }
+   }
+  }
+ ],
+ "bash_results": [
+  {
+   "id": "toolu_01BqbYg72sksT2UcJ4ssMzAJ",
+   "command": "cd homework && cat hooks/hooks.json && ls hooks skills/wrap-up skills/wrap-up/* && cat skills/wrap-up/scripts/list-drift.py skills/wrap-up/scripts/list-repeats.py && wc -l skills/wrap-up/SKILL.md skills/wrap-up/references/*.md README.md",
+   "chars": 10632,
+   "lines": 263
+  },
+  {
+   "id": "toolu_01GagpDjRkJK1Zxay2irNc7T",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1094-teamwork-cap-1-mayuvtuz/repository && ls; ls lib; cat lib/claude_config.py; cat homework/hooks/signal-wrap-up.py | head -30; cd homework; cat skills/wrap-up/SKILL.md skills/wrap-up/references/retro.md skills/wrap-up/references/dream.md README.md",
+   "chars": 15156,
+   "lines": 179
+  },
+  {
+   "id": "toolu_016KwzNviTzt7BW1N4rvXZHB",
+   "command": "ls; ls lib; cat lib/claude_config.py; sed -n 1,40p lib/memory.py",
+   "chars": 1624,
+   "lines": 46
+  },
+  {
+   "id": "toolu_01HqcEeagCKNH77AFxFoAp95",
+   "command": "cat > lib/memory_home.py <<'EOF'\n\"\"\"The memory home: the folder `autoMemoryDirectory` names, with a folder per repository under it.\"\"\"\nimport json\nimport os\nimport pathlib\nimport re\nimport subprocess\n\n\ndef _git(cwd, *args):\n    try:\n        done = subprocess.run([\"git\", \"-C\", str(cwd), *args], capture_output=True, text=True, timeout=10)\n    except (OSError, subprocess.SubprocessError):\n        return \"\"\n    return done.stdout.strip() if done.returncode == 0 else \"\"\n\n\ndef main_checkout(cwd):\n    \"\"\"The main checkout's folder of the repository holding cwd, a worktree's too; None outside a repository.\"\"\"\n    common = _git(cwd, \"rev-parse\", \"--path-format=absolute\", \"--git-common-dir\")\n    if not common:\n        return None\n    path = pathlib.Path(common)\n    return path.parent if path.name == \".git\" else None\n\n\ndef repository(cwd):\n    \"\"\"The repository's name: the origin's, else the main checkout's folder name; None when neither.\"\"\"\n    url = _git(cwd, \"config\", \"--get\", \"remote.origin.url\").rstrip(\"/\")\n    name = re.split(r\"[/:\\\\]\", url)[-1] if url else \"\"\n    name = name[:-4] if name.endswith(\".git\") else name\n    if name:\n        return name\n    root = main_checkout(cwd)\n    return root.name if root else None\n\n\ndef _setting(path):\n    try:\n        with open(path, encoding=\"utf-8\") as handle:\n            value = json.load(handle).get(\"autoMemoryDirectory\")\n    except (OSError, ValueError, AttributeError):\n        return None\n    if isinstance(value, str) and value.strip():\n        expanded = os.path.expanduser(value.strip())\n        return expanded if os.path.isabs(expanded) else None\n    return None\n\n\ndef home(cwd, config):\n    \"\"\"The memory home as a path string: the main checkout's `.claude/settings.local.json`, then `<config>/settings.json`; None when unset.\"\"\"\n    root = main_checkout(cwd) if cwd else None\n    found = _setting(root / \".claude\" / \"settings.local.json\") if root else None\n    return found or _setting(os.path.join(str(config), \"settings.json\"))\nEOF",
+   "chars": 31,
+   "lines": 1
+  },
+  {
+   "id": "toolu_01FjqA4DVeWTsLWTFVNqw9wR",
+   "command": "cat >> lib/memory_home.py <<'EOF'\n\n\ndef pools(cwd, config):\n    \"\"\"Memory folders to read: the home and its folders, then `<config>/projects/*/memory`.\"\"\"\n    import glob\n    found = []\n    where = home(cwd, config)\n    if where and os.path.isdir(where):\n        found.append(where)\n        found += sorted(path for path in glob.glob(os.path.join(glob.escape(where), \"*\")) if os.path.isdir(path))\n    return found + sorted(glob.glob(os.path.join(glob.escape(str(config)), \"projects\", \"*\", \"memory\")))\nEOF\npython3 - <<'EOF'\np='skills/wrap-up/scripts/list-drift.py'\ns=open(p).read()\ns=s.replace(\"import memory  # noqa: E402\",\"import memory  # noqa: E402\\nimport memory_home  # noqa: E402\")\ns=s.replace('''    pools = args[1:] or sorted(glob.glob(os.path.join(glob.escape(args[0]), \"projects\", \"*\", \"memory\")))''','''    pools = args[1:] or memory_home.pools(os.getcwd(), args[0])''')\ns=s.replace('''pools of <config>/projects/*/memory,\n                                            or only those named''','''pools of <config>/projects/*/memory and the\n                                            memory home, found from the working folder, with its\n                                            folders, or only those named''')\nopen(p,'w').write(s)\np='skills/wrap-up/scripts/list-repeats.py'\ns=open(p).read()\ns=s.replace(\"import claude_config  # noqa: E402\",\"import claude_config  # noqa: E402\\nimport memory_home  # noqa: E402\")\ns=s.replace('''    for path in glob.glob(os.path.join(glob.escape(str(claude_config.folder())), \"projects\", \"*\", \"memory\", \"*.md\")):''','''    pools = memory_home.pools(os.getcwd(), claude_config.folder())\n    for path in (path for pool in pools for path in sorted(glob.glob(os.path.join(glob.escape(pool), \"*.md\")))):''')\nopen(p,'w').write(s)\nEOF\ngit diff --stat",
+   "chars": 227,
+   "lines": 4
+  },
+  {
+   "id": "toolu_01R4khDBfKJjGbGffN9pxNYZ",
+   "command": "python3 - <<'EOF'\ndef sub(p, a, b):\n    s=open(p).read()\n    assert a in s, (p,a)\n    open(p,'w').write(s.replace(a,b,1))\n\nS='skills/wrap-up/SKILL.md'\nsub(S,\"- `<data>` is\",\n\"- **Memory home**: `<home>` is the folder `autoMemoryDirectory` names, read from the main checkout's `.claude/settings.local.json`, then `<config>/settings.json`; its `MEMORY.md` loads in every session, and `<home>/<repo>/` holds one repository's lessons, `<repo>` being the origin's name, else the main checkout's folder name. The SessionStart hook prints that folder and its index. With no `autoMemoryDirectory`, only the pools below exist. Move a lesson between folders with `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/move-memory.py <file> <folder>`.\\n- `<data>` is\")\nsub(S,\"- **This project only**: write only this project's auto-memory.\",\"- **This project only**: write only this project's auto-memory, and the memory home when one is set.\")\n\nR='skills/wrap-up/references/retro.md'\nsub(R,\"   | true for every project: another project's memory holds it, or the owner said it for all work | `<config>/CLAUDE.md`: an instruction and a clause of reason in its work's section, as a patch rooted at `<config>` that also deletes this project's copy |\\n   | true for this project: a fact, a trap, a preference, a procedure that worked once | auto-memory, one memory file each |\",\n\"\"\"   | true for every project: another project's memory holds it, or the owner said it for all work | with a `<home>` set: `<home>/`, one memory file each; with none: `<config>/CLAUDE.md`, an instruction and a clause of reason in its work's section, as a patch rooted at `<config>` that also deletes this project's copy |\n   | true for this project's repository: a fact, a trap, a preference, a procedure that worked once | with a `<home>` set: `<home>/<repo>/`; else auto-memory, one memory file each |\n   | a lesson about a skill | stays in memory, marked `skill: <plugin>:<skill>` for an existing skill or `skill: new <name>` for one to writ",
+   "chars": 304,
+   "lines": 5
+  },
+  {
+   "id": "toolu_018WToSCf29YhiAVkW9xMNpC",
+   "command": "python3 - <<'EOF'\np='skills/wrap-up/references/retro.md'\ns=open(p).read()\ns=s.replace(\"A skill lesson is marked `skill: <plugin>:<skill>` or `skill: new <name>` in its file, never patched in here.\",\"A skill lesson keeps its mark in its file and is never patched in here.\")\nopen(p,'w').write(s)\np='README.md'\ns=open(p).read()\ns=s.replace(\"## What a wrap-up writes\",\"\"\"## Memory home\n\nName one root folder in `autoMemoryDirectory`, in `~/.claude/settings.json` or a repository's `.claude/settings.local.json` (Claude Code reads no such setting from a project's `.claude/settings.json`):\n\n```json\n{ \"autoMemoryDirectory\": \"~/.claude/memory\" }\n```\n\nIts `MEMORY.md` loads in every session; a folder per repository sits under it, `<home>/<repo>/`, `<repo>` being the origin's name, else the main checkout's folder name, so worktrees and clones share one. A SessionStart hook prints the repository's folder and its index. A wrap-up writes a lesson for every project to the home, a repository's lesson to its folder, and a lesson about a skill stays in memory marked `skill: <plugin>:<skill>` or `skill: new <name>` until a dream asks what to do with it; a dream moves a lesson between the home and a folder when its scope differs. With no `autoMemoryDirectory`, nothing changes: lessons stay in `<config>/projects/*/memory/`.\n\n## What a wrap-up writes\"\"\",1)\ns=s.replace(\"- **This project's auto-memory**: written directly.\",\"- **This project's auto-memory**, and the memory home: written directly.\")\nopen(p,'w').write(s)\nEOF\ncd ..; for n in 1 3 5 6 7 8 9 10 11 12 14 17 19 21 22 23 24 25 26 27 28 29 30 31; do echo; done >/dev/null\nb(){ bash -c \"$1\"; }\nb \"grep -A2 '\\\"SessionStart\\\"' homework/hooks/hooks.json | grep -c print-repository-memory\"\nb 't=$(mktemp -d) && git init -q \"$t/c\" && git -C \"$t/c\" remote add origin https://host/o/mumu-claude-plugin && printf \"{\\\"autoMemoryDirectory\\\": \\\"%s\\\"}\" \"$t/m\" > \"$t/settings.json\" && mkdir -p \"$t/m/mumu-claude-plugin\" && echo \"- [A](a.md) \u2014 x\" > \"$t/m/mumu-cl",
+   "chars": 80,
+   "lines": 2
+  },
+  {
+   "id": "toolu_01JH25fjmQ3sTMtrA8rQd6qw",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1094-teamwork-cap-1-mayuvtuz/repository && cat > /tmp/chk.sh <<'EOF'\ngrep -A2 '\"SessionStart\"' homework/hooks/hooks.json | grep -c print-repository-memory\nt=$(mktemp -d) && git init -q \"$t/c\" && git -C \"$t/c\" remote add origin https://host/o/mumu-claude-plugin && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/settings.json\" && mkdir -p \"$t/m/mumu-claude-plugin\" && echo '- [A](a.md) \u2014 x' > \"$t/m/mumu-claude-plugin/MEMORY.md\" && printf '{\"cwd\": \"%s\"}' \"$t/c\" | CLAUDE_CONFIG_DIR=\"$t\" python3 homework/hooks/print-repository-memory.py 2>&1 | tail -1 | cut -d' ' -f1-2\nt=$(mktemp -d) && out=$(printf '{\"cwd\": \"%s\"}' \"$t\" | CLAUDE_CONFIG_DIR=\"$t\" python3 homework/hooks/print-repository-memory.py 2>/dev/null); echo \"$? ${#out}\"\nt=$(mktemp -d) && mkdir \"$t/s\" && echo lesson > \"$t/s/a.md\" && echo '- [A](a.md) \u2014 x' > \"$t/s/MEMORY.md\" && python3 homework/skills/wrap-up/scripts/move-memory.py \"$t/s/a.md\" \"$t/d\" >/dev/null 2>&1; d=$(LC_ALL=C ls \"$t/d\" 2>/dev/null | paste -sd' ' -); echo \"$(test -e \"$t/s/a.md\" && echo kept || echo left) ${d:-none} $(cat \"$t/d/MEMORY.md\" \"$t/s/MEMORY.md\" 2>/dev/null | grep -c a.md)\"\nt=$(mktemp -d) && mkdir \"$t/s\" \"$t/d\" && echo new > \"$t/s/a.md\" && echo old > \"$t/d/a.md\" && python3 homework/skills/wrap-up/scripts/move-memory.py \"$t/s/a.md\" \"$t/d\" 2>/dev/null; echo \"$? $(cat \"$t/d/a.md\")\"\nt=$(mktemp -d) && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/settings.json\" && mkdir -p \"$t/m/r\" && echo bare > \"$t/m/r/zebra.md\" && echo bare > \"$t/m/yak.md\" && python3 homework/skills/wrap-up/scripts/list-drift.py \"$t\" 2>&1 | grep -c '^missing When.*\\(zebra\\|yak\\)\\.md'\nt=$(mktemp -d) && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/settings.json\" && mkdir -p \"$t/m/r\" && echo 'boom zebracrossing' > \"$t/m/r/z.md\" && echo 'boom zebracrossing' > \"$t/m/y.md\" && CLAUDE_CONFIG_DIR=\"$t\" python3 -c 'import runpy; print(len(runpy.run_path(\"homework/skills/wrap-up/scripts/list-repeats.py\")[",
+   "chars": 54,
+   "lines": 2
+  },
+  {
+   "id": "toolu_01WSaeCsi1RMio5FZvqgoVGd",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1094-teamwork-cap-1-mayuvtuz/repository && bash /tmp/chk.sh 2>&1 | paste -sd'|' -",
+   "chars": 169,
+   "lines": 1
+  },
+  {
+   "id": "toolu_018rowvaehNS63FW7xsZZbum",
+   "command": "git status --short; grep -n 'skill: ' homework/skills/wrap-up/references/retro.md | cut -c1-150; grep -c 'Memory home' homework/README.md",
+   "chars": 688,
+   "lines": 12
+  },
+  {
+   "id": "toolu_019YDEG5pDGDhXeimxPzYsxk",
+   "command": "cd /private/var/folders/h4/dwj81jd52tj594pt6m8_fnnw0000gn/T/replay-1094-teamwork-cap-1-mayuvtuz/repository/homework && python3 - <<'EOF'\np='skills/wrap-up/references/retro.md'\ns=open(p).read()\ns=s.replace(\"A skill lesson is marked `skill: <plugin>:<skill>` or `skill: new <name>` in its file, never patched in here.\",\"A skill lesson keeps its mark in its file and is never patched in here.\")\nopen(p,'w').write(s)\np='skills/wrap-up/references/dream.md'\ns=open(p).read()\ns=s.replace(\"write it into the skill, keep it in memory, or drop it.\",\"write it, keep it in memory, or drop it.\")\ns=s.replace(\"is in the wrong place: a lesson in the wrong memory folder moves by\",\"is in the wrong place.\\n   - A lesson in the wrong memory folder moves by\")\nopen(p,'w').write(s)\np='README.md'\ns=open(p).read()\ns=s.replace(\"## What a wrap-up writes\",\"\"\"## Memory home\n\nName one root folder in `autoMemoryDirectory`, in `~/.claude/settings.json` or a repository's `.claude/settings.local.json` (Claude Code reads no such setting from a project's `.claude/settings.json`):\n\n```json\n{ \"autoMemoryDirectory\": \"~/.claude/memory\" }\n```\n\nIts `MEMORY.md` loads in every session; a folder per repository sits under it, `<home>/<repo>/`, `<repo>` being the origin's name, else the main checkout's folder name, so worktrees and clones share one. A SessionStart hook prints the repository's folder and its index. A wrap-up writes a lesson for every project to the home and a repository's lesson to its folder; a lesson about a skill stays in memory, marked `skill: <plugin>:<skill>` or `skill: new <name>`, until a dream asks what to do with it; a dream moves a lesson between the home and a folder when its scope differs. With no `autoMemoryDirectory`, nothing changes: lessons stay in `<config>/projects/*/memory/`.\n\n## What a wrap-up writes\"\"\",1)\ns=s.replace(\"- **This project's auto-memory**: written directly.\",\"- **This project's auto-memory**, and the memory home: written directly.\")\nopen(p,'w').write(s)\nEOF\nsed -n 26,34",
+   "chars": 983,
+   "lines": 9
+  },
+  {
+   "id": "toolu_01FfamBzZfxLgnaWjQdoYoSY",
+   "command": "sed -i 's/^   - A lesson in the wrong memory folder/   - a lesson in the wrong memory folder/' homework/skills/wrap-up/references/dream.md && bash /tmp/chk.sh 2>&1 | tail -1 && git add -A && git commit -qm \"homework: teach the memory home\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -1",
+   "chars": 91,
+   "lines": 2
+  },
+  {
+   "id": "toolu_01Nqprck7Kmva2e4rsabStBp",
+   "command": "python3 - <<'EOF'\np='homework/skills/wrap-up/references/dream.md'\ns=open(p).read().replace(\"   - A lesson in the wrong\",\"   - a lesson in the wrong\")\nopen(p,'w').write(s)\nEOF\nbash /tmp/chk.sh 2>&1 | tail -1 && git add -A && git commit -qm \"homework: teach the memory home\n\nCo-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>\" && git log --oneline | head -1",
+   "chars": 41,
+   "lines": 2
+  }
+ ],
+ "refetches": [],
+ "saving": {
+  "removed_units": 0.0,
+  "refetch_units": 0.0,
+  "reread_units": 0.0,
+  "net_units": 0.0,
+  "run_units": 466222.5,
+  "net_share": 0.0,
+  "net_share_reread_results_charged": 0.0,
+  "net_share_rereads_charged": 0.0
+ },
+ "checks": [
+  {
+   "index": 1,
+   "command": "grep -A2 '\"SessionStart\"' homework/hooks/hooks.json | grep -c print-repository-memory",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 3,
+   "command": "t=$(mktemp -d) && out=$(printf '{\"cwd\": \"%s\"}' \"$t\" | CLAUDE_CONFIG_DIR=\"$t\" python3 homework/hooks/print-repository-memory.py 2>/dev/null); echo \"$? ${#out}\"",
+   "test": [
+    "prints",
+    "0 0"
+   ],
+   "result": "pass",
+   "output": "0 0"
+  },
+  {
+   "index": 4,
+   "command": "t=$(mktemp -d) && mkdir \"$t/s\" && echo lesson > \"$t/s/a.md\" && echo '- [A](a.md) \u2014 x' > \"$t/s/MEMORY.md\" && python3 homework/skills/wrap-up/scripts/move-memory.py \"$t/s/a.md\" \"$t/d\" >/dev/null 2>&1; d=$(LC_ALL=C ls \"$t/d\" 2>/dev/null | paste -sd' ' -); echo \"$(test -e \"$t/s/a.md\" && echo kept || echo left) ${d:-none} $(cat \"$t/d/MEMORY.md\" \"$t/s/MEMORY.md\" 2>/dev/null | grep -c a.md)\"",
+   "test": [
+    "prints",
+    "left MEMORY.md a.md 1"
+   ],
+   "result": "pass",
+   "output": "left MEMORY.md a.md 1"
+  },
+  {
+   "index": 5,
+   "command": "t=$(mktemp -d) && mkdir \"$t/s\" \"$t/d\" && echo new > \"$t/s/a.md\" && echo old > \"$t/d/a.md\" && python3 homework/skills/wrap-up/scripts/move-memory.py \"$t/s/a.md\" \"$t/d\" 2>/dev/null; echo \"$? $(cat \"$t/d/a.md\")\"",
+   "test": [
+    "prints",
+    "1 old"
+   ],
+   "result": "pass",
+   "output": "1 old"
+  },
+  {
+   "index": 6,
+   "command": "t=$(mktemp -d) && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/settings.json\" && mkdir -p \"$t/m/r\" && echo bare > \"$t/m/r/zebra.md\" && echo bare > \"$t/m/yak.md\" && python3 homework/skills/wrap-up/scripts/list-drift.py \"$t\" 2>&1 | grep -c '^missing When.*\\(zebra\\|yak\\)\\.md'",
+   "test": [
+    "prints",
+    "2"
+   ],
+   "result": "pass",
+   "output": "2"
+  },
+  {
+   "index": 7,
+   "command": "t=$(mktemp -d) && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/settings.json\" && mkdir -p \"$t/m/r\" && echo 'boom zebracrossing' > \"$t/m/r/z.md\" && echo 'boom zebracrossing' > \"$t/m/y.md\" && CLAUDE_CONFIG_DIR=\"$t\" python3 -c 'import runpy; print(len(runpy.run_path(\"homework/skills/wrap-up/scripts/list-repeats.py\")[\"memory_lines\"](\"tool: zebracrossing\")))'",
+   "test": [
+    "prints",
+    "2"
+   ],
+   "result": "pass",
+   "output": "2"
+  },
+  {
+   "index": 8,
+   "command": "grep -c 'move-memory.py .file. .home.' homework/skills/wrap-up/references/retro.md",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 9,
+   "command": "grep -c 'marked .skill: .plugin.:.skill..' homework/skills/wrap-up/references/retro.md",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 10,
+   "command": "grep -c '^6\\. \\*\\*Skill lessons\\*\\*: .*write it, keep it in memory, or drop it.*backlog' homework/skills/wrap-up/references/dream.md",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 11,
+   "command": "grep -c '^- \\*\\*Memory home\\*\\*: ..home.. is the folder .autoMemoryDirectory. names' homework/skills/wrap-up/SKILL.md",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 17,
+   "command": "t=$(mktemp -d) && echo '{oops' > \"$t/settings.json\" && out=$(echo 'not json' | CLAUDE_CONFIG_DIR=\"$t\" python3 homework/hooks/print-repository-memory.py 2>/dev/null); echo \"$? ${#out}\"",
+   "test": [
+    "prints",
+    "0 0"
+   ],
+   "result": "pass",
+   "output": "0 0"
+  },
+  {
+   "index": 19,
+   "command": "t=$(mktemp -d) && mkdir -p \"$t/projects/k/memory\" \"$t/m\" && echo bare > \"$t/projects/k/memory/ant.md\" && echo bare > \"$t/m/yak.md\" && a=$(python3 homework/skills/wrap-up/scripts/list-drift.py \"$t\" 2>&1 | grep -c '^missing When.*\\(ant\\|yak\\)\\.md'); printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/settings.json\" && echo \"$(python3 homework/skills/wrap-up/scripts/list-drift.py \"$t\" 2>&1 | grep -c '^missing When.*\\(ant\\|yak\\)\\.md') $a\"",
+   "test": [
+    "prints",
+    "2 1"
+   ],
+   "result": "pass",
+   "output": "2 1"
+  },
+  {
+   "index": 22,
+   "command": "grep -c '| true for every project: [^|]* | ..home./., one memory file each' homework/skills/wrap-up/references/retro.md",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 23,
+   "command": "grep -c \"An extend or add to another repository's folder or pool is a patch\" homework/skills/wrap-up/references/retro.md",
+   "test": [
+    "prints",
+    "1"
+   ],
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 24,
+   "command": "grep -c -e 'a lesson in ..home.. true for one repository only, or in a repository.s folder true for every project' -e 'a lesson in the wrong memory folder moves by .*move-memory.py .file. .folder.' homework/skills/wrap-up/references/dream.md",
+   "test": [
+    "prints",
+    "2"
+   ],
+   "result": "pass",
+   "output": "2"
+  },
+  {
+   "index": 28,
+   "command": "t=$(mktemp -d) && echo lesson > \"$t/a.md\" && echo file > \"$t/d\" && python3 homework/skills/wrap-up/scripts/move-memory.py \"$t/a.md\" \"$t/d\" 2>&1 | cut -d' ' -f1-2",
+   "test": [
+    "prints",
+    "not moved:"
+   ],
+   "result": "pass",
+   "output": "not moved:"
+  },
+  {
+   "index": 29,
+   "command": "t=$(mktemp -d) && printf '{\"autoMemoryDirectory\": \"%s\"}' \"$t/m\" > \"$t/settings.json\" && out=$(echo '{\"cwd\": 5}' | CLAUDE_CONFIG_DIR=\"$t\" python3 homework/hooks/print-repository-memory.py 2>&1); echo \"$? $(printf '%s' \"$out\" | grep -c \"$t/m/MEMORY.md\")\"",
+   "test": [
+    "prints",
+    "0 0"
+   ],
+   "result": "pass",
+   "output": "0 0"
+  },
+  {
+   "index": 30,
+   "command": "t=$(mktemp -d) && mkdir \"$t/s\" && echo lesson > \"$t/s/a.md\" && printf -- '- [A](a.md) \u2014 x\\n- [B](b.md) \u2014 read with [A](a.md)\\n' > \"$t/s/MEMORY.md\" && python3 homework/skills/wrap-up/scripts/move-memory.py \"$t/s/a.md\" \"$t/d\" >/dev/null 2>&1; echo \"$(test -e \"$t/d/a.md\" && echo moved || echo kept) $(cat \"$t/d/MEMORY.md\" 2>/dev/null | grep -c 'b\\.md') $(grep -c 'b\\.md' \"$t/s/MEMORY.md\")\"",
+   "test": [
+    "prints",
+    "moved 0 1"
+   ],
+   "result": "pass",
+   "output": "moved 0 1"
+  },
+  {
+   "index": 31,
+   "command": "t=$(mktemp -d) && mkdir \"$t/s\" \"$t/d\" && echo lesson > \"$t/s/a.md\" && echo '- [A](a.md) \u2014 x' > \"$t/s/MEMORY.md\" && printf '\\377\\n' > \"$t/d/MEMORY.md\" && out=$(python3 homework/skills/wrap-up/scripts/move-memory.py \"$t/s/a.md\" \"$t/d\" 2>&1 | cut -d' ' -f1-2); echo \"$out $(ls \"$t/s\" | grep -c '^a\\.md$') $(grep -c 'a\\.md' \"$t/s/MEMORY.md\")\"",
+   "test": [
+    "prints",
+    "not moved: 1 1"
+   ],
+   "result": "pass",
+   "output": "not moved: 1 1"
+  }
+ ],
+ "started": "2026-11-03T16:19:35Z",
+ "hook": {
+  "path": "teamwork/hooks/cap-program-output.py",
+  "sha256": "cd2d2107999507b92568a09242bfc2580b2e89d062d4c96d54b80079256a581c"
+ },
+ "stderr": "",
+ "passed": true,
+ "seconds": 136
+}
