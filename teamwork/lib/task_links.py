@@ -44,6 +44,7 @@ def refusals(number, body, read, parent_of):
         return found
     records = {n: read(n) for n in dict.fromkeys(waits + named) if n != number}
     found += [f"#{n} does not exist" for n, record in records.items() if record is None]
+    found += [f"#{n} is a pull request, not an issue" for n, record in records.items() if record and record.get("isPullRequest")]
     for part in named:
         owner = parent_of(part) if part != number else None
         if owner is not None and owner != number:
@@ -120,6 +121,6 @@ def drift(nodes):
         for kind, said in (("parts", parts(node["body"])), ("depends", depends(node["body"]))):
             extra, missing = sorted(set(native[kind]) - set(said)), sorted(set(said) - set(native[kind]))
             word = "part" if kind == "parts" else "`depends on`"
-            found += [f"native-only #{node['number']}: GitHub links #{n} as its {word}, which its body does not name; add the line or drop the link" for n in extra]
-            found += [f"body-only #{node['number']}: its body names #{n} as its {word}, which GitHub does not link; run `use-board.py edit` again" for n in missing]
+            found += [f"native-only #{node['number']}: GitHub links #{n} as its {word}, which its body does not name; run `sync-task-links.py`, which adds the line, or drop the link" for n in extra]
+            found += [f"body-only #{node['number']}: its body names #{n} as its {word}, which GitHub does not link; run `sync-task-links.py`, which links it" for n in missing]
     return found

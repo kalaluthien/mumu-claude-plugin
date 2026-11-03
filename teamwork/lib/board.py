@@ -30,11 +30,17 @@ def __getattr__(name):
 
 
 def edit(number, text):
-    """Writes TEXT as NUMBER's body; a closed task whose new body gains a part opens again, since that part is follow-up work."""
+    """Writes TEXT as NUMBER's body; a closed task whose new body gains a part opens again, since that part is follow-up work, and an
+    open one whose new body drops a part or a criterion closes once no criterion is left and every part left was closed as completed."""
     old = adapter().fresh(number, comments=False)
     adapter().edit(number, text)
     if old and old["state"] == "CLOSED" and set(task_links.parts(text)) - set(task_links.parts(old["body"])):
         adapter().reopen(number)
+    dropped = old and (set(task_links.parts(old["body"])) - set(task_links.parts(text)) or set(task_links.criteria(old["body"])) - set(task_links.criteria(text)))
+    if dropped and old["state"] == "OPEN" and task_links.parts(text) and not task_links.criteria(text):
+        named = [adapter().fresh(part, comments=False) for part in task_links.parts(text)]
+        if all(part and task_links.completed(part) for part in named):
+            resolve(number, "REPORTED: every part left closed as completed, once the edit dropped the rest.")
 
 
 def resolve(number, summary, completed=True):

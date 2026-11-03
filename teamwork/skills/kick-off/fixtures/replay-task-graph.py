@@ -7,8 +7,10 @@ pane, from GitHub-shaped nodes written here by hand.
 - refuse-cycle, refuse-part-waits-on-parent, refuse-second-parent-open, refuse-second-parent-closed, refuse-unknown, refuse-too-many: an `edit`
   that exits 1 naming the issues, the body and comments unchanged; refuse-on-file: a `file` naming an unknown issue exits 1, no issue made
 - derive-waits, derive-released, derive-not-planned-holds, derive-parent-closes, derive-parent-stays, derive-stopped-part-holds-parent,
-  derive-follow-up-reopens, derive-stop-closes-parts
+  derive-drop-closes-parent, derive-follow-up-reopens, derive-stop-closes-parts
 - mirror-file, mirror-edit: GitHub's native sub-issue and `blocked by` links follow the body
+- refuse-pull-request, derive-tree-names-no-issue, on github only: an edit naming a pull request exits 1; a body naming a pull request and
+  a missing issue, written behind the write path, leaves the tree read whole
 - heartbeat-cycle, heartbeat-second-parent, heartbeat-backlog-label, and on github-nodes heartbeat-native-only and heartbeat-body-only
 - pane-nesting, pane-wait-line, pane-done-count: list-issue-board.py's lines, with no native link written
 
@@ -137,6 +139,8 @@ def derive_cases():
     resolve(stopped, stopped=True)
     resolve(done)
     step("derive-stopped-part-holds-parent", not closed(holder), "the parent closed")
+    edit(holder, body(parts=[done], check=False))
+    step("derive-drop-closes-parent", closed(holder), "the parent stayed open once the stopped part's line was dropped")
     follow_up = file("Probe a follow-up", body())
     edit(parent, body(parts=[first, second, follow_up], check=False))
     step("derive-follow-up-reopens", not closed(parent), "the parent stayed closed")
@@ -160,6 +164,17 @@ def mirror_cases():
     new_target, new_part = file("Probe a new mirrored target", body()), file("Probe a new mirrored part", body())
     edit(linked, body(depends=[new_target], parts=[new_part]))
     step("mirror-edit", native(linked) == ([new_part], [new_target]), native(linked))
+
+
+def not_issue_cases():
+    import board_github
+    pulls = board_github.get("repos/pulls?state=all&per_page=1", paginate=False) or [{"number": 0}]
+    pull, task = pulls[0]["number"], file("Probe a link to a pull request", body())
+    refused("refuse-pull-request", task, body(depends=[pull]), pull)
+    # written behind the write path, as a body written before the refusal existed may name them
+    board_github.write("-X", "PATCH", f"repos/{{owner}}/{{repo}}/issues/{task}", "-F", "body=@-", text=body(depends=[pull, 10 ** 7]))
+    nodes = board.tree(None)
+    step("derive-tree-names-no-issue", nodes is not None and task in [node["number"] for node in nodes], "the tree read failed" if nodes is None else f"#{task} missing")
 
 
 def heartbeat(nodes):
@@ -255,6 +270,7 @@ def main(args):
     derive_cases()
     if kind == "github":
         mirror_cases()
+        not_issue_cases()
         return 1 if failures else 0
     if kind == "files":
         heartbeat_cases(files_drift(), native=False)

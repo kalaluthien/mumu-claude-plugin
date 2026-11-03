@@ -2,7 +2,8 @@
 """Write each open GitHub issue's native links into its body, since every board read takes links from bodies: a sub-issue as a
 `N. [task] #n <title>` line of its parent's Definition of done, a `blocked by` link as a `depends on:` entry; then drop the retired
 kind label. Each body changes by edit-issue-body.py, so its diff lands as a comment. A closed parent of an open part gains its line
-too, by the same edit, which opens it again. It ends with the link gaps left, as the manager's heartbeat lists them.
+too, by the same edit, which opens it again. A body link GitHub lacks is linked natively. It ends with the link gaps left, as the
+manager's heartbeat lists them.
 
 usage: sync-task-links.py [--dry-run]"""
 import pathlib
@@ -13,6 +14,7 @@ import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
+import board_github  # noqa: E402
 import issue_state  # noqa: E402
 import task_links  # noqa: E402
 
@@ -54,14 +56,15 @@ def scope_of(node):
 
 
 def plan(nodes):
-    """{number: (scope, open, new parts as [(n, title)], new depends, drops the label)} for each issue whose body or labels change."""
+    """{number: (scope, open, new parts as [(n, title)], new depends, drops the label, links to make natively)} for each issue whose
+    body, labels or native links change."""
     by_number = {node["number"]: node for node in nodes}
     changes = {}
 
     def change(number):
         if number not in changes:
             node = by_number.get(number)
-            changes[number] = {"scope": scope_of(node) if node else None, "open": node is not None, "parts": [], "depends": [], "label": False}
+            changes[number] = {"scope": scope_of(node) if node else None, "open": node is not None, "parts": [], "depends": [], "label": False, "native": []}
         return changes[number]
 
     for node in (node for node in nodes if "native" in node):
@@ -73,6 +76,8 @@ def plan(nodes):
             titles = {item["number"]: item["title"] for item in listed or []} or titles
         change(number)["parts"] += [(n, title) for n, title in titles.items() if n not in said]
         change(number)["depends"] += [n for n in native["depends"] if n not in task_links.depends(node["body"])]
+        change(number)["native"] += [n for n in task_links.parts(node["body"]) if n not in native["parts"]]
+        change(number)["native"] += [n for n in task_links.depends(node["body"]) if n not in native["depends"]]
         change(number)["label"] = task_links.RETIRED_LABEL in [label["name"] for label in (node.get("labels") or {}).get("nodes", [])]
         parent = native["parent"]
         if parent and parent not in by_number:  # a closed parent: the open part is its line's only reader
@@ -85,7 +90,7 @@ def plan(nodes):
             found["parts"] = [(n, title) for n, title in found["parts"] if n not in task_links.parts(found["body"] or "")]
         else:
             found["body"] = by_number[number]["body"]
-    return {number: found for number, found in sorted(changes.items()) if found["parts"] or found["depends"] or found["label"]}
+    return {number: found for number, found in sorted(changes.items()) if found["parts"] or found["depends"] or found["label"] or found["native"]}
 
 
 def describe(number, found):
@@ -93,6 +98,7 @@ def describe(number, found):
     said += [f"parts {' '.join(f'#{n}' for n, _ in found['parts'])}"] if found["parts"] else []
     said += [f"depends on {' '.join(f'#{n}' for n in found['depends'])}"] if found["depends"] else []
     said += [f"drop the `{task_links.RETIRED_LABEL}` label"] if found["label"] else []
+    said += [f"link {' '.join(f'#{n}' for n in found['native'])} natively"] if found["native"] else []
     return f"#{number} ({found['scope']}{'' if found['open'] else ', closed: the edit opens it'}): " + "; ".join(said)
 
 
@@ -110,6 +116,8 @@ def apply(number, found):
         done = subprocess.run([sys.executable, str(HERE / "edit-issue-body.py"), str(number), str(work / "body.diff"), WHY], capture_output=True, text=True)
         if done.returncode:
             return f"#{number}: {(done.stderr or done.stdout).strip()}"
+    elif found["native"]:  # an edit links them itself
+        board_github.mirror(number, old, old)
     if found["label"]:
         board.label(number, task_links.RETIRED_LABEL, True)
     return None
@@ -135,7 +143,7 @@ def main(args):
     if not args and changes:
         nodes = board.tree(None)
         changes = plan(nodes) if nodes is not None else changes
-    gaps = [gap for gap in task_links.drift(nodes) if not gap.startswith(("native-only", "label"))] if args else task_links.drift(nodes)
+    gaps = [gap for gap in task_links.drift(nodes) if not gap.startswith(("native-only", "body-only", "label"))] if args else task_links.drift(nodes)
     for gap in gaps:
         print(f"gap {gap}")
     print(f"{len(changes) + len(gaps) if args else len(gaps)} to change")

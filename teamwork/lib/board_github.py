@@ -206,8 +206,17 @@ def check_links(number, text):
 
 
 def graphql(query, owner, name, *fields):
-    found = run("gh", "api", "graphql", "-f", f"query={query}", "-f", f"owner={owner}", "-f", f"name={name}", *fields)
-    return found and found["data"]["repository"]
+    """The repository's answer, None when the read failed; a number it names that is no issue, such as a pull request's or a deleted
+    issue's, answers None alone, since GitHub fails the whole call for it."""
+    try:
+        process = subprocess.run(["gh", "api", "graphql", "-f", f"query={query}", "-f", f"owner={owner}", "-f", f"name={name}", *fields], capture_output=True, text=True)
+        answer = json.loads(process.stdout)
+    except (OSError, ValueError):
+        return None
+    errors = answer.get("errors") or []
+    if process.returncode and not ((answer.get("data") or {}).get("repository") and errors and all(error.get("type") == "NOT_FOUND" for error in errors)):
+        return None
+    return answer["data"]["repository"]
 
 
 def tree(project, nodes=None):
@@ -317,13 +326,22 @@ def edit(number, text):
     mirror(number, old, text)
 
 
+def native(number):
+    """NUMBER's sub-issues and `blocked by` issues as GitHub links them now, by number; None when a read failed."""
+    parts, waits = get(f"repos/issues/{number}/sub_issues"), get(f"repos/issues/{number}/dependencies/blocked_by")
+    return None if parts is None or waits is None else ([item["number"] for item in parts], [item["number"] for item in waits])
+
+
 def mirror(number, old, new):
-    """Copies the link lines NUMBER's body gained or lost into GitHub's sub-issue and `blocked by` links, for people on github.com;
+    """Makes GitHub's sub-issue and `blocked by` links of NUMBER, for people on github.com, hold each link its NEW body names, read
+    against the links GitHub keeps now, so a copy that failed before is made again, and drop each one its OLD body named that NEW drops;
     a failed copy is left to the heartbeat, since every read takes links from bodies."""
-    steps = [("POST", f"issues/{number}/sub_issues", "sub_issue_id", part) for part in task_links.parts(new) if part not in task_links.parts(old)]
-    steps += [("DELETE", f"issues/{number}/sub_issue", "sub_issue_id", part) for part in task_links.parts(old) if part not in task_links.parts(new)]
-    steps += [("POST", f"issues/{number}/dependencies/blocked_by", "issue_id", target) for target in task_links.depends(new) if target not in task_links.depends(old)]
-    steps += [("DELETE", f"issues/{number}/dependencies/blocked_by/{{id}}", None, target) for target in task_links.depends(old) if target not in task_links.depends(new)]
+    linked = native(number) if old else ([], [])
+    has_parts, has_depends = linked or (task_links.parts(old), task_links.depends(old))
+    steps = [("POST", f"issues/{number}/sub_issues", "sub_issue_id", part) for part in task_links.parts(new) if part not in has_parts]
+    steps += [("DELETE", f"issues/{number}/sub_issue", "sub_issue_id", part) for part in task_links.parts(old) if part not in task_links.parts(new) and part in has_parts]
+    steps += [("POST", f"issues/{number}/dependencies/blocked_by", "issue_id", target) for target in task_links.depends(new) if target not in has_depends]
+    steps += [("DELETE", f"issues/{number}/dependencies/blocked_by/{{id}}", None, target) for target in task_links.depends(old) if target not in task_links.depends(new) and target in has_depends]
     for method, path, field, target in steps:
         try:
             identity = node_id(target)
