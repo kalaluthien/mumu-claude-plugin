@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Check that the issue pane draws a files board as it draws the same issues from GitHub: file a backlog with an open held task, a task waiting on it, a
+"""Check that the issue pane draws a files board, or with `--board git` a git board, as it draws the same issues from GitHub: file a backlog with an open held task, a task waiting on it, a
 completed task and a not-planned one through use-board.py, then compare list-issue-board.py's lines on the files board with its lines on GitHub-shaped nodes
 written here by hand. Prints `ok pane` and exits 0, else `fail pane:` with the two outputs and exit 1.
 
-usage: replay-files-pane.py"""
+usage: replay-files-pane.py [--board git]"""
 import json
 import os
 import pathlib
@@ -43,12 +43,13 @@ def step(name, ok, detail=""):
 
 
 def main(args):
-    if args:
+    if args not in ([], ["--board", "git"]):
         print(__doc__, file=sys.stderr)
         return 2
     work = pathlib.Path(tempfile.mkdtemp(prefix="files-pane-"))
-    env = {**os.environ, "TEAMWORK_BOARD": "files", "TEAMWORK_BOARD_DIR": str(work / "board"), "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home")}
-    use = lambda *argv: subprocess.run([sys.executable, str(USE), *map(str, argv)], env=env, capture_output=True, text=True, check=True).stdout
+    env = {**os.environ, "TEAMWORK_BOARD": args[1] if args else "files", "TEAMWORK_BOARD_DIR": str(work / "board"), "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home")}
+    subprocess.run(["git", "init", "-q", str(work / "repo")], check=True)  # the git board's repository; the files board ignores it
+    use = lambda *argv: subprocess.run([sys.executable, str(USE), *map(str, argv)], env=env, cwd=work / "repo", capture_output=True, text=True, check=True).stdout
     for number in BODIES:
         (work / f"{number}.md").write_text(BODIES[number])
         use("file", TITLES[number], work / f"{number}.md", *(["backlog"] if number == 1 else []))
@@ -58,7 +59,7 @@ def main(args):
     for number, flag in ((4, []), (5, ["--not-planned"])):
         (work / "done.md").write_text("REPORTED: probe done\n")
         use("resolve", number, work / "done.md", *flag)
-    files = subprocess.run([sys.executable, str(LIST), "x"], env=env, capture_output=True, text=True)
+    files = subprocess.run([sys.executable, str(LIST), "x"], env=env, cwd=work / "repo", capture_output=True, text=True)
     (work / "nodes.json").write_text(json.dumps(github_nodes()))
     github = subprocess.run([sys.executable, str(LIST), "--nodes", str(work / "nodes.json")], env={**env, "TEAMWORK_BOARD": "github"}, capture_output=True, text=True)
     same = not files.returncode and not github.returncode and files.stdout == github.stdout and "closed stopped" in files.stdout
