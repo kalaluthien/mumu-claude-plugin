@@ -3,11 +3,14 @@
 its task's own `[check]`s, and keep one record per run in `output-cap-runs/`, from which alone every count and check reads.
 
 usage: replay-output-cap.py --list-arms
-usage: replay-output-cap.py --pick-tasks <pull request>...
+usage: replay-output-cap.py --pick-tasks [--arms <arm>,<arm>] <pull request>...
 usage: replay-output-cap.py --run <task> <arm> <repeat>
-usage: replay-output-cap.py --run-all [--repeats <n>] [--max-dollars <x>] [--parallel <n>]
+usage: replay-output-cap.py --run-all [--repeats <n>] [--max-dollars <x>] [--parallel <n>] [--arms <arm>,...] [--tasks <task>,...]
 usage: replay-output-cap.py --count tasks|fewest-runs
 usage: replay-output-cap.py --check-records|--check-clean|--check-firing|--check-spend|--check-models|--probe-arms
+usage: replay-output-cap.py --probe-arm <arm>|--probe-allow <arm>|--check-measured <arm>
+usage: replay-output-cap.py --check-plan <issue>
+usage: replay-output-cap.py --check-landing
 usage: replay-output-cap.py --reparse
 usage: replay-output-cap.py --summary
 
@@ -15,10 +18,15 @@ usage: replay-output-cap.py --summary
 outside the repository, at the merge commit's parent and at the merge commit, each in a fresh export, and adds to
 `output-cap-tasks.json` each task with a check that fails at the parent and passes at the merge, every such check
 kept as the run's judge. `--run` replays one task from its parent in a fresh export, judges it and writes its record;
-`--run-all` runs each missing record, stopping before the records' cost would pass `--max-dollars` (120).
+`--run-all` runs each missing record of each task's own arms (`none` and `output-cap` for #1159's tasks, `none` and
+`teamwork-cap` for those picked with `--arms none,teamwork-cap`), stopping before the chosen tasks' records would cost
+more than `--max-dollars` (120). `teamwork-cap` runs the shipped `teamwork/hooks/cap-program-output.py`; `--probe-arm`
+feeds it real Bash output, `--probe-allow` runs it once on Haiku under a `Bash(seq:*)` allow rule only, and
+`--check-landing` prints `ok` when `teamwork/hooks/hooks.json` names it exactly when its gain on the new tasks holds.
 A run's net saving is the cut tokens' carry to the run's end, less each later call that read a cut output's file: its
 result's carry and its turn's cost; tokens are characters over 2.2, priced as measure-context-share.py prices them."""
 import concurrent.futures
+import hashlib
 import json
 import os
 import pathlib
@@ -39,7 +47,15 @@ RECORDS = HERE / "output-cap-runs"
 # raw streams stay outside the repository, being megabytes each, so a record can be re-read without a paid rerun
 STREAMS = pathlib.Path(tempfile.gettempdir(), "replay-output-cap-streams")
 TASKS = HERE / "output-cap-tasks.json"
-ARMS = {"none": None, "output-cap": HERE / "output-cap-arm"}
+ARMS = {"none": None, "output-cap": HERE / "output-cap-arm", "teamwork-cap": HERE / "teamwork-cap-arm"}
+# the arm whose hook each arm runs, as the init event names its hook events
+ARM_HOOKS = {"none": None, "output-cap": "PreToolUse:Bash", "teamwork-cap": "PostToolUse:Bash"}
+SHIPPED_HOOK = ROOT / "teamwork" / "hooks" / "cap-program-output.py"
+# #1159's tasks replay the test arm; any task picked later replays the shipped hook
+FIRST_ARMS = ["none", "output-cap"]
+NEW_ARMS = ["none", "teamwork-cap"]
+NEW_LIMIT = 20.0
+PLAN_ISSUE = 1172
 REPO = "kalaluthien/mumu-claude-plugin"
 MODEL, BUDGET, LIMIT = "sonnet", "5", 120.0
 CHARS_PER_TOKEN = 2.2
@@ -48,6 +64,9 @@ SWITCHES = {"CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1", "CLAUDE_CODE_DISABLE_AUTO_MEM
 CLEAN_FLAGS = [["--setting-sources", ""], ["--strict-mcp-config"], ["--max-budget-usd", BUDGET]]
 BUILT_IN = re.compile(r"^cc-plugin-")
 CUT = re.compile(r"\[output cap: (\d+) of (\d+) lines cut here; all of them are in (\S+);")
+# the shipped hook's note also counts characters and may appear once per stream
+SHIPPED_CUT = re.compile(r"\[output cap: (\d+) of (\d+) lines and (\d+) of (\d+) characters cut here; all of them are in (\S+); "
+                         r"read a range of that file, not all of it\]")
 # a check that reaches outside the export would judge the live machine, not the run
 OUTSIDE = re.compile(r"\b(?:gh|herdr|claude|curl)\b|https?://|/Users/|~/|\$HOME|origin/")
 BLOCKED_TOOLS = ("gh", "herdr", "claude")
@@ -116,7 +135,19 @@ def task_checks(body):
             yield {"index": index, "command": command, "test": list(test)}
 
 
-def pick_tasks(numbers):
+def task_arms(entry):
+    return entry.get("arms", FIRST_ARMS)
+
+
+def task_list():
+    return json.loads(TASKS.read_text()) if TASKS.exists() else []
+
+
+def arms_of(task):
+    return next((task_arms(entry) for entry in task_list() if entry["task"] == task), FIRST_ARMS)
+
+
+def pick_tasks(numbers, arms):
     tasks = json.loads(TASKS.read_text()) if TASKS.exists() else []
     known = {task["task"] for task in tasks}
     for number in numbers:
@@ -144,7 +175,7 @@ def pick_tasks(numbers):
         if judged and issue["number"] not in known:
             body = re.sub(r"```teamwork.*?```", "", issue.get("body") or "", flags=re.S).strip()
             tasks.append({"task": issue["number"], "title": issue["title"], "pull": number, "base_sha": parent,
-                          "merge_sha": merge, "body": body, "checks": judged})
+                          "merge_sha": merge, "state": issue["state"], "arms": arms, "body": body, "checks": judged})
             known.add(issue["number"])
     TASKS.write_text(json.dumps(tasks, indent=1) + "\n")
     return 0
@@ -230,17 +261,23 @@ def net_saving(turns, uses, results):
         text = result["text"]
         row = {"id": result["id"], "command": use["input"].get("command", "")[:2000], "chars": len(text),
                "lines": text.count("\n") + 1}
-        found = CUT.search(text)
-        if found:
-            cut_lines, total_lines, file = int(found.group(1)), int(found.group(2)), found.group(3)
-            file_chars = pathlib.Path(file).stat().st_size if pathlib.Path(file).exists() else None
-            removed = max((file_chars or 0) - len(text) + len(found.group(0)), 0)
+        found, shipped = CUT.search(text), list(SHIPPED_CUT.finditer(text))
+        if found or shipped:
+            if found:
+                cut_lines, total_lines, files = int(found.group(1)), int(found.group(2)), [found.group(3)]
+                file_chars = pathlib.Path(files[0]).stat().st_size if pathlib.Path(files[0]).exists() else None
+                removed = max((file_chars or 0) - len(text) + len(found.group(0)), 0)
+            else:
+                cut_lines, total_lines = sum(int(note.group(1)) for note in shipped), sum(int(note.group(2)) for note in shipped)
+                files, file_chars = [note.group(5) for note in shipped], sum(int(note.group(4)) for note in shipped)
+                removed = max(sum(int(note.group(3)) - len(note.group(0)) for note in shipped), 0)
             units = carry(removed / CHARS_PER_TOKEN, result["position"], turns)
             removed_units += units
-            row["cut"] = {"lines_cut": cut_lines, "lines": total_lines, "file": file, "file_chars": file_chars,
-                          "removed_chars": removed, "removed_units": round(units, 1)}
-            cuts.append({"file": file, "position": result["position"],
-                         "sources": set(SOURCE_FILE.findall(use["input"].get("command", "")))})
+            row["cut"] = {"lines_cut": cut_lines, "lines": total_lines, "file": files[0], "files": files,
+                          "file_chars": file_chars, "removed_chars": removed, "removed_units": round(units, 1)}
+            for file in files:
+                cuts.append({"file": file, "position": result["position"],
+                             "sources": set(SOURCE_FILE.findall(use["input"].get("command", "")))})
         bash.append(row)
     refetch_units = 0.0
     for result in results:
@@ -279,6 +316,12 @@ def net_saving(turns, uses, results):
         "net_share_reread_results_charged": share(net - reread_carry), "net_share_rereads_charged": share(charged)}
 
 
+def hook_identity(arm):
+    if arm != "teamwork-cap":
+        return None
+    return {"path": str(SHIPPED_HOOK.relative_to(ROOT)), "sha256": hashlib.sha256(SHIPPED_HOOK.read_bytes()).hexdigest()}
+
+
 def record_path(task, arm, repeat):
     return RECORDS / f"{task}-{arm}-{repeat}.json"
 
@@ -287,6 +330,7 @@ def run_one(task, arm, repeat):
     tasks = {entry["task"]: entry for entry in json.loads(TASKS.read_text())}
     entry = tasks[int(task)]
     started = time.time()
+    started_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(started))
     scratch = pathlib.Path(tempfile.mkdtemp(prefix=f"replay-{task}-{arm}-{repeat}-"))
     work = scratch / "repository"
     export(entry["base_sha"], work)
@@ -332,7 +376,7 @@ def run_one(task, arm, repeat):
                    ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens", "cache_creation")}}
                   for turn in turns],
         "bash_results": bash, "refetches": refetches, "saving": saving, "checks": checks,
-        "stderr": errors[-2000:], "passed": all(check["result"] == "pass" for check in checks), "seconds": round(time.time() - started),
+        "started": started_at, "hook": hook_identity(arm), "stderr": errors[-2000:], "passed": all(check["result"] == "pass" for check in checks), "seconds": round(time.time() - started),
     }
     RECORDS.mkdir(exist_ok=True)
     record_path(task, arm, repeat).write_text(json.dumps(record, indent=1) + "\n")
@@ -360,14 +404,17 @@ def records():
     return [json.loads(path.read_text()) for path in sorted(RECORDS.glob("*.json"))] if RECORDS.exists() else []
 
 
-def spent():
-    return sum(record.get("total_cost_usd") or 0.0 for record in records())
+def spent(tasks=None):
+    return sum(record.get("total_cost_usd") or 0.0 for record in records() if tasks is None or record["task"] in tasks)
 
 
-def run_all(repeats, limit, parallel):
-    tasks = json.loads(TASKS.read_text())
-    todo = [(entry["task"], arm, repeat) for repeat in range(1, repeats + 1) for entry in tasks for arm in ARMS
-            if not record_path(entry["task"], arm, repeat).exists()]
+def run_all(repeats, limit, parallel, arms, chosen):
+    entries = [entry for entry in task_list() if not chosen or entry["task"] in chosen]
+    # the limit counts only the chosen tasks' records, so #1159's spend does not eat a later replay's
+    scope = {entry["task"] for entry in entries} if chosen else None
+    spent_here = lambda: spent(scope)
+    todo = [(entry["task"], arm, repeat) for repeat in range(1, repeats + 1) for entry in entries for arm in task_arms(entry)
+            if (not arms or arm in arms) and not record_path(entry["task"], arm, repeat).exists()]
     with concurrent.futures.ThreadPoolExecutor(parallel) as pool:
         running = []
         for job in todo:
@@ -375,12 +422,12 @@ def run_all(repeats, limit, parallel):
             while len(running) >= parallel:
                 done, pending = concurrent.futures.wait(running, return_when=concurrent.futures.FIRST_COMPLETED)
                 running = list(pending)
-            if spent() + float(BUDGET) * (len(running) + 1) > limit:
-                print(f"stop: ${spent():.2f} spent; another run could pass ${limit:.0f}")
+            if spent_here() + float(BUDGET) * (len(running) + 1) > limit:
+                print(f"stop: ${spent_here():.2f} spent; another run could pass ${limit:.0f}")
                 break
             running.append(pool.submit(run_one, *job))
         concurrent.futures.wait(running)
-    print(f"spent ${spent():.2f} over {len(records())} records")
+    print(f"spent ${spent_here():.2f} over the chosen tasks' records")
     return 0
 
 
@@ -390,7 +437,7 @@ def count(what):
         return len({row["task"] for row in rows})
     if what == "fewest-runs":
         tasks = {row["task"] for row in rows}
-        cells = [sum(1 for row in rows if row["task"] == task and row["arm"] == arm) for task in tasks for arm in ARMS]
+        cells = [sum(1 for row in rows if row["task"] == task and row["arm"] == arm) for task in tasks for arm in arms_of(task)]
         return min(cells) if cells else 0
     return None
 
@@ -401,7 +448,8 @@ def clean(row):
     plugins = [name for name in row["init"]["plugins"] if not BUILT_IN.match(name)]
     arm = ARMS[row["arm"]]
     plugins_ok = plugins == ([json.loads((arm / ".claude-plugin/plugin.json").read_text())["name"]] if arm else [])
-    hooks_ok = all(name.startswith("PreToolUse:Bash") for name in row["hook_events"]) and (row["arm"] != "none" or not row["hook_events"])
+    allowed = ARM_HOOKS[row["arm"]]
+    hooks_ok = all(allowed and name.startswith(allowed) for name in row["hook_events"])
     return flags_ok and row["environment"] == SWITCHES and not row["init"]["mcp_servers"] and plugins_ok and hooks_ok
 
 
@@ -441,6 +489,147 @@ def probe_arms():
     return "ok"
 
 
+def tool_response(command, cwd=None):
+    done = subprocess.run(["bash", "-c", command], capture_output=True, text=True, cwd=cwd)
+    return done.returncode, {"stdout": done.stdout, "stderr": done.stderr, "interrupted": False, "isImage": False,
+                             "returnCodeInterpretation": f"exit {done.returncode}"}
+
+
+def shipped_hook(command, response):
+    event = json.dumps({"hook_event_name": "PostToolUse", "tool_name": "Bash", "tool_input": {"command": command},
+                        "tool_response": response})
+    out = subprocess.run([str(SHIPPED_HOOK)], input=event, capture_output=True, text=True).stdout.strip()
+    return json.loads(out)["hookSpecificOutput"]["updatedToolOutput"] if out else None
+
+
+def split_note(text):
+    """The text before a shipped note, the note and the text after it, or None when no note."""
+    found = SHIPPED_CUT.search(text)
+    return (text[:found.start()], found, text[found.end():]) if found else None
+
+
+def probe_arm(arm):
+    if arm != "teamwork-cap" or not SHIPPED_HOOK.exists():
+        return "missing"
+    numbers = lambda first, last: "\n".join(str(n) for n in range(first, last + 1))
+    with tempfile.TemporaryDirectory() as scratch:
+        status, response = tool_response("seq 51")
+        updated = shipped_hook("seq 51", response)
+        parts = updated and split_note(updated["stdout"])
+        if not parts or parts[0] != numbers(1, 40) + "\n" or parts[2] != "\n" + numbers(42, 51) + "\n" \
+                or pathlib.Path(parts[1].group(5)).read_text() != response["stdout"]:
+            return "fail: 51 lines not cut to the first 40, a note and the last 10 with a file of all 51"
+        if shipped_hook("seq 50", tool_response("seq 50")[1]) is not None:
+            return "fail: 50 lines rewritten"
+        pathlib.Path(scratch, "long.txt").write_text(numbers(1, 200) + "\n")
+        for command in ("cat long.txt", "sed -n 1,200p long.txt", "head -200 long.txt", "tail -200 long.txt"):
+            if shipped_hook(command, tool_response(command, scratch)[1]) is not None:
+                return f"fail: the file read {command!r} rewritten"
+        line = "python3 -c 'print(\"x\" * 20000)'"
+        updated = shipped_hook(line, tool_response(line)[1])
+        parts = updated and split_note(updated["stdout"])
+        if not parts or len(parts[0].rstrip("\n")) + len(parts[2].strip("\n")) > 8000:
+            return "fail: a 20,000-character line not cut to at most 8,000 characters and the note"
+        for command, last in (("trap 'echo trapped' EXIT; seq 60", "trapped"), ("exec seq 60", "60")):
+            updated = shipped_hook(command, tool_response(command)[1])
+            if not updated or updated["stdout"].splitlines()[-1] != last:
+                return f"fail: {command!r} does not end with {last!r} after the cut"
+        status, response = tool_response("seq 60; false")
+        updated = shipped_hook("seq 60; false", response)
+        if status != 1 or not updated or any(updated[key] != response[key] for key in response if key != "stdout"):
+            return "fail: a failing call's status or other fields changed"
+        status, response = tool_response("seq 60 >&2; echo out")
+        updated = shipped_hook("seq 60 >&2; echo out", response)
+        if not updated or updated["stdout"] != "out\n" or not split_note(updated["stderr"]):
+            return "fail: stderr not capped apart from stdout"
+    return "ok"
+
+
+def probe_allow(arm):
+    if arm != "teamwork-cap" or not SHIPPED_HOOK.exists():
+        return "missing"
+    environment = {**os.environ, **SWITCHES}
+    command = [shutil.which("claude"), "-p", "Run the Bash command `seq 80`, then reply with the single word done.",
+               "--model", "haiku", "--setting-sources", "", "--strict-mcp-config", "--max-budget-usd", "0.5",
+               "--allowedTools", "Bash(seq:*)", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
+               "--plugin-dir", str(ARMS[arm])]
+    with tempfile.TemporaryDirectory() as scratch:
+        stream = subprocess.run(command, cwd=scratch, env=environment, capture_output=True, text=True, timeout=300,
+                                stdin=subprocess.DEVNULL).stdout
+    _, _, _, _, results, result = read_events(stream)
+    if result.get("permission_denials"):
+        return f"denied: {result['permission_denials']}"
+    return "allowed" if any(SHIPPED_CUT.search(row["text"]) for row in results) else "not cut"
+
+
+def check_plan(issue):
+    comments = gh_json("api", "--paginate", f"repos/{REPO}/issues/{issue}/comments")
+    plans = [comment for comment in comments if comment["body"].startswith("REPORTED: replay plan")
+             and re.search(r"\b\d+ runs\b", comment["body"]) and re.search(r"\$\d", comment["body"])]
+    if not plans:
+        return "no plan"
+    starts = [row["started"] for row in new_rows() if row.get("started")]
+    return "before" if not starts or plans[0]["created_at"] < min(starts) else "after"
+
+
+def new_tasks():
+    return [entry for entry in task_list() if task_arms(entry) == NEW_ARMS]
+
+
+def new_rows():
+    numbers = {entry["task"] for entry in new_tasks()}
+    return [row for row in records() if row["task"] in numbers]
+
+
+def first_word(command):
+    # a leading `cd <dir> &&` or `;` only sets the folder, so the program is the word after it
+    command = re.sub(r"^(?:\s*cd\s+\S+\s*(?:&&|;)\s*)+", "", command)
+    return (command.split() or [""])[0]
+
+
+def check_measured(arm):
+    tasks, rows = new_tasks(), new_rows()
+    if arm != "teamwork-cap" or not rows:
+        return "missing"
+    runs = lambda task, which: [row for row in rows if row["task"] == task and row["arm"] == which]
+    covered = [entry["task"] for entry in tasks if entry.get("state") == "closed"
+               and len(runs(entry["task"], "none")) >= 2 and len(runs(entry["task"], arm)) >= 2]
+    if len(covered) < 6:
+        return f"only {len(covered)} closed tasks with 2 runs of each arm"
+    program_cuts = {task: [result["command"] for row in runs(task, arm) for result in row["bash_results"]
+                           if "cut" in result and not FILE_READ.search(result["command"])] for task in covered}
+    cut_tasks = [task for task, commands in program_cuts.items() if commands]
+    words = {first_word(command) for commands in program_cuts.values() for command in commands}
+    if len(cut_tasks) < 4 or len(words) < 3:
+        return f"program-output cuts in {len(cut_tasks)} tasks with first words {sorted(words)}"
+    if not all(complete(row) and clean(row) for row in rows):
+        return "a record incomplete or unclean"
+    models = [model for row in rows for model in row["models"] + [turn["model"] for turn in row["turns"]]]
+    if not all(model.startswith("claude-sonnet-") for model in models):
+        return f"models {sorted(set(models))}"
+    identity = hook_identity(arm)
+    if any(row["hook"] != identity for row in rows if row["arm"] == arm):
+        return "a record ran another hook than the current file"
+    cost = sum(row["total_cost_usd"] or 0 for row in rows)
+    return "measured" if cost <= NEW_LIMIT else f"cost ${cost:.2f}"
+
+
+def gain(arm):
+    rows = new_rows()
+    capped = [row for row in rows if row["arm"] == arm]
+    passed = lambda which: sum(row["passed"] for row in rows if row["arm"] == which)
+    mean = sum(row["saving"]["net_share_reread_results_charged"] for row in capped) / len(capped)
+    return passed(arm) >= passed("none") and mean > 0, passed("none"), passed(arm), mean
+
+
+def check_landing():
+    if check_measured("teamwork-cap") != "measured":
+        return "unmeasured"
+    held, *_ = gain("teamwork-cap")
+    wired = "cap-program-output" in (ROOT / "teamwork" / "hooks" / "hooks.json").read_text()
+    return "ok" if held == wired else ("wired without a gain" if wired else "gain not wired")
+
+
 def summary():
     rows = records()
     spread = lambda values: f"{min(values):.2%} / {sum(values) / len(values):.2%} / {max(values):.2%}"
@@ -461,28 +650,35 @@ def summary():
     print("| --- | --- | --- | --- | --- | --- | --- | --- |")
     changes = []
     for task in sorted({row["task"] for row in rows}):
-        arms = {arm: [row for row in rows if row["task"] == task and row["arm"] == arm] for arm in ARMS}
+        capped_arm = arms_of(task)[1]
+        arms = {arm: [row for row in rows if row["task"] == task and row["arm"] == arm] for arm in arms_of(task)}
         if not all(arms.values()):
             continue
         cost = {arm: sum(row["total_cost_usd"] or 0 for row in mine) / len(mine) for arm, mine in arms.items()}
-        change = cost["output-cap"] / cost["none"] - 1
+        change = cost[capped_arm] / cost["none"] - 1
         changes.append(change)
-        capped = arms["output-cap"]
+        capped = arms[capped_arm]
         cuts = sum(1 for row in capped for result in row["bash_results"] if "cut" in result)
         rereads = sum(1 for row in capped for fetch in row["refetches"] if fetch.get("reread"))
         mean = lambda key: sum(row["saving"][key] for row in capped) / len(capped)
         print(f"| {task} | {sum(row['passed'] for row in arms['none'])} / {sum(row['passed'] for row in capped)} | "
-              f"{cost['none']:.3f} | {cost['output-cap']:.3f} | {change:+.1%} | {cuts} | {rereads} | "
+              f"{cost['none']:.3f} | {cost[capped_arm]:.3f} | {change:+.1%} | {cuts} | {rereads} | "
               f"{mean('net_share'):.1%} / {mean('net_share_reread_results_charged'):.1%} / {mean('net_share_rereads_charged'):.1%} |")
     capped_bash = [result for row in rows if row["arm"] == "output-cap" for result in row["bash_results"]]
     cut = [result for result in capped_bash if "cut" in result]
     print(f"\ncuts whose command reads a file with cat, sed, head or tail: {sum(bool(FILE_READ.search(result['command'])) for result in cut)} of {len(cut)}")
+    shipped = [result for row in rows if row["arm"] == "teamwork-cap" for result in row["bash_results"] if "cut" in result]
+    if shipped:
+        print(f"teamwork-cap cuts by first word: {sorted({first_word(result['command']) for result in shipped})}, {len(shipped)} cuts")
+        held, none_passed, capped_passed, mean = gain("teamwork-cap")
+        print(f"teamwork-cap gain on the new tasks: passed {capped_passed} against none's {none_passed}, mean net saving with "
+              f"re-read results charged {mean:.2%}; {'holds, so wire the hook' if held else 'does not hold, so leave the hook unwired'}")
     print(f"cap-arm Bash calls that set a trap or exec, which the cap cannot wrap: "
           f"{sum(bool(CAP_BREAKER.search(result['command'])) for result in capped_bash)} of {len(capped_bash)}")
     print(f"later reads of a saved file: {sum(1 for row in rows for fetch in row['refetches'] if not fetch.get('reread'))}")
     if changes:
         print(f"\nobserved cost change, cap over none, mean of tasks: {sum(changes) / len(changes):+.1%} (min {min(changes):+.1%}, max {max(changes):+.1%})")
-    print(f"spent ${spent():.2f}. Reading: the cap is worth building only when its arm passes as often as none, its net saving "
+    print(f"spent ${spent():.2f}, of which ${spent({entry['task'] for entry in new_tasks()}):.2f} on the teamwork-cap tasks. Reading: the cap is worth building only when its arm passes as often as none, its net saving "
           "with re-reads charged stays above 0, and the observed cost change does not contradict it.")
     return 0
 
@@ -496,16 +692,25 @@ def main(args):
     if verb == "--list-arms" and not rest:
         print(",".join(ARMS))
     elif verb == "--pick-tasks" and rest:
-        return pick_tasks(rest)
+        arms = FIRST_ARMS
+        if rest[0] == "--arms" and len(rest) > 2:
+            arms, rest = rest[1].split(","), rest[2:]
+        if not set(arms) <= set(ARMS):
+            return usage()
+        return pick_tasks(rest, arms)
     elif verb == "--run" and len(rest) == 3 and rest[1] in ARMS:
         return run_one(*rest)
     elif verb == "--run-all":
-        options = {"--repeats": "2", "--max-dollars": str(LIMIT), "--parallel": "3"}
+        options = {"--repeats": "2", "--max-dollars": str(LIMIT), "--parallel": "3", "--arms": "", "--tasks": ""}
         while rest:
             if rest[0] not in options or len(rest) < 2:
                 return usage()
             options[rest[0]], rest = rest[1], rest[2:]
-        return run_all(int(options["--repeats"]), float(options["--max-dollars"]), int(options["--parallel"]))
+        arms = [arm for arm in options["--arms"].split(",") if arm]
+        chosen = {int(task) for task in options["--tasks"].split(",") if task}
+        if not set(arms) <= set(ARMS):
+            return usage()
+        return run_all(int(options["--repeats"]), float(options["--max-dollars"]), int(options["--parallel"]), arms, chosen)
     elif verb == "--count" and len(rest) == 1 and rest[0] in ("tasks", "fewest-runs"):
         print(count(rest[0]))
     elif verb == "--check-records" and not rest:
@@ -523,6 +728,16 @@ def main(args):
             turn["model"] for turn in row["turns"]]) else "other model")
     elif verb == "--probe-arms" and not rest:
         print(probe_arms())
+    elif verb == "--probe-arm" and len(rest) == 1:
+        print(probe_arm(rest[0]))
+    elif verb == "--probe-allow" and len(rest) == 1:
+        print(probe_allow(rest[0]))
+    elif verb == "--check-plan" and len(rest) == 1 and rest[0].isdigit():
+        print(check_plan(int(rest[0])))
+    elif verb == "--check-measured" and len(rest) == 1:
+        print(check_measured(rest[0]))
+    elif verb == "--check-landing" and not rest:
+        print(check_landing())
     elif verb == "--reparse" and not rest:
         return reparse()
     elif verb == "--summary" and not rest:
