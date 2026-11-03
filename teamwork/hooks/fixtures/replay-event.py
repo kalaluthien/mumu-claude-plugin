@@ -2,6 +2,7 @@
 """Replay one Bash event through route-event.py as a worker in a fresh git repo, and print what the hook did: deny, block, warn, other or silent.
 
 usage: replay-event.py <Pre|Post> <settings json, or none for no settings file> <command> [text]
+`REPLAY_SESSION_ID` in the environment is the event's session id, so a repeat call can meet the hook's once-per-session reminders.
 With `text` it prints the hook's message (the deny reason, the block reason and the context) on the lines after the verdict.
 A fake herdr names the session t-worker; a fake gh reads every issue back with a body whose holders line sits outside a fence."""
 import json
@@ -30,7 +31,8 @@ def main(args):
         (folder / "repo" / ".teamwork").mkdir()
         (folder / "repo" / ".teamwork" / "settings.json").write_text(settings)
     event = {"hook_event_name": kind + "ToolUse", "cwd": str(folder / "repo"), "tool_input": {"command": command},
-             "tool_response": "https://github.com/o/r/issues/5"}
+             "tool_response": "https://github.com/o/r/issues/5",
+             "session_id": os.environ.get("REPLAY_SESSION_ID")}
     env = {**os.environ, "PATH": f"{folder / 'bin'}:{os.environ['PATH']}", "HERDR_PANE_ID": "p1"}
     out = subprocess.run([str(HERE.parent / "route-event.py")], input=json.dumps(event), capture_output=True, text=True, env=env).stdout
     got = json.loads(out) if out.strip() else {}

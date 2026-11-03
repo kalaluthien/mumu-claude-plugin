@@ -57,11 +57,30 @@ def stray_posted(output):
     return STATE_LINE.search(FENCE.sub("", body)) and url
 
 
-def reminder(call, role, cwd):
+def unseen(lines, session_id):
+    """LINES not yet reminded in this session, recorded so each playbook line is added to the context once; a record that cannot be read or written
+    leaves them all unseen, since a reminder must never break the call it decorates."""
+    if not session_id:
+        return lines
+    seen_file = pathlib.Path(os.environ.get("TMPDIR", "/tmp")) / "teamwork-reminded" / f"{session_id}.txt"
+    try:
+        seen = set(seen_file.read_text().splitlines()) if seen_file.exists() else set()
+        new = [line for line in lines if line not in seen]
+        if new:
+            seen_file.parent.mkdir(parents=True, exist_ok=True)
+            with seen_file.open("a") as fh:
+                fh.write("".join(line + "\n" for line in new))
+        return new
+    except OSError:
+        return lines
+
+
+def reminder(call, role, cwd, session_id=None):
     called, needles = call["called"], REMINDED.get(call["write"], ())
     found = [f"- {path.relative_to(PLAYBOOKS.parents[1])}:{number}: {line.strip()}"
              for path in (PLAYBOOKS / "protocol.md", PLAYBOOKS / f"{role}.md", GRAMMAR, *sorted((PLAYBOOKS / "adapters").glob("*-github.md")))  # a gh command keeps GitHub's adapter rules, never another board's
              for number, line in enumerate(path.read_text().splitlines(), 1) if any(needle in line for needle in needles)]
+    found = unseen(found, session_id)
     stray = ["- A `holders:` or `deferred:` line sits outside a ```teamwork fence in the posted file, so code reads no holder: put it inside the fence, as "
              f"{GRAMMAR.relative_to(PLAYBOOKS.parents[1])} says."] if called and stray_state(call, cwd) else []
     return (found or stray) and "\n".join([f"Reminder: the playbook rules this `{called}` must keep:", *found, *stray])
@@ -107,7 +126,7 @@ def route(kind, event, role, me, listed):
             else "Nothing in this command ran. Write the text to a scratch file, then run the same command again with --body-file <that file> in place of --body or -b." if call["inline body"]
             else f"Title is {size} characters; shorten it to {limit:g}, verb first." + (" Nothing in this command ran, so write any body file again." if settings["refuse"] else "")
             if size and size > limit else None)
-    return verdict(kind, rule, settings, None if rule and settings["refuse"] else reminder(call, role, event.get("cwd")))
+    return verdict(kind, rule, settings, None if rule and settings["refuse"] else reminder(call, role, event.get("cwd"), event.get("session_id")))
 
 
 def main(args):
