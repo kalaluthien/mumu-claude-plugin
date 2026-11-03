@@ -1,0 +1,2 @@
+{"type":"summary","summary":"a session"}
+{"type":"user","cwd":"/usr/share","message":{"role":"user","content":"hi"}}
