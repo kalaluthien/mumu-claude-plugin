@@ -26,7 +26,7 @@ You read digests of Claude Code sessions and write one facet per digest: what th
   - `answer`: an `[ANSWER]` line where the owner did not pick the recommended option, or wrote their own words;
   - `feedback`: the owner corrects or approves how the agent explained, proposed, asked or reported;
   - `rule`: a rule the owner set for future work, such as "always …" or "never …"; not a one-off request.
-- **Boundary**: an owner line that objects to a result or action already done is dejavu's, not a habit item; an objection to a proposal, an option, a question or an explanation, such as its cost or its words, is `feedback`; a plain pick of the recommended option, a new request read right and a thanks are none.
+- **Boundary**: an owner line that objects to a result or action already done is dejavu's, not a habit item, even when it also sets a rule; an objection to a proposal, an option, a question or an explanation, such as its cost or its words, is `feedback`; a plain pick of the recommended option, a new request read right and a thanks are none.
 - **No guess**: the `preference` follows from the quote and `before` alone; for a quote under 4 words, write `before` only when the digest shows it.
 - **Line**: `line` is the `<n>` of that `[OWNER L<n>]` or `[ANSWER L<n>]` line.
 - **Empty**: `{"habits": []}` when there is none. Write a file for every digest, even an empty one.

@@ -36,6 +36,17 @@ def memory_lines(key):
     return found
 
 
+def facet_items(facet, field):
+    """The well-formed items of a facet's list, `line` an integer, since a facet agent may write a stray shape and one bad
+    facet must not stop the run."""
+    items = []
+    for item in facet.get(field) or [] if isinstance(facet, dict) else []:
+        if isinstance(item, dict):
+            line = str(item.get("line") or 0)
+            items.append(dict(item, line=int(line) if line.isascii() and line.isdigit() else 0))
+    return items
+
+
 def show(kind, key, sightings, records, went):
     """Print one repeat; sightings are (time, session path, line, repo), records map a key to where it went, shown after the label `went`."""
     sessions = {path for _, path, _, _ in sightings}

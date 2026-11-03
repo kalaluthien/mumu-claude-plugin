@@ -30,7 +30,7 @@ WINDOW_DAYS, ALIVE_DAYS = 14, 3
 
 
 def main(args):
-    if len(args) == 5 and args[1] == "--record":
+    if len(args) == 5 and args[1] == "--record" and args[3].replace(".", "", 1).isascii() and args[3].replace(".", "", 1).isdigit():
         repeats.record(os.path.join(args[0], "filed.json"), args[2], float(args[3]), args[4])
         return 0
     if len(args) not in (1, 3) or args[0].startswith("-") or (len(args) == 3 and args[1] != "--mistakes"):
@@ -58,7 +58,7 @@ def main(args):
         facet = repeats.load(os.path.join(data, "facets", f"{session}.json"), None)
         if not facet:
             continue
-        for k, item in enumerate(facet.get("friction") or []):
+        for k, item in enumerate(repeats.facet_items(facet, "friction")):
             items.append(dict(item, id=f"{session[:8]}-{k}", session=session, path=row["path"], time=row["end"], repo=row["repo"]))
     with open(os.path.join(data, "friction.jsonl"), "w", encoding="utf-8") as out:
         out.writelines(json.dumps(item, ensure_ascii=False) + "\n" for item in items)
