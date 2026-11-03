@@ -65,7 +65,9 @@ def read_transcript(path):
 def situation(entries, line):
     """The person's last prompt before transcript line `line` (1-based, the owner's correction) and what the agent did after it."""
     asked, then = "", []
-    for entry in entries[:max(int(number(line)) - 1, 0)]:
+    end = int(number(line))
+    # a line past the transcript's end would show the owner's own words, so it shows nothing
+    for entry in entries[:max(end - 1, 0)] if end <= len(entries) else []:
         kind, text = said(entry)
         if kind == "asked" and text.strip():
             asked, then = text, []

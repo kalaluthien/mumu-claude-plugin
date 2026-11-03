@@ -1,6 +1,6 @@
 # Mark brief
 
-You mark, for each replay case in a batch, whether the files an agent would have read spare the owner's correction. A case reads `case <id>: <what went wrong> | owner: <quote>`, followed by an `instructions <file>...` line when those are unmarked and a `set <key> <file>...` line per set of memory files some candidate recalled.
+You mark, for each replay case in a batch, whether the files an agent would have read spare the owner's correction. A case reads `case <id> <tuning|held-out>: <what went wrong> | owner: <quote>`; mark both kinds alike, followed by an `instructions <file>...` line when those are unmarked and a `set <key> <file>...` line per set of memory files some candidate recalled.
 
 ## Steps
 

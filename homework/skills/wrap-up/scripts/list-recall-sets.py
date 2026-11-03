@@ -3,9 +3,10 @@
 
 usage: list-recall-sets.py <dejavu> [--config <dir>]   reads <dejavu>/friction.jsonl, <dejavu>/candidates/<name>/,
                                                       <dejavu>/picks/<name>/*.jsonl and <dejavu>/marks/*.jsonl; per
-                                                      case still unmarked, one `case <id>: <what went wrong> | owner:
-                                                      <quote>` line, an `instructions <file>...` line while those are
-                                                      unmarked, and a `set <key> <file>...` line per unmarked set, then
+                                                      case still unmarked, one `case <id> <tuning|held-out>: <what
+                                                      went wrong> | owner: <quote>` line, an `instructions <file>...`
+                                                      line while those are unmarked, and a `set <key> <file>...` line
+                                                      per unmarked set, then
                                                       `batch <k>: <id>...` lines of at most 10 cases, one mark judge each
 
 The instruction files are the config's CLAUDE.md and rules/ (--config, else ${CLAUDE_CONFIG_DIR:-~/.claude}) and the
@@ -49,7 +50,8 @@ def main(args):
         if lines:
             listed.append(item["id"])
             sets += len(seen)
-            print(f"case {item['id']}: {replay_cases.flat(item.get('what_went_wrong'))} | owner: "
+            split = "held-out" if item["held_out"] else "tuning"
+            print(f"case {item['id']} {split}: {replay_cases.flat(item.get('what_went_wrong'))} | owner: "
                   f"{replay_cases.flat(item.get('quote'))}")
             print("\n".join(lines))
     for start in range(0, len(listed), BATCH):
