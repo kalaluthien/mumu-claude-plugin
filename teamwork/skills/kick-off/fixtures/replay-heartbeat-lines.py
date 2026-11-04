@@ -13,11 +13,13 @@ past managers' transcripts (#1202):
 - feed-steps: no `feed` line for a worker's `REPORTED: criteria at` or `REPORTED: task filed`
 - feed-own: no `feed` line for a report this manager posted through use-board.py
 
-usage: replay-heartbeat-lines.py [--verbose]"""
+usage: replay-heartbeat-lines.py [--verbose] [--verdict | --cited]
+`--verdict` prints only `PASS` when all 12 cases ran and passed, else `FAIL`; `--cited` prints only `PASS` when each of the 12 names a transcript or an issue it came from, else `FAIL`."""
 import json
 import os
 import pathlib
 import random
+import re
 import subprocess
 import sys
 import tempfile
@@ -35,13 +37,22 @@ os.environ.update({"TEAMWORK_BOARD": "files", "TEAMWORK_BOARD_DIR": str(work / "
                    "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "HERDR_PANE_ID": "w1:p1"})
 sys.path.insert(0, str(ROOT / "lib"))
 failed = []
+passed = []
+QUIET = False
 VERBOSE = False
+# where each case was found: a manager's transcript under ~/.claude/projects/-Users-hyungmokim-workspace-plugins/ by its first 8 characters, or an issue
+SOURCES = {"flap-once": "transcript 6a7e0b9a, idle work-model-worker 32 times", "flap-fuzz": "transcript 6a7e0b9a, answer #1187 12 times in 2 h",
+           "probe-quiet": "transcripts 6a7e0b9a probe-end-manager-49609 and 43a6f00e probe-panes-1792244756", "blocked-empty": "issue #1202 body, an empty input under a banner",
+           "blocked-prompt": "transcript 84bfcb25, a prompt cut to a row of dashes", "merged-later": "transcript 6a7e0b9a, merged #1190 13 times while its worker held open tasks",
+           "merged-nothing-open": "transcript 6a7e0b9a, merged #1197", "idle-waits": "transcript 6a7e0b9a, idle work-model-worker while #1187 waited on the owner",
+           "idle-background": "issue #1202 body, a background harness and a subagent", "answer-stale": "issue #1202 body, answer after decide; transcript 6a7e0b9a answer #1187",
+           "feed-steps": "transcript 6a7e0b9a, feed #1199 REPORTED: criteria at", "feed-own": "transcript 6a7e0b9a, feed #1196 of the manager's own report"}
 
 
 def step(name, ok, detail=""):
-    print(f"ok {name}" if ok else f"fail {name}: {str(detail).strip()}", flush=True)
-    if not ok:
-        failed.append(name)
+    if not QUIET:
+        print(f"ok {name} <- {SOURCES[name]}" if ok else f"fail {name}: {str(detail).strip()}", flush=True)
+    (passed if ok else failed).append(name)
 
 
 def agent(name, pane, status, **more):
@@ -195,11 +206,13 @@ def feed_cases():
 
 
 def main(args):
-    global VERBOSE
-    if any(argument != "--verbose" for argument in args):
+    global VERBOSE, QUIET
+    flags = [argument for argument in args if argument.startswith("--")]
+    if any(argument not in ("--verbose", "--verdict", "--cited") for argument in args) or "--verdict" in args and "--cited" in args:
         print(__doc__, file=sys.stderr)
         return 2
-    VERBOSE = "--verbose" in args
+    VERBOSE = "--verbose" in flags
+    QUIET = "--verdict" in flags or "--cited" in flags
     repo.mkdir()
     for argv in (["init", "-q", "-b", "main"], ["commit", "-q", "--allow-empty", "-m", "start"]):
         subprocess.run(["git", *argv], cwd=repo, check=True)
@@ -208,6 +221,11 @@ def main(args):
     fuzz_case()
     line_cases()
     feed_cases()
+    if "--cited" in flags:
+        cited = len(passed) == len(SOURCES) == 12 and all(re.match(r"(transcripts? [0-9a-f]{8}|issue #\d+)", SOURCES[name]) for name in passed)
+        print("PASS" if cited else "FAIL")
+    elif "--verdict" in flags:
+        print("PASS" if len(passed) == len(SOURCES) == 12 and not failed else "FAIL")
     return 1 if failed else 0
 
 
