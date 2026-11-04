@@ -7,8 +7,8 @@ Which adapter does each port's operations of [protocol.md](protocol.md): the ada
 | port | adapter | when |
 | --- | --- | --- |
 | board | [board.md](adapters/board.md) | always; `TEAMWORK_BOARD=files` picks the files board, `TEAMWORK_BOARD=git` the git board, else GitHub |
-| landing | [landing-git.md](adapters/landing-git.md) | `TEAMWORK_LANDING=git` |
-| landing | [landing-github.md](adapters/landing-github.md) | the project's repository is on GitHub |
+| landing | [landing-git.md](adapters/landing-git.md) | `TEAMWORK_LANDING` is unset or `git` |
+| landing | [landing-github.md](adapters/landing-github.md) | `TEAMWORK_LANDING=github` |
 | message | [message-claude.md](adapters/message-claude.md) | the receiver is a Claude Code session, every session teamwork starts, or the owner |
 | message | [message-herdr.md](adapters/message-herdr.md) | a receiver of another kind herdr lists, such as Codex, never a Claude Code session |
 | session | [session-cloud.md](adapters/session-cloud.md) | `CLAUDE_CODE_REMOTE` is `true`, a cloud session |
@@ -21,5 +21,5 @@ The manager picks each worker's set when it starts it and names it in the worker
 
 | set | board | landing | message | session | agent |
 | --- | --- | --- | --- | --- | --- |
-| local | [board.md](adapters/board.md) | [landing-github.md](adapters/landing-github.md), or [landing-git.md](adapters/landing-git.md) by `TEAMWORK_LANDING` | [message-claude.md](adapters/message-claude.md); [message-herdr.md](adapters/message-herdr.md) only for a receiver of another kind | [session-herdr.md](adapters/session-herdr.md) | [agent-claude.md](adapters/agent-claude.md) |
+| local | [board.md](adapters/board.md) | [landing-git.md](adapters/landing-git.md), or [landing-github.md](adapters/landing-github.md) by `TEAMWORK_LANDING=github` | [message-claude.md](adapters/message-claude.md); [message-herdr.md](adapters/message-herdr.md) only for a receiver of another kind | [session-herdr.md](adapters/session-herdr.md) | [agent-claude.md](adapters/agent-claude.md) |
 | remote | [board.md](adapters/board.md) | [landing-github.md](adapters/landing-github.md), its **Cloud** forms | [message-claude.md](adapters/message-claude.md), its cloud rows | [session-cloud.md](adapters/session-cloud.md) | [agent-claude.md](adapters/agent-claude.md) |

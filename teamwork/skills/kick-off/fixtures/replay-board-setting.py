@@ -87,7 +87,7 @@ def main(args):
         changed = lambda before: holds_within(lambda: stamp() != before, 10)
         (repo / ".claude").mkdir()
         before = stamp()
-        (repo / ".claude" / "settings.local.json").write_text(json.dumps({"env": {"TEAMWORK_BOARD": "files"}}))
+        (repo / ".claude" / "settings.local.json").write_text(json.dumps({"env": {"TEAMWORK_BOARD": "files", "TEAMWORK_LANDING": "github"}}))
         step("signal", changed(before), f"stamp {before}")
         time.sleep(3)  # a few polls on the files board, whose read still fails while the landing reads GitHub
         board_only = "route #1" in log.read_text()

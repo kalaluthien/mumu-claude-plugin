@@ -1,5 +1,6 @@
 """Changes in local git: each is a record `<n>.json` in the main checkout's `.teamwork/changes`, the same for every worktree and never committed,
-holding its title, body, branch and base, and once merged the head it took. A merge squashes that head onto the base as one commit, as GitHub's does."""
+holding its title, body, branch and base, and once merged the head it took. A merge squashes that head onto the base as one commit, and with an `origin`
+pushes it there as a fast-forward of the base before it moves anything here, so a refused push leaves the change open and the base as it was."""
 import json
 import os
 import re
@@ -124,9 +125,25 @@ def change(branch, title, body, base):
             number += 1
 
 
+def clobbered(holder, base, commit):
+    """The files of HOLDER's worktree that hold uncommitted changes and that the move from BASE to COMMIT would also change, so the move can be refused before anything is pushed."""
+    dirty = {line[3:].split(" -> ")[-1] for line in git("status", "--porcelain", "--untracked-files=all", cwd=holder).stdout.splitlines()}
+    return sorted(dirty & set(git("diff", "--name-only", base, commit, cwd=holder).stdout.split()))
+
+
+def push(number, base_name, commit):
+    """Pushes COMMIT to `origin` as the new tip of BASE_NAME, a fast-forward only; a repository with no `origin` pushes nothing. Raises LookupError with the remote's reason when it refuses."""
+    if git("remote", "get-url", "origin").returncode:
+        return
+    result = git("push", "--porcelain", "origin", f"{commit}:refs/heads/{base_name}")
+    if result.returncode:
+        reason = (result.stderr.strip() or result.stdout.strip()).splitlines()
+        raise LookupError(f"change {number}: origin refused the push of {base_name}, so nothing was merged: {' | '.join(reason[-4:])}")
+
+
 def merge(number, sha):
-    """Squashes the change's head onto its base as one commit, only when SHA is its branch tip, and fast-forwards the worktree that has the base
-    checked out, which refuses rather than overwrites; the new commit's sha."""
+    """Squashes the change's head onto its base as one commit, only when SHA is its branch tip, pushes it to `origin` when there is one, and fast-forwards
+    the worktree that has the base checked out, which refuses rather than overwrites; the new commit's sha."""
     entry = record(number)
     if entry["state"] != "OPEN":
         raise LookupError(f"change {number} is closed")
@@ -144,6 +161,9 @@ def merge(number, sha):
     if made.returncode:
         raise LookupError(f"change {number}: no commit made: {made.stderr.strip()}")
     commit, holder = made.stdout.strip(), worktree_of(entry["base"])
+    if holder and (files := clobbered(holder, base, commit)):
+        raise LookupError(f"change {number}: {holder} holds uncommitted changes to {', '.join(files[:5])}, which the merge would overwrite; commit or move them")
+    push(number, entry["base"], commit)
     # the worktree that has the base checked out moves with it, so its files never fall behind the branch
     result = git("merge", "--ff-only", "--quiet", commit, cwd=holder) if holder else git("update-ref", f"refs/heads/{entry['base']}", commit, base)
     if result.returncode:
