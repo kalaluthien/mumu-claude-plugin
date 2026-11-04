@@ -3,6 +3,7 @@
 
 usage: replay-additions.py --case <name>
 - path: an addition recorded by `decide` leaves the body as it was and shows in `list-additions.py`; a worker's `edit --base` folds it; a stale diff of the old body is refused with the board unchanged; nothing is left unfolded
+- prefix: with twenty additions recorded, a fold that names the last leaves the other nineteen listed, since `#comment-2` starts `#comment-21`
 - writes: three additions take fewer board writes by the path the playbooks give than by one body edit and one precheck comment per addition"""
 import os
 import pathlib
@@ -93,6 +94,16 @@ def case_path(work, repo, env, number):
           f"a diff made from the old body must be refused with nothing written: exit {stale.returncode}, {commits(repo) - before} commits added")
 
 
+def case_prefix(work, repo, env, number):
+    urls = [owner_says(work, env, repo, number, f"wish {k}") for k in range(20)]
+    sha = sha_of(env, repo, "list-additions.py", number)
+    folded = BODY.replace("Probe the pane.", "Probe the pane; wish 19.")
+    done = run(env, repo, "use-board.py", "edit", number, diff_of(work, BODY, folded), f"DECIDED: folds {urls[-1]}", "--base", sha)
+    listed = run(env, repo, "list-additions.py", number).stdout
+    check(env, repo, work, done.returncode == 0 and "not in the body: 19" in listed and all(url in listed for url in urls[:-1]) and urls[-1] not in listed,
+          f"folding the last of twenty must leave the other nineteen listed, got {listed[:300]!r}")
+
+
 def precheck(work, env, repo, number):
     path = work / "precheck.md"
     path.write_text("REPORTED: criteria at the head pass\n")
@@ -126,7 +137,7 @@ def case_writes(work, repo, env, number):
     print(f"three additions: {old} board writes by one edit and one precheck each, {new} by one fold")
 
 
-CASES = {"path": case_path, "writes": case_writes}
+CASES = {"path": case_path, "prefix": case_prefix, "writes": case_writes}
 
 
 def main(args):
