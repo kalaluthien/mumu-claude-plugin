@@ -258,7 +258,8 @@ def pane_cases(listed, narrow, untrusted_lines, asker, decider, cutter, untruste
     """The pane's lines: LISTED at the pane's width, NARROW at 24 columns, UNTRUSTED_LINES with UNTRUSTED's decision marked untrusted."""
     step("pane-question", "? may the sync run" in block(listed, asker), block(listed, asker))
     marks = [line for line in block(listed, decider) if line.startswith("◆ ")]
-    step("pane-latest-three", marks[:3] == ["◆ rule two", "◆ rule three", "◆ rule four"] and marks[3:] == ["◆ 1 more decided"], block(listed, decider))
+    timed = [re.sub(r"^◆ \[\d\d/\d\d \d\d:\d\d\] ", "◆ ", line) for line in marks]  # each decision opens with its time, which the run's clock sets
+    step("pane-latest-three", timed[:3] == ["◆ rule two", "◆ rule three", "◆ rule four"] and timed[3:] == ["◆ 1 more decided"] and marks[0] != timed[0], block(listed, decider))
     cut = block(narrow, cutter, strip=False)
     start = next((i for i, line in enumerate(cut) if "◆ " in line), len(cut))
     shown = cut[start:start + 3]
@@ -335,7 +336,7 @@ def nodes_pane():
     later = work / "deferred.json"
     later.write_text(json.dumps([node(1, [comment(1, 1, "DECIDED: later\n\n```teamwork\nholders:\ndeferred: waits on the probe\n```\n")])]))
     drawn = subprocess.run([sys.executable, str(LIST), "--nodes", str(later)], capture_output=True, text=True).stdout.splitlines()
-    step("row-no-deferral", any(line.strip() == "no holder" for line in drawn) and not any("deferred" in line for line in drawn), drawn)
+    step("row-no-deferral", any(line.startswith("#1 ") for line in drawn) and not any("deferred" in line or "no holder" in line for line in drawn), drawn)
     finished = [node(n, [comment(n, 1, text)] if text else []) for n, text in ((1, "REPORTED: batch landed; next step: probe the pane"), (2, ""))]
     for parent in finished[:2]:
         part = node(parent["number"] + 10)

@@ -1,6 +1,7 @@
 """Typed decisions across a root's tree, by the grammar's Decisions section: each task's binding set, the rules `decide` holds a
 decision to, and the gaps the manager's heartbeat lists. ISSUES is {number: issue}, each with `body`, `trusted`, `state`,
 `stateReason`, `parent` (a number, a {number} node or None) and `comments` (a list, or a {nodes} connection)."""
+import datetime
 import re
 
 import issue_state
@@ -172,11 +173,30 @@ def superseded_in(nodes):
     return replaced([decision for node in nodes for decision in typed(node["number"], node)])
 
 
+def stamp(created):
+    """CREATED, a board timestamp such as `2026-11-04T04:00:00Z`, as `MM/DD HH:MM` in UTC+9; empty when it has none."""
+    if not created:
+        return ""
+    return datetime.datetime.fromisoformat(created.replace("Z", "+00:00")).astimezone(datetime.timezone(datetime.timedelta(hours=9))).strftime("%m/%d %H:%M")
+
+
 def shown(node, superseded=frozenset()):
-    """What the pane draws under a task: its open questions' first lines, its latest owner decisions whose url is not in SUPERSEDED,
-    newest last, and how many more there are."""
+    """What the pane draws under a task: its open questions' first lines, its latest SHOWN_DECIDED owner decisions that no decision in SUPERSEDED
+    replaced, each after the decisions it replaced, marked `struck`, and how many current ones are left out."""
     issue = as_issue(node)
-    owned = [decision["decision"] for decision in typed(node["number"], node) if decision["role"] == "owner" and decision["url"] not in superseded]
+    owned = [decision for decision in typed(node["number"], node) if decision["role"] == "owner"]
+    by_url = {decision["url"]: decision for decision in owned}
+
+    def history(decision):
+        """DECISION after the decisions it replaced, oldest first."""
+        found = [decision]
+        while (earlier := by_url.get(found[0]["supersedes"])) and earlier not in found:
+            found.insert(0, earlier)
+        return found
+
+    current = [decision for decision in owned if decision["url"] not in superseded]
+    kept = [decision for latest in current[-SHOWN_DECIDED:] for decision in history(latest)]
     asked = [first_line(question["ask"]) for question in issue_state.open_questions(issue)]
     return {"questions": [text for k, text in enumerate(asked) if text not in asked[:k]],  # an ask posted again is one question
-            "decided": owned[-SHOWN_DECIDED:], "more": max(len(owned) - SHOWN_DECIDED, 0)}
+            "decided": [{"decision": decision["decision"], "time": stamp(decision["createdAt"]), "struck": decision["url"] in superseded} for decision in kept],
+            "more": max(len(current) - SHOWN_DECIDED, 0)}
