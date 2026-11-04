@@ -4,7 +4,7 @@ and exit 1. A `gh` on PATH, written here, answers each call from the fixture, so
 a decision chain whose newer decision names the older one by its GitHub comment url, a stranger's issue and comment, a url of another repository, and a pull request.
 
 usage: replay-github-copy.py --case <name>
-- copied: every trusted issue reads back from the git board with its number, title, labels, body, state, reason, times and comments in order, and the stranger's issue and the pull request are not
+- copied: every trusted issue reads back from the git board, in the folder its `scope:probe` label named and without that label, with its number, title, other labels, body, state, reason, times and comments in order, and the stranger's issue and the pull request are not
 - same-view: `compare-boards.py` prints `PASS`, and the issue pane's rows hold the titles, never a url
 - urls: the newer decision still supersedes the older one on the git board, by the git board's url, and `list-decisions.py` binds it as GitHub's does; a url of another repository stays as written, so an `answers:` naming it closes no question here
 - numbers-trust: a new issue gets a number above the pull request's, the stranger's comment is not on the git board, and the copy says what it skipped"""
@@ -139,6 +139,8 @@ def setup():
     pathlib.Path(f"{gh}.json").write_text(json.dumps({"issues": ISSUES, "comments": COMMENTS}))
     repo = work / "repo"
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    for folder in ("probe", "other"):
+        (repo / folder).mkdir()
     env = {**os.environ, "PATH": f"{work / 'bin'}:{os.environ['PATH']}", "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home"), "GH_REPO": "o/r"}
     env.pop("TEAMWORK_BOARD", None)
     return work, repo, env
@@ -192,14 +194,14 @@ def whole(env, repo):
             continue
         record = have.get(given["number"])
         notes = [c for c in COMMENTS if c["issue_url"].endswith("/" + str(given["number"])) and c["author_association"] == OWNER]
-        got = (record["labels"], record["body"], record["createdAt"], record["closedAt"], [note["createdAt"] for note in record["comments"]]) if record else None
-        want = ([label["name"] for label in given["labels"]], given["body"].replace("https://github.com/o/r/issues/1", record["url"].rsplit("/", 1)[0] + "/1") if record else "", given["created_at"], given["closed_at"], [c["created_at"] for c in notes])
+        got = (record["scope"], record["labels"], record["body"], record["createdAt"], record["closedAt"], [note["createdAt"] for note in record["comments"]]) if record else None
+        want = ("probe", [label["name"] for label in given["labels"] if label["name"] != "scope:probe"], given["body"].replace("https://github.com/o/r/issues/1", record["url"].rsplit("/", 1)[0] + "/1") if record else "", given["created_at"], given["closed_at"], [c["created_at"] for c in notes])
         if got != want:
             return fail(f"#{given['number']} reads as {got}, wanted {want}")
     read = call(env, repo, "use-board.py", "read", "6", board="git").stdout
     if "state: CLOSED" not in read:
         return fail("#6 is not closed")
-    meta = subprocess.run(["git", "show", "refs/teamwork/board:6/issue.json"], cwd=repo, capture_output=True, text=True).stdout
+    meta = subprocess.run(["git", "show", "refs/teamwork-blackboard:probe/6/issue.json"], cwd=repo, capture_output=True, text=True).stdout
     if json.loads(meta)["reason"] != "NOT_PLANNED":
         return fail(f"#6 reason {meta}")
     return 0

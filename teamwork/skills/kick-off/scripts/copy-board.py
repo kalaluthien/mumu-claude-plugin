@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Copy every record of one board into another local board, verbatim and in one write, such as the files board into the git board before setting
-`TEAMWORK_BOARD=git`; the copy keeps issue numbers, bodies and times, but each comment copied between local boards takes the time of the copy. From `github` it copies
+"""Copy every record of one board into another local board, verbatim and in one write, such as the files board into the git board before any other
+write to it; the copy keeps issue numbers, bodies and times, but each comment copied between local boards takes the time of the copy. From `github` it copies
 every issue, closed ones too, with each comment's GitHub time, skips a body or comment of an author the GitHub board does not trust, rewrites a GitHub issue or comment url in a text to
-the target's url for that record, and sets the target's number floor above the highest issue or pull-request number. Refuses a target that
+the target's url for that record, files an issue labelled `scope:<folder>` of a top-level folder under that folder and drops the label, and sets the target's number floor above the highest issue or pull-request number. Refuses a target that
 already holds an issue, printing its numbers and exit 1, since a copy over it would mix two boards' numbers. Prints the count copied.
 
 usage: copy-board.py <files|git|github> <files|git>"""
@@ -32,7 +32,7 @@ def main(args):
     try:
         if args[0] == "github":
             every, untrusted_issues, untrusted_comments = github_copy.files(*github_copy.read(), target)
-            held = len({path.split("/")[0] for path in every if path.split("/")[0].isdigit()})
+            held = sum(1 for path in every if path.endswith("/issue.json") or path == "issue.json")
             print(f"skipped {untrusted_issues} issues and {untrusted_comments} comments of authors the GitHub board does not trust")
         else:
             source = importlib.import_module(f"board_{args[0]}").STORE

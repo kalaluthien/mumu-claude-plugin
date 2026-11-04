@@ -38,12 +38,12 @@ def herdr(*agents):
     return state
 
 
-def run(argv, state, pane=None, event=None, seconds=120, **env):
+def run(argv, state, pane=None, event=None, seconds=120, cwd=None, **env):
     env = {**os.environ, "GH_REPO": SANDBOX, "PATH": f"{HERE / 'recorded-gh'}:{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state),
            "GH_TAPE": f"replay-team-scenarios-{SCENARIO}", "GH_TAPE_STATE": str(TURNS / f"{SCENARIO}.json"),
            "MONITOR_POLL": "1000", **({"HERDR_PANE_ID": pane} if pane else {}), **env}
     try:
-        process = subprocess.run([str(argument) for argument in argv], env=env, input=event and json.dumps(event), capture_output=True, text=True, timeout=seconds)
+        process = subprocess.run([str(argument) for argument in argv], env=env, input=event and json.dumps(event), capture_output=True, text=True, timeout=seconds, cwd=cwd)
         out, code = process.stdout + process.stderr, process.returncode
     except subprocess.TimeoutExpired as e:  # the heartbeat runs until killed
         out, code = (e.stdout or b"").decode() + (e.stderr or b"").decode(), None
@@ -208,11 +208,11 @@ def manager_placement():
 def moved_me():
     """A session whose pane moved, its shell's HERDR_PANE_ID left naming another session's pane, still finds itself by its session id."""
     state = herdr(dict(agent("teamwork-manager", 15, "idle", "w4"), agent_session={"value": "moved-id"}), agent("other-manager", 1, "idle", "w9"))
-    code, out = run([SCRIPTS / "print-scope-label.py", "--me"], state, "w9:p1", CLAUDE_CODE_SESSION_ID="moved-id")
+    code, out = run([SCRIPTS / "print-scope-folder.py", "--me"], state, "w9:p1", cwd=ROOT, CLAUDE_CODE_SESSION_ID="moved-id")
     # with no session id listed, as for an agent herdr gives none, the pane it started in still finds it
     unlisted = herdr(agent("teamwork-manager", 15, "idle", "w4"), agent("other-manager", 1, "idle", "w9"))
-    code_pane, out_pane = run([SCRIPTS / "print-scope-label.py", "--me"], unlisted, "w4:p15", CLAUDE_CODE_SESSION_ID="moved-id")
-    return code == code_pane == 0 and out.strip() == out_pane.strip() == "scope:teamwork", out + out_pane
+    code_pane, out_pane = run([SCRIPTS / "print-scope-folder.py", "--me"], unlisted, "w4:p15", cwd=ROOT, CLAUDE_CODE_SESSION_ID="moved-id")
+    return code == code_pane == 0 and out.strip() == out_pane.strip() == "teamwork", out + out_pane
 
 
 def moved_close():

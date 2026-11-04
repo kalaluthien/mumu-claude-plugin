@@ -20,7 +20,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 HOOKS = HERE.parents[2] / "hooks"
 sys.path.insert(0, str(HERE.parents[2] / "lib"))
 # a url differs by board, and a comment's place by what the copy skipped, so each reads as its issue
-URL = re.compile(r"(?:https://github\.com/[^/\s)]+/[^/\s)]+/issues|git\+file://\S*?/refs/teamwork/board)/(\d+)(?:#(?:issuecomment|comment)-\d+)?")
+URL = re.compile(r"(?:https://github\.com/[^/\s)]+/[^/\s)]+/issues|git\+file://\S*?/refs/teamwork-blackboard(?:/[^\s/)#]+)*)/(\d+)(?:#(?:issuecomment|comment)-\d+)?")
 
 
 def run(script, *argv):

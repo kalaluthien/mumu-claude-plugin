@@ -8,8 +8,9 @@ usage: use-board.py <operation> <args>
 
   read <issue>                          print its title, state, labels, parent, body and comments
   comment <issue> <body-file>           append the file's text as a comment; refused, nothing posted, when it holds a `decision` block, which `decide` posts
-  file <title> <body-file> [label...]   open an issue; print its url; its `[task]` and `depends on` lines link it, refused when they make a cycle,
-                                        a second parent or name an unknown issue
+  file <title> <body-file> [label...] [--scope <folder>]   open an issue in the folder, a path from the repository root ('' the root; a manager's own
+                                        project folder when none is given, else the root), refused when the repository has no such folder; print its url;
+                                        its `[task]` and `depends on` lines link it, refused when they make a cycle, a second parent or name an unknown issue
   edit <issue> <diff-file> <line> [--base <sha>]   change the body by a diff, with the keyword line [edit-issue-body.py](edit-issue-body.py) posts first;
                                         refused when the body no longer has the `body sha` `read` printed, the sha given as `--base`
   title <issue> <title>                 change the title
@@ -52,7 +53,7 @@ def main(args):
             return 2
         if verb == "read" and len(operands) == 1:
             issue = board.fresh(operands[0]) or sys.exit(f"use-board: cannot read #{operands[0]}")
-            print(f"#{issue['number']} {issue_state.title(issue)}\nstate: {issue['state']}\nlabels: {', '.join(issue['labels'])}\nparent: {issue['parent']}\nbody sha: {board.body_sha(issue['body'])}\n\n{issue['body']}")
+            print(f"#{issue['number']} {issue_state.title(issue)}\nstate: {issue['state']}\n{'scope: ' + (issue['scope'] or '(repository root)') + chr(10) if 'scope' in issue else ''}labels: {', '.join(issue['labels'])}\nparent: {issue['parent']}\nbody sha: {board.body_sha(issue['body'])}\n\n{issue['body']}")
             for comment in issue["comments"]:
                 print(f"\n--- {comment['url']}\n{comment['body']}")
         elif verb == "comment" and len(operands) == 2:
@@ -63,7 +64,15 @@ def main(args):
             keep_own(url, text(operands[1]))
             print(url)
         elif verb == "file" and len(operands) >= 2:
-            print(board.fresh(board.file(operands[0], text(operands[1]), operands[2:]), comments=False)["url"])
+            rest = operands[2:]
+            scope = {}
+            if "--scope" in rest:
+                at = rest.index("--scope")
+                if at + 1 >= len(rest):
+                    print(__doc__, file=sys.stderr)
+                    return 2
+                scope, rest = {"scope": rest[at + 1]}, rest[:at] + rest[at + 2:]
+            print(board.fresh(board.file(operands[0], text(operands[1]), rest, **scope), comments=False)["url"])
         elif verb == "edit" and len(operands) in (3, 5):
             return subprocess.run([sys.executable, str(HERE / "edit-issue-body.py"), *operands]).returncode
         elif verb == "resolve" and len(operands) in (2, 3):

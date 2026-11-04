@@ -1,10 +1,10 @@
-"""The board port: where a team keeps its issues and records, done by the adapter `board_<TEAMWORK_BOARD>`, read from the environment, else from the project's Claude settings `env` (default `github`).
+"""The board port: where a team keeps its issues and records, done by the adapter `board_<TEAMWORK_BOARD>`, read from the environment, else from the project's Claude settings `env` (default `git`).
 
 Every adapter has these functions, by the same names:
 - reads: `issues(state, project, pulls, comments, since, repo)`, `fresh(number, repo, comments)`, `comments_since(since)` as (issue number, comment),
-  `changed_since(stamp)`, `blockers(number)` the numbers its `depends on` names that are not closed as completed, `scoped(project)` the label that scopes a project or None,
+  `changed_since(stamp)`, `blockers(number)` the numbers its `depends on` names that are not closed as completed, `scoped(project)` the folder that scopes a project ('' the repository root; the GitHub board gives its label or None),
   `tree(project, nodes)` the open issues' nodes the issue pane draws; each None when a read failed
-- writes: `comment(number, text)`, `file(title, body, labels) -> int`, `body(number)` and `edit(number, body)`, `resolve(number, summary, completed)`, `reopen(number)`, `retitle(number, title)`,
+- writes: `atomic(change)` runs CHANGE's writes as one, `comment(number, text)`, `file(title, body, labels, scope) -> int` (`scope` the folder, git board only), `body(number)` and `edit(number, body)`, `resolve(number, summary, completed)`, `reopen(number)`, `retitle(number, title)`,
   `label(number, name, remove)`; this port's `edit` and `resolve` add the state links derive: a follow-up part reopens, a stop stops the parts, the last part closes its parent
 - links: `parent_of(number)` the task whose body names it as a part, `check_links(number, body)` raises LookupError naming why BODY cannot be NUMBER's
 - `trusted(record)`, whether a record's author may write records; `command(text)` and `posted(output)`, the board write a shell command runs and what it posted
@@ -20,7 +20,7 @@ import task_links
 
 def kind():
     """The adapter's name, read at each call, so a long-running process follows a setting written after it started."""
-    return port_setting.value("TEAMWORK_BOARD", "github")
+    return port_setting.value("TEAMWORK_BOARD", "git")
 
 
 def body_sha(text):
@@ -36,7 +36,17 @@ def __getattr__(name):
     return getattr(adapter(), name)
 
 
+def atomic(change):
+    """CHANGE's result, with every board write it makes landing whole or not at all where the adapter can (the files and git boards), else as the plain calls they are (GitHub)."""
+    keep = getattr(adapter(), "atomic", None)
+    return keep(change) if keep else change()
+
+
 def edit(number, text):
+    return atomic(lambda: edit_whole(number, text))
+
+
+def edit_whole(number, text):
     """Writes TEXT as NUMBER's body; a closed task whose new body gains a part opens again, since that part is follow-up work, and an
     open one whose new body drops a part or a criterion closes once no criterion is left and every part left was closed as completed."""
     old = adapter().fresh(number, comments=False)
@@ -51,6 +61,10 @@ def edit(number, text):
 
 
 def resolve(number, summary, completed=True):
+    return atomic(lambda: resolve_whole(number, summary, completed))
+
+
+def resolve_whole(number, summary, completed=True):
     """Closes NUMBER. Stopped, it first stops its open parts, named in one `DECIDED:` on it; completed, it closes its parent
     once every part of the parent is closed as completed and the parent holds no other criterion."""
     record = adapter().fresh(number, comments=False)

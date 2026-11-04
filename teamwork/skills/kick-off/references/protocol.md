@@ -6,7 +6,7 @@ The roles, records and rules of a team, which name no tool, vendor or board; eac
 
 Intent flows owner → manager → root → worker → tasks → judged changes. An issue on the board keeps what must outlive a session, written as [issue-grammar.md](issue-grammar.md) says: a `BLOCKED:` comment opens a worker's question with its options, a `DECIDED:` the manager's answer, route or order, binding until a newer one.
 
-- **project**: a repository, or one of its top-level folders named by a `scope:` label, which is `scope:<project>` of the manager's own name; its name lowercased, each run of other characters one `-`, cut to 22
+- **project**: a repository, or one of its top-level folders, which holds the records of the project of the manager's own name, the repository root holding those of a project with no such folder; its name lowercased, each run of other characters one `-`, cut to 22
 - **holds**: a worker holds each open issue whose latest `holders` names it, any number, and several may hold one
 - **task**: every issue; one a worker defines holds `## Goal`, `## Definition of done` of criteria and parts, and a `depends on` line naming the tasks it waits on, as [issue-grammar.md](issue-grammar.md) says
 - **parent**, **root**: a task with parts; a task with no parent, the owner's intent in rough words

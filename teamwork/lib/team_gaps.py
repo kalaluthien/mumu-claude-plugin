@@ -84,8 +84,8 @@ def manager_read(me, since=None):
     """What a manager's gaps need from the board, read once and kept by the caller until something changed; None when a read failed.
     SINCE adds the reports posted since then."""
     found = issues(project(me["name"]))
-    # a worker may hold an open issue the scope label misses, which the idle line must still count
-    everything = issues() if found is not None and board.scoped(project(me["name"])) else found
+    # a worker may hold an open issue outside the project's folder, which the idle line must still count
+    everything = issues() if found is not None else found
     # one page of the latest updated closed pulls, whose merged ones are the newest merges
     pulls = landing.pulls("closed", limit=PULL_LIMIT)
     pulls = pulls and [pull for pull in pulls if pull["mergedAt"]]

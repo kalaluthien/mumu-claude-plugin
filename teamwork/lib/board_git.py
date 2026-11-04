@@ -1,6 +1,6 @@
-"""The board kept in git: the records `board_records` lays out, as the tree of the commit `refs/teamwork/board` names in the current folder's repository,
+"""The board kept in git: the records `board_records` lays out, as the tree of the commit `refs/teamwork-blackboard` names in the current folder's repository,
 which every worktree shares. Each write is one commit, swapped in only while the ref still names the commit the write read, else run again from
-the new one, so concurrent writers never lose each other's records; `git log refs/teamwork/board` shows every write. Nothing here pushes the ref."""
+the new one, so concurrent writers never lose each other's records; `git log refs/teamwork-blackboard` shows every write. Nothing here pushes the ref."""
 import os
 import pathlib
 import random
@@ -10,7 +10,7 @@ import time
 
 import board_records
 
-REF = "refs/teamwork/board"
+REF = "refs/teamwork-blackboard"
 TRIES = 100  # 40 writers racing gc on one issue needed at most 34 in the probes
 STALE = 10  # seconds a ref lock may stand before it is taken for a killed writer's, since a live write holds it for milliseconds
 WRITER = {"GIT_AUTHOR_NAME": "teamwork", "GIT_AUTHOR_EMAIL": "teamwork@localhost", "GIT_COMMITTER_NAME": "teamwork", "GIT_COMMITTER_EMAIL": "teamwork@localhost"}
@@ -22,7 +22,7 @@ class GitFailed(Exception):
 
 class Ref(board_records.Store):
     def __init__(self):
-        self.common, self.tip, self.files, self.folders, self.times, self.timed = None, None, {}, {}, {}, None
+        self.common, self.tip, self.files, self.folders, self.times, self.timed, self.places = None, None, {}, {}, {}, None, {}
 
     def git(self, *args, data=None, env=None, check=True):
         if self.common is None:
@@ -55,7 +55,15 @@ class Ref(board_records.Store):
             parts = path.split("/")
             for depth in range(len(parts)):
                 folders.setdefault("/".join(parts[:depth]), set()).add(parts[depth])
-        self.tip, self.files, self.folders = tip, files, folders
+        places = {}
+        for path in files:
+            *folder, number, name = ["", *path.split("/")]
+            if name == "issue.json" and number.isdigit():
+                places[int(number)] = "/".join(folder[1:])
+        self.tip, self.files, self.folders, self.places = tip, files, folders, places
+
+    def homes(self):
+        return self.places
 
     def load(self, path):
         if path not in self.files:

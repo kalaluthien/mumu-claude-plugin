@@ -33,44 +33,66 @@ def main(args):
     if not diff.strip():
         sys.exit(f"edit-issue-body: {diff_file} is empty, so nothing was posted or changed")
     work = pathlib.Path(tempfile.mkdtemp())
-    body = work / "body.md"
-    # the web editor saves CRLF, which a diff written against the shown text never matches
-    try:
+    fence = "`" * max([3] + [len(run) + 1 for run in re.findall(r"`+", diff)])
+    comment = f"{line}\n\n{fence}diff\n{diff}{'' if diff.endswith(chr(10)) else chr(10)}{fence}\n"
+    found = issue_state.defects("edit-line", line)
+    if found:
+        print(defect_text(found), file=sys.stderr)
+        return 2
+    refusal = []
+
+    def land():
+        # read again on each try: a board that lost a write race runs this again from the newer body, so --base holds against that write too
+        refusal.clear()
+        body = work / "body.md"
+        # the web editor saves CRLF, which a diff written against the shown text never matches
         body.write_text(board.body(issue).replace("\r\n", "\n"))
+        if base and board.body_sha(body.read_text()) != base:
+            refusal.append((1, f"edit-issue-body: #{issue}'s body changed since you read it (its body sha is {board.body_sha(body.read_text())}, not {base}), so nothing was posted or changed: read it again and make the diff from that body"))
+            return None
+        # --forward: an applied diff reads as reversed, which a bare dry run would accept
+        check = subprocess.run(["patch", "--forward", "--batch", "--dry-run", "-s", str(body), diff_file], capture_output=True, text=True)
+        padded = False
+        if check.returncode and not body.read_text().endswith("\n"):
+            # `gh issue view` prints the stored body with a newline it lacks, so a diff made from that output ends in one the body has not
+            body.write_text(body.read_text() + "\n")
+            retry = subprocess.run(["patch", "--forward", "--batch", "--dry-run", "-s", str(body), diff_file], capture_output=True, text=True)
+            padded = retry.returncode == 0
+            if not padded:
+                body.write_text(body.read_text()[:-1])
+        if check.returncode and not padded:
+            refusal.append((1, f"edit-issue-body: the diff does not apply to #{issue}'s body, so nothing was posted or changed:\n{check.stdout}{check.stderr}"))
+            return None
+        applied = subprocess.run(["patch", "--forward", "--batch", "-s", "-o", "-", str(body), diff_file], capture_output=True, text=True)
+        # a defect the body already held does not block the edit that may fix it
+        found = issue_state.defects("edit-body", applied.stdout, body.read_text())
+        if found:
+            refusal.append((2, defect_text(found)))
+            return None
+        try:
+            board.check_links(issue, applied.stdout)
+        except LookupError as e:
+            refusal.append((1, f"edit-issue-body: {e}"))
+            return None
+        url = board.comment(issue, comment)
+        board.edit(issue, applied.stdout[:-1] if padded and applied.stdout.endswith("\n") else applied.stdout)
+        return url
+    # the check, the comment and the body land together on a board that can, so a refused edit leaves no comment saying it was made
+    try:
+        url = board.atomic(land)
     except LookupError as e:
         print(f"edit-issue-body: {e}", file=sys.stderr)
         return 2
-    if base and board.body_sha(body.read_text()) != base:
-        sys.exit(f"edit-issue-body: #{issue}'s body changed since you read it (its body sha is {board.body_sha(body.read_text())}, not {base}), so nothing was posted or changed: read it again and make the diff from that body")
-    # --forward: an applied diff reads as reversed, which a bare dry run would accept
-    check = subprocess.run(["patch", "--forward", "--batch", "--dry-run", "-s", str(body), diff_file], capture_output=True, text=True)
-    padded = False
-    if check.returncode and not body.read_text().endswith("\n"):
-        # `gh issue view` prints the stored body with a newline it lacks, so a diff made from that output ends in one the body has not
-        body.write_text(body.read_text() + "\n")
-        retry = subprocess.run(["patch", "--forward", "--batch", "--dry-run", "-s", str(body), diff_file], capture_output=True, text=True)
-        padded = retry.returncode == 0
-        if not padded:
-            body.write_text(body.read_text()[:-1])
-    if check.returncode and not padded:
-        sys.exit(f"edit-issue-body: the diff does not apply to #{issue}'s body, so nothing was posted or changed:\n{check.stdout}{check.stderr}")
-    applied = subprocess.run(["patch", "--forward", "--batch", "-s", "-o", "-", str(body), diff_file], capture_output=True, text=True)
-    # a defect the body already held does not block the edit that may fix it
-    found = issue_state.defects("edit-body", applied.stdout, body.read_text()) + issue_state.defects("edit-line", line)
-    if found:
-        print("edit-issue-body: nothing posted or changed, the edit has defects:\n- " + "\n- ".join(found) + f"\nthe grammar is {issue_state.GRAMMAR}", file=sys.stderr)
-        return 2
-    try:
-        board.check_links(issue, applied.stdout)
-    except LookupError as e:
-        sys.exit(f"edit-issue-body: {e}")
-    fence = "`" * max([3] + [len(run) + 1 for run in re.findall(r"`+", diff)])
-    comment = work / "comment.md"
-    comment.write_text(f"{line}\n\n{fence}diff\n{diff}{'' if diff.endswith(chr(10)) else chr(10)}{fence}\n")
-    print(board.comment(issue, comment.read_text()))
-    subprocess.run(["patch", "--forward", "--batch", "-s", str(body), diff_file], check=True)
-    board.edit(issue, body.read_text()[:-1] if padded and body.read_text().endswith("\n") else body.read_text())
+    if refusal:
+        code, message = refusal[0]
+        print(message, file=sys.stderr)
+        return code
+    print(url)
     print(f"edit-issue-body: #{issue}'s body now carries the diff its new comment holds")
+
+
+def defect_text(found):
+    return "edit-issue-body: nothing posted or changed, the edit has defects:\n- " + "\n- ".join(found) + f"\nthe grammar is {issue_state.GRAMMAR}"
 
 
 if __name__ == "__main__":

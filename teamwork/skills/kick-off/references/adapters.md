@@ -6,7 +6,7 @@ Which adapter does each port's operations of [protocol.md](protocol.md): the ada
 
 | port | adapter | when |
 | --- | --- | --- |
-| board | [board.md](adapters/board.md) | always; `TEAMWORK_BOARD=files` picks the files board, `TEAMWORK_BOARD=git` the git board, else GitHub |
+| board | [board.md](adapters/board.md) | always; `TEAMWORK_BOARD=files` picks the files board, `TEAMWORK_BOARD=github` the GitHub board, else the git board |
 | landing | [landing-git.md](adapters/landing-git.md) | `TEAMWORK_LANDING` is unset or `git` |
 | landing | [landing-github.md](adapters/landing-github.md) | `TEAMWORK_LANDING=github` |
 | message | [message-claude.md](adapters/message-claude.md) | the receiver is a Claude Code session, every session teamwork starts, or the owner |

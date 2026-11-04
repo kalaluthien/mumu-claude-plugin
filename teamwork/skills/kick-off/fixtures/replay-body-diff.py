@@ -50,7 +50,7 @@ def case_newline(work, repo, env, number):
     done = apply(work, repo, env, number, STORED + "\n", STORED.replace("Second", "Edited second") + "\n")
     if done.returncode:
         return fail(f"exit {done.returncode}: {done.stderr.strip()[-300:]}")
-    stored = subprocess.run(["git", "show", "refs/teamwork/board:" + number + "/body.md"], cwd=repo, capture_output=True, text=True).stdout
+    stored = subprocess.run(["git", "show", "refs/teamwork-blackboard:" + number + "/body.md"], cwd=repo, capture_output=True, text=True).stdout
     if stored != STORED.replace("Second", "Edited second"):
         return fail(f"the body is {stored!r}")
     return 0

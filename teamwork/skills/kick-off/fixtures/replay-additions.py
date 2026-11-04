@@ -39,11 +39,11 @@ def run(env, repo, script, *argv):
 
 
 def commits(repo):
-    return int(subprocess.run(["git", "rev-list", "--count", "refs/teamwork/board"], cwd=repo, capture_output=True, text=True).stdout)
+    return int(subprocess.run(["git", "rev-list", "--count", "refs/teamwork-blackboard"], cwd=repo, capture_output=True, text=True).stdout)
 
 
 def body(repo, number):
-    return subprocess.run(["git", "show", f"refs/teamwork/board:{number}/body.md"], cwd=repo, capture_output=True, text=True).stdout
+    return subprocess.run(["git", "show", f"refs/teamwork-blackboard:{number}/body.md"], cwd=repo, capture_output=True, text=True).stdout
 
 
 def owner_says(work, env, repo, number, wish):

@@ -1,20 +1,20 @@
-"""A local board's records, whatever store keeps them: each issue is `<n>/issue.json` (title, labels, state, reason, times),
-`<n>/body.md` and `<n>/comments/<k>.md`, oldest first; `commentTimes` in `issue.json`, when a copy set it, holds the first comments' times. Every record is trusted, since only local users write the store.
+"""A local board's records, whatever store keeps them: each issue is a folder `<scope>/<n>/` (`<n>/` at the repository root) holding `issue.json`
+(title, labels, state, reason, times), `body.md` and `comments/<k>.md`, oldest first, where `<scope>` is the folder of the repository the issue belongs to; `commentTimes` in `issue.json`, when a copy set it, holds the first comments' times. Every record is trusted, since only local users write the store.
 
 A store (a `Store` subclass) knows how to keep files, never what they hold: `names(folder)` lists the names right under a folder ('' the top),
+`homes()` says the folder of each issue number (a store may cache it),
 `load(path)` reads one, raising OSError when it is missing, `written(path)` says when it was written, `url(path)` names it, `refresh()` lets a
 long-lived reader see later writes, and `keep(change)` runs `change()` once or more and keeps every file it staged, all at once.
 `bind(store)` gives the board port's functions over that store, which a board adapter puts in its own namespace.
 Links between issues live in their bodies only, as `task_links` reads them."""
 import functools
 import json
-import os
 import re
 import shlex
 from datetime import datetime, timezone
 
 import task_links
-import team_settings
+import board_scope
 import team_signal
 
 USE = re.compile(r"use-board\.py\s+(file|comment|decide|edit|title|resolve|reopen|label)\b([^;&|\n]*)")
@@ -40,6 +40,34 @@ class Store:
     def stage(self, path, text):
         self.pending[path] = text
 
+    def homes(self):
+        """{issue number: its scope folder}, found by walking `names`; a store that can keep it between reads overrides this."""
+        found = {}
+
+        def walk(folder):
+            for name in self.names(folder):
+                path = f"{folder}/{name}" if folder else name
+                if name.isdigit():
+                    if "issue.json" in self.names(path):
+                        found.setdefault(int(name), folder)
+                else:
+                    walk(path)
+        walk("")
+        return found
+
+    def staged(self):
+        """{issue number: scope folder} of the issues the running change has written so far."""
+        found = {}
+        for path in self.pending or ():
+            parts = path.split("/")
+            if len(parts) >= 2 and parts[-2].isdigit() and parts[-1] in ("issue.json", "body.md"):
+                found[int(parts[-2])] = "/".join(parts[:-2])
+        return found
+
+    def place(self, number):
+        """NUMBER's scope folder, or None when no issue has that number."""
+        return self.staged().get(number, self.homes().get(number))
+
     def write(self, change):
         """CHANGE's result, its staged files kept at once; a change made inside another, as resolve's comment, joins it."""
         if self.pending is not None:
@@ -60,7 +88,15 @@ def stamp(seconds=None):
 
 
 def numbers(store):
-    return sorted(int(name) for name in store.children() if name.isdigit())
+    return sorted({*store.homes(), *store.staged()})
+
+
+def home(store, number):
+    """NUMBER's record folder, `teamwork/1213`, or `1213` at the repository root; FileNotFoundError when no issue has that number."""
+    folder = store.place(int(number))
+    if folder is None:
+        raise FileNotFoundError(f"no issue #{number}")
+    return f"{folder}/{int(number)}" if folder else str(int(number))
 
 
 def next_number(store):
@@ -73,44 +109,46 @@ def next_number(store):
 
 
 def meta(store, number):
-    return json.loads(store.read(f"{number}/issue.json"))
+    return json.loads(store.read(f"{home(store, number)}/issue.json"))
 
 
 def save(store, number, **change):
     """Stages NUMBER's changed fields; a change to a missing issue raises, never makes it."""
     old = meta(store, number) if change.get("createdAt") is None else {}
-    store.stage(f"{number}/issue.json", json.dumps({**old, **change, "updatedAt": stamp()}))
+    store.stage(f"{home(store, number)}/issue.json", json.dumps({**old, **change, "updatedAt": stamp()}))
 
 
 def comment_paths(store, number):
-    return [f"{number}/comments/{name}" for name in store.children(f"{number}/comments") if name.endswith(".md")]
+    folder = f"{home(store, number)}/comments"
+    return [f"{folder}/{name}" for name in store.children(folder) if name.endswith(".md")]
 
 
 def record(store, number, comments=True, owners=None):
     """NUMBER's record; OWNERS, the parents by part from `owners(store)`, spares a read of every body when many records are read."""
     issue = meta(store, number)
     given = issue.get("commentTimes", [])  # a copy of another board keeps the times its comments had there
-    notes = [{"body": store.read(path), "url": f"{store.url(str(number))}#comment-{int(path.rsplit('/', 1)[1][:-3])}",
+    address = store.url(home(store, number))
+    notes = [{"body": store.read(path), "url": f"{address}#comment-{int(path.rsplit('/', 1)[1][:-3])}",
               "createdAt": given[at] if at < len(given) else stamp(store.written(path)), "trusted": True}
              for at, path in enumerate(comment_paths(store, number))] if comments else []
-    return {"number": number, "title": issue["title"], "body": store.read(f"{number}/body.md"), "url": store.url(str(number)), "state": issue["state"], "stateReason": issue["reason"],
+    return {"number": number, "title": issue["title"], "body": store.read(f"{home(store, number)}/body.md"), "url": address, "scope": store.place(number), "state": issue["state"], "stateReason": issue["reason"],
             "createdAt": issue["createdAt"], "closedAt": issue["closedAt"], "trusted": True, "labels": issue["labels"], "parent": parent_of(store, number) if owners is None else owners.get(number), "isPullRequest": False,
             "mergedAt": None, "comments": notes}
 
 
 def scoped(store, project):
-    store.view()
-    label = team_settings.load(os.getcwd())["scope_prefix"] + project
-    return label if any(label in meta(store, number)["labels"] for number in numbers(store)) else None
+    """The folder whose issues are PROJECT's: its own top-level folder, else '' the repository root."""
+    return board_scope.folder_of(project)
 
 
 def issues(store, state="open", project=None, pulls=False, comments=True, since=None, repo=None):
-    """The issues newest first, those labelled `scope:<project>` when that label exists, updated since SINCE (an ISO time) when given."""
+    """The issues newest first, those in PROJECT's folder and below when given (the root project holds only the root's own), updated since SINCE (an ISO time) when given."""
     store.view()
-    label = project and scoped(store, project)
-    keep = lambda issue: state in ("all", issue["state"].lower()) and (not label or label in issue["labels"]) and (not since or issue["updatedAt"] >= since)
+    scope = scoped(store, project) if project else None
+    keep = lambda number: state in ("all", meta(store, number)["state"].lower()) and (scope is None or board_scope.within(store.place(number), scope)) \
+        and (not since or meta(store, number)["updatedAt"] >= since)
     parents = owners(store)
-    return [record(store, number, comments, parents) for number in reversed(numbers(store)) if keep(meta(store, number))]
+    return [record(store, number, comments, parents) for number in reversed(numbers(store)) if keep(number)]
 
 
 def fresh(store, number, repo=None, comments=True):
@@ -134,12 +172,12 @@ def changed_since(store, stamp):
 
 def owners(store):
     """{part: the issue whose body names it}, read in one pass over the bodies."""
-    return {part: owner for owner in numbers(store) for part in task_links.parts(store.read(f"{owner}/body.md"))}
+    return {part: owner for owner in numbers(store) for part in task_links.parts(store.read(f"{home(store, owner)}/body.md"))}
 
 
 def parent_of(store, number):
     """The issue whose body names NUMBER as a part, else None."""
-    return next((owner for owner in numbers(store) if int(number) in task_links.parts(store.read(f"{owner}/body.md"))), None)
+    return next((owner for owner in numbers(store) if int(number) in task_links.parts(store.read(f"{home(store, owner)}/body.md"))), None)
 
 
 def exists(store, number):
@@ -151,7 +189,7 @@ def exists(store, number):
 
 def blockers(store, number):
     store.view()
-    return [target for target in task_links.depends(store.read(f"{number}/body.md")) if not ((found := exists(store, target)) and task_links.completed(found))]
+    return [target for target in task_links.depends(store.read(f"{home(store, number)}/body.md")) if not ((found := exists(store, target)) and task_links.completed(found))]
 
 
 def check_links(store, number, text):
@@ -175,22 +213,30 @@ def tree(store, project, nodes=None):
     return task_links.derive(nodes, lambda n: exists(store, n))
 
 
+def atomic(store, change):
+    """CHANGE's result, every write it makes kept as one commit, or none when it raises."""
+    return store.write(change)
+
+
 def comment(store, number, text):
     """Adds TEXT as NUMBER's next comment; its url."""
     def change():
         meta(store, number)  # raises when NUMBER does not exist
         position = len(comment_paths(store, number)) + 1
-        store.stage(f"{number}/comments/{position:04d}.md", text)
+        store.stage(f"{home(store, number)}/comments/{position:04d}.md", text)
         save(store, number)
-        return f"{store.url(str(number))}#comment-{position}"
+        return f"{store.url(home(store, number))}#comment-{position}"
     return store.write(change)
 
 
-def file(store, title, body, labels) -> int:
+def file(store, title, body, labels, scope=None) -> int:
+    """Opens an issue in the folder SCOPE names (the caller's own project folder when None); LookupError for a folder the repository lacks."""
+    folder = board_scope.default() if scope is None else board_scope.check(scope)
+
     def change():
         check_links(store, None, body)
         number = next_number(store)
-        store.stage(f"{number}/body.md", body)  # before issue.json, so a reader that lists the issue finds its body
+        store.stage(f"{folder}/{number}/body.md" if folder else f"{number}/body.md", body)  # before issue.json, so a reader that lists the issue finds its body
         save(store, number, title=title, labels=list(labels), state="OPEN", reason="", createdAt=stamp(), closedAt=None)
         return number
     return store.write(change)
@@ -199,7 +245,7 @@ def file(store, title, body, labels) -> int:
 def body(store, number):
     store.view()
     try:
-        return store.read(f"{number}/body.md")
+        return store.read(f"{home(store, number)}/body.md")
     except OSError as e:
         raise LookupError(f"cannot read #{number} ({e.strerror or e}); check the board setting") from e
 
@@ -208,7 +254,7 @@ def edit(store, number, text):
     def change():
         body(store, number)
         check_links(store, number, text)
-        store.stage(f"{number}/body.md", text)
+        store.stage(f"{home(store, number)}/body.md", text)
         save(store, number)
     store.write(change)
 
@@ -264,12 +310,13 @@ def posted(store, output):
     store.view()
     number, position = found.groups()
     try:
-        return found.group(0), store.read(f"{number}/comments/{int(position):04d}.md" if position else f"{number}/body.md")
-    except OSError:
+        base = home(store, number)
+        return found.group(0), store.read(f"{base}/comments/{int(position):04d}.md" if position else f"{base}/body.md")
+    except (OSError, ValueError):
         return found.group(0), ""
 
 
-PORT = ("issues", "fresh", "comments_since", "changed_since", "blockers", "scoped", "tree", "comment", "file", "body", "edit", "resolve", "reopen",
+PORT = ("atomic", "issues", "fresh", "comments_since", "changed_since", "blockers", "scoped", "tree", "comment", "file", "body", "edit", "resolve", "reopen",
         "retitle", "label", "posted", "parent_of", "check_links")
 
 

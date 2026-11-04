@@ -6,7 +6,7 @@ and exit 1 on any failure:
 - `posted`: `posted()` reads back the body behind a git board's issue url and comment url;
 - `signal`: a write touches the signal file the issue pane watches;
 - `outside`: a write outside a repository refuses, naming the repository it needs;
-- `stale-lock`: a write blocked by a minute-old `refs/teamwork/board.lock` gives up within 5 seconds, naming that file;
+- `stale-lock`: a write blocked by a minute-old `refs/teamwork-blackboard.lock` gives up within 5 seconds, naming that file;
 - `copy-refused`: copy-board.py refuses a target holding an issue, leaving it unchanged.
 
 usage: replay-git-board.py"""
@@ -41,7 +41,6 @@ def main(args):
     sys.path.insert(0, str(ROOT / "lib"))
     import board_files
     import board_git
-    import team_settings
     import team_signal
 
     def use(kind, *argv, cwd=repo):
@@ -50,15 +49,15 @@ def main(args):
     (work / "b.md").write_text("A body.\n")
     (work / "c.md").write_text("A comment.\n")
     (work / "waits.md").write_text("A body.\n\n```teamwork\ndepends on: #1\n```\n")
-    scope = team_settings.load(os.getcwd())["scope_prefix"] + "probe"
+    (repo / "probe").mkdir()
     start = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 5))
     for kind in ("files", "git"):
-        use(kind, "file", "First", work / "b.md", scope)
+        use(kind, "file", "First", work / "b.md", "--scope", "probe")
         use(kind, "file", "Second", work / "waits.md")
         use(kind, "comment", 1, work / "c.md")
     reads = {"changed-since": lambda module: (module.changed_since(start), module.changed_since("2999-01-01T00:00:00Z")),
              "comments-since": lambda module: [(n, note["body"]) for n, note in module.comments_since(start)],
-             "blockers": lambda module: module.blockers(2), "scoped": lambda module: (module.scoped("probe"), module.scoped("none")),
+             "blockers": lambda module: module.blockers(2), "scoped": lambda module: (module.scoped("probe"), module.scoped("none"), module.fresh(1)["scope"]),
              "trusted": lambda module: module.trusted({}), "command": lambda module: module.command("use-board.py comment 1 x.md")}
     for name, read in reads.items():
         files, git = read(board_files), read(board_git)
@@ -77,7 +76,7 @@ def main(args):
     refused = use("git", "file", "Nowhere", work / "b.md", cwd=outside)
     step("outside", refused.returncode == 1 and "git repository" in refused.stderr and not refused.stdout, refused.stdout + refused.stderr)
 
-    lock = repo / ".git" / "refs" / "teamwork" / "board.lock"
+    lock = repo / ".git" / "refs" / "teamwork-blackboard.lock"
     lock.write_text("")
     os.utime(lock, (time.time() - 60,) * 2)  # as a killed writer leaves it
     began = time.time()

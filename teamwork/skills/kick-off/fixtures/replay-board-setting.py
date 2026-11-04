@@ -80,7 +80,7 @@ def main(args):
     live = subprocess.Popen([str(ROOT / "monitors" / "print-team-gaps.py")], cwd=repo, stdout=log.open("w"), stderr=subprocess.STDOUT,
                             env=environment(FAKE_HERDR_STATE=str(work / "herdr.json"), HERDR_PANE_ID="w1:p1", MONITOR_POLL="1"))
     try:
-        time.sleep(3)  # a few polls on the default board, which fails, before the setting exists
+        time.sleep(3)  # a few polls on the default board, which holds no issue, before the setting exists
         early = "route #1" in log.read_text()
         mark = work / "claude" / "teamwork" / "issues-changed"
         stamp = lambda: mark.stat().st_mtime_ns if mark.exists() else 0
@@ -105,7 +105,7 @@ def main(args):
     step("environment-wins", kinds(repo, TEAMWORK_BOARD="github") == "github git", kinds(repo, TEAMWORK_BOARD="github"))
 
     (repo / ".claude" / "settings.local.json").unlink()
-    read = run([ROOT / "hooks" / "list-issue-board.py", "repo", "--json"])
+    read = run([ROOT / "hooks" / "list-issue-board.py", "repo", "--json"], TEAMWORK_BOARD="github")
     step("failure-names-board", read.returncode != 0 and "the github board read failed" in read.stderr, read.stderr)
     return 1 if failed else 0
 
