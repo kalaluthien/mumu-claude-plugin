@@ -218,6 +218,16 @@ def earlier_fails(task):
     return found
 
 
+WRONG_BASE_FIX = """
+To fix a `wrong base` row, quote after `on base` the output of running that exact line on the base, never a guess.
+Pin what varies or matches too much: `LC_ALL=C` before a sorted list, a stub for a GitHub read the check does not
+test, an anchored name that prefixes a sibling's. Read an exit status without a pipe, and put `2>&1` before a pipe
+into `grep -c`, since this script merges stderr only after it."""
+WRONG_PASS_FIX = """
+To fix a `wrong pass` row, run the criterion's command on the sample by hand and make its output meet `prints`,
+`exits` or `more`; a check that reads its input twice can never pass on a pipe."""
+
+
 def main(args):
     parser = usage_parser.parser(__doc__)
     parser.add_argument("--timeout", type=int, default=300)
@@ -247,7 +257,10 @@ def main(args):
         print("REPORTED: pass outputs at " + head + "\n\n| # | criterion | result | output on sample |\n| --- | --- | --- | --- |")
         for table_row in rows:
             print("| " + " | ".join([table_row[0], table_row[1].replace("|", "\\|"), table_row[2], table_row[3]]) + " |")
-        return 1 if any(table_row[2] == "wrong pass" for table_row in rows) else 0
+        if any(table_row[2] == "wrong pass" for table_row in rows):
+            print(WRONG_PASS_FIX)
+            return 1
+        return 0
     if options.base:
         ref = base_ref(options.ref)
         sha = subprocess.run(["git", "rev-parse", "--short", ref], cwd=root, capture_output=True, text=True).stdout.strip()
@@ -255,7 +268,10 @@ def main(args):
         print(f"REPORTED: base outputs at {ref} {sha}\n\n| # | criterion | result | output on base |\n| --- | --- | --- | --- |")
         for table_row in rows:
             print("| " + " | ".join([table_row[0], table_row[1].replace("|", "\\|"), table_row[2], table_row[3]]) + " |")
-        return 1 if any(table_row[2] == "wrong base" for table_row in rows) else 0
+        if any(table_row[2] == "wrong base" for table_row in rows):
+            print(WRONG_BASE_FIX)
+            return 1
+        return 0
     standing = pathlib.Path(root, ".teamwork", "default-criteria.md")
     found = [(str(n), criterion) for n, criterion in enumerate(criteria(issue_state.sections(task.get("body")).get("done", "")), 1)]
     found += [("standing", criterion) for criterion in criteria(standing.read_text())] if standing.exists() else []
