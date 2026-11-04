@@ -346,7 +346,7 @@ def nodes_pane():
     done.write_text(json.dumps(finished))
     shown = {row["number"]: row["lines"]["notes"] for row in json.loads(subprocess.run([sys.executable, str(LIST), "--nodes", str(done), "--json"],
                                                                                        capture_output=True, text=True).stdout or "[]")}
-    step("row-finished-parent", "→ probe the pane" in shown.get(1, []) and any(line.startswith("→ all parts done") for line in shown.get(2, [])), shown)
+    step("row-finished-parent", "next step: probe the pane" in shown.get(1, []) and shown.get(2) == [], shown)
     import decisions
     import team_gaps
     outside = node(5)

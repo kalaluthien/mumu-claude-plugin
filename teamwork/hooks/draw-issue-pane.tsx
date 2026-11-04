@@ -14,7 +14,7 @@ const loaded = atom({ plugin: 'teamwork', key: 'loaded' } as const, false)
 const expanded = atom({ plugin: 'teamwork', key: 'expanded' } as const, [] as (number | string)[])
 // the ` +` or ` -` fold mark at a row's first line's end
 const FOLD = 2
-// a wait that needs someone stands out; any other, such as `← #n` beside a blocked task, stays dim
+// a wait that needs someone stands out; any other, such as `blocked by #n` beside a blocked task, stays dim
 const WAIT_COLOR: Record<string, string> = { 'waits on the owner': 'error', 'waits on the manager': 'warning' }
 // a write to issues, pull requests, sub-issues or dependencies, the changes the board shows, so a `gh api` read marks nothing, even one with `-f` and `-X GET`; a global flag may stand before the subcommand (`gh -R o/r issue …`); the body script's gh runs out of sight
 const TEAM_CHANGE = /\bedit-issue-body\.py\b|\bgh\s+(?:-{1,2}\w[\w-]*(?:[\s=][^\s-]\S*)?\s+)*(?:(issue|pr)\s+(create|comment|edit|close|reopen|merge|review|ready)\b|api\s+(?!graphql)(?!(?:[^;&|\n]*\s)?(-X|--method)[\s=]*GET\b)(?=[^;&|\n]*(\s(-X|--method)[\s=]*(POST|PATCH|PUT|DELETE)\b|\s-[fF]\b|\s--(raw-)?field\b|\s--input\b))[^;&|\n]*\b(issues|sub_issues|dependencies|pulls)\b)/
@@ -164,7 +164,7 @@ export const register: Register = on => {
                 {issue.done.map((criterion, k) => part(`done-${issue.number}-${k}`, [criterion.met === null ? '' : criterion.met ? '[x]' : '[ ]', criterion.kind && `(${criterion.kind})`, criterion.name].filter(Boolean).join(' '), criterion.detail ? [criterion.detail] : []))}
                 {/* closed parts dim and newest first, so what landed last stays in view */}
                 {issue.closed.map(task => <Text wrap="wrap" dimColor><Link href={task.url} label={`#${task.number}`} />{' '}<Text strikethrough={task.stopped}>{task.title}</Text>
-                  {task.blockers.length > 0 && <Text> ← {task.blockers.map(blocker => `#${blocker.number}${blocker.closed ? ' closed' : ''}`).join(' ')}</Text>}</Text>)}
+                  {task.blockers.some(blocker => !blocker.closed) && <Text> blocked by {task.blockers.map(blocker => `#${blocker.number}${blocker.closed ? ' closed' : ''}`).join(' ')}</Text>}</Text>)}
                 {issue.earlier && <Text dimColor>…</Text>}
               </Box>
             </Box>

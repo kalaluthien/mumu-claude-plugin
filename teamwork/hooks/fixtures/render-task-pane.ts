@@ -1,6 +1,6 @@
 // Render a manager's issue pane from the board in a nodes file, every row unfolded, at body widths 30, 40, 60 and 88, through stand-ins for
 // `claude-code` and the JSX runtime, and check it row for row against `list-issue-board.py` laid out for that width less the fold mark: each
-// row's title, status, `←`, `?`, `◆` and `→` lines, guide included, are the lines its `--json` row lays out, in the order `--width` prints them,
+// row's title, status, `blocked by`, `?`, `◆` and `next step:` lines, guide included, are the lines its `--json` row lays out, in the order `--width` prints them,
 // each fits the body with the first line's fold mark, a title that fits on one line takes one, and an unfolded row with a goal, criteria or
 // closed parts draws them: `same`, else `differ: <the first difference>`, exit 1.
 // usage: bun teamwork/hooks/fixtures/render-task-pane.ts <nodes-file>
@@ -79,7 +79,7 @@ register(on as any)
 await handlers['session.start']($, { cwd: '/repo' }, async () => ({}))
 await settle(1)
 type Row = { number: number; guide: string; pad: string; goal: string; detail: string[]; done: { name: string }[];
-  closed: { title: string }[]; lines: { title: string[]; status: string[]; after: string[]; notes: string[] } }
+  closed: { title: string; number: number; blockers: { number: number }[] }[]; lines: { title: string[]; status: string[]; after: string[]; notes: string[] } }
 const differ = (what: string) => { console.log(`differ: ${what}`); process.exit(1) }
 const FOLD = 2  // the pane's ` +` or ` -` at a row's first line's end
 for (const width of [30, 40, 60, 88]) {
@@ -110,6 +110,10 @@ for (const width of [30, 40, 60, 88]) {
     const owed = [row.goal, row.detail.length ? 'see detail' : '', ...row.done.map(item => item.name), ...row.closed.map(task => task.title)].filter(Boolean)
     const missing = owed.find(piece => !folded.includes(piece))
     if (missing !== undefined) differ(`width ${width}: #${row.number} unfolded lacks ${JSON.stringify(missing)}`)
+    const arrow = [...heading, folded].join(' ').match(/[←→]/)
+    if (arrow) differ(`width ${width}: #${row.number} draws the arrow ${arrow[0]}, which says nothing of which way a link binds`)
+    const named = row.closed.find(task => task.blockers.every(blocker => blocker.closed) === folded.includes(`#${task.number} ${task.title} blocked by`))
+    if (named) differ(`width ${width}: #${row.number}'s closed #${named.number} shows its \`blocked by\` words only when a blocker is open`)
   })
 }
 console.log('same')

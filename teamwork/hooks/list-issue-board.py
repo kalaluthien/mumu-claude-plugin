@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Print the project's open tasks as the issue pane draws them: each part under its parent by a guide, a row's title, then its
-status (`n/m done · holder · wait`) and its `← #a #b` line, then what the pane folds under it: goal, criteria, next step, closed parts.
+status (`n/m parts done · holder · wait`) and its `blocked by #a #b` line, then what the pane folds under it: goal, criteria, next step, closed parts.
 
 usage: list-issue-board.py <project> [--json [--width <n>] | --width <n> | --check]
        list-issue-board.py --nodes <file> [--json [--width <n>] | --width <n> | --check]
