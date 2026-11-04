@@ -269,4 +269,4 @@ def compose(issue, blockers=()):
     done = [dict(zip(("box", "kind", "name", "detail"), CRITERION.match(item).groups())) for item in ITEM.findall(current.get("done", ""))]
     done = [{"met": criterion["box"] and criterion["box"] != " ", "kind": criterion["kind"] or "", "name": criterion["name"] or criterion["detail"], "detail": criterion["detail"] if criterion["name"] else ""}
             for criterion in done]
-    return {"holders": holders, "waits": waits, "goal": DATA.sub("", current.get("goal", "")).strip().splitlines(), "done": done}
+    return {"holders": holders, "waits": waits, "done": done}

@@ -57,58 +57,36 @@ def entry(node, superseded=frozenset()):
             "holder": " ".join(state["holders"] or []), "wait": wait if wait in SHOWN_WAITS else "",
             "progress": progress_of(summary, blockers, next_step),
             "done": [item for item in state["done"] if item["kind"] != "task"],
-            "next": next_step,
+            "next": next_step, "latest": max((comment.get("createdAt") or "" for comment in node["comments"]["nodes"]), default=""),
             **decisions.shown(node, superseded), "tasks": [], "blockers": every, "closed": closed[::-1][:SHOWN_CLOSED], "earlier": summary.get("completed", 0) > min(len(closed), SHOWN_CLOSED)}
 
 
-def related(nodes, roots):
-    """{root: its group's lowest number}: roots whose tasks name each other, or wait on one another."""
-    group = {number: number for number in roots}
-    parent = {node["number"]: (node["parent"] or {}).get("number") for node in nodes}
-
-    def find(number):
-        while group[number] != number:
-            number = group[number]
-        return number
-
-    def root_of(number):
-        seen = set()
-        while parent.get(number) in parent and number not in seen:
-            seen.add(number)
-            number = parent[number]
-        return number
-
-    def join(first, second):
-        if first in group and second in group:
-            first, second = find(first), find(second)
-            group[max(first, second)] = min(first, second)
-
-    for node in nodes:
-        if node["number"] in group:
-            for text in [node["body"]] + [comment["body"] for comment in node["comments"]["nodes"]]:
-                for named in re.findall(r"#(\d+)\b", text or ""):
-                    join(node["number"], root_of(int(named)))
-        for blocker in node["blockedBy"]["nodes"]:
-            join(root_of(node["number"]), root_of(blocker["number"]))
-    return {number: find(number) for number in group}
+def need_of(issue):
+    """How soon a task needs someone, with its parts: 0 when it or a part waits on the owner, 1 when it or a part is held, else 2; and the latest comment time among them."""
+    parts = [need_of(task) for task in issue["tasks"]]
+    own = 0 if issue["wait"] == "waits on the owner" else 1 if issue["holder"] else 2
+    return min([own] + [part[0] for part in parts]), max([issue["latest"]] + [part[1] for part in parts])
 
 
 def board(nodes):
-    """The open tasks as a tree: parts under their parent by number, roots grouped with related ones by lowest number."""
+    """The open tasks as a tree: parts under their parent by number, roots by what they need: the owner's answer first, then held, then blocked or unheld,
+    the latest comment first in each."""
     superseded = decisions.superseded_in(nodes)
     items = {node["number"]: entry(node, superseded) for node in nodes}
     top = []
     for node in nodes:
         parent = (node["parent"] or {}).get("number")
         (items[parent]["tasks"] if parent in items else top).append(items[node["number"]])
-    groups = related(nodes, [issue["number"] for issue in top])
 
     def order(issues):
         for issue in issues:
             issue["tasks"].sort(key=lambda task: task["number"])
             order(issue["tasks"])
-    top.sort(key=lambda issue: (groups[issue["number"]], issue["number"]))
     order(top)
+    needs = {issue["number"]: need_of(issue) for issue in top}
+    top.sort(key=lambda issue: issue["number"])
+    top.sort(key=lambda issue: needs[issue["number"]][1], reverse=True)  # stable, so a tie keeps the lower number first
+    top.sort(key=lambda issue: needs[issue["number"]][0])
     return top
 
 
