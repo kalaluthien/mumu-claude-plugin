@@ -66,6 +66,7 @@ VERB_KEYWORD = {"decide": WORD["answer"], "resolve": next(word for word, role in
 # ones from 23, and a second `,` `;` or `:` joined a further idea in every dense line a fresh reader marked
 TITLE_CHARS = 40
 SENTENCE_WORDS = 20
+SENTENCE_MIN_WORDS = 5  # a subject, a verb and what it acts on, with an article or a modifier
 SENTENCE_BREAKS = 1
 TASK_NUMBER = re.compile(r"#\d+\b")
 BREAK = re.compile(r"[,;:](?=\s)")
@@ -144,6 +145,9 @@ def _defects(kind, text):
             found.append(("other-verb", f"{kind} opens with `{own}:`, not `{first.group(1)}:`; change the first word, or post the text with the verb that matches it"))
     if kind in ("file", "edit-body"):
         found += plain("summary line", summary_line(text))
+        for item in ITEM.findall(sections(text).get("done", "")):
+            name = CRITERION.match(item).group(3)
+            found += plain("criterion name", name) + sentence("criterion name", name) if name else []
     if kind == "decide":
         found += plain("decision", (decision(text) or {}).get(FIELD["decision"], ""))
     return found
@@ -169,6 +173,14 @@ def plain(what, text):
     if what != "title" and len(BREAK.findall(text)) > SENTENCE_BREAKS:
         found.append(f"the {what} joins ideas by {len(BREAK.findall(text))} of `,` `;` `:`; keep one idea, with at most {SENTENCE_BREAKS}")
     return [(f"plain {what} {text}", f"{sentence}, as Plain words says") for sentence in found]
+
+
+def sentence(what, text):
+    """[(signature, sentence)] when TEXT is too short to be a complete sentence, which holds a subject, a verb and what it acts on; the signature holds the text, as in plain."""
+    words = len(text.split())
+    if words >= SENTENCE_MIN_WORDS:
+        return []
+    return [(f"sentence {what} {text}", f"the {what} `{text}` has {words} word{'' if words == 1 else 's'}, a label and no complete sentence; write what holds, with a subject, a verb and what it acts on, in at least {SENTENCE_MIN_WORDS} words, as Complete sentence says")]
 
 
 def sections(text):

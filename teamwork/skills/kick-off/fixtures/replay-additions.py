@@ -12,7 +12,7 @@ import sys
 import tempfile
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
-BODY = "## Goal\n\nProbe the pane.\n\n## Definition of done\n\n1. [check] **probe passes**: `echo PASS` prints `PASS`; on base `FAIL`.\n"
+BODY = "## Goal\n\nProbe the pane.\n\n## Definition of done\n\n1. [check] **The probe prints PASS when it runs**: `echo PASS` prints `PASS`; on base `FAIL`.\n"
 HOLD = "DECIDED: probe-worker holds this.\n\n```teamwork\nholders: probe-worker\n```\n"
 ADDED = ("drop the releases line", "show the blocker on the title", "hide closed blockers")
 

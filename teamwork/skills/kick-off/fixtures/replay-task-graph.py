@@ -24,7 +24,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 USE = HERE.parent / "scripts" / "use-board.py"
 LIST = ROOT / "hooks" / "list-issue-board.py"
-CHECK = "1. [check] **probe passes**: `echo ok` prints `ok`; on base nothing.\n"
+CHECK = "1. [check] **The probe prints PASS when it runs**: `echo ok` prints `ok`; on base nothing.\n"
 failures = []
 
 

@@ -64,7 +64,7 @@ def link(name, added, why):
     use("edit", number(name), text(f"{name}-link.diff", diff), f"DECIDED: {why}", "--base", board.body_sha(old))
 
 
-TASK = "## Goal\n\nProbe the board.\n\n## Definition of done\n\n1. [check] **probe passes**: `echo ok` prints `ok`; on base nothing.\n"
+TASK = "## Goal\n\nProbe the board.\n\n## Definition of done\n\n1. [check] **The probe prints PASS when it runs**: `echo ok` prints `ok`; on base nothing.\n"
 
 
 def main(args):

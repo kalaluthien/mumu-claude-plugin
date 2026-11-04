@@ -33,7 +33,7 @@ ROOT = HERE.parents[2]
 USE = HERE.parent / "scripts" / "use-board.py"
 INDEX = HERE.parent / "scripts" / "list-decisions.py"
 LIST = ROOT / "hooks" / "list-issue-board.py"
-CHECK = "1. [check] **probe passes**: `echo ok` prints `ok`; on base nothing.\n"
+CHECK = "1. [check] **The probe prints PASS when it runs**: `echo ok` prints `ok`; on base nothing.\n"
 LONG = "probe only the sandbox repository and keep every raw response it sends as a fixture beside the probe"
 failures = []
 

@@ -22,7 +22,7 @@ ROOT = HERE.parents[2]
 SCRIPTS = HERE.parent / "scripts"
 sys.path.insert(0, str(ROOT / "lib"))
 
-BASE = "A summary.\n\n## Goal\n\nDo it.\n\n## Definition of done\n\n1. [check] **it works**: `true` prints nothing.\n"
+BASE = "A summary.\n\n## Goal\n\nDo it.\n\n## Definition of done\n\n1. [check] **The probe works when it runs once**: `true` prints nothing.\n"
 FENCED = "\n```teamwork\n{}\n```\n"
 STRAY = BASE + "\nholders: stray-worker\n"
 
@@ -50,7 +50,7 @@ REFUSED = {
     "keyword-other-verb": ([("decide", "BLOCKED: which one?\n"), ("resolve", "DECIDED: closing it\n")], "first word"),
     "heading-misspelt": ([("file", BASE.replace("## Goal", "## goal")), ("file", BASE.replace("## Definition of done", "## Definition Of Done"))], "write exactly"),
     "heading-level": ([("file", BASE.replace("## Goal", "### Goal"))], "## Goal"),
-    "heading-repeated": ([("file", BASE + "\n## Definition of done\n\n1. [check] **again**: `true`\n")], "keep one"),
+    "heading-repeated": ([("file", BASE + "\n## Definition of done\n\n1. [check] **The probe works again when it runs twice**: `true`\n")], "keep one"),
     "edit-stray-key": ([("edit", BASE, BASE + "\nholders: stray\n", "DECIDED: add a holder")], "teamwork"),
     "edit-keyword-lowercase": ([("edit", BASE, BASE + "\nMore.\n", "decided: lower")], "DECIDED:"),
     "edit-keyword-empty": ([("edit", BASE, BASE + "\nMore.\n", "")], "DECIDED:"),
