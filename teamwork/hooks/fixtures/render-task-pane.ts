@@ -124,8 +124,10 @@ for (const width of [30, 40, 60, 88]) {
     if (missing !== undefined) differ(`width ${width}: #${row.number} unfolded lacks ${JSON.stringify(missing)}`)
     const arrow = [...heading, folded].join(' ').match(/[←→]/)
     if (arrow) differ(`width ${width}: #${row.number} draws the arrow ${arrow[0]}, which says nothing of which way a link binds`)
-    const named = row.closed.find(task => task.blockers.every(blocker => blocker.closed) === folded.includes(`#${task.number} ${task.title} blocked by`))
-    if (named) differ(`width ${width}: #${row.number}'s closed #${named.number} shows its \`blocked by\` words only when a blocker is open`)
+    const openNumbers = (task: Row['closed'][number]) => task.blockers.filter(blocker => !blocker.closed).map(blocker => `#${blocker.number}`)
+    const named = row.closed.find(task => folded.includes(`#${task.number} ${task.title} blocked by`) !== (openNumbers(task).length > 0)
+      || (openNumbers(task).length > 0 && !folded.includes(`#${task.number} ${task.title} blocked by ${openNumbers(task).join(' ')}`)))
+    if (named) differ(`width ${width}: #${row.number}'s closed #${named.number} shows \`blocked by\` only with its open blockers, and none when every blocker is closed`)
   })
 }
 if (process.argv[3] === '--styled') console.log(styled(lastPane).join('\n'))
