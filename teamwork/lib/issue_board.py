@@ -12,7 +12,7 @@ STOPPED = ("NOT_PLANNED", "DUPLICATE")
 # waits that need someone, which the status shows; a blocked task shows its `←` line instead
 SHOWN_WAITS = ("waits on the owner", "waits on the manager", "no holder")
 WIDTHS = (24, 30, 40, 60, 80)
-PANE_WIDTH = 40  # the pane draws at a width it cannot read, so it lays out for a narrow docked pane
+PANE_WIDTH = 40  # a narrow docked pane, for a listing given no width, as before the pane is first drawn
 MIN_TEXT = 16  # cells a row keeps for its text before its depth stops growing
 NOTE_LINES = 3  # lines a question or decision takes at most, so one long text leaves room for the next task
 
@@ -108,18 +108,23 @@ def cells(text):
     return sum(2 if unicodedata.east_asian_width(ch) in "WF" else 1 for ch in text)
 
 
-def wrap(text, width):
-    """Greedy word wrap by display cells; a word wider than a whole line breaks after its last hyphen that fits, else is cut."""
+def wrap(text, width, first=None):
+    """Greedy word wrap by display cells, the first line FIRST cells wide when given, every other WIDTH; a word wider than a whole
+    line breaks after its last hyphen that fits, else is cut."""
     if width is None:
         return [text]
     lines, line = [], ""
+
+    def room():
+        return width if first is None or lines else first
+
     for word in text.split():
-        if line and cells(line) + 1 + cells(word) > width:
+        if line and cells(line) + 1 + cells(word) > room():
             lines.append(line)
             line = ""
-        while cells(word) > width:
+        while cells(word) > room():
             cut = 0
-            while cells(word[:cut + 1]) <= width:
+            while cells(word[:cut + 1]) <= room():
                 cut += 1
             hyphen = word.rfind("-", 0, cut)
             cut = hyphen + 1 if hyphen > 0 else max(cut, 1)
@@ -191,7 +196,9 @@ def heading(row, width):
     notes += [line for decided in row.get("decided", []) for line in note("◆", decided, room)]
     notes += note("◆", f"{row['more']} more decided", room) if row.get("more") else []
     notes += note("→", row["next"], room, limit=None) if row.get("next") else []  # the next step has no other place to be read in full
-    return {"title": wrap(label(row), room), "status": shown, "after": wrap(after(row["blockers"]), room) if row["blockers"] else [], "notes": notes}
+    # the first line sits after the guide, the later ones after the wider pad, so a title that fits beside its guide takes one line
+    title = wrap(label(row), room, None if width is None else width - cells(row["guide"]))
+    return {"title": title, "status": shown, "after": wrap(after(row["blockers"]), room) if row["blockers"] else [], "notes": notes}
 
 
 def note(mark, text, room, limit=NOTE_LINES):
