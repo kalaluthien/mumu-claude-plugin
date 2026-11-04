@@ -3,7 +3,8 @@
 
 usage: use-board.py <operation> <args>
 
-`comment`, `decide`, `file` and `resolve` first refuse, exit 2 and post nothing, a text with a malformed key line, keyword line or section heading, naming the fix.
+`comment`, `decide`, `file` and `resolve` first refuse, exit 2 and post nothing, a text with a malformed key line, keyword line or section heading, naming the fix;
+`file`, `title`, `decide` and an `edit` also refuse a title, summary line or decision that breaks the grammar's Plain words caps.
 
   read <issue>                          print its title, state, labels, parent, body and comments
   comment <issue> <body-file>           append the file's text as a comment; refused, nothing posted, when it holds a `decision` block, which `decide` posts
@@ -34,8 +35,10 @@ def main(args):
     keyed = lambda keyword, path: text(path) if text(path).startswith(keyword) else f"{keyword} {text(path)}"
     try:
         # a text that no code reads as meant would leave an issue unrouted or a question unasked, so it is refused with its fix
-        if verb in ("comment", "decide", "file", "resolve") and len(operands) >= 2 and (found := issue_state.defects(verb, text(operands[1]))):
-            print(f"use-board: nothing posted, {operands[1]} has defects:\n- " + "\n- ".join(found) + f"\nthe grammar is {issue_state.GRAMMAR}", file=sys.stderr)
+        found = issue_state.defects(verb, text(operands[1])) if verb in ("comment", "decide", "file", "resolve") and len(operands) >= 2 else []
+        found += issue_state.defects("title", operands[0] if verb == "file" else operands[-1]) if verb in ("file", "title") and len(operands) >= 2 else []
+        if found:
+            print(f"use-board: nothing posted, the {verb} has defects:\n- " + "\n- ".join(found) + f"\nthe grammar is {issue_state.GRAMMAR}", file=sys.stderr)
             return 2
         if verb == "read" and len(operands) == 1:
             issue = board.fresh(operands[0]) or sys.exit(f"use-board: cannot read #{operands[0]}")

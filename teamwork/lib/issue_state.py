@@ -61,6 +61,13 @@ KEYWORD_LINE = re.compile(r"^\s*[*_#>-]*\s*(?:" + "|".join(KEYWORDS) + r")\b", r
 EXACT_KEYWORD = re.compile(r"^\s*(" + "|".join(KEYWORDS) + r"):")
 # the keyword each posting verb opens its text with: `decide` answers, `resolve` informs
 VERB_KEYWORD = {"decide": WORD["answer"], "resolve": next(word for word, role in KEYWORDS.items() if not role)}
+# the Plain words caps on what the issue pane shows: the live board's plain summary lines and decisions ran to 20 words, its dense
+# ones from 23, and a second `,` `;` or `:` joined a further idea in every dense line a fresh reader marked
+TITLE_CHARS = 40
+SENTENCE_WORDS = 20
+SENTENCE_BREAKS = 1
+TASK_NUMBER = re.compile(r"#\d+\b")
+BREAK = re.compile(r"[,;:](?=\s)")
 
 
 def stem(words):
@@ -78,6 +85,8 @@ def defects(kind, text, old=""):
 
 def _defects(kind, text):
     """[(signature, sentence)] of TEXT, the signature free of the line number so an edit that moves a line keeps it."""
+    if kind == "title":
+        return plain("title", text)
     if kind == "edit-line":
         one = re.fullmatch(WORD["answer"] + r":[^\n]*\S[^\n]*", (text or "").rstrip("\n"))
         return [] if one else [("edit-line", f"the keyword line is not one line that opens `{WORD['answer']}:` and says what changed; write `{WORD['answer']}: <what changed and why>` on one line")]
@@ -132,7 +141,33 @@ def _defects(kind, text):
         own = VERB_KEYWORD.get(kind)
         if first and own and first.group(1) != own:
             found.append(("other-verb", f"{kind} opens with `{own}:`, not `{first.group(1)}:`; change the first word, or post the text with the verb that matches it"))
+    if kind in ("file", "edit-body"):
+        found += plain("summary line", summary_line(text))
+    if kind == "decide":
+        found += plain("decision", (decision(text) or {}).get(FIELD["decision"], ""))
     return found
+
+
+def summary_line(body):
+    """A body's summary line, the first paragraph the issue pane shows, its lines joined; none when the body opens with a heading."""
+    first = (body or "").replace("\r\n", "\n").strip().split("\n\n")[0]
+    return "" if first.startswith("#") else " ".join(first.split())
+
+
+def plain(what, text):
+    """[(signature, sentence)] of the Plain words caps TEXT, a title, summary line or decision, breaks; the signature holds the text, so
+    an edit that leaves an older line as it was is never blocked by it."""
+    text, found = " ".join((text or "").split()), []
+    named = TASK_NUMBER.findall(text)
+    if named:
+        found.append(f"the {what} names {' '.join(named)}; say what that task is in words and put its number in the body")
+    if what == "title" and len(text) > TITLE_CHARS:
+        found.append(f"the title has {len(text)} characters; cut it to {TITLE_CHARS}")
+    if what != "title" and len(text.split()) > SENTENCE_WORDS:
+        found.append(f"the {what} has {len(text.split())} words; cut it to {SENTENCE_WORDS} words with one idea, and move the detail to the body")
+    if what != "title" and len(BREAK.findall(text)) > SENTENCE_BREAKS:
+        found.append(f"the {what} joins ideas by {len(BREAK.findall(text))} of `,` `;` `:`; keep one idea, with at most {SENTENCE_BREAKS}")
+    return [(f"plain {what} {text}", f"{sentence}, as Plain words says") for sentence in found]
 
 
 def sections(text):
