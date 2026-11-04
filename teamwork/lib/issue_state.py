@@ -1,4 +1,5 @@
 """An issue's latest state, composed from its body and comments by the grammar file, which alone names the keywords and keys."""
+import difflib
 import pathlib
 import re
 
@@ -47,6 +48,91 @@ def data(text):
 def stray_state(text):
     """Whether TEXT holds a holders line outside every reserved block, which `data` never reads."""
     return bool(re.search(rf"^\s*{WORD['holders']}:", DATA.sub("", text or ""), re.M))
+
+
+FENCE = re.compile(r"^(`{3,})(.*)$")
+# a fence a writer may take for the teamwork one: its info string spelt otherwise, or a data language
+LOOKALIKES = ("teamwork", "yaml", "yml")
+NAMES = re.compile(r"([a-z0-9][a-z0-9-]*)?( [a-z0-9][a-z0-9-]*)*")
+TASKS = re.compile(r"(#\d+)?( #\d+)*")
+# the opening of a line that reads as a key or a keyword, spelt right or not
+KEY_LINE = re.compile(r"^\s*([A-Za-z][A-Za-z ]*?)\s*[:=]")
+KEYWORD_LINE = re.compile(r"^\s*[*_#>-]*\s*(?:" + "|".join(KEYWORDS) + r")\b", re.I)
+EXACT_KEYWORD = re.compile(r"^\s*(" + "|".join(KEYWORDS) + r"):")
+# the keyword each posting verb opens its text with: `decide` answers, `resolve` informs
+VERB_KEYWORD = {"decide": WORD["answer"], "resolve": next(word for word, role in KEYWORDS.items() if not role)}
+
+
+def stem(words):
+    """A key's words without case, sign or plural, so `Holder` and `holders` meet."""
+    return " ".join(word.rstrip("s") for word in re.findall(r"[a-z]+", words.lower()))
+
+
+def defects(kind, text, old=""):
+    """The defects of TEXT written by KIND (comment, decide, resolve, file, edit-body, edit-line), each a plain sentence ending in its fix; none
+    when it reads as meant. A defect OLD already held does not count, so an edit that fixes a body is never blocked."""
+    found = _defects(kind, text)
+    held = [signature for signature, _ in _defects(kind, old)] if old else []
+    return [sentence for signature, sentence in found if signature not in held]
+
+
+def _defects(kind, text):
+    """[(signature, sentence)] of TEXT, the signature free of the line number so an edit that moves a line keeps it."""
+    if kind == "edit-line":
+        one = re.fullmatch(WORD["answer"] + r":[^\n]*\S[^\n]*", (text or "").rstrip("\n"))
+        return [] if one else [("edit-line", f"the keyword line is not one line that opens `{WORD['answer']}:` and says what changed; write `{WORD['answer']}: <what changed and why>` on one line")]
+    found, fence, headings = [], None, {}
+    keys, stems = " ".join(KEYS), {stem(key): key for key in KEYS}
+    # the reader skips blank lines before a keyword, so the first line is the first that holds something
+    lines = (text or "").lstrip().split("\n") if kind in ("comment", "decide", "resolve") else (text or "").split("\n")
+    for number, line in enumerate(lines, 1):
+        ticks = FENCE.match(line)
+        if fence:
+            if ticks and not ticks.group(2).strip() and len(ticks.group(1)) >= len(fence[0]):
+                fence = None
+            elif fence[1] == "teamwork" and line.strip():
+                key, colon, value = (part.strip() for part in line.partition(":"))
+                if not colon or key not in KEYS:
+                    spelt = KEY_LINE.match(line)
+                    near = stems.get(stem(spelt.group(1))) if spelt else None
+                    found.append((f"fence {line.strip()}", f"line {number}, `{line.strip()}`, is no key the teamwork fence takes; "
+                                  + (f"spell it `{near}: <value>`" if near else f"use one of: {keys}, as `key: value`")))
+                elif key in (WORD["holders"], WORD["cloud"]) and not NAMES.fullmatch(value):
+                    found.append((f"names {line.strip()}", f"line {number}, `{line.strip()}`, holds more than session names; write the names lowercase, separated by spaces only, as `{key}: a-worker b-worker`"))
+                elif key == WORD["audience"] and value != "owner":
+                    found.append((f"asks {line.strip()}", f"line {number}, `{line.strip()}`, is no value `{key}` takes; write exactly `{key}: owner`"))
+                elif key == WORD["depends"] and not TASKS.fullmatch(value):
+                    found.append((f"tasks {line.strip()}", f"line {number}, `{line.strip()}`, is no task list; write `{key}: #12 #13`"))
+            elif fence[1].lower() in LOOKALIKES and KEY_LINE.match(line) and stem(KEY_LINE.match(line).group(1)) in stems:
+                found.append((f"lookalike {line.strip()}", f"line {number}, `{line.strip()}`, sits in a ```{fence[1]} fence, which no code reads as data; open the fence with exactly ```teamwork"))
+            continue
+        if ticks:
+            fence = (ticks.group(1), ticks.group(2).strip())
+            continue
+        near = KEY_LINE.match(line)
+        if near and stem(near.group(1)) in stems:
+            found.append((f"plain {line.strip()}", f"line {number}, `{line.strip()}`, opens with a key word outside a teamwork fence, so no code reads it; to write it as prose put it in a code span, else put `{stems[stem(near.group(1))]}: <value>` inside a ```teamwork fence"))
+        heading = re.match(r"^#{1,6}\s*([A-Za-z].*?)\s*$", line)
+        if heading and kind in ("file", "edit-body"):
+            words = re.sub(r"\s*(\(.*\)|:)$", "", heading.group(1)).lower()
+            section = next(iter(difflib.get_close_matches(words, [name.lower() for name in SECTIONS], 1, 0.85)), None)
+            section = next((name for name in SECTIONS if name.lower() == section), None)
+            if section:
+                headings[section] = headings.get(section, 0) + (line == f"## {section}")
+                if line != f"## {section}":
+                    found.append((f"heading {line}", f"line {number}, `{line}`, misspells a section heading; write exactly `## {section}`"))
+    found += [(f"repeated {section}", f"`## {section}` appears {count} times; keep one and merge the rest into it") for section, count in headings.items() if count > 1]
+    if kind in ("comment", "decide", "resolve") and lines:
+        first = EXACT_KEYWORD.match(lines[0])
+        words = " ".join(KEYWORDS)
+        if not first and KEYWORD_LINE.match(lines[0]):
+            found.append(("near-keyword", f"the first line, `{lines[0]}`, nearly opens with a keyword; open it with exactly one of {words} and a colon, as `{WORD['answer']}: <words>`"))
+        if not first and any(EXACT_KEYWORD.match(line) for line in lines[1:]):
+            found.append(("later-keyword", "a keyword opens a later line, which no code reads; move it to the first line"))
+        own = VERB_KEYWORD.get(kind)
+        if first and own and first.group(1) != own:
+            found.append(("other-verb", f"{kind} opens with `{own}:`, not `{first.group(1)}:`; change the first word, or post the text with the verb that matches it"))
+    return found
 
 
 def sections(text):
