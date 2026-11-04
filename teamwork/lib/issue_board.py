@@ -17,12 +17,6 @@ MIN_TEXT = 16  # cells a row keeps for its text before its depth stops growing
 NOTE_LINES = 3  # lines a question or decision takes at most, so one long text leaves room for the next task
 
 
-def summary_of(body):
-    """A task's summary when it has no Goal section: its body's first paragraph, its lines joined, unless it is a heading."""
-    first = (body or "").replace("\r\n", "\n").strip().split("\n\n")[0]
-    return "" if first.startswith("#") else " ".join(line.strip() for line in first.splitlines() if line.strip())
-
-
 def next_step_of(comments):
     """A parent's next step: the latest `REPORTED:` that names one, so a parent with nothing open says why it stays open; empty when none does."""
     firsts = [(comment["body"] or "").replace("\r\n", "\n").split("\n\n")[0] for comment in comments]
@@ -50,7 +44,7 @@ def blockers_of(node):
 
 
 def entry(node, superseded=frozenset()):
-    """One task as the board shows it: its status, its open questions and owner decisions, its goal and criteria, its parts' progress."""
+    """One task as the board shows it: its status, its open questions and decisions, its criteria, its parts' progress."""
     every = blockers_of(node)
     blockers = [blocker["number"] for blocker in every if not blocker["closed"]]
     state = issue_state.compose({"body": node["body"], "trusted": node["trusted"], "comments": node["comments"]["nodes"]}, blockers)
@@ -62,7 +56,7 @@ def entry(node, superseded=frozenset()):
     return {"number": node["number"], "title": issue_state.title(node), "url": node["url"],
             "holder": " ".join(state["holders"] or []), "wait": wait if wait in SHOWN_WAITS else "",
             "progress": progress_of(summary, blockers, next_step),
-            "goal": "" if state["goal"] else summary_of(node["body"]), "detail": state["goal"], "done": [item for item in state["done"] if item["kind"] != "task"],
+            "done": [item for item in state["done"] if item["kind"] != "task"],
             "next": next_step,
             **decisions.shown(node, superseded), "tasks": [], "blockers": every, "closed": closed[::-1][:SHOWN_CLOSED], "earlier": summary.get("completed", 0) > min(len(closed), SHOWN_CLOSED)}
 
@@ -188,7 +182,7 @@ def rows(issues, width=PANE_WIDTH):
             lead = "  " + "".join("│   " if more_at(index, level) else "    " for level in range(1, depth))
             last = not more_at(index, depth)
             guide, pad = lead + ("└ " if last else "├ "), lead + ("    " if last else "│   ")
-        out.append({**issue, "tasks": [], "guide": guide, "pad": pad, "home": home, "ancestors": ancestors})
+        out.append({**issue, "done": [{**item, "line": criterion(item)} for item in issue["done"]], "tasks": [], "guide": guide, "pad": pad, "home": home, "ancestors": ancestors})
     return out
 
 
@@ -199,28 +193,52 @@ def label(row):
     return f"#{row['number']} {row['title']}" + (f" (in #{row['home']})" if row["home"] else "") + held
 
 
+MARKS = {"check": "\u2713", "score": "\u2606"}
+
+
 def criterion(item):
-    """A criterion's line: `[x]` or `[ ]` when a box marks it, its kind in parentheses, its name."""
-    return " ".join(part for part in ("" if item["met"] is None else "[x]" if item["met"] else "[ ]", item["kind"] and f"({item['kind']})", item["name"]) if part)
+    """A criterion's line: `[x]` or `[ ]` when a box marks it, its kind as a mark (`\u2713` for a check, `\u2606` for a score, else in parentheses), its name."""
+    kind = MARKS.get(item["kind"], item["kind"] and f"({item['kind']})")
+    return " ".join(part for part in ("" if item["met"] is None else "[x]" if item["met"] else "[ ]", kind, item["name"]) if part)
+
+
+def held_offsets(title, blockers):
+    """Per title line, the offset where its `(blocked by …)` text begins, else the line's length: the text the pane draws dim."""
+    held = len(label({"number": 0, "title": "", "home": None, "blockers": blockers})) - len("#0 ") if blocked_by(blockers) else 0
+    start = len(" ".join(title)) - held if held else None
+    offsets, at = [], 0
+    for line in title:
+        offsets.append(len(line) if start is None else min(max(start - at, 0), len(line)))
+        at += len(line) + 1
+    return offsets
+
+
+def decision_notes(decided, room):
+    """The decision lines of a task, newest first, and the indexes of the lines of a manager's or a worker's decision, the quiet ones."""
+    lines, quiet = [], []
+    for decision in decided:
+        start = len(lines)
+        lines += note(decision["mark"], (f"[{decision['time']}] " if decision["time"] else "") + decision["decision"], room)
+        if decision["mark"] == "\u25c7":
+            quiet += range(start, len(lines))
+    return lines, quiet
 
 
 def heading(row, width):
-    """A row's lines the pane always shows, wrapped to WIDTH less its guide: `title`, `status`, and `notes`, with `struck` the indexes of the notes of a replaced decision; its open questions, owner decisions and, once every part is done, what keeps it open."""
+    """A row's lines, wrapped to WIDTH less its guide: `title` and `status`, which the pane always shows, `notes`, the open questions, which it shows too, then, once the row is open, the decisions newest first and, once every part is done, what keeps it open, `questions`, how many of the first notes are the open questions, `quiet`, the indexes of the notes drawn dim, and `held`, where each title line's `(blocked by …)` text begins."""
     room = None if width is None else width - max(cells(row["guide"]), cells(row["pad"]))
     said = status(row)
     # parts share a line when they fit; else each takes its own
     shown = [said] if said and (room is None or cells(said) <= room) else [line for part in (row["progress"], row["holder"], row["wait"]) if part for line in wrap(part, room)]
     notes = [line for question in row.get("questions", []) for line in note("?", question, room)]
-    struck = []
-    for decided in row.get("decided", []):
-        lines_of = note("◆", (f"[{decided['time']}] " if decided["time"] else "") + decided["decision"], room)
-        struck += range(len(notes), len(notes) + len(lines_of)) if decided["struck"] else []
-        notes += lines_of
-    notes += note("◆", f"{row['more']} more decided", room) if row.get("more") else []
+    shift = len(notes)
+    deciding, quiet = decision_notes(row.get("decided", []), room)
+    notes += deciding
     notes += note("next step:", row["next"], room, limit=None) if row.get("next") else []  # the next step has no other place to be read in full
     # the first line sits after the guide, the later ones after the wider pad, so a title that fits beside its guide takes one line
     title = wrap(label(row), room, None if width is None else width - cells(row["guide"]))
-    return {"title": title, "status": shown, "notes": notes, "struck": list(struck)}
+    return {"title": title, "status": shown, "notes": notes, "questions": shift, "quiet": [shift + k for k in quiet],
+            "held": held_offsets(title, row["blockers"])}
 
 
 def note(mark, text, room, limit=NOTE_LINES):
@@ -243,12 +261,10 @@ def lines(issues, width=None):
         head = heading(row, width)
         yield row["guide"] + head["title"][0]
         yield from (row["pad"] + line for line in head["title"][1:] + head["status"] + head["notes"])
-        details = [row["goal"]] if row["goal"] else []
-        details += ["see detail"] if row["detail"] else []
-        details += [criterion(item) for item in row["done"]]
+        details = [item["line"] for item in row["done"]]
         details += [f"#{task['number']} {task['title']} closed{' stopped' * task['stopped']}" + (f" {blocked_by(task['blockers'])}" if blocked_by(task["blockers"]) else "") for task in row["closed"]]
         details += ["…"] if row["earlier"] else []
-        yield from (row["pad"] + "  " + line for detail in details for line in wrap(detail, None if room is None else room - 2))
+        yield from (row["pad"] + line for detail in details for line in wrap(detail, room))
 
 
 def check(issues):
