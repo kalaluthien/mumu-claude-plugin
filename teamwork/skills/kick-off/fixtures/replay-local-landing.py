@@ -32,7 +32,7 @@ def setup(remote=True):
     stub.write_text(f"#!/bin/sh\necho \"$@\" >> {work / 'gh.log'}\nexit 1\n")
     stub.chmod(0o755)
     (work / "gitconfig").write_text("[user]\n\tname = probe\n\temail = probe@example.com\n[init]\n\tdefaultBranch = main\n")
-    env = {**os.environ, "PATH": f"{work / 'bin'}:{os.environ['PATH']}", "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "claude"), "GIT_CONFIG_GLOBAL": str(work / "gitconfig")}
+    env = {**{k: v for k, v in os.environ.items() if k not in ("TEAMWORK_LANDING", "TEAMWORK_BOARD")}, "PATH": f"{work / 'bin'}:{os.environ['PATH']}", "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "claude"), "GIT_CONFIG_GLOBAL": str(work / "gitconfig")}
     repo, origin = work / "repo", work / "origin.git"
     sh("git", "init", "-q", repo, cwd=work, env=env)
     (repo / "a.txt").write_text("base\n")
