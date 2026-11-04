@@ -36,7 +36,7 @@ Each port is a set of operations the playbooks name; an adapter does each, and [
 | board | `label` | adds a label to an issue or removes one |
 | message | `tell` | one message to a session, naming the url that holds what it needs and stating a fact, never a step for the peer to run |
 | message | `ask` | asks the owner in your tab, with choices |
-| message | `notify` | reaches the owner away, naming the issue and your tab |
+| message | `notify` | reaches the owner away, naming the issue and your tab; sent only while Remote Control is active in your session, since only it carries a push |
 | message | `watch` | waits until a session is idle, and says so |
 | session | `start` | opens a session `<name>` at a folder with its kick-off arguments, tier and effort, placed by its role, which those arguments name: a worker or sentinel in a tab of its manager's workspace, a successor `<p>-next` of `succeed <p>` in a tab of `<p>`'s, any other manager in a workspace of its own; `--allow <tool>` keeps on a tool its role has off |
 | session | `close` | ends a session, yours included |

@@ -2,6 +2,8 @@
 import json
 import re
 
+import claude_config
+
 # what a tool's result says when it starts background work, by tool
 STARTED = {"Agent": r"^agentId: (\w+)", "SendMessage": r"\"resumedAgentId\":\s*\"(\w+)\"", "Bash": r"\ACommand running in background with ID: (\w+)"}
 
@@ -17,7 +19,8 @@ def running_work(transcript):
         records = [json.loads(line) for line in open(transcript) if line.strip()]
     except (OSError, ValueError):
         return running
-    for record in records:
+    # an `api-request-blob` replays old tool results, which would start a finished task again
+    for record in (record for record in records if record.get("type") in ("user", "assistant", "queue-operation")):
         content = record.get("content") if record.get("type") == "queue-operation" else (record.get("message") or {}).get("content")
         if isinstance(content, str):  # a notification arrives as plain text, never inside a tool result
             running.difference_update(re.findall(r"<task-id>(\w+)</task-id>.*?<status>(?:completed|failed|killed|stopped)</status>", content, re.S))
@@ -29,3 +32,8 @@ def running_work(transcript):
             elif (pattern := tools.get(block.get("tool_use_id"))) and (found := re.search(pattern, text(block.get("content")), re.M)):
                 running.add(found.group(1))
     return running
+
+
+def transcript_of(session_id):
+    """The path of a session's transcript, which Claude Code files under the project folder of the folder it started in; None when there is none."""
+    return next(iter((claude_config.folder() / "projects").glob(f"*/{session_id}.jsonl")), None) if session_id else None
