@@ -62,7 +62,7 @@ KEYWORD_LINE = re.compile(r"^\s*[*_#>-]*\s*(?:" + "|".join(KEYWORDS) + r")\b", r
 EXACT_KEYWORD = re.compile(r"^\s*(" + "|".join(KEYWORDS) + r"):")
 # the keyword each posting verb opens its text with: `decide` answers, `resolve` informs
 VERB_KEYWORD = {"decide": WORD["answer"], "resolve": next(word for word, role in KEYWORDS.items() if not role)}
-# the Plain words caps on what the issue pane shows: the live board's plain summary lines and decisions ran to 20 words, its dense
+# the Plain words caps on a title, a summary line and a decision: the live board's plain summary lines and decisions ran to 20 words, its dense
 # ones from 23, and a second `,` `;` or `:` joined a further idea in every dense line a fresh reader marked
 TITLE_CHARS = 40
 SENTENCE_WORDS = 20
