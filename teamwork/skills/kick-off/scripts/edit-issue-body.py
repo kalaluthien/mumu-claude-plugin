@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Edit an issue's body by a unified diff of it: post a comment of the keyword line and the diff in a `diff` fence, then
-apply the diff to the body. A diff that does not apply to the current body, or that adds a defect to it or has a keyword line that is not one
+apply the diff to the body. A diff whose hunks are out of order, that does not apply to the current body, or that adds a defect to it or has a keyword line that is not one
 `DECIDED:` line, changes nothing, comment included, and exits 2 naming the fix. `--base <sha>` is the `body sha` `use-board.py read` printed, and a body that changed since
 is refused too, since a diff made from an older body would put its old text back.
 
@@ -29,6 +29,12 @@ def main(args):
     # patch accepts an empty diff, which would post a comment that changes nothing
     if not diff.strip():
         sys.exit(f"edit-issue-body: {diff_file} is empty, so nothing was posted or changed")
+    out_of_order = misordered(diff)
+    if out_of_order:
+        number, header, after = out_of_order
+        print(f"edit-issue-body: hunk {number} ({header}) is out of order: it starts above the end of the hunk before it ({after}), so nothing was posted or changed: "
+              "list the hunks from the top of the body down, each below the last", file=sys.stderr)
+        return 2
     work = pathlib.Path(tempfile.mkdtemp())
     fence = "`" * max([3] + [len(run) + 1 for run in re.findall(r"`+", diff)])
     comment = f"{line}\n\n{fence}diff\n{diff}{'' if diff.endswith(chr(10)) else chr(10)}{fence}\n"
@@ -86,6 +92,16 @@ def main(args):
         return code
     print(url)
     print(f"edit-issue-body: #{issue}'s body now carries the diff its new comment holds")
+
+
+def misordered(diff):
+    """(number, header, previous header) of the first hunk of DIFF that starts above the end of the hunk before it, else None; patch fails on such a diff without saying which."""
+    end, previous = 0, None
+    for number, hunk in enumerate(re.finditer(r"^@@ -(\d+)(?:,(\d+))? .*", diff, re.M), 1):
+        start, size = int(hunk[1]), int(hunk[2] or 1)
+        if start < end:
+            return number, hunk[0], previous
+        end, previous = start + max(size, 1), hunk[0]
 
 
 def defect_text(found):
