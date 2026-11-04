@@ -3,16 +3,16 @@
 // row's title, status, `?`, `◆` and `next step:` lines, guide included, are the lines its `--json` row lays out, in the order `--width` prints them,
 // each fits the body with the first line's fold mark, a title that fits on one line takes one, and an unfolded row with criteria or
 // closed parts draws them: `same`, else `differ: <the first difference>`, exit 1.
-// With `--styled`, once that holds, it prints instead each piece the last draw (width 88) styles, one per line: `link <label>`, `press <text>`,
+// With `--styled`, once that holds, it prints instead each piece the last draw (width 88) styles, one per line: `link <label>`, `press <text>` (the button's text as drawn, so a space inside it shows),
 // `strike <text>`, `dim <text>` or `color:<name> <text>`.
-// With `--press <text>` (repeatable; `none` presses nothing), it draws the rows at width 88 with every row folded, presses each button whose text
-// holds a given text, and prints the rows' drawn lines as `<row number>|<line>`.
-// usage: bun teamwork/hooks/fixtures/render-task-pane.ts <nodes-file> [--styled | --press <text>...]
+// With `--search <regex>` and `--press <text>` (each repeatable; `none` presses nothing), it draws the rows at width 88, or at `--columns <n>`, with every row folded, then types each
+// regex into the search box and presses each button whose text holds a given text, in the order given, and prints the drawn lines as `<row number>|<line>`, a yellow background in ⟦ ⟧.
+// usage: bun teamwork/hooks/fixtures/render-task-pane.ts <nodes-file> [--styled | --search <regex>... --press <text>... --columns <n>]
 import { plugin } from 'bun'
 
 const nodes = process.argv[2]
 if (!nodes) {
-  console.error('usage: bun teamwork/hooks/fixtures/render-task-pane.ts <nodes-file> [--styled | --press <text>...]')
+  console.error('usage: bun teamwork/hooks/fixtures/render-task-pane.ts <nodes-file> [--styled | --search <regex>... --press <text>... --columns <n>]')
   process.exit(2)
 }
 const lister = `${import.meta.dir}/../list-issue-board.py`
@@ -46,7 +46,9 @@ plugin({
 
 type Node = { type?: string; props?: { children?: unknown; label?: string; text?: string } }
 // a link shows its label and Markdown its text; a button's own label is the fold mark, drawn apart from the row's text
-const text = (node: unknown): string =>
+let marking = false  // in a scenario run, a yellow background shows as ⟦ ⟧ around its text
+const text = (node: unknown): string => marking && (node as Node & { props?: { backgroundColor?: string } })?.props?.backgroundColor === 'yellow' ? `⟦${plain(node)}⟧` : plain(node)
+const plain = (node: unknown): string =>
   node == null || typeof node === 'boolean' ? '' : typeof node === 'string' || typeof node === 'number' ? String(node)
     : Array.isArray(node) ? node.map(text).join('')
     : (node as Node).type === 'Link' ? (node as Node).props?.label ?? ''
@@ -63,7 +65,7 @@ let reads = 0
 const $ = {
   plugin: { root: '/plugin' },
   ui: { open: async () => undefined, close: async () => undefined, panes: async () => [],
-        resolve: () => ({ Box: 'Box', Text: 'Text', Link: 'Link', Button: 'Button', Markdown: 'Markdown' }) },
+        resolve: () => ({ Box: 'Box', Text: 'Text', Link: 'Link', Button: 'Button', Input: 'Input', Markdown: 'Markdown' }) },
   clock: { after: (ms: number, tick: () => void) => { const timer = setTimeout(tick, ms); return { cancel: () => clearTimeout(timer) } } },
   process: {
     run: async (argv: string[]) => {
@@ -92,7 +94,7 @@ const styled = (node: unknown): string[] => {
   if (node == null || typeof node !== 'object') return []
   if (Array.isArray(node)) return node.flatMap(styled)
   const { type, props } = node as { type?: string; props?: { color?: string; strikethrough?: boolean; dimColor?: boolean; label?: string; children?: unknown } }
-  const own = type === 'Link' ? [`link ${props?.label}`] : type === 'Button' ? (props?.label === undefined ? [`press ${text(node).trim()}`] : [])
+  const own = type === 'Link' ? [`link ${props?.label}`] : type === 'Button' ? (props?.label === undefined ? [`press ${text(node)}`] : [])
     : props?.strikethrough ? [`strike ${text(node).trim()}`] : props?.color ? [`color:${props.color} ${text(node).trim()}`] : props?.dimColor ? [`dim ${text(node).trim()}`] : []
   return [...own, ...(type === 'Link' ? [] : styled(props?.children))]
 }
@@ -138,17 +140,30 @@ for (const width of [30, 40, 60, 88]) {
     if (named) differ(`width ${width}: #${row.number}'s closed #${named.number} shows \`blocked by\` only with its open blockers, and none when every blocker is closed`)
   })
 }
-if (process.argv.includes('--press')) {
-  // every row folded, since the scenarios press a row open to see what it adds; then each `--press <text>` presses every button whose text holds it, and the rows' drawn lines print as `<number>|<line>`
-  const width = 88
-  const rows = JSON.parse(listed('--json', '--width', String(width - FOLD))) as Row[]
+if (process.argv.includes('--press') || process.argv.includes('--search')) {
+  // every row folded, then each `--search <regex>` types its regex into the search box and each `--press <text>` presses every button whose text holds it, in the order given;
+  // the drawn lines print as `<row number>|<line>` with a yellow background as ⟦ ⟧, and `0|<line>` for a line that is no row's: `0|input: <typed text>` first
+  const width = Number(process.argv[process.argv.indexOf('--columns') + 1]) || 88
   store.set('expanded', [])
-  const taps = process.argv.flatMap((argument, k) => argument === '--press' ? [process.argv[k + 1]] : []).filter(tap => tap !== 'none')
+  marking = true
+  const steps = process.argv.flatMap((argument, k) => argument === '--search' || argument === '--press' ? [[argument, process.argv[k + 1]]] : [])
   const rowsOf = (pane: unknown) => children(pane).filter(child => (child as Node).type === 'Box')
-  for (const tap of taps) for (const button of buttons(rowsOf(await draw({ bodyColumns: width })))) {
-    if (text(button).includes(tap)) await (button.props as { onPress?: () => unknown }).onPress?.()
+  const inputs = (node: unknown): Node[] => node == null || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(inputs)
+    : [...((node as Node).type === 'Input' ? [node as Node] : []), ...inputs((node as Node).props?.children)]
+  for (const [kind, value] of steps) {
+    if (kind === '--search') for (const input of inputs(await draw({ bodyColumns: width }))) await (input.props as { onInput?: (value: string) => unknown }).onInput?.(value)
+    else if (value !== 'none') for (const button of buttons(rowsOf(await draw({ bodyColumns: width })))) {
+      if (text(button).includes(value)) await (button.props as { onPress?: () => unknown }).onPress?.()
+    }
   }
   await settle(reads)
-  rowsOf(await draw({ bodyColumns: width })).forEach((drawn, k) => children(drawn).forEach(line => console.log(`${rows[k].number}|${text(line)}`)))
+  const pane = await draw({ bodyColumns: width })
+  inputs(pane).forEach(input => console.log(`0|input: ${(input.props as { value?: string }).value}`))
+  children(pane).forEach(child => {
+    if ((child as Node).type === 'Input') return
+    const lines = (child as Node).type === 'Box' ? children(child).map(text) : [text(child)]
+    const number = (child as Node).type === 'Box' ? lines[0].replace(/[⟦⟧]/g, '').match(/#(\d+)/)?.[1] ?? '0' : '0'
+    lines.forEach(line => console.log(`${number}|${line}`))
+  })
 } else if (process.argv[3] === '--styled') console.log(styled(lastPane).join('\n'))
 else console.log('same')

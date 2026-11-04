@@ -62,7 +62,7 @@ KEYWORD_LINE = re.compile(r"^\s*[*_#>-]*\s*(?:" + "|".join(KEYWORDS) + r")\b", r
 EXACT_KEYWORD = re.compile(r"^\s*(" + "|".join(KEYWORDS) + r"):")
 # the keyword each posting verb opens its text with: `decide` answers, `resolve` informs
 VERB_KEYWORD = {"decide": WORD["answer"], "resolve": next(word for word, role in KEYWORDS.items() if not role)}
-# the Plain words caps on what the issue pane shows: the live board's plain summary lines and decisions ran to 20 words, its dense
+# the Plain words caps on a title, a summary line and a decision: the live board's plain summary lines and decisions ran to 20 words, its dense
 # ones from 23, and a second `,` `;` or `:` joined a further idea in every dense line a fresh reader marked
 TITLE_CHARS = 40
 SENTENCE_WORDS = 20
@@ -150,7 +150,7 @@ def _defects(kind, text):
 
 
 def summary_line(body):
-    """A body's summary line, the first paragraph the issue pane shows, its lines joined; none when the body opens with a heading."""
+    """A body's summary line, its first paragraph's lines joined; none when the body opens with a heading."""
     first = (body or "").replace("\r\n", "\n").strip().split("\n\n")[0]
     return "" if first.startswith("#") else " ".join(first.split())
 
@@ -254,7 +254,6 @@ def cloud(issue):
 
 def compose(issue, blockers=()):
     """{'holders': the latest names, or None when no record ever set them; 'waits': its wait line, in the grammar's order;
-    'goal': the lines of the body's goal, blank lines kept so a Markdown reader sees its paragraphs, its data blocks left out;
     'done': the body's criteria, each {'met': True, False or None when it has no box, 'kind', 'name', 'detail'}}."""
     holders = (holder_values(issue) or [None])[-1]
     asked = open_questions(issue)[-1:]
@@ -269,4 +268,4 @@ def compose(issue, blockers=()):
     done = [dict(zip(("box", "kind", "name", "detail"), CRITERION.match(item).groups())) for item in ITEM.findall(current.get("done", ""))]
     done = [{"met": criterion["box"] and criterion["box"] != " ", "kind": criterion["kind"] or "", "name": criterion["name"] or criterion["detail"], "detail": criterion["detail"] if criterion["name"] else ""}
             for criterion in done]
-    return {"holders": holders, "waits": waits, "goal": DATA.sub("", current.get("goal", "")).strip().splitlines(), "done": done}
+    return {"holders": holders, "waits": waits, "done": done}

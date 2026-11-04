@@ -17,7 +17,7 @@ decision comments untrusted, as the GitHub adapter marks an outsider's, before t
   only: one draw parses each task's comments a bounded number of times, however many tasks there are
 - row-no-deferral, row-finished-parent, outside-answered, row-one-color, on github-nodes: a `deferred:` line sets no wait; a parent
   whose parts are all done shows its next step in full among its always-shown lines; an outsider's issue leaves the heartbeat once a
-  trusted `DECIDED:` answers it; and every row's number takes one color, the guide alone telling a root from a part
+  trusted `DECIDED:` answers it; and every row's number takes the color of its own state, drawn by one Link
 
 usage: replay-task-decisions.py --board <files|git|github-nodes>"""
 import json
@@ -360,7 +360,7 @@ def nodes_pane():
          {number: issue.get("trusted") for number, issue in marked.items()})
     rows = json.loads(subprocess.run([sys.executable, str(LIST), "--nodes", str(path), "--json"], capture_output=True, text=True).stdout or "[]")
     pane = (ROOT / "hooks" / "draw-issue-pane.tsx").read_text()
-    step("row-one-color", rows and not any("kind" in row for row in rows) and '<Text color="claude" weight="semibold"><Link href={issue.url}' in pane, [sorted(row) for row in rows[:1]])
+    step("row-one-color", rows and not any("kind" in row for row in rows) and 'numeral(issue.url, label, spans(\'title\', 0), numberColor)' in pane, [sorted(row) for row in rows[:1]])
 
 
 def main(args):
