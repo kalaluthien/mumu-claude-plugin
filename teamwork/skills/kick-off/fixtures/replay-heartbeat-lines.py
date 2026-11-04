@@ -149,7 +149,9 @@ def line_cases():
     out = lines(listed, [busy], pulls)
     step("merged-later", not about(out, "merged") and len(about(out, "idle m-worker")) == 1, "\n".join(out))
     out = lines(listed, [], pulls)
-    step("merged-nothing-open", len(about(out, "merged #5 by m-worker: it holds nothing open")) == 1 and not about(out, "idle m-worker"), "\n".join(out))
+    stuck = lines(herdr(agent("x-manager", 1, "working"), agent("m-worker", 2, "blocked", screen="\u276f \n\n  Update installed")), [], pulls)  # no prompt on a blocked pane hides nothing
+    step("merged-nothing-open", len(about(out, "merged #5 by m-worker: it holds nothing open")) == 1 and not about(out, "idle m-worker") and len(about(stuck, "merged #5")) == 1,
+         "\n".join(out + ["--"] + stuck))
 
     first = file("Probe a task others wait on", holder="o-worker")
     waits = file("Probe a waiting task", f"```teamwork\ndepends on: #{first}\n```", holder="w-worker")

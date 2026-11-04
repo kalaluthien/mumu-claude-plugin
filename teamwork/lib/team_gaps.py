@@ -143,9 +143,9 @@ def manager_actions(me, listed, data=None, fed_urls=None):
     for name in team:
         held_issues = [issue for issue in data["everything"] if holds(issue, name)]
         held = " ".join(f"#{issue['number']}" for issue in held_issues) or "nothing open"
-        if status[name] == "blocked":
-            if choices := prompt_text(panes[name]):
-                lines.append(f"blocked {name} (pane {panes[name]}): it waits at a tool-use prompt; tell the owner this screen, then answer by the Tool prompt rule once the owner says so: {choices}")
+        choices = prompt_text(panes[name]) if status[name] == "blocked" else None  # a blocked pane with no prompt on it is no claim on the worker, so its merged change still shows
+        if choices:
+            lines.append(f"blocked {name} (pane {panes[name]}): it waits at a tool-use prompt; tell the owner this screen, then answer by the Tool prompt rule once the owner says so: {choices}")
         elif merged[name] and not held_issues:
             # a merged change is news only once its worker has nothing left to do, since until then the worker goes on with its next task
             lines.append(f"merged {' '.join(f'#{number}' for number in merged[name])} by {name}: it holds nothing open; close it and clean its worktree")
