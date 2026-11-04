@@ -336,7 +336,7 @@ def nodes_pane():
     later = work / "deferred.json"
     later.write_text(json.dumps([node(1, [comment(1, 1, "DECIDED: later\n\n```teamwork\nholders:\ndeferred: waits on the probe\n```\n")])]))
     drawn = subprocess.run([sys.executable, str(LIST), "--nodes", str(later)], capture_output=True, text=True).stdout.splitlines()
-    step("row-no-deferral", any(line.strip() == "no holder" for line in drawn) and not any("deferred" in line for line in drawn), drawn)
+    step("row-no-deferral", any(line.startswith("#1 ") for line in drawn) and not any("deferred" in line or "no holder" in line for line in drawn), drawn)
     finished = [node(n, [comment(n, 1, text)] if text else []) for n, text in ((1, "REPORTED: batch landed; next step: probe the pane"), (2, ""))]
     for parent in finished[:2]:
         part = node(parent["number"] + 10)

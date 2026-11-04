@@ -10,7 +10,7 @@ SHOWN_CLOSED = 4
 # close reasons of work stopped, not done; GitHub's duplicate close counts with them
 STOPPED = ("NOT_PLANNED", "DUPLICATE")
 # waits that need someone, which the status shows; a blocked task shows its `blocked by` line instead
-SHOWN_WAITS = ("waits on the owner", "waits on the manager", "no holder")
+SHOWN_WAITS = ("waits on the owner", "waits on the manager")
 WIDTHS = (24, 30, 40, 60, 80)
 PANE_WIDTH = 40  # a narrow docked pane, for a listing given no width, as before the pane is first drawn
 MIN_TEXT = 16  # cells a row keeps for its text before its depth stops growing
