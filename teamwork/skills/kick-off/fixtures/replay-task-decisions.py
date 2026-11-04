@@ -16,7 +16,7 @@ decision comments untrusted, as an outsider's is marked, before the rows are lai
 - pane-question, pane-every-decision, pane-cut, pane-untrusted, pane-question-next-line: list-issue-board.py's `?` and `◆` lines; pane-linear, on nodes
   only: one draw parses each task's comments a bounded number of times, however many tasks there are
 - row-no-deferral, row-finished-parent, row-one-color, on nodes: a `deferred:` line sets no wait; a parent
-  whose parts are all done shows its next step in full among its always-shown lines; and every row's number takes the color of its own state, drawn by one Link
+  whose parts are all done shows its next step in full among its always-shown lines; and every row's number takes the color of its own state, drawn by one Button
 
 usage: replay-task-decisions.py --board <git|nodes>"""
 import json
@@ -351,7 +351,7 @@ def nodes_pane():
     step("row-finished-parent", "next step: probe the pane" in shown.get(1, []) and shown.get(2) == [], shown)
     rows = json.loads(subprocess.run([sys.executable, str(LIST), "--nodes", str(path), "--json"], capture_output=True, text=True).stdout or "[]")
     pane = (ROOT / "hooks" / "draw-issue-pane.tsx").read_text()
-    step("row-one-color", rows and not any("kind" in row for row in rows) and 'numeral(issue.url, label, spans(\'title\', 0), numberColor)' in pane, [sorted(row) for row in rows[:1]])
+    step("row-one-color", rows and not any("kind" in row for row in rows) and 'numeral(issue.number, label, spans(\'title\', 0), numberColor)' in pane, [sorted(row) for row in rows[:1]])
 
 
 def main(args):

@@ -70,6 +70,10 @@ const $ = {
   process: {
     run: async (argv: string[]) => {
       if (argv[0].endsWith('list-sessions.py')) return { exitCode: 0, stdout: 'probe-manager\n' }
+      if (argv[0].endsWith('print-task-markdown.py')) {
+        const run = Bun.spawnSync(['python3', `${import.meta.dir}/../print-task-markdown.py`, '--nodes', nodes, argv[1]])
+        return { exitCode: run.exitCode, stdout: run.stdout.toString(), stderr: run.stderr.toString() }
+      }
       reads++
       return { exitCode: 0, stdout: listed(...argv.slice(2)), stderr: '' }
     },
@@ -164,7 +168,7 @@ if (process.argv.includes('--press') || process.argv.includes('--search')) {
   inputs(pane).forEach(input => console.log(`0|input: ${(input.props as { value?: string }).value}`))
   children(pane).forEach(child => {
     if ((child as Node).type === 'Input' || inputs(child).length > 0) return
-    const lines = (child as Node).type === 'Box' ? children(child).map(text) : [text(child)]
+    const lines = (child as Node).type === 'Box' ? children(child).map(text) : text(child).split('\n')
     const number = (child as Node).type === 'Box' ? lines[0].replace(/[⟦⟧]/g, '').match(/#(\d+)/)?.[1] ?? '0' : '0'
     lines.forEach(line => console.log(`${number}|${line}`))
   })

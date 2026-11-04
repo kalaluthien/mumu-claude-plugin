@@ -16,6 +16,8 @@ const expanded = atom({ plugin: 'teamwork', key: 'expanded' } as const, [] as nu
 const query = atom({ plugin: 'teamwork', key: 'query' } as const, '')
 // the folds a person pressed during one search, kept apart from `expanded` so emptying the box returns the folds as they were before it
 const peeked = atom({ plugin: 'teamwork', key: 'peeked' } as const, [] as number[])
+// the task whose Markdown the pane shows in place of the list, with the text read for it; null shows the list
+const opened = atom({ plugin: 'teamwork', key: 'opened' } as const, null as { number: number; text: string } | null)
 // the ` +` or ` -` fold mark at a row's first line's end
 const FOLD = 2
 // a task's number takes the color of its own state: the owner's answer awaited, a holder, an open blocker, else ready
@@ -161,7 +163,7 @@ export const register: Register = on => {
       laidWidth = width
       relayout?.()
     }
-    const { Box, Text, Link, Button, Input } = $.ui.resolve(event)
+    const { Box, Text, Button, Input, Markdown } = $.ui.resolve(event)
     const unfolded = new Set(await read($, expanded))
     const typed = await read($, query)
     let pattern: RegExp | undefined
@@ -186,19 +188,25 @@ export const register: Register = on => {
       if (at < to) out.push(text.slice(at, to))
       return out
     }
-    // a task's number as a link, only the characters a match covers on a yellow background; a number no match touches is one link
-    const numeral = (url: string, label: string, spans: Spans, color?: string) => {
+    // pressing a task's number reads its Markdown and shows it in place of the list
+    const openTask = (number: number) => async () => {
+      await update($, opened, () => ({ number, text: 'Reading…' }))
+      const run = await $.process.run([`${$.plugin.root}/hooks/print-task-markdown.py`, String(number)], { cwd: startFolder, timeoutMs: 60000 }).catch((error: unknown) => ({ exitCode: 1, stdout: '', stderr: String(error) }))
+      // Back may have been pressed during the read, or another number; the late text then has no view to fill
+      await update($, opened, old => old?.number === number ? { number, text: run.exitCode === 0 ? run.stdout : `Could not read #${number}: ${(run.stderr ?? '').trim() || `exit ${run.exitCode}`}` } : old)
+    }
+    // a task's number as a button that opens the task, only the characters a match covers on a yellow background
+    const numeral = (number: number, label: string, spans: Spans, color?: string) => {
       const marked = spans.map(([start, end]): [number, number] => [Math.max(start, 0), Math.min(end, label.length)]).filter(([start, end]) => end > start)
-      if (!marked.length) return <Text color={color} weight="semibold"><Link href={url} label={label} /></Text>
       const pieces: JSX.Element[] = []
       let at = 0
       for (const [start, end] of marked) {
-        if (start > at) pieces.push(<Text color={color} weight="semibold"><Link href={url} label={label.slice(at, start)} /></Text>)
-        pieces.push(<Text backgroundColor="yellow" color="black" weight="semibold"><Link href={url} label={label.slice(start, end)} /></Text>)
+        if (start > at) pieces.push(<Text color={color} weight="semibold">{label.slice(at, start)}</Text>)
+        pieces.push(<Text backgroundColor="yellow" color="black" weight="semibold">{label.slice(start, end)}</Text>)
         at = end
       }
-      if (at < label.length) pieces.push(<Text color={color} weight="semibold"><Link href={url} label={label.slice(at)} /></Text>)
-      return pieces
+      if (at < label.length || !pieces.length) pieces.push(<Text color={color} weight="semibold">{label.slice(at)}</Text>)
+      return <Button key={`open-${number}`} plain onPress={openTask(number)}>{pieces}</Button>
     }
     // the space after a number, yellow when a match runs over it
     const gap = (spans: Spans, at: number) => <Text backgroundColor={spans.some(([start, end]) => start <= at && end > at) ? 'yellow' : undefined}> </Text>
@@ -233,8 +241,8 @@ export const register: Register = on => {
         <Box flexDirection="column">
           <Box flexDirection="row">
             {lead(guide)}
-            {/* the link and the space after it sit outside the Button, so its press area and highlight start at the title's first letter */}
-            {numeral(issue.url, label, spans('title', 0), numberColor)}
+            {/* the number's button and the space after it sit outside the title's Button, so its press area and highlight start at the title's first letter */}
+            {numeral(issue.number, label, spans('title', 0), numberColor)}
             {gap(spans('title', 0), label.length)}
             <Button key={`row-${issue.number}`} plain onPress={toggle(issue.number)}><Text weight="semibold">{lit(first, spans('title', 0), label.length + 1, issue.lines.held[0])}</Text></Button>
             {/* a wait is quiet text outside the Button, so a press on it does nothing */}
@@ -255,9 +263,9 @@ export const register: Register = on => {
                 {issue.closed.map((task, k) => {
                   const marked = found?.closed[k] ?? []
                   const head = `#${task.number} `.length
-                  return <Text wrap="wrap" dimColor>{numeral(task.url, `#${task.number}`, marked)}{gap(marked, head - 1)}
-                    <Text strikethrough={task.stopped}>{lit(`#${task.number} ${task.title}`, marked, head)}</Text>
-                    {task.blockers.some(blocker => !blocker.closed) && <Text> blocked by {task.blockers.filter(blocker => !blocker.closed).map(blocker => `#${blocker.number}`).join(' ')}</Text>}</Text>
+                  return <Box flexDirection="row">{numeral(task.number, `#${task.number}`, marked, 'subtle')}{gap(marked, head - 1)}
+                    <Text wrap="wrap" dimColor><Text strikethrough={task.stopped}>{lit(`#${task.number} ${task.title}`, marked, head)}</Text>
+                    {task.blockers.some(blocker => !blocker.closed) && <Text> blocked by {task.blockers.filter(blocker => !blocker.closed).map(blocker => `#${blocker.number}`).join(' ')}</Text>}</Text></Box>
                 })}
                 {issue.earlier && <Text dimColor>…</Text>}
               </Box>
@@ -270,6 +278,14 @@ export const register: Register = on => {
     const safely = (issue: BoardIssue): JSX.Element => {
       try { return row(issue) } catch (error) { return <Text wrap="wrap" color="error">{`#${issue?.number ?? '?'} could not be drawn: ${error}`}</Text> }
     }
+    const task = await read($, opened)
+    // the back control at the top left returns to the list, whose folds and search the atoms above kept
+    if (task) return (
+      <Box flexDirection="column">
+        <Box flexDirection="row"><Button key="teamwork-back" plain onPress={() => void update($, opened, () => null)}>← Back</Button></Box>
+        <Markdown text={task.text} />
+      </Box>
+    )
     const list = await read($, board)
     const error = await read($, failure)
     const empty = (await read($, loaded)) ? 'The board has no open issues.' : 'No board read yet.'
