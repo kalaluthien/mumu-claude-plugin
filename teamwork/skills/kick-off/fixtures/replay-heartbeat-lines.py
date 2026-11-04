@@ -2,8 +2,8 @@
 """Replay the lines a manager's heartbeat once printed to no purpose, on a temporary repository with a files board, git landing and the fake herdr
 beside this file, and print `ok <case>` or `fail <case>: <what it saw>` per case; exit 1 on any fail. Each case is a class of line found in
 past managers' transcripts (#1202):
-- idle-again, blocked-again: a worker that goes back to idle, or to the same prompt, after working is named again, since each return is news to the manager; a countdown ticking in the prompt does not make it a new line
-  (teamwork-manager's transcript 6a7e0b9a, the `idle work-model-worker` line 16 times in 7.5 h; 84bfcb25, one prompt printed twice a minute apart because its `denied in 1:35` countdown changed)
+- idle-again, blocked-again: a worker that goes back to idle, or to the same prompt, after working is named again, since each return is news to the manager; a countdown or a footer hint that comes and goes in the prompt does not make it a new line
+  (teamwork-manager's transcript 6a7e0b9a, the `idle work-model-worker` line 16 times in 8.9 h; 84bfcb25, one prompt printed twice a minute apart because its `deny this request in 1:35` countdown changed)
 - probe-quiet: a session with no `-worker` or `-sentinel` name, such as a worker's `probe-end-manager-49609`, gets no `idle` or `blocked` line
 - blocked-prompt, blocked-empty: a blocked pane names its prompt's choices; one showing an empty input under a banner gets no line
 - merged-later: a merged change is named once its worker holds nothing open, and then without an `idle` line beside it
@@ -137,8 +137,8 @@ def monitor_cases():
     import team_gaps
     counting = lambda left: f"\u2502 Dangerous rm operation in `rm $M/$f.md`\n\u26a0 Claude Code will automatically deny this request in {left}, to avoid blocking\nDo you want to proceed?\n\u276f 1. Yes\n  2. No"
     shown, real = [], team_gaps.screen
-    for left in ("1:35", "0:35"):
-        team_gaps.screen = lambda pane, left=left: counting(left)
+    for left, hint in (("1:35", "Esc to cancel"), ("0:35", "Esc to cancel \u00b7 Tab to amend \u00b7 ctrl+x ctrl+k twice to stop background agents")):
+        team_gaps.screen = lambda pane, left=left, hint=hint: counting(left) + "\n" + hint
         shown.append(team_gaps.prompt_text("w1:p7"))
     team_gaps.screen = real
     step("blocked-again", len(about(out, "blocked again-worker")) >= 2 and shown[0] == shown[1] and "1. Yes" in shown[0], "\n".join(out + shown))
@@ -187,6 +187,8 @@ def line_cases():
     listed = herdr(agent("x-manager", 1, "working"), agent("b-worker", 2, "idle", agent_session={"value": "sess1"}))
     running = lines(listed, [free])
     transcript.write_text(transcript.read_text() + json.dumps({"type": "queue-operation", "content": "<task-id>abc</task-id><status>completed</status>"}) + "\n")
+    replayed = {"type": "api-request-blob", "message": {"content": started[0]["message"]["content"] + started[1]["message"]["content"]}}  # a request blob repeats old tool results
+    transcript.write_text(transcript.read_text() + json.dumps(replayed) + "\n")
     ended = lines(listed, [free])
     step("idle-background", not about(running, "idle b-worker") and len(about(ended, "idle b-worker")) == 1, "\n".join(running + ["--"] + ended))
 

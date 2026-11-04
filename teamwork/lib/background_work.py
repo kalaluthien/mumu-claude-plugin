@@ -19,7 +19,8 @@ def running_work(transcript):
         records = [json.loads(line) for line in open(transcript) if line.strip()]
     except (OSError, ValueError):
         return running
-    for record in records:
+    # an `api-request-blob` replays old tool results, which would start a finished task again
+    for record in (record for record in records if record.get("type") in ("user", "assistant", "queue-operation")):
         content = record.get("content") if record.get("type") == "queue-operation" else (record.get("message") or {}).get("content")
         if isinstance(content, str):  # a notification arrives as plain text, never inside a tool result
             running.difference_update(re.findall(r"<task-id>(\w+)</task-id>.*?<status>(?:completed|failed|killed|stopped)</status>", content, re.S))

@@ -168,12 +168,21 @@ def manager_actions(me, listed, data=None, fed_urls=None):
 
 
 def prompt_text(pane):
-    """A blocked pane's prompt on one line: its question and numbered choices, from the line above the first choice to the hint after the last;
-    None when the screen shows no choice, such as an empty input under a banner, which is no prompt to answer."""
+    """A blocked pane's prompt on one line: its question and numbered choices, from the line above the first choice to the hint row after the last
+    (`Esc to cancel`, `Enter to select`), without what the footer adds after it; None when the screen shows no choice, such as an empty input
+    under a banner, which is no prompt to answer."""
     lines = [line.strip() for line in screen(pane).splitlines() if line.strip() and not set(line.strip()) <= set("─╌━ ")]
     choices = [at for at, line in enumerate(lines) if re.match(r"^\W*1\. ", line)]
-    # a prompt that denies itself on a countdown would read as a new line at every poll, so the time left is not part of it
-    return re.sub(r"\b\d{1,2}:\d\d\b", "…", " | ".join(lines[max(0, choices[-1] - 2):choices[-1] + 7])) if choices else None
+    if not choices:
+        return None
+    start = choices[-1]
+    # a footer hint that comes and goes, such as the one for background agents, would make the same prompt read as a new line
+    hints = [at for at in range(start, min(len(lines), start + 14)) if re.match(r"^(Esc|Enter)\b", lines[at])]
+    shown = lines[max(0, start - 2):hints[0] if hints else start + 7]
+    if hints:  # the hint row keeps its first phrase, since the hints after a `·` come and go
+        shown.append(re.split(r"\s·\s", lines[hints[0]])[0])
+    # the time a prompt has left before it denies itself changes at every poll, so it is not part of the line
+    return re.sub(r"(?<=\bin )\d{1,2}:\d\d\b", "…", " | ".join(shown))
 
 
 def worker_goal(me):
