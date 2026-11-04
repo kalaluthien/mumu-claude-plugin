@@ -45,8 +45,8 @@ def data(text):
 
 
 def stray_state(text):
-    """Whether TEXT holds a holders or deferred line outside every reserved block, which `data` never reads."""
-    return bool(re.search(rf"^\s*({WORD['holders']}|{WORD['deferral']}):", DATA.sub("", text or ""), re.M))
+    """Whether TEXT holds a holders line outside every reserved block, which `data` never reads."""
+    return bool(re.search(rf"^\s*{WORD['holders']}:", DATA.sub("", text or ""), re.M))
 
 
 def sections(text):
@@ -130,33 +130,21 @@ def cloud(issue):
     return ([fields[WORD["cloud"]].split() for _, fields, _ in records(issue) if WORD["cloud"] in fields] or [[]])[-1]
 
 
-def deferral(issue):
-    """Why it is left for later: the latest deferral's reason, or None when none was set or holders with names came after it."""
-    reason = None
-    for _, fields, _ in records(issue):
-        if fields.get(WORD["holders"]):
-            reason = None
-        if WORD["deferral"] in fields:
-            reason = fields[WORD["deferral"]] or None
-    return reason
-
-
 def compose(issue, blockers=()):
-    """{'holders': the latest names, or None when no record ever set them; 'deferred': its deferral's reason or None; 'waits': its wait line, in the grammar's order;
+    """{'holders': the latest names, or None when no record ever set them; 'waits': its wait line, in the grammar's order;
     'goal': the lines of the body's goal, blank lines kept so a Markdown reader sees its paragraphs, its data blocks left out;
     'done': the body's criteria, each {'met': True, False or None when it has no box, 'kind', 'name', 'detail'}}."""
     holders = (holder_values(issue) or [None])[-1]
-    deferred = deferral(issue)
     asked = open_questions(issue)[-1:]
     if blockers:
         waits = " ".join(f"blocked by #{number}" for number in blockers)
     elif asked:
         waits = "waits on the owner" if asked[0]["fields"].get(WORD["audience"]) == "owner" else "waits on the manager"
     else:
-        waits = "held" if holders else "deferred" if deferred else "no holder"
+        waits = "held" if holders else "no holder"
     # the body alone, since a section is edited there with its diff posted as a comment
     current = sections(issue.get("body"))
     done = [dict(zip(("box", "kind", "name", "detail"), CRITERION.match(item).groups())) for item in ITEM.findall(current.get("done", ""))]
     done = [{"met": criterion["box"] and criterion["box"] != " ", "kind": criterion["kind"] or "", "name": criterion["name"] or criterion["detail"], "detail": criterion["detail"] if criterion["name"] else ""}
             for criterion in done]
-    return {"holders": holders, "deferred": deferred, "waits": waits, "goal": DATA.sub("", current.get("goal", "")).strip().splitlines(), "done": done}
+    return {"holders": holders, "waits": waits, "goal": DATA.sub("", current.get("goal", "")).strip().splitlines(), "done": done}

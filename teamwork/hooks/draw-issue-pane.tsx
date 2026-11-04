@@ -120,7 +120,7 @@ export const register: Register = on => {
     // a row as list-issue-board.py lays it out for the pane: its guide, then each line it wrapped; the guide is drawn text, so the tree reads at any width it fits
     const row = (issue: BoardIssue): JSX.Element => {
       const open = unfolded.has(issue.number)
-      const more = Boolean(issue.goal || issue.detail.length || issue.done.length || issue.next || issue.closed.length)
+      const more = Boolean(issue.goal || issue.detail.length || issue.done.length || issue.closed.length)
       const [first, ...rest] = issue.lines.title
       const label = `#${issue.number}`
       const lead = (text: string) => <Text dimColor>{text}</Text>
@@ -128,8 +128,8 @@ export const register: Register = on => {
         <Box flexDirection="column">
           <Box flexDirection="row">
             {lead(issue.guide)}
-            {/* the link sits outside the Button, which holds only Text */}
-            <Text color={issue.kind === 'parent' ? 'merged' : 'claude'} weight="semibold"><Link href={issue.url} label={label} /></Text>
+            {/* the link sits outside the Button, which holds only Text; every number takes one color, since the guide alone shows a root from a part */}
+            <Text color="claude" weight="semibold"><Link href={issue.url} label={label} /></Text>
             <Button key={`row-${issue.number}`} plain onPress={toggle(issue.number)}><Text weight="semibold">{first.slice(label.length)}</Text></Button>
             <Box flexGrow={1} />
             {more && <Button key={`fold-${issue.number}`} plain dimColor label={open ? ' -' : ' +'} onPress={toggle(issue.number)} />}
@@ -137,7 +137,7 @@ export const register: Register = on => {
           {rest.map(line => <Text>{lead(issue.pad)}<Text weight="semibold">{line}</Text></Text>)}
           {issue.lines.status.map(line => <Text>{lead(issue.pad)}{status(issue, line)}</Text>)}
           {issue.lines.after.map(line => <Text>{lead(issue.pad)}{after(issue, line)}</Text>)}
-          {/* open questions and the owner's latest decisions, which steer the task, as list-issue-board.py wrapped them */}
+          {/* open questions, the owner's latest decisions and what keeps a finished parent open, as list-issue-board.py wrapped them */}
           {issue.lines.notes.map(line => <Text>{lead(issue.pad)}<Text color={line.startsWith('?') ? 'warning' : undefined}>{line}</Text></Text>)}
           {open && (
             <Box flexDirection="row">
@@ -147,7 +147,6 @@ export const register: Register = on => {
                 {/* the title sums a task up, so its goal is detail, folded */}
                 {issue.detail.length > 0 && part(`goal-${issue.number}`, 'see detail', issue.detail)}
                 {issue.done.map((criterion, k) => part(`done-${issue.number}-${k}`, [criterion.met === null ? '' : criterion.met ? '[x]' : '[ ]', criterion.kind && `(${criterion.kind})`, criterion.name].filter(Boolean).join(' '), criterion.detail ? [criterion.detail] : []))}
-                {issue.next && <Text wrap="wrap">{`next step: ${issue.next}`}</Text>}
                 {/* closed parts dim and newest first, so what landed last stays in view */}
                 {issue.closed.map(task => <Text wrap="wrap" dimColor><Link href={task.url} label={`#${task.number}`} />{' '}<Text strikethrough={task.stopped}>{task.title}</Text>
                   {task.blockers.length > 0 && <Text> ← {task.blockers.map(blocker => `#${blocker.number}${blocker.closed ? ' closed' : ''}`).join(' ')}</Text>}</Text>)}

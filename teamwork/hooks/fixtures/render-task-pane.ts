@@ -1,5 +1,5 @@
 // Render a manager's issue pane from the board in a nodes file, every row unfolded, through stand-ins for `claude-code` and the JSX
-// runtime, and check it row for row against `list-issue-board.py`: each row's title, status, `←`, `?` and `◆` lines, guide included, are the
+// runtime, and check it row for row against `list-issue-board.py`: each row's title, status, `←`, `?`, `◆` and `→` lines, guide included, are the
 // lines its `--json` row lays out, in the order `--width 40` prints them, and an unfolded row with a goal, criteria or closed parts
 // draws them: `same`, else `differ: <the first difference>`, exit 1.
 // usage: bun teamwork/hooks/fixtures/render-task-pane.ts <nodes-file>
@@ -73,7 +73,7 @@ const { register } = await import('../draw-issue-pane.tsx')
 register(on as any)
 await handlers['session.start']($, { cwd: '/repo' }, async () => ({}))
 await settle(1)
-type Row = { number: number; guide: string; pad: string; goal: string; detail: string[]; done: { name: string }[]; next: string;
+type Row = { number: number; guide: string; pad: string; goal: string; detail: string[]; done: { name: string }[];
   closed: { title: string }[]; lines: { title: string[]; status: string[]; after: string[]; notes: string[] } }
 const rows = JSON.parse(listed('--json')) as Row[]
 store.set('expanded', rows.map(row => row.number))
@@ -92,7 +92,7 @@ rows.forEach((row, k) => {
     if (at++ === printed.length) differ(`#${row.number}: ${JSON.stringify(line)} is not in the --width 40 listing, in order`)
   })
   const folded = lines.slice(heading.length).map(text).join(' ')
-  const owed = [row.goal, row.detail.length ? 'see detail' : '', ...row.done.map(item => item.name), row.next, ...row.closed.map(task => task.title)].filter(Boolean)
+  const owed = [row.goal, row.detail.length ? 'see detail' : '', ...row.done.map(item => item.name), ...row.closed.map(task => task.title)].filter(Boolean)
   const missing = owed.find(piece => !folded.includes(piece))
   if (missing !== undefined) differ(`#${row.number} unfolded lacks ${JSON.stringify(missing)}`)
 })
