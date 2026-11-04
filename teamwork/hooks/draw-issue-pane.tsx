@@ -133,7 +133,7 @@ export const register: Register = on => {
     // a row as list-issue-board.py lays it out for the pane: its guide, then each line it wrapped; the guide is drawn text, so the tree reads at any width it fits
     const row = (issue: BoardIssue): JSX.Element => {
       const open = unfolded.has(issue.number)
-      const more = Boolean(issue.lines.notes.length || issue.done.length || issue.closed.length || issue.earlier)
+      const more = Boolean(issue.lines.notes.length > issue.lines.questions || issue.done.length || issue.closed.length || issue.earlier)
       const [first, ...rest] = issue.lines.title
       const label = `#${issue.number}`
       return (
@@ -150,8 +150,8 @@ export const register: Register = on => {
           </Box>
           {rest.map((line, k) => <Text>{lead(issue.pad)}<Text weight="semibold">{line.slice(0, issue.lines.held[k + 1])}</Text><Text dimColor>{line.slice(issue.lines.held[k + 1])}</Text></Text>)}
           {issue.lines.status.map(line => <Text>{lead(issue.pad)}{status(issue, line)}</Text>)}
-          {/* a task folds to its title and status; opened, it shows the open questions, every decision newest first, what keeps it open, its criteria and its closed parts, all flat */}
-          {open && issue.lines.notes.map((line, k) => note(issue, line, k))}
+          {/* a task folds to its title, status and open questions; opened, it adds every decision newest first, what keeps it open, its criteria and its closed parts, all flat */}
+          {issue.lines.notes.map((line, k) => (open || k < issue.lines.questions) && note(issue, line, k))}
           {open && (
             <Box flexDirection="row">
               {lead(issue.pad)}

@@ -225,8 +225,7 @@ def decision_notes(decided, room):
 
 
 def heading(row, width):
-    """A row's lines, wrapped to WIDTH less its guide: `title` and `status`, which the pane always shows, `notes`, which it shows once the row is open (open questions, decisions newest first and,
-    once every part is done, what keeps it open), `quiet`, the indexes of the notes drawn dim, and `held`, where each title line's `(blocked by …)` text begins."""
+    """A row's lines, wrapped to WIDTH less its guide: `title` and `status`, which the pane always shows, `notes`, the open questions, which it shows too, then, once the row is open, the decisions newest first and, once every part is done, what keeps it open, `questions`, how many of the first notes are the open questions, `quiet`, the indexes of the notes drawn dim, and `held`, where each title line's `(blocked by …)` text begins."""
     room = None if width is None else width - max(cells(row["guide"]), cells(row["pad"]))
     said = status(row)
     # parts share a line when they fit; else each takes its own
@@ -238,7 +237,7 @@ def heading(row, width):
     notes += note("next step:", row["next"], room, limit=None) if row.get("next") else []  # the next step has no other place to be read in full
     # the first line sits after the guide, the later ones after the wider pad, so a title that fits beside its guide takes one line
     title = wrap(label(row), room, None if width is None else width - cells(row["guide"]))
-    return {"title": title, "status": shown, "notes": notes, "quiet": [shift + k for k in quiet],
+    return {"title": title, "status": shown, "notes": notes, "questions": shift, "quiet": [shift + k for k in quiet],
             "held": held_offsets(title, row["blockers"])}
 
 

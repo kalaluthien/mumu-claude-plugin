@@ -83,7 +83,7 @@ register(on as any)
 await handlers['session.start']($, { cwd: '/repo' }, async () => ({}))
 await settle(1)
 type Row = { number: number; guide: string; pad: string; done: { name: string; line: string }[];
-  closed: { title: string; number: number; blockers: { number: number; closed: boolean }[] }[]; lines: { title: string[]; status: string[]; notes: string[]; quiet: number[] } }
+  closed: { title: string; number: number; blockers: { number: number; closed: boolean }[] }[]; lines: { title: string[]; status: string[]; notes: string[]; questions: number; quiet: number[] } }
 let lastPane: unknown
 // the pieces a draw styles: a link, a pressable button, a colored text, a dim text
 const buttons = (node: unknown): Node[] => node == null || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(buttons)
@@ -101,7 +101,7 @@ const FOLD = 2  // the pane's ` +` or ` -` at a row's first line's end
 for (const width of [30, 40, 60, 88]) {
   const laid = String(width - FOLD)
   const rows = JSON.parse(listed('--json', '--width', laid)) as Row[]
-  // every row unfolded
+  // every row unfolded, since a folded row draws too little to compare with the listing
   store.set('expanded', rows.map(row => row.number))
   // the first draw at a new width reads the board again for it, and the draw after that read shows the rows
   const before = reads
@@ -139,7 +139,7 @@ for (const width of [30, 40, 60, 88]) {
   })
 }
 if (process.argv.includes('--press')) {
-  // the folds shut, then each `--press <text>` presses every button whose text holds it, and the rows' drawn lines print as `<number>|<line>`
+  // every row folded, since the scenarios press a row open to see what it adds; then each `--press <text>` presses every button whose text holds it, and the rows' drawn lines print as `<number>|<line>`
   const width = 88
   const rows = JSON.parse(listed('--json', '--width', String(width - FOLD))) as Row[]
   store.set('expanded', [])
