@@ -10,7 +10,7 @@ import re
 import board_github
 import board_records
 
-URL = re.compile(r"https://github\.com/[^/\s)\"'>]+/[^/\s)\"'>]+/issues/(\d+)(?:#issuecomment-(\d+))?")
+URL = re.compile(r"https://github\.com/([^/\s)\"'>]+/[^/\s)\"'>]+)/issues/(\d+)(?:#issuecomment-(\d+))?")
 REASONS = {"COMPLETED": "COMPLETED", "NOT_PLANNED": "NOT_PLANNED", "REOPENED": "REOPENED"}
 
 
@@ -25,14 +25,21 @@ def read():
 
 def comment_id(note):
     found = URL.search(note["url"])
-    return found and found.group(2)
+    return found and found.group(3)
 
 
-def rewriter(kept, url):
-    """A function that turns the GitHub urls in a text into URL(path) forms of the same records. KEPT is {issue number: [comment ids in kept order]}."""
+def repository(issues):
+    """The `owner/repo` the issues come from, read from their own urls; None for no issue."""
+    found = next((URL.search(record["url"]) for record in issues), None)
+    return found and found.group(1)
+
+
+def rewriter(kept, url, home):
+    """A function that turns the urls of repository HOME in a text into URL(path) forms of the same records; another repository's url stays as written.
+    KEPT is {issue number: [comment ids in kept order]}."""
     def swap(found):
-        number, said = int(found.group(1)), found.group(2)
-        if number not in kept:
+        number, said = int(found.group(2)), found.group(3)
+        if found.group(1) != home or number not in kept:
             return found.group(0)
         if not said:
             return url(str(number))
@@ -49,7 +56,7 @@ def files(issues, pulls, store):
     trusted = [record for record in issues if record["trusted"]]
     skipped_comments = sum(1 for record in trusted for note in record["comments"] if not note["trusted"])
     kept = {record["number"]: [comment_id(note) for note in record["comments"] if note["trusted"]] for record in trusted}
-    swap = rewriter(kept, store.url)
+    swap = rewriter(kept, store.url, repository(issues))
     out = {}
     for record in trusted:
         number = record["number"]

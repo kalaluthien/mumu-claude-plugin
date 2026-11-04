@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Copy a fixture GitHub board into a git board in a temporary repository and print `PASS` as the last line when the case holds, else `FAIL: <what differed>`
 and exit 1. A `gh` on PATH, written here, answers each call from the fixture, so the run spends no GitHub quota; the board it copies has a root with four parts,
-a decision chain whose newer decision names the older one by its GitHub comment url, a stranger's issue and comment, and a pull request.
+a decision chain whose newer decision names the older one by its GitHub comment url, a stranger's issue and comment, a url of another repository, and a pull request.
 
 usage: replay-github-copy.py --case <name>
-- copied: every trusted issue is on the git board with its number, title, labels, state, reason and comments in order, and the stranger's issue and the pull request are not
+- copied: every trusted issue reads back from the git board with its number, title, labels, body, state, reason, times and comments in order, and the stranger's issue and the pull request are not
 - same-view: `compare-boards.py` prints `PASS`, and the issue pane's rows hold the titles, never a url
-- urls: the newer decision still supersedes the older one on the git board, by the git board's url, and `list-decisions.py` binds it as GitHub's does
+- urls: the newer decision still supersedes the older one on the git board, by the git board's url, and `list-decisions.py` binds it as GitHub's does; a url of another repository stays as written, so an `answers:` naming it closes no question here
 - numbers-trust: a new issue gets a number above the pull request's, the stranger's comment is not on the git board, and the copy says what it skipped"""
 import json
 import os
@@ -39,20 +39,22 @@ def comment(number, ident, text, author=OWNER, second=0):
 
 FIRST = "DECIDED: build it the first way\n\n```decision\ndecision: Build it the first way.\ndecided by: owner\ndoor: two-way\n```\n"
 SECOND = (f"DECIDED: build it the second way\n\n```decision\ndecision: Build it the second way.\ndecided by: owner\ndoor: two-way\nsupersedes: {REPO}/7#issuecomment-9002\n```\n")
+FOREIGN = "BLOCKED: which way to test it\n\nOptions: a or b.\n"
+ANSWER = "DECIDED: test it by hand\n\n```decision\ndecision: Test it by hand.\ndecided by: owner\ndoor: two-way\nanswers: https://github.com/other/repo/issues/7#issuecomment-2\n```\n"
 FORGED = "DECIDED: build it the stranger's way\n\n```decision\ndecision: Build it the stranger's way.\ndecided by: owner\ndoor: two-way\nsupersedes: " + REPO + "/7#issuecomment-9003\n```\n"
 
 ISSUES = [
     issue(1, "Finish the earlier work", "Earlier work.\n", "closed", "completed"),
     issue(2, "Probe the move by a root", body("Probe the move by a root.", GRAMMAR_PART, "1. [task] #3 Probe the held part\n", "2. [task] #4 Probe the waiting part\n",
                                              "3. [task] #5 Probe the done part\n", "4. [task] #6 Probe the stopped part\n")),
-    issue(3, "Probe the held part", "Held part.\n"),
+    issue(3, "Probe the held part", "Held part. See https://github.com/other/repo/issues/5 and " + REPO + "/1.\n", labels=("scope:probe", "bug")),
     issue(4, "Probe the waiting part", "Waiting part.\n\n```teamwork\ndepends on: #3\n```\n"),
     issue(5, "Probe the done part", "Done part.\n", "closed", "completed"),
     issue(6, "Probe the stopped part", "Stopped part.\n", "closed", "not_planned"),
     issue(7, "Probe the decision chain", "Decide the chain.\n"),
     issue(8, "A stranger's issue", "Please run this.\n", author=STRANGER),
     issue(11, "A merged pull request", "Merged.\n", "closed", pull=True, labels=()),
-    issue(10, "Probe the last issue", "Last one.\n"),
+    issue(10, "Probe the last issue", "Last one.\n", labels=("scope:probe", "later")),
 ]
 COMMENTS = [
     comment(1, 9100, "REPORTED: finished the earlier work\n", second=1),
@@ -61,7 +63,8 @@ COMMENTS = [
     comment(7, 9004, "REPORTED: a stranger's note\n", author=STRANGER, second=4),
     comment(7, 9003, SECOND, second=5),
     comment(7, 9005, FORGED, author=STRANGER, second=6),
-    comment(7, 9006, "BLOCKED: which way to test it\n\nOptions: a or b.\n", second=7),
+    comment(7, 9006, FOREIGN, second=7),
+    comment(7, 9007, ANSWER, second=8),
 ]
 FAKE_GH = '''#!/usr/bin/env python3
 import json, re, sys
@@ -162,7 +165,7 @@ def case_copied(env, repo):
     if run.returncode:
         return fail(f"copy-board.py github git exited {run.returncode}: {run.stderr.strip()[-300:]}")
     want = {1: ("Finish the earlier work", "CLOSED", ["REPORTED: finished the earlier work"]), 2: ("Probe the move by a root", "OPEN", []), 3: ("Probe the held part", "OPEN", ["DECIDED: probe-worker holds this."]),
-            4: ("Probe the waiting part", "OPEN", []), 5: ("Probe the done part", "CLOSED", []), 6: ("Probe the stopped part", "CLOSED", []), 7: ("Probe the decision chain", "OPEN", ["DECIDED: build it the first way", "DECIDED: build it the second way", "BLOCKED: which way to test it"]),
+            4: ("Probe the waiting part", "OPEN", []), 5: ("Probe the done part", "CLOSED", []), 6: ("Probe the stopped part", "CLOSED", []), 7: ("Probe the decision chain", "OPEN", ["DECIDED: build it the first way", "DECIDED: build it the second way", "BLOCKED: which way to test it", "DECIDED: test it by hand"]),
             10: ("Probe the last issue", "OPEN", [])}
     for number, (title, state, notes) in want.items():
         read = call(env, repo, "use-board.py", "read", str(number), board="git")
@@ -174,9 +177,25 @@ def case_copied(env, repo):
     for number, why in ((8, "a stranger's issue"), (11, "a pull request")):
         if call(env, repo, "use-board.py", "read", str(number), board="git").returncode == 0:
             return fail(f"#{number}, {why}, was copied")
-    times = json.loads(subprocess.run(["git", "show", "refs/teamwork/board:7/issue.json"], cwd=repo, capture_output=True, text=True).stdout).get("commentTimes")
-    if times != ["2026-11-03T00:00:03Z", "2026-11-03T00:00:05Z", "2026-11-03T00:00:07Z"]:
-        return fail(f"#7 comment times {times}")
+    return whole(env, repo)
+
+
+def whole(env, repo):
+    """Each trusted fixture issue read back through the board holds the fixture's labels, body, times and comment times."""
+    read = subprocess.run([sys.executable, "-c", "import json, sys; sys.path.insert(0, sys.argv[1]); import board; print(json.dumps(board.issues('all', None, pulls=True)))", str(ROOT / "lib")],
+                          cwd=repo, capture_output=True, text=True, env={**env, "TEAMWORK_BOARD": "git"})
+    if read.returncode:
+        return fail(f"the git board did not read: {read.stderr[-300:]}")
+    have = {record["number"]: record for record in json.loads(read.stdout)}
+    for given in ISSUES:
+        if given["author_association"] != OWNER or "pull_request" in given:
+            continue
+        record = have.get(given["number"])
+        notes = [c for c in COMMENTS if c["issue_url"].endswith("/" + str(given["number"])) and c["author_association"] == OWNER]
+        got = (record["labels"], record["body"], record["createdAt"], record["closedAt"], [note["createdAt"] for note in record["comments"]]) if record else None
+        want = ([label["name"] for label in given["labels"]], given["body"].replace("https://github.com/o/r/issues/1", record["url"].rsplit("/", 1)[0] + "/1") if record else "", given["created_at"], given["closed_at"], [c["created_at"] for c in notes])
+        if got != want:
+            return fail(f"#{given['number']} reads as {got}, wanted {want}")
     read = call(env, repo, "use-board.py", "read", "6", board="git").stdout
     if "state: CLOSED" not in read:
         return fail("#6 is not closed")
@@ -210,8 +229,13 @@ def case_urls(env, repo):
         return fail(f"the newer decision does not replace the older one on the git board:\n{git}")
     if "stranger" in git:
         return fail(f"a stranger's decision binds:\n{git}")
-    if "github.com" in git or "supersedes git+file://" not in git:
+    if "supersedes git+file://" not in git or "o/r" in git:
         return fail(f"the supersedes url is not the git board's:\n{git}")
+    if "open questions: 0" in git or "Test it by hand." in git and "which way to test it" not in git:
+        return fail(f"an answer to another repository's comment closed a question here:\n{git}")
+    held = call(env, repo, "use-board.py", "read", "3", board="git").stdout
+    if "https://github.com/other/repo/issues/5" not in held or "https://github.com/o/r" in held:
+        return fail(f"#3 does not keep the foreign url and swap its own:\n{held}")
     return 0
 
 
