@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Edit an issue's body by a unified diff of it: post a comment of the keyword line and the diff in a `diff` fence, then
 apply the diff to the body. A diff that does not apply to the current body, or that adds a defect to it or has a keyword line that is not one
-`DECIDED:` line, changes nothing, comment included, and exits 2 naming the fix.
+`DECIDED:` line, changes nothing, comment included, and exits 2 naming the fix. With `--base <sha>`, the `body sha` `use-board.py read` printed, a body that changed since
+is refused too, since a diff made from an older body would put its old text back.
 
-usage: edit-issue-body.py <issue> <diff-file> <keyword line>"""
+usage: edit-issue-body.py <issue> <diff-file> <keyword line> [--base <sha>]"""
 import pathlib
 import re
 import subprocess
@@ -16,6 +17,13 @@ import issue_state  # noqa: E402
 
 
 def main(args):
+    base = None
+    if "--base" in args:
+        at = args.index("--base")
+        base, args = args[at + 1] if at + 1 < len(args) else None, args[:at] + args[at + 2:]
+        if not base:
+            print(__doc__, file=sys.stderr)
+            return 2
     if len(args) != 3:
         print(__doc__, file=sys.stderr)
         return 2
@@ -32,6 +40,8 @@ def main(args):
     except LookupError as e:
         print(f"edit-issue-body: {e}", file=sys.stderr)
         return 2
+    if base and board.body_sha(body.read_text()) != base:
+        sys.exit(f"edit-issue-body: #{issue}'s body changed since you read it (its body sha is {board.body_sha(body.read_text())}, not {base}), so nothing was posted or changed: read it again and make the diff from that body")
     # --forward: an applied diff reads as reversed, which a bare dry run would accept
     check = subprocess.run(["patch", "--forward", "--batch", "--dry-run", "-s", str(body), diff_file], capture_output=True, text=True)
     padded = False

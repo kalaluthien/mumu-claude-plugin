@@ -10,6 +10,7 @@ Every adapter has these functions, by the same names:
 - `trusted(record)`, whether a record's author may write records; `command(text)` and `posted(output)`, the board write a shell command runs and what it posted
 A record has `number`, `title`, `body`, `labels` (names), `state` (`OPEN` or `CLOSED`), `parent` (a number or None), `trusted` and `comments`,
 each comment with `body` and `trusted`."""
+import hashlib
 import importlib
 
 import issue_state
@@ -20,6 +21,11 @@ import task_links
 def kind():
     """The adapter's name, read at each call, so a long-running process follows a setting written after it started."""
     return port_setting.value("TEAMWORK_BOARD", "github")
+
+
+def body_sha(text):
+    """The first 12 hex digits of TEXT's sha-256 with CRLF read as LF, which names the body a diff was made from, so an edit refuses a diff of a body that changed since."""
+    return hashlib.sha256(text.replace("\r\n", "\n").encode()).hexdigest()[:12]
 
 
 def adapter():
