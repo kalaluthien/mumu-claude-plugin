@@ -14,6 +14,8 @@ const loaded = atom({ plugin: 'teamwork', key: 'loaded' } as const, false)
 const expanded = atom({ plugin: 'teamwork', key: 'expanded' } as const, [] as number[])
 // what the owner typed in the search box, a regular expression; empty is no search, which leaves the folds above as they were
 const query = atom({ plugin: 'teamwork', key: 'query' } as const, '')
+// the folds a person pressed during one search, kept apart from `expanded` so emptying the box returns the folds as they were before it
+const peeked = atom({ plugin: 'teamwork', key: 'peeked' } as const, [] as number[])
 // the ` +` or ` -` fold mark at a row's first line's end
 const FOLD = 2
 // a task's number takes the color of its own state: the owner's answer awaited, a holder, an open blocker, else ready
@@ -85,7 +87,10 @@ const spansOf = (lines: string[], starts: (line: string) => boolean, pattern: Re
     const parts = lines.slice(from, to).map(line => line.trimStart())
     const begin = parts.map((_, k) => parts.slice(0, k).reduce((sum, part) => sum + part.length + 1, 0))
     for (const match of parts.join(' ').matchAll(pattern)) {
-      if (match[0] === '') continue
+      if (match[0] === '') {  // an empty match keeps its task in the search and paints nothing
+        if (!found[from].length) found[from].push([0, 0])
+        continue
+      }
       const [start, end] = [match.index!, match.index! + match[0].length]
       parts.forEach((part, k) => {
         const [a, b] = [Math.max(start, begin[k]), Math.min(end, begin[k] + part.length)]
@@ -105,8 +110,9 @@ const matchesIn = (issue: BoardIssue, pattern: RegExp) => {
   const done = issue.done.map(criterion => spansOf([criterion.line], () => true, pattern)[0])
   const closed = issue.closed.map(task => spansOf([`#${task.number} ${task.title}`], () => true, pattern)[0])
   const any = (found: Spans[]) => found.some(spans => spans.length > 0)
+  const painted = (found: Spans[]) => found.some(spans => spans.some(([start, end]) => end > start))
   return { title, status, notes, done, closed, found: any(title) || any(status) || any(notes) || any(done) || any(closed),
-           hidden: any(notes.slice(issue.lines.questions)) || any(done) || any(closed) }
+           hidden: painted(notes.slice(issue.lines.questions)) || painted(done) || painted(closed) }
 }
 
 export const register: Register = on => {
@@ -157,7 +163,10 @@ export const register: Register = on => {
     let pattern: RegExp | undefined
     let invalid = ''
     try { pattern = typed ? new RegExp(typed, 'gi') : undefined } catch (error) { invalid = String((error as Error).message ?? error) }  // a bad pattern changes nothing and says so
-    const toggle = (id: number) => () => void update($, expanded, old => old.includes(id) ? old.filter(item => item !== id) : [...old, id])
+    const flip = (old: number[], id: number) => old.includes(id) ? old.filter(item => item !== id) : [...old, id]
+    // while a search is on a press flips the row on top of what the search opened, and leaves the folds the person kept untouched
+    const toggle = (id: number) => () => void update($, pattern ? peeked : expanded, old => flip(old, id))
+    const pressed = new Set(await read($, peeked))
     // a text with its matched spans on a yellow background, from one offset to another
     const lit = (text: string, spans: Spans, from = 0, to = text.length) => {
       const out: (string | JSX.Element)[] = []
@@ -196,8 +205,8 @@ export const register: Register = on => {
         pieces.push({ part, at: line.length - rest.length })
         rest = rest.slice(part.length).replace(/^ /, '')
       }
-      return pieces.map(({ part, at }, k) => <Text dimColor={part !== issue.holder && part !== issue.wait}
-        color={part === issue.holder ? 'suggestion' : part === issue.wait ? WAIT_COLOR[part] ?? 'subtle' : undefined} weight={part === issue.wait ? 'semibold' : undefined}>{k ? ' ' : ''}{lit(line, spans, at, at + part.length)}</Text>)
+      return pieces.flatMap(({ part, at }, k) => [k ? gap(spans, at - 1) : null, <Text dimColor={part !== issue.holder && part !== issue.wait}
+        color={part === issue.holder ? 'suggestion' : part === issue.wait ? WAIT_COLOR[part] ?? 'subtle' : undefined} weight={part === issue.wait ? 'semibold' : undefined}>{lit(line, spans, at, at + part.length)}</Text>])
     }
     const lead = (text: string) => <Text dimColor>{text}</Text>
     // a manager's or a worker's decision is dim, as the lister marks it in `quiet`
@@ -208,7 +217,7 @@ export const register: Register = on => {
     const row = (issue: BoardIssue): JSX.Element => {
       const found = pattern ? matchesIn(issue, pattern) : undefined
       const [guide, pad] = pattern ? ['', '  '] : [issue.guide, issue.pad]
-      const open = unfolded.has(issue.number) || Boolean(found?.hidden)
+      const open = pattern ? (unfolded.has(issue.number) || Boolean(found?.hidden)) !== pressed.has(issue.number) : unfolded.has(issue.number)
       const more = Boolean(issue.lines.notes.length > issue.lines.questions || issue.done.length || issue.closed.length || issue.earlier)
       const [first, ...rest] = issue.lines.title
       const label = `#${issue.number}`
@@ -262,7 +271,7 @@ export const register: Register = on => {
     const shown = pattern ? list.filter(issue => { try { return matchesIn(issue, pattern!).found } catch { return true } }) : list
     return (
       <Box flexDirection="column">
-        <Input key="teamwork-search" value={typed} placeholder="search by regex" onInput={(value: string) => void update($, query, () => value)} />
+        <Input key="teamwork-search" value={typed} placeholder="search by regex" onInput={(value: string) => { void update($, peeked, () => []); void update($, query, () => value) }} />
         {invalid ? <Text wrap="wrap" color="error">{`Not a regular expression, so every task shows: ${invalid}`}</Text> : null}
         {error ? <Text wrap="wrap" color="error" weight="semibold">{`Board read failed${list.length > 0 ? ' (showing the last good board)' : ''}: ${error}`}</Text> : null}
         {list.length === 0 && error ? null : list.length === 0 ? <Text dimColor>{empty}</Text> : shown.length === 0 ? <Text dimColor>No task matches.</Text> : shown.map(safely)}
