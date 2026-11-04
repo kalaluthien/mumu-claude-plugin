@@ -150,12 +150,12 @@ def wrap(text, width, first=None):
 
 
 def blocked_by(blockers):
-    """What a task waits on: every task it depends on, one closed as completed marked closed; nothing once every one is closed."""
-    return "blocked by " + " ".join(f"#{blocker['number']}{' closed' * blocker['closed']}" for blocker in blockers) if not all(blocker["closed"] for blocker in blockers) else ""
+    """What a task waits on: the tasks it depends on that are still open, since a closed one no longer holds it; nothing once every one is closed."""
+    return "blocked by " + " ".join(f"#{blocker['number']}" for blocker in blockers if not blocker["closed"]) if not all(blocker["closed"] for blocker in blockers) else ""
 
 
 def status(issue):
-    return " · ".join(part for part in (issue["progress"], issue["holder"], issue["wait"]) if part)
+    return " ".join(part for part in (issue["progress"], issue["holder"], issue["wait"]) if part)
 
 
 def rows(issues, width=PANE_WIDTH):
@@ -194,10 +194,8 @@ def rows(issues, width=PANE_WIDTH):
 
 def label(row):
     """A row's title line: its number, its title, `(in #n)` when it sits too deep for its parent's depth, and `(blocked by #a #b)` while a blocker
-    is open. No-break spaces glue `(blocked by` to its first number and a closed number to its `closed`, and the `)` ends the last number, so a
-    wrap never leaves `(blocked` or a lone `)` on a line."""
-    numbers = [f"#{blocker['number']}" + ("\u00a0closed" if blocker["closed"] else "") for blocker in row["blockers"]]
-    held = f" (blocked\u00a0by\u00a0{' '.join(numbers)})" if blocked_by(row["blockers"]) else ""
+    is open. No-break spaces glue `(blocked by` to its first number, and the `)` ends the last number, so a wrap never leaves `(blocked` or a lone `)` on a line."""
+    held = " (" + blocked_by(row["blockers"]).replace(" ", "\u00a0", 2) + ")" if blocked_by(row["blockers"]) else ""
     return f"#{row['number']} {row['title']}" + (f" (in #{row['home']})" if row["home"] else "") + held
 
 
@@ -207,18 +205,22 @@ def criterion(item):
 
 
 def heading(row, width):
-    """A row's lines the pane always shows, wrapped to WIDTH less its guide: `title`, `status`, and `notes`, its open questions, owner decisions and, once every part is done, what keeps it open."""
+    """A row's lines the pane always shows, wrapped to WIDTH less its guide: `title`, `status`, and `notes`, with `struck` the indexes of the notes of a replaced decision; its open questions, owner decisions and, once every part is done, what keeps it open."""
     room = None if width is None else width - max(cells(row["guide"]), cells(row["pad"]))
     said = status(row)
-    # parts share a line when they fit; else each takes its own, so no line ends on a bare `·`
-    shown = [said] if said and (room is None or cells(said) <= room) else [line for part in said.split(" · ") if said for line in wrap(part, room)]
+    # parts share a line when they fit; else each takes its own
+    shown = [said] if said and (room is None or cells(said) <= room) else [line for part in (row["progress"], row["holder"], row["wait"]) if part for line in wrap(part, room)]
     notes = [line for question in row.get("questions", []) for line in note("?", question, room)]
-    notes += [line for decided in row.get("decided", []) for line in note("◆", decided, room)]
+    struck = []
+    for decided in row.get("decided", []):
+        lines_of = note("◆", (f"[{decided['time']}] " if decided["time"] else "") + decided["decision"], room)
+        struck += range(len(notes), len(notes) + len(lines_of)) if decided["struck"] else []
+        notes += lines_of
     notes += note("◆", f"{row['more']} more decided", room) if row.get("more") else []
     notes += note("next step:", row["next"], room, limit=None) if row.get("next") else []  # the next step has no other place to be read in full
     # the first line sits after the guide, the later ones after the wider pad, so a title that fits beside its guide takes one line
     title = wrap(label(row), room, None if width is None else width - cells(row["guide"]))
-    return {"title": title, "status": shown, "notes": notes}
+    return {"title": title, "status": shown, "notes": notes, "struck": list(struck)}
 
 
 def note(mark, text, room, limit=NOTE_LINES):

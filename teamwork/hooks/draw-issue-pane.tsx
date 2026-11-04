@@ -115,9 +115,17 @@ export const register: Register = on => {
     const { Box, Text, Link, Button, Markdown } = $.ui.resolve(event)
     const unfolded = new Set(await read($, expanded))
     const toggle = (id: number | string) => () => void update($, expanded, old => old.includes(id) ? old.filter(item => item !== id) : [...old, id])
-    // a status line's holder and wait take their colors, its other parts stay dim
-    const status = (issue: BoardIssue, line: string) => line.split(' · ').map((part, k) => <Text dimColor={part !== issue.holder && part !== issue.wait}
-      color={part === issue.holder ? 'suggestion' : part === issue.wait ? WAIT_COLOR[part] ?? 'subtle' : undefined} weight={part === issue.wait ? 'semibold' : undefined}>{k ? ` · ${part}` : part}</Text>)
+    // a status line's holder and wait take their colors, its other parts stay dim; a part wrapped over lines is dim, since only a whole part is known
+    const status = (issue: BoardIssue, line: string) => {
+      const pieces: string[] = []
+      for (let rest = line; rest;) {
+        const part = [issue.progress, issue.holder, issue.wait].find(name => name && rest.startsWith(name)) ?? rest
+        pieces.push(part)
+        rest = rest.slice(part.length).replace(/^ /, '')
+      }
+      return pieces.map((part, k) => <Text dimColor={part !== issue.holder && part !== issue.wait}
+        color={part === issue.holder ? 'suggestion' : part === issue.wait ? WAIT_COLOR[part] ?? 'subtle' : undefined} weight={part === issue.wait ? 'semibold' : undefined}>{k ? ` ${part}` : part}</Text>)
+    }
     // a goal or a criterion: its name on one line, its details only once a press on that line unfolds them; unfolded, the name goes gray so the white detail reads first,
     // and a blank line ends the detail, so the next name does not read as part of it
     const part = (key: string, name: string, detail: string[]) => (
@@ -146,7 +154,7 @@ export const register: Register = on => {
           {rest.map(line => <Text>{lead(issue.pad)}<Text weight="semibold">{line}</Text></Text>)}
           {issue.lines.status.map(line => <Text>{lead(issue.pad)}{status(issue, line)}</Text>)}
           {/* open questions, the owner's latest decisions and what keeps a finished parent open, as list-issue-board.py wrapped them */}
-          {issue.lines.notes.map(line => <Text>{lead(issue.pad)}<Text color={line.startsWith('?') ? 'warning' : undefined}>{line}</Text></Text>)}
+          {issue.lines.notes.map((line, k) => <Text>{lead(issue.pad)}<Text color={line.startsWith('?') ? 'warning' : undefined} strikethrough={issue.lines.struck.includes(k)}>{line}</Text></Text>)}
           {open && (
             <Box flexDirection="row">
               {lead(issue.pad)}
@@ -157,7 +165,7 @@ export const register: Register = on => {
                 {issue.done.map((criterion, k) => part(`done-${issue.number}-${k}`, [criterion.met === null ? '' : criterion.met ? '[x]' : '[ ]', criterion.kind && `(${criterion.kind})`, criterion.name].filter(Boolean).join(' '), criterion.detail ? [criterion.detail] : []))}
                 {/* closed parts dim and newest first, so what landed last stays in view */}
                 {issue.closed.map(task => <Text wrap="wrap" dimColor><Link href={task.url} label={`#${task.number}`} />{' '}<Text strikethrough={task.stopped}>{task.title}</Text>
-                  {task.blockers.some(blocker => !blocker.closed) && <Text> blocked by {task.blockers.map(blocker => `#${blocker.number}${blocker.closed ? ' closed' : ''}`).join(' ')}</Text>}</Text>)}
+                  {task.blockers.some(blocker => !blocker.closed) && <Text> blocked by {task.blockers.filter(blocker => !blocker.closed).map(blocker => `#${blocker.number}`).join(' ')}</Text>}</Text>)}
                 {issue.earlier && <Text dimColor>…</Text>}
               </Box>
             </Box>

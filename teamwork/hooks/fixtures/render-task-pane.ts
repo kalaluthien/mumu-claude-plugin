@@ -81,7 +81,7 @@ register(on as any)
 await handlers['session.start']($, { cwd: '/repo' }, async () => ({}))
 await settle(1)
 type Row = { number: number; guide: string; pad: string; goal: string; detail: string[]; done: { name: string }[];
-  closed: { title: string; number: number; blockers: { number: number; closed: boolean }[] }[]; lines: { title: string[]; status: string[]; notes: string[] } }
+  closed: { title: string; number: number; blockers: { number: number; closed: boolean }[] }[]; lines: { title: string[]; status: string[]; notes: string[]; struck: number[] } }
 let lastPane: unknown
 // the pieces a draw styles: a link, a struck-through text, a colored text
 const styled = (node: unknown): string[] => {
