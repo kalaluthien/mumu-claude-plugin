@@ -172,6 +172,22 @@ export const register: Register = on => {
       if (at < to) out.push(text.slice(at, to))
       return out
     }
+    // a task's number as a link, only the characters a match covers on a yellow background; a number no match touches is one link
+    const numeral = (url: string, label: string, spans: Spans, color?: string) => {
+      const marked = spans.map(([start, end]): [number, number] => [Math.max(start, 0), Math.min(end, label.length)]).filter(([start, end]) => end > start)
+      if (!marked.length) return <Text color={color} weight="semibold"><Link href={url} label={label} /></Text>
+      const pieces: JSX.Element[] = []
+      let at = 0
+      for (const [start, end] of marked) {
+        if (start > at) pieces.push(<Text color={color} weight="semibold"><Link href={url} label={label.slice(at, start)} /></Text>)
+        pieces.push(<Text backgroundColor="yellow" color="black" weight="semibold"><Link href={url} label={label.slice(start, end)} /></Text>)
+        at = end
+      }
+      if (at < label.length) pieces.push(<Text color={color} weight="semibold"><Link href={url} label={label.slice(at)} /></Text>)
+      return pieces
+    }
+    // the space after a number, yellow when a match runs over it
+    const gap = (spans: Spans, at: number) => <Text backgroundColor={spans.some(([start, end]) => start <= at && end > at) ? 'yellow' : undefined}> </Text>
     // a status line's holder and wait take their colors, its other parts stay dim; a part wrapped over lines is dim, since only a whole part is known
     const status = (issue: BoardIssue, line: string, spans: Spans) => {
       const pieces: { part: string; at: number }[] = []
@@ -197,7 +213,6 @@ export const register: Register = on => {
       const [first, ...rest] = issue.lines.title
       const label = `#${issue.number}`
       const spans = (kind: 'title' | 'status' | 'notes', k: number): Spans => found?.[kind][k] ?? []
-      const hit = spans('title', 0).some(([start]) => start < label.length)
       const numberColor = issue.wait === 'waits on the owner' ? NUMBER_COLOR.owner : issue.holder ? NUMBER_COLOR.held
         : issue.blockers.some(blocker => !blocker.closed) ? NUMBER_COLOR.blocked : NUMBER_COLOR.ready
       return (
@@ -205,8 +220,8 @@ export const register: Register = on => {
           <Box flexDirection="row">
             {lead(guide)}
             {/* the link and the space after it sit outside the Button, so its press area and highlight start at the title's first letter */}
-            <Text backgroundColor={hit ? 'yellow' : undefined}><Text color={hit ? 'black' : numberColor} weight="semibold"><Link href={issue.url} label={label} /></Text></Text>
-            <Text> </Text>
+            {numeral(issue.url, label, spans('title', 0), numberColor)}
+            {gap(spans('title', 0), label.length)}
             <Button key={`row-${issue.number}`} plain onPress={toggle(issue.number)}><Text weight="semibold">{lit(first, spans('title', 0), label.length + 1, issue.lines.held[0])}</Text></Button>
             {/* a wait is quiet text outside the Button, so a press on it does nothing */}
             {issue.lines.held[0] < first.length && <Text dimColor>{lit(first, spans('title', 0), issue.lines.held[0])}</Text>}
@@ -226,7 +241,7 @@ export const register: Register = on => {
                 {issue.closed.map((task, k) => {
                   const marked = found?.closed[k] ?? []
                   const head = `#${task.number} `.length
-                  return <Text wrap="wrap" dimColor><Text backgroundColor={marked.some(([start]) => start < head) ? 'yellow' : undefined}><Link href={task.url} label={`#${task.number}`} /></Text>{' '}
+                  return <Text wrap="wrap" dimColor>{numeral(task.url, `#${task.number}`, marked)}{gap(marked, head - 1)}
                     <Text strikethrough={task.stopped}>{lit(`#${task.number} ${task.title}`, marked, head)}</Text>
                     {task.blockers.some(blocker => !blocker.closed) && <Text> blocked by {task.blockers.filter(blocker => !blocker.closed).map(blocker => `#${blocker.number}`).join(' ')}</Text>}</Text>
                 })}

@@ -360,7 +360,7 @@ def nodes_pane():
          {number: issue.get("trusted") for number, issue in marked.items()})
     rows = json.loads(subprocess.run([sys.executable, str(LIST), "--nodes", str(path), "--json"], capture_output=True, text=True).stdout or "[]")
     pane = (ROOT / "hooks" / "draw-issue-pane.tsx").read_text()
-    step("row-one-color", rows and not any("kind" in row for row in rows) and '<Link href={issue.url} label={label} />' in pane and 'color={hit ? \'black\' : numberColor}' in pane, [sorted(row) for row in rows[:1]])
+    step("row-one-color", rows and not any("kind" in row for row in rows) and 'numeral(issue.url, label, spans(\'title\', 0), numberColor)' in pane, [sorted(row) for row in rows[:1]])
 
 
 def main(args):
