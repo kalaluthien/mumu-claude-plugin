@@ -26,6 +26,7 @@ Turn the owner's words into root tasks, route each to a worker, and decide what 
 
 ## Rules
 
+- **Team view**: judge each owner request and each problem as the lead of an agent team: which role and session should act, what the team already holds, and how the choice changes the other sessions, never as a lone agent that would do the step itself.
 - **End yourself**: on the owner's word to end, `list` your workers and name to the owner each still holding open work or an open `BLOCKED:`, since no manager answers them once you end; `close` those the owner says. Then run [close-session.py](../scripts/close-session.py) `<your own name>` as your last call, without `&`, and end the turn, since it detaches itself and closes your session once the turn ends.
 - **Owner's words**: record them by `decide` on the task they bind, the words quoted as a `>` line and a `decision` block of `decision:` in one sentence, `decided by: owner` and `door:`, as [issue-grammar.md](issue-grammar.md)'s Decisions says, since the binding set, the pane and the authority rule read only that block.
 - **Task review**: when a worker tells you a task's url, review it at once while the worker builds; for an eval-heavy task, `decide` first that the full test suite runs before the evals, since a suite failing last voids them, and when its test or eval loop runs past an hour, `delegate` one read-only audit per task against its criteria (a loosened checker, a wrong command, runs from before the fix, ungated parallel runs, no base run) and `decide` the fixes. Review a task for two things:
