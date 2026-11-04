@@ -21,6 +21,7 @@ def load(path=GRAMMAR):
 KEYWORDS, KEYS, SECTIONS, DECISION_KEYS, TYPED_SINCE = load()
 WORD = {role: word for table in (KEYWORDS, KEYS) for word, role in table.items() if role}
 FIELD = {role: word for word, role in DECISION_KEYS.items()}
+INFORM = next(word for word, role in KEYWORDS.items() if not role)  # the keyword that only informs, which the owner reads as what happened
 DECISION = re.compile(r"^```decision\n(.*?)^```", re.M | re.S)
 DIFF = re.compile(r"^(`{3,})diff\n(.*?)^\1$", re.M | re.S)
 # the note `resolve` posts on a parent it stops, naming the parts it stops with it

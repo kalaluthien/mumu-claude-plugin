@@ -23,6 +23,15 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
 import decisions  # noqa: E402
 import issue_state  # noqa: E402
+import own_reports  # noqa: E402
+import session  # noqa: E402
+import team_names  # noqa: E402
+
+
+def keep_own(url, text):
+    """A manager's own report is news to no one, so its heartbeat is told not to feed it back."""
+    if issue_state.keyword(text) == issue_state.INFORM and team_names.role(session.sessions()[1].get("name")) == "manager":
+        own_reports.note(url)
 
 
 def main(args):
@@ -43,13 +52,18 @@ def main(args):
             # a decision block binds, so only `decide`, which holds it to the grammar's rules, may post one
             if issue_state.decision(text(operands[1])) is not None:
                 sys.exit(f"use-board: nothing posted: {operands[1]} holds a decision block; post it by `decide`, which checks it")
-            print(board.comment(operands[0], text(operands[1])))
+            url = board.comment(operands[0], text(operands[1]))
+            keep_own(url, text(operands[1]))
+            print(url)
         elif verb == "file" and len(operands) >= 2:
             print(board.fresh(board.file(operands[0], text(operands[1]), operands[2:]), comments=False)["url"])
         elif verb == "edit" and len(operands) == 3:
             return subprocess.run([sys.executable, str(HERE / "edit-issue-body.py"), *operands]).returncode
         elif verb == "resolve" and len(operands) in (2, 3):
             board.resolve(operands[0], keyed("REPORTED:", operands[1]), "--not-planned" not in operands[2:])
+            closed = board.fresh(operands[0])
+            if closed and closed["comments"]:
+                keep_own(closed["comments"][-1]["url"], closed["comments"][-1]["body"])
         elif verb == "title" and len(operands) == 2:
             board.retitle(*operands)
         elif verb == "reopen" and len(operands) == 1:

@@ -2,6 +2,8 @@
 import json
 import re
 
+import claude_config
+
 # what a tool's result says when it starts background work, by tool
 STARTED = {"Agent": r"^agentId: (\w+)", "SendMessage": r"\"resumedAgentId\":\s*\"(\w+)\"", "Bash": r"\ACommand running in background with ID: (\w+)"}
 
@@ -29,3 +31,8 @@ def running_work(transcript):
             elif (pattern := tools.get(block.get("tool_use_id"))) and (found := re.search(pattern, text(block.get("content")), re.M)):
                 running.add(found.group(1))
     return running
+
+
+def transcript_of(session_id):
+    """The path of a session's transcript, which Claude Code files under the project folder of the folder it started in; None when there is none."""
+    return next(iter((claude_config.folder() / "projects").glob(f"*/{session_id}.jsonl")), None) if session_id else None

@@ -17,8 +17,9 @@ def owns(name, branch):
 
 
 def members(me, listed):
-    """The workers and other sessions in your workspace; never a manager, since each manager is alone with its workers there."""
-    return [agent["name"] for agent in listed if agent.get("workspace_id") == me.get("workspace_id") and agent is not me and agent.get("name") and role(agent["name"]) != "manager"]
+    """The workers and sentinels in your workspace; never a manager, since each manager is alone with its workers there, nor a session
+    with no role, such as a probe a worker started or the owner's own, which the manager started not and cannot answer."""
+    return [agent["name"] for agent in listed if agent.get("workspace_id") == me.get("workspace_id") and agent is not me and role(agent.get("name")) in ("worker", "sentinel")]
 
 
 def crowding(me, listed):

@@ -84,15 +84,16 @@ TEAM = (agent("teamwork-manager", 1, "idle"), agent("protocol-split-worker", 2, 
 
 
 def github_team():
-    """A manager with two workers on the GitHub board: its start and heartbeat name each worker once, with what it holds."""
+    """A manager with two workers on the GitHub board: its start and heartbeat name the idle worker once, with what it holds, and the asking one by its `answer` line."""
     state = herdr(*TEAM)
     start = hook(state, "w1:p1", {"hook_event_name": "SessionStart", "session_id": ""})
     stop = hook(state, "w1:p2", {"hook_event_name": "Stop", "stop_hook_active": False, "transcript_path": ""})
     beat = heartbeat(state, "w1:p1")
     for out in (start, beat):
-        for name, held in (("protocol-split-worker", "#4 #3"), ("fixture-asking-worker", "#2")):
-            if [line.split(":")[0] for line in lines_about(out, name)] != [f"idle {name}"] or f"holds {held}" not in out:
-                return False, out
+        # the asking worker waits on its manager, so its line is the manager's `answer`, not an `idle`
+        if [line.split(":")[0] for line in lines_about(out, "protocol-split-worker")] != ["idle protocol-split-worker"] or "holds #4 #3" not in out \
+                or lines_about(out, "idle fixture-asking-worker") or not any(line.startswith("answer #2:") for line in out.splitlines()):
+            return False, out
     return "Your goal still waits on you" in stop and "#3" in stop, "\n".join([start, stop, beat])
 
 

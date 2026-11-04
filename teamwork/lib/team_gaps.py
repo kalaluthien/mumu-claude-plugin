@@ -1,9 +1,13 @@
 """Each role's next actions: the gaps between the board's issues and the live team, as lines a monitor or hook prints."""
 
+import re
+
+import background_work
 import board
 import decisions
 import issue_state
 import landing
+import own_reports
 import task_links
 from session import screen, tabs
 from team_names import crowding, members, owns, project, role
@@ -11,7 +15,9 @@ from team_names import crowding, members, owns, project, role
 ISSUE_LIMIT, PULL_LIMIT = 200, 50
 
 ASK, ANSWER = issue_state.WORD["ask"], issue_state.WORD["answer"]
-FEED = next(word for word, meaning in issue_state.KEYWORDS.items() if not meaning)  # the keyword that only informs, which the owner reads as what happened
+FEED = issue_state.INFORM
+# the reports a worker posts as steps of its own work, which the owner need not follow: [run-criteria.py](../skills/kick-off/scripts/run-criteria.py)'s table and a filed task
+STEP_REPORTS = ("criteria at ", "task filed")
 
 
 def issues(project=None, state="open"):
@@ -45,6 +51,17 @@ def waiting(issue, open_issues):
     return blocked(issue["body"]) or bool(parts) and all(blocked(part["body"]) for part in parts)
 
 
+def stalled(issue, open_issues):
+    """Whether a held task waits on no one: not on another open task, nor on an answer."""
+    return not waiting(issue, open_issues) and not asking(issue)
+
+
+def background(agent):
+    """Whether a session has a subagent or a command running in the background, which it waits on while its status reads idle."""
+    transcript = background_work.transcript_of((agent.get("agent_session") or {}).get("value"))
+    return bool(transcript and background_work.running_work(transcript))
+
+
 def feed_read(name, since):
     """The trusted reports posted since SINCE (an ISO time) on this manager's project's open roots and parents and on its issues closed now, as (issue, comment);
     None when a read failed. A task's other reports, such as each precheck table, are steps the owner need not follow."""
@@ -55,7 +72,8 @@ def feed_read(name, since):
     by = {issue["number"]: issue for issue in touched if issue["state"] == "CLOSED" or issue["parent"] is None or task_links.parts(issue["body"])}
     # `since` matches an edit too, so an old comment edited now is left out by its creation time
     found = [(by[number], comment) for number, comment in posted
-             if number in by and comment["createdAt"] >= since and issue_state.trusted(comment) and issue_state.keyword(comment["body"]) == FEED]
+             if number in by and comment["createdAt"] >= since and issue_state.trusted(comment) and issue_state.keyword(comment["body"]) == FEED
+             and not comment["body"].split(":", 1)[1].strip().startswith(STEP_REPORTS)]
     # a closed task's last report is its close summary
     last = {issue["number"]: comment["url"] for issue, comment in found}
     return [(issue, comment) for issue, comment in found if issue["state"] == "OPEN" or last[issue["number"]] == comment["url"]]
@@ -92,6 +110,7 @@ def manager_actions(me, listed, data=None, fed_urls=None):
     team = members(me, listed)
     status = {agent.get("name"): agent.get("agent_status") for agent in listed}
     panes = {agent.get("name"): agent.get("pane_id") for agent in listed}
+    by_name = {agent.get("name"): agent for agent in listed}
     found, pulls = data["found"], data["prs"]
     lines = limited(found, ISSUE_LIMIT, "open-issue")  # merged PRs past the newest are always many and no live worker's
     if crowd := crowding(me, listed):
@@ -107,7 +126,8 @@ def manager_actions(me, listed, data=None, fed_urls=None):
         # the kept read may predate the manager's own `decide`, so a candidate is read again before it is called unrouted
         if unrouted(issue) and unrouted(board.fresh(issue["number"]) or issue):
             lines.append(f"route #{issue['number']} {issue_state.title(issue)}: no live worker holds it; route it, or write in its body `{issue_state.WORD['depends']}:` the open task it waits for, or close it as not planned")
-        if asking(issue):
+        # the kept read may predate the manager's own `decide`, so a question is read again before it is called open
+        if asking(issue) and asking(board.fresh(issue["number"]) or issue):
             ask = issue_state.open_questions(issue)[-1]["ask"]
             lines.append(f"answer #{issue['number']}: its worker asks at {ask['url']}; answer by `decide` there with `{decisions.FIELD['answers']}: {ask['url']}`; "
                          f"the worker waits on it")
@@ -118,17 +138,24 @@ def manager_actions(me, listed, data=None, fed_urls=None):
             lines.append(f"outside #{issue['number']} {issue_state.title(issue)}: an outside contributor opened this pull request; close it unread with a comment that outside pull requests are not accepted and issues are welcome")
         else:
             lines.append(f"outside #{issue['number']} {issue_state.title(issue)}: an outside contributor opened it; ask the owner, then route it, answer it by a {ANSWER}:, or close it")
+    merged = {name: [pull["number"] for pull in pulls if owns(name, pull["headRefName"])] for name in team}
     for name in team:
-        held = " ".join(f"#{issue['number']}" for issue in data["everything"] if holds(issue, name)) or "nothing open"
+        held_issues = [issue for issue in data["everything"] if holds(issue, name)]
+        held = " ".join(f"#{issue['number']}" for issue in held_issues) or "nothing open"
         if status[name] == "blocked":
-            lines.append(f"blocked {name} (pane {panes[name]}): it waits at a tool-use prompt; tell the owner this screen, then answer by the Tool prompt rule once the owner says so: {prompt_text(panes[name])}")
-        elif status[name] in ("idle", "done") and role(name) != "sentinel":  # a sentinel waits idle between the rounds of its duty
+            if choices := prompt_text(panes[name]):
+                lines.append(f"blocked {name} (pane {panes[name]}): it waits at a tool-use prompt; tell the owner this screen, then answer by the Tool prompt rule once the owner says so: {choices}")
+        elif merged[name] and not held_issues:
+            # a merged change is news only once its worker has nothing left to do, since until then the worker goes on with its next task
+            lines.append(f"merged {' '.join(f'#{number}' for number in merged[name])} by {name}: it holds nothing open; close it and clean its worktree")
+        elif status[name] in ("idle", "done") and role(name) != "sentinel" and (not held_issues or any(stalled(issue, open_issues) for issue in held_issues)) \
+                and not background(by_name[name]):
+            # a sentinel waits idle between the rounds of its duty; a worker whose tasks all wait on a task, the owner or the manager has nothing to do yet
             lines.append(f"idle {name}: holds {held}; it needs what waits, or close it when it holds nothing open")
-    for pull, name in ((pull, name) for pull in pulls for name in team if owns(name, pull["headRefName"])):
-        lines.append(f"merged #{pull['number']} by {name}: once {name} holds nothing open, close it and clean its worktree")
     news = {}
+    own = own_reports.urls()  # what this manager posted itself is no news to it
     for issue, comment in data.get("feed", []):
-        if fed_urls is not None and comment["url"] not in fed_urls:
+        if fed_urls is not None and comment["url"] not in fed_urls and comment["url"] not in own:
             fed_urls.add(comment["url"])
             news.setdefault(issue["number"], (issue, []))[1].append(comment)
     for issue, posted in news.values():
@@ -138,9 +165,11 @@ def manager_actions(me, listed, data=None, fed_urls=None):
 
 
 def prompt_text(pane):
-    """The last lines of a blocked pane's screen, which hold the prompt's question and numbered choices, on one line."""
-    lines = [line.strip() for line in screen(pane).splitlines() if line.strip()]
-    return " | ".join(lines[-8:])
+    """A blocked pane's prompt on one line: its question and numbered choices, from the line above the first choice to the hint after the last;
+    None when the screen shows no choice, such as an empty input under a banner, which is no prompt to answer."""
+    lines = [line.strip() for line in screen(pane).splitlines() if line.strip() and not set(line.strip()) <= set("─╌━ ")]
+    choices = [at for at, line in enumerate(lines) if re.match(r"^\W*1\. ", line)]
+    return " | ".join(lines[max(0, choices[-1] - 2):choices[-1] + 7]) if choices else None
 
 
 def worker_goal(me):

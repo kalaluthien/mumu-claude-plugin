@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import board  # noqa: E402
 import landing  # noqa: E402
+import new_lines  # noqa: E402
 import session  # noqa: E402
 import team_gaps  # noqa: E402
 import team_names  # noqa: E402
@@ -30,7 +31,7 @@ def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    shown = set()
+    quiet = new_lines.NewLines()  # a line printed stays quiet while it holds, so a status that flips between polls prints once
     waiting = set()  # a worker's issues with an open blocker, so a restart reports no blocker closed long ago
     fed_urls = set()  # the urls of the reports a manager was already fed
     data, read_at, signal = None, 0.0, team_signal.stamp()  # what GitHub last gave, when, and the signal file's change then
@@ -56,10 +57,8 @@ def main(args):
             if data is not None:  # a failed read keeps the last good time, so the next read still feeds what came after it
                 read_at, signal = now.timestamp(), seen
         lines = [] if not (manager or worker) else None if data is None else team_gaps.manager_actions(me, listed, data, fed_urls) if manager else team_gaps.worker_actions(me, waiting, data)
-        for line in lines or []:  # a failed read (None) keeps what was shown, so the next poll repeats nothing
-            if line not in shown:
-                print(line, flush=True)
-        shown = shown if lines is None else set(lines)
+        for line in [] if lines is None else quiet.update(lines):  # a failed read (None) changes nothing, so the next poll repeats nothing
+            print(line, flush=True)
         time.sleep(POLL)
 
 
