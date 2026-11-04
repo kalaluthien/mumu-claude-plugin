@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Edit an issue's body by a unified diff of it: post a comment of the keyword line and the diff in a `diff` fence, then
-apply the diff to the body. A diff that does not apply to the current body changes nothing, comment included.
+apply the diff to the body. A diff that does not apply to the current body, or that adds a defect to it or has a keyword line that is not one
+`DECIDED:` line, changes nothing, comment included, and exits 2 naming the fix.
 
 usage: edit-issue-body.py <issue> <diff-file> <keyword line>"""
 import pathlib
@@ -11,6 +12,7 @@ import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
+import issue_state  # noqa: E402
 
 
 def main(args):
@@ -35,6 +37,11 @@ def main(args):
     if check.returncode:
         sys.exit(f"edit-issue-body: the diff does not apply to #{issue}'s body, so nothing was posted or changed:\n{check.stdout}{check.stderr}")
     applied = subprocess.run(["patch", "--forward", "--batch", "-s", "-o", "-", str(body), diff_file], capture_output=True, text=True)
+    # a defect the body already held does not block the edit that may fix it
+    found = issue_state.defects("edit-body", applied.stdout, body.read_text()) + issue_state.defects("edit-line", line)
+    if found:
+        print("edit-issue-body: nothing posted or changed, the edit has defects:\n- " + "\n- ".join(found) + f"\nthe grammar is {issue_state.GRAMMAR}", file=sys.stderr)
+        return 2
     try:
         board.check_links(issue, applied.stdout)
     except LookupError as e:

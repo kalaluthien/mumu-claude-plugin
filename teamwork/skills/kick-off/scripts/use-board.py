@@ -3,6 +3,8 @@
 
 usage: use-board.py <operation> <args>
 
+`comment`, `decide`, `file` and `resolve` first refuse, exit 2 and post nothing, a text with a malformed key line, keyword line or section heading, naming the fix.
+
   read <issue>                          print its title, state, labels, parent, body and comments
   comment <issue> <body-file>           append the file's text as a comment; refused, nothing posted, when it holds a `decision` block, which `decide` posts
   file <title> <body-file> [label...]   open an issue; print its url; its `[task]` and `depends on` lines link it, refused when they make a cycle,
@@ -31,9 +33,10 @@ def main(args):
     # the verb names the keyword, so a text that lacks it gets it rather than a refusal no caller can read
     keyed = lambda keyword, path: text(path) if text(path).startswith(keyword) else f"{keyword} {text(path)}"
     try:
-        # a holders line outside a teamwork fence is read by no code, so it would leave an issue unrouted
-        if verb in ("comment", "decide", "file", "resolve") and len(operands) >= 2 and issue_state.stray_state(text(operands[1])):
-            sys.exit(f"use-board: nothing posted: a holders: line in {operands[1]} sits outside a teamwork fence; put it inside the fence, as {issue_state.GRAMMAR} says")
+        # a text that no code reads as meant would leave an issue unrouted or a question unasked, so it is refused with its fix
+        if verb in ("comment", "decide", "file", "resolve") and len(operands) >= 2 and (found := issue_state.defects(verb, text(operands[1]))):
+            print(f"use-board: nothing posted, {operands[1]} has defects:\n- " + "\n- ".join(found) + f"\nthe grammar is {issue_state.GRAMMAR}", file=sys.stderr)
+            return 2
         if verb == "read" and len(operands) == 1:
             issue = board.fresh(operands[0]) or sys.exit(f"use-board: cannot read #{operands[0]}")
             print(f"#{issue['number']} {issue_state.title(issue)}\nstate: {issue['state']}\nlabels: {', '.join(issue['labels'])}\nparent: {issue['parent']}\n\n{issue['body']}")
