@@ -127,8 +127,15 @@ def change(branch, title, body, base):
 
 def clobbered(holder, base, commit):
     """The files of HOLDER's worktree that hold uncommitted changes and that the move from BASE to COMMIT would also change, so the move can be refused before anything is pushed."""
-    dirty = {line[3:].split(" -> ")[-1] for line in git("status", "--porcelain", "--untracked-files=all", cwd=holder).stdout.splitlines()}
-    return sorted(dirty & set(git("diff", "--name-only", base, commit, cwd=holder).stdout.split()))
+    # NUL-separated, since a path with a space is quoted by the line form and split by whitespace; a renamed file lists its new path, then its old one
+    fields = iter(git("status", "--porcelain", "-z", "--untracked-files=all", cwd=holder).stdout.split("\0"))
+    dirty = set()
+    for field in fields:
+        if field:
+            dirty.add(field[3:])
+            if field[0] in "RC":
+                dirty.add(next(fields, ""))
+    return sorted(dirty & set(git("diff", "--name-only", "-z", base, commit, cwd=holder).stdout.split("\0")))
 
 
 def push(number, base_name, commit):

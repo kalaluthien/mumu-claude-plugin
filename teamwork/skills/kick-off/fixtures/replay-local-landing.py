@@ -6,7 +6,8 @@ usage: replay-local-landing.py --case <name>
 - pushes: the merge puts the new commit on `origin`'s base, and the local base, its checkout and the change record show it
 - push-refused: an `origin` that refuses the push makes the merge exit 1 with the remote's reason, and the base here, the remote's base and the change are as they were
 - no-gh: change, merge and remove-worktree call no gh
-- no-origin: a repository with no remote merges locally, and pushes nothing"""
+- no-origin: a repository with no remote merges locally and removes the worker's worktree with no gh call, and pushes nothing
+- dirty-base: an uncommitted file of the base checkout that the change also edits, its name holding a space, refuses the merge before any push, and nothing moves"""
 import json
 import os
 import pathlib
@@ -36,6 +37,7 @@ def setup(remote=True):
     repo, origin = work / "repo", work / "origin.git"
     sh("git", "init", "-q", repo, cwd=work, env=env)
     (repo / "a.txt").write_text("base\n")
+    (repo / "a b.txt").write_text("base\n")
     sh("git", "add", "-A", cwd=repo, env=env)
     sh("git", "commit", "-q", "-m", "base", cwd=repo, env=env)
     if remote:
@@ -45,9 +47,9 @@ def setup(remote=True):
     return work, repo, origin, env
 
 
-def worker(work, repo, env):
+def worker(work, repo, env, name="b.txt"):
     tree = pathlib.Path(sh(sys.executable, SCRIPTS / "add-worktree.py", "probe-worker", "main", cwd=repo, env=env).stdout.strip())
-    (tree / "b.txt").write_text("work\n")
+    (tree / name).write_text("work\n")
     sh("git", "add", "-A", cwd=tree, env=env)
     sh("git", "commit", "-q", "-m", "work", cwd=tree, env=env)
     (work / "body.md").write_text("Probe change. Closes #1.\n")
@@ -122,10 +124,26 @@ def case_no_origin():
     run = merged(work, repo, origin, env, tree, head)
     if run.returncode or rev(repo, "main", env) != run.stdout.strip() or not (repo / "b.txt").exists():
         return fail(f"merge exited {run.returncode}: {run.stdout}{run.stderr}")
+    sh(sys.executable, SCRIPTS / "remove-worktree.py", "probe-worker", cwd=repo, env=env, check=False)
+    calls = (work / "gh.log").read_text().strip()
+    if calls:
+        return fail(f"gh was called: {calls}")
     return 0
 
 
-CASES = {"pushes": case_pushes, "push-refused": case_push_refused, "no-gh": case_no_gh, "no-origin": case_no_origin}
+def case_dirty_base():
+    work, repo, origin, env = setup()
+    tree, head = worker(work, repo, env, name="a b.txt")
+    (repo / "a b.txt").write_text("mine, not committed\n")
+    before = (rev(repo, "main", env), rev(origin, "refs/heads/main", env))
+    run = merged(work, repo, origin, env, tree, head)
+    after = (rev(repo, "main", env), rev(origin, "refs/heads/main", env))
+    if run.returncode != 1 or before != after or change_state(repo, env) != "OPEN" or (repo / "a b.txt").read_text() != "mine, not committed\n":
+        return fail(f"merge exited {run.returncode}: {run.stderr.strip()[-200:]}; the bases moved {before} -> {after}")
+    return 0
+
+
+CASES = {"pushes": case_pushes, "push-refused": case_push_refused, "no-gh": case_no_gh, "no-origin": case_no_origin, "dirty-base": case_dirty_base}
 
 
 def main(args):

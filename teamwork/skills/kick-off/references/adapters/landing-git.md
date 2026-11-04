@@ -12,4 +12,4 @@ A change is a branch of the repository, filed and merged in local git by `${CLAU
 | `remove` | [remove-worktree.py](../../scripts/remove-worktree.py) `<name>...` |
 
 - **Base refs**: where a playbook writes `origin/<base>`, write `<base>`, and pass `run-criteria.py --base --ref <base>`, since the local base is the one the merge moved.
-- **Refused merge**: a merge that conflicts, that would overwrite uncommitted files in the base's worktree, or whose push `origin` refuses, changes nothing and names the cause; after a refused push, pull the base and judge the new tip. Rebase and judge the new tip; for those files, ask your manager by `BLOCKED:`.
+- **Refused merge**: a merge that conflicts, that would overwrite uncommitted files in the base's worktree, or whose push `origin` refuses, changes nothing and names the cause. After a conflict or a refused push, pull the base, rebase and judge the new tip; for uncommitted files, ask your manager by `BLOCKED:`.
