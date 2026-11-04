@@ -110,9 +110,13 @@ const matchesIn = (issue: BoardIssue, pattern: RegExp) => {
   const done = issue.done.map(criterion => spansOf([criterion.line], () => true, pattern)[0])
   const closed = issue.closed.map(task => spansOf([`#${task.number} ${task.title}`], () => true, pattern)[0])
   const any = (found: Spans[]) => found.some(spans => spans.length > 0)
+  // a decision or a question the lister cut to its width still counts, so a search finds the same tasks at any width; only the drawn part is painted
+  const said = (text: string) => (text.match(pattern) ?? []).some(match => match !== '')
+  const cut = (issue.questions ?? []).some(said)
+  const cutDecision = (issue.decided ?? []).some(decision => said(decision.decision))
   const painted = (found: Spans[]) => found.some(spans => spans.some(([start, end]) => end > start))
-  return { title, status, notes, done, closed, found: any(title) || any(status) || any(notes) || any(done) || any(closed),
-           hidden: painted(notes.slice(issue.lines.questions)) || painted(done) || painted(closed) }
+  return { title, status, notes, done, closed, found: any(title) || any(status) || any(notes) || any(done) || any(closed) || cut || cutDecision,
+           hidden: painted(notes.slice(issue.lines.questions)) || painted(done) || painted(closed) || cutDecision }
 }
 
 export const register: Register = on => {
@@ -165,7 +169,8 @@ export const register: Register = on => {
     try { pattern = typed ? new RegExp(typed, 'gi') : undefined } catch (error) { invalid = String((error as Error).message ?? error) }  // a bad pattern changes nothing and says so
     const flip = (old: number[], id: number) => old.includes(id) ? old.filter(item => item !== id) : [...old, id]
     // while a search is on a press flips the row on top of what the search opened, and leaves the folds the person kept untouched
-    const toggle = (id: number) => () => void (pattern ? update($, peeked, old => flip(old, id)) : update($, expanded, old => flip(old, id)))
+    const searching = Boolean(typed)  // a box that holds text, whether or not it is a valid pattern
+    const toggle = (id: number) => () => void (searching ? update($, peeked, old => flip(old, id)) : update($, expanded, old => flip(old, id)))
     const pressed = new Set(await read($, peeked))
     // a text with its matched spans on a yellow background, from one offset to another
     const lit = (text: string, spans: Spans, from = 0, to = text.length) => {
@@ -217,7 +222,7 @@ export const register: Register = on => {
     const row = (issue: BoardIssue): JSX.Element => {
       const found = pattern ? matchesIn(issue, pattern) : undefined
       const [guide, pad] = pattern ? ['', '  '] : [issue.guide, issue.pad]
-      const open = pattern ? (unfolded.has(issue.number) || Boolean(found?.hidden)) !== pressed.has(issue.number) : unfolded.has(issue.number)
+      const open = searching ? (unfolded.has(issue.number) || Boolean(found?.hidden)) !== pressed.has(issue.number) : unfolded.has(issue.number)
       const more = Boolean(issue.lines.notes.length > issue.lines.questions || issue.done.length || issue.closed.length || issue.earlier)
       const [first, ...rest] = issue.lines.title
       const label = `#${issue.number}`

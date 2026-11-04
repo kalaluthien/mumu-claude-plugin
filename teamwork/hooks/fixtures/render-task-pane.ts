@@ -5,14 +5,14 @@
 // closed parts draws them: `same`, else `differ: <the first difference>`, exit 1.
 // With `--styled`, once that holds, it prints instead each piece the last draw (width 88) styles, one per line: `link <label>`, `press <text>` (the button's text as drawn, so a space inside it shows),
 // `strike <text>`, `dim <text>` or `color:<name> <text>`.
-// With `--search <regex>` and `--press <text>` (each repeatable; `none` presses nothing), it draws the rows at width 88 with every row folded, then types each
+// With `--search <regex>` and `--press <text>` (each repeatable; `none` presses nothing), it draws the rows at width 88, or at `--columns <n>`, with every row folded, then types each
 // regex into the search box and presses each button whose text holds a given text, in the order given, and prints the drawn lines as `<row number>|<line>`, a yellow background in ⟦ ⟧.
-// usage: bun teamwork/hooks/fixtures/render-task-pane.ts <nodes-file> [--styled | --search <regex>... --press <text>...]
+// usage: bun teamwork/hooks/fixtures/render-task-pane.ts <nodes-file> [--styled | --search <regex>... --press <text>... --columns <n>]
 import { plugin } from 'bun'
 
 const nodes = process.argv[2]
 if (!nodes) {
-  console.error('usage: bun teamwork/hooks/fixtures/render-task-pane.ts <nodes-file> [--styled | --search <regex>... --press <text>...]')
+  console.error('usage: bun teamwork/hooks/fixtures/render-task-pane.ts <nodes-file> [--styled | --search <regex>... --press <text>... --columns <n>]')
   process.exit(2)
 }
 const lister = `${import.meta.dir}/../list-issue-board.py`
@@ -143,7 +143,7 @@ for (const width of [30, 40, 60, 88]) {
 if (process.argv.includes('--press') || process.argv.includes('--search')) {
   // every row folded, then each `--search <regex>` types its regex into the search box and each `--press <text>` presses every button whose text holds it, in the order given;
   // the drawn lines print as `<row number>|<line>` with a yellow background as ⟦ ⟧, and `0|<line>` for a line that is no row's: `0|input: <typed text>` first
-  const width = 88
+  const width = Number(process.argv[process.argv.indexOf('--columns') + 1]) || 88
   store.set('expanded', [])
   marking = true
   const steps = process.argv.flatMap((argument, k) => argument === '--search' || argument === '--press' ? [[argument, process.argv[k + 1]]] : [])
