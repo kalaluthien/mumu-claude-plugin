@@ -9,7 +9,6 @@ import task_links
 
 DOORS = ("one-way", "two-way")
 FIELD = issue_state.FIELD
-SHOWN_DECIDED = 3  # the latest owner decisions the pane draws under a task; the rest it counts
 
 
 def as_issue(node):
@@ -174,29 +173,20 @@ def superseded_in(nodes):
 
 
 def stamp(created):
-    """CREATED, a board timestamp such as `2026-11-04T04:00:00Z`, as `MM/DD HH:MM` in UTC+9; empty when it has none."""
-    if not created:
+    """CREATED, a board timestamp such as `2026-11-04T04:00:00Z`, as `MM/DD HH:MM` in UTC+9; empty when it has none or cannot be read."""
+    try:
+        when = datetime.datetime.fromisoformat((created or "").replace("Z", "+00:00"))
+    except ValueError:
         return ""
-    return datetime.datetime.fromisoformat(created.replace("Z", "+00:00")).astimezone(datetime.timezone(datetime.timedelta(hours=9))).strftime("%m/%d %H:%M")
+    return when.replace(tzinfo=when.tzinfo or datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=9))).strftime("%m/%d %H:%M")
 
 
 def shown(node, superseded=frozenset()):
-    """What the pane draws under a task: its open questions' first lines, its latest SHOWN_DECIDED owner decisions that no decision in SUPERSEDED
-    replaced, each after the decisions it replaced, marked `struck`, and how many current ones are left out."""
+    """What the pane draws under a task: its open questions' first lines, and its decisions that no decision in SUPERSEDED replaced, newest first.
+    A decision is {decision, time, mark}: `mark` is `◆` for the owner's and `◇` for a manager's or a worker's."""
     issue = as_issue(node)
-    owned = [decision for decision in typed(node["number"], node) if decision["role"] == "owner"]
-    by_url = {decision["url"]: decision for decision in owned}
-
-    def history(decision):
-        """DECISION after the decisions it replaced, oldest first."""
-        found = [decision]
-        while (earlier := by_url.get(found[0]["supersedes"])) and earlier not in found:
-            found.insert(0, earlier)
-        return found
-
-    current = [decision for decision in owned if decision["url"] not in superseded]
-    kept = [decision for latest in current[-SHOWN_DECIDED:] for decision in history(latest)]
+    live = sorted((decision for decision in typed(node["number"], node) if decision["url"] not in superseded),
+                  key=lambda decision: (decision["createdAt"], decision["index"]), reverse=True)
     asked = [first_line(question["ask"]) for question in issue_state.open_questions(issue)]
     return {"questions": [text for k, text in enumerate(asked) if text not in asked[:k]],  # an ask posted again is one question
-            "decided": [{"decision": decision["decision"], "time": stamp(decision["createdAt"]), "struck": decision["url"] in superseded} for decision in kept],
-            "more": max(len(current) - SHOWN_DECIDED, 0)}
+            "decided": [{"decision": decision["decision"], "time": stamp(decision["createdAt"]), "mark": "◆" if decision["role"] == "owner" else "◇"} for decision in live]}

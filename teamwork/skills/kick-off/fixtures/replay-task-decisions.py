@@ -13,7 +13,7 @@ decision comments untrusted, as the GitHub adapter marks an outsider's, before t
   heartbeat-legacy-quiet: the manager's heartbeat lines
 - route-own-depends, route-parts-blocked, route-after-close: no `route` line for a task whose own `depends on:` names an open task,
   or whose open parts all do, until that task closes
-- pane-question, pane-latest-three, pane-cut, pane-untrusted, pane-question-next-line: list-issue-board.py's `?` and `◆` lines; pane-linear, on github-nodes
+- pane-question, pane-every-decision, pane-cut, pane-untrusted, pane-question-next-line: list-issue-board.py's `?` and `◆` lines; pane-linear, on github-nodes
   only: one draw parses each task's comments a bounded number of times, however many tasks there are
 - row-no-deferral, row-finished-parent, outside-answered, row-one-color, on github-nodes: a `deferred:` line sets no wait; a parent
   whose parts are all done shows its next step in full among its always-shown lines; an outsider's issue leaves the heartbeat once a
@@ -259,7 +259,8 @@ def pane_cases(listed, narrow, untrusted_lines, asker, decider, cutter, untruste
     step("pane-question", "? may the sync run" in block(listed, asker), block(listed, asker))
     marks = [line for line in block(listed, decider) if line.startswith("◆ ")]
     timed = [re.sub(r"^◆ \[\d\d/\d\d \d\d:\d\d\] ", "◆ ", line) for line in marks]  # each decision opens with its time, which the run's clock sets
-    step("pane-latest-three", timed[:3] == ["◆ rule two", "◆ rule three", "◆ rule four"] and timed[3:] == ["◆ 1 more decided"] and marks[0] != timed[0], block(listed, decider))
+    step("pane-every-decision", timed == ["◆ rule four", "◆ rule three", "◆ rule two", "◆ rule one"] and marks[0] != timed[0]
+         and "more decided" not in "\n".join(block(listed, decider)) and "..." not in "\n".join(block(listed, decider)), block(listed, decider))
     cut = block(narrow, cutter, strip=False)
     start = next((i for i, line in enumerate(cut) if "◆ " in line), len(cut))
     shown = cut[start:start + 3]

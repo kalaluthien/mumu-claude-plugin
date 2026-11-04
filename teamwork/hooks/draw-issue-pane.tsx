@@ -10,8 +10,8 @@ const board = atom({ plugin: 'teamwork', key: 'board' } as const, [] as BoardIss
 const failure = atom({ plugin: 'teamwork', key: 'failure' } as const, '')
 // whether a read has worked yet, so an empty board never looks like one not read
 const loaded = atom({ plugin: 'teamwork', key: 'loaded' } as const, false)
-// the entries, goals and criteria the manager unfolded, kept across redraws; every other shows its one line
-const expanded = atom({ plugin: 'teamwork', key: 'expanded' } as const, [] as (number | string)[])
+// the tasks the manager unfolded, kept across redraws; every other shows its title and status
+const expanded = atom({ plugin: 'teamwork', key: 'expanded' } as const, [] as number[])
 // the ` +` or ` -` fold mark at a row's first line's end
 const FOLD = 2
 // a wait that needs someone stands out; any other, such as `blocked by #n` beside a blocked task, stays dim
@@ -112,9 +112,9 @@ export const register: Register = on => {
       laidWidth = width
       relayout?.()
     }
-    const { Box, Text, Link, Button, Markdown } = $.ui.resolve(event)
+    const { Box, Text, Link, Button } = $.ui.resolve(event)
     const unfolded = new Set(await read($, expanded))
-    const toggle = (id: number | string) => () => void update($, expanded, old => old.includes(id) ? old.filter(item => item !== id) : [...old, id])
+    const toggle = (id: number) => () => void update($, expanded, old => old.includes(id) ? old.filter(item => item !== id) : [...old, id])
     // a status line's holder and wait take their colors, its other parts stay dim; a part wrapped over lines is dim, since only a whole part is known
     const status = (issue: BoardIssue, line: string) => {
       const pieces: string[] = []
@@ -126,43 +126,37 @@ export const register: Register = on => {
       return pieces.map((part, k) => <Text dimColor={part !== issue.holder && part !== issue.wait}
         color={part === issue.holder ? 'suggestion' : part === issue.wait ? WAIT_COLOR[part] ?? 'subtle' : undefined} weight={part === issue.wait ? 'semibold' : undefined}>{k ? ` ${part}` : part}</Text>)
     }
-    // a goal or a criterion: its name on one line, its details only once a press on that line unfolds them; unfolded, the name goes gray so the white detail reads first,
-    // and a blank line ends the detail, so the next name does not read as part of it
-    const part = (key: string, name: string, detail: string[]) => (
-      <Box flexDirection="column">
-        <Button key={`row-${key}`} plain onPress={toggle(key)}><Text wrap="wrap" dimColor={unfolded.has(key)}>{name}</Text></Button>
-        {unfolded.has(key) && detail.length > 0 && <Box paddingLeft={2} marginBottom={1} flexDirection="column"><Markdown text={detail.join('\n')} /></Box>}
-      </Box>
-    )
+    const lead = (text: string) => <Text dimColor>{text}</Text>
+    // a manager's or a worker's decision is dim, as the lister marks it in `quiet`
+    const note = (issue: BoardIssue, line: string, k: number) =>
+      <Text>{lead(issue.pad)}<Text color={line.startsWith('?') ? 'warning' : undefined} dimColor={issue.lines.quiet.includes(k)}>{line}</Text></Text>
     // a row as list-issue-board.py lays it out for the pane: its guide, then each line it wrapped; the guide is drawn text, so the tree reads at any width it fits
     const row = (issue: BoardIssue): JSX.Element => {
       const open = unfolded.has(issue.number)
-      const more = Boolean(issue.goal || issue.detail.length || issue.done.length || issue.closed.length)
+      const more = Boolean(issue.lines.notes.length || issue.done.length || issue.closed.length || issue.earlier)
       const [first, ...rest] = issue.lines.title
       const label = `#${issue.number}`
-      const lead = (text: string) => <Text dimColor>{text}</Text>
       return (
         <Box flexDirection="column">
           <Box flexDirection="row">
             {lead(issue.guide)}
             {/* the link sits outside the Button, which holds only Text; every number takes one color, since the guide alone shows a root from a part */}
             <Text color="claude" weight="semibold"><Link href={issue.url} label={label} /></Text>
-            <Button key={`row-${issue.number}`} plain onPress={toggle(issue.number)}><Text weight="semibold">{first.slice(label.length)}</Text></Button>
+            <Button key={`row-${issue.number}`} plain onPress={toggle(issue.number)}><Text weight="semibold">{first.slice(label.length, issue.lines.held[0])}</Text></Button>
+            {/* a wait is quiet text outside the Button, so a press on it does nothing */}
+            {issue.lines.held[0] < first.length && <Text dimColor>{first.slice(issue.lines.held[0])}</Text>}
             <Box flexGrow={1} />
             {more && <Button key={`fold-${issue.number}`} plain dimColor label={open ? ' -' : ' +'} onPress={toggle(issue.number)} />}
           </Box>
-          {rest.map(line => <Text>{lead(issue.pad)}<Text weight="semibold">{line}</Text></Text>)}
+          {rest.map((line, k) => <Text>{lead(issue.pad)}<Text weight="semibold">{line.slice(0, issue.lines.held[k + 1])}</Text><Text dimColor>{line.slice(issue.lines.held[k + 1])}</Text></Text>)}
           {issue.lines.status.map(line => <Text>{lead(issue.pad)}{status(issue, line)}</Text>)}
-          {/* open questions, the owner's latest decisions and what keeps a finished parent open, as list-issue-board.py wrapped them */}
-          {issue.lines.notes.map((line, k) => <Text>{lead(issue.pad)}<Text color={line.startsWith('?') ? 'warning' : undefined} strikethrough={issue.lines.struck.includes(k)}>{line}</Text></Text>)}
+          {/* a task folds to its title and status; opened, it shows the open questions, every decision newest first, what keeps it open, its criteria and its closed parts, all flat */}
+          {open && issue.lines.notes.map((line, k) => note(issue, line, k))}
           {open && (
             <Box flexDirection="row">
               {lead(issue.pad)}
-              <Box paddingLeft={2} flexDirection="column">
-                {issue.goal && <Markdown text={issue.goal} />}
-                {/* the title sums a task up, so its goal is detail, folded */}
-                {issue.detail.length > 0 && part(`goal-${issue.number}`, 'see detail', issue.detail)}
-                {issue.done.map((criterion, k) => part(`done-${issue.number}-${k}`, [criterion.met === null ? '' : criterion.met ? '[x]' : '[ ]', criterion.kind && `(${criterion.kind})`, criterion.name].filter(Boolean).join(' '), criterion.detail ? [criterion.detail] : []))}
+              <Box flexDirection="column">
+                {issue.done.map(criterion => <Text wrap="wrap">{criterion.line}</Text>)}
                 {/* closed parts dim and newest first, so what landed last stays in view */}
                 {issue.closed.map(task => <Text wrap="wrap" dimColor><Link href={task.url} label={`#${task.number}`} />{' '}<Text strikethrough={task.stopped}>{task.title}</Text>
                   {task.blockers.some(blocker => !blocker.closed) && <Text> blocked by {task.blockers.filter(blocker => !blocker.closed).map(blocker => `#${blocker.number}`).join(' ')}</Text>}</Text>)}
