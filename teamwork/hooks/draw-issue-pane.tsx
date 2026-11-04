@@ -118,12 +118,6 @@ export const register: Register = on => {
     // a status line's holder and wait take their colors, its other parts stay dim
     const status = (issue: BoardIssue, line: string) => line.split(' · ').map((part, k) => <Text dimColor={part !== issue.holder && part !== issue.wait}
       color={part === issue.holder ? 'suggestion' : part === issue.wait ? WAIT_COLOR[part] ?? 'subtle' : undefined} weight={part === issue.wait ? 'semibold' : undefined}>{k ? ` · ${part}` : part}</Text>)
-    // every blocker, as links: an open one bold, a closed one dim, so what still holds a task stands out
-    const href = (issue: { url: string }, number: string) => issue.url.replace(/\d+$/, number)
-    const after = (issue: { url: string }, line: string) => line.split(/(#\d+(?: closed)?)/).filter(Boolean).map(piece => {
-      const named = /^#(\d+)( closed)?$/.exec(piece)
-      return named ? <Text dimColor={Boolean(named[2])} weight={named[2] ? undefined : 'semibold'}><Link href={href(issue, named[1])} label={`#${named[1]}`} />{named[2] ?? ''}</Text> : <Text dimColor>{piece}</Text>
-    })
     // a goal or a criterion: its name on one line, its details only once a press on that line unfolds them; unfolded, the name goes gray so the white detail reads first,
     // and a blank line ends the detail, so the next name does not read as part of it
     const part = (key: string, name: string, detail: string[]) => (
@@ -151,7 +145,6 @@ export const register: Register = on => {
           </Box>
           {rest.map(line => <Text>{lead(issue.pad)}<Text weight="semibold">{line}</Text></Text>)}
           {issue.lines.status.map(line => <Text>{lead(issue.pad)}{status(issue, line)}</Text>)}
-          {issue.lines.after.map(line => <Text>{lead(issue.pad)}{after(issue, line)}</Text>)}
           {/* open questions, the owner's latest decisions and what keeps a finished parent open, as list-issue-board.py wrapped them */}
           {issue.lines.notes.map(line => <Text>{lead(issue.pad)}<Text color={line.startsWith('?') ? 'warning' : undefined}>{line}</Text></Text>)}
           {open && (

@@ -264,7 +264,7 @@ def pane_cases(lines, root, waiting, first, second, named=None):
     rows = [line for line in lines if re.match(r"^[\s│├└]*#\d+ ", line)]
     under = [line for line in rows if line.lstrip(" │├└").startswith(f"#{waiting} ")]
     step("pane-nesting", len(under) == 1 and under[0].startswith(("  └ ", "  ├ ")) and rows[0].startswith(f"#{root} "), rows)
-    step("pane-wait-line", sum(line.strip(" │") == f"blocked by #{first} #{second}" for line in lines) == 1, lines)
+    step("pane-wait-line", sum(line.endswith(f"(blocked by #{first} #{second})") for line in lines) == 1, lines)
     step("pane-done-count", any(line.strip(" │").startswith("1/2 parts done") for line in lines), lines)
     if named:
         step("pane-named-no-row", not any(line.lstrip(" │├└").startswith(f"#{named} ") for line in rows), rows)

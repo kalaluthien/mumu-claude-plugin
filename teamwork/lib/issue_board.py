@@ -126,13 +126,13 @@ def wrap(text, width, first=None):
     """Greedy word wrap by display cells, the first line FIRST cells wide when given, every other WIDTH; a word wider than a whole
     line breaks after its last hyphen that fits, else is cut."""
     if width is None:
-        return [text]
+        return [text.replace("\u00a0", " ")]
     lines, line = [], ""
 
     def room():
         return width if first is None or lines else first
 
-    for word in text.split():
+    for word in [word for word in re.split(r"[ \t\n]+", text) if word]:  # a no-break space glues the words it joins
         if line and cells(line) + 1 + cells(word) > room():
             lines.append(line)
             line = ""
@@ -145,20 +145,13 @@ def wrap(text, width, first=None):
             lines.append(word[:cut])
             word = word[cut:]
         line = f"{line} {word}" if line else word
-    return lines + [line] if line or not lines else lines
+    lines = lines + [line] if line or not lines else lines
+    return [line.replace("\u00a0", " ") for line in lines]
 
 
 def blocked_by(blockers):
     """What a task waits on: every task it depends on, one closed as completed marked closed; nothing once every one is closed."""
     return "blocked by " + " ".join(f"#{blocker['number']}{' closed' * blocker['closed']}" for blocker in blockers) if not all(blocker["closed"] for blocker in blockers) else ""
-
-
-def after(row, width):
-    """A row's `blocked by` line, wrapped to WIDTH with its later lines under the first line's numbers; none once every blocker is closed."""
-    numbers = blocked_by(row["blockers"]).removeprefix("blocked by ")
-    margin = len("blocked by")
-    room = None if width is None else max(width - margin - 1, 1)
-    return [f"{'blocked by' if k == 0 else ' ' * margin} {line}" for k, line in enumerate(wrap(numbers, room))] if numbers else []
 
 
 def status(issue):
@@ -200,9 +193,12 @@ def rows(issues, width=PANE_WIDTH):
 
 
 def label(row):
-    """A row's first words: its number, `[blocked]` while a blocker is open, its title, and `(in #n)` when it sits too deep for its parent's depth."""
-    blocked = any(not blocker["closed"] for blocker in row["blockers"])
-    return f"#{row['number']} " + ("[blocked] " if blocked else "") + row["title"] + (f" (in #{row['home']})" if row["home"] else "")
+    """A row's title line: its number, its title, `(in #n)` when it sits too deep for its parent's depth, and `(blocked by #a #b)` while a blocker
+    is open. No-break spaces glue `(blocked by` to its first number and a closed number to its `closed`, and the `)` ends the last number, so a
+    wrap never leaves `(blocked` or a lone `)` on a line."""
+    numbers = [f"#{blocker['number']}" + ("\u00a0closed" if blocker["closed"] else "") for blocker in row["blockers"]]
+    held = f" (blocked\u00a0by\u00a0{' '.join(numbers)})" if blocked_by(row["blockers"]) else ""
+    return f"#{row['number']} {row['title']}" + (f" (in #{row['home']})" if row["home"] else "") + held
 
 
 def criterion(item):
@@ -211,7 +207,7 @@ def criterion(item):
 
 
 def heading(row, width):
-    """A row's lines the pane always shows, wrapped to WIDTH less its guide: `title`, `status`, `after`, its `blocked by` line, and `notes`, its open questions, owner decisions and, once every part is done, what keeps it open."""
+    """A row's lines the pane always shows, wrapped to WIDTH less its guide: `title`, `status`, and `notes`, its open questions, owner decisions and, once every part is done, what keeps it open."""
     room = None if width is None else width - max(cells(row["guide"]), cells(row["pad"]))
     said = status(row)
     # parts share a line when they fit; else each takes its own, so no line ends on a bare `·`
@@ -222,7 +218,7 @@ def heading(row, width):
     notes += note("next step:", row["next"], room, limit=None) if row.get("next") else []  # the next step has no other place to be read in full
     # the first line sits after the guide, the later ones after the wider pad, so a title that fits beside its guide takes one line
     title = wrap(label(row), room, None if width is None else width - cells(row["guide"]))
-    return {"title": title, "status": shown, "after": after(row, room), "notes": notes}
+    return {"title": title, "status": shown, "notes": notes}
 
 
 def note(mark, text, room, limit=NOTE_LINES):
@@ -244,7 +240,7 @@ def lines(issues, width=None):
         room = None if width is None else width - max(cells(row["guide"]), cells(row["pad"]))
         head = heading(row, width)
         yield row["guide"] + head["title"][0]
-        yield from (row["pad"] + line for line in head["title"][1:] + head["status"] + head["after"] + head["notes"])
+        yield from (row["pad"] + line for line in head["title"][1:] + head["status"] + head["notes"])
         details = [row["goal"]] if row["goal"] else []
         details += ["see detail"] if row["detail"] else []
         details += [criterion(item) for item in row["done"]]
