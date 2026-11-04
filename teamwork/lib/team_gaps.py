@@ -172,7 +172,8 @@ def prompt_text(pane):
     None when the screen shows no choice, such as an empty input under a banner, which is no prompt to answer."""
     lines = [line.strip() for line in screen(pane).splitlines() if line.strip() and not set(line.strip()) <= set("─╌━ ")]
     choices = [at for at, line in enumerate(lines) if re.match(r"^\W*1\. ", line)]
-    return " | ".join(lines[max(0, choices[-1] - 2):choices[-1] + 7]) if choices else None
+    # a prompt that denies itself on a countdown would read as a new line at every poll, so the time left is not part of it
+    return re.sub(r"\b\d{1,2}:\d\d\b", "…", " | ".join(lines[max(0, choices[-1] - 2):choices[-1] + 7])) if choices else None
 
 
 def worker_goal(me):

@@ -2,8 +2,8 @@
 """Replay the lines a manager's heartbeat once printed to no purpose, on a temporary repository with a files board, git landing and the fake herdr
 beside this file, and print `ok <case>` or `fail <case>: <what it saw>` per case; exit 1 on any fail. Each case is a class of line found in
 past managers' transcripts (#1202):
-- idle-again, blocked-again: a worker that goes back to idle, or to the same prompt, after working is named again, since each return is news to the manager
-  (teamwork-manager's transcript 6a7e0b9a, the `idle work-model-worker` line 16 times in 7.5 h; 84bfcb25, one worker's same prompt twice a minute apart)
+- idle-again, blocked-again: a worker that goes back to idle, or to the same prompt, after working is named again, since each return is news to the manager; a countdown ticking in the prompt does not make it a new line
+  (teamwork-manager's transcript 6a7e0b9a, the `idle work-model-worker` line 16 times in 7.5 h; 84bfcb25, one prompt printed twice a minute apart because its `denied in 1:35` countdown changed)
 - probe-quiet: a session with no `-worker` or `-sentinel` name, such as a worker's `probe-end-manager-49609`, gets no `idle` or `blocked` line
 - blocked-prompt, blocked-empty: a blocked pane names its prompt's choices; one showing an empty input under a banner gets no line
 - merged-later: a merged change is named once its worker holds nothing open, and then without an `idle` line beside it
@@ -134,7 +134,14 @@ def monitor_cases():
     file("Probe a held task", holder="flap-worker")
     out = run_monitor(lambda text: text.count("idle flap-worker") >= 2 and text.count("blocked again-worker") >= 2 and "blocked prompt-worker" in text)
     step("idle-again", len(about(out, "idle flap-worker")) >= 2, "\n".join(out))
-    step("blocked-again", len(about(out, "blocked again-worker")) >= 2, "\n".join(out))
+    import team_gaps
+    counting = lambda left: f"\u2502 Dangerous rm operation in `rm $M/$f.md`\n\u26a0 Claude Code will automatically deny this request in {left}, to avoid blocking\nDo you want to proceed?\n\u276f 1. Yes\n  2. No"
+    shown, real = [], team_gaps.screen
+    for left in ("1:35", "0:35"):
+        team_gaps.screen = lambda pane, left=left: counting(left)
+        shown.append(team_gaps.prompt_text("w1:p7"))
+    team_gaps.screen = real
+    step("blocked-again", len(about(out, "blocked again-worker")) >= 2 and shown[0] == shown[1] and "1. Yes" in shown[0], "\n".join(out + shown))
     step("probe-quiet", not about(out, "probe-"), "\n".join(about(out, "probe-")))
     step("blocked-empty", not about(out, "empty-worker"), "\n".join(about(out, "empty-worker")))
     step("blocked-prompt", any("blocked prompt-worker" in line and "1. Yes" in line and "Esc to cancel" in line for line in out), "\n".join(out))
