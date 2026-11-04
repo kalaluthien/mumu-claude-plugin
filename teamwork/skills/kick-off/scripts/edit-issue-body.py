@@ -34,7 +34,15 @@ def main(args):
         return 2
     # --forward: an applied diff reads as reversed, which a bare dry run would accept
     check = subprocess.run(["patch", "--forward", "--batch", "--dry-run", "-s", str(body), diff_file], capture_output=True, text=True)
-    if check.returncode:
+    padded = False
+    if check.returncode and not body.read_text().endswith("\n"):
+        # `gh issue view` prints the stored body with a newline it lacks, so a diff made from that output ends in one the body has not
+        body.write_text(body.read_text() + "\n")
+        retry = subprocess.run(["patch", "--forward", "--batch", "--dry-run", "-s", str(body), diff_file], capture_output=True, text=True)
+        padded = retry.returncode == 0
+        if not padded:
+            body.write_text(body.read_text()[:-1])
+    if check.returncode and not padded:
         sys.exit(f"edit-issue-body: the diff does not apply to #{issue}'s body, so nothing was posted or changed:\n{check.stdout}{check.stderr}")
     applied = subprocess.run(["patch", "--forward", "--batch", "-s", "-o", "-", str(body), diff_file], capture_output=True, text=True)
     # a defect the body already held does not block the edit that may fix it
@@ -51,7 +59,7 @@ def main(args):
     comment.write_text(f"{line}\n\n{fence}diff\n{diff}{'' if diff.endswith(chr(10)) else chr(10)}{fence}\n")
     print(board.comment(issue, comment.read_text()))
     subprocess.run(["patch", "--forward", "--batch", "-s", str(body), diff_file], check=True)
-    board.edit(issue, body.read_text())
+    board.edit(issue, body.read_text()[:-1] if padded and body.read_text().endswith("\n") else body.read_text())
     print(f"edit-issue-body: #{issue}'s body now carries the diff its new comment holds")
 
 
