@@ -56,11 +56,11 @@ REFUSED = {
     "edit-keyword-empty": ([("edit", BASE, BASE + "\nMore.\n", "")], "DECIDED:"),
     "edit-keyword-free": ([("edit", BASE, BASE + "\nMore.\n", "add more text")], "DECIDED:"),
     "edit-keyword-two-lines": ([("edit", BASE, BASE + "\nMore.\n", "DECIDED: add more\nholders: oops")], "one line"),
-    "prose-key-refused": ([("comment", "REPORTED: x\n\nCloud: yes or no\n")], "code span"),
+    "prose-key-refused": ([("comment", "REPORTED: x\n\nHolders: yes or no\n")], "code span"),
 }
-EVERY_KEY = "holders: a-worker b-worker\ncloud: a-worker\nasks: owner\ndepends on: #1 #2"
+EVERY_KEY = "holders: a-worker b-worker\nasks: owner\ndepends on: #1 #2"
 ACCEPTED = {
-    "prose-code-span-accepted": [("comment", "REPORTED: x\n\n`Cloud: yes or no`\n")],
+    "prose-code-span-accepted": [("comment", "REPORTED: x\n\n`Holders: yes or no`\n")],
     "accept-clean-comment": [("comment", "REPORTED: fine\n\n```teamwork\nholders: a-worker b-worker\n```\n")],
     "accept-clean-edit": [("edit", BASE, BASE + "\nMore.\n", "DECIDED: add more")],
     "accept-fixing-edit": [("edit", STRAY, BASE, "DECIDED: drop the stray line")],

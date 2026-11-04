@@ -79,6 +79,9 @@ def main(args):
     for line in settings["warnings"]:
         print(line, file=sys.stderr)
     role = next((candidate for candidate in ("worker", "sentinel") if options.args.startswith(candidate + " ")), "manager")
+    if options.args.split()[4:6] == ["set", "remote"]:  # a stale kick-off line must fail, not start a herdr session where its sender expects a cloud one
+        print("start-session.py: set remote: every session runs in herdr; leave out `set remote`.", file=sys.stderr)
+        return 2
     role_off = settings["tools_off"].get(role, [])
     if stray := sorted(set(options.allow) - set(role_off)):
         rule = f"--allow {', '.join(stray)}: not a tool this role has off, which is {', '.join(role_off) or 'none'}"

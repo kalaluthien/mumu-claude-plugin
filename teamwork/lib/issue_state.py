@@ -107,7 +107,7 @@ def _defects(kind, text):
                     near = stems.get(stem(spelt.group(1))) if spelt else None
                     found.append((f"fence {line.strip()}", f"line {number}, `{line.strip()}`, is no key the teamwork fence takes; "
                                   + (f"spell it `{near}: <value>`" if near else f"use one of: {keys}, as `key: value`")))
-                elif key in (WORD["holders"], WORD["cloud"]) and not NAMES.fullmatch(value):
+                elif key == WORD["holders"] and not NAMES.fullmatch(value):
                     found.append((f"names {line.strip()}", f"line {number}, `{line.strip()}`, holds more than session names; write the names lowercase, separated by spaces only, as `{key}: a-worker b-worker`"))
                 elif key == WORD["audience"] and value != "owner":
                     found.append((f"asks {line.strip()}", f"line {number}, `{line.strip()}`, is no value `{key}` takes; write exactly `{key}: owner`"))
@@ -245,11 +245,6 @@ def open_questions(issue):
 def holder_values(issue):
     """Each holders value set, oldest first, as a list of names."""
     return [fields[WORD["holders"]].split() for _, fields, _ in records(issue) if WORD["holders"] in fields]
-
-
-def cloud(issue):
-    """The names its latest cloud value set, which run where no local listing shows them."""
-    return ([fields[WORD["cloud"]].split() for _, fields, _ in records(issue) if WORD["cloud"] in fields] or [[]])[-1]
 
 
 def compose(issue, blockers=()):

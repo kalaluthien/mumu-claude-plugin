@@ -1,4 +1,4 @@
-"""The session port: where a team's sessions run, done by the adapter `session_<TEAMWORK_SESSIONS>` (default `herdr`).
+"""The session port: where a team's sessions run, done by the herdr adapter.
 
 Every adapter has these functions, by the same names:
 - reads: `sessions(session_id)` the live sessions and this one's own ({} when the caller is none of them), `agent(name)` one by name or None,
@@ -10,10 +10,7 @@ Every adapter has these functions, by the same names:
 - `LOOK` the command that shows a session's pane, `EMPTY` what to say when no session is listed, and `NEEDS` the commands it runs
 A session has `name`, `agent` (its kind, as the agent port's `KIND` names it), `pane_id`, `tab_id`, `workspace_id` and `agent_status` (`idle`, `working`, `blocked` or `done`), and `interactive_ready`;
 a place has `pane_id` and `tab_id`. A `pane` argument may be a session's name, which the host resolves on each call, since it may move the pane. Functions raise RuntimeError when the host refuses a write they cannot do without."""
-import importlib
-import os
-
-adapter = importlib.import_module(f"session_{os.environ.get('TEAMWORK_SESSIONS', 'herdr')}")
+import session_herdr as adapter
 
 
 def __getattr__(name):

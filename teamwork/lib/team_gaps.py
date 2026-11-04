@@ -119,8 +119,6 @@ def manager_actions(me, listed, data=None, fed_urls=None):
                      f"`start` `{me['name']}-next` with `succeed {me['name']}`, as Succession says, which opens one")
     # a started worker names its tab before its agent is live, so its tab counts it as routed
     present = set(team) | {tab.get("label") for tab in tabs(me.get("workspace_id", ""))}
-    # a cloud name holds on every open issue, so a task its worker filed itself counts as held though only its root names it cloud
-    present |= {name for issue in data["everything"] for name in issue_state.cloud(issue)}
     open_issues = {issue["number"]: issue for issue in [*data["everything"], *found]}
     unrouted = lambda issue: not unanswered(issue) and not waiting(issue, open_issues) and not any(holds(issue, name) for name in present if name)
     for issue in found:

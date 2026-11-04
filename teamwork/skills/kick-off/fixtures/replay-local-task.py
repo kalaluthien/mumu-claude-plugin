@@ -8,6 +8,7 @@ the issue pane and the heartbeat, writing and reading the real hooks and scripts
 - layout: `file --scope probe` puts an issue at `probe/<n>/` of the one ref `refs/teamwork-blackboard` and a filing with no scope puts it at `<n>/`, each url names its folder, a `--scope` that names no folder of the repository is refused with no commit, `read` finds an issue by number alone, and the pane of `probe` reads its folder only while a project with no folder reads the root's own issues only
 - old-setting: a leftover `TEAMWORK_BOARD` or `TEAMWORK_LANDING` in the environment and in the project's settings changes nothing, and the whole path still calls no gh
 - base-required: `edit-issue-body.py` with no `--base` exits 2 and adds no commit, and with the board's `body sha` it adds one
+- cloud-refused: a `cloud:` line in a comment's teamwork fence is refused as no key and adds no commit, and `start-session.py` with `set remote` exits 2
 - atomic: `edit-issue-body.py`, `board.edit` that reopens a closed root, `resolve` of a part whose parent then closes and `resolve --not-planned` of a task with an open part each add exactly one commit to the board's ref, and a diff that does not apply, or whose `--base` names an older body, adds none"""
 import json
 import os
@@ -231,7 +232,20 @@ def case_atomic(work, repo, origin, env):
     return 0
 
 
-CASES = {"whole": case_whole, "layout": case_layout, "old-setting": case_old_setting, "base-required": case_base_required, "atomic": case_atomic}
+def case_cloud_refused(work, repo, origin, env):
+    use(env, repo, "use-board.py", "file", "Probe the part", text_file(work, "part.md", PART), "--scope", "probe")
+    before = commits(env, repo)
+    held = text_file(work, "cloud.md", "REPORTED: probe\n\n```teamwork\ncloud: probe-worker\n```\n")
+    run = use(env, repo, "use-board.py", "comment", "1", held, check=False)
+    if run.returncode == 0 or commits(env, repo) != before or "is no key the teamwork fence takes" not in run.stdout + run.stderr:
+        return fail(f"a `cloud:` holder line exited {run.returncode} and added {commits(env, repo) - before} commits: {(run.stdout + run.stderr)[-200:]}")
+    run = use(env, repo, "start-session.py", "probe-worker", repo, "worker probe-worker manager probe-manager set remote #1", "--model", "m", "--effort", "e", check=False)
+    if run.returncode != 2 or "set remote" not in run.stderr:
+        return fail(f"start-session.py with `set remote` exited {run.returncode}: {run.stderr[-200:]}")
+    return 0
+
+
+CASES = {"whole": case_whole, "cloud-refused": case_cloud_refused, "layout": case_layout, "old-setting": case_old_setting, "base-required": case_base_required, "atomic": case_atomic}
 
 
 def main(args):

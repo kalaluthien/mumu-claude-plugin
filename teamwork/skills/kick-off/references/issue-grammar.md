@@ -25,7 +25,6 @@ holders: issue-pane-worker
 | key | value | role |
 | --- | --- | --- |
 | `holders` | session names, space-separated, replacing every earlier value; empty when no one holds it | holders |
-| `cloud` | the holders that run as cloud sessions, space-separated, replacing every earlier value, since no local listing shows them; a name counts as live on every open issue | cloud |
 | `asks` | `owner` on an ask the owner answers, not the manager | audience |
 | `depends on` | the tasks this one waits on, `#a #b`, read from the body only; a task waits until each is closed as completed | depends |
 
