@@ -151,7 +151,7 @@ def manager_actions(me, listed, data=None, fed_urls=None):
         elif status[name] in ("idle", "done") and role(name) != "sentinel" and (not held_issues or any(stalled(issue, open_issues) for issue in held_issues)) \
                 and not background(by_name[name]):
             # a sentinel waits idle between the rounds of its duty; a worker whose tasks all wait on a task, the owner or the manager has nothing to do yet
-            lines.append(f"idle {name}: holds {held}; it needs what waits, or close it when it holds nothing open")
+            lines.append(f"idle {name}: holds {held}; give it its next step, answer what it waits on, or close it when it holds nothing open")
     news = {}
     own = own_reports.urls()  # what this manager posted itself is no news to it
     for issue, comment in data.get("feed", []):

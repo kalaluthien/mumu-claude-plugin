@@ -3,7 +3,7 @@
 beside this file, and print `ok <case>` or `fail <case>: <what it saw>` per case; exit 1 on any fail. Each case is a class of line found in
 past managers' transcripts (#1202):
 - flap-once: an idle worker whose status flips at every poll is named once by the running monitor (teamwork-manager's transcript
-  6a7e0b9a, `idle work-model-worker` 32 times in 2 h); flap-fuzz: for random presences a line prints again only after 5 polls without it
+  6a7e0b9a, the same `idle work-model-worker` line 15 times in 7.5 h); flap-fuzz: for random presences a line prints again only after 5 polls without it
 - probe-quiet: a session with no `-worker` or `-sentinel` name, such as a worker's `probe-end-manager-49609`, gets no `idle` or `blocked` line
 - blocked-prompt, blocked-empty: a blocked pane names its prompt's choices; one showing an empty input under a banner gets no line
 - merged-later: a merged change is named once its worker holds nothing open, and then without an `idle` line beside it
@@ -14,12 +14,11 @@ past managers' transcripts (#1202):
 - feed-own: no `feed` line for a report this manager posted through use-board.py
 
 usage: replay-heartbeat-lines.py [--verbose] [--verdict | --cited]
-`--verdict` prints only `PASS` when all 12 cases ran and passed, else `FAIL`; `--cited` prints only `PASS` when each of the 12 names a transcript or an issue it came from, else `FAIL`."""
+`--verdict` prints only `PASS` when all 12 cases ran and passed, else `FAIL`; `--cited` prints only `PASS` when each of the 12 finds its text in the transcript it names, in the stated number of monitor events, else `FAIL`."""
 import json
 import os
 import pathlib
 import random
-import re
 import subprocess
 import sys
 import tempfile
@@ -40,18 +39,37 @@ failed = []
 passed = []
 QUIET = False
 VERBOSE = False
-# where each case was found: a manager's transcript under ~/.claude/projects/-Users-hyungmokim-workspace-plugins/ by its first 8 characters, or an issue
-SOURCES = {"flap-once": "transcript 6a7e0b9a, idle work-model-worker 32 times", "flap-fuzz": "transcript 6a7e0b9a, answer #1187 12 times in 2 h",
-           "probe-quiet": "transcripts 6a7e0b9a probe-end-manager-49609 and 43a6f00e probe-panes-1792244756", "blocked-empty": "issue #1202 body, an empty input under a banner",
-           "blocked-prompt": "transcript 84bfcb25, a prompt cut to a row of dashes", "merged-later": "transcript 6a7e0b9a, merged #1190 13 times while its worker held open tasks",
-           "merged-nothing-open": "transcript 6a7e0b9a, merged #1197", "idle-waits": "transcript 6a7e0b9a, idle work-model-worker while #1187 waited on the owner",
-           "idle-background": "issue #1202 body, a background harness and a subagent", "answer-stale": "issue #1202 body, answer after decide; transcript 6a7e0b9a answer #1187",
-           "feed-steps": "transcript 6a7e0b9a, feed #1199 REPORTED: criteria at", "feed-own": "transcript 6a7e0b9a, feed #1196 of the manager's own report"}
+# where each case was found: (the transcript under ~/.claude/projects/-Users-hyungmokim-workspace-plugins/ by its first 8 characters, the text it holds,
+# how many monitor events carry that text); --cited counts them in the transcript
+TRANSCRIPTS = pathlib.Path("~/.claude/projects/-Users-hyungmokim-workspace-plugins").expanduser()
+SOURCES = {"flap-once": ("transcript 6a7e0b9a", "idle work-model-worker: holds", 15), "flap-fuzz": ("transcript 6a7e0b9a", "answer #1187", 6),
+           "probe-quiet": ("transcript 6a7e0b9a", "probe-end-manager-49609", 3), "blocked-empty": ("transcript 6a7e0b9a", "Update installed", 1),
+           "blocked-prompt": ("transcript 84bfcb25", "once the owner says so: \u254c\u254c\u254c\u254c", 2), "merged-later": ("transcript 6a7e0b9a", "merged #1190", 6),
+           "merged-nothing-open": ("transcript 6a7e0b9a", "merged #1197", 5), "idle-waits": ("transcript 6a7e0b9a", "holds #1188 #1187 #1163", 13),
+           "idle-background": ("transcript 6a7e0b9a", "idle work-model-worker: holds", 15), "answer-stale": ("transcript 6a7e0b9a", "answer #1187", 6),
+           "feed-steps": ("transcript 6a7e0b9a", "REPORTED: criteria at", 5), "feed-own": ("transcript 6a7e0b9a", "feed #1196", 1)}
+
+
+def events(prefix, needle):
+    """How many monitor events a transcript queued whose text holds NEEDLE; a transcript repeats each event in other records, so only the queued ones count."""
+    count = 0
+    for path in TRANSCRIPTS.glob(prefix + "*.jsonl"):
+        for line in path.read_text().splitlines():
+            if '"operation":"enqueue"' in line and needle in line:
+                record = json.loads(line)
+                count += record.get("type") == "queue-operation" and needle in record.get("content", "")
+    return count
+
+
+def sourced(name):
+    """Whether the case's transcript holds its text in the stated number of monitor events."""
+    source, needle, count = SOURCES[name]
+    return events(source.split()[1], needle) == count
 
 
 def step(name, ok, detail=""):
     if not QUIET:
-        print(f"ok {name} <- {SOURCES[name]}" if ok else f"fail {name}: {str(detail).strip()}", flush=True)
+        print(f"ok {name} <- {SOURCES[name][0]}" if ok else f"fail {name}: {str(detail).strip()}", flush=True)
     (passed if ok else failed).append(name)
 
 
@@ -97,10 +115,13 @@ def about(output, name):
     return [line for line in output if name in line]
 
 
-def run_monitor(seconds):
+def run_monitor(until):
     log = work / "monitor.log"
     live = subprocess.Popen([str(ROOT / "monitors" / "print-team-gaps.py")], cwd=repo, env={**os.environ, "MONITOR_POLL": "0.3"}, stdout=log.open("w"), stderr=subprocess.STDOUT)
-    time.sleep(seconds)
+    deadline = time.time() + 30
+    while time.time() < deadline and until not in log.read_text():
+        time.sleep(0.2)
+    time.sleep(3)  # the monitor goes on polling, so a line wrongly printed again shows
     live.kill()
     live.wait()
     return log.read_text().splitlines()
@@ -112,7 +133,7 @@ def flap_cases():
           agent("probe-prompt", 4, "blocked", screen=prompt), agent("empty-worker", 5, "blocked", screen="❯ \n\n  Update installed · restart to apply"),
           agent("prompt-worker", 6, "blocked", screen=prompt))
     file("Probe a held task", holder="flap-worker")
-    out = run_monitor(7)
+    out = run_monitor("blocked prompt-worker")
     step("flap-once", len(about(out, "idle flap-worker")) == 1, "\n".join(out))
     step("probe-quiet", not about(out, "probe-"), "\n".join(about(out, "probe-")))
     step("blocked-empty", not about(out, "empty-worker"), "\n".join(about(out, "empty-worker")))
@@ -222,7 +243,7 @@ def main(args):
     line_cases()
     feed_cases()
     if "--cited" in flags:
-        cited = len(passed) == len(SOURCES) == 12 and all(re.match(r"(transcripts? [0-9a-f]{8}|issue #\d+)", SOURCES[name]) for name in passed)
+        cited = len(passed) == len(SOURCES) == 12 and all(sourced(name) for name in passed)
         print("PASS" if cited else "FAIL")
     elif "--verdict" in flags:
         print("PASS" if len(passed) == len(SOURCES) == 12 and not failed else "FAIL")
