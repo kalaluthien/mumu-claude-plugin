@@ -2,8 +2,8 @@
 """Replay the lines a manager's heartbeat once printed to no purpose, on a temporary repository with a files board, git landing and the fake herdr
 beside this file, and print `ok <case>` or `fail <case>: <what it saw>` per case; exit 1 on any fail. Each case is a class of line found in
 past managers' transcripts (#1202):
-- flap-once: an idle worker whose status flips at every poll is named once by the running monitor (teamwork-manager's transcript
-  6a7e0b9a, the same `idle work-model-worker` line 15 times in 7.5 h); flap-fuzz: for random presences a line prints again only after 5 polls without it
+- idle-again, blocked-again: a worker that goes back to idle, or to the same prompt, after working is named again, since each return is news to the manager
+  (teamwork-manager's transcript 6a7e0b9a, the `idle work-model-worker` line 16 times in 7.5 h; 84bfcb25, one worker's same prompt twice a minute apart)
 - probe-quiet: a session with no `-worker` or `-sentinel` name, such as a worker's `probe-end-manager-49609`, gets no `idle` or `blocked` line
 - blocked-prompt, blocked-empty: a blocked pane names its prompt's choices; one showing an empty input under a banner gets no line
 - merged-later: a merged change is named once its worker holds nothing open, and then without an `idle` line beside it
@@ -18,7 +18,6 @@ usage: replay-heartbeat-lines.py [--verbose] [--verdict | --cited]
 import json
 import os
 import pathlib
-import random
 import subprocess
 import sys
 import tempfile
@@ -42,7 +41,7 @@ VERBOSE = False
 # where each case was found: (the transcript under ~/.claude/projects/-Users-hyungmokim-workspace-plugins/ by its first 8 characters, the text it holds,
 # how many monitor events carry that text); --cited counts them in the transcript
 TRANSCRIPTS = pathlib.Path("~/.claude/projects/-Users-hyungmokim-workspace-plugins").expanduser()
-SOURCES = {"flap-once": ("transcript 6a7e0b9a", "idle work-model-worker: holds", 15), "flap-fuzz": ("transcript 6a7e0b9a", "answer #1187", 6),
+SOURCES = {"idle-again": ("transcript 6a7e0b9a", "idle work-model-worker: holds", 15), "blocked-again": ("transcript 84bfcb25", "once the owner says so: \u254c\u254c\u254c\u254c", 2),
            "probe-quiet": ("transcript 6a7e0b9a", "probe-end-manager-49609", 3), "blocked-empty": ("transcript 6a7e0b9a", "Update installed", 1),
            "blocked-prompt": ("transcript 84bfcb25", "once the owner says so: \u254c\u254c\u254c\u254c", 2), "merged-later": ("transcript 6a7e0b9a", "merged #1190", 6),
            "merged-nothing-open": ("transcript 6a7e0b9a", "merged #1197", 5), "idle-waits": ("transcript 6a7e0b9a", "holds #1188 #1187 #1163", 13),
@@ -119,7 +118,7 @@ def run_monitor(until):
     log = work / "monitor.log"
     live = subprocess.Popen([str(ROOT / "monitors" / "print-team-gaps.py")], cwd=repo, env={**os.environ, "MONITOR_POLL": "0.3"}, stdout=log.open("w"), stderr=subprocess.STDOUT)
     deadline = time.time() + 30
-    while time.time() < deadline and until not in log.read_text():
+    while time.time() < deadline and not until(log.read_text()):
         time.sleep(0.2)
     time.sleep(3)  # the monitor goes on polling, so a line wrongly printed again shows
     live.kill()
@@ -127,42 +126,18 @@ def run_monitor(until):
     return log.read_text().splitlines()
 
 
-def flap_cases():
+def monitor_cases():
     prompt = "Do you want to proceed?\n❯ 1. Yes\n  2. No\nEsc to cancel"
-    herdr(agent("x-manager", 1, "working"), agent("flap-worker", 2, "idle", flip=True), agent("probe-end-manager-1", 3, "idle"),
+    herdr(agent("x-manager", 1, "working"), agent("flap-worker", 2, "idle", flip=True), agent("again-worker", 7, "blocked", screen=prompt, flip="blocked"), agent("probe-end-manager-1", 3, "idle"),
           agent("probe-prompt", 4, "blocked", screen=prompt), agent("empty-worker", 5, "blocked", screen="❯ \n\n  Update installed · restart to apply"),
           agent("prompt-worker", 6, "blocked", screen=prompt))
     file("Probe a held task", holder="flap-worker")
-    out = run_monitor("blocked prompt-worker")
-    step("flap-once", len(about(out, "idle flap-worker")) == 1, "\n".join(out))
+    out = run_monitor(lambda text: text.count("idle flap-worker") >= 2 and text.count("blocked again-worker") >= 2 and "blocked prompt-worker" in text)
+    step("idle-again", len(about(out, "idle flap-worker")) >= 2, "\n".join(out))
+    step("blocked-again", len(about(out, "blocked again-worker")) >= 2, "\n".join(out))
     step("probe-quiet", not about(out, "probe-"), "\n".join(about(out, "probe-")))
     step("blocked-empty", not about(out, "empty-worker"), "\n".join(about(out, "empty-worker")))
     step("blocked-prompt", any("blocked prompt-worker" in line and "1. Yes" in line and "Esc to cancel" in line for line in out), "\n".join(out))
-
-
-def fuzz_case():
-    import new_lines
-    random.seed(1202)
-    bad = []
-    for _ in range(300):
-        names = ["a", "b", "c"]
-        polls = [[n for n in names if random.random() < 0.5] for _ in range(40)]
-        quiet, printed = new_lines.NewLines(), {n: 0 for n in names}
-        for present in polls:
-            for line in quiet.update(present):
-                printed[line] += 1
-        for n in names:
-            gap, expected = new_lines.FORGET_POLLS, 0  # a first sight prints, as does one after FORGET_POLLS polls without it
-            absent = gap
-            for present in polls:
-                if n in present:
-                    expected += absent >= gap
-                    absent = 0
-                else:
-                    absent += 1
-            if printed[n] != expected:
-                bad.append((n, polls, printed[n], expected))
-    step("flap-fuzz", not bad, bad[:1])
 
 
 def line_cases():
@@ -238,8 +213,7 @@ def main(args):
     for argv in (["init", "-q", "-b", "main"], ["commit", "-q", "--allow-empty", "-m", "start"]):
         subprocess.run(["git", *argv], cwd=repo, check=True)
     os.chdir(repo)
-    flap_cases()
-    fuzz_case()
+    monitor_cases()
     line_cases()
     feed_cases()
     if "--cited" in flags:

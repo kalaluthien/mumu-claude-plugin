@@ -5,7 +5,7 @@ An agent's name picks the dialog it shows: `trust` the folder trust dialog at st
 and a `blocked` agent with a `screen` the exit dialog of background work; each clears on the key that answers it.
 A prompt to a `blocked` agent is refused `agent_blocked`, an `unblock` agent refuses its first prompt so, and an `unseen` agent
 takes a prompt but never shows it, and a `refuse` agent refuses every prompt `agent_pane_closed`; `agent wait` ends a working
-agent's turn at once and times out on a blocked one, an agent with `flip` swaps idle and working at each list, and an agent with `move`, or one started with `moving` in its
+agent's turn at once and times out on a blocked one, an agent with `flip` swaps idle and working at each list (`"flip": "blocked"` swaps blocked and working), and an agent with `move`, or one started with `moving` in its
 name, moves to that pane after the `move_after`th list that shows it (default the first). A target no agent has is refused
 `agent_not_found`; with FAKE_HERDR_HOME set, a `/rename <name>` prompt is recorded in that home's transcript, as
 Claude Code does. FAKE_HERDR_BREAK=accept takes every prompt and every wait instead."""
@@ -45,7 +45,8 @@ if head == ["agent", "list"]:
             del agent["move"]
     for agent in state["agents"]:  # a prompted agent works for two reads, then waits
         if agent.get("flip"):
-            agent["agent_status"] = "working" if agent["agent_status"] == "idle" else "idle"
+            home = agent["flip"] if isinstance(agent["flip"], str) else "idle"
+            agent["agent_status"] = "working" if agent["agent_status"] == home else home
         if agent.get("ticks"):
             agent["ticks"] -= 1
             agent["agent_status"] = "working" if agent["ticks"] else "idle"
