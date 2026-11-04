@@ -2,10 +2,11 @@
 """Print the project's open tasks as the issue pane draws them: each part under its parent by a guide, a row's title, then its
 status (`n/m done · holder · wait`) and its `← #a #b` line, then what the pane folds under it: goal, criteria, next step, closed parts.
 
-usage: list-issue-board.py <project> [--json | --width <n> | --check]
-       list-issue-board.py --nodes <file> [--json | --width <n> | --check]
-`--json` prints the rows the pane draws, laid out for its width; `--width` wraps the text to that many cells; `--check` prints per
-width 24, 30, 40, 60 and 80 whether the rows fit; `--nodes` reads the board's issue nodes from a file instead of the board."""
+usage: list-issue-board.py <project> [--json [--width <n>] | --width <n> | --check]
+       list-issue-board.py --nodes <file> [--json [--width <n>] | --width <n> | --check]
+`--json` prints the rows the pane draws, laid out for `--width` cells, else for a narrow docked pane; `--width` alone wraps the
+text to that many cells; `--check` prints per width 24, 30, 40, 60 and 80 whether the rows fit; `--nodes` reads the board's
+issue nodes from a file instead of the board."""
 import json
 import pathlib
 import sys
@@ -26,7 +27,8 @@ def main(args):
         sys.exit(f"list-issue-board: the {board.kind()} board read failed, so no board is shown")
     tree = issue_board.board(read)
     if "--json" in args:
-        print(json.dumps([{**row, "lines": issue_board.heading(row, issue_board.PANE_WIDTH)} for row in issue_board.rows(tree)]))
+        laid = int(width) if width else issue_board.PANE_WIDTH
+        print(json.dumps([{**row, "lines": issue_board.heading(row, laid)} for row in issue_board.rows(tree, laid)]))
     elif "--check" in args:
         print("\n".join(issue_board.check(tree)))
     else:

@@ -1,7 +1,8 @@
-// Render a manager's issue pane from the board in a nodes file, every row unfolded, through stand-ins for `claude-code` and the JSX
-// runtime, and check it row for row against `list-issue-board.py`: each row's title, status, `←`, `?`, `◆` and `→` lines, guide included, are the
-// lines its `--json` row lays out, in the order `--width 40` prints them, and an unfolded row with a goal, criteria or closed parts
-// draws them: `same`, else `differ: <the first difference>`, exit 1.
+// Render a manager's issue pane from the board in a nodes file, every row unfolded, at body widths 30, 40, 60 and 88, through stand-ins for
+// `claude-code` and the JSX runtime, and check it row for row against `list-issue-board.py` laid out for that width less the fold mark: each
+// row's title, status, `←`, `?`, `◆` and `→` lines, guide included, are the lines its `--json` row lays out, in the order `--width` prints them,
+// each fits the body with the first line's fold mark, a title that fits on one line takes one, and an unfolded row with a goal, criteria or
+// closed parts draws them: `same`, else `differ: <the first difference>`, exit 1.
 // usage: bun teamwork/hooks/fixtures/render-task-pane.ts <nodes-file>
 import { plugin } from 'bun'
 
@@ -61,7 +62,7 @@ const $ = {
     run: async (argv: string[]) => {
       if (argv[0].endsWith('list-sessions.py')) return { exitCode: 0, stdout: 'probe-manager\n' }
       reads++
-      return { exitCode: 0, stdout: listed('--json'), stderr: '' }
+      return { exitCode: 0, stdout: listed(...argv.slice(2)), stderr: '' }
     },
     spawn: () => (async function* () { yield { text: 'changed' } })(),
   },
@@ -75,25 +76,36 @@ await handlers['session.start']($, { cwd: '/repo' }, async () => ({}))
 await settle(1)
 type Row = { number: number; guide: string; pad: string; goal: string; detail: string[]; done: { name: string }[];
   closed: { title: string }[]; lines: { title: string[]; status: string[]; after: string[]; notes: string[] } }
-const rows = JSON.parse(listed('--json')) as Row[]
-store.set('expanded', rows.map(row => row.number))
-const pane = await handlers['ui.render Pane']($, {})
-const drawn = children(pane).filter(child => (child as Node).type === 'Box')
 const differ = (what: string) => { console.log(`differ: ${what}`); process.exit(1) }
-if (drawn.length !== rows.length) differ(`${drawn.length} rows drawn, ${rows.length} listed`)
-const printed = listed('--width', '40').split('\n')
-let at = 0
-rows.forEach((row, k) => {
-  const heading = [row.guide + row.lines.title[0], ...[...row.lines.title.slice(1), ...row.lines.status, ...row.lines.after, ...row.lines.notes].map(line => row.pad + line)]
-  const lines = children(drawn[k])
-  heading.forEach((line, i) => {
-    if (text(lines[i]) !== line) differ(`#${row.number} line ${i + 1}: drew ${JSON.stringify(text(lines[i]))}, listed ${JSON.stringify(line)}`)
-    while (at < printed.length && printed[at] !== line) at++
-    if (at++ === printed.length) differ(`#${row.number}: ${JSON.stringify(line)} is not in the --width 40 listing, in order`)
+const FOLD = 2  // the pane's ` +` or ` -` at a row's first line's end
+for (const width of [30, 40, 60, 88]) {
+  const laid = String(width - FOLD)
+  const rows = JSON.parse(listed('--json', '--width', laid)) as Row[]
+  store.set('expanded', rows.map(row => row.number))
+  // the first draw at a new width reads the board again for it, and the draw after that read shows the rows
+  const before = reads
+  await handlers['ui.render Pane']($, { props: { bodyColumns: width } })
+  await settle(before + 1)
+  const pane = await handlers['ui.render Pane']($, { props: { bodyColumns: width } })
+  const drawn = children(pane).filter(child => (child as Node).type === 'Box')
+  if (drawn.length !== rows.length) differ(`width ${width}: ${drawn.length} rows drawn, ${rows.length} listed`)
+  const printed = listed('--width', laid).split('\n')
+  let at = 0
+  rows.forEach((row, k) => {
+    const heading = [row.guide + row.lines.title[0], ...[...row.lines.title.slice(1), ...row.lines.status, ...row.lines.after, ...row.lines.notes].map(line => row.pad + line)]
+    const lines = children(drawn[k])
+    if (row.lines.title.length > 1 && Bun.stringWidth(row.guide + row.lines.title.join(' ')) + FOLD <= width)
+      differ(`width ${width}: #${row.number}'s title fits on one line but takes ${row.lines.title.length}: ${JSON.stringify(row.lines.title)}`)
+    heading.forEach((line, i) => {
+      if (text(lines[i]) !== line) differ(`width ${width}: #${row.number} line ${i + 1}: drew ${JSON.stringify(text(lines[i]))}, listed ${JSON.stringify(line)}`)
+      if (Bun.stringWidth(line) + (i === 0 ? FOLD : 0) > width) differ(`width ${width}: #${row.number} line ${i + 1} is wider than the body: ${JSON.stringify(line)}`)
+      while (at < printed.length && printed[at] !== line) at++
+      if (at++ === printed.length) differ(`width ${width}: #${row.number}: ${JSON.stringify(line)} is not in the --width ${laid} listing, in order`)
+    })
+    const folded = lines.slice(heading.length).map(text).join(' ')
+    const owed = [row.goal, row.detail.length ? 'see detail' : '', ...row.done.map(item => item.name), ...row.closed.map(task => task.title)].filter(Boolean)
+    const missing = owed.find(piece => !folded.includes(piece))
+    if (missing !== undefined) differ(`width ${width}: #${row.number} unfolded lacks ${JSON.stringify(missing)}`)
   })
-  const folded = lines.slice(heading.length).map(text).join(' ')
-  const owed = [row.goal, row.detail.length ? 'see detail' : '', ...row.done.map(item => item.name), ...row.closed.map(task => task.title)].filter(Boolean)
-  const missing = owed.find(piece => !folded.includes(piece))
-  if (missing !== undefined) differ(`#${row.number} unfolded lacks ${JSON.stringify(missing)}`)
-})
+}
 console.log('same')

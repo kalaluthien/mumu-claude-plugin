@@ -35,7 +35,7 @@ USE = HERE.parent / "scripts" / "use-board.py"
 INDEX = HERE.parent / "scripts" / "list-decisions.py"
 LIST = ROOT / "hooks" / "list-issue-board.py"
 CHECK = "1. [check] **probe passes**: `echo ok` prints `ok`; on base nothing.\n"
-LONG = "probe only the sandbox repository, never the team's own board, and keep every raw response as a fixture beside the probe"
+LONG = "probe only the sandbox repository and keep every raw response it sends as a fixture beside the probe"
 failures = []
 
 
@@ -154,7 +154,7 @@ def binding_cases():
     left, right = file("Probe a left part"), file("Probe a right part")
     middle = file("Probe a middle task", parts=[left, right])
     root = file("Probe a binding root", parts=[middle])
-    on_root, on_middle, on_left, on_right = (decide(n, f"rule on #{n}") for n in (root, middle, left, right))
+    on_root, on_middle, on_left, on_right = (decide(n, f"rule on the {place}") for n, place in ((root, "root"), (middle, "middle"), (left, "left"), (right, "right")))
     seen = bound(left)
     step("binding-ancestors", {on_root, on_middle, on_left} <= set(seen) and on_right not in seen, index(left))
     use("resolve", root, write("REPORTED: probe stopped\n"), "--not-planned")

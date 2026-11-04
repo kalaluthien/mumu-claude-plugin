@@ -12,6 +12,10 @@ const failure = atom({ plugin: 'teamwork', key: 'failure' } as const, '')
 const loaded = atom({ plugin: 'teamwork', key: 'loaded' } as const, false)
 // the entries, goals and criteria the manager unfolded, kept across redraws; every other shows its one line
 const expanded = atom({ plugin: 'teamwork', key: 'expanded' } as const, [] as (number | string)[])
+// the pane body's width the rows are laid out for, 0 before the pane is drawn; a row laid out for another width wraps a word alone
+const laidWidth = atom({ plugin: 'teamwork', key: 'width' } as const, 0)
+// the ` +` or ` -` fold mark at a row's first line's end
+const FOLD = 2
 // a wait that needs someone stands out; any other, such as `← #n` beside a blocked task, stays dim
 const WAIT_COLOR: Record<string, string> = { 'waits on the owner': 'error', 'waits on the manager': 'warning' }
 // a write to issues, pull requests, sub-issues or dependencies, the changes the board shows, so a `gh api` read marks nothing, even one with `-f` and `-X GET`; a global flag may stand before the subcommand (`gh -R o/r issue …`); the body script's gh runs out of sight
@@ -38,7 +42,10 @@ function watch($: any, name: string) {
   const load = async () => {
     retry?.cancel()
     try {
-      const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json'], { cwd: startFolder, timeoutMs: 60000 })
+      const width = await read($, laidWidth)
+      const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json', ...(width > FOLD ? ['--width', String(width - FOLD)] : [])],
+        { cwd: startFolder, timeoutMs: 60000 })
+      if (width !== await read($, laidWidth)) return  // a resize during the read started a read for the new width
       if (run.exitCode === 0) {
         await update($, board, () => JSON.parse(run.stdout) as BoardIssue[])
         await update($, loaded, () => true)
@@ -97,6 +104,11 @@ export const register: Register = on => {
   }).catch(($, event, next) => next(event))  // a failed open falls back to the skill's body
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, event) => {
+    const width = event.props.bodyColumns
+    if (width > 0 && width !== await read($, laidWidth)) {
+      await update($, laidWidth, () => width)
+      void refresh?.()
+    }
     const { Box, Text, Link, Button, Markdown } = $.ui.resolve(event)
     const unfolded = new Set(await read($, expanded))
     const toggle = (id: number | string) => () => void update($, expanded, old => old.includes(id) ? old.filter(item => item !== id) : [...old, id])
