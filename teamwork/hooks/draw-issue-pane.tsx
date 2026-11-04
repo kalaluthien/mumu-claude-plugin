@@ -165,7 +165,7 @@ export const register: Register = on => {
     try { pattern = typed ? new RegExp(typed, 'gi') : undefined } catch (error) { invalid = String((error as Error).message ?? error) }  // a bad pattern changes nothing and says so
     const flip = (old: number[], id: number) => old.includes(id) ? old.filter(item => item !== id) : [...old, id]
     // while a search is on a press flips the row on top of what the search opened, and leaves the folds the person kept untouched
-    const toggle = (id: number) => () => void update($, pattern ? peeked : expanded, old => flip(old, id))
+    const toggle = (id: number) => () => void (pattern ? update($, peeked, old => flip(old, id)) : update($, expanded, old => flip(old, id)))
     const pressed = new Set(await read($, peeked))
     // a text with its matched spans on a yellow background, from one offset to another
     const lit = (text: string, spans: Spans, from = 0, to = text.length) => {
@@ -271,7 +271,7 @@ export const register: Register = on => {
     const shown = pattern ? list.filter(issue => { try { return matchesIn(issue, pattern!).found } catch { return true } }) : list
     return (
       <Box flexDirection="column">
-        <Input key="teamwork-search" value={typed} placeholder="search by regex" onInput={(value: string) => { void update($, peeked, () => []); void update($, query, () => value) }} />
+        <Input key="teamwork-search" value={typed} placeholder="search by regex" onInput={(value: string) => { void update($, peeked, () => []); void update($, query, () => value) }} onSubmit={() => undefined} />
         {invalid ? <Text wrap="wrap" color="error">{`Not a regular expression, so every task shows: ${invalid}`}</Text> : null}
         {error ? <Text wrap="wrap" color="error" weight="semibold">{`Board read failed${list.length > 0 ? ' (showing the last good board)' : ''}: ${error}`}</Text> : null}
         {list.length === 0 && error ? null : list.length === 0 ? <Text dimColor>{empty}</Text> : shown.length === 0 ? <Text dimColor>No task matches.</Text> : shown.map(safely)}

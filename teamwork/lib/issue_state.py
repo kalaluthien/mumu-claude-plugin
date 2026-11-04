@@ -150,7 +150,7 @@ def _defects(kind, text):
 
 
 def summary_line(body):
-    """A body's summary line, the first paragraph the issue pane shows, its lines joined; none when the body opens with a heading."""
+    """A body's summary line, its first paragraph's lines joined; none when the body opens with a heading."""
     first = (body or "").replace("\r\n", "\n").strip().split("\n\n")[0]
     return "" if first.startswith("#") else " ".join(first.split())
 
@@ -254,7 +254,6 @@ def cloud(issue):
 
 def compose(issue, blockers=()):
     """{'holders': the latest names, or None when no record ever set them; 'waits': its wait line, in the grammar's order;
-    'goal': the lines of the body's goal, blank lines kept so a Markdown reader sees its paragraphs, its data blocks left out;
     'done': the body's criteria, each {'met': True, False or None when it has no box, 'kind', 'name', 'detail'}}."""
     holders = (holder_values(issue) or [None])[-1]
     asked = open_questions(issue)[-1:]
