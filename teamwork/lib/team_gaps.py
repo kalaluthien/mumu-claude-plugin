@@ -8,6 +8,7 @@ import decisions
 import issue_state
 import landing
 import own_reports
+import remote_control
 import task_links
 from session import screen, tabs
 from team_names import crowding, members, owns, project, role
@@ -160,7 +161,9 @@ def manager_actions(me, listed, data=None, fed_urls=None):
             news.setdefault(issue["number"], (issue, []))[1].append(comment)
     for issue, posted in news.values():
         said = " | ".join(comment["body"].strip().splitlines()[0] for comment in posted)
-        lines.append(f"feed #{issue['number']} {issue_state.title(issue)}: {said} ({posted[-1]['url']}); push it to the owner by PushNotification")
+        # a push reaches the owner away only through Remote Control, so without it the line sends none
+        push = "push it to the owner by PushNotification" if remote_control.active((me.get("agent_session") or {}).get("value")) else "tell the owner in your tab; send no push, since Remote Control is off in your session"
+        lines.append(f"feed #{issue['number']} {issue_state.title(issue)}: {said} ({posted[-1]['url']}); {push}")
     return lines
 
 

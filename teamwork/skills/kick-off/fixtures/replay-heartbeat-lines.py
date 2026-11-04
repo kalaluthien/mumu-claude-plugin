@@ -14,7 +14,7 @@ past managers' transcripts (#1202):
 - feed-own: no `feed` line for a report this manager posted through use-board.py
 
 usage: replay-heartbeat-lines.py [--verbose] [--verdict | --cited]
-`--verdict` prints only `PASS` when all 12 cases ran and passed, else `FAIL`; `--cited` prints only `PASS` when each of the 12 finds its text in the transcript it names, in the stated number of monitor events, else `FAIL`."""
+`--verdict` prints only `PASS` when all 12 cases ran and passed, else `FAIL`; `--cited` prints only `PASS` when each of the 12 finds its text in the transcript it names, in at least the stated number of monitor events, else `FAIL`."""
 import json
 import os
 import pathlib
@@ -62,9 +62,9 @@ def events(prefix, needle):
 
 
 def sourced(name):
-    """Whether the case's transcript holds its text in the stated number of monitor events."""
+    """Whether the case's transcript holds its text in at least the stated number of monitor events, since a live transcript only gains events."""
     source, needle, count = SOURCES[name]
-    return events(source.split()[1], needle) == count
+    return events(source.split()[1], needle) >= count
 
 
 def step(name, ok, detail=""):
