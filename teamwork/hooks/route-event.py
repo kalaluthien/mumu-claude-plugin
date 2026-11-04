@@ -121,7 +121,7 @@ def route(kind, event, role, me, listed):
         return None
     settings = team_settings.load(event.get("cwd") or ".")
     size, limit = call["title"], settings["title_max"]
-    rule = (f"Nothing in this command ran. An issue body changes only by {EDIT_BODY} <issue> <diff-file> \"DECIDED: <why>\", where <diff-file> is a unified diff of the body (diff -u old new) that you wrote first; it posts the diff as a comment, then applies it, as {GRAMMAR} says." if call["body edit"]
+    rule = (f"Nothing in this command ran. An issue body changes only by {EDIT_BODY} <issue> <diff-file> \"DECIDED: <why>\" --base <body sha>, the body sha that use-board.py read prints, where <diff-file> is a unified diff of the body (diff -u old new) that you wrote first; it posts the diff as a comment, then applies it, as {GRAMMAR} says." if call["body edit"]
             else "Nothing in this command ran. Write the text to a scratch file, then run the same command again with --body-file <that file> in place of --body or -b." if call["inline body"]
             else f"Title is {size} characters; shorten it to {limit:g}, verb first." + (" Nothing in this command ran, so write any body file again." if settings["refuse"] else "")
             if size and size > limit else None)

@@ -11,7 +11,7 @@ Turn the owner's words into root tasks, route each to a worker, and decide what 
    | the words are | do |
    | --- | --- |
    | an update to an open root | record them there by **Owner's words**; hand them to its holders; when they change its scope materially, rewrite its summary line and its title by `edit` before the next utterance |
-   | for a live worker's current work | record them on its issue by **Owner's words**; `tell` it |
+   | for a live worker's current work | record them on its issue by **Owner's words**; `tell` it that decision's url; never `edit` its body, since its worker folds every addition in one edit |
    | a follow-up to work a closed root delivered | `reopen` that root, record them there by **Owner's words**, and route it, its worker adding its tasks as parts; file no new root |
    | new work | `file` a root labelled by the label [print-scope-label.py](../scripts/print-scope-label.py) `--me` prints, never a `scope:` label typed by hand, titled by its outcome, its body opening with [issue-grammar.md](issue-grammar.md)'s Summary line, then the words quoted |
    | for another project | file them in its repository; by `list`, send them to its manager, else `start` `<project>-manager` at that project's checkout with the filed url, never stopping at a failed `tell` |
@@ -28,6 +28,7 @@ Turn the owner's words into root tasks, route each to a worker, and decide what 
 
 - **Team view**: judge each owner request and each problem as the lead of an agent team: which role and session should act, what the team already holds, and how the choice changes the other sessions, never as a lone agent that would do the step itself.
 - **End yourself**: on the owner's word to end, `list` your workers and name to the owner each still holding open work or an open `BLOCKED:`, since no manager answers them once you end; `close` those the owner says. Then run [close-session.py](../scripts/close-session.py) `<your own name>` as your last call, without `&`, and end the turn, since it detaches itself and closes your session once the turn ends.
+- **One body writer**: a worker alone edits the Goal and Definition of done of a task it holds, folding each owner addition in one edit, so an owner's wish on a held task is a `decide` and a `tell`, never your `edit`. You edit only a root's summary line and title, or an order, by `edit` with `--base` of the `body sha` `read` just printed, since a diff of an older body puts the old text back.
 - **Owner's words**: record them by `decide` on the task they bind, the words quoted as a `>` line and a `decision` block of `decision:` in one sentence, `decided by: owner` and `door:`, as [issue-grammar.md](issue-grammar.md)'s Decisions says, since the binding set, the pane and the authority rule read only that block.
 - **Task review**: when a worker tells you a task's url, review it at once while the worker builds; for an eval-heavy task, `decide` first that the full test suite runs before the evals, since a suite failing last voids them, and when its test or eval loop runs past an hour, `delegate` one read-only audit per task against its criteria (a loosened checker, a wrong command, runs from before the fix, ungated parallel runs, no base run) and `decide` the fixes. Review a task for two things:
   - its Goal reads its root's words ambitiously, never narrowed;

@@ -10,7 +10,8 @@ usage: use-board.py <operation> <args>
   comment <issue> <body-file>           append the file's text as a comment; refused, nothing posted, when it holds a `decision` block, which `decide` posts
   file <title> <body-file> [label...]   open an issue; print its url; its `[task]` and `depends on` lines link it, refused when they make a cycle,
                                         a second parent or name an unknown issue
-  edit <issue> <diff-file> <line>       change the body by a diff, with the keyword line [edit-issue-body.py](edit-issue-body.py) posts first
+  edit <issue> <diff-file> <line> [--base <sha>]   change the body by a diff, with the keyword line [edit-issue-body.py](edit-issue-body.py) posts first;
+                                        refused when the body no longer has the `body sha` `read` printed, the sha given as `--base`
   title <issue> <title>                 change the title
   resolve <issue> <summary-file> [--not-planned]   close it with the summary, `REPORTED: ` put first when it lacks it
   reopen <issue>                        open a closed issue again
@@ -51,7 +52,7 @@ def main(args):
             return 2
         if verb == "read" and len(operands) == 1:
             issue = board.fresh(operands[0]) or sys.exit(f"use-board: cannot read #{operands[0]}")
-            print(f"#{issue['number']} {issue_state.title(issue)}\nstate: {issue['state']}\nlabels: {', '.join(issue['labels'])}\nparent: {issue['parent']}\n\n{issue['body']}")
+            print(f"#{issue['number']} {issue_state.title(issue)}\nstate: {issue['state']}\nlabels: {', '.join(issue['labels'])}\nparent: {issue['parent']}\nbody sha: {board.body_sha(issue['body'])}\n\n{issue['body']}")
             for comment in issue["comments"]:
                 print(f"\n--- {comment['url']}\n{comment['body']}")
         elif verb == "comment" and len(operands) == 2:
@@ -63,7 +64,7 @@ def main(args):
             print(url)
         elif verb == "file" and len(operands) >= 2:
             print(board.fresh(board.file(operands[0], text(operands[1]), operands[2:]), comments=False)["url"])
-        elif verb == "edit" and len(operands) == 3:
+        elif verb == "edit" and len(operands) in (3, 5):
             return subprocess.run([sys.executable, str(HERE / "edit-issue-body.py"), *operands]).returncode
         elif verb == "resolve" and len(operands) in (2, 3):
             board.resolve(operands[0], keyed("REPORTED:", operands[1]), "--not-planned" not in operands[2:])
