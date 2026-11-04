@@ -1,5 +1,5 @@
 """A local board's records, whatever store keeps them: each issue is `<n>/issue.json` (title, labels, state, reason, times),
-`<n>/body.md` and `<n>/comments/<k>.md`, oldest first. Every record is trusted, since only local users write the store.
+`<n>/body.md` and `<n>/comments/<k>.md`, oldest first; `commentTimes` in `issue.json`, when a copy set it, holds the first comments' times. Every record is trusted, since only local users write the store.
 
 A store (a `Store` subclass) knows how to keep files, never what they hold: `names(folder)` lists the names right under a folder ('' the top),
 `load(path)` reads one, raising OSError when it is missing, `written(path)` says when it was written, `url(path)` names it, `refresh()` lets a
@@ -19,6 +19,7 @@ import team_signal
 
 USE = re.compile(r"use-board\.py\s+(file|comment|decide|edit|title|resolve|reopen|label)\b([^;&|\n]*)")
 POSTED = re.compile(r"(?:git\+)?file://\S*?/(\d+)(?:#comment-(\d+))?(?=[\s\"\\]|$)")
+FLOOR = "floor"  # a file at the board's top holding the number a copied board's newest issue or pull request had, so no new issue reuses one
 trusted = lambda record: True
 
 
@@ -62,6 +63,15 @@ def numbers(store):
     return sorted(int(name) for name in store.children() if name.isdigit())
 
 
+def next_number(store):
+    """The number a new issue takes: one above the highest issue, or above the floor a copy of another board left, if that is higher."""
+    try:
+        floor = int(store.read(FLOOR))
+    except (OSError, ValueError):
+        floor = 0
+    return max(max(numbers(store), default=0), floor) + 1
+
+
 def meta(store, number):
     return json.loads(store.read(f"{number}/issue.json"))
 
@@ -79,8 +89,10 @@ def comment_paths(store, number):
 def record(store, number, comments=True, owners=None):
     """NUMBER's record; OWNERS, the parents by part from `owners(store)`, spares a read of every body when many records are read."""
     issue = meta(store, number)
-    notes = [{"body": store.read(path), "url": f"{store.url(str(number))}#comment-{int(path.rsplit('/', 1)[1][:-3])}", "createdAt": stamp(store.written(path)), "trusted": True}
-             for path in comment_paths(store, number)] if comments else []
+    given = issue.get("commentTimes", [])  # a copy of another board keeps the times its comments had there
+    notes = [{"body": store.read(path), "url": f"{store.url(str(number))}#comment-{int(path.rsplit('/', 1)[1][:-3])}",
+              "createdAt": given[at] if at < len(given) else stamp(store.written(path)), "trusted": True}
+             for at, path in enumerate(comment_paths(store, number))] if comments else []
     return {"number": number, "title": issue["title"], "body": store.read(f"{number}/body.md"), "url": store.url(str(number)), "state": issue["state"], "stateReason": issue["reason"],
             "createdAt": issue["createdAt"], "closedAt": issue["closedAt"], "trusted": True, "labels": issue["labels"], "parent": parent_of(store, number) if owners is None else owners.get(number), "isPullRequest": False,
             "mergedAt": None, "comments": notes}
@@ -177,7 +189,7 @@ def comment(store, number, text):
 def file(store, title, body, labels) -> int:
     def change():
         check_links(store, None, body)
-        number = max(numbers(store), default=0) + 1
+        number = next_number(store)
         store.stage(f"{number}/body.md", body)  # before issue.json, so a reader that lists the issue finds its body
         save(store, number, title=title, labels=list(labels), state="OPEN", reason="", createdAt=stamp(), closedAt=None)
         return number

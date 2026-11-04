@@ -41,7 +41,7 @@ The board is a folder of plain files, `TEAMWORK_BOARD_DIR`, else `.teamwork/boar
 The board is the commit `refs/teamwork/board` names in the current folder's repository, picked by `TEAMWORK_BOARD=git`: its tree holds the files board's files, one commit per write, shared by every worktree of the project. A write outside a repository refuses.
 
 - **History**: `git log --stat refs/teamwork/board` shows every write; `git show refs/teamwork/board:<n>/body.md` reads one file.
-- **Moving a board**: run `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/copy-board.py files git` in the checkout before setting `TEAMWORK_BOARD=git`; it copies into an empty board only, and each copied comment takes the copy's time.
+- **Moving a board**: run `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/copy-board.py files git` (or `github git`) in the checkout before setting `TEAMWORK_BOARD=git`; it copies into an empty board only, and each comment copied between local boards takes the copy's time. From GitHub it copies every issue, closed ones too, with each comment's GitHub time, skips an untrusted author's body or comment, rewrites GitHub issue and comment urls to the git board's, and sets a number floor above the highest issue or pull-request number. Then `compare-boards.py <project>` prints `PASS` when the pane, `list-decisions.py` and the heartbeat show the same on both boards.
 - **Stale lock**: a write that finds `.git/refs/teamwork/board.lock` older than 10 s refuses, naming it; remove that file once no board write runs.
 - **Local only**: a plain clone, fetch or push leaves `refs/teamwork/*` behind, so the board stays on this machine unless pushed by name; `git push --mirror` sends it.
 - **Trusted**, **Scope labels** and **Default branch**: as on the files board.
