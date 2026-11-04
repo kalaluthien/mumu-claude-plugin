@@ -6,10 +6,10 @@ import decisions
 import issue_state
 
 # the latest closed parts a parent lists, newest first, an ellipsis below them when more landed before
-SHOWN_CLOSED = 10
+SHOWN_CLOSED = 4
 # close reasons of work stopped, not done; GitHub's duplicate close counts with them
 STOPPED = ("NOT_PLANNED", "DUPLICATE")
-# waits that need someone, which the status shows; a blocked task shows its `←` line instead
+# waits that need someone, which the status shows; a blocked task shows its `blocked by` line instead
 SHOWN_WAITS = ("waits on the owner", "waits on the manager", "no holder")
 WIDTHS = (24, 30, 40, 60, 80)
 PANE_WIDTH = 40  # a narrow docked pane, for a listing given no width, as before the pane is first drawn
@@ -24,10 +24,23 @@ def summary_of(body):
 
 
 def next_step_of(comments):
-    """A parent's next step: the latest `REPORTED:` that names one, so a parent with nothing open says why it stays open."""
+    """A parent's next step: the latest `REPORTED:` that names one, so a parent with nothing open says why it stays open; empty when none does."""
     firsts = [(comment["body"] or "").replace("\r\n", "\n").split("\n\n")[0] for comment in comments]
     return next((" ".join(first.rsplit("next step:", 1)[1].split()) for first in reversed(firsts) if first.startswith("REPORTED:") and "next step:" in first),
-                "all parts done; no report names what keeps it open")
+                "")
+
+
+def progress_of(summary, blockers, next_step):
+    """The parts' count; once every part is done and the task is still open, it says what holds the task open: its open blockers, a report's
+    next step, else nothing named."""
+    total = summary.get("total")
+    if not total:
+        return ""
+    count = f"{summary['completed']}/{total} parts done"
+    if summary["completed"] != total:
+        return count
+    return count + (f", task waits on {' '.join(f'#{number}' for number in blockers)}" if blockers
+                    else ", task waits on its next step" if next_step else ", task still open")
 
 
 def blockers_of(node):
@@ -45,11 +58,12 @@ def entry(node, superseded=frozenset()):
     closed = [{"number": task["number"], "title": issue_state.title(task), "url": task["url"], "blockers": blockers_of(task),
                "stopped": task.get("stateReason") in STOPPED} for task in (node.get("subIssues") or {}).get("nodes", []) if task["state"] == "CLOSED"]
     wait = state["waits"].split(" by ")[0]
+    next_step = next_step_of(node["comments"]["nodes"]) if summary.get("total") and summary.get("total") == summary.get("completed") else ""
     return {"number": node["number"], "title": issue_state.title(node), "url": node["url"],
             "holder": " ".join(state["holders"] or []), "wait": wait if wait in SHOWN_WAITS else "",
-            "progress": f"{summary['completed']}/{summary['total']} done" if summary.get("total") else "",
+            "progress": progress_of(summary, blockers, next_step),
             "goal": "" if state["goal"] else summary_of(node["body"]), "detail": state["goal"], "done": [item for item in state["done"] if item["kind"] != "task"],
-            "next": next_step_of(node["comments"]["nodes"]) if summary.get("total") and summary.get("total") == summary.get("completed") else "",
+            "next": next_step,
             **decisions.shown(node, superseded), "tasks": [], "blockers": every, "closed": closed[::-1][:SHOWN_CLOSED], "earlier": summary.get("completed", 0) > min(len(closed), SHOWN_CLOSED)}
 
 
@@ -112,13 +126,13 @@ def wrap(text, width, first=None):
     """Greedy word wrap by display cells, the first line FIRST cells wide when given, every other WIDTH; a word wider than a whole
     line breaks after its last hyphen that fits, else is cut."""
     if width is None:
-        return [text]
+        return [text.replace("\u00a0", " ")]
     lines, line = [], ""
 
     def room():
         return width if first is None or lines else first
 
-    for word in text.split():
+    for word in [word for word in re.split(r"[ \t\n]+", text) if word]:  # a no-break space glues the words it joins
         if line and cells(line) + 1 + cells(word) > room():
             lines.append(line)
             line = ""
@@ -131,12 +145,13 @@ def wrap(text, width, first=None):
             lines.append(word[:cut])
             word = word[cut:]
         line = f"{line} {word}" if line else word
-    return lines + [line] if line or not lines else lines
+    lines = lines + [line] if line or not lines else lines
+    return [line.replace("\u00a0", " ") for line in lines]
 
 
-def after(blockers):
-    """What a task waits on: every task it depends on, one closed as completed marked closed."""
-    return "← " + " ".join(f"#{blocker['number']}{' closed' * blocker['closed']}" for blocker in blockers) if blockers else ""
+def blocked_by(blockers):
+    """What a task waits on: every task it depends on, one closed as completed marked closed; nothing once every one is closed."""
+    return "blocked by " + " ".join(f"#{blocker['number']}{' closed' * blocker['closed']}" for blocker in blockers) if not all(blocker["closed"] for blocker in blockers) else ""
 
 
 def status(issue):
@@ -178,7 +193,12 @@ def rows(issues, width=PANE_WIDTH):
 
 
 def label(row):
-    return f"#{row['number']} {row['title']}" + (f" (in #{row['home']})" if row["home"] else "")
+    """A row's title line: its number, its title, `(in #n)` when it sits too deep for its parent's depth, and `(blocked by #a #b)` while a blocker
+    is open. No-break spaces glue `(blocked by` to its first number and a closed number to its `closed`, and the `)` ends the last number, so a
+    wrap never leaves `(blocked` or a lone `)` on a line."""
+    numbers = [f"#{blocker['number']}" + ("\u00a0closed" if blocker["closed"] else "") for blocker in row["blockers"]]
+    held = f" (blocked\u00a0by\u00a0{' '.join(numbers)})" if blocked_by(row["blockers"]) else ""
+    return f"#{row['number']} {row['title']}" + (f" (in #{row['home']})" if row["home"] else "") + held
 
 
 def criterion(item):
@@ -187,7 +207,7 @@ def criterion(item):
 
 
 def heading(row, width):
-    """A row's lines the pane always shows, wrapped to WIDTH less its guide: `title`, `status`, `after`, its `←` line, and `notes`, its open questions, owner decisions and, once every part is done, what keeps it open."""
+    """A row's lines the pane always shows, wrapped to WIDTH less its guide: `title`, `status`, and `notes`, its open questions, owner decisions and, once every part is done, what keeps it open."""
     room = None if width is None else width - max(cells(row["guide"]), cells(row["pad"]))
     said = status(row)
     # parts share a line when they fit; else each takes its own, so no line ends on a bare `·`
@@ -195,35 +215,36 @@ def heading(row, width):
     notes = [line for question in row.get("questions", []) for line in note("?", question, room)]
     notes += [line for decided in row.get("decided", []) for line in note("◆", decided, room)]
     notes += note("◆", f"{row['more']} more decided", room) if row.get("more") else []
-    notes += note("→", row["next"], room, limit=None) if row.get("next") else []  # the next step has no other place to be read in full
+    notes += note("next step:", row["next"], room, limit=None) if row.get("next") else []  # the next step has no other place to be read in full
     # the first line sits after the guide, the later ones after the wider pad, so a title that fits beside its guide takes one line
     title = wrap(label(row), room, None if width is None else width - cells(row["guide"]))
-    return {"title": title, "status": shown, "after": wrap(after(row["blockers"]), room) if row["blockers"] else [], "notes": notes}
+    return {"title": title, "status": shown, "notes": notes}
 
 
 def note(mark, text, room, limit=NOTE_LINES):
     """A note's lines: MARK and its text, later lines 2 cells in, at most LIMIT when one is given, the last ending `…` when cut."""
-    inner = None if room is None else room - 2
+    indent = cells(mark) + 1
+    inner = None if room is None else room - indent
     lines = wrap(text, inner)
     if limit and len(lines) > limit:
         last = lines[limit - 1]
         while inner is not None and last and cells(last) + 1 > inner:
             last = last[:-1].rstrip()
         lines = lines[:limit - 1] + [last + "…"]
-    return [f"{mark} {lines[0]}"] + [f"  {line}" for line in lines[1:]]
+    return [f"{mark} {lines[0]}"] + [f"{' ' * indent}{line}" for line in lines[1:]]
 
 
 def lines(issues, width=None):
-    """The board as text, every row unfolded: a row's title, status and `←` line, then what the pane folds under it, each wrapped to WIDTH."""
+    """The board as text, every row unfolded: a row's title, status and link lines, then what the pane folds under it, each wrapped to WIDTH."""
     for row in rows(issues, width):
         room = None if width is None else width - max(cells(row["guide"]), cells(row["pad"]))
         head = heading(row, width)
         yield row["guide"] + head["title"][0]
-        yield from (row["pad"] + line for line in head["title"][1:] + head["status"] + head["after"] + head["notes"])
+        yield from (row["pad"] + line for line in head["title"][1:] + head["status"] + head["notes"])
         details = [row["goal"]] if row["goal"] else []
         details += ["see detail"] if row["detail"] else []
         details += [criterion(item) for item in row["done"]]
-        details += [f"#{task['number']} {task['title']} closed{' stopped' * task['stopped']}" + (f" {after(task['blockers'])}" if task["blockers"] else "") for task in row["closed"]]
+        details += [f"#{task['number']} {task['title']} closed{' stopped' * task['stopped']}" + (f" {blocked_by(task['blockers'])}" if blocked_by(task["blockers"]) else "") for task in row["closed"]]
         details += ["…"] if row["earlier"] else []
         yield from (row["pad"] + "  " + line for detail in details for line in wrap(detail, None if room is None else room - 2))
 
