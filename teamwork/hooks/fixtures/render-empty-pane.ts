@@ -45,7 +45,7 @@ const $ = {
     run: async (argv: string[]) => {
       if (argv[0].endsWith('list-sessions.py')) return { exitCode: 0, stdout: 'probe-manager\n' }
       reads++
-      return { exitCode, stdout: exitCode === 0 ? '[]' : '', stderr: exitCode === 0 ? '' : 'list-issue-board: the github board read failed' }
+      return { exitCode, stdout: exitCode === 0 ? '[]' : '', stderr: exitCode === 0 ? '' : 'list-issue-board: the git board read failed' }
     },
     spawn: () => (async function* () { yield { text: 'changed' } })(),
   },

@@ -28,7 +28,7 @@ class Ref(board_records.Store):
         if self.common is None:
             found = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], capture_output=True, text=True)
             if found.returncode or not found.stdout.strip():
-                raise LookupError("the git board needs a git repository: run this inside a project's checkout, or set TEAMWORK_BOARD to another board")
+                raise LookupError("the git board needs a git repository: run this inside a project's checkout")
             self.common = found.stdout.strip()
         run = subprocess.run(["git", f"--git-dir={self.common}", *args], capture_output=True, input=data, env={**os.environ, **(env or {})})
         if check and run.returncode:

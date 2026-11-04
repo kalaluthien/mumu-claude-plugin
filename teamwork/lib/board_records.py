@@ -74,7 +74,7 @@ class Store:
             return change()
         result = self.keep(change)
         team_signal.SIGNAL.parent.mkdir(parents=True, exist_ok=True)
-        team_signal.SIGNAL.touch()  # the issue pane rereads on it, as a GitHub write gets it from the pane
+        team_signal.SIGNAL.touch()  # the issue pane rereads on it
         return result
 
     def view(self):
@@ -201,7 +201,7 @@ def check_links(store, number, text):
 
 
 def tree(store, project, nodes=None):
-    """The open issues' nodes in the shape the issue pane draws, as GitHub's read gives them."""
+    """The open issues' nodes in the shape the issue pane draws."""
     store.view()
     nodes = nodes if nodes is not None else [
         {**{k: issue[k] for k in ("number", "title", "url", "body")}, "labels": {"nodes": [{"name": name} for name in issue["labels"]]},
@@ -267,7 +267,7 @@ def resolve(store, number, summary, completed=True):
 
 
 def reopen(store, number):
-    """Opens NUMBER again; an open one stays as it is, as GitHub leaves it."""
+    """Opens NUMBER again; an open one stays as it is."""
     def change():
         if meta(store, number)["state"] == "CLOSED":
             save(store, number, state="OPEN", reason="REOPENED", closedAt=None)
@@ -298,7 +298,7 @@ def command(text):
     except ValueError:
         args = []
     return {"called": f"use-board.py {verb}", "write": {"decide": "comment", "title": "edit"}.get(verb, verb if verb in ("file", "comment", "resolve", "edit") else None),
-            "title": len(args[0]) if verb == "file" and args else len(args[1]) if verb == "title" and len(args) > 1 else None, "inline body": False, "body edit": False,
+            "title": len(args[0]) if verb == "file" and args else len(args[1]) if verb == "title" and len(args) > 1 else None,
             "body file": args[1] if verb in ("file", "comment", "decide") and len(args) > 1 else None}
 
 

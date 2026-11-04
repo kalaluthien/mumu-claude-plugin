@@ -56,7 +56,7 @@ def read_task(source):
         return {**task, "comments": [{**comment, "trusted": comment.get("trusted", board.trusted(comment))} for comment in task.get("comments", [])]}
     found = board.fresh(source)
     if found is None:
-        sys.exit(f"run-criteria: could not read task {source} from GitHub")
+        sys.exit(f"run-criteria: could not read task {source} from the board")
     return found
 
 

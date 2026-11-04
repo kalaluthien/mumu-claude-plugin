@@ -2,7 +2,7 @@
 """Edit an issue body of a git board in a temporary repository by `edit-issue-body.py` and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
 
 usage: replay-body-diff.py --case <name>
-- newline: a diff made from the body plus the final newline that `gh issue view` prints applies, and the body keeps no final newline
+- newline: a diff made from the body plus a final newline applies, and the body keeps no final newline
 - exact: a diff made from the body exactly as stored applies
 - mismatch: a diff whose context is not the body's text exits nonzero and leaves the body and the comments as they were"""
 import os
@@ -19,7 +19,7 @@ def setup():
     work = pathlib.Path(tempfile.mkdtemp(prefix="body-diff-"))
     repo = work / "repo"
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
-    env = {**os.environ, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home"), "TEAMWORK_BOARD": "git"}
+    env = {**os.environ, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home")}
     (work / "body.md").write_text(STORED)
     made = run(env, repo, "use-board.py", "file", "Probe the diff", work / "body.md")
     return work, repo, env, made.stdout.strip().rsplit("/", 1)[-1]
@@ -43,7 +43,8 @@ def read(env, repo, number):
 
 
 def apply(work, repo, env, number, old, new):
-    return run(env, repo, "edit-issue-body.py", number, diff_of(old, new, work), "DECIDED: probe the diff")
+    sha = next(line.split("body sha: ")[1].strip() for line in read(env, repo, number).splitlines() if "body sha: " in line)
+    return run(env, repo, "edit-issue-body.py", number, diff_of(old, new, work), "DECIDED: probe the diff", "--base", sha)
 
 
 def case_newline(work, repo, env, number):

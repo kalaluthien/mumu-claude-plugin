@@ -5,11 +5,10 @@ and print `PASS` as the last line when the case holds, else `FAIL: <what differe
 usage: replay-local-task.py [--case <name>]
 With no case: file a part and a root that names it, route the part by `decide`, branch, change, judge-approved merge and push of a worker's change, `resolve` the part so the root closes,
 the issue pane and the heartbeat, writing and reading the real hooks and scripts, and require an empty gh log.
-- default: with no setting, a script reads and writes the git board and the landing is the git one
-- cutover: a GitHub board of two scopes copied into the git board with `copy-board.py github git` gives `compare-boards.py` a PASS for each scope, and the next filed issue, comment and resolve run on the default board, take a number above the copy's and reach GitHub not at all
 - layout: `file --scope probe` puts an issue at `probe/<n>/` of the one ref `refs/teamwork-blackboard` and a filing with no scope puts it at `<n>/`, each url names its folder, a `--scope` that names no folder of the repository is refused with no commit, `read` finds an issue by number alone, and the pane of `probe` reads its folder only while a project with no folder reads the root's own issues only
+- old-setting: a leftover `TEAMWORK_BOARD` or `TEAMWORK_LANDING` in the environment and in the project's settings changes nothing, and the whole path still calls no gh
+- base-required: `edit-issue-body.py` with no `--base` exits 2 and adds no commit, and with the board's `body sha` it adds one
 - atomic: `edit-issue-body.py`, `board.edit` that reopens a closed root, `resolve` of a part whose parent then closes and `resolve --not-planned` of a task with an open part each add exactly one commit to the board's ref, and a diff that does not apply, or whose `--base` names an older body, adds none"""
-import importlib.util
 import json
 import os
 import pathlib
@@ -124,13 +123,24 @@ def case_whole(work, repo, origin, env):
     return 0
 
 
-def case_default(work, repo, origin, env):
-    kinds = sh(sys.executable, "-c", f"import sys; sys.path.insert(0, {str(HERE.parents[2] / 'lib')!r}); import board, landing; print(board.kind(), landing.kind())", cwd=repo, env=env).stdout.strip()
-    if kinds != "git git":
-        return fail(f"with no setting the board and landing are {kinds}")
-    use(env, repo, "use-board.py", "file", "Probe the part", text_file(work, "part.md", PART))
-    if commits(env, repo) != 1 or gh_calls(work):
-        return fail(f"the board ref has {commits(env, repo)} commits, gh calls {gh_calls(work)!r}")
+def case_old_setting(work, repo, origin, env):
+    """A leftover TEAMWORK_BOARD or TEAMWORK_LANDING, in the environment and in the project's settings, changes nothing: the whole path still calls no gh."""
+    (repo / ".claude").mkdir(exist_ok=True)
+    (repo / ".claude" / "settings.local.json").write_text(json.dumps({"env": {"TEAMWORK_BOARD": "github", "TEAMWORK_LANDING": "github"}}))
+    return case_whole(work, repo, origin, {**env, "TEAMWORK_BOARD": "files", "TEAMWORK_LANDING": "github"})
+
+
+def case_base_required(work, repo, origin, env):
+    use(env, repo, "use-board.py", "file", "Probe the part", text_file(work, "part.md", PART), "scope:probe")
+    (work / "edit.diff").write_text("--- a/body\n+++ b/body\n@@ -1 +1 @@\n-Probe the part.\n+Probe the part, edited.\n")
+    before = commits(env, repo)
+    run = use(env, repo, "edit-issue-body.py", "1", work / "edit.diff", "DECIDED: probe the edit", check=False)
+    if run.returncode != 2 or commits(env, repo) != before:
+        return fail(f"an edit with no --base exited {run.returncode} and added {commits(env, repo) - before} commits")
+    sha = next(line.split(": ", 1)[1] for line in use(env, repo, "use-board.py", "read", "1").stdout.splitlines() if line.startswith("body sha: "))
+    run = use(env, repo, "edit-issue-body.py", "1", work / "edit.diff", "DECIDED: probe the edit", "--base", sha, check=False)
+    if run.returncode or commits(env, repo) != before + 1:
+        return fail(f"an edit with --base exited {run.returncode} and added {commits(env, repo) - before} commits: {run.stderr[-200:]}")
     return 0
 
 
@@ -190,7 +200,7 @@ def case_atomic(work, repo, origin, env):
 
     def refused_edit():
         (work / "bad.diff").write_text("--- a/body\n+++ b/body\n@@ -1 +1 @@\n-Other text.\n+Changed.\n")
-        return use(env, repo, "edit-issue-body.py", "2", work / "bad.diff", "DECIDED: probe the edit", check=False)
+        return use(env, repo, "edit-issue-body.py", "2", work / "bad.diff", "DECIDED: probe the edit", "--base", body_sha(), check=False)
 
     def stale_edit():
         make_diff()
@@ -221,56 +231,16 @@ def case_atomic(work, repo, origin, env):
     return 0
 
 
-def case_cutover():
-    spec = importlib.util.spec_from_file_location("github_copy_fixture", HERE / "replay-github-copy.py")
-    copied = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(copied)
-    copied.ISSUES += [copied.issue(12, "Probe the other scope", "Other scope.\n", labels=("scope:other",)), copied.issue(13, "Probe the retired scope", "Retired.\n", labels=("scope:retired", "later"))]
-    copied.FAKE_GH = copied.FAKE_GH.replace('[{"name": "scope:probe"}]', '[{"name": "scope:probe"}, {"name": "scope:other"}]')
-    copied.FAKE_GH = copied.FAKE_GH.replace("args = sys.argv[1:]\n", 'args = sys.argv[1:]\nopen(sys.argv[0] + ".log", "a").write(" ".join(args) + "\\n")\n', 1)
-    work, repo, env = copied.setup()
-    calls = work / "bin" / "gh.log"
-    env = {key: value for key, value in env.items() if key not in ("TEAMWORK_BOARD", "TEAMWORK_LANDING")}
-    run = copied.call(env, repo, "copy-board.py", "github", "git")
-    if run.returncode:
-        return fail(f"copy-board.py github git exited {run.returncode}: {run.stderr.strip()[-300:]}")
-    retired = copied.call(env, repo, "use-board.py", "read", "13", board="git").stdout
-    if "scope: (repository root)\n" not in retired or "labels: scope:retired, later\n" not in retired:
-        return fail(f"an issue whose scope label names no folder reads as {retired[:120]!r}, wanted the root with its label kept")
-    for scope in ("probe", "other"):
-        run = copied.call(env, repo, "compare-boards.py", scope)
-        if run.stdout.strip().splitlines()[-1:] != ["PASS"]:
-            return fail(f"compare-boards.py {scope}: {run.stdout[-500:]}{run.stderr[-200:]}")
-    after_copy = calls.read_text() if calls.exists() else ""
-    (work / "b.md").write_text("A new issue.\n")
-    (work / "c.md").write_text("REPORTED: probe note\n")
-    (work / "d.md").write_text("Done.\n")
-    filed = copied.call(env, repo, "use-board.py", "file", "A new issue", work / "b.md")
-    if filed.returncode or not filed.stdout.strip().endswith("/14"):
-        return fail(f"a new issue was filed as {filed.stdout.strip()!r} {filed.stderr[-200:]}, wanted number 14 above the copy's 13")
-    for argv in (("comment", "10", work / "c.md"), ("resolve", "10", work / "d.md")):
-        run = copied.call(env, repo, "use-board.py", *map(str, argv))
-        if run.returncode:
-            return fail(f"use-board.py {argv[0]} on the default board: {run.stderr.strip()[-300:]}")
-    if "state: CLOSED" not in copied.call(env, repo, "use-board.py", "read", "10").stdout:
-        return fail("#10 did not close on the default board")
-    after_verbs = calls.read_text() if calls.exists() else ""
-    if not after_copy or after_verbs != after_copy:
-        return fail(f"gh calls after the copy and the comparison: {len(after_copy.splitlines())}, after the verbs: {len(after_verbs.splitlines())}")
-    return 0
-
-
-CASES = {"whole": case_whole, "default": case_default, "layout": case_layout, "atomic": case_atomic}
-ALONE = {"cutover": case_cutover}
+CASES = {"whole": case_whole, "layout": case_layout, "old-setting": case_old_setting, "base-required": case_base_required, "atomic": case_atomic}
 
 
 def main(args):
-    if args not in ([], *(["--case", name] for name in (*CASES, *ALONE))):
+    if args not in ([], *(["--case", name] for name in CASES)):
         print(__doc__, file=sys.stderr)
         return 2
     name = args[1] if args else "whole"
     try:
-        if (ALONE[name]() if name in ALONE else CASES[name](*setup())):
+        if CASES[name](*setup()):
             return 1
     except (RuntimeError, subprocess.TimeoutExpired) as e:
         return fail(str(e)[-400:])

@@ -120,7 +120,7 @@ const matchesIn = (issue: BoardIssue, pattern: RegExp) => {
 }
 
 export const register: Register = on => {
-  // every team session marks its change, so the manager's waiter wakes without reading GitHub
+  // every team session marks its change, so the manager's waiter wakes without reading the board
   on('tool.call', { tool: 'Bash' }, async ($, event, next) => {
     const ran = await next(event)
     if (ran.deny === undefined && !ran.isError && TEAM_CHANGE.test(event.command)) {

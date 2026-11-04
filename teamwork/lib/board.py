@@ -1,26 +1,18 @@
-"""The board port: where a team keeps its issues and records, done by the adapter `board_<TEAMWORK_BOARD>`, read from the environment, else from the project's Claude settings `env` (default `git`).
-
-Every adapter has these functions, by the same names:
+"""The board: where a team keeps its issues and records, the git board `board_git`, whose functions this module re-exports by the same names:
 - reads: `issues(state, project, pulls, comments, since, repo)`, `fresh(number, repo, comments)`, `comments_since(since)` as (issue number, comment),
-  `changed_since(stamp)`, `blockers(number)` the numbers its `depends on` names that are not closed as completed, `scoped(project)` the folder that scopes a project ('' the repository root; the GitHub board gives its label or None),
+  `changed_since(stamp)`, `blockers(number)` the numbers its `depends on` names that are not closed as completed, `scoped(project)` the folder that scopes a project ('' the repository root),
   `tree(project, nodes)` the open issues' nodes the issue pane draws; each None when a read failed
 - writes: `atomic(change)` runs CHANGE's writes as one, `comment(number, text)`, `file(title, body, labels, scope) -> int` (`scope` the folder, git board only), `body(number)` and `edit(number, body)`, `resolve(number, summary, completed)`, `reopen(number)`, `retitle(number, title)`,
-  `label(number, name, remove)`; this port's `edit` and `resolve` add the state links derive: a follow-up part reopens, a stop stops the parts, the last part closes its parent
+  `label(number, name, remove)`; this module's `edit` and `resolve` add the state links derive: a follow-up part reopens, a stop stops the parts, the last part closes its parent
 - links: `parent_of(number)` the task whose body names it as a part, `check_links(number, body)` raises LookupError naming why BODY cannot be NUMBER's
 - `trusted(record)`, whether a record's author may write records; `command(text)` and `posted(output)`, the board write a shell command runs and what it posted
 A record has `number`, `title`, `body`, `labels` (names), `state` (`OPEN` or `CLOSED`), `parent` (a number or None), `trusted` and `comments`,
 each comment with `body` and `trusted`."""
 import hashlib
-import importlib
 
+import board_git
 import issue_state
-import port_setting
 import task_links
-
-
-def kind():
-    """The adapter's name, read at each call, so a long-running process follows a setting written after it started."""
-    return port_setting.value("TEAMWORK_BOARD", "git")
 
 
 def body_sha(text):
@@ -28,18 +20,13 @@ def body_sha(text):
     return hashlib.sha256(text.replace("\r\n", "\n").encode()).hexdigest()[:12]
 
 
-def adapter():
-    return importlib.import_module(f"board_{kind()}")
-
-
 def __getattr__(name):
-    return getattr(adapter(), name)
+    return getattr(board_git, name)
 
 
 def atomic(change):
-    """CHANGE's result, with every board write it makes landing whole or not at all where the adapter can (the files and git boards), else as the plain calls they are (GitHub)."""
-    keep = getattr(adapter(), "atomic", None)
-    return keep(change) if keep else change()
+    """CHANGE's result, with every board write it makes landing whole or not at all, as one commit."""
+    return board_git.atomic(change)
 
 
 def edit(number, text):
@@ -49,13 +36,13 @@ def edit(number, text):
 def edit_whole(number, text):
     """Writes TEXT as NUMBER's body; a closed task whose new body gains a part opens again, since that part is follow-up work, and an
     open one whose new body drops a part or a criterion closes once no criterion is left and every part left was closed as completed."""
-    old = adapter().fresh(number, comments=False)
-    adapter().edit(number, text)
+    old = board_git.fresh(number, comments=False)
+    board_git.edit(number, text)
     if old and old["state"] == "CLOSED" and set(task_links.parts(text)) - set(task_links.parts(old["body"])):
-        adapter().reopen(number)
+        board_git.reopen(number)
     dropped = old and (set(task_links.parts(old["body"])) - set(task_links.parts(text)) or set(task_links.criteria(old["body"])) - set(task_links.criteria(text)))
     if dropped and old["state"] == "OPEN" and task_links.parts(text) and not task_links.criteria(text):
-        named = [adapter().fresh(part, comments=False) for part in task_links.parts(text)]
+        named = [board_git.fresh(part, comments=False) for part in task_links.parts(text)]
         if all(part and task_links.completed(part) for part in named):
             resolve(number, "REPORTED: every part left closed as completed, once the edit dropped the rest.")
 
@@ -67,17 +54,16 @@ def resolve(number, summary, completed=True):
 def resolve_whole(number, summary, completed=True):
     """Closes NUMBER. Stopped, it first stops its open parts, named in one `DECIDED:` on it; completed, it closes its parent
     once every part of the parent is closed as completed and the parent holds no other criterion."""
-    record = adapter().fresh(number, comments=False)
-    stopping = [part for part in task_links.parts(record["body"]) if (found := adapter().fresh(part, comments=False)) and found["state"] == "OPEN"] if record and not completed else []
+    record = board_git.fresh(number, comments=False)
+    stopping = [part for part in task_links.parts(record["body"]) if (found := board_git.fresh(part, comments=False)) and found["state"] == "OPEN"] if record and not completed else []
     if stopping:
-        adapter().comment(number, f"{issue_state.STOPPING}{number} stops its open parts {' '.join(f'#{part}' for part in stopping)}.")
-    adapter().resolve(number, summary, completed)
+        board_git.comment(number, f"{issue_state.STOPPING}{number} stops its open parts {' '.join(f'#{part}' for part in stopping)}.")
+    board_git.resolve(number, summary, completed)
     for part in stopping:
         resolve(part, f"REPORTED: stopped with its parent #{number}.", False)
-    parent = completed and adapter().parent_of(number)
-    found = parent and adapter().fresh(parent, comments=False)
-    # GitHub names the parent by its native mirror, so the parent's own body must name the part too
+    parent = completed and board_git.parent_of(number)
+    found = parent and board_git.fresh(parent, comments=False)
     if found and found["state"] == "OPEN" and int(number) in task_links.parts(found["body"]) and not task_links.criteria(found["body"]):
-        named = [adapter().fresh(part, comments=False) for part in task_links.parts(found["body"])]
+        named = [board_git.fresh(part, comments=False) for part in task_links.parts(found["body"])]
         if all(part and task_links.completed(part) for part in named):
             resolve(parent, f"REPORTED: every part closed as completed, the last #{number}.")

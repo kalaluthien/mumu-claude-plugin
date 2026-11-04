@@ -2,7 +2,7 @@
 """Print `changed` once at start, then once per burst of marks by team sessions to the issues, after the file has been quiet for QUIET seconds, until killed.
 
 usage: wait-team-change.py
-It blocks on the signal file through kqueue, so it reads GitHub never and wakes only when a session touches the file."""
+It blocks on the signal file through kqueue, so it reads no board and wakes only when a session touches the file."""
 import pathlib
 import select
 import sys

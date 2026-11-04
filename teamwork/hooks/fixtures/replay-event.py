@@ -4,7 +4,7 @@
 usage: replay-event.py <Pre|Post> <settings json, or none for no settings file> <command> [text]
 `REPLAY_SESSION_ID` in the environment is the event's session id, so a repeat call can meet the hook's once-per-session reminders.
 With `text` it prints the hook's message (the deny reason, the block reason and the context) on the lines after the verdict.
-A fake herdr names the session t-worker; a fake gh reads every issue back with a body whose holders line sits outside a fence."""
+A fake herdr names the session t-worker."""
 import json
 import os
 import pathlib
@@ -23,7 +23,7 @@ def main(args):
     folder = pathlib.Path(tempfile.mkdtemp())
     (folder / "bin").mkdir()
     (folder / "repo").mkdir()
-    for name, out in (("herdr", {"result": {"agents": [{"pane_id": "p1", "name": "t-worker"}]}}), ("gh", {"body": "holders: a"})):
+    for name, out in (("herdr", {"result": {"agents": [{"pane_id": "p1", "name": "t-worker"}]}}),):
         (folder / "bin" / name).write_text(f"#!/bin/sh\necho '{json.dumps(out)}'\n")
         (folder / "bin" / name).chmod(0o755)
     subprocess.run(["git", "init", "-q", str(folder / "repo")], check=True)

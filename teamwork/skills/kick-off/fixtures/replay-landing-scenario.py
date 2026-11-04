@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Land two workers' changes in a temporary repository with no remote, through use-landing.py, a files board and the fake herdr beside this file, and
+"""Land two workers' changes in a temporary repository with no remote, through use-landing.py, a git board and the fake herdr beside this file, and
 print `ok <step>` or `fail <step>: <what differed>` for each step; exit 1 on any fail.
 
 usage: replay-landing-scenario.py [--verbose]
@@ -28,8 +28,7 @@ SCRIPTS = HERE.parent / "scripts"
 VERBOSE = False
 work = pathlib.Path(tempfile.mkdtemp(prefix="landing-scenario-"))
 repo = work / "repo"
-os.environ.update({"TEAMWORK_BOARD": "files", "TEAMWORK_BOARD_DIR": str(work / "board"), "TEAMWORK_LANDING": "git",
-                   "CLAUDE_CONFIG_DIR": str(work / "claude"), "GIT_CONFIG_GLOBAL": str(work / "gitconfig"),
+os.environ.update({"CLAUDE_CONFIG_DIR": str(work / "claude"), "GIT_CONFIG_GLOBAL": str(work / "gitconfig"),
                    "GIT_AUTHOR_NAME": "probe", "GIT_AUTHOR_EMAIL": "probe@example.com", "GIT_COMMITTER_NAME": "probe", "GIT_COMMITTER_EMAIL": "probe@example.com"})
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import landing_git  # noqa: E402

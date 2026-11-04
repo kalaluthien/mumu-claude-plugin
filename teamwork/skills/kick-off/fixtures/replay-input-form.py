@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Replay malformed and good text through the board's write scripts on a scratch files board and a scratch git board, printing `ok <case>`
-or `fail <case>: <what it saw>` per case and exiting 1 on any failure. A refusing case passes when, on both boards, every write exits 2,
+"""Replay malformed and good text through the board's write scripts on a scratch git board, printing `ok <case>`
+or `fail <case>: <what it saw>` per case and exiting 1 on any failure. A refusing case passes when every write exits 2,
 the message names a fix and the board is unchanged; an `accept-` case when every write exits 0 and the board changed. Cases:
 - `key-*`: a key line misspelt, holding more than names, or in a fence that is not exactly `teamwork`;
 - `keyword-*`: a keyword line that nearly opens a comment, opens a later line or belongs to another verb;
@@ -81,50 +81,46 @@ def main(args):
     if args and only is None:
         print(__doc__, file=sys.stderr)
         return 2
-    outer = dict(os.environ)  # the scenario replay below runs under the caller's own setting, not the scratch boards'
     work = pathlib.Path(tempfile.mkdtemp(prefix="input-form-"))
     repo = work / "repo"
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
-    os.environ.update(TEAMWORK_BOARD_DIR=str(work / "board"), HOME=str(work), CLAUDE_CONFIG_DIR=str(work / "home"))
+    os.environ.update(HOME=str(work), CLAUDE_CONFIG_DIR=str(work / "home"))
     os.chdir(repo)
-    import board_files
+    import board
     import board_git
-    boards = {"files": board_files, "git": board_git}
     counter = iter(range(10 ** 6))
 
-    def snapshot(kind):
-        return [(each["number"], each["body"], each["state"], [note["body"] for note in each["comments"]]) for each in boards[kind].issues("all")]
+    def snapshot():
+        return [(each["number"], each["body"], each["state"], [note["body"] for note in each["comments"]]) for each in board_git.issues("all")]
 
-    def prepare(kind, spec):
+    def prepare(spec):
         """The issue SPEC writes to, filed straight on the board so even a body the guard refuses is there; its number, None for a `file`."""
-        return boards[kind].file("A task", spec[1] if spec[0] == "edit" else BASE, []) if spec[0] != "file" else None
+        return board_git.file("A task", spec[1] if spec[0] == "edit" else BASE, []) if spec[0] != "file" else None
 
-    def write(kind, spec, number):
-        """Runs one write SPEC on board KIND; the completed process."""
+    def write(spec, number):
+        """Runs one write SPEC on the board; the completed process."""
         verb, *rest = spec
-        env = {**os.environ, "TEAMWORK_BOARD": kind}
         if verb == "edit":
             before, after, line = rest
             diff = work / f"edit-{next(counter)}.diff"
             diff.write_text("".join(difflib.unified_diff(before.splitlines(True), after.splitlines(True), "a/body", "b/body")))
-            return subprocess.run([sys.executable, str(SCRIPTS / "edit-issue-body.py"), str(number), str(diff), line], env=env, capture_output=True, text=True)
+            return subprocess.run([sys.executable, str(SCRIPTS / "edit-issue-body.py"), str(number), str(diff), line, "--base", board.body_sha(before)], capture_output=True, text=True)
         text = work / f"text-{next(counter)}.md"
         text.write_text(rest[0])
         argv = ["file", "A task", text] if verb == "file" else [verb, number, text]
-        return subprocess.run([sys.executable, str(SCRIPTS / "use-board.py"), *map(str, argv)], env=env, capture_output=True, text=True)
+        return subprocess.run([sys.executable, str(SCRIPTS / "use-board.py"), *map(str, argv)], capture_output=True, text=True)
 
     def run(name, writes, fix=None):
         if only and name not in only:
             return
         seen = []
-        for kind in boards:
-            for spec in writes:
-                number = prepare(kind, spec)
-                before = snapshot(kind)
-                done = write(kind, spec, number)
-                changed = snapshot(kind) != before
-                held = done.returncode == 2 and fix.lower() in done.stderr.lower() and not changed if fix else done.returncode == 0 and changed
-                seen += [] if held else [f"{kind} {spec[0]}: exit {done.returncode}, board changed {changed}: {done.stdout}{done.stderr}"]
+        for spec in writes:
+            number = prepare(spec)
+            before = snapshot()
+            done = write(spec, number)
+            changed = snapshot() != before
+            held = done.returncode == 2 and fix.lower() in done.stderr.lower() and not changed if fix else done.returncode == 0 and changed
+            seen += [] if held else [f"{spec[0]}: exit {done.returncode}, board changed {changed}: {done.stdout}{done.stderr}"]
         step(name, not seen, "; ".join(seen))
 
     for name, (writes, fix) in REFUSED.items():
@@ -132,7 +128,7 @@ def main(args):
     for name, writes in ACCEPTED.items():
         run(name, writes)
     if not only or "accept-scenarios" in only:
-        replay = subprocess.run([sys.executable, str(HERE / "replay-team-scenarios.py")], env=outer, capture_output=True, text=True, timeout=900)
+        replay = subprocess.run([sys.executable, str(HERE / "replay-team-scenarios.py")], capture_output=True, text=True, timeout=900)
         stray = [line for line in (replay.stdout + replay.stderr).splitlines() if line.strip() and not line.startswith("ok ")]
         step("accept-scenarios", not stray and replay.returncode == 0, "\n".join(stray) or f"exit {replay.returncode}")
     return 1 if failed else 0

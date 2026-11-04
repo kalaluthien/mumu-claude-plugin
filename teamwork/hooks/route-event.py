@@ -22,7 +22,6 @@ import team_settings  # noqa: E402
 
 PLAYBOOKS = ROOT / "skills" / "kick-off" / "references"
 GRAMMAR = PLAYBOOKS / "issue-grammar.md"
-EDIT_BODY = PLAYBOOKS.parent / "scripts" / "edit-issue-body.py"
 # the rules are found in the playbooks at each call, never copied here, so a playbook edit cannot leave a stale reminder
 REMINDED = {"file": ("`file`", "40 characters"), "change": ("40 characters",), "comment": ("**Comment**", "`comment`"), "change comment": ("**Comment**",),
             "resolve": ("`resolve`",), "edit": ("edit-issue-body", "40 characters"), "change edit": ("40 characters",)}
@@ -77,7 +76,7 @@ def unseen(lines, session_id):
 def reminder(call, role, cwd, session_id=None):
     called, needles = call["called"], REMINDED.get(call["write"], ())
     found = [f"- {path.relative_to(PLAYBOOKS.parents[1])}:{number}: {line.strip()}"
-             for path in (PLAYBOOKS / "protocol.md", PLAYBOOKS / f"{role}.md", GRAMMAR, *sorted((PLAYBOOKS / "adapters").glob("*-github.md")))  # a gh command keeps GitHub's adapter rules, never another board's
+             for path in (PLAYBOOKS / "protocol.md", PLAYBOOKS / f"{role}.md", GRAMMAR)
              for number, line in enumerate(path.read_text().splitlines(), 1) if any(needle in line for needle in needles)]
     found = unseen(found, session_id)
     stray = ["- A `holders:` line sits outside a ```teamwork fence in the posted file, so code reads no holder: put it inside the fence, as "
@@ -121,9 +120,7 @@ def route(kind, event, role, me, listed):
         return None
     settings = team_settings.load(event.get("cwd") or ".")
     size, limit = call["title"], settings["title_max"]
-    rule = (f"Nothing in this command ran. An issue body changes only by {EDIT_BODY} <issue> <diff-file> \"DECIDED: <why>\" --base <body sha>, the body sha that use-board.py read prints, where <diff-file> is a unified diff of the body (diff -u old new) that you wrote first; it posts the diff as a comment, then applies it, as {GRAMMAR} says." if call["body edit"]
-            else "Nothing in this command ran. Write the text to a scratch file, then run the same command again with --body-file <that file> in place of --body or -b." if call["inline body"]
-            else f"Title is {size} characters; shorten it to {limit:g}, verb first." + (" Nothing in this command ran, so write any body file again." if settings["refuse"] else "")
+    rule = (f"Title is {size} characters; shorten it to {limit:g}, verb first." + (" Nothing in this command ran, so write any body file again." if settings["refuse"] else "")
             if size and size > limit else None)
     return verdict(kind, rule, settings, None if rule and settings["refuse"] else reminder(call, role, event.get("cwd"), event.get("session_id")))
 

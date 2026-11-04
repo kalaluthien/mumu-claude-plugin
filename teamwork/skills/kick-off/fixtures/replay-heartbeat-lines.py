@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replay the lines a manager's heartbeat once printed to no purpose, on a temporary repository with a files board, git landing and the fake herdr
+"""Replay the lines a manager's heartbeat once printed to no purpose, on a temporary repository with a git board and landing and the fake herdr
 beside this file, and print `ok <case>` or `fail <case>: <what it saw>` per case; exit 1 on any fail. Each case is a class of line found in
 past managers' transcripts (#1202):
 - idle-again, blocked-again: a worker that goes back to idle, or to the same prompt, after working is named again, since each return is news to the manager; a countdown or a footer hint that comes and goes in the prompt does not make it a new line
@@ -29,7 +29,7 @@ SCRIPTS = HERE.parent / "scripts"
 work = pathlib.Path(tempfile.mkdtemp(prefix="heartbeat-lines-"))
 repo = work / "repo"
 STATE = work / "herdr.json"
-os.environ.update({"TEAMWORK_BOARD": "files", "TEAMWORK_BOARD_DIR": str(work / "board"), "TEAMWORK_LANDING": "git", "CLAUDE_CONFIG_DIR": str(work / "claude"),
+os.environ.update({"CLAUDE_CONFIG_DIR": str(work / "claude"),
                    "GIT_CONFIG_GLOBAL": str(work / "gitconfig"), "GIT_AUTHOR_NAME": "probe", "GIT_AUTHOR_EMAIL": "probe@example.com",
                    "GIT_COMMITTER_NAME": "probe", "GIT_COMMITTER_EMAIL": "probe@example.com", "FAKE_HERDR_STATE": str(STATE),
                    "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "HERDR_PANE_ID": "w1:p1"})

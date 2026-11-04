@@ -11,7 +11,7 @@ usage: use-board.py <operation> <args>
   file <title> <body-file> [label...] [--scope <folder>]   open an issue in the folder, a path from the repository root ('' the root; a manager's own
                                         project folder when none is given, else the root), refused when the repository has no such folder; print its url;
                                         its `[task]` and `depends on` lines link it, refused when they make a cycle, a second parent or name an unknown issue
-  edit <issue> <diff-file> <line> [--base <sha>]   change the body by a diff, with the keyword line [edit-issue-body.py](edit-issue-body.py) posts first;
+  edit <issue> <diff-file> <line> --base <sha>   change the body by a diff, with the keyword line [edit-issue-body.py](edit-issue-body.py) posts first;
                                         refused when the body no longer has the `body sha` `read` printed, the sha given as `--base`
   title <issue> <title>                 change the title
   resolve <issue> <summary-file> [--not-planned]   close it with the summary, `REPORTED: ` put first when it lacks it

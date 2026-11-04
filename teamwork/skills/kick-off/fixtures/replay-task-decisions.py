@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Check typed decisions on a board, writing only through use-board.py and reading through list-decisions.py, and print `ok <case>` or
-`fail <case>: <what it saw>` per case; exit 1 on any fail. files and git run every case; github-nodes the pane's, from GitHub-shaped
-nodes written here by hand. The files and git boards trust every comment, so pane-untrusted there marks one of the board's own
-decision comments untrusted, as the GitHub adapter marks an outsider's, before the rows are laid out.
+`fail <case>: <what it saw>` per case; exit 1 on any fail. git runs every case; nodes the pane's, from issue
+nodes written here by hand. The git board trusts every comment, so pane-untrusted there marks one of the board's own
+decision comments untrusted, as an outsider's is marked, before the rows are laid out.
 - record-fields, record-event, record-supersedes, record-unknown-supersedes, record-answers-elsewhere, record-answers-own: `decide`
   writes a decision block the index reads back, its `answers:` an open question on its own task
 - authority-refuses, authority-unquoted, authority-comment, authority-owner, authority-manager: who may supersede an owner decision
@@ -13,13 +13,12 @@ decision comments untrusted, as the GitHub adapter marks an outsider's, before t
   heartbeat-legacy-quiet: the manager's heartbeat lines
 - route-own-depends, route-parts-blocked, route-after-close: no `route` line for a task whose own `depends on:` names an open task,
   or whose open parts all do, until that task closes
-- pane-question, pane-every-decision, pane-cut, pane-untrusted, pane-question-next-line: list-issue-board.py's `?` and `◆` lines; pane-linear, on github-nodes
+- pane-question, pane-every-decision, pane-cut, pane-untrusted, pane-question-next-line: list-issue-board.py's `?` and `◆` lines; pane-linear, on nodes
   only: one draw parses each task's comments a bounded number of times, however many tasks there are
-- row-no-deferral, row-finished-parent, outside-answered, row-one-color, on github-nodes: a `deferred:` line sets no wait; a parent
-  whose parts are all done shows its next step in full among its always-shown lines; an outsider's issue leaves the heartbeat once a
-  trusted `DECIDED:` answers it; and every row's number takes the color of its own state, drawn by one Link
+- row-no-deferral, row-finished-parent, row-one-color, on nodes: a `deferred:` line sets no wait; a parent
+  whose parts are all done shows its next step in full among its always-shown lines; and every row's number takes the color of its own state, drawn by one Link
 
-usage: replay-task-decisions.py --board <files|git|github-nodes>"""
+usage: replay-task-decisions.py --board <git|nodes>"""
 import json
 import os
 import pathlib
@@ -115,7 +114,7 @@ def refused(name, number, call, *said):
 def record_cases():
     root, other = file("Probe a decided root"), file("Probe another root")
     question = ask(root, "which board")
-    first = decide(root, "use the files board")
+    first = decide(root, "use the git board")
     full = decide(root, "use the git board", door="one-way", supersedes=first, answers=question, depends=f"#{other}")
     line = next((line for line in index(root).splitlines() if full in line), "")
     step("record-fields", all(part in line for part in ("probe-manager, one-way: use the git board", f"supersedes {first}", f"answers {question}", f"waits on #{other}")), index(root))
@@ -268,7 +267,8 @@ def pane_cases(listed, narrow, untrusted_lines, asker, decider, cutter, untruste
     # a decision's later lines sit 2 cells right of its mark, so they read as its own
     step("pane-cut", len(shown) == 3 and shown[2].endswith("…") and all(line[mark:mark + 2] == "  " and line[mark + 2] != " " for line in shown[1:])
          and "beside the probe" not in "\n".join(cut), cut)
-    step("pane-untrusted", not any(line.startswith("◆ ") for line in block(untrusted_lines, untrusted)), block(untrusted_lines, untrusted))
+    if untrusted:
+        step("pane-untrusted", not any(line.startswith("◆ ") for line in block(untrusted_lines, untrusted)), block(untrusted_lines, untrusted))
 
 
 def board_pane():
@@ -314,7 +314,7 @@ def nodes_pane():
     path.write_text(json.dumps(nodes))
     listed = subprocess.run([sys.executable, str(LIST), "--nodes", str(path)], capture_output=True, text=True).stdout.splitlines()
     narrow = subprocess.run([sys.executable, str(LIST), "--nodes", str(path), "--width", "24"], capture_output=True, text=True).stdout.splitlines()
-    pane_cases(listed, narrow, listed, 1, 2, 3, 4)
+    pane_cases(listed, narrow, None, 1, 2, 3, None)
     import issue_board
     import issue_state
     original, parses = issue_state.records, [0]
@@ -349,15 +349,6 @@ def nodes_pane():
     shown = {row["number"]: row["lines"]["notes"] for row in json.loads(subprocess.run([sys.executable, str(LIST), "--nodes", str(done), "--json"],
                                                                                        capture_output=True, text=True).stdout or "[]")}
     step("row-finished-parent", "next step: probe the pane" in shown.get(1, []) and shown.get(2) == [], shown)
-    import decisions
-    import team_gaps
-    outside = node(5)
-    outside["authorAssociation"] = "NONE"
-    answered = node(6, [comment(6, 1, "DECIDED: the owner reads it first")])
-    answered["authorAssociation"] = "NONE"
-    marked = {issue["number"]: issue for issue in board.tree(None, [outside, answered])}
-    step("outside-answered", team_gaps.unanswered(decisions.as_issue(marked[5])) and not team_gaps.unanswered(decisions.as_issue(marked[6])),
-         {number: issue.get("trusted") for number, issue in marked.items()})
     rows = json.loads(subprocess.run([sys.executable, str(LIST), "--nodes", str(path), "--json"], capture_output=True, text=True).stdout or "[]")
     pane = (ROOT / "hooks" / "draw-issue-pane.tsx").read_text()
     step("row-one-color", rows and not any("kind" in row for row in rows) and 'numeral(issue.url, label, spans(\'title\', 0), numberColor)' in pane, [sorted(row) for row in rows[:1]])
@@ -365,21 +356,18 @@ def nodes_pane():
 
 def main(args):
     global work, board
-    if len(args) != 2 or args[0] != "--board" or args[1] not in ("files", "git", "github-nodes"):
+    if len(args) != 2 or args[0] != "--board" or args[1] not in ("git", "nodes"):
         print(__doc__, file=sys.stderr)
         return 2
     kind = args[1]
     work = pathlib.Path(tempfile.mkdtemp(prefix="task-decisions-"))
-    os.environ.update({"TEAMWORK_BOARD": "github" if kind == "github-nodes" else kind, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "config")})
-    if kind == "files":
-        os.environ["TEAMWORK_BOARD_DIR"] = str(work / "board")
-    elif kind == "git":
-        subprocess.run(["git", "init", "-q", str(work / "repo")], check=True)
-        os.chdir(work / "repo")
+    os.environ.update({"HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "config")})
+    subprocess.run(["git", "init", "-q", str(work / "repo")], check=True)
+    os.chdir(work / "repo")
     sys.path.insert(0, str(ROOT / "lib"))
     import board  # noqa: E402  read here, since it reads the board set above when it loads
 
-    if kind == "github-nodes":
+    if kind == "nodes":
         nodes_pane()
         return 1 if failures else 0
     record_cases()

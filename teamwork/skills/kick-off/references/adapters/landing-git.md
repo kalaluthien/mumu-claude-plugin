@@ -1,6 +1,6 @@
 # Landing git
 
-A change is a branch of the repository, filed and merged in local git by `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/use-landing.py`, the landing a project gets when `TEAMWORK_LANDING` is unset; the merge then pushes the base to `origin`, so no GitHub pull request stands between a branch and the base. Each change is a record in the main checkout's `.teamwork/changes`, excluded from commits and moved from `.git/teamwork/changes` as the files board is, numbered apart from the board's issues.
+A change is a branch of the repository, filed and merged in local git by `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/use-landing.py`, the project's landing; the merge pushes the base to `origin`, so no GitHub pull request stands between a branch and the base. Each change is a record in the main checkout's `.teamwork/changes`, excluded from commits, numbered apart from the board's issues.
 
 | operation | how |
 | --- | --- |

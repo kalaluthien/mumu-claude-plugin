@@ -25,7 +25,7 @@ def setup():
     stub.mkdir()
     (stub / "gh").write_text(f'#!/bin/sh\necho "$@" >> {work}/gh.log\nexit 1\n')
     (stub / "gh").chmod(0o755)
-    env = {**os.environ, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home"), "TEAMWORK_BOARD": "git", "PATH": f"{stub}:{os.environ['PATH']}"}
+    env = {**os.environ, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home"), "PATH": f"{stub}:{os.environ['PATH']}"}
     (work / "body.md").write_text(BODY)
     made = run(env, repo, "use-board.py", "file", "Probe the pane", work / "body.md")
     number = made.stdout.strip().rsplit("/", 1)[-1]
@@ -117,7 +117,7 @@ def case_writes(work, repo, env, number):
         url = owner_says(work, env, repo, number, wish)
         for who in ("manager", "worker"):
             text_new = text.replace("Probe the pane", f"Probe the pane ({who} {wish})", 1)
-            done = run(env, repo, "use-board.py", "edit", number, diff_of(work, text, text_new), f"DECIDED: {who} folds {url}")
+            done = run(env, repo, "use-board.py", "edit", number, diff_of(work, text, text_new), f"DECIDED: {who} folds {url}", "--base", sha_of(env, repo, "use-board.py", number))
             check(env, repo, work, done.returncode == 0, f"edit: {done.stderr.strip()[-200:]}")
             text = text_new
         precheck(work, env, repo, number)

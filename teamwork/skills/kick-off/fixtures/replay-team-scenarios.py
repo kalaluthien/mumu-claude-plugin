@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Replay the team in varied scenarios on the sandbox board kalaluthien/teamwork-board-sandbox as the tape of recorded-gh/gh beside
-this file holds it, while no judge or worker writes that board (else rerun a failure once alone), a temporary files board and the fake herdr beside this file, and print `ok <scenario>`, or `fail <scenario>: <the output that failed>`.
+"""Replay the team in varied scenarios on a temporary git board and the fake herdr beside this file, and print `ok <scenario>`, or `fail <scenario>: <the output that failed>`.
 
 usage: replay-team-scenarios.py [--only <scenario>,...] [--verbose]
 `--verbose` also prints each run's output. FAKE_HERDR_BREAK=accept makes the fake herdr take every prompt and wait, so the scenarios that
@@ -9,7 +8,6 @@ import json
 import os
 import pathlib
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -21,8 +19,6 @@ import usage_parser  # noqa: E402
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 SCRIPTS = HERE.parent / "scripts"
-SANDBOX = "kalaluthien/teamwork-board-sandbox"
-TURNS = pathlib.Path(tempfile.mkdtemp(prefix="recorded-gh-"))  # each scenario's turns on its tape, so `--only` replays as the full run does
 
 
 def agent(name, pane, status, workspace="w1"):
@@ -39,8 +35,7 @@ def herdr(*agents):
 
 
 def run(argv, state, pane=None, event=None, seconds=120, cwd=None, **env):
-    env = {**os.environ, "GH_REPO": SANDBOX, "PATH": f"{HERE / 'recorded-gh'}:{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state),
-           "GH_TAPE": f"replay-team-scenarios-{SCENARIO}", "GH_TAPE_STATE": str(TURNS / f"{SCENARIO}.json"),
+    env = {**os.environ, "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state),
            "MONITOR_POLL": "1000", **({"HERDR_PANE_ID": pane} if pane else {}), **env}
     try:
         process = subprocess.run([str(argument) for argument in argv], env=env, input=event and json.dumps(event), capture_output=True, text=True, timeout=seconds, cwd=cwd)
@@ -52,8 +47,8 @@ def run(argv, state, pane=None, event=None, seconds=120, cwd=None, **env):
     return code, out
 
 
-def hook(state, pane, event):
-    code, out = run([ROOT / "hooks" / "route-event.py"], state, pane, event)
+def hook(state, pane, event, cwd=None, **env):
+    code, out = run([ROOT / "hooks" / "route-event.py"], state, pane, event, cwd=cwd, **env)
     try:
         output = json.loads(out)
     except ValueError:
@@ -62,8 +57,8 @@ def hook(state, pane, event):
         or output.get("reason") or out
 
 
-def heartbeat(state, pane, seconds=40):
-    return run([ROOT / "monitors" / "print-team-gaps.py"], state, pane, seconds=seconds)[1]
+def heartbeat(state, pane, seconds=40, cwd=None, **env):
+    return run([ROOT / "monitors" / "print-team-gaps.py"], state, pane, seconds=seconds, cwd=cwd, **env)[1]
 
 
 def tell(state, name, text="hi"):
@@ -83,23 +78,45 @@ def lines_about(text, name):
 TEAM = (agent("teamwork-manager", 1, "idle"), agent("protocol-split-worker", 2, "idle"), agent("fixture-asking-worker", 3, "idle"))
 
 
-def github_team():
-    """A manager with two workers on the GitHub board: its start and heartbeat name the idle worker once, with what it holds, and the asking one by its `answer` line."""
+def git_team():
+    """A manager with two workers on a git board: its start and heartbeat name the idle worker once, with what it holds, and the asking one by its `answer` line; a worker with an open goal is stopped once."""
     state = herdr(*TEAM)
-    start = hook(state, "w1:p1", {"hook_event_name": "SessionStart", "session_id": ""})
-    stop = hook(state, "w1:p2", {"hook_event_name": "Stop", "stop_hook_active": False, "transcript_path": ""})
-    beat = heartbeat(state, "w1:p1")
+    work = pathlib.Path(tempfile.mkdtemp(prefix="git-team-"))
+    repo = work / "repo"
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    env = {"HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "claude")}
+
+    def use(*argv):
+        return subprocess.run([sys.executable, str(SCRIPTS / "use-board.py"), *map(str, argv)], cwd=repo, capture_output=True, text=True,
+                              env={**os.environ, **env, "HERDR_PANE_ID": "w1:p1", "FAKE_HERDR_STATE": str(state), "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}"}).stdout.strip()
+
+    def text(name, body):
+        path = work / name
+        path.write_text(body)
+        return path
+
+    def filed(title):
+        return int(use("file", title, text("body.md", "Probe the team.\n")).rsplit("/", 1)[1])
+
+    first, asked, held_one, held_two = (filed(f"Probe the team's {word} task") for word in ("first", "asked", "held", "other"))
+    for number, name in ((asked, "fixture-asking-worker"), (held_one, "protocol-split-worker"), (held_two, "protocol-split-worker")):
+        use("decide", number, text("hold.md", f"DECIDED: {name} holds this.\n\n```teamwork\nholders: {name}\n```\n"))
+    use("comment", asked, text("ask.md", "BLOCKED: may the probe run\n"))
+    start = hook(state, "w1:p1", {"hook_event_name": "SessionStart", "session_id": ""}, cwd=repo, **env)
+    stop = hook(state, "w1:p2", {"hook_event_name": "Stop", "stop_hook_active": False, "transcript_path": ""}, cwd=repo, **env)
+    beat = heartbeat(state, "w1:p1", cwd=repo, **env)
+    held = f"holds #{held_two} #{held_one}"
     for out in (start, beat):
         # the asking worker waits on its manager, so its line is the manager's `answer`, not an `idle`
-        if [line.split(":")[0] for line in lines_about(out, "protocol-split-worker")] != ["idle protocol-split-worker"] or "holds #4 #3" not in out \
-                or lines_about(out, "idle fixture-asking-worker") or not any(line.startswith("answer #2:") for line in out.splitlines()):
+        if [line.split(":")[0] for line in lines_about(out, "protocol-split-worker")] != ["idle protocol-split-worker"] or held not in out \
+                or lines_about(out, "idle fixture-asking-worker") or not any(line.startswith(f"answer #{asked}:") for line in out.splitlines()):
             return False, out
-    return "Your goal still waits on you" in stop and "#3" in stop, "\n".join([start, stop, beat])
+    return "Your goal still waits on you" in stop and f"#{held_one}" in stop, "\n".join([start, stop, beat])
 
 
-def files_board():
-    """The same protocol on a files board: an issue filed, made a part, made to wait, held, asked, answered, edited, resolved and reopened reads back as written."""
-    code, out = run([HERE / "replay-board-scenario.py", "--board", "files"], herdr(*TEAM))
+def git_board():
+    """The protocol on a git board: an issue filed, made a part, made to wait, held, asked, answered, edited, resolved and reopened reads back as written."""
+    code, out = run([HERE / "replay-board-scenario.py"], herdr(*TEAM))
     steps = dict(re.findall(r"^step (\S+)\n((?:(?!step ).*\n?)*)", out, re.M))
     ok = code == 0 and "holders=['probe-worker']" in steps.get("hold", "") and "parent=root" in steps.get("part", "") \
         and "waits=blocked by #task" in steps.get("order", "") and "task: CLOSED" in steps.get("resolve-task", "") \
@@ -136,12 +153,11 @@ def tell_claude():
 
 
 def send_failed():
-    """A send herdr refuses and a board write the hook denies: each says why, and nothing reaches the receiver or runs."""
+    """A send herdr refuses says why, and nothing reaches the receiver."""
     state = herdr(agent("protocol-split-worker", 1, "working"), agent("refuse-codex", 2, "idle"))
     code, out = tell(state, "refuse-codex")
-    denied = hook(state, "w1:p1", {"hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "gh issue comment 1 --body hi"}, "cwd": "."})
-    ok = code == 1 and "not delivered to refuse-codex: agent_pane_closed" in out and status(state, "refuse-codex") == "idle" and "--body-file" in denied
-    return ok, f"{out}\n{denied}"
+    ok = code == 1 and "not delivered to refuse-codex: agent_pane_closed" in out and status(state, "refuse-codex") == "idle"
+    return ok, out
 
 
 def monitor_restart():
@@ -257,8 +273,8 @@ def moved_start():
 
 
 SCENARIOS = {
-    "github-team": github_team,
-    "files-board": files_board,
+    "git-team": git_team,
+    "git-board": git_board,
     "git-landing": git_landing,
     "herdr-idle": lambda: herdr_receiver("idle", 0, r"^delivered to receiver-codex$"),
     "herdr-busy": lambda: herdr_receiver("working", 0, r"^delivered to receiver-codex after its turn$"),
@@ -283,7 +299,7 @@ def step(name, ok, detail=""):
 
 
 def main(args):
-    global VERBOSE, SCENARIO
+    global VERBOSE
     parser = usage_parser.parser(__doc__)
     parser.add_argument("--only", default="")
     parser.add_argument("--verbose", action="store_true")
@@ -292,10 +308,8 @@ def main(args):
     for name, scenario in SCENARIOS.items():
         if options.only and name not in options.only.split(","):
             continue
-        SCENARIO = name
         ok, out = scenario()
         step(name, ok, out)
-    shutil.rmtree(TURNS)
     return 0
 
 

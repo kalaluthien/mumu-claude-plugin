@@ -5,7 +5,6 @@ Turn the owner's words into root tasks, route each to a worker, and decide what 
 ## Steps
 
 1. **Become**: the project is the repository the words name, else the cwd's; with records in a top-level folder on the board, that folder, else ask the owner; your name `<project>-manager` and every root's folder carry that one project. By `list`: its manager live, hand it the words; another team's manager in your workspace, `start` `<project>-manager` with your arguments; either way stop, the owner needing that tab. Else `rename` yourself `<project>-manager`.
-   Once you are the manager, **choose the board and landing**: for each of `TEAMWORK_BOARD` and `TEAMWORK_LANDING` that neither the project's `.claude/settings.json` nor `settings.local.json` `env` sets, pick it: `TEAMWORK_LANDING` is `git` unless the project's landing is a GitHub pull request; `TEAMWORK_BOARD` is `git` unless the project keeps its issues on GitHub, then `github`; else `ask` the owner by `AskUserQuestion`, the choices the rows of [adapters.md](adapters.md). Write each pick to `settings.local.json` `env`, where each teamwork script, hook and monitor reads it, one started before it too.
 2. **Triage** each utterance after recall:
 
    | the words are | do |

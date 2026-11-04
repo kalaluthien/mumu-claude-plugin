@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """File a root and a task, make the task the root's part and the root wait on it by body edits, set holders, ask by BLOCKED, answer by DECIDED, edit the
 body and resolve the task, which closes the root, then retitle and reopen the root, add a follow-up part to it and resolve that, which closes the root again, writing only through use-board.py, and print after each step a `step <name>` line, the composed state of each issue it filed and the board lines, numbers and urls replaced
-by names, so two boards that print the same text keep the same protocol. The files board runs in a temporary folder, the git board in a temporary repository. The github board runs on the
-repository `GH_REPO` names, as the tape of recorded-gh/gh beside this file holds it, while no judge or worker writes it (else rerun a failure once alone), never this one, since its issues would reach the team's board:
-with `GH_REPO` unset or naming it, the run calls no gh, prints `not a sandbox` and exits 1.
+by names, so a change that moves the protocol shows in the text. The board is a temporary repository.
 
-usage: replay-board-scenario.py --board <github|files|git>"""
+usage: replay-board-scenario.py"""
 import difflib
 import os
 import pathlib
@@ -13,11 +11,9 @@ import re
 import subprocess
 import sys
 import tempfile
-import time
 
 HERE = pathlib.Path(__file__).resolve().parent
 USE = HERE.parent / "scripts" / "use-board.py"
-THIS_REPO = "kalaluthien/mumu-claude-plugin"
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import usage_parser  # noqa: E402
 
@@ -55,15 +51,9 @@ def show(step):
         parent = names.get(record["parent"])
         criteria = [(criterion["kind"], criterion["name"], bool(criterion["met"])) for criterion in state["done"]]
         print(plain(f"{name}: {record['state']} labels={sorted(record['labels'])} parent={parent} holders={state['holders']} waits={state['waits']} comments={len(record['comments'])} criteria={criteria}"))
-    closed = sum(board.fresh(issue_number, comments=False)["state"] == "CLOSED" for issue_number, known in names.items() if known != "root")
-    for _ in range(15):  # GitHub counts a parent's closed sub-issues a moment after the close, so read until the count agrees
-        nodes = board.tree(None)
-        if nodes is None:
-            sys.exit("replay-board-scenario: the board read failed")
-        counts = [node["subIssuesSummary"]["completed"] for node in nodes if node["number"] == number("root")]
-        if counts in ([], [closed]):
-            break
-        time.sleep(2)
+    nodes = board.tree(None)
+    if nodes is None:
+        sys.exit("replay-board-scenario: the board read failed")
     print(plain("\n".join(issue_board.lines(issue_board.board([node for node in nodes if node["number"] in names])))))
 
 
@@ -71,7 +61,7 @@ def link(name, added, why):
     """Appends ADDED to NAME's body by a diff through `use-board.py edit`, the one way a link is written."""
     old = board.fresh(number(name))["body"]
     diff = "".join(difflib.unified_diff(old.splitlines(True), (old.rstrip("\n") + "\n" + added).splitlines(True), "a", "b"))
-    use("edit", number(name), text(f"{name}-link.diff", diff), f"DECIDED: {why}")
+    use("edit", number(name), text(f"{name}-link.diff", diff), f"DECIDED: {why}", "--base", board.body_sha(old))
 
 
 TASK = "## Goal\n\nProbe the board.\n\n## Definition of done\n\n1. [check] **probe passes**: `echo ok` prints `ok`; on base nothing.\n"
@@ -79,21 +69,11 @@ TASK = "## Goal\n\nProbe the board.\n\n## Definition of done\n\n1. [check] **pro
 
 def main(args):
     global work, board, issue_board, issue_state
-    parser = usage_parser.parser(__doc__)
-    parser.add_argument("--board", choices=("github", "files", "git"), required=True)
-    board_name = parser.parse_args(args).board
+    usage_parser.parser(__doc__).parse_args(args)
     work = pathlib.Path(tempfile.mkdtemp(prefix="board-scenario-"))
-    os.environ["TEAMWORK_BOARD"] = board_name
-    if board_name == "github" and (os.environ.get("GH_REPO") or THIS_REPO) == THIS_REPO:
-        sys.exit("replay-board-scenario: not a sandbox: set GH_REPO to a repository whose issues the team's board never reads")
-    if board_name == "files":
-        os.environ["TEAMWORK_BOARD_DIR"], os.environ["HOME"] = str(work / "board"), str(work)  # so the signal file is the scenario's own too
-    elif board_name == "git":
-        subprocess.run(["git", "init", "-q", str(work / "repo")], check=True)
-        os.chdir(work / "repo")
-        os.environ["HOME"] = str(work)
-    else:  # each run filing issues on GitHub grew the sandbox and spent its rate limit
-        os.environ.update({"PATH": f"{HERE / 'recorded-gh'}:{os.environ['PATH']}", "GH_TAPE": "replay-board-scenario", "GH_TAPE_STATE": str(work / "gh-turns.json")})
+    subprocess.run(["git", "init", "-q", str(work / "repo")], check=True)
+    os.chdir(work / "repo")
+    os.environ["HOME"] = str(work)
     # imported here, since they read the board and folder set above when they load
     import board
     import issue_board
@@ -118,7 +98,7 @@ def main(args):
     show("answer")
     old = board.fresh(number("task"))["body"]
     diff = "".join(difflib.unified_diff(old.splitlines(True), old.replace("Probe the board.", "Probe the board twice.").splitlines(True), "a", "b"))
-    use("edit", number("task"), text("edit.diff", diff), "DECIDED: probe the body edit")
+    use("edit", number("task"), text("edit.diff", diff), "DECIDED: probe the body edit", "--base", board.body_sha(old))
     show("edit")
     use("resolve", number("task"), text("task-done.md", "REPORTED: probe landed\n"))
     show("resolve-task")

@@ -1,4 +1,4 @@
-"""The file a team session touches when it changes the issues, so a reader of GitHub knows when to read."""
+"""The file a team session touches when it changes the issues, so a reader of the board knows when to read."""
 import claude_config
 
 SIGNAL = claude_config.folder() / "teamwork" / "issues-changed"

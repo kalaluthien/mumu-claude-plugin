@@ -24,7 +24,7 @@ def main(args):
         return 2
     read = board.tree(None, json.loads(pathlib.Path(words[0]).read_text())) if "--nodes" in args else board.tree(words[0])
     if read is None:
-        sys.exit(f"list-issue-board: the {board.kind()} board read failed, so no board is shown")
+        sys.exit(f"list-issue-board: the git board read failed, so no board is shown")
     tree = issue_board.board(read)
     if "--json" in args:
         laid = int(width) if width else issue_board.PANE_WIDTH

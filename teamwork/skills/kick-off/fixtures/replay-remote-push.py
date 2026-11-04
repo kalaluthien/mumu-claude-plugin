@@ -44,7 +44,7 @@ def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    os.environ.update({"CLAUDE_CONFIG_DIR": str(work / "claude"), "TEAMWORK_BOARD": "files", "TEAMWORK_BOARD_DIR": str(work / "board")})
+    os.environ.update({"CLAUDE_CONFIG_DIR": str(work / "claude")})
     record(bridge=True)
     on = feed_line()
     record(bridge=False)

@@ -7,8 +7,6 @@ import issue_state
 
 PART = re.compile(r"^\s*(?:\d+\.|[-*])\s+\[task\]\s+#(\d+)\b", re.M)
 NUMBER = re.compile(r"#(\d+)\b")
-# GitHub's limits on a task's native `blocked by` links and sub-issues
-MOST_DEPENDS, MOST_PARTS = 50, 100
 DONE = ("COMPLETED", None, "")
 
 
@@ -36,12 +34,6 @@ def refusals(number, body, read, parent_of):
     """Why BODY cannot be NUMBER's body (None for an issue not yet filed), each naming the issues; empty when it can.
     READ(n) gives issue n's record, None when it does not exist; PARENT_OF(n) the issue whose body names n as a part, else None."""
     found, waits, named = [], depends(body), parts(body)
-    if len(waits) > MOST_DEPENDS:
-        found.append(f"{len(waits)} `depends on` entries, more than GitHub's {MOST_DEPENDS}")
-    if len(named) > MOST_PARTS:
-        found.append(f"{len(named)} parts, more than GitHub's {MOST_PARTS}")
-    if found:  # each named issue is a read, so a list past the limit is refused before them
-        return found
     records = {n: read(n) for n in dict.fromkeys(waits + named) if n != number}
     found += [f"#{n} does not exist" for n, record in records.items() if record is None]
     found += [f"#{n} is a pull request, not an issue" for n, record in records.items() if record and record.get("isPullRequest")]
@@ -73,7 +65,7 @@ def cycle(number, targets, read):
 
 
 def derive(nodes, read):
-    """The open ones of NODES, issues in GitHub's shape, with `parent`, `subIssues`, `subIssuesSummary` and `blockedBy` set from
+    """The open ones of NODES, issues in the shape the issue pane draws, with `parent`, `subIssues`, `subIssuesSummary` and `blockedBy` set from
     their bodies; a closed node only lends its title and state, and READ(n) gives a record for an issue the nodes lack, else None."""
     by_number = {node["number"]: node for node in nodes}
     lookup = lambda n: by_number.get(n) or read(n)
@@ -98,8 +90,8 @@ RETIRED_LABEL = "backlog"  # the label that marked a parent before parts did; no
 
 
 def drift(nodes):
-    """Each link gap among NODES, open issues as a board's tree gives them: a cycle, a part two bodies name, the retired label,
-    and, on GitHub, a native link no body names or a body link with no native one; two concurrent writes can each pass alone."""
+    """Each link gap among NODES, open issues as a board's tree gives them: a cycle, a part two bodies name and the retired label;
+    two concurrent writes can each pass alone."""
     by_number = {node["number"]: node for node in nodes}
     found, seen = [], set()
     for node in nodes:
@@ -114,13 +106,4 @@ def drift(nodes):
     found += [f"second parent #{part}: {' and '.join(f'#{n}' for n in claims)} each name it as a part; keep one" for part, claims in owners.items() if len(claims) > 1]
     found += [f"label #{node['number']}: it keeps the retired `{RETIRED_LABEL}` label; drop it" for node in nodes
               if RETIRED_LABEL in [label["name"] for label in (node.get("labels") or {}).get("nodes", [])]]
-    for node in nodes:
-        native = node.get("native")
-        if native is None:
-            continue
-        for kind, said in (("parts", parts(node["body"])), ("depends", depends(node["body"]))):
-            extra, missing = sorted(set(native[kind]) - set(said)), sorted(set(said) - set(native[kind]))
-            word = "part" if kind == "parts" else "`depends on`"
-            found += [f"native-only #{node['number']}: GitHub links #{n} as its {word}, which its body does not name; run `sync-task-links.py`, which adds the line, or drop the link" for n in extra]
-            found += [f"body-only #{node['number']}: its body names #{n} as its {word}, which GitHub does not link; run `sync-task-links.py`, which links it" for n in missing]
     return found

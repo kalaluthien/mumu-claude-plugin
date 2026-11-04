@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Edit an issue's body by a unified diff of it: post a comment of the keyword line and the diff in a `diff` fence, then
 apply the diff to the body. A diff that does not apply to the current body, or that adds a defect to it or has a keyword line that is not one
-`DECIDED:` line, changes nothing, comment included, and exits 2 naming the fix. With `--base <sha>`, the `body sha` `use-board.py read` printed, a body that changed since
+`DECIDED:` line, changes nothing, comment included, and exits 2 naming the fix. `--base <sha>` is the `body sha` `use-board.py read` printed, and a body that changed since
 is refused too, since a diff made from an older body would put its old text back.
 
-usage: edit-issue-body.py <issue> <diff-file> <keyword line> [--base <sha>]"""
+usage: edit-issue-body.py <issue> <diff-file> <keyword line> --base <sha>"""
 import pathlib
 import re
 import subprocess
@@ -21,10 +21,7 @@ def main(args):
     if "--base" in args:
         at = args.index("--base")
         base, args = args[at + 1] if at + 1 < len(args) else None, args[:at] + args[at + 2:]
-        if not base:
-            print(__doc__, file=sys.stderr)
-            return 2
-    if len(args) != 3:
+    if not base or len(args) != 3:
         print(__doc__, file=sys.stderr)
         return 2
     issue, diff_file, line = args
@@ -47,14 +44,14 @@ def main(args):
         body = work / "body.md"
         # the web editor saves CRLF, which a diff written against the shown text never matches
         body.write_text(board.body(issue).replace("\r\n", "\n"))
-        if base and board.body_sha(body.read_text()) != base:
+        if board.body_sha(body.read_text()) != base:
             refusal.append((1, f"edit-issue-body: #{issue}'s body changed since you read it (its body sha is {board.body_sha(body.read_text())}, not {base}), so nothing was posted or changed: read it again and make the diff from that body"))
             return None
         # --forward: an applied diff reads as reversed, which a bare dry run would accept
         check = subprocess.run(["patch", "--forward", "--batch", "--dry-run", "-s", str(body), diff_file], capture_output=True, text=True)
         padded = False
         if check.returncode and not body.read_text().endswith("\n"):
-            # `gh issue view` prints the stored body with a newline it lacks, so a diff made from that output ends in one the body has not
+            # a body read as text can end in a newline the stored one lacks, so a diff made from it ends in one the body has not
             body.write_text(body.read_text() + "\n")
             retry = subprocess.run(["patch", "--forward", "--batch", "--dry-run", "-s", str(body), diff_file], capture_output=True, text=True)
             padded = retry.returncode == 0

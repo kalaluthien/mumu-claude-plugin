@@ -1,7 +1,7 @@
 """Names the install page of a command that is missing."""
 import shutil
 
-INSTALL = {"gh": "https://cli.github.com", "herdr": "https://herdr.dev"}
+INSTALL = {"herdr": "https://herdr.dev"}
 
 
 def missing(name):
