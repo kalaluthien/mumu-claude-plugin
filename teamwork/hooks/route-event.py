@@ -7,6 +7,7 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -26,18 +27,79 @@ GRAMMAR = PLAYBOOKS / "issue-grammar.md"
 REMINDED = {"file": ("`file`", "40 characters"), "change": ("40 characters",), "comment": ("**Comment**", "`comment`"), "change comment": ("**Comment**",),
             "resolve": ("`resolve`",), "edit": ("edit-issue-body", "40 characters"), "change edit": ("40 characters",)}
 WORKTREES = "/.claude/worktrees/"
+# the only commands whose rewrite is offered: reads, so the live checkout is never written by a command the hook suggests
+READ_GIT = {"status", "log", "diff", "show", "grep", "ls-files", "rev-parse", "blame", "describe", "shortlog", "cat-file", "ls-tree"}
+READ_ONLY = {"cat", "head", "tail", "wc", "ls", "grep", "rg", "stat", "file", "du", "cut", "tr", "diff", "nl", "tree"}
+PATTERN_FIRST = {"grep", "rg"}
 CHANGE_DIRECTORY = re.compile(r"(?:^|[;&|({]|\bthen|\bdo)[ \t]*(?:cd|pushd)[ \t]+(?:--[ \t]+)?(\"[^\"]*\"|'[^']*'|[^\s;&|)}]+)", re.M)
 
 
 def live_change_directory(command, cwd):
-    """(folder, worktree): the folder of the live checkout a `cd` in COMMAND enters from the worktree CWD, None for any other;
-    a cd, never a write, is matched, since a script run after it may write anywhere."""
+    """(folder, worktree, command): the folder of the live checkout a `cd` in COMMAND enters from the worktree CWD, the worktree, and COMMAND written
+    without that cd, None when it cannot be; None for any other cd; a cd, never a write, is matched, since a script run after it may write anywhere."""
     root, inside, rest = (cwd or "").partition(WORKTREES)
-    for target in CHANGE_DIRECTORY.findall(command) if inside else ():
-        path = os.path.normpath(os.path.join(cwd, os.path.expanduser(target.strip("\"'"))))
+    for found in CHANGE_DIRECTORY.finditer(command) if inside else ():
+        path = os.path.normpath(os.path.join(cwd, os.path.expanduser(found[1].strip("\"'"))))
         if (path + "/").startswith(root + "/") and WORKTREES not in path + "/":
-            return path, root + WORKTREES + rest.split("/")[0]
+            return path, root + WORKTREES + rest.split("/")[0], without_change_directory(command, found, path, root + WORKTREES + rest.split("/")[0])
     return None
+
+
+def without_change_directory(command, found, folder, worktree):
+    """COMMAND with the cd FOUND into FOLDER dropped and each later command written for the shell's own folder, `git -C FOLDER` for git and the absolute
+    path for each argument naming something in FOLDER; None unless every command is a read of FOLDER whose rewrite is certain to read the same thing: a write, a
+    second cd, an option that may take or write a file, a redirect, expansion, glob, comment, empty or numeric word, or a name that also exists in WORKTREE keeps the refusal's plain message."""
+    rest = command[found.end():]
+    if re.search(r"[<>$`*?\\\n\[{#~]|\b(?:cd|pushd|popd)\b", rest):
+        return None
+    lexer = shlex.shlex(rest, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    try:
+        tokens = list(lexer)
+    except ValueError:
+        return None
+    tail = " )" if tokens[-1:] == [")"] else ""
+    tokens = tokens[:-1] if tail else tokens
+    if tokens[:1] in (["&&"], [";"]):
+        tokens = tokens[1:]
+    commands, joint, fresh = [], "", True
+    for token in tokens:
+        if re.fullmatch(r"&&|\|\||;|\|", token):
+            joint, fresh = token, True
+        elif re.fullmatch(r"[();|&<>]+", token) or not token:
+            return None
+        elif fresh:
+            commands.append((joint, [token]))
+            fresh = False
+        else:
+            commands[-1][1].append(token)
+    if fresh:
+        return None
+    rewritten = []
+    for joint, words in commands:
+        if words[0] == "git":
+            if words[1:2] and words[1] not in READ_GIT:
+                return None
+            if any(word.startswith("--output") for word in words):
+                return None
+            words[1:1] = ["-C", folder]
+        elif words[0] in READ_ONLY:
+            if any(word.startswith("-") and not re.fullmatch(r"-[A-Za-z0-9]*", word) or re.fullmatch(r"-[A-Za-z]*[foe][A-Za-z]*", word) for word in words[1:]):
+                return None  # a long option or one that may take a file or write one leaves a path the rewrite cannot place
+            positional = [at for at, word in enumerate(words) if at and not word.startswith("-")]
+            changed = False
+            for at in positional[1 if words[0] in PATTERN_FIRST else 0:]:
+                if words[at].isdigit() or os.path.exists(os.path.join(worktree, words[at])) and not os.path.exists(os.path.join(folder, words[at])):
+                    return None
+                if os.path.exists(os.path.join(folder, words[at])):
+                    words[at], changed = os.path.normpath(os.path.join(folder, words[at])), True
+            if not changed and joint != "|":
+                return None
+        else:
+            return None
+        rewritten.append((f" {joint} " if joint else "") + " ".join(map(shlex.quote, words)))
+    delimiter = re.match(r"[;&|({]|then|do", found[0])
+    return command[:found.start()] + (delimiter[0] + " " if delimiter else "") + "".join(rewritten) + tail
 
 
 def stray_state(call, cwd):
@@ -113,9 +175,10 @@ def route(kind, event, role, me, listed):
                          "Take its next step; stop again only while a subagent, a check or your manager has it."])}
     entered = role == "worker" and live_change_directory((event.get("tool_input") or {}).get("command", ""), event.get("cwd"))
     if entered:  # guards the checkout every session loads, no issue rule, so no setting makes it a warning
+        again = (f"run this instead: `{entered[2]}`" if entered[2] else "run it again without that cd and read the live checkout by path or git -C")
         return {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason":
                 f"This cd enters {entered[0]} in the live checkout, which every session loads, so an edit there lands outside your worktree; "
-                f"nothing in this command ran; run it again without that cd, since your shell already stands in {entered[1]}, and read the live checkout by path or git -C."}}
+                f"nothing in this command ran; {again}, since your shell already stands in {entered[1]}."}}
     if not call:
         return None
     settings = team_settings.load(event.get("cwd") or ".")
