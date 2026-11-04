@@ -98,6 +98,8 @@ const styled = (node: unknown): string[] => {
     : props?.strikethrough ? [`strike ${text(node).trim()}`] : props?.color ? [`color:${props.color} ${text(node).trim()}`] : props?.dimColor ? [`dim ${text(node).trim()}`] : []
   return [...own, ...(type === 'Link' ? [] : styled(props?.children))]
 }
+const inputs = (node: unknown): Node[] => node == null || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(inputs)
+  : [...((node as Node).type === 'Input' ? [node as Node] : []), ...inputs((node as Node).props?.children)]
 const differ = (what: string) => { console.log(`differ: ${what}`); process.exit(1) }
 const FOLD = 2  // the pane's ` +` or ` -` at a row's first line's end
 for (const width of [30, 40, 60, 88]) {
@@ -111,7 +113,7 @@ for (const width of [30, 40, 60, 88]) {
   await settle(before + 1)
   const pane = await draw({ bodyColumns: width })
   lastPane = pane
-  const drawn = children(pane).filter(child => (child as Node).type === 'Box')
+  const drawn = children(pane).filter(child => (child as Node).type === 'Box' && inputs(child).length === 0)
   if (drawn.length !== rows.length) differ(`width ${width}: ${drawn.length} rows drawn, ${rows.length} listed`)
   const printed = listed('--width', laid).split('\n')
   let at = 0
@@ -147,9 +149,7 @@ if (process.argv.includes('--press') || process.argv.includes('--search')) {
   store.set('expanded', [])
   marking = true
   const steps = process.argv.flatMap((argument, k) => argument === '--search' || argument === '--press' ? [[argument, process.argv[k + 1]]] : [])
-  const rowsOf = (pane: unknown) => children(pane).filter(child => (child as Node).type === 'Box')
-  const inputs = (node: unknown): Node[] => node == null || typeof node !== 'object' ? [] : Array.isArray(node) ? node.flatMap(inputs)
-    : [...((node as Node).type === 'Input' ? [node as Node] : []), ...inputs((node as Node).props?.children)]
+  const rowsOf = (pane: unknown) => children(pane).filter(child => (child as Node).type === 'Box' && inputs(child).length === 0)
   for (const [kind, value] of steps) {
     if (kind === '--search') for (const input of inputs(await draw({ bodyColumns: width }))) await (input.props as { onInput?: (value: string) => unknown }).onInput?.(value)
     else if (value !== 'none') for (const button of buttons(rowsOf(await draw({ bodyColumns: width })))) {
@@ -158,9 +158,12 @@ if (process.argv.includes('--press') || process.argv.includes('--search')) {
   }
   await settle(reads)
   const pane = await draw({ bodyColumns: width })
+  // the pane's first child is the box that holds the search field: `0|box: <border style>` when it has a border, then the field
+  const first = children(pane)[0] as Node & { props?: { borderStyle?: string } }
+  if (first?.type === 'Box' && inputs(first).length > 0) console.log(`0|box: ${first.props?.borderStyle ?? 'none'}`)
   inputs(pane).forEach(input => console.log(`0|input: ${(input.props as { value?: string }).value}`))
   children(pane).forEach(child => {
-    if ((child as Node).type === 'Input') return
+    if ((child as Node).type === 'Input' || inputs(child).length > 0) return
     const lines = (child as Node).type === 'Box' ? children(child).map(text) : [text(child)]
     const number = (child as Node).type === 'Box' ? lines[0].replace(/[⟦⟧]/g, '').match(/#(\d+)/)?.[1] ?? '0' : '0'
     lines.forEach(line => console.log(`${number}|${line}`))

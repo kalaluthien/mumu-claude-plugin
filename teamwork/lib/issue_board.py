@@ -171,13 +171,9 @@ def label(row):
     return f"#{row['number']} {row['title']}" + (f" (in #{row['home']})" if row["home"] else "") + held
 
 
-MARKS = {"check": "\u2713", "score": "\u2606"}
-
-
 def criterion(item):
-    """A criterion's line: `[x]` or `[ ]` when a box marks it, its kind as a mark (`\u2713` for a check, `\u2606` for a score, else in parentheses), its name."""
-    kind = MARKS.get(item["kind"], item["kind"] and f"({item['kind']})")
-    return " ".join(part for part in ("" if item["met"] is None else "[x]" if item["met"] else "[ ]", kind, item["name"]) if part)
+    """A criterion's line: a circle, then its name; the box and the kind stay in the body, since the pane shows what remains to prove, not a pass."""
+    return f"\u25cb {item['name']}"
 
 
 def held_offsets(title, blockers):
