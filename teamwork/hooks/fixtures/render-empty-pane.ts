@@ -4,6 +4,7 @@
 import { plugin } from 'bun'
 
 const store = new Map<string, unknown>()  // the atoms' values
+let drawing = false  // while a render is dispatched, when Claude Code refuses a state write
 plugin({
   name: 'stand-ins',
   setup(build) {
@@ -12,8 +13,10 @@ plugin({
       exports: {
         atom: (id: { key: string }, initial: unknown) => ({ key: id.key, initial }),
         read: async (_: unknown, entry: { key: string; initial: unknown }) => (store.has(entry.key) ? store.get(entry.key) : entry.initial),
-        update: async (_: unknown, entry: { key: string; initial: unknown }, change: (old: unknown) => unknown) =>
-          void store.set(entry.key, change(store.has(entry.key) ? store.get(entry.key) : entry.initial)),
+        update: async (_: unknown, entry: { key: string; initial: unknown }, change: (old: unknown) => unknown) => {
+          if (drawing) throw new Error('state.set: denied: it was made while ui.render is being dispatched, and drawing is pure')
+          store.set(entry.key, change(store.has(entry.key) ? store.get(entry.key) : entry.initial))
+        },
       },
     }))
     const jsx = (type: unknown, props: Record<string, unknown>) => ({ type, props })
@@ -47,7 +50,8 @@ const $ = {
     spawn: () => (async function* () { yield { text: 'changed' } })(),
   },
 }
-const render = async () => text(await handlers['ui.render Pane']($, { props: { bodyColumns: 0 } }))
+const draw = async (props: object) => { drawing = true; try { return await handlers['ui.render Pane']($, { props }) } finally { drawing = false } }
+const render = async () => text(await draw({ bodyColumns: 0 }))
 // a read's atoms change just after its run returns, so the render waits a little past it
 const settle = async (count: number) => { while (reads < count) await new Promise(done => setTimeout(done, 5)); await new Promise(done => setTimeout(done, 50)) }
 

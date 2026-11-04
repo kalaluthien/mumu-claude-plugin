@@ -19,6 +19,7 @@ const listed = (...args: string[]) => {
 }
 
 const store = new Map<string, unknown>()  // the atoms' values
+let drawing = false  // while a render is dispatched, when Claude Code refuses a state write
 plugin({
   name: 'stand-ins',
   setup(build) {
@@ -27,8 +28,10 @@ plugin({
       exports: {
         atom: (id: { key: string }, initial: unknown) => ({ key: id.key, initial }),
         read: async (_: unknown, entry: { key: string; initial: unknown }) => (store.has(entry.key) ? store.get(entry.key) : entry.initial),
-        update: async (_: unknown, entry: { key: string; initial: unknown }, change: (old: unknown) => unknown) =>
-          void store.set(entry.key, change(store.has(entry.key) ? store.get(entry.key) : entry.initial)),
+        update: async (_: unknown, entry: { key: string; initial: unknown }, change: (old: unknown) => unknown) => {
+          if (drawing) throw new Error('state.set: denied: it was made while ui.render is being dispatched, and drawing is pure')
+          store.set(entry.key, change(store.has(entry.key) ? store.get(entry.key) : entry.initial))
+        },
       },
     }))
     const jsx = (type: unknown, props: Record<string, unknown>) => ({ type, props })
@@ -57,7 +60,7 @@ const $ = {
   plugin: { root: '/plugin' },
   ui: { open: async () => undefined, close: async () => undefined, panes: async () => [],
         resolve: () => ({ Box: 'Box', Text: 'Text', Link: 'Link', Button: 'Button', Markdown: 'Markdown' }) },
-  clock: { after: () => ({ cancel: () => undefined }) },
+  clock: { after: (ms: number, tick: () => void) => { const timer = setTimeout(tick, ms); return { cancel: () => clearTimeout(timer) } } },
   process: {
     run: async (argv: string[]) => {
       if (argv[0].endsWith('list-sessions.py')) return { exitCode: 0, stdout: 'probe-manager\n' }
@@ -67,6 +70,7 @@ const $ = {
     spawn: () => (async function* () { yield { text: 'changed' } })(),
   },
 }
+const draw = async (props: object) => { drawing = true; try { return await handlers['ui.render Pane']($, { props }) } finally { drawing = false } }
 // a read's atoms change just after its run returns, so the render waits a little past it
 const settle = async (count: number) => { while (reads < count) await new Promise(done => setTimeout(done, 5)); await new Promise(done => setTimeout(done, 50)) }
 
@@ -84,9 +88,9 @@ for (const width of [30, 40, 60, 88]) {
   store.set('expanded', rows.map(row => row.number))
   // the first draw at a new width reads the board again for it, and the draw after that read shows the rows
   const before = reads
-  await handlers['ui.render Pane']($, { props: { bodyColumns: width } })
+  await draw({ bodyColumns: width })
   await settle(before + 1)
-  const pane = await handlers['ui.render Pane']($, { props: { bodyColumns: width } })
+  const pane = await draw({ bodyColumns: width })
   const drawn = children(pane).filter(child => (child as Node).type === 'Box')
   if (drawn.length !== rows.length) differ(`width ${width}: ${drawn.length} rows drawn, ${rows.length} listed`)
   const printed = listed('--width', laid).split('\n')

@@ -12,8 +12,6 @@ const failure = atom({ plugin: 'teamwork', key: 'failure' } as const, '')
 const loaded = atom({ plugin: 'teamwork', key: 'loaded' } as const, false)
 // the entries, goals and criteria the manager unfolded, kept across redraws; every other shows its one line
 const expanded = atom({ plugin: 'teamwork', key: 'expanded' } as const, [] as (number | string)[])
-// the pane body's width the rows are laid out for, 0 before the pane is drawn; a row laid out for another width wraps a word alone
-const laidWidth = atom({ plugin: 'teamwork', key: 'width' } as const, 0)
 // the ` +` or ` -` fold mark at a row's first line's end
 const FOLD = 2
 // a wait that needs someone stands out; any other, such as `← #n` beside a blocked task, stays dim
@@ -26,6 +24,10 @@ let startFolder: string | undefined
 let watching = false
 // the manager's board read, set once it watches, so the issues command reads the board again
 let refresh: (() => Promise<void>) | undefined
+// the pane body's width the rows are laid out for, 0 before the pane is drawn; a row laid out for another width wraps a word alone.
+// Kept outside state, since a render may not write state, and read again on a clock tick, an event of its own
+let laidWidth = 0
+let relayout: (() => void) | undefined
 const openPane = ($: any) => $.ui.open({ id: PANE, title: 'Issues' })
 // a plain open of an open id leaves it behind another plugin's tab, and focus may take the prompt's keys, so a hidden pane closes and opens again
 async function showPane($: any) {
@@ -42,10 +44,10 @@ function watch($: any, name: string) {
   const load = async () => {
     retry?.cancel()
     try {
-      const width = await read($, laidWidth)
+      const width = laidWidth
       const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json', ...(width > FOLD ? ['--width', String(width - FOLD)] : [])],
         { cwd: startFolder, timeoutMs: 60000 })
-      if (width !== await read($, laidWidth)) return  // a resize during the read started a read for the new width
+      if (width !== laidWidth) return  // a resize during the read started a read for the new width
       if (run.exitCode === 0) {
         await update($, board, () => JSON.parse(run.stdout) as BoardIssue[])
         await update($, loaded, () => true)
@@ -58,6 +60,7 @@ function watch($: any, name: string) {
     }
   }
   refresh = load
+  relayout = () => { retry?.cancel(); retry = $.clock.after(0, () => void load()) }
   void (async () => {
     const waiter = $.process.spawn({ argv: [`${$.plugin.root}/hooks/wait-team-change.py`] })
     for await (const piece of waiter) {
@@ -105,9 +108,9 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, event) => {
     const width = event.props.bodyColumns
-    if (width > 0 && width !== await read($, laidWidth)) {
-      await update($, laidWidth, () => width)
-      void refresh?.()
+    if (width > 0 && width !== laidWidth) {
+      laidWidth = width
+      relayout?.()
     }
     const { Box, Text, Link, Button, Markdown } = $.ui.resolve(event)
     const unfolded = new Set(await read($, expanded))
