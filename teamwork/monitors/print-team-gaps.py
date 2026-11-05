@@ -7,10 +7,10 @@ import os
 import pathlib
 import sys
 import time
-from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import board  # noqa: E402
+import iso_time  # noqa: E402
 import landing  # noqa: E402
 import session  # noqa: E402
 import team_gaps  # noqa: E402
@@ -19,7 +19,7 @@ import team_signal  # noqa: E402
 
 POLL = float(os.environ.get("MONITOR_POLL", 60))  # the sessions are read each poll, which costs no board read
 REFRESH = float(os.environ.get("MONITOR_REFRESH", 900))  # a change made outside the team, such as the owner's comment on the web, sends no signal
-SKEW = timedelta(seconds=5)  # the board's clock against ours
+SKEW = 5  # seconds the board's clock may differ from ours
 
 
 def read(manager, me, since):
@@ -40,14 +40,21 @@ def main(args):
         manager, worker = role == "manager", role == "worker"
         # the board is read when a team session signals a change or REFRESH has passed, and in full only when it first asks cheaply and something changed
         if (manager or worker) and (data is None or team_signal.stamp() != signal or time.time() - read_at >= REFRESH):
-            now, seen = datetime.now(timezone.utc), team_signal.stamp()  # both taken before the read, so a touch during it still differs
-            since = (datetime.fromtimestamp(read_at, timezone.utc) - SKEW).strftime("%Y-%m-%dT%H:%M:%SZ")
+            now, seen = time.time(), team_signal.stamp()  # both taken before the read, so a touch during it still differs
+            since = iso_time.stamp(read_at - SKEW)
             checks = {board.changed_since, landing.changed_since}
             if data is None or any(check(since) for check in checks):
                 data = read(manager, me, since if read_at else None)
             if data is not None:  # a failed read keeps the last good time, so the next read still feeds what came after it
-                read_at, signal = now.timestamp(), seen
-        lines = [] if not (manager or worker) else None if data is None else team_gaps.manager_actions(me, listed, data, fed_urls) if manager else team_gaps.worker_actions(me, waiting, data)
+                read_at, signal = now, seen
+        if not (manager or worker):
+            lines = []
+        elif data is None:
+            lines = None
+        elif manager:
+            lines = team_gaps.manager_actions(me, listed, data, fed_urls)
+        else:
+            lines = team_gaps.worker_actions(me, waiting, data)
         for line in lines or []:  # a failed read (None) keeps what was shown, so the next poll repeats nothing
             if line not in shown:
                 print(line, flush=True)

@@ -5,9 +5,9 @@ import json
 import os
 import re
 import subprocess
-from datetime import datetime, timezone
 
 import data_folder
+import iso_time
 import team_signal
 
 CLOSES = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)", re.I)
@@ -20,10 +20,6 @@ def git(*argv, cwd=None, stdin=None):
 def folder():
     """The changes folder of the repository holding the current folder; None outside one."""
     return data_folder.folder("changes")
-
-
-def stamp(seconds=None):
-    return datetime.fromtimestamp(seconds or datetime.now().timestamp(), timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def records():
@@ -39,18 +35,17 @@ def record(number):
 
 
 def save(entry, new=False):
-    """Writes R whole, then touches the signal file, which the issue pane and the heartbeat wait on; NEW claims its number, raising FileExistsError
+    """Writes ENTRY whole, then touches the signal file, which the issue pane and the heartbeat wait on; NEW claims its number, raising FileExistsError
     when another session took it first."""
     path = folder() / f"{entry['number']}.json"
     # written aside, then put in place in one step, so a reader never meets half a record
     draft = path.with_name(f".{entry['number']}.{os.getpid()}.draft")
-    draft.write_text(json.dumps({**entry, "updatedAt": stamp()}))
+    draft.write_text(json.dumps({**entry, "updatedAt": iso_time.stamp()}))
     try:
         os.link(draft, path) if new else os.replace(draft, path)
     finally:
         draft.unlink(missing_ok=True)
-    team_signal.SIGNAL.parent.mkdir(parents=True, exist_ok=True)
-    team_signal.SIGNAL.touch()
+    team_signal.touch()
 
 
 def tip(ref):
@@ -84,7 +79,7 @@ def first_commit(number, repo=None):
     result = git("log", "--reverse", "--format=%at", f"{entry.get('baseOid') or 'refs/heads/' + entry['base']}..{head}")
     if result.returncode:
         raise LookupError(f"the commits of change {number} could not be read: {result.stderr.strip()}")
-    return result.stdout.split() and stamp(int(result.stdout.split()[0])) or None
+    return result.stdout.split() and iso_time.stamp(int(result.stdout.split()[0])) or None
 
 
 def changed_since(stamp):
@@ -119,7 +114,7 @@ def change(branch, title, body, base):
     number = max((entry["number"] for entry in records()), default=0) + 1
     while True:  # two workers filing at once take the next free number each, never one record
         try:
-            save({"number": number, "title": title, "body": body, "headRefName": branch, "base": base, "state": "OPEN", "createdAt": stamp()}, new=True)
+            save({"number": number, "title": title, "body": body, "headRefName": branch, "base": base, "state": "OPEN", "createdAt": iso_time.stamp()}, new=True)
             return f"file://{directory}/{number}.json"
         except FileExistsError:
             number += 1
@@ -175,5 +170,5 @@ def merge(number, sha):
     result = git("merge", "--ff-only", "--quiet", commit, cwd=holder) if holder else git("update-ref", f"refs/heads/{entry['base']}", commit, base)
     if result.returncode:
         raise LookupError(f"change {number}: {holder or entry['base']} did not take the merge: {result.stderr.strip()}")
-    save({**entry, "state": "CLOSED", "headRefOid": head, "baseOid": base, "mergeOid": commit, "mergedAt": stamp()})
+    save({**entry, "state": "CLOSED", "headRefOid": head, "baseOid": base, "mergeOid": commit, "mergedAt": iso_time.stamp()})
     return commit

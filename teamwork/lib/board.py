@@ -24,13 +24,13 @@ def __getattr__(name):
     return getattr(board_git, name)
 
 
-def atomic(change):
-    """CHANGE's result, with every board write it makes landing whole or not at all, as one commit."""
-    return board_git.atomic(change)
+def parts_completed(body):
+    """Whether every part BODY names was closed as completed."""
+    return all((found := board_git.fresh(part, comments=False)) and task_links.completed(found) for part in task_links.parts(body))
 
 
 def edit(number, text):
-    return atomic(lambda: edit_whole(number, text))
+    return board_git.atomic(lambda: edit_whole(number, text))
 
 
 def edit_whole(number, text):
@@ -41,14 +41,12 @@ def edit_whole(number, text):
     if old and old["state"] == "CLOSED" and set(task_links.parts(text)) - set(task_links.parts(old["body"])):
         board_git.reopen(number)
     dropped = old and (set(task_links.parts(old["body"])) - set(task_links.parts(text)) or set(task_links.criteria(old["body"])) - set(task_links.criteria(text)))
-    if dropped and old["state"] == "OPEN" and task_links.parts(text) and not task_links.criteria(text):
-        named = [board_git.fresh(part, comments=False) for part in task_links.parts(text)]
-        if all(part and task_links.completed(part) for part in named):
-            resolve(number, "REPORTED: every part left closed as completed, once the edit dropped the rest.")
+    if dropped and old["state"] == "OPEN" and task_links.parts(text) and not task_links.criteria(text) and parts_completed(text):
+        resolve(number, "REPORTED: every part left closed as completed, once the edit dropped the rest.")
 
 
 def resolve(number, summary, completed=True):
-    return atomic(lambda: resolve_whole(number, summary, completed))
+    return board_git.atomic(lambda: resolve_whole(number, summary, completed))
 
 
 def resolve_whole(number, summary, completed=True):
@@ -63,7 +61,5 @@ def resolve_whole(number, summary, completed=True):
         resolve(part, f"REPORTED: stopped with its parent #{number}.", False)
     parent = completed and board_git.parent_of(number)
     found = parent and board_git.fresh(parent, comments=False)
-    if found and found["state"] == "OPEN" and int(number) in task_links.parts(found["body"]) and not task_links.criteria(found["body"]):
-        named = [board_git.fresh(part, comments=False) for part in task_links.parts(found["body"])]
-        if all(part and task_links.completed(part) for part in named):
-            resolve(parent, f"REPORTED: every part closed as completed, the last #{number}.")
+    if found and found["state"] == "OPEN" and int(number) in task_links.parts(found["body"]) and not task_links.criteria(found["body"]) and parts_completed(found["body"]):
+        resolve(parent, f"REPORTED: every part closed as completed, the last #{number}.")

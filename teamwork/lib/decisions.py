@@ -122,14 +122,14 @@ def refusals(number, text, issues):
         home = next((task for task, issue in issues.items() for comment in as_issue(issue)["comments"] if comment.get("url") == answered), None)
         found.append(f"`{FIELD['answers']}:` names {answered}, which is no question on #{number}"
                      + (f"; post the decision on #{home}, the question's own task" if home and home != int(number) else ""))
-    replaced = fields.get(FIELD["supersedes"])
-    if replaced:
+    target = fields.get(FIELD["supersedes"])
+    if target:
         root = chain(int(number), issues)[-1]
         every = {decision["url"]: decision for task in tree_of(root, issues) for decision in typed(task, issues[task])}
-        if replaced not in every:
-            found.append(f"`{FIELD['supersedes']}:` names {replaced}, which is no decision in #{root}'s tree")
-        elif every[replaced]["role"] == "owner" and not owner:
-            found.append(f"{replaced} was `{FIELD['decider']}: owner`, so only a decision by the owner, quoting the owner's words, supersedes it")
+        if target not in every:
+            found.append(f"`{FIELD['supersedes']}:` names {target}, which is no decision in #{root}'s tree")
+        elif every[target]["role"] == "owner" and not owner:
+            found.append(f"{target} was `{FIELD['decider']}: owner`, so only a decision by the owner, quoting the owner's words, supersedes it")
     return found
 
 
@@ -138,33 +138,53 @@ def first_line(comment):
     return next((line.strip() for line in re.sub(r"^\s*[A-Z]+:", "", (comment["body"] or "").strip()).splitlines() if line.strip()), "")
 
 
-def gaps(found):
-    """The heartbeat's decision lines for the open issues FOUND: open questions to the owner, oldest first; a decision two later
-    ones supersede; a worker's one-way decision nothing supersedes and no manager or owner decision follows; a `DECIDED:` posted since decisions were typed
-    with no block that is no event."""
-    issues = {issue["number"]: as_issue(issue) for issue in found}
+def owner_questions(issues):
+    """The lines for ISSUES' open questions to the owner, oldest first."""
     asked = sorted(((question["ask"].get("createdAt") or "", number, question["ask"]) for number, issue in issues.items()
                     for question in issue_state.open_questions(issue) if question["fields"].get(issue_state.WORD["audience"]) == "owner"),
                    key=lambda item: item[0])
-    lines = [f"question #{number}: {first_line(ask)} ({ask['url']}) waits on the owner; ask the owner, then record the answer by `decide` "
-             f"with `{FIELD['decider']}: owner` and `{FIELD['answers']}:` its url" for _, number, ask in asked]
-    every = [decision for number, issue in issues.items() for decision in typed(number, issue)]
+    return [f"question #{number}: {first_line(ask)} ({ask['url']}) waits on the owner; ask the owner, then record the answer by `decide` "
+            f"with `{FIELD['decider']}: owner` and `{FIELD['answers']}:` its url" for _, number, ask in asked]
+
+
+def superseded_twice(every):
+    """The lines for the decisions in EVERY that two later ones supersede."""
+    lines = []
     for url in sorted({decision["supersedes"] for decision in every if decision["supersedes"]}):
         later = [decision for decision in every if decision["supersedes"] == url]
         if len(later) > 1:
             lines.append(f"superseded twice #{later[0]['task']}: {url} is superseded by {' and '.join(decision['url'] for decision in later)}; "
                          f"keep one by a decision that supersedes the other")
-    superseded = replaced(every)
-    for decision in every:
-        if decision["url"] not in superseded and not binds(decision, every):
-            lines.append(f"one-way #{decision['task']}: {decision['decider']}'s {decision['url']} binds only once you repeat or supersede it by `decide`")
-    for number, issue in issues.items():
-        for word, _, comment in issue_state.records(issue)[1:]:
-            if (issue_state.KEYWORDS.get(word) == "answer" and issue_state.decision(comment["body"]) is None and not issue_state.event(comment)
-                    and not issue_state.legacy(comment)):
-                lines.append(f"untyped #{number}: {comment['url']} is a {issue_state.WORD['answer']}: with no decision block, which no index reads; "
-                             f"post it again by `decide` with one")
     return lines
+
+
+def one_way_waiting(every):
+    """The lines for a worker's one-way decision in EVERY that nothing supersedes and no manager or owner decision follows."""
+    superseded = replaced(every)
+    return [f"one-way #{decision['task']}: {decision['decider']}'s {decision['url']} binds only once you repeat or supersede it by `decide`"
+            for decision in every if decision["url"] not in superseded and not binds(decision, every)]
+
+
+def untyped(issues):
+    """The lines for a `DECIDED:` posted since decisions were typed with no block that is no event."""
+    return [f"untyped #{number}: {comment['url']} is a {issue_state.WORD['answer']}: with no decision block, which no index reads; post it again by `decide` with one"
+            for number, issue in issues.items() for word, _, comment in issue_state.records(issue)[1:]
+            if (issue_state.KEYWORDS.get(word) == "answer" and issue_state.decision(comment["body"]) is None and not issue_state.event(comment)
+                and not issue_state.legacy(comment))]
+
+
+def gaps(found):
+    """The heartbeat's decision lines for the open issues FOUND: open questions to the owner, a decision two later ones supersede, a worker's
+    one-way decision that nothing binds, and a `DECIDED:` with no decision block."""
+    issues = {issue["number"]: as_issue(issue) for issue in found}
+    every = [decision for number, issue in issues.items() for decision in typed(number, issue)]
+    return [*owner_questions(issues), *superseded_twice(every), *one_way_waiting(every), *untyped(issues)]
+
+
+def task_number(argument):
+    """The task number a `7` or `#7` argument names, else None."""
+    digits = argument.lstrip("#")
+    return int(digits) if digits.isdigit() else None
 
 
 def superseded_in(nodes):
@@ -172,7 +192,7 @@ def superseded_in(nodes):
     return replaced([decision for node in nodes for decision in typed(node["number"], node)])
 
 
-def stamp(created):
+def pane_time(created):
     """CREATED, a board timestamp such as `2026-11-04T04:00:00Z`, as `MM/DD HH:MM` in UTC+9; empty when it has none or cannot be read."""
     try:
         when = datetime.datetime.fromisoformat((created or "").replace("Z", "+00:00"))
@@ -189,4 +209,4 @@ def shown(node, superseded=frozenset()):
                   key=lambda decision: (decision["createdAt"], decision["index"]), reverse=True)
     asked = [first_line(question["ask"]) for question in issue_state.open_questions(issue)]
     return {"questions": [text for k, text in enumerate(asked) if text not in asked[:k]],  # an ask posted again is one question
-            "decided": [{"decision": decision["decision"], "time": stamp(decision["createdAt"]), "mark": "◆" if decision["role"] == "owner" else "◇"} for decision in live]}
+            "decided": [{"decision": decision["decision"], "time": pane_time(decision["createdAt"]), "mark": "◆" if decision["role"] == "owner" else "◇"} for decision in live]}

@@ -34,11 +34,11 @@ def herdr(*agents):
     return state
 
 
-def run(argv, state, pane=None, event=None, seconds=120, cwd=None, **env):
-    env = {**os.environ, "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state),
-           "MONITOR_POLL": "1000", **({"HERDR_PANE_ID": pane} if pane else {}), **env}
+def run(argv, state, pane=None, event=None, seconds=120, cwd=None, **environment):
+    environment = {**os.environ, "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state),
+           "MONITOR_POLL": "1000", **({"HERDR_PANE_ID": pane} if pane else {}), **environment}
     try:
-        process = subprocess.run([str(argument) for argument in argv], env=env, input=event and json.dumps(event), capture_output=True, text=True, timeout=seconds, cwd=cwd)
+        process = subprocess.run([str(argument) for argument in argv], env=environment, input=event and json.dumps(event), capture_output=True, text=True, timeout=seconds, cwd=cwd)
         out, code = process.stdout + process.stderr, process.returncode
     except subprocess.TimeoutExpired as e:  # the heartbeat runs until killed
         out, code = (e.stdout or b"").decode() + (e.stderr or b"").decode(), None
@@ -47,8 +47,8 @@ def run(argv, state, pane=None, event=None, seconds=120, cwd=None, **env):
     return code, out
 
 
-def hook(state, pane, event, cwd=None, **env):
-    code, out = run([ROOT / "hooks" / "route-event.py"], state, pane, event, cwd=cwd, **env)
+def hook(state, pane, event, cwd=None, **environment):
+    code, out = run([ROOT / "hooks" / "route-event.py"], state, pane, event, cwd=cwd, **environment)
     try:
         output = json.loads(out)
     except ValueError:
@@ -57,8 +57,8 @@ def hook(state, pane, event, cwd=None, **env):
         or output.get("reason") or out
 
 
-def heartbeat(state, pane, seconds=40, cwd=None, **env):
-    return run([ROOT / "monitors" / "print-team-gaps.py"], state, pane, seconds=seconds, cwd=cwd, **env)[1]
+def heartbeat(state, pane, seconds=40, cwd=None, **environment):
+    return run([ROOT / "monitors" / "print-team-gaps.py"], state, pane, seconds=seconds, cwd=cwd, **environment)[1]
 
 
 def tell(state, name, text="hi"):
@@ -82,13 +82,13 @@ def git_team():
     """A manager with two workers on a git board: its start and heartbeat name the idle worker once, with what it holds, and the asking one by its `answer` line; a worker with an open goal is stopped once."""
     state = herdr(*TEAM)
     work = pathlib.Path(tempfile.mkdtemp(prefix="git-team-"))
-    repo = work / "repo"
-    subprocess.run(["git", "init", "-q", str(repo)], check=True)
-    env = {"HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "claude")}
+    repository = work / "repo"
+    subprocess.run(["git", "init", "-q", str(repository)], check=True)
+    environment = {"HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "claude")}
 
     def use(*argv):
-        return subprocess.run([sys.executable, str(SCRIPTS / "use-board.py"), *map(str, argv)], cwd=repo, capture_output=True, text=True,
-                              env={**os.environ, **env, "HERDR_PANE_ID": "w1:p1", "FAKE_HERDR_STATE": str(state), "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}"}).stdout.strip()
+        return subprocess.run([sys.executable, str(SCRIPTS / "use-board.py"), *map(str, argv)], cwd=repository, capture_output=True, text=True,
+                              env={**os.environ, **environment, "HERDR_PANE_ID": "w1:p1", "FAKE_HERDR_STATE": str(state), "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}"}).stdout.strip()
 
     def text(name, body):
         path = work / name
@@ -102,9 +102,9 @@ def git_team():
     for number, name in ((asked, "fixture-asking-worker"), (held_one, "protocol-split-worker"), (held_two, "protocol-split-worker")):
         use("decide", number, text("hold.md", f"DECIDED: {name} holds this.\n\n```teamwork\nholders: {name}\n```\n"))
     use("comment", asked, text("ask.md", "BLOCKED: may the probe run\n"))
-    start = hook(state, "w1:p1", {"hook_event_name": "SessionStart", "session_id": ""}, cwd=repo, **env)
-    stop = hook(state, "w1:p2", {"hook_event_name": "Stop", "stop_hook_active": False, "transcript_path": ""}, cwd=repo, **env)
-    beat = heartbeat(state, "w1:p1", cwd=repo, **env)
+    start = hook(state, "w1:p1", {"hook_event_name": "SessionStart", "session_id": ""}, cwd=repository, **environment)
+    stop = hook(state, "w1:p2", {"hook_event_name": "Stop", "stop_hook_active": False, "transcript_path": ""}, cwd=repository, **environment)
+    beat = heartbeat(state, "w1:p1", cwd=repository, **environment)
     held = f"holds #{held_two} #{held_one}"
     for out in (start, beat):
         # the asking worker waits on its manager, so its line is the manager's `answer`, not an `idle`

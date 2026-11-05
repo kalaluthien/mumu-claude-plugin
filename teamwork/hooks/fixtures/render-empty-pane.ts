@@ -1,39 +1,12 @@
 // Render a manager's issue pane before any board read, after a failed read and after a good read of no issues, through stand-ins for
 // `claude-code` and the JSX runtime, and print the pane's text at each: `unread: <text>`, `failed: <text>`, then `empty: <text>`.
 // usage: bun teamwork/hooks/fixtures/render-empty-pane.ts
-import { plugin } from 'bun'
-
-const store = new Map<string, unknown>()  // the atoms' values
-let drawing = false  // while a render is dispatched, when Claude Code refuses a state write
-plugin({
-  name: 'stand-ins',
-  setup(build) {
-    build.module('claude-code', () => ({
-      loader: 'object',
-      exports: {
-        atom: (id: { key: string }, initial: unknown) => ({ key: id.key, initial }),
-        read: async (_: unknown, entry: { key: string; initial: unknown }) => (store.has(entry.key) ? store.get(entry.key) : entry.initial),
-        update: async (_: unknown, entry: { key: string; initial: unknown }, change: (old: unknown) => unknown) => {
-          if (drawing) throw new Error('state.set: denied: it was made while ui.render is being dispatched, and drawing is pure')
-          store.set(entry.key, change(store.has(entry.key) ? store.get(entry.key) : entry.initial))
-        },
-      },
-    }))
-    const jsx = (type: unknown, props: Record<string, unknown>) => ({ type, props })
-    build.module('react/jsx-dev-runtime', () => ({ loader: 'object', exports: { jsxDEV: jsx, Fragment: 'Fragment' } }))
-    build.module('react/jsx-runtime', () => ({ loader: 'object', exports: { jsx, jsxs: jsx, Fragment: 'Fragment' } }))
-  },
-})
+import { drawPane, handlers, on } from './stand-in-modules.ts'
 
 const text = (node: unknown): string =>
   node == null || typeof node === 'boolean' ? '' : typeof node === 'string' || typeof node === 'number' ? String(node)
     : Array.isArray(node) ? node.map(text).join('') : text((node as { props?: { children?: unknown } }).props?.children)
 
-const handlers: Record<string, (...args: any[]) => Promise<unknown>> = {}
-const on = (event: string, ...rest: any[]) => {
-  handlers[[event, ...rest.slice(0, -1).map(argument => Object.values(argument)[0])].join(' ')] = rest[rest.length - 1]
-  return { catch: () => undefined }
-}
 let exitCode = 1
 let reads = 0
 const $ = {
@@ -50,7 +23,7 @@ const $ = {
     spawn: () => (async function* () { yield { text: 'changed' } })(),
   },
 }
-const draw = async (props: object) => { drawing = true; try { return await handlers['ui.render Pane']($, { props }) } finally { drawing = false } }
+const draw = (props: object) => drawPane($, props)
 const render = async () => text(await draw({ bodyColumns: 0 }))
 // a read's atoms change just after its run returns, so the render waits a little past it
 const settle = async (count: number) => { while (reads < count) await new Promise(done => setTimeout(done, 5)); await new Promise(done => setTimeout(done, 50)) }

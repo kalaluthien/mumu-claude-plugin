@@ -21,8 +21,8 @@ FEED = issue_state.INFORM
 STEP_REPORTS = ("criteria at ", "task filed")
 
 
-def issues(project=None, state="open"):
-    found = board.issues(state, project)
+def issues(scope=None, state="open"):
+    found = board.issues(state, scope)
     return found and found[:ISSUE_LIMIT]
 
 
@@ -109,10 +109,7 @@ def manager_actions(me, listed, data=None, fed_urls=None):
     if data is None:
         return None
     team = members(me, listed)
-    status = {agent.get("name"): agent.get("agent_status") for agent in listed}
-    panes = {agent.get("name"): agent.get("pane_id") for agent in listed}
-    by_name = {agent.get("name"): agent for agent in listed}
-    found, pulls = data["found"], data["prs"]
+    found = data["found"]
     lines = limited(found, ISSUE_LIMIT, "open-issue")  # merged PRs past the newest are always many and no live worker's
     if crowd := crowding(me, listed):
         lines.append(f"shared workspace: {', '.join(crowd)} manage another project in your workspace; move to a workspace of your own: "
@@ -120,6 +117,17 @@ def manager_actions(me, listed, data=None, fed_urls=None):
     # a started worker names its tab before its agent is live, so its tab counts it as routed
     present = set(team) | {tab.get("label") for tab in tabs(me.get("workspace_id", ""))}
     open_issues = {issue["number"]: issue for issue in [*data["everything"], *found]}
+    lines += routing_lines(found, present, open_issues)
+    lines += [f"links {gap}" for gap in data.get("links", [])]
+    lines += decisions.gaps(found)
+    lines += outside_lines(data["outside"])
+    lines += team_lines(team, listed, data, open_issues)
+    return lines + feed_lines(me, data, fed_urls)
+
+
+def routing_lines(found, present, open_issues):
+    """Per open issue, a route line while no live worker in PRESENT holds it and an answer line while its worker asks."""
+    lines = []
     unrouted = lambda issue: not unanswered(issue) and not waiting(issue, open_issues) and not any(holds(issue, name) for name in present if name)
     for issue in found:
         # the kept read may predate the manager's own `decide`, so a candidate is read again before it is called unrouted
@@ -130,14 +138,24 @@ def manager_actions(me, listed, data=None, fed_urls=None):
             ask = issue_state.open_questions(issue)[-1]["ask"]
             lines.append(f"answer #{issue['number']}: its worker asks at {ask['url']}; answer by `decide` there with `{decisions.FIELD['answers']}: {ask['url']}`; "
                          f"the worker waits on it")
-    lines += [f"links {gap}" for gap in data.get("links", [])]
-    lines += decisions.gaps(found)
-    for issue in data["outside"]:
-        if issue.get("isPullRequest"):
-            lines.append(f"outside #{issue['number']} {issue_state.title(issue)}: an outside contributor opened this pull request; close it unread with a comment that outside pull requests are not accepted and issues are welcome")
-        else:
-            lines.append(f"outside #{issue['number']} {issue_state.title(issue)}: an outside contributor opened it; ask the owner, then route it, answer it by a {ANSWER}:, or close it")
-    merged = {name: [pull["number"] for pull in pulls if owns(name, pull["headRefName"])] for name in team}
+    return lines
+
+
+def outside_lines(outside):
+    """A line per outside contributor's issue or pull request."""
+    return [f"outside #{issue['number']} {issue_state.title(issue)}: an outside contributor opened this pull request; close it unread with a comment that outside pull requests are not accepted and issues are welcome"
+            if issue.get("isPullRequest") else
+            f"outside #{issue['number']} {issue_state.title(issue)}: an outside contributor opened it; ask the owner, then route it, answer it by a {ANSWER}:, or close it"
+            for issue in outside]
+
+
+def team_lines(team, listed, data, open_issues):
+    """Per worker or sentinel in TEAM, the line for its pane: blocked at a prompt, merged with nothing held, or idle with nothing to do."""
+    status = {agent.get("name"): agent.get("agent_status") for agent in listed}
+    panes = {agent.get("name"): agent.get("pane_id") for agent in listed}
+    by_name = {agent.get("name"): agent for agent in listed}
+    lines = []
+    merged = {name: [pull["number"] for pull in data["prs"] if owns(name, pull["headRefName"])] for name in team}
     for name in team:
         held_issues = [issue for issue in data["everything"] if holds(issue, name)]
         held = " ".join(f"#{issue['number']}" for issue in held_issues) or "nothing open"
@@ -151,12 +169,18 @@ def manager_actions(me, listed, data=None, fed_urls=None):
                 and not background(by_name[name]):
             # a sentinel waits idle between the rounds of its duty; a worker whose tasks all wait on a task, the owner or the manager has nothing to do yet
             lines.append(f"idle {name}: holds {held}; give it its next step, answer what it waits on, or close it when it holds nothing open")
+    return lines
+
+
+def feed_lines(me, data, fed_urls):
+    """A line per issue with reports not yet fed to this manager; FED_URLS, when given, records the urls fed."""
     news = {}
     own = own_reports.urls()  # what this manager posted itself is no news to it
     for issue, comment in data.get("feed", []):
         if fed_urls is not None and comment["url"] not in fed_urls and comment["url"] not in own:
             fed_urls.add(comment["url"])
             news.setdefault(issue["number"], (issue, []))[1].append(comment)
+    lines = []
     for issue, posted in news.values():
         said = " | ".join(comment["body"].strip().splitlines()[0] for comment in posted)
         # a push reaches the owner away only through Remote Control, so without it the line sends none

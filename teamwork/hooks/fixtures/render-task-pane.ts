@@ -8,7 +8,7 @@
 // With `--search <regex>` and `--press <text>` (each repeatable; `none` presses nothing), it draws the rows at width 88, or at `--columns <n>`, with every row folded, then types each
 // regex into the search box and presses each button whose text holds a given text, in the order given, and prints the drawn lines as `<row number>|<line>`, a yellow background in ⟦ ⟧.
 // usage: bun teamwork/hooks/fixtures/render-task-pane.ts <nodes-file> [--styled | --search <regex>... --press <text>... --columns <n>]
-import { plugin } from 'bun'
+import { drawPane, handlers, on, store } from './stand-in-modules.ts'
 
 const nodes = process.argv[2]
 if (!nodes) {
@@ -22,28 +22,6 @@ const listed = (...args: string[]) => {
   return run.stdout.toString()
 }
 
-const store = new Map<string, unknown>()  // the atoms' values
-let drawing = false  // while a render is dispatched, when Claude Code refuses a state write
-plugin({
-  name: 'stand-ins',
-  setup(build) {
-    build.module('claude-code', () => ({
-      loader: 'object',
-      exports: {
-        atom: (id: { key: string }, initial: unknown) => ({ key: id.key, initial }),
-        read: async (_: unknown, entry: { key: string; initial: unknown }) => (store.has(entry.key) ? store.get(entry.key) : entry.initial),
-        update: async (_: unknown, entry: { key: string; initial: unknown }, change: (old: unknown) => unknown) => {
-          if (drawing) throw new Error('state.set: denied: it was made while ui.render is being dispatched, and drawing is pure')
-          store.set(entry.key, change(store.has(entry.key) ? store.get(entry.key) : entry.initial))
-        },
-      },
-    }))
-    const jsx = (type: unknown, props: Record<string, unknown>) => ({ type, props })
-    build.module('react/jsx-dev-runtime', () => ({ loader: 'object', exports: { jsxDEV: jsx, Fragment: 'Fragment' } }))
-    build.module('react/jsx-runtime', () => ({ loader: 'object', exports: { jsx, jsxs: jsx, Fragment: 'Fragment' } }))
-  },
-})
-
 type Node = { type?: string; props?: { children?: unknown; label?: string; text?: string } }
 // a link shows its label and Markdown its text; a button's own label is the fold mark, drawn apart from the row's text
 let marking = false  // in a scenario run, a yellow background shows as ⟦ ⟧ around its text
@@ -56,11 +34,6 @@ const plain = (node: unknown): string =>
     : (node as Node).type === 'Button' && (node as Node).props?.label !== undefined ? '' : text((node as Node).props?.children)
 const children = (node: unknown): unknown[] => [(node as Node).props?.children].flat(Infinity).filter(child => child != null && typeof child !== 'boolean')
 
-const handlers: Record<string, (...args: any[]) => Promise<unknown>> = {}
-const on = (event: string, ...rest: any[]) => {
-  handlers[[event, ...rest.slice(0, -1).map(argument => Object.values(argument)[0])].join(' ')] = rest[rest.length - 1]
-  return { catch: () => undefined }
-}
 let reads = 0
 const $ = {
   plugin: { root: '/plugin' },
@@ -80,7 +53,7 @@ const $ = {
     spawn: () => (async function* () { yield { text: 'changed' } })(),
   },
 }
-const draw = async (props: object) => { drawing = true; try { return await handlers['ui.render Pane']($, { props }) } finally { drawing = false } }
+const draw = (props: object) => drawPane($, props)
 // a read's atoms change just after its run returns, so the render waits a little past it
 const settle = async (count: number) => { while (reads < count) await new Promise(done => setTimeout(done, 5)); await new Promise(done => setTimeout(done, 50)) }
 

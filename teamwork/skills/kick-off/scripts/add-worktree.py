@@ -27,6 +27,7 @@ def main(args):
     if result.returncode:
         sys.exit(f"add-worktree.py: {result.stderr.strip()}")
     print(tree)
+    return 0
 
 
 if __name__ == "__main__":

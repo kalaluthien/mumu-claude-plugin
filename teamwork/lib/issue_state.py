@@ -22,6 +22,7 @@ def load(path=GRAMMAR):
 KEYWORDS, KEYS, SECTIONS, DECISION_KEYS, TYPED_SINCE = load()
 WORD = {role: word for table in (KEYWORDS, KEYS) for word, role in table.items() if role}
 FIELD = {role: word for word, role in DECISION_KEYS.items()}
+SECTION_NAMES = {name.lower(): name for name in SECTIONS}
 INFORM = next(word for word, role in KEYWORDS.items() if not role)  # the keyword that only informs, which the owner reads as what happened
 DECISION = re.compile(r"^```decision\n(.*?)^```", re.M | re.S)
 DIFF = re.compile(r"^(`{3,})diff\n(.*?)^\1$", re.M | re.S)
@@ -61,7 +62,7 @@ KEY_LINE = re.compile(r"^\s*([A-Za-z][A-Za-z ]*?)\s*[:=]")
 KEYWORD_LINE = re.compile(r"^\s*[*_#>-]*\s*(?:" + "|".join(KEYWORDS) + r")\b", re.I)
 EXACT_KEYWORD = re.compile(r"^\s*(" + "|".join(KEYWORDS) + r"):")
 # the keyword each posting verb opens its text with: `decide` answers, `resolve` informs
-VERB_KEYWORD = {"decide": WORD["answer"], "resolve": next(word for word, role in KEYWORDS.items() if not role)}
+VERB_KEYWORD = {"decide": WORD["answer"], "resolve": INFORM}
 # the Plain words caps on a title, a summary line and a decision: the live board's plain summary lines and decisions ran to 20 words, its dense
 # ones from 23, and a second `,` `;` or `:` joined a further idea in every dense line a fresh reader marked
 TITLE_CHARS = 40
@@ -126,30 +127,41 @@ def _defects(kind, text):
         heading = re.match(r"^#{1,6}\s*([A-Za-z].*?)\s*$", line)
         if heading and kind in ("file", "edit-body"):
             words = re.sub(r"\s*(\(.*\)|:)$", "", heading.group(1)).lower()
-            section = next(iter(difflib.get_close_matches(words, [name.lower() for name in SECTIONS], 1, 0.85)), None)
-            section = next((name for name in SECTIONS if name.lower() == section), None)
+            close = difflib.get_close_matches(words, list(SECTION_NAMES), 1, 0.85)
+            section = SECTION_NAMES[close[0]] if close else None
             if section:
                 headings[section] = headings.get(section, 0) + (line == f"## {section}")
                 if line != f"## {section}":
                     found.append((f"heading {line}", f"line {number}, `{line}`, misspells a section heading; write exactly `## {section}`"))
     found += [(f"repeated {section}", f"`## {section}` appears {count} times; keep one and merge the rest into it") for section, count in headings.items() if count > 1]
     if kind in ("comment", "decide", "resolve") and lines:
-        first = EXACT_KEYWORD.match(lines[0])
-        words = " ".join(KEYWORDS)
-        if not first and KEYWORD_LINE.match(lines[0]):
-            found.append(("near-keyword", f"the first line, `{lines[0]}`, nearly opens with a keyword; open it with exactly one of {words} and a colon, as `{WORD['answer']}: <words>`"))
-        if not first and any(EXACT_KEYWORD.match(line) for line in lines[1:]):
-            found.append(("later-keyword", "a keyword opens a later line, which no code reads; move it to the first line"))
-        own = VERB_KEYWORD.get(kind)
-        if first and own and first.group(1) != own:
-            found.append(("other-verb", f"{kind} opens with `{own}:`, not `{first.group(1)}:`; change the first word, or post the text with the verb that matches it"))
+        found += keyword_defects(kind, lines)
     if kind in ("file", "edit-body"):
-        found += plain("summary line", summary_line(text))
-        for item in ITEM.findall(sections(text).get("done", "")):
-            name = CRITERION.match(item).group(3)
-            found += plain("criterion name", name) + sentence("criterion name", name) if name else []
+        found += body_defects(text)
     if kind == "decide":
         found += plain("decision", (decision(text) or {}).get(FIELD["decision"], ""))
+    return found
+
+
+def keyword_defects(kind, lines):
+    """[(signature, sentence)] of the keyword a comment, decision or summary opens with, read from its LINES."""
+    found, first = [], EXACT_KEYWORD.match(lines[0])
+    if not first and KEYWORD_LINE.match(lines[0]):
+        found.append(("near-keyword", f"the first line, `{lines[0]}`, nearly opens with a keyword; open it with exactly one of {' '.join(KEYWORDS)} and a colon, as `{WORD['answer']}: <words>`"))
+    if not first and any(EXACT_KEYWORD.match(line) for line in lines[1:]):
+        found.append(("later-keyword", "a keyword opens a later line, which no code reads; move it to the first line"))
+    own = VERB_KEYWORD.get(kind)
+    if first and own and first.group(1) != own:
+        found.append(("other-verb", f"{kind} opens with `{own}:`, not `{first.group(1)}:`; change the first word, or post the text with the verb that matches it"))
+    return found
+
+
+def body_defects(text):
+    """[(signature, sentence)] of a body's summary line and the names of its criteria."""
+    found = plain("summary line", summary_line(text))
+    for item in ITEM.findall(sections(text).get("done", "")):
+        name = CRITERION.match(item).group(3)
+        found += plain("criterion name", name) + sentence("criterion name", name) if name else []
     return found
 
 

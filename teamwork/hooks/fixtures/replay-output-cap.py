@@ -26,7 +26,6 @@ feeds it real Bash output, `--probe-allow` runs it once on Haiku under a `Bash(s
 while the teamwork plugin carries no such hook outside its fixtures.
 A run's net saving is the cut tokens' carry to the run's end, less each later call that read a cut output's file: its
 result's carry and its turn's cost; tokens are characters over 2.2, priced as measure-context-share.py prices them."""
-import concurrent.futures
 import hashlib
 import json
 import os
@@ -41,6 +40,7 @@ import time
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "lib"))
 import criteria_check  # noqa: E402
 import issue_state  # noqa: E402
+import replay_runs  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = pathlib.Path(__file__).resolve().parents[3]
@@ -60,18 +60,13 @@ MIN_GAIN = 0.01
 PLAN_ISSUE = 1172
 REPO = "kalaluthien/mumu-claude-plugin"
 MODEL, BUDGET, LIMIT = "sonnet", "5", 120.0
-CHARS_PER_TOKEN = 2.2
-WEIGHT = {"opus": 5.0, "sonnet": 3.0, "haiku": 1.0}
-SWITCHES = {"CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1", "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1"}
 CLEAN_FLAGS = [["--setting-sources", ""], ["--strict-mcp-config"], ["--max-budget-usd", BUDGET]]
-BUILT_IN = re.compile(r"^cc-plugin-")
 CUT = re.compile(r"\[output cap: (\d+) of (\d+) lines cut here; all of them are in (\S+);")
 # the PostToolUse cap's note also counts characters and may appear once per stream
 PROGRAM_CUT = re.compile(r"\[output cap: (\d+) of (\d+) lines and (\d+) of (\d+) characters cut here; all of them are in (\S+); "
                          r"read a range of that file, not all of it\]")
 # a check that reaches outside the export would judge the live machine, not the run
 OUTSIDE = re.compile(r"\b(?:gh|herdr|claude|curl)\b|https?://|/Users/|~/|\$HOME|origin/")
-BLOCKED_TOOLS = ("gh", "herdr", "claude")
 # a later call naming a file the cut command read may be the model fetching the cut part again by another range
 SOURCE_FILE = re.compile(r"[\w.-]+\.(?:py|md|json|jsonl|sh|txt|ya?ml|toml)\b")
 REREAD_WINDOW = 2
@@ -79,8 +74,6 @@ FILE_READ = re.compile(r"\b(?:cat|sed|head|tail)\b")
 SHELL_ONLY = {"cd", "echo", "printf", "true", "false", "set", "export", "EOF"}
 # a command that sets its own EXIT trap or execs replaces the cap's trap, so its output would vanish
 CAP_BREAKER = re.compile(r"\btrap\b|(?:^|[;&|]\s*)exec\b")
-CHECK_TIMEOUT = 180
-RUN_TIMEOUT = 3600
 PROMPT = """You are replaying a past task in a fresh checkout of the mumu-claude-plugin repository, your working folder.
 Do the task below fully: change the files so that each `[check]` of its Definition of done passes, run the checks you can,
 then commit your change with git. GitHub, herdr and other Claude sessions are off in this replay: skip each step that reads
@@ -94,38 +87,6 @@ Task #{number}: {title}
 
 def gh_json(*args):
     return json.loads(subprocess.run(["gh", *args], capture_output=True, text=True, check=True).stdout)
-
-
-def export(sha, into):
-    """A fresh repository at SHA's tree in INTO, one commit, so checks that read git see a clean tree."""
-    into.mkdir(parents=True)
-    archive = subprocess.run(["git", "-C", str(ROOT), "archive", sha], capture_output=True, check=True).stdout
-    subprocess.run(["tar", "-x", "-C", str(into)], input=archive, check=True)
-    identity = {**os.environ, "GIT_AUTHOR_NAME": "replay", "GIT_AUTHOR_EMAIL": "replay@localhost",
-                "GIT_COMMITTER_NAME": "replay", "GIT_COMMITTER_EMAIL": "replay@localhost"}
-    for command in (["git", "init", "-q", "-b", "main"], ["git", "add", "-A"], ["git", "commit", "-q", "-m", f"base {sha}"]):
-        subprocess.run(command, cwd=into, env=identity, check=True, capture_output=True)
-
-
-def run_check(command, cwd):
-    try:
-        done = subprocess.run(["bash", "-c", command], cwd=cwd, capture_output=True, text=True, timeout=CHECK_TIMEOUT,
-                              stdin=subprocess.DEVNULL)
-        return done.returncode, (done.stdout + done.stderr).strip()
-    except subprocess.TimeoutExpired:
-        return None, f"timed out after {CHECK_TIMEOUT} s"
-
-
-def verdict(test, status, out):
-    kind, want = test
-    if status is None:
-        return "fail"
-    if kind == "exits":
-        return "pass" if status == want else "fail"
-    if kind == "more":
-        first = out.split(maxsplit=1)[:1]
-        return "pass" if first and first[0].isdigit() and int(first[0]) >= want else "fail"
-    return "pass" if out == want else "fail"
 
 
 def task_checks(body):
@@ -151,7 +112,7 @@ def arms_of(task):
 
 
 def pick_tasks(numbers, arms):
-    tasks = json.loads(TASKS.read_text()) if TASKS.exists() else []
+    tasks = task_list()
     known = {task["task"] for task in tasks}
     for number in numbers:
         pull = gh_json("api", f"repos/{REPO}/pulls/{number}")
@@ -165,13 +126,13 @@ def pick_tasks(numbers, arms):
         checks = list(task_checks(issue.get("body") or ""))
         with tempfile.TemporaryDirectory() as scratch:
             before, after = pathlib.Path(scratch, "parent"), pathlib.Path(scratch, "merge")
-            export(parent, before)
-            export(merge, after)
+            replay_runs.export(ROOT, parent, before)
+            replay_runs.export(ROOT, merge, after)
             judged = []
             for check in checks:
                 test = tuple(check["test"])
-                at_parent = verdict(test, *run_check(check["command"], before))
-                at_merge = verdict(test, *run_check(check["command"], after))
+                at_parent = replay_runs.verdict(test, *replay_runs.run_check(check["command"], before))
+                at_merge = replay_runs.verdict(test, *replay_runs.run_check(check["command"], after))
                 if at_parent == "fail" and at_merge == "pass":
                     judged.append(check)
         print(f"task {issue['number']} (pull {number}): {len(checks)} runnable checks, {len(judged)} fail at {parent[:9]} and pass at {merge[:9]}")
@@ -184,78 +145,10 @@ def pick_tasks(numbers, arms):
     return 0
 
 
-def blocked_path(folder):
-    """A folder of stand-ins for GitHub, herdr and Claude, first on PATH, so a replay writes to no live board or session."""
-    folder.mkdir(parents=True, exist_ok=True)
-    for tool in BLOCKED_TOOLS:
-        stand_in = folder / tool
-        stand_in.write_text(f"#!/bin/sh\necho '{tool} is off in this replay' >&2\nexit 1\n")
-        stand_in.chmod(0o755)
-    return folder
-
-
-def weight(model):
-    return next((value for key, value in WEIGHT.items() if key in (model or "")), 0.0)
-
-
-def turn_input(usage):
-    creation = usage.get("cache_creation") or {}
-    hour = creation.get("ephemeral_1h_input_tokens", 0)
-    minutes = creation.get("ephemeral_5m_input_tokens", usage.get("cache_creation_input_tokens", 0) - hour)
-    return usage.get("input_tokens", 0) + 1.25 * minutes + 2 * hour + 0.1 * usage.get("cache_read_input_tokens", 0)
-
-
-def text_of(content):
-    if isinstance(content, str):
-        return content
-    return "".join(part.get("text", "") for part in content or [] if isinstance(part, dict))
-
-
-def read_events(stream):
-    """The run's init event, hook event names, turns in order, tool uses by id and results in order, and its result event."""
-    init, hooks, turns, uses, results, result = {}, [], {}, {}, [], {}
-    for position, line in enumerate(stream.splitlines()):
-        try:
-            event = json.loads(line)
-        except ValueError:
-            continue
-        kind, subtype = event.get("type"), event.get("subtype", "")
-        if kind == "system" and subtype == "init":
-            init = event
-        elif kind == "system" and subtype == "hook_response":
-            hooks.append(event.get("hook_name") or event.get("hook_event") or "")
-        elif kind == "assistant" and event.get("parent_tool_use_id") is None:
-            message = event["message"]
-            first = turns.get(message.get("id"), {}).get("position", position)
-            turns[message.get("id")] = {"id": message.get("id"), "position": first, "usage": message.get("usage") or {},
-                                        "model": message.get("model")}
-            for part in message.get("content", []):
-                if isinstance(part, dict) and part.get("type") == "tool_use":
-                    uses[part["id"]] = {"name": part["name"], "input": part.get("input") or {}, "turn": message.get("id")}
-        elif kind == "user" and event.get("parent_tool_use_id") is None and isinstance(event["message"].get("content"), list):
-            for part in event["message"]["content"]:
-                if isinstance(part, dict) and part.get("type") == "tool_result":
-                    results.append({"position": position, "id": part.get("tool_use_id"), "text": text_of(part.get("content"))})
-        elif kind == "result":
-            result = event
-    return init, hooks, sorted(turns.values(), key=lambda turn: turn["position"]), uses, results, result
-
-
-def carry(units_tokens, position, turns):
-    """The cost of tokens taken in at POSITION: written by the next turn, read by each turn after it."""
-    later = [turn for turn in turns if turn["position"] > position]
-    if not later:
-        return 0.0
-    first = later[0]
-    rate = 2.0 if (first["usage"].get("cache_creation") or {}).get("ephemeral_1h_input_tokens", 0) else 1.25
-    return units_tokens * (weight(first["model"]) * rate + sum(weight(turn["model"]) * 0.1 for turn in later[1:]))
-
-
 def net_saving(turns, uses, results):
     bash, cuts, refetches = [], [], []
-    turn_cost = {id(turn): weight(turn["model"]) * (turn_input(turn["usage"]) + 5 * turn["usage"].get("output_tokens", 0))
-                 for turn in turns}
-    run_units = sum(turn_cost.values())
+    turn_cost = {id(turn): replay_runs.turn_units(turn) for turn in turns}
+    run_units = replay_runs.run_units(turns)
     removed_units = 0.0
     for result in results:
         use = uses.get(result["id"]) or {}
@@ -274,7 +167,7 @@ def net_saving(turns, uses, results):
                 cut_lines, total_lines = sum(int(note.group(1)) for note in notes), sum(int(note.group(2)) for note in notes)
                 files, file_chars = [note.group(5) for note in notes], sum(int(note.group(4)) for note in notes)
                 removed = max(sum(int(note.group(3)) - len(note.group(0)) for note in notes), 0)
-            units = carry(removed / CHARS_PER_TOKEN, result["position"], turns)
+            units = replay_runs.carry(removed / replay_runs.CHARS_PER_TOKEN, result["position"], turns)
             removed_units += units
             row["cut"] = {"lines_cut": cut_lines, "lines": total_lines, "file": files[0], "files": files,
                           "file_chars": file_chars, "removed_chars": removed, "removed_units": round(units, 1)}
@@ -282,18 +175,22 @@ def net_saving(turns, uses, results):
                 cuts.append({"file": file, "position": result["position"],
                              "sources": set(SOURCE_FILE.findall(use["input"].get("command", "")))})
         bash.append(row)
+
+    def later_call(result, use):
+        """The carry of a later call's RESULT and the cost of the turn that issued it, summed, and the carry alone."""
+        issuing = next((turn for turn in turns if turn["id"] == use.get("turn")), None)
+        units = replay_runs.carry(len(result["text"]) / replay_runs.CHARS_PER_TOKEN, result["position"], turns)
+        return units + (turn_cost[id(issuing)] if issuing else 0.0), units
+
     refetch_units = 0.0
     for result in results:
         use = uses.get(result["id"]) or {}
         named = json.dumps(use.get("input"))
         for cut in cuts:
             if cut["position"] < result["position"] and cut["file"] in named:
-                issuing = next((turn for turn in turns if turn["id"] == use.get("turn")), None)
-                units = carry(len(result["text"]) / CHARS_PER_TOKEN, result["position"], turns)
-                turn_units = turn_cost[id(issuing)] if issuing else 0.0
-                refetch_units += units + turn_units
-                refetches.append({"id": result["id"], "file": cut["file"], "chars": len(result["text"]),
-                                  "units": round(units + turn_units, 1)})
+                charged, _ = later_call(result, use)
+                refetch_units += charged
+                refetches.append({"id": result["id"], "file": cut["file"], "chars": len(result["text"]), "units": round(charged, 1)})
                 break
     reread_units, reread_carry, rereads = 0.0, 0.0, []
     reads = [result for result in results if (uses.get(result["id"]) or {}).get("name") in ("Bash", "Read")]
@@ -303,13 +200,11 @@ def net_saving(turns, uses, results):
             use = uses[result["id"]]
             named = set(SOURCE_FILE.findall(json.dumps(use["input"])))
             if cut["sources"] & named and result["id"] not in {row["id"] for row in rereads}:
-                issuing = next((turn for turn in turns if turn["id"] == use.get("turn")), None)
-                units = carry(len(result["text"]) / CHARS_PER_TOKEN, result["position"], turns)
-                turn_units = turn_cost[id(issuing)] if issuing else 0.0
-                reread_units += units + turn_units
+                charged, units = later_call(result, use)
+                reread_units += charged
                 reread_carry += units
                 rereads.append({"id": result["id"], "files": sorted(cut["sources"] & named), "chars": len(result["text"]),
-                                "units": round(units + turn_units, 1)})
+                                "units": round(charged, 1)})
     net = removed_units - refetch_units
     charged = net - reread_units
     share = lambda value: round(value / (run_units + value), 4) if run_units + value else 0.0
@@ -330,20 +225,13 @@ def record_path(task, arm, repeat):
 
 
 def run_one(task, arm, repeat):
-    tasks = {entry["task"]: entry for entry in json.loads(TASKS.read_text())}
-    entry = tasks[int(task)]
+    entry = next(item for item in task_list() if item["task"] == int(task))
     started = time.time()
     started_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(started))
     scratch = pathlib.Path(tempfile.mkdtemp(prefix=f"replay-{task}-{arm}-{repeat}-"))
     work = scratch / "repository"
-    export(entry["base_sha"], work)
-    stand_ins = blocked_path(scratch / "blocked")
-    empty_gh = scratch / "gh-config"
-    empty_gh.mkdir()
-    environment = {**os.environ, **SWITCHES, "PATH": f"{stand_ins}:{os.environ['PATH']}", "GH_TOKEN": "off-in-replay",
-                   "GH_CONFIG_DIR": str(empty_gh)}
-    for key in [key for key in environment if key.startswith("HERDR")]:
-        environment.pop(key)
+    replay_runs.export(ROOT, entry["base_sha"], work)
+    environment = replay_runs.clean_environment(scratch)
     # resolved before the stand-ins go first on PATH, which would otherwise answer for claude itself
     command = [shutil.which("claude"), "-p", PROMPT.format(number=entry["task"], title=entry["title"], body=entry["body"]), "--model", MODEL,
                "--setting-sources", "", "--strict-mcp-config", "--max-budget-usd", BUDGET, "--permission-mode", "acceptEdits",
@@ -351,26 +239,20 @@ def run_one(task, arm, repeat):
                "--include-hook-events", "--no-session-persistence"]
     if ARMS[arm]:
         command += ["--plugin-dir", str(ARMS[arm])]
-    try:
-        done = subprocess.run(command, cwd=work, env=environment, capture_output=True, text=True, timeout=RUN_TIMEOUT,
-                              stdin=subprocess.DEVNULL)
-        stream, errors = done.stdout, done.stderr
-    except subprocess.TimeoutExpired as expired:
-        stream = expired.stdout.decode() if isinstance(expired.stdout, bytes) else expired.stdout or ""
-        errors = f"timed out after {RUN_TIMEOUT} s"
+    stream, errors = replay_runs.run_claude(command, work, environment)
     STREAMS.mkdir(exist_ok=True)
     (STREAMS / f"{task}-{arm}-{repeat}.jsonl").write_text(stream)
-    init, hooks, turns, uses, results, result = read_events(stream)
+    init, hooks, turns, uses, results, result = replay_runs.read_events(stream)
     bash, refetches, saving = net_saving(turns, uses, results)
     checks = []
     for check in entry["checks"]:
-        status, out = run_check(check["command"], work)
+        status, out = replay_runs.run_check(check["command"], work)
         checks.append({"index": check["index"], "command": check["command"], "test": check["test"],
-                       "result": verdict(tuple(check["test"]), status, out), "output": out[:400]})
+                       "result": replay_runs.verdict(tuple(check["test"]), status, out), "output": out[:400]})
     record = {
         "task": entry["task"], "pull": entry["pull"], "base_sha": entry["base_sha"], "arm": arm, "repeat": int(repeat),
         "command": ["claude"] + [part if index != 2 else "<prompt>" for index, part in enumerate(command) if index],
-        "prompt": command[2], "environment": SWITCHES, "blocked_tools": list(BLOCKED_TOOLS),
+        "prompt": command[2], "environment": replay_runs.SWITCHES, "blocked_tools": list(replay_runs.BLOCKED_TOOLS),
         "init": {"plugins": [plugin.get("name") for plugin in init.get("plugins", [])], "mcp_servers": init.get("mcp_servers", []),
                  "model": init.get("model")},
         "hook_events": hooks, "total_cost_usd": result.get("total_cost_usd"), "models": sorted((result.get("modelUsage") or {}).keys()),
@@ -397,14 +279,14 @@ def reparse():
             print(f"{path.stem}: no stream kept")
             continue
         record = json.loads(path.read_text())
-        _, _, turns, uses, results, _ = read_events(stream.read_text())
+        _, _, turns, uses, results, _ = replay_runs.read_events(stream.read_text())
         record["bash_results"], record["refetches"], record["saving"] = net_saving(turns, uses, results)
         path.write_text(json.dumps(record, indent=1) + "\n")
     return 0
 
 
 def records():
-    return [json.loads(path.read_text()) for path in sorted(RECORDS.glob("*.json"))] if RECORDS.exists() else []
+    return replay_runs.read_records(RECORDS)
 
 
 def spent(tasks=None):
@@ -418,18 +300,7 @@ def run_all(repeats, limit, parallel, arms, chosen):
     spent_here = lambda: spent(scope)
     todo = [(entry["task"], arm, repeat) for repeat in range(1, repeats + 1) for entry in entries for arm in task_arms(entry)
             if (not arms or arm in arms) and not record_path(entry["task"], arm, repeat).exists()]
-    with concurrent.futures.ThreadPoolExecutor(parallel) as pool:
-        running = []
-        for job in todo:
-            # each run may spend up to its budget, so the next one starts only while the worst case stays under the limit
-            while len(running) >= parallel:
-                done, pending = concurrent.futures.wait(running, return_when=concurrent.futures.FIRST_COMPLETED)
-                running = list(pending)
-            if spent_here() + float(BUDGET) * (len(running) + 1) > limit:
-                print(f"stop: ${spent_here():.2f} spent; another run could pass ${limit:.0f}")
-                break
-            running.append(pool.submit(run_one, *job))
-        concurrent.futures.wait(running)
+    replay_runs.run_jobs(todo, run_one, parallel, spent_here, BUDGET, limit)
     print(f"spent ${spent_here():.2f} over the chosen tasks' records")
     return 0
 
@@ -448,12 +319,12 @@ def count(what):
 def clean(row):
     command = row["command"]
     flags_ok = all(any(command[i:i + len(flag)] == flag for i in range(len(command))) for flag in CLEAN_FLAGS)
-    plugins = [name for name in row["init"]["plugins"] if not BUILT_IN.match(name)]
+    plugins = [name for name in row["init"]["plugins"] if not name.startswith(replay_runs.BUILT_IN_PLUGIN_PREFIX)]
     arm = ARMS[row["arm"]]
     plugins_ok = plugins == ([json.loads((arm / ".claude-plugin/plugin.json").read_text())["name"]] if arm else [])
     allowed = ARM_HOOKS[row["arm"]]
     hooks_ok = all(allowed and name.startswith(allowed) for name in row["hook_events"])
-    return flags_ok and row["environment"] == SWITCHES and not row["init"]["mcp_servers"] and plugins_ok and hooks_ok
+    return flags_ok and row["environment"] == replay_runs.SWITCHES and not row["init"]["mcp_servers"] and plugins_ok and hooks_ok
 
 
 def complete(row):
@@ -551,7 +422,7 @@ def probe_arm(arm):
 def probe_allow(arm):
     if arm != "teamwork-cap" or not CAP_HOOK.exists():
         return "missing"
-    environment = {**os.environ, **SWITCHES}
+    environment = {**os.environ, **replay_runs.SWITCHES}
     command = [shutil.which("claude"), "-p", "Run the Bash command `seq 80`, then reply with the single word done.",
                "--model", "haiku", "--setting-sources", "", "--strict-mcp-config", "--max-budget-usd", "0.5",
                "--allowedTools", "Bash(seq:*)", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
@@ -559,7 +430,7 @@ def probe_allow(arm):
     with tempfile.TemporaryDirectory() as scratch:
         stream = subprocess.run(command, cwd=scratch, env=environment, capture_output=True, text=True, timeout=300,
                                 stdin=subprocess.DEVNULL).stdout
-    _, _, _, _, results, result = read_events(stream)
+    _, _, _, _, results, result = replay_runs.read_events(stream)
     if result.get("permission_denials"):
         return f"denied: {result['permission_denials']}"
     return "allowed" if any(PROGRAM_CUT.search(row["text"]) for row in results) else "not cut"
@@ -571,7 +442,7 @@ def check_plan(issue):
              and re.search(r"\b\d+ runs\b", comment["body"]) and re.search(r"\$\d", comment["body"])]
     if not plans:
         return "no plan"
-    starts = [row["started"] for row in new_rows() if row.get("started")]
+    starts = [row["started"] for row in new_records() if row.get("started")]
     return "before" if not starts or plans[0]["created_at"] < min(starts) else "after"
 
 
@@ -579,7 +450,7 @@ def new_tasks():
     return [entry for entry in task_list() if task_arms(entry) == NEW_ARMS]
 
 
-def new_rows():
+def new_records():
     numbers = {entry["task"] for entry in new_tasks()}
     return [row for row in records() if row["task"] in numbers]
 
@@ -604,7 +475,7 @@ def first_word(command):
 
 def check_measured(arm):
     """`gain` or `no gain` from the new tasks' records, once they are whole, clean, on Sonnet and from the current hook."""
-    tasks, rows = new_tasks(), new_rows()
+    tasks, rows = new_tasks(), new_records()
     if arm != "teamwork-cap" or not rows:
         return "missing"
     capped = [row for row in rows if row["arm"] == arm]
@@ -630,7 +501,7 @@ def check_measured(arm):
 
 
 def gain(arm):
-    rows = new_rows()
+    rows = new_records()
     capped = [row for row in rows if row["arm"] == arm]
     passed = lambda which: sum(row["passed"] for row in rows if row["arm"] == which)
     runs = lambda which: sum(1 for row in rows if row["arm"] == which)
@@ -714,7 +585,6 @@ def main(args):
     if not args:
         return usage()
     verb, rest = args[0], args[1:]
-    rows = records
     if verb == "--list-arms" and not rest:
         print(",".join(ARMS))
     elif verb == "--pick-tasks" and rest:
@@ -727,11 +597,10 @@ def main(args):
     elif verb == "--run" and len(rest) == 3 and rest[1] in ARMS:
         return run_one(*rest)
     elif verb == "--run-all":
-        options = {"--repeats": "2", "--max-dollars": str(LIMIT), "--parallel": "3", "--arms": "", "--tasks": ""}
-        while rest:
-            if rest[0] not in options or len(rest) < 2:
-                return usage()
-            options[rest[0]], rest = rest[1], rest[2:]
+        options = replay_runs.read_options(rest, {"--repeats": "2", "--max-dollars": str(LIMIT), "--parallel": "3", "--arms": "",
+                                                  "--tasks": ""})
+        if options is None:
+            return usage()
         arms = [arm for arm in options["--arms"].split(",") if arm]
         chosen = {int(task) for task in options["--tasks"].split(",") if task}
         if not set(arms) <= set(ARMS):
@@ -740,17 +609,17 @@ def main(args):
     elif verb == "--count" and len(rest) == 1 and rest[0] in ("tasks", "fewest-runs"):
         print(count(rest[0]))
     elif verb == "--check-records" and not rest:
-        print("complete" if rows() and all(complete(row) for row in rows()) else "incomplete")
+        print("complete" if records() and all(complete(row) for row in records()) else "incomplete")
     elif verb == "--check-clean" and not rest:
-        print("clean" if rows() and all(clean(row) for row in rows()) else "unclean")
+        print("clean" if records() and all(clean(row) for row in records()) else "unclean")
     elif verb == "--check-firing" and not rest:
         cut = lambda row: any("cut" in result for result in row["bash_results"])
-        fired = any(cut(row) for row in rows() if row["arm"] == "output-cap") and not any(cut(row) for row in rows() if row["arm"] == "none")
+        fired = any(cut(row) for row in records() if row["arm"] == "output-cap") and not any(cut(row) for row in records() if row["arm"] == "none")
         print("fired" if fired else "not fired")
     elif verb == "--check-spend" and not rest:
-        print("within-120" if rows() and spent() <= LIMIT else f"spent {spent():.2f}")
+        print("within-120" if records() and spent() <= LIMIT else f"spent {spent():.2f}")
     elif verb == "--check-models" and not rest:
-        print("claude-only" if rows() and all(model.startswith("claude-") for row in rows() for model in row["models"] + [
+        print("claude-only" if records() and all(model.startswith("claude-") for row in records() for model in row["models"] + [
             turn["model"] for turn in row["turns"]]) else "other model")
     elif verb == "--probe-arms" and not rest:
         print(probe_arms())

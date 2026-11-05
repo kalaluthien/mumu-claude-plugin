@@ -24,7 +24,7 @@ How a manager adds to the owner's words before passing them on, so a worker gets
 
 1. Read the words for the purpose, the implied outcomes, the open edges and the kind of work.
 2. Take the rows of the table that fit; take the situation rows only where the words leave the case open.
-3. Write the routing `DECIDED:` with its outcomes, a `Why:` line, the guesses and the `Judge note:`: how to score (`yes`, `no` or `Unknown`) and the cases to try, at most 120 words counted as in 5.
+3. Write the routing `DECIDED:` with its outcomes, a `Why:` line, the guesses and the `Judge note:`, counted as in 5.
 4. Write the worker brief in this order, leaving out a slot with nothing to add: goal, why, the owner's words, guesses, never / ask first / free, context you lack with its url, sample, done when, what to return.
 5. Aim at 100 words and keep each slot to one sentence. Count the worker brief with `wc -w` after deleting its urls and the owner's quoted words; over 150, cut each line that changes no reader's next action and count again.
 
@@ -34,7 +34,7 @@ How a manager adds to the owner's words before passing them on, so a worker gets
 - **Mark every guess**: a guess unmarked reads as the owner's word.
 - **Goal, not steps**: the worker brief holds no step, no formatting rule and no judge case, since the worker finds the path and the judge's cases are probes of its criteria.
 - **Return doubts**: ask the worker to return its doubts and any departure from the brief with the result.
-- **Judge note**: a way to score and the cases to try, with `Unknown` allowed; not the worker's reasoning or the manager's history.
+- **Judge note**: a way to score (`yes`, `no` or `Unknown`) and the cases to try; not the worker's reasoning or the manager's history.
 
 ## Example
 

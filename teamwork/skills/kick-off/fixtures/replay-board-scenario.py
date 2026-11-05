@@ -15,6 +15,7 @@ import tempfile
 HERE = pathlib.Path(__file__).resolve().parent
 USE = HERE.parent / "scripts" / "use-board.py"
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import replay_probe  # noqa: E402
 import usage_parser  # noqa: E402
 
 names = {}  # the number each issue got, by the name the output uses
@@ -25,9 +26,7 @@ def use(*argv):
 
 
 def text(name, body):
-    path = work / name
-    path.write_text(body)
-    return path
+    return replay_probe.write_text(work, name, body)
 
 
 def filed(name, title, body, labels=()):

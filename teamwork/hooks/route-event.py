@@ -11,7 +11,7 @@ import shlex
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
+sys.path.insert(0, str(ROOT / "lib"))
 import background_work  # noqa: E402
 import board  # noqa: E402
 import install_line  # noqa: E402
@@ -38,10 +38,11 @@ def live_change_directory(command, cwd):
     """(folder, worktree, command): the folder of the live checkout a `cd` in COMMAND enters from the worktree CWD, the worktree, and COMMAND written
     without that cd, None when it cannot be; None for any other cd; a cd, never a write, is matched, since a script run after it may write anywhere."""
     root, inside, rest = (cwd or "").partition(WORKTREES)
+    worktree = root + WORKTREES + rest.split("/")[0]
     for found in CHANGE_DIRECTORY.finditer(command) if inside else ():
         path = os.path.normpath(os.path.join(cwd, os.path.expanduser(found[1].strip("\"'"))))
         if (path + "/").startswith(root + "/") and WORKTREES not in path + "/":
-            return path, root + WORKTREES + rest.split("/")[0], without_change_directory(command, found, path, root + WORKTREES + rest.split("/")[0])
+            return path, worktree, without_change_directory(command, found, path, worktree)
     return None
 
 
@@ -158,8 +159,12 @@ def verdict(kind, rule, settings, text=None):
     return context and {"hookSpecificOutput": {"hookEventName": kind, "additionalContext": context}}
 
 
+def command_of(event):
+    return (event.get("tool_input") or {}).get("command", "")
+
+
 def route(kind, event, role, me, listed):
-    call = board.command((event.get("tool_input") or {}).get("command", ""))
+    call = board.command(command_of(event))
     if kind == "PostToolUse":
         stray = call and call["write"] in ("file", "comment", "edit") and stray_posted(json.dumps(event.get("tool_response")))
         return stray and verdict(kind, f"A `holders:` line sits outside a ```teamwork fence in {stray}, so code reads no holder; "
@@ -173,7 +178,7 @@ def route(kind, event, role, me, listed):
         goal = [line for line in team_gaps.worker_goal(me) if line.endswith(": open")]
         return goal and {"decision": "block", "reason": "\n".join(["Your goal still waits on you:", *goal,
                          "Take its next step; stop again only while a subagent, a check or your manager has it."])}
-    entered = role == "worker" and live_change_directory((event.get("tool_input") or {}).get("command", ""), event.get("cwd"))
+    entered = role == "worker" and live_change_directory(command_of(event), event.get("cwd"))
     if entered:  # guards the checkout every session loads, no issue rule, so no setting makes it a warning
         again = (f"run this instead: `{entered[2]}`" if entered[2] else "run it again without that cd and read the live checkout by path or git -C")
         return {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason":
@@ -191,7 +196,7 @@ def route(kind, event, role, me, listed):
 def main(args):
     event = json.load(sys.stdin)
     kind = event.get("hook_event_name")
-    command = (event.get("tool_input") or {}).get("command", "")
+    command = command_of(event)
     # without its host's command no session has a name, so no role matches and the role's SessionStart text never comes to say why
     if kind == "SessionStart" and (missing := next(filter(None, map(install_line.missing, session.NEEDS)), None)):
         print(json.dumps({"systemMessage": missing}))

@@ -8,7 +8,7 @@ import select
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
-from team_signal import SIGNAL  # noqa: E402
+import team_signal  # noqa: E402
 
 QUIET = 2  # seconds without a mark that end a burst
 EVENTS = select.KQ_NOTE_WRITE | select.KQ_NOTE_ATTRIB | select.KQ_NOTE_DELETE | select.KQ_NOTE_RENAME
@@ -16,9 +16,8 @@ EVENTS = select.KQ_NOTE_WRITE | select.KQ_NOTE_ATTRIB | select.KQ_NOTE_DELETE | 
 
 def watch(queue):
     """A watch on the signal file, made anew when it is missing, since a deleted file's watch never fires again."""
-    SIGNAL.parent.mkdir(parents=True, exist_ok=True)
-    SIGNAL.touch()
-    handle = open(SIGNAL)
+    team_signal.touch()
+    handle = open(team_signal.SIGNAL)
     queue.control([select.kevent(handle, select.KQ_FILTER_VNODE, select.KQ_EV_ADD | select.KQ_EV_CLEAR, EVENTS)], 0)
     return handle
 

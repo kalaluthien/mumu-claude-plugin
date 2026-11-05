@@ -11,7 +11,7 @@ import sys
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]  # this plugin, loaded into the new session too
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+sys.path.insert(0, str(ROOT / "lib"))
 import agent  # noqa: E402
 import session  # noqa: E402
 import team_names  # noqa: E402
@@ -114,6 +114,7 @@ def main(args):
         sys.exit(f"start-session.py: {e}. Look at its pane with `{session.LOOK.format(options.name)}` before starting it again.")
     where = f"a new tab of workspace {workspace}" if workspace else "a new workspace of its own"
     print(f"{options.name} started in {where} (pane {pane}) and took its kick-off.")
+    return 0
 
 
 if __name__ == "__main__":

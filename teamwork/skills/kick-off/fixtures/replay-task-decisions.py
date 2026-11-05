@@ -30,10 +30,13 @@ import time
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
+sys.path.insert(0, str(ROOT / "lib"))
+import replay_probe  # noqa: E402
+
 USE = HERE.parent / "scripts" / "use-board.py"
 INDEX = HERE.parent / "scripts" / "list-decisions.py"
 LIST = ROOT / "hooks" / "list-issue-board.py"
-CHECK = "1. [check] **The probe prints PASS when it runs**: `echo ok` prints `ok`; on base nothing.\n"
+CHECK = replay_probe.CHECK
 LONG = "probe only the sandbox repository and keep every raw response it sends as a fixture beside the probe"
 failures = []
 
@@ -364,7 +367,6 @@ def main(args):
     os.environ.update({"HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "config")})
     subprocess.run(["git", "init", "-q", str(work / "repo")], check=True)
     os.chdir(work / "repo")
-    sys.path.insert(0, str(ROOT / "lib"))
     import board  # noqa: E402  read here, since it reads the board set above when it loads
 
     if kind == "nodes":

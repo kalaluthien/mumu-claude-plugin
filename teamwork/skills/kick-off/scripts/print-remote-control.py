@@ -18,6 +18,7 @@ def main(args):
         print("active: Remote Control is on in this session; send a `notify` push where a step says to.")
     else:
         print("inactive: Remote Control is off in this session; send no push, and keep the step in your tab.")
+    return 0
 
 
 if __name__ == "__main__":

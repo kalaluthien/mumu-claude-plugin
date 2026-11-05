@@ -115,6 +115,7 @@ def main(args):
         print(items[number]["head"])
         for record in items[number]["records"][:3]:
             print(f"  {record}")
+    return 0
 
 
 if __name__ == "__main__":

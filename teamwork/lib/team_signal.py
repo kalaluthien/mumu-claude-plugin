@@ -4,6 +4,12 @@ import claude_config
 SIGNAL = claude_config.folder() / "teamwork" / "issues-changed"
 
 
+def touch():
+    """Marks a change to the issues, which the issue pane and the heartbeat wait on."""
+    SIGNAL.parent.mkdir(parents=True, exist_ok=True)
+    SIGNAL.touch()
+
+
 def stamp():
     """When the signal file last changed, in nanoseconds; 0 when it is missing."""
     try:

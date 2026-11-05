@@ -16,6 +16,62 @@ import board  # noqa: E402
 import issue_state  # noqa: E402
 
 
+def misordered(diff):
+    """(number, header, previous header) of the first hunk of DIFF that starts above the end of the hunk before it, else None; patch fails on such a diff without saying which."""
+    end, previous = 0, None
+    for number, hunk in enumerate(re.finditer(r"^@@ -(\d+)(?:,(\d+))? .*", diff, re.M), 1):
+        start, size = int(hunk[1]), int(hunk[2] or 1)
+        if start < end:
+            return number, hunk[0], previous
+        end, previous = start + max(size, 1), hunk[0]
+
+
+def defect_text(found):
+    return "edit-issue-body: nothing posted or changed, the edit has defects:\n- " + "\n- ".join(found) + f"\nthe grammar is {issue_state.GRAMMAR}"
+
+
+def patch(body, diff_file, *options):
+    # --forward: an applied diff reads as reversed, which a bare dry run would accept
+    return subprocess.run(["patch", "--forward", "--batch", "-s", *options, str(body), diff_file], capture_output=True, text=True)
+
+
+def land(issue, diff_file, base, comment, work, refusal):
+    """The comment's url once the check, the comment and the body edit have landed; None, with the (exit code, message) in REFUSAL, when the edit is refused."""
+    # read again on each try: a board that lost a write race runs this again from the newer body, so --base holds against that write too
+    refusal.clear()
+    body = work / "body.md"
+    # the web editor saves CRLF, which a diff written against the shown text never matches
+    body.write_text(board.body(issue).replace("\r\n", "\n"))
+    if board.body_sha(body.read_text()) != base:
+        refusal.append((1, f"edit-issue-body: #{issue}'s body changed since you read it (its body sha is {board.body_sha(body.read_text())}, not {base}), so nothing was posted or changed: read it again and make the diff from that body"))
+        return None
+    check = patch(body, diff_file, "--dry-run")
+    padded = False
+    if check.returncode and not body.read_text().endswith("\n"):
+        # a body read as text can end in a newline the stored one lacks, so a diff made from it ends in one the body has not
+        body.write_text(body.read_text() + "\n")
+        padded = patch(body, diff_file, "--dry-run").returncode == 0
+        if not padded:
+            body.write_text(body.read_text()[:-1])
+    if check.returncode and not padded:
+        refusal.append((1, f"edit-issue-body: the diff does not apply to #{issue}'s body, so nothing was posted or changed:\n{check.stdout}{check.stderr}"))
+        return None
+    applied = patch(body, diff_file, "-o", "-")
+    # a defect the body already held does not block the edit that may fix it
+    found = issue_state.defects("edit-body", applied.stdout, body.read_text())
+    if found:
+        refusal.append((2, defect_text(found)))
+        return None
+    try:
+        board.check_links(issue, applied.stdout)
+    except LookupError as e:
+        refusal.append((1, f"edit-issue-body: {e}"))
+        return None
+    url = board.comment(issue, comment)
+    board.edit(issue, applied.stdout[:-1] if padded and applied.stdout.endswith("\n") else applied.stdout)
+    return url
+
+
 def main(args):
     base = None
     if "--base" in args:
@@ -43,46 +99,9 @@ def main(args):
         print(defect_text(found), file=sys.stderr)
         return 2
     refusal = []
-
-    def land():
-        # read again on each try: a board that lost a write race runs this again from the newer body, so --base holds against that write too
-        refusal.clear()
-        body = work / "body.md"
-        # the web editor saves CRLF, which a diff written against the shown text never matches
-        body.write_text(board.body(issue).replace("\r\n", "\n"))
-        if board.body_sha(body.read_text()) != base:
-            refusal.append((1, f"edit-issue-body: #{issue}'s body changed since you read it (its body sha is {board.body_sha(body.read_text())}, not {base}), so nothing was posted or changed: read it again and make the diff from that body"))
-            return None
-        # --forward: an applied diff reads as reversed, which a bare dry run would accept
-        check = subprocess.run(["patch", "--forward", "--batch", "--dry-run", "-s", str(body), diff_file], capture_output=True, text=True)
-        padded = False
-        if check.returncode and not body.read_text().endswith("\n"):
-            # a body read as text can end in a newline the stored one lacks, so a diff made from it ends in one the body has not
-            body.write_text(body.read_text() + "\n")
-            retry = subprocess.run(["patch", "--forward", "--batch", "--dry-run", "-s", str(body), diff_file], capture_output=True, text=True)
-            padded = retry.returncode == 0
-            if not padded:
-                body.write_text(body.read_text()[:-1])
-        if check.returncode and not padded:
-            refusal.append((1, f"edit-issue-body: the diff does not apply to #{issue}'s body, so nothing was posted or changed:\n{check.stdout}{check.stderr}"))
-            return None
-        applied = subprocess.run(["patch", "--forward", "--batch", "-s", "-o", "-", str(body), diff_file], capture_output=True, text=True)
-        # a defect the body already held does not block the edit that may fix it
-        found = issue_state.defects("edit-body", applied.stdout, body.read_text())
-        if found:
-            refusal.append((2, defect_text(found)))
-            return None
-        try:
-            board.check_links(issue, applied.stdout)
-        except LookupError as e:
-            refusal.append((1, f"edit-issue-body: {e}"))
-            return None
-        url = board.comment(issue, comment)
-        board.edit(issue, applied.stdout[:-1] if padded and applied.stdout.endswith("\n") else applied.stdout)
-        return url
     # the check, the comment and the body land together on a board that can, so a refused edit leaves no comment saying it was made
     try:
-        url = board.atomic(land)
+        url = board.atomic(lambda: land(issue, diff_file, base, comment, work, refusal))
     except LookupError as e:
         print(f"edit-issue-body: {e}", file=sys.stderr)
         return 2
@@ -92,20 +111,7 @@ def main(args):
         return code
     print(url)
     print(f"edit-issue-body: #{issue}'s body now carries the diff its new comment holds")
-
-
-def misordered(diff):
-    """(number, header, previous header) of the first hunk of DIFF that starts above the end of the hunk before it, else None; patch fails on such a diff without saying which."""
-    end, previous = 0, None
-    for number, hunk in enumerate(re.finditer(r"^@@ -(\d+)(?:,(\d+))? .*", diff, re.M), 1):
-        start, size = int(hunk[1]), int(hunk[2] or 1)
-        if start < end:
-            return number, hunk[0], previous
-        end, previous = start + max(size, 1), hunk[0]
-
-
-def defect_text(found):
-    return "edit-issue-body: nothing posted or changed, the edit has defects:\n- " + "\n- ".join(found) + f"\nthe grammar is {issue_state.GRAMMAR}"
+    return 0
 
 
 if __name__ == "__main__":
