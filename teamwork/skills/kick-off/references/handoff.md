@@ -38,10 +38,10 @@ How a manager adds to the owner's words before passing them on, so a worker gets
 
 ## Example
 
-The owner says "내보내기가 너무 느려". The worker brief, 75 words:
+The owner says "내보내기가 너무 느려". The worker brief, 70 words:
 
 > Goal: exporting a 10k-row table feels instant. Why: the owner exports before every meeting, so a wait blocks them. Owner's words: "내보내기가 너무 느려". Guesses: "slow" means over 5 seconds at 10k rows (guess); csv and xlsx both count (guess). Never: change the file format. Free: how to speed it up. Done when: a timed export of the 10k-row sample prints under 5 seconds, base over. Return: the timings and your doubts.
 
-The `Judge note:`, 45 words:
+The `Judge note:`, 35 words:
 
 > Score each outcome `yes`, `no` or `Unknown`. Run the timed export at head, base and a mutant that puts the slow step back. Try 0 rows and 100k rows. Open the output in both readers.
