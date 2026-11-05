@@ -188,6 +188,7 @@ def recount(record):
             "bill": replay_runs.run_units(turns), "opened": sum(row["chars"] for row in reads),
             "unit_per_char": (sum(replay_runs.carry(row["chars"] / replay_runs.CHARS_PER_TOKEN, row["position"], turns) for row in reads)
                               / sum(row["chars"] for row in reads)) if reads else 0.0,
+            "followed": {"references/protocol.md", "references/worker.md"} <= {row["file"].split(KICK_OFF)[-1] for row in reads},
             "turns": len(turns), "cost": result.get("total_cost_usd") or 0.0}
 
 
@@ -229,8 +230,8 @@ def run_all(repeats, limit, parallel, arms, chosen):
 
 
 def per_task(rows, arm, field):
-    return {task: statistics.mean(row[field] for row in rows if row["arm"] == arm and row["task"] == task)
-            for task in {row["task"] for row in rows if row["arm"] == arm}}
+    return {task: statistics.mean(row[field] for row in rows if row["arm"] == arm and row["task"] == task and row["followed"])
+            for task in {row["task"] for row in rows if row["arm"] == arm and row["followed"]}}
 
 
 def arm_figures(rows, arm):
@@ -241,8 +242,10 @@ def arm_figures(rows, arm):
     opened_by_task = per_task(rows, "none", "opened")
     bills, bases = per_task(rows, arm, "bill"), per_task(rows, "none", "bill")
     common = sorted(set(bills) & set(bases))
-    estimates = [(opened_by_task[row["task"]] - row["opened"]) / replay_runs.CHARS_PER_TOKEN * row["unit_per_char"] * replay_runs.CHARS_PER_TOKEN
-                 / row["bill"] for row in here if row["task"] in opened_by_task]
+    followed = {row["task"] for row in base if row["followed"]}
+    # a run that skipped protocol.md or worker.md opens fewer characters for no design's sake, so only runs that read both count
+    estimates = [(opened_by_task[row["task"]] - row["opened"]) * row["unit_per_char"] / row["bill"]
+                 for row in here if row["followed"] and row["task"] in followed]
     return {"runs": len(here), "passed": sum(row["passed"] for row in here),
             "bill": statistics.mean(row["bill"] for row in here) if here else None,
             "cost": statistics.mean(row["cost"] for row in here) if here else None,
