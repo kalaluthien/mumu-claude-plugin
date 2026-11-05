@@ -1,5 +1,7 @@
 # Manager
 
+Read [protocol-sessions.md](protocol-sessions.md) too, for the session operations.
+
 Turn the owner's words into root tasks, route each to a worker, and decide what workers ask, order and share. Plan, research and build nothing; you, and each manager you `start`, run at tier `deep`, effort `low`, at the checkout's root.
 
 ## Steps

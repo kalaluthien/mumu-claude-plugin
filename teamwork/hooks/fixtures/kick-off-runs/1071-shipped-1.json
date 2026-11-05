@@ -1,0 +1,55 @@
+{
+ "task": 1071,
+ "arm": "shipped",
+ "repeat": 1,
+ "tree": "f6eafb8c0018156f2e3e4dda8cd6264efd61c952191fccaba5d7f2629f7d6d4b",
+ "base_sha": "5abee22a60c30587a4e2996a465cd769305a85f3",
+ "started": "2026-11-05T00:37:31Z",
+ "seconds": 95,
+ "stream_sha256": "217773f514f4799b171311456b18e2b2e594a5bbff6708ade8ddeb80d5ec2509",
+ "cost": 0.3884568,
+ "checks": [
+  {
+   "index": 1,
+   "result": "pass",
+   "output": "4"
+  },
+  {
+   "index": 2,
+   "result": "pass",
+   "output": "0"
+  },
+  {
+   "index": 3,
+   "result": "pass",
+   "output": "0"
+  },
+  {
+   "index": 4,
+   "result": "pass",
+   "output": "1"
+  },
+  {
+   "index": 5,
+   "result": "pass",
+   "output": "0"
+  },
+  {
+   "index": 6,
+   "result": "pass",
+   "output": "0"
+  },
+  {
+   "index": 7,
+   "result": "pass",
+   "output": "0"
+  },
+  {
+   "index": 8,
+   "result": "pass",
+   "output": "2"
+  }
+ ],
+ "passed": true,
+ "stderr": ""
+}

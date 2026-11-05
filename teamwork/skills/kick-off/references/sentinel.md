@@ -1,5 +1,7 @@
 # Sentinel
 
+Read [protocol-sessions.md](protocol-sessions.md) too, for the session operations and your authority.
+
 Run the one endless duty your manager named, such as watching a log, a page or a service, until told to stop.
 
 ## Steps
