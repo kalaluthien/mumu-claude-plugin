@@ -22,7 +22,8 @@ failed = []
 
 def step(name, ok, detail=""):
     print(f"ok {name}" if ok else f"fail {name}: {str(detail).strip()}", flush=True)
-    failed.extend([] if ok else [name])
+    if not ok:
+        failed.append(name)
 
 
 def main(args):
@@ -30,22 +31,22 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     work = pathlib.Path(tempfile.mkdtemp(prefix="git-board-"))
-    repo, outside = work / "repo", work / "outside"
-    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    repository, outside = work / "repo", work / "outside"
+    subprocess.run(["git", "init", "-q", str(repository)], check=True)
     outside.mkdir()
     os.environ.update(HOME=str(work), CLAUDE_CONFIG_DIR=str(work / "home"))
-    os.chdir(repo)
+    os.chdir(repository)
     sys.path.insert(0, str(ROOT / "lib"))
     import board_git
     import team_signal
 
-    def use(*argv, cwd=repo):
+    def use(*argv, cwd=repository):
         return subprocess.run([sys.executable, str(USE), *map(str, argv)], cwd=cwd, capture_output=True, text=True)
 
     (work / "b.md").write_text("A body.\n")
     (work / "c.md").write_text("A comment.\n")
     (work / "waits.md").write_text("A body.\n\n```teamwork\ndepends on: #1\n```\n")
-    (repo / "probe").mkdir()
+    (repository / "probe").mkdir()
     start = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 5))
     use("file", "First", work / "b.md", "--scope", "probe")
     use("file", "Second", work / "waits.md")
@@ -73,7 +74,7 @@ def main(args):
     refused = use("file", "Nowhere", work / "b.md", cwd=outside)
     step("outside", refused.returncode == 1 and "git repository" in refused.stderr and not refused.stdout, refused.stdout + refused.stderr)
 
-    lock = repo / ".git" / "refs" / "teamwork-blackboard.lock"
+    lock = repository / ".git" / "refs" / "teamwork-blackboard.lock"
     lock.write_text("")
     os.utime(lock, (time.time() - 60,) * 2)  # as a killed writer leaves it
     began = time.time()

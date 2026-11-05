@@ -13,7 +13,6 @@ the user source); `memory` (auto-memory); `full` (MCP servers too, as a session 
 `--dry-run` prints each layer's environment switches and command line instead of running it."""
 import json
 import os
-import pathlib
 import subprocess
 import sys
 import tempfile
@@ -21,8 +20,8 @@ import tempfile
 LAYERS = ["clean", "repository", "plugins", "user-settings", "claude-md", "memory", "full"]
 
 
-def first_context(command, env, cwd):
-    out = subprocess.run(command, env=env, cwd=cwd, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=600).stdout
+def first_context(command, environment, cwd):
+    out = subprocess.run(command, env=environment, cwd=cwd, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=600).stdout
     for line in out.splitlines():
         try:
             event = json.loads(line)
@@ -36,10 +35,10 @@ def first_context(command, env, cwd):
 
 
 def main(args):
-    model, cwd, plugins, dry = "sonnet", os.getcwd(), [], False
+    model, cwd, plugins, dry_run = "sonnet", os.getcwd(), [], False
     while args:
         if args[0] == "--dry-run":
-            dry, args = True, args[1:]
+            dry_run, args = True, args[1:]
         elif args[0] in ("--model", "--cwd", "--plugin-dir") and len(args) > 1:
             if args[0] == "--model":
                 model = args[1]
@@ -52,13 +51,13 @@ def main(args):
             print(__doc__, file=sys.stderr)
             return 2
     empty = tempfile.mkdtemp(prefix="start-context-")
-    if not dry:
+    if not dry_run:
         print("| layer added | first-turn context tokens | added by the layer |")
         print("| --- | --- | --- |")
     previous = None
     for depth, layer in enumerate(LAYERS):
         on = set(LAYERS[:depth + 1])
-        env = dict(os.environ)
+        environment = dict(os.environ)
         command = ["claude", "-p", "Reply with the single word: ok", "--model", model, "--output-format", "stream-json",
                    "--verbose", "--no-session-persistence"]
         if "full" not in on:
@@ -66,20 +65,20 @@ def main(args):
         sources = (["user"] if "user-settings" in on else []) + (["project", "local"] if "repository" in on else [])
         command += ["--setting-sources", ",".join(sources)]
         for key, layer_on in (("CLAUDE_CODE_DISABLE_CLAUDE_MDS", "claude-md" in on), ("CLAUDE_CODE_DISABLE_AUTO_MEMORY", "memory" in on)):
-            env.pop(key, None) if layer_on else env.update({key: "1"})
+            environment.pop(key, None) if layer_on else environment.update({key: "1"})
         if "plugins" in on and "user-settings" not in on:
             for plugin in plugins:
                 command += ["--plugin-dir", plugin]
-        if dry:
-            switches = [f"{key}=1" for key in ("CLAUDE_CODE_DISABLE_CLAUDE_MDS", "CLAUDE_CODE_DISABLE_AUTO_MEMORY") if key in env]
+        if dry_run:
+            switches = [f"{key}=1" for key in ("CLAUDE_CODE_DISABLE_CLAUDE_MDS", "CLAUDE_CODE_DISABLE_AUTO_MEMORY") if key in environment]
             print(f"{layer}: {' '.join(switches)} {subprocess.list2cmdline(command)}")
             continue
-        tokens = first_context(command, env, cwd if "repository" in on else empty)
+        tokens = first_context(command, environment, cwd if "repository" in on else empty)
         added = "" if previous is None or tokens is None else f"{tokens - previous:+,}"
         print(f"| {layer} | {tokens if tokens is not None else 'no answer'} | {added} |")
         previous = tokens if tokens is not None else previous
-    if not dry:
-            print("Reading: each layer's tokens are re-read by every turn of a session; the largest added is the first to cut.")
+    if not dry_run:
+        print("Reading: each layer's tokens are re-read by every turn of a session; the largest added is the first to cut.")
     return 0
 
 

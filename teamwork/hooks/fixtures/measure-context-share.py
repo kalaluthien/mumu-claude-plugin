@@ -27,7 +27,9 @@ import statistics
 import sys
 from collections import defaultdict
 
-WEIGHT = {"opus": 5.0, "sonnet": 3.0, "haiku": 1.0}
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "lib"))
+from replay_runs import read_options, text_of, turn_input, weight, write_rate  # noqa: E402
+
 # a read may follow a `cd` or a variable set in the same call, so each `&&` or `;` segment is tried
 SHELL_READ = re.compile(r"(?:^|&&|;)\s*(?:rtk\s+read|cat|head|tail|less|more|sed\s+-n)\s")
 PREFIX = re.compile(r"^(?:cd\s+\S+|[A-Za-z_][A-Za-z0-9_]*=\S*|export\s+\S+|rtk)$")
@@ -38,29 +40,8 @@ FILE_READS = {"Bash cat", "Bash sed", "Bash head", "Bash tail", "Bash large read
 CALIBRATE_CHARS = 8000
 
 
-def weight(model):
-    return next((value for key, value in WEIGHT.items() if key in (model or "")), 0.0)
-
-
-def write_rate(usage):
-    return 2.0 if (usage.get("cache_creation") or {}).get("ephemeral_1h_input_tokens", 0) else 1.25
-
-
-def input_cost(usage):
-    creation = usage.get("cache_creation") or {}
-    hour = creation.get("ephemeral_1h_input_tokens", 0)
-    minutes = creation.get("ephemeral_5m_input_tokens", usage.get("cache_creation_input_tokens", 0) - hour)
-    return usage.get("input_tokens", 0) + 1.25 * minutes + 2 * hour + 0.1 * usage.get("cache_read_input_tokens", 0)
-
-
 def context(usage):
     return usage.get("input_tokens", 0) + usage.get("cache_creation_input_tokens", 0) + usage.get("cache_read_input_tokens", 0)
-
-
-def text_of(content):
-    if isinstance(content, str):
-        return content
-    return "".join(part.get("text", "") for part in content or [] if isinstance(part, dict))
 
 
 def read_rows(path):
@@ -135,7 +116,7 @@ def walk(rows, lines_cap, caps=()):
     def segment_end(index):
         return next((boundary for boundary in compactions if boundary > index), float("inf"))
 
-    bill = sum(weight(model) * (input_cost(usage) + 5 * usage.get("output_tokens", 0)) for _, usage, model in turns)
+    bill = sum(weight(model) * (turn_input(usage) + 5 * usage.get("output_tokens", 0)) for _, usage, model in turns)
     output = sum(weight(model) * 5 * usage.get("output_tokens", 0) for _, usage, model in turns)
     start, starts = 0.0, [-1] + compactions
     for boundary in starts:
@@ -143,7 +124,7 @@ def walk(rows, lines_cap, caps=()):
         if inside:
             first_usage, first_model = inside[0][1], inside[0][2]
             tokens = context(first_usage)
-            start += weight(first_model) * input_cost(first_usage)
+            start += weight(first_model) * turn_input(first_usage)
             start += sum(weight(model) * 0.1 * tokens for _, _, model in inside[1:])
     found = []
     for index, use_id, text, alone in results:
@@ -168,13 +149,11 @@ def walk(rows, lines_cap, caps=()):
 
 
 def main(args):
-    options = {"--since": "2026-10-01", "--until": "9999", "--lines": "350", "--top": "25", "--caps": "",
-               "--projects": str(pathlib.Path.home() / ".claude/projects"), "--rows": None}
-    while args:
-        if args[0] not in options or len(args) < 2:
-            print(__doc__, file=sys.stderr)
-            return 2
-        options[args[0]], args = args[1], args[2:]
+    options = read_options(args, {"--since": "2026-10-01", "--until": "9999", "--lines": "350", "--top": "25", "--caps": "",
+                                  "--projects": str(pathlib.Path.home() / ".claude/projects"), "--rows": None})
+    if options is None:
+        print(__doc__, file=sys.stderr)
+        return 2
     lines_cap = int(options["--lines"])
     caps = [int(cap) for cap in options["--caps"].split(",") if cap]
     totals, by_role = defaultdict(float), defaultdict(float)
@@ -187,8 +166,8 @@ def main(args):
         sessions += 1
         name = session_name(rows)
         role = name.rsplit("-", 1)[-1] if name.rsplit("-", 1)[-1] in ("worker", "manager", "sentinel") else "other"
-        transcripts = [(rows, role, str(path))] + [(read_rows(sub), "subagent", str(sub))
-                                                    for sub in (path.parent / path.stem / "subagents").glob("agent-*.jsonl")]
+        transcripts = [(rows, role, str(path))] + [(read_rows(subagent), "subagent", str(subagent))
+                                                    for subagent in (path.parent / path.stem / "subagents").glob("agent-*.jsonl")]
         for transcript, who, where in transcripts:
             bill, output, start, found = walk(transcript, lines_cap, caps)
             totals["bill"] += bill

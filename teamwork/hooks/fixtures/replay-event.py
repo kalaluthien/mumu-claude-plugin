@@ -5,7 +5,6 @@ usage: replay-event.py <Pre|Post> <settings json, or none for no settings file> 
 `REPLAY_SESSION_ID` in the environment is the event's session id, so a repeat call can meet the hook's once-per-session reminders.
 With `text` it prints the hook's message (the deny reason, the block reason and the context) on the lines after the verdict.
 A fake herdr names the session t-worker."""
-import json
 import os
 import pathlib
 import subprocess
@@ -13,6 +12,8 @@ import sys
 import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parents[1] / "lib"))
+import replay_probe  # noqa: E402
 
 
 def main(args):
@@ -21,11 +22,8 @@ def main(args):
         return 2
     kind, settings, command = args[:3]  # args[3] may be `text`
     folder = pathlib.Path(tempfile.mkdtemp())
-    (folder / "bin").mkdir()
     (folder / "repo").mkdir()
-    for name, out in (("herdr", {"result": {"agents": [{"pane_id": "p1", "name": "t-worker"}]}}),):
-        (folder / "bin" / name).write_text(f"#!/bin/sh\necho '{json.dumps(out)}'\n")
-        (folder / "bin" / name).chmod(0o755)
+    stubs = replay_probe.fake_herdr(folder, [{"pane_id": "p1", "name": "t-worker"}])
     subprocess.run(["git", "init", "-q", str(folder / "repo")], check=True)
     if settings != "none":
         (folder / "repo" / ".teamwork").mkdir()
@@ -33,9 +31,7 @@ def main(args):
     event = {"hook_event_name": kind + "ToolUse", "cwd": str(folder / "repo"), "tool_input": {"command": command},
              "tool_response": "https://github.com/o/r/issues/5",
              "session_id": os.environ.get("REPLAY_SESSION_ID")}
-    env = {**os.environ, "PATH": f"{folder / 'bin'}:{os.environ['PATH']}", "HERDR_PANE_ID": "p1"}
-    out = subprocess.run([str(HERE.parent / "route-event.py")], input=json.dumps(event), capture_output=True, text=True, env=env).stdout
-    got = json.loads(out) if out.strip() else {}
+    got = replay_probe.route_event(HERE.parent / "route-event.py", event, stubs)
     hook = got.get("hookSpecificOutput", {})
     print("block" if got.get("decision") == "block" else "deny" if hook.get("permissionDecision") == "deny"
           else "warn" if str(hook.get("additionalContext", "")).startswith("Warning:") else "other" if got else "silent")

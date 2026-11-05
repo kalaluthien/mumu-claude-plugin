@@ -20,11 +20,3 @@ Arguments: $ARGUMENTS
 | `sentinel <name> manager <manager>`, then a duty's words or url | sentinel | [references/sentinel.md](references/sentinel.md) |
 | `succeed <name>` | manager | [references/manager.md](references/manager.md)'s Succession |
 | anything else | manager | [references/manager.md](references/manager.md) |
-
-Do each operation they name as [references/adapters.md](references/adapters.md) says for the adapter in use.
-
-**Write it right once**: a board write passes its text as a file written first by the Write tool, never a bare `cat >` in a chained call, which waits on stdin until the call times out, and carries a title of at most 40 characters, since a hook denies the call otherwise and nothing runs.
-
-**Stay in your worktree**: a worker never starts a command with `cd` into the live checkout, since a hook denies it; read that checkout by path or `git -C`.
-
-**Edit a body by diff**: an issue body changes only by `edit-issue-body.py <issue> <diff-file> "DECIDED: <why>" --base <body sha>`, the diff file a unified diff of the body written first.

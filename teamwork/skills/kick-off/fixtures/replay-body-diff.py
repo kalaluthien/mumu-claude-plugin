@@ -12,22 +12,25 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import replay_probe  # noqa: E402
+
 SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
 STORED = "Probe the diff.\n\nSecond paragraph."
 
 
 def setup():
     work = pathlib.Path(tempfile.mkdtemp(prefix="body-diff-"))
-    repo = work / "repo"
-    subprocess.run(["git", "init", "-q", str(repo)], check=True)
-    env = {**os.environ, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home")}
+    repository = work / "repo"
+    subprocess.run(["git", "init", "-q", str(repository)], check=True)
+    environment = {**os.environ, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home")}
     (work / "body.md").write_text(STORED)
-    made = run(env, repo, "use-board.py", "file", "Probe the diff", work / "body.md")
-    return work, repo, env, made.stdout.strip().rsplit("/", 1)[-1]
+    made = run(environment, repository, "use-board.py", "file", "Probe the diff", work / "body.md")
+    return work, repository, environment, made.stdout.strip().rsplit("/", 1)[-1]
 
 
-def run(env, repo, script, *argv):
-    return subprocess.run([sys.executable, str(SCRIPTS / script), *map(str, argv)], cwd=repo, capture_output=True, text=True, env=env)
+def run(environment, repository, script, *argv):
+    return replay_probe.run_python(SCRIPTS / script, repository, environment, *argv)
 
 
 def diff_of(old, new, work):
@@ -39,61 +42,56 @@ def diff_of(old, new, work):
     return path
 
 
-def read(env, repo, number):
-    return run(env, repo, "use-board.py", "read", number).stdout
+def read(environment, repository, number):
+    return run(environment, repository, "use-board.py", "read", number).stdout
 
 
-def apply(work, repo, env, number, old, new):
-    sha = next(line.split("body sha: ")[1].strip() for line in read(env, repo, number).splitlines() if "body sha: " in line)
-    return run(env, repo, "edit-issue-body.py", number, diff_of(old, new, work), "DECIDED: probe the diff", "--base", sha)
+def apply(work, repository, environment, number, old, new):
+    sha = next(line.split("body sha: ")[1].strip() for line in read(environment, repository, number).splitlines() if "body sha: " in line)
+    return run(environment, repository, "edit-issue-body.py", number, diff_of(old, new, work), "DECIDED: probe the diff", "--base", sha)
 
 
-def case_newline(work, repo, env, number):
-    done = apply(work, repo, env, number, STORED + "\n", STORED.replace("Second", "Edited second") + "\n")
+def case_newline(work, repository, environment, number):
+    done = apply(work, repository, environment, number, STORED + "\n", STORED.replace("Second", "Edited second") + "\n")
     if done.returncode:
-        return fail(f"exit {done.returncode}: {done.stderr.strip()[-300:]}")
-    stored = subprocess.run(["git", "show", "refs/teamwork-blackboard:" + number + "/body.md"], cwd=repo, capture_output=True, text=True).stdout
+        return replay_probe.fail(f"exit {done.returncode}: {done.stderr.strip()[-300:]}")
+    stored = subprocess.run(["git", "show", "refs/teamwork-blackboard:" + number + "/body.md"], cwd=repository, capture_output=True, text=True).stdout
     if stored != STORED.replace("Second", "Edited second"):
-        return fail(f"the body is {stored!r}")
+        return replay_probe.fail(f"the body is {stored!r}")
     return 0
 
 
-def case_exact(work, repo, env, number):
-    done = apply(work, repo, env, number, STORED, STORED.replace("Second", "Edited second"))
-    if done.returncode or "Edited second paragraph." not in read(env, repo, number):
-        return fail(f"exit {done.returncode}: {done.stderr.strip()[-300:]}")
+def case_exact(work, repository, environment, number):
+    done = apply(work, repository, environment, number, STORED, STORED.replace("Second", "Edited second"))
+    if done.returncode or "Edited second paragraph." not in read(environment, repository, number):
+        return replay_probe.fail(f"exit {done.returncode}: {done.stderr.strip()[-300:]}")
     return 0
 
 
-def case_mismatch(work, repo, env, number):
-    before = read(env, repo, number)
-    done = apply(work, repo, env, number, "Other text.\n\nThird paragraph.\n", "Other text.\n\nEdited paragraph.\n")
-    if done.returncode == 0 or read(env, repo, number) != before:
-        return fail(f"exit {done.returncode}, the body or its comments changed: {done.stderr.strip()[-200:]}")
+def case_mismatch(work, repository, environment, number):
+    before = read(environment, repository, number)
+    done = apply(work, repository, environment, number, "Other text.\n\nThird paragraph.\n", "Other text.\n\nEdited paragraph.\n")
+    if done.returncode == 0 or read(environment, repository, number) != before:
+        return replay_probe.fail(f"exit {done.returncode}, the body or its comments changed: {done.stderr.strip()[-200:]}")
     return 0
 
 
-def case_misordered(work, repo, env, number):
+def case_misordered(work, repository, environment, number):
     body = "Probe the hunks.\n\n" + "".join(f"line {n}\n" for n in range(1, 21))
     (work / "body.md").write_text(body)
-    made = run(env, repo, "use-board.py", "file", "Probe misordered hunks", work / "body.md")
+    made = run(environment, repository, "use-board.py", "file", "Probe misordered hunks", work / "body.md")
     other = made.stdout.strip().rsplit("/", 1)[-1]
-    before = read(env, repo, other)
+    before = read(environment, repository, other)
     late = "@@ -17,3 +17,3 @@\n line 15\n-line 16\n+late 16\n line 17\n"
     early = "@@ -4,3 +4,3 @@\n line 2\n-line 3\n+early 3\n line 4\n"
     (work / "bad.diff").write_text("--- a/body\n+++ b/body\n" + late + early)
     sha = next(line.split("body sha: ")[1].strip() for line in before.splitlines() if "body sha: " in line)
-    done = run(env, repo, "edit-issue-body.py", other, work / "bad.diff", "DECIDED: probe misordered hunks", "--base", sha)
+    done = run(environment, repository, "edit-issue-body.py", other, work / "bad.diff", "DECIDED: probe misordered hunks", "--base", sha)
     if done.returncode != 2 or "hunk 2" not in done.stderr or "@@ -4,3 +4,3 @@" not in done.stderr or "out of order" not in done.stderr:
-        return fail(f"exit {done.returncode}, stderr {done.stderr.strip()[-300:]!r}")
-    if read(env, repo, other) != before:
-        return fail("the body or its comments changed")
+        return replay_probe.fail(f"exit {done.returncode}, stderr {done.stderr.strip()[-300:]!r}")
+    if read(environment, repository, other) != before:
+        return replay_probe.fail("the body or its comments changed")
     return 0
-
-
-def fail(why):
-    print(f"FAIL: {why}")
-    return 1
 
 
 CASES = {"newline": case_newline, "exact": case_exact, "mismatch": case_mismatch, "misordered": case_misordered}

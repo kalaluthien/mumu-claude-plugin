@@ -11,10 +11,10 @@ import functools
 import json
 import re
 import shlex
-from datetime import datetime, timezone
 
-import task_links
 import board_scope
+import iso_time
+import task_links
 import team_signal
 
 USE = re.compile(r"use-board\.py\s+(file|comment|decide|edit|title|resolve|reopen|label)\b([^;&|\n]*)")
@@ -73,18 +73,13 @@ class Store:
         if self.pending is not None:
             return change()
         result = self.keep(change)
-        team_signal.SIGNAL.parent.mkdir(parents=True, exist_ok=True)
-        team_signal.SIGNAL.touch()  # the issue pane rereads on it
+        team_signal.touch()  # the issue pane rereads on it
         return result
 
     def view(self):
         """Refreshes before a read, except inside a change, which reads the state it started from."""
         if self.pending is None:
             self.refresh()
-
-
-def stamp(seconds=None):
-    return datetime.fromtimestamp(seconds or datetime.now().timestamp(), timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def numbers(store):
@@ -115,7 +110,7 @@ def meta(store, number):
 def save(store, number, **change):
     """Stages NUMBER's changed fields; a change to a missing issue raises, never makes it."""
     old = meta(store, number) if change.get("createdAt") is None else {}
-    store.stage(f"{home(store, number)}/issue.json", json.dumps({**old, **change, "updatedAt": stamp()}))
+    store.stage(f"{home(store, number)}/issue.json", json.dumps({**old, **change, "updatedAt": iso_time.stamp()}))
 
 
 def comment_paths(store, number):
@@ -129,7 +124,7 @@ def record(store, number, comments=True, owners=None):
     given = issue.get("commentTimes", [])  # a copy of another board keeps the times its comments had there
     address = store.url(home(store, number))
     notes = [{"body": store.read(path), "url": f"{address}#comment-{int(path.rsplit('/', 1)[1][:-3])}",
-              "createdAt": given[at] if at < len(given) else stamp(store.written(path)), "trusted": True}
+              "createdAt": given[at] if at < len(given) else iso_time.stamp(store.written(path)), "trusted": True}
              for at, path in enumerate(comment_paths(store, number))] if comments else []
     return {"number": number, "title": issue["title"], "body": store.read(f"{home(store, number)}/body.md"), "url": address, "scope": store.place(number), "state": issue["state"], "stateReason": issue["reason"],
             "createdAt": issue["createdAt"], "closedAt": issue["closedAt"], "trusted": True, "labels": issue["labels"], "parent": parent_of(store, number) if owners is None else owners.get(number), "isPullRequest": False,
@@ -153,10 +148,7 @@ def issues(store, state="open", project=None, pulls=False, comments=True, since=
 
 def fresh(store, number, repo=None, comments=True):
     store.view()
-    try:
-        return record(store, int(number), comments)
-    except (OSError, ValueError, KeyError):
-        return None
+    return exists(store, number, comments)
 
 
 def comments_since(store, since):
@@ -180,9 +172,10 @@ def parent_of(store, number):
     return next((owner for owner in numbers(store) if int(number) in task_links.parts(store.read(f"{home(store, owner)}/body.md"))), None)
 
 
-def exists(store, number):
+def exists(store, number, comments=False):
+    """NUMBER's record, None when no issue has that number or its files cannot be read."""
     try:
-        return record(store, int(number), comments=False)
+        return record(store, int(number), comments)
     except (OSError, ValueError, KeyError):
         return None
 
@@ -237,7 +230,7 @@ def file(store, title, body, labels, scope=None) -> int:
         check_links(store, None, body)
         number = next_number(store)
         store.stage(f"{folder}/{number}/body.md" if folder else f"{number}/body.md", body)  # before issue.json, so a reader that lists the issue finds its body
-        save(store, number, title=title, labels=list(labels), state="OPEN", reason="", createdAt=stamp(), closedAt=None)
+        save(store, number, title=title, labels=list(labels), state="OPEN", reason="", createdAt=iso_time.stamp(), closedAt=None)
         return number
     return store.write(change)
 
@@ -262,7 +255,7 @@ def edit(store, number, text):
 def resolve(store, number, summary, completed=True):
     def change():
         comment(store, number, summary)
-        save(store, number, state="CLOSED", reason="COMPLETED" if completed else "NOT_PLANNED", closedAt=stamp())
+        save(store, number, state="CLOSED", reason="COMPLETED" if completed else "NOT_PLANNED", closedAt=iso_time.stamp())
     store.write(change)
 
 

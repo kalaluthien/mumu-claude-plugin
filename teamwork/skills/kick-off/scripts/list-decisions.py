@@ -13,10 +13,10 @@ import issue_state  # noqa: E402
 
 
 def main(args):
-    if len(args) != 1 or not args[0].lstrip("#").isdigit():
+    number = decisions.task_number(args[0]) if len(args) == 1 else None
+    if number is None:
         print(__doc__, file=sys.stderr)
         return 2
-    number = int(args[0].lstrip("#"))
     try:
         issues = decisions.read(number, board.fresh)
     except LookupError as e:

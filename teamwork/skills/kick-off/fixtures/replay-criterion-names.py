@@ -11,52 +11,45 @@ import subprocess
 import sys
 import tempfile
 
-SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
 LIB = pathlib.Path(__file__).resolve().parents[3] / "lib"
+sys.path.insert(0, str(LIB))
+import replay_probe  # noqa: E402
+
+SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
 LISTER = pathlib.Path(__file__).resolve().parents[3] / "hooks" / "list-issue-board.py"
 SENTENCE = "The closed list shows the latest four tasks"
 BODY = "## Goal\n\nProbe the names.\n\n## Definition of done\n\n1. [check] **{name}**: `echo PASS` prints `PASS`; on base `FAIL`.\n"
 
 
-def run(env, repo, script, *argv):
-    return subprocess.run([sys.executable, str(script), *map(str, argv)], cwd=repo, capture_output=True, text=True, env=env)
-
-
-def fail(why):
-    print(f"FAIL: {why}")
-    return 1
-
-
 def case_gate():
     work = pathlib.Path(tempfile.mkdtemp(prefix="names-"))
-    repo = work / "proj"
-    subprocess.run(["git", "init", "-q", str(repo)], check=True)
-    env = {**os.environ, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home")}
+    repository = work / "proj"
+    subprocess.run(["git", "init", "-q", str(repository)], check=True)
+    environment = {**os.environ, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home")}
     (work / "label.md").write_text(BODY.format(name="Four closed"))
-    filed = run(env, repo, SCRIPTS / "use-board.py", "file", "Probe the names", work / "label.md")
-    if filed.returncode != 2 or "Complete sentence" not in filed.stderr or run(env, repo, SCRIPTS / "use-board.py", "read", "1").returncode == 0:
-        return fail(f"a label was filed or not named: exit {filed.returncode}, {filed.stderr.strip()[-200:]!r}")
+    filed = replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "file", "Probe the names", work / "label.md")
+    if filed.returncode != 2 or "Complete sentence" not in filed.stderr or replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "read", "1").returncode == 0:
+        return replay_probe.fail(f"a label was filed or not named: exit {filed.returncode}, {filed.stderr.strip()[-200:]!r}")
     (work / "sentence.md").write_text(BODY.format(name=SENTENCE))
-    filed = run(env, repo, SCRIPTS / "use-board.py", "file", "Probe the names", work / "sentence.md")
+    filed = replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "file", "Probe the names", work / "sentence.md")
     if filed.returncode:
-        return fail(f"a sentence was refused: {filed.stderr.strip()[-200:]!r}")
-    shown = run(env, repo, LISTER, "proj").stdout
+        return replay_probe.fail(f"a sentence was refused: {filed.stderr.strip()[-200:]!r}")
+    shown = replay_probe.run_python(LISTER, repository, environment, "proj").stdout
     if f"○ {SENTENCE}" not in shown:
-        return fail(f"the pane's list lacks the sentence on its circle line: {shown!r}")
-    before = run(env, repo, SCRIPTS / "use-board.py", "read", "1").stdout
+        return replay_probe.fail(f"the pane's list lacks the sentence on its circle line: {shown!r}")
+    before = replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "read", "1").stdout
     sha = next(line.split("body sha: ")[1].strip() for line in before.splitlines() if "body sha: " in line)
     (work / "old").write_text(BODY.format(name=SENTENCE))
     (work / "new").write_text(BODY.format(name=SENTENCE) + "2. [check] **Honest count**: `echo PASS` prints `PASS`; on base `FAIL`.\n")
     diff = subprocess.run(["diff", "-u", "--label", "a/body", "--label", "b/body", "old", "new"], cwd=work, capture_output=True, text=True).stdout
     (work / "edit.diff").write_text(diff)
-    edited = run(env, repo, SCRIPTS / "use-board.py", "edit", "1", work / "edit.diff", "DECIDED: add a label", "--base", sha)
-    if edited.returncode != 2 or "Complete sentence" not in edited.stderr or run(env, repo, SCRIPTS / "use-board.py", "read", "1").stdout != before:
-        return fail(f"an edit that adds a label was not refused cleanly: exit {edited.returncode}, {edited.stderr.strip()[-200:]!r}")
+    edited = replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "edit", "1", work / "edit.diff", "DECIDED: add a label", "--base", sha)
+    if edited.returncode != 2 or "Complete sentence" not in edited.stderr or replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "read", "1").stdout != before:
+        return replay_probe.fail(f"an edit that adds a label was not refused cleanly: exit {edited.returncode}, {edited.stderr.strip()[-200:]!r}")
     return 0
 
 
 def case_open():
-    sys.path.insert(0, str(LIB))
     import issue_state
     common = subprocess.run(["git", "rev-parse", "--git-common-dir"], capture_output=True, text=True, check=True).stdout.strip()
     show = lambda path: subprocess.run(["git", f"--git-dir={common}", "show", f"refs/teamwork-blackboard:{path}"], capture_output=True, text=True).stdout
@@ -69,7 +62,7 @@ def case_open():
                 name = issue_state.CRITERION.match(item).group(3)
                 if name and (issue_state.sentence("criterion name", name) or issue_state.plain("criterion name", name)):
                     bad.append(f"{path.rsplit('/', 2)[0]}: {name}")
-    return fail("; ".join(bad)) if bad else 0
+    return replay_probe.fail("; ".join(bad)) if bad else 0
 
 
 CASES = {"gate": case_gate, "open": case_open}

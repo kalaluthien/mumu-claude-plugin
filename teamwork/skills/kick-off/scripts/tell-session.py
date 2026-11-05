@@ -29,6 +29,7 @@ def main(args):
     if not delivered:
         sys.exit(f"not delivered to {name}: {how}")
     print(" ".join(filter(None, ["delivered to", name, how])))
+    return 0
 
 
 if __name__ == "__main__":

@@ -11,135 +11,123 @@ usage: replay-local-landing.py --case <name>
 import json
 import os
 import pathlib
-import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import replay_probe  # noqa: E402
+
 SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
-
-
-def sh(*argv, cwd, env, check=True):
-    run = subprocess.run([str(a) for a in argv], cwd=cwd, env=env, capture_output=True, text=True)
-    if check and run.returncode:
-        raise RuntimeError(f"{' '.join(map(str, argv))}: {run.stdout}{run.stderr}")
-    return run
+sh = replay_probe.sh
 
 
 def setup(remote=True):
     work = pathlib.Path(tempfile.mkdtemp(prefix="local-landing-"))
-    (work / "bin").mkdir()
+    stub = replay_probe.stub_gh(work)
     (work / "gh.log").write_text("")
-    stub = work / "bin" / "gh"
-    stub.write_text(f"#!/bin/sh\necho \"$@\" >> {work / 'gh.log'}\nexit 1\n")
-    stub.chmod(0o755)
-    (work / "gitconfig").write_text("[user]\n\tname = probe\n\temail = probe@example.com\n[init]\n\tdefaultBranch = main\n")
-    env = {**dict(os.environ), "PATH": f"{work / 'bin'}:{os.environ['PATH']}", "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "claude"), "GIT_CONFIG_GLOBAL": str(work / "gitconfig")}
-    repo, origin = work / "repo", work / "origin.git"
-    sh("git", "init", "-q", repo, cwd=work, env=env)
-    (repo / "a.txt").write_text("base\n")
-    (repo / "a b.txt").write_text("base\n")
-    sh("git", "add", "-A", cwd=repo, env=env)
-    sh("git", "commit", "-q", "-m", "base", cwd=repo, env=env)
+    replay_probe.write_git_config(work)
+    environment = {**dict(os.environ), "PATH": f"{stub}:{os.environ['PATH']}", "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "claude"), "GIT_CONFIG_GLOBAL": str(work / "gitconfig")}
+    repository, origin = work / "repo", work / "origin.git"
+    sh("git", "init", "-q", repository, cwd=work, environment=environment)
+    (repository / "a.txt").write_text("base\n")
+    (repository / "a b.txt").write_text("base\n")
+    sh("git", "add", "-A", cwd=repository, environment=environment)
+    sh("git", "commit", "-q", "-m", "base", cwd=repository, environment=environment)
     if remote:
-        sh("git", "init", "-q", "--bare", origin, cwd=work, env=env)
-        sh("git", "remote", "add", "origin", origin, cwd=repo, env=env)
-        sh("git", "push", "-q", "-u", "origin", "main", cwd=repo, env=env)
-    return work, repo, origin, env
+        sh("git", "init", "-q", "--bare", origin, cwd=work, environment=environment)
+        sh("git", "remote", "add", "origin", origin, cwd=repository, environment=environment)
+        sh("git", "push", "-q", "-u", "origin", "main", cwd=repository, environment=environment)
+    return work, repository, origin, environment
 
 
-def worker(work, repo, env, name="b.txt"):
-    tree = pathlib.Path(sh(sys.executable, SCRIPTS / "add-worktree.py", "probe-worker", "main", cwd=repo, env=env).stdout.strip())
+def worker(work, repository, environment, name="b.txt"):
+    tree = pathlib.Path(sh(sys.executable, SCRIPTS / "add-worktree.py", "probe-worker", "main", cwd=repository, environment=environment).stdout.strip())
     (tree / name).write_text("work\n")
-    sh("git", "add", "-A", cwd=tree, env=env)
-    sh("git", "commit", "-q", "-m", "work", cwd=tree, env=env)
+    sh("git", "add", "-A", cwd=tree, environment=environment)
+    sh("git", "commit", "-q", "-m", "work", cwd=tree, environment=environment)
     (work / "body.md").write_text("Probe change. Closes #1.\n")
-    sh(sys.executable, SCRIPTS / "use-landing.py", "change", "probe-worker", "Probe change", work / "body.md", cwd=tree, env=env)
-    return tree, sh("git", "rev-parse", "HEAD", cwd=tree, env=env).stdout.strip()
+    sh(sys.executable, SCRIPTS / "use-landing.py", "change", "probe-worker", "Probe change", work / "body.md", cwd=tree, environment=environment)
+    return tree, sh("git", "rev-parse", "HEAD", cwd=tree, environment=environment).stdout.strip()
 
 
-def rev(path, ref, env):
-    return sh("git", "rev-parse", "--verify", "-q", ref, cwd=path, env=env, check=False).stdout.strip()
+def rev(path, ref, environment):
+    return sh("git", "rev-parse", "--verify", "-q", ref, cwd=path, environment=environment, check=False).stdout.strip()
 
 
-def change_state(repo, env):
-    file = repo / ".teamwork" / "changes" / "1.json"
+def change_state(repository, environment):
+    file = repository / ".teamwork" / "changes" / "1.json"
     return json.loads(file.read_text())["state"] if file.exists() else None
 
 
-def fail(why):
-    print(f"FAIL: {why}")
-    return 1
-
-
-def merged(work, repo, origin, env, tree, head):
-    return sh(sys.executable, SCRIPTS / "use-landing.py", "merge", "1", head, cwd=tree, env=env, check=False)
+def merged(work, repository, origin, environment, tree, head):
+    return sh(sys.executable, SCRIPTS / "use-landing.py", "merge", "1", head, cwd=tree, environment=environment, check=False)
 
 
 def case_pushes():
-    work, repo, origin, env = setup()
-    tree, head = worker(work, repo, env)
-    run = merged(work, repo, origin, env, tree, head)
+    work, repository, origin, environment = setup()
+    tree, head = worker(work, repository, environment)
+    run = merged(work, repository, origin, environment, tree, head)
     if run.returncode:
-        return fail(f"merge exited {run.returncode}: {run.stderr.strip()}")
+        return replay_probe.fail(f"merge exited {run.returncode}: {run.stderr.strip()}")
     commit = run.stdout.strip()
-    if rev(origin, "refs/heads/main", env) != commit or rev(repo, "main", env) != commit:
-        return fail(f"origin main {rev(origin, 'refs/heads/main', env)[:9]}, local main {rev(repo, 'main', env)[:9]}, merge printed {commit[:9]}")
-    if not (repo / "b.txt").exists() or change_state(repo, env) != "CLOSED":
-        return fail("the checkout lacks the merged file, or the change is still open")
+    if rev(origin, "refs/heads/main", environment) != commit or rev(repository, "main", environment) != commit:
+        return replay_probe.fail(f"origin main {rev(origin, 'refs/heads/main', environment)[:9]}, local main {rev(repository, 'main', environment)[:9]}, merge printed {commit[:9]}")
+    if not (repository / "b.txt").exists() or change_state(repository, environment) != "CLOSED":
+        return replay_probe.fail("the checkout lacks the merged file, or the change is still open")
     return 0
 
 
 def case_push_refused():
-    work, repo, origin, env = setup()
+    work, repository, origin, environment = setup()
     hook = origin / "hooks" / "pre-receive"
     hook.write_text("#!/bin/sh\necho 'no pushes today' >&2\nexit 1\n")
     hook.chmod(0o755)
-    tree, head = worker(work, repo, env)
-    before = (rev(repo, "main", env), rev(origin, "refs/heads/main", env))
-    run = merged(work, repo, origin, env, tree, head)
+    tree, head = worker(work, repository, environment)
+    before = (rev(repository, "main", environment), rev(origin, "refs/heads/main", environment))
+    run = merged(work, repository, origin, environment, tree, head)
     if run.returncode != 1 or "no pushes today" not in run.stderr:
-        return fail(f"merge exited {run.returncode}: {run.stdout}{run.stderr}")
-    after = (rev(repo, "main", env), rev(origin, "refs/heads/main", env))
-    if before != after or (repo / "b.txt").exists() or change_state(repo, env) != "OPEN":
-        return fail(f"the base here, the remote's base or the change moved: {before} -> {after}, change {change_state(repo, env)}")
+        return replay_probe.fail(f"merge exited {run.returncode}: {run.stdout}{run.stderr}")
+    after = (rev(repository, "main", environment), rev(origin, "refs/heads/main", environment))
+    if before != after or (repository / "b.txt").exists() or change_state(repository, environment) != "OPEN":
+        return replay_probe.fail(f"the base here, the remote's base or the change moved: {before} -> {after}, change {change_state(repository, environment)}")
     return 0
 
 
 def case_no_gh():
-    work, repo, origin, env = setup()
-    tree, head = worker(work, repo, env)
-    run = merged(work, repo, origin, env, tree, head)
+    work, repository, origin, environment = setup()
+    tree, head = worker(work, repository, environment)
+    run = merged(work, repository, origin, environment, tree, head)
     if run.returncode:
-        return fail(f"merge exited {run.returncode}: {run.stderr.strip()}")
-    removed = sh(sys.executable, SCRIPTS / "remove-worktree.py", "probe-worker", cwd=repo, env=env, check=False)
+        return replay_probe.fail(f"merge exited {run.returncode}: {run.stderr.strip()}")
+    removed = sh(sys.executable, SCRIPTS / "remove-worktree.py", "probe-worker", cwd=repository, environment=environment, check=False)
     calls = (work / "gh.log").read_text().strip()
     if calls:
-        return fail(f"gh was called: {calls} (remove-worktree exit {removed.returncode}: {removed.stderr.strip()[-200:]})")
+        return replay_probe.fail(f"gh was called: {calls} (remove-worktree exit {removed.returncode}: {removed.stderr.strip()[-200:]})")
     return 0
 
 
 def case_no_origin():
-    work, repo, origin, env = setup(remote=False)
-    tree, head = worker(work, repo, env)
-    run = merged(work, repo, origin, env, tree, head)
-    if run.returncode or rev(repo, "main", env) != run.stdout.strip() or not (repo / "b.txt").exists():
-        return fail(f"merge exited {run.returncode}: {run.stdout}{run.stderr}")
-    sh(sys.executable, SCRIPTS / "remove-worktree.py", "probe-worker", cwd=repo, env=env, check=False)
+    work, repository, origin, environment = setup(remote=False)
+    tree, head = worker(work, repository, environment)
+    run = merged(work, repository, origin, environment, tree, head)
+    if run.returncode or rev(repository, "main", environment) != run.stdout.strip() or not (repository / "b.txt").exists():
+        return replay_probe.fail(f"merge exited {run.returncode}: {run.stdout}{run.stderr}")
+    sh(sys.executable, SCRIPTS / "remove-worktree.py", "probe-worker", cwd=repository, environment=environment, check=False)
     calls = (work / "gh.log").read_text().strip()
     if calls:
-        return fail(f"gh was called: {calls}")
+        return replay_probe.fail(f"gh was called: {calls}")
     return 0
 
 
 def case_dirty_base():
-    work, repo, origin, env = setup()
-    tree, head = worker(work, repo, env, name="a b.txt")
-    (repo / "a b.txt").write_text("mine, not committed\n")
-    before = (rev(repo, "main", env), rev(origin, "refs/heads/main", env))
-    run = merged(work, repo, origin, env, tree, head)
-    after = (rev(repo, "main", env), rev(origin, "refs/heads/main", env))
-    if run.returncode != 1 or before != after or change_state(repo, env) != "OPEN" or (repo / "a b.txt").read_text() != "mine, not committed\n":
-        return fail(f"merge exited {run.returncode}: {run.stderr.strip()[-200:]}; the bases moved {before} -> {after}")
+    work, repository, origin, environment = setup()
+    tree, head = worker(work, repository, environment, name="a b.txt")
+    (repository / "a b.txt").write_text("mine, not committed\n")
+    before = (rev(repository, "main", environment), rev(origin, "refs/heads/main", environment))
+    run = merged(work, repository, origin, environment, tree, head)
+    after = (rev(repository, "main", environment), rev(origin, "refs/heads/main", environment))
+    if run.returncode != 1 or before != after or change_state(repository, environment) != "OPEN" or (repository / "a b.txt").read_text() != "mine, not committed\n":
+        return replay_probe.fail(f"merge exited {run.returncode}: {run.stderr.strip()[-200:]}; the bases moved {before} -> {after}")
     return 0
 
 
@@ -154,7 +142,7 @@ def main(args):
         if CASES[args[1]]():
             return 1
     except RuntimeError as e:
-        return fail(str(e)[-400:])
+        return replay_probe.fail(str(e)[-400:])
     print("PASS")
     return 0
 

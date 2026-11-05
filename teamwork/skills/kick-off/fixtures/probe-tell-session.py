@@ -22,10 +22,10 @@ import session  # noqa: E402
 NAME = f"probe-tell-{os.getpid()}"
 
 
-def tell(name, text, env=None, timeout=60):
+def tell(name, text, environment=None, timeout=60):
     note = pathlib.Path(tempfile.mkstemp(suffix=".md")[1])
     note.write_text(text)
-    process = subprocess.run([str(TELL), name, str(note)], env={**os.environ, "TELL_SESSION_TIMEOUT": str(timeout), **(env or {})}, capture_output=True, text=True)
+    process = subprocess.run([str(TELL), name, str(note)], env={**os.environ, "TELL_SESSION_TIMEOUT": str(timeout), **(environment or {})}, capture_output=True, text=True)
     return process.returncode, (process.stdout + process.stderr).strip()
 
 
@@ -86,11 +86,11 @@ def fake():
     agents = [{"name": name, "pane_id": f"w1:p{i}", "tab_id": f"w1:t{i}", "workspace_id": "w1", "agent": "codex", "agent_status": status, "interactive_ready": True}
               for i, (name, status) in enumerate((("done-codex", "done"), ("unblock-codex", "idle"), ("unseen-codex", "idle")), 1)]
     state.write_text(json.dumps({"n": 10, "tabs": [], "agents": agents}))
-    env = {"PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state)}
-    step("done delivered", *told(tell("done-codex", "hi", env, 5), 0, "delivered to done-codex"))
-    step("unblocked delivered after a retry", *told(tell("unblock-codex", "hi", env, 5), 0, "after 1 retry"))
-    step("unseen not delivered", *told(tell("unseen-codex", "hi", env, 5), 1, "never showed it"))
-    step("empty not delivered", *told(tell("done-codex", " \n", env, 5), 1, "the text is empty"))
+    environment = {"PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state)}
+    step("done delivered", *told(tell("done-codex", "hi", environment, 5), 0, "delivered to done-codex"))
+    step("unblocked delivered after a retry", *told(tell("unblock-codex", "hi", environment, 5), 0, "after 1 retry"))
+    step("unseen not delivered", *told(tell("unseen-codex", "hi", environment, 5), 1, "never showed it"))
+    step("empty not delivered", *told(tell("done-codex", " \n", environment, 5), 1, "the text is empty"))
 
 
 def main(args):

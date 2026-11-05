@@ -10,17 +10,15 @@ usage: replay-kick-off.py --count-runs [--repeats <n>] [--arms <arm>,...]
 usage: replay-kick-off.py --summary
 usage: replay-kick-off.py --check-designs|--check-shipped
 
-An arm is a version of `teamwork/`: `none` is the tree at BASE, `shipped` the tree as it stands, untracked files included. The tasks are four of the six of `output-cap-tasks.json` picked for #1172, each
-with checks that fail at its parent and pass at its merge. A run loads its arm as the only plugin, starts the worker kick-off
+An arm is a version of `teamwork/`: `none` is the tree at BASE, `shipped` the checkout's tree, tracked files and untracked ones git does not ignore. The tasks
+are four of the six of `output-cap-tasks.json` picked for #1172, each with checks that fail at its parent and pass at its merge. A run loads its arm as the only plugin, starts the worker kick-off
 on the task, and ends at its budget. `--pilot` runs one without keeping a record, to size the plan.
 `--summary` prints, per arm, passes, mean run bill, kick-off characters opened and the paired saving against `none`; the bill
 counts every turn, so a re-read of text the arm cut is charged already.
 Every count reads the kept streams in `kick-off-runs/streams/`, never a record's own figures."""
-import concurrent.futures
 import datetime
 import hashlib
 import json
-import os
 import pathlib
 import re
 import shutil
@@ -42,16 +40,15 @@ BASE = "89ee7dbb40354670ad86afe9781cc3202bd2f0c7"
 TASK_NUMBERS = (1035, 1168, 1071, 1020)
 ISSUE = 1245
 LIMIT = 8.0
-# the owner's cap counts the three pilot runs ($1.40), the three runs stopped at $0.5 or less each, and the first four `shipped`
-# runs ($1.71), whose export lacked the untracked protocol-sessions.md, so no record of them is kept
+# the owner's cap counts the spend that has no kept record: the three pilot runs ($1.40), the three runs stopped at $0.5 or less
+# each, and four earlier `shipped` runs ($1.71)
 PRIOR_SPEND = 4.61
 REPEATS = 1
 MIN_GAIN = 0.01
 MODEL, BUDGET = "sonnet", "0.75"
-SWITCHES = {"CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1", "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1"}
+ARM_NAMES = ["none", "shipped"]
 KICK_OFF = "/plugin/teamwork/skills/kick-off/"
 FILE_READ = re.compile(r"^\s*(?:cat|sed|head|tail)\b")
-RUN_TIMEOUT = 3600
 PROMPT = """Run the teamwork:kick-off skill with these arguments: worker replay-worker manager replay-manager {words}
 
 This is a replay in a fresh checkout of the mumu-claude-plugin repository, your working folder. Follow the skill's route:
@@ -67,10 +64,6 @@ Task #{number}: {title}
 def tasks():
     chosen = {entry["task"]: entry for entry in json.loads(TASKS.read_text())}
     return [chosen[number] for number in TASK_NUMBERS]
-
-
-def arm_names():
-    return ["none", "shipped"]
 
 
 def tree_hash(folder):
@@ -116,32 +109,21 @@ def run_one(task, arm, repeat, keep=True):
     work = scratch / "repository"
     replay_runs.export(ROOT, entry["base_sha"], work)
     tree = build_arm(arm, scratch / "plugin")
-    empty_gh = scratch / "gh-config"
-    empty_gh.mkdir()
-    environment = {**os.environ, **SWITCHES, "PATH": f"{replay_runs.blocked_path(scratch / 'blocked')}:{os.environ['PATH']}",
-                   "GH_TOKEN": "off-in-replay", "GH_CONFIG_DIR": str(empty_gh)}
-    for key in [key for key in environment if key.startswith("HERDR")]:
-        environment.pop(key)
+    environment = replay_runs.clean_environment(scratch)
     words = f"task {entry['task']}, {entry['title']}"
     command = [shutil.which("claude"), "-p", PROMPT.format(words=words, number=entry["task"], title=entry["title"], body=entry["body"]),
                "--model", MODEL, "--setting-sources", "", "--strict-mcp-config", "--max-budget-usd", BUDGET,
                "--permission-mode", "acceptEdits", "--allowedTools", "Bash", "Read", "Edit", "Write", "Grep", "Glob", "Skill",
                "--plugin-dir", str(scratch / "plugin" / "teamwork"), "--output-format", "stream-json", "--verbose",
                "--no-session-persistence"]
-    try:
-        done = subprocess.run(command, cwd=work, env=environment, capture_output=True, text=True, timeout=RUN_TIMEOUT,
-                              stdin=subprocess.DEVNULL)
-        stream, errors = done.stdout, done.stderr
-    except subprocess.TimeoutExpired as expired:
-        stream = expired.stdout.decode() if isinstance(expired.stdout, bytes) else expired.stdout or ""
-        errors = f"timed out after {RUN_TIMEOUT} s"
+    stream, errors = replay_runs.run_claude(command, work, environment)
     checks = []
     for check in entry["checks"]:
         status, out = replay_runs.run_check(check["command"], work)
         checks.append({"index": check["index"], "result": replay_runs.verdict(tuple(check["test"]), status, out), "output": out[:300]})
     shutil.rmtree(scratch, ignore_errors=True)
     passed = all(check["result"] == "pass" for check in checks)
-    init, turns, uses, results, result = replay_runs.read_events(stream)
+    _, _, turns, uses, results, result = replay_runs.read_events(stream)
     if not keep:
         kept = pathlib.Path(tempfile.gettempdir(), f"kick-off-pilot-{task}-{arm}.jsonl")
         kept.write_text(stream)
@@ -179,8 +161,9 @@ def recount(record):
     path = stream_path(record["task"], record["arm"], record["repeat"])
     if not path.exists() or hashlib.sha256(path.read_bytes()).hexdigest() != record.get("stream_sha256"):
         return None
-    init, turns, uses, results, result = replay_runs.read_events(path.read_text())
-    plugins = [plugin.get("name") for plugin in init.get("plugins", []) if not str(plugin.get("name", "")).startswith("cc-plugin-")]
+    init, _, turns, uses, results, result = replay_runs.read_events(path.read_text())
+    plugins = [plugin.get("name") for plugin in init.get("plugins", [])
+               if not str(plugin.get("name", "")).startswith(replay_runs.BUILT_IN_PLUGIN_PREFIX)]
     models = {turn["model"] for turn in turns}
     reads = opened(uses, results)
     return {"clean": not init.get("mcp_servers") and plugins == ["teamwork"] and bool(models) and all(
@@ -193,7 +176,7 @@ def recount(record):
 
 
 def records():
-    return [json.loads(path.read_text()) for path in sorted(RECORDS.glob("*.json"))] if RECORDS.exists() else []
+    return replay_runs.read_records(RECORDS)
 
 
 def counted():
@@ -212,19 +195,9 @@ def spent():
 
 def run_all(repeats, limit, parallel, arms, chosen):
     numbers = chosen or list(TASK_NUMBERS)
-    todo = [(number, arm, repeat) for repeat in range(1, repeats + 1) for number in numbers for arm in (arms or arm_names())
+    todo = [(number, arm, repeat) for repeat in range(1, repeats + 1) for number in numbers for arm in (arms or ARM_NAMES)
             if not record_path(number, arm, repeat).exists()]
-    with concurrent.futures.ThreadPoolExecutor(parallel) as pool:
-        running = []
-        for job in todo:
-            while len(running) >= parallel:
-                done, pending = concurrent.futures.wait(running, return_when=concurrent.futures.FIRST_COMPLETED)
-                running = list(pending)
-            if spent() + float(BUDGET) * (len(running) + 1) > limit:
-                print(f"stop: ${spent():.2f} spent; another run could pass ${limit:.0f}")
-                break
-            running.append(pool.submit(run_one, *job))
-        concurrent.futures.wait(running)
+    replay_runs.run_jobs(todo, run_one, parallel, spent, BUDGET, limit)
     print(f"spent ${spent():.2f}")
     return 0
 
@@ -258,12 +231,12 @@ def summary():
     rows = counted()
     print("| arm | runs | passed | mean bill | mean cost $ | mean kick-off characters opened | estimated saving | observed bill change |")
     print("| --- | --- | --- | --- | --- | --- | --- | --- |")
-    for arm in arm_names():
-        fig = arm_figures(rows, arm)
-        if fig["runs"]:
-            print(f"| {arm} | {fig['runs']} | {fig['passed']} | {fig['bill']:,.0f} | {fig['cost']:.3f} | {fig['opened']:,.0f} | "
-                  f"{'' if fig['saving'] is None or arm == 'none' else format(fig['saving'], '.2%')} | "
-                  f"{'' if fig['observed'] is None or arm == 'none' else format(fig['observed'], '.2%')} |")
+    for arm in ARM_NAMES:
+        figures = arm_figures(rows, arm)
+        if figures["runs"]:
+            print(f"| {arm} | {figures['runs']} | {figures['passed']} | {figures['bill']:,.0f} | {figures['cost']:.3f} | {figures['opened']:,.0f} | "
+                  f"{'' if figures['saving'] is None or arm == 'none' else format(figures['saving'], '.2%')} | "
+                  f"{'' if figures['observed'] is None or arm == 'none' else format(figures['observed'], '.2%')} |")
     print(f"spent ${spent():.2f} of ${LIMIT:.0f}")
     return 0
 
@@ -284,7 +257,7 @@ def plan_time():
 
 def full_arms(rows):
     """The arms with every task run, `none` among them."""
-    return [arm for arm in arm_names() if all(
+    return [arm for arm in ARM_NAMES if all(
         sum(1 for row in rows if row["arm"] == arm and row["task"] == number) >= REPEATS for number in TASK_NUMBERS)]
 
 
@@ -318,36 +291,35 @@ def check_shipped():
     shipped = [row for row in rows if row["arm"] == "shipped" and row["tree"] == head]
     if not shipped or spent() > LIMIT:
         return "FAIL: no shipped run of this tree, or over the limit"
-    fig, base = arm_figures(rows, "shipped"), arm_figures(rows, "none")
-    if fig["runs"] != len(shipped) or fig["passed"] / fig["runs"] < base["passed"] / base["runs"]:
+    figures, base = arm_figures(rows, "shipped"), arm_figures(rows, "none")
+    if figures["runs"] != len(shipped) or figures["passed"] / figures["runs"] < base["passed"] / base["runs"]:
         return "FAIL: shipped passes a smaller share than none"
-    if not fig["opened"] < base["opened"] or (fig["saving"] or 0) < MIN_GAIN:
+    if not figures["opened"] < base["opened"] or (figures["saving"] or 0) < MIN_GAIN:
         return "FAIL: shipped opens no fewer kick-off characters or saves under 1%"
     for arm in set(full_arms(rows)) - {"none", "shipped"}:
         other = arm_figures(rows, arm)
-        if other["passed"] / other["runs"] >= base["passed"] / base["runs"] and (other["saving"] or 0) > fig["saving"]:
+        if other["passed"] / other["runs"] >= base["passed"] / base["runs"] and (other["saving"] or 0) > figures["saving"]:
             return f"FAIL: arm {arm} saves more than shipped"
     return "PASS"
 
 
 def main(args):
     if args == ["--list-arms"]:
-        print(",".join(arm_names()))
+        print(",".join(ARM_NAMES))
         return 0
     if len(args) == 3 and args[0] == "--pilot":
         return run_one(args[1], args[2], 0, keep=False)
     if len(args) == 4 and args[0] == "--run":
         return run_one(*args[1:])
     if args and args[0] in ("--run-all", "--count-runs"):
-        options, rest = {"--repeats": "1", "--max-dollars": str(LIMIT), "--parallel": "2", "--arms": "none,shipped", "--tasks": ""}, args[1:]
-        while rest:
-            if rest[0] not in options or len(rest) < 2:
-                print(__doc__, file=sys.stderr)
-                return 2
-            options[rest[0]], rest = rest[1], rest[2:]
+        options = replay_runs.read_options(args[1:], {"--repeats": "1", "--max-dollars": str(LIMIT), "--parallel": "2",
+                                                      "--arms": "none,shipped", "--tasks": ""})
+        if options is None:
+            print(__doc__, file=sys.stderr)
+            return 2
         arms = [arm for arm in options["--arms"].split(",") if arm]
         if args[0] == "--count-runs":
-            print(int(options["--repeats"]) * len(TASK_NUMBERS) * len(arms or arm_names()))
+            print(int(options["--repeats"]) * len(TASK_NUMBERS) * len(arms or ARM_NAMES))
             return 0
         return run_all(int(options["--repeats"]), float(options["--max-dollars"]), int(options["--parallel"]), arms,
                        [int(number) for number in options["--tasks"].split(",") if number])

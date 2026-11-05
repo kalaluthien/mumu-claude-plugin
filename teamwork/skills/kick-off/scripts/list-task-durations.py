@@ -30,6 +30,7 @@ def main(args):
         print(f"{row['number']}\t{','.join(row['labels'])}\t{row['criteria']}\t{row['start']}\t{row['end']}\t{row['hours']:.1f}\t{row['source']}")
     counts = collections.Counter(row["source"] for row in table)
     print(f"rows: {len(table)} (pr {counts['pr']}, created {counts['created']}); hours run from the start source to the close")
+    return 0
 
 
 if __name__ == "__main__":

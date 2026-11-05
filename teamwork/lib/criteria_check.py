@@ -105,3 +105,18 @@ def unreadable(detail):
     if test[0] == "prints" and base_quote(detail) is None:
         return "no one value after `on base`"
     return None
+
+
+def verdict(test, status, out):
+    """`pass`, `fail`, or `unclear` for a `prints` text found only among other lines, which a judge reads, of a run's STATUS and OUT against TEST."""
+    kind, want = test
+    if status is None:
+        return "fail"
+    if kind == "exits":
+        return "pass" if status == want else "fail"
+    if kind == "more":
+        first = out.split(maxsplit=1)[:1]
+        return "pass" if first and first[0].isdigit() and int(first[0]) >= want else "fail"
+    if out == want:
+        return "pass"
+    return "unclear" if want and re.search(rf"(?<!\w){re.escape(want)}(?!\w)", out) else "fail"

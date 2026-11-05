@@ -73,7 +73,8 @@ failed = []
 
 def step(name, ok, detail=""):
     print(f"ok {name}" if ok else f"fail {name}: {str(detail).strip()}", flush=True)
-    failed.extend([] if ok else [name])
+    if not ok:
+        failed.append(name)
 
 
 def main(args):
@@ -82,10 +83,10 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     work = pathlib.Path(tempfile.mkdtemp(prefix="input-form-"))
-    repo = work / "repo"
-    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    repository = work / "repo"
+    subprocess.run(["git", "init", "-q", str(repository)], check=True)
     os.environ.update(HOME=str(work), CLAUDE_CONFIG_DIR=str(work / "home"))
-    os.chdir(repo)
+    os.chdir(repository)
     import board
     import board_git
     counter = iter(range(10 ** 6))

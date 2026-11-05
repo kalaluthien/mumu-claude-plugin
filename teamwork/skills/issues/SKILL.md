@@ -1,6 +1,6 @@
 ---
 name: issues
-description: Use when the owner wants the Issues pane shown again after closing it, or its board refreshed.
+description: Use when the owner wants the Issues pane shown again or its board refreshed.
 disable-model-invocation: true
 ---
 

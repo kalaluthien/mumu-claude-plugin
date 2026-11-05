@@ -38,16 +38,16 @@ done
 """
 
 
-def git(repo, *args):
-    return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, check=True).stdout
+def git(repository, *args):
+    return subprocess.run(["git", "-C", str(repository), *args], capture_output=True, text=True, check=True).stdout
 
 
-def run_writers(use, work, repo):
+def run_writers(use, work, repository):
     """Returns the findings, each a sentence; none means every record is there once."""
-    env = {**os.environ, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home"), "USE": str(use), "WORK": str(work)}
+    environment = {**os.environ, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home"), "USE": str(use), "WORK": str(work)}
     (work / "seed").write_text("The issue the writers comment on.\n")
-    subprocess.run([sys.executable, str(use), "file", "Seed", str(work / "seed")], cwd=repo, env=env, capture_output=True, check=True)
-    running = [subprocess.Popen(["sh", "-c", WRITER_SCRIPT.format(writer=i, comments=COMMENTS, filings=FILINGS)], cwd=repo, env=env) for i in range(WRITERS)]
+    subprocess.run([sys.executable, str(use), "file", "Seed", str(work / "seed")], cwd=repository, env=environment, capture_output=True, check=True)
+    running = [subprocess.Popen(["sh", "-c", WRITER_SCRIPT.format(writer=i, comments=COMMENTS, filings=FILINGS)], cwd=repository, env=environment) for i in range(WRITERS)]
     for process in running:
         process.wait()
 
@@ -57,8 +57,8 @@ def run_writers(use, work, repo):
         if errors.exists() and errors.read_text().strip():
             findings.append(f"writer {i} reported: {errors.read_text().strip().splitlines()[0]}")
 
-    paths = git(repo, "ls-tree", "-r", "--name-only", REF).split()
-    read = lambda path: git(repo, "show", f"{REF}:{path}")
+    paths = git(repository, "ls-tree", "-r", "--name-only", REF).split()
+    read = lambda path: git(repository, "show", f"{REF}:{path}")
     comments = collections.Counter(read(path).strip() for path in paths if path.startswith("1/comments/"))
     titles = collections.Counter(json.loads(read(path))["title"] for path in paths if path.endswith("/issue.json") and path != "1/issue.json")
     for kind, found, expected in (("comment", comments, {f"w{i}-c{k}" for i in range(WRITERS) for k in range(1, COMMENTS + 1)}),
@@ -70,7 +70,7 @@ def run_writers(use, work, repo):
         if doubled:
             findings.append(f"{len(doubled)} {kind}s are on the board twice, such as {doubled[0]}")
 
-    history = [line.split() for line in git(repo, "rev-list", "--parents", REF).splitlines()]
+    history = [line.split() for line in git(repository, "rev-list", "--parents", REF).splitlines()]
     forks = [line[0] for line in history if len(line) > 2]
     expected_commits = 1 + WRITERS * (COMMENTS + FILINGS)
     if forks:
@@ -87,8 +87,8 @@ def main(args):
     case = args[1]
     work = pathlib.Path(tempfile.mkdtemp(prefix="board-writers-"))
     try:
-        repo = work / "repo"
-        subprocess.run(["git", "init", "-q", str(repo)], check=True)
+        repository = work / "repo"
+        subprocess.run(["git", "init", "-q", str(repository)], check=True)
         use = ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"
         if case == "unguarded":
             copy = work / "unguarded"
@@ -102,7 +102,7 @@ def main(args):
                 return 0
             board_git.write_text(text.replace(GUARDED, UNGUARDED))
             use = copy / "skills" / "kick-off" / "scripts" / "use-board.py"
-        findings = run_writers(use, work, repo)
+        findings = run_writers(use, work, repository)
         for finding in findings:
             print(finding)
         print("PASS" if bool(findings) == (case == "unguarded") else "FAIL")

@@ -9,5 +9,15 @@ A subagent is an `Agent` call of a Claude Code session.
 
 - **Tier of a session**: `start` passes the tier's model as `--model` and the effort as `--effort`.
 - **Publishing tool**: `Artifact`, which a manager keeps on by `--allow Artifact`.
-- **Refused step**: auto mode refuses by the outcome, not the form, and no `DECIDED:` lifts it: it refuses `rm` of untracked or ignored files outside a worktree, `reset --hard` or `merge --ff-only` of a clean worktree, and a `close` of a live session (`Interfere With Workloads`), so when the base moves before your first commit, open a new branch worktree from `origin/<base>`. Hand the owner a refused step at once as `! <command>`, by `notify` when away; for a rule, guard or agent file, `! git -C <worktree> apply <patch-path>` of a scratchpad patch, first checked by `git apply --check`. A refused, rejected or interrupted call may still have run: read its effect back, such as the board, before redoing or dropping it; reuse what landed, edited to the owner's latest word, and tell the owner it ran.
+- **Refused step**: auto mode refuses by the outcome, not the form, and no `DECIDED:` lifts it: it refuses `rm` of untracked or ignored files outside a worktree, `reset --hard` or `merge --ff-only` of a clean worktree, and a `close` of a live session (`Interfere With Workloads`), so when the base moves before your first commit, open a new branch worktree from `origin/<base>`. Hand the owner a refused step at once as `! <command>`; for a rule, guard or agent file, `! git -C <worktree> apply <patch-path>` of a scratchpad patch, first checked by `git apply --check`. A refused, rejected or interrupted call may still have run: read its effect back, such as the board, before redoing or dropping it; reuse what landed, edited to the owner's latest word, and tell the owner it ran.
 - **Paths**: a `SKILL.md` names a file as `${CLAUDE_PLUGIN_ROOT}/<path>`; a playbook link is relative to the playbook.
+
+## Tier by work
+
+Each line names the tier, then the effort:
+
+- planning, debugging: `deep`, `high`
+- design, experiment, web search, an edit needing judgment, reading captures: `mid`, `medium`
+- a mechanical edit to a fixed spec: `light`, `medium`
+- writing tests; scoring or marking a sample by a rubric: `mid`, `low`
+- running tests or a long check, reporting only failures; code search, reading named files with no judgment: `light`, `low`

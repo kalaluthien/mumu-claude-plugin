@@ -27,19 +27,21 @@ ROOT = pathlib.Path(__file__).resolve().parents[3]
 SCRIPTS = HERE.parent / "scripts"
 VERBOSE = False
 work = pathlib.Path(tempfile.mkdtemp(prefix="landing-scenario-"))
-repo = work / "repo"
-os.environ.update({"CLAUDE_CONFIG_DIR": str(work / "claude"), "GIT_CONFIG_GLOBAL": str(work / "gitconfig"),
-                   "GIT_AUTHOR_NAME": "probe", "GIT_AUTHOR_EMAIL": "probe@example.com", "GIT_COMMITTER_NAME": "probe", "GIT_COMMITTER_EMAIL": "probe@example.com"})
+repository = work / "repo"
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import replay_probe  # noqa: E402
+
+os.environ.update({"CLAUDE_CONFIG_DIR": str(work / "claude"), "GIT_CONFIG_GLOBAL": str(work / "gitconfig"), **replay_probe.IDENTITY})
+import iso_time  # noqa: E402
 import landing_git  # noqa: E402
 import team_signal  # noqa: E402
 
 failed = []
 
 
-def run(argv, cwd=repo, seconds=60, **env):
+def run(argv, cwd=repository, seconds=60, **environment):
     try:
-        process = subprocess.run([str(argument) for argument in argv], cwd=cwd, env={**os.environ, **env}, capture_output=True, text=True, timeout=seconds)
+        process = subprocess.run([str(argument) for argument in argv], cwd=cwd, env={**os.environ, **environment}, capture_output=True, text=True, timeout=seconds)
         out, code = process.stdout + process.stderr, process.returncode
     except subprocess.TimeoutExpired as e:  # the heartbeat runs until killed
         out, code = (e.stdout or b"").decode() + (e.stderr or b"").decode(), None
@@ -48,7 +50,7 @@ def run(argv, cwd=repo, seconds=60, **env):
     return code, out
 
 
-def git(*argv, cwd=repo):
+def git(*argv, cwd=repository):
     return run(["git", *argv], cwd)[1].strip()
 
 
@@ -65,7 +67,7 @@ def commit(cwd, name, text):
 
 
 def worker_tree(name, text):
-    tree = repo / ".claude" / "worktrees" / name
+    tree = repository / ".claude" / "worktrees" / name
     git("worktree", "add", "-q", "-b", name, str(tree), "main")
     commit(tree, "a.txt", text)
     return git("rev-parse", name)
@@ -101,12 +103,12 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     VERBOSE = "--verbose" in args
-    repo.mkdir()
+    repository.mkdir()
     git("init", "-q", "-b", "main")
-    commit(repo, "a.txt", "one\n")
+    commit(repository, "a.txt", "one\n")
     probe, clash = worker_tree("landing-probe-worker", "two\n"), worker_tree("clash-probe-worker", "three\n")
-    commit(repo, "b.txt", "moved on\n")  # the base moves after both branches start, so a merge must merge, not just copy the head
-    os.chdir(repo)
+    commit(repository, "b.txt", "moved on\n")  # the base moves after both branches start, so a merge must merge, not just copy the head
+    os.chdir(repository)
     (work / "body.md").write_text("Closes #1\n")
     filed = [run([SCRIPTS / "use-landing.py", "change", name, f"Probe {name}", work / "body.md"])[1].strip() for name in ("landing-probe-worker", "clash-probe-worker")]
     heads = {pull["number"]: pull["headRefOid"] for pull in landing_git.pulls("open") or []}
@@ -117,9 +119,9 @@ def main(args):
     named, _ = run([SCRIPTS / "use-landing.py", "merge", "1", "landing-probe-worker"])  # a branch name follows the tip, so it never stands for an approved head
     step("refuse-moved-head", code == named == 1 and git("rev-parse", "main") == base and landing_git.record(1)["state"] == "OPEN", f"exit {code}: {out}")
 
-    (repo / "a.txt").write_text("dirty\n")
+    (repository / "a.txt").write_text("dirty\n")
     code, out = run([SCRIPTS / "use-landing.py", "merge", "1", probe])
-    step("refuse-dirty-checkout", code == 1 and (repo / "a.txt").read_text() == "dirty\n" and git("rev-parse", "main") == base
+    step("refuse-dirty-checkout", code == 1 and (repository / "a.txt").read_text() == "dirty\n" and git("rev-parse", "main") == base
          and landing_git.record(1)["state"] == "OPEN", f"exit {code}: {out}")
     git("checkout", "--", "a.txt")
 
@@ -128,24 +130,24 @@ def main(args):
     git("config", "core.bare", "false")
     step("refuse-bare-checkout", code == 1 and "core.bare" in out and git("rev-parse", "main") == base and landing_git.record(1)["state"] == "OPEN",
          f"exit {code}: {out}")
-    git("clone", "-q", "--bare", str(repo), str(work / "bare.git"))
+    git("clone", "-q", "--bare", str(repository), str(work / "bare.git"))
     os.chdir(work / "bare.git")
     step("bare-repository", landing_git.bare_flagged() is False and git("config", "--bool", "core.bare", cwd=work / "bare.git") == "true")
-    os.chdir(repo)
+    os.chdir(repository)
 
     # the manager's heartbeat runs before the merge, so only its change check, not its first read, can bring the merged line
     log = work / "heartbeat.log"
-    live = subprocess.Popen([str(ROOT / "monitors" / "print-team-gaps.py")], cwd=repo, env={**os.environ, **heartbeat_env("w1:p1", "1")},
+    live = subprocess.Popen([str(ROOT / "monitors" / "print-team-gaps.py")], cwd=repository, env={**os.environ, **heartbeat_env("w1:p1", "1")},
                             stdout=log.open("w"), stderr=subprocess.STDOUT)
     first = printed(log, "idle landing-probe-worker")
     time.sleep(1.1)  # the records filed above carry this second, which must not count as the merge
-    before, signal = landing_git.stamp(), team_signal.stamp()
+    before, signal = iso_time.stamp(), team_signal.stamp()
     code, out = run([SCRIPTS / "use-landing.py", "merge", "1", probe])
     merged = out.strip()
     want = run(["git", "merge-tree", "--write-tree", base, probe])[1].split()[:1]
     step("merge", code == 0 and git("rev-parse", "main") == merged and git("rev-list", "--parents", "-1", merged).split()[1:] == [base]
          and [git("rev-parse", f"{merged}^{{tree}}")] == want and "Closes #1" in git("log", "-1", "--format=%B", merged)
-         and (repo / "a.txt").read_text() == "two\n" and (repo / "b.txt").exists() and landing_git.record(1)["headRefOid"] == probe,
+         and (repository / "a.txt").read_text() == "two\n" and (repository / "b.txt").exists() and landing_git.record(1)["headRefOid"] == probe,
          f"exit {code}: {out}")
     step("signal", team_signal.stamp() != signal and landing_git.changed_since(before), f"stamp {signal} -> {team_signal.stamp()}")
 

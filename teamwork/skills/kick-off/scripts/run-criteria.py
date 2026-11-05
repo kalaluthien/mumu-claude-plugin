@@ -48,6 +48,22 @@ import usage_parser  # noqa: E402
 
 HEADER = "REPORTED: criteria at "
 CELL = 160
+# outside quotes only these may precede the first pipe; anything else (`;`, `&`, `{`, `(`, `#`, a backslash, ...) might hide a pipe or a stage
+SAFE = re.compile(r"[\w \t./=:,+@%~<-]|\$\w|\$(?=[\"'])")
+# a compound command owns the pipe that follows its first word, so the pipe is not a stage boundary
+COMPOUND = {"if", "while", "until", "for", "case", "select", "time", "function", "coproc"}
+WRONG_BASE_FIX = """
+To fix a `wrong base` row, quote after `on base` the output of running that exact line on the base, never a guess.
+Pin what varies or matches too much: `LC_ALL=C` before a sorted list, a stub for a GitHub read the check does not
+test, an anchored name that prefixes a sibling's. Read an exit status without a pipe, and put `2>&1` before a pipe
+into `grep -c`, since this script merges stderr only after it."""
+WRONG_PASS_FIX = """
+To fix a `wrong pass` row, run the criterion's command on the sample by hand and make its output meet `prints`,
+`exits` or `more`; a check that reads its input twice can never pass on a pipe."""
+
+
+def git_output(*argv, cwd=None):
+    return subprocess.run(["git", *argv], cwd=cwd, capture_output=True, text=True).stdout.strip()
 
 
 def read_task(source):
@@ -85,19 +101,11 @@ def base_row(label, kind, name, detail, archive, timeout):
     return label, name, "base ok" if status is not None and out == quoted else "wrong base", cell(out)
 
 
-# outside quotes only these may precede the first pipe; anything else (`;`, `&`, `{`, `(`, `#`, a backslash, ...) might hide a pipe or a stage
-SAFE = re.compile(r"[\w \t./=:,+@%~<-]|\$\w|\$(?=[\"'])")
-
-
-# a compound command owns the pipe that follows its first word, so the pipe is not a stage boundary
-KEYWORDS = {"if", "while", "until", "for", "case", "select", "time", "function", "coproc"}
-
-
 def after_first_pipe(command):
     """The command without its first pipe stage, split at the first `|` outside quotes, or None when the split is not certain:
     no pipe, or before it a character outside SAFE, or in double quotes a `$(`, `${`, backtick or backslash, which
     could hide a pipe or drop part of the first stage."""
-    if command.split(None, 1)[:1] and command.split(None, 1)[0] in KEYWORDS:
+    if command.split(None, 1)[:1] and command.split(None, 1)[0] in COMPOUND:
         return None
     quote, i = None, 0
     while i < len(command):
@@ -129,12 +137,11 @@ def pass_row(label, kind, name, detail, sample, cwd, timeout):
     if sample is None or rest is None:
         return label, name, "unclear", "not run: no sample, or no pipe to put it before"
     status, out = run(f"cat {shlex.quote(sample)} |{rest}", cwd, timeout)
-    return label, name, {"pass": "pass ok", "fail": "wrong pass", "unclear": "unclear"}[verdict(test, status, out)], cell(out)
+    return label, name, {"pass": "pass ok", "fail": "wrong pass", "unclear": "unclear"}[criteria_check.verdict(test, status, out)], cell(out)
 
 
 def base_ref(ref):
-    found = ref or subprocess.run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"], capture_output=True,
-                                  text=True).stdout.strip()
+    found = ref or git_output("symbolic-ref", "--short", "refs/remotes/origin/HEAD")
     return found or sys.exit("run-criteria: origin/HEAD is not set; name the base with --ref")
 
 
@@ -151,7 +158,7 @@ def run_on_base(root, ref, rows, timeout):
 def run(command, cwd, timeout):
     """(exit status or None on a timeout, stdout and stderr as one text)."""
     process = subprocess.Popen(["bash", "-c", command], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                         start_new_session=True)
+                               start_new_session=True)
     try:
         out, _ = process.communicate(timeout=timeout)
         return process.returncode, out.strip()
@@ -160,21 +167,6 @@ def run(command, cwd, timeout):
         os.killpg(process.pid, signal.SIGKILL)
         process.communicate()
         return None, f"timed out after {timeout} s"
-
-
-def verdict(test, status, out):
-    kind, want = test
-    if status is None:
-        return "fail"
-    if kind == "exits":
-        return "pass" if status == want else "fail"
-    if kind == "more":
-        first = out.split(maxsplit=1)[:1]
-        return "pass" if first and first[0].isdigit() and int(first[0]) >= want else "fail"
-    if out == want:
-        return "pass"
-    # the text among other lines may sit beside a failure, so the judge reads it
-    return "unclear" if want and re.search(rf"(?<!\w){re.escape(want)}(?!\w)", out) else "fail"
 
 
 def cell(text):
@@ -191,7 +183,11 @@ def row(label, kind, name, detail, cwd, timeout):
     if test[0] is None:
         return label, name, "unclear", f"not run: {test[1]}"
     status, out = run(command, cwd, timeout)
-    return label, name, verdict(test, status, out), cell(out)
+    return label, name, criteria_check.verdict(test, status, out), cell(out)
+
+
+def table_line(cells):
+    return "| " + " | ".join([cells[0], cells[1].replace("|", "\\|"), *cells[2:]]) + " |"
 
 
 def fingerprint(criterion):
@@ -206,6 +202,10 @@ def criteria(text):
             yield kind or "", name or detail, detail if name else ""
 
 
+def task_criteria(task):
+    return list(criteria(issue_state.sections(task.get("body")).get("done", "")))
+
+
 def earlier_fails(task):
     """{name: {output, ...}} of the `fail` rows in earlier tables on the task, by trusted authors only."""
     found = {}
@@ -218,14 +218,58 @@ def earlier_fails(task):
     return found
 
 
-WRONG_BASE_FIX = """
-To fix a `wrong base` row, quote after `on base` the output of running that exact line on the base, never a guess.
-Pin what varies or matches too much: `LC_ALL=C` before a sorted list, a stub for a GitHub read the check does not
-test, an anchored name that prefixes a sibling's. Read an exit status without a pipe, and put `2>&1` before a pipe
-into `grep -c`, since this script merges stderr only after it."""
-WRONG_PASS_FIX = """
-To fix a `wrong pass` row, run the criterion's command on the sample by hand and make its output meet `prints`,
-`exits` or `more`; a check that reads its input twice can never pass on a pipe."""
+def run_with_samples(options, task, root):
+    """The table of the criteria run at the head with a sample for the first stage of each; exit 1 on any `wrong pass`."""
+    if options.base:
+        sys.exit("run-criteria: --pass and --base cannot run together")
+    given = {}
+    for sample in options.samples:
+        position, _, sample_file = sample.partition("=")
+        if not position.isdigit() or not sample_file:
+            sys.exit(f"run-criteria: --pass wants <n>=<sample-file>, got {sample}")
+        given[int(position)] = os.path.abspath(sample_file)
+    found = task_criteria(task)
+    if set(given) - set(range(1, len(found) + 1)):
+        sys.exit(f"run-criteria: --pass names a criterion the task lacks; it has {len(found)}")
+    rows = [pass_row(str(n), *criterion, given.get(n), root, options.timeout) for n, criterion in enumerate(found, 1)]
+    print("REPORTED: pass outputs at " + git_output("rev-parse", "HEAD", cwd=root) + "\n\n| # | criterion | result | output on sample |\n| --- | --- | --- | --- |")
+    for table_row in rows:
+        print(table_line(table_row))
+    if any(table_row[2] == "wrong pass" for table_row in rows):
+        print(WRONG_PASS_FIX)
+        return 1
+    return 0
+
+
+def run_against_base(options, task, root):
+    """The table of the criteria run in an export of the base; exit 1 on any `wrong base`."""
+    ref = base_ref(options.ref)
+    sha = git_output("rev-parse", "--short", ref, cwd=root)
+    rows = run_on_base(root, ref, task_criteria(task), options.timeout)
+    print(f"REPORTED: base outputs at {ref} {sha}\n\n| # | criterion | result | output on base |\n| --- | --- | --- | --- |")
+    for table_row in rows:
+        print(table_line(table_row))
+    if any(table_row[2] == "wrong base" for table_row in rows):
+        print(WRONG_BASE_FIX)
+        return 1
+    return 0
+
+
+def run_at_head(options, task, root):
+    """The table of the criteria, then the standing ones, run at the head; exit 1 on any `fail`."""
+    standing = pathlib.Path(root, ".teamwork", "default-criteria.md")
+    found = [(str(n), criterion) for n, criterion in enumerate(task_criteria(task), 1)]
+    found += [("standing", criterion) for criterion in criteria(standing.read_text())] if standing.exists() else []
+    rows = [(*row(label, *criterion, root, options.timeout), fingerprint(criterion)) for label, criterion in found]
+    print(f"{HEADER}{git_output('rev-parse', 'HEAD', cwd=root)}" + (" with uncommitted changes" if git_output("status", "--porcelain", cwd=root) else ""))
+    print("\n| # | criterion | result | output | sha-256 |\n| --- | --- | --- | --- | --- |")
+    for table_row in rows:
+        print(table_line(table_row))
+    before = earlier_fails(task)
+    for _, name, result, out, _ in rows:
+        if result == "fail" and out in before.get(name.replace("|", "\\|"), ()):
+            print(f"\nBLOCKED due: {name} failed with the same output as in an earlier table; ask your manager by `BLOCKED:`.")
+    return 1 if any(table_row[2] == "fail" for table_row in rows) else 0
 
 
 def main(args):
@@ -238,53 +282,12 @@ def main(args):
     options = parser.parse_args(args)
     file = pathlib.Path(options.task)
     task = {"body": file.read_text(), "comments": []} if (options.base or options.samples) and file.is_file() else runnable(read_task(options.task))
-    root = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip() or "."
-    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
-    dirty = subprocess.run(["git", "status", "--porcelain"], cwd=root, capture_output=True, text=True).stdout.strip()
+    root = git_output("rev-parse", "--show-toplevel") or "."
     if options.samples:
-        if options.base:
-            sys.exit("run-criteria: --pass and --base cannot run together")
-        given = {}
-        for sample in options.samples:
-            position, _, sample_file = sample.partition("=")
-            if not position.isdigit() or not sample_file:
-                sys.exit(f"run-criteria: --pass wants <n>=<sample-file>, got {sample}")
-            given[int(position)] = os.path.abspath(sample_file)
-        found = list(criteria(issue_state.sections(task.get("body")).get("done", "")))
-        if set(given) - set(range(1, len(found) + 1)):
-            sys.exit(f"run-criteria: --pass names a criterion the task lacks; it has {len(found)}")
-        rows = [pass_row(str(n), *criterion, given.get(n), root, options.timeout) for n, criterion in enumerate(found, 1)]
-        print("REPORTED: pass outputs at " + head + "\n\n| # | criterion | result | output on sample |\n| --- | --- | --- | --- |")
-        for table_row in rows:
-            print("| " + " | ".join([table_row[0], table_row[1].replace("|", "\\|"), table_row[2], table_row[3]]) + " |")
-        if any(table_row[2] == "wrong pass" for table_row in rows):
-            print(WRONG_PASS_FIX)
-            return 1
-        return 0
+        return run_with_samples(options, task, root)
     if options.base:
-        ref = base_ref(options.ref)
-        sha = subprocess.run(["git", "rev-parse", "--short", ref], cwd=root, capture_output=True, text=True).stdout.strip()
-        rows = run_on_base(root, ref, list(criteria(issue_state.sections(task.get("body")).get("done", ""))), options.timeout)
-        print(f"REPORTED: base outputs at {ref} {sha}\n\n| # | criterion | result | output on base |\n| --- | --- | --- | --- |")
-        for table_row in rows:
-            print("| " + " | ".join([table_row[0], table_row[1].replace("|", "\\|"), table_row[2], table_row[3]]) + " |")
-        if any(table_row[2] == "wrong base" for table_row in rows):
-            print(WRONG_BASE_FIX)
-            return 1
-        return 0
-    standing = pathlib.Path(root, ".teamwork", "default-criteria.md")
-    found = [(str(n), criterion) for n, criterion in enumerate(criteria(issue_state.sections(task.get("body")).get("done", "")), 1)]
-    found += [("standing", criterion) for criterion in criteria(standing.read_text())] if standing.exists() else []
-    rows = [(*row(label, *criterion, root, options.timeout), fingerprint(criterion)) for label, criterion in found]
-    print(f"{HEADER}{head}" + (" with uncommitted changes" if dirty else ""))
-    print("\n| # | criterion | result | output | sha-256 |\n| --- | --- | --- | --- | --- |")
-    for table_row in rows:
-        print("| " + " | ".join([table_row[0], table_row[1].replace("|", "\\|"), *table_row[2:]]) + " |")
-    before = earlier_fails(task)
-    for _, name, result, out, _ in rows:
-        if result == "fail" and out in before.get(name.replace("|", "\\|"), ()):
-            print(f"\nBLOCKED due: {name} failed with the same output as in an earlier table; ask your manager by `BLOCKED:`.")
-    return 1 if any(table_row[2] == "fail" for table_row in rows) else 0
+        return run_against_base(options, task, root)
+    return run_at_head(options, task, root)
 
 
 if __name__ == "__main__":

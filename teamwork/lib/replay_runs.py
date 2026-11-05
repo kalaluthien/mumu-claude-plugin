@@ -1,14 +1,20 @@
-"""What a clean replay of a closed task in `claude -p` needs: a fresh export of a commit, the run's checks, stand-ins for
-GitHub, herdr and Claude, and the run's stream read back into turns, tool uses and results priced as the bill is."""
+"""What a clean replay of a closed task in `claude -p` needs: a fresh export of a commit, the run's checks, a clean
+environment with stand-ins for GitHub, herdr and Claude, the run itself, its jobs started under a spending limit, and its
+stream read back into turns, tool uses and results priced as the bill is."""
+import concurrent.futures
 import json
 import os
-import pathlib
 import subprocess
+
+import criteria_check
 
 CHARS_PER_TOKEN = 2.2
 WEIGHT = {"opus": 5.0, "sonnet": 3.0, "haiku": 1.0}
 BLOCKED_TOOLS = ("gh", "herdr", "claude")
 CHECK_TIMEOUT = 180
+RUN_TIMEOUT = 3600
+SWITCHES = {"CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1", "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1"}
+BUILT_IN_PLUGIN_PREFIX = "cc-plugin-"
 
 
 def export(root, sha, into):
@@ -32,15 +38,9 @@ def run_check(command, cwd):
 
 
 def verdict(test, status, out):
-    kind, want = test
-    if status is None:
-        return "fail"
-    if kind == "exits":
-        return "pass" if status == want else "fail"
-    if kind == "more":
-        first = out.split(maxsplit=1)[:1]
-        return "pass" if first and first[0].isdigit() and int(first[0]) >= want else "fail"
-    return "pass" if out == want else "fail"
+    """A replay has no judge to read an `unclear` run, so it counts as `fail`."""
+    found = criteria_check.verdict(test, status, out)
+    return "pass" if found == "pass" else "fail"
 
 
 def blocked_path(folder):
@@ -51,6 +51,57 @@ def blocked_path(folder):
         stand_in.write_text(f"#!/bin/sh\necho '{tool} is off in this replay' >&2\nexit 1\n")
         stand_in.chmod(0o755)
     return folder
+
+
+def clean_environment(scratch):
+    """The environment of a clean run: the stand-ins first on PATH, no GitHub login, no herdr session, no CLAUDE.md or memory."""
+    empty_gh = scratch / "gh-config"
+    empty_gh.mkdir()
+    environment = {**os.environ, **SWITCHES, "PATH": f"{blocked_path(scratch / 'blocked')}:{os.environ['PATH']}",
+                   "GH_TOKEN": "off-in-replay", "GH_CONFIG_DIR": str(empty_gh)}
+    for key in [key for key in environment if key.startswith("HERDR")]:
+        environment.pop(key)
+    return environment
+
+
+def run_claude(command, cwd, environment):
+    """The stream and the errors of a `claude -p` COMMAND, cut off at RUN_TIMEOUT."""
+    try:
+        done = subprocess.run(command, cwd=cwd, env=environment, capture_output=True, text=True, timeout=RUN_TIMEOUT,
+                              stdin=subprocess.DEVNULL)
+        return done.stdout, done.stderr
+    except subprocess.TimeoutExpired as expired:
+        return expired.stdout.decode() if isinstance(expired.stdout, bytes) else expired.stdout or "", f"timed out after {RUN_TIMEOUT} s"
+
+
+def run_jobs(jobs, run_one, parallel, spent, budget, limit):
+    """Starts each of JOBS as RUN_ONE(*job), PARALLEL at a time, and stops before the next could carry SPENT() past LIMIT at its BUDGET."""
+    with concurrent.futures.ThreadPoolExecutor(parallel) as pool:
+        running = []
+        for job in jobs:
+            while len(running) >= parallel:
+                done, pending = concurrent.futures.wait(running, return_when=concurrent.futures.FIRST_COMPLETED)
+                running = list(pending)
+            if spent() + float(budget) * (len(running) + 1) > limit:
+                print(f"stop: ${spent():.2f} spent; another run could pass ${limit:.0f}")
+                break
+            running.append(pool.submit(run_one, *job))
+        concurrent.futures.wait(running)
+
+
+def read_options(args, defaults):
+    """DEFAULTS with each `--flag value` pair of ARGS set, or None when ARGS holds a flag DEFAULTS lacks or a flag with no value."""
+    options = dict(defaults)
+    while args:
+        if args[0] not in options or len(args) < 2:
+            return None
+        options[args[0]], args = args[1], args[2:]
+    return options
+
+
+def read_records(folder):
+    """The JSON record of each run kept in FOLDER, in file order."""
+    return [json.loads(path.read_text()) for path in sorted(folder.glob("*.json"))] if folder.exists() else []
 
 
 def weight(model):
@@ -64,9 +115,17 @@ def turn_input(usage):
     return usage.get("input_tokens", 0) + 1.25 * minutes + 2 * hour + 0.1 * usage.get("cache_read_input_tokens", 0)
 
 
+def write_rate(usage):
+    return 2.0 if (usage.get("cache_creation") or {}).get("ephemeral_1h_input_tokens", 0) else 1.25
+
+
+def turn_units(turn):
+    """A turn's bill in input-token units: its input side plus five times its output, times its model's weight."""
+    return weight(turn["model"]) * (turn_input(turn["usage"]) + 5 * turn["usage"].get("output_tokens", 0))
+
+
 def run_units(turns):
-    """The run's bill in input-token units: each turn's input side plus five times its output, times its model's weight."""
-    return sum(weight(turn["model"]) * (turn_input(turn["usage"]) + 5 * turn["usage"].get("output_tokens", 0)) for turn in turns)
+    return sum(turn_units(turn) for turn in turns)
 
 
 def text_of(content):
@@ -76,8 +135,8 @@ def text_of(content):
 
 
 def read_events(stream):
-    """The run's init event, turns in order, tool uses by id, results in order and its result event."""
-    init, turns, uses, results, result = {}, {}, {}, [], {}
+    """The run's init event, hook event names, turns in order, tool uses by id, results in order and its result event."""
+    init, hooks, turns, uses, results, result = {}, [], {}, {}, [], {}
     for position, line in enumerate(stream.splitlines()):
         try:
             event = json.loads(line)
@@ -86,6 +145,8 @@ def read_events(stream):
         kind, subtype = event.get("type"), event.get("subtype", "")
         if kind == "system" and subtype == "init":
             init = event
+        elif kind == "system" and subtype == "hook_response":
+            hooks.append(event.get("hook_name") or event.get("hook_event") or "")
         elif kind == "assistant" and event.get("parent_tool_use_id") is None:
             message = event["message"]
             first = turns.get(message.get("id"), {}).get("position", position)
@@ -100,7 +161,7 @@ def read_events(stream):
                     results.append({"position": position, "id": part.get("tool_use_id"), "text": text_of(part.get("content"))})
         elif kind == "result":
             result = event
-    return init, sorted(turns.values(), key=lambda turn: turn["position"]), uses, results, result
+    return init, hooks, sorted(turns.values(), key=lambda turn: turn["position"]), uses, results, result
 
 
 def carry(tokens, position, turns):
@@ -109,5 +170,4 @@ def carry(tokens, position, turns):
     if not later:
         return 0.0
     first = later[0]
-    rate = 2.0 if (first["usage"].get("cache_creation") or {}).get("ephemeral_1h_input_tokens", 0) else 1.25
-    return tokens * (weight(first["model"]) * rate + sum(weight(turn["model"]) * 0.1 for turn in later[1:]))
+    return tokens * (weight(first["model"]) * write_rate(first["usage"]) + sum(weight(turn["model"]) * 0.1 for turn in later[1:]))

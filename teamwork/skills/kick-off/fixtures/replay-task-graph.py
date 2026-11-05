@@ -22,9 +22,12 @@ import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
+sys.path.insert(0, str(ROOT / "lib"))
+import replay_probe  # noqa: E402
+
 USE = HERE.parent / "scripts" / "use-board.py"
 LIST = ROOT / "hooks" / "list-issue-board.py"
-CHECK = "1. [check] **The probe prints PASS when it runs**: `echo ok` prints `ok`; on base nothing.\n"
+CHECK = replay_probe.CHECK
 failures = []
 
 
@@ -153,7 +156,7 @@ def derive_cases():
     records = [board.fresh(n, comments=False) for n in parts]
     decided = [comment["body"] for comment in board.fresh(stop)["comments"] if comment["body"].startswith("DECIDED:")]
     step("derive-stop-closes-parts", all(record["state"] == "CLOSED" and not task_links.completed(record) for record in records)
-         and len(decided) == 1 and all(f"#{n}" in decided[0] for n in parts), f"{[(r['state'], r.get('stateReason') or r.get('reason')) for r in records]} {decided}")
+         and len(decided) == 1 and all(f"#{n}" in decided[0] for n in parts), f"{[(record['state'], record.get('stateReason') or record.get('reason')) for record in records]} {decided}")
 
 
 def heartbeat(nodes):
@@ -235,7 +238,6 @@ def main(args):
     os.environ.update({"HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "config")})
     subprocess.run(["git", "init", "-q", str(work / "repo")], check=True)
     os.chdir(work / "repo")
-    sys.path.insert(0, str(ROOT / "lib"))
     # imported here, since they read the repository set above when they load
     import board
     import task_links

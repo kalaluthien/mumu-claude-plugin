@@ -40,7 +40,7 @@ def scenario(tree):
                                              "agent_status": "idle", "interactive_ready": True},
                                             {"name": "stuck-worker", "pane_id": "w1:p3", "tab_id": "w1:t3", "workspace_id": "w1", "agent": "claude",
                                              "agent_status": "blocked", "interactive_ready": True, "screen": "Background work is running"}]}))
-    env = {**os.environ, "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state), "FAKE_HERDR_LOG": str(log),
+    environment = {**os.environ, "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state), "FAKE_HERDR_LOG": str(log),
            "HERDR_PANE_ID": "w1:p1", "START_SESSION_TIMEOUT": "3", "CLOSE_SESSION_TIMEOUT": "3"}
     out = []
     for step in STEPS:
@@ -50,7 +50,7 @@ def scenario(tree):
         script = tree / step[0]
         if not script.exists():  # a ref older than the rename of the session list (#1039) keeps it under its old name
             script = script.with_name(script.name.replace("sessions", "-".join(["", "agents"])[1:]))
-        process = subprocess.run([str(script), *([] if hook else step[1:])], cwd=work, env=env, input=event, capture_output=True, text=True)
+        process = subprocess.run([str(script), *([] if hook else step[1:])], cwd=work, env=environment, input=event, capture_output=True, text=True)
         log.open("a").write(f"exit {process.returncode}: {(process.stdout + process.stderr).strip()}\n")
     return log.read_text().replace(str(tree), "<root>").replace(str(work), "<work>")
 

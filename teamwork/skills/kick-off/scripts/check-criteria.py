@@ -21,7 +21,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import criteria_check  # noqa: E402
 import issue_state  # noqa: E402
 
-WORD = r"[^A-Za-z0-9-]+([A-Za-z0-9-]+)"
+NEXT_WORD = r"[^A-Za-z0-9-]+([A-Za-z0-9-]+)"  # the word after a marker such as `prints`
 # the first task number filed after the commit that wrote this line, so every task filed before keeps its old rules
 CUT_OFF = 1195
 MOST = 5
@@ -119,15 +119,15 @@ def defects(kind, name, detail):
     rest = detail[:span.start()] + detail[span.end():] if span else detail
     if kind == "check":
         # tasks filed before the base was named quote `on main`
-        passes, base = re.search(r"\bprints" + WORD, rest), re.search(r"\bon (?:base|main)" + WORD, rest)
+        passes, base = re.search(r"\bprints" + NEXT_WORD, rest), re.search(r"\bon (?:base|main)" + NEXT_WORD, rest)
         found += [] if span else ["no command"]
         found += ["no base output"] if not base else ["passes on base"] if passes and passes.group(1) == base.group(1) else []
     # what run-criteria.py cannot read; lint already names an elided command, and a missing base output covers the quote
     why = criteria_check.unreadable(detail) if kind == "check" and span else None
-    elided = "..." in span.group(2) or "…" in span.group(2) if span else False
+    elided = bool(span) and ("..." in span.group(2) or "…" in span.group(2))
     covered = why in found or elided and why == "placeholder in the command" or "no base output" in found and why and why.endswith("`on base`")
     found += [why] if why and not covered else []
-    if span and ("..." in span.group(2) or "…" in span.group(2)):
+    if elided:
         found.append("elided command")
     if kind == "score":
         found += [f"no {word}" for word in ("sample", "rubric") if f"{word}:" not in rest]
@@ -150,8 +150,8 @@ def main(args):
     lines = issue_state.ITEM.findall(issue_state.sections(body).get("done", ""))
     new_rules = task is None or task >= CUT_OFF
     # a part, `[task] #n`, is no criterion, so its form is the graph's to check
-    criteria = [(line_number, issue_state.CRITERION.match(line).groups()[1:]) for line_number, line in enumerate(lines, 1)
-                if issue_state.CRITERION.match(line).group(2) != "task"]
+    matched = [(line_number, issue_state.CRITERION.match(line).groups()[1:]) for line_number, line in enumerate(lines, 1)]
+    criteria = [(line_number, groups) for line_number, groups in matched if groups[0] != "task"]
     flagged = [(line_number, found) for line_number, groups in criteria
                for found in [defects(*groups) + (scenario_defects(groups[0], groups[2]) if new_rules else [])] if found]
     if new_rules and len(criteria) > MOST:

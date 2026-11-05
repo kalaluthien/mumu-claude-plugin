@@ -6,7 +6,8 @@ past managers' transcripts (#1202):
   (teamwork-manager's transcript 6a7e0b9a, the `idle work-model-worker` line 16 times in 8.9 h; 84bfcb25, one prompt printed twice a minute apart because its `deny this request in 1:35` countdown changed)
 - probe-quiet: a session with no `-worker` or `-sentinel` name, such as a worker's `probe-end-manager-49609`, gets no `idle` or `blocked` line
 - blocked-prompt, blocked-empty: a blocked pane names its prompt's choices; one showing an empty input under a banner gets no line
-- merged-later: a merged change is named once its worker holds nothing open, and then without an `idle` line beside it
+- merged-later: a merged change is not named while its worker holds an open task, and the worker's `idle` line is named once
+- merged-nothing-open: a merged change is named once its worker holds nothing open, and then without an `idle` line beside it, on a blocked pane with no prompt too
 - idle-waits: no `idle` line for a worker whose tasks wait on an open task or on an answer, whose `answer` line is its line
 - idle-background: no `idle` line while the worker's transcript shows a background command still running
 - answer-stale: no `answer` line for a question the board already answers, though the kept read predates the answer
@@ -27,13 +28,13 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 SCRIPTS = HERE.parent / "scripts"
 work = pathlib.Path(tempfile.mkdtemp(prefix="heartbeat-lines-"))
-repo = work / "repo"
+repository = work / "repo"
 STATE = work / "herdr.json"
-os.environ.update({"CLAUDE_CONFIG_DIR": str(work / "claude"),
-                   "GIT_CONFIG_GLOBAL": str(work / "gitconfig"), "GIT_AUTHOR_NAME": "probe", "GIT_AUTHOR_EMAIL": "probe@example.com",
-                   "GIT_COMMITTER_NAME": "probe", "GIT_COMMITTER_EMAIL": "probe@example.com", "FAKE_HERDR_STATE": str(STATE),
-                   "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "HERDR_PANE_ID": "w1:p1"})
 sys.path.insert(0, str(ROOT / "lib"))
+import replay_probe  # noqa: E402
+
+os.environ.update({"CLAUDE_CONFIG_DIR": str(work / "claude"), "GIT_CONFIG_GLOBAL": str(work / "gitconfig"), **replay_probe.IDENTITY,
+                   "FAKE_HERDR_STATE": str(STATE), "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "HERDR_PANE_ID": "w1:p1"})
 failed = []
 passed = []
 QUIET = False
@@ -78,21 +79,19 @@ def agent(name, pane, status, **more):
 
 
 def herdr(*agents):
-    STATE.write_text(json.dumps({"n": 20, "agents": list(agents), "tabs": [{"tab_id": a["tab_id"], "workspace_id": "w1", "label": a["name"]} for a in agents]}))
+    STATE.write_text(json.dumps({"n": 20, "agents": list(agents), "tabs": [{"tab_id": listed["tab_id"], "workspace_id": "w1", "label": listed["name"]} for listed in agents]}))
     return list(agents)
 
 
 def use(*args, pane="w1:p1"):
-    process = subprocess.run([str(SCRIPTS / "use-board.py"), *map(str, args)], cwd=repo, capture_output=True, text=True, env={**os.environ, "HERDR_PANE_ID": pane})
+    process = subprocess.run([str(SCRIPTS / "use-board.py"), *map(str, args)], cwd=repository, capture_output=True, text=True, env={**os.environ, "HERDR_PANE_ID": pane})
     if VERBOSE:
         print(f"$ use-board.py {' '.join(map(str, args))}\n{process.stdout}{process.stderr}", file=sys.stderr)
     return process.stdout.strip()
 
 
 def text(name, body):
-    path = work / name
-    path.write_text(body)
-    return path
+    return replay_probe.write_text(work, name, body)
 
 
 def file(title, body="", holder=None):
@@ -116,7 +115,7 @@ def about(output, name):
 
 def run_monitor(until):
     log = work / "monitor.log"
-    live = subprocess.Popen([str(ROOT / "monitors" / "print-team-gaps.py")], cwd=repo, env={**os.environ, "MONITOR_POLL": "0.3"}, stdout=log.open("w"), stderr=subprocess.STDOUT)
+    live = subprocess.Popen([str(ROOT / "monitors" / "print-team-gaps.py")], cwd=repository, env={**os.environ, "MONITOR_POLL": "0.3"}, stdout=log.open("w"), stderr=subprocess.STDOUT)
     deadline = time.time() + 30
     while time.time() < deadline and not until(log.read_text()):
         time.sleep(0.2)
@@ -161,7 +160,7 @@ def line_cases():
          "\n".join(out + ["--"] + stuck))
 
     first = file("Probe a task others wait on", holder="o-worker")
-    waits = file("Probe a waiting task", f"```teamwork\ndepends on: #{first}\n```", holder="w-worker")
+    waits = file("Probe a waiting task", f"Probe a task that waits.\n\n```teamwork\ndepends on: #{first}\n```", holder="w-worker")
     asks = file("Probe an asking task", holder="a-worker")
     use("comment", asks, text("ask.md", "BLOCKED: which way?\n"))
     listed = herdr(agent("x-manager", 1, "working"), agent("w-worker", 2, "idle"), agent("a-worker", 3, "idle"), agent("o-worker", 4, "working"))
@@ -220,10 +219,10 @@ def main(args):
         return 2
     VERBOSE = "--verbose" in flags
     QUIET = "--verdict" in flags or "--cited" in flags
-    repo.mkdir()
+    repository.mkdir()
     for argv in (["init", "-q", "-b", "main"], ["commit", "-q", "--allow-empty", "-m", "start"]):
-        subprocess.run(["git", *argv], cwd=repo, check=True)
-    os.chdir(repo)
+        subprocess.run(["git", *argv], cwd=repository, check=True)
+    os.chdir(repository)
     monitor_cases()
     line_cases()
     feed_cases()
