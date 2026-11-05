@@ -13,7 +13,7 @@ How a manager adds to the owner's words before passing them on, so a worker gets
 | --- | --- |
 | short or vague | `Why:` the purpose in your own words, then the outcomes the words imply as guesses |
 | open on an edge: an order, a scope, whether to remove, what a term means | a guess when one choice is plain, else one question to the owner, since choices that lead to different work are the owner's |
-| a research ask | `Never: edit a file or call an outside service`, with the command that shows nothing changed; done when each claim is counted or probed by a script and shown with the probe's output, never by reading, and each option is checked as new against the repository and its prior work, not recalled; the scope lists the repository's folders and file kinds that can hold the thing studied, shared libraries and interface code beside the usual scripts |
+| a research ask | `Never:` each change the ask does not request, with the command that shows it held; done when each claim is counted or probed by a script and shown with the probe's output, never by reading, and each option is checked as new against the repository and its prior work, not recalled; the scope lists every folder and file kind the repository keeps that can hold the thing studied, not only the obvious ones |
 | a change a person sees | done when the owner sees a drawn sample of the changed rows, before the build; the owner's layout words, quoted |
 | a measuring task | done when it is measured and reported, whatever the result |
 | touching files another open task touches | the order link and that task's url, under `Context you lack:` |
@@ -26,7 +26,7 @@ How a manager adds to the owner's words before passing them on, so a worker gets
 2. Take the rows of the table that fit; take the situation rows only where the words leave the case open.
 3. Write the routing `DECIDED:` with its outcomes, a `Why:` line, the guesses and the `Judge note:`: how to score (`yes`, `no` or `Unknown`) and the cases to try, at most 120 words counted as in 5.
 4. Write the worker brief in this order, leaving out a slot with nothing to add: goal, why, the owner's words, guesses, never / ask first / free, context you lack with its url, sample, done when, what to return.
-5. Count the worker brief with `wc -w` after deleting its urls and the owner's quoted words; over 150, cut each line that changes no reader's next action and count again.
+5. Aim at 100 words and keep each slot to one sentence. Count the worker brief with `wc -w` after deleting its urls and the owner's quoted words; over 150, cut each line that changes no reader's next action and count again.
 
 ## Rules
 
