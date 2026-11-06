@@ -22,11 +22,11 @@ Set one auto-memory folder for every session in `~/.claude/settings.json`:
 { "autoMemoryDirectory": "~/.claude/memory" }
 ```
 
-Its `MEMORY.md` then loads in every session, and a SessionStart hook prints the index of the repository's own folder, `~/.claude/memory/<repo>/`, where `<repo>` is the origin's name, else the checkout's folder name. Move a memory file between the two with `skills/wrap-up/scripts/move-memory.py <file> <folder>`.
+Its `MEMORY.md` then loads in every session, and a SessionStart hook sends each lesson to it and prints the index of the repository's rare folder, `~/.claude/memory/<repo>/`, kept only for a lesson wrong or harmful outside that repository, where `<repo>` is the origin's name, else the checkout's folder name. Move a memory file between the two with `skills/wrap-up/scripts/move-memory.py <file> <folder>`.
 
 ## What a wrap-up writes
 
-- **Auto-memory**: written directly: a lesson for every project in the folder `autoMemoryDirectory` names, and a repository's lesson in that folder's `<repo>/`; with no `autoMemoryDirectory`, the project's own pool.
+- **Auto-memory**: written directly: a lesson in the folder `autoMemoryDirectory` names, and only one wrong or harmful outside its repository in that folder's `<repo>/`; with no `autoMemoryDirectory`, the project's own pool.
 - **Skill lessons**: kept in memory, marked `skill:`, until a dream asks you whether to write each into its skill, keep it or drop it.
 - **Anything else**: a lesson for `~/.claude/CLAUDE.md`, another repository's memory, a hook or a skill is written as a patch file; the wrap-up's report names the `! git -C <root> apply <patch file>` command that applies it, and nothing changes until you run it.
 - **Issues**: a wrap-up asks before it files one.

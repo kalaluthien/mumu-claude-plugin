@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print, as a session starts, where this repository's lessons go under the auto-memory home and the index of those already kept.
+"""Print, as a session starts, that lessons go to the auto-memory home by default and the index of this repository's rare folder when it exists.
 
 usage: print-repository-memory.py   a SessionStart hook; reads the event's JSON on stdin
 
@@ -13,8 +13,8 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import memory_home  # noqa: E402
 
-SENTENCE = ("Repository memory: a lesson true only for {repository} goes in {folder}/, one file each, its index line in "
-            "{folder}/MEMORY.md; a lesson for every project goes in the auto-memory root, {root}/.")
+SENTENCE = ("Memory: a lesson goes in the auto-memory root, {root}/, one file each; only a lesson wrong or harmful outside "
+            "{repository} goes in {folder}/, its index line in {folder}/MEMORY.md.")
 WARNING = ("homework: `autoMemoryDirectory` is not set, so memory stays in each project's own pool. "
            "To share one memory home, add to ~/.claude/settings.json: {\"autoMemoryDirectory\": \"~/.claude/memory\"}")
 
@@ -41,7 +41,7 @@ def main(args):
     try:
         print(index.read_text(encoding="utf-8", errors="replace").rstrip())
     except OSError:
-        print("It holds no lesson yet.")
+        pass
     return 0
 
 

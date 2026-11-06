@@ -32,8 +32,8 @@ Keep what this session learned where the next agent will meet it. A lesson hande
    | --- | --- |
    | something a check could decide | a hook, script, lint rule or CI step, by [harness-authoring.md](harness-authoring.md), as a patch |
    | a procedure that worked again, or how a subagent should work | a memory file placed by the rows below, its frontmatter marked `skill: <plugin>:<skill>` for the skill that owns the work, or `skill: new <name>`; a dream asks the owner whether to write it into the skill |
-   | true for every project: another repository's memory holds it, or the owner said it for all work | `<home>/`, one memory file each; move this repository's copy there by `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/move-memory.py <file> <home>`, and delete another repository's copy as a patch. With no `<home>`: `<config>/CLAUDE.md`, an instruction and a clause of reason in its work's section, as a patch rooted at `<config>` that also deletes this project's copy |
-   | true for this repository: a fact, a trap, a preference, a procedure that worked once | `<home>/<repo>/`, else this project's pool, one memory file each |
+   | wrong or harmful outside this repository, such as its paths or one-off setup | `<home>/<repo>/`, else this project's pool, one memory file each |
+   | any other lesson, a fact, a trap, a preference or a procedure | `<home>/`, one memory file each; move this repository's copy there by `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/move-memory.py <file> <home>`, and delete another repository's copy as a patch. With no `<home>`: `<config>/CLAUDE.md`, an instruction and a clause of reason in its work's section, as a patch rooted at `<config>` that also deletes this project's copy |
 
    **Patch**: a destination marked patch is never written in place, since only this project's memory is retro's to change. Write the change as a unified diff to `<data>/patches/<today>-<topic>.patch`, its paths relative to `<root>`, the repository that holds the file, else the file's folder. Check it with `git -C <root> apply --check <patch file>`.
 
