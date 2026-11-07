@@ -60,7 +60,7 @@ CASES = {
     "functions of a file that calls getattr on a computed name are not unused": (
         {SKILL + "scripts/planted-dispatch.py": "def one():\n    return 1\n\n\ndef main(args):\n    return getattr(__import__('sys'), args[0])\n"},
         {SKILL_MD: "\nrun scripts/planted-dispatch.py\n"}, [], [SKILL + "scripts/planted-dispatch.py"]),
-    "a lib module named only in a docstring is not listed": (
+    "a lib module named only in a comment is not listed": (
         {"teamwork/lib/planted_adapter.py": "X = 1\n"}, {"teamwork/lib/agent.py": "\n# adapters: lib/planted_adapter.py\n"}, [], ["teamwork/lib/planted_adapter.py"]),
     "a lib module imported by a dead script is listed": (
         {"teamwork/lib/planted_lib.py": "X = 1\n", SKILL + "scripts/planted-user.py": "import planted_lib\n"}, {},
