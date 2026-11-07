@@ -86,6 +86,9 @@ def find_references(texts):
         by_name.setdefault(path.rsplit("/", 1)[-1], []).append(path)
         for end in [at for at, letter in enumerate(path) if letter == "/"]:
             folders.setdefault(path[:end], []).append(path)
+    folders_by_name = {}
+    for folder, members in folders.items():
+        folders_by_name.setdefault(folder.rsplit("/", 1)[-1], []).append((folder, members))
     references = {}
     for path, text in texts.items():
         found = set()
@@ -98,10 +101,10 @@ def find_references(texts):
             if "." in last or "/" in token:
                 found.update(file for file in by_name.get(last, ()) if file == token or file.endswith("/" + token) or token.endswith("/" + file))
             if reads_folders:
-                for folder, members in folders.items():
+                for folder, members in folders_by_name.get(last, ()):
                     parent = folder.rsplit("/", 1)[0] if "/" in folder else ""
                     near = "/" in token or not parent or path.startswith(parent + "/")
-                    if near and folder.rsplit("/", 1)[-1] == last and (folder == token or folder.endswith("/" + token)):
+                    if near and (folder == token or folder.endswith("/" + token)):
                         found.update(member for member in members if is_fixture(member) and not member.endswith(PROGRAMS))
         found.discard(path)
         references[path] = found
@@ -186,8 +189,10 @@ def find_unused(facts, reached):
             if name not in live:
                 live.add(name)
                 queue.append(name)
-    functions = [(path, line, name) for path in sorted(reached) if path in facts for line, name in facts[path][1] if name not in live]
-    imports = [(path, line, name) for path in sorted(reached) if path in facts for line, name, used in facts[path][4] if name not in used]
+    functions, imports = [], []
+    for path in sorted(reached & facts.keys()):
+        functions += [(path, line, name) for line, name in facts[path][1] if name not in live]
+        imports += [(path, line, name) for line, name, used in facts[path][4] if name not in used]
     return functions, imports
 
 
