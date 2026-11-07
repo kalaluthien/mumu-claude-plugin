@@ -18,6 +18,8 @@ import team_names  # noqa: E402
 import team_settings  # noqa: E402
 import usage_parser  # noqa: E402
 
+SUFFIXES = ("-worker", "-sentinel", "-manager", "-next")
+FORMS = "`<task>-worker`, `<duty>-sentinel`, `<project>-manager` or `<manager>-next`"
 TIMEOUT, POLL = float(os.environ.get("START_SESSION_TIMEOUT", 120)), 1.0
 
 
@@ -81,6 +83,9 @@ def main(args):
     role = next((candidate for candidate in ("worker", "sentinel") if options.args.startswith(candidate + " ")), "manager")
     if options.args.split()[4:6] == ["set", "remote"]:  # a stale kick-off line must fail, not start a herdr session where its sender expects a cloud one
         print("start-session.py: set remote: every session runs in herdr; leave out `set remote`.", file=sys.stderr)
+        return 2
+    if not options.name.endswith(SUFFIXES):  # the heartbeat, hooks and branch cleanup know a role by its name's suffix
+        print(f"start-session.py: {options.name} ends in no role suffix: name it {FORMS}.", file=sys.stderr)
         return 2
     role_off = settings["tools_off"].get(role, [])
     if stray := sorted(set(options.allow) - set(role_off)):

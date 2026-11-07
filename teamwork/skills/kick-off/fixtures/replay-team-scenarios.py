@@ -207,6 +207,23 @@ def worker_placement():
     return ok, "\n".join(out for _, out in outs + refused)
 
 
+def role_names():
+    """A session starts only under a name ending in a role suffix, however long its stem; any other name is refused with the allowed forms
+    named and nothing opened, since the heartbeat lists a session by that suffix."""
+    state = herdr(*TEAM)
+    long_stem = "x" * 40
+    allowed = [start(state, "w1:p1", f"{long_stem}-worker", f"worker {long_stem}-worker manager teamwork-manager x"),
+               start(state, "w1:p1", "duty-sentinel", "sentinel duty-sentinel manager teamwork-manager x"),
+               start(state, "w1:p1", "odd-manager", "odd"),
+               start(state, "w1:p1", "teamwork-manager-next", "succeed teamwork-manager")]
+    tabs_before = len(json.loads(state.read_text())["tabs"])
+    refused = [start(state, "w1:p1", "bare-task", "worker bare-task manager teamwork-manager x"),
+               start(state, "w1:p1", "bare-lead", "bare")]
+    ok = all(code == 0 for code, _ in allowed) and all(code == 2 and "<task>-worker" in out and "<manager>-next" in out for code, out in refused) \
+        and len(json.loads(state.read_text())["tabs"]) == tabs_before
+    return ok, "\n".join(out for _, out in allowed + refused)
+
+
 def manager_placement():
     """A manager opens a workspace of its own; a successor joins its predecessor's workspace, or opens its own when another project's
     manager shares that workspace."""
@@ -284,6 +301,7 @@ SCENARIOS = {
     "monitor-restart": monitor_restart,
     "two-managers": two_managers,
     "worker-placement": worker_placement,
+    "role-names": role_names,
     "manager-placement": manager_placement,
     "moved-me": moved_me,
     "moved-close": moved_close,
