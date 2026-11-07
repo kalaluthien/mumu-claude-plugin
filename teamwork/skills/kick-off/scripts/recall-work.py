@@ -7,7 +7,6 @@ usage: recall-work.py [<words>...] [--path <file>]... [--before <date>] [--top <
 
 `--before` sees the repository as it stood at DATE, to replay a past kick-off."""
 import collections
-import json
 import math
 import pathlib
 import re

@@ -21,6 +21,7 @@ it has failed twice the same way.
 its output equals the text quoted after `on base` (or `on main`, in tasks filed before), `wrong base` when it differs,
 `unclear` when the quote is not one value; exit 1 on any `wrong base`; an `exits` or `more` check, a git check (the
 export has no `.git`) and a check with a placeholder are `unclear`. The output is compared whole. It never fetches: run `git fetch` first. A body file reads criteria before the task exists, so run it before the first judge.
+A body file alone runs its criteria at the head.
 
 `--pass <n>=<sample-file>` (once per criterion, with a body file) runs criterion `n` at the head with its first pipe stage
 replaced by `cat <sample-file>`, so the stages after it meet the input the pass would give. It prints `pass ok` when the
@@ -70,9 +71,10 @@ def read_task(source):
     if source == "-":
         task = json.load(sys.stdin)  # a comment the board adapter has not marked, as a board's own listing prints it, gets its mark here
         return {**task, "comments": [{**comment, "trusted": comment.get("trusted", board.trusted(comment))} for comment in task.get("comments", [])]}
-    found = board.fresh(source)
+    found = board.fresh(source) if source.lstrip("#").isdigit() else None
     if found is None:
-        sys.exit(f"run-criteria: could not read task {source} from the board")
+        print(f"run-criteria: could not read {source} as a task on the board, a body file or `-`", file=sys.stderr)
+        usage_parser.refuse(__doc__)
     return found
 
 
@@ -281,7 +283,7 @@ def main(args):
     parser.add_argument("task")
     options = parser.parse_args(args)
     file = pathlib.Path(options.task)
-    task = {"body": file.read_text(), "comments": []} if (options.base or options.samples) and file.is_file() else runnable(read_task(options.task))
+    task = {"body": file.read_text(), "comments": []} if file.is_file() else runnable(read_task(options.task))
     root = git_output("rev-parse", "--show-toplevel") or "."
     if options.samples:
         return run_with_samples(options, task, root)
