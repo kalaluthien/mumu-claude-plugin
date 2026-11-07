@@ -16,6 +16,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
 import issue_state  # noqa: E402
+from judge_note import without_judge_note  # noqa: E402
 import landing  # noqa: E402
 import task_links  # noqa: E402
 import usage_parser  # noqa: E402
@@ -61,7 +62,7 @@ def load(before):
             "head": f"#{item['number']} {kind} {state}: {issue_state.title(item)}",
             "text": " ".join([item["title"]] * 3 + [item["body"], *comments]),
             # any capitalised word, since comments under words the grammar no longer lists stay on the record
-            "records": [text.strip().splitlines()[0][:160] for text in comments if re.match(r"\s*[A-Z]+:", text)],
+            "records": [without_judge_note(text.strip()).strip().splitlines()[0][:160] for text in comments if re.match(r"\s*[A-Z]+:", text)],
             "closes": [int(number) for number in landing.CLOSES.findall(item["body"])] if item["isPullRequest"] else [],
         }
     return items

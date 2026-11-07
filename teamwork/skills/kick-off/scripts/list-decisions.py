@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Print a task's binding set, the decisions on it and its ancestors that bind it now, then the open questions on them, so a worker
-starts from these instead of every thread; exit 1 when the board read failed.
+starts from these instead of every thread; exit 1 when the board read failed. With `--as judge` it omits the open questions, since a
+judge scores the change and not the worker's doubts.
 
-usage: list-decisions.py <issue>"""
+usage: list-decisions.py <issue> [--as judge]"""
 import pathlib
 import sys
 
@@ -13,7 +14,8 @@ import issue_state  # noqa: E402
 
 
 def main(args):
-    number = decisions.task_number(args[0]) if len(args) == 1 else None
+    judge = args[1:] == ["--as", "judge"]
+    number = decisions.task_number(args[0]) if args and (len(args) == 1 or judge) else None
     if number is None:
         print(__doc__, file=sys.stderr)
         return 2
@@ -29,6 +31,8 @@ def main(args):
         links = [f"supersedes {decision['supersedes']}"] * bool(decision["supersedes"]) + [f"answers {decision['answers']}"] * bool(decision["answers"])
         links += [f"waits on {' '.join(f'#{n}' for n in decision['depends'])}"] * bool(decision["depends"])
         print(f"- #{decision['task']} {decision['decider']}{door}: {decision['decision']} ({decision['url']})" + "".join(f"; {link}" for link in links))
+    if judge:
+        return 0
     asked = [(task, question) for task in decisions.chain(number, issues) for question in issue_state.open_questions(decisions.as_issue(issues[task]))]
     print(f"open questions: {len(asked)}")
     for task, question in asked:
