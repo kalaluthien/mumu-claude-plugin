@@ -60,6 +60,8 @@ CASES = {
     "functions of a file that calls getattr on a computed name are not unused": (
         {SKILL + "scripts/planted-dispatch.py": "def one():\n    return 1\n\n\ndef main(args):\n    return getattr(__import__('sys'), args[0])\n"},
         {SKILL_MD: "\nrun scripts/planted-dispatch.py\n"}, [], [SKILL + "scripts/planted-dispatch.py"]),
+    "a file with a NUL byte does not stop the run": (
+        {"teamwork/lib/planted_nul.py": "X = 1\x00\n"}, {}, ["unreached teamwork/lib/planted_nul.py"], []),
     "a lib module named only in a comment is not listed": (
         {"teamwork/lib/planted_adapter.py": "X = 1\n"}, {"teamwork/lib/agent.py": "\n# adapters: lib/planted_adapter.py\n"}, [], ["teamwork/lib/planted_adapter.py"]),
     "a lib module imported by a dead script is listed": (
@@ -154,6 +156,19 @@ def run_repository_check(base):
     gone = not (REPOSITORY / "teamwork/skills/kick-off/scripts/list-unreached.py").exists()
     print(("ok" if gone else "FAIL") + " the checker no longer sits in teamwork")
     holds = holds and gone
+    with tempfile.TemporaryDirectory() as work:
+        root = pathlib.Path(work)
+        shutil.copytree(base, root, dirs_exist_ok=True)
+        plant(root, {"teamwork/lib/planted-dead.md": "dead\n"}, {})
+        (root / ".github" / "list-unreached.py").write_text("")
+        result = subprocess.run([sys.executable, str(root / ".github" / "check-repository.py"), str(root)], capture_output=True, text=True)
+        good = result.returncode == 1
+        print(("ok" if good else "FAIL") + " the check fails when the lister prints nothing")
+        holds = holds and good
+    missing = subprocess.run([sys.executable, str(check), str(base / "no-such-folder")], capture_output=True, text=True)
+    good = missing.returncode == 2 and not missing.stdout and "usage: check-repository.py" in missing.stderr
+    print(("ok" if good else "FAIL") + " a root that is no folder prints the usage on stderr and exits 2")
+    holds = holds and good
     for manifest in sorted(base.glob("*/.claude-plugin/plugin.json")):
         plugin = manifest.parent.parent.name
         with tempfile.TemporaryDirectory() as work:

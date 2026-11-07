@@ -54,7 +54,7 @@ def read_text(folder, path):
 def parse(text):
     try:
         return ast.parse(text)
-    except SyntaxError:
+    except (SyntaxError, ValueError, RecursionError):  # ValueError: a NUL byte, on Python 3.9
         return None
 
 

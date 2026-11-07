@@ -28,6 +28,7 @@ PLACEHOLDER = set("<*{")
 # score-memory.py counts a candidate's index lines and never follows their links, so these MEMORY.md files link lessons they do not hold.
 SCORED_INDEX = re.compile(r"(^|/)fixtures/replay/[^/]+/candidates/[^/]+/MEMORY\.md$")
 UNHELD_LESSON = re.compile(r"lesson-\d+\.md")
+SUMMARY = re.compile(r"^\d+ files, \d+ unreached$", re.M)  # without it a lister that printed nothing would pass
 
 
 def list_files(root):
@@ -124,6 +125,9 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     root = os.path.abspath(args[0] if args else ROOT)
+    if not os.path.isdir(root):
+        print(__doc__, file=sys.stderr)
+        return 2
     failures = []
     compiled = manifests = links = docs = 0
     for path in list_files(root):
@@ -149,9 +153,9 @@ def main(args):
             with open(full, encoding="utf-8", errors="replace") as handle:
                 links += check_markdown(root, path, handle.read(), failures)
     unreached = subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("list-unreached.py")), root], capture_output=True, text=True)
-    if unreached.returncode:
+    if unreached.returncode or not SUMMARY.search(unreached.stdout):
         lines = [line for line in unreached.stdout.splitlines() if line.startswith("unreached ")]
-        failures += lines or ["unreached list-unreached.py: exit {}: {}".format(unreached.returncode, unreached.stderr.strip())]
+        failures += lines or ["unreached list-unreached.py: exit {}, no summary line: {}".format(unreached.returncode, unreached.stderr.strip())]
     for line in failures:
         print(line)
     counts = "{} py compiled, {} manifests parsed, {} links in {} md resolved, {} failures".format(
