@@ -21,7 +21,6 @@ usage: use-board.py <operation> <args>
                                         nothing posted, when it breaks a rule of the grammar's Decisions section
   label <issue> <name> [--remove]"""
 import pathlib
-import re
 import subprocess
 import sys
 

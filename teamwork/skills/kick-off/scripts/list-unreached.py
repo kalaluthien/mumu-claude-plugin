@@ -22,6 +22,8 @@ REPLAY_NAME = re.compile(r"(^|/)(replay|check|probe|compare|render)-[^/]*\.(py|t
 KEPT = {
     "lib/agent_claude.py": "lib/agent.py imports it as agent_<TEAMWORK_AGENT>, default claude",
     "hooks/fixtures/count-start-text.py": "criterion 3 of open #1254 runs it",
+    "skills/kick-off/fixtures/replay-manager-delegation.py": "criterion 2 of open #1255 runs it",
+    "lib/replay_runs.py": "replay-manager-delegation.py imports it",
     "skills/kick-off/fixtures/check-deletion.py": "the criteria of a deletion task run it, #1256's included",
     "skills/kick-off/scripts/list-unreached.py": "criterion 2 of #1256 runs it",
     "skills/kick-off/fixtures/replay-kept-fixtures.py": "criterion 3 of #1256 runs it",
