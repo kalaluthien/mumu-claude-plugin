@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print, as a session starts, that lessons go to the auto-memory home by default and the index of this repository's rare folder when it exists.
+"""Print, as a session starts, that lessons go to the auto-memory home by default and the index of this repository's rare folder when it holds an entry.
 
 usage: print-repository-memory.py   a SessionStart hook; reads the event's JSON on stdin
 
@@ -11,6 +11,7 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
+import memory  # noqa: E402
 import memory_home  # noqa: E402
 
 SENTENCE = ("Memory: a lesson goes in the auto-memory root, {root}/, one file each; only a lesson wrong or harmful outside "
@@ -39,9 +40,12 @@ def main(args):
     print(SENTENCE.format(repository=repository, folder=folder, root=root))
     index = folder / "MEMORY.md"
     try:
-        print(index.read_text(encoding="utf-8", errors="replace").rstrip())
+        text = index.read_text(encoding="utf-8", errors="replace").rstrip()
     except OSError:
-        pass
+        return 0
+    # a title alone holds no lesson, so printing it spends start-up context on nothing
+    if memory.index_words(text):
+        print(text)
     return 0
 
 

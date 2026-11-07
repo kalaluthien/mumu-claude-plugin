@@ -33,7 +33,7 @@ const BATCHES = {
   required: ['batches'],
 }
 const LINES = { type: 'object', properties: { lines: { type: 'array', items: { type: 'string' } } }, required: ['lines'] }
-const MEMORY_RULES = `A memory file holds a frontmatter of name, description and metadata.type, one lesson, a 'When it applies:' line and a 'When it is wrong:' line, and its index line in MEMORY.md reads '- [<title>](<file>.md) — <when it applies>'; edit MEMORY.md only over a fresh read, since other agents write it now.`
+const MEMORY_RULES = `A memory file covers one situation: a frontmatter of name, description (the same words as its index line) and, under metadata:, type, confirmed and last-confirmed; its lessons; a 'When it applies:' line and a 'When it is wrong:' line. Its index line in MEMORY.md reads '- [<title>](<file>.md) — <when it applies>', and MEMORY.md holds a title and index lines only; edit MEMORY.md only over a fresh read, since other agents write it now.`
 
 const STEP = `You do one step of the dream this workflow already runs for the request above, which this step alone serves: never load the homework:wrap-up skill, follow its dream playbook, run start-dreamer.py or call Workflow.
 
@@ -143,7 +143,7 @@ const tidy = await step(`You tidy every memory folder in place: ${HOME}, each fo
 4. Superseded: an entry a later one restates, narrows or reverses is rewritten or deleted.
 5. Stale: fix a dead path, command, flag or package, one a project's files or history show was there and is gone, when the new target is plain, else delete the entry; keep an entry whose tool is merely not installed here.
 6. Placement: a lesson in the wrong memory folder moves by python3 ${SCRIPTS}/move-memory.py <file> <folder>; a lesson that belongs in an instruction file, a document or a skill stays in memory and goes to other_fixes.
-7. Demote: a lesson list-drift.py lists as never found again is weakened, its index line narrowed to the situation it came from, or moved down to the one project it came from, never kept at full weight.
+7. Promote and demote, by the Placement test in ${ROOT}/skills/wrap-up/SKILL.md: a lesson a repeat shows was needed before its situation was visible goes to other_fixes as a move into the instruction file that test names; an instruction-file line whose situation is plainly visible when it arises becomes a memory file here, its cut from the instruction file going to other_fixes; a lesson list-drift.py lists as never found again is weakened, its index line narrowed to the situation it came from, or moved down to the one project it came from, never kept at full weight.
 8. Size: an index past its load limit is cut to one line per entry.
 ${MEMORY_RULES} Change no file outside the memory folders: return each other fix (an instruction file, document, skill, hook, script or rules file) in other_fixes, with its reason and, for a skill, hook or script, the check that must still pass. Return in applied one line per memory fix made.
 

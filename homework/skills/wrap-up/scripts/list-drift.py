@@ -8,7 +8,9 @@ usage: list-drift.py <config> [<pool>...]   every memory folder: the auto-memory
 A finding is a `MEMORY.md` link to a missing file, a memory file no index
 links, a file name two pools share, an index past the load limit (only its
 first 200 lines or 25KB load at start), a file whose header lacks a `name` that
-is its file name, a `description` or a `metadata.type`, a file missing a
+is its file name, a `description` or a `metadata.type`, a `confirmed` or
+`last-confirmed` kept outside `metadata:`, an index line whose words differ
+from its file's `description`, a file missing a
 `When it applies:` or `When it is wrong:` line, or a lesson never found again: `confirmed` 1 and
 `last-confirmed` over STALE_DAYS days old. It ends with the count, so no
 output is never mistaken for no drift.
@@ -41,6 +43,7 @@ def drift(pools, today):
         index = os.path.join(pool, "MEMORY.md")
         text = read(index) if os.path.exists(index) else ""
         linked = set(LINK.findall(text))
+        words = memory.index_words(text)
         found += [f"dangling link: {index} -> {name}" for name in sorted(linked)
                   if not os.path.exists(os.path.join(pool, name))]
         lines, size = len(text.splitlines()), len(text.encode())
@@ -58,6 +61,13 @@ def drift(pools, today):
             problems = memory.header_problems(path, body)
             if problems:
                 found.append(f"bad header: {path}, {'; '.join(problems)}")
+            outside = memory.counts_outside_metadata(body)
+            if outside:
+                found.append(f"count outside metadata: {path}, move {' and '.join(outside)} under `metadata:`")
+            described = memory.description(body)
+            if name in words and described and not memory.same_words(words[name], described):
+                found.append(f"index unlike description: {path}, index \"{words[name]}\", "
+                             f"description \"{described}\"; make both the same words")
             missing = [phrase for phrase in ("When it applies:", "When it is wrong:") if phrase not in body]
             if missing:
                 found.append(f"missing {' and '.join(missing)} {path}")

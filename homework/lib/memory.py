@@ -1,4 +1,5 @@
-"""Read a memory file's frontmatter: its confirmation count, the date it was last confirmed, and the header Claude Code reads."""
+"""Read a memory file's frontmatter: its confirmation count, the date it was last confirmed, and the header Claude Code reads; and an index's line per file."""
+import json
 import os
 import re
 from datetime import date
@@ -60,3 +61,38 @@ def header_problems(path, text):
     if not kind or value(kind.group(1)) not in TYPES:
         found.append(f"metadata.type is not {', '.join(TYPES[:-1])} or {TYPES[-1]}")
     return found
+
+
+def counts_outside_metadata(text):
+    """The confirmation fields a file keeps at the top level of its frontmatter, where the one schema puts none."""
+    front, _ = split(text)
+    return [name for indent, name, _ in FIELD.findall(front or "") if not indent]
+
+
+def description(text):
+    """A file's `description`, its quotes cut; empty when it has none."""
+    front, _ = split(text)
+    found = re.search(r"^description:[ \t]*(.*)$", front or "", re.M)
+    if not found:
+        return ""
+    raw = found.group(1).strip()
+    if raw.startswith('"'):
+        try:
+            # a double-quoted YAML scalar escapes its quotes as JSON does
+            return json.loads(raw)
+        except ValueError:
+            pass
+    return value(raw)
+
+
+# `- [<title>](<file>.md) — <when it applies>`
+INDEX_LINE = re.compile(r"^- \[[^\]]*\]\(([^)]+\.md)\)\s*—\s*(.*)$", re.M)
+
+
+def index_words(text):
+    """Each file an index links, with the words its line gives after the dash."""
+    return {name: words.strip() for name, words in INDEX_LINE.findall(text)}
+
+
+def same_words(first, second):
+    return " ".join(first.split()) == " ".join(second.split())

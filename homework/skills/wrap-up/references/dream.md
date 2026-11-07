@@ -16,6 +16,7 @@ What a dream reads, found afresh in every project: list what exists with `git ls
 | project documents | `README.md` and the other documents the repository keeps for people, such as `docs/` and `CONTRIBUTING.md` | a step, file or command the repository no longer has; two documents that disagree |
 | project skills | `.claude/skills/*/SKILL.md` and the skills of plugins the repository owns, with their references and scripts | a description that overlaps another skill's, a skill grown past a few focused parts, a skill whose commands fail |
 
+- **Promote and demote**: by `SKILL.md`'s **Placement test**, a memory lesson that a repeat shows was needed before its situation was visible moves up into the instruction file that test names, and a line of an instruction file whose situation is plainly visible when it arises moves down into a memory file in `<home>`, its line cut from the instruction file; the memory side is written in place, the instruction side goes by step 5.
 - `<d>` is `<data>/dejavu`, where every file of the session map and the replay lives; earlier runs' files there stay readable.
 - **Facet**: one session's friction items, the owner objecting to what the agent did, written from the session's digest.
 - **Habit item**: one owner line or answer and what it shows of how the owner instructs, asks, answers or gives feedback, written in the same facet as friction.
