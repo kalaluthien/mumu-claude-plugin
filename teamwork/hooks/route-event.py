@@ -31,7 +31,62 @@ WORKTREES = "/.claude/worktrees/"
 READ_GIT = {"status", "log", "diff", "show", "grep", "ls-files", "rev-parse", "blame", "describe", "shortlog", "cat-file", "ls-tree"}
 READ_ONLY = {"cat", "head", "tail", "wc", "ls", "grep", "rg", "stat", "file", "du", "cut", "tr", "diff", "nl", "tree"}
 PATTERN_FIRST = {"grep", "rg"}
+# a write to a GitHub issue, by `gh issue` or by `gh api` with a body, a method that writes or a GraphQL issue or comment mutation; `gh` is matched only where
+# a command starts, in a text with its quoted strings and heredocs blanked, since a commit message or a grep pattern may name it; what `gh api` is given is read
+# unblanked. A reminder against a habit, not a wall: a command built by `eval`-like indirection is not followed.
+ASSIGNMENT = r"\w+=(?:\$\([^)]*\)|\S*)"
+WRAPPER = rf"(?:command|time|sudo|exec|nohup|timeout(?:[ \t]+-\S+)*[ \t]+\d\S*|watch(?:[ \t]+-\S+(?:[ \t]+\d\S*)?)*|xargs(?:[ \t]+-\S+(?:[ \t]+[^\s-]\S*)?)*|env(?:[ \t]+(?:-\S+|{ASSIGNMENT}))*)"
+COMMAND_START = (rf"(?:^|[;&|({{`!\n])[ \t]*(?:(?:then|do)\b[ \t]*)?(?:{ASSIGNMENT}[ \t]+)*(?:{WRAPPER}[ \t]+)*(?:\S*/)?gh\s+"
+                 r"(?:-{1,2}\w[\w-]*(?:[\s=][^\s-]\S*)?\s+)*")
+GITHUB_ISSUE_WRITE = re.compile(COMMAND_START + r"issue\s+(?:-{1,2}\w[\w-]*(?:[\s=][^\s-]\S*)?\s+)*"
+                                r"(?:create|new|comment|edit|close|reopen|delete|transfer|pin|unpin|lock|unlock|develop)\b", re.M)
+GITHUB_API = re.compile(COMMAND_START + r"api\s+(?!graphql)", re.M)
+GITHUB_GRAPHQL = re.compile(COMMAND_START + r"api\s+graphql\b", re.M)
+API_WRITES = re.compile(r"(?:^|(?<=\s))(?:(?:-X|--method)[\s=]*(?:POST|PATCH|PUT|DELETE)\b|-[fF]\b|--(?:raw-)?field\b|--input\b)")
+API_READS = re.compile(r"(?:^|(?<=\s))(?:-X|--method)[\s=]*GET\b")
+API_ISSUES = re.compile(r"\b(?:issues|sub_issues|dependencies)\b")
+API_FIELD_VALUE = re.compile(r"(?:^|(?<=\s))(?:-[fF]|--(?:raw-)?field)[\s=]*(?:(?:[^\s\"']*(?:\"(?:\\.|[^\"\\])*\"|'[^']*'))+[^\s\"']*|\S+)")
+SHELL_STRING = re.compile(r"\b(?:(?:ba|z)?sh[ \t]+-\w*c|eval)[ \t]+(\"(?:\\.|[^\"\\])*\"|'[^']*')")
+SUBSTITUTION = re.compile(r"(?<!\\)\$\(((?:[^()]|\([^()]*\))*)\)|(?<!\\)`((?:\\.|[^`\\])*)`")
+HEREDOC = re.compile(r"<<-?[ \t]*(['\"]?)(\w+)\1[^\n]*\n.*?\n[ \t]*\2[ \t]*(?=\n|$)", re.S)
+QUOTED = re.compile(r"\"(?:\\.|[^\"\\])*\"|'[^']*'")
 CHANGE_DIRECTORY = re.compile(r"(?:^|[;&|({]|\bthen|\bdo)[ \t]*(?:cd|pushd)[ \t]+(?:--[ \t]+)?(\"[^\"]*\"|'[^']*'|[^\s;&|)}]+)", re.M)
+
+
+def blank_text(command):
+    """COMMAND of the same length with each heredoc body and quoted string's inside turned into `_`, so a word inside them is no command."""
+    command = HEREDOC.sub(lambda found: found.group(0).partition("\n")[0] + "\n" + "_" * (len(found.group(0)) - len(found.group(0).partition("\n")[0]) - 1), command)
+    return QUOTED.sub(lambda found: found.group(0)[0] + "_" * (len(found.group(0)) - 2) + found.group(0)[-1], command)
+
+
+def unrun_blanked(command):
+    """COMMAND of the same length with each single-quoted string and each heredoc body turned into `_`, since a shell runs no substitution inside them."""
+    command = HEREDOC.sub(lambda found: found.group(0).partition("\n")[0] + "\n" + "_" * (len(found.group(0)) - len(found.group(0).partition("\n")[0]) - 1), command)
+    return re.sub(r"'[^']*'", lambda found: "'" + "_" * (len(found.group(0)) - 2) + "'", command)
+
+
+def rest_of_command(command, blanked, start):
+    """The text of COMMAND from START to the end of its simple command, found in the blanked text, so a `;` inside a quoted body ends nothing."""
+    end = re.search(r"[;&|\n]", blanked[start:])
+    return command[start:start + end.start()] if end else command[start:]
+
+
+def writes_github_issue(command):
+    """True when COMMAND, or a string it runs by `bash -c`, `eval` or a command substitution, writes to a GitHub issue."""
+    command = command.replace("\\\n", " ")
+    blanked = blank_text(command)
+    if GITHUB_ISSUE_WRITE.search(blanked):
+        return True
+    for found in GITHUB_API.finditer(blanked):
+        rest = rest_of_command(command, blanked, found.end())
+        if API_WRITES.search(rest) and not API_READS.search(rest) and API_ISSUES.search(API_FIELD_VALUE.sub(" ", rest)):
+            return True
+    for found in GITHUB_GRAPHQL.finditer(blanked):
+        if re.search(r"\bmutation\b.*(?:[Ii]ssue|[Cc]omment)", rest_of_command(command, blanked, found.end()), re.S):
+            return True
+    inner = [match.group(1) for match in SHELL_STRING.finditer(command)]
+    inner = [text[1:-1] for text in inner] + [command[match.start(1):match.end(1)] if match.group(1) is not None else command[match.start(2):match.end(2)] for match in SUBSTITUTION.finditer(unrun_blanked(command))]
+    return any(writes_github_issue(text) for text in inner)
 
 
 def live_change_directory(command, cwd):
@@ -184,6 +239,11 @@ def route(kind, event, role, me, listed):
         return {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason":
                 f"This cd enters {entered[0]} in the live checkout, which every session loads, so an edit there lands outside your worktree; "
                 f"nothing in this command ran; {again}, since your shell already stands in {entered[1]}."}}
+    if kind == "PreToolUse" and writes_github_issue(command_of(event)):  # no issue rule, so no setting makes it a warning
+        return {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason":
+                f"Team work (a task, finding, hand-over, question or answer) lives on the git-refs board, never in a GitHub issue; nothing in this command ran. Write it with "
+                f"`{PLAYBOOKS.parent / 'scripts' / 'use-board.py'}` with `file`, `comment`, `decide`, `edit` or `resolve`, as {PLAYBOOKS / 'adapters' / 'board.md'} says. When the owner asked for a GitHub issue, "
+                "ask them to run the command themselves by typing `! <command>`."}}
     if not call:
         return None
     settings = team_settings.load(event.get("cwd") or ".")
@@ -200,7 +260,8 @@ def main(args):
     # without its host's command no session has a name, so no role matches and the role's SessionStart text never comes to say why
     if kind == "SessionStart" and (missing := next(filter(None, map(install_line.missing, session.NEEDS)), None)):
         print(json.dumps({"systemMessage": missing}))
-    elif kind not in ("PreToolUse", "PostToolUse") or board.command(command) or kind == "PreToolUse" and live_change_directory(command, event.get("cwd")):  # skip other Bash fast
+    elif kind not in ("PreToolUse", "PostToolUse") or board.command(command) \
+            or kind == "PreToolUse" and (writes_github_issue(command) or live_change_directory(command, event.get("cwd"))):  # skip other Bash fast
         listed, me = session.sessions(event.get("session_id"))
         role = team_names.role(me.get("name"))
         if out := role and route(kind, event, role, me, listed):

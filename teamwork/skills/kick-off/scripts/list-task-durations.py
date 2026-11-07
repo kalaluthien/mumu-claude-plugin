@@ -3,10 +3,10 @@
 from (`pr`: first commit of the pull request that closed it; `created`: no such pull request, so its creation), then
 the count of rows per start source.
 
-usage: list-task-durations.py <owner/repo>
+usage: list-task-durations.py <repository>
        list-task-durations.py --from-json <file>
 
-`--from-json` reads a fixture list of issues instead of GitHub."""
+`--from-json` reads a fixture list of issues instead of the board."""
 import collections
 import json
 import pathlib

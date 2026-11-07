@@ -46,6 +46,6 @@ Keep what this session learned where the next agent will meet it. A lesson hande
 
    An extend or add cites evidence: a candidate's time, a url or a `path:line`.
 6. **Edit**: edit only the lines that change, `MEMORY.md` over a fresh read, since other sessions write it. Delete or correct any entry this session showed wrong. Then run `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-drift.py <config> <folder>` on each folder you wrote and fix each `bad header` line for your file before the report, since only a dream would find a headerless file otherwise.
-7. **Repeat**: a repeat an entry should have prevented: confirm it, and file a task in its project's issue tracker to make it a check or a skill step, naming which, the lesson and the repeat's evidence. With no tracker, tell the owner in one line. The filing asks first: show the owner the task's title and file it only on their yes.
+7. **Repeat**: a repeat an entry should have prevented: confirm it, and hand its project's manager, by `SendMessage`, a task to make it a check or a skill step, naming which, the lesson and the repeat's evidence, never a GitHub issue. With no manager, tell the owner in one line. The hand-over asks first: show the owner the task's title and send it only on their yes.
 
 8. **Report**: tell the owner each lesson filed: its operation, text and file, and an add's one line, and for a patch the line `! git -C <root> apply <patch file>` that applies it; with none, say nothing.

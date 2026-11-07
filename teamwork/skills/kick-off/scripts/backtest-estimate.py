@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Replay `estimate-task-time.py` over each repository's closed tasks in time order.
 
-usage: backtest-estimate.py [--from-json <file>] [--as-of <time> --tasks <n>,<n>...] <owner/repo>...
+usage: backtest-estimate.py [--from-json <file>] [--as-of <time> --tasks <n>,<n>...] <repository>...
 
 The first 60% calibrate the range
 levels, the last 40% only score: held-out coverage of the per-task range, its median width and median absolute error, for
 the estimator and for the baseline (the p10-p90 of all earlier tasks), then how often the bootstrap total covers the
 actual sum over 5 consecutive tasks. `--as-of <time> --tasks ...` prints those tasks' ranges from the history before
-<time> beside their actual hours. `--from-json` is {"<owner/repo>": [issues]} in place of GitHub."""
+<time> beside their actual hours. `--from-json` is {"<repository>": [issues]} in place of the board."""
 import argparse
 import json
 import pathlib

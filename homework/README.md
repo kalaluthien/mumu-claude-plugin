@@ -29,5 +29,5 @@ Its `MEMORY.md` then loads in every session, and a SessionStart hook sends each 
 - **Auto-memory**: written directly: a lesson in the folder `autoMemoryDirectory` names, and only one wrong or harmful outside its repository in that folder's `<repo>/`; with no `autoMemoryDirectory`, the project's own pool.
 - **Skill lessons**: kept in memory, marked `skill:`, until a dream asks you whether to write each into its skill, keep it or drop it.
 - **Anything else**: a lesson for `~/.claude/CLAUDE.md`, another repository's memory, a hook or a skill is written as a patch file; the wrap-up's report names the `! git -C <root> apply <patch file>` command that applies it, and nothing changes until you run it.
-- **Issues**: a wrap-up asks before it files one.
+- **Hand-overs**: a wrap-up asks before it hands one over, and opens no GitHub issue for it.
 - **dejavu and habit digests**: kept in the plugin's data folder, folders `0700` and files `0600`, with GitHub, Anthropic, OpenAI, Slack and AWS key-like strings masked.
