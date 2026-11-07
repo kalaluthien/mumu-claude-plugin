@@ -30,6 +30,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
 import decisions  # noqa: E402
 import issue_state  # noqa: E402
+from judge_note import without_judge_note  # noqa: E402
 import own_reports  # noqa: E402
 import session  # noqa: E402
 import team_names  # noqa: E402
@@ -49,11 +50,6 @@ def keyed(keyword, path):
     """The text of PATH, KEYWORD put first when it lacks it, so a text the verb names gets its keyword rather than a refusal no caller can read."""
     text = read_text(path)
     return text if text.startswith(keyword) else f"{keyword} {text}"
-
-
-def without_judge_note(text):
-    """TEXT without its `Judge note:` paragraphs, since a worker builds to the criteria, not to the cases a judge tries against them."""
-    return re.sub(r"^Judge note:.*?(?=\n\s*\n|\n```|\Z)\s*", "", text, flags=re.M | re.S)
 
 
 def read_issue(operands):

@@ -5,7 +5,7 @@ How a manager adds to the owner's words before passing them on, so a worker gets
 ## Domain
 
 - **addition**: what the next reader cannot get from the words alone, one of the rows below.
-- **routing decision**: the task's own properties, written once in the routing `DECIDED:`: its outcomes, a `Why:` line, the guesses, `Never:` lines, the context the worker lacks with its url, what done is, and the `Judge note:`. The worker reads it with `use-board.py read <issue> --as worker`.
+- **routing decision**: the task's own properties, written once in the routing `DECIDED:`: its outcomes, a `Why:` line, the guesses, `Never:` lines, `Free:` and `Ask first:` choices, the context the worker lacks with its url, what done is, and the `Judge note:`. The worker reads it with `use-board.py read <issue> --as worker`.
 - **worker prompt**: the lines after the kick-off arguments that steer the worker's attitude and way of working on this task, at most 100 words besides urls and the owner's quoted words, empty when the default attitude of [worker.md](worker.md) fits. It holds no goal, purpose, title, outcome, criterion or constraint, since the task holds those, and no tier, effort or branch, since the `start` call holds those.
 - **judge note**: a `Judge note:` paragraph in the routing `DECIDED:`, which the judge reads among the binding decisions and a worker's `read --as worker` omits: the cases to try against each outcome, at most 120 words.
 - **guess**: an outcome or edge the words leave open and you fill in, marked `(guess)` for the worker to confirm.
@@ -17,7 +17,7 @@ Task properties, for the routing decision:
 | short or vague | `Why:` the purpose in your own words, then the outcomes the words imply as guesses |
 | open on an edge: an order, a scope, whether to remove, what a term means | a guess when one choice is plain, else one question to the owner, since choices that lead to different work are the owner's |
 | a research ask | `Never:` each change the ask does not request, with the command that shows it held; done when each claim is counted or probed by a script and shown with the probe's output, never by reading; the scope lists every folder and file kind the repository keeps that can hold the thing studied, not only the obvious ones |
-| a change a person sees | done when the owner sees a drawn sample of the changed rows; the owner's layout words, quoted |
+| a change a person sees | the owner's layout words, quoted |
 | a measuring task | done when it is measured and reported, whatever the result |
 | touching files another open task touches | the order link and that task's url, under `Context you lack:` |
 | the base may already meet an outcome | a probe to report first, not an outcome to build |
@@ -33,7 +33,6 @@ Steering lines, for the worker prompt; take a row only when the task is that cas
 | holding files another open task touches | `BLOCKED:` at once, and start the part whose files that task never touches. |
 | using a mechanism new to the repository | Read its official docs before you design. |
 | a `[check]` that pipes a producer into a tool | Run `run-criteria.py` with `--pass <n>=<sample-file>`, since the base run never reaches its pass path. |
-| words that name a small fix for a wider purpose, not a research ask | Aim past the literal words and offer what widens it. |
 
 ## Steps
 
@@ -54,9 +53,7 @@ Steering lines, for the worker prompt; take a row only when the task is that cas
 
 The owner says "내보내기가 너무 느려". The routing `DECIDED:` holds the outcome "exporting a 10k-row table takes under 5 seconds", `Why:` the owner exports before every meeting, the guesses "slow" means over 5 seconds at 10k rows (guess) and csv and xlsx both count (guess), `Never:` change the file format, `Free:` how to speed it up, `Ask first:` anything that changes the output a reader opens, and done when a timed export of the 10k-row sample prints under 5 seconds, base over.
 
-The worker prompt, 11 words:
-
-> Aim past the literal words and offer what widens it.
+The worker prompt: none, the kick-off arguments alone, since no steering row fits.
 
 The `Judge note:`, 35 words:
 
