@@ -6,7 +6,7 @@ How a manager adds to the owner's words before passing them on, so a worker gets
 
 - **addition**: what the next reader cannot get from the words alone, one of the rows below.
 - **routing decision**: the task's own properties, written once in the routing `DECIDED:`: its outcomes, a `Why:` line, the guesses, `Never:` lines, the context the worker lacks with its url, what done is, and the `Judge note:`. The worker reads it with `use-board.py read <issue> --as worker`.
-- **worker prompt**: the lines after the kick-off arguments that steer the worker's attitude and way of working on this task, at most 100 words besides urls and the owner's quoted words, empty when the default attitude of [worker.md](worker.md) fits. It holds no goal, outcome, criterion or constraint, since the task holds those.
+- **worker prompt**: the lines after the kick-off arguments that steer the worker's attitude and way of working on this task, at most 100 words besides urls and the owner's quoted words, empty when the default attitude of [worker.md](worker.md) fits. It holds no goal, purpose, title, outcome, criterion or constraint, since the task holds those, and no tier, effort or branch, since the `start` call holds those.
 - **judge note**: a `Judge note:` paragraph in the routing `DECIDED:`, which the judge reads among the binding decisions and a worker's `read --as worker` omits: the cases to try against each outcome, at most 120 words.
 - **guess**: an outcome or edge the words leave open and you fill in, marked `(guess)` for the worker to confirm.
 
@@ -33,7 +33,7 @@ Steering lines, for the worker prompt; take a row only when the task is that cas
 | using a mechanism new to the repository | Read its official docs before you design. |
 | a `[check]` that pipes a producer into a tool | Run `run-criteria.py` with `--pass <n>=<sample-file>`, since the base run never reaches its pass path. |
 | leaving the worker a choice the words do not settle | `Free:` the choice to make unasked; `Ask first:` the choice that is the owner's. |
-| words that name a small fix for a wider purpose | Aim at the purpose beyond the words and offer what widens it. |
+| words that name a small fix for a wider purpose | Aim past the literal words and offer what widens it. |
 
 ## Steps
 
