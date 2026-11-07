@@ -4,7 +4,7 @@
 usage: replay-manager-delegation.py [--ref <sha>] [--max-direct <n>]
 
 The tree under test is the checkout's `teamwork/` (tracked files and untracked ones git does not ignore), or `--ref`'s. It is both the only plugin the run loads and the repository the question asks about.
-The owner asks which Python modules of `teamwork/lib` write board records, which takes a search of many files. A manager that follows its playbook starts an `Agent` and makes at most
+The owner asks which Python modules of `teamwork/lib` write board records, which takes a search of many files. A manager that follows its playbook `references/manager.md` starts an `Agent` and makes at most
 `--max-direct` other tool calls itself (default 2; calls on the playbooks and their scripts, subagents and skills not counted)."""
 import json
 import pathlib

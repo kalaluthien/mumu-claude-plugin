@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve.
+"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, and no plugin file, function or import is unreached.
 
 usage: check-repository.py [root]
 
-Prints one failure per line as `<kind> <path>: <detail>`, then a summary line,
-and exits 0 only when nothing failed. Standard library only, Python 3.9.
+Prints one failure per line as `<kind> <path>: <detail>`, `unreached` lines being list-unreached.py's, then a
+summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
 """
 
 import json
@@ -28,6 +28,7 @@ PLACEHOLDER = set("<*{")
 # score-memory.py counts a candidate's index lines and never follows their links, so these MEMORY.md files link lessons they do not hold.
 SCORED_INDEX = re.compile(r"(^|/)fixtures/replay/[^/]+/candidates/[^/]+/MEMORY\.md$")
 UNHELD_LESSON = re.compile(r"lesson-\d+\.md")
+SUMMARY = re.compile(r"^\d+ files, \d+ unreached$", re.M)  # without it a lister that printed nothing would pass
 
 
 def list_files(root):
@@ -38,19 +39,19 @@ def list_files(root):
             capture_output=True, text=True, check=True,
         ).stdout.strip()
         if os.path.realpath(top) == os.path.realpath(root):
-            out = subprocess.run(
+            listing = subprocess.run(
                 ["git", "-C", root, "ls-files", "-z"],
                 capture_output=True, text=True, check=True,
             ).stdout
-            return sorted(p for p in out.split("\0") if p)
+            return sorted(path for path in listing.split("\0") if path)
     except (OSError, subprocess.CalledProcessError):
         pass
     files = []
-    for folder, dirs, names in os.walk(root):
-        dirs[:] = [d for d in dirs if d != ".git"]
+    for folder, subfolders, names in os.walk(root):
+        subfolders[:] = [name for name in subfolders if name != ".git"]
         for name in names:
             files.append(os.path.relpath(os.path.join(folder, name), root))
-    return sorted(f.replace(os.sep, "/") for f in files)
+    return sorted(name.replace(os.sep, "/") for name in files)
 
 
 def is_manifest(path):
@@ -83,9 +84,9 @@ def markdown_targets(text):
         line = INLINE_CODE.sub("", line)
         for match in INLINE_LINK.finditer(line):
             yield match.group(1)
-        ref = REFERENCE_LINK.match(line)
-        if ref:
-            yield ref.group(1)
+        reference = REFERENCE_LINK.match(line)
+        if reference:
+            yield reference.group(1)
 
 
 def check_markdown(root, path, text, failures):
@@ -107,15 +108,15 @@ def check_markdown(root, path, text, failures):
             failures.append("link {}: {} does not resolve".format(path, target))
     # A root path is a command or file the skill runs, usually inside code, so code is not skipped.
     for match in ROOT_PATH.finditer(text):
-        rel = match.group(1).rstrip(".")
-        if PLACEHOLDER & set(rel):
+        relative = match.group(1).rstrip(".")
+        if PLACEHOLDER & set(relative):
             continue
         checked += 1
         plugin = plugin_root(root, path)
         if plugin is None:
             failures.append("root-path {}: no plugin holds this file".format(path))
-        elif not os.path.exists(os.path.join(plugin, rel)):
-            failures.append("root-path {}: ${{CLAUDE_PLUGIN_ROOT}}/{} does not exist".format(path, rel))
+        elif not os.path.exists(os.path.join(plugin, relative)):
+            failures.append("root-path {}: ${{CLAUDE_PLUGIN_ROOT}}/{} does not exist".format(path, relative))
     return checked
 
 
@@ -124,6 +125,9 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     root = os.path.abspath(args[0] if args else ROOT)
+    if not os.path.isdir(root):
+        print(__doc__, file=sys.stderr)
+        return 2
     failures = []
     compiled = manifests = links = docs = 0
     for path in list_files(root):
@@ -148,6 +152,10 @@ def main(args):
             docs += 1
             with open(full, encoding="utf-8", errors="replace") as handle:
                 links += check_markdown(root, path, handle.read(), failures)
+    unreached = subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("list-unreached.py")), root], capture_output=True, text=True)
+    if unreached.returncode or not SUMMARY.search(unreached.stdout):
+        lines = [line for line in unreached.stdout.splitlines() if line.startswith("unreached ")]
+        failures += lines or ["unreached list-unreached.py: exit {}, no summary line: {}".format(unreached.returncode, unreached.stderr.strip())]
     for line in failures:
         print(line)
     counts = "{} py compiled, {} manifests parsed, {} links in {} md resolved, {} failures".format(
