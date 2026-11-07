@@ -226,12 +226,17 @@ def records(issue):
 
 
 def decision(text):
-    """The `key: value` lines of its `decision` block, keys the grammar names only; None when it holds no such block."""
+    """The `key: value` lines of its `decision` block, keys the grammar names only, and its `answers` from the line right after the keyword when
+    the block lacks one, since `decide` puts the keyword before a body that opens with that line; None when it holds no such block."""
     found = DECISION.search(text or "")
     if not found:
         return None
     pairs = (line.partition(":") for line in found.group(1).splitlines())
-    return {k.strip(): value.strip() for k, separator, value in pairs if separator and k.strip() in DECISION_KEYS}
+    fields = {k.strip(): value.strip() for k, separator, value in pairs if separator and k.strip() in DECISION_KEYS}
+    lead = re.match(rf"\s*[A-Z]+:\s*{FIELD['answers']}:[ \t]*(\S+)", text)
+    if lead:
+        fields.setdefault(FIELD["answers"], lead.group(1))
+    return fields
 
 
 def event(comment):

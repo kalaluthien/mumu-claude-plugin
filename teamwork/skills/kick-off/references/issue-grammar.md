@@ -38,7 +38,7 @@ A decision is a `DECIDED` comment holding a fenced block whose info string is `d
 | `decided by` | `owner`, the owner's words quoted in the comment as a `>` line or in double quotes, else the deciding session's name | decider |
 | `door` | `one-way` or `two-way` | door |
 | `supersedes` | the url of the decision it replaces, anywhere in the same root's tree | supersedes |
-| `answers` | the url of the `BLOCKED` it settles | answers |
+| `answers` | the url of the `BLOCKED` it settles, in the block or as the first line after `DECIDED:` | answers |
 | `depends on` | the tasks it waits on, `#a #b` | depends |
 
 - **Binds**: a decision binds its task and that task's parts. A task's binding set is the decisions on it and on its ancestors that no decision in the root's tree supersedes, and none once the root is closed as not planned; a decision still waiting on its door supersedes nothing yet.

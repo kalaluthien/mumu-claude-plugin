@@ -9,6 +9,7 @@ decision comments untrusted, as an outsider's is marked, before the rows are lai
 - binding-ancestors, binding-stopped-root, binding-answered, binding-event-keeps-question, binding-one-way-waits,
   binding-one-way-supersedes, binding-successor: a task's binding set and open questions
 - heartbeat-open-question, heartbeat-twice-superseded, heartbeat-one-way, heartbeat-one-way-superseded, heartbeat-answer-line,
+  heartbeat-answer-first-line (a decision whose body opens with `answers:` closes the question, as the heartbeat reads it),
   heartbeat-unblocked-decided,
   heartbeat-legacy-quiet: the manager's heartbeat lines
 - route-own-depends, route-parts-blocked, route-after-close: no `route` line for a task whose own `depends on:` names an open task,
@@ -240,6 +241,8 @@ def heartbeat_cases():
     asked_url = ask(asker, "which cache")
     answer_line = next((line for line in heartbeat({asker}) if line.startswith(f"answer #{asker}:")), "")
     step("heartbeat-answer-line", "`decide`" in answer_line and f"answers: {asked_url}" in answer_line, heartbeat({asker}))
+    post(asker, f"DECIDED: answers: {asked_url}\n\nuse the shared cache\n\n```decision\ndecision: use the shared cache\ndecided by: probe-manager\ndoor: two-way\n```\n", "decide")
+    step("heartbeat-answer-first-line", not any(line.startswith(f"answer #{asker}:") for line in heartbeat({asker})), heartbeat({asker}))
     step("heartbeat-one-way-superseded", not any(line.startswith(f"one-way #{redone}:") for line in heartbeat({redone})), heartbeat({redone}))
     plain = file("Probe a plain decision")
     said = post(plain, "DECIDED: probe a decision with no block\n", "decide")
