@@ -38,16 +38,16 @@ def list_files(root):
             capture_output=True, text=True, check=True,
         ).stdout.strip()
         if os.path.realpath(top) == os.path.realpath(root):
-            out = subprocess.run(
+            listing = subprocess.run(
                 ["git", "-C", root, "ls-files", "-z"],
                 capture_output=True, text=True, check=True,
             ).stdout
-            return sorted(p for p in out.split("\0") if p)
+            return sorted(path for path in listing.split("\0") if path)
     except (OSError, subprocess.CalledProcessError):
         pass
     files = []
-    for folder, dirs, names in os.walk(root):
-        dirs[:] = [d for d in dirs if d != ".git"]
+    for folder, subfolders, names in os.walk(root):
+        subfolders[:] = [name for name in subfolders if name != ".git"]
         for name in names:
             files.append(os.path.relpath(os.path.join(folder, name), root))
     return sorted(f.replace(os.sep, "/") for f in files)
@@ -149,10 +149,9 @@ def main(args):
             with open(full, encoding="utf-8", errors="replace") as handle:
                 links += check_markdown(root, path, handle.read(), failures)
     unreached = subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("list-unreached.py")), root], capture_output=True, text=True)
-    if unreached.returncode in (0, 1):
+    if unreached.returncode:
         failures += [line for line in unreached.stdout.splitlines() if line.startswith(("unreached ", "unused "))]
-    else:
-        failures.append("unreached list-unreached.py: " + unreached.stderr.strip())
+        failures += ["unreached list-unreached.py: " + unreached.stderr.strip()] if unreached.returncode > 1 else []
     for line in failures:
         print(line)
     counts = "{} py compiled, {} manifests parsed, {} links in {} md resolved, {} failures".format(

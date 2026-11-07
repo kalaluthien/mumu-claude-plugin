@@ -5,8 +5,7 @@ usage: list-unreached.py [root]
 
 A plugin is each folder of root (default: this repository) that holds `.claude-plugin/plugin.json`. Its entry points are
 that manifest, `hooks/hooks.json`, `monitors/monitors.json`, each `skills/*/SKILL.md` and each file at the plugin's root.
-A file is reached when a reached file names its path or file name, links its folder as `[x/](x/)`, or imports it from
-`lib/`. A reached program that lists folders (`glob`, `iterdir`, `listdir`, `walk`) and names one reaches the data files
+A file is reached when a reached file names its path or file name, links its folder as `[x/](x/)`, or imports it. A reached program that lists folders (`glob`, `iterdir`, `listdir`, `walk`) and names one reaches the data files
 below it under `fixtures/`. A file under a `fixtures/` folder is reached only when a reached file reaches it, or when it is
 a script that names a reached file, and it reaches nothing outside `fixtures/`. A function nothing live calls
 and an import nothing uses are unused; a file that calls `getattr` with a computed name keeps every function it defines.
@@ -32,15 +31,15 @@ LISTS = re.compile(r"\b(?:glob|rglob|iterdir|listdir|scandir|walk|readdirSync)\(
 def list_files(folder):
     """Paths under folder, relative to it: the tracked and the untracked-but-not-ignored when git lists them, else all."""
     try:
-        out = subprocess.run(
+        listing = subprocess.run(
             ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
             cwd=folder, capture_output=True, text=True, check=True,
         ).stdout
-        return sorted(path for path in out.split("\0") if path and (folder / path).is_file())
+        return sorted(path for path in listing.split("\0") if path and (folder / path).is_file())
     except (OSError, subprocess.CalledProcessError):
         found = []
-        for where, dirs, names in os.walk(folder):
-            dirs[:] = [name for name in dirs if name != ".git"]
+        for where, subfolders, names in os.walk(folder):
+            subfolders[:] = [name for name in subfolders if name != ".git"]
             found += [os.path.relpath(os.path.join(where, name), folder) for name in names]
         return sorted(found)
 
@@ -63,25 +62,20 @@ def is_fixture(path):
     return "fixtures" in path.split("/")[:-1]
 
 
-def find_imports(trees, files):
-    """Map each Python file to the files it imports: the module's file and the `__init__.py` of each package above it."""
+def find_imports(modules, files):
+    """Map each Python file to the files it imports: a file whose path ends in the module's path, and each package above it."""
+    stems = {}
+    for path in files:
+        if path.endswith(".py"):
+            parts = (path[:-len("/__init__.py")] if path.endswith("/__init__.py") else path[:-len(".py")]).split("/")
+            for start in range(len(parts)):
+                stems.setdefault("/".join(parts[start:]), set()).add(path)
     imports = {path: set() for path in files}
-    for path, tree in trees.items():
-        here = path.rsplit("/", 1)[0] if "/" in path else ""
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                modules = [alias.name.replace(".", "/") for alias in node.names]
-                modules = ["lib/" + module for module in modules]
-            elif isinstance(node, ast.ImportFrom):
-                base = os.path.normpath(os.path.join(here, *[".."] * (node.level - 1))) if node.level else "lib"
-                base = os.path.join(base, (node.module or "").replace(".", "/"))
-                modules = [base] + [base + "/" + alias.name for alias in node.names]
-            else:
-                continue
-            for module in modules:
-                parts = os.path.normpath(module).split("/")
-                for end in range(1, len(parts) + 1):
-                    imports[path].update({"/".join(parts[:end]) + ".py", "/".join(parts[:end]) + "/__init__.py"} & set(files))
+    for path, names in modules.items():
+        for name in names:
+            parts = os.path.normpath(name).split("/")
+            for end in range(1, len(parts) + 1):
+                imports[path].update(stems.get("/".join(parts[:end]), ()))
         imports[path].discard(path)
     return imports
 
@@ -117,77 +111,84 @@ def find_references(texts):
 
 def find_reached(files, references, imports):
     """The files a plugin's entry points reach, and the fixtures that stay alive beside them."""
+    reaches = {path: {target for target in references[path] if is_fixture(target) or not is_fixture(path)} | imports[path] for path in files}
+    watchers = {}
+    for path in files:
+        if is_fixture(path) and path.endswith(PROGRAMS):
+            for target in references[path] | imports[path]:
+                watchers.setdefault(target, set()).add(path)
     reached = {path for path in files if "/" not in path or path in (".claude-plugin/plugin.json", "hooks/hooks.json", "monitors/monitors.json")
                or re.fullmatch(r"skills/[^/]+/SKILL\.md", path)}
-    changed = True
-    while changed:
-        changed = False
-        for path in files:
-            if path in reached:
-                continue
-            fixture = is_fixture(path)
-            named = any(path in references[source] and (fixture or not is_fixture(source)) or path in imports[source] for source in reached)
-            replays = fixture and path.endswith(PROGRAMS) and any(target in reached for target in references[path] | imports[path])
-            if named or replays:
-                reached.add(path)
-                changed = True
+    queue = list(reached)
+    while queue:
+        path = queue.pop()
+        for target in reaches[path] | watchers.get(path, set()):
+            if target not in reached:
+                reached.add(target)
+                queue.append(target)
     return reached
 
 
-def read_python(trees, texts, paths):
-    """The functions defined, the roots (dunder or decorated), the names each function (None: module level) uses, and the imports of the Python files."""
-    defined, roots, uses, imported = [], set(), {}, []
-    for path in sorted(paths):
-        tree = trees.get(path)
-        if tree is None:
-            continue
-        lines = texts[path].splitlines()
-        docstrings = {id(node.body[0].value) for node in ast.walk(tree)
-                      if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
-                      and node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant)}
-        used, dynamic = set(), []
+def read_python(path, tree, lines):
+    """What one Python file imports as modules, defines as functions, calls by name, and imports as names, with its roots (dunder or decorated functions)."""
+    here = path.rsplit("/", 1)[0] if "/" in path else ""
+    modules, defined, roots, uses, imported = [], [], set(), {}, []
+    docstrings, used, dynamic = set(), set(), []
 
-        def visit(node, owner):
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                if node.decorator_list or node.name.startswith("__") and node.name.endswith("__"):
-                    roots.add(node.name)
-                else:
-                    defined.append((path, node.lineno, node.name))
-                owner = node.name
-            name = (node.id if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) else node.attr if isinstance(node, ast.Attribute)
-                    else node.value if isinstance(node, ast.Constant) and isinstance(node.value, str)
-                    and node.value.isidentifier() and id(node) not in docstrings else None)
-            if name:
-                uses.setdefault(owner, set()).add(name)
-                used.add(name)
-            if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "getattr" and len(node.args) > 1 and not isinstance(node.args[1], ast.Constant):
-                dynamic.append(node)
-            if isinstance(node, (ast.Import, ast.ImportFrom)) and "noqa" not in lines[node.lineno - 1]:
-                for alias in node.names:
-                    bound = (alias.asname or alias.name).split(".")[0]
-                    if bound != "*" and getattr(node, "module", None) != "__future__":
-                        imported.append((path, node.lineno, bound, used))
-            for child in ast.iter_child_nodes(node):
-                visit(child, owner)
+    def visit(node, owner):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) and node.body \
+                and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant):
+            docstrings.add(id(node.body[0].value))
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if node.decorator_list or node.name.startswith("__") and node.name.endswith("__"):
+                roots.add(node.name)
+            else:
+                defined.append((node.lineno, node.name))
+            owner = node.name
+        name = (node.id if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) else node.attr if isinstance(node, ast.Attribute)
+                else node.value if isinstance(node, ast.Constant) and isinstance(node.value, str)
+                and node.value.isidentifier() and id(node) not in docstrings else None)
+        if name:
+            uses.setdefault(owner, set()).add(name)
+            used.add(name)
+        if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "getattr" and len(node.args) > 1 and not isinstance(node.args[1], ast.Constant):
+            dynamic.append(node)
+        if isinstance(node, ast.Import):
+            modules.extend(alias.name.replace(".", "/") for alias in node.names)
+        if isinstance(node, ast.ImportFrom):
+            base = os.path.join(os.path.join(here, *[".."] * (node.level - 1)) if node.level else "", (node.module or "").replace(".", "/"))
+            modules.extend([base] + [base + "/" + alias.name for alias in node.names])
+        if isinstance(node, (ast.Import, ast.ImportFrom)) and "noqa" not in lines[node.lineno - 1]:
+            for alias in node.names:
+                bound = (alias.asname or alias.name).split(".")[0]
+                if bound != "*" and getattr(node, "module", None) != "__future__":
+                    imported.append((node.lineno, bound, used))
+        for child in ast.iter_child_nodes(node):
+            visit(child, owner)
 
-        visit(tree, None)
-        if dynamic:
-            roots.update(name for file, _, name in defined if file == path)
-            defined[:] = [row for row in defined if row[0] != path]
-    return defined, roots, uses, imported
+    visit(tree, None)
+    if dynamic:
+        roots.update(name for _, name in defined)
+        defined = []
+    return modules, defined, roots, uses, imported
 
 
-def find_unused(trees, texts, paths):
-    """The functions no live code calls, and the imports no code of their file uses, as (path, line, name) rows."""
-    defined, roots, uses, imported = read_python(trees, texts, paths)
-    live, queue = set(), [None, *roots]
+def find_unused(facts, reached):
+    """The functions no live code calls, and the imports no code of their file uses, as (path, line, name) rows, over the reached files."""
+    live, queue, roots, uses = set(), [None], set(), {}
+    for path in reached:
+        if path in facts:
+            roots |= facts[path][2]
+            for owner, names in facts[path][3].items():
+                uses.setdefault(owner, set()).update(names)
+    queue += roots
     while queue:
         for name in uses.get(queue.pop(), ()):
             if name not in live:
                 live.add(name)
                 queue.append(name)
-    functions = [row for row in defined if row[2] not in live]
-    imports = [(path, line, name) for path, line, name, used in imported if name not in used]
+    functions = [(path, line, name) for path in sorted(reached) if path in facts for line, name in facts[path][1] if name not in live]
+    imports = [(path, line, name) for path in sorted(reached) if path in facts for line, name, used in facts[path][4] if name not in used]
     return functions, imports
 
 
@@ -202,8 +203,9 @@ def main(args):
         files = list_files(plugin)
         texts = {path: read_text(plugin, path) for path in files}
         trees = {path: parse(text) for path, text in texts.items() if path.endswith(".py")}
-        reached = find_reached(files, find_references(texts), find_imports(trees, files))
-        functions, imports = find_unused(trees, texts, reached)
+        facts = {path: read_python(path, tree, texts[path].splitlines()) for path, tree in trees.items() if tree}
+        reached = find_reached(files, find_references(texts), find_imports({path: fact[0] for path, fact in facts.items()}, files))
+        functions, imports = find_unused(facts, reached)
         lines = ["unreached {}/{}".format(plugin.name, path) for path in files if path not in reached]
         lines += ["unused {}/{}:{} {}".format(plugin.name, path, line, name) for path, line, name in functions]
         lines += ["unused {}/{}:{} import {}".format(plugin.name, path, line, name) for path, line, name in imports]
