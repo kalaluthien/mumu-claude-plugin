@@ -33,6 +33,7 @@ Steering lines, for the worker prompt; take a row only when the task is that cas
 | using a mechanism new to the repository | Read its official docs before you design. |
 | a `[check]` that pipes a producer into a tool | Run `run-criteria.py` with `--pass <n>=<sample-file>`, since the base run never reaches its pass path. |
 | leaving the worker a choice the words do not settle | `Free:` the choice to make unasked; `Ask first:` the choice that is the owner's. |
+| words that name a small fix for a wider purpose | Aim at the purpose beyond the words and offer what widens it. |
 
 ## Steps
 
@@ -47,7 +48,7 @@ Steering lines, for the worker prompt; take a row only when the task is that cas
 - **Quote beside, never instead**: the owner's words stay verbatim; your purpose and guesses sit beside them.
 - **Mark every guess**: a guess unmarked reads as the owner's word.
 - **Properties in the task, steering in the prompt**: a goal, a constraint, a criterion or a judge case never goes in the prompt, since the worker finds the path and the judge's cases are probes of its criteria.
-- **Judge note**: a way to score (`yes`, `no` or `Unknown`) and the cases to try; not the worker's reasoning or the manager's history.
+- **Judge note**: a way to score (`yes`, `no` or `Unknown`) and the cases to try, as one paragraph with a blank line after it and before the `decision` block; not the worker's reasoning or the manager's history.
 
 ## Example
 
