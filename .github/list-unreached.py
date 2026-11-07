@@ -7,7 +7,7 @@ A plugin is each folder of root (default: this repository) that holds `.claude-p
 that manifest, `hooks/hooks.json`, `monitors/monitors.json`, each `skills/*/SKILL.md` and each file at the plugin's root.
 A file is reached when a reached file names its path or file name, links its folder as `[x/](x/)`, or imports it. A reached program that lists folders (`glob`, `iterdir`, `listdir`, `walk`) and names one reaches the data files
 below it under `fixtures/`. A script under `fixtures/` that names a reached file is reached too. A function nothing live calls
-and an import nothing uses are unused; a file that calls `getattr` with a computed name keeps every function it defines.
+and an import nothing uses are unused; a string that spells a function's name calls it, a `__future__` import is used, and a file that calls `getattr` with a computed name keeps every function it defines.
 Prints `unreached <path>`, `unreached <path>:<line> <name>` and `unreached <path>:<line> import <name>` lines, then a summary,
 and exits 1 when it printed any of them, else 0. Standard library only, Python 3.9."""
 
@@ -207,6 +207,9 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     root = pathlib.Path(args[0] if args else ROOT).resolve()
+    if not root.is_dir():
+        print(__doc__, file=sys.stderr)
+        return 2
     printed = file_count = 0
     for manifest in sorted(root.glob("*/.claude-plugin/plugin.json")):
         plugin = manifest.parent.parent

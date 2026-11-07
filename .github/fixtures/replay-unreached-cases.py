@@ -124,6 +124,10 @@ def run_cases(base):
     good = usage.returncode == 2 and not usage.stdout and "usage: list-unreached.py" in usage.stderr
     print(("ok" if good else "FAIL") + " an option it cannot read prints its usage on stderr and exits 2")
     holds = holds and good
+    missing = subprocess.run([sys.executable, str(script), str(base / "no-such-folder")], capture_output=True, text=True)
+    good = missing.returncode == 2 and not missing.stdout and "usage: list-unreached.py" in missing.stderr
+    print(("ok" if good else "FAIL") + " a root that is no folder prints its usage on stderr and exits 2")
+    holds = holds and good
     for name, (files, appended, wanted, absent) in CASES.items():
         with tempfile.TemporaryDirectory() as work:
             root = pathlib.Path(work)
