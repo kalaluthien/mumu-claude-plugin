@@ -43,20 +43,20 @@ CASES = {
         {SKILL_MD: "\nrun scripts/planted-live.py\n"}, [], [SKILL + "scripts/planted-live.py"]),
     "an import inside try that nothing uses is listed": (
         {SKILL + "scripts/planted-try.py": "try:\n    import json\nexcept ImportError:\n    json = None\n" + MAIN},
-        {SKILL_MD: "\nrun scripts/planted-try.py\n"}, ["unused " + SKILL + "scripts/planted-try.py:2 import json"], []),
+        {SKILL_MD: "\nrun scripts/planted-try.py\n"}, ["unreached " + SKILL + "scripts/planted-try.py:2 import json"], []),
     "a recursive function nothing else calls is listed": (
         {SKILL + "scripts/planted-rec.py": "def fact(n):\n    return 1 if n < 2 else n * fact(n - 1)\n" + MAIN},
-        {SKILL_MD: "\nrun scripts/planted-rec.py\n"}, ["unused " + SKILL + "scripts/planted-rec.py:1 fact"], []),
+        {SKILL_MD: "\nrun scripts/planted-rec.py\n"}, ["unreached " + SKILL + "scripts/planted-rec.py:1 fact"], []),
     "a function named only in a docstring is listed": (
         {SKILL + "scripts/planted-doc.py": "def helper_one():\n    return 1\n\n\ndef main(args):\n    \"\"\"call helper_one later\"\"\"\n    return 0\n"},
-        {SKILL_MD: "\nrun scripts/planted-doc.py\n"}, ["unused " + SKILL + "scripts/planted-doc.py:1 helper_one"], []),
+        {SKILL_MD: "\nrun scripts/planted-doc.py\n"}, ["unreached " + SKILL + "scripts/planted-doc.py:1 helper_one"], []),
     "a helper only a dead function calls is listed with it": (
         {SKILL + "scripts/planted-chain.py": "def planted_inner():\n    return 1\n\n\ndef planted_outer():\n    return planted_inner()\n" + MAIN},
         {SKILL_MD: "\nrun scripts/planted-chain.py\n"},
-        ["unused " + SKILL + "scripts/planted-chain.py:1 planted_inner", "unused " + SKILL + "scripts/planted-chain.py:5 planted_outer"], []),
+        ["unreached " + SKILL + "scripts/planted-chain.py:1 planted_inner", "unreached " + SKILL + "scripts/planted-chain.py:5 planted_outer"], []),
     "a method nothing calls is listed": (
         {SKILL + "scripts/planted-cls.py": "class Box:\n    def spare(self):\n        return 1\n\n\ndef main(args):\n    return Box()\n"},
-        {SKILL_MD: "\nrun scripts/planted-cls.py\n"}, ["unused " + SKILL + "scripts/planted-cls.py:2 spare"], []),
+        {SKILL_MD: "\nrun scripts/planted-cls.py\n"}, ["unreached " + SKILL + "scripts/planted-cls.py:2 spare"], []),
     "functions of a file that calls getattr on a computed name are not unused": (
         {SKILL + "scripts/planted-dispatch.py": "def one():\n    return 1\n\n\ndef main(args):\n    return getattr(__import__('sys'), args[0])\n"},
         {SKILL_MD: "\nrun scripts/planted-dispatch.py\n"}, [], [SKILL + "scripts/planted-dispatch.py"]),
@@ -82,7 +82,7 @@ CASES = {
         {SKILL_MD: "\nrun scripts/planted-reader.py\n"}, ["unreached " + SKILL + "fixtures/planted-scripts/dead.py"], [SKILL + "fixtures/planted-data/"]),
     "a function named by a one-word docstring is still unused": (
         {SKILL + "scripts/planted-doc-word.py": '"""planted_hidden"""\n\n\ndef planted_hidden():\n    return 1\n' + MAIN},
-        {SKILL_MD: "\nrun scripts/planted-doc-word.py\n"}, ["unused " + SKILL + "scripts/planted-doc-word.py:4 planted_hidden"], []),
+        {SKILL_MD: "\nrun scripts/planted-doc-word.py\n"}, ["unreached " + SKILL + "scripts/planted-doc-word.py:4 planted_hidden"], []),
     "a command in bin named bare is not listed": (
         {"teamwork/bin/planted-command": "#!/bin/sh\n"}, {SKILL_MD: "\nrun planted-command\n"}, [], ["teamwork/bin/planted-command"]),
     "a script imported without its extension is not listed, one nobody imports is": (

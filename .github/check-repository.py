@@ -3,7 +3,7 @@
 
 usage: check-repository.py [root]
 
-Prints one failure per line as `<kind> <path>: <detail>`, `unreached` and `unused` lines being list-unreached.py's, then a
+Prints one failure per line as `<kind> <path>: <detail>`, `unreached` lines being list-unreached.py's, then a
 summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
 """
 
@@ -150,7 +150,7 @@ def main(args):
                 links += check_markdown(root, path, handle.read(), failures)
     unreached = subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("list-unreached.py")), root], capture_output=True, text=True)
     if unreached.returncode:
-        lines = [line for line in unreached.stdout.splitlines() if line.startswith(("unreached ", "unused "))]
+        lines = [line for line in unreached.stdout.splitlines() if line.startswith("unreached ")]
         failures += lines or ["unreached list-unreached.py: exit {}: {}".format(unreached.returncode, unreached.stderr.strip())]
     for line in failures:
         print(line)

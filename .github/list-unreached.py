@@ -8,7 +8,7 @@ that manifest, `hooks/hooks.json`, `monitors/monitors.json`, each `skills/*/SKIL
 A file is reached when a reached file names its path or file name, links its folder as `[x/](x/)`, or imports it. A reached program that lists folders (`glob`, `iterdir`, `listdir`, `walk`) and names one reaches the data files
 below it under `fixtures/`. A script under `fixtures/` that names a reached file is reached too. A function nothing live calls
 and an import nothing uses are unused; a file that calls `getattr` with a computed name keeps every function it defines.
-Prints `unreached <path>`, `unused <path>:<line> <name>` and `unused <path>:<line> import <name>` lines, then a summary,
+Prints `unreached <path>`, `unreached <path>:<line> <name>` and `unreached <path>:<line> import <name>` lines, then a summary,
 and exits 1 when it printed any of them, else 0. Standard library only, Python 3.9."""
 
 import ast
@@ -217,13 +217,13 @@ def main(args):
         reached = find_reached(files, find_references(texts), find_imports({path: fact[0] for path, fact in facts.items()}, files))
         functions, imports = find_unused(facts, reached)
         lines = ["unreached {}/{}".format(plugin.name, path) for path in files if path not in reached]
-        lines += ["unused {}/{}:{} {}".format(plugin.name, path, line, name) for path, line, name in functions]
-        lines += ["unused {}/{}:{} import {}".format(plugin.name, path, line, name) for path, line, name in imports]
+        lines += ["unreached {}/{}:{} {}".format(plugin.name, path, line, name) for path, line, name in functions]
+        lines += ["unreached {}/{}:{} import {}".format(plugin.name, path, line, name) for path, line, name in imports]
         for line in lines:
             print(line)
         printed += len(lines)
         file_count += len(files)
-    print("{} files, {} unreached or unused".format(file_count, printed))
+    print("{} files, {} unreached".format(file_count, printed))
     return 1 if printed else 0
 
 
