@@ -2,7 +2,7 @@
 """Print one line per action the team session's board and sessions call for, each once, polling until killed.
 
 usage: print-team-gaps.py
-It takes the session's role from herdr, reads the board when a team session signals a change or MONITOR_REFRESH seconds pass, and polls every MONITOR_POLL seconds."""
+It takes the session's role from herdr and watches only while a worker lives for a manager, always for a worker, never for another session; it reads the board when a team session signals a change or MONITOR_REFRESH seconds pass, and polls every MONITOR_POLL seconds."""
 import os
 import pathlib
 import sys
@@ -34,12 +34,20 @@ def main(args):
     waiting = set()  # a worker's issues with an open blocker, so a restart reports no blocker closed long ago
     fed_urls = set()  # the urls of the reports a manager was already fed
     data, read_at, signal = None, 0.0, team_signal.stamp()  # what the board last gave, when, and the signal file's change then
+    awake = False  # whether the last poll watched, so the poll the team empties in still reads once
     while True:
         listed, me = session.sessions()
-        role = team_names.role(me.get("name"))
-        manager, worker = role == "manager", role == "worker"
+        watching = team_names.watching(me, listed)
+        manager = team_names.role(me.get("name")) == "manager"
+        if not watching and not (awake and manager):
+            # a plugin monitor that exits is never started again, so a team with no worker is waited out here; the next worker's first read shows every open gap
+            shown, waiting, fed_urls, data, read_at, awake = set(), set(), set(), None, 0.0, False
+            time.sleep(POLL)
+            continue
+        # the last worker may have posted a report just before it left, which only this one more read feeds
+        awake = watching
         # the board is read when a team session signals a change or REFRESH has passed, and in full only when it first asks cheaply and something changed
-        if (manager or worker) and (data is None or team_signal.stamp() != signal or time.time() - read_at >= REFRESH):
+        if data is None or team_signal.stamp() != signal or time.time() - read_at >= REFRESH:
             now, seen = time.time(), team_signal.stamp()  # both taken before the read, so a touch during it still differs
             since = iso_time.stamp(read_at - SKEW)
             checks = {board.changed_since, landing.changed_since}
@@ -47,9 +55,7 @@ def main(args):
                 data = read(manager, me, since if read_at else None)
             if data is not None:  # a failed read keeps the last good time, so the next read still feeds what came after it
                 read_at, signal = now, seen
-        if not (manager or worker):
-            lines = []
-        elif data is None:
+        if data is None:
             lines = None
         elif manager:
             lines = team_gaps.manager_actions(me, listed, data, fed_urls)
