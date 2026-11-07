@@ -22,18 +22,18 @@ Task properties, for the routing decision:
 | touching files another open task touches | the order link and that task's url, under `Context you lack:` |
 | the base may already meet an outcome | a probe to report first, not an outcome to build |
 | a change to a playbook or rule | every file that states the rule |
+| a choice the words do not settle | `Free:` the choice the worker makes unasked; `Ask first:` the choice that is the owner's |
 
 Steering lines, for the worker prompt; take a row only when the task is that case:
 
 | the task is | the line |
 | --- | --- |
-| a research ask | Count by script, start from the raw material and check each idea as new against the repository and its prior work. |
-| a change a person sees | Show the owner a drawn sample of the changed rows before you build. |
+| a research ask, which takes this line alone, since its product is a report | Count by script, start from the raw material and check each idea as new against the repository and its prior work. |
+| a change a person sees, not a research ask | Show the owner a drawn sample of the changed rows before you build. |
 | holding files another open task touches | `BLOCKED:` at once, and start the part whose files that task never touches. |
 | using a mechanism new to the repository | Read its official docs before you design. |
 | a `[check]` that pipes a producer into a tool | Run `run-criteria.py` with `--pass <n>=<sample-file>`, since the base run never reaches its pass path. |
-| leaving the worker a choice the words do not settle | `Free:` the choice to make unasked; `Ask first:` the choice that is the owner's. |
-| words that name a small fix for a wider purpose | Aim past the literal words and offer what widens it. |
+| words that name a small fix for a wider purpose, not a research ask | Aim past the literal words and offer what widens it. |
 
 ## Steps
 
@@ -52,11 +52,11 @@ Steering lines, for the worker prompt; take a row only when the task is that cas
 
 ## Example
 
-The owner says "내보내기가 너무 느려". The routing `DECIDED:` holds the outcome "exporting a 10k-row table takes under 5 seconds", `Why:` the owner exports before every meeting, the guesses "slow" means over 5 seconds at 10k rows (guess) and csv and xlsx both count (guess), `Never:` change the file format, and done when a timed export of the 10k-row sample prints under 5 seconds, base over.
+The owner says "내보내기가 너무 느려". The routing `DECIDED:` holds the outcome "exporting a 10k-row table takes under 5 seconds", `Why:` the owner exports before every meeting, the guesses "slow" means over 5 seconds at 10k rows (guess) and csv and xlsx both count (guess), `Never:` change the file format, `Free:` how to speed it up, `Ask first:` anything that changes the output a reader opens, and done when a timed export of the 10k-row sample prints under 5 seconds, base over.
 
-The worker prompt, 15 words:
+The worker prompt, 11 words:
 
-> Free: how to speed it up. Ask first: anything that changes the output a reader opens.
+> Aim past the literal words and offer what widens it.
 
 The `Judge note:`, 35 words:
 
