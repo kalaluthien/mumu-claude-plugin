@@ -6,7 +6,8 @@ usage: use-board.py <operation> <args>
 `comment`, `decide`, `file` and `resolve` first refuse, exit 2 and post nothing, a text with a malformed key line, keyword line or section heading, naming the fix;
 `file`, `title`, `decide` and an `edit` also refuse a title, summary line or decision that breaks the grammar's Plain words caps.
 
-  read <issue>                          print its title, state, labels, parent, body and comments
+  read <issue> [--as worker|judge]      print its title, state, labels, parent, body and comments; as a worker without each `Judge note:` paragraph,
+                                        which names probes of a criterion's implementation, as a judge without each `BLOCKED:` comment, which is worker history
   comment <issue> <body-file>           append the file's text as a comment; refused, nothing posted, when it holds a `decision` block, which `decide` posts
   file <title> <body-file> [label...] [--scope <folder>]   open an issue in the folder, a path from the repository root ('' the root; a manager's own
                                         project folder when none is given, else the root), refused when the repository has no such folder; print its url;
@@ -28,6 +29,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
 import decisions  # noqa: E402
 import issue_state  # noqa: E402
+from judge_note import without_judge_note  # noqa: E402
 import own_reports  # noqa: E402
 import session  # noqa: E402
 import team_names  # noqa: E402
@@ -50,10 +52,16 @@ def keyed(keyword, path):
 
 
 def read_issue(operands):
+    role = operands[2] if len(operands) == 3 and operands[1] == "--as" and operands[2] in ("worker", "judge") else None
+    if len(operands) == 3 and not role:
+        print(__doc__, file=sys.stderr)
+        return 2
     issue = board.fresh(operands[0]) or sys.exit(f"use-board: cannot read #{operands[0]}")
     print(f"#{issue['number']} {issue_state.title(issue)}\nstate: {issue['state']}\n{'scope: ' + (issue['scope'] or '(repository root)') + chr(10) if 'scope' in issue else ''}labels: {', '.join(issue['labels'])}\nparent: {issue['parent']}\nbody sha: {board.body_sha(issue['body'])}\n\n{issue['body']}")
     for comment in issue["comments"]:
-        print(f"\n--- {comment['url']}\n{comment['body']}")
+        if role == "judge" and issue_state.keyword(comment["body"]) == "BLOCKED":
+            continue
+        print(f"\n--- {comment['url']}\n{without_judge_note(comment['body']) if role == 'worker' else comment['body']}")
     return 0
 
 
@@ -117,7 +125,7 @@ def label_issue(operands):
 
 
 # verb -> (whether it takes that many operands, what it does); any other call prints the usage
-VERBS = {"read": (lambda count: count == 1, read_issue), "comment": (lambda count: count == 2, post_comment), "file": (lambda count: count >= 2, file_issue),
+VERBS = {"read": (lambda count: count in (1, 3), read_issue), "comment": (lambda count: count == 2, post_comment), "file": (lambda count: count >= 2, file_issue),
          "edit": (lambda count: count in (3, 5), edit_body), "resolve": (lambda count: count in (2, 3), resolve_issue), "title": (lambda count: count == 2, retitle_issue),
          "reopen": (lambda count: count == 1, reopen_issue), "decide": (lambda count: count == 2, decide_issue), "label": (lambda count: count in (2, 3), label_issue)}
 

@@ -4,7 +4,7 @@ Each operation is one call of `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/use
 
 | operation | how |
 | --- | --- |
-| `read` | `use-board.py read <n>` |
+| `read` | `use-board.py read <n> [--as worker\|judge]` |
 | `comment` | `use-board.py comment <n> <body-file>` |
 | `file` | `use-board.py file <title> <body-file> [label...] [--scope <folder>]` |
 | `edit` | `use-board.py edit <n> <diff-file> "DECIDED: <why>" --base <sha>`, the `body sha` `read` printed, refused when the body has changed since; it runs [edit-issue-body.py](../../scripts/edit-issue-body.py); the title by `use-board.py title <n> <title>` |

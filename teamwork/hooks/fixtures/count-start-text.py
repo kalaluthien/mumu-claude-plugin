@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Print the characters of the teamwork text a session loads before its first step, per role, at a commit and at the checkout, and PASS when the checkout holds fewer in all and no role holds more.
 
-usage: count-start-text.py <ref>
+usage: count-start-text.py [--role <role>] <ref>
+
+With `--role`, PASS means that one role holds fewer, and the other roles are not compared.
 
 The text of a role is the description of every teamwork skill, which loads at start, plus the files its kick-off reads before
 its first step: `SKILL.md`, `protocol.md`, its playbook and the files that playbook tells it to read first. A file the ref
@@ -50,6 +52,9 @@ def count(ref):
 
 
 def main(args):
+    role_only = args[1] if args[:1] == ["--role"] and len(args) == 3 and args[1] in READS else None
+    if role_only:
+        args = args[2:]
     if len(args) != 1 or args[0].startswith("-"):
         print(__doc__, file=sys.stderr)
         return 2
@@ -58,7 +63,8 @@ def main(args):
     for role in READS:
         print(f"| {role} | {before[role]:,} | {after[role]:,} |")
     print(f"| all | {sum(before.values()):,} | {sum(after.values()):,} |")
-    fewer = sum(after.values()) < sum(before.values()) and all(after[role] <= before[role] for role in READS)
+    fewer = after[role_only] < before[role_only] if role_only else (
+        sum(after.values()) < sum(before.values()) and all(after[role] <= before[role] for role in READS))
     print("PASS" if fewer else "FAIL")
     return 0
 
