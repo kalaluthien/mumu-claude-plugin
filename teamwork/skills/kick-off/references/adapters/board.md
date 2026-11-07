@@ -21,5 +21,6 @@ The board is the commit `refs/teamwork-blackboard` names in the current folder's
 - **History**: `git log --stat refs/teamwork-blackboard` shows every write; `git show refs/teamwork-blackboard:<folder>/<n>/body.md` reads one file.
 - **Stale lock**: a write that finds `.git/refs/teamwork-blackboard.lock` older than 10 s refuses, naming it; remove that file once no board write runs.
 - **Local only**: a plain clone, fetch or push leaves `refs/teamwork-blackboard` behind, so the board stays on this machine unless pushed by name; `git push --mirror` sends it.
+- **Never GitHub**: team work (a task, finding, hand-over, question or answer) is written only by the calls above, never by `gh issue` or a `gh api` write, which `hooks/route-event.py` refuses from a manager, worker or sentinel; the owner's own GitHub issue runs by their `! <command>`.
 - **Trusted**: every record, since only local users write the ref.
 - **Default branch**: the landing adapter's, not the board's.

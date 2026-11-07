@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Replay `estimate-task-time.py` over each repository's closed tasks in time order.
+"""Replay `estimate-task-time.py` over the closed tasks of the repository the current folder is in, in time order.
 
-usage: backtest-estimate.py [--from-json <file>] [--as-of <time> --tasks <n>,<n>...] <owner/repo>...
+usage: backtest-estimate.py [--from-json <file>] [--as-of <time> --tasks <n>,<n>...]
 
 The first 60% calibrate the range
 levels, the last 40% only score: held-out coverage of the per-task range, its median width and median absolute error, for
 the estimator and for the baseline (the p10-p90 of all earlier tasks), then how often the bootstrap total covers the
 actual sum over 5 consecutive tasks. `--as-of <time> --tasks ...` prints those tasks' ranges from the history before
-<time> beside their actual hours. `--from-json` is {"<owner/repo>": [issues]} in place of GitHub."""
+<time> beside their actual hours. `--from-json` is {"<repository>": [issues]} in place of the board."""
 import argparse
 import json
 import pathlib
@@ -24,13 +24,9 @@ def main(args):
     parser.add_argument("--from-json", type=lambda path: json.load(open(path)))
     parser.add_argument("--as-of")
     parser.add_argument("--tasks", type=lambda value: {int(issue_number) for issue_number in value.split(",")}, default=set())
-    parser.add_argument("repos", nargs="*")
     options = parser.parse_args(args)
     fixture, cutoff, numbers = options.from_json, options.as_of, options.tasks
-    repos = options.repos or list(fixture or [])
-    if not repos:
-        print(__doc__, file=sys.stderr)
-        return 2
+    repos = list(fixture) if fixture else [task_history.own_repository()]
     pooled = [0, 0]
     for repo in repos:
         rows = task_history.rows(fixture[repo] if fixture else task_history.fetch(repo))

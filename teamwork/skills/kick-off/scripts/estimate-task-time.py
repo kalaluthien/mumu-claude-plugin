@@ -3,15 +3,16 @@
 took (all past tasks when fewer than 5 share it).
 
 usage: estimate-task-time.py [--from-json <file>] [--gaps-json <file>] [--expect-restarts <n>] [--wait <name>=<hours>]...
-                             [--seed <n>] [<issue url>...]
+                             [--seed <n>] [<board url>...]
 
-The total is a bootstrap over those hours, repeatable by `--seed`.
+The total is a bootstrap over those hours, repeatable by `--seed`. A url must name the repository the current folder is in; another's is refused, since the board read is this folder's.
 Past hours already hold the usual restarts and waits, so the script adds only what the history lacks: `--expect-restarts
 <n>` adds n restarts at the median hours of a restart that cost time (from `--gaps-json`, the output of `list-session-gaps.py --json`,
 else the transcripts of every named session), and each `--wait` adds its hours once, as a row of its own.
-`--from-json` is a fixture {"history": [...], "tasks": [{"number": 1, "labels": [...]}]} in place of GitHub."""
+`--from-json` is a fixture {"history": [...], "tasks": [{"number": 1, "labels": [...]}]} in place of the board."""
 import argparse
 import json
+import os
 import pathlib
 import re
 import sys
@@ -46,16 +47,18 @@ def load(options, urls):
         sys.exit(2)
     tasks, history = [], {}
     for url in urls:
-        match = re.match(r"https://github.com/([^/]+/[^/]+)/issues/(\d+)", url)
+        match = re.match(r"git\+file://(.+)/refs/teamwork-blackboard/(?:.+/)?(\d+)$", url)
         if not match:
             print(__doc__, file=sys.stderr)
             sys.exit(2)
         repo, number = match.groups()
+        if os.path.realpath(repo) != task_history.own_repository():
+            sys.exit(f"estimate-task-time.py: {url} is on the board of {repo}, which this folder's board is not; run it inside that project's checkout")
         if repo not in history:
             history[repo] = task_history.rows(task_history.fetch(repo))
         issue = board.fresh(number, repo, comments=False)
         if issue is None:
-            sys.exit(f"estimate-task-time.py: the REST read of {url} failed")
+            sys.exit(f"estimate-task-time.py: the board read of {url} failed")
         tasks.append({"number": issue["number"], "labels": issue["labels"], "repo": repo})
     return [row for rows in history.values() for row in rows], tasks
 

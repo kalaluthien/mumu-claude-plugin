@@ -2,7 +2,7 @@
 """List what repeats across dejavu's mapped sessions, one line per repeat, details indented below it.
 
 usage: list-repeats.py <data> [--mistakes <file>]
-       list-repeats.py <data> --record <where> <last seen> <key>   record where a repeat went (an issue url, a path or `owner`) in <data>/filed.json
+       list-repeats.py <data> --record <where> <last seen> <key>   record where a repeat went (a url, a path or `owner`) in <data>/filed.json
 
 Reads <data>/stats/ and <data>/facets/ for the sessions of the last 14 days and writes <data>/friction.jsonl, every
 friction item with an id, for the agent that groups them. A repeat line reads
