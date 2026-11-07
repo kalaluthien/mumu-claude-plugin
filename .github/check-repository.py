@@ -50,7 +50,7 @@ def list_files(root):
         subfolders[:] = [name for name in subfolders if name != ".git"]
         for name in names:
             files.append(os.path.relpath(os.path.join(folder, name), root))
-    return sorted(f.replace(os.sep, "/") for f in files)
+    return sorted(name.replace(os.sep, "/") for name in files)
 
 
 def is_manifest(path):
@@ -83,9 +83,9 @@ def markdown_targets(text):
         line = INLINE_CODE.sub("", line)
         for match in INLINE_LINK.finditer(line):
             yield match.group(1)
-        ref = REFERENCE_LINK.match(line)
-        if ref:
-            yield ref.group(1)
+        reference = REFERENCE_LINK.match(line)
+        if reference:
+            yield reference.group(1)
 
 
 def check_markdown(root, path, text, failures):
@@ -107,15 +107,15 @@ def check_markdown(root, path, text, failures):
             failures.append("link {}: {} does not resolve".format(path, target))
     # A root path is a command or file the skill runs, usually inside code, so code is not skipped.
     for match in ROOT_PATH.finditer(text):
-        rel = match.group(1).rstrip(".")
-        if PLACEHOLDER & set(rel):
+        relative = match.group(1).rstrip(".")
+        if PLACEHOLDER & set(relative):
             continue
         checked += 1
         plugin = plugin_root(root, path)
         if plugin is None:
             failures.append("root-path {}: no plugin holds this file".format(path))
-        elif not os.path.exists(os.path.join(plugin, rel)):
-            failures.append("root-path {}: ${{CLAUDE_PLUGIN_ROOT}}/{} does not exist".format(path, rel))
+        elif not os.path.exists(os.path.join(plugin, relative)):
+            failures.append("root-path {}: ${{CLAUDE_PLUGIN_ROOT}}/{} does not exist".format(path, relative))
     return checked
 
 
@@ -150,8 +150,8 @@ def main(args):
                 links += check_markdown(root, path, handle.read(), failures)
     unreached = subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("list-unreached.py")), root], capture_output=True, text=True)
     if unreached.returncode:
-        failures += [line for line in unreached.stdout.splitlines() if line.startswith(("unreached ", "unused "))]
-        failures += ["unreached list-unreached.py: " + unreached.stderr.strip()] if unreached.returncode > 1 else []
+        lines = [line for line in unreached.stdout.splitlines() if line.startswith(("unreached ", "unused "))]
+        failures += lines or ["unreached list-unreached.py: exit {}: {}".format(unreached.returncode, unreached.stderr.strip())]
     for line in failures:
         print(line)
     counts = "{} py compiled, {} manifests parsed, {} links in {} md resolved, {} failures".format(

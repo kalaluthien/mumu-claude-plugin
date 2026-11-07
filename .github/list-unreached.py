@@ -6,8 +6,7 @@ usage: list-unreached.py [root]
 A plugin is each folder of root (default: this repository) that holds `.claude-plugin/plugin.json`. Its entry points are
 that manifest, `hooks/hooks.json`, `monitors/monitors.json`, each `skills/*/SKILL.md` and each file at the plugin's root.
 A file is reached when a reached file names its path or file name, links its folder as `[x/](x/)`, or imports it. A reached program that lists folders (`glob`, `iterdir`, `listdir`, `walk`) and names one reaches the data files
-below it under `fixtures/`. A file under a `fixtures/` folder is reached only when a reached file reaches it, or when it is
-a script that names a reached file, and it reaches nothing outside `fixtures/`. A function nothing live calls
+below it under `fixtures/`. A script under `fixtures/` that names a reached file is reached too. A function nothing live calls
 and an import nothing uses are unused; a file that calls `getattr` with a computed name keeps every function it defines.
 Prints `unreached <path>`, `unused <path>:<line> <name>` and `unused <path>:<line> import <name>` lines, then a summary,
 and exits 1 when it printed any of them, else 0. Standard library only, Python 3.9."""
@@ -22,7 +21,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 TOKEN = re.compile(r"[\w.\-/]+")
-PIECES = re.compile(r"[\"']\s*/\s*[\"']")  # "skills" / "kick-off" names one path
+PIECES = re.compile(r"[\"']\s*/\s*[\"']")  # "a" / "b" names one path
 PROGRAMS = (".py", ".ts", ".js", ".sh")
 FOLDER_LINK = re.compile(r"\]\(([^)\s#]+)/\)")  # [examples/](examples/) links a folder
 LISTS = re.compile(r"\b(?:glob|rglob|iterdir|listdir|scandir|walk|readdirSync)\(")
@@ -85,7 +84,7 @@ def find_references(texts):
     by_name, folders = {}, {}
     for path in texts:
         by_name.setdefault(path.rsplit("/", 1)[-1], []).append(path)
-        for end in [at for at, char in enumerate(path) if char == "/"]:
+        for end in [at for at, letter in enumerate(path) if letter == "/"]:
             folders.setdefault(path[:end], []).append(path)
     references = {}
     for path, text in texts.items():
@@ -111,7 +110,7 @@ def find_references(texts):
 
 def find_reached(files, references, imports):
     """The files a plugin's entry points reach, and the fixtures that stay alive beside them."""
-    reaches = {path: {target for target in references[path] if is_fixture(target) or not is_fixture(path)} | imports[path] for path in files}
+    reaches = {path: references[path] | imports[path] for path in files}
     watchers = {}
     for path in files:
         if is_fixture(path) and path.endswith(PROGRAMS):
