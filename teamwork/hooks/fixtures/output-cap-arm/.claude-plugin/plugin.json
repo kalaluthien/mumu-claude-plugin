@@ -1,1 +1,0 @@
-{"name": "output-cap-arm", "version": "0.0.0", "description": "The output-cap arm of replay-output-cap.py: caps each Bash output at 50 lines, the rest kept in a file."}

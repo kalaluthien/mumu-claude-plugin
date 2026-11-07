@@ -5,7 +5,6 @@ recorded from the session's transcript and send the prompt again until it is exa
 
 usage: rename-session.py <name>"""
 import json
-import os
 import pathlib
 import sys
 import time

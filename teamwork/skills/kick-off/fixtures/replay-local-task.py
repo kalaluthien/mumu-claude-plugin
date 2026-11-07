@@ -74,8 +74,9 @@ def case_whole(work, repository, origin, environment):
     use(environment, repository, "use-board.py", "file", "Probe the late issue", replay_probe.write_text(work, "late.md", "Unrouted.\n"), "--scope", "probe")
     use(environment, repository, "use-board.py", "decide", "1", replay_probe.write_text(work, "hold.md", HOLD))
     herdr = work / "herdr.json"
-    team = [{"name": "probe-manager", "pane_id": "w1:p1", "tab_id": "w1:t1", "workspace_id": "w1", "agent": "claude", "agent_status": "working", "interactive_ready": True}]
-    herdr.write_text(json.dumps({"n": 10, "agents": team, "tabs": [{"tab_id": "w1:t1", "workspace_id": "w1", "label": "probe-manager"}]}))
+    team = [{"name": name, "pane_id": "w1:p" + str(number), "tab_id": "w1:t" + str(number), "workspace_id": "w1", "agent": "claude", "agent_status": "working", "interactive_ready": True}
+            for number, name in ((1, "probe-manager"), (2, "probe-worker"))]
+    herdr.write_text(json.dumps({"n": 10, "agents": team, "tabs": [{"tab_id": agent["tab_id"], "workspace_id": "w1", "label": agent["name"]} for agent in team]}))
     log = work / "heartbeat.log"
     live = subprocess.Popen([str(MONITORS / "print-team-gaps.py")], cwd=repository, stdout=log.open("w"), stderr=subprocess.STDOUT,
                             env={**environment, "FAKE_HERDR_STATE": str(herdr), "HERDR_PANE_ID": "w1:p1", "MONITOR_POLL": "1"})
