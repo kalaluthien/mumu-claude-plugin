@@ -53,7 +53,7 @@ def keyed(keyword, path):
 
 def without_judge_note(text):
     """TEXT without its `Judge note:` paragraphs, since a worker builds to the criteria, not to the cases a judge tries against them."""
-    return re.sub(r"^Judge note:.*?(?:\n\n|\Z)", "", text, flags=re.M | re.S)
+    return re.sub(r"^Judge note:.*?(?=\n\s*\n|\n```|\Z)\s*", "", text, flags=re.M | re.S)
 
 
 def read_issue(operands):

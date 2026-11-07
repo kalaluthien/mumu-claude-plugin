@@ -47,7 +47,7 @@ Steering lines, for the worker prompt; take a row only when the task is that cas
 
 - **Quote beside, never instead**: the owner's words stay verbatim; your purpose and guesses sit beside them.
 - **Mark every guess**: a guess unmarked reads as the owner's word.
-- **Properties in the task, steering in the prompt**: a goal, a constraint, a criterion or a judge case never goes in the prompt, since the worker finds the path and the judge's cases are probes of its criteria.
+- **Properties in the task, steering in the prompt**: a goal, a constraint, a criterion, a judge case, or an output, option or layout to produce never goes in the prompt, since the worker finds the path and the judge's cases are probes of its criteria.
 - **Judge note**: a way to score (`yes`, `no` or `Unknown`) and the cases to try, as one paragraph with a blank line after it and before the `decision` block; not the worker's reasoning or the manager's history.
 
 ## Example

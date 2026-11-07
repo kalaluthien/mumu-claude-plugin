@@ -8,6 +8,7 @@ The owner asks which Python modules of `teamwork/lib` write board records, which
 `--max-direct` other tool calls itself (default 2; calls on the playbooks and their scripts, subagents and skills not counted)."""
 import json
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -17,7 +18,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import replay_runs  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[4]
-PLAYBOOKS = "/skills/kick-off/"
+PLAYBOOK_FILE = re.compile(r"/skills/kick-off/(references|scripts)/[\w/.-]+\.(md|py)\b")
+SEARCH = re.compile(r"\b(grep|rg|find)\b")
 QUESTION = "teamwork/lib 아래 어느 파이썬 모듈이 보드 기록(이슈, 코멘트)을 쓰는지 찾아서 알려줘."
 PROMPT = """Run the teamwork:kick-off skill with these arguments: teamwork-manager
 
@@ -40,11 +42,12 @@ def copy_tree(ref, into):
 
 
 def direct_file_work(uses):
-    """The tool uses of the main thread, other than a subagent, a skill and a call on the playbooks and their scripts, which is any way to read or search a file."""
+    """The tool uses of the main thread, other than a subagent, a skill and a read of one playbook or script file, which is any way to read or search a file."""
     found = []
     for use in uses.values():
         named = json.dumps(use["input"])
-        if use["name"] in ("Agent", "Skill") or PLAYBOOKS in named:
+        reads_playbook = PLAYBOOK_FILE.search(named) and use["name"] != "Grep" and not SEARCH.search(str(use["input"].get("command", "")))
+        if use["name"] in ("Agent", "Skill") or reads_playbook:
             continue
         found.append(f"{use['name']} {(use['input'].get('command') or named)[:80]}")
     return found
