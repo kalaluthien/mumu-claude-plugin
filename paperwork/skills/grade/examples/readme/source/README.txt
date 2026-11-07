@@ -39,7 +39,7 @@ flowchart TB
   n_lib[["Shared lib"]]
   n_hook -->|"points to"| n_kick
   n_monitor -->|"tells a session of"| n_kick
-  n_pane -->|"answers /teamwork:issues of"| n_issues
+  n_pane -->|"answers the Issues command of"| n_issues
   n_hook -->|"reads"| n_lib
   n_monitor -->|"reads"| n_lib
   n_pane -->|"runs scripts that read"| n_lib
@@ -49,7 +49,7 @@ flowchart TB
 
 </details>
 
-Teamwork splits work between a manager, workers, sentinels and judges; [the authority table](teamwork/skills/kick-off/references/protocol.md) says what each may decide. GitHub issues are the shared memory: the questions and answers on them outlive any session.
+Teamwork splits work between a manager, workers, sentinels and judges; the authority table says what each may decide. GitHub issues are the shared memory: the questions and answers on them outlive any session.
 
 - **owner**: the person who asks the sessions for work and answers their questions; when you use teamwork, that is you.
 - **manager**: the one Claude session per project that writes down what the owner asks for as a GitHub issue, hands it to a worker, and answers the worker's questions.
@@ -67,9 +67,9 @@ Be this project's teamwork manager: fix the login timeout
 
 That session becomes the manager. It files the backlog, starts a worker in a new tab, and from then on you mostly answer questions.
 
-- A hook ([`route-event.py`](teamwork/hooks/route-event.py)) tells each session at start what waits on it, and keeps a worker from going idle while an issue it holds is open.
-- A monitor ([`print-team-gaps.py`](teamwork/monitors/print-team-gaps.py)) tells the manager where GitHub and the team disagree, and wakes a worker when its wait ends.
-- `/teamwork:issues` shows the Issues pane, a board of the open issues, again after you close it.
+- A hook (`route-event.py`) tells each session at start what waits on it, and keeps a worker from going idle while an issue it holds is open.
+- A monitor (`print-team-gaps.py`) tells the manager where GitHub and the team disagree, and wakes a worker when its wait ends.
+- The Issues command shows the Issues pane, a board of the open issues, again after you close it.
 
 ## Paperwork: system models and grading specs
 
@@ -126,8 +126,8 @@ flowchart TB
 
 Keeps what a session learned, once, where the next reader will look.
 
-- A Stop hook ([`signal-wrap-up.py`](homework/hooks/signal-wrap-up.py)) counts new lessons in the transcript, changed memory files, and tool calls since the last wrap-up. When a count crosses its line, it sends a one-line wrap-up signal.
-- The [`wrap-up`](homework/skills/wrap-up/SKILL.md) skill acts on the signal, or on your ask. It keeps a lesson (retro), tidies memory (dream), and finds recurring patterns (dejavu). Its playbooks are in [`references/`](homework/skills/wrap-up/references).
+- A Stop hook (`signal-wrap-up.py`) counts new lessons in the transcript, changed memory files, and tool calls since the last wrap-up. When a count crosses its line, it sends a one-line wrap-up signal.
+- The `wrap-up` skill acts on the signal, or on your ask. It keeps a lesson (retro), tidies memory (dream), and finds recurring patterns (dejavu). Its playbooks are in its `references/` folder.
 
 **Usage.** The signal arrives on its own, and the skill is not in the slash menu. To ask for it yourself, tell Claude to keep a lesson (retro) or tidy memory (dream). It asks you nothing and reports what it did.
 

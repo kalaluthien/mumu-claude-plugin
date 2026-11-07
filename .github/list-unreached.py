@@ -80,8 +80,11 @@ def find_imports(modules, files):
     return imports
 
 
-def find_references(texts):
-    """Map each file to the other files its text names, or reads as a folder of data."""
+def find_references(texts, across_plugins=False):
+    """Map each file to the other files its text names, or reads as a folder of data.
+
+    With across_plugins the paths start with their plugin's folder; only a name that holds a `/` counts, since a bare file name
+    says nothing of whose it is, and a file of the text's own plugin wins over a same-named one of another."""
     by_name, folders = {}, {}
     for path in texts:
         by_name.setdefault(path.rsplit("/", 1)[-1], []).append(path)
@@ -95,7 +98,7 @@ def find_references(texts):
     for path, text in texts.items():
         found = set()
         here = path.rsplit("/", 1)[0] if "/" in path else ""
-        reads_folders = path.endswith(PROGRAMS) and bool(LISTS.search(text))
+        reads_folders = path.endswith(PROGRAMS) and bool(LISTS.search(text)) and not across_plugins
         for link in FOLDER_LINK.findall(text):
             found.update(folders.get(os.path.normpath(os.path.join(here, link)), ()))
         for word in set(TOKEN.findall(PIECES.sub("/", text))):
@@ -104,8 +107,10 @@ def find_references(texts):
             names = [token] + ([token + extension for extension in IMPORTABLE] if word.startswith(".") and path.endswith(IMPORTABLE + (".sh",)) else [])
             for name in names:
                 file_name = name.rsplit("/", 1)[-1]
-                if "." in file_name or "/" in name or file_name in bare:
-                    found.update(file for file in by_name.get(file_name, ()) if file == name or file.endswith("/" + name) or name.endswith("/" + file))
+                if "/" in name if across_plugins else "." in file_name or "/" in name or file_name in bare:
+                    named = [file for file in by_name.get(file_name, ()) if file == name or file.endswith("/" + name) or name.endswith("/" + file)]
+                    own = [file for file in named if file.split("/")[0] == path.split("/")[0]]
+                    found.update(own if across_plugins and own else named)
             if reads_folders:
                 for folder, members in folders_by_name.get(last, ()):
                     parent = folder.rsplit("/", 1)[0] if "/" in folder else ""

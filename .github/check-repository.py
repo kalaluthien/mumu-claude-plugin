@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, and no plugin file, function or import is unreached.
+"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, no plugin file, function or import is unreached, and no plugin file names another plugin's file or skill.
 
 usage: check-repository.py [root]
 
-Prints one failure per line as `<kind> <path>: <detail>`, `unreached` lines being list-unreached.py's, then a
-summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
+Prints one failure per line as `<kind> <path>: <detail>`, `unreached` lines being list-unreached.py's and `shared` lines
+list-cross-plugin-names.py's, then a summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
 """
 
 import json
@@ -28,7 +28,10 @@ PLACEHOLDER = set("<*{")
 # score-memory.py counts a candidate's index lines and never follows their links, so these MEMORY.md files link lessons they do not hold.
 SCORED_INDEX = re.compile(r"(^|/)fixtures/replay/[^/]+/candidates/[^/]+/MEMORY\.md$")
 UNHELD_LESSON = re.compile(r"lesson-\d+\.md")
-SUMMARY = re.compile(r"^\d+ files, \d+ unreached$", re.M)  # without it a lister that printed nothing would pass
+LISTERS = (  # each lister's script, the failure lines it prints and its summary line; without the summary a lister that printed nothing would pass
+    ("list-unreached.py", "unreached ", re.compile(r"^\d+ files, \d+ unreached$", re.M)),
+    ("list-cross-plugin-names.py", "shared ", re.compile(r"^\d+ files, \d+ naming another plugin$", re.M)),
+)
 
 
 def list_files(root):
@@ -152,10 +155,11 @@ def main(args):
             docs += 1
             with open(full, encoding="utf-8", errors="replace") as handle:
                 links += check_markdown(root, path, handle.read(), failures)
-    unreached = subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("list-unreached.py")), root], capture_output=True, text=True)
-    if unreached.returncode or not SUMMARY.search(unreached.stdout):
-        lines = [line for line in unreached.stdout.splitlines() if line.startswith("unreached ")]
-        failures += lines or ["unreached list-unreached.py: exit {}, no summary line: {}".format(unreached.returncode, unreached.stderr.strip())]
+    for script, kind, summary in LISTERS:
+        listed = subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name(script)), root], capture_output=True, text=True)
+        if listed.returncode or not summary.search(listed.stdout):
+            lines = [line for line in listed.stdout.splitlines() if line.startswith(kind)]
+            failures += lines or ["{}{}: exit {}, no summary line: {}".format(kind, script, listed.returncode, listed.stderr.strip())]
     for line in failures:
         print(line)
     counts = "{} py compiled, {} manifests parsed, {} links in {} md resolved, {} failures".format(
