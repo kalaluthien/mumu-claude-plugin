@@ -360,19 +360,6 @@ def binders(text):
     return out
 
 
-def free_spans(text, names):
-    """Positions of bare, unbound occurrences of the given names, for renaming."""
-    return [(position, name) for kind, name, position, bound in uses(text) if kind in ("free", "call") and name in names and name not in bound]
-
-
-def rename(text, mapping):
-    """Replace bare, unbound names (parameters, self, result) by expressions."""
-    spans = sorted(free_spans(text, set(mapping)), reverse=True)
-    for position, name in spans:
-        text = text[:position] + mapping[name] + text[position + len(name):]
-    return text
-
-
 def temporal(text):
     """Whether a formula speaks about time: a temporal operator, or one that only time gives meaning to."""
     return any(symbol in UNARY_OPERATORS - {"not"} or symbol in BINARY_TEMPORAL for _, symbol, _ in tokens(text))

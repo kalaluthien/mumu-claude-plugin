@@ -1,4 +1,4 @@
-"""The agent port: the coding agent a session runs, done by the adapter `agent_<TEAMWORK_AGENT>` (default `claude`).
+"""The agent port: the coding agent a session runs, done by the adapter `agent_<TEAMWORK_AGENT>.py` (default `lib/agent_claude.py`).
 
 Every adapter has these names:
 - `KIND` the agent's kind for the session port's `start`; `command(name, plugin_folder, model, effort, off)` its arguments after that

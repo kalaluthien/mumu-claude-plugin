@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve.
+"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, and no plugin file, function or import is unreached.
 
 usage: check-repository.py [root]
 
-Prints one failure per line as `<kind> <path>: <detail>`, then a summary line,
-and exits 0 only when nothing failed. Standard library only, Python 3.9.
+Prints one failure per line as `<kind> <path>: <detail>`, `unreached` and `unused` lines being list-unreached.py's, then a
+summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
 """
 
 import json
@@ -148,6 +148,11 @@ def main(args):
             docs += 1
             with open(full, encoding="utf-8", errors="replace") as handle:
                 links += check_markdown(root, path, handle.read(), failures)
+    unreached = subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("list-unreached.py")), root], capture_output=True, text=True)
+    if unreached.returncode in (0, 1):
+        failures += [line for line in unreached.stdout.splitlines() if line.startswith(("unreached ", "unused "))]
+    else:
+        failures.append("unreached list-unreached.py: " + unreached.stderr.strip())
     for line in failures:
         print(line)
     counts = "{} py compiled, {} manifests parsed, {} links in {} md resolved, {} failures".format(
