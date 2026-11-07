@@ -5,7 +5,7 @@ usage: list-unreached.py [root]
 
 A plugin is each folder of root (default: this repository) that holds `.claude-plugin/plugin.json`. Its entry points are
 that manifest, `hooks/hooks.json`, `monitors/monitors.json`, each `skills/*/SKILL.md` and each file at the plugin's root.
-A file is reached when a reached file names its path or file name, links its folder as `[x/](x/)`, or imports it. A reached program that lists folders (`glob`, `iterdir`, `listdir`, `walk`) and names one reaches the data files
+A file is reached when a reached file names its path or file name, links its folder as `[x/](x/)`, or imports it. A reached program that lists folders (`glob`, `iterdir`, `listdir`, `walk` and the like) and names one reaches the data files
 below it under `fixtures/`. A script under `fixtures/` that names a reached file is reached too. A function nothing live calls
 and an import nothing uses are unused; a string that spells a function's name calls it, a `__future__` import is used, and a file that calls `getattr` with a computed name keeps every function it defines.
 Prints `unreached <path>`, `unreached <path>:<line> <name>` and `unreached <path>:<line> import <name>` lines, then a summary,
@@ -25,7 +25,7 @@ PIECES = re.compile(r"[\"']\s*/\s*[\"']")  # "a" / "b" names one path
 PROGRAMS = (".py", ".ts", ".tsx", ".js", ".sh")
 IMPORTABLE = (".ts", ".tsx", ".js")  # a relative import in these leaves the extension off
 FOLDER_LINK = re.compile(r"\]\(([^)\s#]+)/\)")  # [examples/](examples/) links a folder
-LISTS = re.compile(r"\b(?:glob|rglob|iterdir|listdir|scandir|walk|readdirSync)\(")
+LISTS = re.compile(r"\b(?:glob|iglob|rglob|iterdir|listdir|scandir|walk|readdir|readdirSync)\(")
 
 
 def list_files(folder):
@@ -46,7 +46,7 @@ def list_files(folder):
 
 def read_text(folder, path):
     try:
-        return (folder / path).read_text(encoding="utf-8")
+        return (folder / path).read_text(encoding="utf-8-sig")
     except (UnicodeDecodeError, OSError):
         return ""
 
@@ -174,7 +174,10 @@ def read_python(path, tree, lines):
         for child in ast.iter_child_nodes(node):
             visit(child, owner)
 
-    visit(tree, None)
+    try:
+        visit(tree, None)
+    except RecursionError:  # a deeper expression than the interpreter walks
+        return [], [], set(), {}, []
     if dynamic:
         roots.update(name for _, name in defined)
         defined = []
@@ -216,7 +219,7 @@ def main(args):
         files = list_files(plugin)
         texts = {path: read_text(plugin, path) for path in files}
         trees = {path: parse(text) for path, text in texts.items() if path.endswith(".py")}
-        facts = {path: read_python(path, tree, texts[path].splitlines()) for path, tree in trees.items() if tree}
+        facts = {path: read_python(path, tree, texts[path].split("\n")) for path, tree in trees.items() if tree}
         reached = find_reached(files, find_references(texts), find_imports({path: fact[0] for path, fact in facts.items()}, files))
         functions, imports = find_unused(facts, reached)
         lines = ["unreached {}/{}".format(plugin.name, path) for path in files if path not in reached]

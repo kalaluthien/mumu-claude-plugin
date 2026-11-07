@@ -60,6 +60,8 @@ CASES = {
     "functions of a file that calls getattr on a computed name are not unused": (
         {SKILL + "scripts/planted-dispatch.py": "def one():\n    return 1\n\n\ndef main(args):\n    return getattr(__import__('sys'), args[0])\n"},
         {SKILL_MD: "\nrun scripts/planted-dispatch.py\n"}, [], [SKILL + "scripts/planted-dispatch.py"]),
+    "a file nested deeper than the interpreter walks does not stop the run": (
+        {"teamwork/lib/planted_deep.py": "X = " + " + ".join(["1"] * 1500) + "\n"}, {}, ["unreached teamwork/lib/planted_deep.py"], []),
     "a file with a NUL byte does not stop the run": (
         {"teamwork/lib/planted_nul.py": "X = 1\x00\n"}, {}, ["unreached teamwork/lib/planted_nul.py"], []),
     "a lib module named only in a comment is not listed": (
