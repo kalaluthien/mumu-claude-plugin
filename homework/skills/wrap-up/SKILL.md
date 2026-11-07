@@ -1,12 +1,12 @@
 ---
 name: wrap-up
-description: Use when a wrap-up signal arrives, or to keep a lesson (retro), tidy memory (dream), or write a skill, agent file, hook or script.
+description: Use when a wrap-up signal arrives, or to keep a lesson.
 user-invocable: false
 ---
 
 # wrap-up
 
-Close a stretch of work so the next session starts ahead: keep what this session learned (retro), and tidy what earlier sessions kept (dream).
+Close a stretch of work so the next session starts ahead: keep what this session learned (retro), and tidy what earlier sessions kept, find what keeps going wrong and learn how the owner works (dream).
 
 ## Domain
 
@@ -23,18 +23,15 @@ Take every row whose condition holds, in order, and copy its playbook's steps ve
 | when | playbook |
 | --- | --- |
 | `<p>` reaches `<t>`, this session's first retro `<f>` is `due`, or the owner asks to keep a lesson | [references/retro.md](references/retro.md) |
-| `<m>` reaches `<l>`, or the owner asks to tidy memory | [references/dream.md](references/dream.md) |
-| `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-sessions.py due <data>/dejavu` prints `due`, or the owner asks for `dejavu` | [references/dejavu.md](references/dejavu.md) |
-| `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-sessions.py due <data>/habit --due-hours 168` prints `due`, or the owner asks for `habit` | [references/habit.md](references/habit.md) |
-| writing or editing a skill, an agent file, a hook or a script, with no lesson behind it | [references/harness-authoring.md](references/harness-authoring.md) |
+| `<m>` reaches `<l>`, `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-sessions.py due <data>/dejavu` prints `due`, or `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-sessions.py due <data>/habit` prints `due` | [references/dream.md](references/dream.md) |
 | typed with no signal and no row fits | [references/retro.md](references/retro.md) |
 
 ## Rules
 
 - **No waiting**: ask the owner only whether to hand a repeat, a preference or a fix that widens a permission or a guard over and what to do with each skill lesson, since these ask first; do each other step yourself, a slash command only a person types too: with `HERDR_PANE_ID` set, send it by `herdr agent prompt $HERDR_PANE_ID "/<command> <args>"` to the session's own pane, and if it does not run, type it by `pane send-text` then `send-keys enter`; outside herdr, ask the owner. Leave the owner only what no tool can do, and report.
 - **Retro: this project only**: retro writes only `<home>` and this repository's folder, else this project's pool. A change to `<config>/CLAUDE.md`, another repository's memory, a hook, a script or a skill goes as a patch file the owner applies, the report naming its `!` command, as [references/retro.md](references/retro.md) step 4 says.
-- **Dream: every project**: dream, dejavu and habit read every project, the roots `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-projects.py <config>` prints, and write every memory folder in place, since one session's tidy should reach all the owner's work.
-- **Hand over**: dream, dejavu and habit write a memory fix themselves. Any other fix, to a skill, hook, script, instruction file or document, goes to whoever is in charge of that project: a live session `ListAgents` shows in that project's root, by `SendMessage` with the fix and its reason. With no one in charge, make the fix in that repository and land it the way its `AGENTS.md` takes changes, leaving no branch, worktree or stash of yours behind. Open no GitHub issue and write no GitHub comment for this work: a project's tasks, findings and hand-overs sit on its git-refs board, which its manager session writes, so the `SendMessage` is the hand-over.
+- **Dream: every project**: dream reads every project, the roots `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-projects.py <config>` prints, and writes every memory folder in place, since one session's tidy should reach all the owner's work.
+- **Hand over**: dream writes a memory fix itself. Any other fix, to a skill, hook, script, instruction file or document, goes to whoever is in charge of that project: a live session `ListAgents` shows in that project's root, by `SendMessage` with the fix and its reason. With no one in charge, make the fix in that repository and land it the way its `AGENTS.md` takes changes, leaving no branch, worktree or stash of yours behind. Open no GitHub issue and write no GitHub comment for this work: a project's tasks, findings and hand-overs sit on its git-refs board, which its manager session writes, so the `SendMessage` is the hand-over.
 - **Foreign repositories**: before writing, handing over or landing a fix outside memory, run `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/check-repository-owner.py "$(gh api user -q .login)" <root>`. On `foreign`, such as an installed plugin's copy or another person's clone, write nothing there, hand nothing over and land nothing: find a way around it in what the owner manages, such as a memory file, a rule in `<config>/rules/`, a setting, or a wrapper or hook in the owner's own repository; else write the change as a patch in `<data>/patches/` and show its path, applying nothing. Retro follows this rule too. After editing `check-repository-owner.py`, run `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/fixtures/probe-repository-owner.py`; it must print `5 of 5 kinds right`.
 - **Repository first**: file nothing the repository or its history already states, and change a repository's file only the way it takes changes, as its `AGENTS.md` says.
 - **Outcome**: when the hook asked, end with `"${CLAUDE_PLUGIN_ROOT}/hooks/signal-wrap-up.py" outcome "${CLAUDE_PLUGIN_DATA}" ${CLAUDE_SESSION_ID} filed` if anything was filed, fixed or recorded, else the same with `empty`, so the hook asks less often after empty wrap-ups.

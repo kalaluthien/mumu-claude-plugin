@@ -128,9 +128,9 @@ flowchart TB
 Keeps what a session learned, once, where the next reader will look.
 
 - A Stop hook ([`signal-wrap-up.py`](homework/hooks/signal-wrap-up.py)) counts new lessons in the transcript, changed memory files, and tool calls since the last wrap-up. When a count crosses its line, it sends a one-line wrap-up signal.
-- The [`wrap-up`](homework/skills/wrap-up/SKILL.md) skill acts on the signal, or on your ask. It keeps a lesson (retro), tidies memory (dream), finds recurring patterns (dejavu), and learns your recurring preferences from past sessions (habit). Its playbooks are in [`references/`](homework/skills/wrap-up/references).
+- The [`wrap-up`](homework/skills/wrap-up/SKILL.md) skill acts on the signal, or on your ask to keep a lesson. It keeps a lesson (retro), and tidies memory, finds recurring mistakes and learns your recurring preferences from past sessions in one workflow run (dream). Its playbooks are in [`references/`](homework/skills/wrap-up/references), and the dream's workflow is [`dreaming-workflow.js`](homework/workflows/dreaming-workflow.js).
 
-**Usage.** The signal arrives on its own, and the skill is not in the slash menu. To ask for it yourself, tell Claude to keep a lesson (retro) or tidy memory (dream). It asks you nothing and reports what it did.
+**Usage.** The signal arrives on its own, and the skill is not in the slash menu. To ask for a retro yourself, tell Claude to keep a lesson; a dream runs only on the signal. It asks you nothing and reports what it did.
 
 ## Contributions
 

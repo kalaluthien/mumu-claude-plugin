@@ -16,7 +16,7 @@ The working rules of this repository and of every plugin in it. Each rule carrie
 
 ## Plugin layout
 
-- **Main parts**: build a plugin from `hooks/`, `monitors/` and `skills/`. Each is a module that works alone and reaches another only through a file or a command it names, never through its internals.
+- **Main parts**: build a plugin from `hooks/`, `monitors/`, `skills/` and `workflows/`, the last holding a dynamic workflow script `<name>.js` that Claude Code offers as `<plugin>:<name>`. Each is a module that works alone and reaches another only through a file or a command it names, never through its internals.
 - **Plugins stand alone**: a plugin never depends on another plugin: it names none of their files, commands or skills, and works with every other plugin removed; shared code is copied or dropped, never imported across plugins.
 - **No agents**: a plugin has no `agents/` folder; a role is a skill.
 - **Scripts beside their user**: a script sits in the folder of the hook, monitor, skill or reference domain that runs it, such as `skills/<skill>/scripts/` or `skills/<skill>/references/<domain>/scripts/`, one script per use, never in a `scripts/` folder at the repository's or a plugin's root; a check on the whole repository sits in `.github/`, since it belongs to no one plugin (see **Repository checks**). Code two parts share is a module in the plugin's `lib/`, which a script reaches by putting that `lib/` on `sys.path`, and a script imports no other script.

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Map a window of sessions for dejavu or habit: write digests for the haiku facet agents, and tool-failure signatures.
+"""Map a window of sessions for the dream: write digests for the haiku facet agents, and tool-failure signatures.
 
-usage: list-sessions.py due <data> [--due-hours <h>]                  `due` when <data>/last-map is <h> hours old (24) or missing, else `not due`
+usage: list-sessions.py due <data> [--due-hours <h>]                  `due` when <data>/last-map is <h> hours old or missing, else `not due`;
+                                                                       <h> by <data>'s name as homework/lib/stamp.py sets it
        list-sessions.py map <data> [--window-days <d>] [--limit <n>]  every in-window session: signatures to <data>/stats/; the newest
                                                                        <n> (40) without a facet: digests to <data>/digests/; touches <data>/last-map
        list-sessions.py digest <data> <path>...                       digests and signatures of the named transcripts, window and
@@ -23,9 +24,10 @@ import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import claude_config  # noqa: E402
+import stamp  # noqa: E402
 import transcript  # noqa: E402
 
-WINDOW_DAYS, PER_RUN, PER_BATCH, DUE_HOURS = 14, 40, 10, 24
+WINDOW_DAYS, PER_RUN, PER_BATCH = 14, 40, 10
 FLAGS = {"--window-days": "days", "--due-hours": "hours", "--limit": "limit"}
 VERB_FLAGS = {"due": {"--due-hours"}, "map": {"--window-days", "--limit"}, "digest": set()}
 OWNER_CAP, AGENT_CAP, DIGEST_CAP = 500, 300, 30000
@@ -165,7 +167,7 @@ def batches(digests):
 
 def options(verb, args):
     """(paths, settings) of the words after <data>, or None when a flag is not the verb's or lacks a number."""
-    settings, paths, k = {"days": WINDOW_DAYS, "hours": DUE_HOURS, "limit": PER_RUN}, [], 0
+    settings, paths, k = {"days": WINDOW_DAYS, "hours": None, "limit": PER_RUN}, [], 0
     while k < len(args):
         if args[k].startswith("--"):
             if args[k] not in VERB_FLAGS.get(verb, ()) or k + 1 >= len(args) or not re.fullmatch(r"[0-9]+", args[k + 1]):
@@ -184,10 +186,8 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     (named, settings), verb, data, now = parsed, args[0], args[1], time.time()
-    stamp = os.path.join(data, "last-map")
     if verb == "due":
-        old = not os.path.exists(stamp) or os.path.getmtime(stamp) <= now - settings["hours"] * 3600
-        print("due" if old else "not due")
+        print("due" if stamp.due(data, settings["hours"]) else "not due")
         return 0
     paths = named if verb == "digest" else window(now, settings["days"])
     faceted = {os.path.basename(path)[:-5] for path in glob.glob(os.path.join(glob.escape(data), "facets", "*.json"))}
@@ -206,7 +206,7 @@ def main(args):
             waiting += 1
     if verb == "map":
         os.makedirs(data, mode=0o700, exist_ok=True)
-        private(stamp).close()
+        private(os.path.join(data, "last-map")).close()
         print(f"{len(digests)} sessions to facet; {waiting} wait for later runs")
     batches(digests)
     return 0

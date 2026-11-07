@@ -10,7 +10,7 @@ Set `HOMEWORK_WRAP_UP=off` in the environment Claude Code starts with, or in the
 { "env": { "HOMEWORK_WRAP_UP": "off" } }
 ```
 
-The hook then neither asks nor writes to the plugin's data folder; a person can still ask for a retro, a dream, `dejavu` or `habit`.
+The hook then neither asks nor writes to the plugin's data folder; a person can still ask for a retro.
 
 The variable was `WRAP_UP`, and so was `WRAP_UP_THRESHOLD` for the threshold, before the rename to `HOMEWORK_WRAP_UP` and `HOMEWORK_WRAP_UP_THRESHOLD`; the old names do nothing now.
 
@@ -30,4 +30,4 @@ Its `MEMORY.md` then loads in every session, and a SessionStart hook sends each 
 - **Skill lessons**: kept in memory, marked `skill:`, until a dream asks you whether to write each into its skill, keep it or drop it.
 - **Anything else**: a lesson for `~/.claude/CLAUDE.md`, another repository's memory, a hook or a skill is written as a patch file; the wrap-up's report names the `! git -C <root> apply <patch file>` command that applies it, and nothing changes until you run it.
 - **Hand-overs**: a wrap-up asks before it hands one over, and opens no GitHub issue for it.
-- **dejavu and habit digests**: kept in the plugin's data folder, folders `0700` and files `0600`, with GitHub, Anthropic, OpenAI, Slack and AWS key-like strings masked.
+- **Dream digests**: kept in the plugin's data folder, folders `0700` and files `0600`, with GitHub, Anthropic, OpenAI, Slack and AWS key-like strings masked.

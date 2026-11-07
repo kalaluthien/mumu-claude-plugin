@@ -1,4 +1,4 @@
-"""Print what recurs across mapped sessions, with where each went, for the reducers of dejavu and habit."""
+"""Print what recurs across mapped sessions, with where each went, for the dream's mistake and preference reducers."""
 import glob
 import json
 import os
