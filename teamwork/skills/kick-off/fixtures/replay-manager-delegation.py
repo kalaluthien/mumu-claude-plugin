@@ -68,7 +68,7 @@ def main(args):
                "--max-budget-usd", BUDGET, "--permission-mode", "acceptEdits", "--allowedTools", "Bash", "Read", "Grep", "Glob", "Skill", "Agent",
                "--plugin-dir", str(work / "teamwork"), "--output-format", "stream-json", "--verbose", "--no-session-persistence"]
     stream, _ = replay_runs.run_claude(command, work, replay_runs.clean_environment(scratch))
-    _, _, _, uses, _, _ = replay_runs.read_events(stream)
+    uses = replay_runs.read_tool_uses(stream)
     shutil.rmtree(scratch, ignore_errors=True)
     delegated = sum(use["name"] == "Agent" for use in uses.values())
     direct = direct_file_work(uses)
