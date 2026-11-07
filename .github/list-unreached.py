@@ -117,7 +117,7 @@ def find_reached(files, references, imports):
     watchers = {}
     for path in files:
         if is_fixture(path) and path.endswith(PROGRAMS):
-            for target in references[path] | imports[path]:
+            for target in reaches[path]:
                 watchers.setdefault(target, set()).add(path)
     reached = {path for path in files if "/" not in path or path in (".claude-plugin/plugin.json", "hooks/hooks.json", "monitors/monitors.json")
                or re.fullmatch(r"skills/[^/]+/SKILL\.md", path)}
