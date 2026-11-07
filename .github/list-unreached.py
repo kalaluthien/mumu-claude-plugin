@@ -22,7 +22,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 TOKEN = re.compile(r"[\w.\-/]+")
 PIECES = re.compile(r"[\"']\s*/\s*[\"']")  # "a" / "b" names one path
-PROGRAMS = (".py", ".ts", ".js", ".sh")
+PROGRAMS = (".py", ".ts", ".tsx", ".js", ".sh")
+IMPORTABLE = (".ts", ".tsx", ".js")  # a relative import in these leaves the extension off
 FOLDER_LINK = re.compile(r"\]\(([^)\s#]+)/\)")  # [examples/](examples/) links a folder
 LISTS = re.compile(r"\b(?:glob|rglob|iterdir|listdir|scandir|walk|readdirSync)\(")
 
@@ -86,6 +87,7 @@ def find_references(texts):
         by_name.setdefault(path.rsplit("/", 1)[-1], []).append(path)
         for end in [at for at, letter in enumerate(path) if letter == "/"]:
             folders.setdefault(path[:end], []).append(path)
+    bare = {name for name in by_name if "." not in name}
     folders_by_name = {}
     for folder, members in folders.items():
         folders_by_name.setdefault(folder.rsplit("/", 1)[-1], []).append((folder, members))
@@ -96,10 +98,14 @@ def find_references(texts):
         reads_folders = path.endswith(PROGRAMS) and bool(LISTS.search(text))
         for link in FOLDER_LINK.findall(text):
             found.update(folders.get(os.path.normpath(os.path.join(here, link)), ()))
-        for token in {re.sub(r"^(\.{0,2}/)+", "", word).rstrip("./-") for word in TOKEN.findall(PIECES.sub("/", text))}:
+        for word in set(TOKEN.findall(PIECES.sub("/", text))):
+            token = re.sub(r"^(\.{0,2}/)+", "", word).rstrip("./-")
             last = token.rsplit("/", 1)[-1]
-            if "." in last or "/" in token:
-                found.update(file for file in by_name.get(last, ()) if file == token or file.endswith("/" + token) or token.endswith("/" + file))
+            names = [token] + ([token + extension for extension in IMPORTABLE] if word.startswith(".") and path.endswith(IMPORTABLE + (".sh",)) else [])
+            for name in names:
+                file_name = name.rsplit("/", 1)[-1]
+                if "." in file_name or "/" in name or file_name in bare:
+                    found.update(file for file in by_name.get(file_name, ()) if file == name or file.endswith("/" + name) or name.endswith("/" + file))
             if reads_folders:
                 for folder, members in folders_by_name.get(last, ()):
                     parent = folder.rsplit("/", 1)[0] if "/" in folder else ""

@@ -80,6 +80,14 @@ CASES = {
     "data below a folder a live program lists is not listed, a dead script beside it is": (
         {SKILL + "scripts/planted-reader.py": "import pathlib\nprint(list(pathlib.Path('planted-data').glob('*.json')))\n", SKILL + "fixtures/planted-data/a.json": "{}\n", SKILL + "fixtures/planted-data/b.json": "{}\n", SKILL + "fixtures/planted-scripts/dead.py": MAIN},
         {SKILL_MD: "\nrun scripts/planted-reader.py\n"}, ["unreached " + SKILL + "fixtures/planted-scripts/dead.py"], [SKILL + "fixtures/planted-data/"]),
+    "a function named by a one-word docstring is still unused": (
+        {SKILL + "scripts/planted-doc-word.py": '"""planted_hidden"""\n\n\ndef planted_hidden():\n    return 1\n' + MAIN},
+        {SKILL_MD: "\nrun scripts/planted-doc-word.py\n"}, ["unused " + SKILL + "scripts/planted-doc-word.py:4 planted_hidden"], []),
+    "a command in bin named bare is not listed": (
+        {"teamwork/bin/planted-command": "#!/bin/sh\n"}, {SKILL_MD: "\nrun planted-command\n"}, [], ["teamwork/bin/planted-command"]),
+    "a script imported without its extension is not listed, one nobody imports is": (
+        {"teamwork/hooks/planted-module.ts": "export const x = 1\n", "teamwork/hooks/planted-orphan.ts": "export const y = 1\n"},
+        {"teamwork/hooks/draw-issue-pane.tsx": "\nimport { x } from './planted-module'\n"}, ["unreached teamwork/hooks/planted-orphan.ts"], ["teamwork/hooks/planted-module.ts"]),
     "a dead file in each other plugin is listed": (
         {"homework/lib/planted-dead.md": "dead\n", "paperwork/lib/planted-dead.md": "dead\n"}, {},
         ["unreached homework/lib/planted-dead.md", "unreached paperwork/lib/planted-dead.md"], []),
