@@ -29,13 +29,15 @@ WORKTREES = "/.claude/worktrees/"
 READ_GIT = {"status", "log", "diff", "show", "grep", "ls-files", "rev-parse", "blame", "describe", "shortlog", "cat-file", "ls-tree"}
 READ_ONLY = {"cat", "head", "tail", "wc", "ls", "grep", "rg", "stat", "file", "du", "cut", "tr", "diff", "nl", "tree"}
 PATTERN_FIRST = {"grep", "rg"}
-# a write to a GitHub issue, by `gh issue` or by `gh api` with a body, a method that writes or a GraphQL issue or comment mutation; `gh` is matched only where
-# a command starts, in a text with its quoted strings and heredocs blanked, since a commit message or a grep pattern may name it; what `gh api` is given is read
-# unblanked. A reminder against a habit, not a wall: a command built by `eval`-like indirection is not followed.
-ASSIGNMENT = r"\w+=(?:\$\([^)]*\)|\S*)"
-WRAPPER = rf"(?:command|time|sudo|exec|nohup|timeout(?:[ \t]+-\S+)*[ \t]+\d\S*|watch(?:[ \t]+-\S+(?:[ \t]+\d\S*)?)*|xargs(?:[ \t]+-\S+(?:[ \t]+[^\s-]\S*)?)*|env(?:[ \t]+(?:-\S+|{ASSIGNMENT}))*)"
-COMMAND_START = (rf"(?:^|[;&|({{`!\n])[ \t]*(?:(?:then|do)\b[ \t]*)?(?:{ASSIGNMENT}[ \t]+)*(?:{WRAPPER}[ \t]+)*(?:\S*/)?gh\s+"
-                 r"(?:-{1,2}\w[\w-]*(?:[\s=][^\s-]\S*)?\s+)*")
+# a write to a GitHub issue, by `gh issue` or by `gh api` with a body, a method that writes or a GraphQL issue or comment mutation. A `gh`, shell or `eval`
+# word runs when it opens a simple command or follows only words that are no NEVER_RUNS word, such as a wrapper and its flags, read in a text with its
+# quoted strings, substitutions, comments and heredoc bodies blanked, since a commit message, a grep pattern or a note may name it; what it is given is read
+# unblanked. A shell or `eval` runs its `-c` code or its words, else the heredoc or here-string it reads and the text a pipe feeds it; a command
+# substitution runs its inside. A reminder against a habit, not a wall: a command a variable, a function, a group or a script file names is not followed.
+# a word that runs none of the words after it, so a command word behind it is a mention
+NEVER_RUNS = r"in|echo|printf|grep|egrep|fgrep|rg|git|cat|tee|ls|head|tail|wc|man|which|type|test|tr|cut|sort|uniq|jq|nl|diff|less"
+WORD_START = rf"(?:^|[;&|(){{`!\n])[ \t]*(?:(?!(?:\S*/)?(?:{NEVER_RUNS})[ \t])[^\s;&|()<>]+[ \t]+)*?(?:\S*/)?"
+COMMAND_START = WORD_START + r"gh\s+(?:-{1,2}\w[\w-]*(?:[\s=][^\s-]\S*)?\s+)*"
 GITHUB_ISSUE_WRITE = re.compile(COMMAND_START + r"issue\s+(?:-{1,2}\w[\w-]*(?:[\s=][^\s-]\S*)?\s+)*"
                                 r"(?:create|new|comment|edit|close|reopen|delete|transfer|pin|unpin|lock|unlock|develop)\b", re.M)
 GITHUB_API = re.compile(COMMAND_START + r"api\s+(?!graphql)", re.M)
@@ -44,33 +46,87 @@ API_WRITES = re.compile(r"(?:^|(?<=\s))(?:(?:-X|--method)[\s=]*(?:POST|PATCH|PUT
 API_READS = re.compile(r"(?:^|(?<=\s))(?:-X|--method)[\s=]*GET\b")
 API_ISSUES = re.compile(r"\b(?:issues|sub_issues|dependencies)\b")
 API_FIELD_VALUE = re.compile(r"(?:^|(?<=\s))(?:-[fF]|--(?:raw-)?field)[\s=]*(?:(?:[^\s\"']*(?:\"(?:\\.|[^\"\\])*\"|'[^']*'))+[^\s\"']*|\S+)")
-SHELL_STRING = re.compile(r"\b(?:(?:ba|z)?sh[ \t]+-\w*c|eval)[ \t]+(\"(?:\\.|[^\"\\])*\"|'[^']*')")
+SHELL_START = re.compile(WORD_START + r"((?:r?ba|da|z|k|mk|pdk|tc|c|y|o|a)?sh(?:-?[\d.]+)?|fish|nu|rc|pwsh|eval)(?![\w.-])", re.M)
+PIPELINE_START = re.compile(r";|&&|\|\||(?<![|<>&])&(?![&>])|(?<![|&][ \t])(?<![|&])\n")
+LOOSE_WRITE = re.compile(r"(?:\b|(?<=\\[nt]))gh\b[^\n]*?\b(?:issue\b[^\n]*?\b(?:create|new|comment|edit|close|reopen|delete|transfer|pin|unpin|lock|unlock|develop)\b"
+                         r"|api\b[^\n]*?(?:(?:-X|--method)[\s=]*(?:POST|PATCH|PUT|DELETE)\b|(?<!\S)-[fF]\b|--(?:raw-)?field\b|--input\b|\bmutation\b))")
 SUBSTITUTION = re.compile(r"(?<!\\)\$\(((?:[^()]|\([^()]*\))*)\)|(?<!\\)`((?:\\.|[^`\\])*)`")
-HEREDOC = re.compile(r"<<-?[ \t]*(['\"]?)(\w+)\1[^\n]*\n.*?\n[ \t]*\2[ \t]*(?=\n|$)", re.S)
+HEREDOC = re.compile(r"<<-?[ \t]*(['\"]?)\\?(\w+)\1[^\n]*\n(.*?)\n[ \t]*\2[ \t]*(?=\n|$)", re.S)
+HERE_STRING = re.compile(r"<<<[ \t]*(\"(?:\\.|[^\"\\])*\"|'[^']*'|(?:\\.|[^\s\\])+)")
 QUOTED = re.compile(r"\"(?:\\.|[^\"\\])*\"|'[^']*'")
+COMMENT = re.compile(r"(?:^|(?<=[ \t;&|(]))#[^\n]*", re.M)
 CHANGE_DIRECTORY = re.compile(r"(?:^|[;&|({]|\bthen|\bdo)[ \t]*(?:cd|pushd)[ \t]+(?:--[ \t]+)?(\"[^\"]*\"|'[^']*'|[^\s;&|)}]+)", re.M)
 
 
+def blanked_bodies(command):
+    """COMMAND of the same length with each heredoc body turned into `_`."""
+    return HEREDOC.sub(lambda found: found.group(0).partition("\n")[0] + "\n" + "_" * (len(found.group(0)) - len(found.group(0).partition("\n")[0]) - 1), command)
+
+
+def blank_inside(found, opening):
+    """The text FOUND matched, kept for its OPENING characters and its last one, and `_` between."""
+    return found.group(0)[:opening] + "_" * (len(found.group(0)) - opening - 1) + found.group(0)[-1]
+
+
 def blank_text(command):
-    """COMMAND of the same length with each heredoc body and quoted string's inside turned into `_`, so a word inside them is no command."""
-    command = HEREDOC.sub(lambda found: found.group(0).partition("\n")[0] + "\n" + "_" * (len(found.group(0)) - len(found.group(0).partition("\n")[0]) - 1), command)
-    return QUOTED.sub(lambda found: found.group(0)[0] + "_" * (len(found.group(0)) - 2) + found.group(0)[-1], command)
-
-
-def unrun_blanked(command):
-    """COMMAND of the same length with each single-quoted string and each heredoc body turned into `_`, since a shell runs no substitution inside them."""
-    command = HEREDOC.sub(lambda found: found.group(0).partition("\n")[0] + "\n" + "_" * (len(found.group(0)) - len(found.group(0).partition("\n")[0]) - 1), command)
-    return re.sub(r"'[^']*'", lambda found: "'" + "_" * (len(found.group(0)) - 2) + "'", command)
+    """COMMAND of the same length with each heredoc body, command substitution's, quoted string's inside and comment turned into `_`, so a word inside
+    them is no command and a quote inside a substitution closes none outside it; a substitution is read by itself."""
+    command = SUBSTITUTION.sub(lambda found: blank_inside(found, 2 if found.group(0)[0] == "$" else 1), blanked_bodies(command))
+    command = QUOTED.sub(lambda found: blank_inside(found, 1), command)
+    return COMMENT.sub(lambda found: "_" * len(found.group(0)), command)
 
 
 def rest_of_command(command, blanked, start):
     """The text of COMMAND from START to the end of its simple command, found in the blanked text, so a `;` inside a quoted body ends nothing."""
-    end = re.search(r"[;&|\n]", blanked[start:])
+    end = re.search(r"[;|\n]|(?<![<>])&(?!>)", blanked[start:])
     return command[start:start + end.start()] if end else command[start:]
 
 
+def unquoted(word):
+    """WORD as the shell hands it on, its quotes removed, or as written when they never close."""
+    try:
+        return " ".join(shlex.split(word))
+    except ValueError:
+        return word
+
+
+def shell_writes(command, blanked, found):
+    """Whether the shell or `eval` FOUND in BLANKED, the blanked COMMAND, writes to a GitHub issue: by its `-c` code or by the words `eval` runs; else, when
+    it reads its input rather than a script file, by the heredoc or here-string it reads, or by a write in the text the stages before it in its pipeline
+    print, since that text is what it runs."""
+    rest = rest_of_command(command, blanked, found.end())
+    lexer = shlex.shlex(rest, posix=True, punctuation_chars="<>&()")
+    lexer.whitespace_split = True
+    try:
+        tokens = list(lexer)
+    except ValueError:
+        return bool(LOOSE_WRITE.search(rest))
+    redirect = [bool(token) and set(token) <= set("<>&") for token in tokens] + [False]
+    words = [token for at, token in enumerate(tokens) if not redirect[at] and not (at and redirect[at - 1]) and not (token.isdigit() and redirect[at + 1])
+             and token.strip("()")]
+    if found.group(1) == "eval":
+        return writes_github_issue(" ".join(words[words[:1] == ["--"]:]))
+    for at, option in enumerate(words):
+        if option.startswith("--command="):
+            return writes_github_issue(option.partition("=")[2])
+        if option in ("--command", "-Command") or option[:1] == "-" and option[1:2] != "-" and "c" in option[1:]:
+            return writes_github_issue(next((word for word in words[at + 1:] if not word.startswith("-")), ""))
+    operand = 0
+    while operand < len(words) and words[operand][:1] in "-+" and words[operand] not in ("-", "--"):
+        operand += 2 if words[operand][1:2] != "-" and words[operand][-1] in "oO" else 1
+    if "--version" in words[:operand] or "--help" in words[:operand] or words[operand:] and words[operand] not in ("-", "--", "/dev/stdin", "/dev/fd/0"):
+        return False
+    end = found.end() + len(rest)
+    start = max((match.end() for match in PIPELINE_START.finditer(blanked, 0, found.start() + 1)), default=0)
+    fed = [HEREDOC, HERE_STRING]
+    own = [match for pattern in fed for match in pattern.finditer(command) if found.end() <= match.start() < end]
+    before = [match for pattern in fed for match in pattern.finditer(command) if start <= match.start() < found.start()]
+    return any(writes_github_issue(match.group(3) if match.re is HEREDOC else unquoted(match.group(1))) for match in own) or bool(
+        LOOSE_WRITE.search("\n".join([command[start:found.start()]] + [match.group(match.lastindex) for match in before])))
+
+
 def writes_github_issue(command):
-    """True when COMMAND, or a string it runs by `bash -c`, `eval` or a command substitution, writes to a GitHub issue."""
+    """True when COMMAND, a shell or `eval` it runs, or a command substitution it runs, writes to a GitHub issue."""
     command = command.replace("\\\n", " ")
     blanked = blank_text(command)
     if GITHUB_ISSUE_WRITE.search(blanked):
@@ -82,9 +138,11 @@ def writes_github_issue(command):
     for found in GITHUB_GRAPHQL.finditer(blanked):
         if re.search(r"\bmutation\b.*(?:[Ii]ssue|[Cc]omment)", rest_of_command(command, blanked, found.end()), re.S):
             return True
-    inner = [match.group(1) for match in SHELL_STRING.finditer(command)]
-    inner = [text[1:-1] for text in inner] + [command[match.start(1):match.end(1)] if match.group(1) is not None else command[match.start(2):match.end(2)] for match in SUBSTITUTION.finditer(unrun_blanked(command))]
-    return any(writes_github_issue(text) for text in inner)
+    if any(shell_writes(command, blanked, found) for found in SHELL_START.finditer(blanked)):
+        return True
+    unrun = re.sub(r"'[^']*'", lambda found: "'" + "_" * (len(found.group(0)) - 2) + "'", blanked_bodies(command))
+    return any(writes_github_issue(command[found.start(1):found.end(1)] if found.group(1) is not None else command[found.start(2):found.end(2)])
+               for found in SUBSTITUTION.finditer(unrun))
 
 
 def live_change_directory(command, cwd):
