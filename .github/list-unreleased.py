@@ -37,6 +37,8 @@ def unreleased(root, folder):
         manifest = json.loads(shown.stdout)
     except ValueError:
         return "its manifest is no JSON"
+    if not isinstance(manifest, dict):
+        return "its manifest is no JSON object"
     name, version = manifest.get("name"), manifest.get("version")
     if not name or number(version) is None:
         return "its manifest holds no `name` and dotted `version`"

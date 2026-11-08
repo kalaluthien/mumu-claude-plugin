@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill, no skill file sits outside the skill folder hierarchy, no plugin holds a change its `version` does not cover, and no script a plugin replays takes an unknown option as data.
+"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, each plugin's manifest names its folder and the marketplace lists it, each hook, monitor and module path a manifest names exists, a command's file executable, each skill or `.github` script answers an unknown flag with exit 2, `usage:` on stderr and nothing on stdout, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill, no skill file sits outside the skill folder hierarchy, no plugin holds a change its `version` does not cover, and no script a plugin replays takes an unknown option as data.
 
 usage: check-repository.py [root]
 
@@ -13,6 +13,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import tempfile
 from urllib.parse import unquote
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -22,6 +23,8 @@ FENCE = re.compile(r"^\s*(`{3,}|~{3,})")
 INLINE_CODE = re.compile(r"(`+)(?:(?!\1).)+?\1")
 INLINE_LINK = re.compile(r"!?\[[^\]]*\]\(\s*([^)\s]+)(?:\s+[\"'(][^)]*)?\)")
 REFERENCE_LINK = re.compile(r"^\s{0,3}\[[^\]]+\]:\s*(\S+)")
+COMMAND_PATH = re.compile(r'^"\$\{CLAUDE_PLUGIN_ROOT\}"/(\S+)')
+UNKNOWN_FLAG = "--no-such-flag"
 ROOT_PATH = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/([A-Za-z0-9_./-]+)")
 SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 PLACEHOLDER = set("<*{")
@@ -122,6 +125,121 @@ def check_markdown(root, path, text, failures):
     return checked
 
 
+def manifest_paths(name, data):
+    """[(path, is_command)] a hooks.json or monitors.json names, the path as written; a TypeError when its shape is not the one Claude Code reads."""
+    if name == "monitors.json":
+        expect(isinstance(data, list) and all(isinstance(monitor, dict) for monitor in data))
+        found = [(monitor.get("command", ""), True) for monitor in data]
+    else:
+        expect(isinstance(data, dict) and set(data) <= {"description", "hooks", "modules"})
+        events, modules = data.get("hooks", {}), data.get("modules", [])
+        expect(isinstance(events, dict) and isinstance(modules, list) and all(isinstance(entries, list) for entries in events.values()))
+        entries = [entry for listed in events.values() for entry in listed]
+        expect(all(isinstance(entry, dict) and isinstance(entry.get("hooks"), list) for entry in entries))
+        hooks = [hook for entry in entries for hook in entry["hooks"]]
+        expect(all(isinstance(hook, dict) and isinstance(hook.get("type"), str) for hook in hooks))
+        found = [(hook.get("command", ""), True) for hook in hooks if hook["type"] == "command"] + [(module, False) for module in modules]
+    expect(all(isinstance(path, str) for path, _ in found))
+    return found
+
+
+def expect(holds):
+    """A TypeError, which read_shaped names as a wrong shape, unless HOLDS."""
+    if not holds:
+        raise TypeError("a shape Claude Code does not read")
+
+
+def string(value):
+    """VALUE when it is a string, else a TypeError, which read_shaped names as a wrong shape."""
+    if not isinstance(value, str):
+        raise TypeError("no string")
+    return value
+
+
+def climbs_out(depth, written):
+    """Whether WRITTEN, read from a folder DEPTH levels inside its plugin, steps above the plugin folder at any segment."""
+    for segment in written.split("/"):
+        depth += -1 if segment == ".." else 0 if segment in ("", ".") else 1
+        if depth < 0:
+            return True
+    return False
+
+
+def read_shaped(root, path, read, failures):
+    """READ applied to the JSON at PATH; None when it does not parse, which the manifest parse names, or, with a line naming PATH, when its shape is not one READ takes."""
+    try:
+        with open(os.path.join(root, path), encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
+        return None
+    try:
+        return read(data)
+    except (AttributeError, TypeError, KeyError):
+        failures.append("manifest {}: its shape is not the one Claude Code reads".format(path))
+        return None
+
+
+def check_plugins(root, files, failures):
+    """Fail each plugin whose manifest names another folder or the marketplace leaves out, and each hook, monitor or module path that
+    names no listed file in its plugin, or a command file that cannot run; returns how many paths it checked."""
+    marketplace = ".claude-plugin/marketplace.json"
+    # a local plugin's source is a "./<folder>" string; an external one's is an object, which names no folder here
+    listed = read_shaped(root, marketplace, lambda data: {(plugin.get("name"), plugin.get("source")) for plugin in data["plugins"]
+                                                          if isinstance(plugin.get("source"), str)}, failures)
+    if listed is None and not os.path.isfile(os.path.join(root, marketplace)):
+        listed = set()
+    tracked, checked = set(files), 0
+    for path in files:
+        parts = path.split("/")
+        if parts[1:] == [".claude-plugin", "plugin.json"]:
+            name = read_shaped(root, path, lambda data: string(data["name"]), failures)
+            if name is None:
+                continue
+            if name != parts[0]:
+                failures.append("manifest {}: name {!r} is not its folder {!r}".format(path, name, parts[0]))
+            # a marketplace that does not parse or has the wrong shape is named once already, so it fails no plugin again
+            if listed is not None and (parts[0], "./" + parts[0]) not in listed:
+                failures.append("manifest {}: lists no plugin {!r} with source ./{}".format(marketplace, parts[0], parts[0]))
+        elif len(parts) == 3 and parts[1:] in (["hooks", "hooks.json"], ["monitors", "monitors.json"]):
+            for written, is_command in read_shaped(root, path, lambda data: manifest_paths(parts[2], data), failures) or []:
+                checked += 1
+                command = COMMAND_PATH.match(written)
+                if is_command and not command:
+                    failures.append('hook {}: command {!r} is not "${{CLAUDE_PLUGIN_ROOT}}"/<path>'.format(path, written))
+                    continue
+                # matched against the listed names, since a case-insensitive disk finds a path whose case differs and a case-sensitive one does not,
+                # and walked on disk as written, since normpath drops a trailing slash or a "x/.." the OS walks and refuses
+                joined = os.path.join(parts[0], command.group(1)) if is_command else os.path.join(parts[0], parts[1], written)
+                target = os.path.normpath(joined)
+                if climbs_out(0 if is_command else 1, command.group(1) if is_command else written):
+                    failures.append("hook {}: {} leaves its plugin folder, which an installed plugin holds alone".format(path, written))
+                elif target not in tracked or not os.path.isfile(os.path.join(root, joined)):
+                    failures.append("hook {}: {} names no file".format(path, written))
+                elif is_command and not os.access(os.path.join(root, target), os.X_OK):
+                    failures.append("hook {}: {} is not executable".format(target, written))
+    return checked
+
+
+def check_scripts(root, files, failures):
+    """Call each skill and `.github` script with an unknown flag from an empty folder and fail each that does not answer it with exit 2,
+    `usage:` on stderr and nothing on stdout; returns how many it called."""
+    scripts = [path for path in files if path.endswith(".py")
+               and (path.count("/") == 1 and path.startswith(".github/") or "/skills/" in path and path.split("/")[-2] == "scripts")]
+    with tempfile.TemporaryDirectory() as empty:
+        environment = {"PATH": os.environ.get("PATH", ""), "HOME": empty, "PYTHONDONTWRITEBYTECODE": "1"}  # a call leaves no __pycache__ in a root with no .gitignore
+        for path in scripts:
+            try:
+                called = subprocess.run([sys.executable, os.path.join(root, path), UNKNOWN_FLAG], cwd=empty, env=environment,
+                                        stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", timeout=30)
+                answer = "exit {}, stdout {!r}".format(called.returncode, called.stdout[:80])
+                wrong = called.returncode != 2 or "usage:" not in called.stderr or called.stdout
+            except subprocess.TimeoutExpired:
+                answer, wrong = "no answer in 30 s", True
+            if wrong:
+                failures.append("usage {}: {} gave {}; print the docstring on stderr and exit 2".format(path, UNKNOWN_FLAG, answer))
+    return len(scripts)
+
+
 def main(args):
     if len(args) > 1 or (args and args[0].startswith("-")):
         print(__doc__, file=sys.stderr)
@@ -155,16 +273,19 @@ def main(args):
             docs += 1
             with open(full, encoding="utf-8", errors="replace") as handle:
                 links += check_markdown(root, path, handle.read(), failures)
+    paths = check_plugins(root, files, failures)
+    scripts = check_scripts(root, files, failures)
     replays = [(path, "option ", OPTION_SUMMARY) for path in files if path.endswith("/fixtures/" + OPTION_REPLAY)]
     for script, kind, summary in [(str(pathlib.Path(__file__).with_name(name)), kind, summary) for name, kind, summary in LISTERS] + [(os.path.join(root, path), kind, summary) for path, kind, summary in replays]:
-        listed = subprocess.run([sys.executable, script, root], capture_output=True, text=True)
+        # no bytecode, since list-cross-plugin-names.py loads list-unreached.py and a replay imports its plugin's modules, which would leave __pycache__ in a checked root
+        listed = subprocess.run([sys.executable, script, root], capture_output=True, text=True, errors="replace", env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
         if listed.returncode or not summary.search(listed.stdout):
             lines = [line for line in listed.stdout.splitlines() if line.startswith(kind)]
             failures += lines or ["{}{}: exit {}, no summary line: {}".format(kind, os.path.basename(script), listed.returncode, listed.stderr.strip())]
     for line in failures:
         print(line)
-    counts = "{} py compiled, {} manifests parsed, {} links in {} md resolved, {} failures".format(
-        compiled, manifests, links, docs, len(failures))
+    counts = "{} py compiled, {} manifests parsed, {} hook paths found, {} scripts called, {} links in {} md resolved, {} failures".format(
+        compiled, manifests, paths, scripts, links, docs, len(failures))
     print(("FAIL: " if failures else "ok: ") + counts)
     return 1 if failures else 0
 
