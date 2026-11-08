@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, no plugin file, function or import is unreached, and no plugin file names another plugin's file or skill.
+"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill, and no plugin holds a change its `version` does not cover.
 
 usage: check-repository.py [root]
 
-Prints one failure per line as `<kind> <path>: <detail>`, `unreached` lines being list-unreached.py's and `shared` lines
-list-cross-plugin-names.py's, then a summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
+Prints one failure per line as `<kind> <path>: <detail>`, `unreached` lines being list-unreached.py's, `shared` lines
+list-cross-plugin-names.py's and `unreleased` lines list-unreleased.py's, then a summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
 """
 
 import json
@@ -31,6 +31,7 @@ UNHELD_LESSON = re.compile(r"lesson-\d+\.md")
 LISTERS = (  # each lister's script, the failure lines it prints and its summary line; without the summary a lister that printed nothing would pass
     ("list-unreached.py", "unreached ", re.compile(r"^\d+ files, \d+ unreached$", re.M)),
     ("list-cross-plugin-names.py", "shared ", re.compile(r"^\d+ files, \d+ naming another plugin$", re.M)),
+    ("list-unreleased.py", "unreleased ", re.compile(r"^\d+ plugins, \d+ unreleased$", re.M)),
 )
 
 

@@ -1,16 +1,22 @@
 """Changes in local git: each is a record `<n>.json` in the main checkout's `.teamwork/changes`, the same for every worktree and never committed,
 holding its title, body, branch and base, and once merged the head it took. A merge squashes that head onto the base as one commit, and with an `origin`
-pushes it there as a fast-forward of the base before it moves anything here, so a refused push leaves the change open and the base as it was."""
+pushes it there as a fast-forward of the base before it moves anything here, so a refused push leaves the change open and the base as it was.
+A repository that tracks `.github/plan-release.py` also releases at the merge: the merge asks that script, taken from the merge commit, for the tags to
+push, and a refusal by it refuses the merge."""
 import json
 import os
+import pathlib
 import re
 import subprocess
+import sys
+import tempfile
 
 import data_folder
 import iso_time
 import team_signal
 
 CLOSES = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)", re.I)
+RELEASE_HOOK = ".github/plan-release.py"
 
 
 def git(*argv, cwd=None, stdin=None):
@@ -133,19 +139,33 @@ def clobbered(holder, base, commit):
     return sorted(dirty & set(git("diff", "--name-only", "-z", base, commit, cwd=holder).stdout.split("\0")))
 
 
-def push(number, base_name, commit):
-    """Pushes COMMIT to `origin` as the new tip of BASE_NAME, a fast-forward only; a repository with no `origin` pushes nothing. Raises LookupError with the remote's reason when it refuses."""
+def release_tags(number, base, commit):
+    """The tags the repository's release hook asks for when COMMIT lands on BASE; none when the repository tracks no hook. Raises LookupError with the hook's reason when it refuses."""
+    source = git("show", f"{commit}:{RELEASE_HOOK}")
+    if source.returncode:
+        return []
+    with tempfile.TemporaryDirectory() as folder:
+        script = pathlib.Path(folder, "plan-release.py")
+        script.write_text(source.stdout)
+        planned = subprocess.run([sys.executable, "-I", str(script), base, commit], capture_output=True, text=True)
+    if planned.returncode:
+        raise LookupError(f"change {number}: the release hook refused, so nothing was merged: {planned.stderr.strip() or planned.stdout.strip()}")
+    return planned.stdout.split()
+
+
+def push(number, base_name, commit, tags=()):
+    """Pushes COMMIT to `origin` as the new tip of BASE_NAME, a fast-forward only, and each of TAGS with it in one atomic push; a repository with no `origin` pushes nothing. Raises LookupError with the remote's reason when it refuses."""
     if git("remote", "get-url", "origin").returncode:
         return
-    result = git("push", "--porcelain", "origin", f"{commit}:refs/heads/{base_name}")
+    result = git("push", "--atomic", "--porcelain", "origin", f"{commit}:refs/heads/{base_name}", *(f"refs/tags/{tag}" for tag in tags))
     if result.returncode:
         reason = (result.stderr.strip() or result.stdout.strip()).splitlines()
         raise LookupError(f"change {number}: origin refused the push of {base_name}, so nothing was merged: {' | '.join(reason[-4:])}")
 
 
 def merge(number, sha):
-    """Squashes the change's head onto its base as one commit, only when SHA is its branch tip, pushes it to `origin` when there is one, and fast-forwards
-    the worktree that has the base checked out, which refuses rather than overwrites; the new commit's sha."""
+    """Squashes the change's head onto its base as one commit, only when SHA is its branch tip, tags it as the repository's release hook asks, pushes both to
+    `origin` when there is one, and fast-forwards the worktree that has the base checked out, which refuses rather than overwrites; the new commit's sha."""
     entry = record(number)
     if entry["state"] != "OPEN":
         raise LookupError(f"change {number} is closed")
@@ -165,10 +185,21 @@ def merge(number, sha):
     commit, holder = made.stdout.strip(), worktree_of(entry["base"])
     if holder and (files := clobbered(holder, base, commit)):
         raise LookupError(f"change {number}: {holder} holds uncommitted changes to {', '.join(files[:5])}, which the merge would overwrite; commit or move them")
-    push(number, entry["base"], commit)
+    tags, tagged = release_tags(number, base, commit), []
+    try:
+        for tag in tags:
+            result = git("tag", tag, commit)
+            if result.returncode:
+                raise LookupError(f"change {number}: tag {tag} was not made, so nothing was merged: {result.stderr.strip()}")
+            tagged.append(tag)
+        push(number, entry["base"], commit, tags)
+    except LookupError:
+        for tag in tagged:  # a tag stays only with the merge it names
+            git("tag", "-d", tag)
+        raise
     # the worktree that has the base checked out moves with it, so its files never fall behind the branch
     result = git("merge", "--ff-only", "--quiet", commit, cwd=holder) if holder else git("update-ref", f"refs/heads/{entry['base']}", commit, base)
     if result.returncode:
         raise LookupError(f"change {number}: {holder or entry['base']} did not take the merge: {result.stderr.strip()}")
-    save({**entry, "state": "CLOSED", "headRefOid": head, "baseOid": base, "mergeOid": commit, "mergedAt": iso_time.stamp()})
+    save({**entry, "state": "CLOSED", "headRefOid": head, "baseOid": base, "mergeOid": commit, "tags": tags, "mergedAt": iso_time.stamp()})
     return commit
