@@ -90,11 +90,13 @@ try {
   }
   const setup = await step('setup', `Run each with Bash, in order, and change nothing else:
 1. mkdir -p ${DATA} && touch ${DATA}/dream.lock
-2. Back up the memory folders before a dream changes them. The memory home is ${HOME}; the other memory folders are each folder under it and each ${CONFIG}/projects/*/memory/. For each that exists and whose files git does not track (git -C <folder> ls-files prints nothing, as outside a work tree or when ignored there), copy it with cp -R to ${DATA}/backup/${TODAY}/, keeping its path below / as the copy's path, so ${HOME} lands at ${DATA}/backup/${TODAY}${HOME}.
+2. Record the memory home in its history and write a copy of it before a dream changes it: python3 ${SCRIPTS}/snapshot-memory.py ${CONFIG} "dream ${TODAY}: before the tidy" --export ${DATA}/backup/${TODAY}
+Then copy each ${CONFIG}/projects/*/memory/ that exists and whose files git does not track (git -C <folder> ls-files prints nothing, as outside a work tree or when ignored there) with cp -R to ${DATA}/backup/${TODAY}/, keeping its path below / as the copy's path. The memory home and each folder under it are in the first copy, so ${HOME} lands at ${DATA}/backup/${TODAY}${HOME}.
 3. python3 ${SCRIPTS}/list-sessions.py map ${DEJAVU} --window-days 28
 4. python3 ${SCRIPTS}/list-projects.py ${CONFIG}
-Return backup = one line per folder copied, batches = each line of step 3 that opens with 'batch <k>:', as k = '<k>' and items = the words after the colon, and projects = the path after 'project ' on each line of step 4 that opens with it.`, { label: 'set up', phase: 'Set up', schema: SETUP, model: 'haiku', effort: 'low' })
+If step 2 prints a line that opens with 'snapshot refused', run no further step and return backup = that line alone. Return backup = the line of step 2 that opens with 'snapshot exported' and one line per folder copied, batches = each line of step 3 that opens with 'batch <k>:', as k = '<k>' and items = the words after the colon, and projects = the path after 'project ' on each line of step 4 that opens with it.`, { label: 'set up', phase: 'Set up', schema: SETUP, model: 'haiku', effort: 'low' })
   if (!setup) throw new Error('the set-up agent returned nothing, so no memory was changed')
+  if (!setup.backup.some((line) => line.startsWith('snapshot exported'))) throw new Error(`no history and backup of the memory home were made, so the tidy did not run: ${setup.backup.join(' ')}`)
 
   phase('Map')
   const facets = await parallel(setup.batches.map((batch) => () =>
@@ -171,7 +173,7 @@ ${MEMORY_RULES} Change no file outside the memory folders: return each other fix
   const reset = result ? `python3 ${SCRIPTS}/check-dream-run.py facets ${DEJAVU} >/dev/null && python3 ${ROOT}/hooks/signal-wrap-up.py dreamed ${DATA}; ` : ''  // only a dream that ended with every digest faceted starts the memory count again
   const removal = `rm -f ${DATA}/dream.lock && echo removed`
   // the recall and safeguard checks ride on the unlock agent, so a dream adds no step for them
-  const checks = `Run with Bash, each alone: python3 ${SCRIPTS}/check-dream-run.py facets ${DEJAVU}; python3 ${SCRIPTS}/check-dream-run.py memory ${CONFIG}. Each exits 1 when it found something, which is no failure of yours. Return safeguards = every line of their output that opens with 'facets', 'redacted', 'injected' or 'memory:'.`
+  const checks = `Run with Bash, each alone: python3 ${SCRIPTS}/check-dream-run.py facets ${DEJAVU}; python3 ${SCRIPTS}/check-dream-run.py memory ${CONFIG}. Each exits 1 when it found something, which is no failure of yours. Then run with Bash: python3 ${SCRIPTS}/snapshot-memory.py ${CONFIG} "dream ${TODAY}: after the checks". Return safeguards = every line of their output that opens with 'facets', 'redacted', 'injected', 'memory:' or 'snapshot'.`
   const unlocked = await (result && !result.tidy_failed ? step('unlock', `1. Run with Bash: python3 ${SCRIPTS}/restore-lessons.py ${DATA}/backup/${TODAY} ${DEJAVU}
 It has already put back each lesson the tidy took from a past owner correction. Return restored = its lines that open with 'restored '.
 2. From its 'correction' lines and its diff, name each correction the memory now serves worse than before the dream: the diff deletes, narrows or weakens the lesson that answered it, and no restored line covers it. Return worse = one '<correction id>: <the lesson and what the diff did to it>' each, [] when none. Change no file.
