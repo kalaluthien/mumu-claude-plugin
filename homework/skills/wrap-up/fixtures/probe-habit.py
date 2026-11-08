@@ -17,7 +17,7 @@ import time
 HERE = pathlib.Path(__file__).resolve().parent
 SCRIPTS = HERE.parent / "scripts"
 SESSIONS = str(SCRIPTS / "list-sessions.py")
-HABITS = str(SCRIPTS / "list-habits.py")
+HABITS = str(SCRIPTS / "list-repeats.py")
 NOW = time.time()
 DAY = 86400
 TMP = tempfile.mkdtemp(prefix="probe-habit-")
@@ -99,7 +99,7 @@ def main(args):
         habits = [{"kind": kind, "quote": quote, "line": 1, "before": "the agent used a label", "preference": preference}
                   for kind, quote, preference in items]
         json.dump({"habits": habits}, open(os.path.join(facets, f"{short_id}-0000-0000-0000-000000000000.json"), "w"))
-    run(HABITS, DATA)
+    run(HABITS, "habits", DATA)
     path = os.path.join(DATA, "habits.jsonl")
     items = [json.loads(line) for line in open(path)] if os.path.exists(path) else []
     step("habits.jsonl written with an id, kind and quote per item",
@@ -108,7 +108,7 @@ def main(args):
     groups = os.path.join(TMP, "preferences.json")
     json.dump([{"name": "explain a made-up label before using it", "ids": [ids.get("what is E1? explain"), ids.get("what does that label mean")]},
                {"name": "answer in Korean", "ids": [ids.get("always answer in Korean")]}], open(groups, "w"))
-    out = run(HABITS, DATA, "--groups", groups)
+    out = run(HABITS, "habits", DATA, "--groups", groups)
     lines = out.splitlines()
     step("a preference in 2 sessions listed, one in 1 not",
          any(line.startswith("preference 2 sessions, 2 repos") and "made-up label" in line for line in lines)
@@ -117,10 +117,10 @@ def main(args):
 
     name = "explain a made-up label before using it"
     seen = re.search(r"last seen (\d+),", out)
-    run(HABITS, DATA, "--record", "/m/plain.md", seen.group(1) if seen else "0", name)
-    fresh = [line for line in run(HABITS, DATA, "--groups", groups).splitlines() if line.startswith("preference")]
+    run(HABITS, "habits", DATA, "--record", "/m/plain.md", seen.group(1) if seen else "0", name)
+    fresh = [line for line in run(HABITS, "habits", DATA, "--groups", groups).splitlines() if line.startswith("preference")]
     json.dump({name: {"url": "/m/plain.md", "last_seen": NOW - 10 * DAY}}, open(os.path.join(DATA, "kept.json"), "w"))
-    stale = [line for line in run(HABITS, DATA, "--groups", groups).splitlines() if line.startswith("preference")]
+    stale = [line for line in run(HABITS, "habits", DATA, "--groups", groups).splitlines() if line.startswith("preference")]
     step("a recorded preference carries `kept <where>`; `seen since` only when sighted after its recorded last sighting",
          fresh and "kept /m/plain.md" in fresh[0] and "seen since" not in fresh[0]
          and stale and "kept /m/plain.md" in stale[0] and "seen since" in stale[0], f"{fresh} {stale}")

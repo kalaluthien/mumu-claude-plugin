@@ -7,6 +7,7 @@ usage: signal-wrap-up.py                        the Stop hook: its payload on st
        signal-wrap-up.py <transcript|session>   print the sentence for a transcript's last stop
        signal-wrap-up.py outcome <data> <session> filed|empty
                                                 report what a session's last asked wrap-up did
+       signal-wrap-up.py dreamed <data>         start the memory count again, once a dream has ended
 
 A dream rides on a lesson ask, since a dream alone rarely pays.
 Enabling the plugin for a project is the opt-in, so no arm step writes to the
@@ -29,6 +30,7 @@ START, UP, DOWN, LOWEST, HIGHEST = 8.0, 1.0, 0.125, 6.0, 12.0
 MEMORY_LIMIT = 8
 FIRST_RETRO = 25
 ASK_GAP = 3
+SESSIONS_KEPT = 200  # asked and pending keep the newest sessions only, so the state file stays small
 TEMPLATE = (transcript.SIGNAL + " {failures} failed tool calls and {calls} tool calls since the last stop "
             "make {points:g} lesson points of {threshold:g}; this session's first retro {first}; {memory} memory files changed since the last "
             "dream, of {memory_limit}.")
@@ -84,6 +86,8 @@ def load(data):
 
 
 def save(data, state):
+    for key in ("asked", "pending"):
+        state[key] = dict(list(state[key].items())[-SESSIONS_KEPT:])
     os.makedirs(data, exist_ok=True)
     with open(os.path.join(data, "wrap-up.json"), "w", encoding="utf-8") as handle:
         json.dump(state, handle)
@@ -136,12 +140,12 @@ def hook():
     lesson = found["points"] >= threshold
     if not payload.get("stop_hook_active") and not just_asked and (lesson or first) and toplevel(payload.get("cwd")):
         reason = sentence(dict(found, memory=len(state["memory"]), first=first_retro(found, False)), threshold) + ASK
+        state["asked"].pop(session, None)
         state["asked"][session] = stops
         # only a lesson ask's outcome tunes the lesson threshold
         if lesson:
+            state["pending"].pop(session, None)
             state["pending"][session] = True
-        if len(state["memory"]) >= MEMORY_LIMIT:
-            state["memory"] = []
         json.dump({"decision": "block", "reason": reason}, sys.stdout)
     save(data, state)
     return 0
@@ -157,12 +161,22 @@ def outcome(data, session, result):
     return 0
 
 
+def dreamed(data):
+    state = load(data)
+    state["memory"] = []
+    save(data, state)
+    print("wrap-up dreamed: memory count now 0")
+    return 0
+
+
 def main(args):
     if not args:
         return hook()
+    if args[0] == "dreamed" and len(args) == 2:
+        return dreamed(args[1])
     if args[0] == "outcome" and len(args) == 4 and args[3] in ("filed", "empty"):
         return outcome(args[1], args[2], args[3])
-    if len(args) == 1 and args[0] != "outcome":
+    if len(args) == 1 and args[0] not in ("outcome", "dreamed"):
         path = transcript.find(args[0])
         entries = transcript.entries_of(path or "")
         if entries is None:

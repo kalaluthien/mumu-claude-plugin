@@ -8,8 +8,8 @@ Its name is `<topic>-dreamer`, `<topic>` joining, in this order, `memory` when t
 `repeats` when <data>/dejavu is due and `habit` when <data>/habit is due. It starts none when none holds, outside herdr,
 while a dreaming workflow runs on <data> (its lock, homework/lib/stamp.py), as when one of its own agents calls this, or
 when a herdr session named `*-dreamer` is in any state but idle or done, since its dream still starts, runs or
-waits; a finished one, idle or done, gets the new dream under the new name instead, asking again what the owner left
-unanswered, since an unanswered question is never recorded. It prints `failed to start` and exits 1, starting none,
+waits; a finished one, idle or done, gets the new dream under the new name instead, switched to sonnet first, as a new
+one starts, asking again what the owner left unanswered, since an unanswered question is never recorded. It prints `failed to start` and exits 1, starting none,
 when herdr is missing, cannot run or replies with no agent list. <note> goes into the Dreamer's prompt.
 """
 import json
@@ -83,6 +83,8 @@ def main(args):
             print(f"failed to start {name}: herdr lists {dreamers[0]['name']} with no pane")
             return 1
         herdr("agent", "rename", new_pane, name)
+        # waiting lets the switch end before the dream prompt arrives; a switch that never shows as working returns after 5 s
+        herdr("agent", "prompt", new_pane, "/model sonnet", "--wait", "--until", "idle", "--timeout", "10000")
     else:
         workspace = field(herdr("pane", "get", pane), "pane", "workspace_id")
         if not workspace:

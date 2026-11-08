@@ -186,7 +186,7 @@ def main(args):
         session_id = f"aaaa000{i}-0000-0000-0000-000000000000"
         json.dump({"friction": [{"quote": f"why did you stop {i}", "what_went_wrong": "stopped to ask", "line": 1}]},
                   open(os.path.join(facets, f"{session_id}.json"), "w"))
-    out = run(REPEATS, DATA)
+    out = run(REPEATS, "mistakes", DATA)
     lines = out.splitlines()
     step("tool repeat in 3 recent sessions listed, paths and numbers merged",
          any(line.startswith("tool 3 sessions") and "boom at" in line for line in lines))
@@ -203,7 +203,7 @@ def main(args):
     mistakes = os.path.join(TMP, "mistakes.json")
     json.dump([{"name": "stops to ask when the rule says act", "ids": ids[:3]},
                {"name": "only two sessions", "ids": ids[:2]}], open(mistakes, "w"))
-    out = run(REPEATS, DATA, "--mistakes", mistakes)
+    out = run(REPEATS, "mistakes", DATA, "--groups", mistakes)
     step("friction items written with ids", len(ids) == 3 and all(ids))
     step("mistake counted by script: 3 sessions listed, 2 not",
          any(line.startswith("mistake 3 sessions") and "stops to ask" in line for line in out.splitlines())
@@ -212,11 +212,11 @@ def main(args):
          "trap.md" in tool_memory and "ask.md" in memory_under(out, "mistake 3 sessions", "stops to ask"))
 
     key = next((line.split(": ", 1)[1] for line in lines if line.startswith("tool 3 sessions") and "boom at" in line), "none")
-    printed = re.search(r"last seen (\S+),", run(REPEATS, DATA).split(key, 1)[-1])
-    run(REPEATS, DATA, "--record", "https://github.com/o/r/issues/1", printed.group(1) if printed else "0", key)
-    fresh = [line for line in run(REPEATS, DATA).splitlines() if "boom at" in line and line.startswith("tool ")]
+    printed = re.search(r"last seen (\S+),", run(REPEATS, "mistakes", DATA).split(key, 1)[-1])
+    run(REPEATS, "mistakes", DATA, "--record", "https://github.com/o/r/issues/1", printed.group(1) if printed else "0", key)
+    fresh = [line for line in run(REPEATS, "mistakes", DATA).splitlines() if "boom at" in line and line.startswith("tool ")]
     json.dump({key: {"url": "https://github.com/o/r/issues/1", "last_seen": NOW - 10 * DAY}}, open(os.path.join(DATA, "filed.json"), "w"))
-    stale = [line for line in run(REPEATS, DATA).splitlines() if "boom at" in line and line.startswith("tool ")]
+    stale = [line for line in run(REPEATS, "mistakes", DATA).splitlines() if "boom at" in line and line.startswith("tool ")]
     step("a recorded repeat carries its url; `seen since` only when sighted after its recorded last sighting",
          fresh and "filed https://github.com/o/r/issues/1" in fresh[0] and "seen since" not in fresh[0]
          and stale and "filed https://github.com/o/r/issues/1" in stale[0] and "seen since" in stale[0])

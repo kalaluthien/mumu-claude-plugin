@@ -1,18 +1,25 @@
 #!/usr/bin/env python3
-"""List what repeats across dejavu's mapped sessions, one line per repeat, details indented below it.
+"""List what recurs across mapped sessions, the agent's mistakes or the owner's preferences, one line each, details below it.
 
-usage: list-repeats.py <data> [--mistakes <file>]
-       list-repeats.py <data> --record <where> <last seen> <key>   record where a repeat went (a url, a path or `owner`) in <data>/filed.json
+usage: list-repeats.py mistakes <data> [--sessions <map>] [--groups <file>]
+       list-repeats.py habits <data> [--sessions <map>] [--groups <file>]
+       list-repeats.py mistakes|habits <data> --record <where> <last seen> <key>   record where one went (a url, a
+                                                                                   file, a session, `owner` or
+                                                                                   `dropped`) in <data>/filed.json
+                                                                                   or <data>/kept.json
 
-Reads <data>/stats/ and <data>/facets/ for the sessions of the last 14 days and writes <data>/friction.jsonl, every
-friction item with an id, for the agent that groups them. A repeat line reads
-`<kind> <n> sessions, <r> repos, last <date>[, filed <where>[, seen since]]: <key>`:
+Reads <map>/stats/ and <map>/facets/, <map> being <data> unless given, for the sessions of the kind's window and writes
+<data>/friction.jsonl or <data>/habits.jsonl, every item of the kind with an id, for the agent that groups them. With
+--groups (`[{"name", "ids"}]`), each group in enough sessions prints. A line reads
+`<label> <n> sessions, <r> repos, last <date>[, <went> <where>[, seen since]]: <key>`:
 
-- `tool`: a failure signature in 3+ sessions, seen in the last 3 days;
-- `mistake`: a group of friction items from --mistakes (`[{"name", "ids"}]`) in 3+ sessions, seen in the last 3 days.
+- mistakes, 14 days: `tool`, a failure signature in 3+ sessions, and `mistake`, a group of friction items in 3+
+  sessions, each seen in the last 3 days; `<went>` is `filed`;
+- habits, 28 days: `preference`, a group of habit items in 2+ sessions, then its kinds and up to 3 quotes; `<went>` is
+  `kept`.
 
-`filed <where>` names where <data>/filed.json records the repeat went; `seen since` means it was sighted after the
-record's last sighting, so a closed hand-over needs doing again and an open one does not.
+`seen since` means it was sighted after the record's last sighting, so its hand-over or kept form did not hold and needs
+doing again, or a stronger one.
 """
 import collections
 import glob
@@ -26,49 +33,69 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import repeats  # noqa: E402
 import transcript  # noqa: E402
 
-WINDOW_DAYS, ALIVE_DAYS = 14, 3
+KINDS = {
+    "mistakes": {"days": 14, "sessions": 3, "alive_days": 3, "field": "friction", "items": "friction.jsonl",
+                 "records": "filed.json", "went": "filed", "label": "mistake"},
+    "habits": {"days": 28, "sessions": 2, "alive_days": None, "field": "habits", "items": "habits.jsonl",
+               "records": "kept.json", "went": "kept", "label": "preference"},
+}
+QUOTES = 3
+
+
+def recurs(sightings, kind, now):
+    """Whether sightings, (time, session path, line, repo), span enough sessions and, for mistakes, are still alive."""
+    alive = kind["alive_days"] is None or max(sighting[0] for sighting in sightings) >= now - kind["alive_days"] * 86400
+    return len({sighting[1] for sighting in sightings}) >= kind["sessions"] and alive
 
 
 def main(args):
-    if len(args) == 5 and args[1] == "--record" and args[3].replace(".", "", 1).isascii() and args[3].replace(".", "", 1).isdigit():
-        repeats.record(os.path.join(args[0], "filed.json"), args[2], float(args[3]), args[4])
+    kind = KINDS.get(args[0]) if args else None
+    rest = args[1:]
+    if kind and len(rest) == 5 and rest[1] == "--record" and rest[3].replace(".", "", 1).isascii() and rest[3].replace(".", "", 1).isdigit():
+        repeats.record(os.path.join(rest[0], kind["records"]), rest[2], float(rest[3]), rest[4])
         return 0
-    if len(args) not in (1, 3) or args[0].startswith("-") or (len(args) == 3 and args[1] != "--mistakes"):
+    options = dict(zip(rest[1::2], rest[2::2]))
+    if not kind or not rest or rest[0].startswith("-") or len(rest) % 2 == 0 or not set(options) <= {"--sessions", "--groups"} or len(options) * 2 + 1 != len(rest):
         print(__doc__, file=sys.stderr)
         return 2
-    data, now = args[0], time.time()
-    filed = repeats.load(os.path.join(data, "filed.json"), {})
+    data, now = rest[0], time.time()
+    sessions = options.get("--sessions", data)
+    records = repeats.load(os.path.join(data, kind["records"]), {})
     stats = {}
-    for path in glob.glob(os.path.join(glob.escape(data), "stats", "*.json")):
+    for path in sorted(glob.glob(os.path.join(glob.escape(sessions), "stats", "*.json"))):
         row = repeats.load(path, None)
-        if row and row.get("end") and row["end"] >= now - WINDOW_DAYS * 86400 and transcript.find(row["path"]):
+        if row and row.get("end") and row["end"] >= now - kind["days"] * 86400 and transcript.find(row["path"]):
             stats[os.path.basename(path)[:-5]] = row
-    alive = now - ALIVE_DAYS * 86400
 
-    tools = collections.defaultdict(list)
-    for row in stats.values():
-        for failure in row["failures"]:
-            tools[failure["key"]].append((failure["time"] or row["end"], row["path"], failure["line"], row["repo"]))
-    for key, sightings in sorted(tools.items(), key=lambda item: -len({sighting[1] for sighting in item[1]})):
-        if len({sighting[1] for sighting in sightings}) >= 3 and max(sighting[0] for sighting in sightings) >= alive:
-            repeats.show("tool", key, sightings, filed, "filed")
+    if args[0] == "mistakes":
+        tools = collections.defaultdict(list)
+        for row in stats.values():
+            for failure in row.get("failures") or []:
+                tools[failure["key"]].append((failure["time"] or row["end"], row["path"], failure["line"], row["repo"]))
+        for key, sightings in sorted(tools.items(), key=lambda item: -len({sighting[1] for sighting in item[1]})):
+            if recurs(sightings, kind, now):
+                repeats.show("tool", key, sightings, records, kind["went"])
 
     items = []
     for session, row in stats.items():
-        facet = repeats.load(os.path.join(data, "facets", f"{session}.json"), None)
-        if not facet:
-            continue
-        for k, item in enumerate(repeats.facet_items(facet, "friction")):
+        facet = repeats.load(os.path.join(sessions, "facets", f"{session}.json"), None) or {}
+        for k, item in enumerate(repeats.facet_items(facet, kind["field"])):
             items.append(dict(item, id=f"{session[:8]}-{k}", session=session, path=row["path"], time=row["end"], repo=row["repo"]))
-    with open(os.path.join(data, "friction.jsonl"), "w", encoding="utf-8") as out:
+    with open(os.path.join(data, kind["items"]), "w", encoding="utf-8") as out:
         out.writelines(json.dumps(item, ensure_ascii=False) + "\n" for item in items)
 
     by_id = {item["id"]: item for item in items}
-    for group in repeats.load(args[2], []) if len(args) == 3 else []:
-        found = [by_id[i] for i in group.get("ids") or [] if i in by_id]
-        sightings = [(i["time"], i["path"], i.get("line") or 0, i["repo"]) for i in found]
-        if len({sighting[1] for sighting in sightings}) >= 3 and max(sighting[0] for sighting in sightings) >= alive:
-            repeats.show("mistake", group["name"], sightings, filed, "filed")
+    for group in repeats.load(options["--groups"], []) if "--groups" in options else []:
+        found = [by_id[item_id] for item_id in group.get("ids") or [] if item_id in by_id]
+        sightings = [(item["time"], item["path"], item.get("line") or 0, item["repo"]) for item in found]
+        if not sightings or not recurs(sightings, kind, now):
+            continue
+        repeats.show(kind["label"], group["name"], sightings, records, kind["went"])
+        if args[0] == "habits":
+            kinds = collections.Counter(str(item.get("kind")) for item in found)
+            print("  kinds " + ", ".join(f"{name} {n}" for name, n in kinds.most_common()))
+            for item in sorted(found, key=lambda item: -item["time"])[:QUOTES]:
+                print(f"  quote {item['id']}: {str(item.get('quote', ''))[:200]}")
     return 0
 
 
