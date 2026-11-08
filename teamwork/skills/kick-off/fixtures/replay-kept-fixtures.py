@@ -16,7 +16,7 @@ LANDING_CASES = ("pushes", "push-refused", "no-gh", "no-origin", "dirty-base")
 COMMANDS = [
     ["python3", ".github/check-repository.py"],
     *[["python3", SKILL + name, *args] for name, args in [
-        ("replay-board-scenario.py", []), ("replay-data-folder.py", []), ("replay-git-board.py", []),
+        ("replay-board-scenario.py", []), ("replay-board-travel.py", []), ("replay-data-folder.py", []), ("replay-git-board.py", []),
         ("replay-input-form.py", []), ("replay-landing-scenario.py", []), ("replay-local-task.py", []),
         ("replay-remote-push.py", []), ("replay-team-scenarios.py", []), ("replay-heartbeat-lines.py", []),
         ("compare-session-calls.py", []),
