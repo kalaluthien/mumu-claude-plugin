@@ -24,6 +24,10 @@ Set one auto-memory folder for every session in `~/.claude/settings.json`; the r
 
 Its `MEMORY.md` then loads in every session, and a SessionStart hook sends each lesson to it and prints the index of the repository's rare folder, `~/.claude/memory/<repo>/`, kept only for a lesson wrong or harmful outside that repository, where `<repo>` is the origin's name, else the checkout's folder name. Move a memory file between the two with `skills/wrap-up/scripts/move-memory.py <file> <folder>`.
 
+## Where a dream runs
+
+In herdr, a dream without the `Workflow` tool runs in a Dreamer, a new tab named `<topic>-dreamer`, which `skills/wrap-up/scripts/start-dreamer.py` opens. The Dreamer asks you its questions there, reports, then runs `skills/wrap-up/scripts/close-dreamer.py`, which closes its own tab once the turn ends; run from any pane not named `*-dreamer`, that script closes nothing.
+
 ## What a wrap-up writes
 
 - **Auto-memory**: written directly: a lesson in the folder `autoMemoryDirectory` names, and only one wrong or harmful outside its repository in that folder's `<repo>/`.
