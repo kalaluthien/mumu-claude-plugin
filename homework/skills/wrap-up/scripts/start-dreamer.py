@@ -91,7 +91,7 @@ def main(args):
         tab = herdr("tab", "create", "--workspace", workspace, "--cwd", os.getcwd(), "--label", name, "--no-focus")
         new_pane, done = field(tab, "root_pane", "pane_id"), f"started {name}"
         started = herdr("agent", "start", name, "--kind", "claude", "--pane", new_pane, "--timeout", "120000", "--",
-                        "--name", name, "--plugin-dir", str(PLUGIN)) if new_pane else {}
+                        "--name", name, "--plugin-dir", str(PLUGIN), "--model", "sonnet") if new_pane else {}
         if not started.get("agent"):
             print(f"failed to start {name}: {tab.get('error') or started.get('error') or started}")
             return 1

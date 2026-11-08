@@ -6,26 +6,22 @@ Tidy what earlier sessions kept and find what keeps going wrong across them, in 
 
 What a dream reads, found afresh in every project: list what exists with `git ls-files` and a glob, never assume a layout.
 
-- **Every root**: a dream reads each root `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-projects.py <config>` prints, its instruction files, documents and skills as the table below says, not only the project at hand.
+- **Every root**: a dream reads the memory of each root `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-projects.py <config>` prints and measures each root's rules files, not only the project at hand; it reads no project's documents or skills.
 - **Write in place**: a dream writes `<home>`, each `<home>/<repo>/` and each `<config>/projects/*/memory/` directly, after its backup in `<data>/backup/<today>/`, since they are all the owner's memory and a patch would only wait on them.
 
 | target | where it lives | drift to look for |
 | --- | --- | --- |
 | Claude memory: instruction files | `AGENTS.md` and `CLAUDE.md` from the project root down, `.claude/rules/`, `<config>/CLAUDE.md` and `<config>/rules/` | a rule stated twice, rules that contradict, a line that restates what the repository shows, a path or command that no longer exists, a rules file `measure-rules.py` prints `over`, a rule about certain files only that loads at every launch instead of from a rules file whose `paths:` names them |
 | Claude memory: auto-memory | `<home>` and each `<home>/<repo>/`, else each project's pool, and any folder holding a copy of one of its lessons | what `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-drift.py` prints; one lesson in several files or folders; an entry a later one replaces; a lesson an instruction file should hold; a lesson in `<home>` wrong or harmful outside one repository, or in a repository's folder that is harmless elsewhere; a file marked `skill:` |
-| project documents | `README.md` and the other documents the repository keeps for people, such as `docs/` and `CONTRIBUTING.md` | a step, file or command the repository no longer has; two documents that disagree |
-| project skills | `.claude/skills/*/SKILL.md` and the skills of plugins the repository owns, with their references and scripts | a description that overlaps another skill's, a skill grown past a few focused parts, a skill whose commands fail |
 
 - **Promote and demote**: by `SKILL.md`'s **Placement test**, a memory lesson that a repeat shows was needed before its situation was visible moves up into the instruction file that test names, and a line of an instruction file whose situation is plainly visible when it arises moves down into a memory file in `<home>`, its line cut from the instruction file; the memory side is written in place, the instruction side goes by step 5.
-- `<d>` is `<data>/dejavu`, where every file of the session map and the replay lives; earlier runs' files there stay readable.
+- `<d>` is `<data>/dejavu`, where every file of the session map lives; earlier runs' files there stay readable.
 - **Facet**: one session's friction items, the owner objecting to what the agent did, written from the session's digest.
 - **Habit item**: one owner line or answer and what it shows of how the owner instructs, asks, answers or gives feedback, written in the same facet as friction.
 - **Preference**: a group of habit items in 2+ sessions that show one rule for the agent, as `list-habits.py` prints it, kept in `<data>/habit`; its `name` is the text after the line's first `: `.
-- **Cadence**: repeats come from each run; preferences, which need more sessions and change slowly, come weekly.
+- **Cadence**: repeats come from each run; preferences, which need more sessions and change slowly, come weekly; a run digs only the few seen in the most sessions, and its result's `left` counts the rest, which a later run reaches.
 - **Repeat**: a `tool` failure signature or a grouped `mistake` that recurs, as `list-repeats.py` prints it; its `key` is the text after the line's first `: `.
-- **Replay case**: one owner correction recorded in any project, `<d>/friction.jsonl`, shown to a pick judge only as the session up to it; the newest fifth is held out, never shown while revising.
 - **Dreamer**: the separate session step 2 hands a dream to, started and named by `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/start-dreamer.py`, `<topic>-dreamer`. `<topic>` names what made the dream due, never a project, since a dream spans every project: of `memory` (`<m>` reached `<l>`), `repeats` (the Route's `due <data>/dejavu` printed `due`) and `habit` (its `due <data>/habit` printed `due`), those that held, in this order, joined by `-`, such as `memory-habit`.
-- **Candidate**: one version of the memory home, a folder `<d>/candidates/<name>/`: `current`, a copy as it is, and each revision `r<n>`; its picks sit in `<d>/picks/<name>/` and its marks in `<d>/marks/<name>-<k>.jsonl`.
 
 ## Steps
 
@@ -36,7 +32,7 @@ What a dream reads, found afresh in every project: list what exists with `git ls
 5. **Other fixes**: each of the result's `drift.other_fixes`, to `<config>/CLAUDE.md`, an instruction file, a document, a skill, a hook or a script, goes by `SKILL.md`'s **Hand over** and **Foreign repositories**, naming the check that must still pass once made.
 6. **Skill lessons**: for each memory file marked `skill:`, ask the owner, one at a time, with its lesson and the skill it names: write it, keep it in memory, or drop it. On write, write it into that skill as a patch, or, for a skill of another repository's plugin, by `SKILL.md`'s **Hand over** and **Foreign repositories**, then delete the memory file and its index line; on drop, delete them; on keep, change nothing.
 7. **Leave the rest**: a fix the steps do not give, one that widens a permission or a guard, goes to the owner first, since only the owner may approve it; every other fix goes by **Hand over**. Run **Foreign repositories** first: for a file in a foreign repository, hand nothing over and list the fix in the final message. Else, on the owner's yes, hand it to the manager of the project that owns the file by `SendMessage`, never a GitHub issue; the message names each file, reason and cost, `<n> files, <m> lines`, never a memory file's body. A pool with no repository, or a project with no manager: list the fix and its cost in the final message.
-8. **Report** the replay score table and the version kept, each fix applied, each contradiction's way and reason, each repeat and each preference and where it went, each fix handed over and to whom or landed and where, each skill lesson's answer, each patch with its `! git -C <root> apply <patch file>` line, each hand-over's receiver, each fix left, and each failed agent the result names; with none found, say so.
+8. **Report** each fix applied, each contradiction's way and reason, each repeat and each preference and where it went, each fix handed over and to whom or landed and where, each skill lesson's answer, each patch with its `! git -C <root> apply <patch file>` line, each hand-over's receiver, each fix left, and each failed agent the result names; with none found, say so.
 
 ## Rules
 
