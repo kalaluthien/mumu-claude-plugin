@@ -113,6 +113,8 @@ def _defects(kind, text):
                     found.append((f"names {line.strip()}", f"line {number}, `{line.strip()}`, holds more than session names; write the names lowercase, separated by spaces only, as `{key}: a-worker b-worker`"))
                 elif key == WORD["audience"] and value != "owner":
                     found.append((f"asks {line.strip()}", f"line {number}, `{line.strip()}`, is no value `{key}` takes; write exactly `{key}: owner`"))
+                elif key == WORD["live"] and not value.isdigit():
+                    found.append((f"count {line.strip()}", f"line {number}, `{line.strip()}`, is no count; write `{key}: 12`"))
                 elif key == WORD["depends"] and not TASKS.fullmatch(value):
                     found.append((f"tasks {line.strip()}", f"line {number}, `{line.strip()}`, is no task list; write `{key}: #12 #13`"))
             elif fence[1].lower() in LOOKALIKES and KEY_LINE.match(line) and stem(KEY_LINE.match(line).group(1)) in stems:
@@ -274,6 +276,11 @@ def open_questions(issue):
 def holder_values(issue):
     """Each holders value set, oldest first, as a list of names."""
     return [fields[WORD["holders"]].split() for _, fields, _ in records(issue) if WORD["holders"] in fields]
+
+
+def live_runs(issue):
+    """The latest `live runs` count a trusted record set, or None when none did."""
+    return next((int(fields[WORD["live"]]) for _, fields, _ in reversed(records(issue)) if fields.get(WORD["live"], "").isdigit()), None)
 
 
 def compose(issue, blockers=()):

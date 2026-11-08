@@ -23,6 +23,14 @@ its output equals the text quoted after `on base` (or `on main`, in tasks filed 
 export has no `.git`) and a check with a placeholder are `unclear`. The output is compared whole. It never fetches: run `git fetch` first. A body file reads criteria before the task exists, so run it before the first judge.
 A body file alone runs its criteria at the head.
 
+A `[check]` whose first pipe stage runs `claude -p` and which says `watches: <path>...` is a live check: its first stage's
+output is saved as a transcript, when the session exits 0, under the git common dir's `teamwork-live/`, keyed by that stage and the content of the
+watched paths, and the stages after it run on the transcript. A run whose key has a saved transcript starts no session,
+so a fix to the later stages, or to a file outside the watched paths, replays; each new session counts toward the cap, the
+task's latest `live runs: <n>` or else `LIVE_RUNS`, kept in the worktree's git dir, so a worktree's tasks share one count; a watched path
+missing at the head fails the check. At the cap the live check fails
+without running and a `BLOCKED due: live runs` line follows.
+
 `--pass <n>=<sample-file>` (once per criterion, with a body file) runs criterion `n` at the head with its first pipe stage
 replaced by `cat <sample-file>`, so the stages after it meet the input the pass would give. It prints `pass ok` when the
 output equals the text after `prints` (or meets `exits` or `more`), `wrong pass` when it differs, `unclear` for a criterion with no sample or whose first
@@ -49,10 +57,8 @@ import usage_parser  # noqa: E402
 
 HEADER = "REPORTED: criteria at "
 CELL = 160
-# outside quotes only these may precede the first pipe; anything else (`;`, `&`, `{`, `(`, `#`, a backslash, ...) might hide a pipe or a stage
-SAFE = re.compile(r"[\w \t./=:,+@%~<-]|\$\w|\$(?=[\"'])")
-# a compound command owns the pipe that follows its first word, so the pipe is not a stage boundary
-COMPOUND = {"if", "while", "until", "for", "case", "select", "time", "function", "coproc"}
+LIVE_RUNS = 10
+UNWATCHED = {".git", "__pycache__", ".DS_Store"}
 WRONG_BASE_FIX = """
 To fix a `wrong base` row, quote after `on base` the output of running that exact line on the base, never a guess.
 Pin what varies or matches too much: `LC_ALL=C` before a sorted list, a stub for a GitHub read the check does not
@@ -85,7 +91,73 @@ def runnable(task):
     return task
 
 
-def base_row(label, kind, name, detail, archive, timeout):
+def content_key(first, paths, cwd):
+    """A sha-256 of the first stage and every file under PATHS in CWD, so a saved transcript holds only while neither changed."""
+    digest = hashlib.sha256(first.encode())
+    for path in paths:
+        top = pathlib.Path(cwd, path)
+        files = [top] if top.is_file() else sorted(file for file in top.rglob("*") if file.is_file() and not UNWATCHED & set(file.parts))
+        for file in files:
+            digest.update(str(file.relative_to(cwd)).encode() + b"\0" + file.read_bytes())
+    return digest.hexdigest()[:16]
+
+
+class Live:
+    """The saved transcripts and the count of live sessions this worktree started, against the task's cap."""
+
+    def __init__(self, root, task):
+        cap = issue_state.live_runs(task)
+        self.cap = LIVE_RUNS if cap is None else cap
+        self.saved = pathlib.Path(git_output("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=root) or tempfile.gettempdir(), "teamwork-live")
+        self.counted = pathlib.Path(git_output("rev-parse", "--absolute-git-dir", cwd=root) or tempfile.gettempdir(), "teamwork-live-runs")
+        self.replayed = 0
+        self.capped = False
+        self.strict = True  # a watched path missing at the head is a typo that would pin the key; on the base it may not exist yet
+
+    def used(self):
+        return len(self.counted.read_text().split()) if self.counted.exists() else 0
+
+    def run(self, first, rest, paths, cwd, timeout):
+        """(status, output) of the stages after FIRST on its transcript, which FIRST makes only when none is saved for its key and the cap allows."""
+        missing = [path for path in paths if self.strict and not pathlib.Path(cwd, path).exists()]
+        if missing:
+            return None, f"watched path not found: {' '.join(missing)}"
+        self.saved.mkdir(parents=True, exist_ok=True)
+        transcript = self.saved / content_key(first, paths, cwd)
+        status = 0
+        if transcript.exists():
+            self.replayed += 1
+        elif self.used() >= self.cap:
+            self.capped = True
+            return None, f"live-run cap of {self.cap} reached"
+        else:
+            status, out = run(first, cwd, timeout)
+            with self.counted.open("a") as counted:
+                counted.write(transcript.name + "\n")
+            if status is None:
+                return status, out
+            transcript.write_text(out)
+        result = run(f"cat {shlex.quote(str(transcript))} |{rest}", cwd, timeout)
+        if status:  # a failed session (a rate limit, a login) is judged once and never replayed
+            transcript.unlink()
+        return result
+
+    def report(self):
+        """The lines that follow a table, empty when no live check ran."""
+        if not (self.replayed or self.used() or self.capped):
+            return ""
+        line = f"\nlive runs: {self.used()} of {self.cap} started, {self.replayed} replayed from a saved transcript"
+        due = f"\nBLOCKED due: live runs reached the cap of {self.cap}; ask your manager by `BLOCKED:` to raise it." if self.capped else ""
+        return line + due
+
+
+def execute(command, detail, cwd, timeout, live):
+    """(status, output) of a check, its live first stage replayed from a saved transcript when it has one."""
+    stages = criteria_check.live_stage(detail)
+    return live.run(*stages, criteria_check.watched(detail), cwd, timeout) if stages else run(command, cwd, timeout)
+
+
+def base_row(label, kind, name, detail, archive, timeout, live):
     command, test = criteria_check.expectation(detail)
     quoted = criteria_check.base_quote(detail)
     if kind != "check":
@@ -97,45 +169,17 @@ def base_row(label, kind, name, detail, archive, timeout):
         return label, name, "unclear", "not run: an `exits` or `more` check has no quoted output"
     if quoted is None:
         return label, name, "unclear", "not run: no one value after `on base`"
-    status, out = run(command, archive, timeout)
+    status, out = execute(command, detail, archive, timeout, live)
     if "not a git repository" in out:
         return label, name, "unclear", "git needs a checkout, which the export lacks"
     return label, name, "base ok" if status is not None and out == quoted else "wrong base", cell(out)
-
-
-def after_first_pipe(command):
-    """The command without its first pipe stage, split at the first `|` outside quotes, or None when the split is not certain:
-    no pipe, or before it a character outside SAFE, or in double quotes a `$(`, `${`, backtick or backslash, which
-    could hide a pipe or drop part of the first stage."""
-    if command.split(None, 1)[:1] and command.split(None, 1)[0] in COMPOUND:
-        return None
-    quote, i = None, 0
-    while i < len(command):
-        char = command[i]
-        if char == "\\":
-            return None
-        if quote:
-            # a substitution inside double quotes can hold quotes of its own, which end this quote early
-            if quote == '"' and (char == "`" or command[i:i + 2] in ("$(", "${")):
-                return None
-            quote = None if char == quote else quote
-        elif char in "'\"":
-            quote = char
-        elif char == "|" and command[i:i + 2] != "||":
-            return command[i + 1:]
-        elif not (match := SAFE.match(command, i)):
-            return None
-        else:
-            i = match.end() - 1
-        i += 1
-    return None
 
 
 def pass_row(label, kind, name, detail, sample, cwd, timeout):
     command, test = criteria_check.expectation(detail)
     if kind != "check" or test[0] is None:
         return label, name, "unclear", "not run: not a `[check]` with a decidable pass"
-    rest = after_first_pipe(command)
+    rest = criteria_check.after_first_pipe(command)
     if sample is None or rest is None:
         return label, name, "unclear", "not run: no sample, or no pipe to put it before"
     status, out = run(f"cat {shlex.quote(sample)} |{rest}", cwd, timeout)
@@ -147,14 +191,14 @@ def base_ref(ref):
     return found or sys.exit("run-criteria: origin/HEAD is not set; name the base with --ref")
 
 
-def run_on_base(root, ref, rows, timeout):
+def run_on_base(root, ref, rows, timeout, live):
     """Rows of every criterion run in a `git archive` copy of the base, so the head's files never answer."""
     with tempfile.TemporaryDirectory(prefix="run-criteria-base-") as copy:
         exported = subprocess.Popen(["git", "archive", ref], cwd=root, stdout=subprocess.PIPE)
         subprocess.run(["tar", "-x", "-C", copy], stdin=exported.stdout, check=True)
         if exported.wait():
             sys.exit(f"run-criteria: could not export {ref}; fetch it first")
-        return [base_row(str(n), *criterion, copy, timeout) for n, criterion in enumerate(rows, 1)]
+        return [base_row(str(n), *criterion, copy, timeout, live) for n, criterion in enumerate(rows, 1)]
 
 
 def run(command, cwd, timeout):
@@ -176,7 +220,7 @@ def cell(text):
     return text if len(text) <= CELL else text[:CELL - 1] + "…"
 
 
-def row(label, kind, name, detail, cwd, timeout):
+def row(label, kind, name, detail, cwd, timeout, live):
     if kind == "score":
         return label, name, "judged", "not run: a score is judged"
     if kind != "check":
@@ -184,7 +228,7 @@ def row(label, kind, name, detail, cwd, timeout):
     command, test = criteria_check.expectation(detail)
     if test[0] is None:
         return label, name, "unclear", f"not run: {test[1]}"
-    status, out = run(command, cwd, timeout)
+    status, out = execute(command, detail, cwd, timeout, live)
     return label, name, criteria_check.verdict(test, status, out), cell(out)
 
 
@@ -243,26 +287,27 @@ def run_with_samples(options, task, root):
     return 0
 
 
-def run_against_base(options, task, root):
+def run_against_base(options, task, root, live):
     """The table of the criteria run in an export of the base; exit 1 on any `wrong base`."""
+    live.strict = False
     ref = base_ref(options.ref)
     sha = git_output("rev-parse", "--short", ref, cwd=root)
-    rows = run_on_base(root, ref, task_criteria(task), options.timeout)
+    rows = run_on_base(root, ref, task_criteria(task), options.timeout, live)
     print(f"REPORTED: base outputs at {ref} {sha}\n\n| # | criterion | result | output on base |\n| --- | --- | --- | --- |")
     for table_row in rows:
         print(table_line(table_row))
     if any(table_row[2] == "wrong base" for table_row in rows):
         print(WRONG_BASE_FIX)
-        return 1
-    return 0
+    print(live.report(), end="")
+    return 1 if any(table_row[2] == "wrong base" for table_row in rows) else 0
 
 
-def run_at_head(options, task, root):
+def run_at_head(options, task, root, live):
     """The table of the criteria, then the standing ones, run at the head; exit 1 on any `fail`."""
     standing = pathlib.Path(root, ".teamwork", "default-criteria.md")
     found = [(str(n), criterion) for n, criterion in enumerate(task_criteria(task), 1)]
     found += [("standing", criterion) for criterion in criteria(standing.read_text())] if standing.exists() else []
-    rows = [(*row(label, *criterion, root, options.timeout), fingerprint(criterion)) for label, criterion in found]
+    rows = [(*row(label, *criterion, root, options.timeout, live), fingerprint(criterion)) for label, criterion in found]
     print(f"{HEADER}{git_output('rev-parse', 'HEAD', cwd=root)}" + (" with uncommitted changes" if git_output("status", "--porcelain", cwd=root) else ""))
     print("\n| # | criterion | result | output | sha-256 |\n| --- | --- | --- | --- | --- |")
     for table_row in rows:
@@ -271,6 +316,7 @@ def run_at_head(options, task, root):
     for _, name, result, out, _ in rows:
         if result == "fail" and out in before.get(name.replace("|", "\\|"), ()):
             print(f"\nBLOCKED due: {name} failed with the same output as in an earlier table; ask your manager by `BLOCKED:`.")
+    print(live.report(), end="")
     return 1 if any(table_row[2] == "fail" for table_row in rows) else 0
 
 
@@ -288,8 +334,8 @@ def main(args):
     if options.samples:
         return run_with_samples(options, task, root)
     if options.base:
-        return run_against_base(options, task, root)
-    return run_at_head(options, task, root)
+        return run_against_base(options, task, root, Live(root, task))
+    return run_at_head(options, task, root, Live(root, task))
 
 
 if __name__ == "__main__":

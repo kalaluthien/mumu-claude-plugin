@@ -120,3 +120,63 @@ def verdict(test, status, out):
     if out == want:
         return "pass"
     return "unclear" if want and re.search(rf"(?<!\w){re.escape(want)}(?!\w)", out) else "fail"
+
+
+# outside quotes only these may precede the first pipe; anything else (`;`, `&`, `{`, `(`, `#`, a backslash, ...) might hide a pipe or a stage
+SAFE = re.compile(r"[\w \t./=:,+@%~<-]|\$\w|\$(?=[\"'])")
+# a compound command owns the pipe that follows its first word, so the pipe is not a stage boundary
+COMPOUND = {"if", "while", "until", "for", "case", "select", "time", "function", "coproc"}
+
+
+def after_first_pipe(command):
+    """The command without its first pipe stage, split at the first `|` outside quotes, or None when the split is not certain:
+    no pipe, or before it a character outside SAFE, or in double quotes a `$(`, `${`, backtick or backslash, which
+    could hide a pipe or drop part of the first stage."""
+    if command.split(None, 1)[:1] and command.split(None, 1)[0] in COMPOUND:
+        return None
+    quote, i = None, 0
+    while i < len(command):
+        char = command[i]
+        if char == "\\":
+            return None
+        if quote:
+            # a substitution inside double quotes can hold quotes of its own, which end this quote early
+            if quote == '"' and (char == "`" or command[i:i + 2] in ("$(", "${")):
+                return None
+            quote = None if char == quote else quote
+        elif char in "'\"":
+            quote = char
+        elif char == "|" and command[i:i + 2] != "||":
+            return command[i + 1:]
+        elif not (match := SAFE.match(command, i)):
+            return None
+        else:
+            i = match.end() - 1
+        i += 1
+    return None
+
+
+# a program `claude` run with `-p` or `--print` starts a live session
+SESSION = re.compile(r"(?<![\w\"'.-])claude(?![\w-])[^|;&\n]*?\s(?:-p|--print)\b")
+WATCHES = re.compile(r"\bwatches:\s*([^;`]*?)(?=\s+on (?:base|main)\b|;|\.(?:\s|$)|$)")
+
+
+def starts_session(command):
+    return bool(SESSION.search(command))
+
+
+def watched(detail):
+    """The paths a `[check]` says its live run depends on, after `watches:`, as the files and folders that decide whether a saved transcript still holds."""
+    found = WATCHES.search(re.sub(SPANS, "", detail))
+    return found.group(1).split() if found else []
+
+
+def live_stage(detail):
+    """(first stage, the stages after it) of a `[check]` whose first pipe stage starts a live session and which names what it `watches:`, else None;
+    the first stage's output is the transcript the later stages judge, so a fix to them replays it."""
+    command, _ = expectation(detail)
+    rest = after_first_pipe(command) if command else None
+    if rest is None or not watched(detail):
+        return None
+    first = command[:len(command) - len(rest) - 1]
+    return (first.strip(), rest) if starts_session(first) else None

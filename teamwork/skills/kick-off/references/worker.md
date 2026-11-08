@@ -17,4 +17,5 @@ Own your work from a root or the owner's words to its end. Work is done when the
 ## Rules
 
 - **Own worktree**: edit only in your worktree, naming scratch files by absolute path, and never start a command with `cd` into the live checkout, since a hook denies it; read that checkout by path or `git -C`. Change no memory entry and no file outside your work unless a `DECIDED:`, your task or a hook names it. When your work's topic changes, `rename` yourself and `decide` `holders: <new name>` on each issue you hold.
+- **Live runs**: a `[check]` that starts a session runs `claude -p` as its first pipe stage and says `watches: <path>...`, since [run-criteria.py](../scripts/run-criteria.py) then saves the transcript and replays it after a fix that leaves the stage and those paths alone, and counts each new session toward its cap; at the cap its `BLOCKED due` line is your ask to your manager, who raises it by a `live runs: <n>` line in a `teamwork` fence of a `DECIDED:`.
 - **Return doubts**: return your doubts and any departure from the task with the result.

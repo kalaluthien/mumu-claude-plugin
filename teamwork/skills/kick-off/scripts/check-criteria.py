@@ -10,7 +10,8 @@ After the lines it prints, once per defect named, what the defect means and how 
 
 A task numbered at or above `CUT_OFF`, or one given with no `--task`, must also hold at most 5 criteria, `[task]` parts
 not counted, each `[check]` a scenario that prints `PASS`, on base `FAIL`, and none only a text scan, such as a grep, an
-`awk` or inline code that reads a file and runs nothing. A task below it keeps the rules it was filed under.
+`awk` or inline code that reads a file and runs nothing, and a check that starts a live session (`claude -p`) must run it as its
+first pipe stage and say `watches: <path>...`, so run-criteria.py can replay its transcript. A task below it keeps the rules it was filed under.
 `--cut-off` prints `CUT_OFF`."""
 import pathlib
 import re
@@ -58,6 +59,8 @@ FIX = {
     "no base measure": "state the base's measure on the sample, with the word `base`",
     "more than 5 criteria": "keep one criterion per outcome, at most 5; group clauses that one outcome covers",
     "not a scenario": "make the check a scenario that runs the system and prints `PASS`, and quote `FAIL` on base",
+    "live stage not replayable": "make the first pipe stage the only `claude -p` run, with no redirect, subshell or `&&` before the pipe, "
+                                 "and name the paths it runs against: `watches: <path>...`; the stages after it judge its saved transcript",
     "text scan": "run the system and judge its behaviour; a grep, `awk` or file read alone checks words, not what works",
 }
 
@@ -111,6 +114,12 @@ def scenario_defects(kind, detail):
     return found + (["text scan"] if scans_only(command) else [])
 
 
+def live_defects(kind, detail):
+    """A `[check]` that starts a session anywhere but a first stage that run-criteria.py can save and replay, which would start a session on each run."""
+    command, _ = criteria_check.expectation(detail)
+    return ["live stage not replayable"] if kind == "check" and command and criteria_check.starts_session(command) and not criteria_check.live_stage(detail) else []
+
+
 def defects(kind, name, detail):
     """The defects of one criterion, in the order the task lists them."""
     found = [] if kind in ("check", "score") else ["no kind"]
@@ -153,7 +162,7 @@ def main(args):
     matched = [(line_number, issue_state.CRITERION.match(line).groups()[1:]) for line_number, line in enumerate(lines, 1)]
     criteria = [(line_number, groups) for line_number, groups in matched if groups[0] != "task"]
     flagged = [(line_number, found) for line_number, groups in criteria
-               for found in [defects(*groups) + (scenario_defects(groups[0], groups[2]) if new_rules else [])] if found]
+               for found in [defects(*groups) + (scenario_defects(groups[0], groups[2]) + live_defects(groups[0], groups[2]) if new_rules else [])] if found]
     if new_rules and len(criteria) > MOST:
         flagged.insert(0, ("body", ["more than 5 criteria"]))
     for line_number, found in flagged:
