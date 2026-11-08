@@ -7,6 +7,7 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -154,18 +155,21 @@ def release_tags(number, base, commit):
 
 
 def push(number, base_name, commit, tags=()):
-    """Pushes COMMIT to `origin` as the new tip of BASE_NAME, a fast-forward only, and each of TAGS with it in one atomic push; a repository with no `origin` pushes nothing. Raises LookupError with the remote's reason when it refuses."""
+    """Pushes COMMIT to `origin` as the new tip of BASE_NAME, a fast-forward only, and each of TAGS with it in one atomic push; whether it pushed, since a
+    repository with no `origin` pushes nothing. Raises LookupError with the remote's reason when it refuses."""
     if git("remote", "get-url", "origin").returncode:
-        return
+        return False
     result = git("push", "--atomic", "--porcelain", "origin", f"{commit}:refs/heads/{base_name}", *(f"refs/tags/{tag}" for tag in tags))
     if result.returncode:
         reason = (result.stderr.strip() or result.stdout.strip()).splitlines()
         raise LookupError(f"change {number}: origin refused the push of {base_name}, so nothing was merged: {' | '.join(reason[-4:])}")
+    return True
 
 
 def merge(number, sha):
     """Squashes the change's head onto its base as one commit, only when SHA is its branch tip, tags it as the repository's release hook asks, pushes both to
-    `origin` when there is one, and fast-forwards the worktree that has the base checked out, which refuses rather than overwrites; the new commit's sha."""
+    `origin` when there is one, and fast-forwards the worktree that has the base checked out, which refuses rather than overwrites; the new commit's sha.
+    The change is merged once `origin` holds the commit, or with no `origin` once the base moved; until then a failure leaves no tag behind."""
     entry = record(number)
     if entry["state"] != "OPEN":
         raise LookupError(f"change {number} is closed")
@@ -186,20 +190,32 @@ def merge(number, sha):
     if holder and (files := clobbered(holder, base, commit)):
         raise LookupError(f"change {number}: {holder} holds uncommitted changes to {', '.join(files[:5])}, which the merge would overwrite; commit or move them")
     tags, tagged = release_tags(number, base, commit), []
+    closed = {**entry, "state": "CLOSED", "headRefOid": head, "baseOid": base, "mergeOid": commit, "tags": tags, "mergedAt": iso_time.stamp()}
     try:
         for tag in tags:
             result = git("tag", tag, commit)
             if result.returncode:
                 raise LookupError(f"change {number}: tag {tag} was not made, so nothing was merged: {result.stderr.strip()}")
             tagged.append(tag)
-        push(number, entry["base"], commit, tags)
+        pushed = push(number, entry["base"], commit, tags)
+        # the worktree that has the base checked out moves with it, so its files never fall behind the branch
+        result = git("merge", "--ff-only", "--quiet", commit, cwd=holder) if holder else git("update-ref", f"refs/heads/{entry['base']}", commit, base)
+        if result.returncode and not pushed:
+            raise LookupError(f"change {number}: {holder or entry['base']} did not take the merge, so nothing was merged: {result.stderr.strip()}")
     except LookupError:
         for tag in tagged:  # a tag stays only with the merge it names
             git("tag", "-d", tag)
         raise
-    # the worktree that has the base checked out moves with it, so its files never fall behind the branch
-    result = git("merge", "--ff-only", "--quiet", commit, cwd=holder) if holder else git("update-ref", f"refs/heads/{entry['base']}", commit, base)
+    save(closed)
     if result.returncode:
-        raise LookupError(f"change {number}: {holder or entry['base']} did not take the merge: {result.stderr.strip()}")
-    save({**entry, "state": "CLOSED", "headRefOid": head, "baseOid": base, "mergeOid": commit, "tags": tags, "mergedAt": iso_time.stamp()})
+        # a pull --rebase replays the base's own commits on origin's tip; with no worktree on the base, a worktree made for it moves no other branch
+        name = shlex.quote(entry["base"])
+        if holder:
+            catch_up = f"git -C {shlex.quote(str(holder))} pull --rebase origin {name}"
+        else:
+            spare = shlex.quote(str(folder() / f"catch-up-{number}"))
+            catch_up = (f"git -C {shlex.quote(str(folder()))} worktree add {spare} {name} && git -C {spare} pull --rebase origin {name} "
+                        f"&& git -C {shlex.quote(str(folder()))} worktree remove {spare}")
+        raise LookupError(f"change {number}: merged on origin as {commit[:9]}, but {holder or entry['base']} did not take it: {result.stderr.strip()}; "
+                          f"bring it up to origin by `{catch_up}`")
     return commit
