@@ -1,6 +1,4 @@
 {
-  "refuse": true,
-  "title_max": 40,
   "scope_prefix": "scope:",
   "tools_off": {"worker": ["Artifact", "AskUserQuestion"], "manager": ["Artifact", "Workflow"]}
 }

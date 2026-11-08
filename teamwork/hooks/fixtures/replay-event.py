@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Replay one Bash event through route-event.py as a worker in a fresh git repo, and print what the hook did: deny, block, warn, other or silent.
+"""Replay one Bash command's PreToolUse event through route-event.py as a worker in a fresh git repo, and print what the hook did: deny, other or silent.
 
-usage: replay-event.py <Pre|Post> <settings json, or none for no settings file> <command> [text]
+usage: replay-event.py <command> [text]
 `REPLAY_SESSION_ID` in the environment is the event's session id, so a repeat call can meet the hook's once-per-session reminders.
-With `text` it prints the hook's message (the deny reason, the block reason and the context) on the lines after the verdict.
+With `text` it prints the hook's message (the deny reason and the context) on the lines after the verdict.
 A fake herdr names the session t-worker."""
 import os
 import pathlib
@@ -17,26 +17,21 @@ import replay_probe  # noqa: E402
 
 
 def main(args):
-    if len(args) < 3:
+    if not args or len(args) > 2 or args[1:] not in ([], ["text"]):
         print(__doc__, file=sys.stderr)
         return 2
-    kind, settings, command = args[:3]  # args[3] may be `text`
+    command = args[0]
     folder = pathlib.Path(tempfile.mkdtemp())
     (folder / "repo").mkdir()
     stubs = replay_probe.fake_herdr(folder, [{"pane_id": "p1", "name": "t-worker"}])
     subprocess.run(["git", "init", "-q", str(folder / "repo")], check=True)
-    if settings != "none":
-        (folder / "repo" / ".teamwork").mkdir()
-        (folder / "repo" / ".teamwork" / "settings.json").write_text(settings)
-    event = {"hook_event_name": kind + "ToolUse", "cwd": str(folder / "repo"), "tool_input": {"command": command},
-             "tool_response": "https://github.com/o/r/issues/5",
+    event = {"hook_event_name": "PreToolUse", "cwd": str(folder / "repo"), "tool_input": {"command": command},
              "session_id": os.environ.get("REPLAY_SESSION_ID")}
     got = replay_probe.route_event(HERE.parent / "route-event.py", event, stubs)
     hook = got.get("hookSpecificOutput", {})
-    print("block" if got.get("decision") == "block" else "deny" if hook.get("permissionDecision") == "deny"
-          else "warn" if str(hook.get("additionalContext", "")).startswith("Warning:") else "other" if got else "silent")
-    if args[3:4] == ["text"]:
-        print(*[message for message in (hook.get("permissionDecisionReason"), got.get("reason"), hook.get("additionalContext")) if message], sep="\n")
+    print("deny" if hook.get("permissionDecision") == "deny" else "other" if got else "silent")
+    if args[1:] == ["text"]:
+        print(*[message for message in (hook.get("permissionDecisionReason"), hook.get("additionalContext")) if message], sep="\n")
     return 0
 
 

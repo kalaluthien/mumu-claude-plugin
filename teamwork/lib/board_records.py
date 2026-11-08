@@ -10,15 +10,13 @@ Links between issues live in their bodies only, as `task_links` reads them."""
 import functools
 import json
 import re
-import shlex
 
 import board_scope
 import iso_time
 import task_links
 import team_signal
 
-USE = re.compile(r"use-board\.py\s+(file|comment|decide|edit|title|resolve|reopen|label)\b([^;&|\n]*)")
-POSTED = re.compile(r"(?:git\+)?file://\S*?/(\d+)(?:#comment-(\d+))?(?=[\s\"\\]|$)")
+USE = re.compile(r"use-board\.py\s+(file|comment|decide|edit|title|resolve|reopen|label)\b")
 FLOOR = "floor"  # a file at the board's top holding the number a copied board's newest issue or pull request had, so no new issue reuses one
 trusted = lambda record: True
 
@@ -285,32 +283,12 @@ def command(text):
     found = USE.search(text)
     if not found:
         return None
-    verb, rest = found.groups()
-    try:
-        args = shlex.split(rest)
-    except ValueError:
-        args = []
-    return {"called": f"use-board.py {verb}", "write": {"decide": "comment", "title": "edit"}.get(verb, verb if verb in ("file", "comment", "resolve", "edit") else None),
-            "title": len(args[0]) if verb == "file" and args else len(args[1]) if verb == "title" and len(args) > 1 else None,
-            "body file": args[1] if verb in ("file", "comment", "decide") and len(args) > 1 else None}
-
-
-def posted(store, output):
-    """(url, body) of the first issue or comment url OUTPUT names, read back now; None when it names none."""
-    found = POSTED.search(output)
-    if not found:
-        return None
-    store.view()
-    number, position = found.groups()
-    try:
-        base = home(store, number)
-        return found.group(0), store.read(f"{base}/comments/{int(position):04d}.md" if position else f"{base}/body.md")
-    except (OSError, ValueError):
-        return found.group(0), ""
+    verb = found.group(1)
+    return {"called": f"use-board.py {verb}", "write": {"decide": "comment", "title": "edit"}.get(verb, verb if verb in ("file", "comment", "resolve", "edit") else None)}
 
 
 PORT = ("atomic", "issues", "fresh", "comments_since", "changed_since", "blockers", "scoped", "tree", "comment", "file", "body", "edit", "resolve", "reopen",
-        "retitle", "label", "posted", "parent_of", "check_links")
+        "retitle", "label", "parent_of", "check_links")
 
 
 def bind(store):

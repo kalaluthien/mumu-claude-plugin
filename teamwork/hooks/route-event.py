@@ -15,11 +15,9 @@ sys.path.insert(0, str(ROOT / "lib"))
 import background_work  # noqa: E402
 import board  # noqa: E402
 import install_line  # noqa: E402
-import issue_state  # noqa: E402
 import session  # noqa: E402
 import team_gaps  # noqa: E402
 import team_names  # noqa: E402
-import team_settings  # noqa: E402
 
 PLAYBOOKS = ROOT / "skills" / "kick-off" / "references"
 GRAMMAR = PLAYBOOKS / "issue-grammar.md"
@@ -158,21 +156,6 @@ def without_change_directory(command, found, folder, worktree):
     return command[:found.start()] + (delimiter[0] + " " if delimiter else "") + "".join(rewritten) + tail
 
 
-def stray_state(call, cwd):
-    """A holders line in the posted file that no teamwork fence holds, which code never reads."""
-    path = call["body file"] and pathlib.Path(cwd or ".") / call["body file"]
-    try:
-        return bool(path and issue_state.stray_state(path.read_text()))
-    except OSError:
-        return False
-
-
-def stray_posted(output):
-    """The url the write printed when a holders line in what it posted sits outside a teamwork fence, read back from the board."""
-    url, body = board.posted(output) or (None, "")
-    return issue_state.stray_state(body) and url
-
-
 def unseen(lines, session_id):
     """LINES not yet reminded in this session, recorded so each playbook line is added to the context once; a record that cannot be read or written
     leaves them all unseen, since a reminder must never break the call it decorates."""
@@ -191,27 +174,13 @@ def unseen(lines, session_id):
         return lines
 
 
-def reminder(call, role, cwd, session_id=None):
-    called, needles = call["called"], REMINDED.get(call["write"], ())
+def reminder(call, role, session_id=None):
+    needles = REMINDED.get(call["write"], ())
     found = [f"- {path.relative_to(PLAYBOOKS.parents[1])}:{number}: {line.strip()}"
              for path in (PLAYBOOKS / "protocol.md", PLAYBOOKS / f"{role}.md", GRAMMAR)
              for number, line in enumerate(path.read_text().splitlines(), 1) if any(needle in line for needle in needles)]
     found = unseen(found, session_id)
-    stray = ["- A `holders:` line sits outside a ```teamwork fence in the posted file, so code reads no holder: put it inside the fence, as "
-             f"{GRAMMAR.relative_to(PLAYBOOKS.parents[1])} says."] if called and stray_state(call, cwd) else []
-    return (found or stray) and "\n".join([f"Reminder: the playbook rules this `{called}` must keep:", *found, *stray])
-
-
-def verdict(kind, rule, settings, text=None):
-    """The hook's answer to a call that breaks RULE: a refusal when the repository's settings set `refuse`, else a `Warning:` beside TEXT, the reminder."""
-    warnings = settings["warnings"]
-    if rule and settings["refuse"]:
-        reason = "\n".join([rule, *warnings])
-        return ({"decision": "block", "reason": reason} if kind == "PostToolUse"
-                else {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason": reason}})
-    lines = [team_settings.warning(rule)] if rule else []
-    context = "\n".join([*lines, *([text] if text else []), *warnings])
-    return context and {"hookSpecificOutput": {"hookEventName": kind, "additionalContext": context}}
+    return found and "\n".join([f"Reminder: the playbook rules this `{call['called']}` must keep:", *found])
 
 
 def command_of(event):
@@ -219,11 +188,6 @@ def command_of(event):
 
 
 def route(kind, event, role, me, listed):
-    call = board.command(command_of(event))
-    if kind == "PostToolUse":
-        stray = call and call["write"] in ("file", "comment", "edit") and stray_posted(json.dumps(event.get("tool_response")))
-        return stray and verdict(kind, f"A `holders:` line sits outside a ```teamwork fence in {stray}, so code reads no holder; "
-                                 f"post the record again with the line inside the fence, as {GRAMMAR} says.", team_settings.load(event.get("cwd") or "."))
     if kind == "SessionStart":
         gaps = (team_gaps.manager_actions(me, listed) if role == "manager" else team_gaps.worker_goal(me)) or []
         text = "\n".join([f"You are {me['name']}, a teamwork {role}: follow {PLAYBOOKS / (role + '.md')}.", *gaps])
@@ -234,23 +198,19 @@ def route(kind, event, role, me, listed):
         return goal and {"decision": "block", "reason": "\n".join(["Your goal still waits on you:", *goal,
                          "Take its next step; stop again only while a subagent, a check or your manager has it."])}
     entered = role == "worker" and live_change_directory(command_of(event), event.get("cwd"))
-    if entered:  # guards the checkout every session loads, no issue rule, so no setting makes it a warning
+    if entered:  # guards the checkout every session loads
         again = (f"run this instead: `{entered[2]}`" if entered[2] else "run it again without that cd and read the live checkout by path or git -C")
         return {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason":
                 f"This cd enters {entered[0]} in the live checkout, which every session loads, so an edit there lands outside your worktree; "
                 f"nothing in this command ran; {again}, since your shell already stands in {entered[1]}."}}
-    if kind == "PreToolUse" and writes_github_issue(command_of(event)):  # no issue rule, so no setting makes it a warning
+    if kind == "PreToolUse" and writes_github_issue(command_of(event)):
         return {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason":
                 f"Team work (a task, finding, hand-over, question or answer) lives on the git-refs board, never in a GitHub issue; nothing in this command ran. Write it with "
                 f"`{PLAYBOOKS.parent / 'scripts' / 'use-board.py'}` with `file`, `comment`, `decide`, `edit` or `resolve`, as {PLAYBOOKS / 'adapters' / 'board.md'} says. When the owner asked for a GitHub issue, "
                 "ask them to run the command themselves by typing `! <command>`."}}
-    if not call:
-        return None
-    settings = team_settings.load(event.get("cwd") or ".")
-    size, limit = call["title"], settings["title_max"]
-    rule = (f"Title is {size} characters; shorten it to {limit:g}, verb first." + (" Nothing in this command ran, so write any body file again." if settings["refuse"] else "")
-            if size and size > limit else None)
-    return verdict(kind, rule, settings, None if rule and settings["refuse"] else reminder(call, role, event.get("cwd"), event.get("session_id")))
+    call = board.command(command_of(event))
+    text = call and reminder(call, role, event.get("session_id"))
+    return text and {"hookSpecificOutput": {"hookEventName": kind, "additionalContext": text}}
 
 
 def main(args):
@@ -260,8 +220,8 @@ def main(args):
     # without its host's command no session has a name, so no role matches and the role's SessionStart text never comes to say why
     if kind == "SessionStart" and (missing := next(filter(None, map(install_line.missing, session.NEEDS)), None)):
         print(json.dumps({"systemMessage": missing}))
-    elif kind not in ("PreToolUse", "PostToolUse") or board.command(command) \
-            or kind == "PreToolUse" and (writes_github_issue(command) or live_change_directory(command, event.get("cwd"))):  # skip other Bash fast
+    elif kind in ("SessionStart", "Stop") \
+            or kind == "PreToolUse" and (board.command(command) or writes_github_issue(command) or live_change_directory(command, event.get("cwd"))):  # skip other Bash fast
         listed, me = session.sessions(event.get("session_id"))
         role = team_names.role(me.get("name"))
         if out := role and route(kind, event, role, me, listed):

@@ -47,14 +47,37 @@ def data(text):
     return {k.strip(): value.strip() for k, separator, value in pairs if separator and k.strip() in KEYS}
 
 
-def stray_state(text):
-    """Whether TEXT holds a holders line outside every reserved block, which `data` never reads."""
-    return bool(re.search(rf"^\s*{WORD['holders']}:", DATA.sub("", text or ""), re.M))
+FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
 
 
-FENCE = re.compile(r"^(`{3,})(.*)$")
+def fence_step(fence, line):
+    """(fence, marks) after LINE: the open fence as (run, info) or None, and whether LINE opened or closed one, as CommonMark reads it: a run of three or
+    more backticks or tildes, indented up to three spaces, opens, a backtick run's info holding no backtick, and a bare run of the same mark at least
+    as long, followed by nothing but spaces or tabs, closes."""
+    found = FENCE.match(line)
+    if not found:
+        return fence, False
+    run, info = found.groups()
+    if fence is None:
+        return (None, False) if run[0] == "`" and "`" in info else ((run, info.strip(" \t")), True)
+    if run[0] == fence[0][0] and len(run) >= len(fence[0]) and not info.strip(" \t"):
+        return None, True
+    return fence, False
+
+
+def language(fence):
+    """The language of an open FENCE, its info string's first word in lowercase, as CommonMark reads it; empty outside a fence."""
+    return (fence[1].split() or [""])[0].lower() if fence else ""
+
+
 # a fence a writer may take for the teamwork one: its info string spelt otherwise, or a data language
 LOOKALIKES = ("teamwork", "yaml", "yml")
+# a fence that quotes lines as changed text, never as a record's data
+QUOTING = ("diff",)
+# a line opening a list item or an HTML block, inside which CommonMark reads fences that `fence_step` does not follow; a block quote's fences
+# sit on its `>` lines, which `fence_step` never reads as fences, and a quote never takes in a line without `>` that opens a fence
+UNTRACKED = re.compile(r"^ {0,3}(?:[-+*](?:\s|$)|\d{1,9}[.)](?:\s|$)|<)")
+HOLDERS_LINE = re.compile(rf"^\s*{WORD['holders']}\s*:")
 NAMES = re.compile(r"([a-z0-9][a-z0-9-]*)?( [a-z0-9][a-z0-9-]*)*")
 TASKS = re.compile(r"(#\d+)?( #\d+)*")
 # the opening of a line that reads as a key or a keyword, spelt right or not
@@ -93,16 +116,17 @@ def _defects(kind, text):
     if kind == "edit-line":
         one = re.fullmatch(WORD["answer"] + r":[^\n]*\S[^\n]*", (text or "").rstrip("\n"))
         return [] if one else [("edit-line", f"the keyword line is not one line that opens `{WORD['answer']}:` and says what changed; write `{WORD['answer']}: <what changed and why>` on one line")]
-    found, fence, headings = [], None, {}
+    found, fence, headings, opening, offset = [], None, {}, "", 0
     keys, stems = " ".join(KEYS), {stem(key): key for key in KEYS}
     # the reader skips blank lines before a keyword, so the first line is the first that holds something
     lines = (text or "").lstrip().split("\n") if kind in ("comment", "decide", "resolve") else (text or "").split("\n")
+    # the lines `data` reads, by offset, so the key checks cover what code acts on, a teamwork block nested in another fence included
+    read = [(block.start(1), block.end(1)) for block in DATA.finditer("\n".join(lines))]
     for number, line in enumerate(lines, 1):
-        ticks = FENCE.match(line)
-        if fence:
-            if ticks and not ticks.group(2).strip() and len(ticks.group(1)) >= len(fence[0]):
-                fence = None
-            elif fence[1] == "teamwork" and line.strip():
+        start, offset = offset, offset + len(line) + 1
+        fence, marks = fence_step(fence, line)
+        if any(low <= start < high for low, high in read):
+            if line.strip():
                 key, colon, value = (part.strip() for part in line.partition(":"))
                 if not colon or key not in KEYS:
                     spelt = KEY_LINE.match(line)
@@ -117,11 +141,13 @@ def _defects(kind, text):
                     found.append((f"count {line.strip()}", f"line {number}, `{line.strip()}`, is no count; write `{key}: 12`"))
                 elif key == WORD["depends"] and not TASKS.fullmatch(value):
                     found.append((f"tasks {line.strip()}", f"line {number}, `{line.strip()}`, is no task list; write `{key}: #12 #13`"))
-            elif fence[1].lower() in LOOKALIKES and KEY_LINE.match(line) and stem(KEY_LINE.match(line).group(1)) in stems:
-                found.append((f"lookalike {line.strip()}", f"line {number}, `{line.strip()}`, sits in a ```{fence[1]} fence, which no code reads as data; open the fence with exactly ```teamwork"))
             continue
-        if ticks:
-            fence = (ticks.group(1), ticks.group(2).strip())
+        if marks:
+            opening = line
+            continue
+        if fence:
+            if language(fence) in LOOKALIKES and KEY_LINE.match(line) and stem(KEY_LINE.match(line).group(1)) in stems:
+                found.append((f"lookalike {line.strip()}", f"line {number}, `{line.strip()}`, sits in a fence opened by {opening!r}, which no code reads as data; open the fence with exactly ```teamwork: three backticks at the line's start and nothing after `teamwork`"))
             continue
         near = KEY_LINE.match(line)
         if near and stem(near.group(1)) in stems:
@@ -136,12 +162,33 @@ def _defects(kind, text):
                 if line != f"## {section}":
                     found.append((f"heading {line}", f"line {number}, `{line}`, misspells a section heading; write exactly `## {section}`"))
     found += [(f"repeated {section}", f"`## {section}` appears {count} times; keep one and merge the rest into it") for section, count in headings.items() if count > 1]
+    found += unread_holders(text, {line for signature, _ in found for line in [signature.partition(" ")[2]]})
     if kind in ("comment", "decide", "resolve") and lines:
         found += keyword_defects(kind, lines)
     if kind in ("file", "edit-body"):
         found += body_defects(text)
     if kind == "decide":
         found += plain("decision", (decision(text) or {}).get(FIELD["decision"], ""))
+    return found
+
+
+def unread_holders(text, flagged):
+    """[(signature, sentence)] for each holders line that `data` does not read and no other defect named, but one a diff fence quotes, since
+    a holders line `data` skips sets no holder however its fence is spelt; after a line outside every fence opens a list item or an HTML
+    block, no diff fence exempts a line, since CommonMark may read that fence otherwise."""
+    text = text or ""
+    # the lines `data` reads, by offset; fences are tracked on every line, read ones included, as CommonMark reads them
+    read = [(block.start(1), block.end(1)) for block in DATA.finditer(text)]
+    found, fence, offset, tracked = [], None, 0, True
+    for line in text.split("\n"):
+        start, offset = offset, offset + len(line) + 1
+        tracked = tracked and not (fence is None and UNTRACKED.match(line))
+        fence, marks = fence_step(fence, line)
+        if any(low <= start < high for low, high in read):
+            continue
+        quoted = tracked and language(fence) in QUOTING
+        if not marks and HOLDERS_LINE.match(line) and not quoted and line.strip() not in flagged:
+            found.append((f"unread {line.strip()}", f"`{line.strip()}` sits where no code reads it as data, so it sets no holder; put it alone in a fence opened by exactly ```teamwork and closed by ```"))
     return found
 
 
@@ -176,12 +223,14 @@ def summary_line(body):
 def plain(what, text):
     """[(signature, sentence)] of the Plain words caps TEXT, a title, summary line or decision, breaks; the signature holds the text, so
     an edit that leaves an older line as it was is never blocked by it."""
-    text, found = " ".join((text or "").split()), []
+    raw = text or ""
+    text, found = " ".join(raw.split()), []
     named = TASK_NUMBER.findall(text)
     if named:
         found.append(f"the {what} names {' '.join(named)}; say what that task is in words and put its number in the body")
-    if what == "title" and len(text) > TITLE_CHARS:
-        found.append(f"the title has {len(text)} characters; cut it to {TITLE_CHARS}")
+    # a title is stored as written, so its cap counts every character written
+    if what == "title" and len(raw) > TITLE_CHARS:
+        found.append(f"the title has {len(raw)} characters; cut it to {TITLE_CHARS}")
     if what != "title" and len(text.split()) > SENTENCE_WORDS:
         found.append(f"the {what} has {len(text.split())} words; cut it to {SENTENCE_WORDS} words with one idea, and move the detail to the body")
     if what != "title" and len(BREAK.findall(text)) > SENTENCE_BREAKS:

@@ -98,11 +98,8 @@ def main(args):
         return 2
     role_off = settings["tools_off"].get(role, [])
     if stray := sorted(set(options.allow) - set(role_off)):
-        rule = f"--allow {', '.join(stray)}: not a tool this role has off, which is {', '.join(role_off) or 'none'}"
-        if settings["refuse"]:
-            print(f"start-session.py: {rule}", file=sys.stderr)
-            return 2
-        print(team_settings.warning(rule + "; it is ignored."), file=sys.stderr)
+        print(f"start-session.py: --allow {', '.join(stray)}: not a tool this role has off, which is {', '.join(role_off) or 'none'}", file=sys.stderr)
+        return 2
     off = [tool for tool in role_off if tool not in options.allow]
     listed = session.sessions()[0]
     if any(listed_agent.get("name") == options.name for listed_agent in listed):

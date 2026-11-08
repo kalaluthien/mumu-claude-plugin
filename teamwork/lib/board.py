@@ -5,7 +5,7 @@
 - writes: `atomic(change)` runs CHANGE's writes as one, `comment(number, text)`, `file(title, body, labels, scope) -> int` (`scope` the folder, git board only), `body(number)` and `edit(number, body)`, `resolve(number, summary, completed)`, `reopen(number)`, `retitle(number, title)`,
   `label(number, name, remove)`; this module's `edit` and `resolve` add the state links derive: a follow-up part reopens, a stop stops the parts, the last part closes its parent
 - links: `parent_of(number)` the task whose body names it as a part, `check_links(number, body)` raises LookupError naming why BODY cannot be NUMBER's
-- `trusted(record)`, whether a record's author may write records; `command(text)` and `posted(output)`, the board write a shell command runs and what it posted
+- `trusted(record)`, whether a record's author may write records; `command(text)`, the board write a shell command runs
 A record has `number`, `title`, `body`, `labels` (names), `state` (`OPEN` or `CLOSED`), `parent` (a number or None), `trusted` and `comments`,
 each comment with `body` and `trusted`."""
 import hashlib
