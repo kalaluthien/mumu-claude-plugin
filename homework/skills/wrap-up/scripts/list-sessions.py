@@ -24,6 +24,7 @@ import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import claude_config  # noqa: E402
+import credentials  # noqa: E402
 import stamp  # noqa: E402
 import transcript  # noqa: E402
 
@@ -39,9 +40,6 @@ VARIABLE = [(re.compile(pattern), replacement) for pattern, replacement in [
 NOISE = re.compile(r"^(Exit code <n>|<n>|-+|ok\b.*|This hook comes from .*)$")
 DENIED = re.compile(r"doesn't want to proceed|user denied|rejected by the user", re.I)
 REASON = re.compile(r"\[[A-Z][A-Za-z /-]+\]")
-# a token starts at a word boundary, so a word like task-manager keeps its "sk-"
-TOKEN = re.compile(r"\b(?:ghp_[A-Za-z0-9]{30,}|github_pat_\w{22,}|sk-ant-[\w-]{20,}|sk-[\w-]{20,}"
-                   r"|xox[abposr]-[\w-]{10,}|AKIA[A-Z0-9]{16})")
 
 
 def repo_of(path):
@@ -156,7 +154,7 @@ def write(data, path, kind, value):
     os.chmod(folder, 0o700)
     target = os.path.join(folder, os.path.basename(path)[:-6] + (".txt" if kind == "digests" else ".json"))
     with private(target) as out:
-        out.write(TOKEN.sub("<token>", value) if isinstance(value, str) else json.dumps(value, ensure_ascii=False))
+        out.write(credentials.TOKEN.sub("<token>", value) if isinstance(value, str) else json.dumps(value, ensure_ascii=False))
     return target
 
 
