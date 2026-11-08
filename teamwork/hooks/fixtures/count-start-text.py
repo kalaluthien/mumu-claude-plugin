@@ -19,14 +19,19 @@ READS = {
     "worker": ["SKILL.md", "references/protocol.md", "references/worker.md", "references/adapters.md",
                "references/adapters/board.md", "references/issue-grammar.md", "references/recall.md"],
     "manager": ["SKILL.md", "references/protocol.md", "references/manager.md", "references/adapters.md",
-                "references/adapters/board.md", "references/issue-grammar.md", "references/handoff.md", "references/recall.md"],
+                "references/adapters/board.md", "references/issue-grammar.md", "references/handoff-task.md", "references/recall.md"],
     "sentinel": ["SKILL.md", "references/protocol.md", "references/sentinel.md", "references/adapters.md"],
     "judge": ["references/judge.md", "references/protocol.md", "references/adapters.md", "references/adapters/landing-git.md",
               "references/issue-grammar.md"],
 }
 
 
+FORMER = {"references/handoff-task.md": "references/handoff.md"}  # a ref before a rename read the file under its old name
+
+
 def show(ref, path):
+    if ref is not None and subprocess.run(["git", "-C", str(ROOT), "cat-file", "-e", f"{ref}:{path}"], capture_output=True).returncode:
+        path = KICK_OFF + FORMER.get(path.removeprefix(KICK_OFF), path.removeprefix(KICK_OFF))
     if ref is None:
         file = ROOT / path
         return file.read_text() if file.is_file() else ""
@@ -58,6 +63,10 @@ def main(args):
     if len(args) != 1 or args[0].startswith("-"):
         print(__doc__, file=sys.stderr)
         return 2
+    missing = sorted({name for names in READS.values() for name in names if not (ROOT / KICK_OFF / name).is_file()})
+    if missing:  # a stale name counts as 0 and would make a role look smaller than it is
+        print(f"a file a role reads does not exist: {', '.join(missing)}\nFAIL")
+        return 0
     before, after = count(args[0]), count(None)
     print("| role | at ref | at checkout |\n| --- | --- | --- |")
     for role in READS:

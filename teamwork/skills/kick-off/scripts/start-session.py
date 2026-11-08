@@ -3,7 +3,9 @@
 a worker or sentinel in a new tab of its manager's workspace, a successor `<p>-next` of `succeed <p>` in a new tab of p's,
 any other manager in a new workspace of its own. `--allow` turns a tool on that its role has off.
 
-usage: start-session.py <name> <cwd> <kick-off arguments> --model <model> --effort <effort> [--allow <tool>]..."""
+usage: start-session.py <name> <cwd> <kick-off arguments> --model <model> --effort <effort> [--allow <tool>]... [--steer <key>]...
+
+`--steer` puts the steering lines of those keys (print-steering.py lists them) after the kick-off arguments; a key it refuses, exit 2, starts nothing."""
 import os
 import pathlib
 import subprocess
@@ -14,6 +16,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[3]  # this plugin, loaded into t
 sys.path.insert(0, str(ROOT / "lib"))
 import agent  # noqa: E402
 import session  # noqa: E402
+import steering_lines  # noqa: E402
 import team_names  # noqa: E402
 import team_settings  # noqa: E402
 import usage_parser  # noqa: E402
@@ -76,7 +79,13 @@ def main(args):
     parser.add_argument("--model", required=True)  # no default: the caller picks per role
     parser.add_argument("--effort", required=True)
     parser.add_argument("--allow", action="append", default=[], metavar="TOOL")  # its subagents lack a tool their session lacks: grant it per root task
+    parser.add_argument("--steer", action="append", default=[], metavar="KEY")
     options = parser.parse_args(args)
+    try:
+        steering = steering_lines.lines(options.steer) if options.steer else ""
+    except ValueError as e:
+        print(f"start-session.py: {e}", file=sys.stderr)
+        return 2
     settings = team_settings.load(options.cwd)  # the session's repository, not this process's working folder
     for line in settings["warnings"]:
         print(line, file=sys.stderr)
@@ -101,7 +110,7 @@ def main(args):
     workspace, refusal = placement(options.name, options.args, role, listed)
     if refusal:
         sys.exit(f"start-session.py: {refusal}")
-    text = agent.kickoff(options.args)
+    text = agent.kickoff(f"{options.args} — {steering}" if steering else options.args)
     trust = agent.TRUST[0]
     try:
         cwd = str(pathlib.Path(options.cwd).resolve())

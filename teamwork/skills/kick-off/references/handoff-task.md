@@ -1,4 +1,4 @@
-# Handoff
+# Handoff task
 
 How a manager adds to the owner's words before passing them on, so a worker gets a finished task, a prompt that steers it and a judge a way to score it, with no owner re-decision after the routing.
 
@@ -24,24 +24,14 @@ Task properties, for the routing decision:
 | a change to a playbook or rule | every file that states the rule |
 | a choice the words do not settle | `Free:` the choice the worker makes unasked; `Ask first:` the choice that is the owner's |
 
-Steering lines, for the worker prompt; take a row only when the task is that case:
-
-| the task is | the line |
-| --- | --- |
-| a research ask, which takes this line alone, since its product is a report | Count by script, start from the raw material and check each idea as new against the repository and its prior work. |
-| a change a person sees, not a research ask | Show the owner a drawn sample of the changed rows before you build. |
-| holding files another open task touches | `BLOCKED:` at once, and start the part whose files that task never touches. |
-| using a mechanism new to the repository | Read its official docs before you design. |
-| a `[check]` that pipes a producer into a tool | Run `run-criteria.py` with `--pass <n>=<sample-file>`, since the base run never reaches its pass path. |
-| a cleanup or wrap-up task | Exercise abstract thinking: look for the same goal with fewer moving parts, surface implicit state machines and check them against intent, and surface relied-on but unenforced invariants and enforce those a short check can guard. |
+Steering lines, for the worker prompt: take a row only when the task is that case. [print-steering.py](../scripts/print-steering.py) with no key prints each key with its case; `start` takes the keys that fit as `--steer <key>`, and a `tell` to a live worker carries the lines of `print-steering.py <key>...`. The lines sit in [handoff-worker-prompt.md](../assets/handoff-worker-prompt.md), which no manager reads.
 
 ## Steps
 
 1. Read the words for the purpose, the implied outcomes, the open edges and the kind of work.
 2. Take the rows of the first table that fit; take the situation rows only where the words leave the case open.
 3. Write the routing `DECIDED:` with its outcomes, a `Why:` line, the guesses, the properties the rows add and the `Judge note:`.
-4. Write the worker prompt from the steering rows that fit, each line as short as it can be; with no row, send the kick-off arguments alone.
-5. Count the worker prompt with `wc -w` after deleting its urls and the owner's quoted words; over 100, cut each line that changes no reader's next action and count again.
+4. Pick the keys of the steering rows that fit; with none, send the kick-off arguments alone. `print-steering.py` refuses lines over 100 words, so with the owner's added words, count those by `wc -w` after deleting their urls and quoted words.
 
 ## Rules
 

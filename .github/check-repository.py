@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill, and no plugin holds a change its `version` does not cover.
+"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill, no skill file sits outside the skill folder hierarchy, and no plugin holds a change its `version` does not cover.
 
 usage: check-repository.py [root]
 
 Prints one failure per line as `<kind> <path>: <detail>`, `unreached` lines being list-unreached.py's, `shared` lines
-list-cross-plugin-names.py's and `unreleased` lines list-unreleased.py's, then a summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
+list-cross-plugin-names.py's, `unreleased` lines list-unreleased.py's and `misplaced` lines list-misplaced-references.py's, then a summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
 """
 
 import json
@@ -32,6 +32,7 @@ LISTERS = (  # each lister's script, the failure lines it prints and its summary
     ("list-unreached.py", "unreached ", re.compile(r"^\d+ files, \d+ unreached$", re.M)),
     ("list-cross-plugin-names.py", "shared ", re.compile(r"^\d+ files, \d+ naming another plugin$", re.M)),
     ("list-unreleased.py", "unreleased ", re.compile(r"^\d+ plugins, \d+ unreleased$", re.M)),
+    ("list-misplaced-references.py", "misplaced ", re.compile(r"^\d+ skill files, \d+ misplaced$", re.M)),
 )
 
 

@@ -2,6 +2,8 @@
 its stream read back into tool uses."""
 import json
 import os
+import pathlib
+import shutil
 import subprocess
 
 BLOCKED_TOOLS = ("gh", "herdr", "claude")
@@ -54,3 +56,34 @@ def read_tool_uses(stream):
             if isinstance(part, dict) and part.get("type") == "tool_use":
                 uses[part["id"]] = {"name": part["name"], "input": part.get("input") or {}}
     return uses
+
+
+def copy_plugin(root, into):
+    """A copy of ROOT's `teamwork/` tracked and untracked files (git's ignored ones left out) into INTO, the only plugin a replay loads."""
+    into.mkdir(parents=True)
+    names = subprocess.run(["git", "-C", str(root), "ls-files", "-co", "--exclude-standard", "teamwork"], capture_output=True, text=True, check=True).stdout.split("\n")
+    for name in filter(None, names):
+        if (pathlib.Path(root) / name).is_file():
+            (into / name).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(pathlib.Path(root) / name, into / name)
+
+
+def manager_run(root, scratch, request, model, budget):
+    """The tool uses, the final text and the raw stream of a clean `claude -p` that runs the manager kick-off on REQUEST in a copy of ROOT's plugin."""
+    work = scratch / "repository"
+    copy_plugin(root, work)
+    prompt = ("Run the teamwork:kick-off skill with these arguments: " + request + "\n\nThis is a replay in a fresh checkout, your working folder. "
+              "GitHub, herdr and other Claude sessions are off: skip each step that needs one, and run no `start-session.py` or `close-session.py`; "
+              "write the command you would run instead.")
+    command = [shutil.which("claude"), "-p", prompt, "--model", model, "--setting-sources", "", "--strict-mcp-config", "--max-budget-usd", budget,
+               "--permission-mode", "acceptEdits", "--allowedTools", "Bash", "Read", "Grep", "Glob", "Skill", "--plugin-dir", str(work / "teamwork"),
+               "--output-format", "stream-json", "--verbose", "--no-session-persistence"]
+    stream, _ = run_claude(command, work, clean_environment(scratch))
+    events = []
+    for line in stream.splitlines():
+        try:
+            events.append(json.loads(line))
+        except ValueError:
+            continue
+    final = next((event.get("result", "") for event in reversed(events) if event.get("type") == "result"), "")
+    return read_tool_uses(stream), final, stream
