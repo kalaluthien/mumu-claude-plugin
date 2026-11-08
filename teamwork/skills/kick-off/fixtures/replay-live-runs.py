@@ -3,7 +3,7 @@
 
 usage: replay-live-runs.py --case <name>
 - replay: a fix to the judging stage starts no new session, a change to a watched file starts one, and a body that runs `claude -p` unwatched or past its first stage is refused by check-criteria.py
-- cap: a run past the task's `live runs` count starts no session, fails the check and prints the `BLOCKED due` line"""
+- cap: a fifth session with no `live runs` decision starts nothing, and a run past the task's `live runs` count starts no session, fails the check and prints the `BLOCKED due` line"""
 import json
 import os
 import pathlib
@@ -69,10 +69,13 @@ def case_replay():
     (work / "body.md").write_text(BODY)
     (work / "bin" / "claude").write_text(f'#!/bin/sh\necho started >> {work}/claude.log\necho "rate limit"\nexit 1\n')
     (repository / "app" / "main.txt").write_text("three\n")
-    for count in (4, 5):
-        run()
-        if sessions(work) != count:
-            return replay_probe.fail(f"a failed session must not be replayed: {sessions(work)} sessions after {count - 3} runs, want {count}")
+    run()
+    if sessions(work) != 4:
+        return replay_probe.fail(f"a failed session must not be replayed: {sessions(work)} sessions, want 4")
+    (repository / "app" / "main.txt").write_text("four\n")
+    fifth = run()
+    if sessions(work) != 4 or "BLOCKED due: live runs reached the cap of 4" not in fifth.stdout:
+        return replay_probe.fail(f"with no `live runs` decision the fifth session should not start: {sessions(work)} sessions, {fifth.stdout!r}")
     (work / "grep.md").write_text(BODY.replace("`claude -p hello | python3 judge.py`", "`git grep -c 'claude -p' app | cat`"))
     lint = lambda criterion: replay_probe.run_python(SCRIPTS / "check-criteria.py", repository, environment, work / criterion)
     for name, text in (("unwatched.md", BODY.replace("watches: app; ", "")), ("late.md", BODY.replace("claude -p hello | python3 judge.py", "echo x | claude -p hello"))):

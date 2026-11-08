@@ -27,7 +27,7 @@ holders: issue-pane-worker
 | `holders` | session names, space-separated, replacing every earlier value; empty when no one holds it | holders |
 | `asks` | `owner` on an ask the owner answers, not the manager | audience |
 | `depends on` | the tasks this one waits on, `#a #b`, read from the body only; a task waits until each is closed as completed | depends |
-| `live runs` | how many live sessions the checks run in one worktree may start in all, one number, replacing every earlier value | live |
+| `live runs` | how many live sessions the checks run in one worktree may start in all, one number, replacing every earlier value; 4 when none says | live |
 
 ## Decisions
 
