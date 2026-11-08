@@ -54,7 +54,7 @@ A task's sections, each a `## <section>` heading in the body, which holds their 
 
 | section | holds | role |
 | --- | --- | --- |
-| `Goal` | the owner's intent, in detail, with its purpose and each guess marked `(guess)`; the title sums it up | goal |
+| `Goal` | the owner's intent, in detail, with its purpose and each guess marked `(guess)`, and, from task 1305, a `Path:` line naming the flow of the changed part ([check-criteria.py](../scripts/check-criteria.py) refuses a Goal without one); the title sums it up | goal |
 | `Definition of done` | criteria, one per numbered or bulleted line | done |
 
 A `N. [task] #n <title>` line in `Definition of done` is a part, not a criterion: the task it names belongs to this one, its parent, and is met when that task is closed as completed. A task has one parent, and a task with none is a root. A task numbered at or above the cut-off, which [check-criteria.py](../scripts/check-criteria.py) `--cut-off` prints, holds at most 5 criteria, parts not counted; the lint learns a task's number by `--task <n>`, and with none applies the cut-off's rules, as for a task not yet filed. `file` and `edit` refuse, writing nothing, `[task]` and `depends on` lines that make a cycle or a second parent, name an unknown issue, or exceed 50 `depends on` entries or 100 parts; a `[task]` line that `edit` adds to a closed parent reopens it.

@@ -26,6 +26,7 @@ COMMANDS = [
         ("replay-heartbeat-tie.py", []), ("replay-heartbeat-tie.py", ["--mutant"]),
         *[("replay-additions.py", ["--case", case]) for case in ("path", "prefix", "writes")],
         *[("replay-body-diff.py", ["--case", case]) for case in ("newline", "exact", "mismatch", "misordered")],
+        *[("replay-goal-path.py", ["--case", case]) for case in ("refuse", "teach", "old")],
         *[("replay-criterion-names.py", ["--case", case]) for case in ("gate", "open")],
         *[("replay-local-landing.py", ["--case", case]) for case in LANDING_CASES],
     ]],
