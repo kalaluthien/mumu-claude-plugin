@@ -2,7 +2,7 @@
 """Check that criterion names are complete sentences, on a git board in a temporary repository or on this repository's own, and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
 
 usage: replay-criterion-names.py --case <name>
-- gate: `file` refuses a body whose criterion is named by a label and posts nothing, `edit` refuses a diff that adds one and leaves the body as it was, both name the Complete sentence rule, a body whose names are sentences is filed, and the pane's list shows each full sentence on its `○` line
+- gate: `file` refuses a body whose criterion is named by a label and posts nothing, `edit` refuses a diff that adds one and leaves the body as it was, both name the Complete sentence rule, a body whose names are sentences is filed, and the pane's list shows each full sentence on its `☐` line
 - open: every open task of this repository's board names each criterion by a sentence that `issue_state.sentence` and `issue_state.plain` accept"""
 import json
 import os
@@ -35,8 +35,8 @@ def case_gate():
     if filed.returncode:
         return replay_probe.fail(f"a sentence was refused: {filed.stderr.strip()[-200:]!r}")
     shown = replay_probe.run_python(LISTER, repository, environment, "proj").stdout
-    if f"○ {SENTENCE}" not in shown:
-        return replay_probe.fail(f"the pane's list lacks the sentence on its circle line: {shown!r}")
+    if f"☐ {SENTENCE}" not in shown or "○ " in shown:
+        return replay_probe.fail(f"the pane's list lacks the sentence on its box line or keeps a circle: {shown!r}")
     before = replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "read", "1").stdout
     sha = next(line.split("body sha: ")[1].strip() for line in before.splitlines() if "body sha: " in line)
     (work / "old").write_text(BODY.format(name=SENTENCE))

@@ -172,8 +172,8 @@ def label(row):
 
 
 def criterion(item):
-    """A criterion's line: a circle, then its name; the box and the kind stay in the body, since the pane shows what remains to prove, not a pass."""
-    return f"\u25cb {item['name']}"
+    """A criterion's line: an empty box read as a to-do, then its name; the kind stays in the body, since the pane shows what remains to prove, not a pass."""
+    return f"\u2610 {item['name']}"
 
 
 def held_offsets(title, blockers):
