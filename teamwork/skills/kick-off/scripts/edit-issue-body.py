@@ -76,6 +76,9 @@ def land(issue, diff_file, base, comment, work, refusal):
 
 def main(args):
     base = None
+    if any(argument.startswith("--") and argument != "--base" for argument in args):
+        print(__doc__, file=sys.stderr)
+        return 2
     if "--base" in args:
         at = args.index("--base")
         base, args = args[at + 1] if at + 1 < len(args) else None, args[:at] + args[at + 2:]

@@ -17,7 +17,7 @@ import task_history  # noqa: E402
 
 
 def main(args):
-    if len(args) == 2 and args[0] == "--from-json":
+    if len(args) == 2 and args[0] == "--from-json" and not args[1].startswith("--"):
         issues = json.load(open(args[1]))
     elif not args:
         issues = task_history.fetch(task_history.own_repository())

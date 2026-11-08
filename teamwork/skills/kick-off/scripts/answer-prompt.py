@@ -35,7 +35,7 @@ def prompt_on(screen):
 
 
 def main(args):
-    if len(args) != 2:
+    if len(args) != 2 or any(argument.startswith("--") for argument in args):
         print(__doc__, file=sys.stderr)
         return 2
     name, choice = args[0], args[1].strip()

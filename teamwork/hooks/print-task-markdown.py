@@ -15,6 +15,9 @@ import issue_state  # noqa: E402
 
 def main(args):
     nodes = None
+    if any(argument.startswith("--") for argument in args[1:]):
+        print(__doc__, file=sys.stderr)
+        return 2
     if args[:1] == ["--nodes"] and len(args) == 3:
         nodes, args = json.loads(pathlib.Path(args[1]).read_text()), args[2:]
     if len(args) != 1 or not args[0].isdigit():

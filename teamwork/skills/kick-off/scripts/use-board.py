@@ -137,8 +137,15 @@ VERBS = {"read": (lambda count: count in (1, 3), read_issue), "comment": (lambda
          "reopen": (lambda count: count == 1, reopen_issue), "decide": (lambda count: count == 2, decide_issue), "label": (lambda count: count in (2, 3), label_issue)}
 
 
+# the only operands that start with `--`, per verb; any other such operand is an option the script does not know, never a title or a label
+OPTIONS = {"read": ("--as",), "file": ("--scope",), "edit": ("--base",), "resolve": ("--not-planned",), "label": ("--remove",)}
+
+
 def main(args):
     verb, *operands = args or [""]
+    if any(operand.startswith("--") and operand not in OPTIONS.get(verb, ()) for operand in operands) or verb.startswith("--"):
+        print(__doc__, file=sys.stderr)
+        return 2
     try:
         # a text that no code reads as meant would leave an issue unrouted or a question unasked, so it is refused with its fix
         found = issue_state.defects(verb, read_text(operands[1])) if verb in ("comment", "decide", "file", "resolve") and len(operands) >= 2 else []

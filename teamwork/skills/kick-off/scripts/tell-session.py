@@ -13,7 +13,7 @@ import session  # noqa: E402
 
 
 def main(args):
-    if len(args) != 2:
+    if len(args) != 2 or any(argument.startswith("--") for argument in args):
         print(__doc__, file=sys.stderr)
         return 2
     name = args[0]

@@ -15,6 +15,9 @@ import landing_git  # noqa: E402
 
 def main(args):
     verb, *operands = args or [""]
+    if any(argument.startswith("--") for argument in args):
+        print(__doc__, file=sys.stderr)
+        return 2
     try:
         if verb == "change" and len(operands) in (3, 4):
             if landing_git.folder() is None:

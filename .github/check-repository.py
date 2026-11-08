@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill, no skill file sits outside the skill folder hierarchy, and no plugin holds a change its `version` does not cover.
+"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill, no skill file sits outside the skill folder hierarchy, no plugin holds a change its `version` does not cover, and no script a plugin replays takes an unknown option as data.
 
 usage: check-repository.py [root]
 
 Prints one failure per line as `<kind> <path>: <detail>`, `unreached` lines being list-unreached.py's, `shared` lines
-list-cross-plugin-names.py's, `unreleased` lines list-unreleased.py's and `misplaced` lines list-misplaced-references.py's, then a summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
+list-cross-plugin-names.py's, `unreleased` lines list-unreleased.py's and `misplaced` lines list-misplaced-references.py's, and `option` lines a plugin's `fixtures/replay-option-calls.py`'s, then a summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
 """
 
 import json
@@ -25,6 +25,8 @@ REFERENCE_LINK = re.compile(r"^\s{0,3}\[[^\]]+\]:\s*(\S+)")
 ROOT_PATH = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/([A-Za-z0-9_./-]+)")
 SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 PLACEHOLDER = set("<*{")
+OPTION_REPLAY = "replay-option-calls.py"  # a plugin keeps beside its scripts the replay that calls each with an unknown option
+OPTION_SUMMARY = re.compile(r"^\d+ scripts, \d+ calls, \d+ not refused$", re.M)
 LISTERS = (  # each lister's script, the failure lines it prints and its summary line; without the summary a lister that printed nothing would pass
     ("list-unreached.py", "unreached ", re.compile(r"^\d+ files, \d+ unreached$", re.M)),
     ("list-cross-plugin-names.py", "shared ", re.compile(r"^\d+ files, \d+ naming another plugin$", re.M)),
@@ -130,7 +132,8 @@ def main(args):
         return 2
     failures = []
     compiled = manifests = links = docs = 0
-    for path in list_files(root):
+    files = list_files(root)
+    for path in files:
         full = os.path.join(root, path)
         if not os.path.isfile(full):
             continue
@@ -152,11 +155,12 @@ def main(args):
             docs += 1
             with open(full, encoding="utf-8", errors="replace") as handle:
                 links += check_markdown(root, path, handle.read(), failures)
-    for script, kind, summary in LISTERS:
-        listed = subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name(script)), root], capture_output=True, text=True)
+    replays = [(path, "option ", OPTION_SUMMARY) for path in files if path.endswith("/fixtures/" + OPTION_REPLAY)]
+    for script, kind, summary in [(str(pathlib.Path(__file__).with_name(name)), kind, summary) for name, kind, summary in LISTERS] + [(os.path.join(root, path), kind, summary) for path, kind, summary in replays]:
+        listed = subprocess.run([sys.executable, script, root], capture_output=True, text=True)
         if listed.returncode or not summary.search(listed.stdout):
             lines = [line for line in listed.stdout.splitlines() if line.startswith(kind)]
-            failures += lines or ["{}{}: exit {}, no summary line: {}".format(kind, script, listed.returncode, listed.stderr.strip())]
+            failures += lines or ["{}{}: exit {}, no summary line: {}".format(kind, os.path.basename(script), listed.returncode, listed.stderr.strip())]
     for line in failures:
         print(line)
     counts = "{} py compiled, {} manifests parsed, {} links in {} md resolved, {} failures".format(

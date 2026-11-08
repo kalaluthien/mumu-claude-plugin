@@ -11,7 +11,7 @@ import tempfile
 
 
 def main(args):
-    if len(args) < 3:
+    if len(args) < 3 or any(argument.startswith("--") for argument in args):
         print(__doc__, file=sys.stderr)
         return 2
     command, *refs = args
