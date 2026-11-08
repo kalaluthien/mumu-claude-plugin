@@ -91,7 +91,7 @@ try {
   const setup = await step('setup', `Run each with Bash, in order, and change nothing else:
 1. mkdir -p ${DATA} && touch ${DATA}/dream.lock
 2. Record the memory home in its history and write a copy of it before a dream changes it: python3 ${SCRIPTS}/snapshot-memory.py ${CONFIG} "dream ${TODAY}: before the tidy" --export ${DATA}/backup/${TODAY}
-Then copy each ${CONFIG}/projects/*/memory/ that exists and whose files git does not track (git -C <folder> ls-files prints nothing, as outside a work tree or when ignored there) with cp -R to ${DATA}/backup/${TODAY}/, keeping its path below / as the copy's path. The memory home and each folder under it are in the first copy, so ${HOME} lands at ${DATA}/backup/${TODAY}${HOME}.
+Then copy the project memory folders: python3 ${SCRIPTS}/copy-memory-folders.py ${CONFIG} ${DATA}/backup/${TODAY} (it keeps each folder at its path below /, and skips one whose files git tracks). The memory home and each folder under it are in the first copy, so ${HOME} lands at ${DATA}/backup/${TODAY}${HOME}.
 3. python3 ${SCRIPTS}/list-sessions.py map ${DEJAVU} --window-days 28
 4. python3 ${SCRIPTS}/list-projects.py ${CONFIG}
 If step 2 prints a line that opens with 'snapshot refused', run no further step and return backup = that line alone. Return backup = the line of step 2 that opens with 'snapshot exported' and one line per folder copied, batches = each line of step 3 that opens with 'batch <k>:', as k = '<k>' and items = the words after the colon, and projects = the path after 'project ' on each line of step 4 that opens with it.`, { label: 'set up', phase: 'Set up', schema: SETUP, model: 'haiku', effort: 'low' })
