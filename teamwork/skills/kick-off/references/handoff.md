@@ -33,6 +33,7 @@ Steering lines, for the worker prompt; take a row only when the task is that cas
 | holding files another open task touches | `BLOCKED:` at once, and start the part whose files that task never touches. |
 | using a mechanism new to the repository | Read its official docs before you design. |
 | a `[check]` that pipes a producer into a tool | Run `run-criteria.py` with `--pass <n>=<sample-file>`, since the base run never reaches its pass path. |
+| a cleanup or wrap-up task | Exercise abstract thinking: look for the same goal with fewer moving parts, surface implicit state machines and check them against intent, and surface relied-on but unenforced invariants and enforce those a short check can guard. |
 
 ## Steps
 
