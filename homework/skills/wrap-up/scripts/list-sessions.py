@@ -11,7 +11,8 @@ usage: list-sessions.py due <data> [--due-hours <h>]                  `due` when
 Digests print as `batch <k>: <digest> ...` lines of at most 10, one haiku agent each. The window is the interactive
 top-level transcripts under ${CLAUDE_CONFIG_DIR:-~/.claude}/projects changed in the last <d> days (14). A session with no
 owner line after its first prompt and no answer gets no digest, since a friction or habit item answers what the agent did,
-and such a session, often one another session started, shows none. An `AskUserQuestion` answer shows as
+and such a session, often one another session started, shows none. A Bash `ls` of the very path an `rm` or `rmdir` of the same command removed,
+or an `ls` whose exit status the command reads (`|| …`, `; echo $?`), expects the path missing, so its error line is no failure signature. An `AskUserQuestion` answer shows as
 `[ANSWER L<n>]: <question> | options: <label> / ... | answer: <the owner's pick or own words>`.
 """
 import glob
@@ -40,6 +41,10 @@ VARIABLE = [(re.compile(pattern), replacement) for pattern, replacement in [
 NOISE = re.compile(r"^(Exit code <n>|<n>|-+|ok\b.*|This hook comes from .*)$")
 DENIED = re.compile(r"doesn't want to proceed|user denied|rejected by the user", re.I)
 REASON = re.compile(r"\[[A-Z][A-Za-z /-]+\]")
+MISSING = re.compile(r"^ls: (.*): No such file or directory$", re.M)
+STATEMENT = re.compile(r"&&|\|\||[;&|\n]")
+# `ls <path> || …` or `ls <path>; echo $?` reads the exit status, so the ls expects its own failure
+EXPECTS_MISSING = re.compile(r"\bls\b(?:[^;\n&|]|2>&1)*(?:\|\||;\s*echo \$\?)")
 
 
 def repo_of(path):
@@ -54,10 +59,31 @@ def window(now, days):
     return sorted(recent, key=os.path.getmtime, reverse=True)
 
 
-def signature(tool, text):
-    """The tool and the last meaningful error line, variable parts masked; None for a bare exit code or a denial."""
+def removed_paths(command):
+    """Paths an `rm` or `rmdir` of the command names, as written."""
+    paths = []
+    for statement in STATEMENT.split(command):
+        words = statement.split()
+        if words[:1] in (["rm"], ["rmdir"]):
+            paths += [word.strip("'\"") for word in words[1:] if word.strip("'\"") and not word.startswith("-")]
+    return paths
+
+
+def drop_expected_missing(command, text):
+    """TEXT without the `ls` lines a Bash command expects: of a path it just removed, or one whose exit status it reads."""
+    if EXPECTS_MISSING.search(command):
+        return MISSING.sub("", text)
+    removed = [path.replace("~", "", 1) if path.startswith("~") else path for path in removed_paths(command)]
+    # a whole trailing path component, so a removed `a` never hides `/x/data`
+    return MISSING.sub(lambda found: "" if any(found[1] == path or found[1].endswith("/" + path.strip("/")) for path in removed) else found[0], text)
+
+
+def signature(tool, text, command=""):
+    """The tool and the last meaningful error line, variable parts masked; None for a bare exit code, a denial or a missing path a Bash call expects."""
     if DENIED.search(text):
         return None
+    if tool == "Bash":
+        text = drop_expected_missing(command, text)
     lines = []
     for raw in text.splitlines():
         line = raw.strip()
@@ -95,14 +121,15 @@ def read(path):
         if entry.get("isSidechain"):
             continue
         for block in transcript.blocks_of(entry, "tool_use"):
-            uses[block.get("id")] = block.get("name")
+            uses[block.get("id")] = (block.get("name"), str((block.get("input") or {}).get("command", "")))
             lines.append(f"[Tool: {block.get('name')}]")
         if isinstance(entry.get("toolUseResult"), dict) and "answers" in entry["toolUseResult"]:
             answered = answer_lines(entry["toolUseResult"], number)
             owners += [{"line": number, "text": line} for line in answered]
             lines += answered
         for block in transcript.blocks_of(entry, "tool_result"):
-            key = block.get("is_error") and signature(uses.get(block.get("tool_use_id"), "?"), transcript.text_of(block))
+            tool, command = uses.get(block.get("tool_use_id"), ("?", ""))
+            key = block.get("is_error") and signature(tool, transcript.text_of(block), command)
             if key:
                 failures.append({"key": key, "line": number, "time": transcript.seconds(entry.get("timestamp"))})
         if entry.get("type") == "assistant":
