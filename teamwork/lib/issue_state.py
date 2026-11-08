@@ -332,13 +332,16 @@ def live_runs(issue):
     return next((int(fields[WORD["live"]]) for _, fields, _ in reversed(records(issue)) if fields.get(WORD["live"], "").isdigit()), None)
 
 
-def compose(issue, blockers=()):
-    """{'holders': the latest names, or None when no record ever set them; 'waits': its wait line, in the grammar's order;
+def compose(issue, blockers=(), parts_wait=False):
+    """{'holders': the latest names, or None when no record ever set them; 'waits': its wait line, in the grammar's order, PARTS_WAIT telling whether
+    each open part waits on a task;
     'done': the body's criteria, each {'met': True, False or None when it has no box, 'kind', 'name', 'detail'}}."""
     holders = (holder_values(issue) or [None])[-1]
     asked = open_questions(issue)[-1:]
     if blockers:
         waits = " ".join(f"blocked by #{number}" for number in blockers)
+    elif parts_wait:
+        waits = "waits on its parts"
     elif asked:
         waits = "waits on the owner" if asked[0]["fields"].get(WORD["audience"]) == "owner" else "waits on the manager"
     else:

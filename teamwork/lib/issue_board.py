@@ -4,13 +4,14 @@ import unicodedata
 
 import decisions
 import issue_state
+import task_links
 
 # the latest closed parts a parent lists, newest first, an ellipsis below them when more landed before
 SHOWN_CLOSED = 4
 # close reasons of work stopped, not done; GitHub's duplicate close counts with them
 STOPPED = ("NOT_PLANNED", "DUPLICATE")
-# waits that need someone, which the status shows; a blocked task shows its `blocked by` line instead
-SHOWN_WAITS = ("waits on the owner", "waits on the manager")
+# waits the status shows; a blocked task shows its `blocked by` line instead
+SHOWN_WAITS = ("waits on its parts", "waits on the owner", "waits on the manager")
 WIDTHS = (24, 30, 40, 60, 80)
 PANE_WIDTH = 40  # a narrow docked pane, for a listing given no width, as before the pane is first drawn
 MIN_TEXT = 16  # cells a row keeps for its text before its depth stops growing
@@ -39,15 +40,20 @@ def progress_of(summary, blockers, next_step):
 
 def blockers_of(node):
     """Every task this one depends on; one closed as completed is marked closed, since only that releases it."""
-    return [{"number": blocker["number"], "closed": blocker.get("state") == "CLOSED" and blocker.get("stateReason") not in STOPPED}
-            for blocker in (node.get("blockedBy") or {}).get("nodes", [])]
+    return [{"number": blocker["number"], "closed": task_links.completed(blocker)} for blocker in (node.get("blockedBy") or {}).get("nodes", [])]
+
+
+def parts_wait(node):
+    """Whether each open part of NODE waits on a task its `depends on` names, so the parent has no step of its own."""
+    opened = [task for task in (node.get("subIssues") or {}).get("nodes", []) if task["state"] == "OPEN"]
+    return bool(opened) and all(any(not blocker["closed"] for blocker in blockers_of(task)) for task in opened)
 
 
 def entry(node, superseded=frozenset()):
     """One task as the board shows it: its status, its open questions and decisions, its criteria, its parts' progress."""
     every = blockers_of(node)
     blockers = [blocker["number"] for blocker in every if not blocker["closed"]]
-    state = issue_state.compose({"body": node["body"], "trusted": node["trusted"], "comments": node["comments"]["nodes"]}, blockers)
+    state = issue_state.compose({"body": node["body"], "trusted": node["trusted"], "comments": node["comments"]["nodes"]}, blockers, parts_wait(node))
     summary = node.get("subIssuesSummary") or {}
     closed = [{"number": task["number"], "title": issue_state.title(task), "url": task["url"], "blockers": blockers_of(task),
                "stopped": task.get("stateReason") in STOPPED} for task in (node.get("subIssues") or {}).get("nodes", []) if task["state"] == "CLOSED"]

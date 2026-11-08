@@ -64,9 +64,10 @@ A `N. [task] #n <title>` line in `Definition of done` is a part, not a criterion
 What an open issue waits on, first match:
 
 1. a task its `depends on` names that is not closed as completed: `blocked by #<n>`;
-2. an open question: `waits on the owner` when the latest one's audience is `owner`, else `waits on the manager`;
-3. holders with names: `held`;
-4. else `no holder`.
+2. a parent each of whose open parts is blocked by a task its `depends on` names, one level down only: `waits on its parts`;
+3. an open question: `waits on the owner` when the latest one's audience is `owner`, else `waits on the manager`;
+4. holders with names: `held`;
+5. else `no holder`.
 
 ## Rules
 

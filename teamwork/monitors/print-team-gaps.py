@@ -31,7 +31,7 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     shown = set()
-    waiting = set()  # a worker's issues with an open blocker, so a restart reports no blocker closed long ago
+    waiting = set()  # a worker's issues waiting on a task, so a restart reports no wait that ended long ago
     fed_urls = set()  # the urls of the reports a manager was already fed
     data, read_at, signal = None, 0.0, team_signal.stamp()  # what the board last gave, when, and the signal file's change then
     awake = False  # whether the last poll watched, so the poll the team empties in still reads once

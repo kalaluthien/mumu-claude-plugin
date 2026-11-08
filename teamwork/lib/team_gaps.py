@@ -45,16 +45,23 @@ def unanswered(issue):
             and not any(issue_state.KEYWORDS.get(word) == "answer" for word, _, _ in issue_state.records(issue)[1:]))
 
 
-def waiting(issue, open_issues):
-    """Whether an open task waits on another open task: its own `depends on:` names one, or each of its open parts does."""
-    blocked = lambda body: any(number in open_issues for number in task_links.depends(body))
-    parts = [open_issues[number] for number in task_links.parts(issue["body"]) if number in open_issues]
-    return blocked(issue["body"]) or bool(parts) and all(blocked(part["body"]) for part in parts)
+def wait_blockers(numbers, open_issues):
+    """Each of the open tasks NUMBERS and each of their open parts, mapped to the tasks its `depends on:` names that are not closed as completed;
+    None when a read failed. A caller keeps it with its read, since each task costs a board read."""
+    wanted = {number for task in numbers for number in [task, *task_links.parts(open_issues[task]["body"])] if number in open_issues}
+    found = {number: board.blockers(number) for number in wanted}
+    return None if None in found.values() else found
 
 
-def stalled(issue, open_issues):
+def waiting(issue, open_issues, blockers):
+    """Whether an open task waits, as the grammar's Waits states: BLOCKERS, a `wait_blockers`, holds a task for it, or for each of its open parts."""
+    parts = [number for number in task_links.parts(issue["body"]) if number in open_issues]
+    return bool(blockers.get(issue["number"])) or bool(parts) and all(blockers.get(number) for number in parts)
+
+
+def stalled(issue, open_issues, blockers):
     """Whether a held task waits on no one: not on another open task, nor on an answer."""
-    return not waiting(issue, open_issues) and not asking(issue)
+    return not waiting(issue, open_issues, blockers) and not asking(issue)
 
 
 def background(agent):
@@ -98,8 +105,12 @@ def manager_read(me, since=None):
     links = task_links.drift(tree) if tree is not None else ["unread: the board's tree read failed, so link gaps are not checked this time"]
     if found is None or everything is None or pulls is None or outside is None or None in outside or feed is None:
         return None
+    open_issues = {issue["number"]: issue for issue in [*everything, *found]}
+    blockers = wait_blockers(open_issues, open_issues)
+    if blockers is None:
+        return None
     return {"found": found, "everything": everything, "prs": pulls, "outside": [issue for issue in outside if unanswered(issue)],
-            "feed": feed, "links": links}
+            "feed": feed, "links": links, "blockers": blockers}
 
 
 def manager_actions(me, listed, data=None, fed_urls=None):
@@ -117,18 +128,21 @@ def manager_actions(me, listed, data=None, fed_urls=None):
     # a started worker names its tab before its agent is live, so its tab counts it as routed
     present = set(team) | {tab.get("label") for tab in tabs(me.get("workspace_id", ""))}
     open_issues = {issue["number"]: issue for issue in [*data["everything"], *found]}
-    lines += routing_lines(found, present, open_issues)
+    blockers = data.get("blockers") or wait_blockers(open_issues, open_issues)
+    if blockers is None:
+        return None
+    lines += routing_lines(found, present, open_issues, blockers)
     lines += [f"links {gap}" for gap in data.get("links", [])]
     lines += decisions.gaps(found)
     lines += outside_lines(data["outside"])
-    lines += team_lines(team, listed, data, open_issues)
+    lines += team_lines(team, listed, data, open_issues, blockers)
     return lines + feed_lines(me, data, fed_urls)
 
 
-def routing_lines(found, present, open_issues):
+def routing_lines(found, present, open_issues, blockers):
     """Per open issue, a route line while no live worker in PRESENT holds it and an answer line while its worker asks."""
     lines = []
-    unrouted = lambda issue: not unanswered(issue) and not waiting(issue, open_issues) and not any(holds(issue, name) for name in present if name)
+    unrouted = lambda issue: not unanswered(issue) and not waiting(issue, open_issues, blockers) and not any(holds(issue, name) for name in present if name)
     for issue in found:
         # the kept read may predate the manager's own `decide`, so a candidate is read again before it is called unrouted
         if unrouted(issue) and unrouted(board.fresh(issue["number"]) or issue):
@@ -149,7 +163,7 @@ def outside_lines(outside):
             for issue in outside]
 
 
-def team_lines(team, listed, data, open_issues):
+def team_lines(team, listed, data, open_issues, blockers):
     """Per worker or sentinel in TEAM, the line for its pane: blocked at a prompt, merged with nothing held, or idle with nothing to do."""
     status = {agent.get("name"): agent.get("agent_status") for agent in listed}
     panes = {agent.get("name"): agent.get("pane_id") for agent in listed}
@@ -165,7 +179,7 @@ def team_lines(team, listed, data, open_issues):
         elif merged[name] and not held_issues:
             # a merged change is news only once its worker has nothing left to do, since until then the worker goes on with its next task
             lines.append(f"merged {' '.join(f'#{number}' for number in merged[name])} by {name}: it holds nothing open; close it and clean its worktree")
-        elif status[name] in ("idle", "done") and role(name) != "sentinel" and (not held_issues or any(stalled(issue, open_issues) for issue in held_issues)) \
+        elif status[name] in ("idle", "done") and role(name) != "sentinel" and (not held_issues or any(stalled(issue, open_issues, blockers) for issue in held_issues)) \
                 and not background(by_name[name]):
             # a sentinel waits idle between the rounds of its duty; a worker whose tasks all wait on a task, the owner or the manager has nothing to do yet
             lines.append(f"idle {name}: holds {held}; give it its next step, answer what it waits on, or close it when it holds nothing open")
@@ -209,9 +223,13 @@ def prompt_text(pane):
 
 def worker_goal(me):
     """Each held issue's state from a fresh read, since a list read can lag a comment just posted."""
-    held = [issue for issue in issues() or [] if holds(issue, me["name"])]
-    fresh = [board.fresh(issue["number"]) or issue for issue in held]
-    return [f"#{issue['number']} {issue_state.title(issue)} ({issue['url']}): " + ("waits on your manager" if asking(issue) else "open") for issue in fresh]
+    every = issues() or []
+    open_issues = {issue["number"]: issue for issue in every}
+    fresh = [board.fresh(issue["number"]) or issue for issue in every if holds(issue, me["name"])]
+    open_issues.update((issue["number"], issue) for issue in fresh)
+    blockers = wait_blockers([issue["number"] for issue in fresh], open_issues) or {}
+    return [f"#{issue['number']} {issue_state.title(issue)} ({issue['url']}): "
+            + ("waits on your manager" if asking(issue) else "waits on a task" if waiting(issue, open_issues, blockers) else "open") for issue in fresh]
 
 
 def worker_read(me):
@@ -222,27 +240,29 @@ def worker_read(me):
         return None
     for pull in (pull for pull in pulls if owns(me["name"], pull["headRefName"])):  # the list read lacks mergeability, which a pull read gives
         pull["mergeable"] = {True: "CONFLICTING", False: "MERGEABLE"}.get(landing.conflicts(pull["number"]))
-    blockers = {issue["number"]: board.blockers(issue["number"]) for issue in found if holds(issue, me["name"])}
-    return None if None in blockers.values() else {"found": found, "prs": pulls, "blockers": blockers}
+    open_issues = {issue["number"]: issue for issue in found}
+    blockers = wait_blockers([issue["number"] for issue in found if holds(issue, me["name"])], open_issues)
+    return None if blockers is None else {"found": found, "prs": pulls, "blockers": blockers}
 
 
-def worker_actions(me, waiting, data=None):
-    """What ended a wait of this worker, as the act it needs; None when a read failed. WAITING, kept by the caller
-    across polls, holds the held issues last seen with an open blocker, so only the closing of the last one prints.
+def worker_actions(me, waited, data=None):
+    """What ended a wait of this worker, as the act it needs; None when a read failed. WAITED, kept by the caller
+    across polls, holds the held issues last seen waiting on a task, so only the end of that wait prints.
     DATA is a `worker_read` kept from an earlier poll, else a read now."""
     data = data or worker_read(me)
     if data is None:
         return None
     name, found, pulls = me["name"], data["found"], data["prs"]
     lines = limited(found, ISSUE_LIMIT, "open-issue")
+    open_issues = {issue["number"]: issue for issue in found}
     for issue in (issue for issue in found if holds(issue, name)):
         latest = issue_state.questions(issue)[-1:]
         if latest and latest[0]["answer"]:
             lines.append(f"answered #{issue['number']}: {latest[0]['answer']['url']} answers your {ASK}:; act on it")
-        if data["blockers"][issue["number"]]:
-            waiting.add(issue["number"])
-        elif issue["number"] in waiting:
-            waiting.discard(issue["number"])
+        if waiting(issue, open_issues, data["blockers"]):
+            waited.add(issue["number"])
+        elif issue["number"] in waited:
+            waited.discard(issue["number"])
             lines.append(f"start #{issue['number']}: every issue it waited on is closed")
     for pull in pulls:
         if owns(name, pull["headRefName"]) and pull.get("mergeable") == "CONFLICTING":
