@@ -1,12 +1,12 @@
 export const meta = {
   name: 'dreaming-workflow',
-  description: 'Dream: back up memory, map recent sessions, dig the most repeated mistakes and owner preferences, and tidy every memory folder in place',
+  description: 'Dream: back up memory, map recent sessions, dig the most repeated mistakes and owner preferences, tidy every memory folder in place, and put back each lesson a past correction still needs',
   whenToUse: 'Run from the homework wrap-up dream playbook, which passes the folders and what list-sessions.py due <data>/habit printed as args: {root, data, config, home, today, habit}',
   phases: [
     { title: 'Set up', detail: 'one agent runs the scripts: lock, back up, map sessions, list projects' },
     { title: 'Map', detail: 'one haiku agent per batch of session digests, at once' },
     { title: 'Dig', detail: 'one agent groups repeats and, weekly, habits, then digs the top ones' },
-    { title: 'Tidy', detail: 'one agent finds the drift in memory and config and fixes memory in place' },
+    { title: 'Tidy', detail: 'one agent finds the drift in memory and config and fixes memory in place; the unlock agent puts back the lessons past corrections need' },
   ],
 }
 
@@ -37,6 +37,11 @@ function step(prompt, opts) {
 }
 
 
+const RECALL = {
+  type: 'object',
+  properties: { restored: { type: 'array', items: { type: 'string' } }, worse: { type: 'array', items: { type: 'string' } }, unlock: { type: 'string' } },
+  required: ['restored', 'worse', 'unlock'],
+}
 const TOP_REPEATS = 3  // the repeats seen in the most sessions; the rest wait for a later run
 const TOP_PREFERENCES = 2
 
@@ -137,9 +142,17 @@ ${MEMORY_RULES} Change no file outside the memory folders: return each other fix
   }
 } finally {
   const reset = result ? `python3 ${ROOT}/hooks/signal-wrap-up.py dreamed ${DATA}; ` : ''  // only a dream that ended starts the memory count again
-  const unlocked = await step(`Run with Bash: ${reset}rm -f ${DATA}/dream.lock && echo removed
-Return its output.`, { label: 'unlock', phase: 'Tidy', model: 'haiku', effort: 'low' }).catch(() => null)
-  if (!/\bremoved\b/.test(String(unlocked ?? ''))) {
+  const removal = `rm -f ${DATA}/dream.lock && echo removed`
+  // the recall check rides on the unlock agent, so a dream adds no step for it
+  const unlocked = await (result && !result.tidy_failed ? step(`1. Run with Bash: python3 ${SCRIPTS}/restore-lessons.py ${DATA}/backup/${TODAY} ${DEJAVU}
+It has already put back each lesson the tidy took from a past owner correction. Return restored = its lines that open with 'restored '.
+2. From its 'correction' lines and its diff, name each correction the memory now serves worse than before the dream: the diff deletes, narrows or weakens the lesson that answered it, and no restored line covers it. Return worse = one '<correction id>: <the lesson and what the diff did to it>' each, [] when none. Change no file.
+3. Run with Bash: ${reset}${removal}
+Return unlock = its output.`, { label: 'unlock', phase: 'Tidy', schema: RECALL, model: 'haiku', effort: 'low' })
+    : step(`Run with Bash: ${reset}${removal}
+Return its output.`, { label: 'unlock', phase: 'Tidy', model: 'haiku', effort: 'low' })).catch(() => null)
+  if (unlocked?.restored) result.recall = { restored: unlocked.restored, worse: unlocked.worse }
+  if (!/\bremoved\b/.test(String(unlocked?.unlock ?? unlocked ?? ''))) {
     const unlock = `could not remove ${DATA}/dream.lock: remove it, or no dream runs on ${DATA} for 6 hours`
     log(unlock)
     if (result) result.unlock = unlock

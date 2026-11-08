@@ -25,9 +25,6 @@ REFERENCE_LINK = re.compile(r"^\s{0,3}\[[^\]]+\]:\s*(\S+)")
 ROOT_PATH = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/([A-Za-z0-9_./-]+)")
 SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 PLACEHOLDER = set("<*{")
-# score-memory.py counts a candidate's index lines and never follows their links, so these MEMORY.md files link lessons they do not hold.
-SCORED_INDEX = re.compile(r"(^|/)fixtures/replay/[^/]+/candidates/[^/]+/MEMORY\.md$")
-UNHELD_LESSON = re.compile(r"lesson-\d+\.md")
 LISTERS = (  # each lister's script, the failure lines it prints and its summary line; without the summary a lister that printed nothing would pass
     ("list-unreached.py", "unreached ", re.compile(r"^\d+ files, \d+ unreached$", re.M)),
     ("list-cross-plugin-names.py", "shared ", re.compile(r"^\d+ files, \d+ naming another plugin$", re.M)),
@@ -100,8 +97,6 @@ def check_markdown(root, path, text, failures):
     folder = os.path.dirname(os.path.join(root, path))
     for target in markdown_targets(text):
         target = target.strip("<>")
-        if SCORED_INDEX.search(path) and UNHELD_LESSON.fullmatch(target):
-            continue
         if SCHEME.match(target) or target.startswith("#") or PLACEHOLDER & set(target):
             continue
         local = unquote(target.split("#", 1)[0].split("?", 1)[0])
