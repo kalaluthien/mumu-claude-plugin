@@ -1,5 +1,6 @@
 """A run's stamp file, `<folder>/last-map`, whose age says whether the run is due again, and the dream's run lock,
-`<data>/dream.lock`, which the dreaming workflow touches at its start and removes at its end."""
+`<data>/dream.lock`, which the session about to run the dreaming workflow takes and the workflow removes at its end."""
+import fcntl
 import os
 import time
 
@@ -16,6 +17,18 @@ def due(folder, hours=None):
 
 
 def running(data):
-    """True when <data>/dream.lock is under LOCK_HOURS old: a dreaming workflow runs on this data now."""
+    """True when <data>/dream.lock was written under LOCK_HOURS ago, a future time counted as far: a dreaming workflow
+    runs on this data now."""
     lock = os.path.join(data, "dream.lock")
-    return os.path.exists(lock) and os.path.getmtime(lock) > time.time() - LOCK_HOURS * 3600
+    return os.path.exists(lock) and abs(time.time() - os.path.getmtime(lock)) < LOCK_HOURS * 3600
+
+
+def lock(data):
+    """Take <data>/dream.lock unless a fresh one holds; True when taken, by one caller only when several race."""
+    os.makedirs(data, exist_ok=True)
+    with open(os.path.join(data, "dream.lock.guard"), "w") as guard:
+        fcntl.flock(guard, fcntl.LOCK_EX)  # one caller at a time checks, clears a stale lock and takes it
+        if running(data):
+            return False
+        with open(os.path.join(data, "dream.lock"), "w"):
+            return True

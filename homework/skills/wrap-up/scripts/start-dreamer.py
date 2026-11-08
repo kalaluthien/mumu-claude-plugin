@@ -7,13 +7,15 @@ usage: start-dreamer.py <data> <config> <home> <memory count> <memory limit> [<n
 Its name is `<topic>-dreamer`, `<topic>` joining, in this order, `memory` when the memory count reached its limit,
 `repeats` when <data>/dejavu is due and `habit` when <data>/habit is due. It starts none when none holds, outside herdr,
 while a dreaming workflow runs on <data> (its lock, homework/lib/stamp.py), as when one of its own agents calls this, or
-when a herdr session named `*-dreamer` is working or blocked, since its dream still runs; a finished one, idle or
-done, gets the new dream under the new name instead, asking again what the owner left unanswered, since an unanswered
-question is never recorded. <note> goes into the Dreamer's prompt.
+when a herdr session named `*-dreamer` is in any state but idle or done, since its dream still starts, runs or
+waits; a finished one, idle or done, gets the new dream under the new name instead, asking again what the owner left
+unanswered, since an unanswered question is never recorded. It prints `failed to start` and exits 1, starting none,
+when herdr is missing, cannot run or replies with no agent list. <note> goes into the Dreamer's prompt.
 """
 import json
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 
@@ -25,11 +27,24 @@ CAUSES = (("repeats", "dejavu"), ("habit", "habit"))
 
 
 def herdr(*words):
-    result = subprocess.run(["herdr", *words], capture_output=True, text=True, timeout=180)
+    """herdr's `result` object for these words, else {"error": ...} when herdr cannot run or replies with no object."""
     try:
-        return json.loads(result.stdout).get("result", {})
-    except ValueError:
-        return {"error": (result.stdout + result.stderr).strip()}
+        result = subprocess.run(["herdr", *words], capture_output=True, text=True, errors="replace", timeout=180)
+    except (OSError, ValueError, subprocess.SubprocessError) as e:
+        return {"error": str(e)}
+    try:
+        reply = json.loads(result.stdout)
+    except (ValueError, RecursionError):
+        reply = None
+    value = reply.get("result") if isinstance(reply, dict) else None
+    return value if isinstance(value, dict) else {"error": (result.stdout + result.stderr).strip() or "no reply"}
+
+
+def field(value, *keys):
+    """The text under these keys of nested objects, None where one is missing, not an object or not a pane-like id."""
+    for key in keys:
+        value = value.get(key) if isinstance(value, dict) else None
+    return value if isinstance(value, str) and value and "\0" not in value else None
 
 
 def main(args):
@@ -50,22 +65,31 @@ def main(args):
     if not pane:
         print(f"no herdr here: started none; tell the owner to start {name} with this plugin")
         return 0
-    dreamers = [agent for agent in herdr("agent", "list").get("agents", [])
-                if str(agent.get("name") or "").endswith("-dreamer")]
-    busy = [agent["name"] for agent in dreamers if agent.get("agent_status") in ("working", "blocked")]
+    if not shutil.which("herdr"):
+        print(f"failed to start {name}: herdr is not on PATH")
+        return 1
+    listed = herdr("agent", "list")
+    if not isinstance(listed.get("agents"), list):
+        print(f"failed to start {name}: herdr agent list gave {listed.get('error') or listed}")
+        return 1
+    dreamers = [agent for agent in listed["agents"] if isinstance(agent, dict) and str(agent.get("name") or "").endswith("-dreamer")]
+    busy = [agent["name"] for agent in dreamers if agent.get("agent_status") not in ("idle", "done")]
     if busy:
-        print(f"held by {busy[0]}: its dream still runs or waits at a prompt; started none")
+        print(f"held by {busy[0]}: its dream still starts, runs or waits at a prompt; started none")
         return 0
     if dreamers:
-        new_pane, done = dreamers[0]["pane_id"], f"gave the dream to the finished {dreamers[0]['name']}, renamed {name},"
+        new_pane, done = field(dreamers[0], "pane_id"), f"gave the dream to the finished {dreamers[0]['name']}, renamed {name},"
+        if not new_pane:
+            print(f"failed to start {name}: herdr lists {dreamers[0]['name']} with no pane")
+            return 1
         herdr("agent", "rename", new_pane, name)
     else:
-        workspace = herdr("pane", "get", pane).get("pane", {}).get("workspace_id")
+        workspace = field(herdr("pane", "get", pane), "pane", "workspace_id")
         if not workspace:
             print(f"failed to start {name}: herdr knows no workspace of pane {pane}")
             return 1
         tab = herdr("tab", "create", "--workspace", workspace, "--cwd", os.getcwd(), "--label", name, "--no-focus")
-        new_pane, done = tab.get("root_pane", {}).get("pane_id"), f"started {name}"
+        new_pane, done = field(tab, "root_pane", "pane_id"), f"started {name}"
         started = herdr("agent", "start", name, "--kind", "claude", "--pane", new_pane, "--timeout", "120000", "--",
                         "--name", name, "--plugin-dir", str(PLUGIN)) if new_pane else {}
         if not started.get("agent"):
