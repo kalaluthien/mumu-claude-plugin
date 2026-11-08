@@ -31,7 +31,7 @@ COMMANDS = [
         *[("replay-criterion-names.py", ["--case", case]) for case in ("gate", "open")],
         *[("replay-local-landing.py", ["--case", case]) for case in LANDING_CASES],
     ]],
-    *[["python3", HOOKS + "replay-cd-refusal.py", "--case", case] for case in ("git", "path", "subshell")],
+    *[["python3", HOOKS + "replay-cd-refusal.py", "--case", case] for case in ("git", "path", "subshell", "listing", "script", "direct", "again", "real", "writes")],
     *[["bun", HOOKS + "render-task-pane.ts", SKILL + "deep-" + kind + "-nodes.json"] for kind in ("task", "decision")],
     ["bun", HOOKS + "render-empty-pane.ts"],
 ]

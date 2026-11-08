@@ -26,9 +26,38 @@ REMINDED = {"file": ("`file`", "40 characters"), "change": ("40 characters",), "
             "resolve": ("`resolve`",), "edit": ("edit-issue-body", "40 characters"), "change edit": ("40 characters",)}
 WORKTREES = "/.claude/worktrees/"
 # the only commands whose rewrite is offered: reads, so the live checkout is never written by a command the hook suggests
-READ_GIT = {"status", "log", "diff", "show", "grep", "ls-files", "rev-parse", "blame", "describe", "shortlog", "cat-file", "ls-tree"}
-READ_ONLY = {"cat", "head", "tail", "wc", "ls", "grep", "rg", "stat", "file", "du", "cut", "tr", "diff", "nl", "tree"}
-PATTERN_FIRST = {"grep", "rg"}
+READ_GIT = {"status", "log", "diff", "show", "grep", "ls-files", "rev-parse", "blame", "describe", "shortlog", "cat-file", "ls-tree", "for-each-ref", "ls-remote", "merge-base", "rev-list", "show-ref"}
+# each read and the option letters it may take, since any other letter may write a file, take a file or take an operand that is no path
+READ_ONLY = {"cat": "nbsAETtuv", "head": "ncqv", "tail": "ncqv", "wc": "lwcmL", "ls": "lahtrSd1FAGikpsuUcRn", "grep": "ivnclLhHwxEFsqrRaIzbmABCo", "rg": "ivnclhHwxFsSuUzoABC",
+             "stat": "L", "file": "bLiIzk", "du": "ahskcxHL", "cut": "cfdbsn", "tr": "cdsC", "diff": "uUqrNbBwicy", "nl": "abfhinpstvw", "tree": "adfilnpstuCDFNQ", "sed": "nErsz"}
+PATTERN_FIRST = {"grep", "rg", "sed"}
+# the option letters that take the next word as their value, which is no path
+TAKES_VALUE = {"head": "nc", "tail": "nc", "grep": "mABC", "rg": "ABC", "cut": "bcdf", "nl": "bfhinpsvw", "diff": "U"}
+# a read that takes the folder it stands in when it is given none
+DEFAULT_FOLDER = {"ls", "du", "tree"}
+# commands that name no file of the checkout, and the reads of `gh`, which asks GitHub about the repository the worktree shares
+NO_FILES = {"echo", "printf"}
+GH_READS = {("issue", "view"), ("issue", "list"), ("pr", "view"), ("pr", "list"), ("pr", "diff"), ("pr", "checks")}
+# the reads that pick their target from the branch of the folder they run in unless given a number or a url
+GH_NEEDS_TARGET = {("issue", "view"), ("pr", "view"), ("pr", "diff"), ("pr", "checks")}
+# a read whose operands are no file: it reads standard input
+STDIN_ONLY = {"tr"}
+# reads that print the name of each operand they are given, which the rewrite makes an absolute path, so they are refused with an operand of the folder
+NAME_PRINTERS = {"wc", "du", "file", "stat", "diff", "tree"}
+# the option letters that make a read print the name of each operand
+NAME_OPTIONS = {"head": "v", "tail": "v", "grep": "lLHrR", "rg": "lH", "ls": "dR"}
+# interpreters whose script operand is a read; any option beyond these takes code or a module
+SCRIPT_RUNNERS = {"python3", "python", "bash", "sh", "node"}
+# the long options that hand git a program to run or a file to write; git takes any prefix of a long option, so a prefix of one is refused too
+GIT_LONG_WRITES = ("output", "open-files-in-pager", "upload-pack", "exec")
+GIT_VALUE_LETTERS = "SGeABCULM"
+# a `gh api` short flag, bundled or with its value attached, that sets a field or a method
+API_SHORT_WRITES = re.compile(r"-[A-Za-z]*[fFX]")
+# a sed script a read can take: statements apart by `;`, each an optional address range, then print, delete, quit or a substitution with no `w` or `e` flag
+SED_STATEMENT = r"(?:(?:\d+|\$|/[^/\\[\\\\]*/)(?:,(?:\d+|\$|/[^/\\[\\\\]*/))?)?(?:[pdq]|s/[^/\\[\\\\]*/[^/\\[\\\\]*/[gpiI0-9]*)"
+SED_READ = re.compile(rf"{SED_STATEMENT}(?:;{SED_STATEMENT})*;?")
+# one addressed print, delete or quit, whose address may hold a bracket expression since nothing follows it that a bracket could hide
+SED_ADDRESSED = re.compile(r"(?:/[^/\\]*/|\d+|\$)(?:,(?:/[^/\\]*/|\d+|\$))?[pdq]")
 # a write to a GitHub issue, by `gh issue` or by `gh api` with a body, a method that writes or a GraphQL issue or comment mutation. A `gh`, shell or `eval`
 # word runs when it opens a simple command or follows only words that are no NEVER_RUNS word, such as a wrapper and its flags, read in a text with its
 # quoted strings, substitutions, comments and heredoc bodies blanked, since a commit message, a grep pattern or a note may name it; what it is given is read
@@ -55,6 +84,9 @@ HEREDOC = re.compile(r"<<-?[ \t]*(['\"]?)\\?(\w+)\1[^\n]*\n(.*?)\n[ \t]*\2[ \t]*
 HERE_STRING = re.compile(r"<<<[ \t]*(\"(?:\\.|[^\"\\])*\"|'[^']*'|(?:\\.|[^\s\\])+)")
 QUOTED = re.compile(r"\"(?:\\.|[^\"\\])*\"|'[^']*'")
 COMMENT = re.compile(r"(?:^|(?<=[ \t;&|(]))#[^\n]*", re.M)
+STAGE_JOINT = re.compile(r"&&|\|\||[;|\n]|(?<![<>])&(?![>&])")
+PASSED_REDIRECT = re.compile(r"(?:\d*|&)>(?:&\d+|/dev/null)")
+JOINTS = {"&&": "&&", "||": "||", ";": ";", "\n": ";", "|": "|"}
 CHANGE_DIRECTORY = re.compile(r"(?:^|[;&|({]|\bthen|\bdo)[ \t]*(?:cd|pushd)[ \t]+(?:--[ \t]+)?(\"[^\"]*\"|'[^']*'|[^\s;&|)}]+)", re.M)
 
 
@@ -157,60 +189,191 @@ def live_change_directory(command, cwd):
     return None
 
 
+def placed(value, folder, worktree):
+    """(argument, changed): the argument VALUE as the rewrite writes it, FOLDER's absolute path when FOLDER holds it; None when WORKTREE alone holds it, since
+    the rewrite would then read another file."""
+    if value and os.path.exists(os.path.join(worktree, value)) and not os.path.exists(os.path.join(folder, value)):
+        return None
+    if value and os.path.exists(os.path.join(folder, value)):
+        return shlex.quote(os.path.normpath(os.path.join(folder, value))), True
+    return value, False
+
+
+def inside_checkout(path, worktree):
+    """Whether PATH, with its `..` and links resolved, lies in the live checkout WORKTREE belongs to, outside its worktrees."""
+    real, root = os.path.realpath(path), os.path.realpath(worktree.split(WORKTREES)[0])
+    return (real + "/").startswith(root + "/") and WORKTREES not in real + "/"
+
+
+def reads_github(values):
+    """Whether the `gh` call of VALUES reads: a listed read, given the number or url it needs, or an `api` call with no method, field or body."""
+    verbs = tuple(values[1:3])
+    if verbs in GH_READS:
+        return verbs not in GH_NEEDS_TARGET or bool(re.fullmatch(r"#?\d+|https?://\S+", (values[3:4] or [""])[0] or ""))
+    return values[1:2] == ["api"] and values[2:3] != ["graphql"] and not API_WRITES.search(" ".join(value or "" for value in values)) \
+        and not any(API_SHORT_WRITES.match(value or "") or (value or "").startswith("--method") for value in values[2:])
+
+
+def outside_single_quotes(word):
+    """WORD without its single-quoted spans, where an apostrophe inside double quotes quotes nothing."""
+    kept, quote, escaped = "", "", False
+    for char in word:
+        if quote == "'":
+            quote = "" if char == "'" else quote
+        elif escaped:
+            kept, escaped = kept + char, False
+        elif char == "\\":
+            kept, escaped = kept + char, True
+        elif quote == '"':
+            kept, quote = kept + char, "" if char == '"' else quote
+        elif char in "'\"":
+            quote = char
+            kept += char if char == '"' else ""
+        else:
+            kept += char
+    return kept
+
+
+def runs_program(value):
+    """Whether VALUE, a git short option bundle, holds `O` before a letter that takes the rest of the bundle as its value."""
+    if not re.fullmatch(r"-[^-].*", value):
+        return False
+    for char in value[1:]:
+        if char == "O":
+            return True
+        if char in GIT_VALUE_LETTERS:
+            return False
+    return False
+
+
+def stage_words(rest, blanked, start, stop):
+    """[(written, value)] of the words of the simple command at START..STOP of REST, cut in BLANKED so a quoted space ends no word: the word as typed and
+    its text without quotes, None for a redirect to a descriptor or /dev/null; None when a word expands, redirects to a file or cannot be read."""
+    words = []
+    for found in re.finditer(r"\S+", blanked[start:stop]):
+        written = rest[start + found.start():start + found.end()]
+        if PASSED_REDIRECT.fullmatch(found[0]):
+            words.append((written, None))
+            continue
+        try:
+            value, = shlex.split(written)
+        except ValueError:
+            return None
+        if re.search(r"[<>$`*?\\\[#(){}]", found[0]) or re.search(r"[$`]|~[+-]", outside_single_quotes(written)):
+            return None
+        words.append((written, value))
+    return words
+
+
+def rewrite_stage(words, joint, folder, worktree):
+    """The WORDS of one simple command written for the shell's own folder, None unless it is a read whose rewrite is certain to read the same thing."""
+    written, values = [text for text, _ in words], [value for _, value in words]
+    name = values[0]
+    valued = {at + 1 for at, value in enumerate(values) if value and value.startswith("-") and not value.startswith("--") and value[-1] in TAKES_VALUE.get(name, "")}
+    given = [at for at, value in enumerate(values) if at and value is not None and not value.startswith("-") and at not in valued]
+    if name == "git":
+        if values[1:2] and values[1] not in READ_GIT or any(runs_program(value or "") or (value or "").startswith("--") and len(value) > 2 and any(word.startswith(value[2:].split("=")[0]) for word in GIT_LONG_WRITES) for value in values[1:]):
+            return None
+        return written[:1] + ["-C", shlex.quote(folder)] + written[1:]
+    if name == "gh" and reads_github(values) or name in NO_FILES:
+        return written
+    arguments = []  # the operands of a script, which stay as typed
+    if "/" in name and not os.path.isabs(name) and os.path.isfile(os.path.join(folder, name)) and inside_checkout(os.path.join(folder, name), worktree):  # a script run by its relative path, which is no program of the system
+        targets, arguments = [0], given
+    elif name in SCRIPT_RUNNERS:
+        if not given or any(value is not None and not re.fullmatch(r"-[IuBES]+", value) for value in values[1:given[0]]) or not os.path.isfile(os.path.join(folder, values[given[0]])) or not inside_checkout(os.path.join(folder, values[given[0]]), worktree):
+            return None  # code fed on stdin or by a device is no script of the folder
+        targets, arguments = given[:1], given[1:]
+    elif name in READ_ONLY and all(re.fullmatch(rf"-(?!-)[{READ_ONLY[name]}0-9,\-]+", value) for value in values[1:] if value and value.startswith("-")) \
+            and (name != "sed" or given and (SED_READ.fullmatch(values[given[0]]) or SED_ADDRESSED.fullmatch(values[given[0]])) and "\\" not in values[given[0]]):
+        targets = [] if name in STDIN_ONLY else given[name in PATTERN_FIRST:]
+        if name == "grep" and not targets and any(re.match(r"-[A-Za-z]*[rR]", value or "") for value in values[1:]):
+            return None  # a recursive search with no path searches the folder it stands in
+    else:
+        return None
+    if any(os.path.exists(os.path.join(folder, values[at])) for at in arguments):
+        return None  # a script's argument may or may not be a path, and the rewrite cannot tell
+    moved = []
+    for at in targets:
+        if (put := placed(values[at], folder, worktree)) is None:
+            return None
+        written[at] = put[0] if put[1] else written[at]
+        moved += [at] if put[1] else []
+    if prints_names(name, values, moved, len(targets), folder, bool(given)):
+        return None  # the rewrite would print the absolute path where the cd call printed the name it was given
+    if name in DEFAULT_FOLDER and not given:
+        return written + [shlex.quote(folder)]
+    return written if targets or joint == "|" else None  # with no file operand a command may read stdin or search the folder it stands in
+
+
+def prints_names(name, values, moved, operands, folder, has_operand):
+    """Whether the read NAME, given VALUES whose operands at MOVED the rewrite makes absolute, prints the name of an operand: always for NAME_PRINTERS and a
+    folder's own listing, with an option of NAME_OPTIONS, with two operands, with a directory searched, or with a file listed."""
+    if name in NAME_PRINTERS:
+        return bool(moved) or name in DEFAULT_FOLDER and not has_operand
+    options = "".join(value[1:] for value in values[1:] if value and value.startswith("-") and not value.startswith("--"))
+    return (moved and operands > 1 or any(letter in options for letter in NAME_OPTIONS.get(name, ""))
+            or name in ("grep", "rg") and any(os.path.isdir(os.path.join(folder, values[at])) for at in moved)
+            or name == "ls" and any(os.path.isfile(os.path.join(folder, values[at])) for at in moved)) and name in NAME_OPTIONS
+
+
+def free_of_comments(text):
+    """Whether TEXT, read left to right with its quotes, holds no comment and no quote left open."""
+    quote, escaped = "", False
+    for at, char in enumerate(text):
+        if escaped:
+            escaped = False
+        elif char == "\\" and quote != "'":
+            escaped = True
+        elif quote:
+            quote = "" if char == quote else quote
+        elif char in "'\"":
+            quote = char
+        elif char == "#" and (at == 0 or text[at - 1] in " \t\n;&|("):
+            return False
+    return not quote
+
+
 def without_change_directory(command, found, folder, worktree):
-    """COMMAND with the cd FOUND into FOLDER dropped and each later command written for the shell's own folder, `git -C FOLDER` for git and the absolute
-    path for each argument naming something in FOLDER; None unless every command is a read of FOLDER whose rewrite is certain to read the same thing: a write, a
-    second cd, an option that may take or write a file, a redirect, expansion, glob, comment, empty or numeric word, or a name that also exists in WORKTREE keeps the refusal's plain message."""
+    """COMMAND with the cd FOUND into FOLDER dropped and each later command written for the shell's own folder, `git -C FOLDER` for git and the absolute path
+    for each argument naming something in FOLDER; None unless every command is a read whose rewrite is certain to read the same thing: a write, a second cd, an
+    option that may take or write a file, a redirect to a file, expansion, glob, comment, code on stdin or in an option, or a name that
+    also exists in WORKTREE keeps the refusal's plain message. A script run by an interpreter counts as a read: run by its absolute path it is no more than
+    the hook already lets through."""
     rest = command[found.end():]
-    if re.search(r"[<>$`*?\\\n\[{#~]|\b(?:cd|pushd|popd)\b", rest):
+    if command[:found.start()].strip() or not free_of_comments(rest):
+        return None  # a comment hides its lines from the reading, and an opened quote in it hides the next ones
+    blanked = blank_text(rest)
+    tail = ")" if blanked.rstrip().endswith(")") else ""
+    if tail:
+        rest, blanked = rest.rstrip()[:-1], blanked.rstrip()[:-1]
+    stages, begin, joint = [], 0, ""
+    for match in [*STAGE_JOINT.finditer(blanked), None]:
+        stages.append((joint, begin, match.start() if match else len(blanked)))
+        joint, begin = (match[0], match.end()) if match else ("", 0)
+    if blanked[stages[0][1]:stages[0][2]].strip():
+        return None  # something sits between the cd and its joint
+    stages = stages[1:]
+    if stages and not blanked[stages[-1][1]:stages[-1][2]].strip() and stages[-1][0] in (";", "\n"):
+        stages.pop()
+    if not stages or stages[0][0] not in ("&&", ";", "\n") or any(not blanked[a:b].strip() or joint == "&" for joint, a, b in stages):
         return None
-    lexer = shlex.shlex(rest, posix=True, punctuation_chars=True)
-    lexer.whitespace_split = True
-    try:
-        tokens = list(lexer)
-    except ValueError:
-        return None
-    tail = " )" if tokens[-1:] == [")"] else ""
-    tokens = tokens[:-1] if tail else tokens
-    if tokens[:1] in (["&&"], [";"]):
-        tokens = tokens[1:]
-    commands, joint, fresh = [], "", True
-    for token in tokens:
-        if re.fullmatch(r"&&|\|\||;|\|", token):
-            joint, fresh = token, True
-        elif re.fullmatch(r"[();|&<>]+", token) or not token:
-            return None
-        elif fresh:
-            commands.append((joint, [token]))
-            fresh = False
-        else:
-            commands[-1][1].append(token)
-    if fresh:
-        return None
-    rewritten = []
-    for joint, words in commands:
-        if words[0] == "git":
-            if words[1:2] and words[1] not in READ_GIT:
-                return None
-            if any(word.startswith("--output") for word in words):
-                return None
-            words[1:1] = ["-C", folder]
-        elif words[0] in READ_ONLY:
-            if any(word.startswith("-") and not re.fullmatch(r"-[A-Za-z0-9]*", word) or re.fullmatch(r"-[A-Za-z]*[foe][A-Za-z]*", word) for word in words[1:]):
-                return None  # a long option or one that may take a file or write one leaves a path the rewrite cannot place
-            positional = [at for at, word in enumerate(words) if at and not word.startswith("-")]
-            changed = False
-            for at in positional[1 if words[0] in PATTERN_FIRST else 0:]:
-                if words[at].isdigit() or os.path.exists(os.path.join(worktree, words[at])) and not os.path.exists(os.path.join(folder, words[at])):
-                    return None
-                if os.path.exists(os.path.join(folder, words[at])):
-                    words[at], changed = os.path.normpath(os.path.join(folder, words[at])), True
-            if not changed and joint != "|":
-                return None
-        else:
-            return None
-        rewritten.append((f" {joint} " if joint else "") + " ".join(map(shlex.quote, words)))
     delimiter = re.match(r"[;&|({]|then|do", found[0])
+    rewritten = []
+    for at, (joint, begin, end) in enumerate(stages):
+        words = stage_words(rest, blanked, begin, end)
+        if words and [value for _, value in words][:1] == ["cd"] and len(words) == 2 and (words[1][1] or " ")[0] in "/~" and rewritten:
+            moved = os.path.normpath(os.path.expanduser(words[1][1]))
+            if joint != "&&" or inside_checkout(moved, worktree):
+                return None  # a failed cd leaves the rest where the rewrite cannot, and a cd into the live checkout is refused again
+            for later_joint, later_begin, later_end in stages[at + 1:]:  # what runs there must be a read too
+                later = stage_words(rest, blanked, later_begin, later_end)
+                if not later or later[0][1] is None or not rewrite_stage(later, later_joint, moved, moved):
+                    return None
+            return command[:found.start()] + (delimiter[0] + " " if delimiter else "") + "".join(rewritten) + " " + rest[begin - len(joint):] + tail  # an absolute cd sets the folder its rest runs in
+        if not words or words[0][1] is None or not (stage := rewrite_stage(words, joint, folder, worktree)):
+            return None
+        rewritten.append((f" {JOINTS[joint]} " if rewritten else "") + " ".join(stage))
     return command[:found.start()] + (delimiter[0] + " " if delimiter else "") + "".join(rewritten) + tail
 
 
@@ -257,7 +420,8 @@ def route(kind, event, role, me, listed):
                          "Take its next step; stop again only while a subagent, a check or your manager has it."])}
     entered = role == "worker" and live_change_directory(command_of(event), event.get("cwd"))
     if entered:  # guards the checkout every session loads
-        again = (f"run this instead: `{entered[2]}`" if entered[2] else "run it again without that cd and read the live checkout by path or git -C")
+        again = (f"run this instead: `{entered[2]}`, which runs in your worktree, so a script that reads its working folder sees that one and a name it prints starts with the live folder's path"
+                 if entered[2] else "run it again without that cd and read the live checkout by path or git -C")
         return {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason":
                 f"This cd enters {entered[0]} in the live checkout, which every session loads, so an edit there lands outside your worktree; "
                 f"nothing in this command ran; {again}, since your shell already stands in {entered[1]}."}}
