@@ -66,6 +66,9 @@ def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
+    os.makedirs(os.path.join(CONFIG, "memory-home"), exist_ok=True)
+    with open(os.path.join(CONFIG, "settings.json"), "w") as handle:
+        handle.write(json.dumps({"autoMemoryDirectory": os.path.join(CONFIG, "memory-home")}))
     os.makedirs(os.path.join(CONFIG, "projects", "-r-alpha", "memory"), exist_ok=True)
     with open(os.path.join(CONFIG, "projects", "-r-alpha", "memory", "MEMORY.md"), "w") as handle:
         handle.write("- [Plain words](plain.md) — explain a made-up label before using it\n")

@@ -41,23 +41,26 @@ def setting(path):
         return None
 
 
-def home(cwd=None, config=None):
-    """The folder `autoMemoryDirectory` names: the main checkout's local settings first, which Claude Code reads in each worktree too, then the user's; None when unset."""
-    config = pathlib.Path(config) if config else claude_config.folder()
-    local = [checkout(cwd) / ".claude" / "settings.local.json"] if cwd else []
-    for path in [*local, config / "settings.json"]:
-        found = setting(path)
-        if found:
-            return found
-    return None
+def home(config=None):
+    """The folder `autoMemoryDirectory` names in the user's global settings, None when unset."""
+    return setting((pathlib.Path(config) if config else claude_config.folder()) / "settings.json")
 
 
-def pools(config=None, cwd="."):
-    """Every memory folder: the home the session at cwd reads and each folder under it, then each `<config>/projects/*/memory` that is no link into the home."""
+def require(config=None):
+    """The memory home, else an exit with a message naming the setting and the file that holds it."""
+    found = home(config)
+    if found:
+        return found
+    path = (pathlib.Path(config) if config else claude_config.folder()) / "settings.json"
+    raise SystemExit(f"autoMemoryDirectory is not set: add {{\"autoMemoryDirectory\": \"~/.claude/memory\"}} to {path}")
+
+
+def pools(config=None):
+    """Every memory folder: the required home and each folder under it, then each `<config>/projects/*/memory` that is no link into the home."""
     config = pathlib.Path(config) if config else claude_config.folder()
-    root = home(cwd, config)
+    root = require(config)
     found = []
-    if root and root.is_dir():
+    if root.is_dir():
         found = [str(root)] + sorted(str(path) for path in root.iterdir() if path.is_dir() and not path.name.startswith("."))
     for pool in sorted(glob.glob(os.path.join(glob.escape(str(config)), "projects", "*", "memory"))):
         if not os.path.islink(pool):

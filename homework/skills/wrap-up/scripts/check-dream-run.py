@@ -6,7 +6,8 @@ usage: check-dream-run.py facets <dejavu>
 
 `facets` fails, exit 1, when a digest in <dejavu>/digests has no facet in <dejavu>/facets, or one that is not a JSON
 object with `friction` and `habits` lists, printing `facets missing: <session>` per digest and a `facets: <n> of <m>` line.
-`memory` scans the `.md` files of every memory folder `<config>` names (or only the pools named): it replaces each
+`memory` scans the `.md` files of every memory folder `<config>` names (or only the pools named; with none named and no
+`autoMemoryDirectory` in <config>/settings.json it exits 1 with a message naming the setting): it replaces each
 credential value in place, keeping the credential's name, printing `redacted <file>:<line> <kind>`, and prints `injected
 <file>:<line>` for each line that tells an agent to ignore its instructions or to send out secrets, which it leaves for the
 owner to judge; it exits 1 when it printed either and ends with a `memory: <n> redacted, <m> injected` line."""

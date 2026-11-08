@@ -94,6 +94,9 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     # memory a run must leave alone
+    os.makedirs(os.path.join(CONFIG, "memory-home"), exist_ok=True)
+    with open(os.path.join(CONFIG, "settings.json"), "w") as handle:
+        handle.write(json.dumps({"autoMemoryDirectory": os.path.join(CONFIG, "memory-home")}))
     os.makedirs(os.path.join(CONFIG, "projects", "-r-alpha", "memory"), exist_ok=True)
     with open(os.path.join(CONFIG, "projects", "-r-alpha", "memory", "MEMORY.md"), "w") as handle:
         handle.write("- [Tool trap](trap.md) — Bash: boom at <path>\n- [Ask](ask.md) — stops to ask when the rule says act\n")

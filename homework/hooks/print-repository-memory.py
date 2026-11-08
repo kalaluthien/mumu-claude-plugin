@@ -3,9 +3,8 @@
 
 usage: print-repository-memory.py   a SessionStart hook; reads the event's JSON on stdin
 
-When no `autoMemoryDirectory` is set, it prints only a `systemMessage` for the person, with the line to add to
-`~/.claude/settings.json`, since the agent needs no word of it and a new machine would run on without the shared home
-unnoticed; it never writes a settings file. It always exits 0, since a failure here must never stop a session from starting."""
+With no global `autoMemoryDirectory` it prints nothing, since the retro and dream scripts fail on their own when they need it.
+It always exits 0, since a failure here must never stop a session from starting."""
 import json
 import pathlib
 import sys
@@ -16,23 +15,20 @@ import memory_home  # noqa: E402
 
 SENTENCE = ("Memory: a lesson goes in the auto-memory root, {root}/, one file each; only a lesson wrong or harmful outside "
             "{repository} goes in {folder}/, its index line in {folder}/MEMORY.md.")
-WARNING = ("homework: `autoMemoryDirectory` is not set, so memory stays in each project's own pool. "
-           "To share one memory home, add to ~/.claude/settings.json: {\"autoMemoryDirectory\": \"~/.claude/memory\"}")
 
 
 def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 0
+    root = memory_home.home()
+    if not root:
+        return 0
     try:
         cwd = json.load(sys.stdin).get("cwd")
     except (ValueError, AttributeError):
         cwd = None
     cwd = cwd if isinstance(cwd, str) and cwd else "."
-    root = memory_home.home(cwd)
-    if not root:
-        print(json.dumps({"systemMessage": WARNING}))
-        return 0
     repository = memory_home.repository(cwd)
     if not repository:
         return 0

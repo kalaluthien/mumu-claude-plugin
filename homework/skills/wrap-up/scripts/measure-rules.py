@@ -9,7 +9,8 @@ usage: measure-rules.py <config> [<root>...]   reads <config>/rules/ and each <r
 A file is scoped when its YAML frontmatter, the block between a first line `---` and the next `---`, holds `paths:`;
 Claude Code loads it only when a file its globs match is read or edited, and every other rules file at every launch.
 The set every session loads is <config>/CLAUDE.md, each unscoped rules file of <config>/rules/ and the memory home's
-index, of which only the first 200 lines or 25,000 bytes load.
+index, of which only the first 200 lines or 25,000 bytes load; it exits 1 with a message when <config>/settings.json sets no
+`autoMemoryDirectory`.
 """
 import pathlib
 import sys
@@ -51,6 +52,7 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     config = pathlib.Path(args[0])
+    home = memory_home.require(config)
     folders = [config / "rules"] + [pathlib.Path(root) / ".claude" / "rules" for root in args[1:]]
     files = sorted(path for folder in folders if folder.is_dir() for path in folder.rglob("*.md") if path.is_file())
     over = always = 0
@@ -69,9 +71,7 @@ def main(args):
                   "files its parts govern, or trim it")
     print(f"{len(files)} rules files, {over} past {LIMIT} lines, {always} lines loaded at every launch: a rule about "
           "certain files belongs in a file scoped to them.")
-    home = memory_home.home(None, config)
-    if home:
-        user_bytes += loaded_bytes(home / "MEMORY.md", INDEX_LINES, INDEX_BYTES)
+    user_bytes += loaded_bytes(home / "MEMORY.md", INDEX_LINES, INDEX_BYTES)
     if user_bytes > BUDGET:
         print(f"over budget: every session loads {user_bytes} bytes of {BUDGET}: move a narrow rule or index line "
               "into a memory file, or scope it by `paths:`")

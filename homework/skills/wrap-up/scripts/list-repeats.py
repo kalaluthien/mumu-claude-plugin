@@ -8,6 +8,7 @@ usage: list-repeats.py mistakes <data> [--sessions <map>] [--groups <file>]
                                                                                    `dropped`) in <data>/filed.json
                                                                                    or <data>/kept.json
 
+With no `autoMemoryDirectory` in the global settings it exits 1 with a message naming the setting, before any output.
 Reads <map>/stats/ and <map>/facets/, <map> being <data> unless given, for the sessions of the kind's window and writes
 <data>/friction.jsonl or <data>/habits.jsonl, every item of the kind with an id, for the agent that groups them. With
 --groups (`[{"name", "ids"}]`), each group in enough sessions prints. A line reads
@@ -30,6 +31,7 @@ import sys
 import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import memory_home  # noqa: E402
 import repeats  # noqa: E402
 import transcript  # noqa: E402
 
@@ -58,6 +60,7 @@ def main(args):
     if not kind or not rest or rest[0].startswith("-") or len(rest) % 2 == 0 or not set(options) <= {"--sessions", "--groups"} or len(options) * 2 + 1 != len(rest):
         print(__doc__, file=sys.stderr)
         return 2
+    memory_home.require()
     data, now = rest[0], time.time()
     sessions = options.get("--sessions", data)
     records = repeats.load(os.path.join(data, kind["records"]), {})

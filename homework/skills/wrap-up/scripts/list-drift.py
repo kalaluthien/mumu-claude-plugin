@@ -13,7 +13,8 @@ is its file name, a `description` or a `metadata.type`, a `confirmed` or
 from its file's `description`, a file missing a
 `When it applies:` or `When it is wrong:` line, or a lesson never found again: `confirmed` 1 and
 `last-confirmed` over STALE_DAYS days old. It ends with the count, so no
-output is never mistaken for no drift.
+output is never mistaken for no drift. With no pool named and no `autoMemoryDirectory` in
+<config>/settings.json it exits 1 with a message naming the setting.
 """
 import glob
 import os
