@@ -14,7 +14,7 @@ not counted, each `[check]` a scenario that prints `PASS`, on base `FAIL`, and n
 first pipe stage and say `watches: <path>...`, so run-criteria.py can replay its transcript. A task below it keeps the rules it was filed under.
 `--cut-off` prints `CUT_OFF`.
 
-A task numbered at or above `GOAL_CUT_OFF`, or one given with no `--task`, whose body holds a `## Goal` must also have in it a `Path:` line
+A task numbered at or above `criteria_check.GOAL_CUT_OFF`, or one given with no `--task`, whose body holds a `## Goal` must also have in it a `Path:` line
 naming the flow of the changed part, as protocol.md's **Scope the path** defines it; the lint prints it as `goal: <defects>`. A body with no Goal, such as a root, is not checked."""
 import pathlib
 import re
@@ -28,16 +28,7 @@ import issue_state  # noqa: E402
 NEXT_WORD = r"[^A-Za-z0-9-]+([A-Za-z0-9-]+)"  # the word after a marker such as `prints`
 # the first task number filed after the commit that wrote this line, so every task filed before keeps its old rules
 CUT_OFF = 1195
-# the number of the task that added the Goal path check, so every Goal written before it keeps its old rules
-GOAL_CUT_OFF = 1305
 MOST = 5
-PATH_LINE = re.compile(r"^[ \t]*(?:[-*][ \t]+)?(?:\*\*)?Path(?:\*\*)?:(?:\*\*)?[ \t]*(.*)$", re.M | re.I)
-# the blanks of the form FIX prints, which a writer who copies it unfilled has not answered
-BLANK = re.compile(r"<(?:caller|step before|step after|who sees the result)>")
-# the relations Scope the path names between a changed part and its flow, each written `label: who or what`
-RELATION = re.compile(r"^\s*(?:caller|before|after|meets)\s*:\s*(\S.*?)\s*$", re.I)
-# a value that opens by saying there is no such party, not a party, unless a party follows `but` or `except`
-NOBODY = re.compile(r"^(?:none|no one|nobody|nothing|no\s|n/a|unknown|tbd|-)(?!.*\b(?:but|except)\b)", re.I)
 # programs that only read or reshape text, so a check made of them alone never runs the system it judges
 SCANS = {"grep", "egrep", "fgrep", "rg", "ag", "awk", "gawk", "sed", "cat", "head", "tail", "wc", "sort", "uniq",
          "cut", "tr", "test", "[", "diff", "cmp", "jq", "echo", "printf", "true", "false"}
@@ -73,12 +64,7 @@ FIX = {
     "not a scenario": "make the check a scenario that runs the system and prints `PASS`, and quote `FAIL` on base",
     "live stage not replayable": "make the first pipe stage the only `claude -p` run, with no redirect, subshell or `&&` before the pipe, "
                                  "and name the paths it runs against: `watches: <path>...`; the stages after it judge its saved transcript",
-    "no path in the Goal": "add to the Goal one line, `Path: caller: <caller>; before: <step before>; after: <step after>; meets: <who sees the result>`, "
-                           "naming the flow of the changed part, as protocol.md's **Scope the path** says: its callers, the steps before and after it, "
-                           "and whoever meets its result, all on that one line; a Goal that names only the changed part misses what breaks when it changes",
-    "path names no flow": "as protocol.md's **Scope the path** says, write the `Path:` line as `label: name` items split by `;`, the only form that counts: at least one of "
-                          "`caller:`, `before:`, `after:` or `meets:` followed by the party it names, never `none`, empty, or a `<...>` blank of the form left in the line; "
-                          "a line that names only the changed part, or says nothing is affected, gives no flow",
+    **criteria_check.GOAL_FIX,
     "text scan": "run the system and judge its behaviour; a grep, `awk` or file read alone checks words, not what works",
 }
 
@@ -138,16 +124,6 @@ def live_defects(kind, detail):
     return ["live stage not replayable"] if kind == "check" and command and criteria_check.starts_session(command) and not criteria_check.live_stage(detail) else []
 
 
-def goal_defects(goal):
-    """The defects of a Goal's `Path:` line: absent, or present and naming no flow of the changed part."""
-    lines = [text.strip() for text in PATH_LINE.findall(goal)]
-    if not any(lines):
-        return ["no path in the Goal"]
-    items = [RELATION.match(item) for text in lines for item in text.split(";")]
-    named = [item.group(1) for item in items if item]
-    return [] if named and not any(BLANK.search(text) for text in lines) and any(not NOBODY.match(value) for value in named) else ["path names no flow"]
-
-
 def defects(kind, name, detail):
     """The defects of one criterion, in the order the task lists them."""
     found = [] if kind in ("check", "score") else ["no kind"]
@@ -187,7 +163,7 @@ def main(args):
     lines = issue_state.ITEM.findall(issue_state.sections(body).get("done", ""))
     new_rules = task is None or task >= CUT_OFF
     goal = issue_state.sections(body).get("goal")
-    goal_found = goal_defects(goal) if goal is not None and (task is None or task >= GOAL_CUT_OFF) else []
+    goal_found = criteria_check.goal_defects(goal) if goal is not None and (task is None or task >= criteria_check.GOAL_CUT_OFF) else []
     # a part, `[task] #n`, is no criterion, so its form is the graph's to check
     matched = [(line_number, issue_state.CRITERION.match(line).groups()[1:]) for line_number, line in enumerate(lines, 1)]
     criteria = [(line_number, groups) for line_number, groups in matched if groups[0] != "task"]

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Edit an issue's body by a unified diff of it: post a comment of the keyword line and the diff in a `diff` fence, then
-apply the diff to the body. A diff whose hunks are out of order, that does not apply to the current body, or that adds a defect to it or has a keyword line that is not one
+apply the diff to the body. A diff whose hunks are out of order, that does not apply to the current body, or that adds a defect to it, a `## Goal` naming no flow of its changed part included, or has a keyword line that is not one
 `DECIDED:` line, changes nothing, comment included, and exits 2 naming the fix. `--base <sha>` is the `body sha` `use-board.py read` printed, and a body that changed since
 is refused too, since a diff made from an older body would put its old text back.
 
@@ -13,6 +13,7 @@ import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
+import criteria_check  # noqa: E402
 import issue_state  # noqa: E402
 
 
@@ -59,6 +60,7 @@ def land(issue, diff_file, base, comment, work, refusal):
     applied = patch(body, diff_file, "-o", "-")
     # a defect the body already held does not block the edit that may fix it
     found = issue_state.defects("edit-body", applied.stdout, body.read_text())
+    found += criteria_check.goal_refusals(applied.stdout, int(issue) if issue.isdigit() else None, body.read_text())
     if found:
         refusal.append((2, defect_text(found)))
         return None

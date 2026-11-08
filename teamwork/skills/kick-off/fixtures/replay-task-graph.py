@@ -41,7 +41,7 @@ def body(depends=(), parts=(), check=True):
     """A task's body: a goal, its `depends on` line, then a Definition of done of a check, when CHECK, and its parts."""
     fence = f"```teamwork\ndepends on: {' '.join(f'#{n}' for n in depends)}\n```\n\n" if depends else ""
     items = ([CHECK] if check else []) + [f"{i}. [task] #{n} Probe part {n}\n" for i, n in enumerate(parts, 1 + check)]
-    return f"## Goal\n\nProbe the task graph.\n\n{fence}## Definition of done\n\n{''.join(items)}"
+    return f"## Goal\n\nProbe the task graph.\n\nPath: caller: the probe run; meets: the owner\n\n{fence}## Definition of done\n\n{''.join(items)}"
 
 
 def use(*argv):

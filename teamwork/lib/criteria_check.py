@@ -4,6 +4,47 @@ import re
 
 import issue_state
 
+# the number of the task that added the Goal path check, so every Goal written before it keeps its old rules
+GOAL_CUT_OFF = 1305
+PATH_LINE = re.compile(r"^[ \t]*(?:[-*][ \t]+)?(?:\*\*)?Path(?:\*\*)?:(?:\*\*)?[ \t]*(.*)$", re.M | re.I)
+# the blanks of the form FIX prints, which a writer who copies it unfilled has not answered
+BLANK = re.compile(r"<(?:caller|step before|step after|who sees the result)>")
+# the relations Scope the path names between a changed part and its flow, each written `label: who or what`
+RELATION = re.compile(r"^\s*(?:caller|before|after|meets)\s*:\s*(\S.*?)\s*$", re.I)
+# a value that opens by saying there is no such party, not a party, unless a party follows `but` or `except`
+NOBODY = re.compile(r"^(?:none|no one|nobody|nothing|no\s|n/a|unknown|tbd|-)(?!.*\b(?:but|except)\b)", re.I)
+
+GOAL_FIX = {
+    "no path in the Goal": "add to the Goal one line, `Path: caller: <caller>; before: <step before>; after: <step after>; meets: <who sees the result>`, "
+                           "naming the flow of the changed part, as protocol.md's **Scope the path** says: its callers, the steps before and after it, "
+                           "and whoever meets its result, all on that one line; a Goal that names only the changed part misses what breaks when it changes",
+    "path names no flow": "as protocol.md's **Scope the path** says, write the `Path:` line as `label: name` items split by `;`, the only form that counts: at least one of "
+                          "`caller:`, `before:`, `after:` or `meets:` followed by the party it names, never `none`, empty, or a `<...>` blank of the form left in the line; "
+                          "a line that names only the changed part, or says nothing is affected, gives no flow",
+}
+
+
+def goal_defects(goal):
+    """The defects of a Goal's `Path:` line: absent, or present and naming no flow of the changed part."""
+    lines = [text.strip() for text in PATH_LINE.findall(goal)]
+    if not any(lines):
+        return ["no path in the Goal"]
+    items = [RELATION.match(item) for text in lines for item in text.split(";")]
+    named = [item.group(1) for item in items if item]
+    return [] if named and not any(BLANK.search(text) for text in lines) and any(not NOBODY.match(value) for value in named) else ["path names no flow"]
+
+
+def goal_refusals(body, number=None, old=""):
+    """The sentences, each ending in its fix, that refuse BODY's `## Goal` for naming no flow; none for a body with no Goal, a task numbered below the cut-off,
+    or a defect OLD already held, so an edit to some other part of a body is never blocked."""
+    goal = issue_state.sections(body).get("goal")
+    if goal is None or number is not None and number < GOAL_CUT_OFF:
+        return []
+    before = issue_state.sections(old).get("goal")
+    held = goal_defects(before) if before is not None else []
+    return [f"the `## Goal` {name}: {GOAL_FIX[name]}" for name in goal_defects(goal) if name not in held]
+
+
 PLACEHOLDER = re.compile(r"<[A-Za-z][\w .-]*>")
 # a code span, or an empty one, which SPAN skips
 # an empty one only where the clause goes on to its end, so a padded `` echo `x` `` stays one span

@@ -22,7 +22,7 @@ ROOT = HERE.parents[2]
 SCRIPTS = HERE.parent / "scripts"
 sys.path.insert(0, str(ROOT / "lib"))
 
-BASE = "A summary.\n\n## Goal\n\nDo it.\n\n## Definition of done\n\n1. [check] **The probe works when it runs once**: `true` prints nothing.\n"
+BASE = "A summary.\n\n## Goal\n\nDo it.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe works when it runs once**: `true` prints nothing.\n"
 FENCED = "\n```teamwork\n{}\n```\n"
 STRAY = BASE + "\nholders: stray-worker\n"
 

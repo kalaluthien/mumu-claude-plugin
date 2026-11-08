@@ -4,7 +4,8 @@
 usage: use-board.py <operation> <args>
 
 `comment`, `decide`, `file` and `resolve` first refuse, exit 2 and post nothing, a text with a malformed key line, keyword line or section heading, naming the fix;
-`file`, `title`, `decide` and an `edit` also refuse a title, summary line or decision that breaks the grammar's Plain words caps.
+`file`, `title`, `decide` and an `edit` also refuse a title, summary line or decision that breaks the grammar's Plain words caps;
+`file`, and an `edit` of a task numbered at or above the Goal cut-off, refuse a `## Goal` that names no flow of its changed part, as check-criteria.py does, unless the body edited held that defect already.
 
   read <issue> [--as worker|judge]      print its title, state, labels, parent, body and comments; as a worker without each `Judge note:` paragraph,
                                         which names probes of a criterion's implementation, as a judge without each `BLOCKED:` comment, which is worker history
@@ -27,6 +28,7 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
+import criteria_check  # noqa: E402
 import decisions  # noqa: E402
 import issue_state  # noqa: E402
 from judge_note import without_judge_note  # noqa: E402
@@ -77,6 +79,11 @@ def post_comment(operands):
 
 
 def file_issue(operands):
+    # a Goal that names no flow of its changed part would sit on the board until a lint found it, so it is refused before it is filed
+    refused = criteria_check.goal_refusals(read_text(operands[1]))
+    if refused:
+        print("use-board: nothing posted, the file has defects:\n- " + "\n- ".join(refused), file=sys.stderr)
+        return 2
     rest, scope = operands[2:], {}
     if "--scope" in rest:
         at = rest.index("--scope")

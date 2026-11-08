@@ -51,7 +51,7 @@ def step(name, ok, detail=""):
 def body(parts=(), depends=()):
     items = [CHECK] + [f"{i}. [task] #{n} Probe part {n}\n" for i, n in enumerate(parts, 2)]
     fence = f"```teamwork\ndepends on: {' '.join(f'#{n}' for n in depends)}\n```\n\n" if depends else ""
-    return f"## Goal\n\nProbe typed decisions.\n\n{fence}## Definition of done\n\n{''.join(items)}"
+    return f"## Goal\n\nProbe typed decisions.\n\nPath: caller: the probe run; meets: the owner\n\n{fence}## Definition of done\n\n{''.join(items)}"
 
 
 def use(*argv):

@@ -15,7 +15,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import replay_probe  # noqa: E402
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
-BODY = "## Goal\n\nProbe the pane.\n\n## Definition of done\n\n1. [check] **The probe prints PASS when it runs**: `echo PASS` prints `PASS`; on base `FAIL`.\n"
+BODY = "## Goal\n\nProbe the pane.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe prints PASS when it runs**: `echo PASS` prints `PASS`; on base `FAIL`.\n"
 HOLD = replay_probe.HOLD
 ADDED = ("drop the releases line", "show the blocker on the title", "hide closed blockers")
 
