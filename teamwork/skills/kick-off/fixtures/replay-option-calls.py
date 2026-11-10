@@ -81,7 +81,7 @@ def build_sandbox(root, work):
     run(git + ["init", "-q", "-b", "main"])
     run(git + ["commit", "-q", "--allow-empty", "-m", "start"])
     environment = {"PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "HOME": str(home), "CLAUDE_CONFIG_DIR": str(home / "claude"),
-                   "FAKE_HERDR_STATE": str(state), "FAKE_HERDR_LOG": str(work / "herdr-log"), "PYTHONDONTWRITEBYTECODE": "1"}
+                   "TEAMWORK_FAKE_HERDR_STATE": str(state), "TEAMWORK_FAKE_HERDR_LOG": str(work / "herdr-log"), "PYTHONDONTWRITEBYTECODE": "1"}
     seeded = run([sys.executable, str(root / PLUGIN / "skills/kick-off/scripts/use-board.py"), "file", "Seed the board", "body"], cwd=repository, env=environment)
     if seeded.returncode:
         sys.exit(f"replay-option-calls: the throwaway board did not start: {seeded.stderr.strip()}")

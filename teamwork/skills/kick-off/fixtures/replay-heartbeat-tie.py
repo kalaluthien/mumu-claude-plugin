@@ -36,7 +36,7 @@ def trial(monitor):
     work = pathlib.Path(tempfile.mkdtemp(prefix="heartbeat-tie-"))
     repository, state, log = work / "repo", work / "herdr.json", work / "monitor.log"
     environment = {**os.environ, **replay_probe.IDENTITY, "CLAUDE_CONFIG_DIR": str(work / "claude"), "GIT_CONFIG_GLOBAL": str(work / "gitconfig"),
-                   "FAKE_HERDR_STATE": str(state), "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "HERDR_PANE_ID": "w1:p1", "MONITOR_POLL": POLL}
+                   "TEAMWORK_FAKE_HERDR_STATE": str(state), "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "HERDR_PANE_ID": "w1:p1", "TEAMWORK_MONITOR_POLL": POLL}
     replay_probe.write_git_config(work)
     repository.mkdir()
     for argv in (["init", "-q", "-b", "main"], ["commit", "-q", "--allow-empty", "-m", "start"]):

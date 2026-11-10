@@ -79,7 +79,7 @@ def case_whole(work, repository, origin, environment):
     herdr.write_text(json.dumps({"n": 10, "agents": team, "tabs": [{"tab_id": agent["tab_id"], "workspace_id": "w1", "label": agent["name"]} for agent in team]}))
     log = work / "heartbeat.log"
     live = subprocess.Popen([str(MONITORS / "print-team-gaps.py")], cwd=repository, stdout=log.open("w"), stderr=subprocess.STDOUT,
-                            env={**environment, "FAKE_HERDR_STATE": str(herdr), "HERDR_PANE_ID": "w1:p1", "MONITOR_POLL": "1"})
+                            env={**environment, "TEAMWORK_FAKE_HERDR_STATE": str(herdr), "HERDR_PANE_ID": "w1:p1", "TEAMWORK_MONITOR_POLL": "1"})
     try:
         end = time.time() + 30
         while time.time() < end and "route #3" not in log.read_text():

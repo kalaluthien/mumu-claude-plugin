@@ -2,7 +2,7 @@
 """Replay the team in varied scenarios on a temporary git board and the fake herdr beside this file, and print `ok <scenario>`, or `fail <scenario>: <the output that failed>`.
 
 usage: replay-team-scenarios.py [--only <scenario>,...] [--verbose]
-`--verbose` also prints each run's output. FAKE_HERDR_BREAK=accept makes the fake herdr take every prompt and wait, so the scenarios that
+`--verbose` also prints each run's output. TEAMWORK_FAKE_HERDR_BREAK=accept makes the fake herdr take every prompt and wait, so the scenarios that
 prove a send can fail must then fail."""
 import json
 import os
@@ -35,8 +35,8 @@ def herdr(*agents):
 
 
 def run(argv, state, pane=None, event=None, seconds=120, cwd=None, **environment):
-    environment = {**os.environ, "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state),
-           "MONITOR_POLL": "1000", **({"HERDR_PANE_ID": pane} if pane else {}), **environment}
+    environment = {**os.environ, "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "TEAMWORK_FAKE_HERDR_STATE": str(state),
+           "TEAMWORK_MONITOR_POLL": "1000", **({"HERDR_PANE_ID": pane} if pane else {}), **environment}
     try:
         process = subprocess.run([str(argument) for argument in argv], env=environment, input=event and json.dumps(event), capture_output=True, text=True, timeout=seconds, cwd=cwd)
         out, code = process.stdout + process.stderr, process.returncode
@@ -64,7 +64,7 @@ def heartbeat(state, pane, seconds=40, cwd=None, **environment):
 def tell(state, name, text="hi"):
     note = pathlib.Path(tempfile.mkstemp(suffix=".md")[1])
     note.write_text(text)
-    return run([SCRIPTS / "tell-session.py", name, note], state, TELL_SESSION_TIMEOUT="5")
+    return run([SCRIPTS / "tell-session.py", name, note], state, TEAMWORK_TELL_SESSION_TIMEOUT="5")
 
 
 def status(state, name):
@@ -88,7 +88,7 @@ def git_team():
 
     def use(*argv):
         return subprocess.run([sys.executable, str(SCRIPTS / "use-board.py"), *map(str, argv)], cwd=repository, capture_output=True, text=True,
-                              env={**os.environ, **environment, "HERDR_PANE_ID": "w1:p1", "FAKE_HERDR_STATE": str(state), "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}"}).stdout.strip()
+                              env={**os.environ, **environment, "HERDR_PANE_ID": "w1:p1", "TEAMWORK_FAKE_HERDR_STATE": str(state), "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}"}).stdout.strip()
 
     def text(name, body):
         path = work / name
@@ -143,7 +143,7 @@ def tell_claude():
     state = herdr(agent("protocol-split-worker", 1, "working"), agent("idle-worker", 2, "idle"), agent("busy-worker", 3, "working"))
     outs = []
     for name, before in (("idle-worker", "idle"), ("busy-worker", "working")):
-        for call in (lambda: tell(state, name), lambda: run([SCRIPTS / "tell-session.py", name, "not a file"], state, TELL_SESSION_TIMEOUT="5")):
+        for call in (lambda: tell(state, name), lambda: run([SCRIPTS / "tell-session.py", name, "not a file"], state, TEAMWORK_TELL_SESSION_TIMEOUT="5")):
             started = time.time()
             code, out = call()
             outs.append(out)
@@ -252,7 +252,7 @@ def moved_close():
     """A session whose pane moves while it is closed still gets its dialog answered at its new pane, and closes."""
     stuck = dict(agent("moving-worker", 1, "blocked", "w9"), screen="Background work is running", move="w4:p15", move_after=2)  # after the own check and the first read
     state = herdr(*TEAM, stuck)
-    code, out = run([SCRIPTS / "close-session.py", "moving-worker"], state, "w1:p1", seconds=30, CLOSE_SESSION_TIMEOUT="5")
+    code, out = run([SCRIPTS / "close-session.py", "moving-worker"], state, "w1:p1", seconds=30, TEAMWORK_CLOSE_SESSION_TIMEOUT="5")
     return code == 0 and "moving-worker exited" in out, out
 
 
@@ -277,7 +277,7 @@ def moved_rename():
     home = tempfile.mkdtemp(prefix="fake-home-")
     state = herdr(dict(agent("teamwork-manager", 1, "idle", "w9"), agent_session={"value": "moved-id"}, move="w4:p15"))
     code, out = run([SCRIPTS / "rename-session.py", "renamed-manager"], state, "w9:p1", seconds=60,
-                    CLAUDE_CODE_SESSION_ID="moved-id", FAKE_HERDR_HOME=home, HOME=home)
+                    CLAUDE_CODE_SESSION_ID="moved-id", TEAMWORK_FAKE_HERDR_HOME=home, HOME=home)
     return code == 0 and out.strip() == "renamed to renamed-manager" and workspace_of(state, "renamed-manager") == "w4", out
 
 
@@ -285,7 +285,7 @@ def moved_start():
     """A started session whose pane moves before its kick-off is typed still takes its kick-off."""
     state = herdr(*TEAM)
     code, out = run([SCRIPTS / "start-session.py", "moving-slow-worker", "/tmp", "worker moving-slow-worker manager teamwork-manager x",
-                     "--model", "haiku", "--effort", "low"], state, "w1:p1", seconds=60, START_SESSION_TIMEOUT="10")
+                     "--model", "haiku", "--effort", "low"], state, "w1:p1", seconds=60, TEAMWORK_START_SESSION_TIMEOUT="10")
     return code == 0 and "took its kick-off" in out and status(state, "moving-slow-worker") == "working", out
 
 

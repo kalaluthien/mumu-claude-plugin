@@ -3,7 +3,7 @@
 
 usage: close-session.py <name>
 
-A session closing itself runs detached, so it closes once the turn ends. CLOSE_SESSION_TIMEOUT (default 3600) bounds the
+A session closing itself runs detached, so it closes once the turn ends. TEAMWORK_CLOSE_SESSION_TIMEOUT (default 3600) bounds the
 wait in seconds."""
 import os
 import pathlib
@@ -15,7 +15,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import agent  # noqa: E402
 import session  # noqa: E402
 
-TIMEOUT, POLL = float(os.environ.get("CLOSE_SESSION_TIMEOUT", 3600)), 1.0
+TIMEOUT, POLL = float(os.environ.get("TEAMWORK_CLOSE_SESSION_TIMEOUT", 3600)), 1.0
 
 
 def close(name):
@@ -48,8 +48,8 @@ def main(args):
         return 2
     name = args[0]
     own = session.sessions()[1].get("name") == name
-    if own and not os.environ.get("CLOSE_SESSION_DETACHED"):  # detached, so it outlives the Bash call that asked for it
-        subprocess.Popen([sys.executable, __file__, name], env={**os.environ, "CLOSE_SESSION_DETACHED": "1"},
+    if own and not os.environ.get("TEAMWORK_CLOSE_SESSION_DETACHED"):  # detached, so it outlives the Bash call that asked for it
+        subprocess.Popen([sys.executable, __file__, name], env={**os.environ, "TEAMWORK_CLOSE_SESSION_DETACHED": "1"},
                          stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         print(f"{name} closes once this turn ends.")
     else:

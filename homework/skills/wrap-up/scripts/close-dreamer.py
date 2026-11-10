@@ -5,7 +5,7 @@ usage: close-dreamer.py
 
 Run as the last step of a dream. It reads this pane from HERDR_PANE_ID and closes the tab only when a herdr agent named
 `*-dreamer` holds that pane; any other pane, or no herdr, closes nothing and says so. The close runs detached and waits
-until the agent stops working, so the Dreamer's final report reaches the owner first. CLOSE_DREAMER_TIMEOUT (default
+until the agent stops working, so the Dreamer's final report reaches the owner first. HOMEWORK_CLOSE_DREAMER_TIMEOUT (default
 3600) bounds that wait in seconds.
 """
 import json
@@ -14,7 +14,7 @@ import subprocess
 import sys
 import time
 
-TIMEOUT = float(os.environ.get("CLOSE_DREAMER_TIMEOUT", 3600))
+TIMEOUT = float(os.environ.get("HOMEWORK_CLOSE_DREAMER_TIMEOUT", 3600))
 
 
 def herdr(*words):
@@ -57,10 +57,10 @@ def main(args):
     if not agent:
         print("closed nothing: this pane is not a herdr agent named *-dreamer")
         return 0
-    if os.environ.get("CLOSE_DREAMER_DETACHED"):
+    if os.environ.get("HOMEWORK_CLOSE_DREAMER_DETACHED"):
         close_when_idle(pane)
     else:  # detached, so the wait outlives the Bash call that asked for it
-        subprocess.Popen([sys.executable, __file__], env={**os.environ, "CLOSE_DREAMER_DETACHED": "1"}, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+        subprocess.Popen([sys.executable, __file__], env={**os.environ, "HOMEWORK_CLOSE_DREAMER_DETACHED": "1"}, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                          stderr=subprocess.DEVNULL, start_new_session=True)
         print(f"{agent['name']} closes its tab once this turn ends")
     return 0

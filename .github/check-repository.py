@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, each plugin's manifest names its folder and the marketplace lists it, each hook, monitor and module path a manifest names exists, a command's file executable, each skill or `.github` script answers an unknown flag with exit 2, `usage:` on stderr and nothing on stdout, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill or is a symlink resolving outside its plugin, no skill file sits outside the skill folder hierarchy, no plugin holds a change its `version` does not cover, no script a plugin replays takes an unknown option as data, and every fixture runner passes: each `replay-*.py` or `replay-*.ts` directly in a `fixtures/` folder, and each `scripts/` script whose usage lists a `fixtures` call, run with it.
+"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, each plugin's manifest names its folder and the marketplace lists it, each hook, monitor and module path a manifest names exists, a command's file executable, each skill or `.github` script answers an unknown flag with exit 2, `usage:` on stderr and nothing on stdout, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill or is a symlink resolving outside its plugin, no skill file sits outside the skill folder hierarchy, no plugin file name or environment variable it reads breaks its kind's form, no plugin holds a change its `version` does not cover, no script a plugin replays takes an unknown option as data, and every fixture runner passes: each `replay-*.py` or `replay-*.ts` directly in a `fixtures/` folder, and each `scripts/` script whose usage lists a `fixtures` call, run with it.
 
 usage: check-repository.py [--skip-fixtures] [root]   (--skip-fixtures: no fixture runner, for a runner that checks a copy)
 
 Prints one failure per line as `<kind> <path>: <detail>`, `unreached` lines being list-unreached.py's, `shared` lines
-list-cross-plugin-names.py's, `unreleased` lines list-unreleased.py's and `misplaced` lines list-misplaced-references.py's, `option` lines a plugin's `fixtures/replay-option-calls.py`'s, and `fixture <path>: exit <n>, <last line>` a runner's that failed, then a summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
+list-cross-plugin-names.py's, `unreleased` lines list-unreleased.py's and `misplaced` lines list-misplaced-references.py's, `misnamed` lines list-misnamed.py's, `option` lines a plugin's `fixtures/replay-option-calls.py`'s, and `fixture <path>: exit <n>, <last line>` a runner's that failed, then a summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
 """
 
 import concurrent.futures
@@ -40,6 +40,7 @@ LISTERS = (  # each lister's script, the failure lines it prints and its summary
     ("list-cross-plugin-names.py", "shared ", re.compile(r"^\d+ files, \d+ naming another plugin$", re.M)),
     ("list-unreleased.py", "unreleased ", re.compile(r"^\d+ plugins, \d+ unreleased$", re.M)),
     ("list-misplaced-references.py", "misplaced ", re.compile(r"^\d+ skill files, \d+ misplaced$", re.M)),
+    ("list-misnamed.py", "misnamed ", re.compile(r"^\d+ files, \d+ misnamed$", re.M)),
 )
 
 

@@ -2,7 +2,7 @@
 """Print one line per action the team session's board and sessions call for, each once, polling until killed.
 
 usage: print-team-gaps.py
-It takes the session's role from herdr and watches only while a worker lives for a manager, always for a worker, never for another session; it reads the board when a team session signals a change or MONITOR_REFRESH seconds pass, and polls every MONITOR_POLL seconds."""
+It takes the session's role from herdr and watches only while a worker lives for a manager, always for a worker, never for another session; it reads the board when a team session signals a change or TEAMWORK_MONITOR_REFRESH seconds pass, and polls every TEAMWORK_MONITOR_POLL seconds."""
 import os
 import pathlib
 import sys
@@ -17,8 +17,8 @@ import team_gaps  # noqa: E402
 import team_names  # noqa: E402
 import team_signal  # noqa: E402
 
-POLL = float(os.environ.get("MONITOR_POLL", 60))  # the sessions are read each poll, which costs no board read
-REFRESH = float(os.environ.get("MONITOR_REFRESH", 900))  # a change made outside the team, such as the owner's comment on the web, sends no signal
+POLL = float(os.environ.get("TEAMWORK_MONITOR_POLL", 60))  # the sessions are read each poll, which costs no board read
+REFRESH = float(os.environ.get("TEAMWORK_MONITOR_REFRESH", 900))  # a change made outside the team, such as the owner's comment on the web, sends no signal
 SKEW = 5  # seconds the board's clock may differ from ours
 
 

@@ -82,7 +82,7 @@ def heartbeat_env(pane, poll):
     team = [agent("teamwork-manager", 1, "working"), agent("landing-probe-worker", 2, "idle"), agent("clash-probe-worker", 3, "working")]
     state = work / "herdr.json"
     state.write_text(json.dumps({"n": 10, "agents": team, "tabs": [{"tab_id": listed["tab_id"], "workspace_id": "w1", "label": listed["name"]} for listed in team]}))
-    return {"PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state), "HERDR_PANE_ID": pane, "MONITOR_POLL": poll}
+    return {"PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "TEAMWORK_FAKE_HERDR_STATE": str(state), "HERDR_PANE_ID": pane, "TEAMWORK_MONITOR_POLL": poll}
 
 
 def heartbeat(pane):

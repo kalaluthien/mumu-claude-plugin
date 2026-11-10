@@ -27,7 +27,7 @@ def run(plugin, work, *command):
     state.write_text(json.dumps({"n": 10, "tabs": [], "agents": [
         {"name": "teamwork-manager", "pane_id": "w1:p2", "tab_id": "w1:t2", "workspace_id": "w1", "agent": "claude", "agent_status": "idle", "interactive_ready": True}]}))
     log.write_text("")
-    environment = {**os.environ, "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "FAKE_HERDR_STATE": str(state), "FAKE_HERDR_LOG": str(log), "START_SESSION_TIMEOUT": "3"}
+    environment = {**os.environ, "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "TEAMWORK_FAKE_HERDR_STATE": str(state), "TEAMWORK_FAKE_HERDR_LOG": str(log), "TEAMWORK_START_SESSION_TIMEOUT": "3"}
     done = subprocess.run([str(plugin / "skills/kick-off/scripts" / command[0]), *command[1:]], cwd=work, env=environment, capture_output=True, text=True)
     prompts = [call[3] for call in map(json.loads, log.read_text().splitlines()) if call[:2] == ["agent", "prompt"]]
     return done, prompts

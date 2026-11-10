@@ -7,17 +7,17 @@ A prompt to a `blocked` agent is refused `agent_blocked`, an `unblock` agent ref
 takes a prompt but never shows it, and a `refuse` agent refuses every prompt `agent_pane_closed`; `agent wait` ends a working
 agent's turn at once and times out on a blocked one, an agent with `flip` swaps idle and working at each list (`"flip": "blocked"` swaps blocked and working), and an agent with `move`, or one started with `moving` in its
 name, moves to that pane after the `move_after`th list that shows it (default the first). A target no agent has is refused
-`agent_not_found`; with FAKE_HERDR_HOME set, a `/rename <name>` prompt is recorded in that home's transcript, as
-Claude Code does. FAKE_HERDR_BREAK=accept takes every prompt and every wait instead."""
+`agent_not_found`; with TEAMWORK_FAKE_HERDR_HOME set, a `/rename <name>` prompt is recorded in that home's transcript, as
+Claude Code does. TEAMWORK_FAKE_HERDR_BREAK=accept takes every prompt and every wait instead."""
 import json, os, pathlib, sys
 
-state_path = pathlib.Path(os.environ["FAKE_HERDR_STATE"])
+state_path = pathlib.Path(os.environ["TEAMWORK_FAKE_HERDR_STATE"])
 state = json.loads(state_path.read_text())
 argv = sys.argv[1:]
-with open(os.environ.get("FAKE_HERDR_LOG", os.devnull), "a") as log:
+with open(os.environ.get("TEAMWORK_FAKE_HERDR_LOG", os.devnull), "a") as log:
     log.write(json.dumps(argv) + "\n")
 code = 0
-BREAK = os.environ.get("FAKE_HERDR_BREAK") == "accept"
+BREAK = os.environ.get("TEAMWORK_FAKE_HERDR_BREAK") == "accept"
 ok = lambda result=None: print(json.dumps({"result": result or {}}))
 
 
@@ -83,8 +83,8 @@ elif head == ["pane", "send-text"]:
     ok()
 elif head == ["agent", "prompt"]:
     agent = by_pane(argv[2])
-    if argv[3].startswith("/rename ") and os.environ.get("FAKE_HERDR_HOME") and agent.get("agent_session"):
-        transcript = pathlib.Path(os.environ["FAKE_HERDR_HOME"]) / ".claude" / "projects" / "fake" / f"{agent['agent_session']['value']}.jsonl"
+    if argv[3].startswith("/rename ") and os.environ.get("TEAMWORK_FAKE_HERDR_HOME") and agent.get("agent_session"):
+        transcript = pathlib.Path(os.environ["TEAMWORK_FAKE_HERDR_HOME"]) / ".claude" / "projects" / "fake" / f"{agent['agent_session']['value']}.jsonl"
         transcript.parent.mkdir(parents=True, exist_ok=True)
         with transcript.open("a") as file:
             file.write(json.dumps({"type": "custom-title", "customTitle": argv[3].split(" ", 1)[1]}, separators=(",", ":")) + "\n")

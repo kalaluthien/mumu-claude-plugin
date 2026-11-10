@@ -23,7 +23,7 @@ import usage_parser  # noqa: E402
 
 SUFFIXES = ("-worker", "-sentinel", "-manager", "-next")
 FORMS = "`<task>-worker`, `<duty>-sentinel`, `<project>-manager` or `<manager>-next`"
-TIMEOUT, POLL = float(os.environ.get("START_SESSION_TIMEOUT", 120)), 1.0
+TIMEOUT, POLL = float(os.environ.get("TEAMWORK_START_SESSION_TIMEOUT", 120)), 1.0
 
 
 def wait(name, ready, nudge, what):

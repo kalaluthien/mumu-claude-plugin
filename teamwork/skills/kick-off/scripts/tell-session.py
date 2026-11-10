@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Tell a session herdr lists the text in the file, once it is idle or done, and print `delivered to <name>`, with how, or
-`not delivered to <name>: <reason>` and exit 1, at once for a session of the kind the team runs, which its own message adapter tells. TELL_SESSION_TIMEOUT (default 600) bounds the wait in seconds.
+`not delivered to <name>: <reason>` and exit 1, at once for a session of the kind the team runs, which its own message adapter tells. TEAMWORK_TELL_SESSION_TIMEOUT (default 600) bounds the wait in seconds.
 
 usage: tell-session.py <name> <text-file>"""
 import os
@@ -25,7 +25,7 @@ def main(args):
     except OSError:
         print(__doc__, file=sys.stderr)
         return 2
-    delivered, how = message_herdr.tell(name, text, float(os.environ.get("TELL_SESSION_TIMEOUT", 600)))
+    delivered, how = message_herdr.tell(name, text, float(os.environ.get("TEAMWORK_TELL_SESSION_TIMEOUT", 600)))
     if not delivered:
         sys.exit(f"not delivered to {name}: {how}")
     print(" ".join(filter(None, ["delivered to", name, how])))

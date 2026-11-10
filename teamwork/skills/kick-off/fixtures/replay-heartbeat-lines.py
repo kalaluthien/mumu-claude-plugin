@@ -34,7 +34,7 @@ sys.path.insert(0, str(ROOT / "lib"))
 import replay_probe  # noqa: E402
 
 os.environ.update({"CLAUDE_CONFIG_DIR": str(work / "claude"), "GIT_CONFIG_GLOBAL": str(work / "gitconfig"), **replay_probe.IDENTITY,
-                   "FAKE_HERDR_STATE": str(STATE), "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "HERDR_PANE_ID": "w1:p1"})
+                   "TEAMWORK_FAKE_HERDR_STATE": str(STATE), "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "HERDR_PANE_ID": "w1:p1"})
 failed = []
 passed = []
 QUIET = False
@@ -115,7 +115,7 @@ def about(output, name):
 
 def run_monitor(until):
     log = work / "monitor.log"
-    live = subprocess.Popen([str(ROOT / "monitors" / "print-team-gaps.py")], cwd=repository, env={**os.environ, "MONITOR_POLL": "0.3"}, stdout=log.open("w"), stderr=subprocess.STDOUT)
+    live = subprocess.Popen([str(ROOT / "monitors" / "print-team-gaps.py")], cwd=repository, env={**os.environ, "TEAMWORK_MONITOR_POLL": "0.3"}, stdout=log.open("w"), stderr=subprocess.STDOUT)
     deadline = time.time() + 30
     while time.time() < deadline and not until(log.read_text()):
         time.sleep(0.2)
