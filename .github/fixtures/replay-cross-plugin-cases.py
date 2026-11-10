@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Plant each way a plugin file can name another plugin on a throwaway copy of this repository, and print `ok <case>` or `FAIL <case>: <detail>` per case, then `PASS` as the last line when all hold, else `FAIL`.
+"""Plant each way a plugin file can name or link another plugin on a throwaway copy of this repository, and print `ok <case>` or `FAIL <case>: <detail>` per case, then `PASS` as the last line when all hold, else `FAIL`.
 
 usage: replay-cross-plugin-cases.py
 
 Each case runs `.github/check-repository.py` on the copy, and requires it to fail naming the planted line or to pass."""
 
 import itertools
+import os
 import pathlib
 import shutil
 import subprocess
@@ -25,14 +26,17 @@ def copy_repository(target):
             shutil.copy2(REPOSITORY / path, target / path)
 
 
-def run_check(base, appended):
-    """The exit status and lines of the repository check on a copy with each text appended to its file."""
+def run_check(base, appended, links=None):
+    """The exit status and lines of the repository check on a copy with each text appended to its file and each symlink of LINKS (path: target)
+    planted."""
     with tempfile.TemporaryDirectory() as work:
         root = pathlib.Path(work)
         shutil.copytree(base, root, dirs_exist_ok=True)
         for path, text in appended.items():
             with open(root / path, "a") as handle:
                 handle.write(text)
+        for path, target in (links or {}).items():
+            os.symlink(target, root / path)
         result = subprocess.run([sys.executable, str(root / ".github" / "check-repository.py"), "--skip-fixtures", str(root)], capture_output=True, text=True)
         return result.returncode, result.stdout.splitlines()
 
@@ -61,10 +65,24 @@ def main(args):
         other = [plugin for plugin in plugins if plugin != sample.split("/")[0]][0]
         cases["a sample under examples/ naming another plugin fails"] = (sample, "\nsee {}/{}\n".format(other, MANIFEST), "shared {} names {}/{}".format(sample, other, MANIFEST))
         cases["a bare file name of another plugin is no path"] = (host[plugins[0]], "\nsee plugin.json\n", None)
+        one, other = plugins[0], plugins[1]
+        # name: (link planted, its target, line that must be printed or None when the check must pass)
+        link_cases = {
+            "a file link into another plugin fails": ("{}/linked.json".format(one), "../{}/{}".format(other, MANIFEST), "shared {}/linked.json links {}/{}".format(one, other, MANIFEST)),
+            "a folder link into another plugin fails": ("{}/linked".format(one), "../{}/skills".format(other), "shared {}/linked links {}/skills".format(one, other)),
+            "a link inside its own plugin passes": ("{}/linked.json".format(one), MANIFEST, None),
+        }
         for name, (path, text, wanted) in cases.items():
             status, lines = run_check(base, {path: text})
             problems = [] if status == (1 if wanted else 0) else ["exit {}".format(status)]
             problems += ["missing " + wanted] if wanted and wanted not in lines else []
+            print("ok " + name if not problems else "FAIL {}: {}".format(name, "; ".join(problems)))
+            holds = holds and not problems
+        for name, (path, target, wanted) in link_cases.items():
+            status, lines = run_check(base, {}, {path: target})
+            problems = [] if status == (1 if wanted else 0) else ["exit {}".format(status)]
+            problems += ["missing " + wanted] if wanted and wanted not in lines else []
+            problems += [line for line in lines if not wanted and line.startswith("shared ")]
             print("ok " + name if not problems else "FAIL {}: {}".format(name, "; ".join(problems)))
             holds = holds and not problems
     print("PASS" if holds else "FAIL")
