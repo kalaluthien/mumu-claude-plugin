@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, each plugin's manifest names its folder and the marketplace lists it, each hook, monitor and module path a manifest names exists, a command's file executable, each skill or `.github` script answers an unknown flag with exit 2, `usage:` on stderr and nothing on stdout, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill, no skill file sits outside the skill folder hierarchy, no plugin holds a change its `version` does not cover, and no script a plugin replays takes an unknown option as data.
+"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, each plugin's manifest names its folder and the marketplace lists it, each hook, monitor and module path a manifest names exists, a command's file executable, each skill or `.github` script answers an unknown flag with exit 2, `usage:` on stderr and nothing on stdout, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill, no skill file sits outside the skill folder hierarchy, no plugin holds a change its `version` does not cover, no script a plugin replays takes an unknown option as data, and every fixture runner passes: each `replay-*.py` or `replay-*.ts` directly in a `fixtures/` folder, and each `scripts/` script whose usage lists a `fixtures` call, run with it.
 
-usage: check-repository.py [root]
+usage: check-repository.py [--skip-fixtures] [root]   (--skip-fixtures: no fixture runner, for a runner that checks a copy)
 
 Prints one failure per line as `<kind> <path>: <detail>`, `unreached` lines being list-unreached.py's, `shared` lines
-list-cross-plugin-names.py's, `unreleased` lines list-unreleased.py's and `misplaced` lines list-misplaced-references.py's, and `option` lines a plugin's `fixtures/replay-option-calls.py`'s, then a summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
+list-cross-plugin-names.py's, `unreleased` lines list-unreleased.py's and `misplaced` lines list-misplaced-references.py's, `option` lines a plugin's `fixtures/replay-option-calls.py`'s, and `fixture <path>: exit <n>, <last line>` a runner's that failed, then a summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
 """
 
+import concurrent.futures
 import json
 import os
 import pathlib
@@ -30,6 +31,10 @@ SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 PLACEHOLDER = set("<*{")
 OPTION_REPLAY = "replay-option-calls.py"  # a plugin keeps beside its scripts the replay that calls each with an unknown option
 OPTION_SUMMARY = re.compile(r"^\d+ scripts, \d+ calls, \d+ not refused$", re.M)
+RUNNER = re.compile(r"(?:^|/)fixtures/replay-[^/]+\.(?:py|ts)$")
+FIXTURES_CALL = re.compile(r"^(?:usage:)? *\S+\.py fixtures\b", re.M)  # a skill script that checks the fixtures beside it
+RUNNER_SECONDS = 1200
+STAND_IN = "#!/bin/sh\necho 'a fixture runner may not start a live session' >&2\nexit 1\n"
 LISTERS = (  # each lister's script, the failure lines it prints and its summary line; without the summary a lister that printed nothing would pass
     ("list-unreached.py", "unreached ", re.compile(r"^\d+ files, \d+ unreached$", re.M)),
     ("list-cross-plugin-names.py", "shared ", re.compile(r"^\d+ files, \d+ naming another plugin$", re.M)),
@@ -240,7 +245,41 @@ def check_scripts(root, files, failures):
     return len(scripts)
 
 
+def run_fixtures(root, files, failures):
+    """Run each fixture runner from ROOT, four at a time, with stand-in `claude` and `herdr` first on PATH so none starts a live session, and
+    fail each that exits non-zero or runs past RUNNER_SECONDS; returns how many ran."""
+    calls = []
+    for path in files:
+        if RUNNER.search(path) and not path.endswith("/" + OPTION_REPLAY):
+            calls.append((path, ["bun", path] if path.endswith(".ts") else [sys.executable, path]))
+        elif re.search(r"(?:^|/)scripts/[^/]+\.py$", path):
+            with open(os.path.join(root, path), encoding="utf-8", errors="replace") as handle:
+                if FIXTURES_CALL.search(handle.read()):
+                    calls.append((path, [sys.executable, path, "fixtures"]))
+    with tempfile.TemporaryDirectory() as stand_ins:
+        for name in ("claude", "herdr"):
+            with open(os.path.join(stand_ins, name), "w") as handle:
+                handle.write(STAND_IN)
+            os.chmod(os.path.join(stand_ins, name), 0o755)
+        environment = {**os.environ, "PATH": stand_ins + os.pathsep + os.environ.get("PATH", ""), "PYTHONDONTWRITEBYTECODE": "1"}
+
+        def run(call):
+            path, argv = call
+            try:
+                done = subprocess.run(argv, cwd=root, env=environment, stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", timeout=RUNNER_SECONDS)
+            except (OSError, subprocess.TimeoutExpired) as error:
+                return "fixture {}: {}".format(path, error)
+            last = ((done.stdout.strip() or done.stderr.strip()).splitlines() or [""])[-1][:200]
+            return "fixture {}: exit {}, {}".format(path, done.returncode, last) if done.returncode else None
+
+        with concurrent.futures.ThreadPoolExecutor(4) as pool:
+            failures += [line for line in pool.map(run, calls) if line]
+    return len(calls)
+
+
 def main(args):
+    skip_fixtures = args[:1] == ["--skip-fixtures"]
+    args = args[1:] if skip_fixtures else args
     if len(args) > 1 or (args and args[0].startswith("-")):
         print(__doc__, file=sys.stderr)
         return 2
@@ -282,10 +321,11 @@ def main(args):
         if listed.returncode or not summary.search(listed.stdout):
             lines = [line for line in listed.stdout.splitlines() if line.startswith(kind)]
             failures += lines or ["{}{}: exit {}, no summary line: {}".format(kind, os.path.basename(script), listed.returncode, listed.stderr.strip())]
+    runners = 0 if skip_fixtures else run_fixtures(root, files, failures)
     for line in failures:
         print(line)
-    counts = "{} py compiled, {} manifests parsed, {} hook paths found, {} scripts called, {} links in {} md resolved, {} failures".format(
-        compiled, manifests, paths, scripts, links, docs, len(failures))
+    counts = "{} py compiled, {} manifests parsed, {} hook paths found, {} scripts called, {} fixture runners passed, {} links in {} md resolved, {} failures".format(
+        compiled, manifests, paths, scripts, runners - sum(line.startswith("fixture ") for line in failures), links, docs, len(failures))
     print(("FAIL: " if failures else "ok: ") + counts)
     return 1 if failures else 0
 

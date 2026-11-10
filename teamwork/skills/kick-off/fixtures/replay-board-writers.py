@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Start 8 processes that comment on one issue and file issues at once on a throwaway git board, then count every record.
 
-usage: replay-board-writers.py --case concurrent|unguarded
+usage: replay-board-writers.py [--case concurrent|unguarded]   (no argument: every one in turn)
 
 - `concurrent`: prints `PASS` as its last line only when every comment and issue the writers posted is on the board exactly once,
   every writer exited 0, and the ref's history is one line of commits, one per write.
@@ -17,6 +17,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import replay_probe  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 REF = "refs/teamwork-blackboard"
@@ -81,6 +84,8 @@ def run_writers(use, work, repository):
 
 
 def main(args):
+    if not args:
+        return replay_probe.run_every(__file__, "--case", ("concurrent", "unguarded"))
     if len(args) != 2 or args[0] != "--case" or args[1] not in ("concurrent", "unguarded"):
         print(__doc__, file=sys.stderr)
         return 2

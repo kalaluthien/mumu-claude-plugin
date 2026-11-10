@@ -55,8 +55,8 @@ CASES = {
         {SKILL_MD: "\nrun scripts/planted-chain.py\n"},
         ["unreached " + SKILL + "scripts/planted-chain.py:1 planted_inner", "unreached " + SKILL + "scripts/planted-chain.py:5 planted_outer"], []),
     "a method nothing calls is listed": (
-        {SKILL + "scripts/planted-cls.py": "class Box:\n    def spare(self):\n        return 1\n\n\ndef main(args):\n    return Box()\n"},
-        {SKILL_MD: "\nrun scripts/planted-cls.py\n"}, ["unreached " + SKILL + "scripts/planted-cls.py:2 spare"], []),
+        {SKILL + "scripts/planted-cls.py": "class Box:\n    def planted_spare_method(self):\n        return 1\n\n\ndef main(args):\n    return Box()\n"},
+        {SKILL_MD: "\nrun scripts/planted-cls.py\n"}, ["unreached " + SKILL + "scripts/planted-cls.py:2 planted_spare_method"], []),
     "functions of a file that calls getattr on a computed name are not unused": (
         {SKILL + "scripts/planted-dispatch.py": "def one():\n    return 1\n\n\ndef main(args):\n    return getattr(__import__('sys'), args[0])\n"},
         {SKILL_MD: "\nrun scripts/planted-dispatch.py\n"}, [], [SKILL + "scripts/planted-dispatch.py"]),
@@ -73,17 +73,28 @@ CASES = {
         {"teamwork/lib/planted_pkg/__init__.py": "", "teamwork/lib/planted_pkg/inner.py": "X = 1\n", "teamwork/lib/planted_pkg/outer.py": "from . import inner\nY = inner.X\n",
          SKILL + "scripts/planted-pkg.py": "from planted_pkg.outer import Y\nprint(Y)\n"},
         {SKILL_MD: "\nrun scripts/planted-pkg.py\n"}, [], ["teamwork/lib/planted_pkg"]),
-    "a fixture that replays a live script is not listed, one that replays nothing live is": (
-        {"teamwork/hooks/fixtures/replay-planted.py": "# replays route-event.py\n", "teamwork/hooks/fixtures/planted-case.json": "{}\n",
-         "teamwork/hooks/planted-dead.py": MAIN, "teamwork/hooks/fixtures/replay-dead.py": "# replays planted-dead.py\n"}, {},
-        ["unreached teamwork/hooks/planted-dead.py", "unreached teamwork/hooks/fixtures/replay-dead.py", "unreached teamwork/hooks/fixtures/planted-case.json"],
-        ["teamwork/hooks/fixtures/replay-planted.py"]),
+    "a fixture folder with a runner keeps its data and the programs a runner names; a script only a runner names is listed": (
+        {"teamwork/planted-run/fixtures/replay-planted.py": "# runs planted-helper.py on planted-case.json and planted-dead.py\n",
+         "teamwork/planted-run/fixtures/planted-case.json": "{}\n", "teamwork/planted-run/fixtures/deep/b.json": "{}\n",
+         "teamwork/planted-run/fixtures/planted-helper.py": MAIN, "teamwork/planted-run/fixtures/planted-orphan.py": "# replays route-event.py\n",
+         "teamwork/hooks/planted-dead.py": MAIN}, {},
+        ["unreached teamwork/hooks/planted-dead.py", "unreached teamwork/planted-run/fixtures/planted-orphan.py"],
+        ["teamwork/planted-run/fixtures/replay-planted.py", "teamwork/planted-run/fixtures/planted-case.json", "teamwork/planted-run/fixtures/deep/b.json",
+         "teamwork/planted-run/fixtures/planted-helper.py"]),
+    "every file of a fixture folder with no runner is listed, even one a live file names or a live program lists": (
+        {SKILL + "scripts/planted-reader.py": "import pathlib\nprint(list(pathlib.Path('planted-data').glob('*.json')))\n",
+         "teamwork/planted-idle/fixtures/planted-data/a.json": "{}\n", "teamwork/planted-idle/fixtures/planted-named.json": "{}\n",
+         "teamwork/planted-idle/fixtures/check-planted.py": "# replays route-event.py\n"},
+        {SKILL_MD: "\nrun scripts/planted-reader.py on fixtures/planted-named.json\n"},
+        ["unreached teamwork/planted-idle/fixtures/planted-data/a.json", "unreached teamwork/planted-idle/fixtures/planted-named.json",
+         "unreached teamwork/planted-idle/fixtures/check-planted.py"], []),
+    "a skill script with a fixtures call keeps the fixture folder beside it": (
+        {SKILL + "scripts/planted-checker.py": '"""Check.\n\nusage: planted-checker.py check FILE\n       planted-checker.py fixtures   check every file in fixtures/"""\n' + MAIN,
+         SKILL + "fixtures/planted-check/a.json": "{}\n"},
+        {SKILL_MD: "\nrun scripts/planted-checker.py\n"}, [], [SKILL + "fixtures/planted-check/"]),
     "a lib module only a live fixture imports is not listed": (
         {"teamwork/lib/planted_helper.py": "X = 1\n", "teamwork/hooks/fixtures/replay-helper.py": "# replays route-event.py\nimport planted_helper\nprint(planted_helper.X)\n"},
         {}, [], ["teamwork/lib/planted_helper.py"]),
-    "data below a folder a live program lists is not listed, a dead script beside it is": (
-        {SKILL + "scripts/planted-reader.py": "import pathlib\nprint(list(pathlib.Path('planted-data').glob('*.json')))\n", SKILL + "fixtures/planted-data/a.json": "{}\n", SKILL + "fixtures/planted-data/b.json": "{}\n", SKILL + "fixtures/planted-scripts/dead.py": MAIN},
-        {SKILL_MD: "\nrun scripts/planted-reader.py\n"}, ["unreached " + SKILL + "fixtures/planted-scripts/dead.py"], [SKILL + "fixtures/planted-data/"]),
     "a function named by a one-word docstring is still unused": (
         {SKILL + "scripts/planted-doc-word.py": '"""planted_hidden"""\n\n\ndef planted_hidden():\n    return 1\n' + MAIN},
         {SKILL_MD: "\nrun scripts/planted-doc-word.py\n"}, ["unreached " + SKILL + "scripts/planted-doc-word.py:4 planted_hidden"], []),
@@ -152,7 +163,7 @@ def run_repository_check(base):
     """Print a line per plugin; return whether the check fails on a planted dead file in each and passes on none."""
     holds = True
     check = REPOSITORY / ".github" / "check-repository.py"
-    plain = subprocess.run([sys.executable, str(check), str(base)], capture_output=True, text=True)
+    plain = subprocess.run([sys.executable, str(check), "--skip-fixtures", str(base)], capture_output=True, text=True)
     print(("ok" if plain.returncode == 0 else "FAIL") + " the check passes on the repository with nothing planted")
     holds = plain.returncode == 0
     gone = not (REPOSITORY / "teamwork/skills/kick-off/scripts/list-unreached.py").exists()
@@ -163,11 +174,11 @@ def run_repository_check(base):
         shutil.copytree(base, root, dirs_exist_ok=True)
         plant(root, {"teamwork/lib/planted-dead.md": "dead\n"}, {})
         (root / ".github" / "list-unreached.py").write_text("")
-        result = subprocess.run([sys.executable, str(root / ".github" / "check-repository.py"), str(root)], capture_output=True, text=True)
+        result = subprocess.run([sys.executable, str(root / ".github" / "check-repository.py"), "--skip-fixtures", str(root)], capture_output=True, text=True)
         good = result.returncode == 1
         print(("ok" if good else "FAIL") + " the check fails when the lister prints nothing")
         holds = holds and good
-    missing = subprocess.run([sys.executable, str(check), str(base / "no-such-folder")], capture_output=True, text=True)
+    missing = subprocess.run([sys.executable, str(check), "--skip-fixtures", str(base / "no-such-folder")], capture_output=True, text=True)
     good = missing.returncode == 2 and not missing.stdout and "usage: check-repository.py" in missing.stderr
     print(("ok" if good else "FAIL") + " a root that is no folder prints the usage on stderr and exits 2")
     holds = holds and good
@@ -178,7 +189,7 @@ def run_repository_check(base):
             shutil.copytree(base, root, dirs_exist_ok=True)
             planted = "{}/lib/planted-dead.md".format(plugin)
             plant(root, {planted: "dead\n"}, {})
-            result = subprocess.run([sys.executable, str(root / ".github" / "check-repository.py"), str(root)], capture_output=True, text=True)
+            result = subprocess.run([sys.executable, str(root / ".github" / "check-repository.py"), "--skip-fixtures", str(root)], capture_output=True, text=True)
             good = result.returncode == 1 and "unreached " + planted in result.stdout.splitlines()
             print(("ok" if good else "FAIL") + " the check fails on a dead file planted in " + plugin)
             holds = holds and good

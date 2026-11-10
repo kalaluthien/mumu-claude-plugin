@@ -1,6 +1,6 @@
 """What the scenario scripts of `skills/kick-off/fixtures/` and `hooks/fixtures/` share: a `gh` that logs and fails, a git
 identity, a fake herdr, a file written in a scratch folder, a script run in a repository, the hook router fed one event,
-and the failure line."""
+the failure line, and the run of every case when a scenario is called with no argument."""
 import json
 import os
 import subprocess
@@ -11,6 +11,19 @@ IDENTITY = {"GIT_AUTHOR_NAME": "probe", "GIT_AUTHOR_EMAIL": "probe@example.com",
 HOLD = "DECIDED: probe-worker holds this.\n\n```teamwork\nholders: probe-worker\n```\n"
 CHECK = "1. [check] **The probe prints PASS when it runs**: `echo ok` prints `ok`; on base nothing.\n"
 GIT_CONFIG = "[user]\n\tname = probe\n\temail = probe@example.com\n[init]\n\tdefaultBranch = main\n"
+
+
+def run_every(script, flag, names):
+    """Run SCRIPT once per name as `SCRIPT FLAG <name>`, one at a time, print each failing run's last lines and `FAIL <name>`, then `PASS` or
+    `FAIL`; 0 when all pass, else 1."""
+    failed = []
+    for name in names:
+        done = subprocess.run([sys.executable, str(script), flag, name], capture_output=True, text=True)
+        if done.returncode:
+            failed.append(name)
+            print("\n".join((done.stdout + done.stderr).strip().splitlines()[-20:] + [f"FAIL {name}"]))
+    print("FAIL" if failed else "PASS")
+    return 1 if failed else 0
 
 
 def fail(why):

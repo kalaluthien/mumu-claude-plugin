@@ -2,8 +2,6 @@
 """Apply an owner's Answer to a plan and print the next plan.
 
 usage: read-answer.py PLAN.json ANSWER.md        next plan JSON on stdout, "not answered: <id> <text>" on stderr per Decision left open; "refused: line N: ..." and exit 1 when the Answer does not apply
-       read-answer.py --expect-refused PLAN ANSWER...   "refused K of N": each Answer must be refused against PLAN
-       read-answer.py --check DIR                "ok N": each X.json with an X.answer.md applies and the result passes the checker
 """
 import json
 import pathlib
@@ -28,34 +26,7 @@ def next_plan(plan_path, answer_path):
 
 
 def main(args):
-    if len(args) == 2 and args[0] == "--check":
-        n = 0
-        for answer in sorted(pathlib.Path(args[1]).glob("*.answer.md")):
-            plan = answer.with_name(answer.name[: -len(".answer.md")] + ".json")
-            try:
-                next_plan(plan, answer)
-            except (tree_plan.AnswerError, tree_plan.PlanError, OSError) as e:
-                print(f"refused: {answer.name}: {e}")
-                return 1
-            n += 1
-        if n == 0:
-            print("refused: no X.answer.md file found")
-            return 1
-        print(f"ok {n}")
-        return 0
-    if len(args) >= 3 and args[0] == "--expect-refused":
-        plan, answers = args[1], args[2:]
-        refused = []
-        for answer in answers:
-            try:
-                next_plan(plan, answer)
-            except (tree_plan.AnswerError, tree_plan.PlanError) as e:
-                refused.append(f"{pathlib.Path(answer).name}: {e}")
-        for line in refused:
-            print(line)
-        print(f"refused {len(refused)} of {len(answers)}")
-        return 0 if len(refused) == len(answers) else 1
-    if len(args) != 2:
+    if len(args) != 2 or any(argument.startswith("--") for argument in args):
         print(__doc__, file=sys.stderr)
         return 2
     try:

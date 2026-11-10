@@ -33,7 +33,7 @@ def run_check(base, appended):
         for path, text in appended.items():
             with open(root / path, "a") as handle:
                 handle.write(text)
-        result = subprocess.run([sys.executable, str(root / ".github" / "check-repository.py"), str(root)], capture_output=True, text=True)
+        result = subprocess.run([sys.executable, str(root / ".github" / "check-repository.py"), "--skip-fixtures", str(root)], capture_output=True, text=True)
         return result.returncode, result.stdout.splitlines()
 
 

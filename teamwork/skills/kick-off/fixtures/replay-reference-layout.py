@@ -14,7 +14,7 @@ STRAYS = ("teamwork/skills/kick-off/stray-playbook.md", "teamwork/skills/kick-of
 
 
 def check(root):
-    done = subprocess.run([sys.executable, str(root / ".github/check-repository.py"), str(root)], capture_output=True, text=True)
+    done = subprocess.run([sys.executable, str(root / ".github/check-repository.py"), "--skip-fixtures", str(root)], capture_output=True, text=True)
     # a copy has no git history, so list-unreleased.py cannot run in it
     failures = [line for line in done.stdout.splitlines() if line.startswith(("unreached ", "shared ", "misplaced "))]
     return int(bool(failures)), [line for line in failures if line.startswith("misplaced ")], failures

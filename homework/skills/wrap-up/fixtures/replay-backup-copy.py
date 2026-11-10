@@ -2,7 +2,7 @@
 """Run the dream's backup copy on a scratch config and print PASS when each memory folder lands at its own path with its
 `memory/` level, FAIL otherwise.
 
-usage: probe-backup-copy.py"""
+usage: replay-backup-copy.py"""
 import pathlib
 import subprocess
 import sys
@@ -16,7 +16,7 @@ def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    with tempfile.TemporaryDirectory(prefix="probe-backup-copy-") as scratch:
+    with tempfile.TemporaryDirectory(prefix="replay-backup-copy-") as scratch:
         root = pathlib.Path(scratch).resolve()
         config, backup = root / "config", root / "backup"
         for project in ("-a", "-b"):

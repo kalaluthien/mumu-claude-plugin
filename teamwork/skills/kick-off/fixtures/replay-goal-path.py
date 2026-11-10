@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """Check that check-criteria.py refuses a Goal that names no flow of its changed part and teaches the fix, and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
 
-usage: replay-goal-path.py --case <name>
+usage: replay-goal-path.py [--case <name>]   (no argument: every one in turn)
 - refuse: a Goal that names only its changed part, an empty `Path:` line, `Path: none`, a sentence naming no labeled party, labels naming nobody, values that say nobody is affected or are unknown, blank values and a form blank left beside a filled item are refused with a `goal:` line, and a Goal with a `Path:` line holding a labeled caller, step or reader passes, as a bare line, a bullet or a bold label
 - teach: the refusal cites Scope the path, and the `Path:` form it prints, with its placeholders filled by words, makes the refused Goal pass
-- old: a Goal with no path passes under a task number below the Goal cut-off and is refused at it
-- count: print how many of this repository's open Goals the check would refuse, as `would refuse <n> of <m> open Goals`, then `PASS`"""
-import json
+- old: a Goal with no path passes under a task number below the Goal cut-off and is refused at it"""
 import pathlib
 import re
 import subprocess
@@ -14,7 +12,7 @@ import sys
 
 CHECK = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "check-criteria.py"
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
-import issue_state  # noqa: E402
+import replay_probe  # noqa: E402
 
 CRITERION = "1. [check] **The probe prints PASS when it runs**: `python3 probe.py` prints `PASS`; on base `FAIL`.\n"
 PART_ONLY = "## Goal\n\nChange the heartbeat hook so it lists each worker's open task.\n\n## Definition of done\n\n" + CRITERION
@@ -71,17 +69,6 @@ def case_teach():
     return None
 
 
-def open_goals():
-    common = subprocess.run(["git", "rev-parse", "--git-common-dir"], capture_output=True, text=True, check=True).stdout.strip()
-    git = ["git", f"--git-dir={common}"]
-    tree = subprocess.run([*git, "ls-tree", "--name-only", "-r", "refs/teamwork-blackboard"], capture_output=True, text=True, check=True).stdout.split()
-    show = lambda path: subprocess.run([*git, "show", f"refs/teamwork-blackboard:{path}"], capture_output=True, text=True).stdout
-    for path in tree:
-        if path.endswith("issue.json") and str(json.loads(show(path)).get("state", "")).lower() == "open":
-            body = show(path.replace("issue.json", "body.md"))
-            if issue_state.sections(body).get("goal") is not None:
-                yield body
-
 
 def case_old():
     if lint(PART_ONLY, "--task", "1").returncode:
@@ -91,17 +78,13 @@ def case_old():
     return None
 
 
-def case_count():
-    bodies = list(open_goals())
-    refused = sum(any(line.startswith("goal: ") for line in lint(body).stdout.splitlines()) for body in bodies)
-    print(f"would refuse {refused} of {len(bodies)} open Goals")
-    return None
 
-
-CASES = {"refuse": case_refuse, "teach": case_teach, "old": case_old, "count": case_count}
+CASES = {"refuse": case_refuse, "teach": case_teach, "old": case_old}
 
 
 def main(args):
+    if not args:
+        return replay_probe.run_every(__file__, "--case", CASES)
     if len(args) != 2 or args[0] != "--case" or args[1] not in CASES:
         print(__doc__, file=sys.stderr)
         return 2

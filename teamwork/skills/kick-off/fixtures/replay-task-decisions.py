@@ -19,7 +19,7 @@ decision comments untrusted, as an outsider's is marked, before the rows are lai
 - row-no-deferral, row-finished-parent, row-one-color, on nodes: a `deferred:` line sets no wait; a parent
   whose parts are all done shows its next step in full among its always-shown lines; and every row's number takes the color of its own state, drawn by one Button
 
-usage: replay-task-decisions.py --board <git|nodes>"""
+usage: replay-task-decisions.py [--board <git|nodes>]   (no argument: both in turn)"""
 import json
 import os
 import pathlib
@@ -362,6 +362,8 @@ def nodes_pane():
 
 def main(args):
     global work, board
+    if not args:
+        return replay_probe.run_every(__file__, "--board", ("git", "nodes"))
     if len(args) != 2 or args[0] != "--board" or args[1] not in ("git", "nodes"):
         print(__doc__, file=sys.stderr)
         return 2

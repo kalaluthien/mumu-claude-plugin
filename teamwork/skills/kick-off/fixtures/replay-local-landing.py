@@ -2,7 +2,7 @@
 """Land a worker's change by use-landing.py in a temporary repository whose `origin` is a bare repository beside it, with a `gh` on PATH that logs each call and fails,
 and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
 
-usage: replay-local-landing.py --case <name>
+usage: replay-local-landing.py [--case <name>]   (no argument: every one in turn)
 - pushes: the merge puts the new commit on `origin`'s base, and the local base, its checkout and the change record show it
 - push-refused: an `origin` that refuses the push makes the merge exit 1 with the remote's reason, and the base here, the remote's base and the change are as they were
 - no-gh: change, merge and remove-worktree call no gh
@@ -135,6 +135,8 @@ CASES = {"pushes": case_pushes, "push-refused": case_push_refused, "no-gh": case
 
 
 def main(args):
+    if not args:
+        return replay_probe.run_every(__file__, "--case", CASES)
     if len(args) != 2 or args[0] != "--case" or args[1] not in CASES:
         print(__doc__, file=sys.stderr)
         return 2

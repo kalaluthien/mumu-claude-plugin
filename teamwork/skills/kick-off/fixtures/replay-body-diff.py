@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Edit an issue body of a git board in a temporary repository by `edit-issue-body.py` and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
 
-usage: replay-body-diff.py --case <name>
+usage: replay-body-diff.py [--case <name>]   (no argument: every one in turn)
 - newline: a diff made from the body plus a final newline applies, and the body keeps no final newline
 - exact: a diff made from the body exactly as stored applies
 - mismatch: a diff whose context is not the body's text exits nonzero and leaves the body and the comments as they were
@@ -98,6 +98,8 @@ CASES = {"newline": case_newline, "exact": case_exact, "mismatch": case_mismatch
 
 
 def main(args):
+    if not args:
+        return replay_probe.run_every(__file__, "--case", CASES)
     if len(args) != 2 or args[0] != "--case" or args[1] not in CASES:
         print(__doc__, file=sys.stderr)
         return 2

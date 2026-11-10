@@ -5,8 +5,11 @@ usage: list-unreached.py [root]
 
 A plugin is each folder of root (default: this repository) that holds `.claude-plugin/plugin.json`. Its entry points are
 that manifest, `hooks/hooks.json`, `monitors/monitors.json`, each `skills/*/SKILL.md` and each file at the plugin's root.
-A file is reached when a reached file names its path or file name, links its folder as `[x/](x/)`, or imports it. A reached program that lists folders (`glob`, `iterdir`, `listdir`, `walk` and the like) and names one reaches the data files
-below it under `fixtures/`. A script under `fixtures/` that names a reached file is reached too. A function nothing live calls
+A file outside `fixtures/` is reached when a reached file outside `fixtures/` names its path or file name, links its folder as `[x/](x/)`, or imports it,
+or a reached file imports it. A fixture folder is a `fixtures/` folder and all below it; its runners, each `replay-*.py` or `replay-*.ts` directly in it and
+each script of the `scripts/` folder beside it whose usage lists a `fixtures` call, are run by the repository check, so each `replay-*` runner is reached,
+a fixture folder with a runner keeps its data whole, and a program in it is reached only as a runner or when a reached program of that folder names it;
+no other file reaches a fixture file, so every file of a fixture folder with no runner is listed. A function nothing live calls
 and an import nothing uses are unused; a string that spells a function's name calls it, a `__future__` import is used, and a file that calls `getattr` with a computed name keeps every function it defines.
 Prints `unreached <path>`, `unreached <path>:<line> <name>` and `unreached <path>:<line> import <name>` lines, then a summary,
 and exits 1 when it printed any of them, else 0. Standard library only, Python 3.9."""
@@ -25,7 +28,8 @@ PIECES = re.compile(r"[\"']\s*/\s*[\"']")  # "a" / "b" names one path
 PROGRAMS = (".py", ".ts", ".tsx", ".js", ".sh")
 IMPORTABLE = (".ts", ".tsx", ".js")  # a relative import in these leaves the extension off
 FOLDER_LINK = re.compile(r"\]\(([^)\s#]+)/\)")  # [examples/](examples/) links a folder
-LISTS = re.compile(r"\b(?:glob|iglob|rglob|iterdir|listdir|scandir|walk|readdir|readdirSync)\(")
+RUNNER = re.compile(r"(?:^|/)fixtures/replay-[^/]+\.(?:py|ts)$")
+FIXTURES_CALL = re.compile(r"^(?:usage:)? *\S+\.py fixtures\b", re.M)  # a skill script that checks the fixtures beside it
 
 
 def list_files(folder):
@@ -62,6 +66,11 @@ def is_fixture(path):
     return "fixtures" in path.split("/")[:-1]
 
 
+def fixture_folder(path):
+    parts = path.split("/")
+    return "/".join(parts[:parts.index("fixtures") + 1])
+
+
 def find_imports(modules, files):
     """Map each Python file to the files it imports: a file whose path ends in the module's path, and each package above it."""
     stems = {}
@@ -81,7 +90,7 @@ def find_imports(modules, files):
 
 
 def find_references(texts, across_plugins=False):
-    """Map each file to the other files its text names, or reads as a folder of data.
+    """Map each file to the other files its text names.
 
     With across_plugins the paths start with their plugin's folder; only a name that holds a `/` counts, since a bare file name
     says nothing of whose it is, and a file of the text's own plugin wins over a same-named one of another."""
@@ -91,19 +100,14 @@ def find_references(texts, across_plugins=False):
         for end in [at for at, letter in enumerate(path) if letter == "/"]:
             folders.setdefault(path[:end], []).append(path)
     bare = {name for name in by_name if "." not in name}
-    folders_by_name = {}
-    for folder, members in folders.items():
-        folders_by_name.setdefault(folder.rsplit("/", 1)[-1], []).append((folder, members))
     references = {}
     for path, text in texts.items():
         found = set()
         here = path.rsplit("/", 1)[0] if "/" in path else ""
-        reads_folders = path.endswith(PROGRAMS) and bool(LISTS.search(text)) and not across_plugins
         for link in FOLDER_LINK.findall(text):
             found.update(folders.get(os.path.normpath(os.path.join(here, link)), ()))
         for word in set(TOKEN.findall(PIECES.sub("/", text))):
             token = re.sub(r"^(\.{0,2}/)+", "", word).rstrip("./-")
-            last = token.rsplit("/", 1)[-1]
             names = [token] + ([token + extension for extension in IMPORTABLE] if word.startswith(".") and path.endswith(IMPORTABLE + (".sh",)) else [])
             for name in names:
                 file_name = name.rsplit("/", 1)[-1]
@@ -111,31 +115,27 @@ def find_references(texts, across_plugins=False):
                     named = [file for file in by_name.get(file_name, ()) if file == name or file.endswith("/" + name) or name.endswith("/" + file)]
                     own = [file for file in named if file.split("/")[0] == path.split("/")[0]]
                     found.update(own if across_plugins and own else named)
-            if reads_folders:
-                for folder, members in folders_by_name.get(last, ()):
-                    parent = folder.rsplit("/", 1)[0] if "/" in folder else ""
-                    near = "/" in token or not parent or path.startswith(parent + "/")
-                    if near and (folder == token or folder.endswith("/" + token)):
-                        found.update(member for member in members if is_fixture(member) and not member.endswith(PROGRAMS))
         found.discard(path)
         references[path] = found
     return references
 
 
-def find_reached(files, references, imports):
-    """The files a plugin's entry points reach, and the fixtures that stay alive beside them."""
-    reaches = {path: references[path] | imports[path] for path in files}
-    watchers = {}
-    for path in files:
-        if is_fixture(path) and path.endswith(PROGRAMS):
-            for target in reaches[path]:
-                watchers.setdefault(target, set()).add(path)
+def find_reached(files, references, imports, texts):
+    """The files a plugin's entry points and its fixture runners reach."""
+    run = {fixture_folder(path) for path in files if RUNNER.search(path)}
+    run |= {path.rsplit("/scripts/", 1)[0] + "/fixtures" for path in files if re.search(r"(?:^|/)scripts/[^/]+\.py$", path) and FIXTURES_CALL.search(texts[path])}
+    # a fixture program reaches only files of its own fixture folder by name, and fixture data none; a file outside reaches no fixture file by name
+    reaches = {path: imports[path] | {target for target in references[path]
+                                      if (is_fixture(target) and fixture_folder(target) == fixture_folder(path) and path.endswith(PROGRAMS)
+                                          if is_fixture(path) else not is_fixture(target))}
+               for path in files}
     reached = {path for path in files if "/" not in path or path in (".claude-plugin/plugin.json", "hooks/hooks.json", "monitors/monitors.json")
-               or re.fullmatch(r"skills/[^/]+/SKILL\.md", path)}
+               or re.fullmatch(r"skills/[^/]+/SKILL\.md", path) or RUNNER.search(path)
+               or is_fixture(path) and fixture_folder(path) in run and not path.endswith(PROGRAMS)}
     queue = list(reached)
     while queue:
         path = queue.pop()
-        for target in reaches[path] | watchers.get(path, set()):
+        for target in reaches[path]:
             if target not in reached:
                 reached.add(target)
                 queue.append(target)
@@ -225,7 +225,7 @@ def main(args):
         texts = {path: read_text(plugin, path) for path in files}
         trees = {path: parse(text) for path, text in texts.items() if path.endswith(".py")}
         facts = {path: read_python(path, tree, texts[path].split("\n")) for path, tree in trees.items() if tree}
-        reached = find_reached(files, find_references(texts), find_imports({path: fact[0] for path, fact in facts.items()}, files))
+        reached = find_reached(files, find_references(texts), find_imports({path: fact[0] for path, fact in facts.items()}, files), texts)
         functions, imports = find_unused(facts, reached)
         lines = ["unreached {}/{}".format(plugin.name, path) for path in files if path not in reached]
         lines += ["unreached {}/{}:{} {}".format(plugin.name, path, line, name) for path, line, name in functions]

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check that the board refuses a task Goal that names no flow of its changed part when it is filed or edited, on a git board in a temporary repository, and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
 
-usage: replay-goal-write.py --case <name>
+usage: replay-goal-write.py [--case <name>]   (no argument: every one in turn)
 - task: `file` and `edit` each refuse a Goal with no `Path:` line, naming check-criteria.py's own fix and writing nothing, and write a Goal that names its path
 - shared: the fix a refused write prints is the one check-criteria.py prints for the same Goal, and no script holds a second copy of the rule
 - other: a part-list edit of a body whose Goal already lacked a path, a body with no Goal, a task below the Goal cut-off and a decision are not refused"""
@@ -127,6 +127,8 @@ CASES = {"task": case_task, "shared": case_shared, "other": case_other}
 
 
 def main(args):
+    if not args:
+        return replay_probe.run_every(__file__, "--case", CASES)
     if len(args) != 2 or args[0] != "--case" or args[1] not in CASES:
         print(__doc__, file=sys.stderr)
         return 2

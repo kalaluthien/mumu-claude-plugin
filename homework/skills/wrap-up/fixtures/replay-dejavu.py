@@ -2,7 +2,7 @@
 """Build fixture transcripts and facets in a temporary config folder, run dejavu's two scripts on them, and print one line
 per step and `probe: <passed> of <steps> steps pass`; exit 0 only when all pass.
 
-usage: probe-dejavu.py"""
+usage: replay-dejavu.py"""
 import glob
 import hashlib
 import json
@@ -20,7 +20,7 @@ SESSIONS = str(SCRIPTS / "list-sessions.py")
 REPEATS = str(SCRIPTS / "list-repeats.py")
 NOW = time.time()
 DAY = 86400
-TMP = tempfile.mkdtemp(prefix="probe-dejavu-")
+TMP = tempfile.mkdtemp(prefix="replay-dejavu-")
 CONFIG = os.path.join(TMP, "config")
 DATA = os.path.join(TMP, "data")
 ENV = dict(os.environ, CLAUDE_CONFIG_DIR=CONFIG)

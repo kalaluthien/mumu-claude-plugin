@@ -2,7 +2,7 @@
 """Build fixture transcripts and facets in a temporary config folder, run habit's map and reduce on them, and print one
 line per step and `probe: <passed> of <steps> steps pass`; exit 0 only when all pass.
 
-usage: probe-habit.py"""
+usage: replay-habit.py"""
 import glob
 import hashlib
 import json
@@ -20,7 +20,7 @@ SESSIONS = str(SCRIPTS / "list-sessions.py")
 HABITS = str(SCRIPTS / "list-repeats.py")
 NOW = time.time()
 DAY = 86400
-TMP = tempfile.mkdtemp(prefix="probe-habit-")
+TMP = tempfile.mkdtemp(prefix="replay-habit-")
 CONFIG = os.path.join(TMP, "config")
 DATA = os.path.join(TMP, "habit")
 ENV = dict(os.environ, CLAUDE_CONFIG_DIR=CONFIG)

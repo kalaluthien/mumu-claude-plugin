@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check that a check starting live sessions replays its saved transcript and stops at its cap, with a stub `claude` that logs each session it starts, and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
 
-usage: replay-live-runs.py --case <name>
+usage: replay-live-runs.py [--case <name>]   (no argument: every one in turn)
 - replay: a fix to the judging stage starts no new session, a change to a watched file starts one, and a body that runs `claude -p` unwatched or past its first stage is refused by check-criteria.py
 - cap: a fifth session with no `live runs` decision starts nothing, and a run past the task's `live runs` count starts no session, fails the check and prints the `BLOCKED due` line"""
 import json
@@ -17,7 +17,7 @@ import replay_probe  # noqa: E402
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
 CRITERION = "`claude -p hello | python3 judge.py` prints `PASS`; watches: app; on base `FAIL`"
-BODY = "## Goal\n\nProbe the replay.\n\n## Definition of done\n\n1. [check] **The stub session earns a verdict from the judge**: " + CRITERION + ".\n"
+BODY = "## Goal\n\nProbe the replay.\nPath: caller: probe-worker; before: filing; after: judging; meets: teamwork-manager\n\n## Definition of done\n\n1. [check] **The stub session earns a verdict from the judge**: " + CRITERION + ".\n"
 JUDGE = "import sys\nprint('PASS' if 'verdict' in sys.stdin.read() else 'FAIL')\n"
 
 
@@ -109,6 +109,8 @@ CASES = {"replay": case_replay, "cap": case_cap}
 
 
 def main(args):
+    if not args:
+        return replay_probe.run_every(__file__, "--case", CASES)
     if len(args) != 2 or args[0] != "--case" or args[1] not in CASES:
         print(__doc__, file=sys.stderr)
         return 2

@@ -2,7 +2,7 @@
 """Build a backed-up memory folder and the tidies a dream could leave of it, run restore-lessons.py on each, and print one
 line per step and `probe: <passed> of <steps> steps pass`; exit 0 only when all pass.
 
-usage: probe-recall.py"""
+usage: replay-recall.py"""
 import json
 import pathlib
 import shutil
@@ -70,7 +70,7 @@ def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    with tempfile.TemporaryDirectory(prefix="probe-recall-") as folder:
+    with tempfile.TemporaryDirectory(prefix="replay-recall-") as folder:
         root = pathlib.Path(folder)
         for name, tidy in (("a tidy that deletes the one lesson a correction needs", drop_release),
                            ("a tidy that narrows that lesson's index line past the correction", narrow_release)):

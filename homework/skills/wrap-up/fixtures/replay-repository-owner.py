@@ -2,7 +2,7 @@
 """Build one repository of each kind in a temporary folder, run check-repository-owner.py on them, and print one line per
 kind and `probe: <passed> of <kinds> kinds right`; exit 0 only when all are right.
 
-usage: probe-repository-owner.py
+usage: replay-repository-owner.py
 
 The repositories are built at run time, since a fixture folder cannot hold a `.git`.
 """
@@ -24,7 +24,7 @@ def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    top = pathlib.Path(tempfile.mkdtemp(prefix="probe-repository-owner-"))
+    top = pathlib.Path(tempfile.mkdtemp(prefix="replay-repository-owner-"))
     own, other, local, plain = top / "own", top / "other", top / "local", top / "plain"
     git("init", "-q", str(own))
     git("-C", str(own), "remote", "add", "origin", f"git@github.com:{LOGIN}/tools.git")

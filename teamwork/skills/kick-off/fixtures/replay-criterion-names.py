@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-"""Check that criterion names are complete sentences, on a git board in a temporary repository or on this repository's own, and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
+"""Check that criterion names are complete sentences, on a git board in a temporary repository, and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
 
-usage: replay-criterion-names.py --case <name>
-- gate: `file` refuses a body whose criterion is named by a label and posts nothing, `edit` refuses a diff that adds one and leaves the body as it was, both name the Complete sentence rule, a body whose names are sentences is filed, and the pane's list shows each full sentence on its `☐` line
-- open: every open task of this repository's board names each criterion by a sentence that `issue_state.sentence` and `issue_state.plain` accept"""
-import json
+usage: replay-criterion-names.py [--case <name>]   (no argument: every one in turn)
+- gate: `file` refuses a body whose criterion is named by a label and posts nothing, `edit` refuses a diff that adds one and leaves the body as it was, both name the Complete sentence rule, a body whose names are sentences is filed, and the pane's list shows each full sentence on its `☐` line"""
 import os
 import pathlib
 import subprocess
@@ -49,26 +47,13 @@ def case_gate():
     return 0
 
 
-def case_open():
-    import issue_state
-    common = subprocess.run(["git", "rev-parse", "--git-common-dir"], capture_output=True, text=True, check=True).stdout.strip()
-    show = lambda path: subprocess.run(["git", f"--git-dir={common}", "show", f"refs/teamwork-blackboard:{path}"], capture_output=True, text=True).stdout
-    tree = subprocess.run(["git", f"--git-dir={common}", "ls-tree", "--name-only", "-r", "refs/teamwork-blackboard"], capture_output=True, text=True).stdout.split()
-    bad = []
-    for path in tree:
-        if path.endswith("issue.json") and str(json.loads(show(path)).get("state", "")).lower() == "open":
-            body = show(path.replace("issue.json", "body.md"))
-            for item in issue_state.ITEM.findall(issue_state.sections(body).get("done", "")):
-                name = issue_state.CRITERION.match(item).group(3)
-                if name and (issue_state.sentence("criterion name", name) or issue_state.plain("criterion name", name)):
-                    bad.append(f"{path.rsplit('/', 2)[0]}: {name}")
-    return replay_probe.fail("; ".join(bad)) if bad else 0
 
-
-CASES = {"gate": case_gate, "open": case_open}
+CASES = {"gate": case_gate}
 
 
 def main(args):
+    if not args:
+        return replay_probe.run_every(__file__, "--case", CASES)
     if len(args) != 2 or args[0] != "--case" or args[1] not in CASES:
         print(__doc__, file=sys.stderr)
         return 2

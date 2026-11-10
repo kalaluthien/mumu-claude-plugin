@@ -59,8 +59,6 @@ A refusal prints `path: rule: detail`.
 | `missing-key` | a plan with no `parts` |
 | `bad-json` | text that is not JSON |
 
-The refused fixtures in [../fixtures/refused/](../fixtures/refused/) show the refusals. `answer-plan.json` is a valid plan, and its five `*.answer.md` are refused by the reader, not the checker: `read-answer.py --expect-refused fixtures/refused/answer-plan.json fixtures/refused/*.answer.md` prints `refused 5 of 5`.
-
 ## Answer
 
 One Markdown form, one line per Part touched, nothing for a Part kept. A pressed `pick` writes its line even for option 1, so a missing line means unanswered, not agreed:

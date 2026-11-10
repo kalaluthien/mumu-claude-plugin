@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Send a worker's `cd` into the live checkout through route-event.py from a worktree of a temporary repository, run the command its refusal offers, and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
 
-usage: replay-cd-refusal.py --case <name>
+usage: replay-cd-refusal.py [--case <name>]   (no argument: every one in turn)
 - git: `cd <live>/teamwork && git ls-files` is denied with a command that has no cd and prints what the cd command printed
 - path: `cd <live>/teamwork && cat note.txt | head -1 && ls .` is denied with a command that has no cd and prints what the cd command printed
 - subshell: `(cd <live>/teamwork && cat note.txt)` is denied with a command that has no cd and prints what the cd command printed
@@ -170,6 +170,8 @@ def check_real():
 
 
 def main(args):
+    if not args:
+        return replay_probe.run_every(__file__, "--case", (*COMMANDS, "real", "writes"))
     if len(args) != 2 or args[0] != "--case" or args[1] not in (*COMMANDS, "real", "writes"):
         print(__doc__, file=sys.stderr)
         return 2

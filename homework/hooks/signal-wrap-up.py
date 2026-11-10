@@ -11,8 +11,7 @@ usage: signal-wrap-up.py                        the Stop hook: its payload on st
 
 A dream rides on a lesson ask, since a dream alone rarely pays.
 Enabling the plugin for a project is the opt-in, so no arm step writes to the
-data folder. Asks are scored by fixtures/replay-score.py on fixtures/labels.json, and
-fixtures/replay-sessions.py replays fixtures/sessions.json.
+data folder.
 """
 import json
 import os

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Replay owner additions to a held task on a git board in a temporary repository, with a `gh` on `PATH` that logs each call and fails, and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
 
-usage: replay-additions.py --case <name>
+usage: replay-additions.py [--case <name>]   (no argument: every one in turn)
 - path: an addition recorded by `decide` leaves the body as it was and shows in `list-additions.py`; a worker's `edit --base` folds it; a stale diff of the old body is refused with the board unchanged; nothing is left unfolded
 - prefix: with twenty additions recorded, a fold that names the last leaves the other nineteen listed, since `#comment-2` starts `#comment-21`
 - writes: three additions take fewer board writes by the path the playbooks give than by one body edit and one precheck comment per addition"""
@@ -141,6 +141,8 @@ CASES = {"path": case_path, "prefix": case_prefix, "writes": case_writes}
 
 
 def main(args):
+    if not args:
+        return replay_probe.run_every(__file__, "--case", CASES)
     if len(args) != 2 or args[0] != "--case" or args[1] not in CASES:
         print(__doc__, file=sys.stderr)
         return 2

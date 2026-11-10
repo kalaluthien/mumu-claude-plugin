@@ -135,7 +135,8 @@ def main(args):
     scripts = scripts_of(root)
     failures = [f"option {PLUGIN}/{path}: takes words but has no valid call in replay-option-calls.py, so no option was tried on it"
                 for path in scripts if path not in CALLS and takes_words(root / PLUGIN / path)]
-    with concurrent.futures.ThreadPoolExecutor() as pool:
+    # four at a time, since each call starts a process and the machine is shared
+    with concurrent.futures.ThreadPoolExecutor(4) as pool:
         replayed = list(pool.map(lambda path: replay_script(root, path), [path for path in scripts if path in CALLS]))
     called = sum(count for count, _ in replayed)
     for _, lines in replayed:

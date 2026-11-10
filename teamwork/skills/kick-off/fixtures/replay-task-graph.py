@@ -10,7 +10,7 @@ exit 1 on any fail. The git board runs every case but the nodes'; nodes the hear
   heartbeat-tree-unread: a failed tree read leaves the manager's read whole, with one `unread` link line
 - pane-nesting, pane-wait-line, pane-done-count: list-issue-board.py's lines
 
-usage: replay-task-graph.py --board <git|nodes>"""
+usage: replay-task-graph.py [--board <git|nodes>]   (no argument: both in turn)"""
 import difflib
 import json
 import os
@@ -230,6 +230,8 @@ def pane_cases(lines, root, waiting, first, second):
 
 def main(args):
     global work, board, task_links
+    if not args:
+        return replay_probe.run_every(__file__, "--board", ("git", "nodes"))
     if len(args) != 2 or args[0] != "--board" or args[1] not in ("git", "nodes"):
         print(__doc__, file=sys.stderr)
         return 2

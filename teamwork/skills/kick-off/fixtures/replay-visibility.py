@@ -16,7 +16,7 @@ import replay_probe  # noqa: E402
 USE = HERE.parent / "scripts" / "use-board.py"
 NOTE = "Run the probe at head and base; try zero rows."
 ASK = "which of the two layouts does the owner want?"
-BODY = f"## Goal\n\nProbe visibility.\n\n## Definition of done\n\n{replay_probe.CHECK}"
+BODY = f"## Goal\n\nProbe visibility.\nPath: caller: probe-worker; before: filing; after: reading; meets: teamwork-manager\n\n## Definition of done\n\n{replay_probe.CHECK}"
 
 
 def use(*argv):

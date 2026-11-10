@@ -7,12 +7,19 @@
 // `strike <text>`, `dim <text>` or `color:<name> <text>`.
 // With `--search <regex>` and `--press <text>` (each repeatable; `none` presses nothing), it draws the rows at width 88, or at `--columns <n>`, with every row folded, then types each
 // regex into the search box and presses each button whose text holds a given text, in the order given, and prints the drawn lines as `<row number>|<line>`, a yellow background in ⟦ ⟧.
-// usage: bun teamwork/hooks/fixtures/render-task-pane.ts <nodes-file> [--styled | --search <regex>... --press <text>... --columns <n>]
+// With no argument, it checks deep-task-nodes.json and deep-decision-nodes.json beside it and prints `PASS` when both are `same`, else `FAIL <file>` for each, exit 1.
+// usage: bun teamwork/hooks/fixtures/replay-task-pane.ts [<nodes-file> [--styled | --search <regex>... --press <text>... --columns <n>]]
 import { drawPane, handlers, on, store } from './stand-in-modules.ts'
 
+if (process.argv.length === 2) {
+  const failed = ['deep-task-nodes.json', 'deep-decision-nodes.json']
+    .filter(file => Bun.spawnSync(['bun', import.meta.path, `${import.meta.dir}/${file}`]).exitCode !== 0)
+  console.log([...failed.map(file => `FAIL ${file}`), failed.length ? 'FAIL' : 'PASS'].join('\n'))
+  process.exit(failed.length ? 1 : 0)
+}
 const nodes = process.argv[2]
-if (!nodes) {
-  console.error('usage: bun teamwork/hooks/fixtures/render-task-pane.ts <nodes-file> [--styled | --search <regex>... --press <text>... --columns <n>]')
+if (nodes.startsWith('-')) {
+  console.error('usage: bun teamwork/hooks/fixtures/replay-task-pane.ts [<nodes-file> [--styled | --search <regex>... --press <text>... --columns <n>]]')
   process.exit(2)
 }
 const lister = `${import.meta.dir}/../list-issue-board.py`

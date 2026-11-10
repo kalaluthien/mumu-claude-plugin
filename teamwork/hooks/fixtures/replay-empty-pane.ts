@@ -1,6 +1,6 @@
 // Render a manager's issue pane before any board read, after a failed read and after a good read of no issues, through stand-ins for
 // `claude-code` and the JSX runtime, and print the pane's text at each: `unread: <text>`, `failed: <text>`, then `empty: <text>`.
-// usage: bun teamwork/hooks/fixtures/render-empty-pane.ts
+// usage: bun teamwork/hooks/fixtures/replay-empty-pane.ts
 import { drawPane, handlers, on } from './stand-in-modules.ts'
 
 const text = (node: unknown): string =>
