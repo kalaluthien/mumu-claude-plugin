@@ -8,8 +8,8 @@ import task_links
 
 # the latest closed parts a parent lists, newest first, an ellipsis below them when more landed before
 SHOWN_CLOSED = 4
-# close reasons of work stopped, not done; GitHub's duplicate close counts with them
-STOPPED = ("NOT_PLANNED", "DUPLICATE")
+# the close reason of work stopped, not done
+STOPPED = ("NOT_PLANNED",)
 # waits the status shows; a blocked task shows its `blocked by` line instead
 SHOWN_WAITS = ("waits on its parts", "waits on the owner", "waits on the manager")
 WIDTHS = (24, 30, 40, 60, 80)

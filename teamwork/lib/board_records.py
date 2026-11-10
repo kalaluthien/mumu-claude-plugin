@@ -261,7 +261,7 @@ def reopen(store, number):
     """Opens NUMBER again; an open one stays as it is."""
     def change():
         if meta(store, number)["state"] == "CLOSED":
-            save(store, number, state="OPEN", reason="REOPENED", closedAt=None)
+            save(store, number, state="OPEN", reason="", closedAt=None)
     store.write(change)
 
 

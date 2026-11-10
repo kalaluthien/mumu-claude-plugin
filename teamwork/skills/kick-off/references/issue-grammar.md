@@ -57,7 +57,24 @@ A task's sections, each a `## <section>` heading in the body, which holds their 
 | `Goal` | the owner's intent, in detail, with its purpose and each guess marked `(guess)`, and, from task 1305, a `Path:` line naming the flow of the changed part ([check-criteria.py](../scripts/check-criteria.py) and the board writes `file` and `edit` of [use-board.py](../scripts/use-board.py) refuse a Goal without one); the title sums it up | goal |
 | `Definition of done` | criteria, one per numbered or bulleted line | done |
 
-A `N. [task] #n <title>` line in `Definition of done` is a part, not a criterion: the task it names belongs to this one, its parent, and is met when that task is closed as completed. A task has one parent, and a task with none is a root. A task numbered at or above the cut-off, which [check-criteria.py](../scripts/check-criteria.py) `--cut-off` prints, holds at most 5 criteria, parts not counted; the lint learns a task's number by `--task <n>`, and with none applies the cut-off's rules, as for a task not yet filed. `file` and `edit` refuse, writing nothing, `[task]` and `depends on` lines that make a cycle or a second parent, name an unknown issue, or exceed 50 `depends on` entries or 100 parts; a `[task]` line that `edit` adds to a closed parent reopens it.
+A `N. [task] #n <title>` line in `Definition of done` is a part, not a criterion: the task it names belongs to this one, its parent, and is met when that task is closed as completed. A task has one parent, and a task with none is a root. A task numbered at or above the cut-off, which [check-criteria.py](../scripts/check-criteria.py) `--cut-off` prints, holds at most 5 criteria, parts not counted; the lint learns a task's number by `--task <n>`, and with none applies the cut-off's rules, as for a task not yet filed. `file` and `edit` refuse, writing nothing, `[task]` and `depends on` lines that make a cycle or a second parent, name an unknown issue, or exceed 50 `depends on` entries or 100 parts.
+
+## States
+
+A task is open, completed or stopped; `use-board.py` changes a task's state only by the moves below, and any other `edit` or `reopen` leaves it as it was.
+
+| state | move | result |
+| --- | --- | --- |
+| none | `file` | open |
+| open | `resolve`, every part completed | completed, and so is its parent once every part of the parent is completed and it holds no criterion |
+| open | `resolve`, a part open or stopped | refused |
+| open | `resolve --not-planned` | stopped, with each open part |
+| completed or stopped | `resolve` | refused |
+| completed or stopped | `reopen` | open, with each closed ancestor |
+| completed or stopped | `edit` adding a part | open, with each closed ancestor |
+| open | `reopen` | open |
+| open | `edit` dropping its last part | open |
+| open | `edit` dropping a part or a criterion, a part left and every part left completed | completed, when it holds no criterion, and so is its parent once every part of the parent is completed and it holds no criterion |
 
 ## Waits
 

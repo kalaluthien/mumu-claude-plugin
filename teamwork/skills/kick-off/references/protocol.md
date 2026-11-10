@@ -30,8 +30,8 @@ Each port is a set of operations the playbooks name.
 | board | `comment` | appends a comment, its text written to a file first |
 | board | `file` | opens an issue with a title, labels and body |
 | board | `edit` | changes a body's sections by a diff, posted as a `DECIDED:` comment first, or a title |
-| board | `resolve` | closes an issue, completed with a `REPORTED: <summary>`, or not planned for work stopped; closing a parent's last open part closes the parent too when it holds no other criterion, and stopping a parent stops its open parts, named in one `DECIDED:` |
-| board | `reopen` | opens a closed issue again; an open one stays as it is |
+| board | `resolve` | closes an open issue, completed with a `REPORTED: <summary>`, or not planned for work stopped, moving its tree as [issue-grammar.md](issue-grammar.md#states) says |
+| board | `reopen` | opens a closed issue again, moving its tree as [issue-grammar.md](issue-grammar.md#states) says |
 | board | `decide` | comments a `DECIDED:` |
 | board | `label` | adds a label to an issue or removes one |
 | message | `tell` | one message to a session, naming the url that holds what it needs and stating a fact, never a step for the peer to run |

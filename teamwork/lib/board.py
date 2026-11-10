@@ -3,7 +3,7 @@
   `changed_since(stamp)`, `blockers(number)` the numbers its `depends on` names that are not closed as completed, `scoped(project)` the folder that scopes a project ('' the repository root),
   `tree(project, nodes)` the open issues' nodes the issue pane draws; each None when a read failed
 - writes: `atomic(change)` runs CHANGE's writes as one, `comment(number, text)`, `file(title, body, labels, scope) -> int` (`scope` the folder, git board only), `body(number)` and `edit(number, body)`, `resolve(number, summary, completed)`, `reopen(number)`, `retitle(number, title)`,
-  `label(number, name, remove)`; this module's `edit` and `resolve` add the state links derive: a follow-up part reopens, a stop stops the parts, the last part closes its parent
+  `label(number, name, remove)`; this module's `edit`, `resolve` and `reopen` move the tree as issue-grammar.md's States table says
 - links: `parent_of(number)` the task whose body names it as a part, `check_links(number, body)` raises LookupError naming why BODY cannot be NUMBER's
 - `trusted(record)`, whether a record's author may write records; `command(text)`, the board write a shell command runs
 A record has `number`, `title`, `body`, `labels` (names), `state` (`OPEN` or `CLOSED`), `parent` (a number or None), `trusted` and `comments`,
@@ -34,12 +34,12 @@ def edit(number, text):
 
 
 def edit_whole(number, text):
-    """Writes TEXT as NUMBER's body; a closed task whose new body gains a part opens again, since that part is follow-up work, and an
-    open one whose new body drops a part or a criterion closes once no criterion is left and every part left was closed as completed."""
+    """Writes TEXT as NUMBER's body, then moves the tree as issue-grammar.md's States table says for an `edit`."""
     old = board_git.fresh(number, comments=False)
     board_git.edit(number, text)
-    if old and old["state"] == "CLOSED" and set(task_links.parts(text)) - set(task_links.parts(old["body"])):
-        board_git.reopen(number)
+    gained = set(task_links.parts(text)) - set(task_links.parts(old["body"])) if old else set()
+    if old and old["state"] == "CLOSED" and gained:
+        reopen_up(number)
     dropped = old and (set(task_links.parts(old["body"])) - set(task_links.parts(text)) or set(task_links.criteria(old["body"])) - set(task_links.criteria(text)))
     if dropped and old["state"] == "OPEN" and task_links.parts(text) and not task_links.criteria(text) and parts_completed(text):
         resolve(number, "REPORTED: every part left closed as completed, once the edit dropped the rest.")
@@ -50,9 +50,12 @@ def resolve(number, summary, completed=True):
 
 
 def resolve_whole(number, summary, completed=True):
-    """Closes NUMBER. Stopped, it first stops its open parts, named in one `DECIDED:` on it; completed, it closes its parent
-    once every part of the parent is closed as completed and the parent holds no other criterion."""
+    """Closes NUMBER as issue-grammar.md's States table says, its open parts stopped with it named in one `DECIDED:` on it."""
     record = board_git.fresh(number, comments=False)
+    if record and record["state"] == "CLOSED":
+        raise LookupError(f"#{number} is closed; reopen it first")
+    if record and completed and not parts_completed(record["body"]):
+        raise LookupError(f"#{number} has a part not closed as completed; resolve each open part first, `edit` a stopped part out of #{number}'s body, or `resolve` #{number} --not-planned")
     stopping = [part for part in task_links.parts(record["body"]) if (found := board_git.fresh(part, comments=False)) and found["state"] == "OPEN"] if record and not completed else []
     if stopping:
         board_git.comment(number, f"{issue_state.STOPPING}{number} stops its open parts {' '.join(f'#{part}' for part in stopping)}.")
@@ -63,3 +66,16 @@ def resolve_whole(number, summary, completed=True):
     found = parent and board_git.fresh(parent, comments=False)
     if found and found["state"] == "OPEN" and int(number) in task_links.parts(found["body"]) and not task_links.criteria(found["body"]) and parts_completed(found["body"]):
         resolve(parent, f"REPORTED: every part closed as completed, the last #{number}.")
+
+
+def reopen_up(number):
+    """Opens NUMBER, which must exist, and each closed task above it."""
+    board_git.reopen(number)
+    while number := board_git.parent_of(number):
+        found = board_git.fresh(number, comments=False)
+        if found and found["state"] == "CLOSED":
+            board_git.reopen(number)
+
+
+def reopen(number):
+    return board_git.atomic(lambda: reopen_up(number))
