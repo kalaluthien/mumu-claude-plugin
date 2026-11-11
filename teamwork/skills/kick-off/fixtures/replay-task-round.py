@@ -93,7 +93,7 @@ def main(args):
 
     code, shown, _ = use("read", question.split("#")[0])
     cost["read"] += len(shown)
-    wanted = ("holders: second-worker", "depends: #2", "blocked by #2", "- #1 owner: the probe prints ok in two halves.", "open questions: 1", "to the owner: which case does the probe print?",
+    wanted = ("holders: second-worker", "depends: #2", "waits on the owner", "- #1 owner: the probe prints ok in two halves.", "open questions: 1", "to the owner: which case does the probe print?",
               "1. print it in lower case", "2. print it in capitals")
     step("read", code == 0 and all(word in shown for word in wanted), [word for word in wanted if word not in shown] + [shown])
 

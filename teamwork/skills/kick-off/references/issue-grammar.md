@@ -69,11 +69,12 @@ A task is open, completed or stopped; `use-board.py` changes a task's state only
 
 What an open issue waits on, first match:
 
-1. a task it depends on that is not closed as completed: `blocked by #<n>`;
-2. a parent each of whose open parts is blocked by a task it depends on, one level down only: `waits on its parts`;
-3. an open question: `waits on the owner` when the latest one's audience is `owner`, else `waits on the manager`;
-4. holders with names: `held`;
-5. else `no holder`.
+1. an open question to the owner: `waits on the owner`, the one wait the pane highlights; the opened row numbers the answers each such question offers, under its question when two are open, and the owner answers the manager with a number;
+2. a task it depends on that is not closed as completed: `blocked by #<n>`;
+3. holders with names: `held`;
+4. else `no holder`.
+
+A question to the manager is no wait of the task's: it stays an open question, drawn dim, which the team clears.
 
 ## Rules
 

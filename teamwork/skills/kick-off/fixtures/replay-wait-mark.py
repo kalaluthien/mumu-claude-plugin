@@ -5,7 +5,7 @@
 - answer-reposted: a decision naming the last of three identical asks clears all three
 - answer-both: two different questions each need their own decision
 - answer-signal: the decision touches the file the pane rereads on
-- keep-other-question, keep-comment-only, keep-worker-decision, keep-event, keep-owner-by-manager: a decision naming another question, a report, a worker's own decision, a holders event, or a manager's decision on a question asked of the owner, leave the mark
+- keep-other-question, keep-comment-only, keep-worker-decision, keep-event, keep-owner-by-manager: a decision naming another question, a report, a worker's own decision, a holders event, or a manager's decision on a question asked of the owner, leave the mark, which is the open question alone for one the team answers and `waits on the owner` too for one asked of the owner
 
 usage: replay-wait-mark.py"""
 import json
@@ -74,7 +74,7 @@ def marks(number):
 def cleared(number):
     """Whether the pane draws no waiting mark and no question on task NUMBER."""
     wait, questions = marks(number)
-    return wait not in ("waits on the owner", "waits on the manager") and questions == []
+    return wait == "" and questions == []
 
 
 def signal_stamp():
@@ -85,9 +85,9 @@ def signal_stamp():
 def cases():
     task = file("Probe a plain answer")
     ask(task, "which cache")
-    step("keep-comment-only", marks(task)[0] == "waits on the manager", marks(task))
+    step("keep-comment-only", marks(task) == ("", ["which cache"]), marks(task))
     post("comment", task, "REPORTED: probe findings\n")
-    step("keep-comment-only-after", marks(task)[0] == "waits on the manager", marks(task))
+    step("keep-comment-only-after", marks(task) == ("", ["which cache"]), marks(task))
     signal = signal_stamp()
     decide(task, "use the shared cache")
     step("answer-no-answers", cleared(task), marks(task))
@@ -107,9 +107,9 @@ def cases():
     own = file("Probe a worker's own decision")
     ask(own, "which cache")
     decide(own, "my design keeps one cache", by="probe-worker")
-    step("keep-worker-decision", marks(own) == ("waits on the manager", ["which cache"]), marks(own))
+    step("keep-worker-decision", marks(own) == ("", ["which cache"]), marks(own))
     use("hold", own, "probe-worker")
-    step("keep-event", marks(own) == ("waits on the manager", ["which cache"]), marks(own))
+    step("keep-event", marks(own) == ("", ["which cache"]), marks(own))
 
     to_owner = file("Probe a manager on an owner's ask")
     ask(to_owner, "may the sync run", owner=True)
@@ -124,7 +124,7 @@ def cases():
     two = file("Probe two questions")
     first, second = ask(two, "which width counts"), ask(two, "which height counts")
     decide(two, "any height counts", answers=second)
-    step("keep-other-question", marks(two) == ("waits on the manager", ["which width counts"]), marks(two))
+    step("keep-other-question", marks(two) == ("", ["which width counts"]), marks(two))
     decide(two, "24 to 80 columns count", answers=first)
     step("answer-both", cleared(two), marks(two))
 

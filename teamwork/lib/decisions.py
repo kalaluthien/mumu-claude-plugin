@@ -191,11 +191,12 @@ def pane_time(created):
 
 
 def shown(node, superseded=frozenset()):
-    """What the pane draws under a task: its open questions' first lines, and its decisions that no decision in SUPERSEDED replaced, newest first.
+    """What the pane draws under a task: its open questions' first lines, which of them the team answers, per question the answers one to the owner offers, and its decisions that no decision in SUPERSEDED replaced, newest first.
     A decision is {decision, time, mark}: `mark` is `◆` for the owner's and `◇` for a manager's or a worker's."""
     issue = as_issue(node)
     live = sorted((decision for decision in typed(node["number"], node) if decision["url"] not in superseded),
                   key=lambda decision: (decision["createdAt"], decision["index"]), reverse=True)
-    asked = [first_line(question["ask"]) for question in issue_state.open_questions(issue)]
-    return {"questions": [text for k, text in enumerate(asked) if text not in asked[:k]],  # an ask posted again is one question
+    asked = {first_line(question["ask"]): question["fields"] for question in issue_state.open_questions(issue)}  # an ask posted again is one question
+    return {"questions": list(asked), "team_questions": [k for k, fields in enumerate(asked.values()) if fields.get("asks") != "owner"],
+            "options": [fields.get("options", []) if fields.get("asks") == "owner" else [] for fields in asked.values()],
             "decided": [{"decision": decision["decision"], "time": pane_time(decision["createdAt"]), "mark": "◆" if decision["role"] == "owner" else "◇"} for decision in live]}

@@ -22,8 +22,6 @@ const opened = atom({ plugin: 'teamwork', key: 'opened' } as const, null as { nu
 const FOLD = 2
 // a task's number takes the color of its own state: the owner's answer awaited, a holder, an open blocker, else ready
 const NUMBER_COLOR = { owner: 'yellow', held: 'green', blocked: 'red', ready: '#c8c8c8' }
-// a wait that needs someone stands out; any other, such as `blocked by #n` beside a blocked task, stays dim
-const WAIT_COLOR: Record<string, string> = { 'waits on the owner': 'error', 'waits on the manager': 'warning' }
 // a write to a pull request, the change a repository that lands by pull request shows, so a `gh api` read marks nothing, even one with `-f` and `-X GET`; a global flag may stand before the subcommand (`gh -R o/r pr …`); the body script runs out of sight; a GitHub issue is never written, the hook refuses it
 const TEAM_CHANGE = /\bedit-issue-body\.py\b|\bgh\s+(?:-{1,2}\w[\w-]*(?:[\s=][^\s-]\S*)?\s+)*(?:(pr)\s+(create|comment|edit|close|reopen|merge|review|ready)\b|api\s+(?!graphql)(?!(?:[^;&|\n]*\s)?(-X|--method)[\s=]*GET\b)(?=[^;&|\n]*(\s(-X|--method)[\s=]*(POST|PATCH|PUT|DELETE)\b|\s-[fF]\b|\s--(raw-)?field\b|\s--input\b))[^;&|\n]*\b(pulls)\b)/
 
@@ -219,12 +217,12 @@ export const register: Register = on => {
         rest = rest.slice(part.length).replace(/^ /, '')
       }
       return pieces.flatMap(({ part, at }, k) => [k ? gap(spans, at - 1) : null, <Text dimColor={part !== issue.holder && part !== issue.wait}
-        color={part === issue.holder ? 'suggestion' : part === issue.wait ? WAIT_COLOR[part] ?? 'subtle' : undefined} weight={part === issue.wait ? 'semibold' : undefined}>{lit(line, spans, at, at + part.length)}</Text>])
+        color={part === issue.holder ? 'suggestion' : part === issue.wait ? 'error' : undefined} weight={part === issue.wait ? 'semibold' : undefined}>{lit(line, spans, at, at + part.length)}</Text>])
     }
     const lead = (text: string) => <Text dimColor>{text}</Text>
-    // a manager's or a worker's decision is dim, as the lister marks it in `quiet`
+    // a question the team answers and a manager's or a worker's decision are dim, as the lister marks them in `quiet`
     const note = (issue: BoardIssue, pad: string, line: string, k: number, spans: Spans) =>
-      <Text>{lead(pad)}<Text color={line.startsWith('?') ? 'warning' : undefined} dimColor={issue.lines.quiet.includes(k)}>{lit(line, spans)}</Text></Text>
+      <Text>{lead(pad)}<Text color={line.startsWith('?') && !issue.lines.quiet.includes(k) ? 'warning' : undefined} dimColor={issue.lines.quiet.includes(k)}>{lit(line, spans)}</Text></Text>
     // a row as list-issue-board.py lays it out for the pane: its guide, then each line it wrapped; the guide is drawn text, so the tree reads at any width it fits.
     // While a search is on, every match is a top-level row with no guide, and one whose match sits in folded text is open
     const row = (issue: BoardIssue): JSX.Element => {
@@ -235,7 +233,7 @@ export const register: Register = on => {
       const [first, ...rest] = issue.lines.title
       const label = `#${issue.number}`
       const spans = (kind: 'title' | 'status' | 'notes', k: number): Spans => found?.[kind][k] ?? []
-      const numberColor = issue.wait === 'waits on the owner' ? NUMBER_COLOR.owner : issue.holder ? NUMBER_COLOR.held
+      const numberColor = issue.wait ? NUMBER_COLOR.owner : issue.holder ? NUMBER_COLOR.held
         : issue.blockers.some(blocker => !blocker.closed) ? NUMBER_COLOR.blocked : NUMBER_COLOR.ready
       return (
         <Box flexDirection="column">

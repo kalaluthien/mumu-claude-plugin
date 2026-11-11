@@ -10,8 +10,6 @@ import task_links
 SHOWN_CLOSED = 4
 # the close reason of work stopped, not done
 STOPPED = ("NOT_PLANNED",)
-# waits the status shows; a blocked task shows its `blocked by` line instead
-SHOWN_WAITS = ("waits on its parts", "waits on the owner", "waits on the manager")
 WIDTHS = (24, 30, 40, 60, 80)
 PANE_WIDTH = 40  # a narrow docked pane, for a listing given no width, as before the pane is first drawn
 MIN_TEXT = 16  # cells a row keeps for its text before its depth stops growing
@@ -43,24 +41,17 @@ def blockers_of(node):
     return [{"number": blocker["number"], "closed": task_links.completed(blocker)} for blocker in (node.get("blockedBy") or {}).get("nodes", [])]
 
 
-def parts_wait(node):
-    """Whether each open part of NODE waits on a task its `depends on` names, so the parent has no step of its own."""
-    opened = [task for task in (node.get("subIssues") or {}).get("nodes", []) if task["state"] == "OPEN"]
-    return bool(opened) and all(any(not blocker["closed"] for blocker in blockers_of(task)) for task in opened)
-
-
 def entry(node, superseded=frozenset()):
     """One task as the board shows it: its status, its open questions and decisions, its criteria, its parts' progress."""
     every = blockers_of(node)
     blockers = [blocker["number"] for blocker in every if not blocker["closed"]]
-    state = issue_state.compose({"body": node["body"], "trusted": node["trusted"], "comments": node["comments"]["nodes"]}, blockers, parts_wait(node))
+    state = issue_state.compose({"body": node["body"], "trusted": node["trusted"], "comments": node["comments"]["nodes"]}, blockers)
     summary = node.get("subIssuesSummary") or {}
     closed = [{"number": task["number"], "title": issue_state.title(task), "url": task["url"], "blockers": blockers_of(task),
                "stopped": task.get("stateReason") in STOPPED} for task in (node.get("subIssues") or {}).get("nodes", []) if task["state"] == "CLOSED"]
-    wait = state["waits"].split(" by ")[0]
     next_step = next_step_of(node["comments"]["nodes"]) if summary.get("total") and summary.get("total") == summary.get("completed") else ""
     return {"number": node["number"], "title": issue_state.title(node), "url": node["url"],
-            "holder": " ".join(state["holders"] or []), "wait": wait if wait in SHOWN_WAITS else "",
+            "holder": " ".join(state["holders"] or []), "wait": state["waits"] if state["waits"] == issue_state.OWNER_WAIT else "",
             "progress": progress_of(summary, blockers, next_step),
             "done": [item for item in state["done"] if item["kind"] != "task"],
             "next": next_step, "latest": max((comment.get("createdAt") or "" for comment in node["comments"]["nodes"]), default=""),
@@ -71,7 +62,7 @@ def need_of(issue):
     """How soon a task needs someone, with its parts: 0 when it or a part waits on the owner, 1 when it or a part is held with no open blocker, else 2; and the latest comment time among them."""
     parts = [need_of(task) for task in issue["tasks"]]
     blocked = any(not blocker["closed"] for blocker in issue["blockers"])
-    own = 0 if issue["wait"] == "waits on the owner" else 1 if issue["holder"] and not blocked else 2
+    own = 0 if issue["wait"] else 1 if issue["holder"] and not blocked else 2
     return min([own] + [part[0] for part in parts]), max([issue["latest"]] + [part[1] for part in parts])
 
 
@@ -211,14 +202,24 @@ def heading(row, width):
     said = status(row)
     # parts share a line when they fit; else each takes its own
     shown = [said] if said and (room is None or cells(said) <= room) else [line for part in (row["progress"], row["holder"], row["wait"]) if part for line in wrap(part, room)]
-    notes = [line for question in row.get("questions", []) for line in note("?", question, room)]
+    notes, calm = [], []
+    for k, question in enumerate(row.get("questions", [])):
+        start = len(notes)
+        notes += note("?", question, room)
+        calm += range(start, len(notes)) if k in row.get("team_questions", ()) else []
     shift = len(notes)
+    offered = [(question, options) for question, options in zip(row.get("questions", []), row.get("options", [])) if options]
+    for question, options in offered:
+        # with two questions open, each list repeats its question, so a number names one answer
+        notes += note("?", question, room) if len(offered) > 1 else []
+        notes += [line for place, option in enumerate(options, 1) for line in note(f"{place}.", option, room, limit=None)]
+    decided_from = len(notes)
     deciding, quiet = decision_notes(row.get("decided", []), room)
     notes += deciding
     notes += note("next step:", row["next"], room, limit=None) if row.get("next") else []  # the next step has no other place to be read in full
     # the first line sits after the guide, the later ones after the wider pad, so a title that fits beside its guide takes one line
     title = wrap(label(row), room, None if width is None else width - cells(row["guide"]))
-    return {"title": title, "status": shown, "notes": notes, "questions": shift, "quiet": [shift + k for k in quiet],
+    return {"title": title, "status": shown, "notes": notes, "questions": shift, "quiet": calm + [decided_from + k for k in quiet],
             "held": held_offsets(title, row["blockers"])}
 
 

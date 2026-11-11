@@ -19,12 +19,14 @@ CRITERION = re.compile(r"^(?:\[([ xX])\]\s+)?(?:\[(\w+)\]\s+)?(?:\*\*(.+?)\*\*:?
 # a run of n backticks closes only on a run of exactly n, so a ``…`` span may hold single backticks
 SPAN = re.compile(r"(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)")
 EXACT_KEYWORD = re.compile(r"^\s*(" + "|".join(KEYWORDS) + r"):")
-# the keyword each posting verb opens its text with; a comment asks or informs
+# the one wait the pane highlights, since only the owner's answer is the owner's to give
+OWNER_WAIT = "waits on the owner"
 DIFF = re.compile(r"^(`{3,})diff\n(.*?)^\1$", re.M | re.S)
 # a data fence at a line's start, which a text may not hold, since every datum is an option
 FENCE = re.compile(r"^```(teamwork|decision)[ \t]*$", re.M)
 FENCE_OPTIONS = {"teamwork": "`hold <issue> <name>...`, `depend <issue> <n>...`, `comment --asks owner` or `decide --live-runs <n>`",
                  "decision": "`decide [--by <who>] [--one-way] [--supersedes <url>] [--answers <url>]`, whose sentence is the text's first line"}
+# the keyword each posting verb opens its text with; a comment asks or informs
 VERB_KEYWORDS = {"comment": (ASK, INFORM), "decide": (ANSWER,), "resolve": (INFORM,)}
 # the Plain words caps on a title, a summary line and a decision: the live board's plain summary lines and decisions ran to 20 words, its dense
 # ones from 23, and a second `,` `;` or `:` joined a further idea in every dense line a fresh reader marked
@@ -240,18 +242,14 @@ def live_runs(issue):
     return next((held["live_runs"] for _, held, _ in reversed(records(issue)) if "live_runs" in held), None)
 
 
-def compose(issue, blockers=(), parts_wait=False):
-    """{'holders': the latest names, or None when no record ever set them; 'waits': its wait line, in the grammar's order, PARTS_WAIT telling whether
-    each open part waits on a task;
+def compose(issue, blockers=()):
+    """{'holders': the latest names, or None when no record ever set them; 'waits': its wait line, in the grammar's order;
     'done': the body's criteria, each {'met': True, False or None when it has no box, 'kind', 'name', 'detail'}}."""
     holders = (holder_values(issue) or [None])[-1]
-    asked = open_questions(issue)[-1:]
-    if blockers:
+    if any(question["fields"].get("asks") == "owner" for question in open_questions(issue)):
+        waits = OWNER_WAIT
+    elif blockers:
         waits = " ".join(f"blocked by #{number}" for number in blockers)
-    elif parts_wait:
-        waits = "waits on its parts"
-    elif asked:
-        waits = "waits on the owner" if asked[0]["fields"].get("asks") == "owner" else "waits on the manager"
     else:
         waits = "held" if holders else "no holder"
     # the body alone, since a section is edited there with its diff posted as a comment
