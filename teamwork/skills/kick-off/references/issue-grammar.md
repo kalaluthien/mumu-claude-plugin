@@ -45,8 +45,8 @@ A decision is a `DECIDED` comment holding a fenced block whose info string is `d
 - **Binds**: a decision binds its task and that task's parts. A task's binding set is the decisions on it and on its ancestors that no decision in the root's tree supersedes, and none once the root is closed as not planned; a decision still waiting on its door supersedes nothing yet.
 - **Door**: a `one-way` decision by a worker, a session not named `owner` or `<project>-manager`, binds once a later decision on the same task by the manager or the owner repeats its `decision` or supersedes it.
 - **Authority**: `decide` refuses, posting nothing, a decision that supersedes one `decided by: owner` unless it is `decided by: owner` too; `comment` refuses any decision block, so each one passes this check.
-- **Questions**: a `BLOCKED` is an open question until a decision names its url in `answers`. A `BLOCKED` posted before `2026-11-05` also closes on a later `DECIDED` that is no event.
-- **Events**: a `DECIDED` with no `decision` block is an event when it carries a `teamwork` block or a body edit's `diff`, or is the note a stop posts on the stopped parent; it binds nothing and answers nothing. Any other `DECIDED` with no block, posted since that date, is a decision the index cannot read, which the heartbeat lists.
+- **Questions**: a `BLOCKED` is an open question until a later `DECIDED` that is no event settles it: one naming a url settles that question and each earlier open ask with the same first line, since an ask posted again is one question; one naming no `answers` settles each open question its decider may answer, which is every one for the owner, those not asked of the owner for a manager, and none for a worker.
+- **Events**: a `DECIDED` with no `decision` block is an event when it carries a `teamwork` block or a body edit's `diff`, or is the note a stop posts on the stopped parent; it binds nothing and answers nothing. Any other `DECIDED` with no block is a decision the index cannot read, which the heartbeat lists unless it was posted before `2026-11-05`.
 
 ## Sections
 

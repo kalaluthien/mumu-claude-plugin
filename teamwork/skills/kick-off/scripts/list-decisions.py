@@ -37,7 +37,7 @@ def main(args):
     print(f"open questions: {len(asked)}")
     for task, question in asked:
         audience = question["fields"].get(issue_state.WORD["audience"]) or "manager"
-        print(f"- #{task} to the {audience}: {decisions.first_line(question['ask'])} ({question['ask']['url']})")
+        print(f"- #{task} to the {audience}: {issue_state.first_line(question['ask'])} ({question['ask']['url']})")
     return 0
 
 

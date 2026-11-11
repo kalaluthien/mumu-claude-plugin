@@ -302,18 +302,34 @@ def legacy(comment):
     return (comment.get("createdAt") or "") < TYPED_SINCE
 
 
+def role(decider):
+    """`owner`; `manager` for a session named `<project>-manager`, or `<project>-manager-next`, the name Succession gives; else `worker`."""
+    return "owner" if decider == "owner" else "manager" if decider == "manager" or decider.removesuffix("-next").endswith("-manager") else "worker"
+
+
+def first_line(comment):
+    """A comment's first line of text without its keyword, the line after a keyword that stands alone."""
+    return next((line.strip() for line in re.sub(r"^\s*[A-Z]+:", "", (comment["body"] or "").strip()).splitlines() if line.strip()), "")
+
+
 def questions(issue):
     """Its questions, oldest first, each {'ask': the `BLOCKED:` comment, 'fields': its data, 'answer': the comment that settles it or None}:
-    a later decision naming its url in `answers`, or for a legacy question a later `DECIDED:` that is no event."""
+    a later decision that is no event settles the question whose url it names and each earlier open ask with the same first line, since an ask
+    posted again is one question; with no `answers` it settles each open question its decider may answer: the owner any, a manager any
+    not asked of the owner, a worker none, and a decision from before decisions were typed any."""
     found = []
     for word, fields, comment in records(issue)[1:]:
-        role = KEYWORDS.get(word)
-        if role == "ask":
+        kind = KEYWORDS.get(word)
+        if kind == "ask":
             found.append({"ask": comment, "fields": fields, "answer": None})
-        elif role == "answer" and not event(comment):
-            named = (decision(comment["body"]) or {}).get(FIELD["answers"], "")
+        elif kind == "answer" and not event(comment):
+            block = decision(comment["body"]) or {}
+            named, decider = block.get(FIELD["answers"], ""), role(block.get(FIELD["decider"], ""))
+            said = {first_line(question["ask"]) for question in found if question["ask"]["url"] == named}
             for question in found:
-                if question["answer"] is None and (named == question["ask"]["url"] if named else legacy(question["ask"])):
+                to_owner = question["fields"].get(WORD["audience"]) == "owner"
+                general = legacy(comment) or decider == "owner" or decider == "manager" and not to_owner
+                if question["answer"] is None and (general if not named else question["ask"]["url"] == named or first_line(question["ask"]) in said):
                     question["answer"] = comment
     return found
 

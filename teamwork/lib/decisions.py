@@ -22,11 +22,6 @@ def parent_of(issue):
     return parent.get("number") if isinstance(parent, dict) else parent
 
 
-def role(decider):
-    """`owner`; `manager` for a session named `<project>-manager`, or `<project>-manager-next`, the name Succession gives; else `worker`."""
-    return "owner" if decider == "owner" else "manager" if decider == "manager" or decider.removesuffix("-next").endswith("-manager") else "worker"
-
-
 def quoted(text):
     """Whether TEXT, outside its fenced blocks, quotes someone's words: a `>` line or a span in double quotes."""
     prose = re.sub(r"^(`{3,}).*?^\1", "", text or "", flags=re.M | re.S)
@@ -42,7 +37,7 @@ def typed(number, issue):
             continue
         decider = fields.get(FIELD["decider"], "")
         found.append({"task": number, "index": index, "url": comment["url"], "createdAt": comment.get("createdAt") or "",
-                      "decision": fields.get(FIELD["decision"], ""), "decider": decider, "role": role(decider),
+                      "decision": fields.get(FIELD["decision"], ""), "decider": decider, "role": issue_state.role(decider),
                       "door": fields.get(FIELD["door"], ""), "supersedes": fields.get(FIELD["supersedes"], ""),
                       "answers": fields.get(FIELD["answers"], ""), "depends": [int(n) for n in re.findall(r"#(\d+)", fields.get(FIELD["depends"], ""))]})
     return found
@@ -114,7 +109,7 @@ def refusals(number, text, issues):
     found = [f"the decision block lacks `{FIELD[key]}:`" for key in ("decision", "decider", "door") if not fields.get(FIELD[key])]
     if fields.get(FIELD["door"]) and fields[FIELD["door"]] not in DOORS:
         found.append(f"`{FIELD['door']}:` is `{fields[FIELD['door']]}`, not one of {', '.join(DOORS)}")
-    owner = role(fields.get(FIELD["decider"], "")) == "owner"
+    owner = issue_state.role(fields.get(FIELD["decider"], "")) == "owner"
     if owner and not quoted(text):
         found.append(f"`{FIELD['decider']}: owner` quotes no words of the owner's, as a `>` line or in double quotes")
     answered = fields.get(FIELD["answers"])
@@ -133,17 +128,12 @@ def refusals(number, text, issues):
     return found
 
 
-def first_line(comment):
-    """A comment's first line of text without its keyword, the line after a keyword that stands alone."""
-    return next((line.strip() for line in re.sub(r"^\s*[A-Z]+:", "", (comment["body"] or "").strip()).splitlines() if line.strip()), "")
-
-
 def owner_questions(issues):
     """The lines for ISSUES' open questions to the owner, oldest first."""
     asked = sorted(((question["ask"].get("createdAt") or "", number, question["ask"]) for number, issue in issues.items()
                     for question in issue_state.open_questions(issue) if question["fields"].get(issue_state.WORD["audience"]) == "owner"),
                    key=lambda item: item[0])
-    return [f"question #{number}: {first_line(ask)} ({ask['url']}) waits on the owner; ask the owner, then record the answer by `decide` "
+    return [f"question #{number}: {issue_state.first_line(ask)} ({ask['url']}) waits on the owner; ask the owner, then record the answer by `decide` "
             f"with `{FIELD['decider']}: owner` and `{FIELD['answers']}:` its url" for _, number, ask in asked]
 
 
@@ -207,6 +197,6 @@ def shown(node, superseded=frozenset()):
     issue = as_issue(node)
     live = sorted((decision for decision in typed(node["number"], node) if decision["url"] not in superseded),
                   key=lambda decision: (decision["createdAt"], decision["index"]), reverse=True)
-    asked = [first_line(question["ask"]) for question in issue_state.open_questions(issue)]
+    asked = [issue_state.first_line(question["ask"]) for question in issue_state.open_questions(issue)]
     return {"questions": [text for k, text in enumerate(asked) if text not in asked[:k]],  # an ask posted again is one question
             "decided": [{"decision": decision["decision"], "time": pane_time(decision["createdAt"]), "mark": "◆" if decision["role"] == "owner" else "◇"} for decision in live]}
