@@ -18,7 +18,7 @@ Intent flows owner → manager → root → worker → tasks → judged changes.
 - **probe**: a subagent the judge briefs per outcome, which tries the outcome; private to the judge until its verdict
 - **cut-off**: the task number [check-criteria.py](../scripts/check-criteria.py) `--cut-off` prints; a task numbered below it keeps the rules it was filed under, in the lint and in the judge
 - **pane, tab, workspace**: where a session runs: its pane, the tab that shows it, and the workspace that groups a team's tabs; the session adapter maps them onto its host
-- **tier**: how much a model must reason: `deep`, `mid` or `light`, each with an effort `xhigh`, `high`, `medium` or `low`; the agent adapter names the model of each
+- **tier**: how much a model must reason: `open`, `deep`, `mid` or `light`, each with an effort `xhigh`, `high`, `medium` or `low`; the agent adapter names the model of each, and says which work takes which
 
 ### Operations
 
@@ -62,7 +62,7 @@ Each role decides alone what keeps the intent it was handed, and asks before it 
 | --- | --- | --- | --- |
 | owner | anything | | |
 | manager, `<project>-manager`, one per project, alone with its workers in one terminal workspace | each task's outcomes, routes, orders, resource holders, who changes a file outside the asker's task, by a `DECIDED:` the one changer of a memory or scratchpad file outside every worktree, workers' questions | the owner, on architecture, infrastructure and user experience, and on a change that widens a permission or a guard or touches machine settings | edits, judges or merges a change |
-| worker, `<task>-worker`, `<task>` 2-4 words of its work, in a worktree and branch of its name | design inside its task; another task it holds that no waiting decision touches; how each outcome is quantified, as its criteria, until the first judge; replacing a `[check]` or `[score]` sample that cannot run or fail before that judge, pass condition kept; merging once a judge approves its head | its manager, by `BLOCKED:`, then waits, when its next step needs more than this row, a criterion fails twice the same way, as `run-criteria.py` counts, or it would narrow or widen the owner's words, change a frozen criterion or a pass condition, depart from a `DECIDED:`, or touch a file outside its scope or worktree | merges what no judge approved at its head |
+| worker, `<task>-worker`, `<task>` 2-4 words of its work, in a worktree and branch of its name | design inside its task; another task it holds that no waiting decision touches; how each outcome is quantified, as its criteria, until the first judge; replacing a `[check]` or `[score]` sample that cannot run or fail before that judge, pass condition kept; merging once a judge approves its head | its manager, by `BLOCKED:`, then waits, when its next step needs more than this row, a criterion fails twice the same way, as `run-criteria.py` counts, a judge returns `fix` on its task a third time, or it would narrow or widen the owner's words, change a frozen criterion or a pass condition, depart from a `DECIDED:`, or touch a file outside its scope or worktree | merges what no judge approved at its head |
 | sentinel, `<duty>-sentinel`, at the checkout's root | how to run its one endless duty; whether to stop once its manager ends | its manager, by `tell`, on any change to its duty | edits, files, judges or merges anything |
 | judge, a subagent | `approve` or `fix`, by running each scenario and probe itself | | edits, posts, or picks among options |
 
