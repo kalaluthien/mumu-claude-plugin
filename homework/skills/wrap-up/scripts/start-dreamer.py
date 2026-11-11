@@ -8,7 +8,8 @@ Its name is `<topic>-dreamer`, `<topic>` joining, in this order, `memory` when t
 `repeats` when <data>/dejavu is due and `habit` when <data>/habit is due. It starts none when none holds, outside herdr,
 while a dreaming workflow runs on <data> (its lock, homework/lib/stamp.py), as when one of its own agents calls this, or
 when a herdr session named `*-dreamer` is in any state but idle or done, since its dream still starts, runs or
-waits; a finished one, idle or done, is no bar, since the Dreamer closes its own tab (close-dreamer.py). It prints
+waits; a finished one, idle or done, is no bar: its tab is closed first when it holds the name this start needs, since herdr refuses a second agent of the same name
+(`agent_name_taken`) and the Dreamer's own close (close-dreamer.py) may not have run. It prints
 `failed to start` and exits 1, starting none, when herdr is missing, cannot run or replies with no agent list, or
 when the new pane stays busy past HOMEWORK_START_DREAMER_WAIT seconds (default 60) or the start fails, closing the tab it created. <note> goes into the Dreamer's prompt.
 """
@@ -51,12 +52,12 @@ def field(value, *keys):
 
 
 def start_agent(name, pane):
-    """herdr's reply to `agent start`, asked again until START_WAIT seconds pass while it answers `agent_pane_busy`, since the new tab's shell is still starting."""
+    """herdr's reply to `agent start`, asked again until START_WAIT seconds pass while it answers `agent_pane_busy`, since the new tab's shell is still starting, or `agent_name_taken`, since herdr may free a closed tab's name late."""
     deadline = time.time() + START_WAIT
     while True:
         started = herdr("agent", "start", name, "--kind", "claude", "--pane", pane, "--timeout", "120000", "--",
                         "--name", name, "--plugin-dir", str(PLUGIN), "--model", "sonnet")
-        if started.get("agent") or "agent_pane_busy" not in str(started.get("error")) or time.time() >= deadline:
+        if started.get("agent") or not any(code in str(started.get("error")) for code in ("agent_pane_busy", "agent_name_taken")) or time.time() >= deadline:
             return started
         time.sleep(START_POLL)
 
@@ -91,6 +92,9 @@ def main(args):
     if busy:
         print(f"held by {busy[0]}: its dream still starts, runs or waits at a prompt; started none")
         return 0
+    for agent in dreamers:
+        if agent["name"] == name and field(agent, "tab_id"):
+            herdr("tab", "close", agent["tab_id"])
     workspace = field(herdr("pane", "get", pane), "pane", "workspace_id")
     if not workspace:
         print(f"failed to start {name}: herdr knows no workspace of pane {pane}")
