@@ -24,7 +24,6 @@ CALLS = {
     "skills/kick-off/scripts/backtest-estimate.py": [["--from-json", "body", "--as-of", "2026-01-01", "--tasks", "1,2"]],
     "skills/kick-off/scripts/check-criteria.py": [["--task", "1", "body"], ["--cut-off"]],
     "skills/kick-off/scripts/close-session.py": [["name"]],
-    "skills/kick-off/scripts/edit-issue-body.py": [["1", "diff", "DECIDED: x", "--base", "abc"]],
     "skills/kick-off/scripts/estimate-task-time.py": [["--from-json", "body", "--gaps-json", "body", "--expect-restarts", "1", "--wait", "name=1", "--seed", "1", "url"]],
     "skills/kick-off/scripts/list-additions.py": [["1"]],
     "skills/kick-off/scripts/list-session-gaps.py": [["--from-folder", ".", "--json", "name"]],

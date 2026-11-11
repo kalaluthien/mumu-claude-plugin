@@ -16,7 +16,7 @@ import task_links
 
 
 def body_sha(text):
-    """The first 12 hex digits of TEXT's sha-256 with CRLF read as LF, which names the body a diff was made from, so an edit refuses a diff of a body that changed since."""
+    """The first 12 hex digits of TEXT's sha-256 with CRLF read as LF, which names the body a new one was made from, so an edit refuses a new body made from one that changed since."""
     return hashlib.sha256(text.replace("\r\n", "\n").encode()).hexdigest()[:12]
 
 

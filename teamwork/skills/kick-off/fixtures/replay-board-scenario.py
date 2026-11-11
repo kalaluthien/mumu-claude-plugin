@@ -4,7 +4,6 @@ body and resolve the task, which closes the root, then retitle and reopen the ro
 by names, so a change that moves the protocol shows in the text. The board is a temporary repository.
 
 usage: replay-board-scenario.py"""
-import difflib
 import os
 import pathlib
 import re
@@ -57,10 +56,9 @@ def show(step):
 
 
 def link(name, added, why):
-    """Appends ADDED to NAME's body by a diff through `use-board.py edit`, the one way a part is linked."""
+    """Appends ADDED to NAME's body through `use-board.py edit`, the one way a part is linked."""
     old = board.fresh(number(name))["body"]
-    diff = "".join(difflib.unified_diff(old.splitlines(True), (old.rstrip("\n") + "\n" + added).splitlines(True), "a", "b"))
-    use("edit", number(name), text(f"{name}-link.diff", diff), f"DECIDED: {why}", "--base", board.body_sha(old))
+    use("edit", number(name), text(f"{name}-link.md", old.rstrip("\n") + "\n" + added), f"DECIDED: {why}", "--base", board.body_sha(old))
 
 
 TASK = "## Goal\n\nProbe the board.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe prints PASS when it runs**: `echo ok` prints `ok`; on base nothing.\n"
@@ -96,8 +94,7 @@ def main(args):
     use("decide", number("task"), text("answer.md", 'DECIDED: use the first sample\n\nThe owner said "use the first".\n'), "--by", "owner", "--answers", asked)
     show("answer")
     old = board.fresh(number("task"))["body"]
-    diff = "".join(difflib.unified_diff(old.splitlines(True), old.replace("Probe the board.", "Probe the board twice.").splitlines(True), "a", "b"))
-    use("edit", number("task"), text("edit.diff", diff), "DECIDED: probe the body edit", "--base", board.body_sha(old))
+    use("edit", number("task"), text("edit.md", old.replace("Probe the board.", "Probe the board twice.")), "DECIDED: probe the body edit", "--base", board.body_sha(old))
     show("edit")
     use("resolve", number("task"), text("task-done.md", "REPORTED: probe landed\n"))
     show("resolve-task")

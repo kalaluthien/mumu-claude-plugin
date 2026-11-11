@@ -13,7 +13,6 @@ exit 1 on any fail. The git board runs every case but the nodes'; nodes the hear
   the nodes' heartbeat-cycle reads the same fence
 
 usage: replay-task-graph.py [--board <git|nodes>]   (no argument: both in turn)"""
-import difflib
 import json
 import os
 import pathlib
@@ -65,8 +64,7 @@ def file(title, text, depends=()):
 def edit(number, text):
     """Rewrites NUMBER's body to TEXT through `use-board.py edit`."""
     old = board.body(number)
-    diff = "".join(difflib.unified_diff(old.splitlines(True), text.splitlines(True), "a", "b"))
-    return use("edit", number, write("edit.diff", diff), "DECIDED: probe a link edit", "--base", board.body_sha(old))
+    return use("edit", number, write("edit.md", text), "DECIDED: probe a link edit", "--base", board.body_sha(old))
 
 
 def resolve(number, stopped=False):

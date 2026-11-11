@@ -7,9 +7,9 @@ With no case: file a part and a root that names it, route the part by `hold`, br
 the issue pane and the heartbeat, writing and reading the real hooks and scripts, and require an empty gh log.
 - layout: `file --scope probe` puts an issue at `probe/<n>/` of the one ref `refs/teamwork-blackboard` and a filing with no scope puts it at `<n>/`, each url names its folder, a `--scope` that names no folder of the repository is refused with no commit, `read` finds an issue by number alone, and the pane of `probe` reads its folder only while a project with no folder reads the root's own issues only
 - old-setting: a leftover `TEAMWORK_BOARD` or `TEAMWORK_LANDING` in the environment and in the project's settings changes nothing, and the whole path still calls no gh
-- base-required: `edit-issue-body.py` with no `--base` exits 2 and adds no commit, and with the board's `body sha` it adds one
+- base-required: `use-board.py edit` with no `--base` exits 2 and adds no commit, and with the board's `body sha` it adds one
 - cloud-refused: a comment whose teamwork fence holds a `cloud:` line is refused and adds no commit, and `start-session.py` with `set remote` exits 2
-- atomic: `edit-issue-body.py`, `board.edit` that reopens a closed root, `resolve` of a part whose parent then closes and `resolve --not-planned` of a task with an open part each add exactly one commit to the board's ref, and a diff that does not apply, or whose `--base` names an older body, adds none"""
+- atomic: `use-board.py edit`, `board.edit` that reopens a closed root, `resolve` of a part whose parent then closes and `resolve --not-planned` of a task with an open part each add exactly one commit to the board's ref, and a diff that does not apply, or whose `--base` names an older body, adds none"""
 import json
 import os
 import pathlib
@@ -117,13 +117,13 @@ def case_old_setting(work, repository, origin, environment):
 
 def case_base_required(work, repository, origin, environment):
     use(environment, repository, "use-board.py", "file", "Probe the part", replay_probe.write_text(work, "part.md", PART), "scope:probe")
-    (work / "edit.diff").write_text("--- a/body\n+++ b/body\n@@ -1 +1 @@\n-Probe the part.\n+Probe the part, edited.\n")
+    (work / "edit.md").write_text(PART.replace("Probe the part.", "Probe the part, edited."))
     before = commits(environment, repository)
-    run = use(environment, repository, "edit-issue-body.py", "1", work / "edit.diff", "DECIDED: probe the edit", check=False)
+    run = use(environment, repository, "use-board.py", "edit", "1", work / "edit.md", "DECIDED: probe the edit", check=False)
     if run.returncode != 2 or commits(environment, repository) != before:
         return replay_probe.fail(f"an edit with no --base exited {run.returncode} and added {commits(environment, repository) - before} commits")
     sha = next(line.split(": ", 1)[1] for line in use(environment, repository, "use-board.py", "read", "1").stdout.splitlines() if line.startswith("body sha: "))
-    run = use(environment, repository, "edit-issue-body.py", "1", work / "edit.diff", "DECIDED: probe the edit", "--base", sha, check=False)
+    run = use(environment, repository, "use-board.py", "edit", "1", work / "edit.md", "DECIDED: probe the edit", "--base", sha, check=False)
     if run.returncode or commits(environment, repository) != before + 1:
         return replay_probe.fail(f"an edit with --base exited {run.returncode} and added {commits(environment, repository) - before} commits: {run.stderr[-200:]}")
     return 0
@@ -170,35 +170,32 @@ def case_atomic(work, repository, origin, environment):
         got = commits(environment, repository) - before
         return None if got == want else f"{why} added {got} commits, wanted {want}: {getattr(done, 'stderr', '')[-200:]}"
 
-    def make_diff():
-        (work / "new").write_text(ROOT + "\nExtra paragraph.\n")
-        (work / "old").write_text(ROOT)
-        diff = subprocess.run(["diff", "-u", "--label", "a/body", "--label", "b/body", "old", "new"], cwd=work, capture_output=True, text=True).stdout
-        (work / "edit.diff").write_text(diff)
+    def make_body():
+        (work / "edit.md").write_text(ROOT + "\nExtra paragraph.\n")
 
     def body_sha():
         return next(line.split(": ", 1)[1] for line in use(environment, repository, "use-board.py", "read", "2").stdout.splitlines() if line.startswith("body sha: "))
 
     def edit_body():
-        make_diff()
-        return use(environment, repository, "edit-issue-body.py", "2", work / "edit.diff", "DECIDED: probe the edit", "--base", body_sha(), check=False)
+        make_body()
+        return use(environment, repository, "use-board.py", "edit", "2", work / "edit.md", "DECIDED: probe the edit", "--base", body_sha(), check=False)
 
     def refused_edit():
         (work / "bad.diff").write_text("--- a/body\n+++ b/body\n@@ -1 +1 @@\n-Other text.\n+Changed.\n")
-        return use(environment, repository, "edit-issue-body.py", "2", work / "bad.diff", "DECIDED: probe the edit", "--base", body_sha(), check=False)
+        return use(environment, repository, "use-board.py", "edit", "2", work / "bad.diff", "DECIDED: probe the edit", "--base", body_sha(), check=False)
 
     def stale_edit():
-        make_diff()
-        return use(environment, repository, "edit-issue-body.py", "2", work / "edit.diff", "DECIDED: probe the edit", "--base", "0" * 12, check=False)
+        make_body()
+        return use(environment, repository, "use-board.py", "edit", "2", work / "edit.md", "DECIDED: probe the edit", "--base", "0" * 12, check=False)
 
     def reopening_edit():
         # a closed root whose new body gains an open part reopens in the same write
         return sh(sys.executable, "-c", "import sys; sys.path.insert(0, sys.argv[1]); import board; board.edit(2, board.body(2) + '\\n2. [task] #5 Probe the new part\\n')",
                   HERE.parents[2] / "lib", cwd=repository, environment=environment, check=False)
 
-    for why, run, want in (("a diff of a body that changed since it was read", stale_edit, 0),
-                           ("edit-issue-body.py", edit_body, 1),
-                           ("a diff that does not apply", refused_edit, 0),
+    for why, run, want in (("a new body made from one that changed since it was read", stale_edit, 0),
+                           ("use-board.py edit", edit_body, 1),
+                           ("a diff handed over as the new body", refused_edit, 0),
                            ("resolve of a part whose parent closes", lambda: use(environment, repository, "use-board.py", "resolve", "1", replay_probe.write_text(work, "r1.md", "Part done.\n")), 1),
                            ("resolve --not-planned of a task with an open part", lambda: use(environment, repository, "use-board.py", "resolve", "4", replay_probe.write_text(work, "r3.md", "Not now.\n"), "--not-planned"), 1)):
         problem = added(why, run, want)

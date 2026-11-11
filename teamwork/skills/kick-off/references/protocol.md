@@ -29,7 +29,7 @@ Each port is a set of operations the playbooks name.
 | board | `read` | an issue or change with its body, comments, labels and state |
 | board | `comment` | appends a comment, its text written to a file first |
 | board | `file` | opens an issue with a title, labels and body |
-| board | `edit` | changes a body's sections by a diff, posted as a `DECIDED:` comment first, or a title |
+| board | `edit` | changes a body's sections by its new text, the diff posted as a `DECIDED:` comment first, or a title |
 | board | `resolve` | closes an open issue, completed with a `REPORTED: <summary>`, or not planned for work stopped, moving its tree as [issue-grammar.md](issue-grammar.md#states) says |
 | board | `reopen` | opens a closed issue again, moving its tree as [issue-grammar.md](issue-grammar.md#states) says |
 | board | `decide` | comments a `DECIDED:` |

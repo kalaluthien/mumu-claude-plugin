@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Do one board operation through the board port, so a session writes the same way on any board.
 
-usage: use-board.py read <issue> [--as worker|judge] [--full]
+usage: use-board.py read <issue> [--as worker|judge] [--full] [--body]
 usage: use-board.py comment <issue> <text-file> [--asks owner] [--option <answer>]...
 usage: use-board.py decide <issue> <text-file> [--by <who>] [--one-way] [--supersedes <url>] [--answers <url>] [--holders <names>] [--live-runs <n>]
 usage: use-board.py hold <issue> [<name>...]
 usage: use-board.py depend <issue> [<number>...]
 usage: use-board.py file <title> <body-file> [<label>...] [--scope <folder>] [--depends <numbers>]
-usage: use-board.py edit <issue> <diff-file> <keyword line> --base <sha>
+usage: use-board.py edit <issue> <body-file> <keyword line> --base <sha>
 usage: use-board.py title <issue> <title>
 usage: use-board.py resolve <issue> <summary-file> [--not-planned]
 usage: use-board.py reopen <issue>
@@ -15,11 +15,12 @@ usage: use-board.py label <issue> <name> [--remove]
 
 `<issue>` is a task's number or its url. A write prints the url of what it wrote; one that breaks the grammar posts nothing, exits 2 and
 names the fix. What each verb and option means: references/issue-grammar.md, and for `--scope` references/adapters/board.md."""
+import difflib
 import pathlib
+import re
 import subprocess
 import sys
 
-HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
 import criteria_check  # noqa: E402
@@ -83,6 +84,12 @@ def read_issue(operands, options):
     role = options.get("--as")
     if role not in (None, "worker", "judge"):
         raise Unread
+    if "--body" in options:
+        if len(options) > 1:
+            raise Unread
+        # the stored body and nothing else, so a file of it is what `edit` compares the new body with
+        sys.stdout.write(board.body(operands[0]))
+        return 0
     issues = decisions.read(operands[0], board.fresh)
     issue = issues[operands[0]]
     state = issue_state.compose(issue, board.blockers(issue["number"]))
@@ -158,7 +165,53 @@ def file_issue(operands, options):
 
 
 def edit_body(operands, options):
-    return subprocess.run([sys.executable, str(HERE / "edit-issue-body.py"), *map(str, operands), *(["--base", options["--base"]] if "--base" in options else [])]).returncode
+    """Posts the keyword line with the diff from the stored body to the new one, then stores the new body, both or neither."""
+    issue, body_file, line = operands
+    if "--base" not in options:
+        raise Unread
+    new = read_text(body_file)
+    refuse("edit", issue_state.defects("edit-line", line))
+    if re.match(r"--- .*\n\+\+\+ .*\n@@ ", new):
+        sys.exit(f"use-board: {body_file} is a diff, so nothing was posted or changed: hand the whole new body, which `read {issue} --body` prints to start from")
+    refusal = []
+
+    def land():
+        # read again on each try: a board that lost a write race runs this again from the newer body, so --base holds against that write too
+        refusal.clear()
+        # the web editor saves CRLF, which a body written from the shown text never holds
+        old = board.body(issue).replace("\r\n", "\n")
+        if board.body_sha(old) != options["--base"]:
+            refusal.append((1, f"#{issue}'s body changed since you read it (its body sha is {board.body_sha(old)}, not {options['--base']}), so nothing was posted or changed: "
+                               "read it again and make the new body from that one"))
+            return None
+        if new.strip() == old.strip():
+            refusal.append((1, f"{body_file} is #{issue}'s body as it stands, so nothing was posted or changed"))
+            return None
+        # a defect the body already held does not block the edit that may fix it
+        found = issue_state.defects("edit-body", new, old) + criteria_check.goal_refusals(new, issue, old)
+        if found:
+            refusal.append((2, "nothing posted or changed, the edit has defects:\n- " + "\n- ".join(found) + f"\nthe grammar is {issue_state.GRAMMAR}"))
+            return None
+        try:
+            board.check_links(issue, new)
+        except LookupError as e:
+            refusal.append((1, str(e)))
+            return None
+        # split at the newline alone: str.splitlines also splits at a form feed or U+2028, which a diff reads as part of a line
+        old_lines, new_lines = (re.findall(r"[^\n]*\n|[^\n]+", text) for text in (old, new))
+        diff = "".join(piece if piece.endswith("\n") else piece + "\n\\ No newline at end of file\n" for piece in difflib.unified_diff(old_lines, new_lines, "body", "body"))
+        fence = "`" * max([3] + [len(run) + 1 for run in re.findall(r"`+", diff)])
+        url = board.comment(issue, f"{line}\n\n{fence}diff\n{diff}{fence}\n")
+        board.edit(issue, new)
+        return url
+
+    url = board.atomic(land)
+    if refusal:
+        code, message = refusal[0]
+        print(f"use-board: {message}", file=sys.stderr)
+        return code
+    print(f"{url}\nuse-board: #{issue}'s body is the new one, and its new comment holds the diff")
+    return 0
 
 
 def resolve_issue(operands, options):
@@ -188,7 +241,7 @@ def label_issue(operands, options):
 
 
 # verb -> (the operand counts it takes, None for any count from the first on; its options, each True when it takes a value and MANY when it may repeat; what it does)
-VERBS = {"read": ((1,), {"--as": True, "--full": False}, read_issue),
+VERBS = {"read": ((1,), {"--as": True, "--full": False, "--body": False}, read_issue),
          "comment": ((2,), {"--asks": True, "--option": MANY}, post_comment),
          "decide": ((2,), {"--by": True, "--one-way": False, "--supersedes": True, "--answers": True, "--holders": True, "--live-runs": True}, decide_issue),
          "hold": ((1, None), {}, hold_issue),

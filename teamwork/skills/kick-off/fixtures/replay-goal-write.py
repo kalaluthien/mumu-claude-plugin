@@ -49,11 +49,8 @@ def body_sha(repository, environment, number):
 
 
 def edit(work, repository, environment, number, old, new, line="DECIDED: change the body"):
-    (work / "old").write_text(old)
     (work / "new").write_text(new)
-    diff = subprocess.run(["diff", "-u", "--label", "a/body", "--label", "b/body", "old", "new"], cwd=work, capture_output=True, text=True).stdout
-    (work / "edit.diff").write_text(diff)
-    return board(repository, environment, "edit", number, work / "edit.diff", line, "--base", body_sha(repository, environment, number))
+    return board(repository, environment, "edit", number, work / "new", line, "--base", body_sha(repository, environment, number))
 
 
 def file_body(work, repository, environment, name, text):

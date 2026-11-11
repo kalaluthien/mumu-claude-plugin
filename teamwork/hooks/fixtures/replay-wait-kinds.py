@@ -88,11 +88,9 @@ def main(args):
     early = use("comment", 5, "<file>", "--asks", "owner", "--option", "yes", "--option", "no", text="BLOCKED: may the part start early?\n")
     step("owner-first", row(5)["wait"] == OWNER and row(5)["options"] == [["yes", "no"]], row(5))
 
-    (work / "old.md").write_text(BODY)
     (work / "new.md").write_text(BODY + "2. [task] #5 Do the blocked part\n")
-    (work / "parts.diff").write_text(subprocess.run(["diff", "-u", str(work / "old.md"), str(work / "new.md")], capture_output=True, text=True).stdout)
     sha = next(line.split(": ", 1)[1] for line in use("read", 3).splitlines() if line.startswith("body sha: "))
-    use("edit", 3, work / "parts.diff", "DECIDED: adds the blocked part.", "--base", sha)
+    use("edit", 3, work / "new.md", "DECIDED: adds the blocked part.", "--base", sha)
     use("decide", 5, "<file>", "--by", "owner", "--answers", early, text='DECIDED: the part starts after its blocker.\n\nOwner said: "no, after it".\n')
     parent = row(3)
     step("parts", parent["wait"] == "" and row(5)["wait"] == "" and not any("waits" in line for line in parent["lines"]["status"] + row(5)["lines"]["status"]), [parent, row(5)])

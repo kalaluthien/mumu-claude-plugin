@@ -56,10 +56,9 @@ def fail_with(done):
 
 
 def diff_of(work, old, new):
-    (work / "old").write_text(old)
-    (work / "new").write_text(new)
-    path = work / "edit.diff"
-    path.write_text(subprocess.run(["diff", "-u", "--label", "a/body", "--label", "b/body", "old", "new"], cwd=work, capture_output=True, text=True).stdout)
+    """The file of NEW, the body an edit hands over; OLD is what the caller read."""
+    path = work / "edit.md"
+    path.write_text(new)
     return path
 
 

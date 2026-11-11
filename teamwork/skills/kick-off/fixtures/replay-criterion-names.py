@@ -37,11 +37,8 @@ def case_gate():
         return replay_probe.fail(f"the pane's list lacks the sentence on its box line or keeps a circle: {shown!r}")
     before = replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "read", "1").stdout
     sha = next(line.split("body sha: ")[1].strip() for line in before.splitlines() if "body sha: " in line)
-    (work / "old").write_text(BODY.format(name=SENTENCE))
     (work / "new").write_text(BODY.format(name=SENTENCE) + "2. [check] **Honest count**: `echo PASS` prints `PASS`; on base `FAIL`.\n")
-    diff = subprocess.run(["diff", "-u", "--label", "a/body", "--label", "b/body", "old", "new"], cwd=work, capture_output=True, text=True).stdout
-    (work / "edit.diff").write_text(diff)
-    edited = replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "edit", "1", work / "edit.diff", "DECIDED: add a label", "--base", sha)
+    edited = replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "edit", "1", work / "new", "DECIDED: add a label", "--base", sha)
     if edited.returncode != 2 or "Complete sentence" not in edited.stderr or replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "read", "1").stdout != before:
         return replay_probe.fail(f"an edit that adds a label was not refused cleanly: exit {edited.returncode}, {edited.stderr.strip()[-200:]!r}")
     return 0

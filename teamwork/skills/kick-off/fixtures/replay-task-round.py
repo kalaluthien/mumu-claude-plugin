@@ -79,11 +79,8 @@ def main(args):
     # the root gains its parts by an edit, whose base is the sha `read` prints
     listed = use("read", "1")[1]
     sha = next(line.split(": ", 1)[1] for line in listed.splitlines() if line.startswith("body sha: "))
-    (work / "old.md").write_text(BODY.format(summary="The probe prints ok.\n\n"))
     (work / "new.md").write_text(BODY.format(summary="The probe prints ok.\n\n") + "2. [task] #2 Ship the first half\n3. [task] #3 Ship the second half\n")
-    diff = subprocess.run(["diff", "-u", str(work / "old.md"), str(work / "new.md")], capture_output=True, text=True).stdout
-    (work / "parts.diff").write_text(diff)
-    edited = use("edit", root, work / "parts.diff", "DECIDED: adds the two halves as parts.", "--base", sha)
+    edited = use("edit", root, work / "new.md", "DECIDED: adds the two halves as parts.", "--base", sha)
     step("calls", edited[0] == 0, edited)
 
     tree = git("ls-tree", "-r", "--name-only", "refs/teamwork-blackboard").split()
@@ -119,11 +116,8 @@ def main(args):
     bare = [use(*argv, text=text) for text in ("", "\n", "DECIDED:\n", "REPORTED: \n", "BLOCKED:")
             for argv in (("comment", "3", "<file>"), ("decide", "3", "<file>", "--by", "probe-worker"), ("resolve", "2", "<file>"), ("file", "Ship a third half", "<file>"))]
     bare += [use("hold", "3", "Bad_Name"), use("comment", "3", "<file>", "--asks", "owner", "--option", "one", "--option", "", text="BLOCKED: which one?\n"), use("title", "2", ""), use("title", "2", "  "), use("file", "", "<file>", text=BODY.format(summary=""))]
-    second = BODY.format(summary="")
-    (work / "old.md").write_text(second)
     (work / "new.md").write_text("")
-    (work / "empty.diff").write_text(subprocess.run(["diff", "-u", str(work / "old.md"), str(work / "new.md")], capture_output=True, text=True).stdout)
-    emptied = use("edit", "2", work / "empty.diff", "DECIDED: drops the body.")
+    emptied = use("edit", "2", work / "new.md", "DECIDED: drops the body.", "--base", next(line.split(": ", 1)[1] for line in use("read", "2")[1].splitlines() if line.startswith("body sha: ")))
     bare.append((2 if emptied[0] else 0, *emptied[1:]))
     step("refused", all(code == 2 and not out and "option" in err for code, out, err in fenced) and all(code == 2 and not out for code, out, _ in bare)
          and git("rev-parse", "refs/teamwork-blackboard") == before, fenced + bare)

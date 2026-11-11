@@ -7,7 +7,7 @@ an `accept-` case when every write exits 0 and the board changed. Cases:
 - `option-*`: an `--asks` that names no owner, `--asks owner` with fewer than two `--option`, an option on a `REPORTED:`, a `--live-runs` that is no count;
 - `keyword-*`: a keyword line that nearly opens a comment, opens a later line or belongs to another verb;
 - `heading-*`: a section heading misspelt or repeated;
-- `edit-*`: a diff or keyword line `edit-issue-body.py` is given;
+- `edit-*`: a new body or keyword line `use-board.py edit` is given;
 - `unstored-*`: a holder's or a decider's name that board-record-schema.json refuses;
 - `accept-*`: text and options that must still post, and `accept-scenarios`, the output of replay-team-scenarios.py holding only `ok` lines;
 - `stored-decision`: a `decide` with `--one-way`, `--answers`, `--holders` and `--live-runs` keeps a `comments/<k>.json` whose keys the schema all names, and `read` shows each;
@@ -15,7 +15,6 @@ an `accept-` case when every write exits 0 and the board changed. Cases:
 - `url-names-task`: `read` and `comment` take the url `file` printed as they take the number.
 
 usage: replay-input-form.py [--only <case>,...]"""
-import difflib
 import json
 import os
 import pathlib
@@ -121,9 +120,9 @@ def main(args):
         verb, *rest = spec
         if verb == "edit":
             before, after, line = rest
-            diff = work / f"edit-{next(counter)}.diff"
-            diff.write_text("".join(difflib.unified_diff(before.splitlines(True), after.splitlines(True), "a/body", "b/body")))
-            return subprocess.run([sys.executable, str(SCRIPTS / "edit-issue-body.py"), str(number), str(diff), line, "--base", board.body_sha(before)], capture_output=True, text=True)
+            body = work / f"edit-{next(counter)}.md"
+            body.write_text(after)
+            return subprocess.run([sys.executable, str(SCRIPTS / "use-board.py"), "edit", str(number), str(body), line, "--base", board.body_sha(before)], capture_output=True, text=True)
         text, *options = rest
         return use(*(["file", "A task"] if verb == "file" else [verb, number]), *([] if text is None else [written(text)]), *options)
 
