@@ -21,13 +21,16 @@ def git(*argv, cwd):
 
 
 def unmerged_tips(name, root):
-    """Short shas of NAME's local and remote tips that neither `origin/HEAD` nor a merged pull request holds."""
+    """Short shas of NAME's local and remote tips that neither `origin/HEAD` nor a merged change's head holds."""
     git("fetch", "origin", cwd=root)
     default = git("symbolic-ref", "--short", "refs/remotes/origin/HEAD", cwd=root).stdout.strip()
     tips = {git("rev-parse", "--verify", "--quiet", ref, cwd=root).stdout.strip()
             for ref in (f"refs/heads/{name}", f"refs/remotes/origin/{name}")} - {""}
-    # a squash merge leaves the branch commits off the base, so a merged pull request's head counts as merged too
-    merged = {pull["headRefOid"] for pull in landing.pulls("closed", branch=name) or [] if pull["mergedAt"]}
+    # a squash merge leaves the branch commits off the base, so a tip inside the head of a merged change or pull request counts as merged too,
+    # which is how a swapped-out worker's branch, the ancestor of its successor's, is retired
+    # a name lookup too, since the newest merged pull requests alone would forget an old merge of this very branch
+    heads = {pull["headRefOid"] for found in (landing.pulls("closed"), landing.pulls("closed", branch=name)) for pull in found or [] if pull["mergedAt"]}
+    merged = {tip for tip in tips if any(not git("merge-base", "--is-ancestor", tip, head, cwd=root).returncode for head in heads)}
     # with no `origin/HEAD` only a merged pull request counts, so the branch is kept rather than guessed merged
     return sorted(tip[:9] for tip in tips - merged if not default or git("merge-base", "--is-ancestor", tip, default, cwd=root).returncode)
 

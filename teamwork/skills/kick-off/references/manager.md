@@ -36,7 +36,7 @@ Turn the owner's words into root tasks, route each to a worker, and decide what 
   1. `branch` `<task>-<model>-worker` from the old worker's branch, so the new one keeps its commits.
   2. `decide` on each task it holds: the swap, the old branch, and `holders: <task>-<model>-worker`.
   3. `start` that worker with the usual kick-off arguments at the tier above, since the board holds the rest.
-  4. `close` the old worker, then `remove` it once its branch is merged.
+  4. `close` the old worker, then `remove` it once the new worker's change is merged, since the squash holds the old branch's commits and `remove` then deletes it.
 
   An `open` worker has no tier above, so `ask` the owner.
 - **Next step**: a worker's `REPORTED: batch landed …` leaves its root's words not all covered, and the manager picks the next step: `reopen` the root if its last part closed it, and route it, asking the owner first when it changes the owner's intent.

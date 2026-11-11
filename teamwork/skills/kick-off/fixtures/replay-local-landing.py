@@ -7,6 +7,7 @@ usage: replay-local-landing.py [--case <name>]   (no argument: every one in turn
 - push-refused: an `origin` that refuses the push makes the merge exit 1 with the remote's reason, and the base here, the remote's base and the change are as they were
 - no-gh: change, merge and remove-worktree call no gh
 - no-origin: a repository with no remote merges locally and removes the worker's worktree with no gh call, and pushes nothing
+- swap-retired: a swapped-out worker's branch, the ancestor of its successor's merged branch, is removed with its worktree once the successor's change merges, and one branch is left
 - dirty-base: an uncommitted file of the base checkout that the change also edits, its name holding a space, refuses the merge before any push, and nothing moves"""
 import json
 import os
@@ -119,6 +120,25 @@ def case_no_origin():
     return 0
 
 
+def case_swap_retired():
+    work, repository, origin, environment = setup()
+    old, _ = worker(work, repository, environment)
+    new = pathlib.Path(sh(sys.executable, SCRIPTS / "add-worktree.py", "probe-opus-worker", "probe-worker", cwd=repository, environment=environment).stdout.strip())
+    (new / "c.txt").write_text("more\n")
+    sh("git", "add", "-A", cwd=new, environment=environment)
+    sh("git", "commit", "-q", "-m", "more", cwd=new, environment=environment)
+    sh(sys.executable, SCRIPTS / "use-landing.py", "change", "probe-opus-worker", "Successor change", work / "body.md", cwd=new, environment=environment)
+    head = rev(new, "HEAD", environment)
+    run = sh(sys.executable, SCRIPTS / "use-landing.py", "merge", "2", head, cwd=new, environment=environment, check=False)
+    if run.returncode:
+        return replay_probe.fail(f"merge exited {run.returncode}: {run.stderr.strip()}")
+    sh(sys.executable, SCRIPTS / "remove-worktree.py", "probe-worker", "probe-opus-worker", cwd=repository, environment=environment, check=False)
+    left = sh("git", "branch", "--list", "probe-*", cwd=repository, environment=environment).stdout.strip()
+    if left or old.exists() or new.exists():
+        return replay_probe.fail(f"branches {left!r} or worktrees left after the successor merged")
+    return 0
+
+
 def case_dirty_base():
     work, repository, origin, environment = setup()
     tree, head = worker(work, repository, environment, name="a b.txt")
@@ -131,7 +151,7 @@ def case_dirty_base():
     return 0
 
 
-CASES = {"pushes": case_pushes, "push-refused": case_push_refused, "no-gh": case_no_gh, "no-origin": case_no_origin, "dirty-base": case_dirty_base}
+CASES = {"pushes": case_pushes, "push-refused": case_push_refused, "no-gh": case_no_gh, "no-origin": case_no_origin, "swap-retired": case_swap_retired, "dirty-base": case_dirty_base}
 
 
 def main(args):
