@@ -245,9 +245,16 @@ def worker_read(me):
     return None if blockers is None else {"found": found, "prs": pulls, "blockers": blockers}
 
 
-def worker_actions(me, waited, data=None):
-    """What ended a wait of this worker, as the act it needs; None when a read failed. WAITED, kept by the caller
-    across polls, holds the held issues last seen waiting on a task, so only the end of that wait prints.
+def changed(issue):
+    """What a worker reads of a held task: its body and every comment but a report, since a report is the worker's own step or news for the manager."""
+    return board.body_sha(issue["body"]), [comment["url"] for comment in issue["comments"] if issue_state.keyword(comment["body"]) != FEED]
+
+
+def worker_actions(me, waited, read_of, data=None):
+    """What ended a wait of this worker, each task it held that changed or no longer names it since the last poll, and a worker holding nothing, as the act it needs;
+    None when a read failed.
+    WAITED, kept by the caller across polls, holds the held issues last seen waiting on a task, so only the end of that wait prints.
+    READ_OF, kept the same way, maps each held issue to what `changed` read, so a restart prints no change that came before it.
     DATA is a `worker_read` kept from an earlier poll, else a read now."""
     data = data or worker_read(me)
     if data is None:
@@ -255,7 +262,18 @@ def worker_actions(me, waited, data=None):
     name, found, pulls = me["name"], data["found"], data["prs"]
     lines = limited(found, ISSUE_LIMIT, "open-issue")
     open_issues = {issue["number"]: issue for issue in found}
-    for issue in (issue for issue in found if holds(issue, name)):
+    held = [issue for issue in found if holds(issue, name)]
+    check = "read it, then compare its new decisions with your work, your name in its `holders` and its state on the board with your real progress, and fix any mismatch"
+    for number in set(read_of) - {issue["number"] for issue in held}:
+        del read_of[number]
+        if number in open_issues:  # still open and no longer naming this worker
+            lines.append(f"changed #{number} (record {len(changed(open_issues[number])[1])}): {check}")
+    if not held:
+        lines.append("holds nothing: no open task names you in its `holders`; read your task and fix `holders` by a `decide`, or close yourself when your work is done")
+    for issue in held:
+        if read_of.setdefault(issue["number"], changed(issue)) != changed(issue):
+            read_of[issue["number"]] = changed(issue)
+            lines.append(f"changed #{issue['number']} (record {len(changed(issue)[1])}): {check}")  # the count makes each change its own line, which the monitor prints once
         latest = issue_state.questions(issue)[-1:]
         if latest and latest[0]["answer"]:
             lines.append(f"answered #{issue['number']}: {latest[0]['answer']['url']} answers your {ASK}:; act on it")

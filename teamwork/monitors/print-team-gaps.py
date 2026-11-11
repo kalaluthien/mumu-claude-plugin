@@ -32,6 +32,7 @@ def main(args):
         return 2
     shown = set()
     waiting = set()  # a worker's issues waiting on a task, so a restart reports no wait that ended long ago
+    read_of = {}  # what a worker last read of each task it holds, so only a change prints
     fed_urls = set()  # the urls of the reports a manager was already fed
     data, read_at, signal = None, 0.0, team_signal.stamp()  # what the board last gave, when, and the signal file's change then
     awake = False  # whether the last poll watched, so the poll the team empties in still reads once
@@ -41,7 +42,7 @@ def main(args):
         manager = team_names.role(me.get("name")) == "manager"
         if not watching and not (awake and manager):
             # a plugin monitor that exits is never started again, so a team with no worker is waited out here; the next worker's first read shows every open gap
-            shown, waiting, fed_urls, data, read_at, awake = set(), set(), set(), None, 0.0, False
+            shown, waiting, read_of, fed_urls, data, read_at, awake = set(), set(), {}, set(), None, 0.0, False
             time.sleep(POLL)
             continue
         # the last worker may have posted a report just before it left, which only this one more read feeds
@@ -60,7 +61,7 @@ def main(args):
         elif manager:
             lines = team_gaps.manager_actions(me, listed, data, fed_urls)
         else:
-            lines = team_gaps.worker_actions(me, waiting, data)
+            lines = team_gaps.worker_actions(me, waiting, read_of, data)
         for line in lines or []:  # a failed read (None) keeps what was shown, so the next poll repeats nothing
             if line not in shown:
                 print(line, flush=True)
