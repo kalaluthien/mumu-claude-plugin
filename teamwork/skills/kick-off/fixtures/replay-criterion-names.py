@@ -2,7 +2,7 @@
 """Check that criterion names are complete sentences, on a git board in a temporary repository, and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
 
 usage: replay-criterion-names.py [--case <name>]   (no argument: every one in turn)
-- gate: `file` refuses a body whose criterion is named by a label and posts nothing, `edit` refuses a diff that adds one and leaves the body as it was, both name the Complete sentence rule, a body whose names are sentences is filed, and the pane's list shows each full sentence on its `☐` line"""
+- gate: `file` refuses a body whose criterion is named by a label and posts nothing, `edit` refuses a new body that adds one and leaves the body as it was, both name the Complete sentence rule, a body whose names are sentences is filed, and the pane's list shows each full sentence on its `☐` line"""
 import os
 import pathlib
 import subprocess

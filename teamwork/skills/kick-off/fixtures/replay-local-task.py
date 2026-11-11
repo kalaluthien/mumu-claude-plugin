@@ -9,7 +9,7 @@ the issue pane and the heartbeat, writing and reading the real hooks and scripts
 - old-setting: a leftover `TEAMWORK_BOARD` or `TEAMWORK_LANDING` in the environment and in the project's settings changes nothing, and the whole path still calls no gh
 - base-required: `use-board.py edit` with no `--base` exits 2 and adds no commit, and with the board's `body sha` it adds one
 - cloud-refused: a comment whose teamwork fence holds a `cloud:` line is refused and adds no commit, and `start-session.py` with `set remote` exits 2
-- atomic: `use-board.py edit`, `board.edit` that reopens a closed root, `resolve` of a part whose parent then closes and `resolve --not-planned` of a task with an open part each add exactly one commit to the board's ref, and a diff that does not apply, or whose `--base` names an older body, adds none"""
+- atomic: `use-board.py edit`, `board.edit` that reopens a closed root, `resolve` of a part whose parent then closes and `resolve --not-planned` of a task with an open part each add exactly one commit to the board's ref, and a diff handed over as the new body, or an edit whose `--base` names an older body, adds none"""
 import json
 import os
 import pathlib

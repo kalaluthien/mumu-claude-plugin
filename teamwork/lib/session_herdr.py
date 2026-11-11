@@ -6,10 +6,12 @@ import time
 
 from json_command import run
 
-LOOK = "herdr agent read {}"
+LOOK = "herdr pane read {}"
 EMPTY = "herdr lists no agent; run it inside herdr."
 NEEDS = ("herdr",)
 POLL = 1.0
+# the shortest and the longest wait, in seconds, `herdr agent start --timeout` takes
+START_WAIT = (3.001, 300)
 
 
 def sessions(session_id=None):
@@ -59,14 +61,27 @@ def rename(place, name):
 
 def start(name, pane, kind, argv, timeout):
     deadline = time.time() + timeout
+    limit = str(int(min(max(timeout, START_WAIT[0]), START_WAIT[1]) * 1000))
     while True:
-        process = subprocess.run(["herdr", "agent", "start", name, "--kind", kind, "--pane", pane, "--", *argv], capture_output=True, text=True)
+        process = subprocess.run(["herdr", "agent", "start", name, "--kind", kind, "--pane", pane, "--timeout", limit, "--", *argv], capture_output=True, text=True)
         out = process.stdout + process.stderr
         if not process.returncode or '"agent_not_ready"' in out:  # not ready: the trust dialog holds it
             return
+        if '"timeout"' in out:  # herdr stopped waiting and named nothing, while the agent may still come up in the pane
+            return name_late(name, pane, timeout)
         if '"agent_pane_busy"' not in out or time.time() >= deadline:  # busy: the shell is still starting
             raise RuntimeError(f"herdr agent start: {(process.stderr or process.stdout).strip()}")
         time.sleep(POLL)
+
+
+def name_late(name, pane, timeout):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if any(live.get("pane_id") == pane for live in sessions()[0]):
+            herdr("agent", "rename", pane, name)
+            return
+        time.sleep(POLL)
+    raise RuntimeError(f"no agent came up in pane {pane} within {2 * timeout:g}s")
 
 
 def prompt(pane, text):

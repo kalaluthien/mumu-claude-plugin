@@ -4,7 +4,7 @@ Each session is a herdr agent in a herdr pane, shown by a herdr tab, and a team'
 
 | operation | how |
 | --- | --- |
-| `start` | [start-session.py](../../scripts/start-session.py) `<name> <cwd> "<kick-off arguments>" --model <m> --effort <e> [--allow <tool>] [--steer <key>]`, the model of the tier as the agent adapter says; it takes no flag for the place |
+| `start` | [start-session.py](../../scripts/start-session.py) `<name> <cwd> "<kick-off arguments>" --model <m> --effort <e> [--allow <tool>] [--steer <key>]`, the model of the tier as the agent adapter says; it takes no flag for the place; a start it cannot finish says whether the session is live and whether it got its kick-off, and names a `herdr pane read <pane>` that shows it, so start no second one while it is live |
 | `close` | [close-session.py](../../scripts/close-session.py) `<name>`, yours included, which a successor runs |
 | `rename` | [rename-session.py](../../scripts/rename-session.py) `<name>`, which renames tab, pane and agent, sends `/rename <name>`, and sends it again until the transcript records exactly `<name>`, since one typed prompt landed as `teamwork-manager teamwork-`; a manager also `herdr workspace rename <workspace> <project>` |
 | `list` | [list-sessions.py](../../scripts/list-sessions.py), since a hand-written parse of `herdr agent list` raises `KeyError: 'name'` on an unnamed session |

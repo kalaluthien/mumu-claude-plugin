@@ -36,6 +36,11 @@ def wait(name, ready, nudge, what):
     raise RuntimeError(f"{name} {what} after {TIMEOUT:g}s")
 
 
+def look(name, pane):
+    """The command that shows NAME's pane where herdr has it now, else PANE, where it was started."""
+    return session.LOOK.format((session.agent(name) or {}).get("pane_id", pane))
+
+
 def trusted(folder):
     """True when FOLDER is the repository root or under its worktrees; the root is the main checkout's, also from a worktree."""
     git = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], capture_output=True, text=True)
@@ -48,7 +53,7 @@ def trusted(folder):
 def accept_trust(name, cwd, kickoff):
     if not trusted(pathlib.Path(cwd)):  # a trust the owner never gave stays theirs to give
         sys.exit(f"start-session.py: {name} waits at the folder trust dialog for {cwd}, outside this repository and its worktrees; "
-                 f"the owner must accept it in its pane (`{session.LOOK.format(name)}`), then send it its kick-off: {kickoff}")
+                 f"the owner must accept it in its pane (`{look(name, None)}`), then send it its kick-off: {kickoff}")
     session.send_keys(name, *agent.TRUST[1])
 
 
@@ -109,6 +114,7 @@ def main(args):
         sys.exit(f"start-session.py: {refusal}")
     text = agent.kickoff(f"{options.args} — {steering}" if steering else options.args)
     trust = agent.TRUST[0]
+    pane, sent = None, False
     try:
         cwd = str(pathlib.Path(options.cwd).resolve())
         place = session.open_tab(workspace, cwd, options.name) if workspace else session.open_workspace(cwd, team_names.project(options.name))
@@ -118,11 +124,17 @@ def main(args):
         # from here the name is the target, which herdr resolves on each call, since it may move the pane
         wait(options.name, lambda state: state.get("interactive_ready") and state.get("agent_status") != "blocked",  # trust dialog
              lambda screen: trust in screen and accept_trust(options.name, cwd, text), "not ready")
-        session.prompt(options.name, text)  # the one prompt a session is sent: its kick-off
+        sent = session.prompt(options.name, text) is None  # the one prompt a session is sent: its kick-off
         wait(options.name, lambda state: state.get("agent_status") not in (None, "idle"),  # typed but unsent: press Enter
              lambda screen: text[:40] in screen and session.send_keys(options.name, "enter"), "never took its kick-off")
     except RuntimeError as e:
-        sys.exit(f"start-session.py: {e}. Look at its pane with `{session.LOOK.format(options.name)}` before starting it again.")
+        if not session.agent(options.name):
+            state = f"{options.name} is not live and got no kick-off; " + (f"look at its pane with `{look(options.name, pane)}` before starting it again" if pane else "no pane was opened for it")
+        elif sent:
+            state = f"{options.name} is live and its kick-off was typed, but it did not start on it; look at its pane with `{look(options.name, pane)}`, and start no second one"
+        else:
+            state = f"{options.name} is live and got no kick-off; start no second one, look at its pane with `{look(options.name, pane)}` and send it: {text}"
+        sys.exit(f"start-session.py: {e}. {state}.")
     where = f"a new tab of workspace {workspace}" if workspace else "a new workspace of its own"
     print(f"{options.name} started in {where} (pane {pane}) and took its kick-off.")
     return 0

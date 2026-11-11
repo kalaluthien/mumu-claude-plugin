@@ -34,13 +34,13 @@ def number(version):
 
 def plan(base, merge):
     """The tags to push and the refusals, for the plugins that changed from BASE to MERGE."""
-    folders = git("ls-tree", "-d", "--name-only", merge).stdout.split()
+    folders = git("ls-tree", "-d", "--name-only", "--full-tree", merge).stdout.split()
     tags, refusals = [], []
     for folder in folders:
         after = manifest(merge, folder)
         if after is None:
             continue
-        changed = git("diff", "--name-only", base, merge, "--", folder).stdout.split()
+        changed = git("diff", "--name-only", base, merge, "--", f":(top){folder}").stdout.split()
         if not changed:
             continue
         before = manifest(base, folder)
