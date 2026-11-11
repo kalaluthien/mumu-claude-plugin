@@ -208,6 +208,11 @@ def role(decider):
     return "owner" if decider == "owner" else "manager" if decider == "manager" or decider.removesuffix("-next").endswith("-manager") else "worker"
 
 
+def place(url):
+    """URL's path after the board ref, since the same comment is named by another git dir when the board is read from another checkout path; any other url whole."""
+    return url.partition("refs/teamwork-blackboard/")[2] or url
+
+
 def questions(issue):
     """Its questions, oldest first, each {'ask': the `BLOCKED:` comment, 'fields': its fields, 'answer': the comment that settles it or None}:
     a later decision settles the question whose url it names and each earlier open ask with the same first line, since an ask
@@ -219,11 +224,11 @@ def questions(issue):
             found.append({"ask": comment, "fields": held, "answer": None})
         elif word == ANSWER and not event(held):
             named, decider = held.get("answers", ""), role(held.get("by", ""))
-            said = {first_line(question["ask"]["body"]) for question in found if question["ask"]["url"] == named}
+            said = {first_line(question["ask"]["body"]) for question in found if place(question["ask"]["url"]) == place(named)}
             older = (comment.get("createdAt") or "") < legacy_records.TYPED_SINCE
             for question in found:
                 general = older or decider == "owner" or decider == "manager" and question["fields"].get("asks") != "owner"
-                if question["answer"] is None and (general if not named else question["ask"]["url"] == named or first_line(question["ask"]["body"]) in said):
+                if question["answer"] is None and (general if not named else place(question["ask"]["url"]) == place(named) or first_line(question["ask"]["body"]) in said):
                     question["answer"] = comment
     return found
 

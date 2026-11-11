@@ -102,8 +102,8 @@ def refusals(number, text, fields, issues):
     if owner and not quoted(text):
         found.append("`--by owner` quotes no words of the owner's, as a `>` line or in double quotes")
     answered = fields.get("answers")
-    if answered and answered not in [question["ask"]["url"] for question in issue_state.questions(as_issue(issues[int(number)]))]:
-        place = next((task for task, issue in issues.items() for comment in as_issue(issue)["comments"] if comment.get("url") == answered), None)
+    if answered and issue_state.place(answered) not in [issue_state.place(question["ask"]["url"]) for question in issue_state.questions(as_issue(issues[int(number)]))]:
+        place = next((task for task, issue in issues.items() for comment in as_issue(issue)["comments"] if issue_state.place(comment.get("url") or "") == issue_state.place(answered)), None)
         found.append(f"`--answers` names {answered}, which is no question on #{number}"
                      + (f"; post the decision on #{place}, the question's own task" if place and place != int(number) else ""))
     target = fields.get("supersedes")
