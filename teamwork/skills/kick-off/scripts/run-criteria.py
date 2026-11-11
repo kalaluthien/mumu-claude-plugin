@@ -5,7 +5,8 @@ judge reads instead of running each check again.
 
 usage: run-criteria.py [--timeout <s>] [--base [--ref <ref>] | --pass <n>=<sample-file>...] <task | body-file | ->
 
-`-` reads the task as JSON, its `body`, `trusted` and `comments`.
+A task is its number, `#n` or url; `-` reads the task as JSON, its `body`, `trusted` and `comments`. A word that names no file and no task
+on the board prints one line saying which, exit 1. `--timeout` is each check's limit, 900 s unless given.
 A task, by number or JSON, whose author is not `trusted` is refused, exit 1, since its checks would run as commands; a body
 file is the worker's own draft, so it runs.
 
@@ -17,7 +18,7 @@ its first judged table. A `BLOCKED due: <name>` line follows
 when a criterion fails with the output it had in an earlier table on the task: ask your manager by `BLOCKED:`, since
 it has failed twice the same way.
 
-`--base` runs each `[check]` in an export of the base instead, `--ref` or else `origin/HEAD`, and prints `base ok` when
+`--base` runs each `[check]` in an export of the base instead, `--ref` or else the first of `origin/HEAD`, `origin/main` and `main` that exists, and prints `base ok` when
 its output equals the text quoted after `on base` (or `on main`, in tasks filed before), `wrong base` when it differs,
 `unclear` when the quote is not one value; exit 1 on any `wrong base`; an `exits` or `more` check, a git check (the
 export has no `.git`) and a check with a placeholder are `unclear`. The output is compared whole. It never fetches: run `git fetch` first. A body file reads criteria before the task exists, so run it before the first judge.
@@ -52,6 +53,7 @@ import tempfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
 import criteria_check  # noqa: E402
+import decisions  # noqa: E402
 import issue_state  # noqa: E402
 import usage_parser  # noqa: E402
 
@@ -73,15 +75,25 @@ def git_output(*argv, cwd=None):
     return subprocess.run(["git", *argv], cwd=cwd, capture_output=True, text=True).stdout.strip()
 
 
+def read_file(file):
+    try:
+        return file.read_text()
+    except (OSError, UnicodeDecodeError) as e:
+        sys.exit(f"run-criteria: could not read {file}: {e}")
+
+
 def read_task(source):
     if source == "-":
         task = json.load(sys.stdin)  # a comment the board adapter has not marked, as a board's own listing prints it, gets its mark here
         return {**task, "comments": [{**comment, "trusted": comment.get("trusted", board.trusted(comment))} for comment in task.get("comments", [])]}
-    found = board.fresh(source) if source.lstrip("#").isdigit() else None
-    if found is None:
-        print(f"run-criteria: could not read {source} as a task on the board, a body file or `-`", file=sys.stderr)
-        usage_parser.refuse(__doc__)
-    return found
+    number = decisions.task_number(source)
+    if number is None:
+        sys.exit(f"run-criteria: {source} is no file here, and no task's number or url")
+    try:
+        found = board.fresh(number)
+    except LookupError as e:
+        sys.exit(f"run-criteria: {e}")
+    return found or sys.exit(f"run-criteria: the board holds no task #{number}")
 
 
 def runnable(task):
@@ -187,8 +199,10 @@ def pass_row(label, kind, name, detail, sample, cwd, timeout):
 
 
 def base_ref(ref):
-    found = ref or git_output("symbolic-ref", "--short", "refs/remotes/origin/HEAD")
-    return found or sys.exit("run-criteria: origin/HEAD is not set; name the base with --ref")
+    if ref:
+        return ref
+    known = [git_output("symbolic-ref", "--short", "refs/remotes/origin/HEAD"), *(name for name in ("origin/main", "main") if git_output("rev-parse", "--verify", "--quiet", name))]
+    return next(filter(None, known), None) or sys.exit("run-criteria: found no origin/HEAD, origin/main or main; name the base with --ref")
 
 
 def run_on_base(root, ref, rows, timeout, live):
@@ -212,7 +226,7 @@ def run(command, cwd, timeout):
         # the check's children share its session, so killing only bash would leave them running
         os.killpg(process.pid, signal.SIGKILL)
         process.communicate()
-        return None, f"timed out after {timeout} s"
+        return None, f"timed out after {timeout} s; give a longer limit with --timeout <s>"
 
 
 def cell(text):
@@ -322,14 +336,14 @@ def run_at_head(options, task, root, live):
 
 def main(args):
     parser = usage_parser.parser(__doc__)
-    parser.add_argument("--timeout", type=int, default=300)
+    parser.add_argument("--timeout", type=int, default=900)
     parser.add_argument("--base", "--main", action="store_true")
     parser.add_argument("--ref")
     parser.add_argument("--pass", dest="samples", action="append", default=[], metavar="N=FILE")
     parser.add_argument("task")
     options = parser.parse_args(args)
     file = pathlib.Path(options.task)
-    task = {"body": file.read_text(), "comments": []} if file.is_file() else runnable(read_task(options.task))
+    task = {"body": read_file(file), "comments": []} if file.is_file() else runnable(read_task(options.task))
     root = git_output("rev-parse", "--show-toplevel") or "."
     if options.samples:
         return run_with_samples(options, task, root)

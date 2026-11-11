@@ -2,8 +2,12 @@
 """Print each criterion of a task body's Definition of done whose form a judge would send back, or run-criteria.py cannot read, one line per criterion,
 `<position>: <defects>`, and exit 1; a body with none prints nothing and exits 0.
 
-usage: check-criteria.py [--task <n>] <body-file | ->
+usage: check-criteria.py <task>
+usage: check-criteria.py [--task <task>] <body-file | ->
 usage: check-criteria.py --cut-off
+
+A task is its number, `#n` or url; given alone it is read from the board, body and number. A word that names no file and no task
+on the board prints one line saying which, exit 1.
 
 It reads the form only, never running a command, since whether a check passes on the base stays the judge's to find.
 After the lines it prints, once per defect named, what the defect means and how to fix it.
@@ -22,7 +26,9 @@ import shlex
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import board  # noqa: E402
 import criteria_check  # noqa: E402
+import decisions  # noqa: E402
 import issue_state  # noqa: E402
 
 NEXT_WORD = r"[^A-Za-z0-9-]+([A-Za-z0-9-]+)"  # the word after a marker such as `prints`
@@ -153,13 +159,30 @@ def main(args):
         print(CUT_OFF)
         return 0
     task = None
-    if len(args) == 3 and args[0] == "--task" and args[1].isdigit():
-        task, args = int(args[1]), args[2:]
+    if len(args) == 3 and args[0] == "--task" and not args[1].startswith("-"):
+        task, word, args = decisions.task_number(args[1]), args[1], args[2:]
+        if task is None:
+            sys.exit(f"check-criteria: --task wants a task's number or url, got {word}")
     if len(args) != 1 or args[0].startswith("-") and args[0] != "-":
         print(__doc__, file=sys.stderr)
         return 2
     source = args[0]
-    body = sys.stdin.read() if source == "-" else pathlib.Path(source).read_text()
+    if source == "-":
+        body = sys.stdin.read()
+    elif pathlib.Path(source).is_file():
+        try:
+            body = pathlib.Path(source).read_text()
+        except (OSError, UnicodeDecodeError) as e:
+            sys.exit(f"check-criteria: could not read {source}: {e}")
+    elif task is None and decisions.task_number(source) is not None:
+        task = decisions.task_number(source)
+        try:
+            found = board.fresh(task, comments=False)
+        except LookupError as e:
+            sys.exit(f"check-criteria: {e}")
+        body = found["body"] if found else sys.exit(f"check-criteria: the board holds no task #{task}")
+    else:
+        sys.exit(f"check-criteria: {source} is no file here" + ("" if task is not None else ", and no task's number or url"))
     lines = issue_state.ITEM.findall(issue_state.sections(body).get("done", ""))
     new_rules = task is None or task >= CUT_OFF
     goal = issue_state.sections(body).get("goal")
