@@ -9,6 +9,7 @@ usage: replay-cd-refusal.py [--case <name>]   (no argument: every one in turn)
 - script: `cd <live>/teamwork && ls scripts; python3 scripts/read-board.py 3 --as worker 2>&1 | head -5` is denied with such a command
 - direct: `cd <live>/teamwork && git log --oneline -1 && grep -c the note.txt; scripts/status.sh status 2>&1 | tail -1` is denied with such a command
 - again: `cd <live>/teamwork && cat note.txt && cd /tmp && echo done` is denied with such a command that keeps the second cd
+- chain: from the worktree, a second cd is read from the folder the first reached when `&&`, `;` or `(` joins them, and from the worktree when a pipe, `||` or a closed subshell does, so each of CHAINS is denied or passes as it says, a redirect on the first cd included
 - real: each cd call of the transcripts under ~/.claude/projects that an independent reading calls a read gets a rewrite, and none whose later commands write gets one; passes when there are no transcripts
 - writes: `cd <live>/teamwork && <command>` is denied with no command offered for each command of WRITES, a write, a cd again, or a command whose effect the rewrite cannot know"""
 import glob
@@ -46,6 +47,8 @@ WRITES = ("cp note.txt copy.txt", "git add . && git commit -m x", "git log && cd
           "tree -R", "tree -L 1", "ls -I x", "gh api repos/x/y --method post", "grep -rn the", "wc -l", "git grep -EOecho the", "cat note.txt | grep -rn the", "cat note.txt; cd /no/such/dir; cat note.txt", "cat note.txt && cd LIVE/teamwork/.. && ls",
           "cat note.txt & cat note.txt", "gh pr view", "gh pr diff", "echo \"'$(touch z)'\"", "git log --grep=\"'$(touch z)'\"", "wc -l note.txt", "du", "file note.txt", "grep the note.txt 1", "head note.txt 1",
           "grep -rn the .", "ls -R", "ls -d .", "sed -n 's/[/]/;p;s/;w d/r/g' note.txt", "grep the note.txt nonexist.txt", "ls note.txt", "grep -l the note.txt", "tail -v -n 1 note.txt", "python3 ../outside.py", "sed -n '/a\\/p;/w ./p' note.txt", "python3 scripts/read-board.py 1", "../../../../../../../../../../../../../../bin/rm note.txt")
+CHAINS = (("cd sub && cd ../../..", True), ("cd sub; (cd .. && cd ../..)", True), ("cd sub && cd ../.. && ls", False), ("(cd sub && cd ..); cd ../..", True),
+          ("cd sub | cd ../..", True), ("cd sub && cd .. && cd ..", False), ("cd sub 2>/dev/null && cd ../../..", True), ("cd sub 2>&1 && cd ../.. && ls", False))
 # a command word no cd call may be offered a rewrite for when it follows the cd, whatever its arguments
 WRITING_WORD = re.compile(r"(?<![-\w/.])(?:rm|mv|cp|mkdir|touch|tee|ln|chmod|truncate|install|dd|patch|kill|curl|wget|just|make|npm|uvx)(?![-\w.])|(?<![0-9&>])>(?!&|/dev/null)|>>|\bsed\s+-\w*i"
                           r"|\bgit\s+(?:-C\s+\S+\s+)?(?:add|commit|push|pull|fetch|checkout|switch|merge|rebase|reset|stash|worktree|branch|tag|clean|restore|cherry-pick|config|clone|init|remote)(?![-\w])")
@@ -171,13 +174,16 @@ def check_real():
 
 def main(args):
     if not args:
-        return replay_probe.run_every(__file__, "--case", (*COMMANDS, "real", "writes"))
-    if len(args) != 2 or args[0] != "--case" or args[1] not in (*COMMANDS, "real", "writes"):
+        return replay_probe.run_every(__file__, "--case", (*COMMANDS, "chain", "real", "writes"))
+    if len(args) != 2 or args[0] != "--case" or args[1] not in (*COMMANDS, "chain", "real", "writes"):
         print(__doc__, file=sys.stderr)
         return 2
     stubs, live, worktree = setup()
     if args[1] == "real":
         problem = check_real()
+    elif args[1] == "chain":
+        problem = next((f"{command!r} " + ("was not denied" if denied else "was denied") for command, denied in CHAINS
+                        if bool(hook_reason(stubs, worktree, command)) != denied), None)
     elif args[1] == "writes":
         problem = next((f"{risky!r} " + ("was not denied" if not said else "was offered a rewrite: " + said[said.index("run this instead"):][:200])
                         for risky in WRITES if not (said := hook_reason(stubs, worktree, f"cd {live}/teamwork && {risky.replace('LIVE', str(live))}")) or "run this instead" in said), None)

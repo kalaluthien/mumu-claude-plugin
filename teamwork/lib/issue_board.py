@@ -68,9 +68,10 @@ def entry(node, superseded=frozenset()):
 
 
 def need_of(issue):
-    """How soon a task needs someone, with its parts: 0 when it or a part waits on the owner, 1 when it or a part is held, else 2; and the latest comment time among them."""
+    """How soon a task needs someone, with its parts: 0 when it or a part waits on the owner, 1 when it or a part is held with no open blocker, else 2; and the latest comment time among them."""
     parts = [need_of(task) for task in issue["tasks"]]
-    own = 0 if issue["wait"] == "waits on the owner" else 1 if issue["holder"] else 2
+    blocked = any(not blocker["closed"] for blocker in issue["blockers"])
+    own = 0 if issue["wait"] == "waits on the owner" else 1 if issue["holder"] and not blocked else 2
     return min([own] + [part[0] for part in parts]), max([issue["latest"]] + [part[1] for part in parts])
 
 

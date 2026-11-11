@@ -177,13 +177,34 @@ def writes_github_issue(command):
                for found in SUBSTITUTION.finditer(unrun))
 
 
+def directory_before(prefix, cwd):
+    """The folder a command written after PREFIX starts in: CWD moved by each `cd` of PREFIX that a `&&`, `;` or `(` carries on to it, and CWD again after any
+    other joint, since a pipe, `||`, `&` or a closed subshell leaves the folder as it was."""
+    try:
+        tokens = list(shlex.shlex(prefix.replace("\n", ";"), posix=True, punctuation_chars=True))
+    except ValueError:
+        return cwd  # an opened quote hides what it holds, so the cd stays read from CWD
+    here, words = cwd, []
+    for token in tokens:
+        if not set(token) <= set("&|;()"):  # a word, or a redirect such as `2>&1`, which holds `>`
+            words.append(token)
+            continue
+        target = next((word for word in words[1:] if not word.startswith("-")), None)
+        if token not in ("&&", ";", "("):
+            here = cwd
+        elif words[:1] in (["cd"], ["pushd"]) and target:
+            here = os.path.normpath(os.path.join(here, os.path.expanduser(target)))
+        words = []
+    return here
+
+
 def live_change_directory(command, cwd):
     """(folder, worktree, command): the folder of the live checkout a `cd` in COMMAND enters from the worktree CWD, the worktree, and COMMAND written
     without that cd, None when it cannot be; None for any other cd; a cd, never a write, is matched, since a script run after it may write anywhere."""
     root, inside, rest = (cwd or "").partition(WORKTREES)
     worktree = root + WORKTREES + rest.split("/")[0]
     for found in CHANGE_DIRECTORY.finditer(command) if inside else ():
-        path = os.path.normpath(os.path.join(cwd, os.path.expanduser(found[1].strip("\"'"))))
+        path = os.path.normpath(os.path.join(directory_before(command[:found.start(1)], cwd), os.path.expanduser(found[1].strip("\"'"))))
         if (path + "/").startswith(root + "/") and WORKTREES not in path + "/":
             return path, worktree, without_change_directory(command, found, path, worktree)
     return None
