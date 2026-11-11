@@ -108,6 +108,18 @@ def blank_text(command):
     return COMMENT.sub(lambda found: "_" * len(found.group(0)), command)
 
 
+def inert_text(command):
+    """COMMAND of the same length with each heredoc body, comment and quoted string turned into `_`, except a `$(...)` the shell runs, even inside double quotes,
+    so a cd in it is read as a command and a cd in plain text is not."""
+    def blank_quoted(found):
+        text, kept = found.group(0), set()
+        for substitution in SUBSTITUTION.finditer(text) if text[0] == '"' else ():
+            if text[substitution.start()] == "$":
+                kept.update(range(*substitution.span()))
+        return "".join(char if at in kept or at in (0, len(text) - 1) else "_" for at, char in enumerate(text))
+    return COMMENT.sub(lambda found: "_" * len(found.group(0)), QUOTED.sub(blank_quoted, blanked_bodies(command)))
+
+
 def rest_of_command(command, blanked, start):
     """The text of COMMAND from START to the end of its simple command, found in the blanked text, so a `;` inside a quoted body ends nothing."""
     end = re.search(r"[;|\n]|(?<![<>])&(?!>)", blanked[start:])
@@ -203,8 +215,8 @@ def live_change_directory(command, cwd):
     without that cd, None when it cannot be; None for any other cd; a cd, never a write, is matched, since a script run after it may write anywhere."""
     root, inside, rest = (cwd or "").partition(WORKTREES)
     worktree = root + WORKTREES + rest.split("/")[0]
-    for found in CHANGE_DIRECTORY.finditer(command) if inside else ():
-        path = os.path.normpath(os.path.join(directory_before(command[:found.start(1)], cwd), os.path.expanduser(found[1].strip("\"'"))))
+    for found in CHANGE_DIRECTORY.finditer(inert_text(command)) if inside else ():  # a cd inside a quote, heredoc or comment runs nothing
+        path = os.path.normpath(os.path.join(directory_before(blanked_bodies(command[:found.start(1)]), cwd), os.path.expanduser(command[found.start(1):found.end(1)].strip("\"'"))))
         if (path + "/").startswith(root + "/") and WORKTREES not in path + "/":
             return path, worktree, without_change_directory(command, found, path, worktree)
     return None

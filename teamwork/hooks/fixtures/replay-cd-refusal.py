@@ -10,6 +10,7 @@ usage: replay-cd-refusal.py [--case <name>]   (no argument: every one in turn)
 - direct: `cd <live>/teamwork && git log --oneline -1 && grep -c the note.txt; scripts/status.sh status 2>&1 | tail -1` is denied with such a command
 - again: `cd <live>/teamwork && cat note.txt && cd /tmp && echo done` is denied with such a command that keeps the second cd
 - chain: from the worktree, a second cd is read from the folder the first reached when `&&`, `;` or `(` joins them, and from the worktree when a pipe, `||` or a closed subshell does, so each of CHAINS is denied or passes as it says, a redirect on the first cd included
+- quoted: a `cd <live>/teamwork` inside a quoted argument, a heredoc body or a comment passes, and one in a `$(...)`, or run after a heredoc or a quoted `&&`, is denied, each of QUOTED as it says
 - real: each cd call of the transcripts under ~/.claude/projects that an independent reading calls a read gets a rewrite, and none whose later commands write gets one; passes when there are no transcripts
 - writes: `cd <live>/teamwork && <command>` is denied with no command offered for each command of WRITES, a write, a cd again, or a command whose effect the rewrite cannot know"""
 import glob
@@ -49,6 +50,10 @@ WRITES = ("cp note.txt copy.txt", "git add . && git commit -m x", "git log && cd
           "grep -rn the .", "ls -R", "ls -d .", "sed -n 's/[/]/;p;s/;w d/r/g' note.txt", "grep the note.txt nonexist.txt", "ls note.txt", "grep -l the note.txt", "tail -v -n 1 note.txt", "python3 ../outside.py", "sed -n '/a\\/p;/w ./p' note.txt", "python3 scripts/read-board.py 1", "../../../../../../../../../../../../../../bin/rm note.txt")
 CHAINS = (("cd sub && cd ../../..", True), ("cd sub; (cd .. && cd ../..)", True), ("cd sub && cd ../.. && ls", False), ("(cd sub && cd ..); cd ../..", True),
           ("cd sub | cd ../..", True), ("cd sub && cd .. && cd ..", False), ("cd sub 2>/dev/null && cd ../../..", True), ("cd sub 2>&1 && cd ../.. && ls", False))
+QUOTED = (("git commit -m \"fix && cd {live}/teamwork && ls\"", False), ("echo 'cd {live}/teamwork && ls'", False), ("cat <<'EOF'\nit's && cd {live}/teamwork && ls\nEOF", False),
+          ("cat <<EOF\n(cd {live}/teamwork && ls)\nEOF", False), ("echo x # cd {live}/teamwork && ls", False), ("cat <<'EOF' >/dev/null\nit's\nEOF\ncd {live}/teamwork && ls", True),
+          ("echo \"a && b\" && cd {live}/teamwork && ls", True), ("git commit -m 'x'; (cd {live}/teamwork && ls)", True),
+          ("echo $(cd {live}/teamwork && ls)", True), ("echo \"$(cd {live}/teamwork && ls)\"", True), ("cat <<'EOF'\ncd sub\nEOF\ncd ../.. && ls", True))
 # a command word no cd call may be offered a rewrite for when it follows the cd, whatever its arguments
 WRITING_WORD = re.compile(r"(?<![-\w/.])(?:rm|mv|cp|mkdir|touch|tee|ln|chmod|truncate|install|dd|patch|kill|curl|wget|just|make|npm|uvx)(?![-\w.])|(?<![0-9&>])>(?!&|/dev/null)|>>|\bsed\s+-\w*i"
                           r"|\bgit\s+(?:-C\s+\S+\s+)?(?:add|commit|push|pull|fetch|checkout|switch|merge|rebase|reset|stash|worktree|branch|tag|clean|restore|cherry-pick|config|clone|init|remote)(?![-\w])")
@@ -174,8 +179,8 @@ def check_real():
 
 def main(args):
     if not args:
-        return replay_probe.run_every(__file__, "--case", (*COMMANDS, "chain", "real", "writes"))
-    if len(args) != 2 or args[0] != "--case" or args[1] not in (*COMMANDS, "chain", "real", "writes"):
+        return replay_probe.run_every(__file__, "--case", (*COMMANDS, "chain", "quoted", "real", "writes"))
+    if len(args) != 2 or args[0] != "--case" or args[1] not in (*COMMANDS, "chain", "quoted", "real", "writes"):
         print(__doc__, file=sys.stderr)
         return 2
     stubs, live, worktree = setup()
@@ -183,6 +188,9 @@ def main(args):
         problem = check_real()
     elif args[1] == "chain":
         problem = next((f"{command!r} " + ("was not denied" if denied else "was denied") for command, denied in CHAINS
+                        if bool(hook_reason(stubs, worktree, command)) != denied), None)
+    elif args[1] == "quoted":
+        problem = next((f"{command!r} " + ("was not denied" if denied else "was denied") for command, denied in ((text.format(live=live), denied) for text, denied in QUOTED)
                         if bool(hook_reason(stubs, worktree, command)) != denied), None)
     elif args[1] == "writes":
         problem = next((f"{risky!r} " + ("was not denied" if not said else "was offered a rewrite: " + said[said.index("run this instead"):][:200])
