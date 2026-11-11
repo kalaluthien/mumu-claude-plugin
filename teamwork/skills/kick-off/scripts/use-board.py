@@ -1,35 +1,20 @@
 #!/usr/bin/env python3
 """Do one board operation through the board port, so a session writes the same way on any board.
 
-usage: use-board.py <operation> <args>
+usage: use-board.py read <issue> [--as worker|judge] [--full]
+usage: use-board.py comment <issue> <text-file> [--asks owner] [--option <answer>]...
+usage: use-board.py decide <issue> <text-file> [--by <who>] [--one-way] [--supersedes <url>] [--answers <url>] [--holders <names>] [--live-runs <n>]
+usage: use-board.py hold <issue> [<name>...]
+usage: use-board.py depend <issue> [<number>...]
+usage: use-board.py file <title> <body-file> [<label>...] [--scope <folder>] [--depends <numbers>]
+usage: use-board.py edit <issue> <diff-file> <keyword line> --base <sha>
+usage: use-board.py title <issue> <title>
+usage: use-board.py resolve <issue> <summary-file> [--not-planned]
+usage: use-board.py reopen <issue>
+usage: use-board.py label <issue> <name> [--remove]
 
-A text is Markdown a person reads: no code reads it for data, which every call takes as options and keeps as board-record-schema.json says.
-A write that breaks the grammar posts nothing, exits 2 and names the fix: a comment that opens with neither `BLOCKED:` nor `REPORTED:`, a text that
-is empty or its keyword alone or holds a `teamwork` or `decision` fence, a misspelt section heading, a title, summary line, criterion name or decision beyond the Plain words caps,
-or, in a `file` or an `edit` of a task numbered at or above the Goal cut-off, a `## Goal` that names no flow of its changed part, unless the body edited held that defect already.
-
-  read <issue> [--as worker|judge] [--full]   print its title, state, labels, parent, body, the decisions that bind it, its open questions and its comments, each
-                                        body edit's diff cut to one line unless `--full`; as a worker without each `Judge note:` paragraph,
-                                        which names probes of a criterion's implementation, as a judge without the open questions and each `BLOCKED:` comment, which are worker history
-  comment <issue> <body-file> [--asks owner] [--option <answer>]...   append the file's text, which opens `BLOCKED:` to ask a question or `REPORTED:` to say anything else;
-                                        each `--option` one answer the question offers, shown numbered in the order given; `--asks owner` on a question
-                                        the owner answers, not the manager, which takes two options or more
-  decide <issue> <body-file> [--by <who>] [--one-way] [--supersedes <url>] [--answers <url>] [--holders <names>] [--live-runs <n>]
-                                        post a decision, `DECIDED: ` put first when the text lacks it: its first line is the binding sentence, decided `--by owner`,
-                                        the owner's words quoted in the text, else by the calling session; `--one-way` when it is hard to undo; `--supersedes` the url
-                                        of the decision it replaces, `--answers` that of the `BLOCKED:` it settles; `--holders 'a-worker b-worker'` sets who holds
-                                        the task and `--live-runs` its cap; refused, nothing posted, when it breaks a rule of the grammar's Decisions section
-  hold <issue> [<name>...]              set the sessions that hold the task, no one when none is named, as an event, which binds nothing
-  depend <issue> [<number>...]          set the tasks it waits on, none when none is named, refused when they make a cycle or name an unknown issue
-  file <title> <body-file> [label...] [--scope <folder>] [--depends <numbers>]   open an issue in the folder, a path from the repository root ('' the root; a manager's own
-                                        project folder when none is given, else the root), refused when the repository has no such folder; print its url;
-                                        its `[task]` lines and `--depends '12 13'` link it, refused when they make a cycle, a second parent or name an unknown issue
-  edit <issue> <diff-file> <line> --base <sha>   change the body by a diff, with the keyword line [edit-issue-body.py](edit-issue-body.py) posts first;
-                                        refused when the body no longer has the `body sha` `read` printed, the sha given as `--base`
-  title <issue> <title>                 change the title
-  resolve <issue> <summary-file> [--not-planned]   close it with the summary, `REPORTED: ` put first when it lacks it
-  reopen <issue>                        open a closed issue again
-  label <issue> <name> [--remove]"""
+`<issue>` is a task's number or its url. A write prints the url of what it wrote; one that breaks the grammar posts nothing, exits 2 and
+names the fix. What each verb and option means: references/issue-grammar.md, and for `--scope` references/adapters/board.md."""
 import pathlib
 import subprocess
 import sys
