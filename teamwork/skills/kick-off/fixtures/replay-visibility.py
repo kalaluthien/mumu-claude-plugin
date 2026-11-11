@@ -23,10 +23,10 @@ def use(*argv):
     return subprocess.run([sys.executable, str(USE), *map(str, argv)], capture_output=True, text=True)
 
 
-def post(verb, number, text, work):
+def post(verb, number, text, work, *options):
     path = work / f"text-{abs(hash(text))}.md"
     path.write_text(text)
-    done = use(verb, number, path)
+    done = use(verb, number, path, *options)
     if done.returncode:
         raise SystemExit(f"replay-visibility: {verb} refused: {done.stderr}")
 
@@ -45,7 +45,7 @@ def main(args):
     if filed.returncode:
         return replay_probe.fail(f"cannot file the task: {filed.stderr}")
     number = filed.stdout.strip().rsplit("/", 1)[1]
-    post("decide", number, f"DECIDED: probe routing\n\nJudge note: {NOTE}\n\n```decision\ndecision: probe routing\ndecided by: probe-manager\ndoor: two-way\n```\n", work)
+    post("decide", number, f"DECIDED: probe routing\n\nJudge note: {NOTE}\n", work, "--by", "probe-manager")
     post("comment", number, f"BLOCKED: {ASK}\n", work)
     post("comment", number, "REPORTED: probe findings\n", work)
     seen = {role: use("read", number, "--as", role) for role in ("worker", "judge")}

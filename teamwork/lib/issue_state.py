@@ -1,91 +1,31 @@
-"""An issue's latest state, composed from its body and comments by the grammar file, which alone names the keywords and keys."""
+"""An issue's latest state, composed from its body and the fields of its comments, which board-record-schema.json names."""
 import difflib
+import json
 import pathlib
 import re
 
-GRAMMAR = pathlib.Path(__file__).resolve().parents[1] / "skills" / "kick-off" / "references" / "issue-grammar.md"
-DATA = re.compile(r"^```teamwork\n(.*?)^```", re.M | re.S)
+import legacy_records
 
-
-def rows(text, heading):
-    """{word: role} of the table under `## <heading>`, the word its first column's code span, the role its last cell."""
-    section = re.search(rf"^## {heading}\n(.*?)(?=^## |\Z)", text, re.M | re.S).group(1)
-    return {word: role.strip() for word, role in re.findall(r"^\| `([^`]+)` \|.*\|([^|\n]*)\|$", section, re.M)}
-
-
-def load(path=GRAMMAR):
-    text = path.read_text()
-    since = re.search(r"posted before `(\d{4}-\d\d-\d\d)`", text).group(1)
-    return rows(text, "Keywords"), rows(text, "Data"), rows(text, "Sections"), rows(text, "Decisions"), since
-
-
-KEYWORDS, KEYS, SECTIONS, DECISION_KEYS, TYPED_SINCE = load()
-WORD = {role: word for table in (KEYWORDS, KEYS) for word, role in table.items() if role}
-FIELD = {role: word for word, role in DECISION_KEYS.items()}
-SECTION_NAMES = {name.lower(): name for name in SECTIONS}
-INFORM = next(word for word, role in KEYWORDS.items() if not role)  # the keyword that only informs, which the owner reads as what happened
-DECISION = re.compile(r"^```decision\n(.*?)^```", re.M | re.S)
-DIFF = re.compile(r"^(`{3,})diff\n(.*?)^\1$", re.M | re.S)
-# the note `resolve` posts on a parent it stops, naming the parts it stops with it
-STOPPING = "DECIDED: stopping #"
+SKILL = pathlib.Path(__file__).resolve().parents[1] / "skills" / "kick-off"
+GRAMMAR = SKILL / "references" / "issue-grammar.md"
+SCHEMA = json.loads((SKILL / "assets" / "board-record-schema.json").read_text())
+# the word a comment's first line opens with: a question, a decision or an event, anything else
+ASK, ANSWER, INFORM = "BLOCKED", "DECIDED", "REPORTED"
+KEYWORDS = (ASK, ANSWER, INFORM)
+SECTIONS = {"Goal": "goal", "Definition of done": "done"}
 ITEM = re.compile(r"^(?:\d+\.|[-*])\s+(.*)$", re.M)
 # a criterion `[check] **<name>**: <details>`, after a task-list box when one marks it met; one filed before names were asked for is its own name
 CRITERION = re.compile(r"^(?:\[([ xX])\]\s+)?(?:\[(\w+)\]\s+)?(?:\*\*(.+?)\*\*:?\s*)?(.*)$")
 # a run of n backticks closes only on a run of exactly n, so a ``…`` span may hold single backticks
 SPAN = re.compile(r"(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)")
-
-
-def keyword(text):
-    """The keyword a comment opens with, or None when its first line opens with none the grammar names."""
-    found = re.match(r"\s*([A-Z]+):", text or "")
-    return found and found.group(1) in KEYWORDS and found.group(1) or None
-
-
-def data(text):
-    """The `key: value` lines of its reserved blocks, keys the grammar names only."""
-    pairs = (line.partition(":") for block in DATA.findall(text or "") for line in block.splitlines())
-    return {k.strip(): value.strip() for k, separator, value in pairs if separator and k.strip() in KEYS}
-
-
-FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
-
-
-def fence_step(fence, line):
-    """(fence, marks) after LINE: the open fence as (run, info) or None, and whether LINE opened or closed one, as CommonMark reads it: a run of three or
-    more backticks or tildes, indented up to three spaces, opens, a backtick run's info holding no backtick, and a bare run of the same mark at least
-    as long, followed by nothing but spaces or tabs, closes."""
-    found = FENCE.match(line)
-    if not found:
-        return fence, False
-    run, info = found.groups()
-    if fence is None:
-        return (None, False) if run[0] == "`" and "`" in info else ((run, info.strip(" \t")), True)
-    if run[0] == fence[0][0] and len(run) >= len(fence[0]) and not info.strip(" \t"):
-        return None, True
-    return fence, False
-
-
-def language(fence):
-    """The language of an open FENCE, its info string's first word in lowercase, as CommonMark reads it; empty outside a fence."""
-    return (fence[1].split() or [""])[0].lower() if fence else ""
-
-
-# a fence a writer may take for the teamwork one: its info string spelt otherwise, or a data language
-LOOKALIKES = ("teamwork", "yaml", "yml")
-# a fence that quotes lines as changed text, never as a record's data
-QUOTING = ("diff",)
-# a line opening a list item or an HTML block, inside which CommonMark reads fences that `fence_step` does not follow; a block quote's fences
-# sit on its `>` lines, which `fence_step` never reads as fences, and a quote never takes in a line without `>` that opens a fence
-UNTRACKED = re.compile(r"^ {0,3}(?:[-+*](?:\s|$)|\d{1,9}[.)](?:\s|$)|<)")
-HOLDERS_LINE = re.compile(rf"^\s*{WORD['holders']}\s*:")
-NAMES = re.compile(r"([a-z0-9][a-z0-9-]*)?( [a-z0-9][a-z0-9-]*)*")
-TASKS = re.compile(r"(#\d+)?( #\d+)*")
-# the opening of a line that reads as a key or a keyword, spelt right or not
-KEY_LINE = re.compile(r"^\s*([A-Za-z][A-Za-z ]*?)\s*[:=]")
-KEYWORD_LINE = re.compile(r"^\s*[*_#>-]*\s*(?:" + "|".join(KEYWORDS) + r")\b", re.I)
 EXACT_KEYWORD = re.compile(r"^\s*(" + "|".join(KEYWORDS) + r"):")
-# the keyword each posting verb opens its text with: `decide` answers, `resolve` informs
-VERB_KEYWORD = {"decide": WORD["answer"], "resolve": INFORM}
+# the keyword each posting verb opens its text with; a comment asks or informs
+DIFF = re.compile(r"^(`{3,})diff\n(.*?)^\1$", re.M | re.S)
+# a data fence at a line's start, which a text may not hold, since every datum is an option
+FENCE = re.compile(r"^```(teamwork|decision)[ \t]*$", re.M)
+FENCE_OPTIONS = {"teamwork": "`hold <issue> <name>...`, `depend <issue> <n>...`, `comment --asks owner` or `decide --live-runs <n>`",
+                 "decision": "`decide [--by <who>] [--one-way] [--supersedes <url>] [--answers <url>]`, whose sentence is the text's first line"}
+VERB_KEYWORDS = {"comment": (ASK, INFORM), "decide": (ANSWER,), "resolve": (INFORM,)}
 # the Plain words caps on a title, a summary line and a decision: the live board's plain summary lines and decisions ran to 20 words, its dense
 # ones from 23, and a second `,` `;` or `:` joined a further idea in every dense line a fresh reader marked
 TITLE_CHARS = 40
@@ -94,17 +34,47 @@ SENTENCE_MIN_WORDS = 5  # a subject, a verb and what it acts on, with an article
 SENTENCE_BREAKS = 1
 TASK_NUMBER = re.compile(r"#\d+\b")
 BREAK = re.compile(r"[,;:](?=\s)")
+TYPES = {"object": dict, "array": list, "string": str, "integer": int}
 
 
-def stem(words):
-    """A key's words without case, sign or plural, so `Holder` and `holders` meet."""
-    return " ".join(word.rstrip("s") for word in re.findall(r"[a-z]+", words.lower()))
+def keyword(text):
+    """The keyword a comment opens with, or None when its first line opens with none."""
+    found = EXACT_KEYWORD.match(text or "")
+    return found and found.group(1)
+
+
+def first_line(text):
+    """A comment's first line of text without its keyword, the line after a keyword that stands alone."""
+    return next((line.strip() for line in re.sub(r"^\s*[A-Z]+:", "", (text or "").strip()).splitlines() if line.strip()), "")
+
+
+class Refused(LookupError):
+    """A record the schema refuses, so nothing was written."""
+
+
+def invalid(value, schema=SCHEMA, name="the record"):
+    """Why VALUE breaks SCHEMA, read for its type, enum, pattern, minimum, items, properties, required and additionalProperties; None when it keeps it."""
+    kind = schema.get("type")
+    wrong = "enum" in schema and value not in schema["enum"] or kind and (not isinstance(value, TYPES[kind]) or isinstance(value, bool)) \
+        or "pattern" in schema and not re.search(schema["pattern"], value) or "minimum" in schema and value < schema["minimum"]
+    if wrong:
+        return f"{name} is {value!r}, which does not fit: {schema.get('description') or schema.get('title')}"
+    if kind == "array":
+        return next(filter(None, (invalid(item, {"description": schema.get("description"), **schema["items"]}, name) for item in value)), None)
+    if kind == "object":
+        known = schema["properties"]
+        if stray := [key for key in value if key not in known] if schema.get("additionalProperties") is False else []:
+            return f"{name} holds `{stray[0]}`, which is none of: {' '.join(known)}"
+        if missing := [key for key in schema.get("required", ()) if key not in value]:
+            return f"{name} lacks `{missing[0]}`"
+        return next(filter(None, (invalid(value[key], known[key], f"`{key}`") for key in value)), None)
+    return None
 
 
 def defects(kind, text, old=""):
-    """The defects of TEXT written by KIND (comment, decide, resolve, file, edit-body, edit-line), each a plain sentence ending in its fix; none
+    """The defects of TEXT written by KIND (title, comment, decide, resolve, file, edit-body, edit-line), each a plain sentence ending in its fix; none
     when it reads as meant. A defect OLD already held does not count, so an edit that fixes a body is never blocked."""
-    found = _defects(kind, text)
+    found = _defects(kind, text or "")
     held = [signature for signature, _ in _defects(kind, old)] if old else []
     return [sentence for signature, sentence in found if signature not in held]
 
@@ -112,97 +82,40 @@ def defects(kind, text, old=""):
 def _defects(kind, text):
     """[(signature, sentence)] of TEXT, the signature free of the line number so an edit that moves a line keeps it."""
     if kind == "title":
-        return plain("title", text)
+        return plain("title", text) if text.strip() else [("empty", "the title is empty; write what the task does in a few words")]
     if kind == "edit-line":
-        one = re.fullmatch(WORD["answer"] + r":[^\n]*\S[^\n]*", (text or "").rstrip("\n"))
-        return [] if one else [("edit-line", f"the keyword line is not one line that opens `{WORD['answer']}:` and says what changed; write `{WORD['answer']}: <what changed and why>` on one line")]
-    found, fence, headings, opening, offset = [], None, {}, "", 0
-    keys, stems = " ".join(KEYS), {stem(key): key for key in KEYS}
-    # the reader skips blank lines before a keyword, so the first line is the first that holds something
-    lines = (text or "").lstrip().split("\n") if kind in ("comment", "decide", "resolve") else (text or "").split("\n")
-    # the lines `data` reads, by offset, so the key checks cover what code acts on, a teamwork block nested in another fence included
-    read = [(block.start(1), block.end(1)) for block in DATA.finditer("\n".join(lines))]
-    for number, line in enumerate(lines, 1):
-        start, offset = offset, offset + len(line) + 1
-        fence, marks = fence_step(fence, line)
-        if any(low <= start < high for low, high in read):
-            if line.strip():
-                key, colon, value = (part.strip() for part in line.partition(":"))
-                if not colon or key not in KEYS:
-                    spelt = KEY_LINE.match(line)
-                    near = stems.get(stem(spelt.group(1))) if spelt else None
-                    found.append((f"fence {line.strip()}", f"line {number}, `{line.strip()}`, is no key the teamwork fence takes; "
-                                  + (f"spell it `{near}: <value>`" if near else f"use one of: {keys}, as `key: value`")))
-                elif key == WORD["holders"] and not NAMES.fullmatch(value):
-                    found.append((f"names {line.strip()}", f"line {number}, `{line.strip()}`, holds more than session names; write the names lowercase, separated by spaces only, as `{key}: a-worker b-worker`"))
-                elif key == WORD["audience"] and value != "owner":
-                    found.append((f"asks {line.strip()}", f"line {number}, `{line.strip()}`, is no value `{key}` takes; write exactly `{key}: owner`"))
-                elif key == WORD["live"] and not value.isdigit():
-                    found.append((f"count {line.strip()}", f"line {number}, `{line.strip()}`, is no count; write `{key}: 12`"))
-                elif key == WORD["depends"] and not TASKS.fullmatch(value):
-                    found.append((f"tasks {line.strip()}", f"line {number}, `{line.strip()}`, is no task list; write `{key}: #12 #13`"))
-            continue
-        if marks:
-            opening = line
-            continue
-        if fence:
-            if language(fence) in LOOKALIKES and KEY_LINE.match(line) and stem(KEY_LINE.match(line).group(1)) in stems:
-                found.append((f"lookalike {line.strip()}", f"line {number}, `{line.strip()}`, sits in a fence opened by {opening!r}, which no code reads as data; open the fence with exactly ```teamwork: three backticks at the line's start and nothing after `teamwork`"))
-            continue
-        near = KEY_LINE.match(line)
-        if near and stem(near.group(1)) in stems:
-            found.append((f"plain {line.strip()}", f"line {number}, `{line.strip()}`, opens with a key word outside a teamwork fence, so no code reads it; to write it as prose put it in a code span, else put `{stems[stem(near.group(1))]}: <value>` inside a ```teamwork fence"))
-        heading = re.match(r"^#{1,6}\s*([A-Za-z].*?)\s*$", line)
-        if heading and kind in ("file", "edit-body"):
-            words = re.sub(r"\s*(\(.*\)|:)$", "", heading.group(1)).lower()
-            close = difflib.get_close_matches(words, list(SECTION_NAMES), 1, 0.85)
-            section = SECTION_NAMES[close[0]] if close else None
-            if section:
-                headings[section] = headings.get(section, 0) + (line == f"## {section}")
-                if line != f"## {section}":
-                    found.append((f"heading {line}", f"line {number}, `{line}`, misspells a section heading; write exactly `## {section}`"))
-    found += [(f"repeated {section}", f"`## {section}` appears {count} times; keep one and merge the rest into it") for section, count in headings.items() if count > 1]
-    found += unread_holders(text, {line for signature, _ in found for line in [signature.partition(" ")[2]]})
-    if kind in ("comment", "decide", "resolve") and lines:
-        found += keyword_defects(kind, lines)
+        one = re.fullmatch(ANSWER + r":[^\n]*\S[^\n]*", text.rstrip("\n"))
+        return [] if one else [("edit-line", f"the keyword line is not one line that opens `{ANSWER}:` and says what changed; write `{ANSWER}: <what changed and why>` on one line")]
+    found = [(f"fence {name}", f"a line opens a `{name}` fence, and a text carries no data; drop the fence and pass its values as options: {FENCE_OPTIONS[name]}")
+             for name in dict.fromkeys(FENCE.findall(text))]
+    if kind in VERB_KEYWORDS:
+        first, own = EXACT_KEYWORD.match(text), VERB_KEYWORDS[kind]
+        # `decide` and `resolve` put their keyword first themselves, so only a text that opens with another verb's is refused
+        if first.group(1) not in own if first else kind == "comment":
+            found.append(("keyword", f"the first line does not open with {' or '.join(f'`{word}:`' for word in own)}; a comment opens `{ASK}:` to ask a question "
+                          f"with its options or `{INFORM}:` to say anything else, and `decide` posts a `{ANSWER}:`"))
     if kind in ("file", "edit-body"):
-        found += body_defects(text)
-    if kind == "decide":
-        found += plain("decision", (decision(text) or {}).get(FIELD["decision"], ""))
+        found += heading_defects(text) + body_defects(text)
+    if kind in (*VERB_KEYWORDS, "file", "edit-body") and not re.sub(r"\A(\s*[A-Z]+:)*", "", text).strip():
+        # a shell write that failed leaves an empty file, which would post as a bare keyword
+        found.append(("empty", "the text is empty or holds its keyword alone; write what it asks, decides or reports, and check the file was written"))
+    elif kind == "decide":
+        found += plain("decision", first_line(text))
     return found
 
 
-def unread_holders(text, flagged):
-    """[(signature, sentence)] for each holders line that `data` does not read and no other defect named, but one a diff fence quotes, since
-    a holders line `data` skips sets no holder however its fence is spelt; after a line outside every fence opens a list item or an HTML
-    block, no diff fence exempts a line, since CommonMark may read that fence otherwise."""
-    text = text or ""
-    # the lines `data` reads, by offset; fences are tracked on every line, read ones included, as CommonMark reads them
-    read = [(block.start(1), block.end(1)) for block in DATA.finditer(text)]
-    found, fence, offset, tracked = [], None, 0, True
-    for line in text.split("\n"):
-        start, offset = offset, offset + len(line) + 1
-        tracked = tracked and not (fence is None and UNTRACKED.match(line))
-        fence, marks = fence_step(fence, line)
-        if any(low <= start < high for low, high in read):
-            continue
-        quoted = tracked and language(fence) in QUOTING
-        if not marks and HOLDERS_LINE.match(line) and not quoted and line.strip() not in flagged:
-            found.append((f"unread {line.strip()}", f"`{line.strip()}` sits where no code reads it as data, so it sets no holder; put it alone in a fence opened by exactly ```teamwork and closed by ```"))
-    return found
-
-
-def keyword_defects(kind, lines):
-    """[(signature, sentence)] of the keyword a comment, decision or summary opens with, read from its LINES."""
-    found, first = [], EXACT_KEYWORD.match(lines[0])
-    if not first and KEYWORD_LINE.match(lines[0]):
-        found.append(("near-keyword", f"the first line, `{lines[0]}`, nearly opens with a keyword; open it with exactly one of {' '.join(KEYWORDS)} and a colon, as `{WORD['answer']}: <words>`"))
-    if not first and any(EXACT_KEYWORD.match(line) for line in lines[1:]):
-        found.append(("later-keyword", "a keyword opens a later line, which no code reads; move it to the first line"))
-    own = VERB_KEYWORD.get(kind)
-    if first and own and first.group(1) != own:
-        found.append(("other-verb", f"{kind} opens with `{own}:`, not `{first.group(1)}:`; change the first word, or post the text with the verb that matches it"))
-    return found
+def heading_defects(text):
+    """[(signature, sentence)] of a body's section headings: one misspelt, or one that appears twice."""
+    found, headings, names = [], {}, {name.lower(): name for name in SECTIONS}
+    for number, line in enumerate(text.split("\n"), 1):
+        heading = re.match(r"^#{1,6}\s*([A-Za-z].*?)\s*$", line)
+        close = heading and difflib.get_close_matches(re.sub(r"\s*(\(.*\)|:)$", "", heading.group(1)).lower(), list(names), 1, 0.85)
+        if close:
+            section = names[close[0]]
+            headings[section] = headings.get(section, 0) + (line == f"## {section}")
+            if line != f"## {section}":
+                found.append((f"heading {line}", f"line {number}, `{line}`, misspells a section heading; write exactly `## {section}`"))
+    return found + [(f"repeated {section}", f"`## {section}` appears {count} times; keep one and merge the rest into it") for section, count in headings.items() if count > 1]
 
 
 def body_defects(text):
@@ -271,35 +184,21 @@ def title(item):
     return '"' + (text[:TITLE_CUT] + "…" if len(text) > TITLE_CUT else text) + '"'
 
 
+def fields(comment):
+    """A comment's fields, as board-record-schema.json names them: those `use-board.py` stored, else the ones an older text holds."""
+    stored = comment.get("fields")
+    return stored if stored is not None else legacy_records.fields(comment.get("body"))
+
+
 def records(issue):
-    """The body, then each comment, as (keyword, data, comment), oldest first; the body has no keyword, and an untrusted author's text records nothing."""
-    return [(None, data(issue.get("body")) if trusted(issue) else {}, None)] + [(keyword(comment["body"]), data(comment["body"]), comment) for comment in issue.get("comments", []) if trusted(comment)]
+    """The body, then each comment, as (keyword, fields, comment), oldest first; the body has no keyword and only an older one holds fields, and an
+    untrusted author's text records nothing."""
+    return [(None, legacy_records.fields(issue.get("body")) if trusted(issue) else {}, None)] + [(keyword(comment["body"]), fields(comment), comment) for comment in issue.get("comments", []) if trusted(comment)]
 
 
-def decision(text):
-    """The `key: value` lines of its `decision` block, keys the grammar names only, and its `answers` from the line right after the keyword when
-    the block lacks one, since `decide` puts the keyword before a body that opens with that line; None when it holds no such block."""
-    found = DECISION.search(text or "")
-    if not found:
-        return None
-    pairs = (line.partition(":") for line in found.group(1).splitlines())
-    fields = {k.strip(): value.strip() for k, separator, value in pairs if separator and k.strip() in DECISION_KEYS}
-    lead = re.match(rf"\s*[A-Z]+:\s*{FIELD['answers']}:[ \t]*(\S+)", text)
-    if lead:
-        fields.setdefault(FIELD["answers"], lead.group(1))
-    return fields
-
-
-def event(comment):
-    """Whether a `DECIDED:` comment is an event, which binds and answers nothing: no `decision` block, and a teamwork block, a body
-    edit's diff, or a stop's note."""
-    text = comment["body"] or ""
-    return decision(text) is None and bool(DATA.search(text) or DIFF.search(text) or text.startswith(STOPPING))
-
-
-def legacy(comment):
-    """Whether it was posted before decisions were typed, so it keeps its earlier reading; one with no date counts as legacy."""
-    return (comment.get("createdAt") or "") < TYPED_SINCE
+def event(found):
+    """Whether a `DECIDED:` with the fields FOUND is an event, which binds and answers nothing: it holds no decision."""
+    return "decision" not in found and not found.get("untyped")
 
 
 def role(decider):
@@ -307,29 +206,22 @@ def role(decider):
     return "owner" if decider == "owner" else "manager" if decider == "manager" or decider.removesuffix("-next").endswith("-manager") else "worker"
 
 
-def first_line(comment):
-    """A comment's first line of text without its keyword, the line after a keyword that stands alone."""
-    return next((line.strip() for line in re.sub(r"^\s*[A-Z]+:", "", (comment["body"] or "").strip()).splitlines() if line.strip()), "")
-
-
 def questions(issue):
-    """Its questions, oldest first, each {'ask': the `BLOCKED:` comment, 'fields': its data, 'answer': the comment that settles it or None}:
-    a later decision that is no event settles the question whose url it names and each earlier open ask with the same first line, since an ask
-    posted again is one question; with no `answers` it settles each open question its decider may answer: the owner any, a manager any
-    not asked of the owner, a worker none, and a decision from before decisions were typed any."""
+    """Its questions, oldest first, each {'ask': the `BLOCKED:` comment, 'fields': its fields, 'answer': the comment that settles it or None}:
+    a later decision settles the question whose url it names and each earlier open ask with the same first line, since an ask
+    posted again is one question; one that names none settles each open question its decider may answer: the owner any, a manager any
+    not asked of the owner, a worker none, and a `DECIDED:` from before decisions were typed any."""
     found = []
-    for word, fields, comment in records(issue)[1:]:
-        kind = KEYWORDS.get(word)
-        if kind == "ask":
-            found.append({"ask": comment, "fields": fields, "answer": None})
-        elif kind == "answer" and not event(comment):
-            block = decision(comment["body"]) or {}
-            named, decider = block.get(FIELD["answers"], ""), role(block.get(FIELD["decider"], ""))
-            said = {first_line(question["ask"]) for question in found if question["ask"]["url"] == named}
+    for word, held, comment in records(issue)[1:]:
+        if word == ASK:
+            found.append({"ask": comment, "fields": held, "answer": None})
+        elif word == ANSWER and not event(held):
+            named, decider = held.get("answers", ""), role(held.get("by", ""))
+            said = {first_line(question["ask"]["body"]) for question in found if question["ask"]["url"] == named}
+            older = (comment.get("createdAt") or "") < legacy_records.TYPED_SINCE
             for question in found:
-                to_owner = question["fields"].get(WORD["audience"]) == "owner"
-                general = legacy(comment) or decider == "owner" or decider == "manager" and not to_owner
-                if question["answer"] is None and (general if not named else question["ask"]["url"] == named or first_line(question["ask"]) in said):
+                general = older or decider == "owner" or decider == "manager" and question["fields"].get("asks") != "owner"
+                if question["answer"] is None and (general if not named else question["ask"]["url"] == named or first_line(question["ask"]["body"]) in said):
                     question["answer"] = comment
     return found
 
@@ -340,12 +232,12 @@ def open_questions(issue):
 
 def holder_values(issue):
     """Each holders value set, oldest first, as a list of names."""
-    return [fields[WORD["holders"]].split() for _, fields, _ in records(issue) if WORD["holders"] in fields]
+    return [held["holders"] for _, held, _ in records(issue) if "holders" in held]
 
 
 def live_runs(issue):
-    """The latest `live runs` count a trusted record set, or None when none did."""
-    return next((int(fields[WORD["live"]]) for _, fields, _ in reversed(records(issue)) if fields.get(WORD["live"], "").isdigit()), None)
+    """The latest `live_runs` count a trusted record set, or None when none did."""
+    return next((held["live_runs"] for _, held, _ in reversed(records(issue)) if "live_runs" in held), None)
 
 
 def compose(issue, blockers=(), parts_wait=False):
@@ -359,7 +251,7 @@ def compose(issue, blockers=(), parts_wait=False):
     elif parts_wait:
         waits = "waits on its parts"
     elif asked:
-        waits = "waits on the owner" if asked[0]["fields"].get(WORD["audience"]) == "owner" else "waits on the manager"
+        waits = "waits on the owner" if asked[0]["fields"].get("asks") == "owner" else "waits on the manager"
     else:
         waits = "held" if holders else "no holder"
     # the body alone, since a section is edited there with its diff posted as a comment

@@ -22,8 +22,9 @@ import team_names  # noqa: E402
 PLAYBOOKS = ROOT / "skills" / "kick-off" / "references"
 GRAMMAR = PLAYBOOKS / "issue-grammar.md"
 # the rules are found in the playbooks at each call, never copied here, so a playbook edit cannot leave a stale reminder
-REMINDED = {"file": ("`file`", "40 characters"), "change": ("40 characters",), "comment": ("**Comment**", "`comment`"), "change comment": ("**Comment**",),
-            "resolve": ("`resolve`",), "edit": ("edit-issue-body", "40 characters"), "change edit": ("40 characters",)}
+NO_DATA = "A text never carries data"
+REMINDED = {"file": ("`file`", "40 characters", NO_DATA), "change": ("40 characters",), "comment": ("**Comment**", "`comment`", NO_DATA), "change comment": ("**Comment**",),
+            "resolve": ("`resolve`", NO_DATA), "edit": ("edit-issue-body", "40 characters"), "change edit": ("40 characters",)}
 WORKTREES = "/.claude/worktrees/"
 # the only commands whose rewrite is offered: reads, so the live checkout is never written by a command the hook suggests
 READ_GIT = {"status", "log", "diff", "show", "grep", "ls-files", "rev-parse", "blame", "describe", "shortlog", "cat-file", "ls-tree", "for-each-ref", "ls-remote", "merge-base", "rev-list", "show-ref"}

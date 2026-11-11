@@ -1,22 +1,23 @@
 """A local board's records, whatever store keeps them: each issue is a folder `<scope>/<n>/` (`<n>/` at the repository root) holding `issue.json`
-(title, labels, state, reason, times), `body.md` and `comments/<k>.md`, oldest first, where `<scope>` is the folder of the repository the issue belongs to; `commentTimes` in `issue.json`, when a copy set it, holds the first comments' times. Every record is trusted, since only local users write the store.
+(title, labels, state, reason, times, and `depends`, the numbers of the tasks it waits on), `body.md` and `comments/<k>.json`, oldest first, each as board-record-schema.json says, a comment written before that schema a `comments/<k>.md` of text alone, where `<scope>` is the folder of the repository the issue belongs to; `commentTimes` in `issue.json`, when a copy set it, holds the first comments' times. Every record is trusted, since only local users write the store.
 
 A store (a `Store` subclass) knows how to keep files, never what they hold: `names(folder)` lists the names right under a folder ('' the top),
 `homes()` says the folder of each issue number (a store may cache it),
 `load(path)` reads one, raising OSError when it is missing, `written(path)` says when it was written, `url(path)` names it, `refresh()` lets a
 long-lived reader see later writes, and `keep(change)` runs `change()` once or more and keeps every file it staged, all at once.
 `bind(store)` gives the board port's functions over that store, which a board adapter puts in its own namespace.
-Links between issues live in their bodies only, as `task_links` reads them."""
+A task's parts live in its body, as `task_links` reads them."""
 import functools
 import json
 import re
 
 import board_scope
 import iso_time
+import issue_state
 import task_links
 import team_signal
 
-USE = re.compile(r"use-board\.py\s+(file|comment|decide|edit|title|resolve|reopen|label)\b")
+USE = re.compile(r"use-board\.py\s+(file|comment|decide|hold|depend|edit|title|resolve|reopen|label)\b")
 FLOOR = "floor"  # a file at the board's top holding the number a copied board's newest issue or pull request had, so no new issue reuses one
 trusted = lambda record: True
 
@@ -113,7 +114,15 @@ def save(store, number, **change):
 
 def comment_paths(store, number):
     folder = f"{home(store, number)}/comments"
-    return [f"{folder}/{name}" for name in store.children(folder) if name.endswith(".md")]
+    return [f"{folder}/{name}" for name in store.children(folder) if name.endswith((".md", ".json"))]
+
+
+def note(store, path):
+    """{body, fields} of the comment at PATH; one written as text alone has no stored fields."""
+    if path.endswith(".md"):
+        return {"body": store.read(path)}
+    stored = json.loads(store.read(path))
+    return {"body": stored.pop("text"), "fields": stored}
 
 
 def record(store, number, comments=True, owners=None):
@@ -121,10 +130,11 @@ def record(store, number, comments=True, owners=None):
     issue = meta(store, number)
     given = issue.get("commentTimes", [])  # a copy of another board keeps the times its comments had there
     address = store.url(home(store, number))
-    notes = [{"body": store.read(path), "url": f"{address}#comment-{int(path.rsplit('/', 1)[1][:-3])}",
+    notes = [{**note(store, path), "url": f"{address}#comment-{int(path.rsplit('/', 1)[1].split('.')[0])}",
               "createdAt": given[at] if at < len(given) else iso_time.stamp(store.written(path)), "trusted": True}
              for at, path in enumerate(comment_paths(store, number))] if comments else []
     return {"number": number, "title": issue["title"], "body": store.read(f"{home(store, number)}/body.md"), "url": address, "scope": store.place(number), "state": issue["state"], "stateReason": issue["reason"],
+            "depends": task_links.depends({"body": store.read(f"{home(store, number)}/body.md"), "depends": issue.get("depends")}),
             "createdAt": issue["createdAt"], "closedAt": issue["closedAt"], "trusted": True, "labels": issue["labels"], "parent": parent_of(store, number) if owners is None else owners.get(number), "isPullRequest": False,
             "mergedAt": None, "comments": notes}
 
@@ -180,13 +190,14 @@ def exists(store, number, comments=False):
 
 def blockers(store, number):
     store.view()
-    return [target for target in task_links.depends(store.read(f"{home(store, number)}/body.md")) if not ((found := exists(store, target)) and task_links.completed(found))]
+    return [target for target in record(store, int(number), False, {})["depends"] if not ((found := exists(store, target)) and task_links.completed(found))]
 
 
-def check_links(store, number, text):
-    """Raises LookupError naming why TEXT cannot be NUMBER's body (None for an issue not yet filed)."""
+def check_links(store, number, text, depends=None):
+    """Raises LookupError naming why TEXT cannot be NUMBER's body (None for an issue not yet filed) beside the tasks DEPENDS numbers, those it waits on now when None."""
     store.view()
-    found = task_links.refusals(number and int(number), text, lambda n: exists(store, n), lambda n: parent_of(store, n))
+    waits = depends if depends is not None else record(store, int(number), False, {})["depends"] if number else []
+    found = task_links.refusals(number and int(number), text, waits, lambda n: exists(store, n), lambda n: parent_of(store, n))
     if found:
         raise LookupError(f"nothing written to #{number or 'a new issue'}: " + "; ".join(found))
 
@@ -195,8 +206,8 @@ def tree(store, project, nodes=None):
     """The open issues' nodes in the shape the issue pane draws."""
     store.view()
     nodes = nodes if nodes is not None else [
-        {**{k: issue[k] for k in ("number", "title", "url", "body")}, "labels": {"nodes": [{"name": name} for name in issue["labels"]]},
-         "comments": {"nodes": [{"body": note["body"], "url": note["url"], "createdAt": note["createdAt"]} for note in issue["comments"]]}} for issue in reversed(issues(store, "open", project))]
+        {**{k: issue[k] for k in ("number", "title", "url", "body", "depends")}, "labels": {"nodes": [{"name": name} for name in issue["labels"]]},
+         "comments": {"nodes": [{k: note[k] for k in ("body", "fields", "url", "createdAt") if k in note} for note in issue["comments"]]}} for issue in reversed(issues(store, "open", project))]
     for node in nodes:
         node["trusted"] = True
         for item in node["comments"]["nodes"]:
@@ -209,26 +220,30 @@ def atomic(store, change):
     return store.write(change)
 
 
-def comment(store, number, text):
-    """Adds TEXT as NUMBER's next comment; its url."""
+def comment(store, number, text, fields=None):
+    """Adds TEXT with its FIELDS as NUMBER's next comment; its url. issue_state.Refused, nothing written, for fields the schema refuses."""
+    stored = {"text": text, **(fields or {})}
+    if refused := issue_state.invalid(stored):
+        raise issue_state.Refused(f"nothing written to #{number}: {refused}")
+
     def change():
         meta(store, number)  # raises when NUMBER does not exist
         position = len(comment_paths(store, number)) + 1
-        store.stage(f"{home(store, number)}/comments/{position:04d}.md", text)
+        store.stage(f"{home(store, number)}/comments/{position:04d}.json", json.dumps(stored, ensure_ascii=False, indent=1))
         save(store, number)
         return f"{store.url(home(store, number))}#comment-{position}"
     return store.write(change)
 
 
-def file(store, title, body, labels, scope=None) -> int:
-    """Opens an issue in the folder SCOPE names (the caller's own project folder when None); LookupError for a folder the repository lacks."""
+def file(store, title, body, labels, scope=None, depends=()) -> int:
+    """Opens an issue in the folder SCOPE names (the caller's own project folder when None), waiting on the tasks DEPENDS numbers; LookupError for a folder the repository lacks."""
     folder = board_scope.default() if scope is None else board_scope.check(scope)
 
     def change():
-        check_links(store, None, body)
+        check_links(store, None, body, list(depends))
         number = next_number(store)
         store.stage(f"{folder}/{number}/body.md" if folder else f"{number}/body.md", body)  # before issue.json, so a reader that lists the issue finds its body
-        save(store, number, title=title, labels=list(labels), state="OPEN", reason="", createdAt=iso_time.stamp(), closedAt=None)
+        save(store, number, title=title, labels=list(labels), state="OPEN", reason="", createdAt=iso_time.stamp(), closedAt=None, depends=list(depends))
         return number
     return store.write(change)
 
@@ -248,6 +263,15 @@ def edit(store, number, text):
         store.stage(f"{home(store, number)}/body.md", text)
         save(store, number)
     store.write(change)
+
+
+def depend(store, number, targets):
+    """Makes NUMBER wait on the tasks TARGETS numbers, replacing those it waited on, and says so in a comment; its url."""
+    def change():
+        check_links(store, number, body(store, number), list(targets))
+        save(store, number, depends=list(targets))
+        return comment(store, number, f"{issue_state.ANSWER}: waits on {' '.join(f'#{target}' for target in targets)}." if targets else f"{issue_state.ANSWER}: waits on no task.")
+    return store.write(change)
 
 
 def resolve(store, number, summary, completed=True):
@@ -288,7 +312,7 @@ def command(text):
 
 
 PORT = ("atomic", "issues", "fresh", "comments_since", "changed_since", "blockers", "scoped", "tree", "comment", "file", "body", "edit", "resolve", "reopen",
-        "retitle", "label", "parent_of", "check_links")
+        "retitle", "label", "depend", "parent_of", "check_links")
 
 
 def bind(store):

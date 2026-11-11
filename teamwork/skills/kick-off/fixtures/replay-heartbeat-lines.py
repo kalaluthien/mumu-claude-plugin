@@ -94,10 +94,10 @@ def text(name, body):
     return replay_probe.write_text(work, name, body)
 
 
-def file(title, body="", holder=None):
-    number = use("file", title, text("body.md", f"{body}\n"), "scope:x").rsplit("/", 1)[-1].removesuffix(".json")
+def file(title, body="Probe the heartbeat.", holder=None, depends=()):
+    number = use("file", title, text("body.md", f"{body}\n"), "scope:x", "--depends", " ".join(map(str, depends))).rsplit("/", 1)[-1].removesuffix(".json")
     if holder:
-        use("decide", number, text("hold.md", f"DECIDED: {holder} holds this.\n\n```teamwork\nholders: {holder}\n```\n"))
+        use("hold", number, holder)
     return int(number)
 
 
@@ -160,7 +160,7 @@ def line_cases():
          "\n".join(out + ["--"] + stuck))
 
     first = file("Probe a task others wait on", holder="o-worker")
-    waits = file("Probe a waiting task", f"Probe a task that waits.\n\n```teamwork\ndepends on: #{first}\n```", holder="w-worker")
+    waits = file("Probe a waiting task", "Probe a task that waits.", holder="w-worker", depends=[first])
     asks = file("Probe an asking task", holder="a-worker")
     use("comment", asks, text("ask.md", "BLOCKED: which way?\n"))
     listed = herdr(agent("x-manager", 1, "working"), agent("w-worker", 2, "idle"), agent("a-worker", 3, "idle"), agent("o-worker", 4, "working"))
@@ -169,7 +169,7 @@ def line_cases():
 
     stale = [__import__("board").fresh(asks)]
     asked = stale[0]["comments"][-1]["url"]
-    use("decide", asks, text("answer.md", f"DECIDED: this way\n\n```decision\ndecision: this way\ndecided by: x-manager\ndoor: two-way\nanswers: {asked}\n```\n"))
+    use("decide", asks, text("answer.md", "DECIDED: this way\n"), "--answers", asked)
     import board
     kept = board.fresh
     data = {"found": stale, "everything": stale, "prs": [], "outside": [], "feed": [], "links": []}

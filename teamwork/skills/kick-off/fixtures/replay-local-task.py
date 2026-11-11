@@ -3,12 +3,12 @@
 and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
 
 usage: replay-local-task.py [--case <name>]
-With no case: file a part and a root that names it, route the part by `decide`, branch, change, judge-approved merge and push of a worker's change, `resolve` the part so the root closes,
+With no case: file a part and a root that names it, route the part by `hold`, branch, change, judge-approved merge and push of a worker's change, `resolve` the part so the root closes,
 the issue pane and the heartbeat, writing and reading the real hooks and scripts, and require an empty gh log.
 - layout: `file --scope probe` puts an issue at `probe/<n>/` of the one ref `refs/teamwork-blackboard` and a filing with no scope puts it at `<n>/`, each url names its folder, a `--scope` that names no folder of the repository is refused with no commit, `read` finds an issue by number alone, and the pane of `probe` reads its folder only while a project with no folder reads the root's own issues only
 - old-setting: a leftover `TEAMWORK_BOARD` or `TEAMWORK_LANDING` in the environment and in the project's settings changes nothing, and the whole path still calls no gh
 - base-required: `edit-issue-body.py` with no `--base` exits 2 and adds no commit, and with the board's `body sha` it adds one
-- cloud-refused: a `cloud:` line in a comment's teamwork fence is refused as no key and adds no commit, and `start-session.py` with `set remote` exits 2
+- cloud-refused: a comment whose teamwork fence holds a `cloud:` line is refused and adds no commit, and `start-session.py` with `set remote` exits 2
 - atomic: `edit-issue-body.py`, `board.edit` that reopens a closed root, `resolve` of a part whose parent then closes and `resolve --not-planned` of a task with an open part each add exactly one commit to the board's ref, and a diff that does not apply, or whose `--base` names an older body, adds none"""
 import json
 import os
@@ -28,7 +28,6 @@ MONITORS = HERE.parents[2] / "monitors"
 REF = "refs/teamwork-blackboard"
 PART = "Probe the part.\n"
 ROOT = "Probe the root.\n\n## Definition of done\n\n1. [task] #1 Probe the part\n"
-HOLD = replay_probe.HOLD
 sh = replay_probe.sh
 
 
@@ -65,14 +64,15 @@ def gh_calls(work):
 
 
 def state(environment, repository, number):
-    return use(environment, repository, "use-board.py", "read", number, check=False).stdout.splitlines()[1:2]
+    """The `state:` line `read` prints for NUMBER, without its wait."""
+    return [line.split(",")[0] for line in use(environment, repository, "use-board.py", "read", number, check=False).stdout.splitlines()[1:2]]
 
 
 def case_whole(work, repository, origin, environment):
     use(environment, repository, "use-board.py", "file", "Probe the part", replay_probe.write_text(work, "part.md", PART), "--scope", "probe")
     use(environment, repository, "use-board.py", "file", "Probe the root", replay_probe.write_text(work, "root.md", ROOT), "--scope", "probe")
     use(environment, repository, "use-board.py", "file", "Probe the late issue", replay_probe.write_text(work, "late.md", "Unrouted.\n"), "--scope", "probe")
-    use(environment, repository, "use-board.py", "decide", "1", replay_probe.write_text(work, "hold.md", HOLD))
+    use(environment, repository, "use-board.py", "hold", "1", "probe-worker")
     herdr = work / "herdr.json"
     team = [{"name": name, "pane_id": "w1:p" + str(number), "tab_id": "w1:t" + str(number), "workspace_id": "w1", "agent": "claude", "agent_status": "working", "interactive_ready": True}
             for number, name in ((1, "probe-manager"), (2, "probe-worker"))]
@@ -221,7 +221,7 @@ def case_cloud_refused(work, repository, origin, environment):
     before = commits(environment, repository)
     held = replay_probe.write_text(work, "cloud.md", "REPORTED: probe\n\n```teamwork\ncloud: probe-worker\n```\n")
     run = use(environment, repository, "use-board.py", "comment", "1", held, check=False)
-    if run.returncode == 0 or commits(environment, repository) != before or "is no key the teamwork fence takes" not in run.stdout + run.stderr:
+    if run.returncode == 0 or commits(environment, repository) != before or "opens a `teamwork` fence" not in run.stdout + run.stderr:
         return replay_probe.fail(f"a `cloud:` holder line exited {run.returncode} and added {commits(environment, repository) - before} commits: {(run.stdout + run.stderr)[-200:]}")
     run = use(environment, repository, "start-session.py", "probe-worker", repository, "worker probe-worker manager probe-manager set remote #1", "--model", "m", "--effort", "e", check=False)
     if run.returncode != 2 or "set remote" not in run.stderr:

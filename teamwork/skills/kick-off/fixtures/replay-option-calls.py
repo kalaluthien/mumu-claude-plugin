@@ -27,7 +27,6 @@ CALLS = {
     "skills/kick-off/scripts/edit-issue-body.py": [["1", "diff", "DECIDED: x", "--base", "abc"]],
     "skills/kick-off/scripts/estimate-task-time.py": [["--from-json", "body", "--gaps-json", "body", "--expect-restarts", "1", "--wait", "name=1", "--seed", "1", "url"]],
     "skills/kick-off/scripts/list-additions.py": [["1"]],
-    "skills/kick-off/scripts/list-decisions.py": [["1", "--as", "judge"]],
     "skills/kick-off/scripts/list-session-gaps.py": [["--from-folder", ".", "--json", "name"]],
     "skills/kick-off/scripts/list-sessions.py": [["--me"]],
     "skills/kick-off/scripts/list-task-durations.py": [["--from-json", "body"]],
@@ -41,9 +40,9 @@ CALLS = {
     "skills/kick-off/scripts/start-session.py": [["name", ".", "worker name", "--model", "m", "--effort", "low", "--allow", "Bash", "--steer", "key"]],
     "skills/kick-off/scripts/tell-session.py": [["name", "body"]],
     "skills/kick-off/scripts/use-board.py": [
-        ["read", "1", "--as", "worker"], ["comment", "1", "body"], ["file", "Add thing", "body", "label", "--scope", ""],
+        ["read", "1", "--as", "worker", "--full"], ["comment", "1", "body", "--asks", "owner", "--option", "x", "--option", "y"], ["hold", "1", "name"], ["depend", "1", "2"], ["file", "Add thing", "body", "label", "--scope", "", "--depends", "1"],
         ["edit", "1", "diff", "DECIDED: x", "--base", "abc"], ["title", "1", "Add thing"], ["resolve", "1", "body", "--not-planned"],
-        ["reopen", "1"], ["decide", "1", "body"], ["label", "1", "label", "--remove"]],
+        ["reopen", "1"], ["decide", "1", "body", "--by", "owner", "--one-way", "--supersedes", "url", "--answers", "url", "--holders", "name", "--live-runs", "1"], ["label", "1", "label", "--remove"]],
     "skills/kick-off/scripts/use-landing.py": [["change", "branch", "Add thing", "body", "main"], ["merge", "1", "abc"]],
 }
 

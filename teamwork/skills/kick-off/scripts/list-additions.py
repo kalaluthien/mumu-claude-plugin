@@ -33,7 +33,7 @@ def main(args):
     for decision in added:
         print(f"- {decision['decision']} ({decision['url']})")
     if added:
-        print(f'fold them in one edit: use-board.py edit {number} <diff-file> "{issue_state.WORD["answer"]}: folds {" ".join(d["url"] for d in added)}" --base {body_sha}')
+        print(f'fold them in one edit: use-board.py edit {number} <diff-file> "{issue_state.ANSWER}: folds {" ".join(d["url"] for d in added)}" --base {body_sha}')
     return 0
 
 

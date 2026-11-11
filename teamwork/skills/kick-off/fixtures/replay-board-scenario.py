@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""File a root and a task, make the task the root's part and the root wait on it by body edits, set holders, ask by BLOCKED, answer by DECIDED, edit the
+"""File a root and a task, make the task the root's part by a body edit and the root wait on it by `depend`, set holders, ask by BLOCKED, answer by DECIDED, edit the
 body and resolve the task, which closes the root, then retitle and reopen the root, add a follow-up part to it and resolve that, which closes the root again, writing only through use-board.py, and print after each step a `step <name>` line, the composed state of each issue it filed and the board lines, numbers and urls replaced
 by names, so a change that moves the protocol shows in the text. The board is a temporary repository.
 
@@ -57,7 +57,7 @@ def show(step):
 
 
 def link(name, added, why):
-    """Appends ADDED to NAME's body by a diff through `use-board.py edit`, the one way a link is written."""
+    """Appends ADDED to NAME's body by a diff through `use-board.py edit`, the one way a part is linked."""
     old = board.fresh(number(name))["body"]
     diff = "".join(difflib.unified_diff(old.splitlines(True), (old.rstrip("\n") + "\n" + added).splitlines(True), "a", "b"))
     use("edit", number(name), text(f"{name}-link.diff", diff), f"DECIDED: {why}", "--base", board.body_sha(old))
@@ -83,17 +83,17 @@ def main(args):
     show("file")
     link("root", f"\n## Definition of done\n\n1. [task] #{number('task')} Probe the board task\n", "the task is the root's part")
     show("part")
-    link("root", f"\n```teamwork\ndepends on: #{number('task')}\n```\n", "the root waits on its task")
+    use("depend", number("root"), number("task"))
     show("order")
-    use("decide", number("task"), text("hold.md", "DECIDED: probe-worker holds this.\n\n```teamwork\nholders: probe-worker\n```\n"))
+    use("hold", number("task"), "probe-worker")
     show("hold")
     use("label", number("task"), "probe")
     show("label-add")
     use("label", number("task"), "probe", "--remove")
     show("label-remove")
-    use("comment", number("task"), text("ask.md", "BLOCKED: which sample proves the probe\n\nOptions:\n1. **ok**: the first\n2. **no**: the second\n\n```teamwork\nasks: owner\n```\n"))
+    asked = use("comment", number("task"), text("ask.md", "BLOCKED: which sample proves the probe\n"), "--asks", "owner", "--option", "ok: the first", "--option", "no: the second")
     show("ask")
-    use("decide", number("task"), text("answer.md", "DECIDED: owner said: use the first\n\n- Answers the ask above: option 1.\n"))
+    use("decide", number("task"), text("answer.md", 'DECIDED: use the first sample\n\nThe owner said "use the first".\n'), "--by", "owner", "--answers", asked)
     show("answer")
     old = board.fresh(number("task"))["body"]
     diff = "".join(difflib.unified_diff(old.splitlines(True), old.replace("Probe the board.", "Probe the board twice.").splitlines(True), "a", "b"))

@@ -15,7 +15,7 @@ from team_names import crowding, members, owns, project, role
 
 ISSUE_LIMIT, PULL_LIMIT = 200, 50
 
-ASK, ANSWER = issue_state.WORD["ask"], issue_state.WORD["answer"]
+ASK, ANSWER = issue_state.ASK, issue_state.ANSWER
 FEED = issue_state.INFORM
 # the reports a worker posts as steps of its own work, which the owner need not follow: [run-criteria.py](../skills/kick-off/scripts/run-criteria.py)'s table and a filed task
 STEP_REPORTS = ("criteria at ", "task filed")
@@ -42,11 +42,11 @@ def asking(issue):
 def unanswered(issue):
     """An outside contributor's issue or pull request that no trusted `DECIDED:` has routed or answered yet."""
     return (not issue_state.trusted(issue) and not issue_state.holder_values(issue)
-            and not any(issue_state.KEYWORDS.get(word) == "answer" for word, _, _ in issue_state.records(issue)[1:]))
+            and not any(word == ANSWER for word, _, _ in issue_state.records(issue)[1:]))
 
 
 def wait_blockers(numbers, open_issues):
-    """Each of the open tasks NUMBERS and each of their open parts, mapped to the tasks its `depends on:` names that are not closed as completed;
+    """Each of the open tasks NUMBERS and each of their open parts, mapped to the tasks it depends on that are not closed as completed;
     None when a read failed. A caller keeps it with its read, since each task costs a board read."""
     wanted = {number for task in numbers for number in [task, *task_links.parts(open_issues[task]["body"])] if number in open_issues}
     found = {number: board.blockers(number) for number in wanted}
@@ -146,11 +146,11 @@ def routing_lines(found, present, open_issues, blockers):
     for issue in found:
         # the kept read may predate the manager's own `decide`, so a candidate is read again before it is called unrouted
         if unrouted(issue) and unrouted(board.fresh(issue["number"]) or issue):
-            lines.append(f"route #{issue['number']} {issue_state.title(issue)}: no live worker holds it; route it, or write in its body `{issue_state.WORD['depends']}:` the open task it waits for, or close it as not planned")
+            lines.append(f"route #{issue['number']} {issue_state.title(issue)}: no live worker holds it; route it, or name by `depend` the open task it waits for, or close it as not planned")
         # the kept read may predate the manager's own `decide`, so a question is read again before it is called open
         if asking(issue) and asking(board.fresh(issue["number"]) or issue):
             ask = issue_state.open_questions(issue)[-1]["ask"]
-            lines.append(f"answer #{issue['number']}: its worker asks at {ask['url']}; answer by `decide` there with `{decisions.FIELD['answers']}: {ask['url']}`; "
+            lines.append(f"answer #{issue['number']}: its worker asks at {ask['url']}; answer by `decide` there with `--answers {ask['url']}`; "
                          f"the worker waits on it")
     return lines
 
@@ -269,7 +269,7 @@ def worker_actions(me, waited, read_of, data=None):
         if number in open_issues:  # still open and no longer naming this worker
             lines.append(f"changed #{number} (record {len(changed(open_issues[number])[1])}): {check}")
     if not held:
-        lines.append("holds nothing: no open task names you in its `holders`; read your task and fix `holders` by a `decide`, or close yourself when your work is done")
+        lines.append("holds nothing: no open task names you in its `holders`; read your task and name yourself by `hold`, or close yourself when your work is done")
     for issue in held:
         if read_of.setdefault(issue["number"], changed(issue)) != changed(issue):
             read_of[issue["number"]] = changed(issue)

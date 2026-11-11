@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-"""Check typed decisions on a board, writing only through use-board.py and reading through list-decisions.py, and print `ok <case>` or
+"""Check typed decisions on a board, writing only through use-board.py and reading through its `read`, and print `ok <case>` or
 `fail <case>: <what it saw>` per case; exit 1 on any fail. git runs every case; nodes the pane's, from issue
 nodes written here by hand. The git board trusts every comment, so pane-untrusted there marks one of the board's own
 decision comments untrusted, as an outsider's is marked, before the rows are laid out.
 - record-fields, record-event, record-supersedes, record-unknown-supersedes, record-answers-elsewhere, record-answers-own: `decide`
-  writes a decision block the index reads back, its `answers:` an open question on its own task
+  stores a decision `read` prints back, its `--answers` an open question on its own task
 - authority-refuses, authority-unquoted, authority-comment, authority-owner, authority-manager: who may supersede an owner decision
 - binding-ancestors, binding-stopped-root, binding-answered, binding-event-keeps-question, binding-one-way-waits,
   binding-one-way-supersedes, binding-successor: a task's binding set and open questions
 - heartbeat-open-question, heartbeat-twice-superseded, heartbeat-one-way, heartbeat-one-way-superseded, heartbeat-answer-line,
-  heartbeat-answer-first-line (a decision whose body opens with `answers:` closes the question, as the heartbeat reads it),
-  heartbeat-unblocked-decided,
-  heartbeat-legacy-quiet: the manager's heartbeat lines
-- route-own-depends, route-parts-blocked, route-after-close: no `route` line for a task whose own `depends on:` names an open task,
+  heartbeat-answer-first-line (an older decision, a text written straight to the board whose first line opens with `answers:`, closes the question, as the heartbeat reads it):
+  the manager's heartbeat lines
+- older-records: comments written straight to the board as text alone, their data in `teamwork` and `decision` fences, still set the holders, the live runs cap,
+  a question to the owner and the decision that answers it
+- route-own-depends, route-parts-blocked, route-after-close: no `route` line for a task that waits on an open task,
   or whose open parts all do, until that task closes
 - pane-question, pane-every-decision, pane-cut, pane-untrusted, pane-question-next-line: list-issue-board.py's `?` and `◆` lines; pane-linear, on nodes
   only: one draw parses each task's comments a bounded number of times, however many tasks there are
@@ -35,7 +36,6 @@ sys.path.insert(0, str(ROOT / "lib"))
 import replay_probe  # noqa: E402
 
 USE = HERE.parent / "scripts" / "use-board.py"
-INDEX = HERE.parent / "scripts" / "list-decisions.py"
 LIST = ROOT / "hooks" / "list-issue-board.py"
 CHECK = replay_probe.CHECK
 LONG = "probe only the sandbox repository and keep every raw response it sends as a fixture beside the probe"
@@ -48,10 +48,9 @@ def step(name, ok, detail=""):
         failures.append(name)
 
 
-def body(parts=(), depends=()):
+def body(parts=()):
     items = [CHECK] + [f"{i}. [task] #{n} Probe part {n}\n" for i, n in enumerate(parts, 2)]
-    fence = f"```teamwork\ndepends on: {' '.join(f'#{n}' for n in depends)}\n```\n\n" if depends else ""
-    return f"## Goal\n\nProbe typed decisions.\n\nPath: caller: the probe run; meets: the owner\n\n{fence}## Definition of done\n\n{''.join(items)}"
+    return f"## Goal\n\nProbe typed decisions.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n{''.join(items)}"
 
 
 def use(*argv):
@@ -65,38 +64,49 @@ def write(text):
 
 
 def file(title, parts=(), depends=()):
-    done = use("file", title, write(body(parts, depends)))
+    done = use("file", title, write(body(parts)), "--depends", " ".join(map(str, depends)))
     if done.returncode:
         raise SystemExit(f"replay-task-decisions: cannot file {title}: {done.stderr}")
     return int(done.stdout.strip().rsplit("/", 1)[1])
 
 
-def decide(number, decision, by="probe-manager", door="two-way", supersedes="", answers="", depends="", quote=None, verb="decide"):
-    """Posts a decision by `use-board.py <VERB>`; its url, or the finished call when it exited non-zero."""
-    fields = {"decision": decision, "decided by": by, "door": door, "supersedes": supersedes, "answers": answers, "depends on": depends}
-    said = f"> {quote}\n\n" if quote else ""
-    block = "".join(f"{key}: {value}\n" for key, value in fields.items() if value)
-    done = use(verb, number, write(f"DECIDED: {decision}\n\n{said}```decision\n{block}```\n"))
+def decide(number, decision, by="probe-manager", door="two-way", supersedes="", answers="", quote=None):
+    """Posts a decision by `use-board.py decide`; its url, or the finished call when it exited non-zero."""
+    options = ["--by", by, *(["--one-way"] if door == "one-way" else []), *(["--supersedes", supersedes] if supersedes else []), *(["--answers", answers] if answers else [])]
+    done = use("decide", number, write(f"DECIDED: {decision}\n" + (f"\n> {quote}\n" if quote else "")), *options)
     return done.stdout.strip() if done.returncode == 0 else done
 
 
-def post(number, text, verb="comment"):
-    done = use(verb, number, write(text))
+def post(number, text, *options):
+    done = use("comment", number, write(text), *options)
     return done.stdout.strip()
 
 
 def ask(number, question, owner=False):
-    return post(number, f"BLOCKED: {question}\n" + ("\n```teamwork\nasks: owner\n```\n" if owner else ""))
+    return post(number, f"BLOCKED: {question}\n", *(["--asks", "owner", "--option", "yes", "--option", "no"] if owner else []))
+
+
+def older(number, text):
+    """The url of TEXT written straight to the board as NUMBER's next comment, a text alone, as a comment posted before `use-board.py` took its data as options is kept."""
+    import board_git
+    import board_records
+    store = board_git.STORE
+
+    def change():
+        position = len(board_records.comment_paths(store, number)) + 1
+        store.stage(f"{board_records.home(store, number)}/comments/{position:04d}.md", text)
+        return f"{store.url(board_records.home(store, number))}#comment-{position}"
+    return store.write(change)
 
 
 def index(number):
-    return subprocess.run([sys.executable, str(INDEX), str(number)], capture_output=True, text=True).stdout
+    """What `read` prints of NUMBER's binding decisions and open questions."""
+    return re.search(r"^binding decisions: .*?(?=^\n--- |\Z)", use("read", number).stdout, re.M | re.S).group(0)
 
 
 def bound(number):
-    """The urls in NUMBER's binding set, as list-decisions.py prints them."""
-    text = index(number).split("open questions:")[0]
-    return re.findall(r"\((\S+)\)", text)
+    """The urls in NUMBER's binding set, as `read` prints them."""
+    return re.findall(r"^- .*? \((\S+)\)(?:; |$)", index(number).split("open questions:")[0], re.M)
 
 
 def asked(number):
@@ -108,21 +118,21 @@ def comments(number):
 
 
 def refused(name, number, call, *said):
-    """CALL, a decide on NUMBER, exits 1 naming each of SAID, and posts nothing."""
+    """CALL, a decide on NUMBER, exits 2 naming each of SAID, and posts nothing."""
     before = comments(number)
     done = call()
     text = done.stderr if isinstance(done, subprocess.CompletedProcess) else f"posted {done}"
-    step(name, isinstance(done, subprocess.CompletedProcess) and done.returncode == 1 and all(word in text for word in said) and comments(number) == before, text)
+    step(name, isinstance(done, subprocess.CompletedProcess) and done.returncode == 2 and all(word in text for word in said) and comments(number) == before, text)
 
 
 def record_cases():
     root, other = file("Probe a decided root"), file("Probe another root")
     question = ask(root, "which board")
     first = decide(root, "use the git board")
-    full = decide(root, "use the git board", door="one-way", supersedes=first, answers=question, depends=f"#{other}")
-    line = next((line for line in index(root).splitlines() if full in line), "")
-    step("record-fields", all(part in line for part in ("probe-manager, one-way: use the git board", f"supersedes {first}", f"answers {question}", f"waits on #{other}")), index(root))
-    event = post(root, "DECIDED: probe-worker holds this\n\n```teamwork\nholders: probe-worker\n```\n", "decide")
+    full = decide(root, "use the git board", door="one-way", supersedes=first, answers=question)
+    line = next((line for line in index(root).splitlines() if f"({full})" in line), "")
+    step("record-fields", all(part in line for part in (f"#{root} probe-manager, one-way: use the git board", f"supersedes {first}", f"answers {question}")), index(root))
+    event = use("hold", root, "probe-worker").stdout.strip()
     report = post(root, "REPORTED: probe findings\n")
     step("record-event", event not in bound(root) and report not in bound(root) and bound(root) == [full], index(root))
     part = file("Probe a part")
@@ -144,7 +154,7 @@ def authority_cases():
     owner = decide(task, "no external service", by="owner", door="one-way", quote="no external service")
     refused("authority-refuses", task, lambda: decide(task, "an external service is fine", supersedes=owner), owner, "owner")
     refused("authority-unquoted", task, lambda: decide(task, "an external service is fine", by="owner", supersedes=owner), "quotes no words")
-    refused("authority-comment", task, lambda: decide(task, "an external service is fine", supersedes=owner, verb="comment"), "decide")
+    refused("authority-comment", task, lambda: use("comment", task, write("DECIDED: an external service is fine\n")), "decide")
     again = decide(task, "only the sandbox service", by="owner", door="one-way", supersedes=owner, quote="the sandbox is fine")
     step("authority-owner", isinstance(again, str) and bound(task) == [again], index(task))
     managed = file("Probe a manager's task")
@@ -164,11 +174,11 @@ def binding_cases():
     step("binding-stopped-root", bound(left) == [] and bound(root) == [], index(left))
     task = file("Probe a question")
     question = ask(task, "which width counts")
-    post(task, "DECIDED: probe-worker holds this\n\n```teamwork\nholders: probe-worker\n```\n", "decide")
+    use("hold", task, "probe-worker")
     step("binding-event-keeps-question", asked(task) == [question], index(task))
     other = ask(task, "which height counts")
     decide(task, "any height counts", answers=other)
-    # a decision naming another question leaves this one open, though a legacy question closes on any later decision with no `answers:`
+    # a decision naming another question leaves this one open
     named_other = asked(task) == [question]
     decide(task, "24 to 80 columns count", answers=question)
     step("binding-answered", named_other and asked(task) == [], index(task))
@@ -189,20 +199,14 @@ def binding_cases():
     step("binding-successor", door in bound(handed), index(handed))
 
 
-def heartbeat(numbers, since=None):
-    """The manager's heartbeat decision lines on NUMBERS, with decisions typed since SINCE when given."""
-    import issue_state
+def heartbeat(numbers):
+    """The manager's heartbeat decision lines on NUMBERS."""
     import team_gaps
-    kept = issue_state.TYPED_SINCE
-    issue_state.TYPED_SINCE = since or kept
     team_gaps.tabs, team_gaps.crowding, team_gaps.members = (lambda workspace: []), (lambda me, listed: []), (lambda me, listed: [])
-    try:
-        found = [issue for issue in board.issues("open") if issue["number"] in numbers]
-        data = {"found": found, "everything": found, "prs": [], "outside": [], "feed": [], "links": []}
-        lines = team_gaps.manager_actions({"name": "probe-manager", "workspace_id": ""}, [], data)
-    finally:
-        issue_state.TYPED_SINCE = kept
-    return [line for line in lines if line.startswith(("question ", "answer ", "superseded twice ", "one-way ", "untyped ", "route "))]
+    found = [issue for issue in board.issues("open") if issue["number"] in numbers]
+    data = {"found": found, "everything": found, "prs": [], "outside": [], "feed": [], "links": []}
+    lines = team_gaps.manager_actions({"name": "probe-manager", "workspace_id": ""}, [], data)
+    return [line for line in lines if line.startswith(("question ", "answer ", "superseded twice ", "one-way ", "route "))]
 
 
 def route_cases():
@@ -240,16 +244,23 @@ def heartbeat_cases():
     asker = file("Probe a worker's question")
     asked_url = ask(asker, "which cache")
     answer_line = next((line for line in heartbeat({asker}) if line.startswith(f"answer #{asker}:")), "")
-    step("heartbeat-answer-line", "`decide`" in answer_line and f"answers: {asked_url}" in answer_line, heartbeat({asker}))
-    post(asker, f"DECIDED: answers: {asked_url}\n\nuse the shared cache\n\n```decision\ndecision: use the shared cache\ndecided by: probe-manager\ndoor: two-way\n```\n", "decide")
+    step("heartbeat-answer-line", "`decide`" in answer_line and f"--answers {asked_url}" in answer_line, heartbeat({asker}))
+    older(asker, f"DECIDED: answers: {asked_url}\n\nuse the shared cache\n\n```decision\ndecision: use the shared cache\ndecided by: probe-manager\ndoor: two-way\n```\n")
     step("heartbeat-answer-first-line", not any(line.startswith(f"answer #{asker}:") for line in heartbeat({asker})), heartbeat({asker}))
     step("heartbeat-one-way-superseded", not any(line.startswith(f"one-way #{redone}:") for line in heartbeat({redone})), heartbeat({redone}))
-    plain = file("Probe a plain decision")
-    said = post(plain, "DECIDED: probe a decision with no block\n", "decide")
-    post(plain, "DECIDED: probe-worker holds this\n\n```teamwork\nholders: probe-worker\n```\n", "decide")
-    typed, legacy = heartbeat({plain}, since="0000"), heartbeat({plain}, since="9999")
-    step("heartbeat-unblocked-decided", [line.split(" is ")[0] for line in typed if line.startswith("untyped ")] == [f"untyped #{plain}: {said}"], typed)
-    step("heartbeat-legacy-quiet", not any(line.startswith("untyped ") for line in legacy), legacy)
+
+
+def older_cases():
+    import issue_state
+    task = file("Probe an older task")
+    older(task, "DECIDED: probe-worker holds this.\n\n```teamwork\nholders: probe-worker\nlive runs: 3\n```\n")
+    question = older(task, "BLOCKED: may the sync run\n\n```teamwork\nasks: owner\n```\n")
+    waiting = use("read", task).stdout
+    rule = older(task, f"DECIDED: the sync may run\n\n> run it\n\n```decision\ndecision: the sync runs nightly\ndecided by: owner\ndoor: one-way\nanswers: {question}\n```\n")
+    settled = use("read", task).stdout
+    step("older-records", "\nholders: probe-worker\n" in waiting and ", waits on the owner\n" in waiting and f"- #{task} to the owner: may the sync run ({question})" in waiting
+         and issue_state.live_runs(board.fresh(task)) == 3 and f"- #{task} owner, one-way: the sync runs nightly ({rule}); answers {question}" in settled
+         and "open questions: 0" in settled and ", held\n" in settled, [waiting, settled])
 
 
 def block(lines, number, strip=True):
@@ -381,6 +392,7 @@ def main(args):
     authority_cases()
     binding_cases()
     heartbeat_cases()
+    older_cases()
     route_cases()
     board_pane()
     return 1 if failures else 0

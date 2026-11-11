@@ -100,7 +100,7 @@ def git_team():
 
     first, asked, held_one, held_two = (filed(f"Probe the team's {word} task") for word in ("first", "asked", "held", "other"))
     for number, name in ((asked, "fixture-asking-worker"), (held_one, "protocol-split-worker"), (held_two, "protocol-split-worker")):
-        use("decide", number, text("hold.md", f"DECIDED: {name} holds this.\n\n```teamwork\nholders: {name}\n```\n"))
+        use("hold", number, name)
     use("comment", asked, text("ask.md", "BLOCKED: may the probe run\n"))
     start = hook(state, "w1:p1", {"hook_event_name": "SessionStart", "session_id": ""}, cwd=repository, **environment)
     stop = hook(state, "w1:p2", {"hook_event_name": "Stop", "stop_hook_active": False, "transcript_path": ""}, cwd=repository, **environment)

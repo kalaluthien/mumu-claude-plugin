@@ -95,7 +95,7 @@ def case_replay():
 def case_cap():
     work, repository, environment = setup()
     (repository / "judge.py").write_text(JUDGE)
-    task = {"body": BODY, "trusted": True, "comments": [{"body": "DECIDED: cap it.\n\n```teamwork\nlive runs: 1\n```\n", "trusted": True}]}
+    task = {"body": BODY, "trusted": True, "comments": [{"body": "DECIDED: cap it.\n", "fields": {"live_runs": 1}, "trusted": True}]}
     run = lambda: subprocess.run([sys.executable, str(SCRIPTS / "run-criteria.py"), "-"], cwd=repository, env=environment, input=json.dumps(task), capture_output=True, text=True)
     first = run()
     (repository / "app" / "main.txt").write_text("two\n")

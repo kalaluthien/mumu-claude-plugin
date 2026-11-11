@@ -43,8 +43,8 @@ def main(args):
         done = subprocess.run([str(USE_BOARD), *argv], cwd=repository, env={**environment, "HERDR_PANE_ID": pane}, capture_output=True, text=True)
         return done.stdout.strip()
 
-    def post(pane, verb, number, body):
-        use(pane, verb, number, str(replay_probe.write_text(work, "post.md", body)))
+    def post(pane, verb, number, body, *options):
+        use(pane, verb, number, str(replay_probe.write_text(work, "post.md", body)), *options)
 
     def changes():
         return log.read_text().count(f"changed #{number} ")
@@ -62,21 +62,21 @@ def main(args):
         return words in log.read_text()
 
     number = use("w1:p1", "file", "Change a held task", str(replay_probe.write_text(work, "body.md", "Change a held task.\n")), "scope:x").rsplit("/", 1)[-1].removesuffix(".json")
-    post("w1:p1", "decide", number, "DECIDED: c-worker holds this.\n\n```teamwork\nholders: c-worker\n```\n")
+    post("w1:p1", "decide", number, "DECIDED: c-worker holds this.\n", "--holders", "c-worker")
     live = subprocess.Popen([sys.executable, str(MONITOR)], cwd=repository, env={**environment, "HERDR_PANE_ID": "w1:p2"}, stdout=log.open("w"), stderr=subprocess.STDOUT)
     cases = {}
     try:
         time.sleep(QUIET_SECONDS)
         cases["start"] = (changes() == 0, log.read_text())
-        post("w1:p1", "decide", number, "DECIDED: use the other way.\n\n```decision\ndecision: use the other way\ndecided by: c-manager\ndoor: two-way\n```\n")
+        post("w1:p1", "decide", number, "DECIDED: use the other way.\n", "--by", "c-manager")
         cases["decision"] = (wait_for(1) and "`holders`" in log.read_text(), log.read_text())
-        post("w1:p1", "decide", number, "DECIDED: and keep the old name.\n\n```decision\ndecision: keep the old name\ndecided by: c-manager\ndoor: two-way\n```\n")
+        post("w1:p1", "decide", number, "DECIDED: and keep the old name.\n", "--by", "c-manager")
         cases["second"] = (wait_for(2), log.read_text())  # a change in the poll after a printed one is its own line
         time.sleep(QUIET_SECONDS)
         post("w1:p2", "comment", number, "REPORTED: criteria at 0123abc\n")
         time.sleep(QUIET_SECONDS)
         cases["report"] = (changes() == 2, log.read_text())
-        post("w1:p1", "decide", number, "DECIDED: c-other holds this.\n\n```teamwork\nholders: c-other\n```\n")
+        post("w1:p1", "decide", number, "DECIDED: c-other holds this.\n", "--holders", "c-other")
         cases["lost"] = (wait_for(3) and wait_until("holds nothing"), log.read_text())  # the task is open and names another session
     finally:
         live.kill()

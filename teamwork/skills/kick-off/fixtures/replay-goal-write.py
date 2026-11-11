@@ -110,8 +110,8 @@ def case_other():
     root = file_body(work, repository, environment, "root.md", NO_GOAL)
     if root.returncode:
         return replay_probe.fail(f"a body with no Goal was refused: {root.stderr.strip()[-200:]!r}")
-    (work / "decision.md").write_text("DECIDED: the probe holds this.\n\n```teamwork\nholders: probe-worker\n```\n")
-    decided = board(repository, environment, "decide", held, work / "decision.md")
+    (work / "decision.md").write_text("DECIDED: the probe holds this.\n")
+    decided = board(repository, environment, "decide", held, work / "decision.md", "--by", "probe-manager", "--holders", "probe-worker")
     if decided.returncode:
         return replay_probe.fail(f"a decision on a task with a pathless Goal was refused: {decided.stderr.strip()[-200:]!r}")
     work, repository, environment = start(0)

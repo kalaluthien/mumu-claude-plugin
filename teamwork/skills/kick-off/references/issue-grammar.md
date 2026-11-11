@@ -1,63 +1,52 @@
 # Issue grammar
 
-How a teamwork issue is written, so a person reads it as prose and code composes its state from it. [issue_state.py](../../../lib/issue_state.py) loads the tables below; a keyword or key exists only here, and code names only a row's role.
+How a teamwork issue is written: its text is prose a person reads, and its data is fields [use-board.py](../scripts/use-board.py) takes as options, so no code reads data out of prose and no writer formats any.
 
 ## Keywords
 
-| keyword | the comment | role |
+A comment's first line opens with one, which the verb that posts it sets or checks.
+
+| keyword | the comment | verb |
 | --- | --- | --- |
-| `BLOCKED` | asks a question with its options; the asker waits on the answer | ask |
-| `DECIDED` | binds until a newer one: answers, routes, orders, or adds intent, its source named and its words quoted | answer |
-| `REPORTED` | informs: findings each citing its source, a batch landed with the root's words not all covered, or a close summary; open or closed is the board's state | |
+| `BLOCKED` | asks a question; the asker waits on the answer | `comment` |
+| `REPORTED` | informs: findings each citing its source, a batch landed with the root's words not all covered, or a close summary | `comment`, `resolve` |
+| `DECIDED` | a decision, which binds until a newer one, or an event, which a verb posts to say what it set | `decide`; `hold`, `depend`, `edit` |
 
-## Data
+## Fields
 
-Data a script reads sits only in a fenced block whose info string is `teamwork`, one `key: value` per line; explanation never uses that fence, so prose never parses as data. Only lines inside such a fence count, in a body or any comment, each value as written; a script that posts text refuses, writing nothing, a key line outside it, a misspelt key or heading, or a keyword not on the first line, and names the fix.
+A comment is kept as its text and the fields [board-record-schema.json](../assets/board-record-schema.json) names, which every write is checked against; a task keeps the tasks it waits on beside its title. A text never carries data: a write refuses, posting nothing, a text that holds a `teamwork` or `decision` fence, which only records older than the fields hold and [legacy_records.py](../../../lib/legacy_records.py) still reads.
 
-````markdown
-DECIDED: issue-pane-worker holds this.
-
-```teamwork
-holders: issue-pane-worker
-```
-````
-
-| key | value | role |
+| field | set by | meaning |
 | --- | --- | --- |
-| `holders` | session names, space-separated, replacing every earlier value; empty when no one holds it | holders |
-| `asks` | `owner` on an ask the owner answers, not the manager | audience |
-| `depends on` | the tasks this one waits on, `#a #b`, read from the body only; a task waits until each is closed as completed | depends |
-| `live runs` | how many live sessions the checks run in one worktree may start in all, one number, replacing every earlier value; 4 when none says | live |
+| holders | `hold <issue> <name>...`, `decide --holders` | the sessions that hold the task, replacing every earlier value; none when empty |
+| asks | `comment --asks owner` | the owner answers this `BLOCKED`, not the manager |
+| options | `comment --option <answer>`, once per answer | the answers a `BLOCKED` offers, numbered from 1 in the order given; two or more on a question to the owner, who answers with a number |
+| live runs | `decide --live-runs <n>` | how many live sessions the checks run in one worktree may start in all, replacing every earlier value; 4 when none says |
+| depends | `depend <issue> <n>...`, `file --depends` | the tasks this one waits on, replacing every earlier value; it waits until each is closed as completed |
+| decision | `decide`, the text's first line | one binding sentence |
+| by | `decide --by <who>`, else the calling session | who decided: `owner`, the owner's words quoted in the text as a `>` line or in double quotes, else a session's name |
+| one-way | `decide --one-way` | the decision is hard to undo |
+| supersedes | `decide --supersedes <url>` | the decision it replaces, anywhere in the same root's tree |
+| answers | `decide --answers <url>` | the `BLOCKED` it settles, on the same task |
 
 ## Decisions
 
-A decision is a `DECIDED` comment holding a fenced block whose info string is `decision`, written by `use-board.py decide` on the task it binds, one `key: value` per line:
-
-| key | value | role |
-| --- | --- | --- |
-| `decision` | one binding sentence | decision |
-| `decided by` | `owner`, the owner's words quoted in the comment as a `>` line or in double quotes, else the deciding session's name | decider |
-| `door` | `one-way` or `two-way` | door |
-| `supersedes` | the url of the decision it replaces, anywhere in the same root's tree | supersedes |
-| `answers` | the url of the `BLOCKED` it settles, in the block or as the first line after `DECIDED:` | answers |
-| `depends on` | the tasks it waits on, `#a #b` | depends |
-
-- **Binds**: a decision binds its task and that task's parts. A task's binding set is the decisions on it and on its ancestors that no decision in the root's tree supersedes, and none once the root is closed as not planned; a decision still waiting on its door supersedes nothing yet.
-- **Door**: a `one-way` decision by a worker, a session not named `owner` or `<project>-manager`, binds once a later decision on the same task by the manager or the owner repeats its `decision` or supersedes it.
-- **Authority**: `decide` refuses, posting nothing, a decision that supersedes one `decided by: owner` unless it is `decided by: owner` too; `comment` refuses any decision block, so each one passes this check.
-- **Questions**: a `BLOCKED` is an open question until a later `DECIDED` that is no event settles it: one naming a url settles that question and each earlier open ask with the same first line, since an ask posted again is one question; one naming no `answers` settles each open question its decider may answer, which is every one for the owner, those not asked of the owner for a manager, and none for a worker.
-- **Events**: a `DECIDED` with no `decision` block is an event when it carries a `teamwork` block or a body edit's `diff`, or is the note a stop posts on the stopped parent; it binds nothing and answers nothing. Any other `DECIDED` with no block is a decision the index cannot read, which the heartbeat lists unless it was posted before `2026-11-05`.
+- **Binds**: a decision binds its task and that task's parts. A task's binding set, which `read` prints, is the decisions on it and on its ancestors that no decision in the root's tree supersedes, and none once the root is closed as not planned; a decision still waiting as **One-way** says supersedes nothing yet.
+- **One-way**: a one-way decision by a worker, a session not named `owner` or `<project>-manager`, binds once a later decision on the same task by the manager or the owner repeats its sentence or supersedes it.
+- **Authority**: `decide` refuses, posting nothing, a decision that supersedes one by the owner unless it is `--by owner` too.
+- **Questions**: a `BLOCKED` is an open question until a later decision settles it: one with `--answers` settles the question it names and each earlier open ask with the same first line, since an ask posted again is one question; one without settles each open question its decider may answer, which is every one for the owner, those not asked of the owner for a manager, and none for a worker. A `DECIDED` posted before `2026-11-05` that is no event settles every one.
+- **Events**: a `DECIDED` with no decision field binds nothing and answers nothing: the note of a `hold`, a `depend`, a body edit or a stop.
 
 ## Sections
 
 A task's sections, each a `## <section>` heading in the body, which holds their current text; a comment's heading is prose.
 
-| section | holds | role |
-| --- | --- | --- |
-| `Goal` | the owner's intent, in detail, with its purpose and each guess marked `(guess)`, and, from task 1305, a `Path:` line naming the flow of the changed part ([check-criteria.py](../scripts/check-criteria.py) and the board writes `file` and `edit` of [use-board.py](../scripts/use-board.py) refuse a Goal without one); the title sums it up | goal |
-| `Definition of done` | criteria, one per numbered or bulleted line | done |
+| section | holds |
+| --- | --- |
+| `Goal` | the owner's intent, in detail, with its purpose and each guess marked `(guess)`, and, from task 1305, a `Path:` line naming the flow of the changed part ([check-criteria.py](../scripts/check-criteria.py) and the board writes `file` and `edit` of [use-board.py](../scripts/use-board.py) refuse a Goal without one); the title sums it up |
+| `Definition of done` | criteria, one per numbered or bulleted line |
 
-A `N. [task] #n <title>` line in `Definition of done` is a part, not a criterion: the task it names belongs to this one, its parent, and is met when that task is closed as completed. A task has one parent, and a task with none is a root. A task numbered at or above the cut-off, which [check-criteria.py](../scripts/check-criteria.py) `--cut-off` prints, holds at most 5 criteria, parts not counted; the lint learns a task's number by `--task <n>`, and with none applies the cut-off's rules, as for a task not yet filed. `file` and `edit` refuse, writing nothing, `[task]` and `depends on` lines that make a cycle or a second parent, name an unknown issue, or exceed 50 `depends on` entries or 100 parts.
+A `N. [task] #n <title>` line in `Definition of done` is a part, not a criterion: the task it names belongs to this one, its parent, and is met when that task is closed as completed. A task has one parent, and a task with none is a root. A task numbered at or above the cut-off, which [check-criteria.py](../scripts/check-criteria.py) `--cut-off` prints, holds at most 5 criteria, parts not counted; the lint learns a task's number by `--task <n>`, and with none applies the cut-off's rules, as for a task not yet filed. `file`, `edit` and `depend` refuse, writing nothing, parts and waits that make a cycle or a second parent or name an unknown issue.
 
 ## States
 
@@ -80,8 +69,8 @@ A task is open, completed or stopped; `use-board.py` changes a task's state only
 
 What an open issue waits on, first match:
 
-1. a task its `depends on` names that is not closed as completed: `blocked by #<n>`;
-2. a parent each of whose open parts is blocked by a task its `depends on` names, one level down only: `waits on its parts`;
+1. a task it depends on that is not closed as completed: `blocked by #<n>`;
+2. a parent each of whose open parts is blocked by a task it depends on, one level down only: `waits on its parts`;
 3. an open question: `waits on the owner` when the latest one's audience is `owner`, else `waits on the manager`;
 4. holders with names: `held`;
 5. else `no holder`.
@@ -90,9 +79,8 @@ What an open issue waits on, first match:
 
 - **Body**: written when the issue is filed, in free Markdown; afterwards only its sections and its summary line change, and only by [edit-issue-body.py](../scripts/edit-issue-body.py), which first posts a comment holding the exact diff, then applies it.
 - **Summary line**: a root's body opens with one plain sentence that sums up the work, on one line. The sentence carries no label (`**Summary:**`) and no quote header (`Owner said, verbatim:`). The owner's words follow verbatim, then a `Why:` line of the purpose in the manager's words. The owner's words change a root's scope often, so the manager rewrites the line and the title at each material change. Another task's title sums it up, so its `Goal` opens with no summary.
-- **Plain words**: a title and a decision's `decision:` sentence are what the issue pane shows, and a summary line opens a root's body, so a reader who knows no task's history must read each at once: one idea, in everyday words, naming no task by its number and no term the owner did not use. A summary line or decision holds at most 20 words and one `,`, `;` or `:`, and a title at most 40 characters; the write path refuses one that breaks a cap, posting nothing. Put the detail, the numbers and the terms in the body or the comment around it.
+- **Plain words**: a title and a decision's sentence are what the issue pane shows, and a summary line opens a root's body, so a reader who knows no task's history must read each at once: one idea, in everyday words, naming no task by its number and no term the owner did not use. A summary line or decision holds at most 20 words and one `,`, `;` or `:`, and a title at most 40 characters; the write path refuses one that breaks a cap, posting nothing. Put the detail, the numbers and the terms in the body or the comment around it.
 - **Complete sentence**: each criterion opens with its name, `1. [check] **<name>**: <details>`, because the pane shows the name alone; the name is a complete sentence a reader understands without the task's history, such as `**The closed list shows the latest four tasks**`, not a label such as `Four closed`; the write path refuses, posting nothing, a name of fewer than 5 words or beyond the caps of Plain words.
 - **Comment**: every later fact. Its first line opens with a keyword and a colon, then the kind of work it records in plain words after the keyword, `REPORTED: batch landed …`; the rest is free Markdown. A keyword says what the comment does to the issue, never who spoke; name a source in the content, `owner said: …`.
-- **Fewest keywords**: a kind of work gets a keyword of its own only when code must tell it apart or its category differs wholly; comments posted under words no longer listed stay as written, read as prose.
 - **Trusted authors**: only a body or comment by an author the board adapter trusts records anything; code reads any other as prose, since anyone may comment on a public board.
-- **Latest wins**: a later record replaces an earlier one of the same role; no comment is edited or deleted.
+- **Latest wins**: a later value of a field replaces an earlier one; no comment is edited or deleted.

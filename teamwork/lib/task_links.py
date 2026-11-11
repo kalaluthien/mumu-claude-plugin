@@ -1,12 +1,12 @@
-"""Links between tasks, read from bodies only: a task's `depends on` line in its teamwork block, and its parts, the
-`N. [task] #n` lines of its Definition of done. A task waits on what it depends on and on its parts, so a cycle is
+"""Links between tasks: the tasks a task waits on, its record's `depends`, and its parts, the
+`N. [task] #n` lines of its body's Definition of done. A task waits on what it depends on and on its parts, so a cycle is
 looked for over both kinds together."""
 import re
 
 import issue_state
+import legacy_records
 
 PART = re.compile(r"^\s*(?:\d+\.|[-*])\s+\[task\]\s+#(\d+)\b", re.M)
-NUMBER = re.compile(r"#(\d+)\b")
 DONE = ("COMPLETED", None, "")
 
 
@@ -15,9 +15,10 @@ def parts(body):
     return list(dict.fromkeys(int(n) for n in PART.findall(issue_state.sections(body).get("done", ""))))
 
 
-def depends(body):
-    """The numbers its `depends on` line names, each once."""
-    return list(dict.fromkeys(int(n) for n in NUMBER.findall(issue_state.data(body).get(issue_state.WORD["depends"], ""))))
+def depends(record):
+    """The numbers of the tasks RECORD waits on, each once: its `depends`, else those an older body names."""
+    stored = record.get("depends")
+    return list(dict.fromkeys(stored)) if stored is not None else legacy_records.depends(record.get("body"))
 
 
 def criteria(body):
@@ -30,10 +31,10 @@ def completed(issue):
     return issue.get("state") == "CLOSED" and (issue.get("stateReason") or issue.get("reason")) in DONE
 
 
-def refusals(number, body, read, parent_of):
-    """Why BODY cannot be NUMBER's body (None for an issue not yet filed), each naming the issues; empty when it can.
+def refusals(number, body, waits, read, parent_of):
+    """Why NUMBER (None for an issue not yet filed) cannot have BODY and wait on the tasks WAITS numbers, each naming the issues; empty when it can.
     READ(n) gives issue n's record, None when it does not exist; PARENT_OF(n) the issue whose body names n as a part, else None."""
-    found, waits, named = [], depends(body), parts(body)
+    found, named = [], parts(body)
     records = {n: read(n) for n in dict.fromkeys(waits + named) if n != number}
     found += [f"#{n} does not exist" for n, record in records.items() if record is None]
     found += [f"#{n} is a pull request, not an issue" for n, record in records.items() if record and record.get("isPullRequest")]
@@ -60,7 +61,7 @@ def cycle(number, targets, read):
         seen.add(path[-1])
         record = read(path[-1])
         if record:
-            paths += [path + [n] for n in depends(record["body"]) + parts(record["body"])]
+            paths += [path + [n] for n in depends(record) + parts(record["body"])]
     return None
 
 
@@ -72,12 +73,12 @@ def derive(nodes, read):
     owner = {part: node["number"] for node in nodes for part in parts(node["body"])}
     for node in nodes:
         node["parent"] = {"number": owner[node["number"]]} if node["number"] in owner else None
-        waits = [record for record in map(lookup, depends(node["body"])) if record]
+        waits = [record for record in map(lookup, depends(node)) if record]
         node["blockedBy"] = {"nodes": [{"number": record["number"], "state": record.get("state", "OPEN"), "stateReason": record.get("stateReason")} for record in waits]}
         found = [record for record in map(lookup, parts(node["body"])) if record]
         node["subIssues"] = {"nodes": [{"number": record["number"], "title": record["title"], "url": record["url"], "state": record.get("state", "OPEN"),
                                         "stateReason": record.get("stateReason"), "trusted": record.get("trusted", True),
-                                        "blockedBy": {"nodes": [{"number": n} for n in depends(record.get("body", ""))]}} for record in found]}
+                                        "blockedBy": {"nodes": [{"number": n} for n in depends(record)]}} for record in found]}
         node["subIssuesSummary"] = {"total": len(found), "completed": sum(completed(record) for record in found)}
     for node in nodes:
         for sub_issue in node["subIssues"]["nodes"]:
@@ -95,7 +96,7 @@ def drift(nodes):
     by_number = {node["number"]: node for node in nodes}
     found, seen = [], set()
     for node in nodes:
-        loop = cycle(node["number"], depends(node["body"]) + parts(node["body"]), lambda n: by_number.get(n))
+        loop = cycle(node["number"], depends(node) + parts(node["body"]), lambda n: by_number.get(n))
         if loop and frozenset(loop) not in seen:
             seen.add(frozenset(loop))
             found.append(f"cycle {' → '.join(f'#{n}' for n in loop)}: drop one of its links")

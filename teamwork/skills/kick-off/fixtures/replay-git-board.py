@@ -44,15 +44,14 @@ def main(args):
         return subprocess.run([sys.executable, str(USE), *map(str, argv)], cwd=cwd, capture_output=True, text=True)
 
     (work / "b.md").write_text("A body.\n")
-    (work / "c.md").write_text("A comment.\n")
-    (work / "waits.md").write_text("A body.\n\n```teamwork\ndepends on: #1\n```\n")
+    (work / "c.md").write_text("REPORTED: a comment.\n")
     (repository / "probe").mkdir()
     start = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 5))
     use("file", "First", work / "b.md", "--scope", "probe")
-    use("file", "Second", work / "waits.md")
+    use("file", "Second", work / "b.md", "--depends", "1")
     use("comment", 1, work / "c.md")
     reads = {"changed-since": (lambda: (board_git.changed_since(start), board_git.changed_since("2999-01-01T00:00:00Z")), lambda got: bool(got[0]) and not got[1]),
-             "comments-since": (lambda: [(n, note["body"]) for n, note in board_git.comments_since(start)], lambda got: got == [(1, "A comment.\n")]),
+             "comments-since": (lambda: [(n, note["body"]) for n, note in board_git.comments_since(start)], lambda got: got == [(1, "REPORTED: a comment.\n")]),
              "blockers": (lambda: board_git.blockers(2), lambda got: bool(got)),
              "scoped": (lambda: (board_git.scoped("probe"), board_git.scoped("none"), board_git.fresh(1)["scope"]), lambda got: got[2] == "probe" and got[0] != got[1]),
              "trusted": (lambda: board_git.trusted({}), lambda got: got is not None),

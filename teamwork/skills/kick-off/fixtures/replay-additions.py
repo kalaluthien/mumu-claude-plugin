@@ -16,7 +16,6 @@ import replay_probe  # noqa: E402
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
 BODY = "## Goal\n\nProbe the pane.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe prints PASS when it runs**: `echo PASS` prints `PASS`; on base `FAIL`.\n"
-HOLD = replay_probe.HOLD
 ADDED = ("drop the releases line", "show the blocker on the title", "hide closed blockers")
 
 
@@ -29,8 +28,7 @@ def setup():
     (work / "body.md").write_text(BODY)
     made = run(environment, repository, "use-board.py", "file", "Probe the pane", work / "body.md")
     number = made.stdout.strip().rsplit("/", 1)[-1]
-    (work / "hold.md").write_text(HOLD)
-    run(environment, repository, "use-board.py", "decide", number, work / "hold.md")
+    run(environment, repository, "use-board.py", "hold", number, "probe-worker")
     return work, repository, environment, number
 
 
@@ -48,8 +46,8 @@ def body(repository, number):
 
 def owner_says(work, environment, repository, number, wish):
     path = work / "owner.md"
-    path.write_text(f"DECIDED: the owner added: {wish}\n\n> {wish}\n\n```decision\ndecision: {wish}\ndecided by: owner\ndoor: two-way\n```\n")
-    done = run(environment, repository, "use-board.py", "decide", number, path)
+    path.write_text(f"DECIDED: {wish}\n\n> {wish}\n")
+    done = run(environment, repository, "use-board.py", "decide", number, path, "--by", "owner")
     return done.stdout.strip().splitlines()[-1] if done.returncode == 0 else fail_with(done)
 
 

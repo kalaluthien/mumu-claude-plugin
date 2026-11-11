@@ -27,7 +27,7 @@ A `[check]` whose first pipe stage runs `claude -p` and which says `watches: <pa
 output is saved as a transcript, when the session exits 0, under the git common dir's `teamwork-live/`, keyed by that stage and the content of the
 watched paths, and the stages after it run on the transcript. A run whose key has a saved transcript starts no session,
 so a fix to the later stages, or to a file outside the watched paths, replays; each new session counts toward the cap, the
-task's latest `live runs: <n>` or else `LIVE_RUNS` (4), kept in the worktree's git dir, so a worktree's tasks share one count; a watched path
+task's latest `decide --live-runs <n>` or else `LIVE_RUNS` (4), kept in the worktree's git dir, so a worktree's tasks share one count; a watched path
 missing at the head fails the check. At the cap the live check fails
 without running and a `BLOCKED due: live runs` line follows.
 
