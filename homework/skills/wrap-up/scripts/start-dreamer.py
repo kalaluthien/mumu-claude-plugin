@@ -9,7 +9,8 @@ Its name is `<topic>-dreamer`, `<topic>` joining, in this order, `memory` when t
 while a dreaming workflow runs on <data> (its lock, homework/lib/stamp.py), as when one of its own agents calls this, or
 when a herdr session named `*-dreamer` is in any state but idle or done, since its dream still starts, runs or
 waits; a finished one, idle or done, is no bar, since the Dreamer closes its own tab (close-dreamer.py). It prints
-`failed to start` and exits 1, starting none, when herdr is missing, cannot run or replies with no agent list. <note> goes into the Dreamer's prompt.
+`failed to start` and exits 1, starting none, when herdr is missing, cannot run or replies with no agent list, or
+when the new pane stays busy past HOMEWORK_START_DREAMER_WAIT seconds (default 60) or the start fails, closing the tab it created. <note> goes into the Dreamer's prompt.
 """
 import json
 import os
@@ -17,11 +18,14 @@ import pathlib
 import shutil
 import subprocess
 import sys
+import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import stamp  # noqa: E402
 
 PLUGIN = pathlib.Path(__file__).resolve().parents[3]
+START_WAIT = float(os.environ.get("HOMEWORK_START_DREAMER_WAIT", 60))
+START_POLL = float(os.environ.get("HOMEWORK_START_DREAMER_POLL", 1))
 CAUSES = (("repeats", "dejavu"), ("habit", "habit"))
 
 
@@ -44,6 +48,17 @@ def field(value, *keys):
     for key in keys:
         value = value.get(key) if isinstance(value, dict) else None
     return value if isinstance(value, str) and value and "\0" not in value else None
+
+
+def start_agent(name, pane):
+    """herdr's reply to `agent start`, asked again until START_WAIT seconds pass while it answers `agent_pane_busy`, since the new tab's shell is still starting."""
+    deadline = time.time() + START_WAIT
+    while True:
+        started = herdr("agent", "start", name, "--kind", "claude", "--pane", pane, "--timeout", "120000", "--",
+                        "--name", name, "--plugin-dir", str(PLUGIN), "--model", "sonnet")
+        if started.get("agent") or "agent_pane_busy" not in str(started.get("error")) or time.time() >= deadline:
+            return started
+        time.sleep(START_POLL)
 
 
 def main(args):
@@ -82,9 +97,11 @@ def main(args):
         return 1
     tab = herdr("tab", "create", "--workspace", workspace, "--cwd", os.getcwd(), "--label", name, "--no-focus")
     new_pane = field(tab, "root_pane", "pane_id")
-    started = herdr("agent", "start", name, "--kind", "claude", "--pane", new_pane, "--timeout", "120000", "--",
-                    "--name", name, "--plugin-dir", str(PLUGIN), "--model", "sonnet") if new_pane else {}
+    started = start_agent(name, new_pane) if new_pane else {}
     if not started.get("agent"):
+        tab_id = field(tab, "tab", "tab_id")
+        if tab_id:
+            herdr("tab", "close", tab_id)  # no unlabelled shell tab stays behind
         print(f"failed to start {name}: {tab.get('error') or started.get('error') or started}")
         return 1
     prompt = (f"You are the Dreamer {name}. Use the homework:wrap-up skill: run its dream playbook, "
