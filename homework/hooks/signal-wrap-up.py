@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 """Ask for a wrap-up at a stop, with a sentence of counts the wrap-up skill routes on.
 
-usage: signal-wrap-up.py                        the Stop hook: its payload on stdin,
-                                                the plugin's data folder in CLAUDE_PLUGIN_DATA;
+usage: signal-wrap-up.py                        the Stop hook: its payload on stdin;
                                                 HOMEWORK_WRAP_UP=off silences it and writes nothing
        signal-wrap-up.py <transcript|session>   print the sentence for a transcript's last stop
-       signal-wrap-up.py outcome <data> <session> filed|empty
+       signal-wrap-up.py outcome <home> <session> filed|empty
                                                 report what a session's last asked wrap-up did
-       signal-wrap-up.py dreamed <data>         start the memory count again, once a dream has ended
+       signal-wrap-up.py dreamed <home>         start the memory count again, once a dream has ended
 
 A dream rides on a lesson ask, since a dream alone rarely pays.
-Enabling the plugin for a project is the opt-in, so no arm step writes to the
-data folder.
+The memory count and the lesson threshold are kept once per memory home, in `<home>.wrap-up.json` beside it,
+so every plugin data folder reads the one count of the one memory folder; with no `autoMemoryDirectory` the
+hook neither asks nor writes.
+Enabling the plugin for a project is the opt-in, so no arm step writes anything.
 """
 import json
 import os
@@ -21,6 +22,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import memory as memory_file  # noqa: E402
+import memory_home  # noqa: E402
 import transcript  # noqa: E402
 
 FAILURE_POINTS = 4
@@ -69,11 +71,15 @@ def bounded(threshold):
     return min(HIGHEST, max(LOWEST, threshold))
 
 
-def load(data):
-    """The saved state, each key that is missing or of the wrong type taken from the defaults."""
+def state_file(home):
+    return os.path.normpath(home) + ".wrap-up.json"
+
+
+def load(home):
+    """The saved state of a memory home, each key that is missing or of the wrong type taken from the defaults."""
     state = {"threshold": START, "memory": [], "asked": {}, "pending": {}}
     try:
-        with open(os.path.join(data, "wrap-up.json"), encoding="utf-8") as handle:
+        with open(state_file(home), encoding="utf-8") as handle:
             saved = json.load(handle)
     except (OSError, ValueError):
         saved = {}
@@ -84,11 +90,11 @@ def load(data):
     return state
 
 
-def save(data, state):
+def save(home, state):
     for key in ("asked", "pending"):
         state[key] = dict(list(state[key].items())[-SESSIONS_KEPT:])
-    os.makedirs(data, exist_ok=True)
-    with open(os.path.join(data, "wrap-up.json"), "w", encoding="utf-8") as handle:
+    os.makedirs(os.path.dirname(state_file(home)), exist_ok=True)
+    with open(state_file(home), "w", encoding="utf-8") as handle:
         json.dump(state, handle)
 
 
@@ -116,8 +122,8 @@ def sentence(found, threshold):
 
 
 def hook():
-    data = os.environ.get("CLAUDE_PLUGIN_DATA")
-    if not data or os.environ.get("HOMEWORK_WRAP_UP") == "off":
+    home = memory_home.home()
+    if not home or os.environ.get("HOMEWORK_WRAP_UP") == "off":
         return 0
     payload = json.load(sys.stdin)
     entries = transcript.entries_of(payload.get("transcript_path") or "")
@@ -126,7 +132,7 @@ def hook():
     entrypoint = next((str(e["entrypoint"]) for e in entries if "entrypoint" in e), "")
     if fixed() is None and entrypoint.startswith("sdk"):
         return 0
-    state = load(data)
+    state = load(home)
     found = counts(entries)
     state["memory"] = sorted(set(state["memory"]) | found["memory"])
     threshold = threshold_of(state)
@@ -146,24 +152,24 @@ def hook():
             state["pending"].pop(session, None)
             state["pending"][session] = True
         json.dump({"decision": "block", "reason": reason}, sys.stdout)
-    save(data, state)
+    save(home, state)
     return 0
 
 
-def outcome(data, session, result):
-    state = load(data)
+def outcome(home, session, result):
+    state = load(home)
     if state["pending"].pop(session, False):
         step = UP if result == "empty" else -DOWN
         state["threshold"] = bounded(state["threshold"] + step)
-        save(data, state)
+        save(home, state)
     print(f"wrap-up outcome {result}: lesson threshold now {state['threshold']:g}")
     return 0
 
 
-def dreamed(data):
-    state = load(data)
+def dreamed(home):
+    state = load(home)
     state["memory"] = []
-    save(data, state)
+    save(home, state)
     print("wrap-up dreamed: memory count now 0")
     return 0
 
@@ -181,8 +187,7 @@ def main(args):
         if entries is None:
             print(f"no transcript: {args[0]}", file=sys.stderr)
             return 1
-        data = os.environ.get("CLAUDE_PLUGIN_DATA")
-        state = load(data or os.devnull)
+        state = load(memory_home.home() or os.devnull)
         found = counts(entries)
         asked = any(transcript.asked_at(entry) for entry in entries)
         print(sentence(dict(found, memory=len(found["memory"]), first=first_retro(found, asked)), threshold_of(state)))

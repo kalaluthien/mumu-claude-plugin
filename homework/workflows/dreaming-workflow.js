@@ -170,7 +170,7 @@ ${MEMORY_RULES} Change no file outside the memory folders: return each other fix
     tidy_failed: !tidy,
   }
 } finally {
-  const reset = result ? `python3 ${SCRIPTS}/check-dream-run.py facets ${DEJAVU} >/dev/null && python3 ${ROOT}/hooks/signal-wrap-up.py dreamed ${DATA}; ` : ''  // only a dream that ended with every digest faceted starts the memory count again
+  const reset = result ? `python3 ${SCRIPTS}/check-dream-run.py facets ${DEJAVU} >/dev/null && python3 ${ROOT}/hooks/signal-wrap-up.py dreamed ${HOME}; ` : ''  // only a dream that ended with every digest faceted starts the memory count again
   const removal = `rm -f ${DATA}/dream.lock && echo removed`
   // the recall and safeguard checks ride on the unlock agent, so a dream adds no step for them
   const checks = `Run with Bash, each alone: python3 ${SCRIPTS}/check-dream-run.py facets ${DEJAVU}; python3 ${SCRIPTS}/check-dream-run.py memory ${CONFIG}. Each exits 1 when it found something, which is no failure of yours. Then run with Bash: python3 ${SCRIPTS}/snapshot-memory.py ${CONFIG} "dream ${TODAY}: after the checks". Return safeguards = every line of their output that opens with 'facets', 'redacted', 'injected', 'memory:' or 'snapshot'.`
