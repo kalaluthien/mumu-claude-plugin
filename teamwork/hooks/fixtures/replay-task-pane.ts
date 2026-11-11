@@ -1,14 +1,14 @@
 // Render a manager's issue pane from the board in a nodes file, every row unfolded, at body widths 30, 40, 60 and 88, through stand-ins for
 // `claude-code` and the JSX runtime, and check it row for row against `list-issue-board.py` laid out for that width less the fold mark: each
 // row's title, status, `?`, `◆` and `next step:` lines, guide included, are the lines its `--json` row lays out, in the order `--width` prints them,
-// each fits the body with the first line's fold mark, a title that fits on one line takes one, and an unfolded row with criteria or
+// each fits the body with the first line's fold mark, no row ends in a blank line, a title that fits on one line takes one, and an unfolded row with criteria or
 // closed parts draws them: `same`, else `differ: <the first difference>`, exit 1.
 // With `--styled`, once that holds, it prints instead each piece the last draw (width 88) styles, one per line: `link <label>`, `press <text>` (the button's text as drawn, so a space inside it shows),
 // `strike <text>`, `dim <text>` or `color:<name> <text>`.
-// With `--search <regex>` and `--press <text>` (each repeatable; `none` presses nothing), it draws the rows at width 88, or at `--columns <n>`, with every row folded, then types each
+// With `--search <regex>` and `--press <text>` (each repeatable; `none` presses nothing), it draws the rows at width 88, or at `--columns <n>`, with every row folded, or with `--fresh` as the pane first opens, then types each
 // regex into the search box and presses each button whose text holds a given text, in the order given, and prints the drawn lines as `<row number>|<line>`, a yellow background in ⟦ ⟧.
 // With no argument, it checks deep-task-nodes.json and deep-decision-nodes.json beside it and prints `PASS` when both are `same`, else `FAIL <file>` for each, exit 1.
-// usage: bun teamwork/hooks/fixtures/replay-task-pane.ts [<nodes-file> [--styled | --search <regex>... --press <text>... --columns <n>]]
+// usage: bun teamwork/hooks/fixtures/replay-task-pane.ts [<nodes-file> [--styled | --search <regex>... --press <text>... --columns <n> --fresh]]
 import { drawPane, handlers, on, store } from './stand-in-modules.ts'
 
 if (process.argv.length === 2) {
@@ -19,7 +19,7 @@ if (process.argv.length === 2) {
 }
 const nodes = process.argv[2]
 if (nodes.startsWith('-')) {
-  console.error('usage: bun teamwork/hooks/fixtures/replay-task-pane.ts [<nodes-file> [--styled | --search <regex>... --press <text>... --columns <n>]]')
+  console.error('usage: bun teamwork/hooks/fixtures/replay-task-pane.ts [<nodes-file> [--styled | --search <regex>... --press <text>... --columns <n> --fresh]]')
   process.exit(2)
 }
 const lister = `${import.meta.dir}/../list-issue-board.py`
@@ -86,11 +86,12 @@ const inputs = (node: unknown): Node[] => node == null || typeof node !== 'objec
   : [...((node as Node).type === 'Input' ? [node as Node] : []), ...inputs((node as Node).props?.children)]
 const differ = (what: string) => { console.log(`differ: ${what}`); process.exit(1) }
 const FOLD = 2  // the pane's ` +` or ` -` at a row's first line's end
-for (const width of [30, 40, 60, 88]) {
+const searching = process.argv.includes('--press') || process.argv.includes('--search')
+for (const width of searching ? [] : [30, 40, 60, 88]) {
   const laid = String(width - FOLD)
   const rows = JSON.parse(listed('--json', '--width', laid)) as Row[]
   // every row unfolded, since a folded row draws too little to compare with the listing
-  store.set('expanded', rows.map(row => row.number))
+  store.set('folded', [])
   // the first draw at a new width reads the board again for it, and the draw after that read shows the rows
   const before = reads
   await draw({ bodyColumns: width })
@@ -113,6 +114,7 @@ for (const width of [30, 40, 60, 88]) {
       if (at++ === printed.length) differ(`width ${width}: #${row.number}: ${JSON.stringify(line)} is not in the --width ${laid} listing, in order`)
     })
     const folded = lines.slice(heading.length).map(text).join(' ')
+    if (lines.length > heading.length && !folded.trim()) differ(`width ${width}: #${row.number} draws a blank line after its last line`)
     const owed = [...row.done.map(item => item.line), ...row.closed.map(task => task.title)].filter(Boolean)
     const missing = owed.find(piece => !folded.includes(piece))
     if (missing !== undefined) differ(`width ${width}: #${row.number} unfolded lacks ${JSON.stringify(missing)}`)
@@ -126,11 +128,11 @@ for (const width of [30, 40, 60, 88]) {
     if (named) differ(`width ${width}: #${row.number}'s closed #${named.number} shows \`blocked by\` only with its open blockers, and none when every blocker is closed`)
   })
 }
-if (process.argv.includes('--press') || process.argv.includes('--search')) {
+if (searching) {
   // every row folded, then each `--search <regex>` types its regex into the search box and each `--press <text>` presses every button whose text holds it, in the order given;
   // the drawn lines print as `<row number>|<line>` with a yellow background as ⟦ ⟧, and `0|<line>` for a line that is no row's: `0|input: <typed text>` first
   const width = Number(process.argv[process.argv.indexOf('--columns') + 1]) || 88
-  store.set('expanded', [])
+  if (!process.argv.includes('--fresh')) store.set('folded', (JSON.parse(listed('--json', '--width', String(width - FOLD))) as Row[]).map(row => row.number))
   marking = true
   const steps = process.argv.flatMap((argument, k) => argument === '--search' || argument === '--press' ? [[argument, process.argv[k + 1]]] : [])
   const rowsOf = (pane: unknown) => children(pane).filter(child => (child as Node).type === 'Box' && inputs(child).length === 0)

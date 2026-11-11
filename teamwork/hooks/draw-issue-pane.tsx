@@ -10,11 +10,11 @@ const board = atom({ plugin: 'teamwork', key: 'board' } as const, [] as BoardIss
 const failure = atom({ plugin: 'teamwork', key: 'failure' } as const, '')
 // whether a read has worked yet, so an empty board never looks like one not read
 const loaded = atom({ plugin: 'teamwork', key: 'loaded' } as const, false)
-// the tasks the manager unfolded, kept across redraws; every other shows its title and status
-const expanded = atom({ plugin: 'teamwork', key: 'expanded' } as const, [] as number[])
+// the tasks the manager folded, kept across redraws; every other is open, since the person reads the parts without a press
+const folded = atom({ plugin: 'teamwork', key: 'folded' } as const, [] as number[])
 // what the owner typed in the search box, a regular expression; empty is no search, which leaves the folds above as they were
 const query = atom({ plugin: 'teamwork', key: 'query' } as const, '')
-// the folds a person pressed during one search, kept apart from `expanded` so emptying the box returns the folds as they were before it
+// the folds a person pressed during one search, kept apart from `folded` so emptying the box returns the folds as they were before it
 const peeked = atom({ plugin: 'teamwork', key: 'peeked' } as const, [] as number[])
 // the task whose Markdown the pane shows in place of the list, with the text read for it; null shows the list
 const opened = atom({ plugin: 'teamwork', key: 'opened' } as const, null as { number: number; text: string } | null)
@@ -164,7 +164,7 @@ export const register: Register = on => {
       relayout?.()
     }
     const { Box, Text, Button, Input, Markdown } = $.ui.resolve(event)
-    const unfolded = new Set(await read($, expanded))
+    const foldedTasks = new Set(await read($, folded))
     const typed = await read($, query)
     let pattern: RegExp | undefined
     let invalid = ''
@@ -172,7 +172,7 @@ export const register: Register = on => {
     const flip = (old: number[], id: number) => old.includes(id) ? old.filter(item => item !== id) : [...old, id]
     // while a search is on a press flips the row on top of what the search opened, and leaves the folds the person kept untouched
     const searching = Boolean(typed)  // a box that holds text, whether or not it is a valid pattern
-    const toggle = (id: number) => () => void (searching ? update($, peeked, old => flip(old, id)) : update($, expanded, old => flip(old, id)))
+    const toggle = (id: number) => () => void (searching ? update($, peeked, old => flip(old, id)) : update($, folded, old => flip(old, id)))
     const pressed = new Set(await read($, peeked))
     // a text with its matched spans on a yellow background, from one offset to another
     const lit = (text: string, spans: Spans, from = 0, to = text.length) => {
@@ -230,7 +230,7 @@ export const register: Register = on => {
     const row = (issue: BoardIssue): JSX.Element => {
       const found = pattern ? matchesIn(issue, pattern) : undefined
       const [guide, pad] = pattern ? ['', '  '] : [issue.guide, issue.pad]
-      const open = searching ? (unfolded.has(issue.number) || Boolean(found?.hidden)) !== pressed.has(issue.number) : unfolded.has(issue.number)
+      const open = searching ? (!foldedTasks.has(issue.number) || Boolean(found?.hidden)) !== pressed.has(issue.number) : !foldedTasks.has(issue.number)
       const more = Boolean(issue.lines.notes.length > issue.lines.questions || issue.done.length || issue.closed.length || issue.earlier)
       const [first, ...rest] = issue.lines.title
       const label = `#${issue.number}`
@@ -254,7 +254,8 @@ export const register: Register = on => {
           {issue.lines.status.map((line, k) => <Text>{lead(pad)}{status(issue, line, spans('status', k))}</Text>)}
           {/* a task folds to its title, status and open questions; opened, it adds every decision newest first, what keeps it open, its criteria and its closed parts, all flat */}
           {issue.lines.notes.map((line, k) => (open || k < issue.lines.questions) && note(issue, pad, line, k, spans('notes', k)))}
-          {open && (
+          {/* an open task with no criterion, closed part or earlier mark has nothing to put here, and an empty box would draw a blank line after it */}
+          {open && (issue.done.length > 0 || issue.closed.length > 0 || issue.earlier) && (
             <Box flexDirection="row">
               {lead(pad)}
               <Box flexDirection="column">
