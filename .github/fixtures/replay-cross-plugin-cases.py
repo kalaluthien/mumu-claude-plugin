@@ -3,7 +3,7 @@
 
 usage: replay-cross-plugin-cases.py
 
-Each case runs `.github/check-repository.py` on the copy, and requires it to fail naming the planted line or to pass."""
+Each case runs `.github/list-cross-plugin-names.py` on the copy, and requires it to fail naming the planted line or to pass; the first planted case also runs the whole `.github/check-repository.py`, which shows the check passes that lister's lines on."""
 
 import itertools
 import os
@@ -26,9 +26,9 @@ def copy_repository(target):
             shutil.copy2(REPOSITORY / path, target / path)
 
 
-def run_check(base, appended, links=None):
-    """The exit status and lines of the repository check on a copy with each text appended to its file and each symlink of LINKS (path: target)
-    planted."""
+def run_check(base, appended, links=None, whole=False):
+    """The exit status and lines of the cross-plugin lister, or of the whole repository check when whole is set, on a copy with each text appended
+    to its file and each symlink of LINKS (path: target) planted; the lister alone, since only it decides these cases and the whole check takes minutes."""
     with tempfile.TemporaryDirectory() as work:
         root = pathlib.Path(work)
         shutil.copytree(base, root, dirs_exist_ok=True)
@@ -37,7 +37,8 @@ def run_check(base, appended, links=None):
                 handle.write(text)
         for path, target in (links or {}).items():
             os.symlink(target, root / path)
-        result = subprocess.run([sys.executable, str(root / ".github" / "check-repository.py"), "--skip-fixtures", str(root)], capture_output=True, text=True)
+        script = [str(root / ".github" / "check-repository.py"), "--skip-fixtures"] if whole else [str(root / ".github" / "list-cross-plugin-names.py")]
+        result = subprocess.run([sys.executable, *script, str(root)], capture_output=True, text=True)
         return result.returncode, result.stdout.splitlines()
 
 
@@ -53,7 +54,7 @@ def main(args):
         host = {plugin: sorted(path.relative_to(base).as_posix() for path in (base / plugin / "skills").glob("*/SKILL.md"))[0] for plugin in plugins}
         status, lines = run_check(base, {})
         good = status == 0
-        print(("ok" if good else "FAIL") + " the check passes on the repository with nothing planted")
+        print(("ok" if good else "FAIL") + " the lister passes on the repository with nothing planted")
         holds = holds and good
         # name: (file appended to, appended text, line that must be printed or None when the check must pass)
         cases = {}
@@ -72,8 +73,8 @@ def main(args):
             "a folder link into another plugin fails": ("{}/linked".format(one), "../{}/skills".format(other), "shared {}/linked links {}/skills".format(one, other)),
             "a link inside its own plugin passes": ("{}/linked.json".format(one), MANIFEST, None),
         }
-        for name, (path, text, wanted) in cases.items():
-            status, lines = run_check(base, {path: text})
+        for number, (name, (path, text, wanted)) in enumerate(cases.items()):
+            status, lines = run_check(base, {path: text}, whole=number == 0)
             problems = [] if status == (1 if wanted else 0) else ["exit {}".format(status)]
             problems += ["missing " + wanted] if wanted and wanted not in lines else []
             print("ok " + name if not problems else "FAIL {}: {}".format(name, "; ".join(problems)))
