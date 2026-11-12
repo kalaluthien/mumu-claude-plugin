@@ -109,7 +109,8 @@ def main(args):
         print(f"failed to start {name}: {tab.get('error') or started.get('error') or started}")
         return 1
     prompt = (f"You are the Dreamer {name}. Use the homework:wrap-up skill: run its dream playbook, "
-              f"{PLUGIN}/skills/wrap-up/references/dream.md, with <data> {data}, <config> {config} and <home> {home}. "
+              f"{PLUGIN}/skills/wrap-up/references/dream.md, with <data> {data}, <config> {config} and <home> {home}; "
+              "you are no task's session, so you write memory and shared files as it says. "
               + (args[5] if len(args) == 6 else ""))
     herdr("agent", "prompt", new_pane, prompt)
     print(f"started {name} in pane {new_pane}; it runs the dream and asks the owner there")
