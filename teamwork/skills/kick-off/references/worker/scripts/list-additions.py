@@ -7,7 +7,7 @@ import pathlib
 import re
 import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 import board  # noqa: E402
 import decisions  # noqa: E402
 import issue_state  # noqa: E402

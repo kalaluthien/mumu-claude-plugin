@@ -12,7 +12,7 @@ import json
 import pathlib
 import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 import task_history  # noqa: E402
 
 

@@ -9,7 +9,7 @@ import pathlib
 import sys
 import time
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[6] / "lib"))
 import session  # noqa: E402
 
 TRIES = 3

@@ -64,7 +64,7 @@ def heartbeat(state, pane, seconds=40, cwd=None, **environment):
 def tell(state, name, text="hi"):
     note = pathlib.Path(tempfile.mkstemp(suffix=".md")[1])
     note.write_text(text)
-    return run([SCRIPTS / "tell-session.py", name, note], state, TEAMWORK_TELL_SESSION_TIMEOUT="5")
+    return run([SCRIPTS.parent / "references/adapters/message-herdr/scripts" / "tell-session.py", name, note], state, TEAMWORK_TELL_SESSION_TIMEOUT="5")
 
 
 def status(state, name):
@@ -143,7 +143,7 @@ def tell_claude():
     state = herdr(agent("protocol-split-worker", 1, "working"), agent("idle-worker", 2, "idle"), agent("busy-worker", 3, "working"))
     outs = []
     for name, before in (("idle-worker", "idle"), ("busy-worker", "working")):
-        for call in (lambda: tell(state, name), lambda: run([SCRIPTS / "tell-session.py", name, "not a file"], state, TEAMWORK_TELL_SESSION_TIMEOUT="5")):
+        for call in (lambda: tell(state, name), lambda: run([SCRIPTS.parent / "references/adapters/message-herdr/scripts" / "tell-session.py", name, "not a file"], state, TEAMWORK_TELL_SESSION_TIMEOUT="5")):
             started = time.time()
             code, out = call()
             outs.append(out)
@@ -241,10 +241,10 @@ def manager_placement():
 def moved_me():
     """A session whose pane moved, its shell's HERDR_PANE_ID left naming another session's pane, still finds itself by its session id."""
     state = herdr(dict(agent("teamwork-manager", 15, "idle", "w4"), agent_session={"value": "moved-id"}), agent("other-manager", 1, "idle", "w9"))
-    code, out = run([SCRIPTS / "print-scope-folder.py", "--me"], state, "w9:p1", cwd=ROOT, CLAUDE_CODE_SESSION_ID="moved-id")
+    code, out = run([SCRIPTS.parent / "references/manager/scripts" / "print-scope-folder.py", "--me"], state, "w9:p1", cwd=ROOT, CLAUDE_CODE_SESSION_ID="moved-id")
     # with no session id listed, as for an agent herdr gives none, the pane it started in still finds it
     unlisted = herdr(agent("teamwork-manager", 15, "idle", "w4"), agent("other-manager", 1, "idle", "w9"))
-    code_pane, out_pane = run([SCRIPTS / "print-scope-folder.py", "--me"], unlisted, "w4:p15", cwd=ROOT, CLAUDE_CODE_SESSION_ID="moved-id")
+    code_pane, out_pane = run([SCRIPTS.parent / "references/manager/scripts" / "print-scope-folder.py", "--me"], unlisted, "w4:p15", cwd=ROOT, CLAUDE_CODE_SESSION_ID="moved-id")
     return code == code_pane == 0 and out.strip() == out_pane.strip() == "teamwork", out + out_pane
 
 
@@ -276,7 +276,7 @@ def moved_rename():
     """A session whose pane moved after the read that found it is still renamed in herdr and in Claude Code."""
     home = tempfile.mkdtemp(prefix="fake-home-")
     state = herdr(dict(agent("teamwork-manager", 1, "idle", "w9"), agent_session={"value": "moved-id"}, move="w4:p15"))
-    code, out = run([SCRIPTS / "rename-session.py", "renamed-manager"], state, "w9:p1", seconds=60,
+    code, out = run([SCRIPTS.parent / "references/adapters/session-herdr/scripts" / "rename-session.py", "renamed-manager"], state, "w9:p1", seconds=60,
                     CLAUDE_CODE_SESSION_ID="moved-id", TEAMWORK_FAKE_HERDR_HOME=home, HOME=home)
     return code == 0 and out.strip() == "renamed to renamed-manager" and workspace_of(state, "renamed-manager") == "w4", out
 

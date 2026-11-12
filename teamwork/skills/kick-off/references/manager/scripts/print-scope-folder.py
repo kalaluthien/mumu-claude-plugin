@@ -8,7 +8,7 @@ import pathlib
 import re
 import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 import board_scope  # noqa: E402
 import session  # noqa: E402
 import team_names  # noqa: E402

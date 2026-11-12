@@ -21,35 +21,35 @@ CALLS = {
     "hooks/print-task-markdown.py": [["1"], ["--nodes", "body", "1"]],
     "skills/kick-off/scripts/add-worktree.py": [["name", "main", "branch"]],
     "skills/kick-off/scripts/answer-prompt.py": [["name", "1"]],
-    "skills/kick-off/scripts/backtest-estimate.py": [["--from-json", "body", "--as-of", "2026-01-01", "--tasks", "1,2"]],
+    "skills/kick-off/references/estimation/scripts/backtest-estimate.py": [["--from-json", "body", "--as-of", "2026-01-01", "--tasks", "1,2"]],
     "skills/kick-off/scripts/check-criteria.py": [["--task", "1", "body"], ["--cut-off"]],
     "skills/kick-off/scripts/close-session.py": [["name"]],
-    "skills/kick-off/scripts/estimate-task-time.py": [["--from-json", "body", "--gaps-json", "body", "--expect-restarts", "1", "--wait", "name=1", "--seed", "1", "url"]],
-    "skills/kick-off/scripts/list-additions.py": [["1"]],
-    "skills/kick-off/scripts/list-session-gaps.py": [["--from-folder", ".", "--json", "name"]],
+    "skills/kick-off/references/estimation/scripts/estimate-task-time.py": [["--from-json", "body", "--gaps-json", "body", "--expect-restarts", "1", "--wait", "name=1", "--seed", "1", "url"]],
+    "skills/kick-off/references/worker/scripts/list-additions.py": [["1"]],
+    "skills/kick-off/references/estimation/scripts/list-session-gaps.py": [["--from-folder", ".", "--json", "name"]],
     "skills/kick-off/scripts/list-sessions.py": [["--me"]],
-    "skills/kick-off/scripts/list-task-durations.py": [["--from-json", "body"]],
-    "skills/kick-off/scripts/print-scope-folder.py": [["name"], ["--me"]],
+    "skills/kick-off/references/estimation/scripts/list-task-durations.py": [["--from-json", "body"]],
+    "skills/kick-off/references/manager/scripts/print-scope-folder.py": [["name"], ["--me"]],
     "skills/kick-off/scripts/print-steering.py": [["key"]],
-    "skills/kick-off/scripts/recall-work.py": [["words", "--path", "file", "--before", "2026-01-01", "--top", "3"]],
+    "skills/kick-off/references/recall/scripts/recall-work.py": [["words", "--path", "file", "--before", "2026-01-01", "--top", "3"]],
     "skills/kick-off/scripts/remove-worktree.py": [["name", "other"]],
-    "skills/kick-off/scripts/rename-session.py": [["name"]],
+    "skills/kick-off/references/adapters/session-herdr/scripts/rename-session.py": [["name"]],
     "skills/kick-off/scripts/run-criteria.py": [["--timeout", "5", "--base", "--ref", "main", "1"], ["--pass", "1=body", "1"]],
-    "skills/kick-off/scripts/run-on-refs.py": [["true", "main", "main"]],
+    "skills/kick-off/references/worker-build/scripts/run-on-refs.py": [["true", "main", "main"]],
     "skills/kick-off/scripts/start-session.py": [["name", ".", "worker name", "--model", "m", "--effort", "low", "--allow", "Bash", "--steer", "key"]],
-    "skills/kick-off/scripts/tell-session.py": [["name", "body"]],
+    "skills/kick-off/references/adapters/message-herdr/scripts/tell-session.py": [["name", "body"]],
     "skills/kick-off/scripts/use-board.py": [
         ["read", "1", "--as", "worker", "--full"], ["comment", "1", "body", "--asks", "owner", "--option", "x", "--option", "y"], ["hold", "1", "name"], ["depend", "1", "2"], ["file", "Add thing", "body", "label", "--scope", "", "--depends", "1"],
         ["edit", "1", "diff", "DECIDED: x", "--base", "abc"], ["title", "1", "Add thing"], ["resolve", "1", "body", "--not-planned"],
         ["reopen", "1"], ["decide", "1", "body", "--by", "owner", "--one-way", "--supersedes", "url", "--answers", "url", "--holders", "name", "--live-runs", "1"], ["label", "1", "label", "--remove"]],
-    "skills/kick-off/scripts/use-landing.py": [["change", "branch", "Add thing", "body", "main"], ["merge", "1", "abc"]],
+    "skills/kick-off/references/adapters/landing-git/scripts/use-landing.py": [["change", "branch", "Add thing", "body", "main"], ["merge", "1", "abc"]],
 }
 
 
 def scripts_of(root):
-    """The scripts of the plugin that Claude Code or a session runs: those of hooks/, monitors/ and each skill's scripts/."""
+    """The scripts of the plugin that Claude Code or a session runs: those of hooks/, monitors/, each skill's scripts/ and each scripts/ under its references/."""
     found = []
-    for pattern in ("hooks/*.py", "monitors/*.py", "skills/*/scripts/*.py"):
+    for pattern in ("hooks/*.py", "monitors/*.py", "skills/*/scripts/*.py", "skills/*/references/**/scripts/*.py"):
         found += sorted(path.relative_to(root / PLUGIN).as_posix() for path in (root / PLUGIN).glob(pattern))
     return found
 

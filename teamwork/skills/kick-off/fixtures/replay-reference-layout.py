@@ -25,7 +25,6 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     problems = [] if "**Reference layout**" in (ROOT / "AGENTS.md").read_text() else ["AGENTS.md holds no Reference layout rule"]
-    problems += [f"{path} is outside the hierarchy" for path in ("teamwork/skills/kick-off/references/handoff-task.md", "teamwork/skills/kick-off/assets/handoff-worker-prompt.md") if not (ROOT / path).is_file()]
     copy = pathlib.Path(tempfile.mkdtemp(prefix="reference-layout-"))
     names = subprocess.run(["git", "-C", str(ROOT), "ls-files", "-co", "--exclude-standard"], capture_output=True, text=True, check=True).stdout.split("\n")
     for name in filter(None, names):

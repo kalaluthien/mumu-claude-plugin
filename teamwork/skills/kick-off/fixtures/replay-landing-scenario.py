@@ -110,23 +110,23 @@ def main(args):
     commit(repository, "b.txt", "moved on\n")  # the base moves after both branches start, so a merge must merge, not just copy the head
     os.chdir(repository)
     (work / "body.md").write_text("Closes #1\n")
-    filed = [run([SCRIPTS / "use-landing.py", "change", name, f"Probe {name}", work / "body.md"])[1].strip() for name in ("landing-probe-worker", "clash-probe-worker")]
+    filed = [run([SCRIPTS.parent / "references/adapters/landing-git/scripts" / "use-landing.py", "change", name, f"Probe {name}", work / "body.md"])[1].strip() for name in ("landing-probe-worker", "clash-probe-worker")]
     heads = {pull["number"]: pull["headRefOid"] for pull in landing_git.pulls("open") or []}
     step("change", [url.rsplit("/", 1)[-1] for url in filed] == ["1.json", "2.json"] and heads == {1: probe, 2: clash}, f"{filed} {heads}")
 
     base = git("rev-parse", "main")
-    code, out = run([SCRIPTS / "use-landing.py", "merge", "1", base])
-    named, _ = run([SCRIPTS / "use-landing.py", "merge", "1", "landing-probe-worker"])  # a branch name follows the tip, so it never stands for an approved head
+    code, out = run([SCRIPTS.parent / "references/adapters/landing-git/scripts" / "use-landing.py", "merge", "1", base])
+    named, _ = run([SCRIPTS.parent / "references/adapters/landing-git/scripts" / "use-landing.py", "merge", "1", "landing-probe-worker"])  # a branch name follows the tip, so it never stands for an approved head
     step("refuse-moved-head", code == named == 1 and git("rev-parse", "main") == base and landing_git.record(1)["state"] == "OPEN", f"exit {code}: {out}")
 
     (repository / "a.txt").write_text("dirty\n")
-    code, out = run([SCRIPTS / "use-landing.py", "merge", "1", probe])
+    code, out = run([SCRIPTS.parent / "references/adapters/landing-git/scripts" / "use-landing.py", "merge", "1", probe])
     step("refuse-dirty-checkout", code == 1 and (repository / "a.txt").read_text() == "dirty\n" and git("rev-parse", "main") == base
          and landing_git.record(1)["state"] == "OPEN", f"exit {code}: {out}")
     git("checkout", "--", "a.txt")
 
     git("config", "core.bare", "true")
-    code, out = run([SCRIPTS / "use-landing.py", "merge", "1", probe])
+    code, out = run([SCRIPTS.parent / "references/adapters/landing-git/scripts" / "use-landing.py", "merge", "1", probe])
     git("config", "core.bare", "false")
     step("refuse-bare-checkout", code == 1 and "core.bare" in out and git("rev-parse", "main") == base and landing_git.record(1)["state"] == "OPEN",
          f"exit {code}: {out}")
@@ -142,7 +142,7 @@ def main(args):
     first = printed(log, "idle landing-probe-worker")
     time.sleep(1.1)  # the records filed above carry this second, which must not count as the merge
     before, signal = iso_time.stamp(), team_signal.stamp()
-    code, out = run([SCRIPTS / "use-landing.py", "merge", "1", probe])
+    code, out = run([SCRIPTS.parent / "references/adapters/landing-git/scripts" / "use-landing.py", "merge", "1", probe])
     merged = out.strip()
     want = run(["git", "merge-tree", "--write-tree", base, probe])[1].split()[:1]
     step("merge", code == 0 and git("rev-parse", "main") == merged and git("rev-list", "--parents", "-1", merged).split()[1:] == [base]
@@ -159,7 +159,7 @@ def main(args):
     code, out = run([SCRIPTS / "remove-worktree.py", "landing-probe-worker"])
     step("remove", "landing-probe-worker: worktree, branch removed" in out and "fast-forward" not in out
          and not git("branch", "--list", "landing-probe-worker"), out)
-    racers = [subprocess.Popen([str(SCRIPTS / "use-landing.py"), "change", "clash-probe-worker", "Race", str(work / "body.md")], stdout=subprocess.PIPE, text=True)
+    racers = [subprocess.Popen([str(SCRIPTS.parent / "references/adapters/landing-git/scripts" / "use-landing.py"), "change", "clash-probe-worker", "Race", str(work / "body.md")], stdout=subprocess.PIPE, text=True)
               for _ in range(6)]
     urls = sorted(racer.communicate()[0].strip() for racer in racers)
     step("change-race", len(set(urls)) == 6 and len(landing_git.records()) == 8, f"{urls}")

@@ -93,8 +93,8 @@ def case_whole(work, repository, origin, environment):
     sh("git", "add", "-A", cwd=tree, environment=environment)
     sh("git", "commit", "-q", "-m", "work", cwd=tree, environment=environment)
     head = sh("git", "rev-parse", "HEAD", cwd=tree, environment=environment).stdout.strip()
-    use(environment, tree, "use-landing.py", "change", "probe-worker", "Probe change", replay_probe.write_text(work, "change.md", "Probe change. Closes #1.\n"))
-    merged = use(environment, tree, "use-landing.py", "merge", "1", head).stdout.strip()
+    use(environment, tree, "../references/adapters/landing-git/scripts/use-landing.py", "change", "probe-worker", "Probe change", replay_probe.write_text(work, "change.md", "Probe change. Closes #1.\n"))
+    merged = use(environment, tree, "../references/adapters/landing-git/scripts/use-landing.py", "merge", "1", head).stdout.strip()
     if sh("git", "rev-parse", "refs/heads/main", cwd=origin, environment=environment).stdout.strip() != merged:
         return replay_probe.fail("the merge did not reach origin's main")
     use(environment, repository, "use-board.py", "resolve", "1", replay_probe.write_text(work, "done.md", "Probe part done.\n"))
@@ -151,7 +151,7 @@ def case_layout(work, repository, origin, environment):
         shown = {row["number"] for row in json.loads(pane.stdout)} if pane.returncode == 0 else None
         if shown != wanted:
             return replay_probe.fail(f"the pane of {project} shows {shown}, wanted {wanted}: {pane.stderr[-200:]}")
-    folders = [use(environment, repository, "print-scope-folder.py", name).stdout for name in ("probe-manager", "nofolder-manager")]
+    folders = [use(environment, repository, "../references/manager/scripts/print-scope-folder.py", name).stdout for name in ("probe-manager", "nofolder-manager")]
     if folders != ["probe\n", "\n"]:
         return replay_probe.fail(f"print-scope-folder.py gave {folders}")
     return 0

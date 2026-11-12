@@ -10,7 +10,7 @@ How a manager adds to the owner's words before passing them on, so a worker gets
 - **judge note**: a `Judge note:` paragraph in the routing `DECIDED:`, which the judge reads among the binding decisions and a worker's `read --as worker` omits: the cases to try against each outcome, at most 120 words.
 - **guess**: an outcome or edge the words leave open and you fill in, marked `(guess)` for the worker to confirm.
 
-Task properties, for the routing decision, scoped as [protocol.md](protocol.md)'s **Scope the path** says:
+Task properties, for the routing decision:
 
 | the words or work are | add |
 | --- | --- |
@@ -24,14 +24,14 @@ Task properties, for the routing decision, scoped as [protocol.md](protocol.md)'
 | a change to a playbook or rule | every file that states the rule |
 | a choice the words do not settle | `Free:` the choice the worker makes unasked; `Ask first:` the choice that is the owner's |
 
-Steering lines, for the worker prompt: take a row only when the task is that case. [print-steering.py](../scripts/print-steering.py) with no key prints each key with its case; `start` takes the keys that fit as `--steer <key>`, and a `tell` to a live worker carries the lines of `print-steering.py <key>...`. The lines sit in [handoff-worker-prompt.md](../assets/handoff-worker-prompt.md), which no manager reads.
+Steering lines, for the worker prompt: a row of [handoff-worker-prompt.md](../assets/handoff-worker-prompt.md), which no manager reads, taken by its key only when the task is that case, as [manager.md](manager.md) step 3 **Route** says.
 
 ## Steps
 
 1. Read the words for the purpose, the implied outcomes, the open edges and the kind of work, scoping each outcome as [protocol.md](protocol.md)'s **Scope the path** says.
-2. Take the rows of the first table that fit; take the situation rows only where the words leave the case open.
+2. Take the rows of the table that fit.
 3. Write the routing `DECIDED:` with its outcomes, a `Why:` line, the guesses, the properties the rows add and the `Judge note:`.
-4. Pick the keys of the steering rows that fit; with none, send the kick-off arguments alone. `print-steering.py` refuses lines over 100 words, so with the owner's added words, count those by `wc -w` after deleting their urls and quoted words.
+4. Count the owner's added words by `wc -w`, their urls and quoted words deleted, since `print-steering.py` refuses a prompt over the cap.
 
 ## Rules
 

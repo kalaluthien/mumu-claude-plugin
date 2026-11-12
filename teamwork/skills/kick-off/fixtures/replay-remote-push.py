@@ -53,7 +53,7 @@ def main(args):
     outputs = []
     for bridge in (True, False):
         record(bridge)
-        outputs.append(subprocess.run([sys.executable, str(HERE.parent / "scripts" / "print-remote-control.py")], capture_output=True, text=True,
+        outputs.append(subprocess.run([sys.executable, str(HERE.parent / "references/adapters/message-claude/scripts" / "print-remote-control.py")], capture_output=True, text=True,
                                       env={**os.environ, "CLAUDE_CODE_SESSION_ID": "s1"}).stdout)
     step("script-push", outputs[0].startswith("active") and outputs[1].startswith("inactive"), outputs)
     return 1 if failed else 0

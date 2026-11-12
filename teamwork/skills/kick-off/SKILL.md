@@ -18,5 +18,5 @@ Arguments: $ARGUMENTS
 | --- | --- | --- |
 | `worker <name> manager <manager>`, then a url or the owner's words | worker | [references/worker.md](references/worker.md) |
 | `sentinel <name> manager <manager>`, then a duty's words or url | sentinel | [references/sentinel.md](references/sentinel.md) |
-| `succeed <name>` | manager | [manager-succession.md](references/manager-succession.md) |
+| `succeed <name>` | manager | [references/manager-succession.md](references/manager-succession.md) |
 | anything else | manager | [references/manager.md](references/manager.md) |

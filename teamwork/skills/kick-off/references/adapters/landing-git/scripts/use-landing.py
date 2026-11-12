@@ -8,7 +8,7 @@ usage: use-landing.py <operation> <args>
 import pathlib
 import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[6] / "lib"))
 import data_folder  # noqa: E402
 import landing_git  # noqa: E402
 

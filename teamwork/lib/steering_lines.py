@@ -3,7 +3,7 @@ import pathlib
 import re
 
 TABLE = pathlib.Path(__file__).resolve().parents[1] / "skills" / "kick-off" / "assets" / "handoff-worker-prompt.md"
-WORD_CAP = 100  # the cap on a worker prompt that handoff-task.md states; urls do not count
+WORD_CAP = 100  # the cap on a worker prompt that manager-handoff-task.md states; urls do not count
 URL = re.compile(r"\S+://\S+")
 
 

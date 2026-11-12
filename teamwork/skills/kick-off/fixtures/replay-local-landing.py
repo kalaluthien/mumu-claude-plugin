@@ -47,7 +47,7 @@ def worker(work, repository, environment, name="b.txt"):
     sh("git", "add", "-A", cwd=tree, environment=environment)
     sh("git", "commit", "-q", "-m", "work", cwd=tree, environment=environment)
     (work / "body.md").write_text("Probe change. Closes #1.\n")
-    sh(sys.executable, SCRIPTS / "use-landing.py", "change", "probe-worker", "Probe change", work / "body.md", cwd=tree, environment=environment)
+    sh(sys.executable, SCRIPTS.parent / "references/adapters/landing-git/scripts" / "use-landing.py", "change", "probe-worker", "Probe change", work / "body.md", cwd=tree, environment=environment)
     return tree, sh("git", "rev-parse", "HEAD", cwd=tree, environment=environment).stdout.strip()
 
 
@@ -61,7 +61,7 @@ def change_state(repository, environment):
 
 
 def merged(work, repository, origin, environment, tree, head):
-    return sh(sys.executable, SCRIPTS / "use-landing.py", "merge", "1", head, cwd=tree, environment=environment, check=False)
+    return sh(sys.executable, SCRIPTS.parent / "references/adapters/landing-git/scripts" / "use-landing.py", "merge", "1", head, cwd=tree, environment=environment, check=False)
 
 
 def case_pushes():
@@ -127,9 +127,9 @@ def case_swap_retired():
     (new / "c.txt").write_text("more\n")
     sh("git", "add", "-A", cwd=new, environment=environment)
     sh("git", "commit", "-q", "-m", "more", cwd=new, environment=environment)
-    sh(sys.executable, SCRIPTS / "use-landing.py", "change", "probe-opus-worker", "Successor change", work / "body.md", cwd=new, environment=environment)
+    sh(sys.executable, SCRIPTS.parent / "references/adapters/landing-git/scripts" / "use-landing.py", "change", "probe-opus-worker", "Successor change", work / "body.md", cwd=new, environment=environment)
     head = rev(new, "HEAD", environment)
-    run = sh(sys.executable, SCRIPTS / "use-landing.py", "merge", "2", head, cwd=new, environment=environment, check=False)
+    run = sh(sys.executable, SCRIPTS.parent / "references/adapters/landing-git/scripts" / "use-landing.py", "merge", "2", head, cwd=new, environment=environment, check=False)
     if run.returncode:
         return replay_probe.fail(f"merge exited {run.returncode}: {run.stderr.strip()}")
     sh(sys.executable, SCRIPTS / "remove-worktree.py", "probe-worker", "probe-opus-worker", cwd=repository, environment=environment, check=False)
