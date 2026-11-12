@@ -202,6 +202,7 @@ def binding_cases():
 def heartbeat(numbers):
     """The manager's heartbeat decision lines on NUMBERS."""
     import team_gaps
+    team_gaps.sessions = lambda: ([{"name": "probe-manager"}], {})
     team_gaps.tabs, team_gaps.crowding, team_gaps.members = (lambda workspace: []), (lambda me, listed: []), (lambda me, listed: [])
     found = [issue for issue in board.issues("open") if issue["number"] in numbers]
     data = {"found": found, "everything": found, "prs": [], "outside": [], "feed": [], "links": []}

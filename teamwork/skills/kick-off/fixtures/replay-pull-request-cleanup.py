@@ -50,7 +50,7 @@ def check():
     code = ("import sys; sys.path.insert(0, sys.argv[1]); import landing, team_gaps; "
             "pulls = landing.pulls('closed', limit=team_gaps.PULL_LIMIT); "
             "listed = [{'name': sys.argv[2], 'pane_id': 'w1:p2', 'agent_status': 'idle'}]; "
-            "print('\\n'.join(team_gaps.team_lines([sys.argv[2]], listed, {'prs': pulls, 'everything': []}, {}, {})))")
+            "print('\\n'.join(team_gaps.team_lines([sys.argv[2]], listed, {'prs': pulls, 'everything': []}, {}, {}, team_gaps.Reread({}))))")
     lines = sh(sys.executable, "-c", code, LIB, branch, cwd=repository, environment=environment).stdout
     if f"merged #{number} by {branch}: it holds nothing open" not in lines:
         return f"no merged line for pull request #{number} of {branch}: {lines.strip()}"

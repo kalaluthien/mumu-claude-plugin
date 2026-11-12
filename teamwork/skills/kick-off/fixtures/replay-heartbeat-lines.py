@@ -127,7 +127,7 @@ def run_monitor(until):
 
 def monitor_cases():
     prompt = "Do you want to proceed?\n❯ 1. Yes\n  2. No\nEsc to cancel"
-    herdr(agent("x-manager", 1, "working"), agent("flap-worker", 2, "idle", flip=True), agent("again-worker", 7, "blocked", screen=prompt, flip="blocked"), agent("probe-end-manager-1", 3, "idle"),
+    herdr(agent("x-manager", 1, "working"), agent("flap-worker", 2, "idle", flip=True, period=4), agent("again-worker", 7, "blocked", screen=prompt, flip="blocked", period=4), agent("probe-end-manager-1", 3, "idle"),
           agent("probe-prompt", 4, "blocked", screen=prompt), agent("empty-worker", 5, "blocked", screen="❯ \n\n  Update installed · restart to apply"),
           agent("prompt-worker", 6, "blocked", screen=prompt))
     file("Probe a held task", holder="flap-worker")
@@ -154,6 +154,7 @@ def line_cases():
     listed = herdr(agent("x-manager", 1, "working"), agent("m-worker", 2, "idle"))
     out = lines(listed, [busy], pulls)
     step("merged-later", not about(out, "merged") and len(about(out, "idle m-worker")) == 1, "\n".join(out))
+    use("hold", busy)  # the worker's task is done, which the reread of the board must show
     out = lines(listed, [], pulls)
     stuck = lines(herdr(agent("x-manager", 1, "working"), agent("m-worker", 2, "blocked", screen="\u276f \n\n  Update installed")), [], pulls)  # no prompt on a blocked pane hides nothing
     step("merged-nothing-open", len(about(out, "merged #5 by m-worker: it holds nothing open")) == 1 and not about(out, "idle m-worker") and len(about(stuck, "merged #5")) == 1,
