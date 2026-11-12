@@ -1,0 +1,27 @@
+# HTML pattern survey
+
+Public patterns for a person and an agent working on one page, each worded as its source states it, with the words quoted, and either the scenario of `run-page-scenarios.cjs` that plays it against a live sentinel or why it does not fit a page served from a file to one session.
+
+| pattern | source | quote | scenario | why it does not fit |
+| --- | --- | --- | --- | --- |
+| a comment shown at the part of the page it was added to, viewed and replied to there | https://help.figma.com/hc/en-us/articles/360039825314 | they're displayed on the canvas or board in the regions or locations they were added to. You can view and reply to them | thread |  |
+| a server that reloads the open page when its file changes | https://github.com/tapio/live-server | This is a little development server with live reload capability | thread |  |
+| a run that ends in a stated success or failure | https://docs.ag-ui.com/concepts/events | concludes with either a RunFinished event (success) or a RunError event (failure) | status |  |
+| application state kept across an update that a full reload would lose | https://webpack.js.org/concepts/hot-module-replacement/ | Retain application state which is lost during a full reload | draft |  |
+| one operation on several parts of the page at once | https://tldraw.dev/starter-kits/agent | Use higher-level operations on multiple shapes at once | parts |  |
+| the agent requests more information from the person during the interaction | https://modelcontextprotocol.io/specification/draft/client/elicitation | request additional information from users through the client during interactions | ask |  |
+| a run that pauses for a person and resumes | https://docs.ag-ui.com/concepts/interrupts | Human-in-the-loop pauses and resumes | ask |  |
+| a suggested change the person can apply | https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/incorporating-feedback-in-your-pull-request | Other people can suggest specific changes to your pull request. You can apply these suggested changes | proposal |  |
+| previous versions the person can restore | https://help.figma.com/hc/en-us/articles/360038006754 | Restore previous versions to edit layers and export assets | undo |  |
+| the agent's permissions on other systems kept to the minimum necessary | https://genai.owasp.org/llmrisk/llm062025-excessive-agency/ | Limit the permissions that LLM extensions are granted to other systems to the minimum necessary in order to limit the scope of undesirable actions | outside |  |
+| a person's text treated as text by a safe API | https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html | Prefer safe APIs that treat data as text | markup |  |
+| a comment reaches the agent by mentioning it | https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/make-changes-to-an-existing-pr | You can mention @copilot in a comment on any pull request to ask Copilot to make changes | guest |  |
+| the running page's errors given to the agent | https://nextjs.org/docs/app/guides/mcp | It gives coding agents the running app's view of errors, routes, logs, and compilation issues | repair |  |
+| a request's Origin header checked against the target origin | https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html | If the Origin header is present, verify that its value matches the target origin | origin |  |
+| each answer carries the id of the request it answers | https://www.jsonrpc.org/specification | It MUST be the same as the value of the id member in the Request Object | order |  |
+| the person clicks a part of the interface and describes the change | https://cursor.com/blog/browser-visual-editor | click on anything in your interface and describe what you want to change | selection |  |
+| the answer's text delivered in chunks as it becomes available | https://docs.ag-ui.com/concepts/events | TextMessageContent events that deliver chunks of text as they become available |  | the sentinel changes the page by saved edits of its file, so the open page shows each saved version; streaming would need the session's text as it is produced, which reaches no file before the edit is saved |
+| state sent as incremental patches | https://docs.ag-ui.com/concepts/events | incremental updates to the agent’s state in the form of JSON Patch operations |  | the page file is the state and reloads whole in under a second; a patch protocol would add a second copy of the state to keep in step |
+| the agent's messages held to a catalog the client understands | https://a2ui.org/specification/v0.9.1-a2ui/ | The server must generate messages that conform to the catalog understood by the client |  | the sentinel writes the page's own HTML or data block, so a catalog adds a renderer between them for no gain on one page |
+| the agent's UI rendered inside a chat host | https://modelcontextprotocol.io/extensions/apps/overview | Interactive UI applications that render inside MCP hosts like Claude Desktop |  | there is no chat host: the page is opened alone in a browser, and the server's token and origin check take the host's part |
+| an agent that reads and changes a canvas | https://tldraw.dev/starter-kits/agent | build an AI agent that can interpret and manipulate the tldraw canvas |  | one writer at a time on one file: a reload during a drag would lose it, and the sentinel answers in seconds, not frames |

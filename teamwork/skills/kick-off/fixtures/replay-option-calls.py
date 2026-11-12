@@ -23,6 +23,8 @@ CALLS = {
     "skills/kick-off/scripts/answer-prompt.py": [["name", "1"]],
     "skills/kick-off/references/estimation/scripts/backtest-estimate.py": [["--from-json", "body", "--as-of", "2026-01-01", "--tasks", "1,2"]],
     "skills/kick-off/scripts/check-criteria.py": [["--task", "1", "body"], ["--cut-off"]],
+    "skills/kick-off/references/sentinel-html/scripts/check-evidence.py": [["--sources"]],
+    "skills/kick-off/references/sentinel-html/scripts/check-html-contract.py": [["body"], ["fixtures"]],
     "skills/kick-off/scripts/close-session.py": [["name"]],
     "skills/kick-off/references/estimation/scripts/estimate-task-time.py": [["--from-json", "body", "--gaps-json", "body", "--expect-restarts", "1", "--wait", "name=1", "--seed", "1", "url"]],
     "skills/kick-off/references/worker/scripts/list-additions.py": [["1"]],
@@ -36,6 +38,7 @@ CALLS = {
     "skills/kick-off/references/adapters/session-herdr/scripts/rename-session.py": [["name"]],
     "skills/kick-off/scripts/run-criteria.py": [["--timeout", "5", "--base", "--ref", "main", "1"], ["--pass", "1=body", "1"]],
     "skills/kick-off/references/worker-build/scripts/run-on-refs.py": [["true", "main", "main"]],
+    "skills/kick-off/references/sentinel-html/scripts/serve-html-page.py": [["body", "--port", "1", "--prompt", "name"]],
     "skills/kick-off/scripts/start-session.py": [["name", ".", "worker name", "--model", "m", "--effort", "low", "--allow", "Bash", "--steer", "key"]],
     "skills/kick-off/references/adapters/message-herdr/scripts/tell-session.py": [["name", "body"]],
     "skills/kick-off/scripts/use-board.py": [

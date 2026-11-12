@@ -1,0 +1,9 @@
+PASS thread (13.8 s): renamed, linked, replied under comment 1, seed thread kept, the node's badge "💬 2" and the answer drawn under the comment; the panel said "Sent; waiting for the sentinel." while waiting
+PASS status (16.8 s): waiting at once, answered at 10:11 by the server's clock, working and possibly stopped shown, typing kept across a redraw, a quiet note between a comment and its answer left waiting then answered, a newer quiet guest note shown as noted
+PASS draft (6.1 s): draft, open thread and scroll (264) kept across reloads
+PASS parts (13.9 s): a change to two parts applied at once, one reply under comment 4 and none in the other part's thread
+PASS ask (35.8 s): asked, then built "Ship 31ed22" after the button
+PASS proposal (49.1 s): proposal 9.1 previewed without the node, kept off the page until Accept, then applied with its thread kept, after a first one was rejected and left the page as it was
+PASS undo (16.1 s): undo by the page's button put back "Build 8be76d" after the sentinel renamed the node, every thread kept
+PASS contract: the server found no break in the page file after the scenarios
+PASS

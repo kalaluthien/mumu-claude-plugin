@@ -1,0 +1,62 @@
+[
+ {
+  "method": "GET",
+  "route": "",
+  "sent": null,
+  "status": 200,
+  "body": "<!doctype html><html><body><h1 id=\"intro\">Intro</h1><p>v2</p>\n<script type=\"application/json\" id=\"page-threads\">{\"threads\": {\"intro\": [{\"id\": 1, \"by\": \"owner\", \"text\": \"propose a new intro\", \"replies_to\": null, \"at\": \"2026-01-01T00:00:00\"}, {\"id\": \"1.1\", \"by\": \"sentinel\", \"text\": \"A new intro\", \"replies_to\": 1, \"proposal\": true}]}}</script>\n<script>window.pageThreadsStamps = {\n \"1.1\": \"2026-01-01T00:00:00\"\n};</script></body></html>\n"
+ },
+ {
+  "method": "GET",
+  "route": "version",
+  "sent": null,
+  "status": 200,
+  "body": "0"
+ },
+ {
+  "method": "POST",
+  "route": "comment",
+  "sent": {
+   "anchor": "intro",
+   "text": "hello"
+  },
+  "status": 202,
+  "body": "3"
+ },
+ {
+  "method": "POST",
+  "route": "decide",
+  "sent": {
+   "reply": "1.1",
+   "verdict": "accept"
+  },
+  "status": 409,
+  "body": "the page changed after proposal 1.1 was written; ask for a new one"
+ },
+ {
+  "method": "POST",
+  "route": "undo",
+  "sent": {},
+  "status": 202,
+  "body": "4"
+ },
+ {
+  "method": "POST",
+  "route": "error",
+  "sent": {
+   "text": "drawn badly"
+  },
+  "status": 202,
+  "body": "5"
+ },
+ {
+  "method": "POST",
+  "route": "comment",
+  "sent": {
+   "anchor": "in tro",
+   "text": "hello"
+  },
+  "status": 400,
+  "body": ""
+ }
+]

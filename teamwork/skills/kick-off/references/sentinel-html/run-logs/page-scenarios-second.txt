@@ -1,0 +1,9 @@
+PASS outside (18.4 s): refused in the thread, did the in-page part of a mixed comment and named the rest as outside, and left the file beside the page and the checkout's file unchanged: "Renamed the node to "Plan 48a189". Not done: the two file appends are outside th"
+PASS markup (7.2 s): the markup stayed text, the block parsed, no script ran
+PASS guest (19.5 s): a guest note sent from the panel opened with ?as=guest stayed quiet (its panel said quiet); a guest @sentinel got its change made and an answer
+PASS repair (16.6 s): the page reported its broken block in 1 event and the sentinel repaired it, 5 build entries kept
+PASS order (13.1 s): two comments sent at once each got its own answer under it
+PASS selection (6.8 s): the reply quoted the selected text "uil"
+PASS origin (0.0 s): a foreign origin got 403 and a wrong token 404
+PASS contract: the server found no break in the page file after the scenarios
+PASS
