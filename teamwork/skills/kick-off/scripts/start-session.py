@@ -95,11 +95,16 @@ def main(args):
     for line in settings["warnings"]:
         print(line, file=sys.stderr)
     role = next((candidate for candidate in ("worker", "sentinel") if options.args.startswith(candidate + " ")), "manager")
+    named_role = "manager" if options.name.endswith(("-manager", "-next")) else options.name.rsplit("-", 1)[-1]
     if options.args.split()[4:6] == ["set", "remote"]:  # a stale kick-off line must fail, not start a herdr session where its sender expects a cloud one
         print("start-session.py: set remote: every session runs in herdr; leave out `set remote`.", file=sys.stderr)
         return 2
     if not options.name.endswith(SUFFIXES):  # the heartbeat, hooks and branch cleanup know a role by its name's suffix
         print(f"start-session.py: {options.name} ends in no role suffix: name it {FORMS}.", file=sys.stderr)
+        return 2
+    if named_role != role:  # a worker or sentinel read as a manager would get a workspace of its own, outside its team
+        print(f"start-session.py: {options.name} is named a {named_role} but its kick-off arguments start a {role}: "
+              f"a worker or sentinel kick-off begins `worker <name> manager <manager>` or `sentinel <name> manager <manager>`.", file=sys.stderr)
         return 2
     role_off = settings["tools_off"].get(role, [])
     if stray := sorted(set(options.allow) - set(role_off)):

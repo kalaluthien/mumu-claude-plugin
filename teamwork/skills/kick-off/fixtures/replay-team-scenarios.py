@@ -207,6 +207,19 @@ def worker_placement():
     return ok, "\n".join(out for _, out in outs + refused)
 
 
+def worker_workspace():
+    """A name ending in one role whose kick-off arguments name another is refused with nothing opened, since a worker or sentinel
+    read as a manager would get a workspace of its own outside its team."""
+    state = herdr(*TEAM)
+    before, tabs_before = workspaces(state), len(json.loads(state.read_text())["tabs"])
+    refused = [start(state, "w1:p1", "stray-task-worker", "manager stray-task-worker"),
+               start(state, "w1:p1", "stray-duty-sentinel", "teamwork-manager"),
+               start(state, "w1:p1", "stray-other-manager", "worker stray-other-manager manager teamwork-manager x")]
+    ok = all(code == 2 and "kick-off arguments start a" in out for code, out in refused) \
+        and workspaces(state) == before and len(json.loads(state.read_text())["tabs"]) == tabs_before
+    return ok, "\n".join(out for _, out in refused)
+
+
 def role_names():
     """A session starts only under a name ending in a role suffix, however long its stem; any other name is refused with the allowed forms
     named and nothing opened, since the heartbeat lists a session by that suffix."""
@@ -301,6 +314,7 @@ SCENARIOS = {
     "monitor-restart": monitor_restart,
     "two-managers": two_managers,
     "worker-placement": worker_placement,
+    "worker-workspace": worker_workspace,
     "role-names": role_names,
     "manager-placement": manager_placement,
     "moved-me": moved_me,
