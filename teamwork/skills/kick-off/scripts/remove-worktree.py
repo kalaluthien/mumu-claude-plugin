@@ -3,6 +3,7 @@
 kept, never forced; a branch with unmerged commits is kept; the remote branch is deleted only under a worker branch name.
 
 usage: remove-worktree.py <name>..."""
+import os
 import pathlib
 import re
 import subprocess
@@ -69,6 +70,7 @@ def main(args):
     if not common:
         sys.exit("remove-worktree.py: run it inside the checkout.")
     root = pathlib.Path(common).parent  # the main checkout, wherever in it this runs
+    os.chdir(root)  # a worker removing its own worktree would otherwise read the landing from a deleted folder and keep its merged branch
     for name in args:
         print(remove(name, root))
     if not git("remote", "get-url", "origin", cwd=root).returncode:  # with no remote, a local merge already moved the checkout
