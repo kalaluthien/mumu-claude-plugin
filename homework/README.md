@@ -30,7 +30,7 @@ The hook keeps the count of memory files changed since the last dream, and the l
 
 ## Where a dream runs
 
-In herdr, a dream that a worker or sentinel session is asked for, or one without the `Workflow` tool, runs in a Dreamer, a new tab named `<topic>-dreamer`, which `skills/wrap-up/scripts/start-dreamer.py` opens. The Dreamer asks you its questions there, reports, then runs `skills/wrap-up/scripts/close-dreamer.py`, which closes its own tab once the turn ends; run from any pane not named `*-dreamer`, that script closes nothing.
+In herdr, a dream without the `Workflow` tool runs in a Dreamer, a new tab named `<topic>-dreamer`, which `skills/wrap-up/scripts/start-dreamer.py` opens. The Dreamer asks you its questions there, reports, then runs `skills/wrap-up/scripts/close-dreamer.py`, which closes its own tab once the turn ends; run from any pane not named `*-dreamer`, that script closes nothing.
 
 ## What a wrap-up writes
 
