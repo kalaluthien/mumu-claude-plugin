@@ -101,7 +101,7 @@ def main(args):
     for short_id, items in said.items():
         habits = [{"kind": kind, "quote": quote, "line": 1, "before": "the agent used a label", "preference": preference}
                   for kind, quote, preference in items]
-        json.dump({"habits": habits}, open(os.path.join(facets, f"{short_id}-0000-0000-0000-000000000000.json"), "w"))
+        json.dump({"friction": [], "habits": habits}, open(os.path.join(facets, f"{short_id}-0000-0000-0000-000000000000.json"), "w"))
     run(HABITS, "habits", DATA)
     path = os.path.join(DATA, "habits.jsonl")
     items = [json.loads(line) for line in open(path)] if os.path.exists(path) else []

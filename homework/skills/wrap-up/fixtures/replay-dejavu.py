@@ -179,7 +179,7 @@ def main(args):
     before = snapshot()
     os.makedirs(os.path.join(DATA, "facets"), exist_ok=True)
     for session_id in digests:
-        json.dump({"friction": []}, open(os.path.join(DATA, "facets", f"{session_id}.json"), "w"))
+        json.dump({"friction": [], "habits": []}, open(os.path.join(DATA, "facets", f"{session_id}.json"), "w"))
     last = os.path.join(DATA, "last-map")
     os.utime(last, (NOW - 23 * 3600, NOW - 23 * 3600)) if os.path.exists(last) else None
     not_due = run(SESSIONS, "due", DATA).strip() == "not due"
@@ -196,7 +196,7 @@ def main(args):
     os.makedirs(facets, exist_ok=True)
     for i in range(3):
         session_id = f"aaaa000{i}-0000-0000-0000-000000000000"
-        json.dump({"friction": [{"quote": f"why did you stop {i}", "what_went_wrong": "stopped to ask", "line": 1}]},
+        json.dump({"friction": [{"quote": f"why did you stop {i}", "what_went_wrong": "stopped to ask", "line": 1}], "habits": []},
                   open(os.path.join(facets, f"{session_id}.json"), "w"))
     out = run(REPEATS, "mistakes", DATA)
     lines = out.splitlines()
