@@ -2,17 +2,17 @@
 """Send a worker's `cd` into the live checkout through route-event.py from a worktree of a temporary repository, run the command its refusal offers, and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
 
 usage: replay-cd-refusal.py [--case <name>]   (no argument: every one in turn)
-- git: `cd <live>/teamwork && git ls-files` is denied with a command that has no cd and prints what the cd command printed
-- path: `cd <live>/teamwork && cat note.txt | head -1 && ls .` is denied with a command that has no cd and prints what the cd command printed
-- subshell: `(cd <live>/teamwork && cat note.txt)` is denied with a command that has no cd and prints what the cd command printed
-- listing: `cd <live>/teamwork && ls`, then a `sed -n`, a `cut` and a `head -n 1` of a file, and a `grep -m 1`, each denied with such a command
-- script: `cd <live>/teamwork && ls scripts; python3 scripts/read-board.py 3 --as worker 2>&1 | head -5` is denied with such a command
-- direct: `cd <live>/teamwork && git log --oneline -1 && grep -c the note.txt; scripts/status.sh status 2>&1 | tail -1` is denied with such a command
-- again: `cd <live>/teamwork && cat note.txt && cd /tmp && echo done` is denied with such a command that keeps the second cd
+- git: `cd <live>/teamwork && git ls-files` runs as a command that has no cd and prints what the cd command printed
+- path: `cd <live>/teamwork && cat note.txt | head -1 && ls .` runs as a command that has no cd and prints what the cd command printed
+- subshell: `(cd <live>/teamwork && cat note.txt)` runs as a command that has no cd and prints what the cd command printed
+- listing: `cd <live>/teamwork && ls`, then a `sed -n`, a `cut` and a `head -n 1` of a file, and a `grep -m 1`, each run as such a command
+- script: `cd <live>/teamwork && ls scripts; python3 scripts/read-board.py 3 --as worker 2>&1 | head -5` runs as such a command
+- direct: `cd <live>/teamwork && git log --oneline -1 && grep -c the note.txt; scripts/status.sh status 2>&1 | tail -1` runs as such a command
+- again: `cd <live>/teamwork && cat note.txt && cd /tmp && echo done` runs as such a command that keeps the second cd
 - chain: from the worktree, a second cd is read from the folder the first reached when `&&`, `;` or `(` joins them, and from the worktree when a pipe, `||` or a closed subshell does, so each of CHAINS is denied or passes as it says, a redirect on the first cd included
 - quoted: a `cd <live>/teamwork` inside a quoted argument, a heredoc body or a comment passes, and one in a `$(...)`, or run after a heredoc or a quoted `&&`, is denied, each of QUOTED as it says
 - real: each cd call of the transcripts under ~/.claude/projects that an independent reading calls a read gets a rewrite, and none whose later commands write gets one; passes when there are no transcripts
-- writes: `cd <live>/teamwork && <command>` is denied with no command offered for each command of WRITES, a write, a cd again, or a command whose effect the rewrite cannot know"""
+- writes: `cd <live>/teamwork && <command>` is denied, never run without its cd, for each command of WRITES, a write, a cd again, or a command whose effect the rewrite cannot know"""
 import glob
 import importlib.util
 import json
@@ -34,6 +34,7 @@ COMMANDS = {"git": "cd {live}/teamwork && git ls-files",
             "script": "cd {live}/teamwork && ls scripts; python3 scripts/read-board.py 3 --as worker 2>&1 | head -5",
             "direct": "cd {live}/teamwork && git log --oneline -1 && grep -c the note.txt; scripts/status.sh status 2>&1 | tail -1",
             "again": "cd {live}/teamwork && cat note.txt && cd /tmp && echo done"}
+REFUSED = ("script", "direct")  # a script of the checkout may write beside itself, so its rewrite is only offered
 WRITES = ("cp note.txt copy.txt", "git add . && git commit -m x", "git log && cd .. && git log", "cat note.txt; cd ..; git log", "sed -i '' s/a/b/ note.txt",
           "git log abc#1 -- note.txt", "rm -rf sub", "cat note.txt | tee new.txt", "sort -o out note.txt", "grep -f note.txt note.txt", "git log --output=out.txt",
           "cat note.txt > copy.txt", "cat note.txt >> copy.txt", "echo x > new.txt", "touch new.txt", "mkdir sub2", "git commit -qm x", "git checkout -b x", "git fetch",
@@ -83,21 +84,25 @@ def setup():
 def hook_reason(stubs, worktree, command):
     event = {"hook_event_name": "PreToolUse", "cwd": str(worktree), "tool_input": {"command": command}}
     hook = replay_probe.route_event(ROUTE, event, stubs).get("hookSpecificOutput", {})
+    if hook.get("permissionDecision") == "allow" and hook.get("updatedInput"):  # the call ran rewritten, which reads as the command a refusal once offered
+        return f"ran instead: `{hook['updatedInput']['command']}`"
     return hook.get("permissionDecision") == "deny" and hook.get("permissionDecisionReason", "")
 
 
 def offered(reason):
-    found = re.search(r"run this instead: `([^`]+)`", reason or "")
+    found = re.search(r"(?:ran instead|run this instead): `([^`]+)`", reason or "")
     return found and found[1]
 
 
-def check_read(stubs, live, worktree, command):
+def check_read(stubs, live, worktree, command, refused=False):
     """None when the refusal of COMMAND offers a command with no cd of the live folder that prints what COMMAND printed, else the failure."""
     reason = hook_reason(stubs, worktree, command)
     if not reason:
-        return "the hook did not deny the cd"
+        return "the hook neither ran the call without its cd nor denied it"
+    if refused != reason.startswith("This cd"):
+        return f"the call was {'run without its cd' if refused else 'refused'}, which a {'script or program' if refused else 'plain read'} must not be: {reason[:120]!r}"
     if not (rewrite := offered(reason)):
-        return f"the refusal names no full command: {reason!r}"
+        return f"the call was not run without its cd: {reason!r}"
     if re.search(rf"(^|[;&|({{]|\s)(cd|pushd)\s+{re.escape(str(live))}", rewrite):
         return f"the offered command still has a cd: {rewrite}"
     want = subprocess.run(["bash", "-c", command], cwd=worktree, capture_output=True, text=True)
@@ -193,10 +198,10 @@ def main(args):
         problem = next((f"{command!r} " + ("was not denied" if denied else "was denied") for command, denied in ((text.format(live=live), denied) for text, denied in QUOTED)
                         if bool(hook_reason(stubs, worktree, command)) != denied), None)
     elif args[1] == "writes":
-        problem = next((f"{risky!r} " + ("was not denied" if not said else "was offered a rewrite: " + said[said.index("run this instead"):][:200])
-                        for risky in WRITES if not (said := hook_reason(stubs, worktree, f"cd {live}/teamwork && {risky.replace('LIVE', str(live))}")) or "run this instead" in said), None)
+        problem = next((f"{risky!r} " + ("was not denied" if not said else "was run without its cd: " + said[:200])
+                        for risky in WRITES if not (said := hook_reason(stubs, worktree, f"cd {live}/teamwork && {risky.replace('LIVE', str(live))}")) or "ran instead" in said), None)
     else:
-        problem = check_read(stubs, live, worktree, COMMANDS[args[1]].format(live=live))
+        problem = check_read(stubs, live, worktree, COMMANDS[args[1]].format(live=live), args[1] in REFUSED)
     if problem:
         return replay_probe.fail(problem)
     print("PASS")

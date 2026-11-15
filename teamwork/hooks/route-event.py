@@ -411,6 +411,14 @@ def without_change_directory(command, found, folder, worktree):
     return command[:found.start()] + (delimiter[0] + " " if delimiter else "") + "".join(rewritten) + tail
 
 
+def runs_only_reads(command):
+    """Whether every command of COMMAND is a plain read, none a script or program of the checkout, which may write beside itself and so must keep the person's own
+    approval of the command the refusal offers."""
+    plain = set(READ_ONLY) | NO_FILES | {"git", "gh", "cd"}
+    stages = [stage.strip().lstrip("(").strip() for stage in STAGE_JOINT.split(blank_text(command))]
+    return all(stage.split()[:1] and stage.split()[0] in plain for stage in stages if stage)
+
+
 def unseen(lines, session_id):
     """LINES not yet reminded in this session, recorded so each playbook line is added to the context once; a record that cannot be read or written
     leaves them all unseen, since a reminder must never break the call it decorates."""
@@ -453,6 +461,9 @@ def route(kind, event, role, me, listed):
         return goal and {"decision": "block", "reason": "\n".join(["Your goal still waits on you:", *goal,
                          "Take its next step; stop again only while a subagent, a check or your manager has it."])}
     entered = role == "worker" and live_change_directory(command_of(event), event.get("cwd"))
+    if entered and entered[2] and runs_only_reads(entered[2]):  # no program of the checkout runs, so the call costs no turn
+        return {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "allow", "updatedInput": {**event["tool_input"], "command": entered[2]},
+                "permissionDecisionReason": f"The cd into {entered[0]} was dropped: the live checkout is read from your worktree, where your shell already stands."}}
     if entered:  # guards the checkout every session loads
         again = (f"run this instead: `{entered[2]}`, which runs in your worktree, so a script that reads its working folder sees that one and a name it prints starts with the live folder's path"
                  if entered[2] else "run it again without that cd and read the live checkout by path or git -C")
