@@ -78,8 +78,9 @@ def main(args):
 
     plan = ROOT.parent / ".github" / "plan-release.py"
     if plan.exists():
-        revisions = subprocess.run(["git", "log", "--format=%H", "-2", "--", ROOT.name + "/.claude-plugin/plugin.json"], cwd=ROOT.parent, capture_output=True, text=True).stdout.split()
-        answers = [subprocess.run([sys.executable, str(plan), *reversed(revisions)], cwd=folder, capture_output=True, text=True) for folder in (ROOT.parent, ROOT)]
+        # the newest version change against its own parent is one change, so no other plugin's release between two of ours can answer first
+        revisions = [f"{revision}^", revision] if (revision := subprocess.run(["git", "log", "--format=%H", "-1", "--", ROOT.name + "/.claude-plugin/plugin.json"], cwd=ROOT.parent, capture_output=True, text=True).stdout.strip()) else []
+        answers = [subprocess.run([sys.executable, str(plan), *revisions], cwd=folder, capture_output=True, text=True) for folder in (ROOT.parent, ROOT)]
         told = [(answer.returncode, answer.stdout, answer.stderr) for answer in answers]
         step("subfolder", len(revisions) == 2 and told[0] == told[1] and ROOT.name in told[0][1] + told[0][2], told)
     print("FAIL" if failed else "PASS")
