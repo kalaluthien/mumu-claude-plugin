@@ -12,7 +12,7 @@ Digests print as `batch <k>: <digest> ...` lines of at most 10, one haiku agent 
 top-level transcripts under ${CLAUDE_CONFIG_DIR:-~/.claude}/projects changed in the last <d> days (14). A session with no
 owner line after its first prompt and no answer gets no digest, since a friction or habit item answers what the agent did,
 and such a session, often one another session started, shows none. A Bash `ls` of the very path an `rm` or `rmdir` of the same command removed,
-or an `ls` whose exit status the command reads (`|| …`, `; echo $?`), expects the path missing, so its error line is no failure signature. An `AskUserQuestion` answer shows as
+an `ls` whose exit status the command reads (`|| …`, `; echo $?`), or a call made of `ls` alone, expects the path missing, so its error line is no failure signature. An `AskUserQuestion` answer shows as
 `[ANSWER L<n>]: <question> | options: <label> / ... | answer: <the owner's pick or own words>`.
 """
 import glob
@@ -70,8 +70,9 @@ def removed_paths(command):
 
 
 def drop_expected_missing(command, text):
-    """TEXT without the `ls` lines a Bash command expects: of a path it just removed, or one whose exit status it reads."""
-    if EXPECTS_MISSING.search(command):
+    """TEXT without the `ls` lines a Bash command expects: of a path it just removed, one whose exit status it reads, or one a call of `ls` alone looks up."""
+    statements = [part.strip() for part in STATEMENT.split(command.replace("2>&1", "")) if part.strip()]
+    if EXPECTS_MISSING.search(command) or (statements and all(re.match(r"ls(\s|$)", part) for part in statements)):
         return MISSING.sub("", text)
     removed = [path.replace("~", "", 1) if path.startswith("~") else path for path in removed_paths(command)]
     # a whole trailing path component, so a removed `a` never hides `/x/data`

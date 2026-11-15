@@ -124,7 +124,7 @@ def main(args):
     for i in range(3):
         session("-r-alpha", f"eeee000{i}-0000-0000-0000-000000000000", NOW - DAY,
                 [("owner", "go"), ("fail", "Bash", f"Permission for this action was denied by auto mode {i}. [Create Unsafe Agents]")])
-    # absence probes: an ls of the path just removed, or one whose exit status is read, is no mistake; an ls of another path is
+    # absence probes: an ls of the path just removed, one whose exit status is read, or a call of ls alone is no mistake; an ls of another path is
     gone = "ls: /x/gone: No such file or directory"
     for i in range(3):
         session("-r-alpha", f"a1b1000{i}-0000-0000-0000-000000000000", NOW - DAY,
@@ -132,6 +132,8 @@ def main(args):
                  ("fail", "Bash", f"Exit code 1\n{gone}", "ls /x/gone 2>&1 || echo gone")])
         session("-r-beta", f"a2b2000{i}-0000-0000-0000-000000000000", NOW - DAY,
                 [("owner", "go"), ("fail", "Bash", f"Exit code 1\nls: /x/typo: No such file or directory", ["rm o && ls /x/typo 2>&1", "rm /x/a || ls /x/typo", "rm /x/a | ls /x/typo"][i])])
+        session("-r-beta", f"a3b3000{i}-0000-0000-0000-000000000000", NOW - DAY,
+                [("owner", "go"), ("fail", "Bash", "Exit code 1\nls: /x/lookup: No such file or directory", ["ls /x/lookup", "ls -d /x/lookup 2>&1", "ls /x/lookup; ls /x/other"][i])])
     # outside the window, and an sdk session
     session("-r-alpha", "ffff0000-0000-0000-0000-000000000000", NOW - 20 * DAY, [("owner", "old"), ("fail", "Bash", "ancient")])
     session("-r-alpha", "ffff0001-0000-0000-0000-000000000000", NOW - DAY, [("owner", "sdk"), ("agent", "x")], "sdk-cli")
