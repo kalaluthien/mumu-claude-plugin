@@ -18,6 +18,9 @@ not counted, each `[check]` a scenario that prints `PASS`, on base `FAIL`, and n
 first pipe stage and say `watches: <path>...`, so run-criteria.py can replay its transcript. A task below it keeps the rules it was filed under.
 `--cut-off` prints `CUT_OFF`.
 
+Under the same rule it prints a `write: <defect>` line for each defect `use-board.py file` would refuse in the body, its summary line, headings and criterion names
+included, and exits 1; `edit` refuses only the defects the stored body did not already hold, so a `write:` line it keeps is no refusal of an edit.
+
 A task numbered at or above `criteria_check.GOAL_CUT_OFF`, or one given with no `--task`, whose body holds a `## Goal` must also have in it a `Path:` line
 naming the flow of the changed part, as protocol.md's **Scope the path** defines it; the lint prints it as `goal: <defects>`. A body with no Goal, such as a root, is not checked."""
 import pathlib
@@ -195,11 +198,17 @@ def main(args):
     if new_rules and len(criteria) > MOST:
         flagged.insert(0, ("body", ["more than 5 criteria"]))
     flagged = ([("goal", goal_found)] if goal_found else []) + flagged
+    # `file` and `edit` refuse a body that breaks the Plain words caps, so a lint that passes it would only move the refusal to the write
+    written = issue_state.defects("file", body) if new_rules else []
     for position, found in flagged:
         print(f"{position}: {', '.join(found)}")
     for name in dict.fromkeys(defect for _, found in flagged for defect in found):
         print(f"- {name}: {FIX[name]}")
-    return 1 if flagged else 0
+    for found in written:
+        print(f"write: {found}")
+    if written:
+        print("- write: `use-board.py file` would refuse this body, and `edit` would refuse each defect the stored body does not already hold; fix the line it names")
+    return 1 if flagged or written else 0
 
 
 if __name__ == "__main__":
