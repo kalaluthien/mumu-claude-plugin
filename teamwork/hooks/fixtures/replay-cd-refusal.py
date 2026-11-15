@@ -12,6 +12,9 @@ usage: replay-cd-refusal.py [--case <name>]   (no argument: every one in turn)
 - chain: from the worktree, a second cd is read from the folder the first reached when `&&`, `;` or `(` joins them, and from the worktree when a pipe, `||` or a closed subshell does, so each of CHAINS is denied or passes as it says, a redirect on the first cd included
 - quoted: a `cd <live>/teamwork` inside a quoted argument, a heredoc body or a comment passes, and one in a `$(...)`, or run after a heredoc or a quoted `&&`, is denied, each of QUOTED as it says
 - real: each cd call of the transcripts under ~/.claude/projects that an independent reading calls a read gets a rewrite, and none whose later commands write gets one; passes when there are no transcripts
+- option, builtin, command, assigned, exported, braced, joined, environment: `cd -P`, `builtin cd`, `command cd -L --`, and a target given by a `NAME=value;` assignment, an `export NAME=value &&` one and an inherited variable run as such a command that has no cd
+- spelled: each of those spellings, one whose assignment sits in a quote, a comment or after `&&` or `||`, and one that names `$PWD`, before a write or a program is denied, never run without its cd
+- unread: a cd to a variable the hook cannot read is left alone before a read and denied before a write
 - writes: `cd <live>/teamwork && <command>` is denied, never run without its cd, for each command of WRITES, a write, a cd again, or a command whose effect the rewrite cannot know"""
 import glob
 import importlib.util
@@ -33,7 +36,24 @@ COMMANDS = {"git": "cd {live}/teamwork && git ls-files",
             "listing": "cd {live}/teamwork && ls; sed -n 1,2p note.txt; cut -c1-4 note.txt | head -1; head -n 1 note.txt; grep -m 1 the note.txt",
             "script": "cd {live}/teamwork && ls scripts; python3 scripts/read-board.py 3 --as worker 2>&1 | head -5",
             "direct": "cd {live}/teamwork && git log --oneline -1 && grep -c the note.txt; scripts/status.sh status 2>&1 | tail -1",
-            "again": "cd {live}/teamwork && cat note.txt && cd /tmp && echo done"}
+            "again": "cd {live}/teamwork && cat note.txt && cd /tmp && echo done",
+            "option": "cd -P {live}/teamwork && git ls-files",
+            "builtin": "builtin cd {live}/teamwork && cat note.txt | head -1 && ls .",
+            "command": "command cd -L -- {live}/teamwork && git log --oneline -1",
+            "assigned": "LIVE={live}/teamwork; cd \"$LIVE\" && cat note.txt",
+            "exported": "export LIVE={live} && cd $LIVE/teamwork && git ls-files",
+            "joined": "cd '{live}'\"/teamwork\" && git ls-files",
+            "braced": "L={live}/teamwork; cd ${{L}} && cat note.txt",
+            "environment": "cd \"$TEAMWORK_LIVE_FOLDER/teamwork\" && git ls-files"}
+SPELLINGS = ("cd -P {live}/teamwork", "cd -L -- {live}/teamwork", "builtin cd {live}/teamwork", "command cd {live}/teamwork", "pushd -n {live}/teamwork",
+             "LIVE={live}/teamwork; cd $LIVE", "export LIVE={live} && cd \"$LIVE/teamwork\"", "cd \"$TEAMWORK_LIVE_FOLDER/teamwork\"", "L={live}/teamwork; cd ${{L}}",
+             "L={live}/teamwork; cd ${{L}}/.", "L={live}/teamwork; echo \"x; L=/tmp;\"; cd $L", "L={live}/teamwork; echo 'x; L=/tmp;'; cd $L", "L={live}/teamwork; # y; L=/tmp;\ncd $L",
+             "L={live}/teamwork; false && L=/tmp; cd $L", "L=/tmp; false || L={live}/teamwork; cd $L", "cd \"$PWD/../../../teamwork\"",
+             "cd .. && cd $PWD/../../teamwork", "cd .. && cd ${{PWD}}/../../teamwork", "A=1 L={live}/teamwork; cd $L", "export A=1 L={live}/teamwork && cd $L", "L=\"{live}\"/teamwork; cd $L",
+             "L={live}; M=$L/teamwork; cd $M", "L={live}/teamwork; cd ${{L%/}}", "cd $UNSET_FOR_CD_REPLAY",
+             "cd \"$PWD\"/../../../teamwork", "cd -P \"$PWD\"/../../../teamwork", "builtin cd \"$PWD\"/../../../teamwork", "cd '{live}'\"/teamwork\"", "L={live}; cd \"$L\"/teamwork",
+             "cd $PWD/.. && cd ../..", "cd -P ${{PWD}}/.. && cd ../..", "builtin cd $PWD/.. && cd ../..", "L={live}/.claude/worktrees; cd $L && cd ../..")
+SPELLED_WRITES = ("cp note.txt copy.txt", "git commit -qm x", "echo x > new.txt", "rm note.txt", "cat note.txt && cd /tmp && rm -rf x")
 REFUSED = ("script", "direct")  # a script of the checkout may write beside itself, so its rewrite is only offered
 WRITES = ("cp note.txt copy.txt", "git add . && git commit -m x", "git log && cd .. && git log", "cat note.txt; cd ..; git log", "sed -i '' s/a/b/ note.txt",
           "git log abc#1 -- note.txt", "rm -rf sub", "cat note.txt | tee new.txt", "sort -o out note.txt", "grep -f note.txt note.txt", "git log --output=out.txt",
@@ -76,6 +96,7 @@ def setup():
         subprocess.run(["git", *command], cwd=live, check=True, capture_output=True)
     worktree = live / ".claude" / "worktrees" / "w"
     worktree.mkdir(parents=True)
+    os.environ["TEAMWORK_LIVE_FOLDER"] = str(live)
     (worktree / "only-here.txt").write_text("a name only the worktree holds\n")
     stubs = replay_probe.fake_herdr(work, [{"pane_id": "p1", "name": "t-worker"}])
     return stubs, live, worktree
@@ -184,8 +205,8 @@ def check_real():
 
 def main(args):
     if not args:
-        return replay_probe.run_every(__file__, "--case", (*COMMANDS, "chain", "quoted", "real", "writes"))
-    if len(args) != 2 or args[0] != "--case" or args[1] not in (*COMMANDS, "chain", "quoted", "real", "writes"):
+        return replay_probe.run_every(__file__, "--case", (*COMMANDS, "chain", "quoted", "real", "spelled", "unread", "writes"))
+    if len(args) != 2 or args[0] != "--case" or args[1] not in (*COMMANDS, "chain", "quoted", "real", "spelled", "unread", "writes"):
         print(__doc__, file=sys.stderr)
         return 2
     stubs, live, worktree = setup()
@@ -197,6 +218,13 @@ def main(args):
     elif args[1] == "quoted":
         problem = next((f"{command!r} " + ("was not denied" if denied else "was denied") for command, denied in ((text.format(live=live), denied) for text, denied in QUOTED)
                         if bool(hook_reason(stubs, worktree, command)) != denied), None)
+    elif args[1] == "unread":
+        problem = next((f"{command!r} " + ("was decided" if not denied else "was not denied") for command, denied in (("cd $UNSET_FOR_CD_REPLAY && git ls-files; cat note.txt", False), ("cd $UNSET_FOR_CD_REPLAY && git log | head -1", False), ("cd $UNSET_FOR_CD_REPLAY && touch new.txt", True))
+                        if bool(hook_reason(stubs, worktree, command)) != denied), None)
+    elif args[1] == "spelled":
+        problem = next((f"{spelling.format(live=live)} && {risky!r} " + ("was not denied" if not said else "was run without its cd: " + said[:200])
+                        for spelling in SPELLINGS for risky in SPELLED_WRITES
+                        if not (said := hook_reason(stubs, worktree, f"{spelling.format(live=live)} && {risky}")) or "ran instead" in said), None)
     elif args[1] == "writes":
         problem = next((f"{risky!r} " + ("was not denied" if not said else "was run without its cd: " + said[:200])
                         for risky in WRITES if not (said := hook_reason(stubs, worktree, f"cd {live}/teamwork && {risky.replace('LIVE', str(live))}")) or "ran instead" in said), None)

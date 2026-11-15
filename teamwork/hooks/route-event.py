@@ -3,6 +3,7 @@
 
 usage: route-event.py
 It reads one hook event as JSON on stdin and prints the hook's answer, if any, as JSON on stdout."""
+import collections
 import json
 import os
 import pathlib
@@ -88,7 +89,13 @@ COMMENT = re.compile(r"(?:^|(?<=[ \t;&|(]))#[^\n]*", re.M)
 STAGE_JOINT = re.compile(r"&&|\|\||[;|\n]|(?<![<>])&(?![>&])")
 PASSED_REDIRECT = re.compile(r"(?:\d*|&)>(?:&\d+|/dev/null)")
 JOINTS = {"&&": "&&", "||": "||", ";": ";", "\n": ";", "|": "|"}
-CHANGE_DIRECTORY = re.compile(r"(?:^|[;&|({]|\bthen|\bdo)[ \t]*(?:cd|pushd)[ \t]+(?:--[ \t]+)?(\"[^\"]*\"|'[^']*'|[^\s;&|)}]+)", re.M)
+CHANGE_DIRECTORY = re.compile(r"(?:^|[;&|({]|\bthen|\bdo)[ \t]*(?:(?:builtin|command)[ \t]+)?(?:cd|pushd)[ \t]+(?:-[A-Za-z@]+[ \t]+)*(?:--[ \t]+)?((?:\"[^\"]*\"|'[^']*'|\$\{[^}\s]*\}|[^\s;&|)}\"'])+)", re.M)
+ASSIGNMENT = r"[ \t]*(?:export[ \t]+)?([A-Za-z_]\w*)=(\"[^\"$`\\]*\"|'[^']*'|[^\s;&|()$`\"'\\]*)[ \t]*(?:&&|;|\n)"  # a value with an expansion is left out, since its result is unknown here
+ASSIGNMENTS_ONLY = re.compile(f"(?:{ASSIGNMENT})+[ \\t]*")
+ASSIGNED = re.compile(f"(?:^|(?<=[;&|(\\n])){ASSIGNMENT}")
+SHELL_SET = {"OLDPWD", "SHLVL", "_", "PPID", "RANDOM", "LINENO", "SECONDS"}  # names the shell sets for itself, so the hook's copy is no value of the shell's
+UNREAD_VARIABLE = re.compile(r"\$[\w{]")
+VARIABLE = re.compile(r"\$(\w+)|\$\{(\w+)\}")
 
 
 def blanked_bodies(command):
@@ -190,11 +197,37 @@ def writes_github_issue(command):
                for found in SUBSTITUTION.finditer(unrun))
 
 
+def replaced(text, name, value):
+    """TEXT with each `$NAME` and `${NAME}` outside single quotes replaced by VALUE."""
+    parts = re.split(r"('[^']*')", text)
+    return "".join(part if at % 2 else VARIABLE.sub(lambda found: value if (found[1] or found[2]) == name else found[0], part) for at, part in enumerate(parts))
+
+
+def expanded(word, before, folder):
+    """[WORD, ...] with each `$NAME` and `${NAME}` it holds replaced by every value a plain assignment in BEFORE gave it, wherever the shell may skip it, else by the
+    hook's environment, which the shell inherits, with `PWD` as FOLDER; a name stays as written when BEFORE assigns it in any form this cannot read, such as two
+    to a statement, a value of joined quotes or one that expands, and so does a name with no value. A single-quoted part of WORD stays as it is, since the shell
+    expands nothing in it, and assignments are read from the text the shell runs, so one inside a quote or comment counts for none."""
+    inert = inert_text(before)
+    given = {}
+    for found in ASSIGNED.finditer(inert):
+        given.setdefault(found[1], []).append(before[found.start(2):found.end(2)].strip("\"'"))
+    spelled = collections.Counter(re.findall(r"(?<![\w$])([A-Za-z_]\w*)\+?=", inert))
+    values = {name: [value] for name, value in os.environ.items() if name not in SHELL_SET} | {"PWD": [folder]} | given
+    values = {name: options for name, options in values.items() if not spelled[name] or spelled[name] == len(given.get(name, ()))}
+    texts = [word]
+    for name in {found[1] or found[2] for found in VARIABLE.finditer(word)} & values.keys():
+        texts = [replaced(text, name, value) for text in texts for value in values[name]]
+    return texts
+
+
 def directory_before(prefix, cwd):
     """The folder a command written after PREFIX starts in: CWD moved by each `cd` of PREFIX that a `&&`, `;` or `(` carries on to it, and CWD again after any
     other joint, since a pipe, `||`, `&` or a closed subshell leaves the folder as it was."""
+    lexer = shlex.shlex(prefix.replace("\n", ";"), posix=True, punctuation_chars=True)
+    lexer.wordchars += "$%{}:+@,^!"  # so a variable in a target is one word, not cut at its `$` and braces
     try:
-        tokens = list(shlex.shlex(prefix.replace("\n", ";"), posix=True, punctuation_chars=True))
+        tokens = list(lexer)
     except ValueError:
         return cwd  # an opened quote hides what it holds, so the cd stays read from CWD
     here, words = cwd, []
@@ -202,11 +235,12 @@ def directory_before(prefix, cwd):
         if not set(token) <= set("&|;()"):  # a word, or a redirect such as `2>&1`, which holds `>`
             words.append(token)
             continue
-        target = next((word for word in words[1:] if not word.startswith("-")), None)
+        spelled = words[1:] if words[:1] in (["builtin"], ["command"]) else words
+        target = next((word for word in spelled[1:] if not word.startswith("-")), None)
         if token not in ("&&", ";", "("):
             here = cwd
-        elif words[:1] in (["cd"], ["pushd"]) and target:
-            here = os.path.normpath(os.path.join(here, os.path.expanduser(target)))
+        elif spelled[:1] in (["cd"], ["pushd"]) and target:
+            here = os.path.normpath(os.path.join(here, os.path.expanduser(expanded(target, prefix, here)[-1])))
         words = []
     return here
 
@@ -217,9 +251,16 @@ def live_change_directory(command, cwd):
     root, inside, rest = (cwd or "").partition(WORKTREES)
     worktree = root + WORKTREES + rest.split("/")[0]
     for found in CHANGE_DIRECTORY.finditer(inert_text(command)) if inside else ():  # a cd inside a quote, heredoc or comment runs nothing
-        path = os.path.normpath(os.path.join(directory_before(blanked_bodies(command[:found.start(1)]), cwd), os.path.expanduser(command[found.start(1):found.end(1)].strip("\"'"))))
-        if (path + "/").startswith(root + "/") and WORKTREES not in path + "/":
-            return path, worktree, without_change_directory(command, found, path, worktree)
+        before = blanked_bodies(command[:found.start(1)])
+        here = directory_before(before, cwd)
+        targets = expanded(command[found.start(1):found.end(1)], before, here)
+        for target in targets:  # a variable the shell may have set either way is read as each value, and none of them is rewritten
+            path = os.path.normpath(os.path.join(here, os.path.expanduser(unquoted(target))))
+            if (path + "/").startswith(root + "/") and WORKTREES not in path + "/":
+                return path, worktree, len(targets) == 1 and without_change_directory(command, found, path, worktree) or None
+        unread = next((target for target in targets if UNREAD_VARIABLE.search(outside_single_quotes(target))), None)
+        if unread and not without_change_directory(command, found, worktree, worktree):  # a folder the hook cannot read may be the live checkout, so only reads may follow
+            return unread, worktree, None
     return None
 
 
@@ -375,8 +416,12 @@ def without_change_directory(command, found, folder, worktree):
     also exists in WORKTREE keeps the refusal's plain message. A script run by an interpreter counts as a read: run by its absolute path it is no more than
     the hook already lets through."""
     rest = command[found.end():]
-    if command[:found.start()].strip() or not free_of_comments(rest):
+    delimiter = re.match(r"[;&|({]|then|do", found[0])
+    lead = command[:found.start()]
+    assigned = bool(ASSIGNMENTS_ONLY.fullmatch(lead + (delimiter[0] if delimiter else "") + " "))  # a later command reads no variable, since expansion keeps the refusal, so these go
+    if lead.strip() and not assigned or not free_of_comments(rest):
         return None  # a comment hides its lines from the reading, and an opened quote in it hides the next ones
+    head = "" if assigned else lead + (delimiter[0] + " " if delimiter else "")
     blanked = blank_text(rest)
     tail = ")" if blanked.rstrip().endswith(")") else ""
     if tail:
@@ -392,7 +437,6 @@ def without_change_directory(command, found, folder, worktree):
         stages.pop()
     if not stages or stages[0][0] not in ("&&", ";", "\n") or any(not blanked[a:b].strip() or joint == "&" for joint, a, b in stages):
         return None
-    delimiter = re.match(r"[;&|({]|then|do", found[0])
     rewritten = []
     for at, (joint, begin, end) in enumerate(stages):
         words = stage_words(rest, blanked, begin, end)
@@ -404,11 +448,11 @@ def without_change_directory(command, found, folder, worktree):
                 later = stage_words(rest, blanked, later_begin, later_end)
                 if not later or later[0][1] is None or not rewrite_stage(later, later_joint, moved, moved):
                     return None
-            return command[:found.start()] + (delimiter[0] + " " if delimiter else "") + "".join(rewritten) + " " + rest[begin - len(joint):] + tail  # an absolute cd sets the folder its rest runs in
+            return head + "".join(rewritten) + " " + rest[begin - len(joint):] + tail  # an absolute cd sets the folder its rest runs in
         if not words or words[0][1] is None or not (stage := rewrite_stage(words, joint, folder, worktree)):
             return None
         rewritten.append((f" {JOINTS[joint]} " if rewritten else "") + " ".join(stage))
-    return command[:found.start()] + (delimiter[0] + " " if delimiter else "") + "".join(rewritten) + tail
+    return head + "".join(rewritten) + tail
 
 
 def runs_only_reads(command):
@@ -468,7 +512,7 @@ def route(kind, event, role, me, listed):
         again = (f"run this instead: `{entered[2]}`, which runs in your worktree, so a script that reads its working folder sees that one and a name it prints starts with the live folder's path"
                  if entered[2] else "run it again without that cd and read the live checkout by path or git -C")
         return {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason":
-                f"This cd enters {entered[0]} in the live checkout, which every session loads, so an edit there lands outside your worktree; "
+                f"This cd enters {entered[0]}, which is or may be in the live checkout every session loads, so an edit there lands outside your worktree; "
                 f"nothing in this command ran; {again}, since your shell already stands in {entered[1]}."}}
     if kind == "PreToolUse" and writes_github_issue(command_of(event)):
         return {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason":
