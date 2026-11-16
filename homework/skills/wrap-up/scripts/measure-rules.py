@@ -54,7 +54,14 @@ def main(args):
     config = pathlib.Path(args[0])
     home = memory_home.require(config)
     folders = [config / "rules"] + [pathlib.Path(root) / ".claude" / "rules" for root in args[1:]]
-    files = sorted(path for folder in folders if folder.is_dir() for path in folder.rglob("*.md") if path.is_file())
+    # keyed by resolved path so a file reached through two folders counts once, keeping the first spelling
+    found = {}
+    for folder in folders:
+        if folder.is_dir():
+            for path in sorted(folder.rglob("*.md")):
+                if path.is_file():
+                    found.setdefault(path.resolve(), path)
+    files = list(found.values())
     over = always = 0
     user_bytes = loaded_bytes(config / "CLAUDE.md")
     for path in files:
