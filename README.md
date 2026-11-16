@@ -37,11 +37,10 @@ flowchart TB
   n_monitor["Team monitor"]
   n_pane["Issues pane"]
   n_kick["kick-off skill"]
-  n_issues["issues skill"]
   n_lib[["Shared lib"]]
   n_hook -->|"points to"| n_kick
   n_monitor -->|"tells a session of"| n_kick
-  n_pane -->|"answers /teamwork:issues of"| n_issues
+  n_pane -->|"is shown again by a manager's tool in"| n_kick
   n_hook -->|"reads"| n_lib
   n_monitor -->|"reads"| n_lib
   n_pane -->|"runs scripts that read"| n_lib
@@ -71,7 +70,7 @@ That session becomes the manager. It files the root task, starts a worker in a n
 
 - A hook ([`route-event.py`](teamwork/hooks/route-event.py)) tells each session at start what waits on it, and keeps a worker from going idle while an issue it holds is open.
 - A monitor ([`print-team-gaps.py`](teamwork/monitors/print-team-gaps.py)) tells the manager where the board and the team disagree, and wakes a worker when its wait ends.
-- `/teamwork:issues` shows the Issues pane, a board of the open issues, again after you close it.
+- Ask the manager to show the Issues pane, a board of the open issues, again after you close it.
 
 ## Paperwork: system models and report cards
 

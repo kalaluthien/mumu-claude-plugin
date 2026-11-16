@@ -46,6 +46,7 @@ const $ = {
   plugin: { root: '/plugin' },
   ui: { open: async () => undefined, close: async () => undefined, panes: async () => [],
         resolve: () => ({ Box: 'Box', Text: 'Text', Link: 'Link', Button: 'Button', Input: 'Input', Markdown: 'Markdown' }) },
+  tool: { register: async () => undefined },
   clock: { after: (ms: number, tick: () => void) => { const timer = setTimeout(tick, ms); return { cancel: () => clearTimeout(timer) } } },
   process: {
     run: async (argv: string[]) => {

@@ -4,6 +4,8 @@ import type { Register } from 'claude-code'
 import type { BoardIssue } from '../types'
 
 const PANE = 'teamwork-issues'
+// the tool a manager gets to show the pane again, which `register` serves by this full name
+const PANE_TOOL = 'show-issues-pane'
 const RETRY_MS = 120000
 const board = atom({ plugin: 'teamwork', key: 'board' } as const, [] as BoardIssue[])
 // why the last read failed, empty when it worked; shown so a failed read never looks like an empty board
@@ -28,7 +30,7 @@ const TEAM_CHANGE = /\bgh\s+(?:-{1,2}\w[\w-]*(?:[\s=][^\s-]\S*)?\s+)*(?:(pr)\s+(
 // a manager's pane and its waiter, once per session; the start directory, since the current one may be a worktree removed since
 let startFolder: string | undefined
 let watching = false
-// the manager's board read, set once it watches, so the issues command reads the board again
+// the manager's board read, set once it watches, so the pane tool reads the board again
 let refresh: (() => Promise<void>) | undefined
 // the pane body's width the rows are laid out for, 0 before the pane is drawn; a row laid out for another width wraps a word alone.
 // Kept outside state, since a render may not write state, and read again on a clock tick, an event of its own
@@ -43,6 +45,8 @@ async function showPane($: any) {
 function watch($: any, name: string) {
   if (watching || !name.endsWith('-manager')) return
   watching = true
+  // only a manager's model sees the tool, since the model reads the pane's name in manager.md
+  void $.tool.register({ name: PANE_TOOL, description: 'Show the Issues pane again, brought forward, with its board read anew.', isDeferred: false }).catch(() => undefined)
   const project = name.slice(0, -'-manager'.length)
   void openPane($).catch(() => undefined)
   // a failed read is tried again after a pause, since the next team change may be far off
@@ -148,12 +152,12 @@ export const register: Register = on => {
     return ran
   }).catch(($, event, next) => next(event))  // a failed open must never fail the rename
 
-  // the owner closes the pane by its frame's x; this skill shows it again and reads the board anew, with no model turn
-  on('command.run', { command: 'teamwork:issues' }, async ($) => {
+  // the owner closes the pane by its frame's x; the manager's model calls this tool when the owner asks to see the pane again
+  on('tool.call', { tool: `mcp__teamwork__${PANE_TOOL}` }, async ($) => {
     await showPane($)
     await refresh?.()
-    return { text: 'Issues pane shown' }
-  }).catch(($, event, next) => next(event))  // a failed open falls back to the skill's body
+    return { result: 'Issues pane shown' }
+  }).catch(() => ({ deny: 'the Issues pane could not be shown' }))
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, event) => {
     const width = event.props.bodyColumns

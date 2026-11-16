@@ -13,6 +13,7 @@ const $ = {
   plugin: { root: '/plugin' },
   ui: { open: async () => undefined, close: async () => undefined, panes: async () => [],
         resolve: () => ({ Box: 'Box', Text: 'Text', Link: 'Link', Button: 'Button', Markdown: 'Markdown' }) },
+  tool: { register: async () => undefined },
   clock: { after: () => ({ cancel: () => undefined }) },
   process: {
     run: async (argv: string[]) => {
@@ -35,6 +36,6 @@ await handlers['session.start']($, { cwd: '/repo' }, async () => ({}))
 await settle(1)
 console.log(`failed: ${await render()}`)
 exitCode = 0
-await handlers['command.run teamwork:issues']($, {}, async () => ({}))
+await handlers['tool.call mcp__teamwork__show-issues-pane']($, {}, async () => ({}))
 await settle(2)
 console.log(`empty: ${await render()}`)
