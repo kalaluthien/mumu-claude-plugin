@@ -43,7 +43,7 @@ def step(name, ok, detail=""):
     print(f"ok {name}" if ok else f"fail {name}: {detail.strip()}")
 
 
-def run(busy):
+def run(busy, count="14", fresh=()):
     """Exit code, output and herdr calls of one start while the first `busy` starts answer busy."""
     with tempfile.TemporaryDirectory() as folder:
         bin_folder = pathlib.Path(folder, "bin")
@@ -51,10 +51,14 @@ def run(busy):
         herdr = bin_folder / "herdr"
         herdr.write_text(STAND_IN)
         herdr.chmod(0o755)
+        for name in fresh:
+            pathlib.Path(folder, name).mkdir()
+            pathlib.Path(folder, name, "last-map").touch()
         env = dict(os.environ, PATH=f"{bin_folder}{os.pathsep}{os.environ['PATH']}", HOMEWORK_START_DREAMER_FOLDER=folder, HOMEWORK_START_DREAMER_BUSY=str(busy),
                    HERDR_PANE_ID="w1:p1", HOMEWORK_START_DREAMER_WAIT="2", HOMEWORK_START_DREAMER_POLL="0.05")
-        done = subprocess.run([sys.executable, SCRIPT, folder, folder, folder, "14", "8"], capture_output=True, text=True, env=env, cwd=folder, timeout=60)
-        calls = pathlib.Path(folder, "calls").read_text().splitlines()
+        done = subprocess.run([sys.executable, SCRIPT, folder, folder, folder, count, "8"], capture_output=True, text=True, env=env, cwd=folder, timeout=60)
+        log = pathlib.Path(folder, "calls")
+        calls = log.read_text().splitlines() if log.exists() else []
     return done.returncode, done.stdout + done.stderr, calls
 
 
@@ -64,5 +68,11 @@ step("started leaves its tab open", "tab close" not in calls, str(calls))
 code, out, calls = run(10**6)
 step("busy past the deadline fails", code == 1 and out.startswith("failed to start"), f"exit {code}: {out}")
 step("failed start closes its tab", calls.count("tab create") == 1 and calls[-1] == "tab close", str(calls))
+code, out, calls = run(0, "3")
+step("interval due, memory below its limit starts none", code == 0 and out.startswith("not due") and not calls, f"exit {code}: {out}")
+code, out, calls = run(0, "14", ("dejavu", "habit"))
+step("memory reached, no interval due starts none", code == 0 and out.startswith("not due") and not calls, f"exit {code}: {out}")
+code, out, calls = run(0, "14", ("dejavu",))
+step("memory reached and habit due starts a dreamer", code == 0 and out.startswith("started memory-habit-dreamer"), f"exit {code}: {out}")
 print(f"probe: {sum(results)} of {len(results)} steps pass")
 sys.exit(0 if all(results) else 1)

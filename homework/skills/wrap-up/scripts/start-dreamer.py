@@ -4,8 +4,9 @@ pane's workspace, with this same plugin, and print what happened.
 
 usage: start-dreamer.py <data> <config> <home> <memory count> <memory limit> [<note>]
 
-Its name is `<topic>-dreamer`, `<topic>` joining, in this order, `memory` when the memory count reached its limit,
-`repeats` when <data>/dejavu is due and `habit` when <data>/habit is due. It starts none when none holds, outside herdr,
+It starts none unless the memory count reached its limit and <data>/dejavu or <data>/habit is due, since a passed interval
+alone does not pay for a dream. Its name is `<topic>-dreamer`, `<topic>` joining, in this order, `memory`, `repeats` when
+<data>/dejavu is due and `habit` when <data>/habit is due. It also starts none outside herdr,
 while a dreaming workflow runs on <data> (its lock, homework/lib/stamp.py), as when one of its own agents calls this, or
 when a herdr session named `*-dreamer` is in any state but idle or done, since its dream still starts, runs or
 waits; a finished one, idle or done, is no bar: its tab is closed first when it holds the name this start needs, since herdr refuses a second agent of the same name
@@ -67,11 +68,11 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     data, config, home = (pathlib.Path(arg) for arg in args[:3])
-    words = ["memory"] if int(args[3]) >= int(args[4]) else []
-    words += [word for word, folder in CAUSES if stamp.due(data / folder)]
-    if not words:
+    words = [word for word, folder in CAUSES if stamp.due(data / folder)]
+    if int(args[3]) < int(args[4]) or not words:
         print("not due: no dream to start")
         return 0
+    words.insert(0, "memory")
     name = "-".join(words) + "-dreamer"
     if stamp.running(data):
         print(f"held by a dreaming workflow running on {data} (its dream.lock is under {stamp.LOCK_HOURS} hours old); started none")

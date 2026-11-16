@@ -25,7 +25,7 @@ Take every row whose condition holds, in order, and copy its playbook's steps ve
 | when | playbook |
 | --- | --- |
 | `<p>` reaches `<t>`, this session's first retro `<f>` is `due`, or the owner asks to keep a lesson | [references/retro.md](references/retro.md) |
-| `<m>` reaches `<l>`, `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-sessions.py due <data>/dejavu` prints `due`, or `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-sessions.py due <data>/habit` prints `due` | [references/dream.md](references/dream.md) |
+| `<m>` reaches `<l>`, and `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-sessions.py due <data>/dejavu` or `... due <data>/habit` prints `due`; neither alone starts a dream | [references/dream.md](references/dream.md) |
 | typed with no signal and no row fits | [references/retro.md](references/retro.md) |
 
 ## Rules
