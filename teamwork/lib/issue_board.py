@@ -8,6 +8,7 @@ import task_links
 
 # the latest closed parts a parent lists, newest first, an ellipsis below them when more landed before
 SHOWN_CLOSED = 4
+SHOWN_DECISIONS = 5
 # the close reason of work stopped, not done
 STOPPED = ("NOT_PLANNED",)
 WIDTHS = (24, 30, 40, 60, 80)
@@ -186,13 +187,16 @@ def held_offsets(title, blockers):
 
 
 def decision_notes(decided, room):
-    """The decision lines of a task, newest first, and the indexes of the lines of a manager's or a worker's decision, the quiet ones."""
+    """The decision lines of a task, newest first, the older ones past SHOWN_DECISIONS folded into one `…` line, and the indexes of the lines of a manager's or a worker's decision, the quiet ones."""
     lines, quiet = [], []
-    for decision in decided:
+    for decision in decided[:SHOWN_DECISIONS]:
         start = len(lines)
         lines += note(decision["mark"], (f"[{decision['time']}] " if decision["time"] else "") + decision["decision"], room)
         if decision["mark"] == "\u25c7":
             quiet += range(start, len(lines))
+    if len(decided) > SHOWN_DECISIONS:
+        quiet.append(len(lines))
+        lines.append("\u2026")
     return lines, quiet
 
 

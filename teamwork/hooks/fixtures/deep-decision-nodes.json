@@ -41,6 +41,18 @@
      "url": "https://github.com/o/r/issues/10#issuecomment-1004",
      "authorAssociation": "OWNER",
      "createdAt": "2026-11-06T04:00:00Z"
+    },
+    {
+     "body": "DECIDED: start from the board\n\n> start from the board\n\n```decision\ndecision: start from the board\ndecided by: owner\ndoor: one-way\n```\n",
+     "url": "https://github.com/o/r/issues/10#issuecomment-900",
+     "authorAssociation": "OWNER",
+     "createdAt": "2026-11-06T00:30:00Z"
+    },
+    {
+     "body": "DECIDED: keep the old lister\n\n> keep the old lister\n\n```decision\ndecision: keep the old lister\ndecided by: owner\ndoor: one-way\n```\n",
+     "url": "https://github.com/o/r/issues/10#issuecomment-901",
+     "authorAssociation": "OWNER",
+     "createdAt": "2026-11-06T01:30:00Z"
     }
    ]
   }
