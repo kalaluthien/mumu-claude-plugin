@@ -22,7 +22,10 @@ STEP_REPORTS = ("criteria at ", "task filed")
 
 
 def issues(scope=None, state="open"):
-    found = board.issues(state, scope)
+    try:
+        found = board.issues(state, scope)
+    except LookupError:  # a session whose folder lies outside a repository has no board to read, as a failed read has none
+        return None
     return found and found[:ISSUE_LIMIT]
 
 
@@ -86,6 +89,8 @@ def manager_read(me, since=None):
     """What a manager's gaps need from the board, read once and kept by the caller until something changed; None when a read failed.
     SINCE adds the reports posted since then."""
     found = issues(project(me["name"]))
+    if found is None:  # the first read failed, or the folder lies outside a repository: the reads below would fail the same way
+        return None
     # a worker may hold an open issue outside the project's folder, which the idle line must still count
     everything = issues() if found is not None else found
     # one page of the latest updated closed pulls, whose merged ones are the newest merges
