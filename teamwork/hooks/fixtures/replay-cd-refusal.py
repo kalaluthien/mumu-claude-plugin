@@ -13,8 +13,10 @@ usage: replay-cd-refusal.py [--case <name>]   (no argument: every one in turn)
 - quoted: a `cd <live>/teamwork` inside a quoted argument, a heredoc body or a comment passes, and one in a `$(...)`, or run after a heredoc or a quoted `&&`, is denied, each of QUOTED as it says
 - real: each cd call of the transcripts under ~/.claude/projects that an independent reading calls a read gets a rewrite, and none whose later commands write gets one; passes when there are no transcripts
 - option, builtin, command, assigned, exported, braced, joined, environment: `cd -P`, `builtin cd`, `command cd -L --`, and a target given by a `NAME=value;` assignment, an `export NAME=value &&` one and an inherited variable run as such a command that has no cd
+- stacked, quiet, flags, ansi, dollar, escaped, then, loop, braces, lines: `command builtin cd`, `command -p cd`, `command -pp cd`, `command -- cd`, a target in ANSI-C quotes (`$'...'`, a hex or octal escape too) or in `$"..."`, and a cd after `then`, `do` or `{`, on one line or several, run as such a command that has no cd
 - spelled: each of those spellings, one whose assignment sits in a quote, a comment or after `&&` or `||`, and one that names `$PWD`, before a write or a program is denied, never run without its cd
-- unread: a cd to a variable the hook cannot read is left alone before a read and denied before a write
+- unread: a cd to a variable or a `$(...)` the hook cannot read is left alone before a read and denied before a write
+- blocked: a write after the cd of a `then`, `do` or `{` block, a write in the block's opening, and a command after the block's end are denied, never run without the cd
 - writes: `cd <live>/teamwork && <command>` is denied, never run without its cd, for each command of WRITES, a write, a cd again, or a command whose effect the rewrite cannot know"""
 import glob
 import importlib.util
@@ -44,6 +46,16 @@ COMMANDS = {"git": "cd {live}/teamwork && git ls-files",
             "exported": "export LIVE={live} && cd $LIVE/teamwork && git ls-files",
             "joined": "cd '{live}'\"/teamwork\" && git ls-files",
             "braced": "L={live}/teamwork; cd ${{L}} && cat note.txt",
+            "stacked": "command builtin cd {live}/teamwork && git ls-files",
+            "quiet": "command -p cd {live}/teamwork && git log --oneline -1",
+            "flags": "command -p -- cd {live}/teamwork && git ls-files",
+            "dollar": "cd $\"{live}/teamwork\" && git ls-files",
+            "ansi": "cd $'{live}/teamwork' && cat note.txt",
+            "escaped": "cd $'{live}/team\\x77ork' && cat note.txt",
+            "then": "if true; then cd {live}/teamwork; git ls-files; fi",
+            "loop": "for f in a b; do cd {live}/teamwork; git ls-files | head -1; done",
+            "braces": "{{ cd {live}/teamwork; git ls-files; }}",
+            "lines": "if test -f only-here.txt; then\n  cd {live}/teamwork\n  git ls-files\nfi",
             "environment": "cd \"$TEAMWORK_LIVE_FOLDER/teamwork\" && git ls-files"}
 SPELLINGS = ("cd -P {live}/teamwork", "cd -L -- {live}/teamwork", "builtin cd {live}/teamwork", "command cd {live}/teamwork", "pushd -n {live}/teamwork",
              "LIVE={live}/teamwork; cd $LIVE", "export LIVE={live} && cd \"$LIVE/teamwork\"", "cd \"$TEAMWORK_LIVE_FOLDER/teamwork\"", "L={live}/teamwork; cd ${{L}}",
@@ -51,9 +63,21 @@ SPELLINGS = ("cd -P {live}/teamwork", "cd -L -- {live}/teamwork", "builtin cd {l
              "L={live}/teamwork; false && L=/tmp; cd $L", "L=/tmp; false || L={live}/teamwork; cd $L", "cd \"$PWD/../../../teamwork\"",
              "cd .. && cd $PWD/../../teamwork", "cd .. && cd ${{PWD}}/../../teamwork", "A=1 L={live}/teamwork; cd $L", "export A=1 L={live}/teamwork && cd $L", "L=\"{live}\"/teamwork; cd $L",
              "L={live}; M=$L/teamwork; cd $M", "L={live}/teamwork; cd ${{L%/}}", "cd $UNSET_FOR_CD_REPLAY",
+             "command builtin cd {live}/teamwork", "command -p cd {live}/teamwork", "cd $'{live}/teamwork'", "cd $'{live}/team\\x77ork'", "cd $(echo {live}/teamwork)",
+             "cd `echo {live}/teamwork`", "cd \"$(echo {live}/teamwork)\"", "command -p builtin cd $(echo {live}/teamwork)",
+             "command -- cd {live}/teamwork", "command -p -- cd {live}/teamwork", "command -pp cd {live}/teamwork", "cd $'{live}/teamwork\\x00/../.claude/worktrees/w'", "cd $'{live}/teamwork\\0'",
+             "cd $'{live}/teamwork\\u0000/x'",
+             "cd $'{live}/teamwork\\c@/../../..'", "cd $'{live}/teamwork\\400/../../..'", "cd $'{live}/teamwork\\x00/../../..'", "cd $\"{live}/teamwork\"", "cd $'{live}/teamwork\\n'",
              "cd \"$PWD\"/../../../teamwork", "cd -P \"$PWD\"/../../../teamwork", "builtin cd \"$PWD\"/../../../teamwork", "cd '{live}'\"/teamwork\"", "L={live}; cd \"$L\"/teamwork",
              "cd $PWD/.. && cd ../..", "cd -P ${{PWD}}/.. && cd ../..", "builtin cd $PWD/.. && cd ../..", "L={live}/.claude/worktrees; cd $L && cd ../..")
 SPELLED_WRITES = ("cp note.txt copy.txt", "git commit -qm x", "echo x > new.txt", "rm note.txt", "cat note.txt && cd /tmp && rm -rf x")
+BLOCKS = (("if true; then cd {live}/teamwork;", "fi"), ("for f in a b; do cd {live}/teamwork;", "done"), ("{{ cd {live}/teamwork;", "}}"), ("while true; do cd {live}/teamwork;", "done"),
+          ("if true; then\n cd {live}/teamwork\n", "fi"))
+BLOCKED = tuple(f"{opening} {risky}; {closer}" for opening, closer in BLOCKS for risky in ("rm note.txt", "git commit -qm x", "echo x > new.txt", "cd /tmp && rm note.txt")) \
+    + ("if rm note.txt; then cd {live}/teamwork; git ls-files; fi", "if cat note.txt > out.txt; then cd {live}/teamwork; git ls-files; fi", "for f in $(rm note.txt); do cd {live}/teamwork; git ls-files; done",
+       "if true; then cd {live}/teamwork; git ls-files; else rm note.txt; fi", "if true; then cd {live}/teamwork; git ls-files; fi; rm note.txt",
+       "{{ cd {live}/teamwork; git ls-files; }} && rm note.txt", "{{ cd {live}/teamwork; git ls-files; }} > out.txt", "while rm note.txt; do cd {live}/teamwork; git ls-files; done",
+       "if true; then cd $UNSET_FOR_CD_REPLAY; rm note.txt; fi")
 REFUSED = ("script", "direct")  # a script of the checkout may write beside itself, so its rewrite is only offered
 WRITES = ("cp note.txt copy.txt", "git add . && git commit -m x", "git log && cd .. && git log", "cat note.txt; cd ..; git log", "sed -i '' s/a/b/ note.txt",
           "git log abc#1 -- note.txt", "rm -rf sub", "cat note.txt | tee new.txt", "sort -o out note.txt", "grep -f note.txt note.txt", "git log --output=out.txt",
@@ -71,7 +95,7 @@ WRITES = ("cp note.txt copy.txt", "git add . && git commit -m x", "git log && cd
           "grep -rn the .", "ls -R", "ls -d .", "sed -n 's/[/]/;p;s/;w d/r/g' note.txt", "grep the note.txt nonexist.txt", "ls note.txt", "grep -l the note.txt", "tail -v -n 1 note.txt", "python3 ../outside.py", "sed -n '/a\\/p;/w ./p' note.txt", "python3 scripts/read-board.py 1", "../../../../../../../../../../../../../../bin/rm note.txt")
 CHAINS = (("cd sub && cd ../../..", True), ("cd sub; (cd .. && cd ../..)", True), ("cd sub && cd ../.. && ls", False), ("(cd sub && cd ..); cd ../..", True),
           ("cd sub | cd ../..", True), ("cd sub && cd .. && cd ..", False), ("cd sub 2>/dev/null && cd ../../..", True), ("cd sub 2>&1 && cd ../.. && ls", False))
-QUOTED = (("git commit -m \"fix && cd {live}/teamwork && ls\"", False), ("echo 'cd {live}/teamwork && ls'", False), ("cat <<'EOF'\nit's && cd {live}/teamwork && ls\nEOF", False),
+QUOTED = (("echo $'cd {live}/teamwork && ls'", False), ("git commit -m \"fix && cd {live}/teamwork && ls\"", False), ("echo 'cd {live}/teamwork && ls'", False), ("cat <<'EOF'\nit's && cd {live}/teamwork && ls\nEOF", False),
           ("cat <<EOF\n(cd {live}/teamwork && ls)\nEOF", False), ("echo x # cd {live}/teamwork && ls", False), ("cat <<'EOF' >/dev/null\nit's\nEOF\ncd {live}/teamwork && ls", True),
           ("echo \"a && b\" && cd {live}/teamwork && ls", True), ("git commit -m 'x'; (cd {live}/teamwork && ls)", True),
           ("echo $(cd {live}/teamwork && ls)", True), ("echo \"$(cd {live}/teamwork && ls)\"", True), ("cat <<'EOF'\ncd sub\nEOF\ncd ../.. && ls", True))
@@ -205,8 +229,8 @@ def check_real():
 
 def main(args):
     if not args:
-        return replay_probe.run_every(__file__, "--case", (*COMMANDS, "chain", "quoted", "real", "spelled", "unread", "writes"))
-    if len(args) != 2 or args[0] != "--case" or args[1] not in (*COMMANDS, "chain", "quoted", "real", "spelled", "unread", "writes"):
+        return replay_probe.run_every(__file__, "--case", (*COMMANDS, "chain", "quoted", "real", "spelled", "unread", "writes", "blocked"))
+    if len(args) != 2 or args[0] != "--case" or args[1] not in (*COMMANDS, "chain", "quoted", "real", "spelled", "unread", "writes", "blocked"):
         print(__doc__, file=sys.stderr)
         return 2
     stubs, live, worktree = setup()
@@ -219,12 +243,16 @@ def main(args):
         problem = next((f"{command!r} " + ("was not denied" if denied else "was denied") for command, denied in ((text.format(live=live), denied) for text, denied in QUOTED)
                         if bool(hook_reason(stubs, worktree, command)) != denied), None)
     elif args[1] == "unread":
-        problem = next((f"{command!r} " + ("was decided" if not denied else "was not denied") for command, denied in (("cd $UNSET_FOR_CD_REPLAY && git ls-files; cat note.txt", False), ("cd $UNSET_FOR_CD_REPLAY && git log | head -1", False), ("cd $UNSET_FOR_CD_REPLAY && touch new.txt", True))
+        problem = next((f"{command!r} " + ("was decided" if not denied else "was not denied") for command, denied in ((text.format(live=live), denied) for text, denied in (("cd $UNSET_FOR_CD_REPLAY && git ls-files; cat note.txt", False), ("cd $UNSET_FOR_CD_REPLAY && git log | head -1", False), ("cd $UNSET_FOR_CD_REPLAY && touch new.txt", True),
+                                                                                         ("cd $(echo {live}/teamwork) && git ls-files; cat note.txt", False), ("cd `echo {live}/teamwork` && git log | head -1", False), ("cd $(echo {live}/teamwork) && touch new.txt", True)))
                         if bool(hook_reason(stubs, worktree, command)) != denied), None)
     elif args[1] == "spelled":
         problem = next((f"{spelling.format(live=live)} && {risky!r} " + ("was not denied" if not said else "was run without its cd: " + said[:200])
                         for spelling in SPELLINGS for risky in SPELLED_WRITES
                         if not (said := hook_reason(stubs, worktree, f"{spelling.format(live=live)} && {risky}")) or "ran instead" in said), None)
+    elif args[1] == "blocked":
+        problem = next((f"{command!r} " + ("was not denied" if not said else "was run without its cd: " + said[:200])
+                        for command in (text.format(live=live) for text in BLOCKED) if not (said := hook_reason(stubs, worktree, command)) or "ran instead" in said), None)
     elif args[1] == "writes":
         problem = next((f"{risky!r} " + ("was not denied" if not said else "was run without its cd: " + said[:200])
                         for risky in WRITES if not (said := hook_reason(stubs, worktree, f"cd {live}/teamwork && {risky.replace('LIVE', str(live))}")) or "ran instead" in said), None)

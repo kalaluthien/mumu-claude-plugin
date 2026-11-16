@@ -89,13 +89,17 @@ COMMENT = re.compile(r"(?:^|(?<=[ \t;&|(]))#[^\n]*", re.M)
 STAGE_JOINT = re.compile(r"&&|\|\||[;|\n]|(?<![<>])&(?![>&])")
 PASSED_REDIRECT = re.compile(r"(?:\d*|&)>(?:&\d+|/dev/null)")
 JOINTS = {"&&": "&&", "||": "||", ";": ";", "\n": ";", "|": "|"}
-CHANGE_DIRECTORY = re.compile(r"(?:^|[;&|({]|\bthen|\bdo)[ \t]*(?:(?:builtin|command)[ \t]+)?(?:cd|pushd)[ \t]+(?:-[A-Za-z@]+[ \t]+)*(?:--[ \t]+)?((?:\"[^\"]*\"|'[^']*'|\$\{[^}\s]*\}|[^\s;&|)}\"'])+)", re.M)
+CHANGE_DIRECTORY = re.compile(r"(?:^|[;&|({]|\bthen|\bdo)[ \t]*(?:(?:builtin|command)[ \t]+(?:(?:-p+|--)[ \t]+)*)*(?:cd|pushd)[ \t]+(?:-[A-Za-z@]+[ \t]+)*(?:--[ \t]+)?((?:\"[^\"]*\"|'[^']*'|\$\{[^}\s]*\}|\$\([^)]*\)|`[^`]*`|[^\s;&|)}\"'])+)", re.M)
 ASSIGNMENT = r"[ \t]*(?:export[ \t]+)?([A-Za-z_]\w*)=(\"[^\"$`\\]*\"|'[^']*'|[^\s;&|()$`\"'\\]*)[ \t]*(?:&&|;|\n)"  # a value with an expansion is left out, since its result is unknown here
 ASSIGNMENTS_ONLY = re.compile(f"(?:{ASSIGNMENT})+[ \\t]*")
 ASSIGNED = re.compile(f"(?:^|(?<=[;&|(\\n])){ASSIGNMENT}")
 SHELL_SET = {"OLDPWD", "SHLVL", "_", "PPID", "RANDOM", "LINENO", "SECONDS"}  # names the shell sets for itself, so the hook's copy is no value of the shell's
-UNREAD_VARIABLE = re.compile(r"\$[\w{]")
+UNREAD_VARIABLE = re.compile(r"\$[\w{(]|`")
 VARIABLE = re.compile(r"\$(\w+)|\$\{(\w+)\}")
+ANSI_QUOTED = re.compile(r"\$'((?:\\.|[^'\\])*)'")
+CLOSERS = {"then": "fi", "do": "done", "{": "}"}
+# the one header a block may open with, whose words run nothing that writes: a constant or a plain test as the condition, or a loop over plain words
+HEADER = r"[ \t]*(?:(?:if|elif|while|until)[ \t]+(?:true|false|test[ \t][^;&|<>$`()\n]*|\[[ \t][^;&|<>$`()\n]*\])|for[ \t]+\w+[ \t]+in(?:[ \t]+[\w./-]+)+)"
 
 
 def blanked_bodies(command):
@@ -197,6 +201,18 @@ def writes_github_issue(command):
                for found in SUBSTITUTION.finditer(unrun))
 
 
+def ansi_decoded(text):
+    """TEXT with each ANSI-C quoted `$'...'` it holds written as the single-quoted string the shell reads, and each `$"..."` as `"..."`; an ANSI-C string whose
+    escapes are more than a hex pair or an octal triple of a non-NUL ASCII character is left as written, since the shell may read it otherwise (it cuts a word at a
+    NUL, which `\\c@` and `\\400` also make), and the hook cannot read it."""
+    def decode(found):
+        if not re.fullmatch(r"(?:[^\\]|\\x[0-9a-fA-F]{2}|\\[0-3][0-7]{2})*", found[1]):
+            return found[0]
+        plain = re.sub(r"\\x([0-9a-fA-F]{2})|\\([0-3][0-7]{2})", lambda escape: chr(int(escape[1] or escape[2], 16 if escape[1] else 8)), found[1])
+        return shlex.quote(plain) if plain.isascii() and "\0" not in plain else found[0]
+    return ANSI_QUOTED.sub(decode, re.sub(r'\$("(?:\\.|[^"\\])*")', r"\1", text))
+
+
 def replaced(text, name, value):
     """TEXT with each `$NAME` and `${NAME}` outside single quotes replaced by VALUE."""
     parts = re.split(r"('[^']*')", text)
@@ -235,7 +251,11 @@ def directory_before(prefix, cwd):
         if not set(token) <= set("&|;()"):  # a word, or a redirect such as `2>&1`, which holds `>`
             words.append(token)
             continue
-        spelled = words[1:] if words[:1] in (["builtin"], ["command"]) else words
+        spelled = words
+        while spelled[:1] in (["builtin"], ["command"]):
+            spelled = spelled[1:]
+            while re.fullmatch(r"-p+|--", (spelled[:1] or [""])[0]):
+                spelled = spelled[1:]
         target = next((word for word in spelled[1:] if not word.startswith("-")), None)
         if token not in ("&&", ";", "("):
             here = cwd
@@ -253,12 +273,12 @@ def live_change_directory(command, cwd):
     for found in CHANGE_DIRECTORY.finditer(inert_text(command)) if inside else ():  # a cd inside a quote, heredoc or comment runs nothing
         before = blanked_bodies(command[:found.start(1)])
         here = directory_before(before, cwd)
-        targets = expanded(command[found.start(1):found.end(1)], before, here)
+        targets = expanded(ansi_decoded(command[found.start(1):found.end(1)]), before, here)
         for target in targets:  # a variable the shell may have set either way is read as each value, and none of them is rewritten
             path = os.path.normpath(os.path.join(here, os.path.expanduser(unquoted(target))))
             if (path + "/").startswith(root + "/") and WORKTREES not in path + "/":
                 return path, worktree, len(targets) == 1 and without_change_directory(command, found, path, worktree) or None
-        unread = next((target for target in targets if UNREAD_VARIABLE.search(outside_single_quotes(target))), None)
+        unread = next((target for target in targets if UNREAD_VARIABLE.search(outside_single_quotes(target)) or ANSI_QUOTED.search(target)), None)
         if unread and not without_change_directory(command, found, worktree, worktree):  # a folder the hook cannot read may be the live checkout, so only reads may follow
             return unread, worktree, None
     return None
@@ -419,7 +439,9 @@ def without_change_directory(command, found, folder, worktree):
     delimiter = re.match(r"[;&|({]|then|do", found[0])
     lead = command[:found.start()]
     assigned = bool(ASSIGNMENTS_ONLY.fullmatch(lead + (delimiter[0] if delimiter else "") + " "))  # a later command reads no variable, since expansion keeps the refusal, so these go
-    if lead.strip() and not assigned or not free_of_comments(rest):
+    opening = re.fullmatch(rf"(?:{HEADER}[ \t]*[;\n][ \t\n]*)?(then|do|\{{)(?:[ \t]+|[ \t]*\n[ \t\n]*)", lead + (delimiter[0] + " " if delimiter else ""))  # a block's own opening runs in the worktree, so it is kept
+    closer = opening and CLOSERS[opening[1]]
+    if lead.strip() and not assigned and not opening or not free_of_comments(rest):
         return None  # a comment hides its lines from the reading, and an opened quote in it hides the next ones
     head = "" if assigned else lead + (delimiter[0] + " " if delimiter else "")
     blanked = blank_text(rest)
@@ -434,6 +456,10 @@ def without_change_directory(command, found, folder, worktree):
         return None  # something sits between the cd and its joint
     stages = stages[1:]
     if stages and not blanked[stages[-1][1]:stages[-1][2]].strip() and stages[-1][0] in (";", "\n"):
+        stages.pop()
+    closed = ""
+    if closer and stages and blanked[stages[-1][1]:stages[-1][2]].strip() == closer and stages[-1][0] in (";", "\n"):
+        closed = "; " + closer  # the block's end, kept as it ends the block the cd opened
         stages.pop()
     if not stages or stages[0][0] not in ("&&", ";", "\n") or any(not blanked[a:b].strip() or joint == "&" for joint, a, b in stages):
         return None
@@ -452,15 +478,15 @@ def without_change_directory(command, found, folder, worktree):
         if not words or words[0][1] is None or not (stage := rewrite_stage(words, joint, folder, worktree)):
             return None
         rewritten.append((f" {JOINTS[joint]} " if rewritten else "") + " ".join(stage))
-    return head + "".join(rewritten) + tail
+    return head + "".join(rewritten) + closed + tail
 
 
 def runs_only_reads(command):
     """Whether every command of COMMAND is a plain read, none a script or program of the checkout, which may write beside itself and so must keep the person's own
     approval of the command the refusal offers."""
     plain = set(READ_ONLY) | NO_FILES | {"git", "gh", "cd"}
-    stages = [stage.strip().lstrip("(").strip() for stage in STAGE_JOINT.split(blank_text(command))]
-    return all(stage.split()[:1] and stage.split()[0] in plain for stage in stages if stage)
+    stages = [re.sub(r"^(?:then|do|else|\{)(?:[ \t]+|$)", "", stage.strip().lstrip("(").strip()) for stage in STAGE_JOINT.split(blank_text(command))]
+    return all(stage.split()[:1] and stage.split()[0] in plain for stage in stages if stage and stage not in CLOSERS.values() and not re.fullmatch(HEADER, stage))
 
 
 def unseen(lines, session_id):
