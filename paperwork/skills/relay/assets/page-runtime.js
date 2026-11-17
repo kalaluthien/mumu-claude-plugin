@@ -1,6 +1,6 @@
 (() => {
   const served = /^https?:$/.test(location.protocol);
-  const key = (name) => `page-changes:${location.pathname}:${name}`;
+  const key = (name) => `relay:${location.pathname}:${name}`;
   const recall = (name) => { try { return sessionStorage.getItem(key(name)); } catch (error) { return null; } };
   const remember = (name, value) => {
     try { if (value) sessionStorage.setItem(key(name), value); else sessionStorage.removeItem(key(name)); } catch (error) {}
@@ -9,14 +9,14 @@
   const readBlock = (id) => {
     const block = document.getElementById(id);
     if (!block) return null;
-    try { return JSON.parse(block.textContent); } catch (error) { console.warn(`page-changes: #${id} is not JSON`, error); return null; }
+    try { return JSON.parse(block.textContent); } catch (error) { console.warn(`relay: #${id} is not JSON`, error); return null; }
   };
   const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
   const data = readBlock("page-data");
   window.pageData = isObject(data) ? data : {};
   const threadState = readBlock("page-threads");
   const threads = isObject(threadState) && isObject(threadState.threads) ? threadState.threads : {};
-  window.pageChanges = [];
+  window.relayChanges = [];
   let pending = [];
   // kept in sessionStorage, so a change made while the server is down survives a reload and is sent on the next connect
   let unsent = [];
@@ -29,8 +29,8 @@
 
   window.recordChange = (kind, target, payload) => {
     const change = { kind, target, payload, ts: new Date().toISOString() };
-    window.pageChanges.push(change);
-    if (served) { unsent.push(change); keepUnsent(); draw(); flush(); } else { pending = window.pageChanges; draw(); }
+    window.relayChanges.push(change);
+    if (served) { unsent.push(change); keepUnsent(); draw(); flush(); } else { pending = window.relayChanges; draw(); }
     return change;
   };
 
@@ -159,7 +159,7 @@
 
   function exportChanges() {
     const link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([JSON.stringify(served ? unsent : window.pageChanges, null, 2)], { type: "application/json" }));
+    link.href = URL.createObjectURL(new Blob([JSON.stringify(served ? unsent : window.relayChanges, null, 2)], { type: "application/json" }));
     link.download = "changes.json";
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
@@ -168,23 +168,23 @@
   function start() {
     const style = document.createElement("style");
     style.textContent = `
-      #page-changes-ui { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 2147483000; font: 13px sans-serif; }
-      #page-changes-ui .layer button { position: absolute; font: 12px sans-serif; border: 1px solid #345; border-radius: 10px; background: #fff; cursor: pointer; padding: 1px 6px; }
-      #page-changes-ui aside { position: fixed; right: 0; top: 0; bottom: 0; width: 340px; background: #fff; border-left: 1px solid #bbb; padding: 12px; overflow: auto; box-shadow: -2px 0 8px #0002; }
-      #page-changes-ui aside[hidden] { display: none; }
-      #page-changes-ui header { display: flex; justify-content: space-between; align-items: center; }
-      #page-changes-ui ol { list-style: none; padding-left: 0; }
-      #page-changes-ui ol ol { padding-left: 14px; border-left: 2px solid #ddd; }
-      #page-changes-ui li { margin: 6px 0; }
-      #page-changes-ui li[data-by=session] > b { color: #276; }
-      #page-changes-ui li.waiting { background: #fff3c4; }
-      #page-changes-ui .meta { color: #777; font-size: 12px; }
-      #page-changes-ui textarea { width: 100%; box-sizing: border-box; }
-      #page-changes-ui .bar { position: fixed; left: 8px; bottom: 8px; background: #fff; border: 1px solid #345; border-radius: 8px; padding: 4px 8px; display: flex; gap: 8px; align-items: center; }
+      #relay-ui { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 2147483000; font: 13px sans-serif; }
+      #relay-ui .layer button { position: absolute; font: 12px sans-serif; border: 1px solid #345; border-radius: 10px; background: #fff; cursor: pointer; padding: 1px 6px; }
+      #relay-ui aside { position: fixed; right: 0; top: 0; bottom: 0; width: 340px; background: #fff; border-left: 1px solid #bbb; padding: 12px; overflow: auto; box-shadow: -2px 0 8px #0002; }
+      #relay-ui aside[hidden] { display: none; }
+      #relay-ui header { display: flex; justify-content: space-between; align-items: center; }
+      #relay-ui ol { list-style: none; padding-left: 0; }
+      #relay-ui ol ol { padding-left: 14px; border-left: 2px solid #ddd; }
+      #relay-ui li { margin: 6px 0; }
+      #relay-ui li[data-by=session] > b { color: #276; }
+      #relay-ui li.waiting { background: #fff3c4; }
+      #relay-ui .meta { color: #777; font-size: 12px; }
+      #relay-ui textarea { width: 100%; box-sizing: border-box; }
+      #relay-ui .bar { position: fixed; left: 8px; bottom: 8px; background: #fff; border: 1px solid #345; border-radius: 8px; padding: 4px 8px; display: flex; gap: 8px; align-items: center; }
     `;
     document.head.appendChild(style);
     ui = document.createElement("div");
-    ui.id = "page-changes-ui";
+    ui.id = "relay-ui";
     ui.innerHTML = "<div class=layer></div><aside hidden></aside><div class=bar><span class=state></span></div>";
     layer = ui.querySelector(".layer");
     panel = ui.querySelector("aside");
@@ -197,7 +197,7 @@
     button.addEventListener("click", exportChanges);
     bar.appendChild(button);
     if (typeof window.pageRender === "function") {
-      try { window.pageRender(window.pageData); } catch (error) { console.error("page-changes: pageRender failed", error); }
+      try { window.pageRender(window.pageData); } catch (error) { console.error("relay: pageRender failed", error); }
     }
     let scheduled = false;
     const later = () => {
@@ -219,7 +219,7 @@
     events.addEventListener("changes", loadPending);
   }
 
-  const safeStart = () => { try { start(); } catch (error) { console.error("page-changes: runtime failed", error); } };
+  const safeStart = () => { try { start(); } catch (error) { console.error("relay: runtime failed", error); } };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", safeStart);
   else safeStart();
 })();

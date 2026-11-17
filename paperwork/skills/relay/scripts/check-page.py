@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check an HTML page file against the page-changes interface, printing `follows`, or one `break <rule>: <detail>` line per break.
+"""Check an HTML page file against the relay interface, printing `follows`, or one `break <rule>: <detail>` line per break.
 
 usage: check-page.py <page.html>
 

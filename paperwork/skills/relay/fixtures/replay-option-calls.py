@@ -14,7 +14,7 @@ import tempfile
 HERE = pathlib.Path(__file__).resolve().parent
 UNKNOWN = ("--help", "--x")
 CALLS = {
-    "serve-page-changes.py": ["body", "--port", "1", "--quiet", "1"],
+    "serve-relay.py": ["body", "--port", "1", "--quiet", "1"],
     "connect-page.py": ["body"],
     "check-page.py": ["body"],
 }

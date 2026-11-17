@@ -91,6 +91,7 @@ flowchart TB
 One Schema document holds what a system is, or must be, and every view is drawn from it after a checker passes it.
 
 - [`/paperwork:zoom`](paperwork/skills/zoom/SKILL.md) models a system, from code, docs or requirements, as a checked Schema document, then proves it with Alloy (needs Java) or shows it as a clickable HTML page.
+- [`relay`](paperwork/skills/relay/SKILL.md) applies the comments and form values a person enters on a local HTML page to that page's file; a session loads it when a page needs it.
 
 **Usage.**
 

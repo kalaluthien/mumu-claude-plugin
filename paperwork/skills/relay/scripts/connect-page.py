@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Paste the page-changes runtime inline into an HTML page, between its marker comments before `</body>`, and add empty page-data and page-threads blocks when the page lacks them.
+"""Paste the relay runtime inline into an HTML page, between its marker comments before `</body>`, and add empty page-data and page-threads blocks when the page lacks them.
 
 usage: connect-page.py <page.html>
 
@@ -10,7 +10,7 @@ import re
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-START, END = "<!-- page-changes runtime -->", "<!-- /page-changes runtime -->"
+START, END = "<!-- relay runtime -->", "<!-- /relay runtime -->"
 BLOCKS = {"page-data": "{}", "page-threads": '{"threads": {}}'}
 
 

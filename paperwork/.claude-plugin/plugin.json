@@ -1,8 +1,8 @@
 {
   "name": "paperwork",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "license": "Apache-2.0",
-  "description": "Model a system as a checked Schema document, prove its rules with Alloy and show it as a diagram.",
+  "description": "Model a system as a checked Schema document, prove its rules with Alloy and show it as a diagram; relay applies a person's edits on a local HTML page to its file.",
   "author": {
     "name": "kalaluthien"
   }

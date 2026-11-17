@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Run page-changes end to end in a headless Chromium on a copy of assets/diagram-page.html in a scratch folder:
-// (a) opened as file://, a rename and a comment stay in window.pageChanges and Export downloads them;
+// Run relay end to end in a headless Chromium on a copy of assets/diagram-page.html in a scratch folder:
+// (a) opened as file://, a rename and a comment stay in window.relayChanges and Export downloads them;
 // (b) served, a rename and a comment reach the queue and the server prints one pending line after the quiet window;
 // (c) acting as the session, the script writes both into the page file and acks them, and the open page reloads by itself;
 // (d) the server refuses a post without the token, from another origin or of an unknown kind, hides its records,
@@ -9,15 +9,15 @@
 //     and reaches the queue once the server is back, and a badge clicked right after a form edit opens its panel;
 // (b), (c) and (d) also fail when the server writes the page file.
 //
-// usage: run-page-changes.cjs
-//        run-page-changes.cjs --queue <folder>
-//        run-page-changes.cjs --verify <folder>
+// usage: run-relay.cjs
+//        run-relay.cjs --queue <folder>
+//        run-relay.cjs --verify <folder>
 // With no option it prints `PASS <step>` or `FAIL <step>: <reason>` per step, then PASS or FAIL, and exits 1 on a failure.
 // --queue empties <folder>, serves a copy of the starter there, makes a rename and a comment as the person, leaves
 // them pending, and prints `queued 2 changes for <folder>/page.html`, or `FAIL queue: <reason>` and exit 1.
 // --verify serves <folder>/page.html again after a session applied and acked them, prints `PASS <check>` or
 // `FAIL <check>: <reason>` per check, then PASS or FAIL, and exits 1 on a failure; it ignores stdin.
-// Playwright is loaded from /private/tmp/page-changes-playwright/node_modules/playwright-core and the browser is the
+// Playwright is loaded from /private/tmp/relay-playwright/node_modules/playwright-core and the browser is the
 // newest headless shell Playwright installed, never an installed Google Chrome.
 const fs = require("fs");
 const http = require("http");
@@ -28,15 +28,15 @@ const readline = require("readline");
 const { spawn, spawnSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..");
-const PLAYWRIGHT = "/private/tmp/page-changes-playwright/node_modules/playwright-core";
-const SERVER = path.join(ROOT, "scripts", "serve-page-changes.py");
+const PLAYWRIGHT = "/private/tmp/relay-playwright/node_modules/playwright-core";
+const SERVER = path.join(ROOT, "scripts", "serve-relay.py");
 const QUIET = 1.5;
 const BLOCK = (id) => new RegExp(`(<script type="application/json" id="${id}">)([\\s\\S]*?)(</script>)`);
 
 const MODE = process.argv[2];
 const FOLDER = process.argv[3] && path.resolve(process.argv[3]);
 if (process.argv.length > 4 || process.argv.length === 3 || (process.argv.length === 4 && !["--queue", "--verify"].includes(MODE))) {
-  console.error("usage: run-page-changes.cjs [--queue <folder> | --verify <folder>]");
+  console.error("usage: run-relay.cjs [--queue <folder> | --verify <folder>]");
   process.exit(2);
 }
 const COMMENT = "Add a node Test after this one";
@@ -89,14 +89,14 @@ async function rename(page, node, label) {
 }
 
 async function comment(page, anchor, text) {
-  await page.click(`#page-changes-ui .layer button[data-anchor="${anchor}"]`);
-  await page.fill("#page-changes-ui aside textarea", text);
-  await page.click("#page-changes-ui aside button[type=submit]");
-  await until(async () => (await page.$$eval("#page-changes-ui aside li.waiting .text", (items) => items.map((item) => item.textContent))).includes(text),
+  await page.click(`#relay-ui .layer button[data-anchor="${anchor}"]`);
+  await page.fill("#relay-ui aside textarea", text);
+  await page.click("#relay-ui aside button[type=submit]");
+  await until(async () => (await page.$$eval("#relay-ui aside li.waiting .text", (items) => items.map((item) => item.textContent))).includes(text),
     3000, "the comment shown as waiting");
 }
 
-const status = (page) => page.textContent("#page-changes-ui .bar .state");
+const status = (page) => page.textContent("#relay-ui .bar .state");
 
 async function fileStep(browser, pagePath) {
   const before = fs.readFileSync(pagePath, "utf8");
@@ -110,15 +110,15 @@ async function fileStep(browser, pagePath) {
   await page.goto(`file://${pagePath}`);
   await rename(page, "plan", "Roadmap");
   await comment(page, "idea", "Say what the idea is");
-  const changes = await page.evaluate(() => window.pageChanges);
-  check(changes.length === 2, `window.pageChanges holds ${changes.length} changes, not 2`);
+  const changes = await page.evaluate(() => window.relayChanges);
+  check(changes.length === 2, `window.relayChanges holds ${changes.length} changes, not 2`);
   const data = changes.find((change) => change.kind === "data");
   check(data && data.target === "diagram-main" && data.payload.path === "diagram-main"
     && data.payload.value.nodes.some((node) => node.id === "plan" && node.label === "Roadmap"), "the data change does not carry the renamed diagram");
-  check(changes.some((change) => change.kind === "comment" && change.target === "idea" && change.payload.text === "Say what the idea is"), "the comment is not in window.pageChanges");
+  check(changes.some((change) => change.kind === "comment" && change.target === "idea" && change.payload.text === "Say what the idea is"), "the comment is not in window.relayChanges");
   const state = await status(page);
   check(/opened as file/.test(state) && /2 pending/.test(state), `the status bar says "${state}"`);
-  const [download] = await Promise.all([page.waitForEvent("download"), page.click("#page-changes-ui .export")]);
+  const [download] = await Promise.all([page.waitForEvent("download"), page.click("#relay-ui .export")]);
   const exported = JSON.parse(fs.readFileSync(await download.path(), "utf8"));
   check(download.suggestedFilename() === "changes.json" && exported.length === 2, "Export did not download both changes as changes.json");
   check(!errors.length, `the page threw: ${errors.join("; ")}`);
@@ -131,7 +131,7 @@ async function fileStep(browser, pagePath) {
     const barePath = path.join(path.dirname(pagePath), "bare.html");
     fs.writeFileSync(barePath, `<!doctype html><html><head><meta charset="utf-8"></head><body><p data-id="note">Note</p>${blocks}<script>${runtime}</script></body></html>`);
     await page.goto(`file://${barePath}`);
-    await until(() => page.$('#page-changes-ui .layer button[data-anchor="note"]'), 3000, `a badge on a page with ${name}`);
+    await until(() => page.$('#relay-ui .layer button[data-anchor="note"]'), 3000, `a badge on a page with ${name}`);
     check(JSON.stringify(await page.evaluate(() => window.pageData)) === "{}" && !errors.length, `a page with ${name} threw or kept a page-data: ${errors.join("; ")}`);
     fs.rmSync(barePath);
   }
@@ -139,8 +139,8 @@ async function fileStep(browser, pagePath) {
 }
 
 async function servedStep(browser, server, shared) {
-  const line = await until(async () => server.lines.find((each) => each.startsWith("page-changes url: ")), 5000, "the url line");
-  shared.url = line.slice("page-changes url: ".length);
+  const line = await until(async () => server.lines.find((each) => each.startsWith("relay url: ")), 5000, "the url line");
+  shared.url = line.slice("relay url: ".length);
   shared.origin = new URL(shared.url).origin;
   check(server.lines[0] === line, "the url line is not the first stdout line");
   check(fs.readFileSync(path.join(path.dirname(shared.pagePath), "url.txt"), "utf8").trim() === shared.url, "url.txt does not hold the url");
@@ -155,14 +155,14 @@ async function servedStep(browser, server, shared) {
     const queue = JSON.parse((await request("GET", `${shared.url}api/changes`)).text);
     return queue.length >= 2 && queue;
   }, 3000, "two queued events");
-  const early = server.lines.filter((each) => each.startsWith("page-changes pending")).length;
+  const early = server.lines.filter((each) => each.startsWith("relay pending")).length;
   check(early === 0, `the server printed ${early} pending lines before the quiet window ended`);
   check(events.length === 2 && events.some((event) => event.kind === "data" && event.target === "diagram-main")
     && events.some((event) => event.kind === "comment" && event.target === "build"), `the queue holds ${JSON.stringify(events)}`);
   check(events.every((event) => Number.isInteger(event.id) && /Z|\+00:00$/.test(event.ts)), "an event lacks an integer id or a UTC ts");
   shared.events = events;
   await sleep(QUIET * 1000 + 1500);
-  const pending = server.lines.filter((each) => each.startsWith("page-changes pending"));
+  const pending = server.lines.filter((each) => each.startsWith("relay pending"));
   check(pending.length === 1, `the server printed ${pending.length} pending lines, not 1`);
   check(/pending 2: 1 comment, 1 data/.test(pending[0]) && pending[0].includes(`curl -s ${shared.url}api/changes`)
     && pending[0].includes(`-H 'Origin: ${shared.origin}'`), `the pending line does not carry the counts and commands: ${pending[0]}`);
@@ -179,7 +179,7 @@ function setPath(target, dotted, value) {
 
 async function sessionStep(shared) {
   const { page, pagePath, events } = shared;
-  await page.fill("#page-changes-ui aside textarea", "draft kept across the reload");
+  await page.fill("#relay-ui aside textarea", "draft kept across the reload");
   await page.evaluate(() => { window.beforeReload = true; });
   let html = fs.readFileSync(pagePath, "utf8");
   const dataMatch = html.match(BLOCK("page-data"));
@@ -201,7 +201,7 @@ async function sessionStep(shared) {
   fs.writeFileSync(pagePath, html);
   await until(async () => (await page.evaluate(() => window.beforeReload)) === undefined, 5000, "the open page to reload by itself");
   await until(async () => (await page.textContent('g[data-id="idea"] text')) === "Concept", 5000, "the new label after the reload");
-  await until(async () => (await page.$$eval('#page-changes-ui aside li[data-by="session"] .text', (items) => items.map((item) => item.textContent))).includes(reply),
+  await until(async () => (await page.$$eval('#relay-ui aside li[data-by="session"] .text', (items) => items.map((item) => item.textContent))).includes(reply),
     5000, "the session's reply in the panel");
   await until(async () => /server connected/.test(await status(page)), 5000, "the reloaded page to connect");
   // a session acks in a later tool call than its edit, so the ack reaches a page that has already reloaded
@@ -214,9 +214,9 @@ async function sessionStep(shared) {
   await sleep(1000);
   check(fs.readFileSync(pagePath, "utf8") === html, "the server wrote the page file on the ack");
   await until(async () => /server connected/.test(await status(page)) && /0 pending/.test(await status(page)), 5000, "the status bar to say 0 pending");
-  check(!(await page.$("#page-changes-ui aside li.waiting")), "the panel still shows a comment as waiting");
+  check(!(await page.$("#relay-ui aside li.waiting")), "the panel still shows a comment as waiting");
   check(await page.evaluate(() => window.afterReload), "the ack reloaded the page, though the page file did not change");
-  check((await page.inputValue("#page-changes-ui aside textarea")) === "draft kept across the reload", "the draft did not survive the reload");
+  check((await page.inputValue("#relay-ui aside textarea")) === "draft kept across the reload", "the draft did not survive the reload");
   const queue = JSON.parse((await request("GET", `${shared.url}api/changes`)).text);
   check(queue.length === 0, `the queue still holds ${queue.length} events`);
   const folder = path.dirname(pagePath);
@@ -269,7 +269,7 @@ async function refusalStep(server, shared) {
   const again = startServer(shared.pagePath);
   shared.server = again;
   const line = await until(async () => again.lines[0], 5000, "the url line after a restart");
-  check(line === `page-changes url: ${url}`, `the restart printed "${line}", not the same url`);
+  check(line === `relay url: ${url}`, `the restart printed "${line}", not the same url`);
   const added = await request("POST", `${url}api/changes`, { headers: { ...json, Origin: origin }, body: good });
   const highest = Math.max(...shared.events.map((event) => event.id));
   check(added.status === 202 && JSON.parse(added.text).id === highest + 1, `the first post after a restart answered ${added.status} ${added.text}, not id ${highest + 1}`);
@@ -282,27 +282,27 @@ async function outageStep(shared) {
   await until(async () => /server connected/.test(await status(page)), 5000, "the page to reconnect after the restart");
   await page.evaluate(() => { window.beforeCut = true; });
   const whole = fs.readFileSync(pagePath, "utf8");
-  fs.writeFileSync(pagePath, whole.slice(0, whole.indexOf("<!-- /page-changes runtime -->")));
+  fs.writeFileSync(pagePath, whole.slice(0, whole.indexOf("<!-- /relay runtime -->")));
   await sleep(2500);
   check(await page.evaluate(() => window.beforeCut), "a page file cut off mid-write reloaded the open page");
   fs.writeFileSync(pagePath, whole);
   await shared.server.stop();
   await until(async () => /server not reachable/.test(await status(page)), 5000, "the status bar to say server not reachable");
   const text = "Keep this while the server is down";
-  await page.click('#page-changes-ui .layer button[data-anchor="plan"]');
-  await page.fill("#page-changes-ui aside textarea", text);
-  await page.click("#page-changes-ui aside button[type=submit]");
+  await page.click('#relay-ui .layer button[data-anchor="plan"]');
+  await page.fill("#relay-ui aside textarea", text);
+  await page.click("#relay-ui aside button[type=submit]");
   await until(async () => /1 not sent/.test(await status(page)), 3000, "the status bar to count 1 not sent");
-  const note = await page.$$eval("#page-changes-ui aside li.waiting", (items) => items.map((item) => [item.querySelector(".text").textContent, item.querySelector(".meta").textContent]));
+  const note = await page.$$eval("#relay-ui aside li.waiting", (items) => items.map((item) => [item.querySelector(".text").textContent, item.querySelector(".meta").textContent]));
   check(note.some(([shown, meta]) => shown === text && meta === "not sent"), `the panel shows ${JSON.stringify(note)}`);
-  check(await page.isVisible("#page-changes-ui .bar .export"), "no Export button while a change is not sent");
+  check(await page.isVisible("#relay-ui .bar .export"), "no Export button while a change is not sent");
   shared.server = startServer(pagePath);
   await until(async () => {
     const queue = JSON.parse((await request("GET", `${shared.url}api/changes`).catch(() => ({ text: "[]" }))).text);
     return queue.some((event) => event.kind === "comment" && event.target === "plan" && event.payload.text === text);
   }, 8000, "the comment made while the server was down in the queue");
   await until(async () => !/not sent/.test(await status(page)), 3000, "the status bar to drop not sent");
-  check(!(await page.isVisible("#page-changes-ui .bar .export")), "the Export button stays though every change was sent");
+  check(!(await page.isVisible("#relay-ui .bar .export")), "the Export button stays though every change was sent");
   // a form value recorded on blur redraws the badges, and the click that caused the blur must still open its panel
   await page.evaluate(() => {
     const field = document.createElement("input");
@@ -310,10 +310,10 @@ async function outageStep(shared) {
     field.addEventListener("change", () => window.recordChange("data", "form", { path: "form.owner", value: field.value }));
     document.body.prepend(field);
   });
-  await page.click('#page-changes-ui aside .close');
+  await page.click('#relay-ui aside .close');
   await page.fill("#form-owner", "Kim");
-  await page.click('#page-changes-ui .layer button[data-anchor="idea"]');
-  await until(async () => (await page.textContent("#page-changes-ui aside .title").catch(() => "")) === "idea" && await page.isVisible("#page-changes-ui aside"),
+  await page.click('#relay-ui .layer button[data-anchor="idea"]');
+  await until(async () => (await page.textContent("#relay-ui aside .title").catch(() => "")) === "idea" && await page.isVisible("#relay-ui aside"),
     3000, "the badge clicked right after a form edit to open its panel");
   const forms = await until(async () => {
     const queue = JSON.parse((await request("GET", `${shared.url}api/changes`)).text).filter((event) => event.target === "form");
@@ -326,7 +326,7 @@ async function outageStep(shared) {
 async function openBrowser() {
   const binary = browserBinary();
   if (!fs.existsSync(path.join(PLAYWRIGHT, "package.json")) || !binary || !fs.existsSync(binary)) {
-    throw new Error("install playwright-core into /private/tmp/page-changes-playwright and its chromium-headless-shell");
+    throw new Error("install playwright-core into /private/tmp/relay-playwright and its chromium-headless-shell");
   }
   return require(PLAYWRIGHT).chromium.launch({ executablePath: binary });
 }
@@ -340,14 +340,14 @@ async function queueMode() {
     fs.copyFileSync(path.join(ROOT, "assets", "diagram-page.html"), pagePath);
     browser = await openBrowser();
     server = startServer(pagePath);
-    const line = await until(async () => server.lines.find((each) => each.startsWith("page-changes url: ")), 5000, "the url line");
-    const url = line.slice("page-changes url: ".length);
+    const line = await until(async () => server.lines.find((each) => each.startsWith("relay url: ")), 5000, "the url line");
+    const url = line.slice("relay url: ".length);
     const page = await (await browser.newContext()).newPage();
     await page.goto(url);
     await until(async () => /server connected/.test(await status(page)), 5000, "the status bar to say server connected");
     await rename(page, "plan", "Plan B");
     await comment(page, "build", COMMENT);
-    await until(async () => server.lines.find((each) => each.startsWith("page-changes pending")), (QUIET + 5) * 1000, "the pending line");
+    await until(async () => server.lines.find((each) => each.startsWith("relay pending")), (QUIET + 5) * 1000, "the pending line");
     const queue = JSON.parse((await request("GET", `${url}api/changes`)).text);
     check(queue.length === 2 && queue.filter((each) => each.kind === "data").length === 1 && queue.filter((each) => each.kind === "comment").length === 1,
       `the queue holds ${JSON.stringify(queue)}`);
@@ -371,8 +371,8 @@ async function verifyMode() {
   try {
     browser = await openBrowser();
     server = startServer(pagePath);
-    const line = await until(async () => server.lines.find((each) => each.startsWith("page-changes url: ")), 5000, "the url line");
-    const url = line.slice("page-changes url: ".length);
+    const line = await until(async () => server.lines.find((each) => each.startsWith("relay url: ")), 5000, "the url line");
+    const url = line.slice("relay url: ".length);
     const page = await (await browser.newContext()).newPage();
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
@@ -401,9 +401,9 @@ async function verifyMode() {
       check(asked, "the thread under build lacks the person's comment");
       const replies = thread.filter((entry) => entry.by === "session" && String(entry.replies_to) === String(asked.id));
       check(replies.length, `no session entry replies to ${asked.id}`);
-      await page.click('#page-changes-ui .layer button[data-anchor="build"]');
+      await page.click('#relay-ui .layer button[data-anchor="build"]');
       const shown = await until(async () => {
-        const texts = await page.$$eval('#page-changes-ui aside li[data-by="session"] .text', (items) => items.map((item) => item.textContent));
+        const texts = await page.$$eval('#relay-ui aside li[data-by="session"] .text', (items) => items.map((item) => item.textContent));
         return replies.some((reply) => texts.includes(reply.text));
       }, 3000, "the reply in the panel");
       check(shown, "the panel does not show the reply");
@@ -422,8 +422,8 @@ async function verifyMode() {
     });
     await run("runtime", async () => {
       const runtime = fs.readFileSync(path.join(ROOT, "assets", "page-runtime.js"), "utf8").trim();
-      const open = html.indexOf("<!-- page-changes runtime -->");
-      const close = html.indexOf("<!-- /page-changes runtime -->");
+      const open = html.indexOf("<!-- relay runtime -->");
+      const close = html.indexOf("<!-- /relay runtime -->");
       check(open >= 0 && close > open && html.slice(open, close).includes(runtime), "page.html lacks the runtime between its markers");
     });
     await run("page errors", async () => check(!errors.length, `the page threw: ${errors.join("; ")}`));
@@ -443,11 +443,11 @@ async function main() {
   if (MODE === "--verify") return verifyMode();
   const binary = browserBinary();
   if (!fs.existsSync(path.join(PLAYWRIGHT, "package.json")) || !binary || !fs.existsSync(binary)) {
-    console.log(`FAIL setup: install playwright-core into /private/tmp/page-changes-playwright and its chromium-headless-shell`);
+    console.log(`FAIL setup: install playwright-core into /private/tmp/relay-playwright and its chromium-headless-shell`);
     return 1;
   }
   const { chromium } = require(PLAYWRIGHT);
-  const folder = fs.mkdtempSync(path.join(os.tmpdir(), "page-changes-"));
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), "relay-"));
   const shared = { pagePath: path.join(folder, "page.html"), errors: [] };
   fs.copyFileSync(path.join(ROOT, "assets", "diagram-page.html"), shared.pagePath);
   const browser = await chromium.launch({ executablePath: binary });

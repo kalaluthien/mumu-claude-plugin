@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Queue the change events an open HTML page sends for a Claude Code session to apply, and tell the page to reload when its file changes.
 
-usage: serve-page-changes.py <page.html> [--port <n>] [--quiet <seconds>]
+usage: serve-relay.py <page.html> [--port <n>] [--quiet <seconds>]
 
 It binds 127.0.0.1 behind a random token, `http://127.0.0.1:<port>/<token>/`, written to `url.txt` beside the page and
-reused on a restart. Its first stdout line is `page-changes url: <url>`; once a change is queued and `--quiet` seconds
-(default 3) pass with no newer one, it prints one `page-changes pending ...` line carrying the commands that pull and
+reused on a restart. Its first stdout line is `relay url: <url>`; once a change is queued and `--quiet` seconds
+(default 3) pass with no newer one, it prints one `relay pending ...` line carrying the commands that pull and
 ack the queue. It never writes the page: each version of it is copied, read only, into `history/`; events wait in
 `changes/pending.jsonl` and acked ones move to `changes/applied.jsonl`."""
 import datetime
@@ -25,7 +25,7 @@ ANCHOR = re.compile(r"[\w.:-]{1,80}")
 KINDS = ("comment", "data")
 RECORDS = ("changes", "history", "url.txt")
 LIMIT = 1_000_000
-RUNTIME_END = b"<!-- /page-changes runtime -->"
+RUNTIME_END = b"<!-- /relay runtime -->"
 HANDLED = ("do_GET", "do_POST", "log_message")  # http.server calls these by name
 
 
@@ -131,7 +131,7 @@ def main(args):
             if events:
                 comments = sum(event["kind"] == "comment" for event in events)
                 ack_body = '{"ids":[<id>,...]}'
-                print(f"page-changes pending {len(events)}: {comments} comment, {len(events) - comments} data for {page}"
+                print(f"relay pending {len(events)}: {comments} comment, {len(events) - comments} data for {page}"
                       f" | pull: curl -s {url}api/changes"
                       f" | ack after editing the page: curl -s -X POST -H 'Origin: {origin}' -H 'Content-Type: application/json'"
                       f" -d '{ack_body}' {url}api/changes/ack", flush=True)
@@ -223,7 +223,7 @@ def main(args):
     try:
         server = http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler)
     except OSError as error:
-        print(f"page-changes cannot listen on 127.0.0.1:{port}: {error}", file=sys.stderr)
+        print(f"relay cannot listen on 127.0.0.1:{port}: {error}", file=sys.stderr)
         return 1
     origin = f"http://127.0.0.1:{server.server_address[1]}"
     url = f"{origin}/{token}/"
@@ -231,7 +231,7 @@ def main(args):
     keep()
     for each in (watch, announce):
         threading.Thread(target=each, daemon=True).start()
-    print(f"page-changes url: {url}", flush=True)
+    print(f"relay url: {url}", flush=True)
     server.serve_forever()
 
 
