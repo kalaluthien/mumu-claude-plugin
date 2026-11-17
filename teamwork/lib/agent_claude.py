@@ -1,5 +1,6 @@
 """Claude Code as the agent port's adapter."""
 import json
+import re
 
 KIND = "claude"
 # claude.ai connectors (Gmail, Drive, Notion...) serve no teamwork role, and their tool list costs ~5k tokens every turn
@@ -29,3 +30,15 @@ def command(name, plugin_folder, model, effort, off):
 
 def kickoff(args):
     return f"Run the teamwork:kick-off skill with these arguments: {args}"  # model-only: a typed /teamwork:kick-off is refused
+
+
+def draft(screen):
+    """The box is the lines between the last two rules; its hints, such as `Press up to edit queued messages`, are drawn dim, which typed text never is.
+    The box pads each line with spaces, so a draft of only spaces reads as empty."""
+    plain = lambda line: re.sub(r"\x1b\[[0-9;]*m", "", line)
+    lines = screen.splitlines()
+    rules = [at for at, line in enumerate(lines) if plain(line).startswith("──")]
+    if len(rules) < 2:
+        return None
+    box = [plain(re.sub(r"\x1b\[2m.*?\x1b\[0m", "", line)) for line in lines[rules[-2] + 1:rules[-1]]]
+    return re.sub(r"^❯.?", "", "\n".join(box)).strip()

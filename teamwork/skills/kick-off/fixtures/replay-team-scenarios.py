@@ -285,10 +285,33 @@ def moved_answer():
     return code == 0 and answered == "1", out
 
 
+BOX = "─" * 20 + " teamwork-manager ─\n❯ {draft}\n" + "─" * 40 + "\n  -- INSERT --"
+
+
+def hinted_rename():
+    """A box showing only Claude Code's dim hint, `Press up to edit queued messages`, is empty, so the session is renamed."""
+    home = tempfile.mkdtemp(prefix="fake-home-")
+    hint = BOX.format(draft="\x1b[2mPress up to edit queued messages\x1b[0m")
+    state = herdr(dict(agent("teamwork-manager", 1, "idle", "w9"), agent_session={"value": "hint-id"}, screen=hint))
+    code, out = run([SCRIPTS.parent / "references/adapters/session-herdr/scripts" / "rename-session.py", "renamed-manager"], state, "w9:p1", seconds=60,
+                    CLAUDE_CODE_SESSION_ID="hint-id", TEAMWORK_FAKE_HERDR_HOME=home, HOME=home)
+    return code == 0 and out.strip() == "renamed to renamed-manager", out
+
+
+def kept_draft():
+    """A session whose prompt box holds an unsent draft is sent no `/rename`: the script says why it did not rename, and the draft stays."""
+    home = tempfile.mkdtemp(prefix="fake-home-")
+    state = herdr(dict(agent("teamwork-manager", 1, "idle", "w9"), agent_session={"value": "draft-id"}, screen=BOX.format(draft="half a sentence")))
+    code, out = run([SCRIPTS.parent / "references/adapters/session-herdr/scripts" / "rename-session.py", "renamed-manager"], state, "w9:p1", seconds=90,
+                    CLAUDE_CODE_SESSION_ID="draft-id", TEAMWORK_FAKE_HERDR_HOME=home, HOME=home)
+    typed = (pathlib.Path(home) / ".claude" / "projects").exists()  # the fake herdr writes a transcript only for a typed `/rename`
+    return code == 1 and out.startswith("not renamed to renamed-manager: the prompt box holds an unsent draft") and not typed, out
+
+
 def moved_rename():
     """A session whose pane moved after the read that found it is still renamed in herdr and in Claude Code."""
     home = tempfile.mkdtemp(prefix="fake-home-")
-    state = herdr(dict(agent("teamwork-manager", 1, "idle", "w9"), agent_session={"value": "moved-id"}, move="w4:p15"))
+    state = herdr(dict(agent("teamwork-manager", 1, "idle", "w9"), agent_session={"value": "moved-id"}, move="w4:p15", screen=BOX.format(draft="")))
     code, out = run([SCRIPTS.parent / "references/adapters/session-herdr/scripts" / "rename-session.py", "renamed-manager"], state, "w9:p1", seconds=60,
                     CLAUDE_CODE_SESSION_ID="moved-id", TEAMWORK_FAKE_HERDR_HOME=home, HOME=home)
     return code == 0 and out.strip() == "renamed to renamed-manager" and workspace_of(state, "renamed-manager") == "w4", out
@@ -322,6 +345,8 @@ SCENARIOS = {
     "moved-tell": moved_tell,
     "moved-answer": moved_answer,
     "moved-rename": moved_rename,
+    "kept-draft": kept_draft,
+    "hinted-rename": hinted_rename,
     "moved-start": moved_start,
 }
 

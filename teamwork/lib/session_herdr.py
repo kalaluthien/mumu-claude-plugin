@@ -31,8 +31,8 @@ def agent(name):
     return next((live for live in sessions()[0] if live.get("name") == name), None)
 
 
-def screen(pane):
-    return subprocess.run(["herdr", "agent", "read", pane, "--source", "visible"], capture_output=True, text=True).stdout
+def screen(pane, styled=False):
+    return subprocess.run(["herdr", "agent", "read", pane, "--source", "visible", *(["--ansi"] if styled else [])], capture_output=True, text=True).stdout
 
 
 def tabs(workspace):
