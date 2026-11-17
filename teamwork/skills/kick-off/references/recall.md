@@ -1,6 +1,6 @@
 # Recall
 
-Find what earlier issues and changes tried on the same work, before you start it, file it or ask a `BLOCKED:`.
+Find what earlier issues and changes tried on the same work.
 
 1. Run [recall-work.py](recall/scripts/recall-work.py) with the work's words and `--path <file>` per file you will change; it follows renames.
 2. A `not planned` issue or a `closed` change is an attempt stopped: learn why before you repeat it. A `BLOCKED:` is a question asked: find its answer below it.

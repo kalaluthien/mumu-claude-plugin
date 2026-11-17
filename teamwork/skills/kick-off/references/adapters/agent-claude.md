@@ -7,9 +7,8 @@ A subagent is an `Agent` call of a Claude Code session.
 | `delegate` | an `Agent` call naming its `model` by tier, since one without runs on yours: `open` `fable`, `deep` `opus`, `mid` `sonnet`, `light` `haiku`; a code search or a read of named files may use `Explore` |
 | `compact` | prompt yourself `/compact Keep only: <what>.` |
 
-- **Tier of a session**: `start` passes the tier's model as `--model` and the effort as `--effort`.
-- **Publishing tool**: `Artifact`, which a manager keeps on by `--allow Artifact`.
-- **Refused step**: auto mode refuses by the outcome, not the form, and no `DECIDED:` lifts it: it refuses `rm` of untracked or ignored files outside a worktree, `reset --hard` or `merge --ff-only` of a clean worktree, and a `close` of a live session (`Interfere With Workloads`), so when the base moves before your first commit, open a new branch worktree from `origin/<base>`. Hand the owner a refused step at once as `! <command>`; for a rule, guard or agent file, `! git -C <worktree> apply <patch-path>` of a scratchpad patch, first checked by `git apply --check`. A refused, rejected or interrupted call may still have run: read its effect back, such as the board, before redoing or dropping it; reuse what landed, edited to the owner's latest word, and tell the owner it ran.
+- **Publishing tool**: `Artifact`.
+- **Refused step**: auto mode refuses by the outcome, not the form, and no `DECIDED:` lifts it: it refuses `rm` of untracked or ignored files outside a worktree, `reset --hard` or `merge --ff-only` of a clean worktree, and a `close` of a live session (`Interfere With Workloads`), so when the base moves before your first commit, open a new branch worktree from `origin/<base>`. Hand the owner a refused step at once as `! <command>`; for a rule, guard or agent file, `! git -C <worktree> apply <patch-path>`, first checked by `git apply --check`. A refused, rejected or interrupted call may still have run: read its effect back, such as the board, before redoing or dropping it; reuse what landed, edited to the owner's latest word, and tell the owner it ran.
 
 ## Tier of a worker
 

@@ -11,16 +11,15 @@ Run the one endless duty your manager named, such as watching a log, a page or a
 
 ## Rules
 
-- **Duty only**: edit only a file your duty names that lies outside every repository, and never a file of a repository, even one your duty names; file, branch, judge and merge nothing.
 - **No helpers**: Agent, Artifact, AskUserQuestion and Workflow are off; a duty that needs one comes back to your manager, which may start you again with `--allow`.
 - **Duty fails**: when a round cannot run, `tell` your manager what failed, once, and keep the next rounds going.
 - **Manager ends**: when `list` no longer shows your manager, judge from the duty alone. A duty that served only that manager ends: `close` yourself. A duty that still serves the owner goes on: `notify` the owner once, naming your tab, and report to the next `<project>-manager` once one is live.
 
 ## Change source
 
-A source outside the repository, such as an HTML page, a messenger channel or a tracker, queues changes a person made; you apply them to the files the source's instructions name, and acknowledge each one applied.
+A source outside the repository, such as an HTML page, a messenger channel or a tracker, queues changes a person made.
 
-- **Instructions**: the skill or file your duty names says how to watch the source, pull its pending changes, apply each kind, acknowledge them and check the result; they name the files your duty may edit. Teamwork holds none of this, so a change to the source needs no change here.
+- **Instructions**: the skill or file your duty names says how to watch the source, pull its pending changes, apply each kind, acknowledge them and check the result; they name the files your duty may edit.
 - **Apply**: on each line your `Monitor` prints, pull every pending change, apply them in order to the named files, and acknowledge only the changes you applied, leaving each one skipped pending.
 - **Ambiguous**: skip a change that can mean two different edits, and name it in your report with its choices.
 - **Check where seen**: after applying, check the result where its person meets it. For a browser page, use Claude in Chrome on that page's tab: read its console for errors and take a screenshot, open the source's `http://127.0.0.1` url rather than a `file://` one, since navigation to `file://` may fail, and fix each error your edit caused. Claude in Chrome runs only in a session started with `--chrome` or with `/chrome` set to enabled by default; without it, report that the check was not run.

@@ -6,9 +6,9 @@ How a manager adds to the owner's words before passing them on, so a worker gets
 
 - **addition**: what the next reader cannot get from the words alone, one of the rows below.
 - **routing decision**: the task's own properties, written once in the routing `DECIDED:`: its outcomes, a `Why:` line, the guesses, `Never:` lines, `Free:` and `Ask first:` choices, the context the worker lacks with its url, what done is, and the `Judge note:`. The worker reads it with `use-board.py read <issue> --as worker`.
-- **worker prompt**: the lines after the kick-off arguments that steer the worker's attitude and way of working on this task, at most 100 words besides urls and the owner's quoted words, empty when the default attitude of [worker.md](worker.md) fits. It holds no goal, purpose, title, outcome, criterion or constraint, since the task holds those, and no tier, effort or branch, since the `start` call holds those.
-- **judge note**: a `Judge note:` paragraph in the routing `DECIDED:`, which the judge reads among the binding decisions and a worker's `read --as worker` omits: the cases to try against each outcome, at most 120 words.
-- **guess**: an outcome or edge the words leave open and you fill in, marked `(guess)` for the worker to confirm.
+- **worker prompt**: the lines after the kick-off arguments that steer the worker's attitude and way of working on this task, at most 100 words besides urls and the owner's quoted words, empty when the default attitude of [worker.md](worker.md) fits.
+- **judge note**: a `Judge note:` paragraph in the routing `DECIDED:`, with a blank line after it, which the judge reads among the binding decisions and a worker's `read --as worker` omits: a way to score (`yes`, `no` or `Unknown`) and the cases to try against each outcome, at most 120 words, never the worker's reasoning or the manager's history.
+- **guess**: an outcome or edge the words leave open and you fill in, marked `(guess)` for the worker to confirm, since an unmarked one reads as the owner's word.
 
 Task properties, for the routing decision:
 
@@ -24,8 +24,6 @@ Task properties, for the routing decision:
 | a change to a playbook or rule | every file that states the rule |
 | a choice the words do not settle | `Free:` the choice the worker makes unasked; `Ask first:` the choice that is the owner's |
 
-Steering lines, for the worker prompt: a row of [handoff-worker-prompt.md](../assets/handoff-worker-prompt.md), which no manager reads, taken by its key only when the task is that case, as [manager.md](manager.md) step 3 **Route** says.
-
 ## Steps
 
 1. Read the words for the purpose, the implied outcomes, the open edges and the kind of work, scoping each outcome as [protocol.md](protocol.md)'s **Scope the path** says.
@@ -36,9 +34,7 @@ Steering lines, for the worker prompt: a row of [handoff-worker-prompt.md](../as
 ## Rules
 
 - **Quote beside, never instead**: the owner's words stay verbatim; your purpose and guesses sit beside them.
-- **Mark every guess**: a guess unmarked reads as the owner's word.
-- **Properties in the task, steering in the prompt**: a goal, a constraint, a criterion, a judge case, or an output, option or layout to produce never goes in the prompt, since the worker finds the path and the judge's cases are probes of its criteria.
-- **Judge note**: a way to score (`yes`, `no` or `Unknown`) and the cases to try, as one paragraph with a blank line after it; not the worker's reasoning or the manager's history.
+- **Properties in the task, steering in the prompt**: a goal, purpose, title, outcome, constraint, criterion, judge case, or an output, option or layout to produce never goes in the prompt, since the task holds those and the worker finds the path and the judge's cases are probes of its criteria; nor a tier, effort or branch, since the `start` call holds those.
 
 ## Example
 
