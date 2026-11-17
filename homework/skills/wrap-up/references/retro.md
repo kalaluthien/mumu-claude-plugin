@@ -16,11 +16,9 @@ Keep what this session learned where the next agent will meet it. A lesson hande
    - **Steering**: an `owner` or `override` candidate, where the owner corrected or redirected: the instruction or default that would have made it unneeded.
    - **Interface**: each `refusal`, `failure` or `hook` candidate, and any other tool, script or hook whose usage line or message misled or cost a step: name each one and its owner, then route the fix by who owns the tool, a patch to it when its repository is the owner's, as the Foreign repositories rule tells, else a memory lesson with the workaround, plus a wrapper or hook in the owner's repository when one fits; or drop it with a reason.
 
-   **Dig**: take each finding through 5 whys, each answer the cause of the one before, so the fix lands at the cause, not the symptom. Stop when a why names a broken assumption or a missing check that an instruction, check or tool could change; a why that ends in "the guard worked" is no finding, so drop it. A why with two causes is a branch: dig each.
-
-   **Verified cause**: each why cites the transcript line or the artifact it names. When it names an artifact, a file's state or `git log`, a hook's or script's source or usage line, read it now and cite that read, since a transcript line shows what a tool did, not why. A why with neither is a guess: file no lesson on it, and report it as a guess in step 8.
+   Then dig each finding by `SKILL.md`'s **Dig**, reporting each guess in step 8.
 3. **Drafts**: draft each answer worth keeping, one per verified root cause, paraphrasing owner text, never quoting it, since memory may be pushed:
-   - improve: "when <situation>, do <action>, because <the broken assumption, the last why>", then `checked: <the line or read that verified it>`; a draft that rests on one why is still a symptom, so dig on;
+   - improve: "when <situation>, do <action>, because <the broken assumption, the last why>", then `checked: <the line or read that verified it>` and, for a fix outside memory, its `Reproduce:`;
    - sustain, an owner-accepted choice or a detour that worked: "when <situation>, keep <action>, because <what it saved>";
    - a procedure worked out: its steps as run.
 
@@ -51,6 +49,6 @@ Keep what this session learned where the next agent will meet it. A lesson hande
 
    An extend or add cites evidence: a candidate's time, a url or a `path:line`.
 6. **Edit**: edit only the lines that change, `MEMORY.md` over a fresh read, since other sessions write it. Delete or correct any entry this session showed wrong. Then run `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/list-drift.py <config> <folder>` on each folder you wrote and fix each `bad header` line for your file before the report, since only a dream would find a headerless file otherwise. Then record the home in its history, even when you edited nothing: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/snapshot-memory.py <config> 'retro <today>: <topic>'`, a topic without a quote mark, which prints `snapshot unchanged` when you wrote nothing, since a lesson a later session overwrites must stay readable; on `snapshot refused`, tell the owner its reason in your report.
-7. **Repeat**: a repeat an entry should have prevented: confirm it, and hand its project's manager, by `SendMessage`, a task to make it a check or a skill step, naming which, the lesson and the repeat's evidence, never a GitHub issue. With no manager, tell the owner in one line. The hand-over asks first: show the owner the task's title and send it only on their yes.
+7. **Repeat**: a repeat an entry should have prevented: confirm it, and hand its project's manager, by `SendMessage`, a task to make it a check or a skill step, naming which, the lesson, the repeat's evidence and its `Reproduce:`, never a GitHub issue. With no manager, tell the owner in one line. The hand-over asks first: show the owner the task's title and send it only on their yes.
 
 8. **Report**: tell the owner each lesson filed: its operation, text, file and `checked:` source, then each guess in one line, and an add's one line, and for a patch the line `! git -C <root> apply <patch file>` that applies it; with no lesson and no guess, say nothing.
