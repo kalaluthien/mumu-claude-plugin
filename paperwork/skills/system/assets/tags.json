@@ -163,12 +163,6 @@
      "example": "timeout 10 min, 3 retries"
     },
     {
-     "name": "failure",
-     "label": "failure",
-     "form": "table",
-     "example": "case, what happens"
-    },
-    {
      "name": "runs-on",
      "label": "runs on",
      "form": "text",

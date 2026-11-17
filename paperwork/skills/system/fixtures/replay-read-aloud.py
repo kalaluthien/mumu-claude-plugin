@@ -23,7 +23,10 @@ def expected(contract):
     titles = {level["id"]: level["title"] for level in contract["levels"]}
 
     def shown(text):
-        return re.sub(r"\{([a-z0-9-]+)\}", lambda match: labels.get(match.group(1), match.group(0)), text)
+        def label(match):
+            found = labels.get(match.group(1), match.group(0))
+            return found[:1].upper() + found[1:] if match.start() == 0 or text[:match.start()].endswith(". ") else found
+        return re.sub(r"\{([a-z0-9-]+)\}", label, text)
 
     lines = []
     for level in contract["levels"]:
@@ -35,9 +38,9 @@ def expected(contract):
             if edge["tag"] == "transition":
                 guard = f" [{shown(info['guard'])}]" if "guard" in info else ""
                 action = f" / {shown(info['action'])}" if "action" in info else ""
-                lines.append(f"  transition: {start} -- {edge['label']}{guard}{action} --> {end}")
+                lines.append(f"  transition: {start} -- {shown(edge['label'])}{guard}{action} --> {end}")
             else:
-                lines.append(f"  sentence: {start} {edge['label']} {'each of ' if edge.get('many') else ''}{end}.")
+                lines.append(f"  sentence: {start} {shown(edge['label'])} {'each of ' if edge.get('many') else ''}{end}.")
     return lines, [shown(item["statement"]) for item in contract.get("properties", [])]
 
 

@@ -56,21 +56,21 @@
    ],
    "edges": [
     {
-     "id": "courier-door",
+     "id": "fills",
      "from": "courier",
      "to": "door",
      "label": "fills",
      "tag": "call"
     },
     {
-     "id": "door-codes",
+     "id": "asks",
      "from": "door",
      "to": "codes",
      "label": "asks",
      "tag": "access"
     },
     {
-     "id": "courier-codes",
+     "id": "adds-a",
      "from": "courier",
      "to": "codes",
      "label": "adds a code to",
@@ -80,7 +80,7 @@
   },
   {
    "id": "door-life",
-   "title": "A door's life",
+   "title": "Life of a lock",
    "areas": [
     {
      "id": "lock",
@@ -94,13 +94,13 @@
    "nodes": [
     {
      "id": "empty",
-     "label": "empty",
+     "label": "standing empty",
      "tag": "state",
      "area": "lock"
     },
     {
      "id": "full",
-     "label": "full",
+     "label": "standing full",
      "tag": "state",
      "area": "lock"
     }
@@ -137,7 +137,7 @@
    "principle": true,
    "steps": [
     {
-     "at": "courier-door"
+     "at": "fills"
     },
     {
      "at": "fill",
@@ -168,11 +168,11 @@
    ],
    "paths": [
     [
-     "courier-codes"
+     "adds-a"
     ],
     [
-     "courier-door",
-     "door-codes"
+     "fills",
+     "asks"
     ]
    ]
   },

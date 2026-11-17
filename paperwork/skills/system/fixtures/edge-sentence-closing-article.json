@@ -1,6 +1,6 @@
 {
  "title": "A parcel locker",
- "purpose": "Let a courier leave a parcel that only its receiver can take.",
+ "purpose": "Let {courier} leave a parcel that only its receiver can take.",
  "sources": [
   {
    "id": "manual",
@@ -57,21 +57,21 @@
    ],
    "edges": [
     {
-     "id": "courier-door",
+     "id": "fills-the",
      "from": "courier",
      "to": "door",
      "label": "fills the",
      "tag": "call"
     },
     {
-     "id": "door-codes",
+     "id": "asks",
      "from": "door",
      "to": "codes",
      "label": "asks",
      "tag": "access"
     },
     {
-     "id": "courier-codes",
+     "id": "adds-a",
      "from": "courier",
      "to": "codes",
      "label": "adds a code to",
@@ -81,7 +81,7 @@
   },
   {
    "id": "door-life",
-   "title": "A door's life",
+   "title": "Life of a lock",
    "areas": [
     {
      "id": "lock",
@@ -95,13 +95,13 @@
    "nodes": [
     {
      "id": "empty",
-     "label": "empty",
+     "label": "standing empty",
      "tag": "state",
      "area": "lock"
     },
     {
      "id": "full",
-     "label": "full",
+     "label": "standing full",
      "tag": "state",
      "area": "lock"
     }
@@ -138,7 +138,7 @@
    "principle": true,
    "steps": [
     {
-     "at": "courier-door"
+     "at": "fills-the"
     },
     {
      "at": "fill",
@@ -163,17 +163,17 @@
   {
    "id": "same-codes",
    "kind": "fact",
-   "statement": "The list a courier adds to is the list the door asks.",
+   "statement": "The list {courier} adds to is the list the door asks.",
    "on": [
     "codes"
    ],
    "paths": [
     [
-     "courier-codes"
+     "adds-a"
     ],
     [
-     "courier-door",
-     "door-codes"
+     "fills-the",
+     "asks"
     ]
    ]
   },
