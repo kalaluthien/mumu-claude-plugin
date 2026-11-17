@@ -12,8 +12,6 @@ Set `HOMEWORK_WRAP_UP=off` in the environment Claude Code starts with, or in the
 
 The hook then neither asks nor writes; a person can still ask for a retro.
 
-The variable was `WRAP_UP`, and so was `WRAP_UP_THRESHOLD` for the threshold, before the rename to `HOMEWORK_WRAP_UP` and `HOMEWORK_WRAP_UP_THRESHOLD`; the old names do nothing now.
-
 ## Share memory across projects
 
 Set one auto-memory folder for every session in `~/.claude/settings.json`; the retro and dream scripts fail with a message naming it until you do:
@@ -27,10 +25,6 @@ Its `MEMORY.md` then loads in every session, and a SessionStart hook sends each 
 ## One count of the one memory home
 
 The hook keeps the count of memory files changed since the last dream, and the lesson threshold, in `<autoMemoryDirectory>.wrap-up.json` beside the memory folder, so each plugin data folder reads the same count. `skills/wrap-up/scripts/list-unasked-sessions.py` lists, by cause, the sessions of 25 or more tool calls that the hook never asked: the hook is absent from their stop summaries where homework is not enabled for the project.
-
-## Where a dream runs
-
-In herdr, a dream without the `Workflow` tool runs in a Dreamer, a new tab named `<topic>-dreamer`, which `skills/wrap-up/scripts/start-dreamer.py` opens. The Dreamer asks you its questions there, reports, then runs `skills/wrap-up/scripts/close-dreamer.py`, which closes its own tab once the turn ends; run from any pane not named `*-dreamer`, that script closes nothing.
 
 ## What a wrap-up writes
 
