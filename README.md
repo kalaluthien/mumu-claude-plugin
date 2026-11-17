@@ -2,7 +2,7 @@
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-donate-yellow)](https://buymeacoffee.com/kalaluthien)
 
-Three Claude Code plugins that let one person run a small team of Claude sessions without losing the plot: **teamwork** turns what you ask for into reviewed, merged work; **paperwork** models a system as a checked document you can prove and draw; **homework** makes sure each session leaves behind what it learned.
+Three Claude Code plugins that let one person run a small team of Claude sessions without losing the plot: **teamwork** turns what you ask for into reviewed, merged work; **paperwork** describes a system as a checked contract a reader can rebuild it from; **homework** makes sure each session leaves behind what it learned.
 
 Each plugin works alone.
 
@@ -22,7 +22,7 @@ What each one needs on your machine; every Python 3 below means Python 3.9 or la
 | plugin or feature | needs |
 | --- | --- |
 | teamwork | Python 3; `git`; [herdr](https://herdr.dev), the terminal workspace where sessions live and talk by name |
-| paperwork | Python 3 and `git`, with [`uv`](https://docs.astral.sh/uv/); Playwright's Chromium for checking pages; Java for the optional Alloy proofs (`prove-schema.py --fetch` downloads the Alloy jar) |
+| paperwork | Python 3 |
 | homework | Python 3; `git`; `gh`, signed in, to read the comments on GitHub issues and pull requests that a session named |
 | Claude Code | 2.1.299 or later |
 
@@ -72,32 +72,33 @@ That session becomes the manager. It files the root task, starts a worker in a n
 - A monitor ([`print-team-gaps.py`](teamwork/monitors/print-team-gaps.py)) tells the manager where the board and the team disagree, and wakes a worker when its wait ends.
 - Ask the manager to show the Issues pane, a board of the open issues, again after you close it.
 
-## Paperwork: system models
+## Paperwork: system contracts
 
 <details>
-<summary>Structure: The skill calls the libraries of its own job.</summary>
+<summary>Structure: Extraction feeds the contract, and the checker sends its open questions back.</summary>
 
 ```mermaid
 flowchart TB
-  n_zoom["zoom skill"]
-  n_schema[["Schema lib"]]
-  n_page[["Page lib"]]
-  n_zoom -->|"checks with"| n_schema
-  n_zoom -->|"draws with"| n_page
+  n_extract["extraction"]
+  n_contract[("contract")]
+  n_checker["checker"]
+  n_extract -->|"writes findings into"| n_contract
+  n_checker -->|"judges"| n_contract
+  n_checker -->|"sends open questions to"| n_extract
 ```
 
 </details>
 
-One Schema document holds what a system is, or must be, and every view is drawn from it after a checker passes it.
+One contract file holds what a reader needs to rebuild a system: its levels of nodes, edges and areas, its scenarios, and its properties and gaps.
 
-- [`/paperwork:zoom`](paperwork/skills/zoom/SKILL.md) models a system, from code, docs or requirements, as a checked Schema document, then proves it with Alloy (needs Java) or shows it as a clickable HTML page.
+- [`/paperwork:system`](paperwork/skills/system/SKILL.md) extracts a system, a process or requirements topic by topic, writes it as one contract and checks it: each relation reads as a sentence, each lifecycle as states and transitions, and what no source settles stays as a named gap.
 - [`relay`](paperwork/skills/relay/SKILL.md) applies the comments and form values a person enters on a local HTML page to that page's file; a session loads it when a page needs it.
 
 **Usage.**
 
 ```
-/paperwork:zoom map how the release pipeline works
-/paperwork:zoom prove that two workers never hold the same worktree
+/paperwork:system describe how the release pipeline works
+/paperwork:system list what the contract of the billing service still leaves open
 ```
 
 ## Homework: session lessons and memory

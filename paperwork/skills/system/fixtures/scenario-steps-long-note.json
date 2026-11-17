@@ -1,0 +1,192 @@
+{
+ "title": "A parcel locker",
+ "purpose": "Let a courier leave a parcel that only its receiver can take.",
+ "sources": [
+  {
+   "id": "manual",
+   "path": "https://example.org/locker-manual",
+   "says": "how a locker is used"
+  }
+ ],
+ "terms": [
+  {
+   "term": "code",
+   "meaning": "six digits sent to the receiver"
+  }
+ ],
+ "levels": [
+  {
+   "id": "locker",
+   "title": "The locker",
+   "nodes": [
+    {
+     "id": "courier",
+     "label": "a courier",
+     "tag": "actor",
+     "purpose": "Leave a parcel without meeting its receiver."
+    },
+    {
+     "id": "door",
+     "label": "a door",
+     "tag": "service",
+     "opens": "door-life",
+     "purpose": "Keep one parcel until its code is typed.",
+     "info": {
+      "responsibilities": [
+       "locks",
+       "opens on a code"
+      ]
+     },
+     "evidence": [
+      "manual:3"
+     ]
+    },
+    {
+     "id": "codes",
+     "label": "the code list",
+     "tag": "dataStore",
+     "purpose": "Remember which code opens which door."
+    }
+   ],
+   "areas": [
+    {
+     "id": "box",
+     "label": "The box",
+     "tag": "module"
+    }
+   ],
+   "edges": [
+    {
+     "id": "courier-door",
+     "from": "courier",
+     "to": "door",
+     "label": "fills",
+     "tag": "call"
+    },
+    {
+     "id": "door-codes",
+     "from": "door",
+     "to": "codes",
+     "label": "asks",
+     "tag": "access"
+    },
+    {
+     "id": "courier-codes",
+     "from": "courier",
+     "to": "codes",
+     "label": "adds a code to",
+     "tag": "access"
+    }
+   ]
+  },
+  {
+   "id": "door-life",
+   "title": "A door's life",
+   "areas": [
+    {
+     "id": "lock",
+     "label": "The lock",
+     "tag": "region",
+     "info": {
+      "initial": "empty"
+     }
+    }
+   ],
+   "nodes": [
+    {
+     "id": "empty",
+     "label": "empty",
+     "tag": "state",
+     "area": "lock"
+    },
+    {
+     "id": "full",
+     "label": "full",
+     "tag": "state",
+     "area": "lock"
+    }
+   ],
+   "edges": [
+    {
+     "id": "fill",
+     "from": "empty",
+     "to": "full",
+     "label": "parcel left",
+     "tag": "transition",
+     "info": {
+      "action": "send the code"
+     }
+    },
+    {
+     "id": "take",
+     "from": "full",
+     "to": "empty",
+     "label": "code typed",
+     "tag": "transition",
+     "info": {
+      "guard": "the code matches"
+     }
+    }
+   ]
+  }
+ ],
+ "scenarios": [
+  {
+   "id": "deliver",
+   "title": "Deliver a parcel",
+   "purpose": "The receiver alone takes the parcel.",
+   "principle": true,
+   "steps": [
+    {
+     "at": "courier-door",
+     "note": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+    },
+    {
+     "at": "fill",
+     "note": "the receiver gets six digits"
+    },
+    {
+     "at": "take"
+    }
+   ]
+  }
+ ],
+ "properties": [
+  {
+   "id": "one-code",
+   "kind": "invariant",
+   "statement": "A full door has exactly one code in {codes}.",
+   "on": [
+    "door",
+    "codes"
+   ]
+  },
+  {
+   "id": "same-codes",
+   "kind": "fact",
+   "statement": "The list a courier adds to is the list the door asks.",
+   "on": [
+    "codes"
+   ],
+   "paths": [
+    [
+     "courier-codes"
+    ],
+    [
+     "courier-door",
+     "door-codes"
+    ]
+   ]
+  },
+  {
+   "id": "lost-code",
+   "kind": "gap",
+   "fault": "missing",
+   "status": "unknown",
+   "statement": "The manual does not say what happens to a parcel whose code is lost.",
+   "on": [
+    "take"
+   ]
+  }
+ ]
+}
