@@ -62,7 +62,7 @@ def main(args):
             cases["{} names a path of {}".format(plugin, other)] = (host[plugin], "\nsee ../{}/{}\n".format(other, MANIFEST), "shared {} names {}/{}".format(host[plugin], other, MANIFEST))
             skill = sorted(path.parent.name for path in (base / other / "skills").glob("*/SKILL.md"))[0]
             cases["{} names a skill of {}".format(plugin, other)] = (host[plugin], "\nrun {}:{}\n".format(other, skill), "shared {} names {}:{}".format(host[plugin], other, skill))
-        sample = sorted(path.relative_to(base).as_posix() for path in base.glob("*/skills/*/examples/**/*.txt"))[0]
+        sample = sorted(path.relative_to(base).as_posix() for path in base.glob("*/skills/*/examples/**/*.json"))[0]
         other = [plugin for plugin in plugins if plugin != sample.split("/")[0]][0]
         cases["a sample under examples/ naming another plugin fails"] = (sample, "\nsee {}/{}\n".format(other, MANIFEST), "shared {} names {}/{}".format(sample, other, MANIFEST))
         cases["a bare file name of another plugin is no path"] = (host[plugins[0]], "\nsee plugin.json\n", None)
