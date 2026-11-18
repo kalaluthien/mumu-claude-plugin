@@ -17,117 +17,118 @@
  "levels": [
   {
    "id": "locker",
-   "title": "The locker",
-   "nodes": [
-    {
-     "id": "courier",
-     "label": "a courier",
-     "tag": "actor",
-     "purpose": "Leave a parcel without meeting its receiver."
-    },
-    {
-     "id": "door",
-     "label": "a door",
-     "tag": "service",
-     "opens": "door-life",
-     "purpose": "Keep one parcel until its code is typed.",
-     "info": {
-      "responsibilities": [
-       "locks",
-       "opens on a code"
-      ]
-     },
-     "evidence": [
-      "manual:3"
-     ]
-    },
-    {
-     "id": "codes",
-     "label": "the code list",
-     "tag": "dataStore",
-     "purpose": "Remember which code opens which door."
-    }
-   ],
-   "areas": [
-    {
-     "id": "box",
-     "label": "The box",
-     "tag": "module"
-    }
-   ],
-   "edges": [
-    {
-     "id": "of",
-     "from": "courier",
-     "to": "door",
-     "label": "of",
-     "tag": "call"
-    },
-    {
-     "id": "asks",
-     "from": "door",
-     "to": "codes",
-     "label": "asks",
-     "tag": "access"
-    },
-    {
-     "id": "adds-a",
-     "from": "courier",
-     "to": "codes",
-     "label": "adds a code to",
-     "tag": "access"
-    }
-   ]
+   "title": "The locker"
   },
   {
    "id": "door-life",
-   "title": "Life of a lock",
-   "areas": [
-    {
-     "id": "lock",
-     "label": "The lock",
-     "tag": "region",
-     "info": {
-      "initial": "empty"
-     }
-    }
-   ],
-   "nodes": [
-    {
-     "id": "empty",
-     "label": "standing empty",
-     "tag": "state",
-     "area": "lock"
-    },
-    {
-     "id": "full",
-     "label": "standing full",
-     "tag": "state",
-     "area": "lock"
-    }
-   ],
-   "edges": [
-    {
-     "id": "fill",
-     "from": "empty",
-     "to": "full",
-     "label": "parcel left",
-     "tag": "transition",
-     "info": {
-      "action": "send the code"
-     }
-    },
-    {
-     "id": "take",
-     "from": "full",
-     "to": "empty",
-     "label": "code typed",
-     "tag": "transition",
-     "info": {
-      "guard": "the code matches"
-     }
-    }
+   "title": "Life of a lock"
+  }
+ ],
+ "areas": [
+  {
+   "id": "box",
+   "label": "The box",
+   "tag": "module",
+   "level": "locker"
+  },
+  {
+   "id": "lock",
+   "label": "The lock",
+   "tag": "region",
+   "level": "door-life",
+   "info": {
+    "initial": "empty"
+   }
+  }
+ ],
+ "nodes": [
+  {
+   "id": "courier",
+   "label": "a courier",
+   "tag": "actor",
+   "level": "locker",
+   "purpose": "Leave a parcel without meeting its receiver."
+  },
+  {
+   "id": "door",
+   "label": "a door",
+   "tag": "service",
+   "level": "locker",
+   "opens": "door-life",
+   "purpose": "Keep one parcel until its code is typed.",
+   "info": {
+    "responsibilities": [
+     "locks",
+     "opens on a code"
+    ]
+   },
+   "evidence": [
+    "manual:3"
    ]
+  },
+  {
+   "id": "codes",
+   "label": "the code list",
+   "tag": "dataStore",
+   "level": "locker",
+   "purpose": "Remember which code opens which door."
+  },
+  {
+   "id": "empty",
+   "label": "standing empty",
+   "tag": "state",
+   "level": "door-life",
+   "area": "lock"
+  },
+  {
+   "id": "full",
+   "label": "standing full",
+   "tag": "state",
+   "level": "door-life",
+   "area": "lock"
+  }
+ ],
+ "edges": [
+  {
+   "id": "of",
+   "from": "courier",
+   "to": "door",
+   "label": "of",
+   "tag": "call"
+  },
+  {
+   "id": "asks",
+   "from": "door",
+   "to": "codes",
+   "label": "asks",
+   "tag": "access"
+  },
+  {
+   "id": "adds-a",
+   "from": "courier",
+   "to": "codes",
+   "label": "adds a code to",
+   "tag": "access"
+  },
+  {
+   "id": "fill",
+   "from": "empty",
+   "to": "full",
+   "label": "parcel left",
+   "tag": "transition",
+   "info": {
+    "action": "send the code"
+   }
+  },
+  {
+   "id": "take",
+   "from": "full",
+   "to": "empty",
+   "label": "code typed",
+   "tag": "transition",
+   "info": {
+    "guard": "the code matches"
+   }
   }
  ],
  "scenarios": [
@@ -186,6 +187,21 @@
    "on": [
     "take"
    ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "what-opens",
+   "asks": "What lets a person open {door}?",
+   "answers": [
+    "door",
+    "one-code"
+   ]
+  },
+  {
+   "id": "when-lost",
+   "asks": "What happens to a parcel whose code is lost?",
+   "gap": "lost-code"
   }
  ]
 }

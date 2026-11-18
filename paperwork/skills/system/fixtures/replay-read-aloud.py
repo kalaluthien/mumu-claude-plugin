@@ -13,6 +13,9 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+from contract_levels import nested  # noqa: E402
+
 HERE = pathlib.Path(__file__).resolve().parent
 CHECK = HERE.parent / "scripts" / "check-contract.py"
 
@@ -52,7 +55,7 @@ def main(args):
     examples = sorted((HERE.parent / "examples").glob("*/contract.json"))
     for path in examples:
         printed = subprocess.run([sys.executable, str(CHECK), "read", str(path)], capture_output=True, text=True).stdout.splitlines()
-        lines, statements = expected(json.loads(path.read_text()))
+        lines, statements = expected(nested(json.loads(path.read_text())))
         missing = [line for line in lines if line not in printed] + [text for text in statements if not any(line.endswith(": " + text) for line in printed)]
         failed += bool(missing)
         print(f"FAIL {path.parent.name}: {len(missing)} lines not read, the first: {missing[0]}" if missing else f"PASS {path.parent.name}: {len(lines) + len(statements)} lines read in order")

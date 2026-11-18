@@ -34,14 +34,15 @@ Find, topic by topic, what a reader needs to rebuild the subject, before any of 
 
 ## Steps
 
-1. List the sources and what each can settle; a run of the subject settles more than a document about it.
-2. Walk the topics in order and note each finding with its source. Copy exact values: a constant, a format, a message, an exit code.
-3. For each part, ask what it is for and how that shows: one sentence of purpose, and the shortest story in which a person sees it met.
-4. For each thing that changes over time, list its states, the events that move it and what each move does.
-5. Climb and descend once: for each part ask why it exists, and for each purpose ask what carries it out; a purpose with no means, or a part with no purpose, is a gap.
-6. Replay each story step by step: what a step needs must come from the start or from an earlier step; what nothing supplies is a gap.
-7. Compare what the documents say exists with what is stored or run, and name each mismatch by its fault.
-8. Hand the findings to [contract.md](contract.md); come back here for each open question its `gaps` call prints.
+1. Write the rebuild questions before reading closely: for each topic the subject has, what a reader must learn to rebuild it, one thing per question. Extraction ends when each has a sourced answer or a gap.
+2. List the sources and what each can settle; a run of the subject settles more than a document about it.
+3. Walk the topics in order and note each finding with its source. Copy exact values: a constant, a format, a message, an exit code.
+4. For each part, ask what it is for and how that shows: one sentence of purpose, and the shortest story in which a person sees it met.
+5. For each thing that changes over time, list its states, the events that move it and what each move does.
+6. Climb and descend once: for each part ask why it exists, and for each purpose ask what carries it out; a purpose with no means, or a part with no purpose, is a gap.
+7. Replay each story step by step: what a step needs must come from the start or from an earlier step; what nothing supplies is a gap.
+8. Compare what the documents say exists with what is stored or run, and name each mismatch by its fault.
+9. Hand the findings to [contract.md](contract.md); come back here for each open question its `gaps` call prints.
 
 ## Rules
 

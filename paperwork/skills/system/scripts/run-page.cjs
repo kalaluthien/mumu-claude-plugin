@@ -2,8 +2,8 @@
 // Open the page of each example contract in a headless Chromium, as file://, at 1024 by 768, 1440 by 900 and
 // 1920 by 1080 pixels, and drive it as a person with a pointer and a keyboard would.
 //
-// usage: run-page.cjs [diagram] [overlay] [moves] [search]
-// With no word it runs the four steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step, then PASS or
+// usage: run-page.cjs [diagram] [overlay] [moves] [search] [tasks]
+// With no word it runs the five steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step, then PASS or
 // FAIL, and exits 1 on a failure and 2 on a word it does not know.
 //   diagram  make-page.py builds each example's page and it equals the built page kept beside the contract; a
 //            contract the checker refuses builds none; the relay page checker prints `follows`; each level fills the
@@ -20,6 +20,13 @@
 //   search   each query of fixtures/search-queries.json typed into its example's page: the wanted record is the
 //            first hit for 17 in 20 and among the first three for 19 in 20, and first for 3 in 4 of the misspelt
 //            queries and of those typed with the Korean layout left on.
+//   tasks    each rebuild question an example answers is two tasks: from the first view, `/`, the question typed
+//            whole or as the words of its id, an arrow per hit above the question or the first of its answers, Enter, and the view shows
+//            that answer, the question's first when the hit is the question; a
+//            question whose answers are not among the hits shown is walked instead, by a click per level opened
+//            and one on the answer, after the search is closed. The score is the mean reciprocal rank of the first
+//            such hit among the eight shown, over every record of the contract; it must be above, and the mean
+//            moves a task below, those fixtures/task-scores.json holds for the same questions on the page it names.
 // overlay and moves also read each transition: its timing is not linear, and it lasts no time under reduced motion.
 // Playwright is loaded from /private/tmp/relay-playwright/node_modules/playwright-core and the browser is the
 // newest headless shell Playwright installed, never an installed Google Chrome.
@@ -31,11 +38,11 @@ const { spawnSync } = require("child_process");
 const ROOT = path.resolve(__dirname, "..");
 const PLAYWRIGHT = "/private/tmp/relay-playwright/node_modules/playwright-core";
 const SIZES = [[1024, 768], [1440, 900], [1920, 1080]];
-const STEPS = ["diagram", "overlay", "moves", "search"];
+const STEPS = ["diagram", "overlay", "moves", "search", "tasks"];
 const KINDS = ["exact", "initials", "misspelt", "two-fields", "id", "korean-layout"];
 const asked = process.argv.slice(2);
 if (asked.some((word) => !STEPS.includes(word))) {
-  console.error("usage: run-page.cjs [diagram] [overlay] [moves] [search]");
+  console.error("usage: run-page.cjs [diagram] [overlay] [moves] [search] [tasks]");
   process.exit(2);
 }
 
@@ -56,7 +63,7 @@ function build() {
   for (const example of examples) {
     const made = python(path.join(ROOT, "scripts", "make-page.py"), example.source, example.built);
     check(made.status === 0, `make-page.py refused ${example.name}: ${(made.stderr || "").split("\n")[0]}`);
-    example.contract = JSON.parse(fs.readFileSync(example.source, "utf8"));
+    example.contract = JSON.parse(fs.readFileSync(example.built, "utf8").match(/<script type="application\/json" id="page-data">(.*)<\/script>/)[1]);
     example.levelOf = {};
     for (const level of example.contract.levels) {
       example.levelOf[level.id] = level.id;
@@ -105,7 +112,7 @@ async function diagram(browser) {
   }
   const refused = path.join(scratch, "refused.json"), unbuilt = path.join(scratch, "refused.html");
   const broken = JSON.parse(fs.readFileSync(examples[0].source, "utf8"));
-  broken.levels[0].edges[0].to = "no-such-node";
+  broken.edges[0].to = "no-such-node";
   fs.writeFileSync(refused, JSON.stringify(broken));
   check(python(path.join(ROOT, "scripts", "make-page.py"), refused, unbuilt).status === 1 && !fs.existsSync(unbuilt), "a contract the checker refuses built a page");
   for (const size of SIZES) for (const example of examples) {
@@ -394,6 +401,68 @@ async function search(browser) {
   check(share("first") >= 17 / 20 && share("three") >= 19 / 20 && share("misspelt") >= 3 / 4 && share("korean-layout") >= 3 / 4, line);
 }
 
+// ---- tasks ----
+async function task(page, example, question, short) {
+  const contract = example.contract, names = {};
+  for (const level of contract.levels) for (const node of level.nodes.concat(level.areas || [])) names[node.id] = node.label;
+  const shows = async (id) => { const hash = (await view(page)).address; return [`level=${id}`, `at=${id}`, `scenario=${id}`].some((part) => hash.split(/[#&]/).includes(part)); };
+  await page.goto("file://" + example.built);
+  await rest(page);
+  await page.keyboard.press("/");
+  await page.keyboard.insertText(short ? question.id.replace(/-/g, " ") : question.asks.replace(/\{([a-z0-9-]+)\}/g, (whole, id) => names[id] || "").replace(/`/g, ""));
+  await page.waitForTimeout(30);
+  const hits = await page.evaluate(() => [...document.querySelectorAll("#hits [data-hit]")].map((row) => row.dataset.hit));
+  const place = hits.findIndex((hit) => hit === question.id || question.answers.includes(hit));
+  if (place >= 0) {
+    for (let i = 0; i < place; i++) await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Enter");
+    await rest(page);
+    const led = hits[place] === question.id ? question.answers[0] : hits[place];
+    check(await shows(led), `${example.name} ${question.id}: the hit ${hits[place]} does not show ${led}`);
+    return { place, moves: 3 + place, hits };
+  }
+  await page.keyboard.press("Escape");
+  const openers = {};
+  for (const level of contract.levels) for (const node of level.nodes) if (node.opens) openers[node.opens] = node.id;
+  const depth = (id) => { let level = example.levelOf[id], count = 0; while (openers[level]) { level = example.levelOf[openers[level]]; count += 1; } return count; };
+  const nodes = question.answers.filter((id) => names[id] && contract.levels.some((level) => level.nodes.some((node) => node.id === id))).sort((a, b) => depth(a) - depth(b));
+  const listed = question.answers.find((id) => (contract.scenarios || []).concat(contract.properties || []).some((record) => record.id === id));
+  check(nodes.length || listed, `${example.name} ${question.id}: no answer is a node, a scenario or a property to walk to`);
+  if (!nodes.length || (listed && depth(nodes[0]) > 0)) {
+    await page.click((contract.scenarios || []).some((record) => record.id === listed) ? "#scenarios" : "#properties");
+    await page.click(`#hits [data-hit="${listed}"]`);
+    await rest(page);
+    check(await shows(listed), `${example.name} ${question.id}: the listed ${listed} is not the view shown`);
+    return { place: null, moves: 5, hits };
+  }
+  const way = [];
+  for (let level = example.levelOf[nodes[0]]; openers[level]; level = example.levelOf[openers[level]]) way.unshift(openers[level]);
+  for (const opener of way) { await page.click(`#stage .node[data-id="${opener}"] .open`); await rest(page); }
+  await page.click(`#stage .node[data-id="${nodes[0]}"]`, { position: { x: 6, y: 6 } });
+  await rest(page);
+  check(await shows(nodes[0]), `${example.name} ${question.id}: the node ${nodes[0]} walked to is not the view shown`);
+  return { place: null, moves: 3 + way.length + 1, hits };
+}
+async function tasks(browser) {
+  const kept = JSON.parse(fs.readFileSync(path.join(ROOT, "fixtures", "task-scores.json"), "utf8"));
+  await Promise.all(examples.map(async (example) => {
+    const page = await open(browser, example, SIZES[1], { still: true });
+    const mean = (values) => values.reduce((sum, value) => sum + value, 0) / values.length, gain = (place) => (place === null ? 0 : 1 / (place + 1));
+    const now = {}, before = Object.fromEntries(kept.filter((row) => row.example === example.name).map((row) => [row.task, row]));
+    for (const question of (example.contract.questions || []).filter((one) => one.answers)) for (const short of [false, true]) now[question.id + (short ? " short" : "")] = await task(page, example, question, short);
+    check(!page.faults.length, `${example.name} wrote to the console: ${page.faults[0]}`);
+    await page.context().close();
+    example.tasks = now;
+    const shared = Object.keys(now).filter((id) => before[id]);
+    check(shared.length >= 10, `${example.name}: fixtures/task-scores.json holds ${shared.length} of its questions`);
+    const score = mean(shared.map((id) => gain(now[id].place))), was = mean(shared.map((id) => gain(before[id].place)));
+    const count = mean(shared.map((id) => now[id].moves)), counted = mean(shared.map((id) => before[id].moves));
+    const line = `${example.name}: ${shared.length} tasks, mean reciprocal rank of the question or its first answer among the 8 hits shown, typed whole and as its id's words, ${score.toFixed(2)} (${kept[0].page} ${was.toFixed(2)}), ${count.toFixed(1)} moves a task (${kept[0].page} ${counted.toFixed(1)})`;
+    console.log([line].concat(shared.filter((id) => now[id].place !== 0).map((id) => `  ${id} wants ${example.contract.questions.find((one) => one.id === id.split(" ")[0]).answers.join(",")}, got ${now[id].hits.slice(0, 3).join(",") || "nothing"}`)).join("\n"));
+    check(score > was && count < counted, line);
+  }));
+}
+
 async function main() {
   const binary = browserBinary();
   if (!fs.existsSync(path.join(PLAYWRIGHT, "package.json")) || !binary || !fs.existsSync(binary)) {
@@ -404,7 +473,7 @@ async function main() {
   try {
     build();
     browser = await require(PLAYWRIGHT).chromium.launch({ executablePath: binary });
-    const steps = { diagram, overlay, moves, search };
+    const steps = { diagram, overlay, moves, search, tasks };
     for (const name of asked.length ? asked : STEPS) { // one step at a time, since pages that share a busy machine miss the pointer's timing
       const started = Date.now(), line = await steps[name](browser).then(() => `PASS ${name}`, (error) => `FAIL ${name}: ${error.message.split("\n")[0]}`);
       failed += line.startsWith("FAIL");

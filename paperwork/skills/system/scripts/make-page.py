@@ -10,6 +10,9 @@ import pathlib
 import subprocess
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+from contract_levels import nested  # noqa: E402
+
 HERE = pathlib.Path(__file__).resolve().parent
 ASSETS = HERE.parent / "assets"
 PAGE = """<!doctype html>
@@ -69,7 +72,7 @@ def main(args):
     if checked.returncode:
         print(checked.stdout + checked.stderr, end="", file=sys.stderr)
         return 1
-    contract = json.loads(source.read_text())
+    contract = nested(json.loads(source.read_text()))
     title = contract["title"].replace("&", "&amp;").replace("<", "&lt;")
     page = PAGE.format(title=title, style=(ASSETS / "page.css").read_text().strip(), code=(ASSETS / "page.js").read_text().strip(),
                        data=block(contract), tags=block(json.loads((ASSETS / "tags.json").read_text())))

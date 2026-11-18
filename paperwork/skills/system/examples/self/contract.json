@@ -59,712 +59,742 @@
   {
    "id": "skill",
    "title": "The system skill",
-   "about": "Who takes part in turning a system into a contract and a page, and what passes between them.",
-   "areas": [
-    {
-     "id": "outside",
-     "label": "outside the skill",
-     "tag": "lane",
-     "info": {
-      "owner": "whoever asks for the description"
-     }
-    },
-    {
-     "id": "work",
-     "label": "the three cases",
-     "tag": "phase",
-     "info": {
-      "order": 1,
-      "entry": "a subject and its sources are named",
-      "exit": "the page opens"
-     }
-    },
-    {
-     "id": "kept",
-     "label": "what is kept",
-     "tag": "module",
-     "info": {
-      "purpose": "hold the description so that every view is drawn from one file"
-     }
-    },
-    {
-     "id": "life",
-     "label": "state of a contract",
-     "tag": "region",
-     "info": {
-      "of": "{contract}",
-      "initial": "drafted"
-     }
-    }
-   ],
-   "nodes": [
-    {
-     "id": "subject",
-     "label": "the subject",
-     "tag": "actor",
-     "area": "outside",
-     "purpose": "Be the system, process or requirements someone must understand or rebuild.",
-     "info": {
-      "channels": [
-       "code",
-       "documents",
-       "people who run it",
-       "a run of it"
-      ]
-     },
-     "evidence": [
-      "extract-playbook"
-     ]
-    },
-    {
-     "id": "reader",
-     "label": "a reader",
-     "tag": "actor",
-     "area": "outside",
-     "purpose": "Rebuild or change {subject} without its sources.",
-     "info": {
-      "goal": "answer every rebuild question from {contract} alone"
-     },
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "extract",
-     "label": "the extraction run",
-     "tag": "job",
-     "area": "work",
-     "purpose": "Find, topic by topic, what {reader} needs to rebuild {subject}.",
-     "info": {
-      "steps": [
-       "list the sources and what each can settle",
-       "walk the topics",
-       "note each finding with where it was seen",
-       "ask the gap questions"
-      ],
-      "outputs": {
-       "columns": [
-        "name",
-        "type",
-        "to"
-       ],
-       "rows": [
-        [
-         "findings",
-         "notes by topic",
-         "{contract} case"
-        ]
-       ]
-      },
-      "why": "a fixed topic list finds what a free reading skips: constants, wire formats, failure cases"
-     },
-     "evidence": [
-      "extract-playbook"
-     ]
-    },
-    {
-     "id": "write",
-     "label": "contract writing",
-     "tag": "job",
-     "area": "work",
-     "purpose": "Place every finding in the one slot of {contract} that a checker and a page can read.",
-     "info": {
-      "steps": [
-       "choose levels",
-       "name nodes as things and edges as sentences",
-       "draw each lifecycle as a region of states",
-       "fill each tag's items",
-       "write scenarios and properties",
-       "check, read aloud, ask the gaps"
-      ],
-      "failure": {
-       "columns": [
-        "case",
-        "what happens"
-       ],
-       "rows": [
-        [
-         "a rule breaks",
-         "{checker} names the place and the rule, and no page is built"
-        ]
-       ]
-      }
-     },
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "contract",
-     "label": "the contract",
-     "tag": "dataStore",
-     "area": "kept",
-     "opens": "parts",
-     "purpose": "Hold the whole description in one file every later step reads.",
-     "info": {
-      "layout": [
-       {
-        "name": "contract.json",
-        "children": [
-         {
-          "name": "title, purpose"
-         },
-         {
-          "name": "sources",
-          "note": "what was read"
-         },
-         {
-          "name": "terms"
-         },
-         {
-          "name": "levels",
-          "children": [
-           {
-            "name": "areas"
-           },
-           {
-            "name": "nodes"
-           },
-           {
-            "name": "edges"
-           }
-          ]
-         },
-         {
-          "name": "scenarios"
-         },
-         {
-          "name": "properties"
-         }
-        ]
-       }
-      ],
-      "access": {
-       "columns": [
-        "who",
-        "mode",
-        "how"
-       ],
-       "rows": [
-        [
-         "{write}",
-         "write",
-         "by hand or by a generator"
-        ],
-        [
-         "{checker}",
-         "read",
-         "check, read, gaps"
-        ],
-        [
-         "{reader}",
-         "read",
-         "alone, without the sources"
-        ]
-       ]
-      }
-     },
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "catalogue",
-     "label": "the tag catalogue",
-     "tag": "artifact",
-     "area": "kept",
-     "purpose": "Fix, per tag, the items worth recording and the form of each.",
-     "info": {
-      "format": "one JSON file: kind, tag, meaning, items with a form and an example",
-      "made-by": "a survey of 35 documented systems",
-      "used-by": [
-       "{checker}",
-       "the page maker"
-      ]
-     },
-     "evidence": [
-      "tag-file",
-      "tag-survey"
-     ]
-    },
-    {
-     "id": "checker",
-     "label": "the checker",
-     "tag": "job",
-     "area": "work",
-     "purpose": "Refuse a contract a page or {reader} could misread, and list what it still leaves open.",
-     "info": {
-      "steps": [
-       "check the form",
-       "check each rule",
-       "print ok or each break"
-      ],
-      "signals": [
-       "`where: rule: message` per break",
-       "`ok`",
-       "one line per open question"
-      ],
-      "inputs": {
-       "columns": [
-        "name",
-        "type",
-        "from"
-       ],
-       "rows": [
-        [
-         "contract",
-         "JSON file",
-         "{write}"
-        ]
-       ]
-      }
-     },
-     "evidence": [
-      "checker-code"
-     ]
-    },
-    {
-     "id": "drafted",
-     "label": "a drafted contract",
-     "tag": "state",
-     "area": "life",
-     "info": {
-      "meaning": "written, not yet accepted by {checker}",
-      "ignores": [
-       "edit",
-       "gaps"
-      ]
-     },
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "checked",
-     "label": "a checked contract",
-     "tag": "state",
-     "area": "life",
-     "info": {
-      "meaning": "{checker} printed ok",
-      "ignores": [
-       "check"
-      ]
-     },
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "answered",
-     "label": "an answered contract",
-     "tag": "state",
-     "area": "life",
-     "info": {
-      "meaning": "every gap question is answered or recorded as a gap; {reader} may take it",
-      "ignores": [
-       "check",
-       "gaps"
-      ]
-     },
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "session",
-     "label": "a Claude Code session",
-     "tag": "host",
-     "area": "outside",
-     "purpose": "Run the playbooks and {checker} where {subject}'s sources can be read.",
-     "info": {
-      "system": "python3, standard library only",
-      "runs": [
-       "extraction",
-       "{write}",
-       "{checker}"
-      ]
-     },
-     "evidence": [
-      "skill-file"
-     ],
-     "basis": "documented"
-    }
-   ],
-   "edges": [
-    {
-     "id": "reads",
-     "from": "extract",
-     "to": "subject",
-     "label": "reads",
-     "tag": "access",
-     "info": {
-      "mode": "read"
-     },
-     "evidence": [
-      "extract-playbook"
-     ]
-    },
-    {
-     "id": "takes-its",
-     "from": "write",
-     "to": "extract",
-     "label": "takes its findings from",
-     "tag": "sequence",
-     "info": {
-      "order": 2
-     },
-     "evidence": [
-      "skill-file"
-     ]
-    },
-    {
-     "id": "writes",
-     "from": "write",
-     "to": "contract",
-     "label": "writes",
-     "tag": "produces",
-     "info": {
-      "output": "contract.json",
-      "format": "JSON"
-     },
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "takes-its-items",
-     "from": "write",
-     "to": "catalogue",
-     "label": "takes its items from",
-     "tag": "dependsOn",
-     "info": {
-      "kind": "while writing"
-     },
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "judges",
-     "from": "checker",
-     "to": "contract",
-     "label": "judges",
-     "tag": "access",
-     "info": {
-      "mode": "read"
-     },
-     "evidence": [
-      "checker-code"
-     ]
-    },
-    {
-     "id": "holds-each",
-     "from": "checker",
-     "to": "catalogue",
-     "label": "holds each element to",
-     "tag": "dependsOn",
-     "info": {
-      "kind": "at run time",
-      "on-failure": "does not start"
-     },
-     "evidence": [
-      "checker-code"
-     ]
-    },
-    {
-     "id": "sends-its",
-     "from": "checker",
-     "to": "extract",
-     "label": "sends its open questions back to",
-     "tag": "triggers",
-     "info": {
-      "filter": "only when a question is open"
-     },
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "check",
-     "from": "drafted",
-     "to": "checked",
-     "label": "check",
-     "tag": "transition",
-     "info": {
-      "guard": "no rule breaks"
-     },
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "edit",
-     "from": "checked",
-     "to": "drafted",
-     "label": "edit",
-     "tag": "transition",
-     "info": {},
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "gaps",
-     "from": "checked",
-     "to": "answered",
-     "label": "gaps",
-     "tag": "transition",
-     "info": {
-      "guard": "no open question"
-     },
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "edit-2",
-     "from": "answered",
-     "to": "drafted",
-     "label": "edit",
-     "tag": "transition",
-     "info": {},
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "rebuilds-from",
-     "from": "reader",
-     "to": "contract",
-     "label": "rebuilds {subject} from",
-     "tag": "access",
-     "info": {
-      "mode": "read"
-     },
-     "evidence": [
-      "skill-file"
-     ]
-    },
-    {
-     "id": "runs-in",
-     "from": "checker",
-     "to": "session",
-     "label": "runs in",
-     "tag": "dependsOn",
-     "info": {
-      "kind": "at run time"
-     },
-     "evidence": [
-      "checker-code"
-     ]
-    }
-   ]
+   "about": "Who takes part in turning a system into a contract and a page, and what passes between them."
   },
   {
    "id": "parts",
    "title": "Parts of a contract",
-   "about": "What a contract is made of, as things and the sentences that join them.",
-   "areas": [
-    {
-     "id": "drawn",
-     "label": "drawn parts",
-     "tag": "module",
-     "info": {
-      "purpose": "what the graph of one level shows"
-     }
+   "about": "What a contract is made of, as things and the sentences that join them."
+  }
+ ],
+ "areas": [
+  {
+   "id": "outside",
+   "label": "outside the skill",
+   "tag": "lane",
+   "level": "skill",
+   "info": {
+    "owner": "whoever asks for the description"
+   }
+  },
+  {
+   "id": "work",
+   "label": "the three cases",
+   "tag": "phase",
+   "level": "skill",
+   "info": {
+    "order": 1,
+    "entry": "a subject and its sources are named",
+    "exit": "the page opens"
+   }
+  },
+  {
+   "id": "kept",
+   "label": "what is kept",
+   "tag": "module",
+   "level": "skill",
+   "info": {
+    "purpose": "hold the description so that every view is drawn from one file"
+   }
+  },
+  {
+   "id": "life",
+   "label": "state of a contract",
+   "tag": "region",
+   "level": "skill",
+   "info": {
+    "of": "{contract}",
+    "initial": "drafted"
+   }
+  },
+  {
+   "id": "drawn",
+   "label": "drawn parts",
+   "tag": "module",
+   "level": "parts",
+   "info": {
+    "purpose": "what the graph of one level shows"
+   }
+  },
+  {
+   "id": "told",
+   "label": "told across levels",
+   "tag": "module",
+   "level": "parts",
+   "info": {
+    "purpose": "what joins and constrains the levels"
+   }
+  }
+ ],
+ "nodes": [
+  {
+   "id": "subject",
+   "label": "the subject",
+   "tag": "actor",
+   "level": "skill",
+   "area": "outside",
+   "purpose": "Be the system, process or requirements someone must understand or rebuild.",
+   "info": {
+    "channels": [
+     "code",
+     "documents",
+     "people who run it",
+     "a run of it"
+    ]
+   },
+   "evidence": [
+    "extract-playbook"
+   ]
+  },
+  {
+   "id": "reader",
+   "label": "a reader",
+   "tag": "actor",
+   "level": "skill",
+   "area": "outside",
+   "purpose": "Rebuild or change {subject} without its sources.",
+   "info": {
+    "goal": "answer every rebuild question from {contract} alone"
+   },
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "extract",
+   "label": "the extraction run",
+   "tag": "job",
+   "level": "skill",
+   "area": "work",
+   "purpose": "Find, topic by topic, what {reader} needs to rebuild {subject}.",
+   "info": {
+    "steps": [
+     "list the sources and what each can settle",
+     "walk the topics",
+     "note each finding with where it was seen",
+     "ask the gap questions"
+    ],
+    "outputs": {
+     "columns": [
+      "name",
+      "type",
+      "to"
+     ],
+     "rows": [
+      [
+       "findings",
+       "notes by topic",
+       "{contract} case"
+      ]
+     ]
     },
-    {
-     "id": "told",
-     "label": "told across levels",
-     "tag": "module",
-     "info": {
-      "purpose": "what joins and constrains the levels"
-     }
-    }
+    "why": "a fixed topic list finds what a free reading skips: constants, wire formats, failure cases"
+   },
+   "evidence": [
+    "extract-playbook"
    ],
-   "nodes": [
-    {
-     "id": "level",
-     "label": "a level",
-     "tag": "artifact",
-     "area": "drawn",
-     "purpose": "Show one depth of {subject} small enough to read at once.",
-     "info": {
-      "format": "id, title, about, areas, nodes, edges"
-     },
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "node",
-     "label": "a node",
-     "tag": "artifact",
-     "area": "drawn",
-     "purpose": "Name one thing of {subject}, or one state a thing can be in.",
-     "info": {
-      "format": "id, label, tag, area, opens, purpose, info, evidence"
-     },
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "edge",
-     "label": "an edge",
-     "tag": "artifact",
-     "area": "drawn",
-     "purpose": "Say one relation as a sentence, or one move between states.",
-     "info": {
-      "format": "from, to, label, tag, many, info, evidence"
-     },
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "area",
-     "label": "an area",
-     "tag": "artifact",
-     "area": "drawn",
-     "purpose": "Group nodes by one reason, or hold the states of one thing.",
-     "info": {
-      "format": "id, label, tag, info"
-     },
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "tag",
-     "label": "a tag",
-     "tag": "policy",
-     "area": "told",
-     "purpose": "Say what kind an element is, and so which items it should carry.",
-     "info": {
-      "statement": "an element holds only the items of its tag, each in its form",
-      "enforced-by": "{checker}"
-     },
-     "evidence": [
-      "tag-file"
-     ]
-    },
-    {
-     "id": "scenario",
-     "label": "a scenario",
-     "tag": "artifact",
-     "area": "told",
-     "purpose": "Show a purpose met, step by step, on the nodes and edges.",
-     "info": {
-      "format": "id, title, purpose, principle, steps of level, at, does, then"
-     },
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "property",
-     "label": "a property",
-     "tag": "artifact",
-     "area": "told",
-     "purpose": "State what must hold, what is assumed, and what is not known.",
-     "info": {
-      "format": "id, kind, strength, status, fault, statement, on, paths"
-     },
-     "evidence": [
-      "contract-playbook"
+   "files": [
+    "extract-playbook"
+   ]
+  },
+  {
+   "id": "write",
+   "label": "contract writing",
+   "tag": "job",
+   "level": "skill",
+   "area": "work",
+   "purpose": "Place every finding in the one slot of {contract} that a checker and a page can read.",
+   "info": {
+    "steps": [
+     "choose levels",
+     "name nodes as things and edges as sentences",
+     "draw each lifecycle as a region of states",
+     "fill each tag's items",
+     "write scenarios and properties",
+     "check, read aloud, ask the gaps"
+    ],
+    "failure": {
+     "columns": [
+      "case",
+      "what happens"
+     ],
+     "rows": [
+      [
+       "a rule breaks",
+       "{checker} names the place and the rule, and no page is built"
+      ]
      ]
     }
+   },
+   "evidence": [
+    "contract-playbook"
    ],
-   "edges": [
-    {
-     "id": "is-drawn",
-     "from": "node",
-     "to": "level",
-     "label": "is drawn on",
-     "tag": "dependsOn",
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "sits-in",
-     "from": "node",
-     "to": "area",
-     "label": "sits in",
-     "tag": "dependsOn",
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "is-drawn-on",
-     "from": "area",
-     "to": "level",
-     "label": "is drawn on",
-     "tag": "dependsOn",
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "leaves",
-     "from": "edge",
-     "to": "node",
-     "label": "leaves",
-     "tag": "dependsOn",
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "carries",
-     "from": "node",
-     "to": "tag",
-     "label": "carries",
-     "tag": "governs",
-     "info": {
-      "effect": "fixes its items"
-     },
-     "evidence": [
-      "tag-file"
-     ]
-    },
-    {
-     "id": "carries-2",
-     "from": "edge",
-     "to": "tag",
-     "label": "carries",
-     "tag": "governs",
-     "info": {
-      "effect": "fixes its items"
-     },
-     "evidence": [
-      "tag-file"
-     ]
-    },
-    {
-     "id": "steps-on",
-     "from": "scenario",
-     "to": "node",
-     "label": "steps on",
-     "many": true,
-     "tag": "sequence",
-     "evidence": [
-      "contract-playbook"
-     ]
-    },
-    {
-     "id": "constrains",
-     "from": "property",
-     "to": "node",
-     "label": "constrains",
-     "many": true,
-     "tag": "governs",
-     "evidence": [
-      "contract-playbook"
+   "files": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "contract",
+   "label": "the contract",
+   "tag": "dataStore",
+   "level": "skill",
+   "area": "kept",
+   "opens": "parts",
+   "purpose": "Hold the whole description in one file every later step reads.",
+   "info": {
+    "layout": [
+     {
+      "name": "contract.json",
+      "children": [
+       {
+        "name": "title, purpose"
+       },
+       {
+        "name": "sources",
+        "note": "what was read"
+       },
+       {
+        "name": "terms"
+       },
+       {
+        "name": "levels",
+        "children": [
+         {
+          "name": "areas"
+         },
+         {
+          "name": "nodes"
+         },
+         {
+          "name": "edges"
+         }
+        ]
+       },
+       {
+        "name": "scenarios"
+       },
+       {
+        "name": "properties"
+       }
+      ]
+     }
+    ],
+    "access": {
+     "columns": [
+      "who",
+      "mode",
+      "how"
+     ],
+     "rows": [
+      [
+       "{write}",
+       "write",
+       "by hand or by a generator"
+      ],
+      [
+       "{checker}",
+       "read",
+       "check, read, gaps"
+      ],
+      [
+       "{reader}",
+       "read",
+       "alone, without the sources"
+      ]
      ]
     }
+   },
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "catalogue",
+   "label": "the tag catalogue",
+   "tag": "artifact",
+   "level": "skill",
+   "area": "kept",
+   "purpose": "Fix, per tag, the items worth recording and the form of each.",
+   "info": {
+    "format": "one JSON file: kind, tag, meaning, items with a form and an example",
+    "made-by": "a survey of 35 documented systems",
+    "used-by": [
+     "{checker}",
+     "the page maker"
+    ]
+   },
+   "evidence": [
+    "tag-file",
+    "tag-survey"
+   ],
+   "files": [
+    "tag-file"
+   ]
+  },
+  {
+   "id": "checker",
+   "label": "the checker",
+   "tag": "job",
+   "level": "skill",
+   "area": "work",
+   "purpose": "Refuse a contract a page or {reader} could misread, and list what it still leaves open.",
+   "info": {
+    "steps": [
+     "check the form",
+     "check each rule",
+     "print ok or each break"
+    ],
+    "signals": [
+     "`where: rule: message` per break",
+     "`ok`",
+     "one line per open question"
+    ],
+    "inputs": {
+     "columns": [
+      "name",
+      "type",
+      "from"
+     ],
+     "rows": [
+      [
+       "contract",
+       "JSON file",
+       "{write}"
+      ]
+     ]
+    }
+   },
+   "evidence": [
+    "checker-code"
+   ],
+   "files": [
+    "checker-code"
+   ]
+  },
+  {
+   "id": "drafted",
+   "label": "a drafted contract",
+   "tag": "state",
+   "level": "skill",
+   "area": "life",
+   "info": {
+    "meaning": "written, not yet accepted by {checker}",
+    "ignores": [
+     "edit",
+     "gaps"
+    ]
+   },
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "checked",
+   "label": "a checked contract",
+   "tag": "state",
+   "level": "skill",
+   "area": "life",
+   "info": {
+    "meaning": "{checker} printed ok",
+    "ignores": [
+     "check"
+    ]
+   },
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "answered",
+   "label": "an answered contract",
+   "tag": "state",
+   "level": "skill",
+   "area": "life",
+   "info": {
+    "meaning": "every gap question is answered or recorded as a gap; {reader} may take it",
+    "ignores": [
+     "check",
+     "gaps"
+    ]
+   },
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "session",
+   "label": "a Claude Code session",
+   "tag": "host",
+   "level": "skill",
+   "area": "outside",
+   "purpose": "Run the playbooks and {checker} where {subject}'s sources can be read.",
+   "info": {
+    "system": "python3, standard library only",
+    "runs": [
+     "extraction",
+     "{write}",
+     "{checker}"
+    ]
+   },
+   "evidence": [
+    "skill-file"
+   ],
+   "basis": "documented"
+  },
+  {
+   "id": "level",
+   "label": "a level",
+   "tag": "artifact",
+   "level": "parts",
+   "area": "drawn",
+   "purpose": "Show one depth of {subject} small enough to read at once.",
+   "info": {
+    "format": "id, title, about, areas, nodes, edges"
+   },
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "node",
+   "label": "a node",
+   "tag": "artifact",
+   "level": "parts",
+   "area": "drawn",
+   "purpose": "Name one thing of {subject}, or one state a thing can be in.",
+   "info": {
+    "format": "id, label, tag, area, opens, purpose, info, evidence"
+   },
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "edge",
+   "label": "an edge",
+   "tag": "artifact",
+   "level": "parts",
+   "area": "drawn",
+   "purpose": "Say one relation as a sentence, or one move between states.",
+   "info": {
+    "format": "from, to, label, tag, many, info, evidence"
+   },
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "area",
+   "label": "an area",
+   "tag": "artifact",
+   "level": "parts",
+   "area": "drawn",
+   "purpose": "Group nodes by one reason, or hold the states of one thing.",
+   "info": {
+    "format": "id, label, tag, info"
+   },
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "tag",
+   "label": "a tag",
+   "tag": "policy",
+   "level": "parts",
+   "area": "told",
+   "purpose": "Say what kind an element is, and so which items it should carry.",
+   "info": {
+    "statement": "an element holds only the items of its tag, each in its form",
+    "enforced-by": "{checker}"
+   },
+   "evidence": [
+    "tag-file"
+   ]
+  },
+  {
+   "id": "scenario",
+   "label": "a scenario",
+   "tag": "artifact",
+   "level": "parts",
+   "area": "told",
+   "purpose": "Show a purpose met, step by step, on the nodes and edges.",
+   "info": {
+    "format": "id, title, purpose, principle, steps of level, at, does, then"
+   },
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "property",
+   "label": "a property",
+   "tag": "artifact",
+   "level": "parts",
+   "area": "told",
+   "purpose": "State what must hold, what is assumed, and what is not known.",
+   "info": {
+    "format": "id, kind, strength, status, fault, statement, on, paths"
+   },
+   "evidence": [
+    "contract-playbook"
+   ]
+  }
+ ],
+ "edges": [
+  {
+   "id": "reads",
+   "from": "extract",
+   "to": "subject",
+   "label": "reads",
+   "tag": "access",
+   "info": {
+    "mode": "read"
+   },
+   "evidence": [
+    "extract-playbook"
+   ]
+  },
+  {
+   "id": "takes-its",
+   "from": "write",
+   "to": "extract",
+   "label": "takes its findings from",
+   "tag": "sequence",
+   "info": {
+    "order": 2
+   },
+   "evidence": [
+    "skill-file"
+   ]
+  },
+  {
+   "id": "writes",
+   "from": "write",
+   "to": "contract",
+   "label": "writes",
+   "tag": "produces",
+   "info": {
+    "output": "contract.json",
+    "format": "JSON"
+   },
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "takes-its-items",
+   "from": "write",
+   "to": "catalogue",
+   "label": "takes its items from",
+   "tag": "dependsOn",
+   "info": {
+    "kind": "while writing"
+   },
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "judges",
+   "from": "checker",
+   "to": "contract",
+   "label": "judges",
+   "tag": "access",
+   "info": {
+    "mode": "read"
+   },
+   "evidence": [
+    "checker-code"
+   ]
+  },
+  {
+   "id": "holds-each",
+   "from": "checker",
+   "to": "catalogue",
+   "label": "holds each element to",
+   "tag": "dependsOn",
+   "info": {
+    "kind": "at run time",
+    "on-failure": "does not start"
+   },
+   "evidence": [
+    "checker-code"
+   ]
+  },
+  {
+   "id": "sends-its",
+   "from": "checker",
+   "to": "extract",
+   "label": "sends its open questions back to",
+   "tag": "triggers",
+   "info": {
+    "filter": "only when a question is open"
+   },
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "check",
+   "from": "drafted",
+   "to": "checked",
+   "label": "check",
+   "tag": "transition",
+   "info": {
+    "guard": "no rule breaks"
+   },
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "edit",
+   "from": "checked",
+   "to": "drafted",
+   "label": "edit",
+   "tag": "transition",
+   "info": {},
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "gaps",
+   "from": "checked",
+   "to": "answered",
+   "label": "gaps",
+   "tag": "transition",
+   "info": {
+    "guard": "no open question"
+   },
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "edit-2",
+   "from": "answered",
+   "to": "drafted",
+   "label": "edit",
+   "tag": "transition",
+   "info": {},
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "rebuilds-from",
+   "from": "reader",
+   "to": "contract",
+   "label": "rebuilds {subject} from",
+   "tag": "access",
+   "info": {
+    "mode": "read"
+   },
+   "evidence": [
+    "skill-file"
+   ]
+  },
+  {
+   "id": "runs-in",
+   "from": "checker",
+   "to": "session",
+   "label": "runs in",
+   "tag": "dependsOn",
+   "info": {
+    "kind": "at run time"
+   },
+   "evidence": [
+    "checker-code"
+   ]
+  },
+  {
+   "id": "is-drawn",
+   "from": "node",
+   "to": "level",
+   "label": "is drawn on",
+   "tag": "dependsOn",
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "sits-in",
+   "from": "node",
+   "to": "area",
+   "label": "sits in",
+   "tag": "dependsOn",
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "is-drawn-on",
+   "from": "area",
+   "to": "level",
+   "label": "is drawn on",
+   "tag": "dependsOn",
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "leaves",
+   "from": "edge",
+   "to": "node",
+   "label": "leaves",
+   "tag": "dependsOn",
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "carries",
+   "from": "node",
+   "to": "tag",
+   "label": "carries",
+   "tag": "governs",
+   "info": {
+    "effect": "fixes its items"
+   },
+   "evidence": [
+    "tag-file"
+   ]
+  },
+  {
+   "id": "carries-2",
+   "from": "edge",
+   "to": "tag",
+   "label": "carries",
+   "tag": "governs",
+   "info": {
+    "effect": "fixes its items"
+   },
+   "evidence": [
+    "tag-file"
+   ]
+  },
+  {
+   "id": "steps-on",
+   "from": "scenario",
+   "to": "node",
+   "label": "steps on",
+   "many": true,
+   "tag": "sequence",
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "constrains",
+   "from": "property",
+   "to": "node",
+   "label": "constrains",
+   "many": true,
+   "tag": "governs",
+   "evidence": [
+    "contract-playbook"
    ]
   }
  ],
@@ -891,6 +921,84 @@
     "reader",
     "catalogue"
    ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "who-rebuilds",
+   "asks": "Who must be able to rebuild {subject}, and from what alone?",
+   "answers": [
+    "reader",
+    "rebuilds-from",
+    "one-file"
+   ]
+  },
+  {
+   "id": "what-is-read",
+   "asks": "What is read to find the facts, and in what order of work?",
+   "answers": [
+    "extract",
+    "reads",
+    "takes-its"
+   ]
+  },
+  {
+   "id": "where-facts-go",
+   "asks": "Where does every fact end up, and which parts does that file hold?",
+   "answers": [
+    "contract",
+    "writes",
+    "parts"
+   ]
+  },
+  {
+   "id": "which-items",
+   "asks": "What fixes the items a record of one tag must hold?",
+   "answers": [
+    "catalogue",
+    "takes-its-items",
+    "carries"
+   ]
+  },
+  {
+   "id": "what-is-judged",
+   "asks": "What does {checker} judge, and what does it send back?",
+   "answers": [
+    "checker",
+    "judges",
+    "sends-its"
+   ]
+  },
+  {
+   "id": "when-done",
+   "asks": "Which states does a description pass through before it is done?",
+   "answers": [
+    "drafted",
+    "checked",
+    "answered",
+    "check",
+    "gaps"
+   ]
+  },
+  {
+   "id": "how-ids",
+   "asks": "How is a record named so that another can point at it?",
+   "answers": [
+    "ids-once"
+   ]
+  },
+  {
+   "id": "what-it-needs",
+   "asks": "What does {checker} need installed to run?",
+   "answers": [
+    "standard-library",
+    "runs-in"
+   ]
+  },
+  {
+   "id": "is-it-true",
+   "asks": "How is a sentence of the description known to be true?",
+   "gap": "sentence-truth"
   }
  ]
 }

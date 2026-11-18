@@ -10,7 +10,7 @@ Describe a subject, such as code, a process or requirements, as one checked cont
 ## Domain
 
 - **subject**: what is described; its **sources** are the code, documents, runs and people that can settle a question about it.
-- **contract**: one JSON file holding the whole description: levels of nodes, edges and areas, scenarios, properties, terms and sources. Every view is made from it by code.
+- **contract**: one JSON file holding the whole description: nodes, edges and areas, the levels that show them, scenarios, properties, terms and sources. Every view is made from it by code.
 - **level**: one depth of the subject, small enough to read at once; a node **opens** the level that shows its inside.
 - **tag**: the kind of a node, edge or area, which fixes the items worth recording of it; `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/check-contract.py tags` prints them.
 - **reconstruction**: the measure of a contract: a reader who never saw the sources answers what a rebuild needs from the contract alone.

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Replay the five kinds of change on each example contract and count the records each one touches.
+"""Replay the six kinds of change on each example contract and count the records each one touches.
 
 usage: replay-contract-changes.py
 
-On a copy of each `../examples/*/contract.json` it adds a finding to one node, renames one node, moves one edge to another node, reworks one
+On a copy of each `../examples/*/contract.json` it adds a finding to one node, renames one node, moves one node to another level, moves one edge to another node, reworks one
 item of a tag from a list into a text on every node that holds it, and gives one item of the catalogue a new shown name. Each change must
 touch the fewest records: one, or for the rework the nodes that hold the item and the one catalogue record. After each the checker must
 accept the copy and its `read` call must print every scenario step from the record the step names. A new name is also given to every node and area at
@@ -24,6 +24,9 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+from contract_levels import flat, nested  # noqa: E402
+
 HERE = pathlib.Path(__file__).resolve().parent
 CHECK = HERE.parent / "scripts" / "check-contract.py"
 TAGS = json.loads((HERE.parent / "assets" / "tags.json").read_text())
@@ -37,7 +40,7 @@ def records(contract):
     for level in contract["levels"]:
         found["level " + level["id"]] = {name: value for name, value in level.items() if name not in ("areas", "nodes", "edges")}
         for kind in ("areas", "nodes", "edges"):
-            found.update({element["id"]: element for element in level.get(kind, [])})
+            found.update({element["id"]: element if kind == "edges" else {**element, "level": level["id"]} for element in level.get(kind, [])})
     found.update({item["id"]: item for item in contract.get("scenarios", []) + contract.get("properties", [])})
     return found
 
@@ -62,7 +65,7 @@ def run(call, contract, tags=None):
     """The checker's exit status and output for CALL on CONTRACT, against the catalogue TAGS when given."""
     with tempfile.TemporaryDirectory() as folder:
         path = pathlib.Path(folder) / "contract.json"
-        path.write_text(json.dumps(contract))
+        path.write_text(json.dumps(contract if "nodes" in contract else flat(contract)))
         command = [sys.executable, str(CHECK), call, str(path)]
         if tags is not None:
             (pathlib.Path(folder) / "tags.json").write_text(json.dumps(tags))
@@ -115,6 +118,18 @@ def rename_node(contract):
     turn.setdefault("info", {})["guard"] = "{" + name + "} agrees"
     shown = shown and "-- ask the part with a second name [The part with a second name agrees]" in run("read", planted)[1]
     return {"contract": 1, "catalogue": 0}, None if shown else "a line that shows the node does not follow its label"
+
+
+def move_node(contract):
+    if len(contract["levels"]) < 2:
+        return {"contract": 0, "catalogue": 0}, None
+    node = {"id": "part-set-apart", "label": "the part set apart", "tag": contract["levels"][0]["nodes"][0]["tag"], "purpose": "Stand on the level that asks about it."}
+    contract["levels"][0]["nodes"].append(node)
+    before = copy.deepcopy(contract)
+    contract["levels"][0]["nodes"].remove(node)
+    contract["levels"][1]["nodes"].append(node)
+    moved = differing(records(before), records(contract))
+    return {"contract": 1, "catalogue": 0}, None if moved == 1 and run("check", before)[0] == 0 else f"a node moved to another level touches {moved} records, or the checker refuses it where it stood"
 
 
 SPOKEN = ("level ", "  sentence:", "  transition:", "  rule:", "principle ", "scenario ", "property ", "invariant ", "fact ", "gap ", "assumption ", "constraint ", "convention ")
@@ -318,7 +333,7 @@ def misread_calls(path):
     with tempfile.TemporaryDirectory() as folder:
         whole, changed = pathlib.Path(folder) / "tags.json", copy.deepcopy(TAGS)
         holder = next((tag, item) for tag, entry in changed["node"].items() for item in entry["items"] if item["form"] == "list"
-                      and any(node["tag"] == tag and item["name"] in node.get("info", {}) for level in json.loads(path.read_text())["levels"] for node in level["nodes"]))
+                      and any(node["tag"] == tag and item["name"] in node.get("info", {}) for node in json.loads(path.read_text())["nodes"]))
         holder[1]["form"] = "text"
         whole.write_text(json.dumps(changed))
         for order in (["--tags", str(whole), "--root", folder], ["--root", folder, "--tags", str(whole)]):
@@ -346,8 +361,8 @@ def main(args):
 
     def replayed(path):
         failed, lines = 0, []
-        original = json.loads(path.read_text())
-        for change in (add_finding, rename_node, move_edge, rework_item, rename_item):
+        original = nested(json.loads(path.read_text()))
+        for change in (add_finding, rename_node, move_node, move_edge, rework_item, rename_item):
             contract, tags = copy.deepcopy(original), copy.deepcopy(TAGS)
             wanted, fault = change(contract, tags) if change in (rework_item, rename_item) else change(contract)
             touched = {"contract": differing(records(original), records(contract)), "catalogue": differing(catalogue_records(TAGS), catalogue_records(tags))}

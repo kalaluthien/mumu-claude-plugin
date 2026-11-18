@@ -617,6 +617,7 @@
     }
     for (const scenario of contract.scenarios || []) add(scenario.id, "scenario", scenario.title, "scenario", [[scenario.title, 10], [scenario.id, 8], [scenario.purpose && words(scenario.purpose), 2]]);
     for (const property of contract.properties || []) add(property.id, "property", words(property.statement), property.kind, [[property.id, 9], [words(property.statement), 5], [property.kind, 4]]);
+    for (const question of contract.questions || []) add(question.id, "question", words(question.asks), question.answers ? "question" : "open question", [[words(question.asks), 3], [question.id, 2]]);
     return list;
   }
   const slips = (a, b, most) => { // edits between two words, a swap of neighbours counted once
@@ -632,7 +633,7 @@
     }
     return row[b.length];
   };
-  const ORDER = ["node", "level", "area", "edge", "scenario", "property"];
+  const ORDER = ["node", "level", "area", "edge", "scenario", "property", "question"];
   function match(token, field) {
     if (field.text === token) return 120;
     if (field.tokens.includes(token)) return 100;
@@ -665,7 +666,7 @@
     return [...scored].sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind) || a[0].name.length - b[0].name.length || a[0].id.localeCompare(b[0].id)).map(([entry]) => entry);
   }
   let chosen = 0, listed = [], scope = null;
-  const KINDS = { node: "Nodes", level: "Levels", area: "Areas", edge: "Edges", scenario: "Scenarios", property: "Properties" };
+  const KINDS = { node: "Nodes", level: "Levels", area: "Areas", edge: "Edges", scenario: "Scenarios", property: "Properties", question: "Questions" };
   function list() {
     const query = $("query").value.trim(), box = $("hits");
     box.replaceChildren();
@@ -685,7 +686,7 @@
     };
     const found = query ? rank(query).slice(0, 8) : [];
     const groups = query ? [...new Set(found.map(entry => entry.kind))].map(kind => [KINDS[kind], found.filter(entry => entry.kind === kind)])
-      : [["Scenarios", "scenario"], ["Levels", "level"], ["Properties", "property"]].filter(group => !scope || group[0] === scope).map(([title, kind]) => [title, entries.filter(entry => entry.kind === kind)]);
+      : [["Questions", "question"], ["Scenarios", "scenario"], ["Levels", "level"], ["Properties", "property"]].filter(group => !scope || group[0] === scope).map(([title, kind]) => [title, entries.filter(entry => entry.kind === kind)]);
     listed = groups.flatMap(group => group[1]);
     chosen = Math.min(chosen, Math.max(0, listed.length - 1));
     if (!listed.length) return box.append(make("div", { class: "none" }, "No results found."));
@@ -718,6 +719,10 @@
   }
   function pick(entry) {
     shut();
+    if (entry.kind === "question") { // a question leads to the first record that answers it, or to the gap it is left to
+      const question = contract.questions.find(one => one.id === entry.id);
+      return pick(entries.find(one => one.id === (question.answers || [question.gap])[0]));
+    }
     if (entry.kind === "scenario") return start(entry.id);
     if (entry.kind === "level") return go({ level: entry.id, at: null, scenario: null });
     go({ level: home(entry.id), at: entry.id, scenario: null });
