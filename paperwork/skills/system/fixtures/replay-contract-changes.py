@@ -6,8 +6,8 @@ usage: replay-contract-changes.py
 On a copy of each `../examples/*/contract.json` it adds a finding to one node, renames one node, moves one edge to another node, reworks one
 item of a tag from a list into a text on every node that holds it, and gives one item of the catalogue a new shown name. Each change must
 touch the fewest records: one, or for the rework the nodes that hold the item and the one catalogue record. After each the checker must
-accept the copy and its `read` call must print every scenario step from the record the step names. A new name is also given to each node and each area in
-turn, and no other label, no level, sentence, transition, rule, scenario or property line of `read`, and no text of the contract
+accept the copy and its `read` call must print every scenario step from the record the step names. A new name is also given to every node and area at
+once, and no other label, no level, sentence, transition, rule, scenario or property line of `read`, and no text of the contract
 but a name, a source's words and an item of the code form, may still spell the old one outside a quote in backticks; each text `read` prints
 that names the node, a transition's event and guard included, must show the new name, with a capital where it opens the text or follows a full stop, unless it is a file name, and never the bare `{id}`.
 The checker must also refuse a position, in a field or in a table cell or a tree note, a colour, markup of thirteen kinds, a made-up tag, a comment and a declaration among them, in a purpose, a step
@@ -15,6 +15,7 @@ note and a statement, markup a node's label would make, `paths` on a property th
 `--root` in either order must be read as the call says; a catalogue that gives an item the `read` or `gaps` call reads another form, in its tag or among the common items, or another name, or that
 lacks a meaning, a label or an example, names an item twice, lists a form the checker does not know, gives an example that is no text, is nested too deep to read, or holds items in another shape than a list of records, must be refused; and no tag may fix an item every element of its kind holds already. It prints one
 PASS or FAIL line per change, then PASS or FAIL."""
+import concurrent.futures
 import copy
 import json
 import pathlib
@@ -141,26 +142,22 @@ def worded(value, kind=None, tag=None, name=None):
 
 
 def stale_names(contract):
-    """The id of each node or area whose old label a spoken line of `read`, a text of the contract or another label still spells after it alone
-    took a new one."""
-    labels = [node["label"] for level in contract["levels"] for node in level["nodes"] + level.get("areas", [])]
+    """The id of each node or area whose old label a spoken line of `read` or a text of the contract still spells after every one of them
+    took a new label at once."""
+    named = [node for level in contract["levels"] for node in level["nodes"] + level.get("areas", [])]
+    old = {node["id"]: node["label"] for node in named}
+    for count, node in enumerate(named):
+        node["label"] = f"the part named anew {count}"
+    printed = run("read", contract)[1]
+    lines = [line for line in printed.splitlines() if line.startswith(SPOKEN) or line[:5].strip().rstrip(".").isdigit()]
+    names = {node["id"]: node["label"] for node in named}
+    bare = [re.sub("`[^`]*`", " ", line).lower() for line in lines + worded(contract)]
+    unsaid = {name for text in spoken(contract) if said(text, names) not in printed for name in re.findall(r"\{([a-z0-9-]+)\}", text)}
     stale = []
-    for level in contract["levels"]:
-        for node in level["nodes"] + level.get("areas", []):
-            old = node["label"]
-            if labels.count(old) > 1:
-                continue
-            node["label"] = "the part named anew"
-            printed = run("read", contract)[1]
-            lines = [line for line in printed.splitlines() if line.startswith(SPOKEN) or line[:5].strip().rstrip(".").isdigit()]
-            names = {one["id"]: one["label"] for part in contract["levels"] for one in part["nodes"] + part.get("areas", [])}
-            others = [one["label"] for part in contract["levels"] for one in part["nodes"] + part.get("areas", []) if one is not node]
-            unsaid = [text for text in spoken(contract) if "{" + node["id"] + "}" in text and said(text, names) not in printed]
-            node["label"] = old
-            bare = lambda line: re.sub("`[^`]*`", " ", line).lower()
-            spelt = r"(?<![\w-])" + r"\s+".join(re.escape(word) for word in old.lower().split()) + r"(?![\w-])"
-            if any(re.search(spelt, bare(line)) for line in lines + worded(contract) + others) or unsaid or "{" + node["id"] + "}" in printed:
-                stale.append(node["id"])
+    for name, label in old.items():
+        spelt = r"(?<![\w-])" + r"\s+".join(re.escape(word) for word in label.lower().split()) + r"(?![\w-])"
+        if any(re.search(spelt, line) for line in bare) or name in unsaid or "{" + name + "}" in printed:
+            stale.append(name)
     return stale
 
 
@@ -309,7 +306,10 @@ def refused(contract):
     noted = with_step(lambda step: step.update(note="<b>it"))
     place = f"scenarios/{noted['scenarios'][0]['id']}/steps/1/note: text-plain"
     unnamed += ["a faulty step note, named by its scenario and step"] if place not in run("check", noted)[1] else []
-    return [name for name, copied in tries.items() if copied is not None and run("check", copied)[0] != 1] + unnamed
+    given = {name: copied for name, copied in tries.items() if copied is not None}
+    with concurrent.futures.ThreadPoolExecutor(8) as pool:
+        statuses = pool.map(lambda copied: run("check", copied)[0], given.values())
+    return [name for name, status in zip(given, statuses) if status != 1] + unnamed
 
 
 def misread_calls(path):
@@ -342,9 +342,10 @@ def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    failed = 0
     examples = sorted((HERE.parent / "examples").glob("*/contract.json"))
-    for path in examples:
+
+    def replayed(path):
+        failed, lines = 0, []
         original = json.loads(path.read_text())
         for change in (add_finding, rename_node, move_edge, rework_item, rename_item):
             contract, tags = copy.deepcopy(original), copy.deepcopy(TAGS)
@@ -356,21 +357,27 @@ def main(args):
                 fault = "the checker refuses the copy, or a scenario step is not read from its record"
             failed += bool(fault)
             name = change.__name__.replace("_", " ")
-            print(f"FAIL {path.parent.name}: {name}: {fault}" if fault else f"PASS {path.parent.name}: {name}: {touched['contract']} contract and {touched['catalogue']} catalogue records")
+            lines.append(f"FAIL {path.parent.name}: {name}: {fault}" if fault else f"PASS {path.parent.name}: {name}: {touched['contract']} contract and {touched['catalogue']} catalogue records")
         stale = stale_names(copy.deepcopy(original))
         failed += bool(stale)
-        print(f"FAIL {path.parent.name}: a spoken line still spells the old label of {', '.join(stale)}" if stale else f"PASS {path.parent.name}: no spoken line spells a node's old label")
+        lines.append(f"FAIL {path.parent.name}: a spoken line still spells the old label of {', '.join(stale)}" if stale else f"PASS {path.parent.name}: no spoken line spells a node's old label")
         accepted = refused(original)
         failed += bool(accepted)
-        print(f"FAIL {path.parent.name}: the checker accepts {', '.join(accepted)}" if accepted else f"PASS {path.parent.name}: the checker refuses a position, a colour, markup and a bad step")
+        lines.append(f"FAIL {path.parent.name}: the checker accepts {', '.join(accepted)}" if accepted else f"PASS {path.parent.name}: the checker refuses a position, a colour, markup and a bad step")
         misread = misread_calls(path)
         failed += bool(misread)
-        print(f"FAIL {path.parent.name}: {'; '.join(misread)}" if misread else f"PASS {path.parent.name}: the checker reads a catalogue beside a root and refuses what is no catalogue")
+        lines.append(f"FAIL {path.parent.name}: {'; '.join(misread)}" if misread else f"PASS {path.parent.name}: the checker reads a catalogue beside a root and refuses what is no catalogue")
+        return failed, lines
+
+    with concurrent.futures.ThreadPoolExecutor(4) as pool:
+        done = list(pool.map(replayed, examples))
+    failed = sum(count for count, _ in done)
+    print("\n".join(line for _, lines in done for line in lines))
     twice = [f"{kind} {tag} {item['name']}" for kind in ("node", "edge", "area") for tag, entry in TAGS[kind].items() for item in entry["items"]
              if any(item["name"] == shared["name"] for shared in TAGS["common"][kind])]
     failed += bool(twice)
     print(f"FAIL the catalogue fixes twice: {', '.join(twice)}" if twice else "PASS the catalogue fixes each item in one record")
-    reformed = []
+    reformed, given = [], []
     for kind in ("node", "edge", "area"):
         for tag, entry in TAGS[kind].items():
             for k, item in enumerate(entry["items"]):
@@ -384,7 +391,10 @@ def main(args):
                     renamed = copy.deepcopy(TAGS)
                     renamed[kind][tag]["items"][k]["name"] = item["name"] + "-anew"
                     tries.append(("under another name", renamed))
-                reformed += [f"{kind} {tag} {item['name']} {how}" for how, tags in tries if run("read", json.loads(examples[0].read_text()), tags)[0] != 2]
+                given += [(f"{kind} {tag} {item['name']} {how}", tags) for how, tags in tries]
+    with concurrent.futures.ThreadPoolExecutor(8) as pool:
+        statuses = pool.map(lambda one: run("read", json.loads(examples[0].read_text()), one[1])[0], given)
+    reformed += [name for (name, _), status in zip(given, statuses) if status != 2]
     for field in ("label", "example", "meaning"):
         tags = copy.deepcopy(TAGS)
         entry = next(iter(tags["node"].values()))

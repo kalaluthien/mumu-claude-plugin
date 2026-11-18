@@ -1,0 +1,338 @@
+[
+ {
+  "query": "the checker",
+  "wants": "checker",
+  "example": "self",
+  "kind": "exact",
+  "typed": "whole"
+ },
+ {
+  "query": "Behind the token",
+  "wants": "behind-token",
+  "example": "page-changes",
+  "kind": "exact",
+  "typed": "whole"
+ },
+ {
+  "query": "Parts of a contract",
+  "wants": "parts",
+  "example": "self",
+  "kind": "exact",
+  "typed": "whole"
+ },
+ {
+  "query": "the version keeper",
+  "wants": "keeper",
+  "example": "page-changes",
+  "kind": "exact",
+  "typed": "whole"
+ },
+ {
+  "query": "the flush",
+  "wants": "sender",
+  "example": "page-changes",
+  "kind": "exact",
+  "typed": "half"
+ },
+ {
+  "query": "the status",
+  "wants": "status-bar",
+  "example": "page-changes",
+  "kind": "exact",
+  "typed": "half"
+ },
+ {
+  "query": "the tag cata",
+  "wants": "catalogue",
+  "example": "self",
+  "kind": "exact",
+  "typed": "half"
+ },
+ {
+  "query": "A stranger",
+  "wants": "refused-request",
+  "example": "page-changes",
+  "kind": "exact",
+  "typed": "half"
+ },
+ {
+  "query": "tvk",
+  "wants": "keeper",
+  "example": "page-changes",
+  "kind": "initials",
+  "typed": "whole"
+ },
+ {
+  "query": "tut",
+  "wants": "token-url",
+  "example": "page-changes",
+  "kind": "initials",
+  "typed": "whole"
+ },
+ {
+  "query": "tss",
+  "wants": "skill",
+  "example": "self",
+  "kind": "initials",
+  "typed": "whole"
+ },
+ {
+  "query": "tfl",
+  "wants": "sender",
+  "example": "page-changes",
+  "kind": "initials",
+  "typed": "whole"
+ },
+ {
+  "query": "tes",
+  "wants": "stream-listener",
+  "example": "page-changes",
+  "kind": "initials",
+  "typed": "half"
+ },
+ {
+  "query": "tsf",
+  "wants": "route-files",
+  "example": "page-changes",
+  "kind": "initials",
+  "typed": "half"
+ },
+ {
+  "query": "tee",
+  "wants": "e2e-command",
+  "example": "page-changes",
+  "kind": "initials",
+  "typed": "half"
+ },
+ {
+  "query": "tpd",
+  "wants": "data-block",
+  "example": "page-changes",
+  "kind": "initials",
+  "typed": "half"
+ },
+ {
+  "query": "the annoncer",
+  "wants": "announcer",
+  "example": "page-changes",
+  "kind": "misspelt",
+  "typed": "whole"
+ },
+ {
+  "query": "the wacther",
+  "wants": "watcher",
+  "example": "page-changes",
+  "kind": "misspelt",
+  "typed": "whole"
+ },
+ {
+  "query": "the chekcer",
+  "wants": "checker",
+  "example": "self",
+  "kind": "misspelt",
+  "typed": "whole"
+ },
+ {
+  "query": "the pendng route",
+  "wants": "route-pending",
+  "example": "page-changes",
+  "kind": "misspelt",
+  "typed": "whole"
+ },
+ {
+  "query": "the reddraw",
+  "wants": "redraw-trigger",
+  "example": "page-changes",
+  "kind": "misspelt",
+  "typed": "half"
+ },
+ {
+  "query": "the haedless",
+  "wants": "headless-browser",
+  "example": "page-changes",
+  "kind": "misspelt",
+  "typed": "half"
+ },
+ {
+  "query": "the exprot",
+  "wants": "exporter",
+  "example": "page-changes",
+  "kind": "misspelt",
+  "typed": "half"
+ },
+ {
+  "query": "a scenrio",
+  "wants": "scenario",
+  "example": "self",
+  "kind": "misspelt",
+  "typed": "half"
+ },
+ {
+  "query": "page file dataStore",
+  "wants": "page-file",
+  "example": "page-changes",
+  "kind": "two-fields",
+  "typed": "whole"
+ },
+ {
+  "query": "checker refuse",
+  "wants": "checker",
+  "example": "self",
+  "kind": "two-fields",
+  "typed": "whole"
+ },
+ {
+  "query": "watcher notice",
+  "wants": "watcher",
+  "example": "page-changes",
+  "kind": "two-fields",
+  "typed": "whole"
+ },
+ {
+  "query": "pending.jsonl queue",
+  "wants": "pending-file",
+  "example": "page-changes",
+  "kind": "two-fields",
+  "typed": "whole"
+ },
+ {
+  "query": "keeper dec",
+  "wants": "keeper",
+  "example": "page-changes",
+  "kind": "two-fields",
+  "typed": "half"
+ },
+ {
+  "query": "starter exam",
+  "wants": "starter",
+  "example": "page-changes",
+  "kind": "two-fields",
+  "typed": "half"
+ },
+ {
+  "query": "token gua",
+  "wants": "token-url",
+  "example": "page-changes",
+  "kind": "two-fields",
+  "typed": "half"
+ },
+ {
+  "query": "session ho",
+  "wants": "session",
+  "example": "self",
+  "kind": "two-fields",
+  "typed": "half"
+ },
+ {
+  "query": "takes-its",
+  "wants": "takes-its",
+  "example": "self",
+  "kind": "id",
+  "typed": "whole"
+ },
+ {
+  "query": "route-ack",
+  "wants": "route-ack",
+  "example": "page-changes",
+  "kind": "id",
+  "typed": "whole"
+ },
+ {
+  "query": "ids-never-reused",
+  "wants": "ids-never-reused",
+  "example": "page-changes",
+  "kind": "id",
+  "typed": "whole"
+ },
+ {
+  "query": "same-level",
+  "wants": "same-level",
+  "example": "self",
+  "kind": "id",
+  "typed": "whole"
+ },
+ {
+  "query": "server-nev",
+  "wants": "server-never-writes-page",
+  "example": "page-changes",
+  "kind": "id",
+  "typed": "half"
+ },
+ {
+  "query": "e2e-out",
+  "wants": "e2e-outage",
+  "example": "page-changes",
+  "kind": "id",
+  "typed": "half"
+ },
+ {
+  "query": "url-surv",
+  "wants": "url-survives-restart",
+  "example": "page-changes",
+  "kind": "id",
+  "typed": "half"
+ },
+ {
+  "query": "change-ref",
+  "wants": "change-refused",
+  "example": "page-changes",
+  "kind": "id",
+  "typed": "half"
+ },
+ {
+  "query": "솓 랴ㅣㄷ ㅈㅁㅅ촏ㄱ",
+  "wants": "watcher",
+  "example": "page-changes",
+  "kind": "korean-layout",
+  "typed": "whole"
+ },
+ {
+  "query": "솓 개ㅕㅅㄷ ㅅ뮤ㅣㄷ",
+  "wants": "route-table",
+  "example": "page-changes",
+  "kind": "korean-layout",
+  "typed": "whole"
+ },
+ {
+  "query": "솓 채ㅜㅅㄱㅁㅊㅅ",
+  "wants": "contract",
+  "example": "self",
+  "kind": "korean-layout",
+  "typed": "whole"
+ },
+ {
+  "query": "솓 무ㅜㅐㅕㅜㅊㄷㄱ",
+  "wants": "announcer",
+  "example": "page-changes",
+  "kind": "korean-layout",
+  "typed": "whole"
+ },
+ {
+  "query": "솓 ㅁ차",
+  "wants": "route-ack",
+  "example": "page-changes",
+  "kind": "korean-layout",
+  "typed": "half"
+ },
+ {
+  "query": "솓 ㅐ갸햐",
+  "wants": "origin-rule",
+  "example": "page-changes",
+  "kind": "korean-layout",
+  "typed": "half"
+ },
+ {
+  "query": "솓 ㅅㅁㅎ ㅊ",
+  "wants": "catalogue",
+  "example": "self",
+  "kind": "korean-layout",
+  "typed": "half"
+ },
+ {
+  "query": "솓 속ㄷㅁㅇ",
+  "wants": "panel",
+  "example": "page-changes",
+  "kind": "korean-layout",
+  "typed": "half"
+ }
+]

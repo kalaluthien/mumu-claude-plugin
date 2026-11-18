@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The system skill</title>
+<style>
+:root {
+  --radius: .625rem; --background: oklch(1 0 0); --foreground: oklch(.145 0 0); --popover: oklch(1 0 0); --card: oklch(1 0 0);
+  --primary: oklch(.205 0 0); --primary-foreground: oklch(.985 0 0); --muted: oklch(.97 0 0); --muted-foreground: oklch(.556 0 0);
+  --accent: oklch(.97 0 0); --border: oklch(.922 0 0); --ring: oklch(.708 0 0); --canvas: oklch(.985 0 0); --mark: oklch(.205 0 0);
+  --ease: cubic-bezier(.45, 0, .2, 1); --spring: cubic-bezier(.34, 1.56, .64, 1);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / .1), 0 1px 2px -1px rgb(0 0 0 / .1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / .1), 0 2px 4px -2px rgb(0 0 0 / .1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1);
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(.145 0 0); --foreground: oklch(.985 0 0); --popover: oklch(.205 0 0); --card: oklch(.205 0 0);
+    --primary: oklch(.922 0 0); --primary-foreground: oklch(.205 0 0); --muted: oklch(.269 0 0); --muted-foreground: oklch(.708 0 0);
+    --accent: oklch(.269 0 0); --border: oklch(1 0 0 / 14%); --ring: oklch(.556 0 0); --canvas: oklch(.17 0 0); --mark: oklch(.922 0 0);
+  }
+}
+* { box-sizing: border-box; border-color: var(--border); }
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body { background: var(--canvas); color: var(--foreground); font: 14px/20px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; }
+kbd { display: inline-flex; align-items: center; justify-content: center; height: 20px; min-width: 20px; padding: 0 4px; border-radius: 6px; background: var(--muted); color: var(--muted-foreground); font: 500 12px/1 ui-sans-serif, system-ui, sans-serif; }
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
+#diagram { position: fixed; inset: 0; overflow: hidden; background-image: radial-gradient(circle, color-mix(in oklab, var(--foreground) 9%, transparent) 1px, transparent 1px); background-size: 24px 24px; }
+.stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; transition: opacity .32s var(--ease), transform .42s var(--ease); }
+.stage.leave { opacity: 0; }
+.stage.old { pointer-events: none; }
+.stage.enter { opacity: 0; transition: none; }
+.stage svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+
+.area { position: absolute; border: 1px solid var(--border); border-radius: var(--radius); background: color-mix(in oklab, var(--background) 55%, transparent); transition: opacity .25s var(--ease), border-color .2s var(--ease); }
+.area[data-tag="region"] { border-style: dashed; }
+.area > header { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; font-size: calc(12px * var(--grow, 1)); line-height: 16px; font-weight: 500; white-space: nowrap; }
+.area > header::first-letter { text-transform: uppercase; }
+.area > header small { font-size: inherit; font-weight: 400; color: var(--muted-foreground); }
+
+.node { position: absolute; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 8px 12px; border: 1px solid var(--border); border-radius: calc(var(--radius) * .8); background: var(--card); box-shadow: var(--shadow-sm); cursor: default; outline: none;
+  transition: opacity .25s var(--ease), transform .25s var(--spring), box-shadow .2s var(--ease), border-color .2s var(--ease); }
+.node b { font-size: calc(14px * var(--grow, 1)); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.node small { font-size: calc(12px * var(--grow, 1)); line-height: 16px; color: var(--muted-foreground); white-space: nowrap; }
+.node:hover, .node.on { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--ring); }
+.node:focus-visible { border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent); }
+.node.pinned { border-color: var(--foreground); }
+.node .open { position: absolute; right: 6px; top: 6px; width: 24px; height: 24px; display: grid; place-items: center; border: 0; border-radius: 6px; background: transparent; color: var(--muted-foreground); cursor: pointer; transition: background-color .15s var(--ease), color .15s var(--ease), transform .25s var(--spring); }
+.node .open:hover { background: var(--accent); color: var(--foreground); transform: scale(1.12); }
+.node.first::before { content: ""; position: absolute; left: -11px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: var(--foreground); }
+
+.edge path.line { fill: none; stroke: var(--ring); stroke-width: 1.25; opacity: .7; transition: stroke .2s var(--ease), stroke-width .2s var(--ease), opacity .25s var(--ease); }
+.edge path.head { fill: var(--ring); opacity: .7; transition: fill .2s var(--ease), opacity .25s var(--ease); }
+.edge path.hit { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; }
+.edge.on path.line { stroke: var(--foreground); stroke-width: 1.75; opacity: 1; }
+.edge.on path.head { fill: var(--foreground); opacity: 1; }
+.edge[data-tag="transition"] path.line { stroke-dasharray: none; }
+.edge[data-tag="dependsOn"] path.line, .edge[data-tag="governs"] path.line { stroke-dasharray: 4 4; }
+.label { position: absolute; transform: translate(-50%, -50%); padding: 1px 6px; border-radius: 6px; background: var(--canvas); color: var(--muted-foreground); font-size: calc(12px * var(--grow, 1)); line-height: 16px; white-space: nowrap; cursor: default; transition: opacity .25s var(--ease), color .2s var(--ease), background-color .2s var(--ease); }
+.label.on { color: var(--foreground); background: var(--accent); z-index: 3; }
+.label.tucked:not(.on):not(.step) { opacity: 0; pointer-events: none; }
+
+#stage.focus .node:not(.on), #stage.focus .label:not(.on):not(.tucked), #stage.focus .area:not(.on) { opacity: .28; }
+#stage.focus .edge:not(.on) path.line, #stage.focus .edge:not(.on) path.head { opacity: .18; }
+
+.bar { position: fixed; z-index: 20; display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 6px; border: 1px solid var(--border); border-radius: var(--radius); background: color-mix(in oklab, var(--background) 86%, transparent); backdrop-filter: blur(10px); box-shadow: var(--shadow-sm); }
+#crumbs { left: 16px; top: 16px; padding: 0 12px; gap: 6px; color: var(--muted-foreground); max-width: 60vw; white-space: nowrap; }
+#crumbs button { border: 0; background: none; padding: 0; cursor: pointer; color: inherit; transition: color .15s var(--ease); }
+#crumbs button:hover { color: var(--foreground); }
+#crumbs [aria-current] { color: var(--foreground); font-weight: 500; }
+#crumbs .sep { opacity: .6; }
+#tools { right: 16px; top: 16px; }
+.tool { display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; cursor: pointer; font-weight: 500; white-space: nowrap; transition: background-color .15s var(--ease), transform .25s var(--spring); }
+.tool:hover { background: var(--accent); }
+.tool:active { transform: scale(.96); }
+.tool:focus-visible, #crumbs button:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent); border-radius: 6px; }
+.tool.quiet { color: var(--muted-foreground); font-weight: 400; }
+
+#card { position: fixed; z-index: 30; width: 320px; max-height: 46vh; overflow: auto; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-md); opacity: 0; transform: translateY(6px) scale(.97); pointer-events: none; transition: opacity .18s var(--ease), transform .26s var(--spring); }
+#card.show { opacity: 1; transform: none; pointer-events: auto; transition: opacity .18s var(--ease), transform .26s var(--spring); }
+#card h2 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 600; }
+#card .tag { display: inline-flex; margin: 6px 6px 0 0; padding: 2px 8px; border: 1px solid var(--border); border-radius: 9999px; font-size: 12px; line-height: 16px; font-weight: 500; }
+#card .tag.fill { background: var(--primary); color: var(--primary-foreground); border-color: transparent; }
+#card p { margin: 8px 0 0; }
+#card dl { margin: 10px 0 0; display: grid; gap: 8px; }
+#card dt { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted-foreground); }
+#card dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+#card ul { margin: 0; padding-left: 18px; } #card li + li { margin-top: 2px; }
+#card table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 16px; }
+#card th { text-align: left; font-weight: 500; color: var(--muted-foreground); } #card th, #card td { padding: 4px 8px 4px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+#card tr:last-child td { border-bottom: 0; }
+#card pre, #card code { background: var(--muted); border-radius: 6px; font-size: 12px; } #card pre { margin: 0; padding: 6px 8px; white-space: pre-wrap; } #card code { padding: 1px 4px; }
+#card footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; color: var(--muted-foreground); font-size: 12px; line-height: 16px; }
+
+#play { left: 50%; bottom: 20px; transform: translate(-50%, 16px); opacity: 0; pointer-events: none; padding: 0 8px; transition: opacity .2s var(--ease), transform .32s var(--spring); max-width: 70vw; }
+#play.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+#play .title { padding: 0 6px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#play .dots { display: flex; gap: 4px; padding: 0 6px; }
+#play .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--border); transition: background-color .2s var(--ease), transform .3s var(--spring); }
+#play .dots i.done { background: var(--muted-foreground); } #play .dots i.now { background: var(--mark); transform: scale(1.5); }
+#chip { position: fixed; z-index: 25; display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; background: var(--foreground); color: var(--background); font-size: 12px; line-height: 16px; white-space: nowrap; pointer-events: none; opacity: 0; transform: translate(-50%, -6px) scale(.9); transition: opacity .2s var(--ease), transform .3s var(--spring), left .42s var(--ease), top .42s var(--ease); }
+#chip.show { opacity: 1; transform: translate(-50%, 0); }
+#chip b { font-weight: 600; } #chip code { font-size: 12px; }
+.node.step, .label.step { border-color: var(--mark); box-shadow: 0 0 0 3px color-mix(in oklab, var(--mark) 35%, transparent), var(--shadow-lg); }
+.label.step { color: var(--foreground); }
+.edge.step path.line { stroke: var(--mark); stroke-width: 2; }
+.edge.step path.head { fill: var(--mark); opacity: 1; }
+#token { position: absolute; left: 0; top: 0; width: 12px; height: 12px; margin: -6px; border-radius: 50%; background: var(--mark); box-shadow: 0 0 0 4px color-mix(in oklab, var(--mark) 30%, transparent); offset-rotate: 0deg; opacity: 0; pointer-events: none; }
+#token.run { animation: travel .9s var(--ease) forwards; }
+#token.run.carry { opacity: 1; animation: carry .9s var(--ease) forwards; }
+@keyframes carry { 0% { offset-distance: 0%; } 100% { offset-distance: 100%; } }
+@keyframes travel { 0% { offset-distance: 0%; opacity: 0; } 12% { opacity: 1; } 100% { offset-distance: 100%; opacity: 1; } }
+
+#veil { position: fixed; inset: 0; z-index: 40; background: rgb(0 0 0 / .5); opacity: 0; pointer-events: none; transition: opacity .2s var(--ease); }
+#veil.show { opacity: 1; pointer-events: auto; }
+#palette { position: fixed; z-index: 41; left: 50%; top: 18vh; width: min(512px, calc(100vw - 32px)); border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-lg); overflow: hidden; opacity: 0; transform: translate(-50%, -8px) scale(.96); pointer-events: none; transition: opacity .18s var(--ease), transform .28s var(--spring); }
+#palette.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+#palette input { width: 100%; height: 48px; padding: 0 16px; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: inherit; font: inherit; outline: none; }
+#palette input::placeholder { color: var(--muted-foreground); }
+#hits { max-height: 320px; overflow-y: auto; padding: 4px; }
+#hits h3 { margin: 0; padding: 6px 8px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted-foreground); }
+#hits .hit { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 6px; cursor: pointer; transition: background-color .12s var(--ease); }
+#hits .hit[aria-selected="true"] { background: var(--accent); }
+#hits .hit b { flex: 0 1 auto; min-width: 0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } #hits .hit code { color: var(--muted-foreground); font-size: 12px; white-space: nowrap; }
+#hits .hit small { margin-left: auto; }
+#hits mark { background: none; color: inherit; font-weight: 600; text-decoration: underline; text-decoration-color: var(--ring); text-underline-offset: 3px; }
+#keys { display: flex; justify-content: flex-end; gap: 16px; height: 40px; align-items: center; padding: 0 12px; border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: 12px; }
+#keys span { display: inline-flex; align-items: center; gap: 4px; }
+#hits .hit small { font-size: 12px; color: var(--muted-foreground); white-space: nowrap; }
+#hits .none { padding: 24px; text-align: center; color: var(--muted-foreground); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; } }
+</style>
+</head>
+<body>
+<main id="diagram"><div id="stage" class="stage"></div></main>
+<nav id="crumbs" class="bar" aria-label="Levels"></nav>
+<div id="tools" class="bar">
+<button id="scenarios" class="tool" type="button">Scenarios</button>
+<button id="properties" class="tool" type="button">Properties</button>
+<button id="search" class="tool quiet" type="button">Search <kbd>/</kbd></button>
+</div>
+<aside id="card" role="tooltip"></aside>
+<div id="chip"></div>
+<div id="play" class="bar">
+<button id="prev" class="tool" type="button" aria-label="Previous step"><kbd>&larr;</kbd></button>
+<span class="title"></span><span class="dots"></span>
+<button id="next" class="tool" type="button" aria-label="Next step"><kbd>&rarr;</kbd></button>
+<button id="stop" class="tool quiet" type="button" aria-label="Stop the scenario"><kbd>esc</kbd></button>
+</div>
+<div id="veil"></div>
+<div id="palette" role="dialog" aria-label="Search">
+<input id="query" type="text" placeholder="Search nodes, edges, scenarios and properties" autocomplete="off" spellcheck="false">
+<div id="hits" role="listbox"></div>
+<footer id="keys"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> move</span><span><kbd>&crarr;</kbd> open</span><span><kbd>esc</kbd> close</span></footer>
+</div>
+<script type="application/json" id="page-data">{"title": "The system skill", "purpose": "Describe a system so that {reader} who never saw its sources can rebuild it.", "sources": [{"id": "skill-file", "path": "paperwork/skills/system/SKILL.md", "says": "the three cases and their order"}, {"id": "extract-playbook", "path": "paperwork/skills/system/references/extract.md", "says": "the topics and where each finding goes"}, {"id": "contract-playbook", "path": "paperwork/skills/system/references/contract.md", "says": "the record layout and how to write each part"}, {"id": "tag-survey", "path": "paperwork/skills/system/references/tags.md", "says": "the survey behind each tag's items"}, {"id": "checker-code", "path": "paperwork/skills/system/scripts/check-contract.py", "says": "every rule, and what `gaps` asks"}, {"id": "tag-file", "path": "paperwork/skills/system/assets/tags.json", "says": "every tag and its items"}], "terms": [{"term": "contract", "meaning": "the one JSON file that holds the description; every view is drawn from it", "coined": true}, {"term": "region", "meaning": "{area} that holds the states of one thing, exactly one of them current", "coined": false}, {"term": "sentence", "meaning": "a static edge read as `\u003cfrom> \u003clabel> \u003cto>`, which must be true of {subject}", "coined": true}, {"term": "gap", "meaning": "what the description lacks, forbids wrongly, says twice or says with two meanings", "coined": false}], "levels": [{"id": "skill", "title": "The system skill", "about": "Who takes part in turning a system into a contract and a page, and what passes between them.", "areas": [{"id": "outside", "label": "outside the skill", "tag": "lane", "info": {"owner": "whoever asks for the description"}}, {"id": "work", "label": "the three cases", "tag": "phase", "info": {"order": 1, "entry": "a subject and its sources are named", "exit": "the page opens"}}, {"id": "kept", "label": "what is kept", "tag": "module", "info": {"purpose": "hold the description so that every view is drawn from one file"}}, {"id": "life", "label": "state of a contract", "tag": "region", "info": {"of": "{contract}", "initial": "drafted"}}], "nodes": [{"id": "subject", "label": "the subject", "tag": "actor", "area": "outside", "purpose": "Be the system, process or requirements someone must understand or rebuild.", "info": {"channels": ["code", "documents", "people who run it", "a run of it"]}, "evidence": ["extract-playbook"]}, {"id": "reader", "label": "a reader", "tag": "actor", "area": "outside", "purpose": "Rebuild or change {subject} without its sources.", "info": {"goal": "answer every rebuild question from {contract} alone"}, "evidence": ["contract-playbook"]}, {"id": "extract", "label": "the extraction run", "tag": "job", "area": "work", "purpose": "Find, topic by topic, what {reader} needs to rebuild {subject}.", "info": {"steps": ["list the sources and what each can settle", "walk the topics", "note each finding with where it was seen", "ask the gap questions"], "outputs": {"columns": ["name", "type", "to"], "rows": [["findings", "notes by topic", "{contract} case"]]}, "why": "a fixed topic list finds what a free reading skips: constants, wire formats, failure cases"}, "evidence": ["extract-playbook"]}, {"id": "write", "label": "contract writing", "tag": "job", "area": "work", "purpose": "Place every finding in the one slot of {contract} that a checker and a page can read.", "info": {"steps": ["choose levels", "name nodes as things and edges as sentences", "draw each lifecycle as a region of states", "fill each tag's items", "write scenarios and properties", "check, read aloud, ask the gaps"], "failure": {"columns": ["case", "what happens"], "rows": [["a rule breaks", "{checker} names the place and the rule, and no page is built"]]}}, "evidence": ["contract-playbook"]}, {"id": "contract", "label": "the contract", "tag": "dataStore", "area": "kept", "opens": "parts", "purpose": "Hold the whole description in one file every later step reads.", "info": {"layout": [{"name": "contract.json", "children": [{"name": "title, purpose"}, {"name": "sources", "note": "what was read"}, {"name": "terms"}, {"name": "levels", "children": [{"name": "areas"}, {"name": "nodes"}, {"name": "edges"}]}, {"name": "scenarios"}, {"name": "properties"}]}], "access": {"columns": ["who", "mode", "how"], "rows": [["{write}", "write", "by hand or by a generator"], ["{checker}", "read", "check, read, gaps"], ["{reader}", "read", "alone, without the sources"]]}}, "evidence": ["contract-playbook"]}, {"id": "catalogue", "label": "the tag catalogue", "tag": "artifact", "area": "kept", "purpose": "Fix, per tag, the items worth recording and the form of each.", "info": {"format": "one JSON file: kind, tag, meaning, items with a form and an example", "made-by": "a survey of 35 documented systems", "used-by": ["{checker}", "the page maker"]}, "evidence": ["tag-file", "tag-survey"]}, {"id": "checker", "label": "the checker", "tag": "job", "area": "work", "purpose": "Refuse a contract a page or {reader} could misread, and list what it still leaves open.", "info": {"steps": ["check the form", "check each rule", "print ok or each break"], "signals": ["`where: rule: message` per break", "`ok`", "one line per open question"], "inputs": {"columns": ["name", "type", "from"], "rows": [["contract", "JSON file", "{write}"]]}}, "evidence": ["checker-code"]}, {"id": "drafted", "label": "a drafted contract", "tag": "state", "area": "life", "info": {"meaning": "written, not yet accepted by {checker}", "ignores": ["edit", "gaps"]}, "evidence": ["contract-playbook"]}, {"id": "checked", "label": "a checked contract", "tag": "state", "area": "life", "info": {"meaning": "{checker} printed ok", "ignores": ["check"]}, "evidence": ["contract-playbook"]}, {"id": "answered", "label": "an answered contract", "tag": "state", "area": "life", "info": {"meaning": "every gap question is answered or recorded as a gap; {reader} may take it", "ignores": ["check", "gaps"]}, "evidence": ["contract-playbook"]}, {"id": "session", "label": "a Claude Code session", "tag": "host", "area": "outside", "purpose": "Run the playbooks and {checker} where {subject}'s sources can be read.", "info": {"system": "python3, standard library only", "runs": ["extraction", "{write}", "{checker}"]}, "evidence": ["skill-file"], "basis": "documented"}], "edges": [{"id": "reads", "from": "extract", "to": "subject", "label": "reads", "tag": "access", "info": {"mode": "read"}, "evidence": ["extract-playbook"]}, {"id": "takes-its", "from": "write", "to": "extract", "label": "takes its findings from", "tag": "sequence", "info": {"order": 2}, "evidence": ["skill-file"]}, {"id": "writes", "from": "write", "to": "contract", "label": "writes", "tag": "produces", "info": {"output": "contract.json", "format": "JSON"}, "evidence": ["contract-playbook"]}, {"id": "takes-its-items", "from": "write", "to": "catalogue", "label": "takes its items from", "tag": "dependsOn", "info": {"kind": "while writing"}, "evidence": ["contract-playbook"]}, {"id": "judges", "from": "checker", "to": "contract", "label": "judges", "tag": "access", "info": {"mode": "read"}, "evidence": ["checker-code"]}, {"id": "holds-each", "from": "checker", "to": "catalogue", "label": "holds each element to", "tag": "dependsOn", "info": {"kind": "at run time", "on-failure": "does not start"}, "evidence": ["checker-code"]}, {"id": "sends-its", "from": "checker", "to": "extract", "label": "sends its open questions back to", "tag": "triggers", "info": {"filter": "only when a question is open"}, "evidence": ["contract-playbook"]}, {"id": "check", "from": "drafted", "to": "checked", "label": "check", "tag": "transition", "info": {"guard": "no rule breaks"}, "evidence": ["contract-playbook"]}, {"id": "edit", "from": "checked", "to": "drafted", "label": "edit", "tag": "transition", "info": {}, "evidence": ["contract-playbook"]}, {"id": "gaps", "from": "checked", "to": "answered", "label": "gaps", "tag": "transition", "info": {"guard": "no open question"}, "evidence": ["contract-playbook"]}, {"id": "edit-2", "from": "answered", "to": "drafted", "label": "edit", "tag": "transition", "info": {}, "evidence": ["contract-playbook"]}, {"id": "rebuilds-from", "from": "reader", "to": "contract", "label": "rebuilds {subject} from", "tag": "access", "info": {"mode": "read"}, "evidence": ["skill-file"]}, {"id": "runs-in", "from": "checker", "to": "session", "label": "runs in", "tag": "dependsOn", "info": {"kind": "at run time"}, "evidence": ["checker-code"]}]}, {"id": "parts", "title": "Parts of a contract", "about": "What a contract is made of, as things and the sentences that join them.", "areas": [{"id": "drawn", "label": "drawn parts", "tag": "module", "info": {"purpose": "what the graph of one level shows"}}, {"id": "told", "label": "told across levels", "tag": "module", "info": {"purpose": "what joins and constrains the levels"}}], "nodes": [{"id": "level", "label": "a level", "tag": "artifact", "area": "drawn", "purpose": "Show one depth of {subject} small enough to read at once.", "info": {"format": "id, title, about, areas, nodes, edges"}, "evidence": ["contract-playbook"]}, {"id": "node", "label": "a node", "tag": "artifact", "area": "drawn", "purpose": "Name one thing of {subject}, or one state a thing can be in.", "info": {"format": "id, label, tag, area, opens, purpose, info, evidence"}, "evidence": ["contract-playbook"]}, {"id": "edge", "label": "an edge", "tag": "artifact", "area": "drawn", "purpose": "Say one relation as a sentence, or one move between states.", "info": {"format": "from, to, label, tag, many, info, evidence"}, "evidence": ["contract-playbook"]}, {"id": "area", "label": "an area", "tag": "artifact", "area": "drawn", "purpose": "Group nodes by one reason, or hold the states of one thing.", "info": {"format": "id, label, tag, info"}, "evidence": ["contract-playbook"]}, {"id": "tag", "label": "a tag", "tag": "policy", "area": "told", "purpose": "Say what kind an element is, and so which items it should carry.", "info": {"statement": "an element holds only the items of its tag, each in its form", "enforced-by": "{checker}"}, "evidence": ["tag-file"]}, {"id": "scenario", "label": "a scenario", "tag": "artifact", "area": "told", "purpose": "Show a purpose met, step by step, on the nodes and edges.", "info": {"format": "id, title, purpose, principle, steps of level, at, does, then"}, "evidence": ["contract-playbook"]}, {"id": "property", "label": "a property", "tag": "artifact", "area": "told", "purpose": "State what must hold, what is assumed, and what is not known.", "info": {"format": "id, kind, strength, status, fault, statement, on, paths"}, "evidence": ["contract-playbook"]}], "edges": [{"id": "is-drawn", "from": "node", "to": "level", "label": "is drawn on", "tag": "dependsOn", "evidence": ["contract-playbook"]}, {"id": "sits-in", "from": "node", "to": "area", "label": "sits in", "tag": "dependsOn", "evidence": ["contract-playbook"]}, {"id": "is-drawn-on", "from": "area", "to": "level", "label": "is drawn on", "tag": "dependsOn", "evidence": ["contract-playbook"]}, {"id": "leaves", "from": "edge", "to": "node", "label": "leaves", "tag": "dependsOn", "evidence": ["contract-playbook"]}, {"id": "carries", "from": "node", "to": "tag", "label": "carries", "tag": "governs", "info": {"effect": "fixes its items"}, "evidence": ["tag-file"]}, {"id": "carries-2", "from": "edge", "to": "tag", "label": "carries", "tag": "governs", "info": {"effect": "fixes its items"}, "evidence": ["tag-file"]}, {"id": "steps-on", "from": "scenario", "to": "node", "label": "steps on", "many": true, "tag": "sequence", "evidence": ["contract-playbook"]}, {"id": "constrains", "from": "property", "to": "node", "label": "constrains", "many": true, "tag": "governs", "evidence": ["contract-playbook"]}]}], "scenarios": [{"id": "describe", "title": "Describe a subject", "purpose": "{reader} rebuilds {subject} from {contract} alone.", "principle": true, "steps": [{"at": "reads"}, {"at": "writes"}, {"at": "check", "note": "prints ok, or names each break"}, {"at": "sends-its", "note": "one line per open question"}, {"at": "gaps"}, {"at": "rebuilds-from", "note": "never opens the sources"}]}, {"id": "walk-parts", "title": "Read one level", "purpose": "{reader} tells the static sentences from the moves between states.", "steps": [{"at": "contract", "note": "its parts show"}, {"at": "sits-in", "note": "true of every contract"}]}], "properties": [{"id": "one-file", "kind": "invariant", "strength": "must", "statement": "Every view of {subject} is made from {contract} and nothing else.", "on": ["contract"], "evidence": ["skill-file"]}, {"id": "same-level", "kind": "fact", "statement": "{node} sits in {area} of its own level: the level {node} is drawn on is the level its area is drawn on.", "on": ["node", "area", "level"], "paths": [["is-drawn"], ["sits-in", "is-drawn-on"]], "evidence": ["checker-code"]}, {"id": "ids-once", "kind": "convention", "strength": "must", "statement": "An id is lowercase words joined by `-`, used once in the whole contract; the id of {edge} says what the edge does and holds neither end's id, so moving an end leaves it true.", "on": ["node", "edge"], "evidence": ["contract-playbook"]}, {"id": "sources-reachable", "kind": "assumption", "statement": "{subject}'s sources can be read by the session that extracts; what only a person knows must be asked.", "on": ["subject"]}, {"id": "standard-library", "kind": "constraint", "strength": "must", "statement": "{checker} uses the Python standard library only.", "on": ["checker"]}, {"id": "sentence-truth", "kind": "gap", "fault": "unknown", "status": "unknown", "statement": "No script can tell whether a sentence is true of {subject}; only a reading of `read` against the sources can.", "on": ["edge", "subject", "reader", "catalogue"]}]}</script>
+<script type="application/json" id="page-threads">{"threads": {}}</script>
+<script type="application/json" id="page-tags">{"forms": ["text", "number", "list", "table", "tree", "code"], "common": {"node": [{"name": "signals", "label": "signals", "form": "list", "example": "prints one line per run"}, {"name": "failure", "label": "failure", "form": "table", "example": "case, what happens"}, {"name": "why", "label": "why", "form": "text", "example": "chosen over polling to keep the page static"}], "edge": [{"name": "failure", "label": "failure", "form": "table", "example": "case, what happens"}, {"name": "why", "label": "why", "form": "text", "example": "kept one way so the server never writes"}], "area": [{"name": "why", "label": "why", "form": "text", "example": "split so each part can be removed alone"}]}, "node": {"actor": {"meaning": "a person, role, team or outside party that starts or receives", "items": [{"name": "goal", "label": "goal", "form": "text", "example": "settle a refund within a day"}, {"name": "count", "label": "count", "form": "number", "example": "about 10,000 users a day"}, {"name": "permissions", "label": "permissions", "form": "list", "example": "refund:write"}, {"name": "channels", "label": "channels", "form": "list", "example": "admin web"}, {"name": "trust", "label": "trust", "form": "text", "example": "signed in, staff"}]}, "service": {"meaning": "a long-running part that answers requests or listens", "items": [{"name": "responsibilities", "label": "responsibilities", "form": "list", "example": "issues tokens"}, {"name": "interfaces", "label": "interfaces", "form": "table", "example": "name, protocol, address"}, {"name": "technology", "label": "technology", "form": "text", "example": "Go 1.22"}, {"name": "capacity", "label": "capacity", "form": "number", "example": "3 replicas, 500 requests a second each"}, {"name": "targets", "label": "targets", "form": "table", "example": "measure, target, window"}, {"name": "owner", "label": "owner", "form": "text", "example": "billing team"}]}, "job": {"meaning": "a unit of work that runs to its end: a step, task, function or stage", "items": [{"name": "inputs", "label": "inputs", "form": "table", "example": "name, type, from"}, {"name": "outputs", "label": "outputs", "form": "table", "example": "name, type, to"}, {"name": "steps", "label": "steps", "form": "list", "example": "load, check, write", "key": true}, {"name": "schedule", "label": "schedule", "form": "code", "example": "0 2 * * *"}, {"name": "limits", "label": "limits", "form": "text", "example": "timeout 10 min, 3 retries"}, {"name": "runs-on", "label": "runs on", "form": "text", "example": "the CI runner"}]}, "endpoint": {"meaning": "a named, addressable interface a part offers: a route, port, command, tool or screen", "items": [{"name": "address", "label": "address", "form": "code", "example": "POST /v1/payments", "key": true}, {"name": "request", "label": "request", "form": "table", "example": "field, type, meaning"}, {"name": "response", "label": "response", "form": "table", "example": "field, type, meaning"}, {"name": "auth", "label": "auth", "form": "text", "example": "OAuth2 scope pay:write"}, {"name": "errors", "label": "errors", "form": "table", "example": "code, when"}, {"name": "limits", "label": "limits", "form": "text", "example": "100 requests a second"}, {"name": "stability", "label": "stability", "form": "text", "example": "v1, stable"}]}, "dataStore": {"meaning": "data kept and read back later: a database, table, file, folder, cache or registry", "items": [{"name": "schema", "label": "schema", "form": "table", "example": "field, type, meaning", "key": true}, {"name": "layout", "label": "layout", "form": "tree", "example": "folders and files", "key": true}, {"name": "volume", "label": "volume", "form": "number", "example": "40 GB, 2 GB more a day"}, {"name": "retention", "label": "retention", "form": "text", "example": "kept 90 days"}, {"name": "consistency", "label": "consistency", "form": "text", "example": "3 replicas, quorum"}, {"name": "access", "label": "access", "form": "table", "example": "who, mode, how"}, {"name": "backup", "label": "backup", "form": "text", "example": "every 15 min"}]}, "queue": {"meaning": "an ordered buffer of work or messages in flight", "items": [{"name": "message", "label": "message", "form": "table", "example": "field, type, meaning", "key": true}, {"name": "ordering", "label": "ordering", "form": "text", "example": "per key"}, {"name": "delivery", "label": "delivery", "form": "text", "example": "at least once"}, {"name": "capacity", "label": "capacity", "form": "number", "example": "1 million messages"}, {"name": "retention", "label": "retention", "form": "text", "example": "7 days"}, {"name": "partitioning", "label": "partitioning", "form": "text", "example": "12 partitions by order id"}, {"name": "dead-letters", "label": "dead letters", "form": "text", "example": "after 5 tries"}]}, "artifact": {"meaning": "an unchanging, versioned output: an image, binary, release, model or document", "items": [{"name": "version", "label": "version", "form": "text", "example": "app 1.4.2"}, {"name": "format", "label": "format", "form": "text", "example": "zip", "key": true}, {"name": "layout", "label": "layout", "form": "tree", "example": "folders and files"}, {"name": "made-by", "label": "made by", "form": "text", "example": "the release job"}, {"name": "retention", "label": "retention", "form": "text", "example": "last 10"}, {"name": "used-by", "label": "used by", "form": "list", "example": "the installer"}]}, "trigger": {"meaning": "what starts a job or flow: a schedule, event, timer or a person's call", "items": [{"name": "kind", "label": "kind", "form": "text", "example": "schedule", "key": true}, {"name": "schedule", "label": "schedule", "form": "code", "example": "*/5 * * * *"}, {"name": "filter", "label": "filter", "form": "code", "example": "on: pull_request"}, {"name": "rate", "label": "rate", "form": "number", "example": "20 a second"}, {"name": "timing", "label": "timing", "form": "text", "example": "waits 3 s of quiet"}]}, "policy": {"meaning": "a rule that is enforced: a permission, limit, cache or routing rule", "items": [{"name": "statement", "label": "statement", "form": "text", "example": "only the owner merges", "key": true}, {"name": "scope", "label": "scope", "form": "list", "example": "every push to main"}, {"name": "enforced-by", "label": "enforced by", "form": "text", "example": "the server"}, {"name": "decisions", "label": "decisions", "form": "table", "example": "condition, action"}, {"name": "exceptions", "label": "exceptions", "form": "list", "example": "none"}]}, "router": {"meaning": "a part that chooses where flow goes: a gateway, balancer, proxy or dispatcher", "items": [{"name": "rules", "label": "rules", "form": "table", "example": "match, goes to", "key": true}, {"name": "algorithm", "label": "algorithm", "form": "text", "example": "round robin"}, {"name": "fallback", "label": "fallback", "form": "text", "example": "404"}, {"name": "fan-out", "label": "fan-out", "form": "number", "example": "1 to 3"}, {"name": "latency", "label": "latency", "form": "number", "example": "under 5 ms"}]}, "host": {"meaning": "where code runs: a machine, container, runner, browser or device", "items": [{"name": "size", "label": "size", "form": "text", "example": "4 CPUs, 16 GB"}, {"name": "count", "label": "count", "form": "number", "example": "3"}, {"name": "location", "label": "location", "form": "text", "example": "Seoul region"}, {"name": "system", "label": "system", "form": "text", "example": "Linux 6"}, {"name": "runs", "label": "runs", "form": "list", "example": "the API server"}, {"name": "network", "label": "network", "form": "text", "example": "10.0.0.0/16, port 443 open"}]}, "credential": {"meaning": "a secret or proof of identity: a key, token or certificate", "items": [{"name": "type", "label": "type", "form": "text", "example": "JWT, RS256", "key": true}, {"name": "issuer", "label": "issuer", "form": "text", "example": "the auth service"}, {"name": "claims", "label": "claims", "form": "table", "example": "claim, meaning"}, {"name": "lifetime", "label": "lifetime", "form": "text", "example": "1 hour, renewed for 30 days"}, {"name": "kept-in", "label": "kept in", "form": "text", "example": "the secrets manager"}]}, "state": {"meaning": "one state of a lifecycle, when the lifecycle itself is the subject", "items": [{"name": "meaning", "label": "meaning", "form": "text", "example": "paid, not shipped"}, {"name": "on-entry", "label": "on entry", "form": "list", "example": "reserve stock"}, {"name": "on-exit", "label": "on exit", "form": "list", "example": "release the hold"}, {"name": "timers", "label": "timers", "form": "text", "example": "expires after 30 min"}, {"name": "terminal", "label": "terminal", "form": "text", "example": "no"}, {"name": "holds", "label": "holds", "form": "list", "example": "amount is fixed"}, {"name": "ignores", "label": "ignores", "form": "list", "example": "a second pay request"}, {"name": "refuses", "label": "refuses", "form": "list", "example": "a merge before the review"}]}}, "edge": {"call": {"meaning": "asks and waits for the answer", "items": [{"name": "protocol", "label": "protocol", "form": "code", "example": "HTTPS GET /exam/papers", "key": true}, {"name": "request", "label": "request", "form": "table", "example": "field, type, meaning"}, {"name": "response", "label": "response", "form": "table", "example": "field, type, meaning"}, {"name": "auth", "label": "auth", "form": "text", "example": "bearer token"}, {"name": "timing", "label": "timing", "form": "text", "example": "timeout 2 s, 3 retries"}, {"name": "errors", "label": "errors", "form": "table", "example": "code, when"}, {"name": "rate", "label": "rate", "form": "number", "example": "200 a minute"}]}, "publish": {"meaning": "sends a message or event without waiting", "items": [{"name": "channel", "label": "channel", "form": "text", "example": "topic orders"}, {"name": "message", "label": "message", "form": "table", "example": "field, type, meaning", "key": true}, {"name": "ordering", "label": "ordering", "form": "text", "example": "per key"}, {"name": "delivery", "label": "delivery", "form": "text", "example": "at least once"}, {"name": "rate", "label": "rate", "form": "number", "example": "500 a second"}]}, "access": {"meaning": "reads or writes a data store", "items": [{"name": "mode", "label": "mode", "form": "text", "example": "read", "key": true}, {"name": "query", "label": "query", "form": "code", "example": "by id"}, {"name": "fields", "label": "fields", "form": "list", "example": "id, total"}, {"name": "rate", "label": "rate", "form": "number", "example": "200 a second"}, {"name": "consistency", "label": "consistency", "form": "text", "example": "may be 1 s stale"}]}, "sequence": {"meaning": "comes next in the order of control", "items": [{"name": "condition", "label": "condition", "form": "text", "example": "when the check passes"}, {"name": "order", "label": "order", "form": "number", "example": "2"}, {"name": "branching", "label": "branching", "form": "text", "example": "one of"}]}, "dependsOn": {"meaning": "needs the other to build or run", "items": [{"name": "kind", "label": "kind", "form": "text", "example": "at run time"}, {"name": "version", "label": "version", "form": "text", "example": "3.11 or newer"}, {"name": "on-failure", "label": "on failure", "form": "text", "example": "does not start"}]}, "transition": {"meaning": "moves from one state to another", "items": [{"name": "event", "label": "event", "form": "text", "example": "payment received"}, {"name": "guard", "label": "guard", "form": "text", "example": "amount matches"}, {"name": "action", "label": "action", "form": "text", "example": "send a receipt"}]}, "produces": {"meaning": "makes an artifact or data", "items": [{"name": "output", "label": "output", "form": "text", "example": "report.html"}, {"name": "format", "label": "format", "form": "text", "example": "one HTML file"}, {"name": "frequency", "label": "frequency", "form": "text", "example": "each run"}, {"name": "derivation", "label": "derivation", "form": "text", "example": "joined from two tables"}]}, "triggers": {"meaning": "starts the job or flow", "items": [{"name": "filter", "label": "filter", "form": "text", "example": "only on main"}, {"name": "delay", "label": "delay", "form": "text", "example": "after 3 s of quiet"}, {"name": "dedupe", "label": "dedupe", "form": "text", "example": "one per burst"}]}, "governs": {"meaning": "applies a rule to the target", "items": [{"name": "scope", "label": "scope", "form": "text", "example": "all write requests"}, {"name": "effect", "label": "effect", "form": "text", "example": "deny"}, {"name": "priority", "label": "priority", "form": "number", "example": "1"}]}, "partOf": {"meaning": "is a part the other holds or lists", "items": [{"name": "role", "label": "role", "form": "text", "example": "one folder per plugin"}, {"name": "count", "label": "count", "form": "text", "example": "one or more"}]}}, "area": {"module": {"meaning": "parts grouped by what they do: a system, domain or package", "items": [{"name": "purpose", "label": "purpose", "form": "text", "example": "takes payments"}, {"name": "owner", "label": "owner", "form": "text", "example": "billing team"}, {"name": "interface", "label": "interface", "form": "list", "example": "POST /v1/payments"}, {"name": "rules", "label": "rules", "form": "list", "example": "nothing outside reads its tables"}]}, "deployment": {"meaning": "parts grouped by where they run: a region, cluster, network or machine", "items": [{"name": "location", "label": "location", "form": "text", "example": "Seoul region"}, {"name": "capacity", "label": "capacity", "form": "text", "example": "3 machines"}, {"name": "redundancy", "label": "redundancy", "form": "text", "example": "3 zones"}, {"name": "network", "label": "network", "form": "text", "example": "10.0.0.0/16"}]}, "trustZone": {"meaning": "parts inside one security boundary", "items": [{"name": "trust", "label": "trust", "form": "text", "example": "signed-in staff only"}, {"name": "entries", "label": "entries", "form": "list", "example": "the login page"}, {"name": "controls", "label": "controls", "form": "list", "example": "token on every call"}]}, "lane": {"meaning": "parts grouped by who is responsible: a team or role", "items": [{"name": "owner", "label": "owner", "form": "text", "example": "the platform team"}, {"name": "on-call", "label": "on call", "form": "text", "example": "weekdays"}, {"name": "handoffs", "label": "handoffs", "form": "list", "example": "to support after release"}]}, "region": {"meaning": "the states one thing moves through, exactly one of them current; two regions of a level run side by side", "items": [{"name": "of", "label": "of", "form": "text", "example": "a change"}, {"name": "initial", "label": "initial", "form": "text", "example": "the id of its first state"}, {"name": "events", "label": "events", "form": "table", "example": "event, raised by"}]}, "phase": {"meaning": "parts grouped by when they act: a stage, environment or step of a lifecycle", "items": [{"name": "order", "label": "order", "form": "number", "example": "2"}, {"name": "entry", "label": "entry", "form": "text", "example": "build passed"}, {"name": "exit", "label": "exit", "form": "text", "example": "tests passed"}, {"name": "budget", "label": "budget", "form": "text", "example": "10 min"}]}}}</script>
+<script>
+(() => {
+  "use strict";
+  const read = id => JSON.parse(document.getElementById(id).textContent);
+  const TAGS = read("page-tags");
+  const $ = id => document.getElementById(id);
+  const make = (name, attributes = {}, ...children) => {
+    const element = document.createElement(name);
+    for (const [key, value] of Object.entries(attributes)) key === "class" ? (element.className = value) : element.setAttribute(key, value);
+    element.append(...children);
+    return element;
+  };
+  const draw = (name, attributes = {}) => {
+    const element = document.createElementNS("http://www.w3.org/2000/svg", name);
+    for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
+    return element;
+  };
+  const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  let contract, records, levelOf, openers, entries, shownLevel = null, boxes = {}, curves = {}, turn = 0;
+  const view = { level: null, at: null, scenario: null, step: 0 };
+
+  // ---- the contract's records ----
+  function load(data) {
+    contract = data;
+    records = {}; levelOf = {}; openers = {};
+    for (const level of contract.levels) {
+      records[level.id] = { kind: "level", record: level };
+      for (const [kind, group] of [["area", level.areas || []], ["node", level.nodes], ["edge", level.edges || []]])
+        for (const record of group) { records[record.id] = { kind, record }; levelOf[record.id] = level.id; }
+    }
+    for (const level of contract.levels) for (const node of level.nodes) if (node.opens) (openers[node.opens] = openers[node.opens] || []).push(node.id);
+    for (const scenario of contract.scenarios || []) records[scenario.id] = { kind: "scenario", record: scenario };
+    for (const property of contract.properties || []) records[property.id] = { kind: "property", record: property };
+    entries = index();
+  }
+  const label = id => records[id] ? (records[id].record.label || records[id].record.title || id) : id;
+  const words = text => String(text).replace(/\{([a-z0-9-]+)\}/g, (whole, id, at, all) => { // a named record, with a capital where a sentence opens
+    if (!records[id]) return whole;
+    const name = label(id);
+    const plain = !/[./_\d]|[a-z][A-Z]/.test(name.split(/\s+/)[0]); // a file name stays as written
+    return plain && (at === 0 || all.slice(0, at).endsWith(". ")) ? name[0].toUpperCase() + name.slice(1) : name;
+  });
+  const sentence = edge => edge.tag === "transition"
+    ? `${label(edge.from)} → ${label(edge.to)} on ${words(edge.label)}`
+    : `${label(edge.from)} ${words(edge.label)} ${label(edge.to)}.`;
+  const home = id => { // the level a record is seen on
+    const found = records[id];
+    if (!found) return null;
+    if (found.kind === "level") return id;
+    if (levelOf[id]) return levelOf[id];
+    if (found.kind === "scenario") return home(found.record.steps[0].at);
+    return (found.record.on || []).map(home).find(Boolean) || contract.levels[0].id;
+  };
+
+  // ---- layout ----
+  function layered(items, links, gapMain, gapCross, down) {
+    const main = item => down ? item.h : item.w, cross = item => down ? item.w : item.h;
+    const out = new Map(items.map(item => [item.id, []])), beside = new Map(items.map(item => [item.id, []]));
+    const seen = {}, back = new Set(), order = [], rank = {};
+    for (const [from, to] of links) if (from !== to && out.has(from) && out.has(to)) out.get(from).push(to);
+    const visit = id => {
+      seen[id] = 1;
+      for (const next of out.get(id)) { if (seen[next] === 1) back.add(id + ">" + next); else if (!seen[next]) visit(next); }
+      seen[id] = 2; order.unshift(id);
+    };
+    items.forEach(item => seen[item.id] || visit(item.id));
+    for (const id of order) {
+      rank[id] = rank[id] || 0;
+      for (const next of out.get(id)) if (!back.has(id + ">" + next)) rank[next] = Math.max(rank[next] || 0, rank[id] + 1);
+    }
+    for (const [from, to] of links) if (out.has(from) && out.has(to) && from !== to) { beside.get(to).push(from); beside.get(from).push(to); }
+    const columns = [];
+    for (const item of items) (columns[rank[item.id]] = columns[rank[item.id]] || []).push(item);
+    const place = {};
+    columns.forEach(column => column.forEach((item, i) => (place[item.id] = i)));
+    for (let sweep = 0; sweep < 6; sweep++) {
+      for (const column of sweep % 2 ? [...columns].reverse() : columns) {
+        const weight = item => { const near = beside.get(item.id).filter(id => rank[id] !== rank[item.id]); return near.length ? near.reduce((sum, id) => sum + place[id], 0) / near.length : place[item.id]; };
+        const weights = new Map(column.map(item => [item.id, weight(item)]));
+        column.sort((a, b) => weights.get(a.id) - weights.get(b.id));
+        column.forEach((item, i) => (place[item.id] = i));
+      }
+    }
+    const spans = columns.map(column => column.reduce((sum, item) => sum + cross(item), 0) + gapCross * (column.length - 1));
+    const span = Math.max(...spans);
+    const at = {};
+    let far = 0;
+    columns.forEach((column, c) => {
+      const deep = Math.max(...column.map(main));
+      let side = (span - spans[c]) / 2;
+      for (const item of column) {
+        const a = far + (deep - main(item)) / 2;
+        at[item.id] = down ? { x: side, y: a, w: item.w, h: item.h } : { x: a, y: side, w: item.w, h: item.h };
+        side += cross(item) + gapCross;
+      }
+      far += deep + gapMain;
+    });
+    return down ? { at, w: span, h: far - gapMain } : { at, w: far - gapMain, h: span };
+  }
+
+  const NODE = { w: 196, h: 58 };
+  const pen = document.createElement("canvas").getContext("2d");
+  function size(level) { // every node of a level as wide as its longest label needs
+    pen.font = '500 14px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
+    const longest = Math.max(...level.nodes.map(node => pen.measureText(node.label).width * 1.12 + (node.opens ? 62 : 30)));
+    NODE.w = Math.min(320, Math.max(196, Math.ceil(longest)));
+  }
+  const wide = edges => Math.max(0, ...edges.map(edge => words(edge.label).length)) * 6.4 + 56;
+  const fill = plan => Math.min((innerWidth - 80) / plan.w, (innerHeight - 152) / plan.h);
+  function arrange(level) {
+    let best = null;
+    size(level);
+    const wide = innerWidth - 80, tall = innerHeight - 152;
+    for (const outerDown of [false, true]) for (const innerDown of [false, true]) {
+      const plan = Object.assign(attempt(level, outerDown, innerDown, 1, 1), { outerDown, innerDown });
+      if (!best || fill(plan) > fill(best) + .01) best = plan;
+    }
+    for (let across = 1, along = 1, turns = 0; fill(best) >= 1 && turns < 12; turns++) { // a window with room to spare gets wider gaps, never larger type
+      const wider = best.w / wide < best.h / tall, step = wider ? [across + .15, along] : [across, along + .15];
+      if (Math.max(...step) > 1.75) break;
+      const next = Object.assign(attempt(level, best.outerDown, best.innerDown, ...step), { outerDown: best.outerDown, innerDown: best.innerDown });
+      if (fill(next) < 1) break;
+      [across, along] = step;
+      best = next;
+    }
+    return best;
+  }
+  function attempt(level, outerDown, innerDown, across, along) {
+    const PAD = 16, HEAD = 30;
+    const groups = new Map();
+    for (const area of level.areas || []) groups.set(area.id, { id: area.id, area, nodes: [] });
+    for (const node of level.nodes) {
+      const key = groups.has(node.area) ? node.area : "alone " + node.id;
+      if (!groups.has(key)) groups.set(key, { id: key, nodes: [] });
+      groups.get(key).nodes.push(node);
+    }
+    const groupOf = {}, edges = level.edges || [];
+    const used = [...groups.values()].filter(group => group.nodes.length);
+    for (const group of used) {
+      group.nodes.forEach(node => (groupOf[node.id] = group.id));
+      const inner = edges.filter(edge => groupOf[edge.from] === group.id && group.nodes.some(node => node.id === edge.to));
+      group.inside = layered(group.nodes.map(node => ({ id: node.id, ...NODE })), inner.map(edge => [edge.from, edge.to]), (innerDown ? along * 52 : across * Math.max(72, wide(inner))), innerDown ? across * 28 : along * 22, innerDown);
+      group.w = group.inside.w + (group.area ? 2 * PAD : 0);
+      group.h = group.inside.h + (group.area ? PAD + HEAD : 0);
+    }
+    const between = edges.filter(edge => groupOf[edge.from] !== groupOf[edge.to]);
+    const outer = layered(used.map(group => ({ id: group.id, w: group.w, h: group.h })), between.map(edge => [groupOf[edge.from], groupOf[edge.to]]),
+      (outerDown ? along * 64 : across * Math.max(96, wide(between))), outerDown ? across * 44 : along * 36, outerDown);
+    const box = {};
+    for (const group of used) {
+      const spot = outer.at[group.id];
+      if (group.area) box[group.id] = { ...spot };
+      for (const node of group.nodes) {
+        const inner = group.inside.at[node.id];
+        box[node.id] = { x: spot.x + inner.x + (group.area ? PAD : 0), y: spot.y + inner.y + (group.area ? HEAD : 0), ...NODE };
+      }
+    }
+    return { box, w: outer.w, h: outer.h };
+  }
+
+  function route(level, box, width, height) { // each edge the cheapest path of straight runs that passes under no node
+    const STEP = 10, CLEAR = 5, OUT = 4, TURN = 4;
+    const columns = Math.ceil(width / STEP) + 2 * OUT + 1, rows = Math.ceil(height / STEP) + 2 * OUT + 1;
+    const x = c => (c - OUT) * STEP, y = r => (r - OUT) * STEP, column = at => Math.round(at / STEP) + OUT;
+    const blocked = new Uint8Array(columns * rows), used = new Uint8Array(columns * rows), dear = new Uint8Array(columns * rows);
+    const cover = (spot, grid, by) => {
+      for (let r = Math.max(0, column(spot.y - by)); r < rows && y(r) < spot.y + spot.h + by; r++) if (y(r) > spot.y - by)
+        for (let c = Math.max(0, column(spot.x - by)); c < columns && x(c) < spot.x + spot.w + by; c++) if (x(c) > spot.x - by) grid[r * columns + c] = 1;
+    };
+    for (const node of level.nodes) cover(box[node.id], blocked, CLEAR);
+    for (const area of level.areas || []) if (box[area.id]) {
+      const frame = box[area.id];
+      cover({ ...frame, h: 26 }, dear, 0);
+      for (const side of [{ ...frame, h: 0 }, { ...frame, y: frame.y + frame.h, h: 0 }, { ...frame, w: 0 }, { ...frame, x: frame.x + frame.w, w: 0 }]) cover(side, dear, 8);
+    }
+    const MOVES = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    const ports = spot => {
+      const list = [], add = (c, r, way, px, py, off) => { if (c >= 0 && r >= 0 && c < columns && r < rows && !blocked[r * columns + c]) list.push({ c, r, way, px, py, off: off * .4 }); };
+      for (let r = column(spot.y + 12); y(r) <= spot.y + spot.h - 12; r++) if (y(r) >= spot.y + 12) {
+        const off = Math.abs(y(r) - spot.y - spot.h / 2) / STEP;
+        add(Math.ceil((spot.x + spot.w + CLEAR) / STEP) + OUT, r, 0, spot.x + spot.w, y(r), off);
+        add(Math.floor((spot.x - CLEAR) / STEP) + OUT, r, 1, spot.x, y(r), off);
+      }
+      for (let c = column(spot.x + 16); x(c) <= spot.x + spot.w - 16; c++) if (x(c) >= spot.x + 16) {
+        const off = Math.abs(x(c) - spot.x - spot.w / 2) / STEP;
+        add(c, Math.ceil((spot.y + spot.h + CLEAR) / STEP) + OUT, 2, x(c), spot.y + spot.h, off);
+        add(c, Math.floor((spot.y - CLEAR) / STEP) + OUT, 3, x(c), spot.y, off);
+      }
+      return list;
+    };
+    const path = (from, to) => {
+      const goals = new Map(ports(to).map(port => [(port.r * columns + port.c) * 4 + (port.way ^ 1), port]));
+      const far = new Float32Array(columns * rows * 4).fill(Infinity), came = new Int32Array(columns * rows * 4).fill(-1), began = new Map(), heap = [];
+      const guess = (c, r) => (Math.max(to.x - x(c), 0, x(c) - to.x - to.w) + Math.max(to.y - y(r), 0, y(r) - to.y - to.h)) / STEP;
+      const push = (cost, state) => { let i = heap.push([cost, state]) - 1; for (; i && heap[(i - 1) >> 1][0] > cost; i = (i - 1) >> 1) [heap[i], heap[(i - 1) >> 1]] = [heap[(i - 1) >> 1], heap[i]]; };
+      const pop = () => {
+        const first = heap[0], last = heap.pop();
+        if (heap.length) {
+          heap[0] = last;
+          for (let i = 0; ;) {
+            let least = i;
+            for (const k of [2 * i + 1, 2 * i + 2]) if (k < heap.length && heap[k][0] < heap[least][0]) least = k;
+            if (least === i) break;
+            [heap[i], heap[least]] = [heap[least], heap[i]]; i = least;
+          }
+        }
+        return first;
+      };
+      for (const port of ports(from)) {
+        const at = port.r * columns + port.c, state = at * 4 + port.way, cost = 1 + port.off + (used[at] ? 6 : 0);
+        if (cost < far[state]) { far[state] = cost; began.set(state, port); push(cost + guess(port.c, port.r), state); }
+      }
+      while (heap.length) {
+        const [, state] = pop(), at = state >> 2, way = state & 3, c = at % columns, r = (at - c) / columns;
+        if (goals.has(state)) {
+          const cells = [];
+          let one = state;
+          for (; came[one] >= 0; one = came[one]) cells.unshift(one);
+          cells.unshift(one);
+          const start = began.get(one), end = goals.get(state), points = [{ x: start.px, y: start.py }];
+          cells.forEach((each, k) => {
+            const spot = each >> 2;
+            used[spot] |= (each & 3) < 2 ? 1 : 2;
+            if (k && (cells[k - 1] & 3) !== (each & 3)) { used[cells[k - 1] >> 2] |= 3; points.push({ x: x((cells[k - 1] >> 2) % columns), y: y(Math.floor((cells[k - 1] >> 2) / columns)) }); }
+          });
+          points.push({ x: end.px, y: end.py });
+          return points;
+        }
+        for (let turn = 0; turn < 4; turn++) {
+          if (turn === (way ^ 1)) continue;
+          const nc = c + MOVES[turn][0], nr = r + MOVES[turn][1], next = nr * columns + nc;
+          if (nc < 0 || nr < 0 || nc >= columns || nr >= rows || blocked[next]) continue;
+          const same = turn < 2 ? 1 : 2, goal = goals.get(next * 4 + turn);
+          const cost = far[state] + 1 + (turn !== way ? TURN : 0) + (used[next] & same ? 6 : 0) + (used[next] & (3 - same) ? 1.5 : 0) + dear[next] * 4 + (goal ? goal.off : 0);
+          if (cost < far[next * 4 + turn]) { far[next * 4 + turn] = cost; came[next * 4 + turn] = state; push(cost + guess(nc, nr), next * 4 + turn); }
+        }
+      }
+      return [{ x: from.x + from.w / 2, y: from.y + from.h }, { x: to.x + to.w / 2, y: to.y }];
+    };
+    const span = edge => Math.abs(box[edge.from].x - box[edge.to].x) + Math.abs(box[edge.from].y - box[edge.to].y);
+    const curve = {};
+    for (const edge of [...(level.edges || [])].sort((a, b) => span(a) - span(b) || a.id.localeCompare(b.id))) {
+      const points = path(box[edge.from], box[edge.to]);
+      let d = `M${points[0].x},${points[0].y}`;
+      for (let k = 1; k < points.length - 1; k++) {
+        const [before, corner, after] = [points[k - 1], points[k], points[k + 1]];
+        const round = Math.min(8, Math.hypot(corner.x - before.x, corner.y - before.y) / 2, Math.hypot(after.x - corner.x, after.y - corner.y) / 2);
+        const toward = (other) => { const long = Math.hypot(other.x - corner.x, other.y - corner.y) || 1; return { x: corner.x + (other.x - corner.x) / long * round, y: corner.y + (other.y - corner.y) / long * round }; };
+        const a = toward(before), b = toward(after);
+        d += ` L${a.x},${a.y} Q${corner.x},${corner.y} ${b.x},${b.y}`;
+      }
+      const last = points[points.length - 1], prior = points[points.length - 2];
+      curve[edge.id] = { points, d: d + ` L${last.x},${last.y}`, turn: Math.atan2(last.y - prior.y, last.x - prior.x) * 180 / Math.PI };
+    }
+    return curve;
+  }
+  const along = (points, t) => { // the point a share T of the way along a path of straight runs
+    const runs = points.slice(1).map((point, i) => Math.hypot(point.x - points[i].x, point.y - points[i].y));
+    let left = runs.reduce((sum, run) => sum + run, 0) * t;
+    for (let i = 0; i < runs.length; i++) {
+      if (left <= runs[i] || i === runs.length - 1) { const share = runs[i] ? left / runs[i] : 0; return { x: points[i].x + (points[i + 1].x - points[i].x) * share, y: points[i].y + (points[i + 1].y - points[i].y) * share }; }
+      left -= runs[i];
+    }
+    return points[0];
+  };
+
+  // ---- drawing a level ----
+  const OPEN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
+  function paint(level) {
+    const stage = $("stage"), plan = arrange(level);
+    boxes = plan.box; curves = route(level, boxes, plan.w, plan.h);
+    stage.replaceChildren();
+    stage.style.width = plan.w + "px"; stage.style.height = plan.h + "px";
+    stage.dataset.w = plan.w; stage.dataset.h = plan.h;
+    for (const area of level.areas || []) {
+      const spot = boxes[area.id];
+      if (spot) stage.append(make("div", { class: "area", "data-id": area.id, "data-tag": area.tag, style: `left:${spot.x}px;top:${spot.y}px;width:${spot.w}px;height:${spot.h}px` },
+        make("header", {}, area.label, make("small", {}, area.tag))));
+    }
+    const svg = draw("svg", { width: plan.w, height: plan.h });
+    stage.append(svg);
+    for (const node of level.nodes) {
+      const spot = boxes[node.id];
+      const card = make("div", { class: "node", "data-id": node.id, "data-tag": node.tag, tabindex: 0, style: `left:${spot.x}px;top:${spot.y}px;width:${spot.w}px;height:${spot.h}px` },
+        make("b", {}, node.label), make("small", {}, node.tag));
+      const region = (level.areas || []).find(area => area.id === node.area && area.tag === "region");
+      if (region && region.info && region.info.initial === node.id) card.classList.add("first");
+      if (node.opens) {
+        const open = make("button", { class: "open", type: "button", "aria-label": `Open ${label(node.opens)}`, title: `Open ${label(node.opens)}` });
+        open.innerHTML = OPEN;
+        open.addEventListener("click", event => { event.stopPropagation(); go({ level: node.opens, at: null }); });
+        card.append(open);
+      }
+      stage.append(card);
+    }
+    const taken = level.nodes.map(node => ({ ...boxes[node.id] }));
+    for (const header of stage.querySelectorAll(".area > header")) {
+      const spot = boxes[header.parentElement.dataset.id];
+      taken.push({ x: spot.x, y: spot.y, w: header.scrollWidth, h: 30 });
+    }
+    for (const edge of level.edges || []) {
+      const group = draw("g", { class: "edge", "data-id": edge.id, "data-tag": edge.tag });
+      const tip = curves[edge.id].points[curves[edge.id].points.length - 1];
+      group.append(draw("path", { class: "line", d: curves[edge.id].d }), draw("path", { class: "hit", d: curves[edge.id].d }),
+        draw("path", { class: "head", d: "M-7,-3.5 L0,0 L-7,3.5 z", transform: `translate(${tip.x},${tip.y}) rotate(${curves[edge.id].turn})` }));
+      svg.append(group);
+      const text = make("div", { class: "label", "data-edge": edge.id }, words(edge.label));
+      stage.append(text);
+      const w = text.offsetWidth, h = text.offsetHeight;
+      const clash = spot => taken.reduce((sum, other) => sum + Math.max(0, Math.min(spot.x + spot.w, other.x + other.w) - Math.max(spot.x, other.x)) * Math.max(0, Math.min(spot.y + spot.h, other.y + other.h) - Math.max(spot.y, other.y)), 0);
+      const wires = (level.edges || []).filter(other => other !== edge).flatMap(other => curves[other.id].points.slice(1).map((point, k) => {
+        const start = curves[other.id].points[k];
+        return { x: Math.min(start.x, point.x) - 3, y: Math.min(start.y, point.y) - 3, w: Math.abs(point.x - start.x) + 6, h: Math.abs(point.y - start.y) + 6 };
+      }));
+      for (const area of level.areas || []) if (boxes[area.id]) {
+        const frame = boxes[area.id];
+        wires.push({ x: frame.x - 3, y: frame.y - 3, w: frame.w + 6, h: 6 }, { x: frame.x - 3, y: frame.y + frame.h - 3, w: frame.w + 6, h: 6 }, { x: frame.x - 3, y: frame.y - 3, w: 6, h: frame.h + 6 }, { x: frame.x + frame.w - 3, y: frame.y - 3, w: 6, h: frame.h + 6 });
+      }
+      const crossed = spot => wires.reduce((sum, other) => sum + Math.max(0, Math.min(spot.x + spot.w, other.x + other.w) - Math.max(spot.x, other.x)) * Math.max(0, Math.min(spot.y + spot.h, other.y + other.h) - Math.max(spot.y, other.y)), 0);
+      let best = null;
+      for (let k = 0; k <= 20; k++) {
+        const t = .5 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * .04, on = along(curves[edge.id].points, t), ahead = along(curves[edge.id].points, t + .01);
+        const upright = Math.abs(ahead.y - on.y) > Math.abs(ahead.x - on.x);
+        for (const side of [0, 1, -1]) { // on a level run of its line, else on an upright one, else beside the line
+          const point = { x: on.x + (upright ? side * (w / 2 + 6) : 0), y: on.y + (upright ? 0 : side * (h / 2 + 4)) };
+          const spot = { x: point.x - w / 2 - 2, y: point.y - h / 2 - 2, w: w + 4, h: h + 4 };
+          const outside = spot.x < 0 || spot.y < 0 || spot.x + spot.w > plan.w || spot.y + spot.h > plan.h, over = clash(spot) + (outside ? w * h : 0), cross = crossed(spot), price = (over ? 1e9 + over : 0) + (cross ? 1e5 + cross : 0) + (side ? 2000 : upright ? 1000 : 0) + k;
+          if (!best || price < best.price) best = { point, spot, over, cross, price };
+        }
+      }
+      if (best.over || best.cross) text.classList.add("tucked"); else taken.push(best.spot);
+      text.style.left = best.point.x + "px"; text.style.top = best.point.y + "px";
+    }
+    stage.append(make("div", { id: "token" }));
+    fit();
+  }
+  function fit() {
+    const stage = $("stage"), w = +stage.dataset.w, h = +stage.dataset.h;
+    const room = { side: 40, top: 76, bottom: 76 };
+    const x = scale => room.side + (innerWidth - 2 * room.side - w * scale) / 2, y = scale => room.top + (innerHeight - room.top - room.bottom - h * scale) / 2;
+    const scale = Math.min((innerWidth - 2 * room.side) / w, (innerHeight - room.top - room.bottom) / h, 1.3);
+    stage.style.setProperty("--grow", scale >= .9 ? 1 / scale : 1);
+    Object.assign(stage.dataset, { x: x(scale), y: y(scale), scale });
+    stage.style.transform = `translate(${x(scale)}px, ${y(scale)}px) scale(${scale})`;
+  }
+  const found = id => document.querySelector(`#stage [data-id="${CSS.escape(id)}"]`);
+  const face = id => records[id] && records[id].kind === "edge" ? document.querySelector(`#stage .label[data-edge="${CSS.escape(id)}"]`) : found(id);
+
+  // ---- one history for every move ----
+  const address = state => "#" + ["level", "at", "scenario"].filter(key => state[key]).map(key => key + "=" + encodeURIComponent(state[key])).concat(state.scenario ? ["step=" + state.step] : []).join("&");
+  function parse() {
+    const state = { level: contract.levels[0].id, at: null, scenario: null, step: 0 };
+    for (const part of location.hash.slice(1).split("&")) {
+      const [key, value] = part.split("=");
+      if (key in state && value) state[key] = key === "step" ? +value : decodeURIComponent(value);
+    }
+    if (!records[state.level] || records[state.level].kind !== "level") state.level = contract.levels[0].id;
+    if (state.at && !records[state.at]) state.at = null;
+    if (state.scenario && !(records[state.scenario] && records[state.scenario].kind === "scenario")) state.scenario = null;
+    if (!state.scenario || !records[state.scenario].record.steps[state.step]) state.step = 0;
+    return state;
+  }
+  function go(change, replace) {
+    const next = { ...view, ...change };
+    if (!next.scenario) next.step = 0;
+    if (address(next) === address(view)) return;
+    history[replace ? "replaceState" : "pushState"](next, "", address(next));
+    show(next);
+  }
+  function show(next) {
+    Object.assign(view, next);
+    const mine = ++turn, stage = $("stage"), level = records[view.level].record;
+    const settle = () => {
+      if (mine !== turn) return;
+      Object.assign(document.body.dataset, { level: view.level, at: view.at || "", scenario: view.scenario || "", step: view.scenario ? view.step : "" });
+      crumbs(); mark(); play();
+      document.body.dataset.busy = "";
+    };
+    document.body.dataset.busy = "1";
+    hovered = null;
+    hide(true);
+    if (shownLevel === view.level) return settle();
+    const from = shownLevel, centre = () => ({ x: +stage.dataset.w / 2, y: +stage.dataset.h / 2 });
+    const about = (spot, by) => ` translate(${spot.x}px, ${spot.y}px) scale(${by}) translate(${-spot.x}px, ${-spot.y}px)`;
+    const door = (opened, held) => (openers[opened] || []).find(id => levelOf[id] === held); // the node of one level that opens the other
+    const middle = id => ({ x: boxes[id].x + boxes[id].w / 2, y: boxes[id].y + boxes[id].h / 2 });
+    const down = from && door(view.level, from), up = from && door(from, view.level);
+    const swap = () => {
+      if (mine !== turn) return;
+      shownLevel = view.level;
+      paint(level);
+      stage.classList.add("enter");
+      stage.style.transform += up ? about(middle(up), 1.6) : about(centre(), down ? .72 : .96);
+      stage.getBoundingClientRect();
+      stage.classList.remove("enter");
+      fit();
+      settle();
+    };
+    if (shownLevel === null || still()) return swap();
+    crumbs();
+    const old = stage.cloneNode(true);
+    old.removeAttribute("id");
+    old.querySelectorAll("[id]").forEach(part => part.removeAttribute("id"));
+    old.classList.add("old");
+    stage.after(old);
+    old.getBoundingClientRect();
+    old.classList.add("leave");
+    old.style.transform += down ? about(middle(down), 1.6) : about(centre(), up ? .72 : 1.04);
+    setTimeout(() => old.remove(), 460);
+    swap();
+  }
+
+  function crumbs() {
+    const path = [];
+    for (let id = view.level, guard = 0; id && guard < 20; guard++) {
+      path.unshift(id);
+      id = openers[id] ? levelOf[openers[id][0]] : null;
+    }
+    const bar = $("crumbs");
+    bar.replaceChildren();
+    path.forEach((id, i) => {
+      if (i) bar.append(make("span", { class: "sep" }, "/"));
+      const item = make("button", { type: "button", "data-level": id, ...(i === path.length - 1 ? { "aria-current": "page" } : {}) }, records[id].record.title);
+      item.addEventListener("click", () => go({ level: id, at: null, scenario: null }));
+      bar.append(item);
+    });
+  }
+
+  // ---- hover, pin and the overlay ----
+  let rest = null, leave = null, hovered = null, apart = Infinity, nearing = false;
+  function approach(event) { // a pointer that closes on the open overlay is on its way there, so what it crosses waits
+    const box = $("card");
+    if (!box.classList.contains("show")) { apart = Infinity; nearing = false; return; }
+    const spot = box.getBoundingClientRect();
+    const far = Math.hypot(Math.max(spot.left - event.clientX, 0, event.clientX - spot.right), Math.max(spot.top - event.clientY, 0, event.clientY - spot.bottom));
+    if (far !== apart) nearing = far < apart; // one move reaches here more than once
+    apart = far;
+  }
+  function near(id) {
+    const kind = records[id] && records[id].kind, level = records[view.level].record, set = new Set([id]);
+    if (kind === "node") for (const edge of level.edges || []) if (edge.from === id || edge.to === id) [edge.id, edge.from, edge.to].forEach(one => set.add(one));
+    if (kind === "edge") [records[id].record.from, records[id].record.to].forEach(one => set.add(one));
+    if (kind === "area") for (const node of level.nodes) if (node.area === id) set.add(node.id);
+    if (kind === "property") (records[id].record.on || []).forEach(one => set.add(one));
+    for (const one of [...set]) if (records[one] && records[one].kind === "node" && records[one].record.area) set.add(records[one].record.area);
+    return set;
+  }
+  function mark() {
+    const stage = $("stage"), step = view.scenario ? records[view.scenario].record.steps[view.step] : null;
+    const focus = hovered || view.at || (step && step.at), set = focus ? near(focus) : new Set();
+    stage.classList.toggle("focus", !!focus);
+    for (const element of stage.querySelectorAll("[data-id], .label")) {
+      const id = element.dataset.id || element.dataset.edge;
+      element.classList.toggle("on", set.has(id));
+      element.classList.toggle("pinned", id === view.at);
+      element.classList.toggle("step", !!step && step.at === id);
+    }
+    if (hovered) card(hovered); else if (view.at) card(view.at); else hide(true);
+  }
+  const prose = text => words(text).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("code", {}, part.slice(1, -1)) : part);
+  const value = (form, data) => {
+    if (form === "list" && Array.isArray(data)) return make("ul", {}, ...data.map(item => make("li", {}, ...prose(item))));
+    if (form === "table" && data && data.columns) {
+      const table = make("table", {}, make("thead", {}, make("tr", {}, ...data.columns.map(name => make("th", {}, name)))));
+      table.append(make("tbody", {}, ...data.rows.map(row => make("tr", {}, ...row.map(cell => make("td", {}, ...prose(cell)))))));
+      return table;
+    }
+    if (form === "tree" && Array.isArray(data)) {
+      const branch = list => make("ul", {}, ...list.map(item => make("li", {}, make("code", {}, words(item.name)), ...(item.note ? [" ", ...prose(item.note)] : []), ...(item.children ? [branch(item.children)] : []))));
+      return branch(data);
+    }
+    if (form === "code") return make("pre", {}, make("code", {}, String(data)));
+    return make("span", {}, ...prose(typeof data === "string" ? data : JSON.stringify(data)));
+  };
+  function rows(id) {
+    const { kind, record } = records[id], list = [], add = (name, form, data) => data !== undefined && data !== null && data !== "" && list.push([name, form, data]);
+    if (kind === "edge") add(record.tag === "transition" ? "transition" : "sentence", "text", sentence(record));
+    if (kind === "property") { add("statement", "text", record.statement); add("on", "list", (record.on || []).map(label)); add("fault", "text", record.fault); }
+    if (kind === "scenario") add("steps", "list", record.steps.map(step => label(step.at) + (step.note ? " · " + step.note : "")));
+    add("purpose", "text", record.purpose);
+    const items = TAGS[kind] && TAGS[kind][record.tag] ? TAGS[kind][record.tag].items.concat(TAGS.common[kind] || []) : [];
+    for (const [name, data] of Object.entries(record.info || {})) {
+      const item = items.find(one => one.name === name);
+      add(item ? item.label : name, item ? item.form : Array.isArray(data) ? "list" : "text", name === "initial" ? label(data) : data);
+    }
+    if (record.opens) add("opens", "text", label(record.opens));
+    if (record.evidence) add("evidence", "list", record.evidence.map(entry => {
+      const [source, line] = entry.split(":"), known = (contract.sources || []).find(one => one.id === source);
+      return (known ? known.path : source) + (line ? ":" + line : "");
+    }));
+    return list;
+  }
+  function card(id) {
+    const { kind, record } = records[id], box = $("card"), target = face(id);
+    box.replaceChildren(make("h2", {}, words(record.label || record.title || record.id)));
+    const tags = make("div", {}, make("span", { class: "tag fill" }, record.tag || record.kind || kind));
+    for (const extra of [record.basis, record.strength, record.status, record.many ? "many" : ""]) if (extra) tags.append(make("span", { class: "tag" }, extra));
+    box.append(tags);
+    const list = make("dl");
+    for (const [name, form, data] of rows(id)) list.append(make("div", { "data-form": form }, make("dt", {}, name), make("dd", {}, value(form, data))));
+    box.append(list, make("footer", {}, make("span", {}, view.at === id ? "pinned" : "click to pin"), make("kbd", {}, "esc")));
+    box.dataset.for = id;
+    box.style.maxHeight = Math.floor(Math.min(innerHeight * .46, innerWidth * innerHeight * .3 / 320)) + "px";
+    const gap = 12, w = 320, h = box.offsetHeight;
+    let left = innerWidth / 2 - w / 2, top = 68;
+    const settle = (x, y) => { // inside the window and clear of the bars
+      let at = { left: Math.min(Math.max(8, x), innerWidth - w - 8), top: Math.min(Math.max(8, y), innerHeight - h - 8) };
+      for (const bar of [$("tools"), $("crumbs")]) {
+        const held = bar.getBoundingClientRect();
+        if (at.left < held.right + 8 && at.left + w > held.left - 8 && at.top < held.bottom + 8) at.top = held.bottom + 8;
+      }
+      return at;
+    };
+    if (target) {
+      const spot = target.getBoundingClientRect(), kept = [{ left: spot.left - 4, top: spot.top - 4, right: spot.right + 4, bottom: spot.bottom + 4, dear: 50 }];
+      for (const one of near(id)) { // what the reader follows from the target stays in sight
+        if (one === id || !records[one] || records[one].kind === "area") continue;
+        const part = face(one);
+        if (part) { const held = part.getBoundingClientRect(); kept.push({ left: held.left, top: held.top, right: held.right, bottom: held.bottom, dear: 1 }); }
+        const line = records[one].kind === "edge" && document.querySelector(`#stage .edge[data-id="${CSS.escape(one)}"] path.line`);
+        for (let k = 0; line && k <= 16; k++) {
+          const point = line.getPointAtLength(line.getTotalLength() * k / 16).matrixTransform(line.getScreenCTM());
+          kept.push({ left: point.x - 6, top: point.y - 6, right: point.x + 6, bottom: point.y + 6, dear: 4 });
+        }
+      }
+      for (const other of document.querySelectorAll("#stage .node")) if (!near(id).has(other.dataset.id)) { const held = other.getBoundingClientRect(); kept.push({ left: held.left, top: held.top, right: held.right, bottom: held.bottom, dear: .3 }); }
+      const covered = at => kept.reduce((sum, held) => sum + held.dear * Math.max(0, Math.min(at.left + w, held.right) - Math.max(at.left, held.left)) * Math.max(0, Math.min(at.top + h, held.bottom) - Math.max(at.top, held.top)), 0);
+      let least = Infinity;
+      for (const [x, y] of [[spot.right + gap, spot.top + spot.height / 2 - h / 2], [spot.left - gap - w, spot.top + spot.height / 2 - h / 2], [spot.left + spot.width / 2 - w / 2, spot.bottom + gap], [spot.left + spot.width / 2 - w / 2, spot.top - gap - h],
+        [spot.right + gap, spot.top], [spot.right + gap, spot.bottom - h], [spot.left - gap - w, spot.top], [spot.left - gap - w, spot.bottom - h]]) {
+        const at = settle(x, y), price = covered(at);
+        if (price < least) { least = price; ({ left, top } = at); }
+      }
+    } else ({ left, top } = settle(left, top));
+    box.style.left = left + "px";
+    box.style.top = top + "px";
+    box.classList.add("show");
+  }
+  function hide(now) {
+    clearTimeout(rest); clearTimeout(leave);
+    if (now) { $("card").classList.remove("show"); $("card").dataset.for = ""; }
+  }
+  function hover(id) {
+    clearTimeout(leave); clearTimeout(rest);
+    if (hovered === id) return;
+    rest = setTimeout(() => { hovered = id; mark(); }, hovered ? (nearing ? 420 : 60) : 140);
+  }
+  function unhover() {
+    clearTimeout(rest); clearTimeout(leave);
+    leave = setTimeout(() => { hovered = null; mark(); }, nearing ? 420 : 220);
+  }
+  const hit = target => {
+    const element = target.closest && target.closest("#stage .node, #stage .edge, #stage .label, #stage .area > header");
+    return element ? element.dataset.id || element.dataset.edge || element.parentElement.dataset.id : null;
+  };
+
+  // ---- scenario play ----
+  function play() {
+    const bar = $("play"), chip = $("chip"), token = $("token");
+    if (!view.scenario) { bar.classList.remove("show"); chip.classList.remove("show"); if (token) { token.classList.remove("run", "carry"); token.dataset.at = ""; } return; }
+    const scenario = records[view.scenario].record, step = scenario.steps[view.step];
+    bar.querySelector(".title").textContent = scenario.title;
+    bar.querySelector(".dots").replaceChildren(...scenario.steps.map((one, i) => make("i", { class: i < view.step ? "done" : i === view.step ? "now" : "" })));
+    bar.classList.add("show");
+    const target = face(step.at);
+    chip.replaceChildren(make("b", {}, `${view.step + 1}/${scenario.steps.length}`), ...(step.note ? prose(step.note) : []));
+    if (target) {
+      const spot = target.getBoundingClientRect();
+      chip.style.left = spot.left + spot.width / 2 + "px";
+      chip.style.top = Math.max(8, spot.top - 34) + "px";
+      chip.classList.add("show");
+    }
+    if (!token) return;
+    token.classList.remove("run", "carry");
+    const from = token.dataset.at ? token.dataset.at.split(",").map(Number) : null;
+    let way = null, end = null;
+    if (curves[step.at]) {
+      const points = curves[step.at].points;
+      way = (from && Math.hypot(from[0] - points[0].x, from[1] - points[0].y) > 2 ? `M${from[0]},${from[1]} L` : "M") + curves[step.at].d.slice(1);
+      end = points[points.length - 1];
+    } else if (boxes[step.at]) {
+      end = { x: boxes[step.at].x + boxes[step.at].w / 2, y: boxes[step.at].y };
+      way = `M${from ? from[0] : end.x},${from ? from[1] : end.y - 28} L${end.x},${end.y}`;
+    }
+    if (!way) { token.dataset.at = ""; return; }
+    token.style.offsetPath = `path("${way}")`;
+    token.dataset.at = `${end.x},${end.y}`;
+    token.getBoundingClientRect();
+    token.classList.add("run"); token.classList.toggle("carry", !!from);
+  }
+  function stride(by) {
+    if (!view.scenario) return;
+    const scenario = records[view.scenario].record, step = view.step + by;
+    if (step >= 0 && step < scenario.steps.length) go({ step, level: home(scenario.steps[step].at), at: null });
+  }
+  const start = id => go({ scenario: id, step: 0, level: home(records[id].record.steps[0].at), at: null });
+
+  // ---- search ----
+  const LEAD = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ", VOWEL = ["ㅏ", "ㅐ", "ㅑ", "ㅒ", "ㅓ", "ㅔ", "ㅕ", "ㅖ", "ㅗ", "ㅗㅏ", "ㅗㅐ", "ㅗㅣ", "ㅛ", "ㅜ", "ㅜㅓ", "ㅜㅔ", "ㅜㅣ", "ㅠ", "ㅡ", "ㅡㅣ", "ㅣ"];
+  const TAIL = ["", "ㄱ", "ㄲ", "ㄱㅅ", "ㄴ", "ㄴㅈ", "ㄴㅎ", "ㄷ", "ㄹ", "ㄹㄱ", "ㄹㅁ", "ㄹㅂ", "ㄹㅅ", "ㄹㅌ", "ㄹㅍ", "ㄹㅎ", "ㅁ", "ㅂ", "ㅂㅅ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
+  const PAIRS = { "ㄳ": "ㄱㅅ", "ㄵ": "ㄴㅈ", "ㄶ": "ㄴㅎ", "ㄺ": "ㄹㄱ", "ㄻ": "ㄹㅁ", "ㄼ": "ㄹㅂ", "ㄽ": "ㄹㅅ", "ㄾ": "ㄹㅌ", "ㄿ": "ㄹㅍ", "ㅀ": "ㄹㅎ", "ㅄ": "ㅂㅅ", "ㅘ": "ㅗㅏ", "ㅙ": "ㅗㅐ", "ㅚ": "ㅗㅣ", "ㅝ": "ㅜㅓ", "ㅞ": "ㅜㅔ", "ㅟ": "ㅜㅣ", "ㅢ": "ㅡㅣ" };
+  const KEYS = { "ㅂ": "q", "ㅈ": "w", "ㄷ": "e", "ㄱ": "r", "ㅅ": "t", "ㅛ": "y", "ㅕ": "u", "ㅑ": "i", "ㅐ": "o", "ㅔ": "p", "ㅁ": "a", "ㄴ": "s", "ㅇ": "d", "ㄹ": "f", "ㅎ": "g", "ㅗ": "h", "ㅓ": "j", "ㅏ": "k", "ㅣ": "l", "ㅋ": "z", "ㅌ": "x", "ㅊ": "c", "ㅍ": "v", "ㅠ": "b", "ㅜ": "n", "ㅡ": "m", "ㅃ": "q", "ㅉ": "w", "ㄸ": "e", "ㄲ": "r", "ㅆ": "t", "ㅒ": "o", "ㅖ": "p" };
+  const typed = text => [...text].map(letter => { // the Latin keys pressed when a Korean two-set layout was left on
+    const code = letter.charCodeAt(0) - 0xac00;
+    const parts = code >= 0 && code < 11172 ? LEAD[Math.floor(code / 588)] + VOWEL[Math.floor(code % 588 / 28)] + TAIL[code % 28] : PAIRS[letter] || letter;
+    return [...parts].map(part => KEYS[part] || part).join("");
+  }).join("");
+  const plain = text => String(text).toLowerCase().replace(/[^a-z0-9ㄱ-ㆎ가-힣]+/g, " ").trim();
+  function index() {
+    const list = [], add = (id, kind, name, note, fields) => list.push({ id, kind, name, note, fields: fields.filter(([text]) => text).map(([text, weight]) => ({ text: plain(text), tokens: plain(text).split(" "), weight })) });
+    const texts = info => words(JSON.stringify(info || {})).replace(/["{}\[\],:]+/g, " ");
+    for (const level of contract.levels) {
+      add(level.id, "level", level.title, "level", [[level.title, 10], [level.id, 8], [level.about && words(level.about), 2]]);
+      for (const node of level.nodes) add(node.id, "node", node.label, node.tag, [[node.label, 10], [node.id, 8], [node.tag, 4], [node.purpose && words(node.purpose), 2], [texts(node.info), 1]]);
+      for (const area of level.areas || []) add(area.id, "area", area.label, area.tag, [[area.label, 10], [area.id, 8], [area.tag, 4], [texts(area.info), 1]]);
+      for (const edge of level.edges || []) add(edge.id, "edge", sentence(edge), edge.tag, [[words(edge.label), 9], [sentence(edge), 6], [edge.id, 5], [edge.tag, 3], [texts(edge.info), 1]]);
+    }
+    for (const scenario of contract.scenarios || []) add(scenario.id, "scenario", scenario.title, "scenario", [[scenario.title, 10], [scenario.id, 8], [scenario.purpose && words(scenario.purpose), 2]]);
+    for (const property of contract.properties || []) add(property.id, "property", words(property.statement), property.kind, [[property.id, 9], [words(property.statement), 5], [property.kind, 4]]);
+    return list;
+  }
+  const slips = (a, b, most) => { // edits between two words, a swap of neighbours counted once
+    if (Math.abs(a.length - b.length) > most) return most + 1;
+    let last = null, row = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const next = [i];
+      for (let j = 1; j <= b.length; j++) {
+        next[j] = Math.min(row[j] + 1, next[j - 1] + 1, row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        if (last && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) next[j] = Math.min(next[j], last[j - 2] + 1);
+      }
+      last = row; row = next;
+    }
+    return row[b.length];
+  };
+  const ORDER = ["node", "level", "area", "edge", "scenario", "property"];
+  function match(token, field) {
+    if (field.text === token) return 120;
+    if (field.tokens.includes(token)) return 100;
+    if (field.text.startsWith(token)) return 80;
+    if (field.tokens.some(word => word.startsWith(token))) return 70;
+    if (token.length > 1 && field.tokens.length >= token.length && field.tokens.map(word => word[0]).join("").startsWith(token)) return 40;
+    if (token.length > 2 && field.text.includes(token)) return 30;
+    const most = token.length >= 8 ? 2 : token.length >= 4 ? 1 : 0;
+    if (most && field.tokens.some(word => slips(token, word.length > token.length + most ? word.slice(0, token.length) : word, most) <= most)) return 25;
+    return 0;
+  }
+  function rank(query) {
+    const scored = new Map();
+    for (const form of new Set([plain(query), plain(typed(query))])) {
+      const tokens = form.split(" ").filter(Boolean);
+      if (!tokens.length) continue;
+      for (const entry of entries) {
+        let total = 0, whole = 0;
+        for (const field of entry.fields) whole = Math.max(whole, match(tokens.join(" "), field) * field.weight * 1.2);
+        for (const token of tokens) {
+          let best = 0;
+          for (const field of entry.fields) best = Math.max(best, match(token, field) * field.weight);
+          if (!best) { total = 0; break; }
+          total += best;
+        }
+        const score = Math.max(tokens.length > 1 ? whole : 0, total / tokens.length);
+        if (score > (scored.get(entry) || 0)) scored.set(entry, score);
+      }
+    }
+    return [...scored].sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind) || a[0].name.length - b[0].name.length || a[0].id.localeCompare(b[0].id)).map(([entry]) => entry);
+  }
+  let chosen = 0, listed = [], scope = null;
+  const KINDS = { node: "Nodes", level: "Levels", area: "Areas", edge: "Edges", scenario: "Scenarios", property: "Properties" };
+  function list() {
+    const query = $("query").value.trim(), box = $("hits");
+    box.replaceChildren();
+    const tokens = [plain(query), plain(typed(query))].flatMap(form => form.split(" ")).filter(Boolean);
+    const lit = text => { // the letters of TEXT a query word matched, marked
+      const low = text.toLowerCase(), spans = [];
+      for (const token of tokens) for (let at = low.indexOf(token); at >= 0; at = low.indexOf(token, at + token.length)) spans.push([at, at + token.length]);
+      spans.sort((a, b) => a[0] - b[0]);
+      const parts = [];
+      let done = 0;
+      for (const [start, end] of spans) {
+        if (start < done) continue;
+        parts.push(text.slice(done, start), make("mark", {}, text.slice(start, end)));
+        done = end;
+      }
+      return parts.concat(text.slice(done));
+    };
+    const found = query ? rank(query).slice(0, 8) : [];
+    const groups = query ? [...new Set(found.map(entry => entry.kind))].map(kind => [KINDS[kind], found.filter(entry => entry.kind === kind)])
+      : [["Scenarios", "scenario"], ["Levels", "level"], ["Properties", "property"]].filter(group => !scope || group[0] === scope).map(([title, kind]) => [title, entries.filter(entry => entry.kind === kind)]);
+    listed = groups.flatMap(group => group[1]);
+    chosen = Math.min(chosen, Math.max(0, listed.length - 1));
+    if (!listed.length) return box.append(make("div", { class: "none" }, "No results found."));
+    for (const [title, hits] of groups) {
+      if (!hits.length) continue;
+      box.append(make("h3", {}, title));
+      for (const entry of hits) {
+        const name = entry.name.replace(/`/g, "");
+        const row = make("div", { class: "hit", role: "option", "data-hit": entry.id, "aria-selected": String(listed[chosen] === entry) }, make("b", {}, ...lit(name)),
+          ...(tokens.some(token => entry.id.includes(token) && !name.toLowerCase().includes(token)) ? [make("code", {}, ...lit(entry.id))] : []), make("small", {}, entry.note));
+        row.addEventListener("click", () => pick(entry));
+        box.append(row);
+      }
+    }
+    const current = box.querySelector('[aria-selected="true"]');
+    if (current) current.scrollIntoView({ block: "nearest" });
+  }
+  function ask(only) {
+    scope = only || null; chosen = 0;
+    $("query").value = "";
+    $("veil").classList.add("show"); $("palette").classList.add("show");
+    document.body.dataset.palette = "1";
+    list();
+    $("query").focus();
+  }
+  function shut() {
+    $("veil").classList.remove("show"); $("palette").classList.remove("show");
+    document.body.dataset.palette = "";
+    $("query").blur();
+  }
+  function pick(entry) {
+    shut();
+    if (entry.kind === "scenario") return start(entry.id);
+    if (entry.kind === "level") return go({ level: entry.id, at: null, scenario: null });
+    go({ level: home(entry.id), at: entry.id, scenario: null });
+  }
+
+  // ---- wiring ----
+  function wire() {
+    const stage = $("stage");
+    addEventListener("pointermove", approach);
+    stage.addEventListener("pointerover", event => { const id = hit(event.target); approach(event); if (id) hover(id); });
+    stage.addEventListener("pointerout", event => { approach(event); if (hit(event.target)) unhover(); });
+    stage.addEventListener("click", event => { const id = hit(event.target); if (id) go({ at: view.at === id ? null : id }); });
+    stage.addEventListener("dblclick", event => { const id = hit(event.target); if (id && records[id].record.opens) go({ level: records[id].record.opens, at: null }); });
+    stage.addEventListener("keydown", event => {
+      const id = hit(event.target);
+      if (id && event.key === "Enter") go(records[id].record.opens && view.at === id ? { level: records[id].record.opens, at: null } : { at: id });
+    });
+    $("diagram").addEventListener("click", event => { if (event.target === $("diagram") || event.target === stage) go({ at: null }); });
+    $("card").addEventListener("pointerenter", () => { clearTimeout(leave); clearTimeout(rest); });
+    $("card").addEventListener("pointerleave", () => { if (hovered) unhover(); });
+    $("search").addEventListener("click", () => ask());
+    $("scenarios").addEventListener("click", () => ask("Scenarios"));
+    $("properties").addEventListener("click", () => ask("Properties"));
+    $("veil").addEventListener("click", shut);
+    $("query").addEventListener("input", () => { chosen = 0; list(); });
+    $("prev").addEventListener("click", () => stride(-1));
+    $("next").addEventListener("click", () => stride(1));
+    $("stop").addEventListener("click", () => go({ scenario: null }));
+    addEventListener("keydown", event => {
+      if (document.body.dataset.palette) {
+        if (event.key === "Escape") shut();
+        else if (event.key === "ArrowDown" || event.key === "ArrowUp") { chosen = (chosen + (event.key === "ArrowDown" ? 1 : listed.length - 1)) % Math.max(1, listed.length); list(); }
+        else if (event.key === "Enter" && listed[chosen]) pick(listed[chosen]);
+        else return;
+        return event.preventDefault();
+      }
+      if ((event.key === "k" && (event.metaKey || event.ctrlKey)) || (event.key === "/" && !event.metaKey && !event.ctrlKey)) { event.preventDefault(); return ask(); }
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key === "Escape") { if (view.at) go({ at: null }); else if (view.scenario) go({ scenario: null }); else { hovered = null; mark(); } }
+      else if (event.key === "ArrowRight") stride(1);
+      else if (event.key === "ArrowLeft") stride(-1);
+      else if (event.key === "[") history.back();
+      else if (event.key === "]") history.forward();
+    });
+    addEventListener("popstate", () => show(parse()));
+    addEventListener("resize", () => { fit(); mark(); play(); });
+  }
+
+  window.pageRender = data => {
+    load(data);
+    shownLevel = null;
+    const state = parse();
+    history.replaceState(state, "", address(state));
+    document.title = contract.title;
+    $("scenarios").hidden = !(contract.scenarios || []).length;
+    $("properties").hidden = !(contract.properties || []).length;
+    show(state);
+  };
+  wire();
+  window.pageRender(read("page-data"));
+})();
+</script>
+</body>
+</html>

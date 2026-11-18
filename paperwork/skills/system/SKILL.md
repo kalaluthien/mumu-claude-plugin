@@ -23,6 +23,7 @@ Take the cases in order; each playbook's steps go into the todo list.
 | --- | --- |
 | find what a reader needs to rebuild the subject | [references/extract.md](references/extract.md) |
 | write or change the contract | [references/contract.md](references/contract.md) |
+| show the contract to a person as a page | [references/page.md](references/page.md) |
 
 ## Rules
 

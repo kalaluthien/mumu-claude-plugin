@@ -11,7 +11,7 @@ usage: check-contract.py tags                               print each tag with 
 usage: check-contract.py catalogue                          check the tag catalogue against its reference: every tag named, 24 sources or
                                                             more cited, every tag with an item, the tags state, credential and queue, and none named requirement
 usage: check-contract.py rules                              print each rule and what it asks
-usage: check-contract.py fixtures                           check every contract in fixtures/ with the skill's folder as its root: one whose name
+usage: check-contract.py fixtures                           check every contract in fixtures/, a JSON object, with the skill's folder as its root: one whose name
                                                             opens with a rule's must break that rule alone, any other must pass
 
 Exit status 0 means ok, 1 a break or an open question, 2 a call it cannot read."""
@@ -580,7 +580,10 @@ def main(args):
     if args == ["fixtures"]:
         failed = 0
         for path in sorted((HERE.parent / "fixtures").glob("*.json")):
-            rules = {rule for _, rule, _ in breaks(json.loads(path.read_text()), HERE.parent)}
+            contract = json.loads(path.read_text())
+            if isinstance(contract, list):  # another runner's rows, such as the page's search queries
+                continue
+            rules = {rule for _, rule, _ in breaks(contract, HERE.parent)}
             wanted = {rule for rule in RULES if path.stem == rule or path.stem.startswith(rule + "-")}
             if rules != wanted:
                 failed += 1

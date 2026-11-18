@@ -92,6 +92,7 @@ flowchart TB
 One contract file holds what a reader needs to rebuild a system: its levels of nodes, edges and areas, its scenarios, and its properties and gaps.
 
 - [`/paperwork:system`](paperwork/skills/system/SKILL.md) extracts a system, a process or requirements topic by topic, writes it as one contract and checks it: each relation reads as a sentence, each lifecycle as states and transitions, and what no source settles stays as a named gap.
+- `make-page.py` turns a checked contract into one standalone HTML page: a diagram per level, a card under the pointer, scenario play, search and one history for every move.
 - [`relay`](paperwork/skills/relay/SKILL.md) applies the comments and form values a person enters on a local HTML page to that page's file; a session loads it when a page needs it.
 
 **Usage.**
