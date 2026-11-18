@@ -13,7 +13,7 @@ that names the node, a transition's event and guard included, must show the new 
 The checker must also refuse a position, in a field or in a table cell or a tree note, a colour, markup of thirteen kinds, a made-up tag, a comment and a declaration among them, in a purpose, a step
 note and a statement, markup a node's label would make, `paths` on a property that is no fact, a colour, a length, a position or a style declaration in a text's words, a step that names no record and a step note over 60 characters, must name a scenario with no step as empty, refuse one with no `steps` field without a crash, and name a faulty step note by its scenario and step; a catalogue that is no catalogue and one given beside
 `--root` in either order must be read as the call says; a catalogue that gives an item the `read` or `gaps` call reads another form, in its tag or among the common items, or another name, or that
-lacks a meaning, a label or an example, names an item twice, lists a form the checker does not know, gives an example that is no text, is nested too deep to read, or holds items in another shape than a list of records, must be refused; and no tag may fix an item every element of its kind holds already. It prints one
+lacks a meaning, a label or an example, labels an item with nothing, a space at an end, markup or Korean, names an item twice, lists a form the checker does not know, gives an example that is no text, is nested too deep to read, or holds items in another shape than a list of records, must be refused; and no tag may fix an item every element of its kind holds already. It prints one
 PASS or FAIL line per change, then PASS or FAIL."""
 import concurrent.futures
 import copy
@@ -359,6 +359,8 @@ def misread_calls(path):
                            ("an item named twice", json.dumps({**TAGS, "common": {**TAGS["common"], "node": TAGS["common"]["node"] + TAGS["common"]["node"][:1]}})),
                            ("a form the checker does not know", json.dumps({**TAGS, "forms": TAGS["forms"] + ["picture"]})),
                            ("an example that is no text", json.dumps({**TAGS, "common": {**TAGS["common"], "node": [{**TAGS["common"]["node"][0], "example": 5}] + TAGS["common"]["node"][1:]}})),
+                           *((f"an item labelled {label!r}", json.dumps({**TAGS, "common": {**TAGS["common"], "node": [{**TAGS["common"]["node"][0], "label": label}] + TAGS["common"]["node"][1:]}}))
+                             for label in ("", " ", "why ", "<b>why</b>", "까닭")),
                            ("nested too deep to read", "[" * 100000)):
             whole.write_text(text)
             done = subprocess.run([sys.executable, str(CHECK), "check", str(path), "--tags", str(whole)], capture_output=True, text=True)

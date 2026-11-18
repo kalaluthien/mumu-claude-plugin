@@ -1,6 +1,6 @@
 {
  "title": "page-changes",
- "purpose": "A person edits a standalone HTML page in a browser; the page records each edit as a change; a local server queues the changes; a session pulls the queue, applies it to {page-file}, acknowledges what it applied, and the open page reloads.",
+ "purpose": "{person}'s changes on an open page reach {page-file} through one loop: {runtime} records each change, {server} queues it and {session} applies it.",
  "sources": [
   {
    "id": "src-skill",
@@ -149,42 +149,42 @@
   {
    "id": "whole",
    "title": "page-changes",
-   "about": "Who takes part when a person's edits on a local HTML page are applied to the page's file by a session, and what passes between them."
+   "about": "The two actors {outside} never meet: {skill-folder} supplies what carries each change between them through {page-folder}, all on {local-machine}."
   },
   {
    "id": "session-steps",
    "title": "{session}'s steps and rules",
-   "about": "What SKILL.md tells a session to do, in order, and {rules} that bound each step."
+   "about": "SKILL.md gives {session} {duty}, always run in one order, and {rules}, which bound what {session} may do."
   },
   {
    "id": "page-parts",
    "title": "Inside {page-file}",
-   "about": "The parts of a page file that {runtime}, {server}, {connector} and the checker read by fixed ids and markers."
+   "about": "{page-file} keeps what {session} writes in {blocks} apart from the code in {page-body}, its own and {runtime}'s, and ids that never change join the two."
   },
   {
    "id": "runtime-parts",
    "title": "Inside {runtime}",
-   "about": "What the pasted script does in {browser}, from load to reload, and the exact names a page, a test or a person meets."
+   "about": "{runtime} touches a page in three places only, its globals, its own screen and its sync with {server}, and one connection state tells {person} whether the sync is heard."
   },
   {
    "id": "server-parts",
    "title": "Inside {server}",
-   "about": "The command, the routes, the background loops and the files of serve-page-changes.py."
+   "about": "{server} starts from one command, answers no request without its token and keeps everything that outlasts a run in {beside-page}."
   },
   {
    "id": "change-life",
    "title": "Life of a change",
-   "about": "The states one change passes through, from {person}'s edit to the applied file."
+   "about": "A change ends in exactly one of three states: applied by {session}, refused by {server}, or kept in a page that no server serves."
   },
   {
    "id": "starter-parts",
    "title": "Inside {starter}",
-   "about": "{starter-markup}, its data and the code that draws and renames the diagram."
+   "about": "{starter} holds the least a page needs for the loop of {runtime}, {server} and {session}: one diagram kept as data, drawn from it and renamed by a data change."
   },
   {
    "id": "replay-parts",
    "title": "Inside the replays",
-   "about": "The three runners that show the folder still behaves, and what each expects."
+   "about": "Three runners prove the folder after a change to it: two replay the Python scripts on fixed inputs and one drives the whole loop of {runtime}, {server} and {session} in a browser."
   }
  ],
  "areas": [
@@ -198,7 +198,8 @@
     "handoffs": [
      "{session} hands the url to whoever named the page",
      "{person}'s edits come back to {session} as pending changes"
-    ]
+    ],
+    "why": "Set apart the two actors the skill serves and does not hold."
    }
   },
   {
@@ -207,7 +208,7 @@
    "tag": "module",
    "level": "whole",
    "info": {
-    "purpose": "hold {playbook}, the scripts, {runtime} source, the starter and the replays of teamwork/skills/page-changes",
+    "purpose": "Hold what the skill ships at teamwork/skills/page-changes: {playbook}, the scripts, {runtime}'s source, {starter} and {replays}.",
     "interface": [
      "python3 ${CLAUDE_PLUGIN_ROOT}/skills/page-changes/scripts/serve-page-changes.py `<page.html>` [--port `<n>`] [--quiet `<seconds>`]",
      "python3 ${CLAUDE_PLUGIN_ROOT}/skills/page-changes/scripts/connect-page.py `<page.html>`",
@@ -228,7 +229,7 @@
    "tag": "module",
    "level": "whole",
    "info": {
-    "purpose": "hold one page and what {server} keeps beside it",
+    "purpose": "Hold one page and what {server} keeps beside it.",
     "rules": [
      "the folder lies outside every repository",
      "{server} creates changes/, {history-folder} and {url-file} here and never writes the page"
@@ -242,7 +243,8 @@
    "level": "whole",
    "info": {
     "location": "one machine; {server} listens on 127.0.0.1 only",
-    "network": "http://127.0.0.1:`<port>`/`<token>`/, the port chosen by the system unless --port or {url-file} names one"
+    "network": "http://127.0.0.1:`<port>`/`<token>`/, the port chosen by the system unless --port or {url-file} names one",
+    "why": "Keep every change off the network."
    }
   },
   {
@@ -253,7 +255,8 @@
    "info": {
     "order": 1,
     "entry": "a page is named whose changes must be applied",
-    "exit": "the page follows and its open copy shows no console error the edit caused"
+    "exit": "the page follows and its open copy shows no console error the edit caused",
+    "why": "Order the steps as {session} runs them on each batch of pending changes."
    }
   },
   {
@@ -262,7 +265,7 @@
    "tag": "module",
    "level": "session-steps",
    "info": {
-    "purpose": "bound what an edit may touch and what a change's text may cause"
+    "purpose": "Bound when the skill loads, what an edit may touch and what a change's text may cause."
    }
   },
   {
@@ -271,7 +274,7 @@
    "tag": "module",
    "level": "page-parts",
    "info": {
-    "purpose": "hold what {session} writes and {runtime} reads",
+    "purpose": "Hold what {session} writes and {runtime} reads, as data and never as code.",
     "rules": [
      "both are script elements of type application/json",
      "no raw `<` inside either"
@@ -284,7 +287,7 @@
    "tag": "module",
    "level": "page-parts",
    "info": {
-    "purpose": "hold the parts a person sees and the code that draws them"
+    "purpose": "Hold what {person} sees and the code that draws it."
    }
   },
   {
@@ -293,7 +296,7 @@
    "tag": "module",
    "level": "runtime-parts",
    "info": {
-    "purpose": "the globals {runtime} sets and calls",
+    "purpose": "Give the page's code and a test the globals {runtime} sets and calls.",
     "interface": [
      "{record-change}(kind, target, payload)",
      "window.pageData",
@@ -304,11 +307,11 @@
   },
   {
    "id": "runtime-screen",
-   "label": "the screen in view",
+   "label": "the screen parts",
    "tag": "module",
    "level": "runtime-parts",
    "info": {
-    "purpose": "badges, {panel} and {status-bar}, all inside one element with id page-changes-ui"
+    "purpose": "Draw the badges, {panel} and {status-bar} inside one element with id page-changes-ui, apart from the page's own elements."
    }
   },
   {
@@ -317,7 +320,7 @@
    "tag": "module",
    "level": "runtime-parts",
    "info": {
-    "purpose": "move changes to {server} and learn of reloads and acks"
+    "purpose": "Move changes to {server} and learn from it of reloads and acks."
    }
   },
   {
@@ -343,7 +346,17 @@
        "the EventSource losing or failing the connection"
       ]
      ]
-    }
+    },
+    "why": "Tell {person} whether a served page hears {server}, one state at a time."
+   }
+  },
+  {
+   "id": "server-loops",
+   "label": "start and background loops",
+   "tag": "module",
+   "level": "server-parts",
+   "info": {
+    "purpose": "Start {server}, do what no request starts and hold what the threads share."
    }
   },
   {
@@ -363,16 +376,8 @@
      "the Origin header on every POST",
      "a listener on 127.0.0.1 only",
      "no answer for dot files or the records"
-    ]
-   }
-  },
-  {
-   "id": "server-loops",
-   "label": "start and background loops",
-   "tag": "module",
-   "level": "server-parts",
-   "info": {
-    "purpose": "start {server} and do what no request starts"
+    ],
+    "why": "Answer a request only when its path opens with the token."
    }
   },
   {
@@ -381,7 +386,7 @@
    "tag": "module",
    "level": "server-parts",
    "info": {
-    "purpose": "what {server} keeps in {page-folder}",
+    "purpose": "Hold the files {server} reads and writes in {page-folder}.",
     "rules": [
      "JSON Lines files are rewritten whole through `<name>.tmp` and os.replace",
      "none of them is served"
@@ -419,7 +424,8 @@
        "{session}'s POST to {route-ack} naming its id"
       ]
      ]
-    }
+    },
+    "why": "Tell how far a change has come from {person} to {applied-file}, one state at a time."
    }
   },
   {
@@ -428,25 +434,25 @@
    "tag": "module",
    "level": "starter-parts",
    "info": {
-    "purpose": "everything of assets/diagram-page.html above its runtime copy"
+    "purpose": "Hold everything of assets/diagram-page.html above its runtime copy."
    }
   },
   {
    "id": "python-replays",
-   "label": "the fixture replays",
+   "label": "the script replays",
    "tag": "module",
    "level": "replay-parts",
    "info": {
-    "purpose": "replay the Python scripts on fixed inputs"
+    "purpose": "Replay the Python scripts on fixed inputs."
    }
   },
   {
    "id": "browser-run",
-   "label": "the end-to-end run",
+   "label": "the loop replay",
    "tag": "module",
    "level": "replay-parts",
    "info": {
-    "purpose": "drive {server}, {runtime} and the starter in a headless browser"
+    "purpose": "Drive {server}, {runtime} and {starter} in {headless-browser}."
    }
   }
  ],
@@ -457,7 +463,7 @@
    "tag": "actor",
    "level": "whole",
    "area": "outside",
-   "purpose": "Edit the page in a browser and have each edit reach the page's file.",
+   "purpose": "Change the page in {browser} and have each change reach {page-file}.",
    "info": {
     "goal": "comment on a part, change a form value or a diagram, and see the page come back changed",
     "channels": [
@@ -629,7 +635,7 @@
    "level": "whole",
    "area": "skill-folder",
    "opens": "server-parts",
-   "purpose": "Queue the changes an open page sends, hand them to {session}, and tell the open page to reload when its file changes, without ever writing the page.",
+   "purpose": "Take each change an open page sends, hand the pending ones to {session} and tell the open page to reload when {page-file} changes.",
    "info": {
     "responsibilities": [
      "serve the page and its sibling files behind a random token on 127.0.0.1",
@@ -723,87 +729,6 @@
    ]
   },
   {
-   "id": "page-file",
-   "label": "the page file",
-   "tag": "dataStore",
-   "level": "whole",
-   "area": "page-folder",
-   "opens": "page-parts",
-   "purpose": "Hold the page's style, code, data, threads and runtime in one file {person} opens and {session} edits.",
-   "info": {
-    "layout": [
-     {
-      "name": "`<page>`.html",
-      "note": "one standalone HTML file",
-      "children": [
-       {
-        "name": "the page's own markup and style",
-        "note": "holds the anchors"
-       },
-       {
-        "name": "script type=application/json id=page-data",
-        "note": "exactly one; the editable state"
-       },
-       {
-        "name": "script type=application/json id=page-threads",
-        "note": "at most one; {\"threads\": {...}}"
-       },
-       {
-        "name": "the page's own script",
-        "note": "may define window.pageRender"
-       },
-       {
-        "name": "`<!-- page-changes runtime -->` ... `<!-- /page-changes runtime -->`",
-        "note": "the inline copy of {runtime}, before the closing body tag"
-       }
-      ]
-     }
-    ],
-    "access": {
-     "columns": [
-      "who",
-      "mode",
-      "how"
-     ],
-     "rows": [
-      [
-       "{session}",
-       "write",
-       "one edit per pull"
-      ],
-      [
-       "{connector}",
-       "write",
-       "only when the result differs"
-      ],
-      [
-       "{server}",
-       "read",
-       "bytes on GET, stat every 0.5 s, bytes into {history-folder}"
-      ],
-      [
-       "{checker}",
-       "read",
-       "whole text"
-      ],
-      [
-       "{browser}",
-       "read",
-       "over http from {server} or as file://"
-      ]
-     ]
-    },
-    "backup": "every distinct version {server} saw quiet is copied read only into {history-folder} beside it",
-    "why": "one file with everything inline works without a server, opened as file://"
-   },
-   "evidence": [
-    "src-skill:13",
-    "src-skill:14",
-    "src-skill:16"
-   ],
-   "basis": "documented"
-  },
-  {
    "id": "runtime",
    "label": "the runtime",
    "tag": "service",
@@ -867,61 +792,6 @@
    "files": [
     "src-runtime"
    ]
-  },
-  {
-   "id": "change-queue",
-   "label": "the change queue",
-   "tag": "queue",
-   "level": "whole",
-   "area": "page-folder",
-   "opens": "change-life",
-   "purpose": "Hold each change from the moment {server} accepts it until {session} acknowledges it.",
-   "info": {
-    "message": {
-     "columns": [
-      "field",
-      "type",
-      "meaning"
-     ],
-     "rows": [
-      [
-       "id",
-       "integer",
-       "given by {server}: 1 for the first change ever, then one more than the highest integer id in pending.jsonl and applied.jsonl"
-      ],
-      [
-       "ts",
-       "text",
-       "given by {server}: UTC time in ISO 8601 with milliseconds and offset, such as 2026-11-17T00:23:53.288+00:00"
-      ],
-      [
-       "kind",
-       "`comment` or `data`",
-       "what sort of change"
-      ],
-      [
-       "target",
-       "text matching [\\w.:-]{1,80} in full",
-       "the anchor the change points at"
-      ],
-      [
-       "payload",
-       "object",
-       "comment: `text`, the request about the anchor, a non-blank string of 4000 characters at most; data: `path`, dots into page data such as `diagram-main` or `survey.owner`, and `value`, its new value; {server} checks nothing inside a data payload"
-      ]
-     ]
-    },
-    "ordering": "the order {server} accepted them; ids rise by one",
-    "delivery": "kept until acknowledged; a pull returns the whole queue each time, so a change is seen again until it is acked",
-    "retention": "in {pending-file} beside the page, across server restarts; acked changes move to {applied-file} and stay",
-    "capacity": "no limit on the count; one post is 1,000,000 bytes at most"
-   },
-   "evidence": [
-    "src-server:64",
-    "src-server:79",
-    "src-skill:17"
-   ],
-   "basis": "observed"
   },
   {
    "id": "checker",
@@ -1148,6 +1018,142 @@
    ]
   },
   {
+   "id": "page-file",
+   "label": "the page file",
+   "tag": "dataStore",
+   "level": "whole",
+   "area": "page-folder",
+   "opens": "page-parts",
+   "purpose": "Hold the page's style, code, data, threads and runtime in one file {person} opens and {session} edits.",
+   "info": {
+    "layout": [
+     {
+      "name": "`<page>`.html",
+      "note": "one standalone HTML file",
+      "children": [
+       {
+        "name": "the page's own markup and style",
+        "note": "holds the anchors"
+       },
+       {
+        "name": "script type=application/json id=page-data",
+        "note": "exactly one; the editable state"
+       },
+       {
+        "name": "script type=application/json id=page-threads",
+        "note": "at most one; {\"threads\": {...}}"
+       },
+       {
+        "name": "the page's own script",
+        "note": "may define window.pageRender"
+       },
+       {
+        "name": "`<!-- page-changes runtime -->` ... `<!-- /page-changes runtime -->`",
+        "note": "the inline copy of {runtime}, before the closing body tag"
+       }
+      ]
+     }
+    ],
+    "access": {
+     "columns": [
+      "who",
+      "mode",
+      "how"
+     ],
+     "rows": [
+      [
+       "{session}",
+       "write",
+       "one edit per pull"
+      ],
+      [
+       "{connector}",
+       "write",
+       "only when the result differs"
+      ],
+      [
+       "{server}",
+       "read",
+       "bytes on GET, stat every 0.5 s, bytes into {history-folder}"
+      ],
+      [
+       "{checker}",
+       "read",
+       "whole text"
+      ],
+      [
+       "{browser}",
+       "read",
+       "over http from {server} or as file://"
+      ]
+     ]
+    },
+    "backup": "every distinct version {server} saw quiet is copied read only into {history-folder} beside it",
+    "why": "one file with everything inline works without a server, opened as file://"
+   },
+   "evidence": [
+    "src-skill:13",
+    "src-skill:14",
+    "src-skill:16"
+   ],
+   "basis": "documented"
+  },
+  {
+   "id": "change-queue",
+   "label": "the change queue",
+   "tag": "queue",
+   "level": "whole",
+   "area": "page-folder",
+   "opens": "change-life",
+   "purpose": "Hold each change from the moment {server} accepts it until {session} acknowledges it.",
+   "info": {
+    "message": {
+     "columns": [
+      "field",
+      "type",
+      "meaning"
+     ],
+     "rows": [
+      [
+       "id",
+       "integer",
+       "given by {server}: 1 for the first change ever, then one more than the highest integer id in pending.jsonl and applied.jsonl"
+      ],
+      [
+       "ts",
+       "text",
+       "given by {server}: UTC time in ISO 8601 with milliseconds and offset, such as 2026-11-17T00:23:53.288+00:00"
+      ],
+      [
+       "kind",
+       "`comment` or `data`",
+       "what sort of change"
+      ],
+      [
+       "target",
+       "text matching [\\w.:-]{1,80} in full",
+       "the anchor the change points at"
+      ],
+      [
+       "payload",
+       "object",
+       "comment: `text`, the request about the anchor, a non-blank string of 4000 characters at most; data: `path`, dots into page data such as `diagram-main` or `survey.owner`, and `value`, its new value; {server} checks nothing inside a data payload"
+      ]
+     ]
+    },
+    "ordering": "the order {server} accepted them; ids rise by one",
+    "delivery": "kept until acknowledged; a pull returns the whole queue each time, so a change is seen again until it is acked",
+    "retention": "in {pending-file} beside the page, across server restarts; acked changes move to {applied-file} and stay",
+    "capacity": "no limit on the count; one post is 1,000,000 bytes at most"
+   },
+   "evidence": [
+    "src-server:64",
+    "src-server:79",
+    "src-skill:17"
+   ],
+   "basis": "observed"
+  },
+  {
    "id": "browser",
    "label": "the browser",
    "tag": "host",
@@ -1168,47 +1174,6 @@
     "src-e2e:20"
    ],
    "basis": "inferred"
-  },
-  {
-   "id": "skill-header",
-   "label": "the skill's header",
-   "tag": "artifact",
-   "level": "session-steps",
-   "area": "rules",
-   "purpose": "Tell Claude Code when to load the skill and that a person cannot invoke it.",
-   "info": {
-    "format": "YAML front matter of SKILL.md: `name: page-changes`; `description: Use when the changes a person makes on a local HTML page, such as comments, form values or diagram edits, must be applied to that page's file by a session.`; `user-invocable: false`",
-    "layout": [
-     {
-      "name": "SKILL.md",
-      "children": [
-       {
-        "name": "# page-changes",
-        "note": "one summary paragraph"
-       },
-       {
-        "name": "## Domain",
-        "note": "page, page data, anchor, threads, change, runtime, server, starter"
-       },
-       {
-        "name": "## Steps",
-        "note": "Connect, Serve, Pull, Apply, Acknowledge, Check"
-       },
-       {
-        "name": "## Rules",
-        "note": "{rule-page-only}, {rule-text-is-data}, {rule-valid-blocks}, {rule-keep-anchors}, {rule-url}, {rule-no-secrets}, {rule-after-change}"
-       }
-      ]
-     }
-    ],
-    "used-by": [
-     "a session"
-    ]
-   },
-   "evidence": [
-    "src-skill:1"
-   ],
-   "basis": "documented"
   },
   {
    "id": "step-connect",
@@ -1314,7 +1279,7 @@
    "tag": "job",
    "level": "session-steps",
    "area": "duty",
-   "purpose": "Empty the queue of what was applied or answered.",
+   "purpose": "Acknowledge each change that was applied or answered, so that only what is pending stays queued.",
    "info": {
     "steps": [
      "POST api/changes/ack with {\"ids\": [...]} holding the ids applied or answered, an older data change that the latest one replaced included",
@@ -1341,6 +1306,47 @@
    },
    "evidence": [
     "src-skill:31"
+   ],
+   "basis": "documented"
+  },
+  {
+   "id": "skill-header",
+   "label": "the skill's header",
+   "tag": "artifact",
+   "level": "session-steps",
+   "area": "rules",
+   "purpose": "Keep Claude Code from loading the skill outside its use, and a person from invoking it.",
+   "info": {
+    "format": "YAML front matter of SKILL.md: `name: page-changes`; `description: Use when the changes a person makes on a local HTML page, such as comments, form values or diagram edits, must be applied to that page's file by a session.`; `user-invocable: false`",
+    "layout": [
+     {
+      "name": "SKILL.md",
+      "children": [
+       {
+        "name": "# page-changes",
+        "note": "one summary paragraph"
+       },
+       {
+        "name": "## Domain",
+        "note": "page, page data, anchor, threads, change, runtime, server, starter"
+       },
+       {
+        "name": "## Steps",
+        "note": "Connect, Serve, Pull, Apply, Acknowledge, Check"
+       },
+       {
+        "name": "## Rules",
+        "note": "{rule-page-only}, {rule-text-is-data}, {rule-valid-blocks}, {rule-keep-anchors}, {rule-url}, {rule-no-secrets}, {rule-after-change}"
+       }
+      ]
+     }
+    ],
+    "used-by": [
+     "a session"
+    ]
+   },
+   "evidence": [
+    "src-skill:1"
    ],
    "basis": "documented"
   },
@@ -1614,27 +1620,6 @@
    "basis": "observed"
   },
   {
-   "id": "anchor-rule",
-   "label": "the anchor rule",
-   "tag": "policy",
-   "level": "page-parts",
-   "area": "page-body",
-   "purpose": "Give every change and thread one stable part of the page to point at.",
-   "info": {
-    "statement": "an anchor is an element with data-id=\"`<id>`\", the id matching [\\w.:-]{1,80} in full and used once in the page; an SVG group works",
-    "enforced-by": "{checker}'s rule anchors on the file; {server}'s 400 on a posted target that does not match",
-    "exceptions": [
-     "an anchor drawn by code at load is not in the file, so the checker cannot count it; its thread key must then be an id inside page data"
-    ]
-   },
-   "evidence": [
-    "src-skill:15",
-    "src-check:17",
-    "src-server:24"
-   ],
-   "basis": "observed"
-  },
-  {
    "id": "page-markup",
    "label": "the page's own markup and code",
    "tag": "artifact",
@@ -1652,6 +1637,27 @@
     "src-skill:14",
     "src-starter:34",
     "src-starter:74"
+   ],
+   "basis": "observed"
+  },
+  {
+   "id": "anchor-rule",
+   "label": "the anchor rule",
+   "tag": "policy",
+   "level": "page-parts",
+   "area": "page-body",
+   "purpose": "Give every change and thread one stable part of the page to point at.",
+   "info": {
+    "statement": "an anchor is an element with data-id=\"`<id>`\", the id matching [\\w.:-]{1,80} in full and used once in the page; an SVG group works",
+    "enforced-by": "{checker}'s rule anchors on the file; {server}'s 400 on a posted target that does not match",
+    "exceptions": [
+     "an anchor drawn by code at load is not in the file, so the checker cannot count it; its thread key must then be an id inside page data"
+    ]
+   },
+   "evidence": [
+    "src-skill:15",
+    "src-check:17",
+    "src-server:24"
    ],
    "basis": "observed"
   },
@@ -1836,140 +1842,6 @@
     "src-runtime:16",
     "src-runtime:19",
     "src-runtime:199"
-   ],
-   "basis": "observed"
-  },
-  {
-   "id": "session-store",
-   "label": "the tab's session storage",
-   "tag": "dataStore",
-   "level": "runtime-parts",
-   "area": "runtime-sync",
-   "purpose": "Carry the open panel, a typed draft and unsent changes across a reload of the same tab.",
-   "info": {
-    "schema": {
-     "columns": [
-      "field",
-      "type",
-      "meaning"
-     ],
-     "rows": [
-      [
-       "page-changes:`<location.pathname>`:open",
-       "text",
-       "the anchor whose panel is open; removed on close"
-      ],
-      [
-       "page-changes:`<location.pathname>`:draft:`<anchor>`",
-       "text",
-       "what is typed and {change-unsent} in that anchor's panel; removed on Send or when emptied"
-      ],
-      [
-       "page-changes:`<location.pathname>`:unsent",
-       "JSON list of changes",
-       "changes not yet answered by {server}; removed when the list is empty"
-      ]
-     ]
-    },
-    "retention": "the life of {browser} tab",
-    "why": "kept in sessionStorage so a change made while {server} is down survives a reload and is sent on the next connect, and a draft survives the reload an applied edit causes"
-   },
-   "evidence": [
-    "src-runtime:3",
-    "src-runtime:21",
-    "src-runtime:132"
-   ],
-   "basis": "observed"
-  },
-  {
-   "id": "sender",
-   "label": "the flush loop",
-   "tag": "job",
-   "level": "runtime-parts",
-   "area": "runtime-sync",
-   "purpose": "Send unsent changes to {server} one at a time, oldest first.",
-   "info": {
-    "steps": [
-     "return at once when a flush is already running",
-     "while unsent holds a change: POST to `api/changes` with header Content-Type: application/json and body {kind, target, payload} of the first one",
-     "an ok answer: merge the answer's JSON (id, ts) into the change object; any other status: set change.refused to the status",
-     "a throw from fetch stops the loop and leaves the change first in unsent",
-     "after an answer of either sort, drop the change from unsent and store unsent",
-     "when the loop ends, read the pending changes and draw"
-    ],
-    "failure": {
-     "columns": [
-      "case",
-      "what happens"
-     ],
-     "rows": [
-      [
-       "{server} is down",
-       "the change stays in unsent and in sessionStorage, shows as `not sent`, and {exporter} changes button shows; sent on the next stream open or the next recorded change"
-      ],
-      [
-       "{server} answers 400, 403 or 404",
-       "the change is dropped from unsent with `refused` set, stays only in window.pageChanges, and no longer shows anywhere"
-      ]
-     ]
-    }
-   },
-   "evidence": [
-    "src-runtime:37"
-   ],
-   "basis": "observed"
-  },
-  {
-   "id": "puller",
-   "label": "the pending reader",
-   "tag": "job",
-   "level": "runtime-parts",
-   "area": "runtime-sync",
-   "purpose": "Keep the page's view of the queue equal to {server}'s.",
-   "info": {
-    "steps": [
-     "GET `api/changes` with cache: no-store",
-     "on an ok answer set pending to the JSON list; on any failure keep the old list",
-     "draw: place the badges, draw the panel, draw {status-bar}; nothing is drawn before the screen is built"
-    ]
-   },
-   "evidence": [
-    "src-runtime:57",
-    "src-runtime:153"
-   ],
-   "basis": "observed"
-  },
-  {
-   "id": "stream-listener",
-   "label": "the event stream listener",
-   "tag": "trigger",
-   "level": "runtime-parts",
-   "area": "runtime-sync",
-   "purpose": "Start a flush, a queue read or a reload when {server} says so.",
-   "info": {
-    "kind": "server-sent events from `api/events` through EventSource",
-    "filter": "open: set the connection text to `server connected`, then flush\nerror: set it to `server not reachable`, then draw {status-bar}\nreload: location.reload()\nchanges: read the pending changes",
-    "timing": "{browser} reconnects by itself; each open flushes and reads the queue again, since an ack while the stream was down sends no `changes` event"
-   },
-   "evidence": [
-    "src-runtime:214"
-   ],
-   "basis": "observed"
-  },
-  {
-   "id": "redraw-trigger",
-   "label": "the redraw trigger",
-   "tag": "trigger",
-   "level": "runtime-parts",
-   "area": "runtime-screen",
-   "purpose": "Keep each badge beside its anchor as the page changes shape.",
-   "info": {
-    "kind": "a MutationObserver on document.body with childList, subtree, attributes and characterData, and the window's resize event",
-    "filter": "only mutation records whose target lies outside #page-changes-ui count",
-    "timing": "at most one placing of the badges per animation frame, by requestAnimationFrame"
-   },
-   "evidence": [
-    "src-runtime:202"
    ],
    "basis": "observed"
   },
@@ -2320,13 +2192,148 @@
    "basis": "observed"
   },
   {
+   "id": "redraw-trigger",
+   "label": "the redraw trigger",
+   "tag": "trigger",
+   "level": "runtime-parts",
+   "area": "runtime-screen",
+   "purpose": "Keep each badge beside its anchor as the page changes shape.",
+   "info": {
+    "kind": "a MutationObserver on document.body with childList, subtree, attributes and characterData, and the window's resize event",
+    "filter": "only mutation records whose target lies outside #page-changes-ui count",
+    "timing": "at most one placing of the badges per animation frame, by requestAnimationFrame"
+   },
+   "evidence": [
+    "src-runtime:202"
+   ],
+   "basis": "observed"
+  },
+  {
+   "id": "session-store",
+   "label": "the tab's session storage",
+   "tag": "dataStore",
+   "level": "runtime-parts",
+   "area": "runtime-sync",
+   "purpose": "Carry the open panel, a typed draft and unsent changes across a reload of the same tab.",
+   "info": {
+    "schema": {
+     "columns": [
+      "field",
+      "type",
+      "meaning"
+     ],
+     "rows": [
+      [
+       "page-changes:`<location.pathname>`:open",
+       "text",
+       "the anchor whose panel is open; removed on close"
+      ],
+      [
+       "page-changes:`<location.pathname>`:draft:`<anchor>`",
+       "text",
+       "what is typed and {change-unsent} in that anchor's panel; removed on Send or when emptied"
+      ],
+      [
+       "page-changes:`<location.pathname>`:unsent",
+       "JSON list of changes",
+       "changes not yet answered by {server}; removed when the list is empty"
+      ]
+     ]
+    },
+    "retention": "the life of {browser} tab",
+    "why": "kept in sessionStorage so a change made while {server} is down survives a reload and is sent on the next connect, and a draft survives the reload an applied edit causes"
+   },
+   "evidence": [
+    "src-runtime:3",
+    "src-runtime:21",
+    "src-runtime:132"
+   ],
+   "basis": "observed"
+  },
+  {
+   "id": "sender",
+   "label": "the flush loop",
+   "tag": "job",
+   "level": "runtime-parts",
+   "area": "runtime-sync",
+   "purpose": "Send unsent changes to {server} one at a time, oldest first.",
+   "info": {
+    "steps": [
+     "return at once when a flush is already running",
+     "while unsent holds a change: POST to `api/changes` with header Content-Type: application/json and body {kind, target, payload} of the first one",
+     "an ok answer: merge the answer's JSON (id, ts) into the change object; any other status: set change.refused to the status",
+     "a throw from fetch stops the loop and leaves the change first in unsent",
+     "after an answer of either sort, drop the change from unsent and store unsent",
+     "when the loop ends, read the pending changes and draw"
+    ],
+    "failure": {
+     "columns": [
+      "case",
+      "what happens"
+     ],
+     "rows": [
+      [
+       "{server} is down",
+       "the change stays in unsent and in sessionStorage, shows as `not sent`, and {exporter} changes button shows; sent on the next stream open or the next recorded change"
+      ],
+      [
+       "{server} answers 400, 403 or 404",
+       "the change is dropped from unsent with `refused` set, stays only in window.pageChanges, and no longer shows anywhere"
+      ]
+     ]
+    }
+   },
+   "evidence": [
+    "src-runtime:37"
+   ],
+   "basis": "observed"
+  },
+  {
+   "id": "puller",
+   "label": "the pending reader",
+   "tag": "job",
+   "level": "runtime-parts",
+   "area": "runtime-sync",
+   "purpose": "Keep the page's view of the queue equal to {server}'s.",
+   "info": {
+    "steps": [
+     "GET `api/changes` with cache: no-store",
+     "on an ok answer set pending to the JSON list; on any failure keep the old list",
+     "draw: place the badges, draw the panel, draw {status-bar}; nothing is drawn before the screen is built"
+    ]
+   },
+   "evidence": [
+    "src-runtime:57",
+    "src-runtime:153"
+   ],
+   "basis": "observed"
+  },
+  {
+   "id": "stream-listener",
+   "label": "the event stream listener",
+   "tag": "trigger",
+   "level": "runtime-parts",
+   "area": "runtime-sync",
+   "purpose": "Start a flush, a queue read or a reload when {server} says so.",
+   "info": {
+    "kind": "server-sent events from `api/events` through EventSource",
+    "filter": "open: set the connection text to `server connected`, then flush\nerror: set it to `server not reachable`, then draw {status-bar}\nreload: location.reload()\nchanges: read the pending changes",
+    "timing": "{browser} reconnects by itself; each open flushes and reads the queue again, since an ack while the stream was down sends no `changes` event"
+   },
+   "evidence": [
+    "src-runtime:214"
+   ],
+   "basis": "observed"
+  },
+  {
    "id": "conn-connecting",
    "label": "trying to connect",
    "tag": "state",
    "level": "runtime-parts",
    "area": "connection",
+   "purpose": "Mark a served page whose event stream has not opened yet.",
    "info": {
-    "meaning": "served, and the event stream has not opened yet; also the lasting text of a served page in a browser without EventSource, which flushes once and never listens",
+    "meaning": "also the lasting text of a served page in a browser without EventSource, which flushes once and never listens",
     "on-entry": [
      "set at load when the protocol is http: or https:"
     ]
@@ -2343,8 +2350,8 @@
    "tag": "state",
    "level": "runtime-parts",
    "area": "connection",
+   "purpose": "Mark a served page whose event stream is open.",
    "info": {
-    "meaning": "the event stream is open",
     "on-entry": [
      "flush, which sends unsent changes, reads the queue and draws"
     ],
@@ -2366,8 +2373,8 @@
    "tag": "state",
    "level": "runtime-parts",
    "area": "connection",
+   "purpose": "Mark a served page whose event stream reported an error, while {browser} keeps retrying.",
    "info": {
-    "meaning": "the event stream reported an error; {browser} keeps retrying",
     "on-entry": [
      "draw {status-bar}"
     ],
@@ -2389,7 +2396,7 @@
    "tag": "endpoint",
    "level": "server-parts",
    "area": "server-loops",
-   "purpose": "Start one server for one page.",
+   "purpose": "Take the page's path and the options of one run of {server}.",
    "info": {
     "address": "python3 ${CLAUDE_PLUGIN_ROOT}/skills/page-changes/scripts/serve-page-changes.py <page.html> [--port <n>] [--quiet <seconds>]",
     "request": {
@@ -2470,7 +2477,7 @@
   },
   {
    "id": "startup",
-   "label": "the start on the machine",
+   "label": "the startup sequence",
    "tag": "job",
    "level": "server-parts",
    "area": "server-loops",
@@ -2511,6 +2518,165 @@
     "src-server:53",
     "src-server:60",
     "src-server:223"
+   ],
+   "basis": "observed"
+  },
+  {
+   "id": "server-memory",
+   "label": "the memory of a run",
+   "tag": "dataStore",
+   "level": "server-parts",
+   "area": "server-loops",
+   "purpose": "Carry between threads what changed since a stream last looked.",
+   "info": {
+    "schema": {
+     "columns": [
+      "field",
+      "type",
+      "meaning"
+     ],
+     "rows": [
+      [
+       "digest",
+       "none or 12 hex characters",
+       "the first 12 of the sha256 of the last quiet page content that held the closing marker"
+      ],
+      [
+       "queue",
+       "integer from 0",
+       "a counter raised by one on every queued change and every ack that moved something; streams compare it, its value means nothing"
+      ],
+      [
+       "due",
+       "none or a monotonic time",
+       "when the pending line may be printed"
+      ],
+      [
+       "next",
+       "integer from 1",
+       "the id of the next change"
+      ]
+     ]
+    },
+    "consistency": "POST handlers and {announcer} take one lock; the streams and the watcher read and write without it",
+    "retention": "the life of the process; only `next` is rebuilt from the files at start"
+   },
+   "evidence": [
+    "src-server:59",
+    "src-server:61"
+   ],
+   "basis": "observed"
+  },
+  {
+   "id": "watcher",
+   "label": "the file watcher",
+   "tag": "job",
+   "level": "server-parts",
+   "area": "server-loops",
+   "purpose": "Notice a finished write of {page-file}.",
+   "info": {
+    "schedule": "every 0.5 s",
+    "steps": [
+     "stat the page: the pair of modification time in nanoseconds and size",
+     "when the pair equals the last poll's pair and differs from the pair last handled: mark it handled and run {keeper}",
+     "remember the pair as the last poll's",
+     "a failing stat is skipped"
+    ],
+    "why": "a file still being written changes between two polls, so only content quiet for a whole poll is read"
+   },
+   "evidence": [
+    "src-server:107"
+   ],
+   "basis": "observed"
+  },
+  {
+   "id": "keeper",
+   "label": "the version keeper",
+   "tag": "job",
+   "level": "server-parts",
+   "area": "server-loops",
+   "purpose": "Copy each new version of the page into history and decide whether open pages may reload.",
+   "info": {
+    "steps": [
+     "read the page's bytes; digest = the first 12 hex characters of their sha256",
+     "stop when the digest equals memory's digest",
+     "unless the last name in sorted {history-folder}*.html ends with `-<digest>.html`: write the bytes to {history-folder}`<local time as %Y%m%dT%H%M%S%f>`-`<digest>`.html and set its mode to 0o444",
+     "only when the bytes contain `<!-- /page-changes runtime -->`: set memory's digest, which makes every stream send `reload`"
+    ],
+    "outputs": {
+     "columns": [
+      "name",
+      "type",
+      "to"
+     ],
+     "rows": [
+      [
+       "a history copy",
+       "read-only file",
+       "{history-folder}"
+      ],
+      [
+       "the digest",
+       "12 hex characters",
+       "{server-memory}"
+      ]
+     ]
+    },
+    "failure": {
+     "columns": [
+      "case",
+      "what happens"
+     ],
+     "rows": [
+      [
+       "the page was cut off mid-write and lacks the closing marker",
+       "it is copied to history and no reload is sent; the next whole version reloads"
+      ],
+      [
+       "a page that never had {runtime}",
+       "no reload is ever sent"
+      ]
+     ]
+    },
+    "why": "a reload into a page without its runtime would leave a page that never reloads again"
+   },
+   "evidence": [
+    "src-server:92",
+    "src-server:28"
+   ],
+   "basis": "observed"
+  },
+  {
+   "id": "announcer",
+   "label": "the announcer",
+   "tag": "job",
+   "level": "server-parts",
+   "area": "server-loops",
+   "purpose": "Wake {session} once per burst of changes, not per keystroke.",
+   "info": {
+    "schedule": "every 0.1 s",
+    "steps": [
+     "under the lock: do nothing while due is none or in the future; else set due to none and read pending.jsonl",
+     "when it holds a change, print the pending line, flushed"
+    ],
+    "outputs": {
+     "columns": [
+      "name",
+      "type",
+      "to"
+     ],
+     "rows": [
+      [
+       "the pending line",
+       "page-changes pending `<n>`: `<c>` comment, `<d>` data for `<absolute page path>` | pull: curl -s `<url>`api/changes | ack after editing the page: curl -s -X POST -H 'Origin: `<origin>`' -H 'Content-Type: application/json' -d '{\"ids\":[`<id>`,...]}' `<url>`api/changes/ack",
+       "stdout"
+      ]
+     ]
+    },
+    "limits": "each newly queued change pushes due to its own time plus the quiet window; an ack or a restart never sets due"
+   },
+   "evidence": [
+    "src-server:122"
    ],
    "basis": "observed"
   },
@@ -3005,12 +3171,12 @@
    "basis": "observed"
   },
   {
-   "id": "server-memory",
-   "label": "the memory of a run",
+   "id": "watched-page",
+   "label": "the held copy of the page",
    "tag": "dataStore",
    "level": "server-parts",
-   "area": "server-loops",
-   "purpose": "Carry between threads what changed since a stream last looked.",
+   "area": "beside-page",
+   "purpose": "Be the one file {server} reads and never writes.",
    "info": {
     "schema": {
      "columns": [
@@ -3020,146 +3186,45 @@
      ],
      "rows": [
       [
-       "digest",
-       "none or 12 hex characters",
-       "the first 12 of the sha256 of the last quiet page content that held the closing marker"
+       "path",
+       "absolute",
+       "the first argument, resolved"
       ],
       [
-       "queue",
-       "integer from 0",
-       "a counter raised by one on every queued change and every ack that moved something; streams compare it, its value means nothing"
-      ],
-      [
-       "due",
-       "none or a monotonic time",
-       "when the pending line may be printed"
-      ],
-      [
-       "next",
-       "integer from 1",
-       "the id of the next change"
+       "folder",
+       "its parent",
+       "where changes/, {history-folder} and {url-file} are made and sibling files are served from"
       ]
      ]
     },
-    "consistency": "POST handlers and {announcer} take one lock; the streams and the watcher read and write without it",
-    "retention": "the life of the process; only `next` is rebuilt from the files at start"
-   },
-   "evidence": [
-    "src-server:59",
-    "src-server:61"
-   ],
-   "basis": "observed"
-  },
-  {
-   "id": "watcher",
-   "label": "the file watcher",
-   "tag": "job",
-   "level": "server-parts",
-   "area": "server-loops",
-   "purpose": "Notice a finished write of {page-file}.",
-   "info": {
-    "schedule": "every 0.5 s",
-    "steps": [
-     "stat the page: the pair of modification time in nanoseconds and size",
-     "when the pair equals the last poll's pair and differs from the pair last handled: mark it handled and run {keeper}",
-     "remember the pair as the last poll's",
-     "a failing stat is skipped"
-    ],
-    "why": "a file still being written changes between two polls, so only content quiet for a whole poll is read"
-   },
-   "evidence": [
-    "src-server:107"
-   ],
-   "basis": "observed"
-  },
-  {
-   "id": "keeper",
-   "label": "the version keeper",
-   "tag": "job",
-   "level": "server-parts",
-   "area": "server-loops",
-   "purpose": "Copy each new version of the page into history and decide whether open pages may reload.",
-   "info": {
-    "steps": [
-     "read the page's bytes; digest = the first 12 hex characters of their sha256",
-     "stop when the digest equals memory's digest",
-     "unless the last name in sorted {history-folder}*.html ends with `-<digest>.html`: write the bytes to {history-folder}`<local time as %Y%m%dT%H%M%S%f>`-`<digest>`.html and set its mode to 0o444",
-     "only when the bytes contain `<!-- /page-changes runtime -->`: set memory's digest, which makes every stream send `reload`"
-    ],
-    "outputs": {
+    "access": {
      "columns": [
-      "name",
-      "type",
-      "to"
+      "who",
+      "mode",
+      "how"
      ],
      "rows": [
       [
-       "a history copy",
-       "read-only file",
-       "{history-folder}"
+       "{route-page}",
+       "read",
+       "bytes per request"
       ],
       [
-       "the digest",
-       "12 hex characters",
-       "{server-memory}"
-      ]
-     ]
-    },
-    "failure": {
-     "columns": [
-      "case",
-      "what happens"
-     ],
-     "rows": [
-      [
-       "the page was cut off mid-write and lacks the closing marker",
-       "it is copied to history and no reload is sent; the next whole version reloads"
+       "{watcher}",
+       "read",
+       "stat"
       ],
       [
-       "a page that never had {runtime}",
-       "no reload is ever sent"
+       "{keeper}",
+       "read",
+       "bytes"
       ]
      ]
-    },
-    "why": "a reload into a page without its runtime would leave a page that never reloads again"
+    }
    },
    "evidence": [
-    "src-server:92",
-    "src-server:28"
-   ],
-   "basis": "observed"
-  },
-  {
-   "id": "announcer",
-   "label": "the announcer",
-   "tag": "job",
-   "level": "server-parts",
-   "area": "server-loops",
-   "purpose": "Wake {session} once per burst of changes, not per keystroke.",
-   "info": {
-    "schedule": "every 0.1 s",
-    "steps": [
-     "under the lock: do nothing while due is none or in the future; else set due to none and read pending.jsonl",
-     "when it holds a change, print the pending line, flushed"
-    ],
-    "outputs": {
-     "columns": [
-      "name",
-      "type",
-      "to"
-     ],
-     "rows": [
-      [
-       "the pending line",
-       "page-changes pending `<n>`: `<c>` comment, `<d>` data for `<absolute page path>` | pull: curl -s `<url>`api/changes | ack after editing the page: curl -s -X POST -H 'Origin: `<origin>`' -H 'Content-Type: application/json' -d '{\"ids\":[`<id>`,...]}' `<url>`api/changes/ack",
-       "stdout"
-      ]
-     ]
-    },
-    "limits": "each newly queued change pushes due to its own time plus the quiet window; an ack or a restart never sets due"
-   },
-   "evidence": [
-    "src-server:122"
+    "src-server:35",
+    "src-server:47"
    ],
    "basis": "observed"
   },
@@ -3301,71 +3366,13 @@
    "basis": "observed"
   },
   {
-   "id": "watched-page",
-   "label": "the held copy of the page",
-   "tag": "dataStore",
-   "level": "server-parts",
-   "area": "beside-page",
-   "purpose": "Be the one file {server} reads and never writes.",
-   "info": {
-    "schema": {
-     "columns": [
-      "field",
-      "type",
-      "meaning"
-     ],
-     "rows": [
-      [
-       "path",
-       "absolute",
-       "the first argument, resolved"
-      ],
-      [
-       "folder",
-       "its parent",
-       "where changes/, {history-folder} and {url-file} are made and sibling files are served from"
-      ]
-     ]
-    },
-    "access": {
-     "columns": [
-      "who",
-      "mode",
-      "how"
-     ],
-     "rows": [
-      [
-       "{route-page}",
-       "read",
-       "bytes per request"
-      ],
-      [
-       "{watcher}",
-       "read",
-       "stat"
-      ],
-      [
-       "{keeper}",
-       "read",
-       "bytes"
-      ]
-     ]
-    }
-   },
-   "evidence": [
-    "src-server:35",
-    "src-server:47"
-   ],
-   "basis": "observed"
-  },
-  {
    "id": "change-new",
    "label": "a new change",
    "tag": "state",
    "level": "change-life",
    "area": "change-state",
+   "purpose": "Mark a change {record-change} just built as {kind, target, payload, ts} and pushed to window.pageChanges.",
    "info": {
-    "meaning": "{record-change} built {kind, target, payload, ts} and pushed it to window.pageChanges",
     "ignores": [
      "post answered ok",
      "post answered otherwise",
@@ -3379,12 +3386,13 @@
   },
   {
    "id": "change-kept",
-   "label": "kept in the page",
+   "label": "a kept change",
    "tag": "state",
    "level": "change-life",
    "area": "change-state",
+   "purpose": "Mark a change of a page opened as file://, which lives only in window.pageChanges.",
    "info": {
-    "meaning": "the page is opened as file://; the change lives only in window.pageChanges, counts as pending in {status-bar}, and leaves the {rule-page-only} through Export changes",
+    "meaning": "counts as pending in {status-bar} and leaves the page through Export changes alone",
     "terminal": "yes; a reload loses it",
     "holds": [
      "a comment shows in its panel as `waiting`"
@@ -3398,12 +3406,13 @@
   },
   {
    "id": "change-unsent",
-   "label": "not sent",
+   "label": "an unsent change",
    "tag": "state",
    "level": "change-life",
    "area": "change-state",
+   "purpose": "Mark a change of a served page that waits for {server}'s answer.",
    "info": {
-    "meaning": "served; the change is in the unsent list and in sessionStorage, waiting for {server}'s answer",
+    "meaning": "held in the unsent list and in sessionStorage",
     "ignores": [
      "store",
      "ack"
@@ -3427,8 +3436,8 @@
    "tag": "state",
    "level": "change-life",
    "area": "change-state",
+   "purpose": "Mark a change that is a line of {pending-file} with {server}'s id and ts.",
    "info": {
-    "meaning": "a line of {pending-file} with {server}'s id and ts",
     "on-entry": [
      "{server} sets the due time of the pending line",
      "every open page hears `changes`"
@@ -3457,8 +3466,8 @@
    "tag": "state",
    "level": "change-life",
    "area": "change-state",
+   "purpose": "Mark a change that is a line of {applied-file}, which {session} applied or answered.",
    "info": {
-    "meaning": "a line of {applied-file}; {session} applied or answered it",
     "terminal": "yes",
     "on-entry": [
      "every open page hears `changes` and drops it from its waiting items"
@@ -3475,8 +3484,9 @@
    "tag": "state",
    "level": "change-life",
    "area": "change-state",
+   "purpose": "Mark a change whose post {server} answered with a status that is not ok.",
    "info": {
-    "meaning": "{server} answered the post with a status that is not ok; the object in window.pageChanges carries `refused` with the status and is shown nowhere",
+    "meaning": "the object in window.pageChanges carries `refused` with the status and is shown nowhere",
     "terminal": "yes"
    },
    "evidence": [
@@ -3849,7 +3859,7 @@
    "tag": "endpoint",
    "level": "replay-parts",
    "area": "browser-run",
-   "purpose": "Choose between {e2e-run} and its two halves that a real session sits between.",
+   "purpose": "Choose between {e2e-run} and the two modes a real session sits between, {e2e-queue} and {e2e-verify}.",
    "info": {
     "address": "node run-page-changes.cjs | node run-page-changes.cjs --queue <folder> | node run-page-changes.cjs --verify <folder>",
     "request": {

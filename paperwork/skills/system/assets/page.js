@@ -37,6 +37,7 @@
   const words = text => String(text).replace(/\{([a-z0-9-]+)\}/g, (whole, id, at, all) => { // a named record, with a capital where a sentence opens
     if (!records[id]) return whole;
     const name = label(id);
+    if (/[ㄱ-ㆎ가-힣]/.test(all)) return name.replace(/^(?:an?|the)\s+/i, ""); // Korean has no article and no capital
     const plain = !/[./_\d]|[a-z][A-Z]/.test(name.split(/\s+/)[0]); // a file name stays as written
     return plain && (at === 0 || all.slice(0, at).endsWith(". ")) ? name[0].toUpperCase() + name.slice(1) : name;
   });

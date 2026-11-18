@@ -23,10 +23,11 @@ Take the cases in order; each playbook's steps go into the todo list.
 | --- | --- |
 | find what a reader needs to rebuild the subject | [references/extract.md](references/extract.md) |
 | write or change the contract | [references/contract.md](references/contract.md) |
+| word a text of the contract: a name, a purpose, a meaning, a note or a statement | [references/writing.md](references/writing.md) |
 | show the contract to a person as a page | [references/page.md](references/page.md) |
 
 ## Rules
 
 - **Contract only**: every view of the subject is made from the contract by code, so a change goes into the contract.
 - **Seen, not supposed**: cite a source for each node and edge, and record what no source settles as a gap, never as a guess.
-- **After a change to this folder**: run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/check-contract.py fixtures`, `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/fixtures/replay-read-aloud.py`, `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/fixtures/replay-malformed-contracts.py` and `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/fixtures/replay-contract-changes.py`; each must print `PASS`.
+- **After a change to this folder**: run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/check-contract.py fixtures`, `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/fixtures/replay-read-aloud.py`, `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/fixtures/replay-malformed-contracts.py`, `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/fixtures/replay-contract-changes.py` and `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/fixtures/replay-prose-faults.py`; each must print `PASS`.

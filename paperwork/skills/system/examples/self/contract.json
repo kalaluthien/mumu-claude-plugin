@@ -1,6 +1,6 @@
 {
  "title": "The system skill",
- "purpose": "Describe a system so that {reader} who never saw its sources can rebuild it.",
+ "purpose": "The skill turns {subject}'s sources into {contract}, one checked file from which {reader} rebuilds {subject} without the sources.",
  "sources": [
   {
    "id": "skill-file",
@@ -36,7 +36,7 @@
  "terms": [
   {
    "term": "contract",
-   "meaning": "the one JSON file that holds the description; every view is drawn from it",
+   "meaning": "the one JSON file that holds all that is known of {subject}; every page is drawn from it",
    "coined": true
   },
   {
@@ -51,7 +51,7 @@
   },
   {
    "term": "gap",
-   "meaning": "what the description lacks, forbids wrongly, says twice or says with two meanings",
+   "meaning": "what {contract} lacks, forbids wrongly, says twice or says with two meanings",
    "coined": false
   }
  ],
@@ -59,12 +59,12 @@
   {
    "id": "skill",
    "title": "The system skill",
-   "about": "Who takes part in turning a system into a contract and a page, and what passes between them."
+   "about": "Between {subject} and {reader}, three jobs in turn carry what the sources say into two kept files, and {contract} is fit for {reader} only in the last of its three states."
   },
   {
    "id": "parts",
    "title": "Parts of a contract",
-   "about": "What a contract is made of, as things and the sentences that join them."
+   "about": "{contract} draws {subject} with four parts on each level and holds all levels together with three more."
   }
  ],
  "areas": [
@@ -74,55 +74,58 @@
    "tag": "lane",
    "level": "skill",
    "info": {
-    "owner": "whoever asks for the description"
+    "owner": "whoever asks for {contract}",
+    "why": "Set apart what the skill meets and does not make."
    }
   },
   {
    "id": "work",
-   "label": "the three cases",
+   "label": "the three jobs",
    "tag": "phase",
    "level": "skill",
    "info": {
     "order": 1,
-    "entry": "a subject and its sources are named",
-    "exit": "the page opens"
+    "entry": "{subject} and its sources are named",
+    "exit": "each open question on {contract} is answered or recorded",
+    "why": "Order the jobs of one run as they act: find, place, check."
    }
   },
   {
    "id": "kept",
-   "label": "what is kept",
+   "label": "the kept files",
    "tag": "module",
    "level": "skill",
    "info": {
-    "purpose": "hold the description so that every view is drawn from one file"
+    "purpose": "Hold the two files that outlast a run: {catalogue} and {contract}."
    }
   },
   {
    "id": "life",
-   "label": "state of a contract",
+   "label": "the states of a contract",
    "tag": "region",
    "level": "skill",
    "info": {
     "of": "{contract}",
-    "initial": "drafted"
+    "initial": "drafted",
+    "why": "Tell how far {contract} is from fit for {reader}, one state at a time."
    }
   },
   {
    "id": "drawn",
-   "label": "drawn parts",
+   "label": "the parts of one level",
    "tag": "module",
    "level": "parts",
    "info": {
-    "purpose": "what the graph of one level shows"
+    "purpose": "Draw one level as a graph with four parts."
    }
   },
   {
    "id": "told",
-   "label": "told across levels",
+   "label": "the parts across levels",
    "tag": "module",
    "level": "parts",
    "info": {
-    "purpose": "what joins and constrains the levels"
+    "purpose": "Hold all levels together with three parts: one fixes items, one walks the graph, one constrains it."
    }
   }
  ],
@@ -133,7 +136,7 @@
    "tag": "actor",
    "level": "skill",
    "area": "outside",
-   "purpose": "Be the system, process or requirements someone must understand or rebuild.",
+   "purpose": "Stand as the system, process or requirements that {reader} must rebuild.",
    "info": {
     "channels": [
      "code",
@@ -147,15 +150,33 @@
    ]
   },
   {
+   "id": "session",
+   "label": "a Claude Code session",
+   "tag": "host",
+   "level": "skill",
+   "area": "outside",
+   "purpose": "Host the skill where {subject}'s sources can be read.",
+   "info": {
+    "system": "python3, standard library only",
+    "runs": [
+     "{extract}",
+     "{write}",
+     "{checker}"
+    ]
+   },
+   "evidence": [
+    "skill-file"
+   ],
+   "basis": "documented"
+  },
+  {
    "id": "reader",
    "label": "a reader",
    "tag": "actor",
    "level": "skill",
    "area": "outside",
-   "purpose": "Rebuild or change {subject} without its sources.",
-   "info": {
-    "goal": "answer every rebuild question from {contract} alone"
-   },
+   "purpose": "Rebuild or change {subject} from {contract} alone.",
+   "info": {},
    "evidence": [
     "contract-playbook"
    ]
@@ -172,7 +193,7 @@
      "list the sources and what each can settle",
      "walk the topics",
      "note each finding with where it was seen",
-     "ask the gap questions"
+     "ask each open question"
     ],
     "outputs": {
      "columns": [
@@ -183,8 +204,8 @@
      "rows": [
       [
        "findings",
-       "notes by topic",
-       "{contract} case"
+       "text by topic",
+       "{write}"
       ]
      ]
     },
@@ -203,7 +224,7 @@
    "tag": "job",
    "level": "skill",
    "area": "work",
-   "purpose": "Place every finding in the one slot of {contract} that a checker and a page can read.",
+   "purpose": "Place each finding in the one slot of {contract} that {checker} and a page can read.",
    "info": {
     "steps": [
      "choose levels",
@@ -211,7 +232,7 @@
      "draw each lifecycle as a region of states",
      "fill each tag's items",
      "write scenarios and properties",
-     "check, read aloud, ask the gaps"
+     "run {checker}, read aloud, answer each open question"
     ],
     "failure": {
      "columns": [
@@ -220,8 +241,8 @@
      ],
      "rows": [
       [
-       "a rule breaks",
-       "{checker} names the place and the rule, and no page is built"
+       "a slot breaks a rule",
+       "the place and the rule are named, and no page is built until the slot is mended"
       ]
      ]
     }
@@ -234,13 +255,76 @@
    ]
   },
   {
+   "id": "checker",
+   "label": "the checker",
+   "tag": "job",
+   "level": "skill",
+   "area": "work",
+   "purpose": "Refuse {contract} while a page or {reader} could misread it, and list each open question.",
+   "info": {
+    "steps": [
+     "check the form",
+     "check each rule",
+     "print ok or each break"
+    ],
+    "signals": [
+     "`where: rule: message` per break",
+     "`ok`",
+     "one line per open question"
+    ],
+    "inputs": {
+     "columns": [
+      "name",
+      "type",
+      "from"
+     ],
+     "rows": [
+      [
+       "contract.json",
+       "JSON file",
+       "{write}"
+      ]
+     ]
+    }
+   },
+   "evidence": [
+    "checker-code"
+   ],
+   "files": [
+    "checker-code"
+   ]
+  },
+  {
+   "id": "catalogue",
+   "label": "the tag catalogue",
+   "tag": "artifact",
+   "level": "skill",
+   "area": "kept",
+   "purpose": "Fix, per tag, the items worth recording and the form of each.",
+   "info": {
+    "format": "one JSON file: kind, tag, meaning, items with a form and an example",
+    "made-by": "a survey of 35 documented systems",
+    "used-by": [
+     "{checker}",
+     "the page maker"
+    ]
+   },
+   "evidence": [
+    "tag-file",
+    "tag-survey"
+   ],
+   "files": [
+    "tag-file"
+   ]
+  },
+  {
    "id": "contract",
    "label": "the contract",
    "tag": "dataStore",
    "level": "skill",
    "area": "kept",
    "opens": "parts",
-   "purpose": "Hold the whole description in one file every later step reads.",
+   "purpose": "Hold all that is known of {subject} in one file that every later job reads.",
    "info": {
     "layout": [
      {
@@ -309,76 +393,13 @@
    ]
   },
   {
-   "id": "catalogue",
-   "label": "the tag catalogue",
-   "tag": "artifact",
-   "level": "skill",
-   "area": "kept",
-   "purpose": "Fix, per tag, the items worth recording and the form of each.",
-   "info": {
-    "format": "one JSON file: kind, tag, meaning, items with a form and an example",
-    "made-by": "a survey of 35 documented systems",
-    "used-by": [
-     "{checker}",
-     "the page maker"
-    ]
-   },
-   "evidence": [
-    "tag-file",
-    "tag-survey"
-   ],
-   "files": [
-    "tag-file"
-   ]
-  },
-  {
-   "id": "checker",
-   "label": "the checker",
-   "tag": "job",
-   "level": "skill",
-   "area": "work",
-   "purpose": "Refuse a contract a page or {reader} could misread, and list what it still leaves open.",
-   "info": {
-    "steps": [
-     "check the form",
-     "check each rule",
-     "print ok or each break"
-    ],
-    "signals": [
-     "`where: rule: message` per break",
-     "`ok`",
-     "one line per open question"
-    ],
-    "inputs": {
-     "columns": [
-      "name",
-      "type",
-      "from"
-     ],
-     "rows": [
-      [
-       "contract",
-       "JSON file",
-       "{write}"
-      ]
-     ]
-    }
-   },
-   "evidence": [
-    "checker-code"
-   ],
-   "files": [
-    "checker-code"
-   ]
-  },
-  {
    "id": "drafted",
    "label": "a drafted contract",
    "tag": "state",
    "level": "skill",
    "area": "life",
+   "purpose": "Mark {contract} as written and not yet accepted by {checker}.",
    "info": {
-    "meaning": "written, not yet accepted by {checker}",
     "ignores": [
      "edit",
      "gaps"
@@ -394,8 +415,8 @@
    "tag": "state",
    "level": "skill",
    "area": "life",
+   "purpose": "Mark {contract} as one that {checker} printed `ok` for.",
    "info": {
-    "meaning": "{checker} printed ok",
     "ignores": [
      "check"
     ]
@@ -410,8 +431,8 @@
    "tag": "state",
    "level": "skill",
    "area": "life",
+   "purpose": "Mark {contract} as fit for {reader}: each open question is answered or recorded as a gap.",
    "info": {
-    "meaning": "every gap question is answered or recorded as a gap; {reader} may take it",
     "ignores": [
      "check",
      "gaps"
@@ -422,34 +443,28 @@
    ]
   },
   {
-   "id": "session",
-   "label": "a Claude Code session",
-   "tag": "host",
-   "level": "skill",
-   "area": "outside",
-   "purpose": "Run the playbooks and {checker} where {subject}'s sources can be read.",
-   "info": {
-    "system": "python3, standard library only",
-    "runs": [
-     "extraction",
-     "{write}",
-     "{checker}"
-    ]
-   },
-   "evidence": [
-    "skill-file"
-   ],
-   "basis": "documented"
-  },
-  {
    "id": "level",
    "label": "a level",
    "tag": "artifact",
    "level": "parts",
    "area": "drawn",
-   "purpose": "Show one depth of {subject} small enough to read at once.",
+   "purpose": "Show one depth of {subject}, small enough to read at once.",
    "info": {
     "format": "id, title, about, areas, nodes, edges"
+   },
+   "evidence": [
+    "contract-playbook"
+   ]
+  },
+  {
+   "id": "area",
+   "label": "an area",
+   "tag": "artifact",
+   "level": "parts",
+   "area": "drawn",
+   "purpose": "Gather nodes for one reason, or hold the states of one thing.",
+   "info": {
+    "format": "id, label, tag, info"
    },
    "evidence": [
     "contract-playbook"
@@ -475,23 +490,9 @@
    "tag": "artifact",
    "level": "parts",
    "area": "drawn",
-   "purpose": "Say one relation as a sentence, or one move between states.",
+   "purpose": "Join two nodes by one relation, or by one move between states.",
    "info": {
     "format": "from, to, label, tag, many, info, evidence"
-   },
-   "evidence": [
-    "contract-playbook"
-   ]
-  },
-  {
-   "id": "area",
-   "label": "an area",
-   "tag": "artifact",
-   "level": "parts",
-   "area": "drawn",
-   "purpose": "Group nodes by one reason, or hold the states of one thing.",
-   "info": {
-    "format": "id, label, tag, info"
    },
    "evidence": [
     "contract-playbook"
@@ -503,9 +504,9 @@
    "tag": "policy",
    "level": "parts",
    "area": "told",
-   "purpose": "Say what kind an element is, and so which items it should carry.",
+   "purpose": "Fix which items {node}, {edge} or {area} holds.",
    "info": {
-    "statement": "an element holds only the items of its tag, each in its form",
+    "statement": "{node}, {edge} or {area} holds only the items of its tag, each item in its form",
     "enforced-by": "{checker}"
    },
    "evidence": [
@@ -520,7 +521,7 @@
    "area": "told",
    "purpose": "Show a purpose met, step by step, on the nodes and edges.",
    "info": {
-    "format": "id, title, purpose, principle, steps of level, at, does, then"
+    "format": "id, title, purpose, principle, steps of at, note"
    },
    "evidence": [
     "contract-playbook"
@@ -532,7 +533,7 @@
    "tag": "artifact",
    "level": "parts",
    "area": "told",
-   "purpose": "State what must hold, what is assumed, and what is not known.",
+   "purpose": "State what must hold of the nodes and edges, what is assumed and what is not known.",
    "info": {
     "format": "id, kind, strength, status, fault, statement, on, paths"
    },
@@ -849,7 +850,7 @@
    "id": "one-file",
    "kind": "invariant",
    "strength": "must",
-   "statement": "Every view of {subject} is made from {contract} and nothing else.",
+   "statement": "Every page of {subject} is made from {contract} and nothing else.",
    "on": [
     "contract"
    ],
