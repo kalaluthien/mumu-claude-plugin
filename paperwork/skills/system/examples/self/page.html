@@ -826,7 +826,23 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
         if (score > (scored.get(entry) || 0)) scored.set(entry, score);
       }
     }
-    return [...scored].sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind) || a[0].name.length - b[0].name.length || a[0].id.localeCompare(b[0].id)).map(([entry]) => entry);
+    const order = found => [...found].sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind) || a[0].name.length - b[0].name.length || a[0].id.localeCompare(b[0].id)).map(([entry]) => entry);
+    const asked = plain(query).split(" ").filter(Boolean);
+    return scored.size || asked.length < 3 ? order(scored) : order(answering(asked));
+  }
+  const stem = word => word.length > 4 ? word.replace(/(ies|es|ed|ing|s)$/, "") : word;
+  function answering(tokens) { // a sentence no record holds whole: each record by the words it shares, a word the fewer records hold counting the more
+    const found = new Map();
+    for (const token of new Set(tokens.map(stem))) {
+      const weights = new Map();
+      for (const entry of entries) {
+        const weight = Math.max(0, ...entry.fields.filter(field => field.tokens.some(word => stem(word) === token)).map(field => field.weight));
+        if (weight) weights.set(entry, weight);
+      }
+      const rare = Math.log(entries.length / (weights.size || 1));
+      for (const [entry, weight] of weights) found.set(entry, (found.get(entry) || 0) + rare * Math.sqrt(weight));
+    }
+    return [...found].filter(([, score]) => score > 0);
   }
   let chosen = 0, listed = [], scope = null;
   const KINDS = { node: "Nodes", level: "Levels", area: "Areas", edge: "Edges", scenario: "Scenarios", property: "Properties", question: "Questions" };

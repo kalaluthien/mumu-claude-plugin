@@ -3,10 +3,10 @@
 
 usage: replay-contract-changes.py
 
-On a copy of each `../examples/*/contract.json` it adds a finding to one node, renames one node, moves one node to another level, moves one edge to another node, reworks one
+On a copy of each `../examples/*/contract.json` it adds a finding to one node, renames one node, moves one node that no edge or area holds to another level, moves one edge to another node, reworks one
 item of a tag from a list into a text on every node that holds it, and gives one item of the catalogue a new shown name. Each change must
 touch the fewest records: one, or for the rework the nodes that hold the item and the one catalogue record. After each the checker must
-accept the copy and its `read` call must print every scenario step from the record the step names. A new name is also given to every node and area at
+accept the copy and its `read` call must print every scenario step from the record the step names. A node that edges or an area hold is also moved to another level, and the checker must name each edge and area the move strands. A new name is also given to every node and area at
 once, and no other label, no level, sentence, transition, rule, scenario or property line of `read`, and no text of the contract
 but a name, a source's words and an item of the code form, may still spell the old one outside a quote in backticks; each text `read` prints
 that names the node, a transition's event and guard included, must show the new name, with a capital where it opens the text or follows a full stop, unless it is a file name, and never the bare `{id}`.
@@ -130,6 +130,20 @@ def move_node(contract):
     contract["levels"][1]["nodes"].append(node)
     moved = differing(records(before), records(contract))
     return {"contract": 1, "catalogue": 0}, None if moved == 1 and run("check", before)[0] == 0 else f"a node moved to another level touches {moved} records, or the checker refuses it where it stood"
+
+
+def stranded(contract):
+    """What the checker leaves unnamed when the node of the first level that most edges hold moves to the second: each edge it
+    shares with a node that stays, and itself when an area holds it; with how many it had to name."""
+    first, second = contract["levels"][0], contract["levels"][1]
+    shared = lambda node: [edge["id"] for edge in first.get("edges", []) if node["id"] in (edge["from"], edge["to"])]
+    node = max(first["nodes"], key=lambda one: (len(shared(one)), "area" in one))
+    wanted = [(key, "edge-ends") for key in shared(node)] + ([(node["id"], "area-known")] if "area" in node else [])
+    first["nodes"].remove(node)
+    second["nodes"].append(node)
+    status, text = run("check", contract)
+    named = {(line.split(": ")[0].split("/")[-1], line.split(": ")[1]) for line in text.splitlines() if line.count(": ") >= 2}
+    return [key for key, rule in wanted if (key, rule) not in named] + ([] if status == 1 and wanted else ["a refusal"]), len(wanted)
 
 
 SPOKEN = ("level ", "  sentence:", "  transition:", "  rule:", "principle ", "scenario ", "property ", "invariant ", "fact ", "gap ", "assumption ", "constraint ", "convention ")
@@ -376,6 +390,9 @@ def main(args):
         stale = stale_names(copy.deepcopy(original))
         failed += bool(stale)
         lines.append(f"FAIL {path.parent.name}: a spoken line still spells the old label of {', '.join(stale)}" if stale else f"PASS {path.parent.name}: no spoken line spells a node's old label")
+        unnamed, held = stranded(copy.deepcopy(original)) if len(original["levels"]) > 1 else ([], 0)
+        failed += bool(unnamed)
+        lines.append(f"FAIL {path.parent.name}: move held node: the checker does not name {', '.join(unnamed)}" if unnamed else f"PASS {path.parent.name}: move held node: the checker names each of the {held} edges and areas the move strands")
         accepted = refused(original)
         failed += bool(accepted)
         lines.append(f"FAIL {path.parent.name}: the checker accepts {', '.join(accepted)}" if accepted else f"PASS {path.parent.name}: the checker refuses a position, a colour, markup and a bad step")

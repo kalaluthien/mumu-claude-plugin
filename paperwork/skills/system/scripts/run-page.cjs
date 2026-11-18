@@ -27,6 +27,8 @@
 //            and one on the answer, after the search is closed. The score is the mean reciprocal rank of the first
 //            such hit among the eight shown, over every record of the contract; it must be above, and the mean
 //            moves a task below, those fixtures/task-scores.json holds for the same questions on the page it names.
+//            Each row of that file with a `query` is the question as a writer who never saw the contract worded
+//            it; the same score over those must be above the one the file holds for them.
 // overlay and moves also read each transition: its timing is not linear, and it lasts no time under reduced motion.
 // Playwright is loaded from /private/tmp/relay-playwright/node_modules/playwright-core and the browser is the
 // newest headless shell Playwright installed, never an installed Google Chrome.
@@ -402,14 +404,12 @@ async function search(browser) {
 }
 
 // ---- tasks ----
-async function task(page, example, question, short) {
+async function task(page, example, question, typed) {
   const contract = example.contract, names = {};
   for (const level of contract.levels) for (const node of level.nodes.concat(level.areas || [])) names[node.id] = node.label;
   const shows = async (id) => { const hash = (await view(page)).address; return [`level=${id}`, `at=${id}`, `scenario=${id}`].some((part) => hash.split(/[#&]/).includes(part)); };
-  await page.goto("file://" + example.built);
-  await rest(page);
   await page.keyboard.press("/");
-  await page.keyboard.insertText(short ? question.id.replace(/-/g, " ") : question.asks.replace(/\{([a-z0-9-]+)\}/g, (whole, id) => names[id] || "").replace(/`/g, ""));
+  await page.keyboard.insertText(typed || question.asks.replace(/\{([a-z0-9-]+)\}/g, (whole, id) => names[id] || "").replace(/`/g, ""));
   await page.waitForTimeout(30);
   const hits = await page.evaluate(() => [...document.querySelectorAll("#hits [data-hit]")].map((row) => row.dataset.hit));
   const place = hits.findIndex((hit) => hit === question.id || question.answers.includes(hit));
@@ -422,6 +422,9 @@ async function task(page, example, question, short) {
     return { place, moves: 3 + place, hits };
   }
   await page.keyboard.press("Escape");
+  await page.goto("file://" + example.built + "#"); // a walk starts at the first view; a search starts anywhere
+  await page.reload();
+  await rest(page);
   const openers = {};
   for (const level of contract.levels) for (const node of level.nodes) if (node.opens) openers[node.opens] = node.id;
   const depth = (id) => { let level = example.levelOf[id], count = 0; while (openers[level]) { level = example.levelOf[openers[level]]; count += 1; } return count; };
@@ -449,17 +452,21 @@ async function tasks(browser) {
     const page = await open(browser, example, SIZES[1], { still: true });
     const mean = (values) => values.reduce((sum, value) => sum + value, 0) / values.length, gain = (place) => (place === null ? 0 : 1 / (place + 1));
     const now = {}, before = Object.fromEntries(kept.filter((row) => row.example === example.name).map((row) => [row.task, row]));
-    for (const question of (example.contract.questions || []).filter((one) => one.answers)) for (const short of [false, true]) now[question.id + (short ? " short" : "")] = await task(page, example, question, short);
+    for (const question of (example.contract.questions || []).filter((one) => one.answers)) for (const short of [false, true]) now[question.id + (short ? " short" : "")] = await task(page, example, question, short && question.id.replace(/-/g, " "));
+    for (const row of Object.values(before).filter((one) => one.query)) now[row.task] = await task(page, example, example.contract.questions.find((one) => one.id === row.task.split(" ")[0]), row.query);
     check(!page.faults.length, `${example.name} wrote to the console: ${page.faults[0]}`);
     await page.context().close();
     example.tasks = now;
-    const shared = Object.keys(now).filter((id) => before[id]);
+    const shared = Object.keys(now).filter((id) => before[id] && !before[id].query), reworded = Object.keys(now).filter((id) => before[id] && before[id].query);
     check(shared.length >= 10, `${example.name}: fixtures/task-scores.json holds ${shared.length} of its questions`);
     const score = mean(shared.map((id) => gain(now[id].place))), was = mean(shared.map((id) => gain(before[id].place)));
     const count = mean(shared.map((id) => now[id].moves)), counted = mean(shared.map((id) => before[id].moves));
     const line = `${example.name}: ${shared.length} tasks, mean reciprocal rank of the question or its first answer among the 8 hits shown, typed whole and as its id's words, ${score.toFixed(2)} (${kept[0].page} ${was.toFixed(2)}), ${count.toFixed(1)} moves a task (${kept[0].page} ${counted.toFixed(1)})`;
-    console.log([line].concat(shared.filter((id) => now[id].place !== 0).map((id) => `  ${id} wants ${example.contract.questions.find((one) => one.id === id.split(" ")[0]).answers.join(",")}, got ${now[id].hits.slice(0, 3).join(",") || "nothing"}`)).join("\n"));
+    const worded = mean(reworded.map((id) => gain(now[id].place))), once = mean(reworded.map((id) => gain(before[id].place)));
+    const said = `${example.name}: ${reworded.length} tasks typed in a reader's words, the same rank ${worded.toFixed(2)} (${before[reworded[0]].page} ${once.toFixed(2)})`;
+    console.log([line, said].concat(shared.concat(reworded).filter((id) => now[id].place !== 0).map((id) => `  ${id} wants ${example.contract.questions.find((one) => one.id === id.split(" ")[0]).answers.join(",")}, got ${now[id].hits.slice(0, 3).join(",") || "nothing"}`)).join("\n"));
     check(score > was && count < counted, line);
+    check(reworded.length >= 5 && worded > once, said);
   }));
 }
 
