@@ -53,7 +53,7 @@ def sorted_edges(contract, root):
 
 
 def main(args):
-    if len(args) != 3 or args[1] != "--root" or args[0].startswith("-"):
+    if len(args) != 3 or args[1] != "--root" or args[0].startswith("-") or args[2].startswith("-"):
         print(__doc__, file=sys.stderr)
         return 2
     try:

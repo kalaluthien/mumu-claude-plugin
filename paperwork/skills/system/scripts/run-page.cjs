@@ -81,6 +81,7 @@ const examples = fs.readdirSync(path.join(ROOT, "examples")).filter((name) => fs
   .map((name) => ({ name, source: path.join(ROOT, "examples", name, "contract.json"), kept: path.join(ROOT, "examples", name, "page.html"), built: path.join(scratch, name + ".html") }));
 const tags = JSON.parse(fs.readFileSync(path.join(ROOT, "assets", "tags.json"), "utf8"));
 const python = (script, ...args) => spawnSync("python3", [script, ...args], { encoding: "utf8" });
+const UNFOLD = "import json, pathlib, sys; sys.path.insert(0, sys.argv[1]); from contract_copies import copies; print(json.dumps(dict(copies(pathlib.Path(sys.argv[2])))))";
 
 let launches = 0;
 const loads = []; // each address a page was sent to, so a step can count what it opened
@@ -807,18 +808,9 @@ async function sweep(browser) {
   const folder = path.join(ROOT, "fixtures"), checker = path.join(ROOT, "scripts", "check-contract.py"), size = SIZES[1];
   const rules = python(checker, "rules").stdout.split("\n").filter(Boolean).map((line) => line.split(":")[0]);
   const ruleOf = (name) => rules.find((rule) => name === rule || name.startsWith(rule + "-"));
-  const kept = {}; // each contract of fixtures/ by name: a whole one, or a copy as its changes to one
-  for (const [base, copies] of Object.entries(JSON.parse(fs.readFileSync(path.join(folder, "contract-copies.json"), "utf8")))) {
-    kept[base] = JSON.parse(fs.readFileSync(path.join(folder, base + ".json"), "utf8"));
-    for (const [name, changes] of Object.entries(copies)) {
-      kept[name] = structuredClone(kept[base]);
-      for (const [way, ...value] of changes) {
-        const at = way.slice(0, -1).reduce((part, key) => part[key], kept[name]), last = way[way.length - 1];
-        if (!value.length) Array.isArray(at) ? at.splice(last, 1) : delete at[last];
-        else at[last] = value[0];
-      }
-    }
-  }
+  const unfolded = spawnSync("python3", ["-c", UNFOLD, path.join(ROOT, "..", "..", "lib"), folder], { encoding: "utf8" });
+  check(unfolded.status === 0, `the fixtures' copies do not unfold: ${unfolded.stderr.trim().split("\n").pop()}`);
+  const kept = JSON.parse(unfolded.stdout); // each contract of fixtures/ by name, unfolded as the checker unfolds it, so the sweep draws what the checker checked
   for (const name of REFUSED) check(ruleOf(name) && kept[name], `fixtures/ holds no ${name} named for a rule`);
   const replayed = python(checker, "fixtures"); // each fixture named for a rule breaks that rule alone, the refused shapes among them
   check(replayed.status === 0, `the checker's fixtures: ${replayed.stdout.split("\n").find((line) => line.startsWith("FAIL")) || "no verdict"}`);

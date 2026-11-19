@@ -26,6 +26,11 @@ async function main() {
   if (!browser) return 1;
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+    await page.clock.install(); // the page's timers run on a clock turned forward below, so a view is read where it comes to rest
+    const rest = async () => {
+      await page.evaluate(() => document.getAnimations().forEach((move) => { try { move.finish(); } catch (error) { /* one that never ends has no end to reach */ } }));
+      await page.clock.fastForward(1000);
+    };
     await page.goto(built);
     const contract = JSON.parse(await page.evaluate(() => document.getElementById("page-data").textContent));
     const views = [];
@@ -39,15 +44,19 @@ async function main() {
     for (const one of views) {
       await page.goto("about:blank");
       await page.goto(built + one.address);
-      await page.waitForFunction(() => document.body.dataset.busy === "", null, { timeout: 5000 });
-      if (one.button) await page.click("#" + one.button);
-      const shown = await page.waitForFunction((view) => {
+      await rest();
+      if (one.button) {
+        await page.click("#" + one.button);
+        await rest();
+      }
+      const shown = await page.evaluate((view) => {
+        if (document.body.dataset.busy !== "") return false;
         const card = document.getElementById("card");
         if (view.card) return card.classList.contains("show") && card.dataset.for === view.card;
         if (view.button) return document.querySelectorAll("#hits [data-hit]").length > 0;
         if ("step" in view) return +document.body.dataset.step === view.step && (!view.note || document.getElementById("chip").textContent.length > 0); // a step without a note shows no chip
         return true;
-      }, one, { timeout: 3000 }).then(() => true, () => false);
+      }, one);
       console.log(JSON.stringify({ view: one.view, text: await page.evaluate(() => document.body.innerText), shown }));
     }
   } finally {
