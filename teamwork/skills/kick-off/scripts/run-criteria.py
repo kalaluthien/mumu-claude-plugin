@@ -324,9 +324,6 @@ def run_per_hunk(options, task, root, live):
         """Label to result of each row in COPY; a git check, which the export cannot run, never passes."""
         return {label: row(label, *criterion, copy, options.timeout, live)[2] for label, criterion in found}
 
-    def passing(copy):
-        return {label for label, result in results(copy).items() if result == "pass"}
-
     with tempfile.TemporaryDirectory(prefix="run-criteria-hunks-") as copy:
         exported = subprocess.Popen(["git", "archive", "HEAD"], cwd=root, stdout=subprocess.PIPE)
         subprocess.run(["tar", "-x", "-C", copy], stdin=exported.stdout, check=True)
@@ -345,7 +342,7 @@ def run_per_hunk(options, task, root, live):
             reverted = subprocess.run([*apply[:2], "-R", *apply[2:]], cwd=copy, input=patch, text=True, capture_output=True)
             if reverted.returncode:
                 sys.exit(f"run-criteria: could not revert the hunk at {file}:{line}: {reverted.stderr.strip()}")
-            still = passing(copy)
+            still = {label for label, result in results(copy).items() if result == "pass"}
             subprocess.run(apply, cwd=copy, input=patch, text=True, capture_output=True, check=True)
             if held <= still:
                 unneeded.append(f"{file}:{line}: unneeded hunk: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous")
@@ -355,7 +352,7 @@ def run_per_hunk(options, task, root, live):
             for number, start, end in added_conditions(file, line, patch, text):
                 data = text.encode()
                 path.write_bytes(data[:start] + b"False" + data[end:])
-                still = passing(copy)
+                still = {label for label, result in results(copy).items() if result == "pass"}
                 path.write_text(text)
                 conditions += 1
                 if held <= still:
