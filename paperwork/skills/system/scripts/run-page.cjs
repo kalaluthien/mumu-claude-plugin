@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Open the page of each example contract in a headless Chromium, as file://, at 1024 by 768, 1440 by 900 and
 // 1920 by 1080 pixels, and drive it as a person with a pointer and a keyboard would.
+// Each page's timers run on a clock the run turns forward, so a step waits on the page and never sleeps.
 //
 // usage: run-page.cjs [diagram] [overlay] [moves] [changes] [search] [tasks] [sweep]
 // With no word it runs the seven steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
@@ -18,7 +19,9 @@
 //   moves    each scenario marks each step on the record it names, on that record's level, in 80 characters at
 //            most, under controls of a tenth of the window at most, forward and back by the arrow keys; the
 //            space key plays a scenario by itself and stops it, a step's button leads to that step, and the step
-//            after the last offers the scenario again; three
+//            after the last offers the scenario again; a double click on a node that opens a level and on one
+//            that opens none each adds one view to those the browser's back walks, printed as `a double click
+//            adds one view`; three
 //            orders of a move down, a move up, a search hit and a scenario step that changes level are walked back
 //            and forward by the browser's history and by the page's own keys, and each view's address opens it.
 //   changes  on a scratch copy of each example's contract one node no edge touches is planted, with a last step of
@@ -109,6 +112,7 @@ async function open(browser, example, size, options = {}) {
   page.on("console", (message) => message.type() === "error" && page.faults.push(message.text()));
   page.on("pageerror", (error) => page.faults.push(String(error)));
   page.on("request", (request) => { if (!request.url().startsWith("file://" + example.built)) page.asked.push(request.url()); });
+  await page.clock.install(); // the page's timers then run on a clock a step can turn forward, so no step sleeps
   const go = page.goto.bind(page);
   page.goto = (address) => { loads.push(address); return go(address); };
   await page.goto("file://" + example.built + (options.at || ""));
@@ -118,9 +122,9 @@ async function open(browser, example, size, options = {}) {
 const rest = async (page) => { // a move under way is carried to its end, since what a step reads is where the page comes to rest
   await page.evaluate(() => document.getAnimations().forEach((one) => { try { one.finish(); } catch (error) { /* one that never ends has no end to reach */ } }));
   await page.waitForFunction(() => document.body.dataset.busy === "", null, { timeout: 5000 });
-  await page.waitForTimeout(40);
+  await page.clock.fastForward(40);
 };
-const settled = async (page) => { await rest(page); await page.waitForTimeout(520); };
+const settled = async (page) => { await rest(page); await page.clock.fastForward(520); };
 const view = (page) => page.evaluate(() => {
   const now = document.querySelector("#crumbs [aria-current]"), pinned = document.querySelector("#stage .pinned"), marked = document.querySelector("#stage .node.step, #stage .edge.step");
   const dots = [...document.querySelectorAll("#play .dots button")];
@@ -293,7 +297,7 @@ async function overlay(browser) {
       await page.mouse.move(2, size[1] - 2);
       await page.mouse.move(spot.x, spot.y, { steps: 4 });
       await page.waitForFunction((id) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.dataset.for === id; }, target.id, { timeout: 8000 }).catch(() => { throw new Error(`${where}: no overlay came`); });
-      await page.waitForTimeout(320);
+      await page.clock.fastForward(320);
       const framed = (box, what) => {
         check(box.left >= 0 && box.top >= 0 && box.right <= size[0] && box.bottom <= size[1], `${where}: ${what} leaves the window`);
         check((box.right - box.left) * (box.bottom - box.top) <= size[0] * size[1] / 3, `${where}: ${what} covers over a third of the window`);
@@ -308,13 +312,13 @@ async function overlay(browser) {
       const shown = () => page.evaluate((id) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.dataset.for === id; }, target.id);
       const inside = [(box.left + box.right) / 2, (box.top + box.bottom) / 2];
       await Promise.all([page.mouse.move((spot.x + inside[0]) / 2, (spot.y + inside[1]) / 2), page.mouse.move(...inside)]);
-      await page.waitForTimeout(450);
+      await page.clock.fastForward(450);
       check(await shown(), `${where}: the overlay left when the pointer moved into it`);
       await page.mouse.move(spot.x, spot.y, { steps: 6 });
       await page.mouse.click(spot.x, spot.y);
       await rest(page);
       await page.mouse.move(2, size[1] - 2, { steps: 4 });
-      await page.waitForTimeout(450);
+      await page.clock.fastForward(450);
       check(await shown(), `${where}: the overlay closed after a click kept it`);
       const kept = await leaves(page);
       for (const rect of kept.rects) framed(rect, "the kept overlay");
@@ -322,7 +326,7 @@ async function overlay(browser) {
       check(!wrong, `${where}: ${wrong}`);
       await page.keyboard.press("Escape");
       await rest(page);
-      await page.waitForTimeout(120);
+      await page.clock.fastForward(120);
       check(!(await page.evaluate(() => document.getElementById("card").classList.contains("show"))), `${where}: Escape left the overlay open`);
     };
     for (const target of picked) await probe(target).catch(() => probe(target)); // a busy machine can miss the pointer's timing once
@@ -385,10 +389,10 @@ async function plays(browser, example) { // a scenario that plays by itself, a s
   check(await page.getByRole("button", { name: "Play" }).isVisible(), `${where}: no button is named Play`);
   await page.keyboard.press("Space");
   check((await step()) === 1 && (await page.getByRole("button", { name: "Pause" }).isVisible()), `${where}: the space key did not start the play at once`);
-  if (last > 1) await page.waitForFunction(() => +document.body.dataset.step === 2, null, { timeout: 6000 }).catch(() => { throw new Error(`${where}: the play did not go on by itself`); });
+  if (last > 1) { await page.clock.fastForward(6000); check((await step()) === 2, `${where}: the play did not go on by itself`); }
   await page.keyboard.press("Space");
   const held = await step();
-  await page.waitForTimeout(700);
+  await page.clock.fastForward(700);
   check((await step()) === held && (await page.getByRole("button", { name: "Play" }).isVisible()), `${where}: the space key did not stop the play`);
   await page.getByRole("button", { name: `Step ${last + 1}`, exact: true }).click();
   await rest(page);
@@ -492,10 +496,10 @@ async function moves(browser) {
   });
   const carded = (id) => turned.evaluate((id) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.dataset.for === id; }, id);
   const first = await turned.evaluate(() => document.body.dataset.level), entered = await leave();
-  await turned.waitForTimeout(400);
+  await turned.clock.fastForward(400);
   check(!(await carded(entered.id)), "an overlay rises over a level still arriving");
   await rest(turned);
-  await turned.waitForTimeout(200);
+  await turned.clock.fastForward(200);
   check(await carded(entered.id), "no overlay comes for the node under the pointer once its level has arrived");
   const home = async () => { await turned.keyboard.press("["); await turned.waitForFunction((level) => document.body.dataset.level === level, first); };
   await home();
@@ -505,6 +509,24 @@ async function moves(browser) {
   const resumed = await turned.evaluate(() => [document.getElementById("stage"), document.querySelector(".stage.old")].flatMap((stage) => (stage ? stage.getAnimations() : [])).map((one) => +one.effect.getKeyframes()[0].opacity));
   check(again.left > 0 && again.left < 1 && resumed.length > 0 && resumed.every((from) => Math.abs(from - again.left) < 0.05), `a move turned back with the level left at opacity ${again.left} goes on from opacity ${resumed.join(", ") || "nothing"}`);
   await turned.context().close();
+  for (const example of examples) { // a double click on a node that opens a level and on one that opens none
+    const first = example.contract.levels[0], opener = first.nodes.find((node) => node.opens), plain = first.nodes.find((node) => !node.opens);
+    check(opener && plain, `${example.name} holds no node that opens a level, or none that opens none, on its first level`);
+    for (const node of [opener, plain]) {
+      const page = await open(browser, example, SIZES[1]), before = await view(page), views = await page.evaluate(() => history.length);
+      const spot = await point(page, { kind: "node", id: node.id });
+      await page.mouse.dblclick(spot.x, spot.y);
+      await rest(page);
+      const after = await view(page), added = (await page.evaluate(() => history.length)) - views;
+      check(added === 1, `${example.name}: a double click on ${node.id} added ${added} views`);
+      check(node.opens ? after.level === node.opens && !after.pinned : after.level === first.id && after.pinned === node.id, `${example.name}: a double click on ${node.id} shows ${JSON.stringify(after)}`);
+      await page.goBack();
+      await rest(page);
+      check(same(await view(page), before), `${example.name}: one step back from a double click on ${node.id} shows ${JSON.stringify(await view(page))}`);
+      await page.context().close();
+    }
+  }
+  console.log("a double click adds one view");
   const still = await open(browser, examples[0], SIZES[1], { still: true });
   const stopped = await drawn(still);
   check(stopped.level.length === 2 && stopped.level.every((one) => !one.moves && one.long > 0 && one.long <= 500) && stopped.step.name === "appear", `under reduced motion a level move is ${JSON.stringify(stopped.level)} and a step's mark ${stopped.step.name}`);
@@ -563,7 +585,7 @@ async function search(browser) {
     check(page && examples.find((example) => example.name === query.example).levelOf[query.wants] !== undefined || (page && JSON.stringify(examples.find((example) => example.name === query.example).contract).includes(`"id": "${query.wants}"`)) || (page && JSON.stringify(examples.find((example) => example.name === query.example).contract).includes(`"id":"${query.wants}"`)), `the query ${query.query} wants ${query.wants}, which ${query.example} does not hold`);
     await page.keyboard.press("/");
     await page.keyboard.insertText(query.query);
-    await page.waitForTimeout(30);
+    await page.clock.fastForward(30);
     const hits = await page.evaluate(() => [...document.querySelectorAll("#hits [data-hit]")].map((row) => row.dataset.hit));
     await page.keyboard.press("Escape");
     const place = hits.indexOf(query.wants);
@@ -585,7 +607,7 @@ async function task(page, example, question, typed) {
   const shows = async (id) => { const hash = (await view(page)).address; return [`level=${id}`, `at=${id}`, `scenario=${id}`].some((part) => hash.split(/[#&]/).includes(part)); };
   await page.keyboard.press("/");
   await page.keyboard.insertText(typed || question.asks.replace(/\{([a-z0-9-]+)\}/g, (whole, id) => names[id] || "").replace(/`/g, ""));
-  await page.waitForTimeout(30);
+  await page.clock.fastForward(30);
   const hits = await page.evaluate(() => [...document.querySelectorAll("#hits [data-hit]")].map((row) => row.dataset.hit));
   const place = hits.findIndex((hit) => hit === question.id || question.answers.includes(hit));
   if (place >= 0) {

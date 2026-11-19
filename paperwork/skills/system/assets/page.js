@@ -888,8 +888,8 @@
     addEventListener("pointermove", approach);
     stage.addEventListener("pointerover", event => { const id = hit(event.target); approach(event); if (id) hover(id); });
     stage.addEventListener("pointerout", event => { approach(event); if (hit(event.target)) unhover(); });
-    stage.addEventListener("click", event => { const id = hit(event.target); if (id) go({ at: view.at === id ? null : id }); });
-    stage.addEventListener("dblclick", event => { const id = hit(event.target); if (id && records[id].record.opens) go({ level: records[id].record.opens, at: null }); });
+    stage.addEventListener("click", event => { const id = hit(event.target); if (id && event.detail < 2) go({ at: view.at === id ? null : id }); }); // a double click's second click would undo its first
+    stage.addEventListener("dblclick", event => { const id = hit(event.target); if (id && records[id].record.opens) go({ level: records[id].record.opens, at: null }, true); }); // in place of the view its first click added
     stage.addEventListener("keydown", event => {
       const id = hit(event.target);
       if (id && event.key === "Enter") go(records[id].record.opens && view.at === id ? { level: records[id].record.opens, at: null } : { at: id });

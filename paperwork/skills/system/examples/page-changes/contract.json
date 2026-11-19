@@ -215,7 +215,7 @@
      "python3 ${CLAUDE_PLUGIN_ROOT}/skills/page-changes/scripts/check-page.py `<page.html>`",
      "python3 ${CLAUDE_PLUGIN_ROOT}/skills/page-changes/fixtures/replay-check-page.py",
      "python3 ${CLAUDE_PLUGIN_ROOT}/skills/page-changes/fixtures/replay-option-calls.py [`<repository root>`]",
-     "node ${CLAUDE_PLUGIN_ROOT}/skills/page-changes/scripts/run-page-changes.cjs [--queue `<folder>` | --verify `<folder>`]"
+     "node ${CLAUDE_PLUGIN_ROOT}/skills/page-changes/scripts/run-relay.cjs [--queue `<folder>` | --verify `<folder>`]"
     ],
     "rules": [
      "scripts import only the standard library and no other script",
@@ -583,7 +583,7 @@
     },
     "steps": [
      "exit 2 with the docstring on stderr and nothing on stdout unless there is exactly one argument, it does not open with `-`, and it is a file",
-     "read the page text and build the copy: `<!-- page-changes runtime -->`, newline, `<script>`, newline, {runtime} text, newline, `</script>`, newline, `<!-- /page-changes runtime -->`",
+     "read the page text and build the copy: `<!-- relay runtime -->`, newline, `<script>`, newline, {runtime} text, newline, `</script>`, newline, `<!-- /relay runtime -->`",
      "search the page for the first opening marker up to the nearest closing marker after it (non-greedy, across lines); when found, replace that span with the copy",
      "when not found, insert the copy and a newline before the last `</body>` found without regard to letter case; with no `</body>`, append the copy and a newline at the end",
      "for page-data then page-threads: unless a script tag carries id=\"`<name>`\" in single or double quotes (letter case ignored), insert `<script type=\"application/json\" id=\"<name>\">`, newline, the empty value, newline, `</script>`, newline, directly before the first opening marker",
@@ -685,15 +685,15 @@
       [
        "stdout",
        "text lines",
-       "`page-changes url: <url>` first, then `page-changes pending ...` lines"
+       "`relay url: <url>` first, then `relay pending ...` lines"
       ]
      ]
     },
     "technology": "Python 3, standard library only: http.server.ThreadingHTTPServer with BaseHTTPRequestHandler (answers as HTTP/1.0), two daemon threads, one lock",
     "signals": [
-     "first stdout line: `page-changes url: http://127.0.0.1:<port>/<token>/`",
-     "`page-changes pending <n>: <c> comment, <d> data for <absolute page path> | pull: curl -s <url>api/changes | ack after editing the page: curl -s -X POST -H 'Origin: <origin>' -H 'Content-Type: application/json' -d '{\"ids\":[<id>,...]}' <url>api/changes/ack`",
-     "stderr: `page-changes cannot listen on 127.0.0.1:<port>: <error>`",
+     "first stdout line: `relay url: <url>`, the url being `http://127.0.0.1:<port>/<token>/`",
+     "`relay pending <n>: <c> comment, <d> data for <absolute page path> | pull: curl -s <url>api/changes`, then `| ack after editing the page: curl -s -X POST -H 'Origin: <origin>' -H 'Content-Type: application/json'`, then `-d '<ids>' <url>api/changes/ack`, the ids written `{\"ids\":[<id>,...]}`",
+     "stderr: `relay cannot listen on 127.0.0.1:<port>: <error>`",
      "no request log: log_message prints nothing"
     ],
     "failure": {
@@ -778,9 +778,9 @@
     "technology": "one immediately invoked arrow function in plain browser JavaScript: fetch, EventSource, sessionStorage, MutationObserver, requestAnimationFrame; no library",
     "signals": [
      "{status-bar} text",
-     "console.warn `page-changes: #<id> is not JSON` with the error",
-     "console.error `page-changes: pageRender failed` with the error",
-     "console.error `page-changes: runtime failed` with the error"
+     "console.warn `relay: #<id> is not JSON` with the error",
+     "console.error `relay: pageRender failed` with the error",
+     "console.error `relay: runtime failed` with the error"
     ],
     "owner": "source in assets/page-runtime.js; every page carries its own pasted copy"
    },
@@ -882,7 +882,7 @@
       [
        "escape",
        "a raw `<` inside either block",
-       "`break escape: a raw < in #<block>, where a </script> would end the block; write \\u003c`"
+       "`a raw < in #<block>, where a </script> would end the block`, under the rule `escape`"
       ],
       [
        "page-data or page-threads",
@@ -929,7 +929,7 @@
     "signals": [
      "`follows`",
      "`break <rule>: <detail>`",
-     "the docstring on stderr: Check an HTML page file against the page-changes interface, printing `follows`, or one `break <rule>: <detail>` line per break. / usage: check-page.py `<page.html>` / Rules: `data-block` (exactly one page-data block, JSON), `threads-block` (at most one page-threads block, `{\"threads\": {...}}`), `escape` (no raw `<` inside either block), `anchors` (each `data-id` 1 to 80 letters, digits or `_.:-`, used once), `thread-keys` (each thread names a `data-id` of the page or an `id` value inside page-data), `entries` (each entry has `id`, `by` and `text`, each id used once) and `replies` (a `by: \"session\"` entry's `replies_to` names an entry of its own thread). Exit 0 when it follows, 1 when it breaks."
+     "the docstring on stderr: Check an HTML page file against the relay interface, printing `follows`, or one `break <rule>: <detail>` line per break. / usage: check-page.py `<page.html>` / Rules: `data-block` (exactly one page-data block, JSON), `threads-block` (at most one page-threads block, `{\"threads\": {...}}`), `escape` (no raw `<` inside either block), `anchors` (each `data-id` 1 to 80 letters, digits or `_.:-`, used once), `thread-keys` (each thread names a `data-id` of the page or an `id` value inside page-data), `entries` (each entry has `id`, `by` and `text`, each id used once) and `replies` (a `by: \"session\"` entry's `replies_to` names an entry of its own thread). Exit 0 when it follows, 1 when it breaks."
     ],
     "why": "a thread key may name an id inside page data because an anchor such as a diagram node is drawn by code and is not in the file's markup; NaN and Infinity are refused because Python reads them and a browser's JSON.parse does not"
    },
@@ -984,7 +984,7 @@
     "steps": [
      "run python3 ${CLAUDE_PLUGIN_ROOT}/skills/page-changes/fixtures/replay-check-page.py",
      "run python3 ${CLAUDE_PLUGIN_ROOT}/skills/page-changes/fixtures/replay-option-calls.py",
-     "run node ${CLAUDE_PLUGIN_ROOT}/skills/page-changes/scripts/run-page-changes.cjs"
+     "run node ${CLAUDE_PLUGIN_ROOT}/skills/page-changes/scripts/run-relay.cjs"
     ],
     "outputs": {
      "columns": [
@@ -1001,7 +1001,7 @@
      ]
     },
     "signals": [
-     "observed at this commit: all three pass; `3 scripts, 34 calls, 0 not refused`"
+     "observed at this commit: all three pass; `<n> scripts, <n> calls, <n> not refused` with 3, 34 and 0"
     ]
    },
    "evidence": [
@@ -1048,7 +1048,7 @@
         "note": "may define window.pageRender"
        },
        {
-        "name": "`<!-- page-changes runtime -->` ... `<!-- /page-changes runtime -->`",
+        "name": "`<!-- relay runtime -->` ... `<!-- /relay runtime -->`",
         "note": "the inline copy of {runtime}, before the closing body tag"
        }
       ]
@@ -1223,7 +1223,7 @@
    "purpose": "Fetch every pending change.",
    "info": {
     "steps": [
-     "on each `page-changes pending` line, or when {person} asks to apply the changes: GET api/changes under the url"
+     "on each `relay pending` line, or when {person} asks to apply the changes: GET api/changes under the url"
     ]
    },
    "evidence": [
@@ -1317,7 +1317,7 @@
    "area": "rules",
    "purpose": "Keep Claude Code from loading the skill outside its use, and a person from invoking it.",
    "info": {
-    "format": "YAML front matter of SKILL.md: `name: page-changes`; `description: Use when the changes a person makes on a local HTML page, such as comments, form values or diagram edits, must be applied to that page's file by a session.`; `user-invocable: false`",
+    "format": "YAML front matter of SKILL.md: `name: relay`; `description: Use when the changes a person makes on a local HTML page, such as comments, form values or diagram edits, must be applied to that page's file by a session.`; `user-invocable: false`",
     "layout": [
      {
       "name": "SKILL.md",
@@ -1455,16 +1455,17 @@
    "area": "rules",
    "purpose": "Have every change to {skill-folder} replayed.",
    "info": {
-    "statement": "run replay-check-page.py, replay-option-calls.py and run-page-changes.cjs after a change to the folder",
+    "statement": "run replay-check-page.py, replay-option-calls.py and run-relay.cjs after a change to the folder",
     "scope": [
      "every file of teamwork/skills/page-changes"
     ],
     "exceptions": [
-     "where Playwright or its headless shell is missing, run-page-changes.cjs prints `FAIL setup: install playwright-core into /private/tmp/page-changes-playwright and its chromium-headless-shell`"
+     "where Playwright or its headless shell is missing, run-relay.cjs prints `FAIL setup: install playwright-core into /private/tmp/relay-playwright and its chromium-headless-shell`"
     ]
    },
    "evidence": [
-    "src-skill:41"
+    "src-skill:41",
+    "src-e2e:446"
    ],
    "basis": "documented"
   },
@@ -1669,7 +1670,7 @@
    "area": "page-body",
    "purpose": "Make the page carry its own runtime so it works from any folder and as file://.",
    "info": {
-    "format": "`<!-- page-changes runtime -->`, a script element holding {runtime} text, `<!-- /page-changes runtime -->`, each on its own line, placed before the last closing body tag and after both blocks",
+    "format": "`<!-- relay runtime -->`, a script element holding {runtime} text, `<!-- /relay runtime -->`, each on its own line, placed before the last closing body tag and after both blocks",
     "made-by": "{connector}",
     "used-by": [
      "{browser}",
@@ -1694,9 +1695,9 @@
    "info": {
     "steps": [
      "served is true when location.protocol is http: or https:",
-     "storage keys are `page-changes:<location.pathname>:<name>`; reading and writing sessionStorage never throws out of {runtime}, and writing an empty value removes the key",
+     "storage keys are `relay:<location.pathname>:<name>`; reading and writing sessionStorage never throws out of {runtime}, and writing an empty value removes the key",
      "a route's address is new URL(route, location.href).href, so `api/changes` resolves under /`<token>`/",
-     "read #page-data and #page-threads by JSON.parse of textContent; a missing block gives null; text that is no JSON gives null after console.warn(`page-changes: #<id> is not JSON`, error)",
+     "read #page-data and #page-threads by JSON.parse of textContent; a missing block gives null; text that is no JSON gives null after console.warn(`relay: #<id> is not JSON`, error)",
      "window.pageData is the parsed page data when it is a non-null, non-array object, else {}",
      "threads is the parsed block's `threads` when both the block and it are such objects, else {}",
      "window.pageChanges = []; pending = []; unsent = the JSON list stored under `unsent`, or [] when absent, unparsable or no list",
@@ -2458,13 +2459,13 @@
        "no argument; first word opens with `-`; an unknown flag; a flag with no value or a value of the wrong form; flags are read in pairs after the page; the page is no file"
       ],
       [
-       "exit 1, stderr `page-changes cannot listen on 127.0.0.1:<port>: <error>`",
+       "exit 1, stderr `relay cannot listen on 127.0.0.1:<port>: <error>`",
        "the bind fails; changes/ and {history-folder} already exist by then, {url-file} is not rewritten"
       ]
      ]
     },
     "signals": [
-     "the docstring: Queue the change events an open HTML page sends for a Claude Code session to apply, and tell the page to reload when its file changes. / usage: serve-page-changes.py `<page.html>` [--port `<n>`] [--quiet `<seconds>`] / It binds 127.0.0.1 behind a random token, `http://127.0.0.1:<port>/<token>/`, written to `url.txt` beside the page and reused on a restart. Its first stdout line is `page-changes url: <url>`; once a change is queued and `--quiet` seconds (default 3) pass with no newer one, it prints one `page-changes pending ...` line carrying the commands that pull and ack the queue. It never writes the page: each version of it is copied, read only, into `history/`; events wait in `changes/pending.jsonl` and acked ones move to `changes/applied.jsonl`."
+     "the docstring: Queue the change events an open HTML page sends for a Claude Code session to apply, and tell the page to reload when its file changes. / usage: serve-page-changes.py `<page.html>` [--port `<n>`] [--quiet `<seconds>`] / It binds 127.0.0.1 behind a random token, `http://127.0.0.1:<port>/<token>/`, written to `url.txt` beside the page and reused on a restart. Its first stdout line is `relay url: <url>`; once a change is queued and `--quiet` seconds (default 3) pass with no newer one, it prints one `relay pending ...` line carrying the commands that pull and ack the queue. It never writes the page: each version of it is copied, read only, into `history/`; events wait in `changes/pending.jsonl` and acked ones move to `changes/applied.jsonl`."
     ]
    },
    "evidence": [
@@ -2494,7 +2495,7 @@
      "origin = http://127.0.0.1:`<the bound port>`; url = `<origin>`/`<token>`/; write url and a newline to {url-file}",
      "run {keeper} once",
      "start {watcher} and {announcer} as daemon threads",
-     "print `page-changes url: <url>` flushed, then serve forever"
+     "print `relay url: <url>` flushed, then serve forever"
     ],
     "failure": {
      "columns": [
@@ -2601,7 +2602,7 @@
      "read the page's bytes; digest = the first 12 hex characters of their sha256",
      "stop when the digest equals memory's digest",
      "unless the last name in sorted {history-folder}*.html ends with `-<digest>.html`: write the bytes to {history-folder}`<local time as %Y%m%dT%H%M%S%f>`-`<digest>`.html and set its mode to 0o444",
-     "only when the bytes contain `<!-- /page-changes runtime -->`: set memory's digest, which makes every stream send `reload`"
+     "only when the bytes contain `<!-- /relay runtime -->`: set memory's digest, which makes every stream send `reload`"
     ],
     "outputs": {
      "columns": [
@@ -3456,7 +3457,8 @@
    },
    "evidence": [
     "src-server:74",
-    "src-skill:30"
+    "src-skill:30",
+    "src-runtime:127"
    ],
    "basis": "observed"
   },
@@ -3654,7 +3656,7 @@
     "steps": [
      "take data[\"diagram-main\"], creating { nodes: [], edges: [] } in data when absent; nodes and edges default to empty lists",
      "depth: every node with no incoming edge gets 0; then breadth first along the edges, an unvisited target gets its source's depth plus 1",
-     "`place each node in list order: column = its depth, or 0 when none; x = 20 + column * 220; y = 20 + (its number in that column, from 0) * 90`",
+     "place each node in list order, its column being its depth, or 0 when none: `x: 20 + column * 220` and `y: 20 + (rows[column] - 1) * 90`, the row counted per column from 1",
      "svg width = 40 + (the greatest depth, at least 0, plus 1) * 220; height = 40 + (the most nodes in one column, at least 1) * 90",
      "reset the svg to a defs holding marker#diagram-arrow: viewBox 0 0 10 10, refX 10, refY 5, markerWidth 8, markerHeight 8, orient auto, with a path d=\"M0,0 L10,5 L0,10 z\"",
      "per edge whose two ends are placed: a line from (from.x + 160, from.y + 25) to (to.x, to.y + 25) with marker-end url(#diagram-arrow)",
@@ -3707,17 +3709,17 @@
       [
        "fixtures/break-anchors.html",
        "data-id intro on a section and on a paragraph; page data {}; no threads block",
-       "`break anchors: data-id \"intro\" marks 2 elements`, exit 1"
+       "a break of `anchors`: `data-id \"<id>\" marks <n> elements`, for `intro` marking 2, exit 1"
       ],
       [
        "fixtures/break-escape.html",
        "page data `{\"intro\": {\"text\": \"a < b\"}}`; empty threads",
-       "`break escape: a raw < in #page-data, where a </script> would end the block; write \\u003c`, exit 1"
+       "a break of `escape`: `a raw < in #<block>, where a </script> would end the block`, for {data-block}, exit 1"
       ],
       [
        "fixtures/break-replies.html",
        "anchors intro and outro; thread intro holds entry 1 by person; thread outro holds entry \"1.1\" by session replying to 1",
-       "`break replies: session entry 1.1 replies to 1, no entry of thread \"outro\"`, exit 1"
+       "a break of `replies`: `session entry <id> replies to <id>, no entry of thread \"<anchor>\"`, for entry 1.1 of `outro`, exit 1"
       ]
      ]
     },
@@ -3747,7 +3749,11 @@
     "src-fx-follows:1",
     "src-fx-anchors:1",
     "src-fx-escape:2",
-    "src-fx-replies:3"
+    "src-fx-replies:3",
+    "src-check:57",
+    "src-check:85",
+    "src-check:115",
+    "src-check:127"
    ],
    "basis": "observed"
   },
@@ -3782,16 +3788,17 @@
      "print `FAIL` and exit 1 when any failed, else `PASS` and exit 0"
     ],
     "signals": [
-     "observed: `PASS break-anchors.html: break anchors: data-id \"intro\" marks 2 elements`",
-     "observed: `PASS follows-thread.html: follows`",
-     "observed: `PASS diagram-page.html: follows`",
+     "observed: PASS break-anchors.html, with the break of `anchors` its name expects",
+     "observed: PASS follows-thread.html, with `follows`",
+     "observed: PASS diagram-page.html, with `follows`",
      "observed last line: `PASS`",
      "the docstring: Replay check-page.py on each page in this folder and on the starter diagram page, comparing each with the verdict its name expects. / usage: replay-check-page.py / A `follows-*.html` page, and `../assets/diagram-page.html`, must print `follows` and exit 0; a `break-<rule>.html` page must print only `break <rule>:` lines and exit 1. It prints one PASS or FAIL line per page, then PASS or FAIL."
     ]
    },
    "evidence": [
     "src-replay-check:2",
-    "src-replay-check:16"
+    "src-replay-check:16",
+    "src-check:85"
    ],
    "basis": "observed"
   },
@@ -3842,7 +3849,7 @@
      "print `<n> scripts, <n> calls, <n> not refused`; exit 1 when any was not refused, else 0"
     ],
     "signals": [
-     "observed: `3 scripts, 34 calls, 0 not refused`: 22 calls of {server}, 6 of each other script",
+     "observed: `<n> scripts, <n> calls, <n> not refused` with 3, 34 and 0: 22 calls of {server}, 6 of each other script",
      "the docstring: Call each script of this skill with `--help` and with an unknown `--x` at each word position of a valid call, in a scratch folder, and list each call that is not refused: exit 2, `usage:` on stderr, nothing on stdout and the folder left as it was. / usage: replay-option-calls.py [`<repository root>`] / The repository check passes its root, which this ignores, since the scripts it calls sit beside it. Prints one `option <script>: <call> gave <answer>` line per call not refused, then `<n> scripts, <n> calls, <n> not refused`, and exits 0 only when none failed."
     ]
    },
@@ -3861,7 +3868,7 @@
    "area": "browser-run",
    "purpose": "Choose between {e2e-run} and the two modes a real session sits between, {e2e-queue} and {e2e-verify}.",
    "info": {
-    "address": "node run-page-changes.cjs | node run-page-changes.cjs --queue <folder> | node run-page-changes.cjs --verify <folder>",
+    "address": "node run-relay.cjs | node run-relay.cjs --queue <folder> | node run-relay.cjs --verify <folder>",
     "request": {
      "columns": [
       "field",
@@ -3893,7 +3900,7 @@
      ],
      "rows": [
       [
-       "exit 2, stderr `usage: run-page-changes.cjs [--queue <folder> | --verify <folder>]`",
+       "exit 2, stderr `usage: run-relay.cjs [--queue <folder> | --verify <folder>]`",
        "one argument alone, more than two, or two whose first is neither --queue nor --verify"
       ],
       [
@@ -3925,7 +3932,7 @@
    "purpose": "Run the page as a person's browser would, without touching an installed Google Chrome.",
    "info": {
     "location": "Playwright from /private/tmp/page-changes-playwright/node_modules/playwright-core; {browser} is `<home>`/Library/Caches/ms-playwright/`<the last chromium_headless_shell-* folder in sorted order>`/chrome-headless-shell-mac-arm64/chrome-headless-shell",
-    "system": "macOS on arm64, by that path; installed by `npm install --prefix /private/tmp/page-changes-playwright playwright-core`, then `npx --prefix /private/tmp/page-changes-playwright playwright-core install chromium-headless-shell`",
+    "system": "macOS on arm64, by that path; installed by `npm install --prefix /private/tmp/relay-playwright playwright-core`, then `npx --prefix /private/tmp/relay-playwright playwright-core install chromium-headless-shell`",
     "runs": [
      "the starter copy and its runtime"
     ]
@@ -3946,14 +3953,14 @@
    "purpose": "Run the five steps in order on one scratch folder and one server.",
    "info": {
     "steps": [
-     "when Playwright's package.json or {browser} binary is missing: print `FAIL setup: install playwright-core into /private/tmp/page-changes-playwright and its chromium-headless-shell`, exit 1",
+     "when Playwright's package.json or {browser} binary is missing: print `FAIL setup: install playwright-core into /private/tmp/relay-playwright and its chromium-headless-shell`, exit 1",
      "make a temporary folder named page-changes-`<random>` under the system's temporary folder and copy assets/diagram-page.html to page.html in it",
      "launch {browser} and start {server} on page.html with --quiet 1.5, its stderr passed through",
      "run the steps `a file`, `b served`, `c session`, `d refusals`, `e outage` in order, each going on after a failure; print `PASS <step>` or `FAIL <step>: <reason>`",
      "close {browser}, stop {server}, remove the folder, print `FAIL` and exit 1 when any failed, else `PASS` and exit 0"
     ],
     "signals": [
-     "observed: `PASS a file`, `PASS b served`, `PASS c session`, `PASS d refusals`, `PASS e outage`, `PASS`, exit 0"
+     "observed: `PASS <step>` for each of the five steps, then `PASS`, exit 0"
     ]
    },
    "evidence": [
@@ -4795,7 +4802,7 @@
    "tag": "sequence",
    "info": {
     "order": 2,
-    "condition": "a `page-changes pending` line, a restart of {server}, or {person} asking"
+    "condition": "a `relay pending` line, a restart of {server}, or {person} asking"
    },
    "evidence": [
     "src-skill:25",
@@ -5863,10 +5870,10 @@
    "tag": "dependsOn",
    "info": {
     "kind": "at run time",
-    "on-failure": "`FAIL setup: ...` and exit 1"
+    "on-failure": "`FAIL setup: install playwright-core into /private/tmp/relay-playwright and its chromium-headless-shell` and exit 1"
    },
    "evidence": [
-    "src-e2e:445"
+    "src-e2e:446"
    ]
   },
   {
@@ -5877,10 +5884,10 @@
    "tag": "dependsOn",
    "info": {
     "kind": "at run time",
-    "on-failure": "`FAIL queue: install playwright-core into /private/tmp/page-changes-playwright and its chromium-headless-shell`"
+    "on-failure": "`FAIL queue: <reason>`, the reason being the first line of the error"
    },
    "evidence": [
-    "src-e2e:326"
+    "src-e2e:357"
    ]
   },
   {
@@ -5891,10 +5898,10 @@
    "tag": "dependsOn",
    "info": {
     "kind": "at run time",
-    "on-failure": "`FAIL setup: install playwright-core ...`"
+    "on-failure": "`FAIL setup: <reason>`, the reason being the first line of the error"
    },
    "evidence": [
-    "src-e2e:326"
+    "src-e2e:432"
    ]
   },
   {
@@ -6643,7 +6650,7 @@
    "kind": "convention",
    "strength": "must",
    "status": "holds",
-   "statement": "Every stdout line of {server} opens with `page-changes `, then `url:` or `pending`.",
+   "statement": "Every stdout line of {server} opens with `relay `, then `url:` or `pending`.",
    "on": [
     "server",
     "announcer"
