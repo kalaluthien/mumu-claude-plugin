@@ -1,6 +1,7 @@
 """How a `[check]` criterion reads: the command it runs, the output it expects, the one value it quotes for the base.
 run-criteria.py runs a check by it and check-criteria.py refuses a check it cannot read, so both share this one parse."""
 import re
+import shlex
 
 import task_state
 
@@ -204,6 +205,42 @@ WATCHES = re.compile(r"\bwatches:\s*([^;`]*?)(?=\s+on (?:base|main)\b|;|\.(?:\s|
 
 def starts_session(command):
     return bool(SESSION.search(command))
+
+
+# flags of `claude` that take several values, so a prompt after one is read as one more value
+VARIADIC = {"--allowedTools", "--allowed-tools", "--disallowedTools", "--disallowed-tools", "--tools", "--add-dir", "--mcp-config", "--betas", "--file"}
+# flags of `claude` that take one value, which is no prompt
+SINGLE = {"--model", "--output-format", "--input-format", "--max-turns", "--permission-mode", "--append-system-prompt", "--system-prompt", "--resume", "--session-id", "--settings", "--agent", "--fallback-model", "--plugin-dir", "--effort", "--name", "-n", "-r", "-c"}
+
+
+def swallowed_flag(command):
+    """The variadic flag of the `claude -p` stage whose run of values holds the prompt, else None: a variadic flag reads every word up to the next flag or `--`,
+    so with two or more words in its run and no prompt before it, the prompt is one of its values."""
+    first = command if (rest := after_first_pipe(command)) is None else command[:len(command) - len(rest) - 1]
+    if not starts_session(first):
+        return None
+    try:
+        words = shlex.split(first)
+    except ValueError:
+        return None
+    flag, prompted, found, values, i = None, False, None, 0, words.index("claude") + 1 if "claude" in words else 0
+    skip = False
+    for word in words[i:]:
+        if skip:
+            skip = False
+            continue
+        if word == "--":
+            return None
+        if word.startswith("-"):
+            found = found or (flag if flag and values > 1 else None)
+            flag, values = (word.split("=")[0], 0) if word.split("=")[0] in VARIADIC else (None, 0)
+            skip = word in SINGLE
+        elif flag:
+            values += 1
+        else:
+            prompted = True
+    found = found or (flag if flag and values > 1 else None)
+    return None if prompted else found
 
 
 def watched(detail):

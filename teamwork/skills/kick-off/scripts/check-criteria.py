@@ -55,6 +55,7 @@ WRAPPERS = {"env", "command", "exec", "nice", "nohup", "time", "timeout", "xargs
 
 
 FIX = {
+    "prompt swallowed": "put the prompt first or after `--`, since a flag that takes several values reads the prompt as one more value and `claude` exits with Input must be provided",
     "no kind": "open the criterion with `[check]` or `[score]` before its name",
     "no name": "put a bold name after the kind: `[check] **<name>**: <details>`",
     "no command": "write the command that decides in a code span; a `[check]` is a command whose output decides",
@@ -138,6 +139,13 @@ def live_defects(kind, detail):
     return ["live stage not replayable"] if kind == "check" and command and criteria_check.starts_session(command) and not criteria_check.live_stage(detail) else []
 
 
+def order_defects(kind, detail):
+    """A live `[check]` whose prompt follows a flag that takes several values, which `claude` reads as one more value and then exits with "Input must be provided"."""
+    command, _ = criteria_check.expectation(detail)
+    flag = criteria_check.swallowed_flag(command) if kind == "check" and command else None
+    return [f"prompt swallowed by {flag}"] if flag else []
+
+
 def defects(kind, name, detail):
     """The defects of one criterion, in the order the task lists them."""
     found = [] if kind in ("check", "score") else ["no kind"]
@@ -204,7 +212,7 @@ def main(args):
     matched = [(line_number, task_state.CRITERION.match(line).groups()[1:]) for line_number, line in enumerate(lines, 1)]
     criteria = [(line_number, groups) for line_number, groups in matched if groups[0] != "task"]
     flagged = [(line_number, found) for line_number, groups in criteria
-               for found in [defects(*groups) + (scenario_defects(groups[0], groups[2]) + live_defects(groups[0], groups[2]) if new_rules else [])] if found]
+               for found in [defects(*groups) + (scenario_defects(groups[0], groups[2]) + live_defects(groups[0], groups[2]) + order_defects(groups[0], groups[2]) if new_rules else [])] if found]
     if new_rules and len(criteria) > MOST:
         flagged.insert(0, ("body", ["more than 5 criteria"]))
     flagged = ([("goal", goal_found)] if goal_found else []) + flagged
@@ -213,7 +221,7 @@ def main(args):
     for position, found in flagged:
         print(f"{position}: {', '.join(found)}")
     for name in dict.fromkeys(defect for _, found in flagged for defect in found):
-        print(f"- {name}: {FIX[name]}")
+        print(f"- {name}: {FIX[name.split(' by ')[0]]}")
     for found in written:
         print(f"write: {found}")
     if written:
