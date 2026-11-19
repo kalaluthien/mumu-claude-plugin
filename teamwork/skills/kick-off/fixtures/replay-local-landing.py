@@ -8,6 +8,7 @@ usage: replay-local-landing.py [--case <name>]   (no argument: every one in turn
 - no-gh: change, merge and remove-worktree call no gh
 - no-origin: a repository with no remote merges locally and removes the worker's worktree with no gh call, and pushes nothing
 - swap-retired: a swapped-out worker's branch, the ancestor of its successor's merged branch, is removed with its worktree once the successor's change merges, and one branch is left
+- owned-branches: removing a worker removes each merged `<name>-<word>` branch it owns, here and on `origin`, keeps one with unmerged commits and an `origin` one of no worker branch name and says so, and leaves a branch of another name
 - dirty-base: an uncommitted file of the base checkout that the change also edits, its name holding a space, refuses the merge before any push, and nothing moves"""
 import json
 import os
@@ -151,7 +152,27 @@ def case_dirty_base():
     return 0
 
 
-CASES = {"pushes": case_pushes, "push-refused": case_push_refused, "no-gh": case_no_gh, "no-origin": case_no_origin, "swap-retired": case_swap_retired, "dirty-base": case_dirty_base}
+def case_owned_branches():
+    work, repository, origin, environment = setup()
+    tree, head = worker(work, repository, environment)
+    if merged(work, repository, origin, environment, tree, head).returncode:
+        return replay_probe.fail("the worker's change did not merge")
+    for branch in ("probe-worker-docs", "probe-worker-two-words", "probe-workers"):
+        sh("git", "branch", branch, "main", cwd=repository, environment=environment)
+        sh("git", "push", "-q", "origin", branch, cwd=repository, environment=environment)
+    sh("git", "checkout", "-q", "-b", "probe-worker-wip", cwd=repository, environment=environment)
+    sh("git", "commit", "-q", "--allow-empty", "-m", "wip", cwd=repository, environment=environment)
+    sh("git", "checkout", "-q", "main", cwd=repository, environment=environment)
+    out = sh(sys.executable, SCRIPTS / "remove-worktree.py", "probe-worker", cwd=repository, environment=environment, check=False).stdout
+    local = set(sh("git", "branch", "--format=%(refname:short)", cwd=repository, environment=environment).stdout.split())
+    remote = set(sh("git", "branch", "--format=%(refname:short)", cwd=origin, environment=environment).stdout.split())
+    if local != {"main", "probe-workers", "probe-worker-wip"} or remote != {"main", "probe-workers", "probe-worker-two-words"} \
+            or "branch probe-worker-wip kept, unmerged commits" not in out or "origin branch probe-worker-two-words kept, not a worker branch name" not in out:
+        return replay_probe.fail(f"local {sorted(local)}, origin {sorted(remote)}; printed {out.strip()}")
+    return 0
+
+
+CASES = {"pushes": case_pushes, "push-refused": case_push_refused, "no-gh": case_no_gh, "no-origin": case_no_origin, "swap-retired": case_swap_retired, "dirty-base": case_dirty_base, "owned-branches": case_owned_branches}
 
 
 def main(args):

@@ -157,7 +157,7 @@ def main(args):
     step("heartbeat-rebase", "rebase #2: it conflicts with its base" in beat, beat)
 
     code, out = run([SCRIPTS / "remove-worktree.py", "landing-probe-worker"])
-    step("remove", "landing-probe-worker: worktree, branch removed" in out and "fast-forward" not in out
+    step("remove", "landing-probe-worker: worktree, branch landing-probe-worker removed" in out and "fast-forward" not in out
          and not git("branch", "--list", "landing-probe-worker"), out)
     racers = [subprocess.Popen([str(SCRIPTS.parent / "references/adapters/landing-git/scripts" / "use-landing.py"), "change", "clash-probe-worker", "Race", str(work / "body.md")], stdout=subprocess.PIPE, text=True)
               for _ in range(6)]

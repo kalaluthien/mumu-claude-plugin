@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Remove the worktree and the branches of each merged worker, then fast-forward the main checkout. An unclean worktree is
-kept, never forced; a branch with unmerged commits is kept; the remote branch is deleted only under a worker branch name.
+"""Remove the worktree and every branch each merged worker owns, `<name>` or `<name>-<word>` behind any prefix, local and on
+`origin`, then fast-forward the main checkout. An unclean worktree is kept, never forced; a branch with unmerged commits is kept;
+a remote branch is deleted only under a worker branch name.
 
 usage: remove-worktree.py <name>..."""
 import os
@@ -11,6 +12,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import landing  # noqa: E402
+import team_names  # noqa: E402
 
 
 # Only a branch a worker made is deleted on the remote; any other name may be somebody's live branch.
@@ -36,9 +38,34 @@ def unmerged_tips(name, root):
     return sorted(tip[:9] for tip in tips - merged if not default or git("merge-base", "--is-ancestor", tip, default, cwd=root).returncode)
 
 
-def remove(name, root):
-    """What was removed for NAME, or why it stopped: an unclean worktree is kept, never forced."""
+def owned(name, root):
+    """The local and `origin` branches NAME owns, by the rule the heartbeat finds its merges with."""
+    refs = git("for-each-ref", "--format=%(refname:lstrip=2)", "refs/heads", "refs/remotes/origin", cwd=root).stdout.split()
+    return sorted({ref.removeprefix("origin/") for ref in refs if team_names.owns(name, ref.removeprefix("origin/"))} - {"HEAD"})
+
+
+def drop(branch, root):
+    """What was removed of BRANCH, and why any of it was kept, or None."""
+    unmerged = unmerged_tips(branch, root)
+    if unmerged:
+        return [], f"branch {branch} kept, unmerged commits at {', '.join(unmerged)}"
     done = []
+    if not git("show-ref", "--verify", "--quiet", f"refs/heads/{branch}", cwd=root).returncode:
+        git("branch", "-D", branch, cwd=root)
+        done.append(f"branch {branch}")
+    if not git("ls-remote", "--exit-code", "origin", f"refs/heads/{branch}", cwd=root).returncode:
+        if not WORKER_BRANCH.search(branch):
+            return done, f"origin branch {branch} kept, not a worker branch name"
+        result = git("push", "origin", "--delete", branch, cwd=root)
+        if result.returncode:
+            return done, f"origin branch {branch} kept, {result.stderr.strip()}"
+        done.append(f"origin branch {branch}")
+    return done, None
+
+
+def remove(name, root):
+    """What was removed for NAME, its worktree and each branch it owns, and why any was kept: an unclean worktree is kept, never forced."""
+    done, kept = [], []
     tree = root / ".claude" / "worktrees" / name
     git("worktree", "prune", cwd=root)  # a folder deleted by hand leaves its worktree registered
     if tree.exists():
@@ -46,20 +73,12 @@ def remove(name, root):
         if result.returncode:
             return f"{name}: worktree kept, {result.stderr.strip()}"
         done.append("worktree")
-    unmerged = unmerged_tips(name, root)
-    if unmerged:
-        return f"{name}: {', '.join(done) or 'nothing'} removed; branch kept, unmerged commits at {', '.join(unmerged)}"
-    if not git("show-ref", "--verify", "--quiet", f"refs/heads/{name}", cwd=root).returncode:
-        git("branch", "-D", name, cwd=root)
-        done.append("branch")
-    if not git("ls-remote", "--exit-code", "origin", f"refs/heads/{name}", cwd=root).returncode:
-        if not WORKER_BRANCH.search(name):
-            return f"{name}: {', '.join(done) or 'nothing'} removed; origin branch kept, not a worker branch name"
-        result = git("push", "origin", "--delete", name, cwd=root)
-        if result.returncode:
-            return f"{name}: {', '.join(done) or 'nothing'} removed; origin branch kept, {result.stderr.strip()}"
-        done.append("origin branch")
-    return f"{name}: {', '.join(done) + ' removed' if done else 'nothing left to remove'}"
+    for branch in owned(name, root):
+        removed, reason = drop(branch, root)
+        done += removed
+        kept += [reason] if reason else []
+    said = ", ".join(done) + " removed" if done else "nothing removed" if kept else "nothing left to remove"
+    return f"{name}: {said}" + "".join(f"; {reason}" for reason in kept)
 
 
 def main(args):

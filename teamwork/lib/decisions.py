@@ -102,7 +102,10 @@ def refusals(number, text, fields, tasks):
     if owner and not quoted(text):
         found.append("`--by owner` quotes no words of the owner's, as a `>` line or in double quotes")
     answered = fields.get("answers")
-    if answered and task_state.place(answered) not in [task_state.place(question["ask"]["url"]) for question in task_state.questions(as_task(tasks[int(number)]))]:
+    asked = {task_state.place(question["ask"]["url"]): question["fields"].get("asks") for question in task_state.questions(as_task(tasks[int(number)]))}
+    if answered and asked.get(task_state.place(answered)) == "owner" and not owner:
+        found.append(f"{answered} asks the owner, so only a decision `--by owner`, quoting the owner's words, answers it")
+    if answered and task_state.place(answered) not in asked:
         place = next((home for home, task in tasks.items() for comment in as_task(task)["comments"] if task_state.place(comment.get("url") or "") == task_state.place(answered)), None)
         found.append(f"`--answers` names {answered}, which is no question on #{number}"
                      + (f"; post the decision on #{place}, the question's own task" if place and place != int(number) else ""))

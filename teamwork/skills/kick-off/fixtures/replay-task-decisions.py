@@ -5,7 +5,8 @@ nodes written here by hand. The git board trusts every comment, so pane-untruste
 decision comments untrusted, as an outsider's is marked, before the rows are laid out.
 - record-fields, record-event, record-supersedes, record-unknown-supersedes, record-answers-elsewhere, record-answers-own: `decide`
   stores a decision `read` prints back, its `--answers` an open question on its own task
-- authority-refuses, authority-unquoted, authority-comment, authority-owner, authority-manager: who may supersede an owner decision
+- authority-refuses, authority-unquoted, authority-comment, authority-owner, authority-manager: who may supersede an owner decision;
+  authority-owner-question, authority-owner-answers: only a decision `--by owner` answers a question to the owner, one written or stored by another leaving it open
 - binding-ancestors, binding-stopped-root, binding-answered, binding-event-keeps-question, binding-one-way-waits,
   binding-one-way-supersedes, binding-successor: a task's binding set and open questions
 - heartbeat-open-question, heartbeat-twice-superseded, heartbeat-one-way, heartbeat-one-way-superseded, heartbeat-answer-line,
@@ -161,6 +162,13 @@ def authority_cases():
     first = decide(managed, "build it in Python")
     second = decide(managed, "build it in TypeScript", supersedes=first)
     step("authority-manager", isinstance(second, str) and bound(managed) == [second], index(managed))
+    asking = file("Probe a question to the owner")
+    question = ask(asking, "may the sync run", owner=True)
+    refused("authority-owner-question", asking, lambda: decide(asking, "the sync may run", answers=question), question, "asks the owner")
+    older(asking, f"DECIDED: the sync may run\n\n```decision\ndecision: the sync may run\ndecided by: probe-manager\nanswers: {question}\n```\n")
+    kept = asked(asking) == [question]
+    answer = decide(asking, "the sync may run", by="owner", answers=question, quote="yes, run it")
+    step("authority-owner-answers", kept and isinstance(answer, str) and asked(asking) == [], index(asking))
 
 
 def binding_cases():

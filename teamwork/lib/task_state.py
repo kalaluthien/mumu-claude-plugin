@@ -218,7 +218,7 @@ def place(url):
 def questions(task):
     """Its questions, oldest first, each {'ask': the `BLOCKED:` comment, 'fields': its fields, 'answer': the comment that settles it or None}:
     a later decision settles the question whose url it names and each earlier open ask with the same first line, since an ask
-    posted again is one question; one that names none settles each open question its decider may answer: the owner any, a manager any
+    posted again is one question, a question to the owner only when the decider is the owner; one that names none settles each open question its decider may answer: the owner any, a manager any
     not asked of the owner, a worker none, and a `DECIDED:` from before decisions were typed any."""
     found = []
     for word, held, comment in records(task)[1:]:
@@ -229,8 +229,9 @@ def questions(task):
             said = {first_line(question["ask"]["body"]) for question in found if place(question["ask"]["url"]) == place(named)}
             older = (comment.get("createdAt") or "") < legacy_records.TYPED_SINCE
             for question in found:
-                general = older or decider == "owner" or decider == "manager" and question["fields"].get("asks") != "owner"
-                if question["answer"] is None and (general if not named else place(question["ask"]["url"]) == place(named) or first_line(question["ask"]["body"]) in said):
+                allowed = older or decider == "owner" or question["fields"].get("asks") != "owner"
+                general = allowed and (older or decider != "worker")
+                if question["answer"] is None and (general if not named else allowed and (place(question["ask"]["url"]) == place(named) or first_line(question["ask"]["body"]) in said)):
                     question["answer"] = comment
     return found
 
