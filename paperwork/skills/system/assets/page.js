@@ -1134,7 +1134,7 @@
         if (event.key === "Escape") shut();
         else if (event.altKey && event.code === "KeyR") regex(!regular); // by the key's place, since Option on a Mac turns R into another letter
         else if (event.key === "ArrowDown" || event.key === "ArrowUp") { chosen = (chosen + (event.key === "ArrowDown" ? 1 : listed.length - 1)) % Math.max(1, listed.length); list(); }
-        else if (event.key === "Enter" && listed[chosen]) pick(listed[chosen]);
+        else if (event.key === "Enter" && listed[chosen] && !event.target.closest("button")) pick(listed[chosen]); // a focused button takes its own Enter
         else return;
         return event.preventDefault();
       }

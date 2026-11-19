@@ -59,7 +59,7 @@
 //            and each query of the search step lists its hits within 50 ms of the page's main thread time on
 //            page-changes, the largest example, in its fastest of up to five runs.
 //   regex    the button and Alt+R turn the regular expression mode on and off, shown pressed; the whole input is
-//            one pattern, case ignored, with no slips or initials; `watcher|flush` marks either word; a bad pattern
+//            one pattern, case ignored, with no slips or initials; Enter on the focused button presses it; `watcher|flush` marks either word; a bad pattern
 //            says `Not a regular expression` with its reason, in red in the light and dark schemes; the key line
 //            names Alt+R and the pressed button looks pressed.
 //   ranking  each query of fixtures/ranking-queries.json typed into its example's page; the mean reciprocal rank of
@@ -67,7 +67,7 @@
 //            each query on paperwork-v0.14.9.
 //   recent   nine queries each picked from on page-changes: the empty search lists the last eight, newest first,
 //            above the questions, each with a clock; typing keeps those that start with it, the typed part plain
-//            and the rest bold; one removed stays gone after a reload; a copy of the page at another path in the
+//            and the rest bold on one line; one removed by Enter on its remove button stays gone after a reload; a copy of the page at another path in the
 //            same browser lists none; a page whose storage throws keeps them for the tab.
 //   tasks    each rebuild question an example answers is two tasks: from the first view, `/`, the question typed
 //            whole or as the words of its id, an arrow per hit above the question or the first of its answers, Enter, and the view shows
@@ -1035,6 +1035,9 @@ async function regex(browser) {
   const loose = await typed(page, "the checker"), off = await shade();
   await page.click("#regex");
   check(await pressed() === "true" && (await shade()) !== off, "the button does not turn the mode on, or looks the same pressed");
+  await page.focus("#regex"); await page.keyboard.press("Enter");
+  check(await pressed() === "false" && (await page.evaluate(() => document.getElementById("palette").classList.contains("show"))), "Enter on the focused button does not turn the mode off, or closes the search");
+  await page.focus("#query"); await page.click("#regex");
   await page.keyboard.press("Alt+KeyR");
   check(await pressed() === "false", "Alt+R does not turn the mode off");
   await page.keyboard.press("Alt+KeyR");
@@ -1105,14 +1108,17 @@ async function recent(browser) {
   lines.push(`kept: the last 8 of 9 picked queries above the questions, each with a clock`);
   const typing = (await typed(page, "the")).filter((hit) => hit.recent);
   check(typing.length === kept.filter((text) => text.startsWith("the")).length && typing.every((hit) => hit.plain === "the" && hit.recent === "the" + hit.bold), `typing "the" shows ${JSON.stringify(typing)}`);
-  lines.push(`typing: "the" keeps ${typing.length}, the typed part plain and the rest bold`);
+  const flat = await page.evaluate(() => [...document.querySelectorAll("#hits .recent")].map((part) => part.querySelector("b").getClientRects().length === 1 && part.getBoundingClientRect().height < 1.5 * part.querySelector("b").getBoundingClientRect().height));
+  check(flat.length && flat.every(Boolean), "a recent query's typed part and bold rest sit on two lines");
+  lines.push(`typing: "the" keeps ${typing.length}, the typed part plain and the rest bold on one line`);
   await page.fill("#query", ""); await page.keyboard.insertText("");
-  await page.click(`#hits [data-recent="the status"] .forget`);
+  await page.focus(`#hits [data-recent="the status"] .forget`); await page.keyboard.press("Enter");
+  check(await page.evaluate(() => document.getElementById("palette").classList.contains("show") && !document.querySelector('#hits [data-recent="the status"]')), "Enter on a focused remove button does not remove its query, or closes the search");
   await page.keyboard.press("Escape");
   await page.reload(); await rest(page);
   const left = await shown(page, "");
   check(left.length === 7 && !left.some((hit) => hit.recent === "the status"), `after removing the status and a reload the search lists ${JSON.stringify(left.map((hit) => hit.recent))}`);
-  lines.push("remove: the status is gone after a reload");
+  lines.push("remove: Enter on its focused remove button drops the status, gone after a reload");
   const elsewhere = path.join(scratch, "elsewhere.html"), other = await page.context().newPage(); // the same browser storage, another file
   fs.copyFileSync(example.built, elsewhere);
   await other.clock.install(); await other.goto("file://" + elsewhere); await rest(other);

@@ -175,7 +175,7 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
 #hits .hit { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 6px; cursor: pointer; transition: background-color .12s var(--ease); }
 #hits .hit[aria-selected="true"] { background: var(--accent); }
 #hits .hit .text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-#hits .hit b { font-weight: 500; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+#hits .hit .text > b { font-weight: 500; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 #hits .hit .where { font-size: 12px; line-height: 16px; color: var(--muted-foreground); overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 #hits .hit .where i { font-style: normal; font-weight: 500; color: var(--foreground); }
 #hits mark { background: color-mix(in oklab, var(--mark) 18%, transparent); color: var(--foreground); font-weight: 600; border-radius: 2px; box-shadow: 0 1px 0 color-mix(in oklab, var(--mark) 70%, transparent); }
