@@ -38,13 +38,7 @@
   const label = id => records[id] ? (records[id].record.label || records[id].record.title || id) : id;
   // a quote, a formula or a named record in a text; the formula's pattern is tex_mathml.py's, which make-page.py drew each one by
   const MARKS = /(```[\s\S]*?```|`[^`]+`)|\$\$([^$`]+?)\$\$|\$(?!\{[A-Z_]+\})([^\s$`](?:[^$`]*?[^\s$`])?)\$(?!\d)|\{([a-z0-9-]+)\}/g;
-  const named = (id, at, all, code = false) => { // a named record's label, with a capital where a sentence opens, never in code
-    const name = label(id);
-    if (/[ㄱ-ㆎ가-힣]/.test(all)) return name.replace(/^(?:an?|the)\s+/i, ""); // Korean has no article and no capital
-    const plain = !/[./_\d]|[a-z][A-Z]/.test(name.split(/\s+/)[0]); // a file name stays as written
-    return plain && !code && (at === 0 || all.slice(0, at).endsWith(". ")) ? name[0].toUpperCase() + name.slice(1) : name;
-  };
-  const words = (text, code = false) => String(text).replace(MARKS, (whole, quote, block, inline, id, at, all) => (id && records[id] ? named(id, at, all, code) : whole));
+  const words = text => String(text).replace(MARKS, (whole, quote, block, inline, id) => (id && records[id] ? label(id) : whole));
   const bare = text => words(text).replace(/`([^`]+)`/g, "$1"); // text drawn where no code face can show, such as a tooltip, keeps a code span's words without its marks
   const tagName = tag => String(tag).replace(/[A-Z]/g, letter => " " + letter.toLowerCase()); // a tag's id as the words it joins
   const sentence = edge => edge.tag === "transition"
@@ -545,7 +539,7 @@
     settle(new Set([...lit, ...Object.keys(tone).filter(id => tone[id] === "step" || tone[id] === "next")]), focus);
     if (hovered) card(hovered); else if (view.at) card(view.at); else hide();
   }
-  const quoted = text => words(text, true).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("em", {}, part.slice(1, -1)) : part); // a code span inside code has no code face to take, so it reads as a literal term
+  const quoted = text => words(text).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("em", {}, part.slice(1, -1)) : part); // a code span inside code has no code face to take, so it reads as a literal term
   let glossed = new Set(); // the terms the card has marked, each at its first match only
   const spoken = piece => { // a run of prose: a `(guess)` as a badge, and the first match of each term the card has not marked as a term
     const guess = piece.search(/\(guess\)/i);
@@ -577,8 +571,8 @@
       out.push(...(plain ? [all.slice(last, found.index)].filter(Boolean) : spoken(all.slice(last, found.index))));
       last = found.index + whole.length;
       if (quote) out.push(literal(quote));
-      else if (id && plain) out.push(named(id, found.index, all));
-      else if (id) out.push(make("span", { class: "ref", "data-ref": id }, named(id, found.index, all)));
+      else if (id && plain) out.push(label(id));
+      else if (id) out.push(make("span", { class: "ref", "data-ref": id }, label(id)));
       else out.push(formula(block || inline, !!block));
     }
     return out.concat(plain ? [all.slice(last)].filter(Boolean) : spoken(all.slice(last)));
@@ -856,7 +850,7 @@
       for (const edge of level.edges || []) add(edge.id, "edge", sentence(edge), tagName(edge.tag), [[words(edge.label), 9], [sentence(edge), 6], [edge.id, 5], [edge.tag, 3], [texts(edge.info), 1]]);
     }
     for (const scenario of contract.scenarios || []) add(scenario.id, "scenario", words(scenario.title), `${scenario.steps.length} steps`, [[words(scenario.title), 10], [scenario.id, 8], [scenario.purpose && words(scenario.purpose), 2]]);
-    for (const property of contract.properties || []) add(property.id, "property", words(property.statement), property.kind, [[property.id, 9], [words(property.statement), 5], [property.kind, 4]]);
+    for (const property of contract.properties || []) add(property.id, "property", property.title, property.kind, [[property.title, 10], [property.id, 9], [words(property.statement), 5], [property.kind, 4]]);
     for (const question of contract.questions || []) add(question.id, "question", words(question.asks), question.answers ? "question" : "open question", [[words(question.asks), 3], [question.id, 2]]);
     return list;
   }

@@ -98,23 +98,23 @@ def rename_node(contract):
                 uses[end] = uses.get(end, 0) + 1
     name = max(sorted(uses), key=uses.get)
     node = next(node for level in contract["levels"] for node in level["nodes"] if node["id"] == name)
-    node["label"] = "the part named anew"
+    node["label"] = "Part named anew"
     first = run("read", contract)[1]
-    node["label"] = "the part with a second name"
+    node["label"] = "Part with a second name"
     second = run("read", contract)[1]
-    shown = first.count("the part named anew") >= uses[name] and first.lower().replace("the part named anew", node["label"]) == second.lower()
+    shown = first.count("Part named anew") >= uses[name] and first.replace("Part named anew", node["label"]) == second
     planted = copy.deepcopy(contract)
     turn = next(edge for level in planted["levels"] for edge in level.get("edges", []) if edge["tag"] == "transition")
     turn["label"] = "ask {" + name + "}"
     turn.setdefault("info", {})["guard"] = "{" + name + "} agrees"
-    shown = shown and "-- ask the part with a second name [The part with a second name agrees]" in run("read", planted)[1]
+    shown = shown and "-- ask Part with a second name [Part with a second name agrees]" in run("read", planted)[1]
     return (1, 0), None if shown else "a line that shows the node does not follow its label"
 
 
 def move_node(contract):
     if len(contract["levels"]) < 2:
         return (0, 0), None
-    node = {"id": "part-set-apart", "label": "the part set apart", "tag": contract["levels"][0]["nodes"][0]["tag"], "purpose": "Stand on the level that asks about it."}
+    node = {"id": "part-set-apart", "label": "Part set apart", "tag": contract["levels"][0]["nodes"][0]["tag"], "purpose": "Stand where its question is asked."}
     contract["levels"][0]["nodes"].append(node)
     before = copy.deepcopy(contract)
     contract["levels"][0]["nodes"].remove(node)
@@ -167,16 +167,17 @@ def stale_names(contract):
     named = [node for level in contract["levels"] for node in level["nodes"] + level.get("areas", [])]
     old = {node["id"]: node["label"] for node in named}
     for count, node in enumerate(named):
-        node["label"] = f"the part named anew {count}"
+        node["label"] = f"Part named anew {count}"
     printed = run("read", contract)[1]
     lines = [line for line in printed.splitlines() if line.startswith(SPOKEN) or line[:5].strip().rstrip(".").isdigit()]
     names = {node["id"]: node["label"] for node in named}
-    bare = [re.sub("`[^`]*`", " ", line).lower() for line in lines + worded(contract)]
+    bare = [re.sub("`[^`]*`", " ", line) for line in lines + worded(contract)]
     unsaid = {name for text in spoken(contract) if said(text, names) not in printed for name in re.findall(r"\{([a-z0-9-]+)\}", text)}
     stale = []
     for name, label in old.items():
-        spelt = r"(?<![\w-])" + r"\s+".join(re.escape(word) for word in label.lower().split()) + r"(?![\w-])"
-        if any(re.search(spelt, line) for line in bare) or name in unsaid or "{" + name + "}" in printed:
+        words = r"\s+".join(re.escape(word) for word in label.split()) + r"(?![\w-])"
+        spelt = [re.compile(r"(?<![\w-])the\s+" + words, re.IGNORECASE)] + ([re.compile(r"(?<![\w-])" + words)] if len(label.split()) > 1 else [])
+        if any(pattern.search(line) for pattern in spelt for line in bare) or name in unsaid or "{" + name + "}" in printed:
             stale.append(name)
     return stale
 
@@ -196,12 +197,8 @@ def spoken(contract):
 
 
 def said(text, names):
-    """TEXT as `read` must print it: each `{id}` its node's label, with a capital where it opens TEXT or follows a full stop, unless its first word is the subject's own name."""
-    def name(found):
-        label = names.get(found.group(1), found.group(0))
-        plain = not re.search(r"[./_\d]|[a-z][A-Z]", label.split()[0])
-        return label[:1].upper() + label[1:] if plain and (found.start() == 0 or text[:found.start()].endswith(". ")) else label
-    return re.sub(r"\{([a-z0-9-]+)\}", name, text)
+    """TEXT as `read` must print it: each `{id}` its node's label as written."""
+    return re.sub(r"\{([a-z0-9-]+)\}", lambda found: names.get(found.group(1), found.group(0)), text)
 
 
 def move_edge(contract):

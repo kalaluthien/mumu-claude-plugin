@@ -101,20 +101,16 @@ def differs(wanted, got, what):
     return faults + [f"FAIL {what}: {place} is named, though nothing was written there" for place in sorted(set(got) - set(wanted))]
 
 
-def spoken(contract, text, article=False):
-    """TEXT as a reader of a Korean description must meet it: no space, no backtick, and each `{id}` as its record's label without the
-    article, or with it when ARTICLE is true."""
+def spoken(contract, text):
+    """TEXT as a reader of a Korean description must meet it: no space, no backtick, and each `{id}` as its record's label."""
     labels = {element["id"]: element["label"] for level in contract["levels"] for kind in ("areas", "nodes", "edges") for element in level.get(kind, [])}
-    shown = NAMED.sub(lambda match: re.sub("^$" if article else r"^(?:an?|the)\s+", "", labels.get(match.group(1), match.group(0)), flags=re.IGNORECASE), text)
-    return re.sub(r"[\s`]+", "", shown)
+    return re.sub(r"[\s`]+", "", NAMED.sub(lambda match: labels.get(match.group(1), match.group(0)), text))
 
 
-def article_faults(contract, naming, drawn, what):
-    """A FAIL line when DRAWN, the text WHAT shows, holds none of the texts of NAMING with its records' labels, or holds one with an English article."""
+def naming_faults(contract, naming, drawn, what):
+    """A FAIL line when DRAWN, the text WHAT shows, holds none of the texts of NAMING with its records' labels."""
     drawn = re.sub(r"\s+", "", drawn).casefold()
-    faults = [f"FAIL {what} shows {place} with the English article of a label" for place, text in naming
-              if spoken(contract, text, True).casefold() != spoken(contract, text).casefold() and spoken(contract, text, True).casefold() in drawn]
-    return faults + ([] if any(spoken(contract, text).casefold() in drawn for _, text in naming) else [f"FAIL {what} shows no Korean description that names a record"])
+    return [] if any(spoken(contract, text).casefold() in drawn for _, text in naming) else [f"FAIL {what} shows no Korean description that names a record"]
 
 
 def other_words(name, contract, folder, passed):
@@ -167,7 +163,7 @@ def korean_descriptions(contract, folder):
     if status or lines != ["ok"]:
         faults.append(f"FAIL the contract with Korean descriptions is refused: {lines[:1]}")
     naming = [(place, holder[key]) for place, holder, key, kind in texts(contract) if kind == "description" and KOREAN.search(holder[key]) and NAMED.search(holder[key])]
-    faults += article_faults(contract, naming, "".join(checker("read", contract, folder)[0]), "read")
+    faults += naming_faults(contract, naming, "".join(checker("read", contract, folder)[0]), "read")
     faults += [f"FAIL the catalogue names {name} in Korean" for kind in ("node", "edge", "area") for tag, entry in TAGS[kind].items()
                for name in [tag] + [item["label"] for item in entry["items"] + TAGS["common"][kind]] if KOREAN.search(name)]
     copied = copy.deepcopy(contract)
@@ -204,7 +200,7 @@ def korean_descriptions(contract, folder):
             rest = rest.replace(text, " ")
         if KOREAN.search(rest):
             faults.append(f"FAIL the page shows Korean outside a description at {view['view']}: {''.join(KOREAN.findall(rest))[:40]}")
-    return faults + article_faults(contract, naming, "".join(view["text"] for view in views), "the page")
+    return faults + naming_faults(contract, naming, "".join(view["text"] for view in views), "the page")
 
 
 def main(args):
