@@ -28,7 +28,6 @@ import replay_probe  # noqa: E402
 
 USE = HERE.parent / "scripts" / "use-board.py"
 LIST = ROOT / "hooks" / "list-task-board.py"
-CHECK = replay_probe.CHECK
 failures = []
 
 
@@ -40,7 +39,7 @@ def step(name, ok, detail=""):
 
 def body(parts=(), check=True):
     """A task's body: a goal, then a Definition of done of a check, when CHECK, and its parts."""
-    items = ([CHECK] if check else []) + [f"{i}. [task] #{n} Probe part {n}\n" for i, n in enumerate(parts, 1 + check)]
+    items = ([replay_probe.CHECK] if check else []) + [f"{i}. [task] #{n} Probe part {n}\n" for i, n in enumerate(parts, 1 + check)]
     return f"## Goal\n\nProbe the task graph.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n{''.join(items)}"
 
 

@@ -38,7 +38,6 @@ import replay_probe  # noqa: E402
 
 USE = HERE.parent / "scripts" / "use-board.py"
 LIST = ROOT / "hooks" / "list-task-board.py"
-CHECK = replay_probe.CHECK
 LONG = "probe only the sandbox repository and keep every raw response it sends as a fixture beside the probe"
 failures = []
 
@@ -50,7 +49,7 @@ def step(name, ok, detail=""):
 
 
 def body(parts=()):
-    items = [CHECK] + [f"{i}. [task] #{n} Probe part {n}\n" for i, n in enumerate(parts, 2)]
+    items = [replay_probe.CHECK] + [f"{i}. [task] #{n} Probe part {n}\n" for i, n in enumerate(parts, 2)]
     return f"## Goal\n\nProbe typed decisions.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n{''.join(items)}"
 
 

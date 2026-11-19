@@ -26,7 +26,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[3]
 USE = ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"
 SCHEMA = json.loads((ROOT / "skills" / "kick-off" / "assets" / "board-record-schema.json").read_text())
 BODY = ("{summary}## Goal\n\nThe probe has a flow.\n\nPath: caller: a probe; before: nothing prints; after: it prints ok; meets: the caller's need.\n\n"
-        "## Definition of done\n\n1. [check] **The probe prints ok when it runs**: `echo ok` prints `ok`; on base nothing.\n")
+        "## Definition of done\n\n1. [check] **The probe prints ok when it runs**: `basename PASS` prints `PASS`; on base `FAIL`.\n")
 OLDER = "DECIDED: older-worker holds this.\n\n```decision\ndecision: keep the older record readable\ndecided by: owner\ndoor: two-way\n```\n\n```teamwork\nholders: older-worker\n```\n"
 # the same round at main's 7d2370dd: fences typed into each text, and `list-decisions.py` after each `read`
 MAIN_ROUND = {"calls": 15, "written": 1490}

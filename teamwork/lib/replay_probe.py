@@ -8,7 +8,7 @@ import sys
 
 IDENTITY = {"GIT_AUTHOR_NAME": "probe", "GIT_AUTHOR_EMAIL": "probe@example.com",
             "GIT_COMMITTER_NAME": "probe", "GIT_COMMITTER_EMAIL": "probe@example.com"}
-CHECK = "1. [check] **The probe prints PASS when it runs**: `echo ok` prints `ok`; on base nothing.\n"
+CHECK = "1. [check] **The probe prints PASS when it runs**: `basename PASS` prints `PASS`; on base `FAIL`.\n"
 GIT_CONFIG = "[user]\n\tname = probe\n\temail = probe@example.com\n[init]\n\tdefaultBranch = main\n"
 
 

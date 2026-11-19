@@ -1,5 +1,6 @@
 """How a `[check]` criterion reads: the command it runs, the output it expects, the one value it quotes for the base.
 run-criteria.py runs a check by it and check-criteria.py refuses a check it cannot read, so both share this one parse."""
+import pathlib
 import re
 import shlex
 
@@ -33,17 +34,6 @@ def goal_defects(goal):
     items = [RELATION.match(item) for text in lines for item in text.split(";")]
     named = [item.group(1) for item in items if item]
     return [] if named and not any(BLANK.search(text) for text in lines) and any(not NOBODY.match(value) for value in named) else ["path names no flow"]
-
-
-def goal_refusals(body, number=None, old=""):
-    """The sentences, each ending in its fix, that refuse BODY's `## Goal` for naming no flow; none for a body with no Goal, a task numbered below the cut-off,
-    or a defect OLD already held, so an edit to some other part of a body is never blocked."""
-    goal = task_state.sections(body).get("goal")
-    if goal is None or number is not None and number < GOAL_CUT_OFF:
-        return []
-    before = task_state.sections(old).get("goal")
-    held = goal_defects(before) if before is not None else []
-    return [f"the `## Goal` {name}: {GOAL_FIX[name]}" for name in goal_defects(goal) if name not in held]
 
 
 PLACEHOLDER = re.compile(r"<[A-Za-z][\w .-]*>")
@@ -258,3 +248,159 @@ def live_stage(detail):
         return None
     first = command[:len(command) - len(rest) - 1]
     return (first.strip(), rest) if starts_session(first) else None
+
+
+NEXT_WORD = r"[^A-Za-z0-9-]+([A-Za-z0-9-]+)"  # the word after a marker such as `prints`
+# the first task number filed after the commit that wrote this line, so every task filed before keeps its old rules
+CUT_OFF = 1195
+MOST = 5
+# programs that only read or reshape text, so a check made of them alone never runs the system it judges
+SCANS = {"grep", "egrep", "fgrep", "rg", "ag", "awk", "gawk", "sed", "cat", "head", "tail", "wc", "sort", "uniq",
+         "cut", "tr", "test", "[", "diff", "cmp", "jq", "echo", "printf", "true", "false"}
+INLINE = {"python": "-c", "python3": "-c", "node": "-e", "perl": "-e", "ruby": "-e"}
+SHELLS = {"sh", "bash", "zsh"}
+# inline code that starts a process runs the system; any other inline code only reads
+RUNS = re.compile(r"\b(?:subprocess|os\.system|os\.popen|os\.exec\w*|child_process|system\s*\()")
+# wrappers that run the command after them, so the command decides
+WRAPPERS = {"env", "command", "exec", "nice", "nohup", "time", "timeout", "xargs"}
+
+
+FIX = {
+    "prompt swallowed": "put the prompt first or after `--`, since a flag that takes several values reads the prompt as one more value and `claude` exits with Input must be provided",
+    "no prompt after --": "put the prompt after the `--`, since a `--` that ends the command leaves `claude` no prompt and it exits with Input must be provided",
+    "no kind": "open the criterion with `[check]` or `[score]` before its name",
+    "no name": "put a bold name after the kind: `[check] **<name>**: <details>`",
+    "no command": "write the command that decides in a code span; a `[check]` is a command whose output decides",
+    "no base output": "quote, after `on base`, the failing output of the same command on the base, as in "
+                      "`prints ok; on base nothing`",
+    "passes on base": "the word after `prints` equals the word after `on base`, so the check passes on the base; "
+                      "quote the output it gives there, which must differ",
+    "words before the command": "start the details with the command in a code span; move any note after the expected output",
+    "two commands": "keep one command in a code span before `prints`; a second code span there makes it ambiguous",
+    "no prints or exits": "say `prints <output>` or `exits <status>` after the command",
+    "placeholder in the command": "write the command as run, with no `<word>` in it",
+    "more than one condition": "split a second condition into its own criterion",
+    "expected status not one value": "write one status number after `exits`",
+    "expected output not one value": "write one value after `prints`, in a code span or one word",
+    "no one value after `on base`": "quote one value after `on base`, in a code span or one word",
+    "elided command": "write the whole command; `...` or `…` in the code span cannot be run",
+    "no sample": "name the sample with `sample:`",
+    "no rubric": "name the rubric with `rubric:`",
+    "no base measure": "state the base's measure on the sample, with the word `base`",
+    "more than 5 criteria": "keep one criterion per outcome, at most 5; group clauses that one outcome covers",
+    "not a scenario": "make the check a scenario that runs the system and prints `PASS`, and quote `FAIL` on base",
+    "live stage not replayable": "make the first pipe stage the only `claude -p` run, with no redirect, subshell or `&&` before the pipe, "
+                                 "and name the paths it runs against: `watches: <path>...`; the stages after it judge its saved transcript",
+    **GOAL_FIX,
+    "text scan": "run the system and judge its behaviour; a grep, `awk` or file read alone checks words, not what works",
+}
+
+
+def stages(command):
+    """The words of each simple command in a shell line, split at `|`, `&&`, `||`, `;` and newlines."""
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    stage = []
+    try:
+        for token in lexer:
+            if token and set(token) <= set("|&;()\n"):
+                if stage:
+                    yield stage
+                stage = []
+            else:
+                stage.append(token)
+    except ValueError:
+        stage = command.split()
+    if stage:
+        yield stage
+
+
+def scans_only(command):
+    """True when every simple command in COMMAND only reads text, so the check runs nothing of the system."""
+    for words in stages(command):
+        while words and (re.fullmatch(r"\w+=.*|-\w.*|\d+[smhd]?", words[0]) or pathlib.PurePath(words[0]).name in WRAPPERS):
+            words = words[1:]
+        if not words:
+            continue
+        program = pathlib.PurePath(words[0]).name
+        if program in SHELLS and "-c" in words[1:-1]:
+            if not scans_only(words[words.index("-c") + 1]):
+                return False
+        elif program in INLINE and INLINE[program] in words[1:-1]:
+            if RUNS.search(words[words.index(INLINE[program]) + 1]):
+                return False
+        elif program not in SCANS:
+            return False
+    return True
+
+
+def scenario_defects(kind, detail):
+    """The defects a task at or above the cut-off adds: a `[check]` that is no PASS/FAIL scenario, or only a text scan."""
+    if kind != "check":
+        return []
+    command, test = expectation(detail)
+    if command is None:
+        return []
+    found = [] if test == ("prints", "PASS") and base_quote(detail) == "FAIL" else ["not a scenario"]
+    return found + (["text scan"] if scans_only(command) else [])
+
+
+def live_defects(kind, detail):
+    """A `[check]` that starts a session anywhere but a first stage that run-criteria.py can save and replay, which would start a session on each run."""
+    command, _ = expectation(detail)
+    return ["live stage not replayable"] if kind == "check" and command and starts_session(command) and not live_stage(detail) else []
+
+
+def order_defects(kind, detail):
+    """A live `[check]` whose prompt follows a flag that takes values, which `claude` reads as one more value, or whose command ends in a bare `--`, and `claude` then exits with "Input must be provided"."""
+    command, _ = expectation(detail)
+    flag = swallowed_flag(command) if kind == "check" and command else None
+    if flag == "--":
+        return ["no prompt after --"]
+    return [f"prompt swallowed by {flag}"] if flag else []
+
+
+def defects(kind, name, detail):
+    """The defects of one criterion, in the order the task lists them."""
+    found = [] if kind in ("check", "score") else ["no kind"]
+    found += [] if name else ["no name"]
+    span = task_state.SPAN.search(detail)
+    rest = detail[:span.start()] + detail[span.end():] if span else detail
+    if kind == "check":
+        # tasks filed before the base was named quote `on main`
+        passes, base = re.search(r"\bprints" + NEXT_WORD, rest), re.search(r"\bon (?:base|main)" + NEXT_WORD, rest)
+        found += [] if span else ["no command"]
+        found += ["no base output"] if not base else ["passes on base"] if passes and passes.group(1) == base.group(1) else []
+    # what run-criteria.py cannot read; lint already names an elided command, and a missing base output covers the quote
+    why = unreadable(detail) if kind == "check" and span else None
+    elided = bool(span) and ("..." in span.group(2) or "…" in span.group(2))
+    covered = why in found or elided and why == "placeholder in the command" or "no base output" in found and why and why.endswith("`on base`")
+    found += [why] if why and not covered else []
+    if elided:
+        found.append("elided command")
+    if kind == "score":
+        found += [f"no {word}" for word in ("sample", "rubric") if f"{word}:" not in rest]
+        found += [] if re.search(r"\b(?:base|main)\b", rest) else ["no base measure"]
+    return found
+
+
+def lint(body, task=None):
+    """[(position, key, defects)] of BODY's Goal and criteria, as check-criteria.py prints them, key naming what holds the defects so an old body's can be told from a new one's."""
+    lines = task_state.ITEM.findall(task_state.sections(body).get("done", ""))
+    new_rules = task is None or task >= CUT_OFF
+    goal = task_state.sections(body).get("goal")
+    goal_found = goal_defects(goal) if goal is not None and (task is None or task >= GOAL_CUT_OFF) else []
+    # a part, `[task] #n`, is no criterion, so its form is the graph's to check
+    matched = [(line_number, line, task_state.CRITERION.match(line).groups()[1:]) for line_number, line in enumerate(lines, 1)]
+    criteria = [(line_number, line, groups) for line_number, line, groups in matched if groups[0] != "task"]
+    flagged = [(line_number, " ".join(line.split()), found) for line_number, line, groups in criteria
+               for found in [defects(*groups) + (scenario_defects(groups[0], groups[2]) + live_defects(groups[0], groups[2]) + order_defects(groups[0], groups[2]) if new_rules else [])] if found]
+    if new_rules and len(criteria) > MOST:
+        flagged.insert(0, ("body", "body", ["more than 5 criteria"]))
+    return ([("goal", "goal", goal_found)] if goal_found else []) + flagged
+
+
+def body_refusals(body, number=None, old=""):
+    """The sentences, each ending in its fix, that refuse BODY for what check-criteria.py prints on it, none for a defect OLD already held, so an edit to some other part is never blocked."""
+    held = {(key, name) for _, key, found in lint(old, number) for name in found}
+    return [f"{position}: {name}: {FIX[name.split(' by ')[0]]}" for position, key, found in lint(body, number) for name in found if (key, name) not in held]

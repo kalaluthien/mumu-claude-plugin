@@ -160,7 +160,7 @@ def depend_task(options):
 def file_task(options):
     title, body = options.title, read_text(options.body)
     # a Goal that names no flow of its changed part would sit on the board until a lint found it, so it is refused before it is filed
-    refuse("file", task_state.defects("file", body) + task_state.defects("title", title) + criteria_check.goal_refusals(body))
+    refuse("file", task_state.defects("file", body) + task_state.defects("title", title) + criteria_check.body_refusals(body))
     scope = {"scope": options.scope} if options.scope is not None else {}
     print(board.fresh(board.file(title, body, options.label, depends=numbers(options.depends or ""), **scope), comments=False)["url"])
     return 0
@@ -189,7 +189,7 @@ def edit_body(options):
             refusal.append((1, f"{body_file} is #{task}'s body as it stands, so nothing was posted or changed"))
             return None
         # a defect the body already held does not block the edit that may fix it
-        found = task_state.defects("edit-body", new, old) + criteria_check.goal_refusals(new, task, old)
+        found = task_state.defects("edit-body", new, old) + criteria_check.body_refusals(new, task, old)
         if found:
             refusal.append((2, "nothing posted or changed, the edit has defects:\n- " + "\n- ".join(found) + f"\nthe grammar is {task_state.GRAMMAR}"))
             return None

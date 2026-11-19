@@ -20,7 +20,7 @@ import replay_probe  # noqa: E402
 
 BOARD = SKILL / "scripts" / "use-board.py"
 CHECKER = SKILL / "scripts" / "check-criteria.py"
-CRITERION = "1. [check] **The probe prints PASS when it runs**: `echo ok` prints `ok`; on base nothing.\n"
+CRITERION = "1. [check] **The probe prints PASS when it runs**: `basename PASS` prints `PASS`; on base `FAIL`.\n"
 PATHLESS = "## Goal\n\nChange the heartbeat hook so it lists each worker's open task.\n\n## Definition of done\n\n" + CRITERION
 WITH_PATH = PATHLESS.replace("task.\n", "task.\n\nPath: caller: the session start; after: the board write; meets: the owner in the pane\n", 1)
 NO_GOAL = "Root intent of the owner.\n\n## Definition of done\n\n" + CRITERION
@@ -101,7 +101,7 @@ def case_other():
     work, repository, environment = start(criteria_check.GOAL_CUT_OFF - 1)
     (work / "seed.md").write_text(PATHLESS)
     held = seed(repository, environment, PATHLESS)
-    more = edit(work, repository, environment, held, PATHLESS, PATHLESS + "2. [check] **The probe prints PASS twice**: `echo ok` prints `ok`; on base nothing.\n")
+    more = edit(work, repository, environment, held, PATHLESS, PATHLESS + "2. [check] **The probe prints PASS twice**: `basename PASS` prints `PASS`; on base `FAIL`.\n")
     if more.returncode:
         return replay_probe.fail(f"an edit of another part of a body whose Goal already lacked a path was refused: {more.stderr.strip()[-200:]!r}")
     root = file_body(work, repository, environment, "root.md", NO_GOAL)

@@ -17,7 +17,7 @@ import tempfile
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
 BODY = ("## Goal\n\nThe probe has a flow.\n\nPath: caller: a probe; before: nothing prints; after: it prints ok; meets: the caller's need.\n\n"
-        "## Definition of done\n\n1. [check] **The probe prints ok when it runs**: `{command}` prints `ok`; on base nothing.\n")
+        "## Definition of done\n\n1. [check] **The probe prints ok when it runs**: `{command}` prints `PASS`; on base `FAIL`.\n")
 LINE = 200
 failed = []
 
@@ -49,14 +49,14 @@ def main(args):
 
     quick, slow, binary = work / "quick.md", work / "slow.md", work / "binary.md"
     binary.write_bytes(b"\xff\xfe\x00")
-    quick.write_text(BODY.format(command="echo ok"))
-    slow.write_text(BODY.format(command="sh -c 'sleep 5 && echo ok'"))
+    quick.write_text(BODY.format(command="basename PASS"))
+    slow.write_text(BODY.format(command="sh -c 'sleep 5 && echo PASS'"))
     url = call("use-board.py", "file", "--title", "Print ok from the probe", "--body", quick)[1].strip()
     call("use-board.py", "file", "--title", "Print ok after a while", "--body", slow)
 
     ran = [call("run-criteria.py", word) for word in ("1", "#1", url)]
     linted = [call("check-criteria.py", *argv) for argv in (["1"], ["#1"], [url], ["--task", "1", quick], ["--task", url, quick])]
-    step("task-words", url.endswith("/1") and ran[0][0] == 0 and "| pass | ok |" in ran[0][1] and ran.count(ran[0]) == 3 and linted[0][0] == 0 and linted.count(linted[0]) == 5, ran + linted)
+    step("task-words", url.endswith("/1") and ran[0][0] == 0 and "| pass | PASS |" in ran[0][1] and ran.count(ran[0]) == 3 and linted[0][0] == 0 and linted.count(linted[0]) == 5, ran + linted)
 
     missing = [(word, call(script, *argv, word)) for script, argv in (("run-criteria.py", []), ("check-criteria.py", []), ("check-criteria.py", ["--task", "1"]))
                for word in ("no-such-body.md", work, binary)]

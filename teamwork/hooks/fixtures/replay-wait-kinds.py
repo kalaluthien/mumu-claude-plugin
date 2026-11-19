@@ -22,7 +22,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 USE = ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"
 LIST = ROOT / "hooks" / "list-task-board.py"
 BODY = ("## Goal\n\nThe probe has a flow.\n\nPath: caller: a probe; before: nothing prints; after: it prints ok; meets: the caller's need.\n\n"
-        "## Definition of done\n\n1. [check] **The probe prints ok when it runs**: `echo ok` prints `ok`; on base nothing.\n")
+        "## Definition of done\n\n1. [check] **The probe prints ok when it runs**: `basename PASS` prints `PASS`; on base `FAIL`.\n")
 OWNER = "waits on the owner"
 GONE = ("waits on the manager", "waits on its parts")
 failed = []

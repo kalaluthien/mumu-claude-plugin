@@ -16,7 +16,7 @@ import replay_probe  # noqa: E402
 SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
 LISTER = pathlib.Path(__file__).resolve().parents[3] / "hooks" / "list-task-board.py"
 SENTENCE = "The closed list shows the latest four tasks"
-BODY = "## Goal\n\nProbe the names.\n\nPath: caller: the session start; meets: the owner in the pane\n\n## Definition of done\n\n1. [check] **{name}**: `echo PASS` prints `PASS`; on base `FAIL`.\n"
+BODY = "## Goal\n\nProbe the names.\n\nPath: caller: the session start; meets: the owner in the pane\n\n## Definition of done\n\n1. [check] **{name}**: `basename PASS` prints `PASS`; on base `FAIL`.\n"
 
 
 def case_gate():
@@ -37,7 +37,7 @@ def case_gate():
         return replay_probe.fail(f"the pane's list lacks the sentence on its box line or keeps a circle: {shown!r}")
     before = replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "read", "1").stdout
     sha = next(line.split("body sha: ")[1].strip() for line in before.splitlines() if "body sha: " in line)
-    (work / "new").write_text(BODY.format(name=SENTENCE) + "2. [check] **Honest count**: `echo PASS` prints `PASS`; on base `FAIL`.\n")
+    (work / "new").write_text(BODY.format(name=SENTENCE) + "2. [check] **Honest count**: `basename PASS` prints `PASS`; on base `FAIL`.\n")
     edited = replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "edit", "1", "--body", work / "new", "--reason", "add a label", "--base", sha)
     if edited.returncode != 2 or "Complete sentence" not in edited.stderr or replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "read", "1").stdout != before:
         return replay_probe.fail(f"an edit that adds a label was not refused cleanly: exit {edited.returncode}, {edited.stderr.strip()[-200:]!r}")

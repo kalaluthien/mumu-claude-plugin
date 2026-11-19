@@ -61,7 +61,7 @@ def link(name, added, why):
     use("edit", number(name), "--body", text(f"{name}-link.md", old.rstrip("\n") + "\n" + added), "--reason", why, "--base", board.body_sha(old))
 
 
-TASK = "## Goal\n\nProbe the board.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe prints PASS when it runs**: `echo ok` prints `ok`; on base nothing.\n"
+TASK = "## Goal\n\nProbe the board.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe prints PASS when it runs**: `basename PASS` prints `PASS`; on base `FAIL`.\n"
 
 
 def main(args):

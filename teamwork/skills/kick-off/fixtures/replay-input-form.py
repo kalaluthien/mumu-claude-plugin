@@ -28,7 +28,7 @@ ROOT = HERE.parents[2]
 SCRIPTS = HERE.parent / "scripts"
 sys.path.insert(0, str(ROOT / "lib"))
 
-BASE = "A summary.\n\n## Goal\n\nDo it.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe works when it runs once**: `true` prints nothing.\n"
+BASE = "A summary.\n\n## Goal\n\nDo it.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe works when it runs once**: `basename PASS` prints `PASS`; on base `FAIL`.\n"
 TEAMWORK = "\n```teamwork\nholders: a-worker\n```\n"
 DECISION = "\n```decision\ndecision: ship it\ndecided by: a-worker\ndoor: two-way\n```\n"
 BY = ("--by", "a-manager")
@@ -57,7 +57,7 @@ REFUSED = {
                             ("call", "resolve", "DECIDED: closing it\n", "--summary", "closing it")], "keyword line"),
     "heading-misspelt": ([("file", BASE.replace("## Goal", "## goal")), ("file", BASE.replace("## Definition of done", "## Definition Of Done"))], "write exactly"),
     "heading-level": ([("file", BASE.replace("## Goal", "### Goal"))], "## Goal"),
-    "heading-repeated": ([("file", BASE + "\n## Definition of done\n\n1. [check] **The probe works again when it runs twice**: `true`\n")], "keep one"),
+    "heading-repeated": ([("file", BASE + "\n## Definition of done\n\n1. [check] **The probe works again when it runs twice**: `basename PASS` prints `PASS`; on base `FAIL`.\n")], "keep one"),
     "edit-keyword-lowercase": ([("edit", BASE, BASE + "\nMore.\n", "DECIDED: lower")], "no keyword"),
     "edit-keyword-empty": ([("edit", BASE, BASE + "\nMore.\n", "")], "not one line"),
     "edit-keyword-free": ([("edit", BASE, BASE + "\nMore.\n", "REPORTED: add more text")], "no keyword"),

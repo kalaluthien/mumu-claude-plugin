@@ -33,7 +33,7 @@ PLUGIN = HERE.parents[2]
 SCRIPTS = HERE.parent / "scripts"
 USE = SCRIPTS / "use-board.py"
 SCHEMA = json.loads((HERE.parent / "assets" / "board-record-schema.json").read_text())
-BODY = "A summary.\n\n## Goal\n\nDo it.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe works when it runs once**: `true` prints nothing.\n"
+BODY = "A summary.\n\n## Goal\n\nDo it.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe works when it runs once**: `basename PASS` prints `PASS`; on base `FAIL`.\n"
 WRITES = ("comment", "decide", "hold", "depend", "file", "edit", "title", "resolve", "label", "reopen")
 SPELLED = re.compile(r"use-board\.py[ \t]+(" + "|".join(WRITES) + r")\b([^`\n]*)")
 failed = []
@@ -137,7 +137,7 @@ def main(args):
     calls = [("comment", number, "--reported", "probe findings", "--text", rest),
              ("comment", number, "--blocked", "which probe runs first?", "--asks", "owner", "--option", "the fast one", "--option", "the slow one"),
              ("decide", number, "--decision", "ship the probe today", "--text", rest, "--by", "a-manager", "--holders", "a-worker"),
-             ("edit", number, "--body", written("new.md", BODY + "2. [check] **The probe works when it runs twice**: `true` prints nothing.\n"),
+             ("edit", number, "--body", written("new.md", BODY + "2. [check] **The probe works when it runs twice**: `basename PASS` prints `PASS`; on base `FAIL`.\n"),
               "--reason", "add the second run", "--base", sha),
              ("title", number, "--title", "Seed the probe board"), ("label", number, "--label", "second"), ("hold", number, "--holders", "a-worker b-worker"),
              ("depend", number, "--depends", other), ("resolve", other, "--summary", "the probe landed", "--text", rest), ("reopen", other),
@@ -167,7 +167,7 @@ def main(args):
         step(name, not seen, "; ".join(seen))
 
     sha = re.search(r"body sha: (\w+)", use("read", number).stdout).group(1)
-    new = written("newer.md", BODY + "3. [check] **The probe works when it runs three times**: `true` prints nothing.\n")
+    new = written("newer.md", BODY + "3. [check] **The probe works when it runs three times**: `basename PASS` prints `PASS`; on base `FAIL`.\n")
     refused("refused-missing", [(("edit", number, "--body", new, "--reason", "add a run"), "--base"), (("edit", number, "--body", new, "--base", sha), "--reason"),
                                 (("edit", number, "--reason", "add a run", "--base", sha), "--body"), (("decide", number, "--by", "a-manager"), "--decision"),
                                 (("resolve", number), "--summary"), (("file", "--body", body), "--title"),
