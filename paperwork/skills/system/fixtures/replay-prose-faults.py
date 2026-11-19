@@ -9,7 +9,7 @@ words: each `../examples/*/contract.json` and `parcel-locker-korean.json` must p
 to avoid, English ones and Korean ones in turn. The first is written into every text, title and label, alone, in its plural, in capitals, or with
 a Korean particle after it, and the checker must name the term once at each of those places and nowhere else; the second is written into each of
 them between backticks and inside a longer word, and the checker must name it nowhere. `check-contract.py fixtures` must print PASS, the
-fastest of three runs of the checker on the larger example must take under 1 second, and `../references/contract.md` must state no rule by a
+fastest of three runs of the checker on the larger example must take under 1 second of processor time, and `../references/contract.md` must state no rule by a
 bold name that `../references/writing.md` states.
 
 korean: a Korean word is written into every title, label and term of a copy of each example, and the checker must refuse each by its place; a
@@ -24,12 +24,12 @@ import collections
 import concurrent.futures
 import copy
 import json
+import os
 import pathlib
 import re
 import subprocess
 import sys
 import tempfile
-import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_levels import flat, nested  # noqa: E402
@@ -225,13 +225,14 @@ def main(args):
             spent = []
             for _ in range(3):
                 STARTS.append("check")
-                started = time.monotonic()
+                before = os.times()  # the wall clock stretches with the machine's load, the checker's own processor time does not
                 done = subprocess.run([sys.executable, str(CHECK), "check", str(larger)], capture_output=True, text=True)
-                spent.append(time.monotonic() - started)
+                after = os.times()
+                spent.append(after.children_user + after.children_system - before.children_user - before.children_system)
             if done.stdout.splitlines() != ["ok"]:
                 faults.append(f"FAIL {larger.parent.name}: the untouched contract is refused: {done.stdout.splitlines()[:1]}")
             if min(spent) >= 1:
-                faults.append(f"FAIL the checker takes {min(spent):.2f} seconds on {larger.parent.name}, 1 second or more")
+                faults.append(f"FAIL the checker takes {min(spent):.2f} seconds of processor time on {larger.parent.name}, 1 second or more")
             STARTS.append("fixtures")
             kept = subprocess.run([sys.executable, str(CHECK), "fixtures"], capture_output=True, text=True).stdout.splitlines()
             faults += [f"FAIL check-contract.py fixtures: {line}" for line in kept[:-1]] + ([] if kept[-1:] == ["PASS"] else ["FAIL check-contract.py fixtures does not print PASS"])

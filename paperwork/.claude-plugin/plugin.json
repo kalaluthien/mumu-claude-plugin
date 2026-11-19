@@ -1,6 +1,6 @@
 {
   "name": "paperwork",
-  "version": "0.14.5",
+  "version": "0.14.6",
   "license": "Apache-2.0",
   "description": "Describe a system as one checked contract a reader can rebuild it from; relay applies a person's edits on a local HTML page to its file.",
   "author": {
