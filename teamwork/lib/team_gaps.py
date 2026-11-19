@@ -278,6 +278,12 @@ def changed(task):
     return board.body_sha(task["body"]), [comment["url"] for comment in task["comments"] if task_state.keyword(comment["body"]) != FEED]
 
 
+def acted_on(task, answer):
+    """Whether the worker wrote after ANSWER: any later comment that is no `DECIDED:`, since only a decider writes those and the worker's own steps are asks, reports and tables."""
+    later = task["comments"][task["comments"].index(answer) + 1:]
+    return any(task_state.keyword(comment["body"]) != ANSWER for comment in later)
+
+
 def worker_actions(me, waited, read_of, data=None):
     """What ended a wait of this worker, each task it held that changed or no longer names it since the last poll, and a worker holding nothing, as the act it needs;
     None when a read failed.
@@ -303,7 +309,7 @@ def worker_actions(me, waited, read_of, data=None):
             read_of[task["number"]] = changed(task)
             lines.append(f"changed #{task['number']} (record {len(changed(task)[1])}): {check}")  # the count makes each change its own line, which the monitor prints once
         latest = task_state.questions(task)[-1:]
-        if latest and latest[0]["answer"]:
+        if latest and latest[0]["answer"] and not acted_on(task, latest[0]["answer"]):
             lines.append(f"answered #{task['number']}: {latest[0]['answer']['url']} answers your {ASK}:; act on it")
         if waiting(task, open_tasks, data["blockers"]):
             waited.add(task["number"])
