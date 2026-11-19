@@ -166,8 +166,20 @@ def push(number, base_name, commit, tags=()):
     return True
 
 
+def change_text(base, ref):
+    """REF's diff from where it left BASE, whitespace kept, without the line numbers and blob ids a rebase alone changes; None for no diff."""
+    fork = git("merge-base", base, ref).stdout.strip()
+    diff = git("diff", "--no-color", "--no-ext-diff", fork, ref).stdout if fork else ""
+    return "".join(re.sub(r"^@@ [^@]* @@", "@@", line) for line in diff.splitlines(keepends=True) if not line.startswith("index ")) or None
+
+
+def same_diff(base, approved, head):
+    """Whether APPROVED and HEAD make the same change, so a rebase that moved only the base keeps the judge's verdict."""
+    return bool(approved) and change_text(base, approved) is not None and change_text(base, approved) == change_text(base, head)
+
+
 def merge(number, sha):
-    """Squashes the change's head onto its base as one commit, only when SHA is its branch tip, tags it as the repository's release hook asks, pushes both to
+    """Squashes the change's head onto its base as one commit, only when SHA is its branch tip or a commit whose diff a rebase left the same, tags it as the repository's release hook asks, pushes both to
     `origin` when there is one, and fast-forwards the worktree that has the base checked out, which refuses rather than overwrites; the new commit's sha.
     The change is merged once `origin` holds the commit, or with no `origin` once the base moved; until then a failure leaves no tag behind."""
     entry = record(number)
@@ -175,8 +187,8 @@ def merge(number, sha):
         raise LookupError(f"change {number} is closed")
     head, base = tip(f"refs/heads/{entry['headRefName']}"), tip(f"refs/heads/{entry['base']}")
     # only a sha names what the judge approved; a branch name would follow the tip wherever it moved
-    if not head or not re.fullmatch(r"[0-9a-f]{7,40}", sha) or tip(sha) != head:
-        raise LookupError(f"change {number}: {sha} is not the tip of {entry['headRefName']} ({head and head[:9]}); judge the tip again")
+    if not head or not re.fullmatch(r"[0-9a-f]{7,40}", sha) or tip(sha) != head and not same_diff(base, tip(sha), head):
+        raise LookupError(f"change {number}: {sha} is not the tip of {entry['headRefName']} ({head and head[:9]}), and its diff is not the tip's; judge the tip again")
     # git then lists the main checkout as bare, so no worktree holds the base and a ref move would leave its files behind
     if bare_flagged():
         raise LookupError(f"change {number}: core.bare is true, so the checkout of {entry['base']} would stay behind the merge; run `git config core.bare false`")

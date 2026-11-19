@@ -15,7 +15,7 @@ It reads the form only, never running a command, since whether a check passes on
 After the lines it prints, once per defect named, what the defect means and how to fix it.
 
 A task numbered at or above `CUT_OFF`, or one given with no `--task`, must also hold at most 5 criteria, `[task]` parts
-not counted, each `[check]` a scenario that prints `PASS`, on base `FAIL`, and none only a text scan, such as a grep, an
+not counted, each `[check]` a scenario that prints `PASS`, on base `FAIL`, none running `check-repository.py`, and none only a text scan, such as a grep, an
 `awk` or inline code that reads a file and runs nothing, and a check that starts a live session (`claude -p`) must run it as its
 first pipe stage and say `watches: <path>...`, so run-criteria.py can replay its transcript. A task below it keeps the rules it was filed under.
 `--cut-off` prints `CUT_OFF`.

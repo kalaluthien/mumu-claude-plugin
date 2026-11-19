@@ -293,6 +293,7 @@ FIX = {
                                  "and name the paths it runs against: `watches: <path>...`; the stages after it judge its saved transcript",
     **GOAL_FIX,
     "text scan": "run the system and judge its behaviour; a grep, `awk` or file read alone checks words, not what works",
+    "whole repository check": "run the fixture runners the change touches; the whole check runs once, at the head before the judge, as worker.md's Land says",
 }
 
 
@@ -334,14 +335,30 @@ def scans_only(command):
     return True
 
 
+def runs_whole_check(command):
+    """True when a simple command in COMMAND, or in a shell's `-c` text or inline code, runs `check-repository.py`; a mention inside another quoted word, such as a
+    sample body, runs nothing."""
+    for words in stages(command):
+        if any(pathlib.PurePath(word).name == "check-repository.py" for word in words):
+            return True
+        program = pathlib.PurePath(words[0]).name if words else ""
+        # a bundle such as `-lc` or `-ec` ends in the `-c` whose next word is the text the shell runs
+        texts = [words[i + 1] for i, word in enumerate(words[1:-1], 1) if program in SHELLS and re.fullmatch(r"-[a-z]*c", word)
+                 or program in INLINE and word == INLINE[program]]
+        if any("check-repository.py" in text if program in INLINE else runs_whole_check(text) for text in texts):
+            return True
+    return False
+
+
 def scenario_defects(kind, detail):
-    """The defects a task at or above the cut-off adds: a `[check]` that is no PASS/FAIL scenario, or only a text scan."""
+    """The defects a task at or above the cut-off adds: a `[check]` that is no PASS/FAIL scenario, runs the whole repository check, or is only a text scan."""
     if kind != "check":
         return []
     command, test = expectation(detail)
     if command is None:
         return []
     found = [] if test == ("prints", "PASS") and base_quote(detail) == "FAIL" else ["not a scenario"]
+    found += ["whole repository check"] if runs_whole_check(command) else []
     return found + (["text scan"] if scans_only(command) else [])
 
 

@@ -9,6 +9,7 @@ usage: replay-local-landing.py [--case <name>]   (no argument: every one in turn
 - no-origin: a repository with no remote merges locally and removes the worker's worktree with no gh call, and pushes nothing
 - swap-retired: a swapped-out worker's branch, the ancestor of its successor's merged branch, is removed with its worktree once the successor's change merges, and one branch is left
 - owned-branches: removing a worker removes each merged `<name>-<word>` branch it owns, here and on `origin`, keeps one with unmerged commits and an `origin` one of no worker branch name and says so, and leaves a branch of another name
+- rebased: a sha a judge approved still merges once a rebase onto a moved base left its diff the same, and is refused once the rebased branch changed its diff, by its text or by whitespace alone
 - dirty-base: an uncommitted file of the base checkout that the change also edits, its name holding a space, refuses the merge before any push, and nothing moves"""
 import json
 import os
@@ -152,6 +153,31 @@ def case_dirty_base():
     return 0
 
 
+def rebased(edit):
+    work, repository, origin, environment = setup()
+    tree, approved = worker(work, repository, environment)
+    (repository / "c.txt").write_text("base moved\n")
+    sh("git", "add", "-A", cwd=repository, environment=environment)
+    sh("git", "commit", "-q", "-m", "moved", cwd=repository, environment=environment)
+    sh("git", "push", "-q", "origin", "main", cwd=repository, environment=environment)
+    sh("git", "rebase", "-q", "main", cwd=tree, environment=environment)
+    if edit:
+        (tree / "b.txt").write_text(edit)
+        sh("git", "commit", "-q", "-a", "--amend", "--no-edit", cwd=tree, environment=environment)
+    return merged(work, repository, origin, environment, tree, approved), repository, environment
+
+
+def case_rebased():
+    run, repository, environment = rebased(None)
+    if run.returncode or not (repository / "b.txt").exists() or change_state(repository, environment) != "CLOSED":
+        return replay_probe.fail(f"a rebase with the same diff: merge exited {run.returncode}: {run.stderr.strip()}")
+    for edit in ("other work\n", "  work\n"):
+        run, repository, environment = rebased(edit)
+        if run.returncode != 1 or "judge the tip again" not in run.stderr or change_state(repository, environment) != "OPEN":
+            return replay_probe.fail(f"a rebase that changed the diff to {edit!r}: merge exited {run.returncode}: {run.stdout}{run.stderr}")
+    return 0
+
+
 def case_owned_branches():
     work, repository, origin, environment = setup()
     tree, head = worker(work, repository, environment)
@@ -172,7 +198,7 @@ def case_owned_branches():
     return 0
 
 
-CASES = {"pushes": case_pushes, "push-refused": case_push_refused, "no-gh": case_no_gh, "no-origin": case_no_origin, "swap-retired": case_swap_retired, "dirty-base": case_dirty_base, "owned-branches": case_owned_branches}
+CASES = {"pushes": case_pushes, "push-refused": case_push_refused, "no-gh": case_no_gh, "no-origin": case_no_origin, "swap-retired": case_swap_retired, "rebased": case_rebased, "dirty-base": case_dirty_base, "owned-branches": case_owned_branches}
 
 
 def main(args):
