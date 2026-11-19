@@ -1,5 +1,6 @@
 {
  "bread-orders": {
+  "formula": [[["nodes", 0, "purpose"], "Ask for loaves to collect in the morning, at most $\\foo{n}$ an hour."]],
   "area-known-no-node": [[["areas"], [{"id": "counter", "label": "The counter", "tag": "module", "level": "bakery", "info": {"purpose": "takes requests"}}, {"id": "back-room", "label": "The back room", "tag": "deployment", "level": "bakery", "info": {"location": "behind the shop"}}, {"id": "staff-only", "label": "Staff only", "tag": "trustZone", "level": "bakery"}, {"id": "night-shift", "label": "The night shift", "tag": "lane", "level": "bakery", "info": {"owner": "the baker on duty"}}, {"id": "cooling", "label": "The cooling", "tag": "phase", "level": "bakery", "info": {"order": 2}}, {"id": "shop-floor", "label": "The shop floor", "tag": "module", "level": "bakery"}, {"id": "request-states", "label": "Request states", "tag": "region", "level": "order-life", "info": {"initial": "taken"}}, {"id": "heat-states", "label": "Heat states", "tag": "region", "level": "order-life", "info": {"initial": "kept-hot"}}]]]
  },
  "parcel-locker": {

@@ -22,6 +22,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_copies import copies  # noqa: E402
 from contract_levels import nested  # noqa: E402
+from tex_mathml import SUBSET, formulas, mathml, unformulated  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 CATALOGUE = json.loads((HERE.parent / "assets" / "tags.json").read_text())
@@ -67,7 +68,8 @@ RULES = {
     "name-english": "a title, a label and a term are English and hold no Korean letter, the contract's, a level's and a scenario's title and an edge's label included; only a description may be Korean: a purpose, a meaning, an item's text, a step's note, a statement, a question",
     "korean-text": "a description that holds Korean keeps three forms: after a record's name `{id}` a particle of two forms is written as both, `은(는)`, `이(가)`, `을(를)`, `과(와)` or `(으)로`, since a new label may end in another sound; a sentence that closes with a full stop closes in `니다`; and no space stands before a particle after a name, a quote in backticks or an English word",
     "term-words": "a term's `avoid` lists the other words for its concept, and no text, label or title says one of them outside backticks: one concept keeps one word; an English word counts in any case and with a plural `s` or `es`, a Korean word alone or with a particle after it, and a word inside a longer word does not count; no word is both a term and a word to avoid",
-    "text-plain": "a text names another record as `{id}`, which must exist, no text but a name, a source's words, an item of the code form and a quote in backticks spells the label of a node or an area: it names the record, so a rename reaches it; a label is two words or more, or the subject's own one-word name, and holds no other label and no space at either end, and a node's or an area's closes with no full stop and names no record; and a text holds no markup and no drawing value: outside backticks no `<` opens a word, a slash, `!` or `?`, whatever the word, and there is no hex colour, colour function, length in `px`, `x=` or `y=` number, or style declaration such as `left: 4`; an item of the code form is quoted as it is",
+    "text-plain": "a text names another record as `{id}`, which must exist, no text but a name, a source's words, an item of the code form and a quote in backticks spells the label of a node or an area: it names the record, so a rename reaches it; a label is two words or more, or the subject's own one-word name, and holds no other label and no space at either end, and a node's or an area's closes with no full stop and names no record; and a text holds no markup and no drawing value: outside backticks no `<` opens a word, a slash, `!` or `?`, whatever the word, and there is no hex colour, colour function, length in `px`, `x=` or `y=` number, or style declaration such as `left: 4`; an item of the code form is quoted as it is; every backtick a text opens is closed",
+    "formula": f"a formula in a text, inline as `$...$` or display as `$$...$$`, is written in the subset the page draws: {SUBSET}; the contract's title, an area's or a node's label and a term hold none, since the page draws them as words",
 }
 TOPICS = (
     ("components and their purpose", lambda contract: len(nodes(contract)) - tagged(contract, "nodes", "state")),
@@ -424,6 +426,14 @@ def breaks(contract, root=None):
     quoted = {id(value) for level in contract["levels"] for kind in ("area", "node", "edge") for element in level.get(kind + "s", [])
               for name, value in element.get("info", {}).items() if tag_items(kind, element["tag"]).get(name, {}).get("form") == "code"}
     for where, text in placed(contract, skipped=quoted):
+        for tex, display in formulas(text):
+            try:
+                mathml(tex, display)
+            except ValueError as error:
+                found.append((where, "formula", f"`{tex}` in `{text[:40]}`: {error}; write it with {SUBSET} only, or quote it between backticks"))
+        text = unformulated(text)
+        if re.sub(r"```", "", text).count("`") % 2 or text.count("```") % 2:
+            found.append((where, "text-plain", f"`{text[:40]}` opens a backtick it never closes; close the quote, since the page shows an open one as a mark"))
         for name in REFERENCE.findall(text):
             if name not in labels:
                 found.append((where, "text-plain", f"`{{{name}}}` in `{text[:40]}` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"))
@@ -458,6 +468,9 @@ def breaks(contract, root=None):
     names = [("title", contract["title"])] + [(f"levels/{level['id']}/{kind}/{element['id']}/label", element["label"])
                                               for level in contract["levels"] for kind in ("areas", "nodes") for element in level.get(kind, [])]
     terms = {entry["term"].casefold(): entry["term"] for entry in contract.get("terms", [])}
+    for where, name in names + [(f"terms/{k + 1}/term", entry["term"]) for k, entry in enumerate(contract.get("terms", []))]:
+        if formulas(name):
+            found.append((where, "formula", f"`{name[:40]}` holds a formula; the title, an area's or a node's label and a term draw no formula, so write it in words"))
     for where, name in names + [(f"terms/{k + 1}/term", entry["term"]) for k, entry in enumerate(contract.get("terms", []))] + [pair for pair in said if pair[0].endswith(("/title", "/label"))]:
         if KOREAN.search(name):
             found.append((where, "name-english", f"`{name[:40]}` holds Korean; a title, a label and a term stay English, and only a description may be Korean"))

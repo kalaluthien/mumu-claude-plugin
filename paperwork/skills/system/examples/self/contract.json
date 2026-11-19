@@ -176,7 +176,9 @@
    "level": "skill",
    "area": "outside",
    "purpose": "Rebuild or change {subject} from {contract} alone.",
-   "info": {},
+   "info": {
+    "goal": "Rebuild {subject} with a recall of $\\frac{a}{q}$ near one, where $a$ of the $q$ rebuild questions name the records that answer them."
+   },
    "evidence": [
     "contract-playbook"
    ]
@@ -433,6 +435,7 @@
    "area": "life",
    "purpose": "Mark {contract} as fit for {reader}: each open question is answered or recorded as a gap.",
    "info": {
+    "meaning": "Every rebuild question is settled, by records that answer it or by a gap: $$\\frac{1}{q}\\sum_{i=1}^{q} s_i = 1, \\quad s_i \\in \\{0, 1\\}$$",
     "ignores": [
      "check",
      "gaps"

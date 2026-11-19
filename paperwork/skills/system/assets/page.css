@@ -90,14 +90,36 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
 #card dd { margin: 2px 0 0; word-break: keep-all; }
 #card ul { margin: 0; padding-left: 18px; } #card li + li { margin-top: 2px; }
 #card table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 16px; }
-#card th { text-align: left; font-weight: 500; color: var(--muted-foreground); } #card th, #card td { padding: 4px 8px 4px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
-#card tr:last-child td { border-bottom: 0; }
+#card th { text-align: left; font-weight: 500; color: var(--muted-foreground); } #card th, #card td { padding: 5px 8px 5px 0; border: 0; vertical-align: top; }
+#card tbody tr { transition: background-color .15s var(--ease); } #card tbody tr:hover { background: color-mix(in oklab, var(--muted) 60%, transparent); }
 #card pre, #card code { background: var(--muted); border-radius: 6px; font-size: 12px; } #card pre { margin: 0; padding: 6px 8px; white-space: pre-wrap; } #card code { padding: 1px 4px; }
 #card pre code { padding: 0; background: none; }
 #card footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: 12px; line-height: 16px; white-space: nowrap; }
 #card footer .hints { display: inline-flex; gap: 12px; margin-left: auto; } #card footer .hints span { display: inline-flex; align-items: center; gap: 4px; }
 #card .turn { height: 24px; padding: 0 8px; border: 1px solid var(--border); border-radius: 6px; background: transparent; font-size: 12px; font-weight: 500; cursor: pointer; transition: background-color .15s var(--ease); }
 #card .turn:hover { background: var(--accent); }
+#card .ref { padding: 0 4px; border-radius: 4px; background: color-mix(in oklab, var(--mark) 12%, transparent); cursor: default; transition: background-color .15s var(--ease); }
+#card .ref:hover { background: color-mix(in oklab, var(--mark) 24%, transparent); }
+#card .term { font-style: normal; text-decoration: underline dotted color-mix(in oklab, var(--foreground) 45%, transparent); text-underline-offset: 3px; cursor: help; outline: none; }
+#card .badge { display: inline-flex; padding: 0 6px; border: 1px solid transparent; border-radius: 9999px; font-size: 11px; line-height: 16px; font-weight: 500; vertical-align: 1px; }
+#card .badge.guess, #card .badge.unknown { background: oklch(.95 .06 85); color: oklch(.42 .09 70); }
+#card .badge.broken { background: oklch(.94 .05 25); color: oklch(.45 .17 25); }
+#card .tag.badge { margin: 6px 6px 0 0; padding: 2px 8px; font-size: 12px; vertical-align: baseline; }
+#card .cite { background: transparent; color: var(--foreground); cursor: pointer; font-family: inherit; }
+#card .cite:hover { background: var(--accent); }
+#card pre.fence { margin: 4px 0; overflow-x: auto; white-space: pre; }
+#card math { font-size: 1.05em; }
+#card math[display="block"] { margin: 6px 0; text-align: center; }
+#gloss { position: fixed; z-index: 31; max-width: 360px; padding: 8px 10px; border: 1px solid var(--border); border-radius: calc(var(--radius) * .8); background: var(--popover); box-shadow: var(--shadow-lg); font-size: 12px; line-height: 16px; opacity: 0; pointer-events: none; transition: opacity .12s var(--ease); }
+#gloss.show { opacity: 1; pointer-events: auto; }
+#gloss p { margin: 2px 0 0; } #gloss .source + .source { margin-top: 8px; }
+#gloss code { padding: 1px 4px; border-radius: 6px; background: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+#gloss blockquote { margin: 4px 0 0; padding-left: 8px; border-left: 2px solid var(--border); color: var(--muted-foreground); }
+.stage .named, .stage.playing .named { opacity: 1; }
+.node.named { border-color: var(--mark); box-shadow: 0 0 0 3px color-mix(in oklab, var(--mark) 28%, transparent), var(--shadow-md); }
+.area.named { border-color: var(--mark); }
+.edge.named path.line { stroke: var(--mark); stroke-width: 2.25; opacity: 1; } .edge.named path.head { fill: var(--mark); opacity: 1; }
+.label.named { color: var(--mark); background: var(--accent); z-index: 3; }
 
 #play { left: 50%; bottom: 20px; gap: 2px; transform: translate(-50%, 16px); opacity: 0; pointer-events: none; padding: 0 4px; transition: opacity .2s var(--ease), transform .32s var(--spring); max-width: min(960px, calc(100vw - 32px)); }
 #play.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }

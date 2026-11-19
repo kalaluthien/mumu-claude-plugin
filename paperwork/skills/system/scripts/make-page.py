@@ -12,6 +12,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_levels import nested  # noqa: E402
+from tex_mathml import formulas, key, mathml  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 ASSETS = HERE.parent / "assets"
@@ -35,6 +36,7 @@ PAGE = """<!doctype html>
 </div>
 <aside id="card" role="tooltip"></aside>
 <div id="chip"></div>
+<div id="gloss" role="tooltip"></div>
 <div id="play" class="bar" role="toolbar" aria-label="Scenario">
 <button id="prev" class="tool icon" type="button" aria-label="Previous step" title="Previous step (&larr;)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
 <button id="run" class="tool icon" type="button" aria-label="Play" title="Play or pause (space)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="start" d="M7 4.5v15l12-7.5z" fill="currentColor"/><path class="pause" d="M8 5v14M16 5v14"/></svg></button>
@@ -53,6 +55,7 @@ PAGE = """<!doctype html>
 <script type="application/json" id="page-data">{data}</script>
 <script type="application/json" id="page-threads">{{"threads": {{}}}}</script>
 <script type="application/json" id="page-tags">{tags}</script>
+<script type="application/json" id="page-formulas">{formulas}</script>
 <script>
 {code}
 </script>
@@ -64,6 +67,22 @@ PAGE = """<!doctype html>
 def block(value):
     """JSON that is safe inside a script element."""
     return json.dumps(value, ensure_ascii=False).replace("<", "\\u003c")
+
+
+def drawn(value):
+    """The MathML of each formula a text of VALUE holds, by the name the page looks it up by; an item of the code form may hold TeX the
+    checker never reads, which the page shows as it is."""
+    if isinstance(value, dict):
+        return {name: markup for part in value.values() for name, markup in drawn(part).items()}
+    if isinstance(value, list):
+        return {name: markup for part in value for name, markup in drawn(part).items()}
+    found = {}
+    for tex, display in formulas(value) if isinstance(value, str) else []:
+        try:
+            found[key(tex, display)] = mathml(tex, display)
+        except ValueError:
+            pass
+    return found
 
 
 def main(args):
@@ -78,7 +97,7 @@ def main(args):
     contract = nested(json.loads(source.read_text()))
     title = contract["title"].replace("&", "&amp;").replace("<", "&lt;")
     page = PAGE.format(title=title, style=(ASSETS / "page.css").read_text().strip(), code=(ASSETS / "page.js").read_text().strip(),
-                       data=block(contract), tags=block(json.loads((ASSETS / "tags.json").read_text())))
+                       data=block(contract), tags=block(json.loads((ASSETS / "tags.json").read_text())), formulas=block(drawn(contract)))
     target = pathlib.Path(args[1]) if len(args) == 2 else source.with_name("page.html")
     target.write_text(page)
     print(target)

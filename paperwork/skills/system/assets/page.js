@@ -1,7 +1,7 @@
 (() => {
   "use strict";
   const read = id => JSON.parse(document.getElementById(id).textContent);
-  const TAGS = read("page-tags");
+  const TAGS = read("page-tags"), FORMULAS = read("page-formulas");
   const $ = id => document.getElementById(id);
   const make = (name, attributes = {}, ...children) => {
     const element = document.createElement(name);
@@ -16,7 +16,7 @@
   };
   const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  let contract, records, levelOf, openers, entries, shownLevel = null, boxes = {}, curves = {}, blocks = [], faces = {}, plans = {};
+  let terms = [], contract, records, levelOf, openers, entries, shownLevel = null, boxes = {}, curves = {}, blocks = [], faces = {}, plans = {};
   const view = { level: null, at: null, scenario: null, step: 0 };
 
   // ---- the contract's records ----
@@ -31,16 +31,20 @@
     for (const level of contract.levels) for (const node of level.nodes) if (node.opens) (openers[node.opens] = openers[node.opens] || []).push(node.id);
     for (const scenario of contract.scenarios || []) records[scenario.id] = { kind: "scenario", record: scenario };
     for (const property of contract.properties || []) records[property.id] = { kind: "property", record: property };
+    terms = (contract.terms || []).map(entry => ({ entry, pattern: new RegExp(String.raw`(?<![\p{L}\p{N}./-])` + entry.term.trim().split(/\s+/).map(word => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(String.raw`\s+`)
+      + (/[가-힣]$/.test(entry.term) ? "" : String.raw`(?:e?s)?(?![\p{L}\p{N}-]|[./][\p{L}\p{N}])`), "iu") })); // a Korean term takes a particle after it; a file name is no term
     entries = index();
   }
   const label = id => records[id] ? (records[id].record.label || records[id].record.title || id) : id;
-  const words = (text, code = false) => String(text).replace(/\{([a-z0-9-]+)\}/g, (whole, id, at, all) => { // a named record, with a capital where a sentence opens, never in code
-    if (!records[id]) return whole;
+  // a quote, a formula or a named record in a text; the formula's pattern is tex_mathml.py's, which make-page.py drew each one by
+  const MARKS = /(```[\s\S]*?```|`[^`]+`)|\$\$([^$`]+?)\$\$|\$(?!\{[A-Z_]+\})([^\s$`](?:[^$`]*?[^\s$`])?)\$(?!\d)|\{([a-z0-9-]+)\}/g;
+  const named = (id, at, all, code = false) => { // a named record's label, with a capital where a sentence opens, never in code
     const name = label(id);
     if (/[ㄱ-ㆎ가-힣]/.test(all)) return name.replace(/^(?:an?|the)\s+/i, ""); // Korean has no article and no capital
     const plain = !/[./_\d]|[a-z][A-Z]/.test(name.split(/\s+/)[0]); // a file name stays as written
     return plain && !code && (at === 0 || all.slice(0, at).endsWith(". ")) ? name[0].toUpperCase() + name.slice(1) : name;
-  });
+  };
+  const words = (text, code = false) => String(text).replace(MARKS, (whole, quote, block, inline, id, at, all) => (id && records[id] ? named(id, at, all, code) : whole));
   const bare = text => words(text).replace(/`([^`]+)`/g, "$1"); // text drawn where no code face can show, such as a tooltip, keeps a code span's words without its marks
   const tagName = tag => String(tag).replace(/[A-Z]/g, letter => " " + letter.toLowerCase()); // a tag's id as the words it joins
   const sentence = edge => edge.tag === "transition"
@@ -365,7 +369,7 @@
       group.append(draw("path", { class: "line", d: curves[edge.id].d }), draw("path", { class: "hit", d: curves[edge.id].d }),
         draw("path", { class: "head", d: "M-7,-3.5 L0,0 L-7,3.5 z", transform: `translate(${tip.x},${tip.y}) rotate(${curves[edge.id].turn})` }));
       svg.append(group);
-      const text = make("div", { class: "label", "data-edge": edge.id }, ...prose(edge.label));
+      const text = make("div", { class: "label", "data-edge": edge.id }, ...prose(edge.label, true));
       stage.append(text);
       if (!plans[key].seats[edge.id]) {
         const w = text.offsetWidth, h = text.offsetHeight, best = seat(edge.id, w, h, taken, runs(level.edges.filter(other => other !== edge).map(other => other.id)).concat(frames));
@@ -493,7 +497,7 @@
     bar.replaceChildren();
     path.forEach((id, i) => {
       if (i) bar.append(make("span", { class: "sep" }, "/"));
-      const item = make("button", { type: "button", "data-level": id, ...(i === path.length - 1 ? { "aria-current": "page" } : {}) }, ...prose(records[id].record.title));
+      const item = make("button", { type: "button", "data-level": id, ...(i === path.length - 1 ? { "aria-current": "page" } : {}) }, ...prose(records[id].record.title, true));
       item.addEventListener("click", () => go({ level: id, at: null, scenario: null }));
       bar.append(item);
     });
@@ -541,8 +545,44 @@
     settle(new Set([...lit, ...Object.keys(tone).filter(id => tone[id] === "step" || tone[id] === "next")]), focus);
     if (hovered) card(hovered); else if (view.at) card(view.at); else hide();
   }
-  const quoted = text => words(text, true).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("em", {}, part.slice(1, -1)) : part); // a code span inside code has no code face to take, so it reads as a quoted term
-  const prose = text => words(text).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("code", {}, ...part.slice(1, -1).split(/(?<=\/)/).flatMap((piece, i) => i ? [make("wbr"), piece] : [piece])) : part);
+  const quoted = text => words(text, true).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("em", {}, part.slice(1, -1)) : part); // a code span inside code has no code face to take, so it reads as a literal term
+  let glossed = new Set(); // the terms the card has marked, each at its first match only
+  const spoken = piece => { // a run of prose: a `(guess)` as a badge, and the first match of each term the card has not marked as a term
+    const guess = piece.search(/\(guess\)/i);
+    let first = null;
+    for (const one of terms) if (!glossed.has(one.entry.term)) { const found = one.pattern.exec(piece); if (found && (!first || found.index < first.found.index)) first = { one, found }; }
+    if (guess >= 0 && (!first || guess < first.found.index)) return [...spoken(piece.slice(0, guess)), make("span", { class: "badge guess" }, "guess"), ...spoken(piece.slice(guess + 7))];
+    if (!first) return piece ? [piece] : [];
+    glossed.add(first.one.entry.term);
+    const { index } = first.found, text = first.found[0];
+    return [...spoken(piece.slice(0, index)), make("dfn", { class: "term", tabindex: "0", "data-term": first.one.entry.term, "data-meaning": first.one.entry.meaning }, text), ...spoken(piece.slice(index + text.length))];
+  };
+  const literal = quote => { // a fence as a block that keeps its lines, its first line's language word left out; a span as inline code, broken after each slash
+    if (quote.startsWith("```")) return make("pre", { class: "fence" }, make("code", {}, quote.slice(3, -3).replace(/^[\w+-]*\n/, "").replace(/\n$/, "")));
+    return make("code", {}, ...quote.slice(1, -1).split(/(?<=\/)/).flatMap((piece, i) => i ? [make("wbr"), piece] : [piece]));
+  };
+  const formula = (tex, display) => { // the MathML make-page.py drew, or the TeX as code where it drew none
+    const markup = FORMULAS[(display ? "$$" : "$") + tex];
+    if (!markup) return make("code", {}, tex);
+    const holder = document.createElement("template");
+    holder.innerHTML = markup;
+    return holder.content.firstChild;
+  };
+  const prose = (text, plain = false) => { // a text with its quotes, formulas, named records, terms and guesses drawn; PLAIN, for a text outside a card's rows, draws names as words and marks no term or guess
+    const all = String(text), out = [];
+    let last = 0;
+    for (const found of all.matchAll(MARKS)) {
+      const [whole, quote, block, inline, id] = found;
+      if (id && !records[id]) continue;
+      out.push(...(plain ? [all.slice(last, found.index)].filter(Boolean) : spoken(all.slice(last, found.index))));
+      last = found.index + whole.length;
+      if (quote) out.push(literal(quote));
+      else if (id && plain) out.push(named(id, found.index, all));
+      else if (id) out.push(make("span", { class: "ref", "data-ref": id }, named(id, found.index, all)));
+      else out.push(formula(block || inline, !!block));
+    }
+    return out.concat(plain ? [all.slice(last)].filter(Boolean) : spoken(all.slice(last)));
+  };
   const value = (form, data) => {
     if (form === "list" && Array.isArray(data)) return [make("ul", {}, ...data.map(item => make("li", {}, ...prose(item))))];
     if (form === "table" && data && data.columns) {
@@ -559,16 +599,16 @@
   };
   function rows(id) {
     const { kind, record } = records[id], list = [], add = (name, form, data) => data !== undefined && data !== null && data !== "" && list.push([name, form, data]);
-    if (kind === "edge") add(record.tag === "transition" ? "transition" : "sentence", "text", sentence(record));
-    if (kind === "property") { add("statement", "text", record.statement); add("on", "list", (record.on || []).map(label)); add("fault", "text", record.fault); }
-    if (kind === "scenario") add("steps", "list", record.steps.map(step => label(step.at) + (step.note ? " · " + step.note : "")));
+    if (kind === "edge") add(record.tag === "transition" ? "transition" : "sentence", "text", record.tag === "transition" ? `{${record.from}} → {${record.to}} on ${record.label}` : `{${record.from}} ${record.label} {${record.to}}.`);
+    if (kind === "property") { add("statement", "text", record.statement); add("on", "list", (record.on || []).map(one => `{${one}}`)); add("fault", "text", record.fault); }
+    if (kind === "scenario") add("steps", "list", record.steps.map(step => `{${step.at}}` + (step.note ? " · " + step.note : "")));
     add("purpose", "text", record.purpose);
     const items = TAGS[kind] && TAGS[kind][record.tag] ? TAGS[kind][record.tag].items.concat(TAGS.common[kind] || []) : [];
     for (const [name, data] of Object.entries(record.info || {})) {
       const item = items.find(one => one.name === name);
-      add(item ? item.label : name, item ? item.form : Array.isArray(data) ? "list" : "text", name === "initial" ? label(data) : data);
+      add(item ? item.label : name, item ? item.form : Array.isArray(data) ? "list" : "text", name === "initial" ? `{${data}}` : data);
     }
-    if (record.opens) add("opens", "text", words(label(record.opens)));
+    if (record.opens) add("opens", "text", `{${record.opens}}`);
     if (record.evidence) add("evidence", "list", record.evidence.map(entry => {
       const [source, line] = entry.split(":"), known = (contract.sources || []).find(one => one.id === source);
       return (known ? known.path : source) + (line ? ":" + line : "");
@@ -615,9 +655,11 @@
     const { kind, record } = records[id], box = $("card"), kept = view.at === id, all = rows(id);
     if (box.dataset.for !== id) leaf = 0;
     const tags = make("div", {}, make("span", { class: "tag fill" }, tagName(record.tag || record.kind || kind)));
-    for (const extra of [record.basis, record.strength, record.status, record.many ? "many" : ""]) if (extra) tags.append(make("span", { class: "tag" }, extra));
+    for (const extra of [record.basis, record.strength, record.many ? "many" : ""]) if (extra) tags.append(make("span", { class: "tag" }, extra));
+    if (record.status && record.status !== "holds") tags.append(make("span", { class: `tag badge ${record.status}` }, record.status)); // a settled statement needs no mark
+    if (record.evidence) tags.append(make("button", { class: "tag cite", type: "button", "aria-label": "Sources" }, `${record.evidence.length} ${record.evidence.length === 1 ? "source" : "sources"}`));
     const list = make("dl"), foot = make("footer", {}, make("kbd", {}, "esc"));
-    box.replaceChildren(make("h2", {}, ...prose(record.label || record.title || record.id)), tags, list, foot);
+    box.replaceChildren(make("h2", {}, ...prose(record.label || record.title || record.id, true)), tags, list, foot);
     box.dataset.for = id;
     box.classList.toggle("kept", kept);
     const limit = Math.floor(Math.min(innerHeight * .46, 400));
@@ -625,6 +667,7 @@
       box.classList.remove("long");
       box.style.maxHeight = "none";
       list.replaceChildren();
+      glossed = new Set();
       let to = from;
       for (; to < all.length && to - from < most; to++) {
         const [name, form, data] = all[to];
@@ -664,9 +707,38 @@
     box.style.bottom = innerHeight - at.bottom + "px"; // the foot, and the button that turns the pages, stay put as the pages turn
     box.classList.add("show");
   }
+  const toward = id => { // ID when the shown level holds it, else the node of the shown level that opens the levels down to ID's level, or nothing
+    if (!records[id] || !["node", "edge", "area", "level"].includes(records[id].kind)) return null;
+    let one = id;
+    for (let level = home(id), seen = new Set(); level !== view.level; seen.add(level), level = levelOf[one]) {
+      one = (openers[level] || [])[0];
+      if (!one || seen.has(level)) return null;
+    }
+    return one;
+  };
+  function light(id) { // the record a chip in the card names, marked in the diagram
+    const stage = $("stage"), one = id && toward(id);
+    stage.querySelectorAll(".named").forEach(element => element.classList.remove("named"));
+    if (one) stage.querySelectorAll(`[data-id="${one}"], .label[data-edge="${one}"]`).forEach(element => element.classList.add("named"));
+  }
+  function gloss(anchor, ...children) { // a note over the card, above what it explains or else below it
+    const box = $("gloss"), at = anchor.getBoundingClientRect();
+    box.replaceChildren(...children);
+    box.classList.add("show");
+    const w = box.offsetWidth, h = box.offsetHeight;
+    box.style.left = Math.min(Math.max(8, at.left), innerWidth - w - 8) + "px";
+    box.style.top = (at.top - h - 6 >= 8 ? at.top - h - 6 : Math.min(at.bottom + 6, innerHeight - h - 8)) + "px";
+  }
+  const unGloss = () => { $("gloss").classList.remove("show"); $("gloss").replaceChildren(); };
+  const sources = record => record.evidence.map(entry => { // each source a record cites, by its path and the line cited, with what it says
+    const [source, line] = entry.split(":"), known = (contract.sources || []).find(one => one.id === source);
+    return make("div", { class: "source" }, make("code", {}, (known ? known.path : source) + (line ? ":" + line : "")), ...(known && known.says ? [make("blockquote", {}, words(known.says))] : []));
+  });
   const halt = () => { clearTimeout(rest); clearTimeout(leave); };
   function hide() {
     halt();
+    unGloss();
+    light(null);
     $("card").classList.remove("show"); $("card").dataset.for = "";
   }
   function hover(id) {
@@ -692,7 +764,7 @@
   function transport() {
     const bar = $("play"), scenario = records[view.scenario].record, steps = scenario.steps, ended = view.step === steps.length;
     bar.querySelector(".count").textContent = ended ? "Done" : `${view.step + 1}/${steps.length}`;
-    bar.querySelector(".title").replaceChildren(...prose(scenario.title));
+    bar.querySelector(".title").replaceChildren(...prose(scenario.title, true));
     const dots = bar.querySelector(".dots");
     if (dots.dataset.for !== view.scenario) dots.replaceChildren(...steps.map((one, i) => { // kept while the scenario plays, so a pressed one keeps the focus
       const dot = make("button", { type: "button", "aria-label": `Step ${i + 1}`, title: bare(label(one.at)) });
@@ -723,7 +795,7 @@
     transport();
     if (!step) return;
     if (step.note) {
-      chip.replaceChildren(...prose(step.note));
+      chip.replaceChildren(...prose(step.note, true));
       chip.style.left = chip.style.top = "0px"; // measured where the window's edge cuts no line short
       const at = beside(step.at, chip.offsetWidth, chip.offsetHeight, 12, true); // a note is small enough to keep off every node
       chip.style.left = at.left + "px";
@@ -927,6 +999,21 @@
     });
     $("diagram").addEventListener("click", event => { if (event.target === $("diagram") || event.target === stage) go({ at: null }); });
     $("card").addEventListener("pointerenter", halt);
+    $("card").addEventListener("pointerover", event => {
+      const chip = event.target.closest(".ref"), term = event.target.closest(".term");
+      if (chip) light(chip.dataset.ref);
+      if (term) gloss(term, make("strong", {}, term.dataset.term), make("p", {}, ...prose(term.dataset.meaning, true)));
+    });
+    $("card").addEventListener("pointerout", event => {
+      if (event.target.closest(".ref") && !(event.relatedTarget && event.relatedTarget.closest && event.relatedTarget.closest(".ref"))) light(null);
+      if (event.target.closest(".term")) unGloss();
+    });
+    $("card").addEventListener("click", event => {
+      const cite = event.target.closest(".cite"), shown = $("gloss").classList.contains("show") && $("gloss").dataset.for === $("card").dataset.for;
+      if (!cite || shown) return unGloss();
+      gloss(cite, ...sources(records[$("card").dataset.for].record));
+      $("gloss").dataset.for = $("card").dataset.for;
+    });
     $("card").addEventListener("pointerleave", () => { if (hovered) unhover(); });
     $("search").addEventListener("click", () => ask());
     $("scenarios").addEventListener("click", () => ask("Scenarios"));

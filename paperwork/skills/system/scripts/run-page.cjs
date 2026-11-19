@@ -3,8 +3,8 @@
 // 1920 by 1080 pixels, and drive it as a person with a pointer and a keyboard would.
 // Each page's timers run on a clock the run turns forward, so a step waits on the page and never sleeps.
 //
-// usage: run-page.cjs [diagram] [overlay] [fit] [clear] [moves] [changes] [search] [tasks] [sweep]
-// With no word it runs the nine steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
+// usage: run-page.cjs [diagram] [overlay] [fit] [clear] [moves] [changes] [search] [tasks] [sweep] [names] [glosses] [badges] [formulas] [code] [tables]
+// With no word it runs the fifteen steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
 // step's seconds, then `PASS in <seconds> s` or `FAIL in <seconds> s` for the whole run, and exits 1 on a failure
 // and 2 on a word it does not know.
 //   diagram  make-page.py builds each example's page and it equals the built page kept beside the contract; a
@@ -66,6 +66,22 @@
 //            when a page was sent to any address but each level's once or the run launched a second browser, and
 //            unless it reports four faults it makes itself: a node's box removed, a form's rows removed, a console
 //            error and a scenario a step short.
+//   names    on each example page a kept card's chip for a record its text names as `{id}` marks that record in the diagram, and
+//            one for a record of a level below marks the node of the card's level that opens it, which one example at least holds;
+//            an edge's sentence, an opener's opens row and an area's initial row name their records as chips.
+//   glosses  on each example page the first match of each term in a kept card is marked once, and the pointer on it shows the
+//            term's meaning; a click on a card's sources mark shows each cited source's path and what it says; on a copy of the
+//            first example a term is marked capitalised and plural, its meaning draws its formula and code, and a crumb, a
+//            scenario's title and a step's note mark no term, chip or guess.
+//   badges   on a copy of the first example, a text holding `(guess)` and a property whose status is unknown or broken each show
+//            a badge naming that state, and a property that holds shows none.
+//   formulas the example that holds formulas draws an inline one as MathML on its sentence's line and a display one centered on
+//            its own line, with no TeX left; on a copy of the first example, the planted formulas draw a fraction, a root, a sum,
+//            each script, Greek letters and relations; check-contract.py refuses a copy whose formula holds `\foo`.
+//   code     on that copy, a backtick span draws as inline code on its sentence's line and a fence as a block keeping its line
+//            breaks and indent, with no backtick shown.
+//   tables   on each example page a kept card's table draws no line on the table, its rows or its cells, and its header reads
+//            apart from its rows by a muted, heavier text.
 // overlay and moves also read each transition: its timing is not linear, and under reduced motion it only fades,
 // each part hidden where it is shown; moves holds a level move part-way: no overlay rises until the level has arrived,
 // and a move turned back goes on from the level still seen.
@@ -78,7 +94,7 @@ const { spawnSync } = require("child_process");
 const ROOT = path.resolve(__dirname, "..");
 const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
 const SIZES = [[1024, 768], [1440, 900], [1920, 1080]];
-const STEPS = ["diagram", "overlay", "fit", "clear", "moves", "changes", "search", "tasks", "sweep"];
+const STEPS = ["diagram", "overlay", "fit", "clear", "moves", "changes", "search", "tasks", "sweep", "names", "glosses", "badges", "formulas", "code", "tables"];
 const REFUSED = ["area-known-no-node", "form-level-without-node", "form-empty-steps", "info-form-empty-code", "info-form-empty-list", "info-form-empty-text"]; // empty shapes no page has to draw, since the checker refuses them
 const KINDS = ["exact", "initials", "misspelt", "two-fields", "id", "korean-layout"];
 const asked = process.argv.slice(2);
@@ -1058,6 +1074,287 @@ async function sweep(browser) {
   console.log(`${swept.map((example) => example.name).join(", ")} of ${passing.length} contracts the checker passes, ${levels} levels, ${forms.size} forms, ${swept.reduce((sum, example) => sum + (example.contract.scenarios || []).length, 0)} scenarios; refused by the checker and left out: ${REFUSED.join(", ")}`);
 }
 
+// ---- card words ----
+const REFERENCE = /\{([a-z0-9-]+)\}/g;
+const kept = async (browser, example, id, level) => { // the page of EXAMPLE with ID's card kept open on LEVEL
+  const page = await open(browser, example, SIZES[1], { at: `#level=${level}&at=${id}` });
+  await settled(page);
+  check(await page.evaluate(CARDED, id), `${example.name} ${id}: no card is kept open at #level=${level}&at=${id}`);
+  return page;
+};
+const written = (record) => { // every text of a record a card draws as prose, with the record's own id taken out of what it names
+  const texts = [];
+  const walk = (value) => (typeof value === "string" ? texts.push(value) : value && typeof value === "object" && Object.values(value).forEach(walk));
+  walk([record.purpose, record.label, record.statement, record.fault, record.info]);
+  return texts;
+};
+const records = (example) => example.contract.levels.flatMap((level) => grouped(level).flatMap(([kind, group]) => group.map((record) => ({ kind, record, level: level.id }))));
+const openers = (example) => Object.fromEntries(example.contract.levels.flatMap((level) => level.nodes.filter((node) => node.opens).map((node) => [node.opens, { id: node.id, level: level.id }])));
+const spoken = (example, text) => { // TEXT as a card reads it: each named record by its label, in any case
+  const labels = Object.fromEntries(records(example).map(({ record }) => [record.id, record.label]).concat(example.contract.levels.map((level) => [level.id, level.title])));
+  return String(text).replace(REFERENCE, (whole, id) => labels[id] || whole).replace(/^(?:an?|the)\s+/i, "").toLowerCase();
+};
+async function nameChips(browser) {
+  let crossed = 0;
+  await Promise.all(examples.map(async (example) => {
+    const ends = (list) => [ // a row the card builds from a record's own fields names each record it points to as a chip
+      ...list.filter(({ kind }) => kind === "edge").slice(0, 1).map(({ record, level }) => ({ record, level, names: [record.from, record.to], row: "sentence" })),
+      ...list.filter(({ record }) => record.opens).slice(0, 1).map(({ record, level }) => ({ record, level, names: [record.opens], row: "opens" })),
+      ...list.filter(({ record }) => record.info && record.info.initial).slice(0, 1).map(({ record, level }) => ({ record, level, names: [record.info.initial], row: "initial" }))];
+    const built = ends(records(example));
+    check(built.length === 3, `${example.name} holds no edge, no opener or no area with an initial state`);
+    for (const { record, level, names, row } of built) {
+      const page = await kept(browser, example, record.id, level), found = new Set();
+      for (let leaf = 0; leaf < 12; leaf++) {
+        const seen = await page.evaluate((names) => ({ chips: names.filter((id) => document.querySelector(`#card dd .ref[data-ref="${id}"]`)), turn: (document.querySelector("#card .turn") || {}).textContent || "" }), names);
+        seen.chips.forEach((id) => found.add(id));
+        const [, to, of] = seen.turn.match(/(\d+) of (\d+)/) || [];
+        if (found.size === names.length || !to || to === of) break;
+        await page.evaluate(() => document.querySelector("#card .turn").click()); // the More rows press itself is the clear step's to check
+        await rest(page);
+      }
+      const missed = names.filter((id) => !found.has(id));
+      check(!missed.length, `${example.name} ${record.id}: its ${row} row names ${missed.join(", ")} with no chip`);
+      quiet(page, `${example.name} ${record.id}`);
+      await page.context().close();
+    }
+    const doors = openers(example), all = records(example);
+    const pairs = all.flatMap(({ record, level }) => [...new Set(written(record).flatMap((text) => [...text.matchAll(REFERENCE)].map((match) => match[1])))]
+      .filter((id) => id !== record.id && example.levelOf[id]).map((id) => ({ record, level, id, at: example.levelOf[id] === level ? id : doors[example.levelOf[id]] && doors[example.levelOf[id]].level === level ? doors[example.levelOf[id]].id : null }))
+      .filter((pair) => pair.at));
+    const same = pairs.filter((pair) => pair.at === pair.id), cross = pairs.filter((pair) => pair.at !== pair.id);
+    check(same.length, `${example.name}: no card text names a record of its own level`);
+    for (const [group, what] of [[same, "of its own level"], [cross, "of a level below"]]) {
+      let tried = 0;
+      for (const pair of group.slice(0, 8)) {
+        const page = await kept(browser, example, pair.record.id, pair.level), chip = page.locator(`#card .ref[data-ref="${pair.id}"]`).first();
+        if (!(await chip.count())) { await page.context().close(); continue; } // a row on a later page of the card
+        check(await chip.evaluate((one) => getComputedStyle(one).backgroundColor !== "rgba(0, 0, 0, 0)"), `${example.name} ${pair.record.id}: the chip for ${pair.id} looks like the words around it`);
+        await chip.hover();
+        const marked = await page.evaluate(({ at, id }) => ({ at: [...document.querySelectorAll(`#stage [data-id="${at}"]`)].some((one) => one.classList.contains("named")), all: document.querySelectorAll("#stage .named").length, card: document.getElementById("card").dataset.for === id }), { at: pair.at, id: pair.record.id });
+        check(marked.card, `${example.name} ${pair.record.id}: the card closed when the pointer rested on its chip for ${pair.id}`);
+        check(marked.at, `${example.name} ${pair.record.id}: the chip for ${pair.id}, a record ${what}, marks ${marked.all ? "another record" : "nothing"} in the diagram, not ${pair.at}`);
+        await page.mouse.move(2, SIZES[1][1] - 2, { steps: 2 });
+        check(await page.evaluate(() => !document.querySelector("#stage .named")), `${example.name} ${pair.record.id}: the chip's mark stays once the pointer leaves it`);
+        await chip.hover();
+        await page.keyboard.press("Escape");
+        await rest(page);
+        check(await page.evaluate(() => !document.querySelector("#stage .named")), `${example.name} ${pair.record.id}: the chip's mark stays once Escape closes its card`);
+        quiet(page, `${example.name} ${pair.record.id}`);
+        await page.context().close();
+        tried += 1;
+        if (group === cross) crossed += 1;
+        break;
+      }
+      check(tried || group === cross, `${example.name}: no kept card shows a chip for a record ${what} on its first page`);
+    }
+  }));
+  check(crossed, "no example shows a chip for a record of a level below the card's");
+}
+async function glosses(browser) {
+  await Promise.all(examples.map(async (example) => {
+    const terms = example.contract.terms || [], sources = Object.fromEntries((example.contract.sources || []).map((one) => [one.id, one]));
+    check(terms.length, `${example.name} holds no term`);
+    const pattern = (term) => new RegExp(String.raw`(?<![\p{L}\p{N}./-])` + term.split(/\s+/).map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(String.raw`\s+`) + String.raw`(?:e?s)?(?![\p{L}\p{N}-]|[./][\p{L}\p{N}])`, "iu");
+    const holder = records(example).find(({ record }) => record.purpose && terms.some((term) => pattern(term.term).test(record.purpose.replace(/`[^`]+`|\$[^$]+\$|\{[a-z0-9-]+\}/g, " "))));
+    check(holder, `${example.name}: no purpose holds a term`);
+    let page = await kept(browser, example, holder.record.id, holder.level);
+    const shown = await page.evaluate(() => [...document.querySelectorAll("#card .term")].map((one) => ({ term: one.dataset.term, text: one.textContent })));
+    check(shown.length, `${example.name} ${holder.record.id}: the card marks no term, though its purpose holds one`);
+    const outside = await page.evaluate(() => [...document.querySelectorAll(".term, .ref, .badge.guess")].filter((one) => !one.closest("#card dl")).map((one) => one.textContent));
+    check(!outside.length, `${example.name}: a label, a crumb or a card title marks ${outside.join(", ")} as a term, a chip or a guess, which belong to a card's rows`);
+    for (const one of shown) {
+      check(terms.some((term) => term.term === one.term) && pattern(one.term).test(one.text), `${example.name} ${holder.record.id}: "${one.text}" is marked as the term ${one.term}`);
+      check(shown.filter((other) => other.term === one.term).length === 1, `${example.name} ${holder.record.id}: the term ${one.term} is marked more than once`);
+    }
+    await page.locator("#card .term").first().hover();
+    await rest(page);
+    const meaning = await page.evaluate(() => { const box = document.getElementById("gloss"); return box.classList.contains("show") && getComputedStyle(box).opacity > 0.5 ? box.textContent : ""; });
+    const wanted = terms.find((term) => term.term === shown[0].term);
+    check(meaning.toLowerCase().includes(spoken(example, wanted.meaning).slice(1)), `${example.name} ${holder.record.id}: the pointer on the term ${wanted.term} shows "${meaning}", not its meaning`);
+    await page.mouse.move(2, SIZES[1][1] - 2, { steps: 2 });
+    check(await page.evaluate(() => !document.getElementById("gloss").classList.contains("show")), `${example.name}: the term's meaning stays once the pointer leaves it`);
+    await page.context().close();
+    const cited = records(example).find(({ record }) => (record.evidence || []).length > 1) || records(example).find(({ record }) => record.evidence);
+    check(cited, `${example.name}: no record cites a source`);
+    page = await kept(browser, example, cited.record.id, cited.level);
+    await page.click("#card .cite");
+    await rest(page);
+    const said = await page.evaluate(() => { const box = document.getElementById("gloss"); return box.classList.contains("show") ? box.textContent.toLowerCase() : ""; });
+    for (const entry of cited.record.evidence) {
+      const source = sources[entry.split(":")[0]];
+      check(source && said.includes(source.path.toLowerCase()) && said.includes(spoken(example, source.says).slice(1)), `${example.name} ${cited.record.id}: a click on its sources mark does not show ${entry}'s path and what it says`);
+    }
+    const other = records(example).find(({ record, level }) => level === cited.level && record.id !== cited.record.id);
+    await page.evaluate(({ level, id }) => { location.hash = `#level=${level}&at=${id}`; }, { level: other.level, id: other.record.id });
+    await settled(page);
+    check(await page.evaluate(() => !document.getElementById("gloss").classList.contains("show")), `${example.name} ${cited.record.id}: its sources stay shown once the kept card turns to ${other.record.id}`);
+    await page.evaluate(({ level, id }) => { location.hash = `#level=${level}&at=${id}`; }, { level: cited.level, id: cited.record.id });
+    await settled(page);
+    await page.click("#card .cite");
+    await rest(page);
+    await page.keyboard.press("Escape");
+    await rest(page);
+    check(await page.evaluate(() => !document.getElementById("gloss").classList.contains("show")), `${example.name} ${cited.record.id}: its sources stay shown once Escape closes the card`);
+    quiet(page, `${example.name} ${cited.record.id}`);
+    await page.context().close();
+  }));
+  const copy = planted();
+  for (const [at, form, said] of [[copy.nodes[0], "capitalised", copy.term[0].toUpperCase() + copy.term.slice(1)], [copy.nodes[1], "plural", copy.term + "s"]]) { // a term is found in any case and with a plural ending
+    const page = await kept(browser, copy.example, at, copy.level);
+    const mark = page.locator(`#card .term[data-term="${copy.term}"]`);
+    check(await mark.count() === 1 && await mark.first().textContent() === said, `marked ${at}: the ${form} term ${said} is not marked as ${copy.term}`);
+    if (await mark.count()) check(await mark.first().evaluate((one) => getComputedStyle(one).textDecorationStyle === "dotted"), `marked ${at}: the term ${said} has no dotted underline, so a reader cannot tell it holds a meaning`);
+    if (form === "plural" && await mark.count()) {
+      await mark.first().hover();
+      await rest(page);
+      const drawn = await page.evaluate(() => { const box = document.getElementById("gloss"); return { math: !!box.querySelector("math"), code: !!box.querySelector("code"), marks: /[`$]/.test(box.textContent) }; });
+      check(drawn.math && drawn.code && !drawn.marks, `marked ${at}: the meaning of ${copy.term} draws ${drawn.math ? "" : "no formula "}${drawn.code ? "" : "no code "}${drawn.marks ? "a backtick or a dollar as text" : ""}`);
+    }
+    quiet(page, `marked ${at}`);
+    await page.context().close();
+  }
+  const story = copy.example.contract.scenarios.find((one) => one.id === copy.story), shown = await open(browser, copy.example, SIZES[0], { at: `#scenario=${story.id}&step=0&level=${copy.example.levelOf[story.steps[0].at]}` });
+  const loose = await shown.evaluate(() => [...document.querySelectorAll(".term, .ref, .badge.guess")].filter((one) => !one.closest("#card dl")).map((one) => one.textContent));
+  check(!loose.length, `marked ${story.id}: a crumb, the scenario's title or its step's note marks ${loose.join(", ")} as a term, a chip or a guess, which belong to a card's rows`);
+  quiet(shown, `marked ${story.id}`);
+  await shown.context().close();
+}
+let marked = null;
+const OUTSIDE = [[String.raw`\foo{x}`, "is outside the subset"], [String.raw`\frac{a`, "is never closed"], ["a}", "closes nothing"], ["x_1_2", "a second `_` on one base"],
+  [String.raw`\frac{a}`, "lacks what it takes"], [String.raw`\text x`, "takes its words in braces"]]; // a formula outside the subset, and the words check-contract.py refuses it with
+function planted() { // a copy of the first example whose cards hold a guess, a property of each status, quotes, a fence and formulas
+  if (marked) return marked;
+  const flat = JSON.parse(fs.readFileSync(examples[0].source, "utf8")), first = flat.levels[0].id, nodes = flat.nodes.filter((node) => node.level === first);
+  check(nodes.length >= 4, `${examples[0].name}'s first level holds under four nodes`);
+  const holds = (flat.properties || []).find((one) => (one.status || "holds") === "holds"), open = (flat.properties || []).filter((one) => one.status !== "holds" && one.status);
+  check(holds && open.length, `${examples[0].name} holds no property that holds or none that is open`);
+  const broken = { ...open[0], id: "planted-broken", status: "broken" };
+  flat.properties.push(broken);
+  const term = flat.terms[0], story = flat.scenarios[0];
+  flat.levels[0].title += ` of each ${term.term}`;
+  story.title += ` for each ${term.term} of {${nodes[0].id}}`;
+  story.steps[0].note = `a ${term.term} of {${nodes[0].id}} (guess)`;
+  term.meaning += String.raw` It weighs $x^2$ and runs \`make-page.py\`.`;
+  nodes[0].purpose = `${term.term[0].toUpperCase()}${term.term.slice(1)} work: run \`make-page.py\` once a writer marks a step (guess).`;
+  nodes[1].purpose = `Read the ${term.term}s in this file:\n\`\`\`yaml\nfirst:\n  second\n\`\`\``;
+  nodes[2].purpose = String.raw`Keep each mark within $\sqrt{x^2 + y_1^2} \le \alpha \cdot \sqrt[3]{\log n}$ of its record.`;
+  nodes[3].purpose = String.raw`Rank each hit by its words: $$\frac{1}{n}\sum_{i=1}^{n} w_i \ne \pi, \quad {a+b}^2 < \infty \text{ for } \Gamma$$`;
+  const source = path.join(scratch, "marked.json"), wrong = path.join(scratch, "marked-wrong.json");
+  fs.writeFileSync(source, JSON.stringify(flat));
+  const refused = JSON.parse(JSON.stringify(flat));
+  refused.nodes.find((node) => node.id === nodes[2].id).purpose = `Keep ${OUTSIDE.map(([tex]) => `$${tex}$`).join(", ")} apart.`;
+  refused.nodes.find((node) => node.id === nodes[3].id).label = String.raw`Rank $x$ hits`;
+  refused.nodes.find((node) => node.id === nodes[0].id).purpose = "Run `make-page.py once a writer marks a step.";
+  fs.writeFileSync(wrong, JSON.stringify(refused));
+  marked = { example: make({ name: "marked", source, built: path.join(scratch, "marked.html") }), wrong, term: term.term, story: story.id, nodes: nodes.slice(0, 4).map((node) => node.id), holds: holds.id, unknown: open.find((one) => one.status === "unknown").id, broken: broken.id, level: first };
+  return marked;
+}
+const homeOf = (copy, property) => (property.on || []).map((id) => copy.example.levelOf[id]).find(Boolean) || copy.level;
+async function badges(browser) {
+  const copy = planted(), properties = Object.fromEntries(copy.example.contract.properties.map((one) => [one.id, one]));
+  const badged = async (id, level) => { const page = await kept(browser, copy.example, id, level); const seen = await page.evaluate(() => [...document.querySelectorAll("#card .badge")].map((one) => (getComputedStyle(one).backgroundColor === "rgba(0, 0, 0, 0)" ? "unfilled " : "") + one.textContent.trim())); quiet(page, `marked ${id}`); await page.context().close(); return seen; };
+  const guess = await badged(copy.nodes[0], copy.level);
+  check(guess.includes("guess"), `a text holding (guess) shows the badges [${guess}], none naming the guess`);
+  for (const state of ["unknown", "broken"]) {
+    const seen = await badged(copy[state], homeOf(copy, properties[copy[state]]));
+    check(seen.includes(state), `a property whose status is ${state} shows the badges [${seen}]`);
+  }
+  const settled = await badged(copy.holds, homeOf(copy, properties[copy.holds]));
+  check(!settled.length, `a property that holds shows the badges [${settled}]`);
+}
+async function formulas(browser) {
+  const self = examples.find((example) => JSON.stringify(example.contract).includes("$$")), copy = planted();
+  check(self, "no example holds a display formula");
+  const read = async (example, id, level) => {
+    const page = await kept(browser, example, id, level);
+    const seen = await page.evaluate(() => {
+      const card = document.getElementById("card"), box = (element) => element.getBoundingClientRect();
+      return [...card.querySelectorAll("math")].map((math) => {
+        const rect = box(math), inner = box(math.firstElementChild), around = math.closest("dd"), text = [...around.childNodes[0].childNodes].filter((node) => node.nodeType === 3 && node.textContent.trim());
+        const lines = text.map((node) => { const range = document.createRange(); range.selectNodeContents(node); return [...range.getClientRects()]; }).flat();
+        return {
+          display: math.getAttribute("display"), shown: getComputedStyle(math).display, parts: [...math.querySelectorAll("*")].map((one) => one.localName), signs: math.textContent,
+          upright: [...math.querySelectorAll('mi[mathvariant="normal"]')].map((one) => one.textContent), grouped: [...math.querySelectorAll("msup")].some((one) => one.firstElementChild.localName === "mrow"),
+          beside: lines.some((line) => line.top < rect.bottom && rect.top < line.bottom), alone: lines.every((line) => line.bottom <= rect.top + 1 || line.top >= rect.bottom - 1),
+          centered: Math.abs((inner.left + inner.right) / 2 - (rect.left + rect.right) / 2) < 2 && rect.width >= around.getBoundingClientRect().width - 2,
+        };
+      }).concat([{ tex: /\$|\\[a-z]/.test(card.querySelector("dl").textContent) }]);
+    });
+    quiet(page, `${example.name} ${id}`);
+    await page.context().close();
+    return seen;
+  };
+  const shape = (seen, where) => {
+    check(!seen.pop().tex, `${where}: the card still shows TeX`);
+    for (const one of seen) {
+      if (one.display === "inline") check(one.beside && !one.shown.startsWith("block"), `${where}: an inline formula is drawn as ${one.shown}, ${one.beside ? "" : "off its sentence's line"}`);
+      else check(one.display === "block" && one.shown.startsWith("block") && one.alone && one.centered, `${where}: a display formula is drawn as ${one.shown}, ${one.alone ? "" : "beside its text, "}${one.centered ? "centered" : "not centered"}`);
+    }
+    return seen;
+  };
+  const found = [];
+  for (const record of records(self).filter(({ record }) => JSON.stringify(record).includes("$"))) found.push(...shape(await read(self, record.record.id, record.level), `${self.name} ${record.record.id}`));
+  check(found.some((one) => one.display === "inline") && found.some((one) => one.display === "block"), `${self.name} draws ${found.length} formulas, not an inline and a display one`);
+  const inline = shape(await read(copy.example, copy.nodes[2], copy.level), "marked inline"), display = shape(await read(copy.example, copy.nodes[3], copy.level), "marked display");
+  check(inline.length === 1 && inline[0].display === "inline" && display.length === 1 && display[0].display === "block", "the planted formulas do not draw as one inline and one display formula");
+  const parts = inline[0].parts.concat(display[0].parts), signs = inline[0].signs + display[0].signs;
+  for (const part of ["mfrac", "msqrt", "mroot", "munderover", "msubsup", "msup", "msub", "mspace", "mtext"]) check(parts.includes(part), `the planted formulas draw no ${part}`);
+  for (const sign of ["∑", "α", "π", "≤", "≠", "<", "∞", "log", "⋅", "Γ"]) check(signs.includes(sign), `the planted formulas draw no ${sign}`);
+  check(!/undefined|null|None/.test(signs), `the planted formulas draw a missing part as text: ${signs}`);
+  check(display[0].upright.includes("Γ") && display[0].grouped, `the planted display formula draws ${display[0].upright.includes("Γ") ? "" : "a capital Greek letter slanted"}${display[0].grouped ? "" : " a braced group's power on its last part alone"}`);
+  const refused = python(path.join(ROOT, "scripts", "check-contract.py"), "check", copy.wrong);
+  check(refused.status === 1, "check-contract.py accepts formulas outside the subset");
+  for (const [tex, why] of OUTSIDE) check(refused.stdout.split("\n").some((line) => line.includes(`formula: \`${tex}\``) && line.includes(why)), `check-contract.py does not refuse the formula ${tex} as one that ${why}`);
+  check(refused.stdout.includes("holds a formula;"), "check-contract.py accepts a label that holds a formula");
+  check(refused.stdout.includes("opens a backtick it never closes"), "check-contract.py accepts a text whose backtick is never closed");
+}
+async function code(browser) {
+  const copy = planted();
+  const page = await kept(browser, copy.example, copy.nodes[0], copy.level);
+  const inline = await page.evaluate(() => {
+    const card = document.getElementById("card"), quote = card.querySelector("dd code"), line = quote && quote.getBoundingClientRect(), before = quote && quote.previousSibling;
+    const range = document.createRange();
+    if (before) range.selectNodeContents(before);
+    return { found: !!quote && !quote.closest("pre"), text: quote ? quote.textContent : "", beside: !!before && [...range.getClientRects()].some((one) => one.top < line.bottom && line.top < one.bottom), ticks: card.querySelector("dl").textContent.includes("`") };
+  });
+  check(inline.found && inline.text === "make-page.py" && inline.beside, `a backtick span draws as ${inline.found ? `code "${inline.text}"${inline.beside ? "" : " off its sentence's line"}` : "no inline code"}`);
+  check(!inline.ticks, "a card with inline code still shows a backtick");
+  await page.context().close();
+  const fenced = await kept(browser, copy.example, copy.nodes[1], copy.level);
+  const block = await fenced.evaluate(() => {
+    const card = document.getElementById("card"), pre = card.querySelector("dd pre"), text = pre && pre.previousSibling, range = document.createRange();
+    if (text) range.selectNodeContents(text);
+    const rect = pre && pre.getBoundingClientRect();
+    return { found: !!pre, text: pre ? pre.textContent : "", space: pre ? getComputedStyle(pre).whiteSpace : "", alone: !!pre && [...range.getClientRects()].every((one) => one.bottom <= rect.top + 1), ticks: card.querySelector("dl").textContent.includes("`") };
+  });
+  check(block.found && block.text === "first:\n  second" && block.space.startsWith("pre") && block.alone, `a fence draws as ${block.found ? `a block holding ${JSON.stringify(block.text)} with white-space ${block.space}${block.alone ? "" : ", beside its text"}` : "no block"}`);
+  check(!block.ticks, "a card with a fence still shows a backtick");
+  quiet(fenced, "marked fence");
+  await fenced.context().close();
+}
+
+async function tables(browser) {
+  await Promise.all(examples.map(async (example) => {
+    const held = records(example).find(({ record }) => JSON.stringify(record.info || {}).includes('"columns"'));
+    check(held, `${example.name}: no card holds a table`);
+    const page = await kept(browser, example, held.record.id, held.level);
+    const shown = () => page.evaluate(() => [...document.querySelectorAll("#card table")].some((one) => one.getClientRects().length));
+    for (let leaf = 0; leaf < 12 && !(await shown()) && (await page.locator("#card .turn").count()); leaf++) await page.click("#card .turn");
+    const seen = await page.evaluate(() => {
+      const table = [...document.querySelectorAll("#card table")].find((one) => one.getClientRects().length);
+      if (!table) return null;
+      const lines = (element) => { const style = getComputedStyle(element); return ["Top", "Right", "Bottom", "Left"].filter((side) => parseFloat(style[`border${side}Width`]) > 0 && style[`border${side}Style`] !== "none" && style[`border${side}Color`] !== "rgba(0, 0, 0, 0)").map((side) => `${element.localName} ${side.toLowerCase()}`); };
+      const head = table.querySelector("th"), cell = table.querySelector("td");
+      return { lines: [...new Set([table, ...table.querySelectorAll("thead, tbody, tr, th, td")].flatMap(lines))], heavier: parseInt(getComputedStyle(head).fontWeight, 10) >= 500, muted: getComputedStyle(head).color !== getComputedStyle(cell).color, rows: table.querySelectorAll("tbody tr").length };
+    });
+    check(seen, `${example.name} ${held.record.id}: the kept card draws no table`);
+    check(!seen.lines.length, `${example.name} ${held.record.id}: the card's table draws lines on ${seen.lines.join(", ")}`);
+    check(seen.heavier && seen.muted, `${example.name} ${held.record.id}: the table's header reads ${seen.muted ? "" : "in the cells' color"}${seen.heavier ? "" : " at a light weight"}, not apart from its rows`);
+    quiet(page, `${example.name} ${held.record.id}`);
+    await page.context().close();
+  }));
+}
 async function main() {
   if (browsers.missing()) {
     console.log(`FAIL setup: ${browsers.missing()}`);
@@ -1068,7 +1365,7 @@ async function main() {
     const names = asked.length ? asked : STEPS;
     if (names.some((name) => name !== "sweep")) build(examples);
     browser = await launch();
-    const steps = { diagram, overlay, fit, clear, moves, changes, search, tasks, sweep };
+    const steps = { diagram, overlay, fit, clear, moves, changes, search, tasks, sweep, names: nameChips, glosses, badges, formulas, code, tables };
     for (const name of names) { // one step at a time, since pages that share a busy machine miss the pointer's timing
       const started = Date.now(), line = await steps[name](browser).then(() => `PASS ${name}`, (error) => `FAIL ${name}: ${error.message.split("\n")[0]}`);
       failed += line.startsWith("FAIL");
